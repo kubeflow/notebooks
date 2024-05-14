@@ -1,5 +1,7 @@
 name: "workspaces/controller: unit-tests"
 
+permissions: {}
+
 on:
   push:
     branches: [ "main", "notebooks-v2" ]
