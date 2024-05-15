@@ -20,22 +20,41 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
+// Important: Run "make" to regenerate code after modifying this file
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // WorkspaceSpec defines the desired state of Workspace
 type WorkspaceSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of Workspace. Edit workspace_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// if the workspace should be paused (no pods running)
+	//+kubebuilder:default=false
+	//+kubebuilder:validation:Optional
+	Paused bool `json:"paused,omitempty"`
+
+	// the WorkspaceKind to use
+	//+kubebuilder:validation:MinLength:=2
+	//+kubebuilder:validation:MaxLength:=63
+	//+kubebuilder:validation:Pattern:=^[a-z0-9][-a-z0-9]*[a-z0-9]$
+	//+kubebuilder:example="jupyter-lab"
+	Kind string `json:"kind"`
+
+	// options for "podTemplate"-type WorkspaceKinds
+	PodTemplate PodTemplate `json:"podTemplate"`
 }
 
 // WorkspaceStatus defines the observed state of Workspace
 type WorkspaceStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+
+	// information populated by activity probes, used to determine when to cull
+	Activity Activity `json:"activity"`
+
+	// if the current Pod does not reflect the current "desired" state (after redirects)
+	//+kubebuilder:example=false
+	PendingRestart bool `json:"pendingRestart"`
+
+	// actual "target" podTemplateOptions, taking into account redirects
+	// todo image or imageConfig?
+	PodTemplateOptions Options `json:"podTemplateOptions"`
 }
 
 //+kubebuilder:object:root=true
@@ -61,4 +80,75 @@ type WorkspaceList struct {
 
 func init() {
 	SchemeBuilder.Register(&Workspace{}, &WorkspaceList{})
+}
+
+type PodTemplate struct {
+	// metadata to be applied to the Pod resource
+	//+kubebuilder:validation:Optional
+	PodMetadata PodMetadata `json:"podMetadata,omitempty"`
+
+	// volume configs
+	Volumes PodVolumes `json:"volumes"`
+
+	// spawner options, these are the user-selected options from the Workspace Spawner UI which determine the PodSpec of the Workspace Pod
+	Options Options `json:"options"`
+}
+
+type PodMetadata struct {
+	// labels are required to support the existing PodDefault resources
+	//+kubebuilder:validation:Optional
+	Labels map[string]string `json:"labels,omitempty"`
+
+	// annotations are commonly used to configure other controllers that watch the Pod
+	//+kubebuilder:validation:Optional
+	Annotations map[string]string `json:"annotations,omitempty"`
+}
+
+type PodVolumes struct {
+	// A PVC to mount as the home directory.
+	// This PVC must already exist in the Namespace
+	// This PVC must be RWX (ReadWriteMany, ReadWriteOnce)
+	// Mount path is defined in the WorkspaceKind under `spec.podTemplate.volumeMounts.home`
+	//+kubebuilder:validation:MinLength:=2
+	//+kubebuilder:validation:MaxLength:=63
+	//+kubebuilder:validation:Pattern:=^[a-z0-9][-a-z0-9]*[a-z0-9]$
+	//+kubebuilder:example="my-home-pvc"
+	Home string `json:"home"`
+
+	// additional data PVCs to mount, these PVCs must already exist in the Namespace
+	//+kubebuilder:validation:Optional
+	Data []PodVolumeMount `json:"data,omitempty"`
+}
+
+type PodVolumeMount struct {
+	//+kubebuilder:validation:MinLength:=2
+	//+kubebuilder:validation:MaxLength:=63
+	//+kubebuilder:validation:Pattern:=^[a-z0-9][-a-z0-9]*[a-z0-9]$
+	//+kubebuilder:example="my-data-pvc"
+	Name string `json:"name"`
+
+	//+kubebuilder:validation:MinLength:=2
+	//+kubebuilder:validation:MaxLength:=4096
+	//+kubebuilder:validation:Pattern:=^/[^\0]+$
+	//+kubebuilder:example="/data/my-data"
+	MountPath string `json:"mountPath"`
+}
+
+type Activity struct {
+	//+kubebuilder:example=1710435303
+	LastActivity int64 `json:"lastActivity"`
+
+	//+kubebuilder:example=1710435310
+	LastUpdate int64 `json:"lastUpdate"`
+}
+
+type Options struct {
+	// the id of an image option
+	//  - options are defined in WorkspaceKind under
+	//    `spec.podTemplate.options.imageConfig.values[]`
+	//+kubebuilder:example="jupyter_scipy_170"
+	ImageConfig string `json:"imageConfig"`
+
+	//+kubebuilder:example="big_gpu"
+	PodConfig string `json:"podConfig"`
 }
