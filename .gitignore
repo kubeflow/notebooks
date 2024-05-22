@@ -38,3 +38,6 @@ Sessionx.vim
 .AppleDouble
 .LSOverride
 ._*
+
+## backend
+workspaces/backend/bin
