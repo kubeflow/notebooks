@@ -1,0 +1,86 @@
+name: "workspaces/controller: integration-tests"
+
+permissions: {}
+
+on:
+  push:
+    branches: [ "main", "notebooks-v2", "v*-branch" ]
+  pull_request:
+    paths: [ "workspaces/controller/**" ]
+    branches: [ "main", "notebooks-v2", "v*-branch" ]
+
+jobs:
+
+  "integration-tests":
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - img: "workspace-controller:local"
+
+    steps:
+
+      - uses: actions/checkout@v4
+
+      # https://docs.k0sproject.io/v1.30.0+k0s.0/k0s-in-docker/#start-k0s
+      - name: Start k0s
+        run: |
+          docker run -d --name k0s --hostname k0s --privileged -v /mnt/k0s:/var/lib/k0s -p 6443:6443 --cgroupns=host \
+            docker.io/k0sproject/k0s:v1.30.0-k0s.0 -- k0s controller --enable-worker
+
+      - name: Build Notebook Controller Image
+        run: make docker-build
+        env:
+          IMG: "${{ matrix.img }}"
+        working-directory: workspaces/controller
+
+      # https://docs.k0sproject.io/v1.30.0+k0s.0/airgap-install/#1-create-your-own-image-bundle-optional
+      - name: Deploy image bundle into k0s
+        run: |
+          sudo docker image save "${{ matrix.img }}" -o /mnt/k0s/images/bundle_file
+          # `docker container restart k0s` would work too; this is faster
+          docker exec k0s k0s ctr \
+            --address /run/k0s/containerd.sock \
+            images import /var/lib/k0s/images/bundle_file
+
+      - name: Wait for k0s readiness
+        run: |
+          # wait for kubeconfig
+          docker exec k0s sh -c 'until [ -f /var/lib/k0s/pki/admin.conf ]; do sleep 1; done'
+
+          # install kubeconfig
+          mkdir -p $HOME/.kube
+          docker cp k0s:/var/lib/k0s/pki/admin.conf $HOME/.kube/config
+          until kubectl wait --for=condition=Ready nodes --all; do
+            sleep 3
+          done
+
+          # untaint master, workaround for https://github.com/k0sproject/k0s/issues/4272
+          kubectl taint nodes --all node-role.kubernetes.io/master:NoSchedule-
+
+      - name: Build & Apply manifests
+        run: |
+          # don't try to rebuild manifests before deploy
+          make --assume-old=manifests deploy
+
+          # wait for controller pod to come up, print `kubectl describe` to help diagnose problems
+          thence=$(date +%s)
+          until kubectl wait pods -n workspace-controller-system -l control-plane=controller-manager --for=condition=Ready --timeout=10s; do
+            # print some helpful status in case the pod is not coming up
+            kubectl describe deployments -n workspace-controller-system
+            kubectl describe pods -n workspace-controller-system
+
+            now=$(date +%s)
+            duration=$(( $now - $thence ))
+            if (( $duration > 300 )); then exit 1; fi
+
+            sleep 5
+          done
+          kubectl describe pods -n workspace-controller-system
+        env:
+          IMG: "${{ matrix.img }}"
+        working-directory: workspaces/controller
+
+      - name: Print controller logs
+        if: "${{ ! cancelled() }}"
+        run: kubectl logs -l control-plane=controller-manager -n workspace-controller-system
