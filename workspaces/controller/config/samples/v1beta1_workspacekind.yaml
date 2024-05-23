@@ -2,7 +2,7 @@ apiVersion: kubeflow.org/v1beta1
 kind: WorkspaceKind
 metadata:
   labels:
-    app.kubernetes.io/name: workspaces-controller
+    app.kubernetes.io/name: workspace-controller
     app.kubernetes.io/managed-by: kustomize
   name: workspacekind-sample
 spec:
