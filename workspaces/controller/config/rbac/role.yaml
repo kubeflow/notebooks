@@ -1,0 +1,58 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - kubeflow.org
+  resources:
+  - workspacekinds
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kubeflow.org
+  resources:
+  - workspacekinds/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - kubeflow.org
+  resources:
+  - workspacekinds/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - kubeflow.org
+  resources:
+  - workspaces
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kubeflow.org
+  resources:
+  - workspaces/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - kubeflow.org
+  resources:
+  - workspaces/status
+  verbs:
+  - get
+  - patch
+  - update
