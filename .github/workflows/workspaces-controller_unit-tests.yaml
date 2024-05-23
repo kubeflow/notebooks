@@ -8,7 +8,6 @@ on:
   pull_request:
     paths: [ "workspaces/controller/**" ]
     branches: [ "main", "notebooks-v2", "v*-branch" ]
-  workflow_dispatch:
 
 jobs:
 
