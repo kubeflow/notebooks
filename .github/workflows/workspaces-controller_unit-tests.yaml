@@ -27,3 +27,21 @@ jobs:
       - name: Test
         run: make test
         working-directory: workspaces/controller
+
+  "e2e-tests":
+    runs-on: ubuntu-latest
+    steps:
+
+      - uses: actions/checkout@v4
+
+      - uses: helm/kind-action@v1
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: workspaces/controller/go.mod
+          check-latest: true
+          cache-dependency-path: workspaces/controller/go.sum
+
+      - run: make test-e2e
+        working-directory: workspaces/controller
