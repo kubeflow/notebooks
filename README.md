@@ -32,7 +32,9 @@ Connect with _other users_ and the [Notebooks Working Group](https://github.com/
 
 ## Contributing
 
-We are in the process of moving the Kubeflow Notebooks codebase from [`kubeflow/kubeflow`](https://github.com/kubeflow/kubeflow) to this repository ([`kubeflow/notebooks`](https://github.com/kubeflow/notebooks)).
-For now, please continue to make contributions by raising PRs on `kubeflow/kubeflow`.
+> ⚠️ __Note__ ⚠️
+> 
+> We are currently moving the Kubeflow Notebooks codebase from [`kubeflow/kubeflow`](https://github.com/kubeflow/kubeflow) to this repository ([`kubeflow/notebooks`](https://github.com/kubeflow/notebooks)).
+> For now, please continue to make contributions by raising PRs on `kubeflow/kubeflow`.
 
 Please see the [Contributing to Kubeflow](https://www.kubeflow.org/docs/about/contributing/) page for more information.
