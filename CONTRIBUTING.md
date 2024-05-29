@@ -31,7 +31,14 @@ __The name of your PR must be a semantic commit message__, with one of the follo
 
 To indicate a breaking change, add `!` after the prefix, e.g. `feat!: my commit message`.
 
-Please do NOT include a scope, as we do not use them, for example `feat(feature_name): my commit message`.
+### Scopes
+
+- `nb` (notebooks - web-app, controller, images)
+- `pvc` (volumes - web-app, controller)
+- `tb` (tensorboards - web-app, controller)
+- `ws` (workspaces - frontend, backend, controller,, images)
+
+For example `feat(ws): my commit message`.
 
 ## Sign Your Work
 
