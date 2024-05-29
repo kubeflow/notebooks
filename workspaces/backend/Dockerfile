@@ -16,7 +16,6 @@ COPY cmd/ cmd/
 COPY api/ api/
 COPY config/ config/
 COPY data/ data/
-COPY integrations/ integrations/
 
 # Build the Go application
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o backend ./cmd/main.go
