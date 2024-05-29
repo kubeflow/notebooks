@@ -17,6 +17,7 @@ The contributor's guide
 We use [semantic commits](https://www.conventionalcommits.org/en/v1.0.0/) to help us automatically generate changelogs and release notes.
 
 __The name of your PR must be a semantic commit message__, with one of the following _prefixes_ and one of the following _scopes_:
+### Prefixes
 
 - `fix:` (bug fixes)
 - `feat:` (new features)
