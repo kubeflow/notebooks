@@ -36,7 +36,7 @@ Please do NOT include a scope, as we do not use them, for example `feat(feature_
 
 To certify you agree to the [Developer Certificate of Origin](https://developercertificate.org/) you must sign-off each commit message using `git commit --signoff`, or manually write the following:
 ```text
-This is my commit message
+feat(ws): my commit message`
 
 Signed-off-by: John Smith <john-smith@users.noreply.github.com>
 ```
