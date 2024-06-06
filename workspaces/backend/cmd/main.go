@@ -37,6 +37,7 @@ func main() {
 	app, err := application.NewApp(cfg, logger)
 	if err != nil {
 		logger.Error(err.Error())
+		os.Exit(1)
 	}
 
 	srv := &http.Server{
