@@ -34,7 +34,11 @@ func main() {
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
-	app := application.NewApp(cfg, logger)
+	app, err := application.NewApp(cfg, logger)
+	if err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
+	}
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
@@ -47,7 +51,7 @@ func main() {
 
 	logger.Info("starting server", "addr", srv.Addr)
 
-	err := srv.ListenAndServe()
+	err = srv.ListenAndServe()
 	logger.Error(err.Error())
 	os.Exit(1)
 }

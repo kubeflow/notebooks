@@ -17,8 +17,10 @@ limitations under the License.
 package api
 
 import (
+	"fmt"
 	"github.com/kubeflow/notebooks/workspaces/backend/config"
 	"github.com/kubeflow/notebooks/workspaces/backend/data"
+	"github.com/kubeflow/notebooks/workspaces/backend/integrations"
 	"log/slog"
 	"net/http"
 
@@ -31,17 +33,24 @@ const (
 )
 
 type App struct {
-	config config.EnvConfig
-	logger *slog.Logger
-	models data.Models
+	config           config.EnvConfig
+	logger           *slog.Logger
+	models           data.Models
+	kubernetesClient *integrations.KubernetesClient
 }
 
-func NewApp(cfg config.EnvConfig, logger *slog.Logger) *App {
-	app := &App{
-		config: cfg,
-		logger: logger,
+func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
+	k8sClient, err := integrations.NewKubernetesClient()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
-	return app
+
+	app := &App{
+		config:           cfg,
+		logger:           logger,
+		kubernetesClient: k8sClient,
+	}
+	return app, nil
 }
 
 func (app *App) Routes() http.Handler {
