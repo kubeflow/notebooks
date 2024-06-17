@@ -14,8 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// todo test that examples of crs do validate using these structs
-
 package v1beta1
 
 import (
@@ -47,11 +45,9 @@ type WorkspaceKindStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
-//+genclient
-//+k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:scope=Cluster
 
 // WorkspaceKind is the Schema for the workspacekinds API
 type WorkspaceKind struct {
@@ -61,8 +57,6 @@ type WorkspaceKind struct {
 	Spec   WorkspaceKindSpec   `json:"spec,omitempty"`
 	Status WorkspaceKindStatus `json:"status,omitempty"`
 }
-
-//+k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 //+kubebuilder:object:root=true
 

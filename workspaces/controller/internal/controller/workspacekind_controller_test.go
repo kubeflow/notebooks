@@ -51,8 +51,7 @@ var _ = Describe("WorkspaceKind Controller", func() {
 			if err != nil && errors.IsNotFound(err) {
 				resource := &kubefloworgv1beta1.WorkspaceKind{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      resourceName,
-						Namespace: "default",
+						Name: resourceName,
 					},
 					Spec: kubefloworgv1beta1.WorkspaceKindSpec{
 						Spawner: kubefloworgv1beta1.Spawner{
