@@ -111,7 +111,7 @@ var _ = Describe("WorkspaceKind Controller", func() {
 									Values: []kubefloworgv1beta1.ImageConfigValue{
 										{
 											Id: "jupyter_scipy_170",
-											Spawner: kubefloworgv1beta1.ImageConfigSpawner{
+											Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 												DisplayName: "jupyter-scipy:v1.7.0",
 												Description: "JupyterLab 1.7.0, with SciPy Packages",
 												Hidden:      true,
@@ -122,11 +122,11 @@ var _ = Describe("WorkspaceKind Controller", func() {
 											},
 											Spec: kubefloworgv1beta1.ImageConfigSpec{
 												Image: "docker.io/kubeflownotebookswg/jupyter-scipy:v1.7.0",
-												Ports: []v1.EndpointPort{
+												Ports: []kubefloworgv1beta1.ImagePort{
 													{
-														Name:     "JupyterLab",
-														Port:     8888,
-														Protocol: "HTTP",
+														DisplayName: "JupyterLab",
+														Port:        8888,
+														Protocol:    "HTTP",
 													},
 												},
 											},
@@ -138,7 +138,7 @@ var _ = Describe("WorkspaceKind Controller", func() {
 									Values: []kubefloworgv1beta1.PodConfigValue{
 										{
 											Id: "small_cpu",
-											Spawner: kubefloworgv1beta1.PodConfigSpawner{
+											Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 												DisplayName: "Small CPU",
 												Description: "Pod with 1 CPU, 2 GB RAM, and 1 GPU",
 												Hidden:      false,

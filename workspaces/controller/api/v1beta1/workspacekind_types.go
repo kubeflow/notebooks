@@ -73,10 +73,14 @@ func init() {
 
 type Spawner struct {
 	// the display name of the WorkspaceKind
+	//+kubebuilder:validation:MinLength:=2
+	//+kubebuilder:validation:MaxLength:=128
 	//+kubebuilder:example:="JupyterLab Notebook"
 	DisplayName string `json:"displayName"`
 
 	// the description of the WorkspaceKind
+	//+kubebuilder:validation:MinLength:=2
+	//+kubebuilder:validation:MaxLength:=4096
 	//+kubebuilder:example:="A Workspace which runs JupyterLab in a Pod"
 	Description string `json:"description"`
 
@@ -90,8 +94,10 @@ type Spawner struct {
 	Deprecated bool `json:"deprecated,omitempty"`
 
 	// a message to show in Workspace Spawner UI when the WorkspaceKind is deprecated
-	//+kubebuilder:example:="This WorkspaceKind will be removed on 20XX-XX-XX, please use another WorkspaceKind."
 	//+kubebuilder:validation:Optional
+	//+kubebuilder:validation:MinLength:=2
+	//+kubebuilder:validation:MaxLength:=256
+	//+kubebuilder:example:="This WorkspaceKind will be removed on 20XX-XX-XX, please use another WorkspaceKind."
 	DeprecationMessage string `json:"deprecationMessage,omitempty"`
 
 	// a small (favicon-sized) icon of the WorkspaceKind used in the Workspaces overview table
@@ -128,12 +134,6 @@ type WorkspaceKindPodTemplate struct {
 	//
 	// The following string templates are available:
 	//   - .PathPrefix: the path prefix of the Workspace (e.g. '/workspace/{profile_name}/{workspace_name}/')
-	//
-	// For example, to enable backwards compatibility with the old Jupyter images, from Kubeflow Notebooks 1.8
-	//  (https://github.com/kubeflow/kubeflow/blob/v1.8.0/components/example-notebook-servers/jupyter/s6/services.d/jupyterlab/run#L12)
-	//
-	//	- name: "NB_PREFIX"
-	//	  value: "{{ .PathPrefix }}"
 	ExtraEnv []v1.EnvVar `json:"extraEnv,omitempty"`
 
 	// options are the user-selectable fields, they determine the PodSpec of the Workspace
@@ -162,13 +162,18 @@ type WorkspaceKindConfigMap struct {
 
 // metadata for Workspace Pods (MUTABLE)
 type WorkspaceKindPodMetadata struct {
-	Labels      map[string]string `json:"labels,omitempty"`
+	// labels to be applied to the Pod resource
+	Labels map[string]string `json:"labels,omitempty"`
+
+	// annotations to be applied to the Pod resource
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 type ServiceAccount struct {
 	// the name of the ServiceAccount; this Service Account MUST already exist in the Namespace of the Workspace,
 	//  the controller will NOT create it. We will not show this WorkspaceKind in the Spawner UI if the SA does not exist in the Namespace.
+	//+kubebuilder:validation:Required
+	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="ServiceAccount 'name' is immutable"
 	//+kubebuilder:example="default-editor"
 	Name string `json:"name"`
 }
@@ -179,8 +184,9 @@ type WorkspaceKindCullingConfig struct {
 	Enabled bool `json:"enabled,omitempty"`
 
 	// the maximum number of seconds a Workspace can be inactive
+	//+kubebuilder:validation:Minimum:=60
 	//+kubebuilder:default=86400
-	MaxInactiveSeconds int `json:"maxInactiveSeconds,omitempty"`
+	MaxInactiveSeconds int64 `json:"maxInactiveSeconds,omitempty"`
 
 	// the probe used to determine if the Workspace is active
 	//+kubebuilder:validation:Required
@@ -200,11 +206,13 @@ type WorkspaceKindActivityProbe struct {
 }
 
 type WorkspaceKindActivityProbeExec struct {
-	//+kubebuilder:example={"bash", "-c", "exit 0"}
 	//+kubebuilder:validation:Required
+	//+kubebuilder:validation:MinItems:=1
+	//+kubebuilder:example={"bash", "-c", "exit 0"}
 	Command []string `json:"command"`
 }
 
+// +kubebuilder:validation:XValidation:message="'lastActivity' must be true",rule="has(self.lastActivity) && self.lastActivity"
 type WorkspaceKindActivityProbeJupyter struct {
 	//+kubebuilder:example=true
 	//+kubebuilder:validation:Required
@@ -223,9 +231,11 @@ type Probes struct {
 }
 
 type VolumeMounts struct {
+	//+kubebuilder:validation:Required
 	//+kubebuilder:validation:MinLength:=2
 	//+kubebuilder:validation:MaxLength:=4096
-	//+kubebuilder:validation:Pattern:=^/[^\0]+$
+	//+kubebuilder:validation:Pattern:=^/[^/].*$
+	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="mount path of 'home' is immutable"
 	//+kubebuilder:example:="/home/jovyan"
 	Home string `json:"home"`
 }
@@ -237,8 +247,10 @@ type HTTPProxy struct {
 	//+kubebuilder:validation:Optional
 	RemovePathPrefix bool `json:"removePathPrefix,omitempty"`
 
-	// header manipulation rules for incoming HTTP requests, sets the spec.http[].headers.request of the Istio VirtualService
-	//  https://istio.io/latest/docs/reference/config/networking/virtual-service/#Headers-HeaderOperations
+	// header manipulation rules for incoming HTTP requests
+	//
+	// Sets the `spec.http[].headers.request` of the Istio VirtualService:
+	// https://istio.io/latest/docs/reference/config/networking/virtual-service/#Headers-HeaderOperations
 	//
 	// The following string templates are available:
 	//  - .PathPrefix: the path prefix of the Workspace (e.g. '/workspace/{profile_name}/{workspace_name}/')
@@ -255,14 +267,6 @@ type RequestHeader struct {
 	Remove []string `json:"remove,omitempty"`
 }
 
-type ExtraEnv struct {
-	//+kubebuilder:example:="NB_PREFIX"
-	Name string `json:"name"`
-
-	//+kubebuilder:example:="{{ .PathPrefix }}"
-	Value string `json:"value"`
-}
-
 type KindOptions struct {
 	// imageConfig options determine the container image
 	ImageConfig ImageConfig `json:"imageConfig"`
@@ -277,6 +281,10 @@ type ImageConfig struct {
 	Default string `json:"default"`
 
 	// the list of image configs that are available to choose from
+	//+kubebuilder:validation:Required
+	//+kubebuilder:validation:MinItems:=1
+	//+listType:="map"
+	//+listMapKey:="id"
 	Values []ImageConfigValue `json:"values"`
 }
 
@@ -284,7 +292,7 @@ type ImageConfigValue struct {
 	//+kubebuilder:example:="jupyter_scipy_171"
 	Id string `json:"id"`
 
-	Spawner ImageConfigSpawner `json:"spawner"`
+	Spawner OptionSpawnerInfo `json:"spawner"`
 
 	//+kubebuilder:validation:Optional
 	Redirect OptionRedirect `json:"redirect,omitempty"`
@@ -292,16 +300,20 @@ type ImageConfigValue struct {
 	Spec ImageConfigSpec `json:"spec"`
 }
 
-type ImageConfigSpawner struct {
-	//+kubebuilder:example:="jupyter-scipy:v1.7.0"
+type OptionSpawnerInfo struct {
+	//+kubebuilder:validation:Required
+	//+kubebuilder:validation:MinLength:=2
+	//+kubebuilder:validation:MaxLength:=128
 	DisplayName string `json:"displayName"`
 
-	//+kubebuilder:example:="JupyterLab 1.7.0, with SciPy Packages"
-	Description string `json:"description"`
-
-	// if this ImageConfig should be hidden from the Workspace Spawner UI
-	//+kubebuilder:default:=false
 	//+kubebuilder:validation:Optional
+	//+kubebuilder:validation:MinLength:=2
+	//+kubebuilder:validation:MaxLength:=1024
+	Description string `json:"description,omitempty"`
+
+	// if this option should be hidden from the Workspace Spawner UI
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:default:=false
 	Hidden bool `json:"hidden,omitempty"`
 }
 
@@ -315,12 +327,38 @@ type OptionRedirect struct {
 
 type ImageConfigSpec struct {
 	// the container image to use
+	//+kubebuilder:validation:Required
+	//+kubebuilder:validation:MinLength:=2
 	//+kubeflow:example="docker.io/kubeflownotebookswg/jupyter-scipy:v1.7.0"
 	Image string `json:"image"`
 
 	// ports that the container listens on, currently, only HTTP is supported for `protocol`
 	//  if multiple ports are defined, the user will see multiple "Connect" buttons in a dropdown menu on the Workspace overview page
-	Ports []v1.EndpointPort `json:"ports"`
+	//+kubebuilder:validation:Required
+	//+kubebuilder:validation:MinItems:=1
+	Ports []ImagePort `json:"ports"`
+}
+
+type ImagePort struct {
+	// the display name of the port
+	//+kubebuilder:validation:Required
+	//+kubebuilder:validation:MinLength:=2
+	//+kubebuilder:validation:MaxLength:=64
+	//+kubebuilder:example:="JupyterLab"
+	DisplayName string `json:"displayName"`
+
+	// the port number
+	//+kubebuilder:validation:Required
+	//+kubebuilder:validation:Minimum:=1
+	//+kubebuilder:validation:Maximum:=65535
+	//+kubebuilder:example:=8888
+	Port int32 `json:"port"`
+
+	// the protocol of the port
+	//+kubebuilder:validation:Required
+	//+kubebuilder:validation:Enum:={"HTTP"}
+	//+kubebuilder:example:="HTTP"
+	Protocol string `json:"protocol"`
 }
 
 type PodConfig struct {
@@ -329,6 +367,10 @@ type PodConfig struct {
 	Default string `json:"default"`
 
 	// the list of pod configs that are available
+	//+kubebuilder:validation:Required
+	//+kubebuilder:validation:MinItems:=1
+	//+listType:="map"
+	//+listMapKey:="id"
 	Values []PodConfigValue `json:"values"`
 }
 
@@ -336,40 +378,28 @@ type PodConfigValue struct {
 	//+kubebuilder:example="small-cpu"
 	Id string `json:"id"`
 
-	Spawner PodConfigSpawner `json:"spawner"`
+	Spawner OptionSpawnerInfo `json:"spawner"`
 
 	//+kubebuilder:validation:Optional
 	Redirect OptionRedirect `json:"redirect,omitempty"`
-	Spec     PodConfigSpec  `json:"spec"`
-}
 
-type PodConfigSpawner struct {
-	//+kubebuilder:example:="Small CPU"
-	//+kubebuilder:validation:Required
-	DisplayName string `json:"display_name"`
-
-	//+kubebuilder:example:="Pod with 1 CPU, 2 GB RAM, and 1 GPU"
-	//+kubebuilder:validation:Required
-	Description string `json:"description"`
-
-	//+kubebuilder:default:=false
-	Hidden bool `json:"hidden,omitempty"`
+	Spec PodConfigSpec `json:"spec"`
 }
 
 type PodConfigSpec struct {
-	// affinity configs for the pod (https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#affinity-v1-core)
+	// affinity configs for the pod
 	//+kubebuilder:validation:Optional
 	Affinity v1.Affinity `json:"affinity,omitempty"`
 
-	// node selector configs for the pod (https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector)
+	// node selector configs for the pod
 	//+kubebuilder:validation:Optional
 	NodeSelector *v1.NodeSelector `json:"nodeSelector,omitempty"`
 
-	// toleration configs for the pod (https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core)
+	// toleration configs for the pod
 	//+kubebuilder:validation:Optional
 	Tolerations []v1.Toleration `json:"tolerations,omitempty"`
 
-	// resource configs for the "main" container in the pod (https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#resourcerequirements-v1-core)
+	// resource configs for the "main" container in the pod
 	//+kubebuilder:validation:Optional
 	Resources v1.ResourceRequirements `json:"resources,omitempty"`
 }

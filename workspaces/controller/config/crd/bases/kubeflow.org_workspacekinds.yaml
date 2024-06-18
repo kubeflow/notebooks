@@ -62,6 +62,7 @@ spec:
                                 - exit 0
                                 items:
                                   type: string
+                                minItems: 1
                                 type: array
                             required:
                             - command
@@ -80,6 +81,9 @@ spec:
                             required:
                             - lastActivity
                             type: object
+                            x-kubernetes-validations:
+                            - message: '''lastActivity'' must be true'
+                              rule: has(self.lastActivity) && self.lastActivity
                         type: object
                         x-kubernetes-validations:
                         - message: must specify exactly one of 'exec' or 'jupyter'
@@ -93,18 +97,20 @@ spec:
                         default: 86400
                         description: the maximum number of seconds a Workspace can
                           be inactive
+                        format: int64
+                        minimum: 60
                         type: integer
                     required:
                     - activityProbe
                     type: object
                   extraEnv:
-                    description: "environment variables for Workspace Pods (MUTABLE)\n
-                      updates to existing Workspaces are applied through the \"pending
-                      restart\" feature\n\n\nThe following string templates are available:\n
-                      \ - .PathPrefix: the path prefix of the Workspace (e.g. '/workspace/{profile_name}/{workspace_name}/')\n\n\nFor
-                      example, to enable backwards compatibility with the old Jupyter
-                      images, from Kubeflow Notebooks 1.8\n (https://github.com/kubeflow/kubeflow/blob/v1.8.0/components/example-notebook-servers/jupyter/s6/services.d/jupyterlab/run#L12)\n\n\n\t-
-                      name: \"NB_PREFIX\"\n\t  value: \"{{ .PathPrefix }}\""
+                    description: |-
+                      environment variables for Workspace Pods (MUTABLE)
+                       updates to existing Workspaces are applied through the "pending restart" feature
+
+
+                      The following string templates are available:
+                        - .PathPrefix: the path prefix of the Workspace (e.g. '/workspace/{profile_name}/{workspace_name}/')
                     items:
                       description: EnvVar represents an environment variable present
                         in a Container.
@@ -228,8 +234,11 @@ spec:
                         type: boolean
                       requestHeaders:
                         description: |-
-                          header manipulation rules for incoming HTTP requests, sets the spec.http[].headers.request of the Istio VirtualService
-                           https://istio.io/latest/docs/reference/config/networking/virtual-service/#Headers-HeaderOperations
+                          header manipulation rules for incoming HTTP requests
+
+
+                          Sets the `spec.http[].headers.request` of the Istio VirtualService:
+                          https://istio.io/latest/docs/reference/config/networking/virtual-service/#Headers-HeaderOperations
 
 
                           The following string templates are available:
@@ -288,76 +297,58 @@ spec:
                                 spawner:
                                   properties:
                                     description:
-                                      example: JupyterLab 1.7.0, with SciPy Packages
+                                      maxLength: 1024
+                                      minLength: 2
                                       type: string
                                     displayName:
-                                      example: jupyter-scipy:v1.7.0
+                                      maxLength: 128
+                                      minLength: 2
                                       type: string
                                     hidden:
                                       default: false
-                                      description: if this ImageConfig should be hidden
+                                      description: if this option should be hidden
                                         from the Workspace Spawner UI
                                       type: boolean
                                   required:
-                                  - description
                                   - displayName
                                   type: object
                                 spec:
                                   properties:
                                     image:
                                       description: the container image to use
+                                      minLength: 2
                                       type: string
                                     ports:
                                       description: |-
                                         ports that the container listens on, currently, only HTTP is supported for `protocol`
                                          if multiple ports are defined, the user will see multiple "Connect" buttons in a dropdown menu on the Workspace overview page
                                       items:
-                                        description: EndpointPort is a tuple that
-                                          describes a single port.
                                         properties:
-                                          appProtocol:
-                                            description: |-
-                                              The application protocol for this port.
-                                              This is used as a hint for implementations to offer richer behavior for protocols that they understand.
-                                              This field follows standard Kubernetes label syntax.
-                                              Valid values are either:
-
-
-                                              * Un-prefixed protocol names - reserved for IANA standard service names (as per
-                                              RFC-6335 and https://www.iana.org/assignments/service-names).
-
-
-                                              * Kubernetes-defined prefixed names:
-                                                * 'kubernetes.io/h2c' - HTTP/2 prior knowledge over cleartext as described in https://www.rfc-editor.org/rfc/rfc9113.html#name-starting-http-2-with-prior-
-                                                * 'kubernetes.io/ws'  - WebSocket over cleartext as described in https://www.rfc-editor.org/rfc/rfc6455
-                                                * 'kubernetes.io/wss' - WebSocket over TLS as described in https://www.rfc-editor.org/rfc/rfc6455
-
-
-                                              * Other protocols should use implementation-defined prefixed names such as
-                                              mycompany.com/my-custom-protocol.
-                                            type: string
-                                          name:
-                                            description: |-
-                                              The name of this port.  This must match the 'name' field in the
-                                              corresponding ServicePort.
-                                              Must be a DNS_LABEL.
-                                              Optional only if one port is defined.
+                                          displayName:
+                                            description: the display name of the port
+                                            example: JupyterLab
+                                            maxLength: 64
+                                            minLength: 2
                                             type: string
                                           port:
-                                            description: The port number of the endpoint.
+                                            description: the port number
+                                            example: 8888
                                             format: int32
+                                            maximum: 65535
+                                            minimum: 1
                                             type: integer
                                           protocol:
-                                            default: TCP
-                                            description: |-
-                                              The IP protocol for this port.
-                                              Must be UDP, TCP, or SCTP.
-                                              Default is TCP.
+                                            description: the protocol of the port
+                                            enum:
+                                            - HTTP
+                                            example: HTTP
                                             type: string
                                         required:
+                                        - displayName
                                         - port
+                                        - protocol
                                         type: object
-                                        x-kubernetes-map-type: atomic
+                                      minItems: 1
                                       type: array
                                   required:
                                   - image
@@ -368,7 +359,11 @@ spec:
                               - spawner
                               - spec
                               type: object
+                            minItems: 1
                             type: array
+                            x-kubernetes-list-map-keys:
+                            - id
+                            x-kubernetes-list-type: map
                         required:
                         - default
                         - values
@@ -403,22 +398,25 @@ spec:
                                 spawner:
                                   properties:
                                     description:
-                                      example: Pod with 1 CPU, 2 GB RAM, and 1 GPU
+                                      maxLength: 1024
+                                      minLength: 2
                                       type: string
-                                    display_name:
-                                      example: Small CPU
+                                    displayName:
+                                      maxLength: 128
+                                      minLength: 2
                                       type: string
                                     hidden:
                                       default: false
+                                      description: if this option should be hidden
+                                        from the Workspace Spawner UI
                                       type: boolean
                                   required:
-                                  - description
-                                  - display_name
+                                  - displayName
                                   type: object
                                 spec:
                                   properties:
                                     affinity:
-                                      description: affinity configs for the pod (https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#affinity-v1-core)
+                                      description: affinity configs for the pod
                                       properties:
                                         nodeAffinity:
                                           description: Describes node affinity scheduling
@@ -1353,7 +1351,6 @@ spec:
                                       type: object
                                     nodeSelector:
                                       description: node selector configs for the pod
-                                        (https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector)
                                       properties:
                                         nodeSelectorTerms:
                                           description: Required. A list of node selector
@@ -1437,7 +1434,7 @@ spec:
                                       x-kubernetes-map-type: atomic
                                     resources:
                                       description: resource configs for the "main"
-                                        container in the pod (https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#resourcerequirements-v1-core)
+                                        container in the pod
                                       properties:
                                         claims:
                                           description: |-
@@ -1494,7 +1491,6 @@ spec:
                                       type: object
                                     tolerations:
                                       description: toleration configs for the pod
-                                        (https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core)
                                       items:
                                         description: |-
                                           The pod this Toleration is attached to tolerates any taint that matches
@@ -1538,7 +1534,11 @@ spec:
                               - spawner
                               - spec
                               type: object
+                            minItems: 1
                             type: array
+                            x-kubernetes-list-map-keys:
+                            - id
+                            x-kubernetes-list-type: map
                         required:
                         - default
                         - values
@@ -1553,10 +1553,12 @@ spec:
                       annotations:
                         additionalProperties:
                           type: string
+                        description: annotations to be applied to the Pod resource
                         type: object
                       labels:
                         additionalProperties:
                           type: string
+                        description: labels to be applied to the Pod resource
                         type: object
                     type: object
                   probes:
@@ -2033,6 +2035,9 @@ spec:
                            the controller will NOT create it. We will not show this WorkspaceKind in the Spawner UI if the SA does not exist in the Namespace.
                         example: default-editor
                         type: string
+                        x-kubernetes-validations:
+                        - message: ServiceAccount 'name' is immutable
+                          rule: self == oldSelf
                     required:
                     - name
                     type: object
@@ -2043,8 +2048,11 @@ spec:
                         example: /home/jovyan
                         maxLength: 4096
                         minLength: 2
-                        pattern: ^/[^\0]+$
+                        pattern: ^/[^/].*$
                         type: string
+                        x-kubernetes-validations:
+                        - message: mount path of 'home' is immutable
+                          rule: self == oldSelf
                     required:
                     - home
                     type: object
@@ -2066,14 +2074,20 @@ spec:
                       WorkspaceKind is deprecated
                     example: This WorkspaceKind will be removed on 20XX-XX-XX, please
                       use another WorkspaceKind.
+                    maxLength: 256
+                    minLength: 2
                     type: string
                   description:
                     description: the description of the WorkspaceKind
                     example: A Workspace which runs JupyterLab in a Pod
+                    maxLength: 4096
+                    minLength: 2
                     type: string
                   displayName:
                     description: the display name of the WorkspaceKind
                     example: JupyterLab Notebook
+                    maxLength: 128
+                    minLength: 2
                     type: string
                   hidden:
                     default: false

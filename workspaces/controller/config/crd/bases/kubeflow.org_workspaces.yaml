@@ -46,6 +46,9 @@ spec:
                 minLength: 2
                 pattern: ^[a-z0-9][-a-z0-9]*[a-z0-9]$
                 type: string
+                x-kubernetes-validations:
+                - message: Workspace 'kind' is immutable
+                  rule: self == oldSelf
               paused:
                 default: false
                 description: if the workspace should be paused (no pods running)
@@ -78,14 +81,12 @@ spec:
                       annotations:
                         additionalProperties:
                           type: string
-                        description: annotations are commonly used to configure other
-                          controllers that watch the Pod
+                        description: annotations to be applied to the Pod resource
                         type: object
                       labels:
                         additionalProperties:
                           type: string
-                        description: labels are required to support the existing PodDefault
-                          resources
+                        description: labels to be applied to the Pod resource
                         type: object
                     type: object
                   volumes:
@@ -100,7 +101,7 @@ spec:
                               example: /data/my-data
                               maxLength: 4096
                               minLength: 2
-                              pattern: ^/[^\0]+$
+                              pattern: ^/[^/].*$
                               type: string
                             name:
                               example: my-data-pvc
@@ -160,9 +161,8 @@ spec:
                 example: false
                 type: boolean
               podTemplateOptions:
-                description: |-
-                  actual "target" podTemplateOptions, taking into account redirects
-                  todo image or imageConfig?
+                description: actual "target" podTemplateOptions, taking into account
+                  redirects
                 properties:
                   imageConfig:
                     description: |-

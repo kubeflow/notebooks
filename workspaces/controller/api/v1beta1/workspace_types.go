@@ -32,9 +32,11 @@ type WorkspaceSpec struct {
 	Paused bool `json:"paused,omitempty"`
 
 	// the WorkspaceKind to use
+	//+kubebuilder:validation:Required
 	//+kubebuilder:validation:MinLength:=2
 	//+kubebuilder:validation:MaxLength:=63
 	//+kubebuilder:validation:Pattern:=^[a-z0-9][-a-z0-9]*[a-z0-9]$
+	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Workspace 'kind' is immutable"
 	//+kubebuilder:example="jupyter-lab"
 	Kind string `json:"kind"`
 
@@ -53,7 +55,6 @@ type WorkspaceStatus struct {
 	PendingRestart bool `json:"pendingRestart"`
 
 	// actual "target" podTemplateOptions, taking into account redirects
-	// todo image or imageConfig?
 	PodTemplateOptions Options `json:"podTemplateOptions"`
 }
 
@@ -95,11 +96,11 @@ type PodTemplate struct {
 }
 
 type PodMetadata struct {
-	// labels are required to support the existing PodDefault resources
+	// labels to be applied to the Pod resource
 	//+kubebuilder:validation:Optional
 	Labels map[string]string `json:"labels,omitempty"`
 
-	// annotations are commonly used to configure other controllers that watch the Pod
+	// annotations to be applied to the Pod resource
 	//+kubebuilder:validation:Optional
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
@@ -129,7 +130,7 @@ type PodVolumeMount struct {
 
 	//+kubebuilder:validation:MinLength:=2
 	//+kubebuilder:validation:MaxLength:=4096
-	//+kubebuilder:validation:Pattern:=^/[^\0]+$
+	//+kubebuilder:validation:Pattern:=^/[^/].*$
 	//+kubebuilder:example="/data/my-data"
 	MountPath string `json:"mountPath"`
 }
