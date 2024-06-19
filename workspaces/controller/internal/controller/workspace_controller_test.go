@@ -51,7 +51,29 @@ var _ = Describe("Workspace Controller", func() {
 						Name:      resourceName,
 						Namespace: "default",
 					},
-					// TODO(user): Specify other spec details if needed.
+					Spec: kubefloworgv1beta1.WorkspaceSpec{
+						Paused: false,
+						Kind:   "juptyer-lab",
+						PodTemplate: kubefloworgv1beta1.PodTemplate{
+							PodMetadata: kubefloworgv1beta1.PodMetadata{
+								Labels:      nil,
+								Annotations: nil,
+							},
+							Volumes: kubefloworgv1beta1.PodVolumes{
+								Home: "my-home-pvc",
+								Data: []kubefloworgv1beta1.PodVolumeMount{
+									{
+										Name:      "my-data-pvc",
+										MountPath: "/data/my-data",
+									},
+								},
+							},
+							Options: kubefloworgv1beta1.Options{
+								ImageConfig: "jupyter_scipy_170",
+								PodConfig:   "big_gpu",
+							},
+						},
+					},
 				}
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
 			}
