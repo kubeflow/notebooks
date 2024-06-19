@@ -46,6 +46,8 @@ type WorkspaceKindStatus struct {
 }
 
 //+kubebuilder:object:root=true
+//+kubebuilder:printcolumn:name="Deprecated",type="boolean",JSONPath=".spec.spawner.deprecated",description="If this WorkspaceKind is deprecated"
+//+kubebuilder:printcolumn:name="Hidden",type="boolean",JSONPath=".spec.spawner.hidden",description="If this WorkspaceKind is hidden from the spawner UI"
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:scope=Cluster
 

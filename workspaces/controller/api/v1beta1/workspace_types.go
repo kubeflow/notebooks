@@ -50,15 +50,30 @@ type WorkspaceStatus struct {
 	// information populated by activity probes, used to determine when to cull
 	Activity Activity `json:"activity"`
 
+	// the time when the Workspace was paused, 0 if the Workspace is not paused
+	//+kubebuilder:example=1704067200
+	PauseTime int64 `json:"pauseTime"`
+
 	// if the current Pod does not reflect the current "desired" state (after redirects)
 	//+kubebuilder:example=false
 	PendingRestart bool `json:"pendingRestart"`
 
 	// actual "target" podTemplateOptions, taking into account redirects
 	PodTemplateOptions Options `json:"podTemplateOptions"`
+
+	// the current state of the Workspace
+	//+kubebuilder:validation:Enum:={"Running","Terminating","Paused","Pending","Error","Unknown"}
+	//+kubebuilder:example="Running"
+	State string `json:"state"`
+
+	// a human-readable message about the state of the Workspace
+	//  WARNING: this field is NOT FOR MACHINE USE, subject to change without notice
+	//+kubebuilder:example="Pod is not ready"
+	StateMessage string `json:"stateMessage"`
 }
 
 //+kubebuilder:object:root=true
+//+kubebuilder:printcolumn:name="State",type="string",JSONPath=".status.state",description="The current state of the Workspace"
 //+kubebuilder:subresource:status
 
 // Workspace is the Schema for the workspaces API
@@ -136,10 +151,10 @@ type PodVolumeMount struct {
 }
 
 type Activity struct {
-	//+kubebuilder:example=1710435303
+	//+kubebuilder:example=1704067200
 	LastActivity int64 `json:"lastActivity"`
 
-	//+kubebuilder:example=1710435310
+	//+kubebuilder:example=1704067200
 	LastUpdate int64 `json:"lastUpdate"`
 }
 

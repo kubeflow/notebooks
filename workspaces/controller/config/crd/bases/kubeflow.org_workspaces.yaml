@@ -14,7 +14,12 @@ spec:
     singular: workspace
   scope: Namespaced
   versions:
-  - name: v1beta1
+  - additionalPrinterColumns:
+    - description: The current state of the Workspace
+      jsonPath: .status.state
+      name: State
+      type: string
+    name: v1beta1
     schema:
       openAPIV3Schema:
         description: Workspace is the Schema for the workspaces API
@@ -144,17 +149,23 @@ spec:
                   when to cull
                 properties:
                   lastActivity:
-                    example: 1710435303
+                    example: 1704067200
                     format: int64
                     type: integer
                   lastUpdate:
-                    example: 1710435310
+                    example: 1704067200
                     format: int64
                     type: integer
                 required:
                 - lastActivity
                 - lastUpdate
                 type: object
+              pauseTime:
+                description: the time when the Workspace was paused, 0 if the Workspace
+                  is not paused
+                example: 1704067200
+                format: int64
+                type: integer
               pendingRestart:
                 description: if the current Pod does not reflect the current "desired"
                   state (after redirects)
@@ -178,10 +189,30 @@ spec:
                 - imageConfig
                 - podConfig
                 type: object
+              state:
+                description: the current state of the Workspace
+                enum:
+                - Running
+                - Terminating
+                - Paused
+                - Pending
+                - Error
+                - Unknown
+                example: Running
+                type: string
+              stateMessage:
+                description: |-
+                  a human-readable message about the state of the Workspace
+                   WARNING: this field is NOT FOR MACHINE USE, subject to change without notice
+                example: Pod is not ready
+                type: string
             required:
             - activity
+            - pauseTime
             - pendingRestart
             - podTemplateOptions
+            - state
+            - stateMessage
             type: object
         type: object
     served: true
