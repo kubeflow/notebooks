@@ -22,7 +22,7 @@ spec:
     name: v1beta1
     schema:
       openAPIV3Schema:
-        description: Workspace is the Schema for the workspaces API
+        description: Workspace is the Schema for the Workspaces API
         properties:
           apiVersion:
             description: |-

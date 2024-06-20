@@ -54,7 +54,7 @@ var _ = Describe("WorkspaceKind Controller", func() {
 						Name: resourceName,
 					},
 					Spec: kubefloworgv1beta1.WorkspaceKindSpec{
-						Spawner: kubefloworgv1beta1.Spawner{
+						Spawner: kubefloworgv1beta1.WorkspaceKindSpawner{
 							DisplayName:        "JupyterLab Notebook",
 							Description:        "A Workspace which runs JupyterLab in a Pod",
 							Hidden:             false,
@@ -73,30 +73,28 @@ var _ = Describe("WorkspaceKind Controller", func() {
 
 						PodTemplate: kubefloworgv1beta1.WorkspaceKindPodTemplate{
 							PodMetadata: kubefloworgv1beta1.WorkspaceKindPodMetadata{},
-							ServiceAccount: kubefloworgv1beta1.ServiceAccount{
+							ServiceAccount: kubefloworgv1beta1.WorkspaceKindServiceAccount{
 								Name: "default-editor",
 							},
 							Culling: kubefloworgv1beta1.WorkspaceKindCullingConfig{
 								Enabled:            true,
 								MaxInactiveSeconds: 86400,
-								ActivityProbe: kubefloworgv1beta1.WorkspaceKindActivityProbe{
-									Exec: &kubefloworgv1beta1.WorkspaceKindActivityProbeExec{
+								ActivityProbe: kubefloworgv1beta1.ActivityProbe{
+									Exec: &kubefloworgv1beta1.ActivityProbeExec{
 										Command: []string{"bash", "-c", "exit 0"},
 									},
 								},
 							},
-							Probes: kubefloworgv1beta1.Probes{},
-							VolumeMounts: kubefloworgv1beta1.VolumeMounts{
+							Probes: kubefloworgv1beta1.WorkspaceKindProbes{},
+							VolumeMounts: kubefloworgv1beta1.WorkspaceKindVolumeMounts{
 								Home: "/home/jovyan",
 							},
 							HTTPProxy: kubefloworgv1beta1.HTTPProxy{
 								RemovePathPrefix: false,
-								RequestHeaders: []kubefloworgv1beta1.RequestHeader{
-									{
-										Set:    map[string]string{"X-RStudio-Root-Path": "{{ .PathPrefix }}"},
-										Append: map[string]string{},
-										Remove: []string{},
-									},
+								RequestHeaders: kubefloworgv1beta1.IstioHeaderOperations{
+									Set:    map[string]string{"X-RStudio-Root-Path": "{{ .PathPrefix }}"},
+									Add:    map[string]string{},
+									Remove: []string{},
 								},
 							},
 							ExtraEnv: []v1.EnvVar{
@@ -105,7 +103,7 @@ var _ = Describe("WorkspaceKind Controller", func() {
 									Value: "{{ .PathPrefix }}",
 								},
 							},
-							Options: kubefloworgv1beta1.KindOptions{
+							Options: kubefloworgv1beta1.WorkspaceKindPodOptions{
 								ImageConfig: kubefloworgv1beta1.ImageConfig{
 									Default: "jupyter_scipy_171",
 									Values: []kubefloworgv1beta1.ImageConfigValue{
@@ -119,6 +117,10 @@ var _ = Describe("WorkspaceKind Controller", func() {
 											Redirect: kubefloworgv1beta1.OptionRedirect{
 												To:             "jupyter_scipy_171",
 												WaitForRestart: true,
+												Message: &kubefloworgv1beta1.RedirectMessage{
+													Level: "Info",
+													Text:  "This update will increase the version of JupyterLab to v1.7.1",
+												},
 											},
 											Spec: kubefloworgv1beta1.ImageConfigSpec{
 												Image: "docker.io/kubeflownotebookswg/jupyter-scipy:v1.7.0",

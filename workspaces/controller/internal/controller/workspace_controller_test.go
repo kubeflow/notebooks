@@ -54,12 +54,12 @@ var _ = Describe("Workspace Controller", func() {
 					Spec: kubefloworgv1beta1.WorkspaceSpec{
 						Paused: false,
 						Kind:   "juptyer-lab",
-						PodTemplate: kubefloworgv1beta1.PodTemplate{
-							PodMetadata: kubefloworgv1beta1.PodMetadata{
+						PodTemplate: kubefloworgv1beta1.WorkspacePodTemplate{
+							PodMetadata: kubefloworgv1beta1.WorkspacePodMetadata{
 								Labels:      nil,
 								Annotations: nil,
 							},
-							Volumes: kubefloworgv1beta1.PodVolumes{
+							Volumes: kubefloworgv1beta1.WorkspacePodVolumes{
 								Home: "my-home-pvc",
 								Data: []kubefloworgv1beta1.PodVolumeMount{
 									{
@@ -68,7 +68,7 @@ var _ = Describe("Workspace Controller", func() {
 									},
 								},
 							},
-							Options: kubefloworgv1beta1.Options{
+							Options: kubefloworgv1beta1.WorkspacePodOptions{
 								ImageConfig: "jupyter_scipy_170",
 								PodConfig:   "big_gpu",
 							},
