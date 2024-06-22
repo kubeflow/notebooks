@@ -1,9 +1,20 @@
 apiVersion: kubeflow.org/v1beta1
 kind: Workspace
 metadata:
-  labels:
-    app.kubernetes.io/name: workspace-controller
-    app.kubernetes.io/managed-by: kustomize
-  name: workspace-sample
+  name: lab
+  namespace: default
 spec:
-  # TODO(user): Add fields here
+  kind: "jupyter-lab"
+  paused: false
+  podTemplate:
+    options:
+      imageConfig: "jupyter_scipy_171"
+      podConfig: "small_gpu"
+    podMetadata:
+      annotations: {}
+      labels: {}
+    volumes:
+      data:
+        - mountPath: "/data"
+          name: "test-volume"
+      home: "home"

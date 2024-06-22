@@ -1,9 +1,308 @@
 apiVersion: kubeflow.org/v1beta1
 kind: WorkspaceKind
 metadata:
-  labels:
-    app.kubernetes.io/name: workspace-controller
-    app.kubernetes.io/managed-by: kustomize
-  name: workspacekind-sample
+  name: jupyter-lab
 spec:
-  # TODO(user): Add fields here
+  podTemplate:
+    httpProxy:
+      removePathPrefix: false
+      requestHeaders:
+        - append: {}
+          remove:
+            - ""
+          set: {}
+    options:
+      imageConfig:
+        default: "jupyter_scipy_171"
+        values:
+
+          ## ================================
+          ## EXAMPLE 1: a hidden option
+          ## ================================
+          - id: "jupyter_scipy_170"
+            spawner:
+              displayName: "jupyter-scipy:v1.7.0"
+              description: "JupyterLab 1.7.0, with SciPy Packages"
+              hidden: true
+            redirect:
+              to: "jupyter_scipy_171"
+              waitForRestart: true
+            spec:
+              ## the container image to use
+              ##
+              image: "docker.io/kubeflownotebookswg/jupyter-scipy:v1.7.0"
+
+              ## ports that the container listens on
+              ##  - currently, only HTTP is supported for `protocol`
+              ##  - currently, all ports use the same `httpProxy` settings
+              ##  - if multiple ports are defined, the user will see multiple "Connect" buttons
+              ##    in a dropdown menu on the Workspace overview page
+              ##
+              ports:
+                - displayName: "JupyterLab"
+                  port: 8888
+                  protocol: "HTTP"
+
+          ## ================================
+          ## EXAMPLE 2: a visible option
+          ## ================================
+          - id: "jupyter_scipy_171"
+            spawner:
+              displayName: "jupyter-scipy:v1.7.1"
+              description: "JupyterLab 1.7.1, with SciPy Packages"
+              hidden: false
+            redirect:
+              to: "jupyter_scipy_171"
+              waitForRestart: true
+            spec:
+              image: "kubeflownotebookswg/jupyter-scipy:v1.8.0"
+              ports:
+                - displayName: "JupyterLab"
+                  port: 8888
+                  protocol: "HTTP"
+      podConfig:
+        default: ""
+        values:
+          - id: ""
+            redirect:
+              to: ""
+              waitForRestart: false
+            spawner:
+              description: "test"
+              displayName: "test"
+              hidden: false
+            spec:
+              affinity:
+                nodeAffinity:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - preference:
+                        matchExpressions:
+                          - key: ""
+                            operator: ""
+                            values:
+                              - ""
+                        matchFields:
+                          - key: ""
+                            operator: ""
+                            values:
+                              - ""
+                      weight: 0
+                  requiredDuringSchedulingIgnoredDuringExecution:
+                    nodeSelectorTerms:
+                      - matchExpressions:
+                          - key: ""
+                            operator: ""
+                            values:
+                              - ""
+                        matchFields:
+                          - key: ""
+                            operator: ""
+                            values:
+                              - ""
+                podAffinity:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - podAffinityTerm:
+                        labelSelector:
+                          matchExpressions:
+                            - key: ""
+                              operator: ""
+                              values:
+                                - ""
+                          matchLabels: {}
+                        matchLabelKeys:
+                          - ""
+                        mismatchLabelKeys:
+                          - ""
+                        namespaceSelector:
+                          matchExpressions:
+                            - key: ""
+                              operator: ""
+                              values:
+                                - ""
+                          matchLabels: {}
+                        namespaces:
+                          - ""
+                        topologyKey: ""
+                      weight: 0
+                  requiredDuringSchedulingIgnoredDuringExecution:
+                    - labelSelector:
+                        matchExpressions:
+                          - key: ""
+                            operator: ""
+                            values:
+                              - ""
+                        matchLabels: {}
+                      matchLabelKeys:
+                        - ""
+                      mismatchLabelKeys:
+                        - ""
+                      namespaceSelector:
+                        matchExpressions:
+                          - key: ""
+                            operator: ""
+                            values:
+                              - ""
+                        matchLabels: {}
+                      namespaces:
+                        - ""
+                      topologyKey: ""
+                podAntiAffinity:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - podAffinityTerm:
+                        labelSelector:
+                          matchExpressions:
+                            - key: ""
+                              operator: ""
+                              values:
+                                - ""
+                          matchLabels: {}
+                        matchLabelKeys:
+                          - ""
+                        mismatchLabelKeys:
+                          - ""
+                        namespaceSelector:
+                          matchExpressions:
+                            - key: ""
+                              operator: ""
+                              values:
+                                - ""
+                          matchLabels: {}
+                        namespaces:
+                          - ""
+                        topologyKey: ""
+                      weight: 0
+                  requiredDuringSchedulingIgnoredDuringExecution:
+                    - labelSelector:
+                        matchExpressions:
+                          - key: ""
+                            operator: ""
+                            values:
+                              - ""
+                        matchLabels: {}
+                      matchLabelKeys:
+                        - ""
+                      mismatchLabelKeys:
+                        - ""
+                      namespaceSelector:
+                        matchExpressions:
+                          - key: ""
+                            operator: ""
+                            values:
+                              - ""
+                        matchLabels: {}
+                      namespaces:
+                        - ""
+                      topologyKey: ""
+              nodeSelector:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: ""
+                        operator: ""
+                        values:
+                          - ""
+                    matchFields:
+                      - key: ""
+                        operator: ""
+                        values:
+                          - ""
+              resources:
+                claims:
+                  - name: ""
+                limits: {}
+                requests: {}
+              tolerations:
+                - effect: ""
+                  key: ""
+                  operator: ""
+                  tolerationSeconds: 0
+                  value: ""
+    podMetadata:
+      annotations: {}
+      labels: {}
+    probes:
+      livenessProbe:
+        exec:
+          command:
+            - ""
+        failureThreshold: 0
+        grpc:
+          port: 0
+          service: ""
+        httpGet:
+          host: ""
+          httpHeaders:
+            - name: ""
+              value: ""
+          path: ""
+          port: ""
+          scheme: ""
+        initialDelaySeconds: 0
+        periodSeconds: 0
+        successThreshold: 0
+        tcpSocket:
+          host: ""
+          port: ""
+        terminationGracePeriodSeconds: 0
+        timeoutSeconds: 0
+      readinessProbe:
+        exec:
+          command:
+            - ""
+        failureThreshold: 0
+        grpc:
+          port: 0
+          service: ""
+        httpGet:
+          host: ""
+          httpHeaders:
+            - name: ""
+              value: ""
+          path: ""
+          port: ""
+          scheme: ""
+        initialDelaySeconds: 0
+        periodSeconds: 0
+        successThreshold: 0
+        tcpSocket:
+          host: ""
+          port: ""
+        terminationGracePeriodSeconds: 0
+        timeoutSeconds: 0
+      startupProbe:
+        exec:
+          command:
+            - ""
+        failureThreshold: 0
+        grpc:
+          port: 0
+          service: ""
+        httpGet:
+          host: ""
+          httpHeaders:
+            - name: ""
+              value: ""
+          path: ""
+          port: ""
+          scheme: ""
+        initialDelaySeconds: 0
+        periodSeconds: 0
+        successThreshold: 0
+        tcpSocket:
+          host: ""
+          port: ""
+        terminationGracePeriodSeconds: 0
+        timeoutSeconds: 0
+    serviceAccount:
+      name: "default"
+    volumeMounts:
+      home: "/home/jovyan"
+  spawner:
+    deprecated: false
+    deprecationMessage: "test"
+    description: "test"
+    displayName: "test"
+    hidden: false
+    icon:
+      url: "image"
+    logo:
+      url: "image"
