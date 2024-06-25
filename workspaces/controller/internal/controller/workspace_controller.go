@@ -40,6 +40,9 @@ type WorkspaceReconciler struct {
 //+kubebuilder:rbac:groups=kubeflow.org,resources=workspaces,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=kubeflow.org,resources=workspaces/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=kubeflow.org,resources=workspaces/finalizers,verbs=update
+// +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;update;patch;create;delete
+// +kubebuilder:rbac:groups=core,resources=services,verbs=get;update;patch;create;delete
+// +kubebuilder:rbac:groups="networking.istio.io",resources=virtualservices,verbs=get;update;patch;create;delete
 
 func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := ctrl.Log.WithValues("workspace", req.NamespacedName)
