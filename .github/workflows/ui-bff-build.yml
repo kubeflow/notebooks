@@ -1,13 +1,10 @@
 name: UI - BFF - Test and Build
 on:
   push:
-    branches:
-      - 'main'
+    branches: [ "main", "notebooks-v2", "v*-branch" ]
   pull_request:
-    paths-ignore:
-      - 'LICENSE*'
-      - 'DOCKERFILE*'
-      - '**.gitignore'
+    paths: [ "workspaces/backend/**" ]
+    branches: [ "main", "notebooks-v2", "v*-branch" ]
 jobs:
   build:
     runs-on: ubuntu-latest

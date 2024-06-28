@@ -4,7 +4,7 @@
     "rootDir": ".",
     "outDir": "dist",
     "module": "esnext",
-    "target": "es5",
+    "target": "ES6",
     "lib": [
       "es6",
       "dom"

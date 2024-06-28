@@ -1,7 +1,7 @@
 {
   "name": "kubeflow-workspaces-frontend",
   "version": "0.0.1",
-  "description": "The Kubeflow Workspaces Frontend is the web application used by the Kubeflow Workspaces as part of Kubeflow Notebooks 2.0",
+  "description": "The Kubeflow Workspaces Frontend is the web user interface used to monitor and manage Kubeflow Workspaces as part of Kubeflow Notebooks 2.0",
   "repository": "https://github.com/kubeflow/notebooks.git",
   "homepage": "https://github.com/kubeflow/notebooks",
   "license": "Apache-2.0",

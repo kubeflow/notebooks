@@ -119,7 +119,7 @@ module.exports = (env) => {
         silent: true
       }),
       new CopyPlugin({
-        patterns: [{ from: './src/favicon.png', to: 'images' }]
+        patterns: [{ from: './src/favicon.ico', to: 'images' }]
       })
     ],
     resolve: {

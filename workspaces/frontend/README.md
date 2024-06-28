@@ -1,5 +1,5 @@
 # Kubeflow Workspaces Frontend
-The Kubeflow Workspaces Frontend is the web application used by the Kubeflow Workspaces as part of [Kubeflow Notebooks 2.0](https://github.com/kubeflow/kubeflow/issues/7156).
+The Kubeflow Workspaces Frontend is the web user interface used to monitor and manage Kubeflow Workspaces as part of [Kubeflow Notebooks 2.0](https://github.com/kubeflow/kubeflow/issues/7156).
 
 > ⚠️ __Warning__ ⚠️
 >

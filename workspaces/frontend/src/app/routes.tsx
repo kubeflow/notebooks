@@ -38,7 +38,7 @@ const routes: AppRouteConfig[] = [
     exact: true,
     label: "Dashboard",
     path: "/",
-    title: "Kubeflow Workspaces | Main Dashboard",
+    title: "Kubeflow Workspaces | Main",
   },
   {
     component: Support,
