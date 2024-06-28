@@ -1,5 +1,5 @@
 # Kubeflow Workspaces Backend
-The Kubeflow Workspaces Backend is the _backend for frontend_ (BFF) used by the Kubeflow Workspaces UI as part of [Kubeflow Notebooks 2.0](https://github.com/kubeflow/kubeflow/issues/7156).
+The Kubeflow Workspaces Backend is the _backend for frontend_ (BFF) used by the Kubeflow Workspaces Frontend as part of [Kubeflow Notebooks 2.0](https://github.com/kubeflow/kubeflow/issues/7156).
 
 > ⚠️ __Warning__ ⚠️
 >
