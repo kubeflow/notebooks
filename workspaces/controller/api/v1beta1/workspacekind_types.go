@@ -70,10 +70,14 @@ type WorkspaceKindSpawner struct {
 	//+kubebuilder:example:="This WorkspaceKind will be removed on 20XX-XX-XX, please use another WorkspaceKind."
 	DeprecationMessage string `json:"deprecationMessage,omitempty"`
 
-	// a small (favicon-sized) icon of the WorkspaceKind used in the Workspaces overview table
+	// the icon of the WorkspaceKind
+	//  - a small (favicon-sized) icon used in the Workspace Spawner UI
+	//+kubebuilder:validation:Required
 	Icon WorkspaceKindIcon `json:"icon"`
 
-	// a 1:1 (card size) logo of the WorkspaceKind used in the Workspace Spawner UI
+	// the logo of the WorkspaceKind
+	//  - a 1:1 (card size) logo used in the Workspace Spawner UI
+	//+kubebuilder:validation:Required
 	Logo WorkspaceKindIcon `json:"logo"`
 }
 
@@ -99,9 +103,10 @@ type WorkspaceKindConfigMap struct {
 
 type WorkspaceKindPodTemplate struct {
 	// metadata for Workspace Pods (MUTABLE)
+	//  - changes are applied the NEXT time each Workspace is PAUSED
 	PodMetadata WorkspaceKindPodMetadata `json:"podMetadata,omitempty"`
 
-	// service account configs for Workspace Pods (NOT MUTABLE)
+	// service account configs for Workspace Pods
 	//+kubebuilder:validation:Required
 	ServiceAccount WorkspaceKindServiceAccount `json:"serviceAccount"`
 
@@ -109,10 +114,10 @@ type WorkspaceKindPodTemplate struct {
 	Culling WorkspaceKindCullingConfig `json:"culling,omitempty"`
 
 	// standard probes to determine Container health (MUTABLE)
-	//  updates to existing Workspaces are applied through the "pending restart" feature
+	//  - changes are applied the NEXT time each Workspace is PAUSED
 	Probes WorkspaceKindProbes `json:"probes,omitempty"`
 
-	// volume mount paths (NOT MUTABLE)
+	// volume mount paths
 	//+kubebuilder:validation:Required
 	VolumeMounts WorkspaceKindVolumeMounts `json:"volumeMounts"`
 
@@ -120,11 +125,14 @@ type WorkspaceKindPodTemplate struct {
 	HTTPProxy HTTPProxy `json:"httpProxy,omitempty"`
 
 	// environment variables for Workspace Pods (MUTABLE)
-	//  updates to existing Workspaces are applied through the "pending restart" feature
-	//
-	// The following string templates are available:
-	//   - .PathPrefix: the path prefix of the Workspace (e.g. '/workspace/{profile_name}/{workspace_name}/')
+	//  - changes are applied the NEXT time each Workspace is PAUSED
+	//  - the following string templates are available:
+	//     - `.PathPrefix`: the path prefix of the Workspace (e.g. '/workspace/{profile_name}/{workspace_name}/')
 	ExtraEnv []v1.EnvVar `json:"extraEnv,omitempty"`
+
+	// container SecurityContext for Workspace Pods (MUTABLE)
+	//  - changes are applied the NEXT time each Workspace is PAUSED
+	ContainerSecurityContext *v1.SecurityContext `json:"containerSecurityContext,omitempty"`
 
 	// options are the user-selectable fields, they determine the PodSpec of the Workspace
 	Options WorkspaceKindPodOptions `json:"options"`
@@ -139,8 +147,11 @@ type WorkspaceKindPodMetadata struct {
 }
 
 type WorkspaceKindServiceAccount struct {
-	// the name of the ServiceAccount; this Service Account MUST already exist in the Namespace of the Workspace,
-	//  the controller will NOT create it. We will not show this WorkspaceKind in the Spawner UI if the SA does not exist in the Namespace.
+	// the name of the ServiceAccount (NOT MUTABLE)
+	//  - this Service Account MUST already exist in the Namespace
+	//    of the Workspace, the controller will NOT create it
+	//  - we will not show this WorkspaceKind in the Spawner UI
+	//    if the SA does not exist in the Namespace
 	//+kubebuilder:validation:Required
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="ServiceAccount 'name' is immutable"
 	//+kubebuilder:example="default-editor"
@@ -164,13 +175,15 @@ type WorkspaceKindCullingConfig struct {
 
 // +kubebuilder:validation:XValidation:message="must specify exactly one of 'exec' or 'jupyter'",rule="!(has(self.exec) && has(self.jupyter)) && (has(self.exec) || has(self.jupyter))"
 type ActivityProbe struct {
-	// a "shell" command to run in the Workspace, if the Workspace had activity in the last 60 seconds, this command
-	//  should return status 0, otherwise it should return status 1
+	// a shell command probe
+	//  - if the Workspace had activity in the last 60 seconds this command
+	//    should return status 0, otherwise it should return status 1
 	Exec *ActivityProbeExec `json:"exec,omitempty"`
 
-	// a Jupyter-specific probe will poll the /api/status endpoint of the Jupyter API, and use the last_activity field
-	//  Users need to be careful that their other probes don't trigger a "last_activity" update,
-	//	e.g. they should only check the health of Jupyter using the /api/status endpoint
+	// a Jupyter-specific probe
+	//  - will poll the `/api/status` endpoint of the Jupyter API, and use the `last_activity` field
+	//  - note, users need to be careful that their other probes don't trigger a "last_activity" update
+	//    e.g. they should only check the health of Jupyter using the `/api/status` endpoint
 	Jupyter *ActivityProbeJupyter `json:"jupyter,omitempty"`
 }
 
@@ -200,6 +213,7 @@ type WorkspaceKindProbes struct {
 }
 
 type WorkspaceKindVolumeMounts struct {
+	// the path to mount the home PVC (NOT MUTABLE)
 	//+kubebuilder:validation:Required
 	//+kubebuilder:validation:MinLength:=2
 	//+kubebuilder:validation:MaxLength:=4096
@@ -210,51 +224,52 @@ type WorkspaceKindVolumeMounts struct {
 }
 
 type HTTPProxy struct {
-	// if the '/workspace/{profile_name}/{workspace_name}/' prefix is to be stripped from incoming HTTP requests
-	//  this only works if the application serves RELATIVE URLs for its assets
+	// if the path prefix is stripped from incoming HTTP requests
+	//  - if true, the '/workspace/{profile_name}/{workspace_name}/' path prefix
+	//    is stripped from incoming requests, the application sees the request
+	//    as if it was made to '/...'
+	//  - this only works if the application serves RELATIVE URLs for its assets
 	//+kubebuilder:default:=false
 	//+kubebuilder:validation:Optional
 	RemovePathPrefix bool `json:"removePathPrefix,omitempty"`
 
 	// header manipulation rules for incoming HTTP requests
-	//
-	// Sets the `spec.http[].headers.request` of the Istio VirtualService:
-	// https://istio.io/latest/docs/reference/config/networking/virtual-service/#Headers-HeaderOperations
-	//
-	// The following string templates are available:
-	//  - .PathPrefix: the path prefix of the Workspace (e.g. '/workspace/{profile_name}/{workspace_name}/')
+	//  - sets the `spec.http[].headers.request` of the Istio VirtualService
+	//    https://istio.io/latest/docs/reference/config/networking/virtual-service/#Headers-HeaderOperations
+	//  - the following string templates are available:
+	//     - `.PathPrefix`: the path prefix of the Workspace (e.g. '/workspace/{profile_name}/{workspace_name}/')
 	//+kubebuilder:validation:Optional
 	RequestHeaders IstioHeaderOperations `json:"requestHeaders,omitempty"`
 }
 
 type IstioHeaderOperations struct {
-	// Overwrite the headers specified by key with the given values
+	// overwrite the headers specified by key with the given values
 	//+kubebuilder:example:={ "X-RStudio-Root-Path": "{{ .PathPrefix }}" }
 	Set map[string]string `json:"set,omitempty"`
 
-	// Append the given values to the headers specified by keys (will create a comma-separated list of values)
+	// append the given values to the headers specified by keys (will create a comma-separated list of values)
 	//+kubebuilder:example:={ "My-Header": "value-to-append" }
 	Add map[string]string `json:"add,omitempty"`
 
-	// Remove the specified headers
+	// remove the specified headers
 	//+kubebuilder:example:={"Header-To-Remove"}
 	Remove []string `json:"remove,omitempty"`
 }
 
 type WorkspaceKindPodOptions struct {
-	// imageConfig options determine the container image
+	// imageConfig options
 	ImageConfig ImageConfig `json:"imageConfig"`
 
-	// podConfig options determine pod affinity, nodeSelector, tolerations, resources
+	// podConfig options
 	PodConfig PodConfig `json:"podConfig"`
 }
 
 type ImageConfig struct {
-	// the id of the default image config for this WorkspaceKind
+	// the id of the default image config
 	//+kubebuilder:example:="jupyter_scipy_171"
 	Default string `json:"default"`
 
-	// the list of image configs that are available to choose from
+	// the list of image configs that are available
 	//+kubebuilder:validation:Required
 	//+kubebuilder:validation:MinItems:=1
 	//+listType:="map"
@@ -263,14 +278,18 @@ type ImageConfig struct {
 }
 
 type ImageConfigValue struct {
+	// the id of this image config
 	//+kubebuilder:example:="jupyter_scipy_171"
 	Id string `json:"id"`
 
+	// information for the spawner ui
 	Spawner OptionSpawnerInfo `json:"spawner"`
 
+	// redirect configs
 	//+kubebuilder:validation:Optional
 	Redirect OptionRedirect `json:"redirect,omitempty"`
 
+	// the spec of the image config
 	Spec ImageConfigSpec `json:"spec"`
 }
 
@@ -287,8 +306,9 @@ type ImageConfigSpec struct {
 	//+kubebuilder:validation:Enum:={"Always","IfNotPresent","Never"}
 	ImagePullPolicy *v1.PullPolicy `json:"imagePullPolicy"`
 
-	// ports that the container listens on, currently, only HTTP is supported for `protocol`
-	//  if multiple ports are defined, the user will see multiple "Connect" buttons in a dropdown menu on the Workspace overview page
+	// ports that the container listens on
+	//   - if multiple ports are defined, the user will see multiple "Connect" buttons
+	//     in a dropdown menu on the Workspace overview page
 	//+kubebuilder:validation:Required
 	//+kubebuilder:validation:MinItems:=1
 	Ports []ImagePort `json:"ports"`
@@ -336,14 +356,18 @@ type PodConfig struct {
 }
 
 type PodConfigValue struct {
+	// the id of this pod config
 	//+kubebuilder:example="big_gpu"
 	Id string `json:"id"`
 
+	// information for the spawner ui
 	Spawner OptionSpawnerInfo `json:"spawner"`
 
+	// redirect configs
 	//+kubebuilder:validation:Optional
 	Redirect OptionRedirect `json:"redirect,omitempty"`
 
+	// the spec of the pod config
 	Spec PodConfigSpec `json:"spec"`
 }
 
@@ -406,12 +430,15 @@ type OptionSpawnerLabel struct {
 }
 
 type OptionRedirect struct {
+	// the id of the option to redirect to
 	//+kubebuilder:example:="jupyter_scipy_171"
 	To string `json:"to"`
 
+	// if the redirect will be applied after the next restart of the Workspace
 	//+kubebuilder:example:=true
 	WaitForRestart bool `json:"waitForRestart"`
 
+	// information about the redirect
 	//+kubebuilder:validation:Optional
 	Message *RedirectMessage `json:"message,omitempty"`
 }

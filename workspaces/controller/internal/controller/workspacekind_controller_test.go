@@ -103,6 +103,14 @@ var _ = Describe("WorkspaceKind Controller", func() {
 									Value: "{{ .PathPrefix }}",
 								},
 							},
+							ContainerSecurityContext: &v1.SecurityContext{
+								AllowPrivilegeEscalation: ptr.To(false),
+								Capabilities: &v1.Capabilities{
+									Drop: []v1.Capability{"ALL"},
+								},
+								RunAsNonRoot:           ptr.To(true),
+								ReadOnlyRootFilesystem: ptr.To(true),
+							},
 							Options: kubefloworgv1beta1.WorkspaceKindPodOptions{
 								ImageConfig: kubefloworgv1beta1.ImageConfig{
 									Default: "jupyter_scipy_171",

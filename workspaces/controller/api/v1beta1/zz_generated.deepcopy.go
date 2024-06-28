@@ -628,6 +628,11 @@ func (in *WorkspaceKindPodTemplate) DeepCopyInto(out *WorkspaceKindPodTemplate) 
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.ContainerSecurityContext != nil {
+		in, out := &in.ContainerSecurityContext, &out.ContainerSecurityContext
+		*out = new(v1.SecurityContext)
+		(*in).DeepCopyInto(*out)
+	}
 	in.Options.DeepCopyInto(&out.Options)
 }
 

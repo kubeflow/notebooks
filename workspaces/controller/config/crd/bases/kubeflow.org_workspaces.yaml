@@ -56,24 +56,26 @@ spec:
                   rule: self == oldSelf
               paused:
                 default: false
-                description: if the workspace should be paused (no pods running)
+                description: if the workspace is paused (no pods running)
                 type: boolean
               podTemplate:
                 description: options for "podTemplate"-type WorkspaceKinds
                 properties:
                   options:
-                    description: spawner options, these are the user-selected options
-                      from the Workspace Spawner UI which determine the PodSpec of
-                      the Workspace Pod
+                    description: the selected podTemplate options
                     properties:
                       imageConfig:
                         description: |-
-                          the id of an image option
+                          the id of an imageConfig option
                            - options are defined in WorkspaceKind under
                              `spec.podTemplate.options.imageConfig.values[]`
                         example: jupyter_scipy_170
                         type: string
                       podConfig:
+                        description: |-
+                          the id of a podConfig option
+                           - options are defined in WorkspaceKind under
+                             `spec.podTemplate.options.podConfig.values[]`
                         example: big_gpu
                         type: string
                     required:
@@ -98,17 +100,21 @@ spec:
                     description: volume configs
                     properties:
                       data:
-                        description: additional data PVCs to mount, these PVCs must
-                          already exist in the Namespace
+                        description: |-
+                          additional PVCs to mount
+                           - these PVCs must already exist in the Namespace
+                           - these PVCs must be RWX (ReadWriteMany, ReadWriteOnce)
                         items:
                           properties:
                             mountPath:
+                              description: the mount path for the PVC
                               example: /data/my-data
                               maxLength: 4096
                               minLength: 2
                               pattern: ^/[^/].*$
                               type: string
                             name:
+                              description: the name of the PVC to mount
                               example: my-data-pvc
                               maxLength: 63
                               minLength: 2
@@ -121,10 +127,11 @@ spec:
                         type: array
                       home:
                         description: |-
-                          A PVC to mount as the home directory.
-                          This PVC must already exist in the Namespace
-                          This PVC must be RWX (ReadWriteMany, ReadWriteOnce)
-                          Mount path is defined in the WorkspaceKind under `spec.podTemplate.volumeMounts.home`
+                          the name of the PVC to mount as the home volume
+                           - this PVC must already exist in the Namespace
+                           - this PVC must be RWX (ReadWriteMany, ReadWriteOnce)
+                           - the mount path is defined in the WorkspaceKind under
+                             `spec.podTemplate.volumeMounts.home`
                         example: my-home-pvc
                         maxLength: 63
                         minLength: 2
@@ -145,14 +152,18 @@ spec:
             description: WorkspaceStatus defines the observed state of Workspace
             properties:
               activity:
-                description: information populated by activity probes, used to determine
+                description: activity information for the Workspace, used to determine
                   when to cull
                 properties:
                   lastActivity:
+                    description: the last time activity was observed on the Workspace
+                      (UNIX epoch)
                     example: 1704067200
                     format: int64
                     type: integer
                   lastUpdate:
+                    description: the last time we checked for activity on the Workspace
+                      (UNIX epoch)
                     example: 1704067200
                     format: int64
                     type: integer
@@ -167,22 +178,30 @@ spec:
                 format: int64
                 type: integer
               pendingRestart:
-                description: if the current Pod does not reflect the current "desired"
-                  state (after redirects)
+                description: |-
+                  if the current Pod does not reflect the current "desired" state
+                   - true if any `spec.podTemplate.options` have a redirect
+                     and so will be patched on the next restart
+                   - true if the WorkspaceKind has changed one of its common `podTemplate` fields
+                     like `podMetadata`, `probes`, `extraEnv`, or `containerSecurityContext`
                 example: false
                 type: boolean
               podTemplateOptions:
-                description: actual "target" podTemplateOptions, taking into account
-                  redirects
+                description: the `spec.podTemplate.options` which will take effect
+                  after the next restart
                 properties:
                   imageConfig:
                     description: |-
-                      the id of an image option
+                      the id of an imageConfig option
                        - options are defined in WorkspaceKind under
                          `spec.podTemplate.options.imageConfig.values[]`
                     example: jupyter_scipy_170
                     type: string
                   podConfig:
+                    description: |-
+                      the id of a podConfig option
+                       - options are defined in WorkspaceKind under
+                         `spec.podTemplate.options.podConfig.values[]`
                     example: big_gpu
                     type: string
                 required:
@@ -203,7 +222,7 @@ spec:
               stateMessage:
                 description: |-
                   a human-readable message about the state of the Workspace
-                   WARNING: this field is NOT FOR MACHINE USE, subject to change without notice
+                   - WARNING: this field is NOT FOR MACHINE USE, subject to change without notice
                 example: Pod is not ready
                 type: string
             required:
