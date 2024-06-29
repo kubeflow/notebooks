@@ -239,6 +239,7 @@ spec:
                                  should return status 0, otherwise it should return status 1
                             properties:
                               command:
+                                description: the command to run
                                 example:
                                 - bash
                                 - -c
@@ -258,6 +259,7 @@ spec:
                                  e.g. they should only check the health of Jupyter using the `/api/status` endpoint
                             properties:
                               lastActivity:
+                                description: if the Jupyter-specific probe is enabled
                                 example: true
                                 type: boolean
                             required:
@@ -1876,9 +1878,7 @@ spec:
                        - changes are applied the NEXT time each Workspace is PAUSED
                     properties:
                       livenessProbe:
-                        description: |-
-                          Probe describes a health check to be performed against a container to determine whether it is
-                          alive or ready to receive traffic.
+                        description: the liveness probe for the main container
                         properties:
                           exec:
                             description: Exec specifies the action to take.
@@ -2029,9 +2029,7 @@ spec:
                             type: integer
                         type: object
                       readinessProbe:
-                        description: |-
-                          Probe describes a health check to be performed against a container to determine whether it is
-                          alive or ready to receive traffic.
+                        description: the readiness probe for the main container
                         properties:
                           exec:
                             description: Exec specifies the action to take.
@@ -2182,9 +2180,7 @@ spec:
                             type: integer
                         type: object
                       startupProbe:
-                        description: |-
-                          Probe describes a health check to be performed against a container to determine whether it is
-                          alive or ready to receive traffic.
+                        description: the startup probe for the main container
                         properties:
                           exec:
                             description: Exec specifies the action to take.

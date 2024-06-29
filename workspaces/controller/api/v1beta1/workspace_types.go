@@ -32,12 +32,11 @@ import (
 type WorkspaceSpec struct {
 
 	// if the workspace is paused (no pods running)
-	//+kubebuilder:default=false
 	//+kubebuilder:validation:Optional
-	Paused bool `json:"paused,omitempty"`
+	//+kubebuilder:default=false
+	Paused *bool `json:"paused,omitempty"`
 
 	// the WorkspaceKind to use
-	//+kubebuilder:validation:Required
 	//+kubebuilder:validation:MinLength:=2
 	//+kubebuilder:validation:MaxLength:=63
 	//+kubebuilder:validation:Pattern:=^[a-z0-9][-a-z0-9]*[a-z0-9]$
@@ -52,7 +51,7 @@ type WorkspaceSpec struct {
 type WorkspacePodTemplate struct {
 	// metadata to be applied to the Pod resource
 	//+kubebuilder:validation:Optional
-	PodMetadata WorkspacePodMetadata `json:"podMetadata,omitempty"`
+	PodMetadata *WorkspacePodMetadata `json:"podMetadata,omitempty"`
 
 	// volume configs
 	Volumes WorkspacePodVolumes `json:"volumes"`
