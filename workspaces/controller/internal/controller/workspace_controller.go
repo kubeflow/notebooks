@@ -26,10 +26,16 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"time"
 )
 
@@ -40,8 +46,9 @@ const (
 )
 
 var (
-	workspaceOwnerKey = ".metadata.controller"
-	apiGVStr          = kubefloworgv1beta1.GroupVersion.String()
+	workspaceOwnerKey  = ".metadata.controller"
+	workspaceKindField = ".spec.kind"
+	apiGVStr           = kubefloworgv1beta1.GroupVersion.String()
 )
 
 // WorkspaceReconciler reconciles a Workspace object
@@ -51,6 +58,7 @@ type WorkspaceReconciler struct {
 }
 
 //+kubebuilder:rbac:groups=kubeflow.org,resources=workspaces,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=kubeflow.org,resources=workspacekinds,verbs=list;watch
 //+kubebuilder:rbac:groups=kubeflow.org,resources=workspaces/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=kubeflow.org,resources=workspaces/finalizers,verbs=update
 // +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;update;patch;create;delete
@@ -266,9 +274,45 @@ func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}); err != nil {
 		return err
 	}
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &kubefloworgv1beta1.Workspace{}, workspaceKindField, func(rawObj client.Object) []string {
+		ws := rawObj.(*kubefloworgv1beta1.Workspace)
+		if ws.Spec.Kind == "" {
+			return nil
+		}
+		return []string{ws.Spec.Kind}
+	}); err != nil {
+		return err
+	}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&kubefloworgv1beta1.Workspace{}).Owns(&appsv1.StatefulSet{}).Owns(&corev1.Service{}).
+		Watches(
+			&kubefloworgv1beta1.WorkspaceKind{},
+			handler.EnqueueRequestsFromMapFunc(r.findObjectsForWorkspaceKind),
+			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
+		).
 		Complete(r)
+}
+
+func (r *WorkspaceReconciler) findObjectsForWorkspaceKind(ctx context.Context, workspaceKind client.Object) []reconcile.Request {
+	attachedWorkspaces := &kubefloworgv1beta1.WorkspaceList{}
+	listOps := &client.ListOptions{
+		FieldSelector: fields.OneTermEqualSelector(workspaceKindField, workspaceKind.GetName()),
+	}
+	err := r.List(ctx, attachedWorkspaces, listOps)
+	if err != nil {
+		return []reconcile.Request{}
+	}
+
+	requests := make([]reconcile.Request, len(attachedWorkspaces.Items))
+	for i, item := range attachedWorkspaces.Items {
+		requests[i] = reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      item.GetName(),
+				Namespace: item.GetNamespace(),
+			},
+		}
+	}
+	return requests
 }
 
 func updateWorkspaceStatus(ctx context.Context, r *WorkspaceReconciler, ws *kubefloworgv1beta1.Workspace, pod *corev1.Pod, log logr.Logger) error {
