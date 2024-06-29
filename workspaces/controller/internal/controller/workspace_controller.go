@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"github.com/go-logr/logr"
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
 	appsv1 "k8s.io/api/apps/v1"
@@ -105,6 +106,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if len(statefulSets.Items) > 1 {
 		logger.Info("Found multiple StatefulSets")
 		workspace.Status.State = kubefloworgv1beta1.WorkspaceStateError
+		workspace.Status.StateMessage = "Found multiple StatefulSets"
 		if err := r.Status().Update(ctx, workspace); err != nil {
 			logger.Error(err, "unable to update Workspace status")
 			return ctrl.Result{}, err
@@ -116,8 +118,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		foundStatefulSet = &statefulSets.Items[0]
 	} else {
 		logger.Info("Creating StatefulSet")
-		err := r.Client.Create(ctx, ss)
-		if err != nil {
+		if err := r.Client.Create(ctx, ss); err != nil {
 			if errors.IsAlreadyExists(err) {
 				logger.Error(err, "statefulset already exists with this name , retrying")
 				err := helper.Retry(RetryAttempts, RetryInterval, func() error {
@@ -169,6 +170,8 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if len(services.Items) > 1 {
 		logger.Info("Found multiple Services")
 		workspace.Status.State = kubefloworgv1beta1.WorkspaceStateError
+		workspace.Status.StateMessage = "Found multiple services"
+
 		if err := r.Status().Update(ctx, workspace); err != nil {
 			logger.Error(err, "unable to update Workspace status")
 			return ctrl.Result{}, err
@@ -215,7 +218,20 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 		logger.Info("Service updated")
 	}
+	pod := &corev1.Pod{}
+	if err := r.Get(ctx, client.ObjectKey{Name: foundStatefulSet.Name + "-0", Namespace: foundStatefulSet.Namespace}, pod); err != nil {
+		if client.IgnoreNotFound(err) == nil {
+			logger.Info(fmt.Sprintf("No Pods are currently running for Workspace Server: %s .", workspace.Name))
+		}
+		logger.Error(err, "unable to fetch Pod")
+		return ctrl.Result{}, err
+	}
 
+	// Update Workspace CR status
+	if err := updateWorkspaceStatus(ctx, r, workspace, pod, logger); err != nil {
+		logger.Error(err, "unable to update Workspace status")
+		return ctrl.Result{}, err
+	}
 	logger.Info("Finish Reconciling Workspace")
 	return ctrl.Result{}, nil
 }
@@ -253,6 +269,32 @@ func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&kubefloworgv1beta1.Workspace{}).Owns(&appsv1.StatefulSet{}).Owns(&corev1.Service{}).
 		Complete(r)
+}
+
+func updateWorkspaceStatus(ctx context.Context, r *WorkspaceReconciler, ws *kubefloworgv1beta1.Workspace, pod *corev1.Pod, log logr.Logger) error {
+	status := createWorkspaceStatus(ws, pod, log)
+	log.Info("Updating Workspace CR Status", "status", status)
+	ws.Status = status
+	return r.Status().Update(ctx, ws)
+}
+
+func createWorkspaceStatus(ws *kubefloworgv1beta1.Workspace, pod *corev1.Pod, log logr.Logger) kubefloworgv1beta1.WorkspaceStatus {
+	log.Info("Initializing Workspace CR Status")
+
+	status := kubefloworgv1beta1.WorkspaceStatus{}
+	switch pod.Status.Phase {
+	case corev1.PodRunning:
+		status.State = kubefloworgv1beta1.WorkspaceStateRunning
+		status.StateMessage = fmt.Sprintf("workspace %s is running", ws.Name)
+	case corev1.PodPending:
+		status.State = kubefloworgv1beta1.WorkspaceStatePending
+		status.StateMessage = fmt.Sprintf("workspace %s is pending", ws.Name)
+	default:
+		status.State = kubefloworgv1beta1.WorkspaceStateUnknown
+		status.StateMessage = fmt.Sprintf("workspace %s has failed", ws.Name)
+	}
+
+	return status
 }
 
 func getDefaultImage(imageConfig kubefloworgv1beta1.ImageConfig) string {
