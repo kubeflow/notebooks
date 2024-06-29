@@ -6,11 +6,7 @@ spec:
   podTemplate:
     httpProxy:
       removePathPrefix: false
-      requestHeaders:
-        - append: {}
-          remove:
-            - ""
-          set: {}
+      requestHeaders: {}
     options:
       imageConfig:
         default: "jupyter_scipy_171"

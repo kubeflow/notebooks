@@ -5,7 +5,6 @@ metadata:
   namespace: default
 spec:
   kind: "jupyter-lab"
-  paused: false
   podTemplate:
     options:
       imageConfig: "jupyter_scipy_171"
