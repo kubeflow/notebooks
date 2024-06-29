@@ -108,8 +108,7 @@ var _ = Describe("WorkspaceKind Controller", func() {
 								Capabilities: &v1.Capabilities{
 									Drop: []v1.Capability{"ALL"},
 								},
-								RunAsNonRoot:           ptr.To(true),
-								ReadOnlyRootFilesystem: ptr.To(true),
+								RunAsNonRoot: ptr.To(true),
 							},
 							Options: kubefloworgv1beta1.WorkspaceKindPodOptions{
 								ImageConfig: kubefloworgv1beta1.ImageConfig{
