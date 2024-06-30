@@ -57,9 +57,9 @@ var _ = Describe("WorkspaceKind Controller", func() {
 						Spawner: kubefloworgv1beta1.WorkspaceKindSpawner{
 							DisplayName:        "JupyterLab Notebook",
 							Description:        "A Workspace which runs JupyterLab in a Pod",
-							Hidden:             false,
-							Deprecated:         false,
-							DeprecationMessage: "This WorkspaceKind will be removed on 20XX-XX-XX, please use another WorkspaceKind.",
+							Hidden:             ptr.To(false),
+							Deprecated:         ptr.To(false),
+							DeprecationMessage: ptr.To("This WorkspaceKind will be removed on 20XX-XX-XX, please use another WorkspaceKind."),
 							Icon: kubefloworgv1beta1.WorkspaceKindIcon{
 								Url: ptr.To("https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png"),
 							},
@@ -72,26 +72,26 @@ var _ = Describe("WorkspaceKind Controller", func() {
 						},
 
 						PodTemplate: kubefloworgv1beta1.WorkspaceKindPodTemplate{
-							PodMetadata: kubefloworgv1beta1.WorkspaceKindPodMetadata{},
+							PodMetadata: &kubefloworgv1beta1.WorkspaceKindPodMetadata{},
 							ServiceAccount: kubefloworgv1beta1.WorkspaceKindServiceAccount{
 								Name: "default-editor",
 							},
-							Culling: kubefloworgv1beta1.WorkspaceKindCullingConfig{
-								Enabled:            true,
-								MaxInactiveSeconds: 86400,
+							Culling: &kubefloworgv1beta1.WorkspaceKindCullingConfig{
+								Enabled:            ptr.To(true),
+								MaxInactiveSeconds: ptr.To(int64(86400)),
 								ActivityProbe: kubefloworgv1beta1.ActivityProbe{
 									Exec: &kubefloworgv1beta1.ActivityProbeExec{
 										Command: []string{"bash", "-c", "exit 0"},
 									},
 								},
 							},
-							Probes: kubefloworgv1beta1.WorkspaceKindProbes{},
+							Probes: &kubefloworgv1beta1.WorkspaceKindProbes{},
 							VolumeMounts: kubefloworgv1beta1.WorkspaceKindVolumeMounts{
 								Home: "/home/jovyan",
 							},
-							HTTPProxy: kubefloworgv1beta1.HTTPProxy{
-								RemovePathPrefix: false,
-								RequestHeaders: kubefloworgv1beta1.IstioHeaderOperations{
+							HTTPProxy: &kubefloworgv1beta1.HTTPProxy{
+								RemovePathPrefix: ptr.To(false),
+								RequestHeaders: &kubefloworgv1beta1.IstioHeaderOperations{
 									Set:    map[string]string{"X-RStudio-Root-Path": "{{ .PathPrefix }}"},
 									Add:    map[string]string{},
 									Remove: []string{},
@@ -103,6 +103,13 @@ var _ = Describe("WorkspaceKind Controller", func() {
 									Value: "{{ .PathPrefix }}",
 								},
 							},
+							ContainerSecurityContext: &v1.SecurityContext{
+								AllowPrivilegeEscalation: ptr.To(false),
+								Capabilities: &v1.Capabilities{
+									Drop: []v1.Capability{"ALL"},
+								},
+								RunAsNonRoot: ptr.To(true),
+							},
 							Options: kubefloworgv1beta1.WorkspaceKindPodOptions{
 								ImageConfig: kubefloworgv1beta1.ImageConfig{
 									Default: "jupyter_scipy_171",
@@ -111,10 +118,10 @@ var _ = Describe("WorkspaceKind Controller", func() {
 											Id: "jupyter_scipy_170",
 											Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 												DisplayName: "jupyter-scipy:v1.7.0",
-												Description: "JupyterLab 1.7.0, with SciPy Packages",
-												Hidden:      true,
+												Description: ptr.To("JupyterLab 1.7.0, with SciPy Packages"),
+												Hidden:      ptr.To(true),
 											},
-											Redirect: kubefloworgv1beta1.OptionRedirect{
+											Redirect: &kubefloworgv1beta1.OptionRedirect{
 												To:             "jupyter_scipy_171",
 												WaitForRestart: true,
 												Message: &kubefloworgv1beta1.RedirectMessage{
@@ -142,12 +149,12 @@ var _ = Describe("WorkspaceKind Controller", func() {
 											Id: "small_cpu",
 											Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 												DisplayName: "Small CPU",
-												Description: "Pod with 1 CPU, 2 GB RAM, and 1 GPU",
-												Hidden:      false,
+												Description: ptr.To("Pod with 1 CPU, 2 GB RAM, and 1 GPU"),
+												Hidden:      ptr.To(false),
 											},
-											Redirect: kubefloworgv1beta1.OptionRedirect{},
+											Redirect: nil,
 											Spec: kubefloworgv1beta1.PodConfigSpec{
-												Resources: v1.ResourceRequirements{
+												Resources: &v1.ResourceRequirements{
 													Requests: map[v1.ResourceName]resource.Quantity{
 														"cpu":    resource.MustParse("1"),
 														"memory": resource.MustParse("2Gi"),
