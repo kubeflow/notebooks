@@ -31,13 +31,12 @@ import (
 // WorkspaceSpec defines the desired state of Workspace
 type WorkspaceSpec struct {
 
-	// if the workspace should be paused (no pods running)
-	//+kubebuilder:default=false
+	// if the workspace is paused (no pods running)
 	//+kubebuilder:validation:Optional
-	Paused bool `json:"paused,omitempty"`
+	//+kubebuilder:default=false
+	Paused *bool `json:"paused,omitempty"`
 
 	// the WorkspaceKind to use
-	//+kubebuilder:validation:Required
 	//+kubebuilder:validation:MinLength:=2
 	//+kubebuilder:validation:MaxLength:=63
 	//+kubebuilder:validation:Pattern:=^[a-z0-9][-a-z0-9]*[a-z0-9]$
@@ -52,12 +51,12 @@ type WorkspaceSpec struct {
 type WorkspacePodTemplate struct {
 	// metadata to be applied to the Pod resource
 	//+kubebuilder:validation:Optional
-	PodMetadata WorkspacePodMetadata `json:"podMetadata,omitempty"`
+	PodMetadata *WorkspacePodMetadata `json:"podMetadata,omitempty"`
 
 	// volume configs
 	Volumes WorkspacePodVolumes `json:"volumes"`
 
-	// spawner options, these are the user-selected options from the Workspace Spawner UI which determine the PodSpec of the Workspace Pod
+	// the selected podTemplate options
 	Options WorkspacePodOptions `json:"options"`
 }
 
@@ -72,28 +71,33 @@ type WorkspacePodMetadata struct {
 }
 
 type WorkspacePodVolumes struct {
-	// A PVC to mount as the home directory.
-	// This PVC must already exist in the Namespace
-	// This PVC must be RWX (ReadWriteMany, ReadWriteOnce)
-	// Mount path is defined in the WorkspaceKind under `spec.podTemplate.volumeMounts.home`
+	// the name of the PVC to mount as the home volume
+	//  - this PVC must already exist in the Namespace
+	//  - this PVC must be RWX (ReadWriteMany, ReadWriteOnce)
+	//  - the mount path is defined in the WorkspaceKind under
+	//    `spec.podTemplate.volumeMounts.home`
 	//+kubebuilder:validation:MinLength:=2
 	//+kubebuilder:validation:MaxLength:=63
 	//+kubebuilder:validation:Pattern:=^[a-z0-9][-a-z0-9]*[a-z0-9]$
 	//+kubebuilder:example="my-home-pvc"
 	Home string `json:"home"`
 
-	// additional data PVCs to mount, these PVCs must already exist in the Namespace
+	// additional PVCs to mount
+	//  - these PVCs must already exist in the Namespace
+	//  - these PVCs must be RWX (ReadWriteMany, ReadWriteOnce)
 	//+kubebuilder:validation:Optional
 	Data []PodVolumeMount `json:"data,omitempty"`
 }
 
 type PodVolumeMount struct {
+	// the name of the PVC to mount
 	//+kubebuilder:validation:MinLength:=2
 	//+kubebuilder:validation:MaxLength:=63
 	//+kubebuilder:validation:Pattern:=^[a-z0-9][-a-z0-9]*[a-z0-9]$
 	//+kubebuilder:example="my-data-pvc"
 	Name string `json:"name"`
 
+	// the mount path for the PVC
 	//+kubebuilder:validation:MinLength:=2
 	//+kubebuilder:validation:MaxLength:=4096
 	//+kubebuilder:validation:Pattern:=^/[^/].*$
@@ -102,12 +106,15 @@ type PodVolumeMount struct {
 }
 
 type WorkspacePodOptions struct {
-	// the id of an image option
+	// the id of an imageConfig option
 	//  - options are defined in WorkspaceKind under
 	//    `spec.podTemplate.options.imageConfig.values[]`
 	//+kubebuilder:example="jupyter_scipy_170"
 	ImageConfig string `json:"imageConfig"`
 
+	// the id of a podConfig option
+	//  - options are defined in WorkspaceKind under
+	//    `spec.podTemplate.options.podConfig.values[]`
 	//+kubebuilder:example="big_gpu"
 	PodConfig string `json:"podConfig"`
 }
@@ -121,18 +128,22 @@ type WorkspacePodOptions struct {
 // WorkspaceStatus defines the observed state of Workspace
 type WorkspaceStatus struct {
 
-	// information populated by activity probes, used to determine when to cull
+	// activity information for the Workspace, used to determine when to cull
 	Activity WorkspaceActivity `json:"activity"`
 
 	// the time when the Workspace was paused, 0 if the Workspace is not paused
 	//+kubebuilder:example=1704067200
 	PauseTime int64 `json:"pauseTime"`
 
-	// if the current Pod does not reflect the current "desired" state (after redirects)
+	// if the current Pod does not reflect the current "desired" state
+	//  - true if any `spec.podTemplate.options` have a redirect
+	//    and so will be patched on the next restart
+	//  - true if the WorkspaceKind has changed one of its common `podTemplate` fields
+	//    like `podMetadata`, `probes`, `extraEnv`, or `containerSecurityContext`
 	//+kubebuilder:example=false
 	PendingRestart bool `json:"pendingRestart"`
 
-	// actual "target" podTemplateOptions, taking into account redirects
+	// the `spec.podTemplate.options` which will take effect after the next restart
 	PodTemplateOptions WorkspacePodOptions `json:"podTemplateOptions"`
 
 	// the current state of the Workspace
@@ -140,15 +151,17 @@ type WorkspaceStatus struct {
 	State WorkspaceState `json:"state"`
 
 	// a human-readable message about the state of the Workspace
-	//  WARNING: this field is NOT FOR MACHINE USE, subject to change without notice
+	//  - WARNING: this field is NOT FOR MACHINE USE, subject to change without notice
 	//+kubebuilder:example="Pod is not ready"
 	StateMessage string `json:"stateMessage"`
 }
 
 type WorkspaceActivity struct {
+	// the last time activity was observed on the Workspace (UNIX epoch)
 	//+kubebuilder:example=1704067200
 	LastActivity int64 `json:"lastActivity"`
 
+	// the last time we checked for activity on the Workspace (UNIX epoch)
 	//+kubebuilder:example=1704067200
 	LastUpdate int64 `json:"lastUpdate"`
 }
