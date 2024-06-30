@@ -341,17 +341,9 @@ func createWorkspaceStatus(ws *kubefloworgv1beta1.Workspace, pod *corev1.Pod, lo
 	return status
 }
 
-func getDefaultImage(imageConfig kubefloworgv1beta1.ImageConfig) string {
-	for _, image := range imageConfig.Values {
-		if imageConfig.Default == image.Id {
-			return image.Spec.Image
-		}
-	}
-	return "kubeflownotebookswg/jupyter-scipy:v1.8.0"
-}
-
 func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind) *appsv1.StatefulSet {
 	replicas := int32(1)
+	imageConfigMap := generateMapFromImageConfig(workspaceKind.Spec.PodTemplate.Options.ImageConfig)
 	return &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: fmt.Sprintf("ws-%s-", workspace.Name),
@@ -377,14 +369,8 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 					Containers: []corev1.Container{
 						{
 							Name:  "notebook",
-							Image: getDefaultImage(workspaceKind.Spec.PodTemplate.Options.ImageConfig),
-							Ports: []corev1.ContainerPort{
-								{
-									Name:          fmt.Sprintf("http-%s", workspace.Name),
-									Protocol:      "TCP",
-									ContainerPort: DefaultContainerPort,
-								},
-							},
+							Image: getCurrentImage(workspace.Spec.PodTemplate.Options.ImageConfig, imageConfigMap),
+							Ports: getContainerPorts(workspace.Spec.PodTemplate.Options.ImageConfig, imageConfigMap),
 						},
 					},
 				},
@@ -411,4 +397,33 @@ func generateService(workspace *kubefloworgv1beta1.Workspace) *corev1.Service {
 			},
 		},
 	}
+}
+
+func getContainerPorts(imageConfig string, imageConfigMap map[string]kubefloworgv1beta1.ImageConfigValue) []corev1.ContainerPort {
+	ports := make([]corev1.ContainerPort, 0)
+	config := imageConfigMap[imageConfig]
+	for i, port := range config.Spec.Ports {
+		ports = append(ports, corev1.ContainerPort{
+			Name:          fmt.Sprintf("http-%d", i),
+			ContainerPort: port.Port,
+			Protocol:      corev1.ProtocolTCP,
+		})
+	}
+	return ports
+}
+
+func getCurrentImage(imageConfig string, imageConfigMap map[string]kubefloworgv1beta1.ImageConfigValue) string {
+	config, ok := imageConfigMap[imageConfig]
+	if !ok || config.Spec.Image == "" {
+		return "kubeflownotebookswg/jupyter-scipy:v1.8.0"
+	}
+	return config.Spec.Image
+}
+
+func generateMapFromImageConfig(imageConfig kubefloworgv1beta1.ImageConfig) map[string]kubefloworgv1beta1.ImageConfigValue {
+	imageMap := make(map[string]kubefloworgv1beta1.ImageConfigValue)
+	for _, image := range imageConfig.Values {
+		imageMap[image.Id] = image
+	}
+	return imageMap
 }
