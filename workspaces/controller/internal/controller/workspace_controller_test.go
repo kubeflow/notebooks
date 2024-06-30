@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"k8s.io/utils/ptr"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -52,10 +53,10 @@ var _ = Describe("Workspace Controller", func() {
 						Namespace: "default",
 					},
 					Spec: kubefloworgv1beta1.WorkspaceSpec{
-						Paused: false,
+						Paused: ptr.To(false),
 						Kind:   "juptyer-lab",
 						PodTemplate: kubefloworgv1beta1.WorkspacePodTemplate{
-							PodMetadata: kubefloworgv1beta1.WorkspacePodMetadata{
+							PodMetadata: &kubefloworgv1beta1.WorkspacePodMetadata{
 								Labels:      nil,
 								Annotations: nil,
 							},

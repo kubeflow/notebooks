@@ -56,6 +56,175 @@ spec:
                 description: podTemplate is the PodTemplate used to spawn Pods to
                   run Workspaces of this WorkspaceKind
                 properties:
+                  containerSecurityContext:
+                    description: |-
+                      container SecurityContext for Workspace Pods (MUTABLE)
+                       - changes are applied the NEXT time each Workspace is PAUSED
+                    properties:
+                      allowPrivilegeEscalation:
+                        description: |-
+                          AllowPrivilegeEscalation controls whether a process can gain more
+                          privileges than its parent process. This bool directly controls if
+                          the no_new_privs flag will be set on the container process.
+                          AllowPrivilegeEscalation is true always when the container is:
+                          1) run as Privileged
+                          2) has CAP_SYS_ADMIN
+                          Note that this field cannot be set when spec.os.name is windows.
+                        type: boolean
+                      capabilities:
+                        description: |-
+                          The capabilities to add/drop when running containers.
+                          Defaults to the default set of capabilities granted by the container runtime.
+                          Note that this field cannot be set when spec.os.name is windows.
+                        properties:
+                          add:
+                            description: Added capabilities
+                            items:
+                              description: Capability represent POSIX capabilities
+                                type
+                              type: string
+                            type: array
+                          drop:
+                            description: Removed capabilities
+                            items:
+                              description: Capability represent POSIX capabilities
+                                type
+                              type: string
+                            type: array
+                        type: object
+                      privileged:
+                        description: |-
+                          Run container in privileged mode.
+                          Processes in privileged containers are essentially equivalent to root on the host.
+                          Defaults to false.
+                          Note that this field cannot be set when spec.os.name is windows.
+                        type: boolean
+                      procMount:
+                        description: |-
+                          procMount denotes the type of proc mount to use for the containers.
+                          The default is DefaultProcMount which uses the container runtime defaults for
+                          readonly paths and masked paths.
+                          This requires the ProcMountType feature flag to be enabled.
+                          Note that this field cannot be set when spec.os.name is windows.
+                        type: string
+                      readOnlyRootFilesystem:
+                        description: |-
+                          Whether this container has a read-only root filesystem.
+                          Default is false.
+                          Note that this field cannot be set when spec.os.name is windows.
+                        type: boolean
+                      runAsGroup:
+                        description: |-
+                          The GID to run the entrypoint of the container process.
+                          Uses runtime default if unset.
+                          May also be set in PodSecurityContext.  If set in both SecurityContext and
+                          PodSecurityContext, the value specified in SecurityContext takes precedence.
+                          Note that this field cannot be set when spec.os.name is windows.
+                        format: int64
+                        type: integer
+                      runAsNonRoot:
+                        description: |-
+                          Indicates that the container must run as a non-root user.
+                          If true, the Kubelet will validate the image at runtime to ensure that it
+                          does not run as UID 0 (root) and fail to start the container if it does.
+                          If unset or false, no such validation will be performed.
+                          May also be set in PodSecurityContext.  If set in both SecurityContext and
+                          PodSecurityContext, the value specified in SecurityContext takes precedence.
+                        type: boolean
+                      runAsUser:
+                        description: |-
+                          The UID to run the entrypoint of the container process.
+                          Defaults to user specified in image metadata if unspecified.
+                          May also be set in PodSecurityContext.  If set in both SecurityContext and
+                          PodSecurityContext, the value specified in SecurityContext takes precedence.
+                          Note that this field cannot be set when spec.os.name is windows.
+                        format: int64
+                        type: integer
+                      seLinuxOptions:
+                        description: |-
+                          The SELinux context to be applied to the container.
+                          If unspecified, the container runtime will allocate a random SELinux context for each
+                          container.  May also be set in PodSecurityContext.  If set in both SecurityContext and
+                          PodSecurityContext, the value specified in SecurityContext takes precedence.
+                          Note that this field cannot be set when spec.os.name is windows.
+                        properties:
+                          level:
+                            description: Level is SELinux level label that applies
+                              to the container.
+                            type: string
+                          role:
+                            description: Role is a SELinux role label that applies
+                              to the container.
+                            type: string
+                          type:
+                            description: Type is a SELinux type label that applies
+                              to the container.
+                            type: string
+                          user:
+                            description: User is a SELinux user label that applies
+                              to the container.
+                            type: string
+                        type: object
+                      seccompProfile:
+                        description: |-
+                          The seccomp options to use by this container. If seccomp options are
+                          provided at both the pod & container level, the container options
+                          override the pod options.
+                          Note that this field cannot be set when spec.os.name is windows.
+                        properties:
+                          localhostProfile:
+                            description: |-
+                              localhostProfile indicates a profile defined in a file on the node should be used.
+                              The profile must be preconfigured on the node to work.
+                              Must be a descending path, relative to the kubelet's configured seccomp profile location.
+                              Must be set if type is "Localhost". Must NOT be set for any other type.
+                            type: string
+                          type:
+                            description: |-
+                              type indicates which kind of seccomp profile will be applied.
+                              Valid options are:
+
+
+                              Localhost - a profile defined in a file on the node should be used.
+                              RuntimeDefault - the container runtime default profile should be used.
+                              Unconfined - no profile should be applied.
+                            type: string
+                        required:
+                        - type
+                        type: object
+                      windowsOptions:
+                        description: |-
+                          The Windows specific settings applied to all containers.
+                          If unspecified, the options from the PodSecurityContext will be used.
+                          If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.
+                          Note that this field cannot be set when spec.os.name is linux.
+                        properties:
+                          gmsaCredentialSpec:
+                            description: |-
+                              GMSACredentialSpec is where the GMSA admission webhook
+                              (https://github.com/kubernetes-sigs/windows-gmsa) inlines the contents of the
+                              GMSA credential spec named by the GMSACredentialSpecName field.
+                            type: string
+                          gmsaCredentialSpecName:
+                            description: GMSACredentialSpecName is the name of the
+                              GMSA credential spec to use.
+                            type: string
+                          hostProcess:
+                            description: |-
+                              HostProcess determines if a container should be run as a 'Host Process' container.
+                              All of a Pod's containers must have the same effective HostProcess value
+                              (it is not allowed to have a mix of HostProcess containers and non-HostProcess containers).
+                              In addition, if HostProcess is true then HostNetwork must also be set to true.
+                            type: boolean
+                          runAsUserName:
+                            description: |-
+                              The UserName in Windows to run the entrypoint of the container process.
+                              Defaults to the user specified in image metadata if unspecified.
+                              May also be set in PodSecurityContext. If set in both SecurityContext and
+                              PodSecurityContext, the value specified in SecurityContext takes precedence.
+                            type: string
+                        type: object
+                    type: object
                   culling:
                     description: culling configs for pausing inactive Workspaces (MUTABLE)
                     properties:
@@ -65,10 +234,12 @@ spec:
                         properties:
                           exec:
                             description: |-
-                              a "shell" command to run in the Workspace, if the Workspace had activity in the last 60 seconds, this command
-                               should return status 0, otherwise it should return status 1
+                              a shell command probe
+                               - if the Workspace had activity in the last 60 seconds this command
+                                 should return status 0, otherwise it should return status 1
                             properties:
                               command:
+                                description: the command to run
                                 example:
                                 - bash
                                 - -c
@@ -81,14 +252,14 @@ spec:
                             - command
                             type: object
                           jupyter:
-                            description: "a Jupyter-specific probe will poll the /api/status
-                              endpoint of the Jupyter API, and use the last_activity
-                              field\n Users need to be careful that their other probes
-                              don't trigger a \"last_activity\" update,\n\te.g. they
-                              should only check the health of Jupyter using the /api/status
-                              endpoint"
+                            description: |-
+                              a Jupyter-specific probe
+                               - will poll the `/api/status` endpoint of the Jupyter API, and use the `last_activity` field
+                               - note, users need to be careful that their other probes don't trigger a "last_activity" update
+                                 e.g. they should only check the health of Jupyter using the `/api/status` endpoint
                             properties:
                               lastActivity:
+                                description: if the Jupyter-specific probe is enabled
                                 example: true
                                 type: boolean
                             required:
@@ -119,11 +290,9 @@ spec:
                   extraEnv:
                     description: |-
                       environment variables for Workspace Pods (MUTABLE)
-                       updates to existing Workspaces are applied through the "pending restart" feature
-
-
-                      The following string templates are available:
-                        - .PathPrefix: the path prefix of the Workspace (e.g. '/workspace/{profile_name}/{workspace_name}/')
+                       - changes are applied the NEXT time each Workspace is PAUSED
+                       - the following string templates are available:
+                          - `.PathPrefix`: the path prefix of the Workspace (e.g. '/workspace/{profile_name}/{workspace_name}/')
                     items:
                       description: EnvVar represents an environment variable present
                         in a Container.
@@ -242,31 +411,30 @@ spec:
                       removePathPrefix:
                         default: false
                         description: |-
-                          if the '/workspace/{profile_name}/{workspace_name}/' prefix is to be stripped from incoming HTTP requests
-                           this only works if the application serves RELATIVE URLs for its assets
+                          if the path prefix is stripped from incoming HTTP requests
+                           - if true, the '/workspace/{profile_name}/{workspace_name}/' path prefix
+                             is stripped from incoming requests, the application sees the request
+                             as if it was made to '/...'
+                           - this only works if the application serves RELATIVE URLs for its assets
                         type: boolean
                       requestHeaders:
                         description: |-
                           header manipulation rules for incoming HTTP requests
-
-
-                          Sets the `spec.http[].headers.request` of the Istio VirtualService:
-                          https://istio.io/latest/docs/reference/config/networking/virtual-service/#Headers-HeaderOperations
-
-
-                          The following string templates are available:
-                           - .PathPrefix: the path prefix of the Workspace (e.g. '/workspace/{profile_name}/{workspace_name}/')
+                           - sets the `spec.http[].headers.request` of the Istio VirtualService
+                             https://istio.io/latest/docs/reference/config/networking/virtual-service/#Headers-HeaderOperations
+                           - the following string templates are available:
+                              - `.PathPrefix`: the path prefix of the Workspace (e.g. '/workspace/{profile_name}/{workspace_name}/')
                         properties:
                           add:
                             additionalProperties:
                               type: string
-                            description: Append the given values to the headers specified
+                            description: append the given values to the headers specified
                               by keys (will create a comma-separated list of values)
                             example:
                               My-Header: value-to-append
                             type: object
                           remove:
-                            description: Remove the specified headers
+                            description: remove the specified headers
                             example:
                             - Header-To-Remove
                             items:
@@ -275,7 +443,7 @@ spec:
                           set:
                             additionalProperties:
                               type: string
-                            description: Overwrite the headers specified by key with
+                            description: overwrite the headers specified by key with
                               the given values
                             example:
                               X-RStudio-Root-Path: '{{ .PathPrefix }}'
@@ -287,24 +455,25 @@ spec:
                       the PodSpec of the Workspace
                     properties:
                       imageConfig:
-                        description: imageConfig options determine the container image
+                        description: imageConfig options
                         properties:
                           default:
-                            description: the id of the default image config for this
-                              WorkspaceKind
+                            description: the id of the default image config
                             example: jupyter_scipy_171
                             type: string
                           values:
                             description: the list of image configs that are available
-                              to choose from
                             items:
                               properties:
                                 id:
+                                  description: the id of this image config
                                   example: jupyter_scipy_171
                                   type: string
                                 redirect:
+                                  description: redirect configs
                                   properties:
                                     message:
+                                      description: information about the redirect
                                       properties:
                                         level:
                                           description: the importance level of the
@@ -328,9 +497,13 @@ spec:
                                       - text
                                       type: object
                                     to:
+                                      description: the id of the option to redirect
+                                        to
                                       example: jupyter_scipy_171
                                       type: string
                                     waitForRestart:
+                                      description: if the redirect will be applied
+                                        after the next restart of the Workspace
                                       example: true
                                       type: boolean
                                   required:
@@ -338,6 +511,7 @@ spec:
                                   - waitForRestart
                                   type: object
                                 spawner:
+                                  description: information for the spawner ui
                                   properties:
                                     description:
                                       description: a description of the option
@@ -381,6 +555,7 @@ spec:
                                   - displayName
                                   type: object
                                 spec:
+                                  description: the spec of the image config
                                   properties:
                                     image:
                                       description: the container image to use
@@ -397,8 +572,9 @@ spec:
                                       type: string
                                     ports:
                                       description: |-
-                                        ports that the container listens on, currently, only HTTP is supported for `protocol`
-                                         if multiple ports are defined, the user will see multiple "Connect" buttons in a dropdown menu on the Workspace overview page
+                                        ports that the container listens on
+                                          - if multiple ports are defined, the user will see multiple "Connect" buttons
+                                            in a dropdown menu on the Workspace overview page
                                       items:
                                         properties:
                                           displayName:
@@ -446,8 +622,7 @@ spec:
                         - values
                         type: object
                       podConfig:
-                        description: podConfig options determine pod affinity, nodeSelector,
-                          tolerations, resources
+                        description: podConfig options
                         properties:
                           default:
                             description: the id of the default pod config
@@ -458,11 +633,14 @@ spec:
                             items:
                               properties:
                                 id:
+                                  description: the id of this pod config
                                   example: big_gpu
                                   type: string
                                 redirect:
+                                  description: redirect configs
                                   properties:
                                     message:
+                                      description: information about the redirect
                                       properties:
                                         level:
                                           description: the importance level of the
@@ -486,9 +664,13 @@ spec:
                                       - text
                                       type: object
                                     to:
+                                      description: the id of the option to redirect
+                                        to
                                       example: jupyter_scipy_171
                                       type: string
                                     waitForRestart:
+                                      description: if the redirect will be applied
+                                        after the next restart of the Workspace
                                       example: true
                                       type: boolean
                                   required:
@@ -496,6 +678,7 @@ spec:
                                   - waitForRestart
                                   type: object
                                 spawner:
+                                  description: information for the spawner ui
                                   properties:
                                     description:
                                       description: a description of the option
@@ -539,6 +722,7 @@ spec:
                                   - displayName
                                   type: object
                                 spec:
+                                  description: the spec of the pod config
                                   properties:
                                     affinity:
                                       description: affinity configs for the pod
@@ -1673,7 +1857,9 @@ spec:
                     - podConfig
                     type: object
                   podMetadata:
-                    description: metadata for Workspace Pods (MUTABLE)
+                    description: |-
+                      metadata for Workspace Pods (MUTABLE)
+                       - changes are applied the NEXT time each Workspace is PAUSED
                     properties:
                       annotations:
                         additionalProperties:
@@ -1689,12 +1875,10 @@ spec:
                   probes:
                     description: |-
                       standard probes to determine Container health (MUTABLE)
-                       updates to existing Workspaces are applied through the "pending restart" feature
+                       - changes are applied the NEXT time each Workspace is PAUSED
                     properties:
                       livenessProbe:
-                        description: |-
-                          Probe describes a health check to be performed against a container to determine whether it is
-                          alive or ready to receive traffic.
+                        description: the liveness probe for the main container
                         properties:
                           exec:
                             description: Exec specifies the action to take.
@@ -1845,9 +2029,7 @@ spec:
                             type: integer
                         type: object
                       readinessProbe:
-                        description: |-
-                          Probe describes a health check to be performed against a container to determine whether it is
-                          alive or ready to receive traffic.
+                        description: the readiness probe for the main container
                         properties:
                           exec:
                             description: Exec specifies the action to take.
@@ -1998,9 +2180,7 @@ spec:
                             type: integer
                         type: object
                       startupProbe:
-                        description: |-
-                          Probe describes a health check to be performed against a container to determine whether it is
-                          alive or ready to receive traffic.
+                        description: the startup probe for the main container
                         properties:
                           exec:
                             description: Exec specifies the action to take.
@@ -2152,12 +2332,15 @@ spec:
                         type: object
                     type: object
                   serviceAccount:
-                    description: service account configs for Workspace Pods (NOT MUTABLE)
+                    description: service account configs for Workspace Pods
                     properties:
                       name:
                         description: |-
-                          the name of the ServiceAccount; this Service Account MUST already exist in the Namespace of the Workspace,
-                           the controller will NOT create it. We will not show this WorkspaceKind in the Spawner UI if the SA does not exist in the Namespace.
+                          the name of the ServiceAccount (NOT MUTABLE)
+                           - this Service Account MUST already exist in the Namespace
+                             of the Workspace, the controller will NOT create it
+                           - we will not show this WorkspaceKind in the Spawner UI
+                             if the SA does not exist in the Namespace
                         example: default-editor
                         type: string
                         x-kubernetes-validations:
@@ -2167,9 +2350,10 @@ spec:
                     - name
                     type: object
                   volumeMounts:
-                    description: volume mount paths (NOT MUTABLE)
+                    description: volume mount paths
                     properties:
                       home:
+                        description: the path to mount the home PVC (NOT MUTABLE)
                         example: /home/jovyan
                         maxLength: 4096
                         minLength: 2
@@ -2220,8 +2404,9 @@ spec:
                       Spawner UI
                     type: boolean
                   icon:
-                    description: a small (favicon-sized) icon of the WorkspaceKind
-                      used in the Workspaces overview table
+                    description: |-
+                      the icon of the WorkspaceKind
+                       - a small (favicon-sized) icon used in the Workspace Spawner UI
                     properties:
                       configMap:
                         properties:
@@ -2244,8 +2429,9 @@ spec:
                       rule: '!(has(self.url) && has(self.configMap)) && (has(self.url)
                         || has(self.configMap))'
                   logo:
-                    description: a 1:1 (card size) logo of the WorkspaceKind used
-                      in the Workspace Spawner UI
+                    description: |-
+                      the logo of the WorkspaceKind
+                       - a 1:1 (card size) logo used in the Workspace Spawner UI
                     properties:
                       configMap:
                         properties:
