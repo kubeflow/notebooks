@@ -46,7 +46,7 @@ spec:
             properties:
               kind:
                 description: the WorkspaceKind to use
-                example: jupyter-lab
+                example: jupyterlab
                 maxLength: 63
                 minLength: 2
                 pattern: ^[a-z0-9][-a-z0-9]*[a-z0-9]$
@@ -125,6 +125,9 @@ spec:
                           - name
                           type: object
                         type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
                       home:
                         description: |-
                           the name of the PVC to mount as the home volume

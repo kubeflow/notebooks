@@ -126,6 +126,8 @@ type WorkspaceKindPodTemplate struct {
 	//  - the following string templates are available:
 	//     - `.PathPrefix`: the path prefix of the Workspace (e.g. '/workspace/{profile_name}/{workspace_name}/')
 	//+kubebuilder:validation:Optional
+	//+listType:="map"
+	//+listMapKey:="name"
 	ExtraEnv []v1.EnvVar `json:"extraEnv,omitempty"`
 
 	// container SecurityContext for Workspace Pods (MUTABLE)
@@ -297,6 +299,7 @@ type ImageConfigValue struct {
 	Redirect *OptionRedirect `json:"redirect,omitempty"`
 
 	// the spec of the image config
+	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="ImageConfig 'spec' is immutable"
 	Spec ImageConfigSpec `json:"spec"`
 }
 
@@ -369,6 +372,7 @@ type PodConfigValue struct {
 	Redirect *OptionRedirect `json:"redirect,omitempty"`
 
 	// the spec of the pod config
+	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="PodConfig 'spec' is immutable"
 	Spec PodConfigSpec `json:"spec"`
 }
 
@@ -379,7 +383,7 @@ type PodConfigSpec struct {
 
 	// node selector configs for the pod
 	//+kubebuilder:validation:Optional
-	NodeSelector *v1.NodeSelector `json:"nodeSelector,omitempty"`
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
 	// toleration configs for the pod
 	//+kubebuilder:validation:Optional
