@@ -5,15 +5,16 @@ metadata:
   namespace: default
 spec:
   kind: "jupyter-lab"
+  paused: false
   podTemplate:
     options:
-      imageConfig: "jupyter_scipy_171"
+      imageConfig: "jupyter_scipy_170"
       podConfig: "small_gpu"
     podMetadata:
-      annotations: {}
-      labels: {}
+      annotations:
+        "env": "prod"
+      labels:
+        "app": "jupyter-lab"
+
     volumes:
-      data:
-        - mountPath: "/data"
-          name: "test-volume"
       home: "home"

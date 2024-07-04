@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -40,9 +41,10 @@ import (
 )
 
 const (
-	DefaultContainerPort = 8888
-	RetryInterval        = 200 * time.Millisecond
-	RetryAttempts        = 3
+	DefaultWorkspaceImage = "kubeflownotebookswg/jupyter-scipy:v1.8.0"
+	DefaultContainerPort  = 8888
+	RetryInterval         = 200 * time.Millisecond
+	RetryAttempts         = 5
 )
 
 var (
@@ -83,6 +85,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		logger.Info("Deleting Workspace")
 		return ctrl.Result{}, nil
 	}
+	// Fetch the WorkspaceKind
 	workspaceKindName := workspace.Spec.Kind
 	workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
 	if err := r.Get(ctx, client.ObjectKey{Name: workspaceKindName}, workspaceKind); err != nil {
@@ -92,12 +95,27 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 		return ctrl.Result{}, err
 	}
-	if err := ctrl.SetControllerReference(workspaceKind, workspace, r.Scheme); err != nil {
-		logger.Error(err, "unable to set controller reference to workspace")
-		return ctrl.Result{}, err
+	// check if workspace is set owned by workspaceKind if not set it
+	workspaceOwnerRef := metav1.GetControllerOf(workspace)
+	if workspaceOwnerRef == nil || workspaceOwnerRef.Kind != "WorkspaceKind" || workspaceOwnerRef.Name != workspaceKindName {
+		logger.Info("Setting Workspace owner to WorkspaceKind")
+		if err := ctrl.SetControllerReference(workspaceKind, workspace, r.Scheme); err != nil {
+			logger.Error(err, "unable to set controller reference to workspace")
+			return ctrl.Result{}, err
+		}
+		if err := r.Client.Update(ctx, workspace); err != nil {
+			logger.Error(err, "unable to update workspace owner")
+			return ctrl.Result{}, err
+		}
+		logger.Info("Workspace owner updated")
 	}
 
-	ss := generateStatefulSet(workspace, workspaceKind)
+	// reconcile StatefulSet
+	imageConfigMap := generateMapFromImageConfig(workspaceKind.Spec.PodTemplate.Options.ImageConfig)
+	containerPorts, servicePorts := getPorts(workspace.Spec.PodTemplate.Options.ImageConfig, workspaceKind.Spec.PodTemplate.Options.ImageConfig.Default, imageConfigMap)
+
+	ss := generateStatefulSet(workspace, workspaceKind, containerPorts, imageConfigMap)
+
 	if err := ctrl.SetControllerReference(workspace, ss, r.Scheme); err != nil {
 		logger.Error(err, "unable to set controller reference to StatefulSet")
 		return ctrl.Result{}, err
@@ -125,26 +143,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if len(statefulSets.Items) == 1 {
 		foundStatefulSet = &statefulSets.Items[0]
 	} else {
-		logger.Info("Creating StatefulSet")
-		if err := r.Client.Create(ctx, ss); err != nil {
-			if errors.IsAlreadyExists(err) {
-				logger.Error(err, "statefulset already exists with this name , retrying")
-				err := helper.Retry(RetryAttempts, RetryInterval, func() error {
-					err := r.Client.Create(ctx, ss)
-					if err != nil {
-						if errors.IsAlreadyExists(err) {
-							logger.Error(err, "statefulset already exists with this name , retrying ...")
-							return err
-						}
-						return &helper.StopRetry{Err: err}
-					}
-					return nil
-				})
-				if err != nil {
-					logger.Error(err, "unable to create StatefulSet after retrying")
-					return ctrl.Result{}, err
-				}
-			}
+		if err := r.createResourceWithRetry(ctx, logger, ss); err != nil {
 			logger.Error(err, "unable to create StatefulSet")
 			return ctrl.Result{}, err
 		}
@@ -162,7 +161,9 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		logger.Info("StatefulSet updated")
 	}
 
-	svc := generateService(workspace)
+	// reconcile Service
+
+	svc := generateService(workspace, servicePorts)
 	if err := ctrl.SetControllerReference(workspace, svc, r.Scheme); err != nil {
 		logger.Error(err, "unable to set controller reference to service")
 		return ctrl.Result{}, err
@@ -190,31 +191,11 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if len(services.Items) == 1 {
 		foundService = &services.Items[0]
 	} else {
-		logger.Info("Creating Service")
-		err := r.Client.Create(ctx, svc)
-		if err != nil {
-			if errors.IsAlreadyExists(err) {
-				logger.Error(err, "service already exists with this name , retrying ...")
-				err := helper.Retry(RetryAttempts, RetryInterval, func() error {
-					err := r.Client.Create(ctx, svc)
-					if err != nil {
-						if errors.IsAlreadyExists(err) {
-							logger.Error(err, "service already exists with this name , retrying ...")
-							return err
-						}
-						return &helper.StopRetry{Err: err}
-					}
-					return nil
-				})
-				if err != nil {
-					logger.Error(err, "unable to create service after retrying")
-					return ctrl.Result{}, err
-				}
-			}
-			logger.Error(err, "unable to create service")
+		justCreated = true
+		if err := r.createResourceWithRetry(ctx, logger, svc); err != nil {
+			logger.Error(err, "unable to create Service")
 			return ctrl.Result{}, err
 		}
-		justCreated = true
 		logger.Info("Service created")
 	}
 	if !justCreated && helper.CopyServiceFields(svc, foundService) {
@@ -226,6 +207,9 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 		logger.Info("Service updated")
 	}
+
+	// Update Workspace CR status
+
 	pod := &corev1.Pod{}
 	if err := r.Get(ctx, client.ObjectKey{Name: foundStatefulSet.Name + "-0", Namespace: foundStatefulSet.Namespace}, pod); err != nil {
 		if client.IgnoreNotFound(err) == nil {
@@ -235,8 +219,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
-	// Update Workspace CR status
-	if err := updateWorkspaceStatus(ctx, r, workspace, pod, logger); err != nil {
+	if err := r.updateWorkspaceStatus(ctx, workspace, pod, logger); err != nil {
 		logger.Error(err, "unable to update Workspace status")
 		return ctrl.Result{}, err
 	}
@@ -315,7 +298,30 @@ func (r *WorkspaceReconciler) findObjectsForWorkspaceKind(ctx context.Context, w
 	return requests
 }
 
-func updateWorkspaceStatus(ctx context.Context, r *WorkspaceReconciler, ws *kubefloworgv1beta1.Workspace, pod *corev1.Pod, log logr.Logger) error {
+func (r *WorkspaceReconciler) createResourceWithRetry(ctx context.Context, logger logr.Logger, resource client.Object) error {
+	resourceKind := resource.GetObjectKind().GroupVersionKind().Kind
+	logger.Info("Creating resource", "resource", resourceKind, "name", resource.GetName())
+	err := helper.Retry(RetryAttempts, RetryInterval, func() error {
+		err := r.Create(ctx, resource)
+		if err != nil {
+			if errors.IsAlreadyExists(err) {
+				logger.Error(err, "resource already exists, retrying...", "resource", resourceKind)
+				return err
+			}
+			return &helper.StopRetry{Err: err}
+		}
+		return nil
+	})
+
+	if err != nil {
+		logger.Error(err, "unable to create resource after retrying", "resource", resourceKind)
+		return err
+	}
+	logger.Info("Resource created successfully", "resource", resourceKind, "name", resource.GetName())
+	return nil
+}
+
+func (r *WorkspaceReconciler) updateWorkspaceStatus(ctx context.Context, ws *kubefloworgv1beta1.Workspace, pod *corev1.Pod, log logr.Logger) error {
 	status := createWorkspaceStatus(ws, pod, log)
 	log.Info("Updating Workspace CR Status", "status", status)
 	ws.Status = status
@@ -341,15 +347,26 @@ func createWorkspaceStatus(ws *kubefloworgv1beta1.Workspace, pod *corev1.Pod, lo
 	return status
 }
 
-func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind) *appsv1.StatefulSet {
+func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind, ports []corev1.ContainerPort, imageConfigMap map[string]kubefloworgv1beta1.ImageConfigValue) *appsv1.StatefulSet {
 	replicas := int32(1)
-	imageConfigMap := generateMapFromImageConfig(workspaceKind.Spec.PodTemplate.Options.ImageConfig)
+	podConfigMap := generateMapFromPodConfig(workspaceKind.Spec.PodTemplate.Options.PodConfig)
+	podConfigSpec := getPodConfigSpec(workspace.Spec.PodTemplate.Options.PodConfig, workspaceKind.Spec.PodTemplate.Options.PodConfig.Default, podConfigMap)
+	volumes := []corev1.Volume{
+		{
+			Name: workspace.Spec.PodTemplate.Volumes.Home,
+			VolumeSource: corev1.VolumeSource{
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: workspace.Spec.PodTemplate.Volumes.Home,
+				},
+			},
+		},
+	}
 	return &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: fmt.Sprintf("ws-%s-", workspace.Name),
 			Namespace:    workspace.Namespace,
-			Labels:       workspaceKind.Spec.PodTemplate.PodMetadata.Labels,
-			Annotations:  workspaceKind.Spec.PodTemplate.PodMetadata.Annotations,
+			Labels:       labels.Merge(workspaceKind.Spec.PodTemplate.PodMetadata.Labels, workspace.Spec.PodTemplate.PodMetadata.Labels),
+			Annotations:  labels.Merge(workspaceKind.Spec.PodTemplate.PodMetadata.Annotations, workspace.Spec.PodTemplate.PodMetadata.Annotations),
 		},
 		Spec: appsv1.StatefulSetSpec{
 			Replicas: &replicas,
@@ -361,25 +378,27 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"statefulset":   workspace.Name,
-						"notebook-name": workspace.Name,
+						"statefulset":    workspace.Name,
+						"workspace-name": workspace.Name,
 					},
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
-						{
-							Name:  "notebook",
-							Image: getCurrentImage(workspace.Spec.PodTemplate.Options.ImageConfig, imageConfigMap),
-							Ports: getContainerPorts(workspace.Spec.PodTemplate.Options.ImageConfig, imageConfigMap),
-						},
+						generateContainerSpec(workspace, workspaceKind, ports, imageConfigMap, podConfigSpec.Resources),
 					},
+					NodeSelector:       podConfigSpec.NodeSelector,
+					Tolerations:        podConfigSpec.Tolerations,
+					Affinity:           podConfigSpec.Affinity,
+					ServiceAccountName: workspaceKind.Spec.PodTemplate.ServiceAccount.Name,
+					Volumes:            volumes,
 				},
 			},
 		},
 	}
 }
 
-func generateService(workspace *kubefloworgv1beta1.Workspace) *corev1.Service {
+func generateService(workspace *kubefloworgv1beta1.Workspace, ports []corev1.ServicePort) *corev1.Service {
+
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: fmt.Sprintf("ws-%s-", workspace.Name),
@@ -387,37 +406,70 @@ func generateService(workspace *kubefloworgv1beta1.Workspace) *corev1.Service {
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: map[string]string{"statefulset": workspace.Name},
-			Ports: []corev1.ServicePort{
-				{
-					Name:       fmt.Sprintf("http-%s", workspace.Name),
-					Port:       DefaultContainerPort,
-					TargetPort: intstr.FromInt32(DefaultContainerPort),
-					Protocol:   "TCP",
-				},
-			},
+			Ports:    ports,
 		},
 	}
 }
 
-func getContainerPorts(imageConfig string, imageConfigMap map[string]kubefloworgv1beta1.ImageConfigValue) []corev1.ContainerPort {
-	ports := make([]corev1.ContainerPort, 0)
-	config := imageConfigMap[imageConfig]
+func getPorts(imageConfig, defaultImageConfig string, imageConfigMap map[string]kubefloworgv1beta1.ImageConfigValue) ([]corev1.ContainerPort, []corev1.ServicePort) {
+	if imageConfig == "" {
+		imageConfig = defaultImageConfig
+	}
+
+	var containerPorts []corev1.ContainerPort
+	var servicePorts []corev1.ServicePort
+
+	config, ok := imageConfigMap[imageConfig]
+	if !ok {
+		return []corev1.ContainerPort{
+				{
+					Name:          "http-0",
+					ContainerPort: DefaultContainerPort,
+					Protocol:      corev1.ProtocolTCP,
+				},
+			}, []corev1.ServicePort{
+				{
+					Name:       "http-0",
+					TargetPort: intstr.FromInt32(DefaultContainerPort),
+					Port:       DefaultContainerPort,
+					Protocol:   corev1.ProtocolTCP,
+				},
+			}
+	}
+
 	for i, port := range config.Spec.Ports {
-		ports = append(ports, corev1.ContainerPort{
+		containerPorts = append(containerPorts, corev1.ContainerPort{
 			Name:          fmt.Sprintf("http-%d", i),
 			ContainerPort: port.Port,
 			Protocol:      corev1.ProtocolTCP,
 		})
+		servicePorts = append(servicePorts, corev1.ServicePort{
+			Name:       fmt.Sprintf("http-%d", i),
+			TargetPort: intstr.FromInt32(port.Port),
+			Port:       port.Port,
+			Protocol:   corev1.ProtocolTCP,
+		})
 	}
-	return ports
+
+	return containerPorts, servicePorts
 }
 
-func getCurrentImage(imageConfig string, imageConfigMap map[string]kubefloworgv1beta1.ImageConfigValue) string {
-	config, ok := imageConfigMap[imageConfig]
-	if !ok || config.Spec.Image == "" {
-		return "kubeflownotebookswg/jupyter-scipy:v1.8.0"
+func getImageConfigSpec(imageConfig, defaultImageConfig string, imageConfigMap map[string]kubefloworgv1beta1.ImageConfigValue) kubefloworgv1beta1.ImageConfigSpec {
+	if imageConfig == "" {
+		imageConfig = defaultImageConfig
 	}
-	return config.Spec.Image
+
+	config := imageConfigMap[imageConfig]
+	return config.Spec
+}
+
+func getPodConfigSpec(podConfig, defaultPodConfig string, podConfigMap map[string]kubefloworgv1beta1.PodConfigValue) kubefloworgv1beta1.PodConfigSpec {
+	if podConfig == "" {
+		podConfig = defaultPodConfig
+	}
+
+	config := podConfigMap[podConfig]
+	return config.Spec
 }
 
 func generateMapFromImageConfig(imageConfig kubefloworgv1beta1.ImageConfig) map[string]kubefloworgv1beta1.ImageConfigValue {
@@ -426,4 +478,64 @@ func generateMapFromImageConfig(imageConfig kubefloworgv1beta1.ImageConfig) map[
 		imageMap[image.Id] = image
 	}
 	return imageMap
+}
+
+func generateMapFromPodConfig(podConfig kubefloworgv1beta1.PodConfig) map[string]kubefloworgv1beta1.PodConfigValue {
+	podMap := make(map[string]kubefloworgv1beta1.PodConfigValue)
+	for _, pod := range podConfig.Values {
+		podMap[pod.Id] = pod
+	}
+	return podMap
+}
+
+func generateContainerSpec(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind, ports []corev1.ContainerPort, imageConfigMap map[string]kubefloworgv1beta1.ImageConfigValue, containerResources *corev1.ResourceRequirements) corev1.Container {
+	imageConfigSpec := getImageConfigSpec(workspace.Spec.PodTemplate.Options.ImageConfig, workspaceKind.Spec.PodTemplate.Options.ImageConfig.Default, imageConfigMap)
+	image := imageConfigSpec.Image
+	if image == "" {
+		image = DefaultWorkspaceImage
+	}
+	imagePullPolicy := corev1.PullIfNotPresent
+	if imageConfigSpec.ImagePullPolicy != nil {
+		imagePullPolicy = *imageConfigSpec.ImagePullPolicy
+	}
+	volumeMounts := make([]corev1.VolumeMount, 0, len(workspace.Spec.PodTemplate.Volumes.Data)+1)
+
+	volumeMounts = append(volumeMounts, corev1.VolumeMount{
+		Name:      workspace.Spec.PodTemplate.Volumes.Home,
+		MountPath: workspaceKind.Spec.PodTemplate.VolumeMounts.Home,
+	})
+
+	for _, data := range workspace.Spec.PodTemplate.Volumes.Data {
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      data.Name,
+			MountPath: data.MountPath,
+		})
+	}
+	var livenessProbe *corev1.Probe
+	var readinessProbe *corev1.Probe
+	var startupProbe *corev1.Probe
+	if workspaceKind.Spec.PodTemplate.Probes != nil {
+		if workspaceKind.Spec.PodTemplate.Probes.LivenessProbe != nil {
+			livenessProbe = workspaceKind.Spec.PodTemplate.Probes.LivenessProbe.DeepCopy()
+		}
+		if workspaceKind.Spec.PodTemplate.Probes.ReadinessProbe != nil {
+			readinessProbe = workspaceKind.Spec.PodTemplate.Probes.ReadinessProbe.DeepCopy()
+		}
+		if workspaceKind.Spec.PodTemplate.Probes.StartupProbe != nil {
+			startupProbe = workspaceKind.Spec.PodTemplate.Probes.StartupProbe.DeepCopy()
+		}
+	}
+	return corev1.Container{
+		Name:            "main",
+		Image:           image,
+		ImagePullPolicy: imagePullPolicy,
+		Ports:           ports,
+		ReadinessProbe:  readinessProbe,
+		LivenessProbe:   livenessProbe,
+		StartupProbe:    startupProbe,
+		SecurityContext: workspaceKind.Spec.PodTemplate.ContainerSecurityContext,
+		VolumeMounts:    volumeMounts,
+		Env:             workspaceKind.Spec.PodTemplate.ExtraEnv,
+		Resources:       *containerResources,
+	}
 }

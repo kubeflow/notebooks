@@ -38,6 +38,9 @@ spec:
                 - displayName: "JupyterLab"
                   port: 8888
                   protocol: "HTTP"
+                - displayName: "JupyterLab2"
+                  port: 9999
+                  protocol: "HTTP"
 
           ## ================================
           ## EXAMPLE 2: a visible option
@@ -57,9 +60,9 @@ spec:
                   port: 8888
                   protocol: "HTTP"
       podConfig:
-        default: ""
+        default: "small_gpu"
         values:
-          - id: ""
+          - id: "small_gpu"
             redirect:
               to: ""
               waitForRestart: false
@@ -68,226 +71,24 @@ spec:
               displayName: "test"
               hidden: false
             spec:
-              affinity:
-                nodeAffinity:
-                  preferredDuringSchedulingIgnoredDuringExecution:
-                    - preference:
-                        matchExpressions:
-                          - key: ""
-                            operator: ""
-                            values:
-                              - ""
-                        matchFields:
-                          - key: ""
-                            operator: ""
-                            values:
-                              - ""
-                      weight: 0
-                  requiredDuringSchedulingIgnoredDuringExecution:
-                    nodeSelectorTerms:
-                      - matchExpressions:
-                          - key: ""
-                            operator: ""
-                            values:
-                              - ""
-                        matchFields:
-                          - key: ""
-                            operator: ""
-                            values:
-                              - ""
-                podAffinity:
-                  preferredDuringSchedulingIgnoredDuringExecution:
-                    - podAffinityTerm:
-                        labelSelector:
-                          matchExpressions:
-                            - key: ""
-                              operator: ""
-                              values:
-                                - ""
-                          matchLabels: {}
-                        matchLabelKeys:
-                          - ""
-                        mismatchLabelKeys:
-                          - ""
-                        namespaceSelector:
-                          matchExpressions:
-                            - key: ""
-                              operator: ""
-                              values:
-                                - ""
-                          matchLabels: {}
-                        namespaces:
-                          - ""
-                        topologyKey: ""
-                      weight: 0
-                  requiredDuringSchedulingIgnoredDuringExecution:
-                    - labelSelector:
-                        matchExpressions:
-                          - key: ""
-                            operator: ""
-                            values:
-                              - ""
-                        matchLabels: {}
-                      matchLabelKeys:
-                        - ""
-                      mismatchLabelKeys:
-                        - ""
-                      namespaceSelector:
-                        matchExpressions:
-                          - key: ""
-                            operator: ""
-                            values:
-                              - ""
-                        matchLabels: {}
-                      namespaces:
-                        - ""
-                      topologyKey: ""
-                podAntiAffinity:
-                  preferredDuringSchedulingIgnoredDuringExecution:
-                    - podAffinityTerm:
-                        labelSelector:
-                          matchExpressions:
-                            - key: ""
-                              operator: ""
-                              values:
-                                - ""
-                          matchLabels: {}
-                        matchLabelKeys:
-                          - ""
-                        mismatchLabelKeys:
-                          - ""
-                        namespaceSelector:
-                          matchExpressions:
-                            - key: ""
-                              operator: ""
-                              values:
-                                - ""
-                          matchLabels: {}
-                        namespaces:
-                          - ""
-                        topologyKey: ""
-                      weight: 0
-                  requiredDuringSchedulingIgnoredDuringExecution:
-                    - labelSelector:
-                        matchExpressions:
-                          - key: ""
-                            operator: ""
-                            values:
-                              - ""
-                        matchLabels: {}
-                      matchLabelKeys:
-                        - ""
-                      mismatchLabelKeys:
-                        - ""
-                      namespaceSelector:
-                        matchExpressions:
-                          - key: ""
-                            operator: ""
-                            values:
-                              - ""
-                        matchLabels: {}
-                      namespaces:
-                        - ""
-                      topologyKey: ""
-              nodeSelector:
-                nodeSelectorTerms:
-                  - matchExpressions:
-                      - key: ""
-                        operator: ""
-                        values:
-                          - ""
-                    matchFields:
-                      - key: ""
-                        operator: ""
-                        values:
-                          - ""
+              affinity: {}
               resources:
-                claims:
-                  - name: ""
-                limits: {}
-                requests: {}
-              tolerations:
-                - effect: ""
-                  key: ""
-                  operator: ""
-                  tolerationSeconds: 0
-                  value: ""
+                requests:
+                  memory: "64Mi"
+                limits:
+                  cpu: "500m"
     podMetadata:
-      annotations: {}
+      annotations: {
+        "version": "v2.0"
+      }
       labels: {}
     probes:
-      livenessProbe:
-        exec:
-          command:
-            - ""
-        failureThreshold: 0
-        grpc:
-          port: 0
-          service: ""
-        httpGet:
-          host: ""
-          httpHeaders:
-            - name: ""
-              value: ""
-          path: ""
-          port: ""
-          scheme: ""
-        initialDelaySeconds: 0
-        periodSeconds: 0
-        successThreshold: 0
-        tcpSocket:
-          host: ""
-          port: ""
-        terminationGracePeriodSeconds: 0
-        timeoutSeconds: 0
-      readinessProbe:
-        exec:
-          command:
-            - ""
-        failureThreshold: 0
-        grpc:
-          port: 0
-          service: ""
-        httpGet:
-          host: ""
-          httpHeaders:
-            - name: ""
-              value: ""
-          path: ""
-          port: ""
-          scheme: ""
-        initialDelaySeconds: 0
-        periodSeconds: 0
-        successThreshold: 0
-        tcpSocket:
-          host: ""
-          port: ""
-        terminationGracePeriodSeconds: 0
-        timeoutSeconds: 0
       startupProbe:
-        exec:
-          command:
-            - ""
-        failureThreshold: 0
-        grpc:
-          port: 0
-          service: ""
-        httpGet:
-          host: ""
-          httpHeaders:
-            - name: ""
-              value: ""
-          path: ""
-          port: ""
-          scheme: ""
-        initialDelaySeconds: 0
-        periodSeconds: 0
-        successThreshold: 0
-        tcpSocket:
-          host: ""
-          port: ""
-        terminationGracePeriodSeconds: 0
-        timeoutSeconds: 0
+      livenessProbe:
+      readinessProbe:
+    extraEnv:
+      - name: "NB_PREFIX"
+        value: "{{ .PathPrefix }}"
     serviceAccount:
       name: "default"
     volumeMounts:
