@@ -41,7 +41,7 @@ type WorkspaceSpec struct {
 	//+kubebuilder:validation:MaxLength:=63
 	//+kubebuilder:validation:Pattern:=^[a-z0-9][-a-z0-9]*[a-z0-9]$
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Workspace 'kind' is immutable"
-	//+kubebuilder:example="jupyter-lab"
+	//+kubebuilder:example="jupyterlab"
 	Kind string `json:"kind"`
 
 	// options for "podTemplate"-type WorkspaceKinds
@@ -86,6 +86,8 @@ type WorkspacePodVolumes struct {
 	//  - these PVCs must already exist in the Namespace
 	//  - these PVCs must be RWX (ReadWriteMany, ReadWriteOnce)
 	//+kubebuilder:validation:Optional
+	//+listType:="map"
+	//+listMapKey:="name"
 	Data []PodVolumeMount `json:"data,omitempty"`
 }
 

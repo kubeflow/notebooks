@@ -24,6 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,63 +33,93 @@ import (
 )
 
 var _ = Describe("Workspace Controller", func() {
-	Context("When reconciling a resource", func() {
-		const resourceName = "test-resource"
 
+	// Define variables to store common objects for tests.
+	var (
+		testResource1 *kubefloworgv1beta1.Workspace
+	)
+
+	// Define utility constants and variables for object names and testing.
+	const (
+		testResourceName1     = "workspace-test"
+		testResourceNamespace = "default"
+	)
+
+	BeforeEach(func() {
+		testResource1 = &kubefloworgv1beta1.Workspace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      testResourceName1,
+				Namespace: "default",
+			},
+			Spec: kubefloworgv1beta1.WorkspaceSpec{
+				Paused: ptr.To(false),
+				Kind:   "juptyerlab",
+				PodTemplate: kubefloworgv1beta1.WorkspacePodTemplate{
+					PodMetadata: &kubefloworgv1beta1.WorkspacePodMetadata{
+						Labels:      nil,
+						Annotations: nil,
+					},
+					Volumes: kubefloworgv1beta1.WorkspacePodVolumes{
+						Home: "my-home-pvc",
+						Data: []kubefloworgv1beta1.PodVolumeMount{
+							{
+								Name:      "my-data-pvc",
+								MountPath: "/data/my-data",
+							},
+						},
+					},
+					Options: kubefloworgv1beta1.WorkspacePodOptions{
+						ImageConfig: "jupyter_scipy_170",
+						PodConfig:   "big_gpu",
+					},
+				},
+			},
+		}
+	})
+
+	Context("When reconciling a Workspace", func() {
 		ctx := context.Background()
 
 		typeNamespacedName := types.NamespacedName{
-			Name:      resourceName,
-			Namespace: "default", // TODO(user):Modify as needed
+			Name:      testResourceName1,
+			Namespace: testResourceNamespace,
 		}
+
 		workspace := &kubefloworgv1beta1.Workspace{}
 
 		BeforeEach(func() {
 			By("creating the custom resource for the Kind Workspace")
 			err := k8sClient.Get(ctx, typeNamespacedName, workspace)
 			if err != nil && errors.IsNotFound(err) {
-				resource := &kubefloworgv1beta1.Workspace{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      resourceName,
-						Namespace: "default",
-					},
-					Spec: kubefloworgv1beta1.WorkspaceSpec{
-						Paused: ptr.To(false),
-						Kind:   "juptyer-lab",
-						PodTemplate: kubefloworgv1beta1.WorkspacePodTemplate{
-							PodMetadata: &kubefloworgv1beta1.WorkspacePodMetadata{
-								Labels:      nil,
-								Annotations: nil,
-							},
-							Volumes: kubefloworgv1beta1.WorkspacePodVolumes{
-								Home: "my-home-pvc",
-								Data: []kubefloworgv1beta1.PodVolumeMount{
-									{
-										Name:      "my-data-pvc",
-										MountPath: "/data/my-data",
-									},
-								},
-							},
-							Options: kubefloworgv1beta1.WorkspacePodOptions{
-								ImageConfig: "jupyter_scipy_170",
-								PodConfig:   "big_gpu",
-							},
-						},
-					},
-				}
+				resource := testResource1.DeepCopy()
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
 			}
+
+			By("checking if the Workspace exists")
+			Expect(k8sClient.Get(ctx, typeNamespacedName, workspace)).To(Succeed())
 		})
 
 		AfterEach(func() {
-			// TODO(user): Cleanup logic after each test, like removing the resource instance.
+			By("checking if the Workspace still exists")
 			resource := &kubefloworgv1beta1.Workspace{}
 			err := k8sClient.Get(ctx, typeNamespacedName, resource)
 			Expect(err).NotTo(HaveOccurred())
 
-			By("Cleanup the specific resource instance Workspace")
+			By("deleting the Workspace")
 			Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
 		})
+
+		It("should not allow updating immutable fields", func() {
+			patch := client.MergeFrom(workspace.DeepCopy())
+
+			By("failing to update the `spec.kind` field")
+			newWorkspace := workspace.DeepCopy()
+			newWorkspace.Spec.Kind = "new-kind"
+			Expect(k8sClient.Patch(ctx, newWorkspace, patch)).NotTo(Succeed())
+		})
+
 		It("should successfully reconcile the resource", func() {
 			By("Reconciling the created resource")
 			controllerReconciler := &WorkspaceReconciler{
