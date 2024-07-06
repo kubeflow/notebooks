@@ -41,16 +41,28 @@ import (
 )
 
 const (
-	DefaultWorkspaceImage = "kubeflownotebookswg/jupyter-scipy:v1.8.0"
-	DefaultContainerPort  = 8888
-	RetryInterval         = 200 * time.Millisecond
-	RetryAttempts         = 5
+	DefaultWorkspaceImage         = "kubeflownotebookswg/jupyter-scipy:v1.8.0"
+	DefaultContainerPort          = 8888
+	RetryInterval                 = 200 * time.Millisecond
+	RetryAttempts                 = 5
+	workspaceSelectorLabel        = "statefulset"
+	workspaceNameLabel            = "workspace-name"
+	workspaceOwnerKey             = ".metadata.controller"
+	workspaceKindField            = ".spec.kind"
+	multipleStatefulSetsMsgFormat = "Multiple StatefulSets found for Workspace %s."
+	multipleServiceMsgFormat      = "Multiple Services found for Workspace %s."
+	pausedWSMsgFormat             = "Workspace %s is currently paused."
+	terminatingWSMsgFormat        = "Workspace %s is in the process of terminating."
+	runningWSMsgFormat            = "Workspace %s is currently running."
+	containerCreatingWSMsgFormat  = "Workspace %s is in the process of creating containers."
+	crashLoopingWSMsgFormat       = "Workspace %s pod container is experiencing a crash loop."
+	pullBackOffWSMsgFormat        = "Workspace %s pod container is unable to pull the image (ImagePullBackOff)."
+	pendingWSMsgFormat            = "Workspace %s pod is in a pending state."
+	unknownWSMsgFormat            = "Workspace %s pod is in an unknown state."
 )
 
 var (
-	workspaceOwnerKey  = ".metadata.controller"
-	workspaceKindField = ".spec.kind"
-	apiGVStr           = kubefloworgv1beta1.GroupVersion.String()
+	apiGroupVersionStr = kubefloworgv1beta1.GroupVersion.String()
 )
 
 // WorkspaceReconciler reconciles a Workspace object
@@ -132,7 +144,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if len(statefulSets.Items) > 1 {
 		logger.Info("Found multiple StatefulSets")
 		workspace.Status.State = kubefloworgv1beta1.WorkspaceStateError
-		workspace.Status.StateMessage = "Found multiple StatefulSets"
+		workspace.Status.StateMessage = fmt.Sprintf(multipleStatefulSetsMsgFormat, workspace.Name)
 		if err := r.Status().Update(ctx, workspace); err != nil {
 			logger.Error(err, "unable to update Workspace status")
 			return ctrl.Result{}, err
@@ -179,7 +191,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if len(services.Items) > 1 {
 		logger.Info("Found multiple Services")
 		workspace.Status.State = kubefloworgv1beta1.WorkspaceStateError
-		workspace.Status.StateMessage = "Found multiple services"
+		workspace.Status.StateMessage = fmt.Sprintf(multipleServiceMsgFormat, workspace.Name)
 
 		if err := r.Status().Update(ctx, workspace); err != nil {
 			logger.Error(err, "unable to update Workspace status")
@@ -212,13 +224,13 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	pod := &corev1.Pod{}
 	if err := r.Get(ctx, client.ObjectKey{Name: foundStatefulSet.Name + "-0", Namespace: foundStatefulSet.Namespace}, pod); err != nil {
-		if client.IgnoreNotFound(err) == nil {
-			logger.Info(fmt.Sprintf("No Pods are currently running for Workspace Server: %s .", workspace.Name))
+		if client.IgnoreNotFound(err) != nil {
+			logger.Error(err, "unable to fetch Pod")
+			return ctrl.Result{}, err
 		}
-		logger.Error(err, "unable to fetch Pod")
-		return ctrl.Result{}, err
-	}
+		logger.Info(fmt.Sprintf("no Pods are currently running for Workspace: %s .", workspace.Name))
 
+	}
 	if err := r.updateWorkspaceStatus(ctx, workspace, pod, logger); err != nil {
 		logger.Error(err, "unable to update Workspace status")
 		return ctrl.Result{}, err
@@ -236,7 +248,7 @@ func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		if owner == nil {
 			return nil
 		}
-		if owner.APIVersion != apiGVStr || owner.Kind != "Workspace" {
+		if owner.APIVersion != apiGroupVersionStr || owner.Kind != "Workspace" {
 			return nil
 		}
 		return []string{owner.Name}
@@ -250,13 +262,14 @@ func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		if owner == nil {
 			return nil
 		}
-		if owner.APIVersion != apiGVStr || owner.Kind != "Workspace" {
+		if owner.APIVersion != apiGroupVersionStr || owner.Kind != "Workspace" {
 			return nil
 		}
 		return []string{owner.Name}
 	}); err != nil {
 		return err
 	}
+	// Index Workspace by WorkspaceKind
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &kubefloworgv1beta1.Workspace{}, workspaceKindField, func(rawObj client.Object) []string {
 		ws := rawObj.(*kubefloworgv1beta1.Workspace)
 		if ws.Spec.Kind == "" {
@@ -266,14 +279,38 @@ func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}); err != nil {
 		return err
 	}
+	// Map function to convert pod events to reconciliation requests
+	mapPodToRequest := func(ctx context.Context, object client.Object) []reconcile.Request {
+		return []reconcile.Request{
+			{NamespacedName: types.NamespacedName{
+				Name:      object.GetLabels()[workspaceNameLabel],
+				Namespace: object.GetNamespace(),
+			}},
+		}
+	}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&kubefloworgv1beta1.Workspace{}).Owns(&appsv1.StatefulSet{}).Owns(&corev1.Service{}).
 		Watches(
 			&kubefloworgv1beta1.WorkspaceKind{},
 			handler.EnqueueRequestsFromMapFunc(r.findObjectsForWorkspaceKind),
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
-		).
+		).Watches(
+		&corev1.Pod{},
+		handler.EnqueueRequestsFromMapFunc(mapPodToRequest),
+		builder.WithPredicates(predWSPodIsLabeled())).
 		Complete(r)
+}
+
+// predWSPodIsLabeled filters pods not containing the "workspace-name" label key
+func predWSPodIsLabeled() predicate.Funcs {
+	checkWSLabel := func() func(object client.Object) bool {
+		return func(object client.Object) bool {
+			_, labelExists := object.GetLabels()[workspaceNameLabel]
+			return labelExists
+		}
+	}
+
+	return predicate.NewPredicateFuncs(checkWSLabel())
 }
 
 func (r *WorkspaceReconciler) findObjectsForWorkspaceKind(ctx context.Context, workspaceKind client.Object) []reconcile.Request {
@@ -332,19 +369,66 @@ func createWorkspaceStatus(ws *kubefloworgv1beta1.Workspace, pod *corev1.Pod, lo
 	log.Info("Initializing Workspace CR Status")
 
 	status := kubefloworgv1beta1.WorkspaceStatus{}
-	switch pod.Status.Phase {
-	case corev1.PodRunning:
-		status.State = kubefloworgv1beta1.WorkspaceStateRunning
-		status.StateMessage = fmt.Sprintf("workspace %s is running", ws.Name)
-	case corev1.PodPending:
-		status.State = kubefloworgv1beta1.WorkspaceStatePending
-		status.StateMessage = fmt.Sprintf("workspace %s is pending", ws.Name)
-	default:
-		status.State = kubefloworgv1beta1.WorkspaceStateUnknown
-		status.StateMessage = fmt.Sprintf("workspace %s has failed", ws.Name)
-	}
+	if ws.Spec.Paused != nil && *ws.Spec.Paused == true {
+		if pod.GetName() == "" {
+			status.State = kubefloworgv1beta1.WorkspaceStatePaused
+			status.StateMessage = fmt.Sprintf(pausedWSMsgFormat, ws.Name)
+			return status
 
+		}
+		if pod.GetDeletionTimestamp() != nil {
+			status.State = kubefloworgv1beta1.WorkspaceStateTerminating
+			status.StateMessage = fmt.Sprintf(terminatingWSMsgFormat, ws.Name)
+			return status
+		}
+
+	} else {
+		// for now, I assumed that there is only one container
+		if pod.Status.Phase == corev1.PodRunning && pod.Status.ContainerStatuses[0].Ready {
+			status.State = kubefloworgv1beta1.WorkspaceStateRunning
+			status.StateMessage = fmt.Sprintf(runningWSMsgFormat, ws.Name)
+			return status
+		}
+
+		for _, containerStatus := range pod.Status.ContainerStatuses {
+			// Check if the container is not ready
+
+			if !containerStatus.Ready {
+
+				// Check if the container is in a ContainerCreating state
+				if containerStatus.State.Waiting != nil && containerStatus.State.Waiting.Reason == "ContainerCreating" {
+					status.State = kubefloworgv1beta1.WorkspaceStatePending
+					status.StateMessage = fmt.Sprintf(containerCreatingWSMsgFormat, ws.Name)
+					return status
+				}
+
+				// Check if the container is in a crash loop
+				if containerStatus.State.Waiting != nil && containerStatus.State.Waiting.Reason == "CrashLoopBackOff" {
+					status.State = kubefloworgv1beta1.WorkspaceStateError
+					status.StateMessage = fmt.Sprintf(crashLoopingWSMsgFormat, ws.Name)
+					return status
+				}
+
+				// Check if the container is unable to pull the image
+				if containerStatus.State.Waiting != nil && containerStatus.State.Waiting.Reason == "ImagePullBackOff" {
+					status.State = kubefloworgv1beta1.WorkspaceStateError
+					status.StateMessage = fmt.Sprintf(pullBackOffWSMsgFormat, ws.Name)
+					return status
+				}
+			}
+
+		}
+		if pod.Status.Phase == corev1.PodPending {
+			status.State = kubefloworgv1beta1.WorkspaceStatePending
+			status.StateMessage = fmt.Sprintf(pendingWSMsgFormat, ws.Name)
+			return status
+		}
+
+	}
+	status.State = kubefloworgv1beta1.WorkspaceStateUnknown
+	status.StateMessage = fmt.Sprintf(unknownWSMsgFormat, ws.Name)
 	return status
+
 }
 
 func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind, ports []corev1.ContainerPort, imageConfigMap map[string]kubefloworgv1beta1.ImageConfigValue) *appsv1.StatefulSet {
@@ -361,6 +445,16 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 			},
 		},
 	}
+	for _, data := range workspace.Spec.PodTemplate.Volumes.Data {
+		volumes = append(volumes, corev1.Volume{
+			Name: data.Name,
+			VolumeSource: corev1.VolumeSource{
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: data.Name,
+				},
+			},
+		})
+	}
 	return &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: fmt.Sprintf("ws-%s-", workspace.Name),
@@ -372,14 +466,14 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 			Replicas: &replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"statefulset": workspace.Name,
+					workspaceSelectorLabel: workspace.Name,
 				},
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"statefulset":    workspace.Name,
-						"workspace-name": workspace.Name,
+						workspaceSelectorLabel: workspace.Name,
+						workspaceNameLabel:     workspace.Name,
 					},
 				},
 				Spec: corev1.PodSpec{
@@ -405,7 +499,7 @@ func generateService(workspace *kubefloworgv1beta1.Workspace, ports []corev1.Ser
 			Namespace:    workspace.Namespace,
 		},
 		Spec: corev1.ServiceSpec{
-			Selector: map[string]string{"statefulset": workspace.Name},
+			Selector: map[string]string{workspaceSelectorLabel: workspace.Name},
 			Ports:    ports,
 		},
 	}
@@ -498,7 +592,7 @@ func generateContainerSpec(workspace *kubefloworgv1beta1.Workspace, workspaceKin
 	if imageConfigSpec.ImagePullPolicy != nil {
 		imagePullPolicy = *imageConfigSpec.ImagePullPolicy
 	}
-	volumeMounts := make([]corev1.VolumeMount, 0, len(workspace.Spec.PodTemplate.Volumes.Data)+1)
+	volumeMounts := make([]corev1.VolumeMount, 0)
 
 	volumeMounts = append(volumeMounts, corev1.VolumeMount{
 		Name:      workspace.Spec.PodTemplate.Volumes.Home,

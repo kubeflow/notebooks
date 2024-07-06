@@ -4,9 +4,6 @@ metadata:
   name: jupyter-lab
 spec:
   podTemplate:
-    httpProxy:
-      removePathPrefix: false
-      requestHeaders: {}
     options:
       imageConfig:
         default: "jupyter_scipy_171"
@@ -63,9 +60,6 @@ spec:
         default: "small_gpu"
         values:
           - id: "small_gpu"
-            redirect:
-              to: ""
-              waitForRestart: false
             spawner:
               description: "test"
               displayName: "test"
@@ -87,8 +81,8 @@ spec:
       livenessProbe:
       readinessProbe:
     extraEnv:
-      - name: "NB_PREFIX"
-        value: "{{ .PathPrefix }}"
+      - name: "KEY"
+        value: "value"
     serviceAccount:
       name: "default"
     volumeMounts:
