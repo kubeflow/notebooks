@@ -12,8 +12,24 @@ rules:
   - create
   - delete
   - get
+  - list
   - patch
   - update
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
 - apiGroups:
   - ""
   resources:
@@ -22,6 +38,7 @@ rules:
   - create
   - delete
   - get
+  - list
   - patch
   - update
 - apiGroups:

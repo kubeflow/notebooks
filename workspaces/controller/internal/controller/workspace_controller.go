@@ -75,8 +75,10 @@ type WorkspaceReconciler struct {
 //+kubebuilder:rbac:groups=kubeflow.org,resources=workspacekinds,verbs=list;watch
 //+kubebuilder:rbac:groups=kubeflow.org,resources=workspaces/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=kubeflow.org,resources=workspaces/finalizers,verbs=update
-// +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;update;patch;create;delete
-// +kubebuilder:rbac:groups=core,resources=services,verbs=get;update;patch;create;delete
+// +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=list;get;update;patch;create;delete
+// +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch
+// +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list
+// +kubebuilder:rbac:groups=core,resources=services,verbs=list;get;update;patch;create;delete
 // +kubebuilder:rbac:groups="networking.istio.io",resources=virtualservices,verbs=get;update;patch;create;delete
 
 func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
