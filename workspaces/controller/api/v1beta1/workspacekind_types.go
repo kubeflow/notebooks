@@ -98,7 +98,6 @@ type WorkspaceKindConfigMap struct {
 
 type WorkspaceKindPodTemplate struct {
 	// metadata for Workspace Pods (MUTABLE)
-	//  - changes are applied the NEXT time each Workspace is PAUSED
 	//+kubebuilder:validation:Optional
 	PodMetadata *WorkspaceKindPodMetadata `json:"podMetadata,omitempty"`
 
@@ -110,7 +109,6 @@ type WorkspaceKindPodTemplate struct {
 	Culling *WorkspaceKindCullingConfig `json:"culling,omitempty"`
 
 	// standard probes to determine Container health (MUTABLE)
-	//  - changes are applied the NEXT time each Workspace is PAUSED
 	//+kubebuilder:validation:Optional
 	Probes *WorkspaceKindProbes `json:"probes,omitempty"`
 
@@ -122,7 +120,6 @@ type WorkspaceKindPodTemplate struct {
 	HTTPProxy *HTTPProxy `json:"httpProxy,omitempty"`
 
 	// environment variables for Workspace Pods (MUTABLE)
-	//  - changes are applied the NEXT time each Workspace is PAUSED
 	//  - the following string templates are available:
 	//     - `.PathPrefix`: the path prefix of the Workspace (e.g. '/workspace/{profile_name}/{workspace_name}/')
 	//+kubebuilder:validation:Optional
@@ -130,8 +127,11 @@ type WorkspaceKindPodTemplate struct {
 	//+listMapKey:="name"
 	ExtraEnv []v1.EnvVar `json:"extraEnv,omitempty"`
 
-	// container SecurityContext for Workspace Pods (MUTABLE)
-	//  - changes are applied the NEXT time each Workspace is PAUSED
+	// security context for Workspace Pods (MUTABLE)
+	//+kubebuilder:validation:Optional
+	SecurityContext *v1.PodSecurityContext `json:"securityContext,omitempty"`
+
+	// container security context for Workspace Pods (MUTABLE)
 	//+kubebuilder:validation:Optional
 	ContainerSecurityContext *v1.SecurityContext `json:"containerSecurityContext,omitempty"`
 
@@ -276,6 +276,8 @@ type WorkspaceKindPodOptions struct {
 
 type ImageConfig struct {
 	// the id of the default image config
+	//+kubebuilder:validation:MinLength:=1
+	//+kubebuilder:validation:MaxLength:=256
 	//+kubebuilder:example:="jupyter_scipy_171"
 	Default string `json:"default"`
 
@@ -288,6 +290,8 @@ type ImageConfig struct {
 
 type ImageConfigValue struct {
 	// the id of this image config
+	//+kubebuilder:validation:MinLength:=1
+	//+kubebuilder:validation:MaxLength:=256
 	//+kubebuilder:example:="jupyter_scipy_171"
 	Id string `json:"id"`
 
@@ -319,6 +323,8 @@ type ImageConfigSpec struct {
 	//   - if multiple ports are defined, the user will see multiple "Connect" buttons
 	//     in a dropdown menu on the Workspace overview page
 	//+kubebuilder:validation:MinItems:=1
+	//+listType:="map"
+	//+listMapKey:="port"
 	Ports []ImagePort `json:"ports"`
 }
 
@@ -349,6 +355,8 @@ const (
 
 type PodConfig struct {
 	// the id of the default pod config
+	//+kubebuilder:validation:MinLength:=1
+	//+kubebuilder:validation:MaxLength:=256
 	//+kubebuilder:example="big_gpu"
 	Default string `json:"default"`
 
@@ -361,6 +369,8 @@ type PodConfig struct {
 
 type PodConfigValue struct {
 	// the id of this pod config
+	//+kubebuilder:validation:MinLength:=1
+	//+kubebuilder:validation:MaxLength:=256
 	//+kubebuilder:example="big_gpu"
 	Id string `json:"id"`
 
@@ -426,19 +436,17 @@ type OptionSpawnerLabel struct {
 	Key string `json:"key"`
 
 	// the value of the label
-	//+kubebuilder:validation:MinLength:=2
+	//+kubebuilder:validation:MinLength:=1
 	//+kubebuilder:validation:MaxLength:=64
 	Value string `json:"value"`
 }
 
 type OptionRedirect struct {
 	// the id of the option to redirect to
+	//+kubebuilder:validation:MinLength:=1
+	//+kubebuilder:validation:MaxLength:=256
 	//+kubebuilder:example:="jupyter_scipy_171"
 	To string `json:"to"`
-
-	// if the redirect will be applied after the next restart of the Workspace
-	//+kubebuilder:example:=true
-	WaitForRestart bool `json:"waitForRestart"`
 
 	// information about the redirect
 	//+kubebuilder:validation:Optional
@@ -476,7 +484,7 @@ const (
 type WorkspaceKindStatus struct {
 
 	// the number of Workspaces that are using this WorkspaceKind
-	//+kubebuilder:example=3
+	//+kubebuilder:default=0
 	Workspaces int64 `json:"workspaces"`
 
 	// metrics for podTemplate options
@@ -497,6 +505,8 @@ type PodTemplateOptionsMetrics struct {
 
 type OptionMetric struct {
 	// the id of the option
+	//+kubebuilder:validation:MinLength:=1
+	//+kubebuilder:validation:MaxLength:=256
 	//+kubebuilder:example="big_gpu"
 	Id string `json:"id"`
 

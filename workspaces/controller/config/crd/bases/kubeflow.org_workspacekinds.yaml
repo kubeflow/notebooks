@@ -57,9 +57,7 @@ spec:
                   run Workspaces of this WorkspaceKind
                 properties:
                   containerSecurityContext:
-                    description: |-
-                      container SecurityContext for Workspace Pods (MUTABLE)
-                       - changes are applied the NEXT time each Workspace is PAUSED
+                    description: container security context for Workspace Pods (MUTABLE)
                     properties:
                       allowPrivilegeEscalation:
                         description: |-
@@ -290,7 +288,6 @@ spec:
                   extraEnv:
                     description: |-
                       environment variables for Workspace Pods (MUTABLE)
-                       - changes are applied the NEXT time each Workspace is PAUSED
                        - the following string templates are available:
                           - `.PathPrefix`: the path prefix of the Workspace (e.g. '/workspace/{profile_name}/{workspace_name}/')
                     items:
@@ -463,6 +460,8 @@ spec:
                           default:
                             description: the id of the default image config
                             example: jupyter_scipy_171
+                            maxLength: 256
+                            minLength: 1
                             type: string
                           values:
                             description: the list of image configs that are available
@@ -471,6 +470,8 @@ spec:
                                 id:
                                   description: the id of this image config
                                   example: jupyter_scipy_171
+                                  maxLength: 256
+                                  minLength: 1
                                   type: string
                                 redirect:
                                   description: redirect configs
@@ -503,15 +504,11 @@ spec:
                                       description: the id of the option to redirect
                                         to
                                       example: jupyter_scipy_171
+                                      maxLength: 256
+                                      minLength: 1
                                       type: string
-                                    waitForRestart:
-                                      description: if the redirect will be applied
-                                        after the next restart of the Workspace
-                                      example: true
-                                      type: boolean
                                   required:
                                   - to
-                                  - waitForRestart
                                   type: object
                                 spawner:
                                   description: information for the spawner ui
@@ -543,7 +540,7 @@ spec:
                                           value:
                                             description: the value of the label
                                             maxLength: 64
-                                            minLength: 2
+                                            minLength: 1
                                             type: string
                                         required:
                                         - key
@@ -606,6 +603,9 @@ spec:
                                         type: object
                                       minItems: 1
                                       type: array
+                                      x-kubernetes-list-map-keys:
+                                      - port
+                                      x-kubernetes-list-type: map
                                   required:
                                   - image
                                   - ports
@@ -633,6 +633,8 @@ spec:
                           default:
                             description: the id of the default pod config
                             example: big_gpu
+                            maxLength: 256
+                            minLength: 1
                             type: string
                           values:
                             description: the list of pod configs that are available
@@ -641,6 +643,8 @@ spec:
                                 id:
                                   description: the id of this pod config
                                   example: big_gpu
+                                  maxLength: 256
+                                  minLength: 1
                                   type: string
                                 redirect:
                                   description: redirect configs
@@ -673,15 +677,11 @@ spec:
                                       description: the id of the option to redirect
                                         to
                                       example: jupyter_scipy_171
+                                      maxLength: 256
+                                      minLength: 1
                                       type: string
-                                    waitForRestart:
-                                      description: if the redirect will be applied
-                                        after the next restart of the Workspace
-                                      example: true
-                                      type: boolean
                                   required:
                                   - to
-                                  - waitForRestart
                                   type: object
                                 spawner:
                                   description: information for the spawner ui
@@ -713,7 +713,7 @@ spec:
                                           value:
                                             description: the value of the label
                                             maxLength: 64
-                                            minLength: 2
+                                            minLength: 1
                                             type: string
                                         required:
                                         - key
@@ -1788,9 +1788,7 @@ spec:
                     - podConfig
                     type: object
                   podMetadata:
-                    description: |-
-                      metadata for Workspace Pods (MUTABLE)
-                       - changes are applied the NEXT time each Workspace is PAUSED
+                    description: metadata for Workspace Pods (MUTABLE)
                     properties:
                       annotations:
                         additionalProperties:
@@ -1804,9 +1802,7 @@ spec:
                         type: object
                     type: object
                   probes:
-                    description: |-
-                      standard probes to determine Container health (MUTABLE)
-                       - changes are applied the NEXT time each Workspace is PAUSED
+                    description: standard probes to determine Container health (MUTABLE)
                     properties:
                       livenessProbe:
                         description: the liveness probe for the main container
@@ -2262,6 +2258,180 @@ spec:
                             type: integer
                         type: object
                     type: object
+                  securityContext:
+                    description: security context for Workspace Pods (MUTABLE)
+                    properties:
+                      fsGroup:
+                        description: |-
+                          A special supplemental group that applies to all containers in a pod.
+                          Some volume types allow the Kubelet to change the ownership of that volume
+                          to be owned by the pod:
+
+
+                          1. The owning GID will be the FSGroup
+                          2. The setgid bit is set (new files created in the volume will be owned by FSGroup)
+                          3. The permission bits are OR'd with rw-rw----
+
+
+                          If unset, the Kubelet will not modify the ownership and permissions of any volume.
+                          Note that this field cannot be set when spec.os.name is windows.
+                        format: int64
+                        type: integer
+                      fsGroupChangePolicy:
+                        description: |-
+                          fsGroupChangePolicy defines behavior of changing ownership and permission of the volume
+                          before being exposed inside Pod. This field will only apply to
+                          volume types which support fsGroup based ownership(and permissions).
+                          It will have no effect on ephemeral volume types such as: secret, configmaps
+                          and emptydir.
+                          Valid values are "OnRootMismatch" and "Always". If not specified, "Always" is used.
+                          Note that this field cannot be set when spec.os.name is windows.
+                        type: string
+                      runAsGroup:
+                        description: |-
+                          The GID to run the entrypoint of the container process.
+                          Uses runtime default if unset.
+                          May also be set in SecurityContext.  If set in both SecurityContext and
+                          PodSecurityContext, the value specified in SecurityContext takes precedence
+                          for that container.
+                          Note that this field cannot be set when spec.os.name is windows.
+                        format: int64
+                        type: integer
+                      runAsNonRoot:
+                        description: |-
+                          Indicates that the container must run as a non-root user.
+                          If true, the Kubelet will validate the image at runtime to ensure that it
+                          does not run as UID 0 (root) and fail to start the container if it does.
+                          If unset or false, no such validation will be performed.
+                          May also be set in SecurityContext.  If set in both SecurityContext and
+                          PodSecurityContext, the value specified in SecurityContext takes precedence.
+                        type: boolean
+                      runAsUser:
+                        description: |-
+                          The UID to run the entrypoint of the container process.
+                          Defaults to user specified in image metadata if unspecified.
+                          May also be set in SecurityContext.  If set in both SecurityContext and
+                          PodSecurityContext, the value specified in SecurityContext takes precedence
+                          for that container.
+                          Note that this field cannot be set when spec.os.name is windows.
+                        format: int64
+                        type: integer
+                      seLinuxOptions:
+                        description: |-
+                          The SELinux context to be applied to all containers.
+                          If unspecified, the container runtime will allocate a random SELinux context for each
+                          container.  May also be set in SecurityContext.  If set in
+                          both SecurityContext and PodSecurityContext, the value specified in SecurityContext
+                          takes precedence for that container.
+                          Note that this field cannot be set when spec.os.name is windows.
+                        properties:
+                          level:
+                            description: Level is SELinux level label that applies
+                              to the container.
+                            type: string
+                          role:
+                            description: Role is a SELinux role label that applies
+                              to the container.
+                            type: string
+                          type:
+                            description: Type is a SELinux type label that applies
+                              to the container.
+                            type: string
+                          user:
+                            description: User is a SELinux user label that applies
+                              to the container.
+                            type: string
+                        type: object
+                      seccompProfile:
+                        description: |-
+                          The seccomp options to use by the containers in this pod.
+                          Note that this field cannot be set when spec.os.name is windows.
+                        properties:
+                          localhostProfile:
+                            description: |-
+                              localhostProfile indicates a profile defined in a file on the node should be used.
+                              The profile must be preconfigured on the node to work.
+                              Must be a descending path, relative to the kubelet's configured seccomp profile location.
+                              Must be set if type is "Localhost". Must NOT be set for any other type.
+                            type: string
+                          type:
+                            description: |-
+                              type indicates which kind of seccomp profile will be applied.
+                              Valid options are:
+
+
+                              Localhost - a profile defined in a file on the node should be used.
+                              RuntimeDefault - the container runtime default profile should be used.
+                              Unconfined - no profile should be applied.
+                            type: string
+                        required:
+                        - type
+                        type: object
+                      supplementalGroups:
+                        description: |-
+                          A list of groups applied to the first process run in each container, in addition
+                          to the container's primary GID, the fsGroup (if specified), and group memberships
+                          defined in the container image for the uid of the container process. If unspecified,
+                          no additional groups are added to any container. Note that group memberships
+                          defined in the container image for the uid of the container process are still effective,
+                          even if they are not included in this list.
+                          Note that this field cannot be set when spec.os.name is windows.
+                        items:
+                          format: int64
+                          type: integer
+                        type: array
+                      sysctls:
+                        description: |-
+                          Sysctls hold a list of namespaced sysctls used for the pod. Pods with unsupported
+                          sysctls (by the container runtime) might fail to launch.
+                          Note that this field cannot be set when spec.os.name is windows.
+                        items:
+                          description: Sysctl defines a kernel parameter to be set
+                          properties:
+                            name:
+                              description: Name of a property to set
+                              type: string
+                            value:
+                              description: Value of a property to set
+                              type: string
+                          required:
+                          - name
+                          - value
+                          type: object
+                        type: array
+                      windowsOptions:
+                        description: |-
+                          The Windows specific settings applied to all containers.
+                          If unspecified, the options within a container's SecurityContext will be used.
+                          If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.
+                          Note that this field cannot be set when spec.os.name is linux.
+                        properties:
+                          gmsaCredentialSpec:
+                            description: |-
+                              GMSACredentialSpec is where the GMSA admission webhook
+                              (https://github.com/kubernetes-sigs/windows-gmsa) inlines the contents of the
+                              GMSA credential spec named by the GMSACredentialSpecName field.
+                            type: string
+                          gmsaCredentialSpecName:
+                            description: GMSACredentialSpecName is the name of the
+                              GMSA credential spec to use.
+                            type: string
+                          hostProcess:
+                            description: |-
+                              HostProcess determines if a container should be run as a 'Host Process' container.
+                              All of a Pod's containers must have the same effective HostProcess value
+                              (it is not allowed to have a mix of HostProcess containers and non-HostProcess containers).
+                              In addition, if HostProcess is true then HostNetwork must also be set to true.
+                            type: boolean
+                          runAsUserName:
+                            description: |-
+                              The UserName in Windows to run the entrypoint of the container process.
+                              Defaults to the user specified in image metadata if unspecified.
+                              May also be set in PodSecurityContext. If set in both SecurityContext and
+                              PodSecurityContext, the value specified in SecurityContext takes precedence.
+                            type: string
+                        type: object
+                    type: object
                   serviceAccount:
                     description: service account configs for Workspace Pods
                     properties:
@@ -2407,6 +2577,8 @@ spec:
                         id:
                           description: the id of the option
                           example: big_gpu
+                          maxLength: 256
+                          minLength: 1
                           type: string
                         workspaces:
                           description: the number of Workspaces currently using the
@@ -2429,6 +2601,8 @@ spec:
                         id:
                           description: the id of the option
                           example: big_gpu
+                          maxLength: 256
+                          minLength: 1
                           type: string
                         workspaces:
                           description: the number of Workspaces currently using the
@@ -2449,8 +2623,8 @@ spec:
                 - podConfig
                 type: object
               workspaces:
+                default: 0
                 description: the number of Workspaces that are using this WorkspaceKind
-                example: 3
                 format: int64
                 type: integer
             required:

@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/utils/ptr"
@@ -77,8 +78,8 @@ var _ = Describe("WorkspaceKind Controller", func() {
 						Enabled:            ptr.To(true),
 						MaxInactiveSeconds: ptr.To(int64(86400)),
 						ActivityProbe: kubefloworgv1beta1.ActivityProbe{
-							Exec: &kubefloworgv1beta1.ActivityProbeExec{
-								Command: []string{"bash", "-c", "exit 0"},
+							Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
+								LastActivity: true,
 							},
 						},
 					},
@@ -100,6 +101,9 @@ var _ = Describe("WorkspaceKind Controller", func() {
 							Value: "{{ .PathPrefix }}",
 						},
 					},
+					SecurityContext: &v1.PodSecurityContext{
+						FSGroup: ptr.To(int64(100)),
+					},
 					ContainerSecurityContext: &v1.SecurityContext{
 						AllowPrivilegeEscalation: ptr.To(false),
 						Capabilities: &v1.Capabilities{
@@ -109,25 +113,53 @@ var _ = Describe("WorkspaceKind Controller", func() {
 					},
 					Options: kubefloworgv1beta1.WorkspaceKindPodOptions{
 						ImageConfig: kubefloworgv1beta1.ImageConfig{
-							Default: "jupyter_scipy_171",
+							Default: "jupyterlab_scipy_190",
 							Values: []kubefloworgv1beta1.ImageConfigValue{
 								{
-									Id: "jupyter_scipy_170",
+									Id: "jupyterlab_scipy_180",
 									Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
-										DisplayName: "jupyter-scipy:v1.7.0",
-										Description: ptr.To("JupyterLab 1.7.0, with SciPy Packages"),
-										Hidden:      ptr.To(true),
+										DisplayName: "jupyter-scipy:v1.8.0",
+										Description: ptr.To("JupyterLab, with SciPy Packages"),
+										Labels: []kubefloworgv1beta1.OptionSpawnerLabel{
+											{
+												Key:   "python_version",
+												Value: "3.11",
+											},
+										},
+										Hidden: ptr.To(true),
 									},
 									Redirect: &kubefloworgv1beta1.OptionRedirect{
-										To:             "jupyter_scipy_171",
-										WaitForRestart: true,
+										To: "jupyterlab_scipy_190",
 										Message: &kubefloworgv1beta1.RedirectMessage{
 											Level: "Info",
-											Text:  "This update will increase the version of JupyterLab to v1.7.1",
+											Text:  "This update will change...",
 										},
 									},
 									Spec: kubefloworgv1beta1.ImageConfigSpec{
-										Image: "docker.io/kubeflownotebookswg/jupyter-scipy:v1.7.0",
+										Image: "docker.io/kubeflownotebookswg/jupyter-scipy:v1.8.0",
+										Ports: []kubefloworgv1beta1.ImagePort{
+											{
+												DisplayName: "JupyterLab",
+												Port:        8888,
+												Protocol:    "HTTP",
+											},
+										},
+									},
+								},
+								{
+									Id: "jupyterlab_scipy_190",
+									Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
+										DisplayName: "jupyter-scipy:v1.9.0",
+										Description: ptr.To("JupyterLab, with SciPy Packages"),
+										Labels: []kubefloworgv1beta1.OptionSpawnerLabel{
+											{
+												Key:   "python_version",
+												Value: "3.11",
+											},
+										},
+									},
+									Spec: kubefloworgv1beta1.ImageConfigSpec{
+										Image: "docker.io/kubeflownotebookswg/jupyter-scipy:v1.9.0",
 										Ports: []kubefloworgv1beta1.ImagePort{
 											{
 												DisplayName: "JupyterLab",
@@ -140,20 +172,53 @@ var _ = Describe("WorkspaceKind Controller", func() {
 							},
 						},
 						PodConfig: kubefloworgv1beta1.PodConfig{
-							Default: "small_cpu",
+							Default: "tiny_cpu",
 							Values: []kubefloworgv1beta1.PodConfigValue{
+								{
+									Id: "tiny_cpu",
+									Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
+										DisplayName: "Tiny CPU",
+										Description: ptr.To("Pod with 0.1 CPU, 128 MB RAM"),
+										Labels: []kubefloworgv1beta1.OptionSpawnerLabel{
+											{
+												Key:   "cpu",
+												Value: "100m",
+											},
+											{
+												Key:   "memory",
+												Value: "128Mi",
+											},
+										},
+									},
+									Spec: kubefloworgv1beta1.PodConfigSpec{
+										Resources: &v1.ResourceRequirements{
+											Requests: map[v1.ResourceName]resource.Quantity{
+												v1.ResourceCPU:    resource.MustParse("100m"),
+												v1.ResourceMemory: resource.MustParse("128Mi"),
+											},
+										},
+									},
+								},
 								{
 									Id: "small_cpu",
 									Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 										DisplayName: "Small CPU",
-										Description: ptr.To("Pod with 1 CPU, 2 GB RAM, and 1 GPU"),
-										Hidden:      ptr.To(false),
+										Description: ptr.To("Pod with 1 CPU, 2 GB RAM"),
+										Labels: []kubefloworgv1beta1.OptionSpawnerLabel{
+											{
+												Key:   "cpu",
+												Value: "1000m",
+											},
+											{
+												Key:   "memory",
+												Value: "2Gi",
+											},
+										},
 									},
-									Redirect: nil,
 									Spec: kubefloworgv1beta1.PodConfigSpec{
 										Resources: &v1.ResourceRequirements{
 											Requests: map[v1.ResourceName]resource.Quantity{
-												v1.ResourceCPU:    resource.MustParse("1"),
+												v1.ResourceCPU:    resource.MustParse("1000m"),
 												v1.ResourceMemory: resource.MustParse("2Gi"),
 											},
 										},
@@ -163,10 +228,22 @@ var _ = Describe("WorkspaceKind Controller", func() {
 									Id: "big_gpu",
 									Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 										DisplayName: "Big GPU",
-										Description: ptr.To("Pod with 4 CPUs, 16 GB RAM, and 1 GPU"),
-										Hidden:      ptr.To(false),
+										Description: ptr.To("Pod with 4 CPU, 16 GB RAM, and 1 GPU"),
+										Labels: []kubefloworgv1beta1.OptionSpawnerLabel{
+											{
+												Key:   "cpu",
+												Value: "4000m",
+											},
+											{
+												Key:   "memory",
+												Value: "16Gi",
+											},
+											{
+												Key:   "gpu",
+												Value: "1",
+											},
+										},
 									},
-									Redirect: nil,
 									Spec: kubefloworgv1beta1.PodConfigSpec{
 										Affinity:     nil,
 										NodeSelector: nil,
@@ -179,7 +256,7 @@ var _ = Describe("WorkspaceKind Controller", func() {
 										},
 										Resources: &v1.ResourceRequirements{
 											Requests: map[v1.ResourceName]resource.Quantity{
-												v1.ResourceCPU:    resource.MustParse("4"),
+												v1.ResourceCPU:    resource.MustParse("4000m"),
 												v1.ResourceMemory: resource.MustParse("16Gi"),
 											},
 											Limits: map[v1.ResourceName]resource.Quantity{

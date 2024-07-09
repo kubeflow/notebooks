@@ -15,6 +15,7 @@ rules:
   - list
   - patch
   - update
+  - watch
 - apiGroups:
   - ""
   resources:
@@ -22,6 +23,7 @@ rules:
   verbs:
   - get
   - list
+  - watch
 - apiGroups:
   - ""
   resources:
@@ -41,6 +43,7 @@ rules:
   - list
   - patch
   - update
+  - watch
 - apiGroups:
   - kubeflow.org
   resources:
@@ -101,5 +104,7 @@ rules:
   - create
   - delete
   - get
+  - list
   - patch
   - update
+  - watch

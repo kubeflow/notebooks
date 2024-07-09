@@ -4,20 +4,64 @@ metadata:
   name: my-workspace
   namespace: default
 spec:
-  kind: "jupyter-lab"
+  ## if the workspace is paused (no pods running)
   paused: false
-  podTemplate:
-    options:
-      imageConfig: "jupyter_scipy_170"
-      podConfig: "small_gpu"
-    podMetadata:
-      annotations:
-        "env": "prod"
-      labels:
-        "app": "jupyter-lab"
 
+  ## the WorkspaceKind to use
+  kind: "juptyerlab"
+
+  ## options for "podTemplate"-type WorkspaceKinds
+  ##
+  podTemplate:
+
+    ## metadata to be applied to the Pod resource
+    ##
+    podMetadata:
+
+      ## labels to be applied to the Pod resource
+      ##  - labels are required to support integration with the PodDefault resource:
+      ##    https://github.com/kubeflow/kubeflow/blob/master/components/admission-webhook/pkg/apis/settings/v1alpha1/poddefault_types.go
+      ##
+      labels: {}
+
+      ## annotations to be applied to the Pod resource
+      ##
+      annotations: {}
+
+    ## volume configs
+    ##
     volumes:
-      home: "home"
+
+      ## the name of the PVC to mount as the home volume
+      ##  - this PVC must already exist in the Namespace
+      ##  - this PVC must be RWX (ReadWriteMany, ReadWriteOnce)
+      ##  - the mount path is defined in the WorkspaceKind under
+      ##    `spec.podTemplate.volumeMounts.home`
+      ##
+      home: "my-home-pvc"
+
+      ## additional PVCs to mount
+      ##  - these PVC must already exist in the Namespace
+      ##  - these PVC must be RWX (ReadWriteMany, ReadWriteOnce)
+      ##
       data:
         - name: "my-data-pvc"
-          mountPath: /tmp
+          mountPath: /data/my-data
+
+    ## the selected podTemplate options
+    ##  - these are the user-selected options from the Workspace Spawner UI
+    ##    which determine the PodSpec of the Workspace Pod
+    ##
+    options:
+
+      ## the id of an imageConfig option
+      ##  - options are defined in WorkspaceKind under
+      ##    `spec.podTemplate.options.imageConfig.values[]`
+      ##
+      imageConfig: "jupyterlab_scipy_180"
+
+      ## the id of a podConfig option
+      ##  - options are defined in WorkspaceKind under
+      ##    `spec.podTemplate.options.podConfig.values[]`
+      ##
+      podConfig: "tiny_cpu"

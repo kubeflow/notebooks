@@ -111,12 +111,16 @@ type WorkspacePodOptions struct {
 	// the id of an imageConfig option
 	//  - options are defined in WorkspaceKind under
 	//    `spec.podTemplate.options.imageConfig.values[]`
+	//+kubebuilder:validation:MinLength:=1
+	//+kubebuilder:validation:MaxLength:=256
 	//+kubebuilder:example="jupyter_scipy_170"
 	ImageConfig string `json:"imageConfig"`
 
 	// the id of a podConfig option
 	//  - options are defined in WorkspaceKind under
 	//    `spec.podTemplate.options.podConfig.values[]`
+	//+kubebuilder:validation:MinLength:=1
+	//+kubebuilder:validation:MaxLength:=256
 	//+kubebuilder:example="big_gpu"
 	PodConfig string `json:"podConfig"`
 }
@@ -129,11 +133,12 @@ type WorkspacePodOptions struct {
 
 // WorkspaceStatus defines the observed state of Workspace
 type WorkspaceStatus struct {
-
 	// activity information for the Workspace, used to determine when to cull
 	Activity WorkspaceActivity `json:"activity"`
 
-	// the time when the Workspace was paused, 0 if the Workspace is not paused
+	// the time when the Workspace was paused (UNIX epoch)
+	//  - set to 0 when the Workspace is NOT paused
+	//+kubebuilder:default=0
 	//+kubebuilder:example=1704067200
 	PauseTime int64 `json:"pauseTime"`
 
@@ -142,30 +147,44 @@ type WorkspaceStatus struct {
 	//    and so will be patched on the next restart
 	//  - true if the WorkspaceKind has changed one of its common `podTemplate` fields
 	//    like `podMetadata`, `probes`, `extraEnv`, or `containerSecurityContext`
-	//+kubebuilder:example=false
+	//+kubebuilder:default=false
 	PendingRestart bool `json:"pendingRestart"`
 
 	// the `spec.podTemplate.options` which will take effect after the next restart
-	PodTemplateOptions WorkspacePodOptions `json:"podTemplateOptions"`
+	PodTemplateOptions WorkspacePodOptionsStatus `json:"podTemplateOptions"`
 
 	// the current state of the Workspace
-	//+kubebuilder:example="Running"
+	//+kubebuilder:default="Unknown"
 	State WorkspaceState `json:"state"`
 
 	// a human-readable message about the state of the Workspace
 	//  - WARNING: this field is NOT FOR MACHINE USE, subject to change without notice
-	//+kubebuilder:example="Pod is not ready"
+	//+kubebuilder:default=""
 	StateMessage string `json:"stateMessage"`
 }
 
 type WorkspaceActivity struct {
 	// the last time activity was observed on the Workspace (UNIX epoch)
+	//+kubebuilder:default=0
 	//+kubebuilder:example=1704067200
 	LastActivity int64 `json:"lastActivity"`
 
 	// the last time we checked for activity on the Workspace (UNIX epoch)
+	//+kubebuilder:default=0
 	//+kubebuilder:example=1704067200
 	LastUpdate int64 `json:"lastUpdate"`
+}
+
+type WorkspacePodOptionsStatus struct {
+	// the id of an imageConfig option
+	//  - will be "" when the Workspace is first created
+	//+kubebuilder:default=""
+	ImageConfig string `json:"imageConfig"`
+
+	// the id of a podConfig option
+	//  - will be "" when the Workspace is first created
+	//+kubebuilder:default=""
+	PodConfig string `json:"podConfig"`
 }
 
 // +kubebuilder:validation:Enum:={"Running","Terminating","Paused","Pending","Error","Unknown"}

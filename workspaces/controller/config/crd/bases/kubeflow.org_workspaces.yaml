@@ -70,6 +70,8 @@ spec:
                            - options are defined in WorkspaceKind under
                              `spec.podTemplate.options.imageConfig.values[]`
                         example: jupyter_scipy_170
+                        maxLength: 256
+                        minLength: 1
                         type: string
                       podConfig:
                         description: |-
@@ -77,6 +79,8 @@ spec:
                            - options are defined in WorkspaceKind under
                              `spec.podTemplate.options.podConfig.values[]`
                         example: big_gpu
+                        maxLength: 256
+                        minLength: 1
                         type: string
                     required:
                     - imageConfig
@@ -159,12 +163,14 @@ spec:
                   when to cull
                 properties:
                   lastActivity:
+                    default: 0
                     description: the last time activity was observed on the Workspace
                       (UNIX epoch)
                     example: 1704067200
                     format: int64
                     type: integer
                   lastUpdate:
+                    default: 0
                     description: the last time we checked for activity on the Workspace
                       (UNIX epoch)
                     example: 1704067200
@@ -175,43 +181,44 @@ spec:
                 - lastUpdate
                 type: object
               pauseTime:
-                description: the time when the Workspace was paused, 0 if the Workspace
-                  is not paused
+                default: 0
+                description: |-
+                  the time when the Workspace was paused (UNIX epoch)
+                   - set to 0 when the Workspace is NOT paused
                 example: 1704067200
                 format: int64
                 type: integer
               pendingRestart:
+                default: false
                 description: |-
                   if the current Pod does not reflect the current "desired" state
                    - true if any `spec.podTemplate.options` have a redirect
                      and so will be patched on the next restart
                    - true if the WorkspaceKind has changed one of its common `podTemplate` fields
                      like `podMetadata`, `probes`, `extraEnv`, or `containerSecurityContext`
-                example: false
                 type: boolean
               podTemplateOptions:
                 description: the `spec.podTemplate.options` which will take effect
                   after the next restart
                 properties:
                   imageConfig:
+                    default: ""
                     description: |-
                       the id of an imageConfig option
-                       - options are defined in WorkspaceKind under
-                         `spec.podTemplate.options.imageConfig.values[]`
-                    example: jupyter_scipy_170
+                       - will be "" when the Workspace is first created
                     type: string
                   podConfig:
+                    default: ""
                     description: |-
                       the id of a podConfig option
-                       - options are defined in WorkspaceKind under
-                         `spec.podTemplate.options.podConfig.values[]`
-                    example: big_gpu
+                       - will be "" when the Workspace is first created
                     type: string
                 required:
                 - imageConfig
                 - podConfig
                 type: object
               state:
+                default: Unknown
                 description: the current state of the Workspace
                 enum:
                 - Running
@@ -220,13 +227,12 @@ spec:
                 - Pending
                 - Error
                 - Unknown
-                example: Running
                 type: string
               stateMessage:
+                default: ""
                 description: |-
                   a human-readable message about the state of the Workspace
                    - WARNING: this field is NOT FOR MACHINE USE, subject to change without notice
-                example: Pod is not ready
                 type: string
             required:
             - activity

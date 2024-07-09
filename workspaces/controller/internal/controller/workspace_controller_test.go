@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+
 	"k8s.io/utils/ptr"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -120,19 +121,39 @@ var _ = Describe("Workspace Controller", func() {
 			Expect(k8sClient.Patch(ctx, newWorkspace, patch)).NotTo(Succeed())
 		})
 
-		It("should successfully reconcile the resource", func() {
-			By("Reconciling the created resource")
+		//
+		// TODO: populate these tests
+		//  - use the CronJob controller tests as a reference
+		//    https://github.com/kubernetes-sigs/kubebuilder/blob/master/docs/book/src/cronjob-tutorial/testdata/project/internal/controller/cronjob_controller_test.go
+		//  - key things to test:
+		//    - resources like Service/StatefulSet/VirtualService/etc are created when a Workspace is created
+		//    - updating the chosen PodTemplate option results in the correct resources being updated
+		//       - imageConfig - updates the StatefulSet and possibly the Service
+		//       - podConfig - updates the StatefulSet
+		//    - having very long names for the Workspace, and ensuring everything still works
+		//    - deleting some of the reconciled resources, and ensuring they are recreated
+		//    - updating some of the reconciled resources, and ensuring they are reverted
+		//
+		It("should create resources when a Workspace is created", func() {
+			By("Reconciling the Workspace")
 			controllerReconciler := &WorkspaceReconciler{
 				Client: k8sClient,
 				Scheme: k8sClient.Scheme(),
 			}
-
 			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: typeNamespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
-			// TODO(user): Add more specific assertions depending on your controller's reconciliation logic.
-			// Example: If you expect a certain status condition after reconciliation, verify it here.
+
+			//
+			// TODO: finish this test, might need to swap to list to find the resources because we cant get them by name
+			//
+			//By("Creating a StatefulSet")
+			//statefulSet := &appsv1.StatefulSet{}
+			//err = k8sClient.Get(ctx, types.NamespacedName{
+			//	Namespace: testResourceNamespace,
+			//	Name:      testResourceName1,
+			//}
 		})
 	})
 })
