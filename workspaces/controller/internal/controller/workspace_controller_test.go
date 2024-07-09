@@ -53,8 +53,9 @@ var _ = Describe("Workspace Controller", func() {
 				Namespace: "default",
 			},
 			Spec: kubefloworgv1beta1.WorkspaceSpec{
-				Paused: ptr.To(false),
-				Kind:   "juptyerlab",
+				Paused:       ptr.To(false),
+				DeferUpdates: ptr.To(false),
+				Kind:         "juptyerlab",
 				PodTemplate: kubefloworgv1beta1.WorkspacePodTemplate{
 					PodMetadata: &kubefloworgv1beta1.WorkspacePodMetadata{
 						Labels:      nil,

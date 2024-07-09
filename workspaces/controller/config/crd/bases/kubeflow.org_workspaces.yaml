@@ -44,6 +44,12 @@ spec:
           spec:
             description: WorkspaceSpec defines the desired state of Workspace
             properties:
+              deferUpdates:
+                default: false
+                description: |-
+                  if true, pending updates are NOT applied when the Workspace is paused
+                  if false, pending updates are applied when the Workspace is paused
+                type: boolean
               kind:
                 description: the WorkspaceKind to use
                 example: jupyterlab
@@ -198,21 +204,68 @@ spec:
                      like `podMetadata`, `probes`, `extraEnv`, or `containerSecurityContext`
                 type: boolean
               podTemplateOptions:
-                description: the `spec.podTemplate.options` which will take effect
-                  after the next restart
+                description: information about the current podTemplate options
                 properties:
                   imageConfig:
-                    default: ""
-                    description: |-
-                      the id of an imageConfig option
-                       - will be "" when the Workspace is first created
-                    type: string
+                    description: info about the current imageConfig option
+                    properties:
+                      desired:
+                        description: the option id which will take effect after the
+                          next restart
+                        maxLength: 256
+                        minLength: 1
+                        type: string
+                      redirectChain:
+                        description: the chain from the current option to the desired
+                          option
+                        items:
+                          properties:
+                            source:
+                              description: the source option id
+                              maxLength: 256
+                              minLength: 1
+                              type: string
+                            target:
+                              description: the target option id
+                              maxLength: 256
+                              minLength: 1
+                              type: string
+                          required:
+                          - source
+                          - target
+                          type: object
+                        type: array
+                    type: object
                   podConfig:
-                    default: ""
-                    description: |-
-                      the id of a podConfig option
-                       - will be "" when the Workspace is first created
-                    type: string
+                    description: info about the current podConfig option
+                    properties:
+                      desired:
+                        description: the option id which will take effect after the
+                          next restart
+                        maxLength: 256
+                        minLength: 1
+                        type: string
+                      redirectChain:
+                        description: the chain from the current option to the desired
+                          option
+                        items:
+                          properties:
+                            source:
+                              description: the source option id
+                              maxLength: 256
+                              minLength: 1
+                              type: string
+                            target:
+                              description: the target option id
+                              maxLength: 256
+                              minLength: 1
+                              type: string
+                          required:
+                          - source
+                          - target
+                          type: object
+                        type: array
+                    type: object
                 required:
                 - imageConfig
                 - podConfig

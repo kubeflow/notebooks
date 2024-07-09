@@ -155,29 +155,33 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// get the current and desired (after redirects) imageConfig
-	currentImageConfig, desiredImageConfig, err := getImageConfig(workspace, workspaceKind)
+	currentImageConfig, desiredImageConfig, imageConfigRedirectChain, err := getImageConfig(workspace, workspaceKind)
 	if err != nil {
 		log.Error(err, "failed to get imageConfig for Workspace")
 		return ctrl.Result{}, err
 	}
 	if desiredImageConfig != nil {
 		workspace.Status.PendingRestart = true
-		workspace.Status.PodTemplateOptions.ImageConfig = desiredImageConfig.Id
+		workspace.Status.PodTemplateOptions.ImageConfig.Desired = desiredImageConfig.Id
+		workspace.Status.PodTemplateOptions.ImageConfig.RedirectChain = imageConfigRedirectChain
 	} else {
-		workspace.Status.PodTemplateOptions.ImageConfig = currentImageConfig.Id
+		workspace.Status.PodTemplateOptions.ImageConfig.Desired = currentImageConfig.Id
+		workspace.Status.PodTemplateOptions.ImageConfig.RedirectChain = nil
 	}
 
 	// get the current and desired (after redirects) podConfig
-	currentPodConfig, desiredPodConfig, err := getPodConfig(workspace, workspaceKind)
+	currentPodConfig, desiredPodConfig, podConfigRedirectChain, err := getPodConfig(workspace, workspaceKind)
 	if err != nil {
 		log.Error(err, "failed to get podConfig for Workspace")
 		return ctrl.Result{}, err
 	}
 	if desiredPodConfig != nil {
 		workspace.Status.PendingRestart = true
-		workspace.Status.PodTemplateOptions.PodConfig = desiredPodConfig.Id
+		workspace.Status.PodTemplateOptions.PodConfig.Desired = desiredPodConfig.Id
+		workspace.Status.PodTemplateOptions.PodConfig.RedirectChain = podConfigRedirectChain
 	} else {
-		workspace.Status.PodTemplateOptions.PodConfig = currentPodConfig.Id
+		workspace.Status.PodTemplateOptions.PodConfig.Desired = currentPodConfig.Id
+		workspace.Status.PodTemplateOptions.PodConfig.RedirectChain = nil
 	}
 
 	//
@@ -187,9 +191,9 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	//
 
 	// if the Workspace is paused and a restart is pending, update the Workspace with the new options
-	if *workspace.Spec.Paused && workspace.Status.PendingRestart {
-		workspace.Spec.PodTemplate.Options.ImageConfig = workspace.Status.PodTemplateOptions.ImageConfig
-		workspace.Spec.PodTemplate.Options.PodConfig = workspace.Status.PodTemplateOptions.PodConfig
+	if *workspace.Spec.Paused && workspace.Status.PendingRestart && !*workspace.Spec.DeferUpdates {
+		workspace.Spec.PodTemplate.Options.ImageConfig = workspace.Status.PodTemplateOptions.ImageConfig.Desired
+		workspace.Spec.PodTemplate.Options.PodConfig = workspace.Status.PodTemplateOptions.PodConfig.Desired
 		workspace.Status.PendingRestart = false
 		//
 		// TODO: does `r.Update(` also update the `status`, if not, this needs to be done separately
@@ -459,7 +463,7 @@ func (r *WorkspaceReconciler) mapWorkspaceKindToRequest(ctx context.Context, wor
 }
 
 // getImageConfig returns the current and desired (after redirects) ImageConfigValues for the Workspace
-func getImageConfig(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind) (*kubefloworgv1beta1.ImageConfigValue, *kubefloworgv1beta1.ImageConfigValue, error) {
+func getImageConfig(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind) (*kubefloworgv1beta1.ImageConfigValue, *kubefloworgv1beta1.ImageConfigValue, []kubefloworgv1beta1.WorkspacePodOptionRedirectStep, error) {
 	imageConfigIdMap := make(map[string]kubefloworgv1beta1.ImageConfigValue)
 	for _, imageConfig := range workspaceKind.Spec.PodTemplate.Options.ImageConfig.Values {
 		imageConfigIdMap[imageConfig.Id] = imageConfig
@@ -469,37 +473,42 @@ func getImageConfig(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kube
 	currentImageConfigKey := workspace.Spec.PodTemplate.Options.ImageConfig
 	currentImageConfig, ok := imageConfigIdMap[currentImageConfigKey]
 	if !ok {
-		return nil, nil, fmt.Errorf("imageConfig with id '%s' not found", currentImageConfigKey)
+		return nil, nil, nil, fmt.Errorf("imageConfig with id '%s' not found", currentImageConfigKey)
 	}
 
 	// follow any redirects to get the desired imageConfig
 	desiredImageConfig := currentImageConfig
+	var redirectChain []kubefloworgv1beta1.WorkspacePodOptionRedirectStep
 	visitedNodes := map[string]bool{currentImageConfig.Id: true}
 	for {
 		if desiredImageConfig.Redirect == nil {
 			break
 		}
 		if visitedNodes[desiredImageConfig.Redirect.To] {
-			return nil, nil, fmt.Errorf("imageConfig with id '%s' has a circular redirect", desiredImageConfig.Id)
+			return nil, nil, nil, fmt.Errorf("imageConfig with id '%s' has a circular redirect", desiredImageConfig.Id)
 		}
 		nextNode, ok := imageConfigIdMap[desiredImageConfig.Redirect.To]
 		if !ok {
-			return nil, nil, fmt.Errorf("imageConfig with id '%s' not found, was redirected from '%s'", desiredImageConfig.Redirect.To, desiredImageConfig.Id)
+			return nil, nil, nil, fmt.Errorf("imageConfig with id '%s' not found, was redirected from '%s'", desiredImageConfig.Redirect.To, desiredImageConfig.Id)
 		}
+		redirectChain = append(redirectChain, kubefloworgv1beta1.WorkspacePodOptionRedirectStep{
+			Source: desiredImageConfig.Id,
+			Target: nextNode.Id,
+		})
 		desiredImageConfig = nextNode
 		visitedNodes[desiredImageConfig.Id] = true
 	}
 
 	// if the current imageConfig and desired imageConfig are different, return both
 	if currentImageConfig.Id != desiredImageConfig.Id {
-		return &currentImageConfig, &desiredImageConfig, nil
+		return &currentImageConfig, &desiredImageConfig, redirectChain, nil
 	} else {
-		return &currentImageConfig, nil, nil
+		return &currentImageConfig, nil, nil, nil
 	}
 }
 
 // getPodConfig returns the current and desired (after redirects) PodConfigValues for the Workspace
-func getPodConfig(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind) (*kubefloworgv1beta1.PodConfigValue, *kubefloworgv1beta1.PodConfigValue, error) {
+func getPodConfig(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind) (*kubefloworgv1beta1.PodConfigValue, *kubefloworgv1beta1.PodConfigValue, []kubefloworgv1beta1.WorkspacePodOptionRedirectStep, error) {
 	podConfigIdMap := make(map[string]kubefloworgv1beta1.PodConfigValue)
 	for _, podConfig := range workspaceKind.Spec.PodTemplate.Options.PodConfig.Values {
 		podConfigIdMap[podConfig.Id] = podConfig
@@ -509,32 +518,37 @@ func getPodConfig(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefl
 	currentPodConfigKey := workspace.Spec.PodTemplate.Options.PodConfig
 	currentPodConfig, ok := podConfigIdMap[currentPodConfigKey]
 	if !ok {
-		return nil, nil, fmt.Errorf("podConfig with id '%s' not found", currentPodConfigKey)
+		return nil, nil, nil, fmt.Errorf("podConfig with id '%s' not found", currentPodConfigKey)
 	}
 
 	// follow any redirects to get the desired podConfig
 	desiredPodConfig := currentPodConfig
+	var redirectChain []kubefloworgv1beta1.WorkspacePodOptionRedirectStep
 	visitedNodes := map[string]bool{currentPodConfig.Id: true}
 	for {
 		if desiredPodConfig.Redirect == nil {
 			break
 		}
 		if visitedNodes[desiredPodConfig.Redirect.To] {
-			return nil, nil, fmt.Errorf("podConfig with id '%s' has a circular redirect", desiredPodConfig.Id)
+			return nil, nil, nil, fmt.Errorf("podConfig with id '%s' has a circular redirect", desiredPodConfig.Id)
 		}
 		nextNode, ok := podConfigIdMap[desiredPodConfig.Redirect.To]
 		if !ok {
-			return nil, nil, fmt.Errorf("podConfig with id '%s' not found, was redirected from '%s'", desiredPodConfig.Redirect.To, desiredPodConfig.Id)
+			return nil, nil, nil, fmt.Errorf("podConfig with id '%s' not found, was redirected from '%s'", desiredPodConfig.Redirect.To, desiredPodConfig.Id)
 		}
+		redirectChain = append(redirectChain, kubefloworgv1beta1.WorkspacePodOptionRedirectStep{
+			Source: desiredPodConfig.Id,
+			Target: nextNode.Id,
+		})
 		desiredPodConfig = nextNode
 		visitedNodes[desiredPodConfig.Id] = true
 	}
 
 	// if the current podConfig and desired podConfig are different, return both
 	if currentPodConfig.Id != desiredPodConfig.Id {
-		return &currentPodConfig, &desiredPodConfig, nil
+		return &currentPodConfig, &desiredPodConfig, redirectChain, nil
 	} else {
-		return &currentPodConfig, nil, nil
+		return &currentPodConfig, nil, nil, nil
 	}
 }
 

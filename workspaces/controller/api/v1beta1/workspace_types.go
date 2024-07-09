@@ -36,6 +36,12 @@ type WorkspaceSpec struct {
 	//+kubebuilder:default=false
 	Paused *bool `json:"paused,omitempty"`
 
+	// if true, pending updates are NOT applied when the Workspace is paused
+	// if false, pending updates are applied when the Workspace is paused
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:default=false
+	DeferUpdates *bool `json:"deferUpdates,omitempty"`
+
 	// the WorkspaceKind to use
 	//+kubebuilder:validation:MinLength:=2
 	//+kubebuilder:validation:MaxLength:=63
@@ -150,7 +156,7 @@ type WorkspaceStatus struct {
 	//+kubebuilder:default=false
 	PendingRestart bool `json:"pendingRestart"`
 
-	// the `spec.podTemplate.options` which will take effect after the next restart
+	// information about the current podTemplate options
 	PodTemplateOptions WorkspacePodOptionsStatus `json:"podTemplateOptions"`
 
 	// the current state of the Workspace
@@ -176,15 +182,35 @@ type WorkspaceActivity struct {
 }
 
 type WorkspacePodOptionsStatus struct {
-	// the id of an imageConfig option
-	//  - will be "" when the Workspace is first created
-	//+kubebuilder:default=""
-	ImageConfig string `json:"imageConfig"`
+	// info about the current imageConfig option
+	ImageConfig WorkspacePodOptionInfo `json:"imageConfig"`
 
-	// the id of a podConfig option
-	//  - will be "" when the Workspace is first created
-	//+kubebuilder:default=""
-	PodConfig string `json:"podConfig"`
+	// info about the current podConfig option
+	PodConfig WorkspacePodOptionInfo `json:"podConfig"`
+}
+
+type WorkspacePodOptionInfo struct {
+	// the option id which will take effect after the next restart
+	//+kubebuilder:validation:MinLength:=1
+	//+kubebuilder:validation:MaxLength:=256
+	//+kubebuilder:validation:Optional
+	Desired string `json:"desired,omitempty"`
+
+	// the chain from the current option to the desired option
+	//+kubebuilder:validation:Optional
+	RedirectChain []WorkspacePodOptionRedirectStep `json:"redirectChain,omitempty"`
+}
+
+type WorkspacePodOptionRedirectStep struct {
+	// the source option id
+	//+kubebuilder:validation:MinLength:=1
+	//+kubebuilder:validation:MaxLength:=256
+	Source string `json:"source"`
+
+	// the target option id
+	//+kubebuilder:validation:MinLength:=1
+	//+kubebuilder:validation:MaxLength:=256
+	Target string `json:"target"`
 }
 
 // +kubebuilder:validation:Enum:={"Running","Terminating","Paused","Pending","Error","Unknown"}
