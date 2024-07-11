@@ -154,11 +154,30 @@ spec:
     ##
     extraEnv:
 
-      ## for example, to enable backwards compatibility with the old Jupyter images, from Kubeflow Notebooks 1.8
-      ##  - https://github.com/kubeflow/kubeflow/blob/v1.8.0/components/example-notebook-servers/jupyter/s6/services.d/jupyterlab/run#L12
-      ##
+      ## to enable backwards compatibility with old Jupyter images from Kubeflow Notebooks V1
+      ## https://github.com/kubeflow/kubeflow/blob/v1.8.0/components/example-notebook-servers/jupyter/s6/services.d/jupyterlab/run#L12
       - name: "NB_PREFIX"
         value: "{{ .PathPrefix }}"
+
+    ## extra volume mounts for Workspace Pods (MUTABLE)
+    ##  - spec for VolumeMount:
+    ##    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#volumemount-v1-core
+    ##
+    extraVolumeMounts:
+
+      ## frameworks like PyTorch use shared memory for inter-process communication and expect a tmpfs at /dev/shm
+      ## https://en.wikipedia.org/wiki/Shared_memory
+      - name: "dshm"
+        mountPath: "/dev/shm"
+
+    ## extra volumes for Workspace Pods (MUTABLE)
+    ##  - spec for Volume:
+    ##    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#volume-v1-core
+    ##
+    extraVolumes:
+      - name: "dshm"
+        emptyDir:
+          medium: "Memory"
 
     ## security context for Workspace Pods (MUTABLE)
     ##  - spec for PodSecurityContext:

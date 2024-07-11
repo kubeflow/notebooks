@@ -46,11 +46,14 @@ spec:
 
       ## additional PVCs to mount
       ##  - these PVC must already exist in the Namespace
-      ##  - these PVC must be RWX (ReadWriteMany, ReadWriteOnce)
+      ##  - the same PVC can be mounted multiple times with different `mountPaths`
+      ##  - if `readOnly` is false, the PVC must be RWX (ReadWriteMany, ReadWriteOnce)
+      ##  - if `readOnly` is true, the PVC must be ReadOnlyMany
       ##
       data:
-        - name: "my-data-pvc"
-          mountPath: /data/my-data
+        - pvcName: "my-data-pvc"
+          mountPath: "/data/my-data"
+          readOnly: false
 
     ## the selected podTemplate options
     ##  - these are the user-selected options from the Workspace Spawner UI

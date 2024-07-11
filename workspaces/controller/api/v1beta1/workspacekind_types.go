@@ -127,6 +127,18 @@ type WorkspaceKindPodTemplate struct {
 	//+listMapKey:="name"
 	ExtraEnv []v1.EnvVar `json:"extraEnv,omitempty"`
 
+	// extra volume mounts for Workspace Pods (MUTABLE)
+	//+kubebuilder:validation:Optional
+	//+listType:="map"
+	//+listMapKey:="mountPath"
+	ExtraVolumeMounts []v1.VolumeMount `json:"extraVolumeMounts,omitempty"`
+
+	// extra volumes for Workspace Pods (MUTABLE)
+	//+kubebuilder:validation:Optional
+	//+listType:="map"
+	//+listMapKey:="name"
+	ExtraVolumes []v1.Volume `json:"extraVolumes,omitempty"`
+
 	// security context for Workspace Pods (MUTABLE)
 	//+kubebuilder:validation:Optional
 	SecurityContext *v1.PodSecurityContext `json:"securityContext,omitempty"`

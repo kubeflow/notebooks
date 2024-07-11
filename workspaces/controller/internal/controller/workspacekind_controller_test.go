@@ -101,6 +101,22 @@ var _ = Describe("WorkspaceKind Controller", func() {
 							Value: "{{ .PathPrefix }}",
 						},
 					},
+					ExtraVolumeMounts: []v1.VolumeMount{
+						{
+							Name:      "dshm",
+							MountPath: "/dev/shm",
+						},
+					},
+					ExtraVolumes: []v1.Volume{
+						{
+							Name: "dshm",
+							VolumeSource: v1.VolumeSource{
+								EmptyDir: &v1.EmptyDirVolumeSource{
+									Medium: v1.StorageMediumMemory,
+								},
+							},
+						},
+					},
 					SecurityContext: &v1.PodSecurityContext{
 						FSGroup: ptr.To(int64(100)),
 					},

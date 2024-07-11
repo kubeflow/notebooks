@@ -62,10 +62,10 @@ var _ = Describe("Workspace Controller", func() {
 						Annotations: nil,
 					},
 					Volumes: kubefloworgv1beta1.WorkspacePodVolumes{
-						Home: "my-home-pvc",
+						Home: ptr.To("my-home-pvc"),
 						Data: []kubefloworgv1beta1.PodVolumeMount{
 							{
-								Name:      "my-data-pvc",
+								PVCName:   "my-data-pvc",
 								MountPath: "/data/my-data",
 							},
 						},

@@ -112,8 +112,10 @@ spec:
                       data:
                         description: |-
                           additional PVCs to mount
-                           - these PVCs must already exist in the Namespace
-                           - these PVCs must be RWX (ReadWriteMany, ReadWriteOnce)
+                           - these PVC must already exist in the Namespace
+                           - the same PVC can be mounted multiple times with different `mountPaths`
+                           - if `readOnly` is false, the PVC must be RWX (ReadWriteMany, ReadWriteOnce)
+                           - if `readOnly` is true, the PVC must be ReadOnlyMany
                         items:
                           properties:
                             mountPath:
@@ -123,20 +125,24 @@ spec:
                               minLength: 2
                               pattern: ^/[^/].*$
                               type: string
-                            name:
+                            pvcName:
                               description: the name of the PVC to mount
                               example: my-data-pvc
                               maxLength: 63
                               minLength: 2
                               pattern: ^[a-z0-9][-a-z0-9]*[a-z0-9]$
                               type: string
+                            readOnly:
+                              default: false
+                              description: if the PVC should be mounted as ReadOnly
+                              type: boolean
                           required:
                           - mountPath
-                          - name
+                          - pvcName
                           type: object
                         type: array
                         x-kubernetes-list-map-keys:
-                        - name
+                        - mountPath
                         x-kubernetes-list-type: map
                       home:
                         description: |-
@@ -150,8 +156,6 @@ spec:
                         minLength: 2
                         pattern: ^[a-z0-9][-a-z0-9]*[a-z0-9]$
                         type: string
-                    required:
-                    - home
                     type: object
                 required:
                 - options

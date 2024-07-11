@@ -213,7 +213,11 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	//
 
 	// generate StatefulSet
-	statefulSet := generateStatefulSet(workspace, workspaceKind, currentImageConfig.Spec, currentPodConfig.Spec)
+	statefulSet, err := generateStatefulSet(workspace, workspaceKind, currentImageConfig.Spec, currentPodConfig.Spec)
+	if err != nil {
+		log.Error(err, "unable to generate StatefulSet")
+		return ctrl.Result{}, err
+	}
 	if err := ctrl.SetControllerReference(workspace, statefulSet, r.Scheme); err != nil {
 		log.Error(err, "unable to set controller reference on StatefulSet")
 		return ctrl.Result{}, err
@@ -568,7 +572,7 @@ func generateNamePrefix(workspaceName string, maxLength int) string {
 }
 
 // generateStatefulSet generates a StatefulSet for a Workspace
-func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind, imageConfigSpec kubefloworgv1beta1.ImageConfigSpec, podConfigSpec kubefloworgv1beta1.PodConfigSpec) *appsv1.StatefulSet {
+func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind, imageConfigSpec kubefloworgv1beta1.ImageConfigSpec, podConfigSpec kubefloworgv1beta1.PodConfigSpec) (*appsv1.StatefulSet, error) {
 	// generate name prefix
 	namePrefix := generateNamePrefix(workspace.Name, maxStatefulSetNameLength)
 
@@ -598,49 +602,101 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 		}
 	}
 
+	// generate container env
+	containerEnv := make([]corev1.EnvVar, len(workspaceKind.Spec.PodTemplate.ExtraEnv))
+	for _, env := range workspaceKind.Spec.PodTemplate.ExtraEnv {
+		if env.Value != "" {
+			rawValue := env.Value
+			//
+			// TODO: add support for templates in env values like `{{ .PathPrefix }}` make sure to handle errors
+			//
+			env.Value = rawValue
+		}
+		containerEnv = append(containerEnv, env)
+	}
+
 	// generate container resources
 	containerResources := corev1.ResourceRequirements{}
 	if podConfigSpec.Resources != nil {
 		containerResources = *podConfigSpec.Resources
 	}
 
-	// generate pod volumes
-	volumes := []corev1.Volume{
-		{
+	// generate volumes and volumeMounts
+	volumes := make([]corev1.Volume, 0)
+	volumeMounts := make([]corev1.VolumeMount, 0)
+	seenVolumeNames := make(map[string]bool)
+	seenVolumeMountPaths := make(map[string]bool)
+
+	// add home volume
+	if workspace.Spec.PodTemplate.Volumes.Home != nil {
+		homeVolume := corev1.Volume{
 			Name: "home-volume",
 			VolumeSource: corev1.VolumeSource{
 				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: workspace.Spec.PodTemplate.Volumes.Home,
+					ClaimName: *workspace.Spec.PodTemplate.Volumes.Home,
 				},
 			},
-		},
+		}
+		homeVolumeMount := corev1.VolumeMount{
+			Name:      homeVolume.Name,
+			MountPath: workspaceKind.Spec.PodTemplate.VolumeMounts.Home,
+		}
+		seenVolumeNames[homeVolume.Name] = true
+		seenVolumeMountPaths[homeVolumeMount.MountPath] = true
+		volumes = append(volumes, homeVolume)
+		volumeMounts = append(volumeMounts, homeVolumeMount)
 	}
+
+	// add data volumes
 	for i, data := range workspace.Spec.PodTemplate.Volumes.Data {
-		volumes = append(volumes, corev1.Volume{
+		dataVolume := corev1.Volume{
 			Name: fmt.Sprintf("data-volume-%d", i),
 			VolumeSource: corev1.VolumeSource{
 				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: data.Name,
+					ClaimName: data.PVCName,
 				},
 			},
-		})
-	}
-
-	// generate container volume mounts
-	volumeMounts := []corev1.VolumeMount{
-		{
-			Name:      "home-volume",
-			MountPath: workspaceKind.Spec.PodTemplate.VolumeMounts.Home,
-		},
-	}
-	for i, data := range workspace.Spec.PodTemplate.Volumes.Data {
-		volumeMounts = append(volumeMounts, corev1.VolumeMount{
-			Name:      fmt.Sprintf("data-volume-%d", i),
+		}
+		dataVolumeMount := corev1.VolumeMount{
+			Name:      dataVolume.Name,
 			MountPath: data.MountPath,
-		})
+		}
+		if *data.ReadOnly {
+			dataVolume.PersistentVolumeClaim.ReadOnly = true
+			dataVolumeMount.ReadOnly = true
+		}
+		seenVolumeNames[dataVolume.Name] = true
+		seenVolumeMountPaths[dataVolumeMount.MountPath] = true
+		volumes = append(volumes, dataVolume)
+		volumeMounts = append(volumeMounts, dataVolumeMount)
 	}
 
-	return &appsv1.StatefulSet{
+	// add extra volumes
+	for _, extraVolume := range workspaceKind.Spec.PodTemplate.ExtraVolumes {
+		if seenVolumeNames[extraVolume.Name] {
+			// silently skip duplicate volumes
+			continue
+		}
+		volumes = append(volumes, extraVolume)
+		seenVolumeNames[extraVolume.Name] = true
+	}
+
+	// add extra volumeMounts
+	for _, extraVolumeMount := range workspaceKind.Spec.PodTemplate.ExtraVolumeMounts {
+		if seenVolumeMountPaths[extraVolumeMount.MountPath] {
+			// silently skip duplicate mount paths
+			continue
+		}
+		if !seenVolumeNames[extraVolumeMount.Name] {
+			// silently skip mount paths that reference non-existent volume names
+			continue
+		}
+		volumeMounts = append(volumeMounts, extraVolumeMount)
+		seenVolumeMountPaths[extraVolumeMount.MountPath] = true
+	}
+
+	// generate StatefulSet
+	statefulSet := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: namePrefix,
 			Namespace:    workspace.Namespace,
@@ -677,11 +733,8 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 							StartupProbe:    workspaceKind.Spec.PodTemplate.Probes.StartupProbe,
 							SecurityContext: workspaceKind.Spec.PodTemplate.ContainerSecurityContext,
 							VolumeMounts:    volumeMounts,
-							//
-							// TODO: add support for templates in env values like `{{ .PathPrefix }}`
-							//
-							Env:       workspaceKind.Spec.PodTemplate.ExtraEnv,
-							Resources: containerResources,
+							Env:             containerEnv,
+							Resources:       containerResources,
 						},
 					},
 					NodeSelector:       podConfigSpec.NodeSelector,
@@ -693,6 +746,8 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 			},
 		},
 	}
+
+	return statefulSet, nil
 }
 
 // generateService generates a Service for a Workspace

@@ -82,18 +82,21 @@ type WorkspacePodVolumes struct {
 	//  - this PVC must be RWX (ReadWriteMany, ReadWriteOnce)
 	//  - the mount path is defined in the WorkspaceKind under
 	//    `spec.podTemplate.volumeMounts.home`
+	//+kubebuilder:validation:Optional
 	//+kubebuilder:validation:MinLength:=2
 	//+kubebuilder:validation:MaxLength:=63
 	//+kubebuilder:validation:Pattern:=^[a-z0-9][-a-z0-9]*[a-z0-9]$
 	//+kubebuilder:example="my-home-pvc"
-	Home string `json:"home"`
+	Home *string `json:"home,omitempty"`
 
 	// additional PVCs to mount
-	//  - these PVCs must already exist in the Namespace
-	//  - these PVCs must be RWX (ReadWriteMany, ReadWriteOnce)
+	//  - these PVC must already exist in the Namespace
+	//  - the same PVC can be mounted multiple times with different `mountPaths`
+	//  - if `readOnly` is false, the PVC must be RWX (ReadWriteMany, ReadWriteOnce)
+	//  - if `readOnly` is true, the PVC must be ReadOnlyMany
 	//+kubebuilder:validation:Optional
 	//+listType:="map"
-	//+listMapKey:="name"
+	//+listMapKey:="mountPath"
 	Data []PodVolumeMount `json:"data,omitempty"`
 }
 
@@ -103,7 +106,7 @@ type PodVolumeMount struct {
 	//+kubebuilder:validation:MaxLength:=63
 	//+kubebuilder:validation:Pattern:=^[a-z0-9][-a-z0-9]*[a-z0-9]$
 	//+kubebuilder:example="my-data-pvc"
-	Name string `json:"name"`
+	PVCName string `json:"pvcName"`
 
 	// the mount path for the PVC
 	//+kubebuilder:validation:MinLength:=2
@@ -111,6 +114,11 @@ type PodVolumeMount struct {
 	//+kubebuilder:validation:Pattern:=^/[^/].*$
 	//+kubebuilder:example="/data/my-data"
 	MountPath string `json:"mountPath"`
+
+	// if the PVC should be mounted as ReadOnly
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:default=false
+	ReadOnly *bool `json:"readOnly,omitempty"`
 }
 
 type WorkspacePodOptions struct {
@@ -191,9 +199,9 @@ type WorkspacePodOptionsStatus struct {
 
 type WorkspacePodOptionInfo struct {
 	// the option id which will take effect after the next restart
+	//+kubebuilder:validation:Optional
 	//+kubebuilder:validation:MinLength:=1
 	//+kubebuilder:validation:MaxLength:=256
-	//+kubebuilder:validation:Optional
 	Desired string `json:"desired,omitempty"`
 
 	// the chain from the current option to the desired option
