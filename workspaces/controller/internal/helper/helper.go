@@ -9,7 +9,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-// TODO: if we no longer need these functions, feel free to remove
 func CopyStatefulSetFields(from, to *appsv1.StatefulSet) bool {
 	requireUpdate := false
 	for k, v := range to.Labels {

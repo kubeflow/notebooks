@@ -12,7 +12,7 @@ spec:
   deferUpdates: false
 
   ## the WorkspaceKind to use
-  kind: "juptyerlab"
+  kind: "jupyterlab"
 
   ## options for "podTemplate"-type WorkspaceKinds
   ##

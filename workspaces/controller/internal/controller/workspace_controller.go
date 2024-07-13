@@ -19,10 +19,8 @@ package controller
 import (
 	"context"
 	"fmt"
-	"reflect"
-	"strings"
-
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -32,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -39,6 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"strings"
 )
 
 const (
@@ -118,6 +118,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
 	if err := r.Get(ctx, client.ObjectKey{Name: workspaceKindName}, workspaceKind); err != nil {
 		if apierrors.IsNotFound(err) {
+			log.Error(err, "workspaceKind  not found in the cluster")
 			workspace.Status.State = kubefloworgv1beta1.WorkspaceStateError
 			workspace.Status.StateMessage = fmt.Sprintf(stateMsgErrorInvalidWorkspaceKind, workspaceKindName)
 			if err := r.Status().Update(ctx, workspace); err != nil {
@@ -194,23 +195,16 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if *workspace.Spec.Paused && workspace.Status.PendingRestart && !*workspace.Spec.DeferUpdates {
 		workspace.Spec.PodTemplate.Options.ImageConfig = workspace.Status.PodTemplateOptions.ImageConfig.Desired
 		workspace.Spec.PodTemplate.Options.PodConfig = workspace.Status.PodTemplateOptions.PodConfig.Desired
-		workspace.Status.PendingRestart = false
-		//
-		// TODO: does `r.Update(` also update the `status`, if not, this needs to be done separately
-		//
 		if err := r.Update(ctx, workspace); err != nil {
 			log.Error(err, "unable to update Workspace")
-			//
-			// TODO: do we actually need to set `Requeue: true`?
-			//
-			return ctrl.Result{Requeue: true}, err
+			return ctrl.Result{}, err
+		}
+		workspace.Status.PendingRestart = false
+		if err := r.Status().Update(ctx, workspace); err != nil {
+			log.Error(err, "unable to update Workspace status")
+			return ctrl.Result{}, err
 		}
 	}
-
-	//
-	// TODO: reconcile the Istio VirtualService to expose the Workspace
-	//       and implement the `spec.podTemplate.httpProxy` options
-	//
 
 	// generate StatefulSet
 	statefulSet, err := generateStatefulSet(workspace, workspaceKind, currentImageConfig.Spec, currentPodConfig.Spec)
@@ -261,12 +255,8 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	} else {
 		foundStatefulSet := &ownedStatefulSets.Items[0]
 		statefulSetName = foundStatefulSet.ObjectMeta.Name
-		//
-		// TODO: confirm if this is the correct way to compare and update StatefulSets
-		//
-		if !reflect.DeepEqual(statefulSet.Spec, foundStatefulSet.Spec) {
+		if helper.CopyStatefulSetFields(statefulSet, foundStatefulSet) {
 			log.V(1).Info("Updating StatefulSet", "statefulSet", statefulSetName)
-			foundStatefulSet.Spec = statefulSet.Spec
 			if err := r.Update(ctx, foundStatefulSet); err != nil {
 				log.Error(err, "unable to update StatefulSet")
 				return ctrl.Result{}, err
@@ -320,12 +310,8 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	} else {
 		foundService := &ownedServices.Items[0]
 		serviceName = foundService.ObjectMeta.Name
-		//
-		// TODO: confirm if this is the correct way to compare and update Services
-		//
-		if !reflect.DeepEqual(service.Spec, foundService.Spec) {
+		if helper.CopyServiceFields(service, foundService) {
 			log.V(1).Info("Updating Service", "service", serviceName)
-			foundService.Spec = service.Spec
 			if err := r.Update(ctx, foundService); err != nil {
 				log.Error(err, "unable to update Service")
 				return ctrl.Result{}, err
@@ -333,6 +319,11 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			log.V(1).Info("Service updated", "service", serviceName)
 		}
 	}
+
+	//
+	// TODO: reconcile the Istio VirtualService to expose the Workspace
+	//       and implement the `spec.podTemplate.httpProxy` options
+	//
 
 	// fetch Pod
 	// NOTE: the Pod will be named "{statefulSetName}-0"
@@ -350,16 +341,14 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// TODO: figure out how to set `status.pauseTime`, it will probably have to be done in a webhook
 	//
 
-	//
-	// TODO: reduce the number of status update API calls by only updating the status when it changes
-	//
-
-	// update Workspace status
+	// update Workspace status if there is changes
 	workspaceStatus := generateWorkspaceStatus(workspace, pod)
-	workspace.Status = workspaceStatus
-	if err := r.Status().Update(ctx, workspace); err != nil {
-		log.Error(err, "unable to update Workspace status")
-		return ctrl.Result{}, err
+	if !reflect.DeepEqual(workspace.Status, workspaceStatus) {
+		workspace.Status = workspaceStatus
+		if err := r.Status().Update(ctx, workspace); err != nil {
+			log.Error(err, "unable to update Workspace status")
+			return ctrl.Result{}, err
+		}
 	}
 	log.V(1).Info("finished reconciling Workspace")
 	return ctrl.Result{}, nil
@@ -670,6 +659,21 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 		volumes = append(volumes, dataVolume)
 		volumeMounts = append(volumeMounts, dataVolumeMount)
 	}
+	// Probes
+	var readinessProbe *corev1.Probe
+	var livenessProbe *corev1.Probe
+	var startupProbe *corev1.Probe
+	if workspaceKind.Spec.PodTemplate.Probes != nil {
+		if workspaceKind.Spec.PodTemplate.Probes.ReadinessProbe != nil {
+			readinessProbe = workspaceKind.Spec.PodTemplate.Probes.ReadinessProbe
+		}
+		if workspaceKind.Spec.PodTemplate.Probes.LivenessProbe != nil {
+			livenessProbe = workspaceKind.Spec.PodTemplate.Probes.LivenessProbe
+		}
+		if workspaceKind.Spec.PodTemplate.Probes.StartupProbe != nil {
+			startupProbe = workspaceKind.Spec.PodTemplate.Probes.StartupProbe
+		}
+	}
 
 	// add extra volumes
 	for _, extraVolume := range workspaceKind.Spec.PodTemplate.ExtraVolumes {
@@ -728,9 +732,9 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 							Image:           imageConfigSpec.Image,
 							ImagePullPolicy: imagePullPolicy,
 							Ports:           containerPorts,
-							ReadinessProbe:  workspaceKind.Spec.PodTemplate.Probes.ReadinessProbe,
-							LivenessProbe:   workspaceKind.Spec.PodTemplate.Probes.LivenessProbe,
-							StartupProbe:    workspaceKind.Spec.PodTemplate.Probes.StartupProbe,
+							ReadinessProbe:  readinessProbe,
+							LivenessProbe:   livenessProbe,
+							StartupProbe:    startupProbe,
 							SecurityContext: workspaceKind.Spec.PodTemplate.ContainerSecurityContext,
 							VolumeMounts:    volumeMounts,
 							Env:             containerEnv,
@@ -785,10 +789,6 @@ func generateService(workspace *kubefloworgv1beta1.Workspace, imageConfigSpec ku
 // generateWorkspaceStatus generates a WorkspaceStatus for a Workspace
 func generateWorkspaceStatus(workspace *kubefloworgv1beta1.Workspace, pod *corev1.Pod) kubefloworgv1beta1.WorkspaceStatus {
 	status := workspace.Status
-
-	//
-	// TODO: review this logic, and ensure that the checks are ordered correctly so that the correct status is set
-	//
 
 	// STATUS: Terminating
 	if pod.GetDeletionTimestamp() != nil {

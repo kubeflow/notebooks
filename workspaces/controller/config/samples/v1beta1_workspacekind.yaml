@@ -110,10 +110,10 @@ spec:
     ##  - spec for Probe:
     ##    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#probe-v1-core
     ##
-    probes:
-      startupProbe: {}
-      livenessProbe: {}
-      readinessProbe: {}
+#    probes:
+#      startupProbe: {}
+#      livenessProbe: {}
+#      readinessProbe: {}
 
     ## volume mount paths
     ##
@@ -191,11 +191,11 @@ spec:
     ##    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#securitycontext-v1-core
     ##
     containerSecurityContext:
-      allowPrivilegeEscalation: false
-      capabilities:
-        drop:
-          - ALL
-      runAsNonRoot: true
+      allowPrivilegeEscalation: true
+#      capabilities:
+#        drop:
+#          - ALL
+      runAsNonRoot: false
 
     ## ==============================================================
     ## WORKSPACE OPTIONS
@@ -334,7 +334,6 @@ spec:
                 - key: "memory"
                   value: "2Gi"
               hidden: false
-            redirect: {}
             spec:
               ## affinity configs for the pod
               ##  - https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#affinity-v1-core
@@ -374,7 +373,6 @@ spec:
                 - key: "gpu"
                   value: "1"
               hidden: false
-            redirect: {}
             spec:
               affinity: {}
               nodeSelector: {}
