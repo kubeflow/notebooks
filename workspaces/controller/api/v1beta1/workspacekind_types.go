@@ -182,7 +182,7 @@ type WorkspaceKindCullingConfig struct {
 	//+kubebuilder:validation:Optional
 	//+kubebuilder:validation:Minimum:=60
 	//+kubebuilder:default=86400
-	MaxInactiveSeconds *int64 `json:"maxInactiveSeconds,omitempty"`
+	MaxInactiveSeconds *int32 `json:"maxInactiveSeconds,omitempty"`
 
 	// the probe used to determine if the Workspace is active
 	ActivityProbe ActivityProbe `json:"activityProbe"`
@@ -497,7 +497,7 @@ type WorkspaceKindStatus struct {
 
 	// the number of Workspaces that are using this WorkspaceKind
 	//+kubebuilder:default=0
-	Workspaces int64 `json:"workspaces"`
+	Workspaces int32 `json:"workspaces"`
 
 	// metrics for podTemplate options
 	PodTemplateOptions PodTemplateOptionsMetrics `json:"podTemplateOptions"`
@@ -524,7 +524,7 @@ type OptionMetric struct {
 
 	// the number of Workspaces currently using the option
 	//+kubebuilder:example=3
-	Workspaces int64 `json:"workspaces"`
+	Workspaces int32 `json:"workspaces"`
 }
 
 /*

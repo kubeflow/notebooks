@@ -110,10 +110,10 @@ spec:
     ##  - spec for Probe:
     ##    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#probe-v1-core
     ##
-#    probes:
-#      startupProbe: {}
-#      livenessProbe: {}
-#      readinessProbe: {}
+    probes:
+      startupProbe: {}
+      livenessProbe: {}
+      readinessProbe: {}
 
     ## volume mount paths
     ##
@@ -191,11 +191,11 @@ spec:
     ##    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#securitycontext-v1-core
     ##
     containerSecurityContext:
-      allowPrivilegeEscalation: true
-#      capabilities:
-#        drop:
-#          - ALL
-      runAsNonRoot: false
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+      runAsNonRoot: true
 
     ## ==============================================================
     ## WORKSPACE OPTIONS

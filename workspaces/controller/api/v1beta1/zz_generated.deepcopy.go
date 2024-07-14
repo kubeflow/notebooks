@@ -545,7 +545,7 @@ func (in *WorkspaceKindCullingConfig) DeepCopyInto(out *WorkspaceKindCullingConf
 	}
 	if in.MaxInactiveSeconds != nil {
 		in, out := &in.MaxInactiveSeconds, &out.MaxInactiveSeconds
-		*out = new(int64)
+		*out = new(int32)
 		**out = **in
 	}
 	in.ActivityProbe.DeepCopyInto(&out.ActivityProbe)

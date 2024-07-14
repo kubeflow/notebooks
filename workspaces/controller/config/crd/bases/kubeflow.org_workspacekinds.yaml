@@ -279,7 +279,7 @@ spec:
                         default: 86400
                         description: the maximum number of seconds a Workspace can
                           be inactive
-                        format: int64
+                        format: int32
                         minimum: 60
                         type: integer
                     required:
@@ -4324,7 +4324,7 @@ spec:
                           description: the number of Workspaces currently using the
                             option
                           example: 3
-                          format: int64
+                          format: int32
                           type: integer
                       required:
                       - id
@@ -4348,7 +4348,7 @@ spec:
                           description: the number of Workspaces currently using the
                             option
                           example: 3
-                          format: int64
+                          format: int32
                           type: integer
                       required:
                       - id
@@ -4365,7 +4365,7 @@ spec:
               workspaces:
                 default: 0
                 description: the number of Workspaces that are using this WorkspaceKind
-                format: int64
+                format: int32
                 type: integer
             required:
             - podTemplateOptions
