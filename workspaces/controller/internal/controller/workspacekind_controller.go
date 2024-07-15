@@ -19,6 +19,8 @@ package controller
 import (
 	"context"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -52,8 +54,7 @@ type WorkspaceKindReconciler struct {
 
 func (r *WorkspaceKindReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
-	log.WithValues("workspaceKind", req.NamespacedName)
-	log.V(1).Info("reconciling WorkspaceKind")
+	log.V(2).Info("reconciling WorkspaceKind")
 
 	// fetch the WorkspaceKind
 	workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
@@ -86,6 +87,10 @@ func (r *WorkspaceKindReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		if controllerutil.ContainsFinalizer(workspaceKind, workspaceKindFinalizer) {
 			controllerutil.RemoveFinalizer(workspaceKind, workspaceKindFinalizer)
 			if err := r.Update(ctx, workspaceKind); err != nil {
+				if apierrors.IsConflict(err) {
+					log.V(2).Info("update conflict while removing finalizer from WorkspaceKind, will requeue")
+					return ctrl.Result{Requeue: true}, nil
+				}
 				log.Error(err, "unable to remove finalizer from WorkspaceKind")
 				return ctrl.Result{}, err
 			}
@@ -127,10 +132,13 @@ func (r *WorkspaceKindReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	workspaceKind.Status.PodTemplateOptions.ImageConfig = imageConfigMetrics
 	workspaceKind.Status.PodTemplateOptions.PodConfig = podConfigMetrics
 	if err := r.Status().Update(ctx, workspaceKind); err != nil {
+		if apierrors.IsConflict(err) {
+			log.V(2).Info("update conflict while updating WorkspaceKind status, will requeue")
+			return ctrl.Result{Requeue: true}, nil
+		}
 		log.Error(err, "unable to update WorkspaceKind status")
 		return ctrl.Result{}, err
 	}
-	log.V(1).Info("finished reconciling WorkspaceKind")
 
 	return ctrl.Result{}, nil
 }

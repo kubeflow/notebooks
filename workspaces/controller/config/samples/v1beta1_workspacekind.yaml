@@ -149,15 +149,16 @@ spec:
     ## environment variables for Workspace Pods (MUTABLE)
     ##  - spec for EnvVar:
     ##    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#envvar-v1-core
-    ##  - the following string templates are available:
-    ##      - `.PathPrefix`: the path prefix of the Workspace (e.g. '/workspace/{profile_name}/{workspace_name}/')
+    ##  - the following go template functions are available:
+    ##      - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
     ##
     extraEnv:
 
       ## to enable backwards compatibility with old Jupyter images from Kubeflow Notebooks V1
       ## https://github.com/kubeflow/kubeflow/blob/v1.8.0/components/example-notebook-servers/jupyter/s6/services.d/jupyterlab/run#L12
       - name: "NB_PREFIX"
-        value: "{{ .PathPrefix }}"
+        value: |-
+          {{ httpPathPrefix "juptyerlab" }}
 
     ## extra volume mounts for Workspace Pods (MUTABLE)
     ##  - spec for VolumeMount:
@@ -267,7 +268,8 @@ spec:
               ##    in a dropdown menu on the Workspace overview page
               ##
               ports:
-                - displayName: "JupyterLab"
+                - id: "jupyterlab"
+                  displayName: "JupyterLab"
                   port: 8888
                   protocol: "HTTP"
 
@@ -285,7 +287,8 @@ spec:
               image: "docker.io/kubeflownotebookswg/jupyter-scipy:v1.9.0"
               imagePullPolicy: "IfNotPresent"
               ports:
-                - displayName: "JupyterLab"
+                - id: "jupyterlab"
+                  displayName: "JupyterLab"
                   port: 8888
                   protocol: "HTTP"
 

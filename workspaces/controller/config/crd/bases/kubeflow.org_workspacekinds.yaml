@@ -288,8 +288,8 @@ spec:
                   extraEnv:
                     description: |-
                       environment variables for Workspace Pods (MUTABLE)
-                       - the following string templates are available:
-                          - `.PathPrefix`: the path prefix of the Workspace (e.g. '/workspace/{profile_name}/{workspace_name}/')
+                       - the following go template functions are available:
+                          - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
                     items:
                       description: EnvVar represents an environment variable present
                         in a Container.
@@ -2323,6 +2323,15 @@ spec:
                                             maxLength: 64
                                             minLength: 2
                                             type: string
+                                          id:
+                                            description: |-
+                                              the id of the port
+                                               - this is NOT used as the Container or Service port name, but as part of the HTTP path
+                                            example: jupyterlab
+                                            maxLength: 32
+                                            minLength: 1
+                                            pattern: ^[a-z0-9][a-z0-9_-]*[a-z0-9]$
+                                            type: string
                                           port:
                                             description: the port number
                                             example: 8888
@@ -2338,13 +2347,14 @@ spec:
                                             type: string
                                         required:
                                         - displayName
+                                        - id
                                         - port
                                         - protocol
                                         type: object
                                       minItems: 1
                                       type: array
                                       x-kubernetes-list-map-keys:
-                                      - port
+                                      - id
                                       x-kubernetes-list-type: map
                                   required:
                                   - image

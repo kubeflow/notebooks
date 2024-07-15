@@ -221,7 +221,7 @@ func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 				ExtraEnv: []v1.EnvVar{
 					{
 						Name:  "NB_PREFIX",
-						Value: "{{ .PathPrefix }}",
+						Value: `{{ httpPathPrefix "jupyterlab" }}`,
 					},
 				},
 				ExtraVolumeMounts: []v1.VolumeMount{
@@ -278,6 +278,7 @@ func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 									Image: "docker.io/kubeflownotebookswg/jupyter-scipy:v1.8.0",
 									Ports: []kubefloworgv1beta1.ImagePort{
 										{
+											Id:          "jupyterlab",
 											DisplayName: "JupyterLab",
 											Port:        8888,
 											Protocol:    "HTTP",
@@ -301,6 +302,7 @@ func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 									Image: "docker.io/kubeflownotebookswg/jupyter-scipy:v1.9.0",
 									Ports: []kubefloworgv1beta1.ImagePort{
 										{
+											Id:          "jupyterlab",
 											DisplayName: "JupyterLab",
 											Port:        8888,
 											Protocol:    "HTTP",

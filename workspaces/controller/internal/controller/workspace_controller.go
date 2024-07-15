@@ -24,6 +24,8 @@ import (
 	"strings"
 	"text/template"
 
+	"k8s.io/apimachinery/pkg/util/intstr"
+
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
 
 	"github.com/go-logr/logr"
@@ -37,7 +39,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -68,6 +69,7 @@ const (
 	stateMsgErrorInvalidImageConfig    = "Workspace has invalid imageConfig: %s"
 	stateMsgErrorInvalidPodConfig      = "Workspace has invalid podConfig: %s"
 	stateMsgErrorGenFailureStatefulSet = "Workspace failed to generate StatefulSet with error: %s"
+	stateMsgErrorGenFailureService     = "Workspace failed to generate Service with error: %s"
 	stateMsgErrorMultipleStatefulSets  = "Workspace owns multiple StatefulSets: %s"
 	stateMsgErrorMultipleServices      = "Workspace owns multiple Services: %s"
 	stateMsgErrorPodCrashLoopBackOff   = "Workspace Pod is not running (CrashLoopBackOff)"
@@ -102,8 +104,7 @@ type WorkspaceReconciler struct {
 
 func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) { // nolint:gocyclo
 	log := log.FromContext(ctx)
-	log.WithValues("workspace", req.NamespacedName)
-	log.V(1).Info("reconciling Workspace")
+	log.V(2).Info("reconciling Workspace")
 
 	// fetch the Workspace
 	workspace := &kubefloworgv1beta1.Workspace{}
@@ -119,16 +120,17 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 	if !workspace.GetDeletionTimestamp().IsZero() {
-		log.V(1).Info("Workspace is being deleted")
+		log.V(2).Info("Workspace is being deleted")
 		return ctrl.Result{}, nil
 	}
 
 	// fetch the WorkspaceKind
 	workspaceKindName := workspace.Spec.Kind
-	log.WithValues("workspaceKind", workspaceKindName)
+	log = log.WithValues("workspaceKind", workspaceKindName)
 	workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
 	if err := r.Get(ctx, client.ObjectKey{Name: workspaceKindName}, workspaceKind); err != nil {
 		if apierrors.IsNotFound(err) {
+			log.V(0).Info("Workspace references unknown WorkspaceKind")
 			return r.updateWorkspaceState(ctx, log, workspace,
 				kubefloworgv1beta1.WorkspaceStateError,
 				fmt.Sprintf(stateMsgErrorUnknownWorkspaceKind, workspaceKindName),
@@ -144,6 +146,10 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if !controllerutil.ContainsFinalizer(workspaceKind, workspaceKindFinalizer) {
 			controllerutil.AddFinalizer(workspaceKind, workspaceKindFinalizer)
 			if err := r.Update(ctx, workspaceKind); err != nil {
+				if apierrors.IsConflict(err) {
+					log.V(2).Info("update conflict while adding finalizer to WorkspaceKind, will requeue")
+					return ctrl.Result{Requeue: true}, nil
+				}
 				log.Error(err, "unable to add finalizer to WorkspaceKind")
 				return ctrl.Result{}, err
 			}
@@ -153,6 +159,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// get the current and desired (after redirects) imageConfig
 	currentImageConfig, desiredImageConfig, imageConfigRedirectChain, err := getImageConfig(workspace, workspaceKind)
 	if err != nil {
+		log.V(0).Info("failed to get imageConfig for Workspace", "error", err.Error())
 		return r.updateWorkspaceState(ctx, log, workspace,
 			kubefloworgv1beta1.WorkspaceStateError,
 			fmt.Sprintf(stateMsgErrorInvalidImageConfig, err.Error()),
@@ -170,6 +177,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// get the current and desired (after redirects) podConfig
 	currentPodConfig, desiredPodConfig, podConfigRedirectChain, err := getPodConfig(workspace, workspaceKind)
 	if err != nil {
+		log.V(0).Info("failed to get podConfig for Workspace", "error", err.Error())
 		return r.updateWorkspaceState(ctx, log, workspace,
 			kubefloworgv1beta1.WorkspaceStateError,
 			fmt.Sprintf(stateMsgErrorInvalidPodConfig, err.Error()),
@@ -195,11 +203,19 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		workspace.Spec.PodTemplate.Options.ImageConfig = workspace.Status.PodTemplateOptions.ImageConfig.Desired
 		workspace.Spec.PodTemplate.Options.PodConfig = workspace.Status.PodTemplateOptions.PodConfig.Desired
 		if err := r.Update(ctx, workspace); err != nil {
+			if apierrors.IsConflict(err) {
+				log.V(2).Info("update conflict while updating Workspace, will requeue")
+				return ctrl.Result{Requeue: true}, nil
+			}
 			log.Error(err, "unable to update Workspace")
 			return ctrl.Result{}, err
 		}
 		workspace.Status.PendingRestart = false
 		if err := r.Status().Update(ctx, workspace); err != nil {
+			if apierrors.IsConflict(err) {
+				log.V(2).Info("update conflict while updating Workspace status, will requeue")
+				return ctrl.Result{Requeue: true}, nil
+			}
 			log.Error(err, "unable to update Workspace status")
 			return ctrl.Result{}, err
 		}
@@ -208,6 +224,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// generate StatefulSet
 	statefulSet, err := generateStatefulSet(workspace, workspaceKind, currentImageConfig.Spec, currentPodConfig.Spec)
 	if err != nil {
+		log.V(0).Info("failed to generate StatefulSet for Workspace", "error", err.Error())
 		return r.updateWorkspaceState(ctx, log, workspace,
 			kubefloworgv1beta1.WorkspaceStateError,
 			fmt.Sprintf(stateMsgErrorGenFailureStatefulSet, err.Error()),
@@ -234,14 +251,15 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// reconcile StatefulSet
 	if len(ownedStatefulSets.Items) > 1 {
-		var statefulSetList strings.Builder
-		for _, sts := range ownedStatefulSets.Items {
-			statefulSetList.WriteString(sts.Name)
-			statefulSetList.WriteString(", ")
+		statefulSetList := make([]string, len(ownedStatefulSets.Items))
+		for i, sts := range ownedStatefulSets.Items {
+			statefulSetList[i] = sts.Name
 		}
+		statefulSetListString := strings.Join(statefulSetList, ", ")
+		log.Error(nil, "Workspace owns multiple StatefulSets", "statefulSets", statefulSetListString)
 		return r.updateWorkspaceState(ctx, log, workspace,
 			kubefloworgv1beta1.WorkspaceStateError,
-			fmt.Sprintf(stateMsgErrorMultipleStatefulSets, statefulSetList.String()),
+			fmt.Sprintf(stateMsgErrorMultipleStatefulSets, statefulSetListString),
 		)
 	} else if len(ownedStatefulSets.Items) == 0 {
 		if err := r.Create(ctx, statefulSet); err != nil {
@@ -249,22 +267,32 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{}, err
 		}
 		statefulSetName = statefulSet.ObjectMeta.Name
-		log.V(1).Info("StatefulSet created", "statefulSet", statefulSetName)
+		log.V(2).Info("StatefulSet created", "statefulSet", statefulSetName)
 	} else {
 		foundStatefulSet := &ownedStatefulSets.Items[0]
 		statefulSetName = foundStatefulSet.ObjectMeta.Name
 		if helper.CopyStatefulSetFields(statefulSet, foundStatefulSet) {
-			log.V(1).Info("Updating StatefulSet", "statefulSet", statefulSetName)
 			if err := r.Update(ctx, foundStatefulSet); err != nil {
+				if apierrors.IsConflict(err) {
+					log.V(2).Info("update conflict while updating StatefulSet, will requeue")
+					return ctrl.Result{Requeue: true}, nil
+				}
 				log.Error(err, "unable to update StatefulSet")
 				return ctrl.Result{}, err
 			}
-			log.V(1).Info("StatefulSet updated", "statefulSet", statefulSetName)
+			log.V(2).Info("StatefulSet updated", "statefulSet", statefulSetName)
 		}
 	}
 
 	// generate Service
-	service := generateService(workspace, currentImageConfig.Spec)
+	service, err := generateService(workspace, currentImageConfig.Spec)
+	if err != nil {
+		log.V(0).Info("failed to generate Service for Workspace", "error", err.Error())
+		return r.updateWorkspaceState(ctx, log, workspace,
+			kubefloworgv1beta1.WorkspaceStateError,
+			fmt.Sprintf(stateMsgErrorGenFailureService, err.Error()),
+		)
+	}
 	if err := ctrl.SetControllerReference(workspace, service, r.Scheme); err != nil {
 		log.Error(err, "unable to set controller reference on Service")
 		return ctrl.Result{}, err
@@ -286,14 +314,15 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// reconcile Service
 	if len(ownedServices.Items) > 1 {
-		var serviceList strings.Builder
-		for _, svc := range ownedServices.Items {
-			serviceList.WriteString(svc.Name)
-			serviceList.WriteString(", ")
+		serviceList := make([]string, len(ownedServices.Items))
+		for i, sts := range ownedServices.Items {
+			serviceList[i] = sts.Name
 		}
+		serviceListString := strings.Join(serviceList, ", ")
+		log.Error(nil, "Workspace owns multiple Services", "services", serviceListString)
 		return r.updateWorkspaceState(ctx, log, workspace,
 			kubefloworgv1beta1.WorkspaceStateError,
-			fmt.Sprintf(stateMsgErrorMultipleServices, serviceList.String()),
+			fmt.Sprintf(stateMsgErrorMultipleServices, serviceListString),
 		)
 	} else if len(ownedServices.Items) == 0 {
 		if err := r.Create(ctx, service); err != nil {
@@ -301,17 +330,20 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{}, err
 		}
 		serviceName = service.ObjectMeta.Name
-		log.V(1).Info("Service created", "service", serviceName)
+		log.V(2).Info("Service created", "service", serviceName)
 	} else {
 		foundService := &ownedServices.Items[0]
 		serviceName = foundService.ObjectMeta.Name
 		if helper.CopyServiceFields(service, foundService) {
-			log.V(1).Info("Updating Service", "service", serviceName)
 			if err := r.Update(ctx, foundService); err != nil {
+				if apierrors.IsConflict(err) {
+					log.V(2).Info("update conflict while updating Service, will requeue")
+					return ctrl.Result{Requeue: true}, nil
+				}
 				log.Error(err, "unable to update Service")
 				return ctrl.Result{}, err
 			}
-			log.V(1).Info("Service updated", "service", serviceName)
+			log.V(2).Info("Service updated", "service", serviceName)
 		}
 	}
 
@@ -342,11 +374,15 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if !reflect.DeepEqual(workspace.Status, workspaceStatus) {
 		workspace.Status = workspaceStatus
 		if err := r.Status().Update(ctx, workspace); err != nil {
+			if apierrors.IsConflict(err) {
+				log.V(2).Info("update conflict while updating Workspace status, will requeue")
+				return ctrl.Result{Requeue: true}, nil
+			}
 			log.Error(err, "unable to update Workspace status")
 			return ctrl.Result{}, err
 		}
 	}
-	log.V(1).Info("finished reconciling Workspace")
+
 	return ctrl.Result{}, nil
 }
 
@@ -437,6 +473,10 @@ func (r *WorkspaceReconciler) updateWorkspaceState(ctx context.Context, log logr
 		workspace.Status.State = state
 		workspace.Status.StateMessage = message
 		if err := r.Status().Update(ctx, workspace); err != nil {
+			if apierrors.IsConflict(err) {
+				log.V(2).Info("update conflict while updating Workspace status, will requeue")
+				return ctrl.Result{Requeue: true}, nil
+			}
 			log.Error(err, "unable to update Workspace status")
 			return ctrl.Result{}, err
 		}
@@ -594,38 +634,60 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 		imagePullPolicy = *imageConfigSpec.ImagePullPolicy
 	}
 
-	// generate container ports
-	containerPorts := make([]corev1.ContainerPort, len(imageConfigSpec.Ports))
-	for i, port := range imageConfigSpec.Ports {
-		containerPorts[i] = corev1.ContainerPort{
-			Name:          fmt.Sprintf("http-%d", i),
-			ContainerPort: port.Port,
-			Protocol:      corev1.ProtocolTCP,
+	// define go string template functions
+	// NOTE: these are used in places like the `extraEnv` values
+	containerPortsIdMap := make(map[string]kubefloworgv1beta1.ImagePort)
+	httpPathPrefixFunc := func(portId string) string {
+		port, ok := containerPortsIdMap[portId]
+		if ok {
+			return fmt.Sprintf("/workspace/%s/%s/%s/", workspace.Namespace, workspace.Name, port.Id)
+		} else {
+			return ""
 		}
 	}
 
+	// generate container ports
+	containerPorts := make([]corev1.ContainerPort, len(imageConfigSpec.Ports))
+	seenPorts := make(map[int32]bool)
+	for i, port := range imageConfigSpec.Ports {
+		if seenPorts[port.Port] {
+			return nil, fmt.Errorf("duplicate port number %d in imageConfig", port.Port)
+		}
+		containerPorts[i] = corev1.ContainerPort{
+			Name:          fmt.Sprintf("http-%d", port.Port),
+			ContainerPort: port.Port,
+			Protocol:      corev1.ProtocolTCP,
+		}
+		seenPorts[port.Port] = true
+
+		// NOTE: we construct this map for use in the go string templates
+		containerPortsIdMap[port.Id] = port
+	}
+
 	// generate container env
-	containerEnv := make([]corev1.EnvVar, 0)
-	prefix := "/workspace/" + workspace.Namespace + "/" + workspace.Name
-	for _, env := range workspaceKind.Spec.PodTemplate.ExtraEnv {
+	containerEnv := make([]corev1.EnvVar, len(workspaceKind.Spec.PodTemplate.ExtraEnv))
+	for i, env := range workspaceKind.Spec.PodTemplate.ExtraEnv {
 		if env.Value != "" {
 			rawValue := env.Value
-			tmpl, err := template.New("env").Parse(rawValue)
-			if err != nil {
-				return nil, err
-			}
-			var buf bytes.Buffer
-			err = tmpl.Execute(&buf, map[string]string{
-				"PathPrefix": prefix,
-			})
-			if err != nil {
-				return nil, err
-			}
-			rawValue = buf.String()
 
-			env.Value = rawValue
+			tmpl, err := template.New("value").
+				Funcs(template.FuncMap{"httpPathPrefix": httpPathPrefixFunc}).
+				Parse(rawValue)
+			if err != nil {
+				err = fmt.Errorf("failed to parse template for extraEnv '%s': %w", env.Name, err)
+				return nil, err
+			}
+
+			var buf bytes.Buffer
+			err = tmpl.Execute(&buf, nil)
+			if err != nil {
+				err = fmt.Errorf("failed to execute template for extraEnv '%s': %w", env.Name, err)
+				return nil, err
+			}
+
+			env.Value = buf.String()
 		}
-		containerEnv = append(containerEnv, env)
+		containerEnv[i] = env
 	}
 
 	// generate container resources
@@ -796,22 +858,28 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 }
 
 // generateService generates a Service for a Workspace
-func generateService(workspace *kubefloworgv1beta1.Workspace, imageConfigSpec kubefloworgv1beta1.ImageConfigSpec) *corev1.Service {
+func generateService(workspace *kubefloworgv1beta1.Workspace, imageConfigSpec kubefloworgv1beta1.ImageConfigSpec) (*corev1.Service, error) {
 	// generate name prefix
 	namePrefix := generateNamePrefix(workspace.Name, maxServiceNameLength)
 
 	// generate service ports
 	servicePorts := make([]corev1.ServicePort, len(imageConfigSpec.Ports))
+	seenPorts := make(map[int32]bool)
 	for i, port := range imageConfigSpec.Ports {
+		if seenPorts[port.Port] {
+			return nil, fmt.Errorf("duplicate port number %d in imageConfig", port.Port)
+		}
 		servicePorts[i] = corev1.ServicePort{
-			Name:       fmt.Sprintf("http-%d", i),
+			Name:       fmt.Sprintf("http-%d", port.Port),
 			TargetPort: intstr.FromInt32(port.Port),
 			Port:       port.Port,
 			Protocol:   corev1.ProtocolTCP,
 		}
+		seenPorts[port.Port] = true
 	}
 
-	return &corev1.Service{
+	// generate Service
+	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: namePrefix,
 			Namespace:    workspace.Namespace,
@@ -831,6 +899,8 @@ func generateService(workspace *kubefloworgv1beta1.Workspace, imageConfigSpec ku
 			Type: corev1.ServiceTypeClusterIP,
 		},
 	}
+
+	return service, nil
 }
 
 // generateWorkspaceStatus generates a WorkspaceStatus for a Workspace

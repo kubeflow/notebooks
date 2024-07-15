@@ -120,8 +120,8 @@ type WorkspaceKindPodTemplate struct {
 	HTTPProxy *HTTPProxy `json:"httpProxy,omitempty"`
 
 	// environment variables for Workspace Pods (MUTABLE)
-	//  - the following string templates are available:
-	//     - `.PathPrefix`: the path prefix of the Workspace (e.g. '/workspace/{profile_name}/{workspace_name}/')
+	//  - the following go template functions are available:
+	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
 	//+kubebuilder:validation:Optional
 	//+listType:="map"
 	//+listMapKey:="name"
@@ -336,22 +336,30 @@ type ImageConfigSpec struct {
 	//     in a dropdown menu on the Workspace overview page
 	//+kubebuilder:validation:MinItems:=1
 	//+listType:="map"
-	//+listMapKey:="port"
+	//+listMapKey:="id"
 	Ports []ImagePort `json:"ports"`
 }
 
 type ImagePort struct {
-	// the display name of the port
-	//+kubebuilder:validation:MinLength:=2
-	//+kubebuilder:validation:MaxLength:=64
-	//+kubebuilder:example:="JupyterLab"
-	DisplayName string `json:"displayName"`
+	// the id of the port
+	//  - this is NOT used as the Container or Service port name, but as part of the HTTP path
+	//+kubebuilder:validation:MinLength:=1
+	//+kubebuilder:validation:MaxLength:=32
+	//+kubebuilder:validation:Pattern:=^[a-z0-9][a-z0-9_-]*[a-z0-9]$
+	//+kubebuilder:example="jupyterlab"
+	Id string `json:"id"`
 
 	// the port number
 	//+kubebuilder:validation:Minimum:=1
 	//+kubebuilder:validation:Maximum:=65535
 	//+kubebuilder:example:=8888
 	Port int32 `json:"port"`
+
+	// the display name of the port
+	//+kubebuilder:validation:MinLength:=2
+	//+kubebuilder:validation:MaxLength:=64
+	//+kubebuilder:example:="JupyterLab"
+	DisplayName string `json:"displayName"`
 
 	// the protocol of the port
 	//+kubebuilder:example:="HTTP"

@@ -169,6 +169,10 @@ var _ = Describe("Workspace Controller", func() {
 			//         - even if the Workspace has a >64 character name, everything still works
 			//         - deleting the reconciled resources, and ensuring they are recreated
 			//         - updating the reconciled resources, and ensuring they are reverted
+			//         - the go templates in WorkspaceKind `spec.podTemplate.extraEnv[].value` should work properly
+			//            - succeed for valid portID
+			//            - return empty string for invalid portID
+			//            - set Workspace to error state for invalid template format (e.g. single quote for portID string)
 			//     - workspace update behaviour:
 			//        - pausing the Workspace results in the StatefulSet being scaled to 0
 			//        - updating the selected options results in the correct resources being updated:
