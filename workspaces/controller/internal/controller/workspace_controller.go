@@ -17,10 +17,12 @@ limitations under the License.
 package controller
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"reflect"
 	"strings"
+	"text/template"
 
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
 
@@ -603,13 +605,24 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 	}
 
 	// generate container env
-	containerEnv := make([]corev1.EnvVar, len(workspaceKind.Spec.PodTemplate.ExtraEnv))
+	containerEnv := make([]corev1.EnvVar, 0)
+	prefix := "/workspace/" + workspace.Namespace + "/" + workspace.Name
 	for _, env := range workspaceKind.Spec.PodTemplate.ExtraEnv {
 		if env.Value != "" {
 			rawValue := env.Value
-			//
-			// TODO: add support for templates in env values like `{{ .PathPrefix }}` make sure to handle errors
-			//
+			tmpl, err := template.New("env").Parse(rawValue)
+			if err != nil {
+				return nil, err
+			}
+			var buf bytes.Buffer
+			err = tmpl.Execute(&buf, map[string]string{
+				"PathPrefix": prefix,
+			})
+			if err != nil {
+				return nil, err
+			}
+			rawValue = buf.String()
+
 			env.Value = rawValue
 		}
 		containerEnv = append(containerEnv, env)
