@@ -287,11 +287,8 @@ type WorkspaceKindPodOptions struct {
 }
 
 type ImageConfig struct {
-	// the id of the default image config
-	//+kubebuilder:validation:MinLength:=1
-	//+kubebuilder:validation:MaxLength:=256
-	//+kubebuilder:example:="jupyter_scipy_171"
-	Default string `json:"default"`
+	// spawner ui configs
+	Spawner OptionsSpawnerConfig `json:"spawner"`
 
 	// the list of image configs that are available
 	//+kubebuilder:validation:MinItems:=1
@@ -304,7 +301,7 @@ type ImageConfigValue struct {
 	// the id of this image config
 	//+kubebuilder:validation:MinLength:=1
 	//+kubebuilder:validation:MaxLength:=256
-	//+kubebuilder:example:="jupyter_scipy_171"
+	//+kubebuilder:example:="jupyterlab_scipy_190"
 	Id string `json:"id"`
 
 	// information for the spawner ui
@@ -374,11 +371,8 @@ const (
 )
 
 type PodConfig struct {
-	// the id of the default pod config
-	//+kubebuilder:validation:MinLength:=1
-	//+kubebuilder:validation:MaxLength:=256
-	//+kubebuilder:example="big_gpu"
-	Default string `json:"default"`
+	// spawner ui configs
+	Spawner OptionsSpawnerConfig `json:"spawner"`
 
 	// the list of pod configs that are available
 	//+kubebuilder:validation:MinItems:=1
@@ -424,6 +418,15 @@ type PodConfigSpec struct {
 	Resources *v1.ResourceRequirements `json:"resources,omitempty"`
 }
 
+type OptionsSpawnerConfig struct {
+	// the id of the default option
+	//  - this will be selected by default in the spawner ui
+	//+kubebuilder:validation:MinLength:=1
+	//+kubebuilder:validation:MaxLength:=256
+	//+kubebuilder:example="jupyterlab_scipy_190"
+	Default string `json:"default"`
+}
+
 type OptionSpawnerInfo struct {
 	// the display name of the option
 	//+kubebuilder:validation:MinLength:=2
@@ -465,7 +468,7 @@ type OptionRedirect struct {
 	// the id of the option to redirect to
 	//+kubebuilder:validation:MinLength:=1
 	//+kubebuilder:validation:MaxLength:=256
-	//+kubebuilder:example:="jupyter_scipy_171"
+	//+kubebuilder:example:="jupyterlab_scipy_190"
 	To string `json:"to"`
 
 	// information about the redirect

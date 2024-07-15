@@ -227,9 +227,14 @@ spec:
       ## ============================================================
       imageConfig:
 
-        ## the id of the default image config
+        ## spawner ui configs
         ##
-        default: "jupyterlab_scipy_190"
+        spawner:
+
+          ## the id of the default option
+          ##  - this will be selected by default in the spawner ui
+          ##
+          default: "jupyterlab_scipy_190"
 
         ## the list of image configs that are available
         ##
@@ -298,9 +303,14 @@ spec:
       ## ============================================================
       podConfig:
 
-        ## the id of the default pod config
+        ## spawner ui configs
         ##
-        default: "tiny_cpu"
+        spawner:
+
+          ## the id of the default option
+          ##  - this will be selected by default in the spawner ui
+          ##
+          default: "tiny_cpu"
 
         ## the list of pod configs that are available
         ##

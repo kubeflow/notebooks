@@ -252,7 +252,9 @@ func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 				},
 				Options: kubefloworgv1beta1.WorkspaceKindPodOptions{
 					ImageConfig: kubefloworgv1beta1.ImageConfig{
-						Default: "jupyterlab_scipy_190",
+						Spawner: kubefloworgv1beta1.OptionsSpawnerConfig{
+							Default: "jupyterlab_scipy_190",
+						},
 						Values: []kubefloworgv1beta1.ImageConfigValue{
 							{
 								Id: "jupyterlab_scipy_180",
@@ -313,7 +315,9 @@ func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 						},
 					},
 					PodConfig: kubefloworgv1beta1.PodConfig{
-						Default: "tiny_cpu",
+						Spawner: kubefloworgv1beta1.OptionsSpawnerConfig{
+							Default: "tiny_cpu",
+						},
 						Values: []kubefloworgv1beta1.PodConfigValue{
 							{
 								Id: "tiny_cpu",

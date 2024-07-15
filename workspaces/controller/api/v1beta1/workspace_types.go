@@ -127,7 +127,7 @@ type WorkspacePodOptions struct {
 	//    `spec.podTemplate.options.imageConfig.values[]`
 	//+kubebuilder:validation:MinLength:=1
 	//+kubebuilder:validation:MaxLength:=256
-	//+kubebuilder:example="jupyter_scipy_170"
+	//+kubebuilder:example="jupyterlab_scipy_190"
 	ImageConfig string `json:"imageConfig"`
 
 	// the id of a podConfig option

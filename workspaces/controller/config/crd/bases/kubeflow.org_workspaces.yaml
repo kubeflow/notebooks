@@ -75,7 +75,7 @@ spec:
                           the id of an imageConfig option
                            - options are defined in WorkspaceKind under
                              `spec.podTemplate.options.imageConfig.values[]`
-                        example: jupyter_scipy_170
+                        example: jupyterlab_scipy_190
                         maxLength: 256
                         minLength: 1
                         type: string

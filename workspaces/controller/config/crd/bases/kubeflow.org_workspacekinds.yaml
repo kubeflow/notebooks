@@ -2197,19 +2197,27 @@ spec:
                       imageConfig:
                         description: imageConfig options
                         properties:
-                          default:
-                            description: the id of the default image config
-                            example: jupyter_scipy_171
-                            maxLength: 256
-                            minLength: 1
-                            type: string
+                          spawner:
+                            description: spawner ui configs
+                            properties:
+                              default:
+                                description: |-
+                                  the id of the default option
+                                   - this will be selected by default in the spawner ui
+                                example: jupyterlab_scipy_190
+                                maxLength: 256
+                                minLength: 1
+                                type: string
+                            required:
+                            - default
+                            type: object
                           values:
                             description: the list of image configs that are available
                             items:
                               properties:
                                 id:
                                   description: the id of this image config
-                                  example: jupyter_scipy_171
+                                  example: jupyterlab_scipy_190
                                   maxLength: 256
                                   minLength: 1
                                   type: string
@@ -2243,7 +2251,7 @@ spec:
                                     to:
                                       description: the id of the option to redirect
                                         to
-                                      example: jupyter_scipy_171
+                                      example: jupyterlab_scipy_190
                                       maxLength: 256
                                       minLength: 1
                                       type: string
@@ -2374,18 +2382,26 @@ spec:
                             - id
                             x-kubernetes-list-type: map
                         required:
-                        - default
+                        - spawner
                         - values
                         type: object
                       podConfig:
                         description: podConfig options
                         properties:
-                          default:
-                            description: the id of the default pod config
-                            example: big_gpu
-                            maxLength: 256
-                            minLength: 1
-                            type: string
+                          spawner:
+                            description: spawner ui configs
+                            properties:
+                              default:
+                                description: |-
+                                  the id of the default option
+                                   - this will be selected by default in the spawner ui
+                                example: jupyterlab_scipy_190
+                                maxLength: 256
+                                minLength: 1
+                                type: string
+                            required:
+                            - default
+                            type: object
                           values:
                             description: the list of pod configs that are available
                             items:
@@ -2426,7 +2442,7 @@ spec:
                                     to:
                                       description: the id of the option to redirect
                                         to
-                                      example: jupyter_scipy_171
+                                      example: jupyterlab_scipy_190
                                       maxLength: 256
                                       minLength: 1
                                       type: string
@@ -3530,7 +3546,7 @@ spec:
                             - id
                             x-kubernetes-list-type: map
                         required:
-                        - default
+                        - spawner
                         - values
                         type: object
                     required:
