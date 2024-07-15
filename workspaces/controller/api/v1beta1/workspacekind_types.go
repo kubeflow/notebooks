@@ -98,7 +98,6 @@ type WorkspaceKindConfigMap struct {
 
 type WorkspaceKindPodTemplate struct {
 	// metadata for Workspace Pods (MUTABLE)
-	//  - changes are applied the NEXT time each Workspace is PAUSED
 	//+kubebuilder:validation:Optional
 	PodMetadata *WorkspaceKindPodMetadata `json:"podMetadata,omitempty"`
 
@@ -110,7 +109,6 @@ type WorkspaceKindPodTemplate struct {
 	Culling *WorkspaceKindCullingConfig `json:"culling,omitempty"`
 
 	// standard probes to determine Container health (MUTABLE)
-	//  - changes are applied the NEXT time each Workspace is PAUSED
 	//+kubebuilder:validation:Optional
 	Probes *WorkspaceKindProbes `json:"probes,omitempty"`
 
@@ -122,16 +120,30 @@ type WorkspaceKindPodTemplate struct {
 	HTTPProxy *HTTPProxy `json:"httpProxy,omitempty"`
 
 	// environment variables for Workspace Pods (MUTABLE)
-	//  - changes are applied the NEXT time each Workspace is PAUSED
-	//  - the following string templates are available:
-	//     - `.PathPrefix`: the path prefix of the Workspace (e.g. '/workspace/{profile_name}/{workspace_name}/')
+	//  - the following go template functions are available:
+	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
 	//+kubebuilder:validation:Optional
 	//+listType:="map"
 	//+listMapKey:="name"
 	ExtraEnv []v1.EnvVar `json:"extraEnv,omitempty"`
 
-	// container SecurityContext for Workspace Pods (MUTABLE)
-	//  - changes are applied the NEXT time each Workspace is PAUSED
+	// extra volume mounts for Workspace Pods (MUTABLE)
+	//+kubebuilder:validation:Optional
+	//+listType:="map"
+	//+listMapKey:="mountPath"
+	ExtraVolumeMounts []v1.VolumeMount `json:"extraVolumeMounts,omitempty"`
+
+	// extra volumes for Workspace Pods (MUTABLE)
+	//+kubebuilder:validation:Optional
+	//+listType:="map"
+	//+listMapKey:="name"
+	ExtraVolumes []v1.Volume `json:"extraVolumes,omitempty"`
+
+	// security context for Workspace Pods (MUTABLE)
+	//+kubebuilder:validation:Optional
+	SecurityContext *v1.PodSecurityContext `json:"securityContext,omitempty"`
+
+	// container security context for Workspace Pods (MUTABLE)
 	//+kubebuilder:validation:Optional
 	ContainerSecurityContext *v1.SecurityContext `json:"containerSecurityContext,omitempty"`
 
@@ -170,7 +182,7 @@ type WorkspaceKindCullingConfig struct {
 	//+kubebuilder:validation:Optional
 	//+kubebuilder:validation:Minimum:=60
 	//+kubebuilder:default=86400
-	MaxInactiveSeconds *int64 `json:"maxInactiveSeconds,omitempty"`
+	MaxInactiveSeconds *int32 `json:"maxInactiveSeconds,omitempty"`
 
 	// the probe used to determine if the Workspace is active
 	ActivityProbe ActivityProbe `json:"activityProbe"`
@@ -275,9 +287,8 @@ type WorkspaceKindPodOptions struct {
 }
 
 type ImageConfig struct {
-	// the id of the default image config
-	//+kubebuilder:example:="jupyter_scipy_171"
-	Default string `json:"default"`
+	// spawner ui configs
+	Spawner OptionsSpawnerConfig `json:"spawner"`
 
 	// the list of image configs that are available
 	//+kubebuilder:validation:MinItems:=1
@@ -288,7 +299,9 @@ type ImageConfig struct {
 
 type ImageConfigValue struct {
 	// the id of this image config
-	//+kubebuilder:example:="jupyter_scipy_171"
+	//+kubebuilder:validation:MinLength:=1
+	//+kubebuilder:validation:MaxLength:=256
+	//+kubebuilder:example:="jupyterlab_scipy_190"
 	Id string `json:"id"`
 
 	// information for the spawner ui
@@ -319,21 +332,31 @@ type ImageConfigSpec struct {
 	//   - if multiple ports are defined, the user will see multiple "Connect" buttons
 	//     in a dropdown menu on the Workspace overview page
 	//+kubebuilder:validation:MinItems:=1
+	//+listType:="map"
+	//+listMapKey:="id"
 	Ports []ImagePort `json:"ports"`
 }
 
 type ImagePort struct {
-	// the display name of the port
-	//+kubebuilder:validation:MinLength:=2
-	//+kubebuilder:validation:MaxLength:=64
-	//+kubebuilder:example:="JupyterLab"
-	DisplayName string `json:"displayName"`
+	// the id of the port
+	//  - this is NOT used as the Container or Service port name, but as part of the HTTP path
+	//+kubebuilder:validation:MinLength:=1
+	//+kubebuilder:validation:MaxLength:=32
+	//+kubebuilder:validation:Pattern:=^[a-z0-9][a-z0-9_-]*[a-z0-9]$
+	//+kubebuilder:example="jupyterlab"
+	Id string `json:"id"`
 
 	// the port number
 	//+kubebuilder:validation:Minimum:=1
 	//+kubebuilder:validation:Maximum:=65535
 	//+kubebuilder:example:=8888
 	Port int32 `json:"port"`
+
+	// the display name of the port
+	//+kubebuilder:validation:MinLength:=2
+	//+kubebuilder:validation:MaxLength:=64
+	//+kubebuilder:example:="JupyterLab"
+	DisplayName string `json:"displayName"`
 
 	// the protocol of the port
 	//+kubebuilder:example:="HTTP"
@@ -348,9 +371,8 @@ const (
 )
 
 type PodConfig struct {
-	// the id of the default pod config
-	//+kubebuilder:example="big_gpu"
-	Default string `json:"default"`
+	// spawner ui configs
+	Spawner OptionsSpawnerConfig `json:"spawner"`
 
 	// the list of pod configs that are available
 	//+kubebuilder:validation:MinItems:=1
@@ -361,6 +383,8 @@ type PodConfig struct {
 
 type PodConfigValue struct {
 	// the id of this pod config
+	//+kubebuilder:validation:MinLength:=1
+	//+kubebuilder:validation:MaxLength:=256
 	//+kubebuilder:example="big_gpu"
 	Id string `json:"id"`
 
@@ -392,6 +416,15 @@ type PodConfigSpec struct {
 	// resource configs for the "main" container in the pod
 	//+kubebuilder:validation:Optional
 	Resources *v1.ResourceRequirements `json:"resources,omitempty"`
+}
+
+type OptionsSpawnerConfig struct {
+	// the id of the default option
+	//  - this will be selected by default in the spawner ui
+	//+kubebuilder:validation:MinLength:=1
+	//+kubebuilder:validation:MaxLength:=256
+	//+kubebuilder:example="jupyterlab_scipy_190"
+	Default string `json:"default"`
 }
 
 type OptionSpawnerInfo struct {
@@ -426,19 +459,17 @@ type OptionSpawnerLabel struct {
 	Key string `json:"key"`
 
 	// the value of the label
-	//+kubebuilder:validation:MinLength:=2
+	//+kubebuilder:validation:MinLength:=1
 	//+kubebuilder:validation:MaxLength:=64
 	Value string `json:"value"`
 }
 
 type OptionRedirect struct {
 	// the id of the option to redirect to
-	//+kubebuilder:example:="jupyter_scipy_171"
+	//+kubebuilder:validation:MinLength:=1
+	//+kubebuilder:validation:MaxLength:=256
+	//+kubebuilder:example:="jupyterlab_scipy_190"
 	To string `json:"to"`
-
-	// if the redirect will be applied after the next restart of the Workspace
-	//+kubebuilder:example:=true
-	WaitForRestart bool `json:"waitForRestart"`
 
 	// information about the redirect
 	//+kubebuilder:validation:Optional
@@ -476,8 +507,8 @@ const (
 type WorkspaceKindStatus struct {
 
 	// the number of Workspaces that are using this WorkspaceKind
-	//+kubebuilder:example=3
-	Workspaces int64 `json:"workspaces"`
+	//+kubebuilder:default=0
+	Workspaces int32 `json:"workspaces"`
 
 	// metrics for podTemplate options
 	PodTemplateOptions PodTemplateOptionsMetrics `json:"podTemplateOptions"`
@@ -497,12 +528,14 @@ type PodTemplateOptionsMetrics struct {
 
 type OptionMetric struct {
 	// the id of the option
+	//+kubebuilder:validation:MinLength:=1
+	//+kubebuilder:validation:MaxLength:=256
 	//+kubebuilder:example="big_gpu"
 	Id string `json:"id"`
 
 	// the number of Workspaces currently using the option
 	//+kubebuilder:example=3
-	Workspaces int64 `json:"workspaces"`
+	Workspaces int32 `json:"workspaces"`
 }
 
 /*
