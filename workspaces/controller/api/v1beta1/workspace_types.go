@@ -36,6 +36,12 @@ type WorkspaceSpec struct {
 	//+kubebuilder:default=false
 	Paused *bool `json:"paused,omitempty"`
 
+	// if true, pending updates are NOT applied when the Workspace is paused
+	// if false, pending updates are applied when the Workspace is paused
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:default=false
+	DeferUpdates *bool `json:"deferUpdates,omitempty"`
+
 	// the WorkspaceKind to use
 	//+kubebuilder:validation:MinLength:=2
 	//+kubebuilder:validation:MaxLength:=63
@@ -76,18 +82,21 @@ type WorkspacePodVolumes struct {
 	//  - this PVC must be RWX (ReadWriteMany, ReadWriteOnce)
 	//  - the mount path is defined in the WorkspaceKind under
 	//    `spec.podTemplate.volumeMounts.home`
+	//+kubebuilder:validation:Optional
 	//+kubebuilder:validation:MinLength:=2
 	//+kubebuilder:validation:MaxLength:=63
 	//+kubebuilder:validation:Pattern:=^[a-z0-9][-a-z0-9]*[a-z0-9]$
 	//+kubebuilder:example="my-home-pvc"
-	Home string `json:"home"`
+	Home *string `json:"home,omitempty"`
 
 	// additional PVCs to mount
-	//  - these PVCs must already exist in the Namespace
-	//  - these PVCs must be RWX (ReadWriteMany, ReadWriteOnce)
+	//  - these PVC must already exist in the Namespace
+	//  - the same PVC can be mounted multiple times with different `mountPaths`
+	//  - if `readOnly` is false, the PVC must be RWX (ReadWriteMany, ReadWriteOnce)
+	//  - if `readOnly` is true, the PVC must be ReadOnlyMany
 	//+kubebuilder:validation:Optional
 	//+listType:="map"
-	//+listMapKey:="name"
+	//+listMapKey:="mountPath"
 	Data []PodVolumeMount `json:"data,omitempty"`
 }
 
@@ -97,7 +106,7 @@ type PodVolumeMount struct {
 	//+kubebuilder:validation:MaxLength:=63
 	//+kubebuilder:validation:Pattern:=^[a-z0-9][-a-z0-9]*[a-z0-9]$
 	//+kubebuilder:example="my-data-pvc"
-	Name string `json:"name"`
+	PVCName string `json:"pvcName"`
 
 	// the mount path for the PVC
 	//+kubebuilder:validation:MinLength:=2
@@ -105,18 +114,27 @@ type PodVolumeMount struct {
 	//+kubebuilder:validation:Pattern:=^/[^/].*$
 	//+kubebuilder:example="/data/my-data"
 	MountPath string `json:"mountPath"`
+
+	// if the PVC should be mounted as ReadOnly
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:default=false
+	ReadOnly *bool `json:"readOnly,omitempty"`
 }
 
 type WorkspacePodOptions struct {
 	// the id of an imageConfig option
 	//  - options are defined in WorkspaceKind under
 	//    `spec.podTemplate.options.imageConfig.values[]`
-	//+kubebuilder:example="jupyter_scipy_170"
+	//+kubebuilder:validation:MinLength:=1
+	//+kubebuilder:validation:MaxLength:=256
+	//+kubebuilder:example="jupyterlab_scipy_190"
 	ImageConfig string `json:"imageConfig"`
 
 	// the id of a podConfig option
 	//  - options are defined in WorkspaceKind under
 	//    `spec.podTemplate.options.podConfig.values[]`
+	//+kubebuilder:validation:MinLength:=1
+	//+kubebuilder:validation:MaxLength:=256
 	//+kubebuilder:example="big_gpu"
 	PodConfig string `json:"podConfig"`
 }
@@ -129,11 +147,12 @@ type WorkspacePodOptions struct {
 
 // WorkspaceStatus defines the observed state of Workspace
 type WorkspaceStatus struct {
-
 	// activity information for the Workspace, used to determine when to cull
 	Activity WorkspaceActivity `json:"activity"`
 
-	// the time when the Workspace was paused, 0 if the Workspace is not paused
+	// the time when the Workspace was paused (UNIX epoch)
+	//  - set to 0 when the Workspace is NOT paused
+	//+kubebuilder:default=0
 	//+kubebuilder:example=1704067200
 	PauseTime int64 `json:"pauseTime"`
 
@@ -142,30 +161,64 @@ type WorkspaceStatus struct {
 	//    and so will be patched on the next restart
 	//  - true if the WorkspaceKind has changed one of its common `podTemplate` fields
 	//    like `podMetadata`, `probes`, `extraEnv`, or `containerSecurityContext`
-	//+kubebuilder:example=false
+	//+kubebuilder:default=false
 	PendingRestart bool `json:"pendingRestart"`
 
-	// the `spec.podTemplate.options` which will take effect after the next restart
-	PodTemplateOptions WorkspacePodOptions `json:"podTemplateOptions"`
+	// information about the current podTemplate options
+	PodTemplateOptions WorkspacePodOptionsStatus `json:"podTemplateOptions"`
 
 	// the current state of the Workspace
-	//+kubebuilder:example="Running"
+	//+kubebuilder:default="Unknown"
 	State WorkspaceState `json:"state"`
 
 	// a human-readable message about the state of the Workspace
 	//  - WARNING: this field is NOT FOR MACHINE USE, subject to change without notice
-	//+kubebuilder:example="Pod is not ready"
+	//+kubebuilder:default=""
 	StateMessage string `json:"stateMessage"`
 }
 
 type WorkspaceActivity struct {
 	// the last time activity was observed on the Workspace (UNIX epoch)
+	//+kubebuilder:default=0
 	//+kubebuilder:example=1704067200
 	LastActivity int64 `json:"lastActivity"`
 
 	// the last time we checked for activity on the Workspace (UNIX epoch)
+	//+kubebuilder:default=0
 	//+kubebuilder:example=1704067200
 	LastUpdate int64 `json:"lastUpdate"`
+}
+
+type WorkspacePodOptionsStatus struct {
+	// info about the current imageConfig option
+	ImageConfig WorkspacePodOptionInfo `json:"imageConfig"`
+
+	// info about the current podConfig option
+	PodConfig WorkspacePodOptionInfo `json:"podConfig"`
+}
+
+type WorkspacePodOptionInfo struct {
+	// the option id which will take effect after the next restart
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:validation:MinLength:=1
+	//+kubebuilder:validation:MaxLength:=256
+	Desired string `json:"desired,omitempty"`
+
+	// the chain from the current option to the desired option
+	//+kubebuilder:validation:Optional
+	RedirectChain []WorkspacePodOptionRedirectStep `json:"redirectChain,omitempty"`
+}
+
+type WorkspacePodOptionRedirectStep struct {
+	// the source option id
+	//+kubebuilder:validation:MinLength:=1
+	//+kubebuilder:validation:MaxLength:=256
+	Source string `json:"source"`
+
+	// the target option id
+	//+kubebuilder:validation:MinLength:=1
+	//+kubebuilder:validation:MaxLength:=256
+	Target string `json:"target"`
 }
 
 // +kubebuilder:validation:Enum:={"Running","Terminating","Paused","Pending","Error","Unknown"}

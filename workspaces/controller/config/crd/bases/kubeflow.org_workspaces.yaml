@@ -44,6 +44,12 @@ spec:
           spec:
             description: WorkspaceSpec defines the desired state of Workspace
             properties:
+              deferUpdates:
+                default: false
+                description: |-
+                  if true, pending updates are NOT applied when the Workspace is paused
+                  if false, pending updates are applied when the Workspace is paused
+                type: boolean
               kind:
                 description: the WorkspaceKind to use
                 example: jupyterlab
@@ -69,7 +75,9 @@ spec:
                           the id of an imageConfig option
                            - options are defined in WorkspaceKind under
                              `spec.podTemplate.options.imageConfig.values[]`
-                        example: jupyter_scipy_170
+                        example: jupyterlab_scipy_190
+                        maxLength: 256
+                        minLength: 1
                         type: string
                       podConfig:
                         description: |-
@@ -77,6 +85,8 @@ spec:
                            - options are defined in WorkspaceKind under
                              `spec.podTemplate.options.podConfig.values[]`
                         example: big_gpu
+                        maxLength: 256
+                        minLength: 1
                         type: string
                     required:
                     - imageConfig
@@ -102,8 +112,10 @@ spec:
                       data:
                         description: |-
                           additional PVCs to mount
-                           - these PVCs must already exist in the Namespace
-                           - these PVCs must be RWX (ReadWriteMany, ReadWriteOnce)
+                           - these PVC must already exist in the Namespace
+                           - the same PVC can be mounted multiple times with different `mountPaths`
+                           - if `readOnly` is false, the PVC must be RWX (ReadWriteMany, ReadWriteOnce)
+                           - if `readOnly` is true, the PVC must be ReadOnlyMany
                         items:
                           properties:
                             mountPath:
@@ -113,20 +125,24 @@ spec:
                               minLength: 2
                               pattern: ^/[^/].*$
                               type: string
-                            name:
+                            pvcName:
                               description: the name of the PVC to mount
                               example: my-data-pvc
                               maxLength: 63
                               minLength: 2
                               pattern: ^[a-z0-9][-a-z0-9]*[a-z0-9]$
                               type: string
+                            readOnly:
+                              default: false
+                              description: if the PVC should be mounted as ReadOnly
+                              type: boolean
                           required:
                           - mountPath
-                          - name
+                          - pvcName
                           type: object
                         type: array
                         x-kubernetes-list-map-keys:
-                        - name
+                        - mountPath
                         x-kubernetes-list-type: map
                       home:
                         description: |-
@@ -140,8 +156,6 @@ spec:
                         minLength: 2
                         pattern: ^[a-z0-9][-a-z0-9]*[a-z0-9]$
                         type: string
-                    required:
-                    - home
                     type: object
                 required:
                 - options
@@ -159,12 +173,14 @@ spec:
                   when to cull
                 properties:
                   lastActivity:
+                    default: 0
                     description: the last time activity was observed on the Workspace
                       (UNIX epoch)
                     example: 1704067200
                     format: int64
                     type: integer
                   lastUpdate:
+                    default: 0
                     description: the last time we checked for activity on the Workspace
                       (UNIX epoch)
                     example: 1704067200
@@ -175,43 +191,91 @@ spec:
                 - lastUpdate
                 type: object
               pauseTime:
-                description: the time when the Workspace was paused, 0 if the Workspace
-                  is not paused
+                default: 0
+                description: |-
+                  the time when the Workspace was paused (UNIX epoch)
+                   - set to 0 when the Workspace is NOT paused
                 example: 1704067200
                 format: int64
                 type: integer
               pendingRestart:
+                default: false
                 description: |-
                   if the current Pod does not reflect the current "desired" state
                    - true if any `spec.podTemplate.options` have a redirect
                      and so will be patched on the next restart
                    - true if the WorkspaceKind has changed one of its common `podTemplate` fields
                      like `podMetadata`, `probes`, `extraEnv`, or `containerSecurityContext`
-                example: false
                 type: boolean
               podTemplateOptions:
-                description: the `spec.podTemplate.options` which will take effect
-                  after the next restart
+                description: information about the current podTemplate options
                 properties:
                   imageConfig:
-                    description: |-
-                      the id of an imageConfig option
-                       - options are defined in WorkspaceKind under
-                         `spec.podTemplate.options.imageConfig.values[]`
-                    example: jupyter_scipy_170
-                    type: string
+                    description: info about the current imageConfig option
+                    properties:
+                      desired:
+                        description: the option id which will take effect after the
+                          next restart
+                        maxLength: 256
+                        minLength: 1
+                        type: string
+                      redirectChain:
+                        description: the chain from the current option to the desired
+                          option
+                        items:
+                          properties:
+                            source:
+                              description: the source option id
+                              maxLength: 256
+                              minLength: 1
+                              type: string
+                            target:
+                              description: the target option id
+                              maxLength: 256
+                              minLength: 1
+                              type: string
+                          required:
+                          - source
+                          - target
+                          type: object
+                        type: array
+                    type: object
                   podConfig:
-                    description: |-
-                      the id of a podConfig option
-                       - options are defined in WorkspaceKind under
-                         `spec.podTemplate.options.podConfig.values[]`
-                    example: big_gpu
-                    type: string
+                    description: info about the current podConfig option
+                    properties:
+                      desired:
+                        description: the option id which will take effect after the
+                          next restart
+                        maxLength: 256
+                        minLength: 1
+                        type: string
+                      redirectChain:
+                        description: the chain from the current option to the desired
+                          option
+                        items:
+                          properties:
+                            source:
+                              description: the source option id
+                              maxLength: 256
+                              minLength: 1
+                              type: string
+                            target:
+                              description: the target option id
+                              maxLength: 256
+                              minLength: 1
+                              type: string
+                          required:
+                          - source
+                          - target
+                          type: object
+                        type: array
+                    type: object
                 required:
                 - imageConfig
                 - podConfig
                 type: object
               state:
+                default: Unknown
                 description: the current state of the Workspace
                 enum:
                 - Running
@@ -220,13 +284,12 @@ spec:
                 - Pending
                 - Error
                 - Unknown
-                example: Running
                 type: string
               stateMessage:
+                default: ""
                 description: |-
                   a human-readable message about the state of the Workspace
                    - WARNING: this field is NOT FOR MACHINE USE, subject to change without notice
-                example: Pod is not ready
                 type: string
             required:
             - activity

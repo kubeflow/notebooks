@@ -17,101 +17,85 @@ limitations under the License.
 package controller
 
 import (
-	"context"
-	"k8s.io/utils/ptr"
+	"fmt"
+	"time"
+
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 )
 
 var _ = Describe("Workspace Controller", func() {
 
-	// Define variables to store common objects for tests.
-	var (
-		testResource1 *kubefloworgv1beta1.Workspace
-	)
-
-	// Define utility constants and variables for object names and testing.
+	// Define utility constants for object names and testing timeouts/durations and intervals.
 	const (
-		testResourceName1     = "workspace-test"
-		testResourceNamespace = "default"
+		namespaceName = "default"
+
+		// how long to wait in "Eventually" blocks
+		timeout = time.Second * 10
+
+		// how long to wait in "Consistently" blocks
+		duration = time.Second * 10
+
+		// how frequently to poll for conditions
+		interval = time.Millisecond * 250
 	)
 
-	BeforeEach(func() {
-		testResource1 = &kubefloworgv1beta1.Workspace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      testResourceName1,
-				Namespace: "default",
-			},
-			Spec: kubefloworgv1beta1.WorkspaceSpec{
-				Paused: ptr.To(false),
-				Kind:   "juptyerlab",
-				PodTemplate: kubefloworgv1beta1.WorkspacePodTemplate{
-					PodMetadata: &kubefloworgv1beta1.WorkspacePodMetadata{
-						Labels:      nil,
-						Annotations: nil,
-					},
-					Volumes: kubefloworgv1beta1.WorkspacePodVolumes{
-						Home: "my-home-pvc",
-						Data: []kubefloworgv1beta1.PodVolumeMount{
-							{
-								Name:      "my-data-pvc",
-								MountPath: "/data/my-data",
-							},
-						},
-					},
-					Options: kubefloworgv1beta1.WorkspacePodOptions{
-						ImageConfig: "jupyter_scipy_170",
-						PodConfig:   "big_gpu",
-					},
-				},
-			},
-		}
-	})
+	Context("When updating a Workspace", Ordered, func() {
 
-	Context("When reconciling a Workspace", func() {
-		ctx := context.Background()
+		// Define utility variables for object names.
+		// NOTE: to avoid conflicts between parallel tests, resource names are unique to each test
+		var (
+			workspaceName     string
+			workspaceKindName string
+			workspaceKey      types.NamespacedName
+		)
 
-		typeNamespacedName := types.NamespacedName{
-			Name:      testResourceName1,
-			Namespace: testResourceNamespace,
-		}
+		BeforeAll(func() {
+			uniqueName := "ws-update-test"
+			workspaceName = fmt.Sprintf("workspace-%s", uniqueName)
+			workspaceKindName = fmt.Sprintf("workspacekind-%s", uniqueName)
+			workspaceKey = types.NamespacedName{Name: workspaceName, Namespace: namespaceName}
 
-		workspace := &kubefloworgv1beta1.Workspace{}
+			By("creating the WorkspaceKind")
+			workspaceKind := NewExampleWorkspaceKind1(workspaceKindName)
+			Expect(k8sClient.Create(ctx, workspaceKind)).To(Succeed())
 
-		BeforeEach(func() {
-			By("creating the custom resource for the Kind Workspace")
-			err := k8sClient.Get(ctx, typeNamespacedName, workspace)
-			if err != nil && errors.IsNotFound(err) {
-				resource := testResource1.DeepCopy()
-				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
-			} else {
-				Expect(err).NotTo(HaveOccurred())
-			}
-
-			By("checking if the Workspace exists")
-			Expect(k8sClient.Get(ctx, typeNamespacedName, workspace)).To(Succeed())
+			By("creating the Workspace")
+			workspace := NewExampleWorkspace1(workspaceName, namespaceName, workspaceKindName)
+			Expect(k8sClient.Create(ctx, workspace)).To(Succeed())
 		})
 
-		AfterEach(func() {
-			By("checking if the Workspace still exists")
-			resource := &kubefloworgv1beta1.Workspace{}
-			err := k8sClient.Get(ctx, typeNamespacedName, resource)
-			Expect(err).NotTo(HaveOccurred())
-
+		AfterAll(func() {
 			By("deleting the Workspace")
-			Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
+			workspace := &kubefloworgv1beta1.Workspace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      workspaceName,
+					Namespace: namespaceName,
+				},
+			}
+			Expect(k8sClient.Delete(ctx, workspace)).To(Succeed())
+
+			By("deleting the WorkspaceKind")
+			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: workspaceKindName,
+				},
+			}
+			Expect(k8sClient.Delete(ctx, workspaceKind)).To(Succeed())
 		})
 
 		It("should not allow updating immutable fields", func() {
+			By("getting the Workspace")
+			workspace := &kubefloworgv1beta1.Workspace{}
+			Expect(k8sClient.Get(ctx, workspaceKey, workspace)).To(Succeed())
 			patch := client.MergeFrom(workspace.DeepCopy())
 
 			By("failing to update the `spec.kind` field")
@@ -119,20 +103,95 @@ var _ = Describe("Workspace Controller", func() {
 			newWorkspace.Spec.Kind = "new-kind"
 			Expect(k8sClient.Patch(ctx, newWorkspace, patch)).NotTo(Succeed())
 		})
+	})
 
-		It("should successfully reconcile the resource", func() {
-			By("Reconciling the created resource")
-			controllerReconciler := &WorkspaceReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
-			}
+	Context("When reconciling a Workspace", Serial, Ordered, func() {
 
-			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespacedName,
-			})
-			Expect(err).NotTo(HaveOccurred())
-			// TODO(user): Add more specific assertions depending on your controller's reconciliation logic.
-			// Example: If you expect a certain status condition after reconciliation, verify it here.
+		// Define utility variables for object names.
+		// NOTE: to avoid conflicts between parallel tests, resource names are unique to each test
+		var (
+			workspaceName     string
+			workspaceKindName string
+		)
+
+		BeforeAll(func() {
+			uniqueName := "ws-reconcile-test"
+			workspaceName = fmt.Sprintf("workspace-%s", uniqueName)
+			workspaceKindName = fmt.Sprintf("workspacekind-%s", uniqueName)
+		})
+
+		It("should successfully reconcile the Workspace", func() {
+
+			By("creating a WorkspaceKind")
+			workspaceKind := NewExampleWorkspaceKind1(workspaceKindName)
+			Expect(k8sClient.Create(ctx, workspaceKind)).To(Succeed())
+
+			By("creating a Workspace")
+			workspace := NewExampleWorkspace1(workspaceName, namespaceName, workspaceKindName)
+			Expect(k8sClient.Create(ctx, workspace)).To(Succeed())
+
+			By("creating a StatefulSet")
+			statefulSetList := &appsv1.StatefulSetList{}
+			Eventually(func() ([]appsv1.StatefulSet, error) {
+				err := k8sClient.List(ctx, statefulSetList, client.InNamespace(namespaceName), client.MatchingLabels{workspaceNameLabel: workspaceName})
+				if err != nil {
+					return nil, err
+				}
+				return statefulSetList.Items, nil
+			}).Should(HaveLen(1))
+
+			// TODO: use this to get the StatefulSet
+			//statefulSet := statefulSetList.Items[0]
+
+			By("creating a Service")
+			serviceList := &corev1.ServiceList{}
+			Eventually(func() ([]corev1.Service, error) {
+				err := k8sClient.List(ctx, serviceList, client.InNamespace(namespaceName), client.MatchingLabels{workspaceNameLabel: workspaceName})
+				if err != nil {
+					return nil, err
+				}
+				return serviceList.Items, nil
+			}).Should(HaveLen(1))
+
+			// TODO: use this to get the Service
+			//service := serviceList.Items[0]
+
+			//
+			// TODO: populate these tests
+			//  - use the CronJob controller tests as a reference
+			//    https://github.com/kubernetes-sigs/kubebuilder/blob/master/docs/book/src/cronjob-tutorial/testdata/project/internal/controller/cronjob_controller_test.go
+			//  - notes:
+			//     - it may make sense to split some of these up into at least separate `It(` specs
+			//       or even separate `Context(` scopes so we can run them in parallel
+			//  - key things to test:
+			//     - core behaviour:
+			//         - resources like Service/StatefulSet/VirtualService/etc are created when the Workspace is created
+			//         - even if the Workspace has a >64 character name, everything still works
+			//         - deleting the reconciled resources, and ensuring they are recreated
+			//         - updating the reconciled resources, and ensuring they are reverted
+			//         - the go templates in WorkspaceKind `spec.podTemplate.extraEnv[].value` should work properly
+			//            - succeed for valid portID
+			//            - return empty string for invalid portID
+			//            - set Workspace to error state for invalid template format (e.g. single quote for portID string)
+			//     - workspace update behaviour:
+			//        - pausing the Workspace results in the StatefulSet being scaled to 0
+			//        - updating the selected options results in the correct resources being updated:
+			//            - imageConfig - updates the StatefulSet and possibly the Service
+			//            - podConfig - updates the StatefulSet
+			//     - workspaceKind redirect behaviour:
+			//        - when adding a redirect to the currently selected `imageConfig` or `podConfig`
+			//            - if the workspace is NOT paused, NO resource changes are made except setting `status.pendingRestart`
+			//              and `status.podTemplateOptions` (`desired` along with `redirectChain`)
+			//            - if the workspace IS paused, but `deferUpdates` is true, the same as above
+			//            - if the workspace IS paused and `deferUpdates` is false:
+			//                - the selected options (under `spec`) should be changed to the redirect
+			//                  and `status.pendingRestart` should become false, and `podTemplateOptions` should be empty
+			//                - the new options should be applied to the StatefulSet
+			//     - error states:
+			//        - referencing a missing WorkspaceKind results in error state
+			//        - invalid WorkspaceKind (with bad option redirect - circular / missing) results in error state
+			//        - multiple owned StatefulSets / Services results in error state
+			//
 		})
 	})
 })
