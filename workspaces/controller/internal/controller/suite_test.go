@@ -169,6 +169,11 @@ func NewExampleWorkspace1(name string, namespace string, workspaceKind string) *
 	}
 }
 
+func NewExampleWorkspace2(name string, namespace string, workspaceKind string) *kubefloworgv1beta1.Workspace {
+	workspace := NewExampleWorkspace1(name, namespace, workspaceKind)
+	return workspace
+}
+
 // NewExampleWorkspaceKind1 returns the common "WorkspaceKind 1" object used in tests.
 func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 	return &kubefloworgv1beta1.WorkspaceKind{
@@ -416,4 +421,15 @@ func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 			},
 		},
 	}
+}
+
+func NewExampleWorkspaceKind2(name, portId string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind1(name)
+	workspaceKind.Spec.PodTemplate.Options.ImageConfig.Values[0].Spec.Ports[0].Id = portId
+	return workspaceKind
+}
+func NewExampleWorkspaceKind3(name, prefixEnvValue string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind1(name)
+	workspaceKind.Spec.PodTemplate.ExtraEnv[0].Value = prefixEnvValue
+	return workspaceKind
 }
