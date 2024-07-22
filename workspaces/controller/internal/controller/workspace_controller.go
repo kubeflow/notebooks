@@ -371,10 +371,6 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 	}
 
-	//
-	// TODO: figure out how to set `status.pauseTime`, it will probably have to be done in a webhook
-	//
-
 	// update Workspace status
 	workspaceStatus, err := r.generateWorkspaceStatus(ctx, log, workspace, pod, statefulSet)
 	if err != nil {
@@ -926,6 +922,17 @@ func generateService(workspace *kubefloworgv1beta1.Workspace, imageConfigSpec ku
 // generateWorkspaceStatus generates a WorkspaceStatus for a Workspace
 func (r *WorkspaceReconciler) generateWorkspaceStatus(ctx context.Context, log logr.Logger, workspace *kubefloworgv1beta1.Workspace, pod *corev1.Pod, statefulSet *appsv1.StatefulSet) (kubefloworgv1beta1.WorkspaceStatus, error) {
 	status := workspace.Status
+
+	// set pauseTime
+	if *workspace.Spec.Paused {
+		if status.PauseTime == 0 {
+			status.PauseTime = metav1.Now().Unix()
+		}
+	} else {
+		if status.PauseTime != 0 {
+			status.PauseTime = 0
+		}
+	}
 
 	// cases where the Pod does not exist
 	if pod == nil {
