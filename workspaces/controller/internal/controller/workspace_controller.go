@@ -923,7 +923,8 @@ func generateService(workspace *kubefloworgv1beta1.Workspace, imageConfigSpec ku
 func (r *WorkspaceReconciler) generateWorkspaceStatus(ctx context.Context, log logr.Logger, workspace *kubefloworgv1beta1.Workspace, pod *corev1.Pod, statefulSet *appsv1.StatefulSet) (kubefloworgv1beta1.WorkspaceStatus, error) {
 	status := workspace.Status
 
-	// set pauseTime
+	// if workspace is paused, update the `status.pauseTime`
+	// NOTE: when the workspace is not paused, the pauseTime should be 0
 	if *workspace.Spec.Paused {
 		if status.PauseTime == 0 {
 			status.PauseTime = metav1.Now().Unix()
@@ -933,6 +934,7 @@ func (r *WorkspaceReconciler) generateWorkspaceStatus(ctx context.Context, log l
 			status.PauseTime = 0
 		}
 	}
+
 
 	// cases where the Pod does not exist
 	if pod == nil {

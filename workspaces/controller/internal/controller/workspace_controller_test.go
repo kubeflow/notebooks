@@ -18,6 +18,7 @@ package controller
 
 import (
 	"fmt"
+	"k8s.io/utils/ptr"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -129,6 +130,24 @@ var _ = Describe("Workspace Controller", func() {
 			By("creating a Workspace")
 			workspace := NewExampleWorkspace1(workspaceName, namespaceName, workspaceKindName)
 			Expect(k8sClient.Create(ctx, workspace)).To(Succeed())
+
+			patch := client.MergeFrom(workspace.DeepCopy())
+			By("setting the Workspace to paused")
+			Expect(workspace.Status.PauseTime).To(Equal(int64(0)))
+			newWorkspace := workspace.DeepCopy()
+			newWorkspace.Spec.Paused = ptr.To(true)
+			Expect(k8sClient.Patch(ctx, newWorkspace, patch)).To(Succeed())
+			// Define a small range for acceptable time difference
+			timeRangeSeconds := int64(2) // 2-second range
+			currentTime := metav1.Now().Unix()
+			Eventually(func() (int64, error) {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: workspaceName, Namespace: namespaceName}, workspace)
+				if err != nil {
+					return 0, err
+				}
+				return workspace.Status.PauseTime, nil
+			}).Should(BeNumerically("<=", currentTime+timeRangeSeconds))
+			Expect(workspace.Spec.Paused).To(Equal(ptr.To(true)))
 
 			By("creating a StatefulSet")
 			statefulSetList := &appsv1.StatefulSetList{}
