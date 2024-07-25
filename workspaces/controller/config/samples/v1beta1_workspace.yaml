@@ -65,7 +65,7 @@ spec:
       ##  - options are defined in WorkspaceKind under
       ##    `spec.podTemplate.options.imageConfig.values[]`
       ##
-      imageConfig: "jupyterlab_scipy_180"
+      imageConfig: "jupyterlab_scipy_190"
 
       ## the id of a podConfig option
       ##  - options are defined in WorkspaceKind under

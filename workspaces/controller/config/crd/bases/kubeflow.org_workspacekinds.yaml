@@ -2368,9 +2368,6 @@ spec:
                                   - image
                                   - ports
                                   type: object
-                                  x-kubernetes-validations:
-                                  - message: ImageConfig 'spec' is immutable
-                                    rule: self == oldSelf
                               required:
                               - id
                               - spawner
@@ -2494,7 +2491,6 @@ spec:
                                   - displayName
                                   type: object
                                 spec:
-                                  description: the spec of the pod config
                                   properties:
                                     affinity:
                                       description: affinity configs for the pod
@@ -3532,9 +3528,6 @@ spec:
                                         type: object
                                       type: array
                                   type: object
-                                  x-kubernetes-validations:
-                                  - message: PodConfig 'spec' is immutable
-                                    rule: self == oldSelf
                               required:
                               - id
                               - spawner
