@@ -202,19 +202,19 @@ define prompt_for_e2e_test_execution
         echo "Skipping E2E test confirmation prompt (KUBEFLOW_TEST_PROMPT is set to true)"; \
     else \
         current_k8s_context=$$(kubectl config current-context); \
-        echo "===== WARNING: E2E Test Execution on Active Kubernetes Cluster ====="; \
-        echo "Current Kubernetes context: $$current_k8s_context"; \
-        echo "Running E2E tests will utilize your current Kubernetes cluster."; \
-        echo "This may result in the deletion of certain resources such as cert-manager ...:"; \
-        echo "Are you sure you want to proceed with the E2E tests? (yes/no)"; \
+        echo "================================ WARNING ================================"; \
+		echo "E2E tests use your current Kubernetes context!"; \
+		echo "This will DELETE EXISTING RESOURCES such as cert-manager!"; \
+        echo "Current context: '$$current_k8s_context'"; \
+		echo "========================================================================="; \
+        echo "Proceed with E2E tests? (yes/NO)"; \
         read user_confirmation; \
         case $$user_confirmation in \
             [yY] | [yY][eE][sS] ) \
-                echo "Proceeding with E2E tests...";; \
-            [nN] | [nN][oO] ) \
-                echo "E2E test execution aborted."; exit 1;; \
-            * ) \
-                echo "Invalid response. E2E test execution aborted for safety."; exit 1;; \
+                echo "Running E2E tests...";; \
+            [nN] | [nN][oO] | * ) \
+                echo "Aborting E2E tests..."; \
+                exit 1; \
         esac \
     fi
 endef
