@@ -66,8 +66,8 @@ test: manifests generate fmt vet envtest ## Run tests.
 # Utilize Kind or modify the e2e tests to load the image locally, enabling compatibility with other vendors.
 .PHONY: test-e2e  # Run the e2e tests against a Kind k8s instance that is spun up.
 test-e2e:
+	@$(prompt_for_e2e_test_execution)
 	go test ./test/e2e/ -v -ginkgo.v
-
 .PHONY: lint
 lint: golangci-lint ## Run golangci-lint linter & yamllint
 	$(GOLANGCI_LINT) run
@@ -195,4 +195,26 @@ echo "Downloading $${package}" ;\
 GOBIN=$(LOCALBIN) go install $${package} ;\
 mv "$$(echo "$(1)" | sed "s/-$(3)$$//")" $(1) ;\
 }
+endef
+
+define prompt_for_e2e_test_execution
+    if [ "$$(echo "$(KUBEFLOW_TEST_PROMPT)" | tr '[:upper:]' '[:lower:]')" = "false" ]; then \
+        echo "Skipping E2E test confirmation prompt (KUBEFLOW_TEST_PROMPT is set to true)"; \
+    else \
+        current_k8s_context=$$(kubectl config current-context); \
+        echo "================================ WARNING ================================"; \
+		echo "E2E tests use your current Kubernetes context!"; \
+		echo "This will DELETE EXISTING RESOURCES such as cert-manager!"; \
+        echo "Current context: '$$current_k8s_context'"; \
+		echo "========================================================================="; \
+        echo "Proceed with E2E tests? (yes/NO)"; \
+        read user_confirmation; \
+        case $$user_confirmation in \
+            [yY] | [yY][eE][sS] ) \
+                echo "Running E2E tests...";; \
+            [nN] | [nN][oO] | * ) \
+                echo "Aborting E2E tests..."; \
+                exit 1; \
+        esac \
+    fi
 endef
