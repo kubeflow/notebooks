@@ -105,9 +105,18 @@ func InstallCertManager() error {
 
 // LoadImageToKindCluster loads a local docker image to the kind cluster
 func LoadImageToKindClusterWithName(name string) error {
-	cluster := "kind"
+	var cluster string
 	if v, ok := os.LookupEnv("KIND_CLUSTER"); ok {
 		cluster = v
+	} else {
+		// if `KIND_CLUSTER` is not set, get the cluster name from the kubeconfig
+		cmd := exec.Command("kubectl", "config", "current-context")
+		output, err := Run(cmd)
+		if err != nil {
+			return err
+		}
+		cluster = strings.TrimSpace(string(output))
+		cluster = strings.Replace(cluster, "kind-", "", 1)
 	}
 	kindOptions := []string{"load", "docker-image", name, "--name", cluster}
 	cmd := exec.Command("kind", kindOptions...)
