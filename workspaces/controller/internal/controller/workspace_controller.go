@@ -935,7 +935,6 @@ func (r *WorkspaceReconciler) generateWorkspaceStatus(ctx context.Context, log l
 		}
 	}
 
-
 	// cases where the Pod does not exist
 	if pod == nil {
 		// STATUS: Paused
