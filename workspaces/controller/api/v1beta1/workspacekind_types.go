@@ -312,7 +312,6 @@ type ImageConfigValue struct {
 	Redirect *OptionRedirect `json:"redirect,omitempty"`
 
 	// the spec of the image config
-	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="ImageConfig 'spec' is immutable"
 	Spec ImageConfigSpec `json:"spec"`
 }
 
@@ -396,7 +395,6 @@ type PodConfigValue struct {
 	Redirect *OptionRedirect `json:"redirect,omitempty"`
 
 	// the spec of the pod config
-	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="PodConfig 'spec' is immutable"
 	Spec PodConfigSpec `json:"spec"`
 }
 

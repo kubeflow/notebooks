@@ -1,5 +1,6 @@
-## Append samples of your project ##
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
 resources:
-- v1beta1_workspace.yaml
-- v1beta1_workspacekind.yaml
-#+kubebuilder:scaffold:manifestskustomizesamples
+- ./common
+- jupyterlab_v1beta1_workspace.yaml
+- jupyterlab_v1beta1_workspacekind.yaml
