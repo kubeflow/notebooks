@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"time"
 
+	"k8s.io/utils/ptr"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 
@@ -130,6 +132,38 @@ var _ = Describe("Workspace Controller", func() {
 			workspace := NewExampleWorkspace1(workspaceName, namespaceName, workspaceKindName)
 			Expect(k8sClient.Create(ctx, workspace)).To(Succeed())
 
+			By("pausing the Workspace")
+			patch := client.MergeFrom(workspace.DeepCopy())
+			newWorkspace := workspace.DeepCopy()
+			newWorkspace.Spec.Paused = ptr.To(true)
+			Expect(k8sClient.Patch(ctx, newWorkspace, patch)).To(Succeed())
+
+			By("setting the Workspace `status.pauseTime` to the current time")
+			tolerance := int64(5)
+			currentTime := time.Now().Unix()
+			Eventually(func() (int64, error) {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: workspaceName, Namespace: namespaceName}, workspace)
+				if err != nil {
+					return 0, err
+				}
+				return workspace.Status.PauseTime, nil
+			}, timeout, interval).Should(BeNumerically("~", currentTime, tolerance))
+
+			By("un-pausing the Workspace")
+			patch = client.MergeFrom(workspace.DeepCopy())
+			newWorkspace = workspace.DeepCopy()
+			newWorkspace.Spec.Paused = ptr.To(false)
+			Expect(k8sClient.Patch(ctx, newWorkspace, patch)).To(Succeed())
+
+			By("setting the Workspace `status.pauseTime` to 0")
+			Eventually(func() (int64, error) {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: workspaceName, Namespace: namespaceName}, workspace)
+				if err != nil {
+					return 0, err
+				}
+				return workspace.Status.PauseTime, nil
+			}, timeout, interval).Should(BeZero())
+
 			By("creating a StatefulSet")
 			statefulSetList := &appsv1.StatefulSetList{}
 			Eventually(func() ([]appsv1.StatefulSet, error) {
@@ -138,7 +172,7 @@ var _ = Describe("Workspace Controller", func() {
 					return nil, err
 				}
 				return statefulSetList.Items, nil
-			}).Should(HaveLen(1))
+			}, timeout, interval).Should(HaveLen(1))
 
 			// TODO: use this to get the StatefulSet
 			//statefulSet := statefulSetList.Items[0]
@@ -151,7 +185,7 @@ var _ = Describe("Workspace Controller", func() {
 					return nil, err
 				}
 				return serviceList.Items, nil
-			}).Should(HaveLen(1))
+			}, timeout, interval).Should(HaveLen(1))
 
 			// TODO: use this to get the Service
 			//service := serviceList.Items[0]
