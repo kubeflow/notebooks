@@ -47,5 +47,8 @@ jobs:
           check-latest: true
           cache-dependency-path: workspaces/controller/go.sum
 
-      - run: make test-e2e
+      - name: Test E2E
+        env:
+          KUBEFLOW_TEST_PROMPT: "false"
+        run: make test-e2e
         working-directory: workspaces/controller
