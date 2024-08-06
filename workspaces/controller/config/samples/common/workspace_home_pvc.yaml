@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: my-data-pvc
+  name: workspace-home-pvc
 spec:
   accessModes:
     - ReadWriteOnce

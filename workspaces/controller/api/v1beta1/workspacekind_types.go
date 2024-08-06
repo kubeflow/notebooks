@@ -395,7 +395,6 @@ type PodConfigValue struct {
 	Redirect *OptionRedirect `json:"redirect,omitempty"`
 
 	// the spec of the pod config
-
 	Spec PodConfigSpec `json:"spec"`
 }
 

@@ -111,9 +111,21 @@ spec:
     ##    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#probe-v1-core
     ##
     probes:
-#      startupProbe: {}
-#      livenessProbe: {}
-#      readinessProbe: {}
+
+      ## startup probe for the "main" container
+      ##
+      #startupProbe:
+      #  ...
+
+      ## liveness probe for the "main" container
+      ##
+      #livenessProbe:
+      #  ...
+
+      ## readiness probe for the "main" container
+      ##
+      #readinessProbe:
+      #  ...
 
     ## volume mount paths
     ##
