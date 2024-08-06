@@ -111,9 +111,21 @@ spec:
     ##    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#probe-v1-core
     ##
     probes:
-      startupProbe: {}
-      livenessProbe: {}
-      readinessProbe: {}
+
+      ## startup probe for the "main" container
+      ##
+      #startupProbe:
+      #  ...
+
+      ## liveness probe for the "main" container
+      ##
+      #livenessProbe:
+      #  ...
+
+      ## readiness probe for the "main" container
+      ##
+      #readinessProbe:
+      #  ...
 
     ## volume mount paths
     ##
@@ -158,7 +170,7 @@ spec:
       ## https://github.com/kubeflow/kubeflow/blob/v1.8.0/components/example-notebook-servers/jupyter/s6/services.d/jupyterlab/run#L12
       - name: "NB_PREFIX"
         value: |-
-          {{ httpPathPrefix "juptyerlab" }}
+          {{ httpPathPrefix "jupyterlab" }}
 
     ## extra volume mounts for Workspace Pods (MUTABLE)
     ##  - spec for VolumeMount:

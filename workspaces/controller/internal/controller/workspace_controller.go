@@ -55,8 +55,9 @@ const (
 	workspaceSelectorLabel = "statefulset"
 
 	// KubeBuilder cache fields
-	kbCacheWorkspaceOwnerKey  = ".metadata.controller"
-	kbCacheWorkspaceKindField = ".spec.kind"
+	kfCacheEventInvolvedObjectUidKey = ".involvedObject.uid"
+	kbCacheWorkspaceOwnerKey         = ".metadata.controller"
+	kbCacheWorkspaceKindField        = ".spec.kind"
 
 	// lengths for resource names
 	generateNameSuffixLength = 6
@@ -64,21 +65,24 @@ const (
 	maxStatefulSetNameLength = 52 // https://github.com/kubernetes/kubernetes/issues/64023
 
 	// state message formats for Workspace status
-	stateMsgError                      = "Workspace has error"
-	stateMsgErrorUnknownWorkspaceKind  = "Workspace references unknown WorkspaceKind: %s"
-	stateMsgErrorInvalidImageConfig    = "Workspace has invalid imageConfig: %s"
-	stateMsgErrorInvalidPodConfig      = "Workspace has invalid podConfig: %s"
-	stateMsgErrorGenFailureStatefulSet = "Workspace failed to generate StatefulSet with error: %s"
-	stateMsgErrorGenFailureService     = "Workspace failed to generate Service with error: %s"
-	stateMsgErrorMultipleStatefulSets  = "Workspace owns multiple StatefulSets: %s"
-	stateMsgErrorMultipleServices      = "Workspace owns multiple Services: %s"
-	stateMsgErrorPodCrashLoopBackOff   = "Workspace Pod is not running (CrashLoopBackOff)"
-	stateMsgErrorPodImagePullBackOff   = "Workspace Pod is not running (ImagePullBackOff)"
-	stateMsgPaused                     = "Workspace is paused"
-	stateMsgPending                    = "Workspace is pending"
-	stateMsgRunning                    = "Workspace is running"
-	stateMsgTerminating                = "Workspace is terminating"
-	stateMsgUnknown                    = "Workspace is in an unknown state"
+	stateMsgErrorUnknownWorkspaceKind      = "Workspace references unknown WorkspaceKind: %s"
+	stateMsgErrorInvalidImageConfig        = "Workspace has invalid imageConfig: %s"
+	stateMsgErrorInvalidPodConfig          = "Workspace has invalid podConfig: %s"
+	stateMsgErrorGenFailureStatefulSet     = "Workspace failed to generate StatefulSet with error: %s"
+	stateMsgErrorGenFailureService         = "Workspace failed to generate Service with error: %s"
+	stateMsgErrorMultipleStatefulSets      = "Workspace owns multiple StatefulSets: %s"
+	stateMsgErrorMultipleServices          = "Workspace owns multiple Services: %s"
+	stateMsgErrorStatefulSetWarningEvent   = "Workspace StatefulSet has warning event: %s"
+	stateMsgErrorPodUnschedulable          = "Workspace Pod is unschedulable: %s"
+	stateMsgErrorPodSchedulingGate         = "Workspace Pod is waiting for scheduling gate: %s"
+	stateMsgErrorPodSchedulerError         = "Workspace Pod has scheduler error: %s"
+	stateMsgErrorContainerCrashLoopBackOff = "Workspace Container is not running (CrashLoopBackOff)"
+	stateMsgErrorContainerImagePullBackOff = "Workspace Container is not running (ImagePullBackOff)"
+	stateMsgPaused                         = "Workspace is paused"
+	stateMsgPending                        = "Workspace is pending"
+	stateMsgRunning                        = "Workspace is running"
+	stateMsgTerminating                    = "Workspace is terminating"
+	stateMsgUnknown                        = "Workspace is in an unknown state"
 )
 
 var (
@@ -97,6 +101,7 @@ type WorkspaceReconciler struct {
 // +kubebuilder:rbac:groups=kubeflow.org,resources=workspacekinds,verbs=get;list;watch
 // +kubebuilder:rbac:groups=kubeflow.org,resources=workspacekinds/finalizers,verbs=update
 // +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=create;delete;get;list;patch;update;watch
+// +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch
 // +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch
 // +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch
 // +kubebuilder:rbac:groups=core,resources=services,verbs=create;delete;get;list;patch;update;watch
@@ -282,6 +287,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			}
 			log.V(2).Info("StatefulSet updated", "statefulSet", statefulSetName)
 		}
+		statefulSet = foundStatefulSet
 	}
 
 	// generate Service
@@ -370,7 +376,10 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	//
 
 	// update Workspace status
-	workspaceStatus := generateWorkspaceStatus(workspace, pod)
+	workspaceStatus, err := r.generateWorkspaceStatus(ctx, log, workspace, pod, statefulSet)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 	if !reflect.DeepEqual(workspace.Status, workspaceStatus) {
 		workspace.Status = workspaceStatus
 		if err := r.Status().Update(ctx, workspace); err != nil {
@@ -388,6 +397,17 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	// Index Event by `involvedObject.uid`
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &corev1.Event{}, kfCacheEventInvolvedObjectUidKey, func(rawObj client.Object) []string {
+		event := rawObj.(*corev1.Event)
+		if event.InvolvedObject.UID == "" {
+			return nil
+		}
+		return []string{string(event.InvolvedObject.UID)}
+	}); err != nil {
+		return err
+	}
+
 	// Index StatefulSet by owner
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &appsv1.StatefulSet{}, kbCacheWorkspaceOwnerKey, func(rawObj client.Object) []string {
 		statefulSet := rawObj.(*appsv1.StatefulSet)
@@ -904,8 +924,51 @@ func generateService(workspace *kubefloworgv1beta1.Workspace, imageConfigSpec ku
 }
 
 // generateWorkspaceStatus generates a WorkspaceStatus for a Workspace
-func generateWorkspaceStatus(workspace *kubefloworgv1beta1.Workspace, pod *corev1.Pod) kubefloworgv1beta1.WorkspaceStatus {
+func (r *WorkspaceReconciler) generateWorkspaceStatus(ctx context.Context, log logr.Logger, workspace *kubefloworgv1beta1.Workspace, pod *corev1.Pod, statefulSet *appsv1.StatefulSet) (kubefloworgv1beta1.WorkspaceStatus, error) {
 	status := workspace.Status
+
+	// cases where the Pod does not exist
+	if pod == nil {
+		// STATUS: Paused
+		if *workspace.Spec.Paused {
+			status.State = kubefloworgv1beta1.WorkspaceStatePaused
+			status.StateMessage = stateMsgPaused
+			return status, nil
+		}
+
+		// there might be StatefulSet events
+		statefulSetEvents := &corev1.EventList{}
+		listOpts := &client.ListOptions{
+			FieldSelector: fields.OneTermEqualSelector(kfCacheEventInvolvedObjectUidKey, string(statefulSet.UID)),
+			Namespace:     statefulSet.Namespace,
+		}
+		if err := r.List(ctx, statefulSetEvents, listOpts); err != nil {
+			log.Error(err, "unable to list StatefulSet events")
+			return status, err
+		}
+
+		// find the last StatefulSet warning event
+		var lastStsWarningEvent *corev1.Event
+		if len(statefulSetEvents.Items) > 0 {
+			for i, event := range statefulSetEvents.Items {
+				if event.Type == corev1.EventTypeWarning {
+					//
+					// TODO: ensure this actually works when there are multiple Warning events for this object
+					//
+					if lastStsWarningEvent == nil || lastStsWarningEvent.LastTimestamp.Time.Before(event.LastTimestamp.Time) {
+						lastStsWarningEvent = &statefulSetEvents.Items[i]
+					}
+				}
+			}
+		}
+
+		// STATUS: Error (StatefulSet warning event)
+		if lastStsWarningEvent != nil {
+			status.State = kubefloworgv1beta1.WorkspaceStateError
+			status.StateMessage = fmt.Sprintf(stateMsgErrorStatefulSetWarningEvent, lastStsWarningEvent.Message)
+			return status, nil
+		}
+	}
 
 	// cases where the Pod exists
 	if pod != nil {
@@ -913,7 +976,7 @@ func generateWorkspaceStatus(workspace *kubefloworgv1beta1.Workspace, pod *corev
 		if pod.GetDeletionTimestamp() != nil {
 			status.State = kubefloworgv1beta1.WorkspaceStateTerminating
 			status.StateMessage = stateMsgTerminating
-			return status
+			return status, nil
 		}
 
 		// get the pod phase
@@ -922,12 +985,44 @@ func generateWorkspaceStatus(workspace *kubefloworgv1beta1.Workspace, pod *corev
 
 		// get the pod conditions
 		// https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-conditions
-		podReady := false
+		var podScheduledCondition corev1.PodCondition
+		var podReadyCondition corev1.PodCondition
 		for _, condition := range pod.Status.Conditions {
 			switch condition.Type {
+			case corev1.PodScheduled:
+				podScheduledCondition = condition
 			case corev1.PodReady:
-				podReady = condition.Status == corev1.ConditionTrue
+				podReadyCondition = condition
 			}
+		}
+
+		// unpack the pod conditions
+		podScheduled := podScheduledCondition.Status == corev1.ConditionTrue
+		podReady := podReadyCondition.Status == corev1.ConditionTrue
+
+		// STATUS: Error (pod conditions)
+		if !podScheduled {
+			switch podScheduledCondition.Reason {
+			case corev1.PodReasonUnschedulable:
+				status.State = kubefloworgv1beta1.WorkspaceStateError
+				status.StateMessage = fmt.Sprintf(stateMsgErrorPodUnschedulable, podScheduledCondition.Message)
+				return status, nil
+			case corev1.PodReasonSchedulingGated:
+				status.State = kubefloworgv1beta1.WorkspaceStateError
+				status.StateMessage = fmt.Sprintf(stateMsgErrorPodSchedulingGate, podScheduledCondition.Message)
+				return status, nil
+			case corev1.PodReasonSchedulerError:
+				status.State = kubefloworgv1beta1.WorkspaceStateError
+				status.StateMessage = fmt.Sprintf(stateMsgErrorPodSchedulerError, podScheduledCondition.Message)
+				return status, nil
+			}
+		}
+
+		// STATUS: Running
+		if podPhase == corev1.PodRunning && podReady {
+			status.State = kubefloworgv1beta1.WorkspaceStateRunning
+			status.StateMessage = stateMsgRunning
+			return status, nil
 		}
 
 		// get container status
@@ -943,24 +1038,17 @@ func generateWorkspaceStatus(workspace *kubefloworgv1beta1.Workspace, pod *corev
 		// get the container state
 		containerState := containerStatus.State
 
-		// STATUS: Running
-		if podPhase == corev1.PodRunning && podReady {
-			status.State = kubefloworgv1beta1.WorkspaceStateRunning
-			status.StateMessage = stateMsgRunning
-			return status
-		}
-
-		// STATUS: Error
+		// STATUS: Error (container state)
 		if containerState.Waiting != nil {
 			if containerState.Waiting.Reason == "CrashLoopBackOff" {
 				status.State = kubefloworgv1beta1.WorkspaceStateError
-				status.StateMessage = stateMsgErrorPodCrashLoopBackOff
-				return status
+				status.StateMessage = stateMsgErrorContainerCrashLoopBackOff
+				return status, nil
 			}
 			if containerState.Waiting.Reason == "ImagePullBackOff" {
 				status.State = kubefloworgv1beta1.WorkspaceStateError
-				status.StateMessage = stateMsgErrorPodImagePullBackOff
-				return status
+				status.StateMessage = stateMsgErrorContainerImagePullBackOff
+				return status, nil
 			}
 		}
 
@@ -968,22 +1056,12 @@ func generateWorkspaceStatus(workspace *kubefloworgv1beta1.Workspace, pod *corev
 		if podPhase == corev1.PodPending {
 			status.State = kubefloworgv1beta1.WorkspaceStatePending
 			status.StateMessage = stateMsgPending
-			return status
-		}
-	}
-
-	// cases where the Pod does not exist
-	if pod == nil {
-		// STATUS: Paused
-		if *workspace.Spec.Paused {
-			status.State = kubefloworgv1beta1.WorkspaceStatePaused
-			status.StateMessage = stateMsgPaused
-			return status
+			return status, nil
 		}
 	}
 
 	// STATUS: Unknown
 	status.State = kubefloworgv1beta1.WorkspaceStateUnknown
 	status.StateMessage = stateMsgUnknown
-	return status
+	return status, nil
 }

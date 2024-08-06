@@ -1,8 +1,7 @@
 apiVersion: kubeflow.org/v1beta1
 kind: Workspace
 metadata:
-  name: my-workspace
-  namespace: default
+  name: jupyterlab-workspace
 spec:
   ## if the workspace is paused (no pods running)
   paused: false
@@ -42,7 +41,7 @@ spec:
       ##  - the mount path is defined in the WorkspaceKind under
       ##    `spec.podTemplate.volumeMounts.home`
       ##
-      home: "my-home-pvc"
+      home: "workspace-home-pvc"
 
       ## additional PVCs to mount
       ##  - these PVC must already exist in the Namespace
@@ -51,7 +50,7 @@ spec:
       ##  - if `readOnly` is true, the PVC must be ReadOnlyMany
       ##
       data:
-        - pvcName: "my-data-pvc"
+        - pvcName: "workspace-data-pvc"
           mountPath: "/data/my-data"
           readOnly: false
 
@@ -65,7 +64,7 @@ spec:
       ##  - options are defined in WorkspaceKind under
       ##    `spec.podTemplate.options.imageConfig.values[]`
       ##
-      imageConfig: "jupyterlab_scipy_180"
+      imageConfig: "jupyterlab_scipy_190"
 
       ## the id of a podConfig option
       ##  - options are defined in WorkspaceKind under
