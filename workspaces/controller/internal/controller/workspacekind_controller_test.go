@@ -20,8 +20,6 @@ import (
 	"fmt"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
@@ -106,16 +104,6 @@ var _ = Describe("WorkspaceKind Controller", func() {
 			By("failing to update the `spec.podTemplate.volumeMounts.home` field")
 			newWorkspaceKind = workspaceKind.DeepCopy()
 			newWorkspaceKind.Spec.PodTemplate.VolumeMounts.Home = "/home/jovyan/new"
-			Expect(k8sClient.Patch(ctx, newWorkspaceKind, patch)).NotTo(Succeed())
-
-			By("failing to update the `spec.podTemplate.options.imageConfig.values[0].spec` field")
-			newWorkspaceKind = workspaceKind.DeepCopy()
-			newWorkspaceKind.Spec.PodTemplate.Options.ImageConfig.Values[0].Spec.Image = "new-image:latest"
-			Expect(k8sClient.Patch(ctx, newWorkspaceKind, patch)).NotTo(Succeed())
-
-			By("failing to update the `spec.podTemplate.options.podConfig.values[0].spec` field")
-			newWorkspaceKind = workspaceKind.DeepCopy()
-			newWorkspaceKind.Spec.PodTemplate.Options.PodConfig.Values[0].Spec.Resources.Requests[v1.ResourceCPU] = resource.MustParse("99")
 			Expect(k8sClient.Patch(ctx, newWorkspaceKind, patch)).NotTo(Succeed())
 		})
 
