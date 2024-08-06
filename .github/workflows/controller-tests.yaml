@@ -1,4 +1,4 @@
-name: "workspaces/controller: unit-tests"
+name: Controller - Tests
 
 permissions: {}
 
@@ -10,11 +10,9 @@ on:
     branches: [ "main", "notebooks-v2", "v*-branch" ]
 
 jobs:
-
-  "unit-tests":
+  unit-tests:
     runs-on: ubuntu-latest
     steps:
-
       - uses: actions/checkout@v4
 
       - name: Set up Go
@@ -24,17 +22,17 @@ jobs:
           check-latest: true
           cache-dependency-path: workspaces/controller/go.sum
 
-      - name: Test
-        run: make test
+      - name: Run unit tests
         working-directory: workspaces/controller
+        run: make test
 
-  "e2e-tests":
+  e2e-tests:
     runs-on: ubuntu-latest
     steps:
-
       - uses: actions/checkout@v4
 
-      - uses: helm/kind-action@v1
+      - name: Set up Kind
+        uses: helm/kind-action@v1
         with:
           version: v0.23.0
           node_image: kindest/node:v1.25.16@sha256:5da57dfc290ac3599e775e63b8b6c49c0c85d3fec771cd7d55b45fae14b38d3b
@@ -47,8 +45,8 @@ jobs:
           check-latest: true
           cache-dependency-path: workspaces/controller/go.sum
 
-      - name: Test E2E
+      - name: Run e2e tests
         env:
           KUBEFLOW_TEST_PROMPT: "false"
-        run: make test-e2e
         working-directory: workspaces/controller
+        run: make test-e2e
