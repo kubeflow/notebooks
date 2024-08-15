@@ -17,21 +17,64 @@ limitations under the License.
 package v1beta1
 
 import (
+	"fmt"
 	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("Workspace Webhook", func() {
 
-	Context("When creating Workspace under Validating Webhook", func() {
-		It("Should deny if a required field is empty", func() {
+	Context("When creating Workspace under Validating Webhook", Ordered, func() {
+		var (
+			workspaceName     string
+			workspaceKindName string
+			namespaceName     string
+		)
 
-			// TODO(user): Add your logic here
+		BeforeAll(func() {
+			uniqueName := "ws-create-test"
+			workspaceName = fmt.Sprintf("workspace-%s", uniqueName)
+			namespaceName = "default"
+			workspaceKindName = fmt.Sprintf("workspacekind-%s", uniqueName)
+
+			By("creating the WorkspaceKind")
+			workspaceKind := NewExampleWorkspaceKind(workspaceKindName)
+			Expect(k8sClient.Create(ctx, workspaceKind)).To(Succeed())
 
 		})
 
-		It("Should admit if all required fields are provided", func() {
+		AfterAll(func() {
 
-			// TODO(user): Add your logic here
+			By("deleting the WorkspaceKind")
+			workspaceKind := &WorkspaceKind{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: workspaceKindName,
+				},
+			}
+			Expect(k8sClient.Delete(ctx, workspaceKind)).To(Succeed())
+
+		})
+
+		It("should reject workspace creation with an invalid WorkspaceKind", func() {
+			workspaceKindName := "invalid-workspace-kind"
+
+			By("creating the Workspace")
+			workspace := NewExampleWorkspace(workspaceName, namespaceName, workspaceKindName)
+			err := k8sClient.Create(ctx, workspace)
+			Expect(err).ToNot(Succeed())
+			Expect(err.Error()).To(ContainSubstring(fmt.Sprintf("workspace kind %s not found", workspaceKindName)))
+
+		})
+
+		It("should successfully create workspace with a valid WorkspaceKind", func() {
+
+			By("creating the Workspace")
+			workspace := NewExampleWorkspace(workspaceName, namespaceName, workspaceKindName)
+			Expect(k8sClient.Create(ctx, workspace)).To(Succeed())
+
+			By("deleting the Workspace")
+			Expect(k8sClient.Delete(ctx, workspace)).To(Succeed())
 
 		})
 	})

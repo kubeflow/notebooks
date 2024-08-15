@@ -30,7 +30,10 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+	"text/template"
 )
+
+const kbCacheWorkspaceKindField = ".spec.kind"
 
 // log is for logging in this package.
 var workspacekindlog = logf.Log.WithName("workspacekind-resource")
@@ -53,7 +56,7 @@ var _ webhook.Validator = &WorkspaceKind{}
 func (r *WorkspaceKind) ValidateCreate() (admission.Warnings, error) {
 	workspacekindlog.Info("validate create", "name", r.Name)
 
-	// Reject cycles in image options
+	// Reject cycles in imageConfig options
 	imageConfigIdMap := make(map[string]ImageConfigValue)
 	for _, v := range r.Spec.PodTemplate.Options.ImageConfig.Values {
 		// Ensure ports are unique
@@ -87,7 +90,7 @@ func (r *WorkspaceKind) ValidateCreate() (admission.Warnings, error) {
 		}
 	}
 
-	// Reject cycles in pod options
+	// Reject cycles in podConfig options
 	podConfigIdMap := make(map[string]PodConfigValue)
 	for _, v := range r.Spec.PodTemplate.Options.PodConfig.Values {
 		podConfigIdMap[v.Id] = v
@@ -114,15 +117,23 @@ func (r *WorkspaceKind) ValidateCreate() (admission.Warnings, error) {
 
 	// Ensure the default image config is present
 	if _, ok := imageConfigIdMap[r.Spec.PodTemplate.Options.ImageConfig.Spawner.Default]; !ok {
-		return nil, fmt.Errorf("default image config with id '%s' is not present in spec.podTemplate.options.imageConfig.values", r.Spec.PodTemplate.Options.ImageConfig.Spawner.Default)
+		return nil, fmt.Errorf("default image config with id '%s' is not found in spec.podTemplate.options.imageConfig.values", r.Spec.PodTemplate.Options.ImageConfig.Spawner.Default)
 	}
 
 	// Ensure the default pod config is present
 	if _, ok := podConfigIdMap[r.Spec.PodTemplate.Options.PodConfig.Spawner.Default]; !ok {
-		return nil, fmt.Errorf("default pod config with id '%s' is not present in spec.podTemplate.options.podConfig.values", r.Spec.PodTemplate.Options.PodConfig.Spawner.Default)
+		return nil, fmt.Errorf("default pod config with id '%s' is not found in spec.podTemplate.options.podConfig.values", r.Spec.PodTemplate.Options.PodConfig.Spawner.Default)
 	}
 
-	// TODO: Ensure that `spec.podTemplate.extraEnv[].value` is a valid go template
+	// Validate the extraEnv values are valid go templates
+	for _, env := range r.Spec.PodTemplate.ExtraEnv {
+		rawValue := env.Value
+		_, err := template.New("value").Funcs(template.FuncMap{"httpPathPrefix": func(_ string) string { return "" }}).Parse(rawValue)
+		if err != nil {
+			err = fmt.Errorf("failed to parse value %q: %v", rawValue, err)
+			return nil, err
+		}
+	}
 
 	return nil, nil
 }
@@ -170,7 +181,6 @@ func (r *WorkspaceKind) ValidateUpdate(old runtime.Object) (admission.Warnings, 
 		}
 	}
 
-	kbCacheWorkspaceKindField := ".spec.kind"
 	workspaces := &WorkspaceList{}
 	listOpts := &client.ListOptions{
 		FieldSelector: fields.OneTermEqualSelector(kbCacheWorkspaceKindField, r.Name),
@@ -264,13 +274,24 @@ func (r *WorkspaceKind) ValidateUpdate(old runtime.Object) (admission.Warnings, 
 
 	// Ensure the default image config is present
 	if _, ok := imageConfigIdMap[r.Spec.PodTemplate.Options.ImageConfig.Spawner.Default]; !ok {
-		return nil, fmt.Errorf("default image config with id '%s' is not present in spec.podTemplate.options.imageConfig.values", r.Spec.PodTemplate.Options.ImageConfig.Spawner.Default)
+		return nil, fmt.Errorf("default image config with id '%s' is not found in spec.podTemplate.options.imageConfig.values", r.Spec.PodTemplate.Options.ImageConfig.Spawner.Default)
 	}
 
 	// Ensure the default pod config is present
 	if _, ok := podConfigIdMap[r.Spec.PodTemplate.Options.PodConfig.Spawner.Default]; !ok {
-		return nil, fmt.Errorf("default pod config with id '%s' is not present in spec.podTemplate.options.podConfig.values", r.Spec.PodTemplate.Options.PodConfig.Spawner.Default)
+		return nil, fmt.Errorf("default pod config with id '%s' is not found in spec.podTemplate.options.podConfig.values", r.Spec.PodTemplate.Options.PodConfig.Spawner.Default)
 	}
+
+	// Validate the extraEnv values are valid go templates
+	for _, env := range r.Spec.PodTemplate.ExtraEnv {
+		rawValue := env.Value
+		_, err := template.New("value").Funcs(template.FuncMap{"httpPathPrefix": func(_ string) string { return "" }}).Parse(rawValue)
+		if err != nil {
+			err = fmt.Errorf("failed to parse value %q: %v", rawValue, err)
+			return nil, err
+		}
+	}
+
 	return nil, nil
 }
 

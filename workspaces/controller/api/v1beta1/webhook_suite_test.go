@@ -123,6 +123,16 @@ var _ = BeforeSuite(func() {
 	err = (&WorkspaceKind{}).SetupWebhookWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
 
+	// Indexing `.spec.kind` here, not in SetupWebhookWithManager, to avoid conflicts with existing indexing.
+	// This indexing is specifically for testing purposes to index `Workspace` by `WorkspaceKind`.
+	err = mgr.GetFieldIndexer().IndexField(context.Background(), &Workspace{}, kbCacheWorkspaceKindField, func(rawObj client.Object) []string {
+		ws := rawObj.(*Workspace)
+		if ws.Spec.Kind == "" {
+			return nil
+		}
+		return []string{ws.Spec.Kind}
+	})
+	Expect(err).NotTo(HaveOccurred())
 	err = (&Workspace{}).SetupWebhookWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
 
@@ -154,8 +164,8 @@ var _ = AfterSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 })
 
-// NewExampleWorkspaceKind1 returns the common "WorkspaceKind 1" object used in tests.
-func NewExampleWorkspaceKind1(name string) *WorkspaceKind {
+// NewExampleWorkspaceKind returns the common "WorkspaceKind" object used in tests.
+func NewExampleWorkspaceKind(name string) *WorkspaceKind {
 	return &WorkspaceKind{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
@@ -398,6 +408,116 @@ func NewExampleWorkspaceKind1(name string) *WorkspaceKind {
 						},
 					},
 				},
+			},
+		},
+	}
+}
+
+// NewExampleWorkspaceKindWithImageConfigCycle returns a WorkspaceKind with a cycle in the ImageConfig options.
+func NewExampleWorkspaceKindWithImageConfigCycle(name string) *WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.Options.ImageConfig.Values[1].Redirect = &OptionRedirect{
+		To: "jupyterlab_scipy_180",
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithPodConfigCycle returns a WorkspaceKind with a cycle in the PodConfig options.
+func NewExampleWorkspaceKindWithPodConfigCycle(name string) *WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[0].Redirect = &OptionRedirect{
+		To: "small_cpu",
+		Message: &RedirectMessage{
+			Level: "Info",
+			Text:  "This update will change...",
+		},
+	}
+	workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[1].Redirect = &OptionRedirect{
+		To: "tiny_cpu",
+	}
+
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithInvalidImageConfig returns a WorkspaceKind with an invalid redirect in the ImageConfig options.
+func NewExampleWorkspaceKindWithInvalidImageConfig(name string) *WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.Options.ImageConfig.Values[1].Redirect = &OptionRedirect{
+		To: "invalid_image_config",
+	}
+
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithInvalidPodConfig returns a WorkspaceKind with an invalid redirect in the PodConfig options.
+func NewExampleWorkspaceKindWithInvalidPodConfig(name string) *WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[0].Redirect = &OptionRedirect{
+		To: "invalid_pod_config",
+	}
+
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithMissingDefaultImageConfig returns a WorkspaceKind with missing default image config.
+func NewExampleWorkspaceKindWithInvalidDefaultImageConfig(name string) *WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.Options.ImageConfig.Spawner.Default = "invalid_image_config"
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithMissingDefaultPodConfig returns a WorkspaceKind with missing default pod config.
+func NewExampleWorkspaceKindWithInvalidDefaultPodConfig(name string) *WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.Options.PodConfig.Spawner.Default = "invalid_pod_config"
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithInvalidExtraEnvValue returns a WorkspaceKind with an invalid extraEnv value.
+func NewExampleWorkspaceKindWithDuplicatePorts(name string) *WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.Options.ImageConfig.Values[0].Spec.Ports = []ImagePort{
+		{
+			Id:          "jupyterlab",
+			DisplayName: "JupyterLab",
+			Port:        8888,
+			Protocol:    "HTTP",
+		},
+		{
+			Id:          "jupyterlab2",
+			DisplayName: "JupyterLab2",
+			Port:        8888,
+			Protocol:    "HTTP",
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithInvalidExtraEnvValue returns a WorkspaceKind with an invalid extraEnv value.
+func NewExampleWorkspaceKindWithInvalidExtraEnvValue(name string) *WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.ExtraEnv = []v1.EnvVar{
+		{
+			Name:  "NB_PREFIX",
+			Value: `{{ httpPathPrefix "jupyterlab" }`,
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspace returns the common "Workspace" object used in tests.
+func NewExampleWorkspace(name, namespace, workspaceKindName string) *Workspace {
+	return &Workspace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: WorkspaceSpec{
+			Kind: workspaceKindName,
+			PodTemplate: WorkspacePodTemplate{Options: WorkspacePodOptions{
+				ImageConfig: "jupyterlab_scipy_180",
+				PodConfig:   "tiny_cpu",
+			},
 			},
 		},
 	}
