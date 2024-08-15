@@ -25,6 +25,17 @@ import (
 	. "github.com/onsi/ginkgo/v2" //nolint:golint,revive
 )
 
+const (
+	// use LTS version of cert-manager
+
+	certManagerVersion = "v1.12.13"
+	certManagerURLTmpl = "https://github.com/jetstack/cert-manager/releases/download/%s/cert-manager.yaml"
+)
+
+func warnError(err error) {
+	fmt.Fprintf(GinkgoWriter, "warning: %v\n", err)
+}
+
 // Run executes the provided command within this context
 func Run(cmd *exec.Cmd) ([]byte, error) {
 	dir, _ := GetProjectDir()
@@ -45,7 +56,35 @@ func Run(cmd *exec.Cmd) ([]byte, error) {
 	return output, nil
 }
 
-// LoadImageToKindCluster loads a local docker image to the kind cluster
+// UninstallCertManager uninstalls the cert manager
+func UninstallCertManager() {
+	url := fmt.Sprintf(certManagerURLTmpl, certManagerVersion)
+	cmd := exec.Command("kubectl", "delete", "-f", url)
+	if _, err := Run(cmd); err != nil {
+		warnError(err)
+	}
+}
+
+// InstallCertManager installs the cert manager bundle.
+func InstallCertManager() error {
+	url := fmt.Sprintf(certManagerURLTmpl, certManagerVersion)
+	cmd := exec.Command("kubectl", "apply", "-f", url)
+	if _, err := Run(cmd); err != nil {
+		return err
+	}
+	// Wait for cert-manager-webhook to be ready, which can take time if cert-manager
+	// was re-installed after uninstalling on a cluster.
+	cmd = exec.Command("kubectl", "wait", "deployment.apps/cert-manager-webhook",
+		"--for", "condition=Available",
+		"--namespace", "cert-manager",
+		"--timeout", "5m",
+	)
+
+	_, err := Run(cmd)
+	return err
+}
+
+// LoadImageToKindClusterWithName loads a local docker image to the kind cluster
 func LoadImageToKindClusterWithName(name string) error {
 	var cluster string
 	if v, ok := os.LookupEnv("KIND_CLUSTER"); ok {

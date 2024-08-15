@@ -63,6 +63,9 @@ var (
 var _ = Describe("controller", Ordered, func() {
 
 	BeforeAll(func() {
+		By("installing the cert-manager")
+		Expect(utils.InstallCertManager()).To(Succeed())
+
 		projectDir, _ = utils.GetProjectDir()
 
 		By("creating the controller namespace")
@@ -117,6 +120,9 @@ var _ = Describe("controller", Ordered, func() {
 		By("deleting CRDs")
 		cmd = exec.Command("make", "uninstall")
 		_, _ = utils.Run(cmd)
+
+		By("uninstalling the cert-manager bundle")
+		utils.UninstallCertManager()
 	})
 
 	Context("Operator", func() {
