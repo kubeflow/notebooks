@@ -36,7 +36,7 @@ import (
 const kbCacheWorkspaceKindField = ".spec.kind"
 
 // log is for logging in this package.
-var workspacekindlog = logf.Log.WithName("workspacekind-resource")
+var workspaceKindLog = logf.Log.WithName("workspacekind-resource")
 
 // SetupWebhookWithManager will setup the manager to manage the webhooks
 func (r *WorkspaceKind) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -45,8 +45,6 @@ func (r *WorkspaceKind) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-// TODO(user): EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 //+kubebuilder:webhook:path=/validate-kubeflow-org-v1beta1-workspacekind,mutating=false,failurePolicy=fail,sideEffects=None,groups=kubeflow.org,resources=workspacekinds,verbs=create;update,versions=v1beta1,name=vworkspacekind.kb.io,admissionReviewVersions=v1
 
@@ -54,12 +52,88 @@ var _ webhook.Validator = &WorkspaceKind{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *WorkspaceKind) ValidateCreate() (admission.Warnings, error) {
-	workspacekindlog.Info("validate create", "name", r.Name)
+	workspaceKindLog.Info("validate create", "name", r.Name)
 
-	// Reject cycles in imageConfig options
-	imageConfigIdMap := make(map[string]ImageConfigValue)
-	for _, v := range r.Spec.PodTemplate.Options.ImageConfig.Values {
-		// Ensure ports are unique
+	imageConfigValueMap, err := generateImageConfigAndValidatePorts(r.Spec.PodTemplate.Options.ImageConfig)
+	if err != nil {
+		return nil, err
+	}
+	podConfigValueMap := make(map[string]PodConfigValue)
+	for _, v := range r.Spec.PodTemplate.Options.PodConfig.Values {
+		podConfigValueMap[v.Id] = v
+	}
+
+	if err := validateImageConfigCycles(imageConfigValueMap); err != nil {
+		return nil, err
+	}
+	if err := validatePodConfigCycle(podConfigValueMap); err != nil {
+		return nil, err
+	}
+
+	if err := ensureDefaultOptions(imageConfigValueMap, podConfigValueMap, r.Spec.PodTemplate.Options); err != nil {
+		return nil, err
+	}
+
+	if err := validateExtraEnv(r.Spec.PodTemplate.ExtraEnv); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
+}
+
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+func (r *WorkspaceKind) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+	workspaceKindLog.Info("validate update", "name", r.Name)
+
+	// Type assertion to convert the old runtime.Object to WorkspaceKind
+	oldWorkspaceKind, ok := old.(*WorkspaceKind)
+	if !ok {
+		return nil, errors.New("old object is not a WorkspaceKind")
+	}
+
+	imageConfigUsageCount, podConfigUsageCount, err := getConfigUsageCount(r.Name)
+
+	imageConfigValueMap, err := generateAndValidateImageConfig(r.Spec.PodTemplate.Options.ImageConfig, oldWorkspaceKind.Spec.PodTemplate.Options.ImageConfig, imageConfigUsageCount)
+	if err != nil {
+		return nil, err
+	}
+
+	podConfigValueMap, err := generateAndValidatePodConfig(r.Spec.PodTemplate.Options.PodConfig, oldWorkspaceKind.Spec.PodTemplate.Options.PodConfig, podConfigUsageCount)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := validateImageConfigCycles(imageConfigValueMap); err != nil {
+		return nil, err
+	}
+
+	if err := validatePodConfigCycle(podConfigValueMap); err != nil {
+		return nil, err
+	}
+
+	if err := ensureDefaultOptions(imageConfigValueMap, podConfigValueMap, r.Spec.PodTemplate.Options); err != nil {
+		return nil, err
+	}
+
+	if err := validateExtraEnv(r.Spec.PodTemplate.ExtraEnv); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
+}
+
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+func (r *WorkspaceKind) ValidateDelete() (admission.Warnings, error) {
+	workspaceKindLog.Info("validate delete", "name", r.Name)
+
+	// TODO(user): fill in your validation logic upon object deletion.
+	return nil, nil
+}
+
+func generateImageConfigAndValidatePorts(imageConfig ImageConfig) (map[string]ImageConfigValue, error) {
+	imageConfigValueMap := make(map[string]ImageConfigValue)
+	for _, v := range imageConfig.Values {
+
 		ports := make(map[int32]bool)
 		for _, port := range v.Spec.Ports {
 			if _, exists := ports[port.Port]; exists {
@@ -68,9 +142,24 @@ func (r *WorkspaceKind) ValidateCreate() (admission.Warnings, error) {
 			ports[port.Port] = true
 		}
 
-		imageConfigIdMap[v.Id] = v
+		imageConfigValueMap[v.Id] = v
 	}
-	for _, currentImageConfig := range imageConfigIdMap {
+	return imageConfigValueMap, nil
+}
+
+func ensureDefaultOptions(imageConfigValueMap map[string]ImageConfigValue, podConfigValueMap map[string]PodConfigValue, workspaceOptions WorkspaceKindPodOptions) error {
+	if _, ok := imageConfigValueMap[workspaceOptions.ImageConfig.Spawner.Default]; !ok {
+		return fmt.Errorf("default image config with id '%s' is not found in spec.podTemplate.options.imageConfig.values", workspaceOptions.ImageConfig.Spawner.Default)
+	}
+
+	if _, ok := podConfigValueMap[workspaceOptions.PodConfig.Spawner.Default]; !ok {
+		return fmt.Errorf("default pod config with id '%s' is not found in spec.podTemplate.options.podConfig.values", workspaceOptions.PodConfig.Spawner.Default)
+	}
+	return nil
+}
+
+func validateImageConfigCycles(imageConfigValueMap map[string]ImageConfigValue) error {
+	for _, currentImageConfig := range imageConfigValueMap {
 		// follow any redirects to get the desired imageConfig
 		desiredImageConfig := currentImageConfig
 		visitedNodes := map[string]bool{currentImageConfig.Id: true}
@@ -79,23 +168,21 @@ func (r *WorkspaceKind) ValidateCreate() (admission.Warnings, error) {
 				break
 			}
 			if visitedNodes[desiredImageConfig.Redirect.To] {
-				return nil, fmt.Errorf("imageConfig with id '%s' has a circular redirect", desiredImageConfig.Id)
+				return fmt.Errorf("imageConfig with id '%s' has a circular redirect", desiredImageConfig.Id)
 			}
-			nextNode, ok := imageConfigIdMap[desiredImageConfig.Redirect.To]
+			nextNode, ok := imageConfigValueMap[desiredImageConfig.Redirect.To]
 			if !ok {
-				return nil, fmt.Errorf("imageConfig with id '%s' not found, was redirected from '%s'", desiredImageConfig.Redirect.To, desiredImageConfig.Id)
+				return fmt.Errorf("imageConfig with id '%s' not found, was redirected from '%s'", desiredImageConfig.Redirect.To, desiredImageConfig.Id)
 			}
 			desiredImageConfig = nextNode
 			visitedNodes[desiredImageConfig.Id] = true
 		}
 	}
+	return nil
+}
 
-	// Reject cycles in podConfig options
-	podConfigIdMap := make(map[string]PodConfigValue)
-	for _, v := range r.Spec.PodTemplate.Options.PodConfig.Values {
-		podConfigIdMap[v.Id] = v
-	}
-	for _, currentPodConfig := range podConfigIdMap {
+func validatePodConfigCycle(podConfigValueMap map[string]PodConfigValue) error {
+	for _, currentPodConfig := range podConfigValueMap {
 		// follow any redirects to get the desired podConfig
 		desiredPodConfig := currentPodConfig
 		visitedNodes := map[string]bool{currentPodConfig.Id: true}
@@ -104,203 +191,115 @@ func (r *WorkspaceKind) ValidateCreate() (admission.Warnings, error) {
 				break
 			}
 			if visitedNodes[desiredPodConfig.Redirect.To] {
-				return nil, fmt.Errorf("podConfig with id '%s' has a circular redirect", desiredPodConfig.Id)
+				return fmt.Errorf("podConfig with id '%s' has a circular redirect", desiredPodConfig.Id)
 			}
-			nextNode, ok := podConfigIdMap[desiredPodConfig.Redirect.To]
+			nextNode, ok := podConfigValueMap[desiredPodConfig.Redirect.To]
 			if !ok {
-				return nil, fmt.Errorf("podConfig with id '%s' not found, was redirected from '%s'", desiredPodConfig.Redirect.To, desiredPodConfig.Id)
+				return fmt.Errorf("podConfig with id '%s' not found, was redirected from '%s'", desiredPodConfig.Redirect.To, desiredPodConfig.Id)
 			}
 			desiredPodConfig = nextNode
 			visitedNodes[desiredPodConfig.Id] = true
 		}
 	}
+	return nil
+}
 
-	// Ensure the default image config is present
-	if _, ok := imageConfigIdMap[r.Spec.PodTemplate.Options.ImageConfig.Spawner.Default]; !ok {
-		return nil, fmt.Errorf("default image config with id '%s' is not found in spec.podTemplate.options.imageConfig.values", r.Spec.PodTemplate.Options.ImageConfig.Spawner.Default)
-	}
-
-	// Ensure the default pod config is present
-	if _, ok := podConfigIdMap[r.Spec.PodTemplate.Options.PodConfig.Spawner.Default]; !ok {
-		return nil, fmt.Errorf("default pod config with id '%s' is not found in spec.podTemplate.options.podConfig.values", r.Spec.PodTemplate.Options.PodConfig.Spawner.Default)
-	}
-
-	// Validate the extraEnv values are valid go templates
-	for _, env := range r.Spec.PodTemplate.ExtraEnv {
+func validateExtraEnv(extraEnv []corev1.EnvVar) error {
+	for _, env := range extraEnv {
 		rawValue := env.Value
 		_, err := template.New("value").Funcs(template.FuncMap{"httpPathPrefix": func(_ string) string { return "" }}).Parse(rawValue)
 		if err != nil {
 			err = fmt.Errorf("failed to parse value %q: %v", rawValue, err)
-			return nil, err
+			return err
 		}
 	}
-
-	return nil, nil
+	return nil
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *WorkspaceKind) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
-	workspacekindlog.Info("validate update", "name", r.Name)
-
-	// Type assertion to convert the old runtime.Object to WorkspaceKind
-	oldWorkspaceKind, ok := old.(*WorkspaceKind)
-	if !ok {
-		return nil, errors.New("old object is not a WorkspaceKind")
-	}
-
-	// Validate ImageConfig is immutable
-	imageConfigSpecMap := make(map[string]ImageConfigSpec)
-	for _, v := range oldWorkspaceKind.Spec.PodTemplate.Options.ImageConfig.Values {
-		imageConfigSpecMap[v.Id] = v.Spec
-	}
-	updatedImageConfigSpecMap := make(map[string]ImageConfigSpec)
-	for _, v := range r.Spec.PodTemplate.Options.ImageConfig.Values {
-		updatedImageConfigSpecMap[v.Id] = v.Spec
-		if oldSpec, exists := imageConfigSpecMap[v.Id]; exists {
-			if !reflect.DeepEqual(oldSpec, v.Spec) {
-				return nil, fmt.Errorf("spec.podTemplate.options.imageConfig.values with id '%s' is immutable", v.Id)
-			}
-		}
-	}
-
-	// Validate PodConfig is immutable
-	podConfigSpecMap := make(map[string]PodConfigSpec)
-	for _, v := range oldWorkspaceKind.Spec.PodTemplate.Options.PodConfig.Values {
-		podConfigSpecMap[v.Id] = v.Spec
-	}
-	updatedPodConfigSpecMap := make(map[string]PodConfigSpec)
-	for _, v := range r.Spec.PodTemplate.Options.PodConfig.Values {
-		updatedPodConfigSpecMap[v.Id] = v.Spec
-		if oldSpec, exists := podConfigSpecMap[v.Id]; exists {
-			normalizePodConfigSpec(&oldSpec)
-			normalizePodConfigSpec(&v.Spec)
-
-			if !reflect.DeepEqual(oldSpec, v.Spec) {
-				return nil, fmt.Errorf("spec.podTemplate.options.podConfig.values with id '%s' is immutable", v.Id)
-			}
-		}
-	}
-
+func getConfigUsageCount(workspaceKindName string) (map[string]int, map[string]int, error) {
 	workspaces := &WorkspaceList{}
 	listOpts := &client.ListOptions{
-		FieldSelector: fields.OneTermEqualSelector(kbCacheWorkspaceKindField, r.Name),
+		FieldSelector: fields.OneTermEqualSelector(kbCacheWorkspaceKindField, workspaceKindName),
 		Namespace:     corev1.NamespaceAll,
 	}
 	if err := k8sClient.List(context.Background(), workspaces, listOpts); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	usedImageConfig := make(map[string]int)
-	usedPodConfig := make(map[string]int)
+	imageConfigUsageCount := make(map[string]int)
+	podConfigUsageCount := make(map[string]int)
 	for _, ws := range workspaces.Items {
-		usedImageConfig[ws.Spec.PodTemplate.Options.ImageConfig]++
-		usedPodConfig[ws.Spec.PodTemplate.Options.PodConfig]++
+		imageConfigUsageCount[ws.Spec.PodTemplate.Options.ImageConfig]++
+		podConfigUsageCount[ws.Spec.PodTemplate.Options.PodConfig]++
 	}
-	// Only allow removing option ids which are not used
-	for id, _ := range imageConfigSpecMap {
-		if _, exists := updatedImageConfigSpecMap[id]; !exists {
-			// check if this option is used by any workspace
-			if usedImageConfig[id] > 0 {
-				errMsg := fmt.Sprintf("spec.podTemplate.options.imageConfig.values with id '%s' is used by %d workspace", id, usedImageConfig[id])
-				if usedImageConfig[id] > 1 {
-					errMsg += "s"
-				}
-				return nil, fmt.Errorf(errMsg)
-			}
-		}
-	}
-	for id, _ := range podConfigSpecMap {
-		if _, exists := updatedPodConfigSpecMap[id]; !exists {
-			// check if this option is used by any workspace
-			if usedPodConfig[id] > 0 {
-				errMsg := fmt.Sprintf("spec.podTemplate.options.podConfig.values with id '%s' is used by %d workspace", id, usedPodConfig[id])
-				if usedPodConfig[id] > 1 {
-					errMsg += "s"
-				}
-				return nil, fmt.Errorf(errMsg)
-			}
-		}
-	}
-
-	// Reject cycles in image options
-	imageConfigIdMap := make(map[string]ImageConfigValue)
-	for _, v := range r.Spec.PodTemplate.Options.ImageConfig.Values {
-		imageConfigIdMap[v.Id] = v
-	}
-	for _, currentImageConfig := range imageConfigIdMap {
-		// follow any redirects to get the desired imageConfig
-		desiredImageConfig := currentImageConfig
-		visitedNodes := map[string]bool{currentImageConfig.Id: true}
-		for {
-			if desiredImageConfig.Redirect == nil {
-				break
-			}
-			if visitedNodes[desiredImageConfig.Redirect.To] {
-				return nil, fmt.Errorf("imageConfig with id '%s' has a circular redirect", desiredImageConfig.Id)
-			}
-			nextNode, ok := imageConfigIdMap[desiredImageConfig.Redirect.To]
-			if !ok {
-				return nil, fmt.Errorf("imageConfig with id '%s' not found, was redirected from '%s'", desiredImageConfig.Redirect.To, desiredImageConfig.Id)
-			}
-			desiredImageConfig = nextNode
-			visitedNodes[desiredImageConfig.Id] = true
-		}
-	}
-
-	// Reject cycles in pod options
-	podConfigIdMap := make(map[string]PodConfigValue)
-	for _, v := range r.Spec.PodTemplate.Options.PodConfig.Values {
-		podConfigIdMap[v.Id] = v
-	}
-	for _, currentPodConfig := range podConfigIdMap {
-		// follow any redirects to get the desired podConfig
-		desiredPodConfig := currentPodConfig
-		visitedNodes := map[string]bool{currentPodConfig.Id: true}
-		for {
-			if desiredPodConfig.Redirect == nil {
-				break
-			}
-			if visitedNodes[desiredPodConfig.Redirect.To] {
-				return nil, fmt.Errorf("podConfig with id '%s' has a circular redirect", desiredPodConfig.Id)
-			}
-			nextNode, ok := podConfigIdMap[desiredPodConfig.Redirect.To]
-			if !ok {
-				return nil, fmt.Errorf("podConfig with id '%s' not found, was redirected from '%s'", desiredPodConfig.Redirect.To, desiredPodConfig.Id)
-			}
-			desiredPodConfig = nextNode
-			visitedNodes[desiredPodConfig.Id] = true
-		}
-	}
-
-	// Ensure the default image config is present
-	if _, ok := imageConfigIdMap[r.Spec.PodTemplate.Options.ImageConfig.Spawner.Default]; !ok {
-		return nil, fmt.Errorf("default image config with id '%s' is not found in spec.podTemplate.options.imageConfig.values", r.Spec.PodTemplate.Options.ImageConfig.Spawner.Default)
-	}
-
-	// Ensure the default pod config is present
-	if _, ok := podConfigIdMap[r.Spec.PodTemplate.Options.PodConfig.Spawner.Default]; !ok {
-		return nil, fmt.Errorf("default pod config with id '%s' is not found in spec.podTemplate.options.podConfig.values", r.Spec.PodTemplate.Options.PodConfig.Spawner.Default)
-	}
-
-	// Validate the extraEnv values are valid go templates
-	for _, env := range r.Spec.PodTemplate.ExtraEnv {
-		rawValue := env.Value
-		_, err := template.New("value").Funcs(template.FuncMap{"httpPathPrefix": func(_ string) string { return "" }}).Parse(rawValue)
-		if err != nil {
-			err = fmt.Errorf("failed to parse value %q: %v", rawValue, err)
-			return nil, err
-		}
-	}
-
-	return nil, nil
+	return imageConfigUsageCount, podConfigUsageCount, nil
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *WorkspaceKind) ValidateDelete() (admission.Warnings, error) {
-	workspacekindlog.Info("validate delete", "name", r.Name)
+func generateAndValidateImageConfig(imageConfig ImageConfig, oldImageConfig ImageConfig, imageConfigUsageCount map[string]int) (map[string]ImageConfigValue, error) {
+	oldImageConfigValueMap := make(map[string]ImageConfigValue)
+	imageConfigValueMap := make(map[string]ImageConfigValue)
 
-	// TODO(user): fill in your validation logic upon object deletion.
-	return nil, nil
+	for _, v := range oldImageConfig.Values {
+		oldImageConfigValueMap[v.Id] = v
+	}
+
+	for _, v := range imageConfig.Values {
+
+		if oldImageConfigValue, exists := oldImageConfigValueMap[v.Id]; exists {
+			if !reflect.DeepEqual(oldImageConfigValue.Spec, v.Spec) {
+				return nil, fmt.Errorf("spec.podTemplate.options.imageConfig.values with id '%s' is immutable", v.Id)
+			}
+		}
+		imageConfigValueMap[v.Id] = v
+	}
+
+	for id, _ := range oldImageConfigValueMap {
+		if _, exists := imageConfigValueMap[id]; !exists {
+			if imageConfigUsageCount[id] > 0 {
+				errMsg := fmt.Sprintf("spec.podTemplate.options.imageConfig.values with id '%s' is used by %d workspace", id, imageConfigUsageCount[id])
+				if imageConfigUsageCount[id] > 1 {
+					errMsg += "s"
+				}
+				return nil, fmt.Errorf(errMsg)
+			}
+		}
+	}
+	return imageConfigValueMap, nil
+}
+
+func generateAndValidatePodConfig(podConfig PodConfig, oldPodConfig PodConfig, podConfigUsageCount map[string]int) (map[string]PodConfigValue, error) {
+	oldPodConfigValueMap := make(map[string]PodConfigValue)
+	podConfigValueMap := make(map[string]PodConfigValue)
+
+	for _, v := range oldPodConfig.Values {
+		oldPodConfigValueMap[v.Id] = v
+	}
+
+	for _, v := range podConfig.Values {
+		if oldPodConfigValue, exists := oldPodConfigValueMap[v.Id]; exists {
+			normalizePodConfigSpec(&oldPodConfigValue.Spec)
+			normalizePodConfigSpec(&v.Spec)
+
+			if !reflect.DeepEqual(oldPodConfigValue.Spec, v.Spec) {
+				return nil, fmt.Errorf("spec.podTemplate.options.podConfig.values with id '%s' is immutable", v.Id)
+			}
+		}
+		podConfigValueMap[v.Id] = v
+	}
+
+	for id, _ := range oldPodConfigValueMap {
+		if _, exists := podConfigValueMap[id]; !exists {
+			if podConfigUsageCount[id] > 0 {
+				errMsg := fmt.Sprintf("spec.podTemplate.options.podConfig.values with id '%s' is used by %d workspace", id, podConfigUsageCount[id])
+				if podConfigUsageCount[id] > 1 {
+					errMsg += "s"
+				}
+				return nil, fmt.Errorf(errMsg)
+			}
+		}
+	}
+
+	return podConfigValueMap, nil
 }
 
 func normalizePodConfigSpec(spec *PodConfigSpec) {
