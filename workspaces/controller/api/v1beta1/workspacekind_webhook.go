@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -30,8 +31,15 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+	"strings"
 	"text/template"
 )
+
+type ErrorList []string
+
+func (e ErrorList) Error() string {
+	return strings.Join(e, " , ")
+}
 
 const kbCacheWorkspaceKindField = ".spec.kind"
 
@@ -59,8 +67,8 @@ func (r *WorkspaceKind) ValidateCreate() (admission.Warnings, error) {
 		return nil, err
 	}
 	podConfigValueMap := make(map[string]PodConfigValue)
-	for _, v := range r.Spec.PodTemplate.Options.PodConfig.Values {
-		podConfigValueMap[v.Id] = v
+	for _, podConfigValue := range r.Spec.PodTemplate.Options.PodConfig.Values {
+		podConfigValueMap[podConfigValue.Id] = podConfigValue
 	}
 
 	if err := validateImageConfigCycles(imageConfigValueMap); err != nil {
@@ -74,7 +82,7 @@ func (r *WorkspaceKind) ValidateCreate() (admission.Warnings, error) {
 		return nil, err
 	}
 
-	if err := validateExtraEnv(r.Spec.PodTemplate.ExtraEnv); err != nil {
+	if _, err := RenderAndValidateExtraEnv(r.Spec.PodTemplate.ExtraEnv, func(string) string { return "" }, false); err != nil {
 		return nil, err
 	}
 
@@ -83,6 +91,87 @@ func (r *WorkspaceKind) ValidateCreate() (admission.Warnings, error) {
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *WorkspaceKind) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+	var (
+		imageConfigUsageCount        map[string]int
+		podConfigUsageCount          map[string]int
+		isConfigUsageCountCalculated bool
+		err                          error
+	)
+
+	generateAndValidateImageConfig := func(imageConfig ImageConfig, oldImageConfig ImageConfig) (map[string]ImageConfigValue, map[string]ImageConfigValue, error) {
+		oldImageConfigValueMap := make(map[string]ImageConfigValue)
+		imageConfigValueMap := make(map[string]ImageConfigValue)
+
+		for _, imageConfigValue := range oldImageConfig.Values {
+			oldImageConfigValueMap[imageConfigValue.Id] = imageConfigValue
+		}
+
+		for _, imageConfigValue := range imageConfig.Values {
+			if oldImageConfigValue, exists := oldImageConfigValueMap[imageConfigValue.Id]; exists {
+				if !isConfigUsageCountCalculated {
+					imageConfigUsageCount, podConfigUsageCount, err = getConfigUsageCount(r.Name)
+					if err != nil {
+						return nil, nil, err
+					}
+					isConfigUsageCountCalculated = true
+				}
+				if imageConfigUsageCount[imageConfigValue.Id] > 0 && !reflect.DeepEqual(oldImageConfigValue.Spec, imageConfigValue.Spec) {
+					return nil, nil, fmt.Errorf("spec.podTemplate.options.imageConfig.values with id '%s' is immutable because it is used by %d workspace(s)", imageConfigValue.Id, imageConfigUsageCount[imageConfigValue.Id])
+				}
+			}
+			imageConfigValueMap[imageConfigValue.Id] = imageConfigValue
+		}
+
+		for id, _ := range oldImageConfigValueMap {
+			if _, exists := imageConfigValueMap[id]; !exists && imageConfigUsageCount[id] > 0 {
+				return nil, nil, fmt.Errorf("spec.podTemplate.options.imageConfig.values with id '%s' is used by %d workspace(s)", id, imageConfigUsageCount[id])
+			}
+		}
+		return imageConfigValueMap, oldImageConfigValueMap, nil
+	}
+	generateAndValidatePodConfig := func(podConfig PodConfig, oldPodConfig PodConfig) (map[string]PodConfigValue, map[string]PodConfigValue, error) {
+		oldPodConfigValueMap := make(map[string]PodConfigValue)
+		podConfigValueMap := make(map[string]PodConfigValue)
+
+		for _, podConfigValue := range oldPodConfig.Values {
+			oldPodConfigValueMap[podConfigValue.Id] = podConfigValue
+		}
+
+		for _, podConfigValue := range podConfig.Values {
+			if oldPodConfigValue, exists := oldPodConfigValueMap[podConfigValue.Id]; exists {
+				err := normalizePodConfigSpec(&oldPodConfigValue.Spec)
+				if err != nil {
+					return nil, nil, err
+				}
+				err = normalizePodConfigSpec(&podConfigValue.Spec)
+				if err != nil {
+					return nil, nil, err
+				}
+				if !isConfigUsageCountCalculated {
+					_, podConfigUsageCount, err = getConfigUsageCount(r.Name)
+					if err != nil {
+						return nil, nil, err
+					}
+					isConfigUsageCountCalculated = true
+				}
+				if podConfigUsageCount[podConfigValue.Id] > 0 && !reflect.DeepEqual(oldPodConfigValue.Spec, podConfigValue.Spec) {
+					return nil, nil, fmt.Errorf("spec.podTemplate.options.podConfig.values with id '%s' is immutable because it is used by %d workspace(s)", podConfigValue.Id, podConfigUsageCount[podConfigValue.Id])
+				}
+			}
+			podConfigValueMap[podConfigValue.Id] = podConfigValue
+		}
+
+		for id, _ := range oldPodConfigValueMap {
+			if _, exists := podConfigValueMap[id]; !exists {
+				if podConfigUsageCount[id] > 0 {
+					return nil, nil, fmt.Errorf("spec.podTemplate.options.podConfig.values with id '%s' is used by %d workspace(s)", id, podConfigUsageCount[id])
+				}
+			}
+		}
+
+		return podConfigValueMap, oldPodConfigValueMap, nil
+	}
+
 	workspaceKindLog.Info("validate update", "name", r.Name)
 
 	// Type assertion to convert the old runtime.Object to WorkspaceKind
@@ -91,32 +180,46 @@ func (r *WorkspaceKind) ValidateUpdate(old runtime.Object) (admission.Warnings, 
 		return nil, errors.New("old object is not a WorkspaceKind")
 	}
 
-	imageConfigUsageCount, podConfigUsageCount, err := getConfigUsageCount(r.Name)
+	imageConfigValueMap, oldImageConfigValueMap, err := generateAndValidateImageConfig(
+		r.Spec.PodTemplate.Options.ImageConfig,
+		oldWorkspaceKind.Spec.PodTemplate.Options.ImageConfig,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !reflect.DeepEqual(imageConfigValueMap, oldImageConfigValueMap) {
+		if err := validateImageConfigCycles(imageConfigValueMap); err != nil {
+			return nil, err
+		}
+	}
 
-	imageConfigValueMap, err := generateAndValidateImageConfig(r.Spec.PodTemplate.Options.ImageConfig, oldWorkspaceKind.Spec.PodTemplate.Options.ImageConfig, imageConfigUsageCount)
+	podConfigValueMap, oldPodConfigValueMap, err := generateAndValidatePodConfig(
+		r.Spec.PodTemplate.Options.PodConfig,
+		oldWorkspaceKind.Spec.PodTemplate.Options.PodConfig,
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	podConfigValueMap, err := generateAndValidatePodConfig(r.Spec.PodTemplate.Options.PodConfig, oldWorkspaceKind.Spec.PodTemplate.Options.PodConfig, podConfigUsageCount)
-	if err != nil {
-		return nil, err
+	if !reflect.DeepEqual(podConfigValueMap, oldPodConfigValueMap) {
+		if err := validatePodConfigCycle(podConfigValueMap); err != nil {
+			return nil, err
+		}
 	}
 
-	if err := validateImageConfigCycles(imageConfigValueMap); err != nil {
-		return nil, err
+	if !reflect.DeepEqual(imageConfigValueMap, oldImageConfigValueMap) ||
+		!reflect.DeepEqual(podConfigValueMap, oldPodConfigValueMap) ||
+		r.Spec.PodTemplate.Options.ImageConfig.Spawner.Default != oldWorkspaceKind.Spec.PodTemplate.Options.ImageConfig.Spawner.Default ||
+		r.Spec.PodTemplate.Options.PodConfig.Spawner.Default != oldWorkspaceKind.Spec.PodTemplate.Options.PodConfig.Spawner.Default {
+		if err := ensureDefaultOptions(imageConfigValueMap, podConfigValueMap, r.Spec.PodTemplate.Options); err != nil {
+			return nil, err
+		}
 	}
 
-	if err := validatePodConfigCycle(podConfigValueMap); err != nil {
-		return nil, err
-	}
-
-	if err := ensureDefaultOptions(imageConfigValueMap, podConfigValueMap, r.Spec.PodTemplate.Options); err != nil {
-		return nil, err
-	}
-
-	if err := validateExtraEnv(r.Spec.PodTemplate.ExtraEnv); err != nil {
-		return nil, err
+	if !reflect.DeepEqual(r.Spec.PodTemplate.ExtraEnv, oldWorkspaceKind.Spec.PodTemplate.ExtraEnv) {
+		if _, err := RenderAndValidateExtraEnv(r.Spec.PodTemplate.ExtraEnv, func(string) string { return "" }, false); err != nil {
+			return nil, err
+		}
 	}
 
 	return nil, nil
@@ -125,35 +228,44 @@ func (r *WorkspaceKind) ValidateUpdate(old runtime.Object) (admission.Warnings, 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *WorkspaceKind) ValidateDelete() (admission.Warnings, error) {
 	workspaceKindLog.Info("validate delete", "name", r.Name)
-
-	// TODO(user): fill in your validation logic upon object deletion.
+	if r.Status.Workspaces > 0 {
+		return nil, fmt.Errorf("can not delete workspaceKind %s becuase it is used by %d workspace(s)", r.Name, r.Status.Workspaces)
+	}
 	return nil, nil
 }
 
 func generateImageConfigAndValidatePorts(imageConfig ImageConfig) (map[string]ImageConfigValue, error) {
+	var errorList ErrorList
 	imageConfigValueMap := make(map[string]ImageConfigValue)
-	for _, v := range imageConfig.Values {
+	for _, imageConfigValue := range imageConfig.Values {
 
 		ports := make(map[int32]bool)
-		for _, port := range v.Spec.Ports {
+		for _, port := range imageConfigValue.Spec.Ports {
 			if _, exists := ports[port.Port]; exists {
-				return nil, fmt.Errorf("duplicate port %d in imageConfig with id '%s'", port.Port, v.Id)
+				errorList = append(errorList, fmt.Sprintf("duplicate port %d in imageConfig with id '%s'", port.Port, imageConfigValue.Id))
 			}
 			ports[port.Port] = true
 		}
 
-		imageConfigValueMap[v.Id] = v
+		imageConfigValueMap[imageConfigValue.Id] = imageConfigValue
+	}
+	if len(errorList) > 0 {
+		return imageConfigValueMap, errorList
 	}
 	return imageConfigValueMap, nil
 }
 
 func ensureDefaultOptions(imageConfigValueMap map[string]ImageConfigValue, podConfigValueMap map[string]PodConfigValue, workspaceOptions WorkspaceKindPodOptions) error {
+	var errorList ErrorList
 	if _, ok := imageConfigValueMap[workspaceOptions.ImageConfig.Spawner.Default]; !ok {
-		return fmt.Errorf("default image config with id '%s' is not found in spec.podTemplate.options.imageConfig.values", workspaceOptions.ImageConfig.Spawner.Default)
+		errorList = append(errorList, fmt.Sprintf("default image config with id '%s' is not found in spec.podTemplate.options.imageConfig.values", workspaceOptions.ImageConfig.Spawner.Default))
 	}
 
 	if _, ok := podConfigValueMap[workspaceOptions.PodConfig.Spawner.Default]; !ok {
-		return fmt.Errorf("default pod config with id '%s' is not found in spec.podTemplate.options.podConfig.values", workspaceOptions.PodConfig.Spawner.Default)
+		errorList = append(errorList, fmt.Sprintf("default pod config with id '%s' is not found in spec.podTemplate.options.podConfig.values", workspaceOptions.PodConfig.Spawner.Default))
+	}
+	if len(errorList) > 0 {
+		return errorList
 	}
 	return nil
 }
@@ -204,16 +316,36 @@ func validatePodConfigCycle(podConfigValueMap map[string]PodConfigValue) error {
 	return nil
 }
 
-func validateExtraEnv(extraEnv []corev1.EnvVar) error {
+func RenderAndValidateExtraEnv(extraEnv []corev1.EnvVar, templateFunc func(string) string, shouldExecTemplate bool) ([]corev1.EnvVar, error) {
+	var errorList ErrorList
+	containerEnv := make([]corev1.EnvVar, 0)
+
 	for _, env := range extraEnv {
-		rawValue := env.Value
-		_, err := template.New("value").Funcs(template.FuncMap{"httpPathPrefix": func(_ string) string { return "" }}).Parse(rawValue)
-		if err != nil {
-			err = fmt.Errorf("failed to parse value %q: %v", rawValue, err)
-			return err
+		if env.Value != "" {
+			rawValue := env.Value
+			tmpl, err := template.New("value").Funcs(template.FuncMap{"httpPathPrefix": templateFunc}).Parse(rawValue)
+			if err != nil {
+				errorList = append(errorList, fmt.Sprintf("failed to parse value %q: %v", rawValue, err))
+				continue
+			}
+			if shouldExecTemplate {
+				var buf bytes.Buffer
+				err = tmpl.Execute(&buf, nil)
+				if err != nil {
+					errorList = append(errorList, fmt.Sprintf("failed to execute template for extraEnv '%s': %v", env.Name, err))
+					continue
+				}
+
+				env.Value = buf.String()
+			}
 		}
+		containerEnv = append(containerEnv, env)
 	}
-	return nil
+	if len(errorList) > 0 {
+		return nil, errorList
+	}
+	return containerEnv, nil
+
 }
 
 func getConfigUsageCount(workspaceKindName string) (map[string]int, map[string]int, error) {
@@ -235,74 +367,7 @@ func getConfigUsageCount(workspaceKindName string) (map[string]int, map[string]i
 	return imageConfigUsageCount, podConfigUsageCount, nil
 }
 
-func generateAndValidateImageConfig(imageConfig ImageConfig, oldImageConfig ImageConfig, imageConfigUsageCount map[string]int) (map[string]ImageConfigValue, error) {
-	oldImageConfigValueMap := make(map[string]ImageConfigValue)
-	imageConfigValueMap := make(map[string]ImageConfigValue)
-
-	for _, v := range oldImageConfig.Values {
-		oldImageConfigValueMap[v.Id] = v
-	}
-
-	for _, v := range imageConfig.Values {
-
-		if oldImageConfigValue, exists := oldImageConfigValueMap[v.Id]; exists {
-			if !reflect.DeepEqual(oldImageConfigValue.Spec, v.Spec) {
-				return nil, fmt.Errorf("spec.podTemplate.options.imageConfig.values with id '%s' is immutable", v.Id)
-			}
-		}
-		imageConfigValueMap[v.Id] = v
-	}
-
-	for id, _ := range oldImageConfigValueMap {
-		if _, exists := imageConfigValueMap[id]; !exists {
-			if imageConfigUsageCount[id] > 0 {
-				errMsg := fmt.Sprintf("spec.podTemplate.options.imageConfig.values with id '%s' is used by %d workspace", id, imageConfigUsageCount[id])
-				if imageConfigUsageCount[id] > 1 {
-					errMsg += "s"
-				}
-				return nil, fmt.Errorf(errMsg)
-			}
-		}
-	}
-	return imageConfigValueMap, nil
-}
-
-func generateAndValidatePodConfig(podConfig PodConfig, oldPodConfig PodConfig, podConfigUsageCount map[string]int) (map[string]PodConfigValue, error) {
-	oldPodConfigValueMap := make(map[string]PodConfigValue)
-	podConfigValueMap := make(map[string]PodConfigValue)
-
-	for _, v := range oldPodConfig.Values {
-		oldPodConfigValueMap[v.Id] = v
-	}
-
-	for _, v := range podConfig.Values {
-		if oldPodConfigValue, exists := oldPodConfigValueMap[v.Id]; exists {
-			normalizePodConfigSpec(&oldPodConfigValue.Spec)
-			normalizePodConfigSpec(&v.Spec)
-
-			if !reflect.DeepEqual(oldPodConfigValue.Spec, v.Spec) {
-				return nil, fmt.Errorf("spec.podTemplate.options.podConfig.values with id '%s' is immutable", v.Id)
-			}
-		}
-		podConfigValueMap[v.Id] = v
-	}
-
-	for id, _ := range oldPodConfigValueMap {
-		if _, exists := podConfigValueMap[id]; !exists {
-			if podConfigUsageCount[id] > 0 {
-				errMsg := fmt.Sprintf("spec.podTemplate.options.podConfig.values with id '%s' is used by %d workspace", id, podConfigUsageCount[id])
-				if podConfigUsageCount[id] > 1 {
-					errMsg += "s"
-				}
-				return nil, fmt.Errorf(errMsg)
-			}
-		}
-	}
-
-	return podConfigValueMap, nil
-}
-
-func normalizePodConfigSpec(spec *PodConfigSpec) {
+func normalizePodConfigSpec(spec *PodConfigSpec) (err error) {
 	// Normalize NodeSelector
 	if spec.NodeSelector != nil && len(spec.NodeSelector) == 0 {
 		spec.NodeSelector = nil
@@ -319,7 +384,11 @@ func normalizePodConfigSpec(spec *PodConfigSpec) {
 	}
 	if spec.Resources.Requests != nil {
 		for key, value := range spec.Resources.Requests {
-			spec.Resources.Requests[key] = resource.MustParse(value.String())
+			q, err := resource.ParseQuantity(value.String())
+			if err != nil {
+				return err
+			}
+			spec.Resources.Requests[key] = q
 		}
 	}
 
@@ -329,7 +398,12 @@ func normalizePodConfigSpec(spec *PodConfigSpec) {
 	}
 	if spec.Resources.Limits != nil {
 		for key, value := range spec.Resources.Limits {
-			spec.Resources.Limits[key] = resource.MustParse(value.String())
+			q, err := resource.ParseQuantity(value.String())
+			if err != nil {
+				return err
+			}
+			spec.Resources.Limits[key] = q
 		}
 	}
+	return nil
 }

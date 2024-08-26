@@ -310,6 +310,15 @@ var _ = Describe("controller", Ordered, func() {
 				return err
 			}
 			Eventually(curlService, timeout, interval).Should(Succeed())
+
+			By("ensuring that an option in WorkspaceKind cannot be removed if it is currently in use")
+			EventuallyWithOffset(1, func() error {
+				// Attempt to remove an option from the WorkspaceKind that is currently in use
+				cmd := exec.Command("kubectl", "patch", "workspacekind", "jupyterlab",
+					"--type=json", "-p", `[{"op": "remove", "path": "/spec/podTemplate/options/imageConfig/values/1"}]`)
+				_, err := utils.Run(cmd)
+				return err
+			}, timeout, interval).ShouldNot(Succeed())
 		})
 	})
 })

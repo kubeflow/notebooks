@@ -17,14 +17,11 @@ limitations under the License.
 package controller
 
 import (
-	"bytes"
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"reflect"
 	"strings"
-	"text/template"
-
-	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
 
@@ -681,29 +678,9 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 	}
 
 	// generate container env
-	containerEnv := make([]corev1.EnvVar, len(workspaceKind.Spec.PodTemplate.ExtraEnv))
-	for i, env := range workspaceKind.Spec.PodTemplate.ExtraEnv {
-		if env.Value != "" {
-			rawValue := env.Value
-
-			tmpl, err := template.New("value").
-				Funcs(template.FuncMap{"httpPathPrefix": httpPathPrefixFunc}).
-				Parse(rawValue)
-			if err != nil {
-				err = fmt.Errorf("failed to parse template for extraEnv '%s': %w", env.Name, err)
-				return nil, err
-			}
-
-			var buf bytes.Buffer
-			err = tmpl.Execute(&buf, nil)
-			if err != nil {
-				err = fmt.Errorf("failed to execute template for extraEnv '%s': %w", env.Name, err)
-				return nil, err
-			}
-
-			env.Value = buf.String()
-		}
-		containerEnv[i] = env
+	containerEnv, err := kubefloworgv1beta1.RenderAndValidateExtraEnv(workspaceKind.Spec.PodTemplate.ExtraEnv, httpPathPrefixFunc, true)
+	if err != nil {
+		return nil, err
 	}
 
 	// generate container resources

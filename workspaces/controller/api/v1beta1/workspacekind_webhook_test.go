@@ -127,13 +127,14 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 			workspaceName *string
 		}{
 			{
-				description: "should reject updates to imageConfig spec",
+				description: "should reject updates to used imageConfig spec",
 				modifyKindFn: func(wsk *WorkspaceKind) {
 					wsk.Spec.PodTemplate.Options.ImageConfig.Values[0].Spec.Image = "new-image:latest"
 				},
+				workspaceName: ptr.To("ws-webhook-update-image-config-spec-test"),
 			},
 			{
-				description: "should reject updates to podConfig spec",
+				description: "should reject updates to used podConfig spec",
 				modifyKindFn: func(wsk *WorkspaceKind) {
 					wsk.Spec.PodTemplate.Options.PodConfig.Values[0].Spec.Resources = &corev1.ResourceRequirements{
 						Limits: corev1.ResourceList{
@@ -141,6 +142,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						},
 					}
 				},
+				workspaceName: ptr.To("ws-webhook-update-pod-config-spec-test"),
 			},
 			{
 				description: "should reject WorkspaceKind update with cycles in imageConfig options",

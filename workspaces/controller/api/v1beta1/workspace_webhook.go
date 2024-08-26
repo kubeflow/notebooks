@@ -29,7 +29,7 @@ import (
 
 // log is for logging in this package.
 var (
-	workspacelog = logf.Log.WithName("workspace-resource")
+	workspaceLog = logf.Log.WithName("workspace-resource")
 	k8sClient    client.Client
 )
 
@@ -41,8 +41,6 @@ func (r *Workspace) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-// TODO(user): EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 //+kubebuilder:webhook:path=/validate-kubeflow-org-v1beta1-workspace,mutating=false,failurePolicy=fail,sideEffects=None,groups=kubeflow.org,resources=workspaces,verbs=create;update,versions=v1beta1,name=vworkspace.kb.io,admissionReviewVersions=v1
 
@@ -50,7 +48,7 @@ var _ webhook.Validator = &Workspace{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *Workspace) ValidateCreate() (admission.Warnings, error) {
-	workspacelog.Info("validate create", "name", r.Name)
+	workspaceLog.Info("validate create", "name", r.Name)
 
 	workspaceKindName := r.Spec.Kind
 	workspaceKind := &WorkspaceKind{}
@@ -58,20 +56,76 @@ func (r *Workspace) ValidateCreate() (admission.Warnings, error) {
 		return nil, fmt.Errorf("workspace kind %s not found", workspaceKindName)
 	}
 
+	var errorList ErrorList
+	if err := validateImageConfig(workspaceKind, r.Spec.PodTemplate.Options.ImageConfig); err != nil {
+		errorList = append(errorList, err.Error())
+	}
+	if err := validatePodConfig(workspaceKind, r.Spec.PodTemplate.Options.PodConfig); err != nil {
+		errorList = append(errorList, err.Error())
+	}
+
+	if len(errorList) > 0 {
+		return nil, errorList
+	}
+
 	return nil, nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *Workspace) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
-	workspacelog.Info("validate update", "name", r.Name)
+	workspaceLog.Info("validate update", "name", r.Name)
 
-	// TODO(user): fill in your validation logic upon object update.
+	oldWorkspace, ok := old.(*Workspace)
+	if !ok {
+		return nil, fmt.Errorf("old object is not a workspace")
+	}
+	workspaceKindName := r.Spec.Kind
+	workspaceKind := &WorkspaceKind{}
+	if err := k8sClient.Get(context.Background(), client.ObjectKey{Name: workspaceKindName}, workspaceKind); err != nil {
+		return nil, fmt.Errorf("workspace kind %s not found", workspaceKindName)
+	}
+	var errorList ErrorList
+
+	if r.Spec.PodTemplate.Options.ImageConfig != oldWorkspace.Spec.PodTemplate.Options.ImageConfig {
+		if err := validateImageConfig(workspaceKind, r.Spec.PodTemplate.Options.ImageConfig); err != nil {
+			errorList = append(errorList, err.Error())
+		}
+	}
+	if r.Spec.PodTemplate.Options.PodConfig != oldWorkspace.Spec.PodTemplate.Options.PodConfig {
+		if err := validatePodConfig(workspaceKind, r.Spec.PodTemplate.Options.PodConfig); err != nil {
+			errorList = append(errorList, err.Error())
+		}
+	}
+
+	if len(errorList) > 1 {
+		return nil, errorList
+	}
 	return nil, nil
+}
+
+// validateImageConfig checks if the selected imageConfig is valid
+func validateImageConfig(workspaceKind *WorkspaceKind, imageConfigID string) error {
+	for _, imageConfig := range workspaceKind.Spec.PodTemplate.Options.ImageConfig.Values {
+		if imageConfig.Id == imageConfigID {
+			return nil
+		}
+	}
+	return fmt.Errorf("imageConfig %s not found in workspace kind %s", imageConfigID, workspaceKind.Name)
+}
+
+// validatePodConfig checks if the selected podConfig is valid
+func validatePodConfig(workspaceKind *WorkspaceKind, podConfigID string) error {
+	for _, podConfig := range workspaceKind.Spec.PodTemplate.Options.PodConfig.Values {
+		if podConfig.Id == podConfigID {
+			return nil
+		}
+	}
+	return fmt.Errorf("podConfig %s not found in workspace kind %s", podConfigID, workspaceKind.Name)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *Workspace) ValidateDelete() (admission.Warnings, error) {
-	workspacelog.Info("validate delete", "name", r.Name)
+	workspaceLog.Info("validate delete", "name", r.Name)
 
 	// TODO(user): fill in your validation logic upon object deletion.
 	return nil, nil
