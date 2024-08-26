@@ -35,10 +35,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
 )
 
 const (
-	workspaceKindFinalizer = "notebooks.kubeflow.org/workspacekind-protection"
+	WorkspaceKindFinalizer = "notebooks.kubeflow.org/workspacekind-protection"
 )
 
 // WorkspaceKindReconciler reconciles a WorkspaceKind object
@@ -73,7 +74,7 @@ func (r *WorkspaceKindReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// fetch all Workspaces that are using this WorkspaceKind
 	workspaces := &kubefloworgv1beta1.WorkspaceList{}
 	listOpts := &client.ListOptions{
-		FieldSelector: fields.OneTermEqualSelector(kbCacheWorkspaceKindField, workspaceKind.Name),
+		FieldSelector: fields.OneTermEqualSelector(helper.IndexWorkspaceKindField, workspaceKind.Name),
 		Namespace:     "", // fetch Workspaces in all namespaces
 	}
 	if err := r.List(ctx, workspaces, listOpts); err != nil {
@@ -84,8 +85,8 @@ func (r *WorkspaceKindReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// if no Workspaces are using this WorkspaceKind, remove the finalizer
 	numWorkspace := len(workspaces.Items)
 	if numWorkspace == 0 {
-		if controllerutil.ContainsFinalizer(workspaceKind, workspaceKindFinalizer) {
-			controllerutil.RemoveFinalizer(workspaceKind, workspaceKindFinalizer)
+		if controllerutil.ContainsFinalizer(workspaceKind, WorkspaceKindFinalizer) {
+			controllerutil.RemoveFinalizer(workspaceKind, WorkspaceKindFinalizer)
 			if err := r.Update(ctx, workspaceKind); err != nil {
 				if apierrors.IsConflict(err) {
 					log.V(2).Info("update conflict while removing finalizer from WorkspaceKind, will requeue")
@@ -146,10 +147,8 @@ func (r *WorkspaceKindReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 // SetupWithManager sets up the controller with the Manager.
 func (r *WorkspaceKindReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
-	// Index Workspace by WorkspaceKind
-	// NOTE: the Workspace index is defined in the SetupWithManager function of the WorkspaceReconciler.
-	//       these controllers always share a manager (in both `main.go` and `suite_test.go`),
-	//       so initializing the same index twice would result in a conflict.
+	// NOTE: the SetupManagerFieldIndexers() helper in `helper/index.go` should have already been
+	//       called on `mgr` by the time this function is called, so the indexes are already set up
 
 	// function to convert Workspace events to reconcile requests for WorkspaceKinds
 	mapWorkspaceToRequest := func(ctx context.Context, object client.Object) []reconcile.Request {

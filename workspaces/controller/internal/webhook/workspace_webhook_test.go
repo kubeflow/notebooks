@@ -14,10 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package webhook
 
 import (
 	"fmt"
+
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,41 +43,35 @@ var _ = Describe("Workspace Webhook", func() {
 			By("creating the WorkspaceKind")
 			workspaceKind := NewExampleWorkspaceKind(workspaceKindName)
 			Expect(k8sClient.Create(ctx, workspaceKind)).To(Succeed())
-
 		})
 
 		AfterAll(func() {
-
 			By("deleting the WorkspaceKind")
-			workspaceKind := &WorkspaceKind{
+			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: workspaceKindName,
 				},
 			}
 			Expect(k8sClient.Delete(ctx, workspaceKind)).To(Succeed())
-
 		})
 
 		It("should reject workspace creation with an invalid WorkspaceKind", func() {
-			workspaceKindName := "invalid-workspace-kind"
+			invalidWorkspaceKindName := "invalid-workspace-kind"
 
 			By("creating the Workspace")
-			workspace := NewExampleWorkspace(workspaceName, namespaceName, workspaceKindName)
+			workspace := NewExampleWorkspace(workspaceName, namespaceName, invalidWorkspaceKindName)
 			err := k8sClient.Create(ctx, workspace)
-			Expect(err).ToNot(Succeed())
-			Expect(err.Error()).To(ContainSubstring(fmt.Sprintf("workspace kind %s not found", workspaceKindName)))
-
+			Expect(err).NotTo(Succeed())
+			Expect(err.Error()).To(ContainSubstring(fmt.Sprintf("workspace kind %q not found", invalidWorkspaceKindName)))
 		})
 
 		It("should successfully create workspace with a valid WorkspaceKind", func() {
-
 			By("creating the Workspace")
 			workspace := NewExampleWorkspace(workspaceName, namespaceName, workspaceKindName)
 			Expect(k8sClient.Create(ctx, workspace)).To(Succeed())
 
 			By("deleting the Workspace")
 			Expect(k8sClient.Delete(ctx, workspace)).To(Succeed())
-
 		})
 	})
 

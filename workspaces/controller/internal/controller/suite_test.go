@@ -41,6 +41,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -101,26 +102,30 @@ var _ = BeforeSuite(func() {
 			BindAddress: "0", // disable metrics serving
 		},
 	})
-	Expect(err).ToNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
+
+	By("setting up the field indexers for the controller manager")
+	err = helper.SetupManagerFieldIndexers(k8sManager)
+	Expect(err).NotTo(HaveOccurred())
 
 	By("setting up the Workspace controller")
 	err = (&WorkspaceReconciler{
 		Client: k8sManager.GetClient(),
 		Scheme: k8sManager.GetScheme(),
 	}).SetupWithManager(k8sManager)
-	Expect(err).ToNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	By("setting up the WorkspaceKind controller")
 	err = (&WorkspaceKindReconciler{
 		Client: k8sManager.GetClient(),
 		Scheme: k8sManager.GetScheme(),
 	}).SetupWithManager(k8sManager)
-	Expect(err).ToNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	go func() {
 		defer GinkgoRecover()
 		err = k8sManager.Start(ctx)
-		Expect(err).ToNot(HaveOccurred(), "failed to run manager")
+		Expect(err).NotTo(HaveOccurred(), "failed to run manager")
 	}()
 
 })

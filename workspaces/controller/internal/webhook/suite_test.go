@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package webhook
 
 import (
 	"context"
@@ -34,9 +34,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	admissionv1 "k8s.io/api/admission/v1"
-	//+kubebuilder:scaffold:imports
-	apimachineryruntime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -45,17 +43,23 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
+	//+kubebuilder:scaffold:imports
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
 var (
-	cfg           *rest.Config
-	k8sTestClient client.Client
-	testEnv       *envtest.Environment
-	ctx           context.Context
-	cancel        context.CancelFunc
+	testEnv *envtest.Environment
+	cfg     *rest.Config
+
+	k8sClient client.Client
+
+	ctx    context.Context
+	cancel context.CancelFunc
 )
 
 func TestAPIs(t *testing.T) {
@@ -66,85 +70,82 @@ func TestAPIs(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
-
-	ctx, cancel = context.WithCancel(context.TODO())
+	ctx, cancel = context.WithCancel(context.Background())
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "config", "crd", "bases")},
-		ErrorIfCRDPathMissing: false,
+		ErrorIfCRDPathMissing: true,
 
-		// The BinaryAssetsDirectory is only required if you want to run the tests directly
-		// without call the makefile target test. If not informed it will look for the
-		// default path defined in controller-runtime which is /usr/local/kubebuilder/.
-		// Note that you must have the required binaries setup under the bin directory to perform
-		// the tests directly. When we run make test it will be setup and used automatically.
-		BinaryAssetsDirectory: filepath.Join("..", "..", "bin", "k8s",
-			fmt.Sprintf("1.29.0-%s-%s", runtime.GOOS, runtime.GOARCH)),
+		// The BinaryAssetsDirectory is only required if you want to run the tests directly without call the makefile target test.
+		// If not informed it will look for the default path defined in controller-runtime which is /usr/local/kubebuilder/.
+		// Note that you must have the required binaries setup under the bin directory to perform the tests directly.
+		// When we run make test it will be setup and used automatically.
+		BinaryAssetsDirectory: filepath.Join("..", "..", "bin", "k8s", fmt.Sprintf("1.29.0-%s-%s", runtime.GOOS, runtime.GOARCH)),
 
 		WebhookInstallOptions: envtest.WebhookInstallOptions{
 			Paths: []string{filepath.Join("..", "..", "config", "webhook")},
 		},
 	}
-
 	var err error
-	// cfg is defined in this file globally.
 	cfg, err = testEnv.Start()
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 
-	scheme := apimachineryruntime.NewScheme()
-	err = AddToScheme(scheme)
-	Expect(err).NotTo(HaveOccurred())
-
-	err = admissionv1.AddToScheme(scheme)
+	By("setting up the scheme")
+	err = kubefloworgv1beta1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	//+kubebuilder:scaffold:scheme
 
-	k8sTestClient, err = client.New(cfg, client.Options{Scheme: scheme})
+	By("creating the k8s client")
+	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred())
-	Expect(k8sTestClient).NotTo(BeNil())
+	Expect(k8sClient).NotTo(BeNil())
 
-	// start webhook server using Manager
+	By("setting up the controller manager")
 	webhookInstallOptions := &testEnv.WebhookInstallOptions
-	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme: scheme,
+	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
+		Scheme: scheme.Scheme,
+		Metrics: metricsserver.Options{
+			BindAddress: "0", // disable metrics serving
+		},
 		WebhookServer: webhook.NewServer(webhook.Options{
 			Host:    webhookInstallOptions.LocalServingHost,
 			Port:    webhookInstallOptions.LocalServingPort,
 			CertDir: webhookInstallOptions.LocalServingCertDir,
 		}),
 		LeaderElection: false,
-		Metrics:        metricsserver.Options{BindAddress: "0"},
 	})
 	Expect(err).NotTo(HaveOccurred())
 
-	err = (&WorkspaceKind{}).SetupWebhookWithManager(mgr)
+	By("setting up the field indexers for the controller manager")
+	err = helper.SetupManagerFieldIndexers(k8sManager)
 	Expect(err).NotTo(HaveOccurred())
 
-	// Indexing `.spec.kind` here, not in SetupWebhookWithManager, to avoid conflicts with existing indexing.
-	// This indexing is specifically for testing purposes to index `Workspace` by `WorkspaceKind`.
-	err = mgr.GetFieldIndexer().IndexField(context.Background(), &Workspace{}, kbCacheWorkspaceKindField, func(rawObj client.Object) []string {
-		ws := rawObj.(*Workspace)
-		if ws.Spec.Kind == "" {
-			return nil
-		}
-		return []string{ws.Spec.Kind}
-	})
+	By("setting up the Workspace webhook")
+	err = (&WorkspaceValidator{
+		Client: k8sManager.GetClient(),
+		Scheme: k8sManager.GetScheme(),
+	}).SetupWebhookWithManager(k8sManager)
 	Expect(err).NotTo(HaveOccurred())
-	err = (&Workspace{}).SetupWebhookWithManager(mgr)
+
+	By("setting up the WorkspaceKind webhook")
+	err = (&WorkspaceKindValidator{
+		Client: k8sManager.GetClient(),
+		Scheme: k8sManager.GetScheme(),
+	}).SetupWebhookWithManager(k8sManager)
 	Expect(err).NotTo(HaveOccurred())
 
 	//+kubebuilder:scaffold:webhook
 
 	go func() {
 		defer GinkgoRecover()
-		err = mgr.Start(ctx)
-		Expect(err).NotTo(HaveOccurred())
+		err = k8sManager.Start(ctx)
+		Expect(err).NotTo(HaveOccurred(), "failed to run manager")
 	}()
 
-	// wait for the webhook server to get ready
+	// wait for the webhook server to become ready
 	dialer := &net.Dialer{Timeout: time.Second}
 	addrPort := fmt.Sprintf("%s:%d", webhookInstallOptions.LocalServingHost, webhookInstallOptions.LocalServingPort)
 	Eventually(func() error {
@@ -158,56 +159,58 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
+	By("stopping the manager")
 	cancel()
+
 	By("tearing down the test environment")
 	err := testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())
 })
 
 // NewExampleWorkspaceKind returns the common "WorkspaceKind" object used in tests.
-func NewExampleWorkspaceKind(name string) *WorkspaceKind {
-	return &WorkspaceKind{
+func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
+	return &kubefloworgv1beta1.WorkspaceKind{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
-		Spec: WorkspaceKindSpec{
-			Spawner: WorkspaceKindSpawner{
+		Spec: kubefloworgv1beta1.WorkspaceKindSpec{
+			Spawner: kubefloworgv1beta1.WorkspaceKindSpawner{
 				DisplayName:        "JupyterLab Notebook",
 				Description:        "A Workspace which runs JupyterLab in a Pod",
 				Hidden:             ptr.To(false),
 				Deprecated:         ptr.To(false),
 				DeprecationMessage: ptr.To("This WorkspaceKind will be removed on 20XX-XX-XX, please use another WorkspaceKind."),
-				Icon: WorkspaceKindIcon{
+				Icon: kubefloworgv1beta1.WorkspaceKindIcon{
 					Url: ptr.To("https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png"),
 				},
-				Logo: WorkspaceKindIcon{
-					ConfigMap: &WorkspaceKindConfigMap{
+				Logo: kubefloworgv1beta1.WorkspaceKindIcon{
+					ConfigMap: &kubefloworgv1beta1.WorkspaceKindConfigMap{
 						Name: "my-logos",
 						Key:  "apple-touch-icon-152x152.png",
 					},
 				},
 			},
-			PodTemplate: WorkspaceKindPodTemplate{
-				PodMetadata: &WorkspaceKindPodMetadata{},
-				ServiceAccount: WorkspaceKindServiceAccount{
+			PodTemplate: kubefloworgv1beta1.WorkspaceKindPodTemplate{
+				PodMetadata: &kubefloworgv1beta1.WorkspaceKindPodMetadata{},
+				ServiceAccount: kubefloworgv1beta1.WorkspaceKindServiceAccount{
 					Name: "default-editor",
 				},
-				Culling: &WorkspaceKindCullingConfig{
+				Culling: &kubefloworgv1beta1.WorkspaceKindCullingConfig{
 					Enabled:            ptr.To(true),
 					MaxInactiveSeconds: ptr.To(int32(86400)),
-					ActivityProbe: ActivityProbe{
-						Jupyter: &ActivityProbeJupyter{
+					ActivityProbe: kubefloworgv1beta1.ActivityProbe{
+						Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
 							LastActivity: true,
 						},
 					},
 				},
-				Probes: &WorkspaceKindProbes{},
-				VolumeMounts: WorkspaceKindVolumeMounts{
+				Probes: &kubefloworgv1beta1.WorkspaceKindProbes{},
+				VolumeMounts: kubefloworgv1beta1.WorkspaceKindVolumeMounts{
 					Home: "/home/jovyan",
 				},
-				HTTPProxy: &HTTPProxy{
+				HTTPProxy: &kubefloworgv1beta1.HTTPProxy{
 					RemovePathPrefix: ptr.To(false),
-					RequestHeaders: &IstioHeaderOperations{
+					RequestHeaders: &kubefloworgv1beta1.IstioHeaderOperations{
 						Set:    map[string]string{"X-RStudio-Root-Path": "{{ .PathPrefix }}"},
 						Add:    map[string]string{},
 						Remove: []string{},
@@ -245,18 +248,18 @@ func NewExampleWorkspaceKind(name string) *WorkspaceKind {
 					},
 					RunAsNonRoot: ptr.To(true),
 				},
-				Options: WorkspaceKindPodOptions{
-					ImageConfig: ImageConfig{
-						Spawner: OptionsSpawnerConfig{
+				Options: kubefloworgv1beta1.WorkspaceKindPodOptions{
+					ImageConfig: kubefloworgv1beta1.ImageConfig{
+						Spawner: kubefloworgv1beta1.OptionsSpawnerConfig{
 							Default: "jupyterlab_scipy_190",
 						},
-						Values: []ImageConfigValue{
+						Values: []kubefloworgv1beta1.ImageConfigValue{
 							{
 								Id: "jupyterlab_scipy_180",
-								Spawner: OptionSpawnerInfo{
+								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 									DisplayName: "jupyter-scipy:v1.8.0",
 									Description: ptr.To("JupyterLab, with SciPy Packages"),
-									Labels: []OptionSpawnerLabel{
+									Labels: []kubefloworgv1beta1.OptionSpawnerLabel{
 										{
 											Key:   "python_version",
 											Value: "3.11",
@@ -264,16 +267,16 @@ func NewExampleWorkspaceKind(name string) *WorkspaceKind {
 									},
 									Hidden: ptr.To(true),
 								},
-								Redirect: &OptionRedirect{
+								Redirect: &kubefloworgv1beta1.OptionRedirect{
 									To: "jupyterlab_scipy_190",
-									Message: &RedirectMessage{
+									Message: &kubefloworgv1beta1.RedirectMessage{
 										Level: "Info",
 										Text:  "This update will change...",
 									},
 								},
-								Spec: ImageConfigSpec{
+								Spec: kubefloworgv1beta1.ImageConfigSpec{
 									Image: "docker.io/kubeflownotebookswg/jupyter-scipy:v1.8.0",
-									Ports: []ImagePort{
+									Ports: []kubefloworgv1beta1.ImagePort{
 										{
 											Id:          "jupyterlab",
 											DisplayName: "JupyterLab",
@@ -285,19 +288,19 @@ func NewExampleWorkspaceKind(name string) *WorkspaceKind {
 							},
 							{
 								Id: "jupyterlab_scipy_190",
-								Spawner: OptionSpawnerInfo{
+								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 									DisplayName: "jupyter-scipy:v1.9.0",
 									Description: ptr.To("JupyterLab, with SciPy Packages"),
-									Labels: []OptionSpawnerLabel{
+									Labels: []kubefloworgv1beta1.OptionSpawnerLabel{
 										{
 											Key:   "python_version",
 											Value: "3.11",
 										},
 									},
 								},
-								Spec: ImageConfigSpec{
+								Spec: kubefloworgv1beta1.ImageConfigSpec{
 									Image: "docker.io/kubeflownotebookswg/jupyter-scipy:v1.9.0",
-									Ports: []ImagePort{
+									Ports: []kubefloworgv1beta1.ImagePort{
 										{
 											Id:          "jupyterlab",
 											DisplayName: "JupyterLab",
@@ -309,17 +312,17 @@ func NewExampleWorkspaceKind(name string) *WorkspaceKind {
 							},
 						},
 					},
-					PodConfig: PodConfig{
-						Spawner: OptionsSpawnerConfig{
+					PodConfig: kubefloworgv1beta1.PodConfig{
+						Spawner: kubefloworgv1beta1.OptionsSpawnerConfig{
 							Default: "tiny_cpu",
 						},
-						Values: []PodConfigValue{
+						Values: []kubefloworgv1beta1.PodConfigValue{
 							{
 								Id: "tiny_cpu",
-								Spawner: OptionSpawnerInfo{
+								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 									DisplayName: "Tiny CPU",
 									Description: ptr.To("Pod with 0.1 CPU, 128 MB RAM"),
-									Labels: []OptionSpawnerLabel{
+									Labels: []kubefloworgv1beta1.OptionSpawnerLabel{
 										{
 											Key:   "cpu",
 											Value: "100m",
@@ -330,7 +333,7 @@ func NewExampleWorkspaceKind(name string) *WorkspaceKind {
 										},
 									},
 								},
-								Spec: PodConfigSpec{
+								Spec: kubefloworgv1beta1.PodConfigSpec{
 									Resources: &v1.ResourceRequirements{
 										Requests: map[v1.ResourceName]resource.Quantity{
 											v1.ResourceCPU:    resource.MustParse("100m"),
@@ -341,10 +344,10 @@ func NewExampleWorkspaceKind(name string) *WorkspaceKind {
 							},
 							{
 								Id: "small_cpu",
-								Spawner: OptionSpawnerInfo{
+								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 									DisplayName: "Small CPU",
 									Description: ptr.To("Pod with 1 CPU, 2 GB RAM"),
-									Labels: []OptionSpawnerLabel{
+									Labels: []kubefloworgv1beta1.OptionSpawnerLabel{
 										{
 											Key:   "cpu",
 											Value: "1000m",
@@ -355,7 +358,7 @@ func NewExampleWorkspaceKind(name string) *WorkspaceKind {
 										},
 									},
 								},
-								Spec: PodConfigSpec{
+								Spec: kubefloworgv1beta1.PodConfigSpec{
 									Resources: &v1.ResourceRequirements{
 										Requests: map[v1.ResourceName]resource.Quantity{
 											v1.ResourceCPU:    resource.MustParse("1000m"),
@@ -366,10 +369,10 @@ func NewExampleWorkspaceKind(name string) *WorkspaceKind {
 							},
 							{
 								Id: "big_gpu",
-								Spawner: OptionSpawnerInfo{
+								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 									DisplayName: "Big GPU",
 									Description: ptr.To("Pod with 4 CPU, 16 GB RAM, and 1 GPU"),
-									Labels: []OptionSpawnerLabel{
+									Labels: []kubefloworgv1beta1.OptionSpawnerLabel{
 										{
 											Key:   "cpu",
 											Value: "4000m",
@@ -384,7 +387,7 @@ func NewExampleWorkspaceKind(name string) *WorkspaceKind {
 										},
 									},
 								},
-								Spec: PodConfigSpec{
+								Spec: kubefloworgv1beta1.PodConfigSpec{
 									Affinity:     nil,
 									NodeSelector: nil,
 									Tolerations: []v1.Toleration{
@@ -414,25 +417,25 @@ func NewExampleWorkspaceKind(name string) *WorkspaceKind {
 }
 
 // NewExampleWorkspaceKindWithImageConfigCycle returns a WorkspaceKind with a cycle in the ImageConfig options.
-func NewExampleWorkspaceKindWithImageConfigCycle(name string) *WorkspaceKind {
+func NewExampleWorkspaceKindWithImageConfigCycle(name string) *kubefloworgv1beta1.WorkspaceKind {
 	workspaceKind := NewExampleWorkspaceKind(name)
-	workspaceKind.Spec.PodTemplate.Options.ImageConfig.Values[1].Redirect = &OptionRedirect{
+	workspaceKind.Spec.PodTemplate.Options.ImageConfig.Values[1].Redirect = &kubefloworgv1beta1.OptionRedirect{
 		To: "jupyterlab_scipy_180",
 	}
 	return workspaceKind
 }
 
 // NewExampleWorkspaceKindWithPodConfigCycle returns a WorkspaceKind with a cycle in the PodConfig options.
-func NewExampleWorkspaceKindWithPodConfigCycle(name string) *WorkspaceKind {
+func NewExampleWorkspaceKindWithPodConfigCycle(name string) *kubefloworgv1beta1.WorkspaceKind {
 	workspaceKind := NewExampleWorkspaceKind(name)
-	workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[0].Redirect = &OptionRedirect{
+	workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[0].Redirect = &kubefloworgv1beta1.OptionRedirect{
 		To: "small_cpu",
-		Message: &RedirectMessage{
+		Message: &kubefloworgv1beta1.RedirectMessage{
 			Level: "Info",
 			Text:  "This update will change...",
 		},
 	}
-	workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[1].Redirect = &OptionRedirect{
+	workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[1].Redirect = &kubefloworgv1beta1.OptionRedirect{
 		To: "tiny_cpu",
 	}
 
@@ -440,9 +443,9 @@ func NewExampleWorkspaceKindWithPodConfigCycle(name string) *WorkspaceKind {
 }
 
 // NewExampleWorkspaceKindWithInvalidImageConfig returns a WorkspaceKind with an invalid redirect in the ImageConfig options.
-func NewExampleWorkspaceKindWithInvalidImageConfig(name string) *WorkspaceKind {
+func NewExampleWorkspaceKindWithInvalidImageConfig(name string) *kubefloworgv1beta1.WorkspaceKind {
 	workspaceKind := NewExampleWorkspaceKind(name)
-	workspaceKind.Spec.PodTemplate.Options.ImageConfig.Values[1].Redirect = &OptionRedirect{
+	workspaceKind.Spec.PodTemplate.Options.ImageConfig.Values[1].Redirect = &kubefloworgv1beta1.OptionRedirect{
 		To: "invalid_image_config",
 	}
 
@@ -450,9 +453,9 @@ func NewExampleWorkspaceKindWithInvalidImageConfig(name string) *WorkspaceKind {
 }
 
 // NewExampleWorkspaceKindWithInvalidPodConfig returns a WorkspaceKind with an invalid redirect in the PodConfig options.
-func NewExampleWorkspaceKindWithInvalidPodConfig(name string) *WorkspaceKind {
+func NewExampleWorkspaceKindWithInvalidPodConfig(name string) *kubefloworgv1beta1.WorkspaceKind {
 	workspaceKind := NewExampleWorkspaceKind(name)
-	workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[0].Redirect = &OptionRedirect{
+	workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[0].Redirect = &kubefloworgv1beta1.OptionRedirect{
 		To: "invalid_pod_config",
 	}
 
@@ -460,23 +463,23 @@ func NewExampleWorkspaceKindWithInvalidPodConfig(name string) *WorkspaceKind {
 }
 
 // NewExampleWorkspaceKindWithMissingDefaultImageConfig returns a WorkspaceKind with missing default image config.
-func NewExampleWorkspaceKindWithInvalidDefaultImageConfig(name string) *WorkspaceKind {
+func NewExampleWorkspaceKindWithInvalidDefaultImageConfig(name string) *kubefloworgv1beta1.WorkspaceKind {
 	workspaceKind := NewExampleWorkspaceKind(name)
 	workspaceKind.Spec.PodTemplate.Options.ImageConfig.Spawner.Default = "invalid_image_config"
 	return workspaceKind
 }
 
 // NewExampleWorkspaceKindWithMissingDefaultPodConfig returns a WorkspaceKind with missing default pod config.
-func NewExampleWorkspaceKindWithInvalidDefaultPodConfig(name string) *WorkspaceKind {
+func NewExampleWorkspaceKindWithInvalidDefaultPodConfig(name string) *kubefloworgv1beta1.WorkspaceKind {
 	workspaceKind := NewExampleWorkspaceKind(name)
 	workspaceKind.Spec.PodTemplate.Options.PodConfig.Spawner.Default = "invalid_pod_config"
 	return workspaceKind
 }
 
 // NewExampleWorkspaceKindWithInvalidExtraEnvValue returns a WorkspaceKind with an invalid extraEnv value.
-func NewExampleWorkspaceKindWithDuplicatePorts(name string) *WorkspaceKind {
+func NewExampleWorkspaceKindWithDuplicatePorts(name string) *kubefloworgv1beta1.WorkspaceKind {
 	workspaceKind := NewExampleWorkspaceKind(name)
-	workspaceKind.Spec.PodTemplate.Options.ImageConfig.Values[0].Spec.Ports = []ImagePort{
+	workspaceKind.Spec.PodTemplate.Options.ImageConfig.Values[0].Spec.Ports = []kubefloworgv1beta1.ImagePort{
 		{
 			Id:          "jupyterlab",
 			DisplayName: "JupyterLab",
@@ -494,7 +497,7 @@ func NewExampleWorkspaceKindWithDuplicatePorts(name string) *WorkspaceKind {
 }
 
 // NewExampleWorkspaceKindWithInvalidExtraEnvValue returns a WorkspaceKind with an invalid extraEnv value.
-func NewExampleWorkspaceKindWithInvalidExtraEnvValue(name string) *WorkspaceKind {
+func NewExampleWorkspaceKindWithInvalidExtraEnvValue(name string) *kubefloworgv1beta1.WorkspaceKind {
 	workspaceKind := NewExampleWorkspaceKind(name)
 	workspaceKind.Spec.PodTemplate.ExtraEnv = []v1.EnvVar{
 		{
@@ -506,15 +509,15 @@ func NewExampleWorkspaceKindWithInvalidExtraEnvValue(name string) *WorkspaceKind
 }
 
 // NewExampleWorkspace returns the common "Workspace" object used in tests.
-func NewExampleWorkspace(name, namespace, workspaceKindName string) *Workspace {
-	return &Workspace{
+func NewExampleWorkspace(name, namespace, workspaceKindName string) *kubefloworgv1beta1.Workspace {
+	return &kubefloworgv1beta1.Workspace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: WorkspaceSpec{
+		Spec: kubefloworgv1beta1.WorkspaceSpec{
 			Kind: workspaceKindName,
-			PodTemplate: WorkspacePodTemplate{Options: WorkspacePodOptions{
+			PodTemplate: kubefloworgv1beta1.WorkspacePodTemplate{Options: kubefloworgv1beta1.WorkspacePodOptions{
 				ImageConfig: "jupyterlab_scipy_180",
 				PodConfig:   "tiny_cpu",
 			},
