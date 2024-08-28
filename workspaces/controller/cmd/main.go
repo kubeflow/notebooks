@@ -21,9 +21,6 @@ import (
 	"flag"
 	"os"
 
-	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
-	webhookInternal "github.com/kubeflow/notebooks/workspaces/controller/internal/webhook"
-
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -39,6 +36,8 @@ import (
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	controllerInternal "github.com/kubeflow/notebooks/workspaces/controller/internal/controller"
+	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
+	webhookInternal "github.com/kubeflow/notebooks/workspaces/controller/internal/webhook"
 	//+kubebuilder:scaffold:imports
 )
 

@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 
-	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -29,6 +28,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 )
 
 // WorkspaceValidator validates a Workspace object
@@ -54,12 +55,12 @@ func (v *WorkspaceValidator) ValidateCreate(ctx context.Context, obj runtime.Obj
 	log := log.FromContext(ctx)
 	log.V(1).Info("validating Workspace create")
 
-	var allErrs field.ErrorList
-
 	workspace, ok := obj.(*kubefloworgv1beta1.Workspace)
 	if !ok {
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Workspace object but got %T", obj))
 	}
+
+	var allErrs field.ErrorList
 
 	// fetch the WorkspaceKind
 	workspaceKind, err := v.validateWorkspaceKind(ctx, workspace)
@@ -99,8 +100,6 @@ func (v *WorkspaceValidator) ValidateUpdate(ctx context.Context, oldObj, newObj 
 	log := log.FromContext(ctx)
 	log.V(1).Info("validating Workspace update")
 
-	var allErrs field.ErrorList
-
 	newWorkspace, ok := newObj.(*kubefloworgv1beta1.Workspace)
 	if !ok {
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Workspace object but got %T", newObj))
@@ -109,6 +108,8 @@ func (v *WorkspaceValidator) ValidateUpdate(ctx context.Context, oldObj, newObj 
 	if !ok {
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected old object to be a Workspace but got %T", oldObj))
 	}
+
+	var allErrs field.ErrorList
 
 	// check if workspace kind related fields have changed
 	var workspaceKindChange = false

@@ -43,6 +43,9 @@ const (
 	workspacePortInt   = 8888
 	workspacePortId    = "jupyterlab"
 
+	// workspacekind configs
+	workspaceKindName = "jupyterlab"
+
 	// curl image
 	curlImage = "curlimages/curl:8.9.1"
 
@@ -50,7 +53,7 @@ const (
 	timeout = time.Second * 60
 
 	// how long to wait in "Consistently" blocks
-	duration = time.Second * 10
+	duration = time.Second * 10 // nolint:unused
 
 	// how frequently to poll for conditions
 	interval = time.Second * 1
@@ -311,14 +314,58 @@ var _ = Describe("controller", Ordered, func() {
 			}
 			Eventually(curlService, timeout, interval).Should(Succeed())
 
-			By("ensuring that an option in WorkspaceKind cannot be removed if it is currently in use")
+			By("ensuring in-use imageConfig values cannot be removed from WorkspaceKind")
 			EventuallyWithOffset(1, func() error {
-				// Attempt to remove an option from the WorkspaceKind that is currently in use
-				cmd := exec.Command("kubectl", "patch", "workspacekind", "jupyterlab",
+				cmd := exec.Command("kubectl", "patch", "workspacekind", workspaceKindName,
 					"--type=json", "-p", `[{"op": "remove", "path": "/spec/podTemplate/options/imageConfig/values/1"}]`)
 				_, err := utils.Run(cmd)
 				return err
 			}, timeout, interval).ShouldNot(Succeed())
+
+			By("ensuring unused imageConfig values can be removed from WorkspaceKind")
+			EventuallyWithOffset(1, func() error {
+				cmd := exec.Command("kubectl", "patch", "workspacekind", workspaceKindName,
+					"--type=json", "-p", `[{"op": "remove", "path": "/spec/podTemplate/options/imageConfig/values/0"}]`)
+				_, err := utils.Run(cmd)
+				return err
+			}, timeout, interval).Should(Succeed())
+
+			By("ensuring in-use podConfig values cannot be removed from WorkspaceKind")
+			EventuallyWithOffset(1, func() error {
+				cmd := exec.Command("kubectl", "patch", "workspacekind", workspaceKindName,
+					"--type=json", "-p", `[{"op": "remove", "path": "/spec/podTemplate/options/podConfig/values/0"}]`)
+				_, err := utils.Run(cmd)
+				return err
+			}, timeout, interval).ShouldNot(Succeed())
+
+			By("ensuring unused podConfig values can be removed from WorkspaceKind")
+			EventuallyWithOffset(1, func() error {
+				cmd := exec.Command("kubectl", "patch", "workspacekind", workspaceKindName,
+					"--type=json", "-p", `[{"op": "remove", "path": "/spec/podTemplate/options/podConfig/values/1"}]`)
+				_, err := utils.Run(cmd)
+				return err
+			}, timeout, interval).Should(Succeed())
+
+			By("failing to delete an in-use WorkspaceKind")
+			EventuallyWithOffset(1, func() error {
+				cmd = exec.Command("kubectl", "delete", "workspacekind", workspaceKindName)
+				_, err := utils.Run(cmd)
+				return err
+			}, timeout, interval).ShouldNot(Succeed())
+
+			By("deleting the Workspace")
+			EventuallyWithOffset(1, func() error {
+				cmd := exec.Command("kubectl", "delete", "workspace", workspaceName, "-n", workspaceNamespace)
+				_, err := utils.Run(cmd)
+				return err
+			}, timeout, interval).Should(Succeed())
+
+			By("deleting an unused WorkspaceKind")
+			EventuallyWithOffset(1, func() error {
+				cmd = exec.Command("kubectl", "delete", "workspacekind", workspaceKindName)
+				_, err := utils.Run(cmd)
+				return err
+			}, timeout, interval).Should(Succeed())
 		})
 	})
 })

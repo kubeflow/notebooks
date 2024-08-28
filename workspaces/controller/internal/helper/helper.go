@@ -3,6 +3,9 @@ package helper
 import (
 	"reflect"
 
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	"k8s.io/apimachinery/pkg/api/resource"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -97,4 +100,52 @@ func CopyServiceFields(desired *corev1.Service, target *corev1.Service) bool {
 	}
 
 	return requireUpdate
+}
+
+// NormalizePodConfigSpec normalizes a PodConfigSpec so that it can be compared with reflect.DeepEqual
+func NormalizePodConfigSpec(spec kubefloworgv1beta1.PodConfigSpec) error {
+	// Normalize Affinity
+	if spec.Affinity != nil && reflect.DeepEqual(spec.Affinity, corev1.Affinity{}) {
+		spec.Affinity = nil
+	}
+
+	// Normalize NodeSelector
+	if spec.NodeSelector != nil && len(spec.NodeSelector) == 0 {
+		spec.NodeSelector = nil
+	}
+
+	// Normalize Tolerations
+	if spec.Tolerations != nil && len(spec.Tolerations) == 0 {
+		spec.Tolerations = nil
+	}
+
+	// Normalize Resources.Requests
+	if reflect.DeepEqual(spec.Resources.Requests, corev1.ResourceList{}) {
+		spec.Resources.Requests = nil
+	}
+	if spec.Resources.Requests != nil {
+		for key, value := range spec.Resources.Requests {
+			q, err := resource.ParseQuantity(value.String())
+			if err != nil {
+				return err
+			}
+			spec.Resources.Requests[key] = q
+		}
+	}
+
+	// Normalize Resources.Limits
+	if reflect.DeepEqual(spec.Resources.Limits, corev1.ResourceList{}) {
+		spec.Resources.Limits = nil
+	}
+	if spec.Resources.Limits != nil {
+		for key, value := range spec.Resources.Limits {
+			q, err := resource.ParseQuantity(value.String())
+			if err != nil {
+				return err
+			}
+			spec.Resources.Limits[key] = q
+		}
+	}
+
+	return nil
 }

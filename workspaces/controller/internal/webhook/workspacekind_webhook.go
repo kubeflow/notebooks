@@ -21,13 +21,9 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
-	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
-	"github.com/kubeflow/notebooks/workspaces/controller/internal/controller"
-	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -37,6 +33,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	"github.com/kubeflow/notebooks/workspaces/controller/internal/controller"
+	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
 )
 
 // WorkspaceKindValidator validates a Workspace object
@@ -62,12 +62,12 @@ func (v *WorkspaceKindValidator) ValidateCreate(ctx context.Context, obj runtime
 	log := log.FromContext(ctx)
 	log.V(1).Info("validating WorkspaceKind create")
 
-	var allErrs field.ErrorList
-
 	workspaceKind, ok := obj.(*kubefloworgv1beta1.WorkspaceKind)
 	if !ok {
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a WorkspaceKind object but got %T", obj))
 	}
+
+	var allErrs field.ErrorList
 
 	// validate the extra environment variables
 	allErrs = append(allErrs, validateExtraEnv(workspaceKind)...)
@@ -125,22 +125,20 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 	log := log.FromContext(ctx)
 	log.V(1).Info("validating WorkspaceKind update")
 
-	var allErrs field.ErrorList
-
 	newWorkspaceKind, ok := newObj.(*kubefloworgv1beta1.WorkspaceKind)
 	if !ok {
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a WorkspaceKind object but got %T", newObj))
 	}
 	oldWorkspaceKind, ok := oldObj.(*kubefloworgv1beta1.WorkspaceKind)
 	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected old object to be a WorkspaceKind but got %T", oldObj))
+		return nil, apierrors.NewInternalError(fmt.Errorf("old object is not a WorkspaceKind, but a %T", oldObj))
 	}
 
-	// get usage count for imageConfig and podConfig values
-	imageConfigUsageCount, podConfigUsageCount, err := v.getOptionsUsageCounts(ctx, oldWorkspaceKind)
-	if err != nil {
-		return nil, err
-	}
+	var allErrs field.ErrorList
+
+	// get functions to lazily fetch usage counts for imageConfig and podConfig values
+	// NOTE: the cluster is only queried when either function is called for the first time
+	getImageConfigUsageCount, getPodConfigUsageCount := v.getLazyOptionUsageCountFuncs(ctx, oldWorkspaceKind)
 
 	// validate the extra environment variables
 	if !reflect.DeepEqual(newWorkspaceKind.Spec.PodTemplate.ExtraEnv, oldWorkspaceKind.Spec.PodTemplate.ExtraEnv) {
@@ -170,12 +168,13 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 			toValidateImageConfigIds[imageConfigValue.Id] = true
 
 			// we always need to validate the imageConfig redirects if an imageConfig value was added
+			// because the new imageConfig value could be used by a redirect or cause a cycle
 			shouldValidateImageConfigRedirects = true
 		} else {
-			// check if this imageConfig value is used by any workspaces
-			var usageCount int32
-			if usageCount, exists = imageConfigUsageCount[imageConfigValue.Id]; !exists {
-				return nil, apierrors.NewInternalError(fmt.Errorf("usage count not found for imageConfig value %q", imageConfigValue.Id))
+			// if we haven't already decided to validate the imageConfig redirects,
+			// check if the redirect has changed
+			if !shouldValidateImageConfigRedirects && !reflect.DeepEqual(oldImageConfigIdMap[imageConfigValue.Id].Redirect, imageConfigValue.Redirect) {
+				shouldValidateImageConfigRedirects = true
 			}
 
 			// check if the spec has changed
@@ -183,17 +182,18 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 				// we need to validate this imageConfig value since it has changed
 				toValidateImageConfigIds[imageConfigValue.Id] = true
 
+				// check how many workspaces are using this imageConfig value
+				usageCount, err := getImageConfigUsageCount(imageConfigValue.Id)
+				if err != nil {
+					// if the usage count is not found, we cannot validate the WorkspaceKind further
+					return nil, apierrors.NewInternalError(fmt.Errorf("failed to get usage count for imageConfig with id %q: %w", imageConfigValue.Id, err))
+				}
+
 				// if this imageConfig is used by any workspaces, mark this imageConfig as bad,
-				// (the spec is immutable while in use)
+				// the spec is immutable while in use
 				if usageCount > 0 {
 					badChangedImageConfigIds[imageConfigValue.Id] = true
 				}
-			}
-
-			// if we haven't already decided to validate the imageConfig redirects,
-			// check if the redirect has changed
-			if !shouldValidateImageConfigRedirects && !reflect.DeepEqual(oldImageConfigIdMap[imageConfigValue.Id].Redirect, imageConfigValue.Redirect) {
-				shouldValidateImageConfigRedirects = true
 			}
 		}
 	}
@@ -201,10 +201,11 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 
 		// check if this imageConfig value was removed
 		if _, exists := newImageConfigIdMap[id]; !exists {
-			// check if this imageConfig value is used by any workspaces
-			var usageCount int32
-			if usageCount, exists = imageConfigUsageCount[id]; !exists {
-				return nil, apierrors.NewInternalError(fmt.Errorf("usage count not found for imageConfig value %q", id))
+			// check how many workspaces are using this imageConfig value
+			usageCount, err := getImageConfigUsageCount(id)
+			if err != nil {
+				// if the usage count is not found, we cannot validate the WorkspaceKind further
+				return nil, apierrors.NewInternalError(fmt.Errorf("failed to get usage count for imageConfig with id %q: %w", id, err))
 			}
 
 			// if this imageConfig is used by any workspaces, mark this imageConfig as bad,
@@ -214,6 +215,7 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 			}
 
 			// we always need to validate the imageConfig redirects if an imageConfig was removed
+			// because an existing redirect could be pointing to the removed imageConfig value
 			shouldValidateImageConfigRedirects = true
 		}
 	}
@@ -237,36 +239,50 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 		// check if the podConfig value is new
 		if _, exists := oldPodConfigIdMap[podConfigValue.Id]; !exists {
 			// we always need to validate the podConfig redirects if a podConfig was added
+			// because the new podConfig value could be used by a redirect or cause a cycle
 			shouldValidatePodConfigRedirects = true
 		} else {
-			// check if this podConfig value is used by any workspaces
-			var usageCount int32
-			if usageCount, exists = podConfigUsageCount[podConfigValue.Id]; !exists {
-				return nil, apierrors.NewInternalError(fmt.Errorf("usage count not found for podConfig value %q", podConfigValue.Id))
-			}
-
-			// normalize the podConfig specs
-			oldPodConfigSpec := oldPodConfigIdMap[podConfigValue.Id].Spec
-			err := normalizePodConfigSpec(oldPodConfigSpec)
-			if err != nil {
-				return nil, apierrors.NewInternalError(fmt.Errorf("failed to normalize podConfig spec: %w", err))
-			}
-			newPodConfigSpec := podConfigValue.Spec
-			err = normalizePodConfigSpec(newPodConfigSpec)
-			if err != nil {
-				return nil, apierrors.NewInternalError(fmt.Errorf("failed to normalize podConfig spec: %w", err))
-			}
-
-			// if this podConfig is used by any workspaces, check if the spec has changed
-			// if the spec has changed, mark this podConfig as bad (the spec is immutable while in use)
-			if usageCount > 0 && !reflect.DeepEqual(oldPodConfigSpec, newPodConfigSpec) {
-				badChangedPodConfigIds[podConfigValue.Id] = true
-			}
-
 			// if we haven't already decided to validate the podConfig redirects,
 			// check if the redirect has changed
 			if !shouldValidatePodConfigRedirects && !reflect.DeepEqual(oldPodConfigIdMap[podConfigValue.Id].Redirect, podConfigValue.Redirect) {
 				shouldValidatePodConfigRedirects = true
+			}
+
+			// we must normalize the podConfig specs so that we can compare them
+			newPodConfigSpec := podConfigValue.Spec
+			err := helper.NormalizePodConfigSpec(newPodConfigSpec)
+			if err != nil {
+				podConfigValueSpecPath := field.NewPath("spec", "podTemplate", "options", "podConfig", "values").Key(podConfigValue.Id).Child("spec")
+				allErrs = append(allErrs, field.InternalError(podConfigValueSpecPath, fmt.Errorf("failed to normalize podConfig spec: %w", err)))
+
+				// if the spec could not be normalized, we cannot validate the WorkspaceKind further
+				return nil, apierrors.NewInvalid(
+					schema.GroupKind{Group: kubefloworgv1beta1.GroupVersion.Group, Kind: "WorkspaceKind"},
+					newWorkspaceKind.Name,
+					allErrs,
+				)
+			}
+			oldPodConfigSpec := oldPodConfigIdMap[podConfigValue.Id].Spec
+			err = helper.NormalizePodConfigSpec(oldPodConfigSpec)
+			if err != nil {
+				// this should never happen, as it would indicate that the old podConfig spec is invalid
+				return nil, apierrors.NewInternalError(fmt.Errorf("old podConfig spec of %q could not be normalized: %w", podConfigValue.Id, err))
+			}
+
+			// check if the spec has changed
+			if !reflect.DeepEqual(oldPodConfigSpec, newPodConfigSpec) {
+				// check how many workspaces are using this podConfig value
+				usageCount, err := getPodConfigUsageCount(podConfigValue.Id)
+				if err != nil {
+					// if the usage count is not found, we cannot validate the WorkspaceKind further
+					return nil, apierrors.NewInternalError(fmt.Errorf("failed to get usage count for podConfig with id %q: %w", podConfigValue.Id, err))
+				}
+
+				// if this podConfig is used by any workspaces, mark this podConfig as bad,
+				// the spec is immutable while in use
+				if usageCount > 0 {
+					badChangedPodConfigIds[podConfigValue.Id] = true
+				}
 			}
 		}
 	}
@@ -274,10 +290,11 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 
 		// check if this podConfig value was removed
 		if _, exists := newPodConfigIdMap[id]; !exists {
-			// check if this podConfig value is used by any workspaces
-			var usageCount int32
-			if usageCount, exists = podConfigUsageCount[id]; !exists {
-				return nil, apierrors.NewInternalError(fmt.Errorf("usage count not found for podConfig value %q", id))
+			// check how many workspaces are using this podConfig value
+			usageCount, err := getPodConfigUsageCount(id)
+			if err != nil {
+				// if the usage count is not found, we cannot validate the WorkspaceKind further
+				return nil, apierrors.NewInternalError(fmt.Errorf("failed to get usage count for podConfig with id %q: %w", id, err))
 			}
 
 			// if this podConfig is used by any workspaces, mark this podConfig as bad,
@@ -287,17 +304,16 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 			}
 
 			// we always need to validate the podConfig redirects if a podConfig was removed
+			// because an existing redirect could be pointing to the removed imageConfig value
 			shouldValidatePodConfigRedirects = true
 		}
 	}
 
 	// validate default options
-	if oldWorkspaceKind.Spec.PodTemplate.Options.ImageConfig.Spawner.Default != newWorkspaceKind.Spec.PodTemplate.Options.ImageConfig.Spawner.Default {
-		allErrs = append(allErrs, validateDefaultImageConfig(newWorkspaceKind, newImageConfigIdMap)...)
-	}
-	if oldWorkspaceKind.Spec.PodTemplate.Options.PodConfig.Spawner.Default != newWorkspaceKind.Spec.PodTemplate.Options.PodConfig.Spawner.Default {
-		allErrs = append(allErrs, validateDefaultPodConfig(newWorkspaceKind, newPodConfigIdMap)...)
-	}
+	// NOTE: we always check this because it's cheap, and otherwise we would need to keep track of if
+	//       any options were changed or removed
+	allErrs = append(allErrs, validateDefaultImageConfig(newWorkspaceKind, newImageConfigIdMap)...)
+	allErrs = append(allErrs, validateDefaultPodConfig(newWorkspaceKind, newPodConfigIdMap)...)
 
 	// validate imageConfig values
 	// NOTE: we only need to validate new or changed imageConfig values
@@ -307,7 +323,7 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 		allErrs = append(allErrs, validateImageConfigValue(&imageConfigValue, imageConfigValuePath)...)
 	}
 
-	// validate bad imageConfig values
+	// process bad imageConfig values
 	for id := range badChangedImageConfigIds {
 		imageConfigValuePath := field.NewPath("spec", "podTemplate", "options", "imageConfig", "values").Key(id)
 		allErrs = append(allErrs, field.Invalid(imageConfigValuePath, id, fmt.Sprintf("imageConfig value %q is in use and cannot be changed", id)))
@@ -317,7 +333,7 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 		allErrs = append(allErrs, field.Invalid(imageConfigValuePath, id, fmt.Sprintf("imageConfig value %q is in use and cannot be removed", id)))
 	}
 
-	// validate bad podConfig values
+	// process bad podConfig values
 	for id := range badChangedPodConfigIds {
 		podConfigValuePath := field.NewPath("spec", "podTemplate", "options", "podConfig", "values").Key(id)
 		allErrs = append(allErrs, field.Invalid(podConfigValuePath, id, fmt.Sprintf("podConfig value %q is in use and cannot be changed", id)))
@@ -382,25 +398,62 @@ func (v *WorkspaceKindValidator) ValidateDelete(ctx context.Context, obj runtime
 	return nil, nil
 }
 
-// getOptionsUsageCounts returns the usage counts for each imageConfig and podConfig value
-func (v *WorkspaceKindValidator) getOptionsUsageCounts(ctx context.Context, workspaceKind *kubefloworgv1beta1.WorkspaceKind) (map[string]int32, map[string]int32, *apierrors.StatusError) {
-	podConfigUsageCount := make(map[string]int32)
-	imageConfigUsageCount := make(map[string]int32)
+// getLazyOptionUsageCountFuncs returns functions that get usage counts for imageConfig and podConfig values in a WorkspaceKind
+// the cluster is only queried when either function is called for the first time
+func (v *WorkspaceKindValidator) getLazyOptionUsageCountFuncs(ctx context.Context, workspaceKind *kubefloworgv1beta1.WorkspaceKind) (func(string) (int32, error), func(string) (int32, error)) {
 
-	// if possible, we get the counts from the status of the WorkspaceKind. these counts are updated by the
-	// controller so could be stale if the controller is not running or a workspace was very recently added or removed.
-	// however, since the controller gracefully handles cases of a Workspace referencing a non-existent imageConfig
-	// or podConfig value, we can safely use these counts to validate the WorkspaceKind, Workspaces will simply be
-	// put into an error state and the user can correct the issue. these counts will NOT be set in the WorkspaceKind
-	// unit tests, so we implement a fallback method to count the Workspaces that are using each option.
-	if len(workspaceKind.Status.PodTemplateOptions.ImageConfig) > 0 && len(workspaceKind.Status.PodTemplateOptions.PodConfig) > 0 {
-		for _, imageConfigMetrics := range workspaceKind.Status.PodTemplateOptions.ImageConfig {
-			imageConfigUsageCount[imageConfigMetrics.Id] = imageConfigMetrics.Workspaces
+	// usageCountWrapper is a wrapper for the usage count maps
+	// NOTE: this is needed because sync.OnceValues can only return 2 values
+	type usageCountWrapper struct {
+		imageConfigUsageCounts map[string]int32
+		podConfigUsageCounts   map[string]int32
+	}
+
+	// this function will lazily fetch the usage counts for each option
+	lazyGetOptionsUsageCounts := sync.OnceValues(func() (usageCountWrapper, error) {
+		imageConfigUsageCounts, podConfigUsageCounts, err := v.getOptionsUsageCounts(ctx, workspaceKind)
+		if err != nil {
+			return usageCountWrapper{}, err
 		}
-		for _, podConfigMetrics := range workspaceKind.Status.PodTemplateOptions.PodConfig {
-			podConfigUsageCount[podConfigMetrics.Id] = podConfigMetrics.Workspaces
+		return usageCountWrapper{
+			imageConfigUsageCounts: imageConfigUsageCounts,
+			podConfigUsageCounts:   podConfigUsageCounts,
+		}, nil
+	})
+
+	// getImageConfigUsageCount returns the usage count for an imageConfig value
+	getImageConfigUsageCount := func(id string) (int32, error) {
+		wrapper, err := lazyGetOptionsUsageCounts()
+		if err != nil {
+			return 0, err
+		}
+		if count, exists := wrapper.imageConfigUsageCounts[id]; !exists {
+			return 0, errors.New("unknown imageConfig id")
+		} else {
+			return count, nil
 		}
 	}
+
+	// getPodConfigUsageCount returns the usage count for a podConfig value
+	getPodConfigUsageCount := func(id string) (int32, error) {
+		wrapper, err := lazyGetOptionsUsageCounts()
+		if err != nil {
+			return 0, err
+		}
+		if count, exists := wrapper.podConfigUsageCounts[id]; !exists {
+			return 0, errors.New("unknown podConfig id")
+		} else {
+			return count, nil
+		}
+	}
+
+	return getImageConfigUsageCount, getPodConfigUsageCount
+}
+
+// getOptionsUsageCounts returns the usage counts for each imageConfig and podConfig value
+func (v *WorkspaceKindValidator) getOptionsUsageCounts(ctx context.Context, workspaceKind *kubefloworgv1beta1.WorkspaceKind) (map[string]int32, map[string]int32, error) {
+	imageConfigUsageCount := make(map[string]int32)
+	podConfigUsageCount := make(map[string]int32)
 
 	// fetch all Workspaces that are using this WorkspaceKind
 	workspaces := &kubefloworgv1beta1.WorkspaceList{}
@@ -409,7 +462,7 @@ func (v *WorkspaceKindValidator) getOptionsUsageCounts(ctx context.Context, work
 		Namespace:     "", // fetch Workspaces in all namespaces
 	}
 	if err := v.List(ctx, workspaces, listOpts); err != nil {
-		return nil, nil, apierrors.NewInternalError(err)
+		return nil, nil, err
 	}
 
 	// count the number of Workspaces using each option
@@ -508,14 +561,14 @@ func validateImageConfigRedirects(imageConfigIdMap map[string]kubefloworgv1beta1
 		// check if there is a cycle involving the current node
 		if cycle := helper.DetectGraphCycle(id, checkedNodes, imageConfigRedirectMap); cycle != nil {
 			redirectToPath := field.NewPath("spec", "podTemplate", "options", "imageConfig", "values").Key(id).Child("redirect", "to")
-			errs = append(errs, field.Invalid(redirectToPath, redirectTo, fmt.Sprintf("cycle detected: %v", cycle)))
+			errs = append(errs, field.Invalid(redirectToPath, redirectTo, fmt.Sprintf("imageConfig redirect cycle detected: %v", cycle)))
 			break // stop checking redirects if a cycle is detected
 		}
 
 		// ensure the target of the redirect exists
 		if _, exists := imageConfigIdMap[redirectTo]; !exists {
 			redirectToPath := field.NewPath("spec", "podTemplate", "options", "imageConfig", "values").Key(id).Child("redirect", "to")
-			errs = append(errs, field.Invalid(redirectToPath, redirectTo, fmt.Sprintf("invalid redirect target %q", redirectTo)))
+			errs = append(errs, field.Invalid(redirectToPath, redirectTo, fmt.Sprintf("target imageConfig %q does not exist", redirectTo)))
 		}
 	}
 
@@ -532,64 +585,16 @@ func validatePodConfigRedirects(podConfigIdMap map[string]kubefloworgv1beta1.Pod
 		// check if there is a cycle involving the current node
 		if cycle := helper.DetectGraphCycle(id, checkedNodes, podConfigRedirectMap); cycle != nil {
 			redirectToPath := field.NewPath("spec", "podTemplate", "options", "podConfig", "values").Key(id).Child("redirect", "to")
-			errs = append(errs, field.Invalid(redirectToPath, redirectTo, fmt.Sprintf("cycle detected: %v", cycle)))
+			errs = append(errs, field.Invalid(redirectToPath, redirectTo, fmt.Sprintf("podConfig redirect cycle detected: %v", cycle)))
 			break // stop checking redirects if a cycle is detected
 		}
 
 		// ensure the target of the redirect exists
 		if _, exists := podConfigIdMap[redirectTo]; !exists {
 			redirectToPath := field.NewPath("spec", "podTemplate", "options", "podConfig", "values").Key(id).Child("redirect", "to")
-			errs = append(errs, field.Invalid(redirectToPath, redirectTo, fmt.Sprintf("invalid redirect target %q", redirectTo)))
+			errs = append(errs, field.Invalid(redirectToPath, redirectTo, fmt.Sprintf("target podConfig %q does not exist", redirectTo)))
 		}
 	}
 
 	return errs
-}
-
-// normalizePodConfigSpec normalizes a PodConfigSpec so that it can be compared with reflect.DeepEqual
-func normalizePodConfigSpec(spec kubefloworgv1beta1.PodConfigSpec) (err error) {
-	// Normalize Affinity
-	if spec.Affinity != nil && reflect.DeepEqual(spec.Affinity, corev1.Affinity{}) {
-		spec.Affinity = nil
-	}
-
-	// Normalize NodeSelector
-	if spec.NodeSelector != nil && len(spec.NodeSelector) == 0 {
-		spec.NodeSelector = nil
-	}
-
-	// Normalize Tolerations
-	if spec.Tolerations != nil && len(spec.Tolerations) == 0 {
-		spec.Tolerations = nil
-	}
-
-	// Normalize Resources.Requests
-	if reflect.DeepEqual(spec.Resources.Requests, corev1.ResourceList{}) {
-		spec.Resources.Requests = nil
-	}
-	if spec.Resources.Requests != nil {
-		for key, value := range spec.Resources.Requests {
-			q, err := resource.ParseQuantity(value.String())
-			if err != nil {
-				return err
-			}
-			spec.Resources.Requests[key] = q
-		}
-	}
-
-	// Normalize Resources.Limits
-	if reflect.DeepEqual(spec.Resources.Limits, corev1.ResourceList{}) {
-		spec.Resources.Limits = nil
-	}
-	if spec.Resources.Limits != nil {
-		for key, value := range spec.Resources.Limits {
-			q, err := resource.ParseQuantity(value.String())
-			if err != nil {
-				return err
-			}
-			spec.Resources.Limits[key] = q
-		}
-	}
-
-	return nil
 }

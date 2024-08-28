@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// nolint:goconst
 package webhook
 
 import (
@@ -443,7 +444,7 @@ func NewExampleWorkspaceKindWithPodConfigCycle(name string) *kubefloworgv1beta1.
 }
 
 // NewExampleWorkspaceKindWithInvalidImageConfig returns a WorkspaceKind with an invalid redirect in the ImageConfig options.
-func NewExampleWorkspaceKindWithInvalidImageConfig(name string) *kubefloworgv1beta1.WorkspaceKind {
+func NewExampleWorkspaceKindWithInvalidImageConfigRedirect(name string) *kubefloworgv1beta1.WorkspaceKind {
 	workspaceKind := NewExampleWorkspaceKind(name)
 	workspaceKind.Spec.PodTemplate.Options.ImageConfig.Values[1].Redirect = &kubefloworgv1beta1.OptionRedirect{
 		To: "invalid_image_config",
@@ -453,7 +454,7 @@ func NewExampleWorkspaceKindWithInvalidImageConfig(name string) *kubefloworgv1be
 }
 
 // NewExampleWorkspaceKindWithInvalidPodConfig returns a WorkspaceKind with an invalid redirect in the PodConfig options.
-func NewExampleWorkspaceKindWithInvalidPodConfig(name string) *kubefloworgv1beta1.WorkspaceKind {
+func NewExampleWorkspaceKindWithInvalidPodConfigRedirect(name string) *kubefloworgv1beta1.WorkspaceKind {
 	workspaceKind := NewExampleWorkspaceKind(name)
 	workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[0].Redirect = &kubefloworgv1beta1.OptionRedirect{
 		To: "invalid_pod_config",

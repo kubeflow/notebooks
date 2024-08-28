@@ -44,7 +44,7 @@ var _ = Describe("Workspace Controller", func() {
 		timeout = time.Second * 10
 
 		// how long to wait in "Consistently" blocks
-		duration = time.Second * 10
+		duration = time.Second * 10 // nolint:unused
 
 		// how frequently to poll for conditions
 		interval = time.Millisecond * 250
