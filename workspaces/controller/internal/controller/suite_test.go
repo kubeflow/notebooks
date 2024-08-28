@@ -262,6 +262,7 @@ func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 						},
 						Values: []kubefloworgv1beta1.ImageConfigValue{
 							{
+								// WARNING: do not change the ID of this value or remove it, it is used in the tests
 								Id: "jupyterlab_scipy_180",
 								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 									DisplayName: "jupyter-scipy:v1.8.0",
@@ -294,6 +295,7 @@ func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 								},
 							},
 							{
+								// WARNING: do not change the ID of this value or remove it, it is used in the tests
 								Id: "jupyterlab_scipy_190",
 								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 									DisplayName: "jupyter-scipy:v1.9.0",
@@ -325,6 +327,7 @@ func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 						},
 						Values: []kubefloworgv1beta1.PodConfigValue{
 							{
+								// WARNING: do not change the ID of this value or remove it, it is used in the tests
 								Id: "tiny_cpu",
 								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 									DisplayName: "Tiny CPU",
@@ -350,6 +353,7 @@ func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 								},
 							},
 							{
+								// WARNING: do not change the ID of this value or remove it, it is used in the tests
 								Id: "small_cpu",
 								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 									DisplayName: "Small CPU",
@@ -375,6 +379,7 @@ func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 								},
 							},
 							{
+								// WARNING: do not change the ID of this value or remove it, it is used in the tests
 								Id: "big_gpu",
 								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 									DisplayName: "Big GPU",

@@ -256,6 +256,7 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 						},
 						Values: []kubefloworgv1beta1.ImageConfigValue{
 							{
+								// WARNING: do not change the ID of this value or remove it, it is used in the tests
 								Id: "jupyterlab_scipy_180",
 								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 									DisplayName: "jupyter-scipy:v1.8.0",
@@ -288,6 +289,7 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 								},
 							},
 							{
+								// WARNING: do not change the ID of this value or remove it, it is used in the tests
 								Id: "jupyterlab_scipy_190",
 								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 									DisplayName: "jupyter-scipy:v1.9.0",
@@ -311,6 +313,66 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 									},
 								},
 							},
+							{
+								// WARNING: do not change the ID of this value or remove it, it is used in the tests
+								Id: "redirect_step_1",
+								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
+									DisplayName: "redirect_step_1",
+								},
+								Redirect: &kubefloworgv1beta1.OptionRedirect{
+									To: "redirect_step_2",
+								},
+								Spec: kubefloworgv1beta1.ImageConfigSpec{
+									Image: "redirect-test:step-1",
+									Ports: []kubefloworgv1beta1.ImagePort{
+										{
+											Id:          "my_port",
+											DisplayName: "something",
+											Port:        1234,
+											Protocol:    "HTTP",
+										},
+									},
+								},
+							},
+							{
+								// WARNING: do not change the ID of this value or remove it, it is used in the tests
+								Id: "redirect_step_2",
+								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
+									DisplayName: "redirect_step_2",
+								},
+								Redirect: &kubefloworgv1beta1.OptionRedirect{
+									To: "redirect_step_3",
+								},
+								Spec: kubefloworgv1beta1.ImageConfigSpec{
+									Image: "redirect-test:step-2",
+									Ports: []kubefloworgv1beta1.ImagePort{
+										{
+											Id:          "my_port",
+											DisplayName: "something",
+											Port:        1234,
+											Protocol:    "HTTP",
+										},
+									},
+								},
+							},
+							{
+								// WARNING: do not change the ID of this value or remove it, it is used in the tests
+								Id: "redirect_step_3",
+								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
+									DisplayName: "redirect_step_3",
+								},
+								Spec: kubefloworgv1beta1.ImageConfigSpec{
+									Image: "redirect-test:step-3",
+									Ports: []kubefloworgv1beta1.ImagePort{
+										{
+											Id:          "my_port",
+											DisplayName: "something",
+											Port:        1234,
+											Protocol:    "HTTP",
+										},
+									},
+								},
+							},
 						},
 					},
 					PodConfig: kubefloworgv1beta1.PodConfig{
@@ -319,6 +381,7 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 						},
 						Values: []kubefloworgv1beta1.PodConfigValue{
 							{
+								// WARNING: do not change the ID of this value or remove it, it is used in the tests
 								Id: "tiny_cpu",
 								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 									DisplayName: "Tiny CPU",
@@ -344,6 +407,7 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 								},
 							},
 							{
+								// WARNING: do not change the ID of this value or remove it, it is used in the tests
 								Id: "small_cpu",
 								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 									DisplayName: "Small CPU",
@@ -369,6 +433,7 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 								},
 							},
 							{
+								// WARNING: do not change the ID of this value or remove it, it is used in the tests
 								Id: "big_gpu",
 								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 									DisplayName: "Big GPU",
@@ -408,6 +473,36 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 										},
 									},
 								},
+							},
+							{
+								// WARNING: do not change the ID of this value or remove it, it is used in the tests
+								Id: "redirect_step_1",
+								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
+									DisplayName: "redirect_step_1",
+								},
+								Redirect: &kubefloworgv1beta1.OptionRedirect{
+									To: "redirect_step_2",
+								},
+								Spec: kubefloworgv1beta1.PodConfigSpec{},
+							},
+							{
+								// WARNING: do not change the ID of this value or remove it, it is used in the tests
+								Id: "redirect_step_2",
+								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
+									DisplayName: "redirect_step_2",
+								},
+								Redirect: &kubefloworgv1beta1.OptionRedirect{
+									To: "redirect_step_3",
+								},
+								Spec: kubefloworgv1beta1.PodConfigSpec{},
+							},
+							{
+								// WARNING: do not change the ID of this value or remove it, it is used in the tests
+								Id: "redirect_step_3",
+								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
+									DisplayName: "redirect_step_3",
+								},
+								Spec: kubefloworgv1beta1.PodConfigSpec{},
 							},
 						},
 					},

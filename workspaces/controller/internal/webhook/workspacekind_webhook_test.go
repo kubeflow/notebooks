@@ -17,14 +17,14 @@ limitations under the License.
 package webhook
 
 import (
-	"fmt"
+	"slices"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	gomegaTypes "github.com/onsi/gomega/types"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
@@ -39,53 +39,58 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 	Context("When creating a WorkspaceKind", Ordered, func() {
 
 		testCases := []struct {
-			description   string
+			// the "Should()" description of the test
+			description string
+
+			// the WorkspaceKind to attempt to create
 			workspaceKind *kubefloworgv1beta1.WorkspaceKind
+
+			// if the test should succeed
 			shouldSucceed bool
 		}{
 			{
 				description:   "should accept creation of a valid WorkspaceKind",
-				workspaceKind: NewExampleWorkspaceKind("wsk-webhook-create-test"),
+				workspaceKind: NewExampleWorkspaceKind("wsk-webhook-create--valid"),
 				shouldSucceed: true,
 			},
 			{
 				description:   "should reject creation with cycle in imageConfig redirects",
-				workspaceKind: NewExampleWorkspaceKindWithImageConfigCycle("wsk-webhook-image-config-cycle-test"),
+				workspaceKind: NewExampleWorkspaceKindWithImageConfigCycle("wsk-webhook-create--image-config-cycle"),
 				shouldSucceed: false,
 			},
 			{
 				description:   "should reject creation with cycle in podConfig redirects",
-				workspaceKind: NewExampleWorkspaceKindWithPodConfigCycle("wsk-webhook-pod-config-cycle-test"),
+				workspaceKind: NewExampleWorkspaceKindWithPodConfigCycle("wsk-webhook-create--pod-config-cycle"),
 				shouldSucceed: false,
 			},
 			{
 				description:   "should reject creation with invalid redirect target in imageConfig options",
-				workspaceKind: NewExampleWorkspaceKindWithInvalidImageConfigRedirect("wsk-webhook-image-config-invalid-redirect-test"),
+				workspaceKind: NewExampleWorkspaceKindWithInvalidImageConfigRedirect("wsk-webhook-create--image-config-invalid-redirect"),
 				shouldSucceed: false,
 			},
 			{
 				description:   "should reject creation with invalid redirect target in podConfig options",
-				workspaceKind: NewExampleWorkspaceKindWithInvalidPodConfigRedirect("wsk-webhook-pod-config-invalid-redirect-test"),
+				workspaceKind: NewExampleWorkspaceKindWithInvalidPodConfigRedirect("wsk-webhook-create--pod-config-invalid-redirect"),
 				shouldSucceed: false,
 			},
 			{
 				description:   "should reject creation with invalid default imageConfig",
-				workspaceKind: NewExampleWorkspaceKindWithInvalidDefaultImageConfig("wsk-webhook-image-config-default-test"),
+				workspaceKind: NewExampleWorkspaceKindWithInvalidDefaultImageConfig("wsk-webhook-create--image-config-invalid-default"),
 				shouldSucceed: false,
 			},
 			{
 				description:   "should reject creation with invalid default podConfig",
-				workspaceKind: NewExampleWorkspaceKindWithInvalidDefaultPodConfig("wsk-webhook-pod-config-default-test"),
+				workspaceKind: NewExampleWorkspaceKindWithInvalidDefaultPodConfig("wsk-webhook-create--pod-config-invalid-default"),
 				shouldSucceed: false,
 			},
 			{
 				description:   "should reject creation with duplicate ports in imageConfig",
-				workspaceKind: NewExampleWorkspaceKindWithDuplicatePorts("wsk-webhook-image-config-duplicate-ports-test"),
+				workspaceKind: NewExampleWorkspaceKindWithDuplicatePorts("wsk-webhook-create--image-config-duplicate-ports"),
 				shouldSucceed: false,
 			},
 			{
 				description:   "should reject creation if extraEnv[].value is not a valid Go template",
-				workspaceKind: NewExampleWorkspaceKindWithInvalidExtraEnvValue("wsk-webhook-invalid-extra-env-value-test"),
+				workspaceKind: NewExampleWorkspaceKindWithInvalidExtraEnvValue("wsk-webhook-create--extra-invalid-env-value"),
 				shouldSucceed: false,
 			},
 		}
@@ -108,66 +113,132 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 	})
 
 	Context("When updating a WorkspaceKind", Ordered, func() {
-		var (
-			workspaceKindName string
-			workspaceKindKey  types.NamespacedName
-			workspaceKind     *kubefloworgv1beta1.WorkspaceKind
+		const (
+			workspaceName     = "wsk-webhook-update-test"
+			workspaceKindName = "wsk-webhook-update-test"
 		)
 
-		BeforeAll(func() {
-			uniqueName := "wsk-webhook-update-test"
-			workspaceKindName = fmt.Sprintf("workspacekind-%s", uniqueName)
-			workspaceKindKey = types.NamespacedName{Name: workspaceKindName}
+		AfterEach(func() {
+			By("deleting the Workspace, if it exists")
+			workspace := &kubefloworgv1beta1.Workspace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      workspaceName,
+					Namespace: namespaceName,
+				},
+			}
+			_ = k8sClient.Delete(ctx, workspace)
 
-			By("creating the WorkspaceKind")
-			createdWorkspaceKind := NewExampleWorkspaceKind(workspaceKindName)
-			Expect(k8sClient.Create(ctx, createdWorkspaceKind)).To(Succeed())
-
-			By("getting the created WorkspaceKind")
-			workspaceKind = &kubefloworgv1beta1.WorkspaceKind{}
-			Expect(k8sClient.Get(ctx, workspaceKindKey, workspaceKind)).To(Succeed())
-		})
-
-		AfterAll(func() {
-			By("deleting the WorkspaceKind")
-			Expect(k8sClient.Delete(ctx, workspaceKind)).To(Succeed())
+			By("deleting the WorkspaceKind, if it exists")
+			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: workspaceKindName,
+				},
+			}
+			_ = k8sClient.Delete(ctx, workspaceKind)
 		})
 
 		testCases := []struct {
+			// the "Should()" description of the test
 			description string
-			// modifyKindFn is a function that modifies the WorkspaceKind in some way
-			// and returns a string matcher for the expected error message (if any)
-			modifyKindFn  func(*kubefloworgv1beta1.WorkspaceKind) string
-			workspaceName string
 
-			// if shouldSucceed is true, the test is expected to succeed
+			// if the test should succeed
 			shouldSucceed bool
+
+			// the initial state of the WorkspaceKind (required)
+			workspaceKind *kubefloworgv1beta1.WorkspaceKind
+
+			// the initial state of the Workspace, if any
+			workspace *kubefloworgv1beta1.Workspace
+
+			// modifyKindFn modifies the WorkspaceKind in some way.
+			// returns a string matcher for the error message (only used if `shouldSucceed` is false)
+			modifyKindFn func(*kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher
 		}{
 			{
-				description: "should reject updates to in-use imageConfig spec",
-				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) string {
-					wsk.Spec.PodTemplate.Options.ImageConfig.Values[0].Spec.Image = "new-image:latest"
-					return fmt.Sprintf("imageConfig value %q is in use and cannot be changed", wsk.Spec.PodTemplate.Options.ImageConfig.Values[0].Id)
+				description:   "should accept re-ordering in-use imageConfig values",
+				shouldSucceed: true,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				workspace:     NewExampleWorkspace(workspaceName, namespaceName, workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					// reverse the imageConfig values list
+					slices.Reverse(wsk.Spec.PodTemplate.Options.ImageConfig.Values)
+					return ContainSubstring("")
 				},
-				workspaceName: "wsk-webhook-update-image-config-test",
-				shouldSucceed: false,
 			},
 			{
-				description: "should reject updates to in-use podConfig spec",
-				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) string {
+				description:   "should accept re-ordering in-use podConfig values",
+				shouldSucceed: true,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				workspace:     NewExampleWorkspace(workspaceName, namespaceName, workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					// reverse the podConfig values list
+					slices.Reverse(wsk.Spec.PodTemplate.Options.PodConfig.Values)
+					return ContainSubstring("")
+				},
+			},
+			{
+				description:   "should reject updates to in-use imageConfig spec",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				workspace:     NewExampleWorkspace(workspaceName, namespaceName, workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					inUseId := wsk.Spec.PodTemplate.Options.ImageConfig.Values[0].Id
+					wsk.Spec.PodTemplate.Options.ImageConfig.Values[0].Spec.Image = "new-image:latest"
+					return ContainSubstring("imageConfig value %q is in use and cannot be changed", inUseId)
+				},
+			},
+			{
+				description:   "should reject updates to in-use podConfig spec",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				workspace:     NewExampleWorkspace(workspaceName, namespaceName, workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					inUseId := wsk.Spec.PodTemplate.Options.PodConfig.Values[0].Id
 					wsk.Spec.PodTemplate.Options.PodConfig.Values[0].Spec.Resources = &corev1.ResourceRequirements{
 						Limits: corev1.ResourceList{
 							corev1.ResourceCPU: resource.MustParse("1.5"),
 						},
 					}
-					return fmt.Sprintf("podConfig value %q is in use and cannot be changed", wsk.Spec.PodTemplate.Options.PodConfig.Values[0].Id)
+					return ContainSubstring("podConfig value %q is in use and cannot be changed", inUseId)
 				},
-				workspaceName: "ws-webhook-update-pod-config-test",
-				shouldSucceed: false,
 			},
 			{
-				description: "should reject removing in-use imageConfig values",
-				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) string {
+				description:   "should accept updates to unused imageConfig spec",
+				shouldSucceed: true,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				workspace:     NewExampleWorkspace(workspaceName, namespaceName, workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					wsk.Spec.PodTemplate.Options.ImageConfig.Values[1].Spec.Image = "new-image:latest"
+					return ContainSubstring("")
+				},
+			},
+			{
+				description:   "should accept updates to unused podConfig spec",
+				shouldSucceed: true,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				workspace:     NewExampleWorkspace(workspaceName, namespaceName, workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					wsk.Spec.PodTemplate.Options.PodConfig.Values[1].Spec.Resources = &corev1.ResourceRequirements{
+						Limits: corev1.ResourceList{
+							corev1.ResourceCPU: resource.MustParse("1.5"),
+						},
+					}
+					return ContainSubstring("")
+				},
+			},
+			{
+				description:   "should reject removing in-use imageConfig values",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				workspace:     NewExampleWorkspace(workspaceName, namespaceName, workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
 					toBeRemoved := "jupyterlab_scipy_180"
 					newValues := make([]kubefloworgv1beta1.ImageConfigValue, 0)
 					for _, value := range wsk.Spec.PodTemplate.Options.ImageConfig.Values {
@@ -176,14 +247,16 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						}
 					}
 					wsk.Spec.PodTemplate.Options.ImageConfig.Values = newValues
-					return fmt.Sprintf("imageConfig value %q is in use and cannot be removed", toBeRemoved)
+					return ContainSubstring("imageConfig value %q is in use and cannot be removed", toBeRemoved)
 				},
-				workspaceName: "ws-webhook-update-image-config-test",
-				shouldSucceed: false,
 			},
 			{
-				description: "should reject removing in-use podConfig values",
-				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) string {
+				description:   "should reject removing in-use podConfig values",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				workspace:     NewExampleWorkspace(workspaceName, namespaceName, workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
 					toBeRemoved := "tiny_cpu"
 					newValues := make([]kubefloworgv1beta1.PodConfigValue, 0)
 					for _, value := range wsk.Spec.PodTemplate.Options.PodConfig.Values {
@@ -192,70 +265,222 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						}
 					}
 					wsk.Spec.PodTemplate.Options.PodConfig.Values = newValues
-					return fmt.Sprintf("podConfig value %q is in use and cannot be removed", toBeRemoved)
+					return ContainSubstring("podConfig value %q is in use and cannot be removed", toBeRemoved)
 				},
-				workspaceName: "ws-webhook-update-pod-config-test",
-				shouldSucceed: false,
 			},
 			{
-				description: "should reject updating an imageConfig value to create a self-cycle",
-				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) string {
+				description:   "should accept removing an unused imageConfig value",
+				shouldSucceed: true,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				workspace:     NewExampleWorkspace(workspaceName, namespaceName, workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					toBeRemoved := "redirect_step_1"
+					newValues := make([]kubefloworgv1beta1.ImageConfigValue, 0)
+					for _, value := range wsk.Spec.PodTemplate.Options.ImageConfig.Values {
+						if value.Id != toBeRemoved {
+							newValues = append(newValues, value)
+						}
+					}
+					wsk.Spec.PodTemplate.Options.ImageConfig.Values = newValues
+					return ContainSubstring("")
+				},
+			},
+			{
+				description:   "should accept removing an unused podConfig value",
+				shouldSucceed: true,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				workspace:     NewExampleWorkspace(workspaceName, namespaceName, workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					toBeRemoved := "redirect_step_1"
+					newValues := make([]kubefloworgv1beta1.PodConfigValue, 0)
+					for _, value := range wsk.Spec.PodTemplate.Options.PodConfig.Values {
+						if value.Id != toBeRemoved {
+							newValues = append(newValues, value)
+						}
+					}
+					wsk.Spec.PodTemplate.Options.PodConfig.Values = newValues
+					return ContainSubstring("")
+				},
+			},
+			{
+				description:   "should reject removing the default imageConfig value",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					toBeRemoved := "jupyterlab_scipy_190"
+					newValues := make([]kubefloworgv1beta1.ImageConfigValue, 0)
+					for _, value := range wsk.Spec.PodTemplate.Options.ImageConfig.Values {
+						if value.Id != toBeRemoved {
+							newValues = append(newValues, value)
+						}
+					}
+					wsk.Spec.PodTemplate.Options.ImageConfig.Values = newValues
+					return ContainSubstring("default imageConfig %q not found", toBeRemoved)
+				},
+			},
+			{
+				description:   "should reject removing the default podConfig value",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				workspace:     NewExampleWorkspace(workspaceName, namespaceName, workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					toBeRemoved := "tiny_cpu"
+					newValues := make([]kubefloworgv1beta1.PodConfigValue, 0)
+					for _, value := range wsk.Spec.PodTemplate.Options.PodConfig.Values {
+						if value.Id != toBeRemoved {
+							newValues = append(newValues, value)
+						}
+					}
+					wsk.Spec.PodTemplate.Options.PodConfig.Values = newValues
+					return ContainSubstring("default podConfig %q not found", toBeRemoved)
+				},
+			},
+			{
+				description:   "should reject removing the target of an imageConfig redirect",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					toBeRemoved := "redirect_step_2"
+					newValues := make([]kubefloworgv1beta1.ImageConfigValue, 0)
+					for _, value := range wsk.Spec.PodTemplate.Options.ImageConfig.Values {
+						if value.Id != toBeRemoved {
+							newValues = append(newValues, value)
+						}
+					}
+					wsk.Spec.PodTemplate.Options.ImageConfig.Values = newValues
+					return ContainSubstring("target imageConfig %q does not exist", toBeRemoved)
+				},
+			},
+			{
+				description:   "should reject removing the target of a podConfig redirect",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					toBeRemoved := "redirect_step_2"
+					newValues := make([]kubefloworgv1beta1.PodConfigValue, 0)
+					for _, value := range wsk.Spec.PodTemplate.Options.PodConfig.Values {
+						if value.Id != toBeRemoved {
+							newValues = append(newValues, value)
+						}
+					}
+					wsk.Spec.PodTemplate.Options.PodConfig.Values = newValues
+					return ContainSubstring("target podConfig %q does not exist", toBeRemoved)
+				},
+			},
+			{
+				description:   "should accept removing an entire imageConfig redirect chain",
+				shouldSucceed: true,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					toBeRemoved := map[string]bool{"redirect_step_1": true, "redirect_step_2": true, "redirect_step_3": true}
+					newValues := make([]kubefloworgv1beta1.ImageConfigValue, 0)
+					for _, value := range wsk.Spec.PodTemplate.Options.ImageConfig.Values {
+						if !toBeRemoved[value.Id] {
+							newValues = append(newValues, value)
+						}
+					}
+					wsk.Spec.PodTemplate.Options.ImageConfig.Values = newValues
+					return ContainSubstring("")
+				},
+			},
+			{
+				description:   "should accept removing an entire podConfig redirect chain",
+				shouldSucceed: true,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					toBeRemoved := map[string]bool{"redirect_step_1": true, "redirect_step_2": true, "redirect_step_3": true}
+					newValues := make([]kubefloworgv1beta1.PodConfigValue, 0)
+					for _, value := range wsk.Spec.PodTemplate.Options.PodConfig.Values {
+						if !toBeRemoved[value.Id] {
+							newValues = append(newValues, value)
+						}
+					}
+					wsk.Spec.PodTemplate.Options.PodConfig.Values = newValues
+					return ContainSubstring("")
+				},
+			},
+			{
+				description:   "should reject updating an imageConfig value to create a self-cycle",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
 					valueId := wsk.Spec.PodTemplate.Options.ImageConfig.Values[1].Id
 					wsk.Spec.PodTemplate.Options.ImageConfig.Values[1].Redirect = &kubefloworgv1beta1.OptionRedirect{To: valueId}
-					return fmt.Sprintf("imageConfig redirect cycle detected: [%s]", valueId)
+					return ContainSubstring("imageConfig redirect cycle detected: [%s]", valueId)
 				},
-				shouldSucceed: false,
 			},
 			{
-				description: "should reject updating a podConfig value to create a 2-step cycle",
-				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) string {
+				description:   "should reject updating a podConfig value to create a 2-step cycle",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
 					step1 := wsk.Spec.PodTemplate.Options.PodConfig.Values[0].Id
 					step2 := wsk.Spec.PodTemplate.Options.PodConfig.Values[1].Id
 					wsk.Spec.PodTemplate.Options.PodConfig.Values[0].Redirect = &kubefloworgv1beta1.OptionRedirect{To: step2}
 					wsk.Spec.PodTemplate.Options.PodConfig.Values[1].Redirect = &kubefloworgv1beta1.OptionRedirect{To: step1}
-					return "podConfig redirect cycle detected: [" // there is no guarantee on which element will be first
+					return ContainSubstring("podConfig redirect cycle detected: [") // there is no guarantee on which element will be first
 				},
-				shouldSucceed: false,
 			},
 			{
-				description: "should reject updating an imageConfig to redirect to a non-existent value",
-				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) string {
+				description:   "should reject updating an imageConfig to redirect to a non-existent value",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
 					invalidTarget := "invalid_image_config"
 					wsk.Spec.PodTemplate.Options.ImageConfig.Values[1].Redirect = &kubefloworgv1beta1.OptionRedirect{To: invalidTarget}
-					return fmt.Sprintf("target imageConfig %q does not exist", invalidTarget)
+					return ContainSubstring("target imageConfig %q does not exist", invalidTarget)
 				},
-				shouldSucceed: false,
 			},
 			{
-				description: "should reject updating a podConfig to redirect to a non-existent value",
-				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) string {
+				description:   "should reject updating a podConfig to redirect to a non-existent value",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
 					invalidTarget := "invalid_pod_config"
 					wsk.Spec.PodTemplate.Options.PodConfig.Values[0].Redirect = &kubefloworgv1beta1.OptionRedirect{To: invalidTarget}
-					return fmt.Sprintf("target podConfig %q does not exist", invalidTarget)
+					return ContainSubstring("target podConfig %q does not exist", invalidTarget)
 				},
-				shouldSucceed: false,
 			},
 			{
-				description: "should reject updating the default imageConfig value to a non-existent value",
-				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) string {
+				description:   "should reject updating the default imageConfig value to a non-existent value",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
 					invalidDefault := "invalid_image_config"
 					wsk.Spec.PodTemplate.Options.ImageConfig.Spawner.Default = invalidDefault
-					return fmt.Sprintf("default imageConfig %q not found", invalidDefault)
+					return ContainSubstring("default imageConfig %q not found", invalidDefault)
 				},
-				shouldSucceed: false,
 			},
 			{
-				description: "should reject updating the default podConfig value to a non-existent value",
-				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) string {
+				description:   "should reject updating the default podConfig value to a non-existent value",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
 					invalidDefault := "invalid_pod_config"
 					wsk.Spec.PodTemplate.Options.PodConfig.Spawner.Default = invalidDefault
-					return fmt.Sprintf("default podConfig %q not found", invalidDefault)
+					return ContainSubstring("default podConfig %q not found", invalidDefault)
 				},
-				shouldSucceed: false,
 			},
 			{
-				description: "should reject updating an imageConfig to have duplicate ports",
-				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) string {
+				description:   "should reject updating an imageConfig to have duplicate ports",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
 					duplicatePortNumber := int32(8888)
 					wsk.Spec.PodTemplate.Options.ImageConfig.Values[1].Spec.Ports = []kubefloworgv1beta1.ImagePort{
 						{
@@ -271,62 +496,67 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 							Protocol:    "HTTP",
 						},
 					}
-					return fmt.Sprintf("port %d is defined more than once", duplicatePortNumber)
+					return ContainSubstring("port %d is defined more than once", duplicatePortNumber)
 				},
-				shouldSucceed: false,
 			},
 			{
-				description: "should reject updating an extraEnv[].value to an invalid Go template",
-				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) string {
+				description:   "should reject updating an extraEnv[].value to an invalid Go template",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
 					invalidValue := `{{ httpPathPrefix "jupyterlab" }`
 					wsk.Spec.PodTemplate.ExtraEnv[0].Value = invalidValue
-					return fmt.Sprintf("failed to parse template %q", invalidValue)
+					return ContainSubstring("failed to parse template %q", invalidValue)
 				},
-				shouldSucceed: false,
 			},
 			{
-				description: "should accept updating an extraEnv[].value to a valid Go template",
-				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) string {
-					wsk.Spec.PodTemplate.ExtraEnv[0].Value = `{{ httpPathPrefix "jupyterlab"   }}`
-					return ""
-				},
+				description:   "should accept updating an extraEnv[].value to a valid Go template",
 				shouldSucceed: true,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					wsk.Spec.PodTemplate.ExtraEnv[0].Value = `{{ httpPathPrefix "jupyterlab"   }}`
+					return ContainSubstring("")
+				},
 			},
 		}
 
 		for _, tc := range testCases {
 			tc := tc // Create a new instance of tc to avoid capturing the loop variable.
 			It(tc.description, func() {
-				if tc.workspaceName != "" {
-					By("creating a Workspace that uses the WorkspaceKind")
-					workspace := NewExampleWorkspace(tc.workspaceName, namespaceName, workspaceKindName)
-					Expect(k8sClient.Create(ctx, workspace)).To(Succeed())
+				if tc.workspaceKind == nil {
+					Fail("invalid test case definition: workspaceKind is required")
 				}
 
-				patch := client.MergeFrom(workspaceKind.DeepCopy())
-				modifiedWorkspaceKind := workspaceKind.DeepCopy()
-				expectedErrorMessage := tc.modifyKindFn(modifiedWorkspaceKind)
+				By("creating the WorkspaceKind")
+				// NOTE: cleanup is handled in the AfterEach()
+				Expect(k8sClient.Create(ctx, tc.workspaceKind)).To(Succeed())
+
+				By("retrieving the WorkspaceKind")
+				workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
+				Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(tc.workspaceKind), workspaceKind)).To(Succeed())
+
+				if tc.workspace != nil {
+					By("creating the Workspace")
+					// NOTE: cleanup is handled in the AfterEach()
+					Expect(k8sClient.Create(ctx, tc.workspace)).To(Succeed())
+
+					By("retrieving the Workspace")
+					workspace := &kubefloworgv1beta1.Workspace{}
+					Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(tc.workspace), workspace)).To(Succeed())
+				}
 
 				By("updating the WorkspaceKind")
+				patch := client.MergeFrom(workspaceKind.DeepCopy())
+				modifiedWorkspaceKind := workspaceKind.DeepCopy()
+				errMatcher := tc.modifyKindFn(modifiedWorkspaceKind)
+				err := k8sClient.Patch(ctx, modifiedWorkspaceKind, patch)
 				if tc.shouldSucceed {
-					Expect(k8sClient.Patch(ctx, modifiedWorkspaceKind, patch)).To(Succeed())
+					Expect(err).To(Succeed())
 				} else {
-					err := k8sClient.Patch(ctx, modifiedWorkspaceKind, patch)
 					Expect(err).NotTo(Succeed())
-					if expectedErrorMessage != "" {
-						Expect(err.Error()).To(ContainSubstring(expectedErrorMessage))
-					}
-				}
-
-				if tc.workspaceName != "" {
-					By("deleting the Workspace that uses the WorkspaceKind")
-					workspace := &kubefloworgv1beta1.Workspace{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      tc.workspaceName,
-							Namespace: namespaceName,
-						},
-					}
-					Expect(k8sClient.Delete(ctx, workspace)).To(Succeed())
+					Expect(err.Error()).To(errMatcher)
 				}
 			})
 		}
