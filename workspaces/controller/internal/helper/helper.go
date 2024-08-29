@@ -3,6 +3,9 @@ package helper
 import (
 	"reflect"
 
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	"k8s.io/apimachinery/pkg/api/resource"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -97,4 +100,69 @@ func CopyServiceFields(desired *corev1.Service, target *corev1.Service) bool {
 	}
 
 	return requireUpdate
+}
+
+// NormalizePodConfigSpec normalizes a PodConfigSpec so that it can be compared with reflect.DeepEqual
+func NormalizePodConfigSpec(spec kubefloworgv1beta1.PodConfigSpec) error {
+
+	// normalize Affinity
+	if spec.Affinity != nil {
+
+		// set Affinity to nil if it is empty
+		if reflect.DeepEqual(spec.Affinity, corev1.Affinity{}) {
+			spec.Affinity = nil
+		}
+	}
+
+	// normalize NodeSelector
+	if spec.NodeSelector != nil {
+
+		// set NodeSelector to nil if it is empty
+		if len(spec.NodeSelector) == 0 {
+			spec.NodeSelector = nil
+		}
+	}
+
+	// normalize Tolerations
+	if spec.Tolerations != nil {
+
+		// set Tolerations to nil if it is empty
+		if len(spec.Tolerations) == 0 {
+			spec.Tolerations = nil
+		}
+	}
+
+	// normalize Resources
+	if spec.Resources != nil {
+
+		// if Resources.Requests is empty, set it to nil
+		if len(spec.Resources.Requests) == 0 {
+			spec.Resources.Requests = nil
+		} else {
+			// otherwise, normalize the values in Resources.Requests
+			for key, value := range spec.Resources.Requests {
+				q, err := resource.ParseQuantity(value.String())
+				if err != nil {
+					return err
+				}
+				spec.Resources.Requests[key] = q
+			}
+		}
+
+		// if Resources.Limits is empty, set it to nil
+		if len(spec.Resources.Limits) == 0 {
+			spec.Resources.Limits = nil
+		} else {
+			// otherwise, normalize the values in Resources.Limits
+			for key, value := range spec.Resources.Limits {
+				q, err := resource.ParseQuantity(value.String())
+				if err != nil {
+					return err
+				}
+				spec.Resources.Limits[key] = q
+			}
+		}
+	}
+
+	return nil
 }

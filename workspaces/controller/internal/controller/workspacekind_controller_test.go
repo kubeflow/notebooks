@@ -40,7 +40,7 @@ var _ = Describe("WorkspaceKind Controller", func() {
 		timeout = time.Second * 10
 
 		// how long to wait in "Consistently" blocks
-		duration = time.Second * 10
+		duration = time.Second * 10 // nolint:unused
 
 		// how frequently to poll for conditions
 		interval = time.Millisecond * 250
@@ -203,7 +203,7 @@ var _ = Describe("WorkspaceKind Controller", func() {
 			}, timeout, interval).Should(Equal(expectedStatus))
 
 			By("having a finalizer set on the WorkspaceKind")
-			Expect(workspaceKind.GetFinalizers()).To(ContainElement(workspaceKindFinalizer))
+			Expect(workspaceKind.GetFinalizers()).To(ContainElement(WorkspaceKindFinalizer))
 
 			By("deleting the Workspace")
 			Expect(k8sClient.Delete(ctx, workspace)).To(Succeed())
@@ -250,7 +250,7 @@ var _ = Describe("WorkspaceKind Controller", func() {
 
 			By("deleting the WorkspaceKind")
 			Expect(k8sClient.Delete(ctx, workspaceKind)).To(Succeed())
-			Expect(k8sClient.Get(ctx, workspaceKindKey, workspaceKind)).ToNot(Succeed())
+			Expect(k8sClient.Get(ctx, workspaceKindKey, workspaceKind)).NotTo(Succeed())
 		})
 	})
 })
