@@ -199,7 +199,7 @@ endef
 
 define prompt_for_e2e_test_execution
     if [ "$$(echo "$(KUBEFLOW_TEST_PROMPT)" | tr '[:upper:]' '[:lower:]')" = "false" ]; then \
-        echo "Skipping E2E test confirmation prompt (KUBEFLOW_TEST_PROMPT is set to true)"; \
+        echo "Skipping E2E test confirmation prompt (KUBEFLOW_TEST_PROMPT is set to false)"; \
     else \
         current_k8s_context=$$(kubectl config current-context); \
         echo "================================ WARNING ================================"; \
