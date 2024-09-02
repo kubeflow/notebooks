@@ -66,9 +66,6 @@ var (
 var _ = Describe("controller", Ordered, func() {
 
 	BeforeAll(func() {
-		By("installing the cert-manager")
-		Expect(utils.InstallCertManager()).To(Succeed())
-
 		projectDir, _ = utils.GetProjectDir()
 
 		By("creating the controller namespace")
@@ -85,6 +82,15 @@ var _ = Describe("controller", Ordered, func() {
 			"-n", workspaceNamespace,
 		)
 		_, _ = utils.Run(cmd)
+
+		By("installing CRDs")
+		cmd = exec.Command("make", "install")
+		_, _ = utils.Run(cmd)
+
+		By("deploying the controller-manager")
+		cmd = exec.Command("make", "deploy", fmt.Sprintf("IMG=%s", controllerImage))
+		_, _ = utils.Run(cmd)
+
 	})
 
 	AfterAll(func() {
@@ -99,6 +105,10 @@ var _ = Describe("controller", Ordered, func() {
 		cmd = exec.Command("kubectl", "delete",
 			"-f", filepath.Join(projectDir, "config/samples/jupyterlab_v1beta1_workspacekind.yaml"),
 		)
+		_, _ = utils.Run(cmd)
+
+		By("deleting the controller")
+		cmd = exec.Command("make", "undeploy")
 		_, _ = utils.Run(cmd)
 
 		By("deleting common workspace resources")
@@ -116,16 +126,10 @@ var _ = Describe("controller", Ordered, func() {
 		cmd = exec.Command("kubectl", "delete", "ns", workspaceNamespace)
 		_, _ = utils.Run(cmd)
 
-		By("deleting the controller")
-		cmd = exec.Command("make", "undeploy")
-		_, _ = utils.Run(cmd)
-
 		By("deleting CRDs")
 		cmd = exec.Command("make", "uninstall")
 		_, _ = utils.Run(cmd)
 
-		By("uninstalling the cert-manager bundle")
-		utils.UninstallCertManager()
 	})
 
 	Context("Operator", func() {
@@ -134,29 +138,10 @@ var _ = Describe("controller", Ordered, func() {
 			var controllerPodName string
 			var err error
 
-			By("building the controller image")
-			cmd := exec.Command("make", "docker-build", fmt.Sprintf("IMG=%s", controllerImage))
-			_, err = utils.Run(cmd)
-			Expect(err).NotTo(HaveOccurred())
-
-			By("loading the controller image on Kind")
-			err = utils.LoadImageToKindClusterWithName(controllerImage)
-			Expect(err).NotTo(HaveOccurred())
-
-			By("installing CRDs")
-			cmd = exec.Command("make", "install")
-			_, err = utils.Run(cmd)
-			Expect(err).NotTo(HaveOccurred())
-
-			By("deploying the controller-manager")
-			cmd = exec.Command("make", "deploy", fmt.Sprintf("IMG=%s", controllerImage))
-			_, err = utils.Run(cmd)
-			Expect(err).NotTo(HaveOccurred())
-
 			By("validating that the controller-manager pod is running as expected")
 			verifyControllerUp := func(g Gomega) {
 				// Get controller pod name
-				cmd = exec.Command("kubectl", "get", "pods",
+				cmd := exec.Command("kubectl", "get", "pods",
 					"-l", "control-plane=controller-manager",
 					"-n", controllerNamespace,
 					"-o", "go-template={{ range .items }}"+
@@ -187,7 +172,7 @@ var _ = Describe("controller", Ordered, func() {
 
 			By("creating an instance of WorkspaceKind")
 			createWorkspaceKindSample := func() error {
-				cmd = exec.Command("kubectl", "apply",
+				cmd := exec.Command("kubectl", "apply",
 					"-f", filepath.Join(projectDir, "config/samples/jupyterlab_v1beta1_workspacekind.yaml"),
 				)
 				_, err = utils.Run(cmd)
@@ -197,7 +182,7 @@ var _ = Describe("controller", Ordered, func() {
 
 			By("creating an instance of Workspace")
 			createWorkspaceSample := func() error {
-				cmd = exec.Command("kubectl", "apply",
+				cmd := exec.Command("kubectl", "apply",
 					"-f", filepath.Join(projectDir, "config/samples/jupyterlab_v1beta1_workspace.yaml"),
 					"-n", workspaceNamespace,
 				)
@@ -208,7 +193,7 @@ var _ = Describe("controller", Ordered, func() {
 
 			By("validating that the workspace has 'Running' state")
 			verifyWorkspaceState := func(g Gomega) error {
-				cmd = exec.Command("kubectl", "get", "workspaces",
+				cmd := exec.Command("kubectl", "get", "workspaces",
 					workspaceName,
 					"-n", workspaceNamespace,
 					"-o", "jsonpath={.status.state}",
@@ -234,7 +219,7 @@ var _ = Describe("controller", Ordered, func() {
 			By("validating that the workspace pod is running as expected")
 			verifyWorkspacePod := func(g Gomega) {
 				// Get workspace pod name
-				cmd = exec.Command("kubectl", "get", "pods",
+				cmd := exec.Command("kubectl", "get", "pods",
 					"-l", fmt.Sprintf("notebooks.kubeflow.org/workspace-name=%s", workspaceName),
 					"-n", workspaceNamespace,
 					"-o", "go-template={{ range .items }}"+
@@ -340,7 +325,7 @@ var _ = Describe("controller", Ordered, func() {
 
 			By("failing to delete an in-use WorkspaceKind")
 			deleteInUseWorkspaceKind := func() error {
-				cmd = exec.Command("kubectl", "delete", "workspacekind", workspaceKindName)
+				cmd := exec.Command("kubectl", "delete", "workspacekind", workspaceKindName)
 				_, err := utils.Run(cmd)
 				return err
 			}
@@ -356,7 +341,7 @@ var _ = Describe("controller", Ordered, func() {
 
 			By("deleting an unused WorkspaceKind")
 			deleteWorkspaceKind := func() error {
-				cmd = exec.Command("kubectl", "delete", "workspacekind", workspaceKindName)
+				cmd := exec.Command("kubectl", "delete", "workspacekind", workspaceKindName)
 				_, err := utils.Run(cmd)
 				return err
 			}
