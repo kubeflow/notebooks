@@ -36,6 +36,12 @@ type WorkspaceSpec struct {
 	// +kubebuilder:default=false
 	Paused *bool `json:"paused,omitempty"`
 
+	// DisableCulling controls whether automatic culling is disabled for the workspace.
+	// If true, the workspace will not be culled
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:default=false
+	DisableCulling *bool `json:"disableCulling,omitempty"`
+
 	// if true, pending updates are NOT applied when the Workspace is paused
 	// if false, pending updates are applied when the Workspace is paused
 	// +kubebuilder:validation:Optional

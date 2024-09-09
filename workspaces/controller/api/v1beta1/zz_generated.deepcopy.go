@@ -565,6 +565,11 @@ func (in *WorkspaceKindCullingConfig) DeepCopyInto(out *WorkspaceKindCullingConf
 		*out = new(int32)
 		**out = **in
 	}
+	if in.MinimumProbeIntervalSeconds != nil {
+		in, out := &in.MinimumProbeIntervalSeconds, &out.MinimumProbeIntervalSeconds
+		*out = new(int32)
+		**out = **in
+	}
 	in.ActivityProbe.DeepCopyInto(&out.ActivityProbe)
 }
 
@@ -1057,6 +1062,11 @@ func (in *WorkspaceSpec) DeepCopyInto(out *WorkspaceSpec) {
 	*out = *in
 	if in.Paused != nil {
 		in, out := &in.Paused, &out.Paused
+		*out = new(bool)
+		**out = **in
+	}
+	if in.DisableCulling != nil {
+		in, out := &in.DisableCulling, &out.DisableCulling
 		*out = new(bool)
 		**out = **in
 	}

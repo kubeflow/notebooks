@@ -184,6 +184,11 @@ type WorkspaceKindCullingConfig struct {
 	// +kubebuilder:default=86400
 	MaxInactiveSeconds *int32 `json:"maxInactiveSeconds,omitempty"`
 
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:validation:Minimum:=60
+	//+kubebuilder:default=300
+	MinimumProbeIntervalSeconds *int32 `json:"minimumProbeInterval,omitempty"`
+
 	// the probe used to determine if the Workspace is active
 	ActivityProbe ActivityProbe `json:"activityProbe"`
 }
@@ -216,6 +221,8 @@ type ActivityProbeJupyter struct {
 	// if the Jupyter-specific probe is enabled
 	// +kubebuilder:example=true
 	LastActivity bool `json:"lastActivity"`
+
+	PortId string `json:"portId"`
 }
 
 type WorkspaceKindProbes struct {

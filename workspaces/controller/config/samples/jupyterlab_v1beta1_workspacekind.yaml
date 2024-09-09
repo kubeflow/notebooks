@@ -83,6 +83,10 @@ spec:
       ##
       maxInactiveSeconds: 86400
 
+      ## the minimum number of seconds between probes
+      ##
+      minimumProbeInterval: 60
+
       ## the probe used to determine if the Workspace is active
       ##
       activityProbe:
@@ -105,6 +109,7 @@ spec:
         ##
         jupyter:
           lastActivity: true
+          portId: jupyterlab
 
     ## standard probes to determine Container health (MUTABLE)
     ##  - spec for Probe:

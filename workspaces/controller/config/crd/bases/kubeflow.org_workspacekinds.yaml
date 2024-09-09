@@ -285,8 +285,11 @@ spec:
                                 description: if the Jupyter-specific probe is enabled
                                 example: true
                                 type: boolean
+                              portId:
+                                type: string
                             required:
                             - lastActivity
+                            - portId
                             type: object
                             x-kubernetes-validations:
                             - message: '''lastActivity'' must be true'
@@ -304,6 +307,11 @@ spec:
                         default: 86400
                         description: the maximum number of seconds a Workspace can
                           be inactive
+                        format: int32
+                        minimum: 60
+                        type: integer
+                      minimumProbeInterval:
+                        default: 300
                         format: int32
                         minimum: 60
                         type: integer
