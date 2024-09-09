@@ -147,6 +147,13 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "WorkspaceKind")
 		os.Exit(1)
 	}
+	if err = (&controllerInternal.CullingReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Culler")
+		os.Exit(1)
+	}
 	//+kubebuilder:scaffold:builder
 
 	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
