@@ -103,10 +103,10 @@ func (r *CullingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// Fetch the culling configuration from the WorkspaceKind spec
 	maxInactiveSeconds := *workspaceKind.Spec.PodTemplate.Culling.MaxInactiveSeconds
-	minProbeIntervalSeconds := *workspaceKind.Spec.PodTemplate.Culling.MinimumProbeIntervalSeconds
+	maxProbeIntervalSeconds := *workspaceKind.Spec.PodTemplate.Culling.MaxProbeIntervalSeconds
 
 	// Set requeue duration based on the minimum probe interval
-	requeueDuration := time.Duration(minProbeIntervalSeconds) * time.Second
+	requeueDuration := time.Duration(maxProbeIntervalSeconds) * time.Second
 
 	// Calculate time since the last activity and the last update
 	timeSinceLastActivity := time.Since(lastActivityTime).Seconds()
@@ -120,9 +120,9 @@ func (r *CullingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{RequeueAfter: requeueDuration}, nil
 	}
 	// If the workspace was updated recently, requeue for the next probe
-	if timeSinceLastUpdate < float64(minProbeIntervalSeconds) {
+	if timeSinceLastUpdate < float64(maxProbeIntervalSeconds) {
 		log.V(2).Info("Workspace has been updated recently, requeueing for the next probe.",
-			"MinProbeIntervalSeconds", minProbeIntervalSeconds,
+			"MinProbeIntervalSeconds", maxProbeIntervalSeconds,
 			"TimeSinceLastUpdate", timeSinceLastUpdate)
 		return ctrl.Result{RequeueAfter: requeueDuration}, nil
 	}
