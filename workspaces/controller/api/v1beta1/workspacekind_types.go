@@ -184,10 +184,17 @@ type WorkspaceKindCullingConfig struct {
 	// +kubebuilder:default=86400
 	MaxInactiveSeconds *int32 `json:"maxInactiveSeconds,omitempty"`
 
+	// the maximum number of seconds between probes
 	//+kubebuilder:validation:Optional
 	//+kubebuilder:validation:Minimum:=60
 	//+kubebuilder:default=300
-	MinimumProbeIntervalSeconds *int32 `json:"minimumProbeInterval,omitempty"`
+	MaxProbeIntervalSeconds *int32 `json:"maxProbeIntervalSeconds,omitempty"`
+
+	// the minimum number of seconds between probes to avoid spamming in case on failure
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:validation:Minimum:=10
+	//+kubebuilder:default=20
+	MinProbeIntervalSeconds *int32 `json:"minProbeIntervalSeconds,omitempty"`
 
 	// the probe used to determine if the Workspace is active
 	ActivityProbe ActivityProbe `json:"activityProbe"`
@@ -222,6 +229,7 @@ type ActivityProbeJupyter struct {
 	// +kubebuilder:example=true
 	LastActivity bool `json:"lastActivity"`
 
+	// The ID of the port used for probing Jupyter via HTTP requests.
 	PortId string `json:"portId"`
 }
 
@@ -517,6 +525,9 @@ type WorkspaceKindStatus struct {
 
 	// metrics for podTemplate options
 	PodTemplateOptions PodTemplateOptionsMetrics `json:"podTemplateOptions"`
+
+	// Information about the last activity probe
+	Activity *WorkspaceActivityStatus `json:"activity,omitempty"`
 }
 
 type PodTemplateOptionsMetrics struct {
@@ -541,6 +552,36 @@ type OptionMetric struct {
 	// the number of Workspaces currently using the option
 	// +kubebuilder:example=3
 	Workspaces int32 `json:"workspaces"`
+}
+
+type WorkspaceActivityStatus struct {
+
+	// Information about the last activity probe
+	LastProbe ProbeStatus `json:"lastProbe"`
+}
+
+type ProbeStatus struct {
+
+	// the time the probe was started (UNIX epoch in milliseconds)
+	//+kubebuilder:validation:Minimum=0
+	//+kubebuilder:example=1710435303000
+	StartTimeMs int64 `json:"startTimeMs"`
+
+	// the time the probe was completed (UNIX epoch in milliseconds)
+	//+kubebuilder:validation:Minimum=0
+	//+kubebuilder:example=1710435305000
+	EndTimeMs int64 `json:"endTimeMs"`
+
+	// the result of the probe
+	// ENUM: "Success" | "Failure" | "Timeout"
+	//+kubebuilder:validation:Enum=Success;Failure;Timeout
+	Result string `json:"result"`
+
+	// a human-readable message about the probe result
+	// WARNING: this field is NOT FOR MACHINE USE, subject to change without notice
+	//+kubebuilder:default=""
+	//+kubebuilder:example="Jupyter probe succeeded"
+	Message string `json:"message"`
 }
 
 /*

@@ -286,6 +286,8 @@ spec:
                                 example: true
                                 type: boolean
                               portId:
+                                description: The ID of the port used for probing Jupyter
+                                  via HTTP requests.
                                 type: string
                             required:
                             - lastActivity
@@ -310,10 +312,18 @@ spec:
                         format: int32
                         minimum: 60
                         type: integer
-                      minimumProbeInterval:
+                      maxProbeIntervalSeconds:
                         default: 300
+                        description: the maximum number of seconds between probes
                         format: int32
                         minimum: 60
+                        type: integer
+                      minProbeIntervalSeconds:
+                        default: 20
+                        description: the minimum number of seconds between probes
+                          to avoid spamming in case on failure
+                        format: int32
+                        minimum: 10
                         type: integer
                     required:
                     - activityProbe
@@ -4541,6 +4551,51 @@ spec:
           status:
             description: WorkspaceKindStatus defines the observed state of WorkspaceKind
             properties:
+              activity:
+                description: Information about the last activity probe
+                properties:
+                  lastProbe:
+                    description: Information about the last activity probe
+                    properties:
+                      endTimeMs:
+                        description: the time the probe was completed (UNIX epoch
+                          in milliseconds)
+                        example: 1710435305000
+                        format: int64
+                        minimum: 0
+                        type: integer
+                      message:
+                        default: ""
+                        description: |-
+                          a human-readable message about the probe result
+                          WARNING: this field is NOT FOR MACHINE USE, subject to change without notice
+                        example: Jupyter probe succeeded
+                        type: string
+                      result:
+                        description: |-
+                          the result of the probe
+                          ENUM: "Success" | "Failure" | "Timeout"
+                        enum:
+                        - Success
+                        - Failure
+                        - Timeout
+                        type: string
+                      startTimeMs:
+                        description: the time the probe was started (UNIX epoch in
+                          milliseconds)
+                        example: 1710435303000
+                        format: int64
+                        minimum: 0
+                        type: integer
+                    required:
+                    - endTimeMs
+                    - message
+                    - result
+                    - startTimeMs
+                    type: object
+                required:
+                - lastProbe
+                type: object
               podTemplateOptions:
                 description: metrics for podTemplate options
                 properties:
