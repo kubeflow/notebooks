@@ -88,7 +88,7 @@ func IsPrometheusCRDsInstalled() bool {
 		"prometheusagents.monitoring.coreos.com",
 	}
 
-	cmd := exec.Command("kubectl", "get", "crds", "-o", "custom-columns=NAME:.metadata.name")
+	cmd := exec.Command("kubectl", "get", "crds", "-o", "name")
 	output, err := Run(cmd)
 	if err != nil {
 		return false
@@ -147,7 +147,7 @@ func IsCertManagerCRDsInstalled() bool {
 	}
 
 	// Execute the kubectl command to get all CRDs
-	cmd := exec.Command("kubectl", "get", "crds")
+	cmd := exec.Command("kubectl", "get", "crds", "-o", "name")
 	output, err := Run(cmd)
 	if err != nil {
 		return false

@@ -77,6 +77,7 @@ test-e2e:manifests generate fmt vet ## Run the e2e tests. Expected an isolated e
 		echo "No Kind cluster is running. Please start a Kind cluster before running the e2e tests."; \
 		exit 1; \
 	}
+	# TODO: set PROMETHEUS_INSTALL_SKIP to `false` or remove `PROMETHEUS_INSTALL_SKIP=true` if we start using Prometheus
 	PROMETHEUS_INSTALL_SKIP=true go test ./test/e2e/ -v -ginkgo.v
 
 .PHONY: lint
