@@ -14,49 +14,38 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package integrations
+package helper
 
 import (
 	"context"
 	"fmt"
 
-	workspacesv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
-	restclient "k8s.io/client-go/rest"
+	clientRest "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
-type KubernetesClient struct {
-	ClientSet *kubernetes.Clientset
-}
-
-func NewKubernetesClient() (*KubernetesClient, error) {
-
-	clientSet, err := newClientSet()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Kubernetes clientset: %w", err)
-	}
-
-	return &KubernetesClient{ClientSet: clientSet}, nil
-}
-
-func getRestConfig() (*restclient.Config, error) {
+// GetKubeconfig returns the current KUBECONFIG configuration based on the default loading rules.
+func GetKubeconfig() (*clientRest.Config, error) {
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
 	configOverrides := &clientcmd.ConfigOverrides{}
 	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
 	return kubeConfig.ClientConfig()
 }
 
-func newClientSet() (*kubernetes.Clientset, error) {
-	restConfig, err := getRestConfig()
-	if err != nil {
-		return nil, err
+// BuildScheme returns builds a new runtime scheme with all the necessary types registered.
+func BuildScheme() (*runtime.Scheme, error) {
+	scheme := runtime.NewScheme()
+	if err := clientgoscheme.AddToScheme(scheme); err != nil {
+		return nil, fmt.Errorf("failed to add Kubernetes types to scheme: %w", err)
 	}
-	return kubernetes.NewForConfig(restConfig)
+	if err := kubefloworgv1beta1.AddToScheme(scheme); err != nil {
+		return nil, fmt.Errorf("failed to add Kubeflow types to scheme: %w", err)
+	}
+	return scheme, nil
 }
 
 func (k *KubernetesClient) GetWorkspaces(namespace string) ([]workspacesv1beta1.Workspace, error) {
