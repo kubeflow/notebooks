@@ -17,14 +17,15 @@ limitations under the License.
 package api
 
 import (
-	"fmt"
-	"github.com/kubeflow/notebooks/workspaces/backend/config"
-	"github.com/kubeflow/notebooks/workspaces/backend/data"
-	"github.com/kubeflow/notebooks/workspaces/backend/integrations"
 	"log/slog"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/data"
 )
 
 const (
@@ -33,33 +34,35 @@ const (
 )
 
 type App struct {
-	config           config.EnvConfig
-	logger           *slog.Logger
-	models           data.Models
-	kubernetesClient *integrations.KubernetesClient
+	Config config.EnvConfig
+	logger *slog.Logger
+	models data.Models
+
+	client.Client
+	Scheme *runtime.Scheme
 }
 
-func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
-	k8sClient, err := integrations.NewKubernetesClient()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
-	}
-
+// NewApp creates a new instance of the app
+func NewApp(cfg config.EnvConfig, logger *slog.Logger, client client.Client, scheme *runtime.Scheme) (*App, error) {
 	app := &App{
-		config:           cfg,
-		logger:           logger,
-		kubernetesClient: k8sClient,
+		Config: cfg,
+		logger: logger,
+		models: data.NewModels(),
+
+		Client: client,
+		Scheme: scheme,
 	}
 	return app, nil
 }
 
-func (app *App) Routes() http.Handler {
+// Routes returns the HTTP handler for the app
+func (a *App) Routes() http.Handler {
 	router := httprouter.New()
 
-	router.NotFound = http.HandlerFunc(app.notFoundResponse)
-	router.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
+	router.NotFound = http.HandlerFunc(a.notFoundResponse)
+	router.MethodNotAllowed = http.HandlerFunc(a.methodNotAllowedResponse)
 
-	router.GET(HealthCheckPath, app.HealthcheckHandler)
+	router.GET(HealthCheckPath, a.HealthcheckHandler)
 
-	return app.RecoverPanic(app.enableCORS(router))
+	return a.RecoverPanic(a.enableCORS(router))
 }
