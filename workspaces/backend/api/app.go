@@ -18,18 +18,22 @@ package api
 
 import (
 	"fmt"
+	"log/slog"
+	"net/http"
+
 	"github.com/kubeflow/notebooks/workspaces/backend/config"
 	"github.com/kubeflow/notebooks/workspaces/backend/data"
 	"github.com/kubeflow/notebooks/workspaces/backend/integrations"
-	"log/slog"
-	"net/http"
 
 	"github.com/julienschmidt/httprouter"
 )
 
 const (
-	Version         = "1.0.0"
-	HealthCheckPath = "/api/v1/healthcheck/"
+	Version            = "1.0.0"
+	NamespacePathParam = "namespace"
+	PathPrefix         = "/api/v1/workspaces/:" + NamespacePathParam
+	HealthCheckPath    = PathPrefix + "/healthcheck"
+	WorkspacesPath     = PathPrefix + "/workspaces"
 )
 
 type App struct {
@@ -60,6 +64,7 @@ func (app *App) Routes() http.Handler {
 	router.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
 	router.GET(HealthCheckPath, app.HealthcheckHandler)
+	router.GET(WorkspacesPath, app.GetWorkspaceHandler)
 
 	return app.RecoverPanic(app.enableCORS(router))
 }

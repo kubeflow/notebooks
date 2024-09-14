@@ -14,17 +14,30 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package data
+package api
 
-// Models struct is a single convenient container to hold and represent all our data.
-type Models struct {
-	HealthCheck HealthCheckModel
-	Workspace   WorkspaceModel
-}
+import (
+	"net/http"
 
-func NewModels() Models {
-	return Models{
-		HealthCheck: HealthCheckModel{},
-		Workspace:   WorkspaceModel{},
+	"github.com/julienschmidt/httprouter"
+)
+
+func (app *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+
+	workspaces, err := app.models.Workspace.GetWorkspaces(app.kubernetesClient, ps.ByName(NamespacePathParam))
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
 	}
+
+	modelRegistryRes := Envelope{
+		"workspaces": workspaces,
+	}
+
+	err = app.WriteJSON(w, http.StatusOK, modelRegistryRes, nil)
+
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+
 }

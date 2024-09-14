@@ -1,7 +1,7 @@
 apiVersion: kubeflow.org/v1beta1
 kind: Workspace
 metadata:
-  name: jupyterlab-workspace
+  name: jupyterlab-workspace-2
 spec:
   ## if the workspace is paused (no pods running)
   paused: false
