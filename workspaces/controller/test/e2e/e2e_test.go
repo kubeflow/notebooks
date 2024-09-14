@@ -94,36 +94,36 @@ var _ = Describe("controller", Ordered, func() {
 			"-n", workspaceNamespace,
 		)
 		_, _ = utils.Run(cmd)
-		
+
 		By("deleting sample WorkspaceKind")
 		cmd = exec.Command("kubectl", "delete",
 			"-f", filepath.Join(projectDir, "config/samples/jupyterlab_v1beta1_workspacekind.yaml"),
 		)
 		_, _ = utils.Run(cmd)
-		
+
 		By("deleting common workspace resources")
 		cmd = exec.Command("kubectl", "delete",
 			"-k", filepath.Join(projectDir, "config/samples/common"),
 			"-n", workspaceNamespace,
 		)
 		_, _ = utils.Run(cmd)
-		
+
 		By("deleting controller namespace")
 		cmd = exec.Command("kubectl", "delete", "ns", controllerNamespace)
 		_, _ = utils.Run(cmd)
-		
+
 		By("deleting workspace namespace")
 		cmd = exec.Command("kubectl", "delete", "ns", workspaceNamespace)
 		_, _ = utils.Run(cmd)
-		
+
 		By("deleting the controller")
 		cmd = exec.Command("make", "undeploy")
 		_, _ = utils.Run(cmd)
-		
+
 		By("deleting CRDs")
 		cmd = exec.Command("make", "uninstall")
 		_, _ = utils.Run(cmd)
-		
+
 		By("uninstalling the cert-manager bundle")
 		utils.UninstallCertManager()
 	})
