@@ -18,18 +18,20 @@ package api
 
 import (
 	"encoding/json"
-	"github.com/kubeflow/notebooks/workspaces/backend/config"
-	"github.com/kubeflow/notebooks/workspaces/backend/data"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/data"
 )
 
 func TestHealthCheckHandler(t *testing.T) {
 
-	app := App{config: config.EnvConfig{
+	app := App{Config: config.EnvConfig{
 		Port: 4000,
 	}}
 

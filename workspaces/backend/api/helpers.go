@@ -27,7 +27,7 @@ import (
 
 type Envelope map[string]any
 
-func (app *App) WriteJSON(w http.ResponseWriter, status int, data any, headers http.Header) error {
+func (a *App) WriteJSON(w http.ResponseWriter, status int, data any, headers http.Header) error {
 
 	js, err := json.MarshalIndent(data, "", "\t")
 
@@ -48,7 +48,7 @@ func (app *App) WriteJSON(w http.ResponseWriter, status int, data any, headers h
 	return nil
 }
 
-func (app *App) ReadJSON(w http.ResponseWriter, r *http.Request, dst any) error {
+func (a *App) ReadJSON(w http.ResponseWriter, r *http.Request, dst any) error {
 
 	maxBytes := 1_048_576
 	r.Body = http.MaxBytesReader(w, r.Body, int64(maxBytes))
