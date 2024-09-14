@@ -30,9 +30,9 @@ import (
 
 const (
 	Version            = "1.0.0"
+	HealthCheckPath    = "/api/v1/healthcheck"
 	NamespacePathParam = "namespace"
 	PathPrefix         = "/api/v1/workspaces/:" + NamespacePathParam
-	HealthCheckPath    = PathPrefix + "/healthcheck"
 	WorkspacesPath     = PathPrefix + "/workspaces"
 )
 
@@ -40,7 +40,6 @@ type App struct {
 	Config config.EnvConfig
 	logger *slog.Logger
 	models data.Models
-
 	client.Client
 	Scheme *runtime.Scheme
 }
@@ -51,7 +50,6 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger, client client.Client, sch
 		Config: cfg,
 		logger: logger,
 		models: data.NewModels(),
-
 		Client: client,
 		Scheme: scheme,
 	}
@@ -65,8 +63,8 @@ func (a *App) Routes() http.Handler {
 	router.NotFound = http.HandlerFunc(a.notFoundResponse)
 	router.MethodNotAllowed = http.HandlerFunc(a.methodNotAllowedResponse)
 
-	router.GET(HealthCheckPath, app.HealthcheckHandler)
-	router.GET(WorkspacesPath, app.GetWorkspaceHandler)
+	router.GET(HealthCheckPath, a.HealthcheckHandler)
+	router.GET(WorkspacesPath, a.GetWorkspaceHandler)
 
 	return a.RecoverPanic(a.enableCORS(router))
 }

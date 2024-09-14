@@ -16,7 +16,10 @@ limitations under the License.
 package data
 
 import (
-	"github.com/kubeflow/notebooks/workspaces/backend/integrations"
+	"context"
+
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type WorkspaceModel struct {
@@ -26,20 +29,26 @@ type WorkspaceModel struct {
 	Config string `json:"config"`
 }
 
-func (m WorkspaceModel) GetWorkspaces(client *integrations.KubernetesClient, namespace string) ([]WorkspaceModel, error) {
+func (m WorkspaceModel) GetWorkspaces(ctx context.Context, reader client.Client, namespace string) ([]WorkspaceModel, error) {
 
-	workspaces, err := client.GetWorkspaces(namespace)
+	workspaceList := &kubefloworgv1beta1.WorkspaceList{}
+	listOptions := []client.ListOption{
+		client.InNamespace(namespace),
+	}
+
+	err := reader.List(ctx, workspaceList, listOptions...)
 	if err != nil {
 		return nil, err
 	}
 
 	var workspacesModels []WorkspaceModel
-	for _, item := range workspaces {
+	for _, item := range workspaceList.Items {
 		workspace := WorkspaceModel{
 			Name:   item.ObjectMeta.Name,
 			Kind:   item.Spec.Kind,
 			Image:  item.Spec.PodTemplate.Options.ImageConfig,
 			Config: item.Spec.PodTemplate.Options.PodConfig,
+			//todo add other field for workspaces
 		}
 		workspacesModels = append(workspacesModels, workspace)
 	}

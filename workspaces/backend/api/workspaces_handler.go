@@ -22,22 +22,25 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-func (app *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
-	workspaces, err := app.models.Workspace.GetWorkspaces(app.kubernetesClient, ps.ByName(NamespacePathParam))
+	namespace := ps.ByName(NamespacePathParam)
+
+	workspaces, err := a.models.Workspace.GetWorkspaces(r.Context(), a.Client, namespace)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		a.serverErrorResponse(w, r, err)
 		return
 	}
 
+	//TODO use same format of model registry
 	modelRegistryRes := Envelope{
 		"workspaces": workspaces,
 	}
 
-	err = app.WriteJSON(w, http.StatusOK, modelRegistryRes, nil)
+	err = a.WriteJSON(w, http.StatusOK, modelRegistryRes, nil)
 
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		a.serverErrorResponse(w, r, err)
 	}
 
 }

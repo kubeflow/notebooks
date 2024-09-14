@@ -17,39 +17,23 @@ limitations under the License.
 package api
 
 import (
-	"github.com/julienschmidt/httprouter"
 	"net/http"
 
-	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	"github.com/julienschmidt/httprouter"
 )
 
-func (a *App) HealthcheckHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (app *App) HealthcheckHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
-	// list Workspaces
-	//
-	// TODO: remove after testing
-	//
-	workspaceList := &kubefloworgv1beta1.WorkspaceList{}
-	err := a.List(r.Context(), workspaceList)
+	healthCheck, err := app.models.HealthCheck.HealthCheck(Version)
 	if err != nil {
-		a.serverErrorResponse(w, r, err)
-		return
-	}
-	workspaceListString := ""
-	for _, workspace := range workspaceList.Items {
-		workspaceListString += workspace.Name + " "
-	}
-
-	healthCheck, err := a.models.HealthCheck.HealthCheck(workspaceListString) // TODO: revert to .HealthCheck(Version)
-	if err != nil {
-		a.serverErrorResponse(w, r, err)
+		app.serverErrorResponse(w, r, err)
 		return
 	}
 
-	err = a.WriteJSON(w, http.StatusOK, healthCheck, nil)
+	err = app.WriteJSON(w, http.StatusOK, healthCheck, nil)
 
 	if err != nil {
-		a.serverErrorResponse(w, r, err)
+		app.serverErrorResponse(w, r, err)
 	}
 
 }
