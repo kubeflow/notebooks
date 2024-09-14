@@ -32,7 +32,6 @@ func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	//TODO use same format of model registry
 	modelRegistryRes := Envelope{
 		"workspaces": workspaces,
 	}

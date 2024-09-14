@@ -17,16 +17,25 @@ package data
 
 import (
 	"context"
+	"strings"
+	"time"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type WorkspaceModel struct {
-	Name   string `json:"name"`
-	Kind   string `json:"kind"`
-	Image  string `json:"image"`
-	Config string `json:"config"`
+	Name         string `json:"name"`
+	Kind         string `json:"kind"`
+	Image        string `json:"image"`
+	Config       string `json:"config"`
+	Status       string `json:"status"`
+	HomeVolume   string `json:"home_volume"`
+	DataVolume   string `json:"data_volume"`
+	CPU          string `json:"cpu"`
+	RAM          string `json:"ram"`
+	GPU          string `json:"gpu"`
+	LastActivity string `json:"last_activity"`
 }
 
 func (m WorkspaceModel) GetWorkspaces(ctx context.Context, reader client.Client, namespace string) ([]WorkspaceModel, error) {
@@ -43,12 +52,27 @@ func (m WorkspaceModel) GetWorkspaces(ctx context.Context, reader client.Client,
 
 	var workspacesModels []WorkspaceModel
 	for _, item := range workspaceList.Items {
+		//TODO verify which fiels can be null
+		t := time.Unix(item.Status.Activity.LastActivity, 0)
+		formattedLastActivity := t.Format("2006-01-02 15:04:05 MST")
+
+		mountPaths := make([]string, 0, len(item.Spec.PodTemplate.Volumes.Data))
+		for _, volume := range item.Spec.PodTemplate.Volumes.Data {
+			mountPaths = append(mountPaths, volume.MountPath)
+		}
+
 		workspace := WorkspaceModel{
-			Name:   item.ObjectMeta.Name,
-			Kind:   item.Spec.Kind,
-			Image:  item.Spec.PodTemplate.Options.ImageConfig,
-			Config: item.Spec.PodTemplate.Options.PodConfig,
-			//todo add other field for workspaces
+			Name:         item.ObjectMeta.Name,
+			Kind:         item.Spec.Kind,
+			Image:        item.Spec.PodTemplate.Options.ImageConfig,
+			Config:       item.Spec.PodTemplate.Options.PodConfig,
+			HomeVolume:   *item.Spec.PodTemplate.Volumes.Home,
+			Status:       string(item.Status.State),
+			DataVolume:   strings.Join(mountPaths, ","),
+			CPU:          "",
+			RAM:          "",
+			GPU:          "",
+			LastActivity: formattedLastActivity,
 		}
 		workspacesModels = append(workspacesModels, workspace)
 	}
