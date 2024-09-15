@@ -18,6 +18,9 @@ package controller
 
 import (
 	"fmt"
+	"github.com/kubeflow/notebooks/workspaces/controller/internal/istio"
+	"github.com/onsi/gomega/format"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"time"
 
 	"k8s.io/utils/ptr"
@@ -35,6 +38,9 @@ import (
 )
 
 var _ = Describe("Workspace Controller", func() {
+
+	// https://onsi.github.io/gomega/#adjusting-output
+	format.MaxLength = 10000
 
 	// Define utility constants for object names and testing timeouts/durations and intervals.
 	const (
@@ -189,6 +195,17 @@ var _ = Describe("Workspace Controller", func() {
 
 			// TODO: use this to get the Service
 			//service := serviceList.Items[0]
+			By("creating a VirtualService")
+			virtualServiceList := &unstructured.UnstructuredList{}
+			virtualServiceList.SetAPIVersion(istio.ApiVersionIstio)
+			virtualServiceList.SetKind(istio.VirtualServiceKind)
+			Eventually(func() ([]unstructured.Unstructured, error) {
+				err := k8sClient.List(ctx, virtualServiceList, client.InNamespace(namespaceName))
+				if err != nil {
+					return nil, err
+				}
+				return virtualServiceList.Items, nil
+			}, timeout, interval).Should(HaveLen(1))
 
 			//
 			// TODO: populate these tests

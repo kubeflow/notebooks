@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"github.com/kubeflow/notebooks/workspaces/controller/internal/istio"
 	"reflect"
 	"strings"
 
@@ -53,8 +54,6 @@ const (
 	workspaceSelectorLabel = "statefulset"
 
 	// lengths for resource names
-	generateNameSuffixLength = 6
-	maxServiceNameLength     = 63
 	maxStatefulSetNameLength = 52 // https://github.com/kubernetes/kubernetes/issues/64023
 
 	// state message formats for Workspace status
@@ -342,10 +341,20 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 	}
 
-	//
-	// TODO: reconcile the Istio VirtualService to expose the Workspace
-	//       and implement the `spec.podTemplate.httpProxy` options
-	//
+	// VirtualService reconciliation
+	virtualService, err := istio.GenerateIstioVirtualService(workspace, workspaceKind, currentImageConfig, serviceName, log)
+	if err != nil {
+		log.Error(err, "unable to generate Istio Virtual Service")
+	}
+	log.Info(fmt.Sprintf("VirtualService %s", virtualService))
+
+	if err := ctrl.SetControllerReference(workspace, virtualService, r.Scheme); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if err := istio.ReconcileVirtualService(ctx, r.Client, virtualService.GetName(), virtualService.GetNamespace(), virtualService, log); err != nil {
+		return ctrl.Result{}, err
+	}
 
 	// fetch Pod
 	// NOTE: the first StatefulSet Pod is always called "{statefulSetName}-0"
@@ -555,25 +564,10 @@ func getPodConfig(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefl
 	}
 }
 
-// generateNamePrefix generates a name prefix for a Workspace
-// the format is "ws-{WORKSPACE_NAME}-" the workspace name is truncated to fit within the max length
-func generateNamePrefix(workspaceName string, maxLength int) string {
-	namePrefix := fmt.Sprintf("ws-%s", workspaceName)
-	maxLength = maxLength - generateNameSuffixLength // subtract 6 for the `metadata.generateName` suffix
-	maxLength = maxLength - 1                        // subtract 1 for the trailing "-"
-	if len(namePrefix) > maxLength {
-		namePrefix = namePrefix[:min(len(namePrefix), maxLength)]
-	}
-	if namePrefix[len(namePrefix)-1] != '-' {
-		namePrefix = namePrefix + "-"
-	}
-	return namePrefix
-}
-
 // generateStatefulSet generates a StatefulSet for a Workspace
 func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind, imageConfigSpec kubefloworgv1beta1.ImageConfigSpec, podConfigSpec kubefloworgv1beta1.PodConfigSpec) (*appsv1.StatefulSet, error) {
 	// generate name prefix
-	namePrefix := generateNamePrefix(workspace.Name, maxStatefulSetNameLength)
+	namePrefix := helper.GenerateNamePrefix(workspace.Name, maxStatefulSetNameLength)
 
 	// generate replica count
 	replicas := int32(1)
@@ -591,17 +585,7 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 		imagePullPolicy = *imageConfigSpec.ImagePullPolicy
 	}
 
-	// define go string template functions
-	// NOTE: these are used in places like the `extraEnv` values
 	containerPortsIdMap := make(map[string]kubefloworgv1beta1.ImagePort)
-	httpPathPrefixFunc := func(portId string) string {
-		port, ok := containerPortsIdMap[portId]
-		if ok {
-			return fmt.Sprintf("/workspace/%s/%s/%s/", workspace.Namespace, workspace.Name, port.Id)
-		} else {
-			return ""
-		}
-	}
 
 	// generate container ports
 	containerPorts := make([]corev1.ContainerPort, len(imageConfigSpec.Ports))
@@ -620,6 +604,7 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 		// NOTE: we construct this map for use in the go string templates
 		containerPortsIdMap[port.Id] = port
 	}
+	httpPathPrefixFunc := helper.GenerateHttpPathPrefixFunc(workspace, containerPortsIdMap)
 
 	// generate container env
 	containerEnv := make([]corev1.EnvVar, len(workspaceKind.Spec.PodTemplate.ExtraEnv))
@@ -627,7 +612,7 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 		env := env.DeepCopy() // copy to avoid modifying the original
 		if env.Value != "" {
 			rawValue := env.Value
-			outValue, err := helper.RenderExtraEnvValueTemplate(rawValue, httpPathPrefixFunc)
+			outValue, err := helper.RenderWithHttpPathPrefixFunc(rawValue, httpPathPrefixFunc)
 			if err != nil {
 				return nil, fmt.Errorf("failed to render extraEnv %q: %w", env.Name, err)
 			}
@@ -806,7 +791,7 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 // generateService generates a Service for a Workspace
 func generateService(workspace *kubefloworgv1beta1.Workspace, imageConfigSpec kubefloworgv1beta1.ImageConfigSpec) (*corev1.Service, error) {
 	// generate name prefix
-	namePrefix := generateNamePrefix(workspace.Name, maxServiceNameLength)
+	namePrefix := helper.GenerateNamePrefix(workspace.Name, helper.MaxServiceNameLength)
 
 	// generate service ports
 	servicePorts := make([]corev1.ServicePort, len(imageConfigSpec.Ports))
