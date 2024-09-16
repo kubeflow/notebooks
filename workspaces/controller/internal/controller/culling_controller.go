@@ -24,6 +24,7 @@ import (
 	"fmt"
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/fields"
@@ -228,7 +229,12 @@ func (r *CullingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 	//TODO: Implement Bash Probe
 	if workspaceKind.Spec.PodTemplate.Culling.ActivityProbe.Exec != nil {
-		exitCode, err := r.execCommand("podName", workspace.Namespace, workspaceKind.Spec.PodTemplate.Culling.ActivityProbe.Exec.Command)
+		podName, err := r.getPodName(ctx, workspace)
+		if err != nil {
+			log.Error(err, "Error fetching pod name for workspace")
+			return ctrl.Result{}, err
+		}
+		exitCode, err := r.execCommand(podName, workspace.Namespace, workspaceKind.Spec.PodTemplate.Culling.ActivityProbe.Exec.Command)
 		if err != nil {
 			log.Error(err, "Error executing command probe")
 			return ctrl.Result{}, err
@@ -318,6 +324,33 @@ func (r *CullingReconciler) getServiceName(ctx context.Context, workspace *kubef
 
 	// Return the single found service name
 	return ownedServices.Items[0].Name, nil
+}
+func (r *CullingReconciler) getPodName(ctx context.Context, workspace *kubefloworgv1beta1.Workspace) (string, error) {
+	var statefulSetName string
+	ownedStatefulSets := &appsv1.StatefulSetList{}
+	listOpts := &client.ListOptions{
+		FieldSelector: fields.OneTermEqualSelector(helper.IndexWorkspaceOwnerField, workspace.Name),
+		Namespace:     workspace.Namespace,
+	}
+	if err := r.List(ctx, ownedStatefulSets, listOpts); err != nil {
+		return "", err
+	}
+
+	// reconcile StatefulSet
+	if len(ownedStatefulSets.Items) > 1 {
+		statefulSetList := make([]string, len(ownedStatefulSets.Items))
+		for i, sts := range ownedStatefulSets.Items {
+			statefulSetList[i] = sts.Name
+		}
+		statefulSetListString := strings.Join(statefulSetList, ", ")
+		return "", fmt.Errorf("workspace owns multiple StatefulSets: %s", statefulSetListString)
+	} else if len(ownedStatefulSets.Items) == 0 {
+		return "", errors.New("workspace does not own any StatefulSet")
+	}
+
+	statefulSetName = ownedStatefulSets.Items[0].Name
+	podName := fmt.Sprintf("%s-0", statefulSetName)
+	return podName, nil
 }
 
 func (r *CullingReconciler) execCommand(podName, podNamespace string, command []string) (int32, error) {
