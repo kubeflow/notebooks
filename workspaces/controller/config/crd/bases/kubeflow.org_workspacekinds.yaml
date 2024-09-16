@@ -4551,51 +4551,6 @@ spec:
           status:
             description: WorkspaceKindStatus defines the observed state of WorkspaceKind
             properties:
-              activity:
-                description: Information about the last activity probe
-                properties:
-                  lastProbe:
-                    description: Information about the last activity probe
-                    properties:
-                      endTimeMs:
-                        description: the time the probe was completed (UNIX epoch
-                          in milliseconds)
-                        example: 1710435305000
-                        format: int64
-                        minimum: 0
-                        type: integer
-                      message:
-                        default: ""
-                        description: |-
-                          a human-readable message about the probe result
-                          WARNING: this field is NOT FOR MACHINE USE, subject to change without notice
-                        example: Jupyter probe succeeded
-                        type: string
-                      result:
-                        description: |-
-                          the result of the probe
-                          ENUM: "Success" | "Failure" | "Timeout"
-                        enum:
-                        - Success
-                        - Failure
-                        - Timeout
-                        type: string
-                      startTimeMs:
-                        description: the time the probe was started (UNIX epoch in
-                          milliseconds)
-                        example: 1710435303000
-                        format: int64
-                        minimum: 0
-                        type: integer
-                    required:
-                    - endTimeMs
-                    - message
-                    - result
-                    - startTimeMs
-                    type: object
-                required:
-                - lastProbe
-                type: object
               podTemplateOptions:
                 description: metrics for podTemplate options
                 properties:

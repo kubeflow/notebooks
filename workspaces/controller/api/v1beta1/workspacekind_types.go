@@ -525,9 +525,6 @@ type WorkspaceKindStatus struct {
 
 	// metrics for podTemplate options
 	PodTemplateOptions PodTemplateOptionsMetrics `json:"podTemplateOptions"`
-
-	// Information about the last activity probe
-	Activity *WorkspaceActivityStatus `json:"activity,omitempty"`
 }
 
 type PodTemplateOptionsMetrics struct {
@@ -552,36 +549,6 @@ type OptionMetric struct {
 	// the number of Workspaces currently using the option
 	// +kubebuilder:example=3
 	Workspaces int32 `json:"workspaces"`
-}
-
-type WorkspaceActivityStatus struct {
-
-	// Information about the last activity probe
-	LastProbe ProbeStatus `json:"lastProbe"`
-}
-
-type ProbeStatus struct {
-
-	// the time the probe was started (UNIX epoch in milliseconds)
-	//+kubebuilder:validation:Minimum=0
-	//+kubebuilder:example=1710435303000
-	StartTimeMs int64 `json:"startTimeMs"`
-
-	// the time the probe was completed (UNIX epoch in milliseconds)
-	//+kubebuilder:validation:Minimum=0
-	//+kubebuilder:example=1710435305000
-	EndTimeMs int64 `json:"endTimeMs"`
-
-	// the result of the probe
-	// ENUM: "Success" | "Failure" | "Timeout"
-	//+kubebuilder:validation:Enum=Success;Failure;Timeout
-	Result string `json:"result"`
-
-	// a human-readable message about the probe result
-	// WARNING: this field is NOT FOR MACHINE USE, subject to change without notice
-	//+kubebuilder:default=""
-	//+kubebuilder:example="Jupyter probe succeeded"
-	Message string `json:"message"`
 }
 
 /*

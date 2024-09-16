@@ -17,6 +17,7 @@ limitations under the License.
 package controller
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -27,8 +28,16 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/utils/ptr"
+	"net"
 	"net/http"
+	"os"
+	"path/filepath"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -70,11 +79,15 @@ func (r *CullingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	if !*workspace.Spec.DisableCulling {
-		log.Info("Culling is disabled for this workspace")
+		log.V(2).Info("Culling is disabled for this workspace")
 		return ctrl.Result{}, nil
 	}
 
-	// check if the workspace is running
+	if *workspace.Spec.Paused {
+		log.V(2).Info("Workspace is paused, skipping culling")
+		return ctrl.Result{}, nil
+	}
+
 	if workspace.Status.State != kubefloworgv1beta1.WorkspaceStateRunning {
 		log.V(2).Info("Workspace is not running, skipping culling")
 		return ctrl.Result{}, nil
@@ -100,57 +113,93 @@ func (r *CullingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// Convert last activity and update times from Unix to time.Time
 	lastActivityTime := time.Unix(workspace.Status.Activity.LastActivity, 0)
 	lastUpdateTime := time.Unix(workspace.Status.Activity.LastUpdate, 0)
+	lastProbeTime := time.Unix(workspace.Status.Activity.LastProbe.EndTimeMs/1000, 0)
 
 	// Fetch the culling configuration from the WorkspaceKind spec
 	maxInactiveSeconds := *workspaceKind.Spec.PodTemplate.Culling.MaxInactiveSeconds
 	maxProbeIntervalSeconds := *workspaceKind.Spec.PodTemplate.Culling.MaxProbeIntervalSeconds
+	minProbeIntervalSeconds := *workspaceKind.Spec.PodTemplate.Culling.MinProbeIntervalSeconds
 
-	// Set requeue duration based on the minimum probe interval
-	requeueDuration := time.Duration(maxProbeIntervalSeconds) * time.Second
-
-	// Calculate time since the last activity and the last update
+	// Calculate time since the last activity, the last update and the last probe
 	timeSinceLastActivity := time.Since(lastActivityTime).Seconds()
 	timeSinceLastUpdate := time.Since(lastUpdateTime).Seconds()
+	timeSinceLastProbe := time.Since(lastProbeTime).Seconds()
+
+	// Calculate the requeue time for the next probe
+	requeueAfter := max(time.Duration(float64(maxProbeIntervalSeconds)-timeSinceLastProbe)*time.Second, 0)
+	minRequeueAfter := time.Duration(minProbeIntervalSeconds+cullingBufferSeconds) * time.Second
+
+	// if the workspace has been probed recently, requeue for the next probe
+	if timeSinceLastProbe < float64(minProbeIntervalSeconds) {
+		log.V(2).Info("Workspace has been probed recently, requeueing for the next probe.",
+			"MinProbeIntervalSeconds", minProbeIntervalSeconds,
+			"TimeSinceLastProbe", timeSinceLastProbe)
+		return ctrl.Result{RequeueAfter: requeueAfter}, nil
+	}
 
 	// If the workspace has been active recently, requeue for the next probe
 	if timeSinceLastActivity < float64(maxInactiveSeconds) {
 		log.V(2).Info("Workspace activity is within the allowed period, requeueing for the next probe.",
 			"MaxInactiveSeconds", maxInactiveSeconds,
 			"TimeSinceLastActivity", timeSinceLastActivity)
-		return ctrl.Result{RequeueAfter: requeueDuration}, nil
+		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 	// If the workspace was updated recently, requeue for the next probe
 	if timeSinceLastUpdate < float64(maxProbeIntervalSeconds) {
 		log.V(2).Info("Workspace has been updated recently, requeueing for the next probe.",
 			"MinProbeIntervalSeconds", maxProbeIntervalSeconds,
 			"TimeSinceLastUpdate", timeSinceLastUpdate)
-		return ctrl.Result{RequeueAfter: requeueDuration}, nil
+		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 
 	// Check if JupyterLab API probing is enabled
 	if workspaceKind.Spec.PodTemplate.Culling.ActivityProbe.Jupyter != nil {
+		probeStartTime := time.Now()
 		// This is hardcoded for now, but should be fetched from the workspace's service
 		serviceName, err := r.getServiceName(ctx, workspace)
 		if err != nil {
 			log.Error(err, "Error fetching service name for workspace")
-			return ctrl.Result{}, err
+			workspace.Status.Activity.LastProbe = kubefloworgv1beta1.ProbeStatus{
+				StartTimeMs: probeStartTime.UnixMilli(),
+				EndTimeMs:   time.Now().UnixMilli(),
+				Result:      kubefloworgv1beta1.ProbeResultFailure,
+				Message:     "Failed to fetch service name for workspace",
+			}
+			if err := r.Status().Update(ctx, workspace); err != nil {
+				if apierrors.IsConflict(err) {
+					log.V(2).Info("update conflict while updating Workspace status, will requeue")
+					return ctrl.Result{Requeue: true}, nil
+				}
+				log.Error(err, "unable to update Workspace status")
+			}
+			return ctrl.Result{RequeueAfter: minRequeueAfter}, nil
 		}
 		port := "8888"
 		jupyterAPIEndpoint := fmt.Sprintf("http://%s.%s.svc.%s:%s/workspace/%s/%s/jupyterlab/api/status", serviceName, workspace.Namespace, defaultClusterDomain, port, workspace.Namespace, workspace.Name)
-		probeStartTime := time.Now()
 
-		lastActivity, err := fetchLastActivityFromJupyterAPI(jupyterAPIEndpoint)
+		lastActivity, err, probeMessage, probeResult := fetchLastActivityFromJupyterAPI(jupyterAPIEndpoint)
 		if err != nil {
 			log.Error(err, "Error fetching last activity from JupyterLab API")
-			return ctrl.Result{}, err
+			workspace.Status.Activity.LastProbe = kubefloworgv1beta1.ProbeStatus{
+				StartTimeMs: probeStartTime.UnixMilli(),
+				EndTimeMs:   time.Now().UnixMilli(),
+				Result:      probeResult,
+				Message:     probeMessage,
+			}
+
+			if err := r.Status().Update(ctx, workspace); err != nil {
+				if apierrors.IsConflict(err) {
+					log.V(2).Info("update conflict while updating Workspace status, will requeue")
+					return ctrl.Result{Requeue: true}, nil
+				}
+				log.Error(err, "unable to update Workspace status")
+			}
+
+			return ctrl.Result{RequeueAfter: minRequeueAfter}, nil
 		}
 
 		workspace.Status.Activity.LastUpdate = probeStartTime.Unix()
 		workspace.Status.Activity.LastActivity = lastActivity.Unix()
-		if err := r.Status().Update(ctx, workspace); err != nil {
-			log.Error(err, "Failed to update workspace status after probe", "Workspace", workspace.Name)
-			return ctrl.Result{}, err
-		}
 		// If the workspace has been inactive for too long, initiate culling
 		if time.Since(lastActivity).Seconds() > float64(maxInactiveSeconds+cullingBufferSeconds) {
 			log.Info("Culling the workspace due to inactivity", "TimeSinceLastActivity", time.Since(lastActivity).Seconds())
@@ -161,13 +210,37 @@ func (r *CullingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 				return ctrl.Result{}, err
 			}
 		}
+		workspace.Status.Activity.LastProbe = kubefloworgv1beta1.ProbeStatus{
+			StartTimeMs: probeStartTime.UnixMilli(),
+			EndTimeMs:   time.Now().UnixMilli(),
+			Result:      probeResult,
+			Message:     probeMessage,
+		}
+		if err := r.Status().Update(ctx, workspace); err != nil {
+			if apierrors.IsConflict(err) {
+				log.V(2).Info("update conflict while updating Workspace status, will requeue")
+				return ctrl.Result{Requeue: true}, nil
+			}
+			log.Error(err, "unable to update Workspace status")
+		}
 		log.V(2).Info("requeueing for next probe")
-		return ctrl.Result{RequeueAfter: requeueDuration}, nil
+		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 	//TODO: Implement Bash Probe
+	if workspaceKind.Spec.PodTemplate.Culling.ActivityProbe.Exec != nil {
+		exitCode, err := r.execCommand("podName", workspace.Namespace, workspaceKind.Spec.PodTemplate.Culling.ActivityProbe.Exec.Command)
+		if err != nil {
+			log.Error(err, "Error executing command probe")
+			return ctrl.Result{}, err
+		}
+		if exitCode != 0 {
+
+		}
+
+	}
 
 	log.Info("culling controller finished")
-	return ctrl.Result{RequeueAfter: requeueDuration}, nil
+	return ctrl.Result{RequeueAfter: requeueAfter}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -179,16 +252,24 @@ func (r *CullingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 // fetchLastActivityFromJupyterAPI queries the JupyterLab API for the last activity time.
-func fetchLastActivityFromJupyterAPI(apiEndpoint string) (time.Time, error) {
+func fetchLastActivityFromJupyterAPI(apiEndpoint string) (time.Time, error, string, kubefloworgv1beta1.ProbeResult) {
 	resp, err := http.Get(apiEndpoint)
+	var netErr net.Error
 	if err != nil {
-		return time.Time{}, fmt.Errorf("failed to reach JupyterLab API: %w", err)
+		if errors.As(err, &netErr) && netErr.Timeout() {
+			return time.Time{}, fmt.Errorf("JupyterLab API request timed out: %w", err),
+				"JupyterLab API request timeout", kubefloworgv1beta1.ProbeResultTimeout
+		} else {
+			return time.Time{}, fmt.Errorf("JupyterLab API request failed: %w", err),
+				"Jupyter probe failed", kubefloworgv1beta1.ProbeResultFailure
+		}
 	}
 	defer resp.Body.Close()
 
 	// Check if the API returned a 200-OK status
 	if resp.StatusCode != http.StatusOK {
-		return time.Time{}, fmt.Errorf("JupyterLab API returned non-200 status: %d", resp.StatusCode)
+		return time.Time{}, fmt.Errorf("JupyterLab API returned non-200 status: %d", resp.StatusCode),
+			fmt.Sprintf("Jupyter probe failed: HTTP %d", resp.StatusCode), kubefloworgv1beta1.ProbeResultFailure
 	}
 
 	// Decode the API response to extract the last activity time
@@ -196,16 +277,18 @@ func fetchLastActivityFromJupyterAPI(apiEndpoint string) (time.Time, error) {
 		LastActivity string `json:"last_activity"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&status); err != nil {
-		return time.Time{}, fmt.Errorf("failed to parse JupyterLab API response: %w", err)
+		return time.Time{}, fmt.Errorf("failed to parse JupyterLab API response: %w", err),
+			"Jupyter probe failed: invalid response body", kubefloworgv1beta1.ProbeResultFailure
 	}
 
 	// Parse the last activity time from the response
 	lastActivity, err := time.Parse(time.RFC3339, status.LastActivity)
 	if err != nil {
-		return time.Time{}, fmt.Errorf("failed to parse last activity time: %w", err)
+		return time.Time{}, fmt.Errorf("failed to parse last activity time: %w", err),
+			"Jupyter probe failed: invalid last activity time", kubefloworgv1beta1.ProbeResultFailure
 	}
 
-	return lastActivity, nil
+	return lastActivity, nil, "Jupyter probe succeeded", kubefloworgv1beta1.ProbeResultSuccess
 }
 
 func (r *CullingReconciler) getServiceName(ctx context.Context, workspace *kubefloworgv1beta1.Workspace) (string, error) {
@@ -235,4 +318,61 @@ func (r *CullingReconciler) getServiceName(ctx context.Context, workspace *kubef
 
 	// Return the single found service name
 	return ownedServices.Items[0].Name, nil
+}
+
+func (r *CullingReconciler) execCommand(podName, podNamespace string, command []string) (int32, error) {
+	config, err := rest.InClusterConfig()
+
+	if err != nil {
+		if errors.Is(err, rest.ErrNotInCluster) {
+			// If the in-cluster configuration is not available, try to get the configuration from the kube config file
+			kubeConfig := filepath.Join(os.Getenv("HOME"), ".kube", "config")
+			config, err = clientcmd.BuildConfigFromFlags("", kubeConfig)
+			if err != nil {
+				return -1, err
+			}
+		} else {
+			return -1, err
+		}
+
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return -1, err
+	}
+	req := clientset.CoreV1().RESTClient().
+		Post().
+		Resource("pods").
+		Name(podName).
+		Namespace(podNamespace).
+		SubResource("exec").
+		VersionedParams(&corev1.PodExecOptions{
+			Container: "main",
+			Command:   command,
+			Stdin:     true,
+			Stdout:    true,
+			Stderr:    true,
+		}, scheme.ParameterCodec)
+	executor, err := remotecommand.NewSPDYExecutor(config, "POST", req.URL())
+	if err != nil {
+		return -1, err
+	}
+	var stdout, stderr bytes.Buffer
+
+	err = executor.StreamWithContext(context.Background(), remotecommand.StreamOptions{
+		Stdin:  os.Stdin,
+		Stdout: &stdout,
+		Stderr: &stderr,
+	})
+	if err != nil {
+		var exitError *apierrors.StatusError
+		if errors.As(err, &exitError) {
+			return exitError.Status().Code, nil
+		}
+	} else {
+		// extract the exit code from the stdout / stderr
+	}
+
+	return 0, nil
 }

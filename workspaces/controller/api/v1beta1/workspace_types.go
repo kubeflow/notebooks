@@ -193,6 +193,9 @@ type WorkspaceActivity struct {
 	// +kubebuilder:default=0
 	// +kubebuilder:example=1704067200
 	LastUpdate int64 `json:"lastUpdate"`
+
+	// Information about the last activity probe
+	LastProbe ProbeStatus `json:"lastProbe"`
 }
 
 type WorkspacePodOptionsStatus struct {
@@ -227,6 +230,30 @@ type WorkspacePodOptionRedirectStep struct {
 	Target string `json:"target"`
 }
 
+type ProbeStatus struct {
+
+	// the time the probe was started (UNIX epoch in milliseconds)
+	//+kubebuilder:validation:Minimum=0
+	//+kubebuilder:example=1710435303000
+	StartTimeMs int64 `json:"startTimeMs"`
+
+	// the time the probe was completed (UNIX epoch in milliseconds)
+	//+kubebuilder:validation:Minimum=0
+	//+kubebuilder:example=1710435305000
+	EndTimeMs int64 `json:"endTimeMs"`
+
+	// the result of the probe
+	// ENUM: "Success" | "Failure" | "Timeout"
+	//+kubebuilder:default="Unknown"
+	Result ProbeResult `json:"result"`
+
+	// a human-readable message about the probe result
+	// WARNING: this field is NOT FOR MACHINE USE, subject to change without notice
+	//+kubebuilder:default=""
+	//+kubebuilder:example="Jupyter probe succeeded"
+	Message string `json:"message"`
+}
+
 // +kubebuilder:validation:Enum:={"Running","Terminating","Paused","Pending","Error","Unknown"}
 type WorkspaceState string
 
@@ -237,6 +264,16 @@ const (
 	WorkspaceStatePending     WorkspaceState = "Pending"
 	WorkspaceStateError       WorkspaceState = "Error"
 	WorkspaceStateUnknown     WorkspaceState = "Unknown"
+)
+
+// +kubebuilder:validation:Enum={"Success","Failure","Timeout","Unknown"}
+type ProbeResult string
+
+const (
+	ProbeResultSuccess ProbeResult = "Success"
+	ProbeResultFailure ProbeResult = "Failure"
+	ProbeResultTimeout ProbeResult = "Timeout"
+	ProbeResultUnknown ProbeResult = "Unknown"
 )
 
 /*
