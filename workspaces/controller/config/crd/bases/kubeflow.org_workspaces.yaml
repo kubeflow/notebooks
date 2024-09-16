@@ -185,6 +185,47 @@ spec:
                     example: 1704067200
                     format: int64
                     type: integer
+                  lastProbe:
+                    description: Information about the last activity probe
+                    properties:
+                      endTimeMs:
+                        description: the time the probe was completed (UNIX epoch
+                          in milliseconds)
+                        example: 1710435305000
+                        format: int64
+                        minimum: 0
+                        type: integer
+                      message:
+                        default: ""
+                        description: |-
+                          a human-readable message about the probe result
+                          WARNING: this field is NOT FOR MACHINE USE, subject to change without notice
+                        example: Jupyter probe succeeded
+                        type: string
+                      result:
+                        default: Unknown
+                        description: |-
+                          the result of the probe
+                          ENUM: "Success" | "Failure" | "Timeout"
+                        enum:
+                        - Success
+                        - Failure
+                        - Timeout
+                        - Unknown
+                        type: string
+                      startTimeMs:
+                        description: the time the probe was started (UNIX epoch in
+                          milliseconds)
+                        example: 1710435303000
+                        format: int64
+                        minimum: 0
+                        type: integer
+                    required:
+                    - endTimeMs
+                    - message
+                    - result
+                    - startTimeMs
+                    type: object
                   lastUpdate:
                     default: 0
                     description: the last time we checked for activity on the Workspace
@@ -194,6 +235,7 @@ spec:
                     type: integer
                 required:
                 - lastActivity
+                - lastProbe
                 - lastUpdate
                 type: object
               pauseTime:
