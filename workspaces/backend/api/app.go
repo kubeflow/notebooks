@@ -17,6 +17,7 @@ limitations under the License.
 package api
 
 import (
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
 	"log/slog"
 	"net/http"
 
@@ -25,32 +26,31 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/data"
 )
 
 const (
-	Version         = "1.0.0"
-	HealthCheckPath = "/api/v1/healthcheck/"
+	Version            = "1.0.0"
+	HealthCheckPath    = "/api/v1/healthcheck/"
+	NamespacePathParam = "namespace"
+	PathPrefix         = "/api/v1/spawner/:namespace"
+	WorkspacesPath     = PathPrefix + "/workspaces"
 )
 
 type App struct {
-	Config config.EnvConfig
-	logger *slog.Logger
-	models data.Models
-
-	client.Client
-	Scheme *runtime.Scheme
+	Config       config.EnvConfig
+	logger       *slog.Logger
+	repositories *repositories.Repositories
+	Scheme       *runtime.Scheme
 }
 
 // NewApp creates a new instance of the app
 func NewApp(cfg config.EnvConfig, logger *slog.Logger, client client.Client, scheme *runtime.Scheme) (*App, error) {
-	app := &App{
-		Config: cfg,
-		logger: logger,
-		models: data.NewModels(),
 
-		Client: client,
-		Scheme: scheme,
+	app := &App{
+		Config:       cfg,
+		logger:       logger,
+		repositories: repositories.NewRepositories(client),
+		Scheme:       scheme,
 	}
 	return app, nil
 }
@@ -63,6 +63,7 @@ func (a *App) Routes() http.Handler {
 	router.MethodNotAllowed = http.HandlerFunc(a.methodNotAllowedResponse)
 
 	router.GET(HealthCheckPath, a.HealthcheckHandler)
+	router.GET(WorkspacesPath, a.GetWorkspacesHandler)
 
 	return a.RecoverPanic(a.enableCORS(router))
 }
