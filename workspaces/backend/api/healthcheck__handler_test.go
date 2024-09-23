@@ -18,6 +18,8 @@ package api
 
 import (
 	"encoding/json"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -26,14 +28,15 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/data"
 )
 
 func TestHealthCheckHandler(t *testing.T) {
-
-	app := App{Config: config.EnvConfig{
-		Port: 4000,
-	}}
+	app := App{
+		Config: config.EnvConfig{
+			Port: 4000,
+		},
+		repositories: repositories.NewRepositories(k8sClient),
+	}
 
 	rr := httptest.NewRecorder()
 	req, err := http.NewRequest(http.MethodGet, HealthCheckPath, nil)
@@ -51,15 +54,15 @@ func TestHealthCheckHandler(t *testing.T) {
 		t.Fatal("Failed to read response body")
 	}
 
-	var healthCheckRes data.HealthCheckModel
+	var healthCheckRes models.HealthCheckModel
 	err = json.Unmarshal(body, &healthCheckRes)
 	if err != nil {
 		t.Fatalf("Error unmarshalling response JSON: %v", err)
 	}
 
-	expected := data.HealthCheckModel{
+	expected := models.HealthCheckModel{
 		Status: "available",
-		SystemInfo: data.SystemInfo{
+		SystemInfo: models.SystemInfo{
 			Version: Version,
 		},
 	}

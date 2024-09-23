@@ -42,6 +42,7 @@ func (a *App) LogError(r *http.Request, err error) {
 	a.logger.Error(err.Error(), "method", method, "uri", uri)
 }
 
+// nolint:unused
 func (a *App) badRequestResponse(w http.ResponseWriter, r *http.Request, err error) {
 	httpError := &HTTPError{
 		StatusCode: http.StatusBadRequest,
@@ -102,6 +103,7 @@ func (a *App) methodNotAllowedResponse(w http.ResponseWriter, r *http.Request) {
 	a.errorResponse(w, r, httpError)
 }
 
+// nolint:unused
 func (a *App) failedValidationResponse(w http.ResponseWriter, r *http.Request, errors map[string]string) {
 
 	message, err := json.Marshal(errors)
