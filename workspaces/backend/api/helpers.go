@@ -25,7 +25,7 @@ import (
 	"strings"
 )
 
-type Envelope map[string]any
+type Envelope map[string]interface{}
 
 func (a *App) WriteJSON(w http.ResponseWriter, status int, data any, headers http.Header) error {
 
@@ -43,7 +43,10 @@ func (a *App) WriteJSON(w http.ResponseWriter, status int, data any, headers htt
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	w.Write(js)
+	_, err = w.Write(js)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
