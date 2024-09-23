@@ -17,13 +17,14 @@ limitations under the License.
 package api
 
 import (
-	"github.com/julienschmidt/httprouter"
 	"net/http"
+
+	"github.com/julienschmidt/httprouter"
 )
 
 func (a *App) HealthcheckHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
-	healthCheck, err := a.models.HealthCheck.HealthCheck(Version)
+	healthCheck, err := a.repositories.HealthCheck.HealthCheck(Version)
 	if err != nil {
 		a.serverErrorResponse(w, r, err)
 		return
