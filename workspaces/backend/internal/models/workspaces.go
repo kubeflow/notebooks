@@ -25,6 +25,7 @@ import (
 )
 
 type WorkspaceModel struct {
+	Namespace    string `json:"namespace"`
 	Name         string `json:"name"`
 	Kind         string `json:"kind"`
 	Image        string `json:"image"`
@@ -39,12 +40,14 @@ func NewWorkspaceModelFromWorkspace(item *kubefloworgv1beta1.Workspace) Workspac
 	t := time.Unix(item.Status.Activity.LastActivity, 0)
 	formattedLastActivity := t.Format("2006-01-02 15:04:05 MST")
 
-	mountPaths := make([]string, 0, len(item.Spec.PodTemplate.Volumes.Data))
-	for _, volume := range item.Spec.PodTemplate.Volumes.Data {
-		mountPaths = append(mountPaths, volume.MountPath)
+	mountPaths := make([]string, len(item.Spec.PodTemplate.Volumes.Data))
+
+	for i, volume := range item.Spec.PodTemplate.Volumes.Data {
+		mountPaths[i] = volume.MountPath
 	}
 
 	workspaceModel := WorkspaceModel{
+		Namespace:    item.Namespace,
 		Name:         item.ObjectMeta.Name,
 		Kind:         item.Spec.Kind,
 		Image:        item.Spec.PodTemplate.Options.ImageConfig,

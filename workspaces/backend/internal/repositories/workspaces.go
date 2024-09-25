@@ -43,11 +43,30 @@ func (r *WorkspaceRepository) GetWorkspaces(ctx context.Context, namespace strin
 		return nil, err
 	}
 
-	workspacesModels := make([]models.WorkspaceModel, 0, len(workspaceList.Items))
+	workspacesModels := make([]models.WorkspaceModel, len(workspaceList.Items))
 
-	for _, item := range workspaceList.Items {
+	for i, item := range workspaceList.Items {
 		workspaceModel := models.NewWorkspaceModelFromWorkspace(&item)
-		workspacesModels = append(workspacesModels, workspaceModel)
+		workspacesModels[i] = workspaceModel
+	}
+
+	return workspacesModels, nil
+}
+
+func (r *WorkspaceRepository) GetAllWorkspaces(ctx context.Context) ([]models.WorkspaceModel, error) {
+
+	workspaceList := &kubefloworgv1beta1.WorkspaceList{}
+
+	err := r.client.List(ctx, workspaceList)
+	if err != nil {
+		return nil, err
+	}
+
+	workspacesModels := make([]models.WorkspaceModel, len(workspaceList.Items))
+
+	for i, item := range workspaceList.Items {
+		workspaceModel := models.NewWorkspaceModelFromWorkspace(&item)
+		workspacesModels[i] = workspaceModel
 	}
 
 	return workspacesModels, nil

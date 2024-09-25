@@ -29,11 +29,14 @@ import (
 )
 
 const (
-	Version            = "1.0.0"
-	HealthCheckPath    = "/api/v1/healthcheck/"
-	NamespacePathParam = "namespace"
-	PathPrefix         = "/api/v1/spawner/:namespace"
-	WorkspacesPath     = PathPrefix + "/workspaces"
+	Version    = "1.0.0"
+	PathPrefix = "/api/v1"
+
+	HealthCheckPath = PathPrefix + "/healthcheck"
+	//workspaces
+	AllWorkspacesPath         = PathPrefix + "/workspaces"
+	NamespacePathParam        = "namespace"
+	WorkspacesByNamespacePath = AllWorkspacesPath + "/:" + NamespacePathParam
 )
 
 type App struct {
@@ -63,7 +66,8 @@ func (a *App) Routes() http.Handler {
 	router.MethodNotAllowed = http.HandlerFunc(a.methodNotAllowedResponse)
 
 	router.GET(HealthCheckPath, a.HealthcheckHandler)
-	router.GET(WorkspacesPath, a.GetWorkspacesHandler)
+	router.GET(AllWorkspacesPath, a.GetWorkspacesHandler)
+	router.GET(WorkspacesByNamespacePath, a.GetWorkspacesHandler)
 
 	return a.RecoverPanic(a.enableCORS(router))
 }

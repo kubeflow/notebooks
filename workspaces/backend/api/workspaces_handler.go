@@ -17,6 +17,7 @@ limitations under the License.
 package api
 
 import (
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -26,7 +27,14 @@ func (a *App) GetWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps ht
 
 	namespace := ps.ByName(NamespacePathParam)
 
-	workspaces, err := a.repositories.Workspace.GetWorkspaces(r.Context(), namespace)
+	var workspaces []models.WorkspaceModel
+	var err error
+	if namespace == "" {
+		workspaces, err = a.repositories.Workspace.GetAllWorkspaces(r.Context())
+	} else {
+		workspaces, err = a.repositories.Workspace.GetWorkspaces(r.Context(), namespace)
+	}
+
 	if err != nil {
 		a.serverErrorResponse(w, r, err)
 		return
