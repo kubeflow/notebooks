@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/go-logr/logr"
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
 	appsv1 "k8s.io/api/apps/v1"
@@ -29,38 +30,46 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/httpstream"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/utils/ptr"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
-	"path/filepath"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"strconv"
 	"strings"
 	"time"
 )
 
 const (
-	defaultClusterDomain = "cluster.local"
-	cullingBufferSeconds = 5
+	defaultClusterDomain             = "cluster.local"
+	inactivityToleranceBufferSeconds = 5
+	defaultHTTPTimeout               = 5 * time.Second
 )
 
 // CullingReconciler reconciles a Workspace object
 type CullingReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme    *runtime.Scheme
+	ClientSet *kubernetes.Clientset
+	Config    *rest.Config
+}
+
+type ActivityProbe struct {
+	HasActivity  *bool   `json:"has_activity,omitempty"`
+	LastActivity *string `json:"last_activity,omitempty"`
 }
 
 func (r *CullingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) { // nolint:gocyclo
 	log := log.FromContext(ctx)
 	log.V(2).Info("reconciling Workspace for culling")
-
 	// fetch the Workspace
 	workspace := &kubefloworgv1beta1.Workspace{}
 	if err := r.Get(ctx, req.NamespacedName, workspace); err != nil {
@@ -111,7 +120,7 @@ func (r *CullingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, nil
 	}
 
-	// Convert last activity and update times from Unix to time.Time
+	// Fetch the last activity, update and probe times from the Workspace status
 	lastActivityTime := time.Unix(workspace.Status.Activity.LastActivity, 0)
 	lastUpdateTime := time.Unix(workspace.Status.Activity.LastUpdate, 0)
 	lastProbeTime := time.Unix(workspace.Status.Activity.LastProbe.EndTimeMs/1000, 0)
@@ -128,7 +137,7 @@ func (r *CullingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// Calculate the requeue time for the next probe
 	requeueAfter := max(time.Duration(float64(maxProbeIntervalSeconds)-timeSinceLastProbe)*time.Second, 0)
-	minRequeueAfter := time.Duration(minProbeIntervalSeconds+cullingBufferSeconds) * time.Second
+	minRequeueAfter := time.Duration(minProbeIntervalSeconds) * time.Second
 
 	// if the workspace has been probed recently, requeue for the next probe
 	if timeSinceLastProbe < float64(minProbeIntervalSeconds) {
@@ -156,24 +165,15 @@ func (r *CullingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// Check if JupyterLab API probing is enabled
 	if workspaceKind.Spec.PodTemplate.Culling.ActivityProbe.Jupyter != nil {
 		probeStartTime := time.Now()
-		// This is hardcoded for now, but should be fetched from the workspace's service
 		serviceName, err := r.getServiceName(ctx, workspace)
 		if err != nil {
 			log.Error(err, "Error fetching service name for workspace")
-			workspace.Status.Activity.LastProbe = kubefloworgv1beta1.ProbeStatus{
+			return r.updateWorkspaceActivityStatus(ctx, log, workspace, &minRequeueAfter, &kubefloworgv1beta1.ProbeStatus{
 				StartTimeMs: probeStartTime.UnixMilli(),
 				EndTimeMs:   time.Now().UnixMilli(),
 				Result:      kubefloworgv1beta1.ProbeResultFailure,
 				Message:     "Failed to fetch service name for workspace",
-			}
-			if err := r.Status().Update(ctx, workspace); err != nil {
-				if apierrors.IsConflict(err) {
-					log.V(2).Info("update conflict while updating Workspace status, will requeue")
-					return ctrl.Result{Requeue: true}, nil
-				}
-				log.Error(err, "unable to update Workspace status")
-			}
-			return ctrl.Result{RequeueAfter: minRequeueAfter}, nil
+			}, nil, nil)
 		}
 		port := "8888"
 		jupyterAPIEndpoint := fmt.Sprintf("http://%s.%s.svc.%s:%s/workspace/%s/%s/jupyterlab/api/status", serviceName, workspace.Namespace, defaultClusterDomain, port, workspace.Namespace, workspace.Name)
@@ -181,68 +181,123 @@ func (r *CullingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		lastActivity, err, probeMessage, probeResult := fetchLastActivityFromJupyterAPI(jupyterAPIEndpoint)
 		if err != nil {
 			log.Error(err, "Error fetching last activity from JupyterLab API")
-			workspace.Status.Activity.LastProbe = kubefloworgv1beta1.ProbeStatus{
+			return r.updateWorkspaceActivityStatus(ctx, log, workspace, &minRequeueAfter, &kubefloworgv1beta1.ProbeStatus{
 				StartTimeMs: probeStartTime.UnixMilli(),
 				EndTimeMs:   time.Now().UnixMilli(),
 				Result:      probeResult,
 				Message:     probeMessage,
-			}
-
-			if err := r.Status().Update(ctx, workspace); err != nil {
-				if apierrors.IsConflict(err) {
-					log.V(2).Info("update conflict while updating Workspace status, will requeue")
-					return ctrl.Result{Requeue: true}, nil
-				}
-				log.Error(err, "unable to update Workspace status")
-			}
-
-			return ctrl.Result{RequeueAfter: minRequeueAfter}, nil
+			}, nil, nil)
 		}
 
-		workspace.Status.Activity.LastUpdate = probeStartTime.Unix()
-		workspace.Status.Activity.LastActivity = lastActivity.Unix()
 		// If the workspace has been inactive for too long, initiate culling
-		if time.Since(lastActivity).Seconds() > float64(maxInactiveSeconds+cullingBufferSeconds) {
-			log.Info("Culling the workspace due to inactivity", "TimeSinceLastActivity", time.Since(lastActivity).Seconds())
+		if time.Since(*lastActivity).Seconds() > float64(maxInactiveSeconds+inactivityToleranceBufferSeconds) {
+			log.V(2).Info("Culling the workspace due to inactivity", "TimeSinceLastActivity", time.Since(*lastActivity).Seconds())
 			workspace.Spec.Paused = ptr.To(true)
 			err := r.Update(ctx, workspace)
 			if err != nil {
 				log.Error(err, "Error updating workspace during culling")
-				return ctrl.Result{}, err
+				return r.updateWorkspaceActivityStatus(ctx, log, workspace, &requeueAfter, &kubefloworgv1beta1.ProbeStatus{
+					StartTimeMs: probeStartTime.UnixMilli(),
+					EndTimeMs:   time.Now().UnixMilli(),
+					Result:      kubefloworgv1beta1.ProbeResultFailure,
+					Message:     "Failed to pause workspace",
+				}, nil, nil)
 			}
 		}
-		workspace.Status.Activity.LastProbe = kubefloworgv1beta1.ProbeStatus{
+		return r.updateWorkspaceActivityStatus(ctx, log, workspace, &requeueAfter, &kubefloworgv1beta1.ProbeStatus{
 			StartTimeMs: probeStartTime.UnixMilli(),
 			EndTimeMs:   time.Now().UnixMilli(),
 			Result:      probeResult,
 			Message:     probeMessage,
-		}
-		if err := r.Status().Update(ctx, workspace); err != nil {
-			if apierrors.IsConflict(err) {
-				log.V(2).Info("update conflict while updating Workspace status, will requeue")
-				return ctrl.Result{Requeue: true}, nil
-			}
-			log.Error(err, "unable to update Workspace status")
-		}
-		log.V(2).Info("requeueing for next probe")
-		return ctrl.Result{RequeueAfter: requeueAfter}, nil
+		}, ptr.To(probeStartTime.Unix()), ptr.To(lastActivity.Unix()))
 	}
-	//TODO: Implement Bash Probe
+
 	if workspaceKind.Spec.PodTemplate.Culling.ActivityProbe.Exec != nil {
+		probeStartTime := time.Now()
 		podName, err := r.getPodName(ctx, workspace)
 		if err != nil {
 			log.Error(err, "Error fetching pod name for workspace")
-			return ctrl.Result{}, err
+			return r.updateWorkspaceActivityStatus(ctx, log, workspace, &minRequeueAfter, &kubefloworgv1beta1.ProbeStatus{
+				StartTimeMs: probeStartTime.UnixMilli(),
+				EndTimeMs:   time.Now().UnixMilli(),
+				Result:      kubefloworgv1beta1.ProbeResultFailure,
+				Message:     "Failed to fetch pod name for workspace",
+			}, nil, nil)
 		}
-		exitCode, err := r.execCommand(podName, workspace.Namespace, workspaceKind.Spec.PodTemplate.Culling.ActivityProbe.Exec.Command)
+		stdout, stderr, err := r.execCommand(ctx, podName, workspace.Namespace, workspaceKind.Spec.PodTemplate.Culling.ActivityProbe.Exec)
 		if err != nil {
-			log.Error(err, "Error executing command probe")
-			return ctrl.Result{}, err
-		}
-		if exitCode != 0 {
+			log.Error(err, "Error executing command probe", "stderr", stderr)
+			return r.updateWorkspaceActivityStatus(ctx, log, workspace, &requeueAfter, &kubefloworgv1beta1.ProbeStatus{
+				StartTimeMs: probeStartTime.UnixMilli(),
+				EndTimeMs:   time.Now().UnixMilli(),
+				Result:      kubefloworgv1beta1.ProbeResultFailure,
+				Message:     "Failed to execute command probe",
+			}, nil, nil)
 
 		}
 
+		// handle the probe result
+		activityProbe, err := parseActivityProbeJson(stdout)
+		if err != nil {
+			log.Error(err, "Error parsing activity probe JSON")
+			return r.updateWorkspaceActivityStatus(ctx, log, workspace, &requeueAfter, &kubefloworgv1beta1.ProbeStatus{
+				StartTimeMs: probeStartTime.UnixMilli(),
+				EndTimeMs:   time.Now().UnixMilli(),
+				Result:      kubefloworgv1beta1.ProbeResultFailure,
+				Message:     "Failed to parse activity probe JSON",
+			}, nil, nil)
+		}
+		lastActivity := time.Now().Unix()
+		if activityProbe.HasActivity != nil && !*activityProbe.HasActivity {
+			log.V(2).Info("Culling the workspace due to inactivity")
+			//TODO: figure out how to set the last activity time
+			lastActivity = time.Now().Unix()
+			workspace.Spec.Paused = ptr.To(true)
+			err := r.Update(ctx, workspace)
+			if err != nil {
+				log.Error(err, "Error updating workspace during culling")
+				return r.updateWorkspaceActivityStatus(ctx, log, workspace, &requeueAfter, &kubefloworgv1beta1.ProbeStatus{
+					StartTimeMs: probeStartTime.UnixMilli(),
+					EndTimeMs:   time.Now().UnixMilli(),
+					Result:      kubefloworgv1beta1.ProbeResultFailure,
+					Message:     "Failed to update workspace during culling",
+				}, nil, nil)
+			}
+
+		}
+		if activityProbe.HasActivity == nil && activityProbe.LastActivity != nil {
+			lastActivityTime, err = time.Parse(time.RFC3339, *activityProbe.LastActivity)
+			if err != nil {
+				log.Error(err, "Error parsing last activity time")
+				return r.updateWorkspaceActivityStatus(ctx, log, workspace, &requeueAfter, &kubefloworgv1beta1.ProbeStatus{
+					StartTimeMs: probeStartTime.UnixMilli(),
+					EndTimeMs:   time.Now().UnixMilli(),
+					Result:      kubefloworgv1beta1.ProbeResultFailure,
+					Message:     "Failed to parse last activity time",
+				}, nil, nil)
+			}
+			lastActivity = lastActivityTime.Unix()
+			if time.Since(lastActivityTime).Seconds() > float64(maxInactiveSeconds+inactivityToleranceBufferSeconds) {
+				log.V(2).Info("Culling the workspace due to inactivity", "TimeSinceLastActivity", time.Since(lastActivityTime).Seconds())
+				workspace.Spec.Paused = ptr.To(true)
+				err := r.Update(ctx, workspace)
+				if err != nil {
+					log.Error(err, "Error updating workspace during culling")
+					return r.updateWorkspaceActivityStatus(ctx, log, workspace, &requeueAfter, &kubefloworgv1beta1.ProbeStatus{
+						StartTimeMs: probeStartTime.UnixMilli(),
+						EndTimeMs:   time.Now().UnixMilli(),
+						Result:      kubefloworgv1beta1.ProbeResultFailure,
+						Message:     "Failed to update workspace during culling",
+					}, nil, nil)
+				}
+			}
+		}
+		return r.updateWorkspaceActivityStatus(ctx, log, workspace, &requeueAfter, &kubefloworgv1beta1.ProbeStatus{
+			StartTimeMs: probeStartTime.UnixMilli(),
+			EndTimeMs:   time.Now().UnixMilli(),
+			Result:      kubefloworgv1beta1.ProbeResultSuccess,
+			Message:     "Bash probe succeeded",
+		}, ptr.To(probeStartTime.Unix()), ptr.To(lastActivity))
 	}
 
 	log.Info("culling controller finished")
@@ -257,44 +312,33 @@ func (r *CullingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-// fetchLastActivityFromJupyterAPI queries the JupyterLab API for the last activity time.
-func fetchLastActivityFromJupyterAPI(apiEndpoint string) (time.Time, error, string, kubefloworgv1beta1.ProbeResult) {
-	resp, err := http.Get(apiEndpoint)
-	var netErr net.Error
-	if err != nil {
-		if errors.As(err, &netErr) && netErr.Timeout() {
-			return time.Time{}, fmt.Errorf("JupyterLab API request timed out: %w", err),
-				"JupyterLab API request timeout", kubefloworgv1beta1.ProbeResultTimeout
-		} else {
-			return time.Time{}, fmt.Errorf("JupyterLab API request failed: %w", err),
-				"Jupyter probe failed", kubefloworgv1beta1.ProbeResultFailure
+// updateWorkspaceActivityStatus attempts to immediately update the Workspace activity status with the provided status.
+func (r *CullingReconciler) updateWorkspaceActivityStatus(ctx context.Context, log logr.Logger, workspace *kubefloworgv1beta1.Workspace, requeueAfter *time.Duration, probeStatus *kubefloworgv1beta1.ProbeStatus, lastUpdate, lastActivity *int64) (ctrl.Result, error) { // nolint:unparam
+	if workspace == nil {
+		return ctrl.Result{}, fmt.Errorf("provided Workspace was nil")
+	}
+	if lastUpdate != nil {
+		workspace.Status.Activity.LastUpdate = *lastUpdate
+	}
+	if lastActivity != nil {
+		workspace.Status.Activity.LastActivity = *lastActivity
+	}
+	if probeStatus != nil {
+		workspace.Status.Activity.LastProbe = *probeStatus
+	}
+	if err := r.Status().Update(ctx, workspace); err != nil {
+		if apierrors.IsConflict(err) {
+			log.V(2).Info("update conflict while updating Workspace status, will requeue")
+			return ctrl.Result{Requeue: true}, nil
 		}
+		log.Error(err, "unable to update Workspace status")
+		return ctrl.Result{}, err
 	}
-	defer resp.Body.Close()
-
-	// Check if the API returned a 200-OK status
-	if resp.StatusCode != http.StatusOK {
-		return time.Time{}, fmt.Errorf("JupyterLab API returned non-200 status: %d", resp.StatusCode),
-			fmt.Sprintf("Jupyter probe failed: HTTP %d", resp.StatusCode), kubefloworgv1beta1.ProbeResultFailure
+	if requeueAfter != nil {
+		return ctrl.Result{RequeueAfter: *requeueAfter}, nil
 	}
 
-	// Decode the API response to extract the last activity time
-	var status struct {
-		LastActivity string `json:"last_activity"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&status); err != nil {
-		return time.Time{}, fmt.Errorf("failed to parse JupyterLab API response: %w", err),
-			"Jupyter probe failed: invalid response body", kubefloworgv1beta1.ProbeResultFailure
-	}
-
-	// Parse the last activity time from the response
-	lastActivity, err := time.Parse(time.RFC3339, status.LastActivity)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("failed to parse last activity time: %w", err),
-			"Jupyter probe failed: invalid last activity time", kubefloworgv1beta1.ProbeResultFailure
-	}
-
-	return lastActivity, nil, "Jupyter probe succeeded", kubefloworgv1beta1.ProbeResultSuccess
+	return ctrl.Result{}, nil
 }
 
 func (r *CullingReconciler) getServiceName(ctx context.Context, workspace *kubefloworgv1beta1.Workspace) (string, error) {
@@ -325,6 +369,7 @@ func (r *CullingReconciler) getServiceName(ctx context.Context, workspace *kubef
 	// Return the single found service name
 	return ownedServices.Items[0].Name, nil
 }
+
 func (r *CullingReconciler) getPodName(ctx context.Context, workspace *kubefloworgv1beta1.Workspace) (string, error) {
 	var statefulSetName string
 	ownedStatefulSets := &appsv1.StatefulSetList{}
@@ -353,28 +398,17 @@ func (r *CullingReconciler) getPodName(ctx context.Context, workspace *kubeflowo
 	return podName, nil
 }
 
-func (r *CullingReconciler) execCommand(podName, podNamespace string, command []string) (int32, error) {
-	config, err := rest.InClusterConfig()
+func (r *CullingReconciler) execCommand(ctx context.Context, podName, podNamespace string, exec *kubefloworgv1beta1.ActivityProbeExec) (string, string, error) {
+	timeoutCtx, cancel := context.WithTimeout(ctx, time.Duration(exec.TimeoutSeconds)*time.Second)
+	defer cancel()
 
-	if err != nil {
-		if errors.Is(err, rest.ErrNotInCluster) {
-			// If the in-cluster configuration is not available, try to get the configuration from the kube config file
-			kubeConfig := filepath.Join(os.Getenv("HOME"), ".kube", "config")
-			config, err = clientcmd.BuildConfigFromFlags("", kubeConfig)
-			if err != nil {
-				return -1, err
-			}
-		} else {
-			return -1, err
-		}
+	command := fmt.Sprintf(`
+        rm -f %s
+        %s
+        cat %s
+    `, exec.OutputPath, exec.Script, exec.OutputPath)
 
-	}
-
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return -1, err
-	}
-	req := clientset.CoreV1().RESTClient().
+	req := r.ClientSet.CoreV1().RESTClient().
 		Post().
 		Resource("pods").
 		Name(podName).
@@ -382,30 +416,113 @@ func (r *CullingReconciler) execCommand(podName, podNamespace string, command []
 		SubResource("exec").
 		VersionedParams(&corev1.PodExecOptions{
 			Container: "main",
-			Command:   command,
-			Stdin:     true,
+			Command:   []string{"bash", "-c", command},
+			Stdin:     false,
 			Stdout:    true,
 			Stderr:    true,
+			TTY:       false,
 		}, scheme.ParameterCodec)
-	executor, err := remotecommand.NewSPDYExecutor(config, "POST", req.URL())
-	if err != nil {
-		return -1, err
-	}
-	var stdout, stderr bytes.Buffer
 
-	err = executor.StreamWithContext(context.Background(), remotecommand.StreamOptions{
-		Stdin:  os.Stdin,
+	executor, err := createExecutor(req.URL(), r.Config)
+	if err != nil {
+		return "", "", fmt.Errorf("error creating executor: %v", err)
+	}
+
+	var stdout, stderr bytes.Buffer
+	err = executor.StreamWithContext(timeoutCtx, remotecommand.StreamOptions{
+		Stdin:  nil,
 		Stdout: &stdout,
 		Stderr: &stderr,
+		Tty:    false,
 	})
+
+	return stdout.String(), stderr.String(), err
+}
+
+// fetchLastActivityFromJupyterAPI queries the JupyterLab API for the last activity time.
+func fetchLastActivityFromJupyterAPI(apiEndpoint string) (*time.Time, error, string, kubefloworgv1beta1.ProbeResult) {
+	httpTimeoutSeconds := defaultHTTPTimeout
+	if timeout, err := strconv.Atoi(os.Getenv("HTTP_TIMEOUT_SECONDS")); err == nil && timeout > 0 {
+		httpTimeoutSeconds = time.Duration(timeout) * time.Second
+	}
+	httpClient := &http.Client{Timeout: httpTimeoutSeconds}
+	resp, err := httpClient.Get(apiEndpoint)
+	var netErr net.Error
 	if err != nil {
-		var exitError *apierrors.StatusError
-		if errors.As(err, &exitError) {
-			return exitError.Status().Code, nil
+		if errors.As(err, &netErr) && netErr.Timeout() {
+			return nil, fmt.Errorf("JupyterLab API request timed out: %w", err),
+				"JupyterLab API request timeout", kubefloworgv1beta1.ProbeResultTimeout
+		} else {
+			return nil, fmt.Errorf("JupyterLab API request failed: %w", err),
+				"Jupyter probe failed", kubefloworgv1beta1.ProbeResultFailure
 		}
-	} else {
-		// extract the exit code from the stdout / stderr
+	}
+	// Check if the API returned a 200-OK status
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("JupyterLab API returned non-200 status: %d", resp.StatusCode),
+			fmt.Sprintf("Jupyter probe failed: HTTP %d", resp.StatusCode), kubefloworgv1beta1.ProbeResultFailure
 	}
 
-	return 0, nil
+	// Decode the API response to extract the last activity time
+	var status struct {
+		LastActivity string `json:"last_activity"`
+	}
+
+	defer resp.Body.Close()
+	if err := json.NewDecoder(resp.Body).Decode(&status); err != nil {
+		return nil, fmt.Errorf("failed to parse JupyterLab API response: %w", err),
+			"Jupyter probe failed: invalid response body", kubefloworgv1beta1.ProbeResultFailure
+	}
+
+	// Parse the last activity time from the response
+	lastActivity, err := time.Parse(time.RFC3339, status.LastActivity)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse last activity time: %w", err),
+			"Jupyter probe failed: invalid last activity time", kubefloworgv1beta1.ProbeResultFailure
+	}
+
+	return &lastActivity, nil, "Jupyter probe succeeded", kubefloworgv1beta1.ProbeResultSuccess
+}
+
+// createExecutor creates a new Executor for the given URL and REST config.
+func createExecutor(url *url.URL, config *rest.Config) (remotecommand.Executor, error) {
+	exec, err := remotecommand.NewSPDYExecutor(config, "POST", url)
+	if err != nil {
+		return nil, err
+	}
+	// WebSocketExecutor must be "GET" method as described in RFC 6455 Sec. 4.1 (page 17).
+	websocketExec, err := remotecommand.NewWebSocketExecutor(config, "GET", url.String())
+	if err != nil {
+		return nil, err
+	}
+	exec, err = remotecommand.NewFallbackExecutor(websocketExec, exec, func(err error) bool {
+		return httpstream.IsUpgradeFailure(err) || isHTTPSProxyError(err)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return exec, nil
+}
+
+// isHTTPSProxyError checks if the given error is due to an unknown scheme in the proxy.
+func isHTTPSProxyError(err error) bool {
+	if err == nil {
+		return false
+	}
+	return strings.Contains(err.Error(), "proxy: unknown scheme: https")
+}
+
+// parseActivityProbeJson parses the JSON string into an ActivityProbe struct and ensures
+// that at least has_activity or last_activity fields are present.
+func parseActivityProbeJson(jsonString string) (*ActivityProbe, error) {
+	activityProbe := &ActivityProbe{}
+	if err := json.Unmarshal([]byte(jsonString), activityProbe); err != nil {
+		return nil, err
+	}
+	if activityProbe.HasActivity == nil && activityProbe.LastActivity == nil {
+		return nil, errors.New("has_activity and last_activity fields are missing in the activity probe JSON")
+	}
+	return activityProbe, nil
+
 }
