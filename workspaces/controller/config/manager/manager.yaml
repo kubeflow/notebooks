@@ -67,6 +67,9 @@ spec:
         image: controller:latest
         imagePullPolicy: IfNotPresent
         name: manager
+        env:
+          - name: HTTP_TIMEOUT_SECONDS
+            value: "5"
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:

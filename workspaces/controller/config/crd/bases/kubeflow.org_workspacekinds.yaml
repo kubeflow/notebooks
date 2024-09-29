@@ -261,18 +261,33 @@ spec:
                                - if the Workspace had activity in the last 60 seconds this command
                                  should return status 0, otherwise it should return status 1
                             properties:
-                              command:
-                                description: the command to run
-                                example:
-                                - bash
-                                - -c
-                                - exit 0
-                                items:
-                                  type: string
-                                minItems: 1
-                                type: array
+                              outputPath:
+                                description: "\t the script should write a JSON file
+                                  at this path.\n\t any existing file in this path
+                                  will be REMOVED before the script is run"
+                                example: /tmp/activity_probe.json
+                                type: string
+                              script:
+                                description: |-
+                                  the script to run to determine if the Workspace is active
+                                   - the script must exit with a 0 status code unless there is an error
+                                   - workspaces with failing activity probes will NOT be culled
+                                   - the script must have a shebang (e.g. `#!/usr/bin/env bash` or `#!/usr/bin/env python`)
+                                   - the script should be idempotent and without side effects, it may be run multiple times
+                                   - typically, it will be more efficient to write a probe which checks for a specific
+                                     activity indicator agreed with your users, rather than checking the entire filesystem
+                                type: string
+                              timeoutSeconds:
+                                description: the number of seconds to wait for the
+                                  script to complete
+                                format: int32
+                                maximum: 600
+                                minimum: 1
+                                type: integer
                             required:
-                            - command
+                            - outputPath
+                            - script
+                            - timeoutSeconds
                             type: object
                           jupyter:
                             description: |-

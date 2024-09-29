@@ -217,6 +217,24 @@ type ActivityProbe struct {
 }
 
 type ActivityProbeExec struct {
+	//	 the script should write a JSON file at this path.
+	//	 any existing file in this path will be REMOVED before the script is run
+	//+kubebuilder:example="/tmp/activity_probe.json"
+	OutputPath string `json:"outputPath"`
+
+	// the number of seconds to wait for the script to complete
+	//+kubebuilder:validation:Minimum:=1
+	//+kubebuilder:validation:Maximum:=600
+	TimeoutSeconds int32 `json:"timeoutSeconds"`
+
+	// the script to run to determine if the Workspace is active
+	//  - the script must exit with a 0 status code unless there is an error
+	//  - workspaces with failing activity probes will NOT be culled
+	//  - the script must have a shebang (e.g. `#!/usr/bin/env bash` or `#!/usr/bin/env python`)
+	//  - the script should be idempotent and without side effects, it may be run multiple times
+	//  - typically, it will be more efficient to write a probe which checks for a specific
+	//    activity indicator agreed with your users, rather than checking the entire filesystem
+	Script string `json:"script"`
 	// the command to run
 	// +kubebuilder:validation:MinItems:=1
 	// +kubebuilder:example={"bash", "-c", "exit 0"}
