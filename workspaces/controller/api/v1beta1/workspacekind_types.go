@@ -54,12 +54,12 @@ type WorkspaceKindSpawner struct {
 
 	// if this WorkspaceKind should be hidden from the Workspace Spawner UI
 	//+kubebuilder:validation:Optional
-	//+kubebuilder:default=false
+	//+kubebuilder:default:=false
 	Hidden *bool `json:"hidden,omitempty"`
 
 	// if this WorkspaceKind is deprecated
 	//+kubebuilder:validation:Optional
-	//+kubebuilder:default=false
+	//+kubebuilder:default:=false
 	Deprecated *bool `json:"deprecated,omitempty"`
 
 	// a message to show in Workspace Spawner UI when the WorkspaceKind is deprecated
