@@ -279,7 +279,7 @@ type HTTPProxy struct {
 	//    as if it was made to '/...'
 	//  - this only works if the application serves RELATIVE URLs for its assets
 	//+kubebuilder:validation:Optional
-	//+kubebuilder:default=false
+	//+kubebuilder:default:=false
 	RemovePathPrefix *bool `json:"removePathPrefix,omitempty"`
 
 	// header manipulation rules for incoming HTTP requests
@@ -353,7 +353,7 @@ type ImageConfigSpec struct {
 
 	// the pull policy for the container image
 	//+kubebuilder:validation:Optional
-	//+kubebuilder:default="IfNotPresent"
+	//+kubebuilder:default:="IfNotPresent"
 	//+kubebuilder:validation:Enum:={"Always","IfNotPresent","Never"}
 	ImagePullPolicy *v1.PullPolicy `json:"imagePullPolicy"`
 
@@ -476,7 +476,7 @@ type OptionSpawnerInfo struct {
 
 	// if this option should be hidden from the Workspace Spawner UI
 	//+kubebuilder:validation:Optional
-	//+kubebuilder:default=false
+	//+kubebuilder:default:=false
 	Hidden *bool `json:"hidden,omitempty"`
 }
 
