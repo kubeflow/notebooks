@@ -51,7 +51,7 @@ import (
 const (
 	defaultClusterDomain             = "cluster.local"
 	inactivityToleranceBufferSeconds = 5
-	defaultHTTPTimeout               = 15 * time.Second
+	defaultHTTPTimeout               = 5 * time.Second
 )
 
 // CullingReconciler reconciles a Workspace object

@@ -223,8 +223,9 @@ type ActivityProbeExec struct {
 	OutputPath string `json:"outputPath"`
 
 	// the number of seconds to wait for the script to complete
-	// +kubebuilder:validation:Minimum=1
-	// +kubebuilder:validation:Maximum=600
+	// +kubebuilder:validation:Minimum:=1
+	// +kubebuilder:validation:Maximum:=300
+	// +kubebuilder:default=10
 	TimeoutSeconds int32 `json:"timeoutSeconds"`
 
 	// the script to run to determine if the Workspace is active
