@@ -11,6 +11,8 @@ spec:
     kind: Workspace
     listKind: WorkspaceList
     plural: workspaces
+    shortNames:
+    - ws
     singular: workspace
   scope: Namespaced
   versions:
@@ -203,15 +205,15 @@ spec:
                         example: Jupyter probe succeeded
                         type: string
                       result:
-                        default: Unknown
+                        default: ""
                         description: |-
                           the result of the probe
-                          ENUM: "Success" | "Failure" | "Timeout"
+                          ENUM: "Success" | "Failure" | "Timeout" | ""
                         enum:
                         - Success
                         - Failure
                         - Timeout
-                        - Unknown
+                        - ""
                         type: string
                       startTimeMs:
                         description: the time the probe was started (UNIX epoch in

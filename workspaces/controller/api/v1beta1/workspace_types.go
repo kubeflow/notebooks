@@ -243,8 +243,8 @@ type ProbeStatus struct {
 	EndTimeMs int64 `json:"endTimeMs"`
 
 	// the result of the probe
-	// ENUM: "Success" | "Failure" | "Timeout"
-	//+kubebuilder:default="Unknown"
+	// ENUM: "Success" | "Failure" | "Timeout" | ""
+	//+kubebuilder:default=""
 	Result ProbeResult `json:"result"`
 
 	// a human-readable message about the probe result
@@ -266,7 +266,7 @@ const (
 	WorkspaceStateUnknown     WorkspaceState = "Unknown"
 )
 
-// +kubebuilder:validation:Enum={"Success","Failure","Timeout","Unknown"}
+// +kubebuilder:validation:Enum={"Success","Failure","Timeout",""}
 type ProbeResult string
 
 const (
@@ -282,9 +282,10 @@ const (
 ===============================================================================
 */
 
-// +kubebuilder:object:root=true
-// +kubebuilder:printcolumn:name="State",type="string",JSONPath=".status.state",description="The current state of the Workspace"
-// +kubebuilder:subresource:status
+//+kubebuilder:object:root=true
+//+kubebuilder:printcolumn:name="State",type="string",JSONPath=".status.state",description="The current state of the Workspace"
+//+kubebuilder:subresource:status
+//+kubebuilder:resource:shortName=ws
 
 // Workspace is the Schema for the Workspaces API
 type Workspace struct {

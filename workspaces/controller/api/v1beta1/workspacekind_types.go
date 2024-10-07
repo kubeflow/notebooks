@@ -217,14 +217,14 @@ type ActivityProbe struct {
 }
 
 type ActivityProbeExec struct {
-	//	 the script should write a JSON file at this path.
-	//	 any existing file in this path will be REMOVED before the script is run
+	// the script should write a JSON file at this path.
+	// any existing file in this path will be REMOVED before the script is run
 	//+kubebuilder:example="/tmp/activity_probe.json"
 	OutputPath string `json:"outputPath"`
 
 	// the number of seconds to wait for the script to complete
-	//+kubebuilder:validation:Minimum:=1
-	//+kubebuilder:validation:Maximum:=600
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=600
 	TimeoutSeconds int32 `json:"timeoutSeconds"`
 
 	// the script to run to determine if the Workspace is active
@@ -235,10 +235,6 @@ type ActivityProbeExec struct {
 	//  - typically, it will be more efficient to write a probe which checks for a specific
 	//    activity indicator agreed with your users, rather than checking the entire filesystem
 	Script string `json:"script"`
-	// the command to run
-	// +kubebuilder:validation:MinItems:=1
-	// +kubebuilder:example={"bash", "-c", "exit 0"}
-	Command []string `json:"command"`
 }
 
 // +kubebuilder:validation:XValidation:message="'lastActivity' must be true",rule="has(self.lastActivity) && self.lastActivity"
@@ -580,7 +576,7 @@ type OptionMetric struct {
 // +kubebuilder:printcolumn:name="Deprecated",type="boolean",JSONPath=".spec.spawner.deprecated",description="If this WorkspaceKind is deprecated"
 // +kubebuilder:printcolumn:name="Hidden",type="boolean",JSONPath=".spec.spawner.hidden",description="If this WorkspaceKind is hidden from the spawner UI"
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:scope=Cluster
+// +kubebuilder:resource:scope=Cluster,shortName=wsk
 
 // WorkspaceKind is the Schema for the WorkspaceKinds API
 type WorkspaceKind struct {

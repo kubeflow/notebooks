@@ -11,6 +11,8 @@ spec:
     kind: WorkspaceKind
     listKind: WorkspaceKindList
     plural: workspacekinds
+    shortNames:
+    - wsk
     singular: workspacekind
   scope: Cluster
   versions:
@@ -262,9 +264,9 @@ spec:
                                  should return status 0, otherwise it should return status 1
                             properties:
                               outputPath:
-                                description: "\t the script should write a JSON file
-                                  at this path.\n\t any existing file in this path
-                                  will be REMOVED before the script is run"
+                                description: |-
+                                  the script should write a JSON file at this path.
+                                  any existing file in this path will be REMOVED before the script is run
                                 example: /tmp/activity_probe.json
                                 type: string
                               script:
@@ -278,10 +280,11 @@ spec:
                                      activity indicator agreed with your users, rather than checking the entire filesystem
                                 type: string
                               timeoutSeconds:
+                                default: 10
                                 description: the number of seconds to wait for the
                                   script to complete
                                 format: int32
-                                maximum: 600
+                                maximum: 300
                                 minimum: 1
                                 type: integer
                             required:

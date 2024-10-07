@@ -51,7 +51,7 @@ import (
 const (
 	defaultClusterDomain             = "cluster.local"
 	inactivityToleranceBufferSeconds = 5
-	defaultHTTPTimeout               = 5 * time.Second
+	defaultHTTPTimeout               = 15 * time.Second
 )
 
 // CullingReconciler reconciles a Workspace object
@@ -87,9 +87,8 @@ func (r *CullingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		log.V(2).Info("Workspace is being deleted, skipping culling")
 		return ctrl.Result{}, nil
 	}
-
-	if !*workspace.Spec.DisableCulling {
-		log.V(2).Info("Culling is disabled for this workspace")
+	if workspace.Spec.DisableCulling != nil && *workspace.Spec.DisableCulling {
+		log.V(2).Info("Culling is disabled for this workspace", "DisableCulling", *workspace.Spec.DisableCulling)
 		return ctrl.Result{}, nil
 	}
 
@@ -136,9 +135,9 @@ func (r *CullingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	timeSinceLastProbe := time.Since(lastProbeTime).Seconds()
 
 	// Calculate the requeue time for the next probe
-	requeueAfter := max(time.Duration(float64(maxProbeIntervalSeconds)-timeSinceLastProbe)*time.Second, 0)
 	minRequeueAfter := time.Duration(minProbeIntervalSeconds) * time.Second
-
+	requeueAfter := max(time.Duration(float64(maxProbeIntervalSeconds)-timeSinceLastProbe)*time.Second, minRequeueAfter)
+	log.Info("requesting requeue", "requeueAfter", requeueAfter, "minRequeueAfter", minRequeueAfter)
 	// if the workspace has been probed recently, requeue for the next probe
 	if timeSinceLastProbe < float64(minProbeIntervalSeconds) {
 		log.V(2).Info("Workspace has been probed recently, requeueing for the next probe.",
@@ -151,7 +150,7 @@ func (r *CullingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if timeSinceLastActivity < float64(maxInactiveSeconds) {
 		log.V(2).Info("Workspace activity is within the allowed period, requeueing for the next probe.",
 			"MaxInactiveSeconds", maxInactiveSeconds,
-			"TimeSinceLastActivity", timeSinceLastActivity)
+			"TimeSinceLastActivity", timeSinceLastActivity, "requeueAfter", requeueAfter)
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 	// If the workspace was updated recently, requeue for the next probe
