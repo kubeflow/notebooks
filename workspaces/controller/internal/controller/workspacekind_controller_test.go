@@ -129,7 +129,9 @@ var _ = Describe("WorkspaceKind Controller", func() {
 			newWorkspaceKind = workspaceKind.DeepCopy()
 			newWorkspaceKind.Spec.PodTemplate.Culling.ActivityProbe = kubefloworgv1beta1.ActivityProbe{
 				Exec: &kubefloworgv1beta1.ActivityProbeExec{
-					Command: []string{"bash", "-c", "exit 0"},
+					OutputPath:     "/path/to/output",
+					TimeoutSeconds: 9,
+					Script:         "echo 'hello, world!'",
 				},
 				Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
 					LastActivity: true,
