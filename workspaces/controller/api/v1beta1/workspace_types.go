@@ -33,19 +33,19 @@ type WorkspaceSpec struct {
 
 	// if the workspace is paused (no pods running)
 	//+kubebuilder:validation:Optional
-	//+kubebuilder:default=false
+	//+kubebuilder:default:=false
 	Paused *bool `json:"paused,omitempty"`
 
 	// DisableCulling controls whether automatic culling is disabled for the workspace.
 	// If true, the workspace will not be culled
 	//+kubebuilder:validation:Optional
-	//+kubebuilder:default=false
+	//+kubebuilder:default:=false
 	DisableCulling *bool `json:"disableCulling,omitempty"`
 
 	// if true, pending updates are NOT applied when the Workspace is paused
 	// if false, pending updates are applied when the Workspace is paused
 	//+kubebuilder:validation:Optional
-	//+kubebuilder:default=false
+	//+kubebuilder:default:=false
 	DeferUpdates *bool `json:"deferUpdates,omitempty"`
 
 	// the WorkspaceKind to use
@@ -123,7 +123,7 @@ type PodVolumeMount struct {
 
 	// if the PVC should be mounted as ReadOnly
 	//+kubebuilder:validation:Optional
-	//+kubebuilder:default=false
+	//+kubebuilder:default:=false
 	ReadOnly *bool `json:"readOnly,omitempty"`
 }
 
@@ -158,7 +158,7 @@ type WorkspaceStatus struct {
 
 	// the time when the Workspace was paused (UNIX epoch)
 	//  - set to 0 when the Workspace is NOT paused
-	//+kubebuilder:default=0
+	//+kubebuilder:default:=0
 	//+kubebuilder:example=1704067200
 	PauseTime int64 `json:"pauseTime"`
 
@@ -167,30 +167,30 @@ type WorkspaceStatus struct {
 	//    and so will be patched on the next restart
 	//  - true if the WorkspaceKind has changed one of its common `podTemplate` fields
 	//    like `podMetadata`, `probes`, `extraEnv`, or `containerSecurityContext`
-	//+kubebuilder:default=false
+	//+kubebuilder:default:=false
 	PendingRestart bool `json:"pendingRestart"`
 
 	// information about the current podTemplate options
 	PodTemplateOptions WorkspacePodOptionsStatus `json:"podTemplateOptions"`
 
 	// the current state of the Workspace
-	//+kubebuilder:default="Unknown"
+	//+kubebuilder:default:="Unknown"
 	State WorkspaceState `json:"state"`
 
 	// a human-readable message about the state of the Workspace
 	//  - WARNING: this field is NOT FOR MACHINE USE, subject to change without notice
-	//+kubebuilder:default=""
+	//+kubebuilder:default:=""
 	StateMessage string `json:"stateMessage"`
 }
 
 type WorkspaceActivity struct {
 	// the last time activity was observed on the Workspace (UNIX epoch)
-	//+kubebuilder:default=0
+	//+kubebuilder:default:=0
 	//+kubebuilder:example=1704067200
 	LastActivity int64 `json:"lastActivity"`
 
 	// the last time we checked for activity on the Workspace (UNIX epoch)
-	//+kubebuilder:default=0
+	//+kubebuilder:default:=0
 	//+kubebuilder:example=1704067200
 	LastUpdate int64 `json:"lastUpdate"`
 
@@ -243,13 +243,13 @@ type ProbeStatus struct {
 	EndTimeMs int64 `json:"endTimeMs"`
 
 	// the result of the probe
-	// ENUM: "Success" | "Failure" | "Timeout"
-	//+kubebuilder:default="Unknown"
+	// ENUM: "Success" | "Failure" | "Timeout" | ""
+	//+kubebuilder:default:=""
 	Result ProbeResult `json:"result"`
 
 	// a human-readable message about the probe result
 	// WARNING: this field is NOT FOR MACHINE USE, subject to change without notice
-	//+kubebuilder:default=""
+	//+kubebuilder:default:=""
 	//+kubebuilder:example="Jupyter probe succeeded"
 	Message string `json:"message"`
 }
@@ -266,14 +266,13 @@ const (
 	WorkspaceStateUnknown     WorkspaceState = "Unknown"
 )
 
-// +kubebuilder:validation:Enum={"Success","Failure","Timeout","Unknown"}
+// +kubebuilder:validation:Enum={"Success","Failure","Timeout",""}
 type ProbeResult string
 
 const (
 	ProbeResultSuccess ProbeResult = "Success"
 	ProbeResultFailure ProbeResult = "Failure"
 	ProbeResultTimeout ProbeResult = "Timeout"
-	ProbeResultUnknown ProbeResult = "Unknown"
 )
 
 /*
@@ -285,6 +284,7 @@ const (
 //+kubebuilder:object:root=true
 //+kubebuilder:printcolumn:name="State",type="string",JSONPath=".status.state",description="The current state of the Workspace"
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:shortName=ws
 
 // Workspace is the Schema for the Workspaces API
 type Workspace struct {

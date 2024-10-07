@@ -175,25 +175,25 @@ type WorkspaceKindServiceAccount struct {
 type WorkspaceKindCullingConfig struct {
 	// if the culling feature is enabled
 	//+kubebuilder:validation:Optional
-	//+kubebuilder:default=true
+	//+kubebuilder:default:=true
 	Enabled *bool `json:"enabled,omitempty"`
 
 	// the maximum number of seconds a Workspace can be inactive
 	//+kubebuilder:validation:Optional
 	//+kubebuilder:validation:Minimum:=60
-	//+kubebuilder:default=86400
+	//+kubebuilder:default:=86400
 	MaxInactiveSeconds *int32 `json:"maxInactiveSeconds,omitempty"`
 
 	// the maximum number of seconds between probes
 	//+kubebuilder:validation:Optional
 	//+kubebuilder:validation:Minimum:=60
-	//+kubebuilder:default=300
+	//+kubebuilder:default:=300
 	MaxProbeIntervalSeconds *int32 `json:"maxProbeIntervalSeconds,omitempty"`
 
 	// the minimum number of seconds between probes to avoid spamming in case on failure
 	//+kubebuilder:validation:Optional
 	//+kubebuilder:validation:Minimum:=10
-	//+kubebuilder:default=20
+	//+kubebuilder:default:=20
 	MinProbeIntervalSeconds *int32 `json:"minProbeIntervalSeconds,omitempty"`
 
 	// the probe used to determine if the Workspace is active
@@ -217,14 +217,15 @@ type ActivityProbe struct {
 }
 
 type ActivityProbeExec struct {
-	//	 the script should write a JSON file at this path.
-	//	 any existing file in this path will be REMOVED before the script is run
+	// the script should write a JSON file at this path.
+	// any existing file in this path will be REMOVED before the script is run
 	//+kubebuilder:example="/tmp/activity_probe.json"
 	OutputPath string `json:"outputPath"`
 
 	// the number of seconds to wait for the script to complete
 	//+kubebuilder:validation:Minimum:=1
-	//+kubebuilder:validation:Maximum:=600
+	//+kubebuilder:validation:Maximum:=300
+	//+kubebuilder:default:=10
 	TimeoutSeconds int32 `json:"timeoutSeconds"`
 
 	// the script to run to determine if the Workspace is active
@@ -534,7 +535,7 @@ const (
 type WorkspaceKindStatus struct {
 
 	// the number of Workspaces that are using this WorkspaceKind
-	//+kubebuilder:default=0
+	//+kubebuilder:default:=0
 	Workspaces int32 `json:"workspaces"`
 
 	// metrics for podTemplate options
@@ -576,7 +577,7 @@ type OptionMetric struct {
 //+kubebuilder:printcolumn:name="Deprecated",type="boolean",JSONPath=".spec.spawner.deprecated",description="If this WorkspaceKind is deprecated"
 //+kubebuilder:printcolumn:name="Hidden",type="boolean",JSONPath=".spec.spawner.hidden",description="If this WorkspaceKind is hidden from the spawner UI"
 //+kubebuilder:subresource:status
-//+kubebuilder:resource:scope=Cluster
+//+kubebuilder:resource:scope=Cluster,shortName=wsk
 
 // WorkspaceKind is the Schema for the WorkspaceKinds API
 type WorkspaceKind struct {
