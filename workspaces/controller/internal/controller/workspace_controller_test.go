@@ -18,6 +18,7 @@ package controller
 
 import (
 	"fmt"
+	"k8s.io/utils/pointer"
 	"time"
 
 	"k8s.io/utils/ptr"
@@ -174,8 +175,7 @@ var _ = Describe("Workspace Controller", func() {
 				return statefulSetList.Items, nil
 			}, timeout, interval).Should(HaveLen(1))
 
-			// TODO: use this to get the StatefulSet
-			//statefulSet := statefulSetList.Items[0]
+			statefulSet := statefulSetList.Items[0]
 
 			By("creating a Service")
 			serviceList := &corev1.ServiceList{}
@@ -187,8 +187,7 @@ var _ = Describe("Workspace Controller", func() {
 				return serviceList.Items, nil
 			}, timeout, interval).Should(HaveLen(1))
 
-			// TODO: use this to get the Service
-			//service := serviceList.Items[0]
+			service := serviceList.Items[0]
 
 			//
 			// TODO: populate these tests
@@ -226,6 +225,169 @@ var _ = Describe("Workspace Controller", func() {
 			//        - invalid WorkspaceKind (with bad option redirect - circular / missing) results in error state
 			//        - multiple owned StatefulSets / Services results in error state
 			//
+			By("deleting reconciled resources", func() {
+				statefulSetList := &appsv1.StatefulSetList{}
+				serviceList := &corev1.ServiceList{}
+
+				// Delete the reconciled StatefulSet and Service
+				Expect(k8sClient.Delete(ctx, &statefulSet)).To(Succeed())
+				Expect(k8sClient.Delete(ctx, &service)).To(Succeed())
+
+				// Verify that the StatefulSet is recreated
+				Eventually(func() ([]appsv1.StatefulSet, error) {
+					err := k8sClient.List(ctx, statefulSetList, client.InNamespace(namespaceName), client.MatchingLabels{workspaceNameLabel: workspaceName})
+					if err != nil {
+						return nil, err
+					}
+					return statefulSetList.Items, nil
+				}, timeout, interval).Should(HaveLen(1))
+
+				// Verify that the Service is recreated
+				Eventually(func() ([]corev1.Service, error) {
+					err := k8sClient.List(ctx, serviceList, client.InNamespace(namespaceName), client.MatchingLabels{workspaceNameLabel: workspaceName})
+					if err != nil {
+						return nil, err
+					}
+					return serviceList.Items, nil
+				}, timeout, interval).Should(HaveLen(1))
+
+				statefulSet = statefulSetList.Items[0]
+				service = serviceList.Items[0]
+			})
+
+			By("updating reconciled resources", func() {
+				// Update the StatefulSet
+				statefulSetPatch := client.MergeFrom(statefulSet.DeepCopy())
+				statefulSet.Spec.Replicas = pointer.Int32(3)
+				Expect(k8sClient.Patch(ctx, &statefulSet, statefulSetPatch)).To(Succeed())
+
+				// Verify that the StatefulSet reverts to its original state
+				Eventually(func() int32 {
+					updatedStatefulSet := &appsv1.StatefulSet{}
+					err := k8sClient.Get(ctx, client.ObjectKey{Name: statefulSet.Name, Namespace: statefulSet.Namespace}, updatedStatefulSet)
+					if err != nil {
+						return -1
+					}
+					return *updatedStatefulSet.Spec.Replicas
+				}, timeout, interval).Should(Equal(int32(1)))
+
+				// Update the Service
+				servicePatch := client.MergeFrom(service.DeepCopy())
+				oldPortNumber := service.Spec.Ports[0].Port
+				service.Spec.Ports[0].Port = 8080
+				Expect(k8sClient.Patch(ctx, &service, servicePatch)).To(Succeed())
+
+				// Verify that the Service reverts to its original state
+				Eventually(func() int32 {
+					updatedService := &corev1.Service{}
+					err := k8sClient.Get(ctx, client.ObjectKey{Name: service.Name, Namespace: service.Namespace}, updatedService)
+					if err != nil {
+						return -1
+					}
+					return updatedService.Spec.Ports[0].Port
+				}, timeout, interval).Should(Equal(oldPortNumber))
+			})
+
 		})
+		It("Should succeed for valid portID", func() {
+			validPortID := "jupyterlab"
+			workspaceKindNameValid := fmt.Sprintf("%s-valid", workspaceKindName)
+			workspaceKindValid := NewExampleWorkspaceKind2(workspaceKindNameValid, validPortID)
+			workspaceNameValid := fmt.Sprintf("%s-valid", workspaceName)
+			workspaceValid := NewExampleWorkspace2(workspaceNameValid, namespaceName, workspaceKindNameValid)
+
+			By("creating the WorkspaceKind")
+			Expect(k8sClient.Create(ctx, workspaceKindValid)).To(Succeed())
+
+			By("creating a Workspace")
+			Expect(k8sClient.Create(ctx, workspaceValid)).To(Succeed())
+
+			By("checking the StatefulSet has the correct NB_PREFIX env var")
+			statefulSetList := &appsv1.StatefulSetList{}
+			Eventually(func() ([]appsv1.StatefulSet, error) {
+				err := k8sClient.List(ctx, statefulSetList, client.InNamespace(namespaceName), client.MatchingLabels{workspaceNameLabel: workspaceNameValid})
+				if err != nil {
+					return nil, err
+				}
+				return statefulSetList.Items, nil
+			}, timeout, interval).Should(HaveLen(1))
+
+			statefulSet := statefulSetList.Items[0]
+			expectedEnvVar := corev1.EnvVar{Name: "NB_PREFIX", Value: fmt.Sprintf("/workspace/%s/%s/%s/", namespaceName, workspaceNameValid, validPortID)}
+			Expect(statefulSet.Spec.Template.Spec.Containers[0].Env).To(ContainElement(expectedEnvVar))
+
+			By("deleting the Workspace")
+			Expect(k8sClient.Delete(ctx, workspaceValid)).To(Succeed())
+
+			By("deleting the WorkspaceKind")
+			Expect(k8sClient.Delete(ctx, workspaceKindValid)).To(Succeed())
+		})
+
+		It("Should return empty string for invalid portID", func() {
+			invalidPortID := "invalid-port-id"
+			workspaceKindNameInvalid := fmt.Sprintf("%s-invalid", workspaceKindName)
+			workspaceKindInvalid := NewExampleWorkspaceKind2(workspaceKindNameInvalid, invalidPortID)
+			workspaceNameInvalid := fmt.Sprintf("%s-invalid", workspaceName)
+			workspaceInvalid := NewExampleWorkspace2(workspaceNameInvalid, namespaceName, workspaceKindNameInvalid)
+
+			By("creating the WorkspaceKind")
+			Expect(k8sClient.Create(ctx, workspaceKindInvalid)).To(Succeed())
+
+			By("creating a Workspace")
+			Expect(k8sClient.Create(ctx, workspaceInvalid)).To(Succeed())
+
+			By("checking the StatefulSet has the correct NB_PREFIX env var")
+			statefulSetList := &appsv1.StatefulSetList{}
+			Eventually(func() ([]appsv1.StatefulSet, error) {
+				err := k8sClient.List(ctx, statefulSetList, client.InNamespace(namespaceName), client.MatchingLabels{workspaceNameLabel: workspaceNameInvalid})
+				if err != nil {
+					return nil, err
+				}
+				return statefulSetList.Items, nil
+			}, timeout, interval).Should(HaveLen(1))
+
+			statefulSet := statefulSetList.Items[0]
+			expectedEnvVar := corev1.EnvVar{Name: "NB_PREFIX", Value: ""}
+			Expect(statefulSet.Spec.Template.Spec.Containers[0].Env).To(ContainElement(expectedEnvVar))
+
+			By("deleting the Workspace")
+			Expect(k8sClient.Delete(ctx, workspaceInvalid)).To(Succeed())
+
+			By("deleting the WorkspaceKind")
+			Expect(k8sClient.Delete(ctx, workspaceKindInvalid)).To(Succeed())
+		})
+
+		It("Should set Workspace to error state for invalid template format", func() {
+			workspaceKindNameError := fmt.Sprintf("%s-error", workspaceKindName)
+			workspaceKindError := NewExampleWorkspaceKind3(workspaceKindNameError, "{{ httpPathPrefix 'jupyterlab' }}")
+			workspaceNameError := fmt.Sprintf("%s-error", workspaceName)
+			workspaceError := NewExampleWorkspace2(workspaceNameError, namespaceName, workspaceKindNameError)
+
+			By("creating the WorkspaceKind")
+			Expect(k8sClient.Create(ctx, workspaceKindError)).To(Succeed())
+
+			By("creating a Workspace")
+			Expect(k8sClient.Create(ctx, workspaceError)).To(Succeed())
+
+			By("checking the StatefulSet should not be created and Workspace should be in error state")
+			statefulSetList := &appsv1.StatefulSetList{}
+			Eventually(func() ([]appsv1.StatefulSet, error) {
+				err := k8sClient.List(ctx, statefulSetList, client.InNamespace(namespaceName), client.MatchingLabels{workspaceNameLabel: workspaceNameError})
+				if err != nil {
+					return nil, err
+				}
+				return statefulSetList.Items, nil
+			}, timeout, interval).Should(HaveLen(0))
+
+			Eventually(func() (kubefloworgv1beta1.WorkspaceState, error) {
+				updatedWorkspace := &kubefloworgv1beta1.Workspace{}
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: workspaceNameError, Namespace: namespaceName}, updatedWorkspace)
+				if err != nil {
+					return "", err
+				}
+				return updatedWorkspace.Status.State, nil
+			}, timeout, interval).Should(Equal(kubefloworgv1beta1.WorkspaceStateError))
+		})
+
 	})
 })
