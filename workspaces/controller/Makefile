@@ -63,11 +63,24 @@ vet: ## Run go vet against code.
 test: manifests generate fmt vet envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $$(go list ./... | grep -v /e2e) -coverprofile cover.out
 
-# Utilize Kind or modify the e2e tests to load the image locally, enabling compatibility with other vendors.
-.PHONY: test-e2e  # Run the e2e tests against a Kind k8s instance that is spun up.
-test-e2e:
-	@$(prompt_for_e2e_test_execution)
-	go test ./test/e2e/ -v -ginkgo.v
+# TODO(user): To use a different vendor for e2e tests, modify the setup under 'tests/e2e'.
+# The default setup assumes Kind is pre-installed and builds/loads the Manager Docker image locally.
+# Prometheus and CertManager are installed by default; skip with:
+# - PROMETHEUS_INSTALL_SKIP=true
+# - CERT_MANAGER_INSTALL_SKIP=true
+.PHONY: test-e2e
+test-e2e: ## Run the e2e tests. Expected an isolated environment using Kind.
+	@command -v kind >/dev/null 2>&1 || { \
+		echo "Kind is not installed. Please install Kind manually."; \
+		exit 1; \
+	}
+	@kind get clusters | grep -q 'kind' || { \
+		echo "No Kind cluster is running. Please start a Kind cluster before running the e2e tests."; \
+		exit 1; \
+	}
+	# TODO: set PROMETHEUS_INSTALL_SKIP to `false` or remove `PROMETHEUS_INSTALL_SKIP=true` if we start using Prometheus
+	PROMETHEUS_INSTALL_SKIP=true go test ./test/e2e/ -v -ginkgo.v
+
 .PHONY: lint
 lint: golangci-lint ## Run golangci-lint linter & yamllint
 	$(GOLANGCI_LINT) run
@@ -195,26 +208,4 @@ echo "Downloading $${package}" ;\
 GOBIN=$(LOCALBIN) go install $${package} ;\
 mv "$$(echo "$(1)" | sed "s/-$(3)$$//")" $(1) ;\
 }
-endef
-
-define prompt_for_e2e_test_execution
-    if [ "$$(echo "$(KUBEFLOW_TEST_PROMPT)" | tr '[:upper:]' '[:lower:]')" = "false" ]; then \
-        echo "Skipping E2E test confirmation prompt (KUBEFLOW_TEST_PROMPT is set to false)"; \
-    else \
-        current_k8s_context=$$(kubectl config current-context); \
-        echo "================================ WARNING ================================"; \
-		echo "E2E tests use your current Kubernetes context!"; \
-		echo "This will DELETE EXISTING RESOURCES such as cert-manager!"; \
-        echo "Current context: '$$current_k8s_context'"; \
-		echo "========================================================================="; \
-        echo "Proceed with E2E tests? (yes/NO)"; \
-        read user_confirmation; \
-        case $$user_confirmation in \
-            [yY] | [yY][eE][sS] ) \
-                echo "Running E2E tests...";; \
-            [nN] | [nN][oO] | * ) \
-                echo "Aborting E2E tests..."; \
-                exit 1; \
-        esac \
-    fi
 endef
