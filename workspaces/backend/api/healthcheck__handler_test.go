@@ -18,8 +18,6 @@ package api
 
 import (
 	"encoding/json"
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/models"
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -28,6 +26,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
 )
 
 func TestHealthCheckHandler(t *testing.T) {
@@ -46,8 +46,7 @@ func TestHealthCheckHandler(t *testing.T) {
 
 	app.HealthcheckHandler(rr, req, nil)
 	rs := rr.Result()
-
-	defer rs.Body.Close()
+	defer rs.Body.Close() // nolint: errcheck
 
 	body, err := io.ReadAll(rs.Body)
 	if err != nil {
