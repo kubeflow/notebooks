@@ -24,33 +24,62 @@ make run PORT=8000
 ```
 ### Endpoints
 
-| URL Pattern                              | Handler              | Action                                  |
-|------------------------------------------|----------------------|-----------------------------------------|
-| GET /v1/healthcheck                      | HealthcheckHandler   | Show application information.           |
-| GET /v1/workspaces                       | GetWorkspacesHandler | Get all Workspaces                      |
-| GET /v1/workspaces/{namespace}           | GetWorkspacesHandler | Get all Workspaces from a namespace     |
-| POST /v1/workspaces/{namespace}          | TBD                  | Create a Workspace in a given namespace |
-| GET /v1/workspaces/{namespace}/{name}    | TBD                  | Get a Workspace entity                  |
-| PATCH /v1/workspaces/{namespace}/{name}  | TBD                  | Patch a Workspace entity                |
-| PUT /v1/workspaces/{namespace}/{name}    | TBD                  | Update a Workspace entity               |
-| DELETE /v1/workspaces/{namespace}/{name} | TBD                  | Delete a Workspace entity               |
-| GET /v1/workspacekinds                   | TBD                  | Get all WorkspaceKind                   |
-| POST /v1/workspacekinds                  | TBD                  | Create a WorkspaceKind                  |
-| GET /v1/workspacekinds/{name}            | TBD                  | Get a WorkspaceKind entity              |
-| PATCH /v1/workspacekinds/{name}          | TBD                  | Patch a WorkspaceKind entity            |
-| PUT /v1/workspacekinds/{name}            | TBD                  | Update a WorkspaceKind entity           |
-| DELETE /v1/workspacekinds/{name}         | TBD                  | Delete a WorkspaceKind entity           |
+| URL Pattern                                  | Handler              | Action                                  |
+|----------------------------------------------|----------------------|-----------------------------------------|
+| GET /api/v1/healthcheck                      | HealthcheckHandler   | Show application information.           |
+| GET /api/v1/workspaces                       | GetWorkspacesHandler | Get all Workspaces                      |
+| GET /api/v1/workspaces/{namespace}           | GetWorkspacesHandler | Get all Workspaces from a namespace     |
+| POST /api/v1/workspaces/{namespace}          | GetWorkspacesHandler | Create a Workspace in a given namespace |
+| GET /api/v1/workspaces/{namespace}/{name}    | GetWorkspacesHandler | Get a Workspace entity                  |
+| PATCH /api/v1/workspaces/{namespace}/{name}  | TBD                  | Patch a Workspace entity                |
+| PUT /api/v1/workspaces/{namespace}/{name}    | TBD                  | Update a Workspace entity               |
+| DELETE /api/v1/workspaces/{namespace}/{name} | GetWorkspacesHandler | Delete a Workspace entity               |
+| GET /api/v1/workspacekinds                   | TBD                  | Get all WorkspaceKind                   |
+| POST /api/v1/workspacekinds                  | TBD                  | Create a WorkspaceKind                  |
+| GET /api/v1/workspacekinds/{name}            | TBD                  | Get a WorkspaceKind entity              |
+| PATCH /api/v1/workspacekinds/{name}          | TBD                  | Patch a WorkspaceKind entity            |
+| PUT /api/v1/workspacekinds/{name}            | TBD                  | Update a WorkspaceKind entity           |
+| DELETE /api/v1/workspacekinds/{name}         | TBD                  | Delete a WorkspaceKind entity           |
 
 ### Sample local calls
 ```
-# GET /v1/healthcheck
+# GET /api/v1/healthcheck
 curl -i localhost:4000/api/v1/healthcheck
 ```
 ```
-# GET /v1/workspaces/
+# GET /api/v1/workspaces/
 curl -i localhost:4000/api/v1/workspaces
 ```
 ```
-# GET /v1/workspaces/{namespace}
+# GET /api/v1/workspaces/{namespace}
 curl -i localhost:4000/api/v1/workspaces/default
+```
+```
+# POST /api/v1/workspaces/{namespace}
+curl -X POST http://localhost:4000/api/v1/workspaces/default \
+    -H "Content-Type: application/json" \
+    -d '{
+        "name": "dora",
+        "paused": false,
+        "defer_updates": false,
+        "kind": "jupyterlab",
+        "image_config": "jupyterlab_scipy_190",
+        "pod_config": "tiny_cpu",
+        "home_volume": "workspace-home-bella",
+        "data_volumes": [
+            {
+                "pvc_name": "workspace-data-bella",
+                "mount_path": "/data/my-data",
+                "read_only": false
+            }
+        ]
+    }'
+```
+```
+# GET /api/v1/workspaces/{namespace}/{name}
+curl -i localhost:4000/api/v1/workspaces/default/dora
+```
+```
+# DELETE /api/v1/workspaces/{namespace}/{name}
+curl -X DELETE localhost:4000/api/v1/workspaces/workspace-test/dora
 ```

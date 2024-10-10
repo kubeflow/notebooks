@@ -25,7 +25,9 @@ import (
 	"strings"
 )
 
-type Envelope map[string]interface{}
+type Envelope[D any] struct {
+	Data D `json:"data"`
+}
 
 func (a *App) WriteJSON(w http.ResponseWriter, status int, data any, headers http.Header) error {
 

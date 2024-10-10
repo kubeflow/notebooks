@@ -175,13 +175,12 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(err).NotTo(HaveOccurred(), "Failed to read HTTP response body")
 
 			By("unmarshalling the response JSON")
-			var response Envelope
+			var response WorkspacesEnvelope
 			err = json.Unmarshal(body, &response)
 			Expect(err).NotTo(HaveOccurred(), "Error unmarshalling response JSON")
 
 			By("checking if 'workspaces' key exists in the response")
-			workspacesData, ok := response["workspaces"]
-			Expect(ok).To(BeTrue(), "Response does not contain 'workspaces' key")
+			workspacesData := response.Data
 
 			By("converting workspacesData to JSON and back to []WorkspaceModel")
 			workspacesJSON, err := json.Marshal(workspacesData)
@@ -212,7 +211,6 @@ var _ = Describe("Workspaces Handler", func() {
 
 			By("creating the HTTP request")
 			path := strings.Replace(WorkspacesByNamespacePath, ":"+NamespacePathParam, namespaceName1, 1)
-			fmt.Println(path)
 			req, err := http.NewRequest(http.MethodGet, path, nil)
 			Expect(err).NotTo(HaveOccurred(), "Failed to create HTTP request")
 
@@ -236,16 +234,12 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(err).NotTo(HaveOccurred(), "Failed to read HTTP response body")
 
 			By("unmarshalling the response JSON")
-			var response Envelope
+			var response WorkspacesEnvelope
 			err = json.Unmarshal(body, &response)
 			Expect(err).NotTo(HaveOccurred(), "Error unmarshalling response JSON")
 
-			By("checking if 'workspaces' key exists in the response")
-			workspacesData, ok := response["workspaces"]
-			Expect(ok).To(BeTrue(), "Response does not contain 'workspaces' key")
-
-			By("converting workspacesData to JSON and back to []WorkspaceModel")
-			workspacesJSON, err := json.Marshal(workspacesData)
+			By("converting workspaces Data to JSON and back to []WorkspaceModel")
+			workspacesJSON, err := json.Marshal(response.Data)
 			Expect(err).NotTo(HaveOccurred(), "Error marshalling workspaces repositories")
 
 			var workspaces []models.WorkspaceModel
@@ -307,22 +301,205 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(err).NotTo(HaveOccurred(), "Failed to read HTTP response body")
 
 			By("unmarshalling the response JSON")
-			var response Envelope
+			var response WorkspacesEnvelope
 			err = json.Unmarshal(body, &response)
 			Expect(err).NotTo(HaveOccurred(), "Error unmarshalling response JSON")
 
-			By("checking if 'workspaces' key exists in the response")
-			workspacesData, ok := response["workspaces"]
-			Expect(ok).To(BeTrue(), "Response does not contain 'workspaces' key")
-
 			By("asserting that the 'workspaces' list is empty")
-			workspacesJSON, err := json.Marshal(workspacesData)
+			workspacesJSON, err := json.Marshal(response.Data)
 			Expect(err).NotTo(HaveOccurred(), "Error marshalling workspaces data")
 
 			var workspaces []models.WorkspaceModel
 			err = json.Unmarshal(workspacesJSON, &workspaces)
 			Expect(err).NotTo(HaveOccurred(), "Error unmarshalling workspaces JSON")
 			Expect(workspaces).To(BeEmpty(), "Expected no workspaces in the response")
+		})
+	})
+
+	Context("CRUD workspace", Ordered, func() {
+
+		const namespaceNameCrud = "namespace-crud"
+
+		var (
+			a                 App
+			workspaceKindName string
+		)
+
+		BeforeAll(func() {
+			uniqueName := "wsk-update-test"
+			workspaceKindName = fmt.Sprintf("workspacekind-%s", uniqueName)
+
+			repos := repositories.NewRepositories(k8sClient)
+			a = App{
+				Config: config.EnvConfig{
+					Port: 4000,
+				},
+				repositories: repos,
+			}
+
+			By("creating namespace")
+			namespaceA := &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: namespaceNameCrud,
+				},
+			}
+			Expect(k8sClient.Create(ctx, namespaceA)).To(Succeed())
+
+			By("creating a WorkspaceKind")
+			workspaceKind := NewExampleWorkspaceKind(workspaceKindName)
+			Expect(k8sClient.Create(ctx, workspaceKind)).To(Succeed())
+
+		})
+
+		AfterAll(func() {
+
+			By("deleting the WorkspaceKind")
+			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: workspaceKindName,
+				},
+			}
+			Expect(k8sClient.Delete(ctx, workspaceKind)).To(Succeed())
+
+			By("deleting the namespace")
+			namespaceA := &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: namespaceNameCrud,
+				},
+			}
+			Expect(k8sClient.Delete(ctx, namespaceA)).To(Succeed())
+
+		})
+
+		It("should create, retrieve and delete workspace successfully", func() {
+
+			By("creating the workspace via the API")
+			workspaceName := "dora"
+			workspaceModel := models.WorkspaceModel{
+				Name:         workspaceName,
+				Namespace:    namespaceNameCrud,
+				Paused:       false,
+				DeferUpdates: false,
+				Kind:         "jupyterlab",
+				ImageConfig:  "jupyterlab_scipy_190",
+				PodConfig:    "tiny_cpu",
+				HomeVolume:   "workspace-home-bella",
+				DataVolumes: []models.DataVolumeModel{
+					{
+						PvcName:   "workspace-data-bella",
+						MountPath: "/data/my-data",
+						ReadOnly:  false,
+					},
+				},
+				Labels: map[string]string{
+					"app": "jupyter",
+				},
+				Annotations: map[string]string{
+					"environment": "dev",
+				},
+			}
+
+			workspaceJSON, err := json.Marshal(workspaceModel)
+			Expect(err).NotTo(HaveOccurred(), "Failed to marshal WorkspaceModel to JSON")
+			path := strings.Replace(WorkspacesByNamespacePath, ":"+NamespacePathParam, namespaceNameCrud, 1)
+
+			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(workspaceJSON)))
+			Expect(err).NotTo(HaveOccurred(), "Failed to create HTTP request")
+			req.Header.Set("Content-Type", "application/json")
+
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{
+				httprouter.Param{
+					Key:   NamespacePathParam,
+					Value: namespaceNameCrud,
+				},
+			}
+
+			a.CreateWorkspaceHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code for creation")
+			Expect(rs.StatusCode).To(Equal(http.StatusCreated), "Expected HTTP status 201 Created")
+
+			By("retrieving the created workspace via the API")
+			path = strings.Replace(WorkspacesByNamePath, ":"+NamespacePathParam, namespaceNameCrud, 1)
+			path = strings.Replace(path, ":"+WorkspaceNamePathParam, workspaceName, 1)
+
+			ps = httprouter.Params{
+				httprouter.Param{
+					Key:   NamespacePathParam,
+					Value: namespaceNameCrud,
+				},
+				httprouter.Param{
+					Key:   WorkspaceNamePathParam,
+					Value: workspaceName,
+				},
+			}
+
+			req, err = http.NewRequest(http.MethodGet, path, nil)
+			Expect(err).NotTo(HaveOccurred(), "Failed to create HTTP request")
+			rr = httptest.NewRecorder()
+
+			a.GetWorkspaceHandler(rr, req, ps)
+			rs = rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code for retrieval")
+			Expect(rs.StatusCode).To(Equal(http.StatusOK), "Expected HTTP status 200 OK")
+
+			By("reading the HTTP response body for retrieval")
+			body, err := io.ReadAll(rs.Body)
+			Expect(err).NotTo(HaveOccurred(), "Failed to read HTTP response body")
+
+			By("unmarshalling the response JSON for retrieval")
+			var response WorkspaceEnvelope
+
+			err = json.Unmarshal(body, &response)
+			Expect(err).NotTo(HaveOccurred(), "Error unmarshalling response JSON")
+
+			//remove auto generated fields from comparison
+			response.Data.LastActivity = ""
+
+			By("checking if the retrieved workspace matches the expected workspace")
+			retrievedWorkspaceJSON, err := json.Marshal(response.Data)
+			Expect(err).NotTo(HaveOccurred(), "Failed to marshal retrieved workspace to JSON")
+
+			originalWorkspaceJSON, err := json.Marshal(workspaceModel)
+			Expect(err).NotTo(HaveOccurred(), "Failed to marshal original workspace to JSON")
+
+			Expect(retrievedWorkspaceJSON).To(MatchJSON(originalWorkspaceJSON), "The retrieved workspace does not match the created one")
+
+			By("deleting the workspace via the API")
+			req, err = http.NewRequest(http.MethodDelete, path, nil)
+			Expect(err).NotTo(HaveOccurred(), "Failed to create HTTP request for deletion")
+
+			rr = httptest.NewRecorder()
+			a.DeleteWorkspaceHandler(rr, req, ps)
+			rs = rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code for deletion")
+			Expect(rs.StatusCode).To(Equal(http.StatusNoContent), "Expected HTTP status 204 No Content")
+
+			By("verifying the workspace has been deleted")
+			req, err = http.NewRequest(http.MethodGet, path, nil)
+			Expect(err).NotTo(HaveOccurred(), "Failed to create HTTP request")
+			rr = httptest.NewRecorder()
+
+			a.GetWorkspaceHandler(rr, req, ps)
+			rs = rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code for not found")
+			Expect(rs.StatusCode).To(Equal(http.StatusNotFound), "Expected HTTP status 200 OK")
+
+			By("double check via k9client")
+			workspace := &kubefloworgv1beta1.Workspace{}
+			err = k8sClient.Get(ctx, types.NamespacedName{Name: "dora", Namespace: namespaceNameCrud}, workspace)
+			Expect(err).To(HaveOccurred(), "Expected error when retrieving the deleted workspace")
+			Expect(err).To(MatchError(`workspaces.kubeflow.org "dora" not found`))
+
 		})
 	})
 })
