@@ -19,8 +19,9 @@
 package models
 
 import (
-	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"strings"
+
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 )
 
 type WorkspaceKindModel struct {
@@ -66,11 +67,11 @@ func NewWorkspaceKindModelFromWorkspaceKind(item *kubefloworgv1beta1.WorkspaceKi
 		deprecationMessage = *item.Spec.Spawner.DeprecationMessage
 	}
 
-	var cpuValues []string
-	var memoryValues []string
-	for _, value := range item.Spec.PodTemplate.Options.PodConfig.Values {
-		cpuValues = append(cpuValues, value.Spec.Resources.Requests.Cpu().String())
-		memoryValues = append(memoryValues, value.Spec.Resources.Requests.Memory().String())
+	cpuValues := make([]string, len(item.Spec.PodTemplate.Options.PodConfig.Values))
+	memoryValues := make([]string, len(item.Spec.PodTemplate.Options.PodConfig.Values))
+	for i, value := range item.Spec.PodTemplate.Options.PodConfig.Values {
+		cpuValues[i] = value.Spec.Resources.Requests.Cpu().String()
+		memoryValues[i] = value.Spec.Resources.Requests.Memory().String()
 	}
 
 	workspaceKindModel := WorkspaceKindModel{

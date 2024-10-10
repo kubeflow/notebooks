@@ -19,11 +19,13 @@ package repositories
 import (
 	"context"
 	"errors"
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/models"
+
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models"
 )
 
 var ErrWorkspaceNotFound = errors.New("workspace not found")
@@ -66,7 +68,6 @@ func (r *WorkspaceRepository) GetWorkspaces(ctx context.Context, namespace strin
 	}
 
 	workspacesModels := make([]models.WorkspaceModel, len(workspaceList.Items))
-
 	for i, item := range workspaceList.Items {
 		workspaceModel := models.NewWorkspaceModelFromWorkspace(&item)
 		workspacesModels[i] = workspaceModel
@@ -76,7 +77,6 @@ func (r *WorkspaceRepository) GetWorkspaces(ctx context.Context, namespace strin
 }
 
 func (r *WorkspaceRepository) GetAllWorkspaces(ctx context.Context) ([]models.WorkspaceModel, error) {
-
 	workspaceList := &kubefloworgv1beta1.WorkspaceList{}
 
 	err := r.client.List(ctx, workspaceList)
@@ -85,7 +85,6 @@ func (r *WorkspaceRepository) GetAllWorkspaces(ctx context.Context) ([]models.Wo
 	}
 
 	workspacesModels := make([]models.WorkspaceModel, len(workspaceList.Items))
-
 	for i, item := range workspaceList.Items {
 		workspaceModel := models.NewWorkspaceModelFromWorkspace(&item)
 		workspacesModels[i] = workspaceModel
@@ -95,18 +94,19 @@ func (r *WorkspaceRepository) GetAllWorkspaces(ctx context.Context) ([]models.Wo
 }
 
 func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, workspaceModel models.WorkspaceModel) (models.WorkspaceModel, error) {
-	//TODO review all fields
+	// TODO: review all fields
 	workspace := &kubefloworgv1beta1.Workspace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        workspaceModel.Name,
-			Namespace:   workspaceModel.Namespace,
+			Name:      workspaceModel.Name,
+			Namespace: workspaceModel.Namespace,
+			// TODO: the pod and workspace labels should be separated
 			Labels:      workspaceModel.Labels,
 			Annotations: workspaceModel.Annotations,
 		},
 		Spec: kubefloworgv1beta1.WorkspaceSpec{
 			Paused:       &workspaceModel.Paused,
 			DeferUpdates: &workspaceModel.DeferUpdates,
-			//TODO verify if workspace kind exists on validation
+			// TODO: verify if workspace kind exists on validation
 			Kind: workspaceModel.Kind,
 			PodTemplate: kubefloworgv1beta1.WorkspacePodTemplate{
 				PodMetadata: &kubefloworgv1beta1.WorkspacePodMetadata{
@@ -125,13 +125,16 @@ func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, workspaceMode
 		},
 	}
 
-	//TODO create data volumes if necessary
-	for _, dataVolume := range workspaceModel.DataVolumes {
-		workspace.Spec.PodTemplate.Volumes.Data = append(workspace.Spec.PodTemplate.Volumes.Data, kubefloworgv1beta1.PodVolumeMount{
+	// TODO: create data volumes if necessary
+	workspace.Spec.PodTemplate.Volumes.Data = make([]kubefloworgv1beta1.PodVolumeMount, len(workspaceModel.DataVolumes))
+	for i, dataVolume := range workspaceModel.DataVolumes {
+		// make a copy of readOnly because dataVolume is reassigned each loop
+		readOnly := dataVolume.ReadOnly
+		workspace.Spec.PodTemplate.Volumes.Data[i] = kubefloworgv1beta1.PodVolumeMount{
 			PVCName:   dataVolume.PvcName,
 			MountPath: dataVolume.MountPath,
-			ReadOnly:  &dataVolume.ReadOnly,
-		})
+			ReadOnly:  &readOnly,
+		}
 	}
 	if err := r.client.Create(ctx, workspace); err != nil {
 		return models.WorkspaceModel{}, err
@@ -141,7 +144,6 @@ func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, workspaceMode
 }
 
 func (r *WorkspaceRepository) DeleteWorkspace(ctx context.Context, namespace, workspaceName string) error {
-
 	workspace := &kubefloworgv1beta1.Workspace{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,

@@ -21,10 +21,12 @@ package api
 import (
 	"errors"
 	"fmt"
+	"net/http"
+
 	"github.com/julienschmidt/httprouter"
+
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/models"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
-	"net/http"
 )
 
 type WorkspaceKindsEnvelope Envelope[[]models.WorkspaceKindModel]

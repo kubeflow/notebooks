@@ -32,7 +32,6 @@ type Envelope[D any] struct {
 func (a *App) WriteJSON(w http.ResponseWriter, status int, data any, headers http.Header) error {
 
 	js, err := json.MarshalIndent(data, "", "\t")
-
 	if err != nil {
 		return err
 	}
@@ -62,7 +61,6 @@ func (a *App) ReadJSON(w http.ResponseWriter, r *http.Request, dst any) error {
 	dec.DisallowUnknownFields()
 
 	err := dec.Decode(dst)
-
 	if err != nil {
 		var syntaxError *json.SyntaxError
 		var unmarshalTypeError *json.UnmarshalTypeError

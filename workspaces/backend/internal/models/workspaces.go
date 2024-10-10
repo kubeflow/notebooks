@@ -19,8 +19,9 @@
 package models
 
 import (
-	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"time"
+
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 )
 
 type WorkspaceModel struct {
@@ -57,7 +58,7 @@ func NewWorkspaceModelFromWorkspace(item *kubefloworgv1beta1.Workspace) Workspac
 			ReadOnly:  *volume.ReadOnly,
 		}
 	}
-	//TODO review all fields
+	// TODO: review all fields
 	workspaceModel := WorkspaceModel{
 		Namespace:    item.Namespace,
 		Name:         item.ObjectMeta.Name,

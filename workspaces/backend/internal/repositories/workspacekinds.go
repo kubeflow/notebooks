@@ -21,10 +21,12 @@ package repositories
 import (
 	"context"
 	"errors"
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/models"
+
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models"
 )
 
 var ErrWorkspaceKindNotFound = errors.New("workspace kind not found")
@@ -62,7 +64,6 @@ func (r *WorkspaceKindRepository) GetWorkspaceKinds(ctx context.Context) ([]mode
 	}
 
 	workspaceKindsModels := make([]models.WorkspaceKindModel, len(workspaceKindList.Items))
-
 	for i, item := range workspaceKindList.Items {
 		workspaceKindModel := models.NewWorkspaceKindModelFromWorkspaceKind(&item)
 		workspaceKindsModels[i] = workspaceKindModel

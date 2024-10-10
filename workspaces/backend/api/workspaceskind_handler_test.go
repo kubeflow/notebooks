@@ -18,20 +18,22 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/julienschmidt/httprouter"
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/models"
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
-	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	"io"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+
+	"github.com/julienschmidt/httprouter"
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
 )
 
 var _ = Describe("WorkspaceKinds Handler", func() {
@@ -118,7 +120,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			rr := httptest.NewRecorder()
 			a.GetWorkspaceKindsHandler(rr, req, ps)
 			rs := rr.Result()
-			defer rs.Body.Close()
+			defer rs.Body.Close() // nolint: errcheck
 
 			By("verifying the HTTP response status code")
 			Expect(rs.StatusCode).To(Equal(http.StatusOK), "Expected HTTP status 200 OK")
@@ -169,7 +171,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			rr := httptest.NewRecorder()
 			a.GetWorkspaceKindHandler(rr, req, ps)
 			rs := rr.Result()
-			defer rs.Body.Close()
+			defer rs.Body.Close() // nolint: errcheck
 
 			By("verifying the HTTP response status code")
 			Expect(rs.StatusCode).To(Equal(http.StatusOK), "Expected HTTP status 200 OK")
@@ -219,7 +221,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			rr := httptest.NewRecorder()
 			a.GetWorkspaceKindsHandler(rr, req, ps)
 			rs := rr.Result()
-			defer rs.Body.Close()
+			defer rs.Body.Close() // nolint: errcheck
 
 			By("verifying the HTTP response status code")
 			Expect(rs.StatusCode).To(Equal(http.StatusOK), "Expected HTTP status 200 OK")
@@ -256,7 +258,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			rr := httptest.NewRecorder()
 			a.GetWorkspaceKindHandler(rr, req, ps)
 			rs := rr.Result()
-			defer rs.Body.Close()
+			defer rs.Body.Close() // nolint: errcheck
 
 			By("verifying the HTTP response status code")
 			Expect(rs.StatusCode).To(Equal(http.StatusNotFound), "Expected HTTP status 404 Not Found")

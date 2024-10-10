@@ -20,18 +20,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/models"
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
 )
 
 type WorkspacesEnvelope Envelope[[]models.WorkspaceModel]
 type WorkspaceEnvelope Envelope[models.WorkspaceModel]
 
 func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-
 	namespace := ps.ByName(NamespacePathParam)
 	workspaceName := ps.ByName(WorkspaceNamePathParam)
 
@@ -47,7 +47,6 @@ func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps htt
 	}
 
 	workspace, err = a.repositories.Workspace.GetWorkspace(r.Context(), namespace, workspaceName)
-
 	if err != nil {
 		if errors.Is(err, repositories.ErrWorkspaceNotFound) {
 			a.notFoundResponse(w, r)
@@ -62,7 +61,6 @@ func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps htt
 	}
 
 	err = a.WriteJSON(w, http.StatusOK, modelRegistryRes, nil)
-
 	if err != nil {
 		a.serverErrorResponse(w, r, err)
 	}
@@ -70,7 +68,6 @@ func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps htt
 }
 
 func (a *App) GetWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-
 	namespace := ps.ByName(NamespacePathParam)
 
 	var workspaces []models.WorkspaceModel
@@ -80,7 +77,6 @@ func (a *App) GetWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps ht
 	} else {
 		workspaces, err = a.repositories.Workspace.GetWorkspaces(r.Context(), namespace)
 	}
-
 	if err != nil {
 		a.serverErrorResponse(w, r, err)
 		return
@@ -91,11 +87,9 @@ func (a *App) GetWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps ht
 	}
 
 	err = a.WriteJSON(w, http.StatusOK, modelRegistryRes, nil)
-
 	if err != nil {
 		a.serverErrorResponse(w, r, err)
 	}
-
 }
 
 func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {

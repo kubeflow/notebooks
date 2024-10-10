@@ -17,7 +17,6 @@ limitations under the License.
 package api
 
 import (
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
 	"log/slog"
 	"net/http"
 
@@ -26,22 +25,24 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
 )
 
 const (
 	Version    = "1.0.0"
 	PathPrefix = "/api/v1"
 
+	// healthcheck
 	HealthCheckPath = PathPrefix + "/healthcheck"
-	//workspaces
+
+	// workspaces
 	AllWorkspacesPath         = PathPrefix + "/workspaces"
 	NamespacePathParam        = "namespace"
+	WorkspaceNamePathParam    = "name"
 	WorkspacesByNamespacePath = AllWorkspacesPath + "/:" + NamespacePathParam
+	WorkspacesByNamePath      = AllWorkspacesPath + "/:" + NamespacePathParam + "/:" + WorkspaceNamePathParam
 
-	WorkspaceNamePathParam = "name"
-	WorkspacesByNamePath   = AllWorkspacesPath + "/:" + NamespacePathParam + "/:" + WorkspaceNamePathParam
-
-	//workspacekinds
+	// workspacekinds
 	AllWorkspaceKindsPath      = PathPrefix + "/workspacekinds"
 	WorkspaceKindNamePathParam = "name"
 	WorkspaceKindsByNamePath   = AllWorkspaceKindsPath + "/:" + WorkspaceNamePathParam
