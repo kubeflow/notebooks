@@ -17,7 +17,6 @@ limitations under the License.
 package api
 
 import (
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
 	"log/slog"
 	"net/http"
 
@@ -26,14 +25,27 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
 )
 
 const (
-	Version            = "1.0.0"
-	HealthCheckPath    = "/api/v1/healthcheck/"
-	NamespacePathParam = "namespace"
-	PathPrefix         = "/api/v1/spawner/:namespace"
-	WorkspacesPath     = PathPrefix + "/workspaces"
+	Version    = "1.0.0"
+	PathPrefix = "/api/v1"
+
+	// healthcheck
+	HealthCheckPath = PathPrefix + "/healthcheck"
+
+	// workspaces
+	AllWorkspacesPath         = PathPrefix + "/workspaces"
+	NamespacePathParam        = "namespace"
+	WorkspaceNamePathParam    = "name"
+	WorkspacesByNamespacePath = AllWorkspacesPath + "/:" + NamespacePathParam
+	WorkspacesByNamePath      = AllWorkspacesPath + "/:" + NamespacePathParam + "/:" + WorkspaceNamePathParam
+
+	// workspacekinds
+	AllWorkspaceKindsPath      = PathPrefix + "/workspacekinds"
+	WorkspaceKindNamePathParam = "name"
+	WorkspaceKindsByNamePath   = AllWorkspaceKindsPath + "/:" + WorkspaceNamePathParam
 )
 
 type App struct {
@@ -63,7 +75,16 @@ func (a *App) Routes() http.Handler {
 	router.MethodNotAllowed = http.HandlerFunc(a.methodNotAllowedResponse)
 
 	router.GET(HealthCheckPath, a.HealthcheckHandler)
-	router.GET(WorkspacesPath, a.GetWorkspacesHandler)
+
+	router.GET(AllWorkspacesPath, a.GetWorkspacesHandler)
+	router.GET(WorkspacesByNamespacePath, a.GetWorkspacesHandler)
+
+	router.GET(WorkspacesByNamePath, a.GetWorkspaceHandler)
+	router.POST(WorkspacesByNamespacePath, a.CreateWorkspaceHandler)
+	router.DELETE(WorkspacesByNamePath, a.DeleteWorkspaceHandler)
+
+	router.GET(AllWorkspaceKindsPath, a.GetWorkspaceKindsHandler)
+	router.GET(WorkspaceKindsByNamePath, a.GetWorkspaceKindHandler)
 
 	return a.RecoverPanic(a.enableCORS(router))
 }
