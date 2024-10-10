@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/kubeflow/notebooks/workspaces/backend/api"
 	"log/slog"
 	"net"
 	"net/http"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"time"
+
+	ctrl "sigs.k8s.io/controller-runtime"
+
+	"github.com/kubeflow/notebooks/workspaces/backend/api"
 )
 
 type Server struct {

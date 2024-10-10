@@ -31,7 +31,6 @@ func (a *App) HealthcheckHandler(w http.ResponseWriter, r *http.Request, ps http
 	}
 
 	err = a.WriteJSON(w, http.StatusOK, healthCheck, nil)
-
 	if err != nil {
 		a.serverErrorResponse(w, r, err)
 	}

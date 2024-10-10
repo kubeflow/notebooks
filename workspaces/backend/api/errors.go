@@ -33,6 +33,10 @@ type ErrorResponse struct {
 	Message string `json:"message"`
 }
 
+type ErrorEnvelope struct {
+	Error *HTTPError `json:"error"`
+}
+
 func (a *App) LogError(r *http.Request, err error) {
 	var (
 		method = r.Method
@@ -55,11 +59,9 @@ func (a *App) badRequestResponse(w http.ResponseWriter, r *http.Request, err err
 }
 
 func (a *App) errorResponse(w http.ResponseWriter, r *http.Request, error *HTTPError) {
-
-	env := Envelope{"error": error}
+	env := ErrorEnvelope{Error: error}
 
 	err := a.WriteJSON(w, error.StatusCode, env, nil)
-
 	if err != nil {
 		a.LogError(r, err)
 		w.WriteHeader(error.StatusCode)
@@ -80,7 +82,6 @@ func (a *App) serverErrorResponse(w http.ResponseWriter, r *http.Request, err er
 }
 
 func (a *App) notFoundResponse(w http.ResponseWriter, r *http.Request) {
-
 	httpError := &HTTPError{
 		StatusCode: http.StatusNotFound,
 		ErrorResponse: ErrorResponse{
@@ -92,7 +93,6 @@ func (a *App) notFoundResponse(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) methodNotAllowedResponse(w http.ResponseWriter, r *http.Request) {
-
 	httpError := &HTTPError{
 		StatusCode: http.StatusMethodNotAllowed,
 		ErrorResponse: ErrorResponse{
@@ -105,11 +105,11 @@ func (a *App) methodNotAllowedResponse(w http.ResponseWriter, r *http.Request) {
 
 // nolint:unused
 func (a *App) failedValidationResponse(w http.ResponseWriter, r *http.Request, errors map[string]string) {
-
 	message, err := json.Marshal(errors)
 	if err != nil {
 		message = []byte("{}")
 	}
+
 	httpError := &HTTPError{
 		StatusCode: http.StatusUnprocessableEntity,
 		ErrorResponse: ErrorResponse{
