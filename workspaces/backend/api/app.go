@@ -37,6 +37,9 @@ const (
 	AllWorkspacesPath         = PathPrefix + "/workspaces"
 	NamespacePathParam        = "namespace"
 	WorkspacesByNamespacePath = AllWorkspacesPath + "/:" + NamespacePathParam
+
+	WorkspaceNamePathParam = "name"
+	WorkspacesByNamePath   = AllWorkspacesPath + "/:" + NamespacePathParam + "/:" + WorkspaceNamePathParam
 )
 
 type App struct {
@@ -66,8 +69,13 @@ func (a *App) Routes() http.Handler {
 	router.MethodNotAllowed = http.HandlerFunc(a.methodNotAllowedResponse)
 
 	router.GET(HealthCheckPath, a.HealthcheckHandler)
+
 	router.GET(AllWorkspacesPath, a.GetWorkspacesHandler)
 	router.GET(WorkspacesByNamespacePath, a.GetWorkspacesHandler)
+
+	router.GET(WorkspacesByNamePath, a.GetWorkspaceHandler)
+	router.POST(WorkspacesByNamespacePath, a.CreateWorkspaceHandler)
+	router.DELETE(WorkspacesByNamePath, a.DeleteWorkspaceHandler)
 
 	return a.RecoverPanic(a.enableCORS(router))
 }
