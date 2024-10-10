@@ -24,13 +24,15 @@ import (
 
 // Models struct is a single convenient container to hold and represent all our repositories.
 type Repositories struct {
-	HealthCheck *HealthCheckRepository
-	Workspace   *WorkspaceRepository
+	HealthCheck   *HealthCheckRepository
+	Workspace     *WorkspaceRepository
+	WorkspaceKind *WorkspaceKindRepository
 }
 
 func NewRepositories(client client.Client) *Repositories {
 	return &Repositories{
-		HealthCheck: NewHealthCheckRepository(),
-		Workspace:   NewWorkspaceRepository(client),
+		HealthCheck:   NewHealthCheckRepository(),
+		Workspace:     NewWorkspaceRepository(client),
+		WorkspaceKind: NewWorkspaceKindRepository(client),
 	}
 }
