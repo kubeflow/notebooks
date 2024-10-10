@@ -174,8 +174,17 @@ func (r *CullingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 				Message:     "Failed to fetch service name for workspace",
 			}, nil, nil)
 		}
-		port := "8888"
-		jupyterAPIEndpoint := fmt.Sprintf("http://%s.%s.svc.%s:%s/workspace/%s/%s/jupyterlab/api/status", serviceName, workspace.Namespace, defaultClusterDomain, port, workspace.Namespace, workspace.Name)
+		port, err := r.getWorkspacePort(ctx, workspace, workspaceKind)
+		if err != nil {
+			log.Error(err, "Error fetching port for workspace")
+			return r.updateWorkspaceActivityStatus(ctx, log, workspace, &minRequeueAfter, &kubefloworgv1beta1.ProbeStatus{
+				StartTimeMs: probeStartTime.UnixMilli(),
+				EndTimeMs:   time.Now().UnixMilli(),
+				Result:      kubefloworgv1beta1.ProbeResultFailure,
+				Message:     "Failed to fetch port for workspace",
+			}, nil, nil)
+		}
+		jupyterAPIEndpoint := fmt.Sprintf("http://%s.%s.svc.%s:%d/workspace/%s/%s/jupyterlab/api/status", serviceName, workspace.Namespace, defaultClusterDomain, port, workspace.Namespace, workspace.Name)
 
 		lastActivity, err, probeMessage, probeResult := fetchLastActivityFromJupyterAPI(jupyterAPIEndpoint)
 		if err != nil {
@@ -211,6 +220,7 @@ func (r *CullingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}, ptr.To(probeStartTime.Unix()), ptr.To(lastActivity.Unix()))
 	}
 
+	// Check if Bash probing is enabled
 	if workspaceKind.Spec.PodTemplate.Culling.ActivityProbe.Exec != nil {
 		probeStartTime := time.Now()
 		podName, err := r.getPodName(ctx, workspace)
@@ -367,6 +377,19 @@ func (r *CullingReconciler) getServiceName(ctx context.Context, workspace *kubef
 
 	// Return the single found service name
 	return ownedServices.Items[0].Name, nil
+}
+
+func (r *CullingReconciler) getWorkspacePort(ctx context.Context, workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind) (int32, error) {
+	for _, imageConfigValue := range workspaceKind.Spec.PodTemplate.Options.ImageConfig.Values {
+		if imageConfigValue.Id == workspace.Spec.PodTemplate.Options.ImageConfig {
+			for _, port := range imageConfigValue.Spec.Ports {
+				if port.Id == workspaceKind.Spec.PodTemplate.Culling.ActivityProbe.Jupyter.PortId {
+					return port.Port, nil
+				}
+			}
+		}
+	}
+	return 0, errors.New("port not found")
 }
 
 func (r *CullingReconciler) getPodName(ctx context.Context, workspace *kubefloworgv1beta1.Workspace) (string, error) {
