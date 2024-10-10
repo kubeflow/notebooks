@@ -99,38 +99,38 @@ spec:
         ##  - if the Workspace had activity in the last 60 seconds this command
         ##    should return status 0, otherwise it should return status 1
         ##
-        exec:
-           outputPath: "/tmp/activity_probe.json"
-           timeoutSeconds: 60
-           script: |-
-              #!/usr/bin/env bash
-  
-              set -euo pipefail
-
-              # Define the output path
-              output_path="/tmp/activity_probe.json"
-  
-              # Find the most recent modification time in the $HOME directory
-              last_activity_epoch=$(find "$HOME" -type f -printf '%T@\n' 2>/dev/null | awk 'max < $1 { max = $1 } END { print max }')
-  
-              # Write the last activity time to the output path
-              if [ -n "$last_activity_epoch" ]; then
-              # Convert epoch time to ISO 8601 format
-              last_activity=$(date -d "@$last_activity_epoch" -Iseconds)
-                    echo "{\"last_activity\": \"$last_activity\"}" > "$output_path"
-              else
-              # Handle the case where no files are found
-                    echo "{\"last_activity\": null}" > "$output_path"
-              fi
+#        exec:
+#           outputPath: "/tmp/activity_probe.json"
+#           timeoutSeconds: 60
+#           script: |-
+#              #!/usr/bin/env bash
+#
+#              set -euo pipefail
+#
+#              # Define the output path
+#              output_path="/tmp/activity_probe.json"
+#
+#              # Find the most recent modification time in the $HOME directory
+#              last_activity_epoch=$(find "$HOME" -type f -printf '%T@\n' 2>/dev/null | awk 'max < $1 { max = $1 } END { print max }')
+#
+#              # Write the last activity time to the output path
+#              if [ -n "$last_activity_epoch" ]; then
+#              # Convert epoch time to ISO 8601 format
+#              last_activity=$(date -d "@$last_activity_epoch" -Iseconds)
+#                    echo "{\"last_activity\": \"$last_activity\"}" > "$output_path"
+#              else
+#              # Handle the case where no files are found
+#                    echo "{\"last_activity\": null}" > "$output_path"
+#              fi
         ## OPTION 2: a Jupyter-specific probe
         ##  - will poll the `/api/status` endpoint of the Jupyter API, and use the `last_activity` field
         ##    https://github.com/jupyter-server/jupyter_server/blob/v2.13.0/jupyter_server/services/api/handlers.py#L62-L67
         ##  - note, users need to be careful that their other probes don't trigger a "last_activity" update
         ##    e.g. they should only check the health of Jupyter using the `/api/status` endpoint
-        ##
-#        jupyter:
-#          lastActivity: true
-#          portId: jupyterlab
+        #
+        jupyter:
+          lastActivity: true
+          portId: jupyterlab
 
     ## standard probes to determine Container health (MUTABLE)
     ##  - spec for Probe:
