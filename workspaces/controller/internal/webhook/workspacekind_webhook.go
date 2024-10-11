@@ -107,6 +107,11 @@ func (v *WorkspaceKindValidator) ValidateCreate(ctx context.Context, obj runtime
 	allErrs = append(allErrs, validateImageConfigRedirects(imageConfigIdMap, imageConfigRedirectMap)...)
 	allErrs = append(allErrs, validatePodConfigRedirects(podConfigIdMap, podConfigRedirectMap)...)
 
+	// validate request headers
+	allErrs = append(allErrs, validateRequestHeaders(workspaceKind.Spec.PodTemplate.HTTPProxy.RequestHeaders.Add, "add")...)
+	allErrs = append(allErrs, validateRequestHeaders(workspaceKind.Spec.PodTemplate.HTTPProxy.RequestHeaders.Set, "set")...)
+	allErrs = append(allErrs, validateRemoveRequestHeaders(workspaceKind.Spec.PodTemplate.HTTPProxy.RequestHeaders.Remove)...)
+
 	if len(allErrs) == 0 {
 		return nil, nil
 	}
@@ -493,7 +498,7 @@ func validateExtraEnv(workspaceKind *kubefloworgv1beta1.WorkspaceKind) []*field.
 	for _, env := range workspaceKind.Spec.PodTemplate.ExtraEnv {
 		if env.Value != "" {
 			rawValue := env.Value
-			_, err := helper.RenderExtraEnvValueTemplate(rawValue, httpPathPrefixFunc)
+			_, err := helper.RenderWithHttpPathPrefixFunc(rawValue, httpPathPrefixFunc)
 			if err != nil {
 				extraEnvPath := field.NewPath("spec", "podTemplate", "extraEnv").Key(env.Name).Child("value")
 				errs = append(errs, field.Invalid(extraEnvPath, rawValue, err.Error()))
@@ -593,6 +598,54 @@ func validatePodConfigRedirects(podConfigIdMap map[string]kubefloworgv1beta1.Pod
 		if _, exists := podConfigIdMap[redirectTo]; !exists {
 			redirectToPath := field.NewPath("spec", "podTemplate", "options", "podConfig", "values").Key(id).Child("redirect", "to")
 			errs = append(errs, field.Invalid(redirectToPath, redirectTo, fmt.Sprintf("target podConfig %q does not exist", redirectTo)))
+		}
+	}
+
+	return errs
+}
+
+// validateRequestHeaders validates the extra environment variables in a WorkspaceKind
+func validateRequestHeaders(requestHeaders map[string]string, fieldName string) []*field.Error {
+	var errs []*field.Error
+
+	// the real httpPathPrefix can't fail, so we return a dummy value
+	httpPathPrefixFunc := func(portId string) string {
+		return "DUMMY_HTTP_PATH_PREFIX"
+	}
+
+	// validate that each value template can be rendered successfully
+	for key, value := range requestHeaders {
+		if value != "" {
+			rawValue := value
+			_, err := helper.RenderWithHttpPathPrefixFunc(rawValue, httpPathPrefixFunc)
+			if err != nil {
+				extraEnvPath := field.NewPath("spec", "podTemplate", "httpProxy", "requestHeaders", fieldName).Key(key).Child("value")
+				errs = append(errs, field.Invalid(extraEnvPath, rawValue, err.Error()))
+			}
+		}
+	}
+
+	return errs
+}
+
+// validateRequestHeaders validates the extra environment variables in a WorkspaceKind
+func validateRemoveRequestHeaders(requestHeaders []string) []*field.Error {
+	var errs []*field.Error
+
+	// the real httpPathPrefix can't fail, so we return a dummy value
+	httpPathPrefixFunc := func(portId string) string {
+		return "DUMMY_HTTP_PATH_PREFIX"
+	}
+
+	// validate that each value template can be rendered successfully
+	for i, value := range requestHeaders {
+		if value != "" {
+			rawValue := value
+			_, err := helper.RenderWithHttpPathPrefixFunc(rawValue, httpPathPrefixFunc)
+			if err != nil {
+				extraEnvPath := field.NewPath("spec", "podTemplate", "httpProxy", "requestHeaders", "remove").Index(i).Key(value)
+				errs = append(errs, field.Invalid(extraEnvPath, rawValue, err.Error()))
+			}
 		}
 	}
 
