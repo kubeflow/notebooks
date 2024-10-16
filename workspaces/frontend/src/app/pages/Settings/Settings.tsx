@@ -11,9 +11,9 @@ import {
   TextContent
 } from '@patternfly/react-core';
 
-const Support: React.FunctionComponent = () => (
+const Settings: React.FunctionComponent = () => (
   <PageSection>
-    <EmptyState variant={EmptyStateVariant.full} titleText="Empty State (Stub Support Module)" icon={CubesIcon}>
+    <EmptyState variant={EmptyStateVariant.full} titleText="Empty State (Stub Settings Module)" icon={CubesIcon}>
       <EmptyStateBody>
         <TextContent>
           <Text component="p">
@@ -28,4 +28,4 @@ const Support: React.FunctionComponent = () => (
   </PageSection>
 );
 
-export { Support };
+export { Settings };
