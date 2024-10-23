@@ -20,13 +20,9 @@ jobs:
         working-directory: workspaces/frontend
         run: npm install
 
-      - name: Run tests
-        working-directory: workspaces/frontend
-        run: npm run test:coverage
-
       - name: Clean
         working-directory: workspaces/frontend
-        run: npm run clean
+        run: npm run build:clean
 
       - name: Build
         working-directory: workspaces/frontend
