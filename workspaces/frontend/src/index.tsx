@@ -1,22 +1,14 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from '@app/index';
-
-if (process.env.NODE_ENV !== 'production') {
-  const config = {
-    rules: [
-      {
-        id: 'color-contrast',
-        enabled: false
-      }
-    ]
-  };
-}
+import { BrowserRouter as Router } from 'react-router-dom';
+import App from './app/App';
 
 const root = ReactDOM.createRoot(document.getElementById('root') as Element);
 
 root.render(
   <React.StrictMode>
-    <App />
+    <Router>
+      <App />
+    </Router>
   </React.StrictMode>
 );
