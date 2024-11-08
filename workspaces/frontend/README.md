@@ -23,8 +23,8 @@ npm run start:dev
 # Run a production build (outputs to "dist" dir)
 npm run build
 
-# Run the unit test suite
-npm run test:jest
+# Run the mocked test suite
+npm run test:cypress-ci
 
 # Start the express server (run a production build first)
 npm run start
