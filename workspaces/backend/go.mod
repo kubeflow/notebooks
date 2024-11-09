@@ -2,11 +2,9 @@ module github.com/kubeflow/notebooks/workspaces/backend
 
 go 1.22.0
 
-replace github.com/kubeflow/notebooks/workspaces/controller => ../controller
-
 require (
 	github.com/julienschmidt/httprouter v1.3.0
-	github.com/kubeflow/notebooks/workspaces/controller v0.0.0
+	github.com/kubeflow/notebooks/workspaces/controller v0.0.0-20240829001403-bc4e4454bc1c
 	github.com/onsi/ginkgo/v2 v2.17.1
 	github.com/onsi/gomega v1.32.0
 	github.com/stretchr/testify v1.8.4

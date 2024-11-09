@@ -17,7 +17,7 @@ COPY api/ api/
 COPY config/ config/
 COPY data/ data/
 COPY integrations/ integrations/
-
+COPY internal/ internal/
 # Build the Go application
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o backend ./cmd/main.go
 
@@ -31,7 +31,7 @@ USER 65532:65532
 EXPOSE 4000
 
 # Define environment variables
-ENV PORT 4000
-ENV ENV development
+ENV PORT=4000
+ENV ENV=development
 
 ENTRYPOINT ["/backend"]
