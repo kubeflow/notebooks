@@ -67,6 +67,8 @@ type ActivityProbe struct {
 	LastActivity *string `json:"last_activity,omitempty"`
 }
 
+// +kubebuilder:rbac:groups="core",resources=pods/exec,verbs=create
+
 func (r *CullingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) { // nolint:gocyclo
 	log := log.FromContext(ctx)
 	log.V(2).Info("reconciling Workspace for culling")
