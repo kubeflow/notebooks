@@ -72,16 +72,6 @@ docker-build: ## Build docker image with the backend.
 docker-push: ## Push docker image with the backend.
 	$(CONTAINER_TOOL) push ${IMG}
 
-## Deployment
-
-.PHONY: deploy
-deploy: ## deploy the backend-app
-	kubectl apply -f config/deploy/deployment.yaml 
-
-.PHONY: undeploy
-undeploy: ## undeploy the backend-app
-	kubectl delete -f config/deploy/deployment.yaml
-
 ##@ Dependencies
 
 ## Location to install dependencies to
