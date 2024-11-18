@@ -55,7 +55,7 @@ spec:
                 example: jupyterlab
                 maxLength: 63
                 minLength: 2
-                pattern: ^[a-z0-9][-a-z0-9]*[a-z0-9]$
+                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                 type: string
                 x-kubernetes-validations:
                 - message: Workspace 'kind' is immutable
@@ -130,7 +130,7 @@ spec:
                               example: my-data-pvc
                               maxLength: 63
                               minLength: 2
-                              pattern: ^[a-z0-9][-a-z0-9]*[a-z0-9]$
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                               type: string
                             readOnly:
                               default: false
@@ -154,7 +154,7 @@ spec:
                         example: my-home-pvc
                         maxLength: 63
                         minLength: 2
-                        pattern: ^[a-z0-9][-a-z0-9]*[a-z0-9]$
+                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                         type: string
                     type: object
                 required:

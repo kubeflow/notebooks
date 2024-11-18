@@ -45,7 +45,7 @@ type WorkspaceSpec struct {
 	// the WorkspaceKind to use
 	//+kubebuilder:validation:MinLength:=2
 	//+kubebuilder:validation:MaxLength:=63
-	//+kubebuilder:validation:Pattern:=^[a-z0-9][-a-z0-9]*[a-z0-9]$
+	//+kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Workspace 'kind' is immutable"
 	//+kubebuilder:example="jupyterlab"
 	Kind string `json:"kind"`
@@ -85,7 +85,7 @@ type WorkspacePodVolumes struct {
 	//+kubebuilder:validation:Optional
 	//+kubebuilder:validation:MinLength:=2
 	//+kubebuilder:validation:MaxLength:=63
-	//+kubebuilder:validation:Pattern:=^[a-z0-9][-a-z0-9]*[a-z0-9]$
+	//+kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
 	//+kubebuilder:example="my-home-pvc"
 	Home *string `json:"home,omitempty"`
 
@@ -104,7 +104,7 @@ type PodVolumeMount struct {
 	// the name of the PVC to mount
 	//+kubebuilder:validation:MinLength:=2
 	//+kubebuilder:validation:MaxLength:=63
-	//+kubebuilder:validation:Pattern:=^[a-z0-9][-a-z0-9]*[a-z0-9]$
+	//+kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
 	//+kubebuilder:example="my-data-pvc"
 	PVCName string `json:"pvcName"`
 
