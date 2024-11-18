@@ -4273,13 +4273,25 @@ spec:
                         properties:
                           key:
                             example: apple-touch-icon-152x152.png
+                            maxLength: 253
+                            minLength: 1
+                            pattern: ^[-._a-zA-Z0-9]+$
                             type: string
                           name:
                             example: my-logos
+                            maxLength: 253
+                            minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                            type: string
+                          namespace:
+                            maxLength: 63
+                            minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                             type: string
                         required:
                         - key
                         - name
+                        - namespace
                         type: object
                       url:
                         example: https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png
@@ -4298,13 +4310,25 @@ spec:
                         properties:
                           key:
                             example: apple-touch-icon-152x152.png
+                            maxLength: 253
+                            minLength: 1
+                            pattern: ^[-._a-zA-Z0-9]+$
                             type: string
                           name:
                             example: my-logos
+                            maxLength: 253
+                            minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                            type: string
+                          namespace:
+                            maxLength: 63
+                            minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                             type: string
                         required:
                         - key
                         - name
+                        - namespace
                         type: object
                       url:
                         example: https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png
