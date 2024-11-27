@@ -19,9 +19,10 @@
 package api
 
 import (
+	"net/http"
+
 	"github.com/julienschmidt/httprouter"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/models"
-	"net/http"
 )
 
 type NamespacesEnvelope Envelope[[]models.NamespaceModel]
