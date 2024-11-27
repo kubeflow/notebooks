@@ -1,4 +1,4 @@
-name: Controller - Tests
+name: Controller - Build and Test
 
 permissions: {}
 
@@ -10,8 +10,41 @@ on:
     branches: [ "main", "notebooks-v2", "v*-branch" ]
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: workspaces/controller/go.mod
+          check-latest: true
+          cache-dependency-path: workspaces/controller/go.sum
+
+      - name: Lint
+        working-directory: workspaces/controller
+        run: make lint
+
+      - name: Build
+        working-directory: workspaces/controller
+        run: make build
+
+      - name: Check if there are uncommitted file changes
+        working-directory: workspaces/controller
+        run: |
+          clean=$(git status --porcelain)
+          if [[ -z "$clean" ]]; then
+              echo "Empty git status --porcelain: $clean"
+          else
+              echo "Uncommitted file changes detected: $clean"
+              git diff
+              exit 1
+          fi
+
   unit-tests:
     runs-on: ubuntu-latest
+    needs: build
     steps:
       - uses: actions/checkout@v4
 
@@ -28,6 +61,7 @@ jobs:
 
   e2e-tests:
     runs-on: ubuntu-latest
+    needs: build
     steps:
       - uses: actions/checkout@v4
 
