@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -807,6 +808,174 @@ var _ = Describe("Workspaces Handler", func() {
 			err = k8sClient.Get(ctx, workspaceKey, deletedWorkspace)
 			Expect(err).To(HaveOccurred())
 			Expect(apierrors.IsNotFound(err)).To(BeTrue())
+		})
+	})
+
+	Context("with unsupported request parameters", Ordered, func() {
+
+		var (
+			a                   App
+			validResourceName   string
+			invalidResourceName string
+			validMaxLengthName  string
+			invalidLengthName   string
+		)
+
+		// generateResourceName generates a random string of the specified length and allowed chars.
+		generateResourceName := func(length int) string {
+			const allowedChars = "abcdefghijklmnopqrstuvwxyz0123456789-"
+
+			var sb strings.Builder
+			for i := 0; i < length; i++ {
+				if i == 0 || i == length-1 {
+					sb.WriteByte(allowedChars[rand.Intn(len(allowedChars)-1)])
+				} else {
+					sb.WriteByte(allowedChars[rand.Intn(len(allowedChars))])
+				}
+			}
+			return sb.String()
+		}
+
+		BeforeAll(func() {
+			validResourceName = "test"
+			invalidResourceName = validResourceName + string(rune(rand.Intn(0x10FFFF-128)+128))
+			validMaxLengthName = generateResourceName(63)
+			invalidLengthName = generateResourceName(64)
+
+			repos := repositories.NewRepositories(k8sClient)
+			a = App{
+				Config: config.EnvConfig{
+					Port: 4000,
+				},
+				repositories: repos,
+			}
+		})
+
+		It("should return 400 status code for a invalid namespace", func() {
+			By("creating the HTTP request")
+			path := strings.Replace(WorkspacesByNamespacePath, ":"+NamespacePathParam, invalidResourceName, 1)
+			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
+			Expect(err).NotTo(HaveOccurred(), "Failed to create HTTP request")
+
+			By("executing GetWorkspacesHandler")
+			ps := httprouter.Params{
+				httprouter.Param{
+					Key:   NamespacePathParam,
+					Value: invalidResourceName,
+				},
+			}
+			rr := httptest.NewRecorder()
+			a.GetWorkspacesHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest), "Expected HTTP status 400 Bad Request")
+		})
+
+		It("should return 400 status code for a non-ascii payload params", func() {
+			By("creating the HTTP request")
+			workspaceModel := models.Workspace{
+				Name:      validResourceName,
+				Namespace: invalidResourceName,
+			}
+
+			workspaceJSON, err := json.Marshal(workspaceModel)
+			Expect(err).NotTo(HaveOccurred(), "Failed to marshal WorkspaceModel to JSON")
+			path := strings.Replace(WorkspacesByNamespacePath, ":"+NamespacePathParam, invalidResourceName, 1)
+
+			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(workspaceJSON)))
+			Expect(err).NotTo(HaveOccurred(), "Failed to create HTTP request")
+			req.Header.Set("Content-Type", "application/json")
+
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{
+				httprouter.Param{
+					Key:   NamespacePathParam,
+					Value: "namespace",
+				},
+			}
+
+			a.CreateWorkspaceHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code for creation")
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest), "Expected HTTP status 400 Bad Request")
+		})
+
+		It("should return 400 status code for a namespace longer than 63", func() {
+			By("creating the HTTP request")
+			path := strings.Replace(WorkspacesByNamespacePath, ":"+NamespacePathParam, invalidLengthName, 1)
+			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
+			Expect(err).NotTo(HaveOccurred(), "Failed to create HTTP request")
+
+			By("executing GetWorkspacesHandler")
+			ps := httprouter.Params{
+				httprouter.Param{
+					Key:   NamespacePathParam,
+					Value: invalidLengthName,
+				},
+			}
+			rr := httptest.NewRecorder()
+			a.GetWorkspacesHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest), "Expected HTTP status 400 Bad Request")
+
+		})
+		It("should return 200 status code for parameters with a length of 63 characters", func() {
+			By("creating the HTTP request")
+			path := strings.Replace(WorkspacesByNamespacePath, ":"+NamespacePathParam, validMaxLengthName, 1)
+			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
+			Expect(err).NotTo(HaveOccurred(), "Failed to create HTTP request")
+
+			By("executing GetWorkspacesHandler")
+			ps := httprouter.Params{
+				httprouter.Param{
+					Key:   NamespacePathParam,
+					Value: validMaxLengthName,
+				},
+			}
+			rr := httptest.NewRecorder()
+			a.GetWorkspacesHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusOK), "Expected HTTP status 200 OK") // is it supported behavior? returning OK with list of [] workspaces
+		})
+		It("should return 400 status code for a namespace longer than 63", func() {
+			workspaceModel := models.Workspace{
+				Name:      validMaxLengthName,
+				Namespace: invalidLengthName,
+			}
+
+			workspaceJSON, err := json.Marshal(workspaceModel)
+			Expect(err).NotTo(HaveOccurred(), "Failed to marshal WorkspaceModel to JSON")
+			path := strings.Replace(WorkspacesByNamespacePath, ":"+NamespacePathParam, invalidLengthName, 1)
+
+			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(workspaceJSON)))
+			Expect(err).NotTo(HaveOccurred(), "Failed to create HTTP request")
+			req.Header.Set("Content-Type", "application/json")
+
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{
+				httprouter.Param{
+					Key:   NamespacePathParam,
+					Value: "namespace",
+				},
+			}
+
+			a.CreateWorkspaceHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code for creation")
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest), "Expected HTTP status 400 Bad Request")
+
 		})
 	})
 })

@@ -46,7 +46,6 @@ func (a *App) LogError(r *http.Request, err error) {
 	a.logger.Error(err.Error(), "method", method, "uri", uri)
 }
 
-//nolint:unused
 func (a *App) badRequestResponse(w http.ResponseWriter, r *http.Request, err error) {
 	httpError := &HTTPError{
 		StatusCode: http.StatusBadRequest,
