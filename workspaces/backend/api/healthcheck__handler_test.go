@@ -39,14 +39,14 @@ func TestHealthCheckHandler(t *testing.T) {
 	}
 
 	rr := httptest.NewRecorder()
-	req, err := http.NewRequest(http.MethodGet, HealthCheckPath, nil)
+	req, err := http.NewRequest(http.MethodGet, HealthCheckPath, http.NoBody)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	app.HealthcheckHandler(rr, req, nil)
 	rs := rr.Result()
-	defer rs.Body.Close() // nolint: errcheck
+	defer rs.Body.Close()
 
 	body, err := io.ReadAll(rs.Body)
 	if err != nil {
