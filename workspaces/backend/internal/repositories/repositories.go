@@ -27,6 +27,7 @@ type Repositories struct {
 	HealthCheck   *HealthCheckRepository
 	Workspace     *WorkspaceRepository
 	WorkspaceKind *WorkspaceKindRepository
+	Namespace     *NamespaceRepository
 }
 
 func NewRepositories(client client.Client) *Repositories {
@@ -34,5 +35,6 @@ func NewRepositories(client client.Client) *Repositories {
 		HealthCheck:   NewHealthCheckRepository(),
 		Workspace:     NewWorkspaceRepository(client),
 		WorkspaceKind: NewWorkspaceKindRepository(client),
+		Namespace:     NewNamespaceRepository(client),
 	}
 }

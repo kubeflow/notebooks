@@ -46,6 +46,9 @@ const (
 	AllWorkspaceKindsPath      = PathPrefix + "/workspacekinds"
 	WorkspaceKindNamePathParam = "name"
 	WorkspaceKindsByNamePath   = AllWorkspaceKindsPath + "/:" + WorkspaceNamePathParam
+
+	//namespaces
+	AllNamespacesPath = PathPrefix + "/namespaces"
 )
 
 type App struct {
@@ -75,6 +78,7 @@ func (a *App) Routes() http.Handler {
 	router.MethodNotAllowed = http.HandlerFunc(a.methodNotAllowedResponse)
 
 	router.GET(HealthCheckPath, a.HealthcheckHandler)
+	router.GET(AllNamespacesPath, a.GetNamespacesHandler)
 
 	router.GET(AllWorkspacesPath, a.GetWorkspacesHandler)
 	router.GET(WorkspacesByNamespacePath, a.GetWorkspacesHandler)
