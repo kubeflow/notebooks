@@ -53,7 +53,7 @@ const (
 	timeout = time.Second * 60
 
 	// how long to wait in "Consistently" blocks
-	duration = time.Second * 10 // nolint:unused
+	duration = time.Second * 10 //nolint:unused
 
 	// how frequently to poll for conditions
 	interval = time.Second * 1

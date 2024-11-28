@@ -129,7 +129,7 @@ func (r *WorkspaceKindReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	// update the WorkspaceKind status
-	workspaceKind.Status.Workspaces = int32(numWorkspace)
+	workspaceKind.Status.Workspaces = int32(numWorkspace) //nolint:gosec
 	workspaceKind.Status.PodTemplateOptions.ImageConfig = imageConfigMetrics
 	workspaceKind.Status.PodTemplateOptions.PodConfig = podConfigMetrics
 	if err := r.Status().Update(ctx, workspaceKind); err != nil {
