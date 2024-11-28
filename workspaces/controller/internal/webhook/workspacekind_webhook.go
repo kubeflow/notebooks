@@ -45,7 +45,7 @@ type WorkspaceKindValidator struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:webhook:path=/validate-kubeflow-org-v1beta1-workspacekind,mutating=false,failurePolicy=fail,sideEffects=None,groups=kubeflow.org,resources=workspacekinds,verbs=create;update;delete,versions=v1beta1,name=vworkspacekind.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/validate-kubeflow-org-v1beta1-workspacekind,mutating=false,failurePolicy=fail,sideEffects=None,groups=kubeflow.org,resources=workspacekinds,verbs=create;update;delete,versions=v1beta1,name=vworkspacekind.kb.io,admissionReviewVersions=v1
 
 // SetupWebhookWithManager sets up the webhook with the manager
 func (v *WorkspaceKindValidator) SetupWebhookWithManager(mgr ctrl.Manager) error {

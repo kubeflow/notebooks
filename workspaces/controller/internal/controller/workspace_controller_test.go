@@ -175,7 +175,7 @@ var _ = Describe("Workspace Controller", func() {
 			}, timeout, interval).Should(HaveLen(1))
 
 			// TODO: use this to get the StatefulSet
-			//statefulSet := statefulSetList.Items[0]
+			// statefulSet := statefulSetList.Items[0]
 
 			By("creating a Service")
 			serviceList := &corev1.ServiceList{}
@@ -188,7 +188,7 @@ var _ = Describe("Workspace Controller", func() {
 			}, timeout, interval).Should(HaveLen(1))
 
 			// TODO: use this to get the Service
-			//service := serviceList.Items[0]
+			// service := serviceList.Items[0]
 
 			//
 			// TODO: populate these tests

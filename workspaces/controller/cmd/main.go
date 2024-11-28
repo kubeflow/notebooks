@@ -38,7 +38,7 @@ import (
 	controllerInternal "github.com/kubeflow/notebooks/workspaces/controller/internal/controller"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
 	webhookInternal "github.com/kubeflow/notebooks/workspaces/controller/internal/webhook"
-	//+kubebuilder:scaffold:imports
+	// +kubebuilder:scaffold:imports
 )
 
 var (
@@ -50,7 +50,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(kubefloworgv1beta1.AddToScheme(scheme))
-	//+kubebuilder:scaffold:scheme
+	// +kubebuilder:scaffold:scheme
 }
 
 func main() {
@@ -119,7 +119,7 @@ func main() {
 		// after the manager stops then its usage might be unsafe.
 		//
 		// TODO: check if we are doing anything which would prevent us from using this option.
-		//LeaderElectionReleaseOnCancel: true,
+		// LeaderElectionReleaseOnCancel: true,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -147,7 +147,7 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "WorkspaceKind")
 		os.Exit(1)
 	}
-	//+kubebuilder:scaffold:builder
+	// +kubebuilder:scaffold:builder
 
 	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
 		if err = (&webhookInternal.WorkspaceValidator{

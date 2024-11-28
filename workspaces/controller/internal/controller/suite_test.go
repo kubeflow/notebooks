@@ -42,7 +42,7 @@ import (
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
-	//+kubebuilder:scaffold:imports
+	// +kubebuilder:scaffold:imports
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
@@ -77,7 +77,7 @@ var _ = BeforeSuite(func() {
 		// If not informed it will look for the default path defined in controller-runtime which is /usr/local/kubebuilder/.
 		// Note that you must have the required binaries setup under the bin directory to perform the tests directly.
 		// When we run make test it will be setup and used automatically.
-		BinaryAssetsDirectory: filepath.Join("..", "..", "bin", "k8s", fmt.Sprintf("1.29.0-%s-%s", runtime.GOOS, runtime.GOARCH)),
+		BinaryAssetsDirectory: filepath.Join("..", "..", "bin", "k8s", fmt.Sprintf("1.31.0-%s-%s", runtime.GOOS, runtime.GOARCH)),
 	}
 	var err error
 	cfg, err = testEnv.Start()
@@ -88,7 +88,7 @@ var _ = BeforeSuite(func() {
 	err = kubefloworgv1beta1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
-	//+kubebuilder:scaffold:scheme
+	// +kubebuilder:scaffold:scheme
 
 	By("creating the k8s client")
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
