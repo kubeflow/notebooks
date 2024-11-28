@@ -47,7 +47,7 @@ const (
 	WorkspaceKindNamePathParam = "name"
 	WorkspaceKindsByNamePath   = AllWorkspaceKindsPath + "/:" + WorkspaceNamePathParam
 
-	//namespaces
+	// namespaces
 	AllNamespacesPath = PathPrefix + "/namespaces"
 )
 
