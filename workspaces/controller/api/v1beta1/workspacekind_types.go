@@ -89,9 +89,21 @@ type WorkspaceKindIcon struct {
 }
 
 type WorkspaceKindConfigMap struct {
+
+	//+kubebuilder:validation:MinLength:=1
+	//+kubebuilder:validation:MaxLength:=253
+	//+kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
 	//+kubebuilder:example="my-logos"
 	Name string `json:"name"`
 
+	//+kubebuilder:validation:MinLength:=1
+	//+kubebuilder:validation:MaxLength:=63
+	//+kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+	Namespace string `json:"namespace"`
+
+	//+kubebuilder:validation:MinLength:=1
+	//+kubebuilder:validation:MaxLength:=253
+	//+kubebuilder:validation:Pattern:=^[-._a-zA-Z0-9]+$
 	//+kubebuilder:example="apple-touch-icon-152x152.png"
 	Key string `json:"key"`
 }

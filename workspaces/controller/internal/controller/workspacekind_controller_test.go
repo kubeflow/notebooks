@@ -118,8 +118,9 @@ var _ = Describe("WorkspaceKind Controller", func() {
 			newWorkspaceKind.Spec.Spawner.Icon = kubefloworgv1beta1.WorkspaceKindIcon{
 				Url: ptr.To("https://example.com/icon.png"),
 				ConfigMap: &kubefloworgv1beta1.WorkspaceKindConfigMap{
-					Name: "my-logos",
-					Key:  "icon.png",
+					Name:      "my-logos",
+					Namespace: namespaceName,
+					Key:       "icon.png",
 				},
 			}
 			Expect(k8sClient.Patch(ctx, newWorkspaceKind, patch)).NotTo(Succeed())
