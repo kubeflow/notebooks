@@ -23,9 +23,9 @@ import (
 )
 
 type WorkspaceKindModel struct {
-	Name string `json:"name"`
-	Spawner     SpawnerModel      `json:"spawner"`
-	PodTemplate PodTemplateModel  `json:"pod_template"`
+	Name        string           `json:"name"`
+	Spawner     SpawnerModel     `json:"spawner"`
+	PodTemplate PodTemplateModel `json:"pod_template"`
 }
 
 type SpawnerModel struct {
@@ -37,9 +37,9 @@ type SpawnerModel struct {
 }
 
 type PodTemplateModel struct {
-	PodMetadata PodMetadata `json:"pod_metadata"`
-	ImageConfig ImageConfig `json:"image_config"`
-	PodConfig   PodConfig   `json:"pod_config"`
+	PodMetadata PodMetadata       `json:"pod_metadata"`
+	ImageConfig PodTemplateConfig `json:"image_config"`
+	PodConfig   PodTemplateConfig `json:"pod_config"`
 }
 
 func NewWorkspaceKindModelFromWorkspaceKind(item *kubefloworgv1beta1.WorkspaceKind) WorkspaceKindModel {
@@ -52,9 +52,10 @@ func NewWorkspaceKindModelFromWorkspaceKind(item *kubefloworgv1beta1.WorkspaceKi
 	}
 
 	var pod_redirect_chain []Redirect
-	for _, item := range item.Spec.PodTemplate.Options.PodConfig.Values {
-		if item.Redirect != nil {
-			pod_redirect_chain = append(pod_redirect_chain, Redirect{Source: item.Id, Target: item.Redirect.To})
+	if item.Spec.PodTemplate.Options.PodConfig.Values != nil {
+		Default := item.Spec.PodTemplate.Options.PodConfig.Spawner.Default
+		for _, item := range item.Spec.PodTemplate.Options.PodConfig.Values {
+			pod_redirect_chain = append(pod_redirect_chain, Redirect{Source: Default, Target: item.Id})
 		}
 	}
 
@@ -65,11 +66,6 @@ func NewWorkspaceKindModelFromWorkspaceKind(item *kubefloworgv1beta1.WorkspaceKi
 	annotations := make(map[string]string)
 	if item.Spec.PodTemplate.PodMetadata.Annotations != nil {
 		annotations = item.Spec.PodTemplate.PodMetadata.Annotations
-	}
-
-	var pod_config_values []string
-	for _, item := range item.Spec.PodTemplate.Options.PodConfig.Values {
-		pod_config_values = append(pod_config_values, item.Id)
 	}
 
 	deprecated := false
@@ -101,13 +97,15 @@ func NewWorkspaceKindModelFromWorkspaceKind(item *kubefloworgv1beta1.WorkspaceKi
 				Labels:      labels,
 				Annotations: annotations,
 			},
-			ImageConfig: ImageConfig{
+			ImageConfig: PodTemplateConfig{
 				Current:       item.Spec.PodTemplate.Options.ImageConfig.Spawner.Default,
 				Desired:       item.Spec.PodTemplate.Options.ImageConfig.Spawner.Default,
 				RedirectChain: image_redirect_chain,
 			},
-			PodConfig: PodConfig{
-				Values: pod_config_values,
+			PodConfig: PodTemplateConfig{
+				Current:       item.Spec.PodTemplate.Options.PodConfig.Spawner.Default,
+				Desired:       item.Spec.PodTemplate.Options.PodConfig.Spawner.Default,
+				RedirectChain: pod_redirect_chain,
 			},
 		},
 	}
