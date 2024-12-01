@@ -5,4 +5,3 @@ resources:
 images:
 - name: controller
   newName: ghcr.io/kubeflow/notebooks/workspace-controller
-  newTag: latest

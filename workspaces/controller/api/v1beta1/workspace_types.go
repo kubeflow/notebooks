@@ -36,6 +36,12 @@ type WorkspaceSpec struct {
 	//+kubebuilder:default=false
 	Paused *bool `json:"paused,omitempty"`
 
+	// DisableCulling controls whether automatic culling is disabled for the workspace.
+	// If true, the workspace will not be culled
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:default=false
+	DisableCulling *bool `json:"disableCulling,omitempty"`
+
 	// if true, pending updates are NOT applied when the Workspace is paused
 	// if false, pending updates are applied when the Workspace is paused
 	//+kubebuilder:validation:Optional
@@ -187,6 +193,9 @@ type WorkspaceActivity struct {
 	//+kubebuilder:default=0
 	//+kubebuilder:example=1704067200
 	LastUpdate int64 `json:"lastUpdate"`
+
+	// Information about the last activity probe
+	LastProbe ProbeStatus `json:"lastProbe"`
 }
 
 type WorkspacePodOptionsStatus struct {
@@ -221,6 +230,30 @@ type WorkspacePodOptionRedirectStep struct {
 	Target string `json:"target"`
 }
 
+type ProbeStatus struct {
+
+	// the time the probe was started (UNIX epoch in milliseconds)
+	//+kubebuilder:validation:Minimum=0
+	//+kubebuilder:example=1710435303000
+	StartTimeMs int64 `json:"startTimeMs"`
+
+	// the time the probe was completed (UNIX epoch in milliseconds)
+	//+kubebuilder:validation:Minimum=0
+	//+kubebuilder:example=1710435305000
+	EndTimeMs int64 `json:"endTimeMs"`
+
+	// the result of the probe
+	// ENUM: "Success" | "Failure" | "Timeout" | ""
+	//+kubebuilder:default=""
+	Result ProbeResult `json:"result"`
+
+	// a human-readable message about the probe result
+	// WARNING: this field is NOT FOR MACHINE USE, subject to change without notice
+	//+kubebuilder:default=""
+	//+kubebuilder:example="Jupyter probe succeeded"
+	Message string `json:"message"`
+}
+
 // +kubebuilder:validation:Enum:={"Running","Terminating","Paused","Pending","Error","Unknown"}
 type WorkspaceState string
 
@@ -233,6 +266,15 @@ const (
 	WorkspaceStateUnknown     WorkspaceState = "Unknown"
 )
 
+// +kubebuilder:validation:Enum={"Success","Failure","Timeout",""}
+type ProbeResult string
+
+const (
+	ProbeResultSuccess ProbeResult = "Success"
+	ProbeResultFailure ProbeResult = "Failure"
+	ProbeResultTimeout ProbeResult = "Timeout"
+)
+
 /*
 ===============================================================================
                                    Workspace
@@ -242,6 +284,7 @@ const (
 //+kubebuilder:object:root=true
 //+kubebuilder:printcolumn:name="State",type="string",JSONPath=".status.state",description="The current state of the Workspace"
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:shortName=ws
 
 // Workspace is the Schema for the Workspaces API
 type Workspace struct {
