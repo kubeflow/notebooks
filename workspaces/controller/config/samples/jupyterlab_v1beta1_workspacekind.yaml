@@ -156,7 +156,7 @@ spec:
       requestHeaders: {}
         #set: { "X-RStudio-Root-Path": "{{ .PathPrefix }}" } # for RStudio
         #add: {}
-      #remove: []
+        #remove: []
 
     ## environment variables for Workspace Pods (MUTABLE)
     ##  - spec for EnvVar:

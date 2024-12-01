@@ -1,6 +1,8 @@
 package helper
 
 import (
+	"fmt"
+	"os"
 	"reflect"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
@@ -8,6 +10,11 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+)
+
+const (
+	GenerateNameSuffixLength = 6
+	MaxServiceNameLength     = 63
 )
 
 // CopyStatefulSetFields updates a target StatefulSet with the fields from a desired StatefulSet, returning true if an update is required.
@@ -165,4 +172,57 @@ func NormalizePodConfigSpec(spec kubefloworgv1beta1.PodConfigSpec) error {
 	}
 
 	return nil
+}
+
+// GenerateNamePrefix generates a name prefix for a Workspace
+// the format is "ws-{WORKSPACE_NAME}-" the workspace name is truncated to fit within the max length
+func GenerateNamePrefix(workspaceName string, maxLength int) string {
+	namePrefix := fmt.Sprintf("ws-%s", workspaceName)
+	maxLength = maxLength - GenerateNameSuffixLength // subtract 6 for the `metadata.generateName` suffix
+	maxLength = maxLength - 1                        // subtract 1 for the trailing "-"
+	if len(namePrefix) > maxLength {
+		namePrefix = namePrefix[:min(len(namePrefix), maxLength)]
+	}
+	if namePrefix[len(namePrefix)-1] != '-' {
+		namePrefix = namePrefix + "-"
+	}
+	return namePrefix
+}
+
+// RemoveTrailingDash removes trailing dash from string.
+func RemoveTrailingDash(s string) string {
+	if len(s) > 0 && s[len(s)-1] == '-' {
+		return s[:len(s)-1]
+	}
+	return s
+}
+
+// GetEnvOrDefault is a utility function for getting environment variable value, otherwise uses the defaultValue.
+func GetEnvOrDefault(name, defaultValue string) string {
+	if lookupEnv, exists := os.LookupEnv(name); exists {
+		return lookupEnv
+	} else {
+		return defaultValue
+	}
+}
+
+// GenerateContainerPortsIdMap generates a map[string]kubefloworgv1beta1.ImagePort having as key the kubefloworgv1beta1.ImagePort.Id.
+func GenerateContainerPortsIdMap(imageConfig *kubefloworgv1beta1.ImageConfigValue) (map[string]kubefloworgv1beta1.ImagePort, error) {
+	containerPortsIdMap := make(map[string]kubefloworgv1beta1.ImagePort)
+
+	containerPorts := make([]corev1.ContainerPort, len(imageConfig.Spec.Ports))
+	seenPorts := make(map[int32]bool)
+	for i, port := range imageConfig.Spec.Ports {
+		if seenPorts[port.Port] {
+			return nil, fmt.Errorf("duplicate port number %d in imageConfig", port.Port)
+		}
+		containerPorts[i] = corev1.ContainerPort{
+			Name:          fmt.Sprintf("http-%d", port.Port),
+			ContainerPort: port.Port,
+			Protocol:      corev1.ProtocolTCP,
+		}
+		seenPorts[port.Port] = true
+		containerPortsIdMap[port.Id] = port
+	}
+	return containerPortsIdMap, nil
 }
