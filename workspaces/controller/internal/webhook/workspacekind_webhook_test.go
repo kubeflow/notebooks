@@ -96,7 +96,6 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 		}
 
 		for _, tc := range testCases {
-			tc := tc // Create a new instance of tc to avoid capturing the loop variable.
 			It(tc.description, func() {
 				if tc.shouldSucceed {
 					By("creating the WorkspaceKind")
@@ -523,7 +522,6 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 		}
 
 		for _, tc := range testCases {
-			tc := tc // Create a new instance of tc to avoid capturing the loop variable.
 			It(tc.description, func() {
 				if tc.workspaceKind == nil {
 					Fail("invalid test case definition: workspaceKind is required")

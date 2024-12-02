@@ -47,7 +47,7 @@ const (
 	WorkspaceKindNamePathParam = "name"
 	WorkspaceKindsByNamePath   = AllWorkspaceKindsPath + "/:" + WorkspaceNamePathParam
 
-	//namespaces
+	// namespaces
 	AllNamespacesPath = PathPrefix + "/namespaces"
 )
 
@@ -59,12 +59,12 @@ type App struct {
 }
 
 // NewApp creates a new instance of the app
-func NewApp(cfg config.EnvConfig, logger *slog.Logger, client client.Client, scheme *runtime.Scheme) (*App, error) {
+func NewApp(cfg config.EnvConfig, logger *slog.Logger, cl client.Client, scheme *runtime.Scheme) (*App, error) {
 
 	app := &App{
 		Config:       cfg,
 		logger:       logger,
-		repositories: repositories.NewRepositories(client),
+		repositories: repositories.NewRepositories(cl),
 		Scheme:       scheme,
 	}
 	return app, nil

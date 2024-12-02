@@ -24,10 +24,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 
-	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 )
 
 var _ = Describe("WorkspaceKind Controller", func() {
@@ -40,7 +41,7 @@ var _ = Describe("WorkspaceKind Controller", func() {
 		timeout = time.Second * 10
 
 		// how long to wait in "Consistently" blocks
-		duration = time.Second * 10 // nolint:unused
+		duration = time.Second * 10 //nolint:unused
 
 		// how frequently to poll for conditions
 		interval = time.Millisecond * 250

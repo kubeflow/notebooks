@@ -96,7 +96,7 @@ type WorkspaceReconciler struct {
 // +kubebuilder:rbac:groups=core,resources=services,verbs=create;delete;get;list;patch;update;watch
 // +kubebuilder:rbac:groups=networking.istio.io,resources=virtualservices,verbs=create;delete;get;list;patch;update;watch
 
-func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) { // nolint:gocyclo
+func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) { //nolint:gocyclo
 	log := log.FromContext(ctx)
 	log.V(2).Info("reconciling Workspace")
 
@@ -244,7 +244,8 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// reconcile StatefulSet
-	if len(ownedStatefulSets.Items) > 1 {
+	switch numSts := len(ownedStatefulSets.Items); {
+	case numSts > 1:
 		statefulSetList := make([]string, len(ownedStatefulSets.Items))
 		for i, sts := range ownedStatefulSets.Items {
 			statefulSetList[i] = sts.Name
@@ -255,14 +256,14 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			kubefloworgv1beta1.WorkspaceStateError,
 			fmt.Sprintf(stateMsgErrorMultipleStatefulSets, statefulSetListString),
 		)
-	} else if len(ownedStatefulSets.Items) == 0 {
+	case numSts == 0:
 		if err := r.Create(ctx, statefulSet); err != nil {
 			log.Error(err, "unable to create StatefulSet")
 			return ctrl.Result{}, err
 		}
 		statefulSetName = statefulSet.ObjectMeta.Name
 		log.V(2).Info("StatefulSet created", "statefulSet", statefulSetName)
-	} else {
+	default:
 		foundStatefulSet := &ownedStatefulSets.Items[0]
 		statefulSetName = foundStatefulSet.ObjectMeta.Name
 		if helper.CopyStatefulSetFields(statefulSet, foundStatefulSet) {
@@ -308,10 +309,11 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// reconcile Service
-	if len(ownedServices.Items) > 1 {
+	switch numServices := len(ownedServices.Items); {
+	case numServices > 1:
 		serviceList := make([]string, len(ownedServices.Items))
-		for i, sts := range ownedServices.Items {
-			serviceList[i] = sts.Name
+		for i, svc := range ownedServices.Items {
+			serviceList[i] = svc.Name
 		}
 		serviceListString := strings.Join(serviceList, ", ")
 		log.Error(nil, "Workspace owns multiple Services", "services", serviceListString)
@@ -319,14 +321,14 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			kubefloworgv1beta1.WorkspaceStateError,
 			fmt.Sprintf(stateMsgErrorMultipleServices, serviceListString),
 		)
-	} else if len(ownedServices.Items) == 0 {
+	case numServices == 0:
 		if err := r.Create(ctx, service); err != nil {
 			log.Error(err, "unable to create Service")
 			return ctrl.Result{}, err
 		}
 		serviceName = service.ObjectMeta.Name
 		log.V(2).Info("Service created", "service", serviceName)
-	} else {
+	default:
 		foundService := &ownedServices.Items[0]
 		serviceName = foundService.ObjectMeta.Name
 		if helper.CopyServiceFields(service, foundService) {
@@ -422,7 +424,7 @@ func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 // updateWorkspaceState attempts to immediately update the Workspace status with the provided state and message
-func (r *WorkspaceReconciler) updateWorkspaceState(ctx context.Context, log logr.Logger, workspace *kubefloworgv1beta1.Workspace, state kubefloworgv1beta1.WorkspaceState, message string) (ctrl.Result, error) { // nolint:unparam
+func (r *WorkspaceReconciler) updateWorkspaceState(ctx context.Context, log logr.Logger, workspace *kubefloworgv1beta1.Workspace, state kubefloworgv1beta1.WorkspaceState, message string) (ctrl.Result, error) { //nolint:unparam
 	if workspace == nil {
 		return ctrl.Result{}, fmt.Errorf("provided Workspace was nil")
 	}
@@ -926,7 +928,7 @@ func (r *WorkspaceReconciler) generateWorkspaceStatus(ctx context.Context, log l
 		var podScheduledCondition corev1.PodCondition
 		var podReadyCondition corev1.PodCondition
 		for _, condition := range pod.Status.Conditions {
-			switch condition.Type {
+			switch condition.Type { //nolint:exhaustive
 			case corev1.PodScheduled:
 				podScheduledCondition = condition
 			case corev1.PodReady:

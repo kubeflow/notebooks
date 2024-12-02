@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-	http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package api
 
 import (
@@ -112,7 +113,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 
 		It("should retrieve the all workspacekinds successfully", func() {
 			By("creating the HTTP request")
-			req, err := http.NewRequest(http.MethodGet, WorkspacesByNamespacePath, nil)
+			req, err := http.NewRequest(http.MethodGet, WorkspacesByNamespacePath, http.NoBody)
 			Expect(err).NotTo(HaveOccurred(), "Failed to create HTTP request")
 
 			By("executing GetWorkspaceKindsHandler")
@@ -120,7 +121,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			rr := httptest.NewRecorder()
 			a.GetWorkspaceKindsHandler(rr, req, ps)
 			rs := rr.Result()
-			defer rs.Body.Close() // nolint: errcheck
+			defer rs.Body.Close()
 
 			By("verifying the HTTP response status code")
 			Expect(rs.StatusCode).To(Equal(http.StatusOK), "Expected HTTP status 200 OK")
@@ -139,7 +140,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 
 			By("converting workspaceKindsData to JSON and back to []WorkspaceKindsModel")
 			workspaceKindsJSON, err := json.Marshal(workspaceKindsData)
-			Expect(err).NotTo(HaveOccurred(), "Error marshalling workspaces repositories")
+			Expect(err).NotTo(HaveOccurred(), "Error marshaling workspaces repositories")
 
 			var workspaceKinds []models.WorkspaceKindModel
 			err = json.Unmarshal(workspaceKindsJSON, &workspaceKinds)
@@ -161,7 +162,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 		It("should retrieve a single workspacekind successfully", func() {
 			By("creating the HTTP request")
 			path := strings.Replace(WorkspaceKindsByNamePath, ":name", workspaceKind1Name, 1)
-			req, err := http.NewRequest(http.MethodGet, path, nil)
+			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred(), "Failed to create HTTP request")
 
 			By("executing GetWorkspaceKindHandler")
@@ -171,7 +172,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			rr := httptest.NewRecorder()
 			a.GetWorkspaceKindHandler(rr, req, ps)
 			rs := rr.Result()
-			defer rs.Body.Close() // nolint: errcheck
+			defer rs.Body.Close()
 
 			By("verifying the HTTP response status code")
 			Expect(rs.StatusCode).To(Equal(http.StatusOK), "Expected HTTP status 200 OK")
@@ -213,7 +214,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 		})
 		It("should return an empty list of workspacekinds", func() {
 			By("creating the HTTP request")
-			req, err := http.NewRequest(http.MethodGet, AllWorkspaceKindsPath, nil)
+			req, err := http.NewRequest(http.MethodGet, AllWorkspaceKindsPath, http.NoBody)
 			Expect(err).NotTo(HaveOccurred(), "Failed to create HTTP request")
 
 			By("executing GetWorkspacesHandler")
@@ -221,7 +222,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			rr := httptest.NewRecorder()
 			a.GetWorkspaceKindsHandler(rr, req, ps)
 			rs := rr.Result()
-			defer rs.Body.Close() // nolint: errcheck
+			defer rs.Body.Close()
 
 			By("verifying the HTTP response status code")
 			Expect(rs.StatusCode).To(Equal(http.StatusOK), "Expected HTTP status 200 OK")
@@ -237,7 +238,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 
 			By("asserting that the 'workspaces' list is empty")
 			workspaceskindsJSON, err := json.Marshal(response.Data)
-			Expect(err).NotTo(HaveOccurred(), "Error marshalling workspaces data")
+			Expect(err).NotTo(HaveOccurred(), "Error marshaling workspaces data")
 
 			var workspaceKinds []models.WorkspaceKindModel
 			err = json.Unmarshal(workspaceskindsJSON, &workspaceKinds)
@@ -248,7 +249,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 		It("should return 404 for a non-existent workspacekind", func() {
 			By("creating the HTTP request for a non-existent workspacekind")
 			path := strings.Replace(WorkspaceKindsByNamePath, ":name", "non-existent-workspacekind", 1)
-			req, err := http.NewRequest(http.MethodGet, path, nil)
+			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred(), "Failed to create HTTP request")
 
 			By("executing GetWorkspaceKindHandler")
@@ -258,7 +259,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			rr := httptest.NewRecorder()
 			a.GetWorkspaceKindHandler(rr, req, ps)
 			rs := rr.Result()
-			defer rs.Body.Close() // nolint: errcheck
+			defer rs.Body.Close()
 
 			By("verifying the HTTP response status code")
 			Expect(rs.StatusCode).To(Equal(http.StatusNotFound), "Expected HTTP status 404 Not Found")
