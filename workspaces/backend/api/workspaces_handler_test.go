@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-	http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package api
 
 import (
@@ -159,7 +160,7 @@ var _ = Describe("Workspaces Handler", func() {
 		It("should retrieve the workspaces from all namespaces successfully", func() {
 
 			By("creating the HTTP request")
-			req, err := http.NewRequest(http.MethodGet, WorkspacesByNamespacePath, nil)
+			req, err := http.NewRequest(http.MethodGet, WorkspacesByNamespacePath, http.NoBody)
 			Expect(err).NotTo(HaveOccurred(), "Failed to create HTTP request")
 
 			By("executing GetWorkspacesHandler")
@@ -167,7 +168,7 @@ var _ = Describe("Workspaces Handler", func() {
 			rr := httptest.NewRecorder()
 			a.GetWorkspacesHandler(rr, req, ps)
 			rs := rr.Result()
-			defer rs.Body.Close() // nolint: errcheck
+			defer rs.Body.Close()
 
 			By("verifying the HTTP response status code")
 			Expect(rs.StatusCode).To(Equal(http.StatusOK), "Expected HTTP status 200 OK")
@@ -186,7 +187,7 @@ var _ = Describe("Workspaces Handler", func() {
 
 			By("converting workspacesData to JSON and back to []WorkspaceModel")
 			workspacesJSON, err := json.Marshal(workspacesData)
-			Expect(err).NotTo(HaveOccurred(), "Error marshalling workspaces repositories")
+			Expect(err).NotTo(HaveOccurred(), "Error marshaling workspaces repositories")
 
 			var workspaces []models.WorkspaceModel
 			err = json.Unmarshal(workspacesJSON, &workspaces)
@@ -213,7 +214,7 @@ var _ = Describe("Workspaces Handler", func() {
 
 			By("creating the HTTP request")
 			path := strings.Replace(WorkspacesByNamespacePath, ":"+NamespacePathParam, namespaceName1, 1)
-			req, err := http.NewRequest(http.MethodGet, path, nil)
+			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred(), "Failed to create HTTP request")
 
 			By("executing GetWorkspacesHandler")
@@ -226,7 +227,7 @@ var _ = Describe("Workspaces Handler", func() {
 			rr := httptest.NewRecorder()
 			a.GetWorkspacesHandler(rr, req, ps)
 			rs := rr.Result()
-			defer rs.Body.Close() // nolint: errcheck
+			defer rs.Body.Close()
 
 			By("verifying the HTTP response status code")
 			Expect(rs.StatusCode).To(Equal(http.StatusOK), "Expected HTTP status 200 OK")
@@ -242,7 +243,7 @@ var _ = Describe("Workspaces Handler", func() {
 
 			By("converting workspaces Data to JSON and back to []WorkspaceModel")
 			workspacesJSON, err := json.Marshal(response.Data)
-			Expect(err).NotTo(HaveOccurred(), "Error marshalling workspaces repositories")
+			Expect(err).NotTo(HaveOccurred(), "Error marshaling workspaces repositories")
 
 			var workspaces []models.WorkspaceModel
 			err = json.Unmarshal(workspacesJSON, &workspaces)
@@ -280,7 +281,7 @@ var _ = Describe("Workspaces Handler", func() {
 		It("should return an empty list of workspaces", func() {
 			By("creating the HTTP request")
 			path := strings.Replace(AllWorkspacesPath, ":"+NamespacePathParam, otherNamespace, 1)
-			req, err := http.NewRequest(http.MethodGet, path, nil)
+			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred(), "Failed to create HTTP request")
 
 			By("executing GetWorkspacesHandler")
@@ -293,7 +294,7 @@ var _ = Describe("Workspaces Handler", func() {
 			rr := httptest.NewRecorder()
 			a.GetWorkspacesHandler(rr, req, ps)
 			rs := rr.Result()
-			defer rs.Body.Close() // nolint: errcheck
+			defer rs.Body.Close()
 
 			By("verifying the HTTP response status code")
 			Expect(rs.StatusCode).To(Equal(http.StatusOK), "Expected HTTP status 200 OK")
@@ -309,7 +310,7 @@ var _ = Describe("Workspaces Handler", func() {
 
 			By("asserting that the 'workspaces' list is empty")
 			workspacesJSON, err := json.Marshal(response.Data)
-			Expect(err).NotTo(HaveOccurred(), "Error marshalling workspaces data")
+			Expect(err).NotTo(HaveOccurred(), "Error marshaling workspaces data")
 
 			var workspaces []models.WorkspaceModel
 			err = json.Unmarshal(workspacesJSON, &workspaces)
@@ -419,7 +420,7 @@ var _ = Describe("Workspaces Handler", func() {
 
 			a.CreateWorkspaceHandler(rr, req, ps)
 			rs := rr.Result()
-			defer rs.Body.Close() // nolint: errcheck
+			defer rs.Body.Close()
 
 			By("verifying the HTTP response status code for creation")
 			Expect(rs.StatusCode).To(Equal(http.StatusCreated), "Expected HTTP status 201 Created")
@@ -439,13 +440,13 @@ var _ = Describe("Workspaces Handler", func() {
 				},
 			}
 
-			req, err = http.NewRequest(http.MethodGet, path, nil)
+			req, err = http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred(), "Failed to create HTTP request")
 			rr = httptest.NewRecorder()
 
 			a.GetWorkspaceHandler(rr, req, ps)
 			rs = rr.Result()
-			defer rs.Body.Close() // nolint: errcheck
+			defer rs.Body.Close()
 
 			By("verifying the HTTP response status code for retrieval")
 			Expect(rs.StatusCode).To(Equal(http.StatusOK), "Expected HTTP status 200 OK")
@@ -460,7 +461,7 @@ var _ = Describe("Workspaces Handler", func() {
 			err = json.Unmarshal(body, &response)
 			Expect(err).NotTo(HaveOccurred(), "Error unmarshalling response JSON")
 
-			//remove auto generated fields from comparison
+			// remove auto generated fields from comparison
 			response.Data.LastActivity = ""
 
 			By("checking if the retrieved workspace matches the expected workspace")
@@ -473,25 +474,25 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(retrievedWorkspaceJSON).To(MatchJSON(originalWorkspaceJSON), "The retrieved workspace does not match the created one")
 
 			By("deleting the workspace via the API")
-			req, err = http.NewRequest(http.MethodDelete, path, nil)
+			req, err = http.NewRequest(http.MethodDelete, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred(), "Failed to create HTTP request for deletion")
 
 			rr = httptest.NewRecorder()
 			a.DeleteWorkspaceHandler(rr, req, ps)
 			rs = rr.Result()
-			defer rs.Body.Close() // nolint: errcheck
+			defer rs.Body.Close()
 
 			By("verifying the HTTP response status code for deletion")
 			Expect(rs.StatusCode).To(Equal(http.StatusNoContent), "Expected HTTP status 204 No Content")
 
 			By("verifying the workspace has been deleted")
-			req, err = http.NewRequest(http.MethodGet, path, nil)
+			req, err = http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred(), "Failed to create HTTP request")
 			rr = httptest.NewRecorder()
 
 			a.GetWorkspaceHandler(rr, req, ps)
 			rs = rr.Result()
-			defer rs.Body.Close() // nolint: errcheck
+			defer rs.Body.Close()
 
 			By("verifying the HTTP response status code for not found")
 			Expect(rs.StatusCode).To(Equal(http.StatusNotFound), "Expected HTTP status 200 OK")

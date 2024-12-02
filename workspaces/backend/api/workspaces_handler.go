@@ -100,9 +100,9 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 		return
 	}
 
-	var workspaceModel models.WorkspaceModel
-	if err := json.NewDecoder(r.Body).Decode(&workspaceModel); err != nil {
-		a.serverErrorResponse(w, r, fmt.Errorf("error decoding JSON: %v", err))
+	workspaceModel := &models.WorkspaceModel{}
+	if err := json.NewDecoder(r.Body).Decode(workspaceModel); err != nil {
+		a.serverErrorResponse(w, r, fmt.Errorf("error decoding JSON: %w", err))
 		return
 	}
 
@@ -110,7 +110,7 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 
 	createdWorkspace, err := a.repositories.Workspace.CreateWorkspace(r.Context(), workspaceModel)
 	if err != nil {
-		a.serverErrorResponse(w, r, fmt.Errorf("error creating workspace: %v", err))
+		a.serverErrorResponse(w, r, fmt.Errorf("error creating workspace: %w", err))
 		return
 	}
 
@@ -122,7 +122,7 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 	w.Header().Set("Location", r.URL.Path)
 	err = a.WriteJSON(w, http.StatusCreated, workspaceEnvelope, nil)
 	if err != nil {
-		a.serverErrorResponse(w, r, fmt.Errorf("error writing JSON: %v", err))
+		a.serverErrorResponse(w, r, fmt.Errorf("error writing JSON: %w", err))
 	}
 }
 
