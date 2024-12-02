@@ -48,10 +48,10 @@ type WorkspaceKindReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=kubeflow.org,resources=workspacekinds,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=kubeflow.org,resources=workspacekinds/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=kubeflow.org,resources=workspacekinds/finalizers,verbs=update
-//+kubebuilder:rbac:groups=kubeflow.org,resources=workspaces,verbs=get;list;watch
+// +kubebuilder:rbac:groups=kubeflow.org,resources=workspacekinds,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=kubeflow.org,resources=workspacekinds/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=kubeflow.org,resources=workspacekinds/finalizers,verbs=update
+// +kubebuilder:rbac:groups=kubeflow.org,resources=workspaces,verbs=get;list;watch
 
 func (r *WorkspaceKindReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
@@ -129,7 +129,7 @@ func (r *WorkspaceKindReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	// update the WorkspaceKind status
-	workspaceKind.Status.Workspaces = int32(numWorkspace)
+	workspaceKind.Status.Workspaces = int32(numWorkspace) //nolint:gosec
 	workspaceKind.Status.PodTemplateOptions.ImageConfig = imageConfigMetrics
 	workspaceKind.Status.PodTemplateOptions.PodConfig = podConfigMetrics
 	if err := r.Status().Update(ctx, workspaceKind); err != nil {

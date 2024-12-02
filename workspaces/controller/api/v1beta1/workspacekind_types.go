@@ -41,32 +41,32 @@ type WorkspaceKindSpec struct {
 
 type WorkspaceKindSpawner struct {
 	// the display name of the WorkspaceKind
-	//+kubebuilder:validation:MinLength:=2
-	//+kubebuilder:validation:MaxLength:=128
-	//+kubebuilder:example:="JupyterLab Notebook"
+	// +kubebuilder:validation:MinLength:=2
+	// +kubebuilder:validation:MaxLength:=128
+	// +kubebuilder:example:="JupyterLab Notebook"
 	DisplayName string `json:"displayName"`
 
 	// the description of the WorkspaceKind
-	//+kubebuilder:validation:MinLength:=2
-	//+kubebuilder:validation:MaxLength:=4096
-	//+kubebuilder:example:="A Workspace which runs JupyterLab in a Pod"
+	// +kubebuilder:validation:MinLength:=2
+	// +kubebuilder:validation:MaxLength:=4096
+	// +kubebuilder:example:="A Workspace which runs JupyterLab in a Pod"
 	Description string `json:"description"`
 
 	// if this WorkspaceKind should be hidden from the Workspace Spawner UI
-	//+kubebuilder:validation:Optional
-	//+kubebuilder:default:=false
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default:=false
 	Hidden *bool `json:"hidden,omitempty"`
 
 	// if this WorkspaceKind is deprecated
-	//+kubebuilder:validation:Optional
-	//+kubebuilder:default:=false
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default:=false
 	Deprecated *bool `json:"deprecated,omitempty"`
 
 	// a message to show in Workspace Spawner UI when the WorkspaceKind is deprecated
-	//+kubebuilder:validation:Optional
-	//+kubebuilder:validation:MinLength:=2
-	//+kubebuilder:validation:MaxLength:=256
-	//+kubebuilder:example:="This WorkspaceKind will be removed on 20XX-XX-XX, please use another WorkspaceKind."
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MinLength:=2
+	// +kubebuilder:validation:MaxLength:=256
+	// +kubebuilder:example:="This WorkspaceKind will be removed on 20XX-XX-XX, please use another WorkspaceKind."
 	DeprecationMessage *string `json:"deprecationMessage,omitempty"`
 
 	// the icon of the WorkspaceKind
@@ -80,71 +80,71 @@ type WorkspaceKindSpawner struct {
 
 // +kubebuilder:validation:XValidation:message="must specify exactly one of 'url' or 'configMap'",rule="!(has(self.url) && has(self.configMap)) && (has(self.url) || has(self.configMap))"
 type WorkspaceKindIcon struct {
-	//+kubebuilder:validation:Optional
-	//+kubebuilder:example="https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png"
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:example="https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png"
 	Url *string `json:"url,omitempty"`
 
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
 	ConfigMap *WorkspaceKindConfigMap `json:"configMap,omitempty"`
 }
 
 type WorkspaceKindConfigMap struct {
-	//+kubebuilder:example="my-logos"
+	// +kubebuilder:example="my-logos"
 	Name string `json:"name"`
 
-	//+kubebuilder:example="apple-touch-icon-152x152.png"
+	// +kubebuilder:example="apple-touch-icon-152x152.png"
 	Key string `json:"key"`
 }
 
 type WorkspaceKindPodTemplate struct {
 	// metadata for Workspace Pods (MUTABLE)
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
 	PodMetadata *WorkspaceKindPodMetadata `json:"podMetadata,omitempty"`
 
 	// service account configs for Workspace Pods
 	ServiceAccount WorkspaceKindServiceAccount `json:"serviceAccount"`
 
 	// culling configs for pausing inactive Workspaces (MUTABLE)
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
 	Culling *WorkspaceKindCullingConfig `json:"culling,omitempty"`
 
 	// standard probes to determine Container health (MUTABLE)
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
 	Probes *WorkspaceKindProbes `json:"probes,omitempty"`
 
 	// volume mount paths
 	VolumeMounts WorkspaceKindVolumeMounts `json:"volumeMounts"`
 
 	// http proxy configs (MUTABLE)
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
 	HTTPProxy *HTTPProxy `json:"httpProxy,omitempty"`
 
 	// environment variables for Workspace Pods (MUTABLE)
 	//  - the following go template functions are available:
 	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
-	//+kubebuilder:validation:Optional
-	//+listType:="map"
-	//+listMapKey:="name"
+	// +kubebuilder:validation:Optional
+	// +listType:="map"
+	// +listMapKey:="name"
 	ExtraEnv []v1.EnvVar `json:"extraEnv,omitempty"`
 
 	// extra volume mounts for Workspace Pods (MUTABLE)
-	//+kubebuilder:validation:Optional
-	//+listType:="map"
-	//+listMapKey:="mountPath"
+	// +kubebuilder:validation:Optional
+	// +listType:="map"
+	// +listMapKey:="mountPath"
 	ExtraVolumeMounts []v1.VolumeMount `json:"extraVolumeMounts,omitempty"`
 
 	// extra volumes for Workspace Pods (MUTABLE)
-	//+kubebuilder:validation:Optional
-	//+listType:="map"
-	//+listMapKey:="name"
+	// +kubebuilder:validation:Optional
+	// +listType:="map"
+	// +listMapKey:="name"
 	ExtraVolumes []v1.Volume `json:"extraVolumes,omitempty"`
 
 	// security context for Workspace Pods (MUTABLE)
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
 	SecurityContext *v1.PodSecurityContext `json:"securityContext,omitempty"`
 
 	// container security context for Workspace Pods (MUTABLE)
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
 	ContainerSecurityContext *v1.SecurityContext `json:"containerSecurityContext,omitempty"`
 
 	// options are the user-selectable fields, they determine the PodSpec of the Workspace
@@ -153,11 +153,11 @@ type WorkspaceKindPodTemplate struct {
 
 type WorkspaceKindPodMetadata struct {
 	// labels to be applied to the Pod resource
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
 	Labels map[string]string `json:"labels,omitempty"`
 
 	// annotations to be applied to the Pod resource
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
@@ -167,21 +167,21 @@ type WorkspaceKindServiceAccount struct {
 	//    of the Workspace, the controller will NOT create it
 	//  - we will not show this WorkspaceKind in the Spawner UI
 	//    if the SA does not exist in the Namespace
-	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="ServiceAccount 'name' is immutable"
-	//+kubebuilder:example="default-editor"
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="ServiceAccount 'name' is immutable"
+	// +kubebuilder:example="default-editor"
 	Name string `json:"name"`
 }
 
 type WorkspaceKindCullingConfig struct {
 	// if the culling feature is enabled
-	//+kubebuilder:validation:Optional
-	//+kubebuilder:default=true
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=true
 	Enabled *bool `json:"enabled,omitempty"`
 
 	// the maximum number of seconds a Workspace can be inactive
-	//+kubebuilder:validation:Optional
-	//+kubebuilder:validation:Minimum:=60
-	//+kubebuilder:default=86400
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Minimum:=60
+	// +kubebuilder:default=86400
 	MaxInactiveSeconds *int32 `json:"maxInactiveSeconds,omitempty"`
 
 	// the probe used to determine if the Workspace is active
@@ -193,52 +193,52 @@ type ActivityProbe struct {
 	// a shell command probe
 	//  - if the Workspace had activity in the last 60 seconds this command
 	//    should return status 0, otherwise it should return status 1
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
 	Exec *ActivityProbeExec `json:"exec,omitempty"`
 
 	// a Jupyter-specific probe
 	//  - will poll the `/api/status` endpoint of the Jupyter API, and use the `last_activity` field
 	//  - note, users need to be careful that their other probes don't trigger a "last_activity" update
 	//    e.g. they should only check the health of Jupyter using the `/api/status` endpoint
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
 	Jupyter *ActivityProbeJupyter `json:"jupyter,omitempty"`
 }
 
 type ActivityProbeExec struct {
 	// the command to run
-	//+kubebuilder:validation:MinItems:=1
-	//+kubebuilder:example={"bash", "-c", "exit 0"}
+	// +kubebuilder:validation:MinItems:=1
+	// +kubebuilder:example={"bash", "-c", "exit 0"}
 	Command []string `json:"command"`
 }
 
 // +kubebuilder:validation:XValidation:message="'lastActivity' must be true",rule="has(self.lastActivity) && self.lastActivity"
 type ActivityProbeJupyter struct {
 	// if the Jupyter-specific probe is enabled
-	//+kubebuilder:example=true
+	// +kubebuilder:example=true
 	LastActivity bool `json:"lastActivity"`
 }
 
 type WorkspaceKindProbes struct {
 	// the startup probe for the main container
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
 	StartupProbe *v1.Probe `json:"startupProbe,omitempty"`
 
 	// the liveness probe for the main container
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
 	LivenessProbe *v1.Probe `json:"livenessProbe,omitempty"`
 
 	// the readiness probe for the main container
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
 	ReadinessProbe *v1.Probe `json:"readinessProbe,omitempty"`
 }
 
 type WorkspaceKindVolumeMounts struct {
 	// the path to mount the home PVC (NOT MUTABLE)
-	//+kubebuilder:validation:MinLength:=2
-	//+kubebuilder:validation:MaxLength:=4096
-	//+kubebuilder:validation:Pattern:=^/[^/].*$
-	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="mount path of 'home' is immutable"
-	//+kubebuilder:example:="/home/jovyan"
+	// +kubebuilder:validation:MinLength:=2
+	// +kubebuilder:validation:MaxLength:=4096
+	// +kubebuilder:validation:Pattern:=^/[^/].*$
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="mount path of 'home' is immutable"
+	// +kubebuilder:example:="/home/jovyan"
 	Home string `json:"home"`
 }
 
@@ -248,8 +248,8 @@ type HTTPProxy struct {
 	//    is stripped from incoming requests, the application sees the request
 	//    as if it was made to '/...'
 	//  - this only works if the application serves RELATIVE URLs for its assets
-	//+kubebuilder:validation:Optional
-	//+kubebuilder:default:=false
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default:=false
 	RemovePathPrefix *bool `json:"removePathPrefix,omitempty"`
 
 	// header manipulation rules for incoming HTTP requests
@@ -257,24 +257,24 @@ type HTTPProxy struct {
 	//    https://istio.io/latest/docs/reference/config/networking/virtual-service/#Headers-HeaderOperations
 	//  - the following string templates are available:
 	//     - `.PathPrefix`: the path prefix of the Workspace (e.g. '/workspace/{profile_name}/{workspace_name}/')
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
 	RequestHeaders *IstioHeaderOperations `json:"requestHeaders,omitempty"`
 }
 
 type IstioHeaderOperations struct {
 	// overwrite the headers specified by key with the given values
-	//+kubebuilder:validation:Optional
-	//+kubebuilder:example:={ "X-RStudio-Root-Path": "{{ .PathPrefix }}" }
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:example:={ "X-RStudio-Root-Path": "{{ .PathPrefix }}" }
 	Set map[string]string `json:"set,omitempty"`
 
 	// append the given values to the headers specified by keys (will create a comma-separated list of values)
-	//+kubebuilder:validation:Optional
-	//+kubebuilder:example:={ "My-Header": "value-to-append" }
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:example:={ "My-Header": "value-to-append" }
 	Add map[string]string `json:"add,omitempty"`
 
 	// remove the specified headers
-	//+kubebuilder:validation:Optional
-	//+kubebuilder:example:={"Header-To-Remove"}
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:example:={"Header-To-Remove"}
 	Remove []string `json:"remove,omitempty"`
 }
 
@@ -291,24 +291,24 @@ type ImageConfig struct {
 	Spawner OptionsSpawnerConfig `json:"spawner"`
 
 	// the list of image configs that are available
-	//+kubebuilder:validation:MinItems:=1
-	//+listType:="map"
-	//+listMapKey:="id"
+	// +kubebuilder:validation:MinItems:=1
+	// +listType:="map"
+	// +listMapKey:="id"
 	Values []ImageConfigValue `json:"values"`
 }
 
 type ImageConfigValue struct {
 	// the id of this image config
-	//+kubebuilder:validation:MinLength:=1
-	//+kubebuilder:validation:MaxLength:=256
-	//+kubebuilder:example:="jupyterlab_scipy_190"
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=256
+	// +kubebuilder:example:="jupyterlab_scipy_190"
 	Id string `json:"id"`
 
 	// information for the spawner ui
 	Spawner OptionSpawnerInfo `json:"spawner"`
 
 	// redirect configs
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
 	Redirect *OptionRedirect `json:"redirect,omitempty"`
 
 	// the spec of the image config
@@ -317,48 +317,48 @@ type ImageConfigValue struct {
 
 type ImageConfigSpec struct {
 	// the container image to use
-	//+kubebuilder:validation:MinLength:=2
-	//+kubeflow:example="docker.io/kubeflownotebookswg/jupyter-scipy:v1.7.0"
+	// +kubebuilder:validation:MinLength:=2
+	// +kubeflow:example="docker.io/kubeflownotebookswg/jupyter-scipy:v1.7.0"
 	Image string `json:"image"`
 
 	// the pull policy for the container image
-	//+kubebuilder:validation:Optional
-	//+kubebuilder:default:="IfNotPresent"
-	//+kubebuilder:validation:Enum:={"Always","IfNotPresent","Never"}
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default:="IfNotPresent"
+	// +kubebuilder:validation:Enum:={"Always","IfNotPresent","Never"}
 	ImagePullPolicy *v1.PullPolicy `json:"imagePullPolicy"`
 
 	// ports that the container listens on
 	//   - if multiple ports are defined, the user will see multiple "Connect" buttons
 	//     in a dropdown menu on the Workspace overview page
-	//+kubebuilder:validation:MinItems:=1
-	//+listType:="map"
-	//+listMapKey:="id"
+	// +kubebuilder:validation:MinItems:=1
+	// +listType:="map"
+	// +listMapKey:="id"
 	Ports []ImagePort `json:"ports"`
 }
 
 type ImagePort struct {
 	// the id of the port
 	//  - this is NOT used as the Container or Service port name, but as part of the HTTP path
-	//+kubebuilder:validation:MinLength:=1
-	//+kubebuilder:validation:MaxLength:=32
-	//+kubebuilder:validation:Pattern:=^[a-z0-9][a-z0-9_-]*[a-z0-9]$
-	//+kubebuilder:example="jupyterlab"
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=32
+	// +kubebuilder:validation:Pattern:=^[a-z0-9][a-z0-9_-]*[a-z0-9]$
+	// +kubebuilder:example="jupyterlab"
 	Id string `json:"id"`
 
 	// the port number
-	//+kubebuilder:validation:Minimum:=1
-	//+kubebuilder:validation:Maximum:=65535
-	//+kubebuilder:example:=8888
+	// +kubebuilder:validation:Minimum:=1
+	// +kubebuilder:validation:Maximum:=65535
+	// +kubebuilder:example:=8888
 	Port int32 `json:"port"`
 
 	// the display name of the port
-	//+kubebuilder:validation:MinLength:=2
-	//+kubebuilder:validation:MaxLength:=64
-	//+kubebuilder:example:="JupyterLab"
+	// +kubebuilder:validation:MinLength:=2
+	// +kubebuilder:validation:MaxLength:=64
+	// +kubebuilder:example:="JupyterLab"
 	DisplayName string `json:"displayName"`
 
 	// the protocol of the port
-	//+kubebuilder:example:="HTTP"
+	// +kubebuilder:example:="HTTP"
 	Protocol ImagePortProtocol `json:"protocol"`
 }
 
@@ -374,24 +374,24 @@ type PodConfig struct {
 	Spawner OptionsSpawnerConfig `json:"spawner"`
 
 	// the list of pod configs that are available
-	//+kubebuilder:validation:MinItems:=1
-	//+listType:="map"
-	//+listMapKey:="id"
+	// +kubebuilder:validation:MinItems:=1
+	// +listType:="map"
+	// +listMapKey:="id"
 	Values []PodConfigValue `json:"values"`
 }
 
 type PodConfigValue struct {
 	// the id of this pod config
-	//+kubebuilder:validation:MinLength:=1
-	//+kubebuilder:validation:MaxLength:=256
-	//+kubebuilder:example="big_gpu"
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=256
+	// +kubebuilder:example="big_gpu"
 	Id string `json:"id"`
 
 	// information for the spawner ui
 	Spawner OptionSpawnerInfo `json:"spawner"`
 
 	// redirect configs
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
 	Redirect *OptionRedirect `json:"redirect,omitempty"`
 
 	// the spec of the pod config
@@ -400,89 +400,89 @@ type PodConfigValue struct {
 
 type PodConfigSpec struct {
 	// affinity configs for the pod
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
 	Affinity *v1.Affinity `json:"affinity,omitempty"`
 
 	// node selector configs for the pod
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
 	// toleration configs for the pod
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
 	Tolerations []v1.Toleration `json:"tolerations,omitempty"`
 
 	// resource configs for the "main" container in the pod
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
 	Resources *v1.ResourceRequirements `json:"resources,omitempty"`
 }
 
 type OptionsSpawnerConfig struct {
 	// the id of the default option
 	//  - this will be selected by default in the spawner ui
-	//+kubebuilder:validation:MinLength:=1
-	//+kubebuilder:validation:MaxLength:=256
-	//+kubebuilder:example="jupyterlab_scipy_190"
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=256
+	// +kubebuilder:example="jupyterlab_scipy_190"
 	Default string `json:"default"`
 }
 
 type OptionSpawnerInfo struct {
 	// the display name of the option
-	//+kubebuilder:validation:MinLength:=2
-	//+kubebuilder:validation:MaxLength:=128
+	// +kubebuilder:validation:MinLength:=2
+	// +kubebuilder:validation:MaxLength:=128
 	DisplayName string `json:"displayName"`
 
 	// a description of the option
-	//+kubebuilder:validation:Optional
-	//+kubebuilder:validation:MinLength:=2
-	//+kubebuilder:validation:MaxLength:=1024
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MinLength:=2
+	// +kubebuilder:validation:MaxLength:=1024
 	Description *string `json:"description,omitempty"`
 
 	// labels for the option
-	//+kubebuilder:validation:Optional
-	//+kubebuilder:validation:MaxItems:=32
-	//+listType:="map"
-	//+listMapKey:="key"
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxItems:=32
+	// +listType:="map"
+	// +listMapKey:="key"
 	Labels []OptionSpawnerLabel `json:"labels,omitempty"`
 
 	// if this option should be hidden from the Workspace Spawner UI
-	//+kubebuilder:validation:Optional
-	//+kubebuilder:default:=false
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default:=false
 	Hidden *bool `json:"hidden,omitempty"`
 }
 
 type OptionSpawnerLabel struct {
 	// the key of the label
-	//+kubebuilder:validation:MinLength:=2
-	//+kubebuilder:validation:MaxLength:=64
+	// +kubebuilder:validation:MinLength:=2
+	// +kubebuilder:validation:MaxLength:=64
 	Key string `json:"key"`
 
 	// the value of the label
-	//+kubebuilder:validation:MinLength:=1
-	//+kubebuilder:validation:MaxLength:=64
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=64
 	Value string `json:"value"`
 }
 
 type OptionRedirect struct {
 	// the id of the option to redirect to
-	//+kubebuilder:validation:MinLength:=1
-	//+kubebuilder:validation:MaxLength:=256
-	//+kubebuilder:example:="jupyterlab_scipy_190"
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=256
+	// +kubebuilder:example:="jupyterlab_scipy_190"
 	To string `json:"to"`
 
 	// information about the redirect
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
 	Message *RedirectMessage `json:"message,omitempty"`
 }
 
 type RedirectMessage struct {
 	// the importance level of the message
-	//+kubebuilder:example:="Info"
+	// +kubebuilder:example:="Info"
 	Level RedirectMessageLevel `json:"level"`
 
 	// the text of the message to show
-	//+kubebuilder:validation:MinLength:=2
-	//+kubebuilder:validation:MaxLength:=1024
-	//+kubebuilder:example:="This update will increase the version of JupyterLab to v1.7.1"
+	// +kubebuilder:validation:MinLength:=2
+	// +kubebuilder:validation:MaxLength:=1024
+	// +kubebuilder:example:="This update will increase the version of JupyterLab to v1.7.1"
 	Text string `json:"text"`
 }
 
@@ -505,7 +505,7 @@ const (
 type WorkspaceKindStatus struct {
 
 	// the number of Workspaces that are using this WorkspaceKind
-	//+kubebuilder:default=0
+	// +kubebuilder:default=0
 	Workspaces int32 `json:"workspaces"`
 
 	// metrics for podTemplate options
@@ -514,25 +514,25 @@ type WorkspaceKindStatus struct {
 
 type PodTemplateOptionsMetrics struct {
 	// metrics about the imageConfig options
-	//+listType:="map"
-	//+listMapKey:="id"
+	// +listType:="map"
+	// +listMapKey:="id"
 	ImageConfig []OptionMetric `json:"imageConfig"`
 
 	// metrics about the podConfig options
-	//+listType:="map"
-	//+listMapKey:="id"
+	// +listType:="map"
+	// +listMapKey:="id"
 	PodConfig []OptionMetric `json:"podConfig"`
 }
 
 type OptionMetric struct {
 	// the id of the option
-	//+kubebuilder:validation:MinLength:=1
-	//+kubebuilder:validation:MaxLength:=256
-	//+kubebuilder:example="big_gpu"
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=256
+	// +kubebuilder:example="big_gpu"
 	Id string `json:"id"`
 
 	// the number of Workspaces currently using the option
-	//+kubebuilder:example=3
+	// +kubebuilder:example=3
 	Workspaces int32 `json:"workspaces"`
 }
 
@@ -542,12 +542,12 @@ type OptionMetric struct {
 ===============================================================================
 */
 
-//+kubebuilder:object:root=true
-//+kubebuilder:printcolumn:name="Workspaces",type="integer",JSONPath=".status.workspaces",description="The number of Workspaces using this WorkspaceKind"
-//+kubebuilder:printcolumn:name="Deprecated",type="boolean",JSONPath=".spec.spawner.deprecated",description="If this WorkspaceKind is deprecated"
-//+kubebuilder:printcolumn:name="Hidden",type="boolean",JSONPath=".spec.spawner.hidden",description="If this WorkspaceKind is hidden from the spawner UI"
-//+kubebuilder:subresource:status
-//+kubebuilder:resource:scope=Cluster
+// +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="Workspaces",type="integer",JSONPath=".status.workspaces",description="The number of Workspaces using this WorkspaceKind"
+// +kubebuilder:printcolumn:name="Deprecated",type="boolean",JSONPath=".spec.spawner.deprecated",description="If this WorkspaceKind is deprecated"
+// +kubebuilder:printcolumn:name="Hidden",type="boolean",JSONPath=".spec.spawner.hidden",description="If this WorkspaceKind is hidden from the spawner UI"
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Cluster
 
 // WorkspaceKind is the Schema for the WorkspaceKinds API
 type WorkspaceKind struct {
@@ -564,7 +564,7 @@ type WorkspaceKind struct {
 ===============================================================================
 */
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // WorkspaceKindList contains a list of WorkspaceKind
 type WorkspaceKindList struct {

@@ -32,22 +32,22 @@ import (
 type WorkspaceSpec struct {
 
 	// if the workspace is paused (no pods running)
-	//+kubebuilder:validation:Optional
-	//+kubebuilder:default=false
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=false
 	Paused *bool `json:"paused,omitempty"`
 
 	// if true, pending updates are NOT applied when the Workspace is paused
 	// if false, pending updates are applied when the Workspace is paused
-	//+kubebuilder:validation:Optional
-	//+kubebuilder:default=false
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=false
 	DeferUpdates *bool `json:"deferUpdates,omitempty"`
 
 	// the WorkspaceKind to use
-	//+kubebuilder:validation:MinLength:=2
-	//+kubebuilder:validation:MaxLength:=63
-	//+kubebuilder:validation:Pattern:=^[a-z0-9][-a-z0-9]*[a-z0-9]$
-	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Workspace 'kind' is immutable"
-	//+kubebuilder:example="jupyterlab"
+	// +kubebuilder:validation:MinLength:=2
+	// +kubebuilder:validation:MaxLength:=63
+	// +kubebuilder:validation:Pattern:=^[a-z0-9][-a-z0-9]*[a-z0-9]$
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Workspace 'kind' is immutable"
+	// +kubebuilder:example="jupyterlab"
 	Kind string `json:"kind"`
 
 	// options for "podTemplate"-type WorkspaceKinds
@@ -56,7 +56,7 @@ type WorkspaceSpec struct {
 
 type WorkspacePodTemplate struct {
 	// metadata to be applied to the Pod resource
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
 	PodMetadata *WorkspacePodMetadata `json:"podMetadata,omitempty"`
 
 	// volume configs
@@ -68,11 +68,11 @@ type WorkspacePodTemplate struct {
 
 type WorkspacePodMetadata struct {
 	// labels to be applied to the Pod resource
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
 	Labels map[string]string `json:"labels,omitempty"`
 
 	// annotations to be applied to the Pod resource
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
@@ -82,11 +82,11 @@ type WorkspacePodVolumes struct {
 	//  - this PVC must be RWX (ReadWriteMany, ReadWriteOnce)
 	//  - the mount path is defined in the WorkspaceKind under
 	//    `spec.podTemplate.volumeMounts.home`
-	//+kubebuilder:validation:Optional
-	//+kubebuilder:validation:MinLength:=2
-	//+kubebuilder:validation:MaxLength:=63
-	//+kubebuilder:validation:Pattern:=^[a-z0-9][-a-z0-9]*[a-z0-9]$
-	//+kubebuilder:example="my-home-pvc"
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MinLength:=2
+	// +kubebuilder:validation:MaxLength:=63
+	// +kubebuilder:validation:Pattern:=^[a-z0-9][-a-z0-9]*[a-z0-9]$
+	// +kubebuilder:example="my-home-pvc"
 	Home *string `json:"home,omitempty"`
 
 	// additional PVCs to mount
@@ -94,30 +94,30 @@ type WorkspacePodVolumes struct {
 	//  - the same PVC can be mounted multiple times with different `mountPaths`
 	//  - if `readOnly` is false, the PVC must be RWX (ReadWriteMany, ReadWriteOnce)
 	//  - if `readOnly` is true, the PVC must be ReadOnlyMany
-	//+kubebuilder:validation:Optional
-	//+listType:="map"
-	//+listMapKey:="mountPath"
+	// +kubebuilder:validation:Optional
+	// +listType:="map"
+	// +listMapKey:="mountPath"
 	Data []PodVolumeMount `json:"data,omitempty"`
 }
 
 type PodVolumeMount struct {
 	// the name of the PVC to mount
-	//+kubebuilder:validation:MinLength:=2
-	//+kubebuilder:validation:MaxLength:=63
-	//+kubebuilder:validation:Pattern:=^[a-z0-9][-a-z0-9]*[a-z0-9]$
-	//+kubebuilder:example="my-data-pvc"
+	// +kubebuilder:validation:MinLength:=2
+	// +kubebuilder:validation:MaxLength:=63
+	// +kubebuilder:validation:Pattern:=^[a-z0-9][-a-z0-9]*[a-z0-9]$
+	// +kubebuilder:example="my-data-pvc"
 	PVCName string `json:"pvcName"`
 
 	// the mount path for the PVC
-	//+kubebuilder:validation:MinLength:=2
-	//+kubebuilder:validation:MaxLength:=4096
-	//+kubebuilder:validation:Pattern:=^/[^/].*$
-	//+kubebuilder:example="/data/my-data"
+	// +kubebuilder:validation:MinLength:=2
+	// +kubebuilder:validation:MaxLength:=4096
+	// +kubebuilder:validation:Pattern:=^/[^/].*$
+	// +kubebuilder:example="/data/my-data"
 	MountPath string `json:"mountPath"`
 
 	// if the PVC should be mounted as ReadOnly
-	//+kubebuilder:validation:Optional
-	//+kubebuilder:default=false
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=false
 	ReadOnly *bool `json:"readOnly,omitempty"`
 }
 
@@ -125,17 +125,17 @@ type WorkspacePodOptions struct {
 	// the id of an imageConfig option
 	//  - options are defined in WorkspaceKind under
 	//    `spec.podTemplate.options.imageConfig.values[]`
-	//+kubebuilder:validation:MinLength:=1
-	//+kubebuilder:validation:MaxLength:=256
-	//+kubebuilder:example="jupyterlab_scipy_190"
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=256
+	// +kubebuilder:example="jupyterlab_scipy_190"
 	ImageConfig string `json:"imageConfig"`
 
 	// the id of a podConfig option
 	//  - options are defined in WorkspaceKind under
 	//    `spec.podTemplate.options.podConfig.values[]`
-	//+kubebuilder:validation:MinLength:=1
-	//+kubebuilder:validation:MaxLength:=256
-	//+kubebuilder:example="big_gpu"
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=256
+	// +kubebuilder:example="big_gpu"
 	PodConfig string `json:"podConfig"`
 }
 
@@ -152,8 +152,8 @@ type WorkspaceStatus struct {
 
 	// the time when the Workspace was paused (UNIX epoch)
 	//  - set to 0 when the Workspace is NOT paused
-	//+kubebuilder:default=0
-	//+kubebuilder:example=1704067200
+	// +kubebuilder:default=0
+	// +kubebuilder:example=1704067200
 	PauseTime int64 `json:"pauseTime"`
 
 	// if the current Pod does not reflect the current "desired" state
@@ -161,31 +161,31 @@ type WorkspaceStatus struct {
 	//    and so will be patched on the next restart
 	//  - true if the WorkspaceKind has changed one of its common `podTemplate` fields
 	//    like `podMetadata`, `probes`, `extraEnv`, or `containerSecurityContext`
-	//+kubebuilder:default=false
+	// +kubebuilder:default=false
 	PendingRestart bool `json:"pendingRestart"`
 
 	// information about the current podTemplate options
 	PodTemplateOptions WorkspacePodOptionsStatus `json:"podTemplateOptions"`
 
 	// the current state of the Workspace
-	//+kubebuilder:default="Unknown"
+	// +kubebuilder:default="Unknown"
 	State WorkspaceState `json:"state"`
 
 	// a human-readable message about the state of the Workspace
 	//  - WARNING: this field is NOT FOR MACHINE USE, subject to change without notice
-	//+kubebuilder:default=""
+	// +kubebuilder:default=""
 	StateMessage string `json:"stateMessage"`
 }
 
 type WorkspaceActivity struct {
 	// the last time activity was observed on the Workspace (UNIX epoch)
-	//+kubebuilder:default=0
-	//+kubebuilder:example=1704067200
+	// +kubebuilder:default=0
+	// +kubebuilder:example=1704067200
 	LastActivity int64 `json:"lastActivity"`
 
 	// the last time we checked for activity on the Workspace (UNIX epoch)
-	//+kubebuilder:default=0
-	//+kubebuilder:example=1704067200
+	// +kubebuilder:default=0
+	// +kubebuilder:example=1704067200
 	LastUpdate int64 `json:"lastUpdate"`
 }
 
@@ -199,25 +199,25 @@ type WorkspacePodOptionsStatus struct {
 
 type WorkspacePodOptionInfo struct {
 	// the option id which will take effect after the next restart
-	//+kubebuilder:validation:Optional
-	//+kubebuilder:validation:MinLength:=1
-	//+kubebuilder:validation:MaxLength:=256
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=256
 	Desired string `json:"desired,omitempty"`
 
 	// the chain from the current option to the desired option
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
 	RedirectChain []WorkspacePodOptionRedirectStep `json:"redirectChain,omitempty"`
 }
 
 type WorkspacePodOptionRedirectStep struct {
 	// the source option id
-	//+kubebuilder:validation:MinLength:=1
-	//+kubebuilder:validation:MaxLength:=256
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=256
 	Source string `json:"source"`
 
 	// the target option id
-	//+kubebuilder:validation:MinLength:=1
-	//+kubebuilder:validation:MaxLength:=256
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=256
 	Target string `json:"target"`
 }
 
@@ -239,9 +239,9 @@ const (
 ===============================================================================
 */
 
-//+kubebuilder:object:root=true
-//+kubebuilder:printcolumn:name="State",type="string",JSONPath=".status.state",description="The current state of the Workspace"
-//+kubebuilder:subresource:status
+// +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="State",type="string",JSONPath=".status.state",description="The current state of the Workspace"
+// +kubebuilder:subresource:status
 
 // Workspace is the Schema for the Workspaces API
 type Workspace struct {
@@ -258,7 +258,7 @@ type Workspace struct {
 ===============================================================================
 */
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // WorkspaceList contains a list of Workspace
 type WorkspaceList struct {

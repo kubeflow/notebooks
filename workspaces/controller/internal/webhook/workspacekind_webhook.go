@@ -45,7 +45,7 @@ type WorkspaceKindValidator struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:webhook:path=/validate-kubeflow-org-v1beta1-workspacekind,mutating=false,failurePolicy=fail,sideEffects=None,groups=kubeflow.org,resources=workspacekinds,verbs=create;update;delete,versions=v1beta1,name=vworkspacekind.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/validate-kubeflow-org-v1beta1-workspacekind,mutating=false,failurePolicy=fail,sideEffects=None,groups=kubeflow.org,resources=workspacekinds,verbs=create;update;delete,versions=v1beta1,name=vworkspacekind.kb.io,admissionReviewVersions=v1
 
 // SetupWebhookWithManager sets up the webhook with the manager
 func (v *WorkspaceKindValidator) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -121,7 +121,7 @@ func (v *WorkspaceKindValidator) ValidateCreate(ctx context.Context, obj runtime
 // ValidateUpdate validates the WorkspaceKind on update.
 // The optional warnings will be added to the response as warning messages.
 // Return an error if the object is invalid.
-func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) { // nolint:gocyclo
+func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) { //nolint:gocyclo
 	log := log.FromContext(ctx)
 	log.V(1).Info("validating WorkspaceKind update")
 
