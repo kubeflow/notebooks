@@ -31,12 +31,11 @@ import {
   Tbody,
   Td,
   ThProps,
-  CustomActionsToggleProps,
   ActionsColumn,
   IActions,
 } from '@patternfly/react-table';
-import { Workspace, WorkspaceState } from '../../../shared/types';
 import { FilterIcon } from '@patternfly/react-icons';
+import { Workspace, WorkspaceState } from '~/shared/types';
 
 export const Workspaces: React.FunctionComponent = () => {
   /* Mocked workspaces, to be removed after fetching info from backend */
@@ -151,26 +150,32 @@ export const Workspaces: React.FunctionComponent = () => {
     />
   );
 
-  const handleAttributeMenuKeys = (event: KeyboardEvent) => {
-    if (!isAttributeMenuOpen) {
-      return;
-    }
-    if (
-      attributeMenuRef.current?.contains(event.target as Node) ||
-      attributeToggleRef.current?.contains(event.target as Node)
-    ) {
-      if (event.key === 'Escape' || event.key === 'Tab') {
-        setIsAttributeMenuOpen(!isAttributeMenuOpen);
-        attributeToggleRef.current?.focus();
+  const handleAttributeMenuKeys = React.useCallback(
+    (event: KeyboardEvent) => {
+      if (!isAttributeMenuOpen) {
+        return;
       }
-    }
-  };
+      if (
+        attributeMenuRef.current?.contains(event.target as Node) ||
+        attributeToggleRef.current?.contains(event.target as Node)
+      ) {
+        if (event.key === 'Escape' || event.key === 'Tab') {
+          setIsAttributeMenuOpen(!isAttributeMenuOpen);
+          attributeToggleRef.current?.focus();
+        }
+      }
+    },
+    [isAttributeMenuOpen, attributeMenuRef, attributeToggleRef],
+  );
 
-  const handleAttributeClickOutside = (event: MouseEvent) => {
-    if (isAttributeMenuOpen && !attributeMenuRef.current?.contains(event.target as Node)) {
-      setIsAttributeMenuOpen(false);
-    }
-  };
+  const handleAttributeClickOutside = React.useCallback(
+    (event: MouseEvent) => {
+      if (isAttributeMenuOpen && !attributeMenuRef.current?.contains(event.target as Node)) {
+        setIsAttributeMenuOpen(false);
+      }
+    },
+    [isAttributeMenuOpen, attributeMenuRef],
+  );
 
   React.useEffect(() => {
     window.addEventListener('keydown', handleAttributeMenuKeys);
@@ -179,14 +184,16 @@ export const Workspaces: React.FunctionComponent = () => {
       window.removeEventListener('keydown', handleAttributeMenuKeys);
       window.removeEventListener('click', handleAttributeClickOutside);
     };
-  }, [isAttributeMenuOpen, attributeMenuRef]);
+  }, [isAttributeMenuOpen, attributeMenuRef, handleAttributeMenuKeys, handleAttributeClickOutside]);
 
   const onAttributeToggleClick = (ev: React.MouseEvent) => {
     ev.stopPropagation(); // Stop handleClickOutside from handling
     setTimeout(() => {
       if (attributeMenuRef.current) {
         const firstElement = attributeMenuRef.current.querySelector('li > button:not(:disabled)');
-        firstElement && (firstElement as HTMLElement).focus();
+        if (firstElement) {
+          (firstElement as HTMLElement).focus();
+        }
       }
     }, 0);
     setIsAttributeMenuOpen(!isAttributeMenuOpen);
@@ -276,7 +283,7 @@ export const Workspaces: React.FunctionComponent = () => {
     let searchValueInput: RegExp;
     try {
       searchValueInput = new RegExp(searchValue, 'i');
-    } catch (err) {
+    } catch {
       searchValueInput = new RegExp(searchValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
     }
 
@@ -332,13 +339,12 @@ export const Workspaces: React.FunctionComponent = () => {
           return (aValue as number) - (bValue as number);
         }
         return (bValue as number) - (aValue as number);
-      } else {
-        // String sort
-        if (activeSortDirection === 'asc') {
-          return (aValue as string).localeCompare(bValue as string);
-        }
-        return (bValue as string).localeCompare(aValue as string);
       }
+      // String sort
+      if (activeSortDirection === 'asc') {
+        return (aValue as string).localeCompare(bValue as string);
+      }
+      return (bValue as string).localeCompare(aValue as string);
     });
   }
 
@@ -431,7 +437,7 @@ export const Workspaces: React.FunctionComponent = () => {
             <Th sort={getSortParams(5)}>{columnNames.homeVol}</Th>
             <Th sort={getSortParams(6)}>{columnNames.dataVol}</Th>
             <Th sort={getSortParams(7)}>{columnNames.lastActivity}</Th>
-            <Th screenReaderText="Primary action"></Th>
+            <Th screenReaderText="Primary action" />
           </Tr>
         </Thead>
         <Tbody>
