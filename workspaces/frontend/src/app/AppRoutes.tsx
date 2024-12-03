@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { NotFound } from './pages/notFound/NotFound';
 import { Settings } from './pages/Settings/Settings';
-import { Dashboard } from './pages/Dashboard/Dashboard';
+import { Workspaces } from './pages/Workspaces/Workspaces';
 
 export const isNavDataGroup = (navItem: NavDataItem): navItem is NavDataGroup =>
   'children' in navItem;
@@ -52,14 +52,12 @@ const AppRoutes: React.FC = () => {
 
   return (
     <Routes>
-      <Route path="/" element={<Dashboard />} />
+      <Route path="/" element={<Workspaces />} />
       <Route path="*" element={<NotFound />} />
       {
         // TODO: Remove the linter skip when we implement authentication
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        isAdmin && (
-          <Route path="/notebookSettings/*" element={<Settings />} />
-        )
+        isAdmin && <Route path="/notebookSettings/*" element={<Settings />} />
       }
     </Routes>
   );
