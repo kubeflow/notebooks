@@ -9,7 +9,7 @@ import {
   MastheadToggle,
   Page,
   PageToggleButton,
-  Title
+  Title,
 } from '@patternfly/react-core';
 import NavSidebar from './NavSidebar';
 import { BarsIcon } from '@patternfly/react-icons';
@@ -35,7 +35,7 @@ const App: React.FC = () => {
 
   return (
     <Page
-      mainContainerId='primary-app-container'
+      mainContainerId="primary-app-container"
       masthead={masthead}
       isManagedSidebar
       sidebar={<NavSidebar />}
