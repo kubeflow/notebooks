@@ -4,7 +4,7 @@ class Home {
   }
 
   findButton() {
-    return cy.get('button:contains("Primary Action")');
+    return cy.get('button:contains("Create Workspace")');
   }
 }
 
