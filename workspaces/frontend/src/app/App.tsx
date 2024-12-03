@@ -1,6 +1,5 @@
 import * as React from 'react';
 import '@patternfly/react-core/dist/styles/base.css';
-import AppRoutes from './AppRoutes';
 import './app.css';
 import {
   Flex,
@@ -11,8 +10,9 @@ import {
   PageToggleButton,
   Title,
 } from '@patternfly/react-core';
-import NavSidebar from './NavSidebar';
 import { BarsIcon } from '@patternfly/react-icons';
+import AppRoutes from './AppRoutes';
+import NavSidebar from './NavSidebar';
 
 const App: React.FC = () => {
   const masthead = (
