@@ -7,24 +7,23 @@ import {
   EmptyStateFooter,
   EmptyStateVariant,
   PageSection,
-  Text,
-  TextContent
 } from '@patternfly/react-core';
 
 const Settings: React.FunctionComponent = () => (
   <PageSection>
-    <EmptyState variant={EmptyStateVariant.full} titleText="Empty State (Stub Settings Module)" icon={CubesIcon}>
+    <EmptyState
+      variant={EmptyStateVariant.full}
+      titleText="Empty State (Stub Settings Module)"
+      icon={CubesIcon}
+    >
       <EmptyStateBody>
-        <TextContent>
-          <Text component="p">
-            This represents an the empty state pattern in Patternfly 6. Hopefully it&apos;s simple enough to use but
-            flexible enough to meet a variety of needs.
-          </Text>
-        </TextContent>
-      </EmptyStateBody><EmptyStateFooter>
-      <Button variant="primary">Primary Action</Button>
-
-    </EmptyStateFooter></EmptyState>
+        This represents an the empty state pattern in Patternfly 6. Hopefully it&apos;s simple
+        enough to use but flexible enough to meet a variety of needs.
+      </EmptyStateBody>
+      <EmptyStateFooter>
+        <Button variant="primary">Primary Action</Button>
+      </EmptyStateFooter>
+    </EmptyState>
   </PageSection>
 );
 
