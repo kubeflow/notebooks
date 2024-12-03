@@ -23,21 +23,28 @@ import (
 )
 
 type WorkspaceKindModel struct {
-	Name        string           `json:"name"`
-	Spawner     SpawnerModel     `json:"spawner"`
-	PodTemplate PodTemplateModel `json:"pod_template"`
+	Name               string            `json:"name"`
+	DisplayName        string            `json:"display_name"`
+	Description        string            `json:"description"`
+	Deprecated         bool              `json:"deprecated"`
+	DeprecationMessage string            `json:"deprecation_message"`
+	Hidden             bool              `json:"hidden"`
+	PodTemplate        PodTemplateModel  `json:"pod_template"`
+	Icon               map[string]string `json:"icon"`
+	Logo               map[string]string `json:"logo"`
 }
 
-type SpawnerModel struct {
-	DisplayName        string `json:"display_name"`
-	Description        string `json:"description"`
-	Deprecated         bool   `json:"deprecated"`
-	DeprecationMessage string `json:"deprecation_message"`
-	Hidden             bool   `json:"hidden"`
-}
+// type SpawnerModel struct {
+// 	DisplayName        string `json:"display_name"`
+// 	Description        string `json:"description"`
+// 	Deprecated         bool   `json:"deprecated"`
+// 	DeprecationMessage string `json:"deprecation_message"`
+// 	Hidden             bool   `json:"hidden"`
+// }
 
 type PodTemplateModel struct {
 	PodMetadata PodMetadata       `json:"pod_metadata"`
+	VolumeMount map[string]string `json:"volume_mounts"`
 	ImageConfig PodTemplateConfig `json:"image_config"`
 	PodConfig   PodTemplateConfig `json:"pod_config"`
 }
@@ -83,20 +90,34 @@ func NewWorkspaceKindModelFromWorkspaceKind(item *kubefloworgv1beta1.WorkspaceKi
 		deprecationMessage = *item.Spec.Spawner.DeprecationMessage
 	}
 
+	icon := make(map[string]string)
+	if item.Spec.Spawner.Icon.Url != nil {
+		icon["url"] = *item.Spec.Spawner.Icon.Url
+	}
+
+	logo := make(map[string]string)
+	if item.Spec.Spawner.Logo.Url != nil {
+		logo["url"] = *item.Spec.Spawner.Logo.Url
+	}
+
+	volume_mounts := make(map[string]string)
+	volume_mounts["home"] = item.Spec.PodTemplate.VolumeMounts.Home
+
 	workspaceKindModel := WorkspaceKindModel{
-		Name: item.Name,
-		Spawner: SpawnerModel{
-			DisplayName:        item.Spec.Spawner.DisplayName,
-			Description:        item.Spec.Spawner.Description,
-			Deprecated:         deprecated,
-			DeprecationMessage: deprecationMessage,
-			Hidden:             hidden,
-		},
+		Name:               item.Name,
+		DisplayName:        item.Spec.Spawner.DisplayName,
+		Description:        item.Spec.Spawner.Description,
+		Deprecated:         deprecated,
+		DeprecationMessage: deprecationMessage,
+		Hidden:             hidden,
+		Icon:               icon,
+		Logo:               logo,
 		PodTemplate: PodTemplateModel{
 			PodMetadata: PodMetadata{
 				Labels:      labels,
 				Annotations: annotations,
 			},
+			VolumeMount: volume_mounts,
 			ImageConfig: PodTemplateConfig{
 				Current:       item.Spec.PodTemplate.Options.ImageConfig.Spawner.Default,
 				Desired:       item.Spec.PodTemplate.Options.ImageConfig.Spawner.Default,
