@@ -18,10 +18,11 @@ package e2e
 
 import (
 	"fmt"
-	"github.com/kubeflow/notebooks/workspaces/controller/test/utils"
 	"os"
 	"os/exec"
 	"testing"
+
+	"github.com/kubeflow/notebooks/workspaces/controller/test/utils"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
