@@ -1,7 +1,5 @@
 package models
 
-import v1 "k8s.io/api/core/v1"
-
 type WorkspaceKindPodMetadata struct {
 	Labels      map[string]string `json:"labels"`
 	Annotations map[string]string `json:"annotations"`
@@ -13,34 +11,11 @@ type ImageConfig struct {
 }
 
 type ImageConfigValue struct {
-	Id       string            `json:"id"`
-	Spawner  OptionSpawnerInfo `json:"spawner"`
-	Redirect *OptionRedirect   `json:"redirect,omitempty"`
-	Spec     ImageConfigSpec   `json:"spec"`
-}
-type OptionSpawnerInfo struct {
-	DisplayName string               `json:"displayName"`
-	Description *string              `json:"description,omitempty"`
-	Labels      []OptionSpawnerLabel `json:"labels,omitempty"`
-	Hidden      *bool                `json:"hidden,omitempty"`
-}
-
-type OptionSpawnerLabel struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
-}
-
-type ImageConfigSpec struct {
-	Image           string      `json:"image"`
-	ImagePullPolicy string      `json:"imagePullPolicy"`
-	Ports           []ImagePort `json:"ports"`
-}
-
-type ImagePort struct {
-	Id          string `json:"id"`
-	Port        int32  `json:"port"`
-	DisplayName string `json:"displayName"`
-	Protocol    string `json:"protocol"`
+	Id          string            `json:"id"`
+	DisplayName string            `json:"displayName"`
+	Labels      map[string]string `json:"labels,omitempty"`
+	Hidden      *bool             `json:"hidden,omitempty"`
+	Redirect    *OptionRedirect   `json:"redirect,omitempty"`
 }
 
 type PodConfig struct {
@@ -49,27 +24,20 @@ type PodConfig struct {
 }
 
 type PodConfigValue struct {
-	Id       string            `json:"id"`
-	Spawner  OptionSpawnerInfo `json:"spawner"`
-	Redirect *OptionRedirect   `json:"redirect,omitempty"`
-	Spec     PodConfigSpec     `json:"spec"`
+	Id          string            `json:"id"`
+	DisplayName string            `json:"displayName"`
+	Description string            `json:"description"`
+	Labels      map[string]string `json:"labels,omitempty"`
 }
 
 type OptionRedirect struct {
-	To      string           `json:"to"`
-	Message *RedirectMessage `json:"message,omitempty"`
+	To      string   `json:"to"`
+	Message *Message `json:"message,omitempty"`
 }
 
-type RedirectMessage struct {
-	Level string `json:"level"`
+type Message struct {
 	Text  string `json:"text"`
-}
-
-type PodConfigSpec struct {
-	Affinity     *v1.Affinity             `json:"affinity,omitempty"`
-	NodeSelector map[string]string        `json:"nodeSelector,omitempty"`
-	Tolerations  []v1.Toleration          `json:"tolerations,omitempty"`
-	Resources    *v1.ResourceRequirements `json:"resources,omitempty"`
+	Level string `json:"level"`
 }
 
 type WorkspaceKindPodOptions struct {

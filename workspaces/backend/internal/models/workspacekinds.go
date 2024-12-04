@@ -20,7 +20,7 @@ package models
 
 import (
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
-	v1 "k8s.io/api/core/v1"
+	// v1 "k8s.io/api/core/v1"
 )
 
 type WorkspaceKindModel struct {
@@ -39,49 +39,28 @@ func BuildImageConfigValues(item *kubefloworgv1beta1.WorkspaceKind) []ImageConfi
 	imageConfigValues := []ImageConfigValue{}
 	if item.Spec.PodTemplate.Options.ImageConfig.Values != nil {
 		for _, item := range item.Spec.PodTemplate.Options.ImageConfig.Values {
-			labels := []OptionSpawnerLabel{}
+			labels := map[string]string{}
 			for _, label := range item.Spawner.Labels {
-				labels = append(labels, OptionSpawnerLabel{
-					Key:   label.Key,
-					Value: label.Value,
-				})
-			}
-
-			ports := []ImagePort{}
-			for _, port := range item.Spec.Ports {
-				ports = append(ports, ImagePort{
-					Id:          port.Id,
-					DisplayName: port.DisplayName,
-					Port:        port.Port,
-					Protocol:    string(port.Protocol),
-				})
+				labels[label.Key] = label.Value
 			}
 
 			var redirect *OptionRedirect
 			if item.Redirect != nil {
 				redirect = &OptionRedirect{
 					To: item.Redirect.To,
-					Message: &RedirectMessage{
-						Level: string(item.Redirect.Message.Level),
+					Message: &Message{
 						Text:  item.Redirect.Message.Text,
+						Level: string(item.Redirect.Message.Level),
 					},
 				}
 			}
 
 			imageConfigValues = append(imageConfigValues, ImageConfigValue{
-				Id: item.Id,
-				Spawner: OptionSpawnerInfo{
-					DisplayName: item.Spawner.DisplayName,
-					Description: item.Spawner.Description,
-					Labels:      labels,
-					Hidden:      item.Spawner.Hidden,
-				},
-				Redirect: redirect,
-				Spec: ImageConfigSpec{
-					Image:           item.Spec.Image,
-					ImagePullPolicy: string(*item.Spec.ImagePullPolicy),
-					Ports:           ports,
-				},
+				Id:          item.Id,
+				DisplayName: item.Spawner.DisplayName,
+				Labels:      labels,
+				Hidden:      item.Spawner.Hidden,
+				Redirect:    redirect,
 			})
 		}
 	}
@@ -92,48 +71,16 @@ func BuildPodConfigValues(item *kubefloworgv1beta1.WorkspaceKind) []PodConfigVal
 	podConfigValues := []PodConfigValue{}
 	if item.Spec.PodTemplate.Options.PodConfig.Values != nil {
 		for _, item := range item.Spec.PodTemplate.Options.PodConfig.Values {
-			labels := []OptionSpawnerLabel{}
+			labels := map[string]string{}
 			for _, label := range item.Spawner.Labels {
-				labels = append(labels, OptionSpawnerLabel{
-					Key:   label.Key,
-					Value: label.Value,
-				})
-			}
-
-			var redirect *OptionRedirect
-			if item.Redirect != nil {
-				redirect = &OptionRedirect{
-					To: item.Redirect.To,
-					Message: &RedirectMessage{
-						Level: string(item.Redirect.Message.Level),
-						Text:  item.Redirect.Message.Text,
-					},
-				}
-			}
-
-			tolerations := []v1.Toleration{}
-			for _, toleration := range item.Spec.Tolerations {
-				tolerations = append(tolerations, v1.Toleration{
-					Key:      toleration.Key,
-					Operator: toleration.Operator,
-					Effect:   toleration.Effect,
-				})
+				labels[label.Key] = label.Value
 			}
 
 			podConfigValues = append(podConfigValues, PodConfigValue{
-				Id: item.Id,
-				Spawner: OptionSpawnerInfo{
-					DisplayName: item.Spawner.DisplayName,
-					Description: item.Spawner.Description,
-					Labels:      labels,
-					Hidden:      item.Spawner.Hidden,
-				},
-				Redirect: redirect,
-				Spec: PodConfigSpec{
-					Affinity:     item.Spec.Affinity,
-					NodeSelector: item.Spec.NodeSelector,
-					Tolerations:  tolerations,
-				},
+				Id:          item.Id,
+				DisplayName: item.Spawner.DisplayName,
+				Description: *item.Spawner.Description,
+				Labels:      labels,
 			})
 		}
 	}
