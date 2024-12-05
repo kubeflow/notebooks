@@ -63,9 +63,12 @@ vet: ## Run go vet against code.
 test: manifests generate fmt vet envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $$(go list ./... | grep -v /e2e) -coverprofile cover.out
 
+# The default setup assumes Kind is pre-installed and builds/loads the Manager Docker image locally.
+# Prometheus and CertManager are installed by default; skip with:
+# - PROMETHEUS_INSTALL_SKIP=true
+# - CERT_MANAGER_INSTALL_SKIP=true
 .PHONY: test-e2e
 test-e2e: manifests generate fmt vet ## Run the e2e tests. Expected an isolated environment using Kind.
-	@$(prompt_for_e2e_test_execution)
 	@command -v kind >/dev/null 2>&1 || { \
 		echo "Kind is not installed. Please install Kind manually."; \
 		exit 1; \
@@ -205,26 +208,4 @@ GOBIN=$(LOCALBIN) go install $${package} ;\
 mv $(1) $(1)-$(3) ;\
 } ;\
 ln -sf $(1)-$(3) $(1)
-endef
-
-define prompt_for_e2e_test_execution
-    if [ "$$(echo "$(KUBEFLOW_TEST_PROMPT)" | tr '[:upper:]' '[:lower:]')" = "false" ]; then \
-        echo "Skipping E2E test confirmation prompt (KUBEFLOW_TEST_PROMPT is set to false)"; \
-    else \
-        current_k8s_context=$$(kubectl config current-context); \
-        echo "================================ WARNING ================================"; \
-		echo "E2E tests use your current Kubernetes context!"; \
-		echo "This will DELETE EXISTING RESOURCES such as cert-manager!"; \
-        echo "Current context: '$$current_k8s_context'"; \
-		echo "========================================================================="; \
-        echo "Proceed with E2E tests? (yes/NO)"; \
-        read user_confirmation; \
-        case $$user_confirmation in \
-            [yY] | [yY][eE][sS] ) \
-                echo "Running E2E tests...";; \
-            [nN] | [nN][oO] | * ) \
-                echo "Aborting E2E tests..."; \
-                exit 1; \
-        esac \
-    fi
 endef
