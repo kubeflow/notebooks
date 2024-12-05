@@ -80,7 +80,5 @@ jobs:
           cache-dependency-path: workspaces/controller/go.sum
 
       - name: Run e2e tests
-        env:
-          KUBEFLOW_TEST_PROMPT: "false"
         working-directory: workspaces/controller
         run: make test-e2e
