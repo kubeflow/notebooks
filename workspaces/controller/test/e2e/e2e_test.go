@@ -70,26 +70,62 @@ var _ = Describe("controller", Ordered, func() {
 
 		By("creating the controller namespace")
 		cmd := exec.Command("kubectl", "create", "ns", controllerNamespace)
-		_, _ = utils.Run(cmd)
+		_, _ = utils.Run(cmd) // ignore errors because namespace may already exist
 
 		By("creating the workspace namespace")
 		cmd = exec.Command("kubectl", "create", "ns", workspaceNamespace)
-		_, _ = utils.Run(cmd)
+		_, _ = utils.Run(cmd) // ignore errors because namespace may already exist
 
 		By("creating common workspace resources")
 		cmd = exec.Command("kubectl", "apply",
 			"-k", filepath.Join(projectDir, "config/samples/common"),
 			"-n", workspaceNamespace,
 		)
-		_, _ = utils.Run(cmd)
+		_, err := utils.Run(cmd)
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 		By("installing CRDs")
 		cmd = exec.Command("make", "install")
-		_, _ = utils.Run(cmd)
+		_, err = utils.Run(cmd)
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 		By("deploying the controller-manager")
 		cmd = exec.Command("make", "deploy", fmt.Sprintf("IMG=%s", controllerImage))
-		_, _ = utils.Run(cmd)
+		_, err = utils.Run(cmd)
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+		By("validating that the controller-manager pod is running as expected")
+		var controllerPodName string
+		verifyControllerUp := func(g Gomega) {
+			// Get controller pod name
+			cmd := exec.Command("kubectl", "get", "pods",
+				"-l", "control-plane=controller-manager",
+				"-n", controllerNamespace,
+				"-o", "go-template={{ range .items }}"+
+					"{{ if not .metadata.deletionTimestamp }}"+
+					"{{ .metadata.name }}"+
+					"{{ \"\\n\" }}{{ end }}{{ end }}",
+			)
+			podOutput, err := utils.Run(cmd)
+			g.Expect(err).NotTo(HaveOccurred(), "failed to get controller-manager pod")
+
+			// Ensure only 1 controller pod is running
+			podNames := utils.GetNonEmptyLines(podOutput)
+			g.Expect(podNames).To(HaveLen(1), "expected 1 controller pod running")
+			controllerPodName = podNames[0]
+			g.Expect(controllerPodName).To(ContainSubstring("controller-manager"))
+
+			// Validate controller pod status
+			cmd = exec.Command("kubectl", "get", "pods",
+				controllerPodName,
+				"-n", controllerNamespace,
+				"-o", "jsonpath={.status.phase}",
+			)
+			statusPhase, err := utils.Run(cmd)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(statusPhase).To(BeEquivalentTo(corev1.PodRunning), "Incorrect controller-manager pod phase")
+		}
+		Eventually(verifyControllerUp, timeout, interval).Should(Succeed())
 
 	})
 
@@ -135,47 +171,13 @@ var _ = Describe("controller", Ordered, func() {
 	Context("Operator", func() {
 
 		It("should run successfully", func() {
-			var controllerPodName string
-			var err error
-
-			By("validating that the controller-manager pod is running as expected")
-			verifyControllerUp := func(g Gomega) {
-				// Get controller pod name
-				cmd := exec.Command("kubectl", "get", "pods",
-					"-l", "control-plane=controller-manager",
-					"-n", controllerNamespace,
-					"-o", "go-template={{ range .items }}"+
-						"{{ if not .metadata.deletionTimestamp }}"+
-						"{{ .metadata.name }}"+
-						"{{ \"\\n\" }}{{ end }}{{ end }}",
-				)
-				podOutput, err := utils.Run(cmd)
-				g.Expect(err).NotTo(HaveOccurred(), "failed to get controller-manager pod")
-
-				// Ensure only 1 controller pod is running
-				podNames := utils.GetNonEmptyLines(podOutput)
-				g.Expect(podNames).To(HaveLen(1), "expected 1 controller pod running")
-				controllerPodName = podNames[0]
-				g.Expect(controllerPodName).To(ContainSubstring("controller-manager"))
-
-				// Validate controller pod status
-				cmd = exec.Command("kubectl", "get", "pods",
-					controllerPodName,
-					"-n", controllerNamespace,
-					"-o", "jsonpath={.status.phase}",
-				)
-				statusPhase, err := utils.Run(cmd)
-				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(statusPhase).To(BeEquivalentTo(corev1.PodRunning), "Incorrect controller-manager pod phase")
-			}
-			Eventually(verifyControllerUp, timeout, interval).Should(Succeed())
 
 			By("creating an instance of WorkspaceKind")
 			createWorkspaceKindSample := func() error {
 				cmd := exec.Command("kubectl", "apply",
 					"-f", filepath.Join(projectDir, "config/samples/jupyterlab_v1beta1_workspacekind.yaml"),
 				)
-				_, err = utils.Run(cmd)
+				_, err := utils.Run(cmd)
 				return err
 			}
 			Eventually(createWorkspaceKindSample, timeout, interval).Should(Succeed())
@@ -186,7 +188,7 @@ var _ = Describe("controller", Ordered, func() {
 					"-f", filepath.Join(projectDir, "config/samples/jupyterlab_v1beta1_workspace.yaml"),
 					"-n", workspaceNamespace,
 				)
-				_, err = utils.Run(cmd)
+				_, err := utils.Run(cmd)
 				return err
 			}
 			Eventually(createWorkspaceSample, timeout, interval).Should(Succeed())

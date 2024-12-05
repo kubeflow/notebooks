@@ -73,7 +73,20 @@ func UninstallPrometheusOperator() {
 // InstallPrometheusOperator installs the prometheus Operator to be used to export the enabled metrics.
 func InstallPrometheusOperator() error {
 	url := fmt.Sprintf(prometheusOperatorURL, prometheusOperatorVersion)
-	cmd := exec.Command("kubectl", "create", "-f", url)
+	cmd := exec.Command("kubectl", "apply", "-f", url)
+	_, err := Run(cmd)
+	return err
+}
+
+// WaitPrometheusOperatorRunning waits for prometheus operator to be running, and returns an error if not.
+func WaitPrometheusOperatorRunning() error {
+	cmd := exec.Command("kubectl", "wait",
+		"deployment.apps",
+		"--for", "condition=Available",
+		"--selector", "app.kubernetes.io/name=prometheus-operator",
+		"--all-namespaces",
+		"--timeout", "5m",
+	)
 	_, err := Run(cmd)
 	return err
 }
@@ -116,20 +129,53 @@ func UninstallCertManager() {
 
 // InstallCertManager installs the cert manager bundle.
 func InstallCertManager() error {
-	url := fmt.Sprintf(certManagerURLTmpl, certManagerVersion)
-	cmd := exec.Command("kubectl", "apply", "-f", url)
-	if _, err := Run(cmd); err != nil {
+	// remove any existing cert-manager leases
+	// NOTE: this is required to avoid issues where cert-manager is reinstalled quickly due to rerunning tests
+	cmd := exec.Command("kubectl", "delete",
+		"leases",
+		"--ignore-not-found",
+		"--namespace", "kube-system",
+		"cert-manager-controller",
+		"cert-manager-cainjector-leader-election",
+	)
+	_, err := Run(cmd)
+	if err != nil {
 		return err
 	}
-	// Wait for cert-manager-webhook to be ready, which can take time if cert-manager
-	// was re-installed after uninstalling on a cluster.
-	cmd = exec.Command("kubectl", "wait", "deployment.apps/cert-manager-webhook",
+
+	// install cert-manager
+	url := fmt.Sprintf(certManagerURLTmpl, certManagerVersion)
+	cmd = exec.Command("kubectl", "apply", "-f", url)
+	_, err = Run(cmd)
+	return err
+}
+
+// WaitCertManagerRunning waits for cert manager to be running, and returns an error if not.
+func WaitCertManagerRunning() error {
+
+	// Wait for the cert-manager Deployments to be Available
+	cmd := exec.Command("kubectl", "wait",
+		"deployment.apps",
 		"--for", "condition=Available",
-		"--namespace", "cert-manager",
+		"--selector", "app.kubernetes.io/instance=cert-manager",
+		"--all-namespaces",
 		"--timeout", "5m",
 	)
-
 	_, err := Run(cmd)
+	if err != nil {
+		return err
+	}
+
+	// Wait for the cert-manager Endpoints to be ready
+	// NOTE: the webhooks will not function correctly until this is ready
+	cmd = exec.Command("kubectl", "wait",
+		"endpoints",
+		"--for", "jsonpath=subsets[0].addresses[0].targetRef.kind=Pod",
+		"--selector", "app.kubernetes.io/instance=cert-manager",
+		"--all-namespaces",
+		"--timeout", "2m",
+	)
+	_, err = Run(cmd)
 	return err
 }
 
