@@ -28,6 +28,10 @@ jobs:
         working-directory: workspaces/frontend
         run: npm run build
 
+      - name: Run tests
+        working-directory: workspaces/frontend
+        run: npm run test
+
       - name: Check if there are uncommitted file changes
         working-directory: workspaces/frontend
         run: |
