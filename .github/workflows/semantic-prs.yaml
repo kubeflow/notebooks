@@ -17,7 +17,7 @@ jobs:
     name: Validate Title
     runs-on: ubuntu-latest
     steps:
-      - uses: amannn/action-semantic-pull-request@v5.5.2
+      - uses: amannn/action-semantic-pull-request@v5.5.3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -38,30 +38,3 @@ jobs:
             tb
             ws
           requireScope: false
-
-  apply_labels:
-    name: Apply Labels
-    runs-on: ubuntu-latest
-    needs: validate_title
-    permissions:
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          ref: ${{ github.event.pull_request.base.ref }}
-      - uses: ./.github/actions/conventional-release-labels
-        with:
-          type_labels: |
-            {
-              "breaking": "changelog/significant",
-              "fix": "changelog/fix", 
-              "feat": "changelog/feature", 
-              "improve": "changelog/improve",
-              "docs": "changelog/docs"
-            }
-          ignored_types: |
-            [
-              "chore"
-            ]
-          ignore_label: "changelog/ignore"
-
