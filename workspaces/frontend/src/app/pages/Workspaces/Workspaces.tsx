@@ -10,6 +10,8 @@ import {
   Title,
   PaginationVariant,
   Pagination,
+  Button,
+  Content,
 } from '@patternfly/react-core';
 import {
   Table,
@@ -23,16 +25,15 @@ import {
   IActions,
 } from '@patternfly/react-table';
 import { useState } from 'react';
-import Filter from '~/app/Generic components/Filter';
-import { FilterIcon } from '@patternfly/react-icons';
 import { Workspace, WorkspacesColumnNames, WorkspaceState } from '~/shared/types';
 import { WorkspaceDetails } from '~/app/pages/Workspaces/Details/WorkspaceDetails';
 import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
+import Filter, { FilteredColumn } from 'shared/components/Filter';
 import { formatRam } from 'shared/utilities/WorkspaceResources';
 
 export const Workspaces: React.FunctionComponent = () => {
   /* Mocked workspaces, to be removed after fetching info from backend */
-  const workspaces: Workspace[] = [
+  const mockWorkspaces: Workspace[] = [
     {
       name: 'My Jupyter Notebook',
       namespace: 'namespace1',
@@ -143,11 +144,20 @@ export const Workspaces: React.FunctionComponent = () => {
     lastActivity: 'Last Activity',
   };
 
-export const Workspaces: React.FunctionComponent = () => {
+  const filterableColumns: WorkspacesColumnNames = {
+    name: 'Name',
+    kind: 'Kind',
+    image: 'Image',
+    podConfig: 'Pod Config',
+    state: 'State',
+    homeVol: 'Home Vol',
+    lastActivity: 'Last Activity',
+  };
+
   // change when fetch workspaces is implemented
   const initialWorkspaces = mockWorkspaces;
   const [workspaces, setWorkspaces] = useState(initialWorkspaces);
-  // Selected workspace
+  const [expandedWorkspacesNames, setExpandedWorkspacesNames] = React.useState<string[]>([]);
   const [selectedWorkspace, setSelectedWorkspace] = React.useState<Workspace | null>(null);
 
   const selectWorkspace = React.useCallback(
@@ -160,17 +170,6 @@ export const Workspaces: React.FunctionComponent = () => {
     },
     [selectedWorkspace],
   );
-
-  // Filter
-  const [activeAttributeMenu, setActiveAttributeMenu] = React.useState<string>(columnNames.name);
-  const [isAttributeMenuOpen, setIsAttributeMenuOpen] = React.useState(false);
-  const attributeToggleRef = React.useRef<MenuToggleElement | null>(null);
-  const attributeMenuRef = React.useRef<HTMLDivElement | null>(null);
-  const attributeContainerRef = React.useRef<HTMLDivElement | null>(null);
-
-  const [searchValue, setSearchValue] = React.useState('');
-  const [expandedWorkspacesNames, setExpandedWorkspacesNames] = React.useState<string[]>([]);
-
   const setWorkspaceExpanded = (workspace: Workspace, isExpanding = true) =>
     setExpandedWorkspacesNames((prevExpanded) => {
       const newExpandedWorkspacesNames = prevExpanded.filter((wsName) => wsName !== workspace.name);
@@ -183,34 +182,39 @@ export const Workspaces: React.FunctionComponent = () => {
     expandedWorkspacesNames.includes(workspace.name);
 
   // filter function to pass to the filter component
-  const onFilter = (activeAttributeMenu: string, searchValue: string) => {
+  const onFilter = (filters: FilteredColumn[]) => {
     // Search name with search value
-    let searchValueInput: RegExp;
-    try {
-      searchValueInput = new RegExp(searchValue, 'i');
-    } catch {
-      searchValueInput = new RegExp(searchValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-    }
-    const filteredWorkspaces = initialWorkspaces.filter(
-      (workspace) =>
-        searchValue === '' ||
-        (activeAttributeMenu === 'Name' && workspace.name.search(searchValueInput) >= 0) ||
-        (activeAttributeMenu === 'Kind' && workspace.kind.search(searchValueInput) >= 0) ||
-        (activeAttributeMenu === 'Image' &&
-          workspace.options.imageConfig.search(searchValueInput) >= 0) ||
-        (activeAttributeMenu === 'Pod Config' &&
-          workspace.options.podConfig.search(searchValueInput) >= 0) ||
-        (activeAttributeMenu === 'State' &&
-          WorkspaceState[workspace.status.state].search(searchValueInput) >= 0) ||
-        (activeAttributeMenu === 'Home Vol' &&
-          workspace.podTemplate.volumes.home.search(searchValueInput) >= 0) ||
-        (activeAttributeMenu === 'Data Vol' &&
-          workspace.podTemplate.volumes.data.some(
-            (dataVol) =>
-              dataVol.pvcName.search(searchValueInput) >= 0 ||
-              dataVol.mountPath.search(searchValueInput) >= 0,
-          )),
-    );
+    let filteredWorkspaces = initialWorkspaces;
+    filters.forEach((filter) => {
+      let searchValueInput: RegExp;
+      try {
+        searchValueInput = new RegExp(filter.value, 'i');
+      } catch {
+        searchValueInput = new RegExp(filter.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      }
+
+      filteredWorkspaces = filteredWorkspaces.filter((workspace) => {
+        if (filter.value === '') {
+          return true;
+        }
+        switch (filter.columnName) {
+          case columnNames.name:
+            return workspace.name.search(searchValueInput) >= 0;
+          case columnNames.kind:
+            return workspace.kind.search(searchValueInput) >= 0;
+          case columnNames.image:
+            return workspace.options.imageConfig.search(searchValueInput) >= 0;
+          case columnNames.podConfig:
+            return workspace.options.podConfig.search(searchValueInput) >= 0;
+          case columnNames.state:
+            return WorkspaceState[workspace.status.state].search(searchValueInput) >= 0;
+          case columnNames.homeVol:
+            return workspace.podTemplate.volumes.home.search(searchValueInput) >= 0;
+          default:
+            return true;
+        }
+      });
+    });
     setWorkspaces(filteredWorkspaces);
   };
 
@@ -370,30 +374,31 @@ export const Workspaces: React.FunctionComponent = () => {
           <PageSection isFilled>
             <Title headingLevel="h1">Kubeflow Workspaces</Title>
             <p>View your existing workspaces or create new workspaces.</p>
-            <Filter onFilter={onFilter} columnNames={columnNames} />
+            <Content style={{ display: 'flex', alignItems: 'flex-start', columnGap: '20px' }}>
+              <Filter id="filter-workspaces" onFilter={onFilter} columnNames={filterableColumns} />
+              <Button variant="primary" ouiaId="Primary">
+                Create Workspace
+              </Button>
+            </Content>
             <Table aria-label="Sortable table" ouiaId="SortableTable">
               <Thead>
                 <Tr>
                   <Th />
-                  <Th sort={getSortParams(0)}>{columnNames.name}</Th>
-                  <Th sort={getSortParams(1)}>{columnNames.kind}</Th>
-                  <Th sort={getSortParams(2)}>{columnNames.image}</Th>
-                  <Th sort={getSortParams(3)}>{columnNames.podConfig}</Th>
-                  <Th sort={getSortParams(4)}>{columnNames.state}</Th>
-                  <Th sort={getSortParams(5)}>{columnNames.homeVol}</Th>
-                  <Th sort={getSortParams(6)} info={{ tooltip: 'Workspace CPU usage' }}>
-                    {columnNames.cpu}
-                  </Th>
-                  <Th sort={getSortParams(7)} info={{ tooltip: 'Workspace memory usage' }}>
-                    {columnNames.ram}
-                  </Th>
-                  <Th sort={getSortParams(8)}>{columnNames.lastActivity}</Th>
+                  {Object.values(columnNames).map((columnName, index) => (
+                    <Th key={`${columnName}-col-name`} sort={getSortParams(index)}>
+                      {columnName}
+                    </Th>
+                  ))}
                   <Th screenReaderText="Primary action" />
                 </Tr>
               </Thead>
               {sortedWorkspaces.map((workspace, rowIndex) => (
-                <Tbody key={rowIndex} isExpanded={isWorkspaceExpanded(workspace)}>
-                  <Tr>
+                <Tbody
+                  id="workspaces-table-content"
+                  key={rowIndex}
+                  isExpanded={isWorkspaceExpanded(workspace)}
+                >
+                  <Tr id={`workspaces-table-row-${rowIndex + 1}`}>
                     <Td
                       expand={{
                         rowIndex,
