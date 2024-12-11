@@ -43,6 +43,10 @@ func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps htt
 	}
 	if workspaceName == "" {
 		a.serverErrorResponse(w, r, fmt.Errorf("workspaceName is nil"))
+	}
+
+	if err := ValidateKubernetesResourceName(namespace, workspaceName); err != nil {
+		a.badRequestResponse(w, r, err)
 		return
 	}
 
@@ -69,6 +73,11 @@ func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps htt
 
 func (a *App) GetWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(NamespacePathParam)
+
+	if err := ValidateKubernetesResourceName(namespace); err != nil {
+		a.badRequestResponse(w, r, err)
+		return
+	}
 
 	var workspaces []models.WorkspaceModel
 	var err error
@@ -97,12 +106,21 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 
 	if namespace == "" {
 		a.serverErrorResponse(w, r, fmt.Errorf("namespace is missing"))
+	}
+
+	if err := ValidateKubernetesResourceName(namespace); err != nil {
+		a.badRequestResponse(w, r, err)
 		return
 	}
 
 	workspaceModel := &models.WorkspaceModel{}
 	if err := json.NewDecoder(r.Body).Decode(workspaceModel); err != nil {
 		a.serverErrorResponse(w, r, fmt.Errorf("error decoding JSON: %w", err))
+		return
+	}
+
+	if err := ValidateKubernetesResourceName(workspaceModel.Name, workspaceModel.Namespace); err != nil {
+		a.badRequestResponse(w, r, err)
 		return
 	}
 

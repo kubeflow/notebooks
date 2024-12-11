@@ -35,6 +35,10 @@ func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps
 
 	if name == "" {
 		a.serverErrorResponse(w, r, fmt.Errorf("workspace kind name is missing"))
+	}
+
+	if err := ValidateKubernetesResourceName(name); err != nil {
+		a.badRequestResponse(w, r, err)
 		return
 	}
 

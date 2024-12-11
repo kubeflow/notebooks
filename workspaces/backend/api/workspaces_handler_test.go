@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -502,6 +503,170 @@ var _ = Describe("Workspaces Handler", func() {
 			err = k8sClient.Get(ctx, types.NamespacedName{Name: "dora", Namespace: namespaceNameCrud}, workspace)
 			Expect(err).To(HaveOccurred(), "Expected error when retrieving the deleted workspace")
 			Expect(err).To(MatchError(`workspaces.kubeflow.org "dora" not found`))
+
+		})
+	})
+
+	Context("with unsupported request parameters", Ordered, func() {
+
+		var (
+			a                  App
+			validAsciiName     string
+			invalidAsciiName   string
+			validMaxLengthName string
+			invalidLengthName  string
+		)
+
+		// generateASCII generates a random ASCII string of the specified length.
+		generateASCII := func(length int) string {
+			const asciiChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+			var sb strings.Builder
+			for i := 0; i < length; i++ {
+				sb.WriteByte(asciiChars[rand.Intn(len(asciiChars))])
+			}
+			return sb.String()
+		}
+
+		BeforeAll(func() {
+			validAsciiName = "test"
+			invalidAsciiName = validAsciiName + string(rune(rand.Intn(0x10FFFF-128)+128))
+			validMaxLengthName = generateASCII(255)
+			invalidLengthName = generateASCII(256)
+
+			repos := repositories.NewRepositories(k8sClient)
+			a = App{
+				Config: config.EnvConfig{
+					Port: 4000,
+				},
+				repositories: repos,
+			}
+		})
+
+		It("should return 400 status code for a non-ascii namespace", func() {
+			By("creating the HTTP request")
+			path := strings.Replace(WorkspacesByNamespacePath, ":"+NamespacePathParam, invalidAsciiName, 1)
+			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
+			Expect(err).NotTo(HaveOccurred(), "Failed to create HTTP request")
+
+			By("executing GetWorkspacesHandler")
+			ps := httprouter.Params{
+				httprouter.Param{
+					Key:   NamespacePathParam,
+					Value: invalidAsciiName,
+				},
+			}
+			rr := httptest.NewRecorder()
+			a.GetWorkspacesHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest), "Expected HTTP status 400 Bad Request")
+		})
+
+		It("should return 400 status code for a non-ascii payload params", func() {
+			By("creating the HTTP request")
+			workspaceModel := models.WorkspaceModel{
+				Name:      validAsciiName,
+				Namespace: invalidAsciiName,
+			}
+
+			workspaceJSON, err := json.Marshal(workspaceModel)
+			Expect(err).NotTo(HaveOccurred(), "Failed to marshal WorkspaceModel to JSON")
+			path := strings.Replace(WorkspacesByNamespacePath, ":"+NamespacePathParam, invalidAsciiName, 1)
+
+			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(workspaceJSON)))
+			Expect(err).NotTo(HaveOccurred(), "Failed to create HTTP request")
+			req.Header.Set("Content-Type", "application/json")
+
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{
+				httprouter.Param{
+					Key:   NamespacePathParam,
+					Value: "namespace",
+				},
+			}
+
+			a.CreateWorkspaceHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code for creation")
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest), "Expected HTTP status 400 Bad Request")
+		})
+
+		It("should return 400 status code for a namespace longer than 255", func() {
+			By("creating the HTTP request")
+			path := strings.Replace(WorkspacesByNamespacePath, ":"+NamespacePathParam, invalidLengthName, 1)
+			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
+			Expect(err).NotTo(HaveOccurred(), "Failed to create HTTP request")
+
+			By("executing GetWorkspacesHandler")
+			ps := httprouter.Params{
+				httprouter.Param{
+					Key:   NamespacePathParam,
+					Value: invalidLengthName,
+				},
+			}
+			rr := httptest.NewRecorder()
+			a.GetWorkspacesHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest), "Expected HTTP status 400 Bad Request")
+
+		})
+		It("should return 200 status code for parameters with a length of 255 characters", func() {
+			By("creating the HTTP request")
+			path := strings.Replace(WorkspacesByNamespacePath, ":"+NamespacePathParam, validMaxLengthName, 1)
+			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
+			Expect(err).NotTo(HaveOccurred(), "Failed to create HTTP request")
+
+			By("executing GetWorkspacesHandler")
+			ps := httprouter.Params{
+				httprouter.Param{
+					Key:   NamespacePathParam,
+					Value: validMaxLengthName,
+				},
+			}
+			rr := httptest.NewRecorder()
+			a.GetWorkspacesHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusOK), "Expected HTTP status 200 OK") // is it supported behavior? returning OK with list of [] workspaces
+		})
+		It("should return 400 status code for a namespace longer than 255", func() {
+			workspaceModel := models.WorkspaceModel{
+				Name:      validMaxLengthName,
+				Namespace: invalidLengthName,
+			}
+
+			workspaceJSON, err := json.Marshal(workspaceModel)
+			Expect(err).NotTo(HaveOccurred(), "Failed to marshal WorkspaceModel to JSON")
+			path := strings.Replace(WorkspacesByNamespacePath, ":"+NamespacePathParam, invalidLengthName, 1)
+
+			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(workspaceJSON)))
+			Expect(err).NotTo(HaveOccurred(), "Failed to create HTTP request")
+			req.Header.Set("Content-Type", "application/json")
+
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{
+				httprouter.Param{
+					Key:   NamespacePathParam,
+					Value: "namespace",
+				},
+			}
+
+			a.CreateWorkspaceHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code for creation")
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest), "Expected HTTP status 400 Bad Request")
 
 		})
 	})
