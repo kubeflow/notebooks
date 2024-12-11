@@ -19,12 +19,11 @@ package controller
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/util/intstr"
-
 	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/api/equality"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -367,7 +366,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	if !reflect.DeepEqual(workspace.Status, workspaceStatus) {
+	if !equality.Semantic.DeepEqual(workspace.Status, workspaceStatus) {
 		workspace.Status = workspaceStatus
 		if err := r.Status().Update(ctx, workspace); err != nil {
 			if apierrors.IsConflict(err) {
