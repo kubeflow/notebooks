@@ -1,0 +1,60 @@
+name: 🐜 Bug Report
+description: Tell us about something not working properly
+labels: [ "kind/bug", "priority/needs-triage" ]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        # Bug Report
+        
+        Thanks for helping make the Kubeflow Notebooks project better!
+  - type: checkboxes
+    attributes:
+      label: Checks
+      options:
+        - label: I have searched the [existing issues](https://github.com/kubeflow/notebooks/issues).
+          required: true
+        - label: This issue is NOT security related. (Please [disclose responsibly](https://github.com/kubeflow/notebooks/issues))
+          required: true
+  - type: input
+    id: kubeflow-notebooks-version
+    attributes:
+      label: Kubeflow Notebooks Version
+      placeholder: X.X.X
+    validations:
+      required: true
+  - type: input
+    id: kubernetes-distribution
+    attributes:
+      label: Kubernetes Distribution
+      description: How are you running Kubernetes?
+      placeholder: EKS / GKE / AKS / k3d / custom / etc.
+    validations:
+      required: true
+  - type: textarea
+    id: kubernetes-version
+    attributes:
+      label: Kubernetes Version
+      description: Output of `kubectl version` command.
+      placeholder: |
+        Client Version: version.Info{Major:"X", Minor:"XX", GitVersion:"vX.X.X", ...}
+        Server Version: version.Info{Major:"X", Minor:"XX", GitVersion:"vX.X.X", ...}
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: The __context__ the problem occurred in, and an __overview__ of what went wrong.
+      placeholder: I was trying to... but then...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs
+      description: Outputs of commands like `kubectl logs my-pod` or `kubectl describe pods my-pod`.
+      placeholder: |
+        * include any relevant log outputs here *
+      render: shell

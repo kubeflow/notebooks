@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📓 Documentation Issue
+    url: https://github.com/kubeflow/notebooks/issues
+    about: Report an issue with the documentation
+  - name: 🤔 Questions & Answers (GitHub Discussions)
+    url: https://github.com/kubeflow/notebooks/issues
+    about: Ask and answer questions using GitHub Discussions
+  - name: 🤔 Questions & Answers (Slack #kubeflow-notebooks channel)
+    url: https://www.kubeflow.org/docs/about/community/
+    about: Ask and answer questions using Google Groups
+  - name: 🔒 Security Issues
+    url: https://github.com/kubeflow/notebooks/issues
+    about: Responsibly disclose security issues
