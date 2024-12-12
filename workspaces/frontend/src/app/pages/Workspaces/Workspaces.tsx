@@ -35,7 +35,9 @@ import {
   IActions,
 } from '@patternfly/react-table';
 import { FilterIcon } from '@patternfly/react-icons';
-import { Workspace, WorkspaceState } from 'shared/types';
+import { Workspace, WorkspacesColumnNames, WorkspaceState } from '~/shared/types';
+
+import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
 import { formatRam } from 'shared/utilities/WorkspaceResources';
 
 export const Workspaces: React.FunctionComponent = () => {
@@ -54,7 +56,12 @@ export const Workspaces: React.FunctionComponent = () => {
           home: '/home',
           data: [
             {
-              pvcName: 'data',
+              pvcName: 'Volume-1',
+              mountPath: '/data',
+              readOnly: true,
+            },
+            {
+              pvcName: 'Volume-2',
               mountPath: '/data',
               readOnly: false,
             },
@@ -95,7 +102,7 @@ export const Workspaces: React.FunctionComponent = () => {
           home: '/home',
           data: [
             {
-              pvcName: 'data',
+              pvcName: 'PVC-1',
               mountPath: '/data',
               readOnly: false,
             },
@@ -126,14 +133,13 @@ export const Workspaces: React.FunctionComponent = () => {
   ];
 
   // Table columns
-  const columnNames = {
+  const columnNames: WorkspacesColumnNames = {
     name: 'Name',
     kind: 'Kind',
     image: 'Image',
     podConfig: 'Pod Config',
     state: 'State',
     homeVol: 'Home Vol',
-    dataVol: 'Data Vol',
     cpu: 'CPU',
     ram: 'Memory',
     lastActivity: 'Last Activity',
@@ -147,6 +153,18 @@ export const Workspaces: React.FunctionComponent = () => {
   const attributeContainerRef = React.useRef<HTMLDivElement | null>(null);
 
   const [searchValue, setSearchValue] = React.useState('');
+  const [expandedWorkspacesNames, setExpandedWorkspacesNames] = React.useState<string[]>([]);
+
+  const setWorkspaceExpanded = (workspace: Workspace, isExpanding = true) =>
+    setExpandedWorkspacesNames((prevExpanded) => {
+      const newExpandedWorkspacesNames = prevExpanded.filter((wsName) => wsName !== workspace.name);
+      return isExpanding
+        ? [...newExpandedWorkspacesNames, workspace.name]
+        : newExpandedWorkspacesNames;
+    });
+
+  const isWorkspaceExpanded = (workspace: Workspace) =>
+    expandedWorkspacesNames.includes(workspace.name);
 
   const searchInput = (
     <SearchInput
@@ -322,19 +340,18 @@ export const Workspaces: React.FunctionComponent = () => {
   const [activeSortDirection, setActiveSortDirection] = React.useState<'asc' | 'desc' | null>(null);
 
   const getSortableRowValues = (workspace: Workspace): (string | number)[] => {
-    const { name, kind, image, podConfig, state, homeVol, dataVol, cpu, ram, lastActivity } = {
+    const { name, kind, image, podConfig, state, homeVol, cpu, ram, lastActivity } = {
       name: workspace.name,
       kind: workspace.kind,
       image: workspace.options.imageConfig,
       podConfig: workspace.options.podConfig,
       state: WorkspaceState[workspace.status.state],
       homeVol: workspace.podTemplate.volumes.home,
-      dataVol: workspace.podTemplate.volumes.data[0].pvcName || '',
       cpu: workspace.cpu,
       ram: workspace.ram,
       lastActivity: workspace.status.activity.lastActivity,
     };
-    return [name, kind, image, podConfig, state, homeVol, dataVol, cpu, ram, lastActivity];
+    return [name, kind, image, podConfig, state, homeVol, cpu, ram, lastActivity];
   };
 
   let sortedWorkspaces = filteredWorkspaces;
@@ -438,26 +455,33 @@ export const Workspaces: React.FunctionComponent = () => {
       <Table aria-label="Sortable table" ouiaId="SortableTable">
         <Thead>
           <Tr>
+            <Th />
             <Th sort={getSortParams(0)}>{columnNames.name}</Th>
             <Th sort={getSortParams(1)}>{columnNames.kind}</Th>
             <Th sort={getSortParams(2)}>{columnNames.image}</Th>
             <Th sort={getSortParams(3)}>{columnNames.podConfig}</Th>
             <Th sort={getSortParams(4)}>{columnNames.state}</Th>
             <Th sort={getSortParams(5)}>{columnNames.homeVol}</Th>
-            <Th sort={getSortParams(6)}>{columnNames.dataVol}</Th>
-            <Th sort={getSortParams(7)} info={{ tooltip: 'Workspace CPU usage' }}>
+            <Th sort={getSortParams(6)} info={{ tooltip: 'Workspace CPU usage' }}>
               {columnNames.cpu}
             </Th>
-            <Th sort={getSortParams(8)} info={{ tooltip: 'Workspace memory usage' }}>
+            <Th sort={getSortParams(7)} info={{ tooltip: 'Workspace memory usage' }}>
               {columnNames.ram}
             </Th>
-            <Th sort={getSortParams(9)}>{columnNames.lastActivity}</Th>
+            <Th sort={getSortParams(8)}>{columnNames.lastActivity}</Th>
             <Th screenReaderText="Primary action" />
           </Tr>
         </Thead>
-        <Tbody>
-          {sortedWorkspaces.map((workspace, rowIndex) => (
-            <Tr key={rowIndex}>
+        {sortedWorkspaces.map((workspace, rowIndex) => (
+          <Tbody key={rowIndex} isExpanded={isWorkspaceExpanded(workspace)}>
+            <Tr>
+              <Td
+                expand={{
+                  rowIndex,
+                  isExpanded: isWorkspaceExpanded(workspace),
+                  onToggle: () => setWorkspaceExpanded(workspace, !isWorkspaceExpanded(workspace)),
+                }}
+              />
               <Td dataLabel={columnNames.name}>{workspace.name}</Td>
               <Td dataLabel={columnNames.kind}>{workspace.kind}</Td>
               <Td dataLabel={columnNames.image}>{workspace.options.imageConfig}</Td>
@@ -468,9 +492,6 @@ export const Workspaces: React.FunctionComponent = () => {
                 </Label>
               </Td>
               <Td dataLabel={columnNames.homeVol}>{workspace.podTemplate.volumes.home}</Td>
-              <Td dataLabel={columnNames.dataVol}>
-                {workspace.podTemplate.volumes.data[0].pvcName || ''}
-              </Td>
               <Td dataLabel={columnNames.cpu}>{`${workspace.cpu}%`}</Td>
               <Td dataLabel={columnNames.ram}>{formatRam(workspace.ram)}</Td>
               <Td dataLabel={columnNames.lastActivity}>
@@ -485,8 +506,11 @@ export const Workspaces: React.FunctionComponent = () => {
                 <ActionsColumn items={defaultActions(workspace)} />
               </Td>
             </Tr>
-          ))}
-        </Tbody>
+            {isWorkspaceExpanded(workspace) && (
+              <ExpandedWorkspaceRow workspace={workspace} columnNames={columnNames} />
+            )}
+          </Tbody>
+        ))}
       </Table>
       <Pagination
         itemCount={333}
