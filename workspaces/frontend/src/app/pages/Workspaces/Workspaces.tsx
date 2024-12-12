@@ -22,6 +22,7 @@ import {
   Button,
   PaginationVariant,
   Pagination,
+  Popover,
 } from '@patternfly/react-core';
 import {
   Table,
@@ -34,7 +35,7 @@ import {
   ActionsColumn,
   IActions,
 } from '@patternfly/react-table';
-import { FilterIcon } from '@patternfly/react-icons';
+import { FilterIcon, DatabaseIcon, QuestionCircleIcon } from '@patternfly/react-icons';
 import { Workspace, WorkspaceState } from '~/shared/types';
 
 export const Workspaces: React.FunctionComponent = () => {
@@ -421,6 +422,39 @@ export const Workspaces: React.FunctionComponent = () => {
     setPage(newPage);
   };
 
+  const workspaceDataVolRender = (workspace: Workspace) => {
+    const workspaceDataVol = workspace.podTemplate.volumes.data[0];
+    return (
+      <div>
+        {workspace.podTemplate.volumes.data[0].pvcName || ''}
+        <Popover
+          triggerAction="hover"
+          aria-label="Hoverable popover"
+          headerContent={<b>Workspace Data Vol</b>}
+          headerIcon={<DatabaseIcon />}
+          bodyContent={
+            <div>
+              <div>
+                <b>pvc name: </b>
+                {workspaceDataVol.pvcName}
+              </div>
+              <div>
+                <b>mount path: </b>
+                {workspaceDataVol.mountPath}
+              </div>
+              <div>
+                <b>readonly: </b>
+                {workspaceDataVol.readOnly.toString()}
+              </div>
+            </div>
+          }
+        >
+          <QuestionCircleIcon style={{ paddingLeft: '2px' }} />
+        </Popover>
+      </div>
+    );
+  };
+
   return (
     <PageSection>
       <Title headingLevel="h1">Kubeflow Workspaces</Title>
@@ -441,34 +475,34 @@ export const Workspaces: React.FunctionComponent = () => {
           </Tr>
         </Thead>
         <Tbody>
-          {sortedWorkspaces.map((workspace, rowIndex) => (
-            <Tr key={rowIndex}>
-              <Td dataLabel={columnNames.name}>{workspace.name}</Td>
-              <Td dataLabel={columnNames.kind}>{workspace.kind}</Td>
-              <Td dataLabel={columnNames.image}>{workspace.options.imageConfig}</Td>
-              <Td dataLabel={columnNames.podConfig}>{workspace.options.podConfig}</Td>
-              <Td dataLabel={columnNames.state}>
-                <Label color={stateColors[workspace.status.state]}>
-                  {WorkspaceState[workspace.status.state]}
-                </Label>
-              </Td>
-              <Td dataLabel={columnNames.homeVol}>{workspace.podTemplate.volumes.home}</Td>
-              <Td dataLabel={columnNames.dataVol}>
-                {workspace.podTemplate.volumes.data[0].pvcName || ''}
-              </Td>
-              <Td dataLabel={columnNames.lastActivity}>
-                <Timestamp
-                  date={new Date(workspace.status.activity.lastActivity)}
-                  tooltip={{ variant: TimestampTooltipVariant.default }}
-                >
-                  1 hour ago
-                </Timestamp>
-              </Td>
-              <Td isActionCell>
-                <ActionsColumn items={defaultActions(workspace)} />
-              </Td>
-            </Tr>
-          ))}
+          {sortedWorkspaces.map((workspace, rowIndex) => {
+            return (
+              <Tr key={rowIndex}>
+                <Td dataLabel={columnNames.name}>{workspace.name}</Td>
+                <Td dataLabel={columnNames.kind}>{workspace.kind}</Td>
+                <Td dataLabel={columnNames.image}>{workspace.options.imageConfig}</Td>
+                <Td dataLabel={columnNames.podConfig}>{workspace.options.podConfig}</Td>
+                <Td dataLabel={columnNames.state}>
+                  <Label color={stateColors[workspace.status.state]}>
+                    {WorkspaceState[workspace.status.state]}
+                  </Label>
+                </Td>
+                <Td dataLabel={columnNames.homeVol}>{workspace.podTemplate.volumes.home}</Td>
+                <Td dataLabel={columnNames.dataVol}>{workspaceDataVolRender(workspace)}</Td>
+                <Td dataLabel={columnNames.lastActivity}>
+                  <Timestamp
+                    date={new Date(workspace.status.activity.lastActivity)}
+                    tooltip={{ variant: TimestampTooltipVariant.default }}
+                  >
+                    1 hour ago
+                  </Timestamp>
+                </Td>
+                <Td isActionCell>
+                  <ActionsColumn items={defaultActions(workspace)} />
+                </Td>
+              </Tr>
+            );
+          })}
         </Tbody>
       </Table>
       <Pagination
