@@ -35,6 +35,7 @@ import { buildKindLogoDictionary } from '~/app/actions/WorkspaceKindsActions';
 import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import Filter, { FilteredColumn } from 'shared/components/Filter';
 import { formatRam } from 'shared/utilities/WorkspaceResources';
+import { EndpointsDropdown } from '~/app/pages/Workspaces/WorkspaceEndpoints';
 
 export const Workspaces: React.FunctionComponent = () => {
   /* Mocked workspaces, to be removed after fetching info from backend */
@@ -67,6 +68,12 @@ export const Workspaces: React.FunctionComponent = () => {
             },
           ],
         },
+        endpoints: [
+          {
+            displayName: 'JupyterLab',
+            port: '7777'
+          }
+        ],
       },
       options: {
         imageConfig: 'jupyterlab_scipy_180',
@@ -112,6 +119,16 @@ export const Workspaces: React.FunctionComponent = () => {
             },
           ],
         },
+        endpoints: [
+          {
+            displayName: 'JupyterLab',
+            port: '8888'
+          },
+          {
+            displayName: 'Spark Master',
+            port: '9999'
+          },
+        ],
       },
       options: {
         imageConfig: 'jupyterlab_scipy_180',
@@ -460,6 +477,9 @@ export const Workspaces: React.FunctionComponent = () => {
                       >
                         1 hour ago
                       </Timestamp>
+                    </Td>
+                    <Td>
+                      <EndpointsDropdown workspace={workspace}/>
                     </Td>
                     <Td isActionCell data-testid="action-column">
                       <ActionsColumn
