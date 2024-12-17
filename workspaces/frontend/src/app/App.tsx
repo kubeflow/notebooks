@@ -11,6 +11,8 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { BarsIcon } from '@patternfly/react-icons';
+import { NamespaceProvider } from './context/NamespaceContextProvider';
+import NamespaceSelector from '../shared/components/NamespaceSelector';
 import AppRoutes from './AppRoutes';
 import NavSidebar from './NavSidebar';
 
@@ -18,7 +20,11 @@ const App: React.FC = () => {
   const masthead = (
     <Masthead>
       <MastheadToggle>
-        <PageToggleButton id="page-nav-toggle" variant="plain" aria-label="Dashboard navigation">
+        <PageToggleButton
+          id="page-nav-toggle"
+          variant="plain"
+          aria-label="Dashboard navigation"
+        >
           <BarsIcon />
         </PageToggleButton>
       </MastheadToggle>
@@ -28,20 +34,23 @@ const App: React.FC = () => {
           <Title headingLevel="h2" size="3xl">
             Kubeflow Notebooks 2.0
           </Title>
+          <NamespaceSelector />
         </Flex>
       </MastheadContent>
     </Masthead>
   );
 
   return (
-    <Page
-      mainContainerId="primary-app-container"
-      masthead={masthead}
-      isManagedSidebar
-      sidebar={<NavSidebar />}
-    >
-      <AppRoutes />
-    </Page>
+    <NamespaceProvider>
+      <Page
+        mainContainerId="primary-app-container"
+        masthead={masthead}
+        isManagedSidebar
+        sidebar={<NavSidebar />}
+      >
+        <AppRoutes />
+      </Page>
+    </NamespaceProvider>
   );
 };
 
