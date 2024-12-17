@@ -67,4 +67,5 @@ export interface Workspace {
     podConfig: string;
   };
   status: WorkspaceStatus;
+  endpoints: string[];
 }

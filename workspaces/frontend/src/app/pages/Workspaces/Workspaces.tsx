@@ -22,6 +22,9 @@ import {
   Button,
   PaginationVariant,
   Pagination,
+  Popover,
+  List,
+  ListItem,
 } from '@patternfly/react-core';
 import {
   Table,
@@ -34,7 +37,10 @@ import {
   ActionsColumn,
   IActions,
 } from '@patternfly/react-table';
-import { FilterIcon } from '@patternfly/react-icons';
+import {
+  FilterIcon,
+  ExternalLinkAltIcon,
+ } from '@patternfly/react-icons';
 import { Workspace, WorkspaceState } from '~/shared/types';
 
 export const Workspaces: React.FunctionComponent = () => {
@@ -78,6 +84,7 @@ export const Workspaces: React.FunctionComponent = () => {
         state: WorkspaceState.Paused,
         stateMessage: 'It is paused.',
       },
+      endpoints: ['endpoint1', 'endpoint2'],
     },
     {
       name: 'My Other Jupyter Notebook',
@@ -117,6 +124,7 @@ export const Workspaces: React.FunctionComponent = () => {
         state: WorkspaceState.Running,
         stateMessage: 'It is running.',
       },
+      endpoints: ['endpoint3', 'endpoint4'],
     },
   ];
 
@@ -130,6 +138,7 @@ export const Workspaces: React.FunctionComponent = () => {
     homeVol: 'Home Vol',
     dataVol: 'Data Vol',
     lastActivity: 'Last Activity',
+    connect: 'Connect',
   };
 
   // Filter
@@ -421,6 +430,36 @@ export const Workspaces: React.FunctionComponent = () => {
     setPage(newPage);
   };
 
+  interface ConnectEndpointsColumnProps {
+    endpoints: string[];
+  }
+
+  const ConnectEndpointsColumn: React.FC<ConnectEndpointsColumnProps> = ({ endpoints }) => (
+    <Popover
+      headerContent={<b>Workspace endpoints</b>}
+      headerIcon={<ExternalLinkAltIcon />}
+      triggerAction="hover"
+      bodyContent={
+        <List isPlain>
+          {endpoints.map((endpoint, index) => (
+            <ListItem key={index}>
+              <a
+                style={{ textDecoration: "none" }}
+                href={endpoint}
+                target="_blank">
+                {endpoint}
+              </a>
+            </ListItem>
+          ))}
+        </List>}
+    >
+      <div>
+        Connect
+        <ExternalLinkAltIcon style={{ marginLeft: "0.25rem" }}/>
+      </div>
+    </Popover>
+  );
+
   return (
     <PageSection>
       <Title headingLevel="h1">Kubeflow Workspaces</Title>
@@ -437,6 +476,7 @@ export const Workspaces: React.FunctionComponent = () => {
             <Th sort={getSortParams(5)}>{columnNames.homeVol}</Th>
             <Th sort={getSortParams(6)}>{columnNames.dataVol}</Th>
             <Th sort={getSortParams(7)}>{columnNames.lastActivity}</Th>
+            <Th>{columnNames.connect}</Th>
             <Th screenReaderText="Primary action" />
           </Tr>
         </Thead>
@@ -463,6 +503,9 @@ export const Workspaces: React.FunctionComponent = () => {
                 >
                   1 hour ago
                 </Timestamp>
+              </Td>
+              <Td dataLabel={columnNames.connect}>
+                <ConnectEndpointsColumn endpoints={workspace.endpoints}/>
               </Td>
               <Td isActionCell>
                 <ActionsColumn items={defaultActions(workspace)} />
