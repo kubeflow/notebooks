@@ -53,7 +53,7 @@ func (r *WorkspaceRepository) GetWorkspace(ctx context.Context, namespace string
 		return models.WorkspaceModel{}, err
 	}
 
-	workspaceModel := models.NewWorkspaceModelFromWorkspace(workspace)
+	workspaceModel := models.NewWorkspaceModelFromWorkspace(ctx, r.client, workspace)
 	return workspaceModel, nil
 }
 
@@ -69,7 +69,7 @@ func (r *WorkspaceRepository) GetWorkspaces(ctx context.Context, namespace strin
 
 	workspacesModels := make([]models.WorkspaceModel, len(workspaceList.Items))
 	for i, item := range workspaceList.Items {
-		workspaceModel := models.NewWorkspaceModelFromWorkspace(&item)
+		workspaceModel := models.NewWorkspaceModelFromWorkspace(ctx, r.client, &item)
 		workspacesModels[i] = workspaceModel
 	}
 
@@ -86,7 +86,7 @@ func (r *WorkspaceRepository) GetAllWorkspaces(ctx context.Context) ([]models.Wo
 
 	workspacesModels := make([]models.WorkspaceModel, len(workspaceList.Items))
 	for i, item := range workspaceList.Items {
-		workspaceModel := models.NewWorkspaceModelFromWorkspace(&item)
+		workspaceModel := models.NewWorkspaceModelFromWorkspace(ctx, r.client, &item)
 		workspacesModels[i] = workspaceModel
 	}
 
@@ -140,7 +140,7 @@ func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, workspaceMode
 		return models.WorkspaceModel{}, err
 	}
 
-	return models.NewWorkspaceModelFromWorkspace(workspace), nil
+	return models.NewWorkspaceModelFromWorkspace(ctx, r.client, workspace), nil
 }
 
 func (r *WorkspaceRepository) DeleteWorkspace(ctx context.Context, namespace, workspaceName string) error {

@@ -202,9 +202,9 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(k8sClient.Get(ctx, workspaceKey3, workspace3)).To(Succeed())
 
 			expectedWorkspaces := []models.WorkspaceModel{
-				models.NewWorkspaceModelFromWorkspace(workspace1),
-				models.NewWorkspaceModelFromWorkspace(workspace2),
-				models.NewWorkspaceModelFromWorkspace(workspace3),
+				models.NewWorkspaceModelFromWorkspace(ctx, k8sClient, workspace1),
+				models.NewWorkspaceModelFromWorkspace(ctx, k8sClient, workspace2),
+				models.NewWorkspaceModelFromWorkspace(ctx, k8sClient, workspace3),
 			}
 			Expect(workspaces).To(ConsistOf(expectedWorkspaces))
 
@@ -256,8 +256,8 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(k8sClient.Get(ctx, workspaceKey2, workspace2)).To(Succeed())
 
 			expectedWorkspaces := []models.WorkspaceModel{
-				models.NewWorkspaceModelFromWorkspace(workspace1),
-				models.NewWorkspaceModelFromWorkspace(workspace2),
+				models.NewWorkspaceModelFromWorkspace(ctx, k8sClient, workspace1),
+				models.NewWorkspaceModelFromWorkspace(ctx, k8sClient, workspace2),
 			}
 			Expect(workspaces).To(ConsistOf(expectedWorkspaces))
 

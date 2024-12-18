@@ -16,7 +16,10 @@ limitations under the License.
 package models
 
 import (
+	"context"
+
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type WorkspaceModel struct {
@@ -88,9 +91,14 @@ type DataVolumeModel struct {
 	ReadOnly  bool   `json:"read_only"`
 }
 
-func NewWorkspaceModelFromWorkspace(item *kubefloworgv1beta1.Workspace) WorkspaceModel {
+func NewWorkspaceModelFromWorkspace(ctx context.Context, cl client.Client, item *kubefloworgv1beta1.Workspace) WorkspaceModel {
 	// t := time.Unix(item.Status.Activity.LastActivity, 0)
 	// formattedLastActivity := t.Format("2006-01-02 15:04:05 MST")
+
+	wsk := &kubefloworgv1beta1.WorkspaceKind{}
+	if err := cl.Get(ctx, client.ObjectKey{Name: item.Spec.Kind}, wsk); err != nil {
+		return WorkspaceModel{}
+	}
 
 	dataVolumes := make([]DataVolumeModel, len(item.Spec.PodTemplate.Volumes.Data))
 	for i, volume := range item.Spec.PodTemplate.Volumes.Data {
@@ -147,7 +155,7 @@ func NewWorkspaceModelFromWorkspace(item *kubefloworgv1beta1.Workspace) Workspac
 			},
 			Volumes: &Volumes{
 				Home: &DataVolumeModel{
-					PvcName:   item.Spec.PodTemplate.Volumes.Data[0].PVCName,
+					PvcName:   wsk.Spec.PodTemplate.VolumeMounts.Home,
 					MountPath: item.Spec.PodTemplate.Volumes.Data[0].MountPath,
 					ReadOnly:  *item.Spec.PodTemplate.Volumes.Data[0].ReadOnly,
 				},
