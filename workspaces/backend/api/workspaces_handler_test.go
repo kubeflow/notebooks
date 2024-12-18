@@ -383,7 +383,7 @@ var _ = Describe("Workspaces Handler", func() {
 				Namespace: namespaceNameCrud,
 				WorkspaceKind: models.WorkspaceKind{
 					Name: workspaceKindName,
-					Type: "WorkspaceKind",
+					Type: "POD_TEMPLATE",
 				},
 				DeferUpdates: false,
 				Paused:       false,
