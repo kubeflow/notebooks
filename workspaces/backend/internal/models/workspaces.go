@@ -118,6 +118,16 @@ func NewWorkspaceModelFromWorkspace(item *kubefloworgv1beta1.Workspace) Workspac
 		}
 	}
 
+	podMetadataLabels := item.Spec.PodTemplate.PodMetadata.Labels
+	if podMetadataLabels == nil {
+		podMetadataLabels = map[string]string{}
+	}
+
+	podMetadataAnnotations := item.Spec.PodTemplate.PodMetadata.Annotations
+	if podMetadataAnnotations == nil {
+		podMetadataAnnotations = map[string]string{}
+	}
+
 	workspaceModel := WorkspaceModel{
 		Name:      item.ObjectMeta.Name,
 		Namespace: item.Namespace,
@@ -132,8 +142,8 @@ func NewWorkspaceModelFromWorkspace(item *kubefloworgv1beta1.Workspace) Workspac
 		StateMessage: item.Status.StateMessage,
 		PodTemplate: PodTemplate{
 			PodMetadata: &PodMetadata{
-				Labels:      item.Spec.PodTemplate.PodMetadata.Labels,
-				Annotations: item.Spec.PodTemplate.PodMetadata.Annotations,
+				Labels:      podMetadataLabels,
+				Annotations: podMetadataAnnotations,
 			},
 			Volumes: &Volumes{
 				Home: &DataVolumeModel{
