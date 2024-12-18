@@ -22,6 +22,7 @@ import {
   Button,
   PaginationVariant,
   Pagination,
+  ModalFooter,
 } from '@patternfly/react-core';
 import {
   Table,
@@ -36,6 +37,7 @@ import {
 } from '@patternfly/react-table';
 import { FilterIcon } from '@patternfly/react-icons';
 import { Workspace, WorkspaceState } from '~/shared/types';
+import AlertModal from '~/shared/components/AlertModal';
 
 export const Workspaces: React.FunctionComponent = () => {
   /* Mocked workspaces, to be removed after fetching info from backend */
@@ -68,7 +70,7 @@ export const Workspaces: React.FunctionComponent = () => {
           lastUpdate: 0,
         },
         pauseTime: 0,
-        pendingRestart: false,
+        pendingRestart: true,
         podTemplateOptions: {
           imageConfig: {
             desired: '',
@@ -140,6 +142,10 @@ export const Workspaces: React.FunctionComponent = () => {
   const attributeContainerRef = React.useRef<HTMLDivElement | null>(null);
 
   const [searchValue, setSearchValue] = React.useState('');
+  const [isAlertModalOpen, setIsAlertModalOpen] = React.useState(false);
+  const [activeAction, setActiveAction] = React.useState('');
+  const [alertDialogMessage, setAlertDialogMessage] = React.useState('');
+  const [alertDialogFooter, setAlertDialogFooter] = React.useState(<div />);
 
   const searchInput = (
     <SearchInput
@@ -363,8 +369,60 @@ export const Workspaces: React.FunctionComponent = () => {
 
   // Actions
 
-  const defaultActions = (workspace: Workspace): IActions =>
-    [
+  const onCloseAlertDialog = () => {
+    setIsAlertModalOpen(false);
+    setActiveAction('');
+    setAlertDialogFooter(<div />);
+    setAlertDialogMessage('');
+  };
+
+  const handleActionClickWithPendingUpdates = (action: string) => {
+    setActiveAction(action);
+    setAlertDialogMessage(
+      `There are pending updates, are you sure you want to ${action} the workspace?`,
+    );
+    setAlertDialogFooter(
+      action === 'Stop' ? (
+        <ModalFooter>
+          <Button>Stop and update</Button>
+          <Button variant="secondary">Stop and defer update</Button>
+          <Button variant="link" onClick={onCloseAlertDialog}>
+            Cancel
+          </Button>
+        </ModalFooter>
+      ) : (
+        <ModalFooter>
+          <Button>{`Update and ${action}`}</Button>
+          <Button variant="secondary">{`Only ${action}`}</Button>
+          <Button variant="link" onClick={onCloseAlertDialog}>
+            Cancel
+          </Button>
+        </ModalFooter>
+      ),
+    );
+    setIsAlertModalOpen(true);
+  };
+
+  const handlehandleActionClickWithoutPendingUpdates = (action: string) => {
+    setActiveAction(action);
+    if (action !== 'Start') {
+      setAlertDialogMessage(`are you sure you want to ${action} the workspace?`);
+      setAlertDialogFooter(
+        <ModalFooter>
+          <Button>{action}</Button>
+          <Button variant="link" onClick={onCloseAlertDialog}>
+            Cancel
+          </Button>
+        </ModalFooter>,
+      );
+      setIsAlertModalOpen(true);
+    }
+  };
+
+  const defaultActions = (workspace: Workspace): IActions => {
+    const workspaceState = workspace.status.state;
+    const isPendingUpdate = workspace.status.pendingRestart;
+    return [
       {
         title: 'Edit',
         onClick: () => console.log(`Clicked on edit, on row ${workspace.name}`),
@@ -376,15 +434,29 @@ export const Workspaces: React.FunctionComponent = () => {
       {
         isSeparator: true,
       },
-      {
-        title: 'Start/restart',
-        onClick: () => console.log(`Clicked on start/restart, on row ${workspace.name}`),
-      },
+      workspaceState !== WorkspaceState.Running
+        ? {
+            title: 'Start',
+            onClick: isPendingUpdate
+              ? () => handleActionClickWithPendingUpdates('Start')
+              : () => handlehandleActionClickWithoutPendingUpdates('Start'),
+          }
+        : {
+            title: 'Restart',
+            onClick: isPendingUpdate
+              ? () => handleActionClickWithPendingUpdates('Restart')
+              : () => handlehandleActionClickWithoutPendingUpdates('Restart'),
+          },
       {
         title: 'Stop',
-        onClick: () => console.log(`Clicked on stop, on row ${workspace.name}`),
+        onClick:
+          workspaceState === WorkspaceState.Running &&
+          (isPendingUpdate
+            ? () => handleActionClickWithPendingUpdates('Stop')
+            : () => handlehandleActionClickWithoutPendingUpdates('Stop')),
       },
     ] as IActions;
+  };
 
   // States
 
@@ -471,6 +543,13 @@ export const Workspaces: React.FunctionComponent = () => {
           ))}
         </Tbody>
       </Table>
+      <AlertModal
+        header={`${activeAction} Workspace`}
+        alertMsg={alertDialogMessage}
+        onClose={onCloseAlertDialog}
+        isOpen={isAlertModalOpen}
+        footer={alertDialogFooter}
+      />
       <Pagination
         itemCount={333}
         widgetId="bottom-example"
