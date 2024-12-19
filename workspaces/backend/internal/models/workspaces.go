@@ -155,9 +155,9 @@ func NewWorkspaceModelFromWorkspace(ctx context.Context, cl client.Client, item 
 			},
 			Volumes: &Volumes{
 				Home: &DataVolumeModel{
-					PvcName:   wsk.Spec.PodTemplate.VolumeMounts.Home,
-					MountPath: item.Spec.PodTemplate.Volumes.Data[0].MountPath,
-					ReadOnly:  *item.Spec.PodTemplate.Volumes.Data[0].ReadOnly,
+					PvcName:   *item.Spec.PodTemplate.Volumes.Home,
+					MountPath: wsk.Spec.PodTemplate.VolumeMounts.Home,
+					ReadOnly:  false, // From where to get this value?
 				},
 				Data: dataVolumes,
 			},
