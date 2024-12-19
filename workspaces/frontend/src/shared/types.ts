@@ -68,3 +68,14 @@ export interface Workspace {
   };
   status: WorkspaceStatus;
 }
+
+export interface FilterProps {
+  id: string;
+  onFilter: (filters: { filterName: string; value: string }[]) => void;
+  columnNames: { [key: string]: string };
+}
+
+export interface FilterObj {
+  filterName: string;
+  value: string;
+}
