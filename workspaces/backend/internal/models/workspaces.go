@@ -163,7 +163,7 @@ func NewWorkspaceModelFromWorkspace(ctx context.Context, cl client.Client, item 
 			},
 			ImageConfig: &ImageConfig{
 				Current:       item.Spec.PodTemplate.Options.ImageConfig,
-				Desired:       item.Spec.PodTemplate.Options.ImageConfig,
+				Desired:       item.Status.PodTemplateOptions.ImageConfig.Desired,
 				RedirectChain: imageConfigRedirectChain,
 			},
 			PodConfig: &PodConfig{
