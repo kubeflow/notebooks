@@ -53,7 +53,7 @@ func (r *WorkspaceRepository) GetWorkspace(ctx context.Context, namespace string
 		return models.WorkspaceModel{}, err
 	}
 
-	workspaceModel := models.NewWorkspaceModelFromWorkspace(workspace)
+	workspaceModel := models.NewWorkspaceModelFromWorkspace(ctx, r.client, workspace)
 	return workspaceModel, nil
 }
 
@@ -69,7 +69,7 @@ func (r *WorkspaceRepository) GetWorkspaces(ctx context.Context, namespace strin
 
 	workspacesModels := make([]models.WorkspaceModel, len(workspaceList.Items))
 	for i, item := range workspaceList.Items {
-		workspaceModel := models.NewWorkspaceModelFromWorkspace(&item)
+		workspaceModel := models.NewWorkspaceModelFromWorkspace(ctx, r.client, &item)
 		workspacesModels[i] = workspaceModel
 	}
 
@@ -86,7 +86,7 @@ func (r *WorkspaceRepository) GetAllWorkspaces(ctx context.Context) ([]models.Wo
 
 	workspacesModels := make([]models.WorkspaceModel, len(workspaceList.Items))
 	for i, item := range workspaceList.Items {
-		workspaceModel := models.NewWorkspaceModelFromWorkspace(&item)
+		workspaceModel := models.NewWorkspaceModelFromWorkspace(ctx, r.client, &item)
 		workspacesModels[i] = workspaceModel
 	}
 
@@ -100,34 +100,34 @@ func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, workspaceMode
 			Name:      workspaceModel.Name,
 			Namespace: workspaceModel.Namespace,
 			// TODO: the pod and workspace labels should be separated
-			Labels:      workspaceModel.Labels,
-			Annotations: workspaceModel.Annotations,
+			Labels:      workspaceModel.PodTemplate.PodMetadata.Labels,
+			Annotations: workspaceModel.PodTemplate.PodMetadata.Annotations,
 		},
 		Spec: kubefloworgv1beta1.WorkspaceSpec{
 			Paused:       &workspaceModel.Paused,
 			DeferUpdates: &workspaceModel.DeferUpdates,
 			// TODO: verify if workspace kind exists on validation
-			Kind: workspaceModel.Kind,
+			Kind: workspaceModel.WorkspaceKind.Name,
 			PodTemplate: kubefloworgv1beta1.WorkspacePodTemplate{
 				PodMetadata: &kubefloworgv1beta1.WorkspacePodMetadata{
-					Labels:      workspaceModel.Labels,
-					Annotations: workspaceModel.Annotations,
+					Labels:      workspaceModel.PodTemplate.PodMetadata.Labels,
+					Annotations: workspaceModel.PodTemplate.PodMetadata.Annotations,
 				},
 				Volumes: kubefloworgv1beta1.WorkspacePodVolumes{
-					Home: &workspaceModel.HomeVolume,
+					Home: &workspaceModel.PodTemplate.Volumes.Home.PvcName,
 					Data: []kubefloworgv1beta1.PodVolumeMount{},
 				},
 				Options: kubefloworgv1beta1.WorkspacePodOptions{
-					ImageConfig: workspaceModel.ImageConfig,
-					PodConfig:   workspaceModel.PodConfig,
+					ImageConfig: workspaceModel.PodTemplate.ImageConfig.Current,
+					PodConfig:   workspaceModel.PodTemplate.PodConfig.Current,
 				},
 			},
 		},
 	}
 
 	// TODO: create data volumes if necessary
-	workspace.Spec.PodTemplate.Volumes.Data = make([]kubefloworgv1beta1.PodVolumeMount, len(workspaceModel.DataVolumes))
-	for i, dataVolume := range workspaceModel.DataVolumes {
+	workspace.Spec.PodTemplate.Volumes.Data = make([]kubefloworgv1beta1.PodVolumeMount, len(workspaceModel.PodTemplate.Volumes.Data))
+	for i, dataVolume := range workspaceModel.PodTemplate.Volumes.Data {
 		// make a copy of readOnly because dataVolume is reassigned each loop
 		readOnly := dataVolume.ReadOnly
 		workspace.Spec.PodTemplate.Volumes.Data[i] = kubefloworgv1beta1.PodVolumeMount{
@@ -140,7 +140,7 @@ func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, workspaceMode
 		return models.WorkspaceModel{}, err
 	}
 
-	return models.NewWorkspaceModelFromWorkspace(workspace), nil
+	return models.NewWorkspaceModelFromWorkspace(ctx, r.client, workspace), nil
 }
 
 func (r *WorkspaceRepository) DeleteWorkspace(ctx context.Context, namespace, workspaceName string) error {

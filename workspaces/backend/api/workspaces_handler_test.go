@@ -202,9 +202,9 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(k8sClient.Get(ctx, workspaceKey3, workspace3)).To(Succeed())
 
 			expectedWorkspaces := []models.WorkspaceModel{
-				models.NewWorkspaceModelFromWorkspace(workspace1),
-				models.NewWorkspaceModelFromWorkspace(workspace2),
-				models.NewWorkspaceModelFromWorkspace(workspace3),
+				models.NewWorkspaceModelFromWorkspace(ctx, k8sClient, workspace1),
+				models.NewWorkspaceModelFromWorkspace(ctx, k8sClient, workspace2),
+				models.NewWorkspaceModelFromWorkspace(ctx, k8sClient, workspace3),
 			}
 			Expect(workspaces).To(ConsistOf(expectedWorkspaces))
 
@@ -256,8 +256,8 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(k8sClient.Get(ctx, workspaceKey2, workspace2)).To(Succeed())
 
 			expectedWorkspaces := []models.WorkspaceModel{
-				models.NewWorkspaceModelFromWorkspace(workspace1),
-				models.NewWorkspaceModelFromWorkspace(workspace2),
+				models.NewWorkspaceModelFromWorkspace(ctx, k8sClient, workspace1),
+				models.NewWorkspaceModelFromWorkspace(ctx, k8sClient, workspace2),
 			}
 			Expect(workspaces).To(ConsistOf(expectedWorkspaces))
 
@@ -379,26 +379,60 @@ var _ = Describe("Workspaces Handler", func() {
 			By("creating the workspace via the API")
 			workspaceName := "dora"
 			workspaceModel := models.WorkspaceModel{
-				Name:         workspaceName,
-				Namespace:    namespaceNameCrud,
-				Paused:       false,
+				Name:      workspaceName,
+				Namespace: namespaceNameCrud,
+				WorkspaceKind: models.WorkspaceKind{
+					Name: workspaceKindName,
+					Type: "POD_TEMPLATE",
+				},
 				DeferUpdates: false,
-				Kind:         "jupyterlab",
-				ImageConfig:  "jupyterlab_scipy_190",
-				PodConfig:    "tiny_cpu",
-				HomeVolume:   "workspace-home-bella",
-				DataVolumes: []models.DataVolumeModel{
-					{
-						PvcName:   "workspace-data-bella",
-						MountPath: "/data/my-data",
-						ReadOnly:  false,
+				Paused:       false,
+				PausedTime:   0,
+				State:        "",
+				StateMessage: "",
+				PodTemplate: models.PodTemplate{
+					PodMetadata: &models.PodMetadata{
+						Labels: map[string]string{
+							"app": "dora",
+						},
+						Annotations: map[string]string{
+							"app": "dora",
+						},
+					},
+					Volumes: &models.Volumes{
+						Home: &models.DataVolumeModel{
+							PvcName:   "my-data-pvc",
+							MountPath: "/home/jovyan",
+							ReadOnly:  false,
+						},
+						Data: []models.DataVolumeModel{
+							{
+								PvcName:   "my-data-pvc",
+								MountPath: "/data",
+								ReadOnly:  false,
+							},
+						},
+					},
+					ImageConfig: &models.ImageConfig{
+						Current:       "WorkspaceKind",
+						Desired:       "", // Status is coming with empty value
+						RedirectChain: []*models.RedirectChain{},
+					},
+					PodConfig: &models.PodConfig{
+						Current:       "WorkspaceKind",
+						Desired:       "WorkspaceKind",
+						RedirectChain: []*models.RedirectChain{},
 					},
 				},
-				Labels: map[string]string{
-					"app": "jupyter",
-				},
-				Annotations: map[string]string{
-					"environment": "dev",
+				Activity: models.Activity{
+					LastActivity: 0,
+					LastUpdate:   0,
+					LastProbe: &models.Probe{
+						StartTimeMs: 0,
+						EndTimeMs:   0,
+						Result:      "default_result",
+						Message:     "default_message",
+					},
 				},
 			}
 
@@ -462,7 +496,7 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(err).NotTo(HaveOccurred(), "Error unmarshalling response JSON")
 
 			// remove auto generated fields from comparison
-			response.Data.LastActivity = ""
+			response.Data.Activity.LastActivity = 0
 
 			By("checking if the retrieved workspace matches the expected workspace")
 			retrievedWorkspaceJSON, err := json.Marshal(response.Data)
