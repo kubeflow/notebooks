@@ -415,7 +415,7 @@ var _ = Describe("Workspaces Handler", func() {
 					},
 					ImageConfig: &models.ImageConfig{
 						Current:       "WorkspaceKind",
-						Desired:       "WorkspaceKind",
+						Desired:       "", // Status is coming with empty value
 						RedirectChain: []*models.RedirectChain{},
 					},
 					PodConfig: &models.PodConfig{
