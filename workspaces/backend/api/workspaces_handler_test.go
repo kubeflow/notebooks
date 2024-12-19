@@ -402,7 +402,7 @@ var _ = Describe("Workspaces Handler", func() {
 					Volumes: &models.Volumes{
 						Home: &models.DataVolumeModel{
 							PvcName:   "my-data-pvc",
-							MountPath: "/data",
+							MountPath: "/home/jovyan",
 							ReadOnly:  false,
 						},
 						Data: []models.DataVolumeModel{
