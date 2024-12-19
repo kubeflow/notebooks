@@ -495,7 +495,7 @@ var _ = Describe("Workspaces Handler", func() {
 			err = json.Unmarshal(body, &response)
 			Expect(err).NotTo(HaveOccurred(), "Error unmarshalling response JSON")
 
-			//remove auto generated fields from comparison
+			// remove auto generated fields from comparison
 			response.Data.Activity.LastActivity = 0
 
 			By("checking if the retrieved workspace matches the expected workspace")
