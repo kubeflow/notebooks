@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package models
 
 import (
@@ -92,9 +93,6 @@ type DataVolumeModel struct {
 }
 
 func NewWorkspaceModelFromWorkspace(ctx context.Context, cl client.Client, item *kubefloworgv1beta1.Workspace) WorkspaceModel {
-	// t := time.Unix(item.Status.Activity.LastActivity, 0)
-	// formattedLastActivity := t.Format("2006-01-02 15:04:05 MST")
-
 	wsk := &kubefloworgv1beta1.WorkspaceKind{}
 	if err := cl.Get(ctx, client.ObjectKey{Name: item.Spec.Kind}, wsk); err != nil {
 		return WorkspaceModel{}
