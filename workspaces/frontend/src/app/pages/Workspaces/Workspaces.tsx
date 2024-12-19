@@ -33,6 +33,7 @@ import {
   ThProps,
   ActionsColumn,
   IActions,
+  ExpandableRowContent,
 } from '@patternfly/react-table';
 import { FilterIcon } from '@patternfly/react-icons';
 import { Workspace, WorkspaceState } from '~/shared/types';
@@ -50,6 +51,11 @@ export const Workspaces: React.FunctionComponent = () => {
         volumes: {
           home: '/home',
           data: [
+            {
+              pvcName: 'data',
+              mountPath: '/data',
+              readOnly: false,
+            },
             {
               pvcName: 'data',
               mountPath: '/data',
@@ -140,6 +146,18 @@ export const Workspaces: React.FunctionComponent = () => {
   const attributeContainerRef = React.useRef<HTMLDivElement | null>(null);
 
   const [searchValue, setSearchValue] = React.useState('');
+  const [expandedWorkspacesNames, setExpandedWorkspacesNames] = React.useState<string[]>([]);
+
+  const setWorkspaceExpanded = (workspace: Workspace, isExpanding = true) =>
+    setExpandedWorkspacesNames((prevExpanded) => {
+      const newExpandedWorkspacesNames = prevExpanded.filter((wsName) => wsName !== workspace.name);
+      return isExpanding
+        ? [...newExpandedWorkspacesNames, workspace.name]
+        : newExpandedWorkspacesNames;
+    });
+
+  const isWorkspaceExpanded = (workspace: Workspace) =>
+    expandedWorkspacesNames.includes(workspace.name);
 
   const searchInput = (
     <SearchInput
@@ -421,6 +439,47 @@ export const Workspaces: React.FunctionComponent = () => {
     setPage(newPage);
   };
 
+  const workspaceDataVolRender = (workspace: Workspace) => {
+    const workspaceDataVol = workspace.podTemplate.volumes.data;
+    return workspaceDataVol.map((data, index) => (
+      <div
+        key={`data-vol-${index}`}
+        style={{ borderBottom: '1px solid #ccc', width: 'fit-content', paddingBottom: '1rem' }}
+      >
+        <div>
+          <b>pvc name: </b>
+          {data.pvcName}
+        </div>
+        <div>
+          <b>mount path: </b>
+          {data.mountPath}
+        </div>
+        <div>
+          <b>readonly: </b>
+          {data.readOnly.toString()}
+        </div>
+      </div>
+    ));
+  };
+
+  const expandedRowRenderer = (workspace: Workspace) => (
+    <Tr>
+      <Td />
+      {Object.keys(columnNames).map((colName) => {
+        switch (colName) {
+          case 'dataVol':
+            return (
+              <Td noPadding colSpan={2}>
+                <ExpandableRowContent>{workspaceDataVolRender(workspace)}</ExpandableRowContent>
+              </Td>
+            );
+          default:
+            return <Td />;
+        }
+      })}
+    </Tr>
+  );
+
   return (
     <PageSection>
       <Title headingLevel="h1">Kubeflow Workspaces</Title>
@@ -429,6 +488,7 @@ export const Workspaces: React.FunctionComponent = () => {
       <Table aria-label="Sortable table" ouiaId="SortableTable">
         <Thead>
           <Tr>
+            <Th />
             <Th sort={getSortParams(0)}>{columnNames.name}</Th>
             <Th sort={getSortParams(1)}>{columnNames.kind}</Th>
             <Th sort={getSortParams(2)}>{columnNames.image}</Th>
@@ -440,9 +500,16 @@ export const Workspaces: React.FunctionComponent = () => {
             <Th screenReaderText="Primary action" />
           </Tr>
         </Thead>
-        <Tbody>
-          {sortedWorkspaces.map((workspace, rowIndex) => (
-            <Tr key={rowIndex}>
+        {sortedWorkspaces.map((workspace, rowIndex) => (
+          <Tbody key={rowIndex} isExpanded={isWorkspaceExpanded(workspace)}>
+            <Tr>
+              <Td
+                expand={{
+                  rowIndex,
+                  isExpanded: isWorkspaceExpanded(workspace),
+                  onToggle: () => setWorkspaceExpanded(workspace, !isWorkspaceExpanded(workspace)),
+                }}
+              />
               <Td dataLabel={columnNames.name}>{workspace.name}</Td>
               <Td dataLabel={columnNames.kind}>{workspace.kind}</Td>
               <Td dataLabel={columnNames.image}>{workspace.options.imageConfig}</Td>
@@ -453,9 +520,7 @@ export const Workspaces: React.FunctionComponent = () => {
                 </Label>
               </Td>
               <Td dataLabel={columnNames.homeVol}>{workspace.podTemplate.volumes.home}</Td>
-              <Td dataLabel={columnNames.dataVol}>
-                {workspace.podTemplate.volumes.data[0].pvcName || ''}
-              </Td>
+              <Td dataLabel={columnNames.dataVol} />
               <Td dataLabel={columnNames.lastActivity}>
                 <Timestamp
                   date={new Date(workspace.status.activity.lastActivity)}
@@ -468,8 +533,9 @@ export const Workspaces: React.FunctionComponent = () => {
                 <ActionsColumn items={defaultActions(workspace)} />
               </Td>
             </Tr>
-          ))}
-        </Tbody>
+            {isWorkspaceExpanded(workspace) && expandedRowRenderer(workspace)}
+          </Tbody>
+        ))}
       </Table>
       <Pagination
         itemCount={333}
