@@ -11,8 +11,8 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { BarsIcon } from '@patternfly/react-icons';
+import NamespaceSelector from '~/shared/components/NamespaceSelector';
 import { NamespaceProvider } from './context/NamespaceContextProvider';
-import NamespaceSelector from '../shared/components/NamespaceSelector';
 import AppRoutes from './AppRoutes';
 import NavSidebar from './NavSidebar';
 import { NotebookContextProvider } from './context/NotebookContext';
@@ -21,11 +21,7 @@ const App: React.FC = () => {
   const masthead = (
     <Masthead>
       <MastheadToggle>
-        <PageToggleButton
-          id="page-nav-toggle"
-          variant="plain"
-          aria-label="Dashboard navigation"
-        >
+        <PageToggleButton id="page-nav-toggle" variant="plain" aria-label="Dashboard navigation">
           <BarsIcon />
         </PageToggleButton>
       </MastheadToggle>

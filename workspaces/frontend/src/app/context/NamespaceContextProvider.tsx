@@ -1,11 +1,5 @@
-import React, {
-  useState,
-  useContext,
-  ReactNode,
-  useMemo,
-  useCallback,
-} from 'react';
-import useMount from '../hooks/useMount';
+import React, { useState, useContext, ReactNode, useMemo, useCallback } from 'react';
+import useMount from '~/app/hooks/useMount';
 
 interface NamespaceContextState {
   namespaces: string[];
@@ -13,16 +7,12 @@ interface NamespaceContextState {
   setSelectedNamespace: (namespace: string) => void;
 }
 
-const NamespaceContext = React.createContext<NamespaceContextState | undefined>(
-  undefined
-);
+const NamespaceContext = React.createContext<NamespaceContextState | undefined>(undefined);
 
-export const useNamespaceContext = () => {
+export const useNamespaceContext = (): NamespaceContextState => {
   const context = useContext(NamespaceContext);
   if (!context) {
-    throw new Error(
-      "useNamespaceContext must be used within a NamespaceProvider"
-    );
+    throw new Error('useNamespaceContext must be used within a NamespaceProvider');
   }
   return context;
 };
@@ -31,11 +21,9 @@ interface NamespaceProviderProps {
   children: ReactNode;
 }
 
-export const NamespaceProvider: React.FC<NamespaceProviderProps> = ({
-  children,
-}) => {
+export const NamespaceProvider: React.FC<NamespaceProviderProps> = ({ children }) => {
   const [namespaces, setNamespaces] = useState<string[]>([]);
-  const [selectedNamespace, setSelectedNamespace] = useState<string>("");
+  const [selectedNamespace, setSelectedNamespace] = useState<string>('');
 
   // Todo: Need to replace with actual API call
   const fetchNamespaces = useCallback(async () => {
@@ -44,12 +32,12 @@ export const NamespaceProvider: React.FC<NamespaceProviderProps> = ({
     };
     const namespaceNames = mockNamespaces.data.map((ns) => ns.name);
     setNamespaces(namespaceNames);
-    setSelectedNamespace(namespaceNames.length > 0 ? namespaceNames[0] : "");
+    setSelectedNamespace(namespaceNames.length > 0 ? namespaceNames[0] : '');
   }, []);
   useMount(fetchNamespaces);
   const namespacesContextValues = useMemo(
     () => ({ namespaces, selectedNamespace, setSelectedNamespace }),
-    [namespaces, selectedNamespace]
+    [namespaces, selectedNamespace],
   );
   return (
     <NamespaceContext.Provider value={namespacesContextValues}>
