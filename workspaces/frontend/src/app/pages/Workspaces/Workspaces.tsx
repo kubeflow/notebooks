@@ -35,7 +35,10 @@ import {
   IActions,
 } from '@patternfly/react-table';
 import { FilterIcon } from '@patternfly/react-icons';
-import { Workspace, WorkspaceState } from '~/shared/types';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCircleInfo } from '@fortawesome/free-solid-svg-icons';
+import { Workspace, WorkspaceState } from 'shared/types';
+import { formatRam } from 'shared/utilities/WorkspaceResources';
 
 export const Workspaces: React.FunctionComponent = () => {
   /* Mocked workspaces, to be removed after fetching info from backend */
@@ -46,6 +49,8 @@ export const Workspaces: React.FunctionComponent = () => {
       paused: true,
       deferUpdates: true,
       kind: 'jupyter-lab',
+      CPU: 3,
+      RAM: 500,
       podTemplate: {
         volumes: {
           home: '/home',
@@ -85,6 +90,8 @@ export const Workspaces: React.FunctionComponent = () => {
       paused: false,
       deferUpdates: false,
       kind: 'jupyter-lab',
+      CPU: 1,
+      RAM: 12540,
       podTemplate: {
         volumes: {
           home: '/home',
@@ -129,6 +136,8 @@ export const Workspaces: React.FunctionComponent = () => {
     state: 'State',
     homeVol: 'Home Vol',
     dataVol: 'Data Vol',
+    CPU: 'CPU',
+    RAM: 'RAM',
     lastActivity: 'Last Activity',
   };
 
@@ -315,7 +324,7 @@ export const Workspaces: React.FunctionComponent = () => {
   const [activeSortDirection, setActiveSortDirection] = React.useState<'asc' | 'desc' | null>(null);
 
   const getSortableRowValues = (workspace: Workspace): (string | number)[] => {
-    const { name, kind, image, podConfig, state, homeVol, dataVol, lastActivity } = {
+    const { name, kind, image, podConfig, state, homeVol, dataVol, CPU, RAM, lastActivity } = {
       name: workspace.name,
       kind: workspace.kind,
       image: workspace.options.imageConfig,
@@ -323,9 +332,11 @@ export const Workspaces: React.FunctionComponent = () => {
       state: WorkspaceState[workspace.status.state],
       homeVol: workspace.podTemplate.volumes.home,
       dataVol: workspace.podTemplate.volumes.data[0].pvcName || '',
+      CPU: workspace.CPU,
+      RAM: workspace.RAM,
       lastActivity: workspace.status.activity.lastActivity,
     };
-    return [name, kind, image, podConfig, state, homeVol, dataVol, lastActivity];
+    return [name, kind, image, podConfig, state, homeVol, dataVol, CPU, RAM, lastActivity];
   };
 
   let sortedWorkspaces = filteredWorkspaces;
@@ -436,7 +447,14 @@ export const Workspaces: React.FunctionComponent = () => {
             <Th sort={getSortParams(4)}>{columnNames.state}</Th>
             <Th sort={getSortParams(5)}>{columnNames.homeVol}</Th>
             <Th sort={getSortParams(6)}>{columnNames.dataVol}</Th>
-            <Th sort={getSortParams(7)}>{columnNames.lastActivity}</Th>
+            <Th sort={getSortParams(7)}>
+              {columnNames.CPU} <FontAwesomeIcon icon={faCircleInfo} title="Workspace CPU Usage" />
+            </Th>
+            <Th sort={getSortParams(8)}>
+              {columnNames.RAM}{' '}
+              <FontAwesomeIcon icon={faCircleInfo} title="Workspace Memory Usage" />
+            </Th>
+            <Th sort={getSortParams(9)}>{columnNames.lastActivity}</Th>
             <Th screenReaderText="Primary action" />
           </Tr>
         </Thead>
@@ -456,6 +474,8 @@ export const Workspaces: React.FunctionComponent = () => {
               <Td dataLabel={columnNames.dataVol}>
                 {workspace.podTemplate.volumes.data[0].pvcName || ''}
               </Td>
+              <Td dataLabel={columnNames.CPU}>{`${workspace.CPU}%`}</Td>
+              <Td dataLabel={columnNames.RAM}>{formatRam(workspace.RAM)}</Td>
               <Td dataLabel={columnNames.lastActivity}>
                 <Timestamp
                   date={new Date(workspace.status.activity.lastActivity)}
