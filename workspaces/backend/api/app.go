@@ -30,9 +30,9 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-// @title My API
-// @version 1.0
-// @description This is a sample API with endpoints defined in app.go.
+// @title Notebooks API
+// @version v1
+// @description Notebooks API with endpoints defined in app.go.
 // @host localhost:4000
 // @BasePath /api/v1
 
