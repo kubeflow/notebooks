@@ -2,8 +2,8 @@ basePath: /api/v1
 host: localhost:4000
 info:
   contact: {}
-  description: This is a sample API with endpoints defined in app.go.
-  title: My API
-  version: "1.0"
+  description: Notebooks-v2 API with endpoints defined in app.go.
+  title: Notebooks API
+  version: v1
 paths: {}
 swagger: "2.0"

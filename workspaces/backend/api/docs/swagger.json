@@ -1,10 +1,10 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "This is a sample API with endpoints defined in app.go.",
-        "title": "My API",
+        "description": "Notebooks-v2 API with endpoints defined in app.go.",
+        "title": "Notebooks API",
         "contact": {},
-        "version": "1.0"
+        "version": "v1"
     },
     "host": "localhost:4000",
     "basePath": "/api/v1",

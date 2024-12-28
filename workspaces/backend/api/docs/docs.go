@@ -19,12 +19,12 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "1.0",
+	Version:          "v1",
 	Host:             "localhost:4000",
 	BasePath:         "/api/v1",
 	Schemes:          []string{},
-	Title:            "My API",
-	Description:      "This is a sample API with endpoints defined in app.go.",
+	Title:            "Notebooks API",
+	Description:      "Notebooks-v2 API with endpoints defined in app.go.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",
