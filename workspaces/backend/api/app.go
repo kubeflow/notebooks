@@ -25,7 +25,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	_ "github.com/kubeflow/notebooks/workspaces/backend/api/docs"
-	// https://github.com/gaurangkudale/notebooks.git
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
 	httpSwagger "github.com/swaggo/http-swagger"
