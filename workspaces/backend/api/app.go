@@ -24,9 +24,18 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	_ "github.com/kubeflow/notebooks/workspaces/backend/api/docs"
+	// https://github.com/gaurangkudale/notebooks.git
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
+
+// @title My API
+// @version 1.0
+// @description This is a sample API with endpoints defined in app.go.
+// @host localhost:4000
+// @BasePath /api/v1
 
 const (
 	Version    = "1.0.0"
@@ -89,6 +98,11 @@ func (a *App) Routes() http.Handler {
 
 	router.GET(AllWorkspaceKindsPath, a.GetWorkspaceKindsHandler)
 	router.GET(WorkspaceKindsByNamePath, a.GetWorkspaceKindHandler)
+
+	// Add Swagger documentation route
+	router.Handler("GET", PathPrefix+"/swagger/*any", httpSwagger.Handler(
+		httpSwagger.URL(PathPrefix+"/swagger/doc.json"), // The url pointing to API definition
+	))
 
 	return a.RecoverPanic(a.enableCORS(router))
 }
