@@ -32,7 +32,7 @@ import (
 
 // @title Notebooks API
 // @version v1
-// @description Notebooks API with endpoints defined in app.go.
+// @description Notebooks-v2 API with endpoints defined in app.go.
 // @host localhost:4000
 // @BasePath /api/v1
 
