@@ -23,12 +23,12 @@ const APIOptionsMock = {};
 
 describe('getNamespaces', () => {
   it('should call restGET and handleRestFailures to fetch namespaces', async () => {
-    const response = await getNamespaces(`/api/${BFF_API_VERSION}/namespaces/`)(APIOptionsMock);
+    const response = await getNamespaces(`/api/${BFF_API_VERSION}/namespaces`)(APIOptionsMock);
     expect(response).toEqual(mockRestResponse);
     expect(restGETMock).toHaveBeenCalledTimes(1);
     expect(restGETMock).toHaveBeenCalledWith(
-      `/api/${BFF_API_VERSION}/namespaces/`,
-      `/namespaces/`,
+      `/api/${BFF_API_VERSION}/namespaces`,
+      `/namespaces`,
       {},
       APIOptionsMock,
     );

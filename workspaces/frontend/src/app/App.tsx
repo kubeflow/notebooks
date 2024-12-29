@@ -12,7 +12,7 @@ import {
 } from '@patternfly/react-core';
 import { BarsIcon } from '@patternfly/react-icons';
 import NamespaceSelector from '~/shared/components/NamespaceSelector';
-import { NamespaceProvider } from './context/NamespaceContextProvider';
+import { NamespaceContextProvider } from './context/NamespaceContextProvider';
 import AppRoutes from './AppRoutes';
 import NavSidebar from './NavSidebar';
 import { NotebookContextProvider } from './context/NotebookContext';
@@ -39,8 +39,8 @@ const App: React.FC = () => {
 
   return (
     <NotebookContextProvider>
-      <NamespaceProvider>
-      <Page
+      <NamespaceContextProvider>
+        <Page
           mainContainerId="primary-app-container"
           masthead={masthead}
           isManagedSidebar
@@ -48,7 +48,7 @@ const App: React.FC = () => {
         >
           <AppRoutes />
         </Page>
-      </NamespaceProvider>
+      </NamespaceContextProvider>
     </NotebookContextProvider>
   );
 };

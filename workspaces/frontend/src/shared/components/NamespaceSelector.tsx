@@ -19,7 +19,7 @@ import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
 
 const NamespaceSelector: FC = () => {
   const { namespaces, selectedNamespace, setSelectedNamespace } = useNamespaceContext();
-  const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [isNamespaceDropdownOpen, setIsNamespaceDropdownOpen] = useState<boolean>(false);
   const [searchInputValue, setSearchInputValue] = useState<string>('');
   const [filteredNamespaces, setFilteredNamespaces] = useState<string[]>(namespaces);
 
@@ -28,10 +28,10 @@ const NamespaceSelector: FC = () => {
   }, [namespaces]);
 
   const onToggleClick = () => {
-    if (!isOpen) {
+    if (!isNamespaceDropdownOpen) {
       onClearSearch();
     }
-    setIsOpen(!isOpen);
+    setIsNamespaceDropdownOpen(!isNamespaceDropdownOpen);
   };
 
   const onSearchInputChange = (value: string) => {
@@ -54,10 +54,12 @@ const NamespaceSelector: FC = () => {
 
   const onSelect: DropdownProps['onSelect'] = (_event, value) => {
     setSelectedNamespace(value as string);
-    setIsOpen(false);
+    setIsNamespaceDropdownOpen(false);
   };
 
-  const onClearSearch = () => {
+  const onClearSearch = (event?: React.MouseEvent | React.ChangeEvent | React.FormEvent) => {
+    // Prevent the event from bubbling up and triggering dropdown close
+    event?.stopPropagation();
     setSearchInputValue('');
     setFilteredNamespaces(namespaces);
   };
@@ -84,14 +86,16 @@ const NamespaceSelector: FC = () => {
         <MenuToggle
           ref={toggleRef}
           onClick={onToggleClick}
-          isExpanded={isOpen}
+          isExpanded={isNamespaceDropdownOpen}
           className="namespace-select-toggle"
           data-testid="namespace-toggle"
         >
           {selectedNamespace}
         </MenuToggle>
       )}
-      isOpen={isOpen}
+      isOpen={isNamespaceDropdownOpen}
+      onOpenChange={(isOpen) => setIsNamespaceDropdownOpen(isOpen)}
+      onOpenChangeKeys={['Escape']}
       isScrollable
       data-testid="namespace-dropdown"
     >
@@ -104,9 +108,9 @@ const NamespaceSelector: FC = () => {
                 placeholder="Search Namespace"
                 onChange={(_event, value) => onSearchInputChange(value)}
                 onKeyDown={onEnterPressed}
-                onClear={onClearSearch}
-                // resetButtonLabel="Clear search"
+                onClear={(event) => onClearSearch(event)}
                 aria-labelledby="namespace-search-button"
+                data-testid="namespace-search-input"
               />
             </InputGroupItem>
             <InputGroupItem>
@@ -116,6 +120,7 @@ const NamespaceSelector: FC = () => {
                 id="namespace-search-button"
                 onClick={onSearchButtonClick}
                 icon={<SearchIcon aria-hidden="true" />}
+                data-testid="namespace-search-button"
               />
             </InputGroupItem>
           </InputGroup>

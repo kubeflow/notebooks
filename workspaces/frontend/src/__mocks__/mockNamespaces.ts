@@ -1,5 +1,7 @@
 import { NamespacesList } from '~/app/types';
 
-export const mockNamespaces = (): NamespacesList => ({
-  data: [{ name: 'default' }, { name: 'kubeflow' }, { name: 'custom-namespace' }],
-});
+export const mockNamespaces: NamespacesList = [
+  { name: 'default' },
+  { name: 'kubeflow' },
+  { name: 'custom-namespace' },
+];

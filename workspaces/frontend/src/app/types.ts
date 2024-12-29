@@ -60,9 +60,7 @@ export type Namespace = {
   name: string;
 };
 
-export type NamespacesList = {
-  data: Namespace[];
-};
+export type NamespacesList = Namespace[];
 
 export type GetNamespaces = (opts: APIOptions) => Promise<NamespacesList>;
 
