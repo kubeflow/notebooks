@@ -13,6 +13,7 @@ import {
 import { BarsIcon } from '@patternfly/react-icons';
 import AppRoutes from './AppRoutes';
 import NavSidebar from './NavSidebar';
+import { NotebookContextProvider } from './context/NotebookContext';
 
 const App: React.FC = () => {
   const masthead = (
@@ -34,14 +35,16 @@ const App: React.FC = () => {
   );
 
   return (
-    <Page
-      mainContainerId="primary-app-container"
-      masthead={masthead}
-      isManagedSidebar
-      sidebar={<NavSidebar />}
-    >
-      <AppRoutes />
-    </Page>
+    <NotebookContextProvider>
+      <Page
+        mainContainerId="primary-app-container"
+        masthead={masthead}
+        isManagedSidebar
+        sidebar={<NavSidebar />}
+      >
+        <AppRoutes />
+      </Page>
+    </NotebookContextProvider>
   );
 };
 
