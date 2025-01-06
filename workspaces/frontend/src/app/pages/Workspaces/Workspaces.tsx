@@ -445,11 +445,11 @@ export const Workspaces: React.FunctionComponent = () => {
             <Th sort={getSortParams(4)}>{columnNames.state}</Th>
             <Th sort={getSortParams(5)}>{columnNames.homeVol}</Th>
             <Th sort={getSortParams(6)}>{columnNames.dataVol}</Th>
-            <Th sort={getSortParams(7)} info={{ tooltip: 'Workspace cpu Usage' }}>
+            <Th sort={getSortParams(7)} info={{ tooltip: 'Workspace CPU usage' }}>
               {columnNames.cpu}
             </Th>
-            <Th sort={getSortParams(8)} info={{ tooltip: 'Workspace memory Usage' }}>
-              {columnNames.ram}{' '}
+            <Th sort={getSortParams(8)} info={{ tooltip: 'Workspace memory usage' }}>
+              {columnNames.ram}
             </Th>
             <Th sort={getSortParams(9)}>{columnNames.lastActivity}</Th>
             <Th screenReaderText="Primary action" />
