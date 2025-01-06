@@ -447,13 +447,10 @@ export const Workspaces: React.FunctionComponent = () => {
             <Th sort={getSortParams(4)}>{columnNames.state}</Th>
             <Th sort={getSortParams(5)}>{columnNames.homeVol}</Th>
             <Th sort={getSortParams(6)}>{columnNames.dataVol}</Th>
-            <Th sort={getSortParams(7)}>
-              {columnNames.CPU} <FontAwesomeIcon icon={faCircleInfo} title="Workspace CPU Usage" />
-            </Th>
-            <Th sort={getSortParams(8)}>
-              {columnNames.RAM}{' '}
-              <FontAwesomeIcon icon={faCircleInfo} title="Workspace Memory Usage" />
-            </Th>
+            <Th sort={getSortParams(7)}>{columnNames.CPU}{" "}
+              <FontAwesomeIcon icon={faCircleInfo} title="WorkSpace CPU Usage" /></Th>
+            <Th sort={getSortParams(8)}>{columnNames.RAM}{" "}
+              <FontAwesomeIcon icon={faCircleInfo} title="WorkSpace Memory Usage" /></Th>
             <Th sort={getSortParams(9)}>{columnNames.lastActivity}</Th>
             <Th screenReaderText="Primary action" />
           </Tr>
@@ -474,8 +471,6 @@ export const Workspaces: React.FunctionComponent = () => {
               <Td dataLabel={columnNames.dataVol}>
                 {workspace.podTemplate.volumes.data[0].pvcName || ''}
               </Td>
-              <Td dataLabel={columnNames.CPU}>{`${workspace.CPU}%`}</Td>
-              <Td dataLabel={columnNames.RAM}>{formatRam(workspace.RAM)}</Td>
               <Td dataLabel={columnNames.lastActivity}>
                 <Timestamp
                   date={new Date(workspace.status.activity.lastActivity)}
