@@ -52,6 +52,8 @@ export interface Workspace {
   paused: boolean;
   deferUpdates: boolean;
   kind: string;
+  cpu: number;
+  ram: number;
   podTemplate: {
     volumes: {
       home: string;
