@@ -134,8 +134,8 @@ export const Workspaces: React.FunctionComponent = () => {
     state: 'State',
     homeVol: 'Home Vol',
     dataVol: 'Data Vol',
-    cpu: 'cpu',
-    ram: 'ram',
+    cpu: 'CPU',
+    ram: 'Memory',
     lastActivity: 'Last Activity',
   };
 
