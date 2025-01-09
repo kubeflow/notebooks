@@ -1,7 +1,8 @@
-import { NamespacesList } from '~/app/types';
+import { NamespacesList} from '~/app/types';
 import { isNotebookResponse, restGET } from '~/shared/api/apiUtils';
 import { APIOptions } from '~/shared/api/types';
 import { handleRestFailures } from '~/shared/api/errorUtils';
+import { WorkspaceKind } from '../types';
 
 export const getNamespaces =
   (hostPath: string) =>
@@ -12,3 +13,13 @@ export const getNamespaces =
       }
       throw new Error('Invalid response format');
     });
+
+  export const getWorkspacekinds =
+    (hostPath: string) =>
+    (opts: APIOptions): Promise<WorkspaceKind[]> =>
+      handleRestFailures(restGET(hostPath, `/workspacekinds`, {}, opts)).then((response) => {
+        if (isNotebookResponse<WorkspaceKind[]>(response)) {
+          return response.data;
+        }
+        throw new Error('Invalid response format');
+      });
