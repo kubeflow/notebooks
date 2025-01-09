@@ -44,7 +44,6 @@ const NavGroup: React.FC<{ item: NavDataGroup }> = ({ item }) => {
 
 const NavSidebar: React.FC = () => {
   const navData = useNavData();
-
   return (
     <PageSidebar>
       <PageSidebarBody>
