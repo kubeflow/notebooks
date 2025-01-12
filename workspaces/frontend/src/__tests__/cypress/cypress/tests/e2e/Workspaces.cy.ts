@@ -10,20 +10,20 @@ import { mockBFFResponse } from '~/__mocks__/utils';
 // Helper function to validate the content of a single workspace row in the table
 const validateWorkspaceRow = (workspace: any, index: number) => {
   // Validate the workspace name
-  cy.getDataTest(`workspace-row-${index}`)
-    .find('[data-test="workspace-name"]')
+  cy.findByTestId(`workspace-row-${index}`)
+    .find('[data-testid="workspace-name"]')
     .should('have.text', workspace.name);
 
   // Map workspace state to the expected label
   const expectedLabel = WorkspaceState[workspace.status.state];
 
   // Validate the state label and pod configuration
-  cy.getDataTest(`workspace-row-${index}`)
-    .find('[data-test="state-label"]')
+  cy.findByTestId(`workspace-row-${index}`)
+    .find('[data-testid="state-label"]')
     .should('have.text', expectedLabel);
 
-  cy.getDataTest(`workspace-row-${index}`)
-    .find('[data-test="pod-config"]')
+  cy.findByTestId(`workspace-row-${index}`)
+    .find('[data-testid="pod-config"]')
     .should('have.text', workspace.options.podConfig);
 };
 
@@ -38,7 +38,7 @@ describe('Workspaces Tests', () => {
   });
 
   it('should display the correct number of workspaces', () => {
-    cy.getDataTest('workspaces-table')
+    cy.findByTestId('workspaces-table')
       .find('tbody tr')
       .should('have.length', mockWorkspaces.length);
   });
@@ -54,7 +54,7 @@ describe('Workspaces Tests', () => {
     cy.intercept('GET', '/api/v1/workspaces', { statusCode: 200, body: { data: [] } });
     cy.visit('/');
 
-    cy.getDataTest('workspaces-table').find('tbody tr').should('not.exist');
+    cy.findByTestId('workspaces-table').find('tbody tr').should('not.exist');
   });
 });
 
@@ -81,7 +81,7 @@ describe('Workspace by namespace functionality', () => {
   it('should update workspaces when namespace changes', () => {
     // Verify initial state (default namespace)
     cy.wait('@getWorkspaces');
-    cy.getDataTest('workspaces-table')
+    cy.findByTestId('workspaces-table')
       .find('tbody tr')
       .should('have.length', mockWorkspaces.length);
 
@@ -95,7 +95,7 @@ describe('Workspace by namespace functionality', () => {
       .should('include', '/api/v1/workspaces/kubeflow');
 
     // Verify the length of workspaces list is updated
-    cy.getDataTest('workspaces-table')
+    cy.findByTestId('workspaces-table')
       .find('tbody tr')
       .should('have.length', mockWorkspacesByNS.length);
   });
