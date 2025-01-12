@@ -5,9 +5,14 @@ declare global {
   namespace Cypress {
     interface Chainable {
       testA11y: (context?: Parameters<cy['checkA11y']>[0]) => void;
+      getDataTest(dataTestSelector: string): Chainable<JQuery<HTMLElement>>;
     }
   }
 }
+
+Cypress.Commands.add('getDataTest', (dataTestSelector) => {
+  return cy.get(`[data-test="${dataTestSelector}"]`);
+});
 
 Cypress.Commands.add('testA11y', { prevSubject: 'optional' }, (subject, context) => {
   const test = (c: Parameters<typeof cy.checkA11y>[0]) => {
