@@ -496,7 +496,11 @@ export const Workspaces: React.FunctionComponent = () => {
                 columnNames={filterableColumns}
               />
             </Content>
-            <Table aria-label="Sortable table" ouiaId="SortableTable">
+            <Table
+              data-testid="workspaces-table"
+              aria-label="Sortable table"
+              ouiaId="SortableTable"
+            >
               <Thead>
                 <Tr>
                   <Th screenReaderText="expand-action" />
@@ -519,7 +523,10 @@ export const Workspaces: React.FunctionComponent = () => {
                     isExpanded={isWorkspaceExpanded(workspace)}
                     data-testid="table-body"
                   >
-                    <Tr id={`workspaces-table-row-${rowIndex + 1}`}>
+                    <Tr
+                      id={`workspaces-table-row-${rowIndex + 1}`}
+                      data-testid={`workspace-row-${rowIndex}`}
+                    >
                       <Td
                         expand={{
                           rowIndex,
@@ -537,7 +544,9 @@ export const Workspaces: React.FunctionComponent = () => {
                             )
                           : getRedirectStatusIcon(undefined, 'No API response available')}
                       </Td>
-                      <Td dataLabel={columnNames.name}>{workspace.name}</Td>
+                      <Td data-testid="workspace-name" dataLabel={columnNames.name}>
+                        {workspace.name}
+                      </Td>
                       <Td dataLabel={columnNames.kind}>
                         {kindLogoDict[workspace.workspaceKind.name] ? (
                           <Tooltip content={workspace.workspaceKind.name}>
@@ -556,10 +565,10 @@ export const Workspaces: React.FunctionComponent = () => {
                       <Td dataLabel={columnNames.image}>
                         {workspace.podTemplate.options.imageConfig.current.displayName}
                       </Td>
-                      <Td dataLabel={columnNames.podConfig}>
+                      <Td data-testid="pod-config" dataLabel={columnNames.podConfig}>
                         {workspace.podTemplate.options.podConfig.current.displayName}
                       </Td>
-                      <Td dataLabel={columnNames.state}>
+                      <Td data-testid="state-label" dataLabel={columnNames.state}>
                         <Label color={extractStateColor(workspace.state)}>{workspace.state}</Label>
                       </Td>
                       <Td dataLabel={columnNames.homeVol}>
