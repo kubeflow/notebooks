@@ -36,6 +36,9 @@
   },
   "devDependencies": {
     "@cypress/code-coverage": "^3.13.5",
+    "@mui/icons-material": "^6.3.1",
+    "@mui/material": "^6.3.1",
+    "@mui/types": "^7.2.21",
     "@testing-library/cypress": "^10.0.1",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^5.16.5",
@@ -72,6 +75,8 @@
     "react-router-dom": "^6.26.1",
     "regenerator-runtime": "^0.13.11",
     "rimraf": "^6.0.1",
+    "sass": "^1.83.1",
+    "sass-loader": "^16.0.4",
     "serve": "^14.2.1",
     "style-loader": "^3.3.4",
     "svg-url-loader": "^8.0.0",
@@ -100,6 +105,8 @@
     "sirv-cli": "^2.0.2"
   },
   "optionalDependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
     "@typescript-eslint/eslint-plugin": "^8.8.1",
     "@typescript-eslint/parser": "^8.12.2",
     "eslint": "^8.57.0",

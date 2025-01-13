@@ -3,6 +3,7 @@ import { Route, Routes } from 'react-router-dom';
 import { NotFound } from './pages/notFound/NotFound';
 import { Debug } from './pages/Debug/Debug';
 import { Workspaces } from './pages/Workspaces/Workspaces';
+import '~/shared/style/MUI-theme.scss';
 
 export const isNavDataGroup = (navItem: NavDataItem): navItem is NavDataGroup =>
   'children' in navItem;
