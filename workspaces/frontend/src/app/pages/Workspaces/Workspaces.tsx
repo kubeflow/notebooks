@@ -1,5 +1,8 @@
 import * as React from 'react';
 import {
+  Drawer,
+  DrawerContent,
+  DrawerContentBody,
   PageSection,
   MenuToggle,
   TimestampTooltipVariant,
@@ -36,7 +39,7 @@ import {
 } from '@patternfly/react-table';
 import { FilterIcon } from '@patternfly/react-icons';
 import { Workspace, WorkspacesColumnNames, WorkspaceState } from '~/shared/types';
-
+import { WorkspaceDetails } from '~/app/pages/Workspaces/Details/WorkspaceDetails';
 import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
 import { formatRam } from 'shared/utilities/WorkspaceResources';
 
@@ -52,6 +55,10 @@ export const Workspaces: React.FunctionComponent = () => {
       cpu: 3,
       ram: 500,
       podTemplate: {
+        podMetadata: {
+          labels: ['label1', 'label2'],
+          annotations: ['annotation1', 'annotation2'],
+        },
         volumes: {
           home: '/home',
           data: [
@@ -98,6 +105,10 @@ export const Workspaces: React.FunctionComponent = () => {
       cpu: 1,
       ram: 12540,
       podTemplate: {
+        podMetadata: {
+          labels: ['label1', 'label2'],
+          annotations: ['annotation1', 'annotation2'],
+        },
         volumes: {
           home: '/home',
           data: [
@@ -144,6 +155,20 @@ export const Workspaces: React.FunctionComponent = () => {
     ram: 'Memory',
     lastActivity: 'Last Activity',
   };
+
+  // Selected workspace
+  const [selectedWorkspace, setSelectedWorkspace] = React.useState<Workspace | null>(null);
+
+  const selectWorkspace = React.useCallback(
+    (newSelectedWorkspace) => {
+      if (selectedWorkspace?.name === newSelectedWorkspace?.name) {
+        setSelectedWorkspace(null);
+      } else {
+        setSelectedWorkspace(newSelectedWorkspace);
+      }
+    },
+    [selectedWorkspace],
+  );
 
   // Filter
   const [activeAttributeMenu, setActiveAttributeMenu] = React.useState<string>(columnNames.name);
@@ -389,28 +414,51 @@ export const Workspaces: React.FunctionComponent = () => {
 
   // Actions
 
-  const defaultActions = (workspace: Workspace): IActions =>
-    [
-      {
-        title: 'Edit',
-        onClick: () => console.log(`Clicked on edit, on row ${workspace.name}`),
-      },
-      {
-        title: 'Delete',
-        onClick: () => console.log(`Clicked on delete, on row ${workspace.name}`),
-      },
-      {
-        isSeparator: true,
-      },
-      {
-        title: 'Start/restart',
-        onClick: () => console.log(`Clicked on start/restart, on row ${workspace.name}`),
-      },
-      {
-        title: 'Stop',
-        onClick: () => console.log(`Clicked on stop, on row ${workspace.name}`),
-      },
-    ] as IActions;
+  const editAction = React.useCallback((workspace: Workspace) => {
+    console.log(`Clicked on edit, on row ${workspace.name}`);
+  }, []);
+
+  const deleteAction = React.useCallback((workspace: Workspace) => {
+    console.log(`Clicked on delete, on row ${workspace.name}`);
+  }, []);
+
+  const startRestartAction = React.useCallback((workspace: Workspace) => {
+    console.log(`Clicked on start/restart, on row ${workspace.name}`);
+  }, []);
+
+  const stopAction = React.useCallback((workspace: Workspace) => {
+    console.log(`Clicked on stop, on row ${workspace.name}`);
+  }, []);
+
+  const defaultActions = React.useCallback(
+    (workspace: Workspace): IActions =>
+      [
+        {
+          title: 'View Details',
+          onClick: () => selectWorkspace(workspace),
+        },
+        {
+          title: 'Edit',
+          onClick: () => editAction(workspace),
+        },
+        {
+          title: 'Delete',
+          onClick: () => deleteAction(workspace),
+        },
+        {
+          isSeparator: true,
+        },
+        {
+          title: 'Start/restart',
+          onClick: () => startRestartAction(workspace),
+        },
+        {
+          title: 'Stop',
+          onClick: () => stopAction(workspace),
+        },
+      ] as IActions,
+    [selectWorkspace, editAction, deleteAction, startRestartAction, stopAction],
+  );
 
   // States
 
@@ -447,80 +495,100 @@ export const Workspaces: React.FunctionComponent = () => {
     setPage(newPage);
   };
 
+  const workspaceDetailsContent = (
+    <>
+      {selectedWorkspace && (
+        <WorkspaceDetails
+          workspace={selectedWorkspace}
+          onCloseClick={() => selectWorkspace(null)}
+          onEditClick={() => editAction(selectedWorkspace)}
+          onDeleteClick={() => deleteAction(selectedWorkspace)}
+        />
+      )}
+    </>
+  );
+
   return (
-    <PageSection>
-      <Title headingLevel="h1">Kubeflow Workspaces</Title>
-      <p>View your existing workspaces or create new workspaces.</p>
-      {toolbar}
-      <Table aria-label="Sortable table" ouiaId="SortableTable">
-        <Thead>
-          <Tr>
-            <Th />
-            <Th sort={getSortParams(0)}>{columnNames.name}</Th>
-            <Th sort={getSortParams(1)}>{columnNames.kind}</Th>
-            <Th sort={getSortParams(2)}>{columnNames.image}</Th>
-            <Th sort={getSortParams(3)}>{columnNames.podConfig}</Th>
-            <Th sort={getSortParams(4)}>{columnNames.state}</Th>
-            <Th sort={getSortParams(5)}>{columnNames.homeVol}</Th>
-            <Th sort={getSortParams(6)} info={{ tooltip: 'Workspace CPU usage' }}>
-              {columnNames.cpu}
-            </Th>
-            <Th sort={getSortParams(7)} info={{ tooltip: 'Workspace memory usage' }}>
-              {columnNames.ram}
-            </Th>
-            <Th sort={getSortParams(8)}>{columnNames.lastActivity}</Th>
-            <Th screenReaderText="Primary action" />
-          </Tr>
-        </Thead>
-        {sortedWorkspaces.map((workspace, rowIndex) => (
-          <Tbody key={rowIndex} isExpanded={isWorkspaceExpanded(workspace)}>
-            <Tr>
-              <Td
-                expand={{
-                  rowIndex,
-                  isExpanded: isWorkspaceExpanded(workspace),
-                  onToggle: () => setWorkspaceExpanded(workspace, !isWorkspaceExpanded(workspace)),
-                }}
-              />
-              <Td dataLabel={columnNames.name}>{workspace.name}</Td>
-              <Td dataLabel={columnNames.kind}>{workspace.kind}</Td>
-              <Td dataLabel={columnNames.image}>{workspace.options.imageConfig}</Td>
-              <Td dataLabel={columnNames.podConfig}>{workspace.options.podConfig}</Td>
-              <Td dataLabel={columnNames.state}>
-                <Label color={stateColors[workspace.status.state]}>
-                  {WorkspaceState[workspace.status.state]}
-                </Label>
-              </Td>
-              <Td dataLabel={columnNames.homeVol}>{workspace.podTemplate.volumes.home}</Td>
-              <Td dataLabel={columnNames.cpu}>{`${workspace.cpu}%`}</Td>
-              <Td dataLabel={columnNames.ram}>{formatRam(workspace.ram)}</Td>
-              <Td dataLabel={columnNames.lastActivity}>
-                <Timestamp
-                  date={new Date(workspace.status.activity.lastActivity)}
-                  tooltip={{ variant: TimestampTooltipVariant.default }}
-                >
-                  1 hour ago
-                </Timestamp>
-              </Td>
-              <Td isActionCell>
-                <ActionsColumn items={defaultActions(workspace)} />
-              </Td>
-            </Tr>
-            {isWorkspaceExpanded(workspace) && (
-              <ExpandedWorkspaceRow workspace={workspace} columnNames={columnNames} />
-            )}
-          </Tbody>
-        ))}
-      </Table>
-      <Pagination
-        itemCount={333}
-        widgetId="bottom-example"
-        perPage={perPage}
-        page={page}
-        variant={PaginationVariant.bottom}
-        onSetPage={onSetPage}
-        onPerPageSelect={onPerPageSelect}
-      />
-    </PageSection>
+    <Drawer isExpanded={selectedWorkspace != null}>
+      <DrawerContent panelContent={workspaceDetailsContent}>
+        <DrawerContentBody>
+          <PageSection isFilled>
+            <Title headingLevel="h1">Kubeflow Workspaces</Title>
+            <p>View your existing workspaces or create new workspaces.</p>
+            {toolbar}
+            <Table aria-label="Sortable table" ouiaId="SortableTable">
+              <Thead>
+                <Tr>
+                  <Th />
+                  <Th sort={getSortParams(0)}>{columnNames.name}</Th>
+                  <Th sort={getSortParams(1)}>{columnNames.kind}</Th>
+                  <Th sort={getSortParams(2)}>{columnNames.image}</Th>
+                  <Th sort={getSortParams(3)}>{columnNames.podConfig}</Th>
+                  <Th sort={getSortParams(4)}>{columnNames.state}</Th>
+                  <Th sort={getSortParams(5)}>{columnNames.homeVol}</Th>
+                  <Th sort={getSortParams(6)} info={{ tooltip: 'Workspace CPU usage' }}>
+                    {columnNames.cpu}
+                  </Th>
+                  <Th sort={getSortParams(7)} info={{ tooltip: 'Workspace memory usage' }}>
+                    {columnNames.ram}
+                  </Th>
+                  <Th sort={getSortParams(8)}>{columnNames.lastActivity}</Th>
+                  <Th screenReaderText="Primary action" />
+                </Tr>
+              </Thead>
+              {sortedWorkspaces.map((workspace, rowIndex) => (
+                <Tbody key={rowIndex} isExpanded={isWorkspaceExpanded(workspace)}>
+                  <Tr>
+                    <Td
+                      expand={{
+                        rowIndex,
+                        isExpanded: isWorkspaceExpanded(workspace),
+                        onToggle: () =>
+                          setWorkspaceExpanded(workspace, !isWorkspaceExpanded(workspace)),
+                      }}
+                    />
+                    <Td dataLabel={columnNames.name}>{workspace.name}</Td>
+                    <Td dataLabel={columnNames.kind}>{workspace.kind}</Td>
+                    <Td dataLabel={columnNames.image}>{workspace.options.imageConfig}</Td>
+                    <Td dataLabel={columnNames.podConfig}>{workspace.options.podConfig}</Td>
+                    <Td dataLabel={columnNames.state}>
+                      <Label color={stateColors[workspace.status.state]}>
+                        {WorkspaceState[workspace.status.state]}
+                      </Label>
+                    </Td>
+                    <Td dataLabel={columnNames.homeVol}>{workspace.podTemplate.volumes.home}</Td>
+                    <Td dataLabel={columnNames.cpu}>{`${workspace.cpu}%`}</Td>
+                    <Td dataLabel={columnNames.ram}>{formatRam(workspace.ram)}</Td>
+                    <Td dataLabel={columnNames.lastActivity}>
+                      <Timestamp
+                        date={new Date(workspace.status.activity.lastActivity)}
+                        tooltip={{ variant: TimestampTooltipVariant.default }}
+                      >
+                        1 hour ago
+                      </Timestamp>
+                    </Td>
+                    <Td isActionCell>
+                      <ActionsColumn items={defaultActions(workspace)} />
+                    </Td>
+                  </Tr>
+                  {isWorkspaceExpanded(workspace) && (
+                    <ExpandedWorkspaceRow workspace={workspace} columnNames={columnNames} />
+                  )}
+                </Tbody>
+              ))}
+            </Table>
+            <Pagination
+              itemCount={333}
+              widgetId="bottom-example"
+              perPage={perPage}
+              page={page}
+              variant={PaginationVariant.bottom}
+              onSetPage={onSetPage}
+              onPerPageSelect={onPerPageSelect}
+            />
+          </PageSection>
+        </DrawerContentBody>
+      </DrawerContent>
+    </Drawer>
   );
 };

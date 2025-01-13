@@ -43,6 +43,7 @@ const App: React.FC = () => {
         <Page
           mainContainerId="primary-app-container"
           masthead={masthead}
+          isContentFilled
           isManagedSidebar
           sidebar={<NavSidebar />}
         >
