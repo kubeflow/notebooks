@@ -70,3 +70,15 @@ export interface Workspace {
   };
   status: WorkspaceStatus;
 }
+
+export type WorkspacesColumnNames = {
+  name: string;
+  kind: string;
+  image: string;
+  podConfig: string;
+  state: string;
+  homeVol: string;
+  cpu: string;
+  ram: string;
+  lastActivity: string;
+};
