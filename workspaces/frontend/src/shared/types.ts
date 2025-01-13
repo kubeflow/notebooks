@@ -55,6 +55,10 @@ export interface Workspace {
   cpu: number;
   ram: number;
   podTemplate: {
+    podMetadata: {
+      labels: string[];
+      annotations: string[];
+    };
     volumes: {
       home: string;
       data: {
