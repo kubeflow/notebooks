@@ -17,39 +17,87 @@ limitations under the License.
 package models
 
 import (
-	"strings"
-
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 )
 
 type WorkspaceKindModel struct {
-	Name        string            `json:"name"`
-	PodTemplate PodTemplateModel  `json:"pod_template"`
-	Spawner     SpawnerModel      `json:"spawner"`
-	Labels      map[string]string `json:"labels,omitempty"`
-	Annotations map[string]string `json:"annotations,omitempty"`
+	Name               string            `json:"name"`
+	DisplayName        string            `json:"display_name"`
+	Description        string            `json:"description"`
+	Deprecated         bool              `json:"deprecated"`
+	DeprecationMessage string            `json:"deprecation_message"`
+	Hidden             bool              `json:"hidden"`
+	Icon               map[string]string `json:"icon"`
+	Logo               map[string]string `json:"logo"`
+	PodTemplate        PodTemplateModel  `json:"pod_template"`
 }
 
-type PodTemplateModel struct {
-	ImageConfig string        `json:"image_config"`
-	PodConfig   string        `json:"pod_config"`
-	Resources   ResourceModel `json:"resources"`
+func buildImageConfigValues(item *kubefloworgv1beta1.WorkspaceKind) []ImageConfigValue {
+	imageConfigValues := []ImageConfigValue{}
+	if item.Spec.PodTemplate.Options.ImageConfig.Values != nil {
+		for _, item := range item.Spec.PodTemplate.Options.ImageConfig.Values {
+			labels := map[string]string{}
+			for _, label := range item.Spawner.Labels {
+				labels[label.Key] = label.Value
+			}
+
+			var redirect *OptionRedirect
+			if item.Redirect != nil {
+				redirect = &OptionRedirect{
+					To: item.Redirect.To,
+					Message: &Message{
+						Text:  item.Redirect.Message.Text,
+						Level: string(item.Redirect.Message.Level),
+					},
+				}
+			}
+
+			imageConfigValues = append(imageConfigValues, ImageConfigValue{
+				Id:          item.Id,
+				DisplayName: item.Spawner.DisplayName,
+				Labels:      labels,
+				Hidden:      item.Spawner.Hidden,
+				Redirect:    redirect,
+			})
+		}
+	}
+	return imageConfigValues
 }
 
-type ResourceModel struct {
-	Cpu    string `json:"cpu"`
-	Memory string `json:"memory"`
-}
+func buildPodConfigValues(item *kubefloworgv1beta1.WorkspaceKind) []PodConfigValue {
+	podConfigValues := []PodConfigValue{}
+	if item.Spec.PodTemplate.Options.PodConfig.Values != nil {
+		for _, item := range item.Spec.PodTemplate.Options.PodConfig.Values {
+			labels := map[string]string{}
+			for _, label := range item.Spawner.Labels {
+				labels[label.Key] = label.Value
+			}
 
-type SpawnerModel struct {
-	DisplayName        string `json:"display_name"`
-	Description        string `json:"description"`
-	Deprecated         bool   `json:"deprecated"`
-	DeprecationMessage string `json:"deprecation_message"`
-	Hidden             bool   `json:"hidden"`
+			podConfigValues = append(podConfigValues, PodConfigValue{
+				Id:          item.Id,
+				DisplayName: item.Spawner.DisplayName,
+				Description: *item.Spawner.Description,
+				Labels:      labels,
+			})
+		}
+	}
+	return podConfigValues
 }
 
 func NewWorkspaceKindModelFromWorkspaceKind(item *kubefloworgv1beta1.WorkspaceKind) WorkspaceKindModel {
+	imageConfigValues := buildImageConfigValues(item)
+	podConfigValues := buildPodConfigValues(item)
+
+	labels := map[string]string{}
+	if item.Spec.PodTemplate.PodMetadata.Labels != nil {
+		labels = item.Spec.PodTemplate.PodMetadata.Labels
+	}
+
+	annotations := map[string]string{}
+	if item.Spec.PodTemplate.PodMetadata.Annotations != nil {
+		annotations = item.Spec.PodTemplate.PodMetadata.Annotations
+	}
+
 	deprecated := false
 	if item.Spec.Spawner.Deprecated != nil {
 		deprecated = *item.Spec.Spawner.Deprecated
@@ -65,33 +113,46 @@ func NewWorkspaceKindModelFromWorkspaceKind(item *kubefloworgv1beta1.WorkspaceKi
 		deprecationMessage = *item.Spec.Spawner.DeprecationMessage
 	}
 
-	cpuValues := make([]string, len(item.Spec.PodTemplate.Options.PodConfig.Values))
-	memoryValues := make([]string, len(item.Spec.PodTemplate.Options.PodConfig.Values))
-	for i, value := range item.Spec.PodTemplate.Options.PodConfig.Values {
-		cpuValues[i] = value.Spec.Resources.Requests.Cpu().String()
-		memoryValues[i] = value.Spec.Resources.Requests.Memory().String()
+	icon := map[string]string{"url": ""}
+	if item.Spec.Spawner.Icon.Url != nil {
+		icon["url"] = *item.Spec.Spawner.Icon.Url
 	}
 
-	workspaceKindModel := WorkspaceKindModel{
-		Name:        item.Name,
-		Labels:      item.Labels,
-		Annotations: item.Annotations,
-		Spawner: SpawnerModel{
-			DisplayName:        item.Spec.Spawner.DisplayName,
-			Description:        item.Spec.Spawner.Description,
-			Deprecated:         deprecated,
-			DeprecationMessage: deprecationMessage,
-			Hidden:             hidden,
-		},
+	logo := map[string]string{"url": ""}
+	if item.Spec.Spawner.Logo.Url != nil {
+		logo["url"] = *item.Spec.Spawner.Logo.Url
+	}
+
+	volumeMounts := map[string]string{"home": ""}
+	if &item.Spec.PodTemplate.VolumeMounts.Home != nil {
+		volumeMounts["home"] = item.Spec.PodTemplate.VolumeMounts.Home
+	}
+
+	return WorkspaceKindModel{
+		Name:               item.Name,
+		DisplayName:        item.Spec.Spawner.DisplayName,
+		Description:        item.Spec.Spawner.Description,
+		Deprecated:         deprecated,
+		DeprecationMessage: deprecationMessage,
+		Hidden:             hidden,
+		Icon:               icon,
+		Logo:               logo,
 		PodTemplate: PodTemplateModel{
-			ImageConfig: item.Spec.PodTemplate.Options.ImageConfig.Spawner.Default,
-			PodConfig:   strings.Join(cpuValues, ",") + "|" + strings.Join(memoryValues, ","),
-			Resources: ResourceModel{
-				Cpu:    strings.Join(cpuValues, ", "),
-				Memory: strings.Join(memoryValues, ", "),
+			PodMetadata: WorkspaceKindPodMetadata{
+				Labels:      labels,
+				Annotations: annotations,
+			},
+			VolumeMount: volumeMounts,
+			Options: WorkspaceKindPodOptions{
+				ImageConfig: ImageConfig{
+					Default: item.Spec.PodTemplate.Options.ImageConfig.Spawner.Default,
+					Values:  imageConfigValues,
+				},
+				PodConfig: PodConfig{
+					Default: item.Spec.PodTemplate.Options.PodConfig.Spawner.Default,
+					Values:  podConfigValues,
+				},
 			},
 		},
 	}
-
-	return workspaceKindModel
 }
