@@ -42,19 +42,19 @@ func NewWorkspaceRepository(cl client.Client) *WorkspaceRepository {
 
 func (r *WorkspaceRepository) GetWorkspace(ctx context.Context, namespace string, workspaceName string) (models.WorkspaceModel, error) {
 	workspace := &kubefloworgv1beta1.Workspace{}
-	err := r.client.Get(ctx, client.ObjectKey{
-		Namespace: namespace,
-		Name:      workspaceName,
-	}, workspace)
-	if err != nil {
+	if err := r.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: workspaceName}, workspace); err != nil {
 		if apierrors.IsNotFound(err) {
 			return models.WorkspaceModel{}, ErrWorkspaceNotFound
 		}
 		return models.WorkspaceModel{}, err
 	}
 
-	workspaceModel := models.NewWorkspaceModelFromWorkspace(ctx, r.client, workspace)
-	return workspaceModel, nil
+	kind := &kubefloworgv1beta1.WorkspaceKind{}
+	if err := r.client.Get(ctx, client.ObjectKey{Name: workspace.Spec.Kind}, kind); err != nil {
+		return models.WorkspaceModel{}, err
+	}
+
+	return models.NewWorkspaceModelFromWorkspace(workspace, kind), nil
 }
 
 func (r *WorkspaceRepository) GetWorkspaces(ctx context.Context, namespace string) ([]models.WorkspaceModel, error) {
@@ -69,8 +69,11 @@ func (r *WorkspaceRepository) GetWorkspaces(ctx context.Context, namespace strin
 
 	workspacesModels := make([]models.WorkspaceModel, len(workspaceList.Items))
 	for i, item := range workspaceList.Items {
-		workspaceModel := models.NewWorkspaceModelFromWorkspace(ctx, r.client, &item)
-		workspacesModels[i] = workspaceModel
+		kind := &kubefloworgv1beta1.WorkspaceKind{}
+		if err := r.client.Get(ctx, client.ObjectKey{Name: item.Spec.Kind}, kind); err != nil {
+			return nil, err
+		}
+		workspacesModels[i] = models.NewWorkspaceModelFromWorkspace(&item, kind)
 	}
 
 	return workspacesModels, nil
@@ -78,16 +81,17 @@ func (r *WorkspaceRepository) GetWorkspaces(ctx context.Context, namespace strin
 
 func (r *WorkspaceRepository) GetAllWorkspaces(ctx context.Context) ([]models.WorkspaceModel, error) {
 	workspaceList := &kubefloworgv1beta1.WorkspaceList{}
-
-	err := r.client.List(ctx, workspaceList)
-	if err != nil {
+	if err := r.client.List(ctx, workspaceList); err != nil {
 		return nil, err
 	}
 
 	workspacesModels := make([]models.WorkspaceModel, len(workspaceList.Items))
 	for i, item := range workspaceList.Items {
-		workspaceModel := models.NewWorkspaceModelFromWorkspace(ctx, r.client, &item)
-		workspacesModels[i] = workspaceModel
+		kind := &kubefloworgv1beta1.WorkspaceKind{}
+		if err := r.client.Get(ctx, client.ObjectKey{Name: item.Spec.Kind}, kind); err != nil {
+			return nil, err
+		}
+		workspacesModels[i] = models.NewWorkspaceModelFromWorkspace(&item, kind)
 	}
 
 	return workspacesModels, nil
@@ -140,7 +144,12 @@ func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, workspaceMode
 		return models.WorkspaceModel{}, err
 	}
 
-	return models.NewWorkspaceModelFromWorkspace(ctx, r.client, workspace), nil
+	kind := &kubefloworgv1beta1.WorkspaceKind{}
+	if err := r.client.Get(ctx, client.ObjectKey{Name: workspace.Spec.Kind}, kind); err != nil {
+		return models.WorkspaceModel{}, err
+	}
+
+	return models.NewWorkspaceModelFromWorkspace(workspace, kind), nil
 }
 
 func (r *WorkspaceRepository) DeleteWorkspace(ctx context.Context, namespace, workspaceName string) error {

@@ -17,10 +17,7 @@ limitations under the License.
 package models
 
 import (
-	"context"
-
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type WorkspaceModel struct {
@@ -92,12 +89,7 @@ type DataVolumeModel struct {
 	ReadOnly  bool   `json:"read_only"`
 }
 
-func NewWorkspaceModelFromWorkspace(ctx context.Context, cl client.Client, item *kubefloworgv1beta1.Workspace) WorkspaceModel {
-	wsk := &kubefloworgv1beta1.WorkspaceKind{}
-	if err := cl.Get(ctx, client.ObjectKey{Name: item.Spec.Kind}, wsk); err != nil {
-		return WorkspaceModel{}
-	}
-
+func NewWorkspaceModelFromWorkspace(item *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.WorkspaceKind) WorkspaceModel {
 	dataVolumes := make([]DataVolumeModel, len(item.Spec.PodTemplate.Volumes.Data))
 	for i, volume := range item.Spec.PodTemplate.Volumes.Data {
 		dataVolumes[i] = DataVolumeModel{

@@ -201,10 +201,13 @@ var _ = Describe("Workspaces Handler", func() {
 			workspace3 := &kubefloworgv1beta1.Workspace{}
 			Expect(k8sClient.Get(ctx, workspaceKey3, workspace3)).To(Succeed())
 
+			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: workspaceKindName}, workspaceKind)).To(Succeed())
+
 			expectedWorkspaces := []models.WorkspaceModel{
-				models.NewWorkspaceModelFromWorkspace(ctx, k8sClient, workspace1),
-				models.NewWorkspaceModelFromWorkspace(ctx, k8sClient, workspace2),
-				models.NewWorkspaceModelFromWorkspace(ctx, k8sClient, workspace3),
+				models.NewWorkspaceModelFromWorkspace(workspace1, workspaceKind),
+				models.NewWorkspaceModelFromWorkspace(workspace2, workspaceKind),
+				models.NewWorkspaceModelFromWorkspace(workspace3, workspaceKind),
 			}
 			Expect(workspaces).To(ConsistOf(expectedWorkspaces))
 
@@ -255,9 +258,12 @@ var _ = Describe("Workspaces Handler", func() {
 			workspace2 := &kubefloworgv1beta1.Workspace{}
 			Expect(k8sClient.Get(ctx, workspaceKey2, workspace2)).To(Succeed())
 
+			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: workspaceKindName}, workspaceKind)).To(Succeed())
+
 			expectedWorkspaces := []models.WorkspaceModel{
-				models.NewWorkspaceModelFromWorkspace(ctx, k8sClient, workspace1),
-				models.NewWorkspaceModelFromWorkspace(ctx, k8sClient, workspace2),
+				models.NewWorkspaceModelFromWorkspace(workspace1, workspaceKind),
+				models.NewWorkspaceModelFromWorkspace(workspace2, workspaceKind),
 			}
 			Expect(workspaces).To(ConsistOf(expectedWorkspaces))
 
@@ -495,7 +501,6 @@ var _ = Describe("Workspaces Handler", func() {
 			err = json.Unmarshal(body, &response)
 			Expect(err).NotTo(HaveOccurred(), "Error unmarshalling response JSON")
 
-			// remove auto generated fields from comparison
 			response.Data.Activity.LastActivity = 0
 
 			By("checking if the retrieved workspace matches the expected workspace")
