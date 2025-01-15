@@ -54,7 +54,7 @@ func (r *WorkspaceRepository) GetWorkspace(ctx context.Context, namespace string
 		return models.WorkspaceModel{}, err
 	}
 
-	return models.NewWorkspaceModelFromWorkspace(workspace, kind), nil
+	return NewWorkspaceModelFromWorkspace(workspace, kind), nil
 }
 
 func (r *WorkspaceRepository) GetWorkspaces(ctx context.Context, namespace string) ([]models.WorkspaceModel, error) {
@@ -73,7 +73,7 @@ func (r *WorkspaceRepository) GetWorkspaces(ctx context.Context, namespace strin
 		if err := r.client.Get(ctx, client.ObjectKey{Name: item.Spec.Kind}, kind); err != nil {
 			return nil, err
 		}
-		workspacesModels[i] = models.NewWorkspaceModelFromWorkspace(&item, kind)
+		workspacesModels[i] = NewWorkspaceModelFromWorkspace(&item, kind)
 	}
 
 	return workspacesModels, nil
@@ -91,7 +91,7 @@ func (r *WorkspaceRepository) GetAllWorkspaces(ctx context.Context) ([]models.Wo
 		if err := r.client.Get(ctx, client.ObjectKey{Name: item.Spec.Kind}, kind); err != nil {
 			return nil, err
 		}
-		workspacesModels[i] = models.NewWorkspaceModelFromWorkspace(&item, kind)
+		workspacesModels[i] = NewWorkspaceModelFromWorkspace(&item, kind)
 	}
 
 	return workspacesModels, nil
@@ -149,7 +149,7 @@ func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, workspaceMode
 		return models.WorkspaceModel{}, err
 	}
 
-	return models.NewWorkspaceModelFromWorkspace(workspace, kind), nil
+	return NewWorkspaceModelFromWorkspace(workspace, kind), nil
 }
 
 func (r *WorkspaceRepository) DeleteWorkspace(ctx context.Context, namespace, workspaceName string) error {
@@ -168,4 +168,92 @@ func (r *WorkspaceRepository) DeleteWorkspace(ctx context.Context, namespace, wo
 	}
 
 	return nil
+}
+
+func NewWorkspaceModelFromWorkspace(item *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.WorkspaceKind) models.WorkspaceModel {
+	dataVolumes := make([]models.DataVolumeModel, len(item.Spec.PodTemplate.Volumes.Data))
+	for i, volume := range item.Spec.PodTemplate.Volumes.Data {
+		dataVolumes[i] = models.DataVolumeModel{
+			PvcName:   volume.PVCName,
+			MountPath: volume.MountPath,
+			ReadOnly:  *volume.ReadOnly,
+		}
+	}
+
+	imageConfigRedirectChain := make([]*models.RedirectChain, len(item.Status.PodTemplateOptions.ImageConfig.RedirectChain))
+	for i, chain := range item.Status.PodTemplateOptions.ImageConfig.RedirectChain {
+		imageConfigRedirectChain[i] = &models.RedirectChain{
+			Source: chain.Source,
+			Target: chain.Target,
+		}
+	}
+
+	podConfigRedirectChain := make([]*models.RedirectChain, len(item.Status.PodTemplateOptions.PodConfig.RedirectChain))
+
+	for i, chain := range item.Status.PodTemplateOptions.PodConfig.RedirectChain {
+		podConfigRedirectChain[i] = &models.RedirectChain{
+			Source: chain.Source,
+			Target: chain.Target,
+		}
+	}
+
+	podMetadataLabels := item.Spec.PodTemplate.PodMetadata.Labels
+	if podMetadataLabels == nil {
+		podMetadataLabels = map[string]string{}
+	}
+
+	podMetadataAnnotations := item.Spec.PodTemplate.PodMetadata.Annotations
+	if podMetadataAnnotations == nil {
+		podMetadataAnnotations = map[string]string{}
+	}
+
+	workspaceModel := models.WorkspaceModel{
+		Name:      item.ObjectMeta.Name,
+		Namespace: item.Namespace,
+		WorkspaceKind: models.WorkspaceKind{
+			Name: item.Spec.Kind,
+			Type: "POD_TEMPLATE",
+		},
+		DeferUpdates: *item.Spec.DeferUpdates,
+		Paused:       *item.Spec.Paused,
+		PausedTime:   item.Status.PauseTime,
+		State:        string(item.Status.State),
+		StateMessage: item.Status.StateMessage,
+		PodTemplate: models.PodTemplate{
+			PodMetadata: &models.PodMetadata{
+				Labels:      podMetadataLabels,
+				Annotations: podMetadataAnnotations,
+			},
+			Volumes: &models.Volumes{
+				Home: &models.DataVolumeModel{
+					PvcName:   *item.Spec.PodTemplate.Volumes.Home,
+					MountPath: wsk.Spec.PodTemplate.VolumeMounts.Home,
+					ReadOnly:  false, // From where to get this value?
+				},
+				Data: dataVolumes,
+			},
+			ImageConfig: &models.ImageConfig{
+				Current:       item.Spec.PodTemplate.Options.ImageConfig,
+				Desired:       item.Status.PodTemplateOptions.ImageConfig.Desired,
+				RedirectChain: imageConfigRedirectChain,
+			},
+			PodConfig: &models.PodConfig{
+				Current:       item.Spec.PodTemplate.Options.PodConfig,
+				Desired:       item.Spec.PodTemplate.Options.PodConfig,
+				RedirectChain: podConfigRedirectChain,
+			},
+		},
+		Activity: models.Activity{
+			LastActivity: item.Status.Activity.LastActivity,
+			LastUpdate:   item.Status.Activity.LastUpdate,
+			// TODO: update these fields when the last probe is implemented
+			LastProbe: &models.Probe{
+				StartTimeMs: 0,
+				EndTimeMs:   0,
+				Result:      "default_result",
+				Message:     "default_message",
+			},
+		},
+	}
+	return workspaceModel
 }

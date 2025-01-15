@@ -205,9 +205,9 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: workspaceKindName}, workspaceKind)).To(Succeed())
 
 			expectedWorkspaces := []models.WorkspaceModel{
-				models.NewWorkspaceModelFromWorkspace(workspace1, workspaceKind),
-				models.NewWorkspaceModelFromWorkspace(workspace2, workspaceKind),
-				models.NewWorkspaceModelFromWorkspace(workspace3, workspaceKind),
+				repositories.NewWorkspaceModelFromWorkspace(workspace1, workspaceKind),
+				repositories.NewWorkspaceModelFromWorkspace(workspace2, workspaceKind),
+				repositories.NewWorkspaceModelFromWorkspace(workspace3, workspaceKind),
 			}
 			Expect(workspaces).To(ConsistOf(expectedWorkspaces))
 
@@ -262,8 +262,8 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: workspaceKindName}, workspaceKind)).To(Succeed())
 
 			expectedWorkspaces := []models.WorkspaceModel{
-				models.NewWorkspaceModelFromWorkspace(workspace1, workspaceKind),
-				models.NewWorkspaceModelFromWorkspace(workspace2, workspaceKind),
+				repositories.NewWorkspaceModelFromWorkspace(workspace1, workspaceKind),
+				repositories.NewWorkspaceModelFromWorkspace(workspace2, workspaceKind),
 			}
 			Expect(workspaces).To(ConsistOf(expectedWorkspaces))
 
