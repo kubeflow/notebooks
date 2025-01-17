@@ -9,11 +9,11 @@ import {
   PageSection,
 } from '@patternfly/react-core';
 
-const Settings: React.FunctionComponent = () => (
+const Debug: React.FunctionComponent = () => (
   <PageSection>
     <EmptyState
       variant={EmptyStateVariant.full}
-      titleText="Empty State (Stub Settings Module)"
+      titleText="Debug page (for development only)"
       icon={CubesIcon}
     >
       <EmptyStateBody>
@@ -27,4 +27,4 @@ const Settings: React.FunctionComponent = () => (
   </PageSection>
 );
 
-export { Settings };
+export { Debug };
