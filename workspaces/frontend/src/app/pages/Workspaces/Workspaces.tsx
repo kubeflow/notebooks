@@ -4,27 +4,14 @@ import {
   DrawerContent,
   DrawerContentBody,
   PageSection,
-  MenuToggle,
   TimestampTooltipVariant,
   Timestamp,
   Label,
   Title,
-  Popper,
-  MenuToggleElement,
-  Menu,
-  MenuContent,
-  MenuList,
-  MenuItem,
-  Toolbar,
-  ToolbarContent,
-  ToolbarToggleGroup,
-  ToolbarGroup,
-  ToolbarItem,
-  ToolbarFilter,
-  SearchInput,
-  Button,
   PaginationVariant,
   Pagination,
+  Button,
+  Content,
 } from '@patternfly/react-core';
 import {
   Table,
@@ -37,15 +24,16 @@ import {
   ActionsColumn,
   IActions,
 } from '@patternfly/react-table';
-import { FilterIcon } from '@patternfly/react-icons';
+import { useState } from 'react';
 import { Workspace, WorkspacesColumnNames, WorkspaceState } from '~/shared/types';
 import { WorkspaceDetails } from '~/app/pages/Workspaces/Details/WorkspaceDetails';
 import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
+import Filter, { FilteredColumn } from 'shared/components/Filter';
 import { formatRam } from 'shared/utilities/WorkspaceResources';
 
 export const Workspaces: React.FunctionComponent = () => {
   /* Mocked workspaces, to be removed after fetching info from backend */
-  const workspaces: Workspace[] = [
+  const mockWorkspaces: Workspace[] = [
     {
       name: 'My Jupyter Notebook',
       namespace: 'namespace1',
@@ -156,7 +144,20 @@ export const Workspaces: React.FunctionComponent = () => {
     lastActivity: 'Last Activity',
   };
 
-  // Selected workspace
+  const filterableColumns: WorkspacesColumnNames = {
+    name: 'Name',
+    kind: 'Kind',
+    image: 'Image',
+    podConfig: 'Pod Config',
+    state: 'State',
+    homeVol: 'Home Vol',
+    lastActivity: 'Last Activity',
+  };
+
+  // change when fetch workspaces is implemented
+  const initialWorkspaces = mockWorkspaces;
+  const [workspaces, setWorkspaces] = useState(initialWorkspaces);
+  const [expandedWorkspacesNames, setExpandedWorkspacesNames] = React.useState<string[]>([]);
   const [selectedWorkspace, setSelectedWorkspace] = React.useState<Workspace | null>(null);
 
   const selectWorkspace = React.useCallback(
@@ -169,17 +170,6 @@ export const Workspaces: React.FunctionComponent = () => {
     },
     [selectedWorkspace],
   );
-
-  // Filter
-  const [activeAttributeMenu, setActiveAttributeMenu] = React.useState<string>(columnNames.name);
-  const [isAttributeMenuOpen, setIsAttributeMenuOpen] = React.useState(false);
-  const attributeToggleRef = React.useRef<MenuToggleElement | null>(null);
-  const attributeMenuRef = React.useRef<HTMLDivElement | null>(null);
-  const attributeContainerRef = React.useRef<HTMLDivElement | null>(null);
-
-  const [searchValue, setSearchValue] = React.useState('');
-  const [expandedWorkspacesNames, setExpandedWorkspacesNames] = React.useState<string[]>([]);
-
   const setWorkspaceExpanded = (workspace: Workspace, isExpanding = true) =>
     setExpandedWorkspacesNames((prevExpanded) => {
       const newExpandedWorkspacesNames = prevExpanded.filter((wsName) => wsName !== workspace.name);
@@ -191,173 +181,42 @@ export const Workspaces: React.FunctionComponent = () => {
   const isWorkspaceExpanded = (workspace: Workspace) =>
     expandedWorkspacesNames.includes(workspace.name);
 
-  const searchInput = (
-    <SearchInput
-      placeholder="Filter by name"
-      value={searchValue}
-      onChange={(_event, value) => onSearchChange(value)}
-      onClear={() => onSearchChange('')}
-    />
-  );
-
-  const handleAttributeMenuKeys = React.useCallback(
-    (event: KeyboardEvent) => {
-      if (!isAttributeMenuOpen) {
-        return;
-      }
-      if (
-        attributeMenuRef.current?.contains(event.target as Node) ||
-        attributeToggleRef.current?.contains(event.target as Node)
-      ) {
-        if (event.key === 'Escape' || event.key === 'Tab') {
-          setIsAttributeMenuOpen(!isAttributeMenuOpen);
-          attributeToggleRef.current?.focus();
-        }
-      }
-    },
-    [isAttributeMenuOpen, attributeMenuRef, attributeToggleRef],
-  );
-
-  const handleAttributeClickOutside = React.useCallback(
-    (event: MouseEvent) => {
-      if (isAttributeMenuOpen && !attributeMenuRef.current?.contains(event.target as Node)) {
-        setIsAttributeMenuOpen(false);
-      }
-    },
-    [isAttributeMenuOpen, attributeMenuRef],
-  );
-
-  React.useEffect(() => {
-    window.addEventListener('keydown', handleAttributeMenuKeys);
-    window.addEventListener('click', handleAttributeClickOutside);
-    return () => {
-      window.removeEventListener('keydown', handleAttributeMenuKeys);
-      window.removeEventListener('click', handleAttributeClickOutside);
-    };
-  }, [isAttributeMenuOpen, attributeMenuRef, handleAttributeMenuKeys, handleAttributeClickOutside]);
-
-  const onAttributeToggleClick = (ev: React.MouseEvent) => {
-    ev.stopPropagation(); // Stop handleClickOutside from handling
-    setTimeout(() => {
-      if (attributeMenuRef.current) {
-        const firstElement = attributeMenuRef.current.querySelector('li > button:not(:disabled)');
-        if (firstElement) {
-          (firstElement as HTMLElement).focus();
-        }
-      }
-    }, 0);
-    setIsAttributeMenuOpen(!isAttributeMenuOpen);
-  };
-
-  const attributeToggle = (
-    <MenuToggle
-      ref={attributeToggleRef}
-      onClick={onAttributeToggleClick}
-      isExpanded={isAttributeMenuOpen}
-      icon={<FilterIcon />}
-    >
-      {activeAttributeMenu}
-    </MenuToggle>
-  );
-
-  const attributeMenu = (
-    <Menu
-      ref={attributeMenuRef}
-      onSelect={(_ev, itemId) => {
-        setActiveAttributeMenu(itemId?.toString());
-        setIsAttributeMenuOpen(!isAttributeMenuOpen);
-      }}
-    >
-      <MenuContent>
-        <MenuList>
-          <MenuItem itemId="Name">Name</MenuItem>
-          <MenuItem itemId="Kind">Kind</MenuItem>
-          <MenuItem itemId="Image">Image</MenuItem>
-          <MenuItem itemId="Pod Config">Pod Config</MenuItem>
-          <MenuItem itemId="State">State</MenuItem>
-          <MenuItem itemId="Home Vol">Home Vol</MenuItem>
-          <MenuItem itemId="Data Vol">Data Vol</MenuItem>
-          <MenuItem itemId="Last Activity">Last Activity</MenuItem>
-        </MenuList>
-      </MenuContent>
-    </Menu>
-  );
-
-  const attributeDropdown = (
-    <div ref={attributeContainerRef}>
-      <Popper
-        trigger={attributeToggle}
-        triggerRef={attributeToggleRef}
-        popper={attributeMenu}
-        popperRef={attributeMenuRef}
-        appendTo={attributeContainerRef.current || undefined}
-        isVisible={isAttributeMenuOpen}
-      />
-    </div>
-  );
-
-  const toolbar = (
-    <Toolbar
-      id="attribute-search-filter-toolbar"
-      clearAllFilters={() => {
-        setSearchValue('');
-      }}
-    >
-      <ToolbarContent>
-        <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="xl">
-          <ToolbarGroup variant="filter-group">
-            <ToolbarItem>{attributeDropdown}</ToolbarItem>
-            <ToolbarFilter
-              labels={searchValue !== '' ? [searchValue] : ([] as string[])}
-              deleteLabel={() => setSearchValue('')}
-              deleteLabelGroup={() => setSearchValue('')}
-              categoryName={activeAttributeMenu}
-            >
-              {searchInput}
-            </ToolbarFilter>
-            <Button variant="primary" ouiaId="Primary">
-              Create Workspace
-            </Button>
-          </ToolbarGroup>
-        </ToolbarToggleGroup>
-      </ToolbarContent>
-    </Toolbar>
-  );
-
-  const onSearchChange = (value: string) => {
-    setSearchValue(value);
-  };
-
-  const onFilter = (workspace: Workspace) => {
+  // filter function to pass to the filter component
+  const onFilter = (filters: FilteredColumn[]) => {
     // Search name with search value
-    let searchValueInput: RegExp;
-    try {
-      searchValueInput = new RegExp(searchValue, 'i');
-    } catch {
-      searchValueInput = new RegExp(searchValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-    }
+    let filteredWorkspaces = initialWorkspaces;
+    filters.forEach((filter) => {
+      let searchValueInput: RegExp;
+      try {
+        searchValueInput = new RegExp(filter.value, 'i');
+      } catch {
+        searchValueInput = new RegExp(filter.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      }
 
-    return (
-      searchValue === '' ||
-      (activeAttributeMenu === 'Name' && workspace.name.search(searchValueInput) >= 0) ||
-      (activeAttributeMenu === 'Kind' && workspace.kind.search(searchValueInput) >= 0) ||
-      (activeAttributeMenu === 'Image' &&
-        workspace.options.imageConfig.search(searchValueInput) >= 0) ||
-      (activeAttributeMenu === 'Pod Config' &&
-        workspace.options.podConfig.search(searchValueInput) >= 0) ||
-      (activeAttributeMenu === 'State' &&
-        WorkspaceState[workspace.status.state].search(searchValueInput) >= 0) ||
-      (activeAttributeMenu === 'Home Vol' &&
-        workspace.podTemplate.volumes.home.search(searchValueInput) >= 0) ||
-      (activeAttributeMenu === 'Data Vol' &&
-        workspace.podTemplate.volumes.data.some(
-          (dataVol) =>
-            dataVol.pvcName.search(searchValueInput) >= 0 ||
-            dataVol.mountPath.search(searchValueInput) >= 0,
-        ))
-    );
+      filteredWorkspaces = filteredWorkspaces.filter((workspace) => {
+        if (filter.value === '') {
+          return true;
+        }
+        switch (filter.columnName) {
+          case columnNames.name:
+            return workspace.name.search(searchValueInput) >= 0;
+          case columnNames.kind:
+            return workspace.kind.search(searchValueInput) >= 0;
+          case columnNames.image:
+            return workspace.options.imageConfig.search(searchValueInput) >= 0;
+          case columnNames.podConfig:
+            return workspace.options.podConfig.search(searchValueInput) >= 0;
+          case columnNames.state:
+            return WorkspaceState[workspace.status.state].search(searchValueInput) >= 0;
+          case columnNames.homeVol:
+            return workspace.podTemplate.volumes.home.search(searchValueInput) >= 0;
+          default:
+            return true;
+        }
+      });
+    });
+    setWorkspaces(filteredWorkspaces);
   };
-  const filteredWorkspaces = workspaces.filter(onFilter);
 
   // Column sorting
 
@@ -379,7 +238,7 @@ export const Workspaces: React.FunctionComponent = () => {
     return [name, kind, image, podConfig, state, homeVol, cpu, ram, lastActivity];
   };
 
-  let sortedWorkspaces = filteredWorkspaces;
+  let sortedWorkspaces = workspaces;
   if (activeSortIndex !== null) {
     sortedWorkspaces = workspaces.sort((a, b) => {
       const aValue = getSortableRowValues(a)[activeSortIndex];
@@ -515,30 +374,31 @@ export const Workspaces: React.FunctionComponent = () => {
           <PageSection isFilled>
             <Title headingLevel="h1">Kubeflow Workspaces</Title>
             <p>View your existing workspaces or create new workspaces.</p>
-            {toolbar}
+            <Content style={{ display: 'flex', alignItems: 'flex-start', columnGap: '20px' }}>
+              <Filter id="filter-workspaces" onFilter={onFilter} columnNames={filterableColumns} />
+              <Button variant="primary" ouiaId="Primary">
+                Create Workspace
+              </Button>
+            </Content>
             <Table aria-label="Sortable table" ouiaId="SortableTable">
               <Thead>
                 <Tr>
                   <Th />
-                  <Th sort={getSortParams(0)}>{columnNames.name}</Th>
-                  <Th sort={getSortParams(1)}>{columnNames.kind}</Th>
-                  <Th sort={getSortParams(2)}>{columnNames.image}</Th>
-                  <Th sort={getSortParams(3)}>{columnNames.podConfig}</Th>
-                  <Th sort={getSortParams(4)}>{columnNames.state}</Th>
-                  <Th sort={getSortParams(5)}>{columnNames.homeVol}</Th>
-                  <Th sort={getSortParams(6)} info={{ tooltip: 'Workspace CPU usage' }}>
-                    {columnNames.cpu}
-                  </Th>
-                  <Th sort={getSortParams(7)} info={{ tooltip: 'Workspace memory usage' }}>
-                    {columnNames.ram}
-                  </Th>
-                  <Th sort={getSortParams(8)}>{columnNames.lastActivity}</Th>
+                  {Object.values(columnNames).map((columnName, index) => (
+                    <Th key={`${columnName}-col-name`} sort={getSortParams(index)}>
+                      {columnName}
+                    </Th>
+                  ))}
                   <Th screenReaderText="Primary action" />
                 </Tr>
               </Thead>
               {sortedWorkspaces.map((workspace, rowIndex) => (
-                <Tbody key={rowIndex} isExpanded={isWorkspaceExpanded(workspace)}>
-                  <Tr>
+                <Tbody
+                  id="workspaces-table-content"
+                  key={rowIndex}
+                  isExpanded={isWorkspaceExpanded(workspace)}
+                >
+                  <Tr id={`workspaces-table-row-${rowIndex + 1}`}>
                     <Td
                       expand={{
                         rowIndex,
