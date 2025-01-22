@@ -4,6 +4,7 @@ import {
   DescriptionListTerm,
   DescriptionListGroup,
   DescriptionListDescription,
+  Divider,
 } from '@patternfly/react-core';
 import { Workspace } from '~/shared/types';
 
@@ -14,24 +15,28 @@ type WorkspaceDetailsOverviewProps = {
 export const WorkspaceDetailsOverview: React.FunctionComponent<WorkspaceDetailsOverviewProps> = ({
   workspace,
 }) => (
-  <DescriptionList>
+  <DescriptionList isHorizontal>
     <DescriptionListGroup>
       <DescriptionListTerm>Name</DescriptionListTerm>
       <DescriptionListDescription>{workspace.name}</DescriptionListDescription>
     </DescriptionListGroup>
+    <Divider />
     <DescriptionListGroup>
       <DescriptionListTerm>Kind</DescriptionListTerm>
       <DescriptionListDescription>{workspace.kind}</DescriptionListDescription>
     </DescriptionListGroup>
+    <Divider />
     <DescriptionListGroup>
       <DescriptionListTerm>Labels</DescriptionListTerm>
       <DescriptionListDescription>
         {workspace.podTemplate.podMetadata.labels.join(', ')}
       </DescriptionListDescription>
     </DescriptionListGroup>
+    <Divider />
     <DescriptionListGroup>
       <DescriptionListTerm>Pod config</DescriptionListTerm>
       <DescriptionListDescription>{workspace.options.podConfig}</DescriptionListDescription>
     </DescriptionListGroup>
+    <Divider />
   </DescriptionList>
 );

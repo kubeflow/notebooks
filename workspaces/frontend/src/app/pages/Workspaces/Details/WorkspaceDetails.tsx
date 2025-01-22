@@ -9,6 +9,8 @@ import {
   Tab,
   TabTitleText,
   Title,
+  TabContentBody,
+  TabContent,
 } from '@patternfly/react-core';
 import { Workspace } from '~/shared/types';
 import { WorkspaceDetailsOverview } from '~/app/pages/Workspaces/Details/WorkspaceDetailsOverview';
@@ -37,7 +39,7 @@ export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = 
   };
 
   return (
-    <DrawerPanelContent isResizable defaultSize="50%">
+    <DrawerPanelContent>
       <DrawerHead>
         <Title headingLevel="h6">{workspace.name}</Title>
         <WorkspaceDetailsActions onEditClick={onEditClick} onDeleteClick={onDeleteClick} />
@@ -48,20 +50,30 @@ export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = 
       <DrawerPanelBody>
         <Tabs activeKey={activeTabKey} onSelect={handleTabClick}>
           <Tab eventKey={0} title={<TabTitleText>Overview</TabTitleText>} aria-label="Overview">
-            <WorkspaceDetailsOverview workspace={workspace} />
+            <TabContent id="overviewSectionBodyPadding">
+              <TabContentBody hasPadding>
+                <WorkspaceDetailsOverview workspace={workspace} />
+              </TabContentBody>
+            </TabContent>
           </Tab>
           <Tab eventKey={1} title={<TabTitleText>Activity</TabTitleText>} aria-label="Activity">
-            Activity
+            <TabContent id="activitySectionBodyPadding">
+              <TabContentBody hasPadding>Activity</TabContentBody>
+            </TabContent>
           </Tab>
           <Tab eventKey={2} title={<TabTitleText>Logs</TabTitleText>} aria-label="Logs">
-            Logs
+            <TabContent id="logsSectionBodyPadding">
+              <TabContentBody hasPadding>Logs</TabContentBody>
+            </TabContent>
           </Tab>
           <Tab
             eventKey={3}
             title={<TabTitleText>Pod template</TabTitleText>}
             aria-label="Pod template"
           >
-            Pod template
+            <TabContent id="podTemplateBodyPadding">
+              <TabContentBody hasPadding>Pod template</TabContentBody>
+            </TabContent>
           </Tab>
         </Tabs>
       </DrawerPanelBody>
