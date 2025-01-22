@@ -7,7 +7,6 @@ import {
   TimestampTooltipVariant,
   Timestamp,
   Label,
-  Title,
   PaginationVariant,
   Pagination,
   Button,
@@ -372,8 +371,11 @@ export const Workspaces: React.FunctionComponent = () => {
       <DrawerContent panelContent={workspaceDetailsContent}>
         <DrawerContentBody>
           <PageSection isFilled>
-            <Title headingLevel="h1">Kubeflow Workspaces</Title>
-            <p>View your existing workspaces or create new workspaces.</p>
+            <Content>
+              <h1>Kubeflow Workspaces</h1>
+              <p>View your existing workspaces or create new workspaces.</p>
+            </Content>
+            <br />
             <Content style={{ display: 'flex', alignItems: 'flex-start', columnGap: '20px' }}>
               <Filter id="filter-workspaces" onFilter={onFilter} columnNames={filterableColumns} />
               <Button variant="primary" ouiaId="Primary">
@@ -443,6 +445,7 @@ export const Workspaces: React.FunctionComponent = () => {
               perPage={perPage}
               page={page}
               variant={PaginationVariant.bottom}
+              isCompact
               onSetPage={onSetPage}
               onPerPageSelect={onPerPageSelect}
             />

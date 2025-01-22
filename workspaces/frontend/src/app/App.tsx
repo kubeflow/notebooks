@@ -5,6 +5,7 @@ import {
   Flex,
   Masthead,
   MastheadContent,
+  MastheadMain,
   MastheadToggle,
   Page,
   PageToggleButton,
@@ -16,16 +17,27 @@ import { NamespaceContextProvider } from './context/NamespaceContextProvider';
 import AppRoutes from './AppRoutes';
 import NavSidebar from './NavSidebar';
 import { NotebookContextProvider } from './context/NotebookContext';
+import { isMUITheme, Theme } from './const';
 
 const App: React.FC = () => {
+  React.useEffect(() => {
+    // Apply the theme based on the value of STYLE_THEME
+    if (isMUITheme()) {
+      document.documentElement.classList.add(Theme.MUI);
+    } else {
+      document.documentElement.classList.remove(Theme.MUI);
+    }
+  }, []);
+
   const masthead = (
     <Masthead>
-      <MastheadToggle>
-        <PageToggleButton id="page-nav-toggle" variant="plain" aria-label="Dashboard navigation">
-          <BarsIcon />
-        </PageToggleButton>
-      </MastheadToggle>
-
+      <MastheadMain>
+        <MastheadToggle>
+          <PageToggleButton id="page-nav-toggle" variant="plain" aria-label="Dashboard navigation">
+            <BarsIcon />
+          </PageToggleButton>
+        </MastheadToggle>
+      </MastheadMain>
       <MastheadContent>
         <Flex>
           <Title headingLevel="h2" size="3xl">
