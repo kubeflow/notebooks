@@ -58,14 +58,14 @@ function createMockWorkspaceKind(overrides: Partial<WorkspaceKind> = {}): Worksp
 }
 
 // Generate valid mock data with "data" property
-export const mockWorkspacekindsValid = {
+export const mockWorkspaceKindsValid = {
   data: [
     createMockWorkspaceKind(),
   ],
 };
 
 // Generate invalid mock data with "data" property
-export const mockWorkspacekindsInValid = {
+export const mockWorkspaceKindsInValid = {
   data: [
     createMockWorkspaceKind({
       logo: {

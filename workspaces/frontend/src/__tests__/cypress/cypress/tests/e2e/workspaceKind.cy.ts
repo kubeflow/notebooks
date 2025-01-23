@@ -1,4 +1,4 @@
-import { mockWorkspacekindsValid, mockWorkspacekindsInValid } from '../mocked/workspacekinds.mock';
+import { mockWorkspaceKindsInValid, mockWorkspaceKindsValid} from "../mocked/workspaceKinds.mock";
 
 describe('Test buildKindLogoDictionary Functionality', () => {
   // Mock valid workspace kinds
@@ -7,7 +7,7 @@ describe('Test buildKindLogoDictionary Functionality', () => {
       // Mock the API response
       cy.intercept('GET', '/api/v1/workspacekinds', {
         statusCode: 200,
-        body: mockWorkspacekindsValid,
+        body: mockWorkspaceKindsValid,
       });
 
       // Visit the page
@@ -35,7 +35,7 @@ describe('Test buildKindLogoDictionary Functionality', () => {
       // Mock the API response for invalid workspace kinds
       cy.intercept('GET', '/api/v1/workspacekinds', {
         statusCode: 200,
-        body: mockWorkspacekindsInValid,
+        body: mockWorkspaceKindsInValid,
       });
 
       // Visit the page
@@ -43,7 +43,7 @@ describe('Test buildKindLogoDictionary Functionality', () => {
     });
 
     it('should fallback when logo URL is invalid', () => {
-      const workspaceKinds = mockWorkspacekindsInValid.data; // Access mock data
+      const workspaceKinds = mockWorkspaceKindsInValid.data; // Access mock data
 
       cy.get('tbody tr').each(($row, index) => {
         cy.wrap($row).find('td[data-label="Kind"]').within(() => {
