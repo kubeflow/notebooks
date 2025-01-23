@@ -27,8 +27,8 @@ import { useState } from 'react';
 import { Workspace, WorkspacesColumnNames, WorkspaceState } from '~/shared/types';
 import { WorkspaceDetails } from '~/app/pages/Workspaces/Details/WorkspaceDetails';
 import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
+import DeleteModal from '~/shared/components/DeleteModal';
 import Filter, { FilteredColumn } from 'shared/components/Filter';
-import DeleteModal from '~/shared/deleteModal';
 import { formatRam } from 'shared/utilities/WorkspaceResources';
 
 export const Workspaces: React.FunctionComponent = () => {
