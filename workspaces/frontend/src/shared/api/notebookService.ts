@@ -14,7 +14,7 @@ export const getNamespaces =
       throw new Error('Invalid response format');
     });
 
-  export const getWorkspacekinds =
+  export const getWorkspaceKinds =
     (hostPath: string) =>
     (opts: APIOptions): Promise<WorkspaceKind[]> =>
       handleRestFailures(restGET(hostPath, `/workspacekinds`, {}, opts)).then((response) => {

@@ -32,8 +32,8 @@ import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRo
 import DeleteModal from '~/shared/components/DeleteModal';
 import Filter, { FilteredColumn } from 'shared/components/Filter';
 import { formatRam } from 'shared/utilities/WorkspaceResources';
-import { buildKindLogoDictionary } from '~/app/actions/WorkspacekindsActions';
-import useWorkspacekinds from '~/app/hooks/useWorkspacekinds';
+import { buildKindLogoDictionary } from '~/app/actions/WorkspaceKindsActions';
+import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 
 export const Workspaces: React.FunctionComponent = () => {
   /* Mocked workspaces, to be removed after fetching info from backend */
@@ -135,7 +135,7 @@ export const Workspaces: React.FunctionComponent = () => {
     },
   ];
 
-  const [workspaceKinds, loaded, loadError] = useWorkspacekinds();
+  const [workspaceKinds, loaded, loadError] = useWorkspaceKinds();
   let kindLogoDict: Record<string, string> = {};
 
   if (loaded && workspaceKinds) {

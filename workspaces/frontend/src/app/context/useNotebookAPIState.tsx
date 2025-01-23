@@ -1,7 +1,7 @@
 import React from 'react';
 import { APIState } from '~/shared/api/types';
 import { NotebookAPIs } from '~/app/types';
-import { getNamespaces, getWorkspacekinds} from '~/shared/api/notebookService';
+import { getNamespaces, getWorkspaceKinds} from '~/shared/api/notebookService';
 import useAPIState from '~/shared/api/useAPIState';
 
 
@@ -13,7 +13,7 @@ const useNotebookAPIState = (
   const createAPI = React.useCallback(
     (path: string) => ({
       getNamespaces: getNamespaces(path),
-      getWorkspacekinds: getWorkspacekinds(path),
+      getWorkspaceKinds: getWorkspaceKinds(path),
     }),
     [],
   );
