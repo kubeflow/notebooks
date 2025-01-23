@@ -27,6 +27,7 @@ import { useState } from 'react';
 import { Workspace, WorkspacesColumnNames, WorkspaceState } from '~/shared/types';
 import { WorkspaceDetails } from '~/app/pages/Workspaces/Details/WorkspaceDetails';
 import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
+import DeleteModal from '~/shared/components/DeleteModal';
 import Filter, { FilteredColumn } from 'shared/components/Filter';
 import { formatRam } from 'shared/utilities/WorkspaceResources';
 
@@ -158,6 +159,7 @@ export const Workspaces: React.FunctionComponent = () => {
   const [workspaces, setWorkspaces] = useState(initialWorkspaces);
   const [expandedWorkspacesNames, setExpandedWorkspacesNames] = React.useState<string[]>([]);
   const [selectedWorkspace, setSelectedWorkspace] = React.useState<Workspace | null>(null);
+  const [workspaceToDelete, setWorkspaceToDelete] = React.useState<Workspace | null>(null);
 
   const selectWorkspace = React.useCallback(
     (newSelectedWorkspace) => {
@@ -288,6 +290,12 @@ export const Workspaces: React.FunctionComponent = () => {
     console.log(`Clicked on stop, on row ${workspace.name}`);
   }, []);
 
+  const handleDeleteClick = React.useCallback((workspace: Workspace) => {
+    const buttonElement = document.activeElement as HTMLElement;
+    buttonElement.blur(); // Remove focus from the currently focused button
+    setWorkspaceToDelete(workspace); // Open the modal and set workspace to delete
+  }, []);
+
   const defaultActions = React.useCallback(
     (workspace: Workspace): IActions =>
       [
@@ -301,7 +309,7 @@ export const Workspaces: React.FunctionComponent = () => {
         },
         {
           title: 'Delete',
-          onClick: () => deleteAction(workspace),
+          onClick: () => handleDeleteClick(workspace),
         },
         {
           isSeparator: true,
@@ -315,7 +323,7 @@ export const Workspaces: React.FunctionComponent = () => {
           onClick: () => stopAction(workspace),
         },
       ] as IActions,
-    [selectWorkspace, editAction, deleteAction, startRestartAction, stopAction],
+    [selectWorkspace, editAction, handleDeleteClick, startRestartAction, stopAction],
   );
 
   // States
@@ -360,7 +368,7 @@ export const Workspaces: React.FunctionComponent = () => {
           workspace={selectedWorkspace}
           onCloseClick={() => selectWorkspace(null)}
           onEditClick={() => editAction(selectedWorkspace)}
-          onDeleteClick={() => deleteAction(selectedWorkspace)}
+          onDeleteClick={() => handleDeleteClick(selectedWorkspace)}
         />
       )}
     </>
@@ -399,6 +407,7 @@ export const Workspaces: React.FunctionComponent = () => {
                   id="workspaces-table-content"
                   key={rowIndex}
                   isExpanded={isWorkspaceExpanded(workspace)}
+                  data-testid="table-body"
                 >
                   <Tr id={`workspaces-table-row-${rowIndex + 1}`}>
                     <Td
@@ -429,8 +438,13 @@ export const Workspaces: React.FunctionComponent = () => {
                         1 hour ago
                       </Timestamp>
                     </Td>
-                    <Td isActionCell>
-                      <ActionsColumn items={defaultActions(workspace)} />
+                    <Td isActionCell data-testid="action-column">
+                      <ActionsColumn
+                        items={defaultActions(workspace).map((action) => ({
+                          ...action,
+                          'data-testid': `action-${typeof action.title === 'string' ? action.title.toLowerCase() : ''}`,
+                        }))}
+                      />
                     </Td>
                   </Tr>
                   {isWorkspaceExpanded(workspace) && (
@@ -439,6 +453,14 @@ export const Workspaces: React.FunctionComponent = () => {
                 </Tbody>
               ))}
             </Table>
+            <DeleteModal
+              isOpen={workspaceToDelete != null}
+              resourceName={workspaceToDelete?.name || ''}
+              namespace={workspaceToDelete?.namespace || ''}
+              title="Delete Workspace?"
+              onClose={() => setWorkspaceToDelete(null)}
+              onDelete={() => workspaceToDelete && deleteAction(workspaceToDelete)}
+            />
             <Pagination
               itemCount={333}
               widgetId="bottom-example"
