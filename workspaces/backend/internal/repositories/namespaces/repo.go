@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package repositories
+package namespaces
 
 import (
 	"context"
@@ -22,7 +22,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/models"
+	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/namespaces"
 )
 
 type NamespaceRepository struct {
@@ -35,7 +35,7 @@ func NewNamespaceRepository(cl client.Client) *NamespaceRepository {
 	}
 }
 
-func (r *NamespaceRepository) GetNamespaces(ctx context.Context) ([]models.NamespaceModel, error) {
+func (r *NamespaceRepository) GetNamespaces(ctx context.Context) ([]models.Namespace, error) {
 
 	// TODO(ederign): Implement subject access review here to fetch only
 	//                namespaces that "kubeflow-userid" has access to
@@ -45,9 +45,10 @@ func (r *NamespaceRepository) GetNamespaces(ctx context.Context) ([]models.Names
 		return nil, err
 	}
 
-	namespaces := make([]models.NamespaceModel, len(namespaceList.Items))
-	for i, ns := range namespaceList.Items {
-		namespaces[i] = models.NewNamespaceModelFromNamespace(ns.Name)
+	namespaces := make([]models.Namespace, len(namespaceList.Items))
+	for i := range namespaceList.Items {
+		namespace := &namespaceList.Items[i]
+		namespaces[i] = models.NewNamespaceModelFromNamespace(namespace)
 	}
 	return namespaces, nil
 }
