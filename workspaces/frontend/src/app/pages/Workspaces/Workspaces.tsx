@@ -375,7 +375,7 @@ export const Workspaces: React.FunctionComponent = () => {
   );
 
   return (
-    <Drawer isExpanded={selectedWorkspace != null}>
+    <Drawer isInline isExpanded={selectedWorkspace != null}>
       <DrawerContent panelContent={workspaceDetailsContent}>
         <DrawerContentBody>
           <PageSection isFilled>

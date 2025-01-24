@@ -23,6 +23,9 @@
   --mui-button--LineHeight: 1.75;
   --mui-link-underlineColor: rgba(33, 150, 243, 0.4);
 
+  // Drawer
+  --mui-drawer-BorderLeft: var(--mui-palette-grey-300);
+
   // Menu item
   --mui-menu__item--PaddingBlockStart: 6px;
   --mui-menu__item--PaddingBlockEnd: 6px;
@@ -175,8 +178,22 @@
   --pf-v6-c-button--BackgroundColor: rgba(33, 150, 243, 0.04);
 }
 
+.mui-theme .pf-v6-c-description-list {
+  --pf-v6-c-description-list--RowGap: var(--pf-t--global--spacer--gap--group-to-group--horizontal--compact);
+}
+
+.mui-theme .pf-v6-c-description-list__term {
+  font: var(--mui-font-subtitle2);
+}
+
 .mui-theme .pf-v6-c-description-list__text .pf-v6-l-split__item.pf-m-fill {
   align-content: center;
+}
+
+
+
+.mui-theme .pf-v6-c-drawer {
+  --pf-v6-c-drawer--m-inline--m-expanded__panel--after--BackgroundColor: var(--mui-drawer-BorderLeft);
 }
 
 .mui-theme .pf-v6-c-form__group {
@@ -669,6 +686,13 @@
   --pf-v6-c-tab-content__body--m-padding--PaddingInlineStart: var(--pf-t--global--spacer--lg);
 }
 
+.pf-v6-c-tab-content__body.pf-m-padding {
+  --pf-v6-c-tab-content__body--PaddingInlineStart: 0px;
+  --pf-v6-c-tab-content__body--PaddingInlineEnd: 0px;
+  --pf-v6-c-tab-content__body--PaddingBlockStart: var(--mui-spacing-8px);
+  --pf-v6-c-tab-content__body--PaddingBlockEnd: var(--mui-spacing-8px);
+}
+
 .mui-theme .pf-v6-c-tabs {
   --pf-v6-c-tabs__link--hover--BackgroundColor: var(--mui-tabs__link--hover--BackgroundColor);
   --pf-v6-c-tabs__item--PaddingBlockStart: var(--mui-tabs__item--PaddingBlockStart);
@@ -760,6 +784,7 @@
 }
 
 .mui-theme .pf-v6-c-page__main-container {
+  --pf-v6-c-page__main-container--BorderWidth: 0px;
   --pf-v6-c-page__main-container--BorderRadius: var(--mui-shape-borderRadius);
   box-shadow: var(--mui-shadows-1);
 }
