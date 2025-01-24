@@ -42,19 +42,19 @@ func NewWorkspaceRepository(cl client.Client) *WorkspaceRepository {
 
 func (r *WorkspaceRepository) GetWorkspace(ctx context.Context, namespace string, workspaceName string) (models.WorkspaceModel, error) {
 	workspace := &kubefloworgv1beta1.Workspace{}
-	err := r.client.Get(ctx, client.ObjectKey{
-		Namespace: namespace,
-		Name:      workspaceName,
-	}, workspace)
-	if err != nil {
+	if err := r.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: workspaceName}, workspace); err != nil {
 		if apierrors.IsNotFound(err) {
 			return models.WorkspaceModel{}, ErrWorkspaceNotFound
 		}
 		return models.WorkspaceModel{}, err
 	}
 
-	workspaceModel := models.NewWorkspaceModelFromWorkspace(workspace)
-	return workspaceModel, nil
+	kind := &kubefloworgv1beta1.WorkspaceKind{}
+	if err := r.client.Get(ctx, client.ObjectKey{Name: workspace.Spec.Kind}, kind); err != nil {
+		return models.WorkspaceModel{}, err
+	}
+
+	return NewWorkspaceModelFromWorkspace(workspace, kind), nil
 }
 
 func (r *WorkspaceRepository) GetWorkspaces(ctx context.Context, namespace string) ([]models.WorkspaceModel, error) {
@@ -69,8 +69,11 @@ func (r *WorkspaceRepository) GetWorkspaces(ctx context.Context, namespace strin
 
 	workspacesModels := make([]models.WorkspaceModel, len(workspaceList.Items))
 	for i, item := range workspaceList.Items {
-		workspaceModel := models.NewWorkspaceModelFromWorkspace(&item)
-		workspacesModels[i] = workspaceModel
+		kind := &kubefloworgv1beta1.WorkspaceKind{}
+		if err := r.client.Get(ctx, client.ObjectKey{Name: item.Spec.Kind}, kind); err != nil {
+			return nil, err
+		}
+		workspacesModels[i] = NewWorkspaceModelFromWorkspace(&item, kind)
 	}
 
 	return workspacesModels, nil
@@ -78,16 +81,17 @@ func (r *WorkspaceRepository) GetWorkspaces(ctx context.Context, namespace strin
 
 func (r *WorkspaceRepository) GetAllWorkspaces(ctx context.Context) ([]models.WorkspaceModel, error) {
 	workspaceList := &kubefloworgv1beta1.WorkspaceList{}
-
-	err := r.client.List(ctx, workspaceList)
-	if err != nil {
+	if err := r.client.List(ctx, workspaceList); err != nil {
 		return nil, err
 	}
 
 	workspacesModels := make([]models.WorkspaceModel, len(workspaceList.Items))
 	for i, item := range workspaceList.Items {
-		workspaceModel := models.NewWorkspaceModelFromWorkspace(&item)
-		workspacesModels[i] = workspaceModel
+		kind := &kubefloworgv1beta1.WorkspaceKind{}
+		if err := r.client.Get(ctx, client.ObjectKey{Name: item.Spec.Kind}, kind); err != nil {
+			return nil, err
+		}
+		workspacesModels[i] = NewWorkspaceModelFromWorkspace(&item, kind)
 	}
 
 	return workspacesModels, nil
@@ -100,34 +104,34 @@ func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, workspaceMode
 			Name:      workspaceModel.Name,
 			Namespace: workspaceModel.Namespace,
 			// TODO: the pod and workspace labels should be separated
-			Labels:      workspaceModel.Labels,
-			Annotations: workspaceModel.Annotations,
+			Labels:      workspaceModel.PodTemplate.PodMetadata.Labels,
+			Annotations: workspaceModel.PodTemplate.PodMetadata.Annotations,
 		},
 		Spec: kubefloworgv1beta1.WorkspaceSpec{
 			Paused:       &workspaceModel.Paused,
 			DeferUpdates: &workspaceModel.DeferUpdates,
 			// TODO: verify if workspace kind exists on validation
-			Kind: workspaceModel.Kind,
+			Kind: workspaceModel.WorkspaceKind.Name,
 			PodTemplate: kubefloworgv1beta1.WorkspacePodTemplate{
 				PodMetadata: &kubefloworgv1beta1.WorkspacePodMetadata{
-					Labels:      workspaceModel.Labels,
-					Annotations: workspaceModel.Annotations,
+					Labels:      workspaceModel.PodTemplate.PodMetadata.Labels,
+					Annotations: workspaceModel.PodTemplate.PodMetadata.Annotations,
 				},
 				Volumes: kubefloworgv1beta1.WorkspacePodVolumes{
-					Home: &workspaceModel.HomeVolume,
+					Home: &workspaceModel.PodTemplate.Volumes.Home.PvcName,
 					Data: []kubefloworgv1beta1.PodVolumeMount{},
 				},
 				Options: kubefloworgv1beta1.WorkspacePodOptions{
-					ImageConfig: workspaceModel.ImageConfig,
-					PodConfig:   workspaceModel.PodConfig,
+					ImageConfig: workspaceModel.PodTemplate.ImageConfig.Current,
+					PodConfig:   workspaceModel.PodTemplate.PodConfig.Current,
 				},
 			},
 		},
 	}
 
 	// TODO: create data volumes if necessary
-	workspace.Spec.PodTemplate.Volumes.Data = make([]kubefloworgv1beta1.PodVolumeMount, len(workspaceModel.DataVolumes))
-	for i, dataVolume := range workspaceModel.DataVolumes {
+	workspace.Spec.PodTemplate.Volumes.Data = make([]kubefloworgv1beta1.PodVolumeMount, len(workspaceModel.PodTemplate.Volumes.Data))
+	for i, dataVolume := range workspaceModel.PodTemplate.Volumes.Data {
 		// make a copy of readOnly because dataVolume is reassigned each loop
 		readOnly := dataVolume.ReadOnly
 		workspace.Spec.PodTemplate.Volumes.Data[i] = kubefloworgv1beta1.PodVolumeMount{
@@ -140,7 +144,12 @@ func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, workspaceMode
 		return models.WorkspaceModel{}, err
 	}
 
-	return models.NewWorkspaceModelFromWorkspace(workspace), nil
+	kind := &kubefloworgv1beta1.WorkspaceKind{}
+	if err := r.client.Get(ctx, client.ObjectKey{Name: workspace.Spec.Kind}, kind); err != nil {
+		return models.WorkspaceModel{}, err
+	}
+
+	return NewWorkspaceModelFromWorkspace(workspace, kind), nil
 }
 
 func (r *WorkspaceRepository) DeleteWorkspace(ctx context.Context, namespace, workspaceName string) error {
@@ -159,4 +168,92 @@ func (r *WorkspaceRepository) DeleteWorkspace(ctx context.Context, namespace, wo
 	}
 
 	return nil
+}
+
+func NewWorkspaceModelFromWorkspace(item *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.WorkspaceKind) models.WorkspaceModel {
+	dataVolumes := make([]models.DataVolumeModel, len(item.Spec.PodTemplate.Volumes.Data))
+	for i, volume := range item.Spec.PodTemplate.Volumes.Data {
+		dataVolumes[i] = models.DataVolumeModel{
+			PvcName:   volume.PVCName,
+			MountPath: volume.MountPath,
+			ReadOnly:  *volume.ReadOnly,
+		}
+	}
+
+	imageConfigRedirectChain := make([]*models.RedirectChain, len(item.Status.PodTemplateOptions.ImageConfig.RedirectChain))
+	for i, chain := range item.Status.PodTemplateOptions.ImageConfig.RedirectChain {
+		imageConfigRedirectChain[i] = &models.RedirectChain{
+			Source: chain.Source,
+			Target: chain.Target,
+		}
+	}
+
+	podConfigRedirectChain := make([]*models.RedirectChain, len(item.Status.PodTemplateOptions.PodConfig.RedirectChain))
+
+	for i, chain := range item.Status.PodTemplateOptions.PodConfig.RedirectChain {
+		podConfigRedirectChain[i] = &models.RedirectChain{
+			Source: chain.Source,
+			Target: chain.Target,
+		}
+	}
+
+	podMetadataLabels := item.Spec.PodTemplate.PodMetadata.Labels
+	if podMetadataLabels == nil {
+		podMetadataLabels = map[string]string{}
+	}
+
+	podMetadataAnnotations := item.Spec.PodTemplate.PodMetadata.Annotations
+	if podMetadataAnnotations == nil {
+		podMetadataAnnotations = map[string]string{}
+	}
+
+	workspaceModel := models.WorkspaceModel{
+		Name:      item.ObjectMeta.Name,
+		Namespace: item.Namespace,
+		WorkspaceKind: models.WorkspaceKind{
+			Name: item.Spec.Kind,
+			Type: "POD_TEMPLATE",
+		},
+		DeferUpdates: *item.Spec.DeferUpdates,
+		Paused:       *item.Spec.Paused,
+		PausedTime:   item.Status.PauseTime,
+		State:        string(item.Status.State),
+		StateMessage: item.Status.StateMessage,
+		PodTemplate: models.PodTemplate{
+			PodMetadata: &models.PodMetadata{
+				Labels:      podMetadataLabels,
+				Annotations: podMetadataAnnotations,
+			},
+			Volumes: &models.Volumes{
+				Home: &models.DataVolumeModel{
+					PvcName:   *item.Spec.PodTemplate.Volumes.Home,
+					MountPath: wsk.Spec.PodTemplate.VolumeMounts.Home,
+					ReadOnly:  false, // From where to get this value?
+				},
+				Data: dataVolumes,
+			},
+			ImageConfig: &models.ImageConfig{
+				Current:       item.Spec.PodTemplate.Options.ImageConfig,
+				Desired:       item.Status.PodTemplateOptions.ImageConfig.Desired,
+				RedirectChain: imageConfigRedirectChain,
+			},
+			PodConfig: &models.PodConfig{
+				Current:       item.Spec.PodTemplate.Options.PodConfig,
+				Desired:       item.Spec.PodTemplate.Options.PodConfig,
+				RedirectChain: podConfigRedirectChain,
+			},
+		},
+		Activity: models.Activity{
+			LastActivity: item.Status.Activity.LastActivity,
+			LastUpdate:   item.Status.Activity.LastUpdate,
+			// TODO: update these fields when the last probe is implemented
+			LastProbe: &models.Probe{
+				StartTimeMs: 0,
+				EndTimeMs:   0,
+				Result:      "default_result",
+				Message:     "default_message",
+			},
+		},
+	}
+	return workspaceModel
 }
