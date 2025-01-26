@@ -1,4 +1,4 @@
-import { WorkspaceKind } from '~/shared/types';
+import type { WorkspaceKind } from '~/shared/types';
 
 // Factory function to create a valid WorkspaceKind
 function createMockWorkspaceKind(overrides: Partial<WorkspaceKind> = {}): WorkspaceKind {
@@ -59,9 +59,7 @@ function createMockWorkspaceKind(overrides: Partial<WorkspaceKind> = {}): Worksp
 
 // Generate valid mock data with "data" property
 export const mockWorkspaceKindsValid = {
-  data: [
-    createMockWorkspaceKind(),
-  ],
+  data: [createMockWorkspaceKind()],
 };
 
 // Generate invalid mock data with "data" property

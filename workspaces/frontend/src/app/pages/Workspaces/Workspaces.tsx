@@ -135,14 +135,9 @@ export const Workspaces: React.FunctionComponent = () => {
     },
   ];
 
-  const [workspaceKinds, loaded, loadError] = useWorkspaceKinds();
+  const [workspaceKinds] = useWorkspaceKinds();
   let kindLogoDict: Record<string, string> = {};
-
-  if (loaded && workspaceKinds) {
-    kindLogoDict = buildKindLogoDictionary(workspaceKinds);
-  } else {
-    console.error(loadError || 'Failed to load workspace kinds.');
-  }  
+  kindLogoDict = buildKindLogoDictionary(workspaceKinds);
 
   // Table columns
   const columnNames: WorkspacesColumnNames = {

@@ -11,59 +11,59 @@ export interface WorkspaceKind {
   displayName: string;
   description: string;
   deprecated: boolean;
-  deprecationMessage: string,
+  deprecationMessage: string;
   hidden: boolean;
   icon: WorkspaceIcon;
   logo: WorkspaceLogo;
   podTemplate: {
     podMetadata: {
       labels: {
-        myWorkspaceKindLabel: string
-      },
+        myWorkspaceKindLabel: string;
+      };
       annotations: {
-        myWorkspaceKindAnnotation: string
-      }
-    },
+        myWorkspaceKindAnnotation: string;
+      };
+    };
     volumeMounts: {
-            home: string
-    },
+      home: string;
+    };
     options: {
       imageConfig: {
-        default: string,
+        default: string;
         values: [
           {
-            id: string,
-            displayName: string,
+            id: string;
+            displayName: string;
             labels: {
-              pythonVersion: string
-            },
-            hidden: true,
+              pythonVersion: string;
+            };
+            hidden: true;
             redirect: {
-              to: string,
+              to: string;
               message: {
-                text: string,
-                level: string
-              }
-            }
+                text: string;
+                level: string;
+              };
+            };
           },
-        ]
-      },
+        ];
+      };
       podConfig: {
-        default: string,
+        default: string;
         values: [
           {
-          id: string,
-          displayName: string,
-          description: string,
-          labels: {
-            cpu: string,
-            memory: string
-          }
+            id: string;
+            displayName: string;
+            description: string;
+            labels: {
+              cpu: string;
+              memory: string;
+            };
           },
-        ]
-      }
-    }
-  }
+        ];
+      };
+    };
+  };
 }
 
 export enum WorkspaceState {
