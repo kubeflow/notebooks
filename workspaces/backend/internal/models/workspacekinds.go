@@ -124,7 +124,7 @@ func NewWorkspaceKindModelFromWorkspaceKind(item *kubefloworgv1beta1.WorkspaceKi
 	}
 
 	volumeMounts := map[string]string{"home": ""}
-	if &item.Spec.PodTemplate.VolumeMounts.Home != nil {
+	if item.Spec.PodTemplate.VolumeMounts.Home != "" {
 		volumeMounts["home"] = item.Spec.PodTemplate.VolumeMounts.Home
 	}
 
