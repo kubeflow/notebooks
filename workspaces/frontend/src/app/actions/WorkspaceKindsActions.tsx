@@ -13,7 +13,7 @@ export function buildKindLogoDictionary(workspaceKinds: WorkspaceKind[] | []): K
     for (const workspaceKind of workspaceKinds) {
       kindLogoDict[workspaceKind.name] = workspaceKind.logo.url;
     }
-  } catch (error) {
+  } catch {
     return kindLogoDict;
   }
 
