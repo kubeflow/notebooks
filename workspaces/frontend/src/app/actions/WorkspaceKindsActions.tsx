@@ -9,9 +9,12 @@ type KindLogoDict = Record<string, string>;
  */
 export function buildKindLogoDictionary(workspaceKinds: WorkspaceKind[] | []): KindLogoDict {
   const kindLogoDict: KindLogoDict = {};
-
-  for (const workspaceKind of workspaceKinds) {
-    kindLogoDict[workspaceKind.name] = workspaceKind.logo.url;
+  try {
+    for (const workspaceKind of workspaceKinds) {
+      kindLogoDict[workspaceKind.name] = workspaceKind.logo.url;
+    }
+  } catch (error) {
+    return kindLogoDict;
   }
 
   return kindLogoDict;
