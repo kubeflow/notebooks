@@ -47,17 +47,17 @@ describe('Test buildKindLogoDictionary Functionality', () => {
       cy.visit('/');
     });
 
-    it('should fallback when logo URL is invalid', () => {
+    it('should show a fallback icon when the logo URL is missing', () => {
       cy.get('tbody tr').each(($row) => {
         cy.wrap($row)
           .find('td[data-label="Kind"]')
           .within(() => {
-            cy.get('img')
-              .should('exist')
-              .then(($img) => {
-                // If the image src is invalid, it should not load
-                expect($img[0].naturalWidth).to.equal(0); // If the image is invalid, naturalWidth should be 0
-              });
+            // Ensure that the image is NOT rendered (because it's invalid or missing)
+            cy.get('img').should('not.exist'); // No images should be displayed
+
+            // Check if the fallback icon (TimesCircleIcon) is displayed
+            cy.get('svg').should('exist'); // Look for the SVG (TimesCircleIcon)
+            cy.get('svg').should('have.class', 'pf-v6-svg'); // Ensure the correct fallback icon class is applied (update the class name based on your icon library)
           });
       });
     });

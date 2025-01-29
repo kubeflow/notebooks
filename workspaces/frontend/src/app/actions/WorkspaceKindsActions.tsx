@@ -9,13 +9,13 @@ type KindLogoDict = Record<string, string>;
  */
 export function buildKindLogoDictionary(workspaceKinds: WorkspaceKind[] | []): KindLogoDict {
   const kindLogoDict: KindLogoDict = {};
-  try {
-    for (const workspaceKind of workspaceKinds) {
-      kindLogoDict[workspaceKind.name] = workspaceKind.logo.url;
-    }
-  } catch {
-    return kindLogoDict;
-  }
 
+  for (const workspaceKind of workspaceKinds) {
+    try {
+      kindLogoDict[workspaceKind.name] = workspaceKind.logo.url;
+    } catch {
+      kindLogoDict[workspaceKind.name] = '';
+    }
+  }
   return kindLogoDict;
 }

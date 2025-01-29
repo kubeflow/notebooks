@@ -67,7 +67,7 @@ export const mockWorkspaceKindsInValid = {
   data: [
     createMockWorkspaceKind({
       logo: {
-        url: 'https://invalid-url.example.com/invalid-logo.svg', // Broken URL
+        url: '',
       },
     }),
   ],

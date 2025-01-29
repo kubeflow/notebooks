@@ -26,6 +26,7 @@ import {
   IActions,
 } from '@patternfly/react-table';
 import { useState } from 'react';
+import { CodeIcon } from '@patternfly/react-icons';
 import { Workspace, WorkspacesColumnNames, WorkspaceState } from '~/shared/types';
 import { WorkspaceDetails } from '~/app/pages/Workspaces/Details/WorkspaceDetails';
 import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
@@ -428,13 +429,19 @@ export const Workspaces: React.FunctionComponent = () => {
                     />
                     <Td dataLabel={columnNames.name}>{workspace.name}</Td>
                     <Td dataLabel={columnNames.kind}>
-                      <Tooltip content={workspace.kind}>
-                        <Brand
-                          src={kindLogoDict[workspace.kind]}
-                          alt={workspace.kind}
-                          style={{ width: '20px', height: '20px', cursor: 'pointer' }}
-                        />
-                      </Tooltip>
+                      {kindLogoDict[workspace.kind] ? (
+                        <Tooltip content={workspace.kind}>
+                          <Brand
+                            src={kindLogoDict[workspace.kind]}
+                            alt={workspace.kind}
+                            style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                          />
+                        </Tooltip>
+                      ) : (
+                        <Tooltip content={workspace.kind}>
+                          <CodeIcon />
+                        </Tooltip>
+                      )}
                     </Td>
                     <Td dataLabel={columnNames.image}>{workspace.options.imageConfig}</Td>
                     <Td dataLabel={columnNames.podConfig}>{workspace.options.podConfig}</Td>
