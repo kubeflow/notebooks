@@ -10,11 +10,60 @@ export interface WorkspaceKind {
   name: string;
   displayName: string;
   description: string;
-  hidden: boolean;
   deprecated: boolean;
-  deprecationWarning: string;
+  deprecationMessage: string;
+  hidden: boolean;
   icon: WorkspaceIcon;
   logo: WorkspaceLogo;
+  podTemplate: {
+    podMetadata: {
+      labels: {
+        myWorkspaceKindLabel: string;
+      };
+      annotations: {
+        myWorkspaceKindAnnotation: string;
+      };
+    };
+    volumeMounts: {
+      home: string;
+    };
+    options: {
+      imageConfig: {
+        default: string;
+        values: [
+          {
+            id: string;
+            displayName: string;
+            labels: {
+              pythonVersion: string;
+            };
+            hidden: true;
+            redirect: {
+              to: string;
+              message: {
+                text: string;
+                level: string;
+              };
+            };
+          },
+        ];
+      };
+      podConfig: {
+        default: string;
+        values: [
+          {
+            id: string;
+            displayName: string;
+            description: string;
+            labels: {
+              cpu: string;
+              memory: string;
+            };
+          },
+        ];
+      };
+    };
+  };
 }
 
 export enum WorkspaceState {

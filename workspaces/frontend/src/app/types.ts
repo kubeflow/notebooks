@@ -1,4 +1,5 @@
 import { APIOptions } from '~/shared/api/types';
+import { WorkspaceKind } from '~/shared/types';
 
 export type ResponseBody<T> = {
   data: T;
@@ -64,6 +65,9 @@ export type NamespacesList = Namespace[];
 
 export type GetNamespaces = (opts: APIOptions) => Promise<NamespacesList>;
 
+export type GetWorkspaceKinds = (opts: APIOptions) => Promise<WorkspaceKind[]>;
+
 export type NotebookAPIs = {
   getNamespaces: GetNamespaces;
+  getWorkspaceKinds: GetWorkspaceKinds;
 };
