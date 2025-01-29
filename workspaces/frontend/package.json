@@ -75,7 +75,7 @@
     "react-router-dom": "^6.26.1",
     "regenerator-runtime": "^0.13.11",
     "rimraf": "^6.0.1",
-    "sass": "^1.83.1",
+    "sass": "^1.83.4",
     "sass-loader": "^16.0.4",
     "serve": "^14.2.1",
     "style-loader": "^3.3.4",

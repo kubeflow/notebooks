@@ -11,6 +11,8 @@ import {
   Pagination,
   Button,
   Content,
+  Tooltip,
+  Brand,
 } from '@patternfly/react-core';
 import {
   Table,
@@ -24,10 +26,13 @@ import {
   IActions,
 } from '@patternfly/react-table';
 import { useState } from 'react';
+import { CodeIcon } from '@patternfly/react-icons';
 import { Workspace, WorkspacesColumnNames, WorkspaceState } from '~/shared/types';
 import { WorkspaceDetails } from '~/app/pages/Workspaces/Details/WorkspaceDetails';
 import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
 import DeleteModal from '~/shared/components/DeleteModal';
+import { buildKindLogoDictionary } from '~/app/actions/WorkspaceKindsActions';
+import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import Filter, { FilteredColumn } from 'shared/components/Filter';
 import { formatRam } from 'shared/utilities/WorkspaceResources';
 
@@ -130,6 +135,10 @@ export const Workspaces: React.FunctionComponent = () => {
       },
     },
   ];
+
+  const [workspaceKinds] = useWorkspaceKinds();
+  let kindLogoDict: Record<string, string> = {};
+  kindLogoDict = buildKindLogoDictionary(workspaceKinds);
 
   // Table columns
   const columnNames: WorkspacesColumnNames = {
@@ -419,7 +428,21 @@ export const Workspaces: React.FunctionComponent = () => {
                       }}
                     />
                     <Td dataLabel={columnNames.name}>{workspace.name}</Td>
-                    <Td dataLabel={columnNames.kind}>{workspace.kind}</Td>
+                    <Td dataLabel={columnNames.kind}>
+                      {kindLogoDict[workspace.kind] ? (
+                        <Tooltip content={workspace.kind}>
+                          <Brand
+                            src={kindLogoDict[workspace.kind]}
+                            alt={workspace.kind}
+                            style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                          />
+                        </Tooltip>
+                      ) : (
+                        <Tooltip content={workspace.kind}>
+                          <CodeIcon />
+                        </Tooltip>
+                      )}
+                    </Td>
                     <Td dataLabel={columnNames.image}>{workspace.options.imageConfig}</Td>
                     <Td dataLabel={columnNames.podConfig}>{workspace.options.podConfig}</Td>
                     <Td dataLabel={columnNames.state}>
