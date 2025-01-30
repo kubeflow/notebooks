@@ -1,3 +1,4 @@
+import type { Workspace } from '~/shared/types';
 import { WorkspaceState } from '~/shared/types';
 
 const generateMockWorkspace = (
@@ -8,60 +9,66 @@ const generateMockWorkspace = (
   imageConfig: string,
   podConfig: string,
   pvcName: string,
-) => {
+): Workspace => {
   const currentTime = Date.now();
-  const lastActivity = currentTime - Math.floor(Math.random() * 1000000); // Random last activity time
-  const lastUpdate = currentTime - Math.floor(Math.random() * 100000); // Random last update time
+  const lastActivityTime = currentTime - Math.floor(Math.random() * 1000000); // Random last activity time
+  const lastUpdateTime = currentTime - Math.floor(Math.random() * 100000); // Random last update time
 
   return {
     name,
     namespace,
+    workspace_kind: {
+      name: 'jupyterlab',
+    },
+    defer_updates: paused,
     paused,
-    deferUpdates: !!paused,
-    kind: 'jupyter-lab',
-    cpu: 3,
-    ram: 500,
-    podTemplate: {
+    paused_time: paused ? currentTime - Math.floor(Math.random() * 1000000) : 0,
+    state,
+    state_message:
+      state === WorkspaceState.Running
+        ? 'Workspace is running smoothly.'
+        : state === WorkspaceState.Paused
+          ? 'Workspace is paused.'
+          : 'Workspace is operational.',
+    pod_template: {
+      pod_metadata: {
+        labels: {},
+        annotations: {},
+      },
       volumes: {
-        home: '/home',
+        home: {
+          pvc_name: `${pvcName}-home`,
+          mount_path: '/home/jovyan',
+          readOnly: false,
+        },
         data: [
           {
-            pvcName,
-            mountPath: '/data',
-            readOnly: paused, // Randomize based on paused state
+            pvc_name: pvcName,
+            mount_path: '/data/my-data',
+            readOnly: paused, // Set based on the paused state
           },
         ],
       },
-    },
-    options: {
-      imageConfig,
-      podConfig,
-    },
-    status: {
-      activity: {
-        lastActivity,
-        lastUpdate,
+      image_config: {
+        current: imageConfig,
+        desired: '',
+        redirect_chain: [],
       },
-      pauseTime: paused ? currentTime - Math.floor(Math.random() * 1000000) : 0,
-      pendingRestart: !!paused,
-      podTemplateOptions: {
-        imageConfig: {
-          desired: imageConfig,
-          redirectChain: [
-            {
-              source: 'base-image',
-              target: `optimized-${Math.floor(Math.random() * 100)}`,
-            },
-          ],
-        },
+      pod_config: {
+        current: podConfig,
+        desired: podConfig,
+        redirect_chain: [],
       },
-      state,
-      stateMessage:
-        state === WorkspaceState.Running
-          ? 'Workspace is running smoothly.'
-          : state === WorkspaceState.Paused
-            ? 'Workspace is paused.'
-            : 'Workspace is operational.',
+    },
+    activity: {
+      last_activity: lastActivityTime,
+      last_update: lastUpdateTime,
+      last_probe: {
+        start_time_ms: lastUpdateTime - 1000, // Simulated probe timing
+        end_time_ms: lastUpdateTime,
+        result: 'default_result',
+        message: 'default_message',
+      },
     },
   };
 };
@@ -74,7 +81,7 @@ const generateMockWorkspaces = (numWorkspaces: number, byNamespace = false) => {
     'jupyterlab_tensorflow_230',
     'jupyterlab_pytorch_120',
   ];
-  const namespaces = byNamespace ? ['kubeflow'] : ['kubeflow', 'system', 'user-example'];
+  const namespaces = byNamespace ? ['kubeflow'] : ['kubeflow', 'system', 'user-example', 'default'];
 
   for (let i = 1; i <= numWorkspaces; i++) {
     const state =

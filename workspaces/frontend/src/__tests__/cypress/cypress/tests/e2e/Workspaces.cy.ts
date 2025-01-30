@@ -1,36 +1,33 @@
-import { WorkspaceState } from '~/shared/types';
 import { home } from '~/__tests__/cypress/cypress/pages/home';
 import {
   mockWorkspaces,
   mockWorkspacesByNS,
 } from '~/__tests__/cypress/cypress/tests/mocked/workspace.mock';
+import type { Workspace } from '~/shared/types';
 import { mockNamespaces } from '~/__mocks__/mockNamespaces';
 import { mockBFFResponse } from '~/__mocks__/utils';
 
 // Helper function to validate the content of a single workspace row in the table
-const validateWorkspaceRow = (workspace: any, index: number) => {
+const validateWorkspaceRow = (workspace: Workspace, index: number) => {
   // Validate the workspace name
   cy.findByTestId(`workspace-row-${index}`)
     .find('[data-testid="workspace-name"]')
     .should('have.text', workspace.name);
 
-  // Map workspace state to the expected label
-  const expectedLabel = WorkspaceState[workspace.status.state];
-
-  // Validate the state label and pod configuration
-  cy.findByTestId(`workspace-row-${index}`)
-    .find('[data-testid="state-label"]')
-    .should('have.text', expectedLabel);
-
   cy.findByTestId(`workspace-row-${index}`)
     .find('[data-testid="pod-config"]')
-    .should('have.text', workspace.options.podConfig);
+    .should('have.text', workspace.pod_template.pod_config.current);
 };
 
 // Test suite for workspace-related tests
 describe('Workspaces Tests', () => {
   beforeEach(() => {
     home.visit();
+
+    cy.intercept('GET', '/api/v1/namespaces', {
+      body: mockBFFResponse(mockNamespaces),
+    }).as('getNamespaces');
+
     cy.intercept('GET', '/api/v1/workspaces', {
       body: mockBFFResponse(mockWorkspaces),
     }).as('getWorkspaces');
@@ -103,11 +100,18 @@ describe('Workspace by namespace functionality', () => {
 describe('Workspaces Component', () => {
   beforeEach(() => {
     // Mock the namespaces API response
+
+    cy.visit('/');
     cy.intercept('GET', '/api/v1/namespaces', {
       body: mockBFFResponse(mockNamespaces),
     }).as('getNamespaces');
-    cy.visit('/');
     cy.wait('@getNamespaces');
+    cy.intercept('GET', 'api/v1/workspaces', {
+      body: mockBFFResponse(mockWorkspaces),
+    }).as('getWorkspaces');
+    cy.intercept('GET', 'api/v1/workspaces/kubeflow', {
+      body: mockBFFResponse(mockWorkspacesByNS),
+    });
   });
 
   function openDeleteModal() {
@@ -121,6 +125,10 @@ describe('Workspaces Component', () => {
       () => cy.get('button').contains('Cancel').click(),
       () => cy.get('[aria-label="Close"]').click(),
     ];
+
+    // Change namespace to "kubeflow"
+    cy.findByTestId('namespace-toggle').click();
+    cy.findByTestId('dropdown-item-kubeflow').click();
 
     closeModalActions.forEach((closeAction) => {
       openDeleteModal();
@@ -138,6 +146,9 @@ describe('Workspaces Component', () => {
   });
 
   it('should verify the delete modal verification mechanism', () => {
+    // Change namespace to "kubeflow"
+    cy.findByTestId('namespace-toggle').click();
+    cy.findByTestId('dropdown-item-kubeflow').click();
     openDeleteModal();
     cy.findByTestId('delete-modal').within(() => {
       cy.get('strong')

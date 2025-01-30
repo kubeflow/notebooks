@@ -1,4 +1,7 @@
-export const formatRam = (valueInKb: number): string => {
+export const formatRam = (valueInKb: number | undefined | null): string => {
+  if (valueInKb === undefined || valueInKb === null) {
+    return 'N/A';
+  }
   const units = ['KB', 'MB', 'GB', 'TB'];
   let index = 0;
   let value = valueInKb;

@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  Spinner,
   Drawer,
   DrawerContent,
   DrawerContentBody,
@@ -63,7 +64,7 @@ export enum ActionType {
 
 export const Workspaces: React.FunctionComponent = () => {
   const { selectedNamespace } = useNamespaceContext();
-  const [initialWorkspaces, loading, error] = useWorkspaces(selectedNamespace);
+  const [initialWorkspaces, loaded, error] = useWorkspaces(selectedNamespace);
   if (error) {
     console.log(error.message); // TODO: Verify how to handle errors display.
   }
@@ -103,12 +104,15 @@ export const Workspaces: React.FunctionComponent = () => {
   };
 
   // change when fetch workspaces is implemented
-  const [workspaces, setWorkspaces] = useState(initialWorkspaces);
+  const [workspaces, setWorkspaces] = React.useState<Workspace[]>([]);
   const [expandedWorkspacesNames, setExpandedWorkspacesNames] = React.useState<string[]>([]);
   const [selectedWorkspace, setSelectedWorkspace] = React.useState<Workspace | null>(null);
   const [workspaceToDelete, setWorkspaceToDelete] = React.useState<Workspace | null>(null);
   const [isActionAlertModalOpen, setIsActionAlertModalOpen] = React.useState(false);
   const [activeActionType, setActiveActionType] = React.useState<ActionType | null>(null);
+  React.useEffect(() => {
+    setWorkspaces(initialWorkspaces);
+  }, [initialWorkspaces]);
 
   const selectWorkspace = React.useCallback(
     (newSelectedWorkspace) => {
@@ -152,15 +156,15 @@ export const Workspaces: React.FunctionComponent = () => {
           case columnNames.name:
             return workspace.name.search(searchValueInput) >= 0;
           case columnNames.kind:
-            return workspace.kind.search(searchValueInput) >= 0;
+            return workspace.workspace_kind.name.search(searchValueInput) >= 0;
           case columnNames.image:
-            return workspace.options.imageConfig.search(searchValueInput) >= 0;
+            return workspace.pod_template.image_config.current.search(searchValueInput) >= 0;
           case columnNames.podConfig:
-            return workspace.options.podConfig.search(searchValueInput) >= 0;
+            return workspace.pod_template.pod_config.current.search(searchValueInput) >= 0;
           case columnNames.state:
-            return WorkspaceState[workspace.status.state].search(searchValueInput) >= 0;
+            return WorkspaceState[workspace.state].search(searchValueInput) >= 0;
           case columnNames.homeVol:
-            return workspace.podTemplate.volumes.home.search(searchValueInput) >= 0;
+            return workspace.pod_template.volumes.home.pvc_name.search(searchValueInput) >= 0;
           default:
             return true;
         }
@@ -174,20 +178,19 @@ export const Workspaces: React.FunctionComponent = () => {
   const [activeSortIndex, setActiveSortIndex] = React.useState<number | null>(null);
   const [activeSortDirection, setActiveSortDirection] = React.useState<'asc' | 'desc' | null>(null);
 
-  const getSortableRowValues = (workspace: Workspace): (string | number)[] => {
-    const { redirectStatus, name, kind, image, podConfig, state, homeVol, cpu, ram, lastActivity } =
-      {
+  const getSortableRowValues = (workspace: Workspace): (string | number | undefined)[] => {
+    const { name, kind, image, podConfig, state, homeVol, cpu, ram, lastActivity } = {
         redirectStatus: '',
-        name: workspace.name,
-        kind: workspace.kind,
-        image: workspace.options.imageConfig,
-        podConfig: workspace.options.podConfig,
-        state: WorkspaceState[workspace.status.state],
-        homeVol: workspace.podTemplate.volumes.home,
-        cpu: workspace.cpu,
-        ram: workspace.ram,
-        lastActivity: workspace.status.activity.lastActivity,
-      };
+      name: workspace.name,
+      kind: workspace.workspace_kind.name,
+      image: workspace.pod_template.image_config.current,
+      podConfig: workspace.pod_template.pod_config.current,
+      state: workspace.state,
+      homeVol: workspace.pod_template.volumes.home.pvc_name,
+      cpu: workspace.cpu,
+      ram: workspace.ram,
+      lastActivity: workspace.activity.last_activity,
+    };
     return [redirectStatus, name, kind, image, podConfig, state, homeVol, cpu, ram, lastActivity];
   };
 

@@ -1,9 +1,9 @@
 export interface WorkspaceIcon {
-  url: string;
+    url: string;
 }
 
 export interface WorkspaceLogo {
-  url: string;
+    url: string;
 }
 
 export interface WorkspaceKind {
@@ -67,32 +67,32 @@ export interface WorkspaceKind {
 }
 
 export enum WorkspaceState {
-  Running,
-  Terminating,
-  Paused,
-  Pending,
-  Error,
-  Unknown,
+    Running,
+    Terminating,
+    Paused,
+    Pending,
+    Error,
+    Unknown,
 }
 
 export interface WorkspaceStatus {
-  activity: {
-    lastActivity: number;
-    lastUpdate: number;
-  };
-  pauseTime: number;
-  pendingRestart: boolean;
-  podTemplateOptions: {
-    imageConfig: {
-      desired: string;
-      redirectChain: {
-        source: string;
-        target: string;
-      }[];
+    activity: {
+        lastActivity: number;
+        lastUpdate: number;
     };
-  };
-  state: WorkspaceState;
-  stateMessage: string;
+    pauseTime: number;
+    pendingRestart: boolean;
+    podTemplateOptions: {
+        imageConfig: {
+            desired: string;
+            redirectChain: {
+                source: string;
+                target: string;
+            }[];
+        };
+    };
+    state: WorkspaceState;
+    stateMessage: string;
 }
 
 export interface Workspace {
