@@ -584,8 +584,25 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 	}
 
 	// generate pod metadata
-	podAnnotations := labels.Merge(workspaceKind.Spec.PodTemplate.PodMetadata.Annotations, workspace.Spec.PodTemplate.PodMetadata.Annotations)
-	podLabels := labels.Merge(workspaceKind.Spec.PodTemplate.PodMetadata.Labels, workspace.Spec.PodTemplate.PodMetadata.Labels)
+	// NOTE: pod metadata from the Workspace takes precedence over the WorkspaceKind
+	podAnnotations := make(map[string]string)
+	podLabels := make(map[string]string)
+	if workspaceKind.Spec.PodTemplate.PodMetadata != nil {
+		for k, v := range workspaceKind.Spec.PodTemplate.PodMetadata.Annotations {
+			podAnnotations[k] = v
+		}
+		for k, v := range workspaceKind.Spec.PodTemplate.PodMetadata.Labels {
+			podLabels[k] = v
+		}
+	}
+	if workspace.Spec.PodTemplate.PodMetadata != nil {
+		for k, v := range workspace.Spec.PodTemplate.PodMetadata.Annotations {
+			podAnnotations[k] = v
+		}
+		for k, v := range workspace.Spec.PodTemplate.PodMetadata.Labels {
+			podLabels[k] = v
+		}
+	}
 
 	// generate container imagePullPolicy
 	imagePullPolicy := corev1.PullIfNotPresent
