@@ -116,6 +116,10 @@ export interface Workspace {
         readOnly: boolean;
       }[];
     };
+    endpoints: {
+      displayName: string;
+      port: string;
+    }[];
   };
   options: {
     imageConfig: string;
