@@ -14,24 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package repositories
+package namespaces
 
-import "github.com/kubeflow/notebooks/workspaces/backend/internal/models"
-
-type HealthCheckRepository struct{}
-
-func NewHealthCheckRepository() *HealthCheckRepository {
-	return &HealthCheckRepository{}
-}
-
-func (r *HealthCheckRepository) HealthCheck(version string) (models.HealthCheckModel, error) {
-
-	var res = models.HealthCheckModel{
-		Status: "available",
-		SystemInfo: models.SystemInfo{
-			Version: version,
-		},
-	}
-
-	return res, nil
+type Namespace struct {
+	Name string `json:"name"`
 }

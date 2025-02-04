@@ -22,43 +22,40 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/julienschmidt/httprouter"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/models"
+	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/namespaces"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
 )
 
 var _ = Describe("Namespaces Handler", func() {
 	var (
-		a          App
-		testRouter *httprouter.Router
+		a App
 	)
 
-	BeforeEach(func() {
-		repos := repositories.NewRepositories(k8sClient)
-		a = App{
-			Config: config.EnvConfig{
-				Port: 4000,
-			},
-			repositories: repos,
-		}
+	// NOTE: these tests assume a specific state of the cluster, so cannot be run in parallel with other tests.
+	//       therefore, we run them using the `Serial` Ginkgo decorators.
+	Context("when namespaces exist", Serial, func() {
 
-		testRouter = httprouter.New()
-		testRouter.GET("/api/namespaces", a.GetNamespacesHandler)
-	})
-
-	Context("when namespaces exist", func() {
-		const namespaceName1 = "namespaceone"
-		const namespaceName2 = "namespacetwo"
+		const namespaceName1 = "get-ns-test-ns1"
+		const namespaceName2 = "get-ns-test-ns2"
 
 		BeforeEach(func() {
-			By("creating namespaces")
+			repos := repositories.NewRepositories(k8sClient)
+			a = App{
+				Config: config.EnvConfig{
+					Port: 4000,
+				},
+				repositories: repos,
+			}
+
+			By("creating Namespace 1")
 			namespace1 := &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: namespaceName1,
@@ -66,18 +63,17 @@ var _ = Describe("Namespaces Handler", func() {
 			}
 			Expect(k8sClient.Create(ctx, namespace1)).To(Succeed())
 
+			By("creating Namespace 2")
 			namespace2 := &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: namespaceName2,
 				},
 			}
 			Expect(k8sClient.Create(ctx, namespace2)).To(Succeed())
-
 		})
 
 		AfterEach(func() {
-			By("deleting namespaces")
-			By("deleting the namespace1")
+			By("deleting Namespace 1")
 			namespace1 := &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: namespaceName1,
@@ -85,7 +81,7 @@ var _ = Describe("Namespaces Handler", func() {
 			}
 			Expect(k8sClient.Delete(ctx, namespace1)).To(Succeed())
 
-			By("deleting the namespace2")
+			By("deleting Namespace 2")
 			namespace2 := &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: namespaceName2,
@@ -96,32 +92,40 @@ var _ = Describe("Namespaces Handler", func() {
 
 		It("should retrieve all namespaces successfully", func() {
 			By("creating the HTTP request")
-			req, err := http.NewRequest(http.MethodGet, "/api/namespaces", http.NoBody)
-			Expect(err).NotTo(HaveOccurred(), "Failed to create HTTP request")
+			req, err := http.NewRequest(http.MethodGet, AllNamespacesPath, http.NoBody)
+			Expect(err).NotTo(HaveOccurred())
 
 			By("executing GetNamespacesHandler")
+			ps := httprouter.Params{}
 			rr := httptest.NewRecorder()
-			testRouter.ServeHTTP(rr, req)
+			a.GetNamespacesHandler(rr, req, ps)
 			rs := rr.Result()
 			defer rs.Body.Close()
 
 			By("verifying the HTTP response status code")
-			Expect(rs.StatusCode).To(Equal(http.StatusOK), "Expected HTTP status 200 OK")
+			Expect(rs.StatusCode).To(Equal(http.StatusOK))
 
 			By("reading the HTTP response body")
 			body, err := io.ReadAll(rs.Body)
-			Expect(err).NotTo(HaveOccurred(), "Failed to read HTTP response body")
+			Expect(err).NotTo(HaveOccurred())
 
-			By("unmarshalling the response JSON")
+			By("unmarshalling the response JSON to NamespacesEnvelope")
 			var response NamespacesEnvelope
 			err = json.Unmarshal(body, &response)
-			Expect(err).NotTo(HaveOccurred(), "Error unmarshalling response JSON")
+			Expect(err).NotTo(HaveOccurred())
 
-			By("asserting that the created namespaces are in the response")
+			By("getting the Namespaces from the Kubernetes API")
+			namespace1 := &corev1.Namespace{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: namespaceName1}, namespace1)).To(Succeed())
+			namespace2 := &corev1.Namespace{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: namespaceName2}, namespace2)).To(Succeed())
+
+			By("ensuring the response contains the expected Namespaces")
+			// NOTE: we use `ContainElements` instead of `ConsistOf` because envtest creates some namespaces by default
 			Expect(response.Data).To(ContainElements(
-				models.NamespaceModel{Name: namespaceName1},
-				models.NamespaceModel{Name: namespaceName2},
-			), "Expected created namespaces to be in the response")
+				models.NewNamespaceModelFromNamespace(namespace1),
+				models.NewNamespaceModelFromNamespace(namespace2),
+			))
 		})
 	})
 })

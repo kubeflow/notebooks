@@ -18,21 +18,27 @@ package repositories
 
 import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/health_check"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/namespaces"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/workspacekinds"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/workspaces"
 )
 
-// Models struct is a single convenient container to hold and represent all our repositories.
+// Repositories is a single convenient container to hold and represent all our repositories.
 type Repositories struct {
-	HealthCheck   *HealthCheckRepository
-	Workspace     *WorkspaceRepository
-	WorkspaceKind *WorkspaceKindRepository
-	Namespace     *NamespaceRepository
+	HealthCheck   *health_check.HealthCheckRepository
+	Namespace     *namespaces.NamespaceRepository
+	Workspace     *workspaces.WorkspaceRepository
+	WorkspaceKind *workspacekinds.WorkspaceKindRepository
 }
 
+// NewRepositories creates a new Repositories instance from a controller-runtime client.
 func NewRepositories(cl client.Client) *Repositories {
 	return &Repositories{
-		HealthCheck:   NewHealthCheckRepository(),
-		Workspace:     NewWorkspaceRepository(cl),
-		WorkspaceKind: NewWorkspaceKindRepository(cl),
-		Namespace:     NewNamespaceRepository(cl),
+		HealthCheck:   health_check.NewHealthCheckRepository(),
+		Namespace:     namespaces.NewNamespaceRepository(cl),
+		Workspace:     workspaces.NewWorkspaceRepository(cl),
+		WorkspaceKind: workspacekinds.NewWorkspaceKindRepository(cl),
 	}
 }

@@ -33,28 +33,33 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/models"
+	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
 )
 
 var _ = Describe("WorkspaceKinds Handler", func() {
-	Context("with existing workspacekinds", Ordered, func() {
 
-		const namespaceName1 = "namespace-kind"
+	// NOTE: the tests in this context work on the same resources, they must be run in order.
+	//       also, they assume a specific state of the cluster, so cannot be run in parallel with other tests.
+	//       therefore, we run them using the `Ordered` and `Serial` Ginkgo decorators.
+	Context("with existing WorkspaceKinds", Serial, Ordered, func() {
+
+		const namespaceName1 = "wsk-exist-test-ns1"
 
 		var (
-			a                  App
+			a App
+
 			workspaceKind1Name string
-			workspaceKind2Name string
 			workspaceKind1Key  types.NamespacedName
+			workspaceKind2Name string
 			workspaceKind2Key  types.NamespacedName
 		)
 
 		BeforeAll(func() {
-			uniqueName := "wskind-update-test"
-			workspaceKind1Name = fmt.Sprintf("workspacekind1-%s", uniqueName)
+			uniqueName := "wsk-exist-test"
+			workspaceKind1Name = fmt.Sprintf("workspacekind-1-%s", uniqueName)
 			workspaceKind1Key = types.NamespacedName{Name: workspaceKind1Name}
-			workspaceKind2Name = fmt.Sprintf("workspacekind2-%s", uniqueName)
+			workspaceKind2Name = fmt.Sprintf("workspacekind-2-%s", uniqueName)
 			workspaceKind2Key = types.NamespacedName{Name: workspaceKind2Name}
 
 			repos := repositories.NewRepositories(k8sClient)
@@ -65,7 +70,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 				repositories: repos,
 			}
 
-			By("creating namespaces")
+			By("creating Namespace 1")
 			namespace1 := &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: namespaceName1,
@@ -73,19 +78,17 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			}
 			Expect(k8sClient.Create(ctx, namespace1)).To(Succeed())
 
-			By("creating a WorkspaceKind1")
+			By("creating WorkspaceKind 1")
 			workspaceKind1 := NewExampleWorkspaceKind(workspaceKind1Name)
 			Expect(k8sClient.Create(ctx, workspaceKind1)).To(Succeed())
 
-			By("creating a WorkspaceKind1")
+			By("creating WorkspaceKind 2")
 			workspaceKind2 := NewExampleWorkspaceKind(workspaceKind2Name)
 			Expect(k8sClient.Create(ctx, workspaceKind2)).To(Succeed())
-
 		})
 
 		AfterAll(func() {
-
-			By("deleting the WorkspaceKind1")
+			By("deleting WorkspaceKind 1")
 			workspaceKind1 := &kubefloworgv1beta1.WorkspaceKind{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: workspaceKind1Name,
@@ -93,7 +96,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			}
 			Expect(k8sClient.Delete(ctx, workspaceKind1)).To(Succeed())
 
-			By("deleting the WorkspaceKind2")
+			By("deleting WorkspaceKind 2")
 			workspaceKind2 := &kubefloworgv1beta1.WorkspaceKind{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: workspaceKind2Name,
@@ -101,7 +104,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			}
 			Expect(k8sClient.Delete(ctx, workspaceKind2)).To(Succeed())
 
-			By("deleting the namespace1")
+			By("deleting Namespace 1")
 			namespace1 := &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: namespaceName1,
@@ -111,10 +114,10 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 
 		})
 
-		It("should retrieve the all workspacekinds successfully", func() {
+		It("should retrieve the all WorkspaceKinds successfully", func() {
 			By("creating the HTTP request")
-			req, err := http.NewRequest(http.MethodGet, WorkspacesByNamespacePath, http.NoBody)
-			Expect(err).NotTo(HaveOccurred(), "Failed to create HTTP request")
+			req, err := http.NewRequest(http.MethodGet, AllWorkspaceKindsPath, http.NoBody)
+			Expect(err).NotTo(HaveOccurred())
 
 			By("executing GetWorkspaceKindsHandler")
 			ps := httprouter.Params{}
@@ -124,50 +127,46 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			defer rs.Body.Close()
 
 			By("verifying the HTTP response status code")
-			Expect(rs.StatusCode).To(Equal(http.StatusOK), "Expected HTTP status 200 OK")
+			Expect(rs.StatusCode).To(Equal(http.StatusOK))
 
 			By("reading the HTTP response body")
 			body, err := io.ReadAll(rs.Body)
-			Expect(err).NotTo(HaveOccurred(), "Failed to read HTTP response body")
+			Expect(err).NotTo(HaveOccurred())
 
-			By("unmarshalling the response JSON")
+			By("unmarshalling the response JSON to WorkspaceKindsEnvelope")
 			var response WorkspaceKindsEnvelope
 			err = json.Unmarshal(body, &response)
-			Expect(err).NotTo(HaveOccurred(), "Error unmarshalling response JSON")
+			Expect(err).NotTo(HaveOccurred())
 
-			By("retrieving workspaceKindsData in the response")
-			workspaceKindsData := response.Data
-
-			By("converting workspaceKindsData to JSON and back to []WorkspaceKindsModel")
-			workspaceKindsJSON, err := json.Marshal(workspaceKindsData)
-			Expect(err).NotTo(HaveOccurred(), "Error marshaling workspaces repositories")
-
-			var workspaceKinds []models.WorkspaceKindModel
-			err = json.Unmarshal(workspaceKindsJSON, &workspaceKinds)
-			Expect(err).NotTo(HaveOccurred(), "Error unmarshalling workspaces JSON")
-
-			By("asserting that the retrieved workspaces kinds match the expected workspacekinds")
+			By("getting the WorkspaceKinds from the Kubernetes API")
 			workspacekind1 := &kubefloworgv1beta1.WorkspaceKind{}
 			Expect(k8sClient.Get(ctx, workspaceKind1Key, workspacekind1)).To(Succeed())
 			workspacekind2 := &kubefloworgv1beta1.WorkspaceKind{}
 			Expect(k8sClient.Get(ctx, workspaceKind2Key, workspacekind2)).To(Succeed())
 
-			expectedWorkspaceKinds := []models.WorkspaceKindModel{
+			By("ensuring the response contains the expected WorkspaceKinds")
+			Expect(response.Data).To(ConsistOf(
 				models.NewWorkspaceKindModelFromWorkspaceKind(workspacekind1),
 				models.NewWorkspaceKindModelFromWorkspaceKind(workspacekind2),
-			}
-			Expect(workspaceKinds).To(ConsistOf(expectedWorkspaceKinds))
+			))
+
+			By("ensuring the wrapped data can be marshaled to JSON and back to []WorkspaceKind")
+			dataJSON, err := json.Marshal(response.Data)
+			Expect(err).NotTo(HaveOccurred(), "failed to marshal data to JSON")
+			var dataObject []models.WorkspaceKind
+			err = json.Unmarshal(dataJSON, &dataObject)
+			Expect(err).NotTo(HaveOccurred(), "failed to unmarshal JSON to []WorkspaceKind")
 		})
 
-		It("should retrieve a single workspacekind successfully", func() {
+		It("should retrieve a single WorkspaceKind successfully", func() {
 			By("creating the HTTP request")
-			path := strings.Replace(WorkspaceKindsByNamePath, ":name", workspaceKind1Name, 1)
+			path := strings.Replace(WorkspaceKindsByNamePath, ":"+WorkspaceKindNamePathParam, workspaceKind1Name, 1)
 			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
-			Expect(err).NotTo(HaveOccurred(), "Failed to create HTTP request")
+			Expect(err).NotTo(HaveOccurred())
 
 			By("executing GetWorkspaceKindHandler")
 			ps := httprouter.Params{
-				httprouter.Param{Key: "name", Value: workspaceKind1Name},
+				httprouter.Param{Key: WorkspaceKindNamePathParam, Value: workspaceKind1Name},
 			}
 			rr := httptest.NewRecorder()
 			a.GetWorkspaceKindHandler(rr, req, ps)
@@ -175,31 +174,37 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			defer rs.Body.Close()
 
 			By("verifying the HTTP response status code")
-			Expect(rs.StatusCode).To(Equal(http.StatusOK), "Expected HTTP status 200 OK")
+			Expect(rs.StatusCode).To(Equal(http.StatusOK))
 
 			By("reading the HTTP response body")
 			body, err := io.ReadAll(rs.Body)
-			Expect(err).NotTo(HaveOccurred(), "Failed to read HTTP response body")
+			Expect(err).NotTo(HaveOccurred())
 
-			By("unmarshalling the response JSON")
+			By("unmarshalling the response JSON to WorkspaceKindEnvelope")
 			var response WorkspaceKindEnvelope
 			err = json.Unmarshal(body, &response)
-			Expect(err).NotTo(HaveOccurred(), "Error unmarshalling response JSON")
+			Expect(err).NotTo(HaveOccurred())
 
-			By("retrieving workspaceKindData in the response")
-			workspaceKindData := response.Data
-
-			By("comparing the retrieved workspacekind with the expected")
+			By("getting the WorkspaceKind from the Kubernetes API")
 			workspacekind1 := &kubefloworgv1beta1.WorkspaceKind{}
 			Expect(k8sClient.Get(ctx, workspaceKind1Key, workspacekind1)).To(Succeed())
 
+			By("ensuring the response matches the expected WorkspaceKind")
 			expectedWorkspaceKind := models.NewWorkspaceKindModelFromWorkspaceKind(workspacekind1)
-			Expect(workspaceKindData).To(Equal(expectedWorkspaceKind))
-		})
+			Expect(response.Data).To(BeComparableTo(expectedWorkspaceKind))
 
+			By("ensuring the wrapped data can be marshaled to JSON and back")
+			dataJSON, err := json.Marshal(response.Data)
+			Expect(err).NotTo(HaveOccurred(), "failed to marshal data to JSON")
+			var dataObject models.WorkspaceKind
+			err = json.Unmarshal(dataJSON, &dataObject)
+			Expect(err).NotTo(HaveOccurred(), "failed to unmarshal JSON to WorkspaceKind")
+		})
 	})
 
-	Context("when there are no workspacekinds ", func() {
+	// NOTE: these tests assume a specific state of the cluster, so cannot be run in parallel with other tests.
+	//       therefore, we run them using the `Serial` Ginkgo decorators.
+	Context("with no existing WorkspaceKinds", Serial, func() {
 
 		var a App
 
@@ -212,10 +217,11 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 				repositories: repos,
 			}
 		})
-		It("should return an empty list of workspacekinds", func() {
+
+		It("should return an empty list of WorkspaceKinds", func() {
 			By("creating the HTTP request")
 			req, err := http.NewRequest(http.MethodGet, AllWorkspaceKindsPath, http.NoBody)
-			Expect(err).NotTo(HaveOccurred(), "Failed to create HTTP request")
+			Expect(err).NotTo(HaveOccurred())
 
 			By("executing GetWorkspacesHandler")
 			ps := httprouter.Params{}
@@ -225,36 +231,32 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			defer rs.Body.Close()
 
 			By("verifying the HTTP response status code")
-			Expect(rs.StatusCode).To(Equal(http.StatusOK), "Expected HTTP status 200 OK")
+			Expect(rs.StatusCode).To(Equal(http.StatusOK))
 
 			By("reading the HTTP response body")
 			body, err := io.ReadAll(rs.Body)
-			Expect(err).NotTo(HaveOccurred(), "Failed to read HTTP response body")
+			Expect(err).NotTo(HaveOccurred())
 
-			By("unmarshalling the response JSON")
+			By("unmarshalling the response JSON to WorkspaceKindsEnvelope")
 			var response WorkspaceKindsEnvelope
 			err = json.Unmarshal(body, &response)
-			Expect(err).NotTo(HaveOccurred(), "Error unmarshalling response JSON")
+			Expect(err).NotTo(HaveOccurred())
 
-			By("asserting that the 'workspaces' list is empty")
-			workspaceskindsJSON, err := json.Marshal(response.Data)
-			Expect(err).NotTo(HaveOccurred(), "Error marshaling workspaces data")
-
-			var workspaceKinds []models.WorkspaceKindModel
-			err = json.Unmarshal(workspaceskindsJSON, &workspaceKinds)
-			Expect(err).NotTo(HaveOccurred(), "Error unmarshalling workspaces JSON")
-			Expect(workspaceKinds).To(BeEmpty(), "Expected no workspaces in the response")
+			By("ensuring that no WorkspaceKinds were returned")
+			Expect(response.Data).To(BeEmpty())
 		})
 
-		It("should return 404 for a non-existent workspacekind", func() {
-			By("creating the HTTP request for a non-existent workspacekind")
-			path := strings.Replace(WorkspaceKindsByNamePath, ":name", "non-existent-workspacekind", 1)
+		It("should return 404 for a non-existent WorkspaceKind", func() {
+			missingWorkspaceKindName := "non-existent-workspacekind"
+
+			By("creating the HTTP request")
+			path := strings.Replace(WorkspaceKindsByNamePath, ":"+WorkspaceNamePathParam, missingWorkspaceKindName, 1)
 			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
-			Expect(err).NotTo(HaveOccurred(), "Failed to create HTTP request")
+			Expect(err).NotTo(HaveOccurred())
 
 			By("executing GetWorkspaceKindHandler")
 			ps := httprouter.Params{
-				httprouter.Param{Key: "name", Value: "non-existent-workspacekind"},
+				httprouter.Param{Key: WorkspaceNamePathParam, Value: missingWorkspaceKindName},
 			}
 			rr := httptest.NewRecorder()
 			a.GetWorkspaceKindHandler(rr, req, ps)
@@ -262,7 +264,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			defer rs.Body.Close()
 
 			By("verifying the HTTP response status code")
-			Expect(rs.StatusCode).To(Equal(http.StatusNotFound), "Expected HTTP status 404 Not Found")
+			Expect(rs.StatusCode).To(Equal(http.StatusNotFound))
 		})
 	})
 })

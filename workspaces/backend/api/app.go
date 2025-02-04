@@ -77,16 +77,20 @@ func (a *App) Routes() http.Handler {
 	router.NotFound = http.HandlerFunc(a.notFoundResponse)
 	router.MethodNotAllowed = http.HandlerFunc(a.methodNotAllowedResponse)
 
-	router.GET(HealthCheckPath, a.HealthcheckHandler)
+	// healthcheck
+	router.GET(HealthCheckPath, a.GetHealthcheckHandler)
+
+	// namespaces
 	router.GET(AllNamespacesPath, a.GetNamespacesHandler)
 
+	// workspaces
 	router.GET(AllWorkspacesPath, a.GetWorkspacesHandler)
 	router.GET(WorkspacesByNamespacePath, a.GetWorkspacesHandler)
-
 	router.GET(WorkspacesByNamePath, a.GetWorkspaceHandler)
 	router.POST(WorkspacesByNamespacePath, a.CreateWorkspaceHandler)
 	router.DELETE(WorkspacesByNamePath, a.DeleteWorkspaceHandler)
 
+	// workspacekinds
 	router.GET(AllWorkspaceKindsPath, a.GetWorkspaceKindsHandler)
 	router.GET(WorkspaceKindsByNamePath, a.GetWorkspaceKindHandler)
 

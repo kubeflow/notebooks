@@ -14,14 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package models
+package health_check
 
-type NamespaceModel struct {
-	Name string `json:"name"`
+type HealthCheck struct {
+	Status     ServiceStatus `json:"status"`
+	SystemInfo SystemInfo    `json:"system_info"`
 }
 
-func NewNamespaceModelFromNamespace(name string) NamespaceModel {
-	return NamespaceModel{
-		Name: name,
-	}
+type SystemInfo struct {
+	Version string `json:"version"`
 }
+
+type ServiceStatus string
+
+const (
+	ServiceStatusHealthy   ServiceStatus = "Healthy"
+	ServiceStatusUnhealthy ServiceStatus = "Unhealthy"
+)
