@@ -21,10 +21,10 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/models"
+	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/namespaces"
 )
 
-type NamespacesEnvelope Envelope[[]models.NamespaceModel]
+type NamespacesEnvelope Envelope[[]models.Namespace]
 
 func (a *App) GetNamespacesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 

@@ -14,24 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package api
+package namespaces
 
-import (
-	"net/http"
+import corev1 "k8s.io/api/core/v1"
 
-	"github.com/julienschmidt/httprouter"
-)
-
-func (a *App) GetHealthcheckHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-
-	healthCheck, err := a.repositories.HealthCheck.HealthCheck(Version)
-	if err != nil {
-		a.serverErrorResponse(w, r, err)
-		return
-	}
-
-	err = a.WriteJSON(w, http.StatusOK, healthCheck, nil)
-	if err != nil {
-		a.serverErrorResponse(w, r, err)
+// NewNamespaceModelFromNamespace creates a new Namespace model from a Namespace object.
+func NewNamespaceModelFromNamespace(ns *corev1.Namespace) Namespace {
+	return Namespace{
+		Name: ns.Name,
 	}
 }

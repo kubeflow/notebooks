@@ -24,18 +24,19 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/models"
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
+	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces"
+	repository "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/workspaces"
 )
 
-type WorkspacesEnvelope Envelope[[]models.WorkspaceModel]
-type WorkspaceEnvelope Envelope[models.WorkspaceModel]
+type WorkspacesEnvelope Envelope[[]models.Workspace]
+
+type WorkspaceEnvelope Envelope[models.Workspace]
 
 func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(NamespacePathParam)
 	workspaceName := ps.ByName(WorkspaceNamePathParam)
 
-	var workspace models.WorkspaceModel
+	var workspace models.Workspace
 	var err error
 	if namespace == "" {
 		a.serverErrorResponse(w, r, fmt.Errorf("namespace is nil"))
@@ -48,7 +49,7 @@ func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps htt
 
 	workspace, err = a.repositories.Workspace.GetWorkspace(r.Context(), namespace, workspaceName)
 	if err != nil {
-		if errors.Is(err, repositories.ErrWorkspaceNotFound) {
+		if errors.Is(err, repository.ErrWorkspaceNotFound) {
 			a.notFoundResponse(w, r)
 			return
 		}
@@ -70,7 +71,7 @@ func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps htt
 func (a *App) GetWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(NamespacePathParam)
 
-	var workspaces []models.WorkspaceModel
+	var workspaces []models.Workspace
 	var err error
 	if namespace == "" {
 		workspaces, err = a.repositories.Workspace.GetAllWorkspaces(r.Context())
@@ -100,7 +101,7 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 		return
 	}
 
-	workspaceModel := &models.WorkspaceModel{}
+	workspaceModel := &models.Workspace{}
 	if err := json.NewDecoder(r.Body).Decode(workspaceModel); err != nil {
 		a.serverErrorResponse(w, r, fmt.Errorf("error decoding JSON: %w", err))
 		return
@@ -142,7 +143,7 @@ func (a *App) DeleteWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 
 	err := a.repositories.Workspace.DeleteWorkspace(r.Context(), namespace, workspaceName)
 	if err != nil {
-		if errors.Is(err, repositories.ErrWorkspaceNotFound) {
+		if errors.Is(err, repository.ErrWorkspaceNotFound) {
 			a.notFoundResponse(w, r)
 			return
 		}

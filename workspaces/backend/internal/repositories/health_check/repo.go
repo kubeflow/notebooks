@@ -14,13 +14,27 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package models
+package health_check
 
-type SystemInfo struct {
-	Version string `json:"version"`
+import (
+	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/health_check"
+)
+
+type HealthCheckRepository struct{}
+
+func NewHealthCheckRepository() *HealthCheckRepository {
+	return &HealthCheckRepository{}
 }
 
-type HealthCheckModel struct {
-	Status     string     `json:"status"`
-	SystemInfo SystemInfo `json:"system_info"`
+func (r *HealthCheckRepository) HealthCheck(version string) (models.HealthCheck, error) {
+
+	var res = models.HealthCheck{
+		// TODO: implement actual health check logic
+		Status: models.ServiceStatusHealthy,
+		SystemInfo: models.SystemInfo{
+			Version: version,
+		},
+	}
+
+	return res, nil
 }

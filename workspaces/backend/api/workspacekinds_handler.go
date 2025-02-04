@@ -23,12 +23,13 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/models"
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
+	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds"
+	repository "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/workspacekinds"
 )
 
-type WorkspaceKindsEnvelope Envelope[[]models.WorkspaceKindModel]
-type WorkspaceKindEnvelope Envelope[models.WorkspaceKindModel]
+type WorkspaceKindsEnvelope Envelope[[]models.WorkspaceKind]
+
+type WorkspaceKindEnvelope Envelope[models.WorkspaceKind]
 
 func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	name := ps.ByName("name")
@@ -40,7 +41,7 @@ func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps
 
 	workspaceKind, err := a.repositories.WorkspaceKind.GetWorkspaceKind(r.Context(), name)
 	if err != nil {
-		if errors.Is(err, repositories.ErrWorkspaceKindNotFound) {
+		if errors.Is(err, repository.ErrWorkspaceKindNotFound) {
 			a.notFoundResponse(w, r)
 			return
 		}
