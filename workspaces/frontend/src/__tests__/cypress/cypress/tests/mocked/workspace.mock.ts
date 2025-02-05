@@ -6,20 +6,57 @@ const generateMockWorkspace = (
   namespace: string,
   state: WorkspaceState,
   paused: boolean,
-  imageConfig: string,
-  podConfig: string,
+  imageConfigId: string,
+  imageConfigDisplayName: string,
+  podConfigId: string,
+  podConfigDisplayName: string,
   pvcName: string,
-): Workspace => {
+): {
+  name: string;
+  namespace: string;
+  workspace_kind: { name: string };
+  defer_updates: boolean;
+  paused: boolean;
+  paused_time: number;
+  state: WorkspaceState;
+  state_message: string;
+  pod_template: {
+    pod_metadata: { labels: {}; annotations: {} };
+    volumes: {
+      home: { pvc_name: string; mount_path: string; readOnly: boolean };
+      data: { pvc_name: string; mount_path: string; readOnly: boolean }[];
+    };
+    options: {
+      image_config: {
+        current: {
+          id: string;
+          display_name: string;
+          description: string;
+          labels: { key: string; value: string }[];
+        };
+      };
+      pod_config: {
+        current: {
+          id: string;
+          display_name: string;
+          description: string;
+          labels: ({ key: string; value: string } | { key: string; value: string })[];
+        };
+      };
+    };
+    image_config: { current: string; desired: string; redirect_chain: any[] };
+    pod_config: { current: string; desired: string; redirect_chain: any[] };
+  };
+  activity: { last_activity: number; last_update: number };
+} => {
   const currentTime = Date.now();
-  const lastActivityTime = currentTime - Math.floor(Math.random() * 1000000); // Random last activity time
-  const lastUpdateTime = currentTime - Math.floor(Math.random() * 100000); // Random last update time
+  const lastActivityTime = currentTime - Math.floor(Math.random() * 1000000);
+  const lastUpdateTime = currentTime - Math.floor(Math.random() * 100000);
 
   return {
     name,
     namespace,
-    workspace_kind: {
-      name: 'jupyterlab',
-    },
+    workspace_kind: { name: 'jupyterlab' },
     defer_updates: paused,
     paused,
     paused_time: paused ? currentTime - Math.floor(Math.random() * 1000000) : 0,
@@ -45,41 +82,60 @@ const generateMockWorkspace = (
           {
             pvc_name: pvcName,
             mount_path: '/data/my-data',
-            readOnly: paused, // Set based on the paused state
+            readOnly: paused,
           },
         ],
       },
+      options: {
+        image_config: {
+          current: {
+            id: imageConfigId,
+            display_name: imageConfigDisplayName,
+            description: 'JupyterLab environment',
+            labels: [{ key: 'python_version', value: '3.11' }],
+          },
+        },
+        pod_config: {
+          current: {
+            id: podConfigId,
+            display_name: podConfigDisplayName,
+            description: 'Pod configuration with resource limits',
+            labels: [
+              { key: 'cpu', value: '100m' },
+              { key: 'memory', value: '128Mi' },
+            ],
+          },
+        },
+      },
       image_config: {
-        current: imageConfig,
+        current: imageConfigId,
         desired: '',
         redirect_chain: [],
       },
       pod_config: {
-        current: podConfig,
-        desired: podConfig,
+        current: podConfigId,
+        desired: podConfigId,
         redirect_chain: [],
       },
     },
     activity: {
       last_activity: lastActivityTime,
       last_update: lastUpdateTime,
-      last_probe: {
-        start_time_ms: lastUpdateTime - 1000, // Simulated probe timing
-        end_time_ms: lastUpdateTime,
-        result: 'default_result',
-        message: 'default_message',
-      },
     },
   };
 };
 
 const generateMockWorkspaces = (numWorkspaces: number, byNamespace = false) => {
   const mockWorkspaces = [];
-  const podConfigs = ['Small CPU', 'Medium CPU', 'Large CPU'];
+  const podConfigs = [
+    { id: 'small-cpu', display_name: 'Small CPU' },
+    { id: 'medium-cpu', display_name: 'Medium CPU' },
+    { id: 'large-cpu', display_name: 'Large CPU' },
+  ];
   const imageConfigs = [
-    'jupyterlab_scipy_180',
-    'jupyterlab_tensorflow_230',
-    'jupyterlab_pytorch_120',
+    { id: 'jupyterlab_scipy_180', display_name: 'JupyterLab SciPy 1.8.0' },
+    { id: 'jupyterlab_tensorflow_230', display_name: 'JupyterLab TensorFlow 2.3.0' },
+    { id: 'jupyterlab_pytorch_120', display_name: 'JupyterLab PyTorch 1.2.0' },
   ];
   const namespaces = byNamespace ? ['kubeflow'] : ['kubeflow', 'system', 'user-example', 'default'];
 
@@ -94,11 +150,22 @@ const generateMockWorkspaces = (numWorkspaces: number, byNamespace = false) => {
     const name = `workspace-${i}`;
     const namespace = namespaces[i % namespaces.length];
     const pvcName = `data-pvc-${i}`;
+
     const imageConfig = imageConfigs[i % imageConfigs.length];
     const podConfig = podConfigs[i % podConfigs.length];
 
     mockWorkspaces.push(
-      generateMockWorkspace(name, namespace, state, paused, imageConfig, podConfig, pvcName),
+      generateMockWorkspace(
+        name,
+        namespace,
+        state,
+        paused,
+        imageConfig.id,
+        imageConfig.display_name,
+        podConfig.id,
+        podConfig.display_name,
+        pvcName,
+      ),
     );
   }
 

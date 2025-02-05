@@ -1,9 +1,9 @@
 export interface WorkspaceIcon {
-    url: string;
+  url: string;
 }
 
 export interface WorkspaceLogo {
-    url: string;
+  url: string;
 }
 
 export interface WorkspaceKind {
@@ -67,68 +67,79 @@ export interface WorkspaceKind {
 }
 
 export enum WorkspaceState {
-    Running,
-    Terminating,
-    Paused,
-    Pending,
-    Error,
-    Unknown,
-}
-
-export interface WorkspaceStatus {
-    activity: {
-        lastActivity: number;
-        lastUpdate: number;
-    };
-    pauseTime: number;
-    pendingRestart: boolean;
-    podTemplateOptions: {
-        imageConfig: {
-            desired: string;
-            redirectChain: {
-                source: string;
-                target: string;
-            }[];
-        };
-    };
-    state: WorkspaceState;
-    stateMessage: string;
+  Running,
+  Terminating,
+  Paused,
+  Pending,
+  Error,
+  Unknown,
 }
 
 export interface Workspace {
   name: string;
   namespace: string;
+  workspace_kind: WorkspaceKind;
+  defer_updates: boolean;
   paused: boolean;
-  deferUpdates: boolean;
-  kind: string;
-  cpu: number;
-  ram: number;
-  podTemplate: {
-    podMetadata: {
-      labels: string[];
-      annotations: string[];
+  paused_time: number;
+  state: WorkspaceState;
+  state_message: string;
+  pod_template: {
+    pod_metadata: {
+      labels: Record<string, string>;
+      annotations: Record<string, string>;
     };
     volumes: {
-      home: string;
+      home: {
+        pvc_name: string;
+        mount_path: string;
+        readOnly: boolean;
+      };
       data: {
-        pvcName: string;
-        mountPath: string;
+        pvc_name: string;
+        mount_path: string;
         readOnly: boolean;
       }[];
     };
-    endpoints: {
-      displayName: string;
-      port: string;
-    }[];
+    options: {
+      image_config: {
+        current: {
+          id: string;
+          display_name: string;
+          description: string;
+          labels: {
+            key: string;
+            value: number;
+          }[];
+        };
+      };
+      pod_config: {
+        current: {
+          id: string;
+          display_name: string;
+          description: string;
+          labels: {
+            key: string;
+            value: string;
+          }[];
+        };
+      };
+    };
+    image_config: {
+      current: string;
+      desired: string;
+      redirect_chain: string[];
+    };
+    pod_config: {
+      current: string;
+      desired: string;
+      redirect_chain: string[];
+    };
   };
-  options: {
-    imageConfig: string;
-    podConfig: string;
-  };
-  status: WorkspaceStatus;
-  redirectStatus: {
-    level: 'Info' | 'Warning' | 'Danger';
-    text: string;
+
+  activity: {
+    last_activity: number;
+    last_update: number;
   };
 }
 

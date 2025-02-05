@@ -16,7 +16,7 @@ const validateWorkspaceRow = (workspace: Workspace, index: number) => {
 
   cy.findByTestId(`workspace-row-${index}`)
     .find('[data-testid="pod-config"]')
-    .should('have.text', workspace.pod_template.pod_config.current);
+    .should('have.text', workspace.pod_template.options.pod_config.current.display_name);
 };
 
 // Test suite for workspace-related tests
