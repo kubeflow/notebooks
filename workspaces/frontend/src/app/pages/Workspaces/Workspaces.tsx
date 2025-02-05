@@ -51,7 +51,7 @@ import { WorkspaceStartActionModal } from '~/app/pages/Workspaces/workspaceActio
 import { WorkspaceRestartActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRestartActionModal';
 import { WorkspaceStopActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceStopActionModal';
 import Filter, { FilteredColumn } from 'shared/components/Filter';
-import { formatRam } from 'shared/utilities/WorkspaceResources';
+import { formatRam, formatCPU } from 'shared/utilities/WorkspaceResources';
 
 export enum ActionType {
   ViewDetails,
@@ -158,9 +158,17 @@ export const Workspaces: React.FunctionComponent = () => {
           case columnNames.kind:
             return workspace.workspace_kind.name.search(searchValueInput) >= 0;
           case columnNames.image:
-            return workspace.pod_template.image_config.current.search(searchValueInput) >= 0;
+            return (
+              workspace.pod_template.options.image_config.current.display_name.search(
+                searchValueInput,
+              ) >= 0
+            );
           case columnNames.podConfig:
-            return workspace.pod_template.pod_config.current.search(searchValueInput) >= 0;
+            return (
+              workspace.pod_template.options.pod_config.current.display_name.search(
+                searchValueInput,
+              ) >= 0
+            );
           case columnNames.state:
             return WorkspaceState[workspace.state].search(searchValueInput) >= 0;
           case columnNames.homeVol:
@@ -183,12 +191,12 @@ export const Workspaces: React.FunctionComponent = () => {
         redirectStatus: '',
       name: workspace.name,
       kind: workspace.workspace_kind.name,
-      image: workspace.pod_template.image_config.current,
+      image: workspace.pod_template.options.image_config.current.display_name,
       podConfig: workspace.pod_template.pod_config.current,
       state: workspace.state,
       homeVol: workspace.pod_template.volumes.home.pvc_name,
-      cpu: workspace.cpu,
-      ram: workspace.ram,
+      cpu: getCpuValue(workspace),
+      ram: getRamValue(workspace),
       lastActivity: workspace.activity.last_activity,
     };
     return [redirectStatus, name, kind, image, podConfig, state, homeVol, cpu, ram, lastActivity];
@@ -420,6 +428,14 @@ export const Workspaces: React.FunctionComponent = () => {
       )}
     </>
   );
+
+  const getCpuValue = (workspace: Workspace): string =>
+    workspace.pod_template.options.pod_config.current.labels.find((label) => label.key === 'cpu')
+      ?.value || 'N/A';
+
+  const getRamValue = (workspace: Workspace): string =>
+    workspace.pod_template.options.pod_config.current.labels.find((label) => label.key === 'memory')
+      ?.value || 'N/A';
 
   return (
     <Drawer
