@@ -94,5 +94,5 @@ func (a *App) Routes() http.Handler {
 	router.GET(AllWorkspaceKindsPath, a.GetWorkspaceKindsHandler)
 	router.GET(WorkspaceKindsByNamePath, a.GetWorkspaceKindHandler)
 
-	return a.RecoverPanic(a.enableCORS(router))
+	return a.recoverPanic(a.enableCORS(router))
 }

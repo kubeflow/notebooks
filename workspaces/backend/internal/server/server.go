@@ -30,6 +30,11 @@ import (
 	"github.com/kubeflow/notebooks/workspaces/backend/api"
 )
 
+const (
+	maxHeaderBytes = 1 << 17 // 128 KiB - default is 1MiB
+	maxBodyBytes   = 1 << 22 // 4 MiB - default is unlimited
+)
+
 type Server struct {
 	logger   *slog.Logger
 	listener net.Listener
@@ -44,11 +49,12 @@ func NewServer(app *api.App, logger *slog.Logger) (*Server, error) {
 
 	svc := &http.Server{
 		Addr:              fmt.Sprintf(":%d", app.Config.Port),
-		Handler:           app.Routes(),
+		Handler:           http.MaxBytesHandler(app.Routes(), maxBodyBytes),
 		IdleTimeout:       90 * time.Second, // matches http.DefaultTransport keep-alive timeout
 		ReadTimeout:       32 * time.Second,
 		ReadHeaderTimeout: 32 * time.Second,
 		WriteTimeout:      32 * time.Second,
+		MaxHeaderBytes:    maxHeaderBytes,
 		ErrorLog:          slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
 	svr := &Server{
