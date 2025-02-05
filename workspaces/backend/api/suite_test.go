@@ -55,6 +55,8 @@ const (
 	groupsHeader = "groups-header"
 
 	adminUser = "notebooks-admin"
+
+	descUnexpectedHTTPStatus = "unexpected HTTP status code, response body: %s"
 )
 
 var (
@@ -124,13 +126,6 @@ var _ = BeforeSuite(func() {
 			Name: "cluster-admin",
 		},
 	})).To(Succeed())
-
-	By("listing the clusterRoles")
-	clusterRoles := &rbacv1.ClusterRoleList{}
-	Expect(k8sClient.List(ctx, clusterRoles)).To(Succeed())
-	for _, clusterRole := range clusterRoles.Items {
-		fmt.Printf("ClusterRole: %s\n", clusterRole.Name)
-	}
 
 	By("setting up the controller manager")
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{

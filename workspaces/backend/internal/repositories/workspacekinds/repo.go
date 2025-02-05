@@ -55,7 +55,6 @@ func (r *WorkspaceKindRepository) GetWorkspaceKind(ctx context.Context, name str
 
 func (r *WorkspaceKindRepository) GetWorkspaceKinds(ctx context.Context) ([]models.WorkspaceKind, error) {
 	workspaceKindList := &kubefloworgv1beta1.WorkspaceKindList{}
-
 	err := r.client.List(ctx, workspaceKindList)
 	if err != nil {
 		return nil, err

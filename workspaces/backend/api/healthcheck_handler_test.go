@@ -46,7 +46,7 @@ var _ = Describe("HealthCheck Handler", func() {
 			defer rs.Body.Close()
 
 			By("verifying the HTTP response status code")
-			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			Expect(rs.StatusCode).To(Equal(http.StatusOK), descUnexpectedHTTPStatus, rr.Body.String())
 
 			By("reading the HTTP response body")
 			body, err := io.ReadAll(rs.Body)

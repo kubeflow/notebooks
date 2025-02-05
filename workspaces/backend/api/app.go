@@ -34,20 +34,20 @@ const (
 	Version    = "1.0.0"
 	PathPrefix = "/api/v1"
 
+	NamespacePathParam    = "namespace"
+	ResourceNamePathParam = "name"
+
 	// healthcheck
 	HealthCheckPath = PathPrefix + "/healthcheck"
 
 	// workspaces
 	AllWorkspacesPath         = PathPrefix + "/workspaces"
-	NamespacePathParam        = "namespace"
-	WorkspaceNamePathParam    = "name"
 	WorkspacesByNamespacePath = AllWorkspacesPath + "/:" + NamespacePathParam
-	WorkspacesByNamePath      = AllWorkspacesPath + "/:" + NamespacePathParam + "/:" + WorkspaceNamePathParam
+	WorkspacesByNamePath      = AllWorkspacesPath + "/:" + NamespacePathParam + "/:" + ResourceNamePathParam
 
 	// workspacekinds
-	AllWorkspaceKindsPath      = PathPrefix + "/workspacekinds"
-	WorkspaceKindNamePathParam = "name"
-	WorkspaceKindsByNamePath   = AllWorkspaceKindsPath + "/:" + WorkspaceNamePathParam
+	AllWorkspaceKindsPath    = PathPrefix + "/workspacekinds"
+	WorkspaceKindsByNamePath = AllWorkspaceKindsPath + "/:" + ResourceNamePathParam
 
 	// namespaces
 	AllNamespacesPath = PathPrefix + "/namespaces"

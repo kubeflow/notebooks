@@ -93,14 +93,14 @@ var _ = Describe("Namespaces Handler", func() {
 			defer rs.Body.Close()
 
 			By("verifying the HTTP response status code")
-			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			Expect(rs.StatusCode).To(Equal(http.StatusOK), descUnexpectedHTTPStatus, rr.Body.String())
 
 			By("reading the HTTP response body")
 			body, err := io.ReadAll(rs.Body)
 			Expect(err).NotTo(HaveOccurred())
 
-			By("unmarshalling the response JSON to NamespacesEnvelope")
-			var response NamespacesEnvelope
+			By("unmarshalling the response JSON to NamespaceListEnvelope")
+			var response NamespaceListEnvelope
 			err = json.Unmarshal(body, &response)
 			Expect(err).NotTo(HaveOccurred())
 
