@@ -81,10 +81,10 @@ export const Workspaces: React.FunctionComponent = () => {
       },
       status: {
         activity: {
-          lastActivity: 0,
-          lastUpdate: 0,
+          lastActivity: 1739673600 ,
+          lastUpdate: 1739673700 ,
         },
-        pauseTime: 0,
+        pauseTime: 1739673500 ,
         pendingRestart: false,
         podTemplateOptions: {
           imageConfig: {
@@ -327,14 +327,17 @@ export const Workspaces: React.FunctionComponent = () => {
       [
         {
           title: 'View Details',
+          id: 'view-details',
           onClick: () => selectWorkspace(workspace),
         },
         {
           title: 'Edit',
+          id: 'edit',
           onClick: () => editAction(workspace),
         },
         {
           title: 'Delete',
+          id: 'delete',
           onClick: () => handleDeleteClick(workspace),
         },
         {
@@ -342,10 +345,12 @@ export const Workspaces: React.FunctionComponent = () => {
         },
         {
           title: 'Start/restart',
+          id: 'start-restart',
           onClick: () => startRestartAction(workspace),
         },
         {
           title: 'Stop',
+          id: 'stop',
           onClick: () => stopAction(workspace),
         },
       ] as IActions,
@@ -485,7 +490,7 @@ export const Workspaces: React.FunctionComponent = () => {
                       <ActionsColumn
                         items={defaultActions(workspace).map((action) => ({
                           ...action,
-                          'data-testid': `action-${typeof action.title === 'string' ? action.title.toLowerCase() : ''}`,
+                          'data-testid': `action-${typeof action.id? action.id: ''}`,
                         }))}
                       />
                     </Td>
