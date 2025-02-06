@@ -16,6 +16,7 @@ import { Workspace } from '~/shared/types';
 import { WorkspaceDetailsOverview } from '~/app/pages/Workspaces/Details/WorkspaceDetailsOverview';
 import { WorkspaceDetailsActions } from '~/app/pages/Workspaces/Details/WorkspaceDetailsActions';
 import { WorkspaceDetailsActivity } from '~/app/pages/Workspaces/Details/WorkspaceDetailsActivity';
+import { WorkspaceDetailsPodTemplate } from '~/app/pages/Workspaces/Details/WorkspaceDetailsPodTemplate';
 
 type WorkspaceDetailsProps = {
   workspace: Workspace;
@@ -80,7 +81,9 @@ export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = 
             aria-label="Pod template"
           >
             <TabContent id="podTemplateBodyPadding">
-              <TabContentBody hasPadding>Pod template</TabContentBody>
+              <TabContentBody hasPadding style={{ height: '500px' }}>
+                <WorkspaceDetailsPodTemplate />
+              </TabContentBody>
             </TabContent>
           </Tab>
         </Tabs>
