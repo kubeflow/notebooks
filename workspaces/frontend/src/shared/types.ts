@@ -38,7 +38,7 @@ export interface WorkspaceKind {
               pythonVersion: string;
             };
             hidden: true;
-            redirect: {
+            redirect?: {
               to: string;
               message: {
                 text: string;
@@ -126,6 +126,10 @@ export interface Workspace {
     podConfig: string;
   };
   status: WorkspaceStatus;
+  redirectStatus: {
+    level: 'Info' | 'Warning' | 'Danger';
+    text: string;
+  };
 }
 
 export type WorkspacesColumnNames = {
@@ -138,4 +142,5 @@ export type WorkspacesColumnNames = {
   cpu: string;
   ram: string;
   lastActivity: string;
+  redirectStatus: string;
 };
