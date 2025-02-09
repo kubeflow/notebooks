@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -265,6 +266,114 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 
 			By("verifying the HTTP response status code")
 			Expect(rs.StatusCode).To(Equal(http.StatusNotFound))
+		})
+	})
+
+	Context("with unsupported request parameters", Ordered, func() {
+
+		var (
+			a                   App
+			validResourceName   string
+			invalidResourceName string
+			validMaxLengthName  string
+			invalidLengthName   string
+		)
+
+		// generateResourceName generates a random string of the specified length and allowed chars.
+		generateResourceName := func(length int) string {
+			const allowedChars = "abcdefghijklmnopqrstuvwxyz0123456789-"
+
+			var sb strings.Builder
+			for i := 0; i < length; i++ {
+				if i == 0 || i == length-1 {
+					sb.WriteByte(allowedChars[rand.Intn(len(allowedChars)-1)])
+				} else {
+					sb.WriteByte(allowedChars[rand.Intn(len(allowedChars))])
+				}
+			}
+			return sb.String()
+		}
+
+		BeforeAll(func() {
+			validResourceName = "test"
+			invalidResourceName = validResourceName + string(rune(rand.Intn(0x10FFFF-128)+128))
+			validMaxLengthName = generateResourceName(253)
+			invalidLengthName = generateResourceName(254)
+
+			repos := repositories.NewRepositories(k8sClient)
+			a = App{
+				Config: config.EnvConfig{
+					Port: 4000,
+				},
+				repositories: repos,
+			}
+		})
+
+		It("should return 400 status code for a invalid workspacekind name", func() {
+			By("creating the HTTP request")
+			path := strings.Replace(WorkspaceKindsByNamePath, ":"+WorkspaceNamePathParam, invalidResourceName, 1)
+			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
+			Expect(err).NotTo(HaveOccurred(), "Failed to create HTTP request")
+
+			By("executing GetWorkspaceKindHandler")
+			ps := httprouter.Params{
+				httprouter.Param{
+					Key:   WorkspaceNamePathParam,
+					Value: invalidResourceName,
+				},
+			}
+			rr := httptest.NewRecorder()
+			a.GetWorkspaceKindHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest), "Expected HTTP status 400 Bad Request")
+		})
+
+		It("should return 400 status code for a workspace longer than 253", func() {
+			By("creating the HTTP request")
+			path := strings.Replace(WorkspaceKindsByNamePath, ":"+WorkspaceNamePathParam, invalidLengthName, 1)
+			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
+			Expect(err).NotTo(HaveOccurred(), "Failed to create HTTP request")
+
+			By("executing GetWorkspaceKindHandler")
+			ps := httprouter.Params{
+				httprouter.Param{
+					Key:   WorkspaceNamePathParam,
+					Value: invalidLengthName,
+				},
+			}
+			rr := httptest.NewRecorder()
+			a.GetWorkspaceKindHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest), "Expected HTTP status 400 Bad Request")
+
+		})
+
+		It("should return 200 status code for a workspace with a length of 253 characters", func() {
+			By("creating the HTTP request")
+			path := strings.Replace(WorkspaceKindsByNamePath, ":"+WorkspaceNamePathParam, validMaxLengthName, 1)
+			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
+			Expect(err).NotTo(HaveOccurred(), "Failed to create HTTP request")
+
+			By("executing GetWorkspaceKindHandler")
+			ps := httprouter.Params{
+				httprouter.Param{
+					Key:   WorkspaceNamePathParam,
+					Value: validMaxLengthName,
+				},
+			}
+			rr := httptest.NewRecorder()
+			a.GetWorkspaceKindHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusNotFound), "Expected HTTP status 404 Not Found")
 		})
 	})
 })

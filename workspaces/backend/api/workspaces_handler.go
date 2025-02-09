@@ -24,6 +24,7 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces"
 	repository "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/workspaces"
 )
@@ -38,12 +39,9 @@ func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps htt
 
 	var workspace models.Workspace
 	var err error
-	if namespace == "" {
-		a.serverErrorResponse(w, r, fmt.Errorf("namespace is nil"))
-		return
-	}
-	if workspaceName == "" {
-		a.serverErrorResponse(w, r, fmt.Errorf("workspaceName is nil"))
+
+	if err := helper.ValidateWorkspace(namespace, workspaceName); err != nil {
+		a.badRequestResponse(w, r, err)
 		return
 	}
 
@@ -71,6 +69,11 @@ func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps htt
 func (a *App) GetWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(NamespacePathParam)
 
+	if err := helper.ValidateNamespace(namespace, false); err != nil {
+		a.badRequestResponse(w, r, err)
+		return
+	}
+
 	var workspaces []models.Workspace
 	var err error
 	if namespace == "" {
@@ -96,14 +99,19 @@ func (a *App) GetWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps ht
 func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName("namespace")
 
-	if namespace == "" {
-		a.serverErrorResponse(w, r, fmt.Errorf("namespace is missing"))
+	if err := helper.ValidateNamespace(namespace, true); err != nil {
+		a.badRequestResponse(w, r, err)
 		return
 	}
 
 	workspaceModel := &models.Workspace{}
 	if err := json.NewDecoder(r.Body).Decode(workspaceModel); err != nil {
 		a.serverErrorResponse(w, r, fmt.Errorf("error decoding JSON: %w", err))
+		return
+	}
+
+	if err := helper.ValidateWorkspace(workspaceModel.Namespace, workspaceModel.Name); err != nil {
+		a.badRequestResponse(w, r, err)
 		return
 	}
 
@@ -132,12 +140,12 @@ func (a *App) DeleteWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 	workspaceName := ps.ByName("name")
 
 	if namespace == "" {
-		a.serverErrorResponse(w, r, fmt.Errorf("namespace is missing"))
+		a.badRequestResponse(w, r, fmt.Errorf("namespace is missing"))
 		return
 	}
 
 	if workspaceName == "" {
-		a.serverErrorResponse(w, r, fmt.Errorf("workspace name is missing"))
+		a.badRequestResponse(w, r, fmt.Errorf("workspace name is missing"))
 		return
 	}
 

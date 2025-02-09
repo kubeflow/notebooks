@@ -18,11 +18,11 @@ package api
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds"
 	repository "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/workspacekinds"
 )
@@ -34,8 +34,8 @@ type WorkspaceKindEnvelope Envelope[models.WorkspaceKind]
 func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	name := ps.ByName("name")
 
-	if name == "" {
-		a.serverErrorResponse(w, r, fmt.Errorf("workspace kind name is missing"))
+	if err := helper.ValidateWorkspaceKind(name); err != nil {
+		a.badRequestResponse(w, r, err)
 		return
 	}
 
