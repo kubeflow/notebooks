@@ -185,15 +185,15 @@ type WorkspaceKindCullingConfig struct {
 	MaxInactiveSeconds *int32 `json:"maxInactiveSeconds,omitempty"`
 
 	// the maximum number of seconds between probes
-	//+kubebuilder:validation:Optional
-	//+kubebuilder:validation:Minimum:=60
-	//+kubebuilder:default=300
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Minimum:=60
+	// +kubebuilder:default=300
 	MaxProbeIntervalSeconds *int32 `json:"maxProbeIntervalSeconds,omitempty"`
 
 	// the minimum number of seconds between probes to avoid spamming in case on failure
-	//+kubebuilder:validation:Optional
-	//+kubebuilder:validation:Minimum:=10
-	//+kubebuilder:default=20
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Minimum:=10
+	// +kubebuilder:default=20
 	MinProbeIntervalSeconds *int32 `json:"minProbeIntervalSeconds,omitempty"`
 
 	// the probe used to determine if the Workspace is active
@@ -219,7 +219,7 @@ type ActivityProbe struct {
 type ActivityProbeExec struct {
 	// the script should write a JSON file at this path.
 	// any existing file in this path will be REMOVED before the script is run
-	//+kubebuilder:example="/tmp/activity_probe.json"
+	// +kubebuilder:example="/tmp/activity_probe.json"
 	OutputPath string `json:"outputPath"`
 
 	// the number of seconds to wait for the script to complete

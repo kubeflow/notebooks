@@ -38,8 +38,8 @@ type WorkspaceSpec struct {
 
 	// DisableCulling controls whether automatic culling is disabled for the workspace.
 	// If true, the workspace will not be culled
-	//+kubebuilder:validation:Optional
-	//+kubebuilder:default=false
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=false
 	DisableCulling *bool `json:"disableCulling,omitempty"`
 
 	// if true, pending updates are NOT applied when the Workspace is paused
@@ -233,24 +233,24 @@ type WorkspacePodOptionRedirectStep struct {
 type ProbeStatus struct {
 
 	// the time the probe was started (UNIX epoch in milliseconds)
-	//+kubebuilder:validation:Minimum=0
-	//+kubebuilder:example=1710435303000
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:example=1710435303000
 	StartTimeMs int64 `json:"startTimeMs"`
 
 	// the time the probe was completed (UNIX epoch in milliseconds)
-	//+kubebuilder:validation:Minimum=0
-	//+kubebuilder:example=1710435305000
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:example=1710435305000
 	EndTimeMs int64 `json:"endTimeMs"`
 
 	// the result of the probe
 	// ENUM: "Success" | "Failure" | "Timeout" | ""
-	//+kubebuilder:default=""
+	// +kubebuilder:default=""
 	Result ProbeResult `json:"result"`
 
 	// a human-readable message about the probe result
 	// WARNING: this field is NOT FOR MACHINE USE, subject to change without notice
-	//+kubebuilder:default=""
-	//+kubebuilder:example="Jupyter probe succeeded"
+	// +kubebuilder:default=""
+	// +kubebuilder:example="Jupyter probe succeeded"
 	Message string `json:"message"`
 }
 
@@ -282,10 +282,10 @@ const (
 ===============================================================================
 */
 
-//+kubebuilder:object:root=true
-//+kubebuilder:printcolumn:name="State",type="string",JSONPath=".status.state",description="The current state of the Workspace"
-//+kubebuilder:subresource:status
-//+kubebuilder:resource:shortName=ws
+// +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="State",type="string",JSONPath=".status.state",description="The current state of the Workspace"
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:shortName=ws
 
 // Workspace is the Schema for the Workspaces API
 type Workspace struct {

@@ -22,9 +22,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
+	"net/http"
+	"net/url"
+	"os"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/go-logr/logr"
-	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
-	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -36,16 +42,12 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/utils/ptr"
-	"net"
-	"net/http"
-	"net/url"
-	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"strconv"
-	"strings"
-	"time"
+
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
 )
 
 const (
@@ -69,7 +71,7 @@ type ActivityProbe struct {
 
 // +kubebuilder:rbac:groups="core",resources=pods/exec,verbs=create
 
-func (r *CullingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) { // nolint:gocyclo
+func (r *CullingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) { //nolint:gocyclo
 	log := log.FromContext(ctx)
 	log.V(2).Info("reconciling Workspace for culling")
 	// fetch the Workspace
@@ -176,7 +178,7 @@ func (r *CullingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 				Message:     "Failed to fetch service name for workspace",
 			}, nil, nil)
 		}
-		port, err := r.getWorkspacePort(ctx, workspace, workspaceKind)
+		port, err := r.getWorkspacePort(workspace, workspaceKind)
 		if err != nil {
 			log.Error(err, "Error fetching port for workspace")
 			return r.updateWorkspaceActivityStatus(ctx, log, workspace, &minRequeueAfter, &kubefloworgv1beta1.ProbeStatus{
@@ -261,7 +263,7 @@ func (r *CullingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		lastActivity := time.Now().Unix()
 		if activityProbe.HasActivity != nil && !*activityProbe.HasActivity {
 			log.V(2).Info("Culling the workspace due to inactivity")
-			//TODO: figure out how to set the last activity time
+			// TODO: figure out how to set the last activity time
 			lastActivity = time.Now().Unix()
 			workspace.Spec.Paused = ptr.To(true)
 			err := r.Update(ctx, workspace)
@@ -324,7 +326,7 @@ func (r *CullingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 // updateWorkspaceActivityStatus attempts to immediately update the Workspace activity status with the provided status.
-func (r *CullingReconciler) updateWorkspaceActivityStatus(ctx context.Context, log logr.Logger, workspace *kubefloworgv1beta1.Workspace, requeueAfter *time.Duration, probeStatus *kubefloworgv1beta1.ProbeStatus, lastUpdate, lastActivity *int64) (ctrl.Result, error) { // nolint:unparam
+func (r *CullingReconciler) updateWorkspaceActivityStatus(ctx context.Context, log logr.Logger, workspace *kubefloworgv1beta1.Workspace, requeueAfter *time.Duration, probeStatus *kubefloworgv1beta1.ProbeStatus, lastUpdate, lastActivity *int64) (ctrl.Result, error) {
 	if workspace == nil {
 		return ctrl.Result{}, fmt.Errorf("provided Workspace was nil")
 	}
@@ -381,7 +383,7 @@ func (r *CullingReconciler) getServiceName(ctx context.Context, workspace *kubef
 	return ownedServices.Items[0].Name, nil
 }
 
-func (r *CullingReconciler) getWorkspacePort(ctx context.Context, workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind) (int32, error) {
+func (r *CullingReconciler) getWorkspacePort(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind) (int32, error) {
 	for _, imageConfigValue := range workspaceKind.Spec.PodTemplate.Options.ImageConfig.Values {
 		if imageConfigValue.Id == workspace.Spec.PodTemplate.Options.ImageConfig {
 			for _, port := range imageConfigValue.Spec.Ports {
@@ -449,7 +451,7 @@ func (r *CullingReconciler) execCommand(ctx context.Context, podName, podNamespa
 
 	executor, err := createExecutor(req.URL(), r.Config)
 	if err != nil {
-		return "", "", fmt.Errorf("error creating executor: %v", err)
+		return "", "", fmt.Errorf("error creating executor: %w", err)
 	}
 
 	var stdout, stderr bytes.Buffer
@@ -492,7 +494,7 @@ func fetchLastActivityFromJupyterAPI(apiEndpoint string) (*time.Time, error, str
 		LastActivity string `json:"last_activity"`
 	}
 
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 	if err := json.NewDecoder(resp.Body).Decode(&status); err != nil {
 		return nil, fmt.Errorf("failed to parse JupyterLab API response: %w", err),
 			"Jupyter probe failed: invalid response body", kubefloworgv1beta1.ProbeResultFailure
@@ -509,13 +511,13 @@ func fetchLastActivityFromJupyterAPI(apiEndpoint string) (*time.Time, error, str
 }
 
 // createExecutor creates a new Executor for the given URL and REST config.
-func createExecutor(url *url.URL, config *rest.Config) (remotecommand.Executor, error) {
-	exec, err := remotecommand.NewSPDYExecutor(config, "POST", url)
+func createExecutor(requestUrl *url.URL, config *rest.Config) (remotecommand.Executor, error) {
+	exec, err := remotecommand.NewSPDYExecutor(config, "POST", requestUrl)
 	if err != nil {
 		return nil, err
 	}
 	// WebSocketExecutor must be "GET" method as described in RFC 6455 Sec. 4.1 (page 17).
-	websocketExec, err := remotecommand.NewWebSocketExecutor(config, "GET", url.String())
+	websocketExec, err := remotecommand.NewWebSocketExecutor(config, "GET", requestUrl.String())
 	if err != nil {
 		return nil, err
 	}

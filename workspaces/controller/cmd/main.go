@@ -19,8 +19,9 @@ package main
 import (
 	"crypto/tls"
 	"flag"
-	"k8s.io/client-go/kubernetes"
 	"os"
+
+	"k8s.io/client-go/kubernetes"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -163,7 +164,7 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Culler")
 		os.Exit(1)
 	}
-	//+kubebuilder:scaffold:builder
+	// +kubebuilder:scaffold:builder
 
 	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
 		if err = (&webhookInternal.WorkspaceValidator{
