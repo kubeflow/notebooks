@@ -46,6 +46,15 @@ func (a *App) LogError(r *http.Request, err error) {
 	a.logger.Error(err.Error(), "method", method, "uri", uri)
 }
 
+func (a *App) LogWarn(r *http.Request, message string) {
+	var (
+		method = r.Method
+		uri    = r.URL.RequestURI()
+	)
+
+	a.logger.Warn(message, "method", method, "uri", uri)
+}
+
 //nolint:unused
 func (a *App) badRequestResponse(w http.ResponseWriter, r *http.Request, err error) {
 	httpError := &HTTPError{
@@ -98,6 +107,30 @@ func (a *App) methodNotAllowedResponse(w http.ResponseWriter, r *http.Request) {
 		ErrorResponse: ErrorResponse{
 			Code:    strconv.Itoa(http.StatusMethodNotAllowed),
 			Message: fmt.Sprintf("the %s method is not supported for this resource", r.Method),
+		},
+	}
+	a.errorResponse(w, r, httpError)
+}
+
+func (a *App) unauthorizedResponse(w http.ResponseWriter, r *http.Request) {
+	httpError := &HTTPError{
+		StatusCode: http.StatusUnauthorized,
+		ErrorResponse: ErrorResponse{
+			Code:    strconv.Itoa(http.StatusUnauthorized),
+			Message: "authentication is required to access this resource",
+		},
+	}
+	a.errorResponse(w, r, httpError)
+}
+
+func (a *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, msg string) {
+	a.LogWarn(r, msg)
+
+	httpError := &HTTPError{
+		StatusCode: http.StatusForbidden,
+		ErrorResponse: ErrorResponse{
+			Code:    strconv.Itoa(http.StatusForbidden),
+			Message: "you are not authorized to access this resource",
 		},
 	}
 	a.errorResponse(w, r, httpError)
