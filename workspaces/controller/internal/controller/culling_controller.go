@@ -321,7 +321,7 @@ func (r *CullingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 func (r *CullingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&kubefloworgv1beta1.Workspace{}).
+		For(&kubefloworgv1beta1.Workspace{}).Named("culling_controller").
 		Complete(r)
 }
 

@@ -154,7 +154,6 @@ func main() {
 		setupLog.Error(err, "unable to create clientset")
 		os.Exit(1)
 	}
-	// +kubebuilder:scaffold:builder
 	if err = (&controllerInternal.CullingReconciler{
 		Client:    mgr.GetClient(),
 		Scheme:    mgr.GetScheme(),
