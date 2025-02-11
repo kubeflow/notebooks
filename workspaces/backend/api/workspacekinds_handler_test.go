@@ -32,9 +32,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds"
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
 )
 
 var _ = Describe("WorkspaceKinds Handler", func() {
@@ -47,8 +45,6 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 		const namespaceName1 = "wsk-exist-test-ns1"
 
 		var (
-			a App
-
 			workspaceKind1Name string
 			workspaceKind1Key  types.NamespacedName
 			workspaceKind2Name string
@@ -61,14 +57,6 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			workspaceKind1Key = types.NamespacedName{Name: workspaceKind1Name}
 			workspaceKind2Name = fmt.Sprintf("workspacekind-2-%s", uniqueName)
 			workspaceKind2Key = types.NamespacedName{Name: workspaceKind2Name}
-
-			repos := repositories.NewRepositories(k8sClient)
-			a = App{
-				Config: config.EnvConfig{
-					Port: 4000,
-				},
-				repositories: repos,
-			}
 
 			By("creating Namespace 1")
 			namespace1 := &corev1.Namespace{
@@ -111,13 +99,15 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 				},
 			}
 			Expect(k8sClient.Delete(ctx, namespace1)).To(Succeed())
-
 		})
 
 		It("should retrieve the all WorkspaceKinds successfully", func() {
 			By("creating the HTTP request")
 			req, err := http.NewRequest(http.MethodGet, AllWorkspaceKindsPath, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
 
 			By("executing GetWorkspaceKindsHandler")
 			ps := httprouter.Params{}
@@ -164,6 +154,9 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
+
 			By("executing GetWorkspaceKindHandler")
 			ps := httprouter.Params{
 				httprouter.Param{Key: WorkspaceKindNamePathParam, Value: workspaceKind1Name},
@@ -206,22 +199,13 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 	//       therefore, we run them using the `Serial` Ginkgo decorators.
 	Context("with no existing WorkspaceKinds", Serial, func() {
 
-		var a App
-
-		BeforeEach(func() {
-			repos := repositories.NewRepositories(k8sClient)
-			a = App{
-				Config: config.EnvConfig{
-					Port: 4000,
-				},
-				repositories: repos,
-			}
-		})
-
 		It("should return an empty list of WorkspaceKinds", func() {
 			By("creating the HTTP request")
 			req, err := http.NewRequest(http.MethodGet, AllWorkspaceKindsPath, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
 
 			By("executing GetWorkspacesHandler")
 			ps := httprouter.Params{}
@@ -253,6 +237,9 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			path := strings.Replace(WorkspaceKindsByNamePath, ":"+WorkspaceNamePathParam, missingWorkspaceKindName, 1)
 			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
 
 			By("executing GetWorkspaceKindHandler")
 			ps := httprouter.Params{

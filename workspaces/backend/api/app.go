@@ -22,6 +22,8 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/authentication/authenticator"
+	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
@@ -52,20 +54,26 @@ const (
 )
 
 type App struct {
-	Config       config.EnvConfig
+	Config       *config.EnvConfig
 	logger       *slog.Logger
 	repositories *repositories.Repositories
 	Scheme       *runtime.Scheme
+	RequestAuthN authenticator.Request
+	RequestAuthZ authorizer.Authorizer
 }
 
 // NewApp creates a new instance of the app
-func NewApp(cfg config.EnvConfig, logger *slog.Logger, cl client.Client, scheme *runtime.Scheme) (*App, error) {
+func NewApp(cfg *config.EnvConfig, logger *slog.Logger, cl client.Client, scheme *runtime.Scheme, reqAuthN authenticator.Request, reqAuthZ authorizer.Authorizer) (*App, error) {
+
+	// TODO: log the configuration on startup
 
 	app := &App{
 		Config:       cfg,
 		logger:       logger,
 		repositories: repositories.NewRepositories(cl),
 		Scheme:       scheme,
+		RequestAuthN: reqAuthN,
+		RequestAuthZ: reqAuthZ,
 	}
 	return app, nil
 }
