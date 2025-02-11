@@ -22,6 +22,8 @@ type EnvConfig struct {
 	ClientQPS   float64
 	ClientBurst int
 
+	DisableAuth bool
+
 	UserIdHeader string
 	UserIdPrefix string
 	GroupsHeader string

@@ -32,6 +32,11 @@ import (
 func (a *App) requireAuth(w http.ResponseWriter, r *http.Request, policies []*auth.ResourcePolicy) bool {
 	ctx := r.Context()
 
+	// if auth is disabled, allow the request to proceed
+	if a.Config.DisableAuth {
+		return true
+	}
+
 	// authenticate the request (extract user and groups from the request headers)
 	res, ok, err := a.RequestAuthN.AuthenticateRequest(r)
 	if err != nil {

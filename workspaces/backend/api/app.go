@@ -54,7 +54,7 @@ const (
 )
 
 type App struct {
-	Config       config.EnvConfig
+	Config       *config.EnvConfig
 	logger       *slog.Logger
 	repositories *repositories.Repositories
 	Scheme       *runtime.Scheme
@@ -63,7 +63,9 @@ type App struct {
 }
 
 // NewApp creates a new instance of the app
-func NewApp(cfg config.EnvConfig, logger *slog.Logger, cl client.Client, scheme *runtime.Scheme, reqAuthN authenticator.Request, reqAuthZ authorizer.Authorizer) (*App, error) {
+func NewApp(cfg *config.EnvConfig, logger *slog.Logger, cl client.Client, scheme *runtime.Scheme, reqAuthN authenticator.Request, reqAuthZ authorizer.Authorizer) (*App, error) {
+
+	// TODO: log the configuration on startup
 
 	app := &App{
 		Config:       cfg,

@@ -34,7 +34,7 @@ import (
 
 func main() {
 	// Define command line flags
-	var cfg config.EnvConfig
+	cfg := &config.EnvConfig{}
 	flag.IntVar(&cfg.Port,
 		"port",
 		getEnvAsInt("PORT", 4000),
@@ -51,6 +51,13 @@ func main() {
 		"client-burst",
 		getEnvAsInt("CLIENT_BURST", 100),
 		"Maximum Burst configuration passed to rest.Client",
+	)
+	flag.BoolVar(
+		// TODO: remove before GA
+		&cfg.DisableAuth,
+		"disable-auth",
+		getEnvAsBool("DISABLE_AUTH", true),
+		"Disable authentication and authorization",
 	)
 	flag.StringVar(
 		&cfg.UserIdHeader,
@@ -162,6 +169,15 @@ func getEnvAsFloat64(name string, defaultVal float64) float64 {
 func getEnvAsStr(name string, defaultVal string) string {
 	if value, exists := os.LookupEnv(name); exists {
 		return value
+	}
+	return defaultVal
+}
+
+func getEnvAsBool(name string, defaultVal bool) bool {
+	if value, exists := os.LookupEnv(name); exists {
+		if boolValue, err := strconv.ParseBool(value); err == nil {
+			return boolValue
+		}
 	}
 	return defaultVal
 }
