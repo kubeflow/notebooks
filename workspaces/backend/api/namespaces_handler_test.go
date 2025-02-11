@@ -29,15 +29,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/namespaces"
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
 )
 
 var _ = Describe("Namespaces Handler", func() {
-	var (
-		a App
-	)
 
 	// NOTE: these tests assume a specific state of the cluster, so cannot be run in parallel with other tests.
 	//       therefore, we run them using the `Serial` Ginkgo decorators.
@@ -47,14 +42,6 @@ var _ = Describe("Namespaces Handler", func() {
 		const namespaceName2 = "get-ns-test-ns2"
 
 		BeforeEach(func() {
-			repos := repositories.NewRepositories(k8sClient)
-			a = App{
-				Config: config.EnvConfig{
-					Port: 4000,
-				},
-				repositories: repos,
-			}
-
 			By("creating Namespace 1")
 			namespace1 := &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
@@ -94,6 +81,9 @@ var _ = Describe("Namespaces Handler", func() {
 			By("creating the HTTP request")
 			req, err := http.NewRequest(http.MethodGet, AllNamespacesPath, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
 
 			By("executing GetNamespacesHandler")
 			ps := httprouter.Params{}

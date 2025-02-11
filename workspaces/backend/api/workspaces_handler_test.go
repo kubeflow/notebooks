@@ -34,9 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces"
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
 )
 
 var _ = Describe("Workspaces Handler", func() {
@@ -50,8 +48,6 @@ var _ = Describe("Workspaces Handler", func() {
 		const namespaceName2 = "ws-exist-ns2"
 
 		var (
-			a App
-
 			workspaceName1 string
 			workspaceKey1  types.NamespacedName
 			workspaceName2 string
@@ -73,14 +69,6 @@ var _ = Describe("Workspaces Handler", func() {
 			workspaceKey3 = types.NamespacedName{Name: workspaceName3, Namespace: namespaceName2}
 			workspaceKindName = fmt.Sprintf("workspacekind-%s", uniqueName)
 			workspaceKindKey = types.NamespacedName{Name: workspaceKindName}
-
-			repos := repositories.NewRepositories(k8sClient)
-			a = App{
-				Config: config.EnvConfig{
-					Port: 4000,
-				},
-				repositories: repos,
-			}
 
 			By("creating Namespace 1")
 			namespace1 := &corev1.Namespace{
@@ -173,6 +161,9 @@ var _ = Describe("Workspaces Handler", func() {
 			req, err := http.NewRequest(http.MethodGet, AllWorkspacesPath, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
+
 			By("executing GetWorkspacesHandler")
 			ps := httprouter.Params{}
 			rr := httptest.NewRecorder()
@@ -224,6 +215,9 @@ var _ = Describe("Workspaces Handler", func() {
 			path := strings.Replace(WorkspacesByNamespacePath, ":"+NamespacePathParam, namespaceName1, 1)
 			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
 
 			By("executing GetWorkspacesHandler")
 			ps := httprouter.Params{
@@ -277,6 +271,9 @@ var _ = Describe("Workspaces Handler", func() {
 			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
+
 			By("executing GetWorkspaceHandler")
 			ps := httprouter.Params{
 				httprouter.Param{Key: NamespacePathParam, Value: namespaceName1},
@@ -327,8 +324,6 @@ var _ = Describe("Workspaces Handler", func() {
 		const namespaceName1 = "ws-invalid-ns1"
 
 		var (
-			a App
-
 			workspaceMissingWskName string
 			workspaceMissingWskKey  types.NamespacedName
 
@@ -352,14 +347,6 @@ var _ = Describe("Workspaces Handler", func() {
 			workspaceInvalidImageConfigKey = types.NamespacedName{Name: workspaceInvalidImageConfig, Namespace: namespaceName1}
 			workspaceKindName = fmt.Sprintf("workspacekind-%s", uniqueName)
 			workspaceKindKey = types.NamespacedName{Name: workspaceKindName}
-
-			repos := repositories.NewRepositories(k8sClient)
-			a = App{
-				Config: config.EnvConfig{
-					Port: 4000,
-				},
-				repositories: repos,
-			}
 
 			By("creating Namespace 1")
 			namespace1 := &corev1.Namespace{
@@ -439,6 +426,9 @@ var _ = Describe("Workspaces Handler", func() {
 			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
+
 			By("executing GetWorkspacesHandler")
 			ps := httprouter.Params{
 				httprouter.Param{Key: NamespacePathParam, Value: namespaceName1},
@@ -506,6 +496,9 @@ var _ = Describe("Workspaces Handler", func() {
 			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
+
 			By("executing GetWorkspaceHandler")
 			ps := httprouter.Params{
 				httprouter.Param{Key: NamespacePathParam, Value: namespaceName1},
@@ -542,22 +535,13 @@ var _ = Describe("Workspaces Handler", func() {
 	//       therefore, we run them using the `Serial` Ginkgo decorators.
 	Context("with no existing Workspaces", Serial, func() {
 
-		var a App
-
-		BeforeEach(func() {
-			repos := repositories.NewRepositories(k8sClient)
-			a = App{
-				Config: config.EnvConfig{
-					Port: 4000,
-				},
-				repositories: repos,
-			}
-		})
-
 		It("should return an empty list of Workspaces for all namespaces", func() {
 			By("creating the HTTP request")
 			req, err := http.NewRequest(http.MethodGet, AllWorkspacesPath, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
 
 			By("executing GetWorkspacesHandler")
 			ps := httprouter.Params{}
@@ -589,6 +573,9 @@ var _ = Describe("Workspaces Handler", func() {
 			path := strings.Replace(AllWorkspacesPath, ":"+NamespacePathParam, missingNamespace, 1)
 			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
 
 			By("executing GetWorkspacesHandler")
 			ps := httprouter.Params{
@@ -625,6 +612,9 @@ var _ = Describe("Workspaces Handler", func() {
 			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
+
 			By("executing GetWorkspaceHandler")
 			ps := httprouter.Params{
 				httprouter.Param{Key: NamespacePathParam, Value: missingNamespace},
@@ -647,7 +637,6 @@ var _ = Describe("Workspaces Handler", func() {
 		const namespaceNameCrud = "ws-crud-ns"
 
 		var (
-			a                 App
 			workspaceName     string
 			workspaceKey      types.NamespacedName
 			workspaceKindName string
@@ -660,14 +649,6 @@ var _ = Describe("Workspaces Handler", func() {
 			workspaceKey = types.NamespacedName{Name: workspaceName, Namespace: namespaceNameCrud}
 			workspaceKindName = fmt.Sprintf("workspacekind-%s", uniqueName)
 			workspaceKindKey = types.NamespacedName{Name: workspaceKindName}
-
-			repos := repositories.NewRepositories(k8sClient)
-			a = App{
-				Config: config.EnvConfig{
-					Port: 4000,
-				},
-				repositories: repos,
-			}
 
 			By("creating the Namespace")
 			namespaceA := &corev1.Namespace{
@@ -755,6 +736,9 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(err).NotTo(HaveOccurred())
 			req.Header.Set("Content-Type", "application/json")
 
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
+
 			By("executing CreateWorkspaceHandler")
 			rr := httptest.NewRecorder()
 			ps := httprouter.Params{
@@ -782,6 +766,9 @@ var _ = Describe("Workspaces Handler", func() {
 			path = strings.Replace(path, ":"+WorkspaceNamePathParam, workspaceName, 1)
 			req, err = http.NewRequest(http.MethodDelete, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
 
 			By("executing DeleteWorkspaceHandler")
 			rr = httptest.NewRecorder()
