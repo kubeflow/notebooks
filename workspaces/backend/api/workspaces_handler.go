@@ -23,7 +23,10 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces"
 	repository "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/workspaces"
 )
@@ -34,20 +37,35 @@ type WorkspaceEnvelope Envelope[models.Workspace]
 
 func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(NamespacePathParam)
-	workspaceName := ps.ByName(WorkspaceNamePathParam)
-
-	var workspace models.Workspace
-	var err error
 	if namespace == "" {
 		a.serverErrorResponse(w, r, fmt.Errorf("namespace is nil"))
 		return
 	}
+
+	workspaceName := ps.ByName(WorkspaceNamePathParam)
 	if workspaceName == "" {
 		a.serverErrorResponse(w, r, fmt.Errorf("workspaceName is nil"))
 		return
 	}
 
-	workspace, err = a.repositories.Workspace.GetWorkspace(r.Context(), namespace, workspaceName)
+	// =========================== AUTH ===========================
+	authPolicies := []*auth.ResourcePolicy{
+		auth.NewResourcePolicy(
+			auth.ResourceVerbGet,
+			&kubefloworgv1beta1.Workspace{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: namespace,
+					Name:      workspaceName,
+				},
+			},
+		),
+	}
+	if success := a.requireAuth(w, r, authPolicies); !success {
+		return
+	}
+	// ============================================================
+
+	workspace, err := a.repositories.Workspace.GetWorkspace(r.Context(), namespace, workspaceName)
 	if err != nil {
 		if errors.Is(err, repository.ErrWorkspaceNotFound) {
 			a.notFoundResponse(w, r)
@@ -70,6 +88,22 @@ func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps htt
 
 func (a *App) GetWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(NamespacePathParam)
+
+	// =========================== AUTH ===========================
+	authPolicies := []*auth.ResourcePolicy{
+		auth.NewResourcePolicy(
+			auth.ResourceVerbList,
+			&kubefloworgv1beta1.Workspace{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: namespace,
+				},
+			},
+		),
+	}
+	if success := a.requireAuth(w, r, authPolicies); !success {
+		return
+	}
+	// ============================================================
 
 	var workspaces []models.Workspace
 	var err error
@@ -95,7 +129,6 @@ func (a *App) GetWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps ht
 
 func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName("namespace")
-
 	if namespace == "" {
 		a.serverErrorResponse(w, r, fmt.Errorf("namespace is missing"))
 		return
@@ -108,6 +141,23 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 	}
 
 	workspaceModel.Namespace = namespace
+
+	// =========================== AUTH ===========================
+	authPolicies := []*auth.ResourcePolicy{
+		auth.NewResourcePolicy(
+			auth.ResourceVerbCreate,
+			&kubefloworgv1beta1.Workspace{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: namespace,
+					Name:      workspaceModel.Name,
+				},
+			},
+		),
+	}
+	if success := a.requireAuth(w, r, authPolicies); !success {
+		return
+	}
+	// ============================================================
 
 	createdWorkspace, err := a.repositories.Workspace.CreateWorkspace(r.Context(), workspaceModel)
 	if err != nil {
@@ -129,17 +179,33 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 
 func (a *App) DeleteWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName("namespace")
-	workspaceName := ps.ByName("name")
-
 	if namespace == "" {
 		a.serverErrorResponse(w, r, fmt.Errorf("namespace is missing"))
 		return
 	}
 
+	workspaceName := ps.ByName("name")
 	if workspaceName == "" {
 		a.serverErrorResponse(w, r, fmt.Errorf("workspace name is missing"))
 		return
 	}
+
+	// =========================== AUTH ===========================
+	authPolicies := []*auth.ResourcePolicy{
+		auth.NewResourcePolicy(
+			auth.ResourceVerbDelete,
+			&kubefloworgv1beta1.Workspace{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: namespace,
+					Name:      workspaceName,
+				},
+			},
+		),
+	}
+	if success := a.requireAuth(w, r, authPolicies); !success {
+		return
+	}
+	// ============================================================
 
 	err := a.repositories.Workspace.DeleteWorkspace(r.Context(), namespace, workspaceName)
 	if err != nil {

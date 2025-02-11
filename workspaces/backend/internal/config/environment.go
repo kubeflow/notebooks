@@ -18,4 +18,13 @@ package config
 
 type EnvConfig struct {
 	Port int
+
+	ClientQPS   float64
+	ClientBurst int
+
+	DisableAuth bool
+
+	UserIdHeader string
+	UserIdPrefix string
+	GroupsHeader string
 }

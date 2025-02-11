@@ -19,38 +19,51 @@ package api
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"path/filepath"
 	"runtime"
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
-	ctrl "sigs.k8s.io/controller-runtime"
-	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	v1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/utils/ptr"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
-	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
+
+const (
+	userIdHeader = "userid-header"
+	userIdPrefix = ""
+	groupsHeader = "groups-header"
+
+	adminUser = "notebooks-admin"
+)
 
 var (
 	testEnv *envtest.Environment
 	cfg     *rest.Config
 
 	k8sClient client.Client
+
+	a *App
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -95,6 +108,30 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
 
+	By("creating the notebooks-admin ClusterRoleBinding")
+	Expect(k8sClient.Create(ctx, &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "notebooks-admin",
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind: "User",
+				Name: adminUser,
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			Kind: "ClusterRole",
+			Name: "cluster-admin",
+		},
+	})).To(Succeed())
+
+	By("listing the clusterRoles")
+	clusterRoles := &rbacv1.ClusterRoleList{}
+	Expect(k8sClient.List(ctx, clusterRoles)).To(Succeed())
+	for _, clusterRole := range clusterRoles.Items {
+		fmt.Printf("ClusterRole: %s\n", clusterRole.Name)
+	}
+
 	By("setting up the controller manager")
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: scheme.Scheme,
@@ -103,6 +140,21 @@ var _ = BeforeSuite(func() {
 		},
 	})
 	Expect(err).NotTo(HaveOccurred())
+
+	By("initializing the application logger")
+	appLogger := slog.New(slog.NewTextHandler(GinkgoWriter, nil))
+
+	By("creating the request authenticator")
+	reqAuthN, err := auth.NewRequestAuthenticator(userIdHeader, userIdPrefix, groupsHeader)
+	Expect(err).NotTo(HaveOccurred())
+
+	By("creating the request authorizer")
+	reqAuthZ, err := auth.NewRequestAuthorizer(k8sManager.GetConfig(), k8sManager.GetHTTPClient())
+	Expect(err).NotTo(HaveOccurred())
+
+	By("creating the application")
+	// NOTE: we use the `k8sClient` rather than `k8sManager.GetClient()` to avoid race conditions with the cached client
+	a, err = NewApp(&config.EnvConfig{}, appLogger, k8sClient, k8sManager.GetScheme(), reqAuthN, reqAuthZ)
 
 	go func() {
 		defer GinkgoRecover()

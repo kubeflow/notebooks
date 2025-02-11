@@ -20,13 +20,27 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	corev1 "k8s.io/api/core/v1"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/namespaces"
 )
 
 type NamespacesEnvelope Envelope[[]models.Namespace]
 
 func (a *App) GetNamespacesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+
+	// =========================== AUTH ===========================
+	authPolicies := []*auth.ResourcePolicy{
+		auth.NewResourcePolicy(
+			auth.ResourceVerbList,
+			&corev1.Namespace{},
+		),
+	}
+	if success := a.requireAuth(w, r, authPolicies); !success {
+		return
+	}
+	// ============================================================
 
 	namespaces, err := a.repositories.Namespace.GetNamespaces(r.Context())
 	if err != nil {
