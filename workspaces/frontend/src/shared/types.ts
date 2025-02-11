@@ -85,6 +85,10 @@ export interface Workspace {
   state: WorkspaceState;
   state_message: string;
   pod_template: {
+    end_points: {
+      display_name: string;
+      port: string;
+    }[];
     pod_metadata: {
       labels: Record<string, string>;
       annotations: Record<string, string>;

@@ -55,6 +55,12 @@ type PodTemplate struct {
 	PodMetadata PodMetadata        `json:"pod_metadata"`
 	Volumes     PodVolumes         `json:"volumes"`
 	Options     PodTemplateOptions `json:"options"`
+	EndPoints   []EndPoints        `json:"end_points"`
+}
+
+type EndPoints struct {
+	DisplayName string `json:"display_name"`
+	Port        string `json:"port"`
 }
 
 type PodMetadata struct {
