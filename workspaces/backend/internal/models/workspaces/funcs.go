@@ -119,6 +119,7 @@ func NewWorkspaceModelFromWorkspace(ws *kubefloworgv1beta1.Workspace, wsk *kubef
 				ImageConfig: imageConfigModel,
 				PodConfig:   podConfigModel,
 			},
+			EndPoints: buildEndpointsList(ws, wsk),
 		},
 		Activity: Activity{
 			LastActivity: ws.Status.Activity.LastActivity,
@@ -130,6 +131,37 @@ func NewWorkspaceModelFromWorkspace(ws *kubefloworgv1beta1.Workspace, wsk *kubef
 		Services: buildServices(ws, imageConfigValue),
 	}
 	return workspaceModel
+}
+
+func buildEndpointsList(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.WorkspaceKind) []EndPoints {
+	var endpoints []EndPoints
+
+	// Return an empty list if wsk is nil.
+	if wsk == nil {
+		return endpoints
+	}
+
+	// Get the image configuration from the WorkspaceKind's PodTemplate options.
+	imageConfig := wsk.Spec.PodTemplate.Options.ImageConfig
+
+	for _, val := range imageConfig.Values {
+		if len(val.Spec.Ports) == 0 {
+			continue
+		}
+		firstPort := val.Spec.Ports[0]
+		portStr := fmt.Sprintf("%d", firstPort.Port)
+		displayName := firstPort.DisplayName
+		if displayName == "" {
+			displayName = val.Id
+		}
+		ep := EndPoints{
+			DisplayName: displayName,
+			Port:        portStr,
+		}
+		endpoints = append(endpoints, ep)
+	}
+
+	return endpoints
 }
 
 func wskExists(wsk *kubefloworgv1beta1.WorkspaceKind) bool {

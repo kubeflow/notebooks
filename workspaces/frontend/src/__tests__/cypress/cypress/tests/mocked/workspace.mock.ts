@@ -1,4 +1,3 @@
-import type { Workspace } from '~/shared/types';
 import { WorkspaceState } from '~/shared/types';
 
 const generateMockWorkspace = (
@@ -21,7 +20,7 @@ const generateMockWorkspace = (
   state: WorkspaceState;
   state_message: string;
   pod_template: {
-    pod_metadata: { labels: {}; annotations: {} };
+    pod_metadata: { labels: object; annotations: object };
     volumes: {
       home: { pvc_name: string; mount_path: string; readOnly: boolean };
       data: { pvc_name: string; mount_path: string; readOnly: boolean }[];
@@ -44,8 +43,9 @@ const generateMockWorkspace = (
         };
       };
     };
-    image_config: { current: string; desired: string; redirect_chain: any[] };
-    pod_config: { current: string; desired: string; redirect_chain: any[] };
+    image_config: { current: string; desired: string; redirect_chain: never[] };
+    pod_config: { current: string; desired: string; redirect_chain: never[] };
+    end_points: { display_name: string; port: string }[];
   };
   activity: { last_activity: number; last_update: number };
 } => {
@@ -68,6 +68,12 @@ const generateMockWorkspace = (
           ? 'Workspace is paused.'
           : 'Workspace is operational.',
     pod_template: {
+      end_points: [
+        {
+          display_name: 'Jupyter-lab',
+          port: '8888',
+        },
+      ],
       pod_metadata: {
         labels: {},
         annotations: {},
