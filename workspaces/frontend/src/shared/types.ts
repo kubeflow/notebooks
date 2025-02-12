@@ -15,7 +15,7 @@ export interface WorkspaceKind {
   hidden: boolean;
   icon: WorkspaceIcon;
   logo: WorkspaceLogo;
-  podTemplate: {
+  pod_template: {
     podMetadata: {
       labels: {
         myWorkspaceKindLabel: string;
@@ -28,7 +28,7 @@ export interface WorkspaceKind {
       home: string;
     };
     options: {
-      imageConfig: {
+      image_config: {
         default: string;
         values: [
           {
