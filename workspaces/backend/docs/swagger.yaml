@@ -1,0 +1,59 @@
+basePath: /api/v1
+definitions:
+  api.ErrorResponse:
+    properties:
+      code:
+        type: string
+      message:
+        type: string
+    type: object
+  health_check.HealthCheck:
+    properties:
+      status:
+        $ref: '#/definitions/health_check.ServiceStatus'
+      system_info:
+        $ref: '#/definitions/health_check.SystemInfo'
+    type: object
+  health_check.ServiceStatus:
+    enum:
+    - Healthy
+    - Unhealthy
+    type: string
+    x-enum-varnames:
+    - ServiceStatusHealthy
+    - ServiceStatusUnhealthy
+  health_check.SystemInfo:
+    properties:
+      version:
+        type: string
+    type: object
+host: localhost:4000
+info:
+  contact: {}
+  description: |-
+    This API provides endpoints to manage  notebooks in a Kubernetes cluster.
+    For more information, visit https://www.kubeflow.org/docs/components/notebooks/
+  license:
+    name: 'License: Apache 2.0'
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  title: Kubeflow Notebooks API
+  version: 1.0.0
+paths:
+  /healthcheck:
+    get:
+      description: Provides a healthcheck response indicating the status of key services.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successful healthcheck response
+          schema:
+            $ref: '#/definitions/health_check.HealthCheck'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Returns the health status of the application
+      tags:
+      - healthcheck
+swagger: "2.0"
