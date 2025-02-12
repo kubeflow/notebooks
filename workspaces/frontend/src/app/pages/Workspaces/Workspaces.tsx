@@ -25,13 +25,22 @@ import {
   ActionsColumn,
   IActions,
 } from '@patternfly/react-table';
+import {
+  InfoCircleIcon,
+  ExclamationTriangleIcon,
+  TimesCircleIcon,
+  QuestionCircleIcon,
+  CodeIcon,
+} from '@patternfly/react-icons';
 import { useState } from 'react';
-import { CodeIcon } from '@patternfly/react-icons';
 import { Workspace, WorkspacesColumnNames, WorkspaceState } from '~/shared/types';
 import { WorkspaceDetails } from '~/app/pages/Workspaces/Details/WorkspaceDetails';
 import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
 import DeleteModal from '~/shared/components/DeleteModal';
-import { buildKindLogoDictionary } from '~/app/actions/WorkspaceKindsActions';
+import {
+  buildKindLogoDictionary,
+  buildWorkspaceRedirectStatus,
+} from '~/app/actions/WorkspaceKindsActions';
 import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import { WorkspaceConnectAction } from '~/app/pages/Workspaces/WorkspaceConnectAction';
 import { WorkspaceStartActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceStartActionModal';
@@ -107,6 +116,10 @@ export const Workspaces: React.FunctionComponent = () => {
         state: WorkspaceState.Paused,
         stateMessage: 'It is paused.',
       },
+      redirectStatus: {
+        level: 'Info',
+        text: 'This is informational', // Tooltip text
+      },
     },
     {
       name: 'My Other Jupyter Notebook',
@@ -162,6 +175,10 @@ export const Workspaces: React.FunctionComponent = () => {
         state: WorkspaceState.Running,
         stateMessage: 'It is running.',
       },
+      redirectStatus: {
+        level: 'Danger',
+        text: 'This is dangerous',
+      },
     },
   ];
 
@@ -169,8 +186,15 @@ export const Workspaces: React.FunctionComponent = () => {
   let kindLogoDict: Record<string, string> = {};
   kindLogoDict = buildKindLogoDictionary(workspaceKinds);
 
+  let workspaceRedirectStatus: Record<
+    string,
+    { to: string; message: string; level: string } | null
+  > = {}; // Initialize the redirect status dictionary
+  workspaceRedirectStatus = buildWorkspaceRedirectStatus(workspaceKinds); // Populate the dictionary
+
   // Table columns
   const columnNames: WorkspacesColumnNames = {
+    redirectStatus: 'Redirect Status',
     name: 'Name',
     kind: 'Kind',
     image: 'Image',
@@ -266,18 +290,20 @@ export const Workspaces: React.FunctionComponent = () => {
   const [activeSortDirection, setActiveSortDirection] = React.useState<'asc' | 'desc' | null>(null);
 
   const getSortableRowValues = (workspace: Workspace): (string | number)[] => {
-    const { name, kind, image, podConfig, state, homeVol, cpu, ram, lastActivity } = {
-      name: workspace.name,
-      kind: workspace.kind,
-      image: workspace.options.imageConfig,
-      podConfig: workspace.options.podConfig,
-      state: WorkspaceState[workspace.status.state],
-      homeVol: workspace.podTemplate.volumes.home,
-      cpu: workspace.cpu,
-      ram: workspace.ram,
-      lastActivity: workspace.status.activity.lastActivity,
-    };
-    return [name, kind, image, podConfig, state, homeVol, cpu, ram, lastActivity];
+    const { redirectStatus, name, kind, image, podConfig, state, homeVol, cpu, ram, lastActivity } =
+      {
+        redirectStatus: '',
+        name: workspace.name,
+        kind: workspace.kind,
+        image: workspace.options.imageConfig,
+        podConfig: workspace.options.podConfig,
+        state: WorkspaceState[workspace.status.state],
+        homeVol: workspace.podTemplate.volumes.home,
+        cpu: workspace.cpu,
+        ram: workspace.ram,
+        lastActivity: workspace.status.activity.lastActivity,
+      };
+    return [redirectStatus, name, kind, image, podConfig, state, homeVol, cpu, ram, lastActivity];
   };
 
   let sortedWorkspaces = workspaces;
@@ -436,6 +462,43 @@ export const Workspaces: React.FunctionComponent = () => {
     | 'yellow'
   )[] = ['green', 'orange', 'yellow', 'blue', 'red', 'purple'];
 
+  // Redirect Status Icons
+
+  const getRedirectStatusIcon = (level: string | undefined, message: string) => {
+    switch (level) {
+      case 'Info':
+        return (
+          <Tooltip content={message}>
+            <InfoCircleIcon color="blue" aria-hidden="true" />
+          </Tooltip>
+        );
+      case 'Warning':
+        return (
+          <Tooltip content={message}>
+            <ExclamationTriangleIcon color="orange" aria-hidden="true" />
+          </Tooltip>
+        );
+      case 'Danger':
+        return (
+          <Tooltip content={message}>
+            <TimesCircleIcon color="red" aria-hidden="true" />
+          </Tooltip>
+        );
+      case undefined:
+        return (
+          <Tooltip content={message}>
+            <QuestionCircleIcon color="gray" aria-hidden="true" />
+          </Tooltip>
+        );
+      default:
+        return (
+          <Tooltip content={`Invalid level: ${level}`}>
+            <QuestionCircleIcon color="gray" aria-hidden="true" />
+          </Tooltip>
+        );
+    }
+  };
+
   // Pagination
 
   const [page, setPage] = React.useState(1);
@@ -494,7 +557,10 @@ export const Workspaces: React.FunctionComponent = () => {
                 <Tr>
                   <Th />
                   {Object.values(columnNames).map((columnName, index) => (
-                    <Th key={`${columnName}-col-name`} sort={getSortParams(index)}>
+                    <Th
+                      key={`${columnName}-col-name`}
+                      sort={columnName !== 'Redirect Status' ? getSortParams(index) : undefined}
+                    >
                       {columnName}
                     </Th>
                   ))}
@@ -517,6 +583,15 @@ export const Workspaces: React.FunctionComponent = () => {
                           setWorkspaceExpanded(workspace, !isWorkspaceExpanded(workspace)),
                       }}
                     />
+                    <Td dataLabel={columnNames.redirectStatus}>
+                      {workspaceRedirectStatus[workspace.kind]
+                        ? getRedirectStatusIcon(
+                            workspaceRedirectStatus[workspace.kind]?.level,
+                            workspaceRedirectStatus[workspace.kind]?.message ||
+                              'No API response available',
+                          )
+                        : getRedirectStatusIcon(undefined, 'No API response available')}
+                    </Td>
                     <Td dataLabel={columnNames.name}>{workspace.name}</Td>
                     <Td dataLabel={columnNames.kind}>
                       {kindLogoDict[workspace.kind] ? (
