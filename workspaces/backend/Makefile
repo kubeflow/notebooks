@@ -66,14 +66,21 @@ lint: golangci-lint ## Run golangci-lint linter
 lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes
 	$(GOLANGCI_LINT) run --fix
 
+##@ Swagger
+
+.PHONY: swag
+swag: 
+	swag fmt -g cmd/main.go && swag init -g cmd/main.go
+	
+
 ##@ Build
 
 .PHONY: build
-build: fmt vet ## Build backend binary.
+build: fmt vet swag ## Build backend binary.
 	go build -o bin/backend cmd/main.go
 
-.PHONY: run
-run: fmt vet ## Run a backend from your host.
+.PHONY: run 
+run: fmt vet swag ## Run a backend from your host.
 	go run ./cmd/main.go --port=$(PORT)
 
 # If you wish to build the manager image targeting other platforms you can use the --platform flag.

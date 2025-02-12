@@ -21,12 +21,13 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	_ "github.com/kubeflow/notebooks/workspaces/backend/docs" 
 	httpSwagger "github.com/swaggo/http-swagger"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	_ "github.com/kubeflow/notebooks/workspaces/backend/docs"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
@@ -109,7 +110,7 @@ func (a *App) Routes() http.Handler {
 
 	// swagger
 	router.GET(SwaggerPath, func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		httpSwagger.Handler(httpSwagger.URL(PathPrefix + "/swagger/doc.json")).ServeHTTP(w, r)
+		httpSwagger.Handler(httpSwagger.URL(PathPrefix+"/swagger/doc.json")).ServeHTTP(w, r)
 	})
 	return a.recoverPanic(a.enableCORS(router))
 }
