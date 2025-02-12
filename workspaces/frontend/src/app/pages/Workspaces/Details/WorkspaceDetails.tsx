@@ -81,7 +81,7 @@ export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = 
             aria-label="Pod template"
           >
             <TabContent id="podTemplateBodyPadding">
-              <TabContentBody hasPadding style={{ height: '500px' }}>
+              <TabContentBody hasPadding>
                 <WorkspaceDetailsPodTemplate />
               </TabContentBody>
             </TabContent>
