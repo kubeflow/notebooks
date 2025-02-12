@@ -33,7 +33,6 @@ import {
   QuestionCircleIcon,
   CodeIcon,
 } from '@patternfly/react-icons';
-import { useState } from 'react';
 import { Workspace, WorkspacesColumnNames, WorkspaceState } from '~/shared/types';
 import { WorkspaceDetails } from '~/app/pages/Workspaces/Details/WorkspaceDetails';
 import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
@@ -44,7 +43,7 @@ import {
 } from '~/app/actions/WorkspaceKindsActions';
 import useWorkspaces from '~/app/hooks/useWorkspaces';
 import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
-import { buildKindLogoDictionary } from '~/app/actions/WorkspaceKindsActions';
+
 import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import { WorkspaceConnectAction } from '~/app/pages/Workspaces/WorkspaceConnectAction';
 import { WorkspaceStartActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceStartActionModal';
@@ -188,7 +187,19 @@ export const Workspaces: React.FunctionComponent = () => {
   const [activeSortDirection, setActiveSortDirection] = React.useState<'asc' | 'desc' | null>(null);
 
   const getSortableRowValues = (workspace: Workspace): (string | number | undefined)[] => {
-    const { name, kind, image, podConfig, state, homeVol, cpu, ram, lastActivity } = {
+    const { redirectStatus, name, kind, image, podConfig, state, homeVol, cpu, ram, lastActivity } =
+      {
+        redirectStatus: '',
+        name: workspace.name,
+        kind: workspace.workspace_kind.name,
+        image: workspace.pod_template.options.image_config.current.display_name,
+        podConfig: workspace.pod_template.pod_config.current,
+        state: workspace.state,
+        homeVol: workspace.pod_template.volumes.home.pvc_name,
+        cpu: getCpuValue(workspace),
+        ram: getRamValue(workspace),
+        lastActivity: workspace.activity.last_activity,
+      };
       redirectStatus: '',
       name: workspace.name,
       kind: workspace.workspace_kind.name,
@@ -281,17 +292,14 @@ export const Workspaces: React.FunctionComponent = () => {
     const workspaceState = workspace.state;
     const workspaceActions = [
       {
-        id: 'view-details',
         title: 'View Details',
         onClick: () => viewDetailsClick(workspace),
       },
       {
-        id: 'edit',
         title: 'Edit',
         onClick: () => editAction(workspace),
       },
       {
-        id: 'delete',
         title: 'Delete',
         onClick: () => handleDeleteClick(workspace),
       },
@@ -300,12 +308,10 @@ export const Workspaces: React.FunctionComponent = () => {
       },
       workspaceState !== WorkspaceState.Running
         ? {
-            id: 'start',
             title: 'Start',
             onClick: () => startRestartAction(workspace, ActionType.Start),
           }
         : {
-            id: 'restart',
             title: 'Restart',
             onClick: () => startRestartAction(workspace, ActionType.Restart),
           },
@@ -313,7 +319,6 @@ export const Workspaces: React.FunctionComponent = () => {
 
     if (workspaceState === WorkspaceState.Running) {
       workspaceActions.push({
-        id: 'stop',
         title: 'Stop',
         onClick: () => stopAction(workspace),
       });
@@ -510,6 +515,27 @@ export const Workspaces: React.FunctionComponent = () => {
                           ? getRedirectStatusIcon(
                               workspaceRedirectStatus[workspace.kind]?.level,
                               workspaceRedirectStatus[workspace.kind]?.message ||
+                                'No API response available',
+                            )
+                          : getRedirectStatusIcon(undefined, 'No API response available')}
+                      </Td>
+        id: 'view-details',
+        id: 'edit',
+        id: 'delete',
+            id: 'start',
+            id: 'restart',
+        id: 'stop',
+                      <Th
+                        key={`${columnName}-col-name`}
+                        sort={columnName !== 'Redirect Status' ? getSortParams(index) : undefined}
+                      >
+                        {columnName}
+                      </Th>
+                      <Td dataLabel={columnNames.redirectStatus}>
+                        {workspaceRedirectStatus[workspace.workspace_kind.name]
+                          ? getRedirectStatusIcon(
+                              workspaceRedirectStatus[workspace.workspace_kind.name]?.level,
+                              workspaceRedirectStatus[workspace.workspace_kind.name]?.message ||
                                 'No API response available',
                             )
                           : getRedirectStatusIcon(undefined, 'No API response available')}
