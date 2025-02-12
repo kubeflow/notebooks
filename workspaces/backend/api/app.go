@@ -21,6 +21,8 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	_ "github.com/kubeflow/notebooks/workspaces/backend/docs" 
+	httpSwagger "github.com/swaggo/http-swagger"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
@@ -51,6 +53,9 @@ const (
 
 	// namespaces
 	AllNamespacesPath = PathPrefix + "/namespaces"
+
+	// swagger
+	SwaggerPath = PathPrefix + "/swagger/*any"
 )
 
 type App struct {
@@ -102,5 +107,9 @@ func (a *App) Routes() http.Handler {
 	router.GET(AllWorkspaceKindsPath, a.GetWorkspaceKindsHandler)
 	router.GET(WorkspaceKindsByNamePath, a.GetWorkspaceKindHandler)
 
+	// swagger
+	router.GET(SwaggerPath, func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		httpSwagger.Handler(httpSwagger.URL(PathPrefix + "/swagger/doc.json")).ServeHTTP(w, r)
+	})
 	return a.recoverPanic(a.enableCORS(router))
 }
