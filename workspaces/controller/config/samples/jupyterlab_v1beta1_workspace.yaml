@@ -10,6 +10,8 @@ spec:
   ## if false, pending updates are applied when the Workspace is paused
   deferUpdates: false
 
+  disableCulling: false
+
   ## the WorkspaceKind to use
   kind: "jupyterlab"
 
