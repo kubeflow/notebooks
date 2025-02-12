@@ -145,7 +145,3 @@ mv $(1) $(1)-$(3) ;\
 } ;\
 ln -sf $(1)-$(3) $(1)
 endef
-
-watch:
-	$(call check_cluster_context)
-	@nodemon --exec go run  cmd/main.go --signal SIGTERM
