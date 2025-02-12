@@ -26,6 +26,8 @@ import (
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	_ "github.com/kubeflow/notebooks/workspaces/backend/docs"
+
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
 	_ "github.com/kubeflow/notebooks/workspaces/backend/openapi"
