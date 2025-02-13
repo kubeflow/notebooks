@@ -70,7 +70,7 @@ lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes
 
 .PHONY: swag
 swag: 
-	swag fmt -g cmd/main.go && swag init -g cmd/main.go
+	swag fmt -g cmd/main.go && swag init -g cmd/main.go -o api/v2/swagger
 	
 
 ##@ Build
