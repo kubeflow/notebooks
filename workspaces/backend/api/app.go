@@ -17,8 +17,10 @@ limitations under the License.
 package api
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	httpSwagger "github.com/swaggo/http-swagger"
@@ -27,8 +29,7 @@ import (
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	_ "github.com/kubeflow/notebooks/workspaces/backend/api/v2/swagger"
-
+	_ "github.com/kubeflow/notebooks/workspaces/backend/api/v1/swagger"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
 )
@@ -112,7 +113,9 @@ func (a *App) Routes() http.Handler {
 	// swagger
 	router.GET(SwaggerPath, func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		if r.URL.Path == SwaggerYAMLPath {
-			http.ServeFile(w, r, "api/v2/swagger/swagger.yaml")
+			version := strings.TrimPrefix(PathPrefix, "/")
+			swaggerFile := fmt.Sprintf("%s/swagger/swagger.yaml", version)
+			http.ServeFile(w, r, swaggerFile)
 			return
 		}
 		httpSwagger.Handler(httpSwagger.URL(PathPrefix+"/swagger/doc.json")).ServeHTTP(w, r)
