@@ -164,8 +164,11 @@ type WorkspaceStatus struct {
 	// +kubebuilder:default=false
 	PendingRestart bool `json:"pendingRestart"`
 
-	// information about the current podTemplate options
+	// information about the current podTemplate options (only set for WorkspaceKind of podTemplate kind)
 	PodTemplateOptions WorkspacePodOptionsStatus `json:"podTemplateOptions"`
+
+	// information about the Pod managed by this Workspace (only set for WorkspaceKind of podTemplate kind)
+	PodTemplatePod WorkspacePodStatus `json:"podTemplatePod"`
 
 	// the current state of the Workspace
 	// +kubebuilder:default="Unknown"
@@ -219,6 +222,24 @@ type WorkspacePodOptionRedirectStep struct {
 	// +kubebuilder:validation:MinLength:=1
 	// +kubebuilder:validation:MaxLength:=256
 	Target string `json:"target"`
+}
+
+type WorkspacePodStatus struct {
+	// the name of the Pod resource
+	Name string `json:"name"`
+
+	// information about the Pod's containers
+	// +kubebuilder:validation:Optional
+	Containers []WorkspacePodContainer `json:"containers,omitempty"`
+
+	// information about the Pod's initContainers
+	// +kubebuilder:validation:Optional
+	InitContainers []WorkspacePodContainer `json:"initContainers,omitempty"`
+}
+
+type WorkspacePodContainer struct {
+	// the name of the container
+	Name string `json:"name"`
 }
 
 // +kubebuilder:validation:Enum:={"Running","Terminating","Paused","Pending","Error","Unknown"}

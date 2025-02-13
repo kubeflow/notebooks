@@ -208,7 +208,8 @@ spec:
                      like `podMetadata`, `probes`, `extraEnv`, or `containerSecurityContext`
                 type: boolean
               podTemplateOptions:
-                description: information about the current podTemplate options
+                description: information about the current podTemplate options (only
+                  set for WorkspaceKind of podTemplate kind)
                 properties:
                   imageConfig:
                     description: info about the current imageConfig option
@@ -274,6 +275,38 @@ spec:
                 - imageConfig
                 - podConfig
                 type: object
+              podTemplatePod:
+                description: information about the Pod managed by this Workspace (only
+                  set for WorkspaceKind of podTemplate kind)
+                properties:
+                  containers:
+                    description: information about the Pod's containers
+                    items:
+                      properties:
+                        name:
+                          description: the name of the container
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    type: array
+                  initContainers:
+                    description: information about the Pod's initContainers
+                    items:
+                      properties:
+                        name:
+                          description: the name of the container
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    type: array
+                  name:
+                    description: the name of the Pod resource
+                    type: string
+                required:
+                - name
+                type: object
               state:
                 default: Unknown
                 description: the current state of the Workspace
@@ -296,6 +329,7 @@ spec:
             - pauseTime
             - pendingRestart
             - podTemplateOptions
+            - podTemplatePod
             - state
             - stateMessage
             type: object
