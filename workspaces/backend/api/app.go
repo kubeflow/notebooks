@@ -56,7 +56,8 @@ const (
 	AllNamespacesPath = PathPrefix + "/namespaces"
 
 	// swagger
-	SwaggerPath = PathPrefix + "/swagger/*any"
+	SwaggerPath     = PathPrefix + "/swagger/*any"
+	SwaggerYAMLPath = PathPrefix + "/swagger/swagger.yaml"
 )
 
 type App struct {
@@ -110,6 +111,10 @@ func (a *App) Routes() http.Handler {
 
 	// swagger
 	router.GET(SwaggerPath, func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		if r.URL.Path == SwaggerYAMLPath {
+			http.ServeFile(w, r, "api/v2/swagger/swagger.yaml")
+			return
+		}
 		httpSwagger.Handler(httpSwagger.URL(PathPrefix+"/swagger/doc.json")).ServeHTTP(w, r)
 	})
 	return a.recoverPanic(a.enableCORS(router))
