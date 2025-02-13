@@ -1,3 +1,17 @@
+// Copyright 2024.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package api
 
 import (
@@ -9,8 +23,6 @@ import (
 	"os"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -18,6 +30,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
 )
 
 var _ = Describe("Workspace YAML Handler", Ordered, func() {
@@ -90,7 +105,7 @@ var _ = Describe("Workspace YAML Handler", Ordered, func() {
 	})
 
 	It("should retrieve the workspace YAML successfully", func() {
-		req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/workspaces/%s/%s/details/yaml", namespaceName, workspaceKey.Name), nil)
+		req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/workspaces/%s/%s/details/yaml", namespaceName, workspaceKey.Name), http.NoBody)
 		rr := httptest.NewRecorder()
 
 		ps := httprouter.Params{
@@ -110,7 +125,7 @@ var _ = Describe("Workspace YAML Handler", Ordered, func() {
 	})
 
 	It("should return 404 when workspace doesn't exist", func() {
-		req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/workspaces/%s/non-existent/details/yaml", namespaceName), nil)
+		req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/workspaces/%s/non-existent/details/yaml", namespaceName), http.NoBody)
 		rr := httptest.NewRecorder()
 
 		ps := httprouter.Params{
