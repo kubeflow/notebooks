@@ -1,7 +1,11 @@
 {
+    "schemes": [
+        "http",
+        "https"
+    ],
     "swagger": "2.0",
     "info": {
-        "description": "This API provides endpoints to manage  notebooks in a Kubernetes cluster.\nFor more information, visit https://www.kubeflow.org/docs/components/notebooks/",
+        "description": "This API provides endpoints to manage notebooks in a Kubernetes cluster.\nFor more information, visit https://www.kubeflow.org/docs/components/notebooks/",
         "title": "Kubeflow Notebooks API",
         "contact": {},
         "license": {
