@@ -31,7 +31,7 @@ host: localhost:4000
 info:
   contact: {}
   description: |-
-    This API provides endpoints to manage  notebooks in a Kubernetes cluster.
+    This API provides endpoints to manage notebooks in a Kubernetes cluster.
     For more information, visit https://www.kubeflow.org/docs/components/notebooks/
   license:
     name: 'License: Apache 2.0'
@@ -56,4 +56,7 @@ paths:
       summary: Returns the health status of the application
       tags:
       - healthcheck
+schemes:
+- http
+- https
 swagger: "2.0"
