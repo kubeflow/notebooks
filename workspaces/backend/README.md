@@ -43,6 +43,7 @@ make run PORT=8000
 | PATCH /api/v1/workspaces/{namespace}/{name}  | TBD                    | Patch a Workspace entity                |
 | PUT /api/v1/workspaces/{namespace}/{name}    | TBD                    | Update a Workspace entity               |
 | DELETE /api/v1/workspaces/{namespace}/{name} | workspaces_handler     | Delete a Workspace entity               |
+| GET /api/v1/workspaces/{namespace}/{name}/details/yaml | workspace_yaml_handler | Get the YAML details of a Workspace entity |
 | GET /api/v1/workspacekinds                   | workspacekinds_handler | Get all WorkspaceKind                   |
 | POST /api/v1/workspacekinds                  | TBD                    | Create a WorkspaceKind                  |
 | GET /api/v1/workspacekinds/{name}            | workspacekinds_handler | Get a WorkspaceKind entity              |
