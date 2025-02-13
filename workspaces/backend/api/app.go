@@ -17,8 +17,10 @@ limitations under the License.
 package api
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -26,8 +28,7 @@ import (
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	_ "github.com/kubeflow/notebooks/workspaces/backend/api/v2/swagger"
-
+	_ "github.com/kubeflow/notebooks/workspaces/backend/api/v1/swagger"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
 	_ "github.com/kubeflow/notebooks/workspaces/backend/openapi"
