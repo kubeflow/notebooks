@@ -4,5 +4,5 @@ resources:
 - manager.yaml
 images:
 - name: controller
-  newName: controller
+  newName: ghcr.io/kubeflow/notebooks/workspace-controller
   newTag: latest
