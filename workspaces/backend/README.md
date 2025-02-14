@@ -7,21 +7,29 @@ The Kubeflow Workspaces Backend is the _backend for frontend_ (BFF) used by the 
 > We greatly appreciate any contributions.
 
 # Building and Deploying
+
 TBD
 
 # Development
+
 Run the following command to build the BFF:
+
 ```shell
 make build
 ```
+
 After building it, you can run our app with:
+
 ```shell
 make run
 ```
+
 If you want to use a different port:
+
 ```shell
 make run PORT=8000 
 ```
+
 ### Endpoints
 
 | URL Pattern                                  | Handler                | Action                                  |
@@ -43,56 +51,99 @@ make run PORT=8000
 | DELETE /api/v1/workspacekinds/{name}         | TBD                    | Delete a WorkspaceKind entity           |
 
 ### Sample local calls
-```
+
+Healthcheck:
+
+```shell
 # GET /api/v1/healthcheck
 curl -i localhost:4000/api/v1/healthcheck
 ```
-```
+
+List all Namespaces:
+
+```shell
 # GET /api/v1/namespaces
 curl -i localhost:4000/api/v1/namespaces
 ```
-```
+
+List all Workspaces:
+
+```shell
 # GET /api/v1/workspaces/
 curl -i localhost:4000/api/v1/workspaces
 ```
-```
+
+List all Workspaces in a Namespace:
+
+```shell
 # GET /api/v1/workspaces/{namespace}
 curl -i localhost:4000/api/v1/workspaces/default
 ```
-```
+
+Create a Workspace:
+
+```shell
 # POST /api/v1/workspaces/{namespace}
 curl -X POST http://localhost:4000/api/v1/workspaces/default \
     -H "Content-Type: application/json" \
     -d '{
+    "data": {
         "name": "dora",
+        "kind": "jupyterlab",
         "paused": false,
         "defer_updates": false,
-        "kind": "jupyterlab",
-        "image_config": "jupyterlab_scipy_190",
-        "pod_config": "tiny_cpu",
-        "home_volume": "workspace-home-bella",
-        "data_volumes": [
-            {
-                "pvc_name": "workspace-data-bella",
-                "mount_path": "/data/my-data",
-                "read_only": false
+        "pod_template": {
+            "pod_metadata": {
+                "labels": {
+                    "app": "dora"
+                },
+                "annotations": {
+                    "app": "dora"
+                }
+            },
+            "volumes": {
+                "home": "workspace-home-bella",
+                "data": [
+                    {
+                        "pvc_name": "workspace-data-bella",
+                        "mount_path": "/data/my-data",
+                        "read_only": false
+                    }
+                ]
+            },
+            "options": {
+                "image_config": "jupyterlab_scipy_190",
+                "pod_config": "tiny_cpu"
             }
-        ]
-    }'
+        }
+    }
+}'
 ```
-```
+
+Get a Workspace:
+
+```shell
 # GET /api/v1/workspaces/{namespace}/{name}
 curl -i localhost:4000/api/v1/workspaces/default/dora
 ```
-```
+
+Delete a Workspace:
+
+```shell
 # DELETE /api/v1/workspaces/{namespace}/{name}
-curl -X DELETE localhost:4000/api/v1/workspaces/workspace-test/dora
+curl -X DELETE localhost:4000/api/v1/workspaces/default/dora
 ```
-```
+
+List all WorkspaceKinds:
+
+```shell
 # GET /api/v1/workspacekinds
 curl -i localhost:4000/api/v1/workspacekinds
 ```
-```
+
+Get a WorkspaceKind:
+
+```shell
 # GET /api/v1/workspacekinds/{name}
 curl -i localhost:4000/api/v1/workspacekinds/jupyterlab
 ```

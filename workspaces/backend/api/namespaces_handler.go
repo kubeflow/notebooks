@@ -26,7 +26,7 @@ import (
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/namespaces"
 )
 
-type NamespacesEnvelope Envelope[[]models.Namespace]
+type NamespaceListEnvelope Envelope[[]models.Namespace]
 
 func (a *App) GetNamespacesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
@@ -48,12 +48,6 @@ func (a *App) GetNamespacesHandler(w http.ResponseWriter, r *http.Request, _ htt
 		return
 	}
 
-	namespacesEnvelope := NamespacesEnvelope{
-		Data: namespaces,
-	}
-
-	err = a.WriteJSON(w, http.StatusOK, namespacesEnvelope, nil)
-	if err != nil {
-		a.serverErrorResponse(w, r, err)
-	}
+	responseEnvelope := &NamespaceListEnvelope{Data: namespaces}
+	a.dataResponse(w, r, responseEnvelope)
 }

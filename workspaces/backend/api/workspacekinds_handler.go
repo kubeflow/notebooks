@@ -18,26 +18,31 @@ package api
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds"
 	repository "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/workspacekinds"
 )
 
-type WorkspaceKindsEnvelope Envelope[[]models.WorkspaceKind]
+type WorkspaceKindListEnvelope Envelope[[]models.WorkspaceKind]
 
 type WorkspaceKindEnvelope Envelope[models.WorkspaceKind]
 
 func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	name := ps.ByName("name")
-	if name == "" {
-		a.serverErrorResponse(w, r, fmt.Errorf("workspace kind name is missing"))
+	name := ps.ByName(ResourceNamePathParam)
+
+	// validate path parameters
+	var valErrs field.ErrorList
+	valErrs = append(valErrs, helper.ValidateFieldIsDNS1123Subdomain(field.NewPath(ResourceNamePathParam), name)...)
+	if len(valErrs) > 0 {
+		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
 	}
 
@@ -65,14 +70,8 @@ func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps
 		return
 	}
 
-	workspaceKindEnvelope := WorkspaceKindEnvelope{
-		Data: workspaceKind,
-	}
-
-	err = a.WriteJSON(w, http.StatusOK, workspaceKindEnvelope, nil)
-	if err != nil {
-		a.serverErrorResponse(w, r, err)
-	}
+	responseEnvelope := &WorkspaceKindEnvelope{Data: workspaceKind}
+	a.dataResponse(w, r, responseEnvelope)
 }
 
 func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -94,12 +93,6 @@ func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _
 		return
 	}
 
-	workspaceKindsEnvelope := WorkspaceKindsEnvelope{
-		Data: workspaceKinds,
-	}
-
-	err = a.WriteJSON(w, http.StatusOK, workspaceKindsEnvelope, nil)
-	if err != nil {
-		a.serverErrorResponse(w, r, err)
-	}
+	responseEnvelope := &WorkspaceKindListEnvelope{Data: workspaceKinds}
+	a.dataResponse(w, r, responseEnvelope)
 }
