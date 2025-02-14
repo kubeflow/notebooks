@@ -30,7 +30,7 @@ import (
 )
 
 var ErrWorkspaceNotFound = fmt.Errorf("workspace not found")
-var ErrRefWorkspaceKindNotExists = fmt.Errorf("referenced WorkspaceKind does not exist")
+var ErrWorkspaceAlreadyExists = fmt.Errorf("workspace already exists")
 
 type WorkspaceRepository struct {
 	client client.Client
@@ -126,51 +126,41 @@ func (r *WorkspaceRepository) GetAllWorkspaces(ctx context.Context) ([]models.Wo
 	return workspacesModels, nil
 }
 
-func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, workspaceModel *models.Workspace) (models.Workspace, error) {
-	// get workspace kind
-	// NOTE: if the referenced workspace kind does not exist,
-	//       we throw an error because the api would reject the workspace creation
-	workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
-	workspaceKindName := workspaceModel.WorkspaceKind.Name
-	if err := r.client.Get(ctx, client.ObjectKey{Name: workspaceKindName}, workspaceKind); err != nil {
-		if apierrors.IsNotFound(err) {
-			return models.Workspace{}, fmt.Errorf("%w: %s", ErrRefWorkspaceKindNotExists, workspaceKindName)
-		}
-		return models.Workspace{}, err
-	}
-
+func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, workspaceCreate *models.WorkspaceCreate, namespace string) (*models.WorkspaceCreate, error) {
 	// get data volumes from workspace model
-	dataVolumeMounts := make([]kubefloworgv1beta1.PodVolumeMount, len(workspaceModel.PodTemplate.Volumes.Data))
-	for i, dataVolume := range workspaceModel.PodTemplate.Volumes.Data {
+	dataVolumeMounts := make([]kubefloworgv1beta1.PodVolumeMount, len(workspaceCreate.PodTemplate.Volumes.Data))
+	for i, dataVolume := range workspaceCreate.PodTemplate.Volumes.Data {
 		dataVolumeMounts[i] = kubefloworgv1beta1.PodVolumeMount{
-			PVCName:   dataVolume.PvcName,
+			PVCName:   dataVolume.PVCName,
 			MountPath: dataVolume.MountPath,
 			ReadOnly:  ptr.To(dataVolume.ReadOnly),
 		}
 	}
 
 	// define workspace object from model
+	workspaceName := workspaceCreate.Name
+	workspaceKindName := workspaceCreate.Kind
 	workspace := &kubefloworgv1beta1.Workspace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      workspaceModel.Name,
-			Namespace: workspaceModel.Namespace,
+			Name:      workspaceName,
+			Namespace: namespace,
 		},
 		Spec: kubefloworgv1beta1.WorkspaceSpec{
-			Paused:       &workspaceModel.Paused,
-			DeferUpdates: &workspaceModel.DeferUpdates,
+			Paused:       &workspaceCreate.Paused,
+			DeferUpdates: &workspaceCreate.DeferUpdates,
 			Kind:         workspaceKindName,
 			PodTemplate: kubefloworgv1beta1.WorkspacePodTemplate{
 				PodMetadata: &kubefloworgv1beta1.WorkspacePodMetadata{
-					Labels:      workspaceModel.PodTemplate.PodMetadata.Labels,
-					Annotations: workspaceModel.PodTemplate.PodMetadata.Annotations,
+					Labels:      workspaceCreate.PodTemplate.PodMetadata.Labels,
+					Annotations: workspaceCreate.PodTemplate.PodMetadata.Annotations,
 				},
 				Volumes: kubefloworgv1beta1.WorkspacePodVolumes{
-					Home: &workspaceModel.PodTemplate.Volumes.Home.PvcName,
+					Home: workspaceCreate.PodTemplate.Volumes.Home,
 					Data: dataVolumeMounts,
 				},
 				Options: kubefloworgv1beta1.WorkspacePodOptions{
-					ImageConfig: workspaceModel.PodTemplate.Options.ImageConfig.Current.Id,
-					PodConfig:   workspaceModel.PodTemplate.Options.PodConfig.Current.Id,
+					ImageConfig: workspaceCreate.PodTemplate.Options.ImageConfig,
+					PodConfig:   workspaceCreate.PodTemplate.Options.PodConfig,
 				},
 			},
 		},
@@ -178,11 +168,19 @@ func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, workspaceMode
 
 	// create workspace
 	if err := r.client.Create(ctx, workspace); err != nil {
-		return models.Workspace{}, err
+		if apierrors.IsAlreadyExists(err) {
+			return nil, ErrWorkspaceAlreadyExists
+		}
+		if apierrors.IsInvalid(err) {
+			// NOTE: we don't wrap this error so we can unpack it in the caller
+			//       and extract the validation errors returned by the Kubernetes API server
+			return nil, err
+		}
+		return nil, err
 	}
 
-	// convert the created workspace to a model
-	createdWorkspaceModel := models.NewWorkspaceModelFromWorkspace(workspace, workspaceKind)
+	// convert the created workspace to a WorkspaceCreate model
+	createdWorkspaceModel := models.NewWorkspaceCreateModelFromWorkspace(workspace)
 
 	return createdWorkspaceModel, nil
 }

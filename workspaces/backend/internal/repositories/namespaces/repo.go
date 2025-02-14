@@ -36,9 +36,6 @@ func NewNamespaceRepository(cl client.Client) *NamespaceRepository {
 }
 
 func (r *NamespaceRepository) GetNamespaces(ctx context.Context) ([]models.Namespace, error) {
-
-	// TODO(ederign): Implement subject access review here to fetch only
-	//                namespaces that "kubeflow-userid" has access to
 	namespaceList := &v1.NamespaceList{}
 	err := r.client.List(ctx, namespaceList, &client.ListOptions{})
 	if err != nil {
