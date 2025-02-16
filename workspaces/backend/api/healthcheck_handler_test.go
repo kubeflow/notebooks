@@ -26,27 +26,12 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/health_check"
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
 )
 
 var _ = Describe("HealthCheck Handler", func() {
-	var (
-		a App
-	)
 
 	Context("when backend is healthy", func() {
-
-		BeforeEach(func() {
-			repos := repositories.NewRepositories(k8sClient)
-			a = App{
-				Config: config.EnvConfig{
-					Port: 4000,
-				},
-				repositories: repos,
-			}
-		})
 
 		It("should return a health check response", func() {
 			By("creating the HTTP request")
@@ -61,7 +46,7 @@ var _ = Describe("HealthCheck Handler", func() {
 			defer rs.Body.Close()
 
 			By("verifying the HTTP response status code")
-			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			Expect(rs.StatusCode).To(Equal(http.StatusOK), descUnexpectedHTTPStatus, rr.Body.String())
 
 			By("reading the HTTP response body")
 			body, err := io.ReadAll(rs.Body)

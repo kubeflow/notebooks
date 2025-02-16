@@ -11,8 +11,8 @@ import {
   Pagination,
   Button,
   Content,
-  Tooltip,
   Brand,
+  Tooltip,
 } from '@patternfly/react-core';
 import {
   Table,
@@ -25,17 +25,38 @@ import {
   ActionsColumn,
   IActions,
 } from '@patternfly/react-table';
+import {
+  InfoCircleIcon,
+  ExclamationTriangleIcon,
+  TimesCircleIcon,
+  QuestionCircleIcon,
+  CodeIcon,
+} from '@patternfly/react-icons';
 import { useState } from 'react';
-import { CodeIcon } from '@patternfly/react-icons';
 import { Workspace, WorkspacesColumnNames, WorkspaceState } from '~/shared/types';
 import { WorkspaceDetails } from '~/app/pages/Workspaces/Details/WorkspaceDetails';
 import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
 import DeleteModal from '~/shared/components/DeleteModal';
-import { buildKindLogoDictionary } from '~/app/actions/WorkspaceKindsActions';
+import {
+  buildKindLogoDictionary,
+  buildWorkspaceRedirectStatus,
+} from '~/app/actions/WorkspaceKindsActions';
 import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import { WorkspaceConnectAction } from '~/app/pages/Workspaces/WorkspaceConnectAction';
+import { WorkspaceStartActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceStartActionModal';
+import { WorkspaceRestartActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRestartActionModal';
+import { WorkspaceStopActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceStopActionModal';
 import Filter, { FilteredColumn } from 'shared/components/Filter';
-import { formatRam } from 'shared/utilities/WorkspaceResources';
+import { formatRam } from 'shared/utilities/WorkspaceUtils';
+
+export enum ActionType {
+  ViewDetails,
+  Edit,
+  Delete,
+  Start,
+  Restart,
+  Stop,
+}
 
 export const Workspaces: React.FunctionComponent = () => {
   /* Mocked workspaces, to be removed after fetching info from backend */
@@ -81,10 +102,10 @@ export const Workspaces: React.FunctionComponent = () => {
       },
       status: {
         activity: {
-          lastActivity: 1739673600 ,
-          lastUpdate: 1739673700 ,
+          lastActivity: 1739673600,
+          lastUpdate: 1739673700,
         },
-        pauseTime: 1739673500 ,
+        pauseTime: 1739673500,
         pendingRestart: false,
         podTemplateOptions: {
           imageConfig: {
@@ -94,6 +115,10 @@ export const Workspaces: React.FunctionComponent = () => {
         },
         state: WorkspaceState.Paused,
         stateMessage: 'It is paused.',
+      },
+      redirectStatus: {
+        level: 'Info',
+        text: 'This is informational', // Tooltip text
       },
     },
     {
@@ -150,6 +175,10 @@ export const Workspaces: React.FunctionComponent = () => {
         state: WorkspaceState.Running,
         stateMessage: 'It is running.',
       },
+      redirectStatus: {
+        level: 'Danger',
+        text: 'This is dangerous',
+      },
     },
   ];
 
@@ -157,8 +186,15 @@ export const Workspaces: React.FunctionComponent = () => {
   let kindLogoDict: Record<string, string> = {};
   kindLogoDict = buildKindLogoDictionary(workspaceKinds);
 
+  let workspaceRedirectStatus: Record<
+    string,
+    { to: string; message: string; level: string } | null
+  > = {}; // Initialize the redirect status dictionary
+  workspaceRedirectStatus = buildWorkspaceRedirectStatus(workspaceKinds); // Populate the dictionary
+
   // Table columns
   const columnNames: WorkspacesColumnNames = {
+    redirectStatus: 'Redirect Status',
     name: 'Name',
     kind: 'Kind',
     image: 'Image',
@@ -170,7 +206,7 @@ export const Workspaces: React.FunctionComponent = () => {
     lastActivity: 'Last Activity',
   };
 
-  const filterableColumns: WorkspacesColumnNames = {
+  const filterableColumns = {
     name: 'Name',
     kind: 'Kind',
     image: 'Image',
@@ -182,10 +218,12 @@ export const Workspaces: React.FunctionComponent = () => {
 
   // change when fetch workspaces is implemented
   const initialWorkspaces = mockWorkspaces;
-  const [workspaces, setWorkspaces] = useState(initialWorkspaces);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>(initialWorkspaces);
   const [expandedWorkspacesNames, setExpandedWorkspacesNames] = React.useState<string[]>([]);
   const [selectedWorkspace, setSelectedWorkspace] = React.useState<Workspace | null>(null);
   const [workspaceToDelete, setWorkspaceToDelete] = React.useState<Workspace | null>(null);
+  const [isActionAlertModalOpen, setIsActionAlertModalOpen] = React.useState(false);
+  const [activeActionType, setActiveActionType] = React.useState<ActionType | null>(null);
 
   const selectWorkspace = React.useCallback(
     (newSelectedWorkspace) => {
@@ -197,6 +235,7 @@ export const Workspaces: React.FunctionComponent = () => {
     },
     [selectedWorkspace],
   );
+
   const setWorkspaceExpanded = (workspace: Workspace, isExpanding = true) =>
     setExpandedWorkspacesNames((prevExpanded) => {
       const newExpandedWorkspacesNames = prevExpanded.filter((wsName) => wsName !== workspace.name);
@@ -251,18 +290,20 @@ export const Workspaces: React.FunctionComponent = () => {
   const [activeSortDirection, setActiveSortDirection] = React.useState<'asc' | 'desc' | null>(null);
 
   const getSortableRowValues = (workspace: Workspace): (string | number)[] => {
-    const { name, kind, image, podConfig, state, homeVol, cpu, ram, lastActivity } = {
-      name: workspace.name,
-      kind: workspace.kind,
-      image: workspace.options.imageConfig,
-      podConfig: workspace.options.podConfig,
-      state: WorkspaceState[workspace.status.state],
-      homeVol: workspace.podTemplate.volumes.home,
-      cpu: workspace.cpu,
-      ram: workspace.ram,
-      lastActivity: workspace.status.activity.lastActivity,
-    };
-    return [name, kind, image, podConfig, state, homeVol, cpu, ram, lastActivity];
+    const { redirectStatus, name, kind, image, podConfig, state, homeVol, cpu, ram, lastActivity } =
+      {
+        redirectStatus: '',
+        name: workspace.name,
+        kind: workspace.kind,
+        image: workspace.options.imageConfig,
+        podConfig: workspace.options.podConfig,
+        state: WorkspaceState[workspace.status.state],
+        homeVol: workspace.podTemplate.volumes.home,
+        cpu: workspace.cpu,
+        ram: workspace.ram,
+        lastActivity: workspace.status.activity.lastActivity,
+      };
+    return [redirectStatus, name, kind, image, podConfig, state, homeVol, cpu, ram, lastActivity];
   };
 
   let sortedWorkspaces = workspaces;
@@ -300,20 +341,31 @@ export const Workspaces: React.FunctionComponent = () => {
 
   // Actions
 
+  const viewDetailsClick = React.useCallback((workspace: Workspace) => {
+    setSelectedWorkspace(workspace);
+    setActiveActionType(ActionType.ViewDetails);
+  }, []);
+
   const editAction = React.useCallback((workspace: Workspace) => {
-    console.log(`Clicked on edit, on row ${workspace.name}`);
+    setSelectedWorkspace(workspace);
+    setActiveActionType(ActionType.Edit);
   }, []);
 
   const deleteAction = React.useCallback((workspace: Workspace) => {
-    console.log(`Clicked on delete, on row ${workspace.name}`);
+    setSelectedWorkspace(workspace);
+    setActiveActionType(ActionType.Delete);
   }, []);
 
-  const startRestartAction = React.useCallback((workspace: Workspace) => {
-    console.log(`Clicked on start/restart, on row ${workspace.name}`);
+  const startRestartAction = React.useCallback((workspace: Workspace, action: ActionType) => {
+    setSelectedWorkspace(workspace);
+    setActiveActionType(action);
+    setIsActionAlertModalOpen(true);
   }, []);
 
   const stopAction = React.useCallback((workspace: Workspace) => {
-    console.log(`Clicked on stop, on row ${workspace.name}`);
+    setSelectedWorkspace(workspace);
+    setActiveActionType(ActionType.Stop);
+    setIsActionAlertModalOpen(true);
   }, []);
 
   const handleDeleteClick = React.useCallback((workspace: Workspace) => {
@@ -322,40 +374,85 @@ export const Workspaces: React.FunctionComponent = () => {
     setWorkspaceToDelete(workspace); // Open the modal and set workspace to delete
   }, []);
 
-  const defaultActions = React.useCallback(
-    (workspace: Workspace): IActions =>
-      [
-        {
-          title: 'View Details',
-          id: 'view-details',
-          onClick: () => selectWorkspace(workspace),
-        },
-        {
-          title: 'Edit',
-          id: 'edit',
-          onClick: () => editAction(workspace),
-        },
-        {
-          title: 'Delete',
-          id: 'delete',
-          onClick: () => handleDeleteClick(workspace),
-        },
-        {
-          isSeparator: true,
-        },
-        {
-          title: 'Start/restart',
-          id: 'start-restart',
-          onClick: () => startRestartAction(workspace),
-        },
-        {
-          title: 'Stop',
-          id: 'stop',
-          onClick: () => stopAction(workspace),
-        },
-      ] as IActions,
-    [selectWorkspace, editAction, handleDeleteClick, startRestartAction, stopAction],
-  );
+  const onCloseActionAlertDialog = () => {
+    setIsActionAlertModalOpen(false);
+    setSelectedWorkspace(null);
+    setActiveActionType(null);
+  };
+
+  const workspaceDefaultActions = (workspace: Workspace): IActions => {
+    const workspaceState = workspace.status.state;
+    const workspaceActions = [
+      {
+        id: 'view-details',
+        title: 'View Details',
+        onClick: () => viewDetailsClick(workspace),
+      },
+      {
+        id: 'edit',
+        title: 'Edit',
+        onClick: () => editAction(workspace),
+      },
+      {
+        id: 'delete',
+        title: 'Delete',
+        onClick: () => handleDeleteClick(workspace),
+      },
+      {
+        isSeparator: true,
+      },
+      workspaceState !== WorkspaceState.Running
+        ? {
+            id: 'start',
+            title: 'Start',
+            onClick: () => startRestartAction(workspace, ActionType.Start),
+          }
+        : {
+            id: 'restart',
+            title: 'Restart',
+            onClick: () => startRestartAction(workspace, ActionType.Restart),
+          },
+    ] as IActions;
+
+    if (workspaceState === WorkspaceState.Running) {
+      workspaceActions.push({
+        id: 'stop',
+        title: 'Stop',
+        onClick: () => stopAction(workspace),
+      });
+    }
+    return workspaceActions;
+  };
+
+  const chooseAlertModal = () => {
+    switch (activeActionType) {
+      case ActionType.Start:
+        return (
+          <WorkspaceStartActionModal
+            onClose={onCloseActionAlertDialog}
+            isOpen={isActionAlertModalOpen}
+            workspace={selectedWorkspace}
+          />
+        );
+      case ActionType.Restart:
+        return (
+          <WorkspaceRestartActionModal
+            onClose={onCloseActionAlertDialog}
+            isOpen={isActionAlertModalOpen}
+            workspace={selectedWorkspace}
+          />
+        );
+      case ActionType.Stop:
+        return (
+          <WorkspaceStopActionModal
+            onClose={onCloseActionAlertDialog}
+            isOpen={isActionAlertModalOpen}
+            workspace={selectedWorkspace}
+          />
+        );
+    }
+    return undefined;
+  };
 
   // States
 
@@ -370,6 +467,43 @@ export const Workspaces: React.FunctionComponent = () => {
     | 'grey'
     | 'yellow'
   )[] = ['green', 'orange', 'yellow', 'blue', 'red', 'purple'];
+
+  // Redirect Status Icons
+
+  const getRedirectStatusIcon = (level: string | undefined, message: string) => {
+    switch (level) {
+      case 'Info':
+        return (
+          <Tooltip content={message}>
+            <InfoCircleIcon color="blue" aria-hidden="true" />
+          </Tooltip>
+        );
+      case 'Warning':
+        return (
+          <Tooltip content={message}>
+            <ExclamationTriangleIcon color="orange" aria-hidden="true" />
+          </Tooltip>
+        );
+      case 'Danger':
+        return (
+          <Tooltip content={message}>
+            <TimesCircleIcon color="red" aria-hidden="true" />
+          </Tooltip>
+        );
+      case undefined:
+        return (
+          <Tooltip content={message}>
+            <QuestionCircleIcon color="gray" aria-hidden="true" />
+          </Tooltip>
+        );
+      default:
+        return (
+          <Tooltip content={`Invalid level: ${level}`}>
+            <QuestionCircleIcon color="gray" aria-hidden="true" />
+          </Tooltip>
+        );
+    }
+  };
 
   // Pagination
 
@@ -406,7 +540,10 @@ export const Workspaces: React.FunctionComponent = () => {
   );
 
   return (
-    <Drawer isInline isExpanded={selectedWorkspace != null}>
+    <Drawer
+      isInline
+      isExpanded={selectedWorkspace != null && activeActionType === ActionType.ViewDetails}
+    >
       <DrawerContent panelContent={workspaceDetailsContent}>
         <DrawerContentBody>
           <PageSection isFilled>
@@ -426,7 +563,10 @@ export const Workspaces: React.FunctionComponent = () => {
                 <Tr>
                   <Th />
                   {Object.values(columnNames).map((columnName, index) => (
-                    <Th key={`${columnName}-col-name`} sort={getSortParams(index)}>
+                    <Th
+                      key={`${columnName}-col-name`}
+                      sort={columnName !== 'Redirect Status' ? getSortParams(index) : undefined}
+                    >
                       {columnName}
                     </Th>
                   ))}
@@ -449,6 +589,15 @@ export const Workspaces: React.FunctionComponent = () => {
                           setWorkspaceExpanded(workspace, !isWorkspaceExpanded(workspace)),
                       }}
                     />
+                    <Td dataLabel={columnNames.redirectStatus}>
+                      {workspaceRedirectStatus[workspace.kind]
+                        ? getRedirectStatusIcon(
+                            workspaceRedirectStatus[workspace.kind]?.level,
+                            workspaceRedirectStatus[workspace.kind]?.message ||
+                              'No API response available',
+                          )
+                        : getRedirectStatusIcon(undefined, 'No API response available')}
+                    </Td>
                     <Td dataLabel={columnNames.name}>{workspace.name}</Td>
                     <Td dataLabel={columnNames.kind}>
                       {kindLogoDict[workspace.kind] ? (
@@ -488,9 +637,9 @@ export const Workspaces: React.FunctionComponent = () => {
                     </Td>
                     <Td isActionCell data-testid="action-column">
                       <ActionsColumn
-                        items={defaultActions(workspace).map((action) => ({
+                        items={workspaceDefaultActions(workspace).map((action) => ({
                           ...action,
-                          'data-testid': `action-${typeof action.id? action.id: ''}`,
+                          'data-testid': `action-${action.id || ''}`,
                         }))}
                       />
                     </Td>
@@ -501,6 +650,7 @@ export const Workspaces: React.FunctionComponent = () => {
                 </Tbody>
               ))}
             </Table>
+            {isActionAlertModalOpen && chooseAlertModal()}
             <DeleteModal
               isOpen={workspaceToDelete != null}
               resourceName={workspaceToDelete?.name || ''}

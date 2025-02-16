@@ -82,14 +82,10 @@ func NewWorkspaceModelFromWorkspace(ws *kubefloworgv1beta1.Workspace, wsk *kubef
 	dataVolumes := make([]PodVolumeInfo, len(ws.Spec.PodTemplate.Volumes.Data))
 	for i := range ws.Spec.PodTemplate.Volumes.Data {
 		volume := ws.Spec.PodTemplate.Volumes.Data[i]
-		readOnly := false
-		if volume.ReadOnly != nil {
-			readOnly = *volume.ReadOnly
-		}
 		dataVolumes[i] = PodVolumeInfo{
-			PvcName:   volume.PVCName,
+			PVCName:   volume.PVCName,
 			MountPath: volume.MountPath,
-			ReadOnly:  readOnly,
+			ReadOnly:  ptr.Deref(volume.ReadOnly, false),
 		}
 	}
 
@@ -148,7 +144,7 @@ func buildHomeVolume(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.W
 	}
 
 	return &PodVolumeInfo{
-		PvcName:   *ws.Spec.PodTemplate.Volumes.Home,
+		PVCName:   *ws.Spec.PodTemplate.Volumes.Home,
 		MountPath: homeMountPath,
 		// the home volume is ~always~ read-write
 		ReadOnly: false,

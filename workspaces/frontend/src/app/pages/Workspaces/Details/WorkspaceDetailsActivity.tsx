@@ -7,51 +7,47 @@ import {
   Divider,
 } from '@patternfly/react-core';
 import { Workspace } from '~/shared/types';
+import { formatTimestamp } from '~/shared/utilities/WorkspaceUtils';
 
 type WorkspaceDetailsActivityProps = {
   workspace: Workspace;
 };
 
-// Helper function to format UNIX timestamps
-const formatTimestamp = (timestamp: number): string => {
-  if (!timestamp || timestamp === 0) {
-    return '-'; // Return a dash if timestamp is not set
-  }
-  const date = new Date(timestamp * 1000); // Convert to milliseconds
-  return date.toLocaleString(); // Format as a readable string
-};
-
-// Reusable component for Description List Group
-const DescriptionItem: React.FC<{ term: string; value: string | boolean; testid: string }> = ({ term, value, testid }) => (
-  <DescriptionListGroup>
-    <DescriptionListTerm>{term}</DescriptionListTerm>
-    <DescriptionListDescription data-testid={testid}>{value}</DescriptionListDescription>
-  </DescriptionListGroup>
-);
-
 export const WorkspaceDetailsActivity: React.FunctionComponent<WorkspaceDetailsActivityProps> = ({
   workspace,
-}) => (
-  <DescriptionList isHorizontal>
-    <DescriptionItem
-      term="Last Activity"
-      value={formatTimestamp(workspace.status.activity.lastActivity)}
-      testid="lastActivity"
-    />
-    <Divider />
-    <DescriptionItem
-      term="Last Update"
-      value={formatTimestamp(workspace.status.activity.lastUpdate)}
-      testid="lastUpdate"
-    />
-    <Divider />
-    <DescriptionItem term="Pause Time" value={formatTimestamp(workspace.status.pauseTime)} testid='PauseTime' />
-    <Divider />
-    <DescriptionItem
-      term="Pending Restart"
-      value={workspace.status.pendingRestart ? 'Yes' : 'No'}
-      testid='PendingRestart'
-    />
-    <Divider />
-  </DescriptionList>
-);
+}) => {
+  const { activity, pauseTime, pendingRestart } = workspace.status;
+
+  return (
+    <DescriptionList isHorizontal>
+      <DescriptionListGroup>
+        <DescriptionListTerm>Last Activity</DescriptionListTerm>
+        <DescriptionListDescription data-testid="lastActivity">
+          {formatTimestamp(activity.lastActivity)}
+        </DescriptionListDescription>
+      </DescriptionListGroup>
+      <Divider />
+      <DescriptionListGroup>
+        <DescriptionListTerm>Last Update</DescriptionListTerm>
+        <DescriptionListDescription data-testid="lastUpdate">
+          {formatTimestamp(activity.lastUpdate)}
+        </DescriptionListDescription>
+      </DescriptionListGroup>
+      <Divider />
+      <DescriptionListGroup>
+        <DescriptionListTerm>Pause Time</DescriptionListTerm>
+        <DescriptionListDescription data-testid="pauseTime">
+          {formatTimestamp(pauseTime)}
+        </DescriptionListDescription>
+      </DescriptionListGroup>
+      <Divider />
+      <DescriptionListGroup>
+        <DescriptionListTerm>Pending Restart</DescriptionListTerm>
+        <DescriptionListDescription data-testid="pendingRestart">
+          {pendingRestart ? 'Yes' : 'No'}
+        </DescriptionListDescription>
+      </DescriptionListGroup>
+      <Divider />
+    </DescriptionList>
+  );
+};

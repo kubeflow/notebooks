@@ -16,6 +16,8 @@ limitations under the License.
 
 package workspaces
 
+// Workspace represents a workspace in the system, and is returned by GET and LIST operations.
+// NOTE: this type is not used for CREATE or UPDATE operations, see WorkspaceCreate
 type Workspace struct {
 	Name          string            `json:"name"`
 	Namespace     string            `json:"namespace"`
@@ -68,7 +70,7 @@ type PodVolumes struct {
 }
 
 type PodVolumeInfo struct {
-	PvcName   string `json:"pvc_name"`
+	PVCName   string `json:"pvc_name"`
 	MountPath string `json:"mount_path"`
 	ReadOnly  bool   `json:"read_only"`
 }

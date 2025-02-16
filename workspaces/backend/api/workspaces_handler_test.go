@@ -34,9 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces"
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
 )
 
 var _ = Describe("Workspaces Handler", func() {
@@ -50,8 +48,6 @@ var _ = Describe("Workspaces Handler", func() {
 		const namespaceName2 = "ws-exist-ns2"
 
 		var (
-			a App
-
 			workspaceName1 string
 			workspaceKey1  types.NamespacedName
 			workspaceName2 string
@@ -73,14 +69,6 @@ var _ = Describe("Workspaces Handler", func() {
 			workspaceKey3 = types.NamespacedName{Name: workspaceName3, Namespace: namespaceName2}
 			workspaceKindName = fmt.Sprintf("workspacekind-%s", uniqueName)
 			workspaceKindKey = types.NamespacedName{Name: workspaceKindName}
-
-			repos := repositories.NewRepositories(k8sClient)
-			a = App{
-				Config: config.EnvConfig{
-					Port: 4000,
-				},
-				repositories: repos,
-			}
 
 			By("creating Namespace 1")
 			namespace1 := &corev1.Namespace{
@@ -173,6 +161,9 @@ var _ = Describe("Workspaces Handler", func() {
 			req, err := http.NewRequest(http.MethodGet, AllWorkspacesPath, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
+
 			By("executing GetWorkspacesHandler")
 			ps := httprouter.Params{}
 			rr := httptest.NewRecorder()
@@ -181,14 +172,14 @@ var _ = Describe("Workspaces Handler", func() {
 			defer rs.Body.Close()
 
 			By("verifying the HTTP response status code")
-			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			Expect(rs.StatusCode).To(Equal(http.StatusOK), descUnexpectedHTTPStatus, rr.Body.String())
 
 			By("reading the HTTP response body")
 			body, err := io.ReadAll(rs.Body)
 			Expect(err).NotTo(HaveOccurred())
 
-			By("unmarshalling the response JSON to WorkspacesEnvelope")
-			var response WorkspacesEnvelope
+			By("unmarshalling the response JSON to WorkspaceListEnvelope")
+			var response WorkspaceListEnvelope
 			err = json.Unmarshal(body, &response)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -225,6 +216,9 @@ var _ = Describe("Workspaces Handler", func() {
 			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
+
 			By("executing GetWorkspacesHandler")
 			ps := httprouter.Params{
 				httprouter.Param{Key: NamespacePathParam, Value: namespaceName1},
@@ -235,14 +229,14 @@ var _ = Describe("Workspaces Handler", func() {
 			defer rs.Body.Close()
 
 			By("verifying the HTTP response status code")
-			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			Expect(rs.StatusCode).To(Equal(http.StatusOK), descUnexpectedHTTPStatus, rr.Body.String())
 
 			By("reading the HTTP response body")
 			body, err := io.ReadAll(rs.Body)
 			Expect(err).NotTo(HaveOccurred())
 
-			By("unmarshalling the response JSON to WorkspacesEnvelope")
-			var response WorkspacesEnvelope
+			By("unmarshalling the response JSON to WorkspaceListEnvelope")
+			var response WorkspaceListEnvelope
 			err = json.Unmarshal(body, &response)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -273,14 +267,17 @@ var _ = Describe("Workspaces Handler", func() {
 		It("should retrieve a single Workspace successfully", func() {
 			By("creating the HTTP request")
 			path := strings.Replace(WorkspacesByNamePath, ":"+NamespacePathParam, namespaceName1, 1)
-			path = strings.Replace(path, ":"+WorkspaceNamePathParam, workspaceName1, 1)
+			path = strings.Replace(path, ":"+ResourceNamePathParam, workspaceName1, 1)
 			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
 
 			By("executing GetWorkspaceHandler")
 			ps := httprouter.Params{
 				httprouter.Param{Key: NamespacePathParam, Value: namespaceName1},
-				httprouter.Param{Key: WorkspaceNamePathParam, Value: workspaceName1},
+				httprouter.Param{Key: ResourceNamePathParam, Value: workspaceName1},
 			}
 			rr := httptest.NewRecorder()
 			a.GetWorkspaceHandler(rr, req, ps)
@@ -288,7 +285,7 @@ var _ = Describe("Workspaces Handler", func() {
 			defer rs.Body.Close()
 
 			By("verifying the HTTP response status code")
-			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			Expect(rs.StatusCode).To(Equal(http.StatusOK), descUnexpectedHTTPStatus, rr.Body.String())
 
 			By("reading the HTTP response body")
 			body, err := io.ReadAll(rs.Body)
@@ -327,8 +324,6 @@ var _ = Describe("Workspaces Handler", func() {
 		const namespaceName1 = "ws-invalid-ns1"
 
 		var (
-			a App
-
 			workspaceMissingWskName string
 			workspaceMissingWskKey  types.NamespacedName
 
@@ -352,14 +347,6 @@ var _ = Describe("Workspaces Handler", func() {
 			workspaceInvalidImageConfigKey = types.NamespacedName{Name: workspaceInvalidImageConfig, Namespace: namespaceName1}
 			workspaceKindName = fmt.Sprintf("workspacekind-%s", uniqueName)
 			workspaceKindKey = types.NamespacedName{Name: workspaceKindName}
-
-			repos := repositories.NewRepositories(k8sClient)
-			a = App{
-				Config: config.EnvConfig{
-					Port: 4000,
-				},
-				repositories: repos,
-			}
 
 			By("creating Namespace 1")
 			namespace1 := &corev1.Namespace{
@@ -439,6 +426,9 @@ var _ = Describe("Workspaces Handler", func() {
 			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
+
 			By("executing GetWorkspacesHandler")
 			ps := httprouter.Params{
 				httprouter.Param{Key: NamespacePathParam, Value: namespaceName1},
@@ -449,14 +439,14 @@ var _ = Describe("Workspaces Handler", func() {
 			defer rs.Body.Close()
 
 			By("verifying the HTTP response status code")
-			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			Expect(rs.StatusCode).To(Equal(http.StatusOK), descUnexpectedHTTPStatus, rr.Body.String())
 
 			By("reading the HTTP response body")
 			body, err := io.ReadAll(rs.Body)
 			Expect(err).NotTo(HaveOccurred())
 
-			By("unmarshalling the response JSON to WorkspacesEnvelope")
-			var response WorkspacesEnvelope
+			By("unmarshalling the response JSON to WorkspaceListEnvelope")
+			var response WorkspaceListEnvelope
 			err = json.Unmarshal(body, &response)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -502,14 +492,17 @@ var _ = Describe("Workspaces Handler", func() {
 		It("should retrieve a single invalid Workspace successfully", func() {
 			By("creating the HTTP request")
 			path := strings.Replace(WorkspacesByNamePath, ":"+NamespacePathParam, namespaceName1, 1)
-			path = strings.Replace(path, ":"+WorkspaceNamePathParam, workspaceMissingWskName, 1)
+			path = strings.Replace(path, ":"+ResourceNamePathParam, workspaceMissingWskName, 1)
 			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
 
 			By("executing GetWorkspaceHandler")
 			ps := httprouter.Params{
 				httprouter.Param{Key: NamespacePathParam, Value: namespaceName1},
-				httprouter.Param{Key: WorkspaceNamePathParam, Value: workspaceMissingWskName},
+				httprouter.Param{Key: ResourceNamePathParam, Value: workspaceMissingWskName},
 			}
 			rr := httptest.NewRecorder()
 			a.GetWorkspaceHandler(rr, req, ps)
@@ -517,7 +510,7 @@ var _ = Describe("Workspaces Handler", func() {
 			defer rs.Body.Close()
 
 			By("verifying the HTTP response status code")
-			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			Expect(rs.StatusCode).To(Equal(http.StatusOK), descUnexpectedHTTPStatus, rr.Body.String())
 
 			By("reading the HTTP response body")
 			body, err := io.ReadAll(rs.Body)
@@ -542,22 +535,13 @@ var _ = Describe("Workspaces Handler", func() {
 	//       therefore, we run them using the `Serial` Ginkgo decorators.
 	Context("with no existing Workspaces", Serial, func() {
 
-		var a App
-
-		BeforeEach(func() {
-			repos := repositories.NewRepositories(k8sClient)
-			a = App{
-				Config: config.EnvConfig{
-					Port: 4000,
-				},
-				repositories: repos,
-			}
-		})
-
 		It("should return an empty list of Workspaces for all namespaces", func() {
 			By("creating the HTTP request")
 			req, err := http.NewRequest(http.MethodGet, AllWorkspacesPath, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
 
 			By("executing GetWorkspacesHandler")
 			ps := httprouter.Params{}
@@ -567,14 +551,14 @@ var _ = Describe("Workspaces Handler", func() {
 			defer rs.Body.Close()
 
 			By("verifying the HTTP response status code")
-			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			Expect(rs.StatusCode).To(Equal(http.StatusOK), descUnexpectedHTTPStatus, rr.Body.String())
 
 			By("reading the HTTP response body")
 			body, err := io.ReadAll(rs.Body)
 			Expect(err).NotTo(HaveOccurred())
 
-			By("unmarshalling the response JSON to WorkspacesEnvelope")
-			var response WorkspacesEnvelope
+			By("unmarshalling the response JSON to WorkspaceListEnvelope")
+			var response WorkspaceListEnvelope
 			err = json.Unmarshal(body, &response)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -590,6 +574,9 @@ var _ = Describe("Workspaces Handler", func() {
 			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
+
 			By("executing GetWorkspacesHandler")
 			ps := httprouter.Params{
 				httprouter.Param{Key: NamespacePathParam, Value: missingNamespace},
@@ -600,14 +587,14 @@ var _ = Describe("Workspaces Handler", func() {
 			defer rs.Body.Close()
 
 			By("verifying the HTTP response status code")
-			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			Expect(rs.StatusCode).To(Equal(http.StatusOK), descUnexpectedHTTPStatus, rr.Body.String())
 
 			By("reading the HTTP response body")
 			body, err := io.ReadAll(rs.Body)
 			Expect(err).NotTo(HaveOccurred())
 
-			By("unmarshalling the response JSON to WorkspacesEnvelope")
-			var response WorkspacesEnvelope
+			By("unmarshalling the response JSON to WorkspaceListEnvelope")
+			var response WorkspaceListEnvelope
 			err = json.Unmarshal(body, &response)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -621,14 +608,17 @@ var _ = Describe("Workspaces Handler", func() {
 
 			By("creating the HTTP request")
 			path := strings.Replace(WorkspacesByNamePath, ":"+NamespacePathParam, missingNamespace, 1)
-			path = strings.Replace(path, ":"+WorkspaceNamePathParam, missingWorkspaceName, 1)
+			path = strings.Replace(path, ":"+ResourceNamePathParam, missingWorkspaceName, 1)
 			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
 
 			By("executing GetWorkspaceHandler")
 			ps := httprouter.Params{
 				httprouter.Param{Key: NamespacePathParam, Value: missingNamespace},
-				httprouter.Param{Key: WorkspaceNamePathParam, Value: missingWorkspaceName},
+				httprouter.Param{Key: ResourceNamePathParam, Value: missingWorkspaceName},
 			}
 			rr := httptest.NewRecorder()
 			a.GetWorkspaceHandler(rr, req, ps)
@@ -636,7 +626,7 @@ var _ = Describe("Workspaces Handler", func() {
 			defer rs.Body.Close()
 
 			By("verifying the HTTP response status code")
-			Expect(rs.StatusCode).To(Equal(http.StatusNotFound))
+			Expect(rs.StatusCode).To(Equal(http.StatusNotFound), descUnexpectedHTTPStatus, rr.Body.String())
 		})
 	})
 
@@ -647,7 +637,6 @@ var _ = Describe("Workspaces Handler", func() {
 		const namespaceNameCrud = "ws-crud-ns"
 
 		var (
-			a                 App
 			workspaceName     string
 			workspaceKey      types.NamespacedName
 			workspaceKindName string
@@ -660,14 +649,6 @@ var _ = Describe("Workspaces Handler", func() {
 			workspaceKey = types.NamespacedName{Name: workspaceName, Namespace: namespaceNameCrud}
 			workspaceKindName = fmt.Sprintf("workspacekind-%s", uniqueName)
 			workspaceKindKey = types.NamespacedName{Name: workspaceKindName}
-
-			repos := repositories.NewRepositories(k8sClient)
-			a = App{
-				Config: config.EnvConfig{
-					Port: 4000,
-				},
-				repositories: repos,
-			}
 
 			By("creating the Namespace")
 			namespaceA := &corev1.Namespace{
@@ -707,53 +688,51 @@ var _ = Describe("Workspaces Handler", func() {
 			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
 			Expect(k8sClient.Get(ctx, workspaceKindKey, workspaceKind)).To(Succeed())
 
-			By("defining the Workspace to create")
-			workspace := &kubefloworgv1beta1.Workspace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      workspaceName,
-					Namespace: namespaceNameCrud,
-				},
-				Spec: kubefloworgv1beta1.WorkspaceSpec{
-					Kind:         workspaceKindName,
-					Paused:       ptr.To(false),
-					DeferUpdates: ptr.To(false),
-					PodTemplate: kubefloworgv1beta1.WorkspacePodTemplate{
-						PodMetadata: &kubefloworgv1beta1.WorkspacePodMetadata{
-							Labels: map[string]string{
-								"app": "dora",
-							},
-							Annotations: map[string]string{
-								"app": "dora",
-							},
+			By("defining a WorkspaceCreate model")
+			workspaceCreate := &models.WorkspaceCreate{
+				Name:         workspaceName,
+				Kind:         workspaceKindName,
+				Paused:       false,
+				DeferUpdates: false,
+				PodTemplate: models.PodTemplateMutate{
+					PodMetadata: models.PodMetadataMutate{
+						Labels: map[string]string{
+							"app": "dora",
 						},
-						Volumes: kubefloworgv1beta1.WorkspacePodVolumes{
-							Home: ptr.To("my-home-pvc"),
-							Data: []kubefloworgv1beta1.PodVolumeMount{
-								{
-									PVCName:   "my-data-pvc",
-									MountPath: "/data",
-									ReadOnly:  ptr.To(false),
-								},
+						Annotations: map[string]string{
+							"app": "dora",
+						},
+					},
+					Volumes: models.PodVolumesMutate{
+						Home: ptr.To("my-home-pvc"),
+						Data: []models.PodVolumeMount{
+							{
+								PVCName:   "my-data-pvc",
+								MountPath: "/data/1",
+								ReadOnly:  false,
 							},
 						},
-						Options: kubefloworgv1beta1.WorkspacePodOptions{
-							ImageConfig: "jupyterlab_scipy_180",
-							PodConfig:   "tiny_cpu",
-						},
+					},
+					Options: models.PodTemplateOptionsMutate{
+						ImageConfig: "jupyterlab_scipy_180",
+						PodConfig:   "tiny_cpu",
 					},
 				},
 			}
-			workspaceModel := models.NewWorkspaceModelFromWorkspace(workspace, workspaceKind)
+			bodyEnvelope := WorkspaceCreateEnvelope{Data: workspaceCreate}
 
-			By("marshaling the Workspace model to JSON")
-			workspaceModelJSON, err := json.Marshal(workspaceModel)
+			By("marshaling the WorkspaceCreate model to JSON")
+			bodyEnvelopeJSON, err := json.Marshal(bodyEnvelope)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("creating an HTTP request to create the Workspace")
 			path := strings.Replace(WorkspacesByNamespacePath, ":"+NamespacePathParam, namespaceNameCrud, 1)
-			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(workspaceModelJSON)))
+			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(bodyEnvelopeJSON)))
 			Expect(err).NotTo(HaveOccurred())
 			req.Header.Set("Content-Type", "application/json")
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
 
 			By("executing CreateWorkspaceHandler")
 			rr := httptest.NewRecorder()
@@ -768,20 +747,37 @@ var _ = Describe("Workspaces Handler", func() {
 			defer rs.Body.Close()
 
 			By("verifying the HTTP response status code")
-			Expect(rs.StatusCode).To(Equal(http.StatusCreated))
+			Expect(rs.StatusCode).To(Equal(http.StatusCreated), descUnexpectedHTTPStatus, rr.Body.String())
 
 			By("getting the created Workspace from the Kubernetes API")
 			createdWorkspace := &kubefloworgv1beta1.Workspace{}
 			Expect(k8sClient.Get(ctx, workspaceKey, createdWorkspace)).To(Succeed())
 
 			By("ensuring the created Workspace matches the expected Workspace")
-			Expect(createdWorkspace.Spec).To(BeComparableTo(workspace.Spec))
+			Expect(createdWorkspace.ObjectMeta.Name).To(Equal(workspaceName))
+			Expect(createdWorkspace.Spec.Kind).To(Equal(workspaceKindName))
+			Expect(createdWorkspace.Spec.Paused).To(Equal(&workspaceCreate.Paused))
+			Expect(createdWorkspace.Spec.DeferUpdates).To(Equal(&workspaceCreate.DeferUpdates))
+			Expect(createdWorkspace.Spec.PodTemplate.PodMetadata.Labels).To(Equal(workspaceCreate.PodTemplate.PodMetadata.Labels))
+			Expect(createdWorkspace.Spec.PodTemplate.PodMetadata.Annotations).To(Equal(workspaceCreate.PodTemplate.PodMetadata.Annotations))
+			Expect(createdWorkspace.Spec.PodTemplate.Volumes.Home).To(Equal(workspaceCreate.PodTemplate.Volumes.Home))
+			expected := []kubefloworgv1beta1.PodVolumeMount{
+				{
+					PVCName:   workspaceCreate.PodTemplate.Volumes.Data[0].PVCName,
+					MountPath: workspaceCreate.PodTemplate.Volumes.Data[0].MountPath,
+					ReadOnly:  &workspaceCreate.PodTemplate.Volumes.Data[0].ReadOnly,
+				},
+			}
+			Expect(createdWorkspace.Spec.PodTemplate.Volumes.Data).To(Equal(expected))
 
 			By("creating an HTTP request to delete the Workspace")
 			path = strings.Replace(WorkspacesByNamePath, ":"+NamespacePathParam, namespaceNameCrud, 1)
-			path = strings.Replace(path, ":"+WorkspaceNamePathParam, workspaceName, 1)
+			path = strings.Replace(path, ":"+ResourceNamePathParam, workspaceName, 1)
 			req, err = http.NewRequest(http.MethodDelete, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
 
 			By("executing DeleteWorkspaceHandler")
 			rr = httptest.NewRecorder()
@@ -791,7 +787,7 @@ var _ = Describe("Workspaces Handler", func() {
 					Value: namespaceNameCrud,
 				},
 				httprouter.Param{
-					Key:   WorkspaceNamePathParam,
+					Key:   ResourceNamePathParam,
 					Value: workspaceName,
 				},
 			}
@@ -800,7 +796,7 @@ var _ = Describe("Workspaces Handler", func() {
 			defer rs.Body.Close()
 
 			By("verifying the HTTP response status code")
-			Expect(rs.StatusCode).To(Equal(http.StatusNoContent))
+			Expect(rs.StatusCode).To(Equal(http.StatusNoContent), descUnexpectedHTTPStatus, rr.Body.String())
 
 			By("ensuring the Workspace has been deleted")
 			deletedWorkspace := &kubefloworgv1beta1.Workspace{}
@@ -808,5 +804,9 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(apierrors.IsNotFound(err)).To(BeTrue())
 		})
+
+		// TODO: test when fail to create a Workspace when:
+		//   - body payload invalid (missing name/kind, and/or non RCF 1123 name)
+		//   - invalid namespace HTTP path parameter (also test for other API handlers)
 	})
 })

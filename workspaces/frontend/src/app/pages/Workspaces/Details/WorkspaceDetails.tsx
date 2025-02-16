@@ -57,7 +57,12 @@ export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = 
               </TabContentBody>
             </TabContent>
           </Tab>
-          <Tab eventKey={1} title={<TabTitleText>Activity</TabTitleText>} aria-label="Activity" data-testid="activityTab">
+          <Tab
+            eventKey={1}
+            title={<TabTitleText>Activity</TabTitleText>}
+            aria-label="Activity"
+            data-testid="activityTab"
+          >
             <TabContent id="activitySectionBodyPadding">
               <TabContentBody hasPadding>
                 <WorkspaceDetailsActivity workspace={workspace} />
