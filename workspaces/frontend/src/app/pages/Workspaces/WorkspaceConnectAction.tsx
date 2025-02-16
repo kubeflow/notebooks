@@ -33,7 +33,7 @@ export const WorkspaceConnectAction: React.FunctionComponent<WorkspaceConnectAct
   };
 
   const onClickConnect = () => {
-    openEndpoint(workspace.podTemplate.endpoints[0].port);
+    openEndpoint(workspace.pod_template.end_points[0].port);
   };
 
   const openEndpoint = (port: string) => {
@@ -51,7 +51,7 @@ export const WorkspaceConnectAction: React.FunctionComponent<WorkspaceConnectAct
           onClick={onToggleClick}
           isExpanded={open}
           isFullWidth
-          isDisabled={workspace.status.state !== WorkspaceState.Running}
+          isDisabled={workspace.state !== WorkspaceState.Running}
           splitButtonItems={[
             <MenuToggleAction
               id="connect-endpoint-button"
@@ -67,9 +67,9 @@ export const WorkspaceConnectAction: React.FunctionComponent<WorkspaceConnectAct
       shouldFocusToggleOnSelect
     >
       <DropdownList>
-        {workspace.podTemplate.endpoints.map((endpoint) => (
+        {workspace.pod_template.end_points.map((endpoint) => (
           <DropdownItem value={endpoint.port} key={`${workspace.name}-${endpoint.port}`}>
-            {endpoint.displayName}
+            {endpoint.display_name}
           </DropdownItem>
         ))}
       </DropdownList>
