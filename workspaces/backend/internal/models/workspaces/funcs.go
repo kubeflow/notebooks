@@ -128,6 +128,39 @@ func NewWorkspaceModelFromWorkspace(ws *kubefloworgv1beta1.Workspace, wsk *kubef
 	return workspaceModel
 }
 
+func buildPortsList(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.WorkspaceKind) []ImagePort {
+	var ports []ImagePort
+
+	// Return an empty list if wsk is nil.
+	if !wskExists(wsk) {
+		return ports
+	}
+
+	// Get the image configuration from the WorkspaceKind's PodTemplate options.
+	imageConfig := wsk.Spec.PodTemplate.Options.ImageConfig
+
+	for _, val := range imageConfig.Values {
+		if len(val.Spec.Ports) == 0 {
+			continue
+		}
+		firstPort := val.Spec.Ports[0]
+		portStr := fmt.Sprintf("%d", firstPort.Port)
+		id := firstPort.Id
+		displayName := firstPort.DisplayName
+		if displayName == "" {
+			displayName = val.Id
+		}
+		imagePort := ImagePort{
+			ID:          id,
+			DisplayName: displayName,
+			Port:        portStr,
+		}
+		ports = append(ports, imagePort)
+	}
+
+	return ports
+}
+
 func wskExists(wsk *kubefloworgv1beta1.WorkspaceKind) bool {
 	return wsk != nil && wsk.UID != ""
 }
@@ -218,6 +251,7 @@ func buildImageConfig(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.
 		Current:       currentImageConfig,
 		Desired:       desiredImageConfig,
 		RedirectChain: redirectChain,
+		Ports:         buildPortsList(ws, wsk),
 	}
 }
 

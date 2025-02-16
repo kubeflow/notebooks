@@ -84,6 +84,13 @@ type ImageConfig struct {
 	Current       OptionInfo     `json:"current"`
 	Desired       *OptionInfo    `json:"desired,omitempty"`
 	RedirectChain []RedirectStep `json:"redirectChain,omitempty"`
+	Ports         []ImagePort    `json:"ports,omitempty"`
+}
+
+type ImagePort struct {
+	ID          string `json:"id"`
+	DisplayName string `json:"display_name"`
+	Port        string `json:"port"`
 }
 
 type PodConfig struct {
