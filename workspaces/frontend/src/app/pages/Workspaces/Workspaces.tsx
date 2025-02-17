@@ -47,7 +47,7 @@ import { WorkspaceStartActionModal } from '~/app/pages/Workspaces/workspaceActio
 import { WorkspaceRestartActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRestartActionModal';
 import { WorkspaceStopActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceStopActionModal';
 import Filter, { FilteredColumn } from 'shared/components/Filter';
-import { formatRam } from 'shared/utilities/WorkspaceResources';
+import { formatRam } from 'shared/utilities/WorkspaceUtils';
 
 export enum ActionType {
   ViewDetails,
@@ -102,11 +102,11 @@ export const Workspaces: React.FunctionComponent = () => {
       },
       status: {
         activity: {
-          lastActivity: 0,
-          lastUpdate: 0,
+          lastActivity: 1739673600,
+          lastUpdate: 1739673700,
         },
-        pauseTime: 0,
-        pendingRestart: true,
+        pauseTime: 1739673500,
+        pendingRestart: false,
         podTemplateOptions: {
           imageConfig: {
             desired: '',
@@ -384,14 +384,17 @@ export const Workspaces: React.FunctionComponent = () => {
     const workspaceState = workspace.status.state;
     const workspaceActions = [
       {
+        id: 'view-details',
         title: 'View Details',
         onClick: () => viewDetailsClick(workspace),
       },
       {
+        id: 'edit',
         title: 'Edit',
         onClick: () => editAction(workspace),
       },
       {
+        id: 'delete',
         title: 'Delete',
         onClick: () => handleDeleteClick(workspace),
       },
@@ -400,10 +403,12 @@ export const Workspaces: React.FunctionComponent = () => {
       },
       workspaceState !== WorkspaceState.Running
         ? {
+            id: 'start',
             title: 'Start',
             onClick: () => startRestartAction(workspace, ActionType.Start),
           }
         : {
+            id: 'restart',
             title: 'Restart',
             onClick: () => startRestartAction(workspace, ActionType.Restart),
           },
@@ -411,6 +416,7 @@ export const Workspaces: React.FunctionComponent = () => {
 
     if (workspaceState === WorkspaceState.Running) {
       workspaceActions.push({
+        id: 'stop',
         title: 'Stop',
         onClick: () => stopAction(workspace),
       });
@@ -633,7 +639,7 @@ export const Workspaces: React.FunctionComponent = () => {
                       <ActionsColumn
                         items={workspaceDefaultActions(workspace).map((action) => ({
                           ...action,
-                          'data-testid': `action-${typeof action.title === 'string' ? action.title.toLowerCase() : ''}`,
+                          'data-testid': `action-${action.id || ''}`,
                         }))}
                       />
                     </Td>
