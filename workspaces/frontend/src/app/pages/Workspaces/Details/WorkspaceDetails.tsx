@@ -15,6 +15,7 @@ import {
 import { Workspace } from '~/shared/types';
 import { WorkspaceDetailsOverview } from '~/app/pages/Workspaces/Details/WorkspaceDetailsOverview';
 import { WorkspaceDetailsActions } from '~/app/pages/Workspaces/Details/WorkspaceDetailsActions';
+import { WorkspaceDetailsActivity } from '~/app/pages/Workspaces/Details/WorkspaceDetailsActivity';
 
 type WorkspaceDetailsProps = {
   workspace: Workspace;
@@ -39,7 +40,7 @@ export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = 
   };
 
   return (
-    <DrawerPanelContent>
+    <DrawerPanelContent data-testid="workspaceDetails">
       <DrawerHead>
         <Title headingLevel="h6">{workspace.name}</Title>
         <WorkspaceDetailsActions onEditClick={onEditClick} onDeleteClick={onDeleteClick} />
@@ -56,9 +57,16 @@ export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = 
               </TabContentBody>
             </TabContent>
           </Tab>
-          <Tab eventKey={1} title={<TabTitleText>Activity</TabTitleText>} aria-label="Activity">
+          <Tab
+            eventKey={1}
+            title={<TabTitleText>Activity</TabTitleText>}
+            aria-label="Activity"
+            data-testid="activityTab"
+          >
             <TabContent id="activitySectionBodyPadding">
-              <TabContentBody hasPadding>Activity</TabContentBody>
+              <TabContentBody hasPadding>
+                <WorkspaceDetailsActivity workspace={workspace} />
+              </TabContentBody>
             </TabContent>
           </Tab>
           <Tab eventKey={2} title={<TabTitleText>Logs</TabTitleText>} aria-label="Logs">
