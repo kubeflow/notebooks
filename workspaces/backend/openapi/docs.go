@@ -47,9 +47,23 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "api.ErrorCause": {
+            "type": "object",
+            "properties": {
+                "validation_errors": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/api.ValidationError"
+                    }
+                }
+            }
+        },
         "api.ErrorResponse": {
             "type": "object",
             "properties": {
+                "cause": {
+                    "$ref": "#/definitions/api.ErrorCause"
+                },
                 "code": {
                     "type": "string"
                 },
@@ -57,6 +71,47 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "api.ValidationError": {
+            "type": "object",
+            "properties": {
+                "field": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/field.ErrorType"
+                }
+            }
+        },
+        "field.ErrorType": {
+            "type": "string",
+            "enum": [
+                "FieldValueNotFound",
+                "FieldValueRequired",
+                "FieldValueDuplicate",
+                "FieldValueInvalid",
+                "FieldValueNotSupported",
+                "FieldValueForbidden",
+                "FieldValueTooLong",
+                "FieldValueTooMany",
+                "InternalError",
+                "FieldValueTypeInvalid"
+            ],
+            "x-enum-varnames": [
+                "ErrorTypeNotFound",
+                "ErrorTypeRequired",
+                "ErrorTypeDuplicate",
+                "ErrorTypeInvalid",
+                "ErrorTypeNotSupported",
+                "ErrorTypeForbidden",
+                "ErrorTypeTooLong",
+                "ErrorTypeTooMany",
+                "ErrorTypeInternal",
+                "ErrorTypeTypeInvalid"
+            ]
         },
         "health_check.HealthCheck": {
             "type": "object",
