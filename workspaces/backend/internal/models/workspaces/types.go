@@ -89,7 +89,7 @@ type ImageConfig struct {
 
 type ImagePort struct {
 	ID          string `json:"id"`
-	DisplayName string `json:"display_name"`
+	DisplayName string `json:"displayName"`
 	Port        string `json:"port"`
 }
 
