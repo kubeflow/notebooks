@@ -67,11 +67,14 @@ lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes
 	$(GOLANGCI_LINT) run --fix
 
 ##@ Swagger
+ALL_GO_DIRS := $(shell find . -type f -name '*.go' -exec dirname {} \; | sed 's|^\./||' | sort -u)
+ALL_GO_DIRS_NO_CMD := $(shell echo "$(ALL_GO_DIRS)" | tr ' ' '\n' | grep -v '^cmd$$' | paste -sd, -)
+SWAG_DIRS := cmd,$(ALL_GO_DIRS_NO_CMD)
 
 .PHONY: swag
-swag: 
-	swag fmt -g cmd/main.go && swag init -g cmd/main.go -o api/v1/swagger
-	
+swag: SWAGGER
+	$(SWAGGER) fmt -g main.go -d $(SWAG_DIRS)
+	$(SWAGGER) init -q -g main.go -d $(SWAG_DIRS) --output openapi
 
 ##@ Build
 
@@ -122,10 +125,17 @@ $(LOCALBIN):
 KUBECTL ?= kubectl
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
+SWAGGER = $(LOCALBIN)/swag
 
 ## Tool Versions
 ENVTEST_VERSION ?= release-0.19
 GOLANGCI_LINT_VERSION ?= v1.61.0
+SWAGGER_VERSION ?= v1.16.4
+
+.PHONY: SWAGGER
+SWAGGER: $(SWAGGER)
+$(SWAGGER): $(LOCALBIN)
+	$(call go-install-tool,$(SWAGGER),github.com/swaggo/swag/cmd/swag,$(SWAGGER_VERSION))
 
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download setup-envtest locally if necessary.
