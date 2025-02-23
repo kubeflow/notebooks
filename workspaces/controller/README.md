@@ -49,6 +49,18 @@ kubectl apply -k config/samples/
 
 >**NOTE**: Ensure that the samples has default values to test it out.
 
+**Run the e2e tests**
+
+```sh
+make test-e2e
+```
+
+If you would like to run the tests with a given image, use the IMG parameter:
+
+```sh
+make test-e2e IMG=<some-registry>/workspace-controller:tag
+```
+
 ### To Uninstall
 **Delete the instances (CRs) from the cluster:**
 
