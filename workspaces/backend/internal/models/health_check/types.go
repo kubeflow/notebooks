@@ -18,7 +18,7 @@ package health_check
 
 type HealthCheck struct {
 	Status     ServiceStatus `json:"status"`
-	SystemInfo SystemInfo    `json:"system_info"`
+	SystemInfo SystemInfo    `json:"systemInfo"`
 }
 
 type SystemInfo struct {
