@@ -18,6 +18,7 @@ package workspaces
 
 import (
 	"fmt"
+	"path"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"k8s.io/utils/ptr"
@@ -124,16 +125,17 @@ func NewWorkspaceModelFromWorkspace(ws *kubefloworgv1beta1.Workspace, wsk *kubef
 			//       https://github.com/kubeflow/notebooks/issues/38
 			LastProbe: nil,
 		},
+		Services: buildServicesList(ws, wsk),
 	}
 	return workspaceModel
 }
 
-func buildPortsList(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.WorkspaceKind) []ImagePort {
-	var ports []ImagePort
+func buildServicesList(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.WorkspaceKind) []Service {
+	//nolint:prealloc
+	var services []Service
 
-	// Return an empty list if wsk is nil.
 	if !wskExists(wsk) {
-		return ports
+		return services
 	}
 
 	// Get the image configuration from the WorkspaceKind's PodTemplate options.
@@ -145,20 +147,22 @@ func buildPortsList(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.Wo
 		}
 		firstPort := val.Spec.Ports[0]
 		portStr := fmt.Sprintf("%d", firstPort.Port)
-		id := firstPort.Id
 		displayName := firstPort.DisplayName
 		if displayName == "" {
 			displayName = val.Id
 		}
-		imagePort := ImagePort{
-			ID:          id,
-			DisplayName: displayName,
-			Port:        portStr,
+		basePath := "/workspace"
+		notebookPath := path.Join(basePath, ws.Namespace, ws.Name, portStr)
+		service := Service{
+			HttpService: &HttpService{
+				DisplayName: displayName,
+				HttpPath:    notebookPath,
+			},
 		}
-		ports = append(ports, imagePort)
+		services = append(services, service)
 	}
 
-	return ports
+	return services
 }
 
 func wskExists(wsk *kubefloworgv1beta1.WorkspaceKind) bool {
@@ -251,7 +255,6 @@ func buildImageConfig(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.
 		Current:       currentImageConfig,
 		Desired:       desiredImageConfig,
 		RedirectChain: redirectChain,
-		Ports:         buildPortsList(ws, wsk),
 	}
 }
 

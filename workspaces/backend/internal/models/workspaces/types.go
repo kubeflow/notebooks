@@ -29,6 +29,7 @@ type Workspace struct {
 	StateMessage  string            `json:"stateMessage"`
 	PodTemplate   PodTemplate       `json:"podTemplate"`
 	Activity      Activity          `json:"activity"`
+	Services      []Service         `json:"services,omitempty"`
 }
 
 type WorkspaceState string
@@ -84,13 +85,15 @@ type ImageConfig struct {
 	Current       OptionInfo     `json:"current"`
 	Desired       *OptionInfo    `json:"desired,omitempty"`
 	RedirectChain []RedirectStep `json:"redirectChain,omitempty"`
-	Ports         []ImagePort    `json:"ports,omitempty"`
 }
 
-type ImagePort struct {
-	ID          string `json:"id"`
+type Service struct {
+	HttpService *HttpService `json:"httpService,omitempty"`
+}
+
+type HttpService struct {
 	DisplayName string `json:"displayName"`
-	Port        string `json:"port"`
+	HttpPath    string `json:"httpPath"`
 }
 
 type PodConfig struct {
