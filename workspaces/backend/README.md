@@ -91,9 +91,9 @@ curl -X POST http://localhost:4000/api/v1/workspaces/default \
         "name": "dora",
         "kind": "jupyterlab",
         "paused": false,
-        "defer_updates": false,
-        "pod_template": {
-            "pod_metadata": {
+        "deferUpdates": false,
+        "podTemplate": {
+            "podMetadata": {
                 "labels": {
                     "app": "dora"
                 },
@@ -105,15 +105,15 @@ curl -X POST http://localhost:4000/api/v1/workspaces/default \
                 "home": "workspace-home-bella",
                 "data": [
                     {
-                        "pvc_name": "workspace-data-bella",
-                        "mount_path": "/data/my-data",
-                        "read_only": false
+                        "pvcName": "workspace-data-bella",
+                        "mountPath": "/data/my-data",
+                        "readOnly": false
                     }
                 ]
             },
             "options": {
-                "image_config": "jupyterlab_scipy_190",
-                "pod_config": "tiny_cpu"
+                "imageConfig": "jupyterlab_scipy_190",
+                "podConfig": "tiny_cpu"
             }
         }
     }

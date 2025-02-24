@@ -27,12 +27,12 @@ type WorkspaceCreate struct {
 	Name         string            `json:"name"`
 	Kind         string            `json:"kind"`
 	Paused       bool              `json:"paused"`
-	DeferUpdates bool              `json:"defer_updates"`
-	PodTemplate  PodTemplateMutate `json:"pod_template"`
+	DeferUpdates bool              `json:"deferUpdates"`
+	PodTemplate  PodTemplateMutate `json:"podTemplate"`
 }
 
 type PodTemplateMutate struct {
-	PodMetadata PodMetadataMutate        `json:"pod_metadata"`
+	PodMetadata PodMetadataMutate        `json:"podMetadata"`
 	Volumes     PodVolumesMutate         `json:"volumes"`
 	Options     PodTemplateOptionsMutate `json:"options"`
 }
@@ -48,14 +48,14 @@ type PodVolumesMutate struct {
 }
 
 type PodVolumeMount struct {
-	PVCName   string `json:"pvc_name"`
-	MountPath string `json:"mount_path"`
-	ReadOnly  bool   `json:"read_only,omitempty"`
+	PVCName   string `json:"pvcName"`
+	MountPath string `json:"mountPath"`
+	ReadOnly  bool   `json:"readOnly,omitempty"`
 }
 
 type PodTemplateOptionsMutate struct {
-	ImageConfig string `json:"image_config"`
-	PodConfig   string `json:"pod_config"`
+	ImageConfig string `json:"imageConfig"`
+	PodConfig   string `json:"podConfig"`
 }
 
 // Validate validates the WorkspaceCreate struct.
@@ -72,19 +72,19 @@ func (w *WorkspaceCreate) Validate(prefix *field.Path) []*field.Error {
 	errs = append(errs, helper.ValidateFieldIsDNS1123Subdomain(kindPath, w.Kind)...)
 
 	// validate the image config
-	imageConfigPath := prefix.Child("pod_template", "options", "image_config")
+	imageConfigPath := prefix.Child("podTemplate", "options", "imageConfig")
 	errs = append(errs, helper.ValidateFieldIsNotEmpty(imageConfigPath, w.PodTemplate.Options.ImageConfig)...)
 
 	// validate the pod config
-	podConfigPath := prefix.Child("pod_template", "options", "pod_config")
+	podConfigPath := prefix.Child("podTemplate", "options", "podConfig")
 	errs = append(errs, helper.ValidateFieldIsNotEmpty(podConfigPath, w.PodTemplate.Options.PodConfig)...)
 
 	// validate the data volumes
-	dataVolumesPath := prefix.Child("pod_template", "volumes", "data")
+	dataVolumesPath := prefix.Child("podTemplate", "volumes", "data")
 	for i, volume := range w.PodTemplate.Volumes.Data {
 		volumePath := dataVolumesPath.Index(i)
-		errs = append(errs, helper.ValidateFieldIsNotEmpty(volumePath.Child("pvc_name"), volume.PVCName)...)
-		errs = append(errs, helper.ValidateFieldIsNotEmpty(volumePath.Child("mount_path"), volume.MountPath)...)
+		errs = append(errs, helper.ValidateFieldIsNotEmpty(volumePath.Child("pvcName"), volume.PVCName)...)
+		errs = append(errs, helper.ValidateFieldIsNotEmpty(volumePath.Child("mountPath"), volume.MountPath)...)
 	}
 
 	return errs

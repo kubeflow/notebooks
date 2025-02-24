@@ -18,14 +18,14 @@ package workspacekinds
 
 type WorkspaceKind struct {
 	Name               string      `json:"name"`
-	DisplayName        string      `json:"display_name"`
+	DisplayName        string      `json:"displayName"`
 	Description        string      `json:"description"`
 	Deprecated         bool        `json:"deprecated"`
-	DeprecationMessage string      `json:"deprecation_message"`
+	DeprecationMessage string      `json:"deprecationMessage"`
 	Hidden             bool        `json:"hidden"`
 	Icon               ImageRef    `json:"icon"`
 	Logo               ImageRef    `json:"logo"`
-	PodTemplate        PodTemplate `json:"pod_template"`
+	PodTemplate        PodTemplate `json:"podTemplate"`
 }
 
 type ImageRef struct {
@@ -33,8 +33,8 @@ type ImageRef struct {
 }
 
 type PodTemplate struct {
-	PodMetadata  PodMetadata        `json:"pod_metadata"`
-	VolumeMounts PodVolumeMounts    `json:"volume_mounts"`
+	PodMetadata  PodMetadata        `json:"podMetadata"`
+	VolumeMounts PodVolumeMounts    `json:"volumeMounts"`
 	Options      PodTemplateOptions `json:"options"`
 }
 
@@ -48,8 +48,8 @@ type PodVolumeMounts struct {
 }
 
 type PodTemplateOptions struct {
-	ImageConfig ImageConfig `json:"image_config"`
-	PodConfig   PodConfig   `json:"pod_config"`
+	ImageConfig ImageConfig `json:"imageConfig"`
+	PodConfig   PodConfig   `json:"podConfig"`
 }
 
 type ImageConfig struct {
