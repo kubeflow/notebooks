@@ -21,13 +21,13 @@ package workspaces
 type Workspace struct {
 	Name          string            `json:"name"`
 	Namespace     string            `json:"namespace"`
-	WorkspaceKind WorkspaceKindInfo `json:"workspace_kind"`
-	DeferUpdates  bool              `json:"defer_updates"`
+	WorkspaceKind WorkspaceKindInfo `json:"workspaceKind"`
+	DeferUpdates  bool              `json:"deferUpdates"`
 	Paused        bool              `json:"paused"`
-	PausedTime    int64             `json:"paused_time"`
+	PausedTime    int64             `json:"pausedTime"`
 	State         WorkspaceState    `json:"state"`
-	StateMessage  string            `json:"state_message"`
-	PodTemplate   PodTemplate       `json:"pod_template"`
+	StateMessage  string            `json:"stateMessage"`
+	PodTemplate   PodTemplate       `json:"podTemplate"`
 	Activity      Activity          `json:"activity"`
 }
 
@@ -54,7 +54,7 @@ type ImageRef struct {
 }
 
 type PodTemplate struct {
-	PodMetadata PodMetadata        `json:"pod_metadata"`
+	PodMetadata PodMetadata        `json:"podMetadata"`
 	Volumes     PodVolumes         `json:"volumes"`
 	Options     PodTemplateOptions `json:"options"`
 }
@@ -70,31 +70,31 @@ type PodVolumes struct {
 }
 
 type PodVolumeInfo struct {
-	PVCName   string `json:"pvc_name"`
-	MountPath string `json:"mount_path"`
-	ReadOnly  bool   `json:"read_only"`
+	PVCName   string `json:"pvcName"`
+	MountPath string `json:"mountPath"`
+	ReadOnly  bool   `json:"readOnly"`
 }
 
 type PodTemplateOptions struct {
-	ImageConfig ImageConfig `json:"image_config"`
-	PodConfig   PodConfig   `json:"pod_config"`
+	ImageConfig ImageConfig `json:"imageConfig"`
+	PodConfig   PodConfig   `json:"podConfig"`
 }
 
 type ImageConfig struct {
 	Current       OptionInfo     `json:"current"`
 	Desired       *OptionInfo    `json:"desired,omitempty"`
-	RedirectChain []RedirectStep `json:"redirect_chain,omitempty"`
+	RedirectChain []RedirectStep `json:"redirectChain,omitempty"`
 }
 
 type PodConfig struct {
 	Current       OptionInfo     `json:"current"`
 	Desired       *OptionInfo    `json:"desired,omitempty"`
-	RedirectChain []RedirectStep `json:"redirect_chain,omitempty"`
+	RedirectChain []RedirectStep `json:"redirectChain,omitempty"`
 }
 
 type OptionInfo struct {
 	Id          string        `json:"id"`
-	DisplayName string        `json:"display_name"`
+	DisplayName string        `json:"displayName"`
 	Description string        `json:"description"`
 	Labels      []OptionLabel `json:"labels"`
 }
@@ -105,8 +105,8 @@ type OptionLabel struct {
 }
 
 type RedirectStep struct {
-	SourceId string           `json:"source_id"`
-	TargetId string           `json:"target_id"`
+	SourceId string           `json:"sourceId"`
+	TargetId string           `json:"targetId"`
 	Message  *RedirectMessage `json:"message,omitempty"`
 }
 
@@ -124,14 +124,14 @@ const (
 )
 
 type Activity struct {
-	LastActivity int64          `json:"last_activity"` // Unix Epoch time
-	LastUpdate   int64          `json:"last_update"`   // Unix Epoch time
-	LastProbe    *LastProbeInfo `json:"last_probe,omitempty"`
+	LastActivity int64          `json:"lastActivity"` // Unix Epoch time
+	LastUpdate   int64          `json:"lastUpdate"`   // Unix Epoch time
+	LastProbe    *LastProbeInfo `json:"lastProbe,omitempty"`
 }
 
 type LastProbeInfo struct {
-	StartTimeMs int64       `json:"start_time_ms"` // Unix Epoch time in milliseconds
-	EndTimeMs   int64       `json:"end_time_ms"`   // Unix Epoch time in milliseconds
+	StartTimeMs int64       `json:"startTimeMs"` // Unix Epoch time in milliseconds
+	EndTimeMs   int64       `json:"endTimeMs"`   // Unix Epoch time in milliseconds
 	Result      ProbeResult `json:"result"`
 	Message     string      `json:"message"`
 }
