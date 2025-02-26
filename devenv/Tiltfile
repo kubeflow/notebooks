@@ -1,0 +1,74 @@
+load_dynamic("./configs/tiltfiles/setup.tiltfile")
+
+config.define_string_list("services")
+
+parsed_config = config.parse()
+
+for service in parsed_config.get("services", []):
+  load_dynamic("./configs/tiltfiles/%s.tiltfile" % (service))
+
+manifests = kustomize("../workspaces/controller/config/default")
+
+objects = decode_yaml_stream(manifests)
+
+for o in objects:
+    if o["kind"] == "Deployment" and o.get("metadata").get("name") in ["workspace-controller-controller-manager"]:
+        o["spec"]["template"]["spec"]["securityContext"] = {"runAsNonRoot": False, "readOnlyRootFilesystem": False}
+        o["spec"]["template"]["spec"]["containers"][0]["imagePullPolicy"] = "Always"
+
+overridden_manifests = encode_yaml_stream(objects)
+
+k8s_yaml(overridden_manifests, allow_duplicates=True)
+
+k8s_resource(
+    workload="workspace-controller-controller-manager",
+    objects=[
+       "workspace-controller-system:namespace",
+       "workspacekinds.kubeflow.org:customresourcedefinition",
+       "workspaces.kubeflow.org:customresourcedefinition",
+       "workspace-controller-controller-manager:serviceaccount",
+       "workspace-controller-leader-election-role:role",
+       "workspace-controller-manager-role:clusterrole",
+       "workspace-controller-workspace-editor-role:clusterrole",
+       "workspace-controller-workspace-viewer-role:clusterrole",
+       "workspace-controller-workspacekind-editor-role:clusterrole",
+       "workspace-controller-workspacekind-viewer-role:clusterrole",
+       "workspace-controller-leader-election-rolebinding:rolebinding",
+       "workspace-controller-manager-rolebinding:clusterrolebinding",
+       "workspace-controller-serving-cert:certificate",
+       "workspace-controller-selfsigned-issuer:issuer",
+       "workspace-controller-validating-webhook-configuration:validatingwebhookconfiguration"
+    ],
+    labels="controller",
+    resource_deps=[
+        "cert-manager"
+    ]
+)
+
+load("ext://restart_process", "docker_build_with_restart")
+
+local_resource(
+    "manager",
+    "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/manager cmd/main.go",
+    dir = "../workspaces/controller",
+    deps = [
+        "../workspaces/controller/cmd",
+        "../workspaces/controller/internal",
+        "../workspaces/controller/go.mod",
+        "../workspaces/controller/go.sum",
+    ],
+    labels="controller",
+)
+
+docker_build_with_restart(
+    "ghcr.io/kubeflow/notebooks/workspace-controller",
+    context = "../workspaces/controller",
+    dockerfile = "../workspaces/controller/tilt.dockerfile",
+    entrypoint = ["/manager"],
+    only=[
+      "bin/",
+    ],
+    live_update = [
+        sync("../workspaces/controller/bin/manager", "/manager"),
+    ],
+)
