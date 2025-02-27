@@ -162,7 +162,7 @@ func extractServices(val *kubefloworgv1beta1.ImageConfigValue, namespacePath str
 		service := Service{
 			HttpService: &HttpService{
 				DisplayName: displayName,
-				HttpPath:    path.Join(namespacePath, fmt.Sprintf("%d", port.Port)),
+				HttpPath:    path.Join(namespacePath, port.Id),
 			},
 		}
 		services = append(services, service)
