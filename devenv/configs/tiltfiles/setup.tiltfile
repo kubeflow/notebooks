@@ -1,4 +1,8 @@
+load("ext://namespace", "namespace_create")
+
 # Disable analytics
 analytics_settings(False)
 
 update_settings(k8s_upsert_timeout_secs = 120)
+
+namespace_create("workspace-controller-system")

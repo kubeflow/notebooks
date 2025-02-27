@@ -22,23 +22,37 @@ k8s_yaml(overridden_manifests, allow_duplicates=True)
 
 k8s_resource(
     workload="workspace-controller-controller-manager",
+    new_name="controller",
+    labels="controller",
+    resource_deps=[
+        "cert-manager"
+    ]
+)
+
+k8s_resource(
+    # workload="workspace-controller-controller-manager",
+    new_name="controller-certs",
     objects=[
-       "workspace-controller-system:namespace",
-       "workspacekinds.kubeflow.org:customresourcedefinition",
-       "workspaces.kubeflow.org:customresourcedefinition",
-       "workspace-controller-controller-manager:serviceaccount",
-       "workspace-controller-leader-election-role:role",
-       "workspace-controller-manager-role:clusterrole",
-       "workspace-controller-workspace-editor-role:clusterrole",
-       "workspace-controller-workspace-viewer-role:clusterrole",
-       "workspace-controller-workspacekind-editor-role:clusterrole",
-       "workspace-controller-workspacekind-viewer-role:clusterrole",
-       "workspace-controller-leader-election-rolebinding:rolebinding",
-       "workspace-controller-manager-rolebinding:clusterrolebinding",
-       "workspace-controller-serving-cert:certificate",
-       "workspace-controller-selfsigned-issuer:issuer",
-       "workspace-controller-validating-webhook-configuration:validatingwebhookconfiguration"
+        "workspace-controller-serving-cert:certificate",
+        "workspace-controller-selfsigned-issuer:issuer"
     ],
+    # objects=[
+    #    "workspace-controller-system:namespace",
+    #    "workspacekinds.kubeflow.org:customresourcedefinition",
+    #    "workspaces.kubeflow.org:customresourcedefinition",
+    #    "workspace-controller-controller-manager:serviceaccount",
+    #    "workspace-controller-leader-election-role:role",
+    #    "workspace-controller-manager-role:clusterrole",
+    #    "workspace-controller-workspace-editor-role:clusterrole",
+    #    "workspace-controller-workspace-viewer-role:clusterrole",
+    #    "workspace-controller-workspacekind-editor-role:clusterrole",
+    #    "workspace-controller-workspacekind-viewer-role:clusterrole",
+    #    "workspace-controller-leader-election-rolebinding:rolebinding",
+    #    "workspace-controller-manager-rolebinding:clusterrolebinding",
+    #    "workspace-controller-serving-cert:certificate",
+    #    "workspace-controller-selfsigned-issuer:issuer",
+    #    "workspace-controller-validating-webhook-configuration:validatingwebhookconfiguration"
+    # ],
     labels="controller",
     resource_deps=[
         "cert-manager"
