@@ -131,37 +131,42 @@ func NewWorkspaceModelFromWorkspace(ws *kubefloworgv1beta1.Workspace, wsk *kubef
 }
 
 func buildServicesList(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.WorkspaceKind) []Service {
-	//nolint:prealloc
-	var services []Service
-
 	if !wskExists(wsk) {
-		return services
+		return nil
 	}
 
-	// Get the image configuration from the WorkspaceKind's PodTemplate options.
 	imageConfig := wsk.Spec.PodTemplate.Options.ImageConfig
+	basePath := "/workspace"
+	namespacePath := path.Join(basePath, ws.Namespace, ws.Name)
+
+	services := make([]Service, 0, len(imageConfig.Values))
 
 	for _, val := range imageConfig.Values {
-		if len(val.Spec.Ports) == 0 {
-			continue
-		}
-		firstPort := val.Spec.Ports[0]
-		portStr := fmt.Sprintf("%d", firstPort.Port)
-		displayName := firstPort.DisplayName
+		services = append(services, extractServices(&val, namespacePath)...)
+	}
+	return services
+}
+
+func extractServices(val *kubefloworgv1beta1.ImageConfigValue, namespacePath string) []Service {
+	if len(val.Spec.Ports) == 0 {
+		return []Service{}
+	}
+
+	services := make([]Service, 0, len(val.Spec.Ports))
+
+	for _, port := range val.Spec.Ports {
+		displayName := port.DisplayName
 		if displayName == "" {
 			displayName = val.Id
 		}
-		basePath := "/workspace"
-		notebookPath := path.Join(basePath, ws.Namespace, ws.Name, portStr)
 		service := Service{
 			HttpService: &HttpService{
 				DisplayName: displayName,
-				HttpPath:    notebookPath,
+				HttpPath:    path.Join(namespacePath, fmt.Sprintf("%d", port.Port)),
 			},
 		}
 		services = append(services, service)
 	}
-
 	return services
 }
 
