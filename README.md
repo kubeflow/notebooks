@@ -33,7 +33,7 @@ Connect with _other users_ and the [Notebooks Working Group](https://github.com/
 ## Contributing
 
 > ⚠️ __Note__ ⚠️
-> 
+>
 > We are currently moving the Kubeflow Notebooks codebase from [`kubeflow/kubeflow`](https://github.com/kubeflow/kubeflow) to this repository ([`kubeflow/notebooks`](https://github.com/kubeflow/notebooks)).
 > For now, please continue to make contributions by raising PRs on `kubeflow/kubeflow`.
 
