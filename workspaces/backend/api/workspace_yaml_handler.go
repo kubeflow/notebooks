@@ -17,18 +17,17 @@ limitations under the License.
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-
-	"errors"
+	"sigs.k8s.io/yaml"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/workspaces"
-
-	"sigs.k8s.io/yaml"
 )
 
+// WorkspaceYAMLEnvelope wraps the YAML string response
 type WorkspaceYAMLEnvelope struct {
 	Data string `json:"data"`
 }
@@ -42,7 +41,7 @@ func (a *App) GetWorkspaceYAMLHandler(w http.ResponseWriter, r *http.Request, ps
 		return
 	}
 
-	workspace, err := a.repositories.Workspace.GetWorkspace(r.Context(), namespace, workspaceName)
+	rawWorkspace, err := a.repositories.Workspace.GetRawWorkspace(r.Context(), namespace, workspaceName)
 	if err != nil {
 		if errors.Is(err, workspaces.ErrWorkspaceNotFound) {
 			a.notFoundResponse(w, r)
@@ -52,7 +51,7 @@ func (a *App) GetWorkspaceYAMLHandler(w http.ResponseWriter, r *http.Request, ps
 		return
 	}
 
-	yamlBytes, err := yaml.Marshal(workspace)
+	yamlBytes, err := yaml.Marshal(rawWorkspace)
 	if err != nil {
 		a.serverErrorResponse(w, r, err)
 		return
