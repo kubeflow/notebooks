@@ -29,7 +29,7 @@ import (
 // @Tags			healthcheck
 // @Produce		application/json
 // @Success		200	{object}	health_check.HealthCheck	"Successful healthcheck response"
-// @Failure		500	{object}	ErrorResponse				"Internal server error"
+// @Failure		500	{object}	ErrorEnvelope				"Internal server error"
 // @Router			/healthcheck [get]
 func (a *App) GetHealthcheckHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 

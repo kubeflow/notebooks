@@ -17,13 +17,10 @@ limitations under the License.
 package api
 
 import (
-	"fmt"
 	"log/slog"
 	"net/http"
-	"strings"
 
 	"github.com/julienschmidt/httprouter"
-	httpSwagger "github.com/swaggo/http-swagger"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
@@ -57,8 +54,8 @@ const (
 	AllNamespacesPath = PathPrefix + "/namespaces"
 
 	// swagger
-	SwaggerPath     = PathPrefix + "/swagger/*any"
-	SwaggerYAMLPath = PathPrefix + "/swagger/swagger.yaml"
+	SwaggerPath    = PathPrefix + "/swagger/*any"
+	SwaggerDocPath = PathPrefix + "/swagger/doc.json"
 )
 
 type App struct {
@@ -111,14 +108,7 @@ func (a *App) Routes() http.Handler {
 	router.GET(WorkspaceKindsByNamePath, a.GetWorkspaceKindHandler)
 
 	// swagger
-	router.GET(SwaggerPath, func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		if r.URL.Path == SwaggerYAMLPath {
-			version := strings.TrimPrefix(PathPrefix, "/")
-			swaggerFile := fmt.Sprintf("%s/swagger/swagger.yaml", version)
-			http.ServeFile(w, r, swaggerFile)
-			return
-		}
-		httpSwagger.Handler(httpSwagger.URL(PathPrefix+"/swagger/doc.json")).ServeHTTP(w, r)
-	})
+	router.GET(SwaggerPath, a.GetSwaggerHandler)
+
 	return a.recoverPanic(a.enableCORS(router))
 }

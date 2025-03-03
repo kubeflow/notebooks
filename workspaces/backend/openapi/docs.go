@@ -39,7 +39,7 @@ const docTemplate = `{
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
+                            "$ref": "#/definitions/api.ErrorEnvelope"
                         }
                     }
                 }
@@ -58,7 +58,15 @@ const docTemplate = `{
                 }
             }
         },
-        "api.ErrorResponse": {
+        "api.ErrorEnvelope": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "$ref": "#/definitions/api.HTTPError"
+                }
+            }
+        },
+        "api.HTTPError": {
             "type": "object",
             "properties": {
                 "cause": {

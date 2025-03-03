@@ -7,7 +7,12 @@ definitions:
           $ref: '#/definitions/api.ValidationError'
         type: array
     type: object
-  api.ErrorResponse:
+  api.ErrorEnvelope:
+    properties:
+      error:
+        $ref: '#/definitions/api.HTTPError'
+    type: object
+  api.HTTPError:
     properties:
       cause:
         $ref: '#/definitions/api.ErrorCause'
@@ -94,7 +99,7 @@ paths:
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/api.ErrorResponse'
+            $ref: '#/definitions/api.ErrorEnvelope'
       summary: Returns the health status of the application
       tags:
       - healthcheck
