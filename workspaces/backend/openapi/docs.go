@@ -127,7 +127,7 @@ const docTemplate = `{
                 "status": {
                     "$ref": "#/definitions/health_check.ServiceStatus"
                 },
-                "system_info": {
+                "systemInfo": {
                     "$ref": "#/definitions/health_check.SystemInfo"
                 }
             }

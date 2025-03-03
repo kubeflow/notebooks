@@ -58,7 +58,7 @@ definitions:
     properties:
       status:
         $ref: '#/definitions/health_check.ServiceStatus'
-      system_info:
+      systemInfo:
         $ref: '#/definitions/health_check.SystemInfo'
     type: object
   health_check.ServiceStatus:
