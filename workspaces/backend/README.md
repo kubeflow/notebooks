@@ -36,6 +36,7 @@ make run PORT=8000
 |----------------------------------------------|------------------------|-----------------------------------------|
 | GET /api/v1/healthcheck                      | healthcheck_handler    | Show application information            |
 | GET /api/v1/namespaces                       | namespaces_handler     | Get all Namespaces                      |
+| GET /api/v1/swagger/                         | swagger_handler        | Swagger API documentation               |
 | GET /api/v1/workspaces                       | workspaces_handler     | Get all Workspaces                      |
 | GET /api/v1/workspaces/{namespace}           | workspaces_handler     | Get all Workspaces from a namespace     |
 | POST /api/v1/workspaces/{namespace}          | workspaces_handler     | Create a Workspace in a given namespace |
