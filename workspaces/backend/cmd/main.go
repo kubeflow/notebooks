@@ -32,6 +32,21 @@ import (
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/server"
 )
 
+//	@title			Kubeflow Notebooks API
+//	@version		1.0.0
+//	@description	This API provides endpoints to manage notebooks in a Kubernetes cluster.
+//	@description	For more information, visit https://www.kubeflow.org/docs/components/notebooks/
+
+//	@license.name	Apache 2.0
+//	@license.url	http://www.apache.org/licenses/LICENSE-2.0.html
+
+//	@host		localhost:4000
+//	@BasePath	/api/v1
+
+//	@schemes	http https
+//	@consumes	application/json
+//	@produces	application/json
+
 func main() {
 	// Define command line flags
 	cfg := &config.EnvConfig{}

@@ -66,14 +66,24 @@ lint: golangci-lint ## Run golangci-lint linter
 lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes
 	$(GOLANGCI_LINT) run --fix
 
+##@ Swagger
+ALL_GO_DIRS := $(shell find . -type f -name '*.go' -exec dirname {} \; | sed 's|^\./||' | sort -u)
+ALL_GO_DIRS_NO_CMD := $(shell echo "$(ALL_GO_DIRS)" | tr ' ' '\n' | grep -v '^cmd$$' | paste -sd, -)
+SWAG_DIRS := cmd,$(ALL_GO_DIRS_NO_CMD)
+
+.PHONY: swag
+swag: SWAGGER
+	$(SWAGGER) fmt -g main.go -d $(SWAG_DIRS)
+	$(SWAGGER) init --parseDependency -q -g main.go -d $(SWAG_DIRS) --output openapi
+
 ##@ Build
 
 .PHONY: build
-build: fmt vet ## Build backend binary.
+build: fmt vet swag ## Build backend binary.
 	go build -o bin/backend cmd/main.go
 
-.PHONY: run
-run: fmt vet ## Run a backend from your host.
+.PHONY: run 
+run: fmt vet swag ## Run a backend from your host.
 	go run ./cmd/main.go --port=$(PORT)
 
 # If you wish to build the manager image targeting other platforms you can use the --platform flag.
@@ -115,10 +125,17 @@ $(LOCALBIN):
 KUBECTL ?= kubectl
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
+SWAGGER = $(LOCALBIN)/swag
 
 ## Tool Versions
 ENVTEST_VERSION ?= release-0.19
 GOLANGCI_LINT_VERSION ?= v1.61.0
+SWAGGER_VERSION ?= v1.16.4
+
+.PHONY: SWAGGER
+SWAGGER: $(SWAGGER)
+$(SWAGGER): $(LOCALBIN)
+	$(call go-install-tool,$(SWAGGER),github.com/swaggo/swag/cmd/swag,$(SWAGGER_VERSION))
 
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download setup-envtest locally if necessary.

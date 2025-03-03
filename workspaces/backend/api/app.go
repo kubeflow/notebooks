@@ -28,6 +28,7 @@ import (
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
+	_ "github.com/kubeflow/notebooks/workspaces/backend/openapi"
 )
 
 const (
@@ -51,6 +52,10 @@ const (
 
 	// namespaces
 	AllNamespacesPath = PathPrefix + "/namespaces"
+
+	// swagger
+	SwaggerPath    = PathPrefix + "/swagger/*any"
+	SwaggerDocPath = PathPrefix + "/swagger/doc.json"
 )
 
 type App struct {
@@ -101,6 +106,9 @@ func (a *App) Routes() http.Handler {
 	// workspacekinds
 	router.GET(AllWorkspaceKindsPath, a.GetWorkspaceKindsHandler)
 	router.GET(WorkspaceKindsByNamePath, a.GetWorkspaceKindHandler)
+
+	// swagger
+	router.GET(SwaggerPath, a.GetSwaggerHandler)
 
 	return a.recoverPanic(a.enableCORS(router))
 }
