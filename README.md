@@ -40,4 +40,4 @@ Connect with _other users_ and the [Notebooks Working Group](https://github.com/
 
 ## Contributing
 
-Please see the [Contributing to Kubeflow](https://www.kubeflow.org/docs/about/contributing/) page for more information.
+Please see the [`CONTRIBUTING.md`](CONTRIBUTING.md) file for more information.
