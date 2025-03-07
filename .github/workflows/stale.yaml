@@ -1,0 +1,61 @@
+name: Stale Issues and Pull Requests
+
+permissions:
+  issues: write
+  pull-requests: write
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Run every day at midnight
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v9
+        with:
+          days-before-stale: 60
+          days-before-close: 21
+
+          stale-issue-label: lifecycle/stale
+          exempt-issue-labels: lifecycle/frozen,kind/enhancement
+
+          stale-pr-label: lifecycle/stale
+          exempt-pr-labels: lifecycle/frozen,kind/enhancement
+
+          # The message that will be added as a comment to the issues
+          # when the stale workflow marks it automatically as stale with a label.
+          stale-issue-message: |
+            This issue has been automatically marked as stale because it has not had recent activity.
+            It will be closed if no further activity occurs.
+            Thank you for your contributions.
+            
+            Members may comment `/lifecycle frozen` to prevent this issue from being marked as stale.
+
+          # The message that will be added as a comment to the issues
+          # when the stale workflow closes it automatically after being stale for too long.
+          close-issue-message: |
+            This issue has been automatically closed because it has not had recent activity.
+            
+            Members may comment `/reopen` to reopen it.
+
+          # The message that will be added as a comment to the pull requests
+          # when the stale workflow marks it automatically as stale with a label.
+          stale-pr-message: |
+            This pull request has been automatically marked as stale because it has not had recent activity.
+            It will be closed if no further activity occurs.
+            Thank you for your contributions.
+            
+            Members may comment `/lifecycle frozen` to prevent this pull request from being marked as stale.
+
+          # The message that will be added as a comment to the pull requests
+          # when the stale workflow closes it automatically after being stale for too long.
+          close-pr-message: |
+            This pull request has been automatically closed because it has not had recent activity.
+            You can reopen the PR if you want.
+
+          # The issues or the pull requests with a milestone will not be marked as stale automatically
+          exempt-all-milestones: true
+
+          # Learn more about operations: https://github.com/actions/stale#operations-per-run.
+          operations-per-run: 250
