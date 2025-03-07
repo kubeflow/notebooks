@@ -89,6 +89,9 @@ func NewWorkspaceModelFromWorkspace(ws *kubefloworgv1beta1.Workspace, wsk *kubef
 		}
 	}
 
+	imageConfigModel, imageConfigValue := buildImageConfig(ws, wsk)
+	podConfigModel, _ := buildPodConfig(ws, wsk)
+
 	workspaceModel := Workspace{
 		Name:      ws.Name,
 		Namespace: ws.Namespace,
@@ -113,8 +116,8 @@ func NewWorkspaceModelFromWorkspace(ws *kubefloworgv1beta1.Workspace, wsk *kubef
 				Data: dataVolumes,
 			},
 			Options: PodTemplateOptions{
-				ImageConfig: buildImageConfig(ws, wsk),
-				PodConfig:   buildPodConfig(ws, wsk),
+				ImageConfig: imageConfigModel,
+				PodConfig:   podConfigModel,
 			},
 		},
 		Activity: Activity{
@@ -124,6 +127,7 @@ func NewWorkspaceModelFromWorkspace(ws *kubefloworgv1beta1.Workspace, wsk *kubef
 			//       https://github.com/kubeflow/notebooks/issues/38
 			LastProbe: nil,
 		},
+		Services: buildServices(ws, imageConfigValue),
 	}
 	return workspaceModel
 }
@@ -151,7 +155,7 @@ func buildHomeVolume(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.W
 	}
 }
 
-func buildImageConfig(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.WorkspaceKind) ImageConfig {
+func buildImageConfig(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.WorkspaceKind) (ImageConfig, *kubefloworgv1beta1.ImageConfigValue) {
 	// create a map of image configs from the WorkspaceKind for easy lookup by ID
 	// NOTE: we can only build this map if the WorkspaceKind exists, otherwise it will be empty
 	imageConfigMap := make(map[string]kubefloworgv1beta1.ImageConfigValue)
@@ -163,6 +167,7 @@ func buildImageConfig(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.
 	}
 
 	// get the current image config
+	var currentImageConfigValue *kubefloworgv1beta1.ImageConfigValue
 	currentImageConfig := OptionInfo{
 		Id:          ws.Spec.PodTemplate.Options.ImageConfig,
 		DisplayName: UnknownImageConfig,
@@ -170,6 +175,7 @@ func buildImageConfig(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.
 		Labels:      nil,
 	}
 	if cfg, ok := imageConfigMap[currentImageConfig.Id]; ok {
+		currentImageConfigValue = &cfg
 		currentImageConfig.DisplayName = cfg.Spawner.DisplayName
 		currentImageConfig.Description = ptr.Deref(cfg.Spawner.Description, "")
 		currentImageConfig.Labels = buildOptionLabels(cfg.Spawner.Labels)
@@ -218,10 +224,10 @@ func buildImageConfig(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.
 		Current:       currentImageConfig,
 		Desired:       desiredImageConfig,
 		RedirectChain: redirectChain,
-	}
+	}, currentImageConfigValue
 }
 
-func buildPodConfig(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.WorkspaceKind) PodConfig {
+func buildPodConfig(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.WorkspaceKind) (PodConfig, *kubefloworgv1beta1.PodConfigValue) {
 	// create a map of pod configs from the WorkspaceKind for easy lookup by ID
 	// NOTE: we can only build this map if the WorkspaceKind exists, otherwise it will be empty
 	podConfigMap := make(map[string]kubefloworgv1beta1.PodConfigValue)
@@ -233,6 +239,7 @@ func buildPodConfig(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.Wo
 	}
 
 	// get the current pod config
+	var currentPodConfigValue *kubefloworgv1beta1.PodConfigValue
 	currentPodConfig := OptionInfo{
 		Id:          ws.Spec.PodTemplate.Options.PodConfig,
 		DisplayName: UnknownPodConfig,
@@ -240,6 +247,7 @@ func buildPodConfig(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.Wo
 		Labels:      nil,
 	}
 	if cfg, ok := podConfigMap[currentPodConfig.Id]; ok {
+		currentPodConfigValue = &cfg
 		currentPodConfig.DisplayName = cfg.Spawner.DisplayName
 		currentPodConfig.Description = ptr.Deref(cfg.Spawner.Description, "")
 		currentPodConfig.Labels = buildOptionLabels(cfg.Spawner.Labels)
@@ -288,7 +296,7 @@ func buildPodConfig(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.Wo
 		Current:       currentPodConfig,
 		Desired:       desiredPodConfig,
 		RedirectChain: redirectChain,
-	}
+	}, currentPodConfigValue
 }
 
 func buildOptionLabels(labels []kubefloworgv1beta1.OptionSpawnerLabel) []OptionLabel {
@@ -321,4 +329,24 @@ func buildRedirectMessage(msg *kubefloworgv1beta1.RedirectMessage) *RedirectMess
 		Text:  msg.Text,
 		Level: messageLevel,
 	}
+}
+
+func buildServices(ws *kubefloworgv1beta1.Workspace, imageConfigValue *kubefloworgv1beta1.ImageConfigValue) []Service {
+	if imageConfigValue == nil {
+		return nil
+	}
+
+	services := make([]Service, len(imageConfigValue.Spec.Ports))
+	for i := range imageConfigValue.Spec.Ports {
+		port := imageConfigValue.Spec.Ports[i]
+		switch port.Protocol { //nolint:gocritic
+		case kubefloworgv1beta1.ImagePortProtocolHTTP:
+			services[i].HttpService = &HttpService{
+				DisplayName: port.DisplayName,
+				HttpPath:    fmt.Sprintf("/workspace/%s/%s/%s/", ws.Namespace, ws.Name, port.Id),
+			}
+		}
+	}
+
+	return services
 }
