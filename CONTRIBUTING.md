@@ -19,9 +19,9 @@ Signed-off-by: John Smith <john-smith@users.noreply.github.com>
 
 We use [semantic commits](https://www.conventionalcommits.org/en/v1.0.0/) to help us automatically generate changelogs and release notes.
 
-__The name of your PR must be a semantic commit message__, with one of the following _prefixes_ and one of the following _scopes_:
-
 ### Prefixes
+
+A semantic commit message must start with one of the following __prefixes__:
 
 - `fix:` (bug fixes)
 - `feat:` (new features)
@@ -37,6 +37,8 @@ To indicate a breaking change, add `!` after the prefix, e.g. `feat!: my commit 
 
 ### Scopes
 
+You may optionally include a __scope__ after the prefix, for example:
+
 - `nb` (notebooks - web-app, controller, images)
 - `pvc` (volumes - web-app, controller)
 - `tb` (tensorboards - web-app, controller)
@@ -44,6 +46,9 @@ To indicate a breaking change, add `!` after the prefix, e.g. `feat!: my commit 
 
 ### Examples
 
+Here are some examples of semantic commit messages:
+
 - `fix(nb): something that was broken`
 - `feat(ws): a new feature`
+- `improve: a general improvement`
 - `chore: update readme`
