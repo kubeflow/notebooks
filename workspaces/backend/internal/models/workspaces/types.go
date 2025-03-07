@@ -29,6 +29,7 @@ type Workspace struct {
 	StateMessage  string            `json:"stateMessage"`
 	PodTemplate   PodTemplate       `json:"podTemplate"`
 	Activity      Activity          `json:"activity"`
+	Services      []Service         `json:"services"`
 }
 
 type WorkspaceState string
@@ -143,3 +144,12 @@ const (
 	ProbeResultFailure ProbeResult = "Failure"
 	ProbeResultTimeout ProbeResult = "Timeout"
 )
+
+type Service struct {
+	HttpService *HttpService `json:"httpService,omitempty"`
+}
+
+type HttpService struct {
+	DisplayName string `json:"displayName"`
+	HttpPath    string `json:"httpPath"`
+}
