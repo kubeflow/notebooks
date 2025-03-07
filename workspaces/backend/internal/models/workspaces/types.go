@@ -29,7 +29,7 @@ type Workspace struct {
 	StateMessage  string            `json:"stateMessage"`
 	PodTemplate   PodTemplate       `json:"podTemplate"`
 	Activity      Activity          `json:"activity"`
-	Services      []Service         `json:"services,omitempty"`
+	Services      []Service         `json:"services"`
 }
 
 type WorkspaceState string
@@ -85,15 +85,6 @@ type ImageConfig struct {
 	Current       OptionInfo     `json:"current"`
 	Desired       *OptionInfo    `json:"desired,omitempty"`
 	RedirectChain []RedirectStep `json:"redirectChain,omitempty"`
-}
-
-type Service struct {
-	HttpService *HttpService `json:"httpService,omitempty"`
-}
-
-type HttpService struct {
-	DisplayName string `json:"displayName"`
-	HttpPath    string `json:"httpPath"`
 }
 
 type PodConfig struct {
@@ -153,3 +144,12 @@ const (
 	ProbeResultFailure ProbeResult = "Failure"
 	ProbeResultTimeout ProbeResult = "Timeout"
 )
+
+type Service struct {
+	HttpService *HttpService `json:"httpService,omitempty"`
+}
+
+type HttpService struct {
+	DisplayName string `json:"displayName"`
+	HttpPath    string `json:"httpPath"`
+}
