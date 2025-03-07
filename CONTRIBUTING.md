@@ -39,10 +39,10 @@ To indicate a breaking change, add `!` after the prefix, e.g. `feat!: my commit 
 
 You may optionally include a __scope__ after the prefix, for example:
 
-- `nb` (notebooks - web-app, controller, images)
-- `pvc` (volumes - web-app, controller)
-- `tb` (tensorboards - web-app, controller)
-- `ws` (workspaces - frontend, backend, controller, images)
+- `nb` (changes to notebooks - web-app, controller, images)
+- `pvc` (changes to volumes - web-app, controller)
+- `tb` (changes to tensorboards - web-app, controller)
+- `ws` (changes to workspaces - frontend, backend, controller, images)
 
 ### Examples
 
