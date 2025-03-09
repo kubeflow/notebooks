@@ -1,7 +1,7 @@
 import React from 'react';
 import { APIState } from '~/shared/api/types';
 import { NotebookAPIs } from '~/app/types';
-import { getNamespaces, getWorkspaceKinds } from '~/shared/api/notebookService';
+import { getNamespaces, getWorkspaceKinds, createWorkspace } from '~/shared/api/notebookService';
 import useAPIState from '~/shared/api/useAPIState';
 
 export type NotebookAPIState = APIState<NotebookAPIs>;
@@ -13,6 +13,7 @@ const useNotebookAPIState = (
     (path: string) => ({
       getNamespaces: getNamespaces(path),
       getWorkspaceKinds: getWorkspaceKinds(path),
+      createWorkspace: createWorkspace(path),
     }),
     [],
   );
