@@ -36,7 +36,7 @@ export function buildWorkspaceRedirectStatus(
   const workspaceRedirectStatus: WorkspaceRedirectStatus = {};
   for (const workspaceKind of workspaceKinds) {
     // Loop through the `values` array inside `imageConfig`
-    const redirect = workspaceKind.podTemplate.options.imageConfig.values.find(
+    const redirect = workspaceKind.pod_template.options.image_config.values.find(
       (value) => value.redirect,
     )?.redirect;
     // If redirect exists, extract the necessary properties
