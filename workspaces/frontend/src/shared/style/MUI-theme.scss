@@ -568,6 +568,20 @@
   user-select: none;
 }
 
+.mui-theme .pf-v6-c-card__actions .pf-v6-c-radio__label {
+  position: absolute;
+}
+
+.mui-theme .pf-v6-c-card__actions .pf-v6-c-radio__label::before {
+  top: 0;
+  transform: translateY(0);
+}
+
+.mui-theme .pf-v6-c-card__actions .pf-v6-c-radio__input:checked + .pf-v6-c-radio__label::after {
+  top: 0;
+  transform: translateY(50%);
+}
+
 /* Custom radio circle */
 .mui-theme .pf-v6-c-radio__label::before {
   content: '';

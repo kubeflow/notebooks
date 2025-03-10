@@ -30,37 +30,40 @@ export interface WorkspaceKind {
     options: {
       imageConfig: {
         default: string;
-        values: [
-          {
-            id: string;
-            displayName: string;
-            labels: {
-              pythonVersion: string;
+        values: {
+          id: string;
+          displayName: string;
+          labels: {
+            pythonVersion: string;
+          };
+          hidden: boolean;
+          redirect?: {
+            to: string;
+            message: {
+              text: string;
+              level: string;
             };
-            hidden: true;
-            redirect?: {
-              to: string;
-              message: {
-                text: string;
-                level: string;
-              };
-            };
-          },
-        ];
+          };
+        }[];
       };
       podConfig: {
         default: string;
-        values: [
-          {
-            id: string;
-            displayName: string;
-            description: string;
-            labels: {
-              cpu: string;
-              memory: string;
+        values: {
+          id: string;
+          displayName: string;
+          description: string;
+          labels: {
+            cpu: string;
+            memory: string;
+          };
+          redirect?: {
+            to: string;
+            message: {
+              text: string;
+              level: string;
             };
-          },
-        ];
+          };
+        }[];
       };
     };
   };
