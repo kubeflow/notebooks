@@ -4,6 +4,7 @@ import {
   Content,
   Flex,
   FlexItem,
+  PageGroup,
   PageSection,
   ProgressStep,
   ProgressStepper,
@@ -51,39 +52,41 @@ const WorkspaceCreation: React.FunctionComponent = () => {
   }, [navigate]);
 
   return (
-    <PageSection isFilled>
-      <PageSection isFilled={false} stickyOnBreakpoint={{ default: 'top' }}>
-        <Content>
-          <h1>Create workspace</h1>
-        </Content>
-        <ProgressStepper aria-label="Workspace creation stepper">
-          <ProgressStep
-            variant={getStepVariant(WorkspaceCreationSteps.KindSelection)}
-            id="kind-selection-step"
-            titleId="kind-selection-step-title"
-            aria-label="Kind selection step"
-          >
-            Kind selection
-          </ProgressStep>
-          <ProgressStep
-            variant={getStepVariant(WorkspaceCreationSteps.ImageSelection)}
-            isCurrent
-            id="image-selection-step"
-            titleId="image-selection-step-title"
-            aria-label="Image selection step"
-          >
-            Image selection
-          </ProgressStep>
-          <ProgressStep
-            variant={getStepVariant(WorkspaceCreationSteps.Properties)}
-            id="properties-step"
-            titleId="properties-step-title"
-            aria-label="Properties step"
-          >
-            Properties
-          </ProgressStep>
-        </ProgressStepper>
-      </PageSection>
+    <>
+      <PageGroup stickyOnBreakpoint={{ default: 'top' }}>
+        <PageSection isFilled={false}>
+          <Content>
+            <h1>Create workspace</h1>
+          </Content>
+          <ProgressStepper aria-label="Workspace creation stepper">
+            <ProgressStep
+              variant={getStepVariant(WorkspaceCreationSteps.KindSelection)}
+              id="kind-selection-step"
+              titleId="kind-selection-step-title"
+              aria-label="Kind selection step"
+            >
+              Kind selection
+            </ProgressStep>
+            <ProgressStep
+              variant={getStepVariant(WorkspaceCreationSteps.ImageSelection)}
+              isCurrent
+              id="image-selection-step"
+              titleId="image-selection-step-title"
+              aria-label="Image selection step"
+            >
+              Image selection
+            </ProgressStep>
+            <ProgressStep
+              variant={getStepVariant(WorkspaceCreationSteps.Properties)}
+              id="properties-step"
+              titleId="properties-step-title"
+              aria-label="Properties step"
+            >
+              Properties
+            </ProgressStep>
+          </ProgressStepper>
+        </PageSection>
+      </PageGroup>
       <PageSection isFilled>
         {currentStep === WorkspaceCreationSteps.KindSelection && <WorkspaceCreationKindSelection />}
         {currentStep === WorkspaceCreationSteps.ImageSelection && (
@@ -122,7 +125,7 @@ const WorkspaceCreation: React.FunctionComponent = () => {
           </FlexItem>
         </Flex>
       </PageSection>
-    </PageSection>
+    </>
   );
 };
 
