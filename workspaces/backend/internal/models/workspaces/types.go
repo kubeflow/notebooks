@@ -19,17 +19,18 @@ package workspaces
 // Workspace represents a workspace in the system, and is returned by GET and LIST operations.
 // NOTE: this type is not used for CREATE or UPDATE operations, see WorkspaceCreate
 type Workspace struct {
-	Name          string            `json:"name"`
-	Namespace     string            `json:"namespace"`
-	WorkspaceKind WorkspaceKindInfo `json:"workspaceKind"`
-	DeferUpdates  bool              `json:"deferUpdates"`
-	Paused        bool              `json:"paused"`
-	PausedTime    int64             `json:"pausedTime"`
-	State         WorkspaceState    `json:"state"`
-	StateMessage  string            `json:"stateMessage"`
-	PodTemplate   PodTemplate       `json:"podTemplate"`
-	Activity      Activity          `json:"activity"`
-	Services      []Service         `json:"services"`
+	Name           string            `json:"name"`
+	Namespace      string            `json:"namespace"`
+	WorkspaceKind  WorkspaceKindInfo `json:"workspaceKind"`
+	DeferUpdates   bool              `json:"deferUpdates"`
+	Paused         bool              `json:"paused"`
+	PausedTime     int64             `json:"pausedTime"`
+	PendingRestart bool              `json:"pendingRestart"`
+	State          WorkspaceState    `json:"state"`
+	StateMessage   string            `json:"stateMessage"`
+	PodTemplate    PodTemplate       `json:"podTemplate"`
+	Activity       Activity          `json:"activity"`
+	Services       []Service         `json:"services"`
 }
 
 type WorkspaceState string
