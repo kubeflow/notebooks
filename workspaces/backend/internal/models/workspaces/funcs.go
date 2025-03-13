@@ -101,11 +101,12 @@ func NewWorkspaceModelFromWorkspace(ws *kubefloworgv1beta1.Workspace, wsk *kubef
 			Icon:    iconRef,
 			Logo:    logoRef,
 		},
-		DeferUpdates: ptr.Deref(ws.Spec.DeferUpdates, false),
-		Paused:       ptr.Deref(ws.Spec.Paused, false),
-		PausedTime:   ws.Status.PauseTime,
-		State:        wsState,
-		StateMessage: ws.Status.StateMessage,
+		DeferUpdates:   ptr.Deref(ws.Spec.DeferUpdates, false),
+		Paused:         ptr.Deref(ws.Spec.Paused, false),
+		PausedTime:     ws.Status.PauseTime,
+		PendingRestart: ws.Status.PendingRestart,
+		State:          wsState,
+		StateMessage:   ws.Status.StateMessage,
 		PodTemplate: PodTemplate{
 			PodMetadata: PodMetadata{
 				Labels:      podLabels,
