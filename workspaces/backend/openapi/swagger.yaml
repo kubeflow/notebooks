@@ -21,6 +21,14 @@ definitions:
       message:
         type: string
     type: object
+  api.NamespaceListEnvelope:
+    properties:
+      data:
+        description: 'TODO: make all declarations of Envelope use pointers for D'
+        items:
+          $ref: '#/definitions/namespaces.Namespace'
+        type: array
+    type: object
   api.ValidationError:
     properties:
       field:
@@ -74,6 +82,11 @@ definitions:
       version:
         type: string
     type: object
+  namespaces.Namespace:
+    properties:
+      name:
+        type: string
+    type: object
 host: localhost:4000
 info:
   contact: {}
@@ -103,6 +116,31 @@ paths:
       summary: Returns the health status of the application
       tags:
       - healthcheck
+  /namespaces:
+    get:
+      description: Provides a list of all namespaces that the user has access to
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successful namespaces response
+          schema:
+            $ref: '#/definitions/api.NamespaceListEnvelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorEnvelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.ErrorEnvelope'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api.ErrorEnvelope'
+      summary: Returns a list of all namespaces
+      tags:
+      - namespaces
 schemes:
 - http
 - https

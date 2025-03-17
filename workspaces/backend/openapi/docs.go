@@ -44,6 +44,44 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/namespaces": {
+            "get": {
+                "description": "Provides a list of all namespaces that the user has access to",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "namespaces"
+                ],
+                "summary": "Returns a list of all namespaces",
+                "responses": {
+                    "200": {
+                        "description": "Successful namespaces response",
+                        "schema": {
+                            "$ref": "#/definitions/api.NamespaceListEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -77,6 +115,18 @@ const docTemplate = `{
                 },
                 "message": {
                     "type": "string"
+                }
+            }
+        },
+        "api.NamespaceListEnvelope": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "TODO: make all declarations of Envelope use pointers for D",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/namespaces.Namespace"
+                    }
                 }
             }
         },
@@ -147,6 +197,14 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "version": {
+                    "type": "string"
+                }
+            }
+        },
+        "namespaces.Namespace": {
+            "type": "object",
+            "properties": {
+                "name": {
                     "type": "string"
                 }
             }
