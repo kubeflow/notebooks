@@ -17,10 +17,8 @@ limitations under the License.
 package api
 
 import (
-	"fmt"
 	"log/slog"
 	"net/http"
-	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	"k8s.io/apimachinery/pkg/runtime"
