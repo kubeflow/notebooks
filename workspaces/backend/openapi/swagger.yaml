@@ -24,7 +24,6 @@ definitions:
   api.NamespaceListEnvelope:
     properties:
       data:
-        description: 'TODO: make all declarations of Envelope use pointers for D'
         items:
           $ref: '#/definitions/namespaces.Namespace'
         type: array
@@ -41,28 +40,21 @@ definitions:
   api.WorkspaceCreateEnvelope:
     properties:
       data:
-        allOf:
-        - $ref: '#/definitions/workspaces.WorkspaceCreate'
-        description: 'TODO: make all declarations of Envelope use pointers for D'
+        $ref: '#/definitions/workspaces.WorkspaceCreate'
     type: object
   api.WorkspaceEnvelope:
     properties:
       data:
-        allOf:
-        - $ref: '#/definitions/workspaces.Workspace'
-        description: 'TODO: make all declarations of Envelope use pointers for D'
+        $ref: '#/definitions/workspaces.Workspace'
     type: object
   api.WorkspaceKindEnvelope:
     properties:
       data:
-        allOf:
-        - $ref: '#/definitions/workspacekinds.WorkspaceKind'
-        description: 'TODO: make all declarations of Envelope use pointers for D'
+        $ref: '#/definitions/workspacekinds.WorkspaceKind'
     type: object
   api.WorkspaceKindListEnvelope:
     properties:
       data:
-        description: 'TODO: make all declarations of Envelope use pointers for D'
         items:
           $ref: '#/definitions/workspacekinds.WorkspaceKind'
         type: array
@@ -70,7 +62,6 @@ definitions:
   api.WorkspaceListEnvelope:
     properties:
       data:
-        description: 'TODO: make all declarations of Envelope use pointers for D'
         items:
           $ref: '#/definitions/workspaces.Workspace'
         type: array

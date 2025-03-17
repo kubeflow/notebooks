@@ -569,7 +569,6 @@
             "type": "object",
             "properties": {
                 "data": {
-                    "description": "TODO: make all declarations of Envelope use pointers for D",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/namespaces.Namespace"
@@ -595,12 +594,7 @@
             "type": "object",
             "properties": {
                 "data": {
-                    "description": "TODO: make all declarations of Envelope use pointers for D",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/workspaces.WorkspaceCreate"
-                        }
-                    ]
+                    "$ref": "#/definitions/workspaces.WorkspaceCreate"
                 }
             }
         },
@@ -608,12 +602,7 @@
             "type": "object",
             "properties": {
                 "data": {
-                    "description": "TODO: make all declarations of Envelope use pointers for D",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/workspaces.Workspace"
-                        }
-                    ]
+                    "$ref": "#/definitions/workspaces.Workspace"
                 }
             }
         },
@@ -621,12 +610,7 @@
             "type": "object",
             "properties": {
                 "data": {
-                    "description": "TODO: make all declarations of Envelope use pointers for D",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/workspacekinds.WorkspaceKind"
-                        }
-                    ]
+                    "$ref": "#/definitions/workspacekinds.WorkspaceKind"
                 }
             }
         },
@@ -634,7 +618,6 @@
             "type": "object",
             "properties": {
                 "data": {
-                    "description": "TODO: make all declarations of Envelope use pointers for D",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/workspacekinds.WorkspaceKind"
@@ -646,7 +629,6 @@
             "type": "object",
             "properties": {
                 "data": {
-                    "description": "TODO: make all declarations of Envelope use pointers for D",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/workspaces.Workspace"

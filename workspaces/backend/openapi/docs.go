@@ -571,7 +571,6 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "data": {
-                    "description": "TODO: make all declarations of Envelope use pointers for D",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/namespaces.Namespace"
@@ -597,12 +596,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "data": {
-                    "description": "TODO: make all declarations of Envelope use pointers for D",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/workspaces.WorkspaceCreate"
-                        }
-                    ]
+                    "$ref": "#/definitions/workspaces.WorkspaceCreate"
                 }
             }
         },
@@ -610,12 +604,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "data": {
-                    "description": "TODO: make all declarations of Envelope use pointers for D",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/workspaces.Workspace"
-                        }
-                    ]
+                    "$ref": "#/definitions/workspaces.Workspace"
                 }
             }
         },
@@ -623,12 +612,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "data": {
-                    "description": "TODO: make all declarations of Envelope use pointers for D",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/workspacekinds.WorkspaceKind"
-                        }
-                    ]
+                    "$ref": "#/definitions/workspacekinds.WorkspaceKind"
                 }
             }
         },
@@ -636,7 +620,6 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "data": {
-                    "description": "TODO: make all declarations of Envelope use pointers for D",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/workspacekinds.WorkspaceKind"
@@ -648,7 +631,6 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "data": {
-                    "description": "TODO: make all declarations of Envelope use pointers for D",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/workspaces.Workspace"
