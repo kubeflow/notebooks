@@ -3,7 +3,6 @@ import { Content, Divider, Split, SplitItem } from '@patternfly/react-core';
 import { useMemo, useState } from 'react';
 import { WorkspaceKind } from '~/shared/types';
 import { WorkspaceCreationKindDetails } from '~/app/pages/Workspaces/Creation/WorkspaceCreationKindDetails';
-import { WorkspaceCreationKindFilter } from '~/app/pages/Workspaces/Creation/WorkspaceCreationKindFilter';
 import { WorkspaceCreationKindList } from '~/app/pages/Workspaces/Creation/WorkspaceCreationKindList';
 
 const WorkspaceCreationKindSelection: React.FunctionComponent = () => {
@@ -112,17 +111,11 @@ const WorkspaceCreationKindSelection: React.FunctionComponent = () => {
     [selectedKind],
   );
 
-  const filterContent = useMemo(
-    () => <WorkspaceCreationKindFilter allWorkspaceKinds={allWorkspaceKinds} />,
-    [allWorkspaceKinds],
-  );
-
   return (
     <Content style={{ height: '100%' }}>
       <p>Select a workspace kind to use for the workspace.</p>
       <Divider />
       <Split hasGutter>
-        <SplitItem style={{ minWidth: '200px' }}>{filterContent}</SplitItem>
         <SplitItem isFilled>
           <WorkspaceCreationKindList
             allWorkspaceKinds={allWorkspaceKinds}
