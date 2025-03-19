@@ -32,7 +32,8 @@ import {
   QuestionCircleIcon,
   CodeIcon,
 } from '@patternfly/react-icons';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Workspace, WorkspacesColumnNames, WorkspaceState } from '~/shared/types';
 import { WorkspaceDetails } from '~/app/pages/Workspaces/Details/WorkspaceDetails';
 import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
@@ -181,6 +182,11 @@ export const Workspaces: React.FunctionComponent = () => {
       },
     },
   ];
+
+  const navigate = useNavigate();
+  const createWorkspace = useCallback(() => {
+    navigate('/workspaces/create');
+  }, [navigate]);
 
   const [workspaceKinds] = useWorkspaceKinds();
   let kindLogoDict: Record<string, string> = {};
@@ -554,7 +560,7 @@ export const Workspaces: React.FunctionComponent = () => {
             <br />
             <Content style={{ display: 'flex', alignItems: 'flex-start', columnGap: '20px' }}>
               <Filter id="filter-workspaces" onFilter={onFilter} columnNames={filterableColumns} />
-              <Button variant="primary" ouiaId="Primary">
+              <Button variant="primary" ouiaId="Primary" onClick={createWorkspace}>
                 Create Workspace
               </Button>
             </Content>

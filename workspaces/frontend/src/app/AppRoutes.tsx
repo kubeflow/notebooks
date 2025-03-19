@@ -3,6 +3,7 @@ import { Route, Routes } from 'react-router-dom';
 import { NotFound } from './pages/notFound/NotFound';
 import { Debug } from './pages/Debug/Debug';
 import { Workspaces } from './pages/Workspaces/Workspaces';
+import { WorkspaceCreation } from './pages/Workspaces/Creation/WorkspaceCreation';
 import '~/shared/style/MUI-theme.scss';
 
 export const isNavDataGroup = (navItem: NavDataItem): navItem is NavDataGroup =>
@@ -43,7 +44,7 @@ export const useAdminDebugSettings = (): NavDataItem[] => {
 export const useNavData = (): NavDataItem[] => [
   {
     label: 'Notebooks',
-    path: '/',
+    path: '/workspaces',
   },
   ...useAdminDebugSettings(),
 ];
@@ -53,6 +54,8 @@ const AppRoutes: React.FC = () => {
 
   return (
     <Routes>
+      <Route path="/workspaces/create" element={<WorkspaceCreation />} />
+      <Route path="/workspaces" element={<Workspaces />} />
       <Route path="/" element={<Workspaces />} />
       <Route path="*" element={<NotFound />} />
       {
