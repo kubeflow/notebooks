@@ -104,7 +104,6 @@
 
   --pf-t--global--border--width--box--status--default: 1px;
   --pf-t--global--border--radius--pill: var(--mui-shape-borderRadius);
-  --pf-t--global--border--radius--medium: var(--mui-shape-borderRadius);
   --pf-t--global--text--color--brand--default: var(--mui-palette-primary-main);
 
   --pf-t--global--color--nonstatus--blue--default: var(--mui-palette-primary-main);
@@ -545,48 +544,6 @@
   row-gap: none;
 }
 
-.mui-theme .pf-v6-radio {
-  --pf-v6-c-radio--AccentColor: var(--mui-palette-primary-main);
-}
-
-.mui-theme .pf-v6-c-radio {
-  display: flex;
-  align-items: center;
-  margin: var(--mui-radio--margin);
-}
-
-.mui-theme .pf-v6-c-radio__input {
-  /* Hide default radio button */
-  display: none;
-}
-
-.mui-theme .pf-v6-c-radio__label {
-  --pf-v6-c-radio__label--FontSize: 16px;
-  padding-left: var(--mui-radio-PaddingLeft);
-  position: relative;
-  cursor: pointer;
-  user-select: none;
-}
-
-/* Custom radio circle */
-.mui-theme .pf-v6-c-radio__label::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: var(--mui-radio__label--Width);
-  height: var(--mui-radio__label--Height);
-  border: 2px solid var(--mui-palette-primary-main);
-  border-radius: 50%;
-  background: var(--mui-palette-common-white);
-}
-
-/* When radio is checked */
-.mui-theme .pf-v6-c-radio__input:checked+.pf-v6-c-radio__label::before {
-  background: var(--mui-palette-common-white);
-  border-color: var(--mui-palette-primary-main);
-}
 
 .mui-theme .pf-v6-c-page__sidebar {
   --pf-v6-c-page__sidebar--BackgroundColor: var(--kf-central-primary-background-color);
@@ -598,20 +555,6 @@
 
 }
 
-/* Inner dot for checked state */
-.mui-theme .pf-v6-c-radio__input:checked+.pf-v6-c-radio__label::after {
-  content: '';
-  position: absolute;
-  left: 5px;
-  /* Center the dot */
-  top: 50%;
-  transform: translateY(-50%);
-  width: var(--mui-radio__input--Width);
-  /* Size of inner dot */
-  height: var(--mui-radio__input--Height);
-  border-radius: 50%;
-  background: var(--mui-palette-primary-main);
-}
 
 .mui-theme .pf-v6-c-table {
   --pf-v6-c-table__sort--m-selected__button--Color: var(--mui-palette-text-primary);
@@ -787,6 +730,10 @@
   --pf-v6-c-page__main-container--BorderWidth: 0px;
   --pf-v6-c-page__main-container--BorderRadius: var(--mui-shape-borderRadius);
   box-shadow: var(--mui-shadows-1);
+}
+
+.mui-theme .pf-v6-c-page__main-group.pf-m-sticky-top {
+  flex-grow: 0;
 }
 
 .mui-theme .pf-v6-c-pagination {
