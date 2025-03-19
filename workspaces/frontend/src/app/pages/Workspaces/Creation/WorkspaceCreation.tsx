@@ -87,7 +87,7 @@ const WorkspaceCreation: React.FunctionComponent = () => {
           </ProgressStepper>
         </PageSection>
       </PageGroup>
-      <PageSection isFilled>
+      <PageSection isFilled style={{ height: '100%' }}>
         {currentStep === WorkspaceCreationSteps.KindSelection && <WorkspaceCreationKindSelection />}
         {currentStep === WorkspaceCreationSteps.ImageSelection && (
           <WorkspaceCreationImageSelection />

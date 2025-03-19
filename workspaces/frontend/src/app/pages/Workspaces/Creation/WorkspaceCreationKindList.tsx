@@ -8,7 +8,10 @@ import {
   ToolbarContent,
   Card,
   CardHeader,
+  EmptyState,
+  EmptyStateBody,
 } from '@patternfly/react-core';
+import { SearchIcon } from '@patternfly/react-icons/dist/esm/icons/search-icon';
 import { WorkspaceKind } from '~/shared/types';
 import Filter, { FilteredColumn } from '~/shared/components/Filter';
 
@@ -88,31 +91,40 @@ export const WorkspaceCreationKindList: React.FunctionComponent<WorkspaceCreatio
         </Toolbar>
       </PageSection>
       <PageSection isFilled>
-        <Gallery hasGutter aria-label="Selectable card container">
-          {workspaceKinds.map((kind) => (
-            <Card
-              isCompact
-              isSelectable
-              key={kind.name}
-              id={kind.name.replace(/ /g, '-')}
-              isSelected={kind.name === selectedWorkspaceKind?.name}
-            >
-              <CardHeader
-                selectableActions={{
-                  selectableActionId: `selectable-actions-item-${kind.name}`,
-                  selectableActionAriaLabelledby: kind.name.replace(/ /g, '-'),
-                  name: kind.name,
-                  variant: 'single',
-                  onChange,
-                }}
+        {workspaceKinds.length === 0 && (
+          <EmptyState titleText="No results found" headingLevel="h4" icon={SearchIcon}>
+            <EmptyStateBody>
+              No results match the filter criteria. Clear all filters and try again.
+            </EmptyStateBody>
+          </EmptyState>
+        )}
+        {workspaceKinds.length > 0 && (
+          <Gallery hasGutter aria-label="Selectable card container">
+            {workspaceKinds.map((kind) => (
+              <Card
+                isCompact
+                isSelectable
+                key={kind.name}
+                id={kind.name.replace(/ /g, '-')}
+                isSelected={kind.name === selectedWorkspaceKind?.name}
               >
-                <img src={kind.icon.url} alt={`${kind.name} icon`} style={{ maxWidth: '60px' }} />
-                <CardTitle>{kind.displayName}</CardTitle>
-              </CardHeader>
-              <CardBody>{kind.description}</CardBody>
-            </Card>
-          ))}
-        </Gallery>
+                <CardHeader
+                  selectableActions={{
+                    selectableActionId: `selectable-actions-item-${kind.name}`,
+                    selectableActionAriaLabelledby: kind.name.replace(/ /g, '-'),
+                    name: kind.name,
+                    variant: 'single',
+                    onChange,
+                  }}
+                >
+                  <img src={kind.icon.url} alt={`${kind.name} icon`} style={{ maxWidth: '60px' }} />
+                  <CardTitle>{kind.displayName}</CardTitle>
+                </CardHeader>
+                <CardBody>{kind.description}</CardBody>
+              </Card>
+            ))}
+          </Gallery>
+        )}
       </PageSection>
     </>
   );
