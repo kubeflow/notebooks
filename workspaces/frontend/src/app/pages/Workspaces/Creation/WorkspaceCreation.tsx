@@ -14,10 +14,12 @@ import { useNavigate } from 'react-router-dom';
 import { WorkspaceCreationImageSelection } from '~/app/pages/Workspaces/Creation/WorkspaceCreationImageSelection';
 import { WorkspaceCreationKindSelection } from '~/app/pages/Workspaces/Creation/WorkspaceCreationKindSelection';
 import { WorkspaceCreationPropertiesSelection } from '~/app/pages/Workspaces/Creation/WorkspaceCreationPropertiesSelection';
+import { WorkspaceCreationPodConfigSelection } from '~/app/pages/Workspaces/Creation/WorkspaceCreationPodConfigSelection';
 
 enum WorkspaceCreationSteps {
   KindSelection,
   ImageSelection,
+  PodConfigSelection,
   Properties,
 }
 
@@ -65,7 +67,7 @@ const WorkspaceCreation: React.FunctionComponent = () => {
               titleId="kind-selection-step-title"
               aria-label="Kind selection step"
             >
-              Kind selection
+              Workspace Kind
             </ProgressStep>
             <ProgressStep
               variant={getStepVariant(WorkspaceCreationSteps.ImageSelection)}
@@ -74,7 +76,16 @@ const WorkspaceCreation: React.FunctionComponent = () => {
               titleId="image-selection-step-title"
               aria-label="Image selection step"
             >
-              Image selection
+              Image
+            </ProgressStep>
+            <ProgressStep
+              variant={getStepVariant(WorkspaceCreationSteps.PodConfigSelection)}
+              isCurrent
+              id="pod-config-selection-step"
+              titleId="pod-config-selection-step-title"
+              aria-label="Pod config selection step"
+            >
+              Pod Config
             </ProgressStep>
             <ProgressStep
               variant={getStepVariant(WorkspaceCreationSteps.Properties)}
@@ -91,6 +102,9 @@ const WorkspaceCreation: React.FunctionComponent = () => {
         {currentStep === WorkspaceCreationSteps.KindSelection && <WorkspaceCreationKindSelection />}
         {currentStep === WorkspaceCreationSteps.ImageSelection && (
           <WorkspaceCreationImageSelection />
+        )}
+        {currentStep === WorkspaceCreationSteps.PodConfigSelection && (
+          <WorkspaceCreationPodConfigSelection />
         )}
         {currentStep === WorkspaceCreationSteps.Properties && (
           <WorkspaceCreationPropertiesSelection />
