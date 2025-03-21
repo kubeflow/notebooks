@@ -22,8 +22,8 @@ cleanup-crds:
 
 CERT_MANAGER_VERSION := 1.17.1
 
-.PHONY: cmctl check-cert-manager
-check-cert-manager:
+.PHONY: check-cert-manager
+check-cert-manager: cmctl
 	@echo "Checking if cert-manager is installed and ready..."
 	@$(LOCALBIN)/cmctl check api > /dev/null 2>&1 || (printf "cert-manager is not installed or is not ready yet, please install cert-manager first or wait for it to be ready.\nYou can install cert-manager by running the following command:\n\nkubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v$(CERT_MANAGER_VERSION)/cert-manager.yaml\n\n" && exit 1)
 	@echo "cert-manager is installed and ready."
