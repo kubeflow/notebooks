@@ -21,7 +21,7 @@ This guide will help you set up a development environment for the Kubeflow Noteb
 
 - Go >= 1.22
 - Kubectl >= 1.22
-- A Kubernetes cluster (e.g. [kind](https://kind.sigs.k8s.io/))
+- A Kubernetes cluster (e.g. [kind](https://kind.sigs.k8s.io/#installation-and-usage))
 - Cert-manager installed in the cluster, see [cert-manager installation guide](https://cert-manager.io/docs/installation/#default-static-install)
 
 ## Getting Started
