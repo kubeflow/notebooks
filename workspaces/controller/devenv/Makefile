@@ -43,7 +43,7 @@ CMCTL_VERSION := 2.1.1
 .PHONY: $(CMCTL)
 cmctl: $(CMCTL)
 $(CMCTL): $(LOCALBIN)
-	test -s $(LOCALBIN)/cmctl || curl -fsSL https://github.com/cert-manager/cmctl/releases/download/v$(CMCTL_VERSION)/cmctl_$(detected_OS)_$(goarch).tar.gz | tar -xz -C $(LOCALBIN) cmctl
+	test -s $(LOCALBIN)/cmctl || curl -fsSL https://github.com/cert-manager/cmctl/releases/download/v$(CMCTL_VERSION)/cmctl_$(real_OS)_$(goarch).tar.gz | tar -xz -C $(LOCALBIN) cmctl
 
 .PHONY: tilt
 .PHONY: $(TILT)
