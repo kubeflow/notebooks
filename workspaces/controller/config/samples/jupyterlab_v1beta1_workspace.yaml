@@ -54,6 +54,15 @@ spec:
           mountPath: "/data/my-data"
           readOnly: false
 
+      ## secrets to mount
+      ##  - the secret must already exist in the Namespace
+      ##  - secrets are mounted as folders with the secret keys as files
+      ##
+      secrets:
+        - secretName: "workspace-secret"
+          mountPath: "/secrets/my-secret"
+          defaultMode: 420 # same as 0644 in octal
+
     ## the selected podTemplate options
     ##  - these are the user-selected options from the Workspace Spawner UI
     ##    which determine the PodSpec of the Workspace Pod
