@@ -142,3 +142,11 @@ export type WorkspacesColumnNames = {
   lastActivity: string;
   redirectStatus: string;
 };
+
+export type WorkspaceKindsColumnNames = {
+  icon: string;
+  name: string;
+  description: string;
+  deprecated: string;
+  numberOfWorkspaces: string;
+};
