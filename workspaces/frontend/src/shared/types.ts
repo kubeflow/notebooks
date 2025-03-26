@@ -6,6 +6,39 @@ export interface WorkspaceLogo {
   url: string;
 }
 
+export interface WorkspaceImage {
+  id: string;
+  displayName: string;
+  labels: {
+    pythonVersion: string;
+  };
+  hidden: boolean;
+  redirect?: {
+    to: string;
+    message: {
+      text: string;
+      level: string;
+    };
+  };
+}
+
+export interface WorkspacePodConfig {
+  id: string;
+  displayName: string;
+  description: string;
+  labels: {
+    cpu: string;
+    memory: string;
+  };
+  redirect?: {
+    to: string;
+    message: {
+      text: string;
+      level: string;
+    };
+  };
+}
+
 export interface WorkspaceKind {
   name: string;
   displayName: string;
@@ -30,40 +63,11 @@ export interface WorkspaceKind {
     options: {
       imageConfig: {
         default: string;
-        values: {
-          id: string;
-          displayName: string;
-          labels: {
-            pythonVersion: string;
-          };
-          hidden: boolean;
-          redirect?: {
-            to: string;
-            message: {
-              text: string;
-              level: string;
-            };
-          };
-        }[];
+        values: WorkspaceImage[];
       };
       podConfig: {
         default: string;
-        values: {
-          id: string;
-          displayName: string;
-          description: string;
-          labels: {
-            cpu: string;
-            memory: string;
-          };
-          redirect?: {
-            to: string;
-            message: {
-              text: string;
-              level: string;
-            };
-          };
-        }[];
+        values: WorkspacePodConfig[];
       };
     };
   };
