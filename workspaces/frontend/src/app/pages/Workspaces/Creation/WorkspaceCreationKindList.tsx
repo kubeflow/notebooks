@@ -17,15 +17,16 @@ import Filter, { FilteredColumn } from '~/shared/components/Filter';
 
 type WorkspaceCreationKindListProps = {
   allWorkspaceKinds: WorkspaceKind[];
+  selectedKind: WorkspaceKind | undefined;
   onSelect: (workspaceKind: WorkspaceKind) => void;
 };
 
 export const WorkspaceCreationKindList: React.FunctionComponent<WorkspaceCreationKindListProps> = ({
   allWorkspaceKinds,
+  selectedKind,
   onSelect,
 }) => {
   const [workspaceKinds, setWorkspaceKinds] = useState<WorkspaceKind[]>(allWorkspaceKinds);
-  const [selectedWorkspaceKind, setSelectedWorkspaceKind] = useState<WorkspaceKind>();
 
   const filterableColumns = useMemo(
     () => ({
@@ -71,7 +72,6 @@ export const WorkspaceCreationKindList: React.FunctionComponent<WorkspaceCreatio
       const newSelectedWorkspaceKind = workspaceKinds.find(
         (kind) => kind.name === event.currentTarget.name,
       );
-      setSelectedWorkspaceKind(newSelectedWorkspaceKind);
       onSelect(newSelectedWorkspaceKind);
     },
     [workspaceKinds, onSelect],
@@ -106,11 +106,11 @@ export const WorkspaceCreationKindList: React.FunctionComponent<WorkspaceCreatio
                 isSelectable
                 key={kind.name}
                 id={kind.name.replace(/ /g, '-')}
-                isSelected={kind.name === selectedWorkspaceKind?.name}
+                isSelected={kind.name === selectedKind?.name}
               >
                 <CardHeader
                   selectableActions={{
-                    selectableActionId: `selectable-actions-item-${kind.name}`,
+                    selectableActionId: `selectable-actions-item-${kind.name.replace(/ /g, '-')}`,
                     selectableActionAriaLabelledby: kind.name.replace(/ /g, '-'),
                     name: kind.name,
                     variant: 'single',
