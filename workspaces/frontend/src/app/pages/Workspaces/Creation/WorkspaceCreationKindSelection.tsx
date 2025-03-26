@@ -1,11 +1,18 @@
 import * as React from 'react';
 import { Content, Divider, Split, SplitItem } from '@patternfly/react-core';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { WorkspaceKind } from '~/shared/types';
 import { WorkspaceCreationKindDetails } from '~/app/pages/Workspaces/Creation/WorkspaceCreationKindDetails';
 import { WorkspaceCreationKindList } from '~/app/pages/Workspaces/Creation/WorkspaceCreationKindList';
 
-const WorkspaceCreationKindSelection: React.FunctionComponent = () => {
+interface WorkspaceCreationKindSelectionProps {
+  selectedKind: WorkspaceKind | undefined;
+  onSelect: (kind: WorkspaceKind) => void;
+}
+
+const WorkspaceCreationKindSelection: React.FunctionComponent<
+  WorkspaceCreationKindSelectionProps
+> = ({ selectedKind, onSelect }) => {
   /* Replace mocks below for BFF call */
   const mockedWorkspaceKind: WorkspaceKind = useMemo(
     () => ({
@@ -47,10 +54,36 @@ const WorkspaceCreationKindSelection: React.FunctionComponent = () => {
               {
                 id: 'jupyterlab_scipy_190',
                 displayName: 'jupyter-scipy:v1.9.0',
-                labels: { pythonVersion: '3.11' },
+                labels: { pythonVersion: '3.12' },
                 hidden: true,
                 redirect: {
                   to: 'jupyterlab_scipy_200',
+                  message: {
+                    text: 'This update will change...',
+                    level: 'Warning',
+                  },
+                },
+              },
+              {
+                id: 'jupyterlab_scipy_200',
+                displayName: 'jupyter-scipy:v2.0.0',
+                labels: { pythonVersion: '3.12' },
+                hidden: true,
+                redirect: {
+                  to: 'jupyterlab_scipy_210',
+                  message: {
+                    text: 'This update will change...',
+                    level: 'Warning',
+                  },
+                },
+              },
+              {
+                id: 'jupyterlab_scipy_210',
+                displayName: 'jupyter-scipy:v2.1.0',
+                labels: { pythonVersion: '3.13' },
+                hidden: true,
+                redirect: {
+                  to: 'jupyterlab_scipy_220',
                   message: {
                     text: 'This update will change...',
                     level: 'Warning',
@@ -104,8 +137,6 @@ const WorkspaceCreationKindSelection: React.FunctionComponent = () => {
     return kinds;
   }, [mockedWorkspaceKind]);
 
-  const [selectedKind, setSelectedKind] = useState<WorkspaceKind>();
-
   const kindDetailsContent = useMemo(
     () => <WorkspaceCreationKindDetails workspaceKind={selectedKind} />,
     [selectedKind],
@@ -119,7 +150,8 @@ const WorkspaceCreationKindSelection: React.FunctionComponent = () => {
         <SplitItem isFilled>
           <WorkspaceCreationKindList
             allWorkspaceKinds={allWorkspaceKinds}
-            onSelect={(workspaceKind) => setSelectedKind(workspaceKind)}
+            selectedKind={selectedKind}
+            onSelect={onSelect}
           />
         </SplitItem>
         <SplitItem style={{ minWidth: '200px' }}>{kindDetailsContent}</SplitItem>
