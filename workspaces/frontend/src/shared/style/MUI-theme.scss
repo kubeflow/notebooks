@@ -177,6 +177,25 @@
   --pf-v6-c-button--BackgroundColor: rgba(33, 150, 243, 0.04);
 }
 
+.mui-theme .pf-v6-c-card {
+  --pf-v6-c-card--BorderWidth: 0px;
+  --pf-v6-c-card--BorderRadius: var(--mui-shape-borderRadius);
+}
+
+.mui-theme .pf-v6-c-card:hover {
+  --pf-v6-c-card--BackgroundColor: var(--mui-palette-grey-100);
+}
+
+.mui-theme .pf-v6-c-card.pf-m-selected {
+  --pf-v6-c-card--BackgroundColor: var(--mui-palette-grey-200);
+  --pf-v6-c-card--m-selectable--m-selected--BorderColor: none;
+}
+
+.mui-theme .pf-v6-c-card.pf-m-selected:hover {
+  --pf-v6-c-card--BackgroundColor: var(--mui-palette-grey-300);
+  --pf-v6-c-card--m-selectable--m-selected--BorderColor: none;
+}
+
 .mui-theme .pf-v6-c-description-list {
   --pf-v6-c-description-list--RowGap: var(--pf-t--global--spacer--gap--group-to-group--horizontal--compact);
 }
@@ -188,8 +207,6 @@
 .mui-theme .pf-v6-c-description-list__text .pf-v6-l-split__item.pf-m-fill {
   align-content: center;
 }
-
-
 
 .mui-theme .pf-v6-c-drawer {
   --pf-v6-c-drawer--m-inline--m-expanded__panel--after--BackgroundColor: var(--mui-drawer-BorderLeft);
@@ -555,6 +572,24 @@
 
 }
 
+.mui-theme .pf-v6-c-progress-stepper__step.pf-m-info, 
+.mui-theme .pf-v6-c-progress-stepper__step.pf-m-success {
+  --pf-v6-c-progress-stepper__step-icon--BackgroundColor: var(--mui-palette-primary-main);
+  --pf-v6-c-progress-stepper__step-icon--Color: var(--mui-palette-common-white);
+}
+
+.mui-theme .pf-v6-c-progress-stepper__step.pf-m-pending .pf-v6-c-progress-stepper__step-icon {
+  --pf-v6-c-progress-stepper__step-icon--BackgroundColor: var(--mui-palette-grey-500);
+  --pf-v6-c-progress-stepper__step-icon--Color: var(--mui-palette-common-white);
+}
+
+.mui-theme .pf-v6-c-progress-stepper__step-icon {
+  --pf-v6-c-progress-stepper__step-icon--BorderWidth: 0;
+}
+
+.mui-theme .pf-v6-c-radio.pf-m-standalone .pf-v6-c-radio__input {
+  display: none;
+}
 
 .mui-theme .pf-v6-c-table {
   --pf-v6-c-table__sort--m-selected__button--Color: var(--mui-palette-text-primary);
