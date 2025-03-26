@@ -16,6 +16,7 @@ import { WorkspaceCreationImageSelection } from '~/app/pages/Workspaces/Creation
 import { WorkspaceCreationKindSelection } from '~/app/pages/Workspaces/Creation/WorkspaceCreationKindSelection';
 import { WorkspaceCreationPropertiesSelection } from '~/app/pages/Workspaces/Creation/WorkspaceCreationPropertiesSelection';
 import { WorkspaceCreationPodConfigSelection } from '~/app/pages/Workspaces/Creation/WorkspaceCreationPodConfigSelection';
+import { WorkspaceImage, WorkspaceKind } from '~/shared/types';
 
 enum WorkspaceCreationSteps {
   KindSelection,
@@ -28,6 +29,8 @@ const WorkspaceCreation: React.FunctionComponent = () => {
   const navigate = useNavigate();
 
   const [currentStep, setCurrentStep] = useState(WorkspaceCreationSteps.KindSelection);
+  const [selectedKind, setSelectedKind] = useState<WorkspaceKind>();
+  const [selectedImage, setSelectedImage] = useState<WorkspaceImage>();
 
   const getStepVariant = useCallback(
     (step: WorkspaceCreationSteps) => {
@@ -53,6 +56,11 @@ const WorkspaceCreation: React.FunctionComponent = () => {
   const cancel = useCallback(() => {
     navigate('/workspaces');
   }, [navigate]);
+
+  const onSelectWorkspaceKind = useCallback((newWorkspaceKind: WorkspaceKind) => {
+    setSelectedKind(newWorkspaceKind);
+    setSelectedImage(undefined);
+  }, []);
 
   return (
     <>
@@ -124,9 +132,18 @@ const WorkspaceCreation: React.FunctionComponent = () => {
         </PageSection>
       </PageGroup>
       <PageSection isFilled>
-        {currentStep === WorkspaceCreationSteps.KindSelection && <WorkspaceCreationKindSelection />}
+        {currentStep === WorkspaceCreationSteps.KindSelection && (
+          <WorkspaceCreationKindSelection
+            selectedKind={selectedKind}
+            onSelect={onSelectWorkspaceKind}
+          />
+        )}
         {currentStep === WorkspaceCreationSteps.ImageSelection && (
-          <WorkspaceCreationImageSelection />
+          <WorkspaceCreationImageSelection
+            selectedImage={selectedImage}
+            images={selectedKind?.podTemplate.options.imageConfig.values ?? []}
+            onSelect={setSelectedImage}
+          />
         )}
         {currentStep === WorkspaceCreationSteps.PodConfigSelection && (
           <WorkspaceCreationPodConfigSelection />
