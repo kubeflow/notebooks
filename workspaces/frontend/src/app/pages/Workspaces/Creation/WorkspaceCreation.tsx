@@ -11,6 +11,7 @@ import {
 } from '@patternfly/react-core';
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CheckIcon } from '@patternfly/react-icons';
 import { WorkspaceCreationImageSelection } from '~/app/pages/Workspaces/Creation/WorkspaceCreationImageSelection';
 import { WorkspaceCreationKindSelection } from '~/app/pages/Workspaces/Creation/WorkspaceCreationKindSelection';
 import { WorkspaceCreationPropertiesSelection } from '~/app/pages/Workspaces/Creation/WorkspaceCreationPropertiesSelection';
@@ -64,6 +65,13 @@ const WorkspaceCreation: React.FunctionComponent = () => {
             <ProgressStep
               variant={getStepVariant(WorkspaceCreationSteps.KindSelection)}
               id="kind-selection-step"
+              icon={
+                getStepVariant(WorkspaceCreationSteps.KindSelection) === 'success' ? (
+                  <CheckIcon />
+                ) : (
+                  1
+                )
+              }
               titleId="kind-selection-step-title"
               aria-label="Kind selection step"
             >
@@ -73,6 +81,13 @@ const WorkspaceCreation: React.FunctionComponent = () => {
               variant={getStepVariant(WorkspaceCreationSteps.ImageSelection)}
               isCurrent
               id="image-selection-step"
+              icon={
+                getStepVariant(WorkspaceCreationSteps.ImageSelection) === 'success' ? (
+                  <CheckIcon />
+                ) : (
+                  2
+                )
+              }
               titleId="image-selection-step-title"
               aria-label="Image selection step"
             >
@@ -82,6 +97,13 @@ const WorkspaceCreation: React.FunctionComponent = () => {
               variant={getStepVariant(WorkspaceCreationSteps.PodConfigSelection)}
               isCurrent
               id="pod-config-selection-step"
+              icon={
+                getStepVariant(WorkspaceCreationSteps.PodConfigSelection) === 'success' ? (
+                  <CheckIcon />
+                ) : (
+                  3
+                )
+              }
               titleId="pod-config-selection-step-title"
               aria-label="Pod config selection step"
             >
@@ -90,6 +112,9 @@ const WorkspaceCreation: React.FunctionComponent = () => {
             <ProgressStep
               variant={getStepVariant(WorkspaceCreationSteps.Properties)}
               id="properties-step"
+              icon={
+                getStepVariant(WorkspaceCreationSteps.Properties) === 'success' ? <CheckIcon /> : 4
+              }
               titleId="properties-step-title"
               aria-label="Properties step"
             >
