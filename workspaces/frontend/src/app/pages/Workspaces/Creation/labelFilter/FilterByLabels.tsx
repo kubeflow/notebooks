@@ -4,23 +4,24 @@ import {
   FilterSidePanelCategory,
   FilterSidePanelCategoryItem,
 } from '@patternfly/react-catalog-view-extension';
-import { WorkspaceImage } from '~/shared/types';
 import '@patternfly/react-catalog-view-extension/dist/css/react-catalog-view-extension.css';
 
-type WorkspaceCreationImageFilterProps = {
-  images: WorkspaceImage[];
+type FilterByLabelsProps = {
+  labelledObjects: object[];
   selectedLabels: Map<string, Set<string>>;
   onSelect: (labels: Map<string, Set<string>>) => void;
 };
 
-export const WorkspaceCreationImageFilter: React.FunctionComponent<
-  WorkspaceCreationImageFilterProps
-> = ({ images, selectedLabels, onSelect }) => {
+export const FilterByLabels: React.FunctionComponent<FilterByLabelsProps> = ({
+  labelledObjects,
+  selectedLabels,
+  onSelect,
+}) => {
   const filterMap = useMemo(() => {
     const labelsMap = new Map<string, Set<string>>();
-    images.forEach((image) => {
-      Object.keys(image.labels).forEach((labelKey) => {
-        const labelValue = image.labels[labelKey];
+    labelledObjects.forEach((labelledObject) => {
+      Object.keys(labelledObject).forEach((labelKey) => {
+        const labelValue = labelledObject[labelKey];
         if (!labelsMap.has(labelKey)) {
           labelsMap.set(labelKey, new Set<string>());
         }
@@ -28,7 +29,7 @@ export const WorkspaceCreationImageFilter: React.FunctionComponent<
       });
     });
     return labelsMap;
-  }, [images]);
+  }, [labelledObjects]);
 
   const isChecked = useCallback(
     (label, labelValue) => selectedLabels.get(label)?.has(labelValue),

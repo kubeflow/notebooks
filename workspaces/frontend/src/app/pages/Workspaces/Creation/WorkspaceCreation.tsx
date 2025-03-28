@@ -12,10 +12,10 @@ import {
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckIcon } from '@patternfly/react-icons';
-import { WorkspaceCreationImageSelection } from '~/app/pages/Workspaces/Creation/WorkspaceCreationImageSelection';
-import { WorkspaceCreationKindSelection } from '~/app/pages/Workspaces/Creation/WorkspaceCreationKindSelection';
+import { WorkspaceCreationImageSelection } from '~/app/pages/Workspaces/Creation/image/WorkspaceCreationImageSelection';
+import { WorkspaceCreationKindSelection } from '~/app/pages/Workspaces/Creation/kind/WorkspaceCreationKindSelection';
 import { WorkspaceCreationPropertiesSelection } from '~/app/pages/Workspaces/Creation/WorkspaceCreationPropertiesSelection';
-import { WorkspaceCreationPodConfigSelection } from '~/app/pages/Workspaces/Creation/WorkspaceCreationPodConfigSelection';
+import { WorkspaceCreationPodConfigSelection } from '~/app/pages/Workspaces/Creation/podConfig/WorkspaceCreationPodConfigSelection';
 import { WorkspaceImage, WorkspaceKind } from '~/shared/types';
 
 enum WorkspaceCreationSteps {
