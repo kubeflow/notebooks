@@ -9,9 +9,7 @@ export interface WorkspaceLogo {
 export interface WorkspaceImage {
   id: string;
   displayName: string;
-  labels: {
-    pythonVersion: string;
-  };
+  labels: unknown;
   hidden: boolean;
   redirect?: {
     to: string;
@@ -26,10 +24,7 @@ export interface WorkspacePodConfig {
   id: string;
   displayName: string;
   description: string;
-  labels: {
-    cpu: string;
-    memory: string;
-  };
+  labels: unknown;
   redirect?: {
     to: string;
     message: {
