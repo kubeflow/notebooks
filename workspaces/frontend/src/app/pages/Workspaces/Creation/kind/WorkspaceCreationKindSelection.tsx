@@ -2,8 +2,8 @@ import * as React from 'react';
 import { Content, Divider, Split, SplitItem } from '@patternfly/react-core';
 import { useMemo } from 'react';
 import { WorkspaceKind } from '~/shared/types';
-import { WorkspaceCreationKindDetails } from '~/app/pages/Workspaces/Creation/WorkspaceCreationKindDetails';
-import { WorkspaceCreationKindList } from '~/app/pages/Workspaces/Creation/WorkspaceCreationKindList';
+import { WorkspaceCreationKindDetails } from '~/app/pages/Workspaces/Creation/kind/WorkspaceCreationKindDetails';
+import { WorkspaceCreationKindList } from '~/app/pages/Workspaces/Creation/kind/WorkspaceCreationKindList';
 
 interface WorkspaceCreationKindSelectionProps {
   selectedKind: WorkspaceKind | undefined;
