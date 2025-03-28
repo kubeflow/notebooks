@@ -2,9 +2,9 @@ import * as React from 'react';
 import { Content, Divider, Split, SplitItem } from '@patternfly/react-core';
 import { useMemo, useState } from 'react';
 import { WorkspaceImage } from '~/shared/types';
-import { WorkspaceCreationImageDetails } from '~/app/pages/Workspaces/Creation/WorkspaceCreationImageDetails';
-import { WorkspaceCreationImageList } from '~/app/pages/Workspaces/Creation/WorkspaceCreationImageList';
-import { WorkspaceCreationImageFilter } from '~/app/pages/Workspaces/Creation/WorkspaceCreationImageFilter';
+import { WorkspaceCreationImageDetails } from '~/app/pages/Workspaces/Creation/image/WorkspaceCreationImageDetails';
+import { WorkspaceCreationImageList } from '~/app/pages/Workspaces/Creation/image/WorkspaceCreationImageList';
+import { FilterByLabels } from '~/app/pages/Workspaces/Creation/labelFilter/FilterByLabels';
 
 interface WorkspaceCreationImageSelectionProps {
   images: WorkspaceImage[];
@@ -19,8 +19,8 @@ const WorkspaceCreationImageSelection: React.FunctionComponent<
 
   const imageFilterContent = useMemo(
     () => (
-      <WorkspaceCreationImageFilter
-        images={images}
+      <FilterByLabels
+        labelledObjects={images.map((image) => image.labels)}
         selectedLabels={selectedLabels}
         onSelect={setSelectedLabels}
       />
