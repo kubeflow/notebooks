@@ -28,32 +28,27 @@ This guide will help you set up a development environment for the Kubeflow Noteb
 
 This project uses [Tilt](https://tilt.dev/) to manage the development environment. Tilt will watch for changes in the project and automatically rebuild the Docker image and redeploy the application in the **current Kubernetes context**.
 
-### In an existing cluster
+### Cluster Selection
 
-1. Make sure you have a Kubernetes cluster running and `kubectl` is configured to use it.
-2. Run the following command to start Tilt:
+Make sure you have a Kubernetes cluster running and `kubectl` is configured to use it.
+    * `kubectl config current-context` will report which context Tilt will interact with
 
-```bash
-make -C devenv tilt-up
-```
+💡 For development purposes, you may find using `kind` to be beneficial.  You can create your own local cluster with the following command:
+- `kind create cluster`
+    - This command will also change the `current-context` of `kubectl` to the `kind` cluster that is created
 
-3. Hit `space` to open the Tilt dashboard in your browser and here you can see the logs and status of every resource deployed.
+### Running Tilt
 
-### Using kind
-
-1. Create a kind cluster:
-
-```bash
-kind create cluster
-```
-
-2. Run the following command to start Tilt:
+1. Run the following command to start Tilt:
 
 ```bash
 make -C devenv tilt-up
 ```
 
-3. Hit `space` to open the Tilt dashboard in your browser and here you can see the logs and status of every resource deployed.
+ℹ️ Please make sure you are in the `workspaces/controller` directory when executing the command.
+
+2. Hit `space` to open the Tilt dashboard in your browser and here you can see the logs and status of every resource deployed.
+
 
 ## Teardown
 
@@ -62,6 +57,8 @@ To stop Tilt and remove all resources created by it, run:
 ```bash
 make -C devenv tilt-down
 ```
+
+ℹ️ Please make sure you are in the `workspaces/controller` directory when executing the command.
 
 ## Troubleshooting
 
