@@ -29,9 +29,9 @@ const WorkspaceCreation: React.FunctionComponent = () => {
   const navigate = useNavigate();
 
   const [currentStep, setCurrentStep] = useState(WorkspaceCreationSteps.KindSelection);
-  const [selectedKind, setSelectedKind] = useState<WorkspaceKind>();
-  const [selectedImage, setSelectedImage] = useState<WorkspaceImage>();
-  const [selectedPodConfig, setSelectedPodConfig] = useState<WorkspacePodConfig>();
+  const [selectedKind, setSelectedKind] = useState<WorkspaceKind | undefined>();
+  const [selectedImage, setSelectedImage] = useState<WorkspaceImage | undefined>();
+  const [selectedPodConfig, setSelectedPodConfig] = useState<WorkspacePodConfig | undefined>();
 
   const getStepVariant = useCallback(
     (step: WorkspaceCreationSteps) => {
@@ -58,7 +58,7 @@ const WorkspaceCreation: React.FunctionComponent = () => {
     navigate('/workspaces');
   }, [navigate]);
 
-  const onSelectWorkspaceKind = useCallback((newWorkspaceKind: WorkspaceKind) => {
+  const onSelectWorkspaceKind = useCallback((newWorkspaceKind: WorkspaceKind | undefined) => {
     setSelectedKind(newWorkspaceKind);
     setSelectedImage(undefined);
     setSelectedPodConfig(undefined);

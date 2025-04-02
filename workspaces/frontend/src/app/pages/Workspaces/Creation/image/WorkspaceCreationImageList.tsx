@@ -19,7 +19,7 @@ type WorkspaceCreationImageListProps = {
   images: WorkspaceImage[];
   selectedLabels: Map<string, Set<string>>;
   selectedImage: WorkspaceImage | undefined;
-  onSelect: (workspaceImage: WorkspaceImage) => void;
+  onSelect: (workspaceImage: WorkspaceImage | undefined) => void;
 };
 
 export const WorkspaceCreationImageList: React.FunctionComponent<
@@ -41,7 +41,8 @@ export const WorkspaceCreationImageList: React.FunctionComponent<
         Object.keys(image.labels).reduce((accumulator, labelKey) => {
           const labelValue = image.labels[labelKey];
           if (selectedLabels.has(labelKey)) {
-            return accumulator && selectedLabels.get(labelKey).has(labelValue);
+            const labelValues: Set<string> | undefined = selectedLabels.get(labelKey);
+            return accumulator && labelValues !== undefined && labelValues.has(labelValue);
           }
           return accumulator;
         }, true),

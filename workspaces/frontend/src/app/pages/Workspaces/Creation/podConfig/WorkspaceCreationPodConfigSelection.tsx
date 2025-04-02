@@ -9,7 +9,7 @@ import { FilterByLabels } from '~/app/pages/Workspaces/Creation/labelFilter/Filt
 interface WorkspaceCreationPodConfigSelectionProps {
   podConfigs: WorkspacePodConfig[];
   selectedPodConfig: WorkspacePodConfig | undefined;
-  onSelect: (podConfig: WorkspacePodConfig) => void;
+  onSelect: (podConfig: WorkspacePodConfig | undefined) => void;
 }
 
 const WorkspaceCreationPodConfigSelection: React.FunctionComponent<

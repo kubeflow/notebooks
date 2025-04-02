@@ -18,7 +18,7 @@ import Filter, { FilteredColumn } from '~/shared/components/Filter';
 type WorkspaceCreationKindListProps = {
   allWorkspaceKinds: WorkspaceKind[];
   selectedKind: WorkspaceKind | undefined;
-  onSelect: (workspaceKind: WorkspaceKind) => void;
+  onSelect: (workspaceKind: WorkspaceKind | undefined) => void;
 };
 
 export const WorkspaceCreationKindList: React.FunctionComponent<WorkspaceCreationKindListProps> = ({
