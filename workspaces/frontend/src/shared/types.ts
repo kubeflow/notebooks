@@ -9,7 +9,7 @@ export interface WorkspaceLogo {
 export interface WorkspaceImage {
   id: string;
   displayName: string;
-  labels: object;
+  labels: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   hidden: boolean;
   redirect?: {
     to: string;
@@ -24,7 +24,7 @@ export interface WorkspacePodConfig {
   id: string;
   displayName: string;
   description: string;
-  labels: object;
+  labels: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   redirect?: {
     to: string;
     message: {
@@ -45,12 +45,8 @@ export interface WorkspaceKind {
   logo: WorkspaceLogo;
   podTemplate: {
     podMetadata: {
-      labels: {
-        myWorkspaceKindLabel: string;
-      };
-      annotations: {
-        myWorkspaceKindAnnotation: string;
-      };
+      labels: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+      annotations: any; // eslint-disable-line @typescript-eslint/no-explicit-any
     };
     volumeMounts: {
       home: string;

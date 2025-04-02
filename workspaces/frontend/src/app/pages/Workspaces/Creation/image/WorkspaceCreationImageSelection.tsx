@@ -9,7 +9,7 @@ import { FilterByLabels } from '~/app/pages/Workspaces/Creation/labelFilter/Filt
 interface WorkspaceCreationImageSelectionProps {
   images: WorkspaceImage[];
   selectedImage: WorkspaceImage | undefined;
-  onSelect: (image: WorkspaceImage) => void;
+  onSelect: (image: WorkspaceImage | undefined) => void;
 }
 
 const WorkspaceCreationImageSelection: React.FunctionComponent<

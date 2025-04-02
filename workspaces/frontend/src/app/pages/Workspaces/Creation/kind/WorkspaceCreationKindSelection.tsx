@@ -7,7 +7,7 @@ import { WorkspaceCreationKindList } from '~/app/pages/Workspaces/Creation/kind/
 
 interface WorkspaceCreationKindSelectionProps {
   selectedKind: WorkspaceKind | undefined;
-  onSelect: (kind: WorkspaceKind) => void;
+  onSelect: (kind: WorkspaceKind | undefined) => void;
 }
 
 const WorkspaceCreationKindSelection: React.FunctionComponent<
