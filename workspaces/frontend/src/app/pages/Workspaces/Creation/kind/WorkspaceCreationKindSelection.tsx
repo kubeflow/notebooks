@@ -41,7 +41,7 @@ const WorkspaceCreationKindSelection: React.FunctionComponent<
               {
                 id: 'jupyterlab_scipy_180',
                 displayName: 'jupyter-scipy:v1.8.0',
-                labels: { pythonVersion: '3.11' },
+                labels: { pythonVersion: '3.11', jupyterlabVersion: '1.8.0' },
                 hidden: true,
                 redirect: {
                   to: 'jupyterlab_scipy_190',
@@ -54,7 +54,7 @@ const WorkspaceCreationKindSelection: React.FunctionComponent<
               {
                 id: 'jupyterlab_scipy_190',
                 displayName: 'jupyter-scipy:v1.9.0',
-                labels: { pythonVersion: '3.12' },
+                labels: { pythonVersion: '3.12', jupyterlabVersion: '1.9.0' },
                 hidden: true,
                 redirect: {
                   to: 'jupyterlab_scipy_200',
@@ -67,7 +67,7 @@ const WorkspaceCreationKindSelection: React.FunctionComponent<
               {
                 id: 'jupyterlab_scipy_200',
                 displayName: 'jupyter-scipy:v2.0.0',
-                labels: { pythonVersion: '3.12' },
+                labels: { pythonVersion: '3.12', jupyterlabVersion: '2.0.0' },
                 hidden: true,
                 redirect: {
                   to: 'jupyterlab_scipy_210',
@@ -80,7 +80,7 @@ const WorkspaceCreationKindSelection: React.FunctionComponent<
               {
                 id: 'jupyterlab_scipy_210',
                 displayName: 'jupyter-scipy:v2.1.0',
-                labels: { pythonVersion: '3.13' },
+                labels: { pythonVersion: '3.13', jupyterlabVersion: '2.1.0' },
                 hidden: true,
                 redirect: {
                   to: 'jupyterlab_scipy_220',
@@ -107,6 +107,12 @@ const WorkspaceCreationKindSelection: React.FunctionComponent<
                     level: 'Danger',
                   },
                 },
+              },
+              {
+                id: 'large_cpu',
+                displayName: 'Large CPU',
+                description: 'Pod with 1 CPU, 1 Gb RAM',
+                labels: { cpu: '1000m', memory: '1Gi' },
               },
             ],
           },
