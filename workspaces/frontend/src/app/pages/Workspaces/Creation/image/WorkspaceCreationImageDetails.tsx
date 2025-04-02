@@ -1,5 +1,5 @@
 import React from 'react';
-import { Title } from '@patternfly/react-core';
+import { List, ListItem, Title } from '@patternfly/react-core';
 import { WorkspaceImage } from '~/shared/types';
 
 type WorkspaceCreationImageDetailsProps = {
@@ -16,11 +16,14 @@ export const WorkspaceCreationImageDetails: React.FunctionComponent<
       <>
         <Title headingLevel="h6">Image</Title>
         <Title headingLevel="h3">{workspaceImage.displayName}</Title>
-        {Object.keys(workspaceImage.labels).map((labelKey) => (
-          <p key={labelKey}>
-            {labelKey}={workspaceImage.labels[labelKey]}
-          </p>
-        ))}
+        <br />
+        <List isPlain>
+          {Object.keys(workspaceImage.labels).map((labelKey) => (
+            <ListItem key={labelKey}>
+              {labelKey}={workspaceImage.labels[labelKey]}
+            </ListItem>
+          ))}
+        </List>
       </>
     )}
   </>

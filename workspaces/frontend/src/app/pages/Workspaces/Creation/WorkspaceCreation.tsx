@@ -16,7 +16,7 @@ import { WorkspaceCreationImageSelection } from '~/app/pages/Workspaces/Creation
 import { WorkspaceCreationKindSelection } from '~/app/pages/Workspaces/Creation/kind/WorkspaceCreationKindSelection';
 import { WorkspaceCreationPropertiesSelection } from '~/app/pages/Workspaces/Creation/WorkspaceCreationPropertiesSelection';
 import { WorkspaceCreationPodConfigSelection } from '~/app/pages/Workspaces/Creation/podConfig/WorkspaceCreationPodConfigSelection';
-import { WorkspaceImage, WorkspaceKind } from '~/shared/types';
+import { WorkspaceImage, WorkspaceKind, WorkspacePodConfig } from '~/shared/types';
 
 enum WorkspaceCreationSteps {
   KindSelection,
@@ -31,6 +31,7 @@ const WorkspaceCreation: React.FunctionComponent = () => {
   const [currentStep, setCurrentStep] = useState(WorkspaceCreationSteps.KindSelection);
   const [selectedKind, setSelectedKind] = useState<WorkspaceKind>();
   const [selectedImage, setSelectedImage] = useState<WorkspaceImage>();
+  const [selectedPodConfig, setSelectedPodConfig] = useState<WorkspacePodConfig>();
 
   const getStepVariant = useCallback(
     (step: WorkspaceCreationSteps) => {
@@ -60,6 +61,7 @@ const WorkspaceCreation: React.FunctionComponent = () => {
   const onSelectWorkspaceKind = useCallback((newWorkspaceKind: WorkspaceKind) => {
     setSelectedKind(newWorkspaceKind);
     setSelectedImage(undefined);
+    setSelectedPodConfig(undefined);
   }, []);
 
   return (
@@ -146,7 +148,11 @@ const WorkspaceCreation: React.FunctionComponent = () => {
           />
         )}
         {currentStep === WorkspaceCreationSteps.PodConfigSelection && (
-          <WorkspaceCreationPodConfigSelection />
+          <WorkspaceCreationPodConfigSelection
+            selectedPodConfig={selectedPodConfig}
+            podConfigs={selectedKind?.podTemplate.options.podConfig.values ?? []}
+            onSelect={setSelectedPodConfig}
+          />
         )}
         {currentStep === WorkspaceCreationSteps.Properties && (
           <WorkspaceCreationPropertiesSelection />
