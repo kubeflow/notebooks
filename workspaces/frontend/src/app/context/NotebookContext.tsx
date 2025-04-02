@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { ReactNode } from 'react';
 import { BFF_API_VERSION } from '~/app/const';
 import useNotebookAPIState, { NotebookAPIState } from './useNotebookAPIState';
 
@@ -13,7 +14,11 @@ export const NotebookContext = React.createContext<NotebookContextType>({
   refreshAPIState: () => undefined,
 });
 
-export const NotebookContextProvider: React.FC = ({ children }) => {
+interface NotebookContextProviderProps {
+  children: ReactNode;
+}
+
+export const NotebookContextProvider: React.FC<NotebookContextProviderProps> = ({ children }) => {
   const hostPath = `/api/${BFF_API_VERSION}`;
 
   const [apiState, refreshAPIState] = useNotebookAPIState(hostPath);

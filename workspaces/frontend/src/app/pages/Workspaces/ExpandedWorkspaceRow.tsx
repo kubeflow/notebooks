@@ -13,18 +13,18 @@ export const ExpandedWorkspaceRow: React.FC<ExpandedWorkspaceRowProps> = ({
   columnNames,
 }) => {
   const renderExpandedData = () =>
-    Object.keys(columnNames).map((colName) => {
+    Object.keys(columnNames).map((colName, index) => {
       switch (colName) {
         case 'name':
           return (
-            <Td noPadding colSpan={1}>
+            <Td noPadding colSpan={1} key={index}>
               <ExpandableRowContent>
                 <DataVolumesList workspace={workspace} />
               </ExpandableRowContent>
             </Td>
           );
         default:
-          return <Td />;
+          return <Td key={index} />;
       }
     });
 

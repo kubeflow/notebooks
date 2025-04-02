@@ -232,7 +232,7 @@ export const Workspaces: React.FunctionComponent = () => {
   const [activeActionType, setActiveActionType] = React.useState<ActionType | null>(null);
 
   const selectWorkspace = React.useCallback(
-    (newSelectedWorkspace) => {
+    (newSelectedWorkspace: Workspace | null) => {
       if (selectedWorkspace?.name === newSelectedWorkspace?.name) {
         setSelectedWorkspace(null);
       } else {
@@ -567,7 +567,7 @@ export const Workspaces: React.FunctionComponent = () => {
             <Table aria-label="Sortable table" ouiaId="SortableTable">
               <Thead>
                 <Tr>
-                  <Th />
+                  <Th screenReaderText="expand-action" />
                   {Object.values(columnNames).map((columnName, index) => (
                     <Th
                       key={`${columnName}-col-name`}
