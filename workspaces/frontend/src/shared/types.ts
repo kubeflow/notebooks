@@ -9,7 +9,7 @@ export interface WorkspaceLogo {
 export interface WorkspaceImage {
   id: string;
   displayName: string;
-  labels: unknown;
+  labels: object;
   hidden: boolean;
   redirect?: {
     to: string;
@@ -24,7 +24,7 @@ export interface WorkspacePodConfig {
   id: string;
   displayName: string;
   description: string;
-  labels: unknown;
+  labels: object;
   redirect?: {
     to: string;
     message: {
