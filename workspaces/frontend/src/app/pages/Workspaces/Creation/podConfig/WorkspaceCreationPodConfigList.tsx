@@ -19,7 +19,7 @@ type WorkspaceCreationPodConfigListProps = {
   podConfigs: WorkspacePodConfig[];
   selectedLabels: Map<string, Set<string>>;
   selectedPodConfig: WorkspacePodConfig | undefined;
-  onSelect: (workspacePodConfig: WorkspacePodConfig) => void;
+  onSelect: (workspacePodConfig: WorkspacePodConfig | undefined) => void;
 };
 
 export const WorkspaceCreationPodConfigList: React.FunctionComponent<
@@ -41,7 +41,8 @@ export const WorkspaceCreationPodConfigList: React.FunctionComponent<
         Object.keys(podConfig.labels).reduce((accumulator, labelKey) => {
           const labelValue = podConfig.labels[labelKey];
           if (selectedLabels.has(labelKey)) {
-            return accumulator && selectedLabels.get(labelKey).has(labelValue);
+            const labelValues: Set<string> | undefined = selectedLabels.get(labelKey);
+            return accumulator && labelValues !== undefined && labelValues.has(labelValue);
           }
           return accumulator;
         }, true),
