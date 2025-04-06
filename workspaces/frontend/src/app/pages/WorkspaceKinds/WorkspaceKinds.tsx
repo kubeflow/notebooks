@@ -8,6 +8,19 @@ import {
   Brand,
   Tooltip,
   Label,
+  SearchInput,
+  Toolbar,
+  ToolbarContent,
+  ToolbarItem,
+  Menu,
+  MenuContent,
+  MenuList,
+  MenuItem,
+  MenuToggle,
+  Popper,
+  ToolbarGroup,
+  ToolbarFilter,
+  ToolbarToggleGroup,
 } from '@patternfly/react-core';
 import {
   Table,
@@ -20,18 +33,84 @@ import {
   ActionsColumn,
   IActions,
 } from '@patternfly/react-table';
-import { CodeIcon } from '@patternfly/react-icons';
-import { useState } from 'react';
+import { CodeIcon, FilterIcon } from '@patternfly/react-icons';
 import { WorkspaceKind, WorkspaceKindsColumnNames } from '~/shared/types';
-import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
-import Filter, { FilteredColumn } from 'shared/components/Filter';
 
 export enum ActionType {
   ViewDetails,
 }
 
 export const WorkspaceKinds: React.FunctionComponent = () => {
-  const mockNumberOfWorkspaces = 1; // Todo: create a function to calculate number of workspaces for each workspace kind.
+  // Todo: Remove mock and use useWorkspaceKinds API instead.
+  const mockWorkspaceKinds: WorkspaceKind[] = [
+    {
+      name: 'jupyterlab',
+      displayName: 'JupyterLab Notebook',
+      description:
+        'Example of a description for JupyterLab a Workspace which runs JupyterLab in a Pod.',
+      deprecated: true,
+      deprecationMessage:
+        'This WorkspaceKind was removed on 20XX-XX-XX, please use another WorkspaceKind.',
+      hidden: false,
+      icon: {
+        url: 'https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png',
+      },
+      logo: {
+        url: 'https://upload.wikimedia.org/wikipedia/commons/3/38/Jupyter_logo.svg',
+      },
+      podTemplate: {
+        podMetadata: {
+          labels: {
+            myWorkspaceKindLabel: 'my-value',
+          },
+          annotations: {
+            myWorkspaceKindAnnotation: 'my-value',
+          },
+        },
+        volumeMounts: {
+          home: '/home/jovyan',
+        },
+        options: {
+          imageConfig: {
+            default: 'jupyterlab_scipy_190',
+            values: [
+              {
+                id: 'jupyterlab_scipy_180',
+                displayName: 'jupyter-scipy:v1.8.0',
+                labels: {
+                  pythonVersion: '3.11',
+                },
+                hidden: true,
+                redirect: {
+                  to: 'jupyterlab_scipy_190',
+                  message: {
+                    text: 'This update will change...',
+                    level: 'Info',
+                  },
+                },
+              },
+            ],
+          },
+          podConfig: {
+            default: 'tiny_cpu',
+            values: [
+              {
+                id: 'tiny_cpu',
+                displayName: 'Tiny CPU',
+                description: 'Pod with 0.1 CPU, 128 Mb RAM',
+                labels: {
+                  cpu: '100m',
+                  memory: '128Mi',
+                },
+              },
+            ],
+          },
+        },
+      },
+    },
+  ];
+
+  const mockNumberOfWorkspaces = 1; // Todo: Create a function to calculate number of workspaces for each workspace kind.
 
   // Table columns
   const columnNames: WorkspaceKindsColumnNames = {
@@ -42,71 +121,13 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     numberOfWorkspaces: 'Number Of Workspaces',
   };
 
-  const filterableColumns = {
-    name: 'Name',
-    deprecated: 'Status',
-  };
-
-  const [initialWorkspaceKinds] = useWorkspaceKinds();
-  const [workspaceKinds, setWorkspaceKinds] = useState<WorkspaceKind[]>(initialWorkspaceKinds);
-  const [expandedWorkspaceKindsNames, setExpandedWorkspaceKindsNames] = React.useState<string[]>(
-    [],
-  );
-  const [selectedWorkspaceKind, setSelectedWorkspacekind] = React.useState<WorkspaceKind | null>(
+  const initialWorkspaceKinds = mockWorkspaceKinds;
+  const [selectedWorkspaceKind, setSelectedWorkspaceKind] = React.useState<WorkspaceKind | null>(
     null,
   );
   const [activeActionType, setActiveActionType] = React.useState<ActionType | null>(null);
 
-  const setWorkspaceKindsExpanded = (workspaceKind: WorkspaceKind, isExpanding = true) =>
-    setExpandedWorkspaceKindsNames((prevExpanded) => {
-      const newExpandedWorkspaceKindsNames = prevExpanded.filter(
-        (wsName) => wsName !== workspaceKind.name,
-      );
-      return isExpanding
-        ? [...newExpandedWorkspaceKindsNames, workspaceKind.name]
-        : newExpandedWorkspaceKindsNames;
-    });
-
-  const isWorkspaceKindExpanded = (workspaceKind: WorkspaceKind) =>
-    expandedWorkspaceKindsNames.includes(workspaceKind.name);
-
-  // filter function to pass to the filter component
-  const onFilter = (filters: FilteredColumn[]) => {
-    // Search name with search value
-    let filteredWorkspaceKinds = initialWorkspaceKinds;
-    filters.forEach((filter) => {
-      let searchValueInput: RegExp;
-      try {
-        searchValueInput = new RegExp(filter.value, 'i');
-      } catch {
-        searchValueInput = new RegExp(filter.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-      }
-
-      filteredWorkspaceKinds = filteredWorkspaceKinds.filter((workspaceKind) => {
-        if (filter.value === '') {
-          return true;
-        }
-        switch (filter.columnName) {
-          case columnNames.name:
-            return workspaceKind.name.search(searchValueInput) >= 0;
-          case columnNames.deprecated:
-            if (filter.value.toUpperCase() === 'ACTIVE') {
-              return workspaceKind.deprecated === false;
-            }
-            if (filter.value.toUpperCase() === 'DEPRECATED') {
-              return workspaceKind.deprecated === true;
-            }
-            return true;
-          default:
-            return true;
-        }
-      });
-    });
-    setWorkspaceKinds(filteredWorkspaceKinds);
-  };
-
   // Column sorting
-
   const [activeSortIndex, setActiveSortIndex] = React.useState<number | null>(null);
   const [activeSortDirection, setActiveSortDirection] = React.useState<'asc' | 'desc' | null>(null);
 
@@ -121,9 +142,9 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     return [icon, name, description, deprecated, numOfWrokspaces];
   };
 
-  let sortedWorkspaceKinds = workspaceKinds;
+  let sortedWorkspaceKinds = initialWorkspaceKinds;
   if (activeSortIndex !== null) {
-    sortedWorkspaceKinds = workspaceKinds.sort((a, b) => {
+    sortedWorkspaceKinds = initialWorkspaceKinds.sort((a, b) => {
       const aValue = getSortableRowValues(a)[activeSortIndex];
       const bValue = getSortableRowValues(b)[activeSortIndex];
       if (typeof aValue === 'boolean' && typeof bValue === 'boolean') {
@@ -153,10 +174,282 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     columnIndex,
   });
 
+  // Set up filter - Attribute search.
+  const [searchNameValue, setSearchNameValue] = React.useState('');
+  const [searchDescriptionValue, setSearchDescriptionValue] = React.useState('');
+  const [statusSelection, setStatusSelection] = React.useState('');
+
+  const onSearchNameChange = (value: string) => {
+    setSearchNameValue(value);
+  };
+
+  const onSearchDescriptionChange = (value: string) => {
+    setSearchDescriptionValue(value);
+  };
+
+  const onFilter = (workspaceKind: WorkspaceKind) => {
+    let nameRegex: RegExp;
+    let descriptionRegex: RegExp;
+
+    try {
+      nameRegex = new RegExp(searchNameValue, 'i');
+      descriptionRegex = new RegExp(searchDescriptionValue, 'i');
+    } catch {
+      // Escape any regex special characters in search inputs
+      nameRegex = new RegExp(searchNameValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      descriptionRegex = new RegExp(
+        searchDescriptionValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+        'i',
+      );
+    }
+
+    const matchesNameSearch = searchNameValue === '' || nameRegex.test(workspaceKind.name);
+    const matchesDescriptionSearch =
+      searchDescriptionValue === '' || descriptionRegex.test(workspaceKind.description);
+
+    let matchesStatus = false;
+    if (statusSelection === 'Deprecated') {
+      matchesStatus = workspaceKind.deprecated === true;
+    }
+    if (statusSelection === 'Active') {
+      matchesStatus = workspaceKind.deprecated === false;
+    }
+
+    return (
+      matchesNameSearch && matchesDescriptionSearch && (statusSelection === '' || matchesStatus)
+    );
+  };
+
+  const filteredWorkspaceKinds = sortedWorkspaceKinds.filter(onFilter);
+
+  // Set up name search input
+  const searchNameInput = (
+    <SearchInput
+      placeholder="Filter by name"
+      value={searchNameValue}
+      onChange={(_event, value) => onSearchNameChange(value)}
+      onClear={() => onSearchNameChange('')}
+    />
+  );
+
+  // Set up description search input
+  const searchDescriptionInput = (
+    <SearchInput
+      placeholder="Filter by description"
+      value={searchDescriptionValue}
+      onChange={(_event, value) => onSearchDescriptionChange(value)}
+      onClear={() => onSearchDescriptionChange('')}
+    />
+  );
+
+  // Set up status single select
+  const [isStatusMenuOpen, setIsStatusMenuOpen] = React.useState<boolean>(false);
+  const statusToggleRef = React.useRef<HTMLButtonElement>(null);
+  const statusMenuRef = React.useRef<HTMLDivElement>(null);
+  const statusContainerRef = React.useRef<HTMLDivElement>(null);
+
+  const handleStatusMenuKeys = React.useCallback(
+    (event: KeyboardEvent) => {
+      if (isStatusMenuOpen && statusMenuRef.current?.contains(event.target as Node)) {
+        if (event.key === 'Escape' || event.key === 'Tab') {
+          setIsStatusMenuOpen(!isStatusMenuOpen);
+          statusToggleRef.current?.focus();
+        }
+      }
+    },
+    [isStatusMenuOpen],
+  );
+
+  const handleStatusClickOutside = React.useCallback(
+    (event: MouseEvent) => {
+      if (isStatusMenuOpen && !statusMenuRef.current?.contains(event.target as Node)) {
+        setIsStatusMenuOpen(false);
+      }
+    },
+    [isStatusMenuOpen],
+  );
+
+  React.useEffect(() => {
+    window.addEventListener('keydown', handleStatusMenuKeys);
+    window.addEventListener('click', handleStatusClickOutside);
+    return () => {
+      window.removeEventListener('keydown', handleStatusMenuKeys);
+      window.removeEventListener('click', handleStatusClickOutside);
+    };
+  }, [isStatusMenuOpen, statusMenuRef, handleStatusClickOutside, handleStatusMenuKeys]);
+
+  const onStatusToggleClick = (ev: React.MouseEvent) => {
+    ev.stopPropagation(); // Stop handleClickOutside from handling
+    setTimeout(() => {
+      if (statusMenuRef.current) {
+        const firstElement = statusMenuRef.current.querySelector('li > button:not(:disabled)');
+        if (firstElement) {
+          (firstElement as HTMLElement).focus();
+        }
+      }
+    }, 0);
+    setIsStatusMenuOpen(!isStatusMenuOpen);
+  };
+
+  function onStatusSelect(
+    event: React.MouseEvent | undefined,
+    itemId: string | number | undefined,
+  ) {
+    if (typeof itemId === 'undefined') {
+      return;
+    }
+
+    setStatusSelection(itemId.toString());
+    setIsStatusMenuOpen(!isStatusMenuOpen);
+  }
+
+  const statusToggle = (
+    <MenuToggle
+      ref={statusToggleRef}
+      onClick={onStatusToggleClick}
+      isExpanded={isStatusMenuOpen}
+      style={
+        {
+          width: '200px',
+        } as React.CSSProperties
+      }
+    >
+      Filter by status
+    </MenuToggle>
+  );
+
+  const statusMenu = (
+    <Menu
+      ref={statusMenuRef}
+      id="attribute-search-status-menu"
+      onSelect={onStatusSelect}
+      selected={statusSelection}
+    >
+      <MenuContent>
+        <MenuList>
+          <MenuItem itemId="Deprecated">Deprecated</MenuItem>
+          <MenuItem itemId="Active">Active</MenuItem>
+        </MenuList>
+      </MenuContent>
+    </Menu>
+  );
+
+  const statusSelect = (
+    <div ref={statusContainerRef}>
+      <Popper
+        trigger={statusToggle}
+        triggerRef={statusToggleRef}
+        popper={statusMenu}
+        popperRef={statusMenuRef}
+        appendTo={statusContainerRef.current || undefined}
+        isVisible={isStatusMenuOpen}
+      />
+    </div>
+  );
+
+  // Set up attribute selector
+  const [activeAttributeMenu, setActiveAttributeMenu] = React.useState<
+    'Name' | 'Description' | 'Status'
+  >('Name');
+  const [isAttributeMenuOpen, setIsAttributeMenuOpen] = React.useState(false);
+  const attributeToggleRef = React.useRef<HTMLButtonElement>(null);
+  const attributeMenuRef = React.useRef<HTMLDivElement>(null);
+  const attributeContainerRef = React.useRef<HTMLDivElement>(null);
+
+  const handleAttributeMenuKeys = React.useCallback(
+    (event: KeyboardEvent) => {
+      if (!isAttributeMenuOpen) {
+        return;
+      }
+      if (
+        attributeMenuRef.current?.contains(event.target as Node) ||
+        attributeToggleRef.current?.contains(event.target as Node)
+      ) {
+        if (event.key === 'Escape' || event.key === 'Tab') {
+          setIsAttributeMenuOpen(!isAttributeMenuOpen);
+          attributeToggleRef.current?.focus();
+        }
+      }
+    },
+    [isAttributeMenuOpen],
+  );
+
+  const handleAttributeClickOutside = React.useCallback(
+    (event: MouseEvent) => {
+      if (isAttributeMenuOpen && !attributeMenuRef.current?.contains(event.target as Node)) {
+        setIsAttributeMenuOpen(false);
+      }
+    },
+    [isAttributeMenuOpen],
+  );
+
+  React.useEffect(() => {
+    window.addEventListener('keydown', handleAttributeMenuKeys);
+    window.addEventListener('click', handleAttributeClickOutside);
+    return () => {
+      window.removeEventListener('keydown', handleAttributeMenuKeys);
+      window.removeEventListener('click', handleAttributeClickOutside);
+    };
+  }, [isAttributeMenuOpen, attributeMenuRef, handleAttributeMenuKeys, handleAttributeClickOutside]);
+
+  const onAttributeToggleClick = (ev: React.MouseEvent) => {
+    ev.stopPropagation(); // Stop handleClickOutside from handling
+    setTimeout(() => {
+      if (attributeMenuRef.current) {
+        const firstElement = attributeMenuRef.current.querySelector('li > button:not(:disabled)');
+        if (firstElement) {
+          (firstElement as HTMLElement).focus();
+        }
+      }
+    }, 0);
+    setIsAttributeMenuOpen(!isAttributeMenuOpen);
+  };
+
+  const attributeToggle = (
+    <MenuToggle
+      ref={attributeToggleRef}
+      onClick={onAttributeToggleClick}
+      isExpanded={isAttributeMenuOpen}
+      icon={<FilterIcon />}
+    >
+      {activeAttributeMenu}
+    </MenuToggle>
+  );
+  const attributeMenu = (
+    <Menu
+      ref={attributeMenuRef}
+      onSelect={(_ev, itemId) => {
+        setActiveAttributeMenu(itemId?.toString() as 'Name' | 'Description' | 'Status');
+        setIsAttributeMenuOpen(!isAttributeMenuOpen);
+      }}
+    >
+      <MenuContent>
+        <MenuList>
+          <MenuItem itemId="Name">Name</MenuItem>
+          <MenuItem itemId="Description">Description</MenuItem>
+          <MenuItem itemId="Status">Status</MenuItem>
+        </MenuList>
+      </MenuContent>
+    </Menu>
+  );
+
+  const attributeDropdown = (
+    <div ref={attributeContainerRef}>
+      <Popper
+        trigger={attributeToggle}
+        triggerRef={attributeToggleRef}
+        popper={attributeMenu}
+        popperRef={attributeMenuRef}
+        appendTo={attributeContainerRef.current || undefined}
+        isVisible={isAttributeMenuOpen}
+      />
+    </div>
+  );
+
   // Actions
 
   const viewDetailsClick = React.useCallback((workspaceKind: WorkspaceKind) => {
-    setSelectedWorkspacekind(workspaceKind);
+    setSelectedWorkspaceKind(workspaceKind);
     setActiveActionType(ActionType.ViewDetails);
   }, []);
 
@@ -166,9 +459,6 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
         id: 'view-details',
         title: 'View Details',
         onClick: () => viewDetailsClick(workspaceKind),
-      },
-      {
-        isSeparator: true,
       },
     ] as IActions;
 
@@ -193,11 +483,53 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
             </Content>
             <br />
             <Content style={{ display: 'flex', alignItems: 'flex-start', columnGap: '20px' }}>
-              <Filter
-                id="filter-workspace-kinds"
-                onFilter={onFilter}
-                columnNames={filterableColumns}
-              />
+              <Toolbar
+                id="attribute-search-filter-toolbar"
+                clearAllFilters={() => {
+                  setSearchNameValue('');
+                  setStatusSelection('');
+                  setSearchDescriptionValue('');
+                }}
+              >
+                <ToolbarContent>
+                  <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="xl">
+                    <ToolbarGroup variant="filter-group">
+                      <ToolbarItem>{attributeDropdown}</ToolbarItem>
+                      <ToolbarFilter
+                        labels={searchNameValue !== '' ? [searchNameValue] : ([] as string[])}
+                        deleteLabel={() => setSearchNameValue('')}
+                        deleteLabelGroup={() => setSearchNameValue('')}
+                        categoryName="Name"
+                        showToolbarItem={activeAttributeMenu === 'Name'}
+                      >
+                        {searchNameInput}
+                      </ToolbarFilter>
+                      <ToolbarFilter
+                        labels={
+                          searchDescriptionValue !== ''
+                            ? [searchDescriptionValue]
+                            : ([] as string[])
+                        }
+                        deleteLabel={() => setSearchDescriptionValue('')}
+                        deleteLabelGroup={() => setSearchDescriptionValue('')}
+                        categoryName="Description"
+                        showToolbarItem={activeAttributeMenu === 'Description'}
+                      >
+                        {searchDescriptionInput}
+                      </ToolbarFilter>
+                      <ToolbarFilter
+                        labels={statusSelection !== '' ? [statusSelection] : ([] as string[])}
+                        deleteLabel={() => setStatusSelection('')}
+                        deleteLabelGroup={() => setStatusSelection('')}
+                        categoryName="Status"
+                        showToolbarItem={activeAttributeMenu === 'Status'}
+                      >
+                        {statusSelect}
+                      </ToolbarFilter>
+                    </ToolbarGroup>
+                  </ToolbarToggleGroup>
+                </ToolbarContent>
+              </Toolbar>
               {/* <Button variant="primary" ouiaId="Primary">
                 Create Workspace Kind // Todo: show only in case of an admin user.
               </Button> */}
@@ -221,25 +553,10 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                   <Th screenReaderText="Primary action" />
                 </Tr>
               </Thead>
-              {sortedWorkspaceKinds.map((workspaceKind, rowIndex) => (
-                <Tbody
-                  id="workspace-kind-table-content"
-                  key={rowIndex}
-                  isExpanded={isWorkspaceKindExpanded(workspaceKind)}
-                  data-testid="table-body"
-                >
+              {filteredWorkspaceKinds.map((workspaceKind, rowIndex) => (
+                <Tbody id="workspace-kind-table-content" key={rowIndex} data-testid="table-body">
                   <Tr id={`workspace-kind-table-row-${rowIndex + 1}`}>
-                    <Td
-                      expand={{
-                        rowIndex,
-                        isExpanded: isWorkspaceKindExpanded(workspaceKind),
-                        onToggle: () =>
-                          setWorkspaceKindsExpanded(
-                            workspaceKind,
-                            !isWorkspaceKindExpanded(workspaceKind),
-                          ),
-                      }}
-                    />
+                    <Td />
                     <Td dataLabel={columnNames.icon} style={{ width: '50px' }}>
                       {workspaceKind.icon.url ? (
                         <Brand
@@ -266,11 +583,11 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                     </Td>
                     <Td dataLabel={columnNames.deprecated}>
                       {workspaceKind.deprecated ? (
-                        <Label color="red">Deprecated</Label>
-                      ) : (
                         <Tooltip content={workspaceKind.deprecationMessage}>
-                          <Label color="green">Active</Label>
+                          <Label color="red">Deprecated</Label>
                         </Tooltip>
+                      ) : (
+                        <Label color="green">Active</Label>
                       )}
                     </Td>
                     <Td dataLabel={columnNames.numberOfWorkspaces}>{mockNumberOfWorkspaces}</Td>

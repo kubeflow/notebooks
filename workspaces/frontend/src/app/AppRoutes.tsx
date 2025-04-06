@@ -44,7 +44,7 @@ export const useAdminDebugSettings = (): NavDataItem[] => {
       path: '/',
     },
     {
-      label: 'WorkspaceKinds',
+      label: 'Workspace Kinds',
       path: '/workspacekinds',
     },
   ];
