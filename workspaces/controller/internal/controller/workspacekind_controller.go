@@ -171,14 +171,12 @@ func (r *WorkspaceKindReconciler) SetupWithManager(mgr ctrl.Manager, opts contro
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
+		WithOptions(opts).
 		For(&kubefloworgv1beta1.WorkspaceKind{}).
 		Watches(
 			&kubefloworgv1beta1.Workspace{},
 			handler.EnqueueRequestsFromMapFunc(mapWorkspaceToRequest),
 			builder.WithPredicates(predicate.GenerationChangedPredicate{}),
 		).
-		WithOptions(controller.Options{
-			RateLimiter: helper.BuildRateLimiter(),
-		}).
 		Complete(r)
 }

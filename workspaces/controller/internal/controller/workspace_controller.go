@@ -419,6 +419,7 @@ func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager, opts controller
 	})
 
 	return ctrl.NewControllerManagedBy(mgr).
+		WithOptions(opts).
 		For(&kubefloworgv1beta1.Workspace{}).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Service{}).
@@ -432,9 +433,6 @@ func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager, opts controller
 			handler.EnqueueRequestsFromMapFunc(mapPodToRequest),
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}, predPodHasWSLabel),
 		).
-		WithOptions(controller.Options{
-			RateLimiter: helper.BuildRateLimiter(),
-		}).
 		Complete(r)
 }
 

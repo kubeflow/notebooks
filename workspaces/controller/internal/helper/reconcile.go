@@ -1,4 +1,6 @@
 /*
+Copyright 2024.
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -44,5 +46,5 @@ func BuildRateLimiter() workqueue.TypedRateLimiter[reconcile.Request] {
 	}
 
 	// return the worst-case (longest) of the rate limiters for a given item
-	return workqueue.NewTypedMaxOfRateLimiter(failureRateLimiter, totalRateLimiter)
+	return workqueue.NewTypedMaxOfRateLimiter[reconcile.Request](failureRateLimiter, totalRateLimiter)
 }
