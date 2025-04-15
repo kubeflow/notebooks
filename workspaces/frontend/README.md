@@ -18,7 +18,7 @@ This project requires the following tools to be installed on your system:
 
 ## Development
 
-1. Clone the repository. For example:
+1. Clone the repository:
 
       ``` bash
       git clone https://github.com/kubeflow/notebooks.git
@@ -30,21 +30,21 @@ This project requires the following tools to be installed on your system:
       git checkout notebooks-v2
       ```
 
-3. Within the repo context, install project dependencies
+3. Navigate to the `frontend` directory and install the project dependencies.
 
      ```bash
      cd workspaces/frontend && npm install
      ```
 
-### Build project
+### Build the Project
 
   ```bash
   npm run build
   ```
 
-### Serve development content
+### Serve the UI Locally
 
-This is the default context for running a local UI. Make sure you build the project using the instructions above prior to running the command below.
+This is the default setup for running the UI locally. Make sure you build the project using the instructions above prior to running the command below.
 
   ```bash
   npm run start:dev
@@ -52,7 +52,7 @@ This is the default context for running a local UI. Make sure you build the proj
 
 ### Testing
 
-Run all tests.
+Run all tests:
 
   ```bash
   npm run test
@@ -60,13 +60,13 @@ Run all tests.
 
 ### Linting
 
-See linting problems.
+Check for linting issues:
 
   ```bash
   npm run test:lint
   ```
 
-Fix linting problems.
+Automatically fix linting issues:
 
   ```bash
   npm run test:fix
