@@ -36,6 +36,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -394,7 +395,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
 
 	// NOTE: the SetupManagerFieldIndexers() helper in `helper/index.go` should have already been
 	//       called on `mgr` by the time this function is called, so the indexes are already set up
@@ -418,6 +419,7 @@ func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	})
 
 	return ctrl.NewControllerManagedBy(mgr).
+		WithOptions(opts).
 		For(&kubefloworgv1beta1.Workspace{}).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Service{}).

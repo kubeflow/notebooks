@@ -28,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -112,14 +113,18 @@ var _ = BeforeSuite(func() {
 	err = (&WorkspaceReconciler{
 		Client: k8sManager.GetClient(),
 		Scheme: k8sManager.GetScheme(),
-	}).SetupWithManager(k8sManager)
+	}).SetupWithManager(k8sManager, controller.Options{
+		RateLimiter: helper.BuildRateLimiter(),
+	})
 	Expect(err).NotTo(HaveOccurred())
 
 	By("setting up the WorkspaceKind controller")
 	err = (&WorkspaceKindReconciler{
 		Client: k8sManager.GetClient(),
 		Scheme: k8sManager.GetScheme(),
-	}).SetupWithManager(k8sManager)
+	}).SetupWithManager(k8sManager, controller.Options{
+		RateLimiter: helper.BuildRateLimiter(),
+	})
 	Expect(err).NotTo(HaveOccurred())
 
 	go func() {
