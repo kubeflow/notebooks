@@ -21,6 +21,12 @@ import {
   ToolbarGroup,
   ToolbarFilter,
   ToolbarToggleGroup,
+  EmptyStateActions,
+  EmptyState,
+  EmptyStateFooter,
+  EmptyStateBody,
+  Button,
+  Bullseye,
 } from '@patternfly/react-core';
 import {
   Table,
@@ -33,7 +39,7 @@ import {
   ActionsColumn,
   IActions,
 } from '@patternfly/react-table';
-import { CodeIcon, FilterIcon } from '@patternfly/react-icons';
+import { CodeIcon, FilterIcon, SearchIcon } from '@patternfly/react-icons';
 import { WorkspaceKind, WorkspaceKindsColumnNames } from '~/shared/types';
 
 export enum ActionType {
@@ -118,7 +124,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     name: 'Name',
     description: 'Description',
     deprecated: 'Status',
-    numberOfWorkspaces: 'Number Of Workspaces',
+    numberOfWorkspaces: 'Number of workspaces',
   };
 
   const initialWorkspaceKinds = mockWorkspaceKinds;
@@ -131,35 +137,44 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
   const [activeSortIndex, setActiveSortIndex] = React.useState<number | null>(null);
   const [activeSortDirection, setActiveSortDirection] = React.useState<'asc' | 'desc' | null>(null);
 
-  const getSortableRowValues = (workspaceKind: WorkspaceKind): (string | boolean | number)[] => {
-    const { icon, name, description, deprecated, numOfWrokspaces } = {
-      icon: '',
-      name: workspaceKind.name,
-      description: workspaceKind.description,
-      deprecated: workspaceKind.deprecated,
-      numOfWrokspaces: mockNumberOfWorkspaces,
-    };
-    return [icon, name, description, deprecated, numOfWrokspaces];
-  };
+  const getSortableRowValues = React.useCallback(
+    (workspaceKind: WorkspaceKind): (string | boolean | number)[] => {
+      const {
+        icon,
+        name,
+        description,
+        deprecated,
+        numOfWrokspaces: numberOfWrokspaces,
+      } = {
+        icon: '',
+        name: workspaceKind.name,
+        description: workspaceKind.description,
+        deprecated: workspaceKind.deprecated,
+        numOfWrokspaces: mockNumberOfWorkspaces,
+      };
+      return [icon, name, description, deprecated, numberOfWrokspaces];
+    },
+    [],
+  );
 
-  let sortedWorkspaceKinds = initialWorkspaceKinds;
-  if (activeSortIndex !== null) {
-    sortedWorkspaceKinds = initialWorkspaceKinds.sort((a, b) => {
+  const sortedWorkspaceKinds = React.useMemo(() => {
+    if (activeSortIndex === null) {
+      return initialWorkspaceKinds;
+    }
+
+    return [...initialWorkspaceKinds].sort((a, b) => {
       const aValue = getSortableRowValues(a)[activeSortIndex];
       const bValue = getSortableRowValues(b)[activeSortIndex];
       if (typeof aValue === 'boolean' && typeof bValue === 'boolean') {
-        // Convert boolean to number (true -> 1, false -> 0) for sorting
         return activeSortDirection === 'asc'
           ? Number(aValue) - Number(bValue)
           : Number(bValue) - Number(aValue);
       }
-      // String sort
-      if (activeSortDirection === 'asc') {
-        return (aValue as string).localeCompare(bValue as string);
-      }
-      return (bValue as string).localeCompare(aValue as string);
+      return activeSortDirection === 'asc'
+        ? (aValue as string).localeCompare(bValue as string)
+        : (bValue as string).localeCompare(aValue as string);
     });
-  }
+  }, [initialWorkspaceKinds, activeSortIndex, activeSortDirection, getSortableRowValues]);
 
   const getSortParams = (columnIndex: number): ThProps['sort'] => ({
     sortBy: {
@@ -179,48 +194,53 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
   const [searchDescriptionValue, setSearchDescriptionValue] = React.useState('');
   const [statusSelection, setStatusSelection] = React.useState('');
 
-  const onSearchNameChange = (value: string) => {
+  const onSearchNameChange = React.useCallback((value: string) => {
     setSearchNameValue(value);
-  };
+  }, []);
 
-  const onSearchDescriptionChange = (value: string) => {
+  const onSearchDescriptionChange = React.useCallback((value: string) => {
     setSearchDescriptionValue(value);
-  };
+  }, []);
 
-  const onFilter = (workspaceKind: WorkspaceKind) => {
-    let nameRegex: RegExp;
-    let descriptionRegex: RegExp;
+  const onFilter = React.useCallback(
+    (workspaceKind: WorkspaceKind) => {
+      let nameRegex: RegExp;
+      let descriptionRegex: RegExp;
 
-    try {
-      nameRegex = new RegExp(searchNameValue, 'i');
-      descriptionRegex = new RegExp(searchDescriptionValue, 'i');
-    } catch {
-      // Escape any regex special characters in search inputs
-      nameRegex = new RegExp(searchNameValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-      descriptionRegex = new RegExp(
-        searchDescriptionValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
-        'i',
+      try {
+        nameRegex = new RegExp(searchNameValue, 'i');
+        descriptionRegex = new RegExp(searchDescriptionValue, 'i');
+      } catch {
+        nameRegex = new RegExp(searchNameValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        descriptionRegex = new RegExp(
+          searchDescriptionValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+          'i',
+        );
+      }
+
+      const matchesNameSearch = searchNameValue === '' || nameRegex.test(workspaceKind.name);
+      const matchesDescriptionSearch =
+        searchDescriptionValue === '' || descriptionRegex.test(workspaceKind.description);
+
+      let matchesStatus = false;
+      if (statusSelection === 'Deprecated') {
+        matchesStatus = workspaceKind.deprecated === true;
+      }
+      if (statusSelection === 'Active') {
+        matchesStatus = workspaceKind.deprecated === false;
+      }
+
+      return (
+        matchesNameSearch && matchesDescriptionSearch && (statusSelection === '' || matchesStatus)
       );
-    }
+    },
+    [searchNameValue, searchDescriptionValue, statusSelection],
+  );
 
-    const matchesNameSearch = searchNameValue === '' || nameRegex.test(workspaceKind.name);
-    const matchesDescriptionSearch =
-      searchDescriptionValue === '' || descriptionRegex.test(workspaceKind.description);
-
-    let matchesStatus = false;
-    if (statusSelection === 'Deprecated') {
-      matchesStatus = workspaceKind.deprecated === true;
-    }
-    if (statusSelection === 'Active') {
-      matchesStatus = workspaceKind.deprecated === false;
-    }
-
-    return (
-      matchesNameSearch && matchesDescriptionSearch && (statusSelection === '' || matchesStatus)
-    );
-  };
-
-  const filteredWorkspaceKinds = sortedWorkspaceKinds.filter(onFilter);
+  const filteredWorkspaceKinds = React.useMemo(
+    () => sortedWorkspaceKinds.filter(onFilter),
+    [sortedWorkspaceKinds, onFilter],
+  );
 
   // Set up name search input
   const searchNameInput = (
@@ -446,6 +466,28 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     </div>
   );
 
+  const emptyState = (
+    <EmptyState headingLevel="h4" titleText="No results found" icon={SearchIcon}>
+      <EmptyStateBody>
+        No results match the filter criteria. Clear all filters and try again.
+      </EmptyStateBody>
+      <EmptyStateFooter>
+        <EmptyStateActions>
+          <Button
+            variant="link"
+            onClick={() => {
+              setSearchNameValue('');
+              setStatusSelection('');
+              setSearchDescriptionValue('');
+            }}
+          >
+            Clear all filters
+          </Button>
+        </EmptyStateActions>
+      </EmptyStateFooter>
+    </EmptyState>
+  );
+
   // Actions
 
   const viewDetailsClick = React.useCallback((workspaceKind: WorkspaceKind) => {
@@ -553,56 +595,64 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                   <Th screenReaderText="Primary action" />
                 </Tr>
               </Thead>
-              {filteredWorkspaceKinds.map((workspaceKind, rowIndex) => (
-                <Tbody id="workspace-kind-table-content" key={rowIndex} data-testid="table-body">
-                  <Tr id={`workspace-kind-table-row-${rowIndex + 1}`}>
-                    <Td />
-                    <Td dataLabel={columnNames.icon} style={{ width: '50px' }}>
-                      {workspaceKind.icon.url ? (
-                        <Brand
-                          src={workspaceKind.icon.url}
-                          alt={workspaceKind.name}
-                          style={{ width: '20px', height: '20px', cursor: 'pointer' }}
-                        />
-                      ) : (
-                        <CodeIcon />
-                      )}
-                    </Td>
-                    <Td dataLabel={columnNames.name}>{workspaceKind.name}</Td>
-                    <Td
-                      dataLabel={columnNames.description}
-                      style={{ maxWidth: '200px', overflow: 'hidden' }}
-                    >
-                      <Tooltip content={workspaceKind.description}>
-                        <span>
-                          {workspaceKind.description.length > DESCRIPTION_CHAR_LIMIT
-                            ? `${workspaceKind.description.slice(0, DESCRIPTION_CHAR_LIMIT)}...`
-                            : workspaceKind.description}
-                        </span>
-                      </Tooltip>
-                    </Td>
-                    <Td dataLabel={columnNames.deprecated}>
-                      {workspaceKind.deprecated ? (
-                        <Tooltip content={workspaceKind.deprecationMessage}>
-                          <Label color="red">Deprecated</Label>
+              {filteredWorkspaceKinds.length > 0 &&
+                filteredWorkspaceKinds.map((workspaceKind, rowIndex) => (
+                  <Tbody id="workspace-kind-table-content" key={rowIndex} data-testid="table-body">
+                    <Tr id={`workspace-kind-table-row-${rowIndex + 1}`}>
+                      <Td />
+                      <Td dataLabel={columnNames.icon} style={{ width: '50px' }}>
+                        {workspaceKind.icon.url ? (
+                          <Brand
+                            src={workspaceKind.icon.url}
+                            alt={workspaceKind.name}
+                            style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                          />
+                        ) : (
+                          <CodeIcon />
+                        )}
+                      </Td>
+                      <Td dataLabel={columnNames.name}>{workspaceKind.name}</Td>
+                      <Td
+                        dataLabel={columnNames.description}
+                        style={{ maxWidth: '200px', overflow: 'hidden' }}
+                      >
+                        <Tooltip content={workspaceKind.description}>
+                          <span>
+                            {workspaceKind.description.length > DESCRIPTION_CHAR_LIMIT
+                              ? `${workspaceKind.description.slice(0, DESCRIPTION_CHAR_LIMIT)}...`
+                              : workspaceKind.description}
+                          </span>
                         </Tooltip>
-                      ) : (
-                        <Label color="green">Active</Label>
-                      )}
-                    </Td>
-                    <Td dataLabel={columnNames.numberOfWorkspaces}>{mockNumberOfWorkspaces}</Td>
+                      </Td>
+                      <Td dataLabel={columnNames.deprecated}>
+                        {workspaceKind.deprecated ? (
+                          <Tooltip content={workspaceKind.deprecationMessage}>
+                            <Label color="red">Deprecated</Label>
+                          </Tooltip>
+                        ) : (
+                          <Label color="green">Active</Label>
+                        )}
+                      </Td>
+                      <Td dataLabel={columnNames.numberOfWorkspaces}>{mockNumberOfWorkspaces}</Td>
 
-                    <Td isActionCell data-testid="action-column">
-                      <ActionsColumn
-                        items={workspaceKindsDefaultActions(workspaceKind).map((action) => ({
-                          ...action,
-                          'data-testid': `action-${action.id || ''}`,
-                        }))}
-                      />
-                    </Td>
-                  </Tr>
-                </Tbody>
-              ))}
+                      <Td isActionCell data-testid="action-column">
+                        <ActionsColumn
+                          items={workspaceKindsDefaultActions(workspaceKind).map((action) => ({
+                            ...action,
+                            'data-testid': `action-${action.id || ''}`,
+                          }))}
+                        />
+                      </Td>
+                    </Tr>
+                  </Tbody>
+                ))}
+              {filteredWorkspaceKinds.length === 0 && (
+                <Tr>
+                  <Td colSpan={8} id="empty-state">
+                    <Bullseye>{emptyState}</Bullseye>
+                  </Td>
+                </Tr>
+              )}
             </Table>
           </PageSection>
         </DrawerContentBody>
