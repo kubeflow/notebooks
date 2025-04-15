@@ -204,7 +204,12 @@ var _ = Describe("WorkspaceKind Controller", func() {
 			}, timeout, interval).Should(Equal(expectedStatus))
 
 			By("having a finalizer set on the WorkspaceKind")
-			Expect(workspaceKind.GetFinalizers()).To(ContainElement(WorkspaceKindFinalizer))
+			Eventually(func() []string {
+				if err := k8sClient.Get(ctx, workspaceKindKey, workspaceKind); err != nil {
+					return nil
+				}
+				return workspaceKind.GetFinalizers()
+			}, timeout, interval).Should(ContainElement(WorkspaceKindFinalizer))
 
 			By("deleting the Workspace")
 			Expect(k8sClient.Delete(ctx, workspace)).To(Succeed())
