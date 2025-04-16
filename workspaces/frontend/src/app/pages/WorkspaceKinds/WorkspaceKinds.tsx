@@ -144,15 +144,15 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
         name,
         description,
         deprecated,
-        numOfWrokspaces: numberOfWrokspaces,
+        numOfWorkspaces: numberOfWorkspaces,
       } = {
         icon: '',
         name: workspaceKind.name,
         description: workspaceKind.description,
         deprecated: workspaceKind.deprecated,
-        numOfWrokspaces: mockNumberOfWorkspaces,
+        numOfWorkspaces: mockNumberOfWorkspaces,
       };
-      return [icon, name, description, deprecated, numberOfWrokspaces];
+      return [icon, name, description, deprecated, numberOfWorkspaces];
     },
     [],
   );
@@ -176,18 +176,21 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     });
   }, [initialWorkspaceKinds, activeSortIndex, activeSortDirection, getSortableRowValues]);
 
-  const getSortParams = React.useCallback((columnIndex: number): ThProps['sort'] => ({
-    sortBy: {
-      index: activeSortIndex || 0,
-      direction: activeSortDirection || 'asc',
-      defaultDirection: 'asc',
-    },
-    onSort: (_event, index, direction) => {
-      setActiveSortIndex(index);
-      setActiveSortDirection(direction);
-    },
-    columnIndex,
-  }), [activeSortIndex, activeSortDirection]);
+  const getSortParams = React.useCallback(
+    (columnIndex: number): ThProps['sort'] => ({
+      sortBy: {
+        index: activeSortIndex || 0,
+        direction: activeSortDirection || 'asc',
+        defaultDirection: 'asc',
+      },
+      onSort: (_event, index, direction) => {
+        setActiveSortIndex(index);
+        setActiveSortDirection(direction);
+      },
+      columnIndex,
+    }),
+    [activeSortIndex, activeSortDirection],
+  );
 
   // Set up filter - Attribute search.
   const [searchNameValue, setSearchNameValue] = React.useState('');
@@ -243,24 +246,30 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
   );
 
   // Set up name search input
-  const searchNameInput = React.useMemo(() => (
-    <SearchInput
-      placeholder="Filter by name"
-      value={searchNameValue}
-      onChange={(_event, value) => onSearchNameChange(value)}
-      onClear={() => onSearchNameChange('')}
-    />
-  ), [searchNameValue, onSearchNameChange]);
+  const searchNameInput = React.useMemo(
+    () => (
+      <SearchInput
+        placeholder="Filter by name"
+        value={searchNameValue}
+        onChange={(_event, value) => onSearchNameChange(value)}
+        onClear={() => onSearchNameChange('')}
+      />
+    ),
+    [searchNameValue, onSearchNameChange],
+  );
 
   // Set up description search input
-  const searchDescriptionInput = React.useMemo(() => (
-    <SearchInput
-      placeholder="Filter by description"
-      value={searchDescriptionValue}
-      onChange={(_event, value) => onSearchDescriptionChange(value)}
-      onClear={() => onSearchDescriptionChange('')}
-    />
-  ), [searchDescriptionValue, onSearchDescriptionChange]);
+  const searchDescriptionInput = React.useMemo(
+    () => (
+      <SearchInput
+        placeholder="Filter by description"
+        value={searchDescriptionValue}
+        onChange={(_event, value) => onSearchDescriptionChange(value)}
+        onClear={() => onSearchDescriptionChange('')}
+      />
+    ),
+    [searchDescriptionValue, onSearchDescriptionChange],
+  );
 
   // Set up status single select
   const [isStatusMenuOpen, setIsStatusMenuOpen] = React.useState<boolean>(false);
@@ -306,60 +315,69 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
         (firstElement as HTMLElement).focus();
       }
     }, 0);
-    setIsStatusMenuOpen(prev => !prev);
+    setIsStatusMenuOpen((prev) => !prev);
   }, []);
 
-  const onStatusSelect = React.useCallback((
-    event: React.MouseEvent | undefined,
-    itemId: string | number | undefined,
-  ) => {
-    if (typeof itemId === 'undefined') {
-      return;
-    }
-  
-    setStatusSelection(itemId.toString());
-    setIsStatusMenuOpen(prev => !prev);
-  }, []);
+  const onStatusSelect = React.useCallback(
+    (event: React.MouseEvent | undefined, itemId: string | number | undefined) => {
+      if (typeof itemId === 'undefined') {
+        return;
+      }
 
-  const statusToggle = React.useMemo(() => (
-    <MenuToggle
-      ref={statusToggleRef}
-      onClick={onStatusToggleClick}
-      isExpanded={isStatusMenuOpen}
-      style={{ width: '200px' } as React.CSSProperties}
-    >
-      Filter by status
-    </MenuToggle>
-  ), [isStatusMenuOpen, onStatusToggleClick]);
+      setStatusSelection(itemId.toString());
+      setIsStatusMenuOpen((prev) => !prev);
+    },
+    [],
+  );
 
-  const statusMenu = React.useMemo(() => (
-    <Menu
-      ref={statusMenuRef}
-      id="attribute-search-status-menu"
-      onSelect={onStatusSelect}
-      selected={statusSelection}
-    >
-      <MenuContent>
-        <MenuList>
-          <MenuItem itemId="Deprecated">Deprecated</MenuItem>
-          <MenuItem itemId="Active">Active</MenuItem>
-        </MenuList>
-      </MenuContent>
-    </Menu>
-  ), [statusSelection, onStatusSelect]);
+  const statusToggle = React.useMemo(
+    () => (
+      <MenuToggle
+        ref={statusToggleRef}
+        onClick={onStatusToggleClick}
+        isExpanded={isStatusMenuOpen}
+        style={{ width: '200px' } as React.CSSProperties}
+      >
+        Filter by status
+      </MenuToggle>
+    ),
+    [isStatusMenuOpen, onStatusToggleClick],
+  );
 
-  const statusSelect = React.useMemo(() => (
-    <div ref={statusContainerRef}>
-      <Popper
-        trigger={statusToggle}
-        triggerRef={statusToggleRef}
-        popper={statusMenu}
-        popperRef={statusMenuRef}
-        appendTo={statusContainerRef.current || undefined}
-        isVisible={isStatusMenuOpen}
-      />
-    </div>
-  ), [statusToggle, statusMenu, isStatusMenuOpen]);
+  const statusMenu = React.useMemo(
+    () => (
+      <Menu
+        ref={statusMenuRef}
+        id="attribute-search-status-menu"
+        onSelect={onStatusSelect}
+        selected={statusSelection}
+      >
+        <MenuContent>
+          <MenuList>
+            <MenuItem itemId="Deprecated">Deprecated</MenuItem>
+            <MenuItem itemId="Active">Active</MenuItem>
+          </MenuList>
+        </MenuContent>
+      </Menu>
+    ),
+    [statusSelection, onStatusSelect],
+  );
+
+  const statusSelect = React.useMemo(
+    () => (
+      <div ref={statusContainerRef}>
+        <Popper
+          trigger={statusToggle}
+          triggerRef={statusToggleRef}
+          popper={statusMenu}
+          popperRef={statusMenuRef}
+          appendTo={statusContainerRef.current || undefined}
+          isVisible={isStatusMenuOpen}
+        />
+      </div>
+    ),
+    [statusToggle, statusMenu, isStatusMenuOpen],
+  );
 
   // Set up attribute selector
   const [activeAttributeMenu, setActiveAttributeMenu] = React.useState<
@@ -408,80 +426,92 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
 
   const onAttributeToggleClick = React.useCallback((ev: React.MouseEvent) => {
     ev.stopPropagation();
-  
+
     setTimeout(() => {
       const firstElement = attributeMenuRef.current?.querySelector('li > button:not(:disabled)');
       if (firstElement) {
         (firstElement as HTMLElement).focus();
       }
     }, 0);
-  
-    setIsAttributeMenuOpen(prev => !prev);
+
+    setIsAttributeMenuOpen((prev) => !prev);
   }, []);
 
-  const attributeToggle = React.useMemo(() => (
-    <MenuToggle
-      ref={attributeToggleRef}
-      onClick={onAttributeToggleClick}
-      isExpanded={isAttributeMenuOpen}
-      icon={<FilterIcon />}
-    >
-      {activeAttributeMenu}
-    </MenuToggle>
-  ), [isAttributeMenuOpen, onAttributeToggleClick, activeAttributeMenu]);
+  const attributeToggle = React.useMemo(
+    () => (
+      <MenuToggle
+        ref={attributeToggleRef}
+        onClick={onAttributeToggleClick}
+        isExpanded={isAttributeMenuOpen}
+        icon={<FilterIcon />}
+      >
+        {activeAttributeMenu}
+      </MenuToggle>
+    ),
+    [isAttributeMenuOpen, onAttributeToggleClick, activeAttributeMenu],
+  );
 
-  const attributeMenu = React.useMemo(() => (
-    <Menu
-      ref={attributeMenuRef}
-      onSelect={(_ev, itemId) => {
-        setActiveAttributeMenu(itemId?.toString() as 'Name' | 'Description' | 'Status');
-        setIsAttributeMenuOpen(prev => !prev);
-      }}
-    >
-      <MenuContent>
-        <MenuList>
-          <MenuItem itemId="Name">Name</MenuItem>
-          <MenuItem itemId="Description">Description</MenuItem>
-          <MenuItem itemId="Status">Status</MenuItem>
-        </MenuList>
-      </MenuContent>
-    </Menu>
-  ), []);
+  const attributeMenu = React.useMemo(
+    () => (
+      <Menu
+        ref={attributeMenuRef}
+        onSelect={(_ev, itemId) => {
+          setActiveAttributeMenu(itemId?.toString() as 'Name' | 'Description' | 'Status');
+          setIsAttributeMenuOpen((prev) => !prev);
+        }}
+      >
+        <MenuContent>
+          <MenuList>
+            <MenuItem itemId="Name">Name</MenuItem>
+            <MenuItem itemId="Description">Description</MenuItem>
+            <MenuItem itemId="Status">Status</MenuItem>
+          </MenuList>
+        </MenuContent>
+      </Menu>
+    ),
+    [],
+  );
 
-  const attributeDropdown = React.useMemo(() => (
-    <div ref={attributeContainerRef}>
-      <Popper
-        trigger={attributeToggle}
-        triggerRef={attributeToggleRef}
-        popper={attributeMenu}
-        popperRef={attributeMenuRef}
-        appendTo={attributeContainerRef.current || undefined}
-        isVisible={isAttributeMenuOpen}
-      />
-    </div>
-  ), [attributeToggle, attributeMenu, isAttributeMenuOpen]);
+  const attributeDropdown = React.useMemo(
+    () => (
+      <div ref={attributeContainerRef}>
+        <Popper
+          trigger={attributeToggle}
+          triggerRef={attributeToggleRef}
+          popper={attributeMenu}
+          popperRef={attributeMenuRef}
+          appendTo={attributeContainerRef.current || undefined}
+          isVisible={isAttributeMenuOpen}
+        />
+      </div>
+    ),
+    [attributeToggle, attributeMenu, isAttributeMenuOpen],
+  );
 
-  const emptyState = React.useMemo(() => (
-    <EmptyState headingLevel="h4" titleText="No results found" icon={SearchIcon}>
-      <EmptyStateBody>
-        No results match the filter criteria. Clear all filters and try again.
-      </EmptyStateBody>
-      <EmptyStateFooter>
-        <EmptyStateActions>
-          <Button
-            variant="link"
-            onClick={() => {
-              setSearchNameValue('');
-              setStatusSelection('');
-              setSearchDescriptionValue('');
-            }}
-          >
-            Clear all filters
-          </Button>
-        </EmptyStateActions>
-      </EmptyStateFooter>
-    </EmptyState>
-  ), []);
+  const emptyState = React.useMemo(
+    () => (
+      <EmptyState headingLevel="h4" titleText="No results found" icon={SearchIcon}>
+        <EmptyStateBody>
+          No results match the filter criteria. Clear all filters and try again.
+        </EmptyStateBody>
+        <EmptyStateFooter>
+          <EmptyStateActions>
+            <Button
+              variant="link"
+              onClick={() => {
+                setSearchNameValue('');
+                setStatusSelection('');
+                setSearchDescriptionValue('');
+              }}
+            >
+              Clear all filters
+            </Button>
+          </EmptyStateActions>
+        </EmptyStateFooter>
+      </EmptyState>
+    ),
+    [],
+  );
 
   // Actions
 
@@ -490,13 +520,16 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     setActiveActionType(ActionType.ViewDetails);
   }, []);
 
-  const workspaceKindsDefaultActions = React.useCallback((workspaceKind: WorkspaceKind): IActions => ([
-    {
-      id: 'view-details',
-      title: 'View Details',
-      onClick: () => viewDetailsClick(workspaceKind),
-    },
-  ]), [viewDetailsClick]);
+  const workspaceKindsDefaultActions = React.useCallback(
+    (workspaceKind: WorkspaceKind): IActions => [
+      {
+        id: 'view-details',
+        title: 'View Details',
+        onClick: () => viewDetailsClick(workspaceKind),
+      },
+    ],
+    [viewDetailsClick],
+  );
 
   const workspaceDetailsContent = null; // Todo: Detail need to be implemented.
 
