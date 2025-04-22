@@ -5,6 +5,7 @@ import { Debug } from './pages/Debug/Debug';
 import { Workspaces } from './pages/Workspaces/Workspaces';
 import { WorkspaceCreation } from './pages/Workspaces/Creation/WorkspaceCreation';
 import '~/shared/style/MUI-theme.scss';
+import { WorkspaceKinds } from './pages/WorkspaceKinds/WorkspaceKinds';
 
 export const isNavDataGroup = (navItem: NavDataItem): navItem is NavDataGroup =>
   'children' in navItem;
@@ -38,6 +39,10 @@ export const useAdminDebugSettings = (): NavDataItem[] => {
       label: 'Debug',
       children: [{ label: 'Notebooks', path: '/notebookDebugSettings' }],
     },
+    {
+      label: 'Workspace Kinds',
+      path: '/workspacekinds',
+    },
   ];
 };
 
@@ -55,6 +60,7 @@ const AppRoutes: React.FC = () => {
   return (
     <Routes>
       <Route path="/workspaces/create" element={<WorkspaceCreation />} />
+      <Route path="/workspacekinds" element={<WorkspaceKinds />} />
       <Route path="/workspaces" element={<Workspaces />} />
       <Route path="/" element={<Workspaces />} />
       <Route path="*" element={<NotFound />} />
