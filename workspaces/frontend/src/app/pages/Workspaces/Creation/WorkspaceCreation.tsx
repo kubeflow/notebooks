@@ -14,9 +14,14 @@ import { useNavigate } from 'react-router-dom';
 import { CheckIcon } from '@patternfly/react-icons';
 import { WorkspaceCreationImageSelection } from '~/app/pages/Workspaces/Creation/image/WorkspaceCreationImageSelection';
 import { WorkspaceCreationKindSelection } from '~/app/pages/Workspaces/Creation/kind/WorkspaceCreationKindSelection';
-import { WorkspaceCreationPropertiesSelection } from '~/app/pages/Workspaces/Creation/WorkspaceCreationPropertiesSelection';
+import { WorkspaceCreationPropertiesSelection } from '~/app/pages/Workspaces/Creation/properties/WorkspaceCreationPropertiesSelection';
 import { WorkspaceCreationPodConfigSelection } from '~/app/pages/Workspaces/Creation/podConfig/WorkspaceCreationPodConfigSelection';
-import { WorkspaceImage, WorkspaceKind, WorkspacePodConfig } from '~/shared/types';
+import {
+  WorkspaceImage,
+  WorkspaceKind,
+  WorkspacePodConfig,
+  WorkspaceProperties,
+} from '~/shared/types';
 
 enum WorkspaceCreationSteps {
   KindSelection,
@@ -32,6 +37,7 @@ const WorkspaceCreation: React.FunctionComponent = () => {
   const [selectedKind, setSelectedKind] = useState<WorkspaceKind | undefined>();
   const [selectedImage, setSelectedImage] = useState<WorkspaceImage | undefined>();
   const [selectedPodConfig, setSelectedPodConfig] = useState<WorkspacePodConfig | undefined>();
+  const [selectedProperties, setSelectedProperties] = useState<WorkspaceProperties | undefined>();
 
   const getStepVariant = useCallback(
     (step: WorkspaceCreationSteps) => {
@@ -62,6 +68,7 @@ const WorkspaceCreation: React.FunctionComponent = () => {
     setSelectedKind(newWorkspaceKind);
     setSelectedImage(undefined);
     setSelectedPodConfig(undefined);
+    setSelectedProperties(undefined)
   }, []);
 
   return (
@@ -155,7 +162,9 @@ const WorkspaceCreation: React.FunctionComponent = () => {
           />
         )}
         {currentStep === WorkspaceCreationSteps.Properties && (
-          <WorkspaceCreationPropertiesSelection />
+          <WorkspaceCreationPropertiesSelection
+            selectedImage={selectedImage}
+          />
         )}
       </PageSection>
       <PageSection isFilled={false} stickyOnBreakpoint={{ default: 'bottom' }}>

@@ -20,6 +20,21 @@ export interface WorkspaceImage {
   };
 }
 
+export interface WorkspaceProperties {
+  workspaceName: string;
+  deferUpdates: boolean;
+  homeDirectory: string;
+  volumes: boolean;
+  isVolumesExpanded: boolean
+  redirect?: {
+    to: string;
+    message: {
+      text: string;
+      level: string;
+    };
+  };
+}
+
 export interface WorkspacePodConfig {
   id: string;
   displayName: string;
