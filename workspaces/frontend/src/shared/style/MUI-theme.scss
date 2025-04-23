@@ -180,6 +180,7 @@
 .mui-theme .pf-v6-c-card {
   --pf-v6-c-card--BorderWidth: 0px;
   --pf-v6-c-card--BorderRadius: var(--mui-shape-borderRadius);
+  box-shadow: var(--mui-shadows-1);
 }
 
 .mui-theme .pf-v6-c-card:hover {
