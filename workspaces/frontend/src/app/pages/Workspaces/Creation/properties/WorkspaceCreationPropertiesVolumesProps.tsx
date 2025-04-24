@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { EllipsisVIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tbody, Tr, Th, Td, TableVariant } from '@patternfly/react-table';
 import {
@@ -14,31 +14,32 @@ import {
   ModalFooter,
   Form,
   FormGroup,
+  ModalHeader,
 } from '@patternfly/react-core';
+import { WorkspaceVolume } from '~/shared/types';
 
-interface Volume {
-  pvcName: string;
-  mountPath: string;
-  readOnly: boolean;
+interface WorkspaceCreationPropertiesVolumesProps {
+  volumes: WorkspaceVolume[];
+  setVolumes: React.Dispatch<React.SetStateAction<WorkspaceVolume[]>>;
 }
 
-interface WorkspaceCreationPropertiesTableProps {
-  volumes: Volume[];
-  setVolumes: React.Dispatch<React.SetStateAction<Volume[]>>;
-}
-
-export const WorkspaceCreationPropertiesTable: React.FC<WorkspaceCreationPropertiesTableProps> = ({
-  volumes,
-  setVolumes,
-}) => {
+export const WorkspaceCreationPropertiesVolumes: React.FC<
+  WorkspaceCreationPropertiesVolumesProps
+> = ({ volumes, setVolumes }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [formData, setFormData] = useState<Volume>({ pvcName: '', mountPath: '', readOnly: false });
+  const [formData, setFormData] = useState<WorkspaceVolume>({ pvcName: '', mountPath: '', readOnly: false });
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
 
-  const handleAddOrEdit = () => {
+  const resetForm = useCallback(() => {
+    setFormData({ pvcName: '', mountPath: '', readOnly: false });
+    setEditIndex(null);
+    setIsModalOpen(false);
+  }, []);
+
+  const handleAddOrEdit = useCallback(() => {
     if (!formData.pvcName || !formData.mountPath) {
       return;
     }
@@ -50,32 +51,29 @@ export const WorkspaceCreationPropertiesTable: React.FC<WorkspaceCreationPropert
       setVolumes([...volumes, formData]);
     }
     resetForm();
-  };
+  }, [formData, editIndex, volumes, setVolumes, resetForm]);
 
-  const handleEdit = (index: number) => {
-    setFormData(volumes[index]);
-    setEditIndex(index);
-    setIsModalOpen(true);
-  };
+  const handleEdit = useCallback(
+    (index: number) => {
+      setFormData(volumes[index]);
+      setEditIndex(index);
+      setIsModalOpen(true);
+    },
+    [volumes],
+  );
 
-  const openDetachModal = (index: number) => {
+  const openDetachModal = useCallback((index: number) => {
     setDeleteIndex(index);
     setIsDeleteModalOpen(true);
-  };
+  }, []);
 
-  const handleDelete = () => {
+  const handleDelete = useCallback(() => {
     if (deleteIndex !== null) {
       setVolumes(volumes.filter((_, i) => i !== deleteIndex));
       setIsDeleteModalOpen(false);
       setDeleteIndex(null);
     }
-  };
-
-  const resetForm = () => {
-    setFormData({ pvcName: '', mountPath: '', readOnly: false });
-    setEditIndex(null);
-    setIsModalOpen(false);
-  };
+  }, [deleteIndex, volumes, setVolumes]);
 
   return (
     <>
@@ -140,39 +138,34 @@ export const WorkspaceCreationPropertiesTable: React.FC<WorkspaceCreationPropert
         Create Volume
       </Button>
 
-      <Modal
-        title={editIndex !== null ? 'Edit Volume' : 'Create Volume'}
-        isOpen={isModalOpen}
-        onClose={resetForm}
-        variant={ModalVariant.small}
-      >
+      <Modal isOpen={isModalOpen} onClose={resetForm} variant={ModalVariant.small}>
+        <ModalHeader
+          title={editIndex !== null ? 'Edit Volume' : 'Create Volume'}
+          description="Add a volume and optionally connect it with an existing workspace."
+        />
         <ModalBody>
-          <div> Add volume and optionally connect it with an existing workspace.</div>
-          <div className="pf-u-font-size-sm" />
-          <div className="pf-c-form">
-            <Form>
-              <FormGroup label="PVC Name" isRequired fieldId="pvc-name">
-                <TextInput
-                  name="pvcName"
-                  isRequired
-                  type="text"
-                  value={formData.pvcName}
-                  onChange={(_, val) => setFormData({ ...formData, pvcName: val })}
-                  id="pvc-name"
-                />
-              </FormGroup>
-              <FormGroup label="Mount Path" isRequired fieldId="mount-path">
-                <TextInput
-                  name="mountPath"
-                  isRequired
-                  type="text"
-                  value={formData.mountPath}
-                  onChange={(_, val) => setFormData({ ...formData, mountPath: val })}
-                  id="mount-path"
-                />
-              </FormGroup>
-            </Form>
-          </div>
+          <Form>
+            <FormGroup label="PVC Name" isRequired fieldId="pvc-name">
+              <TextInput
+                name="pvcName"
+                isRequired
+                type="text"
+                value={formData.pvcName}
+                onChange={(_, val) => setFormData({ ...formData, pvcName: val })}
+                id="pvc-name"
+              />
+            </FormGroup>
+            <FormGroup label="Mount Path" isRequired fieldId="mount-path">
+              <TextInput
+                name="mountPath"
+                isRequired
+                type="text"
+                value={formData.mountPath}
+                onChange={(_, val) => setFormData({ ...formData, mountPath: val })}
+                id="mount-path"
+              />
+            </FormGroup>
+          </Form>
         </ModalBody>
         <ModalFooter>
           <Button
@@ -180,7 +173,7 @@ export const WorkspaceCreationPropertiesTable: React.FC<WorkspaceCreationPropert
             onClick={handleAddOrEdit}
             isDisabled={!formData.pvcName || !formData.mountPath}
           >
-            {editIndex !== null ? 'Save' : 'Add'}
+            {editIndex !== null ? 'Save' : 'Create'}
           </Button>
           <Button key="cancel" variant="link" onClick={resetForm}>
             Cancel
@@ -188,14 +181,14 @@ export const WorkspaceCreationPropertiesTable: React.FC<WorkspaceCreationPropert
         </ModalFooter>
       </Modal>
       <Modal
-        title="Detach PVC?"
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         variant={ModalVariant.small}
       >
-        <ModalBody>
-          <div> The volume and all of its resources will be detached from the workspace.</div>
-        </ModalBody>
+        <ModalHeader
+          title="Detach Volume?"
+          description="The volume and all of its resources will be detached from the workspace."
+        />
         <ModalFooter>
           <Button key="detach" variant="danger" onClick={handleDelete}>
             Detach
@@ -209,4 +202,4 @@ export const WorkspaceCreationPropertiesTable: React.FC<WorkspaceCreationPropert
   );
 };
 
-export default WorkspaceCreationPropertiesTable;
+export default WorkspaceCreationPropertiesVolumesProps;

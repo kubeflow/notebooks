@@ -9,16 +9,11 @@ import {
   Divider,
   Split,
   SplitItem,
+  Content,
 } from '@patternfly/react-core';
 import { WorkspaceCreationImageDetails } from '~/app/pages/Workspaces/Creation/image/WorkspaceCreationImageDetails';
-import { WorkspaceCreationPropertiesTable } from '~/app/pages/Workspaces/Creation/properties/WorkspaceCreationPropertiesTable';
-import { WorkspaceImage } from '~/shared/types';
-
-interface Volume {
-  pvcName: string;
-  mountPath: string;
-  readOnly: boolean;
-}
+import { WorkspaceCreationPropertiesVolumes } from '~/app/pages/Workspaces/Creation/properties/WorkspaceCreationPropertiesVolumesProps';
+import { WorkspaceImage, WorkspaceVolumes, WorkspaceVolume } from '~/shared/types';
 
 interface WorkspaceCreationImageSelectionProps {
   selectedImage: WorkspaceImage | undefined;
@@ -30,8 +25,16 @@ const WorkspaceCreationPropertiesSelection: React.FunctionComponent<
   const [workspaceName, setWorkspaceName] = useState('');
   const [deferUpdates, setDeferUpdates] = useState(false);
   const [homeDirectory, setHomeDirectory] = useState('');
-  const [volumes, setVolumes] = useState<Volume[]>([]);
+  const [volumes, setVolumes] = useState<WorkspaceVolumes>({ home: '', data: [] });
+  const [volumesData, setVolumesData] = useState<WorkspaceVolume[]>([]);
   const [isVolumesExpanded, setIsVolumesExpanded] = useState(false);
+
+  React.useEffect(() => {
+    setVolumes((prev) => ({
+      ...prev,
+      data: volumesData,
+    }));
+  }, [volumesData]);
 
   const imageDetailsContent = useMemo(
     () => <WorkspaceCreationImageDetails workspaceImage={selectedImage} />,
@@ -39,74 +42,84 @@ const WorkspaceCreationPropertiesSelection: React.FunctionComponent<
   );
 
   return (
-    <Split hasGutter>
-      <SplitItem style={{ minWidth: '200px' }}>{imageDetailsContent}</SplitItem>
-      <SplitItem isFilled>
-        <div className="pf-u-p-lg pf-u-max-width-xl">
-          <Form>
-            <FormGroup
-              label="Workspace Name"
-              isRequired
-              fieldId="workspace-name"
-              style={{ width: 520 }}
-            >
-              <TextInput
+    <Content style={{ height: '100%' }}>
+      <p>Configure properties for your workspace.</p>
+      <Divider />
+      <Split hasGutter>
+        <SplitItem style={{ minWidth: '200px' }}>{imageDetailsContent}</SplitItem>
+        <SplitItem isFilled>
+          <div className="pf-u-p-lg pf-u-max-width-xl">
+            <Form>
+              <FormGroup
+                label="Workspace Name"
                 isRequired
-                type="text"
-                value={workspaceName}
-                onChange={(_, value) => setWorkspaceName(value)}
-                id="workspace-name"
-              />
-            </FormGroup>
-            <FormGroup fieldId="defer-updates">
-              <Checkbox
-                label="Defer Updates"
-                isChecked={deferUpdates}
-                onChange={() => setDeferUpdates((prev) => !prev)}
-                id="defer-updates"
-              />
-            </FormGroup>
-            <Divider />
-            <div className="pf-u-mb-0">
-              <ExpandableSection
-                toggleText={isVolumesExpanded ? 'Volumes' : 'Add Volumes'}
-                onToggle={() => setIsVolumesExpanded((prev) => !prev)}
-                isExpanded={isVolumesExpanded}
-                isIndented
+                fieldId="workspace-name"
+                style={{ width: 520 }}
               >
-                {isVolumesExpanded && (
-                  <>
-                    <FormGroup
-                      label="Home Directory"
-                      fieldId="home-directory"
-                      style={{ width: 500 }}
-                    >
-                      <TextInput
-                        value={homeDirectory}
-                        onChange={(_, value) => setHomeDirectory(value)}
-                        id="home-directory"
-                      />
-                    </FormGroup>
+                <TextInput
+                  isRequired
+                  type="text"
+                  value={workspaceName}
+                  onChange={(_, value) => setWorkspaceName(value)}
+                  id="workspace-name"
+                />
+              </FormGroup>
+              <FormGroup fieldId="defer-updates">
+                <Checkbox
+                  label="Defer Updates"
+                  isChecked={deferUpdates}
+                  onChange={() => setDeferUpdates((prev) => !prev)}
+                  id="defer-updates"
+                />
+              </FormGroup>
+              <Divider />
+              <div className="pf-u-mb-0">
+                <ExpandableSection
+                  toggleText="Volumes"
+                  onToggle={() => setIsVolumesExpanded((prev) => !prev)}
+                  isExpanded={isVolumesExpanded}
+                  isIndented
+                >
+                  {isVolumesExpanded && (
+                    <>
+                      <FormGroup
+                        label="Home Directory"
+                        fieldId="home-directory"
+                        style={{ width: 500 }}
+                      >
+                        <TextInput
+                          value={homeDirectory}
+                          onChange={(_, value) => {
+                            setHomeDirectory(value);
+                            setVolumes((prev) => ({ ...prev, home: value }));
+                          }}
+                          id="home-directory"
+                        />
+                      </FormGroup>
 
-                    <FormGroup fieldId="volumes-table" style={{ marginTop: '1rem' }}>
-                      <WorkspaceCreationPropertiesTable volumes={volumes} setVolumes={setVolumes} />
-                    </FormGroup>
-                  </>
-                )}
-              </ExpandableSection>
-            </div>
-            {!isVolumesExpanded && (
-              <div style={{ paddingLeft: '36px', marginTop: '-10px' }}>
-                <div>Workspace volume enables your project data to be persist</div>
-                <div className="pf-u-font-size-sm">
-                  <strong>{volumes.length} added</strong>
-                </div>
+                      <FormGroup fieldId="volumes-table" style={{ marginTop: '1rem' }}>
+                        <WorkspaceCreationPropertiesVolumes
+                          volumes={volumesData}
+                          setVolumes={setVolumesData}
+                        />
+                      </FormGroup>
+                    </>
+                  )}
+                </ExpandableSection>
               </div>
-            )}
-          </Form>
-        </div>
-      </SplitItem>
-    </Split>
+              {!isVolumesExpanded && (
+                <div style={{ paddingLeft: '36px', marginTop: '-10px' }}>
+                  <div>Workspace volumes enable your project data to persist.</div>
+                  <div className="pf-u-font-size-sm">
+                    <strong>{volumes.data.length} added</strong>
+                  </div>
+                </div>
+              )}
+            </Form>
+          </div>
+        </SplitItem>
+      </Split>
+    </Content>
   );
 };
 
