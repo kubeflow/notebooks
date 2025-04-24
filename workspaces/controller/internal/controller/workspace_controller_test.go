@@ -44,7 +44,7 @@ var _ = Describe("Workspace Controller", func() {
 		timeout = time.Second * 10
 
 		// how long to wait in "Consistently" blocks
-		duration = time.Second * 10 // nolint:unused
+		duration = time.Second * 10 //nolint:unused
 
 		// how frequently to poll for conditions
 		interval = time.Millisecond * 250
@@ -175,7 +175,7 @@ var _ = Describe("Workspace Controller", func() {
 			}, timeout, interval).Should(HaveLen(1))
 
 			// TODO: use this to get the StatefulSet
-			//statefulSet := statefulSetList.Items[0]
+			// statefulSet := statefulSetList.Items[0]
 
 			By("creating a Service")
 			serviceList := &corev1.ServiceList{}
@@ -188,7 +188,7 @@ var _ = Describe("Workspace Controller", func() {
 			}, timeout, interval).Should(HaveLen(1))
 
 			// TODO: use this to get the Service
-			//service := serviceList.Items[0]
+			// service := serviceList.Items[0]
 
 			//
 			// TODO: populate these tests
@@ -198,7 +198,7 @@ var _ = Describe("Workspace Controller", func() {
 			//     - it may make sense to split some of these up into at least separate `It(` specs
 			//       or even separate `Context(` scopes so we can run them in parallel
 			//  - key things to test:
-			//     - core behaviour:
+			//     - core behavior:
 			//         - resources like Service/StatefulSet/VirtualService/etc are created when the Workspace is created
 			//         - even if the Workspace has a >64 character name, everything still works
 			//         - deleting the reconciled resources, and ensuring they are recreated
@@ -207,12 +207,12 @@ var _ = Describe("Workspace Controller", func() {
 			//            - succeed for valid portID
 			//            - return empty string for invalid portID
 			//            - set Workspace to error state for invalid template format (e.g. single quote for portID string)
-			//     - workspace update behaviour:
+			//     - workspace update behavior:
 			//        - pausing the Workspace results in the StatefulSet being scaled to 0
 			//        - updating the selected options results in the correct resources being updated:
 			//            - imageConfig - updates the StatefulSet and possibly the Service
 			//            - podConfig - updates the StatefulSet
-			//     - workspaceKind redirect behaviour:
+			//     - workspaceKind redirect behavior:
 			//        - when adding a redirect to the currently selected `imageConfig` or `podConfig`
 			//            - if the workspace is NOT paused, NO resource changes are made except setting `status.pendingRestart`
 			//              and `status.podTemplateOptions` (`desired` along with `redirectChain`)

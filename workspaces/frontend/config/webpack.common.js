@@ -5,6 +5,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 const Dotenv = require('dotenv-webpack');
+const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const ASSET_PATH = process.env.ASSET_PATH || '/';
 const IMAGES_DIRNAME = 'images';
 const relativeDir = path.resolve(__dirname, '..');
@@ -18,11 +19,10 @@ module.exports = (env) => {
             {
               loader: 'ts-loader',
               options: {
-                transpileOnly: true,
-                experimentalWatchApi: true
-              }
-            }
-          ]
+                experimentalWatchApi: true,
+              },
+            },
+          ],
         },
         {
           test: /\.(svg|ttf|eot|woff|woff2)$/,
@@ -31,10 +31,16 @@ module.exports = (env) => {
           // if they live under a 'fonts' or 'pficon' directory
           include: [
             path.resolve(relativeDir, 'node_modules/patternfly/dist/fonts'),
-            path.resolve(relativeDir, 'node_modules/@patternfly/react-core/dist/styles/assets/fonts'),
-            path.resolve(relativeDir, 'node_modules/@patternfly/react-core/dist/styles/assets/pficon'),
+            path.resolve(
+              relativeDir,
+              'node_modules/@patternfly/react-core/dist/styles/assets/fonts',
+            ),
+            path.resolve(
+              relativeDir,
+              'node_modules/@patternfly/react-core/dist/styles/assets/pficon',
+            ),
             path.resolve(relativeDir, 'node_modules/@patternfly/patternfly/assets/fonts'),
-            path.resolve(relativeDir, 'node_modules/@patternfly/patternfly/assets/pficon')
+            path.resolve(relativeDir, 'node_modules/@patternfly/patternfly/assets/pficon'),
           ],
           use: {
             loader: 'file-loader',
@@ -93,19 +99,22 @@ module.exports = (env) => {
             path.resolve(relativeDir, 'node_modules/patternfly'),
             path.resolve(relativeDir, 'node_modules/@patternfly/patternfly/assets/images'),
             path.resolve(relativeDir, 'node_modules/@patternfly/react-styles/css/assets/images'),
-            path.resolve(relativeDir, 'node_modules/@patternfly/react-core/dist/styles/assets/images'),
             path.resolve(
               relativeDir,
-              'node_modules/@patternfly/react-core/node_modules/@patternfly/react-styles/css/assets/images'
+              'node_modules/@patternfly/react-core/dist/styles/assets/images',
             ),
             path.resolve(
               relativeDir,
-              'node_modules/@patternfly/react-table/node_modules/@patternfly/react-styles/css/assets/images'
+              'node_modules/@patternfly/react-core/node_modules/@patternfly/react-styles/css/assets/images',
             ),
             path.resolve(
               relativeDir,
-              'node_modules/@patternfly/react-inline-edit-extension/node_modules/@patternfly/react-styles/css/assets/images'
-            )
+              'node_modules/@patternfly/react-table/node_modules/@patternfly/react-styles/css/assets/images',
+            ),
+            path.resolve(
+              relativeDir,
+              'node_modules/@patternfly/react-inline-edit-extension/node_modules/@patternfly/react-styles/css/assets/images',
+            ),
           ],
           type: 'asset/inline',
           use: [
@@ -113,10 +122,10 @@ module.exports = (env) => {
               options: {
                 limit: 5000,
                 outputPath: 'images',
-                name: '[name].[ext]'
-              }
-            }
-          ]
+                name: '[name].[ext]',
+              },
+            },
+          ],
         },
         {
           test: /\.s[ac]ss$/i,
@@ -128,35 +137,46 @@ module.exports = (env) => {
             // Compiles Sass to CSS
             'sass-loader',
           ],
-        }
-      ]
+        },
+        {
+          test: /\.css$/i,
+          use: [
+            'style-loader',
+            'css-loader',
+          ],
+          include: [
+            path.resolve(relativeDir, 'node_modules/@patternfly/react-catalog-view-extension/dist/css/react-catalog-view-extension.css'),
+          ]
+        },
+      ],
     },
     output: {
       filename: '[name].bundle.js',
       path: path.resolve(relativeDir, 'dist'),
-      publicPath: ASSET_PATH
+      publicPath: ASSET_PATH,
     },
     plugins: [
       new HtmlWebpackPlugin({
-        template: path.resolve(relativeDir, 'src', 'index.html')
+        template: path.resolve(relativeDir, 'src', 'index.html'),
       }),
       new Dotenv({
         systemvars: true,
-        silent: true
+        silent: true,
       }),
       new CopyPlugin({
-        patterns: [{ from: './src/images', to: 'images' }]
-      })
+        patterns: [{ from: './src/images', to: 'images' }],
+      }),
+      new ForkTsCheckerWebpackPlugin(),
     ],
     resolve: {
       extensions: ['.js', '.ts', '.tsx', '.jsx'],
       plugins: [
         new TsconfigPathsPlugin({
-          configFile: path.resolve(relativeDir, './tsconfig.json')
-        })
+          configFile: path.resolve(relativeDir, './tsconfig.json'),
+        }),
       ],
       symlinks: false,
-      cacheWithContext: false
-    }
+      cacheWithContext: false,
+    },
   };
 };

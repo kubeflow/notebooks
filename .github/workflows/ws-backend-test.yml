@@ -1,0 +1,70 @@
+name: Backend - Build and Test
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - main
+      - notebooks-v2
+      - v*-branch
+  pull_request:
+    paths:
+      - workspaces/backend/**
+      ## NOTE: we also test on changes to the controller as the backend depends on the controller
+      - workspaces/controller/**
+    branches:
+      - main
+      - notebooks-v2
+      - v*-branch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: workspaces/backend/go.mod
+          check-latest: true
+          cache-dependency-path: workspaces/backend/go.sum
+
+      - name: Lint
+        working-directory: workspaces/backend
+        run: make lint
+
+      - name: Build
+        working-directory: workspaces/backend
+        run: make build
+
+      - name: Check if there are uncommitted file changes
+        working-directory: workspaces/backend
+        run: |
+          clean=$(git status --porcelain)
+          if [[ -z "$clean" ]]; then
+              echo "Empty git status --porcelain: $clean"
+          else
+              echo "Uncommitted file changes detected: $clean"
+              git diff
+              exit 1
+          fi
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: workspaces/backend/go.mod
+          check-latest: true
+          cache-dependency-path: workspaces/backend/go.sum
+
+      - name: Run unit tests
+        working-directory: workspaces/backend
+        run: make test

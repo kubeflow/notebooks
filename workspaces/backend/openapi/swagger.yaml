@@ -1,0 +1,109 @@
+basePath: /api/v1
+definitions:
+  api.ErrorCause:
+    properties:
+      validation_errors:
+        items:
+          $ref: '#/definitions/api.ValidationError'
+        type: array
+    type: object
+  api.ErrorEnvelope:
+    properties:
+      error:
+        $ref: '#/definitions/api.HTTPError'
+    type: object
+  api.HTTPError:
+    properties:
+      cause:
+        $ref: '#/definitions/api.ErrorCause'
+      code:
+        type: string
+      message:
+        type: string
+    type: object
+  api.ValidationError:
+    properties:
+      field:
+        type: string
+      message:
+        type: string
+      type:
+        $ref: '#/definitions/field.ErrorType'
+    type: object
+  field.ErrorType:
+    enum:
+    - FieldValueNotFound
+    - FieldValueRequired
+    - FieldValueDuplicate
+    - FieldValueInvalid
+    - FieldValueNotSupported
+    - FieldValueForbidden
+    - FieldValueTooLong
+    - FieldValueTooMany
+    - InternalError
+    - FieldValueTypeInvalid
+    type: string
+    x-enum-varnames:
+    - ErrorTypeNotFound
+    - ErrorTypeRequired
+    - ErrorTypeDuplicate
+    - ErrorTypeInvalid
+    - ErrorTypeNotSupported
+    - ErrorTypeForbidden
+    - ErrorTypeTooLong
+    - ErrorTypeTooMany
+    - ErrorTypeInternal
+    - ErrorTypeTypeInvalid
+  health_check.HealthCheck:
+    properties:
+      status:
+        $ref: '#/definitions/health_check.ServiceStatus'
+      systemInfo:
+        $ref: '#/definitions/health_check.SystemInfo'
+    type: object
+  health_check.ServiceStatus:
+    enum:
+    - Healthy
+    - Unhealthy
+    type: string
+    x-enum-varnames:
+    - ServiceStatusHealthy
+    - ServiceStatusUnhealthy
+  health_check.SystemInfo:
+    properties:
+      version:
+        type: string
+    type: object
+host: localhost:4000
+info:
+  contact: {}
+  description: |-
+    This API provides endpoints to manage notebooks in a Kubernetes cluster.
+    For more information, visit https://www.kubeflow.org/docs/components/notebooks/
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  title: Kubeflow Notebooks API
+  version: 1.0.0
+paths:
+  /healthcheck:
+    get:
+      description: Provides a healthcheck response indicating the status of key services.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successful healthcheck response
+          schema:
+            $ref: '#/definitions/health_check.HealthCheck'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api.ErrorEnvelope'
+      summary: Returns the health status of the application
+      tags:
+      - healthcheck
+schemes:
+- http
+- https
+swagger: "2.0"

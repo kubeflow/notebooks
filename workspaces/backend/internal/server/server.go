@@ -1,3 +1,19 @@
+/*
+Copyright 2024.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package server
 
 import (
@@ -14,6 +30,11 @@ import (
 	"github.com/kubeflow/notebooks/workspaces/backend/api"
 )
 
+const (
+	maxHeaderBytes = 1 << 17 // 128 KiB - default is 1MiB
+	maxBodyBytes   = 1 << 22 // 4 MiB - default is unlimited
+)
+
 type Server struct {
 	logger   *slog.Logger
 	listener net.Listener
@@ -28,11 +49,12 @@ func NewServer(app *api.App, logger *slog.Logger) (*Server, error) {
 
 	svc := &http.Server{
 		Addr:              fmt.Sprintf(":%d", app.Config.Port),
-		Handler:           app.Routes(),
+		Handler:           http.MaxBytesHandler(app.Routes(), maxBodyBytes),
 		IdleTimeout:       90 * time.Second, // matches http.DefaultTransport keep-alive timeout
 		ReadTimeout:       32 * time.Second,
 		ReadHeaderTimeout: 32 * time.Second,
 		WriteTimeout:      32 * time.Second,
+		MaxHeaderBytes:    maxHeaderBytes,
 		ErrorLog:          slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
 	svr := &Server{
@@ -54,7 +76,7 @@ func (s *Server) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 // Start starts the server
-// Blocks until the context is cancelled
+// Blocks until the context is canceled
 func (s *Server) Start(ctx context.Context) error {
 	serverShutdown := make(chan struct{})
 	go func() {

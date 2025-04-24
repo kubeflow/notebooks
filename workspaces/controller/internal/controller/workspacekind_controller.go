@@ -19,20 +19,20 @@ package controller
 import (
 	"context"
 
+	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
-	"k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
@@ -48,10 +48,10 @@ type WorkspaceKindReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=kubeflow.org,resources=workspacekinds,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=kubeflow.org,resources=workspacekinds/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=kubeflow.org,resources=workspacekinds/finalizers,verbs=update
-//+kubebuilder:rbac:groups=kubeflow.org,resources=workspaces,verbs=get;list;watch
+// +kubebuilder:rbac:groups=kubeflow.org,resources=workspacekinds,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=kubeflow.org,resources=workspacekinds/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=kubeflow.org,resources=workspacekinds/finalizers,verbs=update
+// +kubebuilder:rbac:groups=kubeflow.org,resources=workspaces,verbs=get;list;watch
 
 func (r *WorkspaceKindReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
@@ -70,6 +70,11 @@ func (r *WorkspaceKindReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		log.Error(err, "unable to fetch WorkspaceKind")
 		return ctrl.Result{}, err
 	}
+
+	// copy the current WorkspaceKind status, so we can avoid unnecessary updates if the status hasn't changed
+	// NOTE: we dereference the DeepCopy of the status field because status fields are NOT pointers,
+	//       so otherwise the `equality.Semantic.DeepEqual` will always return false.
+	currentStatus := *workspaceKind.Status.DeepCopy()
 
 	// fetch all Workspaces that are using this WorkspaceKind
 	workspaces := &kubefloworgv1beta1.WorkspaceList{}
@@ -128,24 +133,28 @@ func (r *WorkspaceKindReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 	}
 
-	// update the WorkspaceKind status
-	workspaceKind.Status.Workspaces = int32(numWorkspace)
+	// populate the WorkspaceKind status
+	workspaceKind.Status.Workspaces = int32(numWorkspace) //nolint:gosec
 	workspaceKind.Status.PodTemplateOptions.ImageConfig = imageConfigMetrics
 	workspaceKind.Status.PodTemplateOptions.PodConfig = podConfigMetrics
-	if err := r.Status().Update(ctx, workspaceKind); err != nil {
-		if apierrors.IsConflict(err) {
-			log.V(2).Info("update conflict while updating WorkspaceKind status, will requeue")
-			return ctrl.Result{Requeue: true}, nil
+
+	// update the WorkspaceKind status, if it has changed
+	if !equality.Semantic.DeepEqual(currentStatus, workspaceKind.Status) {
+		if err := r.Status().Update(ctx, workspaceKind); err != nil {
+			if apierrors.IsConflict(err) {
+				log.V(2).Info("update conflict while updating WorkspaceKind status, will requeue")
+				return ctrl.Result{Requeue: true}, nil
+			}
+			log.Error(err, "unable to update WorkspaceKind status")
+			return ctrl.Result{}, err
 		}
-		log.Error(err, "unable to update WorkspaceKind status")
-		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *WorkspaceKindReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *WorkspaceKindReconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
 
 	// NOTE: the SetupManagerFieldIndexers() helper in `helper/index.go` should have already been
 	//       called on `mgr` by the time this function is called, so the indexes are already set up
@@ -162,6 +171,7 @@ func (r *WorkspaceKindReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
+		WithOptions(opts).
 		For(&kubefloworgv1beta1.WorkspaceKind{}).
 		Watches(
 			&kubefloworgv1beta1.Workspace{},

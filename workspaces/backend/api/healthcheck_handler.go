@@ -20,9 +20,20 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+
+	_ "github.com/kubeflow/notebooks/workspaces/backend/internal/models/health_check"
 )
 
-func (a *App) HealthcheckHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+// GetHealthcheckHandler returns the health status of the application.
+//
+//	@Summary		Returns the health status of the application
+//	@Description	Provides a healthcheck response indicating the status of key services.
+//	@Tags			healthcheck
+//	@Produce		application/json
+//	@Success		200	{object}	health_check.HealthCheck	"Successful healthcheck response"
+//	@Failure		500	{object}	ErrorEnvelope				"Internal server error"
+//	@Router			/healthcheck [get]
+func (a *App) GetHealthcheckHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 	healthCheck, err := a.repositories.HealthCheck.HealthCheck(Version)
 	if err != nil {
@@ -34,5 +45,4 @@ func (a *App) HealthcheckHandler(w http.ResponseWriter, r *http.Request, ps http
 	if err != nil {
 		a.serverErrorResponse(w, r, err)
 	}
-
 }

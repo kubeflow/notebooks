@@ -1,0 +1,57 @@
+name: Frontend - Build and Test
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - main
+      - notebooks-v2
+      - v*-branch
+  pull_request:
+    paths:
+      - workspaces/frontend/**
+    branches:
+      - main
+      - notebooks-v2
+      - v*-branch
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        working-directory: workspaces/frontend
+        run: npm install
+
+      - name: Clean
+        working-directory: workspaces/frontend
+        run: npm run build:clean
+
+      - name: Build
+        working-directory: workspaces/frontend
+        run: npm run build
+
+      - name: Run tests
+        working-directory: workspaces/frontend
+        run: npm run test
+
+      - name: Check if there are uncommitted file changes
+        working-directory: workspaces/frontend
+        run: |
+          clean=$(git status --porcelain)
+          if [[ -z "$clean" ]]; then
+              echo "Empty git status --porcelain: $clean"
+          else
+              echo "Uncommitted file changes detected: $clean"
+              git diff
+              exit 1
+          fi

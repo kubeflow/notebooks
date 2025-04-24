@@ -22,7 +22,9 @@
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "paths": {
-      "~/*": ["./*"]
+      "~/*": [
+        "./*"
+      ]
     },
     "importHelpers": true,
     "skipLibCheck": true
@@ -31,9 +33,11 @@
     "**/*.ts",
     "**/*.tsx",
     "**/*.jsx",
-    "**/*.js",
+    "**/*.js"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "src/__tests__/cypress"
   ]
+
 }

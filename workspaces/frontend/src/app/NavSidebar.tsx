@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
+  Brand,
   Nav,
   NavExpandable,
   NavItem,
@@ -12,7 +13,9 @@ import { useNavData, isNavDataGroup, NavDataHref, NavDataGroup } from './AppRout
 
 const NavHref: React.FC<{ item: NavDataHref }> = ({ item }) => (
   <NavItem key={item.label} data-id={item.label} itemId={item.label}>
-    <NavLink to={item.path}>{item.label}</NavLink>
+    <NavLink to={item.path} data-testid={`nav-link-${item.path}`}>
+      {item.label}
+    </NavLink>
   </NavItem>
 );
 
@@ -46,6 +49,13 @@ const NavSidebar: React.FC = () => {
       <PageSidebarBody>
         <Nav id="nav-primary-simple">
           <NavList id="nav-list-simple">
+            <NavItem>
+              <Brand
+                className="kubeflow_brand"
+                src={`${window.location.origin}/images/logo.svg`}
+                alt="Kubeflow Logo"
+              />
+            </NavItem>
             {navData.map((item) =>
               isNavDataGroup(item) ? (
                 <NavGroup key={item.label} item={item} />

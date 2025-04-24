@@ -5,36 +5,10 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - apps
-  resources:
-  - statefulsets
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
   - ""
   resources:
   - configmaps
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
   - events
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
   - pods
   verbs:
   - get
@@ -53,9 +27,9 @@ rules:
   - update
   - watch
 - apiGroups:
-  - kubeflow.org
+  - apps
   resources:
-  - workspacekinds
+  - statefulsets
   verbs:
   - create
   - delete
@@ -67,20 +41,7 @@ rules:
 - apiGroups:
   - kubeflow.org
   resources:
-  - workspacekinds/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - kubeflow.org
-  resources:
-  - workspacekinds/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - kubeflow.org
-  resources:
+  - workspacekinds
   - workspaces
   verbs:
   - create
@@ -93,12 +54,14 @@ rules:
 - apiGroups:
   - kubeflow.org
   resources:
+  - workspacekinds/finalizers
   - workspaces/finalizers
   verbs:
   - update
 - apiGroups:
   - kubeflow.org
   resources:
+  - workspacekinds/status
   - workspaces/status
   verbs:
   - get

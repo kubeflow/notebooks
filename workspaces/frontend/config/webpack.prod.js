@@ -15,24 +15,24 @@ module.exports = merge(common('production'), {
       new TerserJSPlugin({}),
       new CssMinimizerPlugin({
         minimizerOptions: {
-          preset: ['default', { mergeLonghand: false }]
-        }
-      })
-    ]
+          preset: ['default', { mergeLonghand: false }],
+        },
+      }),
+    ],
   },
   plugins: [
     new MiniCssExtractPlugin({
       filename: '[name].css',
-      chunkFilename: '[name].bundle.css'
-    })
+      chunkFilename: '[name].bundle.css',
+    }),
   ],
   module: {
     rules: [
       {
         test: /\.css$/,
         include: [...stylePaths],
-        use: [MiniCssExtractPlugin.loader, 'css-loader']
-      }
-    ]
-  }
+        use: [MiniCssExtractPlugin.loader, 'css-loader'],
+      },
+    ],
+  },
 });

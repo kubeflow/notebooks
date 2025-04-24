@@ -26,7 +26,7 @@ module.exports = merge(common('development'), {
     },
     proxy: [
       {
-        context: ["/api"],
+        context: ['/api'],
         target: {
           host: PROXY_HOST,
           protocol: PROXY_PROTOCOL,

@@ -29,6 +29,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -38,7 +39,7 @@ import (
 	controllerInternal "github.com/kubeflow/notebooks/workspaces/controller/internal/controller"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
 	webhookInternal "github.com/kubeflow/notebooks/workspaces/controller/internal/webhook"
-	//+kubebuilder:scaffold:imports
+	// +kubebuilder:scaffold:imports
 )
 
 var (
@@ -50,7 +51,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(kubefloworgv1beta1.AddToScheme(scheme))
-	//+kubebuilder:scaffold:scheme
+	// +kubebuilder:scaffold:scheme
 }
 
 func main() {
@@ -119,7 +120,7 @@ func main() {
 		// after the manager stops then its usage might be unsafe.
 		//
 		// TODO: check if we are doing anything which would prevent us from using this option.
-		//LeaderElectionReleaseOnCancel: true,
+		// LeaderElectionReleaseOnCancel: true,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -136,18 +137,22 @@ func main() {
 	if err = (&controllerInternal.WorkspaceReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManager(mgr, controller.Options{
+		RateLimiter: helper.BuildRateLimiter(),
+	}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Workspace")
 		os.Exit(1)
 	}
 	if err = (&controllerInternal.WorkspaceKindReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManager(mgr, controller.Options{
+		RateLimiter: helper.BuildRateLimiter(),
+	}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "WorkspaceKind")
 		os.Exit(1)
 	}
-	//+kubebuilder:scaffold:builder
+	// +kubebuilder:scaffold:builder
 
 	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
 		if err = (&webhookInternal.WorkspaceValidator{

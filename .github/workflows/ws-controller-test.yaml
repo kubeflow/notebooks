@@ -1,0 +1,94 @@
+name: Controller - Build and Test
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - main
+      - notebooks-v2
+      - v*-branch
+  pull_request:
+    paths:
+      - workspaces/controller/**
+      ## NOTE: we also test on changes to the backend as the backend depends on the controller
+      - workspaces/backend/**
+    branches:
+      - main
+      - notebooks-v2
+      - v*-branch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: workspaces/controller/go.mod
+          check-latest: true
+          cache-dependency-path: workspaces/controller/go.sum
+
+      - name: Lint
+        working-directory: workspaces/controller
+        run: make lint
+
+      - name: Build
+        working-directory: workspaces/controller
+        run: make build
+
+      - name: Check if there are uncommitted file changes
+        working-directory: workspaces/controller
+        run: |
+          clean=$(git status --porcelain)
+          if [[ -z "$clean" ]]; then
+              echo "Empty git status --porcelain: $clean"
+          else
+              echo "Uncommitted file changes detected: $clean"
+              git diff
+              exit 1
+          fi
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: workspaces/controller/go.mod
+          check-latest: true
+          cache-dependency-path: workspaces/controller/go.sum
+
+      - name: Run unit tests
+        working-directory: workspaces/controller
+        run: make test
+
+  e2e-tests:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Kind
+        uses: helm/kind-action@v1
+        with:
+          version: v0.23.0
+          node_image: kindest/node:v1.25.16@sha256:5da57dfc290ac3599e775e63b8b6c49c0c85d3fec771cd7d55b45fae14b38d3b
+          cluster_name: kind
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: workspaces/controller/go.mod
+          check-latest: true
+          cache-dependency-path: workspaces/controller/go.sum
+
+      - name: Run e2e tests
+        working-directory: workspaces/controller
+        run: make test-e2e

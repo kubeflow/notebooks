@@ -7,26 +7,36 @@ The Kubeflow Workspaces Backend is the _backend for frontend_ (BFF) used by the 
 > We greatly appreciate any contributions.
 
 # Building and Deploying
+
 TBD
 
 # Development
+
 Run the following command to build the BFF:
+
 ```shell
 make build
 ```
+
 After building it, you can run our app with:
+
 ```shell
 make run
 ```
+
 If you want to use a different port:
+
 ```shell
 make run PORT=8000 
 ```
+
 ### Endpoints
 
 | URL Pattern                                  | Handler                | Action                                  |
 |----------------------------------------------|------------------------|-----------------------------------------|
-| GET /api/v1/healthcheck                      | healthcheck_handler    | Show application information.           |
+| GET /api/v1/healthcheck                      | healthcheck_handler    | Show application information            |
+| GET /api/v1/namespaces                       | namespaces_handler     | Get all Namespaces                      |
+| GET /api/v1/swagger/                         | swagger_handler        | Swagger API documentation               |
 | GET /api/v1/workspaces                       | workspaces_handler     | Get all Workspaces                      |
 | GET /api/v1/workspaces/{namespace}           | workspaces_handler     | Get all Workspaces from a namespace     |
 | POST /api/v1/workspaces/{namespace}          | workspaces_handler     | Create a Workspace in a given namespace |
@@ -42,52 +52,99 @@ make run PORT=8000
 | DELETE /api/v1/workspacekinds/{name}         | TBD                    | Delete a WorkspaceKind entity           |
 
 ### Sample local calls
-```
+
+Healthcheck:
+
+```shell
 # GET /api/v1/healthcheck
 curl -i localhost:4000/api/v1/healthcheck
 ```
+
+List all Namespaces:
+
+```shell
+# GET /api/v1/namespaces
+curl -i localhost:4000/api/v1/namespaces
 ```
+
+List all Workspaces:
+
+```shell
 # GET /api/v1/workspaces/
 curl -i localhost:4000/api/v1/workspaces
 ```
-```
+
+List all Workspaces in a Namespace:
+
+```shell
 # GET /api/v1/workspaces/{namespace}
 curl -i localhost:4000/api/v1/workspaces/default
 ```
-```
+
+Create a Workspace:
+
+```shell
 # POST /api/v1/workspaces/{namespace}
 curl -X POST http://localhost:4000/api/v1/workspaces/default \
     -H "Content-Type: application/json" \
     -d '{
+    "data": {
         "name": "dora",
-        "paused": false,
-        "defer_updates": false,
         "kind": "jupyterlab",
-        "image_config": "jupyterlab_scipy_190",
-        "pod_config": "tiny_cpu",
-        "home_volume": "workspace-home-bella",
-        "data_volumes": [
-            {
-                "pvc_name": "workspace-data-bella",
-                "mount_path": "/data/my-data",
-                "read_only": false
+        "paused": false,
+        "deferUpdates": false,
+        "podTemplate": {
+            "podMetadata": {
+                "labels": {
+                    "app": "dora"
+                },
+                "annotations": {
+                    "app": "dora"
+                }
+            },
+            "volumes": {
+                "home": "workspace-home-bella",
+                "data": [
+                    {
+                        "pvcName": "workspace-data-bella",
+                        "mountPath": "/data/my-data",
+                        "readOnly": false
+                    }
+                ]
+            },
+            "options": {
+                "imageConfig": "jupyterlab_scipy_190",
+                "podConfig": "tiny_cpu"
             }
-        ]
-    }'
+        }
+    }
+}'
 ```
-```
+
+Get a Workspace:
+
+```shell
 # GET /api/v1/workspaces/{namespace}/{name}
 curl -i localhost:4000/api/v1/workspaces/default/dora
 ```
-```
+
+Delete a Workspace:
+
+```shell
 # DELETE /api/v1/workspaces/{namespace}/{name}
-curl -X DELETE localhost:4000/api/v1/workspaces/workspace-test/dora
+curl -X DELETE localhost:4000/api/v1/workspaces/default/dora
 ```
-```
+
+List all WorkspaceKinds:
+
+```shell
 # GET /api/v1/workspacekinds
 curl -i localhost:4000/api/v1/workspacekinds
 ```
-```
+
+Get a WorkspaceKind:
+
+```shell
 # GET /api/v1/workspacekinds/{name}
 curl -i localhost:4000/api/v1/workspacekinds/jupyterlab
 ```

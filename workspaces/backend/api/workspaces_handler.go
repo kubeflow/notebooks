@@ -17,38 +17,61 @@ limitations under the License.
 package api
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/models"
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
+	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces"
+	repository "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/workspaces"
 )
 
-type WorkspacesEnvelope Envelope[[]models.WorkspaceModel]
-type WorkspaceEnvelope Envelope[models.WorkspaceModel]
+type WorkspaceCreateEnvelope Envelope[*models.WorkspaceCreate]
+
+type WorkspaceListEnvelope Envelope[[]models.Workspace]
+
+type WorkspaceEnvelope Envelope[models.Workspace]
 
 func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(NamespacePathParam)
-	workspaceName := ps.ByName(WorkspaceNamePathParam)
+	workspaceName := ps.ByName(ResourceNamePathParam)
 
-	var workspace models.WorkspaceModel
-	var err error
-	if namespace == "" {
-		a.serverErrorResponse(w, r, fmt.Errorf("namespace is nil"))
-		return
-	}
-	if workspaceName == "" {
-		a.serverErrorResponse(w, r, fmt.Errorf("workspaceName is nil"))
+	// validate path parameters
+	var valErrs field.ErrorList
+	valErrs = append(valErrs, helper.ValidateFieldIsDNS1123Subdomain(field.NewPath(NamespacePathParam), namespace)...)
+	valErrs = append(valErrs, helper.ValidateFieldIsDNS1123Subdomain(field.NewPath(ResourceNamePathParam), workspaceName)...)
+	if len(valErrs) > 0 {
+		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
 	}
 
-	workspace, err = a.repositories.Workspace.GetWorkspace(r.Context(), namespace, workspaceName)
+	// =========================== AUTH ===========================
+	authPolicies := []*auth.ResourcePolicy{
+		auth.NewResourcePolicy(
+			auth.ResourceVerbGet,
+			&kubefloworgv1beta1.Workspace{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: namespace,
+					Name:      workspaceName,
+				},
+			},
+		),
+	}
+	if success := a.requireAuth(w, r, authPolicies); !success {
+		return
+	}
+	// ============================================================
+
+	workspace, err := a.repositories.Workspace.GetWorkspace(r.Context(), namespace, workspaceName)
 	if err != nil {
-		if errors.Is(err, repositories.ErrWorkspaceNotFound) {
+		if errors.Is(err, repository.ErrWorkspaceNotFound) {
 			a.notFoundResponse(w, r)
 			return
 		}
@@ -56,21 +79,41 @@ func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	modelRegistryRes := WorkspaceEnvelope{
-		Data: workspace,
-	}
-
-	err = a.WriteJSON(w, http.StatusOK, modelRegistryRes, nil)
-	if err != nil {
-		a.serverErrorResponse(w, r, err)
-	}
-
+	responseEnvelope := &WorkspaceEnvelope{Data: workspace}
+	a.dataResponse(w, r, responseEnvelope)
 }
 
 func (a *App) GetWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(NamespacePathParam)
 
-	var workspaces []models.WorkspaceModel
+	// validate path parameters
+	// NOTE: namespace is optional, if not provided, we list all workspaces across all namespaces
+	var valErrs field.ErrorList
+	if namespace != "" {
+		valErrs = append(valErrs, helper.ValidateFieldIsDNS1123Subdomain(field.NewPath(NamespacePathParam), namespace)...)
+	}
+	if len(valErrs) > 0 {
+		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
+		return
+	}
+
+	// =========================== AUTH ===========================
+	authPolicies := []*auth.ResourcePolicy{
+		auth.NewResourcePolicy(
+			auth.ResourceVerbList,
+			&kubefloworgv1beta1.Workspace{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: namespace,
+				},
+			},
+		),
+	}
+	if success := a.requireAuth(w, r, authPolicies); !success {
+		return
+	}
+	// ============================================================
+
+	var workspaces []models.Workspace
 	var err error
 	if namespace == "" {
 		workspaces, err = a.repositories.Workspace.GetAllWorkspaces(r.Context())
@@ -82,67 +125,121 @@ func (a *App) GetWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps ht
 		return
 	}
 
-	modelRegistryRes := WorkspacesEnvelope{
-		Data: workspaces,
-	}
-
-	err = a.WriteJSON(w, http.StatusOK, modelRegistryRes, nil)
-	if err != nil {
-		a.serverErrorResponse(w, r, err)
-	}
+	responseEnvelope := &WorkspaceListEnvelope{Data: workspaces}
+	a.dataResponse(w, r, responseEnvelope)
 }
 
 func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	namespace := ps.ByName("namespace")
+	namespace := ps.ByName(NamespacePathParam)
 
-	if namespace == "" {
-		a.serverErrorResponse(w, r, fmt.Errorf("namespace is missing"))
+	// validate path parameters
+	var valErrs field.ErrorList
+	valErrs = append(valErrs, helper.ValidateFieldIsDNS1123Subdomain(field.NewPath(NamespacePathParam), namespace)...)
+	if len(valErrs) > 0 {
+		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
 	}
 
-	var workspaceModel models.WorkspaceModel
-	if err := json.NewDecoder(r.Body).Decode(&workspaceModel); err != nil {
-		a.serverErrorResponse(w, r, fmt.Errorf("error decoding JSON: %v", err))
+	// validate the Content-Type header
+	if success := a.ValidateContentType(w, r, "application/json"); !success {
 		return
 	}
 
-	workspaceModel.Namespace = namespace
-
-	createdWorkspace, err := a.repositories.Workspace.CreateWorkspace(r.Context(), workspaceModel)
+	// decode the request body
+	bodyEnvelope := &WorkspaceCreateEnvelope{}
+	err := a.DecodeJSON(r, bodyEnvelope)
 	if err != nil {
-		a.serverErrorResponse(w, r, fmt.Errorf("error creating workspace: %v", err))
+		a.badRequestResponse(w, r, fmt.Errorf("error decoding request body: %w", err))
 		return
 	}
 
-	// Return created workspace as JSON
-	workspaceEnvelope := WorkspaceEnvelope{
-		Data: createdWorkspace,
+	// validate the request body
+	dataPath := field.NewPath("data")
+	if bodyEnvelope.Data == nil {
+		valErrs = field.ErrorList{field.Required(dataPath, "data is required")}
+		a.failedValidationResponse(w, r, errMsgRequestBodyInvalid, valErrs, nil)
+		return
+	}
+	valErrs = bodyEnvelope.Data.Validate(dataPath)
+	if len(valErrs) > 0 {
+		a.failedValidationResponse(w, r, errMsgRequestBodyInvalid, valErrs, nil)
+		return
 	}
 
-	w.Header().Set("Location", r.URL.Path)
-	err = a.WriteJSON(w, http.StatusCreated, workspaceEnvelope, nil)
-	if err != nil {
-		a.serverErrorResponse(w, r, fmt.Errorf("error writing JSON: %v", err))
+	workspaceCreate := bodyEnvelope.Data
+
+	// =========================== AUTH ===========================
+	authPolicies := []*auth.ResourcePolicy{
+		auth.NewResourcePolicy(
+			auth.ResourceVerbCreate,
+			&kubefloworgv1beta1.Workspace{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: namespace,
+					Name:      workspaceCreate.Name,
+				},
+			},
+		),
 	}
+	if success := a.requireAuth(w, r, authPolicies); !success {
+		return
+	}
+	// ============================================================
+
+	createdWorkspace, err := a.repositories.Workspace.CreateWorkspace(r.Context(), workspaceCreate, namespace)
+	if err != nil {
+		if errors.Is(err, repository.ErrWorkspaceAlreadyExists) {
+			a.conflictResponse(w, r, err)
+			return
+		}
+		if apierrors.IsInvalid(err) {
+			causes := helper.StatusCausesFromAPIStatus(err)
+			a.failedValidationResponse(w, r, errMsgKubernetesValidation, nil, causes)
+			return
+		}
+		a.serverErrorResponse(w, r, fmt.Errorf("error creating workspace: %w", err))
+		return
+	}
+
+	// calculate the GET location for the created workspace (for the Location header)
+	location := a.LocationGetWorkspace(namespace, createdWorkspace.Name)
+
+	responseEnvelope := &WorkspaceCreateEnvelope{Data: createdWorkspace}
+	a.createdResponse(w, r, responseEnvelope, location)
 }
 
 func (a *App) DeleteWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	namespace := ps.ByName("namespace")
-	workspaceName := ps.ByName("name")
+	namespace := ps.ByName(NamespacePathParam)
+	workspaceName := ps.ByName(ResourceNamePathParam)
 
-	if namespace == "" {
-		a.serverErrorResponse(w, r, fmt.Errorf("namespace is missing"))
+	// validate path parameters
+	var valErrs field.ErrorList
+	valErrs = append(valErrs, helper.ValidateFieldIsDNS1123Subdomain(field.NewPath(NamespacePathParam), namespace)...)
+	valErrs = append(valErrs, helper.ValidateFieldIsDNS1123Subdomain(field.NewPath(ResourceNamePathParam), workspaceName)...)
+	if len(valErrs) > 0 {
+		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
 	}
 
-	if workspaceName == "" {
-		a.serverErrorResponse(w, r, fmt.Errorf("workspace name is missing"))
+	// =========================== AUTH ===========================
+	authPolicies := []*auth.ResourcePolicy{
+		auth.NewResourcePolicy(
+			auth.ResourceVerbDelete,
+			&kubefloworgv1beta1.Workspace{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: namespace,
+					Name:      workspaceName,
+				},
+			},
+		),
+	}
+	if success := a.requireAuth(w, r, authPolicies); !success {
 		return
 	}
+	// ============================================================
 
 	err := a.repositories.Workspace.DeleteWorkspace(r.Context(), namespace, workspaceName)
 	if err != nil {
-		if errors.Is(err, repositories.ErrWorkspaceNotFound) {
+		if errors.Is(err, repository.ErrWorkspaceNotFound) {
 			a.notFoundResponse(w, r)
 			return
 		}
@@ -150,5 +247,5 @@ func (a *App) DeleteWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	a.deletedResponse(w, r)
 }
