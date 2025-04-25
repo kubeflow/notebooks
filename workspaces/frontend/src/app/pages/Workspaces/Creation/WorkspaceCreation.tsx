@@ -8,6 +8,8 @@ import {
   PageSection,
   ProgressStep,
   ProgressStepper,
+  Stack,
+  StackItem,
 } from '@patternfly/react-core';
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -68,69 +70,81 @@ const WorkspaceCreation: React.FunctionComponent = () => {
     <>
       <PageGroup stickyOnBreakpoint={{ default: 'top' }}>
         <PageSection isFilled={false}>
-          <Content>
-            <h1>Create workspace</h1>
-          </Content>
-          <ProgressStepper aria-label="Workspace creation stepper">
-            <ProgressStep
-              variant={getStepVariant(WorkspaceCreationSteps.KindSelection)}
-              id="kind-selection-step"
-              icon={
-                getStepVariant(WorkspaceCreationSteps.KindSelection) === 'success' ? (
-                  <CheckIcon />
-                ) : (
-                  1
-                )
-              }
-              titleId="kind-selection-step-title"
-              aria-label="Kind selection step"
-            >
-              Workspace Kind
-            </ProgressStep>
-            <ProgressStep
-              variant={getStepVariant(WorkspaceCreationSteps.ImageSelection)}
-              isCurrent
-              id="image-selection-step"
-              icon={
-                getStepVariant(WorkspaceCreationSteps.ImageSelection) === 'success' ? (
-                  <CheckIcon />
-                ) : (
-                  2
-                )
-              }
-              titleId="image-selection-step-title"
-              aria-label="Image selection step"
-            >
-              Image
-            </ProgressStep>
-            <ProgressStep
-              variant={getStepVariant(WorkspaceCreationSteps.PodConfigSelection)}
-              isCurrent
-              id="pod-config-selection-step"
-              icon={
-                getStepVariant(WorkspaceCreationSteps.PodConfigSelection) === 'success' ? (
-                  <CheckIcon />
-                ) : (
-                  3
-                )
-              }
-              titleId="pod-config-selection-step-title"
-              aria-label="Pod config selection step"
-            >
-              Pod Config
-            </ProgressStep>
-            <ProgressStep
-              variant={getStepVariant(WorkspaceCreationSteps.Properties)}
-              id="properties-step"
-              icon={
-                getStepVariant(WorkspaceCreationSteps.Properties) === 'success' ? <CheckIcon /> : 4
-              }
-              titleId="properties-step-title"
-              aria-label="Properties step"
-            >
-              Properties
-            </ProgressStep>
-          </ProgressStepper>
+          <Stack hasGutter>
+            <StackItem>
+              <Flex>
+                <Content>
+                  <h1>Create workspace</h1>
+                </Content>
+              </Flex>
+            </StackItem>
+            <StackItem>
+              <ProgressStepper aria-label="Workspace creation stepper">
+                <ProgressStep
+                  variant={getStepVariant(WorkspaceCreationSteps.KindSelection)}
+                  id="kind-selection-step"
+                  icon={
+                    getStepVariant(WorkspaceCreationSteps.KindSelection) === 'success' ? (
+                      <CheckIcon />
+                    ) : (
+                      1
+                    )
+                  }
+                  titleId="kind-selection-step-title"
+                  aria-label="Kind selection step"
+                >
+                  Workspace Kind
+                </ProgressStep>
+                <ProgressStep
+                  variant={getStepVariant(WorkspaceCreationSteps.ImageSelection)}
+                  isCurrent
+                  id="image-selection-step"
+                  icon={
+                    getStepVariant(WorkspaceCreationSteps.ImageSelection) === 'success' ? (
+                      <CheckIcon />
+                    ) : (
+                      2
+                    )
+                  }
+                  titleId="image-selection-step-title"
+                  aria-label="Image selection step"
+                >
+                  Image
+                </ProgressStep>
+                <ProgressStep
+                  variant={getStepVariant(WorkspaceCreationSteps.PodConfigSelection)}
+                  isCurrent
+                  id="pod-config-selection-step"
+                  icon={
+                    getStepVariant(WorkspaceCreationSteps.PodConfigSelection) === 'success' ? (
+                      <CheckIcon />
+                    ) : (
+                      3
+                    )
+                  }
+                  titleId="pod-config-selection-step-title"
+                  aria-label="Pod config selection step"
+                >
+                  Pod Config
+                </ProgressStep>
+                <ProgressStep
+                  variant={getStepVariant(WorkspaceCreationSteps.Properties)}
+                  id="properties-step"
+                  icon={
+                    getStepVariant(WorkspaceCreationSteps.Properties) === 'success' ? (
+                      <CheckIcon />
+                    ) : (
+                      4
+                    )
+                  }
+                  titleId="properties-step-title"
+                  aria-label="Properties step"
+                >
+                  Properties
+                </ProgressStep>
+              </ProgressStepper>
+            </StackItem>
+          </Stack>
         </PageSection>
       </PageGroup>
       <PageSection isFilled>
