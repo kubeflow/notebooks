@@ -10,6 +10,8 @@
     - [In an existing cluster](#in-an-existing-cluster)
     - [Using kind](#using-kind)
   - [Teardown](#teardown)
+  - [Pull Request Checklist](#pull-request-checklist)
+    - [Best Practices](#best-practices)
   - [Troubleshooting](#troubleshooting)
     - ["Build Failed: failed to dial gRPC: unable to upgrade to h2c, received 404"](#build-failed-failed-to-dial-grpc-unable-to-upgrade-to-h2c-received-404)
 
@@ -49,7 +51,6 @@ make -C devenv tilt-up
 
 2. Hit `space` to open the Tilt dashboard in your browser and here you can see the logs and status of every resource deployed.
 
-
 ## Teardown
 
 To stop Tilt and remove all resources created by it, run:
@@ -59,6 +60,41 @@ make -C devenv tilt-down
 ```
 
 ℹ️ Please make sure you are in the `workspaces/controller` directory when executing the command.
+
+## Pull Request Checklist
+
+Before raising a PR, ensure you run the following checks to maintain code quality and reliability:
+
+1. **Linting**
+   ```bash
+   make lint
+   ```
+   - This runs static code analysis to ensure code style consistency
+   - Fix any linting errors before proceeding
+
+2. **Unit Tests**
+   ```bash
+   make test
+   ```
+   - Runs all unit tests in the project
+   - Ensure all tests pass before submitting changes
+   - Consider adding new tests for any new functionality
+
+3. **End-to-End Tests**
+   ```bash
+   make test-e2e
+   ```
+   - Validates the complete workflow of the application
+   - Requires a running Kubernetes cluster
+
+### Best Practices
+
+- Run tests locally before pushing changes
+- Write meaningful commit messages
+- Keep PRs focused and small
+- Update documentation if you change functionality
+- Consider adding new tests for new features
+- Run all checks in sequence before final submission
 
 ## Troubleshooting
 
