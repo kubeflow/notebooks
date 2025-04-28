@@ -13,6 +13,11 @@ import {
   Content,
   Brand,
   Tooltip,
+  EmptyStateActions,
+  EmptyState,
+  EmptyStateFooter,
+  EmptyStateBody,
+  Bullseye,
 } from '@patternfly/react-core';
 import {
   Table,
@@ -31,6 +36,7 @@ import {
   TimesCircleIcon,
   QuestionCircleIcon,
   CodeIcon,
+  SearchIcon,
 } from '@patternfly/react-icons';
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -289,6 +295,20 @@ export const Workspaces: React.FunctionComponent = () => {
     });
     setWorkspaces(filteredWorkspaces);
   };
+
+  const emptyState = React.useMemo(
+    () => (
+      <EmptyState headingLevel="h4" titleText="No results found" icon={SearchIcon}>
+        <EmptyStateBody>
+          No results match the filter criteria. Clear all filters and try again.
+        </EmptyStateBody>
+        <EmptyStateFooter>
+          <EmptyStateActions />
+        </EmptyStateFooter>
+      </EmptyState>
+    ),
+    [],
+  );
 
   // Column sorting
 
@@ -579,82 +599,90 @@ export const Workspaces: React.FunctionComponent = () => {
                   <Th screenReaderText="Primary action" />
                 </Tr>
               </Thead>
-              {sortedWorkspaces.map((workspace, rowIndex) => (
-                <Tbody
-                  id="workspaces-table-content"
-                  key={rowIndex}
-                  isExpanded={isWorkspaceExpanded(workspace)}
-                  data-testid="table-body"
-                >
-                  <Tr id={`workspaces-table-row-${rowIndex + 1}`}>
-                    <Td
-                      expand={{
-                        rowIndex,
-                        isExpanded: isWorkspaceExpanded(workspace),
-                        onToggle: () =>
-                          setWorkspaceExpanded(workspace, !isWorkspaceExpanded(workspace)),
-                      }}
-                    />
-                    <Td dataLabel={columnNames.redirectStatus}>
-                      {workspaceRedirectStatus[workspace.kind]
-                        ? getRedirectStatusIcon(
-                            workspaceRedirectStatus[workspace.kind]?.level,
-                            workspaceRedirectStatus[workspace.kind]?.message ||
-                              'No API response available',
-                          )
-                        : getRedirectStatusIcon(undefined, 'No API response available')}
-                    </Td>
-                    <Td dataLabel={columnNames.name}>{workspace.name}</Td>
-                    <Td dataLabel={columnNames.kind}>
-                      {kindLogoDict[workspace.kind] ? (
-                        <Tooltip content={workspace.kind}>
-                          <Brand
-                            src={kindLogoDict[workspace.kind]}
-                            alt={workspace.kind}
-                            style={{ width: '20px', height: '20px', cursor: 'pointer' }}
-                          />
-                        </Tooltip>
-                      ) : (
-                        <Tooltip content={workspace.kind}>
-                          <CodeIcon />
-                        </Tooltip>
-                      )}
-                    </Td>
-                    <Td dataLabel={columnNames.image}>{workspace.options.imageConfig}</Td>
-                    <Td dataLabel={columnNames.podConfig}>{workspace.options.podConfig}</Td>
-                    <Td dataLabel={columnNames.state}>
-                      <Label color={stateColors[workspace.status.state]}>
-                        {WorkspaceState[workspace.status.state]}
-                      </Label>
-                    </Td>
-                    <Td dataLabel={columnNames.homeVol}>{workspace.podTemplate.volumes.home}</Td>
-                    <Td dataLabel={columnNames.cpu}>{`${workspace.cpu}%`}</Td>
-                    <Td dataLabel={columnNames.ram}>{formatRam(workspace.ram)}</Td>
-                    <Td dataLabel={columnNames.lastActivity}>
-                      <Timestamp
-                        date={new Date(workspace.status.activity.lastActivity)}
-                        tooltip={{ variant: TimestampTooltipVariant.default }}
-                      >
-                        1 hour ago
-                      </Timestamp>
-                    </Td>
-                    <Td>
-                      <WorkspaceConnectAction workspace={workspace} />
-                    </Td>
-                    <Td isActionCell data-testid="action-column">
-                      <ActionsColumn
-                        items={workspaceDefaultActions(workspace).map((action) => ({
-                          ...action,
-                          'data-testid': `action-${action.id || ''}`,
-                        }))}
+              {sortedWorkspaces.length > 0 &&
+                sortedWorkspaces.map((workspace, rowIndex) => (
+                  <Tbody
+                    id="workspaces-table-content"
+                    key={rowIndex}
+                    isExpanded={isWorkspaceExpanded(workspace)}
+                    data-testid="table-body"
+                  >
+                    <Tr id={`workspaces-table-row-${rowIndex + 1}`}>
+                      <Td
+                        expand={{
+                          rowIndex,
+                          isExpanded: isWorkspaceExpanded(workspace),
+                          onToggle: () =>
+                            setWorkspaceExpanded(workspace, !isWorkspaceExpanded(workspace)),
+                        }}
                       />
-                    </Td>
-                  </Tr>
-                  {isWorkspaceExpanded(workspace) && (
-                    <ExpandedWorkspaceRow workspace={workspace} columnNames={columnNames} />
-                  )}
-                </Tbody>
-              ))}
+                      <Td dataLabel={columnNames.redirectStatus}>
+                        {workspaceRedirectStatus[workspace.kind]
+                          ? getRedirectStatusIcon(
+                              workspaceRedirectStatus[workspace.kind]?.level,
+                              workspaceRedirectStatus[workspace.kind]?.message ||
+                                'No API response available',
+                            )
+                          : getRedirectStatusIcon(undefined, 'No API response available')}
+                      </Td>
+                      <Td dataLabel={columnNames.name}>{workspace.name}</Td>
+                      <Td dataLabel={columnNames.kind}>
+                        {kindLogoDict[workspace.kind] ? (
+                          <Tooltip content={workspace.kind}>
+                            <Brand
+                              src={kindLogoDict[workspace.kind]}
+                              alt={workspace.kind}
+                              style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                            />
+                          </Tooltip>
+                        ) : (
+                          <Tooltip content={workspace.kind}>
+                            <CodeIcon />
+                          </Tooltip>
+                        )}
+                      </Td>
+                      <Td dataLabel={columnNames.image}>{workspace.options.imageConfig}</Td>
+                      <Td dataLabel={columnNames.podConfig}>{workspace.options.podConfig}</Td>
+                      <Td dataLabel={columnNames.state}>
+                        <Label color={stateColors[workspace.status.state]}>
+                          {WorkspaceState[workspace.status.state]}
+                        </Label>
+                      </Td>
+                      <Td dataLabel={columnNames.homeVol}>{workspace.podTemplate.volumes.home}</Td>
+                      <Td dataLabel={columnNames.cpu}>{`${workspace.cpu}%`}</Td>
+                      <Td dataLabel={columnNames.ram}>{formatRam(workspace.ram)}</Td>
+                      <Td dataLabel={columnNames.lastActivity}>
+                        <Timestamp
+                          date={new Date(workspace.status.activity.lastActivity)}
+                          tooltip={{ variant: TimestampTooltipVariant.default }}
+                        >
+                          1 hour ago
+                        </Timestamp>
+                      </Td>
+                      <Td>
+                        <WorkspaceConnectAction workspace={workspace} />
+                      </Td>
+                      <Td isActionCell data-testid="action-column">
+                        <ActionsColumn
+                          items={workspaceDefaultActions(workspace).map((action) => ({
+                            ...action,
+                            'data-testid': `action-${action.id || ''}`,
+                          }))}
+                        />
+                      </Td>
+                    </Tr>
+                    {isWorkspaceExpanded(workspace) && (
+                      <ExpandedWorkspaceRow workspace={workspace} columnNames={columnNames} />
+                    )}
+                  </Tbody>
+                ))}
+              {sortedWorkspaces.length === 0 && (
+                <Tr>
+                  <Td colSpan={11} id="empty-state">
+                    <Bullseye>{emptyState}</Bullseye>
+                  </Td>
+                </Tr>
+              )}
             </Table>
             {isActionAlertModalOpen && chooseAlertModal()}
             <DeleteModal
