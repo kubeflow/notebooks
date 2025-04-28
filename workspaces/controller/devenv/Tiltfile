@@ -24,7 +24,7 @@ k8s_yaml(overridden_manifests, allow_duplicates=True)
 
 local_resource(
     "cert-manager-req-check",
-    serve_cmd="sleep infinity",
+    serve_cmd="while true; do sleep 86400; done",
     labels="requirements",
     readiness_probe=probe(
         exec=exec_action(
