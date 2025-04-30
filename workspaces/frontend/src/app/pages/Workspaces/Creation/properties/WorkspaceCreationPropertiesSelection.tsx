@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   TextInput,
   Checkbox,
@@ -12,15 +12,15 @@ import {
   Content,
 } from '@patternfly/react-core';
 import { WorkspaceCreationImageDetails } from '~/app/pages/Workspaces/Creation/image/WorkspaceCreationImageDetails';
-import { WorkspaceCreationPropertiesVolumes } from '~/app/pages/Workspaces/Creation/properties/WorkspaceCreationPropertiesVolumesProps';
+import { WorkspaceCreationPropertiesVolumesProps } from '~/app/pages/Workspaces/Creation/properties/WorkspaceCreationPropertiesVolumes';
 import { WorkspaceImage, WorkspaceVolumes, WorkspaceVolume } from '~/shared/types';
 
-interface WorkspaceCreationImageSelectionProps {
+interface WorkspaceCreationPropertiesSelectionProps {
   selectedImage: WorkspaceImage | undefined;
 }
 
 const WorkspaceCreationPropertiesSelection: React.FunctionComponent<
-  WorkspaceCreationImageSelectionProps
+  WorkspaceCreationPropertiesSelectionProps
 > = ({ selectedImage }) => {
   const [workspaceName, setWorkspaceName] = useState('');
   const [deferUpdates, setDeferUpdates] = useState(false);
@@ -29,7 +29,7 @@ const WorkspaceCreationPropertiesSelection: React.FunctionComponent<
   const [volumesData, setVolumesData] = useState<WorkspaceVolume[]>([]);
   const [isVolumesExpanded, setIsVolumesExpanded] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     setVolumes((prev) => ({
       ...prev,
       data: volumesData,
@@ -98,7 +98,7 @@ const WorkspaceCreationPropertiesSelection: React.FunctionComponent<
                       </FormGroup>
 
                       <FormGroup fieldId="volumes-table" style={{ marginTop: '1rem' }}>
-                        <WorkspaceCreationPropertiesVolumes
+                        <WorkspaceCreationPropertiesVolumesProps
                           volumes={volumesData}
                           setVolumes={setVolumesData}
                         />

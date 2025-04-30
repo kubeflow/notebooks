@@ -18,17 +18,21 @@ import {
 } from '@patternfly/react-core';
 import { WorkspaceVolume } from '~/shared/types';
 
-interface WorkspaceCreationPropertiesVolumesProps {
+interface WorkspaceCreationPropertiesVolumes {
   volumes: WorkspaceVolume[];
   setVolumes: React.Dispatch<React.SetStateAction<WorkspaceVolume[]>>;
 }
 
-export const WorkspaceCreationPropertiesVolumes: React.FC<
-  WorkspaceCreationPropertiesVolumesProps
+export const WorkspaceCreationPropertiesVolumesProps: React.FC<
+  WorkspaceCreationPropertiesVolumes
 > = ({ volumes, setVolumes }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [formData, setFormData] = useState<WorkspaceVolume>({ pvcName: '', mountPath: '', readOnly: false });
+  const [formData, setFormData] = useState<WorkspaceVolume>({
+    pvcName: '',
+    mountPath: '',
+    readOnly: false,
+  });
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
@@ -83,7 +87,7 @@ export const WorkspaceCreationPropertiesVolumes: React.FC<
             <Tr>
               <Th>PVC Name</Th>
               <Th>Mount Path</Th>
-              <Th>Read Only</Th>
+              <Th>Read-only Access</Th>
               <Th />
             </Tr>
           </Thead>
@@ -92,17 +96,7 @@ export const WorkspaceCreationPropertiesVolumes: React.FC<
               <Tr key={index}>
                 <Td>{volume.pvcName}</Td>
                 <Td>{volume.mountPath}</Td>
-                <Td>
-                  <Switch
-                    id={`readonly-switch-${index}`}
-                    isChecked={volume.readOnly}
-                    onChange={() => {
-                      const updated = [...volumes];
-                      updated[index].readOnly = !updated[index].readOnly;
-                      setVolumes(updated);
-                    }}
-                  />
-                </Td>
+                <Td>{volume.readOnly ? 'Enabled' : 'Disabled'}</Td>
                 <Td isActionCell>
                   <Dropdown
                     toggle={(toggleRef) => (
@@ -165,6 +159,14 @@ export const WorkspaceCreationPropertiesVolumes: React.FC<
                 id="mount-path"
               />
             </FormGroup>
+            <FormGroup fieldId="readonly-access">
+              <Switch
+                id="readonly-access-switch"
+                label="Enable read-only access"
+                isChecked={formData.readOnly}
+                onChange={() => setFormData({ ...formData, readOnly: !formData.readOnly })}
+              />
+            </FormGroup>
           </Form>
         </ModalBody>
         <ModalFooter>
@@ -202,4 +204,4 @@ export const WorkspaceCreationPropertiesVolumes: React.FC<
   );
 };
 
-export default WorkspaceCreationPropertiesVolumesProps;
+export default WorkspaceCreationPropertiesVolumes;

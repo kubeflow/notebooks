@@ -36,7 +36,7 @@ export interface WorkspaceProperties {
   deferUpdates: boolean;
   homeDirectory: string;
   volumes: boolean;
-  isVolumesExpanded: boolean
+  isVolumesExpanded: boolean;
   redirect?: {
     to: string;
     message: {

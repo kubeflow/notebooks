@@ -37,7 +37,7 @@ const WorkspaceCreation: React.FunctionComponent = () => {
   const [selectedKind, setSelectedKind] = useState<WorkspaceKind | undefined>();
   const [selectedImage, setSelectedImage] = useState<WorkspaceImage | undefined>();
   const [selectedPodConfig, setSelectedPodConfig] = useState<WorkspacePodConfig | undefined>();
-  const [selectedProperties, setSelectedProperties] = useState<WorkspaceProperties | undefined>();
+  const [, setSelectedProperties] = useState<WorkspaceProperties | undefined>();
 
   const getStepVariant = useCallback(
     (step: WorkspaceCreationSteps) => {
@@ -68,7 +68,7 @@ const WorkspaceCreation: React.FunctionComponent = () => {
     setSelectedKind(newWorkspaceKind);
     setSelectedImage(undefined);
     setSelectedPodConfig(undefined);
-    setSelectedProperties(undefined)
+    setSelectedProperties(undefined);
   }, []);
 
   return (
@@ -162,9 +162,7 @@ const WorkspaceCreation: React.FunctionComponent = () => {
           />
         )}
         {currentStep === WorkspaceCreationSteps.Properties && (
-          <WorkspaceCreationPropertiesSelection
-            selectedImage={selectedImage}
-          />
+          <WorkspaceCreationPropertiesSelection selectedImage={selectedImage} />
         )}
       </PageSection>
       <PageSection isFilled={false} stickyOnBreakpoint={{ default: 'bottom' }}>
