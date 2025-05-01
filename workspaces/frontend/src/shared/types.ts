@@ -29,6 +29,13 @@ export interface WorkspaceVolume {
 export interface WorkspaceVolumes {
   home: string;
   data: WorkspaceVolume[];
+  secrets: WorkSpaceSecret[];
+}
+
+export interface WorkSpaceSecret {
+  defaultMode: number;
+  secretName: string;
+  mountPath: string;
 }
 
 export interface WorkspaceProperties {

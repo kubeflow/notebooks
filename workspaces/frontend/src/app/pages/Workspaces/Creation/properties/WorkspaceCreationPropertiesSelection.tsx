@@ -13,7 +13,8 @@ import {
 } from '@patternfly/react-core';
 import { WorkspaceCreationImageDetails } from '~/app/pages/Workspaces/Creation/image/WorkspaceCreationImageDetails';
 import { WorkspaceCreationPropertiesVolumes } from '~/app/pages/Workspaces/Creation/properties/WorkspaceCreationPropertiesVolumes';
-import { WorkspaceImage, WorkspaceVolumes, WorkspaceVolume } from '~/shared/types';
+import { WorkspaceImage, WorkspaceVolumes, WorkspaceVolume, WorkSpaceSecret } from '~/shared/types';
+import WorkspaceCreationPropertiesSecrets from './WorkspaceCreationPropertiesSecrets';
 
 interface WorkspaceCreationPropertiesSelectionProps {
   selectedImage: WorkspaceImage | undefined;
@@ -25,9 +26,13 @@ const WorkspaceCreationPropertiesSelection: React.FunctionComponent<
   const [workspaceName, setWorkspaceName] = useState('');
   const [deferUpdates, setDeferUpdates] = useState(false);
   const [homeDirectory, setHomeDirectory] = useState('');
-  const [volumes, setVolumes] = useState<WorkspaceVolumes>({ home: '', data: [] });
+  const [volumes, setVolumes] = useState<WorkspaceVolumes>({ home: '', data: [], secrets: [] });
   const [volumesData, setVolumesData] = useState<WorkspaceVolume[]>([]);
+  const [secrets, setSecrets] = useState<WorkSpaceSecret[]>(
+    volumes.secrets.length ? volumes.secrets : [],
+  );
   const [isVolumesExpanded, setIsVolumesExpanded] = useState(false);
+  const [isSecretsExpanded, setIsSecretsExpanded] = useState(false);
 
   useEffect(() => {
     setVolumes((prev) => ({
@@ -115,6 +120,30 @@ const WorkspaceCreationPropertiesSelection: React.FunctionComponent<
                   </div>
                 </div>
               )}
+              <div className="pf-u-mb-0">
+                <ExpandableSection
+                  toggleText="Secrets"
+                  onToggle={() => setIsSecretsExpanded((prev) => !prev)}
+                  isExpanded={isSecretsExpanded}
+                  isIndented
+                >
+                  {isSecretsExpanded && (
+                    <FormGroup fieldId="secrets-table" style={{ marginTop: '1rem' }}>
+                      <WorkspaceCreationPropertiesSecrets
+                        secrets={secrets}
+                        setSecrets={setSecrets}
+                      />
+                    </FormGroup>
+                  )}
+                </ExpandableSection>
+                {!isSecretsExpanded && (
+                  <div style={{ paddingLeft: '36px' }}>
+                    <div className="pf-u-font-size-sm">
+                      <strong>{secrets.length} added</strong>
+                    </div>
+                  </div>
+                )}
+              </div>
             </Form>
           </div>
         </SplitItem>
