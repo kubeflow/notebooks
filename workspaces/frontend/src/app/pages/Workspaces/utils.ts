@@ -13,6 +13,6 @@ export const createWorkspaceCall = async (
   formData: CreateWorkspaceData,
   namespace: string,
 ): Promise<RegisterWorkspaceCreatedResources> => {
-  const workspace = await api.createWorkspace(opts, formData, namespace);
+  const workspace = await api.createWorkspace(opts, namespace, formData);
   return { workspace };
 };

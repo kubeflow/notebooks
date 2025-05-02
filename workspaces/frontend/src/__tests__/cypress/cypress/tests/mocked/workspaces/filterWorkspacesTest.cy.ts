@@ -1,3 +1,6 @@
+import { mockNamespaces } from '~/__mocks__/mockNamespaces';
+import { mockWorkspaces } from '~/__mocks__/mockWorkspaces';
+import { mockBFFResponse } from '~/__mocks__/utils';
 import { home } from '~/__tests__/cypress/cypress/pages/home';
 
 const useFilter = (filterName: string, searchValue: string) => {
@@ -9,6 +12,14 @@ const useFilter = (filterName: string, searchValue: string) => {
 };
 
 describe('Application', () => {
+  beforeEach(() => {
+    cy.intercept('GET', '/api/v1/namespaces', {
+      body: mockBFFResponse(mockNamespaces),
+    });
+    cy.intercept('GET', '/api/v1/workspaces/default', {
+      body: mockBFFResponse(mockWorkspaces),
+    });
+  });
   it('filter rows with single filter', () => {
     home.visit();
     useFilter('Name', 'My');

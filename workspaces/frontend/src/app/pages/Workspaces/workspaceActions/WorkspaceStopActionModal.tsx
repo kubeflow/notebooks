@@ -46,7 +46,7 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
               There are pending redirect updates for that workspace. Are you sure you want to
               proceed?
             </TabTitleText>
-            <WorkspaceRedirectInformationView />
+            <WorkspaceRedirectInformationView kind={workspace.kind} />
           </>
         ) : (
           <Content>Are you sure you want to stop the workspace?</Content>

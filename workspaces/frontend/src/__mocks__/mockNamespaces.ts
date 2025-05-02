@@ -1,6 +1,6 @@
-import { NamespacesList } from '~/app/types';
+import { Namespace } from '~/shared/types';
 
-export const mockNamespaces: NamespacesList = [
+export const mockNamespaces: Namespace[] = [
   { name: 'default' },
   { name: 'kubeflow' },
   { name: 'custom-namespace' },

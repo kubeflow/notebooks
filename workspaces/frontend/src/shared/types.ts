@@ -203,3 +203,14 @@ export type WorkspaceKindsColumnNames = {
   deprecated: string;
   numberOfWorkspaces: string;
 };
+
+export type Namespace = {
+  name: string;
+};
+
+export type HealthCheckResponse = {
+  status: 'Healthy' | 'Unhealthy';
+  systemInfo: {
+    version: string;
+  };
+};

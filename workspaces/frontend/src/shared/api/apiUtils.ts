@@ -180,3 +180,10 @@ export const isNotebookResponse = <T>(response: unknown): response is ResponseBo
   }
   return false;
 };
+
+export function extractNotebookResponse<T>(response: unknown): T {
+  if (isNotebookResponse<T>(response)) {
+    return response.data;
+  }
+  throw new Error('Invalid response format');
+}

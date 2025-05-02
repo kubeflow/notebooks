@@ -41,7 +41,7 @@ export const WorkspaceStartActionModal: React.FC<StartActionAlertProps> = ({
         <TabTitleText>
           There are pending redirect updates for that workspace. Are you sure you want to proceed?
         </TabTitleText>
-        <WorkspaceRedirectInformationView />
+        {workspace && <WorkspaceRedirectInformationView kind={workspace.kind} />}
       </ModalBody>
       <ModalFooter>
         <Button onClick={() => handleClick(true)}>Update and Start</Button>
