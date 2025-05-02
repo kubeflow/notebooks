@@ -23,7 +23,7 @@ const useCreateWorkspace = (
       if (!namespace) {
         return Promise.reject(new Error('namespace is not available yet'));
       }
-      return createWorkspaceCall(opts, api, namespace, formData).then((result) => result.workspace);
+      return createWorkspaceCall(opts, api, formData, namespace).then((result) => result.workspace);
     },
     [api, apiAvailable, namespace, formData],
   );

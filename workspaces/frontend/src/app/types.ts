@@ -1,5 +1,5 @@
 import { APIOptions } from '~/shared/api/types';
-import { Workspace, WorkspaceKind } from '~/shared/types';
+import { Workspace, WorkspaceKind, WorkspacePodTemplateMutate } from '~/shared/types';
 
 export type ResponseBody<T> = {
   data: T;
@@ -79,31 +79,12 @@ export type NotebookAPIs = {
   createWorkspace: CreateWorkspace;
 };
 
-export type PodTemplate = {
-  pod_metadata: {
-    labels: Record<string, string>;
-    annotations: Record<string, string>;
-  };
-  volumes: {
-    home: string;
-    data: {
-      pvc_name: string;
-      mount_path: string;
-      read_only: boolean;
-    }[];
-  };
-  options: {
-    image_config: string;
-    pod_config: string;
-  };
-};
-
 export type CreateWorkspaceData = {
   data: {
     name: string;
     kind: string;
     paused: boolean;
-    defer_updates: boolean;
-    pod_template: PodTemplate;
+    deferUpdates: boolean;
+    podTemplate: WorkspacePodTemplateMutate;
   };
 };
