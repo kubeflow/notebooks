@@ -1,7 +1,8 @@
+import { buildMockNamespace } from '~/shared/mock/mockBuilder';
 import { Namespace } from '~/shared/types';
 
 export const mockNamespaces: Namespace[] = [
-  { name: 'default' },
-  { name: 'kubeflow' },
-  { name: 'custom-namespace' },
+  buildMockNamespace({ name: 'default' }),
+  buildMockNamespace({ name: 'kubeflow' }),
+  buildMockNamespace({ name: 'custom-namespace' }),
 ];

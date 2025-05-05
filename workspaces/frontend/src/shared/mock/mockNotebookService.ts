@@ -14,16 +14,16 @@ import {
   PatchWorkspaceKindAPI,
   UpdateWorkspaceAPI,
   UpdateWorkspaceKindAPI,
-} from './callTypes';
+} from '~/shared/api/callTypes';
 import {
-  mockedHealthCheck,
-  mockNamespaces,
-  mockWorkspaceKinds,
   mockAllWorkspaces,
-  mockWorkspaceBase1,
-} from './mockedData';
+  mockedHealthCheckResponse,
+  mockNamespaces,
+  mockWorkspace1,
+  mockWorkspaceKinds,
+} from '~/shared/mock/mockNotebookServiceData';
 
-export const mockGetHealthCheck: GetHealthCheckAPI = () => async () => mockedHealthCheck;
+export const mockGetHealthCheck: GetHealthCheckAPI = () => async () => mockedHealthCheckResponse;
 
 export const mockListNamespaces: ListNamespacesAPI = () => async () => mockNamespaces;
 
@@ -35,7 +35,7 @@ export const mockListWorkspaces: ListWorkspacesAPI = () => async (_opts, namespa
 export const mockGetWorkspace: GetWorkspaceAPI = () => async (_opts, namespace, workspace) =>
   mockAllWorkspaces.find((w) => w.name === workspace && w.namespace === namespace)!;
 
-export const mockCreateWorkspace: CreateWorkspaceAPI = () => async () => mockWorkspaceBase1;
+export const mockCreateWorkspace: CreateWorkspaceAPI = () => async () => mockWorkspace1;
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function
 export const mockUpdateWorkspace: UpdateWorkspaceAPI = () => async () => {};

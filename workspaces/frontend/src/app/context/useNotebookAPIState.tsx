@@ -16,7 +16,7 @@ import {
   mockPatchWorkspaceKind,
   mockUpdateWorkspace,
   mockUpdateWorkspaceKind,
-} from '~/shared/api/mockedNotebookService';
+} from '~/shared/mock/mockNotebookService';
 import {
   createWorkspace,
   createWorkspaceKind,
