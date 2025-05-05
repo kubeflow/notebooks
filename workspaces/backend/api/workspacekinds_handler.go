@@ -39,7 +39,7 @@ type WorkspaceKindEnvelope Envelope[models.WorkspaceKind]
 //
 //	@Summary		Get workspace kind
 //	@Description	Returns details of a specific workspace kind identified by its name. Workspace kinds define the available types of workspaces that can be created.
-//	@Tags			workspace-kinds
+//	@Tags			workspacekinds
 //	@Accept			json
 //	@Produce		json
 //	@Param			name	path		string					true	"Name of the workspace kind"	example(jupyterlab)
@@ -49,7 +49,7 @@ type WorkspaceKindEnvelope Envelope[models.WorkspaceKind]
 //	@Failure		403		{object}	ErrorEnvelope			"Forbidden. User does not have permission to access the workspace kind."
 //	@Failure		404		{object}	ErrorEnvelope			"Not Found. Workspace kind does not exist."
 //	@Failure		500		{object}	ErrorEnvelope			"Internal server error. An unexpected error occurred on the server."
-//	@Router			/api/v1/workspace-kinds/{name} [get]
+//	@Router			/workspacekinds/{name} [get]
 //	@Security		ApiKeyAuth
 func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	name := ps.ByName(ResourceNamePathParam)
@@ -94,14 +94,14 @@ func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps
 //
 //	@Summary		List workspace kinds
 //	@Description	Returns a list of all available workspace kinds. Workspace kinds define the different types of workspaces that can be created in the system.
-//	@Tags			workspace-kinds
+//	@Tags			workspacekinds
 //	@Accept			json
 //	@Produce		json
 //	@Success		200	{object}	WorkspaceKindListEnvelope	"Successful operation. Returns a list of all available workspace kinds."
 //	@Failure		401	{object}	ErrorEnvelope				"Unauthorized. Authentication is required."
 //	@Failure		403	{object}	ErrorEnvelope				"Forbidden. User does not have permission to list workspace kinds."
 //	@Failure		500	{object}	ErrorEnvelope				"Internal server error. An unexpected error occurred on the server."
-//	@Router			/api/v1/workspace-kinds [get]
+//	@Router			/workspacekinds [get]
 //	@Security		ApiKeyAuth
 func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	// =========================== AUTH ===========================

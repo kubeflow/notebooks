@@ -19,7 +19,71 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/v1/workspace-kinds": {
+        "/healthcheck": {
+            "get": {
+                "description": "Provides a healthcheck response indicating the status of key services.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "healthcheck"
+                ],
+                "summary": "Returns the health status of the application",
+                "responses": {
+                    "200": {
+                        "description": "Successful healthcheck response",
+                        "schema": {
+                            "$ref": "#/definitions/health_check.HealthCheck"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/namespaces": {
+            "get": {
+                "description": "Provides a list of all namespaces that the user has access to",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "namespaces"
+                ],
+                "summary": "Returns a list of all namespaces",
+                "responses": {
+                    "200": {
+                        "description": "Successful namespaces response",
+                        "schema": {
+                            "$ref": "#/definitions/api.NamespaceListEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/workspacekinds": {
             "get": {
                 "security": [
                     {
@@ -34,7 +98,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "workspace-kinds"
+                    "workspacekinds"
                 ],
                 "summary": "List workspace kinds",
                 "responses": {
@@ -65,7 +129,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/workspace-kinds/{name}": {
+        "/workspacekinds/{name}": {
             "get": {
                 "security": [
                     {
@@ -80,7 +144,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "workspace-kinds"
+                    "workspacekinds"
                 ],
                 "summary": "Get workspace kind",
                 "parameters": [
@@ -133,7 +197,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/workspaces": {
+        "/workspaces": {
             "get": {
                 "security": [
                     {
@@ -185,7 +249,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/workspaces/{namespace}": {
+        "/workspaces/{namespace}": {
             "get": {
                 "security": [
                     {
@@ -321,7 +385,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/workspaces/{namespace}/{workspace_name}": {
+        "/workspaces/{namespace}/{workspace_name}": {
             "get": {
                 "security": [
                     {
@@ -461,70 +525,6 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal server error. An unexpected error occurred on the server.",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    }
-                }
-            }
-        },
-        "/healthcheck": {
-            "get": {
-                "description": "Provides a healthcheck response indicating the status of key services.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "healthcheck"
-                ],
-                "summary": "Returns the health status of the application",
-                "responses": {
-                    "200": {
-                        "description": "Successful healthcheck response",
-                        "schema": {
-                            "$ref": "#/definitions/health_check.HealthCheck"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    }
-                }
-            }
-        },
-        "/namespaces": {
-            "get": {
-                "description": "Provides a list of all namespaces that the user has access to",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "namespaces"
-                ],
-                "summary": "Returns a list of all namespaces",
-                "responses": {
-                    "200": {
-                        "description": "Successful namespaces response",
-                        "schema": {
-                            "$ref": "#/definitions/api.NamespaceListEnvelope"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }

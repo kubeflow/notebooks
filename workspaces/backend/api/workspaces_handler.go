@@ -54,7 +54,7 @@ type WorkspaceEnvelope Envelope[models.Workspace]
 //	@Failure		403				{object}	ErrorEnvelope		"Forbidden. User does not have permission to access the workspace."
 //	@Failure		404				{object}	ErrorEnvelope		"Not Found. Workspace does not exist."
 //	@Failure		500				{object}	ErrorEnvelope		"Internal server error. An unexpected error occurred on the server."
-//	@Router			/api/v1/workspaces/{namespace}/{workspace_name} [get]
+//	@Router			/workspaces/{namespace}/{workspace_name} [get]
 //	@Security		ApiKeyAuth
 func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(NamespacePathParam)
@@ -115,8 +115,8 @@ func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps htt
 //	@Failure		401			{object}	ErrorEnvelope			"Unauthorized. Authentication is required."
 //	@Failure		403			{object}	ErrorEnvelope			"Forbidden. User does not have permission to list workspaces."
 //	@Failure		500			{object}	ErrorEnvelope			"Internal server error. An unexpected error occurred on the server."
-//	@Router			/api/v1/workspaces [get]
-//	@Router			/api/v1/workspaces/{namespace} [get]
+//	@Router			/workspaces [get]
+//	@Router			/workspaces/{namespace} [get]
 //	@Security		ApiKeyAuth
 func (a *App) GetWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(NamespacePathParam)
@@ -179,7 +179,7 @@ func (a *App) GetWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps ht
 //	@Failure		403			{object}	ErrorEnvelope			"Forbidden. User does not have permission to create workspace."
 //	@Failure		409			{object}	ErrorEnvelope			"Conflict. Workspace with the same name already exists."
 //	@Failure		500			{object}	ErrorEnvelope			"Internal server error. An unexpected error occurred on the server."
-//	@Router			/api/v1/workspaces/{namespace} [post]
+//	@Router			/workspaces/{namespace} [post]
 //	@Security		ApiKeyAuth
 func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(NamespacePathParam)
@@ -274,7 +274,7 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 //	@Failure		403				{object}	ErrorEnvelope	"Forbidden. User does not have permission to delete the workspace."
 //	@Failure		404				{object}	ErrorEnvelope	"Not Found. Workspace does not exist."
 //	@Failure		500				{object}	ErrorEnvelope	"Internal server error. An unexpected error occurred on the server."
-//	@Router			/api/v1/workspaces/{namespace}/{workspace_name} [delete]
+//	@Router			/workspaces/{namespace}/{workspace_name} [delete]
 //	@Security		ApiKeyAuth
 func (a *App) DeleteWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(NamespacePathParam)
