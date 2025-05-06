@@ -18,20 +18,20 @@ import {
   HelperText,
   HelperTextItem,
 } from '@patternfly/react-core';
-import { WorkSpaceSecret } from '~/shared/types';
+import { WorkspaceSecret } from '~/shared/types';
 
-interface WorkspaceCreationSecretsProps {
-  secrets: WorkSpaceSecret[];
-  setSecrets: React.Dispatch<React.SetStateAction<WorkSpaceSecret[]>>;
+interface WorkspaceCreationPropertiesSecretsProps {
+  secrets: WorkspaceSecret[];
+  setSecrets: React.Dispatch<React.SetStateAction<WorkspaceSecret[]>>;
 }
 
-export const WorkspaceCreationPropertiesSecrets: React.FC<WorkspaceCreationSecretsProps> = ({
+export const WorkspaceCreationPropertiesSecrets: React.FC<WorkspaceCreationPropertiesSecretsProps> = ({
   secrets,
   setSecrets,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [formData, setFormData] = useState<WorkSpaceSecret>({
+  const [formData, setFormData] = useState<WorkspaceSecret>({
     secretName: '',
     mountPath: '',
     defaultMode: 420,
@@ -151,7 +151,7 @@ export const WorkspaceCreationPropertiesSecrets: React.FC<WorkspaceCreationSecre
         </Table>
       )}
       <Button variant="primary" onClick={() => setIsModalOpen(true)} style={{ marginTop: '1rem' }}>
-        Create Secrets
+        Create Secret
       </Button>
       <Modal isOpen={isModalOpen} onClose={clearForm} variant={ModalVariant.small}>
         <ModalHeader

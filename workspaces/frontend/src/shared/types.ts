@@ -29,10 +29,10 @@ export interface WorkspaceVolume {
 export interface WorkspaceVolumes {
   home: string;
   data: WorkspaceVolume[];
-  secrets: WorkSpaceSecret[];
+  secrets: WorkspaceSecret[];
 }
 
-export interface WorkSpaceSecret {
+export interface WorkspaceSecret {
   defaultMode: number;
   secretName: string;
   mountPath: string;

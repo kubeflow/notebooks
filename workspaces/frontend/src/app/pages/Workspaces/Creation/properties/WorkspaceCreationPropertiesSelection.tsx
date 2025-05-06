@@ -13,7 +13,7 @@ import {
 } from '@patternfly/react-core';
 import { WorkspaceCreationImageDetails } from '~/app/pages/Workspaces/Creation/image/WorkspaceCreationImageDetails';
 import { WorkspaceCreationPropertiesVolumes } from '~/app/pages/Workspaces/Creation/properties/WorkspaceCreationPropertiesVolumes';
-import { WorkspaceImage, WorkspaceVolumes, WorkspaceVolume, WorkSpaceSecret } from '~/shared/types';
+import { WorkspaceImage, WorkspaceVolumes, WorkspaceVolume, WorkspaceSecret } from '~/shared/types';
 import WorkspaceCreationPropertiesSecrets from './WorkspaceCreationPropertiesSecrets';
 
 interface WorkspaceCreationPropertiesSelectionProps {
@@ -28,7 +28,7 @@ const WorkspaceCreationPropertiesSelection: React.FunctionComponent<
   const [homeDirectory, setHomeDirectory] = useState('');
   const [volumes, setVolumes] = useState<WorkspaceVolumes>({ home: '', data: [], secrets: [] });
   const [volumesData, setVolumesData] = useState<WorkspaceVolume[]>([]);
-  const [secrets, setSecrets] = useState<WorkSpaceSecret[]>(
+  const [secrets, setSecrets] = useState<WorkspaceSecret[]>(
     volumes.secrets.length ? volumes.secrets : [],
   );
   const [isVolumesExpanded, setIsVolumesExpanded] = useState(false);
