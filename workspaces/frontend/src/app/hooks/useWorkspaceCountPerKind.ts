@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
-import { Workspace, WorkspaceKind } from '~/shared/types';
+import { Workspace, WorkspaceKind } from '~/shared/api/backendApiTypes';
 
 type WorkspaceCountPerKind = Record<WorkspaceKind['name'], number>;
 

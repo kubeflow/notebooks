@@ -1,4 +1,4 @@
-import { Workspace } from '~/shared/types';
+import { Workspace } from '~/shared/api/backendApiTypes';
 
 export const formatRam = (valueInKb: number): string => {
   const units = ['KB', 'MB', 'GB', 'TB'];

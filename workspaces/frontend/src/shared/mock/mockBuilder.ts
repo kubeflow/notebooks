@@ -7,7 +7,7 @@ import {
   WorkspaceRedirectMessageLevel,
   WorkspaceServiceStatus,
   WorkspaceState,
-} from '~/shared/types';
+} from '~/shared/api/backendApiTypes';
 
 export const buildMockHealthCheckResponse = (
   healthCheckResponse?: Partial<HealthCheckResponse>,

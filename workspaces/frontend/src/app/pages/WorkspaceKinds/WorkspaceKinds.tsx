@@ -40,9 +40,10 @@ import {
   IActions,
 } from '@patternfly/react-table';
 import { CodeIcon, FilterIcon, SearchIcon } from '@patternfly/react-icons';
-import { WorkspaceKind, WorkspaceKindsColumnNames } from '~/shared/types';
+import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import { useWorkspaceCountPerKind } from '~/app/hooks/useWorkspaceCountPerKind';
+import { WorkspaceKindsColumnNames } from '~/app/types';
 
 export enum ActionType {
   ViewDetails,

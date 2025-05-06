@@ -4,7 +4,7 @@ import useFetchState, {
   FetchStateCallbackPromise,
 } from '~/shared/utilities/useFetchState';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
-import { Namespace } from '~/shared/types';
+import { Namespace } from '~/shared/api/backendApiTypes';
 
 const useNamespaces = (): FetchState<Namespace[] | null> => {
   const { api, apiAvailable } = useNotebookAPI();

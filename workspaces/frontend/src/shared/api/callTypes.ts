@@ -3,9 +3,9 @@ import {
   CreateWorkspaceKind,
   DeleteWorkspace,
   DeleteWorkspaceKind,
+  GetHealthCheck,
   GetWorkspace,
   GetWorkspaceKind,
-  GetHealthCheck,
   ListAllWorkspaces,
   ListNamespaces,
   ListWorkspaceKinds,
@@ -14,8 +14,8 @@ import {
   PatchWorkspaceKind,
   UpdateWorkspace,
   UpdateWorkspaceKind,
-} from '~/app/types';
-import { APIOptions } from './types';
+} from '~/shared/api/notebookApi';
+import { APIOptions } from '~/shared/api/types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type KubeflowSpecificAPICall = (opts: APIOptions, ...args: any[]) => Promise<unknown>;

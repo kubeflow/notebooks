@@ -3,7 +3,7 @@ import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
 } from '~/shared/utilities/useFetchState';
-import { WorkspaceKind } from '~/shared/types';
+import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 
 const useWorkspaceKinds = (): FetchState<WorkspaceKind[]> => {

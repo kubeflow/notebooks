@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { WorkspaceCreationImageDetails } from '~/app/pages/Workspaces/Creation/image/WorkspaceCreationImageDetails';
 import { WorkspaceCreationImageList } from '~/app/pages/Workspaces/Creation/image/WorkspaceCreationImageList';
 import { FilterByLabels } from '~/app/pages/Workspaces/Creation/labelFilter/FilterByLabels';
-import { WorkspaceImageConfigValue } from '~/shared/types';
+import { WorkspaceImageConfigValue } from '~/shared/api/backendApiTypes';
 
 interface WorkspaceCreationImageSelectionProps {
   images: WorkspaceImageConfigValue[];

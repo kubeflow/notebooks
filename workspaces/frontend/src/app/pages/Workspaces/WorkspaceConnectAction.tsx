@@ -7,7 +7,7 @@ import {
   MenuToggleElement,
   MenuToggleAction,
 } from '@patternfly/react-core';
-import { Workspace, WorkspaceState } from '~/shared/types';
+import { Workspace, WorkspaceState } from '~/shared/api/backendApiTypes';
 
 type WorkspaceConnectActionProps = {
   workspace: Workspace;

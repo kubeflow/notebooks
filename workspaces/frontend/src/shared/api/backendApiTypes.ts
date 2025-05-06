@@ -7,14 +7,14 @@ export interface WorkspaceSystemInfo {
   version: string;
 }
 
-export type HealthCheckResponse = {
+export interface HealthCheckResponse {
   status: WorkspaceServiceStatus;
   systemInfo: WorkspaceSystemInfo;
-};
+}
 
-export type Namespace = {
+export interface Namespace {
   name: string;
-};
+}
 
 export interface WorkspaceImageRef {
   url: string;
@@ -246,26 +246,13 @@ export interface Workspace {
   services: WorkspaceService[];
 }
 
-export type WorkspacesColumnNames = {
+export interface WorkspaceCreate {
   name: string;
   kind: string;
-  image: string;
-  podConfig: string;
-  state: string;
-  homeVol: string;
-  cpu: string;
-  ram: string;
-  lastActivity: string;
-  redirectStatus: string;
-};
-
-export type WorkspaceKindsColumnNames = {
-  icon: string;
-  name: string;
-  description: string;
-  deprecated: string;
-  numberOfWorkspaces: string;
-};
+  paused: boolean;
+  deferUpdates: boolean;
+  podTemplate: WorkspacePodTemplateMutate;
+}
 
 export interface WorkspaceProperties {
   workspaceName: string;

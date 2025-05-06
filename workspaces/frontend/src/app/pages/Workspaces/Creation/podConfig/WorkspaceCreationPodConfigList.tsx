@@ -12,7 +12,7 @@ import {
   CardBody,
 } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons/dist/esm/icons/search-icon';
-import { WorkspacePodConfigValue } from '~/shared/types';
+import { WorkspacePodConfigValue } from '~/shared/api/backendApiTypes';
 import Filter, { FilteredColumn } from '~/shared/components/Filter';
 
 type WorkspaceCreationPodConfigListProps = {

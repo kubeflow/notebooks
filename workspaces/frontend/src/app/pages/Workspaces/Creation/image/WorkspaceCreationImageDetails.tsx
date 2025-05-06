@@ -1,6 +1,6 @@
 import React from 'react';
 import { List, ListItem, Title } from '@patternfly/react-core';
-import { WorkspacePodConfigValue } from '~/shared/types';
+import { WorkspacePodConfigValue } from '~/shared/api/backendApiTypes';
 
 type WorkspaceCreationImageDetailsProps = {
   workspaceImage?: WorkspacePodConfigValue;

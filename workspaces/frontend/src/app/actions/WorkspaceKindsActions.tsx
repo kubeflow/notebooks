@@ -1,4 +1,4 @@
-import { WorkspaceKind, WorkspaceOptionRedirect } from '~/shared/types';
+import { WorkspaceKind, WorkspaceOptionRedirect } from '~/shared/api/backendApiTypes';
 
 type KindLogoDict = Record<string, string>;
 

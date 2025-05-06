@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { ExpandableRowContent, Td, Tr } from '@patternfly/react-table';
-import { Workspace, WorkspacesColumnNames } from '~/shared/types';
+import { Workspace } from '~/shared/api/backendApiTypes';
 import { DataVolumesList } from '~/app/pages/Workspaces/DataVolumesList';
+import { WorkspacesColumnNames } from '~/app/types';
 
 interface ExpandedWorkspaceRowProps {
   workspace: Workspace;

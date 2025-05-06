@@ -4,7 +4,7 @@ import useFetchState, {
   FetchStateCallbackPromise,
 } from '~/shared/utilities/useFetchState';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
-import { Workspace } from '~/shared/types';
+import { Workspace } from '~/shared/api/backendApiTypes';
 
 const useWorkspaces = (namespace: string): FetchState<Workspace[] | null> => {
   const { api, apiAvailable } = useNotebookAPI();

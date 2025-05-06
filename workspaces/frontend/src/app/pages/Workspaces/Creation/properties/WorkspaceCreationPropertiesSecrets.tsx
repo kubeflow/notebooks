@@ -18,7 +18,7 @@ import {
   HelperText,
   HelperTextItem,
 } from '@patternfly/react-core';
-import { WorkspaceSecret } from '~/shared/types';
+import { WorkspaceSecret } from '~/shared/api/backendApiTypes';
 
 interface WorkspaceCreationPropertiesSecretsProps {
   secrets: WorkspaceSecret[];

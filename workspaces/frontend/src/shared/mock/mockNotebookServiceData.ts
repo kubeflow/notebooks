@@ -1,11 +1,16 @@
 import {
+  Workspace,
+  WorkspaceKind,
+  WorkspaceKindInfo,
+  WorkspaceState,
+} from '~/shared/api/backendApiTypes';
+import {
   buildMockHealthCheckResponse,
   buildMockNamespace,
   buildMockWorkspace,
   buildMockWorkspaceKind,
   buildMockWorkspaceKindInfo,
 } from '~/shared/mock/mockBuilder';
-import { Workspace, WorkspaceKind, WorkspaceKindInfo, WorkspaceState } from '~/shared/types';
 
 // Health
 export const mockedHealthCheckResponse = buildMockHealthCheckResponse();

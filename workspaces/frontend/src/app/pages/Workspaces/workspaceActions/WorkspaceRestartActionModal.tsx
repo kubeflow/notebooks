@@ -8,7 +8,7 @@ import {
   ModalHeader,
   TabTitleText,
 } from '@patternfly/react-core';
-import { Workspace } from '~/shared/types';
+import { Workspace } from '~/shared/api/backendApiTypes';
 import { WorkspaceRedirectInformationView } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRedirectInformationView';
 
 interface RestartActionAlertProps {

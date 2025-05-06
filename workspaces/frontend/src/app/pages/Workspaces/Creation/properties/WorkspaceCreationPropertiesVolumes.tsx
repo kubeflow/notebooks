@@ -16,7 +16,7 @@ import {
   FormGroup,
   ModalHeader,
 } from '@patternfly/react-core';
-import { WorkspacePodVolumeInfo } from '~/shared/types';
+import { WorkspacePodVolumeInfo } from '~/shared/api/backendApiTypes';
 
 interface WorkspaceCreationPropertiesVolumesProps {
   volumes: WorkspacePodVolumeInfo[];

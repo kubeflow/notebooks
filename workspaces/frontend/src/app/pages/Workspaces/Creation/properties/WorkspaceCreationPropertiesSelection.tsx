@@ -1,3 +1,4 @@
+import * as React from 'react';
 import {
   Checkbox,
   Content,
@@ -9,16 +10,15 @@ import {
   SplitItem,
   TextInput,
 } from '@patternfly/react-core';
-import * as React from 'react';
 import { useEffect, useMemo, useState } from 'react';
+import { WorkspaceCreationImageDetails } from '~/app/pages/Workspaces/Creation/image/WorkspaceCreationImageDetails';
+import { WorkspaceCreationPropertiesVolumes } from '~/app/pages/Workspaces/Creation/properties/WorkspaceCreationPropertiesVolumes';
 import {
   WorkspaceImageConfigValue,
   WorkspacePodVolumeInfo,
   WorkspacePodVolumesMutate,
   WorkspaceSecret,
-} from '~/shared/types';
-import { WorkspaceCreationImageDetails } from '~/app/pages/Workspaces/Creation/image/WorkspaceCreationImageDetails';
-import { WorkspaceCreationPropertiesVolumes } from '~/app/pages/Workspaces/Creation/properties/WorkspaceCreationPropertiesVolumes';
+} from '~/shared/api/backendApiTypes';
 import { WorkspaceCreationPropertiesSecrets } from './WorkspaceCreationPropertiesSecrets';
 
 interface WorkspaceCreationPropertiesSelectionProps {

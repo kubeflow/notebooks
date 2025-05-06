@@ -1,22 +1,5 @@
 import React from 'react';
-import { NotebookAPIs } from '~/app/types';
-import {
-  mockCreateWorkspace,
-  mockCreateWorkspaceKind,
-  mockDeleteWorkspace,
-  mockDeleteWorkspaceKind,
-  mockGetHealthCheck,
-  mockGetWorkspace,
-  mockGetWorkspaceKind,
-  mockListAllWorkspaces,
-  mockListNamespaces,
-  mockListWorkspaceKinds,
-  mockListWorkspaces,
-  mockPatchWorkspace,
-  mockPatchWorkspaceKind,
-  mockUpdateWorkspace,
-  mockUpdateWorkspaceKind,
-} from '~/shared/mock/mockNotebookService';
+import { NotebookAPIs } from '~/shared/api/notebookApi';
 import {
   createWorkspace,
   createWorkspaceKind,
@@ -36,6 +19,23 @@ import {
 } from '~/shared/api/notebookService';
 import { APIState } from '~/shared/api/types';
 import useAPIState from '~/shared/api/useAPIState';
+import {
+  mockCreateWorkspace,
+  mockCreateWorkspaceKind,
+  mockDeleteWorkspace,
+  mockDeleteWorkspaceKind,
+  mockGetHealthCheck,
+  mockGetWorkspace,
+  mockGetWorkspaceKind,
+  mockListAllWorkspaces,
+  mockListNamespaces,
+  mockListWorkspaceKinds,
+  mockListWorkspaces,
+  mockPatchWorkspace,
+  mockPatchWorkspaceKind,
+  mockUpdateWorkspace,
+  mockUpdateWorkspaceKind,
+} from '~/shared/mock/mockNotebookService';
 
 export type NotebookAPIState = APIState<NotebookAPIs>;
 

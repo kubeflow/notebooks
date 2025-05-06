@@ -6,7 +6,7 @@ import {
 } from '@patternfly/react-icons';
 import * as React from 'react';
 import useWorkspaceKindByName from '~/app/hooks/useWorkspaceKindByName';
-import { WorkspaceKind } from '~/shared/types';
+import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 
 const getLevelIcon = (level: string | undefined) => {
   switch (level) {

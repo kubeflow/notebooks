@@ -13,7 +13,7 @@ import {
 } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons/dist/esm/icons/search-icon';
 import Filter, { FilteredColumn } from '~/shared/components/Filter';
-import { WorkspaceImageConfigValue } from '~/shared/types';
+import { WorkspaceImageConfigValue } from '~/shared/api/backendApiTypes';
 
 type WorkspaceCreationImageListProps = {
   images: WorkspaceImageConfigValue[];

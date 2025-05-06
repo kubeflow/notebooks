@@ -1,7 +1,6 @@
-import { APIOptions } from '~/shared/api/types';
+import { APIOptions, ResponseBody } from '~/shared/api/types';
 import { EitherOrNone } from '~/shared/typeHelpers';
-import { ResponseBody } from '~/app/types';
-import { DEV_MODE, AUTH_HEADER } from '~/shared/utilities/const';
+import { AUTH_HEADER, DEV_MODE } from '~/shared/utilities/const';
 
 export const mergeRequestInit = (
   opts: APIOptions = {},

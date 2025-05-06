@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Content, Divider, Split, SplitItem } from '@patternfly/react-core';
 import { useMemo } from 'react';
-import { WorkspaceKind } from '~/shared/types';
+import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import { WorkspaceCreationKindDetails } from '~/app/pages/Workspaces/Creation/kind/WorkspaceCreationKindDetails';
 import { WorkspaceCreationKindList } from '~/app/pages/Workspaces/Creation/kind/WorkspaceCreationKindList';
 import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';

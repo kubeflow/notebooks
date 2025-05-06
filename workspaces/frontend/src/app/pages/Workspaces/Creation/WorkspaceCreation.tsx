@@ -11,9 +11,9 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import { CheckIcon } from '@patternfly/react-icons';
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckIcon } from '@patternfly/react-icons';
 import { WorkspaceCreationImageSelection } from '~/app/pages/Workspaces/Creation/image/WorkspaceCreationImageSelection';
 import { WorkspaceCreationKindSelection } from '~/app/pages/Workspaces/Creation/kind/WorkspaceCreationKindSelection';
 import { WorkspaceCreationPropertiesSelection } from '~/app/pages/Workspaces/Creation/properties/WorkspaceCreationPropertiesSelection';
@@ -23,7 +23,7 @@ import {
   WorkspaceKind,
   WorkspacePodConfigValue,
   WorkspaceProperties,
-} from '~/shared/types';
+} from '~/shared/api/backendApiTypes';
 
 enum WorkspaceCreationSteps {
   KindSelection,

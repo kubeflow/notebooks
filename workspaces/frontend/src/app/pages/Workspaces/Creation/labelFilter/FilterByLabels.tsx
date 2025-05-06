@@ -5,7 +5,7 @@ import {
   FilterSidePanelCategoryItem,
 } from '@patternfly/react-catalog-view-extension';
 import '@patternfly/react-catalog-view-extension/dist/css/react-catalog-view-extension.css';
-import { WorkspaceOptionLabel } from '~/shared/types';
+import { WorkspaceOptionLabel } from '~/shared/api/backendApiTypes';
 
 type FilterByLabelsProps = {
   labelledObjects: WorkspaceOptionLabel[];

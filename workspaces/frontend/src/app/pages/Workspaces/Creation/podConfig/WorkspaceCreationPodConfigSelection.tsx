@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Content, Divider, Split, SplitItem } from '@patternfly/react-core';
 import { useMemo, useState } from 'react';
-import { WorkspacePodConfigValue } from '~/shared/types';
+import { WorkspacePodConfigValue } from '~/shared/api/backendApiTypes';
 import { WorkspaceCreationPodConfigDetails } from '~/app/pages/Workspaces/Creation/podConfig/WorkspaceCreationPodConfigDetails';
 import { WorkspaceCreationPodConfigList } from '~/app/pages/Workspaces/Creation/podConfig/WorkspaceCreationPodConfigList';
 import { FilterByLabels } from '~/app/pages/Workspaces/Creation/labelFilter/FilterByLabels';

@@ -34,7 +34,7 @@ import {
 } from '@patternfly/react-icons';
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Workspace, WorkspacesColumnNames, WorkspaceState } from '~/shared/types';
+import { Workspace, WorkspaceState } from '~/shared/api/backendApiTypes';
 import { WorkspaceDetails } from '~/app/pages/Workspaces/Details/WorkspaceDetails';
 import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
 import DeleteModal from '~/shared/components/DeleteModal';
@@ -49,6 +49,7 @@ import { WorkspaceStartActionModal } from '~/app/pages/Workspaces/workspaceActio
 import { WorkspaceRestartActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRestartActionModal';
 import { WorkspaceStopActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceStopActionModal';
 import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
+import { WorkspacesColumnNames } from '~/app/types';
 import Filter, { FilteredColumn } from 'shared/components/Filter';
 import { extractCpuValue, extractMemoryValue } from 'shared/utilities/WorkspaceUtils';
 

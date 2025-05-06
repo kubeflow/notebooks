@@ -4,7 +4,7 @@ import useFetchState, {
   FetchStateCallbackPromise,
 } from '~/shared/utilities/useFetchState';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
-import { WorkspaceKind } from '~/shared/types';
+import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 
 const useWorkspaceKindByName = (kind: string): FetchState<WorkspaceKind | null> => {
   const { api, apiAvailable } = useNotebookAPI();

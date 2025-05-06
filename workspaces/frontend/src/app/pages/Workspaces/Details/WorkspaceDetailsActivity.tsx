@@ -6,7 +6,7 @@ import {
   DescriptionListDescription,
   Divider,
 } from '@patternfly/react-core';
-import { Workspace } from '~/shared/types';
+import { Workspace } from '~/shared/api/backendApiTypes';
 import { formatTimestamp } from '~/shared/utilities/WorkspaceUtils';
 
 type WorkspaceDetailsActivityProps = {

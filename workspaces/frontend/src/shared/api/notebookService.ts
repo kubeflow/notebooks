@@ -7,7 +7,12 @@ import {
   restUPDATE,
 } from '~/shared/api/apiUtils';
 import { handleRestFailures } from '~/shared/api/errorUtils';
-import { HealthCheckResponse, Namespace, Workspace, WorkspaceKind } from '~/shared/types';
+import {
+  HealthCheckResponse,
+  Namespace,
+  Workspace,
+  WorkspaceKind,
+} from '~/shared/api/backendApiTypes';
 import {
   CreateWorkspaceAPI,
   CreateWorkspaceKindAPI,
