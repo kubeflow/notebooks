@@ -1,5 +1,5 @@
 import { APIOptions } from '~/shared/api/types';
-import { WorkspaceKind } from '~/shared/types';
+import { Workspace, WorkspaceKind, WorkspacePodTemplateMutate } from '~/shared/types';
 
 export type ResponseBody<T> = {
   data: T;
@@ -67,7 +67,24 @@ export type GetNamespaces = (opts: APIOptions) => Promise<NamespacesList>;
 
 export type GetWorkspaceKinds = (opts: APIOptions) => Promise<WorkspaceKind[]>;
 
+export type CreateWorkspace = (
+  opts: APIOptions,
+  data: CreateWorkspaceData,
+  namespace: string,
+) => Promise<Workspace>;
+
 export type NotebookAPIs = {
   getNamespaces: GetNamespaces;
   getWorkspaceKinds: GetWorkspaceKinds;
+  createWorkspace: CreateWorkspace;
+};
+
+export type CreateWorkspaceData = {
+  data: {
+    name: string;
+    kind: string;
+    paused: boolean;
+    deferUpdates: boolean;
+    podTemplate: WorkspacePodTemplateMutate;
+  };
 };

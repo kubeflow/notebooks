@@ -1,8 +1,8 @@
-import { NamespacesList } from '~/app/types';
-import { isNotebookResponse, restGET } from '~/shared/api/apiUtils';
+import { NamespacesList, CreateWorkspaceData } from '~/app/types';
+import { isNotebookResponse, restGET, restCREATE } from '~/shared/api/apiUtils';
 import { APIOptions } from '~/shared/api/types';
 import { handleRestFailures } from '~/shared/api/errorUtils';
-import { WorkspaceKind } from '~/shared/types';
+import { Workspace, WorkspaceKind } from '~/shared/types';
 
 export const getNamespaces =
   (hostPath: string) =>
@@ -23,3 +23,15 @@ export const getWorkspaceKinds =
       }
       throw new Error('Invalid response format');
     });
+
+export const createWorkspace =
+  (hostPath: string) =>
+  (opts: APIOptions, data: CreateWorkspaceData, namespace = ''): Promise<Workspace> =>
+    handleRestFailures(restCREATE(hostPath, `/workspaces/${namespace}`, data, opts)).then(
+      (response) => {
+        if (isNotebookResponse<Workspace>(response)) {
+          return response.data;
+        }
+        throw new Error('Invalid response format');
+      },
+    );

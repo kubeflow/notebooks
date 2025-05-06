@@ -93,6 +93,33 @@ export interface WorkspaceStatus {
   stateMessage: string;
 }
 
+export interface WorkspacePodMetadataMutate {
+  labels: Record<string, string>;
+  annotations: Record<string, string>;
+}
+
+export interface WorkspacePodVolumeMount {
+  pvcName: string;
+  mountPath: string;
+  readOnly?: boolean;
+}
+
+export interface WorkspacePodVolumesMutate {
+  home?: string;
+  data: WorkspacePodVolumeMount[];
+}
+
+export interface WorkspacePodTemplateOptionsMutate {
+  imageConfig: string;
+  podConfig: string;
+}
+
+export interface WorkspacePodTemplateMutate {
+  podMetadata: WorkspacePodMetadataMutate;
+  volumes: WorkspacePodVolumesMutate;
+  options: WorkspacePodTemplateOptionsMutate;
+}
+
 export interface Workspace {
   name: string;
   namespace: string;
