@@ -1,5 +1,5 @@
 import React from 'react';
-import { List, ListItem, Title } from '@patternfly/react-core';
+import { List, ListItem } from '@patternfly/react-core';
 import { WorkspacePodConfigValue } from '~/shared/api/backendApiTypes';
 
 type WorkspaceCreationPodConfigDetailsProps = {
@@ -10,12 +10,8 @@ export const WorkspaceCreationPodConfigDetails: React.FunctionComponent<
   WorkspaceCreationPodConfigDetailsProps
 > = ({ workspacePodConfig }) => (
   <>
-    {!workspacePodConfig && <p>Select a pod config to view its details here.</p>}
-
     {workspacePodConfig && (
-      <>
-        <Title headingLevel="h6">Pod config</Title>
-        <Title headingLevel="h3">{workspacePodConfig.displayName}</Title>
+      <div style={{ marginLeft: 'var(--pf-t--global--spacer--md)' }}>
         <p>{workspacePodConfig.description}</p>
         <List isPlain>
           {workspacePodConfig.labels.map((label) => (
@@ -24,7 +20,7 @@ export const WorkspaceCreationPodConfigDetails: React.FunctionComponent<
             </ListItem>
           ))}
         </List>
-      </>
+      </div>
     )}
   </>
 );
