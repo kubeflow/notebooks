@@ -89,6 +89,15 @@ export interface WorkspaceKindPodTemplate {
   options: WorkspaceKindPodTemplateOptions;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface WorkspaceKindCreate {}
+
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface WorkspaceKindUpdate {}
+
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface WorkspaceKindPatch {}
+
 export interface WorkspaceKind {
   name: string;
   displayName: string;
@@ -253,6 +262,12 @@ export interface WorkspaceCreate {
   deferUpdates: boolean;
   podTemplate: WorkspacePodTemplateMutate;
 }
+
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface WorkspaceUpdate {}
+
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface WorkspacePatch {}
 
 export interface WorkspaceProperties {
   workspaceName: string;

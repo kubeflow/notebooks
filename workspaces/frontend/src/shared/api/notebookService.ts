@@ -65,11 +65,11 @@ export const updateWorkspace: UpdateWorkspaceAPI =
   (hostPath) => (opts, namespace, workspace, data) =>
     handleRestFailures(
       restUPDATE(hostPath, `/workspaces/${namespace}/${workspace}`, data, {}, opts),
-    ).then((response) => extractNotebookResponse<void>(response));
+    ).then((response) => extractNotebookResponse<Workspace>(response));
 
 export const patchWorkspace: PatchWorkspaceAPI = (hostPath) => (opts, namespace, workspace, data) =>
   handleRestFailures(restPATCH(hostPath, `/workspaces/${namespace}/${workspace}`, data, opts)).then(
-    (response) => extractNotebookResponse<void>(response),
+    (response) => extractNotebookResponse<Workspace>(response),
   );
 
 export const deleteWorkspace: DeleteWorkspaceAPI = (hostPath) => (opts, namespace, workspace) =>
@@ -89,17 +89,17 @@ export const getWorkspaceKind: GetWorkspaceKindAPI = (hostPath) => (opts, kind) 
 
 export const createWorkspaceKind: CreateWorkspaceKindAPI = (hostPath) => (opts, data) =>
   handleRestFailures(restCREATE(hostPath, `/workspacekinds`, data, {}, opts)).then((response) =>
-    extractNotebookResponse<void>(response),
+    extractNotebookResponse<WorkspaceKind>(response),
   );
 
 export const updateWorkspaceKind: UpdateWorkspaceKindAPI = (hostPath) => (opts, kind, data) =>
   handleRestFailures(restUPDATE(hostPath, `/workspacekinds/${kind}`, data, {}, opts)).then(
-    (response) => extractNotebookResponse<void>(response),
+    (response) => extractNotebookResponse<WorkspaceKind>(response),
   );
 
 export const patchWorkspaceKind: PatchWorkspaceKindAPI = (hostPath) => (opts, kind, data) =>
   handleRestFailures(restPATCH(hostPath, `/workspacekinds/${kind}`, data, opts)).then((response) =>
-    extractNotebookResponse<void>(response),
+    extractNotebookResponse<WorkspaceKind>(response),
   );
 
 export const deleteWorkspaceKind: DeleteWorkspaceKindAPI = (hostPath) => (opts, kind) =>

@@ -24,6 +24,6 @@ export type ResponseBody<T> = {
   metadata?: Record<string, unknown>;
 };
 
-export type CreateData<T> = {
+export type RequestData<T> = {
   data: T;
 };

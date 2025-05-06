@@ -4,8 +4,13 @@ import {
   Workspace,
   WorkspaceCreate,
   WorkspaceKind,
+  WorkspaceKindCreate,
+  WorkspaceKindPatch,
+  WorkspaceKindUpdate,
+  WorkspacePatch,
+  WorkspaceUpdate,
 } from '~/shared/api/backendApiTypes';
-import { APIOptions, CreateData } from '~/shared/api/types';
+import { APIOptions, RequestData } from '~/shared/api/types';
 
 // Health
 export type GetHealthCheck = (opts: APIOptions) => Promise<HealthCheckResponse>;
@@ -24,22 +29,20 @@ export type GetWorkspace = (
 export type CreateWorkspace = (
   opts: APIOptions,
   namespace: string,
-  data: CreateData<WorkspaceCreate>,
+  data: RequestData<WorkspaceCreate>,
 ) => Promise<Workspace>;
 export type UpdateWorkspace = (
   opts: APIOptions,
   namespace: string,
   workspace: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: Review data and response when start using it
-  data: any,
-) => Promise<void>;
+  data: RequestData<WorkspaceUpdate>,
+) => Promise<Workspace>;
 export type PatchWorkspace = (
   opts: APIOptions,
   namespace: string,
   workspace: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: Review data and response when start using it
-  data: any,
-) => Promise<void>;
+  data: RequestData<WorkspacePatch>,
+) => Promise<Workspace>;
 export type DeleteWorkspace = (
   opts: APIOptions,
   namespace: string,
@@ -51,21 +54,18 @@ export type ListWorkspaceKinds = (opts: APIOptions) => Promise<WorkspaceKind[]>;
 export type GetWorkspaceKind = (opts: APIOptions, kind: string) => Promise<WorkspaceKind>;
 export type CreateWorkspaceKind = (
   opts: APIOptions,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: Review data and response when start using it
-  data: any,
-) => Promise<void>;
+  data: RequestData<WorkspaceKindCreate>,
+) => Promise<WorkspaceKind>;
 export type UpdateWorkspaceKind = (
   opts: APIOptions,
   kind: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: Review data and response when start using it
-  data: any,
-) => Promise<void>;
+  data: RequestData<WorkspaceKindUpdate>,
+) => Promise<WorkspaceKind>;
 export type PatchWorkspaceKind = (
   opts: APIOptions,
   kind: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: Review data and response when start using it
-  data: any,
-) => Promise<void>;
+  data: RequestData<WorkspaceKindPatch>,
+) => Promise<WorkspaceKind>;
 export type DeleteWorkspaceKind = (opts: APIOptions, kind: string) => Promise<void>;
 
 export type NotebookAPIs = {
