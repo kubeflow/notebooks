@@ -1,23 +1,28 @@
+import {
+  Checkbox,
+  Content,
+  Divider,
+  ExpandableSection,
+  Form,
+  FormGroup,
+  Split,
+  SplitItem,
+  TextInput,
+} from '@patternfly/react-core';
 import * as React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import {
-  TextInput,
-  Checkbox,
-  Form,
-  FormGroup,
-  ExpandableSection,
-  Divider,
-  Split,
-  SplitItem,
-  Content,
-} from '@patternfly/react-core';
+  WorkspaceImageConfigValue,
+  WorkspacePodVolumeInfo,
+  WorkspacePodVolumesMutate,
+  WorkspaceSecret,
+} from '~/shared/types';
 import { WorkspaceCreationImageDetails } from '~/app/pages/Workspaces/Creation/image/WorkspaceCreationImageDetails';
 import { WorkspaceCreationPropertiesVolumes } from '~/app/pages/Workspaces/Creation/properties/WorkspaceCreationPropertiesVolumes';
-import { WorkspaceImage, WorkspaceVolumes, WorkspaceVolume, WorkspaceSecret } from '~/shared/types';
 import { WorkspaceCreationPropertiesSecrets } from './WorkspaceCreationPropertiesSecrets';
 
 interface WorkspaceCreationPropertiesSelectionProps {
-  selectedImage: WorkspaceImage | undefined;
+  selectedImage: WorkspaceImageConfigValue | undefined;
 }
 
 const WorkspaceCreationPropertiesSelection: React.FunctionComponent<
@@ -26,8 +31,12 @@ const WorkspaceCreationPropertiesSelection: React.FunctionComponent<
   const [workspaceName, setWorkspaceName] = useState('');
   const [deferUpdates, setDeferUpdates] = useState(false);
   const [homeDirectory, setHomeDirectory] = useState('');
-  const [volumes, setVolumes] = useState<WorkspaceVolumes>({ home: '', data: [], secrets: [] });
-  const [volumesData, setVolumesData] = useState<WorkspaceVolume[]>([]);
+  const [volumes, setVolumes] = useState<WorkspacePodVolumesMutate>({
+    home: '',
+    data: [],
+    secrets: [],
+  });
+  const [volumesData, setVolumesData] = useState<WorkspacePodVolumeInfo[]>([]);
   const [secrets, setSecrets] = useState<WorkspaceSecret[]>(
     volumes.secrets.length ? volumes.secrets : [],
   );

@@ -16,11 +16,11 @@ import {
   FormGroup,
   ModalHeader,
 } from '@patternfly/react-core';
-import { WorkspaceVolume } from '~/shared/types';
+import { WorkspacePodVolumeInfo } from '~/shared/types';
 
 interface WorkspaceCreationPropertiesVolumesProps {
-  volumes: WorkspaceVolume[];
-  setVolumes: React.Dispatch<React.SetStateAction<WorkspaceVolume[]>>;
+  volumes: WorkspacePodVolumeInfo[];
+  setVolumes: React.Dispatch<React.SetStateAction<WorkspacePodVolumeInfo[]>>;
 }
 
 export const WorkspaceCreationPropertiesVolumes: React.FC<
@@ -28,7 +28,7 @@ export const WorkspaceCreationPropertiesVolumes: React.FC<
 > = ({ volumes, setVolumes }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [formData, setFormData] = useState<WorkspaceVolume>({
+  const [formData, setFormData] = useState<WorkspacePodVolumeInfo>({
     pvcName: '',
     mountPath: '',
     readOnly: false,

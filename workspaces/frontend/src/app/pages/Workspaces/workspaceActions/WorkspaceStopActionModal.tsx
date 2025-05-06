@@ -22,7 +22,7 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
   isOpen,
   workspace,
 }) => {
-  const workspacePendingUpdate = workspace?.status.pendingRestart;
+  const workspacePendingUpdate = workspace?.pendingRestart;
   const handleClick = (isUpdate = false) => {
     if (isUpdate) {
       console.log(`Update ${workspace?.name}`);
@@ -46,7 +46,7 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
               There are pending redirect updates for that workspace. Are you sure you want to
               proceed?
             </TabTitleText>
-            <WorkspaceRedirectInformationView kind={workspace.kind} />
+            <WorkspaceRedirectInformationView kind={workspace.workspaceKind.name} />
           </>
         ) : (
           <Content>Are you sure you want to stop the workspace?</Content>

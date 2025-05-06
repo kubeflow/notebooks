@@ -62,14 +62,14 @@ export const WorkspaceRedirectInformationView: React.FC<WorkspaceRedirectInforma
   const imageConfigRedirects = imageConfig?.values.map((value) => ({
     src: value.id,
     dest: value.redirect?.to,
-    message: value.redirect?.message.text,
-    level: value.redirect?.message.level,
+    message: value.redirect?.message?.text,
+    level: value.redirect?.message?.level,
   }));
   const podConfigRedirects = podConfig?.values.map((value) => ({
     src: value.id,
     dest: value.redirect?.to,
-    message: value.redirect?.message.text,
-    level: value.redirect?.message.level,
+    message: value.redirect?.message?.text,
+    level: value.redirect?.message?.level,
   }));
 
   const getMaxLevel = (redirects: NonNullable<typeof imageConfigRedirects>) => {

@@ -1,70 +1,92 @@
-export interface WorkspaceIcon {
+export enum WorkspaceServiceStatus {
+  ServiceStatusHealthy = 'Healthy',
+  ServiceStatusUnhealthy = 'Unhealthy',
+}
+
+export interface WorkspaceSystemInfo {
+  version: string;
+}
+
+export type HealthCheckResponse = {
+  status: WorkspaceServiceStatus;
+  systemInfo: WorkspaceSystemInfo;
+};
+
+export type Namespace = {
+  name: string;
+};
+
+export interface WorkspaceImageRef {
   url: string;
 }
 
-export interface WorkspaceLogo {
-  url: string;
-}
-
-export interface WorkspaceImage {
-  id: string;
-  displayName: string;
-  labels: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-  hidden: boolean;
-  redirect?: {
-    to: string;
-    message: {
-      text: string;
-      level: string;
-    };
-  };
-}
-
-export interface WorkspaceVolume {
-  pvcName: string;
-  mountPath: string;
-  readOnly: boolean;
-}
-
-export interface WorkspaceVolumes {
-  home: string;
-  data: WorkspaceVolume[];
-  secrets: WorkspaceSecret[];
-}
-
-export interface WorkspaceSecret {
-  defaultMode: number;
-  secretName: string;
-  mountPath: string;
-}
-
-export interface WorkspaceProperties {
-  workspaceName: string;
-  deferUpdates: boolean;
-  homeDirectory: string;
-  volumes: boolean;
-  isVolumesExpanded: boolean;
-  redirect?: {
-    to: string;
-    message: {
-      text: string;
-      level: string;
-    };
-  };
-}
-
-export interface WorkspacePodConfig {
+export interface WorkspacePodConfigValue {
   id: string;
   displayName: string;
   description: string;
-  labels: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-  redirect?: {
-    to: string;
-    message: {
-      text: string;
-      level: string;
-    };
-  };
+  labels: WorkspaceOptionLabel[];
+  hidden: boolean;
+  redirect?: WorkspaceOptionRedirect;
+}
+
+export interface WorkspaceKindPodConfig {
+  default: string;
+  values: WorkspacePodConfigValue[];
+}
+
+export interface WorkspaceKindPodMetadata {
+  labels: Record<string, string>;
+  annotations: Record<string, string>;
+}
+
+export interface WorkspacePodVolumeMounts {
+  home: string;
+}
+
+export interface WorkspaceOptionLabel {
+  key: string;
+  value: string;
+}
+
+export enum WorkspaceRedirectMessageLevel {
+  RedirectMessageLevelInfo = 'Info',
+  RedirectMessageLevelWarning = 'Warning',
+  RedirectMessageLevelDanger = 'Danger',
+}
+
+export interface WorkspaceRedirectMessage {
+  text: string;
+  level: WorkspaceRedirectMessageLevel;
+}
+
+export interface WorkspaceOptionRedirect {
+  to: string;
+  message?: WorkspaceRedirectMessage;
+}
+
+export interface WorkspaceImageConfigValue {
+  id: string;
+  displayName: string;
+  description: string;
+  labels: WorkspaceOptionLabel[];
+  hidden: boolean;
+  redirect?: WorkspaceOptionRedirect;
+}
+
+export interface WorkspaceKindImageConfig {
+  default: string;
+  values: WorkspaceImageConfigValue[];
+}
+
+export interface WorkspaceKindPodTemplateOptions {
+  imageConfig: WorkspaceKindImageConfig;
+  podConfig: WorkspaceKindPodConfig;
+}
+
+export interface WorkspaceKindPodTemplate {
+  podMetadata: WorkspaceKindPodMetadata;
+  volumeMounts: WorkspacePodVolumeMounts;
+  options: WorkspaceKindPodTemplateOptions;
 }
 
 export interface WorkspaceKind {
@@ -74,56 +96,105 @@ export interface WorkspaceKind {
   deprecated: boolean;
   deprecationMessage: string;
   hidden: boolean;
-  icon: WorkspaceIcon;
-  logo: WorkspaceLogo;
-  podTemplate: {
-    podMetadata: {
-      labels: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-      annotations: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-    };
-    volumeMounts: {
-      home: string;
-    };
-    options: {
-      imageConfig: {
-        default: string;
-        values: WorkspaceImage[];
-      };
-      podConfig: {
-        default: string;
-        values: WorkspacePodConfig[];
-      };
-    };
-  };
+  icon: WorkspaceImageRef;
+  logo: WorkspaceImageRef;
+  podTemplate: WorkspaceKindPodTemplate;
 }
 
 export enum WorkspaceState {
-  Running,
-  Terminating,
-  Paused,
-  Pending,
-  Error,
-  Unknown,
+  WorkspaceStateRunning = 'Running',
+  WorkspaceStateTerminating = 'Terminating',
+  WorkspaceStatePaused = 'Paused',
+  WorkspaceStatePending = 'Pending',
+  WorkspaceStateError = 'Error',
+  WorkspaceStateUnknown = 'Unknown',
 }
 
-export interface WorkspaceStatus {
-  activity: {
-    lastActivity: number;
-    lastUpdate: number;
-  };
-  pauseTime: number;
-  pendingRestart: boolean;
-  podTemplateOptions: {
-    imageConfig: {
-      desired: string;
-      redirectChain: {
-        source: string;
-        target: string;
-      }[];
-    };
-  };
-  state: WorkspaceState;
-  stateMessage: string;
+export interface WorkspaceKindInfo {
+  name: string;
+  missing: boolean;
+  icon: WorkspaceImageRef;
+  logo: WorkspaceImageRef;
+}
+
+export interface WorkspacePodMetadata {
+  labels: Record<string, string>;
+  annotations: Record<string, string>;
+}
+
+export interface WorkspacePodVolumeInfo {
+  pvcName: string;
+  mountPath: string;
+  readOnly: boolean;
+}
+
+export interface WorkspaceOptionInfo {
+  id: string;
+  displayName: string;
+  description: string;
+  labels: WorkspaceOptionLabel[];
+}
+
+export interface WorkspaceRedirectStep {
+  sourceId: string;
+  targetId: string;
+  message?: WorkspaceRedirectMessage;
+}
+
+export interface WorkspaceImageConfig {
+  current: WorkspaceOptionInfo;
+  desired?: WorkspaceOptionInfo;
+  redirectChain?: WorkspaceRedirectStep[];
+}
+
+export interface WorkspacePodConfig {
+  current: WorkspaceOptionInfo;
+  desired?: WorkspaceOptionInfo;
+  redirectChain?: WorkspaceRedirectStep[];
+}
+
+export interface WorkspacePodTemplateOptions {
+  imageConfig: WorkspaceImageConfig;
+  podConfig: WorkspacePodConfig;
+}
+
+export interface WorkspacePodVolumes {
+  home?: WorkspacePodVolumeInfo;
+  data: WorkspacePodVolumeInfo[];
+}
+
+export interface WorkspacePodTemplate {
+  podMetadata: WorkspacePodMetadata;
+  volumes: WorkspacePodVolumes;
+  options: WorkspacePodTemplateOptions;
+}
+
+export enum WorkspaceProbeResult {
+  ProbeResultSuccess = 'Success',
+  ProbeResultFailure = 'Failure',
+  ProbeResultTimeout = 'Timeout',
+}
+
+export interface WorkspaceLastProbeInfo {
+  startTimeMs: number;
+  endTimeMs: number;
+  result: WorkspaceProbeResult;
+  message: string;
+}
+
+export interface WorkspaceActivity {
+  lastActivity: number;
+  lastUpdate: number;
+  lastProbe?: WorkspaceLastProbeInfo;
+}
+
+export interface WorkspaceHttpService {
+  displayName: string;
+  httpPath: string;
+}
+
+export interface WorkspaceService {
+  httpService?: WorkspaceHttpService;
 }
 
 export interface WorkspacePodMetadataMutate {
@@ -137,9 +208,16 @@ export interface WorkspacePodVolumeMount {
   readOnly?: boolean;
 }
 
+export interface WorkspaceSecret {
+  defaultMode: number;
+  secretName: string;
+  mountPath: string;
+}
+
 export interface WorkspacePodVolumesMutate {
   home?: string;
   data: WorkspacePodVolumeMount[];
+  secrets: WorkspaceSecret[];
 }
 
 export interface WorkspacePodTemplateOptionsMutate {
@@ -156,31 +234,16 @@ export interface WorkspacePodTemplateMutate {
 export interface Workspace {
   name: string;
   namespace: string;
-  paused: boolean;
+  workspaceKind: WorkspaceKindInfo;
   deferUpdates: boolean;
-  kind: string;
-  cpu: number;
-  ram: number;
-  podTemplate: {
-    podMetadata: {
-      labels: string[];
-      annotations: string[];
-    };
-    volumes: WorkspaceVolumes;
-    endpoints: {
-      displayName: string;
-      port: string;
-    }[];
-  };
-  options: {
-    imageConfig: string;
-    podConfig: string;
-  };
-  status: WorkspaceStatus;
-  redirectStatus: {
-    level: 'Info' | 'Warning' | 'Danger';
-    text: string;
-  };
+  paused: boolean;
+  pausedTime: number;
+  pendingRestart: boolean;
+  state: WorkspaceState;
+  stateMessage: string;
+  podTemplate: WorkspacePodTemplate;
+  activity: WorkspaceActivity;
+  services: WorkspaceService[];
 }
 
 export type WorkspacesColumnNames = {
@@ -204,13 +267,17 @@ export type WorkspaceKindsColumnNames = {
   numberOfWorkspaces: string;
 };
 
-export type Namespace = {
-  name: string;
-};
-
-export type HealthCheckResponse = {
-  status: 'Healthy' | 'Unhealthy';
-  systemInfo: {
-    version: string;
+export interface WorkspaceProperties {
+  workspaceName: string;
+  deferUpdates: boolean;
+  homeDirectory: string;
+  volumes: boolean;
+  isVolumesExpanded: boolean;
+  redirect?: {
+    to: string;
+    message: {
+      text: string;
+      level: string;
+    };
   };
-};
+}

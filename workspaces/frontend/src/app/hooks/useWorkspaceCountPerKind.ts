@@ -14,7 +14,7 @@ export const useWorkspaceCountPerKind = (): WorkspaceCountPerKind => {
   React.useEffect(() => {
     api.listAllWorkspaces({}).then((workspaces) => {
       const countPerKind = workspaces.reduce((acc: WorkspaceCountPerKind, workspace: Workspace) => {
-        acc[workspace.kind] = (acc[workspace.kind] || 0) + 1;
+        acc[workspace.workspaceKind.name] = (acc[workspace.workspaceKind.name] || 0) + 1;
         return acc;
       }, {});
       setWorkspaceCountPerKind(countPerKind);

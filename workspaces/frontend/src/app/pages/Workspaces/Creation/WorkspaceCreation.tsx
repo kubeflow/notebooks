@@ -19,9 +19,9 @@ import { WorkspaceCreationKindSelection } from '~/app/pages/Workspaces/Creation/
 import { WorkspaceCreationPropertiesSelection } from '~/app/pages/Workspaces/Creation/properties/WorkspaceCreationPropertiesSelection';
 import { WorkspaceCreationPodConfigSelection } from '~/app/pages/Workspaces/Creation/podConfig/WorkspaceCreationPodConfigSelection';
 import {
-  WorkspaceImage,
+  WorkspaceImageConfigValue,
   WorkspaceKind,
-  WorkspacePodConfig,
+  WorkspacePodConfigValue,
   WorkspaceProperties,
 } from '~/shared/types';
 
@@ -37,8 +37,8 @@ const WorkspaceCreation: React.FunctionComponent = () => {
 
   const [currentStep, setCurrentStep] = useState(WorkspaceCreationSteps.KindSelection);
   const [selectedKind, setSelectedKind] = useState<WorkspaceKind | undefined>();
-  const [selectedImage, setSelectedImage] = useState<WorkspaceImage | undefined>();
-  const [selectedPodConfig, setSelectedPodConfig] = useState<WorkspacePodConfig | undefined>();
+  const [selectedImage, setSelectedImage] = useState<WorkspaceImageConfigValue | undefined>();
+  const [selectedPodConfig, setSelectedPodConfig] = useState<WorkspacePodConfigValue | undefined>();
   const [, setSelectedProperties] = useState<WorkspaceProperties | undefined>();
 
   const getStepVariant = useCallback(

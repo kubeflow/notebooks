@@ -33,11 +33,15 @@ export const WorkspaceConnectAction: React.FunctionComponent<WorkspaceConnectAct
   };
 
   const onClickConnect = () => {
-    openEndpoint(workspace.podTemplate.endpoints[0].port);
+    if (workspace.services.length === 0 || !workspace.services[0].httpService) {
+      return;
+    }
+
+    openEndpoint(workspace.services[0].httpService.httpPath);
   };
 
-  const openEndpoint = (port: string) => {
-    window.open(`workspace/${workspace.namespace}/${workspace.name}/${port}`, '_blank');
+  const openEndpoint = (value: string) => {
+    window.open(value, '_blank');
   };
 
   return (
@@ -50,7 +54,8 @@ export const WorkspaceConnectAction: React.FunctionComponent<WorkspaceConnectAct
           ref={toggleRef}
           onClick={onToggleClick}
           isExpanded={open}
-          isDisabled={workspace.status.state !== WorkspaceState.Running}
+          isFullWidth
+          isDisabled={workspace.state !== WorkspaceState.WorkspaceStateRunning}
           splitButtonItems={[
             <MenuToggleAction
               id="connect-endpoint-button"
@@ -66,11 +71,19 @@ export const WorkspaceConnectAction: React.FunctionComponent<WorkspaceConnectAct
       shouldFocusToggleOnSelect
     >
       <DropdownList>
-        {workspace.podTemplate.endpoints.map((endpoint) => (
-          <DropdownItem value={endpoint.port} key={`${workspace.name}-${endpoint.port}`}>
-            {endpoint.displayName}
-          </DropdownItem>
-        ))}
+        {workspace.services.map((service) => {
+          if (!service.httpService) {
+            return null;
+          }
+          return (
+            <DropdownItem
+              value={service.httpService.httpPath}
+              key={`${workspace.name}-${service.httpService.displayName}`}
+            >
+              {service.httpService.displayName}
+            </DropdownItem>
+          );
+        })}
       </DropdownList>
     </Dropdown>
   );

@@ -3,8 +3,9 @@ import {
   buildMockNamespace,
   buildMockWorkspace,
   buildMockWorkspaceKind,
+  buildMockWorkspaceKindInfo,
 } from '~/shared/mock/mockBuilder';
-import { Workspace, WorkspaceKind, WorkspaceState } from '~/shared/types';
+import { Workspace, WorkspaceKind, WorkspaceKindInfo, WorkspaceState } from '~/shared/types';
 
 // Health
 export const mockedHealthCheckResponse = buildMockHealthCheckResponse();
@@ -34,27 +35,38 @@ export const mockWorkspaceKind3: WorkspaceKind = buildMockWorkspaceKind({
 
 export const mockWorkspaceKinds = [mockWorkspaceKind1, mockWorkspaceKind2, mockWorkspaceKind3];
 
+export const mockWorkspaceKindInfo1: WorkspaceKindInfo = buildMockWorkspaceKindInfo({
+  name: mockWorkspaceKind1.name,
+});
+
+export const mockWorkspaceKindInfo2: WorkspaceKindInfo = buildMockWorkspaceKindInfo({
+  name: mockWorkspaceKind2.name,
+});
+
 // Workspace
 export const mockWorkspace1: Workspace = buildMockWorkspace({
-  kind: mockWorkspaceKind1.name,
+  workspaceKind: mockWorkspaceKindInfo1,
   namespace: mockNamespace1.name,
 });
 
 export const mockWorkspace2: Workspace = buildMockWorkspace({
-  name: 'My Other Jupyter Notebook',
-  kind: mockWorkspaceKind1.name,
+  name: 'My Second Jupyter Notebook',
+  workspaceKind: mockWorkspaceKindInfo1,
   namespace: mockNamespace1.name,
+  state: WorkspaceState.WorkspaceStatePaused,
   paused: false,
   deferUpdates: false,
-  cpu: 1,
-  ram: 12540,
   podTemplate: {
     podMetadata: {
-      labels: ['label1', 'label2'],
-      annotations: ['annotation1', 'annotation2'],
+      labels: { labelKey1: 'labelValue1', labelKey2: 'labelValue2' },
+      annotations: { annotationKey1: 'annotationValue1', annotationKey2: 'annotationValue2' },
     },
     volumes: {
-      home: '/home',
+      home: {
+        pvcName: 'Volume-Home',
+        mountPath: '/home',
+        readOnly: false,
+      },
       data: [
         {
           pvcName: 'PVC-1',
@@ -63,53 +75,67 @@ export const mockWorkspace2: Workspace = buildMockWorkspace({
         },
       ],
     },
-    endpoints: [
-      {
-        displayName: 'JupyterLab',
-        port: '8888',
-      },
-      {
-        displayName: 'Spark Master',
-        port: '9999',
-      },
-    ],
-  },
-  options: {
-    imageConfig: 'jupyterlab_scipy_180',
-    podConfig: 'Large CPU',
-  },
-  status: {
-    activity: {
-      lastActivity: 0,
-      lastUpdate: 0,
-    },
-    pauseTime: 1739673500,
-    pendingRestart: false,
-    podTemplateOptions: {
+    options: {
       imageConfig: {
-        desired: '',
-        redirectChain: [],
+        current: {
+          id: 'jupyterlab_scipy_190',
+          displayName: 'jupyter-scipy:v1.9.0',
+          description: 'JupyterLab, with SciPy Packages',
+          labels: [
+            {
+              key: 'pythonVersion',
+              value: '3.11',
+            },
+          ],
+        },
+      },
+      podConfig: {
+        current: {
+          id: 'large_cpu',
+          displayName: 'Large CPU',
+          description: 'Pod with 4 CPU, 16 Gb RAM',
+          labels: [
+            {
+              key: 'cpu',
+              value: '4000m',
+            },
+            {
+              key: 'memory',
+              value: '16Gi',
+            },
+          ],
+        },
       },
     },
-    state: WorkspaceState.Running,
-    stateMessage: 'It is running.',
-  },
-  redirectStatus: {
-    level: 'Danger',
-    text: 'This is dangerous',
   },
 });
 
-export const mockWorkspace3 = buildMockWorkspace({
+export const mockWorkspace3: Workspace = buildMockWorkspace({
   name: 'My Third Jupyter Notebook',
-  namespace: mockNamespace2.name,
-  kind: mockWorkspaceKind2.name,
+  namespace: mockNamespace1.name,
+  workspaceKind: mockWorkspaceKindInfo1,
+  state: WorkspaceState.WorkspaceStateRunning,
+  pendingRestart: true,
 });
 
 export const mockWorkspace4 = buildMockWorkspace({
   name: 'My Fourth Jupyter Notebook',
   namespace: mockNamespace2.name,
-  kind: mockWorkspaceKind2.name,
+  state: WorkspaceState.WorkspaceStateError,
+  workspaceKind: mockWorkspaceKindInfo2,
 });
 
-export const mockAllWorkspaces = [mockWorkspace1, mockWorkspace2, mockWorkspace3, mockWorkspace4];
+export const mockWorkspace5 = buildMockWorkspace({
+  name: 'My Fifth Jupyter Notebook',
+  namespace: mockNamespace2.name,
+  state: WorkspaceState.WorkspaceStateTerminating,
+  workspaceKind: mockWorkspaceKindInfo2,
+});
+
+export const mockAllWorkspaces = [
+  mockWorkspace1,
+  mockWorkspace2,
+  mockWorkspace3,
+  mockWorkspace4,
+  mockWorkspace5,
+];
