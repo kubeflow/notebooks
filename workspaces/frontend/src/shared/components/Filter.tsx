@@ -199,8 +199,17 @@ const Filter: React.FC<FilterProps> = ({ id, onFilter, columnNames }) => {
     >
       <ToolbarContent>
         <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="xl">
-          <ToolbarItem id={`${id}-dropdown`}>{filterDropdown}</ToolbarItem>
           <ToolbarGroup variant="filter-group">
+            <ToolbarItem id={`${id}-dropdown`}>{filterDropdown}</ToolbarItem>
+            <ToolbarItem>
+              <SearchInput
+                id={`${id}-search-input`}
+                placeholder={`Filter by ${activeFilter.columnName}`}
+                value={searchValue}
+                onChange={(_event, value) => onSearchChange(value)}
+                onClear={() => onSearchChange('')}
+              />
+            </ToolbarItem>
             {filters.map((filter) => (
               <ToolbarFilter
                 key={`${filter.columnName}-filter`}
@@ -213,13 +222,6 @@ const Filter: React.FC<FilterProps> = ({ id, onFilter, columnNames }) => {
               </ToolbarFilter>
             ))}
           </ToolbarGroup>
-          <SearchInput
-            id={`${id}-search-input`}
-            placeholder={`Filter by ${activeFilter.columnName}`}
-            value={searchValue}
-            onChange={(_event, value) => onSearchChange(value)}
-            onClear={() => onSearchChange('')}
-          />
         </ToolbarToggleGroup>
       </ToolbarContent>
     </Toolbar>
