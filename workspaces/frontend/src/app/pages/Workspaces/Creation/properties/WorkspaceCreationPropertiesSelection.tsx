@@ -12,7 +12,7 @@ import {
   Content,
 } from '@patternfly/react-core';
 import { WorkspaceCreationImageDetails } from '~/app/pages/Workspaces/Creation/image/WorkspaceCreationImageDetails';
-import { WorkspaceCreationPropertiesVolumesProps } from '~/app/pages/Workspaces/Creation/properties/WorkspaceCreationPropertiesVolumes';
+import { WorkspaceCreationPropertiesVolumes } from '~/app/pages/Workspaces/Creation/properties/WorkspaceCreationPropertiesVolumes';
 import { WorkspaceImage, WorkspaceVolumes, WorkspaceVolume } from '~/shared/types';
 
 interface WorkspaceCreationPropertiesSelectionProps {
@@ -98,7 +98,7 @@ const WorkspaceCreationPropertiesSelection: React.FunctionComponent<
                       </FormGroup>
 
                       <FormGroup fieldId="volumes-table" style={{ marginTop: '1rem' }}>
-                        <WorkspaceCreationPropertiesVolumesProps
+                        <WorkspaceCreationPropertiesVolumes
                           volumes={volumesData}
                           setVolumes={setVolumesData}
                         />

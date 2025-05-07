@@ -18,13 +18,13 @@ import {
 } from '@patternfly/react-core';
 import { WorkspaceVolume } from '~/shared/types';
 
-interface WorkspaceCreationPropertiesVolumes {
+interface WorkspaceCreationPropertiesVolumesProps {
   volumes: WorkspaceVolume[];
   setVolumes: React.Dispatch<React.SetStateAction<WorkspaceVolume[]>>;
 }
 
-export const WorkspaceCreationPropertiesVolumesProps: React.FC<
-  WorkspaceCreationPropertiesVolumes
+export const WorkspaceCreationPropertiesVolumes: React.FC<
+  WorkspaceCreationPropertiesVolumesProps
 > = ({ volumes, setVolumes }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -204,4 +204,4 @@ export const WorkspaceCreationPropertiesVolumesProps: React.FC<
   );
 };
 
-export default WorkspaceCreationPropertiesVolumes;
+export default WorkspaceCreationPropertiesVolumesProps;
