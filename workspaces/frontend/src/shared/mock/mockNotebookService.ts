@@ -38,28 +38,25 @@ export const mockGetWorkspace: GetWorkspaceAPI = () => async (_opts, namespace, 
 
 export const mockCreateWorkspace: CreateWorkspaceAPI = () => async () => mockWorkspace1;
 
-// eslint-disable-next-line @typescript-eslint/no-empty-function
 export const mockUpdateWorkspace: UpdateWorkspaceAPI = () => async () => mockWorkspace1;
 
-// eslint-disable-next-line @typescript-eslint/no-empty-function
 export const mockPatchWorkspace: PatchWorkspaceAPI = () => async () => mockWorkspace1;
 
-// eslint-disable-next-line @typescript-eslint/no-empty-function
-export const mockDeleteWorkspace: DeleteWorkspaceAPI = () => async () => {};
+export const mockDeleteWorkspace: DeleteWorkspaceAPI = () => async () => {
+  /* no-op */
+};
 
 export const mockListWorkspaceKinds: ListWorkspaceKindsAPI = () => async () => mockWorkspaceKinds;
 
 export const mockGetWorkspaceKind: GetWorkspaceKindAPI = () => async (_opts, kind) =>
   mockWorkspaceKinds.find((w) => w.name === kind)!;
 
-// eslint-disable-next-line @typescript-eslint/no-empty-function
 export const mockCreateWorkspaceKind: CreateWorkspaceKindAPI = () => async () => mockWorkspaceKind1;
 
-// eslint-disable-next-line @typescript-eslint/no-empty-function
 export const mockUpdateWorkspaceKind: UpdateWorkspaceKindAPI = () => async () => mockWorkspaceKind1;
 
-// eslint-disable-next-line @typescript-eslint/no-empty-function
 export const mockPatchWorkspaceKind: PatchWorkspaceKindAPI = () => async () => mockWorkspaceKind1;
 
-// eslint-disable-next-line @typescript-eslint/no-empty-function
-export const mockDeleteWorkspaceKind: DeleteWorkspaceKindAPI = () => async () => {};
+export const mockDeleteWorkspaceKind: DeleteWorkspaceKindAPI = () => async () => {
+  /* no-op */
+};
