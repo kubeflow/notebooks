@@ -2,9 +2,12 @@ import * as React from 'react';
 import '@patternfly/react-core/dist/styles/base.css';
 import './app.css';
 import {
+  Brand,
   Flex,
   Masthead,
+  MastheadBrand,
   MastheadContent,
+  MastheadLogo,
   MastheadMain,
   MastheadToggle,
   Page,
@@ -13,6 +16,7 @@ import {
 } from '@patternfly/react-core';
 import { BarsIcon } from '@patternfly/react-icons';
 import NamespaceSelector from '~/shared/components/NamespaceSelector';
+import logoDarkTheme from '~/images/logo-dark-theme.svg';
 import { NamespaceContextProvider } from './context/NamespaceContextProvider';
 import AppRoutes from './AppRoutes';
 import NavSidebar from './NavSidebar';
@@ -37,6 +41,15 @@ const App: React.FC = () => {
             <BarsIcon />
           </PageToggleButton>
         </MastheadToggle>
+        {!isMUITheme() ? (
+          <MastheadBrand>
+            <MastheadLogo component="a">
+              <Brand src={logoDarkTheme} alt="Kubeflow" heights={{ default: '36px' }} />
+            </MastheadLogo>
+          </MastheadBrand>
+        ) : (
+          ''
+        )}
       </MastheadMain>
       <MastheadContent>
         <Flex>
