@@ -68,8 +68,8 @@ const WorkspaceCreation: React.FunctionComponent = () => {
 
   return (
     <>
-      <PageGroup stickyOnBreakpoint={{ default: 'top' }}>
-        <PageSection isFilled={false}>
+      <PageGroup isFilled={false} stickyOnBreakpoint={{ default: 'top' }}>
+        <PageSection>
           <Stack hasGutter>
             <StackItem>
               <Flex>
