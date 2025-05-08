@@ -20,6 +20,32 @@ export interface WorkspaceImage {
   };
 }
 
+export interface WorkspaceVolume {
+  pvcName: string;
+  mountPath: string;
+  readOnly: boolean;
+}
+
+export interface WorkspaceVolumes {
+  home: string;
+  data: WorkspaceVolume[];
+}
+
+export interface WorkspaceProperties {
+  workspaceName: string;
+  deferUpdates: boolean;
+  homeDirectory: string;
+  volumes: boolean;
+  isVolumesExpanded: boolean;
+  redirect?: {
+    to: string;
+    message: {
+      text: string;
+      level: string;
+    };
+  };
+}
+
 export interface WorkspacePodConfig {
   id: string;
   displayName: string;
@@ -133,14 +159,7 @@ export interface Workspace {
       labels: string[];
       annotations: string[];
     };
-    volumes: {
-      home: string;
-      data: {
-        pvcName: string;
-        mountPath: string;
-        readOnly: boolean;
-      }[];
-    };
+    volumes: WorkspaceVolumes;
     endpoints: {
       displayName: string;
       port: string;
