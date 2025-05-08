@@ -14,7 +14,7 @@ import {
 import { WorkspaceCreationImageDetails } from '~/app/pages/Workspaces/Creation/image/WorkspaceCreationImageDetails';
 import { WorkspaceCreationPropertiesVolumes } from '~/app/pages/Workspaces/Creation/properties/WorkspaceCreationPropertiesVolumes';
 import { WorkspaceImage, WorkspaceVolumes, WorkspaceVolume, WorkspaceSecret } from '~/shared/types';
-import WorkspaceCreationPropertiesSecrets from './WorkspaceCreationPropertiesSecrets';
+import { WorkspaceCreationPropertiesSecrets } from './WorkspaceCreationPropertiesSecrets';
 
 interface WorkspaceCreationPropertiesSelectionProps {
   selectedImage: WorkspaceImage | undefined;
@@ -136,14 +136,15 @@ const WorkspaceCreationPropertiesSelection: React.FunctionComponent<
                     </FormGroup>
                   )}
                 </ExpandableSection>
-                {!isSecretsExpanded && (
-                  <div style={{ paddingLeft: '36px' }}>
-                    <div className="pf-u-font-size-sm">
-                      <strong>{secrets.length} added</strong>
-                    </div>
-                  </div>
-                )}
               </div>
+              {!isSecretsExpanded && (
+                <div style={{ paddingLeft: '36px', marginTop: '-10px' }}>
+                  <div>Secrets enable your project to securely access and manage credentials.</div>
+                  <div className="pf-u-font-size-sm">
+                    <strong>{secrets.length} added</strong>
+                  </div>
+                </div>
+              )}
             </Form>
           </div>
         </SplitItem>

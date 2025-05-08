@@ -25,10 +25,9 @@ interface WorkspaceCreationPropertiesSecretsProps {
   setSecrets: React.Dispatch<React.SetStateAction<WorkspaceSecret[]>>;
 }
 
-export const WorkspaceCreationPropertiesSecrets: React.FC<WorkspaceCreationPropertiesSecretsProps> = ({
-  secrets,
-  setSecrets,
-}) => {
+export const WorkspaceCreationPropertiesSecrets: React.FC<
+  WorkspaceCreationPropertiesSecretsProps
+> = ({ secrets, setSecrets }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [formData, setFormData] = useState<WorkspaceSecret>({
@@ -157,6 +156,11 @@ export const WorkspaceCreationPropertiesSecrets: React.FC<WorkspaceCreationPrope
         <ModalHeader
           title={editIndex === null ? 'Create Secret' : 'Edit Secret'}
           labelId="secret-modal-title"
+          description={
+            editIndex === null
+              ? 'Add a secret to securely use API keys, tokens, or other credentials in your workspace.'
+              : ''
+          }
         />
         <ModalBody id="secret-modal-box-body">
           <Form onSubmit={handleAddOrEditSubmit}>
