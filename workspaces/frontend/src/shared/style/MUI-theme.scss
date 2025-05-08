@@ -742,7 +742,6 @@
 .mui-theme .pf-v6-c-label.pf-m-outline {
   --pf-v6-c-label--BorderColor: none;
   --pf-v6-c-label--BackgroundColor: var(--mui-palette-grey-200);
-  padding: 4px;
 }
 
 .mui-theme .pf-v6-c-masthead {
@@ -758,8 +757,6 @@
 
 .mui-theme .pf-v6-c-button.pf-m-plain {
   --pf-v6-c-button--BorderRadius: 50%;
-  --pf-v6-c-button--PaddingInlineStart: none;
-  --pf-v6-c-button--PaddingInlineEnd: none;
 }
 
 .mui-theme .pf-v6-c-page__main-container {
