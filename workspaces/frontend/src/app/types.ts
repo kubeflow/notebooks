@@ -18,3 +18,19 @@ export type WorkspaceKindsColumnNames = {
   deprecated: string;
   numberOfWorkspaces: string;
 };
+
+// TODO: review this type once workspace creation is fully implemented; use `WorkspaceCreate` type instead.
+export interface WorkspaceProperties {
+  workspaceName: string;
+  deferUpdates: boolean;
+  homeDirectory: string;
+  volumes: boolean;
+  isVolumesExpanded: boolean;
+  redirect?: {
+    to: string;
+    message: {
+      text: string;
+      level: string;
+    };
+  };
+}

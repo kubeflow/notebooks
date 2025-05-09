@@ -268,18 +268,3 @@ export interface WorkspaceUpdate {}
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface WorkspacePatch {}
-
-export interface WorkspaceProperties {
-  workspaceName: string;
-  deferUpdates: boolean;
-  homeDirectory: string;
-  volumes: boolean;
-  isVolumesExpanded: boolean;
-  redirect?: {
-    to: string;
-    message: {
-      text: string;
-      level: string;
-    };
-  };
-}

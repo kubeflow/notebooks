@@ -54,7 +54,6 @@ export const WorkspaceConnectAction: React.FunctionComponent<WorkspaceConnectAct
           ref={toggleRef}
           onClick={onToggleClick}
           isExpanded={open}
-          isFullWidth
           isDisabled={workspace.state !== WorkspaceState.WorkspaceStateRunning}
           splitButtonItems={[
             <MenuToggleAction

@@ -22,8 +22,8 @@ import {
   WorkspaceImageConfigValue,
   WorkspaceKind,
   WorkspacePodConfigValue,
-  WorkspaceProperties,
 } from '~/shared/api/backendApiTypes';
+import { WorkspaceProperties } from '~/app/types';
 
 enum WorkspaceCreationSteps {
   KindSelection,
