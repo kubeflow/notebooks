@@ -1,4 +1,12 @@
-export type WorkspacesColumnNames = {
+import {
+  WorkspaceImageConfigValue,
+  WorkspaceKind,
+  WorkspacePodConfigValue,
+  WorkspacePodVolumeMount,
+  WorkspacePodSecretMount,
+} from '~/shared/api/backendApiTypes';
+
+export interface WorkspacesColumnNames {
   name: string;
   kind: string;
   image: string;
@@ -9,28 +17,27 @@ export type WorkspacesColumnNames = {
   ram: string;
   lastActivity: string;
   redirectStatus: string;
-};
+}
 
-export type WorkspaceKindsColumnNames = {
+export interface WorkspaceKindsColumnNames {
   icon: string;
   name: string;
   description: string;
   deprecated: string;
   numberOfWorkspaces: string;
-};
+}
 
-// TODO: review this type once workspace creation is fully implemented; use `WorkspaceCreate` type instead.
-export interface WorkspaceProperties {
+export interface WorkspaceCreateProperties {
   workspaceName: string;
   deferUpdates: boolean;
   homeDirectory: string;
-  volumes: boolean;
-  isVolumesExpanded: boolean;
-  redirect?: {
-    to: string;
-    message: {
-      text: string;
-      level: string;
-    };
-  };
+  volumes: WorkspacePodVolumeMount[];
+  secrets: WorkspacePodSecretMount[];
+}
+
+export interface WorkspaceCreateFormData {
+  kind: WorkspaceKind | undefined;
+  image: WorkspaceImageConfigValue | undefined;
+  podConfig: WorkspacePodConfigValue | undefined;
+  properties: WorkspaceCreateProperties;
 }

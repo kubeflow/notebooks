@@ -217,16 +217,16 @@ export interface WorkspacePodVolumeMount {
   readOnly?: boolean;
 }
 
-export interface WorkspaceSecret {
-  defaultMode: number;
+export interface WorkspacePodSecretMount {
   secretName: string;
   mountPath: string;
+  defaultMode?: number;
 }
 
 export interface WorkspacePodVolumesMutate {
   home?: string;
-  data: WorkspacePodVolumeMount[];
-  secrets: WorkspaceSecret[];
+  data?: WorkspacePodVolumeMount[];
+  secrets?: WorkspacePodSecretMount[];
 }
 
 export interface WorkspacePodTemplateOptionsMutate {
