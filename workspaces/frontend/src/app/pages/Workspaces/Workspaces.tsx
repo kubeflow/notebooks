@@ -89,6 +89,13 @@ export const Workspaces: React.FunctionComponent = () => {
               readOnly: false,
             },
           ],
+          secrets: [
+            {
+              secretName: 'Secret-2',
+              mountPath: '/data',
+              defaultMode: 420,
+            },
+          ],
         },
         endpoints: [
           {
@@ -142,6 +149,13 @@ export const Workspaces: React.FunctionComponent = () => {
               pvcName: 'PVC-1',
               mountPath: '/data',
               readOnly: false,
+            },
+          ],
+          secrets: [
+            {
+              secretName: 'workspace-secret',
+              mountPath: '/secrets/my-secret',
+              defaultMode: 420,
             },
           ],
         },
