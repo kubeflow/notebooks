@@ -18,19 +18,25 @@ package workspaces
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces"
+	action_models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/actions"
 )
 
-var ErrWorkspaceNotFound = fmt.Errorf("workspace not found")
-var ErrWorkspaceAlreadyExists = fmt.Errorf("workspace already exists")
+var (
+	ErrWorkspaceNotFound      = fmt.Errorf("workspace not found")
+	ErrWorkspaceAlreadyExists = fmt.Errorf("workspace already exists")
+	ErrWorkspaceInvalidState  = fmt.Errorf("workspace is in an invalid state for this operation")
+)
 
 type WorkspaceRepository struct {
 	client client.Client
@@ -213,4 +219,68 @@ func (r *WorkspaceRepository) DeleteWorkspace(ctx context.Context, namespace, wo
 	}
 
 	return nil
+}
+
+// WorkspacePatchOperation represents a single JSONPatch operation
+type WorkspacePatchOperation struct {
+	Op    string      `json:"op"`
+	Path  string      `json:"path"`
+	Value interface{} `json:"value,omitempty"`
+}
+
+// HandlePauseAction handles pause/start operations for a workspace
+func (r *WorkspaceRepository) HandlePauseAction(ctx context.Context, namespace, workspaceName string, workspaceActionPause *action_models.WorkspaceActionPause) (*action_models.WorkspaceActionPause, error) {
+	targetPauseState := workspaceActionPause.Paused
+
+	// Build patch operations incrementally
+	patch := []WorkspacePatchOperation{
+		{
+			Op:    "test",
+			Path:  "/spec/paused",
+			Value: !targetPauseState, // Test current state (opposite of target state)
+		},
+	}
+
+	// For start operations, add additional test for paused state
+	// "test" operations on JSON Patch only support strict equality checks, so we can't apply an additional test
+	// for pause operations on the workspace as we'd want to check the workspace state != paused.
+	if !targetPauseState {
+		patch = append(patch, WorkspacePatchOperation{
+			Op:    "test",
+			Path:  "/status/state",
+			Value: kubefloworgv1beta1.WorkspaceStatePaused,
+		})
+	}
+
+	// Always add the replace operation
+	patch = append(patch, WorkspacePatchOperation{
+		Op:    "replace",
+		Path:  "/spec/paused",
+		Value: targetPauseState,
+	})
+
+	patchBytes, err := json.Marshal(patch)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal patch: %w", err)
+	}
+
+	workspace := &kubefloworgv1beta1.Workspace{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      workspaceName,
+		},
+	}
+
+	if err := r.client.Patch(ctx, workspace, client.RawPatch(types.JSONPatchType, patchBytes)); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, ErrWorkspaceNotFound
+		}
+		if apierrors.IsInvalid(err) {
+			return nil, ErrWorkspaceInvalidState
+		}
+		return nil, fmt.Errorf("failed to patch workspace: %w", err)
+	}
+
+	workspaceActionPauseModel := action_models.NewWorkspaceActionPauseFromWorkspace(workspace)
+	return workspaceActionPauseModel, nil
 }

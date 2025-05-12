@@ -453,6 +453,104 @@ const docTemplate = `{
                 }
             }
         },
+        "/workspaces/{namespace}/{workspaceName}/actions/pause": {
+            "post": {
+                "description": "Pauses or unpauses a workspace, stopping or resuming all associated pods.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspaces"
+                ],
+                "summary": "Pause or unpause a workspace",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "x-example": "default",
+                        "description": "Namespace of the workspace",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "x-example": "my-workspace",
+                        "description": "Name of the workspace",
+                        "name": "workspaceName",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Intended pause state of the workspace",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.WorkspaceActionPauseEnvelope"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful action. Returns the current pause state.",
+                        "schema": {
+                            "$ref": "#/definitions/api.WorkspaceActionPauseEnvelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Authentication is required.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. User does not have permission to access the workspace.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found. Workspace does not exist.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large. The request body is too large.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type. Content-Type header is not correct.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Workspace is not in appropriate state.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error. An unexpected error occurred on the server.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
         "/workspaces/{namespace}/{workspace_name}": {
             "get": {
                 "description": "Returns details of a specific workspace identified by namespace and workspace name.",
@@ -592,6 +690,14 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "actions.WorkspaceActionPause": {
+            "type": "object",
+            "properties": {
+                "paused": {
+                    "type": "boolean"
+                }
+            }
+        },
         "api.ErrorCause": {
             "type": "object",
             "properties": {
@@ -647,6 +753,14 @@ const docTemplate = `{
                 },
                 "type": {
                     "$ref": "#/definitions/field.ErrorType"
+                }
+            }
+        },
+        "api.WorkspaceActionPauseEnvelope": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/actions.WorkspaceActionPause"
                 }
             }
         },
