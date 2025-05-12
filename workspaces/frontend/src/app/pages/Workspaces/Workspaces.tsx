@@ -13,11 +13,6 @@ import {
   Content,
   Brand,
   Tooltip,
-  EmptyStateActions,
-  EmptyState,
-  EmptyStateFooter,
-  EmptyStateBody,
-  Bullseye,
 } from '@patternfly/react-core';
 import {
   Table,
@@ -36,7 +31,6 @@ import {
   TimesCircleIcon,
   QuestionCircleIcon,
   CodeIcon,
-  SearchIcon,
 } from '@patternfly/react-icons';
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -53,8 +47,10 @@ import { WorkspaceConnectAction } from '~/app/pages/Workspaces/WorkspaceConnectA
 import { WorkspaceStartActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceStartActionModal';
 import { WorkspaceRestartActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRestartActionModal';
 import { WorkspaceStopActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceStopActionModal';
-import Filter, { FilteredColumn } from 'shared/components/Filter';
+import Filter, { FilteredColumn, FilterRef } from 'shared/components/Filter'; // Import FilterRef
 import { formatRam } from 'shared/utilities/WorkspaceUtils';
+import EmptyStateWithClearFilters from '~/shared/components/EmptyStateWithClearFilters'; // Import the new component
+import { Bullseye } from '@patternfly/react-core'; // Import Bullseye if not already imported
 
 export enum ActionType {
   ViewDetails,
@@ -237,6 +233,8 @@ export const Workspaces: React.FunctionComponent = () => {
   const [isActionAlertModalOpen, setIsActionAlertModalOpen] = React.useState(false);
   const [activeActionType, setActiveActionType] = React.useState<ActionType | null>(null);
 
+  const filterRef = React.useRef<FilterRef>(null);
+
   const selectWorkspace = React.useCallback(
     (newSelectedWorkspace: Workspace | null) => {
       if (selectedWorkspace?.name === newSelectedWorkspace?.name) {
@@ -260,7 +258,7 @@ export const Workspaces: React.FunctionComponent = () => {
     expandedWorkspacesNames.includes(workspace.name);
 
   // filter function to pass to the filter component
-  const onFilter = (filters: FilteredColumn[]) => {
+  const onFilter = React.useCallback((filters: FilteredColumn[]) => {
     // Search name with search value
     let filteredWorkspaces = initialWorkspaces;
     filters.forEach((filter) => {
@@ -294,18 +292,17 @@ export const Workspaces: React.FunctionComponent = () => {
       });
     });
     setWorkspaces(filteredWorkspaces);
-  };
+  }, [initialWorkspaces, columnNames] 
+  );
 
   const emptyState = React.useMemo(
     () => (
-      <EmptyState headingLevel="h4" titleText="No results found" icon={SearchIcon}>
-        <EmptyStateBody>
-          No results match the filter criteria. Clear all filters and try again.
-        </EmptyStateBody>
-        <EmptyStateFooter>
-          <EmptyStateActions />
-        </EmptyStateFooter>
-      </EmptyState>
+      <EmptyStateWithClearFilters
+        title="No results found"
+        body="No results match the filter criteria. Clear all filters and try again."
+        onClearFilters={() => filterRef.current?.clearAll()}
+        colSpan={11}
+      />
     ),
     [],
   );
@@ -579,7 +576,7 @@ export const Workspaces: React.FunctionComponent = () => {
             </Content>
             <br />
             <Content style={{ display: 'flex', alignItems: 'flex-start', columnGap: '20px' }}>
-              <Filter id="filter-workspaces" onFilter={onFilter} columnNames={filterableColumns} />
+              <Filter ref={filterRef} id="filter-workspaces" onFilter={onFilter} columnNames={filterableColumns} />
               <Button variant="primary" ouiaId="Primary" onClick={createWorkspace}>
                 Create Workspace
               </Button>
@@ -678,7 +675,7 @@ export const Workspaces: React.FunctionComponent = () => {
                 ))}
               {sortedWorkspaces.length === 0 && (
                 <Tr>
-                  <Td colSpan={11} id="empty-state">
+                  <Td colSpan={11} id="empty-state-cell">
                     <Bullseye>{emptyState}</Bullseye>
                   </Td>
                 </Tr>
