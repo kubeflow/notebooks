@@ -383,6 +383,82 @@
                 }
             }
         },
+        "/workspaces/{namespace}/{workspaceName}/actions/pause": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Pauses a workspace, stopping all associated pods.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspaces"
+                ],
+                "summary": "Pause workspace",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "default",
+                        "description": "Namespace of the workspace",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "example": "my-workspace",
+                        "description": "Name of the workspace",
+                        "name": "workspaceName",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful action. Returns an empty JSON object.",
+                        "schema": {
+                            "$ref": "#/definitions/api.EmptyResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request. Invalid workspace kind name format.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Authentication is required.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. User does not have permission to access the workspace.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found. Workspace does not exist.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error. An unexpected error occurred on the server.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
         "/workspaces/{namespace}/{workspace_name}": {
             "get": {
                 "security": [
@@ -532,6 +608,9 @@
         }
     },
     "definitions": {
+        "api.EmptyResponse": {
+            "type": "object"
+        },
         "api.ErrorCause": {
             "type": "object",
             "properties": {

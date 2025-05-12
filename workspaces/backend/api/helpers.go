@@ -32,6 +32,9 @@ type Envelope[D any] struct {
 	Data D `json:"data"`
 }
 
+// EmptyResponse represents an empty JSON response
+type EmptyResponse struct{}
+
 // WriteJSON writes a JSON response with the given status code, data, and headers.
 func (a *App) WriteJSON(w http.ResponseWriter, status int, data any, headers http.Header) error {
 

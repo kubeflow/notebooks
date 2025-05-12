@@ -18,11 +18,13 @@ package workspaces
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -210,6 +212,41 @@ func (r *WorkspaceRepository) DeleteWorkspace(ctx context.Context, namespace, wo
 			return ErrWorkspaceNotFound
 		}
 		return err
+	}
+
+	return nil
+}
+
+// WorkspacePausePatch represents a patch to update a workspace's paused state
+type WorkspacePausePatch struct {
+	Spec struct {
+		Paused bool `json:"paused"`
+	} `json:"spec"`
+}
+
+// PauseWorkspace pauses a workspace by setting its paused field to true
+func (r *WorkspaceRepository) PauseWorkspace(ctx context.Context, namespace, workspaceName string) error {
+	// Create a patch that only updates the paused field
+	patch := WorkspacePausePatch{}
+	patch.Spec.Paused = true
+
+	// Convert patch to JSON
+	patchBytes, err := json.Marshal(patch)
+	if err != nil {
+		return fmt.Errorf("failed to marshal patch: %w", err)
+	}
+
+	// Apply the patch
+	if err := r.client.Patch(ctx, &kubefloworgv1beta1.Workspace{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      workspaceName,
+		},
+	}, client.RawPatch(types.MergePatchType, patchBytes)); err != nil {
+		if apierrors.IsNotFound(err) {
+			return ErrWorkspaceNotFound
+		}
+		return fmt.Errorf("failed to patch workspace: %w", err)
 	}
 
 	return nil

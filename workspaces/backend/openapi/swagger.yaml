@@ -1,5 +1,7 @@
 basePath: /api/v1
 definitions:
+  api.EmptyResponse:
+    type: object
   api.ErrorCause:
     properties:
       validation_errors:
@@ -926,6 +928,57 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Get workspace
+      tags:
+      - workspaces
+  /workspaces/{namespace}/{workspaceName}/actions/pause:
+    post:
+      consumes:
+      - application/json
+      description: Pauses a workspace, stopping all associated pods.
+      parameters:
+      - description: Namespace of the workspace
+        example: default
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the workspace
+        example: my-workspace
+        in: path
+        name: workspaceName
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successful action. Returns an empty JSON object.
+          schema:
+            $ref: '#/definitions/api.EmptyResponse'
+        "400":
+          description: Bad Request. Invalid workspace kind name format.
+          schema:
+            $ref: '#/definitions/api.ErrorEnvelope'
+        "401":
+          description: Unauthorized. Authentication is required.
+          schema:
+            $ref: '#/definitions/api.ErrorEnvelope'
+        "403":
+          description: Forbidden. User does not have permission to access the workspace.
+          schema:
+            $ref: '#/definitions/api.ErrorEnvelope'
+        "404":
+          description: Not Found. Workspace does not exist.
+          schema:
+            $ref: '#/definitions/api.ErrorEnvelope'
+        "500":
+          description: Internal server error. An unexpected error occurred on the
+            server.
+          schema:
+            $ref: '#/definitions/api.ErrorEnvelope'
+      security:
+      - ApiKeyAuth: []
+      summary: Pause workspace
       tags:
       - workspaces
 schemes:
