@@ -21,33 +21,31 @@ const EmptyStateWithClearFilters: React.FC<EmptyStateWithClearFiltersProps> = ({
   body,
   onClearFilters,
   colSpan,
-}) => (
-   colSpan !== undefined ? (
-
-     <Bullseye>
-       <EmptyState headingLevel="h4" titleText={title} icon={SearchIcon}>
-         <EmptyStateBody>{body}</EmptyStateBody>
-         <EmptyStateFooter>
-           <EmptyStateActions>
-             <Button variant="link" onClick={onClearFilters}>
-               Clear all filters
-             </Button>
-           </EmptyStateActions>
-         </EmptyStateFooter>
-       </EmptyState>
-     </Bullseye>
-   ) : (
-     <EmptyState headingLevel="h4" titleText={title} icon={SearchIcon}>
-       <EmptyStateBody>{body}</EmptyStateBody>
-       <EmptyStateFooter>
-         <EmptyStateActions>
-           <Button variant="link" onClick={onClearFilters}>
-             Clear all filters
-           </Button>
-         </EmptyStateActions>
-       </EmptyStateFooter>
-     </EmptyState>
-   )
-);
+}) =>
+  colSpan !== undefined ? (
+    <Bullseye>
+      <EmptyState headingLevel="h4" titleText={title} icon={SearchIcon}>
+        <EmptyStateBody>{body}</EmptyStateBody>
+        <EmptyStateFooter>
+          <EmptyStateActions>
+            <Button variant="link" onClick={onClearFilters}>
+              Clear all filters
+            </Button>
+          </EmptyStateActions>
+        </EmptyStateFooter>
+      </EmptyState>
+    </Bullseye>
+  ) : (
+    <EmptyState headingLevel="h4" titleText={title} icon={SearchIcon}>
+      <EmptyStateBody>{body}</EmptyStateBody>
+      <EmptyStateFooter>
+        <EmptyStateActions>
+          <Button variant="link" onClick={onClearFilters}>
+            Clear all filters
+          </Button>
+        </EmptyStateActions>
+      </EmptyStateFooter>
+    </EmptyState>
+  );
 
 export default EmptyStateWithClearFilters;

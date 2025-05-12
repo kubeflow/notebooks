@@ -13,6 +13,7 @@ import {
   Content,
   Brand,
   Tooltip,
+  Bullseye,
 } from '@patternfly/react-core';
 import {
   Table,
@@ -47,10 +48,9 @@ import { WorkspaceConnectAction } from '~/app/pages/Workspaces/WorkspaceConnectA
 import { WorkspaceStartActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceStartActionModal';
 import { WorkspaceRestartActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRestartActionModal';
 import { WorkspaceStopActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceStopActionModal';
+import EmptyStateWithClearFilters from '~/shared/components/EmptyStateWithClearFilters'; // Import the new component
 import Filter, { FilteredColumn, FilterRef } from 'shared/components/Filter'; // Import FilterRef
 import { formatRam } from 'shared/utilities/WorkspaceUtils';
-import EmptyStateWithClearFilters from '~/shared/components/EmptyStateWithClearFilters'; // Import the new component
-import { Bullseye } from '@patternfly/react-core'; // Import Bullseye if not already imported
 
 export enum ActionType {
   ViewDetails,
@@ -200,19 +200,21 @@ export const Workspaces: React.FunctionComponent = () => {
   > = {}; // Initialize the redirect status dictionary
   workspaceRedirectStatus = buildWorkspaceRedirectStatus(workspaceKinds); // Populate the dictionary
 
-  // Table columns
-  const columnNames: WorkspacesColumnNames = {
-    redirectStatus: 'Redirect Status',
-    name: 'Name',
-    kind: 'Kind',
-    image: 'Image',
-    podConfig: 'Pod Config',
-    state: 'State',
-    homeVol: 'Home Vol',
-    cpu: 'CPU',
-    ram: 'Memory',
-    lastActivity: 'Last Activity',
-  };
+  const columnNames: WorkspacesColumnNames = React.useMemo(
+    () => ({
+      redirectStatus: 'Redirect Status',
+      name: 'Name',
+      kind: 'Kind',
+      image: 'Image',
+      podConfig: 'Pod Config',
+      state: 'State',
+      homeVol: 'Home Vol',
+      cpu: 'CPU',
+      ram: 'Memory',
+      lastActivity: 'Last Activity',
+    }),
+    [],
+  );
 
   const filterableColumns = {
     name: 'Name',
@@ -258,41 +260,43 @@ export const Workspaces: React.FunctionComponent = () => {
     expandedWorkspacesNames.includes(workspace.name);
 
   // filter function to pass to the filter component
-  const onFilter = React.useCallback((filters: FilteredColumn[]) => {
-    // Search name with search value
-    let filteredWorkspaces = initialWorkspaces;
-    filters.forEach((filter) => {
-      let searchValueInput: RegExp;
-      try {
-        searchValueInput = new RegExp(filter.value, 'i');
-      } catch {
-        searchValueInput = new RegExp(filter.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-      }
+  const onFilter = React.useCallback(
+    (filters: FilteredColumn[]) => {
+      // Search name with search value
+      let filteredWorkspaces = initialWorkspaces;
+      filters.forEach((filter) => {
+        let searchValueInput: RegExp;
+        try {
+          searchValueInput = new RegExp(filter.value, 'i');
+        } catch {
+          searchValueInput = new RegExp(filter.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        }
 
-      filteredWorkspaces = filteredWorkspaces.filter((workspace) => {
-        if (filter.value === '') {
-          return true;
-        }
-        switch (filter.columnName) {
-          case columnNames.name:
-            return workspace.name.search(searchValueInput) >= 0;
-          case columnNames.kind:
-            return workspace.kind.search(searchValueInput) >= 0;
-          case columnNames.image:
-            return workspace.options.imageConfig.search(searchValueInput) >= 0;
-          case columnNames.podConfig:
-            return workspace.options.podConfig.search(searchValueInput) >= 0;
-          case columnNames.state:
-            return WorkspaceState[workspace.status.state].search(searchValueInput) >= 0;
-          case columnNames.homeVol:
-            return workspace.podTemplate.volumes.home.search(searchValueInput) >= 0;
-          default:
+        filteredWorkspaces = filteredWorkspaces.filter((workspace) => {
+          if (filter.value === '') {
             return true;
-        }
+          }
+          switch (filter.columnName) {
+            case columnNames.name:
+              return workspace.name.search(searchValueInput) >= 0;
+            case columnNames.kind:
+              return workspace.kind.search(searchValueInput) >= 0;
+            case columnNames.image:
+              return workspace.options.imageConfig.search(searchValueInput) >= 0;
+            case columnNames.podConfig:
+              return workspace.options.podConfig.search(searchValueInput) >= 0;
+            case columnNames.state:
+              return WorkspaceState[workspace.status.state].search(searchValueInput) >= 0;
+            case columnNames.homeVol:
+              return workspace.podTemplate.volumes.home.search(searchValueInput) >= 0;
+            default:
+              return true;
+          }
+        });
       });
-    });
-    setWorkspaces(filteredWorkspaces);
-  }, [initialWorkspaces, columnNames] 
+      setWorkspaces(filteredWorkspaces);
+    },
+    [initialWorkspaces, columnNames],
   );
 
   const emptyState = React.useMemo(
@@ -576,7 +580,12 @@ export const Workspaces: React.FunctionComponent = () => {
             </Content>
             <br />
             <Content style={{ display: 'flex', alignItems: 'flex-start', columnGap: '20px' }}>
-              <Filter ref={filterRef} id="filter-workspaces" onFilter={onFilter} columnNames={filterableColumns} />
+              <Filter
+                ref={filterRef}
+                id="filter-workspaces"
+                onFilter={onFilter}
+                columnNames={filterableColumns}
+              />
               <Button variant="primary" ouiaId="Primary" onClick={createWorkspace}>
                 Create Workspace
               </Button>

@@ -241,11 +241,11 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     [sortedWorkspaceKinds, onFilter],
   );
 
-    const clearAllFilters = React.useCallback(() => {
-        setSearchNameValue('');
-        setStatusSelection('');
-        setSearchDescriptionValue('');
-    }, []);
+  const clearAllFilters = React.useCallback(() => {
+    setSearchNameValue('');
+    setStatusSelection('');
+    setSearchDescriptionValue('');
+  }, []);
 
   // Set up name search input
   const searchNameInput = React.useMemo(
@@ -538,10 +538,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
             </Content>
             <br />
             <Content style={{ display: 'flex', alignItems: 'flex-start', columnGap: '20px' }}>
-              <Toolbar
-                id="attribute-search-filter-toolbar"
-                clearAllFilters={clearAllFilters}
-              >
+              <Toolbar id="attribute-search-filter-toolbar" clearAllFilters={clearAllFilters}>
                 <ToolbarContent>
                   <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="xl">
                     <ToolbarGroup variant="filter-group">
