@@ -256,19 +256,20 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(({ id, onFilter, columnN
                 onClear={() => onSearchChange('')}
               />
             </ToolbarItem>
-            {filters.map((filter) => (
-              filter.value !== '' && (
-                <ToolbarFilter
-                  key={`${filter.columnName}-filter`}
-                  labels={[filter.value]}
-                  deleteLabel={() => onDeleteLabelGroup(filter)}
-                  deleteLabelGroup={() => onDeleteLabelGroup(filter)}
-                  categoryName={filter.columnName}
-                >
-                  {undefined}
-                </ToolbarFilter>
-              )
-            ))}
+            {filters.map(
+              (filter) =>
+                filter.value !== '' && (
+                  <ToolbarFilter
+                    key={`${filter.columnName}-filter`}
+                    labels={[filter.value]}
+                    deleteLabel={() => onDeleteLabelGroup(filter)}
+                    deleteLabelGroup={() => onDeleteLabelGroup(filter)}
+                    categoryName={filter.columnName}
+                  >
+                    {undefined}
+                  </ToolbarFilter>
+                ),
+            )}
           </ToolbarGroup>
         </ToolbarToggleGroup>
       </ToolbarContent>
