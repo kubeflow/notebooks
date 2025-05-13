@@ -1,7 +1,6 @@
-import { APIOptions } from '~/shared/api/types';
+import { APIOptions, ResponseBody } from '~/shared/api/types';
 import { EitherOrNone } from '~/shared/typeHelpers';
-import { ResponseBody } from '~/app/types';
-import { DEV_MODE, AUTH_HEADER } from '~/shared/utilities/const';
+import { AUTH_HEADER, DEV_MODE } from '~/shared/utilities/const';
 
 export const mergeRequestInit = (
   opts: APIOptions = {},
@@ -180,3 +179,10 @@ export const isNotebookResponse = <T>(response: unknown): response is ResponseBo
   }
   return false;
 };
+
+export function extractNotebookResponse<T>(response: unknown): T {
+  if (isNotebookResponse<T>(response)) {
+    return response.data;
+  }
+  throw new Error('Invalid response format');
+}

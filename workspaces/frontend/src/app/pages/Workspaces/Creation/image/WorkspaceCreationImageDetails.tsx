@@ -1,9 +1,9 @@
 import React from 'react';
 import { List, ListItem, Title } from '@patternfly/react-core';
-import { WorkspaceImage } from '~/shared/types';
+import { WorkspacePodConfigValue } from '~/shared/api/backendApiTypes';
 
 type WorkspaceCreationImageDetailsProps = {
-  workspaceImage?: WorkspaceImage;
+  workspaceImage?: WorkspacePodConfigValue;
 };
 
 export const WorkspaceCreationImageDetails: React.FunctionComponent<
@@ -18,9 +18,9 @@ export const WorkspaceCreationImageDetails: React.FunctionComponent<
         <Title headingLevel="h3">{workspaceImage.displayName}</Title>
         <br />
         <List isPlain>
-          {Object.keys(workspaceImage.labels).map((labelKey) => (
-            <ListItem key={labelKey}>
-              {labelKey}={workspaceImage.labels[labelKey]}
+          {workspaceImage.labels.map((label) => (
+            <ListItem key={label.key}>
+              {label.key}={label.value}
             </ListItem>
           ))}
         </List>

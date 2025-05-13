@@ -7,7 +7,7 @@ import {
   ModalHeader,
   TabTitleText,
 } from '@patternfly/react-core';
-import { Workspace } from '~/shared/types';
+import { Workspace } from '~/shared/api/backendApiTypes';
 import { WorkspaceRedirectInformationView } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRedirectInformationView';
 
 interface StartActionAlertProps {
@@ -41,7 +41,7 @@ export const WorkspaceStartActionModal: React.FC<StartActionAlertProps> = ({
         <TabTitleText>
           There are pending redirect updates for that workspace. Are you sure you want to proceed?
         </TabTitleText>
-        <WorkspaceRedirectInformationView />
+        {workspace && <WorkspaceRedirectInformationView kind={workspace.workspaceKind.name} />}
       </ModalBody>
       <ModalFooter>
         <Button onClick={() => handleClick(true)}>Update and Start</Button>

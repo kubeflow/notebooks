@@ -18,3 +18,12 @@ export type APIState<T> = {
   /** The available API functions */
   api: T;
 };
+
+export type ResponseBody<T> = {
+  data: T;
+  metadata?: Record<string, unknown>;
+};
+
+export type RequestData<T> = {
+  data: T;
+};

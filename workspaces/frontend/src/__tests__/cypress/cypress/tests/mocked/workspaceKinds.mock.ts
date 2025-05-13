@@ -1,4 +1,4 @@
-import type { WorkspaceKind } from '~/shared/types';
+import type { WorkspaceKind } from '~/shared/api/backendApiTypes';
 
 // Factory function to create a valid WorkspaceKind
 function createMockWorkspaceKind(overrides: Partial<WorkspaceKind> = {}): WorkspaceKind {

@@ -12,7 +12,7 @@ import {
   EmptyStateBody,
 } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons/dist/esm/icons/search-icon';
-import { WorkspaceKind } from '~/shared/types';
+import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import Filter, { FilteredColumn } from '~/shared/components/Filter';
 
 type WorkspaceCreationKindListProps = {

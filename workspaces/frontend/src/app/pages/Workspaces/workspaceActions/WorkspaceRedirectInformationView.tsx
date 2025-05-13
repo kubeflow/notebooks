@@ -5,82 +5,10 @@ import {
   InfoCircleIcon,
 } from '@patternfly/react-icons';
 import * as React from 'react';
+import useWorkspaceKindByName from '~/app/hooks/useWorkspaceKindByName';
+import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 
-// remove when changing to fetch data from BE
-const mockedWorkspaceKind = {
-  name: 'jupyter-lab',
-  displayName: 'JupyterLab Notebook',
-  description: 'A Workspace which runs JupyterLab in a Pod',
-  deprecated: false,
-  deprecationMessage: '',
-  hidden: false,
-  icon: {
-    url: 'https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png',
-  },
-  logo: {
-    url: 'https://upload.wikimedia.org/wikipedia/commons/3/38/Jupyter_logo.svg',
-  },
-  podTemplate: {
-    podMetadata: {
-      labels: { myWorkspaceKindLabel: 'my-value' },
-      annotations: { myWorkspaceKindAnnotation: 'my-value' },
-    },
-    volumeMounts: { home: '/home/jovyan' },
-    options: {
-      imageConfig: {
-        default: 'jupyterlab_scipy_190',
-        values: [
-          {
-            id: 'jupyterlab_scipy_180',
-            displayName: 'jupyter-scipy:v1.8.0',
-            labels: { pythonVersion: '3.11' },
-            hidden: true,
-            redirect: {
-              to: 'jupyterlab_scipy_190',
-              message: {
-                text: 'This update will change...',
-                level: 'Info',
-              },
-            },
-          },
-          {
-            id: 'jupyterlab_scipy_190',
-            displayName: 'jupyter-scipy:v1.9.0',
-            labels: { pythonVersion: '3.11' },
-            hidden: true,
-            redirect: {
-              to: 'jupyterlab_scipy_200',
-              message: {
-                text: 'This update will change...',
-                level: 'Warning',
-              },
-            },
-          },
-        ],
-      },
-      podConfig: {
-        default: 'tiny_cpu',
-        values: [
-          {
-            id: 'tiny_cpu',
-            displayName: 'Tiny CPU',
-            description: 'Pod with 0.1 CPU, 128 Mb RAM',
-            labels: { cpu: '100m', memory: '128Mi' },
-            redirect: {
-              to: 'small_cpu',
-              message: {
-                text: 'This update will change...',
-                level: 'Danger',
-              },
-            },
-          },
-        ],
-      },
-    },
-  },
-};
-
-const getLevelIcon = (level: string) => {
+const getLevelIcon = (level: string | undefined) => {
   switch (level) {
     case 'Info':
       return (
@@ -109,30 +37,42 @@ const getLevelIcon = (level: string) => {
   }
 };
 
-export const WorkspaceRedirectInformationView: React.FC = () => {
+interface WorkspaceRedirectInformationViewProps {
+  kind: string;
+}
+
+export const WorkspaceRedirectInformationView: React.FC<WorkspaceRedirectInformationViewProps> = ({
+  kind,
+}) => {
   const [activeKey, setActiveKey] = React.useState<string | number>(0);
-  // change this to get from BE, and use the workspaceKinds API
-  const workspaceKind = mockedWorkspaceKind;
+  const [workspaceKind, workspaceKindLoaded] = useWorkspaceKindByName(kind);
+  const [imageConfig, setImageConfig] =
+    React.useState<WorkspaceKind['podTemplate']['options']['imageConfig']>();
+  const [podConfig, setPodConfig] =
+    React.useState<WorkspaceKind['podTemplate']['options']['podConfig']>();
 
-  const { imageConfig } = workspaceKind.podTemplate.options;
-  const { podConfig } = workspaceKind.podTemplate.options;
+  React.useEffect(() => {
+    if (!workspaceKindLoaded) {
+      return;
+    }
+    setImageConfig(workspaceKind?.podTemplate.options.imageConfig);
+    setPodConfig(workspaceKind?.podTemplate.options.podConfig);
+  }, [workspaceKindLoaded, workspaceKind]);
 
-  const imageConfigRedirects = imageConfig.values.map((value) => ({
+  const imageConfigRedirects = imageConfig?.values.map((value) => ({
     src: value.id,
-    dest: value.redirect.to,
-    message: value.redirect.message.text,
-    level: value.redirect.message.level,
+    dest: value.redirect?.to,
+    message: value.redirect?.message?.text,
+    level: value.redirect?.message?.level,
   }));
-  const podConfigRedirects = podConfig.values.map((value) => ({
+  const podConfigRedirects = podConfig?.values.map((value) => ({
     src: value.id,
-    dest: value.redirect.to,
-    message: value.redirect.message.text,
-    level: value.redirect.message.level,
+    dest: value.redirect?.to,
+    message: value.redirect?.message?.text,
+    level: value.redirect?.message?.level,
   }));
 
-  const getMaxLevel = (
-    redirects: { dest: string; level: string; message: string; src: string }[],
-  ) => {
+  const getMaxLevel = (redirects: NonNullable<typeof imageConfigRedirects>) => {
     let maxLevel = redirects[0].level;
     redirects.forEach((redirect) => {
       if (
@@ -146,8 +86,8 @@ export const WorkspaceRedirectInformationView: React.FC = () => {
   };
 
   return (
-    <Tabs activeKey={activeKey} onSelect={(event, eventKey) => setActiveKey(eventKey)}>
-      {imageConfigRedirects.length > 0 && (
+    <Tabs activeKey={activeKey} onSelect={(_event, eventKey) => setActiveKey(eventKey)}>
+      {imageConfigRedirects && imageConfigRedirects.length > 0 && (
         <Tab
           eventKey={0}
           title={
@@ -166,7 +106,7 @@ export const WorkspaceRedirectInformationView: React.FC = () => {
           ))}
         </Tab>
       )}
-      {podConfigRedirects.length > 0 && (
+      {podConfigRedirects && podConfigRedirects.length > 0 && (
         <Tab
           eventKey={1}
           title={
