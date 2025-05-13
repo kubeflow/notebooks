@@ -1,26 +1,26 @@
-import React, { useCallback, useState } from 'react';
-import { EllipsisVIcon } from '@patternfly/react-icons';
-import { Table, Thead, Tbody, Tr, Th, Td, TableVariant } from '@patternfly/react-table';
 import {
   Button,
-  Modal,
-  ModalVariant,
-  TextInput,
-  Switch,
   Dropdown,
   DropdownItem,
-  MenuToggle,
-  ModalBody,
-  ModalFooter,
   Form,
   FormGroup,
+  MenuToggle,
+  Modal,
+  ModalBody,
+  ModalFooter,
   ModalHeader,
+  ModalVariant,
+  Switch,
+  TextInput,
 } from '@patternfly/react-core';
-import { WorkspaceVolume } from '~/shared/types';
+import { EllipsisVIcon } from '@patternfly/react-icons';
+import { Table, TableVariant, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
+import React, { useCallback, useState } from 'react';
+import { WorkspacePodVolumeMount } from '~/shared/api/backendApiTypes';
 
 interface WorkspaceCreationPropertiesVolumesProps {
-  volumes: WorkspaceVolume[];
-  setVolumes: React.Dispatch<React.SetStateAction<WorkspaceVolume[]>>;
+  volumes: WorkspacePodVolumeMount[];
+  setVolumes: (volumes: WorkspacePodVolumeMount[]) => void;
 }
 
 export const WorkspaceCreationPropertiesVolumes: React.FC<
@@ -28,7 +28,7 @@ export const WorkspaceCreationPropertiesVolumes: React.FC<
 > = ({ volumes, setVolumes }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [formData, setFormData] = useState<WorkspaceVolume>({
+  const [formData, setFormData] = useState<WorkspacePodVolumeMount>({
     pvcName: '',
     mountPath: '',
     readOnly: false,
@@ -72,11 +72,12 @@ export const WorkspaceCreationPropertiesVolumes: React.FC<
   }, []);
 
   const handleDelete = useCallback(() => {
-    if (deleteIndex !== null) {
-      setVolumes(volumes.filter((_, i) => i !== deleteIndex));
-      setIsDeleteModalOpen(false);
-      setDeleteIndex(null);
+    if (deleteIndex === null) {
+      return;
     }
+    setVolumes(volumes.filter((_, i) => i !== deleteIndex));
+    setIsDeleteModalOpen(false);
+    setDeleteIndex(null);
   }, [deleteIndex, volumes, setVolumes]);
 
   return (

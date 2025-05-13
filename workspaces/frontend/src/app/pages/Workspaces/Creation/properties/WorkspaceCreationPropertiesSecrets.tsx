@@ -18,25 +18,27 @@ import {
   HelperText,
   HelperTextItem,
 } from '@patternfly/react-core';
-import { WorkspaceSecret } from '~/shared/types';
+import { WorkspacePodSecretMount } from '~/shared/api/backendApiTypes';
 
 interface WorkspaceCreationPropertiesSecretsProps {
-  secrets: WorkspaceSecret[];
-  setSecrets: React.Dispatch<React.SetStateAction<WorkspaceSecret[]>>;
+  secrets: WorkspacePodSecretMount[];
+  setSecrets: (secrets: WorkspacePodSecretMount[]) => void;
 }
+
+const DEFAULT_MODE_OCTAL = (420).toString(8);
 
 export const WorkspaceCreationPropertiesSecrets: React.FC<
   WorkspaceCreationPropertiesSecretsProps
 > = ({ secrets, setSecrets }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [formData, setFormData] = useState<WorkspaceSecret>({
+  const [formData, setFormData] = useState<WorkspacePodSecretMount>({
     secretName: '',
     mountPath: '',
-    defaultMode: 420,
+    defaultMode: parseInt(DEFAULT_MODE_OCTAL, 8),
   });
   const [editIndex, setEditIndex] = useState<number | null>(null);
-  const [defaultMode, setDefaultMode] = useState('644');
+  const [defaultMode, setDefaultMode] = useState(DEFAULT_MODE_OCTAL);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
   const [isDefaultModeValid, setIsDefaultModeValid] = useState(true);
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
@@ -49,7 +51,7 @@ export const WorkspaceCreationPropertiesSecrets: React.FC<
   const handleEdit = useCallback(
     (index: number) => {
       setFormData(secrets[index]);
-      setDefaultMode(secrets[index].defaultMode.toString(8));
+      setDefaultMode(secrets[index].defaultMode?.toString(8) ?? DEFAULT_MODE_OCTAL);
       setEditIndex(index);
       setIsModalOpen(true);
     },
@@ -83,27 +85,27 @@ export const WorkspaceCreationPropertiesSecrets: React.FC<
   }, []);
 
   const handleAddOrEditSubmit = useCallback(() => {
-    setSecrets((prev) => {
-      if (editIndex === null) {
-        return [...prev, formData];
-      }
-      const updated = prev;
+    if (!formData.secretName || !formData.mountPath) {
+      return;
+    }
+    if (editIndex !== null) {
+      const updated = [...secrets];
       updated[editIndex] = formData;
-      return updated;
-    });
+      setSecrets(updated);
+    } else {
+      setSecrets([...secrets, formData]);
+    }
     clearForm();
-  }, [editIndex, setSecrets, clearForm, formData]);
+  }, [clearForm, editIndex, formData, secrets, setSecrets]);
 
   const handleDelete = useCallback(() => {
-    if (deleteIndex !== null) {
-      setSecrets((prev) => {
-        prev.splice(deleteIndex, 1);
-        return prev;
-      });
-      setDeleteIndex(null);
-      setIsDeleteModalOpen(false);
+    if (deleteIndex === null) {
+      return;
     }
-  }, [setSecrets, deleteIndex]);
+    setSecrets(secrets.filter((_, i) => i !== deleteIndex));
+    setDeleteIndex(null);
+    setIsDeleteModalOpen(false);
+  }, [deleteIndex, secrets, setSecrets]);
 
   return (
     <>
@@ -122,7 +124,7 @@ export const WorkspaceCreationPropertiesSecrets: React.FC<
               <Tr key={index}>
                 <Td>{secret.secretName}</Td>
                 <Td>{secret.mountPath}</Td>
-                <Td>{secret.defaultMode.toString(8)}</Td>
+                <Td>{secret.defaultMode?.toString(8) ?? DEFAULT_MODE_OCTAL}</Td>
                 <Td isActionCell>
                   <Dropdown
                     toggle={(toggleRef) => (

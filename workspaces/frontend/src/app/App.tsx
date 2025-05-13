@@ -15,6 +15,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { BarsIcon } from '@patternfly/react-icons';
+import ErrorBoundary from '~/app/error/ErrorBoundary';
 import NamespaceSelector from '~/shared/components/NamespaceSelector';
 import logoDarkTheme from '~/images/logo-dark-theme.svg';
 import { NamespaceContextProvider } from './context/NamespaceContextProvider';
@@ -63,19 +64,21 @@ const App: React.FC = () => {
   );
 
   return (
-    <NotebookContextProvider>
-      <NamespaceContextProvider>
-        <Page
-          mainContainerId="primary-app-container"
-          masthead={masthead}
-          isContentFilled
-          isManagedSidebar
-          sidebar={<NavSidebar />}
-        >
-          <AppRoutes />
-        </Page>
-      </NamespaceContextProvider>
-    </NotebookContextProvider>
+    <ErrorBoundary>
+      <NotebookContextProvider>
+        <NamespaceContextProvider>
+          <Page
+            mainContainerId="primary-app-container"
+            masthead={masthead}
+            isContentFilled
+            isManagedSidebar
+            sidebar={<NavSidebar />}
+          >
+            <AppRoutes />
+          </Page>
+        </NamespaceContextProvider>
+      </NotebookContextProvider>
+    </ErrorBoundary>
   );
 };
 

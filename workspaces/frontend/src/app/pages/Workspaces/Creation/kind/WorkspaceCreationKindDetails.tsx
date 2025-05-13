@@ -1,6 +1,6 @@
 import React from 'react';
 import { Title } from '@patternfly/react-core';
-import { WorkspaceKind } from '~/shared/types';
+import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 
 type WorkspaceCreationKindDetailsProps = {
   workspaceKind?: WorkspaceKind;
