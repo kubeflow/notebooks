@@ -40,84 +40,16 @@ import {
   IActions,
 } from '@patternfly/react-table';
 import { CodeIcon, FilterIcon, SearchIcon } from '@patternfly/react-icons';
-import { WorkspaceKind, WorkspaceKindsColumnNames } from '~/shared/types';
+import { WorkspaceKind } from '~/shared/api/backendApiTypes';
+import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
+import { useWorkspaceCountPerKind } from '~/app/hooks/useWorkspaceCountPerKind';
+import { WorkspaceKindsColumnNames } from '~/app/types';
 
 export enum ActionType {
   ViewDetails,
 }
 
 export const WorkspaceKinds: React.FunctionComponent = () => {
-  // Todo: Remove mock and use useWorkspaceKinds API instead.
-  const mockWorkspaceKinds: WorkspaceKind[] = [
-    {
-      name: 'jupyterlab',
-      displayName: 'JupyterLab Notebook',
-      description:
-        'Example of a description for JupyterLab a Workspace which runs JupyterLab in a Pod.',
-      deprecated: true,
-      deprecationMessage:
-        'This WorkspaceKind was removed on 20XX-XX-XX, please use another WorkspaceKind.',
-      hidden: false,
-      icon: {
-        url: 'https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png',
-      },
-      logo: {
-        url: 'https://upload.wikimedia.org/wikipedia/commons/3/38/Jupyter_logo.svg',
-      },
-      podTemplate: {
-        podMetadata: {
-          labels: {
-            myWorkspaceKindLabel: 'my-value',
-          },
-          annotations: {
-            myWorkspaceKindAnnotation: 'my-value',
-          },
-        },
-        volumeMounts: {
-          home: '/home/jovyan',
-        },
-        options: {
-          imageConfig: {
-            default: 'jupyterlab_scipy_190',
-            values: [
-              {
-                id: 'jupyterlab_scipy_180',
-                displayName: 'jupyter-scipy:v1.8.0',
-                labels: {
-                  pythonVersion: '3.11',
-                },
-                hidden: true,
-                redirect: {
-                  to: 'jupyterlab_scipy_190',
-                  message: {
-                    text: 'This update will change...',
-                    level: 'Info',
-                  },
-                },
-              },
-            ],
-          },
-          podConfig: {
-            default: 'tiny_cpu',
-            values: [
-              {
-                id: 'tiny_cpu',
-                displayName: 'Tiny CPU',
-                description: 'Pod with 0.1 CPU, 128 Mb RAM',
-                labels: {
-                  cpu: '100m',
-                  memory: '128Mi',
-                },
-              },
-            ],
-          },
-        },
-      },
-    },
-  ];
-
-  const mockNumberOfWorkspaces = 1; // Todo: Create a function to calculate number of workspaces for each workspace kind.
-
   // Table columns
   const columnNames: WorkspaceKindsColumnNames = {
     icon: '',
@@ -127,7 +59,8 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     numberOfWorkspaces: 'Number of workspaces',
   };
 
-  const initialWorkspaceKinds = mockWorkspaceKinds;
+  const [workspaceKinds, workspaceKindsLoaded, workspaceKindsError] = useWorkspaceKinds();
+  const workspaceCountPerKind = useWorkspaceCountPerKind();
   const [selectedWorkspaceKind, setSelectedWorkspaceKind] = React.useState<WorkspaceKind | null>(
     null,
   );
@@ -150,19 +83,19 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
         name: workspaceKind.name,
         description: workspaceKind.description,
         deprecated: workspaceKind.deprecated,
-        numOfWorkspaces: mockNumberOfWorkspaces,
+        numOfWorkspaces: workspaceCountPerKind[workspaceKind.name] ?? 0,
       };
       return [icon, name, description, deprecated, numberOfWorkspaces];
     },
-    [],
+    [workspaceCountPerKind],
   );
 
   const sortedWorkspaceKinds = React.useMemo(() => {
     if (activeSortIndex === null) {
-      return initialWorkspaceKinds;
+      return workspaceKinds;
     }
 
-    return [...initialWorkspaceKinds].sort((a, b) => {
+    return [...workspaceKinds].sort((a, b) => {
       const aValue = getSortableRowValues(a)[activeSortIndex];
       const bValue = getSortableRowValues(b)[activeSortIndex];
       if (typeof aValue === 'boolean' && typeof bValue === 'boolean') {
@@ -174,7 +107,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
         ? (aValue as string).localeCompare(bValue as string)
         : (bValue as string).localeCompare(aValue as string);
     });
-  }, [initialWorkspaceKinds, activeSortIndex, activeSortDirection, getSortableRowValues]);
+  }, [workspaceKinds, activeSortIndex, activeSortDirection, getSortableRowValues]);
 
   const getSortParams = React.useCallback(
     (columnIndex: number): ThProps['sort'] => ({
@@ -535,6 +468,14 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
 
   const DESCRIPTION_CHAR_LIMIT = 50;
 
+  if (workspaceKindsError) {
+    return <p>Error loading workspace kinds: {workspaceKindsError.message}</p>; // TODO: UX for error state
+  }
+
+  if (!workspaceKindsLoaded) {
+    return <p>Loading...</p>; // TODO: UX for loading state
+  }
+
   return (
     <Drawer
       isInline
@@ -657,7 +598,9 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                           <Label color="green">Active</Label>
                         )}
                       </Td>
-                      <Td dataLabel={columnNames.numberOfWorkspaces}>{mockNumberOfWorkspaces}</Td>
+                      <Td dataLabel={columnNames.numberOfWorkspaces}>
+                        {workspaceCountPerKind[workspaceKind.name] ?? 0}
+                      </Td>
 
                       <Td isActionCell data-testid="action-column">
                         <ActionsColumn

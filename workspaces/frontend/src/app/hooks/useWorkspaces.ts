@@ -3,22 +3,24 @@ import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
 } from '~/shared/utilities/useFetchState';
-import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
+import { Workspace } from '~/shared/api/backendApiTypes';
 
-const useWorkspaceKinds = (): FetchState<WorkspaceKind[]> => {
+const useWorkspaces = (namespace: string): FetchState<Workspace[] | null> => {
   const { api, apiAvailable } = useNotebookAPI();
-  const call = React.useCallback<FetchStateCallbackPromise<WorkspaceKind[]>>(
+
+  const call = React.useCallback<FetchStateCallbackPromise<Workspace[] | null>>(
     (opts) => {
       if (!apiAvailable) {
         return Promise.reject(new Error('API not yet available'));
       }
-      return api.listWorkspaceKinds(opts);
+
+      return api.listWorkspaces(opts, namespace);
     },
-    [api, apiAvailable],
+    [api, apiAvailable, namespace],
   );
 
-  return useFetchState(call, []);
+  return useFetchState(call, null);
 };
 
-export default useWorkspaceKinds;
+export default useWorkspaces;

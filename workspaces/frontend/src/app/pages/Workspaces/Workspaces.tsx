@@ -34,7 +34,7 @@ import {
 } from '@patternfly/react-icons';
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Workspace, WorkspacesColumnNames, WorkspaceState } from '~/shared/types';
+import { Workspace, WorkspaceState } from '~/shared/api/backendApiTypes';
 import { WorkspaceDetails } from '~/app/pages/Workspaces/Details/WorkspaceDetails';
 import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
 import DeleteModal from '~/shared/components/DeleteModal';
@@ -43,12 +43,15 @@ import {
   buildWorkspaceRedirectStatus,
 } from '~/app/actions/WorkspaceKindsActions';
 import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
+import useWorkspaces from '~/app/hooks/useWorkspaces';
 import { WorkspaceConnectAction } from '~/app/pages/Workspaces/WorkspaceConnectAction';
 import { WorkspaceStartActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceStartActionModal';
 import { WorkspaceRestartActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRestartActionModal';
 import { WorkspaceStopActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceStopActionModal';
+import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
+import { WorkspacesColumnNames } from '~/app/types';
 import Filter, { FilteredColumn } from 'shared/components/Filter';
-import { formatRam } from 'shared/utilities/WorkspaceUtils';
+import { extractCpuValue, extractMemoryValue } from 'shared/utilities/WorkspaceUtils';
 
 export enum ActionType {
   ViewDetails,
@@ -60,157 +63,14 @@ export enum ActionType {
 }
 
 export const Workspaces: React.FunctionComponent = () => {
-  /* Mocked workspaces, to be removed after fetching info from backend */
-  const mockWorkspaces: Workspace[] = [
-    {
-      name: 'My Jupyter Notebook',
-      namespace: 'namespace1',
-      paused: true,
-      deferUpdates: true,
-      kind: 'jupyter-lab',
-      cpu: 3,
-      ram: 500,
-      podTemplate: {
-        podMetadata: {
-          labels: ['label1', 'label2'],
-          annotations: ['annotation1', 'annotation2'],
-        },
-        volumes: {
-          home: '/home',
-          data: [
-            {
-              pvcName: 'Volume-1',
-              mountPath: '/data',
-              readOnly: true,
-            },
-            {
-              pvcName: 'Volume-2',
-              mountPath: '/data',
-              readOnly: false,
-            },
-          ],
-          secrets: [
-            {
-              secretName: 'Secret-2',
-              mountPath: '/data',
-              defaultMode: 420,
-            },
-          ],
-        },
-        endpoints: [
-          {
-            displayName: 'JupyterLab',
-            port: '7777',
-          },
-        ],
-      },
-      options: {
-        imageConfig: 'jupyterlab_scipy_180',
-        podConfig: 'Small CPU',
-      },
-      status: {
-        activity: {
-          lastActivity: 1739673600,
-          lastUpdate: 1739673700,
-        },
-        pauseTime: 1739673500,
-        pendingRestart: false,
-        podTemplateOptions: {
-          imageConfig: {
-            desired: '',
-            redirectChain: [],
-          },
-        },
-        state: WorkspaceState.Paused,
-        stateMessage: 'It is paused.',
-      },
-      redirectStatus: {
-        level: 'Info',
-        text: 'This is informational', // Tooltip text
-      },
-    },
-    {
-      name: 'My Other Jupyter Notebook',
-      namespace: 'namespace1',
-      paused: false,
-      deferUpdates: false,
-      kind: 'jupyter-lab',
-      cpu: 1,
-      ram: 12540,
-      podTemplate: {
-        podMetadata: {
-          labels: ['label1', 'label2'],
-          annotations: ['annotation1', 'annotation2'],
-        },
-        volumes: {
-          home: '/home',
-          data: [
-            {
-              pvcName: 'PVC-1',
-              mountPath: '/data',
-              readOnly: false,
-            },
-          ],
-          secrets: [
-            {
-              secretName: 'workspace-secret',
-              mountPath: '/secrets/my-secret',
-              defaultMode: 420,
-            },
-          ],
-        },
-        endpoints: [
-          {
-            displayName: 'JupyterLab',
-            port: '8888',
-          },
-          {
-            displayName: 'Spark Master',
-            port: '9999',
-          },
-        ],
-      },
-      options: {
-        imageConfig: 'jupyterlab_scipy_180',
-        podConfig: 'Large CPU',
-      },
-      status: {
-        activity: {
-          lastActivity: 0,
-          lastUpdate: 0,
-        },
-        pauseTime: 0,
-        pendingRestart: false,
-        podTemplateOptions: {
-          imageConfig: {
-            desired: '',
-            redirectChain: [],
-          },
-        },
-        state: WorkspaceState.Running,
-        stateMessage: 'It is running.',
-      },
-      redirectStatus: {
-        level: 'Danger',
-        text: 'This is dangerous',
-      },
-    },
-  ];
-
   const navigate = useNavigate();
   const createWorkspace = useCallback(() => {
     navigate('/workspaces/create');
   }, [navigate]);
 
   const [workspaceKinds] = useWorkspaceKinds();
-  let kindLogoDict: Record<string, string> = {};
-  kindLogoDict = buildKindLogoDictionary(workspaceKinds);
-
-  let workspaceRedirectStatus: Record<
-    string,
-    { to: string; message: string; level: string } | null
-  > = {}; // Initialize the redirect status dictionary
-  workspaceRedirectStatus = buildWorkspaceRedirectStatus(workspaceKinds); // Populate the dictionary
+  const kindLogoDict = buildKindLogoDictionary(workspaceKinds);
+  const workspaceRedirectStatus = buildWorkspaceRedirectStatus(workspaceKinds);
 
   // Table columns
   const columnNames: WorkspacesColumnNames = {
@@ -236,14 +96,21 @@ export const Workspaces: React.FunctionComponent = () => {
     lastActivity: 'Last Activity',
   };
 
-  // change when fetch workspaces is implemented
-  const initialWorkspaces = mockWorkspaces;
-  const [workspaces, setWorkspaces] = useState<Workspace[]>(initialWorkspaces);
+  const { selectedNamespace } = useNamespaceContext();
+  const [initialWorkspaces, initialWorkspacesLoaded] = useWorkspaces(selectedNamespace);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [expandedWorkspacesNames, setExpandedWorkspacesNames] = React.useState<string[]>([]);
   const [selectedWorkspace, setSelectedWorkspace] = React.useState<Workspace | null>(null);
   const [workspaceToDelete, setWorkspaceToDelete] = React.useState<Workspace | null>(null);
   const [isActionAlertModalOpen, setIsActionAlertModalOpen] = React.useState(false);
   const [activeActionType, setActiveActionType] = React.useState<ActionType | null>(null);
+
+  React.useEffect(() => {
+    if (!initialWorkspacesLoaded) {
+      return;
+    }
+    setWorkspaces(initialWorkspaces ?? []);
+  }, [initialWorkspaces, initialWorkspacesLoaded]);
 
   const selectWorkspace = React.useCallback(
     (newSelectedWorkspace: Workspace | null) => {
@@ -270,7 +137,7 @@ export const Workspaces: React.FunctionComponent = () => {
   // filter function to pass to the filter component
   const onFilter = (filters: FilteredColumn[]) => {
     // Search name with search value
-    let filteredWorkspaces = initialWorkspaces;
+    let filteredWorkspaces = initialWorkspaces ?? [];
     filters.forEach((filter) => {
       let searchValueInput: RegExp;
       try {
@@ -287,15 +154,26 @@ export const Workspaces: React.FunctionComponent = () => {
           case columnNames.name:
             return workspace.name.search(searchValueInput) >= 0;
           case columnNames.kind:
-            return workspace.kind.search(searchValueInput) >= 0;
+            return workspace.workspaceKind.name.search(searchValueInput) >= 0;
           case columnNames.image:
-            return workspace.options.imageConfig.search(searchValueInput) >= 0;
+            return (
+              workspace.podTemplate.options.imageConfig.current.displayName.search(
+                searchValueInput,
+              ) >= 0
+            );
           case columnNames.podConfig:
-            return workspace.options.podConfig.search(searchValueInput) >= 0;
+            return (
+              workspace.podTemplate.options.podConfig.current.displayName.search(
+                searchValueInput,
+              ) >= 0
+            );
           case columnNames.state:
-            return WorkspaceState[workspace.status.state].search(searchValueInput) >= 0;
+            return workspace.state.search(searchValueInput) >= 0;
           case columnNames.homeVol:
-            return workspace.podTemplate.volumes.home.search(searchValueInput) >= 0;
+            if (!workspace.podTemplate.volumes.home) {
+              return false;
+            }
+            return workspace.podTemplate.volumes.home.mountPath.search(searchValueInput) >= 0;
           default:
             return true;
         }
@@ -314,14 +192,14 @@ export const Workspaces: React.FunctionComponent = () => {
       {
         redirectStatus: '',
         name: workspace.name,
-        kind: workspace.kind,
-        image: workspace.options.imageConfig,
-        podConfig: workspace.options.podConfig,
-        state: WorkspaceState[workspace.status.state],
-        homeVol: workspace.podTemplate.volumes.home,
-        cpu: workspace.cpu,
-        ram: workspace.ram,
-        lastActivity: workspace.status.activity.lastActivity,
+        kind: workspace.workspaceKind.name,
+        image: workspace.podTemplate.options.imageConfig.current.displayName,
+        podConfig: workspace.podTemplate.options.podConfig.current.displayName,
+        state: workspace.state,
+        homeVol: workspace.podTemplate.volumes.home?.pvcName ?? '',
+        cpu: extractCpuValue(workspace),
+        ram: extractMemoryValue(workspace),
+        lastActivity: workspace.activity.lastActivity,
       };
     return [redirectStatus, name, kind, image, podConfig, state, homeVol, cpu, ram, lastActivity];
   };
@@ -401,7 +279,6 @@ export const Workspaces: React.FunctionComponent = () => {
   };
 
   const workspaceDefaultActions = (workspace: Workspace): IActions => {
-    const workspaceState = workspace.status.state;
     const workspaceActions = [
       {
         id: 'view-details',
@@ -421,7 +298,7 @@ export const Workspaces: React.FunctionComponent = () => {
       {
         isSeparator: true,
       },
-      workspaceState !== WorkspaceState.Running
+      workspace.state !== WorkspaceState.WorkspaceStateRunning
         ? {
             id: 'start',
             title: 'Start',
@@ -434,7 +311,7 @@ export const Workspaces: React.FunctionComponent = () => {
           },
     ] as IActions;
 
-    if (workspaceState === WorkspaceState.Running) {
+    if (workspace.state === WorkspaceState.WorkspaceStateRunning) {
       workspaceActions.push({
         id: 'stop',
         title: 'Stop',
@@ -474,19 +351,23 @@ export const Workspaces: React.FunctionComponent = () => {
     return undefined;
   };
 
-  // States
-
-  const stateColors: (
-    | 'blue'
-    | 'teal'
-    | 'green'
-    | 'orange'
-    | 'purple'
-    | 'red'
-    | 'orangered'
-    | 'grey'
-    | 'yellow'
-  )[] = ['green', 'orange', 'yellow', 'blue', 'red', 'purple'];
+  const extractStateColor = (state: WorkspaceState) => {
+    switch (state) {
+      case WorkspaceState.WorkspaceStateRunning:
+        return 'green';
+      case WorkspaceState.WorkspaceStatePending:
+        return 'orange';
+      case WorkspaceState.WorkspaceStateTerminating:
+        return 'yellow';
+      case WorkspaceState.WorkspaceStateError:
+        return 'red';
+      case WorkspaceState.WorkspaceStatePaused:
+        return 'purple';
+      case WorkspaceState.WorkspaceStateUnknown:
+      default:
+        return 'grey';
+    }
+  };
 
   // Redirect Status Icons
 
@@ -610,43 +491,47 @@ export const Workspaces: React.FunctionComponent = () => {
                       }}
                     />
                     <Td dataLabel={columnNames.redirectStatus}>
-                      {workspaceRedirectStatus[workspace.kind]
+                      {workspaceRedirectStatus[workspace.workspaceKind.name]
                         ? getRedirectStatusIcon(
-                            workspaceRedirectStatus[workspace.kind]?.level,
-                            workspaceRedirectStatus[workspace.kind]?.message ||
+                            workspaceRedirectStatus[workspace.workspaceKind.name]?.message?.level,
+                            workspaceRedirectStatus[workspace.workspaceKind.name]?.message?.text ||
                               'No API response available',
                           )
                         : getRedirectStatusIcon(undefined, 'No API response available')}
                     </Td>
                     <Td dataLabel={columnNames.name}>{workspace.name}</Td>
                     <Td dataLabel={columnNames.kind}>
-                      {kindLogoDict[workspace.kind] ? (
-                        <Tooltip content={workspace.kind}>
+                      {kindLogoDict[workspace.workspaceKind.name] ? (
+                        <Tooltip content={workspace.workspaceKind.name}>
                           <Brand
-                            src={kindLogoDict[workspace.kind]}
-                            alt={workspace.kind}
+                            src={kindLogoDict[workspace.workspaceKind.name]}
+                            alt={workspace.workspaceKind.name}
                             style={{ width: '20px', height: '20px', cursor: 'pointer' }}
                           />
                         </Tooltip>
                       ) : (
-                        <Tooltip content={workspace.kind}>
+                        <Tooltip content={workspace.workspaceKind.name}>
                           <CodeIcon />
                         </Tooltip>
                       )}
                     </Td>
-                    <Td dataLabel={columnNames.image}>{workspace.options.imageConfig}</Td>
-                    <Td dataLabel={columnNames.podConfig}>{workspace.options.podConfig}</Td>
-                    <Td dataLabel={columnNames.state}>
-                      <Label color={stateColors[workspace.status.state]}>
-                        {WorkspaceState[workspace.status.state]}
-                      </Label>
+                    <Td dataLabel={columnNames.image}>
+                      {workspace.podTemplate.options.imageConfig.current.displayName}
                     </Td>
-                    <Td dataLabel={columnNames.homeVol}>{workspace.podTemplate.volumes.home}</Td>
-                    <Td dataLabel={columnNames.cpu}>{`${workspace.cpu}%`}</Td>
-                    <Td dataLabel={columnNames.ram}>{formatRam(workspace.ram)}</Td>
+                    <Td dataLabel={columnNames.podConfig}>
+                      {workspace.podTemplate.options.podConfig.current.displayName}
+                    </Td>
+                    <Td dataLabel={columnNames.state}>
+                      <Label color={extractStateColor(workspace.state)}>{workspace.state}</Label>
+                    </Td>
+                    <Td dataLabel={columnNames.homeVol}>
+                      {workspace.podTemplate.volumes.home?.pvcName ?? ''}
+                    </Td>
+                    <Td dataLabel={columnNames.cpu}>{extractCpuValue(workspace)}</Td>
+                    <Td dataLabel={columnNames.ram}>{extractMemoryValue(workspace)}</Td>
                     <Td dataLabel={columnNames.lastActivity}>
                       <Timestamp
-                        date={new Date(workspace.status.activity.lastActivity)}
+                        date={new Date(workspace.activity.lastActivity)}
                         tooltip={{ variant: TimestampTooltipVariant.default }}
                       >
                         1 hour ago

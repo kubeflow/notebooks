@@ -5,9 +5,10 @@ import {
   FilterSidePanelCategoryItem,
 } from '@patternfly/react-catalog-view-extension';
 import '@patternfly/react-catalog-view-extension/dist/css/react-catalog-view-extension.css';
+import { WorkspaceOptionLabel } from '~/shared/api/backendApiTypes';
 
 type FilterByLabelsProps = {
-  labelledObjects: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+  labelledObjects: WorkspaceOptionLabel[];
   selectedLabels: Map<string, Set<string>>;
   onSelect: (labels: Map<string, Set<string>>) => void;
 };
@@ -20,13 +21,10 @@ export const FilterByLabels: React.FunctionComponent<FilterByLabelsProps> = ({
   const filterMap = useMemo(() => {
     const labelsMap = new Map<string, Set<string>>();
     labelledObjects.forEach((labelledObject) => {
-      Object.keys(labelledObject).forEach((labelKey) => {
-        const labelValue = labelledObject[labelKey];
-        if (!labelsMap.has(labelKey)) {
-          labelsMap.set(labelKey, new Set<string>());
-        }
-        labelsMap.get(labelKey)?.add(labelValue);
-      });
+      if (!labelsMap.has(labelledObject.key)) {
+        labelsMap.set(labelledObject.key, new Set<string>());
+      }
+      labelsMap.get(labelledObject.key)?.add(labelledObject.value);
     });
     return labelsMap;
   }, [labelledObjects]);

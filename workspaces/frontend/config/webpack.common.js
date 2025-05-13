@@ -140,13 +140,13 @@ module.exports = (env) => {
         },
         {
           test: /\.css$/i,
-          use: [
-            'style-loader',
-            'css-loader',
-          ],
+          use: ['style-loader', 'css-loader'],
           include: [
-            path.resolve(relativeDir, 'node_modules/@patternfly/react-catalog-view-extension/dist/css/react-catalog-view-extension.css'),
-          ]
+            path.resolve(
+              relativeDir,
+              'node_modules/@patternfly/react-catalog-view-extension/dist/css/react-catalog-view-extension.css',
+            ),
+          ],
         },
       ],
     },

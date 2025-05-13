@@ -6,7 +6,7 @@ import {
   DescriptionListDescription,
   Divider,
 } from '@patternfly/react-core';
-import { Workspace } from '~/shared/types';
+import { Workspace } from '~/shared/api/backendApiTypes';
 import { formatTimestamp } from '~/shared/utilities/WorkspaceUtils';
 
 type WorkspaceDetailsActivityProps = {
@@ -16,7 +16,7 @@ type WorkspaceDetailsActivityProps = {
 export const WorkspaceDetailsActivity: React.FunctionComponent<WorkspaceDetailsActivityProps> = ({
   workspace,
 }) => {
-  const { activity, pauseTime, pendingRestart } = workspace.status;
+  const { activity, pausedTime, pendingRestart } = workspace;
 
   return (
     <DescriptionList isHorizontal>
@@ -37,7 +37,7 @@ export const WorkspaceDetailsActivity: React.FunctionComponent<WorkspaceDetailsA
       <DescriptionListGroup>
         <DescriptionListTerm>Pause Time</DescriptionListTerm>
         <DescriptionListDescription data-testid="pauseTime">
-          {formatTimestamp(pauseTime)}
+          {formatTimestamp(pausedTime)}
         </DescriptionListDescription>
       </DescriptionListGroup>
       <Divider />

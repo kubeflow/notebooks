@@ -11,19 +11,18 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { useCallback, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { CheckIcon } from '@patternfly/react-icons';
+import { useCallback, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
+import useGenericObjectState from '~/app/hooks/useGenericObjectState';
+import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspaceCreationImageSelection } from '~/app/pages/Workspaces/Creation/image/WorkspaceCreationImageSelection';
 import { WorkspaceCreationKindSelection } from '~/app/pages/Workspaces/Creation/kind/WorkspaceCreationKindSelection';
-import { WorkspaceCreationPropertiesSelection } from '~/app/pages/Workspaces/Creation/properties/WorkspaceCreationPropertiesSelection';
 import { WorkspaceCreationPodConfigSelection } from '~/app/pages/Workspaces/Creation/podConfig/WorkspaceCreationPodConfigSelection';
-import {
-  WorkspaceImage,
-  WorkspaceKind,
-  WorkspacePodConfig,
-  WorkspaceProperties,
-} from '~/shared/types';
+import { WorkspaceCreationPropertiesSelection } from '~/app/pages/Workspaces/Creation/properties/WorkspaceCreationPropertiesSelection';
+import { WorkspaceCreateFormData } from '~/app/types';
+import { WorkspaceCreate } from '~/shared/api/backendApiTypes';
 
 enum WorkspaceCreationSteps {
   KindSelection,
@@ -34,12 +33,24 @@ enum WorkspaceCreationSteps {
 
 const WorkspaceCreation: React.FunctionComponent = () => {
   const navigate = useNavigate();
+  const { api } = useNotebookAPI();
+  const { selectedNamespace } = useNamespaceContext();
 
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [currentStep, setCurrentStep] = useState(WorkspaceCreationSteps.KindSelection);
-  const [selectedKind, setSelectedKind] = useState<WorkspaceKind | undefined>();
-  const [selectedImage, setSelectedImage] = useState<WorkspaceImage | undefined>();
-  const [selectedPodConfig, setSelectedPodConfig] = useState<WorkspacePodConfig | undefined>();
-  const [, setSelectedProperties] = useState<WorkspaceProperties | undefined>();
+
+  const [data, setData, resetData] = useGenericObjectState<WorkspaceCreateFormData>({
+    kind: undefined,
+    image: undefined,
+    podConfig: undefined,
+    properties: {
+      deferUpdates: false,
+      homeDirectory: '',
+      volumes: [],
+      secrets: [],
+      workspaceName: '',
+    },
+  });
 
   const getStepVariant = useCallback(
     (step: WorkspaceCreationSteps) => {
@@ -62,16 +73,67 @@ const WorkspaceCreation: React.FunctionComponent = () => {
     setCurrentStep(currentStep + 1);
   }, [currentStep]);
 
+  const canGoToPreviousStep = useMemo(() => currentStep > 0, [currentStep]);
+
+  const canGoToNextStep = useMemo(
+    () => currentStep < Object.keys(WorkspaceCreationSteps).length / 2 - 1,
+    [currentStep],
+  );
+
+  const canSubmit = useMemo(
+    () => !isSubmitting && !canGoToNextStep,
+    [canGoToNextStep, isSubmitting],
+  );
+
+  const handleCreate = useCallback(() => {
+    // TODO: properly validate data before submitting
+    if (!data.kind || !data.image || !data.podConfig) {
+      return;
+    }
+
+    const workspaceCreate: WorkspaceCreate = {
+      name: data.properties.workspaceName,
+      kind: data.kind.name,
+      deferUpdates: data.properties.deferUpdates,
+      paused: false,
+      podTemplate: {
+        podMetadata: {
+          labels: {},
+          annotations: {},
+        },
+        options: {
+          imageConfig: data.image.id,
+          podConfig: data.podConfig.id,
+        },
+        volumes: {
+          home: data.properties.homeDirectory,
+          data: data.properties.volumes,
+          secrets: data.properties.secrets,
+        },
+      },
+    };
+
+    setIsSubmitting(true);
+
+    api
+      .createWorkspace({}, selectedNamespace, { data: workspaceCreate })
+      .then((newWorkspace) => {
+        // TODO: alert user about success
+        console.info('New workspace created:', JSON.stringify(newWorkspace));
+        navigate('/workspaces');
+      })
+      .catch((err) => {
+        // TODO: alert user about error
+        console.error('Error creating workspace:', err);
+      })
+      .finally(() => {
+        setIsSubmitting(false);
+      });
+  }, [api, data, navigate, selectedNamespace]);
+
   const cancel = useCallback(() => {
     navigate('/workspaces');
   }, [navigate]);
-
-  const onSelectWorkspaceKind = useCallback((newWorkspaceKind: WorkspaceKind | undefined) => {
-    setSelectedKind(newWorkspaceKind);
-    setSelectedImage(undefined);
-    setSelectedPodConfig(undefined);
-    setSelectedProperties(undefined);
-  }, []);
 
   return (
     <>
@@ -157,26 +219,33 @@ const WorkspaceCreation: React.FunctionComponent = () => {
       <PageSection isFilled>
         {currentStep === WorkspaceCreationSteps.KindSelection && (
           <WorkspaceCreationKindSelection
-            selectedKind={selectedKind}
-            onSelect={onSelectWorkspaceKind}
+            selectedKind={data.kind}
+            onSelect={(kind) => {
+              resetData();
+              setData('kind', kind);
+            }}
           />
         )}
         {currentStep === WorkspaceCreationSteps.ImageSelection && (
           <WorkspaceCreationImageSelection
-            selectedImage={selectedImage}
-            images={selectedKind?.podTemplate.options.imageConfig.values ?? []}
-            onSelect={setSelectedImage}
+            selectedImage={data.image}
+            onSelect={(image) => setData('image', image)}
+            images={data.kind?.podTemplate.options.imageConfig.values ?? []}
           />
         )}
         {currentStep === WorkspaceCreationSteps.PodConfigSelection && (
           <WorkspaceCreationPodConfigSelection
-            selectedPodConfig={selectedPodConfig}
-            podConfigs={selectedKind?.podTemplate.options.podConfig.values ?? []}
-            onSelect={setSelectedPodConfig}
+            selectedPodConfig={data.podConfig}
+            onSelect={(podConfig) => setData('podConfig', podConfig)}
+            podConfigs={data.kind?.podTemplate.options.podConfig.values ?? []}
           />
         )}
         {currentStep === WorkspaceCreationSteps.Properties && (
-          <WorkspaceCreationPropertiesSelection selectedImage={selectedImage} />
+          <WorkspaceCreationPropertiesSelection
+            selectedProperties={data.properties}
+            onSelect={(properties) => setData('properties', properties)}
+            selectedImage={data.image}
+          />
         )}
       </PageSection>
       <PageSection isFilled={false} stickyOnBreakpoint={{ default: 'bottom' }}>
@@ -186,7 +255,7 @@ const WorkspaceCreation: React.FunctionComponent = () => {
               variant="primary"
               ouiaId="Primary"
               onClick={previousStep}
-              isDisabled={currentStep === 0}
+              isDisabled={!canGoToPreviousStep}
             >
               Previous
             </Button>
@@ -196,9 +265,19 @@ const WorkspaceCreation: React.FunctionComponent = () => {
               variant="primary"
               ouiaId="Primary"
               onClick={nextStep}
-              isDisabled={currentStep === Object.keys(WorkspaceCreationSteps).length / 2 - 1}
+              isDisabled={!canGoToNextStep}
             >
               Next
+            </Button>
+          </FlexItem>
+          <FlexItem>
+            <Button
+              variant="primary"
+              ouiaId="Primary"
+              onClick={handleCreate}
+              isDisabled={!canSubmit}
+            >
+              Create
             </Button>
           </FlexItem>
           <FlexItem>

@@ -17,6 +17,7 @@
     "build:clean": "rimraf ./dist",
     "build:prod": "webpack --config ./config/webpack.prod.js",
     "start:dev": "webpack serve --hot --color --config ./config/webpack.dev.js",
+    "start:dev:mock": "cross-env MOCK_API_ENABLED=true npm run start:dev",
     "test": "run-s test:lint test:unit test:cypress-ci",
     "test:cypress-ci": "npx concurrently -P -k -s first \"npm run cypress:server:build && npm run cypress:server\" \"npx wait-on tcp:127.0.0.1:9001 && npm run cypress:run:mock -- {@}\" -- ",
     "test:jest": "jest --passWithNoTests",
@@ -52,6 +53,7 @@
     "concurrently": "^9.1.0",
     "copy-webpack-plugin": "^11.0.0",
     "core-js": "^3.39.0",
+    "cross-env": "^7.0.3",
     "css-loader": "^6.11.0",
     "css-minimizer-webpack-plugin": "^5.0.1",
     "cypress": "^13.16.1",
@@ -95,8 +97,8 @@
     "webpack-merge": "^5.10.0"
   },
   "dependencies": {
-    "@patternfly/react-code-editor": "^6.2.0",
     "@patternfly/react-catalog-view-extension": "^6.1.0",
+    "@patternfly/react-code-editor": "^6.2.0",
     "@patternfly/react-core": "^6.2.0",
     "@patternfly/react-icons": "^6.2.0",
     "@patternfly/react-styles": "^6.2.0",

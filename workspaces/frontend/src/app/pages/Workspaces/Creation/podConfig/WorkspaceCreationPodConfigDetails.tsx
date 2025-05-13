@@ -1,9 +1,9 @@
 import React from 'react';
 import { List, ListItem, Title } from '@patternfly/react-core';
-import { WorkspacePodConfig } from '~/shared/types';
+import { WorkspacePodConfigValue } from '~/shared/api/backendApiTypes';
 
 type WorkspaceCreationPodConfigDetailsProps = {
-  workspacePodConfig?: WorkspacePodConfig;
+  workspacePodConfig?: WorkspacePodConfigValue;
 };
 
 export const WorkspaceCreationPodConfigDetails: React.FunctionComponent<
@@ -18,9 +18,9 @@ export const WorkspaceCreationPodConfigDetails: React.FunctionComponent<
         <Title headingLevel="h3">{workspacePodConfig.displayName}</Title>
         <p>{workspacePodConfig.description}</p>
         <List isPlain>
-          {Object.keys(workspacePodConfig.labels).map((labelKey) => (
-            <ListItem key={labelKey}>
-              {labelKey}={workspacePodConfig.labels[labelKey]}
+          {workspacePodConfig.labels.map((label) => (
+            <ListItem key={label.key}>
+              {label.key}={label.value}
             </ListItem>
           ))}
         </List>

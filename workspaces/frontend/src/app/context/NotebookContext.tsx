@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { ReactNode } from 'react';
 import { BFF_API_VERSION } from '~/app/const';
+import EnsureAPIAvailability from '~/app/EnsureAPIAvailability';
 import useNotebookAPIState, { NotebookAPIState } from './useNotebookAPIState';
 
 export type NotebookContextType = {
@@ -33,7 +34,7 @@ export const NotebookContextProvider: React.FC<NotebookContextProviderProps> = (
         [apiState, refreshAPIState],
       )}
     >
-      {children}
+      <EnsureAPIAvailability>{children}</EnsureAPIAvailability>
     </NotebookContext.Provider>
   );
 };

@@ -12,7 +12,7 @@ import {
 } from '@patternfly/react-core';
 import { DatabaseIcon, LockedIcon } from '@patternfly/react-icons';
 import * as React from 'react';
-import { Workspace } from '~/shared/types';
+import { Workspace } from '~/shared/api/backendApiTypes';
 
 interface DataVolumesListProps {
   workspace: Workspace;

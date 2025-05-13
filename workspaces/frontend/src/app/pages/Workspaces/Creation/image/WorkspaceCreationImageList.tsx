@@ -12,20 +12,20 @@ import {
   CardBody,
 } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons/dist/esm/icons/search-icon';
-import { WorkspaceImage } from '~/shared/types';
 import Filter, { FilteredColumn } from '~/shared/components/Filter';
+import { WorkspaceImageConfigValue } from '~/shared/api/backendApiTypes';
 
 type WorkspaceCreationImageListProps = {
-  images: WorkspaceImage[];
+  images: WorkspaceImageConfigValue[];
   selectedLabels: Map<string, Set<string>>;
-  selectedImage: WorkspaceImage | undefined;
-  onSelect: (workspaceImage: WorkspaceImage | undefined) => void;
+  selectedImage: WorkspaceImageConfigValue | undefined;
+  onSelect: (workspaceImage: WorkspaceImageConfigValue | undefined) => void;
 };
 
 export const WorkspaceCreationImageList: React.FunctionComponent<
   WorkspaceCreationImageListProps
 > = ({ images, selectedLabels, selectedImage, onSelect }) => {
-  const [workspaceImages, setWorkspaceImages] = useState<WorkspaceImage[]>(images);
+  const [workspaceImages, setWorkspaceImages] = useState<WorkspaceImageConfigValue[]>(images);
   const [filters, setFilters] = useState<FilteredColumn[]>([]);
 
   const filterableColumns = useMemo(
@@ -36,13 +36,12 @@ export const WorkspaceCreationImageList: React.FunctionComponent<
   );
 
   const getFilteredWorkspaceImagesByLabels = useCallback(
-    (unfilteredImages: WorkspaceImage[]) =>
+    (unfilteredImages: WorkspaceImageConfigValue[]) =>
       unfilteredImages.filter((image) =>
-        Object.keys(image.labels).reduce((accumulator, labelKey) => {
-          const labelValue = image.labels[labelKey];
-          if (selectedLabels.has(labelKey)) {
-            const labelValues: Set<string> | undefined = selectedLabels.get(labelKey);
-            return accumulator && labelValues !== undefined && labelValues.has(labelValue);
+        image.labels.reduce((accumulator, label) => {
+          if (selectedLabels.has(label.key)) {
+            const labelValues: Set<string> | undefined = selectedLabels.get(label.key);
+            return accumulator && labelValues !== undefined && labelValues.has(label.value);
           }
           return accumulator;
         }, true),

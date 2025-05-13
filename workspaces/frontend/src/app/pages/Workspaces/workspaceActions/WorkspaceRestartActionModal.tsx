@@ -8,7 +8,7 @@ import {
   ModalHeader,
   TabTitleText,
 } from '@patternfly/react-core';
-import { Workspace } from '~/shared/types';
+import { Workspace } from '~/shared/api/backendApiTypes';
 import { WorkspaceRedirectInformationView } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRedirectInformationView';
 
 interface RestartActionAlertProps {
@@ -22,7 +22,7 @@ export const WorkspaceRestartActionModal: React.FC<RestartActionAlertProps> = ({
   isOpen,
   workspace,
 }) => {
-  const workspacePendingUpdate = workspace?.status.pendingRestart;
+  const workspacePendingUpdate = workspace?.pendingRestart;
   const handleClick = (isUpdate = false) => {
     if (isUpdate) {
       console.log(`Update ${workspace?.name}`);
@@ -46,7 +46,7 @@ export const WorkspaceRestartActionModal: React.FC<RestartActionAlertProps> = ({
               There are pending redirect updates for that workspace. Are you sure you want to
               proceed?
             </TabTitleText>
-            <WorkspaceRedirectInformationView />
+            <WorkspaceRedirectInformationView kind={workspace.workspaceKind.name} />
           </>
         ) : (
           <Content>Are you sure you want to restart the workspace?</Content>

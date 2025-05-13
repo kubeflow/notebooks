@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 
 const path = require('path');
+const { EnvironmentPlugin } = require('webpack');
 const { merge } = require('webpack-merge');
 const common = require('./webpack.common.js');
 const { stylePaths } = require('./stylePaths');
@@ -9,6 +10,7 @@ const PORT = process.env.PORT || '9000';
 const PROXY_HOST = process.env.PROXY_HOST || 'localhost';
 const PROXY_PORT = process.env.PROXY_PORT || '4000';
 const PROXY_PROTOCOL = process.env.PROXY_PROTOCOL || 'http:';
+const MOCK_API_ENABLED = process.env.MOCK_API_ENABLED || 'false';
 const relativeDir = path.resolve(__dirname, '..');
 
 module.exports = merge(common('development'), {
@@ -45,4 +47,9 @@ module.exports = merge(common('development'), {
       },
     ],
   },
+  plugins: [
+    new EnvironmentPlugin({
+      WEBPACK_REPLACE__mockApiEnabled: MOCK_API_ENABLED,
+    }),
+  ],
 });
