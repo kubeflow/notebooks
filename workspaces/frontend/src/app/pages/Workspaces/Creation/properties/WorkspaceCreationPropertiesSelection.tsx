@@ -1,45 +1,33 @@
 import * as React from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
-  TextInput,
   Checkbox,
+  Content,
+  Divider,
+  ExpandableSection,
   Form,
   FormGroup,
-  ExpandableSection,
-  Divider,
   Split,
   SplitItem,
-  Content,
+  TextInput,
 } from '@patternfly/react-core';
 import { WorkspaceCreationImageDetails } from '~/app/pages/Workspaces/Creation/image/WorkspaceCreationImageDetails';
 import { WorkspaceCreationPropertiesVolumes } from '~/app/pages/Workspaces/Creation/properties/WorkspaceCreationPropertiesVolumes';
-import { WorkspaceImage, WorkspaceVolumes, WorkspaceVolume, WorkspaceSecret } from '~/shared/types';
+import { WorkspaceCreateProperties } from '~/app/types';
+import { WorkspaceImageConfigValue } from '~/shared/api/backendApiTypes';
 import { WorkspaceCreationPropertiesSecrets } from './WorkspaceCreationPropertiesSecrets';
 
 interface WorkspaceCreationPropertiesSelectionProps {
-  selectedImage: WorkspaceImage | undefined;
+  selectedImage: WorkspaceImageConfigValue | undefined;
+  selectedProperties: WorkspaceCreateProperties;
+  onSelect: (properties: WorkspaceCreateProperties) => void;
 }
 
 const WorkspaceCreationPropertiesSelection: React.FunctionComponent<
   WorkspaceCreationPropertiesSelectionProps
-> = ({ selectedImage }) => {
-  const [workspaceName, setWorkspaceName] = useState('');
-  const [deferUpdates, setDeferUpdates] = useState(false);
-  const [homeDirectory, setHomeDirectory] = useState('');
-  const [volumes, setVolumes] = useState<WorkspaceVolumes>({ home: '', data: [], secrets: [] });
-  const [volumesData, setVolumesData] = useState<WorkspaceVolume[]>([]);
-  const [secrets, setSecrets] = useState<WorkspaceSecret[]>(
-    volumes.secrets.length ? volumes.secrets : [],
-  );
+> = ({ selectedImage, selectedProperties, onSelect }) => {
   const [isVolumesExpanded, setIsVolumesExpanded] = useState(false);
   const [isSecretsExpanded, setIsSecretsExpanded] = useState(false);
-
-  useEffect(() => {
-    setVolumes((prev) => ({
-      ...prev,
-      data: volumesData,
-    }));
-  }, [volumesData]);
 
   const imageDetailsContent = useMemo(
     () => <WorkspaceCreationImageDetails workspaceImage={selectedImage} />,
@@ -64,16 +52,21 @@ const WorkspaceCreationPropertiesSelection: React.FunctionComponent<
                 <TextInput
                   isRequired
                   type="text"
-                  value={workspaceName}
-                  onChange={(_, value) => setWorkspaceName(value)}
+                  value={selectedProperties.workspaceName}
+                  onChange={(_, value) => onSelect({ ...selectedProperties, workspaceName: value })}
                   id="workspace-name"
                 />
               </FormGroup>
               <FormGroup fieldId="defer-updates">
                 <Checkbox
                   label="Defer Updates"
-                  isChecked={deferUpdates}
-                  onChange={() => setDeferUpdates((prev) => !prev)}
+                  isChecked={selectedProperties.deferUpdates}
+                  onChange={() =>
+                    onSelect({
+                      ...selectedProperties,
+                      deferUpdates: !selectedProperties.deferUpdates,
+                    })
+                  }
                   id="defer-updates"
                 />
               </FormGroup>
@@ -93,10 +86,12 @@ const WorkspaceCreationPropertiesSelection: React.FunctionComponent<
                         style={{ width: 500 }}
                       >
                         <TextInput
-                          value={homeDirectory}
+                          value={selectedProperties.homeDirectory}
                           onChange={(_, value) => {
-                            setHomeDirectory(value);
-                            setVolumes((prev) => ({ ...prev, home: value }));
+                            onSelect({
+                              ...selectedProperties,
+                              homeDirectory: value,
+                            });
                           }}
                           id="home-directory"
                         />
@@ -104,8 +99,8 @@ const WorkspaceCreationPropertiesSelection: React.FunctionComponent<
 
                       <FormGroup fieldId="volumes-table" style={{ marginTop: '1rem' }}>
                         <WorkspaceCreationPropertiesVolumes
-                          volumes={volumesData}
-                          setVolumes={setVolumesData}
+                          volumes={selectedProperties.volumes}
+                          setVolumes={(volumes) => onSelect({ ...selectedProperties, volumes })}
                         />
                       </FormGroup>
                     </>
@@ -116,7 +111,7 @@ const WorkspaceCreationPropertiesSelection: React.FunctionComponent<
                 <div style={{ paddingLeft: '36px', marginTop: '-10px' }}>
                   <div>Workspace volumes enable your project data to persist.</div>
                   <div className="pf-u-font-size-sm">
-                    <strong>{volumes.data.length} added</strong>
+                    <strong>{selectedProperties.volumes.length} added</strong>
                   </div>
                 </div>
               )}
@@ -130,8 +125,8 @@ const WorkspaceCreationPropertiesSelection: React.FunctionComponent<
                   {isSecretsExpanded && (
                     <FormGroup fieldId="secrets-table" style={{ marginTop: '1rem' }}>
                       <WorkspaceCreationPropertiesSecrets
-                        secrets={secrets}
-                        setSecrets={setSecrets}
+                        secrets={selectedProperties.secrets}
+                        setSecrets={(secrets) => onSelect({ ...selectedProperties, secrets })}
                       />
                     </FormGroup>
                   )}
@@ -141,7 +136,7 @@ const WorkspaceCreationPropertiesSelection: React.FunctionComponent<
                 <div style={{ paddingLeft: '36px', marginTop: '-10px' }}>
                   <div>Secrets enable your project to securely access and manage credentials.</div>
                   <div className="pf-u-font-size-sm">
-                    <strong>{secrets.length} added</strong>
+                    <strong>{selectedProperties.secrets.length} added</strong>
                   </div>
                 </div>
               )}

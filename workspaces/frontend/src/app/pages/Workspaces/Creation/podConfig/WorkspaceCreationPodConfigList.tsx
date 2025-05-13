@@ -12,20 +12,21 @@ import {
   CardBody,
 } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons/dist/esm/icons/search-icon';
-import { WorkspacePodConfig } from '~/shared/types';
+import { WorkspacePodConfigValue } from '~/shared/api/backendApiTypes';
 import Filter, { FilteredColumn } from '~/shared/components/Filter';
 
 type WorkspaceCreationPodConfigListProps = {
-  podConfigs: WorkspacePodConfig[];
+  podConfigs: WorkspacePodConfigValue[];
   selectedLabels: Map<string, Set<string>>;
-  selectedPodConfig: WorkspacePodConfig | undefined;
-  onSelect: (workspacePodConfig: WorkspacePodConfig | undefined) => void;
+  selectedPodConfig: WorkspacePodConfigValue | undefined;
+  onSelect: (workspacePodConfig: WorkspacePodConfigValue | undefined) => void;
 };
 
 export const WorkspaceCreationPodConfigList: React.FunctionComponent<
   WorkspaceCreationPodConfigListProps
 > = ({ podConfigs, selectedLabels, selectedPodConfig, onSelect }) => {
-  const [workspacePodConfigs, setWorkspacePodConfigs] = useState<WorkspacePodConfig[]>(podConfigs);
+  const [workspacePodConfigs, setWorkspacePodConfigs] =
+    useState<WorkspacePodConfigValue[]>(podConfigs);
   const [filters, setFilters] = useState<FilteredColumn[]>([]);
 
   const filterableColumns = useMemo(
@@ -36,13 +37,12 @@ export const WorkspaceCreationPodConfigList: React.FunctionComponent<
   );
 
   const getFilteredWorkspacePodConfigsByLabels = useCallback(
-    (unfilteredPodConfigs: WorkspacePodConfig[]) =>
+    (unfilteredPodConfigs: WorkspacePodConfigValue[]) =>
       unfilteredPodConfigs.filter((podConfig) =>
-        Object.keys(podConfig.labels).reduce((accumulator, labelKey) => {
-          const labelValue = podConfig.labels[labelKey];
-          if (selectedLabels.has(labelKey)) {
-            const labelValues: Set<string> | undefined = selectedLabels.get(labelKey);
-            return accumulator && labelValues !== undefined && labelValues.has(labelValue);
+        podConfig.labels.reduce((accumulator, label) => {
+          if (selectedLabels.has(label.key)) {
+            const labelValues: Set<string> | undefined = selectedLabels.get(label.key);
+            return accumulator && labelValues !== undefined && labelValues.has(label.value);
           }
           return accumulator;
         }, true),
