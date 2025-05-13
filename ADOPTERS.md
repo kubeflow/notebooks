@@ -1,6 +1,6 @@
 # Adopters of Kubeflow Notebooks
 
-Below are the adopters of project Pipelines. If you are using Notebooks
+Below are the adopters of the Notebooks project. If you are using Notebooks
 please add yourself into the following list by a pull request.
 Please keep the list in alphabetical order.
 
