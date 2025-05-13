@@ -1,9 +1,10 @@
 import * as React from 'react';
 import { Content, Divider, Split, SplitItem } from '@patternfly/react-core';
 import { useMemo } from 'react';
-import { WorkspaceKind } from '~/shared/types';
+import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import { WorkspaceCreationKindDetails } from '~/app/pages/Workspaces/Creation/kind/WorkspaceCreationKindDetails';
 import { WorkspaceCreationKindList } from '~/app/pages/Workspaces/Creation/kind/WorkspaceCreationKindList';
+import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 
 interface WorkspaceCreationKindSelectionProps {
   selectedKind: WorkspaceKind | undefined;
@@ -13,140 +14,20 @@ interface WorkspaceCreationKindSelectionProps {
 const WorkspaceCreationKindSelection: React.FunctionComponent<
   WorkspaceCreationKindSelectionProps
 > = ({ selectedKind, onSelect }) => {
-  /* Replace mocks below for BFF call */
-  const mockedWorkspaceKind: WorkspaceKind = useMemo(
-    () => ({
-      name: 'jupyter-lab1',
-      displayName: 'JupyterLab Notebook',
-      description: 'A Workspace which runs JupyterLab in a Pod',
-      deprecated: false,
-      deprecationMessage: '',
-      hidden: false,
-      icon: {
-        url: 'https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png',
-      },
-      logo: {
-        url: 'https://upload.wikimedia.org/wikipedia/commons/3/38/Jupyter_logo.svg',
-      },
-      podTemplate: {
-        podMetadata: {
-          labels: { myWorkspaceKindLabel: 'my-value' },
-          annotations: { myWorkspaceKindAnnotation: 'my-value' },
-        },
-        volumeMounts: { home: '/home/jovyan' },
-        options: {
-          imageConfig: {
-            default: 'jupyterlab_scipy_190',
-            values: [
-              {
-                id: 'jupyterlab_scipy_180',
-                displayName: 'jupyter-scipy:v1.8.0',
-                labels: { pythonVersion: '3.11', jupyterlabVersion: '1.8.0' },
-                hidden: true,
-                redirect: {
-                  to: 'jupyterlab_scipy_190',
-                  message: {
-                    text: 'This update will change...',
-                    level: 'Info',
-                  },
-                },
-              },
-              {
-                id: 'jupyterlab_scipy_190',
-                displayName: 'jupyter-scipy:v1.9.0',
-                labels: { pythonVersion: '3.12', jupyterlabVersion: '1.9.0' },
-                hidden: true,
-                redirect: {
-                  to: 'jupyterlab_scipy_200',
-                  message: {
-                    text: 'This update will change...',
-                    level: 'Warning',
-                  },
-                },
-              },
-              {
-                id: 'jupyterlab_scipy_200',
-                displayName: 'jupyter-scipy:v2.0.0',
-                labels: { pythonVersion: '3.12', jupyterlabVersion: '2.0.0' },
-                hidden: true,
-                redirect: {
-                  to: 'jupyterlab_scipy_210',
-                  message: {
-                    text: 'This update will change...',
-                    level: 'Warning',
-                  },
-                },
-              },
-              {
-                id: 'jupyterlab_scipy_210',
-                displayName: 'jupyter-scipy:v2.1.0',
-                labels: { pythonVersion: '3.13', jupyterlabVersion: '2.1.0' },
-                hidden: true,
-                redirect: {
-                  to: 'jupyterlab_scipy_220',
-                  message: {
-                    text: 'This update will change...',
-                    level: 'Warning',
-                  },
-                },
-              },
-            ],
-          },
-          podConfig: {
-            default: 'tiny_cpu',
-            values: [
-              {
-                id: 'tiny_cpu',
-                displayName: 'Tiny CPU',
-                description: 'Pod with 0.1 CPU, 128 Mb RAM',
-                labels: { cpu: '100m', memory: '128Mi' },
-                redirect: {
-                  to: 'small_cpu',
-                  message: {
-                    text: 'This update will change...',
-                    level: 'Danger',
-                  },
-                },
-              },
-              {
-                id: 'large_cpu',
-                displayName: 'Large CPU',
-                description: 'Pod with 1 CPU, 1 Gb RAM',
-                labels: { cpu: '1000m', memory: '1Gi' },
-              },
-            ],
-          },
-        },
-      },
-    }),
-    [],
-  );
-
-  /* Replace mocks below for BFF call */
-  const allWorkspaceKinds = useMemo(() => {
-    const kinds: WorkspaceKind[] = [];
-
-    for (let i = 1; i <= 15; i++) {
-      const kind = { ...mockedWorkspaceKind };
-      kind.name += i;
-      kind.displayName += ` ${i}`;
-      kind.podTemplate = { ...mockedWorkspaceKind.podTemplate };
-      kind.podTemplate.podMetadata = { ...mockedWorkspaceKind.podTemplate.podMetadata };
-      kind.podTemplate.podMetadata.labels = {
-        ...mockedWorkspaceKind.podTemplate.podMetadata.labels,
-      };
-      kind.podTemplate.podMetadata.labels[`my-label-key-${Math.ceil(i / 4)}`] =
-        `my-label-value-${Math.ceil(i)}`;
-      kinds.push(kind);
-    }
-
-    return kinds;
-  }, [mockedWorkspaceKind]);
+  const [workspaceKinds, loaded, error] = useWorkspaceKinds();
 
   const kindDetailsContent = useMemo(
     () => <WorkspaceCreationKindDetails workspaceKind={selectedKind} />,
     [selectedKind],
   );
+
+  if (error) {
+    return <p>Error loading workspace kinds: {error.message}</p>; // TODO: UX for error state
+  }
+
+  if (!loaded) {
+    return <p>Loading...</p>; // TODO: UX for loading state
+  }
 
   return (
     <Content style={{ height: '100%' }}>
@@ -155,7 +36,7 @@ const WorkspaceCreationKindSelection: React.FunctionComponent<
       <Split hasGutter>
         <SplitItem isFilled>
           <WorkspaceCreationKindList
-            allWorkspaceKinds={allWorkspaceKinds}
+            allWorkspaceKinds={workspaceKinds}
             selectedKind={selectedKind}
             onSelect={onSelect}
           />

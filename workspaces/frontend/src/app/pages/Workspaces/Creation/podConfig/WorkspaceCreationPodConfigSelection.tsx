@@ -1,15 +1,15 @@
 import * as React from 'react';
 import { Content, Divider, Split, SplitItem } from '@patternfly/react-core';
 import { useMemo, useState } from 'react';
-import { WorkspacePodConfig } from '~/shared/types';
+import { WorkspacePodConfigValue } from '~/shared/api/backendApiTypes';
 import { WorkspaceCreationPodConfigDetails } from '~/app/pages/Workspaces/Creation/podConfig/WorkspaceCreationPodConfigDetails';
 import { WorkspaceCreationPodConfigList } from '~/app/pages/Workspaces/Creation/podConfig/WorkspaceCreationPodConfigList';
 import { FilterByLabels } from '~/app/pages/Workspaces/Creation/labelFilter/FilterByLabels';
 
 interface WorkspaceCreationPodConfigSelectionProps {
-  podConfigs: WorkspacePodConfig[];
-  selectedPodConfig: WorkspacePodConfig | undefined;
-  onSelect: (podConfig: WorkspacePodConfig | undefined) => void;
+  podConfigs: WorkspacePodConfigValue[];
+  selectedPodConfig: WorkspacePodConfigValue | undefined;
+  onSelect: (podConfig: WorkspacePodConfigValue | undefined) => void;
 }
 
 const WorkspaceCreationPodConfigSelection: React.FunctionComponent<
@@ -20,7 +20,7 @@ const WorkspaceCreationPodConfigSelection: React.FunctionComponent<
   const podConfigFilterContent = useMemo(
     () => (
       <FilterByLabels
-        labelledObjects={podConfigs.map((podConfig) => podConfig.labels)}
+        labelledObjects={podConfigs.flatMap((podConfig) => podConfig.labels)}
         selectedLabels={selectedLabels}
         onSelect={setSelectedLabels}
       />
