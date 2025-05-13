@@ -202,3 +202,14 @@ func (r *WorkspaceRepository) DeleteWorkspace(ctx context.Context, namespace, wo
 
 	return nil
 }
+
+func (r *WorkspaceRepository) GetRawWorkspace(ctx context.Context, namespace string, workspaceName string) (*kubefloworgv1beta1.Workspace, error) {
+	workspace := &kubefloworgv1beta1.Workspace{}
+	if err := r.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: workspaceName}, workspace); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, ErrWorkspaceNotFound
+		}
+		return nil, err
+	}
+	return workspace, nil
+}
