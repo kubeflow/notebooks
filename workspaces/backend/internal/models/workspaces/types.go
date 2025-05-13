@@ -67,14 +67,21 @@ type PodMetadata struct {
 }
 
 type PodVolumes struct {
-	Home *PodVolumeInfo  `json:"home,omitempty"`
-	Data []PodVolumeInfo `json:"data"`
+	Home    *PodVolumeInfo  `json:"home,omitempty"`
+	Data    []PodVolumeInfo `json:"data"`
+	Secrets []PodSecretInfo `json:"secrets,omitempty"`
 }
 
 type PodVolumeInfo struct {
 	PVCName   string `json:"pvcName"`
 	MountPath string `json:"mountPath"`
 	ReadOnly  bool   `json:"readOnly"`
+}
+
+type PodSecretInfo struct {
+	SecretName  string `json:"secretName"`
+	MountPath   string `json:"mountPath"`
+	DefaultMode int32  `json:"defaultMode,omitempty"`
 }
 
 type PodTemplateOptions struct {

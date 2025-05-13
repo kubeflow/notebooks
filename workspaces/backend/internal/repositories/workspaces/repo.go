@@ -137,6 +137,17 @@ func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, workspaceCrea
 		}
 	}
 
+	// get secrets from workspace model
+	// TODO: uncomment this once #240 is merged
+	// secretMounts := make([]kubefloworgv1beta1.PodSecretMount, len(workspaceCreate.PodTemplate.Volumes.Secrets))
+	// for i, secret := range workspaceCreate.PodTemplate.Volumes.Secrets {
+	// 	secretMounts[i] = kubefloworgv1beta1.PodSecretMount{
+	// 		SecretName:  secret.SecretName,
+	// 		MountPath:   secret.MountPath,
+	// 		DefaultMode: secret.DefaultMode,
+	// 	}
+	// }
+
 	// define workspace object from model
 	workspaceName := workspaceCreate.Name
 	workspaceKindName := workspaceCreate.Kind
@@ -157,6 +168,7 @@ func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, workspaceCrea
 				Volumes: kubefloworgv1beta1.WorkspacePodVolumes{
 					Home: workspaceCreate.PodTemplate.Volumes.Home,
 					Data: dataVolumeMounts,
+					// Secrets: secretMounts,
 				},
 				Options: kubefloworgv1beta1.WorkspacePodOptions{
 					ImageConfig: workspaceCreate.PodTemplate.Options.ImageConfig,
