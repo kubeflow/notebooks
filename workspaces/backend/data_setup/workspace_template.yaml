@@ -1,0 +1,36 @@
+apiVersion: kubeflow.org/v1beta1
+kind: Workspace
+metadata:
+  name: "workspace-{workspace_id}"
+spec:
+  paused: true
+  deferUpdates: false
+  ## the WorkspaceKind that this Workspace is an instance of
+  kind: "{WorkspaceKind}" #  Fixed, should match one of your WorkspaceKind names
+
+  ## options for "podTemplate"-type WorkspaceKinds
+  ##
+  podTemplate:
+    podMetadata:
+      labels: {}
+      annotations: {}
+    volumes:
+      home: "workspace-home-pvc"
+      data:
+        - pvcName: "workspace-data-pvc"
+          mountPath: "/data/my-data"
+          readOnly: false
+    options:
+      ## the id of an imageConfig option
+      ##  - options are defined in WorkspaceKind under
+      ##    `spec.podTemplate.options.imageConfig.values[]`
+      ##
+      imageConfig: "{imageConfig_id}"
+      ## the id of a podConfig option
+      ##  - options are defined in WorkspaceKind under
+      ##    `spec.podTemplate.options.podConfig.values[]`
+      ##
+      podConfig: "{podConfig_id}"
+
+
+

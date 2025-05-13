@@ -1,0 +1,217 @@
+# codeserver_v1beta1_workspacekind.yaml
+apiVersion: kubeflow.org/v1beta1
+kind: WorkspaceKind
+metadata:
+  name: codeserver-sample
+spec:
+  ## ================================================================
+  ## SPAWNER CONFIGS
+  ##  - how the WorkspaceKind is displayed in the Workspace Spawner UI
+  ## ================================================================
+  spawner:
+
+    ## the display name of the WorkspaceKind
+    displayName: "Code-Server IDE"
+
+    ## the description of the WorkspaceKind
+    description: "A Workspace which runs Code-Server (VS Code in a browser) in a Pod"
+
+    ## if this WorkspaceKind should be hidden from the Workspace Spawner UI
+    hidden: false
+
+    ## if this WorkspaceKind is deprecated
+    deprecated: false
+
+    ## a message to show in Workspace Spawner UI when the WorkspaceKind is deprecated
+    deprecationMessage: "This WorkspaceKind will be removed on 20XX-XX-XX, please use another WorkspaceKind."
+
+    ## the icon of the WorkspaceKind
+    icon:
+      url: "https://avatars.githubusercontent.com/u/95932066?s=48&v=4"
+
+    ## the logo of the WorkspaceKind
+    logo:
+      url: "https://avatars.githubusercontent.com/u/95932066?s=48&v=4"
+  ## ================================================================
+  ## DEFINITION CONFIGS
+  ## ================================================================
+  podTemplate:
+
+    ## metadata for Workspace Pods (MUTABLE)
+    podMetadata:
+      labels:
+        my-workspace-kind-label: "my-value"
+      annotations:
+        my-workspace-kind-annotation: "my-value"
+
+    ## service account configs for Workspace Pods
+    serviceAccount:
+
+      ## the name of the ServiceAccount (NOT MUTABLE)
+      name: "default-editor"
+
+    ## volume mount paths
+    volumeMounts:
+
+      ## the path to mount the home PVC (NOT MUTABLE)
+      home: "/home/jovyan"
+
+    ## http proxy configs (MUTABLE)
+    httpProxy:
+
+      ## if the path prefix is stripped from incoming HTTP requests
+      ##  - if true, the '/workspace/{profile_name}/{workspace_name}/' path prefix
+      ##    is stripped from incoming requests, the application sees the request
+      ##    as if it was made to '/...'
+      ##  - this only works if the application serves RELATIVE URLs for its assets
+      removePathPrefix: false
+
+    ## ==============================================================
+    ## WORKSPACE OPTIONS
+    ##  - options are the user-selectable fields,
+    ##    they determine the PodSpec of the Workspace
+    ## ==============================================================
+    options:
+
+      ##
+      ## About the `values` fields:
+      ##  - the `values` field is a list of options that the user can select
+      ##  - elements of `values` can NOT be removed, only HIDDEN or REDIRECTED
+      ##     - this prevents options being removed that are still in use by existing Workspaces
+      ##     - this limitation may be removed in the future
+      ##  - options may be "hidden" by setting `spawner.hidden` to `true`
+      ##     - hidden options are NOT selectable in the Spawner UI
+      ##     - hidden options are still available to the controller and manually created Workspace resources
+      ##  - options may be "redirected" by setting `redirect.to` to another option:
+      ##     - redirected options are NOT shown in the Spawner UI
+      ##     - redirected options are like an HTTP 302 redirect, the controller will use the target option
+      ##       without actually changing the `spec.podTemplate.options` field of the Workspace
+      ##     - the Spawner UI will warn users about Workspaces with pending restarts
+      ##
+
+      ## ============================================================
+      ## IMAGE CONFIG OPTIONS
+      ##  - SETS: image, imagePullPolicy, ports
+      ## ============================================================
+      imageConfig:
+
+        ## spawner ui configs
+        spawner:
+
+          ## the id of the default option
+          default: "codeserver_latest"
+
+        ## the list of image configs that are available
+        values:
+
+          ## ================================
+          ## EXAMPLE 1: a hidden option
+          ## ================================
+          - id: "codeserver_stable"
+            spawner:
+              displayName: "Code-Server (Stable)"
+              description: "Latest stable release of Code-Server"
+            spec:
+              ## the container image to use
+              image: "ghcr.io/kubeflow/kubeflow/notebook-servers/codeserver:latest"
+
+              ## the pull policy for the container image
+              imagePullPolicy: "IfNotPresent"
+
+              ## ports that the container listens on
+              ports:
+                - id: "codeserver"
+                  displayName: "Code-Server"
+                  port: 8080
+                  protocol: "HTTP"
+
+          ## ================================
+          ## EXAMPLE 2: a previous version Code-Server option
+          ## ================================
+          - id: "codeserver_v1.9.0"
+            spawner:
+              displayName: "Code-Server (V 1.9.0)"
+              description: "V 1.9.0 build of Code-Server (may be unstable)"
+            spec:
+              image: "ghcr.io/kubeflow/kubeflow/notebook-servers/codeserver:v1.9.0"
+              imagePullPolicy: "IfNotPresent"
+              ports:
+                - id: "codeserver"
+                  displayName: "Code-Server"
+                  port: 8080
+                  protocol: "HTTP"
+
+      ## ============================================================
+      ## POD CONFIG OPTIONS
+      ##  - SETS: affinity, nodeSelector, tolerations, resources
+      ## ============================================================
+      podConfig:
+
+        ## spawner ui configs
+        spawner:
+
+          ## the id of the default option
+          default: "tiny_cpu"
+
+        ## the list of pod configs that are available
+        values:
+
+          ## ================================
+          ## EXAMPLE 1: a tiny CPU pod
+          ## ================================
+          - id: "tiny_cpu"
+            spawner:
+              displayName: "Tiny CPU"
+              description: "Pod with 0.1 CPU, 128 Mb RAM"
+              labels:
+                - key: "cpu"
+                  value: "100m"
+                - key: "memory"
+                  value: "128Mi"
+            spec:
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+
+          ## ================================
+          ## EXAMPLE 2: a small CPU pod
+          ## ================================
+          - id: "small_cpu"
+            spawner:
+              displayName: "Small CPU"
+              description: "Pod with 1 CPU, 2 GB RAM"
+              labels:
+                - key: "cpu"
+                  value: "1000m"
+                - key: "memory"
+                  value: "2Gi"
+              hidden: false
+            spec:
+              resources:
+                requests:
+                  cpu: 1000m
+                  memory: 2Gi
+
+          ## ================================
+          ## EXAMPLE 3: a big GPU pod
+          ## ================================
+          - id: "big_gpu"
+            spawner:
+              displayName: "Big GPU"
+              description: "Pod with 4 CPU, 16 GB RAM, and 1 GPU"
+              labels:
+                - key: "cpu"
+                  value: "4000m"
+                - key: "memory"
+                  value: "16Gi"
+                - key: "gpu"
+                  value: "1"
+              hidden: false
+            spec:
+              resources:
+                requests:
+                  cpu: 4000m
+                  memory: 16Gi
+                limits:
+                  nvidia.com/gpu: 1

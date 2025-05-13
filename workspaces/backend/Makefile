@@ -162,3 +162,82 @@ mv $(1) $(1)-$(3) ;\
 } ;\
 ln -sf $(1)-$(3) $(1)
 endef
+
+
+##@ Workspace Management
+
+# Set the versions and binaries
+YQ_VERSION = v4.30.6
+YQ_BINARY = /usr/local/bin/yq
+KUBECTL_VERSION = v1.27.3
+KUBECTL_BINARY = /usr/local/bin/kubectl
+
+# Define the filenames for WorkspaceKind and Workspace template files
+WORKSPACEKIND_FILES = data_setup/workspacekinds/jupyterlab_v1beta1_workspacekind.yaml \
+                      data_setup/workspacekinds/codeserver_v1beta1_workspacekind.yaml \
+                      data_setup/workspacekinds/rstudio_v1beta1_workspacekind.yaml
+WORKSPACE_TEMPLATE_FILE = data_setup/workspace_template.yaml
+
+# Define workspace IDs and their configurations
+WORKSPACE_IDS = 1 2 3 4 5 6 7 8 9
+
+# Helper function for checking installation
+define install-if-missing
+	@if ! command -v $(1) &> /dev/null; then \
+		echo "$(1) not found. Installing $(1)..."; \
+		$(2); \
+		echo "$(1) installed successfully."; \
+	else \
+		echo "$(1) is already installed."; \
+	fi
+endef
+
+.PHONY: install-yq install-kubectl create-workspacekinds create-workspaces setup-all clean
+
+# Check and install yq if missing
+install-yq:
+	$(call install-if-missing,yq,\
+    		sudo wget -q "https://github.com/mikefarah/yq/releases/download/$(YQ_VERSION)/yq_linux_amd64" -O $(YQ_BINARY) && sudo chmod +x $(YQ_BINARY))
+
+# Check and install kubectl if missing
+install-kubectl:
+	$(call install-if-missing,kubectl,\
+    		sudo curl -LO "https://dl.k8s.io/release/$(KUBECTL_VERSION)/bin/linux/amd64/kubectl" && sudo chmod +x kubectl && sudo mv kubectl $(KUBECTL_BINARY))
+
+# Apply the WorkspaceKind definitions
+create-workspacekinds: install-yq install-kubectl
+	@for workspacekind in $(WORKSPACEKIND_FILES); do \
+		kubectl apply -f $$workspacekind; \
+	done
+
+# Create the workspaces by iterating through IDs and using template replacement
+create-workspaces: create-workspacekinds
+	@for id in $(WORKSPACE_IDS); do \
+        echo "Creating workspace workspace-$$id..."; \
+        eval "case $$id in \
+            1|2|3) workspace_kind_file=data_setup/workspacekinds/jupyterlab_v1beta1_workspacekind.yaml;; \
+            4|5|6) workspace_kind_file=data_setup/workspacekinds/codeserver_v1beta1_workspacekind.yaml;; \
+            *) workspace_kind_file=data_setup/workspacekinds/rstudio_v1beta1_workspacekind.yaml;; \
+        esac"; \
+        workspace_kind_name=$$(yq '.metadata.name' "$$workspace_kind_file"); \
+        image_config_id=$$(yq '.spec.podTemplate.options.imageConfig.spawner.default' "$$workspace_kind_file" | sed 's|"||g'); \
+        pod_config_id=$$(yq '.spec.podTemplate.options.podConfig.spawner.default' "$$workspace_kind_file"); \
+        sed "s/{workspace_id}/$$id/g; s/{WorkspaceKind}/$$workspace_kind_name/g; s/{imageConfig_id}/$$image_config_id/g; s/{podConfig_id}/$$pod_config_id/g" $(WORKSPACE_TEMPLATE_FILE) | \
+        sed '/^spec:/a \  paused: true' | \
+        kubectl apply -f -; \
+    done
+
+# Full setup: create both WorkspaceKinds and Workspaces
+setup-all: create-workspacekinds create-workspaces
+	@echo "All WorkspaceKinds and Workspaces have been created successfully."
+
+# Clean up all created resources
+clean:
+	@echo "Deleting all WorkspaceKinds and Workspaces..."
+	@for workspacekind in $(WORKSPACEKIND_FILES); do \
+		kubectl delete -f $$workspacekind; \
+	done
+	@for id in $(WORKSPACE_IDS); do \
+        kubectl delete workspace workspace-$$id --ignore-not-found; \
+    done
+	@echo "Cleanup complete."
