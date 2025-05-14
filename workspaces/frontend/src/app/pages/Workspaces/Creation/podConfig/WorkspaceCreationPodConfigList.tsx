@@ -7,13 +7,11 @@ import {
   ToolbarContent,
   Card,
   CardHeader,
-  EmptyState,
-  EmptyStateBody,
   CardBody,
 } from '@patternfly/react-core';
-import { SearchIcon } from '@patternfly/react-icons/dist/esm/icons/search-icon';
 import { WorkspacePodConfig } from '~/shared/types';
-import Filter, { FilteredColumn } from '~/shared/components/Filter';
+import Filter, { FilteredColumn, FilterRef } from '~/shared/components/Filter';
+import EmptyStateWithClearFilters from 'shared/components/EmptyStateWithClearFilters';
 
 type WorkspaceCreationPodConfigListProps = {
   podConfigs: WorkspacePodConfig[];
@@ -27,6 +25,8 @@ export const WorkspaceCreationPodConfigList: React.FunctionComponent<
 > = ({ podConfigs, selectedLabels, selectedPodConfig, onSelect }) => {
   const [workspacePodConfigs, setWorkspacePodConfigs] = useState<WorkspacePodConfig[]>(podConfigs);
   const [filters, setFilters] = useState<FilteredColumn[]>([]);
+
+  const filterRef = React.useRef<FilterRef>(null);
 
   const filterableColumns = useMemo(
     () => ({
@@ -59,6 +59,10 @@ export const WorkspaceCreationPodConfigList: React.FunctionComponent<
     },
     [workspacePodConfigs, onSelect],
   );
+
+  const clearAllFilters = useCallback(() => {
+    filterRef.current?.clearAll();
+  }, []);
 
   useEffect(() => {
     // Search name with search value
@@ -103,7 +107,8 @@ export const WorkspaceCreationPodConfigList: React.FunctionComponent<
         <Toolbar id="toolbar-group-types">
           <ToolbarContent>
             <Filter
-              id="filter-workspace-podConfigs"
+              ref={filterRef}
+              id="filter-workspace-images"
               onFilter={setFilters}
               columnNames={filterableColumns}
             />
@@ -112,11 +117,11 @@ export const WorkspaceCreationPodConfigList: React.FunctionComponent<
       </PageSection>
       <PageSection isFilled>
         {workspacePodConfigs.length === 0 && (
-          <EmptyState titleText="No results found" headingLevel="h4" icon={SearchIcon}>
-            <EmptyStateBody>
-              No results match the filter criteria. Clear all filters and try again.
-            </EmptyStateBody>
-          </EmptyState>
+          <EmptyStateWithClearFilters
+            title="No results found"
+            body="No results match the filter criteria. Clear all filters and try again."
+            onClearFilters={clearAllFilters}
+          />
         )}
         {workspacePodConfigs.length > 0 && (
           <Gallery hasGutter aria-label="Selectable card container">

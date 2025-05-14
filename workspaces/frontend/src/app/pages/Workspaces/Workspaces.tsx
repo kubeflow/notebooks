@@ -684,7 +684,7 @@ export const Workspaces: React.FunctionComponent = () => {
                 ))}
               {sortedWorkspaces.length === 0 && (
                 <Tr>
-                  <Td colSpan={11} id="empty-state-cell">
+                  <Td colSpan={12} id="empty-state-cell">
                     <Bullseye>{emptyState}</Bullseye>
                   </Td>
                 </Tr>
