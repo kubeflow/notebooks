@@ -20,12 +20,8 @@ import {
   ToolbarGroup,
   ToolbarFilter,
   ToolbarToggleGroup,
-  EmptyStateActions,
-  EmptyState,
-  EmptyStateFooter,
-  EmptyStateBody,
-  Button,
   Bullseye,
+  SearchInput,
 } from '@patternfly/react-core';
 import {
   Table,
@@ -38,12 +34,13 @@ import {
   ActionsColumn,
   IActions,
 } from '@patternfly/react-table';
-import { CodeIcon, FilterIcon, SearchIcon } from '@patternfly/react-icons';
+import { CodeIcon, FilterIcon } from '@patternfly/react-icons';
 import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import { useWorkspaceCountPerKind } from '~/app/hooks/useWorkspaceCountPerKind';
 import { WorkspaceKindsColumnNames } from '~/app/types';
 import ThemeAwareSearchInput from '~/app/components/ThemeAwareSearchInput';
+import EmptyStateWithClearFilters from 'shared/components/EmptyStateWithClearFilters';
 
 export enum ActionType {
   ViewDetails,
@@ -176,6 +173,38 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
   const filteredWorkspaceKinds = React.useMemo(
     () => sortedWorkspaceKinds.filter(onFilter),
     [sortedWorkspaceKinds, onFilter],
+  );
+
+  const clearAllFilters = React.useCallback(() => {
+    setSearchNameValue('');
+    setStatusSelection('');
+    setSearchDescriptionValue('');
+  }, []);
+
+  // Set up name search input
+  const searchNameInput = React.useMemo(
+    () => (
+      <SearchInput
+        placeholder="Filter by name"
+        value={searchNameValue}
+        onChange={(_event, value) => onSearchNameChange(value)}
+        onClear={() => onSearchNameChange('')}
+      />
+    ),
+    [searchNameValue, onSearchNameChange],
+  );
+
+  // Set up description search input
+  const searchDescriptionInput = React.useMemo(
+    () => (
+      <SearchInput
+        placeholder="Filter by description"
+        value={searchDescriptionValue}
+        onChange={(_event, value) => onSearchDescriptionChange(value)}
+        onClear={() => onSearchDescriptionChange('')}
+      />
+    ),
+    [searchDescriptionValue, onSearchDescriptionChange],
   );
 
   // Set up status single select
@@ -397,27 +426,14 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
 
   const emptyState = React.useMemo(
     () => (
-      <EmptyState headingLevel="h4" titleText="No results found" icon={SearchIcon}>
-        <EmptyStateBody>
-          No results match the filter criteria. Clear all filters and try again.
-        </EmptyStateBody>
-        <EmptyStateFooter>
-          <EmptyStateActions>
-            <Button
-              variant="link"
-              onClick={() => {
-                setSearchNameValue('');
-                setStatusSelection('');
-                setSearchDescriptionValue('');
-              }}
-            >
-              Clear all filters
-            </Button>
-          </EmptyStateActions>
-        </EmptyStateFooter>
-      </EmptyState>
+      <EmptyStateWithClearFilters
+        title="No results found"
+        body="No results match the filter criteria. Clear all filters and try again."
+        onClearFilters={clearAllFilters}
+        colSpan={8}
+      />
     ),
-    [],
+    [clearAllFilters],
   );
 
   // Actions
@@ -464,14 +480,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
             </Content>
             <br />
             <Content style={{ display: 'flex', alignItems: 'flex-start', columnGap: '20px' }}>
-              <Toolbar
-                id="attribute-search-filter-toolbar"
-                clearAllFilters={() => {
-                  setSearchNameValue('');
-                  setStatusSelection('');
-                  setSearchDescriptionValue('');
-                }}
-              >
+              <Toolbar id="attribute-search-filter-toolbar" clearAllFilters={clearAllFilters}>
                 <ToolbarContent>
                   <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="xl">
                     <ToolbarGroup variant="filter-group">
