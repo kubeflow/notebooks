@@ -28,6 +28,7 @@ import (
 // NOTE: error responses use the ErrorEnvelope type
 type Envelope[D any] struct {
 	// TODO: make all declarations of Envelope use pointers for D
+
 	Data D `json:"data"`
 }
 
