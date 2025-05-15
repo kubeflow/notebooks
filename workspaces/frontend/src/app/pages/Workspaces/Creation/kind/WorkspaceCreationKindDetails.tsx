@@ -9,15 +9,12 @@ type WorkspaceCreationKindDetailsProps = {
 export const WorkspaceCreationKindDetails: React.FunctionComponent<
   WorkspaceCreationKindDetailsProps
 > = ({ workspaceKind }) => (
-  <>
-    {!workspaceKind && <p>Select a workspace kind to view its details here.</p>}
-
+  <div style={{ marginLeft: 'var(--pf-t--global--spacer--md)' }}>
     {workspaceKind && (
       <>
-        <Title headingLevel="h6">Workspace kind</Title>
         <Title headingLevel="h3">{workspaceKind.name}</Title>
         <p>{workspaceKind.description}</p>
       </>
     )}
-  </>
+  </div>
 );
