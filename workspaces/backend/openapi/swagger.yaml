@@ -356,6 +356,24 @@ definitions:
           type: string
         type: object
     type: object
+  workspaces.PodSecretInfo:
+    properties:
+      defaultMode:
+        type: integer
+      mountPath:
+        type: string
+      secretName:
+        type: string
+    type: object
+  workspaces.PodSecretMount:
+    properties:
+      defaultMode:
+        type: integer
+      mountPath:
+        type: string
+      secretName:
+        type: string
+    type: object
   workspaces.PodTemplate:
     properties:
       options:
@@ -414,6 +432,10 @@ definitions:
         type: array
       home:
         $ref: '#/definitions/workspaces.PodVolumeInfo'
+      secrets:
+        items:
+          $ref: '#/definitions/workspaces.PodSecretInfo'
+        type: array
     type: object
   workspaces.PodVolumesMutate:
     properties:
@@ -423,6 +445,10 @@ definitions:
         type: array
       home:
         type: string
+      secrets:
+        items:
+          $ref: '#/definitions/workspaces.PodSecretMount'
+        type: array
     type: object
   workspaces.ProbeResult:
     enum:
