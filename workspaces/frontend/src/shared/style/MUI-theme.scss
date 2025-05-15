@@ -769,6 +769,11 @@
   flex-grow: 0;
 }
 
+// TODO: Remove when https://github.com/patternfly/patternfly-react/issues/11826 is resolved.
+.pf-v6-c-page__main-section .pf-v6-c-page__main-body {
+  height: 100%;
+}
+
 .mui-theme .pf-v6-c-pagination {
   --pf-v6-c-pagination__total-items--Display: block;
 }
