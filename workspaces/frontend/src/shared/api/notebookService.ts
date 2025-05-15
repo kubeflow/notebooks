@@ -7,12 +7,7 @@ import {
   restUPDATE,
 } from '~/shared/api/apiUtils';
 import { handleRestFailures } from '~/shared/api/errorUtils';
-import {
-  HealthCheckResponse,
-  Namespace,
-  Workspace,
-  WorkspaceKind,
-} from '~/shared/api/backendApiTypes';
+import { Namespace, Workspace, WorkspaceKind } from '~/shared/api/backendApiTypes';
 import {
   CreateWorkspaceAPI,
   CreateWorkspaceKindAPI,
@@ -27,14 +22,14 @@ import {
   ListWorkspacesAPI,
   PatchWorkspaceAPI,
   PatchWorkspaceKindAPI,
+  PauseWorkspaceAPI,
+  StartWorkspaceAPI,
   UpdateWorkspaceAPI,
   UpdateWorkspaceKindAPI,
 } from './callTypes';
 
 export const getHealthCheck: GetHealthCheckAPI = (hostPath) => (opts) =>
-  handleRestFailures(restGET(hostPath, `/healthcheck`, {}, opts)).then((response) =>
-    extractNotebookResponse<HealthCheckResponse>(response),
-  );
+  handleRestFailures(restGET(hostPath, `/healthcheck`, {}, opts));
 
 export const listNamespaces: ListNamespacesAPI = (hostPath) => (opts) =>
   handleRestFailures(restGET(hostPath, `/namespaces`, {}, opts)).then((response) =>
@@ -76,6 +71,16 @@ export const deleteWorkspace: DeleteWorkspaceAPI = (hostPath) => (opts, namespac
   handleRestFailures(
     restDELETE(hostPath, `/workspaces/${namespace}/${workspace}`, {}, {}, opts),
   ).then((response) => extractNotebookResponse<void>(response));
+
+export const pauseWorkspace: PauseWorkspaceAPI = (hostPath) => (opts, namespace, workspace) =>
+  handleRestFailures(
+    restCREATE(hostPath, `/workspaces/${namespace}/${workspace}/actions/pause`, {}, opts),
+  );
+
+export const startWorkspace: StartWorkspaceAPI = (hostPath) => (opts, namespace, workspace) =>
+  handleRestFailures(
+    restCREATE(hostPath, `/workspaces/${namespace}/${workspace}/actions/start`, {}, opts),
+  );
 
 export const listWorkspaceKinds: ListWorkspaceKindsAPI = (hostPath) => (opts) =>
   handleRestFailures(restGET(hostPath, `/workspacekinds`, {}, opts)).then((response) =>

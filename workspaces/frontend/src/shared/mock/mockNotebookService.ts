@@ -12,6 +12,8 @@ import {
   ListWorkspacesAPI,
   PatchWorkspaceAPI,
   PatchWorkspaceKindAPI,
+  PauseWorkspaceAPI,
+  StartWorkspaceAPI,
   UpdateWorkspaceAPI,
   UpdateWorkspaceKindAPI,
 } from '~/shared/api/callTypes';
@@ -23,6 +25,11 @@ import {
   mockWorkspaceKind1,
   mockWorkspaceKinds,
 } from '~/shared/mock/mockNotebookServiceData';
+
+const delay = (ms: number) =>
+  new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 
 export const mockGetHealthCheck: GetHealthCheckAPI = () => async () => mockedHealthCheckResponse;
 
@@ -43,7 +50,17 @@ export const mockUpdateWorkspace: UpdateWorkspaceAPI = () => async () => mockWor
 export const mockPatchWorkspace: PatchWorkspaceAPI = () => async () => mockWorkspace1;
 
 export const mockDeleteWorkspace: DeleteWorkspaceAPI = () => async () => {
-  /* no-op */
+  await delay(1500);
+};
+
+export const mockPauseWorkspace: PauseWorkspaceAPI = () => async () => {
+  await delay(1500);
+  return {};
+};
+
+export const mockStartWorkspace: StartWorkspaceAPI = () => async () => {
+  await delay(1500);
+  return {};
 };
 
 export const mockListWorkspaceKinds: ListWorkspaceKindsAPI = () => async () => mockWorkspaceKinds;
@@ -58,5 +75,5 @@ export const mockUpdateWorkspaceKind: UpdateWorkspaceKindAPI = () => async () =>
 export const mockPatchWorkspaceKind: PatchWorkspaceKindAPI = () => async () => mockWorkspaceKind1;
 
 export const mockDeleteWorkspaceKind: DeleteWorkspaceKindAPI = () => async () => {
-  /* no-op */
+  await delay(1500);
 };
