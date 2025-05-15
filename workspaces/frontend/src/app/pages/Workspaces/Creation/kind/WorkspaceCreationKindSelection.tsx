@@ -1,10 +1,10 @@
-import * as React from 'react';
-import { Content, Divider, Split, SplitItem } from '@patternfly/react-core';
-import { useMemo } from 'react';
+import React, { useState, useRef, useMemo, useCallback } from 'react';
+import { Content, Divider } from '@patternfly/react-core';
 import { WorkspaceKind } from '~/shared/api/backendApiTypes';
+import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import { WorkspaceCreationKindDetails } from '~/app/pages/Workspaces/Creation/kind/WorkspaceCreationKindDetails';
 import { WorkspaceCreationKindList } from '~/app/pages/Workspaces/Creation/kind/WorkspaceCreationKindList';
-import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
+import { WorkspaceCreationDrawer } from '~/app/pages/Workspaces/Creation/WorkspaceCreationDrawer';
 
 interface WorkspaceCreationKindSelectionProps {
   selectedKind: WorkspaceKind | undefined;
@@ -15,6 +15,26 @@ const WorkspaceCreationKindSelection: React.FunctionComponent<
   WorkspaceCreationKindSelectionProps
 > = ({ selectedKind, onSelect }) => {
   const [workspaceKinds, loaded, error] = useWorkspaceKinds();
+  const [isExpanded, setIsExpanded] = useState(false);
+  const drawerRef = useRef<HTMLSpanElement>(undefined);
+
+  const onExpand = useCallback(() => {
+    if (drawerRef.current) {
+      drawerRef.current.focus();
+    }
+  }, []);
+
+  const onClick = useCallback(
+    (kind?: WorkspaceKind) => {
+      setIsExpanded(true);
+      onSelect(kind);
+    },
+    [onSelect],
+  );
+
+  const onCloseClick = useCallback(() => {
+    setIsExpanded(false);
+  }, []);
 
   const kindDetailsContent = useMemo(
     () => <WorkspaceCreationKindDetails workspaceKind={selectedKind} />,
@@ -31,18 +51,21 @@ const WorkspaceCreationKindSelection: React.FunctionComponent<
 
   return (
     <Content style={{ height: '100%' }}>
-      <p>Select a workspace kind to use for the workspace.</p>
-      <Divider />
-      <Split hasGutter>
-        <SplitItem isFilled>
-          <WorkspaceCreationKindList
-            allWorkspaceKinds={workspaceKinds}
-            selectedKind={selectedKind}
-            onSelect={onSelect}
-          />
-        </SplitItem>
-        <SplitItem style={{ minWidth: '200px' }}>{kindDetailsContent}</SplitItem>
-      </Split>
+      <WorkspaceCreationDrawer
+        title="Workspace kind"
+        info={kindDetailsContent}
+        isExpanded={isExpanded}
+        onCloseClick={onCloseClick}
+        onExpand={onExpand}
+      >
+        <p>Select a workspace kind to use for the workspace.</p>
+        <Divider />
+        <WorkspaceCreationKindList
+          allWorkspaceKinds={workspaceKinds}
+          selectedKind={selectedKind}
+          onSelect={onClick}
+        />
+      </WorkspaceCreationDrawer>
     </Content>
   );
 };
