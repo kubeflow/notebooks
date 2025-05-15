@@ -43,14 +43,21 @@ type PodMetadataMutate struct {
 }
 
 type PodVolumesMutate struct {
-	Home *string          `json:"home,omitempty"`
-	Data []PodVolumeMount `json:"data"`
+	Home    *string          `json:"home,omitempty"`
+	Data    []PodVolumeMount `json:"data"`
+	Secrets []PodSecretMount `json:"secrets,omitempty"`
 }
 
 type PodVolumeMount struct {
 	PVCName   string `json:"pvcName"`
 	MountPath string `json:"mountPath"`
 	ReadOnly  bool   `json:"readOnly,omitempty"`
+}
+
+type PodSecretMount struct {
+	SecretName  string `json:"secretName"`
+	MountPath   string `json:"mountPath"`
+	DefaultMode int32  `json:"defaultMode,omitempty"`
 }
 
 type PodTemplateOptionsMutate struct {
@@ -85,6 +92,19 @@ func (w *WorkspaceCreate) Validate(prefix *field.Path) []*field.Error {
 		volumePath := dataVolumesPath.Index(i)
 		errs = append(errs, helper.ValidateFieldIsNotEmpty(volumePath.Child("pvcName"), volume.PVCName)...)
 		errs = append(errs, helper.ValidateFieldIsNotEmpty(volumePath.Child("mountPath"), volume.MountPath)...)
+	}
+
+	// validate the secrets
+	secretsPath := prefix.Child("podTemplate", "volumes", "secrets")
+	for i, secret := range w.PodTemplate.Volumes.Secrets {
+		secretPath := secretsPath.Index(i)
+		errs = append(errs, helper.ValidateFieldIsNotEmpty(secretPath.Child("secretName"), secret.SecretName)...)
+		errs = append(errs, helper.ValidateFieldIsNotEmpty(secretPath.Child("mountPath"), secret.MountPath)...)
+		if secret.DefaultMode != 0 {
+			if secret.DefaultMode < 0 || secret.DefaultMode > 511 {
+				errs = append(errs, field.Invalid(secretPath.Child("defaultMode"), secret.DefaultMode, "defaultMode must be between 0 and 511"))
+			}
+		}
 	}
 
 	return errs

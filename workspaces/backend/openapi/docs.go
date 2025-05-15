@@ -1072,6 +1072,34 @@ const docTemplate = `{
                 }
             }
         },
+        "workspaces.PodSecretInfo": {
+            "type": "object",
+            "properties": {
+                "defaultMode": {
+                    "type": "integer"
+                },
+                "mountPath": {
+                    "type": "string"
+                },
+                "secretName": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspaces.PodSecretMount": {
+            "type": "object",
+            "properties": {
+                "defaultMode": {
+                    "type": "integer"
+                },
+                "mountPath": {
+                    "type": "string"
+                },
+                "secretName": {
+                    "type": "string"
+                }
+            }
+        },
         "workspaces.PodTemplate": {
             "type": "object",
             "properties": {
@@ -1161,6 +1189,12 @@ const docTemplate = `{
                 },
                 "home": {
                     "$ref": "#/definitions/workspaces.PodVolumeInfo"
+                },
+                "secrets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspaces.PodSecretInfo"
+                    }
                 }
             }
         },
@@ -1175,6 +1209,12 @@ const docTemplate = `{
                 },
                 "home": {
                     "type": "string"
+                },
+                "secrets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspaces.PodSecretMount"
+                    }
                 }
             }
         },

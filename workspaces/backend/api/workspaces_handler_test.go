@@ -770,6 +770,9 @@ var _ = Describe("Workspaces Handler", func() {
 			}
 			Expect(createdWorkspace.Spec.PodTemplate.Volumes.Data).To(Equal(expected))
 
+			// TODO: Verify secrets once #240 merged
+			// Expect(createdWorkspace.Spec.PodTemplate.Volumes.Secrets).To(BeEmpty())
+
 			By("creating an HTTP request to delete the Workspace")
 			path = strings.Replace(WorkspacesByNamePath, ":"+NamespacePathParam, namespaceNameCrud, 1)
 			path = strings.Replace(path, ":"+ResourceNamePathParam, workspaceName, 1)
@@ -803,6 +806,70 @@ var _ = Describe("Workspaces Handler", func() {
 			err = k8sClient.Get(ctx, workspaceKey, deletedWorkspace)
 			Expect(err).To(HaveOccurred())
 			Expect(apierrors.IsNotFound(err)).To(BeTrue())
+		})
+
+		// TODO: Change to It when #240 merged
+		XIt("should create a workspace with secrets", func() {
+			// Create a workspace with secrets
+			workspace := &models.WorkspaceCreate{
+				Name: "test-workspace",
+				Kind: "test-kind",
+				PodTemplate: models.PodTemplateMutate{
+					Options: models.PodTemplateOptionsMutate{
+						ImageConfig: "test-image",
+						PodConfig:   "test-config",
+					},
+					Volumes: models.PodVolumesMutate{
+						Data: []models.PodVolumeMount{
+							{
+								PVCName:   "test-pvc",
+								MountPath: "/data",
+							},
+						},
+						Secrets: []models.PodSecretMount{
+							{
+								SecretName:  "test-secret",
+								MountPath:   "/secrets",
+								DefaultMode: int32(0o644),
+							},
+						},
+					},
+				},
+			}
+
+			// Create the workspace using the API handler
+			bodyEnvelope := WorkspaceCreateEnvelope{Data: workspace}
+			bodyEnvelopeJSON, err := json.Marshal(bodyEnvelope)
+			Expect(err).NotTo(HaveOccurred())
+
+			path := strings.Replace(WorkspacesByNamespacePath, ":"+NamespacePathParam, namespaceNameCrud, 1)
+			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(bodyEnvelopeJSON)))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set(userIdHeader, adminUser)
+
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{
+				httprouter.Param{
+					Key:   NamespacePathParam,
+					Value: namespaceNameCrud,
+				},
+			}
+			a.CreateWorkspaceHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			Expect(rs.StatusCode).To(Equal(http.StatusCreated), descUnexpectedHTTPStatus, rr.Body.String())
+
+			// Get the created workspace
+			createdWorkspace := &kubefloworgv1beta1.Workspace{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: workspace.Name, Namespace: namespaceNameCrud}, createdWorkspace)).To(Succeed())
+
+			// TODO: Verify the secrets are properly set once #240 merged
+			// Expect(createdWorkspace.Spec.PodTemplate.Volumes.Secrets).To(HaveLen(1))
+			// Expect(createdWorkspace.Spec.PodTemplate.Volumes.Secrets[0].SecretName).To(Equal("test-secret"))
+			// Expect(createdWorkspace.Spec.PodTemplate.Volumes.Secrets[0].MountPath).To(Equal("/secrets"))
+			// Expect(createdWorkspace.Spec.PodTemplate.Volumes.Secrets[0].DefaultMode).To(Equal(int32(0o644)))
 		})
 
 		// TODO: test when fail to create a Workspace when:
