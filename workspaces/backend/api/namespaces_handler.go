@@ -28,6 +28,17 @@ import (
 
 type NamespaceListEnvelope Envelope[[]models.Namespace]
 
+// GetNamespacesHandler returns a list of all namespaces.
+//
+//	@Summary		Returns a list of all namespaces
+//	@Description	Provides a list of all namespaces that the user has access to
+//	@Tags			namespaces
+//	@Produce		application/json
+//	@Success		200	{object}	NamespaceListEnvelope	"Successful namespaces response"
+//	@Failure		401	{object}	ErrorEnvelope			"Unauthorized"
+//	@Failure		403	{object}	ErrorEnvelope			"Forbidden"
+//	@Failure		500	{object}	ErrorEnvelope			"Internal server error"
+//	@Router			/namespaces [get]
 func (a *App) GetNamespacesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 	// =========================== AUTH ===========================

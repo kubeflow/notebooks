@@ -44,6 +44,493 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/namespaces": {
+            "get": {
+                "description": "Provides a list of all namespaces that the user has access to",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "namespaces"
+                ],
+                "summary": "Returns a list of all namespaces",
+                "responses": {
+                    "200": {
+                        "description": "Successful namespaces response",
+                        "schema": {
+                            "$ref": "#/definitions/api.NamespaceListEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/workspacekinds": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns a list of all available workspace kinds. Workspace kinds define the different types of workspaces that can be created in the system.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspacekinds"
+                ],
+                "summary": "List workspace kinds",
+                "responses": {
+                    "200": {
+                        "description": "Successful operation. Returns a list of all available workspace kinds.",
+                        "schema": {
+                            "$ref": "#/definitions/api.WorkspaceKindListEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Authentication is required.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. User does not have permission to list workspace kinds.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error. An unexpected error occurred on the server.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/workspacekinds/{name}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns details of a specific workspace kind identified by its name. Workspace kinds define the available types of workspaces that can be created.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspacekinds"
+                ],
+                "summary": "Get workspace kind",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "jupyterlab",
+                        "description": "Name of the workspace kind",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation. Returns the requested workspace kind details.",
+                        "schema": {
+                            "$ref": "#/definitions/api.WorkspaceKindEnvelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request. Invalid workspace kind name format.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Authentication is required.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. User does not have permission to access the workspace kind.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found. Workspace kind does not exist.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error. An unexpected error occurred on the server.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/workspaces": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns a list of workspaces. The endpoint supports two modes:\n1. List all workspaces across all namespaces (when no namespace is provided)\n2. List workspaces in a specific namespace (when namespace is provided)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspaces"
+                ],
+                "summary": "List workspaces",
+                "responses": {
+                    "200": {
+                        "description": "Successful operation. Returns a list of workspaces.",
+                        "schema": {
+                            "$ref": "#/definitions/api.WorkspaceListEnvelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request. Invalid namespace format.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Authentication is required.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. User does not have permission to list workspaces.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error. An unexpected error occurred on the server.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/workspaces/{namespace}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns a list of workspaces. The endpoint supports two modes:\n1. List all workspaces across all namespaces (when no namespace is provided)\n2. List workspaces in a specific namespace (when namespace is provided)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspaces"
+                ],
+                "summary": "List workspaces",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "kubeflow-user-example-com",
+                        "description": "Namespace to filter workspaces. If not provided, returns all workspaces across all namespaces.",
+                        "name": "namespace",
+                        "in": "path"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation. Returns a list of workspaces.",
+                        "schema": {
+                            "$ref": "#/definitions/api.WorkspaceListEnvelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request. Invalid namespace format.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Authentication is required.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. User does not have permission to list workspaces.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error. An unexpected error occurred on the server.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Creates a new workspace in the specified namespace.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspaces"
+                ],
+                "summary": "Create workspace",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "kubeflow-user-example-com",
+                        "description": "Namespace for the workspace",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Workspace creation configuration",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.WorkspaceCreateEnvelope"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Workspace created successfully",
+                        "schema": {
+                            "$ref": "#/definitions/api.WorkspaceEnvelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request. Invalid request body or namespace format.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Authentication is required.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. User does not have permission to create workspace.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict. Workspace with the same name already exists.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error. An unexpected error occurred on the server.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/workspaces/{namespace}/{workspace_name}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns details of a specific workspace identified by namespace and workspace name.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspaces"
+                ],
+                "summary": "Get workspace",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "kubeflow-user-example-com",
+                        "description": "Namespace of the workspace",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "example": "my-workspace",
+                        "description": "Name of the workspace",
+                        "name": "workspace_name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation. Returns the requested workspace details.",
+                        "schema": {
+                            "$ref": "#/definitions/api.WorkspaceEnvelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request. Invalid namespace or workspace name format.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Authentication is required.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. User does not have permission to access the workspace.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found. Workspace does not exist.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error. An unexpected error occurred on the server.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Deletes a specific workspace identified by namespace and workspace name.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspaces"
+                ],
+                "summary": "Delete workspace",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "example": "kubeflow-user-example-com",
+                        "description": "Namespace of the workspace",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "example": "my-workspace",
+                        "description": "Name of the workspace",
+                        "name": "workspace_name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Workspace deleted successfully"
+                    },
+                    "400": {
+                        "description": "Bad Request. Invalid namespace or workspace name format.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Authentication is required.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. User does not have permission to delete the workspace.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found. Workspace does not exist.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error. An unexpected error occurred on the server.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -80,6 +567,17 @@ const docTemplate = `{
                 }
             }
         },
+        "api.NamespaceListEnvelope": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/namespaces.Namespace"
+                    }
+                }
+            }
+        },
         "api.ValidationError": {
             "type": "object",
             "properties": {
@@ -91,6 +589,52 @@ const docTemplate = `{
                 },
                 "type": {
                     "$ref": "#/definitions/field.ErrorType"
+                }
+            }
+        },
+        "api.WorkspaceCreateEnvelope": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/workspaces.WorkspaceCreate"
+                }
+            }
+        },
+        "api.WorkspaceEnvelope": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/workspaces.Workspace"
+                }
+            }
+        },
+        "api.WorkspaceKindEnvelope": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/workspacekinds.WorkspaceKind"
+                }
+            }
+        },
+        "api.WorkspaceKindListEnvelope": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspacekinds.WorkspaceKind"
+                    }
+                }
+            }
+        },
+        "api.WorkspaceListEnvelope": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspaces.Workspace"
+                    }
                 }
             }
         },
@@ -150,6 +694,648 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "namespaces.Namespace": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspacekinds.ImageConfig": {
+            "type": "object",
+            "properties": {
+                "default": {
+                    "type": "string"
+                },
+                "values": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspacekinds.ImageConfigValue"
+                    }
+                }
+            }
+        },
+        "workspacekinds.ImageConfigValue": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "displayName": {
+                    "type": "string"
+                },
+                "hidden": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "labels": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspacekinds.OptionLabel"
+                    }
+                },
+                "redirect": {
+                    "$ref": "#/definitions/workspacekinds.OptionRedirect"
+                }
+            }
+        },
+        "workspacekinds.ImageRef": {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspacekinds.OptionLabel": {
+            "type": "object",
+            "properties": {
+                "key": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspacekinds.OptionRedirect": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "$ref": "#/definitions/workspacekinds.RedirectMessage"
+                },
+                "to": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspacekinds.PodConfig": {
+            "type": "object",
+            "properties": {
+                "default": {
+                    "type": "string"
+                },
+                "values": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspacekinds.PodConfigValue"
+                    }
+                }
+            }
+        },
+        "workspacekinds.PodConfigValue": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "displayName": {
+                    "type": "string"
+                },
+                "hidden": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "labels": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspacekinds.OptionLabel"
+                    }
+                },
+                "redirect": {
+                    "$ref": "#/definitions/workspacekinds.OptionRedirect"
+                }
+            }
+        },
+        "workspacekinds.PodMetadata": {
+            "type": "object",
+            "properties": {
+                "annotations": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "labels": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "workspacekinds.PodTemplate": {
+            "type": "object",
+            "properties": {
+                "options": {
+                    "$ref": "#/definitions/workspacekinds.PodTemplateOptions"
+                },
+                "podMetadata": {
+                    "$ref": "#/definitions/workspacekinds.PodMetadata"
+                },
+                "volumeMounts": {
+                    "$ref": "#/definitions/workspacekinds.PodVolumeMounts"
+                }
+            }
+        },
+        "workspacekinds.PodTemplateOptions": {
+            "type": "object",
+            "properties": {
+                "imageConfig": {
+                    "$ref": "#/definitions/workspacekinds.ImageConfig"
+                },
+                "podConfig": {
+                    "$ref": "#/definitions/workspacekinds.PodConfig"
+                }
+            }
+        },
+        "workspacekinds.PodVolumeMounts": {
+            "type": "object",
+            "properties": {
+                "home": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspacekinds.RedirectMessage": {
+            "type": "object",
+            "properties": {
+                "level": {
+                    "$ref": "#/definitions/workspacekinds.RedirectMessageLevel"
+                },
+                "text": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspacekinds.RedirectMessageLevel": {
+            "type": "string",
+            "enum": [
+                "Info",
+                "Warning",
+                "Danger"
+            ],
+            "x-enum-varnames": [
+                "RedirectMessageLevelInfo",
+                "RedirectMessageLevelWarning",
+                "RedirectMessageLevelDanger"
+            ]
+        },
+        "workspacekinds.WorkspaceKind": {
+            "type": "object",
+            "properties": {
+                "deprecated": {
+                    "type": "boolean"
+                },
+                "deprecationMessage": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "displayName": {
+                    "type": "string"
+                },
+                "hidden": {
+                    "type": "boolean"
+                },
+                "icon": {
+                    "$ref": "#/definitions/workspacekinds.ImageRef"
+                },
+                "logo": {
+                    "$ref": "#/definitions/workspacekinds.ImageRef"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "podTemplate": {
+                    "$ref": "#/definitions/workspacekinds.PodTemplate"
+                }
+            }
+        },
+        "workspaces.Activity": {
+            "type": "object",
+            "properties": {
+                "lastActivity": {
+                    "description": "Unix Epoch time",
+                    "type": "integer"
+                },
+                "lastProbe": {
+                    "$ref": "#/definitions/workspaces.LastProbeInfo"
+                },
+                "lastUpdate": {
+                    "description": "Unix Epoch time",
+                    "type": "integer"
+                }
+            }
+        },
+        "workspaces.HttpService": {
+            "type": "object",
+            "properties": {
+                "displayName": {
+                    "type": "string"
+                },
+                "httpPath": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspaces.ImageConfig": {
+            "type": "object",
+            "properties": {
+                "current": {
+                    "$ref": "#/definitions/workspaces.OptionInfo"
+                },
+                "desired": {
+                    "$ref": "#/definitions/workspaces.OptionInfo"
+                },
+                "redirectChain": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspaces.RedirectStep"
+                    }
+                }
+            }
+        },
+        "workspaces.ImageRef": {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspaces.LastProbeInfo": {
+            "type": "object",
+            "properties": {
+                "endTimeMs": {
+                    "description": "Unix Epoch time in milliseconds",
+                    "type": "integer"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "result": {
+                    "$ref": "#/definitions/workspaces.ProbeResult"
+                },
+                "startTimeMs": {
+                    "description": "Unix Epoch time in milliseconds",
+                    "type": "integer"
+                }
+            }
+        },
+        "workspaces.OptionInfo": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "displayName": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "labels": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspaces.OptionLabel"
+                    }
+                }
+            }
+        },
+        "workspaces.OptionLabel": {
+            "type": "object",
+            "properties": {
+                "key": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspaces.PodConfig": {
+            "type": "object",
+            "properties": {
+                "current": {
+                    "$ref": "#/definitions/workspaces.OptionInfo"
+                },
+                "desired": {
+                    "$ref": "#/definitions/workspaces.OptionInfo"
+                },
+                "redirectChain": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspaces.RedirectStep"
+                    }
+                }
+            }
+        },
+        "workspaces.PodMetadata": {
+            "type": "object",
+            "properties": {
+                "annotations": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "labels": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "workspaces.PodMetadataMutate": {
+            "type": "object",
+            "properties": {
+                "annotations": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "labels": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "workspaces.PodTemplate": {
+            "type": "object",
+            "properties": {
+                "options": {
+                    "$ref": "#/definitions/workspaces.PodTemplateOptions"
+                },
+                "podMetadata": {
+                    "$ref": "#/definitions/workspaces.PodMetadata"
+                },
+                "volumes": {
+                    "$ref": "#/definitions/workspaces.PodVolumes"
+                }
+            }
+        },
+        "workspaces.PodTemplateMutate": {
+            "type": "object",
+            "properties": {
+                "options": {
+                    "$ref": "#/definitions/workspaces.PodTemplateOptionsMutate"
+                },
+                "podMetadata": {
+                    "$ref": "#/definitions/workspaces.PodMetadataMutate"
+                },
+                "volumes": {
+                    "$ref": "#/definitions/workspaces.PodVolumesMutate"
+                }
+            }
+        },
+        "workspaces.PodTemplateOptions": {
+            "type": "object",
+            "properties": {
+                "imageConfig": {
+                    "$ref": "#/definitions/workspaces.ImageConfig"
+                },
+                "podConfig": {
+                    "$ref": "#/definitions/workspaces.PodConfig"
+                }
+            }
+        },
+        "workspaces.PodTemplateOptionsMutate": {
+            "type": "object",
+            "properties": {
+                "imageConfig": {
+                    "type": "string"
+                },
+                "podConfig": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspaces.PodVolumeInfo": {
+            "type": "object",
+            "properties": {
+                "mountPath": {
+                    "type": "string"
+                },
+                "pvcName": {
+                    "type": "string"
+                },
+                "readOnly": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "workspaces.PodVolumeMount": {
+            "type": "object",
+            "properties": {
+                "mountPath": {
+                    "type": "string"
+                },
+                "pvcName": {
+                    "type": "string"
+                },
+                "readOnly": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "workspaces.PodVolumes": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspaces.PodVolumeInfo"
+                    }
+                },
+                "home": {
+                    "$ref": "#/definitions/workspaces.PodVolumeInfo"
+                }
+            }
+        },
+        "workspaces.PodVolumesMutate": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspaces.PodVolumeMount"
+                    }
+                },
+                "home": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspaces.ProbeResult": {
+            "type": "string",
+            "enum": [
+                "Success",
+                "Failure",
+                "Timeout"
+            ],
+            "x-enum-varnames": [
+                "ProbeResultSuccess",
+                "ProbeResultFailure",
+                "ProbeResultTimeout"
+            ]
+        },
+        "workspaces.RedirectMessage": {
+            "type": "object",
+            "properties": {
+                "level": {
+                    "$ref": "#/definitions/workspaces.RedirectMessageLevel"
+                },
+                "text": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspaces.RedirectMessageLevel": {
+            "type": "string",
+            "enum": [
+                "Info",
+                "Warning",
+                "Danger"
+            ],
+            "x-enum-varnames": [
+                "RedirectMessageLevelInfo",
+                "RedirectMessageLevelWarning",
+                "RedirectMessageLevelDanger"
+            ]
+        },
+        "workspaces.RedirectStep": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "$ref": "#/definitions/workspaces.RedirectMessage"
+                },
+                "sourceId": {
+                    "type": "string"
+                },
+                "targetId": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspaces.Service": {
+            "type": "object",
+            "properties": {
+                "httpService": {
+                    "$ref": "#/definitions/workspaces.HttpService"
+                }
+            }
+        },
+        "workspaces.Workspace": {
+            "type": "object",
+            "properties": {
+                "activity": {
+                    "$ref": "#/definitions/workspaces.Activity"
+                },
+                "deferUpdates": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "namespace": {
+                    "type": "string"
+                },
+                "paused": {
+                    "type": "boolean"
+                },
+                "pausedTime": {
+                    "type": "integer"
+                },
+                "pendingRestart": {
+                    "type": "boolean"
+                },
+                "podTemplate": {
+                    "$ref": "#/definitions/workspaces.PodTemplate"
+                },
+                "services": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspaces.Service"
+                    }
+                },
+                "state": {
+                    "$ref": "#/definitions/workspaces.WorkspaceState"
+                },
+                "stateMessage": {
+                    "type": "string"
+                },
+                "workspaceKind": {
+                    "$ref": "#/definitions/workspaces.WorkspaceKindInfo"
+                }
+            }
+        },
+        "workspaces.WorkspaceCreate": {
+            "type": "object",
+            "properties": {
+                "deferUpdates": {
+                    "type": "boolean"
+                },
+                "kind": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "paused": {
+                    "type": "boolean"
+                },
+                "podTemplate": {
+                    "$ref": "#/definitions/workspaces.PodTemplateMutate"
+                }
+            }
+        },
+        "workspaces.WorkspaceKindInfo": {
+            "type": "object",
+            "properties": {
+                "icon": {
+                    "$ref": "#/definitions/workspaces.ImageRef"
+                },
+                "logo": {
+                    "$ref": "#/definitions/workspaces.ImageRef"
+                },
+                "missing": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspaces.WorkspaceState": {
+            "type": "string",
+            "enum": [
+                "Running",
+                "Terminating",
+                "Paused",
+                "Pending",
+                "Error",
+                "Unknown"
+            ],
+            "x-enum-varnames": [
+                "WorkspaceStateRunning",
+                "WorkspaceStateTerminating",
+                "WorkspaceStatePaused",
+                "WorkspaceStatePending",
+                "WorkspaceStateError",
+                "WorkspaceStateUnknown"
+            ]
         }
     }
 }`

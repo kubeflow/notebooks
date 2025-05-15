@@ -35,6 +35,22 @@ type WorkspaceKindListEnvelope Envelope[[]models.WorkspaceKind]
 
 type WorkspaceKindEnvelope Envelope[models.WorkspaceKind]
 
+// GetWorkspaceKindHandler retrieves a specific workspace kind by name.
+//
+//	@Summary		Get workspace kind
+//	@Description	Returns details of a specific workspace kind identified by its name. Workspace kinds define the available types of workspaces that can be created.
+//	@Tags			workspacekinds
+//	@Accept			json
+//	@Produce		json
+//	@Param			name	path		string					true	"Name of the workspace kind"	example(jupyterlab)
+//	@Success		200		{object}	WorkspaceKindEnvelope	"Successful operation. Returns the requested workspace kind details."
+//	@Failure		400		{object}	ErrorEnvelope			"Bad Request. Invalid workspace kind name format."
+//	@Failure		401		{object}	ErrorEnvelope			"Unauthorized. Authentication is required."
+//	@Failure		403		{object}	ErrorEnvelope			"Forbidden. User does not have permission to access the workspace kind."
+//	@Failure		404		{object}	ErrorEnvelope			"Not Found. Workspace kind does not exist."
+//	@Failure		500		{object}	ErrorEnvelope			"Internal server error. An unexpected error occurred on the server."
+//	@Router			/workspacekinds/{name} [get]
+//	@Security		ApiKeyAuth
 func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	name := ps.ByName(ResourceNamePathParam)
 
@@ -74,6 +90,19 @@ func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps
 	a.dataResponse(w, r, responseEnvelope)
 }
 
+// GetWorkspaceKindsHandler returns a list of all available workspace kinds.
+//
+//	@Summary		List workspace kinds
+//	@Description	Returns a list of all available workspace kinds. Workspace kinds define the different types of workspaces that can be created in the system.
+//	@Tags			workspacekinds
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	WorkspaceKindListEnvelope	"Successful operation. Returns a list of all available workspace kinds."
+//	@Failure		401	{object}	ErrorEnvelope				"Unauthorized. Authentication is required."
+//	@Failure		403	{object}	ErrorEnvelope				"Forbidden. User does not have permission to list workspace kinds."
+//	@Failure		500	{object}	ErrorEnvelope				"Internal server error. An unexpected error occurred on the server."
+//	@Router			/workspacekinds [get]
+//	@Security		ApiKeyAuth
 func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
