@@ -11,7 +11,7 @@ import {
 } from '@patternfly/react-core';
 import { WorkspacePodConfigValue } from '~/shared/api/backendApiTypes';
 import Filter, { FilteredColumn, FilterRef } from '~/shared/components/Filter';
-import EmptyStateWithClearFilters from 'shared/components/EmptyStateWithClearFilters';
+import CustomEmptyState from '~/shared/components/CustomEmptyState';
 
 type WorkspaceCreationPodConfigListProps = {
   podConfigs: WorkspacePodConfigValue[];
@@ -115,13 +115,7 @@ export const WorkspaceCreationPodConfigList: React.FunctionComponent<
         </Toolbar>
       </PageSection>
       <PageSection isFilled>
-        {workspacePodConfigs.length === 0 && (
-          <EmptyStateWithClearFilters
-            title="No results found"
-            body="No results match the filter criteria. Clear all filters and try again."
-            onClearFilters={clearAllFilters}
-          />
-        )}
+        {workspacePodConfigs.length === 0 && <CustomEmptyState onClearFilters={clearAllFilters} />}
         {workspacePodConfigs.length > 0 && (
           <Gallery hasGutter aria-label="Selectable card container">
             {workspacePodConfigs.map((podConfig) => (

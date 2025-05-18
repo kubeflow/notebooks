@@ -129,7 +129,7 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(({ id, onFilter, columnN
         return newFilters;
       });
     },
-    [onFilter], // onFilter is a dependency
+    [onFilter],
   );
 
   const onSearchChange = React.useCallback(

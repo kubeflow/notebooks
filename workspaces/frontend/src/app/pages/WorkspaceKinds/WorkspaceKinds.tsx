@@ -39,8 +39,12 @@ import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import { useWorkspaceCountPerKind } from '~/app/hooks/useWorkspaceCountPerKind';
 import { WorkspaceKindsColumnNames } from '~/app/types';
+<<<<<<< HEAD
 import ThemeAwareSearchInput from '~/app/components/ThemeAwareSearchInput';
 import EmptyStateWithClearFilters from 'shared/components/EmptyStateWithClearFilters';
+=======
+import CustomEmptyState from '~/shared/components/CustomEmptyState';
+>>>>>>> bfd7ab0 (feat(ws): Notebooks 2.0 // Frontend // Workspace table // Add Empty State #259)
 
 export enum ActionType {
   ViewDetails,
@@ -425,14 +429,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
   );
 
   const emptyState = React.useMemo(
-    () => (
-      <EmptyStateWithClearFilters
-        title="No results found"
-        body="No results match the filter criteria. Clear all filters and try again."
-        onClearFilters={clearAllFilters}
-        colSpan={8}
-      />
-    ),
+    () => <CustomEmptyState onClearFilters={clearAllFilters} />,
     [clearAllFilters],
   );
 

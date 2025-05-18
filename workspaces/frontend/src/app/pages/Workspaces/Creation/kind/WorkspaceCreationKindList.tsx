@@ -11,7 +11,7 @@ import {
 } from '@patternfly/react-core';
 import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import Filter, { FilteredColumn, FilterRef } from '~/shared/components/Filter';
-import EmptyStateWithClearFilters from 'shared/components/EmptyStateWithClearFilters';
+import CustomEmptyState from '~/shared/components/CustomEmptyState';
 
 type WorkspaceCreationKindListProps = {
   allWorkspaceKinds: WorkspaceKind[];
@@ -95,13 +95,7 @@ export const WorkspaceCreationKindList: React.FunctionComponent<WorkspaceCreatio
         </Toolbar>
       </PageSection>
       <PageSection isFilled>
-        {workspaceKinds.length === 0 && (
-          <EmptyStateWithClearFilters
-            title="No results found"
-            body="No results match the filter criteria. Clear all filters and try again."
-            onClearFilters={clearAllFilters}
-          />
-        )}
+        {workspaceKinds.length === 0 && <CustomEmptyState onClearFilters={clearAllFilters} />}
         {workspaceKinds.length > 0 && (
           <Gallery hasGutter aria-label="Selectable card container">
             {workspaceKinds.map((kind) => (

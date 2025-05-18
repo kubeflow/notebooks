@@ -50,7 +50,7 @@ import { WorkspaceRestartActionModal } from '~/app/pages/Workspaces/workspaceAct
 import { WorkspaceStopActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceStopActionModal';
 import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
 import { WorkspacesColumnNames } from '~/app/types';
-import EmptyStateWithClearFilters from '~/shared/components/EmptyStateWithClearFilters'; // Import the new component
+import CustomEmptyState from '~/shared/components/CustomEmptyState'; // Import the new component
 import Filter, { FilteredColumn, FilterRef } from 'shared/components/Filter'; // Import FilterRef
 import { extractCpuValue, extractMemoryValue } from 'shared/utilities/WorkspaceUtils';
 
@@ -188,14 +188,7 @@ export const Workspaces: React.FunctionComponent = () => {
   );
 
   const emptyState = React.useMemo(
-    () => (
-      <EmptyStateWithClearFilters
-        title="No results found"
-        body="No results match the filter criteria. Clear all filters and try again."
-        onClearFilters={() => filterRef.current?.clearAll()}
-        colSpan={11}
-      />
-    ),
+    () => <CustomEmptyState onClearFilters={() => filterRef.current?.clearAll()} />,
     [],
   );
 

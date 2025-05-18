@@ -11,7 +11,7 @@ import {
 } from '@patternfly/react-core';
 import Filter, { FilteredColumn, FilterRef } from '~/shared/components/Filter';
 import { WorkspaceImageConfigValue } from '~/shared/api/backendApiTypes';
-import EmptyStateWithClearFilters from 'shared/components/EmptyStateWithClearFilters';
+import CustomEmptyState from '~/shared/components/CustomEmptyState';
 
 type WorkspaceCreationImageListProps = {
   images: WorkspaceImageConfigValue[];
@@ -108,13 +108,7 @@ export const WorkspaceCreationImageList: React.FunctionComponent<
         </Toolbar>
       </PageSection>
       <PageSection isFilled>
-        {workspaceImages.length === 0 && (
-          <EmptyStateWithClearFilters
-            title="No results found"
-            body="No results match the filter criteria. Clear all filters and try again."
-            onClearFilters={clearAllFilters}
-          />
-        )}
+        {workspaceImages.length === 0 && <CustomEmptyState onClearFilters={clearAllFilters} />}
         {workspaceImages.length > 0 && (
           <Gallery hasGutter aria-label="Selectable card container">
             {workspaceImages.map((image) => (
