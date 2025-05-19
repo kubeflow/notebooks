@@ -573,7 +573,7 @@
 
 }
 
-.mui-theme .pf-v6-c-progress-stepper__step.pf-m-info, 
+.mui-theme .pf-v6-c-progress-stepper__step.pf-m-info,
 .mui-theme .pf-v6-c-progress-stepper__step.pf-m-success {
   --pf-v6-c-progress-stepper__step-icon--BackgroundColor: var(--mui-palette-primary-main);
   --pf-v6-c-progress-stepper__step-icon--Color: var(--mui-palette-common-white);
@@ -828,4 +828,13 @@
   .mui-theme .pf-v6-c-masthead {
     padding-left: var(--kf-central-app-drawer-width);
   }
+}
+
+.mui-theme .pf-v6-c-toolbar__group.pf-m-filter-group .pf-v6-c-form-control {
+
+  // Override default form control padding to match button padding in this context
+  --pf-v6-c-form-control--PaddingBlockStart: var(--mui-spacing-8px);
+  --pf-v6-c-form-control--PaddingBlockEnd: var(--mui-spacing-8px);
+
+
 }

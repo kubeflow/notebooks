@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  Button,
   Menu,
   MenuContent,
   MenuItem,
@@ -7,7 +8,6 @@ import {
   MenuToggle,
   MenuToggleElement,
   Popper,
-  SearchInput,
   Toolbar,
   ToolbarContent,
   ToolbarFilter,
@@ -16,6 +16,9 @@ import {
   ToolbarToggleGroup,
 } from '@patternfly/react-core';
 import { FilterIcon } from '@patternfly/react-icons';
+import { useNavigate } from 'react-router';
+import { useCallback } from 'react';
+import ThemeAwareSearchInput from '~/app/components/ThemeAwareSearchInput';
 
 export interface FilterProps {
   id: string;
@@ -40,6 +43,11 @@ const Filter: React.FC<FilterProps> = ({ id, onFilter, columnNames }) => {
   const filterToggleRef = React.useRef<MenuToggleElement | null>(null);
   const filterMenuRef = React.useRef<HTMLDivElement | null>(null);
   const filterContainerRef = React.useRef<HTMLDivElement | null>(null);
+
+  const navigate = useNavigate();
+  const createWorkspace = useCallback(() => {
+    navigate('/workspaces/create');
+  }, [navigate]);
 
   const handleFilterMenuKeys = React.useCallback(
     (event: KeyboardEvent) => {
@@ -202,12 +210,13 @@ const Filter: React.FC<FilterProps> = ({ id, onFilter, columnNames }) => {
           <ToolbarGroup variant="filter-group">
             <ToolbarItem id={`${id}-dropdown`}>{filterDropdown}</ToolbarItem>
             <ToolbarItem>
-              <SearchInput
-                id={`${id}-search-input`}
-                placeholder={`Filter by ${activeFilter.columnName}`}
+              <ThemeAwareSearchInput
+                data-testid={`${id}-search-input`}
                 value={searchValue}
-                onChange={(_event, value) => onSearchChange(value)}
-                onClear={() => onSearchChange('')}
+                onChange={onSearchChange}
+                placeholder={`Filter by ${activeFilter.columnName}`}
+                fieldLabel={`Find by ${activeFilter.columnName}`}
+                aria-label={`Filter by ${activeFilter.columnName}`}
               />
             </ToolbarItem>
             {filters.map((filter) => (
@@ -222,6 +231,9 @@ const Filter: React.FC<FilterProps> = ({ id, onFilter, columnNames }) => {
               </ToolbarFilter>
             ))}
           </ToolbarGroup>
+          <Button variant="primary" ouiaId="Primary" onClick={createWorkspace}>
+            Create Workspace
+          </Button>
         </ToolbarToggleGroup>
       </ToolbarContent>
     </Toolbar>
