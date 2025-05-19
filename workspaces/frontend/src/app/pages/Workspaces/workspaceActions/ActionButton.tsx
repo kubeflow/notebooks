@@ -1,0 +1,39 @@
+import * as React from 'react';
+import { Button } from '@patternfly/react-core';
+
+type ActionButtonProps = {
+  action: string;
+  titleOnLoading: string;
+  onClick: () => Promise<void>;
+} & Omit<React.ComponentProps<typeof Button>, 'onClick'>;
+
+export const ActionButton: React.FC<ActionButtonProps> = ({
+  action,
+  titleOnLoading,
+  onClick,
+  ...props
+}) => {
+  const [isLoading, setIsLoading] = React.useState(false);
+
+  const handleClick = React.useCallback(async () => {
+    setIsLoading(true);
+    try {
+      await onClick();
+    } finally {
+      setIsLoading(false);
+    }
+  }, [onClick]);
+
+  return (
+    <Button
+      {...props}
+      spinnerAriaLabel={`Executing action '${action}'`}
+      spinnerAriaValueText={action}
+      onClick={handleClick}
+      isLoading={isLoading}
+      isDisabled={isLoading || props.isDisabled}
+    >
+      {isLoading ? titleOnLoading : props.children}
+    </Button>
+  );
+};

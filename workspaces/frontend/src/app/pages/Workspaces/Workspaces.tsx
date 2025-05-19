@@ -42,6 +42,7 @@ import {
 } from '~/app/actions/WorkspaceKindsActions';
 import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import useWorkspaces from '~/app/hooks/useWorkspaces';
+import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspaceConnectAction } from '~/app/pages/Workspaces/WorkspaceConnectAction';
 import { WorkspaceStartActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceStartActionModal';
 import { WorkspaceRestartActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRestartActionModal';
@@ -89,8 +90,10 @@ export const Workspaces: React.FunctionComponent = () => {
     lastActivity: 'Last Activity',
   };
 
+  const { api } = useNotebookAPI();
   const { selectedNamespace } = useNamespaceContext();
-  const [initialWorkspaces, initialWorkspacesLoaded] = useWorkspaces(selectedNamespace);
+  const [initialWorkspaces, initialWorkspacesLoaded, , initialWorkspacesRefresh] =
+    useWorkspaces(selectedNamespace);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [expandedWorkspacesNames, setExpandedWorkspacesNames] = React.useState<string[]>([]);
   const [selectedWorkspace, setSelectedWorkspace] = React.useState<Workspace | null>(null);
@@ -322,6 +325,19 @@ export const Workspaces: React.FunctionComponent = () => {
             onClose={onCloseActionAlertDialog}
             isOpen={isActionAlertModalOpen}
             workspace={selectedWorkspace}
+            onActionDone={() => {
+              initialWorkspacesRefresh();
+            }}
+            onStart={async () => {
+              if (!selectedWorkspace) {
+                return;
+              }
+
+              await api.startWorkspace({}, selectedNamespace, selectedWorkspace.name);
+            }}
+            onUpdateAndStart={async () => {
+              // TODO: implement update and stop
+            }}
           />
         );
       case ActionType.Restart:
@@ -338,6 +354,18 @@ export const Workspaces: React.FunctionComponent = () => {
             onClose={onCloseActionAlertDialog}
             isOpen={isActionAlertModalOpen}
             workspace={selectedWorkspace}
+            onActionDone={() => {
+              initialWorkspacesRefresh();
+            }}
+            onStop={async () => {
+              if (!selectedWorkspace) {
+                return;
+              }
+              await api.pauseWorkspace({}, selectedNamespace, selectedWorkspace.name);
+            }}
+            onUpdateAndStop={async () => {
+              // TODO: implement update and stop
+            }}
           />
         );
     }

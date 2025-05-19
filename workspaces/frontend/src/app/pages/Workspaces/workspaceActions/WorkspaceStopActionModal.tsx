@@ -10,26 +10,74 @@ import {
 } from '@patternfly/react-core';
 import { Workspace } from '~/shared/api/backendApiTypes';
 import { WorkspaceRedirectInformationView } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRedirectInformationView';
+import { ActionButton } from '~/app/pages/Workspaces/workspaceActions/ActionButton';
 
 interface StopActionAlertProps {
   onClose: () => void;
   isOpen: boolean;
   workspace: Workspace | null;
+  onStop: () => Promise<void>;
+  onUpdateAndStop: () => Promise<void>;
+  onActionDone: () => void;
 }
+
+type StopAction = 'stop' | 'updateAndStop';
 
 export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
   onClose,
   isOpen,
   workspace,
+  onStop,
+  onUpdateAndStop,
+  onActionDone,
 }) => {
   const workspacePendingUpdate = workspace?.pendingRestart;
-  const handleClick = (isUpdate = false) => {
-    if (isUpdate) {
-      console.log(`Update ${workspace?.name}`);
+  const [actionOnGoing, setActionOnGoing] = React.useState<StopAction | null>(null);
+
+  const executeAction = React.useCallback(
+    async (args: { action: StopAction; callback: () => Promise<void> }) => {
+      setActionOnGoing(args.action);
+      try {
+        return await args.callback();
+      } finally {
+        setActionOnGoing(null);
+      }
+    },
+    [],
+  );
+
+  const handleStop = React.useCallback(async () => {
+    try {
+      await executeAction({ action: 'stop', callback: onStop });
+      // TODO: alert user about success
+      console.info('Workspace stopped successfully');
+      onActionDone();
+      onClose();
+    } catch (error) {
+      // TODO: alert user about error
+      console.error('Error stopping workspace:', error);
     }
-    console.log(`Stop ${workspace?.name}`);
-    onClose();
-  };
+  }, [executeAction, onActionDone, onClose, onStop]);
+
+  // TODO: combine handleStop and handleUpdateAndStop if they end up being similar
+  const handleUpdateAndStop = React.useCallback(async () => {
+    try {
+      await executeAction({ action: 'updateAndStop', callback: onUpdateAndStop });
+      // TODO: alert user about success
+      console.info('Workspace updated and stopped successfully');
+      onActionDone();
+      onClose();
+    } catch (error) {
+      // TODO: alert user about error
+      console.error('Error updating and stopping workspace:', error);
+    }
+  }, [executeAction, onActionDone, onClose, onUpdateAndStop]);
+
+  const shouldShowActionButton = React.useCallback(
+    (action: StopAction) => !actionOnGoing || actionOnGoing === action,
+    [actionOnGoing],
+  );
+
   return (
     <Modal
       variant="medium"
@@ -53,18 +101,32 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
         )}
       </ModalBody>
       <ModalFooter>
-        {workspacePendingUpdate && (
-          <Button onClick={() => handleClick(true)}>Update and Stop</Button>
+        {shouldShowActionButton('updateAndStop') && workspacePendingUpdate && (
+          <ActionButton
+            action="Update and Stop"
+            titleOnLoading="Stopping ..."
+            onClick={() => handleUpdateAndStop()}
+          >
+            Update and Stop
+          </ActionButton>
         )}
-        <Button
-          onClick={() => handleClick(false)}
-          variant={workspacePendingUpdate ? 'secondary' : 'primary'}
-        >
-          {workspacePendingUpdate ? 'Stop and defer updates' : 'Stop'}
-        </Button>
-        <Button variant="link" onClick={onClose}>
-          Cancel
-        </Button>
+
+        {shouldShowActionButton('stop') && (
+          <ActionButton
+            action="Stop"
+            titleOnLoading="Stopping ..."
+            onClick={() => handleStop()}
+            variant={workspacePendingUpdate ? 'secondary' : 'primary'}
+          >
+            {workspacePendingUpdate ? 'Stop and defer updates' : 'Stop'}
+          </ActionButton>
+        )}
+
+        {!actionOnGoing && (
+          <Button variant="link" onClick={onClose}>
+            Cancel
+          </Button>
+        )}
       </ModalFooter>
     </Modal>
   );

@@ -12,6 +12,8 @@ import {
   ListWorkspaces,
   PatchWorkspace,
   PatchWorkspaceKind,
+  PauseWorkspace,
+  StartWorkspace,
   UpdateWorkspace,
   UpdateWorkspaceKind,
 } from '~/shared/api/notebookApi';
@@ -35,6 +37,8 @@ export type GetWorkspaceAPI = KubeflowAPICall<GetWorkspace>;
 export type UpdateWorkspaceAPI = KubeflowAPICall<UpdateWorkspace>;
 export type PatchWorkspaceAPI = KubeflowAPICall<PatchWorkspace>;
 export type DeleteWorkspaceAPI = KubeflowAPICall<DeleteWorkspace>;
+export type PauseWorkspaceAPI = KubeflowAPICall<PauseWorkspace>;
+export type StartWorkspaceAPI = KubeflowAPICall<StartWorkspace>;
 
 // WorkspaceKind
 export type ListWorkspaceKindsAPI = KubeflowAPICall<ListWorkspaceKinds>;
