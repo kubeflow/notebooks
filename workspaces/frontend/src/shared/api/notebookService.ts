@@ -80,6 +80,16 @@ export const startWorkspace: StartWorkspaceAPI = (hostPath) => (opts, namespace,
     restCREATE(hostPath, `/workspaces/${namespace}/${workspace}/actions/start`, {}, opts),
   );
 
+export const pauseWorkspace: PauseWorkspaceAPI = (hostPath) => (opts, namespace, workspace) =>
+  handleRestFailures(
+    restCREATE(hostPath, `/workspaces/${namespace}/${workspace}/actions/pause`, {}, opts),
+  );
+
+export const startWorkspace: StartWorkspaceAPI = (hostPath) => (opts, namespace, workspace) =>
+  handleRestFailures(
+    restCREATE(hostPath, `/workspaces/${namespace}/${workspace}/actions/start`, {}, opts),
+  );
+
 export const listWorkspaceKinds: ListWorkspaceKindsAPI = (hostPath) => (opts) =>
   handleRestFailures(restGET(hostPath, `/workspacekinds`, {}, opts)).then((response) =>
     extractNotebookResponse<WorkspaceKind[]>(response),
