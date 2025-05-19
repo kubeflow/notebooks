@@ -9,7 +9,6 @@ import {
   Label,
   PaginationVariant,
   Pagination,
-  Button,
   Content,
   Brand,
   Tooltip,
@@ -32,8 +31,7 @@ import {
   QuestionCircleIcon,
   CodeIcon,
 } from '@patternfly/react-icons';
-import { useCallback, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { Workspace, WorkspaceState } from '~/shared/api/backendApiTypes';
 import { WorkspaceDetails } from '~/app/pages/Workspaces/Details/WorkspaceDetails';
 import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
@@ -63,11 +61,6 @@ export enum ActionType {
 }
 
 export const Workspaces: React.FunctionComponent = () => {
-  const navigate = useNavigate();
-  const createWorkspace = useCallback(() => {
-    navigate('/workspaces/create');
-  }, [navigate]);
-
   const [workspaceKinds] = useWorkspaceKinds();
   const kindLogoDict = buildKindLogoDictionary(workspaceKinds);
   const workspaceRedirectStatus = buildWorkspaceRedirectStatus(workspaceKinds);
@@ -455,9 +448,6 @@ export const Workspaces: React.FunctionComponent = () => {
             <br />
             <Content style={{ display: 'flex', alignItems: 'flex-start', columnGap: '20px' }}>
               <Filter id="filter-workspaces" onFilter={onFilter} columnNames={filterableColumns} />
-              <Button variant="primary" ouiaId="Primary" onClick={createWorkspace}>
-                Create Workspace
-              </Button>
             </Content>
             <Table aria-label="Sortable table" ouiaId="SortableTable">
               <Thead>
