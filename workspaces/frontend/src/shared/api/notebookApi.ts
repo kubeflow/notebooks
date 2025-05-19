@@ -1,6 +1,8 @@
 import {
   HealthCheckResponse,
   Namespace,
+  PauseWorkspaceResponse,
+  StartWorkspaceResponse,
   Workspace,
   WorkspaceCreate,
   WorkspaceKind,
@@ -48,6 +50,16 @@ export type DeleteWorkspace = (
   namespace: string,
   workspace: string,
 ) => Promise<void>;
+export type PauseWorkspace = (
+  opts: APIOptions,
+  namespace: string,
+  workspace: string,
+) => Promise<PauseWorkspaceResponse>;
+export type StartWorkspace = (
+  opts: APIOptions,
+  namespace: string,
+  workspace: string,
+) => Promise<StartWorkspaceResponse>;
 
 // WorkspaceKind
 export type ListWorkspaceKinds = (opts: APIOptions) => Promise<WorkspaceKind[]>;
@@ -81,6 +93,8 @@ export type NotebookAPIs = {
   updateWorkspace: UpdateWorkspace;
   patchWorkspace: PatchWorkspace;
   deleteWorkspace: DeleteWorkspace;
+  pauseWorkspace: PauseWorkspace;
+  startWorkspace: StartWorkspace;
   // WorkspaceKind
   listWorkspaceKinds: ListWorkspaceKinds;
   getWorkspaceKind: GetWorkspaceKind;
