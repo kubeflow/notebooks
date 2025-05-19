@@ -1,0 +1,28 @@
+name: 🗂️ [Planning] Epic
+description: 🛑 Only intended to be used by Kubeflow Notebooks 2.0 project managers
+title: "[EPIC] <short description>"
+labels:
+  - "epic"
+  - "planning"
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to create an epic!
+  - type: checkboxes
+    id: certification
+    attributes:
+      label: Certification
+      description: Please confirm your role
+      options:
+        - label: I certify I am an Epic Owner for Kubeflow Notebooks 2.0 and expected to create planning-related issues.
+          required: true
+  - type: textarea
+    id: user-story
+    attributes:
+      label: User Story
+      description: Describe the feature from the end user's perspective, including who they are, what they want to achieve, and why it's important.
+      placeholder: As a [type of user], I want [goal] so that [benefit]
+    validations:
+      required: true
