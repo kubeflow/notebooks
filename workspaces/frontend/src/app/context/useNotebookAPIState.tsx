@@ -14,6 +14,8 @@ import {
   listWorkspaces,
   patchWorkspace,
   patchWorkspaceKind,
+  pauseWorkspace,
+  startWorkspace,
   updateWorkspace,
   updateWorkspaceKind,
 } from '~/shared/api/notebookService';
@@ -33,6 +35,8 @@ import {
   mockListWorkspaces,
   mockPatchWorkspace,
   mockPatchWorkspaceKind,
+  mockPauseWorkspace,
+  mockStartWorkspace,
   mockUpdateWorkspace,
   mockUpdateWorkspaceKind,
 } from '~/shared/mock/mockNotebookService';
@@ -45,7 +49,7 @@ const useNotebookAPIState = (
   hostPath: string | null,
 ): [apiState: NotebookAPIState, refreshAPIState: () => void] => {
   const createApi = React.useCallback(
-    (path: string) => ({
+    (path: string): NotebookAPIs => ({
       // Health
       getHealthCheck: getHealthCheck(path),
       // Namespace
@@ -58,6 +62,8 @@ const useNotebookAPIState = (
       updateWorkspace: updateWorkspace(path),
       patchWorkspace: patchWorkspace(path),
       deleteWorkspace: deleteWorkspace(path),
+      pauseWorkspace: pauseWorkspace(path),
+      startWorkspace: startWorkspace(path),
       // WorkspaceKind
       listWorkspaceKinds: listWorkspaceKinds(path),
       createWorkspaceKind: createWorkspaceKind(path),
@@ -70,7 +76,7 @@ const useNotebookAPIState = (
   );
 
   const createMockApi = React.useCallback(
-    (path: string) => ({
+    (path: string): NotebookAPIs => ({
       // Health
       getHealthCheck: mockGetHealthCheck(path),
       // Namespace
@@ -83,6 +89,8 @@ const useNotebookAPIState = (
       updateWorkspace: mockUpdateWorkspace(path),
       patchWorkspace: mockPatchWorkspace(path),
       deleteWorkspace: mockDeleteWorkspace(path),
+      pauseWorkspace: mockPauseWorkspace(path),
+      startWorkspace: mockStartWorkspace(path),
       // WorkspaceKind
       listWorkspaceKinds: mockListWorkspaceKinds(path),
       createWorkspaceKind: mockCreateWorkspaceKind(path),
