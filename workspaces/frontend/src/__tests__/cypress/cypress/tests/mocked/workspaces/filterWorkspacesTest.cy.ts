@@ -6,7 +6,7 @@ import { home } from '~/__tests__/cypress/cypress/pages/home';
 const useFilter = (filterName: string, searchValue: string) => {
   cy.get("[id$='filter-workspaces-dropdown']").click();
   cy.get(`[id$='filter-workspaces-dropdown-${filterName}']`).click();
-  cy.get("[id$='filter-workspaces-search-input']").type(searchValue);
+  cy.get("[data-testid='filter-workspaces-search-input']").type(searchValue);
   cy.get("[class$='pf-v6-c-toolbar__group']").contains(filterName);
   cy.get("[class$='pf-v6-c-toolbar__group']").contains(searchValue);
 };
@@ -19,6 +19,7 @@ describe('Application', () => {
     cy.intercept('GET', '/api/v1/workspaces/default', {
       body: mockBFFResponse(mockWorkspaces),
     });
+    cy.intercept('GET', '/api/namespaces/test-namespace/workspaces').as('getWorkspaces');
   });
   it('filter rows with single filter', () => {
     home.visit();
