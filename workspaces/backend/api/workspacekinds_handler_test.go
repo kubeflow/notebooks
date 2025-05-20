@@ -193,6 +193,80 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			err = json.Unmarshal(dataJSON, &dataObject)
 			Expect(err).NotTo(HaveOccurred(), "failed to unmarshal JSON to WorkspaceKind")
 		})
+
+		It("should retrieve WorkspaceKinds sorted by name in descending order", func() {
+
+			By("creating the HTTP request")
+			req, err := http.NewRequest(http.MethodGet, AllWorkspaceKindsPath+"?orderBy=name&sortOrder=desc", http.NoBody)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing GetWorkspaceKindsHandler")
+			ps := httprouter.Params{}
+			rr := httptest.NewRecorder()
+			a.GetWorkspaceKindsHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusOK), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("reading the HTTP response body")
+			body, err := io.ReadAll(rs.Body)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("unmarshalling the response JSON to WorkspaceKindListEnvelope")
+			var response WorkspaceKindListEnvelope
+			err = json.Unmarshal(body, &response)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("verifying that WorkspaceKinds are sorted by name descending")
+			namesReturned := []string{}
+			for _, wk := range response.Data {
+				namesReturned = append(namesReturned, wk.Name)
+			}
+			Expect(namesReturned).To(Equal([]string{"workspacekind-2-wsk-exist-test", "workspacekind-1-wsk-exist-test"}))
+			fmt.Println(namesReturned)
+		})
+
+		It("should retrieve WorkspaceKinds sorted by name in ascending order", func() {
+
+			By("creating the HTTP request")
+			req, err := http.NewRequest(http.MethodGet, AllWorkspaceKindsPath+"?orderBy=name&sortOrder=asc", http.NoBody)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing GetWorkspaceKindsHandler")
+			ps := httprouter.Params{}
+			rr := httptest.NewRecorder()
+			a.GetWorkspaceKindsHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusOK), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("reading the HTTP response body")
+			body, err := io.ReadAll(rs.Body)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("unmarshalling the response JSON to WorkspaceKindListEnvelope")
+			var response WorkspaceKindListEnvelope
+			err = json.Unmarshal(body, &response)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("verifying that WorkspaceKinds are sorted by name ascending")
+			namesReturned := []string{}
+			for _, wk := range response.Data {
+				namesReturned = append(namesReturned, wk.Name)
+			}
+			Expect(namesReturned).To(Equal([]string{"workspacekind-1-wsk-exist-test", "workspacekind-2-wsk-exist-test"}))
+			fmt.Println(namesReturned)
+		})
 	})
 
 	// NOTE: these tests assume a specific state of the cluster, so cannot be run in parallel with other tests.

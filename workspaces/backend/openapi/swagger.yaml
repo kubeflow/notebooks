@@ -620,6 +620,21 @@ paths:
       - application/json
       description: Returns a list of all available workspace kinds. Workspace kinds
         define the different types of workspaces that can be created in the system.
+      parameters:
+      - description: Field to order by
+        enum:
+        - name
+        - status
+        in: query
+        name: orderBy
+        type: string
+      - description: Sort order
+        enum:
+        - asc
+        - desc
+        in: query
+        name: sortOrder
+        type: string
       produces:
       - application/json
       responses:

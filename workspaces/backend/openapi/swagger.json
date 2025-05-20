@@ -99,6 +99,28 @@
                     "workspacekinds"
                 ],
                 "summary": "List workspace kinds",
+                "parameters": [
+                    {
+                        "enum": [
+                            "name",
+                            "status"
+                        ],
+                        "type": "string",
+                        "description": "Field to order by",
+                        "name": "orderBy",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "asc",
+                            "desc"
+                        ],
+                        "type": "string",
+                        "description": "Sort order",
+                        "name": "sortOrder",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Successful operation. Returns a list of all available workspace kinds.",

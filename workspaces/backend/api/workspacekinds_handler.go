@@ -19,6 +19,8 @@ package api
 import (
 	"errors"
 	"net/http"
+	"net/url"
+	"sort"
 
 	"github.com/julienschmidt/httprouter"
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
@@ -97,10 +99,12 @@ func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps
 //	@Tags			workspacekinds
 //	@Accept			json
 //	@Produce		json
-//	@Success		200	{object}	WorkspaceKindListEnvelope	"Successful operation. Returns a list of all available workspace kinds."
-//	@Failure		401	{object}	ErrorEnvelope				"Unauthorized. Authentication is required."
-//	@Failure		403	{object}	ErrorEnvelope				"Forbidden. User does not have permission to list workspace kinds."
-//	@Failure		500	{object}	ErrorEnvelope				"Internal server error. An unexpected error occurred on the server."
+//	@Param			orderBy		query		string						false	"Field to order by"	Enums(name, status)
+//	@Param			sortOrder	query		string						false	"Sort order"		Enums(asc, desc)
+//	@Success		200			{object}	WorkspaceKindListEnvelope	"Successful operation. Returns a list of all available workspace kinds."
+//	@Failure		401			{object}	ErrorEnvelope				"Unauthorized. Authentication is required."
+//	@Failure		403			{object}	ErrorEnvelope				"Forbidden. User does not have permission to list workspace kinds."
+//	@Failure		500			{object}	ErrorEnvelope				"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspacekinds [get]
 //	@Security		ApiKeyAuth
 func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -122,6 +126,37 @@ func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _
 		return
 	}
 
+	query := r.URL.Query()
+
+	// ========================== Sorting =========================
+
+	workspaceKinds = GetWorkspaceKindsSorted(workspaceKinds, query)
+
 	responseEnvelope := &WorkspaceKindListEnvelope{Data: workspaceKinds}
 	a.dataResponse(w, r, responseEnvelope)
+}
+
+// GetWorkspaceKindsSorted sorts the given list of WorkspaceKind objects based on the query parameters.
+func GetWorkspaceKindsSorted(workspaceKinds []models.WorkspaceKind, query url.Values) []models.WorkspaceKind {
+	orderBy := query.Get("orderBy")
+	sortOrder := query.Get("sortOrder")
+
+	sort.Slice(workspaceKinds, func(i, j int) bool {
+		var less bool
+		switch orderBy {
+		case ResourceNamePathParam:
+			less = workspaceKinds[i].Name < workspaceKinds[j].Name
+		case StatusPathParam:
+			less = !workspaceKinds[i].Deprecated && workspaceKinds[j].Deprecated
+		default:
+			less = workspaceKinds[i].Name < workspaceKinds[j].Name
+		}
+
+		// reverse the result for descending order
+		if sortOrder == "desc" {
+			return !less
+		}
+		return less
+	})
+	return workspaceKinds
 }

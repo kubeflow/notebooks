@@ -37,6 +37,7 @@ const (
 
 	NamespacePathParam    = "namespace"
 	ResourceNamePathParam = "name"
+	StatusPathParam       = "status"
 
 	// healthcheck
 	HealthCheckPath = PathPrefix + "/healthcheck"
