@@ -66,6 +66,9 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
   );
 
   const navigate = useTypedNavigate();
+  const createWorkspaceKind = useCallback(() => {
+    navigate('workspaceKindCreate');
+  }, [navigate]);
   const [workspaceKinds, workspaceKindsLoaded, workspaceKindsError] = useWorkspaceKinds();
   const workspaceCountPerKind = useWorkspaceCountPerKind();
   const [selectedWorkspaceKind, setSelectedWorkspaceKind] = useState<WorkspaceKind | null>(null);
@@ -518,6 +521,9 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                       >
                         {statusSelect}
                       </ToolbarFilter>
+                      <Button variant="primary" ouiaId="Primary" onClick={createWorkspaceKind}>
+                        Create Workspace Kind
+                      </Button>
                     </ToolbarGroup>
                   </ToolbarToggleGroup>
                 </ToolbarContent>
