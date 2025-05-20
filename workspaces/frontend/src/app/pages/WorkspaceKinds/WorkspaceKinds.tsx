@@ -1,4 +1,5 @@
-import * as React from 'react';
+import React, { useCallback } from 'react';
+import { useNavigate } from 'react-router';
 import {
   Drawer,
   DrawerContent,
@@ -47,6 +48,11 @@ export enum ActionType {
 }
 
 export const WorkspaceKinds: React.FunctionComponent = () => {
+  const navigate = useNavigate();
+  const createWorkspaceKind = useCallback(() => {
+    navigate('/workspacekinds/create');
+  }, [navigate]);
+
   // Table columns
   const columns: WorkspaceKindsColumns = React.useMemo(
     () => ({
@@ -515,6 +521,9 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                       >
                         {statusSelect}
                       </ToolbarFilter>
+                      <Button variant="primary" ouiaId="Primary" onClick={createWorkspaceKind}>
+                        Create Workspace Kind
+                      </Button>
                     </ToolbarGroup>
                   </ToolbarToggleGroup>
                 </ToolbarContent>
