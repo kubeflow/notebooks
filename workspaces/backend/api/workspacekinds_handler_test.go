@@ -148,6 +148,85 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			Expect(err).NotTo(HaveOccurred(), "failed to unmarshal JSON to []WorkspaceKind")
 		})
 
+		It("should retrieve the filtered WorkspaceKinds successfully based on name filter", func() {
+			By("creating the HTTP request")
+			NameFilterWorkspaceKindsPath := AllWorkspaceKindsPath + "?filter=name::workspacekind-2-wsk-exist-test"
+			req, err := http.NewRequest(http.MethodGet, NameFilterWorkspaceKindsPath, http.NoBody)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing GetWorkspaceKindsHandler")
+			ps := httprouter.Params{}
+			rr := httptest.NewRecorder()
+			a.GetWorkspaceKindsHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusOK), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("reading the HTTP response body")
+			body, err := io.ReadAll(rs.Body)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("unmarshalling the response JSON to WorkspaceKindListEnvelope")
+			var response WorkspaceKindListEnvelope
+			err = json.Unmarshal(body, &response)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("getting the WorkspaceKinds from the Kubernetes API")
+			workspacekind2 := &kubefloworgv1beta1.WorkspaceKind{}
+			Expect(k8sClient.Get(ctx, workspaceKind2Key, workspacekind2)).To(Succeed())
+
+			By("ensuring the response contains the expected WorkspaceKinds")
+			Expect(response.Data).To(ConsistOf(
+				models.NewWorkspaceKindModelFromWorkspaceKind(workspacekind2),
+			))
+		})
+
+		It("should retrieve the filtered WorkspaceKinds successfully based on status filter", func() {
+			By("creating the HTTP request")
+			StatusFilterWorkspaceKindsPath := AllWorkspaceKindsPath + "?filter=status::active"
+			req, err := http.NewRequest(http.MethodGet, StatusFilterWorkspaceKindsPath, http.NoBody)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing GetWorkspaceKindsHandler")
+			ps := httprouter.Params{}
+			rr := httptest.NewRecorder()
+			a.GetWorkspaceKindsHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusOK), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("reading the HTTP response body")
+			body, err := io.ReadAll(rs.Body)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("unmarshalling the response JSON to WorkspaceKindListEnvelope")
+			var response WorkspaceKindListEnvelope
+			err = json.Unmarshal(body, &response)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("getting the WorkspaceKinds from the Kubernetes API")
+			workspacekind1 := &kubefloworgv1beta1.WorkspaceKind{}
+			Expect(k8sClient.Get(ctx, workspaceKind1Key, workspacekind1)).To(Succeed())
+			workspacekind2 := &kubefloworgv1beta1.WorkspaceKind{}
+			Expect(k8sClient.Get(ctx, workspaceKind2Key, workspacekind2)).To(Succeed())
+
+			By("ensuring the response contains the expected WorkspaceKinds")
+			Expect(response.Data).To(ConsistOf(
+				models.NewWorkspaceKindModelFromWorkspaceKind(workspacekind1),
+				models.NewWorkspaceKindModelFromWorkspaceKind(workspacekind2),
+			))
+		})
+
 		It("should retrieve a single WorkspaceKind successfully", func() {
 			By("creating the HTTP request")
 			path := strings.Replace(WorkspaceKindsByNamePath, ":"+ResourceNamePathParam, workspaceKind1Name, 1)

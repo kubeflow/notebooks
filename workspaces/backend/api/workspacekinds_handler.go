@@ -19,6 +19,7 @@ package api
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
@@ -92,7 +93,55 @@ func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _
 		a.serverErrorResponse(w, r, err)
 		return
 	}
+	// ========================== Filtering =======================
+	filterParams := r.URL.Query().Get("filter")
 
+	if filterParams != "" {
+		for _, filterParam := range strings.Split(filterParams, ",") {
+			var filtered []models.WorkspaceKind
+			parts := strings.Split(filterParam, "::")
+			if len(parts) != 2 {
+				a.failedValidationResponse(w, r, "Invalid filter syntax: "+filterParam, nil, nil)
+				return
+			}
+
+			filterKey := parts[0]
+			filterVal := parts[1]
+			for _, wk := range workspaceKinds {
+				switch filterKey {
+				case "name":
+					if strings.HasPrefix(wk.Name, filterVal) {
+						filtered = append(filtered, wk)
+					}
+
+				case "description":
+					if strings.EqualFold(wk.Description, filterVal) {
+						filtered = append(filtered, wk)
+					}
+
+				case "status":
+					validStatuses := map[string]bool{
+						"active":     true,
+						"deprecated": true,
+					}
+					if !validStatuses[strings.ToLower(filterVal)] {
+						a.failedValidationResponse(w, r, "Invalid status value: "+filterVal, nil, nil)
+						return
+					}
+					if (wk.Deprecated && strings.EqualFold("Deprecated", filterVal)) ||
+						(!wk.Deprecated && strings.EqualFold("Active", filterVal)) {
+						filtered = append(filtered, wk)
+					}
+
+				default:
+					a.failedValidationResponse(w, r, "Unsupported filter: "+filterKey, nil, nil)
+					return
+				}
+			}
+			workspaceKinds = filtered
+		}
+	}
+	// ========== Response ==========
 	responseEnvelope := &WorkspaceKindListEnvelope{Data: workspaceKinds}
 	a.dataResponse(w, r, responseEnvelope)
 }
