@@ -46,3 +46,7 @@ export interface WorkspaceFormData {
   podConfig: WorkspacePodConfigValue | undefined;
   properties: WorkspaceFormProperties;
 }
+
+export interface WorkspaceKindCreateFormData {
+  data: { [key: string]: unknown };
+}
