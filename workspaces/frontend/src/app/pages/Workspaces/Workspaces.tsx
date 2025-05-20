@@ -52,9 +52,10 @@ import { WorkspaceRestartActionModal } from '~/app/pages/Workspaces/workspaceAct
 import { WorkspaceStopActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceStopActionModal';
 import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
 import { WorkspacesColumnNames } from '~/app/types';
-import CustomEmptyState from '~/shared/components/CustomEmptyState'; // Import the new component
-import Filter, { FilteredColumn, FilterRef } from 'shared/components/Filter'; // Import FilterRef
-import { extractCpuValue, extractMemoryValue } from 'shared/utilities/WorkspaceUtils';
+import CustomEmptyState from '~/shared/components/CustomEmptyState';
+import { workspacesEditPath } from '~/app/routes';
+import Filter, { FilteredColumn, FilterRef } from '~/shared/components/Filter';
+import { extractCpuValue, extractMemoryValue } from '~/shared/utilities/WorkspaceUtils';
 
 export enum ActionType {
   ViewDetails,
@@ -126,6 +127,20 @@ export const Workspaces: React.FunctionComponent = () => {
     }
     setWorkspaces(initialWorkspaces ?? []);
   }, [initialWorkspaces, initialWorkspacesLoaded]);
+
+  React.useEffect(() => {
+    if (activeActionType !== ActionType.Edit || !selectedWorkspace) {
+      return;
+    }
+    navigate(workspacesEditPath, {
+      state: {
+        contextData: {
+          namespace: selectedWorkspace.namespace,
+          workspaceName: selectedWorkspace.name,
+        },
+      },
+    });
+  }, [activeActionType, navigate, selectedWorkspace]);
 
   const selectWorkspace = React.useCallback(
     (newSelectedWorkspace: Workspace | null) => {

@@ -1,5 +1,11 @@
 import * as React from 'react';
 import { Route, Routes } from 'react-router-dom';
+import {
+  workspaceKindsRootPath,
+  workspacesCreatePath,
+  workspacesEditPath,
+  workspacesRootPath,
+} from '~/app/routes';
 import { NotFound } from './pages/notFound/NotFound';
 import { Debug } from './pages/Debug/Debug';
 import { Workspaces } from './pages/Workspaces/Workspaces';
@@ -41,7 +47,7 @@ export const useAdminDebugSettings = (): NavDataItem[] => {
     },
     {
       label: 'Workspace Kinds',
-      path: '/workspacekinds',
+      path: workspaceKindsRootPath,
     },
   ];
 };
@@ -49,7 +55,7 @@ export const useAdminDebugSettings = (): NavDataItem[] => {
 export const useNavData = (): NavDataItem[] => [
   {
     label: 'Notebooks',
-    path: '/workspaces',
+    path: workspacesRootPath,
   },
   ...useAdminDebugSettings(),
 ];
@@ -59,9 +65,10 @@ const AppRoutes: React.FC = () => {
 
   return (
     <Routes>
-      <Route path="/workspaces/create" element={<WorkspaceCreation />} />
-      <Route path="/workspacekinds" element={<WorkspaceKinds />} />
-      <Route path="/workspaces" element={<Workspaces />} />
+      <Route path={workspacesCreatePath} element={<WorkspaceCreation mode="create" />} />
+      <Route path={workspacesEditPath} element={<WorkspaceCreation mode="edit" />} />
+      <Route path={workspacesRootPath} element={<Workspaces />} />
+      <Route path={workspaceKindsRootPath} element={<WorkspaceKinds />} />
       <Route path="/" element={<Workspaces />} />
       <Route path="*" element={<NotFound />} />
       {

@@ -137,6 +137,12 @@ export interface WorkspacePodVolumeInfo {
   readOnly: boolean;
 }
 
+export interface WorkspacePodSecretInfo {
+  secretName: string;
+  mountPath: string;
+  defaultMode?: number;
+}
+
 export interface WorkspaceOptionInfo {
   id: string;
   displayName: string;
@@ -170,6 +176,7 @@ export interface WorkspacePodTemplateOptions {
 export interface WorkspacePodVolumes {
   home?: WorkspacePodVolumeInfo;
   data: WorkspacePodVolumeInfo[];
+  secrets?: WorkspacePodSecretInfo[];
 }
 
 export interface WorkspacePodTemplate {

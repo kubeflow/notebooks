@@ -13,8 +13,7 @@ import {
 } from '@patternfly/react-core';
 import { CheckIcon } from '@patternfly/react-icons';
 import { useCallback, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
+import { useLocation, useNavigate } from 'react-router-dom';
 import useGenericObjectState from '~/app/hooks/useGenericObjectState';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspaceCreationImageSelection } from '~/app/pages/Workspaces/Creation/image/WorkspaceCreationImageSelection';
@@ -23,6 +22,8 @@ import { WorkspaceCreationPodConfigSelection } from '~/app/pages/Workspaces/Crea
 import { WorkspaceCreationPropertiesSelection } from '~/app/pages/Workspaces/Creation/properties/WorkspaceCreationPropertiesSelection';
 import { WorkspaceCreateFormData } from '~/app/types';
 import { WorkspaceCreate } from '~/shared/api/backendApiTypes';
+import { workspacesRootPath } from '~/app/routes';
+import useWorkspaceFormData from '~/app/hooks/useWorkspaceFormData';
 
 enum WorkspaceCreationSteps {
   KindSelection,
@@ -31,26 +32,36 @@ enum WorkspaceCreationSteps {
   Properties,
 }
 
-const WorkspaceCreation: React.FunctionComponent = () => {
+type WorkspaceFormMode = 'create' | 'edit';
+
+interface WorkspaceCreationProps {
+  mode: WorkspaceFormMode;
+}
+
+const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ mode }) => {
   const navigate = useNavigate();
   const { api } = useNotebookAPI();
-  const { selectedNamespace } = useNamespaceContext();
+
+  const location = useLocation();
+  const { namespace: contextNamespace, workspaceName: contextWorkspaceName } =
+    location.state?.contextData || {};
+  const [initialFormData, initialFormDataLoaded, initialFormDataError] = useWorkspaceFormData({
+    namespace: contextNamespace,
+    workspaceName: contextWorkspaceName,
+  });
 
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [currentStep, setCurrentStep] = useState(WorkspaceCreationSteps.KindSelection);
 
-  const [data, setData, resetData] = useGenericObjectState<WorkspaceCreateFormData>({
-    kind: undefined,
-    image: undefined,
-    podConfig: undefined,
-    properties: {
-      deferUpdates: false,
-      homeDirectory: '',
-      volumes: [],
-      secrets: [],
-      workspaceName: '',
-    },
-  });
+  const [data, setData, resetData, replaceData] =
+    useGenericObjectState<WorkspaceCreateFormData>(initialFormData);
+
+  React.useEffect(() => {
+    if (!initialFormDataLoaded || mode === 'create') {
+      return;
+    }
+    replaceData(initialFormData);
+  }, [initialFormData, initialFormDataLoaded, mode, replaceData]);
 
   const getStepVariant = useCallback(
     (step: WorkspaceCreationSteps) => {
@@ -85,12 +96,13 @@ const WorkspaceCreation: React.FunctionComponent = () => {
     [canGoToNextStep, isSubmitting],
   );
 
-  const handleCreate = useCallback(() => {
+  const handleSubmit = useCallback(() => {
     // TODO: properly validate data before submitting
     if (!data.kind || !data.image || !data.podConfig) {
       return;
     }
 
+    // TODO: Prepare WorkspaceUpdate data when BE supports it
     const workspaceCreate: WorkspaceCreate = {
       name: data.properties.workspaceName,
       kind: data.kind.name,
@@ -115,12 +127,13 @@ const WorkspaceCreation: React.FunctionComponent = () => {
 
     setIsSubmitting(true);
 
+    // TODO: Call the correct API once BE supports `updateWorkspace`
     api
-      .createWorkspace({}, selectedNamespace, { data: workspaceCreate })
+      .createWorkspace({}, contextNamespace, { data: workspaceCreate })
       .then((newWorkspace) => {
         // TODO: alert user about success
         console.info('New workspace created:', JSON.stringify(newWorkspace));
-        navigate('/workspaces');
+        navigate(workspacesRootPath);
       })
       .catch((err) => {
         // TODO: alert user about error
@@ -129,11 +142,19 @@ const WorkspaceCreation: React.FunctionComponent = () => {
       .finally(() => {
         setIsSubmitting(false);
       });
-  }, [api, data, navigate, selectedNamespace]);
+  }, [api, data, navigate, contextNamespace]);
 
   const cancel = useCallback(() => {
-    navigate('/workspaces');
+    navigate(workspacesRootPath);
   }, [navigate]);
+
+  if (initialFormDataError) {
+    return <p>Error loading workspace data: {initialFormDataError.message}</p>; // TODO: UX for error state
+  }
+
+  if (!initialFormDataLoaded) {
+    return <p>Loading...</p>; // TODO: UX for loading state
+  }
 
   return (
     <>
@@ -143,7 +164,7 @@ const WorkspaceCreation: React.FunctionComponent = () => {
             <StackItem>
               <Flex>
                 <Content>
-                  <h1>Create workspace</h1>
+                  <h1>{`${mode === 'create' ? 'Create' : 'Edit'} workspace`}</h1>
                 </Content>
               </Flex>
             </StackItem>
@@ -274,10 +295,10 @@ const WorkspaceCreation: React.FunctionComponent = () => {
             <Button
               variant="primary"
               ouiaId="Primary"
-              onClick={handleCreate}
+              onClick={handleSubmit}
               isDisabled={!canSubmit}
             >
-              Create
+              {mode === 'create' ? 'Create' : 'Save'}
             </Button>
           </FlexItem>
           <FlexItem>
