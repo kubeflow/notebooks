@@ -41,3 +41,7 @@ export interface WorkspaceCountPerOption {
   countByPodConfig: Record<WorkspacePodConfigValue['id'], number>;
   countByNamespace: Record<Workspace['namespace'], number>;
 }
+
+export interface WorkspaceKindCreateFormData {
+  data: { [key: string]: unknown };
+}
