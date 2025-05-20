@@ -6,10 +6,10 @@ import {
   workspacesEditPath,
   workspacesRootPath,
 } from '~/app/routes';
+import { WorkspaceForm } from '~/app/pages/Workspaces/Form/WorkspaceForm';
 import { NotFound } from './pages/notFound/NotFound';
 import { Debug } from './pages/Debug/Debug';
 import { Workspaces } from './pages/Workspaces/Workspaces';
-import { WorkspaceCreation } from './pages/Workspaces/Creation/WorkspaceCreation';
 import '~/shared/style/MUI-theme.scss';
 import { WorkspaceKinds } from './pages/WorkspaceKinds/WorkspaceKinds';
 
@@ -65,8 +65,8 @@ const AppRoutes: React.FC = () => {
 
   return (
     <Routes>
-      <Route path={workspacesCreatePath} element={<WorkspaceCreation mode="create" />} />
-      <Route path={workspacesEditPath} element={<WorkspaceCreation mode="edit" />} />
+      <Route path={workspacesCreatePath} element={<WorkspaceForm mode="create" />} />
+      <Route path={workspacesEditPath} element={<WorkspaceForm mode="edit" />} />
       <Route path={workspacesRootPath} element={<Workspaces />} />
       <Route path={workspaceKindsRootPath} element={<WorkspaceKinds />} />
       <Route path="/" element={<Workspaces />} />

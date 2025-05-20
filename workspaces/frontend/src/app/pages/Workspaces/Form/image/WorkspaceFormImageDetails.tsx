@@ -2,13 +2,13 @@ import React from 'react';
 import { List, ListItem, Title } from '@patternfly/react-core';
 import { WorkspacePodConfigValue } from '~/shared/api/backendApiTypes';
 
-type WorkspaceCreationImageDetailsProps = {
+type WorkspaceFormImageDetailsProps = {
   workspaceImage?: WorkspacePodConfigValue;
 };
 
-export const WorkspaceCreationImageDetails: React.FunctionComponent<
-  WorkspaceCreationImageDetailsProps
-> = ({ workspaceImage }) => (
+export const WorkspaceFormImageDetails: React.FunctionComponent<WorkspaceFormImageDetailsProps> = ({
+  workspaceImage,
+}) => (
   <div style={{ marginLeft: 'var(--pf-t--global--spacer--md)' }}>
     {workspaceImage && (
       <>

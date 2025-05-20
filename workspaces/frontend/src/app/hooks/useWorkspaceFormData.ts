@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
-import { WorkspaceCreateFormData } from '~/app/types';
+import { WorkspaceFormData } from '~/app/types';
 import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
 } from '~/shared/utilities/useFetchState';
 
-const EMPTY_FORM_DATA: WorkspaceCreateFormData = {
+const EMPTY_FORM_DATA: WorkspaceFormData = {
   kind: undefined,
   image: undefined,
   podConfig: undefined,
@@ -22,10 +22,10 @@ const EMPTY_FORM_DATA: WorkspaceCreateFormData = {
 const useWorkspaceFormData = (args: {
   namespace: string | undefined;
   workspaceName: string | undefined;
-}): FetchState<WorkspaceCreateFormData> => {
+}): FetchState<WorkspaceFormData> => {
   const { api, apiAvailable } = useNotebookAPI();
 
-  const call = React.useCallback<FetchStateCallbackPromise<WorkspaceCreateFormData>>(
+  const call = React.useCallback<FetchStateCallbackPromise<WorkspaceFormData>>(
     async (opts) => {
       if (!apiAvailable) {
         throw new Error('API not yet available');

@@ -16,16 +16,16 @@ import { useCallback, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import useGenericObjectState from '~/app/hooks/useGenericObjectState';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
-import { WorkspaceCreationImageSelection } from '~/app/pages/Workspaces/Creation/image/WorkspaceCreationImageSelection';
-import { WorkspaceCreationKindSelection } from '~/app/pages/Workspaces/Creation/kind/WorkspaceCreationKindSelection';
-import { WorkspaceCreationPodConfigSelection } from '~/app/pages/Workspaces/Creation/podConfig/WorkspaceCreationPodConfigSelection';
-import { WorkspaceCreationPropertiesSelection } from '~/app/pages/Workspaces/Creation/properties/WorkspaceCreationPropertiesSelection';
-import { WorkspaceCreateFormData } from '~/app/types';
+import { WorkspaceFormImageSelection } from '~/app/pages/Workspaces/Form/image/WorkspaceFormImageSelection';
+import { WorkspaceFormKindSelection } from '~/app/pages/Workspaces/Form/kind/WorkspaceFormKindSelection';
+import { WorkspaceFormPodConfigSelection } from '~/app/pages/Workspaces/Form/podConfig/WorkspaceFormPodConfigSelection';
+import { WorkspaceFormPropertiesSelection } from '~/app/pages/Workspaces/Form/properties/WorkspaceFormPropertiesSelection';
+import { WorkspaceFormData } from '~/app/types';
 import { WorkspaceCreate } from '~/shared/api/backendApiTypes';
 import { workspacesRootPath } from '~/app/routes';
 import useWorkspaceFormData from '~/app/hooks/useWorkspaceFormData';
 
-enum WorkspaceCreationSteps {
+enum WorkspaceFormSteps {
   KindSelection,
   ImageSelection,
   PodConfigSelection,
@@ -34,11 +34,11 @@ enum WorkspaceCreationSteps {
 
 type WorkspaceFormMode = 'create' | 'edit';
 
-interface WorkspaceCreationProps {
+interface WorkspaceFormProps {
   mode: WorkspaceFormMode;
 }
 
-const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ mode }) => {
+const WorkspaceForm: React.FC<WorkspaceFormProps> = ({ mode }) => {
   const navigate = useNavigate();
   const { api } = useNotebookAPI();
 
@@ -51,10 +51,10 @@ const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ mode }) => {
   });
 
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [currentStep, setCurrentStep] = useState(WorkspaceCreationSteps.KindSelection);
+  const [currentStep, setCurrentStep] = useState(WorkspaceFormSteps.KindSelection);
 
   const [data, setData, resetData, replaceData] =
-    useGenericObjectState<WorkspaceCreateFormData>(initialFormData);
+    useGenericObjectState<WorkspaceFormData>(initialFormData);
 
   React.useEffect(() => {
     if (!initialFormDataLoaded || mode === 'create') {
@@ -64,7 +64,7 @@ const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ mode }) => {
   }, [initialFormData, initialFormDataLoaded, mode, replaceData]);
 
   const getStepVariant = useCallback(
-    (step: WorkspaceCreationSteps) => {
+    (step: WorkspaceFormSteps) => {
       if (step > currentStep) {
         return 'pending';
       }
@@ -87,7 +87,7 @@ const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ mode }) => {
   const canGoToPreviousStep = useMemo(() => currentStep > 0, [currentStep]);
 
   const canGoToNextStep = useMemo(
-    () => currentStep < Object.keys(WorkspaceCreationSteps).length / 2 - 1,
+    () => currentStep < Object.keys(WorkspaceFormSteps).length / 2 - 1,
     [currentStep],
   );
 
@@ -169,12 +169,12 @@ const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ mode }) => {
               </Flex>
             </StackItem>
             <StackItem>
-              <ProgressStepper aria-label="Workspace creation stepper">
+              <ProgressStepper aria-label="Workspace form stepper">
                 <ProgressStep
-                  variant={getStepVariant(WorkspaceCreationSteps.KindSelection)}
+                  variant={getStepVariant(WorkspaceFormSteps.KindSelection)}
                   id="kind-selection-step"
                   icon={
-                    getStepVariant(WorkspaceCreationSteps.KindSelection) === 'success' ? (
+                    getStepVariant(WorkspaceFormSteps.KindSelection) === 'success' ? (
                       <CheckIcon />
                     ) : (
                       1
@@ -186,11 +186,11 @@ const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ mode }) => {
                   Workspace Kind
                 </ProgressStep>
                 <ProgressStep
-                  variant={getStepVariant(WorkspaceCreationSteps.ImageSelection)}
+                  variant={getStepVariant(WorkspaceFormSteps.ImageSelection)}
                   isCurrent
                   id="image-selection-step"
                   icon={
-                    getStepVariant(WorkspaceCreationSteps.ImageSelection) === 'success' ? (
+                    getStepVariant(WorkspaceFormSteps.ImageSelection) === 'success' ? (
                       <CheckIcon />
                     ) : (
                       2
@@ -202,11 +202,11 @@ const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ mode }) => {
                   Image
                 </ProgressStep>
                 <ProgressStep
-                  variant={getStepVariant(WorkspaceCreationSteps.PodConfigSelection)}
+                  variant={getStepVariant(WorkspaceFormSteps.PodConfigSelection)}
                   isCurrent
                   id="pod-config-selection-step"
                   icon={
-                    getStepVariant(WorkspaceCreationSteps.PodConfigSelection) === 'success' ? (
+                    getStepVariant(WorkspaceFormSteps.PodConfigSelection) === 'success' ? (
                       <CheckIcon />
                     ) : (
                       3
@@ -218,14 +218,10 @@ const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ mode }) => {
                   Pod Config
                 </ProgressStep>
                 <ProgressStep
-                  variant={getStepVariant(WorkspaceCreationSteps.Properties)}
+                  variant={getStepVariant(WorkspaceFormSteps.Properties)}
                   id="properties-step"
                   icon={
-                    getStepVariant(WorkspaceCreationSteps.Properties) === 'success' ? (
-                      <CheckIcon />
-                    ) : (
-                      4
-                    )
+                    getStepVariant(WorkspaceFormSteps.Properties) === 'success' ? <CheckIcon /> : 4
                   }
                   titleId="properties-step-title"
                   aria-label="Properties step"
@@ -238,8 +234,8 @@ const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ mode }) => {
         </PageSection>
       </PageGroup>
       <PageSection isFilled>
-        {currentStep === WorkspaceCreationSteps.KindSelection && (
-          <WorkspaceCreationKindSelection
+        {currentStep === WorkspaceFormSteps.KindSelection && (
+          <WorkspaceFormKindSelection
             selectedKind={data.kind}
             onSelect={(kind) => {
               resetData();
@@ -247,22 +243,22 @@ const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ mode }) => {
             }}
           />
         )}
-        {currentStep === WorkspaceCreationSteps.ImageSelection && (
-          <WorkspaceCreationImageSelection
+        {currentStep === WorkspaceFormSteps.ImageSelection && (
+          <WorkspaceFormImageSelection
             selectedImage={data.image}
             onSelect={(image) => setData('image', image)}
             images={data.kind?.podTemplate.options.imageConfig.values ?? []}
           />
         )}
-        {currentStep === WorkspaceCreationSteps.PodConfigSelection && (
-          <WorkspaceCreationPodConfigSelection
+        {currentStep === WorkspaceFormSteps.PodConfigSelection && (
+          <WorkspaceFormPodConfigSelection
             selectedPodConfig={data.podConfig}
             onSelect={(podConfig) => setData('podConfig', podConfig)}
             podConfigs={data.kind?.podTemplate.options.podConfig.values ?? []}
           />
         )}
-        {currentStep === WorkspaceCreationSteps.Properties && (
-          <WorkspaceCreationPropertiesSelection
+        {currentStep === WorkspaceFormSteps.Properties && (
+          <WorkspaceFormPropertiesSelection
             selectedProperties={data.properties}
             onSelect={(properties) => setData('properties', properties)}
             selectedImage={data.image}
@@ -312,4 +308,4 @@ const WorkspaceCreation: React.FC<WorkspaceCreationProps> = ({ mode }) => {
   );
 };
 
-export { WorkspaceCreation };
+export { WorkspaceForm };

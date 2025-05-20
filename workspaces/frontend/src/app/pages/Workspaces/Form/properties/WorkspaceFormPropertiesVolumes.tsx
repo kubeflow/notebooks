@@ -18,14 +18,15 @@ import { Table, TableVariant, Tbody, Td, Th, Thead, Tr } from '@patternfly/react
 import React, { useCallback, useState } from 'react';
 import { WorkspacePodVolumeMount } from '~/shared/api/backendApiTypes';
 
-interface WorkspaceCreationPropertiesVolumesProps {
+interface WorkspaceFormPropertiesVolumesProps {
   volumes: WorkspacePodVolumeMount[];
   setVolumes: (volumes: WorkspacePodVolumeMount[]) => void;
 }
 
-export const WorkspaceCreationPropertiesVolumes: React.FC<
-  WorkspaceCreationPropertiesVolumesProps
-> = ({ volumes, setVolumes }) => {
+export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVolumesProps> = ({
+  volumes,
+  setVolumes,
+}) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [formData, setFormData] = useState<WorkspacePodVolumeMount>({
@@ -205,4 +206,4 @@ export const WorkspaceCreationPropertiesVolumes: React.FC<
   );
 };
 
-export default WorkspaceCreationPropertiesVolumesProps;
+export default WorkspaceFormPropertiesVolumesProps;
