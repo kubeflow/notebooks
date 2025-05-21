@@ -39,12 +39,8 @@ import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import { useWorkspaceCountPerKind } from '~/app/hooks/useWorkspaceCountPerKind';
 import { WorkspaceKindsColumnNames } from '~/app/types';
-<<<<<<< HEAD
 import ThemeAwareSearchInput from '~/app/components/ThemeAwareSearchInput';
-import EmptyStateWithClearFilters from 'shared/components/EmptyStateWithClearFilters';
-=======
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
->>>>>>> bfd7ab0 (feat(ws): Notebooks 2.0 // Frontend // Workspace table // Add Empty State #259)
 
 export enum ActionType {
   ViewDetails,
