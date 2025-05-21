@@ -117,7 +117,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
               <Th>Secret Name</Th>
               <Th>Mount Path</Th>
               <Th>Default Mode</Th>
-              <Th />
+              <Th aria-label="Actions" />
             </Tr>
           </Thead>
           <Tbody>

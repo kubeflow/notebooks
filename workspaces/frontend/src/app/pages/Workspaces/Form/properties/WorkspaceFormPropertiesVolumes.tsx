@@ -90,7 +90,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
               <Th>PVC Name</Th>
               <Th>Mount Path</Th>
               <Th>Read-only Access</Th>
-              <Th />
+              <Th aria-label="Actions" />
             </Tr>
           </Thead>
           <Tbody>

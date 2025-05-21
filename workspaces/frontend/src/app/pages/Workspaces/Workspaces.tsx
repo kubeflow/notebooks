@@ -628,11 +628,13 @@ export const Workspaces: React.FunctionComponent = () => {
                   </Tbody>
                 ))}
               {sortedWorkspaces.length === 0 && (
-                <Tr>
-                  <Td colSpan={12} id="empty-state-cell">
-                    <Bullseye>{emptyState}</Bullseye>
-                  </Td>
-                </Tr>
+                <Tbody>
+                  <Tr>
+                    <Td colSpan={12} id="empty-state-cell">
+                      <Bullseye>{emptyState}</Bullseye>
+                    </Td>
+                  </Tr>
+                </Tbody>
               )}
             </Table>
             {isActionAlertModalOpen && chooseAlertModal()}
