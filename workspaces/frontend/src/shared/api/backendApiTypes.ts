@@ -270,8 +270,9 @@ export interface WorkspaceCreate {
   podTemplate: WorkspacePodTemplateMutate;
 }
 
+// TODO: Update this type when applicable; meanwhile, it inherits from WorkspaceCreate
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface WorkspaceUpdate {}
+export interface WorkspaceUpdate extends WorkspaceCreate {}
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface WorkspacePatch {}

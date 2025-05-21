@@ -88,14 +88,14 @@ const WorkspaceForm: React.FC = () => {
     [canGoToNextStep, isSubmitting],
   );
 
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = useCallback(async () => {
     // TODO: properly validate data before submitting
     if (!data.kind || !data.image || !data.podConfig) {
       return;
     }
 
-    // TODO: Prepare WorkspaceUpdate data when BE supports it
-    const workspaceCreate: WorkspaceCreate = {
+    // TODO: Prepare WorkspaceUpdate data accordingly when BE supports it
+    const submitData: WorkspaceCreate = {
       name: data.properties.workspaceName,
       kind: data.kind.name,
       deferUpdates: data.properties.deferUpdates,
@@ -119,22 +119,27 @@ const WorkspaceForm: React.FC = () => {
 
     setIsSubmitting(true);
 
-    // TODO: Call the correct API once BE supports `updateWorkspace`
-    api
-      .createWorkspace({}, namespace, { data: workspaceCreate })
-      .then((newWorkspace) => {
+    try {
+      if (mode === 'edit') {
+        const updateWorkspace = await api.updateWorkspace({}, submitData.name, namespace, {
+          data: submitData,
+        });
+        // TODO: alert user about success
+        console.info('Workspace updated:', JSON.stringify(updateWorkspace));
+      } else {
+        const newWorkspace = await api.createWorkspace({}, namespace, { data: submitData });
         // TODO: alert user about success
         console.info('New workspace created:', JSON.stringify(newWorkspace));
-        navigate('workspaces');
-      })
-      .catch((err) => {
-        // TODO: alert user about error
-        console.error('Error creating workspace:', err);
-      })
-      .finally(() => {
-        setIsSubmitting(false);
-      });
-  }, [api, data, navigate, namespace]);
+      }
+
+      navigate('workspaces');
+    } catch (err) {
+      // TODO: alert user about error
+      console.error(`Error ${mode === 'edit' ? 'updating' : 'creating'} workspace: ${err}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [data, mode, navigate, api, namespace]);
 
   const cancel = useCallback(() => {
     navigate('workspaces');
