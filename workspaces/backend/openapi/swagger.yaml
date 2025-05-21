@@ -618,8 +618,17 @@ paths:
     get:
       consumes:
       - application/json
-      description: Returns a list of all available workspace kinds. Workspace kinds
-        define the different types of workspaces that can be created in the system.
+      description: Returns a list of all available workspace kinds, optionally filtered.
+        Workspace kinds define the different types of workspaces that can be created
+        in the system.
+      parameters:
+      - description: 'Filters the workspace kinds based on specified criteria.  This
+          parameter is a comma-separated list of filters, using the format ''field::value''.  For
+          example: ''name::sama,status::active''.  Allowed fields are: name, description,
+          status.'
+        in: query
+        name: filter
+        type: string
       produces:
       - application/json
       responses:

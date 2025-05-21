@@ -88,7 +88,7 @@
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Returns a list of all available workspace kinds. Workspace kinds define the different types of workspaces that can be created in the system.",
+                "description": "Returns a list of all available workspace kinds, optionally filtered. Workspace kinds define the different types of workspaces that can be created in the system.",
                 "consumes": [
                     "application/json"
                 ],
@@ -99,6 +99,14 @@
                     "workspacekinds"
                 ],
                 "summary": "List workspace kinds",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filters the workspace kinds based on specified criteria.  This parameter is a comma-separated list of filters, using the format 'field::value'.  For example: 'name::sama,status::active'.  Allowed fields are: name, description, status.",
+                        "name": "filter",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Successful operation. Returns a list of all available workspace kinds.",
