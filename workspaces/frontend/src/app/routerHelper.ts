@@ -1,5 +1,6 @@
 import {
   generatePath,
+  NavigateOptions as RRNavigateOptions,
   useLocation,
   useNavigate,
   useParams,
@@ -8,14 +9,24 @@ import {
 import {
   AppRouteKey,
   AppRoutePaths,
-  routeParamsDefinition,
-  routeSearchDefinition,
-  routeStateDefinition,
+  RouteParamsMap,
+  RouteSearchParamsMap,
+  RouteStateMap,
 } from '~/app/routes';
 
-export type RouteParamsMap = typeof routeParamsDefinition;
-export type RouteStateMap = typeof routeStateDefinition;
-export type RouteSearchParamsMap = typeof routeSearchDefinition;
+type OptionalRouteParams<T extends AppRouteKey> = RouteParamsMap[T] extends undefined
+  ? object
+  : { params: RouteParamsMap[T] };
+
+type OptionalRouteState<T extends AppRouteKey> = RouteStateMap[T] extends undefined
+  ? object
+  : { state: RouteStateMap[T] };
+
+type OptionalRouteSearchParams<T extends AppRouteKey> = RouteSearchParamsMap[T] extends undefined
+  ? object
+  : { searchParams: RouteSearchParamsMap[T] };
+
+type CommonNavigateOptions = Pick<RRNavigateOptions, 'replace' | 'preventScrollReset' | 'relative'>;
 
 /**
  * Combines path params, search params, and state into a type-safe interface
@@ -28,9 +39,10 @@ export type RouteSearchParamsMap = typeof routeSearchDefinition;
  *   searchParams: { mySearchParam: 'baz' },
  * });
  */
-type NavigateOptions<T extends AppRouteKey> = RouteParamsMap[T] extends undefined
-  ? { state?: RouteStateMap[T]; searchParams?: RouteSearchParamsMap[T] }
-  : { state?: RouteStateMap[T]; params: RouteParamsMap[T]; searchParams?: RouteSearchParamsMap[T] };
+type NavigateOptions<T extends AppRouteKey> = CommonNavigateOptions &
+  OptionalRouteParams<T> &
+  OptionalRouteState<T> &
+  OptionalRouteSearchParams<T>;
 
 /**
  * Builds a path string using the route key and params.
@@ -52,6 +64,17 @@ export function buildPath<T extends AppRouteKey>(to: T, params: RouteParamsMap[T
 }
 
 /**
+ * Converts an unknown object into a record of string values.
+ * This is a utility function to ensure that the object can be safely used as a query string.
+ */
+function toRecord(params: unknown): Record<string, string | undefined> {
+  if (typeof params !== 'object' || !params) {
+    return {};
+  }
+  return params as Record<string, string | undefined>;
+}
+
+/**
  * Converts a typed object into a query string (e.g., `?mySearchParam=foo`).
  *
  * @example
@@ -62,9 +85,10 @@ export function buildSearchParams<T extends AppRouteKey>(params: RouteSearchPara
     return '';
   }
 
-  const filtered = Object.entries(params as unknown as Record<string, string | undefined>).filter(
-    ([, v]) => v !== undefined,
-  ) as [string, string][];
+  const filtered = Object.entries(toRecord(params)).filter(([, v]) => v !== undefined) as [
+    string,
+    string,
+  ][];
 
   const query = new URLSearchParams(filtered).toString();
   return query ? `?${query}` : '';
@@ -139,15 +163,19 @@ export function useTypedNavigate(): <T extends AppRouteKey>(
     const pathTemplate = AppRoutePaths[to];
     const opts = (options ?? {}) as NavigateOptions<T>;
 
-    const query = buildSearchParams(opts.searchParams as RouteSearchParamsMap[T]);
-
-    const path =
-      ('params' in opts
-        ? generatePath(pathTemplate, opts.params as RouteParamsMap[T])
-        : pathTemplate) + query;
-
+    const query = 'searchParams' in opts ? buildSearchParams(opts.searchParams) : '';
+    const path = 'params' in opts ? buildPath(to, opts.params) : pathTemplate;
     const state = 'state' in opts ? opts.state : undefined;
-    navigate(path, state !== undefined ? { state } : undefined);
+    const fullPath = path + query;
+
+    const navigationOptions = {
+      ...(state !== undefined && { state }),
+      ...(opts.replace !== undefined && { replace: opts.replace }),
+      ...(opts.preventScrollReset !== undefined && { preventScrollReset: opts.preventScrollReset }),
+      ...(opts.relative !== undefined && { relative: opts.relative }),
+    };
+
+    navigate(fullPath, navigationOptions);
   };
 }
 

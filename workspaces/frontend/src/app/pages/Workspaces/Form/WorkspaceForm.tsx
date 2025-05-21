@@ -145,10 +145,6 @@ const WorkspaceForm: React.FC = () => {
     navigate('workspaces');
   }, [navigate]);
 
-  if (mode === 'edit' && !workspaceName) {
-    return <p>Error: No workspace name provided as part of context data</p>; // TODO: UX for error state
-  }
-
   if (initialFormDataError) {
     return <p>Error loading workspace data: {initialFormDataError.message}</p>; // TODO: UX for error state
   }

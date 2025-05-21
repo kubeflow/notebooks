@@ -1,7 +1,7 @@
 import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
-import { RouteStateMap, useTypedLocation } from '~/app/routerHelper';
-import { AppRouteKey } from '~/app/routes';
-import { useCurrentRouteKey } from './useCurrentRouteKey';
+import { useCurrentRouteKey } from '~/app/hooks/useCurrentRouteKey';
+import { useTypedLocation } from '~/app/routerHelper';
+import { AppRouteKey, RouteStateMap } from '~/app/routes';
 
 type WorkspaceFormLocationState = RouteStateMap['workspaceEdit'] | RouteStateMap['workspaceCreate'];
 

@@ -15,17 +15,17 @@ export type AppRouteKey = keyof typeof AppRoutePaths;
  *
  * @example
  * // For a route like '/my/route/:myRouteParam':
- * export const routeParamsDefinition = {
+ * export type RouteParamsMap = {
  *   myRoute: { myRouteParam: string };
  * }
  */
-export const routeParamsDefinition = {
-  root: undefined,
-  workspaces: undefined,
-  workspaceCreate: undefined,
-  workspaceEdit: undefined,
-  workspaceKinds: undefined,
-} satisfies Record<AppRouteKey, object | undefined>;
+export type RouteParamsMap = {
+  root: undefined;
+  workspaces: undefined;
+  workspaceCreate: undefined;
+  workspaceEdit: undefined;
+  workspaceKinds: undefined;
+};
 
 /**
  * Maps each route to the shape of its optional navigation state.
@@ -33,22 +33,22 @@ export const routeParamsDefinition = {
  *
  * @example
  * // For a route like '/my/route' with myRouteParam in the state:
- * export const routeStateDefinition = {
+ * export type RouteStateMap = {
  *   myRoute: { myRouteParam: string };
  * }
  */
-export const routeStateDefinition = {
-  root: undefined,
-  workspaces: undefined,
+export type RouteStateMap = {
+  root: undefined;
+  workspaces: undefined;
   workspaceCreate: {
-    namespace: '',
-  },
+    namespace: string;
+  };
   workspaceEdit: {
-    namespace: '',
-    workspaceName: '',
-  },
-  workspaceKinds: undefined,
-} satisfies Record<AppRouteKey, object | undefined>;
+    namespace: string;
+    workspaceName: string;
+  };
+  workspaceKinds: undefined;
+};
 
 /**
  * Maps each route to its allowed search (query string) parameters.
@@ -56,14 +56,14 @@ export const routeStateDefinition = {
  *
  * @example
  * // For a route like '/my/route?mySearchParam=foo':
- * export const routeSearchDefinition = {
+ * export type RouteSearchParamsMap = {
  *   myRoute: { mySearchParam: string };
  * }
  */
-export const routeSearchDefinition = {
-  root: undefined,
-  workspaces: undefined,
-  workspaceCreate: undefined,
-  workspaceEdit: undefined,
-  workspaceKinds: undefined,
-} satisfies Record<AppRouteKey, object | undefined>;
+export type RouteSearchParamsMap = {
+  root: undefined;
+  workspaces: undefined;
+  workspaceCreate: undefined;
+  workspaceEdit: undefined;
+  workspaceKinds: undefined;
+};
