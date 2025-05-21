@@ -7,14 +7,14 @@ import {
   EmptyStateFooter,
   PageSection,
 } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
+import { useTypedNavigate } from '~/app/routerHelper';
 
 const NotFound: React.FunctionComponent = () => {
   function GoHomeBtn() {
-    const navigate = useNavigate();
+    const navigate = useTypedNavigate();
 
     function handleClick() {
-      navigate('/');
+      navigate('root');
     }
 
     return <Button onClick={handleClick}>Take me home</Button>;

@@ -1,11 +1,6 @@
 import * as React from 'react';
 import { Route, Routes } from 'react-router-dom';
-import {
-  workspaceKindsRootPath,
-  workspacesCreatePath,
-  workspacesEditPath,
-  workspacesRootPath,
-} from '~/app/routes';
+import { AppRoutePaths } from '~/app/routes';
 import { WorkspaceForm } from '~/app/pages/Workspaces/Form/WorkspaceForm';
 import { NotFound } from './pages/notFound/NotFound';
 import { Debug } from './pages/Debug/Debug';
@@ -47,7 +42,7 @@ export const useAdminDebugSettings = (): NavDataItem[] => {
     },
     {
       label: 'Workspace Kinds',
-      path: workspaceKindsRootPath,
+      path: AppRoutePaths.workspaceKinds,
     },
   ];
 };
@@ -55,7 +50,7 @@ export const useAdminDebugSettings = (): NavDataItem[] => {
 export const useNavData = (): NavDataItem[] => [
   {
     label: 'Notebooks',
-    path: workspacesRootPath,
+    path: AppRoutePaths.workspaces,
   },
   ...useAdminDebugSettings(),
 ];
@@ -65,10 +60,10 @@ const AppRoutes: React.FC = () => {
 
   return (
     <Routes>
-      <Route path={workspacesCreatePath} element={<WorkspaceForm mode="create" />} />
-      <Route path={workspacesEditPath} element={<WorkspaceForm mode="edit" />} />
-      <Route path={workspacesRootPath} element={<Workspaces />} />
-      <Route path={workspaceKindsRootPath} element={<WorkspaceKinds />} />
+      <Route path={AppRoutePaths.workspaceCreate} element={<WorkspaceForm />} />
+      <Route path={AppRoutePaths.workspaceEdit} element={<WorkspaceForm />} />
+      <Route path={AppRoutePaths.workspaces} element={<Workspaces />} />
+      <Route path={AppRoutePaths.workspaceKinds} element={<WorkspaceKinds />} />
       <Route path="/" element={<Workspaces />} />
       <Route path="*" element={<NotFound />} />
       {

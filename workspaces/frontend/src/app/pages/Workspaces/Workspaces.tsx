@@ -34,11 +34,11 @@ import {
   CodeIcon,
 } from '@patternfly/react-icons';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Workspace, WorkspaceState } from '~/shared/api/backendApiTypes';
 import { WorkspaceDetails } from '~/app/pages/Workspaces/Details/WorkspaceDetails';
 import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
 import DeleteModal from '~/shared/components/DeleteModal';
+import { useTypedNavigate } from '~/app/routerHelper';
 import {
   buildKindLogoDictionary,
   buildWorkspaceRedirectStatus,
@@ -53,7 +53,6 @@ import { WorkspaceStopActionModal } from '~/app/pages/Workspaces/workspaceAction
 import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
 import { WorkspacesColumnNames } from '~/app/types';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
-import { workspacesEditPath } from '~/app/routes';
 import Filter, { FilteredColumn, FilterRef } from '~/shared/components/Filter';
 import { extractCpuValue, extractMemoryValue } from '~/shared/utilities/WorkspaceUtils';
 
@@ -67,9 +66,9 @@ export enum ActionType {
 }
 
 export const Workspaces: React.FunctionComponent = () => {
-  const navigate = useNavigate();
+  const navigate = useTypedNavigate();
   const createWorkspace = React.useCallback(() => {
-    navigate('/workspaces/create');
+    navigate('workspaceCreate');
   }, [navigate]);
 
   const createWorkspaceButton = (
@@ -132,12 +131,10 @@ export const Workspaces: React.FunctionComponent = () => {
     if (activeActionType !== ActionType.Edit || !selectedWorkspace) {
       return;
     }
-    navigate(workspacesEditPath, {
+    navigate('workspaceEdit', {
       state: {
-        contextData: {
-          namespace: selectedWorkspace.namespace,
-          workspaceName: selectedWorkspace.name,
-        },
+        namespace: selectedWorkspace.namespace,
+        workspaceName: selectedWorkspace.name,
       },
     });
   }, [activeActionType, navigate, selectedWorkspace]);

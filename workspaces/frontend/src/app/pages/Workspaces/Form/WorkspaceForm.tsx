@@ -13,7 +13,6 @@ import {
 } from '@patternfly/react-core';
 import { CheckIcon } from '@patternfly/react-icons';
 import { useCallback, useMemo, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
 import useGenericObjectState from '~/app/hooks/useGenericObjectState';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspaceFormImageSelection } from '~/app/pages/Workspaces/Form/image/WorkspaceFormImageSelection';
@@ -22,8 +21,9 @@ import { WorkspaceFormPodConfigSelection } from '~/app/pages/Workspaces/Form/pod
 import { WorkspaceFormPropertiesSelection } from '~/app/pages/Workspaces/Form/properties/WorkspaceFormPropertiesSelection';
 import { WorkspaceFormData } from '~/app/types';
 import { WorkspaceCreate } from '~/shared/api/backendApiTypes';
-import { workspacesRootPath } from '~/app/routes';
 import useWorkspaceFormData from '~/app/hooks/useWorkspaceFormData';
+import { useTypedNavigate } from '~/app/routerHelper';
+import { useWorkspaceFormLocationData } from '~/app/hooks/useWorkspaceFormLocationData';
 
 enum WorkspaceFormSteps {
   KindSelection,
@@ -32,22 +32,14 @@ enum WorkspaceFormSteps {
   Properties,
 }
 
-type WorkspaceFormMode = 'create' | 'edit';
-
-interface WorkspaceFormProps {
-  mode: WorkspaceFormMode;
-}
-
-const WorkspaceForm: React.FC<WorkspaceFormProps> = ({ mode }) => {
-  const navigate = useNavigate();
+const WorkspaceForm: React.FC = () => {
+  const navigate = useTypedNavigate();
   const { api } = useNotebookAPI();
 
-  const location = useLocation();
-  const { namespace: contextNamespace, workspaceName: contextWorkspaceName } =
-    location.state?.contextData || {};
+  const { mode, namespace, workspaceName } = useWorkspaceFormLocationData();
   const [initialFormData, initialFormDataLoaded, initialFormDataError] = useWorkspaceFormData({
-    namespace: contextNamespace,
-    workspaceName: contextWorkspaceName,
+    namespace,
+    workspaceName,
   });
 
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -129,11 +121,11 @@ const WorkspaceForm: React.FC<WorkspaceFormProps> = ({ mode }) => {
 
     // TODO: Call the correct API once BE supports `updateWorkspace`
     api
-      .createWorkspace({}, contextNamespace, { data: workspaceCreate })
+      .createWorkspace({}, namespace, { data: workspaceCreate })
       .then((newWorkspace) => {
         // TODO: alert user about success
         console.info('New workspace created:', JSON.stringify(newWorkspace));
-        navigate(workspacesRootPath);
+        navigate('workspaces');
       })
       .catch((err) => {
         // TODO: alert user about error
@@ -142,11 +134,15 @@ const WorkspaceForm: React.FC<WorkspaceFormProps> = ({ mode }) => {
       .finally(() => {
         setIsSubmitting(false);
       });
-  }, [api, data, navigate, contextNamespace]);
+  }, [api, data, navigate, namespace]);
 
   const cancel = useCallback(() => {
-    navigate(workspacesRootPath);
+    navigate('workspaces');
   }, [navigate]);
+
+  if (mode === 'edit' && !workspaceName) {
+    return <p>Error: No workspace name provided as part of context data</p>; // TODO: UX for error state
+  }
 
   if (initialFormDataError) {
     return <p>Error loading workspace data: {initialFormDataError.message}</p>; // TODO: UX for error state
