@@ -7,13 +7,11 @@ import {
   ToolbarContent,
   Card,
   CardHeader,
-  EmptyState,
-  EmptyStateBody,
   CardBody,
 } from '@patternfly/react-core';
-import { SearchIcon } from '@patternfly/react-icons/dist/esm/icons/search-icon';
-import Filter, { FilteredColumn } from '~/shared/components/Filter';
+import Filter, { FilteredColumn, FilterRef } from '~/shared/components/Filter';
 import { WorkspaceImageConfigValue } from '~/shared/api/backendApiTypes';
+import CustomEmptyState from '~/shared/components/CustomEmptyState';
 
 type WorkspaceCreationImageListProps = {
   images: WorkspaceImageConfigValue[];
@@ -27,6 +25,7 @@ export const WorkspaceCreationImageList: React.FunctionComponent<
 > = ({ images, selectedLabels, selectedImage, onSelect }) => {
   const [workspaceImages, setWorkspaceImages] = useState<WorkspaceImageConfigValue[]>(images);
   const [filters, setFilters] = useState<FilteredColumn[]>([]);
+  const filterRef = React.useRef<FilterRef>(null);
 
   const filterableColumns = useMemo(
     () => ({
@@ -48,6 +47,10 @@ export const WorkspaceCreationImageList: React.FunctionComponent<
       ),
     [selectedLabels],
   );
+
+  const clearAllFilters = useCallback(() => {
+    filterRef.current?.clearAll();
+  }, []);
 
   const onChange = useCallback(
     (event: React.FormEvent<HTMLInputElement>) => {
@@ -96,6 +99,7 @@ export const WorkspaceCreationImageList: React.FunctionComponent<
         <Toolbar id="toolbar-group-types">
           <ToolbarContent>
             <Filter
+              ref={filterRef}
               id="filter-workspace-images"
               onFilter={setFilters}
               columnNames={filterableColumns}
@@ -104,13 +108,7 @@ export const WorkspaceCreationImageList: React.FunctionComponent<
         </Toolbar>
       </PageSection>
       <PageSection isFilled>
-        {workspaceImages.length === 0 && (
-          <EmptyState titleText="No results found" headingLevel="h4" icon={SearchIcon}>
-            <EmptyStateBody>
-              No results match the filter criteria. Clear all filters and try again.
-            </EmptyStateBody>
-          </EmptyState>
-        )}
+        {workspaceImages.length === 0 && <CustomEmptyState onClearFilters={clearAllFilters} />}
         {workspaceImages.length > 0 && (
           <Gallery hasGutter aria-label="Selectable card container">
             {workspaceImages.map((image) => (
