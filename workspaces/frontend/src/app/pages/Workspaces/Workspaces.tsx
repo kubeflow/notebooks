@@ -12,6 +12,7 @@ import {
   Content,
   Brand,
   Tooltip,
+  Bullseye,
 } from '@patternfly/react-core';
 import {
   Table,
@@ -49,7 +50,8 @@ import { WorkspaceRestartActionModal } from '~/app/pages/Workspaces/workspaceAct
 import { WorkspaceStopActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceStopActionModal';
 import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
 import { WorkspacesColumnNames } from '~/app/types';
-import Filter, { FilteredColumn } from 'shared/components/Filter';
+import CustomEmptyState from '~/shared/components/CustomEmptyState'; // Import the new component
+import Filter, { FilteredColumn, FilterRef } from 'shared/components/Filter'; // Import FilterRef
 import { extractCpuValue, extractMemoryValue } from 'shared/utilities/WorkspaceUtils';
 
 export enum ActionType {
@@ -67,18 +69,21 @@ export const Workspaces: React.FunctionComponent = () => {
   const workspaceRedirectStatus = buildWorkspaceRedirectStatus(workspaceKinds);
 
   // Table columns
-  const columnNames: WorkspacesColumnNames = {
-    redirectStatus: 'Redirect Status',
-    name: 'Name',
-    kind: 'Kind',
-    image: 'Image',
-    podConfig: 'Pod Config',
-    state: 'State',
-    homeVol: 'Home Vol',
-    cpu: 'CPU',
-    ram: 'Memory',
-    lastActivity: 'Last Activity',
-  };
+  const columnNames: WorkspacesColumnNames = React.useMemo(
+    () => ({
+      redirectStatus: 'Redirect Status',
+      name: 'Name',
+      kind: 'Kind',
+      image: 'Image',
+      podConfig: 'Pod Config',
+      state: 'State',
+      homeVol: 'Home Vol',
+      cpu: 'CPU',
+      ram: 'Memory',
+      lastActivity: 'Last Activity',
+    }),
+    [],
+  );
 
   const filterableColumns = {
     name: 'Name',
@@ -100,6 +105,7 @@ export const Workspaces: React.FunctionComponent = () => {
   const [workspaceToDelete, setWorkspaceToDelete] = React.useState<Workspace | null>(null);
   const [isActionAlertModalOpen, setIsActionAlertModalOpen] = React.useState(false);
   const [activeActionType, setActiveActionType] = React.useState<ActionType | null>(null);
+  const filterRef = React.useRef<FilterRef>(null);
 
   React.useEffect(() => {
     if (!initialWorkspacesLoaded) {
@@ -131,52 +137,60 @@ export const Workspaces: React.FunctionComponent = () => {
     expandedWorkspacesNames.includes(workspace.name);
 
   // filter function to pass to the filter component
-  const onFilter = (filters: FilteredColumn[]) => {
-    // Search name with search value
-    let filteredWorkspaces = initialWorkspaces ?? [];
-    filters.forEach((filter) => {
-      let searchValueInput: RegExp;
-      try {
-        searchValueInput = new RegExp(filter.value, 'i');
-      } catch {
-        searchValueInput = new RegExp(filter.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-      }
+  const onFilter = React.useCallback(
+    (filters: FilteredColumn[]) => {
+      // Search name with search value
+      let filteredWorkspaces = initialWorkspaces ?? [];
+      filters.forEach((filter) => {
+        let searchValueInput: RegExp;
+        try {
+          searchValueInput = new RegExp(filter.value, 'i');
+        } catch {
+          searchValueInput = new RegExp(filter.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        }
 
-      filteredWorkspaces = filteredWorkspaces.filter((workspace) => {
-        if (filter.value === '') {
-          return true;
-        }
-        switch (filter.columnName) {
-          case columnNames.name:
-            return workspace.name.search(searchValueInput) >= 0;
-          case columnNames.kind:
-            return workspace.workspaceKind.name.search(searchValueInput) >= 0;
-          case columnNames.image:
-            return (
-              workspace.podTemplate.options.imageConfig.current.displayName.search(
-                searchValueInput,
-              ) >= 0
-            );
-          case columnNames.podConfig:
-            return (
-              workspace.podTemplate.options.podConfig.current.displayName.search(
-                searchValueInput,
-              ) >= 0
-            );
-          case columnNames.state:
-            return workspace.state.search(searchValueInput) >= 0;
-          case columnNames.homeVol:
-            if (!workspace.podTemplate.volumes.home) {
-              return false;
-            }
-            return workspace.podTemplate.volumes.home.mountPath.search(searchValueInput) >= 0;
-          default:
+        filteredWorkspaces = filteredWorkspaces.filter((workspace) => {
+          if (filter.value === '') {
             return true;
-        }
+          }
+          switch (filter.columnName) {
+            case columnNames.name:
+              return workspace.name.search(searchValueInput) >= 0;
+            case columnNames.kind:
+              return workspace.workspaceKind.name.search(searchValueInput) >= 0;
+            case columnNames.image:
+              return (
+                workspace.podTemplate.options.imageConfig.current.displayName.search(
+                  searchValueInput,
+                ) >= 0
+              );
+            case columnNames.podConfig:
+              return (
+                workspace.podTemplate.options.podConfig.current.displayName.search(
+                  searchValueInput,
+                ) >= 0
+              );
+            case columnNames.state:
+              return workspace.state.search(searchValueInput) >= 0;
+            case columnNames.homeVol:
+              if (!workspace.podTemplate.volumes.home) {
+                return false;
+              }
+              return workspace.podTemplate.volumes.home.mountPath.search(searchValueInput) >= 0;
+            default:
+              return true;
+          }
+        });
       });
-    });
-    setWorkspaces(filteredWorkspaces);
-  };
+      setWorkspaces(filteredWorkspaces);
+    },
+    [initialWorkspaces, columnNames],
+  );
+
+  const emptyState = React.useMemo(
+    () => <CustomEmptyState onClearFilters={() => filterRef.current?.clearAll()} />,
+    [],
+  );
 
   // Column sorting
 
@@ -475,7 +489,12 @@ export const Workspaces: React.FunctionComponent = () => {
             </Content>
             <br />
             <Content style={{ display: 'flex', alignItems: 'flex-start', columnGap: '20px' }}>
-              <Filter id="filter-workspaces" onFilter={onFilter} columnNames={filterableColumns} />
+              <Filter
+                ref={filterRef}
+                id="filter-workspaces"
+                onFilter={onFilter}
+                columnNames={filterableColumns}
+              />
             </Content>
             <Table aria-label="Sortable table" ouiaId="SortableTable">
               <Thead>
@@ -492,86 +511,94 @@ export const Workspaces: React.FunctionComponent = () => {
                   <Th screenReaderText="Primary action" />
                 </Tr>
               </Thead>
-              {sortedWorkspaces.map((workspace, rowIndex) => (
-                <Tbody
-                  id="workspaces-table-content"
-                  key={rowIndex}
-                  isExpanded={isWorkspaceExpanded(workspace)}
-                  data-testid="table-body"
-                >
-                  <Tr id={`workspaces-table-row-${rowIndex + 1}`}>
-                    <Td
-                      expand={{
-                        rowIndex,
-                        isExpanded: isWorkspaceExpanded(workspace),
-                        onToggle: () =>
-                          setWorkspaceExpanded(workspace, !isWorkspaceExpanded(workspace)),
-                      }}
-                    />
-                    <Td dataLabel={columnNames.redirectStatus}>
-                      {workspaceRedirectStatus[workspace.workspaceKind.name]
-                        ? getRedirectStatusIcon(
-                            workspaceRedirectStatus[workspace.workspaceKind.name]?.message?.level,
-                            workspaceRedirectStatus[workspace.workspaceKind.name]?.message?.text ||
-                              'No API response available',
-                          )
-                        : getRedirectStatusIcon(undefined, 'No API response available')}
-                    </Td>
-                    <Td dataLabel={columnNames.name}>{workspace.name}</Td>
-                    <Td dataLabel={columnNames.kind}>
-                      {kindLogoDict[workspace.workspaceKind.name] ? (
-                        <Tooltip content={workspace.workspaceKind.name}>
-                          <Brand
-                            src={kindLogoDict[workspace.workspaceKind.name]}
-                            alt={workspace.workspaceKind.name}
-                            style={{ width: '20px', height: '20px', cursor: 'pointer' }}
-                          />
-                        </Tooltip>
-                      ) : (
-                        <Tooltip content={workspace.workspaceKind.name}>
-                          <CodeIcon />
-                        </Tooltip>
-                      )}
-                    </Td>
-                    <Td dataLabel={columnNames.image}>
-                      {workspace.podTemplate.options.imageConfig.current.displayName}
-                    </Td>
-                    <Td dataLabel={columnNames.podConfig}>
-                      {workspace.podTemplate.options.podConfig.current.displayName}
-                    </Td>
-                    <Td dataLabel={columnNames.state}>
-                      <Label color={extractStateColor(workspace.state)}>{workspace.state}</Label>
-                    </Td>
-                    <Td dataLabel={columnNames.homeVol}>
-                      {workspace.podTemplate.volumes.home?.pvcName ?? ''}
-                    </Td>
-                    <Td dataLabel={columnNames.cpu}>{extractCpuValue(workspace)}</Td>
-                    <Td dataLabel={columnNames.ram}>{extractMemoryValue(workspace)}</Td>
-                    <Td dataLabel={columnNames.lastActivity}>
-                      <Timestamp
-                        date={new Date(workspace.activity.lastActivity)}
-                        tooltip={{ variant: TimestampTooltipVariant.default }}
-                      >
-                        1 hour ago
-                      </Timestamp>
-                    </Td>
-                    <Td>
-                      <WorkspaceConnectAction workspace={workspace} />
-                    </Td>
-                    <Td isActionCell data-testid="action-column">
-                      <ActionsColumn
-                        items={workspaceDefaultActions(workspace).map((action) => ({
-                          ...action,
-                          'data-testid': `action-${action.id || ''}`,
-                        }))}
+              {sortedWorkspaces.length > 0 &&
+                sortedWorkspaces.map((workspace, rowIndex) => (
+                  <Tbody
+                    id="workspaces-table-content"
+                    key={rowIndex}
+                    isExpanded={isWorkspaceExpanded(workspace)}
+                    data-testid="table-body"
+                  >
+                    <Tr id={`workspaces-table-row-${rowIndex + 1}`}>
+                      <Td
+                        expand={{
+                          rowIndex,
+                          isExpanded: isWorkspaceExpanded(workspace),
+                          onToggle: () =>
+                            setWorkspaceExpanded(workspace, !isWorkspaceExpanded(workspace)),
+                        }}
                       />
-                    </Td>
-                  </Tr>
-                  {isWorkspaceExpanded(workspace) && (
-                    <ExpandedWorkspaceRow workspace={workspace} columnNames={columnNames} />
-                  )}
-                </Tbody>
-              ))}
+                      <Td dataLabel={columnNames.redirectStatus}>
+                        {workspaceRedirectStatus[workspace.workspaceKind.name]
+                          ? getRedirectStatusIcon(
+                              workspaceRedirectStatus[workspace.workspaceKind.name]?.message?.level,
+                              workspaceRedirectStatus[workspace.workspaceKind.name]?.message
+                                ?.text || 'No API response available',
+                            )
+                          : getRedirectStatusIcon(undefined, 'No API response available')}
+                      </Td>
+                      <Td dataLabel={columnNames.name}>{workspace.name}</Td>
+                      <Td dataLabel={columnNames.kind}>
+                        {kindLogoDict[workspace.workspaceKind.name] ? (
+                          <Tooltip content={workspace.workspaceKind.name}>
+                            <Brand
+                              src={kindLogoDict[workspace.workspaceKind.name]}
+                              alt={workspace.workspaceKind.name}
+                              style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                            />
+                          </Tooltip>
+                        ) : (
+                          <Tooltip content={workspace.workspaceKind.name}>
+                            <CodeIcon />
+                          </Tooltip>
+                        )}
+                      </Td>
+                      <Td dataLabel={columnNames.image}>
+                        {workspace.podTemplate.options.imageConfig.current.displayName}
+                      </Td>
+                      <Td dataLabel={columnNames.podConfig}>
+                        {workspace.podTemplate.options.podConfig.current.displayName}
+                      </Td>
+                      <Td dataLabel={columnNames.state}>
+                        <Label color={extractStateColor(workspace.state)}>{workspace.state}</Label>
+                      </Td>
+                      <Td dataLabel={columnNames.homeVol}>
+                        {workspace.podTemplate.volumes.home?.pvcName ?? ''}
+                      </Td>
+                      <Td dataLabel={columnNames.cpu}>{extractCpuValue(workspace)}</Td>
+                      <Td dataLabel={columnNames.ram}>{extractMemoryValue(workspace)}</Td>
+                      <Td dataLabel={columnNames.lastActivity}>
+                        <Timestamp
+                          date={new Date(workspace.activity.lastActivity)}
+                          tooltip={{ variant: TimestampTooltipVariant.default }}
+                        >
+                          1 hour ago
+                        </Timestamp>
+                      </Td>
+                      <Td>
+                        <WorkspaceConnectAction workspace={workspace} />
+                      </Td>
+                      <Td isActionCell data-testid="action-column">
+                        <ActionsColumn
+                          items={workspaceDefaultActions(workspace).map((action) => ({
+                            ...action,
+                            'data-testid': `action-${action.id || ''}`,
+                          }))}
+                        />
+                      </Td>
+                    </Tr>
+                    {isWorkspaceExpanded(workspace) && (
+                      <ExpandedWorkspaceRow workspace={workspace} columnNames={columnNames} />
+                    )}
+                  </Tbody>
+                ))}
+              {sortedWorkspaces.length === 0 && (
+                <Tr>
+                  <Td colSpan={12} id="empty-state-cell">
+                    <Bullseye>{emptyState}</Bullseye>
+                  </Td>
+                </Tr>
+              )}
             </Table>
             {isActionAlertModalOpen && chooseAlertModal()}
             <DeleteModal
