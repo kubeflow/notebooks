@@ -21,7 +21,6 @@ import {
   ToolbarFilter,
   ToolbarToggleGroup,
   Bullseye,
-  SearchInput,
 } from '@patternfly/react-core';
 import {
   Table,
@@ -180,32 +179,6 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     setStatusSelection('');
     setSearchDescriptionValue('');
   }, []);
-
-  // Set up name search input
-  const searchNameInput = React.useMemo(
-    () => (
-      <SearchInput
-        placeholder="Filter by name"
-        value={searchNameValue}
-        onChange={(_event, value) => onSearchNameChange(value)}
-        onClear={() => onSearchNameChange('')}
-      />
-    ),
-    [searchNameValue, onSearchNameChange],
-  );
-
-  // Set up description search input
-  const searchDescriptionInput = React.useMemo(
-    () => (
-      <SearchInput
-        placeholder="Filter by description"
-        value={searchDescriptionValue}
-        onChange={(_event, value) => onSearchDescriptionChange(value)}
-        onClear={() => onSearchDescriptionChange('')}
-      />
-    ),
-    [searchDescriptionValue, onSearchDescriptionChange],
-  );
 
   // Set up status single select
   const [isStatusMenuOpen, setIsStatusMenuOpen] = React.useState<boolean>(false);
