@@ -279,10 +279,11 @@ export const Workspaces: React.FunctionComponent = () => {
     setActiveActionType(ActionType.ViewDetails);
   }, []);
 
-  const editAction = React.useCallback((workspace: Workspace) => {
-    setSelectedWorkspace(workspace);
-    setActiveActionType(ActionType.Edit);
-  }, []);
+  // TODO: Uncomment when edit action is fully supported
+  // const editAction = React.useCallback((workspace: Workspace) => {
+  //   setSelectedWorkspace(workspace);
+  //   setActiveActionType(ActionType.Edit);
+  // }, []);
 
   const deleteAction = React.useCallback((workspace: Workspace) => {
     setSelectedWorkspace(workspace);
@@ -320,11 +321,12 @@ export const Workspaces: React.FunctionComponent = () => {
         title: 'View Details',
         onClick: () => viewDetailsClick(workspace),
       },
-      {
-        id: 'edit',
-        title: 'Edit',
-        onClick: () => editAction(workspace),
-      },
+      // TODO: Uncomment when edit action is fully supported
+      // {
+      //   id: 'edit',
+      //   title: 'Edit',
+      //   onClick: () => editAction(workspace),
+      // },
       {
         id: 'delete',
         title: 'Delete',
@@ -493,7 +495,8 @@ export const Workspaces: React.FunctionComponent = () => {
         <WorkspaceDetails
           workspace={selectedWorkspace}
           onCloseClick={() => selectWorkspace(null)}
-          onEditClick={() => editAction(selectedWorkspace)}
+          // TODO: Uncomment when edit action is fully supported
+          // onEditClick={() => editAction(selectedWorkspace)}
           onDeleteClick={() => handleDeleteClick(selectedWorkspace)}
         />
       )}
