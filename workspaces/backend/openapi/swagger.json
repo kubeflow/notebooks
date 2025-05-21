@@ -738,6 +738,9 @@
                 },
                 "redirect": {
                     "$ref": "#/definitions/workspacekinds.OptionRedirect"
+                },
+                "workspacesCount": {
+                    "type": "integer"
                 }
             }
         },
@@ -808,6 +811,9 @@
                 },
                 "redirect": {
                     "$ref": "#/definitions/workspacekinds.OptionRedirect"
+                },
+                "workspacesCount": {
+                    "type": "integer"
                 }
             }
         },
@@ -914,6 +920,9 @@
                 },
                 "podTemplate": {
                     "$ref": "#/definitions/workspacekinds.PodTemplate"
+                },
+                "workspacesCount": {
+                    "type": "integer"
                 }
             }
         },

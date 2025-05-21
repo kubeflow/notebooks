@@ -140,6 +140,8 @@ definitions:
         type: array
       redirect:
         $ref: '#/definitions/workspacekinds.OptionRedirect'
+      workspacesCount:
+        type: integer
     type: object
   workspacekinds.ImageRef:
     properties:
@@ -185,6 +187,8 @@ definitions:
         type: array
       redirect:
         $ref: '#/definitions/workspacekinds.OptionRedirect'
+      workspacesCount:
+        type: integer
     type: object
   workspacekinds.PodMetadata:
     properties:
@@ -255,6 +259,8 @@ definitions:
         type: string
       podTemplate:
         $ref: '#/definitions/workspacekinds.PodTemplate'
+      workspacesCount:
+        type: integer
     type: object
   workspaces.Activity:
     properties:
