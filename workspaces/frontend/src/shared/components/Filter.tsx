@@ -167,7 +167,7 @@ const Filter: React.FC<FilterProps> = ({ id, onFilter, columnNames }) => {
     () => (
       <Menu ref={filterMenuRef} onSelect={(_ev, itemId) => onFilterSelect(itemId)}>
         <MenuContent>
-          <MenuList>
+          <MenuList style={{ padding: 0 }}>
             {Object.values(columnNames).map((name: string) => (
               <MenuItem id={`${id}-dropdown-${name}`} key={name} itemId={name}>
                 {name}
