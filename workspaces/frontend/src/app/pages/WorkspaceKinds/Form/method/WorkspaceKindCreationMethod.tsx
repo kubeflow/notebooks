@@ -17,17 +17,20 @@ import {
 import { UpdateObjectAtPropAndValue } from '~/app/hooks/useGenericObjectState';
 import { WorkspaceKindCreateFormData } from '~/app/types';
 import { WorkspaceKindCreationMethodTypes } from '~/app/pages/WorkspaceKinds/Form/WorkspaceKindForm';
+import { isValidWorkspaceKindYaml } from '~/app/pages/WorkspaceKinds/Form/helpers';
 
 interface WorkspaceKindCreationMethodProps {
   method: WorkspaceKindCreationMethodTypes;
   onMethodSelect: (kind: WorkspaceKindCreationMethodTypes) => void;
   setData: UpdateObjectAtPropAndValue<WorkspaceKindCreateFormData>;
+  resetData: () => void;
 }
 
 export const WorkspaceKindCreationMethod: React.FC<WorkspaceKindCreationMethodProps> = ({
   method,
   onMethodSelect,
   setData,
+  resetData,
 }) => {
   const isYamlFileRef = useRef(false);
   const [value, setValue] = useState('');
@@ -47,7 +50,7 @@ export const WorkspaceKindCreationMethod: React.FC<WorkspaceKindCreationMethodPr
         isYamlFileRef.current = isYaml;
         if (!isYaml) {
           setFileUploadHelperText('Invalid file. Only YAML files are allowed.');
-          setData('data', {});
+          resetData();
           setValidated('error');
         } else {
           setFileUploadHelperText('');
@@ -55,7 +58,7 @@ export const WorkspaceKindCreationMethod: React.FC<WorkspaceKindCreationMethodPr
         }
       }
     },
-    [method, setData],
+    [method, resetData],
   );
 
   const handleDataChange = useCallback(
@@ -64,8 +67,17 @@ export const WorkspaceKindCreationMethod: React.FC<WorkspaceKindCreationMethodPr
         setValue(v);
         if (isYamlFileRef.current) {
           try {
-            const data = yaml.load(v);
-            setData('data', data as { [key: string]: unknown });
+            const parsed = yaml.load(v);
+            if (isValidWorkspaceKindYaml(parsed)) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              setData('properties', (parsed as any).spec.spawner);
+              setValidated('success');
+              setFileUploadHelperText('');
+            } else {
+              setFileUploadHelperText('YAML is invalid: must follow WorkspaceKind format.');
+              setValidated('error');
+              resetData();
+            }
           } catch (e) {
             console.error('Error parsing YAML:', e);
             setFileUploadHelperText(`Error parsing YAML: ${e as YAMLException['reason']}`);
@@ -74,7 +86,7 @@ export const WorkspaceKindCreationMethod: React.FC<WorkspaceKindCreationMethodPr
         }
       }
     },
-    [method, setData],
+    [method, setData, resetData],
   );
 
   const handleClear = useCallback(() => {
@@ -82,8 +94,8 @@ export const WorkspaceKindCreationMethod: React.FC<WorkspaceKindCreationMethodPr
     setValue('');
     setFileUploadHelperText('');
     setValidated('default');
-    setData('data', {});
-  }, [setData]);
+    resetData();
+  }, [resetData]);
 
   const handleFileReadStarted = useCallback(() => {
     setIsLoading(true);
@@ -95,13 +107,14 @@ export const WorkspaceKindCreationMethod: React.FC<WorkspaceKindCreationMethodPr
 
   const handleSelect = useCallback(
     (event: React.FormEvent<HTMLInputElement>) => {
-      onMethodSelect(
-        event.currentTarget.id === 'selectable-actions-item-manual-input'
-          ? WorkspaceKindCreationMethodTypes.Manual
-          : WorkspaceKindCreationMethodTypes.FileUpload,
-      );
+      if (event.currentTarget.id === 'selectable-actions-item-manual-input') {
+        onMethodSelect(WorkspaceKindCreationMethodTypes.Manual);
+        resetData();
+      } else {
+        onMethodSelect(WorkspaceKindCreationMethodTypes.FileUpload);
+      }
     },
-    [onMethodSelect],
+    [onMethodSelect, resetData],
   );
 
   return (

@@ -37,8 +37,16 @@ export const WorkspaceKindForm: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [currentStep, setCurrentStep] = useState(WorkspaceKindCreationSteps.CreationMethod);
 
-  const [data, setData] = useGenericObjectState<WorkspaceKindCreateFormData>({
-    data: {},
+  const [data, setData, resetData] = useGenericObjectState<WorkspaceKindCreateFormData>({
+    properties: {
+      displayName: '',
+      description: '',
+      deprecated: false,
+      deprecationMessage: '',
+      hidden: false,
+      icon: { url: '' },
+      logo: { url: '' },
+    },
   });
 
   const getStepVariant = useCallback(
