@@ -9,22 +9,24 @@ import {
   CardHeader,
   CardBody,
 } from '@patternfly/react-core';
-import { WorkspacePodConfigValue } from '~/shared/api/backendApiTypes';
 import Filter, { FilteredColumn, FilterRef } from '~/shared/components/Filter';
+import { WorkspaceImageConfigValue } from '~/shared/api/backendApiTypes';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
 
-type WorkspaceCreationPodConfigListProps = {
-  podConfigs: WorkspacePodConfigValue[];
+type WorkspaceFormImageListProps = {
+  images: WorkspaceImageConfigValue[];
   selectedLabels: Map<string, Set<string>>;
-  selectedPodConfig: WorkspacePodConfigValue | undefined;
-  onSelect: (workspacePodConfig: WorkspacePodConfigValue | undefined) => void;
+  selectedImage: WorkspaceImageConfigValue | undefined;
+  onSelect: (workspaceImage: WorkspaceImageConfigValue | undefined) => void;
 };
 
-export const WorkspaceCreationPodConfigList: React.FunctionComponent<
-  WorkspaceCreationPodConfigListProps
-> = ({ podConfigs, selectedLabels, selectedPodConfig, onSelect }) => {
-  const [workspacePodConfigs, setWorkspacePodConfigs] =
-    useState<WorkspacePodConfigValue[]>(podConfigs);
+export const WorkspaceFormImageList: React.FunctionComponent<WorkspaceFormImageListProps> = ({
+  images,
+  selectedLabels,
+  selectedImage,
+  onSelect,
+}) => {
+  const [workspaceImages, setWorkspaceImages] = useState<WorkspaceImageConfigValue[]>(images);
   const [filters, setFilters] = useState<FilteredColumn[]>([]);
   const filterRef = React.useRef<FilterRef>(null);
 
@@ -35,10 +37,10 @@ export const WorkspaceCreationPodConfigList: React.FunctionComponent<
     [],
   );
 
-  const getFilteredWorkspacePodConfigsByLabels = useCallback(
-    (unfilteredPodConfigs: WorkspacePodConfigValue[]) =>
-      unfilteredPodConfigs.filter((podConfig) =>
-        podConfig.labels.reduce((accumulator, label) => {
+  const getFilteredWorkspaceImagesByLabels = useCallback(
+    (unfilteredImages: WorkspaceImageConfigValue[]) =>
+      unfilteredImages.filter((image) =>
+        image.labels.reduce((accumulator, label) => {
           if (selectedLabels.has(label.key)) {
             const labelValues: Set<string> | undefined = selectedLabels.get(label.key);
             return accumulator && labelValues !== undefined && labelValues.has(label.value);
@@ -55,17 +57,17 @@ export const WorkspaceCreationPodConfigList: React.FunctionComponent<
 
   const onChange = useCallback(
     (event: React.FormEvent<HTMLInputElement>) => {
-      const newSelectedWorkspacePodConfig = workspacePodConfigs.find(
-        (podConfig) => podConfig.displayName === event.currentTarget.name,
+      const newSelectedWorkspaceImage = workspaceImages.find(
+        (image) => image.displayName === event.currentTarget.name,
       );
-      onSelect(newSelectedWorkspacePodConfig);
+      onSelect(newSelectedWorkspaceImage);
     },
-    [workspacePodConfigs, onSelect],
+    [workspaceImages, onSelect],
   );
 
   useEffect(() => {
     // Search name with search value
-    let filteredWorkspacePodConfigs = podConfigs;
+    let filteredWorkspaceImages = images;
 
     filters.forEach((filter) => {
       let searchValueInput: RegExp;
@@ -75,15 +77,15 @@ export const WorkspaceCreationPodConfigList: React.FunctionComponent<
         searchValueInput = new RegExp(filter.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
       }
 
-      filteredWorkspacePodConfigs = filteredWorkspacePodConfigs.filter((podConfig) => {
+      filteredWorkspaceImages = filteredWorkspaceImages.filter((image) => {
         if (filter.value === '') {
           return true;
         }
         switch (filter.columnName) {
           case filterableColumns.name:
             return (
-              podConfig.id.search(searchValueInput) >= 0 ||
-              podConfig.displayName.search(searchValueInput) >= 0
+              image.id.search(searchValueInput) >= 0 ||
+              image.displayName.search(searchValueInput) >= 0
             );
           default:
             return true;
@@ -91,14 +93,8 @@ export const WorkspaceCreationPodConfigList: React.FunctionComponent<
       });
     });
 
-    setWorkspacePodConfigs(getFilteredWorkspacePodConfigsByLabels(filteredWorkspacePodConfigs));
-  }, [
-    filterableColumns,
-    filters,
-    podConfigs,
-    selectedLabels,
-    getFilteredWorkspacePodConfigsByLabels,
-  ]);
+    setWorkspaceImages(getFilteredWorkspaceImagesByLabels(filteredWorkspaceImages));
+  }, [filterableColumns, filters, images, selectedLabels, getFilteredWorkspaceImagesByLabels]);
 
   return (
     <>
@@ -115,28 +111,28 @@ export const WorkspaceCreationPodConfigList: React.FunctionComponent<
         </Toolbar>
       </PageSection>
       <PageSection isFilled>
-        {workspacePodConfigs.length === 0 && <CustomEmptyState onClearFilters={clearAllFilters} />}
-        {workspacePodConfigs.length > 0 && (
+        {workspaceImages.length === 0 && <CustomEmptyState onClearFilters={clearAllFilters} />}
+        {workspaceImages.length > 0 && (
           <Gallery hasGutter aria-label="Selectable card container">
-            {workspacePodConfigs.map((podConfig) => (
+            {workspaceImages.map((image) => (
               <Card
                 isCompact
                 isSelectable
-                key={podConfig.id}
-                id={podConfig.id.replace(/ /g, '-')}
-                isSelected={podConfig.id === selectedPodConfig?.id}
+                key={image.id}
+                id={image.id.replace(/ /g, '-')}
+                isSelected={image.id === selectedImage?.id}
               >
                 <CardHeader
                   selectableActions={{
-                    selectableActionId: `selectable-actions-item-${podConfig.id.replace(/ /g, '-')}`,
-                    selectableActionAriaLabelledby: podConfig.displayName.replace(/ /g, '-'),
-                    name: podConfig.displayName,
+                    selectableActionId: `selectable-actions-item-${image.id.replace(/ /g, '-')}`,
+                    selectableActionAriaLabelledby: image.displayName.replace(/ /g, '-'),
+                    name: image.displayName,
                     variant: 'single',
                     onChange,
                   }}
                 >
-                  <CardTitle>{podConfig.displayName}</CardTitle>
-                  <CardBody>{podConfig.id}</CardBody>
+                  <CardTitle>{image.displayName}</CardTitle>
+                  <CardBody>{image.id}</CardBody>
                 </CardHeader>
               </Card>
             ))}

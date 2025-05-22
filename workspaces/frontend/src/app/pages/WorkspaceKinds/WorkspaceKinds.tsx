@@ -509,19 +509,21 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
             <Table aria-label="Sortable table" ouiaId="SortableTable">
               <Thead>
                 <Tr>
-                  <Th />
-                  {Object.values(columnNames).map((columnName, index) => (
-                    <Th
-                      key={`${columnName}-col-name`}
-                      sort={
-                        columnName === 'Name' || columnName === 'Status'
-                          ? getSortParams(index)
-                          : undefined
-                      }
-                    >
-                      {columnName}
-                    </Th>
-                  ))}
+                  <Th aria-label="WorkspaceKind Icon" />
+                  {Object.values(columnNames)
+                    .filter((name) => name !== '')
+                    .map((columnName, index) => (
+                      <Th
+                        key={`${columnName}-col-name`}
+                        sort={
+                          columnName === 'Name' || columnName === 'Status'
+                            ? getSortParams(index)
+                            : undefined
+                        }
+                      >
+                        {columnName}
+                      </Th>
+                    ))}
                   <Th screenReaderText="Primary action" />
                 </Tr>
               </Thead>

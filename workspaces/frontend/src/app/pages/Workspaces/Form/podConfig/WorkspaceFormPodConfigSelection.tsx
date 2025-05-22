@@ -1,19 +1,19 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Content, Divider, Split, SplitItem } from '@patternfly/react-core';
-import { WorkspaceCreationPodConfigDetails } from '~/app/pages/Workspaces/Creation/podConfig/WorkspaceCreationPodConfigDetails';
-import { WorkspaceCreationPodConfigList } from '~/app/pages/Workspaces/Creation/podConfig/WorkspaceCreationPodConfigList';
-import { FilterByLabels } from '~/app/pages/Workspaces/Creation/labelFilter/FilterByLabels';
-import { WorkspaceCreationDrawer } from '~/app/pages/Workspaces/Creation/WorkspaceCreationDrawer';
+import { WorkspaceFormPodConfigDetails } from '~/app/pages/Workspaces/Form/podConfig/WorkspaceFormPodConfigDetails';
+import { WorkspaceFormPodConfigList } from '~/app/pages/Workspaces/Form/podConfig/WorkspaceFormPodConfigList';
+import { FilterByLabels } from '~/app/pages/Workspaces/Form/labelFilter/FilterByLabels';
+import { WorkspaceFormDrawer } from '~/app/pages/Workspaces/Form/WorkspaceFormDrawer';
 import { WorkspacePodConfigValue } from '~/shared/api/backendApiTypes';
 
-interface WorkspaceCreationPodConfigSelectionProps {
+interface WorkspaceFormPodConfigSelectionProps {
   podConfigs: WorkspacePodConfigValue[];
   selectedPodConfig: WorkspacePodConfigValue | undefined;
   onSelect: (podConfig: WorkspacePodConfigValue | undefined) => void;
 }
 
-const WorkspaceCreationPodConfigSelection: React.FunctionComponent<
-  WorkspaceCreationPodConfigSelectionProps
+const WorkspaceFormPodConfigSelection: React.FunctionComponent<
+  WorkspaceFormPodConfigSelectionProps
 > = ({ podConfigs, selectedPodConfig, onSelect }) => {
   const [selectedLabels, setSelectedLabels] = useState<Map<string, Set<string>>>(new Map());
   const [isExpanded, setIsExpanded] = useState(false);
@@ -49,7 +49,7 @@ const WorkspaceCreationPodConfigSelection: React.FunctionComponent<
   );
 
   const podConfigDetailsContent = useMemo(
-    () => <WorkspaceCreationPodConfigDetails workspacePodConfig={selectedPodConfig} />,
+    () => <WorkspaceFormPodConfigDetails workspacePodConfig={selectedPodConfig} />,
     [selectedPodConfig],
   );
 
@@ -58,7 +58,7 @@ const WorkspaceCreationPodConfigSelection: React.FunctionComponent<
       <p>Select a pod config to use for the workspace.</p>
       <Divider />
 
-      <WorkspaceCreationDrawer
+      <WorkspaceFormDrawer
         title="Pod config"
         info={podConfigDetailsContent}
         isExpanded={isExpanded}
@@ -68,7 +68,7 @@ const WorkspaceCreationPodConfigSelection: React.FunctionComponent<
         <Split hasGutter>
           <SplitItem style={{ minWidth: '200px' }}>{podConfigFilterContent}</SplitItem>
           <SplitItem isFilled>
-            <WorkspaceCreationPodConfigList
+            <WorkspaceFormPodConfigList
               podConfigs={podConfigs}
               selectedLabels={selectedLabels}
               selectedPodConfig={selectedPodConfig}
@@ -76,9 +76,9 @@ const WorkspaceCreationPodConfigSelection: React.FunctionComponent<
             />
           </SplitItem>
         </Split>
-      </WorkspaceCreationDrawer>
+      </WorkspaceFormDrawer>
     </Content>
   );
 };
 
-export { WorkspaceCreationPodConfigSelection };
+export { WorkspaceFormPodConfigSelection };

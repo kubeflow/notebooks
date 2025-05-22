@@ -2,12 +2,12 @@ import React from 'react';
 import { List, ListItem } from '@patternfly/react-core';
 import { WorkspacePodConfigValue } from '~/shared/api/backendApiTypes';
 
-type WorkspaceCreationPodConfigDetailsProps = {
+type WorkspaceFormPodConfigDetailsProps = {
   workspacePodConfig?: WorkspacePodConfigValue;
 };
 
-export const WorkspaceCreationPodConfigDetails: React.FunctionComponent<
-  WorkspaceCreationPodConfigDetailsProps
+export const WorkspaceFormPodConfigDetails: React.FunctionComponent<
+  WorkspaceFormPodConfigDetailsProps
 > = ({ workspacePodConfig }) => (
   <>
     {workspacePodConfig && (
