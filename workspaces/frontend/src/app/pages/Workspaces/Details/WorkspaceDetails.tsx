@@ -21,14 +21,15 @@ import { WorkspaceDetailsPodTemplate } from '~/app/pages/Workspaces/Details/Work
 type WorkspaceDetailsProps = {
   workspace: Workspace;
   onCloseClick: React.MouseEventHandler;
-  onEditClick: React.MouseEventHandler;
+  // TODO: Uncomment when edit action is fully supported
+  // onEditClick: React.MouseEventHandler;
   onDeleteClick: React.MouseEventHandler;
 };
 
 export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = ({
   workspace,
   onCloseClick,
-  onEditClick,
+  // onEditClick,
   onDeleteClick,
 }) => {
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(0);
@@ -44,7 +45,7 @@ export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = 
     <DrawerPanelContent data-testid="workspaceDetails">
       <DrawerHead>
         <Title headingLevel="h6">{workspace.name}</Title>
-        <WorkspaceDetailsActions onEditClick={onEditClick} onDeleteClick={onDeleteClick} />
+        <WorkspaceDetailsActions /*onEditClick={onEditClick}*/ onDeleteClick={onDeleteClick} />
         <DrawerActions>
           <DrawerCloseButton onClick={onCloseClick} />
         </DrawerActions>

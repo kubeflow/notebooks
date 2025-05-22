@@ -13,47 +13,50 @@ import {
 } from '@patternfly/react-core';
 import { CheckIcon } from '@patternfly/react-icons';
 import { useCallback, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
 import useGenericObjectState from '~/app/hooks/useGenericObjectState';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
-import { WorkspaceCreationImageSelection } from '~/app/pages/Workspaces/Creation/image/WorkspaceCreationImageSelection';
-import { WorkspaceCreationKindSelection } from '~/app/pages/Workspaces/Creation/kind/WorkspaceCreationKindSelection';
-import { WorkspaceCreationPodConfigSelection } from '~/app/pages/Workspaces/Creation/podConfig/WorkspaceCreationPodConfigSelection';
-import { WorkspaceCreationPropertiesSelection } from '~/app/pages/Workspaces/Creation/properties/WorkspaceCreationPropertiesSelection';
-import { WorkspaceCreateFormData } from '~/app/types';
+import { WorkspaceFormImageSelection } from '~/app/pages/Workspaces/Form/image/WorkspaceFormImageSelection';
+import { WorkspaceFormKindSelection } from '~/app/pages/Workspaces/Form/kind/WorkspaceFormKindSelection';
+import { WorkspaceFormPodConfigSelection } from '~/app/pages/Workspaces/Form/podConfig/WorkspaceFormPodConfigSelection';
+import { WorkspaceFormPropertiesSelection } from '~/app/pages/Workspaces/Form/properties/WorkspaceFormPropertiesSelection';
+import { WorkspaceFormData } from '~/app/types';
 import { WorkspaceCreate } from '~/shared/api/backendApiTypes';
+import useWorkspaceFormData from '~/app/hooks/useWorkspaceFormData';
+import { useTypedNavigate } from '~/app/routerHelper';
+import { useWorkspaceFormLocationData } from '~/app/hooks/useWorkspaceFormLocationData';
 
-enum WorkspaceCreationSteps {
+enum WorkspaceFormSteps {
   KindSelection,
   ImageSelection,
   PodConfigSelection,
   Properties,
 }
 
-const WorkspaceCreation: React.FunctionComponent = () => {
-  const navigate = useNavigate();
+const WorkspaceForm: React.FC = () => {
+  const navigate = useTypedNavigate();
   const { api } = useNotebookAPI();
-  const { selectedNamespace } = useNamespaceContext();
 
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [currentStep, setCurrentStep] = useState(WorkspaceCreationSteps.KindSelection);
-
-  const [data, setData, resetData] = useGenericObjectState<WorkspaceCreateFormData>({
-    kind: undefined,
-    image: undefined,
-    podConfig: undefined,
-    properties: {
-      deferUpdates: false,
-      homeDirectory: '',
-      volumes: [],
-      secrets: [],
-      workspaceName: '',
-    },
+  const { mode, namespace, workspaceName } = useWorkspaceFormLocationData();
+  const [initialFormData, initialFormDataLoaded, initialFormDataError] = useWorkspaceFormData({
+    namespace,
+    workspaceName,
   });
 
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [currentStep, setCurrentStep] = useState(WorkspaceFormSteps.KindSelection);
+
+  const [data, setData, resetData, replaceData] =
+    useGenericObjectState<WorkspaceFormData>(initialFormData);
+
+  React.useEffect(() => {
+    if (!initialFormDataLoaded || mode === 'create') {
+      return;
+    }
+    replaceData(initialFormData);
+  }, [initialFormData, initialFormDataLoaded, mode, replaceData]);
+
   const getStepVariant = useCallback(
-    (step: WorkspaceCreationSteps) => {
+    (step: WorkspaceFormSteps) => {
       if (step > currentStep) {
         return 'pending';
       }
@@ -76,7 +79,7 @@ const WorkspaceCreation: React.FunctionComponent = () => {
   const canGoToPreviousStep = useMemo(() => currentStep > 0, [currentStep]);
 
   const canGoToNextStep = useMemo(
-    () => currentStep < Object.keys(WorkspaceCreationSteps).length / 2 - 1,
+    () => currentStep < Object.keys(WorkspaceFormSteps).length / 2 - 1,
     [currentStep],
   );
 
@@ -85,13 +88,14 @@ const WorkspaceCreation: React.FunctionComponent = () => {
     [canGoToNextStep, isSubmitting],
   );
 
-  const handleCreate = useCallback(() => {
+  const handleSubmit = useCallback(async () => {
     // TODO: properly validate data before submitting
     if (!data.kind || !data.image || !data.podConfig) {
       return;
     }
 
-    const workspaceCreate: WorkspaceCreate = {
+    // TODO: Prepare WorkspaceUpdate data accordingly when BE supports it
+    const submitData: WorkspaceCreate = {
       name: data.properties.workspaceName,
       kind: data.kind.name,
       deferUpdates: data.properties.deferUpdates,
@@ -115,25 +119,39 @@ const WorkspaceCreation: React.FunctionComponent = () => {
 
     setIsSubmitting(true);
 
-    api
-      .createWorkspace({}, selectedNamespace, { data: workspaceCreate })
-      .then((newWorkspace) => {
+    try {
+      if (mode === 'edit') {
+        const updateWorkspace = await api.updateWorkspace({}, submitData.name, namespace, {
+          data: submitData,
+        });
+        // TODO: alert user about success
+        console.info('Workspace updated:', JSON.stringify(updateWorkspace));
+      } else {
+        const newWorkspace = await api.createWorkspace({}, namespace, { data: submitData });
         // TODO: alert user about success
         console.info('New workspace created:', JSON.stringify(newWorkspace));
-        navigate('/workspaces');
-      })
-      .catch((err) => {
-        // TODO: alert user about error
-        console.error('Error creating workspace:', err);
-      })
-      .finally(() => {
-        setIsSubmitting(false);
-      });
-  }, [api, data, navigate, selectedNamespace]);
+      }
+
+      navigate('workspaces');
+    } catch (err) {
+      // TODO: alert user about error
+      console.error(`Error ${mode === 'edit' ? 'updating' : 'creating'} workspace: ${err}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [data, mode, navigate, api, namespace]);
 
   const cancel = useCallback(() => {
-    navigate('/workspaces');
+    navigate('workspaces');
   }, [navigate]);
+
+  if (initialFormDataError) {
+    return <p>Error loading workspace data: {initialFormDataError.message}</p>; // TODO: UX for error state
+  }
+
+  if (!initialFormDataLoaded) {
+    return <p>Loading...</p>; // TODO: UX for loading state
+  }
 
   return (
     <>
@@ -143,17 +161,17 @@ const WorkspaceCreation: React.FunctionComponent = () => {
             <StackItem>
               <Flex>
                 <Content>
-                  <h1>Create workspace</h1>
+                  <h1>{`${mode === 'create' ? 'Create' : 'Edit'} workspace`}</h1>
                 </Content>
               </Flex>
             </StackItem>
             <StackItem>
-              <ProgressStepper aria-label="Workspace creation stepper">
+              <ProgressStepper aria-label="Workspace form stepper">
                 <ProgressStep
-                  variant={getStepVariant(WorkspaceCreationSteps.KindSelection)}
+                  variant={getStepVariant(WorkspaceFormSteps.KindSelection)}
                   id="kind-selection-step"
                   icon={
-                    getStepVariant(WorkspaceCreationSteps.KindSelection) === 'success' ? (
+                    getStepVariant(WorkspaceFormSteps.KindSelection) === 'success' ? (
                       <CheckIcon />
                     ) : (
                       1
@@ -165,11 +183,11 @@ const WorkspaceCreation: React.FunctionComponent = () => {
                   Workspace Kind
                 </ProgressStep>
                 <ProgressStep
-                  variant={getStepVariant(WorkspaceCreationSteps.ImageSelection)}
+                  variant={getStepVariant(WorkspaceFormSteps.ImageSelection)}
                   isCurrent
                   id="image-selection-step"
                   icon={
-                    getStepVariant(WorkspaceCreationSteps.ImageSelection) === 'success' ? (
+                    getStepVariant(WorkspaceFormSteps.ImageSelection) === 'success' ? (
                       <CheckIcon />
                     ) : (
                       2
@@ -181,11 +199,11 @@ const WorkspaceCreation: React.FunctionComponent = () => {
                   Image
                 </ProgressStep>
                 <ProgressStep
-                  variant={getStepVariant(WorkspaceCreationSteps.PodConfigSelection)}
+                  variant={getStepVariant(WorkspaceFormSteps.PodConfigSelection)}
                   isCurrent
                   id="pod-config-selection-step"
                   icon={
-                    getStepVariant(WorkspaceCreationSteps.PodConfigSelection) === 'success' ? (
+                    getStepVariant(WorkspaceFormSteps.PodConfigSelection) === 'success' ? (
                       <CheckIcon />
                     ) : (
                       3
@@ -197,14 +215,10 @@ const WorkspaceCreation: React.FunctionComponent = () => {
                   Pod Config
                 </ProgressStep>
                 <ProgressStep
-                  variant={getStepVariant(WorkspaceCreationSteps.Properties)}
+                  variant={getStepVariant(WorkspaceFormSteps.Properties)}
                   id="properties-step"
                   icon={
-                    getStepVariant(WorkspaceCreationSteps.Properties) === 'success' ? (
-                      <CheckIcon />
-                    ) : (
-                      4
-                    )
+                    getStepVariant(WorkspaceFormSteps.Properties) === 'success' ? <CheckIcon /> : 4
                   }
                   titleId="properties-step-title"
                   aria-label="Properties step"
@@ -217,8 +231,8 @@ const WorkspaceCreation: React.FunctionComponent = () => {
         </PageSection>
       </PageGroup>
       <PageSection isFilled>
-        {currentStep === WorkspaceCreationSteps.KindSelection && (
-          <WorkspaceCreationKindSelection
+        {currentStep === WorkspaceFormSteps.KindSelection && (
+          <WorkspaceFormKindSelection
             selectedKind={data.kind}
             onSelect={(kind) => {
               resetData();
@@ -226,22 +240,22 @@ const WorkspaceCreation: React.FunctionComponent = () => {
             }}
           />
         )}
-        {currentStep === WorkspaceCreationSteps.ImageSelection && (
-          <WorkspaceCreationImageSelection
+        {currentStep === WorkspaceFormSteps.ImageSelection && (
+          <WorkspaceFormImageSelection
             selectedImage={data.image}
             onSelect={(image) => setData('image', image)}
             images={data.kind?.podTemplate.options.imageConfig.values ?? []}
           />
         )}
-        {currentStep === WorkspaceCreationSteps.PodConfigSelection && (
-          <WorkspaceCreationPodConfigSelection
+        {currentStep === WorkspaceFormSteps.PodConfigSelection && (
+          <WorkspaceFormPodConfigSelection
             selectedPodConfig={data.podConfig}
             onSelect={(podConfig) => setData('podConfig', podConfig)}
             podConfigs={data.kind?.podTemplate.options.podConfig.values ?? []}
           />
         )}
-        {currentStep === WorkspaceCreationSteps.Properties && (
-          <WorkspaceCreationPropertiesSelection
+        {currentStep === WorkspaceFormSteps.Properties && (
+          <WorkspaceFormPropertiesSelection
             selectedProperties={data.properties}
             onSelect={(properties) => setData('properties', properties)}
             selectedImage={data.image}
@@ -274,10 +288,10 @@ const WorkspaceCreation: React.FunctionComponent = () => {
             <Button
               variant="primary"
               ouiaId="Primary"
-              onClick={handleCreate}
+              onClick={handleSubmit}
               isDisabled={!canSubmit}
             >
-              Create
+              {mode === 'create' ? 'Create' : 'Save'}
             </Button>
           </FlexItem>
           <FlexItem>
@@ -291,4 +305,4 @@ const WorkspaceCreation: React.FunctionComponent = () => {
   );
 };
 
-export { WorkspaceCreation };
+export { WorkspaceForm };
