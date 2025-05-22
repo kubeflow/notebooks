@@ -11,26 +11,26 @@ import {
   SplitItem,
   TextInput,
 } from '@patternfly/react-core';
-import { WorkspaceCreationImageDetails } from '~/app/pages/Workspaces/Creation/image/WorkspaceCreationImageDetails';
-import { WorkspaceCreationPropertiesVolumes } from '~/app/pages/Workspaces/Creation/properties/WorkspaceCreationPropertiesVolumes';
-import { WorkspaceCreateProperties } from '~/app/types';
+import { WorkspaceFormImageDetails } from '~/app/pages/Workspaces/Form/image/WorkspaceFormImageDetails';
+import { WorkspaceFormPropertiesVolumes } from '~/app/pages/Workspaces/Form/properties/WorkspaceFormPropertiesVolumes';
+import { WorkspaceFormProperties } from '~/app/types';
 import { WorkspaceImageConfigValue } from '~/shared/api/backendApiTypes';
-import { WorkspaceCreationPropertiesSecrets } from './WorkspaceCreationPropertiesSecrets';
+import { WorkspaceFormPropertiesSecrets } from './WorkspaceFormPropertiesSecrets';
 
-interface WorkspaceCreationPropertiesSelectionProps {
+interface WorkspaceFormPropertiesSelectionProps {
   selectedImage: WorkspaceImageConfigValue | undefined;
-  selectedProperties: WorkspaceCreateProperties;
-  onSelect: (properties: WorkspaceCreateProperties) => void;
+  selectedProperties: WorkspaceFormProperties;
+  onSelect: (properties: WorkspaceFormProperties) => void;
 }
 
-const WorkspaceCreationPropertiesSelection: React.FunctionComponent<
-  WorkspaceCreationPropertiesSelectionProps
+const WorkspaceFormPropertiesSelection: React.FunctionComponent<
+  WorkspaceFormPropertiesSelectionProps
 > = ({ selectedImage, selectedProperties, onSelect }) => {
   const [isVolumesExpanded, setIsVolumesExpanded] = useState(false);
   const [isSecretsExpanded, setIsSecretsExpanded] = useState(false);
 
   const imageDetailsContent = useMemo(
-    () => <WorkspaceCreationImageDetails workspaceImage={selectedImage} />,
+    () => <WorkspaceFormImageDetails workspaceImage={selectedImage} />,
     [selectedImage],
   );
 
@@ -98,7 +98,7 @@ const WorkspaceCreationPropertiesSelection: React.FunctionComponent<
                       </FormGroup>
 
                       <FormGroup fieldId="volumes-table" style={{ marginTop: '1rem' }}>
-                        <WorkspaceCreationPropertiesVolumes
+                        <WorkspaceFormPropertiesVolumes
                           volumes={selectedProperties.volumes}
                           setVolumes={(volumes) => onSelect({ ...selectedProperties, volumes })}
                         />
@@ -124,7 +124,7 @@ const WorkspaceCreationPropertiesSelection: React.FunctionComponent<
                 >
                   {isSecretsExpanded && (
                     <FormGroup fieldId="secrets-table" style={{ marginTop: '1rem' }}>
-                      <WorkspaceCreationPropertiesSecrets
+                      <WorkspaceFormPropertiesSecrets
                         secrets={selectedProperties.secrets}
                         setSecrets={(secrets) => onSelect({ ...selectedProperties, secrets })}
                       />
@@ -148,4 +148,4 @@ const WorkspaceCreationPropertiesSelection: React.FunctionComponent<
   );
 };
 
-export { WorkspaceCreationPropertiesSelection };
+export { WorkspaceFormPropertiesSelection };

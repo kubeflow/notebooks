@@ -20,16 +20,17 @@ import {
 } from '@patternfly/react-core';
 import { WorkspacePodSecretMount } from '~/shared/api/backendApiTypes';
 
-interface WorkspaceCreationPropertiesSecretsProps {
+interface WorkspaceFormPropertiesSecretsProps {
   secrets: WorkspacePodSecretMount[];
   setSecrets: (secrets: WorkspacePodSecretMount[]) => void;
 }
 
 const DEFAULT_MODE_OCTAL = (420).toString(8);
 
-export const WorkspaceCreationPropertiesSecrets: React.FC<
-  WorkspaceCreationPropertiesSecretsProps
-> = ({ secrets, setSecrets }) => {
+export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSecretsProps> = ({
+  secrets,
+  setSecrets,
+}) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [formData, setFormData] = useState<WorkspacePodSecretMount>({
@@ -116,7 +117,7 @@ export const WorkspaceCreationPropertiesSecrets: React.FC<
               <Th>Secret Name</Th>
               <Th>Mount Path</Th>
               <Th>Default Mode</Th>
-              <Th />
+              <Th aria-label="Actions" />
             </Tr>
           </Thead>
           <Tbody>
@@ -242,4 +243,4 @@ export const WorkspaceCreationPropertiesSecrets: React.FC<
   );
 };
 
-export default WorkspaceCreationPropertiesSecrets;
+export default WorkspaceFormPropertiesSecrets;

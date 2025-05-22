@@ -34,11 +34,11 @@ import {
   CodeIcon,
 } from '@patternfly/react-icons';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Workspace, WorkspaceState } from '~/shared/api/backendApiTypes';
 import { WorkspaceDetails } from '~/app/pages/Workspaces/Details/WorkspaceDetails';
 import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
 import DeleteModal from '~/shared/components/DeleteModal';
+import { useTypedNavigate } from '~/app/routerHelper';
 import {
   buildKindLogoDictionary,
   buildWorkspaceRedirectStatus,
@@ -52,9 +52,9 @@ import { WorkspaceRestartActionModal } from '~/app/pages/Workspaces/workspaceAct
 import { WorkspaceStopActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceStopActionModal';
 import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
 import { WorkspacesColumnNames } from '~/app/types';
-import CustomEmptyState from '~/shared/components/CustomEmptyState'; // Import the new component
-import Filter, { FilteredColumn, FilterRef } from 'shared/components/Filter'; // Import FilterRef
-import { extractCpuValue, extractMemoryValue } from 'shared/utilities/WorkspaceUtils';
+import CustomEmptyState from '~/shared/components/CustomEmptyState';
+import Filter, { FilteredColumn, FilterRef } from '~/shared/components/Filter';
+import { extractCpuValue, extractMemoryValue } from '~/shared/utilities/WorkspaceUtils';
 
 export enum ActionType {
   ViewDetails,
@@ -66,9 +66,9 @@ export enum ActionType {
 }
 
 export const Workspaces: React.FunctionComponent = () => {
-  const navigate = useNavigate();
+  const navigate = useTypedNavigate();
   const createWorkspace = React.useCallback(() => {
-    navigate('/workspaces/create');
+    navigate('workspaceCreate');
   }, [navigate]);
 
   const createWorkspaceButton = (
@@ -126,6 +126,18 @@ export const Workspaces: React.FunctionComponent = () => {
     }
     setWorkspaces(initialWorkspaces ?? []);
   }, [initialWorkspaces, initialWorkspacesLoaded]);
+
+  React.useEffect(() => {
+    if (activeActionType !== ActionType.Edit || !selectedWorkspace) {
+      return;
+    }
+    navigate('workspaceEdit', {
+      state: {
+        namespace: selectedWorkspace.namespace,
+        workspaceName: selectedWorkspace.name,
+      },
+    });
+  }, [activeActionType, navigate, selectedWorkspace]);
 
   const selectWorkspace = React.useCallback(
     (newSelectedWorkspace: Workspace | null) => {
@@ -267,10 +279,11 @@ export const Workspaces: React.FunctionComponent = () => {
     setActiveActionType(ActionType.ViewDetails);
   }, []);
 
-  const editAction = React.useCallback((workspace: Workspace) => {
-    setSelectedWorkspace(workspace);
-    setActiveActionType(ActionType.Edit);
-  }, []);
+  // TODO: Uncomment when edit action is fully supported
+  // const editAction = React.useCallback((workspace: Workspace) => {
+  //   setSelectedWorkspace(workspace);
+  //   setActiveActionType(ActionType.Edit);
+  // }, []);
 
   const deleteAction = React.useCallback((workspace: Workspace) => {
     setSelectedWorkspace(workspace);
@@ -308,11 +321,12 @@ export const Workspaces: React.FunctionComponent = () => {
         title: 'View Details',
         onClick: () => viewDetailsClick(workspace),
       },
-      {
-        id: 'edit',
-        title: 'Edit',
-        onClick: () => editAction(workspace),
-      },
+      // TODO: Uncomment when edit action is fully supported
+      // {
+      //   id: 'edit',
+      //   title: 'Edit',
+      //   onClick: () => editAction(workspace),
+      // },
       {
         id: 'delete',
         title: 'Delete',
@@ -481,7 +495,8 @@ export const Workspaces: React.FunctionComponent = () => {
         <WorkspaceDetails
           workspace={selectedWorkspace}
           onCloseClick={() => selectWorkspace(null)}
-          onEditClick={() => editAction(selectedWorkspace)}
+          // TODO: Uncomment when edit action is fully supported
+          // onEditClick={() => editAction(selectedWorkspace)}
           onDeleteClick={() => handleDeleteClick(selectedWorkspace)}
         />
       )}
@@ -616,11 +631,13 @@ export const Workspaces: React.FunctionComponent = () => {
                   </Tbody>
                 ))}
               {sortedWorkspaces.length === 0 && (
-                <Tr>
-                  <Td colSpan={12} id="empty-state-cell">
-                    <Bullseye>{emptyState}</Bullseye>
-                  </Td>
-                </Tr>
+                <Tbody>
+                  <Tr>
+                    <Td colSpan={12} id="empty-state-cell">
+                      <Bullseye>{emptyState}</Bullseye>
+                    </Td>
+                  </Tr>
+                </Tbody>
               )}
             </Table>
             {isActionAlertModalOpen && chooseAlertModal()}

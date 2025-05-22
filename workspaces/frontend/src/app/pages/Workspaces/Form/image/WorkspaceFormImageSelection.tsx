@@ -1,20 +1,22 @@
 import React, { useMemo, useState, useCallback } from 'react';
 import { Content, Divider, Split, SplitItem } from '@patternfly/react-core';
-import { WorkspaceCreationImageDetails } from '~/app/pages/Workspaces/Creation/image/WorkspaceCreationImageDetails';
-import { WorkspaceCreationImageList } from '~/app/pages/Workspaces/Creation/image/WorkspaceCreationImageList';
-import { FilterByLabels } from '~/app/pages/Workspaces/Creation/labelFilter/FilterByLabels';
+import { WorkspaceFormImageDetails } from '~/app/pages/Workspaces/Form/image/WorkspaceFormImageDetails';
+import { WorkspaceFormImageList } from '~/app/pages/Workspaces/Form/image/WorkspaceFormImageList';
+import { FilterByLabels } from '~/app/pages/Workspaces/Form/labelFilter/FilterByLabels';
 import { WorkspaceImageConfigValue } from '~/shared/api/backendApiTypes';
-import { WorkspaceCreationDrawer } from '~/app/pages/Workspaces/Creation/WorkspaceCreationDrawer';
+import { WorkspaceFormDrawer } from '~/app/pages/Workspaces/Form/WorkspaceFormDrawer';
 
-interface WorkspaceCreationImageSelectionProps {
+interface WorkspaceFormImageSelectionProps {
   images: WorkspaceImageConfigValue[];
   selectedImage: WorkspaceImageConfigValue | undefined;
   onSelect: (image: WorkspaceImageConfigValue | undefined) => void;
 }
 
-const WorkspaceCreationImageSelection: React.FunctionComponent<
-  WorkspaceCreationImageSelectionProps
-> = ({ images, selectedImage, onSelect }) => {
+const WorkspaceFormImageSelection: React.FunctionComponent<WorkspaceFormImageSelectionProps> = ({
+  images,
+  selectedImage,
+  onSelect,
+}) => {
   const [selectedLabels, setSelectedLabels] = useState<Map<string, Set<string>>>(new Map());
   const [isExpanded, setIsExpanded] = useState(false);
   const drawerRef = React.useRef<HTMLSpanElement>(undefined);
@@ -49,7 +51,7 @@ const WorkspaceCreationImageSelection: React.FunctionComponent<
   );
 
   const imageDetailsContent = useMemo(
-    () => <WorkspaceCreationImageDetails workspaceImage={selectedImage} />,
+    () => <WorkspaceFormImageDetails workspaceImage={selectedImage} />,
     [selectedImage],
   );
 
@@ -57,7 +59,7 @@ const WorkspaceCreationImageSelection: React.FunctionComponent<
     <Content style={{ height: '100%' }}>
       <p>Select a workspace image and image version to use for the workspace.</p>
       <Divider />
-      <WorkspaceCreationDrawer
+      <WorkspaceFormDrawer
         title="Image"
         info={imageDetailsContent}
         isExpanded={isExpanded}
@@ -67,7 +69,7 @@ const WorkspaceCreationImageSelection: React.FunctionComponent<
         <Split hasGutter>
           <SplitItem style={{ minWidth: '200px' }}>{imageFilterContent}</SplitItem>
           <SplitItem isFilled>
-            <WorkspaceCreationImageList
+            <WorkspaceFormImageList
               images={images}
               selectedLabels={selectedLabels}
               selectedImage={selectedImage}
@@ -75,9 +77,9 @@ const WorkspaceCreationImageSelection: React.FunctionComponent<
             />
           </SplitItem>
         </Split>
-      </WorkspaceCreationDrawer>
+      </WorkspaceFormDrawer>
     </Content>
   );
 };
 
-export { WorkspaceCreationImageSelection };
+export { WorkspaceFormImageSelection };

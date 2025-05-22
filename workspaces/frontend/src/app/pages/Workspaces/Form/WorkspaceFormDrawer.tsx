@@ -10,7 +10,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 
-interface WorkspaceCreationDrawerProps {
+interface WorkspaceFormDrawerProps {
   children: React.ReactNode;
   title: string;
   info: React.ReactNode;
@@ -20,7 +20,7 @@ interface WorkspaceCreationDrawerProps {
   onExpand: () => void;
 }
 
-export const WorkspaceCreationDrawer: React.FC<WorkspaceCreationDrawerProps> = ({
+export const WorkspaceFormDrawer: React.FC<WorkspaceFormDrawerProps> = ({
   children,
   isExpanded,
   drawerRef,

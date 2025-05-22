@@ -1,6 +1,8 @@
 import * as React from 'react';
+import { Link } from 'react-router-dom';
 import { Button, Split, SplitItem, Title } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
+import { AppRoutePaths } from '~/app/routes';
 import ErrorDetails from '~/app/error/ErrorDetails';
 import UpdateState from '~/app/error/UpdateState';
 
@@ -57,7 +59,11 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
                 An error occurred
               </Title>
               <p className="pf-v6-u-mb-md">
-                Try{' '}
+                Try going back to the{' '}
+                <Link reloadDocument to={AppRoutePaths.root}>
+                  HOME PAGE
+                </Link>{' '}
+                or{' '}
                 <Button
                   data-testid="reload-link"
                   variant="link"
@@ -66,7 +72,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
                 >
                   reloading
                 </Button>{' '}
-                the page if there was a recent update.
+                this page if there was a recent update.
               </p>
             </SplitItem>
             <SplitItem>

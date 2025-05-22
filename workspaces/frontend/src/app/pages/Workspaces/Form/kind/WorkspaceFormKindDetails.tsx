@@ -2,13 +2,13 @@ import React from 'react';
 import { Title } from '@patternfly/react-core';
 import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 
-type WorkspaceCreationKindDetailsProps = {
+type WorkspaceFormKindDetailsProps = {
   workspaceKind?: WorkspaceKind;
 };
 
-export const WorkspaceCreationKindDetails: React.FunctionComponent<
-  WorkspaceCreationKindDetailsProps
-> = ({ workspaceKind }) => (
+export const WorkspaceFormKindDetails: React.FunctionComponent<WorkspaceFormKindDetailsProps> = ({
+  workspaceKind,
+}) => (
   <div style={{ marginLeft: 'var(--pf-t--global--spacer--md)' }}>
     {workspaceKind && (
       <>

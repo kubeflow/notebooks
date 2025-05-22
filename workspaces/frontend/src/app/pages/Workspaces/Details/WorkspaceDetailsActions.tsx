@@ -9,12 +9,13 @@ import {
 } from '@patternfly/react-core';
 
 interface WorkspaceDetailsActionsProps {
-  onEditClick: React.MouseEventHandler;
+  // TODO: Uncomment when edit action is fully supported
+  // onEditClick: React.MouseEventHandler;
   onDeleteClick: React.MouseEventHandler;
 }
 
 export const WorkspaceDetailsActions: React.FC<WorkspaceDetailsActionsProps> = ({
-  onEditClick,
+  // onEditClick,
   onDeleteClick,
 }) => {
   const [isOpen, setOpen] = React.useState(false);
@@ -41,14 +42,15 @@ export const WorkspaceDetailsActions: React.FC<WorkspaceDetailsActionsProps> = (
           )}
         >
           <DropdownList>
-            <DropdownItem
+            {/* TODO: Uncomment when edit action is fully supported */}
+            {/* <DropdownItem
               id="workspace-details-action-edit-button"
               aria-label="Edit workspace"
               key="edit-workspace-button"
               onClick={onEditClick}
             >
               Edit
-            </DropdownItem>
+            </DropdownItem> */}
             <DropdownItem
               id="workspace-details-action-delete-button"
               aria-label="Delete workspace"

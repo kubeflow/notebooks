@@ -13,13 +13,13 @@ import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import Filter, { FilteredColumn, FilterRef } from '~/shared/components/Filter';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
 
-type WorkspaceCreationKindListProps = {
+type WorkspaceFormKindListProps = {
   allWorkspaceKinds: WorkspaceKind[];
   selectedKind: WorkspaceKind | undefined;
   onSelect: (workspaceKind: WorkspaceKind | undefined) => void;
 };
 
-export const WorkspaceCreationKindList: React.FunctionComponent<WorkspaceCreationKindListProps> = ({
+export const WorkspaceFormKindList: React.FunctionComponent<WorkspaceFormKindListProps> = ({
   allWorkspaceKinds,
   selectedKind,
   onSelect,

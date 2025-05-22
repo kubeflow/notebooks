@@ -27,7 +27,7 @@ export interface WorkspaceKindsColumnNames {
   numberOfWorkspaces: string;
 }
 
-export interface WorkspaceCreateProperties {
+export interface WorkspaceFormProperties {
   workspaceName: string;
   deferUpdates: boolean;
   homeDirectory: string;
@@ -35,9 +35,9 @@ export interface WorkspaceCreateProperties {
   secrets: WorkspacePodSecretMount[];
 }
 
-export interface WorkspaceCreateFormData {
+export interface WorkspaceFormData {
   kind: WorkspaceKind | undefined;
   image: WorkspaceImageConfigValue | undefined;
   podConfig: WorkspacePodConfigValue | undefined;
-  properties: WorkspaceCreateProperties;
+  properties: WorkspaceFormProperties;
 }

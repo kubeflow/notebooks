@@ -2,18 +2,19 @@ import React, { useState, useRef, useMemo, useCallback } from 'react';
 import { Content, Divider } from '@patternfly/react-core';
 import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
-import { WorkspaceCreationKindDetails } from '~/app/pages/Workspaces/Creation/kind/WorkspaceCreationKindDetails';
-import { WorkspaceCreationKindList } from '~/app/pages/Workspaces/Creation/kind/WorkspaceCreationKindList';
-import { WorkspaceCreationDrawer } from '~/app/pages/Workspaces/Creation/WorkspaceCreationDrawer';
+import { WorkspaceFormKindDetails } from '~/app/pages/Workspaces/Form/kind/WorkspaceFormKindDetails';
+import { WorkspaceFormKindList } from '~/app/pages/Workspaces/Form/kind/WorkspaceFormKindList';
+import { WorkspaceFormDrawer } from '~/app/pages/Workspaces/Form/WorkspaceFormDrawer';
 
-interface WorkspaceCreationKindSelectionProps {
+interface WorkspaceFormKindSelectionProps {
   selectedKind: WorkspaceKind | undefined;
   onSelect: (kind: WorkspaceKind | undefined) => void;
 }
 
-const WorkspaceCreationKindSelection: React.FunctionComponent<
-  WorkspaceCreationKindSelectionProps
-> = ({ selectedKind, onSelect }) => {
+const WorkspaceFormKindSelection: React.FunctionComponent<WorkspaceFormKindSelectionProps> = ({
+  selectedKind,
+  onSelect,
+}) => {
   const [workspaceKinds, loaded, error] = useWorkspaceKinds();
   const [isExpanded, setIsExpanded] = useState(false);
   const drawerRef = useRef<HTMLSpanElement>(undefined);
@@ -37,7 +38,7 @@ const WorkspaceCreationKindSelection: React.FunctionComponent<
   }, []);
 
   const kindDetailsContent = useMemo(
-    () => <WorkspaceCreationKindDetails workspaceKind={selectedKind} />,
+    () => <WorkspaceFormKindDetails workspaceKind={selectedKind} />,
     [selectedKind],
   );
 
@@ -51,7 +52,7 @@ const WorkspaceCreationKindSelection: React.FunctionComponent<
 
   return (
     <Content style={{ height: '100%' }}>
-      <WorkspaceCreationDrawer
+      <WorkspaceFormDrawer
         title="Workspace kind"
         info={kindDetailsContent}
         isExpanded={isExpanded}
@@ -60,14 +61,14 @@ const WorkspaceCreationKindSelection: React.FunctionComponent<
       >
         <p>Select a workspace kind to use for the workspace.</p>
         <Divider />
-        <WorkspaceCreationKindList
+        <WorkspaceFormKindList
           allWorkspaceKinds={workspaceKinds}
           selectedKind={selectedKind}
           onSelect={onClick}
         />
-      </WorkspaceCreationDrawer>
+      </WorkspaceFormDrawer>
     </Content>
   );
 };
 
-export { WorkspaceCreationKindSelection };
+export { WorkspaceFormKindSelection };
