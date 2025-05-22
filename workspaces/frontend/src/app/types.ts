@@ -42,10 +42,6 @@ export interface WorkspaceCountPerOption {
   countByNamespace: Record<Workspace['namespace'], number>;
 }
 
-export interface WorkspaceKindCreateFormData {
-  data: { [key: string]: unknown };
-}
-
 export interface WorkspaceKindProperties {
   displayName: string;
   description: string;
