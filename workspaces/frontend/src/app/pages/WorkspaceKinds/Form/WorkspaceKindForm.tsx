@@ -16,6 +16,7 @@ import { useNavigate } from 'react-router-dom';
 import useGenericObjectState from '~/app/hooks/useGenericObjectState';
 import { WorkspaceKindCreateFormData } from '~/app/types';
 import { WorkspaceKindCreationMethod } from './method/WorkspaceKindCreationMethod';
+import { WorkspaceKindFormProperties } from './properties/WorkspaceKindFormProperties';
 
 enum WorkspaceKindCreationSteps {
   CreationMethod,
@@ -123,6 +124,21 @@ export const WorkspaceKindForm: React.FC = () => {
                 >
                   Method
                 </ProgressStep>
+                <ProgressStep
+                  variant={getStepVariant(WorkspaceKindCreationSteps.Properties)}
+                  id="properties-step"
+                  icon={
+                    getStepVariant(WorkspaceKindCreationSteps.Properties) === 'success' ? (
+                      <CheckIcon />
+                    ) : (
+                      2
+                    )
+                  }
+                  titleId="properties-step-title"
+                  aria-label="Properties selection step"
+                >
+                  Properties
+                </ProgressStep>
               </ProgressStepper>
             </StackItem>
           </Stack>
@@ -136,6 +152,13 @@ export const WorkspaceKindForm: React.FC = () => {
               setMethodSelected(methodType)
             }
             setData={setData}
+            resetData={resetData}
+          />
+        )}
+        {currentStep === WorkspaceKindCreationSteps.Properties && (
+          <WorkspaceKindFormProperties
+            properties={data.properties}
+            updateField={(properties) => setData('properties', properties)}
           />
         )}
       </PageSection>

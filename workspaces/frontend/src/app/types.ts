@@ -47,10 +47,6 @@ export interface WorkspaceFormData {
   properties: WorkspaceFormProperties;
 }
 
-export interface WorkspaceKindCreateFormData {
-  data: { [key: string]: unknown };
-}
-
 export interface WorkspaceKindProperties {
   displayName: string;
   description: string;
