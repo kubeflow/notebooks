@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {
-  Button,
   Menu,
   MenuContent,
   MenuItem,
@@ -16,14 +15,13 @@ import {
   ToolbarToggleGroup,
 } from '@patternfly/react-core';
 import { FilterIcon } from '@patternfly/react-icons';
-import { useNavigate } from 'react-router';
-import { useCallback } from 'react';
 import ThemeAwareSearchInput from '~/app/components/ThemeAwareSearchInput';
 
 export interface FilterProps {
   id: string;
   onFilter: (filters: FilteredColumn[]) => void;
   columnNames: { [key: string]: string };
+  toolbarActions?: React.ReactNode;
 }
 
 export interface FilteredColumn {
@@ -37,255 +35,252 @@ export interface FilterRef {
 }
 
 // Use forwardRef to allow parents to get a ref to this component instance
-const Filter = React.forwardRef<FilterRef, FilterProps>(({ id, onFilter, columnNames }, ref) => {
-  Filter.displayName = 'Filter';
-  const [activeFilter, setActiveFilter] = React.useState<FilteredColumn>({
-    columnName: Object.values(columnNames)[0],
-    value: '',
-  });
-  const [searchValue, setSearchValue] = React.useState<string>('');
-  const [isFilterMenuOpen, setIsFilterMenuOpen] = React.useState<boolean>(false);
-  const [filters, setFilters] = React.useState<FilteredColumn[]>([]);
-
-  const filterToggleRef = React.useRef<MenuToggleElement | null>(null);
-  const filterMenuRef = React.useRef<HTMLDivElement | null>(null);
-  const filterContainerRef = React.useRef<HTMLDivElement | null>(null);
-
-  const navigate = useNavigate();
-  const createWorkspace = useCallback(() => {
-    navigate('/workspaces/create');
-  }, [navigate]);
-
-  const handleFilterMenuKeys = React.useCallback(
-    (event: KeyboardEvent) => {
-      if (!isFilterMenuOpen) {
-        return;
-      }
-      if (
-        filterMenuRef.current?.contains(event.target as Node) ||
-        filterToggleRef.current?.contains(event.target as Node)
-      ) {
-        if (event.key === 'Escape' || event.key === 'Tab') {
-          setIsFilterMenuOpen(!isFilterMenuOpen);
-          filterToggleRef.current?.focus();
-        }
-      }
-    },
-    [isFilterMenuOpen, filterMenuRef, filterToggleRef],
-  );
-
-  const handleClickOutside = React.useCallback(
-    (event: MouseEvent) => {
-      if (isFilterMenuOpen && !filterMenuRef.current?.contains(event.target as Node)) {
-        setIsFilterMenuOpen(false);
-      }
-    },
-    [isFilterMenuOpen, filterMenuRef],
-  );
-
-  React.useEffect(() => {
-    window.addEventListener('keydown', handleFilterMenuKeys);
-    window.addEventListener('click', handleClickOutside);
-    return () => {
-      window.removeEventListener('keydown', handleFilterMenuKeys);
-      window.removeEventListener('click', handleClickOutside);
-    };
-  }, [isFilterMenuOpen, filterMenuRef, handleFilterMenuKeys, handleClickOutside]);
-
-  const onFilterToggleClick = React.useCallback(
-    (ev: React.MouseEvent) => {
-      ev.stopPropagation(); // Stop handleClickOutside from handling
-      setTimeout(() => {
-        const firstElement = filterMenuRef.current?.querySelector('li > button:not(:disabled)');
-        if (firstElement) {
-          (firstElement as HTMLElement).focus();
-        }
-      }, 0);
-      setIsFilterMenuOpen(!isFilterMenuOpen);
-    },
-    [isFilterMenuOpen],
-  );
-
-  const updateFilters = React.useCallback(
-    (filterObj: FilteredColumn) => {
-      setFilters((prevFilters) => {
-        const index = prevFilters.findIndex((filter) => filter.columnName === filterObj.columnName);
-        const newFilters = [...prevFilters];
-
-        if (filterObj.value === '') {
-          const updatedFilters = newFilters.filter(
-            (filter) => filter.columnName !== filterObj.columnName,
-          );
-          onFilter(updatedFilters);
-          return updatedFilters;
-        }
-        if (index !== -1) {
-          newFilters[index] = filterObj;
-          onFilter(newFilters);
-          return newFilters;
-        }
-        newFilters.push(filterObj);
-        onFilter(newFilters);
-        return newFilters;
-      });
-    },
-    [onFilter],
-  );
-
-  const onSearchChange = React.useCallback(
-    (value: string) => {
-      setSearchValue(value);
-      setActiveFilter((prevActiveFilter) => {
-        const newActiveFilter = { ...prevActiveFilter, value };
-        updateFilters(newActiveFilter);
-        return newActiveFilter;
-      });
-    },
-    [updateFilters],
-  );
-
-  const onDeleteLabelGroup = React.useCallback(
-    (filter: FilteredColumn) => {
-      setFilters((prevFilters) => {
-        const newFilters = prevFilters.filter(
-          (filter1) => filter1.columnName !== filter.columnName,
-        );
-        onFilter(newFilters);
-        return newFilters;
-      });
-      if (filter.columnName === activeFilter.columnName) {
-        setSearchValue('');
-        setActiveFilter((prevActiveFilter) => ({
-          ...prevActiveFilter,
-          value: '',
-        }));
-      }
-    },
-    [activeFilter.columnName, onFilter],
-  );
-
-  // Expose the clearAllFilters logic via the ref
-  const clearAllInternal = React.useCallback(() => {
-    setFilters([]);
-    setSearchValue('');
-    setActiveFilter({
+const Filter = React.forwardRef<FilterRef, FilterProps>(
+  ({ id, onFilter, columnNames, toolbarActions }, ref) => {
+    Filter.displayName = 'Filter';
+    const [activeFilter, setActiveFilter] = React.useState<FilteredColumn>({
       columnName: Object.values(columnNames)[0],
       value: '',
     });
-    onFilter([]);
-  }, [columnNames, onFilter]);
+    const [searchValue, setSearchValue] = React.useState<string>('');
+    const [isFilterMenuOpen, setIsFilterMenuOpen] = React.useState<boolean>(false);
+    const [filters, setFilters] = React.useState<FilteredColumn[]>([]);
 
-  React.useImperativeHandle(ref, () => ({
-    clearAll: clearAllInternal,
-  }));
+    const filterToggleRef = React.useRef<MenuToggleElement | null>(null);
+    const filterMenuRef = React.useRef<HTMLDivElement | null>(null);
+    const filterContainerRef = React.useRef<HTMLDivElement | null>(null);
 
-  const onFilterSelect = React.useCallback(
-    (itemId: string | number | undefined) => {
-      // Use the functional update form to toggle the state
-      setIsFilterMenuOpen((prevIsMenuOpen) => !prevIsMenuOpen); // Fix is here
+    const handleFilterMenuKeys = React.useCallback(
+      (event: KeyboardEvent) => {
+        if (!isFilterMenuOpen) {
+          return;
+        }
+        if (
+          filterMenuRef.current?.contains(event.target as Node) ||
+          filterToggleRef.current?.contains(event.target as Node)
+        ) {
+          if (event.key === 'Escape' || event.key === 'Tab') {
+            setIsFilterMenuOpen(!isFilterMenuOpen);
+            filterToggleRef.current?.focus();
+          }
+        }
+      },
+      [isFilterMenuOpen, filterMenuRef, filterToggleRef],
+    );
 
-      const selectedColumnName = itemId ? itemId.toString() : Object.values(columnNames)[0];
+    const handleClickOutside = React.useCallback(
+      (event: MouseEvent) => {
+        if (isFilterMenuOpen && !filterMenuRef.current?.contains(event.target as Node)) {
+          setIsFilterMenuOpen(false);
+        }
+      },
+      [isFilterMenuOpen, filterMenuRef],
+    );
 
-      // Find the existing filter value for the selected column, if any
-      const existingFilter = filters.find((filter) => filter.columnName === selectedColumnName);
-      const existingValue = existingFilter ? existingFilter.value : '';
+    React.useEffect(() => {
+      window.addEventListener('keydown', handleFilterMenuKeys);
+      window.addEventListener('click', handleClickOutside);
+      return () => {
+        window.removeEventListener('keydown', handleFilterMenuKeys);
+        window.removeEventListener('click', handleClickOutside);
+      };
+    }, [isFilterMenuOpen, filterMenuRef, handleFilterMenuKeys, handleClickOutside]);
 
-      setSearchValue(existingValue); // Set search input to the existing filter value
+    const onFilterToggleClick = React.useCallback(
+      (ev: React.MouseEvent) => {
+        ev.stopPropagation(); // Stop handleClickOutside from handling
+        setTimeout(() => {
+          const firstElement = filterMenuRef.current?.querySelector('li > button:not(:disabled)');
+          if (firstElement) {
+            (firstElement as HTMLElement).focus();
+          }
+        }, 0);
+        setIsFilterMenuOpen(!isFilterMenuOpen);
+      },
+      [isFilterMenuOpen],
+    );
+
+    const updateFilters = React.useCallback(
+      (filterObj: FilteredColumn) => {
+        setFilters((prevFilters) => {
+          const index = prevFilters.findIndex(
+            (filter) => filter.columnName === filterObj.columnName,
+          );
+          const newFilters = [...prevFilters];
+
+          if (filterObj.value === '') {
+            const updatedFilters = newFilters.filter(
+              (filter) => filter.columnName !== filterObj.columnName,
+            );
+            onFilter(updatedFilters);
+            return updatedFilters;
+          }
+          if (index !== -1) {
+            newFilters[index] = filterObj;
+            onFilter(newFilters);
+            return newFilters;
+          }
+          newFilters.push(filterObj);
+          onFilter(newFilters);
+          return newFilters;
+        });
+      },
+      [onFilter],
+    );
+
+    const onSearchChange = React.useCallback(
+      (value: string) => {
+        setSearchValue(value);
+        setActiveFilter((prevActiveFilter) => {
+          const newActiveFilter = { ...prevActiveFilter, value };
+          updateFilters(newActiveFilter);
+          return newActiveFilter;
+        });
+      },
+      [updateFilters],
+    );
+
+    const onDeleteLabelGroup = React.useCallback(
+      (filter: FilteredColumn) => {
+        setFilters((prevFilters) => {
+          const newFilters = prevFilters.filter(
+            (filter1) => filter1.columnName !== filter.columnName,
+          );
+          onFilter(newFilters);
+          return newFilters;
+        });
+        if (filter.columnName === activeFilter.columnName) {
+          setSearchValue('');
+          setActiveFilter((prevActiveFilter) => ({
+            ...prevActiveFilter,
+            value: '',
+          }));
+        }
+      },
+      [activeFilter.columnName, onFilter],
+    );
+
+    // Expose the clearAllFilters logic via the ref
+    const clearAllInternal = React.useCallback(() => {
+      setFilters([]);
+      setSearchValue('');
       setActiveFilter({
-        columnName: selectedColumnName,
-        value: existingValue, // Set the active filter value
+        columnName: Object.values(columnNames)[0],
+        value: '',
       });
-    },
-    [columnNames, filters],
-  );
+      onFilter([]);
+    }, [columnNames, onFilter]);
 
-  const filterMenuToggle = React.useMemo(
-    () => (
-      <MenuToggle
-        ref={filterToggleRef}
-        onClick={onFilterToggleClick}
-        isExpanded={isFilterMenuOpen}
-        icon={<FilterIcon />}
+    React.useImperativeHandle(ref, () => ({
+      clearAll: clearAllInternal,
+    }));
+
+    const onFilterSelect = React.useCallback(
+      (itemId: string | number | undefined) => {
+        // Use the functional update form to toggle the state
+        setIsFilterMenuOpen((prevIsMenuOpen) => !prevIsMenuOpen); // Fix is here
+
+        const selectedColumnName = itemId ? itemId.toString() : Object.values(columnNames)[0];
+
+        // Find the existing filter value for the selected column, if any
+        const existingFilter = filters.find((filter) => filter.columnName === selectedColumnName);
+        const existingValue = existingFilter ? existingFilter.value : '';
+
+        setSearchValue(existingValue); // Set search input to the existing filter value
+        setActiveFilter({
+          columnName: selectedColumnName,
+          value: existingValue, // Set the active filter value
+        });
+      },
+      [columnNames, filters],
+    );
+
+    const filterMenuToggle = React.useMemo(
+      () => (
+        <MenuToggle
+          ref={filterToggleRef}
+          onClick={onFilterToggleClick}
+          isExpanded={isFilterMenuOpen}
+          icon={<FilterIcon />}
+        >
+          {activeFilter.columnName}
+        </MenuToggle>
+      ),
+      [activeFilter.columnName, isFilterMenuOpen, onFilterToggleClick],
+    );
+
+    const filterMenu = React.useMemo(
+      () => (
+        <Menu ref={filterMenuRef} onSelect={(_ev, itemId) => onFilterSelect(itemId)}>
+          <MenuContent>
+            <MenuList>
+              {Object.values(columnNames).map((name: string) => (
+                <MenuItem id={`${id}-dropdown-${name}`} key={name} itemId={name}>
+                  {name}
+                </MenuItem>
+              ))}
+            </MenuList>
+          </MenuContent>
+        </Menu>
+      ),
+      [columnNames, id, onFilterSelect],
+    );
+
+    const filterDropdown = React.useMemo(
+      () => (
+        <div ref={filterContainerRef}>
+          <Popper
+            trigger={filterMenuToggle}
+            triggerRef={filterToggleRef}
+            popper={filterMenu}
+            popperRef={filterMenuRef}
+            appendTo={filterContainerRef.current || undefined}
+            isVisible={isFilterMenuOpen}
+          />
+        </div>
+      ),
+      [filterMenuToggle, filterMenu, isFilterMenuOpen],
+    );
+
+    return (
+      <Toolbar
+        id="attribute-search-filter-toolbar"
+        clearAllFilters={clearAllInternal} // Use the internal clear function
       >
-        {activeFilter.columnName}
-      </MenuToggle>
-    ),
-    [activeFilter.columnName, isFilterMenuOpen, onFilterToggleClick],
-  );
-
-  const filterMenu = React.useMemo(
-    () => (
-      <Menu ref={filterMenuRef} onSelect={(_ev, itemId) => onFilterSelect(itemId)}>
-        <MenuContent>
-          <MenuList>
-            {Object.values(columnNames).map((name: string) => (
-              <MenuItem id={`${id}-dropdown-${name}`} key={name} itemId={name}>
-                {name}
-              </MenuItem>
-            ))}
-          </MenuList>
-        </MenuContent>
-      </Menu>
-    ),
-    [columnNames, id, onFilterSelect],
-  );
-
-  const filterDropdown = React.useMemo(
-    () => (
-      <div ref={filterContainerRef}>
-        <Popper
-          trigger={filterMenuToggle}
-          triggerRef={filterToggleRef}
-          popper={filterMenu}
-          popperRef={filterMenuRef}
-          appendTo={filterContainerRef.current || undefined}
-          isVisible={isFilterMenuOpen}
-        />
-      </div>
-    ),
-    [filterMenuToggle, filterMenu, isFilterMenuOpen],
-  );
-
-  return (
-    <Toolbar
-      id="attribute-search-filter-toolbar"
-      clearAllFilters={clearAllInternal} // Use the internal clear function
-    >
-      <ToolbarContent>
-        <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="xl">
-          <ToolbarGroup variant="filter-group">
-            <ToolbarItem id={`${id}-dropdown`}>{filterDropdown}</ToolbarItem>
-            <ToolbarItem>
-              <ThemeAwareSearchInput
-                data-testid={`${id}-search-input`}
-                value={searchValue}
-                onChange={onSearchChange}
-                placeholder={`Filter by ${activeFilter.columnName}`}
-                fieldLabel={`Find by ${activeFilter.columnName}`}
-                aria-label={`Filter by ${activeFilter.columnName}`}
-              />
-            </ToolbarItem>
-            {filters.map(
-              (filter) =>
-                filter.value !== '' && (
-                  <ToolbarFilter
-                    key={`${filter.columnName}-filter`}
-                    labels={[filter.value]}
-                    deleteLabel={() => onDeleteLabelGroup(filter)}
-                    deleteLabelGroup={() => onDeleteLabelGroup(filter)}
-                    categoryName={filter.columnName}
-                  >
-                    {undefined}
-                  </ToolbarFilter>
-                ),
-            )}
-          </ToolbarGroup>
-          <Button variant="primary" ouiaId="Primary" onClick={createWorkspace}>
-            Create Workspace
-          </Button>
-        </ToolbarToggleGroup>
-      </ToolbarContent>
-    </Toolbar>
-  );
-});
+        <ToolbarContent>
+          <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="xl">
+            <ToolbarGroup variant="filter-group">
+              <ToolbarItem id={`${id}-dropdown`}>{filterDropdown}</ToolbarItem>
+              <ToolbarItem>
+                <ThemeAwareSearchInput
+                  data-testid={`${id}-search-input`}
+                  value={searchValue}
+                  onChange={onSearchChange}
+                  placeholder={`Filter by ${activeFilter.columnName}`}
+                  fieldLabel={`Find by ${activeFilter.columnName}`}
+                  aria-label={`Filter by ${activeFilter.columnName}`}
+                />
+              </ToolbarItem>
+              {filters.map(
+                (filter) =>
+                  filter.value !== '' && (
+                    <ToolbarFilter
+                      key={`${filter.columnName}-filter`}
+                      labels={[filter.value]}
+                      deleteLabel={() => onDeleteLabelGroup(filter)}
+                      deleteLabelGroup={() => onDeleteLabelGroup(filter)}
+                      categoryName={filter.columnName}
+                    >
+                      {undefined}
+                    </ToolbarFilter>
+                  ),
+              )}
+            </ToolbarGroup>
+            {toolbarActions}
+          </ToolbarToggleGroup>
+        </ToolbarContent>
+      </Toolbar>
+    );
+  },
+);
 export default Filter;

@@ -13,6 +13,7 @@ import {
   Brand,
   Tooltip,
   Bullseye,
+  Button,
 } from '@patternfly/react-core';
 import {
   Table,
@@ -33,6 +34,7 @@ import {
   CodeIcon,
 } from '@patternfly/react-icons';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Workspace, WorkspaceState } from '~/shared/api/backendApiTypes';
 import { WorkspaceDetails } from '~/app/pages/Workspaces/Details/WorkspaceDetails';
 import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
@@ -64,6 +66,17 @@ export enum ActionType {
 }
 
 export const Workspaces: React.FunctionComponent = () => {
+  const navigate = useNavigate();
+  const createWorkspace = React.useCallback(() => {
+    navigate('/workspaces/create');
+  }, [navigate]);
+
+  const createWorkspaceButton = (
+    <Button variant="primary" ouiaId="Primary" onClick={createWorkspace}>
+      Create Workspace
+    </Button>
+  );
+
   const [workspaceKinds] = useWorkspaceKinds();
   const kindLogoDict = buildKindLogoDictionary(workspaceKinds);
   const workspaceRedirectStatus = buildWorkspaceRedirectStatus(workspaceKinds);
@@ -494,6 +507,7 @@ export const Workspaces: React.FunctionComponent = () => {
                 id="filter-workspaces"
                 onFilter={onFilter}
                 columnNames={filterableColumns}
+                toolbarActions={createWorkspaceButton}
               />
             </Content>
             <Table
