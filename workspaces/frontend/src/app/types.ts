@@ -45,3 +45,17 @@ export interface WorkspaceCountPerOption {
 export interface WorkspaceKindCreateFormData {
   data: { [key: string]: unknown };
 }
+
+export interface WorkspaceKindProperties {
+  displayName: string;
+  description: string;
+  deprecated: boolean;
+  deprecationMessage: string;
+  hidden: boolean;
+  icon: { url: string };
+  logo: { url: string };
+}
+
+export interface WorkspaceKindCreateFormData {
+  properties: WorkspaceKindProperties;
+}
