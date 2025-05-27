@@ -34,6 +34,7 @@ import {
   CodeIcon,
 } from '@patternfly/react-icons';
 import { useState } from 'react';
+import { formatDistanceToNow } from 'date-fns';
 import { Workspace, WorkspaceState } from '~/shared/api/backendApiTypes';
 import { WorkspaceDetails } from '~/app/pages/Workspaces/Details/WorkspaceDetails';
 import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
@@ -115,7 +116,6 @@ export const Workspaces: React.FunctionComponent = () => {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [expandedWorkspacesNames, setExpandedWorkspacesNames] = React.useState<string[]>([]);
   const [selectedWorkspace, setSelectedWorkspace] = React.useState<Workspace | null>(null);
-  const [workspaceToDelete, setWorkspaceToDelete] = React.useState<Workspace | null>(null);
   const [isActionAlertModalOpen, setIsActionAlertModalOpen] = React.useState(false);
   const [activeActionType, setActiveActionType] = React.useState<ActionType | null>(null);
   const filterRef = React.useRef<FilterRef>(null);
@@ -285,10 +285,21 @@ export const Workspaces: React.FunctionComponent = () => {
   //   setActiveActionType(ActionType.Edit);
   // }, []);
 
-  const deleteAction = React.useCallback((workspace: Workspace) => {
-    setSelectedWorkspace(workspace);
-    setActiveActionType(ActionType.Delete);
-  }, []);
+  const deleteAction = React.useCallback(async () => {
+    if (!selectedWorkspace) {
+      return;
+    }
+
+    try {
+      await api.deleteWorkspace({}, selectedNamespace, selectedWorkspace.name);
+      // TODO: alert user about success
+      console.info(`Workspace '${selectedWorkspace.name}' deleted successfully`);
+      await initialWorkspacesRefresh();
+    } catch (err) {
+      // TODO: alert user about error
+      console.error(`Error deleting workspace '${selectedWorkspace.name}': ${err}`);
+    }
+  }, [api, initialWorkspacesRefresh, selectedNamespace, selectedWorkspace]);
 
   const startRestartAction = React.useCallback((workspace: Workspace, action: ActionType) => {
     setSelectedWorkspace(workspace);
@@ -305,7 +316,8 @@ export const Workspaces: React.FunctionComponent = () => {
   const handleDeleteClick = React.useCallback((workspace: Workspace) => {
     const buttonElement = document.activeElement as HTMLElement;
     buttonElement.blur(); // Remove focus from the currently focused button
-    setWorkspaceToDelete(workspace); // Open the modal and set workspace to delete
+    setSelectedWorkspace(workspace);
+    setActiveActionType(ActionType.Delete);
   }, []);
 
   const onCloseActionAlertDialog = () => {
@@ -610,7 +622,9 @@ export const Workspaces: React.FunctionComponent = () => {
                           date={new Date(workspace.activity.lastActivity)}
                           tooltip={{ variant: TimestampTooltipVariant.default }}
                         >
-                          1 hour ago
+                          {formatDistanceToNow(new Date(workspace.activity.lastActivity), {
+                            addSuffix: true,
+                          })}
                         </Timestamp>
                       </Td>
                       <Td>
@@ -641,14 +655,19 @@ export const Workspaces: React.FunctionComponent = () => {
               )}
             </Table>
             {isActionAlertModalOpen && chooseAlertModal()}
-            <DeleteModal
-              isOpen={workspaceToDelete != null}
-              resourceName={workspaceToDelete?.name || ''}
-              namespace={workspaceToDelete?.namespace || ''}
-              title="Delete Workspace?"
-              onClose={() => setWorkspaceToDelete(null)}
-              onDelete={() => workspaceToDelete && deleteAction(workspaceToDelete)}
-            />
+            {selectedWorkspace && (
+              <DeleteModal
+                isOpen={activeActionType === ActionType.Delete}
+                resourceName={selectedWorkspace.name}
+                namespace={selectedWorkspace.namespace}
+                title="Delete Workspace?"
+                onClose={() => {
+                  setSelectedWorkspace(null);
+                  setActiveActionType(null);
+                }}
+                onDelete={() => deleteAction()}
+              />
+            )}
             <Pagination
               itemCount={333}
               widgetId="bottom-example"

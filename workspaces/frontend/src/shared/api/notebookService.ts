@@ -68,9 +68,7 @@ export const patchWorkspace: PatchWorkspaceAPI = (hostPath) => (opts, namespace,
   );
 
 export const deleteWorkspace: DeleteWorkspaceAPI = (hostPath) => (opts, namespace, workspace) =>
-  handleRestFailures(
-    restDELETE(hostPath, `/workspaces/${namespace}/${workspace}`, {}, {}, opts),
-  ).then((response) => extractNotebookResponse<void>(response));
+  handleRestFailures(restDELETE(hostPath, `/workspaces/${namespace}/${workspace}`, {}, {}, opts));
 
 export const pauseWorkspace: PauseWorkspaceAPI = (hostPath) => (opts, namespace, workspace) =>
   handleRestFailures(

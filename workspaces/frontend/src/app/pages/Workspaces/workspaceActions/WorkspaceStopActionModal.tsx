@@ -1,16 +1,16 @@
 import * as React from 'react';
 import {
   Button,
+  Content,
   Modal,
   ModalBody,
   ModalFooter,
   ModalHeader,
   TabTitleText,
-  Content,
 } from '@patternfly/react-core';
-import { Workspace } from '~/shared/api/backendApiTypes';
 import { WorkspaceRedirectInformationView } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRedirectInformationView';
-import { ActionButton } from '~/app/pages/Workspaces/workspaceActions/ActionButton';
+import { Workspace } from '~/shared/api/backendApiTypes';
+import { ActionButton } from '~/shared/components/ActionButton';
 
 interface StopActionAlertProps {
   onClose: () => void;

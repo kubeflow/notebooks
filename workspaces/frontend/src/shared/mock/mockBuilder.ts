@@ -103,8 +103,8 @@ export const buildMockWorkspace = (workspace?: Partial<Workspace>): Workspace =>
     },
   },
   activity: {
-    lastActivity: 1746551485113,
-    lastUpdate: 1746551485113,
+    lastActivity: new Date().getTime(),
+    lastUpdate: new Date().getTime(),
   },
   pendingRestart: false,
   services: [

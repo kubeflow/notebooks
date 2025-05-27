@@ -61,6 +61,10 @@ export const mockWorkspace2: Workspace = buildMockWorkspace({
   state: WorkspaceState.WorkspaceStatePaused,
   paused: false,
   deferUpdates: false,
+  activity: {
+    lastActivity: 1735603200000,
+    lastUpdate: 1735603200000,
+  },
   podTemplate: {
     podMetadata: {
       labels: { labelKey1: 'labelValue1', labelKey2: 'labelValue2' },
@@ -121,6 +125,10 @@ export const mockWorkspace3: Workspace = buildMockWorkspace({
   workspaceKind: mockWorkspaceKindInfo1,
   state: WorkspaceState.WorkspaceStateRunning,
   pendingRestart: true,
+  activity: {
+    lastActivity: 1744857600000,
+    lastUpdate: 1744857600000,
+  },
 });
 
 export const mockWorkspace4 = buildMockWorkspace({
