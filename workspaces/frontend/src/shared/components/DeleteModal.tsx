@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Modal,
   ModalBody,
@@ -14,13 +14,14 @@ import {
   HelperTextItem,
 } from '@patternfly/react-core';
 import { default as ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
+import { ActionButton } from '~/shared/components/ActionButton';
 
 interface DeleteModalProps {
   isOpen: boolean;
   resourceName: string;
   namespace: string;
   onClose: () => void;
-  onDelete: (resourceName: string) => void;
+  onDelete: (resourceName: string) => Promise<void>;
   title: string;
 }
 
@@ -33,6 +34,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   onDelete,
 }) => {
   const [inputValue, setInputValue] = useState('');
+  const [isDeleting, setIsDeleting] = React.useState(false);
 
   useEffect(() => {
     if (!isOpen) {
@@ -40,14 +42,17 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
     }
   }, [isOpen]);
 
-  const handleDelete = () => {
+  const handleDelete = useCallback(async () => {
     if (inputValue === resourceName) {
-      onDelete(resourceName);
+      setIsDeleting(true);
+      await onDelete(resourceName);
+      setIsDeleting(false);
+
       onClose();
     } else {
       alert('Resource name does not match.');
     }
-  };
+  }, [inputValue, onClose, onDelete, resourceName]);
 
   const handleInputChange = (event: React.FormEvent<HTMLInputElement>, value: string) => {
     setInputValue(value);
@@ -94,17 +99,21 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
       </ModalBody>
       <ModalFooter>
         <div style={{ marginTop: '1rem' }}>
-          <Button
+          <ActionButton
+            action="Delete"
+            titleOnLoading="Deleting ..."
             onClick={handleDelete}
             variant="danger"
             isDisabled={inputValue !== resourceName}
             aria-disabled={inputValue !== resourceName}
           >
             Delete
-          </Button>
-          <Button onClick={onClose} variant="link" style={{ marginLeft: '1rem' }}>
-            Cancel
-          </Button>
+          </ActionButton>
+          {!isDeleting && (
+            <Button onClick={onClose} variant="link" style={{ marginLeft: '1rem' }}>
+              Cancel
+            </Button>
+          )}
         </div>
       </ModalFooter>
     </Modal>

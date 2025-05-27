@@ -7,9 +7,9 @@ import {
   ModalHeader,
   TabTitleText,
 } from '@patternfly/react-core';
-import { Workspace } from '~/shared/api/backendApiTypes';
 import { WorkspaceRedirectInformationView } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRedirectInformationView';
-import { ActionButton } from '~/app/pages/Workspaces/workspaceActions/ActionButton';
+import { Workspace } from '~/shared/api/backendApiTypes';
+import { ActionButton } from '~/shared/components/ActionButton';
 
 interface StartActionAlertProps {
   onClose: () => void;
