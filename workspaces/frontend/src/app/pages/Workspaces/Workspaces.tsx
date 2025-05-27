@@ -91,7 +91,7 @@ export const Workspaces: React.FunctionComponent = () => {
       image: 'Image',
       podConfig: 'Pod Config',
       state: 'State',
-      homeVol: 'Home Vol',
+      homeVol: 'Home Volume',
       cpu: 'CPU',
       ram: 'Memory',
       lastActivity: 'Last Activity',
@@ -105,7 +105,7 @@ export const Workspaces: React.FunctionComponent = () => {
     image: 'Image',
     podConfig: 'Pod Config',
     state: 'State',
-    homeVol: 'Home Vol',
+    homeVol: 'Home Volume',
     lastActivity: 'Last Activity',
   };
 

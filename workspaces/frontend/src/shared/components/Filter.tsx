@@ -16,6 +16,7 @@ import {
 } from '@patternfly/react-core';
 import { FilterIcon } from '@patternfly/react-icons';
 import ThemeAwareSearchInput from '~/app/components/ThemeAwareSearchInput';
+import { SimpleSelect } from 'mod-arch-shared';
 
 export interface FilterProps {
   id: string;
@@ -38,9 +39,9 @@ export interface FilterRef {
 const Filter = React.forwardRef<FilterRef, FilterProps>(
   ({ id, onFilter, columnNames, toolbarActions }, ref) => {
     Filter.displayName = 'Filter';
-    const [activeFilter, setActiveFilter] = React.useState<FilteredColumn>({
-      columnName: Object.values(columnNames)[0],
-      value: '',
+      const [activeFilter, setActiveFilter] = React.useState<FilteredColumn>({
+        columnName: Object.values(columnNames)[0],
+        value: '',
     });
     const [searchValue, setSearchValue] = React.useState<string>('');
     const [isFilterMenuOpen, setIsFilterMenuOpen] = React.useState<boolean>(false);
@@ -48,7 +49,6 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
 
     const filterToggleRef = React.useRef<MenuToggleElement | null>(null);
     const filterMenuRef = React.useRef<HTMLDivElement | null>(null);
-    const filterContainerRef = React.useRef<HTMLDivElement | null>(null);
 
     const handleFilterMenuKeys = React.useCallback(
       (event: KeyboardEvent) => {
@@ -85,20 +85,6 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
         window.removeEventListener('click', handleClickOutside);
       };
     }, [isFilterMenuOpen, filterMenuRef, handleFilterMenuKeys, handleClickOutside]);
-
-    const onFilterToggleClick = React.useCallback(
-      (ev: React.MouseEvent) => {
-        ev.stopPropagation(); // Stop handleClickOutside from handling
-        setTimeout(() => {
-          const firstElement = filterMenuRef.current?.querySelector('li > button:not(:disabled)');
-          if (firstElement) {
-            (firstElement as HTMLElement).focus();
-          }
-        }, 0);
-        setIsFilterMenuOpen(!isFilterMenuOpen);
-      },
-      [isFilterMenuOpen],
-    );
 
     const updateFilters = React.useCallback(
       (filterObj: FilteredColumn) => {
@@ -176,89 +162,69 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
     }));
 
     const onFilterSelect = React.useCallback(
-      (itemId: string | number | undefined) => {
-        // Use the functional update form to toggle the state
-        setIsFilterMenuOpen((prevIsMenuOpen) => !prevIsMenuOpen); // Fix is here
-
-        const selectedColumnName = itemId ? itemId.toString() : Object.values(columnNames)[0];
-
-        // Find the existing filter value for the selected column, if any
-        const existingFilter = filters.find((filter) => filter.columnName === selectedColumnName);
-        const existingValue = existingFilter ? existingFilter.value : '';
-
-        setSearchValue(existingValue); // Set search input to the existing filter value
-        setActiveFilter({
-          columnName: selectedColumnName,
-          value: existingValue, // Set the active filter value
-        });
+      (newColumnName: string | number | undefined) => {
+        const selectedKey = typeof newColumnName === 'string' ? newColumnName : Object.keys(columnNames)[0];
+        if (selectedKey && columnNames[selectedKey]) {
+            setActiveFilter({
+                columnName: columnNames[selectedKey],
+                value: '',
+            });
+            setSearchValue('');
+        }
+        setIsFilterMenuOpen(false);
       },
-      [columnNames, filters],
+      [columnNames],
     );
 
-    const filterMenuToggle = React.useMemo(
-      () => (
-        <MenuToggle
-          ref={filterToggleRef}
-          onClick={onFilterToggleClick}
-          isExpanded={isFilterMenuOpen}
-          icon={<FilterIcon />}
-        >
-          {activeFilter.columnName}
-        </MenuToggle>
-      ),
-      [activeFilter.columnName, isFilterMenuOpen, onFilterToggleClick],
-    );
+    const filterOptions = React.useMemo(() => {
+        return Object.entries(columnNames).map(([key, label]) => ({
+            key: key,
+            label: label
+        }));
+    }, [columnNames]);
+    
+    const currentActiveFilterKey = React.useMemo(() => {
+        const entry = Object.entries(columnNames).find(([, label]) => label === activeFilter.columnName);
+        return entry ? entry[0] : Object.keys(columnNames)[0];
+    }, [activeFilter.columnName, columnNames]);
 
-    const filterMenu = React.useMemo(
-      () => (
-        <Menu ref={filterMenuRef} onSelect={(_ev, itemId) => onFilterSelect(itemId)}>
-          <MenuContent>
-            <MenuList>
-              {Object.values(columnNames).map((name: string) => (
-                <MenuItem id={`${id}-dropdown-${name}`} key={name} itemId={name}>
-                  {name}
-                </MenuItem>
-              ))}
-            </MenuList>
-          </MenuContent>
-        </Menu>
-      ),
-      [columnNames, id, onFilterSelect],
-    );
-
-    const filterDropdown = React.useMemo(
-      () => (
-        <div ref={filterContainerRef}>
-          <Popper
-            trigger={filterMenuToggle}
-            triggerRef={filterToggleRef}
-            popper={filterMenu}
-            popperRef={filterMenuRef}
-            appendTo={filterContainerRef.current || undefined}
-            isVisible={isFilterMenuOpen}
-          />
-        </div>
-      ),
-      [filterMenuToggle, filterMenu, isFilterMenuOpen],
-    );
+    const [search, setSearch] = React.useState('');
+    const resetFilters = () => setSearch('');
 
     return (
       <Toolbar
         id="attribute-search-filter-toolbar"
-        clearAllFilters={clearAllInternal} // Use the internal clear function
+        clearAllFilters={clearAllInternal}
       >
         <ToolbarContent>
           <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="xl">
             <ToolbarGroup variant="filter-group">
-              <ToolbarItem id={`${id}-dropdown`}>{filterDropdown}</ToolbarItem>
+              <ToolbarFilter
+                labels={search === '' ? [] : [search]}
+                deleteLabel={resetFilters}
+                deleteLabelGroup={clearAllInternal}
+                categoryName="Keyword"
+              >
+                <SimpleSelect
+                  options={filterOptions}
+                  value={currentActiveFilterKey || ''}
+                  onChange={(newKey) => {
+                    const selectedEntry = filterOptions.find(opt => opt.key === newKey);
+                    if (selectedEntry) {
+                      onFilterSelect(selectedEntry.key);
+                    }
+                  }}
+                  icon={<FilterIcon />}
+                />
+              </ToolbarFilter>
               <ToolbarItem>
                 <ThemeAwareSearchInput
                   data-testid={`${id}-search-input`}
                   value={searchValue}
                   onChange={onSearchChange}
-                  placeholder={`Filter by ${activeFilter.columnName}`}
-                  fieldLabel={`Find by ${activeFilter.columnName}`}
-                  aria-label={`Filter by ${activeFilter.columnName}`}
+                  placeholder={`Filter by ${activeFilter.columnName.toLowerCase()}`}
+                  fieldLabel={`Find by ${activeFilter.columnName.toLowerCase()}`}
+                  aria-label={`Filter by ${activeFilter.columnName.toLowerCase()}`}
                 />
               </ToolbarItem>
               {filters.map(

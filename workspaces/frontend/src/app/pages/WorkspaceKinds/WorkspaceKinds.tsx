@@ -40,10 +40,15 @@ import { useWorkspaceCountPerKind } from '~/app/hooks/useWorkspaceCountPerKind';
 import { WorkspaceKindsColumnNames } from '~/app/types';
 import ThemeAwareSearchInput from '~/app/components/ThemeAwareSearchInput';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
+import { SimpleSelect, asEnumMember } from 'mod-arch-shared';
+import { SearchType } from 'mod-arch-shared/dist/components/DashboardSearchField';
 
 export enum ActionType {
   ViewDetails,
 }
+
+// Define a new type that includes SearchType members and 'Status'
+type CustomSearchType = SearchType | 'Status';
 
 export const WorkspaceKinds: React.FunctionComponent = () => {
   // Table columns
@@ -126,12 +131,17 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
   const [searchDescriptionValue, setSearchDescriptionValue] = React.useState('');
   const [statusSelection, setStatusSelection] = React.useState('');
 
+  // Refactor with shared components
+  const [searchType, setSearchType] = React.useState<CustomSearchType>(SearchType.NAME);
+  const [search, setSearch] = React.useState('');
+
+  const searchTypes: CustomSearchType[] = [SearchType.NAME, SearchType.DESCRIPTION, 'Status'];
+
+  const resetFilters = () => setSearch('');
+
+
   const onSearchNameChange = React.useCallback((value: string) => {
     setSearchNameValue(value);
-  }, []);
-
-  const onSearchDescriptionChange = React.useCallback((value: string) => {
-    setSearchDescriptionValue(value);
   }, []);
 
   const onFilter = React.useCallback(
@@ -289,113 +299,6 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
   );
 
   // Set up attribute selector
-  const [activeAttributeMenu, setActiveAttributeMenu] = React.useState<
-    'Name' | 'Description' | 'Status'
-  >('Name');
-  const [isAttributeMenuOpen, setIsAttributeMenuOpen] = React.useState(false);
-  const attributeToggleRef = React.useRef<HTMLButtonElement>(null);
-  const attributeMenuRef = React.useRef<HTMLDivElement>(null);
-  const attributeContainerRef = React.useRef<HTMLDivElement>(null);
-
-  const handleAttributeMenuKeys = React.useCallback(
-    (event: KeyboardEvent) => {
-      if (!isAttributeMenuOpen) {
-        return;
-      }
-      if (
-        attributeMenuRef.current?.contains(event.target as Node) ||
-        attributeToggleRef.current?.contains(event.target as Node)
-      ) {
-        if (event.key === 'Escape' || event.key === 'Tab') {
-          setIsAttributeMenuOpen(!isAttributeMenuOpen);
-          attributeToggleRef.current?.focus();
-        }
-      }
-    },
-    [isAttributeMenuOpen],
-  );
-
-  const handleAttributeClickOutside = React.useCallback(
-    (event: MouseEvent) => {
-      if (isAttributeMenuOpen && !attributeMenuRef.current?.contains(event.target as Node)) {
-        setIsAttributeMenuOpen(false);
-      }
-    },
-    [isAttributeMenuOpen],
-  );
-
-  React.useEffect(() => {
-    window.addEventListener('keydown', handleAttributeMenuKeys);
-    window.addEventListener('click', handleAttributeClickOutside);
-    return () => {
-      window.removeEventListener('keydown', handleAttributeMenuKeys);
-      window.removeEventListener('click', handleAttributeClickOutside);
-    };
-  }, [isAttributeMenuOpen, attributeMenuRef, handleAttributeMenuKeys, handleAttributeClickOutside]);
-
-  const onAttributeToggleClick = React.useCallback((ev: React.MouseEvent) => {
-    ev.stopPropagation();
-
-    setTimeout(() => {
-      const firstElement = attributeMenuRef.current?.querySelector('li > button:not(:disabled)');
-      if (firstElement) {
-        (firstElement as HTMLElement).focus();
-      }
-    }, 0);
-
-    setIsAttributeMenuOpen((prev) => !prev);
-  }, []);
-
-  const attributeToggle = React.useMemo(
-    () => (
-      <MenuToggle
-        ref={attributeToggleRef}
-        onClick={onAttributeToggleClick}
-        isExpanded={isAttributeMenuOpen}
-        icon={<FilterIcon />}
-      >
-        {activeAttributeMenu}
-      </MenuToggle>
-    ),
-    [isAttributeMenuOpen, onAttributeToggleClick, activeAttributeMenu],
-  );
-
-  const attributeMenu = React.useMemo(
-    () => (
-      <Menu
-        ref={attributeMenuRef}
-        onSelect={(_ev, itemId) => {
-          setActiveAttributeMenu(itemId?.toString() as 'Name' | 'Description' | 'Status');
-          setIsAttributeMenuOpen((prev) => !prev);
-        }}
-      >
-        <MenuContent>
-          <MenuList>
-            <MenuItem itemId="Name">Name</MenuItem>
-            <MenuItem itemId="Description">Description</MenuItem>
-            <MenuItem itemId="Status">Status</MenuItem>
-          </MenuList>
-        </MenuContent>
-      </Menu>
-    ),
-    [],
-  );
-
-  const attributeDropdown = React.useMemo(
-    () => (
-      <div ref={attributeContainerRef}>
-        <Popper
-          trigger={attributeToggle}
-          triggerRef={attributeToggleRef}
-          popper={attributeMenu}
-          popperRef={attributeMenuRef}
-          appendTo={attributeContainerRef.current || undefined}
-          isVisible={isAttributeMenuOpen}
-        />
-      </div>
-    ),
-    [attributeToggle, attributeMenu, isAttributeMenuOpen],
-  );
 
   const emptyState = React.useMemo(
     () => <CustomEmptyState onClearFilters={clearAllFilters} />,
@@ -450,51 +353,50 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                 <ToolbarContent>
                   <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="xl">
                     <ToolbarGroup variant="filter-group">
-                      <ToolbarItem>{attributeDropdown}</ToolbarItem>
                       <ToolbarFilter
-                        labels={searchNameValue !== '' ? [searchNameValue] : ([] as string[])}
-                        deleteLabel={() => setSearchNameValue('')}
-                        deleteLabelGroup={() => setSearchNameValue('')}
-                        categoryName="Name"
-                        showToolbarItem={activeAttributeMenu === 'Name'}
+                        labels={search === '' ? [] : [search]}
+                        deleteLabel={resetFilters}
+                        deleteLabelGroup={resetFilters}
+                        categoryName="Keyword"
                       >
-                        <ToolbarItem>
-                          <ThemeAwareSearchInput
-                            value={searchNameValue}
-                            onChange={onSearchNameChange}
-                            placeholder="Filter by Name"
-                            fieldLabel="Find by Name"
-                            aria-label="Filter by Name"
-                          />
-                        </ToolbarItem>
+                        <SimpleSelect
+                          options={searchTypes.map((key) => ({
+                            key,
+                            label: key,
+                          }))}
+                          value={searchType}
+                          onChange={(newSearchType) => {
+                            const newSearchTypeInput = asEnumMember(newSearchType, SearchType);
+                            if (newSearchTypeInput !== null) {
+                              setSearchType(newSearchTypeInput);
+                            } else if (newSearchType === 'Status') {
+                              setSearchType('Status');
+                            }
+                          }}
+                          icon={<FilterIcon />}
+                        />
                       </ToolbarFilter>
-                      <ToolbarFilter
-                        labels={
-                          searchDescriptionValue !== ''
-                            ? [searchDescriptionValue]
-                            : ([] as string[])
-                        }
-                        deleteLabel={() => setSearchDescriptionValue('')}
-                        deleteLabelGroup={() => setSearchDescriptionValue('')}
-                        categoryName="Description"
-                        showToolbarItem={activeAttributeMenu === 'Description'}
-                      >
-                        <ToolbarItem>
-                          <ThemeAwareSearchInput
-                            value={searchDescriptionValue}
-                            onChange={onSearchDescriptionChange}
-                            placeholder="Filter by Description"
-                            fieldLabel="Find by Description"
-                            aria-label="Filter by Description"
-                          />
-                        </ToolbarItem>
-                      </ToolbarFilter>
+
+                      {searchType !== 'Status' && (
+                        <>
+                          <ToolbarItem>
+                            <ThemeAwareSearchInput
+                              value={searchNameValue}
+                              onChange={onSearchNameChange}
+                              placeholder={`Find by ${searchType.toLowerCase()}`}
+                              fieldLabel={`Find by ${searchType.toLowerCase()}`}
+                              aria-label="Filter by Name"
+                            />
+                          </ToolbarItem>
+                        </>
+                      )}
+
                       <ToolbarFilter
                         labels={statusSelection !== '' ? [statusSelection] : ([] as string[])}
                         deleteLabel={() => setStatusSelection('')}
                         deleteLabelGroup={() => setStatusSelection('')}
                         categoryName="Status"
-                        showToolbarItem={activeAttributeMenu === 'Status'}
+                        showToolbarItem={searchType === 'Status'}
                       >
                         {statusSelect}
                       </ToolbarFilter>
