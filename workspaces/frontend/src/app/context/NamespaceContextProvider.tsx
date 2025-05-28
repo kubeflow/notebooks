@@ -1,11 +1,16 @@
 import React, { useState, useContext, ReactNode, useMemo, useCallback } from 'react';
 import useMount from '~/app/hooks/useMount';
 import useNamespaces from '~/app/hooks/useNamespaces';
+import { useStorage } from './BrowserStorageContext';
+
+const storageKey = 'kubeflow.notebooks.namespace.lastUsed';
 
 interface NamespaceContextType {
   namespaces: string[];
   selectedNamespace: string;
   setSelectedNamespace: (namespace: string) => void;
+  lastUsedNamespace: string;
+  updateLastUsedNamespace: (value: string) => void;
 }
 
 const NamespaceContext = React.createContext<NamespaceContextType | undefined>(undefined);
@@ -26,12 +31,16 @@ export const NamespaceContextProvider: React.FC<NamespaceContextProviderProps> =
   const [namespaces, setNamespaces] = useState<string[]>([]);
   const [selectedNamespace, setSelectedNamespace] = useState<string>('');
   const [namespacesData, loaded, loadError] = useNamespaces();
+  const [lastUsedNamespace, setLastUsedNamespace] = useStorage<string>(storageKey, '');
 
   const fetchNamespaces = useCallback(() => {
     if (loaded && namespacesData) {
       const namespaceNames = namespacesData.map((ns) => ns.name);
       setNamespaces(namespaceNames);
-      setSelectedNamespace(namespaceNames.length > 0 ? namespaceNames[0] : '');
+      setSelectedNamespace(lastUsedNamespace.length ? lastUsedNamespace : namespaceNames[0]);
+      if (!lastUsedNamespace.length) {
+        setLastUsedNamespace(storageKey, namespaceNames[0]);
+      }
     } else {
       if (loadError) {
         console.error('Error loading namespaces: ', loadError);
@@ -39,13 +48,24 @@ export const NamespaceContextProvider: React.FC<NamespaceContextProviderProps> =
       setNamespaces([]);
       setSelectedNamespace('');
     }
-  }, [loaded, namespacesData, loadError]);
+  }, [loaded, namespacesData, lastUsedNamespace, setLastUsedNamespace, loadError]);
+
+  const updateLastUsedNamespace = useCallback(
+    (value: string) => setLastUsedNamespace(storageKey, value),
+    [setLastUsedNamespace],
+  );
 
   useMount(fetchNamespaces);
 
   const namespacesContextValues = useMemo(
-    () => ({ namespaces, selectedNamespace, setSelectedNamespace }),
-    [namespaces, selectedNamespace],
+    () => ({
+      namespaces,
+      selectedNamespace,
+      setSelectedNamespace,
+      lastUsedNamespace,
+      updateLastUsedNamespace,
+    }),
+    [namespaces, selectedNamespace, lastUsedNamespace, updateLastUsedNamespace],
   );
 
   return (
