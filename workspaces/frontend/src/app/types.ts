@@ -19,12 +19,17 @@ export interface WorkspacesColumnNames {
   redirectStatus: string;
 }
 
-export interface WorkspaceKindsColumnNames {
-  icon: string;
+export interface WorkspaceColumnDefinition {
   name: string;
-  description: string;
-  deprecated: string;
-  numberOfWorkspaces: string;
+  label: string;
+  id: string;
+}
+export interface WorkspaceKindsColumns {
+  icon: WorkspaceColumnDefinition;
+  name: WorkspaceColumnDefinition;
+  description: WorkspaceColumnDefinition;
+  deprecated: WorkspaceColumnDefinition;
+  numberOfWorkspaces: WorkspaceColumnDefinition;
 }
 
 export interface WorkspaceFormProperties {
