@@ -18,7 +18,8 @@ import { SearchIcon } from '@patternfly/react-icons/dist/esm/icons/search-icon';
 import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
 
 const NamespaceSelector: FC = () => {
-  const { namespaces, selectedNamespace, setSelectedNamespace } = useNamespaceContext();
+  const { namespaces, selectedNamespace, setSelectedNamespace, updateLastUsedNamespace } =
+    useNamespaceContext();
   const [isNamespaceDropdownOpen, setIsNamespaceDropdownOpen] = useState<boolean>(false);
   const [searchInputValue, setSearchInputValue] = useState<string>('');
   const [filteredNamespaces, setFilteredNamespaces] = useState<string[]>(namespaces);
@@ -54,6 +55,7 @@ const NamespaceSelector: FC = () => {
 
   const onSelect: DropdownProps['onSelect'] = (_event, value) => {
     setSelectedNamespace(value as string);
+    updateLastUsedNamespace(value as string);
     setIsNamespaceDropdownOpen(false);
   };
 

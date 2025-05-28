@@ -23,6 +23,7 @@ import AppRoutes from './AppRoutes';
 import NavSidebar from './NavSidebar';
 import { NotebookContextProvider } from './context/NotebookContext';
 import { isMUITheme, Theme } from './const';
+import { BrowserStorageContextProvider } from './context/BrowserStorageContext';
 
 const App: React.FC = () => {
   React.useEffect(() => {
@@ -66,17 +67,19 @@ const App: React.FC = () => {
   return (
     <ErrorBoundary>
       <NotebookContextProvider>
-        <NamespaceContextProvider>
-          <Page
-            mainContainerId="primary-app-container"
-            masthead={masthead}
-            isContentFilled
-            isManagedSidebar
-            sidebar={<NavSidebar />}
-          >
-            <AppRoutes />
-          </Page>
-        </NamespaceContextProvider>
+        <BrowserStorageContextProvider>
+          <NamespaceContextProvider>
+            <Page
+              mainContainerId="primary-app-container"
+              masthead={masthead}
+              isContentFilled
+              isManagedSidebar
+              sidebar={<NavSidebar />}
+            >
+              <AppRoutes />
+            </Page>
+          </NamespaceContextProvider>
+        </BrowserStorageContextProvider>
       </NotebookContextProvider>
     </ErrorBoundary>
   );
