@@ -312,7 +312,7 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 									},
 								},
 								Spec: kubefloworgv1beta1.ImageConfigSpec{
-									Image: "docker.io/kubeflownotebookswg/jupyter-scipy:v1.8.0",
+									Image: "ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.8.0",
 									Ports: []kubefloworgv1beta1.ImagePort{
 										{
 											Id:          "jupyterlab",
@@ -337,7 +337,7 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 									},
 								},
 								Spec: kubefloworgv1beta1.ImageConfigSpec{
-									Image: "docker.io/kubeflownotebookswg/jupyter-scipy:v1.9.0",
+									Image: "ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.9.0",
 									Ports: []kubefloworgv1beta1.ImagePort{
 										{
 											Id:          "jupyterlab",
