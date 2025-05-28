@@ -1,0 +1,34 @@
+stages:
+  - test
+  - coverage
+
+variables:
+  GO_VERSION: "1.24.3"
+
+image: golang:${GO_VERSION}
+
+before_script:
+  - go version
+  - go mod download
+
+test:
+  stage: test
+  script:
+    - go test ./...
+
+generate_coverage_baseline:
+  stage: coverage
+  script:
+    - cd workspaces/backend
+    - go test ./... -coverprofile=coverage.baseline
+    - git config --global user.name "CI Bot"
+    - git config --global user.email "ci@redhat.com"
+    - git add coverage.baseline
+    - git commit -m "Update coverage.baseline"
+    - git push origin HEAD:$CI_COMMIT_REF_NAME
+  only:
+    changes:
+      - workspaces/backend/**/*
+    refs:
+      - merge_requests
+      - main
