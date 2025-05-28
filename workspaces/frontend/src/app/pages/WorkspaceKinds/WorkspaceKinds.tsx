@@ -37,7 +37,7 @@ import { CodeIcon, FilterIcon } from '@patternfly/react-icons';
 import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import { useWorkspaceCountPerKind } from '~/app/hooks/useWorkspaceCountPerKind';
-import { WorkspaceKindsColumnNames } from '~/app/types';
+import { WorkspaceKindsColumns } from '~/app/types';
 import ThemeAwareSearchInput from '~/app/components/ThemeAwareSearchInput';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
 
@@ -47,13 +47,20 @@ export enum ActionType {
 
 export const WorkspaceKinds: React.FunctionComponent = () => {
   // Table columns
-  const columnNames: WorkspaceKindsColumnNames = {
-    icon: '',
-    name: 'Name',
-    description: 'Description',
-    deprecated: 'Status',
-    numberOfWorkspaces: 'Number of workspaces',
-  };
+  const columns: WorkspaceKindsColumns = React.useMemo(
+    () => ({
+      icon: { name: '', label: 'Icon', id: 'icon' },
+      name: { name: 'Name', label: 'Name', id: 'name' },
+      description: { name: 'Description', label: 'Description', id: 'description' },
+      deprecated: { name: 'Status', label: 'Status', id: 'status' },
+      numberOfWorkspaces: {
+        name: 'Number of workspaces',
+        label: 'Number of workspaces',
+        id: 'number-of-workspaces',
+      },
+    }),
+    [],
+  );
 
   const [workspaceKinds, workspaceKindsLoaded, workspaceKindsError] = useWorkspaceKinds();
   const workspaceCountPerKind = useWorkspaceCountPerKind();
@@ -509,21 +516,19 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
             <Table aria-label="Sortable table" ouiaId="SortableTable">
               <Thead>
                 <Tr>
-                  <Th aria-label="WorkspaceKind Icon" />
-                  {Object.values(columnNames)
-                    .filter((name) => name !== '')
-                    .map((columnName, index) => (
-                      <Th
-                        key={`${columnName}-col-name`}
-                        sort={
-                          columnName === 'Name' || columnName === 'Status'
-                            ? getSortParams(index)
-                            : undefined
-                        }
-                      >
-                        {columnName}
-                      </Th>
-                    ))}
+                  {Object.values(columns).map((column, index) => (
+                    <Th
+                      aria-label={`${column.label} column`}
+                      key={`${column.id}-column`}
+                      sort={
+                        column.id === 'name' || column.id === 'status'
+                          ? getSortParams(index)
+                          : undefined
+                      }
+                    >
+                      {column.name}
+                    </Th>
+                  ))}
                   <Th screenReaderText="Primary action" />
                 </Tr>
               </Thead>
@@ -531,8 +536,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                 filteredWorkspaceKinds.map((workspaceKind, rowIndex) => (
                   <Tbody id="workspace-kind-table-content" key={rowIndex} data-testid="table-body">
                     <Tr id={`workspace-kind-table-row-${rowIndex + 1}`}>
-                      <Td />
-                      <Td dataLabel={columnNames.icon} style={{ width: '50px' }}>
+                      <Td dataLabel={columns.icon.name} style={{ width: '50px' }}>
                         {workspaceKind.icon.url ? (
                           <Brand
                             src={workspaceKind.icon.url}
@@ -543,9 +547,9 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                           <CodeIcon />
                         )}
                       </Td>
-                      <Td dataLabel={columnNames.name}>{workspaceKind.name}</Td>
+                      <Td dataLabel={columns.name.name}>{workspaceKind.name}</Td>
                       <Td
-                        dataLabel={columnNames.description}
+                        dataLabel={columns.description.name}
                         style={{ maxWidth: '200px', overflow: 'hidden' }}
                       >
                         <Tooltip content={workspaceKind.description}>
@@ -556,7 +560,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                           </span>
                         </Tooltip>
                       </Td>
-                      <Td dataLabel={columnNames.deprecated}>
+                      <Td dataLabel={columns.deprecated.name}>
                         {workspaceKind.deprecated ? (
                           <Tooltip content={workspaceKind.deprecationMessage}>
                             <Label color="red">Deprecated</Label>
@@ -565,7 +569,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                           <Label color="green">Active</Label>
                         )}
                       </Td>
-                      <Td dataLabel={columnNames.numberOfWorkspaces}>
+                      <Td dataLabel={columns.numberOfWorkspaces.name}>
                         {workspaceCountPerKind[workspaceKind.name] ?? 0}
                       </Td>
 
