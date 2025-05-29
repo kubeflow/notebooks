@@ -40,6 +40,7 @@ import { useWorkspaceCountPerKind } from '~/app/hooks/useWorkspaceCountPerKind';
 import { WorkspaceKindsColumns } from '~/app/types';
 import ThemeAwareSearchInput from '~/app/components/ThemeAwareSearchInput';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
+import { WorkspaceKindDetails } from './details/WorkspaceKindDetails';
 
 export enum ActionType {
   ViewDetails,
@@ -427,7 +428,16 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     [viewDetailsClick],
   );
 
-  const workspaceDetailsContent = null; // Todo: Detail need to be implemented.
+  const workspaceDetailsContent = (
+    <>
+      {selectedWorkspaceKind && (
+        <WorkspaceKindDetails
+          workspaceKind={selectedWorkspaceKind}
+          onCloseClick={() => setSelectedWorkspaceKind(null)}
+        />
+      )}
+    </>
+  );
 
   const DESCRIPTION_CHAR_LIMIT = 50;
 
