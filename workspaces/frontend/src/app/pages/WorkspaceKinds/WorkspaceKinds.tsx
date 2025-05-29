@@ -410,7 +410,6 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     setActiveActionType(ActionType.ViewDetails);
   }, []);
 
-
   const workspaceKindsDefaultActions = React.useCallback(
     (workspaceKind: WorkspaceKind): IActions => [
       {
@@ -428,7 +427,6 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
         <WorkspaceKindDetails
           workspaceKind={selectedWorkspaceKind}
           onCloseClick={() => setSelectedWorkspaceKind(null)}
-
         />
       )}
     </>

@@ -30,7 +30,9 @@ export const WorkspaceDetailsOverview: React.FunctionComponent<WorkspaceDetailsO
 
     <DescriptionListGroup>
       <DescriptionListTerm>Hidden</DescriptionListTerm>
-      <DescriptionListDescription>{workspaceKind.hidden ? 'Deprecated' : 'Active'}</DescriptionListDescription>
+      <DescriptionListDescription>
+        {workspaceKind.hidden ? 'Deprecated' : 'Active'}
+      </DescriptionListDescription>
     </DescriptionListGroup>
     <Divider />
     <DescriptionListGroup>
@@ -52,7 +54,7 @@ export const WorkspaceDetailsOverview: React.FunctionComponent<WorkspaceDetailsO
       </DescriptionListDescription>
       <DescriptionListTerm style={{ alignSelf: 'center' }}>Icon URL</DescriptionListTerm>
       <DescriptionListDescription>
-        <a href={workspaceKind.icon.url} target="_blank">
+        <a href={workspaceKind.icon.url} target="_blank" rel="noreferrer">
           {workspaceKind.icon.url}
         </a>
       </DescriptionListDescription>
@@ -65,7 +67,7 @@ export const WorkspaceDetailsOverview: React.FunctionComponent<WorkspaceDetailsO
       </DescriptionListDescription>
       <DescriptionListTerm style={{ alignSelf: 'center' }}>Logo URL</DescriptionListTerm>
       <DescriptionListDescription>
-        <a href={workspaceKind.icon.url} target="_blank">
+        <a href={workspaceKind.icon.url} target="_blank" rel="noreferrer">
           {workspaceKind.logo.url}
         </a>
       </DescriptionListDescription>
