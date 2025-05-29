@@ -15,13 +15,12 @@ import {
 import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import { WorkspaceDetailsOverview } from './WorkspaceDetailsOverview';
 
-type WorkspaceDetailsProps = {
+type WorkspaceKindDetailsProps = {
   workspaceKind: WorkspaceKind;
   onCloseClick: React.MouseEventHandler;
-  // TODO: Uncomment when edit action is fully supported
 };
 
-export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = ({
+export const WorkspaceKindDetails: React.FunctionComponent<WorkspaceKindDetailsProps> = ({
   workspaceKind,
   onCloseClick,
 }) => {

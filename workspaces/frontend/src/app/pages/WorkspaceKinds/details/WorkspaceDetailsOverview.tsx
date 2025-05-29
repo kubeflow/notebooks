@@ -29,8 +29,8 @@ export const WorkspaceDetailsOverview: React.FunctionComponent<WorkspaceDetailsO
     <Divider />
 
     <DescriptionListGroup>
-      <DescriptionListTerm>Hidden </DescriptionListTerm>
-      <DescriptionListDescription>{workspaceKind.hidden ? 'Yes' : 'No'}</DescriptionListDescription>
+      <DescriptionListTerm>Hidden</DescriptionListTerm>
+      <DescriptionListDescription>{workspaceKind.hidden ? 'Deprecated' : 'Active'}</DescriptionListDescription>
     </DescriptionListGroup>
     <Divider />
     <DescriptionListGroup>
@@ -44,19 +44,30 @@ export const WorkspaceDetailsOverview: React.FunctionComponent<WorkspaceDetailsO
       <DescriptionListTerm>Deprecation Message</DescriptionListTerm>
       <DescriptionListDescription>{workspaceKind.deprecationMessage}</DescriptionListDescription>
     </DescriptionListGroup>
-
     <Divider />
     <DescriptionListGroup>
       <DescriptionListTerm style={{ alignSelf: 'center' }}>Icon</DescriptionListTerm>
       <DescriptionListDescription>
-        <img src={workspaceKind.icon.url} alt={workspaceKind.name} style={{ width: '40px' }} />
+        <Brand src={workspaceKind.icon.url} alt={workspaceKind.name} style={{ width: '40px' }} />
+      </DescriptionListDescription>
+      <DescriptionListTerm style={{ alignSelf: 'center' }}>Icon URL</DescriptionListTerm>
+      <DescriptionListDescription>
+        <a href={workspaceKind.icon.url} target="_blank">
+          {workspaceKind.icon.url}
+        </a>
       </DescriptionListDescription>
     </DescriptionListGroup>
     <Divider />
     <DescriptionListGroup>
-      <DescriptionListTerm style={{ alignSelf: 'center' }}>logo</DescriptionListTerm>
+      <DescriptionListTerm style={{ alignSelf: 'center' }}>Logo</DescriptionListTerm>
       <DescriptionListDescription>
         <Brand src={workspaceKind.logo.url} alt={workspaceKind.name} style={{ width: '40px' }} />
+      </DescriptionListDescription>
+      <DescriptionListTerm style={{ alignSelf: 'center' }}>Logo URL</DescriptionListTerm>
+      <DescriptionListDescription>
+        <a href={workspaceKind.icon.url} target="_blank">
+          {workspaceKind.logo.url}
+        </a>
       </DescriptionListDescription>
     </DescriptionListGroup>
   </DescriptionList>

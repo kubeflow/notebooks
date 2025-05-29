@@ -40,7 +40,7 @@ import { useWorkspaceCountPerKind } from '~/app/hooks/useWorkspaceCountPerKind';
 import { WorkspaceKindsColumnNames } from '~/app/types';
 import ThemeAwareSearchInput from '~/app/components/ThemeAwareSearchInput';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
-import { WorkspaceDetails } from './details/WorkspaceDetails';
+import { WorkspaceKindDetails } from './details/WorkspaceKindDetails';
 
 export enum ActionType {
   ViewDetails,
@@ -410,16 +410,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     setActiveActionType(ActionType.ViewDetails);
   }, []);
 
-  const selectWorkspaceKind = React.useCallback(
-    (newSelectedWorkspaceKind: WorkspaceKind | null) => {
-      if (selectedWorkspaceKind?.name === newSelectedWorkspaceKind?.name) {
-        setSelectedWorkspaceKind(null);
-      } else {
-        setSelectedWorkspaceKind(newSelectedWorkspaceKind);
-      }
-    },
-    [selectedWorkspaceKind],
-  );
+
   const workspaceKindsDefaultActions = React.useCallback(
     (workspaceKind: WorkspaceKind): IActions => [
       {
@@ -434,12 +425,10 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
   const workspaceDetailsContent = (
     <>
       {selectedWorkspaceKind && (
-        <WorkspaceDetails
+        <WorkspaceKindDetails
           workspaceKind={selectedWorkspaceKind}
-          onCloseClick={() => selectWorkspaceKind(null)}
-          // TODO: Uncomment when edit action is fully supported
+          onCloseClick={() => setSelectedWorkspaceKind(null)}
 
-          //     onDeleteClick={() => handleDeleteClick(selectedWorkspaceKind)}
         />
       )}
     </>
