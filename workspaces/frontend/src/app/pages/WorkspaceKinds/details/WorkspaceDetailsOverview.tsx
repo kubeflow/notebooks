@@ -30,15 +30,13 @@ export const WorkspaceDetailsOverview: React.FunctionComponent<WorkspaceDetailsO
 
     <DescriptionListGroup>
       <DescriptionListTerm>Hidden</DescriptionListTerm>
-      <DescriptionListDescription>
-        {workspaceKind.hidden ? 'Deprecated' : 'Active'}
-      </DescriptionListDescription>
+      <DescriptionListDescription>{workspaceKind.hidden ? 'Yes' : 'No'}</DescriptionListDescription>
     </DescriptionListGroup>
     <Divider />
     <DescriptionListGroup>
       <DescriptionListTerm>Status</DescriptionListTerm>
       <DescriptionListDescription>
-        {workspaceKind.deprecated ? 'Yes' : 'No'}
+        {workspaceKind.deprecated ? 'Deprecated' : 'Active'}
       </DescriptionListDescription>
     </DescriptionListGroup>
     <Divider />
