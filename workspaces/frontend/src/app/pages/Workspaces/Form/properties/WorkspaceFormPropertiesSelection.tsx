@@ -36,8 +36,6 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
 
   return (
     <Content style={{ height: '100%' }}>
-      <p>Configure properties for your workspace.</p>
-      <Divider />
       <Split hasGutter>
         <SplitItem style={{ minWidth: '200px' }}>{imageDetailsContent}</SplitItem>
         <SplitItem isFilled>
