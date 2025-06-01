@@ -124,11 +124,13 @@ $(LOCALBIN):
 
 ## Tool Binaries
 KUBECTL ?= kubectl
+KUSTOMIZE := $(LOCALBIN)/kustomize
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 SWAGGER = $(LOCALBIN)/swag
 
 ## Tool Versions
+KUSTOMIZE_VERSION ?= v5.5.0
 ENVTEST_VERSION ?= release-0.19
 GOLANGCI_LINT_VERSION ?= v1.61.0
 SWAGGER_VERSION ?= v1.16.6
@@ -147,6 +149,26 @@ $(ENVTEST): $(LOCALBIN)
 golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
 $(GOLANGCI_LINT): $(LOCALBIN)
 	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/cmd/golangci-lint,$(GOLANGCI_LINT_VERSION))
+
+
+##@ deployment
+
+.PHONY: deploy
+deploy: kustomize ## Deploy backend to the K8s cluster specified in ~/.kube/config.
+	cd config/default && $(KUSTOMIZE) edit set image nbv2-backend=${IMG}
+	$(KUSTOMIZE) build config/default | $(KUBECTL) apply -f -
+
+.PHONY: undeploy
+undeploy: kustomize ## Undeploy backend from the K8s cluster specified in ~/.kube/config.
+	$(KUSTOMIZE) build config/default | $(KUBECTL) delete --ignore-not-found=true -f -
+
+
+##@ Dependencies
+
+.PHONY: kustomize
+kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
+$(KUSTOMIZE): $(LOCALBIN)
+	$(call go-install-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v5,$(KUSTOMIZE_VERSION))
 
 # go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
 # $1 - target path with name of binary
