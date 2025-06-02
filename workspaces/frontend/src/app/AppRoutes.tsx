@@ -2,6 +2,7 @@ import React from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
 import { AppRoutePaths } from '~/app/routes';
 import { WorkspaceForm } from '~/app/pages/Workspaces/Form/WorkspaceForm';
+import WorkspaceKindSummary from '~/app/pages/WorkspaceKinds/summary/WorkspaceKindSummary';
 import { NotFound } from './pages/notFound/NotFound';
 import { Debug } from './pages/Debug/Debug';
 import { Workspaces } from './pages/Workspaces/Workspaces';
@@ -63,6 +64,7 @@ const AppRoutes: React.FC = () => {
       <Route path={AppRoutePaths.workspaceCreate} element={<WorkspaceForm />} />
       <Route path={AppRoutePaths.workspaceEdit} element={<WorkspaceForm />} />
       <Route path={AppRoutePaths.workspaces} element={<Workspaces />} />
+      <Route path={AppRoutePaths.workspaceKindSummary} element={<WorkspaceKindSummary />} />
       <Route path={AppRoutePaths.workspaceKinds} element={<WorkspaceKinds />} />
       <Route path="/" element={<Navigate to={AppRoutePaths.workspaces} replace />} />
       <Route path="*" element={<NotFound />} />
