@@ -1,8 +1,12 @@
 import * as React from 'react';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { Workspace, WorkspaceKind } from '~/shared/api/backendApiTypes';
+import { WorkspaceCountPerKindImagePodConfig } from '~/app/types';
 
-type WorkspaceCountPerKind = Record<WorkspaceKind['name'], number>;
+export type WorkspaceCountPerKind = Record<
+  WorkspaceKind['name'],
+  WorkspaceCountPerKindImagePodConfig
+>;
 
 export const useWorkspaceCountPerKind = (): WorkspaceCountPerKind => {
   const { api } = useNotebookAPI();
@@ -14,7 +18,25 @@ export const useWorkspaceCountPerKind = (): WorkspaceCountPerKind => {
   React.useEffect(() => {
     api.listAllWorkspaces({}).then((workspaces) => {
       const countPerKind = workspaces.reduce((acc: WorkspaceCountPerKind, workspace: Workspace) => {
-        acc[workspace.workspaceKind.name] = (acc[workspace.workspaceKind.name] || 0) + 1;
+        acc[workspace.workspaceKind.name] = acc[workspace.workspaceKind.name] ?? {
+          count: 0,
+          countByImage: {},
+          countByPodConfig: {},
+        };
+        acc[workspace.workspaceKind.name].count =
+          (acc[workspace.workspaceKind.name].count || 0) + 1;
+        acc[workspace.workspaceKind.name].countByImage[
+          workspace.podTemplate.options.imageConfig.current.id
+        ] =
+          (acc[workspace.workspaceKind.name].countByImage[
+            workspace.podTemplate.options.imageConfig.current.id
+          ] || 0) + 1;
+        acc[workspace.workspaceKind.name].countByPodConfig[
+          workspace.podTemplate.options.podConfig.current.id
+        ] =
+          (acc[workspace.workspaceKind.name].countByPodConfig[
+            workspace.podTemplate.options.podConfig.current.id
+          ] || 0) + 1;
         return acc;
       }, {});
       setWorkspaceCountPerKind(countPerKind);

@@ -13,9 +13,9 @@ type WorkspaceDetailsOverviewProps = {
   workspaceKind: WorkspaceKind;
 };
 
-export const WorkspaceDetailsOverview: React.FunctionComponent<WorkspaceDetailsOverviewProps> = ({
-  workspaceKind,
-}) => (
+export const WorkspaceKindDetailsOverview: React.FunctionComponent<
+  WorkspaceDetailsOverviewProps
+> = ({ workspaceKind }) => (
   <DescriptionList isHorizontal>
     <DescriptionListGroup>
       <DescriptionListTerm>Name</DescriptionListTerm>

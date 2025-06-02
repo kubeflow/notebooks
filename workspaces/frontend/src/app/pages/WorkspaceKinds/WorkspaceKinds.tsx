@@ -87,7 +87,8 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
         name: workspaceKind.name,
         description: workspaceKind.description,
         deprecated: workspaceKind.deprecated,
-        numOfWorkspaces: workspaceCountPerKind[workspaceKind.name] ?? 0,
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        numOfWorkspaces: workspaceCountPerKind[workspaceKind.name]?.count ?? 0,
       };
       return [icon, name, description, deprecated, numberOfWorkspaces];
     },
@@ -433,6 +434,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
       {selectedWorkspaceKind && (
         <WorkspaceKindDetails
           workspaceKind={selectedWorkspaceKind}
+          workspaceCountPerKind={workspaceCountPerKind}
           onCloseClick={() => setSelectedWorkspaceKind(null)}
         />
       )}
@@ -580,7 +582,10 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                         )}
                       </Td>
                       <Td dataLabel={columns.numberOfWorkspaces.name}>
-                        {workspaceCountPerKind[workspaceKind.name] ?? 0}
+                        {
+                          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+                          workspaceCountPerKind[workspaceKind.name]?.count ?? 0
+                        }
                       </Td>
 
                       <Td isActionCell data-testid="action-column">
