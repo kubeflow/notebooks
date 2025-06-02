@@ -270,6 +270,12 @@ export interface WorkspaceCreate {
   podTemplate: WorkspacePodTemplateMutate;
 }
 
+export interface WorkspaceCountPerKindImagePodConfig {
+  count: number;
+  countByImage: Record<WorkspaceImageConfigValue['id'], number>;
+  countByPodConfig: Record<WorkspacePodConfigValue['id'], number>;
+}
+
 // TODO: Update this type when applicable; meanwhile, it inherits from WorkspaceCreate
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface WorkspaceUpdate extends WorkspaceCreate {}
