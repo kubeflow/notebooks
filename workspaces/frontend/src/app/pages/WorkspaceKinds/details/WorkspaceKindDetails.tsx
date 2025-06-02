@@ -16,6 +16,7 @@ import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import { WorkspaceCountPerKind } from '~/app/hooks/useWorkspaceCountPerKind';
 import { WorkspaceKindDetailsOverview } from './WorkspaceKindDetailsOverview';
 import { WorkspaceKindDetailsImages } from './WorkspaceKindDetailsImages';
+import { WorkspaceKindDetailsPodConfigs } from './WorkspaceKindDetailsPodConfigs';
 
 type WorkspaceKindDetailsProps = {
   workspaceKind: WorkspaceKind;
@@ -60,6 +61,12 @@ export const WorkspaceKindDetails: React.FunctionComponent<WorkspaceKindDetailsP
             tabContentId="imagesTabContent"
             aria-label="Images"
           />
+          <Tab
+            eventKey={2}
+            title={<TabTitleText>Pod Configs</TabTitleText>}
+            tabContentId="podConfigsTabContent"
+            aria-label="Pod Configs"
+          />
         </Tabs>
       </DrawerPanelBody>
 
@@ -84,6 +91,20 @@ export const WorkspaceKindDetails: React.FunctionComponent<WorkspaceKindDetailsP
         >
           <TabContentBody hasPadding>
             <WorkspaceKindDetailsImages
+              workspaceKind={workspaceKind}
+              workspaceCountPerKind={workspaceCountPerKind}
+            />
+          </TabContentBody>
+        </TabContent>
+        <TabContent
+          key={2}
+          eventKey={2}
+          id="podConfigsTabContent"
+          activeKey={activeTabKey}
+          hidden={activeTabKey !== 2}
+        >
+          <TabContentBody hasPadding>
+            <WorkspaceKindDetailsPodConfigs
               workspaceKind={workspaceKind}
               workspaceCountPerKind={workspaceCountPerKind}
             />
