@@ -46,3 +46,9 @@ export interface WorkspaceFormData {
   podConfig: WorkspacePodConfigValue | undefined;
   properties: WorkspaceFormProperties;
 }
+
+export interface WorkspaceCountPerKindImagePodConfig {
+  count: number;
+  countByImage: Record<WorkspaceImageConfigValue['id'], number>;
+  countByPodConfig: Record<WorkspacePodConfigValue['id'], number>;
+}

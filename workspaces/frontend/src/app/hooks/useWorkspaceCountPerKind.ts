@@ -1,10 +1,7 @@
 import * as React from 'react';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
-import {
-  Workspace,
-  WorkspaceCountPerKindImagePodConfig,
-  WorkspaceKind,
-} from '~/shared/api/backendApiTypes';
+import { Workspace, WorkspaceKind } from '~/shared/api/backendApiTypes';
+import { WorkspaceCountPerKindImagePodConfig } from '~/app/types';
 
 export type WorkspaceCountPerKind = Record<
   WorkspaceKind['name'],
