@@ -15,7 +15,13 @@ export const WorkspaceKindDetailsImages: React.FunctionComponent<WorkspaceDetail
   <List isPlain>
     {workspaceKind.podTemplate.options.imageConfig.values.map((image, rowIndex) => (
       <ListItem key={rowIndex}>
-        {image.displayName}: {workspaceCountPerKind[workspaceKind.name].countByImage[image.id] ?? 0}
+        {image.displayName}:{' '}
+        {
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          workspaceCountPerKind[workspaceKind.name]
+            ? workspaceCountPerKind[workspaceKind.name].countByImage[image.id]
+            : 0
+        }
         {' Workspaces'}
       </ListItem>
     ))}
