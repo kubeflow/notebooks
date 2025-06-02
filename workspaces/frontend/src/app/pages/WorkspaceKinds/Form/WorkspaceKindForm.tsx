@@ -14,9 +14,10 @@ import {
 import { CheckIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import useGenericObjectState from '~/app/hooks/useGenericObjectState';
-import { WorkspaceKindCreateFormData } from '~/app/types';
+import { WorkspaceKindCreate } from '~/shared/api/backendApiTypes';
 import { WorkspaceKindCreationMethod } from './method/WorkspaceKindCreationMethod';
 import { WorkspaceKindFormProperties } from './properties/WorkspaceKindFormProperties';
+import { WorkspaceKindFormImage } from './image/WorkspaceKindFormImage';
 
 enum WorkspaceKindCreationSteps {
   CreationMethod,
@@ -38,7 +39,7 @@ export const WorkspaceKindForm: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [currentStep, setCurrentStep] = useState(WorkspaceKindCreationSteps.CreationMethod);
 
-  const [data, setData, resetData] = useGenericObjectState<WorkspaceKindCreateFormData>({
+  const [data, setData, resetData] = useGenericObjectState<WorkspaceKindCreate>({
     properties: {
       displayName: '',
       description: '',
@@ -47,6 +48,10 @@ export const WorkspaceKindForm: React.FC = () => {
       hidden: false,
       icon: { url: '' },
       logo: { url: '' },
+    },
+    imageConfig: {
+      default: '',
+      values: [],
     },
   });
 
@@ -139,6 +144,21 @@ export const WorkspaceKindForm: React.FC = () => {
                 >
                   Properties
                 </ProgressStep>
+                <ProgressStep
+                  variant={getStepVariant(WorkspaceKindCreationSteps.Images)}
+                  id="images-step"
+                  icon={
+                    getStepVariant(WorkspaceKindCreationSteps.Images) === 'success' ? (
+                      <CheckIcon />
+                    ) : (
+                      3
+                    )
+                  }
+                  titleId="images-step-title"
+                  aria-label="Images step"
+                >
+                  Images
+                </ProgressStep>
               </ProgressStepper>
             </StackItem>
           </Stack>
@@ -159,6 +179,14 @@ export const WorkspaceKindForm: React.FC = () => {
           <WorkspaceKindFormProperties
             properties={data.properties}
             updateField={(properties) => setData('properties', properties)}
+          />
+        )}
+        {currentStep === WorkspaceKindCreationSteps.Images && (
+          <WorkspaceKindFormImage
+            imageConfig={data.imageConfig}
+            updateImageConfig={(imageInput) => {
+              setData('imageConfig', imageInput);
+            }}
           />
         )}
       </PageSection>
