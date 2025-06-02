@@ -14,6 +14,8 @@ on:
       - workspaces/controller/**
       ## NOTE: we also test on changes to the backend as the backend depends on the controller
       - workspaces/backend/**
+      ## NOTE: also test when this definition itself changes
+      - .github/workflows/ws-controller-test.yaml
     branches:
       - main
       - notebooks-v2
