@@ -1,3 +1,9 @@
+import {
+  ImagePullPolicy,
+  WorkspaceOptionLabel,
+  WorkspaceKindImagePort,
+} from '~/shared/api/backendApiTypes';
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
 export const isValidWorkspaceKindYaml = (data: any): boolean => {
   if (!data || typeof data !== 'object') {
@@ -63,4 +69,25 @@ export const isValidWorkspaceKindYaml = (data: any): boolean => {
   }
 
   return true;
+};
+
+export const emptyImage = {
+  id: '',
+  displayName: '',
+  description: '',
+  hidden: false,
+  imagePullPolicy: ImagePullPolicy.IfNotPresent,
+  labels: [] as WorkspaceOptionLabel[],
+  image: '',
+  ports: [
+    {
+      displayName: 'default',
+      id: 'default',
+      port: 8888,
+      protocol: 'HTTP',
+    } as WorkspaceKindImagePort,
+  ],
+  redirect: {
+    to: '',
+  },
 };

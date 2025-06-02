@@ -15,14 +15,14 @@ import {
   Divider,
 } from '@patternfly/react-core';
 import { UpdateObjectAtPropAndValue } from '~/app/hooks/useGenericObjectState';
-import { WorkspaceKindCreateFormData } from '~/app/types';
+import { WorkspaceKindCreate } from '~/shared/api/backendApiTypes';
 import { WorkspaceKindCreationMethodTypes } from '~/app/pages/WorkspaceKinds/Form/WorkspaceKindForm';
 import { isValidWorkspaceKindYaml } from '~/app/pages/WorkspaceKinds/Form/helpers';
 
 interface WorkspaceKindCreationMethodProps {
   method: WorkspaceKindCreationMethodTypes;
   onMethodSelect: (kind: WorkspaceKindCreationMethodTypes) => void;
-  setData: UpdateObjectAtPropAndValue<WorkspaceKindCreateFormData>;
+  setData: UpdateObjectAtPropAndValue<WorkspaceKindCreate>;
   resetData: () => void;
 }
 
@@ -61,6 +61,7 @@ export const WorkspaceKindCreationMethod: React.FC<WorkspaceKindCreationMethodPr
     [method, resetData],
   );
 
+  // TODO: Use zod or another TS type coercion/schema for file upload
   const handleDataChange = useCallback(
     (_: DropEvent, v: string) => {
       if (method === WorkspaceKindCreationMethodTypes.FileUpload) {
@@ -71,6 +72,21 @@ export const WorkspaceKindCreationMethod: React.FC<WorkspaceKindCreationMethodPr
             if (isValidWorkspaceKindYaml(parsed)) {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               setData('properties', (parsed as any).spec.spawner);
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const parsedImg = (parsed as any).spec.podTemplate.options.imageConfig;
+              setData('imageConfig', {
+                default: parsedImg.spawner.default || '',
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                values: parsedImg.values.map((img: any) => {
+                  const res = {
+                    id: img.id,
+                    redirect: img.redirect,
+                    ...img.spawner,
+                    ...img.spec,
+                  };
+                  return res;
+                }),
+              });
               setValidated('success');
               setFileUploadHelperText('');
             } else {
