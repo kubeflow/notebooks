@@ -4,6 +4,10 @@ import {
   WorkspacePodConfigValue,
   WorkspacePodVolumeMount,
   WorkspacePodSecretMount,
+  ImagePullPolicy,
+  WorkspaceKindImagePort,
+  WorkspaceImageRef,
+  WorkspaceKindImageConfig,
 } from '~/shared/api/backendApiTypes';
 
 export interface WorkspacesColumnNames {
@@ -53,10 +57,14 @@ export interface WorkspaceKindProperties {
   deprecated: boolean;
   deprecationMessage: string;
   hidden: boolean;
-  icon: { url: string };
-  logo: { url: string };
+  icon: WorkspaceImageRef;
+  logo: WorkspaceImageRef;
 }
 
-export interface WorkspaceKindCreateFormData {
-  properties: WorkspaceKindProperties;
+export interface WorkspaceKindImageConfigValue extends WorkspaceImageConfigValue {
+  imagePullPolicy: ImagePullPolicy.IfNotPresent | ImagePullPolicy.Always | ImagePullPolicy.Never;
+  ports: WorkspaceKindImagePort[];
+  image: string;
 }
+
+export type WorkspaceKindImageFormInput = WorkspaceKindImageConfig<WorkspaceKindImageConfigValue>;

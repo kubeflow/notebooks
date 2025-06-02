@@ -1,3 +1,5 @@
+import { WorkspaceKindImageFormInput, WorkspaceKindProperties } from '~/app/types';
+
 export enum WorkspaceServiceStatus {
   ServiceStatusHealthy = 'Healthy',
   ServiceStatusUnhealthy = 'Unhealthy',
@@ -10,6 +12,19 @@ export interface WorkspaceSystemInfo {
 export interface HealthCheckResponse {
   status: WorkspaceServiceStatus;
   systemInfo: WorkspaceSystemInfo;
+}
+
+export enum ImagePullPolicy {
+  IfNotPresent = 'IfNotPresent',
+  Always = 'Always',
+  Never = 'Never',
+}
+
+export interface WorkspaceKindImagePort {
+  id: string;
+  displayName: string;
+  port: number;
+  protocol: 'HTTP'; // ONLY HTTP is supported at the moment, per https://github.com/thesuperzapper/kubeflow-notebooks-v2-design/blob/main/crds/workspace-kind.yaml#L275
 }
 
 export interface Namespace {
@@ -73,13 +88,13 @@ export interface WorkspaceImageConfigValue {
   redirect?: WorkspaceOptionRedirect;
 }
 
-export interface WorkspaceKindImageConfig {
+export interface WorkspaceKindImageConfig<T extends WorkspaceImageConfigValue> {
   default: string;
-  values: WorkspaceImageConfigValue[];
+  values: T[];
 }
 
 export interface WorkspaceKindPodTemplateOptions {
-  imageConfig: WorkspaceKindImageConfig;
+  imageConfig: WorkspaceKindImageConfig<WorkspaceImageConfigValue>;
   podConfig: WorkspaceKindPodConfig;
 }
 
@@ -90,7 +105,10 @@ export interface WorkspaceKindPodTemplate {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface WorkspaceKindCreate {}
+export interface WorkspaceKindCreate {
+  properties: WorkspaceKindProperties;
+  imageConfig: WorkspaceKindImageFormInput;
+}
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface WorkspaceKindUpdate {}
@@ -98,15 +116,8 @@ export interface WorkspaceKindUpdate {}
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface WorkspaceKindPatch {}
 
-export interface WorkspaceKind {
+export interface WorkspaceKind extends WorkspaceKindProperties {
   name: string;
-  displayName: string;
-  description: string;
-  deprecated: boolean;
-  deprecationMessage: string;
-  hidden: boolean;
-  icon: WorkspaceImageRef;
-  logo: WorkspaceImageRef;
   podTemplate: WorkspaceKindPodTemplate;
 }
 
