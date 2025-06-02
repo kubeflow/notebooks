@@ -599,8 +599,8 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                           {
                             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                             workspaceCountPerKind[workspaceKind.name]?.count ?? 0
-                          }{' '}
-                          workspaces
+                          }
+                          {' Workspaces'}
                         </Button>
                       </Td>
 
