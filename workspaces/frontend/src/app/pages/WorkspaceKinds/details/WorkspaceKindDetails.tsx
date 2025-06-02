@@ -13,15 +13,19 @@ import {
   TabContent,
 } from '@patternfly/react-core';
 import { WorkspaceKind } from '~/shared/api/backendApiTypes';
-import { WorkspaceDetailsOverview } from './WorkspaceDetailsOverview';
+import { WorkspaceCountPerKind } from '~/app/hooks/useWorkspaceCountPerKind';
+import { WorkspaceKindDetailsOverview } from './WorkspaceKindDetailsOverview';
+import { WorkspaceKindDetailsImages } from './WorkspaceKindDetailsImages';
 
 type WorkspaceKindDetailsProps = {
   workspaceKind: WorkspaceKind;
+  workspaceCountPerKind: WorkspaceCountPerKind;
   onCloseClick: React.MouseEventHandler;
 };
 
 export const WorkspaceKindDetails: React.FunctionComponent<WorkspaceKindDetailsProps> = ({
   workspaceKind,
+  workspaceCountPerKind,
   onCloseClick,
 }) => {
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(0);
@@ -50,6 +54,12 @@ export const WorkspaceKindDetails: React.FunctionComponent<WorkspaceKindDetailsP
             tabContentId="overviewTabContent"
             aria-label="Overview"
           />
+          <Tab
+            eventKey={1}
+            title={<TabTitleText>Images</TabTitleText>}
+            tabContentId="imagesTabContent"
+            aria-label="Images"
+          />
         </Tabs>
       </DrawerPanelBody>
 
@@ -62,7 +72,21 @@ export const WorkspaceKindDetails: React.FunctionComponent<WorkspaceKindDetailsP
           hidden={activeTabKey !== 0}
         >
           <TabContentBody hasPadding>
-            <WorkspaceDetailsOverview workspaceKind={workspaceKind} />
+            <WorkspaceKindDetailsOverview workspaceKind={workspaceKind} />
+          </TabContentBody>
+        </TabContent>
+        <TabContent
+          key={1}
+          eventKey={1}
+          id="imagesTabContent"
+          activeKey={activeTabKey}
+          hidden={activeTabKey !== 1}
+        >
+          <TabContentBody hasPadding>
+            <WorkspaceKindDetailsImages
+              workspaceKind={workspaceKind}
+              workspaceCountPerKind={workspaceCountPerKind}
+            />
           </TabContentBody>
         </TabContent>
       </DrawerPanelBody>
