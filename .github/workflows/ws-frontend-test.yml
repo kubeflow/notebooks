@@ -12,6 +12,8 @@ on:
   pull_request:
     paths:
       - workspaces/frontend/**
+      ## NOTE: also test when this definition itself changes
+      - .github/workflows/ws-frontend-test.yml
     branches:
       - main
       - notebooks-v2
