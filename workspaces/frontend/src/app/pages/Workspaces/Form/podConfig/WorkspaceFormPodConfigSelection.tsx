@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Content, Divider, Split, SplitItem } from '@patternfly/react-core';
+import { Content, Split, SplitItem } from '@patternfly/react-core';
 import { WorkspaceFormPodConfigDetails } from '~/app/pages/Workspaces/Form/podConfig/WorkspaceFormPodConfigDetails';
 import { WorkspaceFormPodConfigList } from '~/app/pages/Workspaces/Form/podConfig/WorkspaceFormPodConfigList';
 import { FilterByLabels } from '~/app/pages/Workspaces/Form/labelFilter/FilterByLabels';
@@ -55,9 +55,6 @@ const WorkspaceFormPodConfigSelection: React.FunctionComponent<
 
   return (
     <Content style={{ height: '100%' }}>
-      <p>Select a pod config to use for the workspace.</p>
-      <Divider />
-
       <WorkspaceFormDrawer
         title="Pod config"
         info={podConfigDetailsContent}

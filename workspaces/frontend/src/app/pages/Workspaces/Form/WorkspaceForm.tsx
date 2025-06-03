@@ -9,9 +9,7 @@ import {
   ProgressStep,
   ProgressStepper,
   Stack,
-  StackItem,
 } from '@patternfly/react-core';
-import { CheckIcon } from '@patternfly/react-icons';
 import { useCallback, useMemo, useState } from 'react';
 import useGenericObjectState from '~/app/hooks/useGenericObjectState';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
@@ -31,6 +29,14 @@ enum WorkspaceFormSteps {
   PodConfigSelection,
   Properties,
 }
+
+const stepDescriptions: { [key in WorkspaceFormSteps]?: string } = {
+  [WorkspaceFormSteps.KindSelection]: 'Select a workspace kind to use for the workspace.',
+  [WorkspaceFormSteps.ImageSelection]:
+    'Select a workspace image and image version to use for the workspace.',
+  [WorkspaceFormSteps.PodConfigSelection]: 'Select a pod config to use for the workspace.',
+  [WorkspaceFormSteps.Properties]: 'Configure properties for your workspace.',
+};
 
 const WorkspaceForm: React.FC = () => {
   const navigate = useTypedNavigate();
@@ -158,75 +164,54 @@ const WorkspaceForm: React.FC = () => {
       <PageGroup isFilled={false} stickyOnBreakpoint={{ default: 'top' }}>
         <PageSection>
           <Stack hasGutter>
-            <StackItem>
-              <Flex>
+            <Flex direction={{ default: 'column' }} rowGap={{ default: 'rowGapXl' }}>
+              <FlexItem>
                 <Content>
                   <h1>{`${mode === 'create' ? 'Create' : 'Edit'} workspace`}</h1>
+                  <p>{stepDescriptions[currentStep]}</p>
                 </Content>
-              </Flex>
-            </StackItem>
-            <StackItem>
-              <ProgressStepper aria-label="Workspace form stepper">
-                <ProgressStep
-                  variant={getStepVariant(WorkspaceFormSteps.KindSelection)}
-                  id="kind-selection-step"
-                  icon={
-                    getStepVariant(WorkspaceFormSteps.KindSelection) === 'success' ? (
-                      <CheckIcon />
-                    ) : (
-                      1
-                    )
-                  }
-                  titleId="kind-selection-step-title"
-                  aria-label="Kind selection step"
-                >
-                  Workspace Kind
-                </ProgressStep>
-                <ProgressStep
-                  variant={getStepVariant(WorkspaceFormSteps.ImageSelection)}
-                  isCurrent
-                  id="image-selection-step"
-                  icon={
-                    getStepVariant(WorkspaceFormSteps.ImageSelection) === 'success' ? (
-                      <CheckIcon />
-                    ) : (
-                      2
-                    )
-                  }
-                  titleId="image-selection-step-title"
-                  aria-label="Image selection step"
-                >
-                  Image
-                </ProgressStep>
-                <ProgressStep
-                  variant={getStepVariant(WorkspaceFormSteps.PodConfigSelection)}
-                  isCurrent
-                  id="pod-config-selection-step"
-                  icon={
-                    getStepVariant(WorkspaceFormSteps.PodConfigSelection) === 'success' ? (
-                      <CheckIcon />
-                    ) : (
-                      3
-                    )
-                  }
-                  titleId="pod-config-selection-step-title"
-                  aria-label="Pod config selection step"
-                >
-                  Pod Config
-                </ProgressStep>
-                <ProgressStep
-                  variant={getStepVariant(WorkspaceFormSteps.Properties)}
-                  id="properties-step"
-                  icon={
-                    getStepVariant(WorkspaceFormSteps.Properties) === 'success' ? <CheckIcon /> : 4
-                  }
-                  titleId="properties-step-title"
-                  aria-label="Properties step"
-                >
-                  Properties
-                </ProgressStep>
-              </ProgressStepper>
-            </StackItem>
+              </FlexItem>
+              <FlexItem>
+                <ProgressStepper aria-label="Workspace form stepper">
+                  <ProgressStep
+                    variant={getStepVariant(WorkspaceFormSteps.KindSelection)}
+                    isCurrent={currentStep === WorkspaceFormSteps.KindSelection}
+                    id="kind-selection-step"
+                    titleId="kind-selection-step-title"
+                    aria-label="Kind selection step"
+                  >
+                    Workspace Kind
+                  </ProgressStep>
+                  <ProgressStep
+                    variant={getStepVariant(WorkspaceFormSteps.ImageSelection)}
+                    isCurrent={currentStep === WorkspaceFormSteps.ImageSelection}
+                    id="image-selection-step"
+                    titleId="image-selection-step-title"
+                    aria-label="Image selection step"
+                  >
+                    Image
+                  </ProgressStep>
+                  <ProgressStep
+                    variant={getStepVariant(WorkspaceFormSteps.PodConfigSelection)}
+                    isCurrent={currentStep === WorkspaceFormSteps.PodConfigSelection}
+                    id="pod-config-selection-step"
+                    titleId="pod-config-selection-step-title"
+                    aria-label="Pod config selection step"
+                  >
+                    Pod Config
+                  </ProgressStep>
+                  <ProgressStep
+                    variant={getStepVariant(WorkspaceFormSteps.Properties)}
+                    isCurrent={currentStep === WorkspaceFormSteps.Properties}
+                    id="properties-step"
+                    titleId="properties-step-title"
+                    aria-label="Properties step"
+                  >
+                    Properties
+                  </ProgressStep>
+                </ProgressStepper>
+              </FlexItem>
+            </Flex>
           </Stack>
         </PageSection>
       </PageGroup>

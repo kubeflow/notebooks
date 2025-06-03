@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback } from 'react';
-import { Content, Divider, Split, SplitItem } from '@patternfly/react-core';
+import { Content, Split, SplitItem } from '@patternfly/react-core';
 import { WorkspaceFormImageDetails } from '~/app/pages/Workspaces/Form/image/WorkspaceFormImageDetails';
 import { WorkspaceFormImageList } from '~/app/pages/Workspaces/Form/image/WorkspaceFormImageList';
 import { FilterByLabels } from '~/app/pages/Workspaces/Form/labelFilter/FilterByLabels';
@@ -57,8 +57,6 @@ const WorkspaceFormImageSelection: React.FunctionComponent<WorkspaceFormImageSel
 
   return (
     <Content style={{ height: '100%' }}>
-      <p>Select a workspace image and image version to use for the workspace.</p>
-      <Divider />
       <WorkspaceFormDrawer
         title="Image"
         info={imageDetailsContent}
