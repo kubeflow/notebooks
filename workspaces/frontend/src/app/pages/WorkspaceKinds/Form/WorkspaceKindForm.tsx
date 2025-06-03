@@ -24,6 +24,7 @@ enum WorkspaceKindCreationSteps {
   Properties,
   Images,
   PodConfig,
+  PodTemplate,
 }
 
 export enum WorkspaceKindCreationMethodTypes {
@@ -34,7 +35,7 @@ export enum WorkspaceKindCreationMethodTypes {
 export const WorkspaceKindForm: React.FC = () => {
   const navigate = useNavigate();
   const [methodSelected, setMethodSelected] = useState<WorkspaceKindCreationMethodTypes>(
-    WorkspaceKindCreationMethodTypes.Manual,
+    WorkspaceKindCreationMethodTypes.FileUpload,
   );
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [currentStep, setCurrentStep] = useState(WorkspaceKindCreationSteps.CreationMethod);
@@ -159,6 +160,36 @@ export const WorkspaceKindForm: React.FC = () => {
                 >
                   Images
                 </ProgressStep>
+                <ProgressStep
+                  variant={getStepVariant(WorkspaceKindCreationSteps.PodConfig)}
+                  id="pod-config-step"
+                  icon={
+                    getStepVariant(WorkspaceKindCreationSteps.PodConfig) === 'success' ? (
+                      <CheckIcon />
+                    ) : (
+                      4
+                    )
+                  }
+                  titleId="pod-config-step-title"
+                  aria-label="Pod configuration step"
+                >
+                  Pod Configurations
+                </ProgressStep>
+                <ProgressStep
+                  variant={getStepVariant(WorkspaceKindCreationSteps.PodTemplate)}
+                  id="pod-template-step"
+                  icon={
+                    getStepVariant(WorkspaceKindCreationSteps.PodTemplate) === 'success' ? (
+                      <CheckIcon />
+                    ) : (
+                      5
+                    )
+                  }
+                  titleId="pod-template-step-title"
+                  aria-label="Pod template step"
+                >
+                  Pod Template
+                </ProgressStep>
               </ProgressStepper>
             </StackItem>
           </Stack>
@@ -188,6 +219,10 @@ export const WorkspaceKindForm: React.FC = () => {
               setData('imageConfig', imageInput);
             }}
           />
+        )}
+        {currentStep === WorkspaceKindCreationSteps.PodConfig && <>{/* TODO: Implement step */}</>}
+        {currentStep === WorkspaceKindCreationSteps.PodTemplate && (
+          <>{/* TODO: Implement step */}</>
         )}
       </PageSection>
       <PageSection isFilled={false} stickyOnBreakpoint={{ default: 'bottom' }}>
