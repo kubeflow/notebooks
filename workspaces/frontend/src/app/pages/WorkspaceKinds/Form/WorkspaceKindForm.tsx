@@ -18,6 +18,7 @@ import { WorkspaceKindFormData } from '~/app/types';
 import { WorkspaceKindFileUpload } from './fileUpload/WorkspaceKindFileUpload';
 import { WorkspaceKindFormProperties } from './properties/WorkspaceKindFormProperties';
 import { WorkspaceKindFormImage } from './image/WorkspaceKindFormImage';
+import { WorkspaceKindFormPodConfig } from './podConfig/WorkspaceKindFormPodConfig';
 
 export enum WorkspaceKindFormView {
   Form,
@@ -48,6 +49,10 @@ export const WorkspaceKindForm: React.FC = () => {
       logo: { url: '' },
     },
     imageConfig: {
+      default: '',
+      values: [],
+    },
+    podConfig: {
       default: '',
       values: [],
     },
@@ -153,6 +158,12 @@ export const WorkspaceKindForm: React.FC = () => {
               imageConfig={data.imageConfig}
               updateImageConfig={(imageInput) => {
                 setData('imageConfig', imageInput);
+              }}
+            />
+            <WorkspaceKindFormPodConfig
+              podConfig={data.podConfig}
+              updatePodConfig={(podConfig) => {
+                setData('podConfig', podConfig);
               }}
             />
           </>

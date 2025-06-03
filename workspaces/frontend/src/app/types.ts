@@ -77,7 +77,13 @@ export interface WorkspaceKindImageConfigData {
   values: WorkspaceKindImageConfigValue[];
 }
 
+export interface WorkspaceKindPodConfigData {
+  default: string;
+  values: WorkspacePodConfigValue[];
+}
+
 export interface WorkspaceKindFormData {
   properties: WorkspaceKindProperties;
   imageConfig: WorkspaceKindImageConfigData;
+  podConfig: WorkspaceKindPodConfigData;
 }
