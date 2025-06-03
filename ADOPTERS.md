@@ -6,4 +6,4 @@ Please keep the list in alphabetical order.
 
 | Organization                                     | Contact                                                           | Description of Use                                     |
 |--------------------------------------------------|-------------------------------------------------------------------|--------------------------------------------------------|
-| [Red Hat](https://www.redhat.com/)               | [@franciscojavierarceo](https://github.com/franciscojavierarceo)  | Kubeflow Notebooks is part of OpenShift AI.  |
+| [Red Hat](https://www.redhat.com/)               | [@franciscojavierarceo](https://github.com/franciscojavierarceo)  | Kubeflow Notebooks is part of Red Hat OpenShift AI.  |
