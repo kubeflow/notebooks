@@ -18,11 +18,11 @@ const WorkspaceKindSummary: React.FC = () => {
   const [isSummaryExpanded, setIsSummaryExpanded] = React.useState(true);
 
   const {
-    state: { imageId, podConfigId },
+    state: { namespace, imageId, podConfigId },
   } = useTypedLocation<'workspaceKindSummary'>();
   const { kind } = useTypedParams<'workspaceKindSummary'>();
   const [workspaces, workspacesLoaded, workspacesLoadError, workspacesRefresh] =
-    useWorkspacesByKind({ kind, imageId, podConfigId });
+    useWorkspacesByKind({ kind, namespace, imageId, podConfigId });
 
   return (
     <PageSection isFilled>

@@ -53,6 +53,7 @@ export type RouteStateMap = {
   };
   workspaceKinds: undefined;
   workspaceKindSummary: {
+    namespace?: string;
     imageId?: string;
     podConfigId?: string;
   };

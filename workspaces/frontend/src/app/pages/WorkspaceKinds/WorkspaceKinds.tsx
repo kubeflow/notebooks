@@ -590,6 +590,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                             navigate('workspaceKindSummary', {
                               params: { kind: workspaceKind.name },
                               state: {
+                                // namespace: OPTIONAL_NAMESPACE_TO_FILTER,
                                 // imageId: OPTIONAL_IMAGE_ID_TO_FILTER,
                                 // podConfigId: OPTIONAL_POD_CONFIG_ID_TO_FILTER,
                               },

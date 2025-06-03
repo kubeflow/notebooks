@@ -25,10 +25,11 @@ export const useWorkspacesByNamespace = (namespace: string): FetchState<Workspac
 
 export const useWorkspacesByKind = (args: {
   kind: string;
+  namespace?: string;
   imageId?: string;
   podConfigId?: string;
 }): FetchState<Workspace[] | null> => {
-  const { kind, imageId, podConfigId } = args;
+  const { kind, namespace, imageId, podConfigId } = args;
   const { api, apiAvailable } = useNotebookAPI();
   const call = React.useCallback<FetchStateCallbackPromise<Workspace[] | null>>(
     async (opts) => {
@@ -43,16 +44,17 @@ export const useWorkspacesByKind = (args: {
 
       return workspaces.filter((workspace) => {
         const matchesKind = workspace.workspaceKind.name === kind;
+        const matchesNamespace = namespace ? workspace.namespace === namespace : true;
         const matchesImage = imageId
           ? workspace.podTemplate.options.imageConfig.current.id === imageId
           : true;
         const matchesPodConfig = podConfigId
           ? workspace.podTemplate.options.podConfig.current.id === podConfigId
           : true;
-        return matchesKind && matchesImage && matchesPodConfig;
+        return matchesKind && matchesNamespace && matchesImage && matchesPodConfig;
       });
     },
-    [apiAvailable, api, kind, imageId, podConfigId],
+    [apiAvailable, api, kind, namespace, imageId, podConfigId],
   );
   return useFetchState(call, null);
 };
