@@ -8,11 +8,8 @@ import {
   HelperTextItem,
   Content,
   Gallery,
-  Card,
-  CardHeader,
-  CardTitle,
-  CardBody,
   Divider,
+  Radio,
 } from '@patternfly/react-core';
 import { UpdateObjectAtPropAndValue } from '~/app/hooks/useGenericObjectState';
 import { WorkspaceKindCreate } from '~/shared/api/backendApiTypes';
@@ -121,18 +118,6 @@ export const WorkspaceKindCreationMethod: React.FC<WorkspaceKindCreationMethodPr
     setIsLoading(false);
   }, []);
 
-  const handleSelect = useCallback(
-    (event: React.FormEvent<HTMLInputElement>) => {
-      if (event.currentTarget.id === 'selectable-actions-item-manual-input') {
-        onMethodSelect(WorkspaceKindCreationMethodTypes.Manual);
-        resetData();
-      } else {
-        onMethodSelect(WorkspaceKindCreationMethodTypes.FileUpload);
-      }
-    },
-    [onMethodSelect, resetData],
-  );
-
   return (
     <Content style={{ height: '100%' }}>
       <p>Select a method to create a Workspace Kind</p>
@@ -147,72 +132,49 @@ export const WorkspaceKindCreationMethod: React.FC<WorkspaceKindCreationMethodPr
           '2xl': '100%',
         }}
       >
-        <Card
-          id="single-selectable-card-manual"
-          isSelectable
-          isSelected={method === WorkspaceKindCreationMethodTypes.Manual}
-        >
-          <CardHeader
-            selectableActions={{
-              selectableActionId: `selectable-actions-item-manual-input`,
-              selectableActionAriaLabelledby: 'single-selectable-card-manual',
-              name: 'single-selectable-card-manual',
-              variant: 'single',
-              onChange: handleSelect,
-              hasNoOffset: true,
-            }}
-          >
-            <CardTitle>Manual Input</CardTitle>
-          </CardHeader>
-          <CardBody>
-            Continue to manually configure your setup through a guided step-by-step wizard.
-          </CardBody>
-        </Card>
-        <Card
-          id="single-selectable-card-file-upload"
-          isSelectable
-          isSelected={method === WorkspaceKindCreationMethodTypes.FileUpload}
-        >
-          <CardHeader
-            selectableActions={{
-              selectableActionId: `selectable-actions-item-file-upload`,
-              selectableActionAriaLabelledby: 'single-selectable-card-file-upload',
-              name: 'single-selectable-card-file-upload',
-              variant: 'single',
-              onChange: handleSelect,
-              hasNoOffset: true,
-            }}
-          >
-            <CardTitle>Upload a YAML file</CardTitle>
-          </CardHeader>
-          <CardBody>
-            <FileUpload
-              id="text-file-simple"
-              type="text"
-              value={value}
-              filename={filename}
-              filenamePlaceholder="Drag and drop a YAML file here or upload one"
-              onFileInputChange={handleFileInputChange}
-              onDataChange={handleDataChange}
-              onReadStarted={handleFileReadStarted}
-              onReadFinished={handleFileReadFinished}
-              onClearClick={handleClear}
-              isLoading={isLoading}
-              validated={validated}
-              isDisabled={method !== WorkspaceKindCreationMethodTypes.FileUpload}
-              allowEditingUploadedText={false}
-              browseButtonText="Choose File"
-            >
-              <FileUploadHelperText>
-                <HelperText>
-                  <HelperTextItem id="helper-text-example-helpText">
-                    {fileUploadHelperText}
-                  </HelperTextItem>
-                </HelperText>
-              </FileUploadHelperText>
-            </FileUpload>
-          </CardBody>
-        </Card>
+        <Radio
+          isChecked={method === WorkspaceKindCreationMethodTypes.FileUpload}
+          onChange={() => onMethodSelect(WorkspaceKindCreationMethodTypes.FileUpload)}
+          label="Upload a YAML file"
+          id="selectable-actions-item-file-upload"
+          name="selectable-actions-item-file-upload"
+          body={
+            method === WorkspaceKindCreationMethodTypes.FileUpload && (
+              <FileUpload
+                id="text-file-simple"
+                type="text"
+                value={value}
+                filename={filename}
+                filenamePlaceholder="Drag and drop a YAML file here or upload one"
+                onFileInputChange={handleFileInputChange}
+                onDataChange={handleDataChange}
+                onReadStarted={handleFileReadStarted}
+                onReadFinished={handleFileReadFinished}
+                onClearClick={handleClear}
+                isLoading={isLoading}
+                validated={validated}
+                allowEditingUploadedText={false}
+                browseButtonText="Choose File"
+              >
+                <FileUploadHelperText>
+                  <HelperText>
+                    <HelperTextItem id="helper-text-example-helpText">
+                      {fileUploadHelperText}
+                    </HelperTextItem>
+                  </HelperText>
+                </FileUploadHelperText>
+              </FileUpload>
+            )
+          }
+        />
+        <Radio
+          isChecked={method === WorkspaceKindCreationMethodTypes.Manual}
+          onChange={() => onMethodSelect(WorkspaceKindCreationMethodTypes.Manual)}
+          label="Manual Input"
+          id="selectable-actions-item-manual-input"
+          name="selectable-actions-item-manual-input"
+          description="Continue to manually configure your setup through a guided step-by-step wizard."
+        />
       </Gallery>
     </Content>
   );
