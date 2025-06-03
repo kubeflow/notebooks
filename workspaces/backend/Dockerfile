@@ -8,12 +8,12 @@ WORKDIR /workspace
 # Copy the Go Modules manifests
 COPY backend/go.mod backend/go.sum ./
 
-# Copy controller directory and rewrite the go.mod to update the replace directive
+# Copy controller directory 
 COPY controller /workspace/controller
-RUN go mod edit -replace=github.com/kubeflow/notebooks/workspaces/controller=./controller
 
-# Download dependencies
-RUN go mod download
+# Rewrite the go.mod to update the replace directive and download dependencies
+RUN go mod edit -replace=github.com/kubeflow/notebooks/workspaces/controller=./controller && \
+    go mod download
 
 # Copy the go source files
 COPY backend/cmd/ cmd/
