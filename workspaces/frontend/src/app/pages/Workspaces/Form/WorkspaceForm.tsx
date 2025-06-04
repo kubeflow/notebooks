@@ -30,7 +30,6 @@ enum WorkspaceFormSteps {
   Properties,
 }
 
-
 const stepDescriptions: { [key in WorkspaceFormSteps]?: string } = {
   [WorkspaceFormSteps.KindSelection]: 'Select a workspace kind to use for the workspace.',
   [WorkspaceFormSteps.ImageSelection]:
