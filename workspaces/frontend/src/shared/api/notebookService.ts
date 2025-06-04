@@ -7,7 +7,12 @@ import {
   restUPDATE,
 } from '~/shared/api/apiUtils';
 import { handleRestFailures } from '~/shared/api/errorUtils';
-import { Namespace, Workspace, WorkspaceKind } from '~/shared/api/backendApiTypes';
+import {
+  Namespace,
+  Workspace,
+  WorkspaceKind,
+  WorkspacePauseState,
+} from '~/shared/api/backendApiTypes';
 import {
   CreateWorkspaceAPI,
   CreateWorkspaceKindAPI,
@@ -73,12 +78,12 @@ export const deleteWorkspace: DeleteWorkspaceAPI = (hostPath) => (opts, namespac
 export const pauseWorkspace: PauseWorkspaceAPI = (hostPath) => (opts, namespace, workspace) =>
   handleRestFailures(
     restCREATE(hostPath, `/workspaces/${namespace}/${workspace}/actions/pause`, {}, opts),
-  );
+  ).then((response) => extractNotebookResponse<WorkspacePauseState>(response));
 
 export const startWorkspace: StartWorkspaceAPI = (hostPath) => (opts, namespace, workspace) =>
   handleRestFailures(
     restCREATE(hostPath, `/workspaces/${namespace}/${workspace}/actions/start`, {}, opts),
-  );
+  ).then((response) => extractNotebookResponse<WorkspacePauseState>(response));
 
 export const listWorkspaceKinds: ListWorkspaceKindsAPI = (hostPath) => (opts) =>
   handleRestFailures(restGET(hostPath, `/workspacekinds`, {}, opts)).then((response) =>
