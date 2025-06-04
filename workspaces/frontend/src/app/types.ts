@@ -7,6 +7,20 @@ import {
   Workspace,
 } from '~/shared/api/backendApiTypes';
 
+export interface WorkspacesColumnNames {
+  name: string;
+  image: string;
+  kind: string;
+  state: string;
+  lastActivity: string;
+  // Expanded row columns
+  podConfig?: string;
+  homeVol?: string;
+  cpu?: string;
+  ram?: string;
+  redirectStatus?: string;
+}
+
 export interface WorkspaceColumnDefinition {
   name: string;
   label: string;

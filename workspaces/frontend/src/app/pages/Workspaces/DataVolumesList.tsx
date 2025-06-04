@@ -3,12 +3,14 @@ import {
   ClipboardCopy,
   ClipboardCopyVariant,
   Content,
+  DescriptionList,
+  DescriptionListGroup,
+  DescriptionListTerm,
+  DescriptionListDescription,
   Flex,
   FlexItem,
   List,
   ListItem,
-  Stack,
-  StackItem,
   Tooltip,
 } from '@patternfly/react-core';
 import { DatabaseIcon, LockedIcon } from '@patternfly/react-icons';
@@ -43,32 +45,28 @@ export const DataVolumesList: React.FC<DataVolumesListProps> = ({ workspace }) =
             </Tooltip>
           )}
         </Content>
-        <Stack>
-          <StackItem>
-            <Content component="small">
-              Mount path:{' '}
-              <ClipboardCopy variant={ClipboardCopyVariant.inlineCompact}>
-                {data.mountPath}
-              </ClipboardCopy>
-            </Content>
-          </StackItem>
-        </Stack>
+        <Content component="small">
+          Mount path:{' '}
+          <ClipboardCopy variant={ClipboardCopyVariant.inlineCompact}>
+            {data.mountPath}
+          </ClipboardCopy>
+        </Content>
       </FlexItem>
     </Flex>
   );
 
   return (
-    <Stack hasGutter>
-      <StackItem>
-        <strong data-testid="notebook-storage-bar-title">Cluster storage</strong>
-      </StackItem>
-      <StackItem>
-        <List isPlain>
-          {workspaceDataVol.map((data, index) => (
-            <ListItem key={`data-vol-${index}`}>{singleDataVolRenderer(data)}</ListItem>
-          ))}
-        </List>
-      </StackItem>
-    </Stack>
+    <DescriptionList>
+      <DescriptionListGroup>
+        <DescriptionListTerm data-testid="notebook-storage-bar-title">Cluster storage</DescriptionListTerm>
+        <DescriptionListDescription>
+          <List isPlain>
+            {workspaceDataVol.map((data, index) => (
+              <ListItem key={`data-vol-${index}`}>{singleDataVolRenderer(data)}</ListItem>
+            ))}
+          </List>
+        </DescriptionListDescription>
+      </DescriptionListGroup>
+    </DescriptionList>
   );
 };
