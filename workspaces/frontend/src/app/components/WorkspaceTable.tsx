@@ -10,6 +10,7 @@ import {
   Tooltip,
   Bullseye,
   Button,
+  Icon,
 } from '@patternfly/react-core';
 import {
   Table,
@@ -36,7 +37,6 @@ import {
   FilterableDataFieldKey,
   SortableDataFieldKey,
 } from '~/app/filterableDataHelper';
-import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
 import { useTypedNavigate } from '~/app/routerHelper';
 import {
   buildKindLogoDictionary,
@@ -47,11 +47,12 @@ import { WorkspaceConnectAction } from '~/app/pages/Workspaces/WorkspaceConnectA
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
 import Filter, { FilteredColumn, FilterRef } from '~/shared/components/Filter';
 import WithValidImage from '~/shared/components/WithValidImage';
+import ImageFallback from '~/shared/components/ImageFallback';
 import {
   formatResourceFromWorkspace,
   formatWorkspaceIdleState,
 } from '~/shared/utilities/WorkspaceUtils';
-import ImageFallback from '~/shared/components/ImageFallback';
+import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
 
 const {
   fields: wsTableColumns,
@@ -59,19 +60,14 @@ const {
   sortableKeyArray: sortableWsTableColumnKeyArray,
   filterableKeyArray: filterableWsTableColumnKeyArray,
 } = defineDataFields({
-  redirectStatus: { label: 'Redirect Status', isFilterable: false, isSortable: false },
   name: { label: 'Name', isFilterable: true, isSortable: true },
   kind: { label: 'Kind', isFilterable: true, isSortable: true },
   namespace: { label: 'Namespace', isFilterable: true, isSortable: true },
   image: { label: 'Image', isFilterable: true, isSortable: true },
-  podConfig: { label: 'Pod Config', isFilterable: true, isSortable: true },
   state: { label: 'State', isFilterable: true, isSortable: true },
-  homeVol: { label: 'Home Vol', isFilterable: true, isSortable: true },
-  cpu: { label: 'CPU', isFilterable: false, isSortable: true },
-  ram: { label: 'Memory', isFilterable: false, isSortable: true },
   gpu: { label: 'GPU', isFilterable: true, isSortable: true },
   idleGpu: { label: 'Idle GPU', isFilterable: true, isSortable: true },
-  lastActivity: { label: 'Last Activity', isFilterable: false, isSortable: true },
+  lastActivity: { label: 'Last activity', isFilterable: false, isSortable: true },
   connect: { label: '', isFilterable: false, isSortable: false },
   actions: { label: '', isFilterable: false, isSortable: false },
 });
@@ -202,16 +198,12 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
               return ws.namespace.match(searchValueInput);
             case 'image':
               return ws.podTemplate.options.imageConfig.current.displayName.match(searchValueInput);
-            case 'podConfig':
-              return ws.podTemplate.options.podConfig.current.displayName.match(searchValueInput);
             case 'state':
               return ws.state.match(searchValueInput);
             case 'gpu':
               return formatResourceFromWorkspace(ws, 'gpu').match(searchValueInput);
             case 'idleGpu':
               return formatWorkspaceIdleState(ws).match(searchValueInput);
-            case 'homeVol':
-              return ws.podTemplate.volumes.home?.mountPath.match(searchValueInput);
             default:
               return true;
           }
@@ -228,11 +220,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       kind: workspace.workspaceKind.name,
       namespace: workspace.namespace,
       image: workspace.podTemplate.options.imageConfig.current.displayName,
-      podConfig: workspace.podTemplate.options.podConfig.current.displayName,
       state: workspace.state,
-      homeVol: workspace.podTemplate.volumes.home?.pvcName ?? '',
-      cpu: formatResourceFromWorkspace(workspace, 'cpu'),
-      ram: formatResourceFromWorkspace(workspace, 'memory'),
       gpu: formatResourceFromWorkspace(workspace, 'gpu'),
       idleGpu: formatWorkspaceIdleState(workspace),
       lastActivity: workspace.activity.lastActivity,
@@ -305,31 +293,41 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
         case 'Info':
           return (
             <Tooltip content={message}>
-              <InfoCircleIcon color="blue" aria-hidden="true" />
+              <Icon status="info" isInline>
+                <InfoCircleIcon aria-hidden="true" />
+              </Icon>
             </Tooltip>
           );
         case 'Warning':
           return (
             <Tooltip content={message}>
-              <ExclamationTriangleIcon color="orange" aria-hidden="true" />
+              <Icon isInline>
+                <ExclamationTriangleIcon color="orange" aria-hidden="true" />
+              </Icon>
             </Tooltip>
           );
         case 'Danger':
           return (
             <Tooltip content={message}>
-              <TimesCircleIcon color="red" aria-hidden="true" />
+              <Icon isInline>
+                <TimesCircleIcon color="red" aria-hidden="true" />
+              </Icon>
             </Tooltip>
           );
         case undefined:
           return (
             <Tooltip content={message}>
-              <QuestionCircleIcon color="gray" aria-hidden="true" />
+              <Icon isInline>
+                <QuestionCircleIcon color="gray" aria-hidden="true" />
+              </Icon>
             </Tooltip>
           );
         default:
           return (
             <Tooltip content={`Invalid level: ${level}`}>
-              <QuestionCircleIcon color="gray" aria-hidden="true" />
+              <Icon isInline>
+                <QuestionCircleIcon color="gray" aria-hidden="true" />
+              </Icon>
             </Tooltip>
           );
       }
@@ -371,19 +369,109 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
             }
           />
         </Content>
-        <Table data-testid="workspaces-table" aria-label="Sortable table" ouiaId="SortableTable">
+        <Table
+          data-testid="workspaces-table"
+          aria-label="Sortable table"
+          ouiaId="SortableTable"
+          style={{ tableLayout: 'fixed' }}
+        >
           <Thead>
             <Tr>
-              {canExpandRows && <Th screenReaderText="expand-action" />}
-              {visibleColumnKeys.map((columnKey) => (
+              {canExpandRows && <Th width={10} screenReaderText="expand-action" />}
+              {visibleColumnKeys.includes('name') && (
                 <Th
-                  key={`workspace-table-column-${columnKey}`}
-                  sort={getSortParams(columnKey)}
-                  aria-label={columnKey}
+                  width={25}
+                  key="workspace-table-column-name"
+                  sort={getSortParams('name')}
+                  aria-label="name"
+                  modifier="wrap"
                 >
-                  {wsTableColumns[columnKey].label}
+                  {wsTableColumns.name.label}
                 </Th>
-              ))}
+              )}
+              {visibleColumnKeys.includes('image') && (
+                <Th
+                  width={25}
+                  key="workspace-table-column-image"
+                  sort={getSortParams('image')}
+                  aria-label="image"
+                  modifier="wrap"
+                >
+                  {wsTableColumns.image.label}
+                </Th>
+              )}
+              {visibleColumnKeys.includes('kind') && (
+                <Th
+                  width={20}
+                  key="workspace-table-column-kind"
+                  sort={getSortParams('kind')}
+                  aria-label="kind"
+                  modifier="wrap"
+                >
+                  {wsTableColumns.kind.label}
+                </Th>
+              )}
+              {visibleColumnKeys.includes('namespace') && (
+                <Th
+                  width={15}
+                  key="workspace-table-column-namespace"
+                  sort={getSortParams('namespace')}
+                  aria-label="namespace"
+                  modifier="wrap"
+                >
+                  {wsTableColumns.namespace.label}
+                </Th>
+              )}
+              {visibleColumnKeys.includes('state') && (
+                <Th
+                  width={15}
+                  key="workspace-table-column-state"
+                  sort={getSortParams('state')}
+                  aria-label="state"
+                  modifier="wrap"
+                >
+                  {wsTableColumns.state.label}
+                </Th>
+              )}
+              {visibleColumnKeys.includes('gpu') && (
+                <Th
+                  width={15}
+                  key="workspace-table-column-gpu"
+                  sort={getSortParams('gpu')}
+                  aria-label="gpu"
+                  modifier="wrap"
+                >
+                  {wsTableColumns.gpu.label}
+                </Th>
+              )}
+              {visibleColumnKeys.includes('idleGpu') && (
+                <Th
+                  width={15}
+                  key="workspace-table-column-idleGpu"
+                  sort={getSortParams('idleGpu')}
+                  aria-label="idleGpu"
+                  modifier="wrap"
+                >
+                  {wsTableColumns.idleGpu.label}
+                </Th>
+              )}
+              {visibleColumnKeys.includes('lastActivity') && (
+                <Th
+                  width={15}
+                  key="workspace-table-column-lastActivity"
+                  sort={getSortParams('lastActivity')}
+                  aria-label="lastActivity"
+                  modifier="wrap"
+                >
+                  {wsTableColumns.lastActivity.label}
+                </Th>
+              )}
+              {visibleColumnKeys.includes('connect') && (
+                <Th width={25} screenReaderText="Connect action" />
+              )}
+              {visibleColumnKeys.includes('actions') && (
+                <Th width={10} screenReaderText="Primary action" />
+              )}
             </Tr>
           </Thead>
           {sortedWorkspaces.length > 0 &&
@@ -397,6 +485,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                 <Tr
                   id={`workspaces-table-row-${rowIndex + 1}`}
                   data-testid={`workspace-row-${rowIndex}`}
+                  isStriped={rowIndex % 2 === 0}
                 >
                   {canExpandRows && (
                     <Td
@@ -408,156 +497,108 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                       }}
                     />
                   )}
-                  {visibleColumnKeys.map((columnKey) => {
-                    switch (columnKey) {
-                      case 'redirectStatus':
-                        return (
-                          <Td key={columnKey} dataLabel={wsTableColumns[columnKey].label}>
-                            {workspaceRedirectStatus[workspace.workspaceKind.name]
-                              ? getRedirectStatusIcon(
-                                  workspaceRedirectStatus[workspace.workspaceKind.name]?.message
-                                    ?.level,
-                                  workspaceRedirectStatus[workspace.workspaceKind.name]?.message
-                                    ?.text || 'No API response available',
-                                )
-                              : getRedirectStatusIcon(undefined, 'No API response available')}
-                          </Td>
-                        );
-                      case 'name':
-                        return (
-                          <Td
-                            key={columnKey}
-                            data-testid="workspace-name"
-                            dataLabel={wsTableColumns[columnKey].label}
-                          >
-                            {workspace.name}
-                          </Td>
-                        );
-                      case 'kind':
-                        return (
-                          <Td key={columnKey} dataLabel={wsTableColumns[columnKey].label}>
-                            <WithValidImage
-                              imageSrc={kindLogoDict[workspace.workspaceKind.name]}
-                              skeletonWidth="20px"
-                              fallback={
-                                <ImageFallback
-                                  imageSrc={kindLogoDict[workspace.workspaceKind.name]}
-                                />
-                              }
-                            >
-                              {(validSrc) => (
-                                <Tooltip content={workspace.workspaceKind.name}>
-                                  <img
-                                    src={validSrc}
-                                    alt={workspace.workspaceKind.name}
-                                    style={{ width: '20px', height: '20px', cursor: 'pointer' }}
-                                  />
-                                </Tooltip>
-                              )}
-                            </WithValidImage>
-                          </Td>
-                        );
-                      case 'namespace':
-                        return (
-                          <Td key={columnKey} dataLabel={wsTableColumns[columnKey].label}>
-                            {workspace.namespace}
-                          </Td>
-                        );
-                      case 'image':
-                        return (
-                          <Td key={columnKey} dataLabel={wsTableColumns[columnKey].label}>
-                            {workspace.podTemplate.options.imageConfig.current.displayName}
-                          </Td>
-                        );
-                      case 'podConfig':
-                        return (
-                          <Td
-                            key={columnKey}
-                            data-testid="pod-config"
-                            dataLabel={wsTableColumns[columnKey].label}
-                          >
-                            {workspace.podTemplate.options.podConfig.current.displayName}
-                          </Td>
-                        );
-                      case 'state':
-                        return (
-                          <Td
-                            key={columnKey}
-                            data-testid="state-label"
-                            dataLabel={wsTableColumns[columnKey].label}
-                          >
-                            <Label color={extractStateColor(workspace.state)}>
-                              {workspace.state}
-                            </Label>
-                          </Td>
-                        );
-                      case 'homeVol':
-                        return (
-                          <Td key={columnKey} dataLabel={wsTableColumns[columnKey].label}>
-                            {workspace.podTemplate.volumes.home?.pvcName ?? ''}
-                          </Td>
-                        );
-                      case 'cpu':
-                        return (
-                          <Td key={columnKey} dataLabel={wsTableColumns[columnKey].label}>
-                            {formatResourceFromWorkspace(workspace, 'cpu')}
-                          </Td>
-                        );
-                      case 'ram':
-                        return (
-                          <Td key={columnKey} dataLabel={wsTableColumns[columnKey].label}>
-                            {formatResourceFromWorkspace(workspace, 'memory')}
-                          </Td>
-                        );
-                      case 'gpu':
-                        return (
-                          <Td key={columnKey} dataLabel={wsTableColumns[columnKey].label}>
-                            {formatResourceFromWorkspace(workspace, 'gpu')}
-                          </Td>
-                        );
-                      case 'idleGpu':
-                        return (
-                          <Td key={columnKey} dataLabel={wsTableColumns[columnKey].label}>
-                            {formatWorkspaceIdleState(workspace)}
-                          </Td>
-                        );
-                      case 'lastActivity':
-                        return (
-                          <Td key={columnKey} dataLabel={wsTableColumns[columnKey].label}>
-                            <Timestamp
-                              date={new Date(workspace.activity.lastActivity)}
-                              tooltip={{ variant: TimestampTooltipVariant.default }}
-                            >
-                              {formatDistanceToNow(new Date(workspace.activity.lastActivity), {
-                                addSuffix: true,
-                              })}
-                            </Timestamp>
-                          </Td>
-                        );
-                      case 'connect':
-                        return (
-                          <Td key={columnKey} isActionCell>
-                            <WorkspaceConnectAction workspace={workspace} />
-                          </Td>
-                        );
-                      case 'actions':
-                        return (
-                          <Td key={columnKey} isActionCell data-testid="action-column">
-                            <ActionsColumn
-                              items={rowActions(workspace).map((action) => ({
-                                ...action,
-                                'data-testid': `action-${action.id || ''}`,
-                              }))}
+                  {visibleColumnKeys.includes('name') && (
+                    <Td
+                      key="name"
+                      data-testid="workspace-name"
+                      dataLabel={wsTableColumns.name.label}
+                    >
+                      {workspace.name}
+                    </Td>
+                  )}
+                  {visibleColumnKeys.includes('image') && (
+                    <Td key="image" dataLabel={wsTableColumns.image.label}>
+                      <Content>
+                        {workspace.podTemplate.options.imageConfig.current.displayName}{' '}
+                        {workspaceRedirectStatus[workspace.workspaceKind.name]
+                          ? getRedirectStatusIcon(
+                              workspaceRedirectStatus[workspace.workspaceKind.name]?.message?.level,
+                              workspaceRedirectStatus[workspace.workspaceKind.name]?.message
+                                ?.text || 'No API response available',
+                            )
+                          : getRedirectStatusIcon(undefined, 'No API response available')}
+                      </Content>
+                    </Td>
+                  )}
+                  {visibleColumnKeys.includes('kind') && (
+                    <Td key="kind" dataLabel={wsTableColumns.kind.label}>
+                      <WithValidImage
+                        imageSrc={kindLogoDict[workspace.workspaceKind.name]}
+                        skeletonWidth="20px"
+                        fallback={
+                          <ImageFallback imageSrc={kindLogoDict[workspace.workspaceKind.name]} />
+                        }
+                      >
+                        {(validSrc) => (
+                          <Tooltip content={workspace.workspaceKind.name}>
+                            <img
+                              src={validSrc}
+                              alt={workspace.workspaceKind.name}
+                              style={{ width: '20px', height: '20px', cursor: 'pointer' }}
                             />
-                          </Td>
-                        );
-                      default:
-                        return null;
-                    }
-                  })}
+                          </Tooltip>
+                        )}
+                      </WithValidImage>
+                    </Td>
+                  )}
+                  {visibleColumnKeys.includes('namespace') && (
+                    <Td key="namespace" dataLabel={wsTableColumns.namespace.label}>
+                      {workspace.namespace}
+                    </Td>
+                  )}
+                  {visibleColumnKeys.includes('state') && (
+                    <Td
+                      key="state"
+                      data-testid="state-label"
+                      dataLabel={wsTableColumns.state.label}
+                    >
+                      <Label color={extractStateColor(workspace.state)}>{workspace.state}</Label>
+                    </Td>
+                  )}
+                  {visibleColumnKeys.includes('gpu') && (
+                    <Td key="gpu" dataLabel={wsTableColumns.gpu.label}>
+                      {formatResourceFromWorkspace(workspace, 'gpu')}
+                    </Td>
+                  )}
+                  {visibleColumnKeys.includes('idleGpu') && (
+                    <Td key="idleGpu" dataLabel={wsTableColumns.idleGpu.label}>
+                      {formatWorkspaceIdleState(workspace)}
+                    </Td>
+                  )}
+                  {visibleColumnKeys.includes('lastActivity') && (
+                    <Td key="lastActivity" dataLabel={wsTableColumns.lastActivity.label}>
+                      <Timestamp
+                        date={new Date(workspace.activity.lastActivity)}
+                        tooltip={{ variant: TimestampTooltipVariant.default }}
+                      >
+                        {formatDistanceToNow(new Date(workspace.activity.lastActivity), {
+                          addSuffix: true,
+                        })}
+                      </Timestamp>
+                    </Td>
+                  )}
+                  {visibleColumnKeys.includes('connect') && (
+                    <Td key="connect" isActionCell>
+                      <WorkspaceConnectAction workspace={workspace} />
+                    </Td>
+                  )}
+                  {visibleColumnKeys.includes('actions') && (
+                    <Td key="actions" isActionCell data-testid="action-column">
+                      <ActionsColumn
+                        items={rowActions(workspace).map((action) => ({
+                          ...action,
+                          'data-testid': `action-${action.id || ''}`,
+                        }))}
+                      />
+                    </Td>
+                  )}
                 </Tr>
                 {isWorkspaceExpanded(workspace) && (
-                  <ExpandedWorkspaceRow workspace={workspace} columnKeys={visibleColumnKeys} />
+                  <ExpandedWorkspaceRow
+                    workspace={workspace}
+                    visibleColumnKeys={visibleColumnKeys}
+                    canExpandRows={canExpandRows}
+                  />
                 )}
               </Tbody>
             ))}

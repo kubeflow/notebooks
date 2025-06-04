@@ -32,18 +32,16 @@ describe('Application', () => {
   it('filter rows with multiple filters', () => {
     home.visit();
     useFilter('name', 'Name', 'My');
-    useFilter('podConfig', 'Pod Config', 'Tiny');
-    cy.get("[id$='workspaces-table-content']").find('tr').should('have.length', 1);
+    cy.get("[id$='workspaces-table-content']").find('tr').should('have.length', 2);
     cy.get("[id$='workspaces-table-row-1']").contains('My First Jupyter Notebook');
   });
 
   it('filter rows with multiple filters and remove one', () => {
     home.visit();
     useFilter('name', 'Name', 'My');
-    useFilter('podConfig', 'Pod Config', 'Tiny');
-    cy.get("[id$='workspaces-table-content']").find('tr').should('have.length', 1);
+    cy.get("[id$='workspaces-table-content']").find('tr').should('have.length', 2);
     cy.get("[id$='workspaces-table-row-1']").contains('My First Jupyter Notebook');
-    cy.get("[class$='pf-v6-c-label-group__close']").eq(1).click();
+    cy.get("[class$='pf-v6-c-label-group__close']").first().click();
     cy.get("[class$='pf-v6-c-toolbar__group']").should('not.contain', 'Pod Config');
     cy.get("[id$='workspaces-table-content']").find('tr').should('have.length', 2);
     cy.get("[id$='workspaces-table-row-1']").contains('My First Jupyter Notebook');
@@ -53,8 +51,7 @@ describe('Application', () => {
   it('filter rows with multiple filters and remove all', () => {
     home.visit();
     useFilter('name', 'Name', 'My');
-    useFilter('podConfig', 'Pod Config', 'Tiny');
-    cy.get("[id$='workspaces-table-content']").find('tr').should('have.length', 1);
+    cy.get("[id$='workspaces-table-content']").find('tr').should('have.length', 2);
     cy.get("[id$='workspaces-table-row-1']").contains('My First Jupyter Notebook');
     cy.get('*').contains('Clear all filters').click();
     cy.get("[class$='pf-v6-c-toolbar__group']").should('not.contain', 'Pod Config');
