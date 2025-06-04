@@ -21,6 +21,8 @@ import {
   mockAllWorkspaces,
   mockedHealthCheckResponse,
   mockNamespaces,
+  mockPausedStateResponse,
+  mockStartedStateResponse,
   mockWorkspace1,
   mockWorkspaceKind1,
   mockWorkspaceKinds,
@@ -53,14 +55,14 @@ export const mockDeleteWorkspace: DeleteWorkspaceAPI = () => async () => {
   await delay(1500);
 };
 
-export const mockPauseWorkspace: PauseWorkspaceAPI = () => async () => {
+export const mockPauseWorkspace: PauseWorkspaceAPI = () => async (_opts, namespace, workspace) => {
   await delay(1500);
-  return {};
+  return { ...mockPausedStateResponse, namespace, workspaceName: workspace };
 };
 
-export const mockStartWorkspace: StartWorkspaceAPI = () => async () => {
+export const mockStartWorkspace: StartWorkspaceAPI = () => async (_opts, namespace, workspace) => {
   await delay(1500);
-  return {};
+  return { ...mockStartedStateResponse, namespace, workspaceName: workspace };
 };
 
 export const mockListWorkspaceKinds: ListWorkspaceKindsAPI = () => async () => mockWorkspaceKinds;

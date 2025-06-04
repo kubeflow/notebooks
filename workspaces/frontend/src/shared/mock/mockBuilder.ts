@@ -4,6 +4,7 @@ import {
   Workspace,
   WorkspaceKind,
   WorkspaceKindInfo,
+  WorkspacePauseState,
   WorkspaceRedirectMessageLevel,
   WorkspaceServiceStatus,
   WorkspaceState,
@@ -267,4 +268,13 @@ export const buildMockWorkspaceKind = (workspaceKind?: Partial<WorkspaceKind>): 
     },
   },
   ...workspaceKind,
+});
+
+export const buildMockPauseStateResponse = (
+  pauseState?: Partial<WorkspacePauseState>,
+): WorkspacePauseState => ({
+  namespace: 'default',
+  workspaceName: 'My First Jupyter Notebook',
+  paused: true,
+  ...pauseState,
 });

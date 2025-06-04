@@ -362,7 +362,7 @@ const WorkspaceTable: React.FC<WorkspaceTableProps> = ({
                 return;
               }
 
-              await api.startWorkspace({}, selectedNamespace, selectedWorkspace.name);
+              return api.startWorkspace({}, selectedNamespace, selectedWorkspace.name);
             }}
             onUpdateAndStart={async () => {
               // TODO: implement update and stop
@@ -390,7 +390,7 @@ const WorkspaceTable: React.FC<WorkspaceTableProps> = ({
               if (!selectedWorkspace) {
                 return;
               }
-              await api.pauseWorkspace({}, selectedNamespace, selectedWorkspace.name);
+              return api.pauseWorkspace({}, selectedNamespace, selectedWorkspace.name);
             }}
             onUpdateAndStop={async () => {
               // TODO: implement update and stop
