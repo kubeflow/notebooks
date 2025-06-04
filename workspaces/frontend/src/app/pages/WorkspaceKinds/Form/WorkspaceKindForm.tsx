@@ -9,7 +9,6 @@ import {
   ProgressStep,
   ProgressStepper,
   Stack,
-  StackItem,
 } from '@patternfly/react-core';
 import { CheckIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
@@ -19,13 +18,22 @@ import { WorkspaceKindCreationMethod } from './method/WorkspaceKindCreationMetho
 import { WorkspaceKindFormProperties } from './properties/WorkspaceKindFormProperties';
 import { WorkspaceKindFormImage } from './image/WorkspaceKindFormImage';
 
-enum WorkspaceKindCreationSteps {
+enum WorkspaceKindFormSteps {
   CreationMethod,
   Properties,
   Images,
   PodConfig,
   PodTemplate,
 }
+const stepDescriptions: { [key in WorkspaceKindFormSteps]?: string } = {
+  [WorkspaceKindFormSteps.CreationMethod]: 'Select a method to create a Workspace Kind.',
+  [WorkspaceKindFormSteps.Properties]: 'Configure properties for your Workspace Kind.',
+  [WorkspaceKindFormSteps.Images]:
+    'Configure images for your Workspace Kind and select a default image.',
+  [WorkspaceKindFormSteps.PodConfig]:
+    'Manage pod configurations for your Workspace Kind and select a default configuration.',
+  [WorkspaceKindFormSteps.PodTemplate]: 'TODO',
+};
 
 export enum WorkspaceKindCreationMethodTypes {
   Manual,
@@ -38,7 +46,7 @@ export const WorkspaceKindForm: React.FC = () => {
     WorkspaceKindCreationMethodTypes.FileUpload,
   );
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [currentStep, setCurrentStep] = useState(WorkspaceKindCreationSteps.CreationMethod);
+  const [currentStep, setCurrentStep] = useState(WorkspaceKindFormSteps.CreationMethod);
 
   const [data, setData, resetData] = useGenericObjectState<WorkspaceKindCreate>({
     properties: {
@@ -57,7 +65,7 @@ export const WorkspaceKindForm: React.FC = () => {
   });
 
   const getStepVariant = useCallback(
-    (step: WorkspaceKindCreationSteps) => {
+    (step: WorkspaceKindFormSteps) => {
       if (step > currentStep) {
         return 'pending';
       }
@@ -80,7 +88,7 @@ export const WorkspaceKindForm: React.FC = () => {
   const canGoToPreviousStep = useMemo(() => currentStep > 0, [currentStep]);
 
   const canGoToNextStep = useMemo(
-    () => currentStep < Object.keys(WorkspaceKindCreationSteps).length / 2 - 1,
+    () => currentStep < Object.keys(WorkspaceKindFormSteps).length / 2 - 1,
     [currentStep],
   );
 
@@ -106,97 +114,68 @@ export const WorkspaceKindForm: React.FC = () => {
       <PageGroup isFilled={false} stickyOnBreakpoint={{ default: 'top' }}>
         <PageSection>
           <Stack hasGutter>
-            <StackItem>
-              <Flex>
+            <Flex direction={{ default: 'column' }} rowGap={{ default: 'rowGapXl' }}>
+              <FlexItem>
                 <Content>
                   <h1>Create workspace kind</h1>
+                  <p>{stepDescriptions[currentStep]}</p>
                 </Content>
-              </Flex>
-            </StackItem>
-            <StackItem>
-              <ProgressStepper aria-label="Workspace creation stepper">
-                <ProgressStep
-                  variant={getStepVariant(WorkspaceKindCreationSteps.CreationMethod)}
-                  id="method-step"
-                  icon={
-                    getStepVariant(WorkspaceKindCreationSteps.CreationMethod) === 'success' ? (
-                      <CheckIcon />
-                    ) : (
-                      1
-                    )
-                  }
-                  titleId="method-step-title"
-                  aria-label="Method selection step"
-                >
-                  Method
-                </ProgressStep>
-                <ProgressStep
-                  variant={getStepVariant(WorkspaceKindCreationSteps.Properties)}
-                  id="properties-step"
-                  icon={
-                    getStepVariant(WorkspaceKindCreationSteps.Properties) === 'success' ? (
-                      <CheckIcon />
-                    ) : (
-                      2
-                    )
-                  }
-                  titleId="properties-step-title"
-                  aria-label="Properties selection step"
-                >
-                  Properties
-                </ProgressStep>
-                <ProgressStep
-                  variant={getStepVariant(WorkspaceKindCreationSteps.Images)}
-                  id="images-step"
-                  icon={
-                    getStepVariant(WorkspaceKindCreationSteps.Images) === 'success' ? (
-                      <CheckIcon />
-                    ) : (
-                      3
-                    )
-                  }
-                  titleId="images-step-title"
-                  aria-label="Images step"
-                >
-                  Images
-                </ProgressStep>
-                <ProgressStep
-                  variant={getStepVariant(WorkspaceKindCreationSteps.PodConfig)}
-                  id="pod-config-step"
-                  icon={
-                    getStepVariant(WorkspaceKindCreationSteps.PodConfig) === 'success' ? (
-                      <CheckIcon />
-                    ) : (
-                      4
-                    )
-                  }
-                  titleId="pod-config-step-title"
-                  aria-label="Pod configuration step"
-                >
-                  Pod Configurations
-                </ProgressStep>
-                <ProgressStep
-                  variant={getStepVariant(WorkspaceKindCreationSteps.PodTemplate)}
-                  id="pod-template-step"
-                  icon={
-                    getStepVariant(WorkspaceKindCreationSteps.PodTemplate) === 'success' ? (
-                      <CheckIcon />
-                    ) : (
-                      5
-                    )
-                  }
-                  titleId="pod-template-step-title"
-                  aria-label="Pod template step"
-                >
-                  Pod Template
-                </ProgressStep>
-              </ProgressStepper>
-            </StackItem>
+              </FlexItem>
+              <FlexItem>
+                <ProgressStepper aria-label="Workspace creation stepper">
+                  <ProgressStep
+                    variant={getStepVariant(WorkspaceKindFormSteps.CreationMethod)}
+                    id="method-step"
+                    isCurrent={currentStep === WorkspaceKindFormSteps.CreationMethod}
+                    titleId="method-step-title"
+                    aria-label="Method selection step"
+                  >
+                    Method
+                  </ProgressStep>
+                  <ProgressStep
+                    variant={getStepVariant(WorkspaceKindFormSteps.Properties)}
+                    id="properties-step"
+                    isCurrent={currentStep === WorkspaceKindFormSteps.Properties}
+                    titleId="properties-step-title"
+                    aria-label="Properties selection step"
+                  >
+                    Properties
+                  </ProgressStep>
+                  <ProgressStep
+                    variant={getStepVariant(WorkspaceKindFormSteps.Images)}
+                    id="images-step"
+                    isCurrent={currentStep === WorkspaceKindFormSteps.Images}
+                    titleId="images-step-title"
+                    aria-label="Images step"
+                  >
+                    Images
+                  </ProgressStep>
+                  <ProgressStep
+                    variant={getStepVariant(WorkspaceKindFormSteps.PodConfig)}
+                    id="pod-config-step"
+                    isCurrent={currentStep === WorkspaceKindFormSteps.PodConfig}
+                    titleId="pod-config-step-title"
+                    aria-label="Pod configuration step"
+                  >
+                    Pod Configurations
+                  </ProgressStep>
+                  <ProgressStep
+                    variant={getStepVariant(WorkspaceKindFormSteps.PodTemplate)}
+                    id="pod-template-step"
+                    isCurrent={currentStep === WorkspaceKindFormSteps.PodTemplate}
+                    titleId="pod-template-step-title"
+                    aria-label="Pod template step"
+                  >
+                    Pod Template
+                  </ProgressStep>
+                </ProgressStepper>
+              </FlexItem>
+            </Flex>
           </Stack>
         </PageSection>
       </PageGroup>
       <PageSection isFilled>
-        {currentStep === WorkspaceKindCreationSteps.CreationMethod && (
+        {currentStep === WorkspaceKindFormSteps.CreationMethod && (
           <WorkspaceKindCreationMethod
             method={methodSelected}
             onMethodSelect={(methodType: WorkspaceKindCreationMethodTypes) =>
@@ -206,13 +185,13 @@ export const WorkspaceKindForm: React.FC = () => {
             resetData={resetData}
           />
         )}
-        {currentStep === WorkspaceKindCreationSteps.Properties && (
+        {currentStep === WorkspaceKindFormSteps.Properties && (
           <WorkspaceKindFormProperties
             properties={data.properties}
             updateField={(properties) => setData('properties', properties)}
           />
         )}
-        {currentStep === WorkspaceKindCreationSteps.Images && (
+        {currentStep === WorkspaceKindFormSteps.Images && (
           <WorkspaceKindFormImage
             imageConfig={data.imageConfig}
             updateImageConfig={(imageInput) => {
@@ -220,10 +199,8 @@ export const WorkspaceKindForm: React.FC = () => {
             }}
           />
         )}
-        {currentStep === WorkspaceKindCreationSteps.PodConfig && <>{/* TODO: Implement step */}</>}
-        {currentStep === WorkspaceKindCreationSteps.PodTemplate && (
-          <>{/* TODO: Implement step */}</>
-        )}
+        {currentStep === WorkspaceKindFormSteps.PodConfig && <>{/* TODO: Implement step */}</>}
+        {currentStep === WorkspaceKindFormSteps.PodTemplate && <>{/* TODO: Implement step */}</>}
       </PageSection>
       <PageSection isFilled={false} stickyOnBreakpoint={{ default: 'bottom' }}>
         <Flex>

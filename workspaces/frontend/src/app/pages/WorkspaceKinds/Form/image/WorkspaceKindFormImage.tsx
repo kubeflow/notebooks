@@ -1,7 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import {
   Button,
-  Divider,
   Content,
   Dropdown,
   MenuToggle,
@@ -13,6 +12,7 @@ import {
   EmptyState,
   EmptyStateFooter,
   EmptyStateActions,
+  EmptyStateBody,
 } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { PlusCircleIcon, EllipsisVIcon, CubesIcon } from '@patternfly/react-icons';
@@ -96,10 +96,9 @@ export const WorkspaceKindFormImage: React.FC<WorkspaceKindFormImageProps> = ({
 
   return (
     <Content style={{ height: '100%' }}>
-      <p>Configure images for your workspace kind and select an image as default.</p>
-      <Divider />
       {imageConfig.values.length === 0 && (
-        <EmptyState titleText="Add An Image To Workspace Kind" headingLevel="h4" icon={CubesIcon}>
+        <EmptyState titleText="Start by creating an image" headingLevel="h4" icon={CubesIcon}>
+          <EmptyStateBody>Add an image configuration to your Workspace Kind</EmptyStateBody>
           <EmptyStateFooter>
             <EmptyStateActions>{addImageBtn}</EmptyStateActions>
           </EmptyStateFooter>
