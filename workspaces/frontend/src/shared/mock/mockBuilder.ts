@@ -81,6 +81,10 @@ export const buildMockWorkspace = (workspace?: Partial<Workspace>): Workspace =>
               key: 'pythonVersion',
               value: '3.11',
             },
+            {
+              key: 'jupyterlabVersion',
+              value: '1.9.0',
+            },
           ],
         },
       },
@@ -290,9 +294,30 @@ export const buildMockWorkspaceList = (args: {
 }): Workspace[] => {
   const states = Object.values(WorkspaceState);
   const imageConfigs = [
-    { id: 'jupyterlab_scipy_190', displayName: `jupyter-scipy:v1.9.0` },
-    { id: 'jupyterlab_scipy_200', displayName: `jupyter-scipy:v2.0.0` },
-    { id: 'jupyterlab_scipy_210', displayName: `jupyter-scipy:v2.1.0` },
+    {
+      id: 'jupyterlab_scipy_190',
+      displayName: `jupyter-scipy:v1.9.0`,
+      labels: [
+        { key: 'pythonVersion', value: '3.12' },
+        { key: 'jupyterlabVersion', value: '1.9.0' },
+      ],
+    },
+    {
+      id: 'jupyterlab_scipy_200',
+      displayName: `jupyter-scipy:v2.0.0`,
+      labels: [
+        { key: 'pythonVersion', value: '3.12' },
+        { key: 'jupyterlabVersion', value: '2.0.0' },
+      ],
+    },
+    {
+      id: 'jupyterlab_scipy_210',
+      displayName: `jupyter-scipy:v2.1.0`,
+      labels: [
+        { key: 'pythonVersion', value: '3.13' },
+        { key: 'jupyterlabVersion', value: '2.1.0' },
+      ],
+    },
   ];
   const podConfigs = [
     { id: 'tiny_cpu', displayName: 'Tiny CPU' },
@@ -353,12 +378,7 @@ export const buildMockWorkspaceList = (args: {
                 id: imageConfig.id,
                 displayName: imageConfig.displayName,
                 description: 'JupyterLab, with SciPy Packages',
-                labels: [
-                  {
-                    key: 'pythonVersion',
-                    value: '3.11',
-                  },
-                ],
+                labels: imageConfig.labels,
               },
             },
             podConfig: {
