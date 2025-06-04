@@ -1,5 +1,5 @@
 import React from 'react';
-import { Content, Divider, Form, FormGroup, Switch, TextInput } from '@patternfly/react-core';
+import { Content, Form, FormGroup, Switch, TextInput } from '@patternfly/react-core';
 import { WorkspaceKindProperties } from '~/app/types';
 
 interface WorkspaceKindFormPropertiesProps {
@@ -12,8 +12,6 @@ export const WorkspaceKindFormProperties: React.FC<WorkspaceKindFormPropertiesPr
   updateField,
 }) => (
   <Content style={{ height: '100%' }}>
-    <p>Configure properties for your workspace kind.</p>
-    <Divider />
     <Form>
       <FormGroup label="Workspace Kind Name" isRequired fieldId="workspace-kind-name">
         <TextInput

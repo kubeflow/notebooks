@@ -8,7 +8,6 @@ import {
   HelperTextItem,
   Content,
   Gallery,
-  Divider,
   Radio,
 } from '@patternfly/react-core';
 import { UpdateObjectAtPropAndValue } from '~/app/hooks/useGenericObjectState';
@@ -120,8 +119,6 @@ export const WorkspaceKindCreationMethod: React.FC<WorkspaceKindCreationMethodPr
 
   return (
     <Content style={{ height: '100%' }}>
-      <p>Select a method to create a Workspace Kind</p>
-      <Divider />
       <Gallery
         hasGutter
         aria-label="Selectable card container"
