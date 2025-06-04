@@ -14,6 +14,7 @@ import {
 } from '@patternfly/react-core';
 import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import { WorkspaceCountPerKind } from '~/app/hooks/useWorkspaceCountPerKind';
+import { WorkspaceKindDetailsNamespaces } from '~/app/pages/WorkspaceKinds/details/WorkspaceKindDetailsNamespaces';
 import { WorkspaceKindDetailsOverview } from './WorkspaceKindDetailsOverview';
 import { WorkspaceKindDetailsImages } from './WorkspaceKindDetailsImages';
 import { WorkspaceKindDetailsPodConfigs } from './WorkspaceKindDetailsPodConfigs';
@@ -67,6 +68,12 @@ export const WorkspaceKindDetails: React.FunctionComponent<WorkspaceKindDetailsP
             tabContentId="podConfigsTabContent"
             aria-label="Pod Configs"
           />
+          <Tab
+            eventKey={3}
+            title={<TabTitleText>Namespaces</TabTitleText>}
+            tabContentId="namespacesTabContent"
+            aria-label="Namespaces"
+          />
         </Tabs>
       </DrawerPanelBody>
 
@@ -105,6 +112,20 @@ export const WorkspaceKindDetails: React.FunctionComponent<WorkspaceKindDetailsP
         >
           <TabContentBody hasPadding>
             <WorkspaceKindDetailsPodConfigs
+              workspaceKind={workspaceKind}
+              workspaceCountPerKind={workspaceCountPerKind}
+            />
+          </TabContentBody>
+        </TabContent>
+        <TabContent
+          key={3}
+          eventKey={3}
+          id="namespacesTabContent"
+          activeKey={activeTabKey}
+          hidden={activeTabKey !== 3}
+        >
+          <TabContentBody hasPadding>
+            <WorkspaceKindDetailsNamespaces
               workspaceKind={workspaceKind}
               workspaceCountPerKind={workspaceCountPerKind}
             />

@@ -1,12 +1,9 @@
 import * as React from 'react';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { Workspace, WorkspaceKind } from '~/shared/api/backendApiTypes';
-import { WorkspaceCountPerKindImagePodConfig } from '~/app/types';
+import { WorkspaceCountPerOption } from '~/app/types';
 
-export type WorkspaceCountPerKind = Record<
-  WorkspaceKind['name'],
-  WorkspaceCountPerKindImagePodConfig
->;
+export type WorkspaceCountPerKind = Record<WorkspaceKind['name'], WorkspaceCountPerOption>;
 
 export const useWorkspaceCountPerKind = (): WorkspaceCountPerKind => {
   const { api } = useNotebookAPI();
@@ -22,6 +19,7 @@ export const useWorkspaceCountPerKind = (): WorkspaceCountPerKind => {
           count: 0,
           countByImage: {},
           countByPodConfig: {},
+          countByNamespace: {},
         };
         acc[workspace.workspaceKind.name].count =
           (acc[workspace.workspaceKind.name].count || 0) + 1;
@@ -37,6 +35,8 @@ export const useWorkspaceCountPerKind = (): WorkspaceCountPerKind => {
           (acc[workspace.workspaceKind.name].countByPodConfig[
             workspace.podTemplate.options.podConfig.current.id
           ] || 0) + 1;
+        acc[workspace.workspaceKind.name].countByNamespace[workspace.namespace] =
+          (acc[workspace.workspaceKind.name].countByNamespace[workspace.namespace] || 0) + 1;
         return acc;
       }, {});
       setWorkspaceCountPerKind(countPerKind);
