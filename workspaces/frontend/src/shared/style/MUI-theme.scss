@@ -562,23 +562,6 @@
   row-gap: none;
 }
 
-
-.mui-theme .pf-v6-c-page__sidebar {
-  --pf-v6-c-page__sidebar--BackgroundColor: var(--kf-central-primary-background-color);
-}
-
-.mui-theme .pf-v6-c-page__sidebar-body {
-  --pf-v6-c-page__sidebar-body--PaddingInlineStart: 0px;
-  --pf-v6-c-page__sidebar-body--PaddingInlineEnd: 0px;
-
-}
-
-.mui-theme .pf-v6-c-progress-stepper__step.pf-m-info,
-.mui-theme .pf-v6-c-progress-stepper__step.pf-m-success {
-  --pf-v6-c-progress-stepper__step-icon--BackgroundColor: var(--mui-palette-primary-main);
-  --pf-v6-c-progress-stepper__step-icon--Color: var(--mui-palette-common-white);
-}
-
 .mui-theme .pf-v6-c-progress-stepper__step.pf-m-pending .pf-v6-c-progress-stepper__step-icon {
   --pf-v6-c-progress-stepper__step-icon--BackgroundColor: var(--mui-palette-grey-500);
   --pf-v6-c-progress-stepper__step-icon--Color: var(--mui-palette-common-white);
@@ -587,6 +570,14 @@
 .mui-theme .pf-v6-c-progress-stepper__step-icon {
   --pf-v6-c-progress-stepper__step-icon--BorderWidth: 0;
 }
+
+ .mui-theme .pf-v6-c-progress-stepper__step.pf-m-info {
+  --pf-v6-c-progress-stepper__step-icon--Color: var(--mui-palette-primary-main);
+ }
+
+ .mui-theme .pf-v6-c-progress-stepper__step.pf-m-success {
+  --pf-v6-c-progress-stepper__step-icon--Color: var(--mui-palette-success-main);
+ }
 
 .mui-theme .pf-v6-c-radio.pf-m-standalone .pf-v6-c-radio__input {
   display: none;

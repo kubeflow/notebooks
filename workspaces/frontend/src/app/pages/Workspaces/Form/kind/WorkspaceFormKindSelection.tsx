@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo, useCallback } from 'react';
-import { Content, Divider } from '@patternfly/react-core';
+import { Content } from '@patternfly/react-core';
 import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import { WorkspaceFormKindDetails } from '~/app/pages/Workspaces/Form/kind/WorkspaceFormKindDetails';
@@ -59,8 +59,6 @@ const WorkspaceFormKindSelection: React.FunctionComponent<WorkspaceFormKindSelec
         onCloseClick={onCloseClick}
         onExpand={onExpand}
       >
-        <p>Select a workspace kind to use for the workspace.</p>
-        <Divider />
         <WorkspaceFormKindList
           allWorkspaceKinds={workspaceKinds}
           selectedKind={selectedKind}
