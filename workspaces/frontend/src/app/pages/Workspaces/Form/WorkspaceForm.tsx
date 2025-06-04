@@ -10,7 +10,6 @@ import {
   ProgressStepper,
   Stack,
 } from '@patternfly/react-core';
-
 import { useCallback, useMemo, useState } from 'react';
 import useGenericObjectState from '~/app/hooks/useGenericObjectState';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
