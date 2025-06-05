@@ -627,7 +627,7 @@ export const Workspaces: React.FunctionComponent = () => {
                           })}
                         </Timestamp>
                       </Td>
-                      <Td>
+                      <Td isActionCell>
                         <WorkspaceConnectAction workspace={workspace} />
                       </Td>
                       <Td isActionCell data-testid="action-column">

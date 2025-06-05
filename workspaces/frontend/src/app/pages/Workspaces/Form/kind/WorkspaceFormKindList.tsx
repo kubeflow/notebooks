@@ -115,9 +115,9 @@ export const WorkspaceFormKindList: React.FunctionComponent<WorkspaceFormKindLis
                     onChange,
                   }}
                 >
-                  <img src={kind.icon.url} alt={`${kind.name} icon`} style={{ maxWidth: '60px' }} />
-                  <CardTitle>{kind.displayName}</CardTitle>
+                  <img src={kind.logo.url} alt={`${kind.name} logo`} style={{ maxWidth: '60px' }} />
                 </CardHeader>
+                <CardTitle>{kind.displayName}</CardTitle>
                 <CardBody>{kind.description}</CardBody>
               </Card>
             ))}
