@@ -56,9 +56,9 @@ import { WorkspacesColumnNames } from '~/app/types';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
 import Filter, { FilteredColumn, FilterRef } from '~/shared/components/Filter';
 import { extractCpuValue, extractMemoryValue } from '~/shared/utilities/WorkspaceUtils';
+import { WorkspaceAggregatedDetails } from '~/app/pages/Workspaces/DetailsAggregated/WorkspaceAggregatedDetails';
 
 export enum ActionType {
-  ViewDetails,
   Edit,
   Delete,
   Start,
@@ -138,17 +138,6 @@ export const Workspaces: React.FunctionComponent = () => {
       },
     });
   }, [activeActionType, navigate, selectedWorkspace]);
-
-  const selectWorkspace = React.useCallback(
-    (newSelectedWorkspace: Workspace | null) => {
-      if (selectedWorkspace?.name === newSelectedWorkspace?.name) {
-        setSelectedWorkspace(null);
-      } else {
-        setSelectedWorkspace(newSelectedWorkspace);
-      }
-    },
-    [selectedWorkspace],
-  );
 
   const setWorkspaceExpanded = (workspace: Workspace, isExpanding = true) =>
     setExpandedWorkspacesNames((prevExpanded) => {
@@ -274,11 +263,6 @@ export const Workspaces: React.FunctionComponent = () => {
 
   // Actions
 
-  const viewDetailsClick = React.useCallback((workspace: Workspace) => {
-    setSelectedWorkspace(workspace);
-    setActiveActionType(ActionType.ViewDetails);
-  }, []);
-
   // TODO: Uncomment when edit action is fully supported
   // const editAction = React.useCallback((workspace: Workspace) => {
   //   setSelectedWorkspace(workspace);
@@ -328,11 +312,6 @@ export const Workspaces: React.FunctionComponent = () => {
 
   const workspaceDefaultActions = (workspace: Workspace): IActions => {
     const workspaceActions = [
-      {
-        id: 'view-details',
-        title: 'View Details',
-        onClick: () => viewDetailsClick(workspace),
-      },
       // TODO: Uncomment when edit action is fully supported
       // {
       //   id: 'edit',
@@ -501,26 +480,50 @@ export const Workspaces: React.FunctionComponent = () => {
     setPage(newPage);
   };
 
-  const workspaceDetailsContent = (
-    <>
-      {selectedWorkspace && (
-        <WorkspaceDetails
-          workspace={selectedWorkspace}
-          onCloseClick={() => selectWorkspace(null)}
-          // TODO: Uncomment when edit action is fully supported
-          // onEditClick={() => editAction(selectedWorkspace)}
-          onDeleteClick={() => handleDeleteClick(selectedWorkspace)}
-        />
-      )}
-    </>
-  );
+  const [selectedWorkspaceNames, setSelectedWorkspaceNames] = React.useState<string[]>([]);
+  const setWorkspaceSelected = (workspace: Workspace, isSelecting = true) =>
+    setSelectedWorkspaceNames((prevSelected) => {
+      const otherSelectedWorkspaceNames = prevSelected.filter((w) => w !== workspace.name);
+      return isSelecting
+        ? [...otherSelectedWorkspaceNames, workspace.name]
+        : otherSelectedWorkspaceNames;
+    });
+  const selectAllWorkspaces = (isSelecting = true) =>
+    setSelectedWorkspaceNames(isSelecting ? sortedWorkspaces.map((r) => r.name) : []);
+  const areAllWorkspacesSelected = selectedWorkspaceNames.length === sortedWorkspaces.length;
+  const isWorkspaceSelected = (workspace: Workspace) =>
+    selectedWorkspaceNames.includes(workspace.name);
+
+  const workspaceDetailsContent = () => {
+    const selectedWorkspaceForDetails =
+      selectedWorkspaceNames.length === 1
+        ? sortedWorkspaces.find((w) => w.name === selectedWorkspaceNames[0])
+        : undefined;
+    return (
+      <>
+        {selectedWorkspaceForDetails && (
+          <WorkspaceDetails
+            workspace={selectedWorkspaceForDetails}
+            onCloseClick={() => selectAllWorkspaces(false)}
+            // TODO: Uncomment when edit action is fully supported
+            // onEditClick={() => editAction(selectedWorkspaceForDetails)}
+            onDeleteClick={() => handleDeleteClick(selectedWorkspaceForDetails)}
+          />
+        )}
+        {selectedWorkspaceNames.length > 1 && (
+          <WorkspaceAggregatedDetails
+            workspaceNames={selectedWorkspaceNames}
+            onCloseClick={() => selectAllWorkspaces(false)}
+            onDeleteClick={() => console.log('Delete selected workspaces')}
+          />
+        )}
+      </>
+    );
+  };
 
   return (
-    <Drawer
-      isInline
-      isExpanded={selectedWorkspace != null && activeActionType === ActionType.ViewDetails}
-    >
-      <DrawerContent panelContent={workspaceDetailsContent}>
+    <Drawer isExpanded={selectedWorkspaceNames.length >= 1}>
+      <DrawerContent panelContent={workspaceDetailsContent()}>
         <DrawerContentBody>
           <PageSection isFilled>
             <Content>
@@ -545,6 +548,13 @@ export const Workspaces: React.FunctionComponent = () => {
               <Thead>
                 <Tr>
                   <Th screenReaderText="expand-action" />
+                  <Th
+                    select={{
+                      onSelect: (_event, isSelecting) => selectAllWorkspaces(isSelecting),
+                      isSelected: areAllWorkspacesSelected,
+                    }}
+                    aria-label="Row select"
+                  />
                   {Object.values(columnNames).map((columnName, index) => (
                     <Th
                       key={`${columnName}-col-name`}
@@ -575,6 +585,15 @@ export const Workspaces: React.FunctionComponent = () => {
                           onToggle: () =>
                             setWorkspaceExpanded(workspace, !isWorkspaceExpanded(workspace)),
                         }}
+                      />
+                      <Td
+                        select={{
+                          rowIndex,
+                          onSelect: (_event, isSelecting) =>
+                            setWorkspaceSelected(workspace, isSelecting),
+                          isSelected: isWorkspaceSelected(workspace),
+                        }}
+                        data-testid="workspace-select"
                       />
                       <Td dataLabel={columnNames.redirectStatus}>
                         {workspaceRedirectStatus[workspace.workspaceKind.name]
@@ -640,7 +659,7 @@ export const Workspaces: React.FunctionComponent = () => {
                       </Td>
                     </Tr>
                     {isWorkspaceExpanded(workspace) && (
-                      <ExpandedWorkspaceRow workspace={workspace} columnNames={columnNames} />
+                      <ExpandedWorkspaceRow workspace={workspace} />
                     )}
                   </Tbody>
                 ))}
