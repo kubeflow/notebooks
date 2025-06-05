@@ -1,0 +1,2 @@
+# Ignore node_modules to speed up build and avoid copying local dependencies
+node_modules
