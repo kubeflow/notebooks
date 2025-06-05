@@ -12,14 +12,13 @@ describe('WorkspaceDetailsActivity Component', () => {
 
   // This tests depends on the mocked workspaces data at home page, needs revisit once workspace data fetched from BE
   it('open workspace details, open activity tab, check all fields match', () => {
-    cy.findAllByTestId('table-body').first().findByTestId('action-column').click();
+    cy.findAllByTestId('table-body').first().findByTestId('workspace-select').find('input').click();
     // Extract first workspace from mock data
     cy.wait('@getWorkspaces').then((interception) => {
       if (!interception.response || !interception.response.body) {
         throw new Error('Intercepted response is undefined or empty');
       }
       const workspace = interception.response.body.data[0];
-      cy.findByTestId('action-view-details').click();
       cy.findByTestId('activityTab').click();
       cy.findByTestId('lastActivity')
         .invoke('text')
