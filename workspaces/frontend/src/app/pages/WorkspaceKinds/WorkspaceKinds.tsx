@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import {
   Drawer,
   DrawerContent,
@@ -47,6 +47,12 @@ export enum ActionType {
 }
 
 export const WorkspaceKinds: React.FunctionComponent = () => {
+  // const navigate = useNavigate();
+  // TODO: Uncomment when WorkspaceKind Form is complete
+  // const createWorkspaceKind = useCallback(() => {
+  //   navigate('/workspacekinds/create');
+  // }, [navigate]);
+
   // Table columns
   const columns: WorkspaceKindsColumns = React.useMemo(
     () => ({
@@ -518,12 +524,13 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                         {statusSelect}
                       </ToolbarFilter>
                     </ToolbarGroup>
+                    {/* //TODO: Uncomment when WorkspaceKind Form is finished
+                    <Button variant="primary" ouiaId="Primary" onClick={createWorkspaceKind}>
+                      Create Workspace Kind
+                    </Button> */}
                   </ToolbarToggleGroup>
                 </ToolbarContent>
               </Toolbar>
-              {/* <Button variant="primary" ouiaId="Primary">
-                Create Workspace Kind // Todo: show only in case of an admin user.
-              </Button> */}
             </Content>
             <Table aria-label="Sortable table" ouiaId="SortableTable">
               <Thead>
