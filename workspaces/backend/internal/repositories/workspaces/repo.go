@@ -18,19 +18,24 @@ package workspaces
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces"
 )
 
-var ErrWorkspaceNotFound = fmt.Errorf("workspace not found")
-var ErrWorkspaceAlreadyExists = fmt.Errorf("workspace already exists")
+var (
+	ErrWorkspaceNotFound      = fmt.Errorf("workspace not found")
+	ErrWorkspaceAlreadyExists = fmt.Errorf("workspace already exists")
+	ErrWorkspaceInvalidState  = fmt.Errorf("workspace is in an invalid state for this operation")
+)
 
 type WorkspaceRepository struct {
 	client client.Client
@@ -213,4 +218,83 @@ func (r *WorkspaceRepository) DeleteWorkspace(ctx context.Context, namespace, wo
 	}
 
 	return nil
+}
+
+// WorkspacePatchOperation represents a single JSONPatch operation
+type WorkspacePatchOperation struct {
+	Op    string      `json:"op"`
+	Path  string      `json:"path"`
+	Value interface{} `json:"value,omitempty"`
+}
+
+// setWorkspacePausedState sets a workspace's paused state to the provided value
+func (r *WorkspaceRepository) setWorkspacePausedState(ctx context.Context, namespace, workspaceName string, testOps []WorkspacePatchOperation, paused bool) (*kubefloworgv1beta1.Workspace, error) {
+	// Combine test operations with the replace operation
+	patch := make([]WorkspacePatchOperation, len(testOps), len(testOps)+1)
+	copy(patch, testOps)
+	patch = append(patch, WorkspacePatchOperation{
+		Op:    "replace",
+		Path:  "/spec/paused",
+		Value: paused,
+	})
+
+	// Convert patch to JSON
+	patchBytes, err := json.Marshal(patch)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal patch: %w", err)
+	}
+
+	// Create workspace object for patch
+	workspace := &kubefloworgv1beta1.Workspace{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      workspaceName,
+		},
+	}
+
+	// Apply the patch
+	if err := r.client.Patch(ctx, workspace, client.RawPatch(types.JSONPatchType, patchBytes)); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, ErrWorkspaceNotFound
+		}
+		if apierrors.IsInvalid(err) {
+			return nil, ErrWorkspaceInvalidState
+		}
+		return nil, fmt.Errorf("failed to patch workspace: %w", err)
+	}
+
+	return workspace, nil
+}
+
+// PauseWorkspace pauses a workspace by setting its paused field to true
+func (r *WorkspaceRepository) PauseWorkspace(ctx context.Context, namespace, workspaceName string) (*kubefloworgv1beta1.Workspace, error) {
+	// Test that the workspace is running (spec.paused is false)
+	testOps := []WorkspacePatchOperation{
+		{
+			Op:    "test",
+			Path:  "/spec/paused",
+			Value: false,
+		},
+	}
+
+	return r.setWorkspacePausedState(ctx, namespace, workspaceName, testOps, true)
+}
+
+// StartWorkspace starts a workspace by setting its paused field to false
+func (r *WorkspaceRepository) StartWorkspace(ctx context.Context, namespace, workspaceName string) (*kubefloworgv1beta1.Workspace, error) {
+	// Test that the workspace is paused (spec.paused is true and status.state is Paused)
+	testOps := []WorkspacePatchOperation{
+		{
+			Op:    "test",
+			Path:  "/spec/paused",
+			Value: true,
+		},
+		{
+			Op:    "test",
+			Path:  "/status/state",
+			Value: kubefloworgv1beta1.WorkspaceStatePaused,
+		},
+	}
+
+	return r.setWorkspacePausedState(ctx, namespace, workspaceName, testOps, false)
 }
