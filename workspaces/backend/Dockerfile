@@ -6,17 +6,20 @@ ARG TARGETARCH
 WORKDIR /workspace
 
 # Copy the Go Modules manifests
-COPY go.mod go.sum ./
+COPY backend/go.mod backend/go.sum ./
 
-# Download dependencies
-RUN go mod download
+# Copy controller directory 
+COPY controller /workspace/controller
+
+# Rewrite the go.mod to update the replace directive and download dependencies
+RUN go mod edit -replace=github.com/kubeflow/notebooks/workspaces/controller=./controller && \
+    go mod download
 
 # Copy the go source files
-COPY cmd/ cmd/
-COPY api/ api/
-COPY config/ config/
-COPY data/ data/
-COPY integrations/ integrations/
+COPY backend/cmd/ cmd/
+COPY backend/api/ api/
+COPY backend/internal/ internal/
+COPY backend/openapi/ openapi/
 
 # Build the Go application
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o backend ./cmd/main.go
@@ -31,7 +34,7 @@ USER 65532:65532
 EXPOSE 4000
 
 # Define environment variables
-ENV PORT 4000
-ENV ENV development
+ENV PORT=4000
+ENV ENV=development
 
 ENTRYPOINT ["/backend"]
