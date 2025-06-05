@@ -60,6 +60,7 @@ func NewWorkspaceKindModelFromWorkspaceKind(wsk *kubefloworgv1beta1.WorkspaceKin
 		Hidden:             ptr.Deref(wsk.Spec.Spawner.Hidden, false),
 		Icon:               iconRef,
 		Logo:               logoRef,
+		Workspaces:         wsk.Status.Workspaces,
 		PodTemplate: PodTemplate{
 			PodMetadata: PodMetadata{
 				Labels:      podLabels,
@@ -71,18 +72,18 @@ func NewWorkspaceKindModelFromWorkspaceKind(wsk *kubefloworgv1beta1.WorkspaceKin
 			Options: PodTemplateOptions{
 				ImageConfig: ImageConfig{
 					Default: wsk.Spec.PodTemplate.Options.ImageConfig.Spawner.Default,
-					Values:  buildImageConfigValues(wsk.Spec.PodTemplate.Options.ImageConfig),
+					Values:  buildImageConfigValues(wsk.Spec.PodTemplate.Options.ImageConfig, wsk.Status.PodTemplateOptions.ImageConfig),
 				},
 				PodConfig: PodConfig{
 					Default: wsk.Spec.PodTemplate.Options.PodConfig.Spawner.Default,
-					Values:  buildPodConfigValues(wsk.Spec.PodTemplate.Options.PodConfig),
+					Values:  buildPodConfigValues(wsk.Spec.PodTemplate.Options.PodConfig, wsk.Status.PodTemplateOptions.PodConfig),
 				},
 			},
 		},
 	}
 }
 
-func buildImageConfigValues(imageConfig kubefloworgv1beta1.ImageConfig) []ImageConfigValue {
+func buildImageConfigValues(imageConfig kubefloworgv1beta1.ImageConfig, statusImageConfig []kubefloworgv1beta1.OptionMetric) []ImageConfigValue {
 	imageConfigValues := make([]ImageConfigValue, len(imageConfig.Values))
 	for i := range imageConfig.Values {
 		option := imageConfig.Values[i]
@@ -93,12 +94,13 @@ func buildImageConfigValues(imageConfig kubefloworgv1beta1.ImageConfig) []ImageC
 			Labels:      buildOptionLabels(option.Spawner.Labels),
 			Hidden:      ptr.Deref(option.Spawner.Hidden, false),
 			Redirect:    buildOptionRedirect(option.Redirect),
+			Workspaces:  FindConfigWorkspacesById(statusImageConfig, option.Id),
 		}
 	}
 	return imageConfigValues
 }
 
-func buildPodConfigValues(podConfig kubefloworgv1beta1.PodConfig) []PodConfigValue {
+func buildPodConfigValues(podConfig kubefloworgv1beta1.PodConfig, statusImageConfig []kubefloworgv1beta1.OptionMetric) []PodConfigValue {
 	podConfigValues := make([]PodConfigValue, len(podConfig.Values))
 	for i := range podConfig.Values {
 		option := podConfig.Values[i]
@@ -109,6 +111,7 @@ func buildPodConfigValues(podConfig kubefloworgv1beta1.PodConfig) []PodConfigVal
 			Labels:      buildOptionLabels(option.Spawner.Labels),
 			Hidden:      ptr.Deref(option.Spawner.Hidden, false),
 			Redirect:    buildOptionRedirect(option.Redirect),
+			Workspaces:  FindConfigWorkspacesById(statusImageConfig, option.Id),
 		}
 	}
 	return podConfigValues
@@ -152,4 +155,13 @@ func buildOptionRedirect(redirect *kubefloworgv1beta1.OptionRedirect) *OptionRed
 		To:      redirect.To,
 		Message: message,
 	}
+}
+
+func FindConfigWorkspacesById(configs []kubefloworgv1beta1.OptionMetric, targetId string) int32 {
+	for _, config := range configs {
+		if config.Id == targetId {
+			return config.Workspaces
+		}
+	}
+	return -1
 }
