@@ -4,6 +4,7 @@ import {
   WorkspacePodConfigValue,
   WorkspacePodVolumeMount,
   WorkspacePodSecretMount,
+  Workspace,
 } from '~/shared/api/backendApiTypes';
 
 export interface WorkspacesColumnNames {
@@ -47,8 +48,9 @@ export interface WorkspaceFormData {
   properties: WorkspaceFormProperties;
 }
 
-export interface WorkspaceCountPerKindImagePodConfig {
+export interface WorkspaceCountPerOption {
   count: number;
   countByImage: Record<WorkspaceImageConfigValue['id'], number>;
   countByPodConfig: Record<WorkspacePodConfigValue['id'], number>;
+  countByNamespace: Record<Workspace['namespace'], number>;
 }
