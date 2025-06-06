@@ -9,18 +9,21 @@ export const Workspaces: React.FunctionComponent = () => {
   const [workspaces, workspacesLoaded, workspacesLoadError, workspacesRefresh] =
     useWorkspacesByNamespace(selectedNamespace);
 
+  if (workspacesLoadError) {
+    return <p>Error loading workspaces: {workspacesLoadError.message}</p>; // TODO: UX for error state
+  }
+
+  if (!workspacesLoaded) {
+    return <p>Loading...</p>; // TODO: UX for loading state
+  }
+
   return (
     <PageSection isFilled>
       <Content component={ContentVariants.h1}>Kubeflow Workspaces</Content>
       <Content component={ContentVariants.p}>
         View your existing workspaces or create new workspaces.
       </Content>
-      <WorkspaceTable
-        workspaces={workspaces}
-        workspacesLoaded={workspacesLoaded}
-        workspacesLoadError={workspacesLoadError}
-        workspacesRefresh={workspacesRefresh}
-      />
+      <WorkspaceTable workspaces={workspaces} workspacesRefresh={workspacesRefresh} />
     </PageSection>
   );
 };

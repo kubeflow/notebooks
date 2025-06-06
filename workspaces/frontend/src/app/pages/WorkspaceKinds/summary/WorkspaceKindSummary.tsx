@@ -18,11 +18,26 @@ const WorkspaceKindSummary: React.FC = () => {
   const [isSummaryExpanded, setIsSummaryExpanded] = React.useState(true);
 
   const {
-    state: { namespace, imageId, podConfigId },
+    state: { namespace, imageId, podConfigId, withGpu, isIdle },
   } = useTypedLocation<'workspaceKindSummary'>();
   const { kind } = useTypedParams<'workspaceKindSummary'>();
   const [workspaces, workspacesLoaded, workspacesLoadError, workspacesRefresh] =
-    useWorkspacesByKind({ kind, namespace, imageId, podConfigId });
+    useWorkspacesByKind({
+      kind,
+      namespace,
+      imageId,
+      podConfigId,
+      isIdle,
+      withGpu,
+    });
+
+  if (workspacesLoadError) {
+    return <p>Error loading workspaces: {workspacesLoadError.message}</p>; // TODO: UX for error state
+  }
+
+  if (!workspacesLoaded) {
+    return <p>Loading...</p>; // TODO: UX for loading state
+  }
 
   return (
     <PageSection isFilled>
@@ -46,6 +61,7 @@ const WorkspaceKindSummary: React.FC = () => {
         </StackItem>
         <StackItem>
           <WorkspaceKindSummaryExpandableCard
+            workspaces={workspaces}
             isExpanded={isSummaryExpanded}
             onExpandToggle={() => setIsSummaryExpanded(!isSummaryExpanded)}
           />
@@ -53,8 +69,6 @@ const WorkspaceKindSummary: React.FC = () => {
         <StackItem>
           <WorkspaceTable
             workspaces={workspaces}
-            workspacesLoaded={workspacesLoaded}
-            workspacesLoadError={workspacesLoadError}
             workspacesRefresh={workspacesRefresh}
             canCreateWorkspaces={false}
           />

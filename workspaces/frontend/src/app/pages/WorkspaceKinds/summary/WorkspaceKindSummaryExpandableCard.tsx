@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {
   Bullseye,
+  Button,
   Card,
   CardBody,
   CardExpandableContent,
@@ -14,76 +15,129 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { Link } from 'react-router-dom';
 import {
   t_global_spacer_md as MediumPadding,
   t_global_font_size_4xl as LargeFontSize,
   t_global_font_weight_heading_bold as BoldFontWeight,
 } from '@patternfly/react-tokens';
+import { Workspace } from '~/shared/api/backendApiTypes';
+import {
+  countGpusFromWorkspaces,
+  filterIdleWorkspacesWithGpu,
+  filterRunningWorkspaces,
+  groupWorkspacesByNamespaceAndGpu,
+} from '~/shared/utilities/WorkspaceUtils';
+import { useTypedLocation, useTypedNavigate, useTypedParams } from '~/app/routerHelper';
+
+const TOP_GPU_CONSUMERS_LIMIT = 2;
 
 interface WorkspaceKindSummaryExpandableCardProps {
+  workspaces: Workspace[];
   isExpanded: boolean;
   onExpandToggle: () => void;
 }
 
 const WorkspaceKindSummaryExpandableCard: React.FC<WorkspaceKindSummaryExpandableCardProps> = ({
+  workspaces,
   isExpanded,
   onExpandToggle,
-}) => (
-  <Card isExpanded={isExpanded}>
-    <CardHeader onExpand={onExpandToggle}>
-      <CardTitle>
-        <Content component={ContentVariants.h2}>Workspaces Summary</Content>
-      </CardTitle>
-    </CardHeader>
-    <CardExpandableContent>
-      <CardBody>
-        <Flex wrap="wrap">
-          <SectionFlex title="Total GPUs in use">
-            <FlexItem>
-              <Content>X.XXX m</Content>
-            </FlexItem>
-            <FlexItem>
-              <Content>Requested of X.XX m</Content>
-            </FlexItem>
-          </SectionFlex>
-          <SectionDivider />
-          <SectionFlex title="Idle GPU Workspaces">
-            <FlexItem>
-              <Bullseye>
-                <Link
-                  to="TODO link"
-                  aria-label="Link to idle GPU Workspaces"
-                  style={{ fontSize: LargeFontSize.value, fontWeight: BoldFontWeight.value }}
-                >
-                  3
-                </Link>
-              </Bullseye>
-            </FlexItem>
-            <FlexItem>
-              <Bullseye>
-                <Content>Idle GPU Workspaces</Content>
-              </Bullseye>
-            </FlexItem>
-          </SectionFlex>
-          <SectionDivider />
-          <SectionFlex title="Top GPU Consumers">
-            <FlexItem>
-              <Stack hasGutter>
-                <StackItem>
-                  <TeamGpuConsumer team="Team X" gpuCount={3} />
-                </StackItem>
-                <StackItem>
-                  <TeamGpuConsumer team="Team Y" gpuCount={2} />
-                </StackItem>
-              </Stack>
-            </FlexItem>
-          </SectionFlex>
-        </Flex>
-      </CardBody>
-    </CardExpandableContent>
-  </Card>
-);
+}) => {
+  const navigate = useTypedNavigate();
+  const { kind } = useTypedParams<'workspaceKindSummary'>();
+  const {
+    state: { namespace, imageId, podConfigId, withGpu, isIdle },
+  } = useTypedLocation<'workspaceKindSummary'>();
+
+  const topGpuConsumersByNamespace = React.useMemo(
+    () =>
+      Object.entries(groupWorkspacesByNamespaceAndGpu(workspaces, 'DESC'))
+        .filter(([, record]) => record.gpuCount > 0)
+        .slice(0, TOP_GPU_CONSUMERS_LIMIT),
+    [workspaces],
+  );
+
+  return (
+    <Card isExpanded={isExpanded}>
+      <CardHeader onExpand={onExpandToggle}>
+        <CardTitle>
+          <Content component={ContentVariants.h2}>Workspaces Summary</Content>
+        </CardTitle>
+      </CardHeader>
+      <CardExpandableContent>
+        <CardBody>
+          <Flex wrap="wrap">
+            <SectionFlex title="Total GPUs in use">
+              <FlexItem>
+                <Content>
+                  {countGpusFromWorkspaces(filterRunningWorkspaces(workspaces))} GPUs
+                </Content>
+              </FlexItem>
+              <FlexItem>
+                <Content>{`Requested of ${countGpusFromWorkspaces(workspaces)} GPUs`}</Content>
+              </FlexItem>
+            </SectionFlex>
+            <SectionDivider />
+            <SectionFlex title="Idle GPU Workspaces">
+              <FlexItem>
+                <Bullseye>
+                  <Button
+                    variant="link"
+                    isInline
+                    style={{ fontSize: LargeFontSize.value, fontWeight: BoldFontWeight.value }}
+                    onClick={() => {
+                      navigate('workspaceKindSummary', {
+                        params: { kind },
+                        state: {
+                          withGpu: true,
+                          isIdle: true,
+                          namespace,
+                          imageId,
+                          podConfigId,
+                        },
+                      });
+                    }}
+                  >
+                    {filterIdleWorkspacesWithGpu(workspaces).length}
+                  </Button>
+                </Bullseye>
+              </FlexItem>
+              <FlexItem>
+                <Bullseye>
+                  <Content>Idle GPU Workspaces</Content>
+                </Bullseye>
+              </FlexItem>
+            </SectionFlex>
+            <SectionDivider />
+            <SectionFlex title="Top GPU Consumer Namespaces">
+              <FlexItem>
+                <Stack hasGutter>
+                  {topGpuConsumersByNamespace.length > 0 ? (
+                    topGpuConsumersByNamespace.map(([ns, record]) => (
+                      <StackItem key={ns}>
+                        <NamespaceGpuConsumer
+                          namespace={ns}
+                          gpuCount={record.gpuCount}
+                          imageId={imageId}
+                          podConfigId={podConfigId}
+                          withGpu={withGpu}
+                          isIdle={isIdle}
+                        />
+                      </StackItem>
+                    ))
+                  ) : (
+                    <StackItem>
+                      <Content>None</Content>
+                    </StackItem>
+                  )}
+                </Stack>
+              </FlexItem>
+            </SectionFlex>
+          </Flex>
+        </CardBody>
+      </CardExpandableContent>
+    </Card>
+  );
+};
 
 interface SectionFlexProps {
   children: React.ReactNode;
@@ -112,18 +166,49 @@ const SectionDivider: React.FC = () => (
   <Divider orientation={{ default: 'vertical' }} inset={{ default: 'insetMd' }} />
 );
 
-interface TeamGpuConsumerProps {
-  team: string;
+interface NamespaceConsumerProps {
+  namespace: string;
   gpuCount: number;
+  imageId?: string;
+  podConfigId?: string;
+  withGpu?: boolean;
+  isIdle?: boolean;
 }
 
-const TeamGpuConsumer: React.FC<TeamGpuConsumerProps> = ({ team: teamName, gpuCount }) => (
-  <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-    <Link aria-label={`Link to ${teamName}`} to={`TODO link for ${teamName}`}>
-      {teamName}
-    </Link>
-    <Content>{gpuCount} GPUs</Content>
-  </Flex>
-);
+const NamespaceGpuConsumer: React.FC<NamespaceConsumerProps> = ({
+  namespace,
+  gpuCount,
+  imageId,
+  podConfigId,
+  withGpu,
+  isIdle,
+}) => {
+  const navigate = useTypedNavigate();
+  const { kind } = useTypedParams<'workspaceKindSummary'>();
+
+  return (
+    <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
+      <Button
+        variant="link"
+        isInline
+        onClick={() => {
+          navigate('workspaceKindSummary', {
+            params: { kind },
+            state: {
+              namespace,
+              imageId,
+              podConfigId,
+              withGpu,
+              isIdle,
+            },
+          });
+        }}
+      >
+        {namespace}
+      </Button>
+      <Content>{gpuCount} GPUs</Content>
+    </Flex>
+  );
+};
 
 export default WorkspaceKindSummaryExpandableCard;

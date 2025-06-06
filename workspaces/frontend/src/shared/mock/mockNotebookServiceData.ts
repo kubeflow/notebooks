@@ -58,7 +58,7 @@ export const mockWorkspace1: Workspace = buildMockWorkspace({
 export const mockWorkspace2: Workspace = buildMockWorkspace({
   name: 'My Second Jupyter Notebook',
   workspaceKind: mockWorkspaceKindInfo1,
-  namespace: mockNamespace1.name,
+  namespace: mockNamespace2.name,
   state: WorkspaceState.WorkspaceStatePaused,
   paused: false,
   deferUpdates: false,
@@ -112,6 +112,10 @@ export const mockWorkspace2: Workspace = buildMockWorkspace({
             {
               key: 'memory',
               value: '16Gi',
+            },
+            {
+              key: 'gpu',
+              value: '4',
             },
           ],
         },

@@ -5,11 +5,12 @@ import useFetchState, {
 } from '~/shared/utilities/useFetchState';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { Workspace } from '~/shared/api/backendApiTypes';
+import { isWorkspaceWithGpu, isWorkspaceIdle } from '~/shared/utilities/WorkspaceUtils';
 
-export const useWorkspacesByNamespace = (namespace: string): FetchState<Workspace[] | null> => {
+export const useWorkspacesByNamespace = (namespace: string): FetchState<Workspace[]> => {
   const { api, apiAvailable } = useNotebookAPI();
 
-  const call = useCallback<FetchStateCallbackPromise<Workspace[] | null>>(
+  const call = useCallback<FetchStateCallbackPromise<Workspace[]>>(
     (opts) => {
       if (!apiAvailable) {
         return Promise.reject(new Error('API not yet available'));
@@ -20,7 +21,7 @@ export const useWorkspacesByNamespace = (namespace: string): FetchState<Workspac
     [api, apiAvailable, namespace],
   );
 
-  return useFetchState(call, null);
+  return useFetchState(call, []);
 };
 
 export const useWorkspacesByKind = (args: {
@@ -28,10 +29,12 @@ export const useWorkspacesByKind = (args: {
   namespace?: string;
   imageId?: string;
   podConfigId?: string;
-}): FetchState<Workspace[] | null> => {
-  const { kind, namespace, imageId, podConfigId } = args;
+  isIdle?: boolean;
+  withGpu?: boolean;
+}): FetchState<Workspace[]> => {
+  const { kind, namespace, imageId, podConfigId, isIdle, withGpu } = args;
   const { api, apiAvailable } = useNotebookAPI();
-  const call = React.useCallback<FetchStateCallbackPromise<Workspace[] | null>>(
+  const call = React.useCallback<FetchStateCallbackPromise<Workspace[]>>(
     async (opts) => {
       if (!apiAvailable) {
         throw new Error('API not yet available');
@@ -51,10 +54,20 @@ export const useWorkspacesByKind = (args: {
         const matchesPodConfig = podConfigId
           ? workspace.podTemplate.options.podConfig.current.id === podConfigId
           : true;
-        return matchesKind && matchesNamespace && matchesImage && matchesPodConfig;
+        const matchesIsIdle = isIdle ? isWorkspaceIdle(workspace) : true;
+        const matchesWithGpu = withGpu ? isWorkspaceWithGpu(workspace) : true;
+
+        return (
+          matchesKind &&
+          matchesNamespace &&
+          matchesImage &&
+          matchesPodConfig &&
+          matchesIsIdle &&
+          matchesWithGpu
+        );
       });
     },
-    [apiAvailable, api, kind, namespace, imageId, podConfigId],
+    [apiAvailable, api, kind, namespace, imageId, podConfigId, isIdle, withGpu],
   );
-  return useFetchState(call, null);
+  return useFetchState(call, []);
 };

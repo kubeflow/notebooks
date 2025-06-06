@@ -98,6 +98,10 @@ export const buildMockWorkspace = (workspace?: Partial<Workspace>): Workspace =>
               key: 'memory',
               value: '128Mi',
             },
+            {
+              key: 'gpu',
+              value: '1',
+            },
           ],
         },
       },

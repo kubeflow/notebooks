@@ -53,7 +53,7 @@ import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
 import { WorkspacesColumnNames } from '~/app/types';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
 import Filter, { FilteredColumn, FilterRef } from '~/shared/components/Filter';
-import { extractCpuValue, extractMemoryValue } from '~/shared/utilities/WorkspaceUtils';
+import { formatResourceFromWorkspace } from '~/shared/utilities/WorkspaceUtils';
 import { FetchStateRefreshPromise } from '~/shared/utilities/useFetchState';
 
 export enum ActionType {
@@ -89,18 +89,14 @@ const FILTERABLE_COLUMNS = {
 };
 
 interface WorkspaceTableProps {
-  workspaces: Workspace[] | null;
-  workspacesLoaded: boolean;
-  workspacesLoadError: Error | undefined;
-  workspacesRefresh: FetchStateRefreshPromise<Workspace[] | null>;
+  workspaces: Workspace[];
+  workspacesRefresh: FetchStateRefreshPromise<Workspace[]>;
   canCreateWorkspaces?: boolean;
   initialFilters?: FilteredColumn[];
 }
 
 const WorkspaceTable: React.FC<WorkspaceTableProps> = ({
   workspaces,
-  workspacesLoaded,
-  workspacesLoadError,
   workspacesRefresh,
   canCreateWorkspaces = true,
   initialFilters = [],
@@ -163,7 +159,7 @@ const WorkspaceTable: React.FC<WorkspaceTableProps> = ({
     expandedWorkspacesNames.includes(workspace.name);
 
   const filteredWorkspaces = React.useMemo(() => {
-    if (!workspaces || workspaces.length === 0) {
+    if (workspaces.length === 0) {
       return [];
     }
 
@@ -208,8 +204,8 @@ const WorkspaceTable: React.FC<WorkspaceTableProps> = ({
         podConfig: workspace.podTemplate.options.podConfig.current.displayName,
         state: workspace.state,
         homeVol: workspace.podTemplate.volumes.home?.pvcName ?? '',
-        cpu: extractCpuValue(workspace),
-        ram: extractMemoryValue(workspace),
+        cpu: formatResourceFromWorkspace(workspace, 'cpu'),
+        ram: formatResourceFromWorkspace(workspace, 'memory'),
         lastActivity: workspace.activity.lastActivity,
       };
     return [redirectStatus, name, kind, image, podConfig, state, homeVol, cpu, ram, lastActivity];
@@ -488,14 +484,6 @@ const WorkspaceTable: React.FC<WorkspaceTableProps> = ({
     </>
   );
 
-  if (workspacesLoadError) {
-    return <p>Error loading workspace kinds: {workspacesLoadError.message}</p>; // TODO: UX for error state
-  }
-
-  if (!workspacesLoaded) {
-    return <p>Loading...</p>; // TODO: UX for loading state
-  }
-
   return (
     <Drawer
       isInline
@@ -598,8 +586,12 @@ const WorkspaceTable: React.FC<WorkspaceTableProps> = ({
                       <Td dataLabel={COLUMN_NAMES.homeVol}>
                         {workspace.podTemplate.volumes.home?.pvcName ?? ''}
                       </Td>
-                      <Td dataLabel={COLUMN_NAMES.cpu}>{extractCpuValue(workspace)}</Td>
-                      <Td dataLabel={COLUMN_NAMES.ram}>{extractMemoryValue(workspace)}</Td>
+                      <Td dataLabel={COLUMN_NAMES.cpu}>
+                        {formatResourceFromWorkspace(workspace, 'cpu')}
+                      </Td>
+                      <Td dataLabel={COLUMN_NAMES.ram}>
+                        {formatResourceFromWorkspace(workspace, 'memory')}
+                      </Td>
                       <Td dataLabel={COLUMN_NAMES.lastActivity}>
                         <Timestamp
                           date={new Date(workspace.activity.lastActivity)}

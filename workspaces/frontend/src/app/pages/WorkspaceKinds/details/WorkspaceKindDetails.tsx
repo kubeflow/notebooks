@@ -32,9 +32,10 @@ export const WorkspaceKindDetails: React.FunctionComponent<WorkspaceKindDetailsP
 }) => {
   const overviewTabKey = 0;
   const imagesTabKey = 1;
-  const podConfigTabKey = 2;
+  const podConfigsTabKey = 2;
+  const namespacesTabKey = 3;
 
-  const [activeTabKey, setActiveTabKey] = useState<string | number>(0);
+  const [activeTabKey, setActiveTabKey] = useState<string | number>(overviewTabKey);
 
   const handleTabClick = (
     event: React.MouseEvent | React.KeyboardEvent | MouseEvent,
@@ -67,13 +68,13 @@ export const WorkspaceKindDetails: React.FunctionComponent<WorkspaceKindDetailsP
             aria-label="Images"
           />
           <Tab
-            eventKey={2}
+            eventKey={podConfigsTabKey}
             title={<TabTitleText>Pod Configs</TabTitleText>}
             tabContentId="podConfigsTabContent"
             aria-label="Pod Configs"
           />
           <Tab
-            eventKey={3}
+            eventKey={namespacesTabKey}
             title={<TabTitleText>Namespaces</TabTitleText>}
             tabContentId="namespacesTabContent"
             aria-label="Namespaces"
@@ -108,11 +109,11 @@ export const WorkspaceKindDetails: React.FunctionComponent<WorkspaceKindDetailsP
           </TabContentBody>
         </TabContent>
         <TabContent
-          key={podConfigTabKey}
-          eventKey={podConfigTabKey}
+          key={podConfigsTabKey}
+          eventKey={podConfigsTabKey}
           id="podConfigsTabContent"
           activeKey={activeTabKey}
-          hidden={activeTabKey !== podConfigTabKey}
+          hidden={activeTabKey !== podConfigsTabKey}
         >
           <TabContentBody hasPadding>
             <WorkspaceKindDetailsPodConfigs
@@ -122,11 +123,11 @@ export const WorkspaceKindDetails: React.FunctionComponent<WorkspaceKindDetailsP
           </TabContentBody>
         </TabContent>
         <TabContent
-          key={3}
-          eventKey={3}
+          key={namespacesTabKey}
+          eventKey={namespacesTabKey}
           id="namespacesTabContent"
           activeKey={activeTabKey}
-          hidden={activeTabKey !== 3}
+          hidden={activeTabKey !== namespacesTabKey}
         >
           <TabContentBody hasPadding>
             <WorkspaceKindDetailsNamespaces
