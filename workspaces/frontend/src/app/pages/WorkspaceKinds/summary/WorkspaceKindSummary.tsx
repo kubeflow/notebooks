@@ -71,6 +71,7 @@ const WorkspaceKindSummary: React.FC = () => {
             workspaces={workspaces}
             workspacesRefresh={workspacesRefresh}
             canCreateWorkspaces={false}
+            hiddenColumns={['connect']}
           />
         </StackItem>
       </Stack>

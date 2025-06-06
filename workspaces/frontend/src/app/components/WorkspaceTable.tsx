@@ -50,7 +50,6 @@ import { WorkspaceStartActionModal } from '~/app/pages/Workspaces/workspaceActio
 import { WorkspaceRestartActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRestartActionModal';
 import { WorkspaceStopActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceStopActionModal';
 import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
-import { WorkspacesColumnNames } from '~/app/types';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
 import Filter, { FilteredColumn, FilterRef } from '~/shared/components/Filter';
 import { formatResourceFromWorkspace } from '~/shared/utilities/WorkspaceUtils';
@@ -65,7 +64,7 @@ export enum ActionType {
   Stop,
 }
 
-const COLUMN_NAMES: WorkspacesColumnNames = {
+export const WorkspaceTableColumnNames = {
   redirectStatus: 'Redirect Status',
   name: 'Name',
   kind: 'Kind',
@@ -76,30 +75,40 @@ const COLUMN_NAMES: WorkspacesColumnNames = {
   cpu: 'CPU',
   ram: 'Memory',
   lastActivity: 'Last Activity',
-};
+  connect: '',
+  actions: '',
+} as const;
 
-const FILTERABLE_COLUMNS = {
+export const WorkspaceTableFilterableColumns = {
   name: 'Name',
   kind: 'Kind',
   image: 'Image',
   podConfig: 'Pod Config',
   state: 'State',
   homeVol: 'Home Vol',
-  lastActivity: 'Last Activity',
-};
+} as const;
+
+export type WorkspaceTableColumnKey = keyof typeof WorkspaceTableColumnNames;
+export type WorkspaceTableFilterableColumnKey = keyof typeof WorkspaceTableFilterableColumns;
+
+const workspaceColumnKeyArray = Object.keys(WorkspaceTableColumnNames) as WorkspaceTableColumnKey[];
 
 interface WorkspaceTableProps {
   workspaces: Workspace[];
   workspacesRefresh: FetchStateRefreshPromise<Workspace[]>;
   canCreateWorkspaces?: boolean;
+  canExpandRows?: boolean;
   initialFilters?: FilteredColumn[];
+  hiddenColumns?: WorkspaceTableColumnKey[];
 }
 
 const WorkspaceTable: React.FC<WorkspaceTableProps> = ({
   workspaces,
   workspacesRefresh,
   canCreateWorkspaces = true,
+  canExpandRows = true,
   initialFilters = [],
+  hiddenColumns = [],
 }) => {
   const { api } = useNotebookAPI();
   const { selectedNamespace } = useNamespaceContext();
@@ -119,6 +128,24 @@ const WorkspaceTable: React.FC<WorkspaceTableProps> = ({
   const filterRef = React.useRef<FilterRef>(null);
   const kindLogoDict = buildKindLogoDictionary(workspaceKinds);
   const workspaceRedirectStatus = buildWorkspaceRedirectStatus(workspaceKinds);
+
+  const visibleColumns: WorkspaceTableColumnKey[] = React.useMemo(
+    () =>
+      hiddenColumns.length
+        ? workspaceColumnKeyArray.filter((col) => !hiddenColumns.includes(col))
+        : workspaceColumnKeyArray,
+    [hiddenColumns],
+  );
+
+  const visibleFilterableColumns = React.useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(WorkspaceTableFilterableColumns).filter(
+          ([key]) => !hiddenColumns.includes(key as WorkspaceTableFilterableColumnKey),
+        ),
+      ) as Record<WorkspaceTableFilterableColumnKey, string>,
+    [hiddenColumns],
+  );
 
   React.useEffect(() => {
     if (activeActionType !== ActionType.Edit || !selectedWorkspace) {
@@ -173,17 +200,17 @@ const WorkspaceTable: React.FC<WorkspaceTableProps> = ({
 
       return result.filter((ws) => {
         switch (filter.columnName) {
-          case COLUMN_NAMES.name:
+          case WorkspaceTableColumnNames.name:
             return ws.name.match(searchValueInput);
-          case COLUMN_NAMES.kind:
+          case WorkspaceTableColumnNames.kind:
             return ws.workspaceKind.name.match(searchValueInput);
-          case COLUMN_NAMES.image:
+          case WorkspaceTableColumnNames.image:
             return ws.podTemplate.options.imageConfig.current.displayName.match(searchValueInput);
-          case COLUMN_NAMES.podConfig:
+          case WorkspaceTableColumnNames.podConfig:
             return ws.podTemplate.options.podConfig.current.displayName.match(searchValueInput);
-          case COLUMN_NAMES.state:
+          case WorkspaceTableColumnNames.state:
             return ws.state.match(searchValueInput);
-          case COLUMN_NAMES.homeVol:
+          case WorkspaceTableColumnNames.homeVol:
             return ws.podTemplate.volumes.home?.mountPath.match(searchValueInput);
           default:
             return true;
@@ -194,31 +221,32 @@ const WorkspaceTable: React.FC<WorkspaceTableProps> = ({
 
   // Column sorting
 
-  const getSortableRowValues = (workspace: Workspace): (string | number)[] => {
-    const { redirectStatus, name, kind, image, podConfig, state, homeVol, cpu, ram, lastActivity } =
-      {
-        redirectStatus: '',
-        name: workspace.name,
-        kind: workspace.workspaceKind.name,
-        image: workspace.podTemplate.options.imageConfig.current.displayName,
-        podConfig: workspace.podTemplate.options.podConfig.current.displayName,
-        state: workspace.state,
-        homeVol: workspace.podTemplate.volumes.home?.pvcName ?? '',
-        cpu: formatResourceFromWorkspace(workspace, 'cpu'),
-        ram: formatResourceFromWorkspace(workspace, 'memory'),
-        lastActivity: workspace.activity.lastActivity,
-      };
-    return [redirectStatus, name, kind, image, podConfig, state, homeVol, cpu, ram, lastActivity];
-  };
+  const getSortableRowValues = (
+    workspace: Workspace,
+  ): Record<WorkspaceTableColumnKey, string | number> => ({
+    redirectStatus: '',
+    name: workspace.name,
+    kind: workspace.workspaceKind.name,
+    image: workspace.podTemplate.options.imageConfig.current.displayName,
+    podConfig: workspace.podTemplate.options.podConfig.current.displayName,
+    state: workspace.state,
+    homeVol: workspace.podTemplate.volumes.home?.pvcName ?? '',
+    cpu: formatResourceFromWorkspace(workspace, 'cpu'),
+    ram: formatResourceFromWorkspace(workspace, 'memory'),
+    lastActivity: workspace.activity.lastActivity,
+    connect: '',
+    actions: '',
+  });
 
   const sortedWorkspaces = React.useMemo(() => {
     if (activeSortIndex === null) {
       return filteredWorkspaces;
     }
 
+    const columnKey = visibleColumns[activeSortIndex];
     return [...filteredWorkspaces].sort((a, b) => {
-      const aValue = getSortableRowValues(a)[activeSortIndex];
-      const bValue = getSortableRowValues(b)[activeSortIndex];
+      const aValue = getSortableRowValues(a)[columnKey];
+      const bValue = getSortableRowValues(b)[columnKey];
 
       if (typeof aValue === 'number' && typeof bValue === 'number') {
         // Numeric sort
@@ -229,7 +257,7 @@ const WorkspaceTable: React.FC<WorkspaceTableProps> = ({
         ? String(aValue).localeCompare(String(bValue))
         : String(bValue).localeCompare(String(aValue));
     });
-  }, [filteredWorkspaces, activeSortIndex, activeSortDirection]);
+  }, [filteredWorkspaces, activeSortIndex, activeSortDirection, visibleColumns]);
 
   const getSortParams = (columnIndex: number): ThProps['sort'] => ({
     sortBy: {
@@ -498,7 +526,7 @@ const WorkspaceTable: React.FC<WorkspaceTableProps> = ({
                 id="filter-workspaces"
                 filters={filters}
                 setFilters={setFilters}
-                columnNames={FILTERABLE_COLUMNS}
+                columnNames={visibleFilterableColumns}
                 toolbarActions={
                   canCreateWorkspaces && (
                     <Button variant="primary" ouiaId="Primary" onClick={createWorkspace}>
@@ -515,13 +543,13 @@ const WorkspaceTable: React.FC<WorkspaceTableProps> = ({
             >
               <Thead>
                 <Tr>
-                  <Th screenReaderText="expand-action" />
-                  {Object.values(COLUMN_NAMES).map((columnName, index) => (
+                  {canExpandRows && <Th screenReaderText="expand-action" />}
+                  {visibleColumns.map((columnKey, index) => (
                     <Th
-                      key={`${columnName}-col-name`}
-                      sort={columnName !== 'Redirect Status' ? getSortParams(index) : undefined}
+                      key={`workspace-table-column-${columnKey}`}
+                      sort={columnKey !== 'redirectStatus' ? getSortParams(index) : undefined}
                     >
-                      {columnName}
+                      {WorkspaceTableColumnNames[columnKey]}
                     </Th>
                   ))}
                   <Th screenReaderText="Primary action" />
@@ -539,83 +567,145 @@ const WorkspaceTable: React.FC<WorkspaceTableProps> = ({
                       id={`workspaces-table-row-${rowIndex + 1}`}
                       data-testid={`workspace-row-${rowIndex}`}
                     >
-                      <Td
-                        expand={{
-                          rowIndex,
-                          isExpanded: isWorkspaceExpanded(workspace),
-                          onToggle: () =>
-                            setWorkspaceExpanded(workspace, !isWorkspaceExpanded(workspace)),
-                        }}
-                      />
-                      <Td dataLabel={COLUMN_NAMES.redirectStatus}>
-                        {workspaceRedirectStatus[workspace.workspaceKind.name]
-                          ? getRedirectStatusIcon(
-                              workspaceRedirectStatus[workspace.workspaceKind.name]?.message?.level,
-                              workspaceRedirectStatus[workspace.workspaceKind.name]?.message
-                                ?.text || 'No API response available',
-                            )
-                          : getRedirectStatusIcon(undefined, 'No API response available')}
-                      </Td>
-                      <Td data-testid="workspace-name" dataLabel={COLUMN_NAMES.name}>
-                        {workspace.name}
-                      </Td>
-                      <Td dataLabel={COLUMN_NAMES.kind}>
-                        {kindLogoDict[workspace.workspaceKind.name] ? (
-                          <Tooltip content={workspace.workspaceKind.name}>
-                            <Brand
-                              src={kindLogoDict[workspace.workspaceKind.name]}
-                              alt={workspace.workspaceKind.name}
-                              style={{ width: '20px', height: '20px', cursor: 'pointer' }}
-                            />
-                          </Tooltip>
-                        ) : (
-                          <Tooltip content={workspace.workspaceKind.name}>
-                            <CodeIcon />
-                          </Tooltip>
-                        )}
-                      </Td>
-                      <Td dataLabel={COLUMN_NAMES.image}>
-                        {workspace.podTemplate.options.imageConfig.current.displayName}
-                      </Td>
-                      <Td data-testid="pod-config" dataLabel={COLUMN_NAMES.podConfig}>
-                        {workspace.podTemplate.options.podConfig.current.displayName}
-                      </Td>
-                      <Td data-testid="state-label" dataLabel={COLUMN_NAMES.state}>
-                        <Label color={extractStateColor(workspace.state)}>{workspace.state}</Label>
-                      </Td>
-                      <Td dataLabel={COLUMN_NAMES.homeVol}>
-                        {workspace.podTemplate.volumes.home?.pvcName ?? ''}
-                      </Td>
-                      <Td dataLabel={COLUMN_NAMES.cpu}>
-                        {formatResourceFromWorkspace(workspace, 'cpu')}
-                      </Td>
-                      <Td dataLabel={COLUMN_NAMES.ram}>
-                        {formatResourceFromWorkspace(workspace, 'memory')}
-                      </Td>
-                      <Td dataLabel={COLUMN_NAMES.lastActivity}>
-                        <Timestamp
-                          date={new Date(workspace.activity.lastActivity)}
-                          tooltip={{ variant: TimestampTooltipVariant.default }}
-                        >
-                          {formatDistanceToNow(new Date(workspace.activity.lastActivity), {
-                            addSuffix: true,
-                          })}
-                        </Timestamp>
-                      </Td>
-                      <Td>
-                        <WorkspaceConnectAction workspace={workspace} />
-                      </Td>
-                      <Td isActionCell data-testid="action-column">
-                        <ActionsColumn
-                          items={workspaceDefaultActions(workspace).map((action) => ({
-                            ...action,
-                            'data-testid': `action-${action.id || ''}`,
-                          }))}
+                      {canExpandRows && (
+                        <Td
+                          expand={{
+                            rowIndex,
+                            isExpanded: isWorkspaceExpanded(workspace),
+                            onToggle: () =>
+                              setWorkspaceExpanded(workspace, !isWorkspaceExpanded(workspace)),
+                          }}
                         />
-                      </Td>
+                      )}
+                      {visibleColumns.map((columnKey) => {
+                        switch (columnKey) {
+                          case 'redirectStatus':
+                            return (
+                              <Td key={columnKey} dataLabel={WorkspaceTableColumnNames[columnKey]}>
+                                {workspaceRedirectStatus[workspace.workspaceKind.name]
+                                  ? getRedirectStatusIcon(
+                                      workspaceRedirectStatus[workspace.workspaceKind.name]?.message
+                                        ?.level,
+                                      workspaceRedirectStatus[workspace.workspaceKind.name]?.message
+                                        ?.text || 'No API response available',
+                                    )
+                                  : getRedirectStatusIcon(undefined, 'No API response available')}
+                              </Td>
+                            );
+                          case 'name':
+                            return (
+                              <Td
+                                key={columnKey}
+                                data-testid="workspace-name"
+                                dataLabel={WorkspaceTableColumnNames[columnKey]}
+                              >
+                                {workspace.name}
+                              </Td>
+                            );
+                          case 'kind':
+                            return (
+                              <Td key={columnKey} dataLabel={WorkspaceTableColumnNames[columnKey]}>
+                                {kindLogoDict[workspace.workspaceKind.name] ? (
+                                  <Tooltip content={workspace.workspaceKind.name}>
+                                    <Brand
+                                      src={kindLogoDict[workspace.workspaceKind.name]}
+                                      alt={workspace.workspaceKind.name}
+                                      style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                                    />
+                                  </Tooltip>
+                                ) : (
+                                  <Tooltip content={workspace.workspaceKind.name}>
+                                    <CodeIcon />
+                                  </Tooltip>
+                                )}
+                              </Td>
+                            );
+                          case 'image':
+                            return (
+                              <Td key={columnKey} dataLabel={WorkspaceTableColumnNames[columnKey]}>
+                                {workspace.podTemplate.options.imageConfig.current.displayName}
+                              </Td>
+                            );
+                          case 'podConfig':
+                            return (
+                              <Td
+                                key={columnKey}
+                                data-testid="pod-config"
+                                dataLabel={WorkspaceTableColumnNames[columnKey]}
+                              >
+                                {workspace.podTemplate.options.podConfig.current.displayName}
+                              </Td>
+                            );
+                          case 'state':
+                            return (
+                              <Td
+                                key={columnKey}
+                                data-testid="state-label"
+                                dataLabel={WorkspaceTableColumnNames[columnKey]}
+                              >
+                                <Label color={extractStateColor(workspace.state)}>
+                                  {workspace.state}
+                                </Label>
+                              </Td>
+                            );
+                          case 'homeVol':
+                            return (
+                              <Td key={columnKey} dataLabel={WorkspaceTableColumnNames[columnKey]}>
+                                {workspace.podTemplate.volumes.home?.pvcName ?? ''}
+                              </Td>
+                            );
+                          case 'cpu':
+                            return (
+                              <Td key={columnKey} dataLabel={WorkspaceTableColumnNames[columnKey]}>
+                                {formatResourceFromWorkspace(workspace, 'cpu')}
+                              </Td>
+                            );
+                          case 'ram':
+                            return (
+                              <Td key={columnKey} dataLabel={WorkspaceTableColumnNames[columnKey]}>
+                                {formatResourceFromWorkspace(workspace, 'memory')}
+                              </Td>
+                            );
+                          case 'lastActivity':
+                            return (
+                              <Td key={columnKey} dataLabel={WorkspaceTableColumnNames[columnKey]}>
+                                <Timestamp
+                                  date={new Date(workspace.activity.lastActivity)}
+                                  tooltip={{ variant: TimestampTooltipVariant.default }}
+                                >
+                                  {formatDistanceToNow(new Date(workspace.activity.lastActivity), {
+                                    addSuffix: true,
+                                  })}
+                                </Timestamp>
+                              </Td>
+                            );
+                          case 'connect':
+                            return (
+                              <Td>
+                                <WorkspaceConnectAction workspace={workspace} />
+                              </Td>
+                            );
+                          case 'actions':
+                            return (
+                              <Td isActionCell data-testid="action-column">
+                                <ActionsColumn
+                                  items={workspaceDefaultActions(workspace).map((action) => ({
+                                    ...action,
+                                    'data-testid': `action-${action.id || ''}`,
+                                  }))}
+                                />
+                              </Td>
+                            );
+                          default:
+                            return null;
+                        }
+                      })}
                     </Tr>
                     {isWorkspaceExpanded(workspace) && (
-                      <ExpandedWorkspaceRow workspace={workspace} columnNames={COLUMN_NAMES} />
+                      <ExpandedWorkspaceRow
+                        workspace={workspace}
+                        columnKeys={workspaceColumnKeyArray}
+                      />
                     )}
                   </Tbody>
                 ))}
