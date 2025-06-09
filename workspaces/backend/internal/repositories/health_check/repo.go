@@ -27,14 +27,7 @@ func NewHealthCheckRepository() *HealthCheckRepository {
 }
 
 func (r *HealthCheckRepository) HealthCheck(version string) (models.HealthCheck, error) {
-
-	var res = models.HealthCheck{
-		// TODO: implement actual health check logic
-		Status: models.ServiceStatusHealthy,
-		SystemInfo: models.SystemInfo{
-			Version: version,
-		},
-	}
-
+	// TODO: implement actual health check logic
+	res := models.NewHealthCheck(models.ServiceStatusHealthy, version)
 	return res, nil
 }

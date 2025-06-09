@@ -14,27 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package health_check
+package workspaces_test
 
-type HealthCheck struct {
-	Status     ServiceStatus `json:"status"`
-	SystemInfo SystemInfo    `json:"systemInfo"`
-}
+import (
+	"testing"
 
-type SystemInfo struct {
-	Version string `json:"version"`
-}
-
-type ServiceStatus string
-
-const (
-	ServiceStatusHealthy   ServiceStatus = "Healthy"
-	ServiceStatusUnhealthy ServiceStatus = "Unhealthy"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-func NewHealthCheck(status ServiceStatus, version string) HealthCheck {
-	return HealthCheck{
-		Status:     status,
-		SystemInfo: SystemInfo{Version: version},
-	}
+func TestWorkspaces(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Workspaces Suite")
 }
