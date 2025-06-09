@@ -12,10 +12,14 @@ import {
 import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import Filter, { FilteredColumn, FilterRef } from '~/shared/components/Filter';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
+import { defineDataFields, FilterableDataFieldKey } from '~/app/filterableDataHelper';
 
-const FILTERABLE_COLUMNS = {
-  name: 'Name',
-};
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const { fields, filterableLabelMap } = defineDataFields({
+  name: { label: 'Name', isFilterable: true },
+});
+
+type FilterableDataFieldKeys = FilterableDataFieldKey<typeof fields>;
 
 type WorkspaceFormKindListProps = {
   allWorkspaceKinds: WorkspaceKind[];
@@ -44,8 +48,9 @@ export const WorkspaceFormKindList: React.FunctionComponent<WorkspaceFormKindLis
       }
 
       return result.filter((kind) => {
-        switch (filter.columnName) {
-          case FILTERABLE_COLUMNS.name:
+        switch (filter.columnKey as FilterableDataFieldKeys) {
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          case 'name':
             return kind.name.search(regex) >= 0 || kind.displayName.search(regex) >= 0;
           default:
             return true;
@@ -78,7 +83,7 @@ export const WorkspaceFormKindList: React.FunctionComponent<WorkspaceFormKindLis
               id="filter-workspace-images"
               filters={filters}
               setFilters={setFilters}
-              columnNames={FILTERABLE_COLUMNS}
+              columnDefinition={filterableLabelMap}
             />
           </ToolbarContent>
         </Toolbar>

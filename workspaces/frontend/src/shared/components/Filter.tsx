@@ -21,12 +21,12 @@ export interface FilterProps {
   id: string;
   filters: FilteredColumn[];
   setFilters: (filters: FilteredColumn[]) => void;
-  columnNames: { [key: string]: string };
+  columnDefinition: Record<string, string>;
   toolbarActions?: React.ReactNode;
 }
 
 export interface FilteredColumn {
-  columnName: string;
+  columnKey: string;
   value: string;
 }
 
@@ -37,9 +37,9 @@ export interface FilterRef {
 
 // Use forwardRef to allow parents to get a ref to this component instance
 const Filter = React.forwardRef<FilterRef, FilterProps>(
-  ({ id, filters, setFilters, columnNames, toolbarActions }, ref) => {
+  ({ id, filters, setFilters, columnDefinition, toolbarActions }, ref) => {
     const [activeFilter, setActiveFilter] = React.useState<FilteredColumn>({
-      columnName: filters[0]?.columnName ?? Object.values(columnNames)[0],
+      columnKey: filters[0]?.columnKey ?? Object.keys(columnDefinition)[0],
       value: filters[0]?.value ?? '',
     });
     const [searchValue, setSearchValue] = React.useState<string>(activeFilter.value || '');
@@ -48,6 +48,11 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
     const filterToggleRef = React.useRef<MenuToggleElement | null>(null);
     const filterMenuRef = React.useRef<HTMLDivElement | null>(null);
     const filterContainerRef = React.useRef<HTMLDivElement | null>(null);
+
+    const activeFilterLabel = React.useMemo(
+      () => columnDefinition[activeFilter.columnKey],
+      [activeFilter.columnKey, columnDefinition],
+    );
 
     const handleFilterMenuKeys = React.useCallback(
       (event: KeyboardEvent) => {
@@ -101,12 +106,12 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
 
     const updateFilters = React.useCallback(
       (filterObj: FilteredColumn) => {
-        const index = filters.findIndex((filter) => filter.columnName === filterObj.columnName);
+        const index = filters.findIndex((filter) => filter.columnKey === filterObj.columnKey);
         const newFilters = [...filters];
 
         if (filterObj.value === '') {
           const updatedFilters = newFilters.filter(
-            (filter) => filter.columnName !== filterObj.columnName,
+            (filter) => filter.columnKey !== filterObj.columnKey,
           );
           setFilters(updatedFilters);
           return updatedFilters;
@@ -138,8 +143,8 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
 
     const onDeleteLabelGroup = React.useCallback(
       (filter: FilteredColumn) => {
-        setFilters([...filters.filter((f) => f.columnName !== filter.columnName)]);
-        if (filter.columnName === activeFilter.columnName) {
+        setFilters([...filters.filter((f) => f.columnKey !== filter.columnKey)]);
+        if (filter.columnKey === activeFilter.columnKey) {
           setSearchValue('');
           setActiveFilter((prevActiveFilter) => ({
             ...prevActiveFilter,
@@ -147,7 +152,7 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
           }));
         }
       },
-      [activeFilter.columnName, filters, setFilters],
+      [activeFilter.columnKey, filters, setFilters],
     );
 
     // Expose the clearAllFilters logic via the ref
@@ -155,11 +160,11 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
       setFilters([]);
       setSearchValue('');
       setActiveFilter({
-        columnName: Object.values(columnNames)[0],
+        columnKey: Object.keys(columnDefinition)[0],
         value: '',
       });
       setFilters([]);
-    }, [columnNames, setFilters]);
+    }, [columnDefinition, setFilters]);
 
     React.useImperativeHandle(ref, () => ({
       clearAll: clearAllInternal,
@@ -170,19 +175,19 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
         // Use the functional update form to toggle the state
         setIsFilterMenuOpen((prevIsMenuOpen) => !prevIsMenuOpen); // Fix is here
 
-        const selectedColumnName = itemId ? itemId.toString() : Object.values(columnNames)[0];
+        const selectedColumnKey = itemId ? itemId.toString() : Object.keys(columnDefinition)[0];
 
         // Find the existing filter value for the selected column, if any
-        const existingFilter = filters.find((filter) => filter.columnName === selectedColumnName);
+        const existingFilter = filters.find((filter) => filter.columnKey === selectedColumnKey);
         const existingValue = existingFilter ? existingFilter.value : '';
 
         setSearchValue(existingValue); // Set search input to the existing filter value
         setActiveFilter({
-          columnName: selectedColumnName,
+          columnKey: selectedColumnKey,
           value: existingValue, // Set the active filter value
         });
       },
-      [columnNames, filters],
+      [columnDefinition, filters],
     );
 
     const filterMenuToggle = React.useMemo(
@@ -193,10 +198,10 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
           isExpanded={isFilterMenuOpen}
           icon={<FilterIcon />}
         >
-          {activeFilter.columnName}
+          {activeFilterLabel}
         </MenuToggle>
       ),
-      [activeFilter.columnName, isFilterMenuOpen, onFilterToggleClick],
+      [activeFilterLabel, isFilterMenuOpen, onFilterToggleClick],
     );
 
     const filterMenu = React.useMemo(
@@ -204,16 +209,16 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
         <Menu ref={filterMenuRef} onSelect={(_ev, itemId) => onFilterSelect(itemId)}>
           <MenuContent>
             <MenuList>
-              {Object.values(columnNames).map((name: string) => (
-                <MenuItem id={`${id}-dropdown-${name}`} key={name} itemId={name}>
-                  {name}
+              {Object.keys(columnDefinition).map((columnKey: string) => (
+                <MenuItem id={`${id}-dropdown-${columnKey}`} key={columnKey} itemId={columnKey}>
+                  {columnDefinition[columnKey]}
                 </MenuItem>
               ))}
             </MenuList>
           </MenuContent>
         </Menu>
       ),
-      [columnNames, id, onFilterSelect],
+      [columnDefinition, id, onFilterSelect],
     );
 
     const filterDropdown = React.useMemo(
@@ -246,20 +251,20 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
                   data-testid={`${id}-search-input`}
                   value={searchValue}
                   onChange={onSearchChange}
-                  placeholder={`Filter by ${activeFilter.columnName}`}
-                  fieldLabel={`Find by ${activeFilter.columnName}`}
-                  aria-label={`Filter by ${activeFilter.columnName}`}
+                  placeholder={`Filter by ${activeFilterLabel}`}
+                  fieldLabel={`Find by ${activeFilterLabel}`}
+                  aria-label={`Filter by ${activeFilterLabel}`}
                 />
               </ToolbarItem>
               {filters.map(
                 (filter) =>
                   filter.value !== '' && (
                     <ToolbarFilter
-                      key={`${filter.columnName}-filter`}
+                      key={`${filter.columnKey}-filter`}
                       labels={[filter.value]}
                       deleteLabel={() => onDeleteLabelGroup(filter)}
                       deleteLabelGroup={() => onDeleteLabelGroup(filter)}
-                      categoryName={filter.columnName}
+                      categoryName={columnDefinition[filter.columnKey]}
                     >
                       {undefined}
                     </ToolbarFilter>

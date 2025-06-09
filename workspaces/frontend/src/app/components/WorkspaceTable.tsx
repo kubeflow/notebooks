@@ -35,6 +35,7 @@ import {
 } from '@patternfly/react-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { Workspace, WorkspaceState } from '~/shared/api/backendApiTypes';
+import { DataFieldKey, defineDataFields, FilterableDataFieldKey } from '~/app/filterableDataHelper';
 import { WorkspaceDetails } from '~/app/pages/Workspaces/Details/WorkspaceDetails';
 import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
 import DeleteModal from '~/shared/components/DeleteModal';
@@ -64,34 +65,27 @@ export enum ActionType {
   Stop,
 }
 
-export const WorkspaceTableColumnNames = {
-  redirectStatus: 'Redirect Status',
-  name: 'Name',
-  kind: 'Kind',
-  image: 'Image',
-  podConfig: 'Pod Config',
-  state: 'State',
-  homeVol: 'Home Vol',
-  cpu: 'CPU',
-  ram: 'Memory',
-  lastActivity: 'Last Activity',
-  connect: '',
-  actions: '',
-} as const;
+const {
+  fields: wsTableColumns,
+  keyArray: wsTableColumnKeyArray,
+  filterableKeyArray: filterableWsTableColumnKeyArray,
+} = defineDataFields({
+  redirectStatus: { label: 'Redirect Status', isFilterable: false },
+  name: { label: 'Name', isFilterable: true },
+  kind: { label: 'Kind', isFilterable: true },
+  image: { label: 'Image', isFilterable: true },
+  podConfig: { label: 'Pod Config', isFilterable: true },
+  state: { label: 'State', isFilterable: true },
+  homeVol: { label: 'Home Vol', isFilterable: true },
+  cpu: { label: 'CPU', isFilterable: false },
+  ram: { label: 'Memory', isFilterable: false },
+  lastActivity: { label: 'Last Activity', isFilterable: false },
+  connect: { label: '', isFilterable: false },
+  actions: { label: '', isFilterable: false },
+});
 
-export const WorkspaceTableFilterableColumns = {
-  name: 'Name',
-  kind: 'Kind',
-  image: 'Image',
-  podConfig: 'Pod Config',
-  state: 'State',
-  homeVol: 'Home Vol',
-} as const;
-
-export type WorkspaceTableColumnKey = keyof typeof WorkspaceTableColumnNames;
-export type WorkspaceTableFilterableColumnKey = keyof typeof WorkspaceTableFilterableColumns;
-
-const workspaceColumnKeyArray = Object.keys(WorkspaceTableColumnNames) as WorkspaceTableColumnKey[];
+export type WorkspaceTableColumnKeys = DataFieldKey<typeof wsTableColumns>;
+type WorkspaceTableFilterableColumnKeys = FilterableDataFieldKey<typeof wsTableColumns>;
 
 interface WorkspaceTableProps {
   workspaces: Workspace[];
@@ -99,7 +93,7 @@ interface WorkspaceTableProps {
   canCreateWorkspaces?: boolean;
   canExpandRows?: boolean;
   initialFilters?: FilteredColumn[];
-  hiddenColumns?: WorkspaceTableColumnKey[];
+  hiddenColumns?: WorkspaceTableColumnKeys[];
 }
 
 const WorkspaceTable: React.FC<WorkspaceTableProps> = ({
@@ -129,23 +123,25 @@ const WorkspaceTable: React.FC<WorkspaceTableProps> = ({
   const kindLogoDict = buildKindLogoDictionary(workspaceKinds);
   const workspaceRedirectStatus = buildWorkspaceRedirectStatus(workspaceKinds);
 
-  const visibleColumns: WorkspaceTableColumnKey[] = React.useMemo(
+  const visibleColumnKeys: WorkspaceTableColumnKeys[] = React.useMemo(
     () =>
       hiddenColumns.length
-        ? workspaceColumnKeyArray.filter((col) => !hiddenColumns.includes(col))
-        : workspaceColumnKeyArray,
+        ? wsTableColumnKeyArray.filter((col) => !hiddenColumns.includes(col))
+        : wsTableColumnKeyArray,
     [hiddenColumns],
   );
 
-  const visibleFilterableColumns = React.useMemo(
-    () =>
-      Object.fromEntries(
-        Object.entries(WorkspaceTableFilterableColumns).filter(
-          ([key]) => !hiddenColumns.includes(key as WorkspaceTableFilterableColumnKey),
-        ),
-      ) as Record<WorkspaceTableFilterableColumnKey, string>,
-    [hiddenColumns],
-  );
+  const visibleFilterableColumns = React.useMemo(() => {
+    const keys =
+      hiddenColumns.length > 0
+        ? filterableWsTableColumnKeyArray.filter((col) => !hiddenColumns.includes(col))
+        : filterableWsTableColumnKeyArray;
+
+    return Object.fromEntries(keys.map((key) => [key, wsTableColumns[key].label])) as Record<
+      WorkspaceTableFilterableColumnKeys,
+      string
+    >;
+  }, [hiddenColumns]);
 
   React.useEffect(() => {
     if (activeActionType !== ActionType.Edit || !selectedWorkspace) {
@@ -199,18 +195,18 @@ const WorkspaceTable: React.FC<WorkspaceTableProps> = ({
       }
 
       return result.filter((ws) => {
-        switch (filter.columnName) {
-          case WorkspaceTableColumnNames.name:
+        switch (filter.columnKey as WorkspaceTableFilterableColumnKeys) {
+          case 'name':
             return ws.name.match(searchValueInput);
-          case WorkspaceTableColumnNames.kind:
+          case 'kind':
             return ws.workspaceKind.name.match(searchValueInput);
-          case WorkspaceTableColumnNames.image:
+          case 'image':
             return ws.podTemplate.options.imageConfig.current.displayName.match(searchValueInput);
-          case WorkspaceTableColumnNames.podConfig:
+          case 'podConfig':
             return ws.podTemplate.options.podConfig.current.displayName.match(searchValueInput);
-          case WorkspaceTableColumnNames.state:
+          case 'state':
             return ws.state.match(searchValueInput);
-          case WorkspaceTableColumnNames.homeVol:
+          case 'homeVol':
             return ws.podTemplate.volumes.home?.mountPath.match(searchValueInput);
           default:
             return true;
@@ -223,7 +219,7 @@ const WorkspaceTable: React.FC<WorkspaceTableProps> = ({
 
   const getSortableRowValues = (
     workspace: Workspace,
-  ): Record<WorkspaceTableColumnKey, string | number> => ({
+  ): Record<WorkspaceTableColumnKeys, string | number> => ({
     redirectStatus: '',
     name: workspace.name,
     kind: workspace.workspaceKind.name,
@@ -243,7 +239,7 @@ const WorkspaceTable: React.FC<WorkspaceTableProps> = ({
       return filteredWorkspaces;
     }
 
-    const columnKey = visibleColumns[activeSortIndex];
+    const columnKey = visibleColumnKeys[activeSortIndex];
     return [...filteredWorkspaces].sort((a, b) => {
       const aValue = getSortableRowValues(a)[columnKey];
       const bValue = getSortableRowValues(b)[columnKey];
@@ -257,7 +253,7 @@ const WorkspaceTable: React.FC<WorkspaceTableProps> = ({
         ? String(aValue).localeCompare(String(bValue))
         : String(bValue).localeCompare(String(aValue));
     });
-  }, [filteredWorkspaces, activeSortIndex, activeSortDirection, visibleColumns]);
+  }, [filteredWorkspaces, activeSortIndex, activeSortDirection, visibleColumnKeys]);
 
   const getSortParams = (columnIndex: number): ThProps['sort'] => ({
     sortBy: {
@@ -526,7 +522,7 @@ const WorkspaceTable: React.FC<WorkspaceTableProps> = ({
                 id="filter-workspaces"
                 filters={filters}
                 setFilters={setFilters}
-                columnNames={visibleFilterableColumns}
+                columnDefinition={visibleFilterableColumns}
                 toolbarActions={
                   canCreateWorkspaces && (
                     <Button variant="primary" ouiaId="Primary" onClick={createWorkspace}>
@@ -544,15 +540,15 @@ const WorkspaceTable: React.FC<WorkspaceTableProps> = ({
               <Thead>
                 <Tr>
                   {canExpandRows && <Th screenReaderText="expand-action" />}
-                  {visibleColumns.map((columnKey, index) => (
+                  {visibleColumnKeys.map((columnKey, index) => (
                     <Th
                       key={`workspace-table-column-${columnKey}`}
                       sort={columnKey !== 'redirectStatus' ? getSortParams(index) : undefined}
+                      aria-label={columnKey}
                     >
-                      {WorkspaceTableColumnNames[columnKey]}
+                      {wsTableColumns[columnKey].label}
                     </Th>
                   ))}
-                  <Th screenReaderText="Primary action" />
                 </Tr>
               </Thead>
               {sortedWorkspaces.length > 0 &&
@@ -577,11 +573,11 @@ const WorkspaceTable: React.FC<WorkspaceTableProps> = ({
                           }}
                         />
                       )}
-                      {visibleColumns.map((columnKey) => {
+                      {visibleColumnKeys.map((columnKey) => {
                         switch (columnKey) {
                           case 'redirectStatus':
                             return (
-                              <Td key={columnKey} dataLabel={WorkspaceTableColumnNames[columnKey]}>
+                              <Td key={columnKey} dataLabel={wsTableColumns[columnKey].label}>
                                 {workspaceRedirectStatus[workspace.workspaceKind.name]
                                   ? getRedirectStatusIcon(
                                       workspaceRedirectStatus[workspace.workspaceKind.name]?.message
@@ -597,14 +593,14 @@ const WorkspaceTable: React.FC<WorkspaceTableProps> = ({
                               <Td
                                 key={columnKey}
                                 data-testid="workspace-name"
-                                dataLabel={WorkspaceTableColumnNames[columnKey]}
+                                dataLabel={wsTableColumns[columnKey].label}
                               >
                                 {workspace.name}
                               </Td>
                             );
                           case 'kind':
                             return (
-                              <Td key={columnKey} dataLabel={WorkspaceTableColumnNames[columnKey]}>
+                              <Td key={columnKey} dataLabel={wsTableColumns[columnKey].label}>
                                 {kindLogoDict[workspace.workspaceKind.name] ? (
                                   <Tooltip content={workspace.workspaceKind.name}>
                                     <Brand
@@ -622,7 +618,7 @@ const WorkspaceTable: React.FC<WorkspaceTableProps> = ({
                             );
                           case 'image':
                             return (
-                              <Td key={columnKey} dataLabel={WorkspaceTableColumnNames[columnKey]}>
+                              <Td key={columnKey} dataLabel={wsTableColumns[columnKey].label}>
                                 {workspace.podTemplate.options.imageConfig.current.displayName}
                               </Td>
                             );
@@ -631,7 +627,7 @@ const WorkspaceTable: React.FC<WorkspaceTableProps> = ({
                               <Td
                                 key={columnKey}
                                 data-testid="pod-config"
-                                dataLabel={WorkspaceTableColumnNames[columnKey]}
+                                dataLabel={wsTableColumns[columnKey].label}
                               >
                                 {workspace.podTemplate.options.podConfig.current.displayName}
                               </Td>
@@ -641,7 +637,7 @@ const WorkspaceTable: React.FC<WorkspaceTableProps> = ({
                               <Td
                                 key={columnKey}
                                 data-testid="state-label"
-                                dataLabel={WorkspaceTableColumnNames[columnKey]}
+                                dataLabel={wsTableColumns[columnKey].label}
                               >
                                 <Label color={extractStateColor(workspace.state)}>
                                   {workspace.state}
@@ -650,25 +646,25 @@ const WorkspaceTable: React.FC<WorkspaceTableProps> = ({
                             );
                           case 'homeVol':
                             return (
-                              <Td key={columnKey} dataLabel={WorkspaceTableColumnNames[columnKey]}>
+                              <Td key={columnKey} dataLabel={wsTableColumns[columnKey].label}>
                                 {workspace.podTemplate.volumes.home?.pvcName ?? ''}
                               </Td>
                             );
                           case 'cpu':
                             return (
-                              <Td key={columnKey} dataLabel={WorkspaceTableColumnNames[columnKey]}>
+                              <Td key={columnKey} dataLabel={wsTableColumns[columnKey].label}>
                                 {formatResourceFromWorkspace(workspace, 'cpu')}
                               </Td>
                             );
                           case 'ram':
                             return (
-                              <Td key={columnKey} dataLabel={WorkspaceTableColumnNames[columnKey]}>
+                              <Td key={columnKey} dataLabel={wsTableColumns[columnKey].label}>
                                 {formatResourceFromWorkspace(workspace, 'memory')}
                               </Td>
                             );
                           case 'lastActivity':
                             return (
-                              <Td key={columnKey} dataLabel={WorkspaceTableColumnNames[columnKey]}>
+                              <Td key={columnKey} dataLabel={wsTableColumns[columnKey].label}>
                                 <Timestamp
                                   date={new Date(workspace.activity.lastActivity)}
                                   tooltip={{ variant: TimestampTooltipVariant.default }}
@@ -681,13 +677,13 @@ const WorkspaceTable: React.FC<WorkspaceTableProps> = ({
                             );
                           case 'connect':
                             return (
-                              <Td>
+                              <Td key={columnKey}>
                                 <WorkspaceConnectAction workspace={workspace} />
                               </Td>
                             );
                           case 'actions':
                             return (
-                              <Td isActionCell data-testid="action-column">
+                              <Td key={columnKey} isActionCell data-testid="action-column">
                                 <ActionsColumn
                                   items={workspaceDefaultActions(workspace).map((action) => ({
                                     ...action,
@@ -704,7 +700,7 @@ const WorkspaceTable: React.FC<WorkspaceTableProps> = ({
                     {isWorkspaceExpanded(workspace) && (
                       <ExpandedWorkspaceRow
                         workspace={workspace}
-                        columnKeys={workspaceColumnKeyArray}
+                        columnKeys={wsTableColumnKeyArray}
                       />
                     )}
                   </Tbody>

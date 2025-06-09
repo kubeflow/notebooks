@@ -1,4 +1,4 @@
-import { Content, ContentVariants, PageSection } from '@patternfly/react-core';
+import { Content, ContentVariants, PageSection, Stack, StackItem } from '@patternfly/react-core';
 import * as React from 'react';
 import WorkspaceTable from '~/app/components/WorkspaceTable';
 import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
@@ -19,11 +19,19 @@ export const Workspaces: React.FunctionComponent = () => {
 
   return (
     <PageSection isFilled>
-      <Content component={ContentVariants.h1}>Kubeflow Workspaces</Content>
-      <Content component={ContentVariants.p}>
-        View your existing workspaces or create new workspaces.
-      </Content>
-      <WorkspaceTable workspaces={workspaces} workspacesRefresh={workspacesRefresh} />
+      <Stack hasGutter>
+        <StackItem>
+          <Content component={ContentVariants.h1}>Kubeflow Workspaces</Content>
+        </StackItem>
+        <StackItem>
+          <Content component={ContentVariants.p}>
+            View your existing workspaces or create new workspaces.
+          </Content>
+        </StackItem>
+        <StackItem isFilled>
+          <WorkspaceTable workspaces={workspaces} workspacesRefresh={workspacesRefresh} />
+        </StackItem>
+      </Stack>
     </PageSection>
   );
 };
