@@ -85,11 +85,6 @@ const docTemplate = `{
         },
         "/workspacekinds": {
             "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Returns a list of all available workspace kinds. Workspace kinds define the different types of workspaces that can be created in the system.",
                 "consumes": [
                     "application/json"
@@ -131,11 +126,6 @@ const docTemplate = `{
         },
         "/workspacekinds/{name}": {
             "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Returns details of a specific workspace kind identified by its name. Workspace kinds define the available types of workspaces that can be created.",
                 "consumes": [
                     "application/json"
@@ -199,11 +189,6 @@ const docTemplate = `{
         },
         "/workspaces": {
             "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Returns a list of workspaces. The endpoint supports two modes:\n1. List all workspaces across all namespaces (when no namespace is provided)\n2. List workspaces in a specific namespace (when namespace is provided)",
                 "consumes": [
                     "application/json"
@@ -251,11 +236,6 @@ const docTemplate = `{
         },
         "/workspaces/{namespace}": {
             "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Returns a list of workspaces. The endpoint supports two modes:\n1. List all workspaces across all namespaces (when no namespace is provided)\n2. List workspaces in a specific namespace (when namespace is provided)",
                 "consumes": [
                     "application/json"
@@ -273,7 +253,8 @@ const docTemplate = `{
                         "example": "kubeflow-user-example-com",
                         "description": "Namespace to filter workspaces. If not provided, returns all workspaces across all namespaces.",
                         "name": "namespace",
-                        "in": "path"
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -310,11 +291,6 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Creates a new workspace in the specified namespace.",
                 "consumes": [
                     "application/json"
@@ -387,11 +363,6 @@ const docTemplate = `{
         },
         "/workspaces/{namespace}/{workspace_name}": {
             "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Returns details of a specific workspace identified by namespace and workspace name.",
                 "consumes": [
                     "application/json"
@@ -461,11 +432,6 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Deletes a specific workspace identified by namespace and workspace name.",
                 "consumes": [
                     "application/json"

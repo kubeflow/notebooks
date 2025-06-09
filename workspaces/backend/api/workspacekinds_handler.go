@@ -50,7 +50,6 @@ type WorkspaceKindEnvelope Envelope[models.WorkspaceKind]
 //	@Failure		404		{object}	ErrorEnvelope			"Not Found. Workspace kind does not exist."
 //	@Failure		500		{object}	ErrorEnvelope			"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspacekinds/{name} [get]
-//	@Security		ApiKeyAuth
 func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	name := ps.ByName(ResourceNamePathParam)
 
@@ -102,7 +101,6 @@ func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps
 //	@Failure		403	{object}	ErrorEnvelope				"Forbidden. User does not have permission to list workspace kinds."
 //	@Failure		500	{object}	ErrorEnvelope				"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspacekinds [get]
-//	@Security		ApiKeyAuth
 func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{

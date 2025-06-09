@@ -642,8 +642,6 @@ paths:
             server.
           schema:
             $ref: '#/definitions/api.ErrorEnvelope'
-      security:
-      - ApiKeyAuth: []
       summary: List workspace kinds
       tags:
       - workspacekinds
@@ -691,8 +689,6 @@ paths:
             server.
           schema:
             $ref: '#/definitions/api.ErrorEnvelope'
-      security:
-      - ApiKeyAuth: []
       summary: Get workspace kind
       tags:
       - workspacekinds
@@ -728,8 +724,6 @@ paths:
             server.
           schema:
             $ref: '#/definitions/api.ErrorEnvelope'
-      security:
-      - ApiKeyAuth: []
       summary: List workspaces
       tags:
       - workspaces
@@ -747,6 +741,7 @@ paths:
         example: kubeflow-user-example-com
         in: path
         name: namespace
+        required: true
         type: string
       produces:
       - application/json
@@ -772,8 +767,6 @@ paths:
             server.
           schema:
             $ref: '#/definitions/api.ErrorEnvelope'
-      security:
-      - ApiKeyAuth: []
       summary: List workspaces
       tags:
       - workspaces
@@ -822,8 +815,6 @@ paths:
             server.
           schema:
             $ref: '#/definitions/api.ErrorEnvelope'
-      security:
-      - ApiKeyAuth: []
       summary: Create workspace
       tags:
       - workspaces
@@ -872,8 +863,6 @@ paths:
             server.
           schema:
             $ref: '#/definitions/api.ErrorEnvelope'
-      security:
-      - ApiKeyAuth: []
       summary: Delete workspace
       tags:
       - workspaces
@@ -923,8 +912,6 @@ paths:
             server.
           schema:
             $ref: '#/definitions/api.ErrorEnvelope'
-      security:
-      - ApiKeyAuth: []
       summary: Get workspace
       tags:
       - workspaces
