@@ -2,11 +2,11 @@ import React from 'react';
 import { ExpandableRowContent, Td, Tr } from '@patternfly/react-table';
 import { Workspace } from '~/shared/api/backendApiTypes';
 import { DataVolumesList } from '~/app/pages/Workspaces/DataVolumesList';
-import { WorkspaceTableColumnKey } from '~/app/components/WorkspaceTable';
+import { WorkspaceTableColumnKeys } from '~/app/components/WorkspaceTable';
 
 interface ExpandedWorkspaceRowProps {
   workspace: Workspace;
-  columnKeys: WorkspaceTableColumnKey[];
+  columnKeys: WorkspaceTableColumnKeys[];
 }
 
 export const ExpandedWorkspaceRow: React.FC<ExpandedWorkspaceRowProps> = ({

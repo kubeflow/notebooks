@@ -66,7 +66,7 @@ const WorkspaceKindSummary: React.FC = () => {
             onExpandToggle={() => setIsSummaryExpanded(!isSummaryExpanded)}
           />
         </StackItem>
-        <StackItem>
+        <StackItem isFilled>
           <WorkspaceTable
             workspaces={workspaces}
             workspacesRefresh={workspacesRefresh}

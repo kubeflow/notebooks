@@ -12,10 +12,14 @@ import {
 import { WorkspacePodConfigValue } from '~/shared/api/backendApiTypes';
 import Filter, { FilteredColumn, FilterRef } from '~/shared/components/Filter';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
+import { defineDataFields, FilterableDataFieldKey } from '~/app/filterableDataHelper';
 
-const FILTERABLE_COLUMNS = {
-  name: 'Name',
-};
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const { fields, filterableLabelMap } = defineDataFields({
+  name: { label: 'Name', isFilterable: true },
+});
+
+type FilterableDataFieldKeys = FilterableDataFieldKey<typeof fields>;
 
 type WorkspaceFormPodConfigListProps = {
   podConfigs: WorkspacePodConfigValue[];
@@ -29,13 +33,6 @@ export const WorkspaceFormPodConfigList: React.FunctionComponent<
 > = ({ podConfigs, selectedLabels, selectedPodConfig, onSelect }) => {
   const [filters, setFilters] = useState<FilteredColumn[]>([]);
   const filterRef = useRef<FilterRef>(null);
-
-  const filterableColumns = useMemo(
-    () => ({
-      name: 'Name',
-    }),
-    [],
-  );
 
   const getFilteredWorkspacePodConfigsByLabels = useCallback(
     (unfilteredPodConfigs: WorkspacePodConfigValue[]) =>
@@ -70,8 +67,9 @@ export const WorkspaceFormPodConfigList: React.FunctionComponent<
         if (filter.value === '') {
           return true;
         }
-        switch (filter.columnName) {
-          case FILTERABLE_COLUMNS.name:
+        switch (filter.columnKey as FilterableDataFieldKeys) {
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          case 'name':
             return (
               podConfig.id.search(searchValueInput) >= 0 ||
               podConfig.displayName.search(searchValueInput) >= 0
@@ -104,7 +102,7 @@ export const WorkspaceFormPodConfigList: React.FunctionComponent<
               id="filter-workspace-images"
               filters={filters}
               setFilters={setFilters}
-              columnNames={filterableColumns}
+              columnDefinition={filterableLabelMap}
             />
           </ToolbarContent>
         </Toolbar>
