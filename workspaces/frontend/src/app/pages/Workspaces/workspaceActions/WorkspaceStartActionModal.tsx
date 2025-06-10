@@ -17,7 +17,7 @@ interface StartActionAlertProps {
   workspace: Workspace | null;
   onStart: () => Promise<WorkspacePauseState | void>;
   onUpdateAndStart: () => Promise<void>;
-  onActionDone: () => void;
+  onActionDone?: () => void;
 }
 
 type StartAction = 'start' | 'updateAndStart';
@@ -49,7 +49,7 @@ export const WorkspaceStartActionModal: React.FC<StartActionAlertProps> = ({
       const response = await executeAction({ action: 'start', callback: onStart });
       // TODO: alert user about success
       console.info('Workspace started successfully:', JSON.stringify(response));
-      onActionDone();
+      onActionDone?.();
       onClose();
     } catch (error) {
       // TODO: alert user about error
@@ -66,7 +66,7 @@ export const WorkspaceStartActionModal: React.FC<StartActionAlertProps> = ({
       });
       // TODO: alert user about success
       console.info('Workspace updated and started successfully:', JSON.stringify(response));
-      onActionDone();
+      onActionDone?.();
       onClose();
     } catch (error) {
       // TODO: alert user about error

@@ -16,7 +16,7 @@ import { defineDataFields, FilterableDataFieldKey } from '~/app/filterableDataHe
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const { fields, filterableLabelMap } = defineDataFields({
-  name: { label: 'Name', isFilterable: true },
+  name: { label: 'Name', isFilterable: true, isSortable: false },
 });
 
 type FilterableDataFieldKeys = FilterableDataFieldKey<typeof fields>;
