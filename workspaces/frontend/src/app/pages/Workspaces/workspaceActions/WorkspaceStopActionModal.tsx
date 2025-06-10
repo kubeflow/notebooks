@@ -18,7 +18,7 @@ interface StopActionAlertProps {
   workspace: Workspace | null;
   onStop: () => Promise<WorkspacePauseState | void>;
   onUpdateAndStop: () => Promise<void>;
-  onActionDone: () => void;
+  onActionDone?: () => void;
 }
 
 type StopAction = 'stop' | 'updateAndStop';
@@ -51,7 +51,7 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
       const response = await executeAction({ action: 'stop', callback: onStop });
       // TODO: alert user about success
       console.info('Workspace stopped successfully:', JSON.stringify(response));
-      onActionDone();
+      onActionDone?.();
       onClose();
     } catch (error) {
       // TODO: alert user about error
@@ -65,7 +65,7 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
       const response = await executeAction({ action: 'updateAndStop', callback: onUpdateAndStop });
       // TODO: alert user about success
       console.info('Workspace updated and stopped successfully:', JSON.stringify(response));
-      onActionDone();
+      onActionDone?.();
       onClose();
     } catch (error) {
       // TODO: alert user about error

@@ -12,16 +12,22 @@ import { useTypedLocation, useTypedNavigate, useTypedParams } from '~/app/router
 import WorkspaceTable from '~/app/components/WorkspaceTable';
 import { useWorkspacesByKind } from '~/app/hooks/useWorkspaces';
 import WorkspaceKindSummaryExpandableCard from '~/app/pages/WorkspaceKinds/summary/WorkspaceKindSummaryExpandableCard';
+import { useWorkspaceActionsContext } from '~/app/context/WorkspaceActionsContext';
+import { Workspace } from '~/shared/api/backendApiTypes';
+import { DEFAULT_POLLING_RATE_MS } from '~/app/const';
+import { LoadingSpinner } from '~/app/components/LoadingSpinner';
+import { LoadError } from '~/app/components/LoadError';
 
 const WorkspaceKindSummary: React.FC = () => {
   const navigate = useTypedNavigate();
+  const workspaceActions = useWorkspaceActionsContext();
   const [isSummaryExpanded, setIsSummaryExpanded] = React.useState(true);
 
   const {
     state: { namespace, imageId, podConfigId, withGpu, isIdle },
   } = useTypedLocation<'workspaceKindSummary'>();
   const { kind } = useTypedParams<'workspaceKindSummary'>();
-  const [workspaces, workspacesLoaded, workspacesLoadError, workspacesRefresh] =
+  const [workspaces, workspacesLoaded, workspacesLoadError, refreshWorkspaces] =
     useWorkspacesByKind({
       kind,
       namespace,
@@ -31,12 +37,30 @@ const WorkspaceKindSummary: React.FC = () => {
       withGpu,
     });
 
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      refreshWorkspaces();
+    }, DEFAULT_POLLING_RATE_MS);
+    return () => clearInterval(interval);
+  }, [refreshWorkspaces]);
+
+  const tableRowActions = React.useCallback(
+    (workspace: Workspace) => [
+      {
+        id: 'view-details',
+        title: 'View Details',
+        onClick: () => workspaceActions.requestViewDetailsAction({ workspace }),
+      },
+    ],
+    [workspaceActions],
+  );
+
   if (workspacesLoadError) {
-    return <p>Error loading workspaces: {workspacesLoadError.message}</p>; // TODO: UX for error state
+    return <LoadError error={workspacesLoadError} />;
   }
 
   if (!workspacesLoaded) {
-    return <p>Loading...</p>; // TODO: UX for loading state
+    return <LoadingSpinner />;
   }
 
   return (
@@ -69,9 +93,9 @@ const WorkspaceKindSummary: React.FC = () => {
         <StackItem isFilled>
           <WorkspaceTable
             workspaces={workspaces}
-            workspacesRefresh={workspacesRefresh}
             canCreateWorkspaces={false}
             hiddenColumns={['connect']}
+            rowActions={tableRowActions}
           />
         </StackItem>
       </Stack>
