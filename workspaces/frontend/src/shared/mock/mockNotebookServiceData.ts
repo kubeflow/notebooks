@@ -11,6 +11,7 @@ import {
   buildMockWorkspace,
   buildMockWorkspaceKind,
   buildMockWorkspaceKindInfo,
+  buildWorkspaceList,
 } from '~/shared/mock/mockBuilder';
 
 // Health
@@ -156,6 +157,7 @@ export const mockAllWorkspaces = [
   mockWorkspace3,
   mockWorkspace4,
   mockWorkspace5,
+  ...buildWorkspaceList(10, mockNamespace1.name, mockWorkspaceKindInfo1),
 ];
 
 export const mockPausedStateResponse = buildMockPauseStateResponse({ paused: true });

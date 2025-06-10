@@ -282,3 +282,23 @@ export const buildMockPauseStateResponse = (
   paused: true,
   ...pauseState,
 });
+
+export const buildWorkspaceList = (
+  count: number,
+  namespace: string,
+  kind: WorkspaceKindInfo,
+): Workspace[] => {
+  const states = Object.values(WorkspaceState);
+  const workspaces: Workspace[] = [];
+  for (let i = 1; i <= count; i++) {
+    workspaces.push(
+      buildMockWorkspace({
+        name: `My Notebook ${i}`,
+        namespace,
+        workspaceKind: kind,
+        state: states[Math.floor(Math.random() * states.length)],
+      }),
+    );
+  }
+  return workspaces;
+};
