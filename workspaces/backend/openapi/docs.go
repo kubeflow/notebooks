@@ -740,6 +740,9 @@ const docTemplate = `{
                 },
                 "redirect": {
                     "$ref": "#/definitions/workspacekinds.OptionRedirect"
+                },
+                "workspacesCount": {
+                    "type": "integer"
                 }
             }
         },
@@ -810,6 +813,9 @@ const docTemplate = `{
                 },
                 "redirect": {
                     "$ref": "#/definitions/workspacekinds.OptionRedirect"
+                },
+                "workspacesCount": {
+                    "type": "integer"
                 }
             }
         },
@@ -916,6 +922,9 @@ const docTemplate = `{
                 },
                 "podTemplate": {
                     "$ref": "#/definitions/workspacekinds.PodTemplate"
+                },
+                "workspacesCount": {
+                    "type": "integer"
                 }
             }
         },

@@ -25,6 +25,7 @@ type WorkspaceKind struct {
 	Hidden             bool        `json:"hidden"`
 	Icon               ImageRef    `json:"icon"`
 	Logo               ImageRef    `json:"logo"`
+	Workspaces         int32       `json:"workspacesCount"`
 	PodTemplate        PodTemplate `json:"podTemplate"`
 }
 
@@ -64,6 +65,7 @@ type ImageConfigValue struct {
 	Labels      []OptionLabel   `json:"labels"`
 	Hidden      bool            `json:"hidden"`
 	Redirect    *OptionRedirect `json:"redirect,omitempty"`
+	Workspaces  int32           `json:"workspacesCount"`
 }
 
 type PodConfig struct {
@@ -78,6 +80,7 @@ type PodConfigValue struct {
 	Labels      []OptionLabel   `json:"labels"`
 	Hidden      bool            `json:"hidden"`
 	Redirect    *OptionRedirect `json:"redirect,omitempty"`
+	Workspaces  int32           `json:"workspacesCount"`
 }
 
 type OptionLabel struct {
