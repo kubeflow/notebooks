@@ -22,9 +22,8 @@ const WorkspaceKindSummary: React.FC = () => {
   const navigate = useTypedNavigate();
   const [isSummaryExpanded, setIsSummaryExpanded] = React.useState(true);
 
-  const {
-    state: { namespace, imageId, podConfigId, withGpu, isIdle },
-  } = useTypedLocation<'workspaceKindSummary'>();
+  const { state } = useTypedLocation<'workspaceKindSummary'>();
+  const { namespace, imageId, podConfigId, withGpu, isIdle } = state || {};
   const { kind } = useTypedParams<'workspaceKindSummary'>();
   const [workspaces, workspacesLoaded, workspacesLoadError, refreshWorkspaces] =
     useWorkspacesByKind({
