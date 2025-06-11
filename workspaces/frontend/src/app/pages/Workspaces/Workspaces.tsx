@@ -20,8 +20,7 @@ export const Workspaces: React.FunctionComponent = () => {
 
   const tableRowActions = useWorkspaceRowActions([
     { id: 'viewDetails' },
-    // TODO: Uncomment when edit action is fully supported
-    // { id: 'edit' },
+    { id: 'edit', isVisible: false }, // TODO: enable it when edit action is fully supported
     { id: 'delete', onActionDone: refreshWorkspaces },
     { id: 'separator' },
     {
