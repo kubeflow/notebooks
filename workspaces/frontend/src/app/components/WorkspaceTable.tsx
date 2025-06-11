@@ -489,7 +489,7 @@ const WorkspaceTable: React.FC<WorkspaceTableProps> = ({
                 })}
               </Tr>
               {isWorkspaceExpanded(workspace) && (
-                <ExpandedWorkspaceRow workspace={workspace} columnKeys={wsTableColumnKeyArray} />
+                <ExpandedWorkspaceRow workspace={workspace} columnKeys={visibleColumnKeys} />
               )}
             </Tbody>
           ))}
