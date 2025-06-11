@@ -31,3 +31,10 @@ const (
 	ServiceStatusHealthy   ServiceStatus = "Healthy"
 	ServiceStatusUnhealthy ServiceStatus = "Unhealthy"
 )
+
+func NewHealthCheck(status ServiceStatus, version string) HealthCheck {
+	return HealthCheck{
+		Status:     status,
+		SystemInfo: SystemInfo{Version: version},
+	}
+}
