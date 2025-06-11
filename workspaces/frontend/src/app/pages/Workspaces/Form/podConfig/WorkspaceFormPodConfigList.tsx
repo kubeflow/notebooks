@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   CardTitle,
   Gallery,
@@ -26,7 +26,7 @@ export const WorkspaceFormPodConfigList: React.FunctionComponent<
   const [workspacePodConfigs, setWorkspacePodConfigs] =
     useState<WorkspacePodConfigValue[]>(podConfigs);
   const [filters, setFilters] = useState<FilteredColumn[]>([]);
-  const filterRef = React.useRef<FilterRef>(null);
+  const filterRef = useRef<FilterRef>(null);
 
   const filterableColumns = useMemo(
     () => ({

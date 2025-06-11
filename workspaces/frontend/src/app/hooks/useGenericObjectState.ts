@@ -1,4 +1,4 @@
-import * as React from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 export type UpdateObjectAtPropAndValue<T> = <K extends keyof T>(
   propKey: K,
@@ -13,9 +13,9 @@ export type GenericObjectState<T> = [
 ];
 
 const useGenericObjectState = <T>(defaultData: T | (() => T)): GenericObjectState<T> => {
-  const [value, setValue] = React.useState<T>(defaultData);
+  const [value, setValue] = useState<T>(defaultData);
 
-  const setPropValue = React.useCallback<UpdateObjectAtPropAndValue<T>>((propKey, propValue) => {
+  const setPropValue = useCallback<UpdateObjectAtPropAndValue<T>>((propKey, propValue) => {
     setValue((oldValue) => {
       if (oldValue[propKey] !== propValue) {
         return { ...oldValue, [propKey]: propValue };
@@ -24,12 +24,12 @@ const useGenericObjectState = <T>(defaultData: T | (() => T)): GenericObjectStat
     });
   }, []);
 
-  const defaultDataRef = React.useRef(value);
-  const resetToDefault = React.useCallback(() => {
+  const defaultDataRef = useRef(value);
+  const resetToDefault = useCallback(() => {
     setValue(defaultDataRef.current);
   }, []);
 
-  const replace = React.useCallback((newValue: T) => {
+  const replace = useCallback((newValue: T) => {
     setValue(newValue);
   }, []);
 

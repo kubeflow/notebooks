@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useState } from 'react';
 import {
   Dropdown,
   DropdownList,
@@ -18,7 +18,7 @@ export const WorkspaceDetailsActions: React.FC<WorkspaceDetailsActionsProps> = (
   // onEditClick,
   onDeleteClick,
 }) => {
-  const [isOpen, setOpen] = React.useState(false);
+  const [isOpen, setOpen] = useState(false);
 
   return (
     <Flex>

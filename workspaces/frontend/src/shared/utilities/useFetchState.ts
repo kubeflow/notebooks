@@ -1,4 +1,4 @@
-import * as React from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { APIOptions } from '~/shared/api/types';
 
 /**
@@ -120,15 +120,15 @@ const useFetchState = <Type>(
   /** Configurable features */
   { refreshRate = 0, initialPromisePurity = false }: Partial<FetchOptions> = {},
 ): FetchState<Type> => {
-  const initialDefaultStateRef = React.useRef(initialDefaultState);
-  const [result, setResult] = React.useState<Type>(initialDefaultState);
-  const [loaded, setLoaded] = React.useState(false);
-  const [loadError, setLoadError] = React.useState<Error | undefined>(undefined);
-  const abortCallbackRef = React.useRef<() => void>(() => undefined);
-  const changePendingRef = React.useRef(true);
+  const initialDefaultStateRef = useRef(initialDefaultState);
+  const [result, setResult] = useState<Type>(initialDefaultState);
+  const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState<Error | undefined>(undefined);
+  const abortCallbackRef = useRef<() => void>(() => undefined);
+  const changePendingRef = useRef(true);
 
   /** Setup on initial hook a singular reset function. DefaultState & resetDataOnNewPromise are initial render states. */
-  const cleanupRef = React.useRef(() => {
+  const cleanupRef = useRef(() => {
     if (initialPromisePurity) {
       setResult(initialDefaultState);
       setLoaded(false);
@@ -136,11 +136,11 @@ const useFetchState = <Type>(
     }
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     cleanupRef.current();
   }, [fetchCallbackPromise]);
 
-  const call = React.useCallback<() => [Promise<Type | undefined>, () => void]>(() => {
+  const call = useCallback<() => [Promise<Type | undefined>, () => void]>(() => {
     let alreadyAborted = false;
     const abortController = new AbortController();
 
@@ -208,13 +208,13 @@ const useFetchState = <Type>(
   }, [fetchCallbackPromise]);
 
   // Use a memmo to update the `changePendingRef` immediately on change.
-  React.useMemo(() => {
+  useMemo(() => {
     changePendingRef.current = true;
     // React to changes to the `call` reference.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [call]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
 
     const callAndSave = () => {
@@ -237,10 +237,10 @@ const useFetchState = <Type>(
   }, [call, refreshRate]);
 
   // Use a reference for `call` to ensure a stable reference to `refresh` is always returned
-  const callRef = React.useRef(call);
+  const callRef = useRef(call);
   callRef.current = call;
 
-  const refresh = React.useCallback<FetchStateRefreshPromise<Type>>(() => {
+  const refresh = useCallback<FetchStateRefreshPromise<Type>>(() => {
     abortCallbackRef.current();
     const [callPromise, unload] = callRef.current();
     abortCallbackRef.current = unload;

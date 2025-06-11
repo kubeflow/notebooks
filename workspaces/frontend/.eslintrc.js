@@ -1,4 +1,6 @@
-{
+const noReactHookNamespace = require('./eslint-local-rules/no-react-hook-namespace');
+
+module.exports = {
   "parser": "@typescript-eslint/parser",
   "env": {
     "browser": true,
@@ -216,7 +218,8 @@
     "no-useless-return": "error",
     "symbol-description": "error",
     "yoda": "error",
-    "func-names": "warn"
+    "func-names": "warn",
+    "no-react-hook-namespace": "error"
   },
   "overrides": [
     {
@@ -262,6 +265,12 @@
           }
         ]
       }
+    },
+    {
+      files: ['**/*.{js,jsx,ts,tsx}'],
+      rules: {
+        'no-react-hook-namespace': 'error',
+      },
     }
   ]
-}
+};

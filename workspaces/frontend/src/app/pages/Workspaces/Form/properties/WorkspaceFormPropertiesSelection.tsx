@@ -1,5 +1,4 @@
-import * as React from 'react';
-import { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Checkbox,
   Content,

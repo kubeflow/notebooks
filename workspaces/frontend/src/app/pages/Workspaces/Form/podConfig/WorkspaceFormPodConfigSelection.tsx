@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Content, Split, SplitItem } from '@patternfly/react-core';
 import { WorkspaceFormPodConfigDetails } from '~/app/pages/Workspaces/Form/podConfig/WorkspaceFormPodConfigDetails';
 import { WorkspaceFormPodConfigList } from '~/app/pages/Workspaces/Form/podConfig/WorkspaceFormPodConfigList';
@@ -17,7 +17,7 @@ const WorkspaceFormPodConfigSelection: React.FunctionComponent<
 > = ({ podConfigs, selectedPodConfig, onSelect }) => {
   const [selectedLabels, setSelectedLabels] = useState<Map<string, Set<string>>>(new Map());
   const [isExpanded, setIsExpanded] = useState(false);
-  const drawerRef = React.useRef<HTMLSpanElement>(undefined);
+  const drawerRef = useRef<HTMLSpanElement>(undefined);
 
   const onExpand = useCallback(() => {
     if (drawerRef.current) {

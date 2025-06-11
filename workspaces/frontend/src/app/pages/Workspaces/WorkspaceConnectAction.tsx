@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Dropdown,
   DropdownItem,
@@ -16,7 +16,7 @@ type WorkspaceConnectActionProps = {
 export const WorkspaceConnectAction: React.FunctionComponent<WorkspaceConnectActionProps> = ({
   workspace,
 }) => {
-  const [open, setIsOpen] = React.useState(false);
+  const [open, setIsOpen] = useState(false);
 
   const onToggleClick = () => {
     setIsOpen(!open);

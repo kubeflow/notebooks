@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   Button,
   Modal,
@@ -30,9 +30,9 @@ export const WorkspaceStartActionModal: React.FC<StartActionAlertProps> = ({
   onUpdateAndStart,
   onActionDone,
 }) => {
-  const [actionOnGoing, setActionOnGoing] = React.useState<StartAction | null>(null);
+  const [actionOnGoing, setActionOnGoing] = useState<StartAction | null>(null);
 
-  const executeAction = React.useCallback(
+  const executeAction = useCallback(
     async (args: { action: StartAction; callback: () => Promise<void> }) => {
       setActionOnGoing(args.action);
       try {
@@ -44,7 +44,7 @@ export const WorkspaceStartActionModal: React.FC<StartActionAlertProps> = ({
     [],
   );
 
-  const handleStart = React.useCallback(async () => {
+  const handleStart = useCallback(async () => {
     try {
       await executeAction({ action: 'start', callback: onStart });
       // TODO: alert user about success
@@ -58,7 +58,7 @@ export const WorkspaceStartActionModal: React.FC<StartActionAlertProps> = ({
   }, [executeAction, onActionDone, onClose, onStart]);
 
   // TODO: combine handleStart and handleUpdateAndStart if they end up being similar
-  const handleUpdateAndStart = React.useCallback(async () => {
+  const handleUpdateAndStart = useCallback(async () => {
     try {
       await executeAction({ action: 'updateAndStart', callback: onUpdateAndStart });
       // TODO: alert user about success
@@ -71,7 +71,7 @@ export const WorkspaceStartActionModal: React.FC<StartActionAlertProps> = ({
     }
   }, [executeAction, onActionDone, onClose, onUpdateAndStart]);
 
-  const shouldShowActionButton = React.useCallback(
+  const shouldShowActionButton = useCallback(
     (action: StartAction) => !actionOnGoing || actionOnGoing === action,
     [actionOnGoing],
   );
