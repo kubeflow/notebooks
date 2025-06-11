@@ -1,15 +1,15 @@
-import * as React from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createComparativeValue, renderHook, standardUseFetchState, testHook } from './hooks';
 
 const useSayHello = (who: string, showCount = false) => {
-  const countRef = React.useRef(0);
+  const countRef = useRef(0);
   countRef.current++;
   return `Hello ${who}!${showCount && countRef.current > 1 ? ` x${countRef.current}` : ''}`;
 };
 
 const useSayHelloDelayed = (who: string, delay = 0) => {
-  const [speech, setSpeech] = React.useState('');
-  React.useEffect(() => {
+  const [speech, setSpeech] = useState('');
+  useEffect(() => {
     const handle = setTimeout(() => setSpeech(`Hello ${who}!`), delay);
     return () => clearTimeout(handle);
   }, [who, delay]);

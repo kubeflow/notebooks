@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   CardTitle,
   Gallery,
@@ -28,7 +28,7 @@ export const WorkspaceFormImageList: React.FunctionComponent<WorkspaceFormImageL
 }) => {
   const [workspaceImages, setWorkspaceImages] = useState<WorkspaceImageConfigValue[]>(images);
   const [filters, setFilters] = useState<FilteredColumn[]>([]);
-  const filterRef = React.useRef<FilterRef>(null);
+  const filterRef = useRef<FilterRef>(null);
 
   const filterableColumns = useMemo(
     () => ({

@@ -1,4 +1,4 @@
-import React, { FC, useMemo, useState, useEffect } from 'react';
+import React, { FC, useEffect, useMemo, useState } from 'react';
 import {
   Dropdown,
   DropdownItem,

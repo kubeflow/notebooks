@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button, Split, SplitItem, Title } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';

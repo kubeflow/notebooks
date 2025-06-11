@@ -1,3 +1,4 @@
+import React, { useCallback, useState } from 'react';
 import {
   Button,
   Dropdown,
@@ -15,7 +16,6 @@ import {
 } from '@patternfly/react-core';
 import { EllipsisVIcon } from '@patternfly/react-icons';
 import { Table, TableVariant, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
-import React, { useCallback, useState } from 'react';
 import { WorkspacePodVolumeMount } from '~/shared/api/backendApiTypes';
 
 interface WorkspaceFormPropertiesVolumesProps {

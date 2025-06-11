@@ -1,17 +1,17 @@
-import * as React from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { APIState } from '~/shared/api/types';
 
 const useAPIState = <T>(
   hostPath: string | null,
   createAPI: (path: string) => T,
 ): [apiState: APIState<T>, refreshAPIState: () => void] => {
-  const [internalAPIToggleState, setInternalAPIToggleState] = React.useState(false);
+  const [internalAPIToggleState, setInternalAPIToggleState] = useState(false);
 
-  const refreshAPIState = React.useCallback(() => {
+  const refreshAPIState = useCallback(() => {
     setInternalAPIToggleState((v) => !v);
   }, []);
 
-  const apiState = React.useMemo<APIState<T>>(() => {
+  const apiState = useMemo<APIState<T>>(() => {
     let path = hostPath;
     if (!path) {
       // TODO: we need to figure out maybe a stopgap or something

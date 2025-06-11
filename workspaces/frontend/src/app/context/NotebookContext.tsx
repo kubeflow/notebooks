@@ -1,5 +1,4 @@
-import * as React from 'react';
-import { ReactNode } from 'react';
+import React, { ReactNode, useMemo } from 'react';
 import { BFF_API_VERSION } from '~/app/const';
 import EnsureAPIAvailability from '~/app/EnsureAPIAvailability';
 import useNotebookAPIState, { NotebookAPIState } from './useNotebookAPIState';
@@ -26,7 +25,7 @@ export const NotebookContextProvider: React.FC<NotebookContextProviderProps> = (
 
   return (
     <NotebookContext.Provider
-      value={React.useMemo(
+      value={useMemo(
         () => ({
           apiState,
           refreshAPIState,
