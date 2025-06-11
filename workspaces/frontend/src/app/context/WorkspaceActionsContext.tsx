@@ -19,7 +19,7 @@ export enum ActionType {
   Stop = 'Stop',
 }
 
-interface WorkspaceAction {
+export interface WorkspaceAction {
   action: ActionType;
   workspace: Workspace;
   onActionDone?: () => void;

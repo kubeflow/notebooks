@@ -12,15 +12,14 @@ import { useTypedLocation, useTypedNavigate, useTypedParams } from '~/app/router
 import WorkspaceTable from '~/app/components/WorkspaceTable';
 import { useWorkspacesByKind } from '~/app/hooks/useWorkspaces';
 import WorkspaceKindSummaryExpandableCard from '~/app/pages/WorkspaceKinds/summary/WorkspaceKindSummaryExpandableCard';
-import { useWorkspaceActionsContext } from '~/app/context/WorkspaceActionsContext';
-import { Workspace } from '~/shared/api/backendApiTypes';
 import { DEFAULT_POLLING_RATE_MS } from '~/app/const';
 import { LoadingSpinner } from '~/app/components/LoadingSpinner';
 import { LoadError } from '~/app/components/LoadError';
+import { useWorkspaceRowActions } from '~/app/hooks/useWorkspaceRowActions';
+import { usePolling } from '~/app/hooks/usePolling';
 
 const WorkspaceKindSummary: React.FC = () => {
   const navigate = useTypedNavigate();
-  const workspaceActions = useWorkspaceActionsContext();
   const [isSummaryExpanded, setIsSummaryExpanded] = React.useState(true);
 
   const {
@@ -37,23 +36,9 @@ const WorkspaceKindSummary: React.FC = () => {
       withGpu,
     });
 
-  React.useEffect(() => {
-    const interval = setInterval(() => {
-      refreshWorkspaces();
-    }, DEFAULT_POLLING_RATE_MS);
-    return () => clearInterval(interval);
-  }, [refreshWorkspaces]);
+  usePolling(refreshWorkspaces, DEFAULT_POLLING_RATE_MS);
 
-  const tableRowActions = React.useCallback(
-    (workspace: Workspace) => [
-      {
-        id: 'view-details',
-        title: 'View Details',
-        onClick: () => workspaceActions.requestViewDetailsAction({ workspace }),
-      },
-    ],
-    [workspaceActions],
-  );
+  const tableRowActions = useWorkspaceRowActions([{ id: 'viewDetails' }]);
 
   if (workspacesLoadError) {
     return <LoadError error={workspacesLoadError} />;

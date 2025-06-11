@@ -18,7 +18,7 @@ describe('WorkspaceDetailsActivity Component', () => {
         throw new Error('Intercepted response is undefined or empty');
       }
       const workspace = interception.response.body.data[0];
-      cy.findByTestId('action-view-details').click();
+      cy.findByTestId('action-viewDetails').click();
       cy.findByTestId('activityTab').click();
       cy.findByTestId('lastActivity')
         .invoke('text')
