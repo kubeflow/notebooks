@@ -109,15 +109,15 @@ export function useTypedParams<T extends AppRouteKey>(): RouteParamsMap[T] {
  * Typed wrapper for `useLocation()` that includes route-specific state.
  *
  * @example
- * const location = useTypedLocation<'myRoute'>();
- * const { myParam } = location.state;
+ * const { state } = useTypedLocation<'myRoute'>();
+ * const { myParam } = state || {};
  */
 export function useTypedLocation<T extends AppRouteKey>(): Omit<Location, 'state'> & {
-  state: RouteStateMap[T];
+  state?: RouteStateMap[T];
 } {
   const location = useLocation();
   return location as Omit<Location, 'state'> & {
-    state: RouteStateMap[T];
+    state?: RouteStateMap[T];
   };
 }
 

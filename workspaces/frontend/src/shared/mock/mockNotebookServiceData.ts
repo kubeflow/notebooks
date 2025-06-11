@@ -11,7 +11,7 @@ import {
   buildMockWorkspace,
   buildMockWorkspaceKind,
   buildMockWorkspaceKindInfo,
-  buildRandomWorkspaceList,
+  buildMockWorkspaceList,
 } from '~/shared/mock/mockBuilder';
 
 // Health
@@ -157,8 +157,8 @@ export const mockAllWorkspaces = [
   mockWorkspace3,
   mockWorkspace4,
   mockWorkspace5,
-  ...buildRandomWorkspaceList({
-    count: 10,
+  ...buildMockWorkspaceList({
+    count: 15,
     namespace: mockNamespace1.name,
     kind: mockWorkspaceKindInfo1,
   }),

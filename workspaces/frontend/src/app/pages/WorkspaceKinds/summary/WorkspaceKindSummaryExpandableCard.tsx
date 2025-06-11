@@ -44,9 +44,8 @@ const WorkspaceKindSummaryExpandableCard: React.FC<WorkspaceKindSummaryExpandabl
 }) => {
   const navigate = useTypedNavigate();
   const { kind } = useTypedParams<'workspaceKindSummary'>();
-  const {
-    state: { namespace, imageId, podConfigId, withGpu, isIdle },
-  } = useTypedLocation<'workspaceKindSummary'>();
+  const { state } = useTypedLocation<'workspaceKindSummary'>();
+  const { namespace, imageId, podConfigId, withGpu, isIdle } = state || {};
 
   const topGpuConsumersByNamespace = React.useMemo(
     () =>

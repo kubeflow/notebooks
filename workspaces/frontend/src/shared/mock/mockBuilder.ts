@@ -283,7 +283,7 @@ export const buildMockPauseStateResponse = (
   ...pauseState,
 });
 
-export const buildRandomWorkspaceList = (args: {
+export const buildMockWorkspaceList = (args: {
   count: number;
   namespace: string;
   kind: WorkspaceKindInfo;
@@ -303,7 +303,7 @@ export const buildRandomWorkspaceList = (args: {
 
   const workspaces: Workspace[] = [];
   for (let i = 1; i <= args.count; i++) {
-    const state = states[Math.floor(Math.random() * states.length)];
+    const state = states[(i - 1) % states.length];
     const labels = {
       [`labelKey${i}`]: `labelValue${i}`,
       [`labelKey${i + 1}`]: `labelValue${i + 1}`,
@@ -377,7 +377,7 @@ export const buildRandomWorkspaceList = (args: {
                   },
                   {
                     key: 'gpu',
-                    value: String(i % 2),
+                    value: String(i % 2 === 0 ? 2 : 1),
                   },
                 ],
               },
