@@ -1,4 +1,5 @@
 import React from 'react';
+import { format } from 'date-fns';
 import {
   DescriptionList,
   DescriptionListTerm,
@@ -7,7 +8,8 @@ import {
   Divider,
 } from '@patternfly/react-core';
 import { Workspace } from '~/shared/api/backendApiTypes';
-import { formatTimestamp } from '~/shared/utilities/WorkspaceUtils';
+
+const DATE_FORMAT = 'PPpp';
 
 type WorkspaceDetailsActivityProps = {
   workspace: Workspace;
@@ -23,21 +25,21 @@ export const WorkspaceDetailsActivity: React.FunctionComponent<WorkspaceDetailsA
       <DescriptionListGroup>
         <DescriptionListTerm>Last Activity</DescriptionListTerm>
         <DescriptionListDescription data-testid="lastActivity">
-          {formatTimestamp(activity.lastActivity)}
+          {format(activity.lastActivity, DATE_FORMAT)}
         </DescriptionListDescription>
       </DescriptionListGroup>
       <Divider />
       <DescriptionListGroup>
         <DescriptionListTerm>Last Update</DescriptionListTerm>
         <DescriptionListDescription data-testid="lastUpdate">
-          {formatTimestamp(activity.lastUpdate)}
+          {format(activity.lastUpdate, DATE_FORMAT)}
         </DescriptionListDescription>
       </DescriptionListGroup>
       <Divider />
       <DescriptionListGroup>
         <DescriptionListTerm>Pause Time</DescriptionListTerm>
         <DescriptionListDescription data-testid="pauseTime">
-          {formatTimestamp(pausedTime)}
+          {format(pausedTime, DATE_FORMAT)}
         </DescriptionListDescription>
       </DescriptionListGroup>
       <Divider />

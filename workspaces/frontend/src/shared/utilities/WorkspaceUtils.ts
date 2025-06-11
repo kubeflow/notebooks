@@ -6,10 +6,6 @@ import {
   splitValueUnit,
 } from '~/shared/utilities/valueUnits';
 
-// Helper function to format UNIX timestamps
-export const formatTimestamp = (timestamp: number): string =>
-  timestamp && timestamp > 0 ? new Date(timestamp * 1000).toLocaleString() : '-';
-
 export type ResourceType = 'cpu' | 'memory' | 'gpu';
 
 export const extractResourceValue = (

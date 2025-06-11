@@ -11,7 +11,7 @@ import {
   buildMockWorkspace,
   buildMockWorkspaceKind,
   buildMockWorkspaceKindInfo,
-  buildWorkspaceList,
+  buildRandomWorkspaceList,
 } from '~/shared/mock/mockBuilder';
 
 // Health
@@ -64,8 +64,8 @@ export const mockWorkspace2: Workspace = buildMockWorkspace({
   paused: false,
   deferUpdates: false,
   activity: {
-    lastActivity: 1735603200000,
-    lastUpdate: 1735603200000,
+    lastActivity: new Date(2024, 11, 31).getTime(),
+    lastUpdate: new Date(2024, 11, 20).getTime(),
   },
   podTemplate: {
     podMetadata: {
@@ -132,8 +132,8 @@ export const mockWorkspace3: Workspace = buildMockWorkspace({
   state: WorkspaceState.WorkspaceStateRunning,
   pendingRestart: true,
   activity: {
-    lastActivity: 1744857600000,
-    lastUpdate: 1744857600000,
+    lastActivity: new Date(2025, 2, 15).getTime(),
+    lastUpdate: new Date(2025, 2, 1).getTime(),
   },
 });
 
@@ -157,7 +157,11 @@ export const mockAllWorkspaces = [
   mockWorkspace3,
   mockWorkspace4,
   mockWorkspace5,
-  ...buildWorkspaceList(10, mockNamespace1.name, mockWorkspaceKindInfo1),
+  ...buildRandomWorkspaceList({
+    count: 10,
+    namespace: mockNamespace1.name,
+    kind: mockWorkspaceKindInfo1,
+  }),
 ];
 
 export const mockPausedStateResponse = buildMockPauseStateResponse({ paused: true });
