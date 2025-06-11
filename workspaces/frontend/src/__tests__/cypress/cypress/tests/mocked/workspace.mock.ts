@@ -12,9 +12,9 @@ const generateMockWorkspace = (
   podConfigDisplayName: string,
   pvcName: string,
 ): Workspace => {
-  const currentTime = Date.now();
-  const lastActivityTime = currentTime - Math.floor(Math.random() * 1000000);
-  const lastUpdateTime = currentTime - Math.floor(Math.random() * 100000);
+  const pausedTime = new Date(2025, 0, 1).getTime();
+  const lastActivityTime = new Date(2025, 0, 2).getTime();
+  const lastUpdateTime = new Date(2025, 0, 3).getTime();
 
   return {
     name,
@@ -22,7 +22,7 @@ const generateMockWorkspace = (
     workspaceKind: { name: 'jupyterlab' } as WorkspaceKindInfo,
     deferUpdates: paused,
     paused,
-    pausedTime: paused ? currentTime - Math.floor(Math.random() * 1000000) : 0,
+    pausedTime,
     pendingRestart: Math.random() < 0.5, //to generate randomly True/False value
     state,
     stateMessage:

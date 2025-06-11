@@ -43,7 +43,7 @@ export const buildMockWorkspace = (workspace?: Partial<Workspace>): Workspace =>
   workspaceKind: buildMockWorkspaceKindInfo(),
   paused: true,
   deferUpdates: true,
-  pausedTime: 1739673500,
+  pausedTime: new Date(2025, 3, 1).getTime(),
   state: WorkspaceState.WorkspaceStateRunning,
   stateMessage: 'Workspace is running',
   podTemplate: {
@@ -108,8 +108,8 @@ export const buildMockWorkspace = (workspace?: Partial<Workspace>): Workspace =>
     },
   },
   activity: {
-    lastActivity: new Date().getTime(),
-    lastUpdate: new Date().getTime(),
+    lastActivity: new Date(2025, 5, 1).getTime(),
+    lastUpdate: new Date(2025, 4, 1).getTime(),
   },
   pendingRestart: false,
   services: [
@@ -283,20 +283,111 @@ export const buildMockPauseStateResponse = (
   ...pauseState,
 });
 
-export const buildWorkspaceList = (
-  count: number,
-  namespace: string,
-  kind: WorkspaceKindInfo,
-): Workspace[] => {
+export const buildRandomWorkspaceList = (args: {
+  count: number;
+  namespace: string;
+  kind: WorkspaceKindInfo;
+}): Workspace[] => {
   const states = Object.values(WorkspaceState);
+  const imageConfigs = [
+    { id: 'jupyterlab_scipy_190', displayName: `jupyter-scipy:v1.9.0` },
+    { id: 'jupyterlab_scipy_200', displayName: `jupyter-scipy:v2.0.0` },
+    { id: 'jupyterlab_scipy_210', displayName: `jupyter-scipy:v2.1.0` },
+  ];
+  const podConfigs = [
+    { id: 'tiny_cpu', displayName: 'Tiny CPU' },
+    { id: 'small_cpu', displayName: 'Small CPU' },
+    { id: 'medium_cpu', displayName: 'Medium CPU' },
+    { id: 'large_cpu', displayName: 'Large CPU' },
+  ];
+
   const workspaces: Workspace[] = [];
-  for (let i = 1; i <= count; i++) {
+  for (let i = 1; i <= args.count; i++) {
+    const state = states[Math.floor(Math.random() * states.length)];
+    const labels = {
+      [`labelKey${i}`]: `labelValue${i}`,
+      [`labelKey${i + 1}`]: `labelValue${i + 1}`,
+    };
+    const annotations = {
+      [`annotationKey${i}`]: `annotationValue${i}`,
+      [`annotationKey${i + 1}`]: `annotationValue${i + 1}`,
+    };
+    const activityTime = new Date().getTime() - i * 100000;
+    const booleanValue = i % 2 === 0;
+    const imageConfig = imageConfigs[i % imageConfigs.length];
+    const podConfig = podConfigs[i % podConfigs.length];
+
     workspaces.push(
       buildMockWorkspace({
         name: `My Notebook ${i}`,
-        namespace,
-        workspaceKind: kind,
-        state: states[Math.floor(Math.random() * states.length)],
+        namespace: args.namespace,
+        workspaceKind: args.kind,
+        state,
+        stateMessage: `Workspace is in ${state} state`,
+        paused: state === WorkspaceState.WorkspaceStatePaused,
+        pendingRestart: booleanValue,
+        podTemplate: {
+          podMetadata: { labels, annotations },
+          volumes: {
+            home: {
+              pvcName: `Volume-Home-${i}`,
+              mountPath: `/home${i}`,
+              readOnly: booleanValue,
+            },
+            data: [
+              {
+                pvcName: `Volume-Data1-${i}`,
+                mountPath: `/data${i}`,
+                readOnly: booleanValue,
+              },
+              {
+                pvcName: `Volume-Data2-${i}`,
+                mountPath: `/data${i}`,
+                readOnly: booleanValue,
+              },
+            ],
+          },
+          options: {
+            imageConfig: {
+              current: {
+                id: imageConfig.id,
+                displayName: imageConfig.displayName,
+                description: 'JupyterLab, with SciPy Packages',
+                labels: [
+                  {
+                    key: 'pythonVersion',
+                    value: '3.11',
+                  },
+                ],
+              },
+            },
+            podConfig: {
+              current: {
+                id: podConfig.id,
+                displayName: podConfig.displayName,
+                description: `Pod with ${i}00 Milicores, ${i} GiB RAM`,
+                labels: [
+                  {
+                    key: 'cpu',
+                    value: `${i}00m`,
+                  },
+                  {
+                    key: 'memory',
+                    value: `${i}Gi`,
+                  },
+                  {
+                    key: 'gpu',
+                    value: String(i % 2),
+                  },
+                ],
+              },
+            },
+          },
+        },
+        activity: {
+          lastActivity: activityTime,
+          lastUpdate: activityTime,
+        },
       }),
     );
   }
