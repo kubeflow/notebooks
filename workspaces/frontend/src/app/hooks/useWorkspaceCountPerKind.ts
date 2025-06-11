@@ -1,4 +1,4 @@
-import * as React from 'react';
+import { useEffect, useState } from 'react';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { Workspace, WorkspaceKind } from '~/shared/api/backendApiTypes';
 import { WorkspaceCountPerOption } from '~/app/types';
@@ -8,11 +8,9 @@ export type WorkspaceCountPerKind = Record<WorkspaceKind['name'], WorkspaceCount
 export const useWorkspaceCountPerKind = (): WorkspaceCountPerKind => {
   const { api } = useNotebookAPI();
 
-  const [workspaceCountPerKind, setWorkspaceCountPerKind] = React.useState<WorkspaceCountPerKind>(
-    {},
-  );
+  const [workspaceCountPerKind, setWorkspaceCountPerKind] = useState<WorkspaceCountPerKind>({});
 
-  React.useEffect(() => {
+  useEffect(() => {
     api.listAllWorkspaces({}).then((workspaces) => {
       const countPerKind = workspaces.reduce((acc: WorkspaceCountPerKind, workspace: Workspace) => {
         acc[workspace.workspaceKind.name] = acc[workspace.workspaceKind.name] ?? {

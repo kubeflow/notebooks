@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Drawer,
   DrawerContent,
@@ -48,7 +48,7 @@ export enum ActionType {
 
 export const WorkspaceKinds: React.FunctionComponent = () => {
   // Table columns
-  const columns: WorkspaceKindsColumns = React.useMemo(
+  const columns: WorkspaceKindsColumns = useMemo(
     () => ({
       icon: { name: '', label: 'Icon', id: 'icon' },
       name: { name: 'Name', label: 'Name', id: 'name' },
@@ -65,16 +65,14 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
 
   const [workspaceKinds, workspaceKindsLoaded, workspaceKindsError] = useWorkspaceKinds();
   const workspaceCountPerKind = useWorkspaceCountPerKind();
-  const [selectedWorkspaceKind, setSelectedWorkspaceKind] = React.useState<WorkspaceKind | null>(
-    null,
-  );
-  const [activeActionType, setActiveActionType] = React.useState<ActionType | null>(null);
+  const [selectedWorkspaceKind, setSelectedWorkspaceKind] = useState<WorkspaceKind | null>(null);
+  const [activeActionType, setActiveActionType] = useState<ActionType | null>(null);
 
   // Column sorting
-  const [activeSortIndex, setActiveSortIndex] = React.useState<number | null>(null);
-  const [activeSortDirection, setActiveSortDirection] = React.useState<'asc' | 'desc' | null>(null);
+  const [activeSortIndex, setActiveSortIndex] = useState<number | null>(null);
+  const [activeSortDirection, setActiveSortDirection] = useState<'asc' | 'desc' | null>(null);
 
-  const getSortableRowValues = React.useCallback(
+  const getSortableRowValues = useCallback(
     (workspaceKind: WorkspaceKind): (string | boolean | number)[] => {
       const {
         icon,
@@ -95,7 +93,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     [workspaceCountPerKind],
   );
 
-  const sortedWorkspaceKinds = React.useMemo(() => {
+  const sortedWorkspaceKinds = useMemo(() => {
     if (activeSortIndex === null) {
       return workspaceKinds;
     }
@@ -114,7 +112,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     });
   }, [workspaceKinds, activeSortIndex, activeSortDirection, getSortableRowValues]);
 
-  const getSortParams = React.useCallback(
+  const getSortParams = useCallback(
     (columnIndex: number): ThProps['sort'] => ({
       sortBy: {
         index: activeSortIndex || 0,
@@ -131,19 +129,19 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
   );
 
   // Set up filter - Attribute search.
-  const [searchNameValue, setSearchNameValue] = React.useState('');
-  const [searchDescriptionValue, setSearchDescriptionValue] = React.useState('');
-  const [statusSelection, setStatusSelection] = React.useState('');
+  const [searchNameValue, setSearchNameValue] = useState('');
+  const [searchDescriptionValue, setSearchDescriptionValue] = useState('');
+  const [statusSelection, setStatusSelection] = useState('');
 
-  const onSearchNameChange = React.useCallback((value: string) => {
+  const onSearchNameChange = useCallback((value: string) => {
     setSearchNameValue(value);
   }, []);
 
-  const onSearchDescriptionChange = React.useCallback((value: string) => {
+  const onSearchDescriptionChange = useCallback((value: string) => {
     setSearchDescriptionValue(value);
   }, []);
 
-  const onFilter = React.useCallback(
+  const onFilter = useCallback(
     (workspaceKind: WorkspaceKind) => {
       let nameRegex: RegExp;
       let descriptionRegex: RegExp;
@@ -178,24 +176,24 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     [searchNameValue, searchDescriptionValue, statusSelection],
   );
 
-  const filteredWorkspaceKinds = React.useMemo(
+  const filteredWorkspaceKinds = useMemo(
     () => sortedWorkspaceKinds.filter(onFilter),
     [sortedWorkspaceKinds, onFilter],
   );
 
-  const clearAllFilters = React.useCallback(() => {
+  const clearAllFilters = useCallback(() => {
     setSearchNameValue('');
     setStatusSelection('');
     setSearchDescriptionValue('');
   }, []);
 
   // Set up status single select
-  const [isStatusMenuOpen, setIsStatusMenuOpen] = React.useState<boolean>(false);
-  const statusToggleRef = React.useRef<HTMLButtonElement>(null);
-  const statusMenuRef = React.useRef<HTMLDivElement>(null);
-  const statusContainerRef = React.useRef<HTMLDivElement>(null);
+  const [isStatusMenuOpen, setIsStatusMenuOpen] = useState<boolean>(false);
+  const statusToggleRef = useRef<HTMLButtonElement>(null);
+  const statusMenuRef = useRef<HTMLDivElement>(null);
+  const statusContainerRef = useRef<HTMLDivElement>(null);
 
-  const handleStatusMenuKeys = React.useCallback(
+  const handleStatusMenuKeys = useCallback(
     (event: KeyboardEvent) => {
       if (isStatusMenuOpen && statusMenuRef.current?.contains(event.target as Node)) {
         if (event.key === 'Escape' || event.key === 'Tab') {
@@ -207,7 +205,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     [isStatusMenuOpen],
   );
 
-  const handleStatusClickOutside = React.useCallback(
+  const handleStatusClickOutside = useCallback(
     (event: MouseEvent) => {
       if (isStatusMenuOpen && !statusMenuRef.current?.contains(event.target as Node)) {
         setIsStatusMenuOpen(false);
@@ -216,7 +214,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     [isStatusMenuOpen],
   );
 
-  React.useEffect(() => {
+  useEffect(() => {
     window.addEventListener('keydown', handleStatusMenuKeys);
     window.addEventListener('click', handleStatusClickOutside);
     return () => {
@@ -225,7 +223,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     };
   }, [isStatusMenuOpen, statusMenuRef, handleStatusClickOutside, handleStatusMenuKeys]);
 
-  const onStatusToggleClick = React.useCallback((ev: React.MouseEvent) => {
+  const onStatusToggleClick = useCallback((ev: React.MouseEvent) => {
     ev.stopPropagation();
     setTimeout(() => {
       const firstElement = statusMenuRef.current?.querySelector('li > button:not(:disabled)');
@@ -236,7 +234,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     setIsStatusMenuOpen((prev) => !prev);
   }, []);
 
-  const onStatusSelect = React.useCallback(
+  const onStatusSelect = useCallback(
     (event: React.MouseEvent | undefined, itemId: string | number | undefined) => {
       if (typeof itemId === 'undefined') {
         return;
@@ -248,7 +246,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     [],
   );
 
-  const statusToggle = React.useMemo(
+  const statusToggle = useMemo(
     () => (
       <MenuToggle
         ref={statusToggleRef}
@@ -262,7 +260,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     [isStatusMenuOpen, onStatusToggleClick],
   );
 
-  const statusMenu = React.useMemo(
+  const statusMenu = useMemo(
     () => (
       <Menu
         ref={statusMenuRef}
@@ -281,7 +279,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     [statusSelection, onStatusSelect],
   );
 
-  const statusSelect = React.useMemo(
+  const statusSelect = useMemo(
     () => (
       <div ref={statusContainerRef}>
         <Popper
@@ -298,15 +296,15 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
   );
 
   // Set up attribute selector
-  const [activeAttributeMenu, setActiveAttributeMenu] = React.useState<
-    'Name' | 'Description' | 'Status'
-  >('Name');
-  const [isAttributeMenuOpen, setIsAttributeMenuOpen] = React.useState(false);
-  const attributeToggleRef = React.useRef<HTMLButtonElement>(null);
-  const attributeMenuRef = React.useRef<HTMLDivElement>(null);
-  const attributeContainerRef = React.useRef<HTMLDivElement>(null);
+  const [activeAttributeMenu, setActiveAttributeMenu] = useState<'Name' | 'Description' | 'Status'>(
+    'Name',
+  );
+  const [isAttributeMenuOpen, setIsAttributeMenuOpen] = useState(false);
+  const attributeToggleRef = useRef<HTMLButtonElement>(null);
+  const attributeMenuRef = useRef<HTMLDivElement>(null);
+  const attributeContainerRef = useRef<HTMLDivElement>(null);
 
-  const handleAttributeMenuKeys = React.useCallback(
+  const handleAttributeMenuKeys = useCallback(
     (event: KeyboardEvent) => {
       if (!isAttributeMenuOpen) {
         return;
@@ -324,7 +322,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     [isAttributeMenuOpen],
   );
 
-  const handleAttributeClickOutside = React.useCallback(
+  const handleAttributeClickOutside = useCallback(
     (event: MouseEvent) => {
       if (isAttributeMenuOpen && !attributeMenuRef.current?.contains(event.target as Node)) {
         setIsAttributeMenuOpen(false);
@@ -333,7 +331,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     [isAttributeMenuOpen],
   );
 
-  React.useEffect(() => {
+  useEffect(() => {
     window.addEventListener('keydown', handleAttributeMenuKeys);
     window.addEventListener('click', handleAttributeClickOutside);
     return () => {
@@ -342,7 +340,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     };
   }, [isAttributeMenuOpen, attributeMenuRef, handleAttributeMenuKeys, handleAttributeClickOutside]);
 
-  const onAttributeToggleClick = React.useCallback((ev: React.MouseEvent) => {
+  const onAttributeToggleClick = useCallback((ev: React.MouseEvent) => {
     ev.stopPropagation();
 
     setTimeout(() => {
@@ -355,7 +353,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     setIsAttributeMenuOpen((prev) => !prev);
   }, []);
 
-  const attributeToggle = React.useMemo(
+  const attributeToggle = useMemo(
     () => (
       <MenuToggle
         ref={attributeToggleRef}
@@ -369,7 +367,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     [isAttributeMenuOpen, onAttributeToggleClick, activeAttributeMenu],
   );
 
-  const attributeMenu = React.useMemo(
+  const attributeMenu = useMemo(
     () => (
       <Menu
         ref={attributeMenuRef}
@@ -390,7 +388,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     [],
   );
 
-  const attributeDropdown = React.useMemo(
+  const attributeDropdown = useMemo(
     () => (
       <div ref={attributeContainerRef}>
         <Popper
@@ -406,19 +404,19 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     [attributeToggle, attributeMenu, isAttributeMenuOpen],
   );
 
-  const emptyState = React.useMemo(
+  const emptyState = useMemo(
     () => <CustomEmptyState onClearFilters={clearAllFilters} />,
     [clearAllFilters],
   );
 
   // Actions
 
-  const viewDetailsClick = React.useCallback((workspaceKind: WorkspaceKind) => {
+  const viewDetailsClick = useCallback((workspaceKind: WorkspaceKind) => {
     setSelectedWorkspaceKind(workspaceKind);
     setActiveActionType(ActionType.ViewDetails);
   }, []);
 
-  const workspaceKindsDefaultActions = React.useCallback(
+  const workspaceKindsDefaultActions = useCallback(
     (workspaceKind: WorkspaceKind): IActions => [
       {
         id: 'view-details',

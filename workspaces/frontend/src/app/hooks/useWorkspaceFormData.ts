@@ -1,4 +1,4 @@
-import * as React from 'react';
+import { useCallback } from 'react';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspaceFormData } from '~/app/types';
 import useFetchState, {
@@ -25,7 +25,7 @@ const useWorkspaceFormData = (args: {
 }): FetchState<WorkspaceFormData> => {
   const { api, apiAvailable } = useNotebookAPI();
 
-  const call = React.useCallback<FetchStateCallbackPromise<WorkspaceFormData>>(
+  const call = useCallback<FetchStateCallbackPromise<WorkspaceFormData>>(
     async (opts) => {
       if (!apiAvailable) {
         throw new Error('API not yet available');

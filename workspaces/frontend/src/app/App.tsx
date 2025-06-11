@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useEffect } from 'react';
 import '@patternfly/react-core/dist/styles/base.css';
 import './app.css';
 import {
@@ -26,7 +26,7 @@ import { isMUITheme, Theme } from './const';
 import { BrowserStorageContextProvider } from './context/BrowserStorageContext';
 
 const App: React.FC = () => {
-  React.useEffect(() => {
+  useEffect(() => {
     // Apply the theme based on the value of STYLE_THEME
     if (isMUITheme()) {
       document.documentElement.classList.add(Theme.MUI);

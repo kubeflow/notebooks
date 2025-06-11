@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   Button,
   Content,
@@ -32,9 +32,9 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
   onActionDone,
 }) => {
   const workspacePendingUpdate = workspace?.pendingRestart;
-  const [actionOnGoing, setActionOnGoing] = React.useState<StopAction | null>(null);
+  const [actionOnGoing, setActionOnGoing] = useState<StopAction | null>(null);
 
-  const executeAction = React.useCallback(
+  const executeAction = useCallback(
     async (args: { action: StopAction; callback: () => Promise<void> }) => {
       setActionOnGoing(args.action);
       try {
@@ -46,7 +46,7 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
     [],
   );
 
-  const handleStop = React.useCallback(async () => {
+  const handleStop = useCallback(async () => {
     try {
       await executeAction({ action: 'stop', callback: onStop });
       // TODO: alert user about success
@@ -60,7 +60,7 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
   }, [executeAction, onActionDone, onClose, onStop]);
 
   // TODO: combine handleStop and handleUpdateAndStop if they end up being similar
-  const handleUpdateAndStop = React.useCallback(async () => {
+  const handleUpdateAndStop = useCallback(async () => {
     try {
       await executeAction({ action: 'updateAndStop', callback: onUpdateAndStop });
       // TODO: alert user about success
@@ -73,7 +73,7 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
     }
   }, [executeAction, onActionDone, onClose, onUpdateAndStop]);
 
-  const shouldShowActionButton = React.useCallback(
+  const shouldShowActionButton = useCallback(
     (action: StopAction) => !actionOnGoing || actionOnGoing === action,
     [actionOnGoing],
   );

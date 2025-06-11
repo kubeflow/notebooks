@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Content, Split, SplitItem } from '@patternfly/react-core';
 import { WorkspaceFormImageDetails } from '~/app/pages/Workspaces/Form/image/WorkspaceFormImageDetails';
 import { WorkspaceFormImageList } from '~/app/pages/Workspaces/Form/image/WorkspaceFormImageList';
@@ -19,7 +19,7 @@ const WorkspaceFormImageSelection: React.FunctionComponent<WorkspaceFormImageSel
 }) => {
   const [selectedLabels, setSelectedLabels] = useState<Map<string, Set<string>>>(new Map());
   const [isExpanded, setIsExpanded] = useState(false);
-  const drawerRef = React.useRef<HTMLSpanElement>(undefined);
+  const drawerRef = useRef<HTMLSpanElement>(undefined);
 
   const onExpand = useCallback(() => {
     if (drawerRef.current) {

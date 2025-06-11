@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
 import { AppRoutePaths } from '~/app/routes';
 import { WorkspaceForm } from '~/app/pages/Workspaces/Form/WorkspaceForm';

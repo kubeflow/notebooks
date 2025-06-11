@@ -1,4 +1,4 @@
-import React from 'react';
+import { useCallback } from 'react';
 import { NotebookAPIs } from '~/shared/api/notebookApi';
 import {
   createWorkspace,
@@ -48,7 +48,7 @@ const MOCK_API_ENABLED = process.env.WEBPACK_REPLACE__mockApiEnabled === 'true';
 const useNotebookAPIState = (
   hostPath: string | null,
 ): [apiState: NotebookAPIState, refreshAPIState: () => void] => {
-  const createApi = React.useCallback(
+  const createApi = useCallback(
     (path: string): NotebookAPIs => ({
       // Health
       getHealthCheck: getHealthCheck(path),
@@ -75,7 +75,7 @@ const useNotebookAPIState = (
     [],
   );
 
-  const createMockApi = React.useCallback(
+  const createMockApi = useCallback(
     (path: string): NotebookAPIs => ({
       // Health
       getHealthCheck: mockGetHealthCheck(path),
