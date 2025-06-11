@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
   Brand,
   Nav,
@@ -12,13 +12,20 @@ import {
 import { useNavData, isNavDataGroup, NavDataHref, NavDataGroup } from './AppRoutes';
 import { isMUITheme, LOGO_LIGHT } from './const';
 
-const NavHref: React.FC<{ item: NavDataHref }> = ({ item }) => (
-  <NavItem key={item.label} data-id={item.label} itemId={item.label}>
-    <NavLink to={item.path} data-testid={`nav-link-${item.path}`}>
-      {item.label}
-    </NavLink>
-  </NavItem>
-);
+const NavHref: React.FC<{ item: NavDataHref }> = ({ item }) => {
+  const location = useLocation();
+
+  // With the redirect in place, we can now use a simple path comparison.
+  const isActive = location.pathname === item.path;
+
+  return (
+    <NavItem isActive={isActive} key={item.label} data-id={item.label} itemId={item.label}>
+      <NavLink to={item.path} data-testid={`nav-link-${item.path}`}>
+        {item.label}
+      </NavLink>
+    </NavItem>
+  );
+};
 
 const NavGroup: React.FC<{ item: NavDataGroup }> = ({ item }) => {
   const { children } = item;
