@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, Navigate } from 'react-router-dom';
 import { AppRoutePaths } from '~/app/routes';
 import { WorkspaceForm } from '~/app/pages/Workspaces/Form/WorkspaceForm';
 import { NotFound } from './pages/notFound/NotFound';
@@ -64,7 +64,7 @@ const AppRoutes: React.FC = () => {
       <Route path={AppRoutePaths.workspaceEdit} element={<WorkspaceForm />} />
       <Route path={AppRoutePaths.workspaces} element={<Workspaces />} />
       <Route path={AppRoutePaths.workspaceKinds} element={<WorkspaceKinds />} />
-      <Route path="/" element={<Workspaces />} />
+      <Route path="/" element={<Navigate to={AppRoutePaths.workspaces} replace />} />
       <Route path="*" element={<NotFound />} />
       {
         // TODO: Remove the linter skip when we implement authentication

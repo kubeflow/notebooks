@@ -543,10 +543,10 @@
   --pf-v6-c-nav__link--hover--Color: var(--kf-central-sidebar-default-color);
   --pf-v6-c-nav__link--FontSize: var(--pf-t--global--font--size--md);
 
-  &.active {
+  &.pf-m-current {
     border-left: 3px solid var(--mui-palette-common-white);
-    --pf-v6-c-nav__link--Color: var(--mui-palette-common-white);
-    --pf-v6-c-nav__link--hover--Color: var(--mui-palette-common-white);
+    --pf-v6-c-nav__link--m-current--BackgroundColor: #ffffff1b;
+    --pf-v6-c-nav__link--m-current--Color: var(--mui-palette-common-white);
   }
 
   &.pf-v6-c-brand {
