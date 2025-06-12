@@ -81,6 +81,7 @@ func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps htt
 			},
 		),
 	}
+
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return
 	}
