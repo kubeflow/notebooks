@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Modal,
   ModalHeader,
@@ -9,12 +9,14 @@ import {
   FormGroup,
   TextInput,
   Switch,
-  Title,
+  HelperText,
 } from '@patternfly/react-core';
-import { WorkspacePodConfigValue } from '~/shared/api/backendApiTypes';
+import { WorkspaceOptionLabel, WorkspacePodConfigValue } from '~/shared/api/backendApiTypes';
 import { WorkspaceKindFormLabelTable } from '~/app/pages/WorkspaceKinds/Form/WorkspaceKindFormLabels';
-import { emptyPodConfig } from '~/app/pages/WorkspaceKinds/Form/helpers';
-import { WorkspaceKindFormImageRedirect } from '~/app/pages/WorkspaceKinds/Form/image/WorkspaceKindFormImageRedirect';
+import {
+  WorkspaceKindFormPodConfigResource,
+  PodResourceEntry,
+} from './WorkspaceKindFormPodConfigResource';
 
 interface WorkspaceKindFormPodConfigModalProps {
   isOpen: boolean;
@@ -25,6 +27,33 @@ interface WorkspaceKindFormPodConfigModalProps {
   setCurrConfig: (currConfig: WorkspacePodConfigValue) => void;
 }
 
+// convert from k8s resource object {limits: {}, requests{}} to array of {type: '', limit: '', request: ''} for each type of resource (e.g. CPU, memory, nvidia.com/gpu)
+const getResources = (currConfig: WorkspacePodConfigValue): PodResourceEntry[] => {
+  const grouped = new Map<string, { request: string; limit: string }>([
+    ['cpu', { request: '', limit: '' }],
+    ['memory', { request: '', limit: '' }],
+  ]);
+  const { requests = {}, limits = {} } = currConfig.resources || {};
+  const types = new Set([...Object.keys(requests), ...Object.keys(limits), 'cpu', 'memory']);
+  types.forEach((type) => {
+    const entry = grouped.get(type) || { request: '', limit: '' };
+    if (type in requests) {
+      entry.request = String(requests[type]);
+    }
+    if (type in limits) {
+      entry.limit = String(limits[type]);
+    }
+    grouped.set(type, entry);
+  });
+
+  // Convert to UI-types
+  return Array.from(grouped.entries()).map(([type, { request, limit }]) => ({
+    type,
+    request,
+    limit,
+  }));
+};
+
 export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfigModalProps> = ({
   isOpen,
   onClose,
@@ -32,10 +61,90 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
   editIndex,
   currConfig,
   setCurrConfig,
-  // eslint-disable-next-line arrow-body-style
 }) => {
+  const initialResources = useMemo(() => getResources(currConfig), [currConfig]);
+
+  const [resources, setResources] = useState<PodResourceEntry[]>(initialResources);
+  const [labels, setLabels] = useState<WorkspaceOptionLabel[]>(currConfig.labels);
+  const [id, setId] = useState(currConfig.id);
+  const [displayName, setDisplayName] = useState(currConfig.displayName);
+  const [description, setDescription] = useState(currConfig.description);
+  const [hidden, setHidden] = useState<boolean>(currConfig.hidden || false);
+
+  useEffect(() => {
+    setResources(getResources(currConfig));
+    setId(currConfig.id);
+    setDisplayName(currConfig.displayName);
+    setDescription(currConfig.description);
+    setHidden(currConfig.hidden || false);
+    setLabels(currConfig.labels);
+  }, [currConfig, isOpen, editIndex]);
+
+  // merge resource entries to k8s resources type
+  // resources: {requests: {}, limits: {}}
+  const mergeResourceLabels = useCallback((resourceEntries: PodResourceEntry[]) => {
+    const parsedResources = resourceEntries.reduce(
+      (acc, r) => {
+        if (r.type.length) {
+          if (r.limit.length) {
+            acc.limits[r.type] = r.limit;
+          }
+          if (r.request.length) {
+            acc.requests[r.type] = r.request;
+          }
+        }
+        return acc;
+      },
+      { requests: {}, limits: {} } as {
+        requests: { [key: string]: string };
+        limits: { [key: string]: string };
+      },
+    );
+    return parsedResources;
+  }, []);
+
+  const handleSubmit = useCallback(() => {
+    const updatedConfig = {
+      ...currConfig,
+      id,
+      displayName,
+      description,
+      hidden,
+      resources: mergeResourceLabels(resources),
+      labels,
+    };
+    setCurrConfig(updatedConfig);
+    onSubmit(updatedConfig);
+  }, [
+    currConfig,
+    description,
+    displayName,
+    hidden,
+    id,
+    labels,
+    mergeResourceLabels,
+    onSubmit,
+    resources,
+    setCurrConfig,
+  ]);
+
+  const cpuResource = useMemo(
+    () => resources.find((r) => r.type === 'cpu') || { type: 'cpu', request: '', limit: '' },
+    [resources],
+  );
+
+  const memoryResource = useMemo(
+    () => resources.find((r) => r.type === 'memory') || { type: 'memory', request: '', limit: '' },
+    [resources],
+  );
+
+  const customResources = useMemo(
+    () => resources.filter((r) => r.type !== 'cpu' && r.type !== 'memory'),
+    [resources],
+  );
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose}>
+    <Modal isOpen={isOpen} onClose={onClose} variant="medium">
       <ModalHeader
         title={editIndex === null ? 'Create A Pod Configuration' : 'Edit Pod Configuration'}
         labelId="pod-config-modal-title"
@@ -47,8 +156,8 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
             <TextInput
               isRequired
               type="text"
-              value={currConfig.id}
-              onChange={(_, value) => setCurrConfig({ ...currConfig, id: value })}
+              value={id}
+              onChange={(_, value) => setId(value)}
               id="workspace-kind-pod-config-id"
             />
           </FormGroup>
@@ -56,46 +165,52 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
             <TextInput
               isRequired
               type="text"
-              value={currConfig.displayName}
-              onChange={(_, value) => setCurrConfig({ ...currConfig, displayName: value })}
+              value={displayName}
+              onChange={(_, value) => setDisplayName(value)}
               id="workspace-kind-pod-config-name"
             />
           </FormGroup>
-          <FormGroup label="Description" isRequired fieldId="workspace-kind-pod-config-description">
+          <FormGroup label="Description" fieldId="workspace-kind-pod-config-description">
             <TextInput
-              isRequired
               type="text"
-              value={currConfig.description}
-              onChange={(_, value) => setCurrConfig({ ...currConfig, description: value })}
+              value={description}
+              onChange={(_, value) => setDescription(value)}
               id="workspace-kind-pod-config-description"
             />
           </FormGroup>
-          <FormGroup label="Hidden" isRequired fieldId="workspace-kind-pod-config-hidden">
+          <FormGroup
+            isRequired
+            style={{ marginTop: 'var(--mui-spacing-16px)' }}
+            fieldId="workspace-kind-pod-config-hidden"
+          >
             <Switch
-              isChecked={currConfig.hidden}
-              aria-label="-controlled-check"
-              onChange={() => setCurrConfig({ ...currConfig, hidden: !currConfig.hidden })}
+              isChecked={hidden}
+              label={
+                <div>
+                  <div>Hidden</div>
+                  <HelperText>Hide this image from users </HelperText>
+                </div>
+              }
+              aria-label="pod config hidden controlled check"
+              onChange={() => setHidden(!hidden)}
               id="workspace-kind-pod-config-hidden"
               name="check5"
             />
           </FormGroup>
-          <div className="pf-u-mb-0">
-            <Title headingLevel="h6">Labels</Title>
-            <FormGroup isRequired>
-              <WorkspaceKindFormLabelTable
-                rows={currConfig.labels}
-                setRows={(labels) => setCurrConfig({ ...currConfig, labels })}
-              />
-            </FormGroup>
-          </div>
-          <WorkspaceKindFormImageRedirect
-            redirect={currConfig.redirect || emptyPodConfig.redirect}
-            setRedirect={(redirect) => setCurrConfig({ ...currConfig, redirect })}
+          <WorkspaceKindFormLabelTable
+            rows={labels}
+            setRows={(newLabels) => setLabels(newLabels)}
+          />
+          <WorkspaceKindFormPodConfigResource
+            setResources={setResources}
+            cpu={cpuResource}
+            memory={memoryResource}
+            custom={customResources}
           />
         </Form>
       </ModalBody>
       <ModalFooter>
-        <Button key="confirm" variant="primary" onClick={() => onSubmit(currConfig)}>
+        <Button key="confirm" variant="primary" onClick={handleSubmit}>
           {editIndex !== null ? 'Save' : 'Create'}
         </Button>
         <Button key="cancel" variant="link" onClick={onClose}>
