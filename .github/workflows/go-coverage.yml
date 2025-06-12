@@ -1,9 +1,6 @@
 name: Go Baseline Coverage
 
 on:
-  pull_request:
-    paths:
-      - 'workspaces/backend/**'
   push:
     paths:
       - 'workspaces/backend/**'
@@ -39,17 +36,11 @@ jobs:
       - name: Run Tests with Coverage
         run: |
           go test ./api/... -coverprofile=coverage.baseline
-          go tool cover -html=coverage.baseline -o coverage.html
-
-      - name: Set remote to fork
-        if: github.event_name == 'pull_request'
-        run: |
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.event.pull_request.head.repo.full_name }}
 
       - name: Commit backend coverage file
         run: |
           git config --global user.name 'GitHub Actions'
           git config --global user.email 'github-actions@github.com'
-          git add coverage.baseline coverage.html
+          git add coverage.baseline
           git commit -m "Update coverage baseline" || echo "No changes to commit"
-          git push origin HEAD:${{ github.head_ref }}
+          git push origin HEAD:notebook-v2
