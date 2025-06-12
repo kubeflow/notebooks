@@ -10,10 +10,17 @@ on:
     branches:
       - notebook-v2
 
+permissions:
+  contents: write
+
 jobs:
   test:
     name: Run Tests and Generate Coverage
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: workspaces/backend  # 👈 where your go.mod is
 
     steps:
       - name: Checkout Code
@@ -30,19 +37,19 @@ jobs:
         run: go mod download
 
       - name: Run Tests with Coverage
-        working-directory: ./workspaces/backend
         run: |
           go test ./api/... -coverprofile=coverage.baseline
           go tool cover -html=coverage.baseline -o coverage.html
 
-      - name: Configure Git
+      - name: Set remote to fork
+        if: github.event_name == 'pull_request'
+        run: |
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.event.pull_request.head.repo.full_name }}
+
+      - name: Commit backend coverage file
         run: |
           git config --global user.name 'GitHub Actions'
           git config --global user.email 'github-actions@github.com'
-
-      - name: Commit backend coverage file
-        working-directory: ./workspaces/backend
-        run: |
           git add coverage.baseline coverage.html
           git commit -m "Update coverage baseline" || echo "No changes to commit"
-          git push
+          git push origin HEAD:${{ github.head_ref }}
