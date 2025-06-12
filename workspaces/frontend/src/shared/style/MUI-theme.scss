@@ -274,6 +274,17 @@
   }
 }
 
+.mui-theme .workspacekind-form-resource-input {
+  // Make sure input and select have the same height in ResourceInputWrapper
+  .pf-v6-c-form-control {
+    --pf-v6-c-form-control--PaddingBlockStart: var(--mui-spacing-8px);
+    --pf-v6-c-form-control--PaddingBlockEnd: var(--mui-spacing-8px);
+
+    &.workspace-kind-memory-unit-select {
+      --pf-v6-c-form-control--PaddingInlineEnd: calc(var(--pf-v6-c-form-control__select--PaddingInlineEnd) + var(--pf-v6-c-form-control__icon--FontSize));
+    }
+  }
+}
 
 .mui-theme .pf-v6-c-form__section {
   --pf-v6-c-form__section--Gap: 0px;

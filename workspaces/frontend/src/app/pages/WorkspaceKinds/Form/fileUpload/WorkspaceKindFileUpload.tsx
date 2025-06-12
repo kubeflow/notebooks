@@ -66,16 +66,28 @@ export const WorkspaceKindFileUpload: React.FC<WorkspaceKindFileUploadProps> = (
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             setData('properties', (parsed as any).spec.spawner);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const parsedImg = (parsed as any).spec.podTemplate.options.imageConfig;
+            const { imageConfig, podConfig } = (parsed as any).spec.podTemplate.options;
             setData('imageConfig', {
-              default: parsedImg.spawner.default || '',
+              default: imageConfig.spawner.default || '',
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              values: parsedImg.values.map((img: any) => {
+              values: imageConfig.values.map((img: any) => {
                 const res = {
                   id: img.id,
                   redirect: img.redirect,
                   ...img.spawner,
                   ...img.spec,
+                };
+                return res;
+              }),
+            });
+            setData('podConfig', {
+              default: podConfig.spawner.default || '',
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              values: podConfig.values.map((config: any) => {
+                const res = {
+                  id: config.id,
+                  ...config.spawner,
+                  ...config.spec,
                 };
                 return res;
               }),

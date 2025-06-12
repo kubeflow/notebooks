@@ -72,6 +72,17 @@ export interface WorkspaceKindImagePort {
   protocol: 'HTTP'; // ONLY HTTP is supported at the moment, per https://github.com/thesuperzapper/kubeflow-notebooks-v2-design/blob/main/crds/workspace-kind.yaml#L275
 }
 
+export interface WorkspaceKindPodConfigValue extends WorkspacePodConfigValue {
+  resources?: {
+    requests: {
+      [key: string]: string;
+    };
+    limits: {
+      [key: string]: string;
+    };
+  };
+}
+
 export interface WorkspaceKindImageConfigData {
   default: string;
   values: WorkspaceKindImageConfigValue[];
@@ -79,7 +90,7 @@ export interface WorkspaceKindImageConfigData {
 
 export interface WorkspaceKindPodConfigData {
   default: string;
-  values: WorkspacePodConfigValue[];
+  values: WorkspaceKindPodConfigValue[];
 }
 
 export interface WorkspaceKindFormData {
