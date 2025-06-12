@@ -5,13 +5,13 @@ on:
     paths:
       - 'workspaces/backend/**'
     branches:
-      - notebook-v2
+      - notebooks-v2
 
 permissions:
   contents: write
 
 jobs:
-  test:
+  backend-baseline:
     name: Run Tests and Generate Coverage
     runs-on: ubuntu-latest
 
@@ -21,7 +21,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Go
         uses: actions/setup-go@v5
