@@ -7,19 +7,6 @@ import {
   Workspace,
 } from '~/shared/api/backendApiTypes';
 
-export interface WorkspacesColumnNames {
-  name: string;
-  kind: string;
-  image: string;
-  podConfig: string;
-  state: string;
-  homeVol: string;
-  cpu: string;
-  ram: string;
-  lastActivity: string;
-  redirectStatus: string;
-}
-
 export interface WorkspaceColumnDefinition {
   name: string;
   label: string;

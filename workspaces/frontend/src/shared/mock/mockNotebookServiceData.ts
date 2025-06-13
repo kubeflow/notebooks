@@ -7,9 +7,11 @@ import {
 import {
   buildMockHealthCheckResponse,
   buildMockNamespace,
+  buildMockPauseStateResponse,
   buildMockWorkspace,
   buildMockWorkspaceKind,
   buildMockWorkspaceKindInfo,
+  buildMockWorkspaceList,
 } from '~/shared/mock/mockBuilder';
 
 // Health
@@ -57,13 +59,13 @@ export const mockWorkspace1: Workspace = buildMockWorkspace({
 export const mockWorkspace2: Workspace = buildMockWorkspace({
   name: 'My Second Jupyter Notebook',
   workspaceKind: mockWorkspaceKindInfo1,
-  namespace: mockNamespace1.name,
+  namespace: mockNamespace2.name,
   state: WorkspaceState.WorkspaceStatePaused,
   paused: false,
   deferUpdates: false,
   activity: {
-    lastActivity: 1735603200000,
-    lastUpdate: 1735603200000,
+    lastActivity: new Date(2024, 11, 31).getTime(),
+    lastUpdate: new Date(2024, 11, 20).getTime(),
   },
   podTemplate: {
     podMetadata: {
@@ -112,6 +114,10 @@ export const mockWorkspace2: Workspace = buildMockWorkspace({
               key: 'memory',
               value: '16Gi',
             },
+            {
+              key: 'gpu',
+              value: '4',
+            },
           ],
         },
       },
@@ -126,8 +132,8 @@ export const mockWorkspace3: Workspace = buildMockWorkspace({
   state: WorkspaceState.WorkspaceStateRunning,
   pendingRestart: true,
   activity: {
-    lastActivity: 1744857600000,
-    lastUpdate: 1744857600000,
+    lastActivity: new Date(2025, 2, 15).getTime(),
+    lastUpdate: new Date(2025, 2, 1).getTime(),
   },
 });
 
@@ -151,4 +157,12 @@ export const mockAllWorkspaces = [
   mockWorkspace3,
   mockWorkspace4,
   mockWorkspace5,
+  ...buildMockWorkspaceList({
+    count: 15,
+    namespace: mockNamespace1.name,
+    kind: mockWorkspaceKindInfo1,
+  }),
 ];
+
+export const mockPausedStateResponse = buildMockPauseStateResponse({ paused: true });
+export const mockStartedStateResponse = buildMockPauseStateResponse({ paused: false });

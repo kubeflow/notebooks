@@ -1,26 +1,95 @@
-import { Workspace } from '~/shared/api/backendApiTypes';
+import { Workspace, WorkspaceState } from '~/shared/api/backendApiTypes';
+import {
+  CPU_UNITS,
+  MEMORY_UNITS_FOR_PARSING,
+  OTHER,
+  splitValueUnit,
+} from '~/shared/utilities/valueUnits';
 
-export const formatRam = (valueInKb: number): string => {
-  const units = ['KB', 'MB', 'GB', 'TB'];
-  let index = 0;
-  let value = valueInKb;
+export type ResourceType = 'cpu' | 'memory' | 'gpu';
 
-  while (value >= 1024 && index < units.length - 1) {
-    value /= 1024;
-    index += 1;
+export enum YesNoValue {
+  Yes = 'Yes',
+  No = 'No',
+}
+
+export const extractResourceValue = (
+  workspace: Workspace,
+  resourceType: ResourceType,
+): string | undefined =>
+  workspace.podTemplate.options.podConfig.current.labels.find((label) => label.key === resourceType)
+    ?.value;
+
+export const formatResourceValue = (v: string | undefined, resourceType?: ResourceType): string => {
+  if (v === undefined) {
+    return '-';
   }
-
-  return `${value.toFixed(2)} ${units[index]}`;
+  switch (resourceType) {
+    case 'cpu': {
+      const [cpuValue, cpuUnit] = splitValueUnit(v, CPU_UNITS);
+      return `${cpuValue ?? ''} ${cpuUnit.name}`;
+    }
+    case 'memory': {
+      const [memoryValue, memoryUnit] = splitValueUnit(v, MEMORY_UNITS_FOR_PARSING);
+      return `${memoryValue ?? ''} ${memoryUnit.name}`;
+    }
+    default:
+      return v;
+  }
 };
 
-// Helper function to format UNIX timestamps
-export const formatTimestamp = (timestamp: number): string =>
-  timestamp && timestamp > 0 ? new Date(timestamp * 1000).toLocaleString() : '-';
+export const formatResourceFromWorkspace = (
+  workspace: Workspace,
+  resourceType: ResourceType,
+): string => formatResourceValue(extractResourceValue(workspace, resourceType), resourceType);
 
-export const extractCpuValue = (workspace: Workspace): string =>
-  workspace.podTemplate.options.podConfig.current.labels.find((label) => label.key === 'cpu')
-    ?.value || 'N/A';
+export const formatWorkspaceIdleState = (workspace: Workspace): string =>
+  workspace.state !== WorkspaceState.WorkspaceStateRunning ? YesNoValue.Yes : YesNoValue.No;
 
-export const extractMemoryValue = (workspace: Workspace): string =>
-  workspace.podTemplate.options.podConfig.current.labels.find((label) => label.key === 'memory')
-    ?.value || 'N/A';
+export const isWorkspaceWithGpu = (workspace: Workspace): boolean =>
+  workspace.podTemplate.options.podConfig.current.labels.some((label) => label.key === 'gpu');
+
+export const isWorkspaceIdle = (workspace: Workspace): boolean =>
+  workspace.state !== WorkspaceState.WorkspaceStateRunning;
+
+export const filterWorkspacesWithGpu = (workspaces: Workspace[]): Workspace[] =>
+  workspaces.filter(isWorkspaceWithGpu);
+
+export const filterIdleWorkspaces = (workspaces: Workspace[]): Workspace[] =>
+  workspaces.filter(isWorkspaceIdle);
+
+export const filterRunningWorkspaces = (workspaces: Workspace[]): Workspace[] =>
+  workspaces.filter((workspace) => workspace.state === WorkspaceState.WorkspaceStateRunning);
+
+export const filterIdleWorkspacesWithGpu = (workspaces: Workspace[]): Workspace[] =>
+  filterIdleWorkspaces(filterWorkspacesWithGpu(workspaces));
+
+export type WorkspaceGpuCountRecord = { workspaces: Workspace[]; gpuCount: number };
+
+export const groupWorkspacesByNamespaceAndGpu = (
+  workspaces: Workspace[],
+  order: 'ASC' | 'DESC' = 'DESC',
+): Record<string, WorkspaceGpuCountRecord> => {
+  const grouped: Record<string, WorkspaceGpuCountRecord> = {};
+
+  for (const workspace of workspaces) {
+    const [gpuValueRaw] = splitValueUnit(extractResourceValue(workspace, 'gpu') || '0', OTHER);
+    const gpuValue = Number(gpuValueRaw) || 0;
+
+    grouped[workspace.namespace] ??= { gpuCount: 0, workspaces: [] };
+    grouped[workspace.namespace].gpuCount += gpuValue;
+    grouped[workspace.namespace].workspaces.push(workspace);
+  }
+
+  return Object.fromEntries(
+    Object.entries(grouped).sort(([, a], [, b]) =>
+      order === 'ASC' ? a.gpuCount - b.gpuCount : b.gpuCount - a.gpuCount,
+    ),
+  );
+};
+
+export const countGpusFromWorkspaces = (workspaces: Workspace[]): number =>
+  workspaces.reduce((total, workspace) => {
+    const [gpuValue] = splitValueUnit(extractResourceValue(workspace, 'gpu') || '0', OTHER);
+    return total + (gpuValue ?? 0);
+  }, 0);

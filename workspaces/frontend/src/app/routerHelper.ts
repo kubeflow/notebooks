@@ -1,5 +1,6 @@
 import {
   generatePath,
+  Location,
   NavigateOptions as RRNavigateOptions,
   useLocation,
   useNavigate,
@@ -108,17 +109,22 @@ export function useTypedParams<T extends AppRouteKey>(): RouteParamsMap[T] {
  * Typed wrapper for `useLocation()` that includes route-specific state.
  *
  * @example
- * const location = useTypedLocation<'myRoute'>();
- * const { myParam } = location.state;
+ * const { state } = useTypedLocation<'myRoute'>();
+ * const { myParam } = state || {};
  */
-export function useTypedLocation<T extends AppRouteKey>(): ReturnType<typeof useLocation> & {
-  state: RouteStateMap[T];
+export function useTypedLocation<T extends AppRouteKey>(): Omit<Location, 'state'> & {
+  state?: RouteStateMap[T];
 } {
   const location = useLocation();
-  return location as unknown as ReturnType<typeof useLocation> & {
-    state: RouteStateMap[T];
+  return location as Omit<Location, 'state'> & {
+    state?: RouteStateMap[T];
   };
 }
+
+export function useTypedNavigate(): {
+  <T extends AppRouteKey>(to: T, options?: NavigateOptions<T>): void;
+  (delta: number): void;
+};
 
 /**
  * Typed wrapper for `useNavigate()` that supports:
@@ -153,13 +159,16 @@ export function useTypedLocation<T extends AppRouteKey>(): ReturnType<typeof use
  *   },
  * });
  */
-export function useTypedNavigate(): <T extends AppRouteKey>(
-  to: T,
-  options?: NavigateOptions<T>,
-) => void {
+export function useTypedNavigate() {
   const navigate = useNavigate();
 
-  return <T extends AppRouteKey>(to: T, options?: NavigateOptions<T>): void => {
+  return <T extends AppRouteKey>(toOrDelta: T | number, options?: NavigateOptions<T>): void => {
+    if (typeof toOrDelta === 'number') {
+      navigate(toOrDelta);
+      return;
+    }
+
+    const to = toOrDelta;
     const pathTemplate = AppRoutePaths[to];
     const opts = (options ?? {}) as NavigateOptions<T>;
 

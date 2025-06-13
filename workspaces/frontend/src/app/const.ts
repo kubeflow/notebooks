@@ -10,3 +10,5 @@ export const isMUITheme = (): boolean => STYLE_THEME === Theme.MUI;
 const STYLE_THEME = process.env.STYLE_THEME || Theme.MUI;
 
 export const LOGO_LIGHT = process.env.LOGO || 'logo.svg';
+
+export const DEFAULT_POLLING_RATE_MS = 10000;
