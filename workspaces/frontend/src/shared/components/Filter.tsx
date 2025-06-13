@@ -32,8 +32,8 @@ export interface FilterProps {
   toolbarActions?: React.ReactNode;
 }
 
-export interface FilteredColumn {
-  columnKey: string;
+export interface FilteredColumn<K extends string = string> {
+  columnKey: K;
   value: string;
 }
 

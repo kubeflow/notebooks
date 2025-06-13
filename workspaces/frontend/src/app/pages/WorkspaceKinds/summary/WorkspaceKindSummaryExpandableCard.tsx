@@ -26,8 +26,9 @@ import {
   filterIdleWorkspacesWithGpu,
   filterRunningWorkspaces,
   groupWorkspacesByNamespaceAndGpu,
+  YesNoValue,
 } from '~/shared/utilities/WorkspaceUtils';
-import { useTypedLocation, useTypedNavigate, useTypedParams } from '~/app/routerHelper';
+import { WorkspaceTableFilteredColumn } from '~/app/components/WorkspaceTable';
 
 const TOP_GPU_CONSUMERS_LIMIT = 2;
 
@@ -35,18 +36,15 @@ interface WorkspaceKindSummaryExpandableCardProps {
   workspaces: Workspace[];
   isExpanded: boolean;
   onExpandToggle: () => void;
+  onAddFilter: (filter: WorkspaceTableFilteredColumn) => void;
 }
 
 const WorkspaceKindSummaryExpandableCard: React.FC<WorkspaceKindSummaryExpandableCardProps> = ({
   workspaces,
   isExpanded,
   onExpandToggle,
+  onAddFilter,
 }) => {
-  const navigate = useTypedNavigate();
-  const { kind } = useTypedParams<'workspaceKindSummary'>();
-  const { state } = useTypedLocation<'workspaceKindSummary'>();
-  const { namespace, imageId, podConfigId, withGpu, isIdle } = state || {};
-
   const topGpuConsumersByNamespace = React.useMemo(
     () =>
       Object.entries(groupWorkspacesByNamespaceAndGpu(workspaces, 'DESC'))
@@ -84,16 +82,7 @@ const WorkspaceKindSummaryExpandableCard: React.FC<WorkspaceKindSummaryExpandabl
                     isInline
                     style={{ fontSize: LargeFontSize.value, fontWeight: BoldFontWeight.value }}
                     onClick={() => {
-                      navigate('workspaceKindSummary', {
-                        params: { kind },
-                        state: {
-                          withGpu: true,
-                          isIdle: true,
-                          namespace,
-                          imageId,
-                          podConfigId,
-                        },
-                      });
+                      onAddFilter({ columnKey: 'idleGpu', value: YesNoValue.Yes });
                     }}
                   >
                     {filterIdleWorkspacesWithGpu(workspaces).length}
@@ -116,10 +105,7 @@ const WorkspaceKindSummaryExpandableCard: React.FC<WorkspaceKindSummaryExpandabl
                         <NamespaceGpuConsumer
                           namespace={ns}
                           gpuCount={record.gpuCount}
-                          imageId={imageId}
-                          podConfigId={podConfigId}
-                          withGpu={withGpu}
-                          isIdle={isIdle}
+                          onAddFilter={onAddFilter}
                         />
                       </StackItem>
                     ))
@@ -168,46 +154,26 @@ const SectionDivider: React.FC = () => (
 interface NamespaceConsumerProps {
   namespace: string;
   gpuCount: number;
-  imageId?: string;
-  podConfigId?: string;
-  withGpu?: boolean;
-  isIdle?: boolean;
+  onAddFilter: (filter: WorkspaceTableFilteredColumn) => void;
 }
 
 const NamespaceGpuConsumer: React.FC<NamespaceConsumerProps> = ({
   namespace,
   gpuCount,
-  imageId,
-  podConfigId,
-  withGpu,
-  isIdle,
-}) => {
-  const navigate = useTypedNavigate();
-  const { kind } = useTypedParams<'workspaceKindSummary'>();
-
-  return (
-    <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-      <Button
-        variant="link"
-        isInline
-        onClick={() => {
-          navigate('workspaceKindSummary', {
-            params: { kind },
-            state: {
-              namespace,
-              imageId,
-              podConfigId,
-              withGpu,
-              isIdle,
-            },
-          });
-        }}
-      >
-        {namespace}
-      </Button>
-      <Content>{gpuCount} GPUs</Content>
-    </Flex>
-  );
-};
+  onAddFilter,
+}) => (
+  <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
+    <Button
+      variant="link"
+      isInline
+      onClick={() => {
+        onAddFilter({ columnKey: 'namespace', value: namespace });
+      }}
+    >
+      {namespace}
+    </Button>
+    <Content>{gpuCount} GPUs</Content>
+  </Flex>
+);
 
 export default WorkspaceKindSummaryExpandableCard;

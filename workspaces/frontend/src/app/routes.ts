@@ -56,8 +56,6 @@ export type RouteStateMap = {
     namespace?: string;
     imageId?: string;
     podConfigId?: string;
-    isIdle?: boolean;
-    withGpu?: boolean;
   };
 };
 

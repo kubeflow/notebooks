@@ -8,6 +8,11 @@ import {
 
 export type ResourceType = 'cpu' | 'memory' | 'gpu';
 
+export enum YesNoValue {
+  Yes = 'Yes',
+  No = 'No',
+}
+
 export const extractResourceValue = (
   workspace: Workspace,
   resourceType: ResourceType,
@@ -15,21 +20,17 @@ export const extractResourceValue = (
   workspace.podTemplate.options.podConfig.current.labels.find((label) => label.key === resourceType)
     ?.value;
 
-export const formatResourceValue = (
-  v: string | number | undefined,
-  resourceType?: ResourceType,
-): string | number => {
+export const formatResourceValue = (v: string | undefined, resourceType?: ResourceType): string => {
   if (v === undefined) {
     return '-';
   }
-  const valueStr = typeof v === 'number' ? v.toString() : v;
   switch (resourceType) {
     case 'cpu': {
-      const [cpuValue, cpuUnit] = splitValueUnit(valueStr, CPU_UNITS);
+      const [cpuValue, cpuUnit] = splitValueUnit(v, CPU_UNITS);
       return `${cpuValue ?? ''} ${cpuUnit.name}`;
     }
     case 'memory': {
-      const [memoryValue, memoryUnit] = splitValueUnit(valueStr, MEMORY_UNITS_FOR_PARSING);
+      const [memoryValue, memoryUnit] = splitValueUnit(v, MEMORY_UNITS_FOR_PARSING);
       return `${memoryValue ?? ''} ${memoryUnit.name}`;
     }
     default:
@@ -40,8 +41,10 @@ export const formatResourceValue = (
 export const formatResourceFromWorkspace = (
   workspace: Workspace,
   resourceType: ResourceType,
-): string | number =>
-  formatResourceValue(extractResourceValue(workspace, resourceType), resourceType);
+): string => formatResourceValue(extractResourceValue(workspace, resourceType), resourceType);
+
+export const formatWorkspaceIdleState = (workspace: Workspace): string =>
+  workspace.state !== WorkspaceState.WorkspaceStateRunning ? YesNoValue.Yes : YesNoValue.No;
 
 export const isWorkspaceWithGpu = (workspace: Workspace): boolean =>
   workspace.podTemplate.options.podConfig.current.labels.some((label) => label.key === 'gpu');
