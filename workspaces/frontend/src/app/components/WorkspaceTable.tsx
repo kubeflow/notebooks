@@ -32,7 +32,12 @@ import {
 } from '@patternfly/react-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { Workspace, WorkspaceState } from '~/shared/api/backendApiTypes';
-import { DataFieldKey, defineDataFields, FilterableDataFieldKey } from '~/app/filterableDataHelper';
+import {
+  DataFieldKey,
+  defineDataFields,
+  FilterableDataFieldKey,
+  SortableDataFieldKey,
+} from '~/app/filterableDataHelper';
 import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
 import { useTypedNavigate } from '~/app/routerHelper';
 import {
@@ -47,15 +52,6 @@ import {
   formatResourceFromWorkspace,
   formatWorkspaceIdleState,
 } from '~/shared/utilities/WorkspaceUtils';
-
-export enum ActionType {
-  ViewDetails,
-  Edit,
-  Delete,
-  Start,
-  Restart,
-  Stop,
-}
 
 const {
   fields: wsTableColumns,
@@ -82,6 +78,7 @@ const {
 
 export type WorkspaceTableColumnKeys = DataFieldKey<typeof wsTableColumns>;
 type WorkspaceTableFilterableColumnKeys = FilterableDataFieldKey<typeof wsTableColumns>;
+type WorkspaceTableSortableColumnKeys = SortableDataFieldKey<typeof wsTableColumns>;
 export type WorkspaceTableFilteredColumn = FilteredColumn<WorkspaceTableFilterableColumnKeys>;
 
 interface WorkspaceTableProps {
@@ -112,7 +109,8 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
     const [workspaceKinds] = useWorkspaceKinds();
     const [expandedWorkspacesNames, setExpandedWorkspacesNames] = React.useState<string[]>([]);
     const [filters, setFilters] = React.useState<FilteredColumn[]>(initialFilters);
-    const [activeSortIndex, setActiveSortIndex] = React.useState<number | null>(null);
+    const [activeSortColumnKey, setActiveSortColumnKey] =
+      React.useState<WorkspaceTableSortableColumnKeys | null>(null);
     const [activeSortDirection, setActiveSortDirection] = React.useState<'asc' | 'desc' | null>(
       null,
     );
@@ -132,7 +130,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       [hiddenColumns],
     );
 
-    const visibleSortableColumnKeys: WorkspaceTableColumnKeys[] = React.useMemo(
+    const visibleSortableColumnKeys: WorkspaceTableSortableColumnKeys[] = React.useMemo(
       () => sortableWsTableColumnKeyArray.filter((col) => visibleColumnKeys.includes(col)),
       [visibleColumnKeys],
     );
@@ -227,8 +225,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
 
     const getSortableRowValues = (
       workspace: Workspace,
-    ): Record<WorkspaceTableColumnKeys, string | number> => ({
-      redirectStatus: '',
+    ): Record<WorkspaceTableSortableColumnKeys, string | number> => ({
       name: workspace.name,
       kind: workspace.workspaceKind.name,
       namespace: workspace.namespace,
@@ -241,19 +238,16 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       gpu: formatResourceFromWorkspace(workspace, 'gpu'),
       idleGpu: formatWorkspaceIdleState(workspace),
       lastActivity: workspace.activity.lastActivity,
-      connect: '',
-      actions: '',
     });
 
     const sortedWorkspaces = React.useMemo(() => {
-      if (activeSortIndex === null) {
+      if (activeSortColumnKey === null) {
         return filteredWorkspaces;
       }
 
-      const columnKey = visibleColumnKeys[activeSortIndex];
       return [...filteredWorkspaces].sort((a, b) => {
-        const aValue = getSortableRowValues(a)[columnKey];
-        const bValue = getSortableRowValues(b)[columnKey];
+        const aValue = getSortableRowValues(a)[activeSortColumnKey];
+        const bValue = getSortableRowValues(b)[activeSortColumnKey];
 
         if (typeof aValue === 'number' && typeof bValue === 'number') {
           // Numeric sort
@@ -264,20 +258,29 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
           ? String(aValue).localeCompare(String(bValue))
           : String(bValue).localeCompare(String(aValue));
       });
-    }, [filteredWorkspaces, activeSortIndex, activeSortDirection, visibleColumnKeys]);
+    }, [filteredWorkspaces, activeSortColumnKey, activeSortDirection]);
 
-    const getSortParams = (columnIndex: number): ThProps['sort'] => ({
-      sortBy: {
-        index: activeSortIndex || 0,
-        direction: activeSortDirection || 'asc',
-        defaultDirection: 'asc', // starting sort direction when first sorting a column. Defaults to 'asc'
-      },
-      onSort: (_event, index, direction) => {
-        setActiveSortIndex(index);
-        setActiveSortDirection(direction);
-      },
-      columnIndex,
-    });
+    const getSortParams = (columnKey: WorkspaceTableColumnKeys): ThProps['sort'] => {
+      const sortableColumnKey = columnKey as WorkspaceTableSortableColumnKeys;
+      if (!visibleSortableColumnKeys.includes(sortableColumnKey)) {
+        return undefined;
+      }
+      const activeSortColumnIndex = activeSortColumnKey
+        ? visibleSortableColumnKeys.indexOf(activeSortColumnKey)
+        : undefined;
+      return {
+        sortBy: {
+          index: activeSortColumnIndex,
+          direction: activeSortDirection || 'asc',
+          defaultDirection: 'asc', // starting sort direction when first sorting a column. Defaults to 'asc'
+        },
+        onSort: (_event, _index, direction) => {
+          setActiveSortColumnKey(sortableColumnKey);
+          setActiveSortDirection(direction);
+        },
+        columnIndex: visibleSortableColumnKeys.indexOf(sortableColumnKey),
+      };
+    };
 
     const extractStateColor = (state: WorkspaceState) => {
       switch (state) {
@@ -374,12 +377,10 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
           <Thead>
             <Tr>
               {canExpandRows && <Th screenReaderText="expand-action" />}
-              {visibleColumnKeys.map((columnKey, index) => (
+              {visibleColumnKeys.map((columnKey) => (
                 <Th
                   key={`workspace-table-column-${columnKey}`}
-                  sort={
-                    visibleSortableColumnKeys.includes(columnKey) ? getSortParams(index) : undefined
-                  }
+                  sort={getSortParams(columnKey)}
                   aria-label={columnKey}
                 >
                   {wsTableColumns[columnKey].label}
