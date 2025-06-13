@@ -5,7 +5,6 @@ import useFetchState, {
 } from '~/shared/utilities/useFetchState';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { Workspace } from '~/shared/api/backendApiTypes';
-import { isWorkspaceWithGpu, isWorkspaceIdle } from '~/shared/utilities/WorkspaceUtils';
 
 export const useWorkspacesByNamespace = (namespace: string): FetchState<Workspace[]> => {
   const { api, apiAvailable } = useNotebookAPI();
@@ -29,10 +28,8 @@ export const useWorkspacesByKind = (args: {
   namespace?: string;
   imageId?: string;
   podConfigId?: string;
-  isIdle?: boolean;
-  withGpu?: boolean;
 }): FetchState<Workspace[]> => {
-  const { kind, namespace, imageId, podConfigId, isIdle, withGpu } = args;
+  const { kind, namespace, imageId, podConfigId } = args;
   const { api, apiAvailable } = useNotebookAPI();
   const call = React.useCallback<FetchStateCallbackPromise<Workspace[]>>(
     async (opts) => {
@@ -54,20 +51,11 @@ export const useWorkspacesByKind = (args: {
         const matchesPodConfig = podConfigId
           ? workspace.podTemplate.options.podConfig.current.id === podConfigId
           : true;
-        const matchesIsIdle = isIdle ? isWorkspaceIdle(workspace) : true;
-        const matchesWithGpu = withGpu ? isWorkspaceWithGpu(workspace) : true;
 
-        return (
-          matchesKind &&
-          matchesNamespace &&
-          matchesImage &&
-          matchesPodConfig &&
-          matchesIsIdle &&
-          matchesWithGpu
-        );
+        return matchesKind && matchesNamespace && matchesImage && matchesPodConfig;
       });
     },
-    [apiAvailable, api, kind, namespace, imageId, podConfigId, isIdle, withGpu],
+    [apiAvailable, api, kind, namespace, imageId, podConfigId],
   );
   return useFetchState(call, []);
 };

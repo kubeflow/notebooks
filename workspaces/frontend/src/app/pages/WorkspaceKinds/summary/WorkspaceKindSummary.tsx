@@ -9,7 +9,10 @@ import {
 } from '@patternfly/react-core';
 import { ArrowLeftIcon } from '@patternfly/react-icons';
 import { useTypedLocation, useTypedNavigate, useTypedParams } from '~/app/routerHelper';
-import WorkspaceTable from '~/app/components/WorkspaceTable';
+import WorkspaceTable, {
+  WorkspaceTableFilteredColumn,
+  WorkspaceTableRef,
+} from '~/app/components/WorkspaceTable';
 import { useWorkspacesByKind } from '~/app/hooks/useWorkspaces';
 import WorkspaceKindSummaryExpandableCard from '~/app/pages/WorkspaceKinds/summary/WorkspaceKindSummaryExpandableCard';
 import { DEFAULT_POLLING_RATE_MS } from '~/app/const';
@@ -23,21 +26,30 @@ const WorkspaceKindSummary: React.FC = () => {
   const [isSummaryExpanded, setIsSummaryExpanded] = React.useState(true);
 
   const { state } = useTypedLocation<'workspaceKindSummary'>();
-  const { namespace, imageId, podConfigId, withGpu, isIdle } = state || {};
+  const { namespace, imageId, podConfigId } = state || {};
   const { kind } = useTypedParams<'workspaceKindSummary'>();
+  const workspaceTableRef = React.useRef<WorkspaceTableRef>(null);
   const [workspaces, workspacesLoaded, workspacesLoadError, refreshWorkspaces] =
     useWorkspacesByKind({
       kind,
       namespace,
       imageId,
       podConfigId,
-      isIdle,
-      withGpu,
     });
 
   usePolling(refreshWorkspaces, DEFAULT_POLLING_RATE_MS);
 
   const tableRowActions = useWorkspaceRowActions([{ id: 'viewDetails' }]);
+
+  const onAddFilter = React.useCallback(
+    (filter: WorkspaceTableFilteredColumn) => {
+      if (!workspaceTableRef.current) {
+        return;
+      }
+      workspaceTableRef.current.addFilter(filter);
+    },
+    [workspaceTableRef],
+  );
 
   if (workspacesLoadError) {
     return <LoadError error={workspacesLoadError} />;
@@ -62,7 +74,7 @@ const WorkspaceKindSummary: React.FC = () => {
           </Button>
         </StackItem>
         <StackItem>
-          <Content component={ContentVariants.h1}>Workspace Kind Summary</Content>
+          <Content component={ContentVariants.h1}>{kind}</Content>
           <Content component={ContentVariants.p}>
             View a summary of your workspaces and their GPU usage.
           </Content>
@@ -72,13 +84,15 @@ const WorkspaceKindSummary: React.FC = () => {
             workspaces={workspaces}
             isExpanded={isSummaryExpanded}
             onExpandToggle={() => setIsSummaryExpanded(!isSummaryExpanded)}
+            onAddFilter={onAddFilter}
           />
         </StackItem>
         <StackItem isFilled>
           <WorkspaceTable
+            ref={workspaceTableRef}
             workspaces={workspaces}
             canCreateWorkspaces={false}
-            hiddenColumns={['connect']}
+            hiddenColumns={['connect', 'kind', 'homeVol']}
             rowActions={tableRowActions}
           />
         </StackItem>

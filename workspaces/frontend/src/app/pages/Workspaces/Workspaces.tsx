@@ -60,7 +60,11 @@ export const Workspaces: React.FunctionComponent = () => {
           </Content>
         </StackItem>
         <StackItem isFilled>
-          <WorkspaceTable workspaces={workspaces} rowActions={tableRowActions} />
+          <WorkspaceTable
+            workspaces={workspaces}
+            rowActions={tableRowActions}
+            hiddenColumns={['namespace', 'gpu', 'idleGpu']}
+          />
         </StackItem>
       </Stack>
     </PageSection>
