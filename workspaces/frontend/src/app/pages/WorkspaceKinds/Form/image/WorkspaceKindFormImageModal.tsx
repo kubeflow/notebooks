@@ -11,7 +11,7 @@ import {
   FormSelect,
   FormSelectOption,
   Switch,
-  Title,
+  HelperText,
 } from '@patternfly/react-core';
 import { WorkspaceKindImageConfigValue } from '~/app/types';
 import { ImagePullPolicy } from '~/shared/api/backendApiTypes';
@@ -22,6 +22,7 @@ import { WorkspaceKindFormImageRedirect } from './WorkspaceKindFormImageRedirect
 import { WorkspaceKindFormImagePort } from './WorkspaceKindFormImagePort';
 
 interface WorkspaceKindFormImageModalProps {
+  mode: string;
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (image: WorkspaceKindImageConfigValue) => void;
@@ -31,6 +32,7 @@ interface WorkspaceKindFormImageModalProps {
 }
 
 export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalProps> = ({
+  mode,
   isOpen,
   onClose,
   onSubmit,
@@ -45,9 +47,9 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
     { value: ImagePullPolicy.Never, label: ImagePullPolicy.Never, disabled: false },
   ];
   return (
-    <Modal isOpen={isOpen} onClose={onClose}>
+    <Modal isOpen={isOpen} onClose={onClose} variant="medium">
       <ModalHeader
-        title={editIndex === null ? 'Create Image' : 'Edit Image'}
+        title={editIndex === null ? 'Add Image' : 'Edit Image'}
         labelId="image-modal-title"
         description={editIndex === null ? 'Add an image configuration to your Workspace Kind' : ''}
       />
@@ -71,6 +73,15 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
               id="workspace-kind-image-name"
             />
           </FormGroup>
+          <FormGroup label="Description" fieldId="workspace-kind-image-description">
+            <TextInput
+              isRequired
+              type="text"
+              value={image.description}
+              onChange={(_, value) => setImage({ ...image, description: value })}
+              id="workspace-kind-image-description"
+            />
+          </FormGroup>
           <FormGroup label="Image URL" isRequired fieldId="workspace-kind-image-url">
             <TextInput
               isRequired
@@ -80,24 +91,29 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
               id="workspace-kind-image-url"
             />
           </FormGroup>
-          <FormGroup label="Description" isRequired fieldId="workspace-kind-image-description">
-            <TextInput
-              isRequired
-              type="text"
-              value={image.description}
-              onChange={(_, value) => setImage({ ...image, description: value })}
-              id="workspace-kind-image-description"
-            />
-          </FormGroup>
-          <FormGroup label="Hidden" isRequired fieldId="workspace-kind-image-hidden">
+          <FormGroup
+            isRequired
+            fieldId="workspace-kind-image-hidden"
+            style={{ marginTop: 'var(--mui-spacing-16px)' }}
+          >
             <Switch
               isChecked={image.hidden}
+              label={
+                <div>
+                  <div>Hidden</div>
+                  <HelperText>Hide this image from users </HelperText>
+                </div>
+              }
               aria-label="-controlled-check"
               onChange={() => setImage({ ...image, hidden: !image.hidden })}
               id="workspace-kind-image-hidden"
-              name="check5"
+              name="workspace-kind-image-hidden-switch"
             />
           </FormGroup>
+          <WorkspaceKindFormLabelTable
+            rows={image.labels}
+            setRows={(labels) => setImage({ ...image, labels })}
+          />
           <FormGroup
             label="Image Pull Policy"
             isRequired
@@ -122,28 +138,21 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
               ))}
             </FormSelect>
           </FormGroup>
-          <div className="pf-u-mb-0">
-            <Title headingLevel="h6">Labels</Title>
-            <FormGroup isRequired>
-              <WorkspaceKindFormLabelTable
-                rows={image.labels}
-                setRows={(labels) => setImage({ ...image, labels })}
-              />
-            </FormGroup>
-          </div>
           <WorkspaceKindFormImagePort
             ports={image.ports}
             setPorts={(ports) => setImage({ ...image, ports })}
           />
-          <WorkspaceKindFormImageRedirect
-            redirect={image.redirect || emptyImage.redirect}
-            setRedirect={(redirect) => setImage({ ...image, redirect })}
-          />
+          {mode === 'edit' && (
+            <WorkspaceKindFormImageRedirect
+              redirect={image.redirect || emptyImage.redirect}
+              setRedirect={(redirect) => setImage({ ...image, redirect })}
+            />
+          )}
         </Form>
       </ModalBody>
       <ModalFooter>
         <Button key="confirm" variant="primary" onClick={() => onSubmit(image)}>
-          {editIndex !== null ? 'Save' : 'Create'}
+          {editIndex !== null ? 'Save' : 'Add'}
         </Button>
         <Button key="cancel" variant="link" onClick={onClose}>
           Cancel
