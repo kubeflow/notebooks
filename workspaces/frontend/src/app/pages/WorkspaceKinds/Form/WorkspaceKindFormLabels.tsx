@@ -1,51 +1,16 @@
 /* eslint-disable @typescript-eslint/no-unused-expressions */
-import React, { isValidElement, useRef } from 'react';
+import React, { useRef } from 'react';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
-import { Button, TextInput } from '@patternfly/react-core';
+import {
+  Button,
+  FormFieldGroupExpandable,
+  FormFieldGroupHeader,
+  TextInput,
+} from '@patternfly/react-core';
 import inlineEditStyles from '@patternfly/react-styles/css/components/InlineEdit/inline-edit';
 import { css } from '@patternfly/react-styles';
 import { PlusCircleIcon, TrashAltIcon } from '@patternfly/react-icons';
 import { WorkspaceOptionLabel } from '~/shared/api/backendApiTypes';
-
-interface EditableCellProps {
-  dataLabel: string;
-  staticValue: React.ReactNode;
-  editingValue: React.ReactNode;
-  role?: string;
-  ariaLabel?: string;
-}
-
-const EditableCell: React.FC<EditableCellProps> = ({
-  dataLabel,
-  staticValue,
-  editingValue,
-  role,
-  ariaLabel,
-}) => {
-  const hasMultipleInputs =
-    Array.isArray(editingValue) && editingValue.every((elem) => isValidElement(elem));
-
-  return (
-    <Td dataLabel={dataLabel}>
-      <div className={css(inlineEditStyles.inlineEditValue)}>{staticValue}</div>
-      {hasMultipleInputs ? (
-        <div
-          className={css(inlineEditStyles.inlineEditGroup, 'pf-m-column')}
-          role={role}
-          aria-label={ariaLabel}
-        >
-          {(editingValue as React.ReactElement<unknown>[]).map((elem, index) => (
-            <div key={index} className={css(inlineEditStyles.inlineEditInput)}>
-              {elem}
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className={css(inlineEditStyles.inlineEditInput)}>{editingValue}</div>
-      )}
-    </Td>
-  );
-};
 
 interface EditableRowInterface {
   data: WorkspaceOptionLabel;
@@ -66,34 +31,27 @@ const EditableRow: React.FC<EditableRowInterface> = ({
 
   return (
     <Tr className={css(inlineEditStyles.inlineEdit, inlineEditStyles.modifiers.inlineEditable)}>
-      <EditableCell
-        dataLabel={columnNames.key}
-        staticValue={data.key}
-        editingValue={
-          <TextInput
-            aria-label={`${columnNames.key} ${ariaLabel}`}
-            id={`${columnNames.key} ${ariaLabel} key`}
-            ref={inputRef}
-            value={data.key}
-            onChange={(e) => saveChanges({ ...data, key: (e.target as HTMLInputElement).value })}
-            placeholder="Enter key"
-          />
-        }
-      />
-      <EditableCell
-        dataLabel={columnNames.value}
-        staticValue={data.value}
-        editingValue={
-          <TextInput
-            aria-label={`${columnNames.key} ${ariaLabel}`}
-            id={`${columnNames.key} ${ariaLabel} value`}
-            ref={inputRef}
-            value={data.value}
-            onChange={(e) => saveChanges({ ...data, value: (e.target as HTMLInputElement).value })}
-            placeholder="Enter value"
-          />
-        }
-      />
+      <Td>
+        <TextInput
+          aria-label={`${columnNames.key} ${ariaLabel}`}
+          id={`${columnNames.key} ${ariaLabel} key`}
+          ref={inputRef}
+          value={data.key}
+          onChange={(e) => saveChanges({ ...data, key: (e.target as HTMLInputElement).value })}
+          placeholder="Enter key"
+        />
+      </Td>
+      <Td>
+        <TextInput
+          aria-label={`${columnNames.key} ${ariaLabel}`}
+          id={`${columnNames.key} ${ariaLabel} value`}
+          ref={inputRef}
+          value={data.value}
+          onChange={(e) => saveChanges({ ...data, value: (e.target as HTMLInputElement).value })}
+          placeholder="Enter value"
+        />
+      </Td>
+
       <Td dataLabel="Delete button">
         <Button
           ref={inputRef}
@@ -125,9 +83,28 @@ export const WorkspaceKindFormLabelTable: React.FC<WorkspaceKindFormLabelTablePr
   };
 
   return (
-    <>
+    <FormFieldGroupExpandable
+      className="form-label-fieldgroup"
+      toggleAriaLabel="Labels"
+      header={
+        <FormFieldGroupHeader
+          titleText={{
+            text: 'Labels',
+            id: 'workspace-kind-image-ports',
+          }}
+          titleDescription={
+            <>
+              <div>Labels are key/value pairs that are attached to Kubernetes objects.</div>
+              <div className="pf-u-font-size-sm">
+                <strong>{rows.length} added</strong>
+              </div>
+            </>
+          }
+        />
+      }
+    >
       {rows.length !== 0 && (
-        <Table style={{ marginTop: '1rem' }} aria-label="Editable table">
+        <Table aria-label="Editable table">
           <Thead>
             <Tr>
               <Th>{columnNames.key}</Th>
@@ -155,6 +132,7 @@ export const WorkspaceKindFormLabelTable: React.FC<WorkspaceKindFormLabelTablePr
       )}
       <Button
         variant="link"
+        style={{ width: 'fit-content' }}
         icon={<PlusCircleIcon />}
         onClick={() => {
           setRows([
@@ -168,6 +146,6 @@ export const WorkspaceKindFormLabelTable: React.FC<WorkspaceKindFormLabelTablePr
       >
         Add Label
       </Button>
-    </>
+    </FormFieldGroupExpandable>
   );
 };

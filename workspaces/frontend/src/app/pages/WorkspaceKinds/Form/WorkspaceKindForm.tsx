@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   Button,
   Content,
@@ -6,48 +6,38 @@ import {
   FlexItem,
   PageGroup,
   PageSection,
-  ProgressStep,
-  ProgressStepper,
   Stack,
+  ToggleGroup,
+  ToggleGroupItem,
 } from '@patternfly/react-core';
-import { CheckIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import useGenericObjectState from '~/app/hooks/useGenericObjectState';
 import { WorkspaceKindCreate } from '~/shared/api/backendApiTypes';
-import { WorkspaceKindCreationMethod } from './method/WorkspaceKindCreationMethod';
+import { WorkspaceKindFileUpload } from './fileUpload/WorkspaceKindFileUpload';
 import { WorkspaceKindFormProperties } from './properties/WorkspaceKindFormProperties';
 import { WorkspaceKindFormImage } from './image/WorkspaceKindFormImage';
 
-enum WorkspaceKindFormSteps {
-  CreationMethod,
-  Properties,
-  Images,
-  PodConfig,
-  PodTemplate,
-}
-const stepDescriptions: { [key in WorkspaceKindFormSteps]?: string } = {
-  [WorkspaceKindFormSteps.CreationMethod]: 'Select a method to create a Workspace Kind.',
-  [WorkspaceKindFormSteps.Properties]: 'Configure properties for your Workspace Kind.',
-  [WorkspaceKindFormSteps.Images]:
-    'Configure images for your Workspace Kind and select a default image.',
-  [WorkspaceKindFormSteps.PodConfig]:
-    'Manage pod configurations for your Workspace Kind and select a default configuration.',
-  [WorkspaceKindFormSteps.PodTemplate]: 'TODO',
-};
-
-export enum WorkspaceKindCreationMethodTypes {
-  Manual,
+export enum WorkspaceKindFormView {
+  Form,
   FileUpload,
 }
 
 export const WorkspaceKindForm: React.FC = () => {
   const navigate = useNavigate();
-  const [methodSelected, setMethodSelected] = useState<WorkspaceKindCreationMethodTypes>(
-    WorkspaceKindCreationMethodTypes.FileUpload,
-  );
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [currentStep, setCurrentStep] = useState(WorkspaceKindFormSteps.CreationMethod);
+  // TODO: Detect mode by route
+  const [mode] = useState('create');
+  const [yamlValue, setYamlValue] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [view, setView] = useState<WorkspaceKindFormView>(WorkspaceKindFormView.FileUpload);
 
+  const handleViewClick = (event: React.MouseEvent<unknown> | React.KeyboardEvent | MouseEvent) => {
+    const { id } = event.currentTarget as HTMLElement;
+    setView(
+      id === 'workspace-kind-form-fileupload-view'
+        ? WorkspaceKindFormView.FileUpload
+        : WorkspaceKindFormView.Form,
+    );
+  };
   const [data, setData, resetData] = useGenericObjectState<WorkspaceKindCreate>({
     properties: {
       displayName: '',
@@ -63,39 +53,6 @@ export const WorkspaceKindForm: React.FC = () => {
       values: [],
     },
   });
-
-  const getStepVariant = useCallback(
-    (step: WorkspaceKindFormSteps) => {
-      if (step > currentStep) {
-        return 'pending';
-      }
-      if (step < currentStep) {
-        return 'success';
-      }
-      return 'info';
-    },
-    [currentStep],
-  );
-
-  const previousStep = useCallback(() => {
-    setCurrentStep(currentStep - 1);
-  }, [currentStep]);
-
-  const nextStep = useCallback(() => {
-    setCurrentStep(currentStep + 1);
-  }, [currentStep]);
-
-  const canGoToPreviousStep = useMemo(() => currentStep > 0, [currentStep]);
-
-  const canGoToNextStep = useMemo(
-    () => currentStep < Object.keys(WorkspaceKindFormSteps).length / 2 - 1,
-    [currentStep],
-  );
-
-  const canSubmit = useMemo(
-    () => !isSubmitting && !canGoToNextStep,
-    [canGoToNextStep, isSubmitting],
-  );
 
   const handleCreate = useCallback(() => {
     // TODO: Complete handleCreate with API call to create a new WS kind
@@ -117,90 +74,66 @@ export const WorkspaceKindForm: React.FC = () => {
             <Flex direction={{ default: 'column' }} rowGap={{ default: 'rowGapXl' }}>
               <FlexItem>
                 <Content>
-                  <h1>Create workspace kind</h1>
-                  <p>{stepDescriptions[currentStep]}</p>
+                  <h1>{`${mode === 'create' ? 'Create' : 'Edit'} workspace kind`}</h1>
+                  {view === WorkspaceKindFormView.FileUpload && (
+                    <p>
+                      {`Please upload a Workspace Kind YAML file. Select 'Form View' to view
+                    and edit the workspace kind's information`}
+                    </p>
+                  )}
+                  {view === WorkspaceKindFormView.Form && (
+                    <p>
+                      {`View and edit the Workspace Kind's information. Some fields may not be
+                      represented in this form`}
+                    </p>
+                  )}
                 </Content>
               </FlexItem>
               <FlexItem>
-                <ProgressStepper aria-label="Workspace creation stepper">
-                  <ProgressStep
-                    variant={getStepVariant(WorkspaceKindFormSteps.CreationMethod)}
-                    id="method-step"
-                    isCurrent={currentStep === WorkspaceKindFormSteps.CreationMethod}
-                    titleId="method-step-title"
-                    aria-label="Method selection step"
-                  >
-                    Method
-                  </ProgressStep>
-                  <ProgressStep
-                    variant={getStepVariant(WorkspaceKindFormSteps.Properties)}
-                    id="properties-step"
-                    isCurrent={currentStep === WorkspaceKindFormSteps.Properties}
-                    titleId="properties-step-title"
-                    aria-label="Properties selection step"
-                  >
-                    Properties
-                  </ProgressStep>
-                  <ProgressStep
-                    variant={getStepVariant(WorkspaceKindFormSteps.Images)}
-                    id="images-step"
-                    isCurrent={currentStep === WorkspaceKindFormSteps.Images}
-                    titleId="images-step-title"
-                    aria-label="Images step"
-                  >
-                    Images
-                  </ProgressStep>
-                  <ProgressStep
-                    variant={getStepVariant(WorkspaceKindFormSteps.PodConfig)}
-                    id="pod-config-step"
-                    isCurrent={currentStep === WorkspaceKindFormSteps.PodConfig}
-                    titleId="pod-config-step-title"
-                    aria-label="Pod configuration step"
-                  >
-                    Pod Configurations
-                  </ProgressStep>
-                  <ProgressStep
-                    variant={getStepVariant(WorkspaceKindFormSteps.PodTemplate)}
-                    id="pod-template-step"
-                    isCurrent={currentStep === WorkspaceKindFormSteps.PodTemplate}
-                    titleId="pod-template-step-title"
-                    aria-label="Pod template step"
-                  >
-                    Pod Template
-                  </ProgressStep>
-                </ProgressStepper>
+                <ToggleGroup aria-label="Toggle form view">
+                  <ToggleGroupItem
+                    text="YAML Upload"
+                    buttonId="workspace-kind-form-fileupload-view"
+                    isSelected={view === WorkspaceKindFormView.FileUpload}
+                    onChange={handleViewClick}
+                  />
+                  <ToggleGroupItem
+                    text="Form View"
+                    buttonId="toggle-group-single-2"
+                    isSelected={view === WorkspaceKindFormView.Form}
+                    onChange={handleViewClick}
+                  />
+                </ToggleGroup>
               </FlexItem>
             </Flex>
           </Stack>
         </PageSection>
       </PageGroup>
       <PageSection isFilled>
-        {currentStep === WorkspaceKindFormSteps.CreationMethod && (
-          <WorkspaceKindCreationMethod
-            method={methodSelected}
-            onMethodSelect={(methodType: WorkspaceKindCreationMethodTypes) =>
-              setMethodSelected(methodType)
-            }
+        {view === WorkspaceKindFormView.FileUpload && (
+          <WorkspaceKindFileUpload
             setData={setData}
             resetData={resetData}
+            value={yamlValue}
+            setValue={setYamlValue}
           />
         )}
-        {currentStep === WorkspaceKindFormSteps.Properties && (
-          <WorkspaceKindFormProperties
-            properties={data.properties}
-            updateField={(properties) => setData('properties', properties)}
-          />
+        {view === WorkspaceKindFormView.Form && (
+          <>
+            <WorkspaceKindFormProperties
+              mode={mode}
+              properties={data.properties}
+              updateField={(properties) => setData('properties', properties)}
+            />
+            <WorkspaceKindFormImage
+              mode={mode}
+              imageConfig={data.imageConfig}
+              updateImageConfig={(imageInput) => {
+                setData('imageConfig', imageInput);
+              }}
+            />
+          </>
         )}
-        {currentStep === WorkspaceKindFormSteps.Images && (
-          <WorkspaceKindFormImage
-            imageConfig={data.imageConfig}
-            updateImageConfig={(imageInput) => {
-              setData('imageConfig', imageInput);
-            }}
-          />
-        )}
-        {currentStep === WorkspaceKindFormSteps.PodConfig && <>{/* TODO: Implement step */}</>}
-        {currentStep === WorkspaceKindFormSteps.PodTemplate && <>{/* TODO: Implement step */}</>}
       </PageSection>
       <PageSection isFilled={false} stickyOnBreakpoint={{ default: 'bottom' }}>
         <Flex>
@@ -208,30 +141,10 @@ export const WorkspaceKindForm: React.FC = () => {
             <Button
               variant="primary"
               ouiaId="Primary"
-              onClick={previousStep}
-              isDisabled={!canGoToPreviousStep}
-            >
-              Previous
-            </Button>
-          </FlexItem>
-          <FlexItem>
-            <Button
-              variant="primary"
-              ouiaId="Primary"
-              onClick={nextStep}
-              isDisabled={!canGoToNextStep}
-            >
-              Next
-            </Button>
-          </FlexItem>
-          <FlexItem>
-            <Button
-              variant="primary"
-              ouiaId="Primary"
               onClick={handleCreate}
-              isDisabled={!canSubmit}
+              isDisabled={!isSubmitting}
             >
-              Create
+              {mode === 'create' ? 'Create' : 'Edit'}
             </Button>
           </FlexItem>
           <FlexItem>

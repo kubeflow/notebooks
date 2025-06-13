@@ -437,6 +437,10 @@
   --pf-v6-c-form-control--after--BorderColor: transparent !important;
 }
 
+.pf-v6-c-form__field-group-body {
+  --pf-v6-c-form__field-group-body--PaddingBlockStart: 8px;
+}
+
 .pf-v6-c-form__group .pf-v6-c-form-control:focus-within+.pf-v6-c-form__label,
 .pf-v6-c-form__group .pf-v6-c-form-control:not(:placeholder-shown)+.pf-v6-c-form__label {
   color: var(--mui-palette-primary-main);
@@ -628,7 +632,10 @@
   transform-origin: center center;
   align-self: start;
 }
-
+/* CSS workaround for spacing in labels in Workspace Kind */
+.form-label-fieldgroup .pf-v6-c-table tr:where(.pf-v6-c-table__tr) > :where(th, td) {
+  padding-block-start: 0px;
+}
 /* CSS workaround to use MUI icon for sort icon */
 .mui-theme .pf-v6-c-table__sort-indicator::before {
   display: block;
@@ -835,4 +842,15 @@
   --pf-v6-c-form-control--PaddingBlockEnd: var(--mui-spacing-8px);
 
 
+}
+
+.mui-theme .pf-v6-c-expandable-section .pf-v6-c-expandable-section__content {
+  margin-block-end: var(--mui-spacing-16px);
+}
+
+.workspacekind-file-upload {
+  height: 100%;
+  .pf-v6-c-file-upload__file-details {
+    flex-grow: 1;
+  }
 }

@@ -28,6 +28,7 @@ export const WorkspaceKindFormImagePort: React.FC<WorkspaceKindFormImagePortProp
             text: 'Port Configuration',
             id: 'workspace-kind-image-ports',
           }}
+          titleDescription="Configure which port where this image will serve from"
         />
       }
     >
