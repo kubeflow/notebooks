@@ -1,0 +1,49 @@
+name: ✨ [Planning] Feature
+description: 🛑 Only intended to be used by Kubeflow Notebooks 2.0 project managers
+title: "[FEATURE] <short description>"
+labels:
+  - "feature"
+  - "planning"
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to create a feature request!
+  - type: checkboxes
+    id: certification
+    attributes:
+      label: Certification
+      description: Please confirm your role
+      options:
+        - label: I certify I am an Epic Owner for Kubeflow Notebooks 2.0 and expected to create planning-related issues.
+          required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: Explain the reasoning behind this feature. What problem does it solve or what value does it add?
+      placeholder: This feature will help users by...
+    validations:
+      required: true
+  - type: textarea
+    id: design
+    attributes:
+      label: High Level Design / Mock-ups
+      description: Provide a top-level overview of the proposed solution. Include diagrams, rough mockups, or architectural notes if helpful.
+      placeholder: |
+        [Add your design details here]
+        - Consider including diagrams
+        - Add mockups if available
+        - Describe the architecture
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: Define what needs to be true for this feature to be considered complete. Be as clear and measurable as possible.
+      placeholder: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+        - [ ] Criterion 3
+    validations:
+      required: true

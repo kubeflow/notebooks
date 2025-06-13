@@ -1,0 +1,39 @@
+name: 🔧 [Planning] Task
+description: 🛑 Only intended to be used by Kubeflow Notebooks 2.0 project managers
+title: "[TASK] <short description>"
+labels:
+  - "task"
+  - "planning"
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to create a task!
+  - type: checkboxes
+    id: certification
+    attributes:
+      label: Certification
+      description: Please confirm your role
+      options:
+        - label: I certify I am an Epic Owner for Kubeflow Notebooks 2.0 and expected to create planning-related issues.
+          required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Provide a brief explanation of what this task involves and why it's needed. Focus on the scope and intent of the work.
+      placeholder: This task will...
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: List the specific, measurable conditions that must be met for the task to be considered complete.
+      placeholder: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+        - [ ] Criterion 3
+    validations:
+      required: true
