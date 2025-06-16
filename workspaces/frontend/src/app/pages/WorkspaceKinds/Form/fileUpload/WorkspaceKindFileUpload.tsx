@@ -17,6 +17,8 @@ interface WorkspaceKindFileUploadProps {
   value: string;
   setValue: (v: string) => void;
   resetData: () => void;
+  validated: 'success' | 'error' | 'default';
+  setValidated: (type: 'success' | 'error' | 'default') => void;
 }
 
 export const WorkspaceKindFileUpload: React.FC<WorkspaceKindFileUploadProps> = ({
@@ -24,12 +26,13 @@ export const WorkspaceKindFileUpload: React.FC<WorkspaceKindFileUploadProps> = (
   resetData,
   value,
   setValue,
+  validated,
+  setValidated,
 }) => {
   const isYamlFileRef = useRef(false);
   const [filename, setFilename] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [fileUploadHelperText, setFileUploadHelperText] = useState<string>('');
-  const [validated, setValidated] = useState<'success' | 'error' | 'default'>('default');
 
   const handleFileInputChange = useCallback(
     (_: unknown, file: File) => {
@@ -48,7 +51,7 @@ export const WorkspaceKindFileUpload: React.FC<WorkspaceKindFileUploadProps> = (
         setValidated('success');
       }
     },
-    [resetData],
+    [resetData, setValidated],
   );
 
   // TODO: Use zod or another TS type coercion/schema for file upload
@@ -90,7 +93,7 @@ export const WorkspaceKindFileUpload: React.FC<WorkspaceKindFileUploadProps> = (
         }
       }
     },
-    [setValue, setData, resetData],
+    [setValue, setData, setValidated, resetData],
   );
 
   const handleClear = useCallback(() => {
@@ -99,7 +102,7 @@ export const WorkspaceKindFileUpload: React.FC<WorkspaceKindFileUploadProps> = (
     setFileUploadHelperText('');
     setValidated('default');
     resetData();
-  }, [resetData, setValue]);
+  }, [resetData, setValidated, setValue]);
 
   const handleFileReadStarted = useCallback(() => {
     setIsLoading(true);

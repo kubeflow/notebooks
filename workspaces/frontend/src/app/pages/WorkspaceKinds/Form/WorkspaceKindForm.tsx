@@ -29,6 +29,7 @@ export const WorkspaceKindForm: React.FC = () => {
   const [yamlValue, setYamlValue] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [view, setView] = useState<WorkspaceKindFormView>(WorkspaceKindFormView.FileUpload);
+  const [validated, setValidated] = useState<'success' | 'error' | 'default'>('default');
 
   const handleViewClick = (event: React.MouseEvent<unknown> | React.KeyboardEvent | MouseEvent) => {
     const { id } = event.currentTarget as HTMLElement;
@@ -102,6 +103,7 @@ export const WorkspaceKindForm: React.FC = () => {
                     buttonId="toggle-group-single-2"
                     isSelected={view === WorkspaceKindFormView.Form}
                     onChange={handleViewClick}
+                    isDisabled={yamlValue === '' || validated === 'error'}
                   />
                 </ToggleGroup>
               </FlexItem>
@@ -116,6 +118,8 @@ export const WorkspaceKindForm: React.FC = () => {
             resetData={resetData}
             value={yamlValue}
             setValue={setYamlValue}
+            validated={validated}
+            setValidated={setValidated}
           />
         )}
         {view === WorkspaceKindFormView.Form && (
