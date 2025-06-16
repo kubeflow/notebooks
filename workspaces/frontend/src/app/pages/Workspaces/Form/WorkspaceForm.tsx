@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Button,
   Content,
@@ -10,7 +10,6 @@ import {
   ProgressStepper,
   Stack,
 } from '@patternfly/react-core';
-import { useCallback, useMemo, useState } from 'react';
 import useGenericObjectState from '~/app/hooks/useGenericObjectState';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspaceFormImageSelection } from '~/app/pages/Workspaces/Form/image/WorkspaceFormImageSelection';
@@ -48,13 +47,13 @@ const WorkspaceForm: React.FC = () => {
     workspaceName,
   });
 
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(WorkspaceFormSteps.KindSelection);
 
   const [data, setData, resetData, replaceData] =
     useGenericObjectState<WorkspaceFormData>(initialFormData);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!initialFormDataLoaded || mode === 'create') {
       return;
     }

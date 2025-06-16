@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Drawer,
   DrawerContent,
@@ -33,7 +33,6 @@ import {
   QuestionCircleIcon,
   CodeIcon,
 } from '@patternfly/react-icons';
-import { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { Workspace, WorkspaceState } from '~/shared/api/backendApiTypes';
 import { WorkspaceDetails } from '~/app/pages/Workspaces/Details/WorkspaceDetails';
@@ -68,7 +67,7 @@ export enum ActionType {
 
 export const Workspaces: React.FunctionComponent = () => {
   const navigate = useTypedNavigate();
-  const createWorkspace = React.useCallback(() => {
+  const createWorkspace = useCallback(() => {
     navigate('workspaceCreate');
   }, [navigate]);
 
@@ -83,7 +82,7 @@ export const Workspaces: React.FunctionComponent = () => {
   const workspaceRedirectStatus = buildWorkspaceRedirectStatus(workspaceKinds);
 
   // Table columns
-  const columnNames: WorkspacesColumnNames = React.useMemo(
+  const columnNames: WorkspacesColumnNames = useMemo(
     () => ({
       redirectStatus: 'Redirect Status',
       name: 'Name',
@@ -114,20 +113,20 @@ export const Workspaces: React.FunctionComponent = () => {
   const [initialWorkspaces, initialWorkspacesLoaded, , initialWorkspacesRefresh] =
     useWorkspaces(selectedNamespace);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
-  const [expandedWorkspacesNames, setExpandedWorkspacesNames] = React.useState<string[]>([]);
-  const [selectedWorkspace, setSelectedWorkspace] = React.useState<Workspace | null>(null);
-  const [isActionAlertModalOpen, setIsActionAlertModalOpen] = React.useState(false);
-  const [activeActionType, setActiveActionType] = React.useState<ActionType | null>(null);
-  const filterRef = React.useRef<FilterRef>(null);
+  const [expandedWorkspacesNames, setExpandedWorkspacesNames] = useState<string[]>([]);
+  const [selectedWorkspace, setSelectedWorkspace] = useState<Workspace | null>(null);
+  const [isActionAlertModalOpen, setIsActionAlertModalOpen] = useState(false);
+  const [activeActionType, setActiveActionType] = useState<ActionType | null>(null);
+  const filterRef = useRef<FilterRef>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!initialWorkspacesLoaded) {
       return;
     }
     setWorkspaces(initialWorkspaces ?? []);
   }, [initialWorkspaces, initialWorkspacesLoaded]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (activeActionType !== ActionType.Edit || !selectedWorkspace) {
       return;
     }
@@ -139,7 +138,7 @@ export const Workspaces: React.FunctionComponent = () => {
     });
   }, [activeActionType, navigate, selectedWorkspace]);
 
-  const selectWorkspace = React.useCallback(
+  const selectWorkspace = useCallback(
     (newSelectedWorkspace: Workspace | null) => {
       if (selectedWorkspace?.name === newSelectedWorkspace?.name) {
         setSelectedWorkspace(null);
@@ -162,7 +161,7 @@ export const Workspaces: React.FunctionComponent = () => {
     expandedWorkspacesNames.includes(workspace.name);
 
   // filter function to pass to the filter component
-  const onFilter = React.useCallback(
+  const onFilter = useCallback(
     (filters: FilteredColumn[]) => {
       // Search name with search value
       let filteredWorkspaces = initialWorkspaces ?? [];
@@ -212,15 +211,15 @@ export const Workspaces: React.FunctionComponent = () => {
     [initialWorkspaces, columnNames],
   );
 
-  const emptyState = React.useMemo(
+  const emptyState = useMemo(
     () => <CustomEmptyState onClearFilters={() => filterRef.current?.clearAll()} />,
     [],
   );
 
   // Column sorting
 
-  const [activeSortIndex, setActiveSortIndex] = React.useState<number | null>(null);
-  const [activeSortDirection, setActiveSortDirection] = React.useState<'asc' | 'desc' | null>(null);
+  const [activeSortIndex, setActiveSortIndex] = useState<number | null>(null);
+  const [activeSortDirection, setActiveSortDirection] = useState<'asc' | 'desc' | null>(null);
 
   const getSortableRowValues = (workspace: Workspace): (string | number)[] => {
     const { redirectStatus, name, kind, image, podConfig, state, homeVol, cpu, ram, lastActivity } =
@@ -274,7 +273,7 @@ export const Workspaces: React.FunctionComponent = () => {
 
   // Actions
 
-  const viewDetailsClick = React.useCallback((workspace: Workspace) => {
+  const viewDetailsClick = useCallback((workspace: Workspace) => {
     setSelectedWorkspace(workspace);
     setActiveActionType(ActionType.ViewDetails);
   }, []);
@@ -285,7 +284,7 @@ export const Workspaces: React.FunctionComponent = () => {
   //   setActiveActionType(ActionType.Edit);
   // }, []);
 
-  const deleteAction = React.useCallback(async () => {
+  const deleteAction = useCallback(async () => {
     if (!selectedWorkspace) {
       return;
     }
@@ -301,19 +300,19 @@ export const Workspaces: React.FunctionComponent = () => {
     }
   }, [api, initialWorkspacesRefresh, selectedNamespace, selectedWorkspace]);
 
-  const startRestartAction = React.useCallback((workspace: Workspace, action: ActionType) => {
+  const startRestartAction = useCallback((workspace: Workspace, action: ActionType) => {
     setSelectedWorkspace(workspace);
     setActiveActionType(action);
     setIsActionAlertModalOpen(true);
   }, []);
 
-  const stopAction = React.useCallback((workspace: Workspace) => {
+  const stopAction = useCallback((workspace: Workspace) => {
     setSelectedWorkspace(workspace);
     setActiveActionType(ActionType.Stop);
     setIsActionAlertModalOpen(true);
   }, []);
 
-  const handleDeleteClick = React.useCallback((workspace: Workspace) => {
+  const handleDeleteClick = useCallback((workspace: Workspace) => {
     const buttonElement = document.activeElement as HTMLElement;
     buttonElement.blur(); // Remove focus from the currently focused button
     setSelectedWorkspace(workspace);
@@ -482,8 +481,8 @@ export const Workspaces: React.FunctionComponent = () => {
 
   // Pagination
 
-  const [page, setPage] = React.useState(1);
-  const [perPage, setPerPage] = React.useState(10);
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
 
   const onSetPage = (
     _event: React.MouseEvent | React.KeyboardEvent | MouseEvent,

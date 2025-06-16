@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   Brand,
@@ -29,7 +29,7 @@ const NavHref: React.FC<{ item: NavDataHref }> = ({ item }) => {
 
 const NavGroup: React.FC<{ item: NavDataGroup }> = ({ item }) => {
   const { children } = item;
-  const [expanded, setExpanded] = React.useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   return (
     <NavExpandable

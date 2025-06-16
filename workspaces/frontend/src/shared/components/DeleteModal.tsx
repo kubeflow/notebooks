@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Modal,
   ModalBody,
@@ -34,7 +34,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   onDelete,
 }) => {
   const [inputValue, setInputValue] = useState('');
-  const [isDeleting, setIsDeleting] = React.useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {

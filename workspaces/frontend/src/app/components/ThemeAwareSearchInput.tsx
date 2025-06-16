@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { SearchInput, SearchInputProps, TextInput } from '@patternfly/react-core';
 import FormFieldset from 'app/components/FormFieldset';
 import { isMUITheme } from 'app/const';

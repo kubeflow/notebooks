@@ -1,3 +1,4 @@
+import React from 'react';
 import {
   ClipboardCopy,
   ClipboardCopyVariant,
@@ -11,7 +12,6 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { DatabaseIcon, LockedIcon } from '@patternfly/react-icons';
-import * as React from 'react';
 import { Workspace } from '~/shared/api/backendApiTypes';
 
 interface DataVolumesListProps {

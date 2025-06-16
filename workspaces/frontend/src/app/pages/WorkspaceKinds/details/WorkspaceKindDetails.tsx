@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   DrawerActions,
   DrawerCloseButton,
@@ -30,7 +30,7 @@ export const WorkspaceKindDetails: React.FunctionComponent<WorkspaceKindDetailsP
   workspaceCountPerKind,
   onCloseClick,
 }) => {
-  const [activeTabKey, setActiveTabKey] = React.useState<string | number>(0);
+  const [activeTabKey, setActiveTabKey] = useState<string | number>(0);
 
   const handleTabClick = (
     event: React.MouseEvent | React.KeyboardEvent | MouseEvent,

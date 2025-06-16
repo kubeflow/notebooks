@@ -1,4 +1,11 @@
-import * as React from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   Menu,
   MenuContent,
@@ -38,19 +45,19 @@ export interface FilterRef {
 const Filter = React.forwardRef<FilterRef, FilterProps>(
   ({ id, onFilter, columnNames, toolbarActions }, ref) => {
     Filter.displayName = 'Filter';
-    const [activeFilter, setActiveFilter] = React.useState<FilteredColumn>({
+    const [activeFilter, setActiveFilter] = useState<FilteredColumn>({
       columnName: Object.values(columnNames)[0],
       value: '',
     });
-    const [searchValue, setSearchValue] = React.useState<string>('');
-    const [isFilterMenuOpen, setIsFilterMenuOpen] = React.useState<boolean>(false);
-    const [filters, setFilters] = React.useState<FilteredColumn[]>([]);
+    const [searchValue, setSearchValue] = useState<string>('');
+    const [isFilterMenuOpen, setIsFilterMenuOpen] = useState<boolean>(false);
+    const [filters, setFilters] = useState<FilteredColumn[]>([]);
 
-    const filterToggleRef = React.useRef<MenuToggleElement | null>(null);
-    const filterMenuRef = React.useRef<HTMLDivElement | null>(null);
-    const filterContainerRef = React.useRef<HTMLDivElement | null>(null);
+    const filterToggleRef = useRef<MenuToggleElement | null>(null);
+    const filterMenuRef = useRef<HTMLDivElement | null>(null);
+    const filterContainerRef = useRef<HTMLDivElement | null>(null);
 
-    const handleFilterMenuKeys = React.useCallback(
+    const handleFilterMenuKeys = useCallback(
       (event: KeyboardEvent) => {
         if (!isFilterMenuOpen) {
           return;
@@ -68,7 +75,7 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
       [isFilterMenuOpen, filterMenuRef, filterToggleRef],
     );
 
-    const handleClickOutside = React.useCallback(
+    const handleClickOutside = useCallback(
       (event: MouseEvent) => {
         if (isFilterMenuOpen && !filterMenuRef.current?.contains(event.target as Node)) {
           setIsFilterMenuOpen(false);
@@ -77,7 +84,7 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
       [isFilterMenuOpen, filterMenuRef],
     );
 
-    React.useEffect(() => {
+    useEffect(() => {
       window.addEventListener('keydown', handleFilterMenuKeys);
       window.addEventListener('click', handleClickOutside);
       return () => {
@@ -86,7 +93,7 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
       };
     }, [isFilterMenuOpen, filterMenuRef, handleFilterMenuKeys, handleClickOutside]);
 
-    const onFilterToggleClick = React.useCallback(
+    const onFilterToggleClick = useCallback(
       (ev: React.MouseEvent) => {
         ev.stopPropagation(); // Stop handleClickOutside from handling
         setTimeout(() => {
@@ -100,7 +107,7 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
       [isFilterMenuOpen],
     );
 
-    const updateFilters = React.useCallback(
+    const updateFilters = useCallback(
       (filterObj: FilteredColumn) => {
         setFilters((prevFilters) => {
           const index = prevFilters.findIndex(
@@ -128,7 +135,7 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
       [onFilter],
     );
 
-    const onSearchChange = React.useCallback(
+    const onSearchChange = useCallback(
       (value: string) => {
         setSearchValue(value);
         setActiveFilter((prevActiveFilter) => {
@@ -140,7 +147,7 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
       [updateFilters],
     );
 
-    const onDeleteLabelGroup = React.useCallback(
+    const onDeleteLabelGroup = useCallback(
       (filter: FilteredColumn) => {
         setFilters((prevFilters) => {
           const newFilters = prevFilters.filter(
@@ -161,7 +168,7 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
     );
 
     // Expose the clearAllFilters logic via the ref
-    const clearAllInternal = React.useCallback(() => {
+    const clearAllInternal = useCallback(() => {
       setFilters([]);
       setSearchValue('');
       setActiveFilter({
@@ -171,11 +178,11 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
       onFilter([]);
     }, [columnNames, onFilter]);
 
-    React.useImperativeHandle(ref, () => ({
+    useImperativeHandle(ref, () => ({
       clearAll: clearAllInternal,
     }));
 
-    const onFilterSelect = React.useCallback(
+    const onFilterSelect = useCallback(
       (itemId: string | number | undefined) => {
         // Use the functional update form to toggle the state
         setIsFilterMenuOpen((prevIsMenuOpen) => !prevIsMenuOpen); // Fix is here
@@ -195,7 +202,7 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
       [columnNames, filters],
     );
 
-    const filterMenuToggle = React.useMemo(
+    const filterMenuToggle = useMemo(
       () => (
         <MenuToggle
           ref={filterToggleRef}
@@ -209,7 +216,7 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
       [activeFilter.columnName, isFilterMenuOpen, onFilterToggleClick],
     );
 
-    const filterMenu = React.useMemo(
+    const filterMenu = useMemo(
       () => (
         <Menu ref={filterMenuRef} onSelect={(_ev, itemId) => onFilterSelect(itemId)}>
           <MenuContent>
@@ -226,7 +233,7 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
       [columnNames, id, onFilterSelect],
     );
 
-    const filterDropdown = React.useMemo(
+    const filterDropdown = useMemo(
       () => (
         <div ref={filterContainerRef}>
           <Popper
