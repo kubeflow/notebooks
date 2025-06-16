@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useMemo } from 'react';
 import {
   Bullseye,
   Button,
@@ -45,7 +45,7 @@ const WorkspaceKindSummaryExpandableCard: React.FC<WorkspaceKindSummaryExpandabl
   onExpandToggle,
   onAddFilter,
 }) => {
-  const topGpuConsumersByNamespace = React.useMemo(
+  const topGpuConsumersByNamespace = useMemo(
     () =>
       Object.entries(groupWorkspacesByNamespaceAndGpu(workspaces, 'DESC'))
         .filter(([, record]) => record.gpuCount > 0)

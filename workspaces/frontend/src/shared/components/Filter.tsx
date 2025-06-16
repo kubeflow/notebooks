@@ -45,12 +45,12 @@ export interface FilterRef {
 // Use forwardRef to allow parents to get a ref to this component instance
 const Filter = React.forwardRef<FilterRef, FilterProps>(
   ({ id, filters, setFilters, columnDefinition, toolbarActions }, ref) => {
-    const [activeFilter, setActiveFilter] = React.useState<FilteredColumn>({
+    const [activeFilter, setActiveFilter] = useState<FilteredColumn>({
       columnKey: filters[0]?.columnKey ?? Object.keys(columnDefinition)[0],
       value: filters[0]?.value ?? '',
     });
-    const [searchValue, setSearchValue] = React.useState<string>(activeFilter.value || '');
-    const [isFilterMenuOpen, setIsFilterMenuOpen] = React.useState<boolean>(false);
+    const [searchValue, setSearchValue] = useState<string>(activeFilter.value || '');
+    const [isFilterMenuOpen, setIsFilterMenuOpen] = useState<boolean>(false);
 
     const filterToggleRef = useRef<MenuToggleElement | null>(null);
     const filterMenuRef = useRef<HTMLDivElement | null>(null);
@@ -135,7 +135,7 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
       [filters, setFilters],
     );
 
-    const onSearchChange = React.useCallback((value: string) => {
+    const onSearchChange = useCallback((value: string) => {
       setSearchValue(value);
       setActiveFilter((prevActiveFilter) => ({
         ...prevActiveFilter,
@@ -143,7 +143,7 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
       }));
     }, []);
 
-    React.useEffect(() => {
+    useEffect(() => {
       updateFilters({ ...activeFilter, value: searchValue });
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchValue]);

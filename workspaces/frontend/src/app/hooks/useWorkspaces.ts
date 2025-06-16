@@ -31,7 +31,7 @@ export const useWorkspacesByKind = (args: {
 }): FetchState<Workspace[]> => {
   const { kind, namespace, imageId, podConfigId } = args;
   const { api, apiAvailable } = useNotebookAPI();
-  const call = React.useCallback<FetchStateCallbackPromise<Workspace[]>>(
+  const call = useCallback<FetchStateCallbackPromise<Workspace[]>>(
     async (opts) => {
       if (!apiAvailable) {
         throw new Error('API not yet available');

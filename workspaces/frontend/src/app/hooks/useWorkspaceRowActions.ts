@@ -1,4 +1,4 @@
-import * as React from 'react';
+import { useCallback } from 'react';
 import { IActions } from '@patternfly/react-table';
 import { Workspace } from '~/shared/api/backendApiTypes';
 import { useWorkspaceActionsContext, WorkspaceAction } from '~/app/context/WorkspaceActionsContext';
@@ -18,7 +18,7 @@ export const useWorkspaceRowActions = (
 ): ((workspace: Workspace) => IActions) => {
   const actionsContext = useWorkspaceActionsContext();
 
-  return React.useCallback(
+  return useCallback(
     (workspace: Workspace): IActions => {
       const actions: IActions = [];
 

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Drawer, DrawerContent, DrawerContentBody } from '@patternfly/react-core';
 import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
@@ -41,7 +41,7 @@ export const WorkspaceActionsContext = React.createContext<WorkspaceActionsConte
 );
 
 export const useWorkspaceActionsContext = (): WorkspaceActionsContextType => {
-  const context = React.useContext(WorkspaceActionsContext);
+  const context = useContext(WorkspaceActionsContext);
   if (!context) {
     throw new Error(
       'useWorkspaceActionsContext must be used within a WorkspaceActionsContextProvider',
@@ -60,7 +60,7 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
   const navigate = useTypedNavigate();
   const { api } = useNotebookAPI();
   const { selectedNamespace } = useNamespaceContext();
-  const [activeWsAction, setActiveWsAction] = React.useState<WorkspaceAction | null>(null);
+  const [activeWsAction, setActiveWsAction] = useState<WorkspaceAction | null>(null);
 
   const drawerContent = (
     <>
@@ -76,7 +76,7 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
     </>
   );
 
-  const onCloseActionAlertDialog = React.useCallback(() => {
+  const onCloseActionAlertDialog = useCallback(() => {
     setActiveWsAction(null);
   }, []);
 
@@ -91,7 +91,7 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
   const requestRestartAction = createActionRequester(ActionType.Restart);
   const requestStopAction = createActionRequester(ActionType.Stop);
 
-  const executeEditAction = React.useCallback(() => {
+  const executeEditAction = useCallback(() => {
     if (!activeWsAction || activeWsAction.action !== ActionType.Edit) {
       return;
     }
@@ -103,7 +103,7 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
     });
   }, [navigate, activeWsAction]);
 
-  const executeDeleteAction = React.useCallback(async () => {
+  const executeDeleteAction = useCallback(async () => {
     if (!activeWsAction || activeWsAction.action !== ActionType.Delete) {
       return;
     }
@@ -119,7 +119,7 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
     }
   }, [api, selectedNamespace, activeWsAction]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!activeWsAction) {
       return;
     }
@@ -142,7 +142,7 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
     }
   }, [activeWsAction, executeEditAction]);
 
-  const contextValue = React.useMemo(
+  const contextValue = useMemo(
     () => ({
       requestViewDetailsAction,
       requestEditAction,

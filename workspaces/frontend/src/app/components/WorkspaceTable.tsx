@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useCallback, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import {
   PageSection,
   TimestampTooltipVariant,
@@ -107,22 +107,20 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
     ref,
   ) => {
     const [workspaceKinds] = useWorkspaceKinds();
-    const [expandedWorkspacesNames, setExpandedWorkspacesNames] = React.useState<string[]>([]);
-    const [filters, setFilters] = React.useState<FilteredColumn[]>(initialFilters);
+    const [expandedWorkspacesNames, setExpandedWorkspacesNames] = useState<string[]>([]);
+    const [filters, setFilters] = useState<FilteredColumn[]>(initialFilters);
     const [activeSortColumnKey, setActiveSortColumnKey] =
-      React.useState<WorkspaceTableSortableColumnKeys | null>(null);
-    const [activeSortDirection, setActiveSortDirection] = React.useState<'asc' | 'desc' | null>(
-      null,
-    );
-    const [page, setPage] = React.useState(1);
-    const [perPage, setPerPage] = React.useState(10);
+      useState<WorkspaceTableSortableColumnKeys | null>(null);
+    const [activeSortDirection, setActiveSortDirection] = useState<'asc' | 'desc' | null>(null);
+    const [page, setPage] = useState(1);
+    const [perPage, setPerPage] = useState(10);
 
     const navigate = useTypedNavigate();
-    const filterRef = React.useRef<FilterRef>(null);
+    const filterRef = useRef<FilterRef>(null);
     const kindLogoDict = buildKindLogoDictionary(workspaceKinds);
     const workspaceRedirectStatus = buildWorkspaceRedirectStatus(workspaceKinds);
 
-    const visibleColumnKeys: WorkspaceTableColumnKeys[] = React.useMemo(
+    const visibleColumnKeys: WorkspaceTableColumnKeys[] = useMemo(
       () =>
         hiddenColumns.length
           ? wsTableColumnKeyArray.filter((col) => !hiddenColumns.includes(col))
@@ -130,17 +128,17 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       [hiddenColumns],
     );
 
-    const visibleSortableColumnKeys: WorkspaceTableSortableColumnKeys[] = React.useMemo(
+    const visibleSortableColumnKeys: WorkspaceTableSortableColumnKeys[] = useMemo(
       () => sortableWsTableColumnKeyArray.filter((col) => visibleColumnKeys.includes(col)),
       [visibleColumnKeys],
     );
 
-    const visibleFilterableColumnKeys: WorkspaceTableFilterableColumnKeys[] = React.useMemo(
+    const visibleFilterableColumnKeys: WorkspaceTableFilterableColumnKeys[] = useMemo(
       () => filterableWsTableColumnKeyArray.filter((col) => visibleColumnKeys.includes(col)),
       [visibleColumnKeys],
     );
 
-    const visibleFilterableColumnMap = React.useMemo(
+    const visibleFilterableColumnMap = useMemo(
       () =>
         Object.fromEntries(
           visibleFilterableColumnKeys.map((key) => [key, wsTableColumns[key].label]),
@@ -148,7 +146,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       [visibleFilterableColumnKeys],
     );
 
-    React.useImperativeHandle(ref, () => ({
+    useImperativeHandle(ref, () => ({
       addFilter: (newFilter: WorkspaceTableFilteredColumn) => {
         if (!visibleFilterableColumnKeys.includes(newFilter.columnKey)) {
           return;
@@ -164,7 +162,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       },
     }));
 
-    const createWorkspace = React.useCallback(() => {
+    const createWorkspace = useCallback(() => {
       navigate('workspaceCreate');
     }, [navigate]);
 
@@ -181,7 +179,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
     const isWorkspaceExpanded = (workspace: Workspace) =>
       expandedWorkspacesNames.includes(workspace.name);
 
-    const filteredWorkspaces = React.useMemo(() => {
+    const filteredWorkspaces = useMemo(() => {
       if (workspaces.length === 0) {
         return [];
       }
@@ -240,7 +238,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       lastActivity: workspace.activity.lastActivity,
     });
 
-    const sortedWorkspaces = React.useMemo(() => {
+    const sortedWorkspaces = useMemo(() => {
       if (activeSortColumnKey === null) {
         return filteredWorkspaces;
       }
@@ -532,7 +530,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                         );
                       case 'connect':
                         return (
-                          <Td key={columnKey}>
+                          <Td key={columnKey} isActionCell>
                             <WorkspaceConnectAction workspace={workspace} />
                           </Td>
                         );

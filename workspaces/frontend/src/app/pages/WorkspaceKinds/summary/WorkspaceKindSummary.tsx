@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   Button,
   Content,
@@ -23,12 +23,12 @@ import { usePolling } from '~/app/hooks/usePolling';
 
 const WorkspaceKindSummary: React.FC = () => {
   const navigate = useTypedNavigate();
-  const [isSummaryExpanded, setIsSummaryExpanded] = React.useState(true);
+  const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
 
   const { state } = useTypedLocation<'workspaceKindSummary'>();
   const { namespace, imageId, podConfigId } = state || {};
   const { kind } = useTypedParams<'workspaceKindSummary'>();
-  const workspaceTableRef = React.useRef<WorkspaceTableRef>(null);
+  const workspaceTableRef = useRef<WorkspaceTableRef>(null);
   const [workspaces, workspacesLoaded, workspacesLoadError, refreshWorkspaces] =
     useWorkspacesByKind({
       kind,
@@ -41,7 +41,7 @@ const WorkspaceKindSummary: React.FC = () => {
 
   const tableRowActions = useWorkspaceRowActions([{ id: 'viewDetails' }]);
 
-  const onAddFilter = React.useCallback(
+  const onAddFilter = useCallback(
     (filter: WorkspaceTableFilteredColumn) => {
       if (!workspaceTableRef.current) {
         return;
