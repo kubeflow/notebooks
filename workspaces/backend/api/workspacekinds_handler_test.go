@@ -17,12 +17,15 @@ limitations under the License.
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+
+	"sigs.k8s.io/yaml"
 
 	"github.com/julienschmidt/httprouter"
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
@@ -34,6 +37,15 @@ import (
 
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds"
 )
+
+func getWorkspaceKindYAML(name string) ([]byte, error) {
+	wsk := &kubefloworgv1beta1.WorkspaceKind{}
+	err := k8sClient.Get(ctx, types.NamespacedName{Name: name}, wsk)
+	if err != nil {
+		return nil, err
+	}
+	return yaml.Marshal(wsk)
+}
 
 var _ = Describe("WorkspaceKinds Handler", func() {
 
@@ -192,6 +204,108 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			var dataObject models.WorkspaceKind
 			err = json.Unmarshal(dataJSON, &dataObject)
 			Expect(err).NotTo(HaveOccurred(), "failed to unmarshal JSON to WorkspaceKind")
+		})
+		It("should succeed when updating a mutable field (e.g., description)", func() {
+			// Fetch existing resource as YAML
+			originalYAML, err := getWorkspaceKindYAML(workspaceKind1Name)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Convert YAML to map[string]interface{} for dynamic manipulation
+			var wskMap map[string]interface{}
+			err = yaml.Unmarshal(originalYAML, &wskMap)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Modify a mutable field
+			spec := wskMap["spec"].(map[string]interface{})
+			spawner := spec["spawner"].(map[string]interface{})
+			spawner["description"] = "Updated description via API test"
+			metadata := wskMap["metadata"].(map[string]interface{})
+			delete(metadata, "managedFields")
+			delete(metadata, "creationTimestamp")
+			delete(metadata, "status")
+
+			// Marshal back to YAML
+			modifiedYAML, err := yaml.Marshal(wskMap)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Create HTTP PUT/PATCH request with modified YAML as body
+			path := strings.Replace(WorkspaceKindsByNamePath, ":"+ResourceNamePathParam, workspaceKind1Name, 1)
+			req, err := http.NewRequest(http.MethodPut, path, bytes.NewReader(modifiedYAML))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", "application/vnd.kubeflow-notebooks.manifest+yaml")
+			req.Header.Set(userIdHeader, adminUser)
+
+			// Send request and validate response
+			rr := httptest.NewRecorder()
+			a.UpdateWorkspaceKindHandler(rr, req, httprouter.Params{
+				{Key: ResourceNamePathParam, Value: workspaceKind1Name},
+			})
+			resp := rr.Result()
+			if err := resp.Body.Close(); err != nil {
+				fmt.Printf("Failed to close request body: %v", err)
+			}
+
+			Expect(resp.StatusCode).To(Equal(http.StatusOK), "Expected success status code, got: %d", resp.StatusCode)
+		})
+
+		It("should fail when updating an immutable field (e.g., .spec.podTemplate.serviceAccount.name)", func() {
+			originalYAML, err := getWorkspaceKindYAML(workspaceKind1Name)
+			Expect(err).NotTo(HaveOccurred())
+
+			var wskMap map[string]interface{}
+			err = yaml.Unmarshal(originalYAML, &wskMap)
+			Expect(err).NotTo(HaveOccurred())
+
+			spec := wskMap["spec"].(map[string]interface{})
+			podTemplate := spec["podTemplate"].(map[string]interface{})
+			serviceAccount := podTemplate["serviceAccount"].(map[string]interface{})
+			serviceAccount["name"] = "custom-editor"
+			metadata := wskMap["metadata"].(map[string]interface{})
+			delete(metadata, "managedFields")
+			delete(metadata, "creationTimestamp")
+			delete(metadata, "status")
+
+			modifiedYAML, err := yaml.Marshal(wskMap)
+			Expect(err).NotTo(HaveOccurred())
+
+			path := strings.Replace(WorkspaceKindsByNamePath, ":"+ResourceNamePathParam, workspaceKind1Name, 1)
+			req, err := http.NewRequest(http.MethodPut, path, bytes.NewReader(modifiedYAML))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", "application/vnd.kubeflow-notebooks.manifest+yaml")
+			req.Header.Set(userIdHeader, adminUser)
+
+			rr := httptest.NewRecorder()
+			a.UpdateWorkspaceKindHandler(rr, req, httprouter.Params{
+				{Key: ResourceNamePathParam, Value: workspaceKind1Name},
+			})
+			resp := rr.Result()
+			defer resp.Body.Close()
+
+			Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
+			body, _ := io.ReadAll(resp.Body)
+			Expect(string(body)).To(ContainSubstring("Immutable field change detected"))
+		})
+
+		It("should fail when using wrong Content-Type(e.g., application/json)", func() {
+			originalYAML, err := getWorkspaceKindYAML(workspaceKind1Name)
+			Expect(err).NotTo(HaveOccurred())
+
+			path := strings.Replace(WorkspaceKindsByNamePath, ":"+ResourceNamePathParam, workspaceKind1Name, 1)
+			req, err := http.NewRequest(http.MethodPut, path, bytes.NewReader(originalYAML))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set(userIdHeader, adminUser)
+
+			rr := httptest.NewRecorder()
+			a.UpdateWorkspaceKindHandler(rr, req, httprouter.Params{
+				{Key: ResourceNamePathParam, Value: workspaceKind1Name},
+			})
+			resp := rr.Result()
+			defer resp.Body.Close()
+
+			Expect(resp.StatusCode).To(Equal(http.StatusUnsupportedMediaType))
+			body, _ := io.ReadAll(resp.Body)
+			Expect(string(body)).To(ContainSubstring("unsupported media type:"))
 		})
 	})
 

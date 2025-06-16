@@ -18,6 +18,7 @@ package api
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -123,5 +124,85 @@ func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _
 	}
 
 	responseEnvelope := &WorkspaceKindListEnvelope{Data: workspaceKinds}
+	a.dataResponse(w, r, responseEnvelope)
+}
+
+func (a *App) UpdateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	name := ps.ByName(ResourceNamePathParam)
+
+	// === Content-Type check ===
+	const expectedContentType = "application/vnd.kubeflow-notebooks.manifest+yaml"
+	if r.Header.Get("Content-Type") != expectedContentType {
+		err := fmt.Errorf("unsupported media type: expected %q, got %q", expectedContentType, r.Header.Get("Content-Type"))
+		a.unsupportedMediaTypeResponse(w, r, err)
+		return
+	}
+
+	// === Validate path param ===
+	var valErrs field.ErrorList
+	valErrs = append(valErrs, helper.ValidateFieldIsDNS1123Subdomain(field.NewPath(ResourceNamePathParam), name)...)
+	if len(valErrs) > 0 {
+		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
+		return
+	}
+
+	// === Read body and parse YAML ===
+	var updated kubefloworgv1beta1.WorkspaceKind
+	if ok := ParseYAMLBody(w, r, &updated); !ok {
+		return
+	}
+
+	// Validate name in YAML matches path param ===
+	if updated.Name != name {
+		a.failedValidationResponse(w, r, "Metadata name must match URL path parameter", field.ErrorList{
+			field.Invalid(field.NewPath("metadata").Child("name"), updated.Name, "must match URL path parameter"),
+		}, nil)
+		return
+	}
+
+	// === AUTH ===
+	authPolicies := []*auth.ResourcePolicy{
+		auth.NewResourcePolicy(
+			auth.ResourceVerbUpdate,
+			&kubefloworgv1beta1.WorkspaceKind{
+				ObjectMeta: metav1.ObjectMeta{Name: name},
+			},
+		),
+	}
+	if success := a.requireAuth(w, r, authPolicies); !success {
+		return
+	}
+
+	// === Fetch existing WorkspaceKind ===
+	existing, err := a.repositories.WorkspaceKind.GetWorkspaceKindCR(r.Context(), name)
+	if err != nil {
+		if errors.Is(err, repository.ErrWorkspaceKindNotFound) {
+			a.notFoundResponse(w, r)
+			return
+		}
+		a.serverErrorResponse(w, r, err)
+		return
+	}
+
+	// === Check immutable fields ===
+	if err := validateImmutableFields(&updated, existing); err != nil {
+		a.failedValidationResponse(w, r, "Immutable field change detected", field.ErrorList{
+			field.Invalid(field.NewPath(err.Field), err.BadValue, err.Detail),
+		}, nil)
+		return
+	}
+
+	// === Set required metadata from existing object ===
+	updated.ResourceVersion = existing.ResourceVersion
+
+	// === Update ===
+	err = a.repositories.WorkspaceKind.UpdateWorkspaceKind(r.Context(), &updated)
+	if err != nil {
+		a.serverErrorResponse(w, r, err)
+		return
+	}
+
+	// === Return updated object in envelope ===
+	responseEnvelope := &WorkspaceKindEnvelope{Data: models.NewWorkspaceKindModelFromWorkspaceKind(&updated)}
 	a.dataResponse(w, r, responseEnvelope)
 }

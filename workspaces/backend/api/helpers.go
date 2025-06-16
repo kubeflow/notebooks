@@ -19,9 +19,13 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"mime"
 	"net/http"
 	"strings"
+
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	"sigs.k8s.io/yaml"
 )
 
 // Envelope is the body of all requests and responses that contain data.
@@ -93,4 +97,108 @@ func (a *App) LocationGetWorkspace(namespace, name string) string {
 	path := strings.Replace(WorkspacesByNamePath, ":"+NamespacePathParam, namespace, 1)
 	path = strings.Replace(path, ":"+ResourceNamePathParam, name, 1)
 	return path
+}
+
+func ParseYAMLBody(w http.ResponseWriter, r *http.Request, target interface{}) bool {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		return false
+	}
+
+	if err := r.Body.Close(); err != nil {
+		fmt.Printf("Failed to close request body: %v", err)
+		return false
+	}
+
+	if err := yaml.UnmarshalStrict(body, target); err != nil {
+		http.Error(w, "Invalid YAML: "+err.Error(), http.StatusBadRequest)
+		return false
+	}
+	return true
+}
+
+type ImmutableFieldError struct {
+	Field    string
+	BadValue interface{}
+	Detail   string
+}
+
+func (e *ImmutableFieldError) Error() string {
+	return fmt.Sprintf("Field %s is immutable: %v", e.Field, e.Detail)
+}
+
+func validateImmutableFields(newObj, oldObj *kubefloworgv1beta1.WorkspaceKind) *ImmutableFieldError {
+	if newObj.Name != oldObj.Name {
+		return &ImmutableFieldError{Field: "metadata.name", BadValue: newObj.Name, Detail: "must match existing resource name"}
+	}
+
+	if newObj.Spec.PodTemplate.ServiceAccount.Name != oldObj.Spec.PodTemplate.ServiceAccount.Name {
+		return &ImmutableFieldError{Field: "spec.podTemplate.serviceAccount.name", BadValue: newObj.Spec.PodTemplate.ServiceAccount.Name, Detail: "service account name is immutable"}
+	}
+
+	if newObj.Spec.PodTemplate.VolumeMounts.Home != oldObj.Spec.PodTemplate.VolumeMounts.Home {
+		return &ImmutableFieldError{Field: "spec.volumeMounts.home", BadValue: newObj.Spec.PodTemplate.VolumeMounts.Home, Detail: "home volume is immutable"}
+	}
+
+	if !idsPreservedOnly(
+		newObj.Spec.PodTemplate.Options.ImageConfig.Values,
+		oldObj.Spec.PodTemplate.Options.ImageConfig.Values,
+		func(v kubefloworgv1beta1.ImageConfigValue) string { return v.Id },
+	) {
+		return &ImmutableFieldError{
+			Field:    "spec.options.imageConfig.values",
+			BadValue: newObj.Spec.PodTemplate.Options.ImageConfig.Values,
+			Detail:   "image config keys cannot be removed or renamed",
+		}
+	}
+
+	if !idsPreservedOnly(
+		newObj.Spec.PodTemplate.Options.PodConfig.Values,
+		oldObj.Spec.PodTemplate.Options.PodConfig.Values,
+		func(v kubefloworgv1beta1.PodConfigValue) string { return v.Id },
+	) {
+		return &ImmutableFieldError{
+			Field:    "spec.options.podConfig.values",
+			BadValue: newObj.Spec.PodTemplate.Options.PodConfig.Values,
+			Detail:   "pod config keys cannot be removed or renamed",
+		}
+	}
+
+	return nil
+}
+
+// `getID` extracts the unique key from each element.
+func idsPreservedOnly[T any](a, b []T, getID func(T) string) bool {
+	fmt.Printf("Comparing slices:\nA: %+v\nB: %+v\n\n", a, b)
+	if len(a) != len(b) {
+		fmt.Printf("Length mismatch: len(a)=%d, len(b)=%d\n", len(a), len(b))
+		return false
+	}
+
+	mapA := make(map[string]T)
+	mapB := make(map[string]T)
+
+	for i, item := range a {
+		id := getID(item)
+		mapA[id] = item
+		fmt.Printf("mapA[%q] = a[%d] => %+v\n", id, i, item)
+	}
+	for i, item := range b {
+		id := getID(item)
+		mapB[id] = item
+		fmt.Printf("mapB[%q] = b[%d] => %+v\n", id, i, item)
+	}
+
+	fmt.Println()
+
+	for id := range mapA {
+		_, exists := mapB[id]
+		if !exists {
+			fmt.Printf("ID %q found in A but not in B\n", id)
+			return false
+		}
+	}
+	fmt.Println("All IDs matched.")
+	return true
 }

@@ -68,3 +68,19 @@ func (r *WorkspaceKindRepository) GetWorkspaceKinds(ctx context.Context) ([]mode
 
 	return workspaceKindsModels, nil
 }
+
+func (r *WorkspaceKindRepository) GetWorkspaceKindCR(ctx context.Context, name string) (*kubefloworgv1beta1.WorkspaceKind, error) {
+	workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
+	err := r.client.Get(ctx, client.ObjectKey{Name: name}, workspaceKind)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, ErrWorkspaceKindNotFound
+		}
+		return nil, err
+	}
+	return workspaceKind, nil
+}
+
+func (r *WorkspaceKindRepository) UpdateWorkspaceKind(ctx context.Context, updated *kubefloworgv1beta1.WorkspaceKind) error {
+	return r.client.Update(ctx, updated)
+}

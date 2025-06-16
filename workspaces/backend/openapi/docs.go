@@ -916,6 +916,9 @@ const docTemplate = `{
                 },
                 "podTemplate": {
                     "$ref": "#/definitions/workspacekinds.PodTemplate"
+                },
+                "resourceVersion": {
+                    "type": "string"
                 }
             }
         },
