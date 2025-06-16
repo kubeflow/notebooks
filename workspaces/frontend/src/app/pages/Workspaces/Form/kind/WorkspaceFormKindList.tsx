@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   CardBody,
   CardTitle,
@@ -25,7 +25,7 @@ export const WorkspaceFormKindList: React.FunctionComponent<WorkspaceFormKindLis
   onSelect,
 }) => {
   const [workspaceKinds, setWorkspaceKinds] = useState<WorkspaceKind[]>(allWorkspaceKinds);
-  const filterRef = React.useRef<FilterRef>(null);
+  const filterRef = useRef<FilterRef>(null);
 
   const filterableColumns = useMemo(
     () => ({

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import { useCallback } from 'react';
 import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
@@ -9,7 +9,7 @@ import { Workspace } from '~/shared/api/backendApiTypes';
 const useWorkspaces = (namespace: string): FetchState<Workspace[] | null> => {
   const { api, apiAvailable } = useNotebookAPI();
 
-  const call = React.useCallback<FetchStateCallbackPromise<Workspace[] | null>>(
+  const call = useCallback<FetchStateCallbackPromise<Workspace[] | null>>(
     (opts) => {
       if (!apiAvailable) {
         return Promise.reject(new Error('API not yet available'));

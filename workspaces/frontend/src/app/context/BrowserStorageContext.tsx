@@ -1,4 +1,12 @@
-import React, { createContext, useCallback, useContext, useEffect } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 export interface BrowserStorageContextType {
   getValue: (key: string) => unknown;
@@ -17,8 +25,8 @@ const BrowserStorageContext = createContext<BrowserStorageContextType>({
 export const BrowserStorageContextProvider: React.FC<BrowserStorageContextProviderProps> = ({
   children,
 }) => {
-  const [values, setValues] = React.useState<{ [key: string]: unknown }>({});
-  const valuesRef = React.useRef(values);
+  const [values, setValues] = useState<{ [key: string]: unknown }>({});
+  const valuesRef = useRef(values);
   useEffect(() => {
     valuesRef.current = values;
   }, [values]);
@@ -49,7 +57,7 @@ export const BrowserStorageContextProvider: React.FC<BrowserStorageContextProvid
   );
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const contextValue = React.useMemo(() => ({ getValue, setValue }), [getValue, setValue, values]);
+  const contextValue = useMemo(() => ({ getValue, setValue }), [getValue, setValue, values]);
 
   return (
     <BrowserStorageContext.Provider value={contextValue}>{children}</BrowserStorageContext.Provider>

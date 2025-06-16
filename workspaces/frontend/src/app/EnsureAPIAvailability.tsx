@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { Bullseye, Spinner } from '@patternfly/react-core';
 import { useNotebookAPI } from './hooks/useNotebookAPI';
 
