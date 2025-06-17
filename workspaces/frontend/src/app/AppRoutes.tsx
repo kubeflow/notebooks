@@ -1,12 +1,13 @@
 import React from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
 import { AppRoutePaths } from '~/app/routes';
+import { WorkspaceKindSummaryWrapper } from '~/app/pages/WorkspaceKinds/summary/WorkspaceKindSummaryWrapper';
 import { WorkspaceForm } from '~/app/pages/Workspaces/Form/WorkspaceForm';
-import { NotFound } from './pages/notFound/NotFound';
 import { Debug } from './pages/Debug/Debug';
-import { Workspaces } from './pages/Workspaces/Workspaces';
-import '~/shared/style/MUI-theme.scss';
+import { NotFound } from './pages/notFound/NotFound';
 import { WorkspaceKinds } from './pages/WorkspaceKinds/WorkspaceKinds';
+import { WorkspacesWrapper } from './pages/Workspaces/WorkspacesWrapper';
+import '~/shared/style/MUI-theme.scss';
 
 export const isNavDataGroup = (navItem: NavDataItem): navItem is NavDataGroup =>
   'children' in navItem;
@@ -62,7 +63,8 @@ const AppRoutes: React.FC = () => {
     <Routes>
       <Route path={AppRoutePaths.workspaceCreate} element={<WorkspaceForm />} />
       <Route path={AppRoutePaths.workspaceEdit} element={<WorkspaceForm />} />
-      <Route path={AppRoutePaths.workspaces} element={<Workspaces />} />
+      <Route path={AppRoutePaths.workspaces} element={<WorkspacesWrapper />} />
+      <Route path={AppRoutePaths.workspaceKindSummary} element={<WorkspaceKindSummaryWrapper />} />
       <Route path={AppRoutePaths.workspaceKinds} element={<WorkspaceKinds />} />
       <Route path="/" element={<Navigate to={AppRoutePaths.workspaces} replace />} />
       <Route path="*" element={<NotFound />} />

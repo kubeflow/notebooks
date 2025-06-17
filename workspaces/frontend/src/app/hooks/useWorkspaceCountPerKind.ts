@@ -5,6 +5,7 @@ import { WorkspaceCountPerOption } from '~/app/types';
 
 export type WorkspaceCountPerKind = Record<WorkspaceKind['name'], WorkspaceCountPerOption>;
 
+// TODO: This hook is temporary; we should get counts from the API directly
 export const useWorkspaceCountPerKind = (): WorkspaceCountPerKind => {
   const { api } = useNotebookAPI();
 

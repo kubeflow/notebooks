@@ -65,7 +65,7 @@ export const WorkspaceKindDetailsOverview: React.FunctionComponent<
       </DescriptionListDescription>
       <DescriptionListTerm style={{ alignSelf: 'center' }}>Logo URL</DescriptionListTerm>
       <DescriptionListDescription>
-        <a href={workspaceKind.icon.url} target="_blank" rel="noreferrer">
+        <a href={workspaceKind.logo.url} target="_blank" rel="noreferrer">
           {workspaceKind.logo.url}
         </a>
       </DescriptionListDescription>

@@ -30,7 +30,12 @@ export const WorkspaceKindDetails: React.FunctionComponent<WorkspaceKindDetailsP
   workspaceCountPerKind,
   onCloseClick,
 }) => {
-  const [activeTabKey, setActiveTabKey] = useState<string | number>(0);
+  const overviewTabKey = 0;
+  const imagesTabKey = 1;
+  const podConfigsTabKey = 2;
+  const namespacesTabKey = 3;
+
+  const [activeTabKey, setActiveTabKey] = useState<string | number>(overviewTabKey);
 
   const handleTabClick = (
     event: React.MouseEvent | React.KeyboardEvent | MouseEvent,
@@ -51,25 +56,25 @@ export const WorkspaceKindDetails: React.FunctionComponent<WorkspaceKindDetailsP
       <DrawerPanelBody>
         <Tabs activeKey={activeTabKey} onSelect={handleTabClick}>
           <Tab
-            eventKey={0}
+            eventKey={overviewTabKey}
             title={<TabTitleText>Overview</TabTitleText>}
             tabContentId="overviewTabContent"
             aria-label="Overview"
           />
           <Tab
-            eventKey={1}
+            eventKey={imagesTabKey}
             title={<TabTitleText>Images</TabTitleText>}
             tabContentId="imagesTabContent"
             aria-label="Images"
           />
           <Tab
-            eventKey={2}
+            eventKey={podConfigsTabKey}
             title={<TabTitleText>Pod Configs</TabTitleText>}
             tabContentId="podConfigsTabContent"
             aria-label="Pod Configs"
           />
           <Tab
-            eventKey={3}
+            eventKey={namespacesTabKey}
             title={<TabTitleText>Namespaces</TabTitleText>}
             tabContentId="namespacesTabContent"
             aria-label="Namespaces"
@@ -79,22 +84,22 @@ export const WorkspaceKindDetails: React.FunctionComponent<WorkspaceKindDetailsP
 
       <DrawerPanelBody>
         <TabContent
-          key={0}
-          eventKey={0}
+          key={overviewTabKey}
+          eventKey={overviewTabKey}
           id="overviewTabContent"
           activeKey={activeTabKey}
-          hidden={activeTabKey !== 0}
+          hidden={activeTabKey !== overviewTabKey}
         >
           <TabContentBody hasPadding>
             <WorkspaceKindDetailsOverview workspaceKind={workspaceKind} />
           </TabContentBody>
         </TabContent>
         <TabContent
-          key={1}
-          eventKey={1}
+          key={imagesTabKey}
+          eventKey={imagesTabKey}
           id="imagesTabContent"
           activeKey={activeTabKey}
-          hidden={activeTabKey !== 1}
+          hidden={activeTabKey !== imagesTabKey}
         >
           <TabContentBody hasPadding>
             <WorkspaceKindDetailsImages
@@ -104,11 +109,11 @@ export const WorkspaceKindDetails: React.FunctionComponent<WorkspaceKindDetailsP
           </TabContentBody>
         </TabContent>
         <TabContent
-          key={2}
-          eventKey={2}
+          key={podConfigsTabKey}
+          eventKey={podConfigsTabKey}
           id="podConfigsTabContent"
           activeKey={activeTabKey}
-          hidden={activeTabKey !== 2}
+          hidden={activeTabKey !== podConfigsTabKey}
         >
           <TabContentBody hasPadding>
             <WorkspaceKindDetailsPodConfigs
@@ -118,11 +123,11 @@ export const WorkspaceKindDetails: React.FunctionComponent<WorkspaceKindDetailsP
           </TabContentBody>
         </TabContent>
         <TabContent
-          key={3}
-          eventKey={3}
+          key={namespacesTabKey}
+          eventKey={namespacesTabKey}
           id="namespacesTabContent"
           activeKey={activeTabKey}
-          hidden={activeTabKey !== 3}
+          hidden={activeTabKey !== namespacesTabKey}
         >
           <TabContentBody hasPadding>
             <WorkspaceKindDetailsNamespaces

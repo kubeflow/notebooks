@@ -21,6 +21,7 @@ import {
   ToolbarFilter,
   ToolbarToggleGroup,
   Bullseye,
+  Button,
 } from '@patternfly/react-core';
 import {
   Table,
@@ -40,6 +41,7 @@ import { useWorkspaceCountPerKind } from '~/app/hooks/useWorkspaceCountPerKind';
 import { WorkspaceKindsColumns } from '~/app/types';
 import ThemeAwareSearchInput from '~/app/components/ThemeAwareSearchInput';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
+import { useTypedNavigate } from '~/app/routerHelper';
 import { WorkspaceKindDetails } from './details/WorkspaceKindDetails';
 
 export enum ActionType {
@@ -63,6 +65,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     [],
   );
 
+  const navigate = useTypedNavigate();
   const [workspaceKinds, workspaceKindsLoaded, workspaceKindsError] = useWorkspaceKinds();
   const workspaceCountPerKind = useWorkspaceCountPerKind();
   const [selectedWorkspaceKind, setSelectedWorkspaceKind] = useState<WorkspaceKind | null>(null);
@@ -580,10 +583,22 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                         )}
                       </Td>
                       <Td dataLabel={columns.numberOfWorkspaces.name}>
-                        {
-                          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                          workspaceCountPerKind[workspaceKind.name]?.count ?? 0
-                        }
+                        <Button
+                          variant="link"
+                          isInline
+                          onClick={() =>
+                            navigate('workspaceKindSummary', {
+                              params: { kind: workspaceKind.name },
+                              state: {},
+                            })
+                          }
+                        >
+                          {
+                            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+                            workspaceCountPerKind[workspaceKind.name]?.count ?? 0
+                          }
+                          {' Workspaces'}
+                        </Button>
                       </Td>
 
                       <Td isActionCell data-testid="action-column">

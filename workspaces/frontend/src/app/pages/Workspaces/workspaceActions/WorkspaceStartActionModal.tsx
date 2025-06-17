@@ -8,16 +8,16 @@ import {
   TabTitleText,
 } from '@patternfly/react-core';
 import { WorkspaceRedirectInformationView } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRedirectInformationView';
-import { Workspace } from '~/shared/api/backendApiTypes';
+import { Workspace, WorkspacePauseState } from '~/shared/api/backendApiTypes';
 import { ActionButton } from '~/shared/components/ActionButton';
 
 interface StartActionAlertProps {
   onClose: () => void;
   isOpen: boolean;
   workspace: Workspace | null;
-  onStart: () => Promise<void>;
+  onStart: () => Promise<WorkspacePauseState | void>;
   onUpdateAndStart: () => Promise<void>;
-  onActionDone: () => void;
+  onActionDone?: () => void;
 }
 
 type StartAction = 'start' | 'updateAndStart';
@@ -33,10 +33,10 @@ export const WorkspaceStartActionModal: React.FC<StartActionAlertProps> = ({
   const [actionOnGoing, setActionOnGoing] = useState<StartAction | null>(null);
 
   const executeAction = useCallback(
-    async (args: { action: StartAction; callback: () => Promise<void> }) => {
+    (args: { action: StartAction; callback: () => ReturnType<typeof onStart> }) => {
       setActionOnGoing(args.action);
       try {
-        return await args.callback();
+        return args.callback();
       } finally {
         setActionOnGoing(null);
       }
@@ -46,10 +46,10 @@ export const WorkspaceStartActionModal: React.FC<StartActionAlertProps> = ({
 
   const handleStart = useCallback(async () => {
     try {
-      await executeAction({ action: 'start', callback: onStart });
+      const response = await executeAction({ action: 'start', callback: onStart });
       // TODO: alert user about success
-      console.info('Workspace started successfully');
-      onActionDone();
+      console.info('Workspace started successfully:', JSON.stringify(response));
+      onActionDone?.();
       onClose();
     } catch (error) {
       // TODO: alert user about error
@@ -60,10 +60,13 @@ export const WorkspaceStartActionModal: React.FC<StartActionAlertProps> = ({
   // TODO: combine handleStart and handleUpdateAndStart if they end up being similar
   const handleUpdateAndStart = useCallback(async () => {
     try {
-      await executeAction({ action: 'updateAndStart', callback: onUpdateAndStart });
+      const response = await executeAction({
+        action: 'updateAndStart',
+        callback: onUpdateAndStart,
+      });
       // TODO: alert user about success
-      console.info('Workspace updated and started successfully');
-      onActionDone();
+      console.info('Workspace updated and started successfully:', JSON.stringify(response));
+      onActionDone?.();
       onClose();
     } catch (error) {
       // TODO: alert user about error

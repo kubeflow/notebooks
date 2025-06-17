@@ -23,6 +23,7 @@ const useWorkspaceFormData = (args: {
   namespace: string | undefined;
   workspaceName: string | undefined;
 }): FetchState<WorkspaceFormData> => {
+  const { namespace, workspaceName } = args;
   const { api, apiAvailable } = useNotebookAPI();
 
   const call = useCallback<FetchStateCallbackPromise<WorkspaceFormData>>(
@@ -31,11 +32,11 @@ const useWorkspaceFormData = (args: {
         throw new Error('API not yet available');
       }
 
-      if (!args.namespace || !args.workspaceName) {
+      if (!namespace || !workspaceName) {
         return EMPTY_FORM_DATA;
       }
 
-      const workspace = await api.getWorkspace(opts, args.namespace, args.workspaceName);
+      const workspace = await api.getWorkspace(opts, namespace, workspaceName);
       const workspaceKind = await api.getWorkspaceKind(opts, workspace.workspaceKind.name);
       const imageConfig = workspace.podTemplate.options.imageConfig.current;
       const podConfig = workspace.podTemplate.options.podConfig.current;
@@ -65,7 +66,7 @@ const useWorkspaceFormData = (args: {
         },
       };
     },
-    [api, apiAvailable, args.namespace, args.workspaceName],
+    [api, apiAvailable, namespace, workspaceName],
   );
 
   return useFetchState(call, EMPTY_FORM_DATA);

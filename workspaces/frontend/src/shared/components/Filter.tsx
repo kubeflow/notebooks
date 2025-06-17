@@ -26,13 +26,14 @@ import ThemeAwareSearchInput from '~/app/components/ThemeAwareSearchInput';
 
 export interface FilterProps {
   id: string;
-  onFilter: (filters: FilteredColumn[]) => void;
-  columnNames: { [key: string]: string };
+  filters: FilteredColumn[];
+  setFilters: (filters: FilteredColumn[]) => void;
+  columnDefinition: Record<string, string>;
   toolbarActions?: React.ReactNode;
 }
 
-export interface FilteredColumn {
-  columnName: string;
+export interface FilteredColumn<K extends string = string> {
+  columnKey: K;
   value: string;
 }
 
@@ -43,19 +44,22 @@ export interface FilterRef {
 
 // Use forwardRef to allow parents to get a ref to this component instance
 const Filter = React.forwardRef<FilterRef, FilterProps>(
-  ({ id, onFilter, columnNames, toolbarActions }, ref) => {
-    Filter.displayName = 'Filter';
+  ({ id, filters, setFilters, columnDefinition, toolbarActions }, ref) => {
     const [activeFilter, setActiveFilter] = useState<FilteredColumn>({
-      columnName: Object.values(columnNames)[0],
-      value: '',
+      columnKey: filters[0]?.columnKey ?? Object.keys(columnDefinition)[0],
+      value: filters[0]?.value ?? '',
     });
-    const [searchValue, setSearchValue] = useState<string>('');
+    const [searchValue, setSearchValue] = useState<string>(activeFilter.value || '');
     const [isFilterMenuOpen, setIsFilterMenuOpen] = useState<boolean>(false);
-    const [filters, setFilters] = useState<FilteredColumn[]>([]);
 
     const filterToggleRef = useRef<MenuToggleElement | null>(null);
     const filterMenuRef = useRef<HTMLDivElement | null>(null);
     const filterContainerRef = useRef<HTMLDivElement | null>(null);
+
+    const activeFilterLabel = useMemo(
+      () => columnDefinition[activeFilter.columnKey],
+      [activeFilter.columnKey, columnDefinition],
+    );
 
     const handleFilterMenuKeys = useCallback(
       (event: KeyboardEvent) => {
@@ -109,54 +113,45 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
 
     const updateFilters = useCallback(
       (filterObj: FilteredColumn) => {
-        setFilters((prevFilters) => {
-          const index = prevFilters.findIndex(
-            (filter) => filter.columnName === filterObj.columnName,
+        const index = filters.findIndex((filter) => filter.columnKey === filterObj.columnKey);
+        const newFilters = [...filters];
+
+        if (filterObj.value === '') {
+          const updatedFilters = newFilters.filter(
+            (filter) => filter.columnKey !== filterObj.columnKey,
           );
-          const newFilters = [...prevFilters];
-
-          if (filterObj.value === '') {
-            const updatedFilters = newFilters.filter(
-              (filter) => filter.columnName !== filterObj.columnName,
-            );
-            onFilter(updatedFilters);
-            return updatedFilters;
-          }
-          if (index !== -1) {
-            newFilters[index] = filterObj;
-            onFilter(newFilters);
-            return newFilters;
-          }
-          newFilters.push(filterObj);
-          onFilter(newFilters);
+          setFilters(updatedFilters);
+          return updatedFilters;
+        }
+        if (index !== -1) {
+          newFilters[index] = filterObj;
+          setFilters(newFilters);
           return newFilters;
-        });
+        }
+        newFilters.push(filterObj);
+        setFilters(newFilters);
+        return newFilters;
       },
-      [onFilter],
+      [filters, setFilters],
     );
 
-    const onSearchChange = useCallback(
-      (value: string) => {
-        setSearchValue(value);
-        setActiveFilter((prevActiveFilter) => {
-          const newActiveFilter = { ...prevActiveFilter, value };
-          updateFilters(newActiveFilter);
-          return newActiveFilter;
-        });
-      },
-      [updateFilters],
-    );
+    const onSearchChange = useCallback((value: string) => {
+      setSearchValue(value);
+      setActiveFilter((prevActiveFilter) => ({
+        ...prevActiveFilter,
+        value,
+      }));
+    }, []);
+
+    useEffect(() => {
+      updateFilters({ ...activeFilter, value: searchValue });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchValue]);
 
     const onDeleteLabelGroup = useCallback(
       (filter: FilteredColumn) => {
-        setFilters((prevFilters) => {
-          const newFilters = prevFilters.filter(
-            (filter1) => filter1.columnName !== filter.columnName,
-          );
-          onFilter(newFilters);
-          return newFilters;
-        });
-        if (filter.columnName === activeFilter.columnName) {
+        setFilters([...filters.filter((f) => f.columnKey !== filter.columnKey)]);
+        if (filter.columnKey === activeFilter.columnKey) {
           setSearchValue('');
           setActiveFilter((prevActiveFilter) => ({
             ...prevActiveFilter,
@@ -164,7 +159,7 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
           }));
         }
       },
-      [activeFilter.columnName, onFilter],
+      [activeFilter.columnKey, filters, setFilters],
     );
 
     // Expose the clearAllFilters logic via the ref
@@ -172,11 +167,11 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
       setFilters([]);
       setSearchValue('');
       setActiveFilter({
-        columnName: Object.values(columnNames)[0],
+        columnKey: Object.keys(columnDefinition)[0],
         value: '',
       });
-      onFilter([]);
-    }, [columnNames, onFilter]);
+      setFilters([]);
+    }, [columnDefinition, setFilters]);
 
     useImperativeHandle(ref, () => ({
       clearAll: clearAllInternal,
@@ -187,19 +182,19 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
         // Use the functional update form to toggle the state
         setIsFilterMenuOpen((prevIsMenuOpen) => !prevIsMenuOpen); // Fix is here
 
-        const selectedColumnName = itemId ? itemId.toString() : Object.values(columnNames)[0];
+        const selectedColumnKey = itemId ? itemId.toString() : Object.keys(columnDefinition)[0];
 
         // Find the existing filter value for the selected column, if any
-        const existingFilter = filters.find((filter) => filter.columnName === selectedColumnName);
+        const existingFilter = filters.find((filter) => filter.columnKey === selectedColumnKey);
         const existingValue = existingFilter ? existingFilter.value : '';
 
         setSearchValue(existingValue); // Set search input to the existing filter value
         setActiveFilter({
-          columnName: selectedColumnName,
+          columnKey: selectedColumnKey,
           value: existingValue, // Set the active filter value
         });
       },
-      [columnNames, filters],
+      [columnDefinition, filters],
     );
 
     const filterMenuToggle = useMemo(
@@ -210,10 +205,10 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
           isExpanded={isFilterMenuOpen}
           icon={<FilterIcon />}
         >
-          {activeFilter.columnName}
+          {activeFilterLabel}
         </MenuToggle>
       ),
-      [activeFilter.columnName, isFilterMenuOpen, onFilterToggleClick],
+      [activeFilterLabel, isFilterMenuOpen, onFilterToggleClick],
     );
 
     const filterMenu = useMemo(
@@ -221,16 +216,16 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
         <Menu ref={filterMenuRef} onSelect={(_ev, itemId) => onFilterSelect(itemId)}>
           <MenuContent>
             <MenuList>
-              {Object.values(columnNames).map((name: string) => (
-                <MenuItem id={`${id}-dropdown-${name}`} key={name} itemId={name}>
-                  {name}
+              {Object.keys(columnDefinition).map((columnKey: string) => (
+                <MenuItem id={`${id}-dropdown-${columnKey}`} key={columnKey} itemId={columnKey}>
+                  {columnDefinition[columnKey]}
                 </MenuItem>
               ))}
             </MenuList>
           </MenuContent>
         </Menu>
       ),
-      [columnNames, id, onFilterSelect],
+      [columnDefinition, id, onFilterSelect],
     );
 
     const filterDropdown = useMemo(
@@ -263,20 +258,20 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
                   data-testid={`${id}-search-input`}
                   value={searchValue}
                   onChange={onSearchChange}
-                  placeholder={`Filter by ${activeFilter.columnName}`}
-                  fieldLabel={`Find by ${activeFilter.columnName}`}
-                  aria-label={`Filter by ${activeFilter.columnName}`}
+                  placeholder={`Filter by ${activeFilterLabel}`}
+                  fieldLabel={`Find by ${activeFilterLabel}`}
+                  aria-label={`Filter by ${activeFilterLabel}`}
                 />
               </ToolbarItem>
               {filters.map(
                 (filter) =>
                   filter.value !== '' && (
                     <ToolbarFilter
-                      key={`${filter.columnName}-filter`}
+                      key={`${filter.columnKey}-filter`}
                       labels={[filter.value]}
                       deleteLabel={() => onDeleteLabelGroup(filter)}
                       deleteLabelGroup={() => onDeleteLabelGroup(filter)}
-                      categoryName={filter.columnName}
+                      categoryName={columnDefinition[filter.columnKey]}
                     >
                       {undefined}
                     </ToolbarFilter>
@@ -290,4 +285,7 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
     );
   },
 );
+
+Filter.displayName = 'Filter';
+
 export default Filter;
