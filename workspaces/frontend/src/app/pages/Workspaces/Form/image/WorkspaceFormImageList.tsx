@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   CardTitle,
   Gallery,
@@ -12,6 +12,14 @@ import {
 import Filter, { FilteredColumn, FilterRef } from '~/shared/components/Filter';
 import { WorkspaceImageConfigValue } from '~/shared/api/backendApiTypes';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
+import { defineDataFields, FilterableDataFieldKey } from '~/app/filterableDataHelper';
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const { fields, filterableLabelMap } = defineDataFields({
+  name: { label: 'Name', isFilterable: true, isSortable: false },
+});
+
+type FilterableDataFieldKeys = FilterableDataFieldKey<typeof fields>;
 
 type WorkspaceFormImageListProps = {
   images: WorkspaceImageConfigValue[];
@@ -26,16 +34,8 @@ export const WorkspaceFormImageList: React.FunctionComponent<WorkspaceFormImageL
   selectedImage,
   onSelect,
 }) => {
-  const [workspaceImages, setWorkspaceImages] = useState<WorkspaceImageConfigValue[]>(images);
   const [filters, setFilters] = useState<FilteredColumn[]>([]);
   const filterRef = useRef<FilterRef>(null);
-
-  const filterableColumns = useMemo(
-    () => ({
-      name: 'Name',
-    }),
-    [],
-  );
 
   const getFilteredWorkspaceImagesByLabels = useCallback(
     (unfilteredImages: WorkspaceImageConfigValue[]) =>
@@ -55,21 +55,12 @@ export const WorkspaceFormImageList: React.FunctionComponent<WorkspaceFormImageL
     filterRef.current?.clearAll();
   }, []);
 
-  const onChange = useCallback(
-    (event: React.FormEvent<HTMLInputElement>) => {
-      const newSelectedWorkspaceImage = workspaceImages.find(
-        (image) => image.displayName === event.currentTarget.name,
-      );
-      onSelect(newSelectedWorkspaceImage);
-    },
-    [workspaceImages, onSelect],
-  );
+  const filteredWorkspaceImages = useMemo(() => {
+    if (images.length === 0) {
+      return [];
+    }
 
-  useEffect(() => {
-    // Search name with search value
-    let filteredWorkspaceImages = images;
-
-    filters.forEach((filter) => {
+    return filters.reduce((result, filter) => {
       let searchValueInput: RegExp;
       try {
         searchValueInput = new RegExp(filter.value, 'i');
@@ -77,12 +68,13 @@ export const WorkspaceFormImageList: React.FunctionComponent<WorkspaceFormImageL
         searchValueInput = new RegExp(filter.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
       }
 
-      filteredWorkspaceImages = filteredWorkspaceImages.filter((image) => {
+      const filterResult = result.filter((image) => {
         if (filter.value === '') {
           return true;
         }
-        switch (filter.columnName) {
-          case filterableColumns.name:
+        switch (filter.columnKey as FilterableDataFieldKeys) {
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          case 'name':
             return (
               image.id.search(searchValueInput) >= 0 ||
               image.displayName.search(searchValueInput) >= 0
@@ -91,10 +83,19 @@ export const WorkspaceFormImageList: React.FunctionComponent<WorkspaceFormImageL
             return true;
         }
       });
-    });
+      return getFilteredWorkspaceImagesByLabels(filterResult);
+    }, images);
+  }, [filters, getFilteredWorkspaceImagesByLabels, images]);
 
-    setWorkspaceImages(getFilteredWorkspaceImagesByLabels(filteredWorkspaceImages));
-  }, [filterableColumns, filters, images, selectedLabels, getFilteredWorkspaceImagesByLabels]);
+  const onChange = useCallback(
+    (event: React.FormEvent<HTMLInputElement>) => {
+      const newSelectedWorkspaceImage = filteredWorkspaceImages.find(
+        (image) => image.displayName === event.currentTarget.name,
+      );
+      onSelect(newSelectedWorkspaceImage);
+    },
+    [filteredWorkspaceImages, onSelect],
+  );
 
   return (
     <>
@@ -104,17 +105,20 @@ export const WorkspaceFormImageList: React.FunctionComponent<WorkspaceFormImageL
             <Filter
               ref={filterRef}
               id="filter-workspace-images"
-              onFilter={setFilters}
-              columnNames={filterableColumns}
+              filters={filters}
+              setFilters={setFilters}
+              columnDefinition={filterableLabelMap}
             />
           </ToolbarContent>
         </Toolbar>
       </PageSection>
       <PageSection isFilled>
-        {workspaceImages.length === 0 && <CustomEmptyState onClearFilters={clearAllFilters} />}
-        {workspaceImages.length > 0 && (
+        {filteredWorkspaceImages.length === 0 && (
+          <CustomEmptyState onClearFilters={clearAllFilters} />
+        )}
+        {filteredWorkspaceImages.length > 0 && (
           <Gallery hasGutter aria-label="Selectable card container">
-            {workspaceImages.map((image) => (
+            {filteredWorkspaceImages.map((image) => (
               <Card
                 isCompact
                 isSelectable

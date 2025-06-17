@@ -277,7 +277,8 @@ export interface WorkspaceUpdate extends WorkspaceCreate {}
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface WorkspacePatch {}
 
-// TODO: Update these types when applicable; meanwhile, they are empty objects
-type EmptyObject = Record<string, never>;
-export type PauseWorkspaceResponse = EmptyObject;
-export type StartWorkspaceResponse = EmptyObject;
+export interface WorkspacePauseState {
+  namespace: string;
+  workspaceName: string;
+  paused: boolean;
+}

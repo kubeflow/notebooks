@@ -11,17 +11,24 @@ module.exports = {
   },
   create(context) {
     const hooks = new Set([
-      'useState', 'useEffect', 'useContext', 'useReducer',
-      'useCallback', 'useMemo', 'useRef', 'useLayoutEffect',
-      'useImperativeHandle', 'useDebugValue', 'useDeferredValue',
-      'useTransition', 'useId', 'useSyncExternalStore',
+      'useState',
+      'useEffect',
+      'useContext',
+      'useReducer',
+      'useCallback',
+      'useMemo',
+      'useRef',
+      'useLayoutEffect',
+      'useImperativeHandle',
+      'useDebugValue',
+      'useDeferredValue',
+      'useTransition',
+      'useId',
+      'useSyncExternalStore',
     ]);
     return {
       MemberExpression(node) {
-        if (
-          node.object?.name === 'React' &&
-          hooks.has(node.property?.name)
-        ) {
+        if (node.object?.name === 'React' && hooks.has(node.property?.name)) {
           context.report({
             node,
             messageId: 'avoidNamespaceHook',

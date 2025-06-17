@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   CardTitle,
   Gallery,
@@ -12,6 +12,14 @@ import {
 import { WorkspacePodConfigValue } from '~/shared/api/backendApiTypes';
 import Filter, { FilteredColumn, FilterRef } from '~/shared/components/Filter';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
+import { defineDataFields, FilterableDataFieldKey } from '~/app/filterableDataHelper';
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const { fields, filterableLabelMap } = defineDataFields({
+  name: { label: 'Name', isFilterable: true, isSortable: false },
+});
+
+type FilterableDataFieldKeys = FilterableDataFieldKey<typeof fields>;
 
 type WorkspaceFormPodConfigListProps = {
   podConfigs: WorkspacePodConfigValue[];
@@ -23,17 +31,8 @@ type WorkspaceFormPodConfigListProps = {
 export const WorkspaceFormPodConfigList: React.FunctionComponent<
   WorkspaceFormPodConfigListProps
 > = ({ podConfigs, selectedLabels, selectedPodConfig, onSelect }) => {
-  const [workspacePodConfigs, setWorkspacePodConfigs] =
-    useState<WorkspacePodConfigValue[]>(podConfigs);
   const [filters, setFilters] = useState<FilteredColumn[]>([]);
   const filterRef = useRef<FilterRef>(null);
-
-  const filterableColumns = useMemo(
-    () => ({
-      name: 'Name',
-    }),
-    [],
-  );
 
   const getFilteredWorkspacePodConfigsByLabels = useCallback(
     (unfilteredPodConfigs: WorkspacePodConfigValue[]) =>
@@ -53,34 +52,24 @@ export const WorkspaceFormPodConfigList: React.FunctionComponent<
     filterRef.current?.clearAll();
   }, []);
 
-  const onChange = useCallback(
-    (event: React.FormEvent<HTMLInputElement>) => {
-      const newSelectedWorkspacePodConfig = workspacePodConfigs.find(
-        (podConfig) => podConfig.displayName === event.currentTarget.name,
-      );
-      onSelect(newSelectedWorkspacePodConfig);
-    },
-    [workspacePodConfigs, onSelect],
-  );
-
-  useEffect(() => {
-    // Search name with search value
-    let filteredWorkspacePodConfigs = podConfigs;
-
-    filters.forEach((filter) => {
+  const filteredWorkspacePodConfigs = useMemo(() => {
+    if (podConfigs.length === 0) {
+      return [];
+    }
+    return filters.reduce((result, filter) => {
       let searchValueInput: RegExp;
       try {
         searchValueInput = new RegExp(filter.value, 'i');
       } catch {
         searchValueInput = new RegExp(filter.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
       }
-
-      filteredWorkspacePodConfigs = filteredWorkspacePodConfigs.filter((podConfig) => {
+      const filterResult = result.filter((podConfig) => {
         if (filter.value === '') {
           return true;
         }
-        switch (filter.columnName) {
-          case filterableColumns.name:
+        switch (filter.columnKey as FilterableDataFieldKeys) {
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          case 'name':
             return (
               podConfig.id.search(searchValueInput) >= 0 ||
               podConfig.displayName.search(searchValueInput) >= 0
@@ -89,16 +78,19 @@ export const WorkspaceFormPodConfigList: React.FunctionComponent<
             return true;
         }
       });
-    });
+      return getFilteredWorkspacePodConfigsByLabels(filterResult);
+    }, podConfigs);
+  }, [filters, getFilteredWorkspacePodConfigsByLabels, podConfigs]);
 
-    setWorkspacePodConfigs(getFilteredWorkspacePodConfigsByLabels(filteredWorkspacePodConfigs));
-  }, [
-    filterableColumns,
-    filters,
-    podConfigs,
-    selectedLabels,
-    getFilteredWorkspacePodConfigsByLabels,
-  ]);
+  const onChange = useCallback(
+    (event: React.FormEvent<HTMLInputElement>) => {
+      const newSelectedWorkspacePodConfig = filteredWorkspacePodConfigs.find(
+        (podConfig) => podConfig.displayName === event.currentTarget.name,
+      );
+      onSelect(newSelectedWorkspacePodConfig);
+    },
+    [filteredWorkspacePodConfigs, onSelect],
+  );
 
   return (
     <>
@@ -108,17 +100,20 @@ export const WorkspaceFormPodConfigList: React.FunctionComponent<
             <Filter
               ref={filterRef}
               id="filter-workspace-images"
-              onFilter={setFilters}
-              columnNames={filterableColumns}
+              filters={filters}
+              setFilters={setFilters}
+              columnDefinition={filterableLabelMap}
             />
           </ToolbarContent>
         </Toolbar>
       </PageSection>
       <PageSection isFilled>
-        {workspacePodConfigs.length === 0 && <CustomEmptyState onClearFilters={clearAllFilters} />}
-        {workspacePodConfigs.length > 0 && (
+        {filteredWorkspacePodConfigs.length === 0 && (
+          <CustomEmptyState onClearFilters={clearAllFilters} />
+        )}
+        {filteredWorkspacePodConfigs.length > 0 && (
           <Gallery hasGutter aria-label="Selectable card container">
-            {workspacePodConfigs.map((podConfig) => (
+            {filteredWorkspacePodConfigs.map((podConfig) => (
               <Card
                 isCompact
                 isSelectable
