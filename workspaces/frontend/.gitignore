@@ -6,3 +6,5 @@ stats.json
 coverage
 .idea
 .env
+.vscode/*
+!.vscode/settings.json
