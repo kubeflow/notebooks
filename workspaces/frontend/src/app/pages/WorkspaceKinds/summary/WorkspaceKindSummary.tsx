@@ -92,7 +92,7 @@ const WorkspaceKindSummary: React.FC = () => {
             ref={workspaceTableRef}
             workspaces={workspaces}
             canCreateWorkspaces={false}
-            hiddenColumns={['connect', 'kind']}
+            hiddenColumns={['connect', 'kind', 'homeVol']}
             rowActions={tableRowActions}
           />
         </StackItem>

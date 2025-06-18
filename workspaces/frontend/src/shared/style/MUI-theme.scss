@@ -256,18 +256,6 @@
   z-index: 1;
 }
 
-// Switch and radio button labels
-.mui-theme .pf-v6-c-form__group:has(.pf-v6-c-switch) .pf-v6-c-form__label,
-.mui-theme .pf-v6-c-form__group:has(.pf-v6-c-radio) .pf-v6-c-form__label {
-  position: static;
-  left: 0;
-  font-size: 16px;
-  transform: none;
-  background-color: transparent;
-  padding: 0;
-  z-index: auto;
-}
-
 .mui-theme .pf-v6-c-form-control input::placeholder {
   --pf-v6-c-form-control--m-placeholder--Color: var(--mui-palette-grey-600);
 }
