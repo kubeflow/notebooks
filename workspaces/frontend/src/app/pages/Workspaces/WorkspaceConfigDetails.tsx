@@ -23,12 +23,16 @@ export const WorkspaceConfigDetails: React.FC<WorkspaceConfigDetailsProps> = ({ 
       </DescriptionListGroup>
       <DescriptionListGroup>
         <DescriptionListTerm>CPU</DescriptionListTerm>
-        <DescriptionListDescription>{formatResourceFromWorkspace(workspace, 'cpu')}</DescriptionListDescription>
+        <DescriptionListDescription>
+          {formatResourceFromWorkspace(workspace, 'cpu')}
+        </DescriptionListDescription>
       </DescriptionListGroup>
       <DescriptionListGroup>
         <DescriptionListTerm>Memory</DescriptionListTerm>
-        <DescriptionListDescription>{formatResourceFromWorkspace(workspace, 'memory')}</DescriptionListDescription>
+        <DescriptionListDescription>
+          {formatResourceFromWorkspace(workspace, 'memory')}
+        </DescriptionListDescription>
       </DescriptionListGroup>
     </DescriptionList>
   );
-}; 
+};

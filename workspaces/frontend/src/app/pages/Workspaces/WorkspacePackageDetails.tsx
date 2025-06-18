@@ -8,7 +8,6 @@ import {
   DescriptionListGroup,
 } from '@patternfly/react-core';
 import { Workspace } from '~/shared/api/backendApiTypes';
-import { WorkspaceFormImageDetails } from './Form/image/WorkspaceFormImageDetails';
 
 interface WorkspacePackageDetailsProps {
   workspace: Workspace;

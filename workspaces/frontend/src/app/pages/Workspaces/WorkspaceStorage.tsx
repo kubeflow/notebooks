@@ -22,8 +22,8 @@ export const WorkspaceStorage: React.FC<WorkspaceStorageProps> = ({ workspace })
         </DescriptionListDescription>
       </DescriptionListGroup>
       <DescriptionListGroup>
-          <DataVolumesList workspace={workspace} />
+        <DataVolumesList workspace={workspace} />
       </DescriptionListGroup>
     </DescriptionList>
   );
-}; 
+};

@@ -294,24 +294,24 @@ export const buildMockWorkspaceList = (args: {
 }): Workspace[] => {
   const states = Object.values(WorkspaceState);
   const imageConfigs = [
-    { 
-      id: 'jupyterlab_scipy_190', 
+    {
+      id: 'jupyterlab_scipy_190',
       displayName: `jupyter-scipy:v1.9.0`,
       labels: [
         { key: 'pythonVersion', value: '3.12' },
         { key: 'jupyterlabVersion', value: '1.9.0' },
       ],
     },
-    { 
-      id: 'jupyterlab_scipy_200', 
+    {
+      id: 'jupyterlab_scipy_200',
       displayName: `jupyter-scipy:v2.0.0`,
       labels: [
         { key: 'pythonVersion', value: '3.12' },
         { key: 'jupyterlabVersion', value: '2.0.0' },
       ],
     },
-    { 
-      id: 'jupyterlab_scipy_210', 
+    {
+      id: 'jupyterlab_scipy_210',
       displayName: `jupyter-scipy:v2.1.0`,
       labels: [
         { key: 'pythonVersion', value: '3.13' },

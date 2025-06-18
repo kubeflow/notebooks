@@ -58,7 +58,9 @@ export const DataVolumesList: React.FC<DataVolumesListProps> = ({ workspace }) =
   return (
     <DescriptionList>
       <DescriptionListGroup>
-        <DescriptionListTerm data-testid="notebook-storage-bar-title">Cluster storage</DescriptionListTerm>
+        <DescriptionListTerm data-testid="notebook-storage-bar-title">
+          Cluster storage
+        </DescriptionListTerm>
         <DescriptionListDescription>
           <List isPlain>
             {workspaceDataVol.map((data, index) => (

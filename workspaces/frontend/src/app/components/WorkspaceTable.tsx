@@ -40,7 +40,6 @@ import {
   FilterableDataFieldKey,
   SortableDataFieldKey,
 } from '~/app/filterableDataHelper';
-import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
 import { useTypedNavigate } from '~/app/routerHelper';
 import {
   buildKindLogoDictionary,
@@ -375,9 +374,9 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
             }
           />
         </Content>
-        <Table 
-          data-testid="workspaces-table" 
-          aria-label="Sortable table" 
+        <Table
+          data-testid="workspaces-table"
+          aria-label="Sortable table"
           ouiaId="SortableTable"
           style={{ tableLayout: 'fixed' }}
         >
@@ -385,7 +384,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
             <Tr>
               {canExpandRows && <Th width={10} screenReaderText="expand-action" />}
               {visibleColumnKeys.includes('name') && (
-                <Th 
+                <Th
                   width={25}
                   key="workspace-table-column-name"
                   sort={getSortParams('name')}
@@ -396,7 +395,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                 </Th>
               )}
               {visibleColumnKeys.includes('image') && (
-                <Th 
+                <Th
                   width={25}
                   key="workspace-table-column-image"
                   sort={getSortParams('image')}
@@ -407,7 +406,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                 </Th>
               )}
               {visibleColumnKeys.includes('kind') && (
-                <Th 
+                <Th
                   width={20}
                   key="workspace-table-column-kind"
                   sort={getSortParams('kind')}
@@ -418,7 +417,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                 </Th>
               )}
               {visibleColumnKeys.includes('namespace') && (
-                <Th 
+                <Th
                   width={15}
                   key="workspace-table-column-namespace"
                   sort={getSortParams('namespace')}
@@ -429,7 +428,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                 </Th>
               )}
               {visibleColumnKeys.includes('state') && (
-                <Th 
+                <Th
                   width={15}
                   key="workspace-table-column-state"
                   sort={getSortParams('state')}
@@ -440,7 +439,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                 </Th>
               )}
               {visibleColumnKeys.includes('gpu') && (
-                <Th 
+                <Th
                   width={15}
                   key="workspace-table-column-gpu"
                   sort={getSortParams('gpu')}
@@ -451,7 +450,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                 </Th>
               )}
               {visibleColumnKeys.includes('idleGpu') && (
-                <Th 
+                <Th
                   width={15}
                   key="workspace-table-column-idleGpu"
                   sort={getSortParams('idleGpu')}
@@ -462,7 +461,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                 </Th>
               )}
               {visibleColumnKeys.includes('lastActivity') && (
-                <Th 
+                <Th
                   width={15}
                   key="workspace-table-column-lastActivity"
                   sort={getSortParams('lastActivity')}
@@ -518,8 +517,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                         {workspace.podTemplate.options.imageConfig.current.displayName}{' '}
                         {workspaceRedirectStatus[workspace.workspaceKind.name]
                           ? getRedirectStatusIcon(
-                              workspaceRedirectStatus[workspace.workspaceKind.name]?.message
-                                ?.level,
+                              workspaceRedirectStatus[workspace.workspaceKind.name]?.message?.level,
                               workspaceRedirectStatus[workspace.workspaceKind.name]?.message
                                 ?.text || 'No API response available',
                             )
@@ -555,9 +553,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                       data-testid="state-label"
                       dataLabel={wsTableColumns.state.label}
                     >
-                      <Label color={extractStateColor(workspace.state)}>
-                        {workspace.state}
-                      </Label>
+                      <Label color={extractStateColor(workspace.state)}>{workspace.state}</Label>
                     </Td>
                   )}
                   {visibleColumnKeys.includes('gpu') && (
@@ -654,4 +650,3 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
 WorkspaceTable.displayName = 'WorkspaceTable';
 
 export default WorkspaceTable;
-
