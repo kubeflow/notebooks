@@ -12,18 +12,16 @@ interface WorkspaceStorageProps {
   workspace: Workspace;
 }
 
-export const WorkspaceStorage: React.FC<WorkspaceStorageProps> = ({ workspace }) => {
-  return (
-    <DescriptionList>
-      <DescriptionListGroup>
-        <DescriptionListTerm>Home volume</DescriptionListTerm>
-        <DescriptionListDescription>
-          {workspace.podTemplate.volumes.home?.pvcName ?? 'None'}
-        </DescriptionListDescription>
-      </DescriptionListGroup>
-      <DescriptionListGroup>
-        <DataVolumesList workspace={workspace} />
-      </DescriptionListGroup>
-    </DescriptionList>
-  );
-};
+export const WorkspaceStorage: React.FC<WorkspaceStorageProps> = ({ workspace }) => (
+  <DescriptionList>
+    <DescriptionListGroup>
+      <DescriptionListTerm>Home volume</DescriptionListTerm>
+      <DescriptionListDescription>
+        {workspace.podTemplate.volumes.home?.pvcName ?? 'None'}
+      </DescriptionListDescription>
+    </DescriptionListGroup>
+    <DescriptionListGroup>
+      <DataVolumesList workspace={workspace} />
+    </DescriptionListGroup>
+  </DescriptionList>
+);

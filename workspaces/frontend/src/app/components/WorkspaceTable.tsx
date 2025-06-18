@@ -53,9 +53,9 @@ import {
   formatResourceFromWorkspace,
   formatWorkspaceIdleState,
 } from '~/shared/utilities/WorkspaceUtils';
-import { WorkspaceConfigDetails } from '../pages/Workspaces/WorkspaceConfigDetails';
-import { WorkspaceStorage } from '../pages/Workspaces/WorkspaceStorage';
-import { WorkspacePackageDetails } from '../pages/Workspaces/WorkspacePackageDetails';
+import { WorkspaceConfigDetails } from '~/app/pages/Workspaces/WorkspaceConfigDetails';
+import { WorkspaceStorage } from '~/app/pages/Workspaces/WorkspaceStorage';
+import { WorkspacePackageDetails } from '~/app/pages/Workspaces/WorkspacePackageDetails';
 
 const {
   fields: wsTableColumns,
