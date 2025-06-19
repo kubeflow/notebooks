@@ -140,7 +140,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "example": "jupyterlab",
+                        "x-example": "jupyterlab",
                         "description": "Name of the workspace kind",
                         "name": "name",
                         "in": "path",
@@ -250,7 +250,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "example": "kubeflow-user-example-com",
+                        "x-example": "kubeflow-user-example-com",
                         "description": "Namespace to filter workspaces. If not provided, returns all workspaces across all namespaces.",
                         "name": "namespace",
                         "in": "path",
@@ -305,7 +305,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "example": "kubeflow-user-example-com",
+                        "x-example": "kubeflow-user-example-com",
                         "description": "Namespace for the workspace",
                         "name": "namespace",
                         "in": "path",
@@ -377,7 +377,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "example": "kubeflow-user-example-com",
+                        "x-example": "kubeflow-user-example-com",
                         "description": "Namespace of the workspace",
                         "name": "namespace",
                         "in": "path",
@@ -385,7 +385,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "example": "my-workspace",
+                        "x-example": "my-workspace",
                         "description": "Name of the workspace",
                         "name": "workspace_name",
                         "in": "path",
@@ -446,7 +446,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "example": "kubeflow-user-example-com",
+                        "x-example": "kubeflow-user-example-com",
                         "description": "Namespace of the workspace",
                         "name": "namespace",
                         "in": "path",
@@ -454,7 +454,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "example": "my-workspace",
+                        "x-example": "my-workspace",
                         "description": "Name of the workspace",
                         "name": "workspace_name",
                         "in": "path",

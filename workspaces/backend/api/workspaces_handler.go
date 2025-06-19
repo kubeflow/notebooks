@@ -46,8 +46,8 @@ type WorkspaceEnvelope Envelope[models.Workspace]
 //	@Tags			workspaces
 //	@Accept			json
 //	@Produce		json
-//	@Param			namespace		path		string				true	"Namespace of the workspace"	example(kubeflow-user-example-com)
-//	@Param			workspace_name	path		string				true	"Name of the workspace"			example(my-workspace)
+//	@Param			namespace		path		string				true	"Namespace of the workspace"	extensions(x-example=kubeflow-user-example-com)
+//	@Param			workspace_name	path		string				true	"Name of the workspace"			extensions(x-example=my-workspace)
 //	@Success		200				{object}	WorkspaceEnvelope	"Successful operation. Returns the requested workspace details."
 //	@Failure		400				{object}	ErrorEnvelope		"Bad Request. Invalid namespace or workspace name format."
 //	@Failure		401				{object}	ErrorEnvelope		"Unauthorized. Authentication is required."
@@ -108,7 +108,7 @@ func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps htt
 //	@Tags			workspaces
 //	@Accept			json
 //	@Produce		json
-//	@Param			namespace	path		string					true	"Namespace to filter workspaces. If not provided, returns all workspaces across all namespaces."	example(kubeflow-user-example-com)
+//	@Param			namespace	path		string					true	"Namespace to filter workspaces. If not provided, returns all workspaces across all namespaces."	extensions(x-example=kubeflow-user-example-com)
 //	@Success		200			{object}	WorkspaceListEnvelope	"Successful operation. Returns a list of workspaces."
 //	@Failure		400			{object}	ErrorEnvelope			"Bad Request. Invalid namespace format."
 //	@Failure		401			{object}	ErrorEnvelope			"Unauthorized. Authentication is required."
@@ -169,7 +169,7 @@ func (a *App) GetWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps ht
 //	@Tags			workspaces
 //	@Accept			json
 //	@Produce		json
-//	@Param			namespace	path		string					true	"Namespace for the workspace"	example(kubeflow-user-example-com)
+//	@Param			namespace	path		string					true	"Namespace for the workspace"	extensions(x-example=kubeflow-user-example-com)
 //	@Param			body		body		WorkspaceCreateEnvelope	true	"Workspace creation configuration"
 //	@Success		201			{object}	WorkspaceEnvelope		"Workspace created successfully"
 //	@Failure		400			{object}	ErrorEnvelope			"Bad Request. Invalid request body or namespace format."
@@ -263,8 +263,8 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 //	@Tags			workspaces
 //	@Accept			json
 //	@Produce		json
-//	@Param			namespace		path		string			true	"Namespace of the workspace"	example(kubeflow-user-example-com)
-//	@Param			workspace_name	path		string			true	"Name of the workspace"			example(my-workspace)
+//	@Param			namespace		path		string			true	"Namespace of the workspace"	extensions(x-example=kubeflow-user-example-com)
+//	@Param			workspace_name	path		string			true	"Name of the workspace"			extensions(x-example=my-workspace)
 //	@Success		204				{object}	nil				"Workspace deleted successfully"
 //	@Failure		400				{object}	ErrorEnvelope	"Bad Request. Invalid namespace or workspace name format."
 //	@Failure		401				{object}	ErrorEnvelope	"Unauthorized. Authentication is required."

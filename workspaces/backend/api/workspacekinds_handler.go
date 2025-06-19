@@ -42,7 +42,7 @@ type WorkspaceKindEnvelope Envelope[models.WorkspaceKind]
 //	@Tags			workspacekinds
 //	@Accept			json
 //	@Produce		json
-//	@Param			name	path		string					true	"Name of the workspace kind"	example(jupyterlab)
+//	@Param			name	path		string					true	"Name of the workspace kind"	extensions(x-example=jupyterlab)
 //	@Success		200		{object}	WorkspaceKindEnvelope	"Successful operation. Returns the requested workspace kind details."
 //	@Failure		400		{object}	ErrorEnvelope			"Bad Request. Invalid workspace kind name format."
 //	@Failure		401		{object}	ErrorEnvelope			"Unauthorized. Authentication is required."
