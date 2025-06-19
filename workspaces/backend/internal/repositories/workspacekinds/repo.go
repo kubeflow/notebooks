@@ -28,6 +28,7 @@ import (
 )
 
 var ErrWorkspaceKindNotFound = errors.New("workspace kind not found")
+var ErrWorkspaceKindAlreadyExists = errors.New("workspacekind already exists")
 
 type WorkspaceKindRepository struct {
 	client client.Client
@@ -67,4 +68,22 @@ func (r *WorkspaceKindRepository) GetWorkspaceKinds(ctx context.Context) ([]mode
 	}
 
 	return workspaceKindsModels, nil
+}
+
+func (r *WorkspaceKindRepository) Create(ctx context.Context, wk *kubefloworgv1beta1.WorkspaceKind) (models.WorkspaceKind, error) {
+	if err := r.client.Create(ctx, wk); err != nil {
+		if apierrors.IsAlreadyExists(err) {
+			return models.WorkspaceKind{}, ErrWorkspaceKindAlreadyExists
+		}
+		if apierrors.IsInvalid(err) {
+			// NOTE: we don't wrap this error so we can unpack it in the caller
+			return models.WorkspaceKind{}, err
+		}
+		return models.WorkspaceKind{}, err
+	}
+
+	// Convert the created k8s object to our backend model before returning
+	createdModel := models.NewWorkspaceKindModelFromWorkspaceKind(wk)
+
+	return createdModel, nil
 }
