@@ -94,3 +94,9 @@ func (a *App) LocationGetWorkspace(namespace, name string) string {
 	path = strings.Replace(path, ":"+ResourceNamePathParam, name, 1)
 	return path
 }
+
+// LocationGetWorkspaceKind returns the GET location (HTTP path) for a workspace kind resource.
+func (a *App) LocationGetWorkspaceKind(name string) string {
+	path := strings.Replace(WorkspaceKindsByNamePath, ":"+ResourceNamePathParam, name, 1)
+	return path
+}

@@ -17,6 +17,7 @@ limitations under the License.
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -195,8 +196,6 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 		})
 	})
 
-	// NOTE: these tests assume a specific state of the cluster, so cannot be run in parallel with other tests.
-	//       therefore, we run them using the `Serial` Ginkgo decorators.
 	Context("with no existing WorkspaceKinds", Serial, func() {
 
 		It("should return an empty list of WorkspaceKinds", func() {
@@ -252,6 +251,145 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 
 			By("verifying the HTTP response status code")
 			Expect(rs.StatusCode).To(Equal(http.StatusNotFound), descUnexpectedHTTPStatus, rr.Body.String())
+		})
+	})
+
+	// NOTE: these tests create and delete resources on the cluster, so cannot be run in parallel.
+	//       therefore, we run them using the `Serial` Ginkgo decorator.
+	Context("when creating a WorkspaceKind", Serial, func() {
+
+		var newWorkspaceKindName = "wsk-create-test"
+		var validYAML []byte
+
+		// BeforeEach runs before each "It" block, ensuring the validYAML is always available.
+		BeforeEach(func() {
+			validYAML = []byte(fmt.Sprintf(`
+apiVersion: kubeflow.org/v1beta1
+kind: WorkspaceKind
+metadata:
+  name: %s
+spec:
+  spawner:
+    displayName: "Test Jupyter Environment"
+    description: "A valid description for testing."
+    icon:
+      url: "https://example.com/icon.png"
+    logo:
+      url: "https://example.com/logo.svg"
+  podTemplate:
+    options:
+      imageConfig:
+        spawner:
+          default: "default-image"
+        values:
+        - id: "default-image"
+          name: "Jupyter Scipy"
+          path: "kubeflownotebooks/jupyter-scipy:v1.9.0"
+          spawner:
+            displayName: "Jupyter with SciPy v1.9.0"
+          spec:
+            image: "kubeflownotebooks/jupyter-scipy:v1.9.0"
+            ports:
+            - id: "notebook-port"
+              displayName: "Notebook Port"
+              port: 8888
+              protocol: "HTTP"
+      podConfig:
+        spawner:
+          default: "default-pod-config"
+        values:
+        - id: "default-pod-config"
+          name: "Default Resources"
+          spawner:
+            displayName: "Small CPU/RAM"
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "1"
+              memory: "2Gi"
+    volumeMounts:
+      home: "/home/jovyan"
+`, newWorkspaceKindName))
+		})
+
+		AfterEach(func() {
+			By("cleaning up the created WorkspaceKind")
+			wsk := &kubefloworgv1beta1.WorkspaceKind{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: newWorkspaceKindName,
+				},
+			}
+			_ = k8sClient.Delete(ctx, wsk)
+		})
+
+		It("should succeed when creating a new WorkspaceKind with valid YAML", func() {
+			req, err := http.NewRequest(http.MethodPost, AllWorkspaceKindsPath, bytes.NewReader(validYAML))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", ContentTypeYAMLManifest)
+			req.Header.Set(userIdHeader, adminUser)
+
+			rr := httptest.NewRecorder()
+			a.CreateWorkspaceKindHandler(rr, req, httprouter.Params{})
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			Expect(rs.StatusCode).To(Equal(http.StatusCreated), "Body: %s", rr.Body.String())
+		})
+
+		It("should return a 409 Conflict when creating a WorkspaceKind that already exists", func() {
+			By("creating the resource once successfully")
+			req1, _ := http.NewRequest(http.MethodPost, AllWorkspaceKindsPath, bytes.NewReader(validYAML))
+			req1.Header.Set("Content-Type", ContentTypeYAMLManifest)
+			req1.Header.Set(userIdHeader, adminUser)
+			rr1 := httptest.NewRecorder()
+			a.CreateWorkspaceKindHandler(rr1, req1, httprouter.Params{})
+			Expect(rr1.Code).To(Equal(http.StatusCreated))
+
+			By("attempting to create the exact same resource a second time")
+			req2, _ := http.NewRequest(http.MethodPost, AllWorkspaceKindsPath, bytes.NewReader(validYAML))
+			req2.Header.Set("Content-Type", ContentTypeYAMLManifest)
+			req2.Header.Set(userIdHeader, adminUser)
+			rr2 := httptest.NewRecorder()
+			a.CreateWorkspaceKindHandler(rr2, req2, httprouter.Params{})
+
+			Expect(rr2.Code).To(Equal(http.StatusConflict))
+		})
+
+		It("should fail with 400 Bad Request when the YAML has the wrong kind", func() {
+			wrongKindYAML := []byte(`apiVersion: v1
+kind: Pod
+metadata:
+  name: i-am-the-wrong-kind`)
+			req, _ := http.NewRequest(http.MethodPost, AllWorkspaceKindsPath, bytes.NewReader(wrongKindYAML))
+			req.Header.Set("Content-Type", ContentTypeYAMLManifest)
+			req.Header.Set(userIdHeader, adminUser)
+
+			rr := httptest.NewRecorder()
+			a.CreateWorkspaceKindHandler(rr, req, httprouter.Params{})
+
+			Expect(rr.Code).To(Equal(http.StatusBadRequest))
+			// UPDATED: Check for the new, more specific error message
+			Expect(rr.Body.String()).To(ContainSubstring("no kind \\\"Pod\\\" is registered"))
+		})
+
+		It("should fail with 400 Bad Request for an empty YAML object", func() {
+			invalidYAML := []byte("{}")
+			req, err := http.NewRequest(http.MethodPost, AllWorkspaceKindsPath, bytes.NewReader(invalidYAML))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", ContentTypeYAMLManifest)
+			req.Header.Set(userIdHeader, adminUser)
+
+			rr := httptest.NewRecorder()
+			a.CreateWorkspaceKindHandler(rr, req, httprouter.Params{})
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
+			body, _ := io.ReadAll(rs.Body)
+			// UPDATED: Check for the new, more specific error message from the secure parser
+			Expect(string(body)).To(ContainSubstring("failed to decode YAML manifest"))
 		})
 	})
 })
