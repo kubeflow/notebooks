@@ -56,6 +56,9 @@ const (
 	// swagger
 	SwaggerPath    = PathPrefix + "/swagger/*any"
 	SwaggerDocPath = PathPrefix + "/swagger/doc.json"
+
+	// YAML manifest content type
+	ContentTypeYAMLManifest = "application/vnd.kubeflow-notebooks.manifest+yaml"
 )
 
 type App struct {
@@ -106,6 +109,7 @@ func (a *App) Routes() http.Handler {
 	// workspacekinds
 	router.GET(AllWorkspaceKindsPath, a.GetWorkspaceKindsHandler)
 	router.GET(WorkspaceKindsByNamePath, a.GetWorkspaceKindHandler)
+	router.POST(AllWorkspaceKindsPath, a.CreateWorkspaceKindHandler)
 
 	// swagger
 	router.GET(SwaggerPath, a.GetSwaggerHandler)
