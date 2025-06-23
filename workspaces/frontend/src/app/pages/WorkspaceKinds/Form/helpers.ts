@@ -1,8 +1,5 @@
-import {
-  ImagePullPolicy,
-  WorkspaceOptionLabel,
-  WorkspaceKindImagePort,
-} from '~/shared/api/backendApiTypes';
+import { ImagePullPolicy, WorkspaceKindImagePort } from '~/app/types';
+import { WorkspaceOptionLabel } from '~/shared/api/backendApiTypes';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
 export const isValidWorkspaceKindYaml = (data: any): boolean => {

@@ -13,8 +13,7 @@ import {
   Switch,
   HelperText,
 } from '@patternfly/react-core';
-import { WorkspaceKindImageConfigValue } from '~/app/types';
-import { ImagePullPolicy } from '~/shared/api/backendApiTypes';
+import { WorkspaceKindImageConfigValue, ImagePullPolicy } from '~/app/types';
 import { WorkspaceKindFormLabelTable } from '~/app/pages/WorkspaceKinds/Form/WorkspaceKindFormLabels';
 import { emptyImage } from '~/app/pages/WorkspaceKinds/Form/helpers';
 

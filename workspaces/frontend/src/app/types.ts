@@ -5,10 +5,7 @@ import {
   WorkspacePodVolumeMount,
   WorkspacePodSecretMount,
   Workspace,
-  ImagePullPolicy,
-  WorkspaceKindImagePort,
   WorkspaceImageRef,
-  WorkspaceKindImageConfig,
 } from '~/shared/api/backendApiTypes';
 
 export interface WorkspaceColumnDefinition {
@@ -62,4 +59,25 @@ export interface WorkspaceKindImageConfigValue extends WorkspaceImageConfigValue
   image: string;
 }
 
-export type WorkspaceKindImageFormInput = WorkspaceKindImageConfig<WorkspaceKindImageConfigValue>;
+export enum ImagePullPolicy {
+  IfNotPresent = 'IfNotPresent',
+  Always = 'Always',
+  Never = 'Never',
+}
+
+export interface WorkspaceKindImagePort {
+  id: string;
+  displayName: string;
+  port: number;
+  protocol: 'HTTP'; // ONLY HTTP is supported at the moment, per https://github.com/thesuperzapper/kubeflow-notebooks-v2-design/blob/main/crds/workspace-kind.yaml#L275
+}
+
+export interface WorkspaceKindImageConfigData {
+  default: string;
+  values: WorkspaceKindImageConfigValue[];
+}
+
+export interface WorkspaceKindFormData {
+  properties: WorkspaceKindProperties;
+  imageConfig: WorkspaceKindImageConfigData;
+}

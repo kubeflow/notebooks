@@ -9,16 +9,17 @@ import {
   Content,
 } from '@patternfly/react-core';
 import { UpdateObjectAtPropAndValue } from '~/app/hooks/useGenericObjectState';
-import { WorkspaceKindCreate } from '~/shared/api/backendApiTypes';
+import { WorkspaceKindFormData } from '~/app/types';
 import { isValidWorkspaceKindYaml } from '~/app/pages/WorkspaceKinds/Form/helpers';
+import { ValidationStatus } from '~/app/pages/WorkspaceKinds/Form/WorkspaceKindForm';
 
 interface WorkspaceKindFileUploadProps {
-  setData: UpdateObjectAtPropAndValue<WorkspaceKindCreate>;
+  setData: UpdateObjectAtPropAndValue<WorkspaceKindFormData>;
   value: string;
   setValue: (v: string) => void;
   resetData: () => void;
-  validated: 'success' | 'error' | 'default';
-  setValidated: (type: 'success' | 'error' | 'default') => void;
+  validated: ValidationStatus;
+  setValidated: (type: ValidationStatus) => void;
 }
 
 export const WorkspaceKindFileUpload: React.FC<WorkspaceKindFileUploadProps> = ({

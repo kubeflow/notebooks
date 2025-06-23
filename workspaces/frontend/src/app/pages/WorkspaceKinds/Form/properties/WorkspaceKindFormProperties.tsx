@@ -43,7 +43,6 @@ export const WorkspaceKindFormProperties: React.FC<WorkspaceKindFormPropertiesPr
             </FormGroup>
             <FormGroup label="Description" fieldId="workspace-kind-description">
               <TextInput
-                // style={{ lineHeight: 'calc(2*var(--pf-t--global--font--line-height--body))' }}
                 type="text"
                 value={properties.description}
                 onChange={(_, value) => updateField({ ...properties, description: value })}

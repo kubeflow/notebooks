@@ -19,14 +19,14 @@ import {
 } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { PlusCircleIcon, EllipsisVIcon, CubesIcon } from '@patternfly/react-icons';
-import { WorkspaceKindImageConfigValue, WorkspaceKindImageFormInput } from '~/app/types';
+import { WorkspaceKindImageConfigData, WorkspaceKindImageConfigValue } from '~/app/types';
 import { emptyImage } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { WorkspaceKindFormImageModal } from './WorkspaceKindFormImageModal';
 
 interface WorkspaceKindFormImageProps {
   mode: string;
-  imageConfig: WorkspaceKindImageFormInput;
-  updateImageConfig: (images: WorkspaceKindImageFormInput) => void;
+  imageConfig: WorkspaceKindImageConfigData;
+  updateImageConfig: (images: WorkspaceKindImageConfigData) => void;
 }
 
 export const WorkspaceKindFormImage: React.FC<WorkspaceKindFormImageProps> = ({
