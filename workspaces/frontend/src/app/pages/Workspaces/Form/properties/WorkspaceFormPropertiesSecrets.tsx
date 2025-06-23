@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { EllipsisVIcon } from '@patternfly/react-icons';
+import { EllipsisVIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tbody, Tr, Th, Td, TableVariant } from '@patternfly/react-table';
 import {
   Button,
@@ -152,7 +152,12 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
           </Tbody>
         </Table>
       )}
-      <Button variant="primary" onClick={() => setIsModalOpen(true)} style={{ marginTop: '1rem' }}>
+      <Button
+        variant="primary"
+        icon={<PlusCircleIcon />}
+        onClick={() => setIsModalOpen(true)}
+        style={{ marginTop: '1rem', width: 'fit-content' }}
+      >
         Create Secret
       </Button>
       <Modal isOpen={isModalOpen} onClose={clearForm} variant={ModalVariant.small}>

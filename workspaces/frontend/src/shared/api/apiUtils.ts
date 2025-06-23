@@ -233,6 +233,10 @@ export const isErrorEnvelope = (e: unknown): e is ErrorEnvelope =>
   typeof (e as { error: { message: unknown } }).error.message === 'string';
 
 export function extractNotebookResponse<T>(response: unknown): T {
+  // Check if this is an error envelope first
+  if (isErrorEnvelope(response)) {
+    throw new ErrorEnvelopeException(response);
+  }
   if (isNotebookResponse<T>(response)) {
     return response.data;
   }
@@ -260,6 +264,9 @@ export async function wrapRequest<T>(promise: Promise<T>, extractData = true): P
     const res = await handleRestFailures<T>(promise);
     return extractData ? extractNotebookResponse<T>(res) : res;
   } catch (error) {
+    if (error instanceof ErrorEnvelopeException) {
+      throw error;
+    }
     throw new ErrorEnvelopeException(extractErrorEnvelope(error));
   }
 }

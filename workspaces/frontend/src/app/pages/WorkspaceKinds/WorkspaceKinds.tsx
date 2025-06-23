@@ -430,8 +430,17 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
         title: 'View Details',
         onClick: () => viewDetailsClick(workspaceKind),
       },
+      {
+        id: 'edit-workspace-kind',
+        title: 'Edit',
+        onClick: () =>
+          navigate('workspaceKindEdit', {
+            params: { kind: workspaceKind.name },
+            state: { workspaceKindName: workspaceKind.name },
+          }),
+      },
     ],
-    [viewDetailsClick],
+    [navigate, viewDetailsClick],
   );
 
   const workspaceDetailsContent = (
