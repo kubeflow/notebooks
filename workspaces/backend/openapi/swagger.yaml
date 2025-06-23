@@ -126,6 +126,8 @@ definitions:
     type: object
   workspacekinds.ImageConfigValue:
     properties:
+      clusterMetrics:
+        $ref: '#/definitions/workspacekinds.clusterMetrics'
       description:
         type: string
       displayName:
@@ -140,8 +142,6 @@ definitions:
         type: array
       redirect:
         $ref: '#/definitions/workspacekinds.OptionRedirect'
-      workspacesCount:
-        type: integer
     type: object
   workspacekinds.ImageRef:
     properties:
@@ -173,6 +173,8 @@ definitions:
     type: object
   workspacekinds.PodConfigValue:
     properties:
+      clusterMetrics:
+        $ref: '#/definitions/workspacekinds.clusterMetrics'
       description:
         type: string
       displayName:
@@ -187,8 +189,6 @@ definitions:
         type: array
       redirect:
         $ref: '#/definitions/workspacekinds.OptionRedirect'
-      workspacesCount:
-        type: integer
     type: object
   workspacekinds.PodMetadata:
     properties:
@@ -241,6 +241,8 @@ definitions:
     - RedirectMessageLevelDanger
   workspacekinds.WorkspaceKind:
     properties:
+      clusterMetrics:
+        $ref: '#/definitions/workspacekinds.clusterMetrics'
       deprecated:
         type: boolean
       deprecationMessage:
@@ -259,6 +261,9 @@ definitions:
         type: string
       podTemplate:
         $ref: '#/definitions/workspacekinds.PodTemplate'
+    type: object
+  workspacekinds.clusterMetrics:
+    properties:
       workspacesCount:
         type: integer
     type: object

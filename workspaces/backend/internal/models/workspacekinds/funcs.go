@@ -62,7 +62,10 @@ func NewWorkspaceKindModelFromWorkspaceKind(wsk *kubefloworgv1beta1.WorkspaceKin
 		Hidden:             ptr.Deref(wsk.Spec.Spawner.Hidden, false),
 		Icon:               iconRef,
 		Logo:               logoRef,
-		Workspaces:         wsk.Status.Workspaces,
+		// TODO: add namespaceMetrics
+		ClusterMetrics: clusterMetrics{
+			Workspaces: wsk.Status.Workspaces,
+		},
 		PodTemplate: PodTemplate{
 			PodMetadata: PodMetadata{
 				Labels:      podLabels,
@@ -104,7 +107,9 @@ func buildImageConfigValues(imageConfig kubefloworgv1beta1.ImageConfig, statusIm
 			Labels:      buildOptionLabels(option.Spawner.Labels),
 			Hidden:      ptr.Deref(option.Spawner.Hidden, false),
 			Redirect:    buildOptionRedirect(option.Redirect),
-			Workspaces:  statusImageConfigMap[option.Id],
+			ClusterMetrics: clusterMetrics{
+				Workspaces: statusImageConfigMap[option.Id],
+			},
 		}
 	}
 	return imageConfigValues
@@ -121,7 +126,9 @@ func buildPodConfigValues(podConfig kubefloworgv1beta1.PodConfig, statusPodConfi
 			Labels:      buildOptionLabels(option.Spawner.Labels),
 			Hidden:      ptr.Deref(option.Spawner.Hidden, false),
 			Redirect:    buildOptionRedirect(option.Redirect),
-			Workspaces:  statusPodConfigMap[option.Id],
+			ClusterMetrics: clusterMetrics{
+				Workspaces: statusPodConfigMap[option.Id],
+			},
 		}
 	}
 	return podConfigValues

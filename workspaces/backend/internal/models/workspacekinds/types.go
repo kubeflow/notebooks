@@ -17,16 +17,20 @@ limitations under the License.
 package workspacekinds
 
 type WorkspaceKind struct {
-	Name               string      `json:"name"`
-	DisplayName        string      `json:"displayName"`
-	Description        string      `json:"description"`
-	Deprecated         bool        `json:"deprecated"`
-	DeprecationMessage string      `json:"deprecationMessage"`
-	Hidden             bool        `json:"hidden"`
-	Icon               ImageRef    `json:"icon"`
-	Logo               ImageRef    `json:"logo"`
-	Workspaces         int32       `json:"workspacesCount"`
-	PodTemplate        PodTemplate `json:"podTemplate"`
+	Name               string         `json:"name"`
+	DisplayName        string         `json:"displayName"`
+	Description        string         `json:"description"`
+	Deprecated         bool           `json:"deprecated"`
+	DeprecationMessage string         `json:"deprecationMessage"`
+	Hidden             bool           `json:"hidden"`
+	Icon               ImageRef       `json:"icon"`
+	Logo               ImageRef       `json:"logo"`
+	ClusterMetrics     clusterMetrics `json:"clusterMetrics,omitempty"`
+	PodTemplate        PodTemplate    `json:"podTemplate"`
+}
+
+type clusterMetrics struct {
+	Workspaces int32 `json:"workspacesCount"`
 }
 
 type ImageRef struct {
@@ -59,13 +63,13 @@ type ImageConfig struct {
 }
 
 type ImageConfigValue struct {
-	Id          string          `json:"id"`
-	DisplayName string          `json:"displayName"`
-	Description string          `json:"description"`
-	Labels      []OptionLabel   `json:"labels"`
-	Hidden      bool            `json:"hidden"`
-	Redirect    *OptionRedirect `json:"redirect,omitempty"`
-	Workspaces  int32           `json:"workspacesCount"`
+	Id             string          `json:"id"`
+	DisplayName    string          `json:"displayName"`
+	Description    string          `json:"description"`
+	Labels         []OptionLabel   `json:"labels"`
+	Hidden         bool            `json:"hidden"`
+	Redirect       *OptionRedirect `json:"redirect,omitempty"`
+	ClusterMetrics clusterMetrics  `json:"clusterMetrics"`
 }
 
 type PodConfig struct {
@@ -74,13 +78,13 @@ type PodConfig struct {
 }
 
 type PodConfigValue struct {
-	Id          string          `json:"id"`
-	DisplayName string          `json:"displayName"`
-	Description string          `json:"description"`
-	Labels      []OptionLabel   `json:"labels"`
-	Hidden      bool            `json:"hidden"`
-	Redirect    *OptionRedirect `json:"redirect,omitempty"`
-	Workspaces  int32           `json:"workspacesCount"`
+	Id             string          `json:"id"`
+	DisplayName    string          `json:"displayName"`
+	Description    string          `json:"description"`
+	Labels         []OptionLabel   `json:"labels"`
+	Hidden         bool            `json:"hidden"`
+	Redirect       *OptionRedirect `json:"redirect,omitempty"`
+	ClusterMetrics clusterMetrics  `json:"clusterMetrics"`
 }
 
 type OptionLabel struct {
