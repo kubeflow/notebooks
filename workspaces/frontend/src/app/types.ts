@@ -6,6 +6,8 @@ import {
   WorkspacePodSecretMount,
   Workspace,
   WorkspaceImageRef,
+  WorkspacePodVolumeMounts,
+  WorkspaceKindPodMetadata,
 } from '~/shared/api/backendApiTypes';
 
 export interface WorkspaceColumnDefinition {
@@ -54,9 +56,9 @@ export interface WorkspaceKindProperties {
 }
 
 export interface WorkspaceKindImageConfigValue extends WorkspaceImageConfigValue {
-  imagePullPolicy: ImagePullPolicy.IfNotPresent | ImagePullPolicy.Always | ImagePullPolicy.Never;
-  ports: WorkspaceKindImagePort[];
-  image: string;
+  imagePullPolicy?: ImagePullPolicy.IfNotPresent | ImagePullPolicy.Always | ImagePullPolicy.Never;
+  ports?: WorkspaceKindImagePort[];
+  image?: string;
 }
 
 export enum ImagePullPolicy {
@@ -92,9 +94,26 @@ export interface WorkspaceKindPodConfigData {
   default: string;
   values: WorkspaceKindPodConfigValue[];
 }
+export interface WorkspaceKindPodCulling {
+  enabled: boolean;
+  maxInactiveSeconds: number;
+  activityProbe: {
+    jupyter: {
+      lastActivity: boolean;
+    };
+  };
+}
+
+export interface WorkspaceKindPodTemplateData {
+  podMetadata: WorkspaceKindPodMetadata;
+  volumeMounts: WorkspacePodVolumeMounts;
+  culling?: WorkspaceKindPodCulling;
+  extraVolumeMounts?: WorkspacePodVolumeMount[];
+}
 
 export interface WorkspaceKindFormData {
   properties: WorkspaceKindProperties;
   imageConfig: WorkspaceKindImageConfigData;
   podConfig: WorkspaceKindPodConfigData;
+  podTemplate: WorkspaceKindPodTemplateData;
 }

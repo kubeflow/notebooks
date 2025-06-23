@@ -83,10 +83,22 @@ export interface WorkspaceKindPodTemplateOptions {
   podConfig: WorkspaceKindPodConfig;
 }
 
+export interface WorkspaceKindPodCulling {
+  enabled: boolean;
+  maxInactiveSeconds: number;
+  activityProbe: {
+    jupyter: {
+      lastActivity: boolean;
+    };
+  };
+}
+
 export interface WorkspaceKindPodTemplate {
   podMetadata: WorkspaceKindPodMetadata;
   volumeMounts: WorkspacePodVolumeMounts;
   options: WorkspaceKindPodTemplateOptions;
+  culling?: WorkspaceKindPodCulling;
+  extraVolumeMounts?: WorkspacePodVolumeMount[];
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type

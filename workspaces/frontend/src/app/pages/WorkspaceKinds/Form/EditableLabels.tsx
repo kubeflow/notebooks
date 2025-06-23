@@ -71,9 +71,18 @@ type ColumnNames<T> = { [K in keyof T]: string };
 interface EditableLabelsProps {
   rows: WorkspaceOptionLabel[];
   setRows: (value: WorkspaceOptionLabel[]) => void;
+  title?: string;
+  description?: string;
+  buttonLabel?: string;
 }
 
-export const EditableLabels: React.FC<EditableLabelsProps> = ({ rows, setRows }) => {
+export const EditableLabels: React.FC<EditableLabelsProps> = ({
+  rows,
+  setRows,
+  title = 'Labels',
+  description,
+  buttonLabel = 'Label',
+}) => {
   const columnNames: ColumnNames<WorkspaceOptionLabel> = {
     key: 'Key',
     value: 'Value',
@@ -86,12 +95,15 @@ export const EditableLabels: React.FC<EditableLabelsProps> = ({ rows, setRows })
       header={
         <FormFieldGroupHeader
           titleText={{
-            text: 'Labels',
-            id: 'workspace-kind-image-ports',
+            text: title,
+            id: `${title}-labels`,
           }}
           titleDescription={
             <>
-              <div>Labels are key/value pairs that are attached to Kubernetes objects.</div>
+              <div>
+                {description ||
+                  'Labels are key/value pairs that are attached to Kubernetes objects.'}
+              </div>
               <div className="pf-u-font-size-sm">
                 <strong>{rows.length} added</strong>
               </div>
@@ -141,7 +153,7 @@ export const EditableLabels: React.FC<EditableLabelsProps> = ({ rows, setRows })
           ]);
         }}
       >
-        Add Label
+        {`Add ${buttonLabel}`}
       </Button>
     </FormFieldGroupExpandable>
   );

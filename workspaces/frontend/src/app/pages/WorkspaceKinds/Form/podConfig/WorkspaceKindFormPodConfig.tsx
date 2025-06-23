@@ -2,9 +2,6 @@ import React, { useCallback, useState } from 'react';
 import {
   Button,
   Content,
-  Dropdown,
-  MenuToggle,
-  DropdownItem,
   Modal,
   ModalHeader,
   ModalFooter,
@@ -14,14 +11,11 @@ import {
   EmptyStateActions,
   ExpandableSection,
   EmptyStateBody,
-  Label,
-  getUniqueId,
 } from '@patternfly/react-core';
-import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
-import { PlusCircleIcon, EllipsisVIcon, CubesIcon } from '@patternfly/react-icons';
+import { PlusCircleIcon, CubesIcon } from '@patternfly/react-icons';
 import { emptyPodConfig } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { WorkspaceKindPodConfigValue, WorkspaceKindPodConfigData } from '~/app/types';
-
+import { WorkspaceKindFormPaginatedTable } from '~/app/pages/WorkspaceKinds/Form/WorkspaceKindFormPaginatedTable';
 import { WorkspaceKindFormPodConfigModal } from './WorkspaceKindFormPodConfigModal';
 
 interface WorkspaceKindFormPodConfigProps {
@@ -37,7 +31,6 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
   const [defaultId, setDefaultId] = useState(podConfig.default || '');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
   const [currConfig, setCurrConfig] = useState<WorkspaceKindPodConfigValue>({ ...emptyPodConfig });
@@ -128,69 +121,17 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
           )}
           {podConfig.values.length > 0 && (
             <>
-              <Table aria-label="pod configs table">
-                <Thead>
-                  <Tr>
-                    <Th>Display Name</Th>
-                    <Th>ID</Th>
-                    <Th screenReaderText="Row select">Default</Th>
-                    <Th>Hidden</Th>
-                    <Th>Labels</Th>
-                    <Th aria-label="Actions" />
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  {podConfig.values.map((config, index) => (
-                    <Tr key={config.id}>
-                      <Td>{config.displayName}</Td>
-                      <Td>{config.id}</Td>
-                      <Td>
-                        <input
-                          type="radio"
-                          name="default-podConfig"
-                          checked={defaultId === config.id}
-                          onChange={() => {
-                            setDefaultId(config.id);
-                            updatePodConfig({ ...podConfig, default: config.id });
-                          }}
-                          aria-label={`Select ${config.id} as default`}
-                        />
-                      </Td>
-                      <Td>{config.hidden ? 'Yes' : 'No'}</Td>
-                      <Td>
-                        {config.labels.length > 0 &&
-                          config.labels.map((label) => (
-                            <Label
-                              style={{ marginRight: '4px', marginTop: '4px' }}
-                              key={getUniqueId()}
-                            >{`${label.key}: ${label.value}`}</Label>
-                          ))}
-                      </Td>
-                      <Td isActionCell>
-                        <Dropdown
-                          toggle={(toggleRef) => (
-                            <MenuToggle
-                              ref={toggleRef}
-                              isExpanded={dropdownOpen === index}
-                              onClick={() => setDropdownOpen(dropdownOpen === index ? null : index)}
-                              variant="plain"
-                              aria-label="plain kebab"
-                            >
-                              <EllipsisVIcon />
-                            </MenuToggle>
-                          )}
-                          isOpen={dropdownOpen === index}
-                          onSelect={() => setDropdownOpen(null)}
-                          popperProps={{ position: 'right' }}
-                        >
-                          <DropdownItem onClick={() => handleEdit(index)}>Edit</DropdownItem>
-                          <DropdownItem onClick={() => openDeleteModal(index)}>Remove</DropdownItem>
-                        </Dropdown>
-                      </Td>
-                    </Tr>
-                  ))}
-                </Tbody>
-              </Table>
+              <WorkspaceKindFormPaginatedTable
+                ariaLabel="Pod Configs Table"
+                rows={podConfig.values}
+                defaultId={defaultId}
+                setDefaultId={(id) => {
+                  updatePodConfig({ ...podConfig, default: id });
+                  setDefaultId(id);
+                }}
+                handleEdit={handleEdit}
+                openDeleteModal={openDeleteModal}
+              />
               {addConfigBtn}
             </>
           )}

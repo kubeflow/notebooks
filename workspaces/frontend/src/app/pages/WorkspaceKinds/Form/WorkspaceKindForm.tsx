@@ -1,15 +1,20 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Button,
   Content,
   ContentVariants,
+  EmptyState,
+  EmptyStateBody,
   Flex,
   FlexItem,
   PageGroup,
   PageSection,
   Stack,
 } from '@patternfly/react-core';
-import { useTypedNavigate } from '~/app/routerHelper';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import useWorkspaceKindByName from '~/app/hooks/useWorkspaceKindByName';
+import { WorkspaceKind } from '~/shared/api/backendApiTypes';
+import { useTypedNavigate, useTypedParams } from '~/app/routerHelper';
 import { useCurrentRouteKey } from '~/app/hooks/useCurrentRouteKey';
 import useGenericObjectState from '~/app/hooks/useGenericObjectState';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
@@ -18,6 +23,8 @@ import { WorkspaceKindFileUpload } from './fileUpload/WorkspaceKindFileUpload';
 import { WorkspaceKindFormProperties } from './properties/WorkspaceKindFormProperties';
 import { WorkspaceKindFormImage } from './image/WorkspaceKindFormImage';
 import { WorkspaceKindFormPodConfig } from './podConfig/WorkspaceKindFormPodConfig';
+import { WorkspaceKindFormPodTemplate } from './podTemplate/WorkspaceKindFormPodTemplate';
+import { EMPTY_WORKSPACE_KIND_FORM_DATA } from './helpers';
 
 export enum WorkspaceKindFormView {
   Form,
@@ -25,6 +32,18 @@ export enum WorkspaceKindFormView {
 }
 
 export type ValidationStatus = 'success' | 'error' | 'default';
+
+const convertToFormData = (initialData: WorkspaceKind): WorkspaceKindFormData => {
+  const { podTemplate, ...properties } = initialData;
+  const { options, ...spec } = podTemplate;
+  const { podConfig, imageConfig } = options;
+  return {
+    properties,
+    podConfig,
+    imageConfig,
+    podTemplate: spec,
+  };
+};
 
 export const WorkspaceKindForm: React.FC = () => {
   const navigate = useTypedNavigate();
@@ -34,25 +53,20 @@ export const WorkspaceKindForm: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validated, setValidated] = useState<ValidationStatus>('default');
   const mode = useCurrentRouteKey() === 'workspaceKindCreate' ? 'create' : 'edit';
-  const [data, setData, resetData] = useGenericObjectState<WorkspaceKindFormData>({
-    properties: {
-      displayName: '',
-      description: '',
-      deprecated: false,
-      deprecationMessage: '',
-      hidden: false,
-      icon: { url: '' },
-      logo: { url: '' },
-    },
-    imageConfig: {
-      default: '',
-      values: [],
-    },
-    podConfig: {
-      default: '',
-      values: [],
-    },
-  });
+  const { kind } = useTypedParams<'workspaceKindEdit'>();
+  const [initialFormData, initialFormDataLoaded, initialFormDataError] =
+    useWorkspaceKindByName(kind);
+
+  const [data, setData, resetData, replaceData] = useGenericObjectState<WorkspaceKindFormData>(
+    initialFormData ? convertToFormData(initialFormData) : EMPTY_WORKSPACE_KIND_FORM_DATA,
+  );
+
+  useEffect(() => {
+    if (!initialFormDataLoaded || initialFormData === null || mode === 'create') {
+      return;
+    }
+    replaceData(convertToFormData(initialFormData));
+  }, [initialFormData, initialFormDataLoaded, mode, replaceData]);
 
   const handleSubmit = useCallback(async () => {
     setIsSubmitting(true);
@@ -79,6 +93,18 @@ export const WorkspaceKindForm: React.FC = () => {
     navigate('workspaceKinds');
   }, [navigate]);
 
+  if (initialFormDataError) {
+    return (
+      <EmptyState
+        titleText="Error loading workspace kind data"
+        headingLevel="h4"
+        icon={ExclamationCircleIcon}
+        status="danger"
+      >
+        <EmptyStateBody>{initialFormDataError.message}</EmptyStateBody>
+      </EmptyState>
+    );
+  }
   return (
     <>
       <PageGroup isFilled={false} stickyOnBreakpoint={{ default: 'top' }}>
@@ -128,6 +154,12 @@ export const WorkspaceKindForm: React.FC = () => {
               podConfig={data.podConfig}
               updatePodConfig={(podConfig) => {
                 setData('podConfig', podConfig);
+              }}
+            />
+            <WorkspaceKindFormPodTemplate
+              podTemplate={data.podTemplate}
+              updatePodTemplate={(podTemplate) => {
+                setData('podTemplate', podTemplate);
               }}
             />
           </>

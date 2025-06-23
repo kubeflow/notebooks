@@ -312,6 +312,7 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
               onChange={(_event, value) => handleChange(res.id, 'type', value)}
             />
           </GridItem>
+
           <GridItem span={2}>
             <Button
               variant="link"
