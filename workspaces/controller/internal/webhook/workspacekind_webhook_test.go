@@ -54,6 +54,16 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 				shouldSucceed: true,
 			},
 			{
+				description:   "should reject creation with invalid podMetadata label key",
+				workspaceKind: NewExampleWorkspaceKindWithInvalidPodMetadataLabelKey("wsk-webhook-create--invalid-pod-metadata--label-key"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with invalid podMetadata annotation key",
+				workspaceKind: NewExampleWorkspaceKindWithInvalidPodMetadataAnnotationKey("wsk-webhook-create--invalid-pod-metadata--annotation-key"),
+				shouldSucceed: false,
+			},
+			{
 				description:   "should reject creation with cycle in imageConfig redirects",
 				workspaceKind: NewExampleWorkspaceKindWithImageConfigCycle("wsk-webhook-create--image-config-cycle"),
 				shouldSucceed: false,
@@ -496,6 +506,32 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						},
 					}
 					return ContainSubstring("port %d is defined more than once", duplicatePortNumber)
+				},
+			},
+			{
+				description:   "should reject updating a podMetadata.labels key to an invalid value",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					invalidKey := "!bad-key!"
+					wsk.Spec.PodTemplate.PodMetadata.Labels = map[string]string{
+						invalidKey: "some-value",
+					}
+					return ContainSubstring("Invalid value: %q", invalidKey)
+				},
+			},
+			{
+				description:   "should reject updating a podMetadata.annotations key to an invalid value",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					invalidAnnotationKey := "!bad-key!"
+					wsk.Spec.PodTemplate.PodMetadata.Annotations = map[string]string{
+						invalidAnnotationKey: "some-value",
+					}
+					return ContainSubstring("Invalid value: %q", invalidAnnotationKey)
 				},
 			},
 			{
