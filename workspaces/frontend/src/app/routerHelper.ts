@@ -1,3 +1,5 @@
+/* eslint-disable local-rules/no-raw-react-router-hook */
+
 import {
   generatePath,
   Location,
