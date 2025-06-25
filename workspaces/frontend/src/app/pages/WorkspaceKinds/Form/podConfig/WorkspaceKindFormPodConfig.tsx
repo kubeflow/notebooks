@@ -20,13 +20,13 @@ import {
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { PlusCircleIcon, EllipsisVIcon, CubesIcon } from '@patternfly/react-icons';
 import { emptyPodConfig } from '~/app/pages/WorkspaceKinds/Form/helpers';
-import { WorkspaceKindPodConfig, WorkspacePodConfigValue } from '~/shared/api/backendApiTypes';
+import { WorkspaceKindPodConfigValue, WorkspaceKindPodConfigData } from '~/app/types';
 
 import { WorkspaceKindFormPodConfigModal } from './WorkspaceKindFormPodConfigModal';
 
 interface WorkspaceKindFormPodConfigProps {
-  podConfig: WorkspaceKindPodConfig;
-  updatePodConfig: (podConfigs: WorkspaceKindPodConfig) => void;
+  podConfig: WorkspaceKindPodConfigData;
+  updatePodConfig: (podConfigs: WorkspaceKindPodConfigData) => void;
 }
 
 export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProps> = ({
@@ -40,7 +40,7 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
-  const [currConfig, setCurrConfig] = useState<WorkspacePodConfigValue>({ ...emptyPodConfig });
+  const [currConfig, setCurrConfig] = useState<WorkspaceKindPodConfigValue>({ ...emptyPodConfig });
 
   const clearForm = useCallback(() => {
     setCurrConfig({ ...emptyPodConfig });
@@ -54,7 +54,7 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
   }, []);
 
   const handleAddOrEditSubmit = useCallback(
-    (config: WorkspacePodConfigValue) => {
+    (config: WorkspaceKindPodConfigValue) => {
       if (editIndex !== null) {
         const updated = [...podConfig.values];
         updated[editIndex] = config;

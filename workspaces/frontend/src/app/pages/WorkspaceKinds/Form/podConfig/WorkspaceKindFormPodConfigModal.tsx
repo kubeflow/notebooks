@@ -11,7 +11,8 @@ import {
   Switch,
   HelperText,
 } from '@patternfly/react-core';
-import { WorkspaceOptionLabel, WorkspacePodConfigValue } from '~/shared/api/backendApiTypes';
+import { WorkspaceKindPodConfigValue } from '~/app/types';
+import { WorkspaceOptionLabel } from '~/shared/api/backendApiTypes';
 import { WorkspaceKindFormLabelTable } from '~/app/pages/WorkspaceKinds/Form/WorkspaceKindFormLabels';
 import {
   WorkspaceKindFormPodConfigResource,
@@ -21,14 +22,14 @@ import {
 interface WorkspaceKindFormPodConfigModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (podConfig: WorkspacePodConfigValue) => void;
+  onSubmit: (podConfig: WorkspaceKindPodConfigValue) => void;
   editIndex: number | null;
-  currConfig: WorkspacePodConfigValue;
-  setCurrConfig: (currConfig: WorkspacePodConfigValue) => void;
+  currConfig: WorkspaceKindPodConfigValue;
+  setCurrConfig: (currConfig: WorkspaceKindPodConfigValue) => void;
 }
 
 // convert from k8s resource object {limits: {}, requests{}} to array of {type: '', limit: '', request: ''} for each type of resource (e.g. CPU, memory, nvidia.com/gpu)
-const getResources = (currConfig: WorkspacePodConfigValue): PodResourceEntry[] => {
+const getResources = (currConfig: WorkspaceKindPodConfigValue): PodResourceEntry[] => {
   const grouped = new Map<string, { request: string; limit: string }>([
     ['cpu', { request: '', limit: '' }],
     ['memory', { request: '', limit: '' }],
