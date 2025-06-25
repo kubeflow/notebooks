@@ -28,6 +28,11 @@ definitions:
           $ref: '#/definitions/namespaces.Namespace'
         type: array
     type: object
+  api.PauseStateEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/workspaces.PauseState'
+    type: object
   api.ValidationError:
     properties:
       field:
@@ -321,6 +326,15 @@ definitions:
       key:
         type: string
       value:
+        type: string
+    type: object
+  workspaces.PauseState:
+    properties:
+      namespace:
+        type: string
+      paused:
+        type: boolean
+      workspaceName:
         type: string
     type: object
   workspaces.PodConfig:
@@ -926,6 +940,116 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Get workspace
+      tags:
+      - workspaces
+  /workspaces/{namespace}/{workspaceName}/actions/pause:
+    post:
+      consumes:
+      - application/json
+      description: Pauses a workspace, stopping all associated pods.
+      parameters:
+      - description: Namespace of the workspace
+        example: default
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the workspace
+        example: my-workspace
+        in: path
+        name: workspaceName
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successful action. Returns the current pause state.
+          schema:
+            $ref: '#/definitions/api.PauseStateEnvelope'
+        "400":
+          description: Bad Request. Invalid workspace kind name format.
+          schema:
+            $ref: '#/definitions/api.ErrorEnvelope'
+        "401":
+          description: Unauthorized. Authentication is required.
+          schema:
+            $ref: '#/definitions/api.ErrorEnvelope'
+        "403":
+          description: Forbidden. User does not have permission to access the workspace.
+          schema:
+            $ref: '#/definitions/api.ErrorEnvelope'
+        "404":
+          description: Not Found. Workspace does not exist.
+          schema:
+            $ref: '#/definitions/api.ErrorEnvelope'
+        "422":
+          description: Unprocessable Entity. Workspace is not in running state.
+          schema:
+            $ref: '#/definitions/api.ErrorEnvelope'
+        "500":
+          description: Internal server error. An unexpected error occurred on the
+            server.
+          schema:
+            $ref: '#/definitions/api.ErrorEnvelope'
+      security:
+      - ApiKeyAuth: []
+      summary: Pause workspace
+      tags:
+      - workspaces
+  /workspaces/{namespace}/{workspaceName}/actions/start:
+    post:
+      consumes:
+      - application/json
+      description: Starts a workspace, resuming all associated pods.
+      parameters:
+      - description: Namespace of the workspace
+        example: default
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: Name of the workspace
+        example: my-workspace
+        in: path
+        name: workspaceName
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successful action. Returns the current pause state.
+          schema:
+            $ref: '#/definitions/api.PauseStateEnvelope'
+        "400":
+          description: Bad Request. Invalid workspace kind name format.
+          schema:
+            $ref: '#/definitions/api.ErrorEnvelope'
+        "401":
+          description: Unauthorized. Authentication is required.
+          schema:
+            $ref: '#/definitions/api.ErrorEnvelope'
+        "403":
+          description: Forbidden. User does not have permission to access the workspace.
+          schema:
+            $ref: '#/definitions/api.ErrorEnvelope'
+        "404":
+          description: Not Found. Workspace does not exist.
+          schema:
+            $ref: '#/definitions/api.ErrorEnvelope'
+        "422":
+          description: Unprocessable Entity. Workspace is not in paused state.
+          schema:
+            $ref: '#/definitions/api.ErrorEnvelope'
+        "500":
+          description: Internal server error. An unexpected error occurred on the
+            server.
+          schema:
+            $ref: '#/definitions/api.ErrorEnvelope'
+      security:
+      - ApiKeyAuth: []
+      summary: Start workspace
       tags:
       - workspaces
 schemes:

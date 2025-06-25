@@ -44,6 +44,13 @@ const (
 	WorkspaceStateUnknown     WorkspaceState = "Unknown"
 )
 
+// PauseState represents the outcome of pause/start workspace actions
+type PauseState struct {
+	Namespace     string `json:"namespace"`
+	WorkspaceName string `json:"workspaceName"`
+	Paused        bool   `json:"paused"`
+}
+
 type WorkspaceKindInfo struct {
 	Name    string   `json:"name"`
 	Missing bool     `json:"missing"`
