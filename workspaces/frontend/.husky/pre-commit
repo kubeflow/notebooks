@@ -1,0 +1,3 @@
+echo "Running husky pre-commit hook..."
+cd workspaces/frontend
+npm run test:lint
