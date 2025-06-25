@@ -126,6 +126,8 @@ definitions:
     type: object
   workspacekinds.ImageConfigValue:
     properties:
+      clusterMetrics:
+        $ref: '#/definitions/workspacekinds.clusterMetrics'
       description:
         type: string
       displayName:
@@ -171,6 +173,8 @@ definitions:
     type: object
   workspacekinds.PodConfigValue:
     properties:
+      clusterMetrics:
+        $ref: '#/definitions/workspacekinds.clusterMetrics'
       description:
         type: string
       displayName:
@@ -237,6 +241,8 @@ definitions:
     - RedirectMessageLevelDanger
   workspacekinds.WorkspaceKind:
     properties:
+      clusterMetrics:
+        $ref: '#/definitions/workspacekinds.clusterMetrics'
       deprecated:
         type: boolean
       deprecationMessage:
@@ -255,6 +261,11 @@ definitions:
         type: string
       podTemplate:
         $ref: '#/definitions/workspacekinds.PodTemplate'
+    type: object
+  workspacekinds.clusterMetrics:
+    properties:
+      workspacesCount:
+        type: integer
     type: object
   workspaces.Activity:
     properties:

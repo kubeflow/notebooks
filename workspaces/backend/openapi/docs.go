@@ -720,6 +720,9 @@ const docTemplate = `{
         "workspacekinds.ImageConfigValue": {
             "type": "object",
             "properties": {
+                "clusterMetrics": {
+                    "$ref": "#/definitions/workspacekinds.clusterMetrics"
+                },
                 "description": {
                     "type": "string"
                 },
@@ -790,6 +793,9 @@ const docTemplate = `{
         "workspacekinds.PodConfigValue": {
             "type": "object",
             "properties": {
+                "clusterMetrics": {
+                    "$ref": "#/definitions/workspacekinds.clusterMetrics"
+                },
                 "description": {
                     "type": "string"
                 },
@@ -890,6 +896,9 @@ const docTemplate = `{
         "workspacekinds.WorkspaceKind": {
             "type": "object",
             "properties": {
+                "clusterMetrics": {
+                    "$ref": "#/definitions/workspacekinds.clusterMetrics"
+                },
                 "deprecated": {
                     "type": "boolean"
                 },
@@ -916,6 +925,14 @@ const docTemplate = `{
                 },
                 "podTemplate": {
                     "$ref": "#/definitions/workspacekinds.PodTemplate"
+                }
+            }
+        },
+        "workspacekinds.clusterMetrics": {
+            "type": "object",
+            "properties": {
+                "workspacesCount": {
+                    "type": "integer"
                 }
             }
         },
