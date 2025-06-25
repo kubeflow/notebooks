@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import {
   Brand,
   Nav,
@@ -9,11 +9,12 @@ import {
   PageSidebar,
   PageSidebarBody,
 } from '@patternfly/react-core';
+import { useTypedLocation } from '~/app/routerHelper';
 import { useNavData, isNavDataGroup, NavDataHref, NavDataGroup } from './AppRoutes';
 import { isMUITheme, LOGO_LIGHT } from './const';
 
 const NavHref: React.FC<{ item: NavDataHref }> = ({ item }) => {
-  const location = useLocation();
+  const location = useTypedLocation();
 
   // With the redirect in place, we can now use a simple path comparison.
   const isActive = location.pathname === item.path;

@@ -1,8 +1,9 @@
-import { useLocation, matchPath } from 'react-router-dom';
+import { matchPath } from 'react-router-dom';
 import { AppRouteKey, AppRoutePaths } from '~/app/routes';
+import { useTypedLocation } from '~/app/routerHelper';
 
 export function useCurrentRouteKey(): AppRouteKey | undefined {
-  const location = useLocation();
+  const location = useTypedLocation();
   const { pathname } = location;
 
   const matchEntries = Object.entries(AppRoutePaths) as [AppRouteKey, string][];
