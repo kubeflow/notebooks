@@ -1,5 +1,3 @@
-const noReactHookNamespace = require('./eslint-local-rules/no-react-hook-namespace');
-
 module.exports = {
   parser: '@typescript-eslint/parser',
   env: {
@@ -13,7 +11,7 @@ module.exports = {
     js: true,
     useJSXTextNode: true,
     project: './tsconfig.json',
-    tsconfigRootDir: '.',
+    tsconfigRootDir: __dirname,
   },
   // includes the typescript specific rules found here: https://github.com/typescript-eslint/typescript-eslint/tree/master/packages/eslint-plugin#supported-rules
   plugins: [
@@ -24,6 +22,7 @@ module.exports = {
     'no-only-tests',
     'no-relative-import-paths',
     'prettier',
+    'local-rules',
   ],
   extends: [
     'eslint:recommended',
@@ -200,6 +199,17 @@ module.exports = {
     'no-lone-blocks': 'error',
     'no-lonely-if': 'error',
     'no-promise-executor-return': 'error',
+    'no-restricted-imports': [
+      'error',
+      {
+        paths: [
+          {
+            name: 'react-router',
+            message: 'Use react-router-dom instead.',
+          },
+        ],
+      },
+    ],
     'no-restricted-globals': [
       'error',
       {
@@ -221,7 +231,8 @@ module.exports = {
     'symbol-description': 'error',
     yoda: 'error',
     'func-names': 'warn',
-    'no-react-hook-namespace': 'error',
+    'local-rules/no-react-hook-namespace': 'error',
+    'local-rules/no-raw-react-router-hook': 'error',
   },
   overrides: [
     {
@@ -270,7 +281,20 @@ module.exports = {
     {
       files: ['**/*.{js,jsx,ts,tsx}'],
       rules: {
-        'no-react-hook-namespace': 'error',
+        'local-rules/no-react-hook-namespace': 'error',
+        'local-rules/no-raw-react-router-hook': 'error',
+      },
+    },
+    {
+      files: ['.eslintrc.js'],
+      parserOptions: {
+        project: null,
+      },
+    },
+    {
+      files: ['eslint-local-rules/**/*.js'],
+      rules: {
+        '@typescript-eslint/no-require-imports': 'off',
       },
     },
   ],
