@@ -7,6 +7,7 @@ import { Debug } from './pages/Debug/Debug';
 import { NotFound } from './pages/notFound/NotFound';
 import { WorkspaceKinds } from './pages/WorkspaceKinds/WorkspaceKinds';
 import { WorkspacesWrapper } from './pages/Workspaces/WorkspacesWrapper';
+import { WorkspaceKindForm } from './pages/WorkspaceKinds/Form/WorkspaceKindForm';
 import '~/shared/style/MUI-theme.scss';
 
 export const isNavDataGroup = (navItem: NavDataItem): navItem is NavDataGroup =>
@@ -66,6 +67,7 @@ const AppRoutes: React.FC = () => {
       <Route path={AppRoutePaths.workspaces} element={<WorkspacesWrapper />} />
       <Route path={AppRoutePaths.workspaceKindSummary} element={<WorkspaceKindSummaryWrapper />} />
       <Route path={AppRoutePaths.workspaceKinds} element={<WorkspaceKinds />} />
+      <Route path={AppRoutePaths.workspaceKindCreate} element={<WorkspaceKindForm />} />
       <Route path="/" element={<Navigate to={AppRoutePaths.workspaces} replace />} />
       <Route path="*" element={<NotFound />} />
       {
