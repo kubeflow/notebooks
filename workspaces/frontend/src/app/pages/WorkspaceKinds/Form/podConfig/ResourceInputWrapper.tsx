@@ -2,16 +2,16 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   FormSelect,
   FormSelectOption,
-  FormSelectOptionProps,
   NumberInput,
   Split,
   SplitItem,
 } from '@patternfly/react-core';
+import { CPU_UNITS, MEMORY_UNITS_FOR_SELECTION, UnitOption } from '~/shared/utilities/valueUnits';
 
 interface ResourceInputWrapperProps {
   value: string;
   onChange: (value: string) => void;
-  type: 'cpu' | 'memory' | 'time' | 'custom';
+  type: 'cpu' | 'memory' | 'custom';
   min?: number;
   max?: number;
   step?: number;
@@ -21,22 +21,10 @@ interface ResourceInputWrapperProps {
 }
 
 const unitMap: {
-  [key: string]: FormSelectOptionProps[];
+  [key: string]: UnitOption[];
 } = {
-  time: [
-    { label: 'Minutes', value: 60 },
-    { label: 'Hours', value: 60 * 60 },
-    { label: 'Days', value: 60 * 60 * 24 },
-  ],
-  memory: [
-    { label: 'MiB', value: 'Mi' },
-    { label: 'GiB', value: 'Gi' },
-    { label: 'TiB', value: 'Ti' },
-  ],
-  cpu: [
-    { label: 'Cores', value: '' },
-    { label: 'Millicores', value: 'm' },
-  ],
+  memory: MEMORY_UNITS_FOR_SELECTION,
+  cpu: CPU_UNITS,
 };
 
 const DEFAULT_STEP = 1;
@@ -54,26 +42,6 @@ export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
 }) => {
   const [inputValue, setInputValue] = useState(value);
   const [unit, setUnit] = useState<string>('');
-
-  // Initialize time units with a reasonable default
-  useEffect(() => {
-    if (type === 'time') {
-      const seconds = parseFloat(value) || 0;
-      // Choose the most appropriate unit based on the value
-      let defaultUnit = 60; // Default to minutes
-      if (seconds >= 86400) {
-        defaultUnit = 86400; // Days
-      } else if (seconds >= 3600) {
-        defaultUnit = 3600; // Hours
-      } else if (seconds >= 60) {
-        defaultUnit = 60; // Minutes
-      } else {
-        defaultUnit = 1; // Seconds
-      }
-      setUnit(defaultUnit.toString());
-      setInputValue((seconds / defaultUnit).toString());
-    }
-  }, [type, value]);
 
   useEffect(() => {
     if (type === 'memory') {
@@ -95,10 +63,6 @@ export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
         setInputValue('');
         setUnit('');
       }
-    } else if (type === 'time') {
-      // Time is handled in the first useEffect
-      // eslint-disable-next-line no-useless-return
-      return;
     } else {
       setInputValue(value);
     }
@@ -109,10 +73,6 @@ export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
       setInputValue(newValue);
       if (type === 'memory' || type === 'cpu') {
         onChange(newValue ? `${newValue}${unit}` : '');
-      } else if (type === 'time') {
-        const numericValue = parseFloat(newValue) || 0;
-        const unitMultiplier = parseFloat(unit) || 1;
-        onChange(String(numericValue * unitMultiplier));
       } else {
         onChange(newValue);
       }
@@ -122,24 +82,12 @@ export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
 
   const handleUnitChange = useCallback(
     (newUnit: string) => {
-      if (type === 'time') {
-        const currentValue = parseFloat(inputValue) || 0;
-        const oldUnitMultiplier = parseFloat(unit) || 1;
-        const newUnitMultiplier = parseFloat(newUnit) || 1;
-        // Convert the current value to the new unit
-        const valueInSeconds = currentValue * oldUnitMultiplier;
-        const valueInNewUnit = valueInSeconds / newUnitMultiplier;
-        setUnit(newUnit);
-        setInputValue(valueInNewUnit.toString());
-        onChange(String(valueInSeconds));
-      } else {
-        setUnit(newUnit);
-        if (inputValue) {
-          onChange(`${inputValue}${newUnit}`);
-        }
+      setUnit(newUnit);
+      if (inputValue) {
+        onChange(`${inputValue}${newUnit}`);
       }
     },
-    [inputValue, onChange, type, unit],
+    [inputValue, onChange],
   );
 
   const handleIncrement = useCallback(() => {
@@ -165,12 +113,14 @@ export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
   // Memoize the unit options to prevent unnecessary re-renders
   const unitOptions = useMemo(
     () =>
-      unitMap[type].map((u) => <FormSelectOption label={u.label} key={u.label} value={u.value} />),
+      type !== 'custom'
+        ? unitMap[type].map((u) => <FormSelectOption label={u.name} key={u.name} value={u.unit} />)
+        : [],
     [type],
   );
 
   return (
-    <Split>
+    <Split className="workspacekind-form-resource-input">
       <SplitItem>
         <NumberInput
           value={parseFloat(inputValue) || 0}
@@ -196,7 +146,6 @@ export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
             onChange={(_, v) => handleUnitChange(v)}
             id={`${ariaLabel}-unit-select`}
             isDisabled={isDisabled}
-            className="workspace-kind-unit-select"
           >
             {unitOptions}
           </FormSelect>
