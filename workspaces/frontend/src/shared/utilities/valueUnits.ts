@@ -19,7 +19,7 @@ export type UnitOption = {
 
 export const CPU_UNITS: UnitOption[] = [
   { name: 'Cores', unit: '', weight: 1000 },
-  { name: 'Milicores', unit: 'm', weight: 1 },
+  { name: 'Millicores', unit: 'm', weight: 1 },
 ];
 export const MEMORY_UNITS_FOR_SELECTION: UnitOption[] = [
   { name: 'GiB', unit: 'Gi', weight: 1024 },
