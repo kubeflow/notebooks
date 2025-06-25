@@ -106,6 +106,7 @@ func (a *App) Routes() http.Handler {
 	// workspacekinds
 	router.GET(AllWorkspaceKindsPath, a.GetWorkspaceKindsHandler)
 	router.GET(WorkspaceKindsByNamePath, a.GetWorkspaceKindHandler)
+	router.PUT(WorkspaceKindsByNamePath, a.UpdateWorkspaceKindHandler)
 
 	// swagger
 	router.GET(SwaggerPath, a.GetSwaggerHandler)

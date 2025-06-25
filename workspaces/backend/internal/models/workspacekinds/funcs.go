@@ -53,6 +53,7 @@ func NewWorkspaceKindModelFromWorkspaceKind(wsk *kubefloworgv1beta1.WorkspaceKin
 
 	return WorkspaceKind{
 		Name:               wsk.Name,
+		ResourceVersion:    wsk.ResourceVersion,
 		DisplayName:        wsk.Spec.Spawner.DisplayName,
 		Description:        wsk.Spec.Spawner.Description,
 		Deprecated:         ptr.Deref(wsk.Spec.Spawner.Deprecated, false),

@@ -18,6 +18,7 @@ package workspacekinds
 
 type WorkspaceKind struct {
 	Name               string      `json:"name"`
+	ResourceVersion    string      `json:"resourceVersion"`
 	DisplayName        string      `json:"displayName"`
 	Description        string      `json:"description"`
 	Deprecated         bool        `json:"deprecated"`

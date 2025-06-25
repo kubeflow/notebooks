@@ -255,6 +255,8 @@ definitions:
         type: string
       podTemplate:
         $ref: '#/definitions/workspacekinds.PodTemplate'
+      resourceVersion:
+        type: string
     type: object
   workspaces.Activity:
     properties:
