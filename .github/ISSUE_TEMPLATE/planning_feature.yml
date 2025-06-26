@@ -1,5 +1,5 @@
-name: ✨ [Planning] Feature
-description: 🛑 Only intended to be used by Kubeflow Notebooks 2.0 project managers
+name: "[Planning] Feature"
+description: "🛑 Only intended to be used by Kubeflow project managers"
 title: "[FEATURE] <short description>"
 labels:
   - "kind/plan-feature"
