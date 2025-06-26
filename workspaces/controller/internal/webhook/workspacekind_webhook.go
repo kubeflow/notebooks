@@ -23,7 +23,10 @@ import (
 	"reflect"
 	"sync"
 
+	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	apivalidation "k8s.io/apimachinery/pkg/api/validation"
+	v1validation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -68,6 +71,9 @@ func (v *WorkspaceKindValidator) ValidateCreate(ctx context.Context, obj runtime
 	}
 
 	var allErrs field.ErrorList
+
+	// validate the pod metadata
+	allErrs = append(allErrs, v.validatePodTemplatePodMetadata(workspaceKind)...)
 
 	// validate the extra environment variables
 	allErrs = append(allErrs, validateExtraEnv(workspaceKind)...)
@@ -140,8 +146,13 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 	// NOTE: the cluster is only queried when either function is called for the first time
 	getImageConfigUsageCount, getPodConfigUsageCount := v.getLazyOptionUsageCountFuncs(ctx, oldWorkspaceKind)
 
+	// validate the pod metadata
+	if !equality.Semantic.DeepEqual(newWorkspaceKind.Spec.PodTemplate.PodMetadata, oldWorkspaceKind.Spec.PodTemplate.PodMetadata) {
+		allErrs = append(allErrs, v.validatePodTemplatePodMetadata(newWorkspaceKind)...)
+	}
+
 	// validate the extra environment variables
-	if !reflect.DeepEqual(newWorkspaceKind.Spec.PodTemplate.ExtraEnv, oldWorkspaceKind.Spec.PodTemplate.ExtraEnv) {
+	if !equality.Semantic.DeepEqual(newWorkspaceKind.Spec.PodTemplate.ExtraEnv, oldWorkspaceKind.Spec.PodTemplate.ExtraEnv) {
 		allErrs = append(allErrs, validateExtraEnv(newWorkspaceKind)...)
 	}
 
@@ -478,6 +489,31 @@ func (v *WorkspaceKindValidator) getOptionsUsageCounts(ctx context.Context, work
 	}
 
 	return imageConfigUsageCount, podConfigUsageCount, nil
+}
+
+// validatePodTemplatePodMetadata validates the podMetadata of a WorkspaceKind's PodTemplate
+func (v *WorkspaceKindValidator) validatePodTemplatePodMetadata(workspaceKind *kubefloworgv1beta1.WorkspaceKind) []*field.Error {
+	var errs []*field.Error
+
+	podMetadata := workspaceKind.Spec.PodTemplate.PodMetadata
+	podMetadataPath := field.NewPath("spec", "podTemplate", "podMetadata")
+
+	// if podMetadata is nil, we cannot validate it
+	if podMetadata == nil {
+		return errs
+	}
+
+	// validate labels
+	labels := podMetadata.Labels
+	labelsPath := podMetadataPath.Child("labels")
+	errs = append(errs, v1validation.ValidateLabels(labels, labelsPath)...)
+
+	// validate annotations
+	annotations := podMetadata.Annotations
+	annotationsPath := podMetadataPath.Child("annotations")
+	errs = append(errs, apivalidation.ValidateAnnotations(annotations, annotationsPath)...)
+
+	return errs
 }
 
 // validateExtraEnv validates the extra environment variables in a WorkspaceKind
