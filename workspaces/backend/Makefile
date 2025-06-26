@@ -88,7 +88,7 @@ run: fmt vet swag ## Run a backend from your host.
 
 # If you wish to build the manager image targeting other platforms you can use the --platform flag.
 # (i.e. docker build --platform linux/arm64). However, you must enable docker buildKit for it.
-# More info: https://docs.docker.com/develop/develop-images/build_enhancements/11gg
+# More info: https://docs.docker.com/develop/develop-images/build_enhancements/
 .PHONY: docker-build
 docker-build: ## Build docker image with the backend.
 	$(CONTAINER_TOOL) build -f Dockerfile -t $(IMG) ..
