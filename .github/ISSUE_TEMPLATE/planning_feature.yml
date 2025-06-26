@@ -2,8 +2,7 @@ name: ✨ [Planning] Feature
 description: 🛑 Only intended to be used by Kubeflow Notebooks 2.0 project managers
 title: "[FEATURE] <short description>"
 labels:
-  - "feature"
-  - "planning"
+  - "kind/plan-feature"
 assignees: []
 body:
   - type: markdown
