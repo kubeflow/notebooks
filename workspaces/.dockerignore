@@ -1,0 +1,7 @@
+# NOTE: This file is used when building Docker images with context `..`
+# Primarily intended for backend/Dockerfile builds
+
+# Exclude frontend code, node_modules, and unnecessary binaries
+frontend/
+controller/bin/
+backend/bin/
