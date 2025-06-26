@@ -42,7 +42,33 @@ jobs:
 
       - name: Run tests
         working-directory: workspaces/frontend
+        # use id to skip archiving artifacts if running the tests was skipped, usually due to failure in steps above
+        # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#steps-context
+        id: run-tests
         run: npm run test
+
+      - name: Upload Cypress test report
+        uses: actions/upload-artifact@v4
+        if: "!cancelled() && steps.run-tests.outcome != 'skipped'"
+        with:
+          name: cypress-report
+          path: |
+            workspaces/frontend/src/__tests__/cypress/results/mocked/index.html
+            workspaces/frontend/src/__tests__/cypress/results/mocked/junit-report.xml
+
+      - name: Upload Cypress screenshots (on failure)
+        uses: actions/upload-artifact@v4
+        if: "failure() && steps.run-tests.outcome == 'failure'"
+        with:
+          name: cypress-screenshots
+          path: workspaces/frontend/src/__tests__/cypress/results/mocked/screenshots
+
+      - name: Upload Cypress video recordings (on failure)
+        uses: actions/upload-artifact@v4
+        if: "failure() && steps.run-tests.outcome == 'failure'"
+        with:
+          name: cypress-videos
+          path: workspaces/frontend/src/__tests__/cypress/results/mocked/videos
 
       - name: Check if there are uncommitted file changes
         working-directory: workspaces/frontend
