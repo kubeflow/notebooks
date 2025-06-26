@@ -42,7 +42,7 @@ type WorkspaceKindEnvelope Envelope[models.WorkspaceKind]
 //	@Tags			workspacekinds
 //	@Accept			json
 //	@Produce		json
-//	@Param			name	path		string					true	"Name of the workspace kind"	example(jupyterlab)
+//	@Param			name	path		string					true	"Name of the workspace kind"	extensions(x-example=jupyterlab)
 //	@Success		200		{object}	WorkspaceKindEnvelope	"Successful operation. Returns the requested workspace kind details."
 //	@Failure		400		{object}	ErrorEnvelope			"Bad Request. Invalid workspace kind name format."
 //	@Failure		401		{object}	ErrorEnvelope			"Unauthorized. Authentication is required."
@@ -50,7 +50,6 @@ type WorkspaceKindEnvelope Envelope[models.WorkspaceKind]
 //	@Failure		404		{object}	ErrorEnvelope			"Not Found. Workspace kind does not exist."
 //	@Failure		500		{object}	ErrorEnvelope			"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspacekinds/{name} [get]
-//	@Security		ApiKeyAuth
 func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	name := ps.ByName(ResourceNamePathParam)
 
@@ -102,7 +101,6 @@ func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps
 //	@Failure		403	{object}	ErrorEnvelope				"Forbidden. User does not have permission to list workspace kinds."
 //	@Failure		500	{object}	ErrorEnvelope				"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspacekinds [get]
-//	@Security		ApiKeyAuth
 func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
