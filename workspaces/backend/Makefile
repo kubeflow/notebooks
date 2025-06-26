@@ -74,7 +74,7 @@ SWAG_DIRS := cmd,$(ALL_GO_DIRS_NO_CMD)
 .PHONY: swag
 swag: SWAGGER
 	$(SWAGGER) fmt -g main.go -d $(SWAG_DIRS)
-	$(SWAGGER) init --parseDependency -q -g main.go -d $(SWAG_DIRS) --output openapi
+	$(SWAGGER) init --parseDependency -q -g main.go -d $(SWAG_DIRS) --output openapi --outputTypes go,json
 
 ##@ Build
 

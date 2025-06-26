@@ -46,8 +46,8 @@ type WorkspaceEnvelope Envelope[models.Workspace]
 //	@Tags			workspaces
 //	@Accept			json
 //	@Produce		json
-//	@Param			namespace		path		string				true	"Namespace of the workspace"	example(kubeflow-user-example-com)
-//	@Param			workspace_name	path		string				true	"Name of the workspace"			example(my-workspace)
+//	@Param			namespace		path		string				true	"Namespace of the workspace"	extensions(x-example=kubeflow-user-example-com)
+//	@Param			workspace_name	path		string				true	"Name of the workspace"			extensions(x-example=my-workspace)
 //	@Success		200				{object}	WorkspaceEnvelope	"Successful operation. Returns the requested workspace details."
 //	@Failure		400				{object}	ErrorEnvelope		"Bad Request. Invalid namespace or workspace name format."
 //	@Failure		401				{object}	ErrorEnvelope		"Unauthorized. Authentication is required."
@@ -55,7 +55,6 @@ type WorkspaceEnvelope Envelope[models.Workspace]
 //	@Failure		404				{object}	ErrorEnvelope		"Not Found. Workspace does not exist."
 //	@Failure		500				{object}	ErrorEnvelope		"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspaces/{namespace}/{workspace_name} [get]
-//	@Security		ApiKeyAuth
 func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(NamespacePathParam)
 	workspaceName := ps.ByName(ResourceNamePathParam)
@@ -109,7 +108,7 @@ func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps htt
 //	@Tags			workspaces
 //	@Accept			json
 //	@Produce		json
-//	@Param			namespace	path		string					false	"Namespace to filter workspaces. If not provided, returns all workspaces across all namespaces."	example(kubeflow-user-example-com)
+//	@Param			namespace	path		string					true	"Namespace to filter workspaces. If not provided, returns all workspaces across all namespaces."	extensions(x-example=kubeflow-user-example-com)
 //	@Success		200			{object}	WorkspaceListEnvelope	"Successful operation. Returns a list of workspaces."
 //	@Failure		400			{object}	ErrorEnvelope			"Bad Request. Invalid namespace format."
 //	@Failure		401			{object}	ErrorEnvelope			"Unauthorized. Authentication is required."
@@ -117,7 +116,6 @@ func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps htt
 //	@Failure		500			{object}	ErrorEnvelope			"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspaces [get]
 //	@Router			/workspaces/{namespace} [get]
-//	@Security		ApiKeyAuth
 func (a *App) GetWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(NamespacePathParam)
 
@@ -171,7 +169,7 @@ func (a *App) GetWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps ht
 //	@Tags			workspaces
 //	@Accept			json
 //	@Produce		json
-//	@Param			namespace	path		string					true	"Namespace for the workspace"	example(kubeflow-user-example-com)
+//	@Param			namespace	path		string					true	"Namespace for the workspace"	extensions(x-example=kubeflow-user-example-com)
 //	@Param			body		body		WorkspaceCreateEnvelope	true	"Workspace creation configuration"
 //	@Success		201			{object}	WorkspaceEnvelope		"Workspace created successfully"
 //	@Failure		400			{object}	ErrorEnvelope			"Bad Request. Invalid request body or namespace format."
@@ -180,7 +178,6 @@ func (a *App) GetWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps ht
 //	@Failure		409			{object}	ErrorEnvelope			"Conflict. Workspace with the same name already exists."
 //	@Failure		500			{object}	ErrorEnvelope			"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspaces/{namespace} [post]
-//	@Security		ApiKeyAuth
 func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(NamespacePathParam)
 
@@ -266,8 +263,8 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 //	@Tags			workspaces
 //	@Accept			json
 //	@Produce		json
-//	@Param			namespace		path		string			true	"Namespace of the workspace"	example(kubeflow-user-example-com)
-//	@Param			workspace_name	path		string			true	"Name of the workspace"			example(my-workspace)
+//	@Param			namespace		path		string			true	"Namespace of the workspace"	extensions(x-example=kubeflow-user-example-com)
+//	@Param			workspace_name	path		string			true	"Name of the workspace"			extensions(x-example=my-workspace)
 //	@Success		204				{object}	nil				"Workspace deleted successfully"
 //	@Failure		400				{object}	ErrorEnvelope	"Bad Request. Invalid namespace or workspace name format."
 //	@Failure		401				{object}	ErrorEnvelope	"Unauthorized. Authentication is required."
@@ -275,7 +272,6 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 //	@Failure		404				{object}	ErrorEnvelope	"Not Found. Workspace does not exist."
 //	@Failure		500				{object}	ErrorEnvelope	"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspaces/{namespace}/{workspace_name} [delete]
-//	@Security		ApiKeyAuth
 func (a *App) DeleteWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(NamespacePathParam)
 	workspaceName := ps.ByName(ResourceNamePathParam)
