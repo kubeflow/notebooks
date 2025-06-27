@@ -171,6 +171,48 @@ export const restDELETE = <T>(
     parseJSON: options?.parseJSON,
   });
 
+/** POST -- but with YAML content directly in body */
+export const restYAML = <T>(
+  host: string,
+  path: string,
+  yamlContent: string,
+  queryParams?: Record<string, unknown>,
+  options?: APIOptions,
+): Promise<T> => {
+  const { method, ...otherOptions } = mergeRequestInit(options, { method: 'POST' });
+
+  const sanitizedQueryParams = queryParams
+    ? Object.entries(queryParams).reduce((acc, [key, value]) => {
+        if (value) {
+          return { ...acc, [key]: value };
+        }
+        return acc;
+      }, {})
+    : null;
+
+  const searchParams = sanitizedQueryParams
+    ? new URLSearchParams(sanitizedQueryParams).toString()
+    : null;
+
+  return fetch(`${host}${path}${searchParams ? `?${searchParams}` : ''}`, {
+    ...otherOptions,
+    headers: {
+      ...otherOptions.headers,
+      ...(DEV_MODE && { [AUTH_HEADER]: localStorage.getItem(AUTH_HEADER) }),
+      'Content-Type': 'application/vnd.kubeflow-notebooks.manifest+yaml',
+    },
+    method,
+    body: yamlContent,
+  }).then((response) =>
+    response.text().then((fetchedData) => {
+      if (options?.parseJSON !== false) {
+        return JSON.parse(fetchedData);
+      }
+      return fetchedData;
+    }),
+  );
+};
+
 export const isNotebookResponse = <T>(response: unknown): response is ResponseBody<T> => {
   if (typeof response === 'object' && response !== null) {
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions

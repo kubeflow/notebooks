@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   Button,
   Content,
@@ -13,6 +13,7 @@ import {
 } from '@patternfly/react-core';
 import { useTypedNavigate } from '~/app/routerHelper';
 import useGenericObjectState from '~/app/hooks/useGenericObjectState';
+import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspaceKindFormData } from '~/app/types';
 import { WorkspaceKindFileUpload } from './fileUpload/WorkspaceKindFileUpload';
 import { WorkspaceKindFormProperties } from './properties/WorkspaceKindFormProperties';
@@ -27,6 +28,7 @@ export type ValidationStatus = 'success' | 'error' | 'default';
 
 export const WorkspaceKindForm: React.FC = () => {
   const navigate = useTypedNavigate();
+  const { api } = useNotebookAPI();
   // TODO: Detect mode by route
   const [mode] = useState('create');
   const [yamlValue, setYamlValue] = useState('');
@@ -35,14 +37,6 @@ export const WorkspaceKindForm: React.FC = () => {
   const [validated, setValidated] = useState<ValidationStatus>('default');
   const workspaceKindFileUploadId = 'workspace-kind-form-fileupload-view';
 
-  const handleViewClick = (event: React.MouseEvent<unknown> | React.KeyboardEvent | MouseEvent) => {
-    const { id } = event.currentTarget as HTMLElement;
-    setView(
-      id === workspaceKindFileUploadId
-        ? WorkspaceKindFormView.FileUpload
-        : WorkspaceKindFormView.Form,
-    );
-  };
   const [data, setData, resetData] = useGenericObjectState<WorkspaceKindFormData>({
     properties: {
       displayName: '',
@@ -59,16 +53,41 @@ export const WorkspaceKindForm: React.FC = () => {
     },
   });
 
-  const handleCreate = useCallback(() => {
-    // TODO: Complete handleCreate with API call to create a new WS kind
-    if (!Object.keys(data).length) {
-      return;
-    }
+  const handleViewClick = useCallback(
+    (event: React.MouseEvent<unknown> | React.KeyboardEvent | MouseEvent) => {
+      const { id } = event.currentTarget as HTMLElement;
+      setView(
+        id === workspaceKindFileUploadId
+          ? WorkspaceKindFormView.FileUpload
+          : WorkspaceKindFormView.Form,
+      );
+    },
+    [],
+  );
+
+  const handleSubmit = useCallback(async () => {
     setIsSubmitting(true);
-  }, [data]);
+    // TODO: Complete handleCreate with API call to create a new WS kind
+    try {
+      if (mode === 'create') {
+        const newWorkspaceKind = await api.createWorkspaceKind({}, yamlValue);
+        console.info('New workspace kind created:', JSON.stringify(newWorkspaceKind));
+      }
+    } catch (err) {
+      console.error(`Error ${mode === 'edit' ? 'editing' : 'creating'} workspace kind: ${err}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+    navigate('workspaceKinds');
+  }, [navigate, mode, api, yamlValue]);
+
+  const canSubmit = useMemo(
+    () => !isSubmitting && yamlValue.length > 0 && validated === 'success',
+    [yamlValue, isSubmitting, validated],
+  );
 
   const cancel = useCallback(() => {
-    navigate('workspaceKindCreate');
+    navigate('workspaceKinds');
   }, [navigate]);
 
   return (
@@ -83,29 +102,30 @@ export const WorkspaceKindForm: React.FC = () => {
                 </Content>
                 <Content component={ContentVariants.p}>
                   {view === WorkspaceKindFormView.FileUpload
-                    ? `Please upload a Workspace Kind YAML file. Select 'Form View' to view
-                    and edit the workspace kind's information`
+                    ? `Please upload or drag and drop a Workspace Kind YAML file.`
                     : `View and edit the Workspace Kind's information. Some fields may not be
                       represented in this form`}
                 </Content>
               </FlexItem>
-              <FlexItem>
-                <ToggleGroup className="workspace-kind-form-header" aria-label="Toggle form view">
-                  <ToggleGroupItem
-                    text="YAML Upload"
-                    buttonId={workspaceKindFileUploadId}
-                    isSelected={view === WorkspaceKindFormView.FileUpload}
-                    onChange={handleViewClick}
-                  />
-                  <ToggleGroupItem
-                    text="Form View"
-                    buttonId="workspace-kind-form-form-view"
-                    isSelected={view === WorkspaceKindFormView.Form}
-                    onChange={handleViewClick}
-                    isDisabled={yamlValue === '' || validated === 'error'}
-                  />
-                </ToggleGroup>
-              </FlexItem>
+              {mode === 'edit' && (
+                <FlexItem>
+                  <ToggleGroup className="workspace-kind-form-header" aria-label="Toggle form view">
+                    <ToggleGroupItem
+                      text="YAML Upload"
+                      buttonId={workspaceKindFileUploadId}
+                      isSelected={view === WorkspaceKindFormView.FileUpload}
+                      onChange={handleViewClick}
+                    />
+                    <ToggleGroupItem
+                      text="Form View"
+                      buttonId="workspace-kind-form-form-view"
+                      isSelected={view === WorkspaceKindFormView.Form}
+                      onChange={handleViewClick}
+                      isDisabled={yamlValue === '' || validated === 'error'}
+                    />
+                  </ToggleGroup>
+                </FlexItem>
+              )}
             </Flex>
           </Stack>
         </PageSection>
@@ -144,8 +164,8 @@ export const WorkspaceKindForm: React.FC = () => {
             <Button
               variant="primary"
               ouiaId="Primary"
-              onClick={handleCreate}
-              isDisabled={!isSubmitting}
+              onClick={handleSubmit}
+              isDisabled={!canSubmit}
             >
               {mode === 'create' ? 'Create' : 'Edit'}
             </Button>
