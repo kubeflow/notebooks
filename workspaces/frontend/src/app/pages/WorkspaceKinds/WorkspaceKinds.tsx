@@ -5,7 +5,6 @@ import {
   DrawerContentBody,
   PageSection,
   Content,
-  Brand,
   Tooltip,
   Label,
   Toolbar,
@@ -34,13 +33,15 @@ import {
   ActionsColumn,
   IActions,
 } from '@patternfly/react-table';
-import { CodeIcon, FilterIcon } from '@patternfly/react-icons';
+import { FilterIcon } from '@patternfly/react-icons';
 import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import { useWorkspaceCountPerKind } from '~/app/hooks/useWorkspaceCountPerKind';
 import { WorkspaceKindsColumns } from '~/app/types';
 import ThemeAwareSearchInput from '~/app/components/ThemeAwareSearchInput';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
+import WithValidImage from '~/shared/components/WithValidImage';
+import ImageFallback from '~/shared/components/ImageFallback';
 import { useTypedNavigate } from '~/app/routerHelper';
 import { WorkspaceKindDetails } from './details/WorkspaceKindDetails';
 
@@ -555,15 +556,19 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                   <Tbody id="workspace-kind-table-content" key={rowIndex} data-testid="table-body">
                     <Tr id={`workspace-kind-table-row-${rowIndex + 1}`}>
                       <Td dataLabel={columns.icon.name} style={{ width: '50px' }}>
-                        {workspaceKind.icon.url ? (
-                          <Brand
-                            src={workspaceKind.icon.url}
-                            alt={workspaceKind.name}
-                            style={{ width: '20px', height: '20px', cursor: 'pointer' }}
-                          />
-                        ) : (
-                          <CodeIcon />
-                        )}
+                        <WithValidImage
+                          imageSrc={workspaceKind.icon.url}
+                          skeletonWidth="20px"
+                          fallback={<ImageFallback imageSrc={workspaceKind.icon.url} />}
+                        >
+                          {(validSrc) => (
+                            <img
+                              src={validSrc}
+                              alt={workspaceKind.name}
+                              style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                            />
+                          )}
+                        </WithValidImage>
                       </Td>
                       <Td dataLabel={columns.name.name}>{workspaceKind.name}</Td>
                       <Td

@@ -12,6 +12,8 @@ import {
 import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import Filter, { FilteredColumn, FilterRef } from '~/shared/components/Filter';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
+import ImageFallback from '~/shared/components/ImageFallback';
+import WithValidImage from '~/shared/components/WithValidImage';
 import { defineDataFields, FilterableDataFieldKey } from '~/app/filterableDataHelper';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -111,7 +113,21 @@ export const WorkspaceFormKindList: React.FunctionComponent<WorkspaceFormKindLis
                     onChange,
                   }}
                 >
-                  <img src={kind.logo.url} alt={`${kind.name} logo`} style={{ maxWidth: '60px' }} />
+                  <WithValidImage
+                    imageSrc={kind.logo.url}
+                    skeletonWidth="60px"
+                    fallback={
+                      <ImageFallback
+                        imageSrc={kind.logo.url}
+                        extended
+                        message="Cannot load logo image"
+                      />
+                    }
+                  >
+                    {(validSrc) => (
+                      <img src={validSrc} alt={`${kind.name} logo`} style={{ maxWidth: '60px' }} />
+                    )}
+                  </WithValidImage>
                 </CardHeader>
                 <CardTitle>{kind.displayName}</CardTitle>
                 <CardBody>{kind.description}</CardBody>

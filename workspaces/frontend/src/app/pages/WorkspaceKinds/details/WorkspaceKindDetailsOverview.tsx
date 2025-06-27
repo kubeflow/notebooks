@@ -5,9 +5,10 @@ import {
   DescriptionListGroup,
   DescriptionListDescription,
   Divider,
-  Brand,
 } from '@patternfly/react-core';
 import { WorkspaceKind } from '~/shared/api/backendApiTypes';
+import ImageFallback from '~/shared/components/ImageFallback';
+import WithValidImage from '~/shared/components/WithValidImage';
 
 type WorkspaceDetailsOverviewProps = {
   workspaceKind: WorkspaceKind;
@@ -48,7 +49,19 @@ export const WorkspaceKindDetailsOverview: React.FunctionComponent<
     <DescriptionListGroup>
       <DescriptionListTerm style={{ alignSelf: 'center' }}>Icon</DescriptionListTerm>
       <DescriptionListDescription>
-        <Brand src={workspaceKind.icon.url} alt={workspaceKind.name} style={{ width: '40px' }} />
+        <WithValidImage
+          imageSrc={workspaceKind.icon.url}
+          skeletonWidth="40px"
+          fallback={
+            <ImageFallback
+              imageSrc={workspaceKind.icon.url}
+              extended
+              message="Cannot load icon image"
+            />
+          }
+        >
+          {(validSrc) => <img src={validSrc} alt={workspaceKind.name} style={{ width: '40px' }} />}
+        </WithValidImage>
       </DescriptionListDescription>
       <DescriptionListTerm style={{ alignSelf: 'center' }}>Icon URL</DescriptionListTerm>
       <DescriptionListDescription>
@@ -61,7 +74,19 @@ export const WorkspaceKindDetailsOverview: React.FunctionComponent<
     <DescriptionListGroup>
       <DescriptionListTerm style={{ alignSelf: 'center' }}>Logo</DescriptionListTerm>
       <DescriptionListDescription>
-        <Brand src={workspaceKind.logo.url} alt={workspaceKind.name} style={{ width: '40px' }} />
+        <WithValidImage
+          imageSrc={workspaceKind.logo.url}
+          skeletonWidth="40px"
+          fallback={
+            <ImageFallback
+              imageSrc={workspaceKind.logo.url}
+              extended
+              message="Cannot load logo image"
+            />
+          }
+        >
+          {(validSrc) => <img src={validSrc} alt={workspaceKind.name} style={{ width: '40px' }} />}
+        </WithValidImage>
       </DescriptionListDescription>
       <DescriptionListTerm style={{ alignSelf: 'center' }}>Logo URL</DescriptionListTerm>
       <DescriptionListDescription>
