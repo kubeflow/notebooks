@@ -45,6 +45,8 @@ const (
 	AllWorkspacesPath         = PathPrefix + "/workspaces"
 	WorkspacesByNamespacePath = AllWorkspacesPath + "/:" + NamespacePathParam
 	WorkspacesByNamePath      = AllWorkspacesPath + "/:" + NamespacePathParam + "/:" + ResourceNamePathParam
+	WorkspaceDetailsPrefix    = WorkspacesByNamePath + "/details"
+	WorkspaceYAMLPath         = WorkspaceDetailsPrefix + "/yaml"
 
 	// workspacekinds
 	AllWorkspaceKindsPath    = PathPrefix + "/workspacekinds"
@@ -102,6 +104,7 @@ func (a *App) Routes() http.Handler {
 	router.GET(WorkspacesByNamePath, a.GetWorkspaceHandler)
 	router.POST(WorkspacesByNamespacePath, a.CreateWorkspaceHandler)
 	router.DELETE(WorkspacesByNamePath, a.DeleteWorkspaceHandler)
+	router.GET(WorkspaceYAMLPath, a.GetWorkspaceYAMLHandler)
 
 	// workspacekinds
 	router.GET(AllWorkspaceKindsPath, a.GetWorkspaceKindsHandler)
