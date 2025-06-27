@@ -90,7 +90,7 @@ export interface WorkspaceKindPodTemplate {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface WorkspaceKindCreate {}
+export type WorkspaceKindCreate = string;
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface WorkspaceKindUpdate {}

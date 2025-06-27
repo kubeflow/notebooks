@@ -5,6 +5,7 @@ import {
   restGET,
   restPATCH,
   restUPDATE,
+  restYAML,
 } from '~/shared/api/apiUtils';
 import { handleRestFailures } from '~/shared/api/errorUtils';
 import {
@@ -96,7 +97,7 @@ export const getWorkspaceKind: GetWorkspaceKindAPI = (hostPath) => (opts, kind) 
   );
 
 export const createWorkspaceKind: CreateWorkspaceKindAPI = (hostPath) => (opts, data) =>
-  handleRestFailures(restCREATE(hostPath, `/workspacekinds`, data, {}, opts)).then((response) =>
+  handleRestFailures(restYAML(hostPath, `/workspacekinds`, data, {}, opts)).then((response) =>
     extractNotebookResponse<WorkspaceKind>(response),
   );
 
