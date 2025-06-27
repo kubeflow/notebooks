@@ -7,7 +7,6 @@ import {
   PaginationVariant,
   Pagination,
   Content,
-  Brand,
   Tooltip,
   Bullseye,
   Button,
@@ -28,7 +27,6 @@ import {
   ExclamationTriangleIcon,
   TimesCircleIcon,
   QuestionCircleIcon,
-  CodeIcon,
 } from '@patternfly/react-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { Workspace, WorkspaceState } from '~/shared/api/backendApiTypes';
@@ -48,10 +46,12 @@ import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import { WorkspaceConnectAction } from '~/app/pages/Workspaces/WorkspaceConnectAction';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
 import Filter, { FilteredColumn, FilterRef } from '~/shared/components/Filter';
+import WithValidImage from '~/shared/components/WithValidImage';
 import {
   formatResourceFromWorkspace,
   formatWorkspaceIdleState,
 } from '~/shared/utilities/WorkspaceUtils';
+import ImageFallback from '~/shared/components/ImageFallback';
 
 const {
   fields: wsTableColumns,
@@ -436,19 +436,25 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                       case 'kind':
                         return (
                           <Td key={columnKey} dataLabel={wsTableColumns[columnKey].label}>
-                            {kindLogoDict[workspace.workspaceKind.name] ? (
-                              <Tooltip content={workspace.workspaceKind.name}>
-                                <Brand
-                                  src={kindLogoDict[workspace.workspaceKind.name]}
-                                  alt={workspace.workspaceKind.name}
-                                  style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                            <WithValidImage
+                              imageSrc={kindLogoDict[workspace.workspaceKind.name]}
+                              skeletonWidth="20px"
+                              fallback={
+                                <ImageFallback
+                                  imageSrc={kindLogoDict[workspace.workspaceKind.name]}
                                 />
-                              </Tooltip>
-                            ) : (
-                              <Tooltip content={workspace.workspaceKind.name}>
-                                <CodeIcon />
-                              </Tooltip>
-                            )}
+                              }
+                            >
+                              {(validSrc) => (
+                                <Tooltip content={workspace.workspaceKind.name}>
+                                  <img
+                                    src={validSrc}
+                                    alt={workspace.workspaceKind.name}
+                                    style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                                  />
+                                </Tooltip>
+                              )}
+                            </WithValidImage>
                           </Td>
                         );
                       case 'namespace':
