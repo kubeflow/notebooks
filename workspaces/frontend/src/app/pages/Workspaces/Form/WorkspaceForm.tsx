@@ -9,6 +9,7 @@ import {
   ProgressStep,
   ProgressStepper,
   Stack,
+  StackItem,
 } from '@patternfly/react-core';
 import useGenericObjectState from '~/app/hooks/useGenericObjectState';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
@@ -30,10 +31,12 @@ enum WorkspaceFormSteps {
 }
 
 const stepDescriptions: { [key in WorkspaceFormSteps]?: string } = {
-  [WorkspaceFormSteps.KindSelection]: 'Select a workspace kind to use for the workspace.',
+  [WorkspaceFormSteps.KindSelection]:
+    'A workspace kind is a template for creating a workspace, which is an isolated area where you can work with models in your preferred IDE, such as Jupyter Notebook.',
   [WorkspaceFormSteps.ImageSelection]:
-    'Select a workspace image and image version to use for the workspace.',
-  [WorkspaceFormSteps.PodConfigSelection]: 'Select a pod config to use for the workspace.',
+    'Select a workspace image and image version to use for the workspace. A workspace image is a container image that contains the software and dependencies needed to run a workspace.',
+  [WorkspaceFormSteps.PodConfigSelection]:
+    'Select a pod config to use for the workspace. A pod config is a configuration that defines the resources and settings for a workspace.',
   [WorkspaceFormSteps.Properties]: 'Configure properties for your workspace.',
 };
 
@@ -167,7 +170,6 @@ const WorkspaceForm: React.FC = () => {
               <FlexItem>
                 <Content>
                   <h1>{`${mode === 'create' ? 'Create' : 'Edit'} workspace`}</h1>
-                  <p>{stepDescriptions[currentStep]}</p>
                 </Content>
               </FlexItem>
               <FlexItem>
@@ -211,6 +213,9 @@ const WorkspaceForm: React.FC = () => {
                 </ProgressStepper>
               </FlexItem>
             </Flex>
+            <StackItem>
+              <p>{stepDescriptions[currentStep]}</p>
+            </StackItem>
           </Stack>
         </PageSection>
       </PageGroup>
