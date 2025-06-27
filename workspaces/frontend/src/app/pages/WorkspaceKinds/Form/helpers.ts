@@ -88,3 +88,14 @@ export const emptyImage = {
     to: '',
   },
 };
+
+export const emptyPodConfig = {
+  id: '',
+  displayName: '',
+  description: '',
+  labels: [],
+  hidden: false,
+  redirect: {
+    to: '',
+  },
+};
