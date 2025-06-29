@@ -122,6 +122,74 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "post": {
+                "description": "Creates a new workspace kind from a raw YAML manifest.",
+                "consumes": [
+                    "application/vnd.kubeflow-notebooks.manifest+yaml"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspacekinds"
+                ],
+                "summary": "Create workspace kind",
+                "parameters": [
+                    {
+                        "description": "Raw YAML manifest of the WorkspaceKind",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Successful creation. Returns the newly created workspace kind details.",
+                        "schema": {
+                            "$ref": "#/definitions/api.WorkspaceKindEnvelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request. The YAML is invalid or a required field is missing.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Authentication is required.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. User does not have permission to create the workspace kind.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict. A WorkspaceKind with the same name already exists.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type. Content-Type header is not correct.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
             }
         },
         "/workspacekinds/{name}": {
