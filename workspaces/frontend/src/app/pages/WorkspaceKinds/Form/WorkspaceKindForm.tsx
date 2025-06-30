@@ -8,13 +8,12 @@ import {
   PageGroup,
   PageSection,
   Stack,
-  ToggleGroup,
-  ToggleGroupItem,
 } from '@patternfly/react-core';
 import { useTypedNavigate } from '~/app/routerHelper';
 import useGenericObjectState from '~/app/hooks/useGenericObjectState';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspaceKindFormData } from '~/app/types';
+import { useWorkspaceFormLocationData } from '~/app/hooks/useWorkspaceFormLocationData';
 import { WorkspaceKindFileUpload } from './fileUpload/WorkspaceKindFileUpload';
 import { WorkspaceKindFormProperties } from './properties/WorkspaceKindFormProperties';
 import { WorkspaceKindFormImage } from './image/WorkspaceKindFormImage';
@@ -31,12 +30,10 @@ export const WorkspaceKindForm: React.FC = () => {
   const navigate = useTypedNavigate();
   const { api } = useNotebookAPI();
   // TODO: Detect mode by route
-  const [mode] = useState('create');
+  const { mode } = useWorkspaceFormLocationData();
   const [yamlValue, setYamlValue] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [view, setView] = useState<WorkspaceKindFormView>(WorkspaceKindFormView.FileUpload);
   const [validated, setValidated] = useState<ValidationStatus>('default');
-  const workspaceKindFileUploadId = 'workspace-kind-form-fileupload-view';
 
   const [data, setData, resetData] = useGenericObjectState<WorkspaceKindFormData>({
     properties: {
@@ -57,18 +54,6 @@ export const WorkspaceKindForm: React.FC = () => {
       values: [],
     },
   });
-
-  const handleViewClick = useCallback(
-    (event: React.MouseEvent<unknown> | React.KeyboardEvent | MouseEvent) => {
-      const { id } = event.currentTarget as HTMLElement;
-      setView(
-        id === workspaceKindFileUploadId
-          ? WorkspaceKindFormView.FileUpload
-          : WorkspaceKindFormView.Form,
-      );
-    },
-    [],
-  );
 
   const handleSubmit = useCallback(async () => {
     setIsSubmitting(true);
@@ -106,37 +91,18 @@ export const WorkspaceKindForm: React.FC = () => {
                   {`${mode === 'create' ? 'Create' : 'Edit'} workspace kind`}
                 </Content>
                 <Content component={ContentVariants.p}>
-                  {view === WorkspaceKindFormView.FileUpload
+                  {mode === 'create'
                     ? `Please upload or drag and drop a Workspace Kind YAML file.`
                     : `View and edit the Workspace Kind's information. Some fields may not be
                       represented in this form`}
                 </Content>
               </FlexItem>
-              {mode === 'edit' && (
-                <FlexItem>
-                  <ToggleGroup className="workspace-kind-form-header" aria-label="Toggle form view">
-                    <ToggleGroupItem
-                      text="YAML Upload"
-                      buttonId={workspaceKindFileUploadId}
-                      isSelected={view === WorkspaceKindFormView.FileUpload}
-                      onChange={handleViewClick}
-                    />
-                    <ToggleGroupItem
-                      text="Form View"
-                      buttonId="workspace-kind-form-form-view"
-                      isSelected={view === WorkspaceKindFormView.Form}
-                      onChange={handleViewClick}
-                      isDisabled={yamlValue === '' || validated === 'error'}
-                    />
-                  </ToggleGroup>
-                </FlexItem>
-              )}
             </Flex>
           </Stack>
         </PageSection>
       </PageGroup>
       <PageSection isFilled>
-        {view === WorkspaceKindFormView.FileUpload && (
+        {mode === 'create' && (
           <WorkspaceKindFileUpload
             setData={setData}
             resetData={resetData}
@@ -146,7 +112,7 @@ export const WorkspaceKindForm: React.FC = () => {
             setValidated={setValidated}
           />
         )}
-        {view === WorkspaceKindFormView.Form && (
+        {mode === 'edit' && (
           <>
             <WorkspaceKindFormProperties
               mode={mode}

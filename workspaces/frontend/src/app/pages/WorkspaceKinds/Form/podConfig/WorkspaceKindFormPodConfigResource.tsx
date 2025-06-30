@@ -8,6 +8,8 @@ import {
   FormFieldGroupHeader,
   TextInput,
   Checkbox,
+  Content,
+  ContentVariants,
 } from '@patternfly/react-core';
 import { PlusCircleIcon, TrashAltIcon } from '@patternfly/react-icons';
 import { ResourceInputWrapper } from './ResourceInputWrapper';
@@ -32,12 +34,10 @@ export const WorkspaceKindFormPodConfigResource: React.FC<Props> = ({
   custom,
 }) => {
   // State for tracking limit toggles
-  const [cpuRequestEnabled, setCpuRequestEnabled] = useState<boolean>(cpu.request.length > 0);
-  const [memoryRequestEnabled, setMemoryRequestEnabled] = useState<boolean>(
-    memory.request.length > 0,
-  );
-  const [cpuLimitEnabled, setCpuLimitEnabled] = useState<boolean>(cpu.limit.length > 0);
-  const [memoryLimitEnabled, setMemoryLimitEnabled] = useState<boolean>(memory.limit.length > 0);
+  const [cpuRequestEnabled, setCpuRequestEnabled] = useState(cpu.request.length > 0);
+  const [memoryRequestEnabled, setMemoryRequestEnabled] = useState(memory.request.length > 0);
+  const [cpuLimitEnabled, setCpuLimitEnabled] = useState(cpu.limit.length > 0);
+  const [memoryLimitEnabled, setMemoryLimitEnabled] = useState(memory.limit.length > 0);
   const [customLimitsEnabled, setCustomLimitsEnabled] = useState<Record<number, boolean>>(() => {
     const customToggles: Record<number, boolean> = {};
     custom.forEach((res, idx) => {
@@ -67,7 +67,7 @@ export const WorkspaceKindFormPodConfigResource: React.FC<Props> = ({
   const handleAddCustom = useCallback(() => {
     setResources((resources: PodResourceEntry[]) => [
       ...resources,
-      { type: '', request: '', limit: '' },
+      { type: '', request: '1', limit: '' },
     ]);
   }, [setResources]);
 
@@ -97,16 +97,18 @@ export const WorkspaceKindFormPodConfigResource: React.FC<Props> = ({
   const handleCpuLimitToggle = useCallback(
     (enabled: boolean) => {
       setCpuLimitEnabled(enabled);
+      handleChange('cpu', 'limit', cpu.request);
       if (!enabled) {
         handleChange('cpu', 'limit', '');
       }
     },
-    [handleChange],
+    [cpu.request, handleChange],
   );
 
   const handleCpuRequestToggle = useCallback(
     (enabled: boolean) => {
       setCpuRequestEnabled(enabled);
+      handleChange('cpu', 'request', '1');
       if (!enabled) {
         handleChange('cpu', 'request', '');
         handleCpuLimitToggle(enabled);
@@ -118,16 +120,18 @@ export const WorkspaceKindFormPodConfigResource: React.FC<Props> = ({
   const handleMemoryLimitToggle = useCallback(
     (enabled: boolean) => {
       setMemoryLimitEnabled(enabled);
+      handleChange('memory', 'limit', memory.request);
       if (!enabled) {
         handleChange('memory', 'limit', '');
       }
     },
-    [handleChange],
+    [handleChange, memory.request],
   );
 
   const handleMemoryRequestToggle = useCallback(
     (enabled: boolean) => {
       setMemoryRequestEnabled(enabled);
+      handleChange('memory', 'request', '1Mi');
       if (!enabled) {
         handleChange('memory', 'request', '');
         handleMemoryLimitToggle(enabled);
@@ -159,9 +163,9 @@ export const WorkspaceKindFormPodConfigResource: React.FC<Props> = ({
             id: 'workspace-kind-podconfig-resource',
           }}
           titleDescription={
-            <p style={{ fontSize: '12px' }}>
-              Optional: Configure k8s Pod Resource Requests & Limits
-            </p>
+            <Content component={ContentVariants.p} style={{ fontSize: '12px' }}>
+              Optional: Configure k8s Pod Resource Requests & Limits.
+            </Content>
           }
         />
       }
@@ -190,7 +194,7 @@ export const WorkspaceKindFormPodConfigResource: React.FC<Props> = ({
             value={cpu.request}
             onChange={(value) => handleChange('cpu', 'request', value)}
             placeholder="e.g. 1"
-            min={0}
+            min={1}
             aria-label="CPU request"
             isDisabled={!cpuRequestEnabled}
           />
@@ -201,7 +205,7 @@ export const WorkspaceKindFormPodConfigResource: React.FC<Props> = ({
             value={memory.request}
             onChange={(value) => handleChange('memory', 'request', value)}
             placeholder="e.g. 512Mi"
-            min={0}
+            min={1}
             aria-label="Memory request"
             isDisabled={!memoryRequestEnabled}
           />
@@ -232,7 +236,7 @@ export const WorkspaceKindFormPodConfigResource: React.FC<Props> = ({
             value={cpu.limit}
             onChange={(value) => handleChange('cpu', 'limit', value)}
             placeholder="e.g. 2"
-            min={0}
+            min={parseFloat(cpu.request)}
             step={1}
             aria-label="CPU limit"
             isDisabled={!cpuRequestEnabled || !cpuLimitEnabled}
@@ -244,7 +248,7 @@ export const WorkspaceKindFormPodConfigResource: React.FC<Props> = ({
             value={memory.limit}
             onChange={(value) => handleChange('memory', 'limit', value)}
             placeholder="e.g. 1Gi"
-            min={0}
+            min={parseFloat(memory.request)}
             aria-label="Memory limit"
             isDisabled={!memoryRequestEnabled || !memoryLimitEnabled}
           />
@@ -278,7 +282,7 @@ export const WorkspaceKindFormPodConfigResource: React.FC<Props> = ({
               value={res.request}
               onChange={(value) => handleChange(res.type, 'request', value)}
               placeholder="Request"
-              min={0}
+              min={1}
               aria-label="Custom resource request"
             />
           </GridItem>
@@ -287,7 +291,10 @@ export const WorkspaceKindFormPodConfigResource: React.FC<Props> = ({
               id={`custom-limit-switch-${idx}`}
               label="Set Limit"
               isChecked={customLimitsEnabled[idx] || false}
-              onChange={(_event, checked) => handleCustomLimitToggle(idx, checked)}
+              onChange={(_event, checked) => {
+                handleChange(res.type, 'limit', res.request);
+                handleCustomLimitToggle(idx, checked);
+              }}
               aria-label={`Enable limit for ${res.type || 'custom resource'}`}
             />
           </GridItem>
@@ -297,7 +304,7 @@ export const WorkspaceKindFormPodConfigResource: React.FC<Props> = ({
               value={res.limit}
               onChange={(value) => handleChange(res.type, 'limit', value)}
               placeholder="Limit"
-              min={0}
+              min={parseFloat(res.request)}
               isDisabled={!customLimitsEnabled[idx]}
               aria-label={`${res.type || 'Custom resource'} limit`}
             />

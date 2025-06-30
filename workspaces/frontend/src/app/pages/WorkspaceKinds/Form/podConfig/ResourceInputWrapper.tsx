@@ -7,6 +7,7 @@ import {
   SplitItem,
 } from '@patternfly/react-core';
 import { CPU_UNITS, MEMORY_UNITS_FOR_SELECTION, UnitOption } from '~/shared/utilities/valueUnits';
+import { extractNumericValue, extractUnit } from '~/shared/utilities/WorkspaceUtils';
 
 interface ResourceInputWrapperProps {
   value: string;
@@ -29,10 +30,15 @@ const unitMap: {
 
 const DEFAULT_STEP = 1;
 
+const DEFAULT_UNITS = {
+  memory: 'Mi',
+  cpu: '',
+};
+
 export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
   value,
   onChange,
-  min = 0,
+  min = 1,
   max,
   step = DEFAULT_STEP,
   type,
@@ -44,37 +50,23 @@ export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
   const [unit, setUnit] = useState<string>('');
 
   useEffect(() => {
-    if (type === 'memory') {
-      // Extract numeric value and unit from memory string (e.g., "512Mi" -> "512" and "Mi")
-      const match = value.match(/^(\d+)([MGTP]i)?$/i);
-      if (match) {
-        setInputValue(match[1]);
-        setUnit(match[2] || 'Mi');
-      } else {
-        setInputValue('');
-        setUnit('Mi');
-      }
-    } else if (type === 'cpu') {
-      const match = value.match(/^(\d+)([m])?$/i);
-      if (match) {
-        setInputValue(match[1]);
-        setUnit(match[2] || '');
-      } else {
-        setInputValue('');
-        setUnit('');
-      }
-    } else {
+    if (type === 'custom') {
       setInputValue(value);
+      return;
     }
+    const numericValue = extractNumericValue(value, type);
+    const extractedUnit = extractUnit(value, type);
+    setInputValue(numericValue);
+    setUnit(extractedUnit || DEFAULT_UNITS[type]);
   }, [value, type]);
 
   const handleInputChange = useCallback(
     (newValue: string) => {
       setInputValue(newValue);
-      if (type === 'memory' || type === 'cpu') {
-        onChange(newValue ? `${newValue}${unit}` : '');
-      } else {
+      if (type === 'custom') {
         onChange(newValue);
+      } else {
+        onChange(newValue ? `${newValue}${unit}` : '');
       }
     },
     [onChange, type, unit],
@@ -110,7 +102,6 @@ export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
     [handleInputChange],
   );
 
-  // Memoize the unit options to prevent unnecessary re-renders
   const unitOptions = useMemo(
     () =>
       type !== 'custom'
@@ -123,7 +114,7 @@ export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
     <Split className="workspacekind-form-resource-input">
       <SplitItem>
         <NumberInput
-          value={parseFloat(inputValue) || 0}
+          value={parseFloat(inputValue) || 1}
           placeholder={placeholder}
           onMinus={handleDecrement}
           onChange={handleNumberInputChange}
