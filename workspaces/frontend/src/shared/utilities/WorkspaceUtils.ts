@@ -27,16 +27,6 @@ export const parseResourceValue = (
   return splitValueUnit(value, units);
 };
 
-export const extractNumericValue = (value: string, resourceType: ResourceType): string => {
-  const [numericValue] = parseResourceValue(value, resourceType);
-  return String(numericValue || '');
-};
-
-export const extractUnit = (value: string, resourceType: ResourceType): string => {
-  const [, unit] = parseResourceValue(value, resourceType);
-  return unit?.unit || '';
-};
-
 export const extractResourceValue = (
   workspace: Workspace,
   resourceType: ResourceType,

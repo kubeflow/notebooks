@@ -40,7 +40,7 @@ export const MEMORY_UNITS_FOR_PARSING: UnitOption[] = [
   { name: 'KiB', unit: 'Ki', weight: 1024 },
   { name: 'B', unit: '', weight: 1 },
 ];
-export const OTHER: UnitOption[] = [{ name: 'Other', unit: '', weight: 1 }];
+export const OTHER: UnitOption[] = [{ name: '', unit: '', weight: 1 }];
 
 export const splitValueUnit = (
   value: ValueUnitString,

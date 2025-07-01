@@ -10,10 +10,10 @@ import {
   Stack,
 } from '@patternfly/react-core';
 import { useTypedNavigate } from '~/app/routerHelper';
+import { useCurrentRouteKey } from '~/app/hooks/useCurrentRouteKey';
 import useGenericObjectState from '~/app/hooks/useGenericObjectState';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspaceKindFormData } from '~/app/types';
-import { useWorkspaceFormLocationData } from '~/app/hooks/useWorkspaceFormLocationData';
 import { WorkspaceKindFileUpload } from './fileUpload/WorkspaceKindFileUpload';
 import { WorkspaceKindFormProperties } from './properties/WorkspaceKindFormProperties';
 import { WorkspaceKindFormImage } from './image/WorkspaceKindFormImage';
@@ -30,11 +30,10 @@ export const WorkspaceKindForm: React.FC = () => {
   const navigate = useTypedNavigate();
   const { api } = useNotebookAPI();
   // TODO: Detect mode by route
-  const { mode } = useWorkspaceFormLocationData();
   const [yamlValue, setYamlValue] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validated, setValidated] = useState<ValidationStatus>('default');
-
+  const mode = useCurrentRouteKey() === 'workspaceKindCreate' ? 'create' : 'edit';
   const [data, setData, resetData] = useGenericObjectState<WorkspaceKindFormData>({
     properties: {
       displayName: '',
@@ -104,7 +103,6 @@ export const WorkspaceKindForm: React.FC = () => {
       <PageSection isFilled>
         {mode === 'create' && (
           <WorkspaceKindFileUpload
-            setData={setData}
             resetData={resetData}
             value={yamlValue}
             setValue={setYamlValue}

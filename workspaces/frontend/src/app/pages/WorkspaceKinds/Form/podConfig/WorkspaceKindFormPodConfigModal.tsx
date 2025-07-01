@@ -13,11 +13,9 @@ import {
 } from '@patternfly/react-core';
 import { WorkspaceKindPodConfigValue } from '~/app/types';
 import { WorkspaceOptionLabel } from '~/shared/api/backendApiTypes';
-import { WorkspaceKindFormLabelTable } from '~/app/pages/WorkspaceKinds/Form/WorkspaceKindFormLabels';
-import {
-  WorkspaceKindFormPodConfigResource,
-  PodResourceEntry,
-} from './WorkspaceKindFormPodConfigResource';
+import { EditableLabels } from '~/app/pages/WorkspaceKinds/Form/EditableLabels';
+import { getResources } from '~/app/pages/WorkspaceKinds/Form/helpers';
+import { WorkspaceKindFormResource, PodResourceEntry } from './WorkspaceKindFormResource';
 
 interface WorkspaceKindFormPodConfigModalProps {
   isOpen: boolean;
@@ -27,33 +25,6 @@ interface WorkspaceKindFormPodConfigModalProps {
   currConfig: WorkspaceKindPodConfigValue;
   setCurrConfig: (currConfig: WorkspaceKindPodConfigValue) => void;
 }
-
-// convert from k8s resource object {limits: {}, requests{}} to array of {type: '', limit: '', request: ''} for each type of resource (e.g. CPU, memory, nvidia.com/gpu)
-const getResources = (currConfig: WorkspaceKindPodConfigValue): PodResourceEntry[] => {
-  const grouped = new Map<string, { request: string; limit: string }>([
-    ['cpu', { request: '', limit: '' }],
-    ['memory', { request: '', limit: '' }],
-  ]);
-  const { requests = {}, limits = {} } = currConfig.resources || {};
-  const types = new Set([...Object.keys(requests), ...Object.keys(limits), 'cpu', 'memory']);
-  types.forEach((type) => {
-    const entry = grouped.get(type) || { request: '', limit: '' };
-    if (type in requests) {
-      entry.request = String(requests[type]);
-    }
-    if (type in limits) {
-      entry.limit = String(limits[type]);
-    }
-    grouped.set(type, entry);
-  });
-
-  // Convert to UI-types
-  return Array.from(grouped.entries()).map(([type, { request, limit }]) => ({
-    type,
-    request,
-    limit,
-  }));
-};
 
 export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfigModalProps> = ({
   isOpen,
@@ -129,17 +100,29 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
     setCurrConfig,
   ]);
 
-  const cpuResource = useMemo(
-    () => resources.find((r) => r.type === 'cpu') || { type: 'cpu', request: '', limit: '' },
+  const cpuResource: PodResourceEntry = useMemo(
+    () =>
+      resources.find((r) => r.type === 'cpu') || {
+        id: 'cpu-resource',
+        type: 'cpu',
+        request: '',
+        limit: '',
+      },
     [resources],
   );
 
-  const memoryResource = useMemo(
-    () => resources.find((r) => r.type === 'memory') || { type: 'memory', request: '', limit: '' },
+  const memoryResource: PodResourceEntry = useMemo(
+    () =>
+      resources.find((r) => r.type === 'memory') || {
+        id: 'memory-resource',
+        type: 'memory',
+        request: '',
+        limit: '',
+      },
     [resources],
   );
 
-  const customResources = useMemo(
+  const customResources: PodResourceEntry[] = useMemo(
     () => resources.filter((r) => r.type !== 'cpu' && r.type !== 'memory'),
     [resources],
   );
@@ -189,7 +172,7 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
               label={
                 <div>
                   <div>Hidden</div>
-                  <HelperText>Hide this image from users </HelperText>
+                  <HelperText>Hide this Pod Config from users</HelperText>
                 </div>
               }
               aria-label="pod config hidden controlled check"
@@ -198,11 +181,8 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
               name="check5"
             />
           </FormGroup>
-          <WorkspaceKindFormLabelTable
-            rows={labels}
-            setRows={(newLabels) => setLabels(newLabels)}
-          />
-          <WorkspaceKindFormPodConfigResource
+          <EditableLabels rows={labels} setRows={(newLabels) => setLabels(newLabels)} />
+          <WorkspaceKindFormResource
             setResources={setResources}
             cpu={cpuResource}
             memory={memoryResource}

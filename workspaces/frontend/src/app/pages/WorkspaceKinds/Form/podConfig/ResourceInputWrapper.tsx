@@ -7,7 +7,7 @@ import {
   SplitItem,
 } from '@patternfly/react-core';
 import { CPU_UNITS, MEMORY_UNITS_FOR_SELECTION, UnitOption } from '~/shared/utilities/valueUnits';
-import { extractNumericValue, extractUnit } from '~/shared/utilities/WorkspaceUtils';
+import { parseResourceValue } from '~/shared/utilities/WorkspaceUtils';
 
 interface ResourceInputWrapperProps {
   value: string;
@@ -54,10 +54,9 @@ export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
       setInputValue(value);
       return;
     }
-    const numericValue = extractNumericValue(value, type);
-    const extractedUnit = extractUnit(value, type);
-    setInputValue(numericValue);
-    setUnit(extractedUnit || DEFAULT_UNITS[type]);
+    const [numericValue, extractedUnit] = parseResourceValue(value, type);
+    setInputValue(String(numericValue || ''));
+    setUnit(extractedUnit?.unit || DEFAULT_UNITS[type]);
   }, [value, type]);
 
   const handleInputChange = useCallback(

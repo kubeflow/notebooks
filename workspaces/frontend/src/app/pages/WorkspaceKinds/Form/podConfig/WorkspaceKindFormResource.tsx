@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import {
   Button,
   Grid,
@@ -8,26 +8,29 @@ import {
   FormFieldGroupHeader,
   TextInput,
   Checkbox,
-  Content,
-  ContentVariants,
+  HelperText,
+  HelperTextItem,
 } from '@patternfly/react-core';
 import { PlusCircleIcon, TrashAltIcon } from '@patternfly/react-icons';
+import { generateUniqueId } from '~/app/pages/WorkspaceKinds/Form/helpers';
+import { isMemoryLimitLarger } from '~/shared/utilities/valueUnits';
 import { ResourceInputWrapper } from './ResourceInputWrapper';
 
 export type PodResourceEntry = {
+  id: string; // Unique identifier for each resource entry
   type: string;
   request: string;
   limit: string;
 };
 
-interface Props {
+interface WorkspaceKindFormResourceProps {
   setResources: (value: React.SetStateAction<PodResourceEntry[]>) => void;
   cpu: PodResourceEntry;
   memory: PodResourceEntry;
   custom: PodResourceEntry[];
 }
 
-export const WorkspaceKindFormPodConfigResource: React.FC<Props> = ({
+export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps> = ({
   setResources,
   cpu,
   memory,
@@ -38,11 +41,11 @@ export const WorkspaceKindFormPodConfigResource: React.FC<Props> = ({
   const [memoryRequestEnabled, setMemoryRequestEnabled] = useState(memory.request.length > 0);
   const [cpuLimitEnabled, setCpuLimitEnabled] = useState(cpu.limit.length > 0);
   const [memoryLimitEnabled, setMemoryLimitEnabled] = useState(memory.limit.length > 0);
-  const [customLimitsEnabled, setCustomLimitsEnabled] = useState<Record<number, boolean>>(() => {
-    const customToggles: Record<number, boolean> = {};
-    custom.forEach((res, idx) => {
+  const [customLimitsEnabled, setCustomLimitsEnabled] = useState<Record<string, boolean>>(() => {
+    const customToggles: Record<string, boolean> = {};
+    custom.forEach((res) => {
       if (res.limit) {
-        customToggles[idx] = true;
+        customToggles[res.id] = true;
       }
     });
     return customToggles;
@@ -56,9 +59,9 @@ export const WorkspaceKindFormPodConfigResource: React.FC<Props> = ({
   }, [cpu.limit.length, cpu.request.length, memory.limit.length, memory.request.length]);
 
   const handleChange = useCallback(
-    (type: string, field: 'type' | 'request' | 'limit', value: string) => {
+    (resourceId: string, field: 'type' | 'request' | 'limit', value: string) => {
       setResources((resources: PodResourceEntry[]) =>
-        resources.map((r) => (r.type === type ? { ...r, [field]: value } : r)),
+        resources.map((r) => (r.id === resourceId ? { ...r, [field]: value } : r)),
       );
     },
     [setResources],
@@ -67,92 +70,113 @@ export const WorkspaceKindFormPodConfigResource: React.FC<Props> = ({
   const handleAddCustom = useCallback(() => {
     setResources((resources: PodResourceEntry[]) => [
       ...resources,
-      { type: '', request: '1', limit: '' },
+      { id: generateUniqueId(), type: '', request: '1', limit: '' },
     ]);
   }, [setResources]);
 
   const handleRemoveCustom = useCallback(
-    (idx: number) => {
-      setResources((resources: PodResourceEntry[]) =>
-        resources.filter((r) => custom[idx].type !== r.type),
-      );
+    (resourceId: string) => {
+      setResources((resources: PodResourceEntry[]) => resources.filter((r) => r.id !== resourceId));
       // Remove the corresponding limit toggle
       const newCustomLimitsEnabled = { ...customLimitsEnabled };
-      delete newCustomLimitsEnabled[idx];
-      // Reindex remaining toggles
-      const reindexed: Record<number, boolean> = {};
-      Object.keys(newCustomLimitsEnabled).forEach((key, newIdx) => {
-        const oldIdx = parseInt(key);
-        if (oldIdx > idx) {
-          reindexed[newIdx] = newCustomLimitsEnabled[oldIdx];
-        } else {
-          reindexed[oldIdx] = newCustomLimitsEnabled[oldIdx];
-        }
-      });
-      setCustomLimitsEnabled(reindexed);
+      delete newCustomLimitsEnabled[resourceId];
+      setCustomLimitsEnabled(newCustomLimitsEnabled);
     },
-    [custom, customLimitsEnabled, setResources],
+    [customLimitsEnabled, setResources],
   );
 
   const handleCpuLimitToggle = useCallback(
     (enabled: boolean) => {
       setCpuLimitEnabled(enabled);
-      handleChange('cpu', 'limit', cpu.request);
+      handleChange(cpu.id, 'limit', cpu.request);
       if (!enabled) {
-        handleChange('cpu', 'limit', '');
+        handleChange(cpu.id, 'limit', '');
       }
     },
-    [cpu.request, handleChange],
+    [cpu.id, cpu.request, handleChange],
   );
 
   const handleCpuRequestToggle = useCallback(
     (enabled: boolean) => {
       setCpuRequestEnabled(enabled);
-      handleChange('cpu', 'request', '1');
+      handleChange(cpu.id, 'request', '1');
       if (!enabled) {
-        handleChange('cpu', 'request', '');
+        handleChange(cpu.id, 'request', '');
         handleCpuLimitToggle(enabled);
       }
     },
-    [handleChange, handleCpuLimitToggle],
+    [cpu.id, handleChange, handleCpuLimitToggle],
   );
 
   const handleMemoryLimitToggle = useCallback(
     (enabled: boolean) => {
       setMemoryLimitEnabled(enabled);
-      handleChange('memory', 'limit', memory.request);
+      handleChange(memory.id, 'limit', memory.request);
       if (!enabled) {
-        handleChange('memory', 'limit', '');
+        handleChange(memory.id, 'limit', '');
       }
     },
-    [handleChange, memory.request],
+    [handleChange, memory.id, memory.request],
   );
 
   const handleMemoryRequestToggle = useCallback(
     (enabled: boolean) => {
       setMemoryRequestEnabled(enabled);
-      handleChange('memory', 'request', '1Mi');
+      handleChange(memory.id, 'request', '1Mi');
       if (!enabled) {
-        handleChange('memory', 'request', '');
+        handleChange(memory.id, 'request', '');
         handleMemoryLimitToggle(enabled);
       }
     },
-    [handleChange, handleMemoryLimitToggle],
+    [handleChange, handleMemoryLimitToggle, memory.id],
   );
 
   const handleCustomLimitToggle = useCallback(
-    (idx: number, enabled: boolean) => {
-      setCustomLimitsEnabled((prev) => ({ ...prev, [idx]: enabled }));
+    (resourceId: string, enabled: boolean) => {
+      setCustomLimitsEnabled((prev) => ({ ...prev, [resourceId]: enabled }));
       if (!enabled) {
-        const customResource = custom[idx];
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        if (customResource) {
-          handleChange(customResource.type, 'limit', '');
-        }
+        handleChange(resourceId, 'limit', '');
       }
     },
-    [custom, handleChange],
+    [handleChange],
   );
+  const cpuRequestLargerThanLimit = useMemo(
+    () => parseFloat(cpu.request) > parseFloat(cpu.limit),
+    [cpu.request, cpu.limit],
+  );
+
+  const memoryRequestLargerThanLimit = useMemo(
+    () =>
+      memory.request.length > 0 &&
+      memory.limit.length > 0 &&
+      !isMemoryLimitLarger(memory.request, memory.limit, true),
+    [memory.request, memory.limit],
+  );
+
+  const requestRequestLargerThanLimit = useMemo(
+    () =>
+      custom.reduce(
+        (prev, curr) => prev || parseFloat(curr.request) > parseFloat(curr.limit),
+        false,
+      ),
+    [custom],
+  );
+
+  const getResourceCountText = useCallback(() => {
+    const standardResourceCount = (cpu.request ? 1 : 0) + (memory.request ? 1 : 0);
+    const customResourceCount = custom.length;
+    if (standardResourceCount > 0 && customResourceCount > 0) {
+      return `${standardResourceCount} standard and ${customResourceCount} custom resources added`;
+    }
+    if (standardResourceCount > 0) {
+      return `${standardResourceCount} standard resources added`;
+    }
+    if (customResourceCount > 0) {
+      return `${customResourceCount} custom resources added`;
+    }
+    return '0 added';
+  }, [cpu.request, memory.request, custom.length]);
+
   return (
     <FormFieldGroupExpandable
       toggleAriaLabel="Resources"
@@ -163,9 +187,14 @@ export const WorkspaceKindFormPodConfigResource: React.FC<Props> = ({
             id: 'workspace-kind-podconfig-resource',
           }}
           titleDescription={
-            <Content component={ContentVariants.p} style={{ fontSize: '12px' }}>
-              Optional: Configure k8s Pod Resource Requests & Limits.
-            </Content>
+            <>
+              <div style={{ fontSize: '12px' }}>
+                Optional: Configure k8s Pod Resource Requests & Limits.
+              </div>
+              <div className="pf-u-font-size-sm">
+                <strong>{getResourceCountText()}</strong>
+              </div>
+            </>
           }
         />
       }
@@ -192,7 +221,7 @@ export const WorkspaceKindFormPodConfigResource: React.FC<Props> = ({
           <ResourceInputWrapper
             type="cpu"
             value={cpu.request}
-            onChange={(value) => handleChange('cpu', 'request', value)}
+            onChange={(value) => handleChange(cpu.id, 'request', value)}
             placeholder="e.g. 1"
             min={1}
             aria-label="CPU request"
@@ -203,7 +232,7 @@ export const WorkspaceKindFormPodConfigResource: React.FC<Props> = ({
           <ResourceInputWrapper
             type="memory"
             value={memory.request}
-            onChange={(value) => handleChange('memory', 'request', value)}
+            onChange={(value) => handleChange(memory.id, 'request', value)}
             placeholder="e.g. 512Mi"
             min={1}
             aria-label="Memory request"
@@ -234,7 +263,7 @@ export const WorkspaceKindFormPodConfigResource: React.FC<Props> = ({
           <ResourceInputWrapper
             type="cpu"
             value={cpu.limit}
-            onChange={(value) => handleChange('cpu', 'limit', value)}
+            onChange={(value) => handleChange(cpu.id, 'limit', value)}
             placeholder="e.g. 2"
             min={parseFloat(cpu.request)}
             step={1}
@@ -246,30 +275,48 @@ export const WorkspaceKindFormPodConfigResource: React.FC<Props> = ({
           <ResourceInputWrapper
             type="memory"
             value={memory.limit}
-            onChange={(value) => handleChange('memory', 'limit', value)}
+            onChange={(value) => handleChange(memory.id, 'limit', value)}
             placeholder="e.g. 1Gi"
             min={parseFloat(memory.request)}
             aria-label="Memory limit"
             isDisabled={!memoryRequestEnabled || !memoryLimitEnabled}
           />
         </GridItem>
+        <GridItem span={6}>
+          {cpuRequestLargerThanLimit && (
+            <HelperText>
+              <HelperTextItem variant="error">
+                CPU limit should not be smaller than the request value
+              </HelperTextItem>
+            </HelperText>
+          )}
+        </GridItem>
+        <GridItem span={6}>
+          {memoryRequestLargerThanLimit && (
+            <HelperText>
+              <HelperTextItem variant="error">
+                Memory limit should not be smaller than the request value
+              </HelperTextItem>
+            </HelperText>
+          )}
+        </GridItem>
       </Grid>
       <Title headingLevel="h6">Custom Resources</Title>
-      {custom.map((res, idx) => (
-        <Grid key={idx} hasGutter className="pf-u-mb-sm">
-          <GridItem span={10}>
+      {custom.map((res) => (
+        <Grid key={res.id} hasGutter className="pf-u-mb-sm">
+          <GridItem span={10} className="custom-resource-type-input">
             <TextInput
               value={res.type}
               placeholder="Resource name (e.g. nvidia.com/gpu)"
               aria-label="Custom resource type"
-              onChange={(_event, value) => handleChange(res.type, 'type', value)}
+              onChange={(_event, value) => handleChange(res.id, 'type', value)}
             />
           </GridItem>
           <GridItem span={2}>
             <Button
               variant="link"
               isDanger
-              onClick={() => handleRemoveCustom(idx)}
+              onClick={() => handleRemoveCustom(res.id)}
               aria-label={`Remove ${res.type || 'custom resource'}`}
             >
               <TrashAltIcon />
@@ -280,7 +327,7 @@ export const WorkspaceKindFormPodConfigResource: React.FC<Props> = ({
             <ResourceInputWrapper
               type="custom"
               value={res.request}
-              onChange={(value) => handleChange(res.type, 'request', value)}
+              onChange={(value) => handleChange(res.id, 'request', value)}
               placeholder="Request"
               min={1}
               aria-label="Custom resource request"
@@ -288,12 +335,12 @@ export const WorkspaceKindFormPodConfigResource: React.FC<Props> = ({
           </GridItem>
           <GridItem span={12}>
             <Checkbox
-              id={`custom-limit-switch-${idx}`}
+              id={`custom-limit-switch-${res.id}`}
               label="Set Limit"
-              isChecked={customLimitsEnabled[idx] || false}
+              isChecked={customLimitsEnabled[res.id] || false}
               onChange={(_event, checked) => {
-                handleChange(res.type, 'limit', res.request);
-                handleCustomLimitToggle(idx, checked);
+                handleChange(res.id, 'limit', res.request);
+                handleCustomLimitToggle(res.id, checked);
               }}
               aria-label={`Enable limit for ${res.type || 'custom resource'}`}
             />
@@ -302,10 +349,10 @@ export const WorkspaceKindFormPodConfigResource: React.FC<Props> = ({
             <ResourceInputWrapper
               type="custom"
               value={res.limit}
-              onChange={(value) => handleChange(res.type, 'limit', value)}
+              onChange={(value) => handleChange(res.id, 'limit', value)}
               placeholder="Limit"
               min={parseFloat(res.request)}
-              isDisabled={!customLimitsEnabled[idx]}
+              isDisabled={!customLimitsEnabled[res.id]}
               aria-label={`${res.type || 'Custom resource'} limit`}
             />
           </GridItem>
@@ -320,6 +367,13 @@ export const WorkspaceKindFormPodConfigResource: React.FC<Props> = ({
       >
         Add Custom Resource
       </Button>
+      {requestRequestLargerThanLimit && (
+        <HelperText>
+          <HelperTextItem variant="error">
+            Resource limit should not be smaller than the request value
+          </HelperTextItem>
+        </HelperText>
+      )}
     </FormFieldGroupExpandable>
   );
 };
