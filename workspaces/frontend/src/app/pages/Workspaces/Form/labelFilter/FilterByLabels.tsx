@@ -6,6 +6,7 @@ import {
 } from '@patternfly/react-catalog-view-extension';
 import '@patternfly/react-catalog-view-extension/dist/css/react-catalog-view-extension.css';
 import { WorkspaceOptionLabel } from '~/shared/api/backendApiTypes';
+import { formatLabelKey } from '~/shared/utilities/WorkspaceUtils';
 
 type FilterByLabelsProps = {
   labelledObjects: WorkspaceOptionLabel[];
@@ -60,7 +61,7 @@ export const FilterByLabels: React.FunctionComponent<FilterByLabelsProps> = ({
   return (
     <FilterSidePanel id="filter-panel">
       {[...filterMap.keys()].map((label) => (
-        <FilterSidePanelCategory key={label} title={label}>
+        <FilterSidePanelCategory key={label} title={formatLabelKey(label)}>
           {Array.from(filterMap.get(label)?.values() ?? []).map((labelValue) => (
             <FilterSidePanelCategoryItem
               key={`${label}|||${labelValue}`}
