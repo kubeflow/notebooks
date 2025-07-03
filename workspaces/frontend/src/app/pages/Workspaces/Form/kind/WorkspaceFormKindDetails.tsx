@@ -12,7 +12,7 @@ export const WorkspaceFormKindDetails: React.FunctionComponent<WorkspaceFormKind
   <div style={{ marginLeft: 'var(--pf-t--global--spacer--md)' }}>
     {workspaceKind && (
       <>
-        <Title headingLevel="h3">{workspaceKind.name}</Title>
+        <Title headingLevel="h3">{workspaceKind.displayName}</Title>
         <p>{workspaceKind.description}</p>
       </>
     )}
