@@ -68,14 +68,20 @@ const EditableRow: React.FC<EditableRowInterface> = ({
 
 type ColumnNames<T> = { [K in keyof T]: string };
 
-interface WorkspaceKindFormLabelTableProps {
+interface EditableLabelsProps {
   rows: WorkspaceOptionLabel[];
   setRows: (value: WorkspaceOptionLabel[]) => void;
+  title?: string;
+  description?: string;
+  buttonLabel?: string;
 }
 
-export const WorkspaceKindFormLabelTable: React.FC<WorkspaceKindFormLabelTableProps> = ({
+export const EditableLabels: React.FC<EditableLabelsProps> = ({
   rows,
   setRows,
+  title = 'Labels',
+  description,
+  buttonLabel = 'Label',
 }) => {
   const columnNames: ColumnNames<WorkspaceOptionLabel> = {
     key: 'Key',
@@ -89,12 +95,15 @@ export const WorkspaceKindFormLabelTable: React.FC<WorkspaceKindFormLabelTablePr
       header={
         <FormFieldGroupHeader
           titleText={{
-            text: 'Labels',
-            id: 'workspace-kind-image-ports',
+            text: title,
+            id: `${title}-labels`,
           }}
           titleDescription={
             <>
-              <div>Labels are key/value pairs that are attached to Kubernetes objects.</div>
+              <div>
+                {description ||
+                  'Labels are key/value pairs that are attached to Kubernetes objects.'}
+              </div>
               <div className="pf-u-font-size-sm">
                 <strong>{rows.length} added</strong>
               </div>
@@ -144,7 +153,7 @@ export const WorkspaceKindFormLabelTable: React.FC<WorkspaceKindFormLabelTablePr
           ]);
         }}
       >
-        Add Label
+        {`Add ${buttonLabel}`}
       </Button>
     </FormFieldGroupExpandable>
   );

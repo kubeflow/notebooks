@@ -13,6 +13,20 @@ export enum YesNoValue {
   No = 'No',
 }
 
+const RESOURCE_UNIT_CONFIG = {
+  cpu: CPU_UNITS,
+  memory: MEMORY_UNITS_FOR_PARSING,
+  gpu: OTHER,
+};
+
+export const parseResourceValue = (
+  value: string,
+  resourceType: ResourceType,
+): [number | undefined, { name: string; unit: string } | undefined] => {
+  const units = RESOURCE_UNIT_CONFIG[resourceType];
+  return splitValueUnit(value, units);
+};
+
 export const extractResourceValue = (
   workspace: Workspace,
   resourceType: ResourceType,
@@ -24,18 +38,13 @@ export const formatResourceValue = (v: string | undefined, resourceType?: Resour
   if (v === undefined) {
     return '-';
   }
-  switch (resourceType) {
-    case 'cpu': {
-      const [cpuValue, cpuUnit] = splitValueUnit(v, CPU_UNITS);
-      return `${cpuValue ?? ''} ${cpuUnit.name}`;
-    }
-    case 'memory': {
-      const [memoryValue, memoryUnit] = splitValueUnit(v, MEMORY_UNITS_FOR_PARSING);
-      return `${memoryValue ?? ''} ${memoryUnit.name}`;
-    }
-    default:
-      return v;
+
+  if (!resourceType) {
+    return v;
   }
+
+  const [value, unit] = parseResourceValue(v, resourceType);
+  return `${value || ''} ${unit?.name || ''}`.trim();
 };
 
 export const formatResourceFromWorkspace = (
