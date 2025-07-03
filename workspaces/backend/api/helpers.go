@@ -18,6 +18,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"mime"
 	"net/http"
@@ -46,7 +47,7 @@ func (a *App) WriteJSON(w http.ResponseWriter, status int, data any, headers htt
 		w.Header()[key] = value
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", MediaTypeJson)
 	w.WriteHeader(status)
 	_, err = w.Write(js)
 	if err != nil {
@@ -61,9 +62,19 @@ func (a *App) DecodeJSON(r *http.Request, v any) error {
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(v); err != nil {
+		// NOTE: we don't wrap this error so we can unpack it in the caller
+		if a.IsMaxBytesError(err) {
+			return err
+		}
 		return fmt.Errorf("error decoding JSON: %w", err)
 	}
 	return nil
+}
+
+// IsMaxBytesError checks if the error is an instance of http.MaxBytesError.
+func (a *App) IsMaxBytesError(err error) bool {
+	var maxBytesError *http.MaxBytesError
+	return errors.As(err, &maxBytesError)
 }
 
 // ValidateContentType validates the Content-Type header of the request.

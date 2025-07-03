@@ -27,8 +27,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
@@ -37,77 +35,12 @@ import (
 	repository "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/workspacekinds"
 )
 
+// TODO: this should wrap the models.WorkspaceKindUpdate once we implement the update handler
+type WorkspaceKindCreateEnvelope Envelope[*models.WorkspaceKind]
+
 type WorkspaceKindListEnvelope Envelope[[]models.WorkspaceKind]
 
 type WorkspaceKindEnvelope Envelope[models.WorkspaceKind]
-
-// cachedRestrictedScheme holds the pre-built runtime scheme that only knows about WorkspaceKind.
-var cachedRestrictedScheme *runtime.Scheme
-
-// cachedUniversalDeserializer holds the pre-built universal deserializer for the restricted scheme.
-var cachedUniversalDeserializer runtime.Decoder
-
-// cachedExpectedGVK holds the expected GVK for WorkspaceKind, derived programmatically.
-var cachedExpectedGVK schema.GroupVersionKind
-
-// init builds the restricted scheme and deserializer once at package initialization time.
-func init() {
-	restrictedScheme := runtime.NewScheme()
-	if err := kubefloworgv1beta1.AddToScheme(restrictedScheme); err != nil {
-		panic(fmt.Sprintf("failed to add WorkspaceKind types to restricted scheme: %v", err))
-	}
-	cachedRestrictedScheme = restrictedScheme
-
-	codecs := serializer.NewCodecFactory(cachedRestrictedScheme)
-	cachedUniversalDeserializer = codecs.UniversalDeserializer()
-
-	workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
-	gvks, _, err := cachedRestrictedScheme.ObjectKinds(workspaceKind)
-	if err != nil || len(gvks) == 0 {
-		panic(fmt.Sprintf("failed to derive GVK from WorkspaceKind type: %v", err))
-	}
-	cachedExpectedGVK = gvks[0]
-}
-
-// ParseWorkspaceKindManifestBody reads and decodes a YAML request body into a WorkspaceKind object
-// using Kubernetes runtime validation to ensure maximum security.
-func (a *App) ParseWorkspaceKindManifestBody(w http.ResponseWriter, r *http.Request) (*kubefloworgv1beta1.WorkspaceKind, bool) {
-	// NOTE: A server-level middleware should enforce a max body size.
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		a.badRequestResponse(w, r, fmt.Errorf("failed to read request body: %w", err))
-		return nil, false
-	}
-	defer func() {
-		if err := r.Body.Close(); err != nil {
-			a.LogWarn(r, fmt.Sprintf("failed to close request body: %v", err))
-		}
-	}()
-
-	if len(body) == 0 {
-		a.badRequestResponse(w, r, errors.New("request body is empty"))
-		return nil, false
-	}
-
-	obj, gvk, err := cachedUniversalDeserializer.Decode(body, nil, nil)
-	if err != nil {
-		a.badRequestResponse(w, r, fmt.Errorf("failed to decode YAML manifest: %w", err))
-		return nil, false
-	}
-
-	if gvk.Kind != cachedExpectedGVK.Kind || gvk.Version != cachedExpectedGVK.Version {
-		a.badRequestResponse(w, r, fmt.Errorf("invalid GVK: expected %s, got %s", cachedExpectedGVK.Kind, gvk.Kind))
-		return nil, false
-	}
-
-	workspaceKind, ok := obj.(*kubefloworgv1beta1.WorkspaceKind)
-	if !ok {
-		a.badRequestResponse(w, r, fmt.Errorf("unexpected type: got %T, want *WorkspaceKind", obj))
-		return nil, false
-	}
-
-	return workspaceKind, true
-}
 
 // GetWorkspaceKindHandler retrieves a specific workspace kind by name.
 //
@@ -198,72 +131,94 @@ func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _
 	a.dataResponse(w, r, responseEnvelope)
 }
 
-// CreateWorkspaceKindHandler creates a new workspace kind from a YAML manifest.
-
-// @Summary		Create workspace kind
-// @Description	Creates a new workspace kind from a raw YAML manifest.
-// @Tags			workspacekinds
-// @Accept			application/vnd.kubeflow-notebooks.manifest+yaml
-// @Produce		json
-// @Param			body	body		string					true	"Raw YAML manifest of the WorkspaceKind"
-// @Success		201		{object}	WorkspaceKindEnvelope	"Successful creation. Returns the newly created workspace kind details."
-// @Failure		400		{object}	ErrorEnvelope			"Bad Request. The YAML is invalid or a required field is missing."
-// @Failure		401		{object}	ErrorEnvelope			"Unauthorized. Authentication is required."
-// @Failure		403		{object}	ErrorEnvelope			"Forbidden. User does not have permission to create the workspace kind."
-// @Failure		409		{object}	ErrorEnvelope			"Conflict. A WorkspaceKind with the same name already exists."
-// @Failure		415		{object}	ErrorEnvelope			"Unsupported Media Type. Content-Type header is not correct."
-// @Failure		500		{object}	ErrorEnvelope			"Internal server error."
-// @Router			/workspacekinds [post]
+// CreateWorkspaceKindHandler creates a new workspace kind.
+//
+//	@Summary		Create workspace kind
+//	@Description	Creates a new workspace kind.
+//	@Tags			workspacekinds
+//	@Accept			application/yaml
+//	@Produce		json
+//	@Param			body	body		string					true	"Kubernetes YAML manifest of a WorkspaceKind"
+//	@Success		201		{object}	WorkspaceKindEnvelope	"WorkspaceKind created successfully"
+//	@Failure		400		{object}	ErrorEnvelope			"Bad Request."
+//	@Failure		401		{object}	ErrorEnvelope			"Unauthorized. Authentication is required."
+//	@Failure		403		{object}	ErrorEnvelope			"Forbidden. User does not have permission to create WorkspaceKind."
+//	@Failure		409		{object}	ErrorEnvelope			"Conflict. WorkspaceKind with the same name already exists."
+//	@Failure		413		{object}	ErrorEnvelope			"Request Entity Too Large. The request body is too large.""
+//	@Failure		415		{object}	ErrorEnvelope			"Unsupported Media Type. Content-Type header is not correct."
+//	@Failure		422		{object}	ErrorEnvelope			"Unprocessable Entity. Validation error."
+//	@Failure		500		{object}	ErrorEnvelope			"Internal server error. An unexpected error occurred on the server."
+//	@Router			/workspacekinds [post]
 func (a *App) CreateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	// === Content-Type check ===
-	if ok := a.ValidateContentType(w, r, ContentTypeYAMLManifest); !ok {
+
+	// validate the Content-Type header
+	if success := a.ValidateContentType(w, r, MediaTypeYaml); !success {
 		return
 	}
 
-	// === Read body and parse with secure parser ===
-	newWsk, ok := a.ParseWorkspaceKindManifestBody(w, r)
-	if !ok {
+	// decode the request body
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		if a.IsMaxBytesError(err) {
+			a.requestEntityTooLargeResponse(w, r, err)
+			return
+		}
+		a.badRequestResponse(w, r, err)
+		return
+	}
+	workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
+	err = runtime.DecodeInto(a.StrictYamlSerializer, bodyBytes, workspaceKind)
+	if err != nil {
+		a.badRequestResponse(w, r, fmt.Errorf("error decoding request body: %w", err))
 		return
 	}
 
-	// === Validate name exists in YAML ===
-	if newWsk.Name == "" {
-		a.badRequestResponse(w, r, errors.New("'.metadata.name' is a required field in the YAML manifest"))
+	// validate the workspace kind
+	// NOTE: we only do basic validation so we know it's safe to send to the Kubernetes API server
+	//       comprehensive validation will be done by Kubernetes
+	// NOTE: checking the name field is non-empty also verifies that the workspace kind is not nil/empty
+	var valErrs field.ErrorList
+	wskNamePath := field.NewPath("metadata", "name")
+	valErrs = append(valErrs, helper.ValidateFieldIsDNS1123Subdomain(wskNamePath, workspaceKind.Name)...)
+	if len(valErrs) > 0 {
+		a.failedValidationResponse(w, r, errMsgRequestBodyInvalid, valErrs, nil)
 		return
 	}
 
-	// === AUTH ===
+	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
 		auth.NewResourcePolicy(
 			auth.ResourceVerbCreate,
 			&kubefloworgv1beta1.WorkspaceKind{
-				ObjectMeta: metav1.ObjectMeta{Name: newWsk.Name},
+				ObjectMeta: metav1.ObjectMeta{
+					Name: workspaceKind.Name,
+				},
 			},
 		),
 	}
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return
 	}
+	// ============================================================
 
-	// === Create ===
-	createdModel, err := a.repositories.WorkspaceKind.Create(r.Context(), newWsk)
+	createdWorkspaceKind, err := a.repositories.WorkspaceKind.Create(r.Context(), workspaceKind)
 	if err != nil {
 		if errors.Is(err, repository.ErrWorkspaceKindAlreadyExists) {
 			a.conflictResponse(w, r, err)
 			return
 		}
-		// This handles validation errors from the K8s API Server (webhook)
 		if apierrors.IsInvalid(err) {
 			causes := helper.StatusCausesFromAPIStatus(err)
 			a.failedValidationResponse(w, r, errMsgKubernetesValidation, nil, causes)
 			return
 		}
-		a.serverErrorResponse(w, r, err)
+		a.serverErrorResponse(w, r, fmt.Errorf("error creating workspace kind: %w", err))
 		return
 	}
 
-	// === Return created object in envelope ===
-	location := a.LocationGetWorkspaceKind(createdModel.Name)
-	responseEnvelope := &WorkspaceKindEnvelope{Data: createdModel}
+	// calculate the GET location for the created workspace kind (for the Location header)
+	location := a.LocationGetWorkspaceKind(createdWorkspaceKind.Name)
+
+	responseEnvelope := &WorkspaceKindCreateEnvelope{Data: createdWorkspaceKind}
 	a.createdResponse(w, r, responseEnvelope, location)
 }

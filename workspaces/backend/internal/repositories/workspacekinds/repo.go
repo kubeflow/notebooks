@@ -70,20 +70,25 @@ func (r *WorkspaceKindRepository) GetWorkspaceKinds(ctx context.Context) ([]mode
 	return workspaceKindsModels, nil
 }
 
-func (r *WorkspaceKindRepository) Create(ctx context.Context, wk *kubefloworgv1beta1.WorkspaceKind) (models.WorkspaceKind, error) {
-	if err := r.client.Create(ctx, wk); err != nil {
+func (r *WorkspaceKindRepository) Create(ctx context.Context, workspaceKind *kubefloworgv1beta1.WorkspaceKind) (*models.WorkspaceKind, error) {
+	// create workspace kind
+	if err := r.client.Create(ctx, workspaceKind); err != nil {
 		if apierrors.IsAlreadyExists(err) {
-			return models.WorkspaceKind{}, ErrWorkspaceKindAlreadyExists
+			return nil, ErrWorkspaceKindAlreadyExists
 		}
 		if apierrors.IsInvalid(err) {
 			// NOTE: we don't wrap this error so we can unpack it in the caller
-			return models.WorkspaceKind{}, err
+			//       and extract the validation errors returned by the Kubernetes API server
+			return nil, err
 		}
-		return models.WorkspaceKind{}, err
+		return nil, err
 	}
 
-	// Convert the created k8s object to our backend model before returning
-	createdModel := models.NewWorkspaceKindModelFromWorkspaceKind(wk)
+	// convert the created workspace to a WorkspaceKindUpdate model
+	//
+	// TODO: this function should return the WorkspaceKindUpdate model, once the update WSK api is implemented
+	//
+	createdWorkspaceKindModel := models.NewWorkspaceKindModelFromWorkspaceKind(workspaceKind)
 
-	return createdModel, nil
+	return &createdWorkspaceKindModel, nil
 }
