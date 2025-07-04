@@ -215,7 +215,7 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
       () => (
         <Menu ref={filterMenuRef} onSelect={(_ev, itemId) => onFilterSelect(itemId)}>
           <MenuContent>
-            <MenuList>
+            <MenuList style={{ padding: 0 }}>
               {Object.keys(columnDefinition).map((columnKey: string) => (
                 <MenuItem id={`${id}-dropdown-${columnKey}`} key={columnKey} itemId={columnKey}>
                   {columnDefinition[columnKey]}
