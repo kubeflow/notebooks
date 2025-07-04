@@ -1,5 +1,10 @@
-import { ImagePullPolicy, WorkspaceKindImagePort } from '~/app/types';
-import { WorkspaceOptionLabel } from '~/shared/api/backendApiTypes';
+import { ImagePullPolicy, WorkspaceKindImagePort, WorkspaceKindPodConfigValue } from '~/app/types';
+import { WorkspaceOptionLabel, WorkspacePodConfigValue } from '~/shared/api/backendApiTypes';
+import { PodResourceEntry } from './podConfig/WorkspaceKindFormResource';
+
+// Simple ID generator to avoid PatternFly dependency in tests
+export const generateUniqueId = (): string =>
+  `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
 export const isValidWorkspaceKindYaml = (data: any): boolean => {
@@ -87,4 +92,47 @@ export const emptyImage = {
   redirect: {
     to: '',
   },
+};
+
+export const emptyPodConfig: WorkspacePodConfigValue = {
+  id: '',
+  displayName: '',
+  description: '',
+  labels: [],
+  hidden: false,
+  redirect: {
+    to: '',
+  },
+};
+// convert from k8s resource object {limits: {}, requests{}} to array of {type: '', limit: '', request: ''} for each type of resource (e.g. CPU, memory, nvidia.com/gpu)
+export const getResources = (currConfig: WorkspaceKindPodConfigValue): PodResourceEntry[] => {
+  const grouped = new Map<string, { request: string; limit: string }>([
+    ['cpu', { request: '', limit: '' }],
+    ['memory', { request: '', limit: '' }],
+  ]);
+  const { requests = {}, limits = {} } = currConfig.resources || {};
+  const types = new Set([...Object.keys(requests), ...Object.keys(limits), 'cpu', 'memory']);
+  types.forEach((type) => {
+    const entry = grouped.get(type) || { request: '', limit: '' };
+    if (type in requests) {
+      entry.request = String(requests[type]);
+    }
+    if (type in limits) {
+      entry.limit = String(limits[type]);
+    }
+    grouped.set(type, entry);
+  });
+
+  // Convert to UI-types with consistent IDs
+  return Array.from(grouped.entries()).map(([type, { request, limit }]) => ({
+    id:
+      type === 'cpu'
+        ? 'cpu-resource'
+        : type === 'memory'
+          ? 'memory-resource'
+          : `${type}-${generateUniqueId()}`,
+    type,
+    request,
+    limit,
+  }));
 };

@@ -8,13 +8,10 @@ import {
   HelperTextItem,
   Content,
 } from '@patternfly/react-core';
-import { UpdateObjectAtPropAndValue } from '~/app/hooks/useGenericObjectState';
-import { WorkspaceKindFormData } from '~/app/types';
 import { isValidWorkspaceKindYaml } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { ValidationStatus } from '~/app/pages/WorkspaceKinds/Form/WorkspaceKindForm';
 
 interface WorkspaceKindFileUploadProps {
-  setData: UpdateObjectAtPropAndValue<WorkspaceKindFormData>;
   value: string;
   setValue: (v: string) => void;
   resetData: () => void;
@@ -23,7 +20,6 @@ interface WorkspaceKindFileUploadProps {
 }
 
 export const WorkspaceKindFileUpload: React.FC<WorkspaceKindFileUploadProps> = ({
-  setData,
   resetData,
   value,
   setValue,
@@ -62,30 +58,13 @@ export const WorkspaceKindFileUpload: React.FC<WorkspaceKindFileUploadProps> = (
       if (isYamlFileRef.current) {
         try {
           const parsed = yaml.load(v);
-          if (isValidWorkspaceKindYaml(parsed)) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            setData('properties', (parsed as any).spec.spawner);
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const parsedImg = (parsed as any).spec.podTemplate.options.imageConfig;
-            setData('imageConfig', {
-              default: parsedImg.spawner.default || '',
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              values: parsedImg.values.map((img: any) => {
-                const res = {
-                  id: img.id,
-                  redirect: img.redirect,
-                  ...img.spawner,
-                  ...img.spec,
-                };
-                return res;
-              }),
-            });
-            setValidated('success');
-            setFileUploadHelperText('');
-          } else {
+          if (!isValidWorkspaceKindYaml(parsed)) {
             setFileUploadHelperText('YAML is invalid: must follow WorkspaceKind format.');
             setValidated('error');
             resetData();
+          } else {
+            setValidated('success');
+            setFileUploadHelperText('');
           }
         } catch (e) {
           console.error('Error parsing YAML:', e);
@@ -94,7 +73,7 @@ export const WorkspaceKindFileUpload: React.FC<WorkspaceKindFileUploadProps> = (
         }
       }
     },
-    [setValue, setData, setValidated, resetData],
+    [setValue, setValidated, resetData],
   );
 
   const handleClear = useCallback(() => {
