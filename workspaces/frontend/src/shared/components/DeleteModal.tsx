@@ -90,7 +90,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
             {showWarning && (
               <HelperText data-testid="delete-modal-helper-text">
                 <HelperTextItem icon={<ExclamationCircleIcon />} variant="error">
-                  The name doesn&apos;t match. Please enter exactly: {resourceName}
+                  The name does not match. Please enter exactly: {resourceName}
                 </HelperTextItem>
               </HelperText>
             )}

@@ -81,7 +81,7 @@ export const EditableLabels: React.FC<EditableLabelsProps> = ({ rows, setRows })
 
   return (
     <FormFieldGroupExpandable
-      className="form-label-fieldgroup"
+      className="form-label-field-group"
       toggleAriaLabel="Labels"
       header={
         <FormFieldGroupHeader

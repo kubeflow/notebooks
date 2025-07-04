@@ -365,7 +365,7 @@ export const buildMockWorkspaceList = (args: {
               current: {
                 id: podConfig.id,
                 displayName: podConfig.displayName,
-                description: `Pod with ${i}00 Milicores, ${i} GiB RAM`,
+                description: `Pod with ${i}00 Millicores, ${i} GiB RAM`,
                 labels: [
                   {
                     key: 'cpu',

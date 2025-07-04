@@ -184,7 +184,7 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
         <FormFieldGroupHeader
           titleText={{
             text: 'Resources',
-            id: 'workspace-kind-podconfig-resource',
+            id: 'workspace-kind-pod-config-resource',
           }}
           titleDescription={
             <>

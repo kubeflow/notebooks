@@ -23,6 +23,7 @@ module.exports = {
     'no-relative-import-paths',
     'prettier',
     'local-rules',
+    '@cspell',
   ],
   extends: [
     'eslint:recommended',
@@ -233,6 +234,10 @@ module.exports = {
     'func-names': 'warn',
     'local-rules/no-react-hook-namespace': 'error',
     'local-rules/no-raw-react-router-hook': 'error',
+    '@cspell/spellchecker': [
+      'error',
+      { configFile: 'config/cspell.json', customWordListFile: 'config/cspell-ignore-words.txt' },
+    ],
   },
   overrides: [
     {
