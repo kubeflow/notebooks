@@ -86,14 +86,29 @@ const WorkspaceForm: React.FC = () => {
 
   const canGoToPreviousStep = useMemo(() => currentStep > 0, [currentStep]);
 
+  const isCurrentStepValid = useMemo(() => {
+    switch (currentStep) {
+      case WorkspaceFormSteps.KindSelection:
+        return !!data.kind;
+      case WorkspaceFormSteps.ImageSelection:
+        return !!data.image;
+      case WorkspaceFormSteps.PodConfigSelection:
+        return !!data.podConfig;
+      case WorkspaceFormSteps.Properties:
+        return !!data.properties.workspaceName.trim();
+      default:
+        return false;
+    }
+  }, [currentStep, data]);
+
   const canGoToNextStep = useMemo(
     () => currentStep < Object.keys(WorkspaceFormSteps).length / 2 - 1,
     [currentStep],
   );
 
   const canSubmit = useMemo(
-    () => !isSubmitting && !canGoToNextStep,
-    [canGoToNextStep, isSubmitting],
+    () => !isSubmitting && !canGoToNextStep && isCurrentStepValid,
+    [canGoToNextStep, isSubmitting, isCurrentStepValid],
   );
 
   const handleSubmit = useCallback(async () => {
@@ -255,8 +270,8 @@ const WorkspaceForm: React.FC = () => {
         <Flex>
           <FlexItem>
             <Button
-              variant="primary"
-              ouiaId="Primary"
+              variant="secondary"
+              ouiaId="Secondary"
               onClick={previousStep}
               isDisabled={!canGoToPreviousStep}
             >
@@ -264,24 +279,25 @@ const WorkspaceForm: React.FC = () => {
             </Button>
           </FlexItem>
           <FlexItem>
-            <Button
-              variant="primary"
-              ouiaId="Primary"
-              onClick={nextStep}
-              isDisabled={!canGoToNextStep}
-            >
-              Next
-            </Button>
-          </FlexItem>
-          <FlexItem>
-            <Button
-              variant="primary"
-              ouiaId="Primary"
-              onClick={handleSubmit}
-              isDisabled={!canSubmit}
-            >
-              {mode === 'create' ? 'Create' : 'Save'}
-            </Button>
+            {canGoToNextStep ? (
+              <Button
+                variant="primary"
+                ouiaId="Primary"
+                onClick={nextStep}
+                isDisabled={!isCurrentStepValid}
+              >
+                Next
+              </Button>
+            ) : (
+              <Button
+                variant="primary"
+                ouiaId="Primary"
+                onClick={handleSubmit}
+                isDisabled={!canSubmit}
+              >
+                {mode === 'create' ? 'Create' : 'Save'}
+              </Button>
+            )}
           </FlexItem>
           <FlexItem>
             <Button variant="link" isInline onClick={cancel}>
