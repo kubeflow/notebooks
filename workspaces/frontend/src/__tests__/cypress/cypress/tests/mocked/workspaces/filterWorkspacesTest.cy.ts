@@ -31,20 +31,36 @@ describe('Application', () => {
 
   it('filter rows with multiple filters', () => {
     home.visit();
+    // First filter by name
     useFilter('name', 'Name', 'My');
-    useFilter('podConfig', 'Pod Config', 'Tiny');
-    cy.get("[id$='workspaces-table-content']").find('tr').should('have.length', 1);
+    cy.get("[id$='workspaces-table-content']").find('tr').should('have.length', 2);
+    cy.get("[id$='workspaces-table-row-1']").contains('My First Jupyter Notebook');
+
+    // Add second filter by image
+    useFilter('image', 'Image', 'jupyter');
+    cy.get("[class$='pf-v6-c-toolbar__group']").contains('Name');
+    cy.get("[class$='pf-v6-c-toolbar__group']").contains('Image');
+    cy.get("[id$='workspaces-table-content']").find('tr').should('have.length', 2);
     cy.get("[id$='workspaces-table-row-1']").contains('My First Jupyter Notebook');
   });
 
   it('filter rows with multiple filters and remove one', () => {
     home.visit();
+    // Add name filter
     useFilter('name', 'Name', 'My');
-    useFilter('podConfig', 'Pod Config', 'Tiny');
-    cy.get("[id$='workspaces-table-content']").find('tr').should('have.length', 1);
+    cy.get("[id$='workspaces-table-content']").find('tr').should('have.length', 2);
     cy.get("[id$='workspaces-table-row-1']").contains('My First Jupyter Notebook');
-    cy.get("[class$='pf-v6-c-label-group__close']").eq(1).click();
-    cy.get("[class$='pf-v6-c-toolbar__group']").should('not.contain', 'Pod Config');
+
+    // Add image filter
+    useFilter('image', 'Image', 'jupyter');
+    cy.get("[class$='pf-v6-c-toolbar__group']").contains('Name');
+    cy.get("[class$='pf-v6-c-toolbar__group']").contains('Image');
+    cy.get("[id$='workspaces-table-content']").find('tr').should('have.length', 2);
+
+    // Remove one filter (the first one)
+    cy.get("[class$='pf-v6-c-label-group__close']").first().click();
+    cy.get("[class$='pf-v6-c-toolbar__group']").should('not.contain', 'Name');
+    cy.get("[class$='pf-v6-c-toolbar__group']").contains('Image');
     cy.get("[id$='workspaces-table-content']").find('tr').should('have.length', 2);
     cy.get("[id$='workspaces-table-row-1']").contains('My First Jupyter Notebook');
     cy.get("[id$='workspaces-table-row-2']").contains('My Second Jupyter Notebook');
@@ -52,13 +68,20 @@ describe('Application', () => {
 
   it('filter rows with multiple filters and remove all', () => {
     home.visit();
+    // Add name filter
     useFilter('name', 'Name', 'My');
-    useFilter('podConfig', 'Pod Config', 'Tiny');
-    cy.get("[id$='workspaces-table-content']").find('tr').should('have.length', 1);
+    cy.get("[id$='workspaces-table-content']").find('tr').should('have.length', 2);
     cy.get("[id$='workspaces-table-row-1']").contains('My First Jupyter Notebook');
+
+    // Add image filter
+    useFilter('image', 'Image', 'jupyter');
+    cy.get("[class$='pf-v6-c-toolbar__group']").contains('Name');
+    cy.get("[class$='pf-v6-c-toolbar__group']").contains('Image');
+
+    // Clear all filters
     cy.get('*').contains('Clear all filters').click();
-    cy.get("[class$='pf-v6-c-toolbar__group']").should('not.contain', 'Pod Config');
     cy.get("[class$='pf-v6-c-toolbar__group']").should('not.contain', 'Name');
+    cy.get("[class$='pf-v6-c-toolbar__group']").should('not.contain', 'Image');
     cy.get("[id$='workspaces-table-content']").find('tr').should('have.length', 2);
   });
 });

@@ -11,7 +11,12 @@ describe('WorkspaceDetailsActivity Component', () => {
 
   // This tests depends on the mocked workspaces data at home page, needs revisit once workspace data fetched from BE
   it('open workspace details, open activity tab, check all fields match', () => {
-    cy.findAllByTestId('table-body').first().findByTestId('action-column').click();
+    cy.findAllByTestId('table-body')
+      .first()
+      .findByTestId('action-column')
+      .find('button')
+      .should('be.visible')
+      .click();
     // Extract first workspace from mock data
     cy.wait('@getWorkspaces').then((interception) => {
       if (!interception.response || !interception.response.body) {
