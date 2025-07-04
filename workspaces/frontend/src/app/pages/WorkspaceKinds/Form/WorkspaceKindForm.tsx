@@ -1,19 +1,17 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
-  Alert,
   Button,
   Content,
   ContentVariants,
   Flex,
   FlexItem,
-  List,
-  ListItem,
   PageGroup,
   PageSection,
   Stack,
   StackItem,
 } from '@patternfly/react-core';
 import { t_global_spacer_sm as SmallPadding } from '@patternfly/react-tokens';
+import { ValidationErrorAlert } from '~/app/components/ValidationErrorAlert';
 import { useTypedNavigate } from '~/app/routerHelper';
 import { useCurrentRouteKey } from '~/app/hooks/useCurrentRouteKey';
 import useGenericObjectState from '~/app/hooks/useGenericObjectState';
@@ -122,17 +120,11 @@ export const WorkspaceKindForm: React.FC = () => {
       <PageSection isFilled>
         {mode === 'create' && (
           <Stack>
-            <StackItem style={{ padding: SmallPadding.value }}>
-              {specErrors.length > 0 && (
-                <Alert variant="danger" title="Error creating workspace kind" isInline>
-                  <List>
-                    {specErrors.map((error, index) => (
-                      <ListItem key={index}>{error.message}</ListItem>
-                    ))}
-                  </List>
-                </Alert>
-              )}
-            </StackItem>
+            {specErrors.length > 0 && (
+              <StackItem style={{ padding: SmallPadding.value }}>
+                <ValidationErrorAlert title="Error creating workspace kind" errors={specErrors} />
+              </StackItem>
+            )}
             <StackItem style={{ height: '100%' }}>
               <WorkspaceKindFileUpload
                 resetData={resetData}
