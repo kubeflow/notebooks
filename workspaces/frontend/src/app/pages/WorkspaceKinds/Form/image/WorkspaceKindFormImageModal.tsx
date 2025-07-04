@@ -14,7 +14,7 @@ import {
   HelperText,
 } from '@patternfly/react-core';
 import { WorkspaceKindImageConfigValue, ImagePullPolicy } from '~/app/types';
-import { WorkspaceKindFormLabelTable } from '~/app/pages/WorkspaceKinds/Form/WorkspaceKindFormLabels';
+import { EditableLabels } from '~/app/pages/WorkspaceKinds/Form/EditableLabels';
 import { emptyImage } from '~/app/pages/WorkspaceKinds/Form/helpers';
 
 import { WorkspaceKindFormImageRedirect } from './WorkspaceKindFormImageRedirect';
@@ -100,7 +100,7 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
               label={
                 <div>
                   <div>Hidden</div>
-                  <HelperText>Hide this image from users </HelperText>
+                  <HelperText>Hide this image from users</HelperText>
                 </div>
               }
               aria-label="-controlled-check"
@@ -109,7 +109,7 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
               name="workspace-kind-image-hidden-switch"
             />
           </FormGroup>
-          <WorkspaceKindFormLabelTable
+          <EditableLabels
             rows={image.labels}
             setRows={(labels) => setImage({ ...image, labels })}
           />

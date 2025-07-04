@@ -68,15 +68,12 @@ const EditableRow: React.FC<EditableRowInterface> = ({
 
 type ColumnNames<T> = { [K in keyof T]: string };
 
-interface WorkspaceKindFormLabelTableProps {
+interface EditableLabelsProps {
   rows: WorkspaceOptionLabel[];
   setRows: (value: WorkspaceOptionLabel[]) => void;
 }
 
-export const WorkspaceKindFormLabelTable: React.FC<WorkspaceKindFormLabelTableProps> = ({
-  rows,
-  setRows,
-}) => {
+export const EditableLabels: React.FC<EditableLabelsProps> = ({ rows, setRows }) => {
   const columnNames: ColumnNames<WorkspaceOptionLabel> = {
     key: 'Key',
     value: 'Value',
