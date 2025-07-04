@@ -24,7 +24,7 @@ const NotFound: React.FunctionComponent = () => {
     <PageSection>
       <EmptyState titleText="404 Page not found" variant="full" icon={ExclamationTriangleIcon}>
         <EmptyStateBody>
-          We didn&apos;t find a page that matches the address you navigated to.
+          We did not find a page that matches the address you navigated to.
         </EmptyStateBody>
         <EmptyStateFooter>
           <GoHomeBtn />

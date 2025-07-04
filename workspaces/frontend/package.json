@@ -32,11 +32,12 @@
     "cypress:run:mock": "CY_MOCK=1 npm run cypress:run -- ",
     "cypress:server:build": "POLL_INTERVAL=9999999 FAST_POLL_INTERVAL=9999999 npm run build",
     "cypress:server": "serve ./dist -p 9001 -s -L",
-    "prettier": "prettier --ignore-path .gitignore --write \"**/*{.ts,.tsx,.js,.jsx,.css,.json}\"",
-    "prettier:check": "prettier --ignore-path .gitignore --check \"**/*{.ts,.tsx,.js,.jsx,.css,.json}\"",
+    "prettier": "prettier --ignore-path .gitignore --write \"**/*{.ts,.tsx,.js,.cjs,.jsx,.css,.json}\"",
+    "prettier:check": "prettier --ignore-path .gitignore --check \"**/*{.ts,.tsx,.js,.cjs,.jsx,.css,.json}\"",
     "prepare": "cd ../../ && husky workspaces/frontend/.husky"
   },
   "devDependencies": {
+    "@cspell/eslint-plugin": "^9.1.2",
     "@cypress/code-coverage": "^3.13.5",
     "@mui/icons-material": "^6.3.1",
     "@mui/material": "^6.3.1",
