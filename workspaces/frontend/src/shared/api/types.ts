@@ -5,13 +5,6 @@ export type APIOptions = {
   headers?: Record<string, string>;
 };
 
-export type APIError = {
-  error: {
-    code: string;
-    message: string;
-  };
-};
-
 export type APIState<T> = {
   /** If API will successfully call */
   apiAvailable: boolean;

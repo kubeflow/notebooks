@@ -1,3 +1,5 @@
+import { ErrorEnvelope } from '~/shared/api/backendApiTypes';
+import { handleRestFailures } from '~/shared/api/errorUtils';
 import { APIOptions, ResponseBody } from '~/shared/api/types';
 import { EitherOrNone } from '~/shared/typeHelpers';
 import { AUTH_HEADER, DEV_MODE } from '~/shared/utilities/const';
@@ -222,9 +224,48 @@ export const isNotebookResponse = <T>(response: unknown): response is ResponseBo
   return false;
 };
 
+export const isErrorEnvelope = (e: unknown): e is ErrorEnvelope =>
+  typeof e === 'object' &&
+  e !== null &&
+  'error' in e &&
+  typeof (e as Record<string, unknown>).error === 'object' &&
+  (e as { error: unknown }).error !== null &&
+  typeof (e as { error: { message: unknown } }).error.message === 'string';
+
 export function extractNotebookResponse<T>(response: unknown): T {
   if (isNotebookResponse<T>(response)) {
     return response.data;
   }
   throw new Error('Invalid response format');
+}
+
+export function extractErrorEnvelope(error: unknown): ErrorEnvelope {
+  if (isErrorEnvelope(error)) {
+    return error;
+  }
+
+  const message =
+    error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unexpected error';
+
+  return {
+    error: {
+      message,
+      code: 'UNKNOWN_ERROR',
+    },
+  };
+}
+
+export async function wrapRequest<T>(promise: Promise<T>, extractData = true): Promise<T> {
+  try {
+    const res = await handleRestFailures<T>(promise);
+    return extractData ? extractNotebookResponse<T>(res) : res;
+  } catch (error) {
+    throw new ErrorEnvelopeException(extractErrorEnvelope(error));
+  }
+}
+
+export class ErrorEnvelopeException extends Error {
+  constructor(public envelope: ErrorEnvelope) {
+    super(envelope.error?.message ?? 'Unknown error');
+  }
 }
