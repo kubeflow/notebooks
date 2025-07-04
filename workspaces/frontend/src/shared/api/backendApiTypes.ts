@@ -282,3 +282,36 @@ export interface WorkspacePauseState {
   workspaceName: string;
   paused: boolean;
 }
+
+export enum FieldErrorType {
+  FieldValueRequired = 'FieldValueRequired',
+  FieldValueInvalid = 'FieldValueInvalid',
+  FieldValueNotSupported = 'FieldValueNotSupported',
+  FieldValueDuplicate = 'FieldValueDuplicate',
+  FieldValueTooLong = 'FieldValueTooLong',
+  FieldValueForbidden = 'FieldValueForbidden',
+  FieldValueNotFound = 'FieldValueNotFound',
+  FieldValueConflict = 'FieldValueConflict',
+  FieldValueTooShort = 'FieldValueTooShort',
+  FieldValueUnknown = 'FieldValueUnknown',
+}
+
+export interface ValidationError {
+  type: FieldErrorType;
+  field: string;
+  message: string;
+}
+
+export interface ErrorCause {
+  validation_errors?: ValidationError[]; // TODO: backend is not using camelCase for this field
+}
+
+export type HTTPError = {
+  code: string;
+  message: string;
+  cause?: ErrorCause;
+};
+
+export type ErrorEnvelope = {
+  error: HTTPError | null;
+};
