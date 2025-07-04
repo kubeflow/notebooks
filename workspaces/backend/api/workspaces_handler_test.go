@@ -729,7 +729,7 @@ var _ = Describe("Workspaces Handler", func() {
 			path := strings.Replace(WorkspacesByNamespacePath, ":"+NamespacePathParam, namespaceNameCrud, 1)
 			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(bodyEnvelopeJSON)))
 			Expect(err).NotTo(HaveOccurred())
-			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Content-Type", MediaTypeJson)
 
 			By("setting the auth headers")
 			req.Header.Set(userIdHeader, adminUser)
@@ -845,7 +845,7 @@ var _ = Describe("Workspaces Handler", func() {
 			path := strings.Replace(WorkspacesByNamespacePath, ":"+NamespacePathParam, namespaceNameCrud, 1)
 			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(bodyEnvelopeJSON)))
 			Expect(err).NotTo(HaveOccurred())
-			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Content-Type", MediaTypeJson)
 			req.Header.Set(userIdHeader, adminUser)
 
 			rr := httptest.NewRecorder()

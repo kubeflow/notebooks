@@ -17,6 +17,7 @@ limitations under the License.
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -31,6 +32,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds"
 )
@@ -252,6 +254,257 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 
 			By("verifying the HTTP response status code")
 			Expect(rs.StatusCode).To(Equal(http.StatusNotFound), descUnexpectedHTTPStatus, rr.Body.String())
+		})
+	})
+
+	// NOTE: these tests create and delete resources on the cluster, so cannot be run in parallel.
+	//       therefore, we run them using the `Serial` Ginkgo decorator.
+	Context("when creating a WorkspaceKind", Serial, func() {
+
+		var newWorkspaceKindName = "wsk-create-test"
+		var validYAML []byte
+
+		BeforeEach(func() {
+			validYAML = []byte(fmt.Sprintf(`
+apiVersion: kubeflow.org/v1beta1
+kind: WorkspaceKind
+metadata:
+  name: %s
+spec:
+  spawner:
+    displayName: "JupyterLab Notebook"
+    description: "A Workspace which runs JupyterLab in a Pod"
+    icon:
+      url: "https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png"
+    logo:
+      url: "https://upload.wikimedia.org/wikipedia/commons/3/38/Jupyter_logo.svg"
+  podTemplate:
+    serviceAccount:
+      name: "default-editor"
+    volumeMounts:
+      home: "/home/jovyan"
+    options:
+      imageConfig:
+        spawner:
+          default: "jupyterlab_scipy_190"
+        values:
+          - id: "jupyterlab_scipy_190"
+            spawner:
+              displayName: "jupyter-scipy:v1.9.0"
+              description: "JupyterLab, with SciPy Packages"
+            spec:
+              image: "ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.9.0"
+              imagePullPolicy: "IfNotPresent"
+              ports:
+                - id: "jupyterlab"
+                  displayName: "JupyterLab"
+                  port: 8888
+                  protocol: "HTTP"
+      podConfig:
+        spawner:
+          default: "tiny_cpu"
+        values:
+          - id: "tiny_cpu"
+            spawner:
+              displayName: "Tiny CPU"
+              description: "Pod with 0.1 CPU, 128 Mb RAM"
+            spec:
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+`, newWorkspaceKindName))
+		})
+
+		AfterEach(func() {
+			By("cleaning up the created WorkspaceKind")
+			wsk := &kubefloworgv1beta1.WorkspaceKind{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: newWorkspaceKindName,
+				},
+			}
+			_ = k8sClient.Delete(ctx, wsk)
+		})
+
+		It("should succeed when creating a WorkspaceKind with valid YAML", func() {
+			By("creating the HTTP request")
+			req, err := http.NewRequest(http.MethodPost, AllWorkspaceKindsPath, bytes.NewReader(validYAML))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", MediaTypeYaml)
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing CreateWorkspaceKindHandler")
+			rr := httptest.NewRecorder()
+			a.CreateWorkspaceKindHandler(rr, req, httprouter.Params{})
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusCreated), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("verifying the resource was created in the cluster")
+			createdWsk := &kubefloworgv1beta1.WorkspaceKind{}
+			err = k8sClient.Get(ctx, types.NamespacedName{Name: newWorkspaceKindName}, createdWsk)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should fail to create a WorkspaceKind with no name in the YAML", func() {
+			missingNameYAML := []byte(`
+apiVersion: kubeflow.org/v1beta1
+kind: WorkspaceKind
+metadata: {}
+spec:
+  spawner:
+    displayName: "This will fail"`)
+
+			By("creating the HTTP request")
+			req, err := http.NewRequest(http.MethodPost, AllWorkspaceKindsPath, bytes.NewReader(missingNameYAML))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", MediaTypeYaml)
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing CreateWorkspaceKindHandler")
+			rr := httptest.NewRecorder()
+			a.CreateWorkspaceKindHandler(rr, req, httprouter.Params{})
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("decoding the error response")
+			var response ErrorEnvelope
+			err = json.Unmarshal(rr.Body.Bytes(), &response)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("verifying the error message indicates a validation failure")
+			Expect(response.Error.Cause.ValidationErrors).To(BeComparableTo(
+				[]ValidationError{
+					{
+						Type:    field.ErrorTypeRequired,
+						Field:   "metadata.name",
+						Message: field.ErrorTypeRequired.String(),
+					},
+				},
+			))
+		})
+
+		It("should fail to create a WorkspaceKind that already exists", func() {
+			By("creating the HTTP request")
+			req1, err := http.NewRequest(http.MethodPost, AllWorkspaceKindsPath, bytes.NewReader(validYAML))
+			Expect(err).NotTo(HaveOccurred())
+			req1.Header.Set("Content-Type", MediaTypeYaml)
+			req1.Header.Set(userIdHeader, adminUser)
+
+			By("executing CreateWorkspaceKindHandler for the first time")
+			rr1 := httptest.NewRecorder()
+			a.CreateWorkspaceKindHandler(rr1, req1, httprouter.Params{})
+			rs1 := rr1.Result()
+			defer rs1.Body.Close()
+
+			By("verifying the HTTP response status code for the first request")
+			Expect(rs1.StatusCode).To(Equal(http.StatusCreated), descUnexpectedHTTPStatus, rr1.Body.String())
+
+			By("creating a second HTTP request")
+			req2, err := http.NewRequest(http.MethodPost, AllWorkspaceKindsPath, bytes.NewReader(validYAML))
+			Expect(err).NotTo(HaveOccurred())
+			req2.Header.Set("Content-Type", MediaTypeYaml)
+			req2.Header.Set(userIdHeader, adminUser)
+
+			By("executing CreateWorkspaceKindHandler for the second time")
+			rr2 := httptest.NewRecorder()
+			a.CreateWorkspaceKindHandler(rr2, req2, httprouter.Params{})
+			rs2 := rr2.Result()
+			defer rs2.Body.Close()
+
+			By("verifying the HTTP response status code for the second request")
+			Expect(rs2.StatusCode).To(Equal(http.StatusConflict), descUnexpectedHTTPStatus, rr1.Body.String())
+		})
+
+		It("should fail when the YAML has the wrong kind", func() {
+			wrongKindYAML := []byte(`
+apiVersion: v1
+kind: Pod
+metadata:
+  name: i-am-the-wrong-kind`)
+
+			By("creating the HTTP request")
+			req, err := http.NewRequest(http.MethodPost, AllWorkspaceKindsPath, bytes.NewReader(wrongKindYAML))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", MediaTypeYaml)
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing CreateWorkspaceKindHandler")
+			rr := httptest.NewRecorder()
+			a.CreateWorkspaceKindHandler(rr, req, httprouter.Params{})
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest), descUnexpectedHTTPStatus, rr.Body.String())
+			Expect(rr.Body.String()).To(ContainSubstring("unable to decode /v1, Kind=Pod into *v1beta1.WorkspaceKind"))
+		})
+
+		It("should fail when the body is not valid YAML", func() {
+			notYAML := []byte(`this is not yaml {`)
+
+			By("creating the HTTP request")
+			req, err := http.NewRequest(http.MethodPost, AllWorkspaceKindsPath, bytes.NewReader(notYAML))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", MediaTypeYaml)
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing CreateWorkspaceKindHandler")
+			rr := httptest.NewRecorder()
+			a.CreateWorkspaceKindHandler(rr, req, httprouter.Params{})
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("decoding the error response")
+			var response ErrorEnvelope
+			err = json.Unmarshal(rr.Body.Bytes(), &response)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("verifying the error message indicates a decoding failure")
+			Expect(response.Error.Message).To(ContainSubstring("error decoding request body: couldn't get version/kind; json parse error"))
+		})
+
+		It("should fail for an empty YAML object", func() {
+			invalidYAML := []byte("{}")
+
+			By("creating the HTTP request")
+			req, err := http.NewRequest(http.MethodPost, AllWorkspaceKindsPath, bytes.NewReader(invalidYAML))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", MediaTypeYaml)
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing the CreateWorkspaceKindHandler")
+			rr := httptest.NewRecorder()
+			a.CreateWorkspaceKindHandler(rr, req, httprouter.Params{})
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("decoding the error response")
+			var response ErrorEnvelope
+			err = json.Unmarshal(rr.Body.Bytes(), &response)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("verifying the error message indicates a validation failure")
+			Expect(response.Error.Cause.ValidationErrors).To(BeComparableTo(
+				[]ValidationError{
+					{
+						Type:    field.ErrorTypeRequired,
+						Field:   "metadata.name",
+						Message: field.ErrorTypeRequired.String(),
+					},
+				},
+			))
 		})
 	})
 })

@@ -156,6 +156,18 @@ func (a *App) conflictResponse(w http.ResponseWriter, r *http.Request, err error
 	a.errorResponse(w, r, httpError)
 }
 
+// HTTP:413
+func (a *App) requestEntityTooLargeResponse(w http.ResponseWriter, r *http.Request, err error) {
+	httpError := &HTTPError{
+		StatusCode: http.StatusRequestEntityTooLarge,
+		ErrorResponse: ErrorResponse{
+			Code:    strconv.Itoa(http.StatusRequestEntityTooLarge),
+			Message: err.Error(),
+		},
+	}
+	a.errorResponse(w, r, httpError)
+}
+
 // HTTP:415
 func (a *App) unsupportedMediaTypeResponse(w http.ResponseWriter, r *http.Request, err error) {
 	httpError := &HTTPError{
