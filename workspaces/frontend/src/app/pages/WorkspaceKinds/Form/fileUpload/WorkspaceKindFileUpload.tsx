@@ -119,7 +119,7 @@ export const WorkspaceKindFileUpload: React.FC<WorkspaceKindFileUploadProps> = (
         {fileUploadHelperText && (
           <FileUploadHelperText>
             <HelperText>
-              <HelperTextItem id="helper-text-example-helpText" variant="warning">
+              <HelperTextItem id="helper-text-example-helpText" variant="error">
                 {fileUploadHelperText}
               </HelperTextItem>
             </HelperText>
