@@ -17,11 +17,13 @@ limitations under the License.
 package api
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -34,6 +36,9 @@ import (
 const (
 	Version    = "1.0.0"
 	PathPrefix = "/api/v1"
+
+	MediaTypeJson = "application/json"
+	MediaTypeYaml = "application/yaml"
 
 	NamespacePathParam    = "namespace"
 	ResourceNamePathParam = "name"
@@ -59,12 +64,13 @@ const (
 )
 
 type App struct {
-	Config       *config.EnvConfig
-	logger       *slog.Logger
-	repositories *repositories.Repositories
-	Scheme       *runtime.Scheme
-	RequestAuthN authenticator.Request
-	RequestAuthZ authorizer.Authorizer
+	Config               *config.EnvConfig
+	logger               *slog.Logger
+	repositories         *repositories.Repositories
+	Scheme               *runtime.Scheme
+	StrictYamlSerializer runtime.Serializer
+	RequestAuthN         authenticator.Request
+	RequestAuthZ         authorizer.Authorizer
 }
 
 // NewApp creates a new instance of the app
@@ -72,13 +78,21 @@ func NewApp(cfg *config.EnvConfig, logger *slog.Logger, cl client.Client, scheme
 
 	// TODO: log the configuration on startup
 
+	// get a serializer for Kubernetes YAML
+	codecFactory := serializer.NewCodecFactory(scheme)
+	yamlSerializerInfo, found := runtime.SerializerInfoForMediaType(codecFactory.SupportedMediaTypes(), runtime.ContentTypeYAML)
+	if !found {
+		return nil, fmt.Errorf("unable to find Kubernetes serializer for media type: %s", runtime.ContentTypeYAML)
+	}
+
 	app := &App{
-		Config:       cfg,
-		logger:       logger,
-		repositories: repositories.NewRepositories(cl),
-		Scheme:       scheme,
-		RequestAuthN: reqAuthN,
-		RequestAuthZ: reqAuthZ,
+		Config:               cfg,
+		logger:               logger,
+		repositories:         repositories.NewRepositories(cl),
+		Scheme:               scheme,
+		StrictYamlSerializer: yamlSerializerInfo.StrictSerializer,
+		RequestAuthN:         reqAuthN,
+		RequestAuthZ:         reqAuthZ,
 	}
 	return app, nil
 }
@@ -106,6 +120,7 @@ func (a *App) Routes() http.Handler {
 	// workspacekinds
 	router.GET(AllWorkspaceKindsPath, a.GetWorkspaceKindsHandler)
 	router.GET(WorkspaceKindsByNamePath, a.GetWorkspaceKindHandler)
+	router.POST(AllWorkspaceKindsPath, a.CreateWorkspaceKindHandler)
 
 	// swagger
 	router.GET(SwaggerPath, a.GetSwaggerHandler)

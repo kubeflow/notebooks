@@ -176,6 +176,8 @@ func (a *App) GetWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps ht
 //	@Failure		401			{object}	ErrorEnvelope			"Unauthorized. Authentication is required."
 //	@Failure		403			{object}	ErrorEnvelope			"Forbidden. User does not have permission to create workspace."
 //	@Failure		409			{object}	ErrorEnvelope			"Conflict. Workspace with the same name already exists."
+//	@Failure		413			{object}	ErrorEnvelope			"Request Entity Too Large. The request body is too large."
+//	@Failure		415			{object}	ErrorEnvelope			"Unsupported Media Type. Content-Type header is not correct."
 //	@Failure		500			{object}	ErrorEnvelope			"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspaces/{namespace} [post]
 func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -190,7 +192,7 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 	}
 
 	// validate the Content-Type header
-	if success := a.ValidateContentType(w, r, "application/json"); !success {
+	if success := a.ValidateContentType(w, r, MediaTypeJson); !success {
 		return
 	}
 
@@ -198,6 +200,10 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 	bodyEnvelope := &WorkspaceCreateEnvelope{}
 	err := a.DecodeJSON(r, bodyEnvelope)
 	if err != nil {
+		if a.IsMaxBytesError(err) {
+			a.requestEntityTooLargeResponse(w, r, err)
+			return
+		}
 		a.badRequestResponse(w, r, fmt.Errorf("error decoding request body: %w", err))
 		return
 	}
