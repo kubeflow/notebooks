@@ -119,7 +119,12 @@ describe('Workspaces Component', () => {
   });
 
   function openDeleteModal() {
-    cy.findAllByTestId('table-body').first().findByTestId('action-column').click();
+    cy.findAllByTestId('table-body')
+      .first()
+      .findByTestId('action-column')
+      .find('button')
+      .should('be.visible')
+      .click();
     cy.findByTestId('action-delete').click();
     cy.findByTestId('delete-modal-input').should('have.value', '');
   }

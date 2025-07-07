@@ -15,6 +15,7 @@
 
   // Button
   --mui-button-font-weight: 500;
+  --mui-button--BorderWidth: 1px;
   --mui-button--hover--BorderWidth: 1px;
   --mui-button--PaddingBlockStart: 6px;
   --mui-button--PaddingBlockEnd: 6px;
@@ -76,7 +77,7 @@
   --mui-table--cell--PaddingInlineEnd: 16px;
   --mui-table--cell--PaddingBlockStart: 16px;
   --mui-table--cell--PaddingBlockEnd: 16px;
-  --mui-table--cell--first-last-child--PaddingInline: 0px;
+  --mui-table--cell--first-last-child--PaddingInline: 8px;
   --mui-table__thead--cell--FontSize: 14px;
   --mui-table__sort-indicator--MarginInlineStart: 4px;
 
@@ -116,7 +117,6 @@
 }
 
 .mui-theme .pf-v6-c-action-list__item .pf-v6-c-button {
-  --pf-v6-c-button--BorderRadius: 50%;
   --pf-v6-c-button--PaddingInlineStart: none;
   --pf-v6-c-button--PaddingInlineEnd: none;
 }
@@ -152,7 +152,6 @@
   --pf-v6-c-button--PaddingInlineStart: var(--mui-button--PaddingInlineStart);
   --pf-v6-c-button--PaddingInlineEnd: var(--mui-button--PaddingInlineEnd);
   --pf-v6-c-button--LineHeight: var(--mui-button--LineHeight);
-  --pf-v6-c-button--m-plain--BorderRadius: 50%;
 
   text-transform: var(--mui-text-transform);
   letter-spacing: 0.02857em;
@@ -197,10 +196,6 @@
   --pf-v6-c-card--m-selectable--m-selected--BorderColor: none;
 }
 
-.mui-theme .pf-v6-c-description-list {
-  --pf-v6-c-description-list--RowGap: var(--pf-t--global--spacer--gap--group-to-group--horizontal--compact);
-}
-
 .mui-theme .pf-v6-c-description-list__term {
   font: var(--mui-font-subtitle2);
 }
@@ -237,20 +232,26 @@
   --pf-v6-c-form__section-title--MarginInlineEnd: 0px;
 }
 
+// Base form label styles
 .mui-theme .pf-v6-c-form__label {
+  color: var(--mui-palette-grey-600);
+  pointer-events: none;
+  transition: all 0.2s ease;
+  --pf-v6-c-form__label-required--Color: currentColor;
+}
+
+// Text input labels (text fields, textareas, selects)
+.mui-theme .pf-v6-c-form__group:has(.pf-v6-c-form-control) .pf-v6-c-form__label,
+.mui-theme .pf-v6-c-form__group:has(.pf-v6-c-text-input-group) .pf-v6-c-form__label {
   position: absolute;
   top: 35%;
   left: 12px;
   font-size: 14px;
-  color: var(--mui-palette-grey-600);
-  pointer-events: none;
-  transition: all 0.2s ease;
   transform-origin: left center;
   transform: translateY(-50%) scale(0.75);
   background-color: var(--mui-palette-common-white);
   padding: 0 4px;
   z-index: 1;
-  --pf-v6-c-form__label-required--Color: currentColor;
 }
 
 .mui-theme .pf-v6-c-form-control input::placeholder {
@@ -514,10 +515,6 @@
   align-self: stretch;
 }
 
-.mui-theme .pf-v6-c-menu-toggle.pf-m-plain {
-  --pf-v6-c-menu-toggle--BorderRadius: 50%;
-}
-
 .mui-theme .pf-v6-c-menu-toggle.pf-m-primary {
   --pf-v6-c-menu-toggle--expanded--Color: var(--mui-palette-common-white);
   --pf-v6-c-menu-toggle--expanded--BackgroundColor: var(--mui-palette-primary-main);
@@ -530,6 +527,13 @@
 
 .mui-theme .pf-v6-c-menu-toggle.pf-m-primary.pf-m-split-button .pf-v6-c-menu-toggle__button[aria-expanded='true'] {
   --pf-v6-c-menu-toggle--m-split-button--m-action--m-primary--child--BackgroundColor: var(--mui-palette-primary-dark);
+}
+
+.pf-v6-c-menu-toggle.pf-m-secondary.pf-m-split-button {
+  --pf-v6-c-menu-toggle--BorderColor: var(--mui-palette-primary-main);
+  --pf-v6-c-menu-toggle--BorderWidth: var(--mui-button--BorderWidth);
+  --pf-v6-c-menu-toggle--BorderStyle: solid;
+  --pf-v6-c-menu-toggle--expanded--Color: var(--mui-palette-primary-dark);
 }
 
 .mui-theme .pf-v6-c-menu-toggle__button:has(.pf-v6-c-menu-toggle__toggle-icon) {
@@ -725,6 +729,12 @@
   align-content: center;
 }
 
+// Updates the expand button to be 36.5px wide to match menu toggle button width
+.mui-theme .pf-v6-c-table__td.pf-v6-c-table__toggle .pf-v6-c-button.pf-m-plain {
+  --pf-v6-c-button--PaddingInlineStart: 6px;
+  --pf-v6-c-button--PaddingInlineEnd: 6px;
+}
+
 .mui-theme .pf-v6-c-label {
   --pf-v6-c-label--BorderRadius: 16px;
   --pf-v6-c-label--FontSize: 0.8125rem;
@@ -773,10 +783,6 @@
 .mui-theme .pf-v6-c-modal-box {
   --pf-v6-c-modal-box--BorderRadius: var(--mui-shape-borderRadius);
   --pf-v6-c-modal-box--BoxShadow: var(--mui-shadows-24);
-}
-
-.mui-theme .pf-v6-c-button.pf-m-plain {
-  --pf-v6-c-button--BorderRadius: 50%;
 }
 
 .mui-theme .pf-v6-c-page__main-container {

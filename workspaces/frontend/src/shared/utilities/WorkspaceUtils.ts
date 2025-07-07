@@ -1,4 +1,4 @@
-import { Workspace, WorkspaceState } from '~/shared/api/backendApiTypes';
+import { Workspace, WorkspaceState, WorkspaceOptionLabel } from '~/shared/api/backendApiTypes';
 import {
   CPU_UNITS,
   MEMORY_UNITS_FOR_PARSING,
@@ -102,3 +102,24 @@ export const countGpusFromWorkspaces = (workspaces: Workspace[]): number =>
     const [gpuValue] = splitValueUnit(extractResourceValue(workspace, 'gpu') || '0', OTHER);
     return total + (gpuValue ?? 0);
   }, 0);
+
+// Helper function to format label keys into human-readable names
+export const formatLabelKey = (key: string): string => {
+  // Handle camelCase version labels (e.g., pythonVersion -> Python)
+  if (key.endsWith('Version')) {
+    const baseName = key.slice(0, -7); // Remove 'Version' suffix
+    return baseName.charAt(0).toUpperCase() + baseName.slice(1);
+  }
+
+  // Otherwise just capitalize the first letter
+  return key.charAt(0).toUpperCase() + key.slice(1);
+};
+
+// Check if a label represents version/package information
+export const isPackageLabel = (key: string): boolean => key.endsWith('Version');
+
+// Extract package labels from workspace image config
+export const extractPackageLabels = (workspace: Workspace): WorkspaceOptionLabel[] =>
+  workspace.podTemplate.options.imageConfig.current.labels.filter((label) =>
+    isPackageLabel(label.key),
+  );
