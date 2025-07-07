@@ -207,7 +207,7 @@ const useFetchState = <Type>(
     return [doRequest(), unload];
   }, [fetchCallbackPromise]);
 
-  // Use a memmo to update the `changePendingRef` immediately on change.
+  // Use a memo to update the `changePendingRef` immediately on change.
   useMemo(() => {
     changePendingRef.current = true;
     // React to changes to the `call` reference.

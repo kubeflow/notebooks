@@ -648,7 +648,7 @@
   align-self: start;
 }
 /* CSS workaround for spacing in labels in Workspace Kind */
-.form-label-fieldgroup .pf-v6-c-table tr:where(.pf-v6-c-table__tr) > :where(th, td) {
+.form-label-field-group .pf-v6-c-table tr:where(.pf-v6-c-table__tr) > :where(th, td) {
   padding-block-start: 0px;
 }
 /* CSS workaround to use MUI icon for sort icon */
