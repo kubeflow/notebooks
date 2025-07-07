@@ -1,8 +1,9 @@
-import { NotReadyError } from '~/shared/utilities/useFetchState';
-import { APIError } from '~/shared/api/types';
-import { handleRestFailures } from '~/shared/api/errorUtils';
 import { mockNamespaces } from '~/__mocks__/mockNamespaces';
 import { mockBFFResponse } from '~/__mocks__/utils';
+import { ErrorEnvelopeException } from '~/shared/api/apiUtils';
+import { ErrorEnvelope } from '~/shared/api/backendApiTypes';
+import { handleRestFailures } from '~/shared/api/errorUtils';
+import { NotReadyError } from '~/shared/utilities/useFetchState';
 
 describe('handleRestFailures', () => {
   it('should successfully return namespaces', async () => {
@@ -11,14 +12,14 @@ describe('handleRestFailures', () => {
   });
 
   it('should handle and throw notebook errors', async () => {
-    const statusMock: APIError = {
+    const errorEnvelope: ErrorEnvelope = {
       error: {
-        code: '',
-        message: 'error',
+        code: '<error_code>',
+        message: '<error_message>',
       },
     };
-
-    await expect(handleRestFailures(Promise.resolve(statusMock))).rejects.toThrow('error');
+    const expectedError = new ErrorEnvelopeException(errorEnvelope);
+    await expect(handleRestFailures(Promise.reject(errorEnvelope))).rejects.toThrow(expectedError);
   });
 
   it('should handle common state errors ', async () => {

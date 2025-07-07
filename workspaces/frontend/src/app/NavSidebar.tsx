@@ -17,7 +17,7 @@ const NavHref: React.FC<{ item: NavDataHref }> = ({ item }) => {
   const location = useTypedLocation();
 
   // With the redirect in place, we can now use a simple path comparison.
-  const isActive = location.pathname === item.path;
+  const isActive = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
 
   return (
     <NavItem isActive={isActive} key={item.label} data-id={item.label} itemId={item.label}>

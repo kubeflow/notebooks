@@ -8,12 +8,17 @@ import {
   PageGroup,
   PageSection,
   Stack,
+  StackItem,
 } from '@patternfly/react-core';
+import { t_global_spacer_sm as SmallPadding } from '@patternfly/react-tokens';
+import { ValidationErrorAlert } from '~/app/components/ValidationErrorAlert';
 import { useTypedNavigate } from '~/app/routerHelper';
 import { useCurrentRouteKey } from '~/app/hooks/useCurrentRouteKey';
 import useGenericObjectState from '~/app/hooks/useGenericObjectState';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspaceKindFormData } from '~/app/types';
+import { ErrorEnvelopeException } from '~/shared/api/apiUtils';
+import { ValidationError } from '~/shared/api/backendApiTypes';
 import { WorkspaceKindFileUpload } from './fileUpload/WorkspaceKindFileUpload';
 import { WorkspaceKindFormProperties } from './properties/WorkspaceKindFormProperties';
 import { WorkspaceKindFormImage } from './image/WorkspaceKindFormImage';
@@ -34,6 +39,8 @@ export const WorkspaceKindForm: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validated, setValidated] = useState<ValidationStatus>('default');
   const mode = useCurrentRouteKey() === 'workspaceKindCreate' ? 'create' : 'edit';
+  const [specErrors, setSpecErrors] = useState<ValidationError[]>([]);
+
   const [data, setData, resetData] = useGenericObjectState<WorkspaceKindFormData>({
     properties: {
       displayName: '',
@@ -60,14 +67,24 @@ export const WorkspaceKindForm: React.FC = () => {
     try {
       if (mode === 'create') {
         const newWorkspaceKind = await api.createWorkspaceKind({}, yamlValue);
+        // TODO: alert user about success
         console.info('New workspace kind created:', JSON.stringify(newWorkspaceKind));
+        navigate('workspaceKinds');
       }
     } catch (err) {
+      if (err instanceof ErrorEnvelopeException) {
+        const validationErrors = err.envelope.error?.cause?.validation_errors;
+        if (validationErrors && validationErrors.length > 0) {
+          setSpecErrors(validationErrors);
+          setValidated('error');
+          return;
+        }
+      }
+      // TODO: alert user about error
       console.error(`Error ${mode === 'edit' ? 'editing' : 'creating'} workspace kind: ${err}`);
     } finally {
       setIsSubmitting(false);
     }
-    navigate('workspaceKinds');
   }, [navigate, mode, api, yamlValue]);
 
   const canSubmit = useMemo(
@@ -102,13 +119,25 @@ export const WorkspaceKindForm: React.FC = () => {
       </PageGroup>
       <PageSection isFilled>
         {mode === 'create' && (
-          <WorkspaceKindFileUpload
-            resetData={resetData}
-            value={yamlValue}
-            setValue={setYamlValue}
-            validated={validated}
-            setValidated={setValidated}
-          />
+          <Stack>
+            {specErrors.length > 0 && (
+              <StackItem style={{ padding: SmallPadding.value }}>
+                <ValidationErrorAlert title="Error creating workspace kind" errors={specErrors} />
+              </StackItem>
+            )}
+            <StackItem style={{ height: '100%' }}>
+              <WorkspaceKindFileUpload
+                resetData={resetData}
+                value={yamlValue}
+                setValue={setYamlValue}
+                validated={validated}
+                setValidated={setValidated}
+                onClear={() => {
+                  setSpecErrors([]);
+                }}
+              />
+            </StackItem>
+          </Stack>
         )}
         {mode === 'edit' && (
           <>
