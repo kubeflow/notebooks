@@ -8,7 +8,7 @@ import {
   Breadcrumb,
   BreadcrumbItem,
 } from '@patternfly/react-core';
-import { useTypedLocation, useTypedNavigate, useTypedParams } from '~/app/routerHelper';
+import { useTypedLocation, useTypedParams } from '~/app/routerHelper';
 import WorkspaceTable, {
   WorkspaceTableFilteredColumn,
   WorkspaceTableRef,
