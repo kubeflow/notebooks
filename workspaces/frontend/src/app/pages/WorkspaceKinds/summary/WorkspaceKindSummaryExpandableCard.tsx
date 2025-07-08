@@ -54,7 +54,7 @@ const WorkspaceKindSummaryExpandableCard: React.FC<WorkspaceKindSummaryExpandabl
   );
 
   return (
-    <Card isExpanded={isExpanded}>
+    <Card isExpanded={isExpanded} variant="secondary">
       <CardHeader onExpand={onExpandToggle}>
         <CardTitle>
           <Content component={ContentVariants.h2}>Workspaces Summary</Content>
@@ -65,7 +65,9 @@ const WorkspaceKindSummaryExpandableCard: React.FC<WorkspaceKindSummaryExpandabl
           <Flex wrap="wrap">
             <SectionFlex title="Total GPUs in use">
               <FlexItem>
-                <Content>
+                <Content
+                  style={{ fontSize: LargeFontSize.value, fontWeight: BoldFontWeight.value }}
+                >
                   {countGpusFromWorkspaces(filterRunningWorkspaces(workspaces))} GPUs
                 </Content>
               </FlexItem>
