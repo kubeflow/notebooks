@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { Content, Split, SplitItem } from '@patternfly/react-core';
+import { Content } from '@patternfly/react-core/dist/esm/components/Content';
+import { Split, SplitItem } from '@patternfly/react-core/dist/esm/layouts/Split';
 import { WorkspaceFormPodConfigDetails } from '~/app/pages/Workspaces/Form/podConfig/WorkspaceFormPodConfigDetails';
 import { WorkspaceFormPodConfigList } from '~/app/pages/Workspaces/Form/podConfig/WorkspaceFormPodConfigList';
 import { FilterByLabels } from '~/app/pages/Workspaces/Form/labelFilter/FilterByLabels';

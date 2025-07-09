@@ -1,13 +1,10 @@
 import React, { useState } from 'react';
-import {
-  Content,
-  ExpandableSection,
-  Form,
-  FormGroup,
-  HelperText,
-  Switch,
-  TextInput,
-} from '@patternfly/react-core';
+import { Content } from '@patternfly/react-core/dist/esm/components/Content';
+import { ExpandableSection } from '@patternfly/react-core/dist/esm/components/ExpandableSection';
+import { Form, FormGroup } from '@patternfly/react-core/dist/esm/components/Form';
+import { HelperText } from '@patternfly/react-core/dist/esm/components/HelperText';
+import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
+import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import { WorkspaceKindProperties } from '~/app/types';
 
 interface WorkspaceKindFormPropertiesProps {

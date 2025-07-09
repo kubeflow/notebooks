@@ -7,8 +7,8 @@ import {
   DrawerHead,
   DrawerActions,
   DrawerCloseButton,
-  Title,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/Drawer';
+import { Title } from '@patternfly/react-core/dist/esm/components/Title';
 
 interface WorkspaceFormDrawerProps {
   children: React.ReactNode;

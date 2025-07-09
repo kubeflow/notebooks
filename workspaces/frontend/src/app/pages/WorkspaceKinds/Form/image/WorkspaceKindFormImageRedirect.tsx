@@ -1,12 +1,14 @@
 import React from 'react';
 import {
+  FormGroup,
   FormFieldGroupExpandable,
   FormFieldGroupHeader,
-  FormGroup,
+} from '@patternfly/react-core/dist/esm/components/Form';
+import {
   FormSelect,
   FormSelectOption,
-  TextInput,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/FormSelect';
+import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import {
   WorkspaceOptionRedirect,
   WorkspaceRedirectMessageLevel,

@@ -1,20 +1,17 @@
 import React, { useMemo } from 'react';
+import { Bullseye } from '@patternfly/react-core/dist/esm/layouts/Bullseye';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import {
-  Bullseye,
-  Button,
   Card,
   CardBody,
-  CardExpandableContent,
   CardHeader,
   CardTitle,
-  Content,
-  ContentVariants,
-  Divider,
-  Flex,
-  FlexItem,
-  Stack,
-  StackItem,
-} from '@patternfly/react-core';
+  CardExpandableContent,
+} from '@patternfly/react-core/dist/esm/components/Card';
+import { Content, ContentVariants } from '@patternfly/react-core/dist/esm/components/Content';
+import { Divider } from '@patternfly/react-core/dist/esm/components/Divider';
+import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
+import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import {
   t_global_spacer_md as MediumPadding,
   t_global_font_size_4xl as LargeFontSize,

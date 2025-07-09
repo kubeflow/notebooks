@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Button } from '@patternfly/react-core';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 
 type ActionButtonProps = {
   action: string;

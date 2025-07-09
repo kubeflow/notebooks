@@ -1,5 +1,6 @@
 import React from 'react';
-import { Button, List, ListItem } from '@patternfly/react-core';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
+import { List, ListItem } from '@patternfly/react-core/dist/esm/components/List';
 import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import { WorkspaceCountPerKind } from '~/app/hooks/useWorkspaceCountPerKind';
 import { useTypedNavigate } from '~/app/routerHelper';

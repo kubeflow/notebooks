@@ -1,16 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
+import { Content } from '@patternfly/react-core/dist/esm/components/Content';
+import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
+import { PageGroup, PageSection } from '@patternfly/react-core/dist/esm/components/Page';
 import {
-  Button,
-  Content,
-  Flex,
-  FlexItem,
-  PageGroup,
-  PageSection,
   ProgressStep,
   ProgressStepper,
-  Stack,
-  StackItem,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/ProgressStepper';
+import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import useGenericObjectState from '~/app/hooks/useGenericObjectState';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspaceFormImageSelection } from '~/app/pages/Workspaces/Form/image/WorkspaceFormImageSelection';

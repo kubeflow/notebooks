@@ -1,24 +1,27 @@
 import React, { useCallback, useState } from 'react';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
+import { Content } from '@patternfly/react-core/dist/esm/components/Content';
+import { Dropdown, DropdownItem } from '@patternfly/react-core/dist/esm/components/Dropdown';
+import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
 import {
-  Button,
-  Content,
-  Dropdown,
-  MenuToggle,
-  DropdownItem,
   Modal,
   ModalHeader,
   ModalFooter,
   ModalVariant,
-  EmptyState,
+} from '@patternfly/react-core/dist/esm/components/Modal';
+import {
   EmptyStateFooter,
   EmptyStateActions,
+  EmptyState,
   EmptyStateBody,
-  Label,
-  getUniqueId,
-  ExpandableSection,
-} from '@patternfly/react-core';
-import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
-import { PlusCircleIcon, EllipsisVIcon, CubesIcon } from '@patternfly/react-icons';
+} from '@patternfly/react-core/dist/esm/components/EmptyState';
+import { Label } from '@patternfly/react-core/dist/esm/components/Label';
+import { ExpandableSection } from '@patternfly/react-core/dist/esm/components/ExpandableSection';
+import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table/dist/esm/components/Table';
+import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
+import { EllipsisVIcon } from '@patternfly/react-icons/dist/esm/icons/ellipsis-v-icon';
+import { CubesIcon } from '@patternfly/react-icons/dist/esm/icons/cubes-icon';
+import { getUniqueId } from '@patternfly/react-core/helpers';
 import { WorkspaceKindImageConfigData, WorkspaceKindImageConfigValue } from '~/app/types';
 import { emptyImage } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { WorkspaceKindFormImageModal } from './WorkspaceKindFormImageModal';

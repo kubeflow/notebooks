@@ -1,15 +1,11 @@
 import React, { useMemo, useState } from 'react';
-import {
-  Checkbox,
-  Content,
-  Divider,
-  ExpandableSection,
-  Form,
-  FormGroup,
-  Split,
-  SplitItem,
-  TextInput,
-} from '@patternfly/react-core';
+import { Checkbox } from '@patternfly/react-core/dist/esm/components/Checkbox';
+import { Content } from '@patternfly/react-core/dist/esm/components/Content';
+import { Divider } from '@patternfly/react-core/dist/esm/components/Divider';
+import { ExpandableSection } from '@patternfly/react-core/dist/esm/components/ExpandableSection';
+import { Form, FormGroup } from '@patternfly/react-core/dist/esm/components/Form';
+import { Split, SplitItem } from '@patternfly/react-core/dist/esm/layouts/Split';
+import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import { WorkspaceFormImageDetails } from '~/app/pages/Workspaces/Form/image/WorkspaceFormImageDetails';
 import { WorkspaceFormPropertiesVolumes } from '~/app/pages/Workspaces/Form/properties/WorkspaceFormPropertiesVolumes';
 import { WorkspaceFormProperties } from '~/app/types';

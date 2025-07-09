@@ -1,7 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Button, Split, SplitItem, Title } from '@patternfly/react-core';
-import { TimesIcon } from '@patternfly/react-icons';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
+import { Split, SplitItem } from '@patternfly/react-core/dist/esm/layouts/Split';
+import { Title } from '@patternfly/react-core/dist/esm/components/Title';
+import { TimesIcon } from '@patternfly/react-icons/dist/esm/icons/times-icon';
 import { AppRoutePaths } from '~/app/routes';
 import ErrorDetails from '~/app/error/ErrorDetails';
 import UpdateState from '~/app/error/UpdateState';

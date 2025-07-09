@@ -1,13 +1,9 @@
 import React, { useCallback, useRef, useState } from 'react';
-import {
-  Button,
-  Content,
-  ContentVariants,
-  PageSection,
-  Stack,
-  StackItem,
-} from '@patternfly/react-core';
-import { ArrowLeftIcon } from '@patternfly/react-icons';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
+import { Content, ContentVariants } from '@patternfly/react-core/dist/esm/components/Content';
+import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
+import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
+import { ArrowLeftIcon } from '@patternfly/react-icons/dist/esm/icons/arrow-left-icon';
 import { useTypedLocation, useTypedNavigate, useTypedParams } from '~/app/routerHelper';
 import WorkspaceTable, {
   WorkspaceTableFilteredColumn,

@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { IActions } from '@patternfly/react-table';
+import { IActions } from '@patternfly/react-table/dist/esm/components/Table';
 import { Workspace } from '~/shared/api/backendApiTypes';
 import { useWorkspaceActionsContext, WorkspaceAction } from '~/app/context/WorkspaceActionsContext';
 
