@@ -1,15 +1,16 @@
 /* eslint-disable @typescript-eslint/no-unused-expressions */
 import React, { useRef } from 'react';
-import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
+import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table/dist/esm/components/Table';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import {
-  Button,
   FormFieldGroupExpandable,
   FormFieldGroupHeader,
-  TextInput,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/Form';
+import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import inlineEditStyles from '@patternfly/react-styles/css/components/InlineEdit/inline-edit';
 import { css } from '@patternfly/react-styles';
-import { PlusCircleIcon, TrashAltIcon } from '@patternfly/react-icons';
+import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
+import { TrashAltIcon } from '@patternfly/react-icons/dist/esm/icons/trash-alt-icon';
 import { WorkspaceOptionLabel } from '~/shared/api/backendApiTypes';
 
 interface EditableRowInterface {

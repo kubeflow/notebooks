@@ -1,5 +1,5 @@
 import React from 'react';
-import { Content } from '@patternfly/react-core';
+import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import { WorkspaceFormKindList } from '~/app/pages/Workspaces/Form/kind/WorkspaceFormKindList';

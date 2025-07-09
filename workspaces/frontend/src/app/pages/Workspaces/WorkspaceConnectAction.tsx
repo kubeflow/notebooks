@@ -3,10 +3,12 @@ import {
   Dropdown,
   DropdownItem,
   DropdownList,
+} from '@patternfly/react-core/dist/esm/components/Dropdown';
+import {
   MenuToggle,
   MenuToggleElement,
   MenuToggleAction,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/MenuToggle';
 import { Workspace, WorkspaceState } from '~/shared/api/backendApiTypes';
 
 type WorkspaceConnectActionProps = {

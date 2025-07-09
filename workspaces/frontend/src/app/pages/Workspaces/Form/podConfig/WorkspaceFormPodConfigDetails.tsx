@@ -4,9 +4,9 @@ import {
   DescriptionListTerm,
   DescriptionListGroup,
   DescriptionListDescription,
-  Title,
-  Divider,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/DescriptionList';
+import { Title } from '@patternfly/react-core/dist/esm/components/Title';
+import { Divider } from '@patternfly/react-core/dist/esm/components/Divider';
 import { WorkspacePodConfigValue } from '~/shared/api/backendApiTypes';
 import { formatLabelKey } from '~/shared/utilities/WorkspaceUtils';
 

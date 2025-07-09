@@ -2,12 +2,14 @@ import React from 'react';
 import {
   ClipboardCopy,
   ClipboardCopyVariant,
+} from '@patternfly/react-core/dist/esm/components/ClipboardCopy';
+import {
   DescriptionList,
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
-  Title,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/DescriptionList';
+import { Title } from '@patternfly/react-core/dist/esm/components/Title';
 
 type ErrorDetailsProps = {
   title: string;

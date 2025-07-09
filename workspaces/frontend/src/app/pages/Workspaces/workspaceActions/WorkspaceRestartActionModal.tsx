@@ -1,13 +1,13 @@
 import React from 'react';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
+import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import {
-  Button,
-  Content,
   Modal,
   ModalBody,
   ModalFooter,
   ModalHeader,
-  TabTitleText,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/Modal';
+import { TabTitleText } from '@patternfly/react-core/dist/esm/components/Tabs';
 import { Workspace } from '~/shared/api/backendApiTypes';
 import { WorkspaceRedirectInformationView } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRedirectInformationView';
 

@@ -1,6 +1,8 @@
 import React from 'react';
-import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { Content, ContentVariants, Flex, FlexItem, Tooltip } from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
+import { Content, ContentVariants } from '@patternfly/react-core/dist/esm/components/Content';
+import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
+import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
 
 type ImageFallbackProps = {
   extended?: boolean;

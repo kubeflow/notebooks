@@ -1,12 +1,12 @@
 import React from 'react';
-import { ExclamationTriangleIcon } from '@patternfly/react-icons';
+import { ExclamationTriangleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-triangle-icon';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import {
-  Button,
   EmptyState,
   EmptyStateBody,
   EmptyStateFooter,
-  PageSection,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/EmptyState';
+import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
 import { useTypedNavigate } from '~/app/routerHelper';
 
 const NotFound: React.FunctionComponent = () => {

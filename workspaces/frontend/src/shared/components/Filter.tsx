@@ -11,17 +11,21 @@ import {
   MenuContent,
   MenuItem,
   MenuList,
+} from '@patternfly/react-core/dist/esm/components/Menu';
+import {
   MenuToggle,
   MenuToggleElement,
-  Popper,
+} from '@patternfly/react-core/dist/esm/components/MenuToggle';
+import { Popper } from '@patternfly/react-core/helpers';
+import {
   Toolbar,
   ToolbarContent,
-  ToolbarFilter,
   ToolbarGroup,
   ToolbarItem,
+  ToolbarFilter,
   ToolbarToggleGroup,
-} from '@patternfly/react-core';
-import { FilterIcon } from '@patternfly/react-icons';
+} from '@patternfly/react-core/dist/esm/components/Toolbar';
+import { FilterIcon } from '@patternfly/react-icons/dist/esm/icons/filter-icon';
 import ThemeAwareSearchInput from '~/app/components/ThemeAwareSearchInput';
 
 export interface FilterProps {

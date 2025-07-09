@@ -1,5 +1,5 @@
 import React from 'react';
-import { Title } from '@patternfly/react-core';
+import { Title } from '@patternfly/react-core/dist/esm/components/Title';
 import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 
 type WorkspaceFormKindDetailsProps = {
