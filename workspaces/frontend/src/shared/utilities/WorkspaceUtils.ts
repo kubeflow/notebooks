@@ -111,6 +111,11 @@ export const formatLabelKey = (key: string): string => {
     return baseName.charAt(0).toUpperCase() + baseName.slice(1);
   }
 
+  // Handle standard infrastructure resource types
+  if (key === 'cpu' || key === 'gpu') {
+    return key.toLocaleUpperCase();
+  }
+
   // Otherwise just capitalize the first letter
   return key.charAt(0).toUpperCase() + key.slice(1);
 };
