@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import '@patternfly/patternfly/patternfly-addons.css';
 import '@patternfly/react-core/dist/styles/base.css';
 import './app.css';
 import {
