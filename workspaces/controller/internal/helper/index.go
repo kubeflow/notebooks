@@ -19,6 +19,7 @@ package helper
 import (
 	"context"
 
+	istiov1 "istio.io/client-go/pkg/apis/networking/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -67,6 +68,21 @@ func SetupManagerFieldIndexers(mgr ctrl.Manager) error {
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &corev1.Service{}, IndexWorkspaceOwnerField, func(rawObj client.Object) []string {
 		service := rawObj.(*corev1.Service)
 		owner := metav1.GetControllerOf(service)
+		if owner == nil {
+			return nil
+		}
+		if owner.APIVersion != kubefloworgv1beta1.GroupVersion.String() || owner.Kind != "Workspace" {
+			return nil
+		}
+		return []string{owner.Name}
+	}); err != nil {
+		return err
+	}
+
+	// Index VirtualService by its owner Workspace
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &istiov1.VirtualService{}, IndexWorkspaceOwnerField, func(rawObj client.Object) []string {
+		virtualService := rawObj.(*istiov1.VirtualService)
+		owner := metav1.GetControllerOf(virtualService)
 		if owner == nil {
 			return nil
 		}
