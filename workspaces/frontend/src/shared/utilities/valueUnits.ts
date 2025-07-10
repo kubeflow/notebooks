@@ -40,6 +40,13 @@ export const MEMORY_UNITS_FOR_PARSING: UnitOption[] = [
   { name: 'KiB', unit: 'Ki', weight: 1024 },
   { name: 'B', unit: '', weight: 1 },
 ];
+
+export const TIME_UNIT_FOR_SELECTION: UnitOption[] = [
+  { name: 'Minutes', unit: 'Minutes', weight: 60 },
+  { name: 'Hours', unit: 'Hours', weight: 60 * 60 },
+  { name: 'Days', unit: 'Days', weight: 60 * 60 * 24 },
+];
+
 export const OTHER: UnitOption[] = [{ name: '', unit: '', weight: 1 }];
 
 export const splitValueUnit = (

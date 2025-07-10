@@ -104,6 +104,45 @@ export const emptyPodConfig: WorkspacePodConfigValue = {
     to: '',
   },
 };
+
+export const EMPTY_WORKSPACE_KIND_FORM_DATA = {
+  properties: {
+    displayName: '',
+    description: '',
+    deprecated: false,
+    deprecationMessage: '',
+    hidden: false,
+    icon: { url: '' },
+    logo: { url: '' },
+  },
+  imageConfig: {
+    default: '',
+    values: [],
+  },
+  podConfig: {
+    default: '',
+    values: [],
+  },
+  podTemplate: {
+    podMetadata: {
+      labels: {},
+      annotations: {},
+    },
+    volumeMounts: {
+      home: '',
+    },
+    extraVolumeMounts: [],
+    culling: {
+      enabled: false,
+      maxInactiveSeconds: 86400,
+      activityProbe: {
+        jupyter: {
+          lastActivity: true,
+        },
+      },
+    },
+  },
+};
 // convert from k8s resource object {limits: {}, requests{}} to array of {type: '', limit: '', request: ''} for each type of resource (e.g. CPU, memory, nvidia.com/gpu)
 export const getResources = (currConfig: WorkspaceKindPodConfigValue): PodResourceEntry[] => {
   const grouped = new Map<string, { request: string; limit: string }>([

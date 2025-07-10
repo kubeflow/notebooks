@@ -1,8 +1,10 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Button,
   Content,
   ContentVariants,
+  EmptyState,
+  EmptyStateBody,
   Flex,
   FlexItem,
   PageGroup,
@@ -11,18 +13,22 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { t_global_spacer_sm as SmallPadding } from '@patternfly/react-tokens';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { ValidationErrorAlert } from '~/app/components/ValidationErrorAlert';
-import { useTypedNavigate } from '~/app/routerHelper';
+import useWorkspaceKindByName from '~/app/hooks/useWorkspaceKindByName';
+import { WorkspaceKind, ValidationError } from '~/shared/api/backendApiTypes';
+import { useTypedNavigate, useTypedParams } from '~/app/routerHelper';
 import { useCurrentRouteKey } from '~/app/hooks/useCurrentRouteKey';
 import useGenericObjectState from '~/app/hooks/useGenericObjectState';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspaceKindFormData } from '~/app/types';
 import { ErrorEnvelopeException } from '~/shared/api/apiUtils';
-import { ValidationError } from '~/shared/api/backendApiTypes';
 import { WorkspaceKindFileUpload } from './fileUpload/WorkspaceKindFileUpload';
 import { WorkspaceKindFormProperties } from './properties/WorkspaceKindFormProperties';
 import { WorkspaceKindFormImage } from './image/WorkspaceKindFormImage';
 import { WorkspaceKindFormPodConfig } from './podConfig/WorkspaceKindFormPodConfig';
+import { WorkspaceKindFormPodTemplate } from './podTemplate/WorkspaceKindFormPodTemplate';
+import { EMPTY_WORKSPACE_KIND_FORM_DATA } from './helpers';
 
 export enum WorkspaceKindFormView {
   Form,
@@ -30,6 +36,19 @@ export enum WorkspaceKindFormView {
 }
 
 export type ValidationStatus = 'success' | 'error' | 'default';
+export type FormMode = 'edit' | 'create';
+
+const convertToFormData = (initialData: WorkspaceKind): WorkspaceKindFormData => {
+  const { podTemplate, ...properties } = initialData;
+  const { options, ...spec } = podTemplate;
+  const { podConfig, imageConfig } = options;
+  return {
+    properties,
+    podConfig,
+    imageConfig,
+    podTemplate: spec,
+  };
+};
 
 export const WorkspaceKindForm: React.FC = () => {
   const navigate = useTypedNavigate();
@@ -38,28 +57,23 @@ export const WorkspaceKindForm: React.FC = () => {
   const [yamlValue, setYamlValue] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validated, setValidated] = useState<ValidationStatus>('default');
-  const mode = useCurrentRouteKey() === 'workspaceKindCreate' ? 'create' : 'edit';
-  const [specErrors, setSpecErrors] = useState<ValidationError[]>([]);
+  const mode: FormMode = useCurrentRouteKey() === 'workspaceKindCreate' ? 'create' : 'edit';
+  const [specErrors, setSpecErrors] = useState<(ValidationError | ErrorEnvelopeException)[]>([]);
 
-  const [data, setData, resetData] = useGenericObjectState<WorkspaceKindFormData>({
-    properties: {
-      displayName: '',
-      description: '',
-      deprecated: false,
-      deprecationMessage: '',
-      hidden: false,
-      icon: { url: '' },
-      logo: { url: '' },
-    },
-    imageConfig: {
-      default: '',
-      values: [],
-    },
-    podConfig: {
-      default: '',
-      values: [],
-    },
-  });
+  const { kind } = useTypedParams<'workspaceKindEdit'>();
+  const [initialFormData, initialFormDataLoaded, initialFormDataError] =
+    useWorkspaceKindByName(kind);
+
+  const [data, setData, resetData, replaceData] = useGenericObjectState<WorkspaceKindFormData>(
+    initialFormData ? convertToFormData(initialFormData) : EMPTY_WORKSPACE_KIND_FORM_DATA,
+  );
+
+  useEffect(() => {
+    if (!initialFormDataLoaded || initialFormData === null || mode === 'create') {
+      return;
+    }
+    replaceData(convertToFormData(initialFormData));
+  }, [initialFormData, initialFormDataLoaded, mode, replaceData]);
 
   const handleSubmit = useCallback(async () => {
     setIsSubmitting(true);
@@ -71,14 +85,20 @@ export const WorkspaceKindForm: React.FC = () => {
         console.info('New workspace kind created:', JSON.stringify(newWorkspaceKind));
         navigate('workspaceKinds');
       }
+      // TODO: Finish when WSKind API is finalized
+      // const updatedWorkspace = await api.updateWorkspaceKind({}, kind, { data: {} });
+      // console.info('Workspace Kind updated:', JSON.stringify(updatedWorkspace));
+      // navigate('workspaceKinds');
     } catch (err) {
       if (err instanceof ErrorEnvelopeException) {
         const validationErrors = err.envelope.error?.cause?.validation_errors;
         if (validationErrors && validationErrors.length > 0) {
-          setSpecErrors(validationErrors);
+          setSpecErrors((prev) => [...prev, ...validationErrors]);
           setValidated('error');
           return;
         }
+        setSpecErrors((prev) => [...prev, err]);
+        setValidated('error');
       }
       // TODO: alert user about error
       console.error(`Error ${mode === 'edit' ? 'editing' : 'creating'} workspace kind: ${err}`);
@@ -88,14 +108,26 @@ export const WorkspaceKindForm: React.FC = () => {
   }, [navigate, mode, api, yamlValue]);
 
   const canSubmit = useMemo(
-    () => !isSubmitting && yamlValue.length > 0 && validated === 'success',
-    [yamlValue, isSubmitting, validated],
+    () => !isSubmitting && validated === 'success',
+    [isSubmitting, validated],
   );
 
   const cancel = useCallback(() => {
     navigate('workspaceKinds');
   }, [navigate]);
 
+  if (mode === 'edit' && initialFormDataError) {
+    return (
+      <EmptyState
+        titleText="Error loading Workspace Kind data"
+        headingLevel="h4"
+        icon={ExclamationCircleIcon}
+        status="danger"
+      >
+        <EmptyStateBody>{initialFormDataError.message}</EmptyStateBody>
+      </EmptyState>
+    );
+  }
   return (
     <>
       <PageGroup isFilled={false} stickyOnBreakpoint={{ default: 'top' }}>
@@ -159,6 +191,12 @@ export const WorkspaceKindForm: React.FC = () => {
                 setData('podConfig', podConfig);
               }}
             />
+            <WorkspaceKindFormPodTemplate
+              podTemplate={data.podTemplate}
+              updatePodTemplate={(podTemplate) => {
+                setData('podTemplate', podTemplate);
+              }}
+            />
           </>
         )}
       </PageSection>
@@ -169,9 +207,10 @@ export const WorkspaceKindForm: React.FC = () => {
               variant="primary"
               ouiaId="Primary"
               onClick={handleSubmit}
-              isDisabled={!canSubmit}
+              // TODO: button is always disabled on edit mode. Need to modify when WorkspaceKind edit is finalized
+              isDisabled={!canSubmit || mode === 'edit'}
             >
-              {mode === 'create' ? 'Create' : 'Edit'}
+              {mode === 'create' ? 'Create' : 'Save'}
             </Button>
           </FlexItem>
           <FlexItem>

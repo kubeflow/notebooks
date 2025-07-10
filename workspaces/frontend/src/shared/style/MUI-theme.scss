@@ -259,6 +259,28 @@
   z-index: 1;
 }
 
+// Form controls with number inputs - specific styling overrides
+.mui-theme .pf-v6-c-form__group:has(.pf-v6-c-number-input) {
+  .pf-v6-c-form__label {
+    top: 30%;
+    font-size: 16px;
+    left: 0;
+  }
+  
+  .pf-v6-c-form-control {
+    // Override default form control padding to match button padding in this context
+    --pf-v6-c-form-control--PaddingBlockStart: var(--mui-spacing-8px);
+    --pf-v6-c-form-control--PaddingBlockEnd: var(--mui-spacing-8px);
+    
+    &.workspace-kind-unit-select {
+      --pf-v6-c-form-control--PaddingInlineEnd: calc(
+        var(--pf-v6-c-form-control__select--PaddingInlineEnd) +
+          var(--pf-v6-c-form-control__icon--FontSize)
+      );
+    }
+  }
+}
+
 .mui-theme .pf-v6-c-form-control input::placeholder {
   --pf-v6-c-form-control--m-placeholder--Color: var(--mui-palette-grey-600);
 }
@@ -614,7 +636,7 @@
   --pf-v6-c-progress-stepper__step-icon--Color: var(--mui-palette-success-main);
  }
 
-.mui-theme .pf-v6-c-radio.pf-m-standalone .pf-v6-c-radio__input {
+.mui-theme .pf-v6-c-radio.pf-m-standalone:not(.workspace-kind-form-radio) .pf-v6-c-radio__input {
   display: none;
 }
 

@@ -14,7 +14,7 @@ import {
   Switch,
   TextInput,
 } from '@patternfly/react-core';
-import { EllipsisVIcon } from '@patternfly/react-icons';
+import { EllipsisVIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { Table, TableVariant, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { WorkspacePodVolumeMount } from '~/shared/api/backendApiTypes';
 
@@ -126,9 +126,10 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
         </Table>
       )}
       <Button
-        variant="primary"
+        variant="link"
+        icon={<PlusCircleIcon />}
         onClick={() => setIsModalOpen(true)}
-        style={{ marginTop: '1rem' }}
+        style={{ marginTop: '1rem', width: 'fit-content' }}
         className="pf-u-mt-md"
       >
         Create Volume
