@@ -455,5 +455,34 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 				},
 			},
 		},
+		Status: kubefloworgv1beta1.WorkspaceKindStatus{
+			Workspaces: 1,
+			PodTemplateOptions: kubefloworgv1beta1.PodTemplateOptionsMetrics{
+				ImageConfig: []kubefloworgv1beta1.OptionMetric{
+					{
+						Id:         "jupyterlab_scipy_180",
+						Workspaces: 1,
+					},
+					{
+						Id:         "jupyterlab_scipy_190",
+						Workspaces: 0,
+					},
+				},
+				PodConfig: []kubefloworgv1beta1.OptionMetric{
+					{
+						Id:         "tiny_cpu",
+						Workspaces: 1,
+					},
+					{
+						Id:         "small_cpu",
+						Workspaces: 0,
+					},
+					{
+						Id:         "big_gpu",
+						Workspaces: 0,
+					},
+				},
+			},
+		},
 	}
 }
