@@ -177,13 +177,18 @@
 }
 
 .mui-theme .pf-v6-c-card {
-  --pf-v6-c-card--BorderWidth: 0px;
+  --pf-v6-c-card--BorderWidth: 1px;
   --pf-v6-c-card--BorderRadius: var(--mui-shape-borderRadius);
-  box-shadow: var(--mui-shadows-1);
+  --pf-v6-c-card--BorderColor: var(--mui-palette-divider);
+}
+
+.pf-v6-c-card__selectable-actions :is(.pf-v6-c-check__label, .pf-v6-c-radio__label, .pf-v6-c-card__clickable-action):hover {
+  --pf-v6-c-card--BorderColor: var(--mui-palette-grey-300);
 }
 
 .mui-theme .pf-v6-c-card:hover {
   --pf-v6-c-card--BackgroundColor: var(--mui-palette-grey-100);
+  --pf-v6-c-card--BorderColor: var(--mui-palette-grey-200);
 }
 
 .mui-theme .pf-v6-c-card.pf-m-selected {
@@ -863,6 +868,11 @@
   --pf-v6-c-form-control--PaddingBlockEnd: var(--mui-spacing-8px);
 
 
+}
+
+// Fix hover state margin issue by removing problematic padding
+.mui-theme .pf-v6-c-menu__list {
+  --pf-v6-c-content--list--PaddingInlineStart: 0;
 }
 
 .mui-theme .pf-v6-c-expandable-section .pf-v6-c-expandable-section__content {
