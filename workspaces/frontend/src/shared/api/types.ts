@@ -3,6 +3,7 @@ export type APIOptions = {
   signal?: AbortSignal;
   parseJSON?: boolean;
   headers?: Record<string, string>;
+  directYAML?: boolean;
 };
 
 export type APIState<T> = {
