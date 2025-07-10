@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   FormSelect,
   FormSelectOption,
@@ -6,13 +6,18 @@ import {
   Split,
   SplitItem,
 } from '@patternfly/react-core';
-import { CPU_UNITS, MEMORY_UNITS_FOR_SELECTION, UnitOption } from '~/shared/utilities/valueUnits';
+import {
+  CPU_UNITS,
+  MEMORY_UNITS_FOR_SELECTION,
+  TIME_UNIT_FOR_SELECTION,
+  UnitOption,
+} from '~/shared/utilities/valueUnits';
 import { parseResourceValue } from '~/shared/utilities/WorkspaceUtils';
 
 interface ResourceInputWrapperProps {
   value: string;
   onChange: (value: string) => void;
-  type: 'cpu' | 'memory' | 'custom';
+  type: 'cpu' | 'memory' | 'time' | 'custom';
   min?: number;
   max?: number;
   step?: number;
@@ -26,6 +31,7 @@ const unitMap: {
 } = {
   memory: MEMORY_UNITS_FOR_SELECTION,
   cpu: CPU_UNITS,
+  time: TIME_UNIT_FOR_SELECTION,
 };
 
 const DEFAULT_STEP = 1;
@@ -34,7 +40,6 @@ const DEFAULT_UNITS = {
   memory: 'Mi',
   cpu: '',
 };
-
 export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
   value,
   onChange,
@@ -48,22 +53,47 @@ export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
 }) => {
   const [inputValue, setInputValue] = useState(value);
   const [unit, setUnit] = useState<string>('');
+  const isTimeInitialized = useRef(false);
 
   useEffect(() => {
-    if (type === 'custom') {
-      setInputValue(value);
-      return;
+    if (type === 'time') {
+      // Initialize time only once
+      if (!isTimeInitialized.current) {
+        const seconds = parseFloat(value) || 0;
+        let defaultUnit = 60; // Default to minutes
+        if (seconds >= 86400) {
+          defaultUnit = 86400; // Days
+        } else if (seconds >= 3600) {
+          defaultUnit = 3600; // Hours
+        } else if (seconds >= 60) {
+          defaultUnit = 60; // Minutes
+        } else {
+          defaultUnit = 1; // Seconds
+        }
+        setUnit(defaultUnit.toString());
+        setInputValue((seconds / defaultUnit).toString());
+        isTimeInitialized.current = true;
+      }
+    } else {
+      if (type === 'custom') {
+        setInputValue(value);
+        return;
+      }
+      const [numericValue, extractedUnit] = parseResourceValue(value, type);
+      setInputValue(String(numericValue || ''));
+      setUnit(extractedUnit?.unit || DEFAULT_UNITS[type]);
     }
-    const [numericValue, extractedUnit] = parseResourceValue(value, type);
-    setInputValue(String(numericValue || ''));
-    setUnit(extractedUnit?.unit || DEFAULT_UNITS[type]);
-  }, [value, type]);
+  }, [type, value]);
 
   const handleInputChange = useCallback(
     (newValue: string) => {
       setInputValue(newValue);
       if (type === 'custom') {
         onChange(newValue);
+      } else if (type === 'time') {
+        const numericValue = parseFloat(newValue) || 0;
+        const unitMultiplier = parseFloat(unit) || 1;
+        onChange(String(numericValue * unitMultiplier));
       } else {
         onChange(newValue ? `${newValue}${unit}` : '');
       }
@@ -73,12 +103,24 @@ export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
 
   const handleUnitChange = useCallback(
     (newUnit: string) => {
-      setUnit(newUnit);
-      if (inputValue) {
-        onChange(`${inputValue}${newUnit}`);
+      if (type === 'time') {
+        const currentValue = parseFloat(inputValue) || 0;
+        const oldUnitMultiplier = parseFloat(unit) || 1;
+        const newUnitMultiplier = parseFloat(newUnit) || 1;
+        // Convert the current value to the new unit
+        const valueInSeconds = currentValue * oldUnitMultiplier;
+        const valueInNewUnit = valueInSeconds / newUnitMultiplier;
+        setUnit(newUnit);
+        setInputValue(valueInNewUnit.toString());
+        onChange(String(valueInSeconds));
+      } else {
+        setUnit(newUnit);
+        if (inputValue) {
+          onChange(`${inputValue}${newUnit}`);
+        }
       }
     },
-    [inputValue, onChange],
+    [inputValue, onChange, type, unit],
   );
 
   const handleIncrement = useCallback(() => {
@@ -104,7 +146,13 @@ export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
   const unitOptions = useMemo(
     () =>
       type !== 'custom'
-        ? unitMap[type].map((u) => <FormSelectOption label={u.name} key={u.name} value={u.unit} />)
+        ? unitMap[type].map((u) => (
+            <FormSelectOption
+              label={u.name}
+              key={u.name}
+              value={type === 'time' ? u.weight : u.unit}
+            />
+          ))
         : [],
     [type],
   );
@@ -136,6 +184,7 @@ export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
             onChange={(_, v) => handleUnitChange(v)}
             id={`${ariaLabel}-unit-select`}
             isDisabled={isDisabled}
+            className="workspace-kind-unit-select"
           >
             {unitOptions}
           </FormSelect>

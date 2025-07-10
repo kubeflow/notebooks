@@ -138,7 +138,7 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
             </FormSelect>
           </FormGroup>
           <WorkspaceKindFormImagePort
-            ports={image.ports}
+            ports={image.ports || []}
             setPorts={(ports) => setImage({ ...image, ports })}
           />
           {mode === 'edit' && (
