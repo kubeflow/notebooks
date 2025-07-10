@@ -1,12 +1,11 @@
 import React from 'react';
 import {
+  FormGroup,
   FormFieldGroupExpandable,
   FormFieldGroupHeader,
-  FormGroup,
-  Grid,
-  GridItem,
-  TextInput,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/Form';
+import { Grid, GridItem } from '@patternfly/react-core/dist/esm/layouts/Grid';
+import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import { WorkspaceKindImagePort } from '~/app/types';
 
 interface WorkspaceKindFormImagePortProps {

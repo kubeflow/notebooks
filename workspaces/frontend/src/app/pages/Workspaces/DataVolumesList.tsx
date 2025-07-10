@@ -2,18 +2,19 @@ import React from 'react';
 import {
   ClipboardCopy,
   ClipboardCopyVariant,
-  Content,
+} from '@patternfly/react-core/dist/esm/components/ClipboardCopy';
+import { Content } from '@patternfly/react-core/dist/esm/components/Content';
+import {
   DescriptionList,
   DescriptionListGroup,
   DescriptionListTerm,
   DescriptionListDescription,
-  Flex,
-  FlexItem,
-  List,
-  ListItem,
-  Tooltip,
-} from '@patternfly/react-core';
-import { DatabaseIcon, LockedIcon } from '@patternfly/react-icons';
+} from '@patternfly/react-core/dist/esm/components/DescriptionList';
+import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
+import { List, ListItem } from '@patternfly/react-core/dist/esm/components/List';
+import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
+import { DatabaseIcon } from '@patternfly/react-icons/dist/esm/icons/database-icon';
+import { LockedIcon } from '@patternfly/react-icons/dist/esm/icons/locked-icon';
 import { Workspace } from '~/shared/api/backendApiTypes';
 
 interface DataVolumesListProps {

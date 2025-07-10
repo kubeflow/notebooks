@@ -1,17 +1,16 @@
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
+import { Grid, GridItem } from '@patternfly/react-core/dist/esm/layouts/Grid';
+import { Title } from '@patternfly/react-core/dist/esm/components/Title';
 import {
-  Button,
-  Grid,
-  GridItem,
-  Title,
   FormFieldGroupExpandable,
   FormFieldGroupHeader,
-  TextInput,
-  Checkbox,
-  HelperText,
-  HelperTextItem,
-} from '@patternfly/react-core';
-import { PlusCircleIcon, TrashAltIcon } from '@patternfly/react-icons';
+} from '@patternfly/react-core/dist/esm/components/Form';
+import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
+import { Checkbox } from '@patternfly/react-core/dist/esm/components/Checkbox';
+import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
+import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
+import { TrashAltIcon } from '@patternfly/react-icons/dist/esm/icons/trash-alt-icon';
 import { generateUniqueId } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { isMemoryLimitLarger } from '~/shared/utilities/valueUnits';
 import { ResourceInputWrapper } from './ResourceInputWrapper';

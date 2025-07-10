@@ -3,25 +3,29 @@ import {
   Drawer,
   DrawerContent,
   DrawerContentBody,
-  PageSection,
-  Content,
-  Tooltip,
-  Label,
+} from '@patternfly/react-core/dist/esm/components/Drawer';
+import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
+import { Content } from '@patternfly/react-core/dist/esm/components/Content';
+import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
+import { Label } from '@patternfly/react-core/dist/esm/components/Label';
+import {
   Toolbar,
   ToolbarContent,
   ToolbarItem,
+  ToolbarGroup,
+  ToolbarFilter,
+  ToolbarToggleGroup,
+} from '@patternfly/react-core/dist/esm/components/Toolbar';
+import {
   Menu,
   MenuContent,
   MenuList,
   MenuItem,
-  MenuToggle,
-  Popper,
-  ToolbarGroup,
-  ToolbarFilter,
-  ToolbarToggleGroup,
-  Bullseye,
-  Button,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/Menu';
+import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
+import { Popper } from '@patternfly/react-core/helpers';
+import { Bullseye } from '@patternfly/react-core/dist/esm/layouts/Bullseye';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import {
   Table,
   Thead,
@@ -32,8 +36,8 @@ import {
   ThProps,
   ActionsColumn,
   IActions,
-} from '@patternfly/react-table';
-import { FilterIcon } from '@patternfly/react-icons';
+} from '@patternfly/react-table/dist/esm/components/Table';
+import { FilterIcon } from '@patternfly/react-icons/dist/esm/icons/filter-icon';
 import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import { useWorkspaceCountPerKind } from '~/app/hooks/useWorkspaceCountPerKind';

@@ -1,13 +1,13 @@
 import React from 'react';
-import { CubesIcon } from '@patternfly/react-icons';
+import { CubesIcon } from '@patternfly/react-icons/dist/esm/icons/cubes-icon';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import {
-  Button,
   EmptyState,
   EmptyStateBody,
-  EmptyStateFooter,
   EmptyStateVariant,
-  PageSection,
-} from '@patternfly/react-core';
+  EmptyStateFooter,
+} from '@patternfly/react-core/dist/esm/components/EmptyState';
+import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
 
 const Debug: React.FunctionComponent = () => (
   <PageSection>

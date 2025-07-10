@@ -1,15 +1,9 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import {
-  Button,
-  Content,
-  ContentVariants,
-  Flex,
-  FlexItem,
-  PageGroup,
-  PageSection,
-  Stack,
-  StackItem,
-} from '@patternfly/react-core';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
+import { Content, ContentVariants } from '@patternfly/react-core/dist/esm/components/Content';
+import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
+import { PageGroup, PageSection } from '@patternfly/react-core/dist/esm/components/Page';
+import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import { t_global_spacer_sm as SmallPadding } from '@patternfly/react-tokens';
 import { ValidationErrorAlert } from '~/app/components/ValidationErrorAlert';
 import { useTypedNavigate } from '~/app/routerHelper';

@@ -3,10 +3,9 @@ import {
   DescriptionList,
   DescriptionListTerm,
   DescriptionListDescription,
-  ListItem,
-  List,
   DescriptionListGroup,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/DescriptionList';
+import { ListItem, List } from '@patternfly/react-core/dist/esm/components/List';
 import { Workspace } from '~/shared/api/backendApiTypes';
 import { extractPackageLabels, formatLabelKey } from '~/shared/utilities/WorkspaceUtils';
 

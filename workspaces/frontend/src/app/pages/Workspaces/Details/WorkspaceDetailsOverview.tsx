@@ -4,8 +4,8 @@ import {
   DescriptionListTerm,
   DescriptionListGroup,
   DescriptionListDescription,
-  Divider,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/DescriptionList';
+import { Divider } from '@patternfly/react-core/dist/esm/components/Divider';
 import { Workspace } from '~/shared/api/backendApiTypes';
 
 type WorkspaceDetailsOverviewProps = {

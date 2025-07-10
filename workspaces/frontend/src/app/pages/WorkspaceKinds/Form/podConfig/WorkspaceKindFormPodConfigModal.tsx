@@ -4,13 +4,12 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
-  Button,
-  Form,
-  FormGroup,
-  TextInput,
-  Switch,
-  HelperText,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/Modal';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
+import { Form, FormGroup } from '@patternfly/react-core/dist/esm/components/Form';
+import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
+import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
+import { HelperText } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { WorkspaceKindPodConfigValue } from '~/app/types';
 import { WorkspaceOptionLabel } from '~/shared/api/backendApiTypes';
 import { EditableLabels } from '~/app/pages/WorkspaceKinds/Form/EditableLabels';

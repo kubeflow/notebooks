@@ -2,18 +2,15 @@ import React, { FC, useEffect, useMemo, useState } from 'react';
 import {
   Dropdown,
   DropdownItem,
-  MenuToggle,
   DropdownList,
   DropdownProps,
-  MenuSearch,
-  MenuSearchInput,
-  InputGroup,
-  InputGroupItem,
-  SearchInput,
-  Button,
-  ButtonVariant,
-  Divider,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/Dropdown';
+import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
+import { MenuSearch, MenuSearchInput } from '@patternfly/react-core/dist/esm/components/Menu';
+import { InputGroup, InputGroupItem } from '@patternfly/react-core/dist/esm/components/InputGroup';
+import { SearchInput } from '@patternfly/react-core/dist/esm/components/SearchInput';
+import { Button, ButtonVariant } from '@patternfly/react-core/dist/esm/components/Button';
+import { Divider } from '@patternfly/react-core/dist/esm/components/Divider';
 import { SearchIcon } from '@patternfly/react-icons/dist/esm/icons/search-icon';
 import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
 

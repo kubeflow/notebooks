@@ -2,20 +2,19 @@ import React, { useEffect } from 'react';
 import '@patternfly/patternfly/patternfly-addons.css';
 import '@patternfly/react-core/dist/styles/base.css';
 import './app.css';
+import { Brand } from '@patternfly/react-core/dist/esm/components/Brand';
+import { Flex } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import {
-  Brand,
-  Flex,
   Masthead,
   MastheadBrand,
   MastheadContent,
   MastheadLogo,
   MastheadMain,
   MastheadToggle,
-  Page,
-  PageToggleButton,
-  Title,
-} from '@patternfly/react-core';
-import { BarsIcon } from '@patternfly/react-icons';
+} from '@patternfly/react-core/dist/esm/components/Masthead';
+import { Page, PageToggleButton } from '@patternfly/react-core/dist/esm/components/Page';
+import { Title } from '@patternfly/react-core/dist/esm/components/Title';
+import { BarsIcon } from '@patternfly/react-icons/dist/esm/icons/bars-icon';
 import ErrorBoundary from '~/app/error/ErrorBoundary';
 import NamespaceSelector from '~/shared/components/NamespaceSelector';
 import logoDarkTheme from '~/images/logo-dark-theme.svg';

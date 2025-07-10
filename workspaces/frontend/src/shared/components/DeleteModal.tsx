@@ -5,14 +5,12 @@ import {
   ModalFooter,
   ModalHeader,
   ModalVariant,
-  Button,
-  TextInput,
-  Stack,
-  StackItem,
-  FlexItem,
-  HelperText,
-  HelperTextItem,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/Modal';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
+import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
+import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
+import { FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
+import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { default as ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 import { ActionButton } from '~/shared/components/ActionButton';
 

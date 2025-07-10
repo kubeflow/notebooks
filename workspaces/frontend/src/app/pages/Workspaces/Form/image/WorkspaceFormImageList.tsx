@@ -1,14 +1,13 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   CardTitle,
-  Gallery,
-  PageSection,
-  Toolbar,
-  ToolbarContent,
   Card,
   CardHeader,
   CardBody,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/Card';
+import { Gallery } from '@patternfly/react-core/dist/esm/layouts/Gallery';
+import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
+import { Toolbar, ToolbarContent } from '@patternfly/react-core/dist/esm/components/Toolbar';
 import Filter, { FilteredColumn, FilterRef } from '~/shared/components/Filter';
 import { WorkspaceImageConfigValue } from '~/shared/api/backendApiTypes';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
