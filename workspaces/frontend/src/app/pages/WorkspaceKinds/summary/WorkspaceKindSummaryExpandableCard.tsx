@@ -15,9 +15,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import {
-  t_global_spacer_md as MediumPadding
-} from '@patternfly/react-tokens';
+import { t_global_spacer_md as MediumPadding } from '@patternfly/react-tokens';
 import { Workspace } from '~/shared/api/backendApiTypes';
 import {
   countGpusFromWorkspaces,
