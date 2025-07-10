@@ -1,10 +1,10 @@
 import {
   restCREATE,
   restDELETE,
+  restFILE,
   restGET,
   restPATCH,
   restUPDATE,
-  restYAML,
   wrapRequest,
 } from '~/shared/api/apiUtils';
 import {
@@ -72,7 +72,7 @@ export const getWorkspaceKind: GetWorkspaceKindAPI = (hostPath) => (opts, kind) 
   wrapRequest(restGET(hostPath, `/workspacekinds/${kind}`, {}, opts));
 
 export const createWorkspaceKind: CreateWorkspaceKindAPI = (hostPath) => (opts, data) =>
-  wrapRequest(restYAML(hostPath, `/workspacekinds`, data, {}, opts));
+  wrapRequest(restFILE(hostPath, `/workspacekinds`, data, {}, opts));
 
 export const updateWorkspaceKind: UpdateWorkspaceKindAPI = (hostPath) => (opts, kind, data) =>
   wrapRequest(restUPDATE(hostPath, `/workspacekinds/${kind}`, data, {}, opts));

@@ -19,6 +19,7 @@ export const mergeRequestInit = (
 type CallRestJSONOptions = {
   queryParams?: Record<string, unknown>;
   parseJSON?: boolean;
+  directYAML?: boolean;
 } & EitherOrNone<
   {
     fileContents: string;
@@ -32,7 +33,7 @@ const callRestJSON = <T>(
   host: string,
   path: string,
   requestInit: RequestInit,
-  { data, fileContents, queryParams, parseJSON = true }: CallRestJSONOptions,
+  { data, fileContents, queryParams, parseJSON = true, directYAML = false }: CallRestJSONOptions,
 ): Promise<T> => {
   const { method, ...otherOptions } = requestInit;
 
@@ -54,12 +55,17 @@ const callRestJSON = <T>(
   let contentType: string | undefined;
   let formData: FormData | undefined;
   if (fileContents) {
-    formData = new FormData();
-    formData.append(
-      'uploadfile',
-      new Blob([fileContents], { type: 'application/x-yaml' }),
-      'uploadedFile.yml',
-    );
+    if (directYAML) {
+      requestData = fileContents;
+      contentType = 'application/yaml';
+    } else {
+      formData = new FormData();
+      formData.append(
+        'uploadfile',
+        new Blob([fileContents], { type: 'application/x-yaml' }),
+        'uploadedFile.yml',
+      );
+    }
   } else if (data) {
     // It's OK for contentType and requestData to BOTH be undefined for e.g. a GET request or POST with no body.
     contentType = 'application/json;charset=UTF-8';
@@ -122,6 +128,7 @@ export const restFILE = <T>(
     fileContents,
     queryParams,
     parseJSON: options?.parseJSON,
+    directYAML: options?.directYAML,
   });
 
 /** POST -- but no body data -- targets simple endpoints */
@@ -172,48 +179,6 @@ export const restDELETE = <T>(
     queryParams,
     parseJSON: options?.parseJSON,
   });
-
-/** POST -- but with YAML content directly in body */
-export const restYAML = <T>(
-  host: string,
-  path: string,
-  yamlContent: string,
-  queryParams?: Record<string, unknown>,
-  options?: APIOptions,
-): Promise<T> => {
-  const { method, ...otherOptions } = mergeRequestInit(options, { method: 'POST' });
-
-  const sanitizedQueryParams = queryParams
-    ? Object.entries(queryParams).reduce((acc, [key, value]) => {
-        if (value) {
-          return { ...acc, [key]: value };
-        }
-        return acc;
-      }, {})
-    : null;
-
-  const searchParams = sanitizedQueryParams
-    ? new URLSearchParams(sanitizedQueryParams).toString()
-    : null;
-
-  return fetch(`${host}${path}${searchParams ? `?${searchParams}` : ''}`, {
-    ...otherOptions,
-    headers: {
-      ...otherOptions.headers,
-      ...(DEV_MODE && { [AUTH_HEADER]: localStorage.getItem(AUTH_HEADER) }),
-      'Content-Type': 'application/vnd.kubeflow-notebooks.manifest+yaml',
-    },
-    method,
-    body: yamlContent,
-  }).then((response) =>
-    response.text().then((fetchedData) => {
-      if (options?.parseJSON !== false) {
-        return JSON.parse(fetchedData);
-      }
-      return fetchedData;
-    }),
-  );
-};
 
 export const isNotebookResponse = <T>(response: unknown): response is ResponseBody<T> => {
   if (typeof response === 'object' && response !== null) {
