@@ -26,6 +26,7 @@ export const WorkspaceKindDetailsNamespaces: React.FunctionComponent<
           {namespace}:{' '}
           <Button
             variant="link"
+            className="workspace-kind-summary-button"
             isInline
             onClick={() =>
               navigate('workspaceKindSummary', {
