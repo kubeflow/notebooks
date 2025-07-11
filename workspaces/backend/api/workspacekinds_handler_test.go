@@ -30,6 +30,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -522,6 +523,177 @@ metadata:
 					},
 				},
 			))
+		})
+	})
+
+	// NOTE: these tests create and delete resources on the cluster, so cannot be run in parallel.
+	//       therefore, we run them using the `Serial` Ginkgo decorator.
+	Context("when deleting a WorkspaceKind", Serial, func() {
+
+		var (
+			workspaceKindName     string
+			workspaceKindKey      types.NamespacedName
+			workspaceKindToDelete *kubefloworgv1beta1.WorkspaceKind
+		)
+
+		BeforeEach(func() {
+			uniqueName := fmt.Sprintf("wsk-delete-test-%d", GinkgoRandomSeed())
+			workspaceKindName = fmt.Sprintf("workspacekind-%s", uniqueName)
+			workspaceKindKey = types.NamespacedName{Name: workspaceKindName}
+
+			By("creating the WorkspaceKind to delete")
+			workspaceKindToDelete = NewExampleWorkspaceKind(workspaceKindName)
+			Expect(k8sClient.Create(ctx, workspaceKindToDelete)).To(Succeed())
+		})
+
+		AfterEach(func() {
+			By("cleaning up the WorkspaceKind")
+			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: workspaceKindName,
+				},
+			}
+			_ = k8sClient.Delete(ctx, workspaceKind)
+		})
+
+		It("should successfully delete an existing WorkspaceKind", func() {
+			By("creating the HTTP request to delete the WorkspaceKind")
+			path := strings.Replace(WorkspaceKindsByNamePath, ":"+ResourceNamePathParam, workspaceKindName, 1)
+			req, err := http.NewRequest(http.MethodDelete, path, http.NoBody)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing DeleteWorkspaceKindHandler")
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{
+				httprouter.Param{
+					Key:   ResourceNamePathParam,
+					Value: workspaceKindName,
+				},
+			}
+			a.DeleteWorkspaceKindHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusNoContent), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("ensuring the WorkspaceKind has been deleted")
+			deletedWorkspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
+			err = k8sClient.Get(ctx, workspaceKindKey, deletedWorkspaceKind)
+			Expect(err).To(HaveOccurred())
+			Expect(apierrors.IsNotFound(err)).To(BeTrue())
+		})
+
+		It("should return 404 when trying to delete a non-existent WorkspaceKind", func() {
+			nonExistentName := "non-existent-workspacekind"
+
+			By("creating the HTTP request to delete a non-existent WorkspaceKind")
+			path := strings.Replace(WorkspaceKindsByNamePath, ":"+ResourceNamePathParam, nonExistentName, 1)
+			req, err := http.NewRequest(http.MethodDelete, path, http.NoBody)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing DeleteWorkspaceKindHandler")
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{
+				httprouter.Param{
+					Key:   ResourceNamePathParam,
+					Value: nonExistentName,
+				},
+			}
+			a.DeleteWorkspaceKindHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusNotFound), descUnexpectedHTTPStatus, rr.Body.String())
+		})
+
+		It("should return 422 when workspace kind name has invalid format", func() {
+			invalidName := "InvalidNameWithUppercase"
+
+			By("creating the HTTP request with invalid workspace kind name")
+			path := strings.Replace(WorkspaceKindsByNamePath, ":"+ResourceNamePathParam, invalidName, 1)
+			req, err := http.NewRequest(http.MethodDelete, path, http.NoBody)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing DeleteWorkspaceKindHandler")
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{
+				httprouter.Param{
+					Key:   ResourceNamePathParam,
+					Value: invalidName,
+				},
+			}
+			a.DeleteWorkspaceKindHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("decoding the error response")
+			var response ErrorEnvelope
+			err = json.Unmarshal(rr.Body.Bytes(), &response)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("verifying the error message indicates validation failure")
+			Expect(response.Error.Message).To(ContainSubstring("path parameters were invalid"))
+		})
+
+		It("should return 401 when no authentication is provided", func() {
+			By("creating the HTTP request without auth headers")
+			path := strings.Replace(WorkspaceKindsByNamePath, ":"+ResourceNamePathParam, workspaceKindName, 1)
+			req, err := http.NewRequest(http.MethodDelete, path, http.NoBody)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("executing DeleteWorkspaceKindHandler without auth")
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{
+				httprouter.Param{
+					Key:   ResourceNamePathParam,
+					Value: workspaceKindName,
+				},
+			}
+			a.DeleteWorkspaceKindHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusUnauthorized), descUnexpectedHTTPStatus, rr.Body.String())
+		})
+
+		It("should return 403 when user lacks permission to delete workspace kind", func() {
+			By("creating the HTTP request with non-admin user")
+			path := strings.Replace(WorkspaceKindsByNamePath, ":"+ResourceNamePathParam, workspaceKindName, 1)
+			req, err := http.NewRequest(http.MethodDelete, path, http.NoBody)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("setting the auth headers with non-admin user")
+			req.Header.Set(userIdHeader, "non-admin-user")
+
+			By("executing DeleteWorkspaceKindHandler")
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{
+				httprouter.Param{
+					Key:   ResourceNamePathParam,
+					Value: workspaceKindName,
+				},
+			}
+			a.DeleteWorkspaceKindHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusForbidden), descUnexpectedHTTPStatus, rr.Body.String())
 		})
 	})
 })
