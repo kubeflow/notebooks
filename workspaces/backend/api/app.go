@@ -19,7 +19,9 @@ package api
 import (
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
+	"strconv"
 
 	"github.com/julienschmidt/httprouter"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -30,7 +32,7 @@ import (
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
-	_ "github.com/kubeflow/notebooks/workspaces/backend/openapi"
+	"github.com/kubeflow/notebooks/workspaces/backend/openapi"
 )
 
 const (
@@ -77,6 +79,11 @@ type App struct {
 func NewApp(cfg *config.EnvConfig, logger *slog.Logger, cl client.Client, scheme *runtime.Scheme, reqAuthN authenticator.Request, reqAuthZ authorizer.Authorizer) (*App, error) {
 
 	// TODO: log the configuration on startup
+
+	// Override SwaggerInfo.Host with the correct port
+	if host, _, err := net.SplitHostPort(openapi.SwaggerInfo.Host); err == nil {
+		openapi.SwaggerInfo.Host = net.JoinHostPort(host, strconv.Itoa(cfg.Port))
+	}
 
 	// get a serializer for Kubernetes YAML
 	codecFactory := serializer.NewCodecFactory(scheme)
