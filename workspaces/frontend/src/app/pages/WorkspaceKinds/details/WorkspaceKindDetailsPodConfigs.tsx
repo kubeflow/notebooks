@@ -21,6 +21,7 @@ export const WorkspaceKindDetailsPodConfigs: React.FunctionComponent<
           {podConfig.displayName}:{' '}
           <Button
             variant="link"
+            className="workspace-kind-summary-button"
             isInline
             onClick={() =>
               navigate('workspaceKindSummary', {

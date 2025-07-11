@@ -58,9 +58,9 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
       description: { name: 'Description', label: 'Description', id: 'description' },
       deprecated: { name: 'Status', label: 'Status', id: 'status' },
       numberOfWorkspaces: {
-        name: 'Number of workspaces',
-        label: 'Number of workspaces',
-        id: 'number-of-workspaces',
+        name: 'Workspaces',
+        label: 'Workspaces',
+        id: 'workspaces',
       },
     }),
     [],
@@ -604,6 +604,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                       <Td dataLabel={columns.numberOfWorkspaces.name}>
                         <Button
                           variant="link"
+                          className="workspace-kind-summary-button"
                           isInline
                           onClick={() =>
                             navigate('workspaceKindSummary', {
