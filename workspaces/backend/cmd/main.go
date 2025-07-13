@@ -18,17 +18,22 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
+	stdruntime "runtime"
 	"strconv"
 
+	"github.com/go-logr/logr"
+
 	ctrl "sigs.k8s.io/controller-runtime"
-	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	application "github.com/kubeflow/notebooks/workspaces/backend/api"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/k8sclientfactory"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/server"
 )
 
@@ -47,7 +52,7 @@ import (
 //	@consumes	application/json
 //	@produces	application/json
 
-func main() {
+func run() error {
 	// Define command line flags
 	cfg := &config.EnvConfig{}
 	flag.IntVar(&cfg.Port,
@@ -93,44 +98,59 @@ func main() {
 		"Key of request header containing user groups",
 	)
 
-	// Initialize the logger
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	var enableEnvTest bool
+	flag.BoolVar(&enableEnvTest,
+		"enable-envtest",
+		getEnvAsBool("ENABLE_ENVTEST", false),
+		"Enable envtest for local development without a real k8s cluster",
+	)
+	flag.Parse()
 
-	// Build the Kubernetes client configuration
-	kubeconfig, err := ctrl.GetConfig()
-	if err != nil {
-		logger.Error("failed to get Kubernetes config", "error", err)
-		os.Exit(1)
-	}
-	kubeconfig.QPS = float32(cfg.ClientQPS)
-	kubeconfig.Burst = cfg.ClientBurst
+	// Initialize the logger
+	slogTextHandler := slog.NewTextHandler(os.Stdout, nil)
+	logger := slog.New(slogTextHandler)
 
 	// Build the Kubernetes scheme
 	scheme, err := helper.BuildScheme()
 	if err != nil {
 		logger.Error("failed to build Kubernetes scheme", "error", err)
-		os.Exit(1)
+		return err
 	}
 
-	// Create the controller manager
-	mgr, err := ctrl.NewManager(kubeconfig, ctrl.Options{
-		Scheme: scheme,
-		Metrics: metricsserver.Options{
-			BindAddress: "0", // disable metrics serving
-		},
-		HealthProbeBindAddress: "0", // disable health probe serving
-		LeaderElection:         false,
-	})
+	// Defining CRD's path
+	crdPath := os.Getenv("CRD_PATH")
+	if crdPath == "" {
+		_, currentFile, _, ok := stdruntime.Caller(0)
+		if !ok {
+			logger.Info("Failed to get current file path using stdruntime.Caller")
+		}
+		testFileDir := filepath.Dir(currentFile)
+		crdPath = filepath.Join(testFileDir, "..", "..", "controller", "config", "crd", "bases")
+		logger.Info("CRD_PATH not set, using guessed default", "path", crdPath)
+	}
+
+	// ctx creates a context that listens for OS signals (e.g., SIGINT, SIGTERM) for graceful shutdown.
+	ctx := ctrl.SetupSignalHandler()
+
+	logrlogger := logr.FromSlogHandler(slogTextHandler)
+
+	// factory creates a new Kubernetes client factory, configured for envtest if enabled.
+	factory := k8sclientfactory.NewClientFactory(logrlogger, scheme, enableEnvTest, []string{crdPath}, cfg)
+
+	// Create the controller manager, build Kubernetes client configuration
+	// envtestCleanupFunc is a function to clean envtest if it was created, otherwise it's an empty function.
+	mgr, _, envtestCleanupFunc, err := factory.GetManagerAndConfig(ctx)
+	defer envtestCleanupFunc()
 	if err != nil {
-		logger.Error("unable to create manager", "error", err)
-		os.Exit(1)
+		logger.Error("Failed to get Kubernetes manager/config from factory", "error", err)
+		return err
 	}
 
 	// Create the request authenticator
 	reqAuthN, err := auth.NewRequestAuthenticator(cfg.UserIdHeader, cfg.UserIdPrefix, cfg.GroupsHeader)
 	if err != nil {
 		logger.Error("failed to create request authenticator", "error", err)
-		os.Exit(1)
+		return err
 	}
 
 	// Create the request authorizer
@@ -143,22 +163,30 @@ func main() {
 	app, err := application.NewApp(cfg, logger, mgr.GetClient(), mgr.GetScheme(), reqAuthN, reqAuthZ)
 	if err != nil {
 		logger.Error("failed to create app", "error", err)
-		os.Exit(1)
+		return err
 	}
 	svr, err := server.NewServer(app, logger)
 	if err != nil {
 		logger.Error("failed to create server", "error", err)
-		os.Exit(1)
+		return err
 	}
 	if err := svr.SetupWithManager(mgr); err != nil {
 		logger.Error("failed to setup server with manager", "error", err)
-		os.Exit(1)
+		return err
 	}
 
-	// Start the controller manager
-	logger.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		logger.Error("problem running manager", "error", err)
+	logger.Info("Starting manager...")
+	if err := mgr.Start(ctx); err != nil {
+		logger.Error("Problem running manager", "error", err)
+		return err
+	}
+
+	return nil
+}
+
+func main() {
+	if err := run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Application run failed: %v\n", err)
 		os.Exit(1)
 	}
 }
