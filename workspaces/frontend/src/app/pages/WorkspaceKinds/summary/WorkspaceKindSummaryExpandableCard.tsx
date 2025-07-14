@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import {
-  Bullseye,
   Button,
   Card,
   CardBody,
@@ -72,7 +71,6 @@ const WorkspaceKindSummaryExpandableCard: React.FC<WorkspaceKindSummaryExpandabl
             <SectionDivider />
             <SectionFlex title="Idle GPU Workspaces">
               <FlexItem>
-                <Bullseye>
                   <Button
                     variant="link"
                     isInline
@@ -83,18 +81,15 @@ const WorkspaceKindSummaryExpandableCard: React.FC<WorkspaceKindSummaryExpandabl
                   >
                     {filterIdleWorkspacesWithGpu(workspaces).length}
                   </Button>
-                </Bullseye>
               </FlexItem>
               <FlexItem>
-                <Bullseye>
-                  <Content>Idle GPU Workspaces</Content>
-                </Bullseye>
+                <Content>Idle GPU Workspaces</Content>
               </FlexItem>
             </SectionFlex>
             <SectionDivider />
             <SectionFlex title="Top GPU Consumer Namespaces">
-              <FlexItem>
-                <Stack hasGutter>
+              <Content>
+                <Stack className="pf-v6-u-pt-sm">
                   {topGpuConsumersByNamespace.length > 0 ? (
                     topGpuConsumersByNamespace.map(([ns, record]) => (
                       <StackItem key={ns}>
@@ -111,7 +106,7 @@ const WorkspaceKindSummaryExpandableCard: React.FC<WorkspaceKindSummaryExpandabl
                     </StackItem>
                   )}
                 </Stack>
-              </FlexItem>
+              </Content>
             </SectionFlex>
           </Flex>
         </CardBody>
@@ -133,7 +128,6 @@ const SectionFlex: React.FC<SectionFlexProps> = ({ children, title }) => (
     <Flex
       direction={{ default: 'column' }}
       justifyContent={{ default: 'justifyContentSpaceBetween' }}
-      style={{ height: '100%' }}
     >
       <FlexItem>
         <Content component={ContentVariants.h3}>{title}</Content>
