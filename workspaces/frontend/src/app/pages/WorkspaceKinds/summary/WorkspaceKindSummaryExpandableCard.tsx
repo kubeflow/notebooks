@@ -14,11 +14,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import {
-  t_global_spacer_md as MediumPadding,
-  t_global_font_size_4xl as LargeFontSize,
-  t_global_font_weight_heading_bold as BoldFontWeight,
-} from '@patternfly/react-tokens';
+import { t_global_spacer_md as MediumPadding } from '@patternfly/react-tokens';
 import { Workspace } from '~/shared/api/backendApiTypes';
 import {
   countGpusFromWorkspaces,
@@ -53,7 +49,7 @@ const WorkspaceKindSummaryExpandableCard: React.FC<WorkspaceKindSummaryExpandabl
   );
 
   return (
-    <Card isExpanded={isExpanded}>
+    <Card isExpanded={isExpanded} variant="secondary">
       <CardHeader onExpand={onExpandToggle}>
         <CardTitle>
           <Content component={ContentVariants.h2}>Workspaces Summary</Content>
@@ -64,7 +60,7 @@ const WorkspaceKindSummaryExpandableCard: React.FC<WorkspaceKindSummaryExpandabl
           <Flex wrap="wrap">
             <SectionFlex title="Total GPUs in use">
               <FlexItem>
-                <Content>
+                <Content className="pf-v6-u-font-size-4xl pf-v6-u-font-weight-bold">
                   {countGpusFromWorkspaces(filterRunningWorkspaces(workspaces))} GPUs
                 </Content>
               </FlexItem>
@@ -75,16 +71,16 @@ const WorkspaceKindSummaryExpandableCard: React.FC<WorkspaceKindSummaryExpandabl
             <SectionDivider />
             <SectionFlex title="Idle GPU Workspaces">
               <FlexItem>
-                <Button
-                  variant="link"
-                  isInline
-                  style={{ fontSize: LargeFontSize.value, fontWeight: BoldFontWeight.value }}
-                  onClick={() => {
-                    onAddFilter({ columnKey: 'idleGpu', value: YesNoValue.Yes });
-                  }}
-                >
-                  {filterIdleWorkspacesWithGpu(workspaces).length}
-                </Button>
+                  <Button
+                    variant="link"
+                    isInline
+                    className="pf-v6-u-font-size-4xl pf-v6-u-font-weight-bold"
+                    onClick={() => {
+                      onAddFilter({ columnKey: 'idleGpu', value: YesNoValue.Yes });
+                    }}
+                  >
+                    {filterIdleWorkspacesWithGpu(workspaces).length}
+                  </Button>
               </FlexItem>
               <FlexItem>
                 <Content>Idle GPU Workspaces</Content>
