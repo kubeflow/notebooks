@@ -71,16 +71,16 @@ const WorkspaceKindSummaryExpandableCard: React.FC<WorkspaceKindSummaryExpandabl
             <SectionDivider />
             <SectionFlex title="Idle GPU Workspaces">
               <FlexItem>
-                  <Button
-                    variant="link"
-                    isInline
-                    className="pf-v6-u-font-size-4xl pf-v6-u-font-weight-bold"
-                    onClick={() => {
-                      onAddFilter({ columnKey: 'idleGpu', value: YesNoValue.Yes });
-                    }}
-                  >
-                    {filterIdleWorkspacesWithGpu(workspaces).length}
-                  </Button>
+                <Button
+                  variant="link"
+                  isInline
+                  className="pf-v6-u-font-size-4xl pf-v6-u-font-weight-bold"
+                  onClick={() => {
+                    onAddFilter({ columnKey: 'idleGpu', value: YesNoValue.Yes });
+                  }}
+                >
+                  {filterIdleWorkspacesWithGpu(workspaces).length}
+                </Button>
               </FlexItem>
               <FlexItem>
                 <Content>Idle GPU Workspaces</Content>
