@@ -15,7 +15,6 @@ import {
   PatchWorkspaceAPI,
   PatchWorkspaceKindAPI,
   PauseWorkspaceAPI,
-  StartWorkspaceAPI,
   UpdateWorkspaceAPI,
   UpdateWorkspaceKindAPI,
 } from '~/shared/api/callTypes';
@@ -23,8 +22,6 @@ import {
   mockAllWorkspaces,
   mockedHealthCheckResponse,
   mockNamespaces,
-  mockPausedStateResponse,
-  mockStartedStateResponse,
   mockWorkspace1,
   mockWorkspaceKind1,
   mockWorkspaceKinds,
@@ -58,15 +55,11 @@ export const mockDeleteWorkspace: DeleteWorkspaceAPI = () => async () => {
   await delay(1500);
 };
 
-export const mockPauseWorkspace: PauseWorkspaceAPI = () => async (_opts, namespace, workspace) => {
-  await delay(1500);
-  return { ...mockPausedStateResponse, namespace, workspaceName: workspace };
-};
-
-export const mockStartWorkspace: StartWorkspaceAPI = () => async (_opts, namespace, workspace) => {
-  await delay(1500);
-  return { ...mockStartedStateResponse, namespace, workspaceName: workspace };
-};
+export const mockPauseWorkspace: PauseWorkspaceAPI =
+  () => async (_opts, _namespace, _workspace, requestData) => {
+    await delay(1500);
+    return { paused: requestData.data.paused };
+  };
 
 export const mockListWorkspaceKinds: ListWorkspaceKindsAPI = () => async () => mockWorkspaceKinds;
 

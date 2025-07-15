@@ -22,7 +22,6 @@ import {
   PatchWorkspaceAPI,
   PatchWorkspaceKindAPI,
   PauseWorkspaceAPI,
-  StartWorkspaceAPI,
   UpdateWorkspaceAPI,
   UpdateWorkspaceKindAPI,
 } from '~/shared/api/callTypes';
@@ -55,14 +54,9 @@ export const patchWorkspace: PatchWorkspaceAPI = (hostPath) => (opts, namespace,
 export const deleteWorkspace: DeleteWorkspaceAPI = (hostPath) => (opts, namespace, workspace) =>
   wrapRequest(restDELETE(hostPath, `/workspaces/${namespace}/${workspace}`, {}, {}, opts), false);
 
-export const pauseWorkspace: PauseWorkspaceAPI = (hostPath) => (opts, namespace, workspace) =>
+export const pauseWorkspace: PauseWorkspaceAPI = (hostPath) => (opts, namespace, workspace, data) =>
   wrapRequest(
-    restCREATE(hostPath, `/workspaces/${namespace}/${workspace}/actions/pause`, {}, opts),
-  );
-
-export const startWorkspace: StartWorkspaceAPI = (hostPath) => (opts, namespace, workspace) =>
-  wrapRequest(
-    restCREATE(hostPath, `/workspaces/${namespace}/${workspace}/actions/start`, {}, opts),
+    restCREATE(hostPath, `/workspaces/${namespace}/${workspace}/actions/pause`, data, {}, opts),
   );
 
 export const listWorkspaceKinds: ListWorkspaceKindsAPI = (hostPath) => (opts) =>

@@ -281,8 +281,6 @@ export const buildMockWorkspaceKind = (workspaceKind?: Partial<WorkspaceKind>): 
 export const buildMockPauseStateResponse = (
   pauseState?: Partial<WorkspacePauseState>,
 ): WorkspacePauseState => ({
-  namespace: 'default',
-  workspaceName: 'My First Jupyter Notebook',
   paused: true,
   ...pauseState,
 });
