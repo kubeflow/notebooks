@@ -27,5 +27,5 @@ roleRef:
   name: backend-clusterrole
 subjects:
 - kind: ServiceAccount
-  name: nbv2-backend
-  namespace: backend-system
+  name: nb-backend
+  namespace: kubeflow-system

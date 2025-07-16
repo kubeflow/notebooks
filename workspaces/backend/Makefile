@@ -1,5 +1,5 @@
 # Image URL to use all building/pushing image targets
-IMG ?= nbv2-backend:latest
+IMG ?= nb-backend:latest
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.31.0
 
@@ -155,12 +155,12 @@ $(GOLANGCI_LINT): $(LOCALBIN)
 
 .PHONY: deploy
 deploy: kustomize ## Deploy backend to the K8s cluster specified in ~/.kube/config.
-	cd config/default && $(KUSTOMIZE) edit set image nbv2-backend=${IMG}
-	$(KUSTOMIZE) build config/default | $(KUBECTL) apply -f -
+	cd manifests/kustomize/base && $(KUSTOMIZE) edit set image nb-backend=${IMG}
+	$(KUSTOMIZE) build manifests/kustomize/base | $(KUBECTL) apply -f -
 
 .PHONY: undeploy
 undeploy: kustomize ## Undeploy backend from the K8s cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/default | $(KUBECTL) delete --ignore-not-found=true -f -
+	$(KUSTOMIZE) build manifests/kustomize/base | $(KUBECTL) delete --ignore-not-found=true -f -
 
 
 ##@ Dependencies

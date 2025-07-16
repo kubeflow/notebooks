@@ -1,38 +1,27 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nbv2-backend
-  namespace: backend-system
-  labels:
-    app: nbv2-backend
-    app.kubernetes.io/component: backend
-    app.kubernetes.io/managed-by: kustomize
+  name: backend
 spec:
   replicas: 1
+  selector:
+    matchLabels: {}
   strategy:
     type: RollingUpdate
     rollingUpdate:
       maxUnavailable: 0
       maxSurge: 1
-  selector:
-    matchLabels:
-      app: nbv2-backend
-      app.kubernetes.io/component: backend
-      app.kubernetes.io/managed-by: kustomize
   template:
     metadata:
-      labels:
-        app: nbv2-backend
-        app.kubernetes.io/component: backend
-        app.kubernetes.io/managed-by: kustomize
+      labels: {}
     spec:
-      serviceAccountName: nbv2-backend
+      serviceAccountName: backend
       securityContext:
         runAsNonRoot: true
       terminationGracePeriodSeconds: 30
       containers:
-      - name: nbv2-backend
-        image: nbv2-backend
+      - name: nb-backend
+        image: nb-backend
         imagePullPolicy: IfNotPresent
         securityContext:
           allowPrivilegeEscalation: false
@@ -40,21 +29,22 @@ spec:
             drop:
             - "ALL"
         ports:
-        - containerPort: 4000
+        - name: http-backend
+          containerPort: 4000
         env:
         - name: PORT
           value: "4000"
         resources:
           limits:
-            cpu: 500m
-            memory: 256Mi
+            cpu: 1
+            memory: 1Gi
           requests:
             cpu: 100m
-            memory: 128Mi
+            memory: 512Mi
         livenessProbe:
           httpGet:
             path: /api/v1/healthcheck
-            port: 4000
+            port: http-backend
             scheme: HTTP
           initialDelaySeconds: 30
           periodSeconds: 20
@@ -64,7 +54,7 @@ spec:
         readinessProbe:
           httpGet:
             path: /api/v1/healthcheck
-            port: 4000
+            port: http-backend
             scheme: HTTP
           initialDelaySeconds: 10
           periodSeconds: 10
