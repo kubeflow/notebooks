@@ -1,0 +1,32 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: workspaces-frontend
+spec:
+  gateways:
+    - kubeflow/kubeflow-gateway
+  hosts:
+  - '*'
+  http:
+    # Case 1: Exact match for /workspaces → rewrite to /
+    - match:
+        - uri:
+            exact: /workspaces
+      rewrite:
+        uri: /
+      route:
+        - destination:
+            host: workspaces-frontend.kubeflow-workspaces.svc.cluster.local
+            port:
+              number: 8080
+    # Case 2: Prefix match for /workspaces/ → strip prefix by rewriting to /
+    - match:
+        - uri:
+            prefix: /workspaces/
+      rewrite:
+        uri: /
+      route:
+        - destination:
+            host: workspaces-frontend.kubeflow-workspaces.svc.cluster.local
+            port:
+              number: 8080
