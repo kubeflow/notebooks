@@ -1,0 +1,20 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: frontend
+spec:
+  hosts:
+    - "*"
+  gateways:
+    - kubeflow-gateway
+  http:
+    - match:
+        - uri:
+            prefix: /notebooks
+      rewrite:
+        uri: "/"
+      route:
+        - destination:
+            host: nb-frontend.kubeflow-system.svc.cluster.local
+            port:
+              number: 8080
