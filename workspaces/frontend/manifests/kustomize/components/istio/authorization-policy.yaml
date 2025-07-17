@@ -1,0 +1,10 @@
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: workspaces-frontend
+spec:
+  action: ALLOW
+  selector:
+    matchLabels: {}
+  rules:
+  - {}
