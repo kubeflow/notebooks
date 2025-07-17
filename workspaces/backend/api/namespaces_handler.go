@@ -33,6 +33,7 @@ type NamespaceListEnvelope Envelope[[]models.Namespace]
 //	@Summary		Returns a list of all namespaces
 //	@Description	Provides a list of all namespaces that the user has access to
 //	@Tags			namespaces
+//	@ID				listNamespaces
 //	@Produce		application/json
 //	@Success		200	{object}	NamespaceListEnvelope	"Successful namespaces response"
 //	@Failure		401	{object}	ErrorEnvelope			"Unauthorized"
