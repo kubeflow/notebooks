@@ -59,7 +59,7 @@
   --mui-radio__input--Width: 10px;
   --mui-radio__input--Height: 10px;
 
-  // Sidebar from https://github.com/kubeflow/kubeflow/blob/4275d99754ac91f6cf5654b03824a73825e9fe55/components/centraldashboard/public/components/main-page.css#L7C1-L13C51 
+  // Sidebar from https://github.com/kubeflow/kubeflow/blob/4275d99754ac91f6cf5654b03824a73825e9fe55/components/centraldashboard/public/components/main-page.css#L7C1-L13C51
   --kf-central-primary-background-color: #0a3b71;
   --kf-central-sidebar-default-color: #ffffff90;
   --kf-central-app-drawer-width: 240px;
@@ -103,7 +103,7 @@
   --mui-spacing-8px: var(--mui-spacing);
   --mui-spacing-16px: calc(2 * var(--mui-spacing));
 
-  --pf-t--global--spacer--gap--group-to-group--vertical--default: var(--pf-t--global--spacer--sm); 
+  --pf-t--global--spacer--gap--group-to-group--vertical--default: var(--pf-t--global--spacer--sm);
   --pf-t--global--border--width--box--status--default: 1px;
   --pf-t--global--border--radius--pill: var(--mui-shape-borderRadius);
   --pf-t--global--text--color--brand--default: var(--mui-palette-primary-main);
@@ -122,7 +122,9 @@
 }
 
 .mui-theme .pf-v6-c-alert {
-  --pf-v6-c-alert--m-warning__title--Color: var(--pf-t--global--text--color--status--warning--default);
+  --pf-v6-c-alert--m-warning__title--Color: var(
+    --pf-t--global--text--color--status--warning--default
+  );
   --pf-v6-c-alert__icon--MarginInlineEnd: var(--mui-alert__icon--MarginInlineEnd);
   --pf-v6-c-alert__icon--MarginBlockStart: var(--mui-alert__icon--MarginBlockStart);
   --pf-v6-c-alert__icon--FontSize: var(--mui-alert__icon--FontSize);
@@ -164,6 +166,10 @@
   &:hover {
     text-decoration-color: initial;
   }
+
+  &.workspace-kind-summary-button {
+    text-transform: none;
+  }
 }
 
 .mui-theme .pf-v6-c-button.pf-m-link.pf-m-inline .pf-v6-c-button__icon {
@@ -182,7 +188,8 @@
   --pf-v6-c-card--BorderColor: var(--mui-palette-divider);
 }
 
-.pf-v6-c-card__selectable-actions :is(.pf-v6-c-check__label, .pf-v6-c-radio__label, .pf-v6-c-card__clickable-action):hover {
+.pf-v6-c-card__selectable-actions
+  :is(.pf-v6-c-check__label, .pf-v6-c-radio__label, .pf-v6-c-card__clickable-action):hover {
   --pf-v6-c-card--BorderColor: var(--mui-palette-grey-300);
 }
 
@@ -210,7 +217,9 @@
 }
 
 .mui-theme .pf-v6-c-drawer {
-  --pf-v6-c-drawer--m-inline--m-expanded__panel--after--BackgroundColor: var(--mui-drawer-BorderLeft);
+  --pf-v6-c-drawer--m-inline--m-expanded__panel--after--BackgroundColor: var(
+    --mui-drawer-BorderLeft
+  );
 }
 
 .mui-theme .pf-v6-c-form__group {
@@ -266,12 +275,12 @@
     font-size: 16px;
     left: 0;
   }
-  
+
   .pf-v6-c-form-control {
     // Override default form control padding to match button padding in this context
     --pf-v6-c-form-control--PaddingBlockStart: var(--mui-spacing-8px);
     --pf-v6-c-form-control--PaddingBlockEnd: var(--mui-spacing-8px);
-    
+
     &.workspace-kind-unit-select {
       --pf-v6-c-form-control--PaddingInlineEnd: calc(
         var(--pf-v6-c-form-control__select--PaddingInlineEnd) +
@@ -295,12 +304,12 @@
   resize: none;
   --pf-v6-c-form-control--PaddingBlockStart: var(--mui-spacing-16px);
   --pf-v6-c-form-control--PaddingBlockEnd: var(--mui-spacing-16px);
+
   #text-file-simple-filename {
     --pf-v6-c-form-control--PaddingBlockStart: var(--mui-spacing-8px);
-    --pf-v6-c-form-control--PaddingBlockEnd: var(--mui-spacing-8px);;
+    --pf-v6-c-form-control--PaddingBlockEnd: var(--mui-spacing-8px);
   }
 }
-
 
 .mui-theme .pf-v6-c-form__section {
   --pf-v6-c-form__section--Gap: 0px;
@@ -338,7 +347,7 @@
   box-sizing: border-box;
 }
 
-.mui-theme .pf-v6-c-form-control> :is(input, select, textarea):focus {
+.mui-theme .pf-v6-c-form-control > :is(input, select, textarea):focus {
   --pf-v6-c-form-control--OutlineOffset: none;
   outline: none;
 }
@@ -387,7 +396,7 @@
   border-color: black;
 }
 
-.form-fieldset-wrapper:hover span.pf-v6-c-form-control.pf-m-disabled~.form-fieldset {
+.form-fieldset-wrapper:hover span.pf-v6-c-form-control.pf-m-disabled ~ .form-fieldset {
   border-color: rgba(0, 0, 0, 0.23);
 }
 
@@ -475,7 +484,6 @@
 .tr-fieldset-wrapper .pf-v6-c-form-control,
 .toolbar-fieldset-wrapper .pf-v6-c-form-control,
 .form-fieldset-wrapper .pf-v6-c-form-control {
-
   --pf-v6-c-form-control--before--BorderColor: transparent !important;
   --pf-v6-c-form-control--after--BorderColor: transparent !important;
 }
@@ -484,8 +492,8 @@
   --pf-v6-c-form__field-group-body--PaddingBlockStart: 8px;
 }
 
-.pf-v6-c-form__group .pf-v6-c-form-control:focus-within+.pf-v6-c-form__label,
-.pf-v6-c-form__group .pf-v6-c-form-control:not(:placeholder-shown)+.pf-v6-c-form__label {
+.pf-v6-c-form__group .pf-v6-c-form-control:focus-within + .pf-v6-c-form__label,
+.pf-v6-c-form__group .pf-v6-c-form-control:not(:placeholder-shown) + .pf-v6-c-form__label {
   color: var(--mui-palette-primary-main);
 }
 
@@ -518,7 +526,9 @@
 .mui-theme .pf-v6-c-menu-toggle {
   --pf-v6-c-menu-toggle__toggle-icon--MinHeight: var(--mui-menu-toggle__toggle-icon--MinHeight);
   --pf-v6-c-menu-toggle__controls--MinWidth: var(--mui-menu-toggle__controls--MinWidth);
-  --pf-v6-c-menu-toggle--expanded--BackgroundColor: var(--mui-menu-toggle--expanded--BackgroundColor);
+  --pf-v6-c-menu-toggle--expanded--BackgroundColor: var(
+    --mui-menu-toggle--expanded--BackgroundColor
+  );
   --pf-v6-c-menu-toggle--expanded--BorderColor: var(--mui-menu-toggle--expanded--BorderColor);
   --pf-v6-c-menu-toggle--PaddingInlineStart: var(--mui-menu-toggle--PaddingInlineStart);
   --pf-v6-c-menu-toggle--PaddingInlineEnd: var(--mui-menu-toggle--PaddingInlineEnd);
@@ -526,9 +536,15 @@
   --pf-v6-c-menu-toggle--expanded--Color: var(--mui-palette-common-black);
   --pf-v6-c-menu-toggle--hover--BorderColor: var(--mui-menu-toggle--hover--BorderColor);
   --pf-v6-c-menu-toggle--BorderColor: var(--mui-menu-toggle--BorderColor);
-  --pf-v6-c-menu-toggle--hover--BackgroundColor: var(--pf-t--global--background--color--action--plain--hover);
-  --pf-v6-c-menu-toggle--m-split-button--m-action--m-primary--expanded--child--BackgroundColor: var(--pf-t--global--color--brand--default);
-  --pf-v6-c-menu-toggle--m-split-button--m-action--m-primary--child--BorderInlineStartColor: var(--mui-palette-primary-dark);
+  --pf-v6-c-menu-toggle--hover--BackgroundColor: var(
+    --pf-t--global--background--color--action--plain--hover
+  );
+  --pf-v6-c-menu-toggle--m-split-button--m-action--m-primary--expanded--child--BackgroundColor: var(
+    --pf-t--global--color--brand--default
+  );
+  --pf-v6-c-menu-toggle--m-split-button--m-action--m-primary--child--BorderInlineStartColor: var(
+    --mui-palette-primary-dark
+  );
 
   text-transform: var(--mui-text-transform);
   font-weight: var(--mui-button-font-weight);
@@ -552,8 +568,12 @@
   --pf-v6-c-menu-toggle--expanded--Color: var(--pf-t--global--text--color--on-brand--clicked);
 }
 
-.mui-theme .pf-v6-c-menu-toggle.pf-m-primary.pf-m-split-button .pf-v6-c-menu-toggle__button[aria-expanded='true'] {
-  --pf-v6-c-menu-toggle--m-split-button--m-action--m-primary--child--BackgroundColor: var(--mui-palette-primary-dark);
+.mui-theme
+  .pf-v6-c-menu-toggle.pf-m-primary.pf-m-split-button
+  .pf-v6-c-menu-toggle__button[aria-expanded='true'] {
+  --pf-v6-c-menu-toggle--m-split-button--m-action--m-primary--child--BackgroundColor: var(
+    --mui-palette-primary-dark
+  );
 }
 
 .pf-v6-c-menu-toggle.pf-m-secondary.pf-m-split-button {
@@ -617,7 +637,6 @@
   row-gap: none;
 }
 
-
 .mui-theme .pf-v6-c-page__sidebar {
   --pf-v6-c-page__sidebar--BackgroundColor: var(--kf-central-primary-background-color);
 }
@@ -625,16 +644,15 @@
 .mui-theme .pf-v6-c-page__sidebar-body {
   --pf-v6-c-page__sidebar-body--PaddingInlineStart: 0px;
   --pf-v6-c-page__sidebar-body--PaddingInlineEnd: 0px;
-
 }
 
- .mui-theme .pf-v6-c-progress-stepper__step.pf-m-info {
+.mui-theme .pf-v6-c-progress-stepper__step.pf-m-info {
   --pf-v6-c-progress-stepper__step-icon--Color: var(--mui-palette-primary-main);
- }
+}
 
- .mui-theme .pf-v6-c-progress-stepper__step.pf-m-success {
+.mui-theme .pf-v6-c-progress-stepper__step.pf-m-success {
   --pf-v6-c-progress-stepper__step-icon--Color: var(--mui-palette-success-main);
- }
+}
 
 .mui-theme .pf-v6-c-radio.pf-m-standalone:not(.workspace-kind-form-radio) .pf-v6-c-radio__input {
   display: none;
@@ -656,11 +674,15 @@
   --pf-v6-c-table--cell--PaddingInlineEnd: var(--mui-table--cell--PaddingInlineEnd);
   --pf-v6-c-table--cell--PaddingBlockStart: var(--mui-table--cell--PaddingBlockStart);
   --pf-v6-c-table--cell--PaddingBlockEnd: var(--mui-table--cell--PaddingBlockEnd);
-  --pf-v6-c-table--cell--first-last-child--PaddingInline: var(--mui-table--cell--first-last-child--PaddingInline);
+  --pf-v6-c-table--cell--first-last-child--PaddingInline: var(
+    --mui-table--cell--first-last-child--PaddingInline
+  );
   --pf-v6-c-table__thead--cell--FontWeight: var(--mui-button-font-weight);
   --pf-v6-c-table__thead--cell--FontSize: var(--mui-table__thead--cell--FontSize);
   --pf-v6-c-table__tr--BorderBlockEndColor: var(--mui-palette-grey-300);
-  --pf-v6-c-table__sort-indicator--MarginInlineStart: var(--mui-table__sort-indicator--MarginInlineStart);
+  --pf-v6-c-table__sort-indicator--MarginInlineStart: var(
+    --mui-table__sort-indicator--MarginInlineStart
+  );
 
   letter-spacing: 0.01071em;
 }
@@ -678,10 +700,12 @@
   transform-origin: center center;
   align-self: start;
 }
+
 /* CSS workaround for spacing in labels in Workspace Kind */
 .form-label-field-group .pf-v6-c-table tr:where(.pf-v6-c-table__tr) > :where(th, td) {
   padding-block-start: 0px;
 }
+
 /* CSS workaround to use MUI icon for sort icon */
 .mui-theme .pf-v6-c-table__sort-indicator::before {
   display: block;
@@ -734,7 +758,9 @@
   --pf-v6-c-tabs__link--PaddingInlineStart: var(--mui-tabs__link--PaddingInlineStart);
   --pf-v6-c-tabs__link--PaddingInlineEnd: var(--mui-tabs__link--PaddingInlineEnd);
   --pf-v6-c-tabs__item--m-current__link--Color: var(--pf-t--global--text--color--brand--default);
-  --pf-v6-c-tabs__item--m-current__link--after--BorderWidth: var(--mui-tabs__item--m-current__link--after--BorderWidth);
+  --pf-v6-c-tabs__item--m-current__link--after--BorderWidth: var(
+    --mui-tabs__item--m-current__link--after--BorderWidth
+  );
   --pf-v6-c-tabs__link--FontSize: 0.875rem;
 }
 
@@ -884,12 +910,9 @@
 }
 
 .mui-theme .pf-v6-c-toolbar__group.pf-m-filter-group .pf-v6-c-form-control {
-
   // Override default form control padding to match button padding in this context
   --pf-v6-c-form-control--PaddingBlockStart: var(--mui-spacing-8px);
   --pf-v6-c-form-control--PaddingBlockEnd: var(--mui-spacing-8px);
-
-
 }
 
 // Fix hover state margin issue by removing problematic padding
@@ -903,6 +926,7 @@
 
 .workspacekind-file-upload {
   height: 100%;
+
   .pf-v6-c-file-upload__file-details {
     flex-grow: 1;
   }
@@ -910,6 +934,6 @@
 
 /* Workaround for Toggle group header in Workspace Kind Form */
 .workspace-kind-form-header .pf-v6-c-toggle-group__button.pf-m-selected {
-  background-color: #E0F0FF;
+  background-color: #e0f0ff;
   color: var(--pf-t--color--black);
 }
