@@ -44,6 +44,7 @@ type WorkspaceEnvelope Envelope[models.Workspace]
 //	@Summary		Get workspace
 //	@Description	Returns details of a specific workspace identified by namespace and workspace name.
 //	@Tags			workspaces
+//	@ID				getWorkspace
 //	@Accept			json
 //	@Produce		json
 //	@Param			namespace		path		string				true	"Namespace of the workspace"	extensions(x-example=kubeflow-user-example-com)
@@ -99,24 +100,44 @@ func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps htt
 	a.dataResponse(w, r, responseEnvelope)
 }
 
-// GetWorkspacesHandler returns a list of workspaces.
+// GetAllWorkspacesHandler returns a list of all workspaces across all namespaces.
 //
-//	@Summary		List workspaces
-//	@Description	Returns a list of workspaces. The endpoint supports two modes:
-//	@Description	1. List all workspaces across all namespaces (when no namespace is provided)
-//	@Description	2. List workspaces in a specific namespace (when namespace is provided)
+//	@Summary		List all workspaces
+//	@Description	Returns a list of all workspaces across all namespaces.
 //	@Tags			workspaces
+//	@ID				listAllWorkspaces
 //	@Accept			json
 //	@Produce		json
-//	@Param			namespace	path		string					true	"Namespace to filter workspaces. If not provided, returns all workspaces across all namespaces."	extensions(x-example=kubeflow-user-example-com)
-//	@Success		200			{object}	WorkspaceListEnvelope	"Successful operation. Returns a list of workspaces."
+//	@Success		200	{object}	WorkspaceListEnvelope	"Successful operation. Returns a list of all workspaces."
+//	@Failure		401	{object}	ErrorEnvelope			"Unauthorized. Authentication is required."
+//	@Failure		403	{object}	ErrorEnvelope			"Forbidden. User does not have permission to list workspaces."
+//	@Failure		500	{object}	ErrorEnvelope			"Internal server error. An unexpected error occurred on the server."
+//	@Router			/workspaces [get]
+func (a *App) GetAllWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	a.getWorkspacesHandler(w, r, ps)
+}
+
+// GetWorkspacesByNamespaceHandler returns a list of workspaces in a specific namespace.
+//
+//	@Summary		List workspaces by namespace
+//	@Description	Returns a list of workspaces in a specific namespace.
+//	@Tags			workspaces
+//	@ID				listWorkspacesByNamespace
+//	@Accept			json
+//	@Produce		json
+//	@Param			namespace	path		string					true	"Namespace to filter workspaces"	extensions(x-example=kubeflow-user-example-com)
+//	@Success		200			{object}	WorkspaceListEnvelope	"Successful operation. Returns a list of workspaces in the specified namespace."
 //	@Failure		400			{object}	ErrorEnvelope			"Bad Request. Invalid namespace format."
 //	@Failure		401			{object}	ErrorEnvelope			"Unauthorized. Authentication is required."
 //	@Failure		403			{object}	ErrorEnvelope			"Forbidden. User does not have permission to list workspaces."
 //	@Failure		500			{object}	ErrorEnvelope			"Internal server error. An unexpected error occurred on the server."
-//	@Router			/workspaces [get]
 //	@Router			/workspaces/{namespace} [get]
-func (a *App) GetWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (a *App) GetWorkspacesByNamespaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	a.getWorkspacesHandler(w, r, ps)
+}
+
+// getWorkspacesHandler is the internal implementation for listing workspaces.
+func (a *App) getWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(NamespacePathParam)
 
 	// validate path parameters
@@ -167,6 +188,7 @@ func (a *App) GetWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps ht
 //	@Summary		Create workspace
 //	@Description	Creates a new workspace in the specified namespace.
 //	@Tags			workspaces
+//	@ID				createWorkspace
 //	@Accept			json
 //	@Produce		json
 //	@Param			namespace	path		string					true	"Namespace for the workspace"	extensions(x-example=kubeflow-user-example-com)
@@ -267,6 +289,7 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 //	@Summary		Delete workspace
 //	@Description	Deletes a specific workspace identified by namespace and workspace name.
 //	@Tags			workspaces
+//	@ID				deleteWorkspace
 //	@Accept			json
 //	@Produce		json
 //	@Param			namespace		path		string			true	"Namespace of the workspace"	extensions(x-example=kubeflow-user-example-com)
