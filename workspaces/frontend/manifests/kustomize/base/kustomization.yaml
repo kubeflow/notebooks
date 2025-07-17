@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: kubeflow-system
+
+namePrefix: nb-
+
+resources:
+  - deployment.yaml
+  - service.yaml
+
+images:
+  - name: nb-frontend
+
+labels:
+- includeSelectors: true
+  pairs:
+    app.kubernetes.io/name: kubeflow-notebooks
+    app.kubernetes.io/component: workspace-frontend
+    app.kubernetes.io/managed-by: kustomize  
