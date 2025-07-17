@@ -27,29 +27,30 @@ make run
 If you want to use a different port:
 
 ```shell
-make run PORT=8000 
+make run PORT=8000
 ```
 
 ### Endpoints
 
-| URL Pattern                                  | Handler                | Action                                  |
-|----------------------------------------------|------------------------|-----------------------------------------|
-| GET /api/v1/healthcheck                      | healthcheck_handler    | Show application information            |
-| GET /api/v1/namespaces                       | namespaces_handler     | Get all Namespaces                      |
-| GET /api/v1/swagger/                         | swagger_handler        | Swagger API documentation               |
-| GET /api/v1/workspaces                       | workspaces_handler     | Get all Workspaces                      |
-| GET /api/v1/workspaces/{namespace}           | workspaces_handler     | Get all Workspaces from a namespace     |
-| POST /api/v1/workspaces/{namespace}          | workspaces_handler     | Create a Workspace in a given namespace |
-| GET /api/v1/workspaces/{namespace}/{name}    | workspaces_handler     | Get a Workspace entity                  |
-| PATCH /api/v1/workspaces/{namespace}/{name}  | TBD                    | Patch a Workspace entity                |
-| PUT /api/v1/workspaces/{namespace}/{name}    | TBD                    | Update a Workspace entity               |
-| DELETE /api/v1/workspaces/{namespace}/{name} | workspaces_handler     | Delete a Workspace entity               |
-| GET /api/v1/workspacekinds                   | workspacekinds_handler | Get all WorkspaceKind                   |
-| POST /api/v1/workspacekinds                  | TBD                    | Create a WorkspaceKind                  |
-| GET /api/v1/workspacekinds/{name}            | workspacekinds_handler | Get a WorkspaceKind entity              |
-| PATCH /api/v1/workspacekinds/{name}          | TBD                    | Patch a WorkspaceKind entity            |
-| PUT /api/v1/workspacekinds/{name}            | TBD                    | Update a WorkspaceKind entity           |
-| DELETE /api/v1/workspacekinds/{name}         | TBD                    | Delete a WorkspaceKind entity           |
+| URL Pattern                                               | Handler                   | Action                                  |
+|-----------------------------------------------------------|---------------------------|-----------------------------------------|
+| GET /api/v1/healthcheck                                   | healthcheck_handler       | Show application information            |
+| GET /api/v1/namespaces                                    | namespaces_handler        | Get all Namespaces                      |
+| GET /api/v1/swagger/                                      | swagger_handler           | Swagger API documentation               |
+| GET /api/v1/workspaces                                    | workspaces_handler        | Get all Workspaces                      |
+| GET /api/v1/workspaces/{namespace}                        | workspaces_handler        | Get all Workspaces from a namespace     |
+| POST /api/v1/workspaces/{namespace}                       | workspaces_handler        | Create a Workspace in a given namespace |
+| GET /api/v1/workspaces/{namespace}/{name}                 | workspaces_handler        | Get a Workspace entity                  |
+| PATCH /api/v1/workspaces/{namespace}/{name}               | TBD                       | Patch a Workspace entity                |
+| PUT /api/v1/workspaces/{namespace}/{name}                 | TBD                       | Update a Workspace entity               |
+| DELETE /api/v1/workspaces/{namespace}/{name}              | workspaces_handler        | Delete a Workspace entity               |
+| POST /api/v1/workspaces/{namespace}/{name}/actions/pause  | workspace_actions_handler | Set paused state of a workspace         |
+| GET /api/v1/workspacekinds                                | workspacekinds_handler    | Get all WorkspaceKind                   |
+| POST /api/v1/workspacekinds                               | TBD                       | Create a WorkspaceKind                  |
+| GET /api/v1/workspacekinds/{name}                         | workspacekinds_handler    | Get a WorkspaceKind entity              |
+| PATCH /api/v1/workspacekinds/{name}                       | TBD                       | Patch a WorkspaceKind entity            |
+| PUT /api/v1/workspacekinds/{name}                         | TBD                       | Update a WorkspaceKind entity           |
+| DELETE /api/v1/workspacekinds/{name}                      | TBD                       | Delete a WorkspaceKind entity           |
 
 ### Sample local calls
 
@@ -126,6 +127,32 @@ Get a Workspace:
 ```shell
 # GET /api/v1/workspaces/{namespace}/{name}
 curl -i localhost:4000/api/v1/workspaces/default/dora
+```
+
+Pause a Workspace:
+
+```shell
+# POST /api/v1/workspaces/{namespace}/{name}/actions/pause
+curl -X POST localhost:4000/api/v1/workspaces/default/dora/actions/pause \
+    -H "Content-Type: application/json" \
+    -d '{
+    "data": {
+        "paused": true
+    }
+}'
+```
+
+Start a Workspace:
+
+```shell
+# POST /api/v1/workspaces/{namespace}/{name}/actions/pause
+curl -X POST localhost:4000/api/v1/workspaces/default/dora/actions/pause \
+    -H "Content-Type: application/json" \
+    -d '{
+    "data": {
+        "paused": false
+    }
+}'
 ```
 
 Delete a Workspace:
