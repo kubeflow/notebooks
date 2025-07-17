@@ -80,7 +80,7 @@ export const WorkspaceKindForm: React.FC = () => {
     // TODO: Complete handleCreate with API call to create a new WS kind
     try {
       if (mode === 'create') {
-        const newWorkspaceKind = await api.createWorkspaceKind({}, yamlValue);
+        const newWorkspaceKind = await api.createWorkspaceKind({ directYAML: true }, yamlValue);
         // TODO: alert user about success
         console.info('New workspace kind created:', JSON.stringify(newWorkspaceKind));
         navigate('workspaceKinds');
