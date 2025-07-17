@@ -19,10 +19,12 @@ export const WorkspaceFormPodConfigDetails: React.FunctionComponent<
 > = ({ workspacePodConfig }) => (
   <>
     {workspacePodConfig && (
-      <div style={{ marginLeft: 'var(--pf-t--global--spacer--md)' }}>
+      <>
         <Title headingLevel="h3">{workspacePodConfig.displayName}</Title>{' '}
         <p>{workspacePodConfig.description}</p>
+        <br />
         <Divider />
+        <br />
         {workspacePodConfig.labels.map((label) => (
           <DescriptionList
             key={label.key}
@@ -37,7 +39,7 @@ export const WorkspaceFormPodConfigDetails: React.FunctionComponent<
             </DescriptionListGroup>
           </DescriptionList>
         ))}
-      </div>
+      </>
     )}
   </>
 );
