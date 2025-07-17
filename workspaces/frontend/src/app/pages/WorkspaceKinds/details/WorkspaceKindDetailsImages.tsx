@@ -23,6 +23,7 @@ export const WorkspaceKindDetailsImages: React.FunctionComponent<WorkspaceDetail
           <Button
             variant="link"
             isInline
+            className="workspace-kind-summary-button"
             onClick={() =>
               navigate('workspaceKindSummary', {
                 params: { kind: workspaceKind.name },
