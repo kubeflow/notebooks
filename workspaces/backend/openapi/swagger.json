@@ -603,6 +603,9 @@
         },
         "api.ErrorEnvelope": {
             "type": "object",
+            "required": [
+                "error"
+            ],
             "properties": {
                 "error": {
                     "$ref": "#/definitions/api.HTTPError"
@@ -611,6 +614,10 @@
         },
         "api.HTTPError": {
             "type": "object",
+            "required": [
+                "code",
+                "message"
+            ],
             "properties": {
                 "cause": {
                     "$ref": "#/definitions/api.ErrorCause"
@@ -625,6 +632,9 @@
         },
         "api.NamespaceListEnvelope": {
             "type": "object",
+            "required": [
+                "data"
+            ],
             "properties": {
                 "data": {
                     "type": "array",
@@ -636,6 +646,11 @@
         },
         "api.ValidationError": {
             "type": "object",
+            "required": [
+                "field",
+                "message",
+                "type"
+            ],
             "properties": {
                 "field": {
                     "type": "string"
@@ -650,6 +665,9 @@
         },
         "api.WorkspaceCreateEnvelope": {
             "type": "object",
+            "required": [
+                "data"
+            ],
             "properties": {
                 "data": {
                     "$ref": "#/definitions/workspaces.WorkspaceCreate"
@@ -658,6 +676,9 @@
         },
         "api.WorkspaceEnvelope": {
             "type": "object",
+            "required": [
+                "data"
+            ],
             "properties": {
                 "data": {
                     "$ref": "#/definitions/workspaces.Workspace"
@@ -666,6 +687,9 @@
         },
         "api.WorkspaceKindEnvelope": {
             "type": "object",
+            "required": [
+                "data"
+            ],
             "properties": {
                 "data": {
                     "$ref": "#/definitions/workspacekinds.WorkspaceKind"
@@ -674,6 +698,9 @@
         },
         "api.WorkspaceKindListEnvelope": {
             "type": "object",
+            "required": [
+                "data"
+            ],
             "properties": {
                 "data": {
                     "type": "array",
@@ -685,6 +712,9 @@
         },
         "api.WorkspaceListEnvelope": {
             "type": "object",
+            "required": [
+                "data"
+            ],
             "properties": {
                 "data": {
                     "type": "array",
@@ -723,6 +753,10 @@
         },
         "health_check.HealthCheck": {
             "type": "object",
+            "required": [
+                "status",
+                "systemInfo"
+            ],
             "properties": {
                 "status": {
                     "$ref": "#/definitions/health_check.ServiceStatus"
@@ -745,6 +779,9 @@
         },
         "health_check.SystemInfo": {
             "type": "object",
+            "required": [
+                "version"
+            ],
             "properties": {
                 "version": {
                     "type": "string"
@@ -753,6 +790,9 @@
         },
         "namespaces.Namespace": {
             "type": "object",
+            "required": [
+                "name"
+            ],
             "properties": {
                 "name": {
                     "type": "string"
@@ -761,6 +801,10 @@
         },
         "workspacekinds.ImageConfig": {
             "type": "object",
+            "required": [
+                "default",
+                "values"
+            ],
             "properties": {
                 "default": {
                     "type": "string"
@@ -775,6 +819,13 @@
         },
         "workspacekinds.ImageConfigValue": {
             "type": "object",
+            "required": [
+                "description",
+                "displayName",
+                "hidden",
+                "id",
+                "labels"
+            ],
             "properties": {
                 "description": {
                     "type": "string"
@@ -801,6 +852,9 @@
         },
         "workspacekinds.ImageRef": {
             "type": "object",
+            "required": [
+                "url"
+            ],
             "properties": {
                 "url": {
                     "type": "string"
@@ -809,6 +863,10 @@
         },
         "workspacekinds.OptionLabel": {
             "type": "object",
+            "required": [
+                "key",
+                "value"
+            ],
             "properties": {
                 "key": {
                     "type": "string"
@@ -820,6 +878,9 @@
         },
         "workspacekinds.OptionRedirect": {
             "type": "object",
+            "required": [
+                "to"
+            ],
             "properties": {
                 "message": {
                     "$ref": "#/definitions/workspacekinds.RedirectMessage"
@@ -831,6 +892,10 @@
         },
         "workspacekinds.PodConfig": {
             "type": "object",
+            "required": [
+                "default",
+                "values"
+            ],
             "properties": {
                 "default": {
                     "type": "string"
@@ -845,6 +910,13 @@
         },
         "workspacekinds.PodConfigValue": {
             "type": "object",
+            "required": [
+                "description",
+                "displayName",
+                "hidden",
+                "id",
+                "labels"
+            ],
             "properties": {
                 "description": {
                     "type": "string"
@@ -871,6 +943,10 @@
         },
         "workspacekinds.PodMetadata": {
             "type": "object",
+            "required": [
+                "annotations",
+                "labels"
+            ],
             "properties": {
                 "annotations": {
                     "type": "object",
@@ -888,6 +964,11 @@
         },
         "workspacekinds.PodTemplate": {
             "type": "object",
+            "required": [
+                "options",
+                "podMetadata",
+                "volumeMounts"
+            ],
             "properties": {
                 "options": {
                     "$ref": "#/definitions/workspacekinds.PodTemplateOptions"
@@ -902,6 +983,10 @@
         },
         "workspacekinds.PodTemplateOptions": {
             "type": "object",
+            "required": [
+                "imageConfig",
+                "podConfig"
+            ],
             "properties": {
                 "imageConfig": {
                     "$ref": "#/definitions/workspacekinds.ImageConfig"
@@ -913,6 +998,9 @@
         },
         "workspacekinds.PodVolumeMounts": {
             "type": "object",
+            "required": [
+                "home"
+            ],
             "properties": {
                 "home": {
                     "type": "string"
@@ -921,6 +1009,10 @@
         },
         "workspacekinds.RedirectMessage": {
             "type": "object",
+            "required": [
+                "level",
+                "text"
+            ],
             "properties": {
                 "level": {
                     "$ref": "#/definitions/workspacekinds.RedirectMessageLevel"
@@ -945,6 +1037,17 @@
         },
         "workspacekinds.WorkspaceKind": {
             "type": "object",
+            "required": [
+                "deprecated",
+                "deprecationMessage",
+                "description",
+                "displayName",
+                "hidden",
+                "icon",
+                "logo",
+                "name",
+                "podTemplate"
+            ],
             "properties": {
                 "deprecated": {
                     "type": "boolean"
@@ -977,6 +1080,10 @@
         },
         "workspaces.Activity": {
             "type": "object",
+            "required": [
+                "lastActivity",
+                "lastUpdate"
+            ],
             "properties": {
                 "lastActivity": {
                     "description": "Unix Epoch time",
@@ -993,6 +1100,10 @@
         },
         "workspaces.HttpService": {
             "type": "object",
+            "required": [
+                "displayName",
+                "httpPath"
+            ],
             "properties": {
                 "displayName": {
                     "type": "string"
@@ -1004,6 +1115,9 @@
         },
         "workspaces.ImageConfig": {
             "type": "object",
+            "required": [
+                "current"
+            ],
             "properties": {
                 "current": {
                     "$ref": "#/definitions/workspaces.OptionInfo"
@@ -1021,6 +1135,9 @@
         },
         "workspaces.ImageRef": {
             "type": "object",
+            "required": [
+                "url"
+            ],
             "properties": {
                 "url": {
                     "type": "string"
@@ -1029,6 +1146,12 @@
         },
         "workspaces.LastProbeInfo": {
             "type": "object",
+            "required": [
+                "endTimeMs",
+                "message",
+                "result",
+                "startTimeMs"
+            ],
             "properties": {
                 "endTimeMs": {
                     "description": "Unix Epoch time in milliseconds",
@@ -1048,6 +1171,12 @@
         },
         "workspaces.OptionInfo": {
             "type": "object",
+            "required": [
+                "description",
+                "displayName",
+                "id",
+                "labels"
+            ],
             "properties": {
                 "description": {
                     "type": "string"
@@ -1068,6 +1197,10 @@
         },
         "workspaces.OptionLabel": {
             "type": "object",
+            "required": [
+                "key",
+                "value"
+            ],
             "properties": {
                 "key": {
                     "type": "string"
@@ -1079,6 +1212,9 @@
         },
         "workspaces.PodConfig": {
             "type": "object",
+            "required": [
+                "current"
+            ],
             "properties": {
                 "current": {
                     "$ref": "#/definitions/workspaces.OptionInfo"
@@ -1096,6 +1232,10 @@
         },
         "workspaces.PodMetadata": {
             "type": "object",
+            "required": [
+                "annotations",
+                "labels"
+            ],
             "properties": {
                 "annotations": {
                     "type": "object",
@@ -1113,6 +1253,10 @@
         },
         "workspaces.PodMetadataMutate": {
             "type": "object",
+            "required": [
+                "annotations",
+                "labels"
+            ],
             "properties": {
                 "annotations": {
                     "type": "object",
@@ -1130,6 +1274,10 @@
         },
         "workspaces.PodSecretInfo": {
             "type": "object",
+            "required": [
+                "mountPath",
+                "secretName"
+            ],
             "properties": {
                 "defaultMode": {
                     "type": "integer"
@@ -1144,6 +1292,10 @@
         },
         "workspaces.PodSecretMount": {
             "type": "object",
+            "required": [
+                "mountPath",
+                "secretName"
+            ],
             "properties": {
                 "defaultMode": {
                     "type": "integer"
@@ -1158,6 +1310,11 @@
         },
         "workspaces.PodTemplate": {
             "type": "object",
+            "required": [
+                "options",
+                "podMetadata",
+                "volumes"
+            ],
             "properties": {
                 "options": {
                     "$ref": "#/definitions/workspaces.PodTemplateOptions"
@@ -1172,6 +1329,11 @@
         },
         "workspaces.PodTemplateMutate": {
             "type": "object",
+            "required": [
+                "options",
+                "podMetadata",
+                "volumes"
+            ],
             "properties": {
                 "options": {
                     "$ref": "#/definitions/workspaces.PodTemplateOptionsMutate"
@@ -1186,6 +1348,10 @@
         },
         "workspaces.PodTemplateOptions": {
             "type": "object",
+            "required": [
+                "imageConfig",
+                "podConfig"
+            ],
             "properties": {
                 "imageConfig": {
                     "$ref": "#/definitions/workspaces.ImageConfig"
@@ -1197,6 +1363,10 @@
         },
         "workspaces.PodTemplateOptionsMutate": {
             "type": "object",
+            "required": [
+                "imageConfig",
+                "podConfig"
+            ],
             "properties": {
                 "imageConfig": {
                     "type": "string"
@@ -1208,6 +1378,11 @@
         },
         "workspaces.PodVolumeInfo": {
             "type": "object",
+            "required": [
+                "mountPath",
+                "pvcName",
+                "readOnly"
+            ],
             "properties": {
                 "mountPath": {
                     "type": "string"
@@ -1222,6 +1397,10 @@
         },
         "workspaces.PodVolumeMount": {
             "type": "object",
+            "required": [
+                "mountPath",
+                "pvcName"
+            ],
             "properties": {
                 "mountPath": {
                     "type": "string"
@@ -1236,6 +1415,9 @@
         },
         "workspaces.PodVolumes": {
             "type": "object",
+            "required": [
+                "data"
+            ],
             "properties": {
                 "data": {
                     "type": "array",
@@ -1256,6 +1438,9 @@
         },
         "workspaces.PodVolumesMutate": {
             "type": "object",
+            "required": [
+                "data"
+            ],
             "properties": {
                 "data": {
                     "type": "array",
@@ -1289,6 +1474,10 @@
         },
         "workspaces.RedirectMessage": {
             "type": "object",
+            "required": [
+                "level",
+                "text"
+            ],
             "properties": {
                 "level": {
                     "$ref": "#/definitions/workspaces.RedirectMessageLevel"
@@ -1313,6 +1502,10 @@
         },
         "workspaces.RedirectStep": {
             "type": "object",
+            "required": [
+                "sourceId",
+                "targetId"
+            ],
             "properties": {
                 "message": {
                     "$ref": "#/definitions/workspaces.RedirectMessage"
@@ -1335,6 +1528,20 @@
         },
         "workspaces.Workspace": {
             "type": "object",
+            "required": [
+                "activity",
+                "deferUpdates",
+                "name",
+                "namespace",
+                "paused",
+                "pausedTime",
+                "pendingRestart",
+                "podTemplate",
+                "services",
+                "state",
+                "stateMessage",
+                "workspaceKind"
+            ],
             "properties": {
                 "activity": {
                     "$ref": "#/definitions/workspaces.Activity"
@@ -1379,6 +1586,13 @@
         },
         "workspaces.WorkspaceCreate": {
             "type": "object",
+            "required": [
+                "deferUpdates",
+                "kind",
+                "name",
+                "paused",
+                "podTemplate"
+            ],
             "properties": {
                 "deferUpdates": {
                     "type": "boolean"
@@ -1399,6 +1613,12 @@
         },
         "workspaces.WorkspaceKindInfo": {
             "type": "object",
+            "required": [
+                "icon",
+                "logo",
+                "missing",
+                "name"
+            ],
             "properties": {
                 "icon": {
                     "$ref": "#/definitions/workspaces.ImageRef"
