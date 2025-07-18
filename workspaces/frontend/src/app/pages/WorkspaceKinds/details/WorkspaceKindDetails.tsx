@@ -45,7 +45,7 @@ export const WorkspaceKindDetails: React.FunctionComponent<WorkspaceKindDetailsP
   };
 
   return (
-    <DrawerPanelContent data-testid="workspaceDetails">
+    <DrawerPanelContent minSize="45%" isResizable data-testid="workspaceDetails">
       <DrawerHead>
         <Title headingLevel="h6">{workspaceKind.name}</Title>
         <DrawerActions>
