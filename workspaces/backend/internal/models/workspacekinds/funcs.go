@@ -36,6 +36,8 @@ func NewWorkspaceKindModelFromWorkspaceKind(wsk *kubefloworgv1beta1.WorkspaceKin
 			podAnnotations[k] = v
 		}
 	}
+	statusImageConfigMap := buildOptionMetricsMap(wsk.Status.PodTemplateOptions.ImageConfig)
+	statusPodConfigMap := buildOptionMetricsMap(wsk.Status.PodTemplateOptions.PodConfig)
 
 	// TODO: icons can either be a remote URL or read from a ConfigMap.
 	//       in BOTH cases, we should cache and serve the image under a path on the backend API:
@@ -60,6 +62,10 @@ func NewWorkspaceKindModelFromWorkspaceKind(wsk *kubefloworgv1beta1.WorkspaceKin
 		Hidden:             ptr.Deref(wsk.Spec.Spawner.Hidden, false),
 		Icon:               iconRef,
 		Logo:               logoRef,
+		// TODO: in the future will need to support including exactly one of clusterMetrics or namespaceMetrics based on request context
+		ClusterMetrics: clusterMetrics{
+			Workspaces: wsk.Status.Workspaces,
+		},
 		PodTemplate: PodTemplate{
 			PodMetadata: PodMetadata{
 				Labels:      podLabels,
@@ -71,18 +77,26 @@ func NewWorkspaceKindModelFromWorkspaceKind(wsk *kubefloworgv1beta1.WorkspaceKin
 			Options: PodTemplateOptions{
 				ImageConfig: ImageConfig{
 					Default: wsk.Spec.PodTemplate.Options.ImageConfig.Spawner.Default,
-					Values:  buildImageConfigValues(wsk.Spec.PodTemplate.Options.ImageConfig),
+					Values:  buildImageConfigValues(wsk.Spec.PodTemplate.Options.ImageConfig, statusImageConfigMap),
 				},
 				PodConfig: PodConfig{
 					Default: wsk.Spec.PodTemplate.Options.PodConfig.Spawner.Default,
-					Values:  buildPodConfigValues(wsk.Spec.PodTemplate.Options.PodConfig),
+					Values:  buildPodConfigValues(wsk.Spec.PodTemplate.Options.PodConfig, statusPodConfigMap),
 				},
 			},
 		},
 	}
 }
 
-func buildImageConfigValues(imageConfig kubefloworgv1beta1.ImageConfig) []ImageConfigValue {
+func buildOptionMetricsMap(metrics []kubefloworgv1beta1.OptionMetric) map[string]int32 {
+	resultMap := make(map[string]int32)
+	for _, metric := range metrics {
+		resultMap[metric.Id] = metric.Workspaces
+	}
+	return resultMap
+}
+
+func buildImageConfigValues(imageConfig kubefloworgv1beta1.ImageConfig, statusImageConfigMap map[string]int32) []ImageConfigValue {
 	imageConfigValues := make([]ImageConfigValue, len(imageConfig.Values))
 	for i := range imageConfig.Values {
 		option := imageConfig.Values[i]
@@ -93,12 +107,16 @@ func buildImageConfigValues(imageConfig kubefloworgv1beta1.ImageConfig) []ImageC
 			Labels:      buildOptionLabels(option.Spawner.Labels),
 			Hidden:      ptr.Deref(option.Spawner.Hidden, false),
 			Redirect:    buildOptionRedirect(option.Redirect),
+			// TODO: in the future will need to support including exactly one of clusterMetrics or namespaceMetrics based on request context
+			ClusterMetrics: clusterMetrics{
+				Workspaces: statusImageConfigMap[option.Id],
+			},
 		}
 	}
 	return imageConfigValues
 }
 
-func buildPodConfigValues(podConfig kubefloworgv1beta1.PodConfig) []PodConfigValue {
+func buildPodConfigValues(podConfig kubefloworgv1beta1.PodConfig, statusPodConfigMap map[string]int32) []PodConfigValue {
 	podConfigValues := make([]PodConfigValue, len(podConfig.Values))
 	for i := range podConfig.Values {
 		option := podConfig.Values[i]
@@ -109,6 +127,10 @@ func buildPodConfigValues(podConfig kubefloworgv1beta1.PodConfig) []PodConfigVal
 			Labels:      buildOptionLabels(option.Spawner.Labels),
 			Hidden:      ptr.Deref(option.Spawner.Hidden, false),
 			Redirect:    buildOptionRedirect(option.Redirect),
+			// TODO: in the future will need to support including exactly one of clusterMetrics or namespaceMetrics based on request context
+			ClusterMetrics: clusterMetrics{
+				Workspaces: statusPodConfigMap[option.Id],
+			},
 		}
 	}
 	return podConfigValues
