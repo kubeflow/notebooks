@@ -1,23 +1,24 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
+import { Content } from '@patternfly/react-core/dist/esm/components/Content';
+import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
+import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
 import {
-  Button,
-  Content,
-  Drawer,
-  DrawerContent,
-  DrawerContentBody,
-  DrawerPanelContent,
-  DrawerHead,
-  DrawerActions,
-  DrawerCloseButton,
-  DrawerPanelBody,
-  Flex,
-  FlexItem,
-  PageSection,
   ProgressStep,
   ProgressStepper,
-  Stack,
-  Title,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/ProgressStepper';
+import { Stack } from '@patternfly/react-core/dist/esm/layouts/Stack';
+import {
+  Drawer,
+  DrawerActions,
+  DrawerCloseButton,
+  DrawerContent,
+  DrawerContentBody,
+  DrawerHead,
+  DrawerPanelBody,
+  DrawerPanelContent,
+} from '@patternfly/react-core/dist/esm/components/Drawer';
+import { Title } from '@patternfly/react-core/dist/esm/components/Title';
 import useGenericObjectState from '~/app/hooks/useGenericObjectState';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspaceFormImageSelection } from '~/app/pages/Workspaces/Form/image/WorkspaceFormImageSelection';

@@ -1,23 +1,29 @@
 import React, { useCallback, useState } from 'react';
-import { EllipsisVIcon, PlusCircleIcon } from '@patternfly/react-icons';
-import { Table, Thead, Tbody, Tr, Th, Td, TableVariant } from '@patternfly/react-table';
+import { EllipsisVIcon } from '@patternfly/react-icons/dist/esm/icons/ellipsis-v-icon';
 import {
-  Button,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  TableVariant,
+} from '@patternfly/react-table/dist/esm/components/Table';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
+import {
   Modal,
-  ModalVariant,
-  TextInput,
-  Dropdown,
-  DropdownItem,
-  MenuToggle,
   ModalBody,
   ModalFooter,
-  Form,
-  FormGroup,
   ModalHeader,
-  ValidatedOptions,
-  HelperText,
-  HelperTextItem,
-} from '@patternfly/react-core';
+  ModalVariant,
+} from '@patternfly/react-core/dist/esm/components/Modal';
+import { ValidatedOptions } from '@patternfly/react-core/helpers';
+import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
+import { Dropdown, DropdownItem } from '@patternfly/react-core/dist/esm/components/Dropdown';
+import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
+import { Form, FormGroup } from '@patternfly/react-core/dist/esm/components/Form';
+import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
+import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
 import { WorkspacePodSecretMount } from '~/shared/api/backendApiTypes';
 
 interface WorkspaceFormPropertiesSecretsProps {

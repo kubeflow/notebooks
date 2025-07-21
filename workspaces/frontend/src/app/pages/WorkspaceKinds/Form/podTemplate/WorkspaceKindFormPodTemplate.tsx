@@ -1,14 +1,13 @@
+import React, { useCallback, useState } from 'react';
 import {
-  ExpandableSection,
   Form,
   FormFieldGroup,
   FormFieldGroupHeader,
   FormGroup,
-  HelperText,
-  HelperTextItem,
-  Switch,
-} from '@patternfly/react-core';
-import React, { useCallback, useState } from 'react';
+} from '@patternfly/react-core/dist/esm/components/Form';
+import { ExpandableSection } from '@patternfly/react-core/dist/esm/components/ExpandableSection';
+import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
+import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
 import { WorkspaceKindPodTemplateData } from '~/app/types';
 import { EditableLabels } from '~/app/pages/WorkspaceKinds/Form/EditableLabels';
 import { WorkspacePodVolumeMount } from '~/shared/api/backendApiTypes';

@@ -3,15 +3,17 @@ import {
   DrawerActions,
   DrawerCloseButton,
   DrawerHead,
-  DrawerPanelBody,
   DrawerPanelContent,
+  DrawerPanelBody,
+} from '@patternfly/react-core/dist/esm/components/Drawer';
+import {
   Tabs,
   Tab,
   TabTitleText,
-  Title,
   TabContentBody,
   TabContent,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/Tabs';
+import { Title } from '@patternfly/react-core/dist/esm/components/Title';
 import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import { WorkspaceCountPerKind } from '~/app/hooks/useWorkspaceCountPerKind';
 import { WorkspaceKindDetailsNamespaces } from '~/app/pages/WorkspaceKinds/details/WorkspaceKindDetailsNamespaces';

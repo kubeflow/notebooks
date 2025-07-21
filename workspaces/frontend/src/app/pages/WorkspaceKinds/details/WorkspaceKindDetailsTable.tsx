@@ -1,6 +1,11 @@
 import React, { useMemo, useState } from 'react';
-import { Table, Thead, Tr, Td, Tbody, Th } from '@patternfly/react-table';
-import { Button, Content, Pagination, PaginationVariant } from '@patternfly/react-core';
+import { Table, Thead, Tr, Td, Tbody, Th } from '@patternfly/react-table/dist/esm/components/Table';
+import {
+  Pagination,
+  PaginationVariant,
+} from '@patternfly/react-core/dist/esm/components/Pagination';
+import { Content } from '@patternfly/react-core/dist/esm/components/Content';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { useTypedNavigate } from '~/app/routerHelper';
 import { RouteStateMap } from '~/app/routes';
 

@@ -1,17 +1,16 @@
 import React, { useMemo, useState } from 'react';
-import { Table, Thead, Tr, Td, Tbody, Th } from '@patternfly/react-table';
+import { Table, Thead, Tr, Td, Tbody, Th } from '@patternfly/react-table/dist/esm/components/Table';
+import { getUniqueId } from '@patternfly/react-core/helpers';
+import { Label } from '@patternfly/react-core/dist/esm/components/Label';
+import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
+import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
 import {
-  Dropdown,
-  DropdownItem,
-  getUniqueId,
-  Label,
-  MenuToggle,
-  PageSection,
   Pagination,
   PaginationVariant,
-  Radio,
-} from '@patternfly/react-core';
-import { EllipsisVIcon } from '@patternfly/react-icons';
+} from '@patternfly/react-core/dist/esm/components/Pagination';
+import { Radio } from '@patternfly/react-core/dist/esm/components/Radio';
+import { Dropdown, DropdownItem } from '@patternfly/react-core/dist/esm/components/Dropdown';
+import { EllipsisVIcon } from '@patternfly/react-icons/dist/esm/icons/ellipsis-v-icon';
 
 import { WorkspaceKindImageConfigValue } from '~/app/types';
 import { WorkspacePodConfigValue } from '~/shared/api/backendApiTypes';

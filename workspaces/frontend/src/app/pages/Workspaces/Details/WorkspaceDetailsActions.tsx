@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import {
   Dropdown,
-  DropdownList,
-  MenuToggle,
   DropdownItem,
-  Flex,
-  FlexItem,
-} from '@patternfly/react-core';
+  DropdownList,
+} from '@patternfly/react-core/dist/esm/components/Dropdown';
+import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
+import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 
 interface WorkspaceDetailsActionsProps {
   // TODO: Uncomment when edit action is fully supported
