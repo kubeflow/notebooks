@@ -2,10 +2,9 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   FormSelect,
   FormSelectOption,
-  NumberInput,
-  Split,
-  SplitItem,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/FormSelect';
+import { NumberInput } from '@patternfly/react-core/dist/esm/components/NumberInput';
+import { Split, SplitItem } from '@patternfly/react-core/dist/esm/layouts/Split';
 import {
   CPU_UNITS,
   MEMORY_UNITS_FOR_SELECTION,

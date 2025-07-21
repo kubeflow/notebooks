@@ -208,6 +208,28 @@ module.exports = {
             name: 'react-router',
             message: 'Use react-router-dom instead.',
           },
+          {
+            name: '@patternfly/react-core',
+            message:
+              'Use specific component imports: @patternfly/react-core/dist/esm/components/ComponentName',
+          },
+          {
+            name: '@patternfly/react-table',
+            message:
+              'Use specific component imports: @patternfly/react-table/dist/esm/components/ComponentName',
+          },
+          {
+            name: '@patternfly/react-icons',
+            message: 'Use specific icon imports: @patternfly/react-icons/dist/esm/icons/IconName',
+          },
+          {
+            name: 'date-fns',
+            message: 'Use specific function imports: date-fns/functionName',
+          },
+          {
+            name: 'lodash',
+            message: 'Use specific function imports: lodash/functionName',
+          },
         ],
       },
     ],

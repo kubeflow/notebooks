@@ -2,13 +2,12 @@ import React, { useCallback, useState } from 'react';
 import yaml, { YAMLException } from 'js-yaml';
 import {
   FileUpload,
-  DropEvent,
-  FileUploadHelperText,
-  HelperText,
-  HelperTextItem,
-  Content,
   DropzoneErrorCode,
-} from '@patternfly/react-core';
+  FileUploadHelperText,
+} from '@patternfly/react-core/dist/esm/components/FileUpload';
+import { DropEvent } from '@patternfly/react-core/dist/esm/helpers/typeUtils';
+import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
+import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import { isValidWorkspaceKindYaml } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { ValidationStatus } from '~/app/pages/WorkspaceKinds/Form/WorkspaceKindForm';
 

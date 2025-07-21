@@ -4,7 +4,7 @@ import {
   DescriptionListTerm,
   DescriptionListGroup,
   DescriptionListDescription,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/DescriptionList';
 import { Workspace } from '~/shared/api/backendApiTypes';
 import { DataVolumesList } from '~/app/pages/Workspaces/DataVolumesList';
 

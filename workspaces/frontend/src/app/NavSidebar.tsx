@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import { Brand } from '@patternfly/react-core/dist/esm/components/Brand';
 import {
-  Brand,
   Nav,
   NavExpandable,
   NavItem,
   NavList,
-  PageSidebar,
-  PageSidebarBody,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/Nav';
+import { PageSidebar, PageSidebarBody } from '@patternfly/react-core/dist/esm/components/Page';
 import { useTypedLocation } from '~/app/routerHelper';
 import { useNavData, isNavDataGroup, NavDataHref, NavDataGroup } from './AppRoutes';
 import { isMUITheme, LOGO_LIGHT } from './const';

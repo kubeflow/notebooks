@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Content, Split, SplitItem } from '@patternfly/react-core';
+import { Content } from '@patternfly/react-core/dist/esm/components/Content';
+import { Split, SplitItem } from '@patternfly/react-core/dist/esm/layouts/Split';
 import { WorkspaceFormPodConfigList } from '~/app/pages/Workspaces/Form/podConfig/WorkspaceFormPodConfigList';
 import { FilterByLabels } from '~/app/pages/Workspaces/Form/labelFilter/FilterByLabels';
 import { WorkspacePodConfigValue } from '~/shared/api/backendApiTypes';

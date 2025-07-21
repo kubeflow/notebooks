@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Skeleton, SkeletonProps } from '@patternfly/react-core';
+import { Skeleton, SkeletonProps } from '@patternfly/react-core/dist/esm/components/Skeleton';
 
 type WithValidImageProps = {
   imageSrc: string | undefined | null;

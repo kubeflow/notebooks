@@ -1,22 +1,24 @@
 import React, { useCallback, useState } from 'react';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
+import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import {
-  Button,
-  Content,
   Modal,
   ModalHeader,
   ModalFooter,
   ModalVariant,
-  EmptyState,
+} from '@patternfly/react-core/dist/esm/components/Modal';
+import {
   EmptyStateFooter,
   EmptyStateActions,
+  EmptyState,
   EmptyStateBody,
-  ExpandableSection,
-} from '@patternfly/react-core';
-import { PlusCircleIcon, CubesIcon } from '@patternfly/react-icons';
+} from '@patternfly/react-core/dist/esm/components/EmptyState';
+import { ExpandableSection } from '@patternfly/react-core/dist/esm/components/ExpandableSection';
+import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
+import { CubesIcon } from '@patternfly/react-icons/dist/esm/icons/cubes-icon';
 import { WorkspaceKindImageConfigData, WorkspaceKindImageConfigValue } from '~/app/types';
 import { emptyImage } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { WorkspaceKindFormPaginatedTable } from '~/app/pages/WorkspaceKinds/Form/WorkspaceKindFormPaginatedTable';
-
 import { WorkspaceKindFormImageModal } from './WorkspaceKindFormImageModal';
 
 interface WorkspaceKindFormImageProps {

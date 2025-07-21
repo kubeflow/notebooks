@@ -1,17 +1,19 @@
 import React, { useCallback, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
 import {
-  PageSection,
   TimestampTooltipVariant,
   Timestamp,
-  Label,
+} from '@patternfly/react-core/dist/esm/components/Timestamp';
+import { Label } from '@patternfly/react-core/dist/esm/components/Label';
+import {
   PaginationVariant,
   Pagination,
-  Content,
-  Tooltip,
-  Bullseye,
-  Button,
-  Icon,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/Pagination';
+import { Content } from '@patternfly/react-core/dist/esm/components/Content';
+import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
+import { Bullseye } from '@patternfly/react-core/dist/esm/layouts/Bullseye';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
+import { Icon } from '@patternfly/react-core/dist/esm/components/Icon';
 import {
   Table,
   Thead,
@@ -22,14 +24,12 @@ import {
   ThProps,
   ActionsColumn,
   IActions,
-} from '@patternfly/react-table';
-import {
-  InfoCircleIcon,
-  ExclamationTriangleIcon,
-  TimesCircleIcon,
-  QuestionCircleIcon,
-} from '@patternfly/react-icons';
-import { formatDistanceToNow } from 'date-fns';
+} from '@patternfly/react-table/dist/esm/components/Table';
+import { InfoCircleIcon } from '@patternfly/react-icons/dist/esm/icons/info-circle-icon';
+import { ExclamationTriangleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-triangle-icon';
+import { TimesCircleIcon } from '@patternfly/react-icons/dist/esm/icons/times-circle-icon';
+import { QuestionCircleIcon } from '@patternfly/react-icons/dist/esm/icons/question-circle-icon';
+import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
 import { Workspace, WorkspaceState } from '~/shared/api/backendApiTypes';
 import {
   DataFieldKey,
