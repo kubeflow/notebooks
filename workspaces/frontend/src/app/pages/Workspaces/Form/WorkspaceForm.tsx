@@ -2,14 +2,21 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Button,
   Content,
+  Drawer,
+  DrawerContent,
+  DrawerContentBody,
+  DrawerPanelContent,
+  DrawerHead,
+  DrawerActions,
+  DrawerCloseButton,
+  DrawerPanelBody,
   Flex,
   FlexItem,
-  PageGroup,
   PageSection,
   ProgressStep,
   ProgressStepper,
   Stack,
-  StackItem,
+  Title,
 } from '@patternfly/react-core';
 import useGenericObjectState from '~/app/hooks/useGenericObjectState';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
@@ -18,10 +25,18 @@ import { WorkspaceFormKindSelection } from '~/app/pages/Workspaces/Form/kind/Wor
 import { WorkspaceFormPodConfigSelection } from '~/app/pages/Workspaces/Form/podConfig/WorkspaceFormPodConfigSelection';
 import { WorkspaceFormPropertiesSelection } from '~/app/pages/Workspaces/Form/properties/WorkspaceFormPropertiesSelection';
 import { WorkspaceFormData } from '~/app/types';
-import { WorkspaceCreate } from '~/shared/api/backendApiTypes';
+import {
+  WorkspaceCreate,
+  WorkspaceKind,
+  WorkspaceImageConfigValue,
+  WorkspacePodConfigValue,
+} from '~/shared/api/backendApiTypes';
 import useWorkspaceFormData from '~/app/hooks/useWorkspaceFormData';
 import { useTypedNavigate } from '~/app/routerHelper';
 import { useWorkspaceFormLocationData } from '~/app/hooks/useWorkspaceFormLocationData';
+import { WorkspaceFormKindDetails } from '~/app/pages/Workspaces/Form/kind/WorkspaceFormKindDetails';
+import { WorkspaceFormImageDetails } from '~/app/pages/Workspaces/Form/image/WorkspaceFormImageDetails';
+import { WorkspaceFormPodConfigDetails } from '~/app/pages/Workspaces/Form/podConfig/WorkspaceFormPodConfigDetails';
 
 enum WorkspaceFormSteps {
   KindSelection,
@@ -52,6 +67,7 @@ const WorkspaceForm: React.FC = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(WorkspaceFormSteps.KindSelection);
+  const [drawerExpanded, setDrawerExpanded] = useState(false);
 
   const [data, setData, resetData, replaceData] =
     useGenericObjectState<WorkspaceFormData>(initialFormData);
@@ -76,30 +92,46 @@ const WorkspaceForm: React.FC = () => {
     [currentStep],
   );
 
+  const isStepValid = useCallback(
+    (step: WorkspaceFormSteps) => {
+      switch (step) {
+        case WorkspaceFormSteps.KindSelection:
+          return !!data.kind;
+        case WorkspaceFormSteps.ImageSelection:
+          return !!data.image;
+        case WorkspaceFormSteps.PodConfigSelection:
+          return !!data.podConfig;
+        case WorkspaceFormSteps.Properties:
+          return !!data.properties.workspaceName.trim();
+        default:
+          return false;
+      }
+    },
+    [data.kind, data.image, data.podConfig, data.properties.workspaceName],
+  );
+
+  const showDrawer = useCallback(
+    (step: WorkspaceFormSteps) =>
+      // Only show drawer for steps that have drawer content
+      step !== WorkspaceFormSteps.Properties && isStepValid(step),
+    [isStepValid],
+  );
+
   const previousStep = useCallback(() => {
-    setCurrentStep(currentStep - 1);
-  }, [currentStep]);
+    const newStep = currentStep - 1;
+    setCurrentStep(newStep);
+    setDrawerExpanded(showDrawer(newStep));
+  }, [currentStep, showDrawer]);
 
   const nextStep = useCallback(() => {
-    setCurrentStep(currentStep + 1);
-  }, [currentStep]);
+    const newStep = currentStep + 1;
+    setCurrentStep(newStep);
+    setDrawerExpanded(showDrawer(newStep));
+  }, [currentStep, showDrawer]);
 
   const canGoToPreviousStep = useMemo(() => currentStep > 0, [currentStep]);
 
-  const isCurrentStepValid = useMemo(() => {
-    switch (currentStep) {
-      case WorkspaceFormSteps.KindSelection:
-        return !!data.kind;
-      case WorkspaceFormSteps.ImageSelection:
-        return !!data.image;
-      case WorkspaceFormSteps.PodConfigSelection:
-        return !!data.podConfig;
-      case WorkspaceFormSteps.Properties:
-        return !!data.properties.workspaceName.trim();
-      default:
-        return false;
-    }
-  }, [currentStep, data]);
+  const isCurrentStepValid = useMemo(() => isStepValid(currentStep), [isStepValid, currentStep]);
 
   const canGoToNextStep = useMemo(
     () => currentStep < Object.keys(WorkspaceFormSteps).length / 2 - 1,
@@ -168,6 +200,63 @@ const WorkspaceForm: React.FC = () => {
     navigate('workspaces');
   }, [navigate]);
 
+  const handleKindSelect = useCallback(
+    (kind: WorkspaceKind | undefined) => {
+      if (kind) {
+        resetData();
+        setData('kind', kind);
+        setDrawerExpanded(true);
+      }
+    },
+    [resetData, setData],
+  );
+
+  const handleImageSelect = useCallback(
+    (image: WorkspaceImageConfigValue | undefined) => {
+      if (image) {
+        setData('image', image);
+        setDrawerExpanded(true);
+      }
+    },
+    [setData],
+  );
+
+  const handlePodConfigSelect = useCallback(
+    (podConfig: WorkspacePodConfigValue | undefined) => {
+      if (podConfig) {
+        setData('podConfig', podConfig);
+        setDrawerExpanded(true);
+      }
+    },
+    [setData],
+  );
+
+  const getDrawerContent = () => {
+    switch (currentStep) {
+      case WorkspaceFormSteps.KindSelection:
+        return <WorkspaceFormKindDetails workspaceKind={data.kind} />;
+      case WorkspaceFormSteps.ImageSelection:
+        return <WorkspaceFormImageDetails workspaceImage={data.image} />;
+      case WorkspaceFormSteps.PodConfigSelection:
+        return <WorkspaceFormPodConfigDetails workspacePodConfig={data.podConfig} />;
+      default:
+        return null;
+    }
+  };
+
+  const getDrawerTitle = () => {
+    switch (currentStep) {
+      case WorkspaceFormSteps.KindSelection:
+        return 'Workspace Kind';
+      case WorkspaceFormSteps.ImageSelection:
+        return 'Image';
+      case WorkspaceFormSteps.PodConfigSelection:
+        return 'Pod Config';
+      default:
+        return '';
+    }
+  };
+
   if (initialFormDataError) {
     return <p>Error loading workspace data: {initialFormDataError.message}</p>; // TODO: UX for error state
   }
@@ -176,137 +265,160 @@ const WorkspaceForm: React.FC = () => {
     return <p>Loading...</p>; // TODO: UX for loading state
   }
 
+  const panelContent = (
+    <DrawerPanelContent>
+      <DrawerHead>
+        <Title headingLevel="h1">{getDrawerTitle()}</Title>
+        <DrawerActions>
+          <DrawerCloseButton onClick={() => setDrawerExpanded(false)} />
+        </DrawerActions>
+      </DrawerHead>
+      <DrawerPanelBody className="workspace-form__drawer-panel-body">
+        {getDrawerContent()}
+      </DrawerPanelBody>
+    </DrawerPanelContent>
+  );
+
   return (
-    <>
-      <PageGroup isFilled={false} stickyOnBreakpoint={{ default: 'top' }}>
-        <PageSection>
-          <Stack hasGutter>
-            <Flex direction={{ default: 'column' }} rowGap={{ default: 'rowGapXl' }}>
-              <FlexItem>
-                <Content>
-                  <h1>{`${mode === 'create' ? 'Create' : 'Edit'} workspace`}</h1>
-                </Content>
-              </FlexItem>
-              <FlexItem>
-                <ProgressStepper aria-label="Workspace form stepper">
-                  <ProgressStep
-                    variant={getStepVariant(WorkspaceFormSteps.KindSelection)}
-                    isCurrent={currentStep === WorkspaceFormSteps.KindSelection}
-                    id="kind-selection-step"
-                    titleId="kind-selection-step-title"
-                    aria-label="Kind selection step"
-                  >
-                    Workspace Kind
-                  </ProgressStep>
-                  <ProgressStep
-                    variant={getStepVariant(WorkspaceFormSteps.ImageSelection)}
-                    isCurrent={currentStep === WorkspaceFormSteps.ImageSelection}
-                    id="image-selection-step"
-                    titleId="image-selection-step-title"
-                    aria-label="Image selection step"
-                  >
-                    Image
-                  </ProgressStep>
-                  <ProgressStep
-                    variant={getStepVariant(WorkspaceFormSteps.PodConfigSelection)}
-                    isCurrent={currentStep === WorkspaceFormSteps.PodConfigSelection}
-                    id="pod-config-selection-step"
-                    titleId="pod-config-selection-step-title"
-                    aria-label="Pod config selection step"
-                  >
-                    Pod Config
-                  </ProgressStep>
-                  <ProgressStep
-                    variant={getStepVariant(WorkspaceFormSteps.Properties)}
-                    isCurrent={currentStep === WorkspaceFormSteps.Properties}
-                    id="properties-step"
-                    titleId="properties-step-title"
-                    aria-label="Properties step"
-                  >
-                    Properties
-                  </ProgressStep>
-                </ProgressStepper>
-              </FlexItem>
-            </Flex>
-            <StackItem>
-              <p>{stepDescriptions[currentStep]}</p>
-            </StackItem>
-          </Stack>
-        </PageSection>
-      </PageGroup>
-      <PageSection isFilled>
-        {currentStep === WorkspaceFormSteps.KindSelection && (
-          <WorkspaceFormKindSelection
-            selectedKind={data.kind}
-            onSelect={(kind) => {
-              resetData();
-              setData('kind', kind);
-            }}
-          />
-        )}
-        {currentStep === WorkspaceFormSteps.ImageSelection && (
-          <WorkspaceFormImageSelection
-            selectedImage={data.image}
-            onSelect={(image) => setData('image', image)}
-            images={data.kind?.podTemplate.options.imageConfig.values ?? []}
-          />
-        )}
-        {currentStep === WorkspaceFormSteps.PodConfigSelection && (
-          <WorkspaceFormPodConfigSelection
-            selectedPodConfig={data.podConfig}
-            onSelect={(podConfig) => setData('podConfig', podConfig)}
-            podConfigs={data.kind?.podTemplate.options.podConfig.values ?? []}
-          />
-        )}
-        {currentStep === WorkspaceFormSteps.Properties && (
-          <WorkspaceFormPropertiesSelection
-            selectedProperties={data.properties}
-            onSelect={(properties) => setData('properties', properties)}
-            selectedImage={data.image}
-          />
-        )}
-      </PageSection>
-      <PageSection isFilled={false} stickyOnBreakpoint={{ default: 'bottom' }}>
-        <Flex>
-          <FlexItem>
-            <Button
-              variant="secondary"
-              ouiaId="Secondary"
-              onClick={previousStep}
-              isDisabled={!canGoToPreviousStep}
-            >
-              Previous
-            </Button>
-          </FlexItem>
-          <FlexItem>
-            {canGoToNextStep ? (
-              <Button
-                variant="primary"
-                ouiaId="Primary"
-                onClick={nextStep}
-                isDisabled={!isCurrentStepValid}
-              >
-                Next
-              </Button>
-            ) : (
-              <Button
-                variant="primary"
-                ouiaId="Primary"
-                onClick={handleSubmit}
-                isDisabled={!canSubmit}
-              >
-                {mode === 'create' ? 'Create' : 'Save'}
-              </Button>
-            )}
-          </FlexItem>
-          <FlexItem>
-            <Button variant="link" isInline onClick={cancel}>
-              Cancel
-            </Button>
-          </FlexItem>
-        </Flex>
-      </PageSection>
-    </>
+    <Drawer isInline isExpanded={drawerExpanded}>
+      <DrawerContent panelContent={panelContent}>
+        <DrawerContentBody>
+          <Flex
+            direction={{ default: 'column' }}
+            flexWrap={{ default: 'nowrap' }}
+            style={{ height: '100%' }}
+          >
+            <FlexItem>
+              <PageSection>
+                <Stack hasGutter>
+                  <Flex direction={{ default: 'column' }} rowGap={{ default: 'rowGapXl' }}>
+                    <FlexItem>
+                      <Content>
+                        <h1>{`${mode === 'create' ? 'Create' : 'Edit'} workspace`}</h1>
+                        <p>{stepDescriptions[currentStep]}</p>
+                      </Content>
+                    </FlexItem>
+                    <FlexItem>
+                      <ProgressStepper aria-label="Workspace form stepper">
+                        <ProgressStep
+                          variant={getStepVariant(WorkspaceFormSteps.KindSelection)}
+                          isCurrent={currentStep === WorkspaceFormSteps.KindSelection}
+                          id="kind-selection-step"
+                          titleId="kind-selection-step-title"
+                          aria-label="Kind selection step"
+                        >
+                          Workspace Kind
+                        </ProgressStep>
+                        <ProgressStep
+                          variant={getStepVariant(WorkspaceFormSteps.ImageSelection)}
+                          isCurrent={currentStep === WorkspaceFormSteps.ImageSelection}
+                          id="image-selection-step"
+                          titleId="image-selection-step-title"
+                          aria-label="Image selection step"
+                        >
+                          Image
+                        </ProgressStep>
+                        <ProgressStep
+                          variant={getStepVariant(WorkspaceFormSteps.PodConfigSelection)}
+                          isCurrent={currentStep === WorkspaceFormSteps.PodConfigSelection}
+                          id="pod-config-selection-step"
+                          titleId="pod-config-selection-step-title"
+                          aria-label="Pod config selection step"
+                        >
+                          Pod Config
+                        </ProgressStep>
+                        <ProgressStep
+                          variant={getStepVariant(WorkspaceFormSteps.Properties)}
+                          isCurrent={currentStep === WorkspaceFormSteps.Properties}
+                          id="properties-step"
+                          titleId="properties-step-title"
+                          aria-label="Properties step"
+                        >
+                          Properties
+                        </ProgressStep>
+                      </ProgressStepper>
+                    </FlexItem>
+                  </Flex>
+                </Stack>
+              </PageSection>
+            </FlexItem>
+            <FlexItem flex={{ default: 'flex_1' }}>
+              <PageSection isFilled>
+                {currentStep === WorkspaceFormSteps.KindSelection && (
+                  <WorkspaceFormKindSelection
+                    selectedKind={data.kind}
+                    onSelect={handleKindSelect}
+                  />
+                )}
+                {currentStep === WorkspaceFormSteps.ImageSelection && (
+                  <WorkspaceFormImageSelection
+                    selectedImage={data.image}
+                    onSelect={handleImageSelect}
+                    images={data.kind?.podTemplate.options.imageConfig.values ?? []}
+                  />
+                )}
+                {currentStep === WorkspaceFormSteps.PodConfigSelection && (
+                  <WorkspaceFormPodConfigSelection
+                    selectedPodConfig={data.podConfig}
+                    onSelect={handlePodConfigSelect}
+                    podConfigs={data.kind?.podTemplate.options.podConfig.values ?? []}
+                  />
+                )}
+                {currentStep === WorkspaceFormSteps.Properties && (
+                  <WorkspaceFormPropertiesSelection
+                    selectedProperties={data.properties}
+                    onSelect={(properties) => setData('properties', properties)}
+                    selectedImage={data.image}
+                  />
+                )}
+              </PageSection>
+            </FlexItem>
+            <FlexItem>
+              <PageSection>
+                <Flex>
+                  <FlexItem>
+                    <Button
+                      variant="secondary"
+                      ouiaId="Secondary"
+                      onClick={previousStep}
+                      isDisabled={!canGoToPreviousStep}
+                    >
+                      Previous
+                    </Button>
+                  </FlexItem>
+                  <FlexItem>
+                    {canGoToNextStep ? (
+                      <Button
+                        variant="primary"
+                        ouiaId="Primary"
+                        onClick={nextStep}
+                        isDisabled={!isCurrentStepValid}
+                      >
+                        Next
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="primary"
+                        ouiaId="Primary"
+                        onClick={handleSubmit}
+                        isDisabled={!canSubmit}
+                      >
+                        {mode === 'create' ? 'Create' : 'Save'}
+                      </Button>
+                    )}
+                  </FlexItem>
+                  <FlexItem>
+                    <Button variant="link" isInline onClick={cancel}>
+                      Cancel
+                    </Button>
+                  </FlexItem>
+                </Flex>
+              </PageSection>
+            </FlexItem>
+          </Flex>
+        </DrawerContentBody>
+      </DrawerContent>
+    </Drawer>
   );
 };
 

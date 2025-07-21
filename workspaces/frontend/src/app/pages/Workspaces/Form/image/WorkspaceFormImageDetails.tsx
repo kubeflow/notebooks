@@ -16,7 +16,7 @@ type WorkspaceFormImageDetailsProps = {
 export const WorkspaceFormImageDetails: React.FunctionComponent<WorkspaceFormImageDetailsProps> = ({
   workspaceImage,
 }) => (
-  <div style={{ marginLeft: 'var(--pf-t--global--spacer--md)' }}>
+  <>
     {workspaceImage && (
       <>
         <Title headingLevel="h3">{workspaceImage.displayName}</Title>
@@ -38,5 +38,5 @@ export const WorkspaceFormImageDetails: React.FunctionComponent<WorkspaceFormIma
         ))}
       </>
     )}
-  </div>
+  </>
 );
