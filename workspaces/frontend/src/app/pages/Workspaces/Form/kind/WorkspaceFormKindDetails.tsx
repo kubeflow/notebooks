@@ -9,12 +9,12 @@ type WorkspaceFormKindDetailsProps = {
 export const WorkspaceFormKindDetails: React.FunctionComponent<WorkspaceFormKindDetailsProps> = ({
   workspaceKind,
 }) => (
-  <div style={{ marginLeft: 'var(--pf-t--global--spacer--md)' }}>
+  <>
     {workspaceKind && (
       <>
         <Title headingLevel="h3">{workspaceKind.displayName}</Title>
         <p>{workspaceKind.description}</p>
       </>
     )}
-  </div>
+  </>
 );
