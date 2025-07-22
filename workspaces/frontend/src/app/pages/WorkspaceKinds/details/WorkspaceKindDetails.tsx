@@ -71,7 +71,7 @@ export const WorkspaceKindDetails: React.FunctionComponent<WorkspaceKindDetailsP
           />
           <Tab
             eventKey={podConfigsTabKey}
-            title={<TabTitleText>Pod Configs</TabTitleText>}
+            title={<TabTitleText>Pod configs</TabTitleText>}
             tabContentId="podConfigsTabContent"
             aria-label="Pod Configs"
           />

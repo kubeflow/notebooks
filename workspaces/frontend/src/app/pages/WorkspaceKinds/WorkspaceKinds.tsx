@@ -478,7 +478,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
         <DrawerContentBody>
           <PageSection isFilled>
             <Content>
-              <h1>Kubeflow Workspace Kinds</h1>
+              <h1>Workspace kinds</h1>
               <p>View your existing workspace kinds.</p>
             </Content>
             <br />
@@ -499,9 +499,9 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                           <ThemeAwareSearchInput
                             value={searchNameValue}
                             onChange={onSearchNameChange}
-                            placeholder="Filter by Name"
-                            fieldLabel="Find by Name"
-                            aria-label="Filter by Name"
+                            placeholder="Filter by name"
+                            fieldLabel="Find by name"
+                            aria-label="Filter by name"
                           />
                         </ToolbarItem>
                       </ToolbarFilter>
@@ -520,9 +520,9 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                           <ThemeAwareSearchInput
                             value={searchDescriptionValue}
                             onChange={onSearchDescriptionChange}
-                            placeholder="Filter by Description"
-                            fieldLabel="Find by Description"
-                            aria-label="Filter by Description"
+                            placeholder="Filter by description"
+                            fieldLabel="Find by description"
+                            aria-label="Filter by description"
                           />
                         </ToolbarItem>
                       </ToolbarFilter>
@@ -537,7 +537,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                       </ToolbarFilter>
                       <ToolbarItem>
                         <Button variant="primary" ouiaId="Primary" onClick={createWorkspaceKind}>
-                          Create Workspace Kind
+                          Create workspace kind
                         </Button>
                       </ToolbarItem>
                     </ToolbarGroup>

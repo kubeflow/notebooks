@@ -54,7 +54,7 @@ const WorkspaceKindSummaryExpandableCard: React.FC<WorkspaceKindSummaryExpandabl
     <Card isExpanded={isExpanded}>
       <CardHeader onExpand={onExpandToggle}>
         <CardTitle>
-          <Content component={ContentVariants.h2}>Workspaces Summary</Content>
+          <Content component={ContentVariants.h2}>Workspaces summary</Content>
         </CardTitle>
       </CardHeader>
       <CardExpandableContent>
@@ -71,7 +71,7 @@ const WorkspaceKindSummaryExpandableCard: React.FC<WorkspaceKindSummaryExpandabl
               </FlexItem>
             </SectionFlex>
             <SectionDivider />
-            <SectionFlex title="Idle GPU Workspaces">
+            <SectionFlex title="Idle GPU workspaces">
               <FlexItem>
                 <Bullseye>
                   <Button
@@ -88,12 +88,12 @@ const WorkspaceKindSummaryExpandableCard: React.FC<WorkspaceKindSummaryExpandabl
               </FlexItem>
               <FlexItem>
                 <Bullseye>
-                  <Content>Idle GPU Workspaces</Content>
+                  <Content>Idle GPU workspaces</Content>
                 </Bullseye>
               </FlexItem>
             </SectionFlex>
             <SectionDivider />
-            <SectionFlex title="Top GPU Consumer Namespaces">
+            <SectionFlex title="Top GPU consumer namespaces">
               <FlexItem>
                 <Stack hasGutter>
                   {topGpuConsumersByNamespace.length > 0 ? (

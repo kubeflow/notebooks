@@ -86,7 +86,7 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
       aria-labelledby="title-icon-modal-title"
       onClose={onClose}
     >
-      <ModalHeader title="Stop Workspace" />
+      <ModalHeader title="Stop workspace" />
       <ModalBody>
         {workspacePendingUpdate ? (
           <>
@@ -103,11 +103,11 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
       <ModalFooter>
         {shouldShowActionButton('updateAndStop') && workspacePendingUpdate && (
           <ActionButton
-            action="Update and Stop"
+            action="Update and stop"
             titleOnLoading="Stopping ..."
             onClick={() => handleUpdateAndStop()}
           >
-            Update and Stop
+            Update and stop
           </ActionButton>
         )}
 
