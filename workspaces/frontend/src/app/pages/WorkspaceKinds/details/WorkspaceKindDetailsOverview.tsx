@@ -6,12 +6,12 @@ import {
   DescriptionListDescription,
 } from '@patternfly/react-core/dist/esm/components/DescriptionList';
 import { Divider } from '@patternfly/react-core/dist/esm/components/Divider';
-import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import ImageFallback from '~/shared/components/ImageFallback';
 import WithValidImage from '~/shared/components/WithValidImage';
+import { WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
 
 type WorkspaceDetailsOverviewProps = {
-  workspaceKind: WorkspaceKind;
+  workspaceKind: WorkspacekindsWorkspaceKind;
 };
 
 export const WorkspaceKindDetailsOverview: React.FunctionComponent<

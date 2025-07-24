@@ -1,7 +1,7 @@
+import { NamespacesNamespace } from '~/generated/data-contracts';
 import { buildMockNamespace } from '~/shared/mock/mockBuilder';
-import { Namespace } from '~/shared/api/backendApiTypes';
 
-export const mockNamespaces: Namespace[] = [
+export const mockNamespaces: NamespacesNamespace[] = [
   buildMockNamespace({ name: 'default' }),
   buildMockNamespace({ name: 'kubeflow' }),
   buildMockNamespace({ name: 'custom-namespace' }),

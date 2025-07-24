@@ -1,24 +1,24 @@
 import { useCallback } from 'react';
+import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
+import { ApiNamespaceListEnvelope } from '~/generated/data-contracts';
 import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
 } from '~/shared/utilities/useFetchState';
-import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
-import { Namespace } from '~/shared/api/backendApiTypes';
 
-const useNamespaces = (): FetchState<Namespace[] | null> => {
+const useNamespaces = (): FetchState<ApiNamespaceListEnvelope['data'] | null> => {
   const { api, apiAvailable } = useNotebookAPI();
 
-  const call = useCallback<FetchStateCallbackPromise<Namespace[] | null>>(
-    (opts) => {
-      if (!apiAvailable) {
-        return Promise.reject(new Error('API not yet available'));
-      }
+  const call = useCallback<
+    FetchStateCallbackPromise<ApiNamespaceListEnvelope['data'] | null>
+  >(async () => {
+    if (!apiAvailable) {
+      throw new Error('API not yet available');
+    }
 
-      return api.listNamespaces(opts);
-    },
-    [api, apiAvailable],
-  );
+    const envelope = await api.namespaces.listNamespaces();
+    return envelope.data;
+  }, [api, apiAvailable]);
 
   return useFetchState(call, null);
 };

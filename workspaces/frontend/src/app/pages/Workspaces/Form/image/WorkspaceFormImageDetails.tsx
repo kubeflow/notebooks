@@ -6,11 +6,11 @@ import {
   DescriptionListDescription,
 } from '@patternfly/react-core/dist/esm/components/DescriptionList';
 import { Title } from '@patternfly/react-core/dist/esm/components/Title';
-import { WorkspacePodConfigValue } from '~/shared/api/backendApiTypes';
 import { formatLabelKey } from '~/shared/utilities/WorkspaceUtils';
+import { WorkspacekindsPodConfigValue } from '~/generated/data-contracts';
 
 type WorkspaceFormImageDetailsProps = {
-  workspaceImage?: WorkspacePodConfigValue;
+  workspaceImage?: WorkspacekindsPodConfigValue;
 };
 
 export const WorkspaceFormImageDetails: React.FunctionComponent<WorkspaceFormImageDetailsProps> = ({

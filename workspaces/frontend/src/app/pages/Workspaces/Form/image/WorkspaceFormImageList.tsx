@@ -9,9 +9,9 @@ import { Gallery } from '@patternfly/react-core/dist/esm/layouts/Gallery';
 import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
 import { Toolbar, ToolbarContent } from '@patternfly/react-core/dist/esm/components/Toolbar';
 import Filter, { FilteredColumn, FilterRef } from '~/shared/components/Filter';
-import { WorkspaceImageConfigValue } from '~/shared/api/backendApiTypes';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
 import { defineDataFields, FilterableDataFieldKey } from '~/app/filterableDataHelper';
+import { WorkspacekindsImageConfigValue } from '~/generated/data-contracts';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const { fields, filterableLabelMap } = defineDataFields({
@@ -21,10 +21,10 @@ const { fields, filterableLabelMap } = defineDataFields({
 type FilterableDataFieldKeys = FilterableDataFieldKey<typeof fields>;
 
 type WorkspaceFormImageListProps = {
-  images: WorkspaceImageConfigValue[];
+  images: WorkspacekindsImageConfigValue[];
   selectedLabels: Map<string, Set<string>>;
-  selectedImage: WorkspaceImageConfigValue | undefined;
-  onSelect: (workspaceImage: WorkspaceImageConfigValue | undefined) => void;
+  selectedImage: WorkspacekindsImageConfigValue | undefined;
+  onSelect: (workspaceImage: WorkspacekindsImageConfigValue | undefined) => void;
 };
 
 export const WorkspaceFormImageList: React.FunctionComponent<WorkspaceFormImageListProps> = ({
@@ -37,7 +37,7 @@ export const WorkspaceFormImageList: React.FunctionComponent<WorkspaceFormImageL
   const filterRef = useRef<FilterRef>(null);
 
   const getFilteredWorkspaceImagesByLabels = useCallback(
-    (unfilteredImages: WorkspaceImageConfigValue[]) =>
+    (unfilteredImages: WorkspacekindsImageConfigValue[]) =>
       unfilteredImages.filter((image) =>
         image.labels.reduce((accumulator, label) => {
           if (selectedLabels.has(label.key)) {

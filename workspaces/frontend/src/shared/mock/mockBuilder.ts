@@ -1,31 +1,33 @@
 import {
-  HealthCheckResponse,
-  Namespace,
-  Workspace,
-  WorkspaceKind,
-  WorkspaceKindInfo,
-  WorkspacePauseState,
-  WorkspaceRedirectMessageLevel,
-  WorkspaceServiceStatus,
-  WorkspaceState,
-} from '~/shared/api/backendApiTypes';
+  HealthCheckHealthCheck,
+  HealthCheckServiceStatus,
+  NamespacesNamespace,
+  WorkspacekindsRedirectMessageLevel,
+  WorkspacekindsWorkspaceKind,
+  WorkspacesWorkspace,
+  WorkspacesWorkspaceKindInfo,
+  WorkspacesWorkspaceState,
+} from '~/generated/data-contracts';
+import { WorkspacePauseState } from '~/shared/api/experimental';
 
 export const buildMockHealthCheckResponse = (
-  healthCheckResponse?: Partial<HealthCheckResponse>,
-): HealthCheckResponse => ({
-  status: WorkspaceServiceStatus.ServiceStatusHealthy,
+  healthCheckResponse?: Partial<HealthCheckHealthCheck>,
+): HealthCheckHealthCheck => ({
+  status: HealthCheckServiceStatus.ServiceStatusHealthy,
   systemInfo: { version: '1.0.0' },
   ...healthCheckResponse,
 });
 
-export const buildMockNamespace = (namespace?: Partial<Namespace>): Namespace => ({
+export const buildMockNamespace = (
+  namespace?: Partial<NamespacesNamespace>,
+): NamespacesNamespace => ({
   name: 'default',
   ...namespace,
 });
 
 export const buildMockWorkspaceKindInfo = (
-  workspaceKindInfo?: Partial<WorkspaceKindInfo>,
-): WorkspaceKindInfo => ({
+  workspaceKindInfo?: Partial<WorkspacesWorkspaceKindInfo>,
+): WorkspacesWorkspaceKindInfo => ({
   name: 'jupyterlab',
   missing: false,
   icon: {
@@ -37,14 +39,16 @@ export const buildMockWorkspaceKindInfo = (
   ...workspaceKindInfo,
 });
 
-export const buildMockWorkspace = (workspace?: Partial<Workspace>): Workspace => ({
+export const buildMockWorkspace = (
+  workspace?: Partial<WorkspacesWorkspace>,
+): WorkspacesWorkspace => ({
   name: 'My First Jupyter Notebook',
   namespace: 'default',
   workspaceKind: buildMockWorkspaceKindInfo(),
   paused: true,
   deferUpdates: true,
   pausedTime: new Date(2025, 3, 1).getTime(),
-  state: WorkspaceState.WorkspaceStateRunning,
+  state: WorkspacesWorkspaceState.WorkspaceStateRunning,
   stateMessage: 'Workspace is running',
   podTemplate: {
     podMetadata: {
@@ -133,7 +137,9 @@ export const buildMockWorkspace = (workspace?: Partial<Workspace>): Workspace =>
   ...workspace,
 });
 
-export const buildMockWorkspaceKind = (workspaceKind?: Partial<WorkspaceKind>): WorkspaceKind => ({
+export const buildMockWorkspaceKind = (
+  workspaceKind?: Partial<WorkspacekindsWorkspaceKind>,
+): WorkspacekindsWorkspaceKind => ({
   name: 'jupyterlab',
   displayName: 'JupyterLab Notebook',
   description: 'A Workspace which runs JupyterLab in a Pod',
@@ -176,7 +182,7 @@ export const buildMockWorkspaceKind = (workspaceKind?: Partial<WorkspaceKind>): 
               to: 'jupyterlab_scipy_190',
               message: {
                 text: 'This update will change...',
-                level: WorkspaceRedirectMessageLevel.RedirectMessageLevelInfo,
+                level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelInfo,
               },
             },
           },
@@ -193,7 +199,7 @@ export const buildMockWorkspaceKind = (workspaceKind?: Partial<WorkspaceKind>): 
               to: 'jupyterlab_scipy_200',
               message: {
                 text: 'This update will change...',
-                level: WorkspaceRedirectMessageLevel.RedirectMessageLevelWarning,
+                level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelWarning,
               },
             },
           },
@@ -210,7 +216,7 @@ export const buildMockWorkspaceKind = (workspaceKind?: Partial<WorkspaceKind>): 
               to: 'jupyterlab_scipy_210',
               message: {
                 text: 'This update will change...',
-                level: WorkspaceRedirectMessageLevel.RedirectMessageLevelWarning,
+                level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelWarning,
               },
             },
           },
@@ -227,7 +233,7 @@ export const buildMockWorkspaceKind = (workspaceKind?: Partial<WorkspaceKind>): 
               to: 'jupyterlab_scipy_220',
               message: {
                 text: 'This update will change...',
-                level: WorkspaceRedirectMessageLevel.RedirectMessageLevelWarning,
+                level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelWarning,
               },
             },
           },
@@ -249,7 +255,7 @@ export const buildMockWorkspaceKind = (workspaceKind?: Partial<WorkspaceKind>): 
               to: 'small_cpu',
               message: {
                 text: 'This update will change...',
-                level: WorkspaceRedirectMessageLevel.RedirectMessageLevelDanger,
+                level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelDanger,
               },
             },
           },
@@ -267,7 +273,7 @@ export const buildMockWorkspaceKind = (workspaceKind?: Partial<WorkspaceKind>): 
               to: 'large_cpu',
               message: {
                 text: 'This update will change...',
-                level: WorkspaceRedirectMessageLevel.RedirectMessageLevelDanger,
+                level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelDanger,
               },
             },
           },
@@ -281,8 +287,6 @@ export const buildMockWorkspaceKind = (workspaceKind?: Partial<WorkspaceKind>): 
 export const buildMockPauseStateResponse = (
   pauseState?: Partial<WorkspacePauseState>,
 ): WorkspacePauseState => ({
-  namespace: 'default',
-  workspaceName: 'My First Jupyter Notebook',
   paused: true,
   ...pauseState,
 });
@@ -290,9 +294,9 @@ export const buildMockPauseStateResponse = (
 export const buildMockWorkspaceList = (args: {
   count: number;
   namespace: string;
-  kind: WorkspaceKindInfo;
-}): Workspace[] => {
-  const states = Object.values(WorkspaceState);
+  kind: WorkspacesWorkspaceKindInfo;
+}): WorkspacesWorkspace[] => {
+  const states = Object.values(WorkspacesWorkspaceState);
   const imageConfigs = [
     {
       id: 'jupyterlab_scipy_190',
@@ -326,7 +330,7 @@ export const buildMockWorkspaceList = (args: {
     { id: 'large_cpu', displayName: 'Large CPU' },
   ];
 
-  const workspaces: Workspace[] = [];
+  const workspaces: WorkspacesWorkspace[] = [];
   for (let i = 1; i <= args.count; i++) {
     const state = states[(i - 1) % states.length];
     const labels = {
@@ -349,7 +353,7 @@ export const buildMockWorkspaceList = (args: {
         workspaceKind: args.kind,
         state,
         stateMessage: `Workspace is in ${state} state`,
-        paused: state === WorkspaceState.WorkspaceStatePaused,
+        paused: state === WorkspacesWorkspaceState.WorkspaceStatePaused,
         pendingRestart: booleanValue,
         podTemplate: {
           podMetadata: { labels, annotations },
