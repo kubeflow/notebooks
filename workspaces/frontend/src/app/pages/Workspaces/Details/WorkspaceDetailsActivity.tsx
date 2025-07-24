@@ -7,12 +7,12 @@ import {
   DescriptionListDescription,
 } from '@patternfly/react-core/dist/esm/components/DescriptionList';
 import { Divider } from '@patternfly/react-core/dist/esm/components/Divider';
-import { Workspace } from '~/shared/api/backendApiTypes';
+import { WorkspacesWorkspace } from '~/generated/data-contracts';
 
 const DATE_FORMAT = 'PPpp';
 
 type WorkspaceDetailsActivityProps = {
-  workspace: Workspace;
+  workspace: WorkspacesWorkspace;
 };
 
 export const WorkspaceDetailsActivity: React.FunctionComponent<WorkspaceDetailsActivityProps> = ({

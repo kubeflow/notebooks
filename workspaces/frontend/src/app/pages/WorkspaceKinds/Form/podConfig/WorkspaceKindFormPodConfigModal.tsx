@@ -11,9 +11,9 @@ import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput'
 import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
 import { HelperText } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { WorkspaceKindPodConfigValue } from '~/app/types';
-import { WorkspaceOptionLabel } from '~/shared/api/backendApiTypes';
 import { EditableLabels } from '~/app/pages/WorkspaceKinds/Form/EditableLabels';
 import { getResources } from '~/app/pages/WorkspaceKinds/Form/helpers';
+import { WorkspacekindsOptionLabel } from '~/generated/data-contracts';
 import { WorkspaceKindFormResource, PodResourceEntry } from './WorkspaceKindFormResource';
 
 interface WorkspaceKindFormPodConfigModalProps {
@@ -36,7 +36,7 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
   const initialResources = useMemo(() => getResources(currConfig), [currConfig]);
 
   const [resources, setResources] = useState<PodResourceEntry[]>(initialResources);
-  const [labels, setLabels] = useState<WorkspaceOptionLabel[]>(currConfig.labels);
+  const [labels, setLabels] = useState<WorkspacekindsOptionLabel[]>(currConfig.labels);
   const [id, setId] = useState(currConfig.id);
   const [displayName, setDisplayName] = useState(currConfig.displayName);
   const [description, setDescription] = useState(currConfig.description);

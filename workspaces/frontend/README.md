@@ -77,3 +77,21 @@ Automatically fix linting issues:
   ```bash
   npm run test:fix
   ```
+
+### API Types & Client Generation
+
+The TypeScript types and the HTTP client layer for interacting with the backend APIs are automatically generated from the backend's `swagger.json` file. This ensures the frontend remains aligned with the backend API contract at all times.
+
+#### Generated Code Location
+
+All generated files live in the `src/generated` directory.
+
+⚠️ Do not manually edit any files in this folder.
+
+#### Updating the Generated Code
+
+To update the generated code, run the following command:
+
+```bash
+npm run generate:api
+```

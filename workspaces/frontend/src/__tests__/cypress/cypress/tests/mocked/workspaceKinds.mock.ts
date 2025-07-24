@@ -1,7 +1,12 @@
-import type { WorkspaceKind } from '~/shared/api/backendApiTypes';
+import {
+  WorkspacekindsRedirectMessageLevel,
+  type WorkspacekindsWorkspaceKind,
+} from '~/generated/data-contracts';
 
 // Factory function to create a valid WorkspaceKind
-function createMockWorkspaceKind(overrides: Partial<WorkspaceKind> = {}): WorkspaceKind {
+function createMockWorkspaceKind(
+  overrides: Partial<WorkspacekindsWorkspaceKind> = {},
+): WorkspacekindsWorkspaceKind {
   return {
     name: 'jupyter-lab',
     displayName: 'JupyterLab Notebook',
@@ -27,14 +32,15 @@ function createMockWorkspaceKind(overrides: Partial<WorkspaceKind> = {}): Worksp
           values: [
             {
               id: 'jupyterlab_scipy_180',
+              description: 'JupyterLab with SciPy 1.8.0',
               displayName: 'jupyter-scipy:v1.8.0',
-              labels: { pythonVersion: '3.11' },
+              labels: [{ key: 'pythonVersion', value: '3.11' }],
               hidden: true,
               redirect: {
                 to: 'jupyterlab_scipy_190',
                 message: {
                   text: 'This update will change...',
-                  level: 'Info',
+                  level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelInfo,
                 },
               },
             },
@@ -45,9 +51,13 @@ function createMockWorkspaceKind(overrides: Partial<WorkspaceKind> = {}): Worksp
           values: [
             {
               id: 'tiny_cpu',
+              hidden: false,
               displayName: 'Tiny CPU',
               description: 'Pod with 0.1 CPU, 128 Mb RAM',
-              labels: { cpu: '100m', memory: '128Mi' },
+              labels: [
+                { key: 'cpu', value: '100m' },
+                { key: 'memory', value: '128Mi' },
+              ],
             },
           ],
         },

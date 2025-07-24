@@ -38,7 +38,7 @@ export const NamespaceContextProvider: React.FC<NamespaceContextProviderProps> =
       const namespaceNames = namespacesData.map((ns) => ns.name);
       setNamespaces(namespaceNames);
       setSelectedNamespace(lastUsedNamespace.length ? lastUsedNamespace : namespaceNames[0]);
-      if (!lastUsedNamespace.length) {
+      if (!lastUsedNamespace.length || !namespaceNames.includes(lastUsedNamespace)) {
         setLastUsedNamespace(storageKey, namespaceNames[0]);
       }
     } else {

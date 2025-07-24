@@ -30,7 +30,6 @@ import { ExclamationTriangleIcon } from '@patternfly/react-icons/dist/esm/icons/
 import { TimesCircleIcon } from '@patternfly/react-icons/dist/esm/icons/times-circle-icon';
 import { QuestionCircleIcon } from '@patternfly/react-icons/dist/esm/icons/question-circle-icon';
 import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
-import { Workspace, WorkspaceState } from '~/shared/api/backendApiTypes';
 import {
   DataFieldKey,
   defineDataFields,
@@ -53,6 +52,7 @@ import {
   formatWorkspaceIdleState,
 } from '~/shared/utilities/WorkspaceUtils';
 import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
+import { WorkspacesWorkspace, WorkspacesWorkspaceState } from '~/generated/data-contracts';
 
 const {
   fields: wsTableColumns,
@@ -78,12 +78,12 @@ type WorkspaceTableSortableColumnKeys = SortableDataFieldKey<typeof wsTableColum
 export type WorkspaceTableFilteredColumn = FilteredColumn<WorkspaceTableFilterableColumnKeys>;
 
 interface WorkspaceTableProps {
-  workspaces: Workspace[];
+  workspaces: WorkspacesWorkspace[];
   canCreateWorkspaces?: boolean;
   canExpandRows?: boolean;
   initialFilters?: WorkspaceTableFilteredColumn[];
   hiddenColumns?: WorkspaceTableColumnKeys[];
-  rowActions?: (workspace: Workspace) => IActions;
+  rowActions?: (workspace: WorkspacesWorkspace) => IActions;
 }
 
 export interface WorkspaceTableRef {
@@ -162,7 +162,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       navigate('workspaceCreate');
     }, [navigate]);
 
-    const setWorkspaceExpanded = (workspace: Workspace, isExpanding = true) =>
+    const setWorkspaceExpanded = (workspace: WorkspacesWorkspace, isExpanding = true) =>
       setExpandedWorkspacesNames((prevExpanded) => {
         const newExpandedWorkspacesNames = prevExpanded.filter(
           (wsName) => wsName !== workspace.name,
@@ -172,7 +172,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
           : newExpandedWorkspacesNames;
       });
 
-    const isWorkspaceExpanded = (workspace: Workspace) =>
+    const isWorkspaceExpanded = (workspace: WorkspacesWorkspace) =>
       expandedWorkspacesNames.includes(workspace.name);
 
     const filteredWorkspaces = useMemo(() => {
@@ -214,7 +214,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
     // Column sorting
 
     const getSortableRowValues = (
-      workspace: Workspace,
+      workspace: WorkspacesWorkspace,
     ): Record<WorkspaceTableSortableColumnKeys, string | number> => ({
       name: workspace.name,
       kind: workspace.workspaceKind.name,
@@ -299,19 +299,19 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       }
     };
 
-    const extractStateColor = (state: WorkspaceState) => {
+    const extractStateColor = (state: WorkspacesWorkspaceState) => {
       switch (state) {
-        case WorkspaceState.WorkspaceStateRunning:
+        case WorkspacesWorkspaceState.WorkspaceStateRunning:
           return 'green';
-        case WorkspaceState.WorkspaceStatePending:
+        case WorkspacesWorkspaceState.WorkspaceStatePending:
           return 'orange';
-        case WorkspaceState.WorkspaceStateTerminating:
+        case WorkspacesWorkspaceState.WorkspaceStateTerminating:
           return 'yellow';
-        case WorkspaceState.WorkspaceStateError:
+        case WorkspacesWorkspaceState.WorkspaceStateError:
           return 'red';
-        case WorkspaceState.WorkspaceStatePaused:
+        case WorkspacesWorkspaceState.WorkspaceStatePaused:
           return 'purple';
-        case WorkspaceState.WorkspaceStateUnknown:
+        case WorkspacesWorkspaceState.WorkspaceStateUnknown:
         default:
           return 'grey';
       }

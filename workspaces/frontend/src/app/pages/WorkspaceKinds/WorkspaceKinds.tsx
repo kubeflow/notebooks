@@ -38,7 +38,6 @@ import {
   IActions,
 } from '@patternfly/react-table/dist/esm/components/Table';
 import { FilterIcon } from '@patternfly/react-icons/dist/esm/icons/filter-icon';
-import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import { useWorkspaceCountPerKind } from '~/app/hooks/useWorkspaceCountPerKind';
 import { WorkspaceKindsColumns } from '~/app/types';
@@ -47,6 +46,7 @@ import CustomEmptyState from '~/shared/components/CustomEmptyState';
 import WithValidImage from '~/shared/components/WithValidImage';
 import ImageFallback from '~/shared/components/ImageFallback';
 import { useTypedNavigate } from '~/app/routerHelper';
+import { WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
 import { WorkspaceKindDetails } from './details/WorkspaceKindDetails';
 
 export enum ActionType {
@@ -76,7 +76,8 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
   }, [navigate]);
   const [workspaceKinds, workspaceKindsLoaded, workspaceKindsError] = useWorkspaceKinds();
   const workspaceCountPerKind = useWorkspaceCountPerKind();
-  const [selectedWorkspaceKind, setSelectedWorkspaceKind] = useState<WorkspaceKind | null>(null);
+  const [selectedWorkspaceKind, setSelectedWorkspaceKind] =
+    useState<WorkspacekindsWorkspaceKind | null>(null);
   const [activeActionType, setActiveActionType] = useState<ActionType | null>(null);
 
   // Column sorting
@@ -84,7 +85,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
   const [activeSortDirection, setActiveSortDirection] = useState<'asc' | 'desc' | null>(null);
 
   const getSortableRowValues = useCallback(
-    (workspaceKind: WorkspaceKind): (string | boolean | number)[] => {
+    (workspaceKind: WorkspacekindsWorkspaceKind): (string | boolean | number)[] => {
       const {
         icon,
         name,
@@ -153,7 +154,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
   }, []);
 
   const onFilter = useCallback(
-    (workspaceKind: WorkspaceKind) => {
+    (workspaceKind: WorkspacekindsWorkspaceKind) => {
       let nameRegex: RegExp;
       let descriptionRegex: RegExp;
 
@@ -422,13 +423,13 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
 
   // Actions
 
-  const viewDetailsClick = useCallback((workspaceKind: WorkspaceKind) => {
+  const viewDetailsClick = useCallback((workspaceKind: WorkspacekindsWorkspaceKind) => {
     setSelectedWorkspaceKind(workspaceKind);
     setActiveActionType(ActionType.ViewDetails);
   }, []);
 
   const workspaceKindsDefaultActions = useCallback(
-    (workspaceKind: WorkspaceKind): IActions => [
+    (workspaceKind: WorkspacekindsWorkspaceKind): IActions => [
       {
         id: 'view-details',
         title: 'View Details',

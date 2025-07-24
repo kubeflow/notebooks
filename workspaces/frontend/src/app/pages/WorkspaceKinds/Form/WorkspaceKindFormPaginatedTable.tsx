@@ -11,12 +11,11 @@ import {
 import { Radio } from '@patternfly/react-core/dist/esm/components/Radio';
 import { Dropdown, DropdownItem } from '@patternfly/react-core/dist/esm/components/Dropdown';
 import { EllipsisVIcon } from '@patternfly/react-icons/dist/esm/icons/ellipsis-v-icon';
-
 import { WorkspaceKindImageConfigValue } from '~/app/types';
-import { WorkspacePodConfigValue } from '~/shared/api/backendApiTypes';
+import { WorkspacekindsPodConfigValue } from '~/generated/data-contracts';
 
 interface PaginatedTableProps {
-  rows: WorkspaceKindImageConfigValue[] | WorkspacePodConfigValue[];
+  rows: WorkspaceKindImageConfigValue[] | WorkspacekindsPodConfigValue[];
   defaultId: string;
   setDefaultId: (id: string) => void;
   handleEdit: (index: number) => void;

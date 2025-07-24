@@ -8,14 +8,15 @@ import {
 } from '@patternfly/react-core/dist/esm/components/Modal';
 import { TabTitleText } from '@patternfly/react-core/dist/esm/components/Tabs';
 import { WorkspaceRedirectInformationView } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRedirectInformationView';
-import { Workspace, WorkspacePauseState } from '~/shared/api/backendApiTypes';
 import { ActionButton } from '~/shared/components/ActionButton';
+import { WorkspacesWorkspace } from '~/generated/data-contracts';
+import { ApiWorkspacePauseStateEnvelope } from '~/shared/api/experimental';
 
 interface StartActionAlertProps {
   onClose: () => void;
   isOpen: boolean;
-  workspace: Workspace | null;
-  onStart: () => Promise<WorkspacePauseState | void>;
+  workspace: WorkspacesWorkspace | null;
+  onStart: () => Promise<ApiWorkspacePauseStateEnvelope>;
   onUpdateAndStart: () => Promise<void>;
   onActionDone?: () => void;
 }
@@ -33,10 +34,16 @@ export const WorkspaceStartActionModal: React.FC<StartActionAlertProps> = ({
   const [actionOnGoing, setActionOnGoing] = useState<StartAction | null>(null);
 
   const executeAction = useCallback(
-    (args: { action: StartAction; callback: () => ReturnType<typeof onStart> }) => {
-      setActionOnGoing(args.action);
+    async <T,>({
+      action,
+      callback,
+    }: {
+      action: StartAction;
+      callback: () => Promise<T>;
+    }): Promise<T> => {
+      setActionOnGoing(action);
       try {
-        return args.callback();
+        return await callback();
       } finally {
         setActionOnGoing(null);
       }
@@ -48,7 +55,7 @@ export const WorkspaceStartActionModal: React.FC<StartActionAlertProps> = ({
     try {
       const response = await executeAction({ action: 'start', callback: onStart });
       // TODO: alert user about success
-      console.info('Workspace started successfully:', JSON.stringify(response));
+      console.info('Workspace started successfully:', JSON.stringify(response.data));
       onActionDone?.();
       onClose();
     } catch (error) {
