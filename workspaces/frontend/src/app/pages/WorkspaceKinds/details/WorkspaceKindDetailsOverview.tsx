@@ -42,7 +42,7 @@ export const WorkspaceKindDetailsOverview: React.FunctionComponent<
     </DescriptionListGroup>
     <Divider />
     <DescriptionListGroup>
-      <DescriptionListTerm>Deprecation Message</DescriptionListTerm>
+      <DescriptionListTerm>Deprecation message</DescriptionListTerm>
       <DescriptionListDescription>{workspaceKind.deprecationMessage}</DescriptionListDescription>
     </DescriptionListGroup>
     <Divider />

@@ -154,8 +154,6 @@
   --pf-v6-c-button--PaddingInlineStart: var(--mui-button--PaddingInlineStart);
   --pf-v6-c-button--PaddingInlineEnd: var(--mui-button--PaddingInlineEnd);
   --pf-v6-c-button--LineHeight: var(--mui-button--LineHeight);
-
-  text-transform: var(--mui-text-transform);
   letter-spacing: 0.02857em;
 }
 
@@ -546,13 +544,11 @@
     --mui-palette-primary-dark
   );
 
-  text-transform: var(--mui-text-transform);
   font-weight: var(--mui-button-font-weight);
   letter-spacing: 0.02857em;
 }
 
 .mui-theme .pf-v6-c-menu-toggle__button {
-  text-transform: var(--mui-text-transform);
   font-weight: var(--mui-button-font-weight);
   letter-spacing: 0.02857em;
   align-self: stretch;
@@ -765,7 +761,6 @@
 }
 
 .mui-theme .pf-v6-c-tabs__link {
-  text-transform: var(--mui-text-transform);
   font-weight: var(--mui-button-font-weight);
   line-height: var(--mui-button-line-height);
   letter-spacing: 0.02857em;

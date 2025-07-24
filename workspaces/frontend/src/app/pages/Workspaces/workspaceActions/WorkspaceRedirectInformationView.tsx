@@ -93,7 +93,7 @@ export const WorkspaceRedirectInformationView: React.FC<WorkspaceRedirectInforma
           eventKey={0}
           title={
             <TabTitleText>
-              Image Config {getLevelIcon(getMaxLevel(imageConfigRedirects))}
+              Image config {getLevelIcon(getMaxLevel(imageConfigRedirects))}
             </TabTitleText>
           }
         >
@@ -111,7 +111,7 @@ export const WorkspaceRedirectInformationView: React.FC<WorkspaceRedirectInforma
         <Tab
           eventKey={1}
           title={
-            <TabTitleText>Pod Config {getLevelIcon(getMaxLevel(podConfigRedirects))}</TabTitleText>
+            <TabTitleText>Pod config {getLevelIcon(getMaxLevel(podConfigRedirects))}</TabTitleText>
           }
         >
           {podConfigRedirects.map((redirect, index) => (

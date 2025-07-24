@@ -394,7 +394,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
             toolbarActions={
               canCreateWorkspaces && (
                 <Button variant="primary" ouiaId="Primary" onClick={createWorkspace}>
-                  Create Workspace
+                  Create workspace
                 </Button>
               )
             }

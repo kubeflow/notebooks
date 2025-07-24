@@ -54,7 +54,7 @@ export const Workspaces: React.FunctionComponent = () => {
     <PageSection isFilled>
       <Stack hasGutter>
         <StackItem>
-          <Content component={ContentVariants.h1}>Kubeflow Workspaces</Content>
+          <Content component={ContentVariants.h1}>Workspaces</Content>
         </StackItem>
         <StackItem>
           <Content component={ContentVariants.p}>

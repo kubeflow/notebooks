@@ -213,7 +213,7 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
                     isOpen
                     resourceName={activeWsAction.workspace.name}
                     namespace={activeWsAction.workspace.namespace}
-                    title="Delete Workspace?"
+                    title="Delete workspace?"
                     onClose={() => setActiveWsAction(null)}
                     onDelete={async () => executeDeleteAction()}
                   />

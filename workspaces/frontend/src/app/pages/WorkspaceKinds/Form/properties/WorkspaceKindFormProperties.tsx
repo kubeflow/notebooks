@@ -76,9 +76,9 @@ export const WorkspaceKindFormProperties: React.FC<WorkspaceKindFormPropertiesPr
                 <TextInput
                   isDisabled={!properties.deprecated}
                   type="text"
-                  label="Deprecation Message"
+                  label="Deprecation message"
                   value={properties.deprecationMessage}
-                  placeholder="Deprecation Message"
+                  placeholder="Deprecation message"
                   onChange={(_, value) => updateField({ ...properties, deprecationMessage: value })}
                   id="workspace-kind-deprecated-msg"
                 />
