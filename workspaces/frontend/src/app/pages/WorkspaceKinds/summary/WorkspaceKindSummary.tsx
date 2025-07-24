@@ -1,13 +1,9 @@
 import React, { useCallback, useRef, useState } from 'react';
-import {
-  Content,
-  ContentVariants,
-  PageSection,
-  Stack,
-  StackItem,
-  Breadcrumb,
-  BreadcrumbItem,
-} from '@patternfly/react-core';
+import { Content, ContentVariants } from '@patternfly/react-core/dist/esm/components/Content';
+import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
+import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
+import { Breadcrumb } from '@patternfly/react-core/dist/esm/components/Breadcrumb';
+import { BreadcrumbItem } from '@patternfly/react-core/dist/esm/components/Breadcrumb/BreadcrumbItem';
 import { useTypedLocation, useTypedParams } from '~/app/routerHelper';
 import WorkspaceTable, {
   WorkspaceTableFilteredColumn,

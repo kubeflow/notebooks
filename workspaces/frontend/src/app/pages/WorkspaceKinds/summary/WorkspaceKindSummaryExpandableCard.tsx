@@ -1,19 +1,16 @@
 import React, { useMemo } from 'react';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import {
-  Button,
   Card,
   CardBody,
-  CardExpandableContent,
   CardHeader,
   CardTitle,
-  Content,
-  ContentVariants,
-  Divider,
-  Flex,
-  FlexItem,
-  Stack,
-  StackItem,
-} from '@patternfly/react-core';
+  CardExpandableContent,
+} from '@patternfly/react-core/dist/esm/components/Card';
+import { Content, ContentVariants } from '@patternfly/react-core/dist/esm/components/Content';
+import { Divider } from '@patternfly/react-core/dist/esm/components/Divider';
+import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
+import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import { t_global_spacer_md as MediumPadding } from '@patternfly/react-tokens';
 import { Workspace } from '~/shared/api/backendApiTypes';
 import {
@@ -52,7 +49,7 @@ const WorkspaceKindSummaryExpandableCard: React.FC<WorkspaceKindSummaryExpandabl
     <Card isExpanded={isExpanded} variant="secondary">
       <CardHeader onExpand={onExpandToggle}>
         <CardTitle>
-          <Content component={ContentVariants.h2}>Workspaces Summary</Content>
+          <Content component={ContentVariants.h2}>Workspaces summary</Content>
         </CardTitle>
       </CardHeader>
       <CardExpandableContent>
@@ -69,7 +66,7 @@ const WorkspaceKindSummaryExpandableCard: React.FC<WorkspaceKindSummaryExpandabl
               </FlexItem>
             </SectionFlex>
             <SectionDivider />
-            <SectionFlex title="Idle GPU Workspaces">
+            <SectionFlex title="Idle GPU workspaces">
               <FlexItem>
                 <Button
                   variant="link"
