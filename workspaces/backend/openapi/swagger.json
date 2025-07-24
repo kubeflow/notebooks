@@ -776,6 +776,9 @@
         "workspacekinds.ImageConfigValue": {
             "type": "object",
             "properties": {
+                "clusterMetrics": {
+                    "$ref": "#/definitions/workspacekinds.clusterMetrics"
+                },
                 "description": {
                     "type": "string"
                 },
@@ -846,6 +849,9 @@
         "workspacekinds.PodConfigValue": {
             "type": "object",
             "properties": {
+                "clusterMetrics": {
+                    "$ref": "#/definitions/workspacekinds.clusterMetrics"
+                },
                 "description": {
                     "type": "string"
                 },
@@ -946,6 +952,9 @@
         "workspacekinds.WorkspaceKind": {
             "type": "object",
             "properties": {
+                "clusterMetrics": {
+                    "$ref": "#/definitions/workspacekinds.clusterMetrics"
+                },
                 "deprecated": {
                     "type": "boolean"
                 },
@@ -972,6 +981,14 @@
                 },
                 "podTemplate": {
                     "$ref": "#/definitions/workspacekinds.PodTemplate"
+                }
+            }
+        },
+        "workspacekinds.clusterMetrics": {
+            "type": "object",
+            "properties": {
+                "workspacesCount": {
+                    "type": "integer"
                 }
             }
         },
