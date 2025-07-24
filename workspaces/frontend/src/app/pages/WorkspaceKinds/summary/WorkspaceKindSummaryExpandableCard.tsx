@@ -1,5 +1,4 @@
 import React, { useMemo } from 'react';
-import { Bullseye } from '@patternfly/react-core/dist/esm/layouts/Bullseye';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import {
   Card,
@@ -12,11 +11,7 @@ import { Content, ContentVariants } from '@patternfly/react-core/dist/esm/compon
 import { Divider } from '@patternfly/react-core/dist/esm/components/Divider';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
-import {
-  t_global_spacer_md as MediumPadding,
-  t_global_font_size_4xl as LargeFontSize,
-  t_global_font_weight_heading_bold as BoldFontWeight,
-} from '@patternfly/react-tokens';
+import { t_global_spacer_md as MediumPadding } from '@patternfly/react-tokens';
 import { Workspace } from '~/shared/api/backendApiTypes';
 import {
   countGpusFromWorkspaces,
@@ -51,7 +46,7 @@ const WorkspaceKindSummaryExpandableCard: React.FC<WorkspaceKindSummaryExpandabl
   );
 
   return (
-    <Card isExpanded={isExpanded}>
+    <Card isExpanded={isExpanded} variant="secondary">
       <CardHeader onExpand={onExpandToggle}>
         <CardTitle>
           <Content component={ContentVariants.h2}>Workspaces summary</Content>
@@ -62,7 +57,7 @@ const WorkspaceKindSummaryExpandableCard: React.FC<WorkspaceKindSummaryExpandabl
           <Flex wrap="wrap">
             <SectionFlex title="Total GPUs in use">
               <FlexItem>
-                <Content>
+                <Content className="pf-v6-u-font-size-4xl pf-v6-u-font-weight-bold">
                   {countGpusFromWorkspaces(filterRunningWorkspaces(workspaces))} GPUs
                 </Content>
               </FlexItem>
@@ -73,29 +68,25 @@ const WorkspaceKindSummaryExpandableCard: React.FC<WorkspaceKindSummaryExpandabl
             <SectionDivider />
             <SectionFlex title="Idle GPU workspaces">
               <FlexItem>
-                <Bullseye>
-                  <Button
-                    variant="link"
-                    isInline
-                    style={{ fontSize: LargeFontSize.value, fontWeight: BoldFontWeight.value }}
-                    onClick={() => {
-                      onAddFilter({ columnKey: 'idleGpu', value: YesNoValue.Yes });
-                    }}
-                  >
-                    {filterIdleWorkspacesWithGpu(workspaces).length}
-                  </Button>
-                </Bullseye>
+                <Button
+                  variant="link"
+                  isInline
+                  className="pf-v6-u-font-size-4xl pf-v6-u-font-weight-bold"
+                  onClick={() => {
+                    onAddFilter({ columnKey: 'idleGpu', value: YesNoValue.Yes });
+                  }}
+                >
+                  {filterIdleWorkspacesWithGpu(workspaces).length}
+                </Button>
               </FlexItem>
               <FlexItem>
-                <Bullseye>
-                  <Content>Idle GPU workspaces</Content>
-                </Bullseye>
+                <Content>Idle GPU Workspaces</Content>
               </FlexItem>
             </SectionFlex>
             <SectionDivider />
-            <SectionFlex title="Top GPU consumer namespaces">
-              <FlexItem>
-                <Stack hasGutter>
+            <SectionFlex title="Top GPU Consumer Namespaces">
+              <Content>
+                <Stack className="pf-v6-u-pt-sm">
                   {topGpuConsumersByNamespace.length > 0 ? (
                     topGpuConsumersByNamespace.map(([ns, record]) => (
                       <StackItem key={ns}>
@@ -112,7 +103,7 @@ const WorkspaceKindSummaryExpandableCard: React.FC<WorkspaceKindSummaryExpandabl
                     </StackItem>
                   )}
                 </Stack>
-              </FlexItem>
+              </Content>
             </SectionFlex>
           </Flex>
         </CardBody>
@@ -134,7 +125,6 @@ const SectionFlex: React.FC<SectionFlexProps> = ({ children, title }) => (
     <Flex
       direction={{ default: 'column' }}
       justifyContent={{ default: 'justifyContentSpaceBetween' }}
-      style={{ height: '100%' }}
     >
       <FlexItem>
         <Content component={ContentVariants.h3}>{title}</Content>
