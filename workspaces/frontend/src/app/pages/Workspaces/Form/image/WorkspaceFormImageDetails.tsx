@@ -4,8 +4,8 @@ import {
   DescriptionListTerm,
   DescriptionListGroup,
   DescriptionListDescription,
-  Title,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/DescriptionList';
+import { Title } from '@patternfly/react-core/dist/esm/components/Title';
 import { WorkspacePodConfigValue } from '~/shared/api/backendApiTypes';
 import { formatLabelKey } from '~/shared/utilities/WorkspaceUtils';
 
@@ -16,7 +16,7 @@ type WorkspaceFormImageDetailsProps = {
 export const WorkspaceFormImageDetails: React.FunctionComponent<WorkspaceFormImageDetailsProps> = ({
   workspaceImage,
 }) => (
-  <div style={{ marginLeft: 'var(--pf-t--global--spacer--md)' }}>
+  <>
     {workspaceImage && (
       <>
         <Title headingLevel="h3">{workspaceImage.displayName}</Title>
@@ -38,5 +38,5 @@ export const WorkspaceFormImageDetails: React.FunctionComponent<WorkspaceFormIma
         ))}
       </>
     )}
-  </div>
+  </>
 );

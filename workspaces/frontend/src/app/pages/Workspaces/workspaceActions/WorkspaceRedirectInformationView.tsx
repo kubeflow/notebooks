@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { ExpandableSection, Icon, Tab, Tabs, TabTitleText, Content } from '@patternfly/react-core';
-import {
-  ExclamationCircleIcon,
-  ExclamationTriangleIcon,
-  InfoCircleIcon,
-} from '@patternfly/react-icons';
+import { ExpandableSection } from '@patternfly/react-core/dist/esm/components/ExpandableSection';
+import { Icon } from '@patternfly/react-core/dist/esm/components/Icon';
+import { Tab, Tabs, TabTitleText } from '@patternfly/react-core/dist/esm/components/Tabs';
+import { Content } from '@patternfly/react-core/dist/esm/components/Content';
+import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
+import { ExclamationTriangleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-triangle-icon';
+import { InfoCircleIcon } from '@patternfly/react-icons/dist/esm/icons/info-circle-icon';
 import useWorkspaceKindByName from '~/app/hooks/useWorkspaceKindByName';
 import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 
@@ -92,7 +93,7 @@ export const WorkspaceRedirectInformationView: React.FC<WorkspaceRedirectInforma
           eventKey={0}
           title={
             <TabTitleText>
-              Image Config {getLevelIcon(getMaxLevel(imageConfigRedirects))}
+              Image config {getLevelIcon(getMaxLevel(imageConfigRedirects))}
             </TabTitleText>
           }
         >
@@ -110,7 +111,7 @@ export const WorkspaceRedirectInformationView: React.FC<WorkspaceRedirectInforma
         <Tab
           eventKey={1}
           title={
-            <TabTitleText>Pod Config {getLevelIcon(getMaxLevel(podConfigRedirects))}</TabTitleText>
+            <TabTitleText>Pod config {getLevelIcon(getMaxLevel(podConfigRedirects))}</TabTitleText>
           }
         >
           {podConfigRedirects.map((redirect, index) => (

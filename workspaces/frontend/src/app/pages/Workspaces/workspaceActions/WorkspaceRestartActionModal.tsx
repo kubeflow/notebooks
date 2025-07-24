@@ -1,13 +1,13 @@
 import React from 'react';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
+import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import {
-  Button,
-  Content,
   Modal,
   ModalBody,
   ModalFooter,
   ModalHeader,
-  TabTitleText,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/Modal';
+import { TabTitleText } from '@patternfly/react-core/dist/esm/components/Tabs';
 import { Workspace } from '~/shared/api/backendApiTypes';
 import { WorkspaceRedirectInformationView } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRedirectInformationView';
 
@@ -38,7 +38,7 @@ export const WorkspaceRestartActionModal: React.FC<RestartActionAlertProps> = ({
       aria-labelledby="title-icon-modal-title"
       onClose={onClose}
     >
-      <ModalHeader title="Restart Workspace" />
+      <ModalHeader title="Restart workspace" />
       <ModalBody>
         {workspacePendingUpdate ? (
           <>
@@ -54,7 +54,7 @@ export const WorkspaceRestartActionModal: React.FC<RestartActionAlertProps> = ({
       </ModalBody>
       <ModalFooter>
         {workspacePendingUpdate && (
-          <Button onClick={() => handleClick(true)}>Update and Restart</Button>
+          <Button onClick={() => handleClick(true)}>Update and restart</Button>
         )}
         <Button
           onClick={() => handleClick(false)}

@@ -1,5 +1,7 @@
 import * as React from 'react';
-import { Content, ContentVariants, PageSection, Stack, StackItem } from '@patternfly/react-core';
+import { Content, ContentVariants } from '@patternfly/react-core/dist/esm/components/Content';
+import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
+import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import WorkspaceTable from '~/app/components/WorkspaceTable';
 import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
 import { useWorkspacesByNamespace } from '~/app/hooks/useWorkspaces';
@@ -52,7 +54,7 @@ export const Workspaces: React.FunctionComponent = () => {
     <PageSection isFilled>
       <Stack hasGutter>
         <StackItem>
-          <Content component={ContentVariants.h1}>Kubeflow Workspaces</Content>
+          <Content component={ContentVariants.h1}>Workspaces</Content>
         </StackItem>
         <StackItem>
           <Content component={ContentVariants.p}>

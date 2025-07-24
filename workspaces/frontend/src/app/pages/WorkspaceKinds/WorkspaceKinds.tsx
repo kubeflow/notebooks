@@ -3,25 +3,29 @@ import {
   Drawer,
   DrawerContent,
   DrawerContentBody,
-  PageSection,
-  Content,
-  Tooltip,
-  Label,
+} from '@patternfly/react-core/dist/esm/components/Drawer';
+import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
+import { Content } from '@patternfly/react-core/dist/esm/components/Content';
+import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
+import { Label } from '@patternfly/react-core/dist/esm/components/Label';
+import {
   Toolbar,
   ToolbarContent,
   ToolbarItem,
+  ToolbarGroup,
+  ToolbarFilter,
+  ToolbarToggleGroup,
+} from '@patternfly/react-core/dist/esm/components/Toolbar';
+import {
   Menu,
   MenuContent,
   MenuList,
   MenuItem,
-  MenuToggle,
-  Popper,
-  ToolbarGroup,
-  ToolbarFilter,
-  ToolbarToggleGroup,
-  Bullseye,
-  Button,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/Menu';
+import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
+import { Popper } from '@patternfly/react-core/helpers';
+import { Bullseye } from '@patternfly/react-core/dist/esm/layouts/Bullseye';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import {
   Table,
   Thead,
@@ -32,8 +36,8 @@ import {
   ThProps,
   ActionsColumn,
   IActions,
-} from '@patternfly/react-table';
-import { FilterIcon } from '@patternfly/react-icons';
+} from '@patternfly/react-table/dist/esm/components/Table';
+import { FilterIcon } from '@patternfly/react-icons/dist/esm/icons/filter-icon';
 import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import { useWorkspaceCountPerKind } from '~/app/hooks/useWorkspaceCountPerKind';
@@ -58,9 +62,9 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
       description: { name: 'Description', label: 'Description', id: 'description' },
       deprecated: { name: 'Status', label: 'Status', id: 'status' },
       numberOfWorkspaces: {
-        name: 'Number of workspaces',
-        label: 'Number of workspaces',
-        id: 'number-of-workspaces',
+        name: 'Workspaces',
+        label: 'Workspaces',
+        id: 'workspaces',
       },
     }),
     [],
@@ -430,8 +434,17 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
         title: 'View Details',
         onClick: () => viewDetailsClick(workspaceKind),
       },
+      {
+        id: 'edit-workspace-kind',
+        title: 'Edit',
+        onClick: () =>
+          navigate('workspaceKindEdit', {
+            params: { kind: workspaceKind.name },
+            state: { workspaceKindName: workspaceKind.name },
+          }),
+      },
     ],
-    [viewDetailsClick],
+    [navigate, viewDetailsClick],
   );
 
   const workspaceDetailsContent = (
@@ -465,7 +478,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
         <DrawerContentBody>
           <PageSection isFilled>
             <Content>
-              <h1>Kubeflow Workspace Kinds</h1>
+              <h1>Workspace kinds</h1>
               <p>View your existing workspace kinds.</p>
             </Content>
             <br />
@@ -486,9 +499,9 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                           <ThemeAwareSearchInput
                             value={searchNameValue}
                             onChange={onSearchNameChange}
-                            placeholder="Filter by Name"
-                            fieldLabel="Find by Name"
-                            aria-label="Filter by Name"
+                            placeholder="Filter by name"
+                            fieldLabel="Find by name"
+                            aria-label="Filter by name"
                           />
                         </ToolbarItem>
                       </ToolbarFilter>
@@ -507,9 +520,9 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                           <ThemeAwareSearchInput
                             value={searchDescriptionValue}
                             onChange={onSearchDescriptionChange}
-                            placeholder="Filter by Description"
-                            fieldLabel="Find by Description"
-                            aria-label="Filter by Description"
+                            placeholder="Filter by description"
+                            fieldLabel="Find by description"
+                            aria-label="Filter by description"
                           />
                         </ToolbarItem>
                       </ToolbarFilter>
@@ -524,7 +537,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                       </ToolbarFilter>
                       <ToolbarItem>
                         <Button variant="primary" ouiaId="Primary" onClick={createWorkspaceKind}>
-                          Create Workspace Kind
+                          Create workspace kind
                         </Button>
                       </ToolbarItem>
                     </ToolbarGroup>
@@ -595,6 +608,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                       <Td dataLabel={columns.numberOfWorkspaces.name}>
                         <Button
                           variant="link"
+                          className="workspace-kind-summary-button"
                           isInline
                           onClick={() =>
                             navigate('workspaceKindSummary', {

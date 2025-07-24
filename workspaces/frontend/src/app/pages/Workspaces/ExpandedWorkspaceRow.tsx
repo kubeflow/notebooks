@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tr, Td, ExpandableRowContent } from '@patternfly/react-table';
+import { Tr, Td, ExpandableRowContent } from '@patternfly/react-table/dist/esm/components/Table';
 import { Workspace } from '~/shared/api/backendApiTypes';
 import { WorkspaceTableColumnKeys } from '~/app/components/WorkspaceTable';
 import { WorkspaceStorage } from './WorkspaceStorage';

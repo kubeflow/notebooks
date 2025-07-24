@@ -4,9 +4,9 @@ import {
   DescriptionListTerm,
   DescriptionListGroup,
   DescriptionListDescription,
-  Title,
-  Divider,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/DescriptionList';
+import { Title } from '@patternfly/react-core/dist/esm/components/Title';
+import { Divider } from '@patternfly/react-core/dist/esm/components/Divider';
 import { WorkspacePodConfigValue } from '~/shared/api/backendApiTypes';
 import { formatLabelKey } from '~/shared/utilities/WorkspaceUtils';
 
@@ -19,10 +19,12 @@ export const WorkspaceFormPodConfigDetails: React.FunctionComponent<
 > = ({ workspacePodConfig }) => (
   <>
     {workspacePodConfig && (
-      <div style={{ marginLeft: 'var(--pf-t--global--spacer--md)' }}>
+      <>
         <Title headingLevel="h3">{workspacePodConfig.displayName}</Title>{' '}
         <p>{workspacePodConfig.description}</p>
+        <br />
         <Divider />
+        <br />
         {workspacePodConfig.labels.map((label) => (
           <DescriptionList
             key={label.key}
@@ -37,7 +39,7 @@ export const WorkspaceFormPodConfigDetails: React.FunctionComponent<
             </DescriptionListGroup>
           </DescriptionList>
         ))}
-      </div>
+      </>
     )}
   </>
 );

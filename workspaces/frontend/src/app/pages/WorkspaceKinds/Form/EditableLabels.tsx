@@ -1,15 +1,16 @@
 /* eslint-disable @typescript-eslint/no-unused-expressions */
 import React, { useRef } from 'react';
-import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
+import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table/dist/esm/components/Table';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import {
-  Button,
   FormFieldGroupExpandable,
   FormFieldGroupHeader,
-  TextInput,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/Form';
+import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import inlineEditStyles from '@patternfly/react-styles/css/components/InlineEdit/inline-edit';
 import { css } from '@patternfly/react-styles';
-import { PlusCircleIcon, TrashAltIcon } from '@patternfly/react-icons';
+import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
+import { TrashAltIcon } from '@patternfly/react-icons/dist/esm/icons/trash-alt-icon';
 import { WorkspaceOptionLabel } from '~/shared/api/backendApiTypes';
 
 interface EditableRowInterface {
@@ -71,9 +72,18 @@ type ColumnNames<T> = { [K in keyof T]: string };
 interface EditableLabelsProps {
   rows: WorkspaceOptionLabel[];
   setRows: (value: WorkspaceOptionLabel[]) => void;
+  title?: string;
+  description?: string;
+  buttonLabel?: string;
 }
 
-export const EditableLabels: React.FC<EditableLabelsProps> = ({ rows, setRows }) => {
+export const EditableLabels: React.FC<EditableLabelsProps> = ({
+  rows,
+  setRows,
+  title = 'Labels',
+  description,
+  buttonLabel = 'Label',
+}) => {
   const columnNames: ColumnNames<WorkspaceOptionLabel> = {
     key: 'Key',
     value: 'Value',
@@ -86,12 +96,15 @@ export const EditableLabels: React.FC<EditableLabelsProps> = ({ rows, setRows })
       header={
         <FormFieldGroupHeader
           titleText={{
-            text: 'Labels',
-            id: 'workspace-kind-image-ports',
+            text: title,
+            id: `${title}-labels`,
           }}
           titleDescription={
             <>
-              <div>Labels are key/value pairs that are attached to Kubernetes objects.</div>
+              <div>
+                {description ||
+                  'Labels are key/value pairs that are attached to Kubernetes objects.'}
+              </div>
               <div className="pf-u-font-size-sm">
                 <strong>{rows.length} added</strong>
               </div>
@@ -141,7 +154,7 @@ export const EditableLabels: React.FC<EditableLabelsProps> = ({ rows, setRows })
           ]);
         }}
       >
-        Add Label
+        {`Add ${buttonLabel}`}
       </Button>
     </FormFieldGroupExpandable>
   );

@@ -1,13 +1,13 @@
 import React, { useCallback, useState } from 'react';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
+import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import {
-  Button,
-  Content,
   Modal,
   ModalBody,
   ModalFooter,
   ModalHeader,
-  TabTitleText,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/Modal';
+import { TabTitleText } from '@patternfly/react-core/dist/esm/components/Tabs';
 import { WorkspaceRedirectInformationView } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRedirectInformationView';
 import { Workspace, WorkspacePauseState } from '~/shared/api/backendApiTypes';
 import { ActionButton } from '~/shared/components/ActionButton';
@@ -86,7 +86,7 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
       aria-labelledby="title-icon-modal-title"
       onClose={onClose}
     >
-      <ModalHeader title="Stop Workspace" />
+      <ModalHeader title="Stop workspace" />
       <ModalBody>
         {workspacePendingUpdate ? (
           <>
@@ -103,11 +103,11 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
       <ModalFooter>
         {shouldShowActionButton('updateAndStop') && workspacePendingUpdate && (
           <ActionButton
-            action="Update and Stop"
+            action="Update and stop"
             titleOnLoading="Stopping ..."
             onClick={() => handleUpdateAndStop()}
           >
-            Update and Stop
+            Update and stop
           </ActionButton>
         )}
 

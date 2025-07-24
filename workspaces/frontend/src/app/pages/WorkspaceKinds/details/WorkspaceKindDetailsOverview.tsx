@@ -4,8 +4,8 @@ import {
   DescriptionListTerm,
   DescriptionListGroup,
   DescriptionListDescription,
-  Divider,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/DescriptionList';
+import { Divider } from '@patternfly/react-core/dist/esm/components/Divider';
 import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import ImageFallback from '~/shared/components/ImageFallback';
 import WithValidImage from '~/shared/components/WithValidImage';
@@ -42,7 +42,7 @@ export const WorkspaceKindDetailsOverview: React.FunctionComponent<
     </DescriptionListGroup>
     <Divider />
     <DescriptionListGroup>
-      <DescriptionListTerm>Deprecation Message</DescriptionListTerm>
+      <DescriptionListTerm>Deprecation message</DescriptionListTerm>
       <DescriptionListDescription>{workspaceKind.deprecationMessage}</DescriptionListDescription>
     </DescriptionListGroup>
     <Divider />

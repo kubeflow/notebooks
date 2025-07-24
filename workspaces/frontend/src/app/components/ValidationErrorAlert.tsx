@@ -1,10 +1,12 @@
 import React from 'react';
-import { Alert, List, ListItem } from '@patternfly/react-core';
+import { Alert } from '@patternfly/react-core/dist/esm/components/Alert';
+import { List, ListItem } from '@patternfly/react-core/dist/esm/components/List';
 import { ValidationError } from '~/shared/api/backendApiTypes';
+import { ErrorEnvelopeException } from '~/shared/api/apiUtils';
 
 interface ValidationErrorAlertProps {
   title: string;
-  errors: ValidationError[];
+  errors: (ValidationError | ErrorEnvelopeException)[];
 }
 
 export const ValidationErrorAlert: React.FC<ValidationErrorAlertProps> = ({ title, errors }) => {

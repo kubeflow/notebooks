@@ -1,5 +1,9 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { Drawer, DrawerContent, DrawerContentBody } from '@patternfly/react-core';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerContentBody,
+} from '@patternfly/react-core/dist/esm/components/Drawer';
 import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspaceDetails } from '~/app/pages/Workspaces/Details/WorkspaceDetails';
@@ -209,7 +213,7 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
                     isOpen
                     resourceName={activeWsAction.workspace.name}
                     namespace={activeWsAction.workspace.namespace}
-                    title="Delete Workspace?"
+                    title="Delete workspace?"
                     onClose={() => setActiveWsAction(null)}
                     onDelete={async () => executeDeleteAction()}
                   />

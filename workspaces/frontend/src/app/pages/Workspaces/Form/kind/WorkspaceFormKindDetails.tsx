@@ -1,5 +1,5 @@
 import React from 'react';
-import { Title } from '@patternfly/react-core';
+import { Title } from '@patternfly/react-core/dist/esm/components/Title';
 import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 
 type WorkspaceFormKindDetailsProps = {
@@ -9,12 +9,12 @@ type WorkspaceFormKindDetailsProps = {
 export const WorkspaceFormKindDetails: React.FunctionComponent<WorkspaceFormKindDetailsProps> = ({
   workspaceKind,
 }) => (
-  <div style={{ marginLeft: 'var(--pf-t--global--spacer--md)' }}>
+  <>
     {workspaceKind && (
       <>
         <Title headingLevel="h3">{workspaceKind.displayName}</Title>
         <p>{workspaceKind.description}</p>
       </>
     )}
-  </div>
+  </>
 );

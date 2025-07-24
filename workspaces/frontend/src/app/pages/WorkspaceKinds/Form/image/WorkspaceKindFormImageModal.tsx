@@ -4,15 +4,16 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
-  Button,
-  Form,
-  FormGroup,
-  TextInput,
+} from '@patternfly/react-core/dist/esm/components/Modal';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
+import { Form, FormGroup } from '@patternfly/react-core/dist/esm/components/Form';
+import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
+import {
   FormSelect,
   FormSelectOption,
-  Switch,
-  HelperText,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/FormSelect';
+import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
+import { HelperText } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { WorkspaceKindImageConfigValue, ImagePullPolicy } from '~/app/types';
 import { EditableLabels } from '~/app/pages/WorkspaceKinds/Form/EditableLabels';
 import { emptyImage } from '~/app/pages/WorkspaceKinds/Form/helpers';
@@ -138,7 +139,7 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
             </FormSelect>
           </FormGroup>
           <WorkspaceKindFormImagePort
-            ports={image.ports}
+            ports={image.ports || []}
             setPorts={(ports) => setImage({ ...image, ports })}
           />
           {mode === 'edit' && (

@@ -43,7 +43,7 @@ export const useAdminDebugSettings = (): NavDataItem[] => {
       children: [{ label: 'Notebooks', path: '/notebookDebugSettings' }],
     },
     {
-      label: 'Workspace Kinds',
+      label: 'Workspace kinds',
       path: AppRoutePaths.workspaceKinds,
     },
   ];
@@ -51,7 +51,7 @@ export const useAdminDebugSettings = (): NavDataItem[] => {
 
 export const useNavData = (): NavDataItem[] => [
   {
-    label: 'Notebooks',
+    label: 'Workspaces',
     path: AppRoutePaths.workspaces,
   },
   ...useAdminDebugSettings(),

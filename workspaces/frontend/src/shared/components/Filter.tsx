@@ -11,17 +11,21 @@ import {
   MenuContent,
   MenuItem,
   MenuList,
+} from '@patternfly/react-core/dist/esm/components/Menu';
+import {
   MenuToggle,
   MenuToggleElement,
-  Popper,
+} from '@patternfly/react-core/dist/esm/components/MenuToggle';
+import { Popper } from '@patternfly/react-core/helpers';
+import {
   Toolbar,
   ToolbarContent,
-  ToolbarFilter,
   ToolbarGroup,
   ToolbarItem,
+  ToolbarFilter,
   ToolbarToggleGroup,
-} from '@patternfly/react-core';
-import { FilterIcon } from '@patternfly/react-icons';
+} from '@patternfly/react-core/dist/esm/components/Toolbar';
+import { FilterIcon } from '@patternfly/react-icons/dist/esm/icons/filter-icon';
 import ThemeAwareSearchInput from '~/app/components/ThemeAwareSearchInput';
 
 export interface FilterProps {
@@ -59,6 +63,11 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
     const activeFilterLabel = useMemo(
       () => columnDefinition[activeFilter.columnKey],
       [activeFilter.columnKey, columnDefinition],
+    );
+
+    const textInputActiveFilterLabel = useMemo(
+      () => activeFilterLabel.toLowerCase(),
+      [activeFilterLabel],
     );
 
     const handleFilterMenuKeys = useCallback(
@@ -170,7 +179,6 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
         columnKey: Object.keys(columnDefinition)[0],
         value: '',
       });
-      setFilters([]);
     }, [columnDefinition, setFilters]);
 
     useImperativeHandle(ref, () => ({
@@ -258,9 +266,9 @@ const Filter = React.forwardRef<FilterRef, FilterProps>(
                   data-testid={`${id}-search-input`}
                   value={searchValue}
                   onChange={onSearchChange}
-                  placeholder={`Filter by ${activeFilterLabel}`}
-                  fieldLabel={`Find by ${activeFilterLabel}`}
-                  aria-label={`Filter by ${activeFilterLabel}`}
+                  placeholder={`Filter by ${textInputActiveFilterLabel}`}
+                  fieldLabel={`Find by ${textInputActiveFilterLabel}`}
+                  aria-label={`Filter by ${textInputActiveFilterLabel}`}
                 />
               </ToolbarItem>
               {filters.map(

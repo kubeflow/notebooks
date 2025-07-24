@@ -3,15 +3,17 @@ import {
   DrawerActions,
   DrawerCloseButton,
   DrawerHead,
-  DrawerPanelBody,
   DrawerPanelContent,
+  DrawerPanelBody,
+} from '@patternfly/react-core/dist/esm/components/Drawer';
+import {
   Tabs,
   Tab,
   TabTitleText,
-  Title,
   TabContentBody,
   TabContent,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/Tabs';
+import { Title } from '@patternfly/react-core/dist/esm/components/Title';
 import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import { WorkspaceCountPerKind } from '~/app/hooks/useWorkspaceCountPerKind';
 import { WorkspaceKindDetailsNamespaces } from '~/app/pages/WorkspaceKinds/details/WorkspaceKindDetailsNamespaces';
@@ -45,7 +47,7 @@ export const WorkspaceKindDetails: React.FunctionComponent<WorkspaceKindDetailsP
   };
 
   return (
-    <DrawerPanelContent data-testid="workspaceDetails">
+    <DrawerPanelContent minSize="45%" isResizable data-testid="workspaceDetails">
       <DrawerHead>
         <Title headingLevel="h6">{workspaceKind.name}</Title>
         <DrawerActions>
@@ -69,7 +71,7 @@ export const WorkspaceKindDetails: React.FunctionComponent<WorkspaceKindDetailsP
           />
           <Tab
             eventKey={podConfigsTabKey}
-            title={<TabTitleText>Pod Configs</TabTitleText>}
+            title={<TabTitleText>Pod configs</TabTitleText>}
             tabContentId="podConfigsTabContent"
             aria-label="Pod Configs"
           />

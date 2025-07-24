@@ -4,9 +4,9 @@ import {
   EmptyStateBody,
   EmptyStateFooter,
   EmptyStateActions,
-  Button,
-} from '@patternfly/react-core';
-import { SearchIcon } from '@patternfly/react-icons';
+} from '@patternfly/react-core/dist/esm/components/EmptyState';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
+import { SearchIcon } from '@patternfly/react-icons/dist/esm/icons/search-icon';
 
 interface CustomEmptyStateProps {
   onClearFilters: () => void;
