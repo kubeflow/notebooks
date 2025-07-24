@@ -1,10 +1,10 @@
 import React, { useCallback, useRef, useState } from 'react';
-import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { Content, ContentVariants } from '@patternfly/react-core/dist/esm/components/Content';
 import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
-import { ArrowLeftIcon } from '@patternfly/react-icons/dist/esm/icons/arrow-left-icon';
-import { useTypedLocation, useTypedNavigate, useTypedParams } from '~/app/routerHelper';
+import { Breadcrumb } from '@patternfly/react-core/dist/esm/components/Breadcrumb';
+import { BreadcrumbItem } from '@patternfly/react-core/dist/esm/components/Breadcrumb/BreadcrumbItem';
+import { useTypedLocation, useTypedParams } from '~/app/routerHelper';
 import WorkspaceTable, {
   WorkspaceTableFilteredColumn,
   WorkspaceTableRef,
@@ -18,7 +18,6 @@ import { useWorkspaceRowActions } from '~/app/hooks/useWorkspaceRowActions';
 import { usePolling } from '~/app/hooks/usePolling';
 
 const WorkspaceKindSummary: React.FC = () => {
-  const navigate = useTypedNavigate();
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
 
   const { state } = useTypedLocation<'workspaceKindSummary'>();
@@ -56,18 +55,15 @@ const WorkspaceKindSummary: React.FC = () => {
   }
 
   return (
-    <PageSection isFilled>
+    <PageSection>
       <Stack hasGutter>
         <StackItem>
-          <Button
-            variant="link"
-            icon={<ArrowLeftIcon />}
-            iconPosition="left"
-            onClick={() => navigate('workspaceKinds')}
-            aria-label="Back to Workspace Kinds"
-          >
-            Back
-          </Button>
+          <Breadcrumb>
+            <BreadcrumbItem to="workspaceKinds">Workspace Kinds</BreadcrumbItem>
+            <BreadcrumbItem to="#" isActive>
+              Workspaces in {kind}
+            </BreadcrumbItem>
+          </Breadcrumb>
         </StackItem>
         <StackItem>
           <Content component={ContentVariants.h1}>{kind}</Content>
@@ -83,7 +79,7 @@ const WorkspaceKindSummary: React.FC = () => {
             onAddFilter={onAddFilter}
           />
         </StackItem>
-        <StackItem isFilled>
+        <StackItem>
           <WorkspaceTable
             ref={workspaceTableRef}
             workspaces={workspaces}
