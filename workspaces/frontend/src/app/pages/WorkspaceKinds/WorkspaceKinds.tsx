@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   Drawer,
   DrawerContent,
@@ -17,13 +17,11 @@ import {
   ToolbarToggleGroup,
 } from '@patternfly/react-core/dist/esm/components/Toolbar';
 import {
-  Menu,
-  MenuContent,
-  MenuList,
-  MenuItem,
-} from '@patternfly/react-core/dist/esm/components/Menu';
+  Select,
+  SelectList,
+  SelectOption,
+} from '@patternfly/react-core/dist/esm/components/Select';
 import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
-import { Popper } from '@patternfly/react-core/helpers';
 import { Bullseye } from '@patternfly/react-core/dist/esm/layouts/Bullseye';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import {
@@ -200,110 +198,40 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
 
   // Set up status single select
   const [isStatusMenuOpen, setIsStatusMenuOpen] = useState<boolean>(false);
-  const statusToggleRef = useRef<HTMLButtonElement>(null);
-  const statusMenuRef = useRef<HTMLDivElement>(null);
-  const statusContainerRef = useRef<HTMLDivElement>(null);
 
-  const handleStatusMenuKeys = useCallback(
-    (event: KeyboardEvent) => {
-      if (isStatusMenuOpen && statusMenuRef.current?.contains(event.target as Node)) {
-        if (event.key === 'Escape' || event.key === 'Tab') {
-          setIsStatusMenuOpen(!isStatusMenuOpen);
-          statusToggleRef.current?.focus();
-        }
-      }
-    },
-    [isStatusMenuOpen],
-  );
+  const onStatusSelect = (
+    _event: React.MouseEvent | undefined,
+    value: string | number | undefined,
+  ) => {
+    if (typeof value === 'undefined') {
+      return;
+    }
+    setStatusSelection(value.toString());
+    setIsStatusMenuOpen(false);
+  };
 
-  const handleStatusClickOutside = useCallback(
-    (event: MouseEvent) => {
-      if (isStatusMenuOpen && !statusMenuRef.current?.contains(event.target as Node)) {
-        setIsStatusMenuOpen(false);
-      }
-    },
-    [isStatusMenuOpen],
-  );
-
-  useEffect(() => {
-    window.addEventListener('keydown', handleStatusMenuKeys);
-    window.addEventListener('click', handleStatusClickOutside);
-    return () => {
-      window.removeEventListener('keydown', handleStatusMenuKeys);
-      window.removeEventListener('click', handleStatusClickOutside);
-    };
-  }, [isStatusMenuOpen, statusMenuRef, handleStatusClickOutside, handleStatusMenuKeys]);
-
-  const onStatusToggleClick = useCallback((ev: React.MouseEvent) => {
-    ev.stopPropagation();
-    setTimeout(() => {
-      const firstElement = statusMenuRef.current?.querySelector('li > button:not(:disabled)');
-      if (firstElement) {
-        (firstElement as HTMLElement).focus();
-      }
-    }, 0);
-    setIsStatusMenuOpen((prev) => !prev);
-  }, []);
-
-  const onStatusSelect = useCallback(
-    (event: React.MouseEvent | undefined, itemId: string | number | undefined) => {
-      if (typeof itemId === 'undefined') {
-        return;
-      }
-
-      setStatusSelection(itemId.toString());
-      setIsStatusMenuOpen((prev) => !prev);
-    },
-    [],
-  );
-
-  const statusToggle = useMemo(
-    () => (
-      <MenuToggle
-        ref={statusToggleRef}
-        onClick={onStatusToggleClick}
-        isExpanded={isStatusMenuOpen}
-        style={{ width: '200px' } as React.CSSProperties}
-      >
-        Filter by status
-      </MenuToggle>
-    ),
-    [isStatusMenuOpen, onStatusToggleClick],
-  );
-
-  const statusMenu = useMemo(
-    () => (
-      <Menu
-        ref={statusMenuRef}
-        id="attribute-search-status-menu"
-        onSelect={onStatusSelect}
-        selected={statusSelection}
-      >
-        <MenuContent>
-          <MenuList>
-            <MenuItem itemId="Deprecated">Deprecated</MenuItem>
-            <MenuItem itemId="Active">Active</MenuItem>
-          </MenuList>
-        </MenuContent>
-      </Menu>
-    ),
-    [statusSelection, onStatusSelect],
-  );
-
-  const statusSelect = useMemo(
-    () => (
-      <div ref={statusContainerRef}>
-        <Popper
-          trigger={statusToggle}
-          triggerRef={statusToggleRef}
-          popper={statusMenu}
-          popperRef={statusMenuRef}
-          appendTo={statusContainerRef.current || undefined}
-          isVisible={isStatusMenuOpen}
-        />
-      </div>
-    ),
-    [statusToggle, statusMenu, isStatusMenuOpen],
+  const statusSelect = (
+    <Select
+      isOpen={isStatusMenuOpen}
+      selected={statusSelection}
+      onSelect={onStatusSelect}
+      onOpenChange={(isOpen) => setIsStatusMenuOpen(isOpen)}
+      toggle={(toggleRef) => (
+        <MenuToggle
+          ref={toggleRef}
+          onClick={() => setIsStatusMenuOpen(!isStatusMenuOpen)}
+          isExpanded={isStatusMenuOpen}
+          style={{ width: '200px' } as React.CSSProperties}
+        >
+          Filter by status
+        </MenuToggle>
+      )}
+    >
+      <SelectList>
+        <SelectOption value="Deprecated">Deprecated</SelectOption>
+        <SelectOption value="Active">Active</SelectOption>
+      </SelectList>
+    </Select>
   );
 
   // Set up attribute selector
@@ -311,108 +239,33 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     'Name',
   );
   const [isAttributeMenuOpen, setIsAttributeMenuOpen] = useState(false);
-  const attributeToggleRef = useRef<HTMLButtonElement>(null);
-  const attributeMenuRef = useRef<HTMLDivElement>(null);
-  const attributeContainerRef = useRef<HTMLDivElement>(null);
 
-  const handleAttributeMenuKeys = useCallback(
-    (event: KeyboardEvent) => {
-      if (!isAttributeMenuOpen) {
-        return;
-      }
-      if (
-        attributeMenuRef.current?.contains(event.target as Node) ||
-        attributeToggleRef.current?.contains(event.target as Node)
-      ) {
-        if (event.key === 'Escape' || event.key === 'Tab') {
-          setIsAttributeMenuOpen(!isAttributeMenuOpen);
-          attributeToggleRef.current?.focus();
-        }
-      }
-    },
-    [isAttributeMenuOpen],
-  );
-
-  const handleAttributeClickOutside = useCallback(
-    (event: MouseEvent) => {
-      if (isAttributeMenuOpen && !attributeMenuRef.current?.contains(event.target as Node)) {
+  const attributeDropdown = (
+    <Select
+      isOpen={isAttributeMenuOpen}
+      selected={activeAttributeMenu}
+      onSelect={(_ev, itemId) => {
+        setActiveAttributeMenu(itemId?.toString() as 'Name' | 'Description' | 'Status');
         setIsAttributeMenuOpen(false);
-      }
-    },
-    [isAttributeMenuOpen],
-  );
-
-  useEffect(() => {
-    window.addEventListener('keydown', handleAttributeMenuKeys);
-    window.addEventListener('click', handleAttributeClickOutside);
-    return () => {
-      window.removeEventListener('keydown', handleAttributeMenuKeys);
-      window.removeEventListener('click', handleAttributeClickOutside);
-    };
-  }, [isAttributeMenuOpen, attributeMenuRef, handleAttributeMenuKeys, handleAttributeClickOutside]);
-
-  const onAttributeToggleClick = useCallback((ev: React.MouseEvent) => {
-    ev.stopPropagation();
-
-    setTimeout(() => {
-      const firstElement = attributeMenuRef.current?.querySelector('li > button:not(:disabled)');
-      if (firstElement) {
-        (firstElement as HTMLElement).focus();
-      }
-    }, 0);
-
-    setIsAttributeMenuOpen((prev) => !prev);
-  }, []);
-
-  const attributeToggle = useMemo(
-    () => (
-      <MenuToggle
-        ref={attributeToggleRef}
-        onClick={onAttributeToggleClick}
-        isExpanded={isAttributeMenuOpen}
-        icon={<FilterIcon />}
-      >
-        {activeAttributeMenu}
-      </MenuToggle>
-    ),
-    [isAttributeMenuOpen, onAttributeToggleClick, activeAttributeMenu],
-  );
-
-  const attributeMenu = useMemo(
-    () => (
-      <Menu
-        ref={attributeMenuRef}
-        onSelect={(_ev, itemId) => {
-          setActiveAttributeMenu(itemId?.toString() as 'Name' | 'Description' | 'Status');
-          setIsAttributeMenuOpen((prev) => !prev);
-        }}
-      >
-        <MenuContent>
-          <MenuList>
-            <MenuItem itemId="Name">Name</MenuItem>
-            <MenuItem itemId="Description">Description</MenuItem>
-            <MenuItem itemId="Status">Status</MenuItem>
-          </MenuList>
-        </MenuContent>
-      </Menu>
-    ),
-    [],
-  );
-
-  const attributeDropdown = useMemo(
-    () => (
-      <div ref={attributeContainerRef}>
-        <Popper
-          trigger={attributeToggle}
-          triggerRef={attributeToggleRef}
-          popper={attributeMenu}
-          popperRef={attributeMenuRef}
-          appendTo={attributeContainerRef.current || undefined}
-          isVisible={isAttributeMenuOpen}
-        />
-      </div>
-    ),
-    [attributeToggle, attributeMenu, isAttributeMenuOpen],
+      }}
+      onOpenChange={(isOpen) => setIsAttributeMenuOpen(isOpen)}
+      toggle={(toggleRef) => (
+        <MenuToggle
+          ref={toggleRef}
+          onClick={() => setIsAttributeMenuOpen(!isAttributeMenuOpen)}
+          isExpanded={isAttributeMenuOpen}
+          icon={<FilterIcon />}
+        >
+          {activeAttributeMenu}
+        </MenuToggle>
+      )}
+    >
+      <SelectList>
+        <SelectOption value="Name">Name</SelectOption>
+        <SelectOption value="Description">Description</SelectOption>
+        <SelectOption value="Status">Status</SelectOption>
+      </SelectList>
+    </Select>
   );
 
   const emptyState = useMemo(

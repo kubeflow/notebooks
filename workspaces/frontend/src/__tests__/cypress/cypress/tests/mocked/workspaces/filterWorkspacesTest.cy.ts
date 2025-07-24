@@ -16,13 +16,21 @@ describe('Application', () => {
     cy.intercept('GET', '/api/v1/namespaces', {
       body: mockBFFResponse(mockNamespaces),
     });
+    cy.intercept('GET', '/api/v1/workspaces', {
+      body: mockBFFResponse(mockWorkspaces),
+    }).as('getWorkspaces');
     cy.intercept('GET', '/api/v1/workspaces/default', {
       body: mockBFFResponse(mockWorkspaces),
     });
     cy.intercept('GET', '/api/namespaces/test-namespace/workspaces').as('getWorkspaces');
   });
+
   it('filter rows with single filter', () => {
     home.visit();
+
+    // Wait for the API call before trying to interact with the UI
+    cy.wait('@getWorkspaces');
+
     useFilter('name', 'Name', 'My');
     cy.get("[id$='workspaces-table-content']").find('tr').should('have.length', 2);
     cy.get("[id$='workspaces-table-row-1']").contains('My First Jupyter Notebook');
