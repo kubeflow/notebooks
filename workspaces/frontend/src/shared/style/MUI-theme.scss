@@ -510,8 +510,8 @@
 .mui-theme .pf-v6-c-menu {
   --pf-v6-c-menu--BoxShadow: var(--mui-shadows-8);
   --pf-v6-c-menu--BorderRadius: var(--mui-shape-borderRadius);
-  --pf-v6-c-menu--PaddingBlockStart: var(--mui-spacing);
-  --pf-v6-c-menu--PaddingBlockEnd: var(--mui-spacing);
+  --pf-v6-c-menu--PaddingBlockStart: none;
+  --pf-v6-c-menu--PaddingBlockEnd: none;
   --pf-v6-c-menu--PaddingInlineStart: var(--mui-spacing);
   --pf-v6-c-menu--PaddingInlineEnd: var(--mui-spacing);
   --pf-v6-c-menu__item--PaddingBlockStart: var(--mui-menu__item--PaddingBlockStart);
@@ -546,6 +546,8 @@
 
   font-weight: var(--mui-button-font-weight);
   letter-spacing: 0.02857em;
+  height: 37px;
+
 }
 
 .mui-theme .pf-v6-c-menu-toggle__button {
@@ -919,7 +921,7 @@
   margin-block-end: var(--mui-spacing-16px);
 }
 
-.workspacekind-file-upload {
+.mui-theme .workspacekind-file-upload {
   height: 100%;
 
   .pf-v6-c-file-upload__file-details {
@@ -928,7 +930,31 @@
 }
 
 /* Workaround for Toggle group header in Workspace Kind Form */
-.workspace-kind-form-header .pf-v6-c-toggle-group__button.pf-m-selected {
+.mui-theme .workspace-kind-form-header .pf-v6-c-toggle-group__button.pf-m-selected {
   background-color: #e0f0ff;
   color: var(--pf-t--color--black);
+}
+
+
+.mui-theme .pf-v6-c-menu__item {
+  &.pf-m-selected {
+    --pf-v6-c-menu__item--BackgroundColor: rgba(
+      var(--mui-palette-primary-mainChannel, 25 118 210) /
+        var(--mui-palette-action-selectedOpacity, 0.08)
+    );
+    --pf-v6-c-menu__item--FontWeight: var(--mui-button-font-weight);
+
+    .pf-v6-c-menu__item-select-icon {
+      visibility: hidden;
+    }
+  }
+}
+
+.mui-theme button.pf-v6-c-menu-toggle {
+  // Use box-shadow to create a border effect without affecting the layout
+  &.pf-m-expanded,
+  &:focus {
+    box-shadow: 0 0 0 2px var(--mui-palette-primary-main);
+    outline: none; // Remove default browser outline
+  }
 }

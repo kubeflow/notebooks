@@ -20,7 +20,6 @@ import {
   groupWorkspacesByNamespaceAndGpu,
   YesNoValue,
 } from '~/shared/utilities/WorkspaceUtils';
-import { WorkspaceTableFilteredColumn } from '~/app/components/WorkspaceTable';
 
 const TOP_GPU_CONSUMERS_LIMIT = 2;
 
@@ -28,7 +27,7 @@ interface WorkspaceKindSummaryExpandableCardProps {
   workspaces: Workspace[];
   isExpanded: boolean;
   onExpandToggle: () => void;
-  onAddFilter: (filter: WorkspaceTableFilteredColumn) => void;
+  onAddFilter: (columnKey: string, value: string) => void;
 }
 
 const WorkspaceKindSummaryExpandableCard: React.FC<WorkspaceKindSummaryExpandableCardProps> = ({
@@ -73,7 +72,7 @@ const WorkspaceKindSummaryExpandableCard: React.FC<WorkspaceKindSummaryExpandabl
                   isInline
                   className="pf-v6-u-font-size-4xl pf-v6-u-font-weight-bold"
                   onClick={() => {
-                    onAddFilter({ columnKey: 'idleGpu', value: YesNoValue.Yes });
+                    onAddFilter('idleGpu', YesNoValue.Yes);
                   }}
                 >
                   {filterIdleWorkspacesWithGpu(workspaces).length}
@@ -141,7 +140,7 @@ const SectionDivider: React.FC = () => (
 interface NamespaceConsumerProps {
   namespace: string;
   gpuCount: number;
-  onAddFilter: (filter: WorkspaceTableFilteredColumn) => void;
+  onAddFilter: (columnKey: string, value: string) => void;
 }
 
 const NamespaceGpuConsumer: React.FC<NamespaceConsumerProps> = ({
@@ -154,7 +153,7 @@ const NamespaceGpuConsumer: React.FC<NamespaceConsumerProps> = ({
       variant="link"
       isInline
       onClick={() => {
-        onAddFilter({ columnKey: 'namespace', value: namespace });
+        onAddFilter('namespace', namespace);
       }}
     >
       {namespace}
