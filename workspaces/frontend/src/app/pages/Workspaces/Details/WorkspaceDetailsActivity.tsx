@@ -23,28 +23,28 @@ export const WorkspaceDetailsActivity: React.FunctionComponent<WorkspaceDetailsA
   return (
     <DescriptionList isHorizontal>
       <DescriptionListGroup>
-        <DescriptionListTerm>Last Activity</DescriptionListTerm>
+        <DescriptionListTerm>Last activity</DescriptionListTerm>
         <DescriptionListDescription data-testid="lastActivity">
           {format(activity.lastActivity, DATE_FORMAT)}
         </DescriptionListDescription>
       </DescriptionListGroup>
       <Divider />
       <DescriptionListGroup>
-        <DescriptionListTerm>Last Update</DescriptionListTerm>
+        <DescriptionListTerm>Last update</DescriptionListTerm>
         <DescriptionListDescription data-testid="lastUpdate">
           {format(activity.lastUpdate, DATE_FORMAT)}
         </DescriptionListDescription>
       </DescriptionListGroup>
       <Divider />
       <DescriptionListGroup>
-        <DescriptionListTerm>Pause Time</DescriptionListTerm>
+        <DescriptionListTerm>Pause time</DescriptionListTerm>
         <DescriptionListDescription data-testid="pauseTime">
           {format(pausedTime, DATE_FORMAT)}
         </DescriptionListDescription>
       </DescriptionListGroup>
       <Divider />
       <DescriptionListGroup>
-        <DescriptionListTerm>Pending Restart</DescriptionListTerm>
+        <DescriptionListTerm>Pending restart</DescriptionListTerm>
         <DescriptionListDescription data-testid="pendingRestart">
           {pendingRestart ? 'Yes' : 'No'}
         </DescriptionListDescription>

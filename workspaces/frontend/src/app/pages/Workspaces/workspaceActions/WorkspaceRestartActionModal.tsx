@@ -38,7 +38,7 @@ export const WorkspaceRestartActionModal: React.FC<RestartActionAlertProps> = ({
       aria-labelledby="title-icon-modal-title"
       onClose={onClose}
     >
-      <ModalHeader title="Restart Workspace" />
+      <ModalHeader title="Restart workspace" />
       <ModalBody>
         {workspacePendingUpdate ? (
           <>
@@ -54,7 +54,7 @@ export const WorkspaceRestartActionModal: React.FC<RestartActionAlertProps> = ({
       </ModalBody>
       <ModalFooter>
         {workspacePendingUpdate && (
-          <Button onClick={() => handleClick(true)}>Update and Restart</Button>
+          <Button onClick={() => handleClick(true)}>Update and restart</Button>
         )}
         <Button
           onClick={() => handleClick(false)}
