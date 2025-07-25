@@ -19,6 +19,7 @@ package helper
 import (
 	"reflect"
 
+	istiov1 "istio.io/client-go/pkg/apis/networking/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -115,6 +116,19 @@ func CopyServiceFields(desired *corev1.Service, target *corev1.Service) bool {
 		requireUpdate = true
 	}
 
+	return requireUpdate
+}
+
+// CopyVirtualServiceFields updates a target VirtualService with the fields from a desired VirtualService, returning true if an update is required.
+func CopyVirtualServiceFields(desired *istiov1.VirtualService, target *istiov1.VirtualService) bool {
+	requireUpdate := false
+	// copy `spec`
+	// NOTE: not sure if we should copy the entire spec or just specific fields
+	// this is a simple implementation that copies the entire spec
+	if !reflect.DeepEqual(target.Spec, desired.Spec) {
+		target.Spec = desired.Spec
+		requireUpdate = true
+	}
 	return requireUpdate
 }
 
