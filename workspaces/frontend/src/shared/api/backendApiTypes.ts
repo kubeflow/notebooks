@@ -278,8 +278,6 @@ export interface WorkspaceUpdate extends WorkspaceCreate {}
 export interface WorkspacePatch {}
 
 export interface WorkspacePauseState {
-  namespace: string;
-  workspaceName: string;
   paused: boolean;
 }
 

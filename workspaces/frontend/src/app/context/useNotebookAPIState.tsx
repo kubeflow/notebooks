@@ -15,7 +15,6 @@ import {
   patchWorkspace,
   patchWorkspaceKind,
   pauseWorkspace,
-  startWorkspace,
   updateWorkspace,
   updateWorkspaceKind,
 } from '~/shared/api/notebookService';
@@ -36,7 +35,6 @@ import {
   mockPatchWorkspace,
   mockPatchWorkspaceKind,
   mockPauseWorkspace,
-  mockStartWorkspace,
   mockUpdateWorkspace,
   mockUpdateWorkspaceKind,
 } from '~/shared/mock/mockNotebookService';
@@ -63,7 +61,6 @@ const useNotebookAPIState = (
       patchWorkspace: patchWorkspace(path),
       deleteWorkspace: deleteWorkspace(path),
       pauseWorkspace: pauseWorkspace(path),
-      startWorkspace: startWorkspace(path),
       // WorkspaceKind
       listWorkspaceKinds: listWorkspaceKinds(path),
       createWorkspaceKind: createWorkspaceKind(path),
@@ -90,7 +87,6 @@ const useNotebookAPIState = (
       patchWorkspace: mockPatchWorkspace(path),
       deleteWorkspace: mockDeleteWorkspace(path),
       pauseWorkspace: mockPauseWorkspace(path),
-      startWorkspace: mockStartWorkspace(path),
       // WorkspaceKind
       listWorkspaceKinds: mockListWorkspaceKinds(path),
       createWorkspaceKind: mockCreateWorkspaceKind(path),
