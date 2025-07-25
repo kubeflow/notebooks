@@ -63,6 +63,37 @@ vet: ## Run go vet against code.
 test: manifests generate fmt vet envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $$(go list ./... | grep -v /e2e) -coverprofile cover.out
 
+# Sets up a local Kubernetes cluster using Kind.
+# By default:
+#   - The cluster name is read from the `name:` field in the Kind config file (CONFIG_FILE).
+#   - cert-manager is installed automatically.
+#   - metrics-server is installed automatically (can be disabled).
+# Variables you can override:
+#   - CONFIG_FILE:        Path to your Kind config file.
+#   - CLUSTER_NAME:       Cluster name (overrides the name from the config file).
+#   - INSTALL_METRICS_SERVER: Set to false to skip metrics-server installation.
+# Usage examples:
+#   make setup-kind-cluster
+#   make setup-kind-cluster CONFIG_FILE=utils/configs/my-config.yaml
+#   make setup-kind-cluster CLUSTER_NAME=my-cluster
+#   make setup-kind-cluster INSTALL_METRICS_SERVER=false
+INSTALL_METRICS_SERVER ?= true
+CONFIG_FILE := utils/configs/kind-notebooks-config.yaml
+DEFAULT_CLUSTER_NAME := $(shell grep '^name:' $(CONFIG_FILE) | awk '{print $$2}')
+CLUSTER_NAME ?= $(DEFAULT_CLUSTER_NAME)
+.PHONY: setup-kind-cluster
+setup-kind-cluster:
+	KIND_EXPERIMENTAL_PROVIDER=$(CONTAINER_TOOL) kind delete cluster --name $(CLUSTER_NAME) || true
+	KIND_EXPERIMENTAL_PROVIDER=$(CONTAINER_TOOL) kind create cluster --name $(CLUSTER_NAME) --config=$(CONFIG_FILE)
+	./utils/scripts/install_cert_manager.sh
+ifeq ($(INSTALL_METRICS_SERVER),true)
+	./utils/scripts/install_metrics_server.sh
+else
+	@echo "--- Skipping metrics-server installation (INSTALL_METRICS_SERVER set to $(INSTALL_METRICS_SERVER)) ---"
+endif
+	@echo "--- Setting the current context to $(CLUSTER_NAME) cluster ---"
+	kubectl config set-context kind-$(CLUSTER_NAME) --namespace=workspace-controller-system
+
 # The default setup assumes Kind is pre-installed and builds/loads the Manager Docker image locally.
 # Prometheus and CertManager are installed by default; skip with:
 # - PROMETHEUS_INSTALL_SKIP=true
