@@ -52,11 +52,7 @@ export type PauseWorkspace = (
   opts: APIOptions,
   namespace: string,
   workspace: string,
-) => Promise<WorkspacePauseState>;
-export type StartWorkspace = (
-  opts: APIOptions,
-  namespace: string,
-  workspace: string,
+  data: RequestData<WorkspacePauseState>,
 ) => Promise<WorkspacePauseState>;
 
 // WorkspaceKind
@@ -89,7 +85,6 @@ export type NotebookAPIs = {
   patchWorkspace: PatchWorkspace;
   deleteWorkspace: DeleteWorkspace;
   pauseWorkspace: PauseWorkspace;
-  startWorkspace: StartWorkspace;
   // WorkspaceKind
   listWorkspaceKinds: ListWorkspaceKinds;
   getWorkspaceKind: GetWorkspaceKind;

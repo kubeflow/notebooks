@@ -179,7 +179,9 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
                     onClose={onCloseActionAlertDialog}
                     workspace={activeWsAction.workspace}
                     onStart={async () =>
-                      api.startWorkspace({}, selectedNamespace, activeWsAction.workspace.name)
+                      api.pauseWorkspace({}, selectedNamespace, activeWsAction.workspace.name, {
+                        data: { paused: false },
+                      })
                     }
                     onActionDone={activeWsAction.onActionDone}
                     onUpdateAndStart={async () => {
@@ -200,7 +202,9 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
                     onClose={onCloseActionAlertDialog}
                     workspace={activeWsAction.workspace}
                     onStop={async () =>
-                      api.pauseWorkspace({}, selectedNamespace, activeWsAction.workspace.name)
+                      api.pauseWorkspace({}, selectedNamespace, activeWsAction.workspace.name, {
+                        data: { paused: true },
+                      })
                     }
                     onActionDone={activeWsAction.onActionDone}
                     onUpdateAndStop={async () => {

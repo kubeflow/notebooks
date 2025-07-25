@@ -7,7 +7,6 @@ import {
 import {
   buildMockHealthCheckResponse,
   buildMockNamespace,
-  buildMockPauseStateResponse,
   buildMockWorkspace,
   buildMockWorkspaceKind,
   buildMockWorkspaceKindInfo,
@@ -163,6 +162,3 @@ export const mockAllWorkspaces = [
     kind: mockWorkspaceKindInfo1,
   }),
 ];
-
-export const mockPausedStateResponse = buildMockPauseStateResponse({ paused: true });
-export const mockStartedStateResponse = buildMockPauseStateResponse({ paused: false });
