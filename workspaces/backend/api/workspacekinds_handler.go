@@ -47,6 +47,7 @@ type WorkspaceKindEnvelope Envelope[models.WorkspaceKind]
 //	@Summary		Get workspace kind
 //	@Description	Returns details of a specific workspace kind identified by its name. Workspace kinds define the available types of workspaces that can be created.
 //	@Tags			workspacekinds
+//	@ID				getWorkspaceKind
 //	@Accept			json
 //	@Produce		json
 //	@Param			name	path		string					true	"Name of the workspace kind"	extensions(x-example=jupyterlab)
@@ -101,6 +102,7 @@ func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps
 //	@Summary		List workspace kinds
 //	@Description	Returns a list of all available workspace kinds. Workspace kinds define the different types of workspaces that can be created in the system.
 //	@Tags			workspacekinds
+//	@ID				listWorkspaceKinds
 //	@Accept			json
 //	@Produce		json
 //	@Success		200	{object}	WorkspaceKindListEnvelope	"Successful operation. Returns a list of all available workspace kinds."
@@ -136,6 +138,7 @@ func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _
 //	@Summary		Create workspace kind
 //	@Description	Creates a new workspace kind.
 //	@Tags			workspacekinds
+//	@ID				createWorkspaceKind
 //	@Accept			application/yaml
 //	@Produce		json
 //	@Param			body	body		string					true	"Kubernetes YAML manifest of a WorkspaceKind"

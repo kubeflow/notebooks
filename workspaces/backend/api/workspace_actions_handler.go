@@ -39,6 +39,7 @@ type WorkspaceActionPauseEnvelope Envelope[*models.WorkspaceActionPause]
 //	@Summary		Pause or unpause a workspace
 //	@Description	Pauses or unpauses a workspace, stopping or resuming all associated pods.
 //	@Tags			workspaces
+//	@ID				updateWorkspacePauseState
 //	@Accept			json
 //	@Produce		json
 //	@Param			namespace		path		string							true	"Namespace of the workspace"	extensions(x-example=default)

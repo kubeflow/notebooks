@@ -209,7 +209,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			By("setting the auth headers")
 			req.Header.Set(userIdHeader, adminUser)
 
-			By("executing GetWorkspacesHandler")
+			By("executing GetWorkspaceKindsHandler")
 			ps := httprouter.Params{}
 			rr := httptest.NewRecorder()
 			a.GetWorkspaceKindsHandler(rr, req, ps)
