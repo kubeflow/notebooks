@@ -340,12 +340,9 @@ func buildServices(ws *kubefloworgv1beta1.Workspace, imageConfigValue *kubeflowo
 	services := make([]Service, len(imageConfigValue.Spec.Ports))
 	for i := range imageConfigValue.Spec.Ports {
 		port := imageConfigValue.Spec.Ports[i]
-		switch port.Protocol { //nolint:gocritic
-		case kubefloworgv1beta1.ImagePortProtocolHTTP:
-			services[i].HttpService = &HttpService{
-				DisplayName: port.DisplayName,
-				HttpPath:    fmt.Sprintf("/workspace/%s/%s/%s/", ws.Namespace, ws.Name, port.Id),
-			}
+		services[i].HttpService = &HttpService{
+			DisplayName: *port.DisplayName,
+			HttpPath:    fmt.Sprintf("/workspace/%s/%s/%s/", ws.Namespace, ws.Name, port.Id),
 		}
 	}
 
