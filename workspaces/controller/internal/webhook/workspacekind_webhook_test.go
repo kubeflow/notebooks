@@ -99,6 +99,21 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 				shouldSucceed: false,
 			},
 			{
+				description:   "should reject creation with empty ports array in podTemplate",
+				workspaceKind: NewExampleWorkspaceKindWithEmptyPortsArrayInPodTemplate("wsk-webhook-create--pod-template-empty-ports-array"),
+				shouldSucceed: true,
+			},
+			{
+				description:   "should reject creation with duplicate ports in podTemplate.ports",
+				workspaceKind: NewExampleWorkspaceKindWithDuplicatePortsInPodTemplate("wsk-webhook-create--pod-template-duplicate-portids"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with non-existent portId in imageConfig.ports",
+				workspaceKind: NewExampleWorkspaceKindWithNonExistentPortIdInImageConfig("wsk-webhook-create--image-config-non-existent-portid"),
+				shouldSucceed: false,
+			},
+			{
 				description:   "should reject creation if extraEnv[].value is not a valid Go template",
 				workspaceKind: NewExampleWorkspaceKindWithInvalidExtraEnvValue("wsk-webhook-create--extra-invalid-env-value"),
 				shouldSucceed: false,
@@ -506,6 +521,26 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						},
 					}
 					return ContainSubstring("port %d is defined more than once", duplicatePortNumber)
+				},
+			},
+			{
+				description:   "should reject updating a portId in podTemplate.ports to a duplicate portId",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					wsk.Spec.PodTemplate.Ports[1].PortId = "jupyterlab"
+					return ContainSubstring("Duplicate value: %q", "jupyterlab")
+				},
+			},
+			{
+				description:   "should reject updating a portId in podTemplate.ports to a non-existent portId in imageConfig.ports",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					wsk.Spec.PodTemplate.Ports[0].PortId = "non-existent-port-id"
+					return ContainSubstring("portId %q does not match any port defined in imageConfig values", "non-existent-port-id")
 				},
 			},
 			{
