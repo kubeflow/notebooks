@@ -20,10 +20,12 @@ import (
 	"bytes"
 	"fmt"
 	"text/template"
+
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 )
 
 // RenderExtraEnvValueTemplate renders a single WorkspaceKind `spec.podTemplate.extraEnv[].value` string template
-func RenderExtraEnvValueTemplate(rawValue string, httpPathPrefixFunc func(string) string) (string, error) {
+func RenderExtraEnvValueTemplate(rawValue string, httpPathPrefixFunc func(kubefloworgv1beta1.PortId) string) (string, error) {
 
 	// Parse the raw value as a template
 	tmpl, err := template.New("value").

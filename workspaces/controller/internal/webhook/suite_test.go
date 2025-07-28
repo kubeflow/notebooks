@@ -208,12 +208,24 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 				VolumeMounts: kubefloworgv1beta1.WorkspaceKindVolumeMounts{
 					Home: "/home/jovyan",
 				},
-				HTTPProxy: &kubefloworgv1beta1.HTTPProxy{
-					RemovePathPrefix: ptr.To(false),
-					RequestHeaders: &kubefloworgv1beta1.IstioHeaderOperations{
-						Set:    map[string]string{"X-RStudio-Root-Path": "{{ .PathPrefix }}"},
-						Add:    map[string]string{},
-						Remove: []string{},
+				Ports: []kubefloworgv1beta1.WorkspaceKindPort{
+					{
+						Id:                 "jupyterlab",
+						DefaultDisplayName: "JupyterLab",
+						Protocol:           "HTTP",
+						HTTPProxy: &kubefloworgv1beta1.HTTPProxy{
+							RemovePathPrefix: ptr.To(false),
+							RequestHeaders: &kubefloworgv1beta1.IstioHeaderOperations{
+								Set:    map[string]string{},
+								Add:    map[string]string{},
+								Remove: []string{},
+							},
+						},
+					},
+					{
+						Id:                 "my_port",
+						DefaultDisplayName: "My Port",
+						Protocol:           "HTTP",
 					},
 				},
 				ExtraEnv: []v1.EnvVar{
@@ -280,9 +292,8 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 									Ports: []kubefloworgv1beta1.ImagePort{
 										{
 											Id:          "jupyterlab",
-											DisplayName: "JupyterLab",
+											DisplayName: ptr.To("JupyterLab"),
 											Port:        8888,
-											Protocol:    "HTTP",
 										},
 									},
 								},
@@ -304,10 +315,8 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 									Image: "ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.9.0",
 									Ports: []kubefloworgv1beta1.ImagePort{
 										{
-											Id:          "jupyterlab",
-											DisplayName: "JupyterLab",
-											Port:        8888,
-											Protocol:    "HTTP",
+											Id:   "jupyterlab",
+											Port: 8888,
 										},
 									},
 								},
@@ -326,9 +335,8 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 									Ports: []kubefloworgv1beta1.ImagePort{
 										{
 											Id:          "my_port",
-											DisplayName: "something",
+											DisplayName: ptr.To("something"),
 											Port:        1234,
-											Protocol:    "HTTP",
 										},
 									},
 								},
@@ -346,10 +354,8 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 									Image: "redirect-test:step-2",
 									Ports: []kubefloworgv1beta1.ImagePort{
 										{
-											Id:          "my_port",
-											DisplayName: "something",
-											Port:        1234,
-											Protocol:    "HTTP",
+											Id:   "my_port",
+											Port: 1234,
 										},
 									},
 								},
@@ -364,10 +370,8 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 									Image: "redirect-test:step-3",
 									Ports: []kubefloworgv1beta1.ImagePort{
 										{
-											Id:          "my_port",
-											DisplayName: "something",
-											Port:        1234,
-											Protocol:    "HTTP",
+											Id:   "my_port",
+											Port: 1234,
 										},
 									},
 								},
@@ -599,15 +603,48 @@ func NewExampleWorkspaceKindWithDuplicatePorts(name string) *kubefloworgv1beta1.
 	workspaceKind.Spec.PodTemplate.Options.ImageConfig.Values[0].Spec.Ports = []kubefloworgv1beta1.ImagePort{
 		{
 			Id:          "jupyterlab",
-			DisplayName: "JupyterLab",
+			DisplayName: ptr.To("JupyterLab"),
 			Port:        8888,
-			Protocol:    "HTTP",
 		},
 		{
 			Id:          "jupyterlab2",
-			DisplayName: "JupyterLab2",
+			DisplayName: ptr.To("JupyterLab2"),
 			Port:        8888,
-			Protocol:    "HTTP",
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithEmptyPortsArrayInPodTemplate returns a WorkspaceKind with an empty ports array in podTemplate.ports.
+func NewExampleWorkspaceKindWithEmptyPortsArrayInPodTemplate(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.Ports = []kubefloworgv1beta1.WorkspaceKindPort{}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithDuplicatePortsInPodTemplate returns a WorkspaceKind with duplicate ports in podTemplate.ports.
+func NewExampleWorkspaceKindWithDuplicatePortsInPodTemplate(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.Ports = []kubefloworgv1beta1.WorkspaceKindPort{
+		{
+			Id:                 "jupyterlab",
+			DefaultDisplayName: "JupyterLab",
+		},
+		{
+			Id:                 "jupyterlab",
+			DefaultDisplayName: "JupyterLab",
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithNonExistentPortIdInImageConfig returns a WorkspaceKind with a non-existent portId in imageConfig.ports.
+func NewExampleWorkspaceKindWithNonExistentPortIdInImageConfig(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.Ports = []kubefloworgv1beta1.WorkspaceKindPort{
+		{
+			Id:                 "non-existent-port-id",
+			DefaultDisplayName: "Non Existent Port",
 		},
 	}
 	return workspaceKind
