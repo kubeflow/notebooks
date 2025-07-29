@@ -548,128 +548,130 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
             </Tr>
           </Thead>
           {sortedWorkspaces.length > 0 &&
-            sortedWorkspaces.map((workspace, rowIndex) => (
-              <Tbody
-                id="workspaces-table-content"
-                key={rowIndex}
-                isExpanded={isWorkspaceExpanded(workspace)}
-                data-testid="table-body"
-              >
-                <Tr
-                  id={`workspaces-table-row-${rowIndex + 1}`}
-                  data-testid={`workspace-row-${rowIndex}`}
-                  isStriped={rowIndex % 2 === 0}
+            sortedWorkspaces
+              .slice(perPage * (page - 1), perPage * page)
+              .map((workspace, rowIndex) => (
+                <Tbody
+                  id="workspaces-table-content"
+                  key={rowIndex}
+                  isExpanded={isWorkspaceExpanded(workspace)}
+                  data-testid="table-body"
                 >
-                  {canExpandRows && (
-                    <Td
-                      expand={{
-                        rowIndex,
-                        isExpanded: isWorkspaceExpanded(workspace),
-                        onToggle: () =>
-                          setWorkspaceExpanded(workspace, !isWorkspaceExpanded(workspace)),
-                      }}
+                  <Tr
+                    id={`workspaces-table-row-${rowIndex + 1}`}
+                    data-testid={`workspace-row-${rowIndex}`}
+                    isStriped={rowIndex % 2 === 0}
+                  >
+                    {canExpandRows && (
+                      <Td
+                        expand={{
+                          rowIndex,
+                          isExpanded: isWorkspaceExpanded(workspace),
+                          onToggle: () =>
+                            setWorkspaceExpanded(workspace, !isWorkspaceExpanded(workspace)),
+                        }}
+                      />
+                    )}
+                    {visibleColumnKeys.map((columnKey) => {
+                      if (columnKey === 'connect') {
+                        return (
+                          <Td key="connect" isActionCell>
+                            <WorkspaceConnectAction workspace={workspace} />
+                          </Td>
+                        );
+                      }
+
+                      if (columnKey === 'actions') {
+                        return (
+                          <Td key="actions" isActionCell data-testid="action-column">
+                            <ActionsColumn
+                              items={rowActions(workspace).map((action) => ({
+                                ...action,
+                                'data-testid': `action-${action.id || ''}`,
+                              }))}
+                            />
+                          </Td>
+                        );
+                      }
+
+                      return (
+                        <Td
+                          key={columnKey}
+                          data-testid={
+                            columnKey === 'name'
+                              ? 'workspace-name'
+                              : columnKey === 'state'
+                                ? 'state-label'
+                                : `workspace-${columnKey}`
+                          }
+                          dataLabel={wsTableColumns[columnKey].label}
+                        >
+                          {columnKey === 'name' && workspace.name}
+                          {columnKey === 'image' && (
+                            <Content>
+                              {workspace.podTemplate.options.imageConfig.current.displayName}{' '}
+                              {workspaceRedirectStatus[workspace.workspaceKind.name]
+                                ? getRedirectStatusIcon(
+                                    workspaceRedirectStatus[workspace.workspaceKind.name]?.message
+                                      ?.level,
+                                    workspaceRedirectStatus[workspace.workspaceKind.name]?.message
+                                      ?.text || 'No API response available',
+                                  )
+                                : getRedirectStatusIcon(undefined, 'No API response available')}
+                            </Content>
+                          )}
+                          {columnKey === 'kind' && (
+                            <WithValidImage
+                              imageSrc={kindLogoDict[workspace.workspaceKind.name]}
+                              skeletonWidth="20px"
+                              fallback={
+                                <ImageFallback
+                                  imageSrc={kindLogoDict[workspace.workspaceKind.name]}
+                                />
+                              }
+                            >
+                              {(validSrc) => (
+                                <Tooltip content={workspace.workspaceKind.name}>
+                                  <img
+                                    src={validSrc}
+                                    alt={workspace.workspaceKind.name}
+                                    style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                                  />
+                                </Tooltip>
+                              )}
+                            </WithValidImage>
+                          )}
+                          {columnKey === 'namespace' && workspace.namespace}
+                          {columnKey === 'state' && (
+                            <Label color={extractStateColor(workspace.state)}>
+                              {workspace.state}
+                            </Label>
+                          )}
+                          {columnKey === 'gpu' && formatResourceFromWorkspace(workspace, 'gpu')}
+                          {columnKey === 'idleGpu' && formatWorkspaceIdleState(workspace)}
+                          {columnKey === 'lastActivity' && (
+                            <Timestamp
+                              date={new Date(workspace.activity.lastActivity)}
+                              tooltip={{ variant: TimestampTooltipVariant.default }}
+                            >
+                              {formatDistanceToNow(new Date(workspace.activity.lastActivity), {
+                                addSuffix: true,
+                              })}
+                            </Timestamp>
+                          )}
+                        </Td>
+                      );
+                    })}
+                  </Tr>
+                  {isWorkspaceExpanded(workspace) && (
+                    <ExpandedWorkspaceRow
+                      workspace={workspace}
+                      visibleColumnKeys={visibleColumnKeys}
+                      canExpandRows={canExpandRows}
                     />
                   )}
-                  {visibleColumnKeys.map((columnKey) => {
-                    if (columnKey === 'connect') {
-                      return (
-                        <Td key="connect" isActionCell>
-                          <WorkspaceConnectAction workspace={workspace} />
-                        </Td>
-                      );
-                    }
-
-                    if (columnKey === 'actions') {
-                      return (
-                        <Td key="actions" isActionCell data-testid="action-column">
-                          <ActionsColumn
-                            items={rowActions(workspace).map((action) => ({
-                              ...action,
-                              'data-testid': `action-${action.id || ''}`,
-                            }))}
-                          />
-                        </Td>
-                      );
-                    }
-
-                    return (
-                      <Td
-                        key={columnKey}
-                        data-testid={
-                          columnKey === 'name'
-                            ? 'workspace-name'
-                            : columnKey === 'state'
-                              ? 'state-label'
-                              : `workspace-${columnKey}`
-                        }
-                        dataLabel={wsTableColumns[columnKey].label}
-                      >
-                        {columnKey === 'name' && workspace.name}
-                        {columnKey === 'image' && (
-                          <Content>
-                            {workspace.podTemplate.options.imageConfig.current.displayName}{' '}
-                            {workspaceRedirectStatus[workspace.workspaceKind.name]
-                              ? getRedirectStatusIcon(
-                                  workspaceRedirectStatus[workspace.workspaceKind.name]?.message
-                                    ?.level,
-                                  workspaceRedirectStatus[workspace.workspaceKind.name]?.message
-                                    ?.text || 'No API response available',
-                                )
-                              : getRedirectStatusIcon(undefined, 'No API response available')}
-                          </Content>
-                        )}
-                        {columnKey === 'kind' && (
-                          <WithValidImage
-                            imageSrc={kindLogoDict[workspace.workspaceKind.name]}
-                            skeletonWidth="20px"
-                            fallback={
-                              <ImageFallback
-                                imageSrc={kindLogoDict[workspace.workspaceKind.name]}
-                              />
-                            }
-                          >
-                            {(validSrc) => (
-                              <Tooltip content={workspace.workspaceKind.name}>
-                                <img
-                                  src={validSrc}
-                                  alt={workspace.workspaceKind.name}
-                                  style={{ width: '20px', height: '20px', cursor: 'pointer' }}
-                                />
-                              </Tooltip>
-                            )}
-                          </WithValidImage>
-                        )}
-                        {columnKey === 'namespace' && workspace.namespace}
-                        {columnKey === 'state' && (
-                          <Label color={extractStateColor(workspace.state)}>
-                            {workspace.state}
-                          </Label>
-                        )}
-                        {columnKey === 'gpu' && formatResourceFromWorkspace(workspace, 'gpu')}
-                        {columnKey === 'idleGpu' && formatWorkspaceIdleState(workspace)}
-                        {columnKey === 'lastActivity' && (
-                          <Timestamp
-                            date={new Date(workspace.activity.lastActivity)}
-                            tooltip={{ variant: TimestampTooltipVariant.default }}
-                          >
-                            {formatDistanceToNow(new Date(workspace.activity.lastActivity), {
-                              addSuffix: true,
-                            })}
-                          </Timestamp>
-                        )}
-                      </Td>
-                    );
-                  })}
-                </Tr>
-                {isWorkspaceExpanded(workspace) && (
-                  <ExpandedWorkspaceRow
-                    workspace={workspace}
-                    visibleColumnKeys={visibleColumnKeys}
-                    canExpandRows={canExpandRows}
-                  />
-                )}
-              </Tbody>
-            ))}
+                </Tbody>
+              ))}
           {sortedWorkspaces.length === 0 && (
             <Tr>
               <Td colSpan={8} id="empty-state-cell">
@@ -679,7 +681,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
           )}
         </Table>
         <Pagination
-          itemCount={333}
+          itemCount={sortedWorkspaces.length}
           widgetId="bottom-example"
           perPage={perPage}
           page={page}
