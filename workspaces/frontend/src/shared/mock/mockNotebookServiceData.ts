@@ -27,16 +27,25 @@ export const mockNamespaces = [mockNamespace1, mockNamespace2, mockNamespace3];
 export const mockWorkspaceKind1: WorkspaceKind = buildMockWorkspaceKind({
   name: 'jupyterlab1',
   displayName: 'JupyterLab Notebook 1',
+  clusterMetrics: {
+    workspacesCount: 18,
+  },
 });
 
 export const mockWorkspaceKind2: WorkspaceKind = buildMockWorkspaceKind({
   name: 'jupyterlab2',
   displayName: 'JupyterLab Notebook 2',
+  clusterMetrics: {
+    workspacesCount: 2,
+  },
 });
 
 export const mockWorkspaceKind3: WorkspaceKind = buildMockWorkspaceKind({
   name: 'jupyterlab3',
   displayName: 'JupyterLab Notebook 3',
+  clusterMetrics: {
+    workspacesCount: 0,
+  },
 });
 
 export const mockWorkspaceKinds = [mockWorkspaceKind1, mockWorkspaceKind2, mockWorkspaceKind3];

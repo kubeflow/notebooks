@@ -63,7 +63,7 @@ export const WorkspaceKindDetailsTable: React.FC<WorkspaceKindDetailsTableProps>
           </Tr>
         </Thead>
         <Tbody>
-          {rowPages[page - 1].map((row) => (
+          {rowPages[page - 1]?.map((row) => (
             <Tr key={row.id}>
               <Td>{row.displayName}</Td>
               <Td>
