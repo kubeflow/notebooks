@@ -5,10 +5,7 @@ import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack'
 import { Breadcrumb } from '@patternfly/react-core/dist/esm/components/Breadcrumb';
 import { BreadcrumbItem } from '@patternfly/react-core/dist/esm/components/Breadcrumb/BreadcrumbItem';
 import { useTypedLocation, useTypedParams } from '~/app/routerHelper';
-import WorkspaceTable, {
-  WorkspaceTableFilteredColumn,
-  WorkspaceTableRef,
-} from '~/app/components/WorkspaceTable';
+import WorkspaceTable, { WorkspaceTableRef } from '~/app/components/WorkspaceTable';
 import { useWorkspacesByKind } from '~/app/hooks/useWorkspaces';
 import WorkspaceKindSummaryExpandableCard from '~/app/pages/WorkspaceKinds/summary/WorkspaceKindSummaryExpandableCard';
 import { DEFAULT_POLLING_RATE_MS } from '~/app/const';
@@ -37,11 +34,17 @@ const WorkspaceKindSummary: React.FC = () => {
   const tableRowActions = useWorkspaceRowActions([{ id: 'viewDetails' }]);
 
   const onAddFilter = useCallback(
-    (filter: WorkspaceTableFilteredColumn) => {
+    (columnKey: string, value: string) => {
       if (!workspaceTableRef.current) {
         return;
       }
-      workspaceTableRef.current.addFilter(filter);
+      // Map to valid filter keys from WorkspaceTable
+      const validKeys = ['name', 'kind', 'image', 'state', 'namespace', 'idleGpu'] as const;
+      type ValidKey = (typeof validKeys)[number];
+
+      if (validKeys.includes(columnKey as ValidKey)) {
+        workspaceTableRef.current.setFilter(columnKey as ValidKey, value);
+      }
     },
     [workspaceTableRef],
   );

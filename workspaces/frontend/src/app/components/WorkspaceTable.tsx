@@ -1,5 +1,4 @@
-import React, { useCallback, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
+import React, { useCallback, useImperativeHandle, useMemo, useState } from 'react';
 import {
   TimestampTooltipVariant,
   Timestamp,
@@ -15,6 +14,20 @@ import { Bullseye } from '@patternfly/react-core/dist/esm/layouts/Bullseye';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { Icon } from '@patternfly/react-core/dist/esm/components/Icon';
 import {
+  Toolbar,
+  ToolbarContent,
+  ToolbarItem,
+  ToolbarGroup,
+  ToolbarFilter,
+  ToolbarToggleGroup,
+} from '@patternfly/react-core/dist/esm/components/Toolbar';
+import {
+  Select,
+  SelectList,
+  SelectOption,
+} from '@patternfly/react-core/dist/esm/components/Select';
+import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
+import {
   Table,
   Thead,
   Tr,
@@ -25,18 +38,14 @@ import {
   ActionsColumn,
   IActions,
 } from '@patternfly/react-table/dist/esm/components/Table';
+import { FilterIcon } from '@patternfly/react-icons/dist/esm/icons/filter-icon';
 import { InfoCircleIcon } from '@patternfly/react-icons/dist/esm/icons/info-circle-icon';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-triangle-icon';
 import { TimesCircleIcon } from '@patternfly/react-icons/dist/esm/icons/times-circle-icon';
 import { QuestionCircleIcon } from '@patternfly/react-icons/dist/esm/icons/question-circle-icon';
 import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
 import { Workspace, WorkspaceState } from '~/shared/api/backendApiTypes';
-import {
-  DataFieldKey,
-  defineDataFields,
-  FilterableDataFieldKey,
-  SortableDataFieldKey,
-} from '~/app/filterableDataHelper';
+import { DataFieldKey, defineDataFields, SortableDataFieldKey } from '~/app/filterableDataHelper';
 import { useTypedNavigate } from '~/app/routerHelper';
 import {
   buildKindLogoDictionary,
@@ -44,8 +53,7 @@ import {
 } from '~/app/actions/WorkspaceKindsActions';
 import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import { WorkspaceConnectAction } from '~/app/pages/Workspaces/WorkspaceConnectAction';
-import CustomEmptyState from '~/shared/components/CustomEmptyState';
-import Filter, { FilteredColumn, FilterRef } from '~/shared/components/Filter';
+import ThemeAwareSearchInput from '~/app/components/ThemeAwareSearchInput';
 import WithValidImage from '~/shared/components/WithValidImage';
 import ImageFallback from '~/shared/components/ImageFallback';
 import {
@@ -53,12 +61,12 @@ import {
   formatWorkspaceIdleState,
 } from '~/shared/utilities/WorkspaceUtils';
 import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
+import CustomEmptyState from '~/shared/components/CustomEmptyState';
 
 const {
   fields: wsTableColumns,
   keyArray: wsTableColumnKeyArray,
   sortableKeyArray: sortableWsTableColumnKeyArray,
-  filterableKeyArray: filterableWsTableColumnKeyArray,
 } = defineDataFields({
   name: { label: 'Name', isFilterable: true, isSortable: true, width: 35 },
   image: { label: 'Image', isFilterable: true, isSortable: true, width: 25 },
@@ -73,21 +81,40 @@ const {
 });
 
 export type WorkspaceTableColumnKeys = DataFieldKey<typeof wsTableColumns>;
-type WorkspaceTableFilterableColumnKeys = FilterableDataFieldKey<typeof wsTableColumns>;
 type WorkspaceTableSortableColumnKeys = SortableDataFieldKey<typeof wsTableColumns>;
-export type WorkspaceTableFilteredColumn = FilteredColumn<WorkspaceTableFilterableColumnKeys>;
 
 interface WorkspaceTableProps {
   workspaces: Workspace[];
   canCreateWorkspaces?: boolean;
   canExpandRows?: boolean;
-  initialFilters?: WorkspaceTableFilteredColumn[];
   hiddenColumns?: WorkspaceTableColumnKeys[];
   rowActions?: (workspace: Workspace) => IActions;
 }
 
+const allFiltersConfig = {
+  name: { label: 'Name', placeholder: 'Filter by name' },
+  kind: { label: 'Kind', placeholder: 'Filter by kind' },
+  image: { label: 'Image', placeholder: 'Filter by image' },
+  state: { label: 'State', placeholder: 'Filter by state' },
+  namespace: { label: 'Namespace' },
+  idleGpu: { label: 'Idle GPU' },
+} as const;
+
+// Defines which of the above filters should appear in the dropdown
+const dropdownFilterKeys = ['name', 'kind', 'image', 'state'] as const;
+
+const filterConfigs = dropdownFilterKeys.map((key) => ({
+  key,
+  label: allFiltersConfig[key].label,
+  placeholder: allFiltersConfig[key].placeholder!, // '!' asserts placeholder is not undefined here
+}));
+
+type FilterKey = keyof typeof allFiltersConfig;
+type FilterLabel = (typeof allFiltersConfig)[FilterKey]['label'];
+
 export interface WorkspaceTableRef {
-  addFilter: (filter: WorkspaceTableFilteredColumn) => void;
+  clearAllFilters: () => void;
+  setFilter: (key: FilterKey, value: string) => void;
 }
 
 const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
@@ -96,7 +123,6 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       workspaces,
       canCreateWorkspaces = true,
       canExpandRows = true,
-      initialFilters = [],
       hiddenColumns = [],
       rowActions = () => [],
     },
@@ -104,7 +130,15 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
   ) => {
     const [workspaceKinds] = useWorkspaceKinds();
     const [expandedWorkspacesNames, setExpandedWorkspacesNames] = useState<string[]>([]);
-    const [filters, setFilters] = useState<FilteredColumn[]>(initialFilters);
+    const [filters, setFilters] = useState<Record<FilterKey, string>>({
+      name: '',
+      kind: '',
+      image: '',
+      state: '',
+      namespace: '',
+      idleGpu: '',
+    });
+
     const [activeSortColumnKey, setActiveSortColumnKey] =
       useState<WorkspaceTableSortableColumnKeys | null>(null);
     const [activeSortDirection, setActiveSortDirection] = useState<'asc' | 'desc' | null>(null);
@@ -112,9 +146,65 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
     const [perPage, setPerPage] = useState(10);
 
     const navigate = useTypedNavigate();
-    const filterRef = useRef<FilterRef>(null);
     const kindLogoDict = buildKindLogoDictionary(workspaceKinds);
     const workspaceRedirectStatus = buildWorkspaceRedirectStatus(workspaceKinds);
+
+    // Use the derived FilterLabel type for the active menu
+    const [activeAttributeMenu, setActiveAttributeMenu] = useState<FilterLabel>('Name');
+    const [isAttributeMenuOpen, setIsAttributeMenuOpen] = useState(false);
+
+    const handleFilterChange = useCallback((key: FilterKey, value: string) => {
+      setFilters((prev) => ({ ...prev, [key]: value }));
+    }, []);
+
+    const clearAllFilters = useCallback(() => {
+      setFilters({
+        name: '',
+        kind: '',
+        image: '',
+        state: '',
+        namespace: '',
+        idleGpu: '',
+      });
+    }, []);
+
+    const onAttributeToggleClick = useCallback(() => {
+      setIsAttributeMenuOpen((prev) => !prev);
+    }, []);
+
+    const attributeDropdown = useMemo(
+      () => (
+        <Select
+          isOpen={isAttributeMenuOpen}
+          onSelect={(_ev, itemId) => {
+            setActiveAttributeMenu(itemId?.toString() as FilterLabel);
+            setIsAttributeMenuOpen(false);
+          }}
+          selected={activeAttributeMenu}
+          onOpenChange={(isOpen) => setIsAttributeMenuOpen(isOpen)}
+          toggle={(toggleRef) => (
+            <MenuToggle
+              ref={toggleRef}
+              id="filter-workspaces-dropdown"
+              onClick={onAttributeToggleClick}
+              isExpanded={isAttributeMenuOpen}
+              icon={<FilterIcon />}
+            >
+              {activeAttributeMenu}
+            </MenuToggle>
+          )}
+        >
+          <SelectList>
+            {filterConfigs.map(({ key, label }) => (
+              <SelectOption key={key} value={label} id={`filter-workspaces-dropdown-${key}`}>
+                {label}
+              </SelectOption>
+            ))}
+          </SelectList>
+        </Select>
+      ),
+      [isAttributeMenuOpen, activeAttributeMenu, onAttributeToggleClick],
+    );
 
     const visibleColumnKeys: WorkspaceTableColumnKeys[] = useMemo(
       () =>
@@ -129,38 +219,31 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       [visibleColumnKeys],
     );
 
-    const visibleFilterableColumnKeys: WorkspaceTableFilterableColumnKeys[] = useMemo(
-      () => filterableWsTableColumnKeyArray.filter((col) => visibleColumnKeys.includes(col)),
-      [visibleColumnKeys],
-    );
-
-    const visibleFilterableColumnMap = useMemo(
-      () =>
-        Object.fromEntries(
-          visibleFilterableColumnKeys.map((key) => [key, wsTableColumns[key].label]),
-        ) as Record<WorkspaceTableFilterableColumnKeys, string>,
-      [visibleFilterableColumnKeys],
-    );
-
     useImperativeHandle(ref, () => ({
-      addFilter: (newFilter: WorkspaceTableFilteredColumn) => {
-        if (!visibleFilterableColumnKeys.includes(newFilter.columnKey)) {
-          return;
-        }
-
-        setFilters((prev) => {
-          const existingIndex = prev.findIndex((f) => f.columnKey === newFilter.columnKey);
-          if (existingIndex !== -1) {
-            return prev.map((f, i) => (i === existingIndex ? newFilter : f));
-          }
-          return [...prev, newFilter];
-        });
-      },
+      clearAllFilters,
+      setFilter: handleFilterChange,
     }));
 
     const createWorkspace = useCallback(() => {
       navigate('workspaceCreate');
     }, [navigate]);
+
+    const emptyState = useMemo(
+      () => <CustomEmptyState onClearFilters={clearAllFilters} />,
+      [clearAllFilters],
+    );
+
+    const filterableProperties: Record<FilterKey, (ws: Workspace) => string> = useMemo(
+      () => ({
+        name: (ws) => ws.name,
+        kind: (ws) => ws.workspaceKind.name,
+        image: (ws) => ws.podTemplate.options.imageConfig.current.displayName,
+        state: (ws) => ws.state,
+        namespace: (ws) => ws.namespace,
+        idleGpu: (ws) => formatWorkspaceIdleState(ws),
+      }),
+      [],
+    );
 
     const setWorkspaceExpanded = (workspace: Workspace, isExpanding = true) =>
       setExpandedWorkspacesNames((prevExpanded) => {
@@ -179,37 +262,29 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       if (workspaces.length === 0) {
         return [];
       }
-
-      return filters.reduce((result, filter) => {
-        let searchValueInput: RegExp;
-        try {
-          searchValueInput = new RegExp(filter.value, 'i');
-        } catch {
-          searchValueInput = new RegExp(filter.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      const testRegex = (value: string, searchValue: string) => {
+        if (!searchValue) {
+          return true;
         }
+        try {
+          return new RegExp(searchValue, 'i').test(value);
+        } catch {
+          return new RegExp(searchValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(value);
+        }
+      };
 
-        return result.filter((ws) => {
-          switch (filter.columnKey as WorkspaceTableFilterableColumnKeys) {
-            case 'name':
-              return ws.name.match(searchValueInput);
-            case 'kind':
-              return ws.workspaceKind.name.match(searchValueInput);
-            case 'namespace':
-              return ws.namespace.match(searchValueInput);
-            case 'image':
-              return ws.podTemplate.options.imageConfig.current.displayName.match(searchValueInput);
-            case 'state':
-              return ws.state.match(searchValueInput);
-            case 'gpu':
-              return formatResourceFromWorkspace(ws, 'gpu').match(searchValueInput);
-            case 'idleGpu':
-              return formatWorkspaceIdleState(ws).match(searchValueInput);
-            default:
-              return true;
-          }
-        });
-      }, workspaces);
-    }, [workspaces, filters]);
+      const activeFilters = Object.entries(filters).filter(([, value]) => value);
+      if (activeFilters.length === 0) {
+        return workspaces;
+      }
+
+      return workspaces.filter((ws) =>
+        activeFilters.every(([key, searchValue]) => {
+          const propertyGetter = filterableProperties[key as FilterKey];
+          return testRegex(propertyGetter(ws), searchValue);
+        }),
+      );
+    }, [workspaces, filters, filterableProperties]);
 
     // Column sorting
 
@@ -317,8 +392,6 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       }
     };
 
-    // Redirect Status Icons
-
     const getRedirectStatusIcon = (level: string | undefined, message: string) => {
       switch (level) {
         case 'Info':
@@ -383,22 +456,68 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
     };
 
     return (
-      <PageSection isFilled>
+      <>
         <Content style={{ display: 'flex', alignItems: 'flex-start', columnGap: '20px' }}>
-          <Filter
-            ref={filterRef}
-            id="filter-workspaces"
-            filters={filters}
-            setFilters={setFilters}
-            columnDefinition={visibleFilterableColumnMap}
-            toolbarActions={
-              canCreateWorkspaces && (
-                <Button variant="primary" ouiaId="Primary" onClick={createWorkspace}>
-                  Create workspace
-                </Button>
-              )
-            }
-          />
+          <Toolbar id="workspace-filter-toolbar" clearAllFilters={clearAllFilters}>
+            <ToolbarContent>
+              <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="xl">
+                <ToolbarGroup variant="filter-group">
+                  <ToolbarItem>{attributeDropdown}</ToolbarItem>
+                  {filterConfigs.map(({ key, label, placeholder }) => (
+                    <ToolbarFilter
+                      key={key}
+                      labels={filters[key] ? [filters[key]] : []}
+                      deleteLabel={() => handleFilterChange(key, '')}
+                      deleteLabelGroup={() => handleFilterChange(key, '')}
+                      categoryName={label}
+                      showToolbarItem={activeAttributeMenu === label}
+                    >
+                      <ToolbarItem>
+                        <ThemeAwareSearchInput
+                          value={filters[key]}
+                          onChange={(value: string) => handleFilterChange(key, value)}
+                          placeholder={placeholder}
+                          fieldLabel={placeholder}
+                          aria-label={placeholder}
+                          data-testid="filter-workspaces-search-input"
+                        />
+                      </ToolbarItem>
+                    </ToolbarFilter>
+                  ))}
+                  {Object.entries(filters).map(([key, value]) => {
+                    // Check if the key is not in the dropdown config and has a value
+                    const isWsSummaryFilter = !filterConfigs.some((config) => config.key === key);
+                    if (!isWsSummaryFilter || !value) {
+                      return null;
+                    }
+
+                    return (
+                      <ToolbarFilter
+                        key={key}
+                        labels={[value]}
+                        deleteLabel={() => handleFilterChange(key as FilterKey, '')}
+                        categoryName={allFiltersConfig[key as FilterKey].label}
+                        // eslint-disable-next-line react/no-children-prop
+                        children={undefined}
+                      />
+                    );
+                  })}
+                  {canCreateWorkspaces && (
+                    <ToolbarItem>
+                      <Button
+                        size="lg"
+                        variant="primary"
+                        ouiaId="Primary"
+                        onClick={createWorkspace}
+                      >
+                        Create workspace
+                      </Button>
+                    </ToolbarItem>
+                  )}
+                </ToolbarGroup>
+              </ToolbarToggleGroup>
+            </ToolbarContent>
+          </Toolbar>
         </Content>
         <Table
           data-testid="workspaces-table"
@@ -552,15 +671,11 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
               </Tbody>
             ))}
           {sortedWorkspaces.length === 0 && (
-            <Tbody>
-              <Tr>
-                <Td colSpan={12} id="empty-state-cell">
-                  <Bullseye>
-                    <CustomEmptyState onClearFilters={() => filterRef.current?.clearAll()} />
-                  </Bullseye>
-                </Td>
-              </Tr>
-            </Tbody>
+            <Tr>
+              <Td colSpan={8} id="empty-state-cell">
+                <Bullseye>{emptyState}</Bullseye>
+              </Td>
+            </Tr>
           )}
         </Table>
         <Pagination
@@ -573,7 +688,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
           onSetPage={onSetPage}
           onPerPageSelect={onPerPageSelect}
         />
-      </PageSection>
+      </>
     );
   },
 );
