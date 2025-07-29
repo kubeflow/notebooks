@@ -27,6 +27,7 @@ export interface WorkspacePodConfigValue {
   labels: WorkspaceOptionLabel[];
   hidden: boolean;
   redirect?: WorkspaceOptionRedirect;
+  clusterMetrics?: WorkspaceKindClusterMetrics;
 }
 
 export interface WorkspaceKindPodConfig {
@@ -71,6 +72,7 @@ export interface WorkspaceImageConfigValue {
   labels: WorkspaceOptionLabel[];
   hidden: boolean;
   redirect?: WorkspaceOptionRedirect;
+  clusterMetrics?: WorkspaceKindClusterMetrics;
 }
 
 export interface WorkspaceKindImageConfig {
@@ -107,7 +109,12 @@ export interface WorkspaceKind {
   hidden: boolean;
   icon: WorkspaceImageRef;
   logo: WorkspaceImageRef;
+  clusterMetrics?: WorkspaceKindClusterMetrics;
   podTemplate: WorkspaceKindPodTemplate;
+}
+
+export interface WorkspaceKindClusterMetrics {
+  workspacesCount: number;
 }
 
 export enum WorkspaceState {
