@@ -147,6 +147,9 @@ export const buildMockWorkspaceKind = (workspaceKind?: Partial<WorkspaceKind>): 
   logo: {
     url: 'https://upload.wikimedia.org/wikipedia/commons/3/38/Jupyter_logo.svg',
   },
+  clusterMetrics: {
+    workspacesCount: 10,
+  },
   podTemplate: {
     podMetadata: {
       labels: {
@@ -172,6 +175,9 @@ export const buildMockWorkspaceKind = (workspaceKind?: Partial<WorkspaceKind>): 
               { key: 'jupyterlabVersion', value: '1.8.0' },
             ],
             hidden: true,
+            clusterMetrics: {
+              workspacesCount: 0,
+            },
             redirect: {
               to: 'jupyterlab_scipy_190',
               message: {
@@ -196,6 +202,9 @@ export const buildMockWorkspaceKind = (workspaceKind?: Partial<WorkspaceKind>): 
                 level: WorkspaceRedirectMessageLevel.RedirectMessageLevelWarning,
               },
             },
+            clusterMetrics: {
+              workspacesCount: 1,
+            },
           },
           {
             id: 'jupyterlab_scipy_200',
@@ -213,6 +222,9 @@ export const buildMockWorkspaceKind = (workspaceKind?: Partial<WorkspaceKind>): 
                 level: WorkspaceRedirectMessageLevel.RedirectMessageLevelWarning,
               },
             },
+            clusterMetrics: {
+              workspacesCount: 2,
+            },
           },
           {
             id: 'jupyterlab_scipy_210',
@@ -229,6 +241,9 @@ export const buildMockWorkspaceKind = (workspaceKind?: Partial<WorkspaceKind>): 
                 text: 'This update will change...',
                 level: WorkspaceRedirectMessageLevel.RedirectMessageLevelWarning,
               },
+            },
+            clusterMetrics: {
+              workspacesCount: 3,
             },
           },
         ],
@@ -252,6 +267,9 @@ export const buildMockWorkspaceKind = (workspaceKind?: Partial<WorkspaceKind>): 
                 level: WorkspaceRedirectMessageLevel.RedirectMessageLevelDanger,
               },
             },
+            clusterMetrics: {
+              workspacesCount: 0,
+            },
           },
           {
             id: 'large_cpu',
@@ -269,6 +287,9 @@ export const buildMockWorkspaceKind = (workspaceKind?: Partial<WorkspaceKind>): 
                 text: 'This update will change...',
                 level: WorkspaceRedirectMessageLevel.RedirectMessageLevelDanger,
               },
+            },
+            clusterMetrics: {
+              workspacesCount: 5,
             },
           },
         ],
