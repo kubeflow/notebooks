@@ -208,12 +208,20 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 				VolumeMounts: kubefloworgv1beta1.WorkspaceKindVolumeMounts{
 					Home: "/home/jovyan",
 				},
-				HTTPProxy: &kubefloworgv1beta1.HTTPProxy{
-					RemovePathPrefix: ptr.To(false),
-					RequestHeaders: &kubefloworgv1beta1.IstioHeaderOperations{
-						Set:    map[string]string{"X-RStudio-Root-Path": "{{ .PathPrefix }}"},
-						Add:    map[string]string{},
-						Remove: []string{},
+				Ports: []kubefloworgv1beta1.WorkspaceKindPort{
+					{
+						PortId: "jupyterlab",
+						HTTPProxy: &kubefloworgv1beta1.HTTPProxy{
+							RemovePathPrefix: ptr.To(false),
+							RequestHeaders: &kubefloworgv1beta1.IstioHeaderOperations{
+								Set:    map[string]string{"X-RStudio-Root-Path": "{{ .PathPrefix }}"},
+								Add:    map[string]string{},
+								Remove: []string{},
+							},
+						},
+					},
+					{
+						PortId: "my_port",
 					},
 				},
 				ExtraEnv: []v1.EnvVar{
@@ -608,6 +616,38 @@ func NewExampleWorkspaceKindWithDuplicatePorts(name string) *kubefloworgv1beta1.
 			DisplayName: "JupyterLab2",
 			Port:        8888,
 			Protocol:    "HTTP",
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithEmptyPortsArrayInPodTemplate returns a WorkspaceKind with an empty ports array in podTemplate.ports.
+func NewExampleWorkspaceKindWithEmptyPortsArrayInPodTemplate(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.Ports = []kubefloworgv1beta1.WorkspaceKindPort{}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithDuplicatePortsInPodTemplate returns a WorkspaceKind with duplicate ports in podTemplate.ports.
+func NewExampleWorkspaceKindWithDuplicatePortsInPodTemplate(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.Ports = []kubefloworgv1beta1.WorkspaceKindPort{
+		{
+			PortId: "jupyterlab",
+		},
+		{
+			PortId: "jupyterlab",
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithNonExistentPortIdInImageConfig returns a WorkspaceKind with a non-existent portId in imageConfig.ports.
+func NewExampleWorkspaceKindWithNonExistentPortIdInImageConfig(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.Ports = []kubefloworgv1beta1.WorkspaceKindPort{
+		{
+			PortId: "non-existent-port-id",
 		},
 	}
 	return workspaceKind

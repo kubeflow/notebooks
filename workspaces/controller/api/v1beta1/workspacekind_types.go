@@ -115,9 +115,9 @@ type WorkspaceKindPodTemplate struct {
 	// volume mount paths
 	VolumeMounts WorkspaceKindVolumeMounts `json:"volumeMounts"`
 
-	// http proxy configs (MUTABLE)
+	// ports that the container listens on
 	// +kubebuilder:validation:Optional
-	HTTPProxy *HTTPProxy `json:"httpProxy,omitempty"`
+	Ports []WorkspaceKindPort `json:"ports,omitempty"`
 
 	// environment variables for Workspace Pods (MUTABLE)
 	//  - the following go template functions are available:
@@ -149,6 +149,19 @@ type WorkspaceKindPodTemplate struct {
 
 	// options are the user-selectable fields, they determine the PodSpec of the Workspace
 	Options WorkspaceKindPodOptions `json:"options"`
+}
+
+type WorkspaceKindPort struct {
+	// the id of the port
+	// identifier for the port in `imageconfig` ports.[].id
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=32
+	// +kubebuilder:example="jupyterlab"
+	PortId string `json:"portId"`
+
+	// the http proxy config for the port
+	// +kubebuilder:validation:Optional
+	HTTPProxy *HTTPProxy `json:"httpProxy,omitempty"`
 }
 
 type WorkspaceKindPodMetadata struct {
