@@ -68,12 +68,14 @@ export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = 
             aria-label="Activity"
             data-testid="activityTab"
           />
+          {/* TODO: Uncomment when Logs visualization is fully supported
           <Tab
             eventKey={2}
             title={<TabTitleText>Logs</TabTitleText>}
             tabContentId="logsTabContent"
             aria-label="Logs"
           />
+          */}
           <Tab
             eventKey={3}
             title={<TabTitleText>Pod template</TabTitleText>}
