@@ -74,7 +74,7 @@ SWAG_DIRS := cmd,$(ALL_GO_DIRS_NO_CMD)
 .PHONY: swag
 swag: SWAGGER
 	$(SWAGGER) fmt -g main.go -d $(SWAG_DIRS)
-	$(SWAGGER) init --parseDependency -q -g main.go -d $(SWAG_DIRS) --output openapi --outputTypes go,json
+	$(SWAGGER) init --parseDependency -q -g main.go -d $(SWAG_DIRS) --output openapi --outputTypes go,json --requiredByDefault
 
 ##@ Build
 
@@ -82,7 +82,7 @@ swag: SWAGGER
 build: fmt vet swag ## Build backend binary.
 	go build -o bin/backend cmd/main.go
 
-.PHONY: run 
+.PHONY: run
 run: fmt vet swag ## Run a backend from your host.
 	go run ./cmd/main.go --port=$(PORT)
 
@@ -131,7 +131,7 @@ SWAGGER = $(LOCALBIN)/swag
 ## Tool Versions
 ENVTEST_VERSION ?= release-0.19
 GOLANGCI_LINT_VERSION ?= v1.61.0
-SWAGGER_VERSION ?= v1.16.4
+SWAGGER_VERSION ?= v1.16.6
 
 .PHONY: SWAGGER
 SWAGGER: $(SWAGGER)
