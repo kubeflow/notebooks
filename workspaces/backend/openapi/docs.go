@@ -29,6 +29,7 @@ const docTemplate = `{
                     "healthcheck"
                 ],
                 "summary": "Returns the health status of the application",
+                "operationId": "getHealthcheck",
                 "responses": {
                     "200": {
                         "description": "Successful healthcheck response",
@@ -55,6 +56,7 @@ const docTemplate = `{
                     "namespaces"
                 ],
                 "summary": "Returns a list of all namespaces",
+                "operationId": "listNamespaces",
                 "responses": {
                     "200": {
                         "description": "Successful namespaces response",
@@ -96,6 +98,7 @@ const docTemplate = `{
                     "workspacekinds"
                 ],
                 "summary": "List workspace kinds",
+                "operationId": "listWorkspaceKinds",
                 "responses": {
                     "200": {
                         "description": "Successful operation. Returns a list of all available workspace kinds.",
@@ -135,6 +138,7 @@ const docTemplate = `{
                     "workspacekinds"
                 ],
                 "summary": "Create workspace kind",
+                "operationId": "createWorkspaceKind",
                 "parameters": [
                     {
                         "description": "Kubernetes YAML manifest of a WorkspaceKind",
@@ -217,6 +221,7 @@ const docTemplate = `{
                     "workspacekinds"
                 ],
                 "summary": "Get workspace kind",
+                "operationId": "getWorkspaceKind",
                 "parameters": [
                     {
                         "type": "string",
@@ -269,7 +274,7 @@ const docTemplate = `{
         },
         "/workspaces": {
             "get": {
-                "description": "Returns a list of workspaces. The endpoint supports two modes:\n1. List all workspaces across all namespaces (when no namespace is provided)\n2. List workspaces in a specific namespace (when namespace is provided)",
+                "description": "Returns a list of all workspaces across all namespaces.",
                 "consumes": [
                     "application/json"
                 ],
@@ -279,18 +284,13 @@ const docTemplate = `{
                 "tags": [
                     "workspaces"
                 ],
-                "summary": "List workspaces",
+                "summary": "List all workspaces",
+                "operationId": "listAllWorkspaces",
                 "responses": {
                     "200": {
-                        "description": "Successful operation. Returns a list of workspaces.",
+                        "description": "Successful operation. Returns a list of all workspaces.",
                         "schema": {
                             "$ref": "#/definitions/api.WorkspaceListEnvelope"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request. Invalid namespace format.",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
                         }
                     },
                     "401": {
@@ -316,7 +316,7 @@ const docTemplate = `{
         },
         "/workspaces/{namespace}": {
             "get": {
-                "description": "Returns a list of workspaces. The endpoint supports two modes:\n1. List all workspaces across all namespaces (when no namespace is provided)\n2. List workspaces in a specific namespace (when namespace is provided)",
+                "description": "Returns a list of workspaces in a specific namespace.",
                 "consumes": [
                     "application/json"
                 ],
@@ -326,12 +326,13 @@ const docTemplate = `{
                 "tags": [
                     "workspaces"
                 ],
-                "summary": "List workspaces",
+                "summary": "List workspaces by namespace",
+                "operationId": "listWorkspacesByNamespace",
                 "parameters": [
                     {
                         "type": "string",
                         "x-example": "kubeflow-user-example-com",
-                        "description": "Namespace to filter workspaces. If not provided, returns all workspaces across all namespaces.",
+                        "description": "Namespace to filter workspaces",
                         "name": "namespace",
                         "in": "path",
                         "required": true
@@ -339,7 +340,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Successful operation. Returns a list of workspaces.",
+                        "description": "Successful operation. Returns a list of workspaces in the specified namespace.",
                         "schema": {
                             "$ref": "#/definitions/api.WorkspaceListEnvelope"
                         }
@@ -382,6 +383,7 @@ const docTemplate = `{
                     "workspaces"
                 ],
                 "summary": "Create workspace",
+                "operationId": "createWorkspace",
                 "parameters": [
                     {
                         "type": "string",
@@ -466,6 +468,7 @@ const docTemplate = `{
                     "workspaces"
                 ],
                 "summary": "Pause or unpause a workspace",
+                "operationId": "updateWorkspacePauseState",
                 "parameters": [
                     {
                         "type": "string",
@@ -564,6 +567,7 @@ const docTemplate = `{
                     "workspaces"
                 ],
                 "summary": "Get workspace",
+                "operationId": "getWorkspace",
                 "parameters": [
                     {
                         "type": "string",
@@ -633,6 +637,7 @@ const docTemplate = `{
                     "workspaces"
                 ],
                 "summary": "Delete workspace",
+                "operationId": "deleteWorkspace",
                 "parameters": [
                     {
                         "type": "string",

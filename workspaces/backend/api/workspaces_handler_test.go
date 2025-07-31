@@ -164,10 +164,10 @@ var _ = Describe("Workspaces Handler", func() {
 			By("setting the auth headers")
 			req.Header.Set(userIdHeader, adminUser)
 
-			By("executing GetWorkspacesHandler")
+			By("executing GetAllWorkspacesHandler")
 			ps := httprouter.Params{}
 			rr := httptest.NewRecorder()
-			a.GetWorkspacesHandler(rr, req, ps)
+			a.GetAllWorkspacesHandler(rr, req, ps)
 			rs := rr.Result()
 			defer rs.Body.Close()
 
@@ -219,12 +219,12 @@ var _ = Describe("Workspaces Handler", func() {
 			By("setting the auth headers")
 			req.Header.Set(userIdHeader, adminUser)
 
-			By("executing GetWorkspacesHandler")
+			By("executing GetWorkspacesByNamespaceHandler")
 			ps := httprouter.Params{
 				httprouter.Param{Key: NamespacePathParam, Value: namespaceName1},
 			}
 			rr := httptest.NewRecorder()
-			a.GetWorkspacesHandler(rr, req, ps)
+			a.GetWorkspacesByNamespaceHandler(rr, req, ps)
 			rs := rr.Result()
 			defer rs.Body.Close()
 
@@ -429,12 +429,12 @@ var _ = Describe("Workspaces Handler", func() {
 			By("setting the auth headers")
 			req.Header.Set(userIdHeader, adminUser)
 
-			By("executing GetWorkspacesHandler")
+			By("executing GetWorkspacesByNamespaceHandler")
 			ps := httprouter.Params{
 				httprouter.Param{Key: NamespacePathParam, Value: namespaceName1},
 			}
 			rr := httptest.NewRecorder()
-			a.GetWorkspacesHandler(rr, req, ps)
+			a.GetWorkspacesByNamespaceHandler(rr, req, ps)
 			rs := rr.Result()
 			defer rs.Body.Close()
 
@@ -543,10 +543,10 @@ var _ = Describe("Workspaces Handler", func() {
 			By("setting the auth headers")
 			req.Header.Set(userIdHeader, adminUser)
 
-			By("executing GetWorkspacesHandler")
+			By("executing GetAllWorkspacesHandler")
 			ps := httprouter.Params{}
 			rr := httptest.NewRecorder()
-			a.GetWorkspacesHandler(rr, req, ps)
+			a.GetAllWorkspacesHandler(rr, req, ps)
 			rs := rr.Result()
 			defer rs.Body.Close()
 
@@ -577,12 +577,12 @@ var _ = Describe("Workspaces Handler", func() {
 			By("setting the auth headers")
 			req.Header.Set(userIdHeader, adminUser)
 
-			By("executing GetWorkspacesHandler")
+			By("executing GetWorkspacesByNamespaceHandler")
 			ps := httprouter.Params{
 				httprouter.Param{Key: NamespacePathParam, Value: missingNamespace},
 			}
 			rr := httptest.NewRecorder()
-			a.GetWorkspacesHandler(rr, req, ps)
+			a.GetWorkspacesByNamespaceHandler(rr, req, ps)
 			rs := rr.Result()
 			defer rs.Body.Close()
 

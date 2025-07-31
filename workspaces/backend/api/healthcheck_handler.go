@@ -29,6 +29,7 @@ import (
 //	@Summary		Returns the health status of the application
 //	@Description	Provides a healthcheck response indicating the status of key services.
 //	@Tags			healthcheck
+//	@ID				getHealthcheck
 //	@Produce		application/json
 //	@Success		200	{object}	health_check.HealthCheck	"Successful healthcheck response"
 //	@Failure		500	{object}	ErrorEnvelope				"Internal server error"
