@@ -17,6 +17,7 @@ limitations under the License.
 package e2e
 
 import (
+	"flag"
 	"fmt"
 	"os/exec"
 	"path/filepath"
@@ -34,8 +35,8 @@ import (
 
 const (
 	// controller configs
-	controllerNamespace = "workspace-controller-system"
-	controllerImage     = "ghcr.io/kubeflow/notebooks/workspace-controller:latest"
+	controllerNamespace    = "workspace-controller-system"
+	defaultControllerImage = "ghcr.io/kubeflow/notebooks/workspace-controller:latest"
 
 	// workspace configs
 	workspaceNamespace = "workspace-test"
@@ -60,13 +61,23 @@ const (
 )
 
 var (
-	projectDir = ""
+	projectDir      = ""
+	controllerImage = ""
 )
+
+func init() {
+	flag.StringVar(&controllerImage, "controller-image",
+		defaultControllerImage, "Workspace controller image to use for the test")
+}
 
 var _ = Describe("controller", Ordered, func() {
 
 	BeforeAll(func() {
 		projectDir, _ = utils.GetProjectDir()
+		// This ensures flags are parsed before tests run
+		if !flag.Parsed() {
+			flag.Parse()
+		}
 
 		By("creating the controller namespace")
 		cmd := exec.Command("kubectl", "create", "ns", controllerNamespace)
