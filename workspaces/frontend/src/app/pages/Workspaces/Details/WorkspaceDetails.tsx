@@ -76,12 +76,14 @@ export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = 
             aria-label="Logs"
           />
           */}
+          {/* TODO: Uncomment when Pod template visualization is fully supported
           <Tab
             eventKey={3}
             title={<TabTitleText>Pod template</TabTitleText>}
             tabContentId="podTemplateTabContent"
             aria-label="Pod template"
           />
+          */}
         </Tabs>
       </DrawerPanelBody>
 
