@@ -12,6 +12,7 @@ const PROXY_PORT = process.env.PROXY_PORT || '4000';
 const PROXY_PROTOCOL = process.env.PROXY_PROTOCOL || 'http:';
 const MOCK_API_ENABLED = process.env.MOCK_API_ENABLED || 'false';
 const relativeDir = path.resolve(__dirname, '..');
+const APP_PREFIX = process.env.APP_PREFIX || '/workspaces';
 
 module.exports = merge(common('development'), {
   mode: 'development',
@@ -19,9 +20,13 @@ module.exports = merge(common('development'), {
   devServer: {
     host: HOST,
     port: PORT,
-    historyApiFallback: true,
+    historyApiFallback: {
+      index: APP_PREFIX + '/index.html',
+    },
+    open: [APP_PREFIX],
     static: {
       directory: path.resolve(relativeDir, 'dist'),
+      publicPath: APP_PREFIX,
     },
     client: {
       overlay: true,
