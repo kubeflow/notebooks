@@ -1,0 +1,13 @@
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: frontend
+spec:
+  action: ALLOW
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kubeflow-notebooks
+      app.kubernetes.io/component: frontend
+      app.kubernetes.io/managed-by: kustomize
+  rules:
+  - {}
