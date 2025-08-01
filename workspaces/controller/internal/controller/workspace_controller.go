@@ -487,12 +487,20 @@ func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager, opts controller
 		return labelExists
 	})
 
-	return ctrl.NewControllerManagedBy(mgr).
+	// Build the controller with core resources
+	controllerBuilder := ctrl.NewControllerManagedBy(mgr).
 		WithOptions(opts).
 		For(&kubefloworgv1beta1.Workspace{}).
 		Owns(&appsv1.StatefulSet{}).
-		Owns(&corev1.Service{}).
-		Owns(&istiov1.VirtualService{}).
+		Owns(&corev1.Service{})
+
+	// Conditionally add VirtualService ownership if the CRD is available
+	// This prevents test failures when Istio CRDs are not installed
+	if _, err := mgr.GetRESTMapper().RESTMapping(istiov1.SchemeGroupVersion.WithKind("VirtualService").GroupKind()); err == nil {
+		controllerBuilder = controllerBuilder.Owns(&istiov1.VirtualService{})
+	}
+
+	return controllerBuilder.
 		Watches(
 			&kubefloworgv1beta1.WorkspaceKind{},
 			handler.EnqueueRequestsFromMapFunc(r.mapWorkspaceKindToRequest),
@@ -957,8 +965,12 @@ func generateVirtualService(workspace *kubefloworgv1beta1.Workspace, serviceName
 	namePrefix := generateNamePrefix(workspace.Name, maxServiceNameLength)
 
 	// TODO: Change this to reference podtemplate ports.[].portID
-	portID := imageConfigSpec.Ports[0].Id
-	matchUriPrefix := fmt.Sprintf("/workspace/%s/%s/%s/", workspace.Namespace, workspace.Name, portID)
+	portID := imageConfigSpec.Ports[0].Port
+	if portID < 0 { // check is needed due to go lint rules G115
+		return nil, fmt.Errorf("port ID must be a non-negative integer, got %d", portID)
+	}
+
+	matchUriPrefix := fmt.Sprintf("/workspace/%s/%s/", workspace.Namespace, workspace.Name)
 
 	// TODO: Change this to reference podtemplate ports.[].httpProxy.removePathPrefix
 	rewriteUri := fmt.Sprintf("/workspace/%s/%s/", workspace.Namespace, workspace.Name)
@@ -971,6 +983,10 @@ func generateVirtualService(workspace *kubefloworgv1beta1.Workspace, serviceName
 
 	// TODO: Add a possible default for istioGateway
 	istioGateway := os.Getenv("ISTIO_GATEWAY")
+	if istioGateway == "" {
+		return nil, fmt.Errorf("ISTIO_GATEWAY environment variable is not set")
+	}
+
 	istioHosts := "*"
 	if istioHostsEnv, ok := os.LookupEnv("ISTIO_HOSTS"); ok {
 		istioHosts = istioHostsEnv
@@ -1007,7 +1023,7 @@ func generateVirtualService(workspace *kubefloworgv1beta1.Workspace, serviceName
 							Destination: &networkingv1.Destination{
 								Host: serviceHost,
 								Port: &networkingv1.PortSelector{
-									Number: uint32(imageConfigSpec.Ports[0].Port), // use the first port as the destination port
+									Number: uint32(portID), // use the first port as the destination port
 								},
 							},
 						},

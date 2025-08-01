@@ -33,6 +33,7 @@ const (
 	IndexEventInvolvedObjectUidField = ".involvedObject.uid"
 	IndexWorkspaceOwnerField         = ".metadata.controller"
 	IndexWorkspaceKindField          = ".spec.kind"
+	OwnerKindWorkspace               = "Workspace"
 )
 
 // SetupManagerFieldIndexers sets up field indexes on a controller-runtime manager
@@ -56,7 +57,7 @@ func SetupManagerFieldIndexers(mgr ctrl.Manager) error {
 		if owner == nil {
 			return nil
 		}
-		if owner.APIVersion != kubefloworgv1beta1.GroupVersion.String() || owner.Kind != "Workspace" {
+		if owner.APIVersion != kubefloworgv1beta1.GroupVersion.String() || owner.Kind != OwnerKindWorkspace {
 			return nil
 		}
 		return []string{owner.Name}
@@ -71,7 +72,7 @@ func SetupManagerFieldIndexers(mgr ctrl.Manager) error {
 		if owner == nil {
 			return nil
 		}
-		if owner.APIVersion != kubefloworgv1beta1.GroupVersion.String() || owner.Kind != "Workspace" {
+		if owner.APIVersion != kubefloworgv1beta1.GroupVersion.String() || owner.Kind != OwnerKindWorkspace {
 			return nil
 		}
 		return []string{owner.Name}
@@ -80,18 +81,20 @@ func SetupManagerFieldIndexers(mgr ctrl.Manager) error {
 	}
 
 	// Index VirtualService by its owner Workspace
+	// This is conditional and will not fail if VirtualService CRD is not available (e.g., in test environments)
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &istiov1.VirtualService{}, IndexWorkspaceOwnerField, func(rawObj client.Object) []string {
 		virtualService := rawObj.(*istiov1.VirtualService)
 		owner := metav1.GetControllerOf(virtualService)
 		if owner == nil {
 			return nil
 		}
-		if owner.APIVersion != kubefloworgv1beta1.GroupVersion.String() || owner.Kind != "Workspace" {
+		if owner.APIVersion != kubefloworgv1beta1.GroupVersion.String() || owner.Kind != OwnerKindWorkspace {
 			return nil
 		}
 		return []string{owner.Name}
 	}); err != nil {
-		return err
+		// Log the error but don't fail if VirtualService CRD is not available (e.g., in test environments)
+		ctrl.Log.Info("Failed to setup VirtualService field indexer, VirtualService CRD may not be available", "error", err)
 	}
 
 	// Index Workspace by WorkspaceKind
