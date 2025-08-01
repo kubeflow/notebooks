@@ -9,13 +9,14 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/ex
 import { EmptyState, EmptyStateBody } from '@patternfly/react-core/dist/esm/components/EmptyState';
 import { ValidationErrorAlert } from '~/app/components/ValidationErrorAlert';
 import useWorkspaceKindByName from '~/app/hooks/useWorkspaceKindByName';
-import { WorkspaceKind, ValidationError } from '~/shared/api/backendApiTypes';
 import { useTypedNavigate, useTypedParams } from '~/app/routerHelper';
 import { useCurrentRouteKey } from '~/app/hooks/useCurrentRouteKey';
 import useGenericObjectState from '~/app/hooks/useGenericObjectState';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspaceKindFormData } from '~/app/types';
-import { ErrorEnvelopeException } from '~/shared/api/apiUtils';
+import { safeApiCall } from '~/shared/api/apiUtils';
+import { CONTENT_TYPE_KEY, ContentType } from '~/shared/utilities/const';
+import { ApiValidationError, WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
 import { WorkspaceKindFileUpload } from './fileUpload/WorkspaceKindFileUpload';
 import { WorkspaceKindFormProperties } from './properties/WorkspaceKindFormProperties';
 import { WorkspaceKindFormImage } from './image/WorkspaceKindFormImage';
@@ -31,7 +32,7 @@ export enum WorkspaceKindFormView {
 export type ValidationStatus = 'success' | 'error' | 'default';
 export type FormMode = 'edit' | 'create';
 
-const convertToFormData = (initialData: WorkspaceKind): WorkspaceKindFormData => {
+const convertToFormData = (initialData: WorkspacekindsWorkspaceKind): WorkspaceKindFormData => {
   const { podTemplate, ...properties } = initialData;
   const { options, ...spec } = podTemplate;
   const { podConfig, imageConfig } = options;
@@ -51,11 +52,12 @@ export const WorkspaceKindForm: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validated, setValidated] = useState<ValidationStatus>('default');
   const mode: FormMode = useCurrentRouteKey() === 'workspaceKindCreate' ? 'create' : 'edit';
-  const [specErrors, setSpecErrors] = useState<(ValidationError | ErrorEnvelopeException)[]>([]);
+  const [specErrors, setSpecErrors] = useState<ApiValidationError[]>([]);
 
-  const { kind } = useTypedParams<'workspaceKindEdit'>();
-  const [initialFormData, initialFormDataLoaded, initialFormDataError] =
-    useWorkspaceKindByName(kind);
+  const routeParams = useTypedParams<'workspaceKindEdit' | 'workspaceKindCreate'>();
+  const [initialFormData, initialFormDataLoaded, initialFormDataError] = useWorkspaceKindByName(
+    routeParams?.kind,
+  );
 
   const [data, setData, resetData, replaceData] = useGenericObjectState<WorkspaceKindFormData>(
     initialFormData ? convertToFormData(initialFormData) : EMPTY_WORKSPACE_KIND_FORM_DATA,
@@ -73,32 +75,45 @@ export const WorkspaceKindForm: React.FC = () => {
     // TODO: Complete handleCreate with API call to create a new WS kind
     try {
       if (mode === 'create') {
-        const newWorkspaceKind = await api.createWorkspaceKind({ directYAML: true }, yamlValue);
-        // TODO: alert user about success
-        console.info('New workspace kind created:', JSON.stringify(newWorkspaceKind));
-        navigate('workspaceKinds');
+        const createResult = await safeApiCall(() =>
+          api.workspaceKinds.createWorkspaceKind(yamlValue, {
+            headers: {
+              [CONTENT_TYPE_KEY]: ContentType.YAML,
+            },
+          }),
+        );
+
+        if (createResult.ok) {
+          // TODO: alert user about success
+          console.info('New workspace kind created:', JSON.stringify(createResult.data));
+          navigate('workspaceKinds');
+        } else {
+          const validationErrors = createResult.errorEnvelope.error.cause?.validation_errors;
+          if (validationErrors && validationErrors.length > 0) {
+            setSpecErrors((prev) => [...prev, ...validationErrors]);
+            setValidated('error');
+            return;
+          }
+          // TODO: alert user about generic error with no validation errors
+          setValidated('error');
+          console.error(
+            `Error while creating workspace kind: ${JSON.stringify(createResult.errorEnvelope)}`,
+          );
+        }
       }
       // TODO: Finish when WSKind API is finalized
       // const updatedWorkspace = await api.updateWorkspaceKind({}, kind, { data: {} });
       // console.info('Workspace Kind updated:', JSON.stringify(updatedWorkspace));
       // navigate('workspaceKinds');
     } catch (err) {
-      if (err instanceof ErrorEnvelopeException) {
-        const validationErrors = err.envelope.error?.cause?.validation_errors;
-        if (validationErrors && validationErrors.length > 0) {
-          setSpecErrors((prev) => [...prev, ...validationErrors]);
-          setValidated('error');
-          return;
-        }
-        setSpecErrors((prev) => [...prev, err]);
-        setValidated('error');
-      }
-      // TODO: alert user about error
-      console.error(`Error ${mode === 'edit' ? 'editing' : 'creating'} workspace kind: ${err}`);
+      // TODO: alert user about unexpected error
+      console.error(
+        `Unexpected error while ${mode === 'edit' ? 'editing' : 'creating'} workspace kind: ${err}`,
+      );
     } finally {
       setIsSubmitting(false);
     }
-  }, [navigate, mode, api, yamlValue]);
+  }, [api, mode, navigate, yamlValue]);
 
   const canSubmit = useMemo(
     () => !isSubmitting && validated === 'success',

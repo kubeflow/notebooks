@@ -8,11 +8,11 @@ import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspaceDetails } from '~/app/pages/Workspaces/Details/WorkspaceDetails';
 import { useTypedNavigate } from '~/app/routerHelper';
-import { Workspace } from '~/shared/api/backendApiTypes';
 import DeleteModal from '~/shared/components/DeleteModal';
 import { WorkspaceStartActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceStartActionModal';
 import { WorkspaceRestartActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRestartActionModal';
 import { WorkspaceStopActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceStopActionModal';
+import { WorkspacesWorkspace } from '~/generated/data-contracts';
 
 export enum ActionType {
   ViewDetails = 'ViewDetails',
@@ -25,7 +25,7 @@ export enum ActionType {
 
 export interface WorkspaceAction {
   action: ActionType;
-  workspace: Workspace;
+  workspace: WorkspacesWorkspace;
   onActionDone?: () => void;
 }
 
@@ -85,7 +85,8 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
   }, []);
 
   const createActionRequester =
-    (actionType: ActionType) => (args: { workspace: Workspace; onActionDone?: () => void }) =>
+    (actionType: ActionType) =>
+    (args: { workspace: WorkspacesWorkspace; onActionDone?: () => void }) =>
       setActiveWsAction({ action: actionType, ...args });
 
   const requestViewDetailsAction = createActionRequester(ActionType.ViewDetails);
@@ -113,7 +114,7 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
     }
 
     try {
-      await api.deleteWorkspace({}, selectedNamespace, activeWsAction.workspace.name);
+      await api.workspaces.deleteWorkspace(selectedNamespace, activeWsAction.workspace.name);
       // TODO: alert user about success
       console.info(`Workspace '${activeWsAction.workspace.name}' deleted successfully`);
       activeWsAction.onActionDone?.();
@@ -179,9 +180,13 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
                     onClose={onCloseActionAlertDialog}
                     workspace={activeWsAction.workspace}
                     onStart={async () =>
-                      api.pauseWorkspace({}, selectedNamespace, activeWsAction.workspace.name, {
-                        data: { paused: false },
-                      })
+                      api.workspaces.updateWorkspacePauseState(
+                        selectedNamespace,
+                        activeWsAction.workspace.name,
+                        {
+                          data: { paused: false },
+                        },
+                      )
                     }
                     onActionDone={activeWsAction.onActionDone}
                     onUpdateAndStart={async () => {
@@ -202,9 +207,13 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
                     onClose={onCloseActionAlertDialog}
                     workspace={activeWsAction.workspace}
                     onStop={async () =>
-                      api.pauseWorkspace({}, selectedNamespace, activeWsAction.workspace.name, {
-                        data: { paused: true },
-                      })
+                      api.workspaces.updateWorkspacePauseState(
+                        selectedNamespace,
+                        activeWsAction.workspace.name,
+                        {
+                          data: { paused: true },
+                        },
+                      )
                     }
                     onActionDone={activeWsAction.onActionDone}
                     onUpdateAndStop={async () => {

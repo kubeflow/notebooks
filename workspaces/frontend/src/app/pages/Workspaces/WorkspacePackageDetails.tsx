@@ -6,11 +6,11 @@ import {
   DescriptionListGroup,
 } from '@patternfly/react-core/dist/esm/components/DescriptionList';
 import { ListItem, List } from '@patternfly/react-core/dist/esm/components/List';
-import { Workspace } from '~/shared/api/backendApiTypes';
 import { extractPackageLabels, formatLabelKey } from '~/shared/utilities/WorkspaceUtils';
+import { WorkspacesWorkspace } from '~/generated/data-contracts';
 
 interface WorkspacePackageDetailsProps {
-  workspace: Workspace;
+  workspace: WorkspacesWorkspace;
 }
 
 export const WorkspacePackageDetails: React.FC<WorkspacePackageDetailsProps> = ({ workspace }) => {

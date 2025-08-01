@@ -8,10 +8,10 @@ import {
 import { Gallery } from '@patternfly/react-core/dist/esm/layouts/Gallery';
 import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
 import { Toolbar, ToolbarContent } from '@patternfly/react-core/dist/esm/components/Toolbar';
-import { WorkspacePodConfigValue } from '~/shared/api/backendApiTypes';
 import Filter, { FilteredColumn, FilterRef } from '~/shared/components/Filter';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
 import { defineDataFields, FilterableDataFieldKey } from '~/app/filterableDataHelper';
+import { WorkspacekindsPodConfigValue } from '~/generated/data-contracts';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const { fields, filterableLabelMap } = defineDataFields({
@@ -21,10 +21,10 @@ const { fields, filterableLabelMap } = defineDataFields({
 type FilterableDataFieldKeys = FilterableDataFieldKey<typeof fields>;
 
 type WorkspaceFormPodConfigListProps = {
-  podConfigs: WorkspacePodConfigValue[];
+  podConfigs: WorkspacekindsPodConfigValue[];
   selectedLabels: Map<string, Set<string>>;
-  selectedPodConfig: WorkspacePodConfigValue | undefined;
-  onSelect: (workspacePodConfig: WorkspacePodConfigValue | undefined) => void;
+  selectedPodConfig: WorkspacekindsPodConfigValue | undefined;
+  onSelect: (workspacePodConfig: WorkspacekindsPodConfigValue | undefined) => void;
 };
 
 export const WorkspaceFormPodConfigList: React.FunctionComponent<
@@ -34,7 +34,7 @@ export const WorkspaceFormPodConfigList: React.FunctionComponent<
   const filterRef = useRef<FilterRef>(null);
 
   const getFilteredWorkspacePodConfigsByLabels = useCallback(
-    (unfilteredPodConfigs: WorkspacePodConfigValue[]) =>
+    (unfilteredPodConfigs: WorkspacekindsPodConfigValue[]) =>
       unfilteredPodConfigs.filter((podConfig) =>
         podConfig.labels.reduce((accumulator, label) => {
           if (selectedLabels.has(label.key)) {

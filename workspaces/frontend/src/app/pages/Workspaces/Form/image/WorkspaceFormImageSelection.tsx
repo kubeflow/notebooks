@@ -3,12 +3,12 @@ import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import { Split, SplitItem } from '@patternfly/react-core/dist/esm/layouts/Split';
 import { WorkspaceFormImageList } from '~/app/pages/Workspaces/Form/image/WorkspaceFormImageList';
 import { FilterByLabels } from '~/app/pages/Workspaces/Form/labelFilter/FilterByLabels';
-import { WorkspaceImageConfigValue } from '~/shared/api/backendApiTypes';
+import { WorkspacekindsImageConfigValue } from '~/generated/data-contracts';
 
 interface WorkspaceFormImageSelectionProps {
-  images: WorkspaceImageConfigValue[];
-  selectedImage: WorkspaceImageConfigValue | undefined;
-  onSelect: (image: WorkspaceImageConfigValue | undefined) => void;
+  images: WorkspacekindsImageConfigValue[];
+  selectedImage: WorkspacekindsImageConfigValue | undefined;
+  onSelect: (image: WorkspacekindsImageConfigValue | undefined) => void;
 }
 
 const WorkspaceFormImageSelection: React.FunctionComponent<WorkspaceFormImageSelectionProps> = ({

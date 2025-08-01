@@ -1,12 +1,12 @@
 import React from 'react';
 import { Content } from '@patternfly/react-core/dist/esm/components/Content';
-import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import { WorkspaceFormKindList } from '~/app/pages/Workspaces/Form/kind/WorkspaceFormKindList';
+import { WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
 
 interface WorkspaceFormKindSelectionProps {
-  selectedKind: WorkspaceKind | undefined;
-  onSelect: (kind: WorkspaceKind | undefined) => void;
+  selectedKind: WorkspacekindsWorkspaceKind | undefined;
+  onSelect: (kind: WorkspacekindsWorkspaceKind | undefined) => void;
 }
 
 const WorkspaceFormKindSelection: React.FunctionComponent<WorkspaceFormKindSelectionProps> = ({

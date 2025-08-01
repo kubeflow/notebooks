@@ -1,9 +1,11 @@
+import { ApiErrorEnvelope } from '~/generated/data-contracts';
+import { ApiConfig, HttpClient } from '~/generated/http-client';
+
 export type APIOptions = {
   dryRun?: boolean;
   signal?: AbortSignal;
   parseJSON?: boolean;
   headers?: Record<string, string>;
-  directYAML?: boolean;
 };
 
 export type APIState<T> = {
@@ -13,11 +15,14 @@ export type APIState<T> = {
   api: T;
 };
 
-export type ResponseBody<T> = {
-  data: T;
-  metadata?: Record<string, unknown>;
+export type RemoveHttpClient<T> = Omit<T, keyof HttpClient<unknown>>;
+
+export type WithExperimental<TBase, TExperimental> = TBase & {
+  experimental: TExperimental;
 };
 
-export type RequestData<T> = {
-  data: T;
-};
+export type ApiClass = abstract new (config?: ApiConfig) => object;
+export type ApiInstance<T extends ApiClass> = RemoveHttpClient<InstanceType<T>>;
+export type ApiCallResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; errorEnvelope: ApiErrorEnvelope };
