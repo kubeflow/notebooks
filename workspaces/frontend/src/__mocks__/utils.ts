@@ -1,5 +1,7 @@
-import { ResponseBody } from '~/shared/api/types';
+interface Envelope<T> {
+  data: T;
+}
 
-export const mockBFFResponse = <T>(data: T): ResponseBody<T> => ({
+export const mockBFFResponse = <T>(data: T): Envelope<T> => ({
   data,
 });

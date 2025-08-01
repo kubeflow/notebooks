@@ -1,14 +1,14 @@
 import {
-  WorkspaceImageConfigValue,
-  WorkspaceKind,
-  WorkspacePodConfigValue,
-  WorkspacePodVolumeMount,
-  WorkspacePodSecretMount,
-  Workspace,
-  WorkspaceImageRef,
-  WorkspacePodVolumeMounts,
-  WorkspaceKindPodMetadata,
-} from '~/shared/api/backendApiTypes';
+  WorkspacekindsImageConfigValue,
+  WorkspacekindsImageRef,
+  WorkspacekindsPodConfigValue,
+  WorkspacekindsPodMetadata,
+  WorkspacekindsPodVolumeMounts,
+  WorkspacekindsWorkspaceKind,
+  WorkspacesPodSecretMount,
+  WorkspacesPodVolumeMount,
+  WorkspacesWorkspace,
+} from '~/generated/data-contracts';
 
 export interface WorkspaceColumnDefinition {
   name: string;
@@ -27,22 +27,22 @@ export interface WorkspaceFormProperties {
   workspaceName: string;
   deferUpdates: boolean;
   homeDirectory: string;
-  volumes: WorkspacePodVolumeMount[];
-  secrets: WorkspacePodSecretMount[];
+  volumes: WorkspacesPodVolumeMount[];
+  secrets: WorkspacesPodSecretMount[];
 }
 
 export interface WorkspaceFormData {
-  kind: WorkspaceKind | undefined;
-  image: WorkspaceImageConfigValue | undefined;
-  podConfig: WorkspacePodConfigValue | undefined;
+  kind: WorkspacekindsWorkspaceKind | undefined;
+  image: WorkspacekindsImageConfigValue | undefined;
+  podConfig: WorkspacekindsPodConfigValue | undefined;
   properties: WorkspaceFormProperties;
 }
 
 export interface WorkspaceCountPerOption {
   count: number;
-  countByImage: Record<WorkspaceImageConfigValue['id'], number>;
-  countByPodConfig: Record<WorkspacePodConfigValue['id'], number>;
-  countByNamespace: Record<Workspace['namespace'], number>;
+  countByImage: Record<WorkspacekindsImageConfigValue['id'], number>;
+  countByPodConfig: Record<WorkspacekindsPodConfigValue['id'], number>;
+  countByNamespace: Record<WorkspacesWorkspace['namespace'], number>;
 }
 
 export interface WorkspaceKindProperties {
@@ -51,11 +51,11 @@ export interface WorkspaceKindProperties {
   deprecated: boolean;
   deprecationMessage: string;
   hidden: boolean;
-  icon: WorkspaceImageRef;
-  logo: WorkspaceImageRef;
+  icon: WorkspacekindsImageRef;
+  logo: WorkspacekindsImageRef;
 }
 
-export interface WorkspaceKindImageConfigValue extends WorkspaceImageConfigValue {
+export interface WorkspaceKindImageConfigValue extends WorkspacekindsImageConfigValue {
   imagePullPolicy?: ImagePullPolicy.IfNotPresent | ImagePullPolicy.Always | ImagePullPolicy.Never;
   ports?: WorkspaceKindImagePort[];
   image?: string;
@@ -74,7 +74,7 @@ export interface WorkspaceKindImagePort {
   protocol: 'HTTP'; // ONLY HTTP is supported at the moment, per https://github.com/thesuperzapper/kubeflow-notebooks-v2-design/blob/main/crds/workspace-kind.yaml#L275
 }
 
-export interface WorkspaceKindPodConfigValue extends WorkspacePodConfigValue {
+export interface WorkspaceKindPodConfigValue extends WorkspacekindsPodConfigValue {
   resources?: {
     requests: {
       [key: string]: string;
@@ -105,10 +105,10 @@ export interface WorkspaceKindPodCulling {
 }
 
 export interface WorkspaceKindPodTemplateData {
-  podMetadata: WorkspaceKindPodMetadata;
-  volumeMounts: WorkspacePodVolumeMounts;
+  podMetadata: WorkspacekindsPodMetadata;
+  volumeMounts: WorkspacekindsPodVolumeMounts;
   culling?: WorkspaceKindPodCulling;
-  extraVolumeMounts?: WorkspacePodVolumeMount[];
+  extraVolumeMounts?: WorkspacesPodVolumeMount[];
 }
 
 export interface WorkspaceKindFormData {

@@ -44,7 +44,6 @@ import { ExclamationTriangleIcon } from '@patternfly/react-icons/dist/esm/icons/
 import { TimesCircleIcon } from '@patternfly/react-icons/dist/esm/icons/times-circle-icon';
 import { QuestionCircleIcon } from '@patternfly/react-icons/dist/esm/icons/question-circle-icon';
 import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
-import { Workspace, WorkspaceState } from '~/shared/api/backendApiTypes';
 import { DataFieldKey, defineDataFields, SortableDataFieldKey } from '~/app/filterableDataHelper';
 import { useTypedNavigate } from '~/app/routerHelper';
 import {
@@ -62,6 +61,7 @@ import {
 } from '~/shared/utilities/WorkspaceUtils';
 import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
+import { WorkspacesWorkspace, WorkspacesWorkspaceState } from '~/generated/data-contracts';
 
 const {
   fields: wsTableColumns,
@@ -84,11 +84,11 @@ export type WorkspaceTableColumnKeys = DataFieldKey<typeof wsTableColumns>;
 type WorkspaceTableSortableColumnKeys = SortableDataFieldKey<typeof wsTableColumns>;
 
 interface WorkspaceTableProps {
-  workspaces: Workspace[];
+  workspaces: WorkspacesWorkspace[];
   canCreateWorkspaces?: boolean;
   canExpandRows?: boolean;
   hiddenColumns?: WorkspaceTableColumnKeys[];
-  rowActions?: (workspace: Workspace) => IActions;
+  rowActions?: (workspace: WorkspacesWorkspace) => IActions;
 }
 
 const allFiltersConfig = {
@@ -233,7 +233,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       [clearAllFilters],
     );
 
-    const filterableProperties: Record<FilterKey, (ws: Workspace) => string> = useMemo(
+    const filterableProperties: Record<FilterKey, (ws: WorkspacesWorkspace) => string> = useMemo(
       () => ({
         name: (ws) => ws.name,
         kind: (ws) => ws.workspaceKind.name,
@@ -245,7 +245,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       [],
     );
 
-    const setWorkspaceExpanded = (workspace: Workspace, isExpanding = true) =>
+    const setWorkspaceExpanded = (workspace: WorkspacesWorkspace, isExpanding = true) =>
       setExpandedWorkspacesNames((prevExpanded) => {
         const newExpandedWorkspacesNames = prevExpanded.filter(
           (wsName) => wsName !== workspace.name,
@@ -255,7 +255,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
           : newExpandedWorkspacesNames;
       });
 
-    const isWorkspaceExpanded = (workspace: Workspace) =>
+    const isWorkspaceExpanded = (workspace: WorkspacesWorkspace) =>
       expandedWorkspacesNames.includes(workspace.name);
 
     const filteredWorkspaces = useMemo(() => {
@@ -289,7 +289,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
     // Column sorting
 
     const getSortableRowValues = (
-      workspace: Workspace,
+      workspace: WorkspacesWorkspace,
     ): Record<WorkspaceTableSortableColumnKeys, string | number> => ({
       name: workspace.name,
       kind: workspace.workspaceKind.name,
@@ -374,19 +374,19 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       }
     };
 
-    const extractStateColor = (state: WorkspaceState) => {
+    const extractStateColor = (state: WorkspacesWorkspaceState) => {
       switch (state) {
-        case WorkspaceState.WorkspaceStateRunning:
+        case WorkspacesWorkspaceState.WorkspaceStateRunning:
           return 'green';
-        case WorkspaceState.WorkspaceStatePending:
+        case WorkspacesWorkspaceState.WorkspaceStatePending:
           return 'orange';
-        case WorkspaceState.WorkspaceStateTerminating:
+        case WorkspacesWorkspaceState.WorkspaceStateTerminating:
           return 'yellow';
-        case WorkspaceState.WorkspaceStateError:
+        case WorkspacesWorkspaceState.WorkspaceStateError:
           return 'red';
-        case WorkspaceState.WorkspaceStatePaused:
+        case WorkspacesWorkspaceState.WorkspaceStatePaused:
           return 'purple';
-        case WorkspaceState.WorkspaceStateUnknown:
+        case WorkspacesWorkspaceState.WorkspaceStateUnknown:
         default:
           return 'grey';
       }

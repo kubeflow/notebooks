@@ -23,11 +23,11 @@ import {
   Tr,
 } from '@patternfly/react-table/dist/esm/components/Table';
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
-import { WorkspacePodVolumeMount } from '~/shared/api/backendApiTypes';
+import { WorkspacesPodVolumeMount } from '~/generated/data-contracts';
 
 interface WorkspaceFormPropertiesVolumesProps {
-  volumes: WorkspacePodVolumeMount[];
-  setVolumes: (volumes: WorkspacePodVolumeMount[]) => void;
+  volumes: WorkspacesPodVolumeMount[];
+  setVolumes: (volumes: WorkspacesPodVolumeMount[]) => void;
 }
 
 export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVolumesProps> = ({
@@ -36,7 +36,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [formData, setFormData] = useState<WorkspacePodVolumeMount>({
+  const [formData, setFormData] = useState<WorkspacesPodVolumeMount>({
     pvcName: '',
     mountPath: '',
     readOnly: false,
