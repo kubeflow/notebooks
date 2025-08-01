@@ -18,7 +18,7 @@
     "build:bundle-profile": "webpack --config ./config/webpack.prod.js --profile --json > ./bundle.stats.json",
     "build:bundle-analyze": "webpack-bundle-analyzer ./bundle.stats.json",
     "build:clean": "rimraf ./dist",
-    "build:prod": "webpack --config ./config/webpack.prod.js",
+    "build:prod": "cross-env PRODUCTION=true webpack --config ./config/webpack.prod.js",
     "generate:api": "./scripts/generate-api.sh && npm run prettier",
     "start:dev": "cross-env STYLE_THEME=$npm_config_theme webpack serve --hot --color --config ./config/webpack.dev.js",
     "start:dev:mock": "cross-env MOCK_API_ENABLED=true STYLE_THEME=$npm_config_theme npm run start:dev",

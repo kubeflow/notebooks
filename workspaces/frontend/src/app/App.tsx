@@ -12,7 +12,11 @@ import {
   MastheadMain,
   MastheadToggle,
 } from '@patternfly/react-core/dist/esm/components/Masthead';
-import { Page, PageToggleButton } from '@patternfly/react-core/dist/esm/components/Page';
+import {
+  Page,
+  PageSidebar,
+  PageToggleButton,
+} from '@patternfly/react-core/dist/esm/components/Page';
 import { Title } from '@patternfly/react-core/dist/esm/components/Title';
 import { BarsIcon } from '@patternfly/react-icons/dist/esm/icons/bars-icon';
 import ErrorBoundary from '~/app/error/ErrorBoundary';
@@ -24,6 +28,8 @@ import NavSidebar from './NavSidebar';
 import { NotebookContextProvider } from './context/NotebookContext';
 import { isMUITheme, Theme } from './const';
 import { BrowserStorageContextProvider } from './context/BrowserStorageContext';
+
+const isStandalone = process.env.PRODUCTION !== 'true';
 
 const App: React.FC = () => {
   useEffect(() => {
@@ -43,14 +49,12 @@ const App: React.FC = () => {
             <BarsIcon />
           </PageToggleButton>
         </MastheadToggle>
-        {!isMUITheme() ? (
+        {!isMUITheme() && (
           <MastheadBrand>
             <MastheadLogo component="a">
               <Brand src={logoDarkTheme} alt="Kubeflow" heights={{ default: '36px' }} />
             </MastheadLogo>
           </MastheadBrand>
-        ) : (
-          ''
         )}
       </MastheadMain>
       <MastheadContent>
@@ -63,6 +67,7 @@ const App: React.FC = () => {
       </MastheadContent>
     </Masthead>
   );
+  const sidebar = <PageSidebar isSidebarOpen={false} />;
 
   return (
     <ErrorBoundary>
@@ -71,10 +76,11 @@ const App: React.FC = () => {
           <NamespaceContextProvider>
             <Page
               mainContainerId="primary-app-container"
-              masthead={masthead}
+              masthead={isStandalone ? masthead : ''}
               isContentFilled
-              isManagedSidebar
-              sidebar={<NavSidebar />}
+              sidebar={isStandalone ? <NavSidebar /> : sidebar}
+              isManagedSidebar={isStandalone}
+              className={isStandalone ? '' : 'embedded'}
             >
               <AppRoutes />
             </Page>
