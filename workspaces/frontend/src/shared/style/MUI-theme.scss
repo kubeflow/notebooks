@@ -887,6 +887,12 @@
   /* Move content area below the app bar */
 }
 
+.mui-theme .pf-v6-c-page.embedded {
+  .pf-v6-c-page__main-container {
+    margin: 0px;
+  }
+}
+
 /* Hide Masthead Toggle by default */
 .mui-theme .pf-v6-c-masthead__toggle {
   display: none;
