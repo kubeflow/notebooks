@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: backend
+  name: workspaces-backend
 spec:
   replicas: 1
   selector:
@@ -15,13 +15,13 @@ spec:
     metadata:
       labels: {}
     spec:
-      serviceAccountName: backend
+      serviceAccountName: workspaces-backend
       securityContext:
         runAsNonRoot: true
       terminationGracePeriodSeconds: 30
       containers:
-      - name: nb-backend
-        image: nb-backend
+      - name: workspaces-backend
+        image: workspaces-backend
         imagePullPolicy: IfNotPresent
         securityContext:
           allowPrivilegeEscalation: false
@@ -29,7 +29,7 @@ spec:
             drop:
             - "ALL"
         ports:
-        - name: http-backend
+        - name: http-api
           containerPort: 4000
         env:
         - name: PORT
@@ -44,7 +44,7 @@ spec:
         livenessProbe:
           httpGet:
             path: /api/v1/healthcheck
-            port: http-backend
+            port: http-api
             scheme: HTTP
           initialDelaySeconds: 30
           periodSeconds: 20
@@ -54,7 +54,7 @@ spec:
         readinessProbe:
           httpGet:
             path: /api/v1/healthcheck
-            port: http-backend
+            port: http-api
             scheme: HTTP
           initialDelaySeconds: 10
           periodSeconds: 10
