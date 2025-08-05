@@ -35,7 +35,7 @@
     "cypress:open:mock": "CY_MOCK=1 CY_WS_PORT=9002 npm run cypress:open -- ",
     "cypress:run": "cypress run -b chrome --project src/__tests__/cypress",
     "cypress:run:mock": "CY_MOCK=1 npm run cypress:run -- ",
-    "cypress:server:build": "POLL_INTERVAL=9999999 FAST_POLL_INTERVAL=9999999 npm run build",
+    "cypress:server:build": "POLL_INTERVAL=9999999 FAST_POLL_INTERVAL=9999999 APP_PREFIX=/ webpack --config ./config/webpack.prod.js",
     "cypress:server": "serve ./dist -p 9001 -s -L",
     "prettier": "prettier --ignore-path .gitignore --write \"**/*{.ts,.tsx,.js,.cjs,.jsx,.css,.json}\"",
     "prettier:check": "prettier --ignore-path .gitignore --check \"**/*{.ts,.tsx,.js,.cjs,.jsx,.css,.json}\"",

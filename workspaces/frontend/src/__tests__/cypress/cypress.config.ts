@@ -41,6 +41,7 @@ export default defineConfig({
   env: {
     MOCK: !!env.CY_MOCK,
     coverage: !!env.CY_COVERAGE,
+    APP_PREFIX: env.APP_PREFIX || '/workspaces',
     codeCoverage: {
       exclude: [path.resolve(__dirname, '../../third_party/**')],
     },
@@ -48,7 +49,7 @@ export default defineConfig({
   },
   defaultCommandTimeout: 10000,
   e2e: {
-    baseUrl: env.CY_MOCK ? BASE_URL : 'http://localhost:9000',
+    baseUrl: env.CY_MOCK ? BASE_URL || 'http://localhost:9001' : 'http://localhost:9000',
     specPattern: env.CY_MOCK ? `cypress/tests/mocked/**/*.cy.ts` : `cypress/tests/e2e/**/*.cy.ts`,
     experimentalInteractiveRunEvents: true,
     setupNodeEvents(on, config) {
