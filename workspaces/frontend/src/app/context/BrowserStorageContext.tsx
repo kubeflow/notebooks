@@ -56,8 +56,9 @@ export const BrowserStorageContextProvider: React.FC<BrowserStorageContextProvid
     [],
   );
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const contextValue = useMemo(() => ({ getValue, setValue }), [getValue, setValue, values]);
+  // Remove values from dependencies to prevent unnecessary re-renders
+  // The getValue and setValue functions are stable and don't need to change when values change
+  const contextValue = useMemo(() => ({ getValue, setValue }), [getValue, setValue]);
 
   return (
     <BrowserStorageContext.Provider value={contextValue}>{children}</BrowserStorageContext.Provider>
