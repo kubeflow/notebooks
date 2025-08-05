@@ -12,6 +12,7 @@ import { useTypedLocation } from '~/app/routerHelper';
 import { useNavData, isNavDataGroup, NavDataHref, NavDataGroup } from './AppRoutes';
 import { isMUITheme, LOGO_LIGHT } from './const';
 
+const APP_PREFIX = process.env.APP_PREFIX || '/workspaces';
 const NavHref: React.FC<{ item: NavDataHref }> = ({ item }) => {
   const location = useTypedLocation();
 
@@ -61,7 +62,7 @@ const NavSidebar: React.FC = () => {
               <NavItem>
                 <Brand
                   className="kubeflow_brand"
-                  src={`${window.location.origin}/images/${LOGO_LIGHT}`}
+                  src={`${window.location.origin}${APP_PREFIX}/images/${LOGO_LIGHT}`}
                   alt="Kubeflow Logo"
                 />
               </NavItem>

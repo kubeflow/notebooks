@@ -6,7 +6,7 @@ describe('WorkspaceDetailsActivity Component', () => {
     cy.intercept('GET', 'api/v1/workspaces', {
       body: mockBFFResponse(mockWorkspaces),
     }).as('getWorkspaces');
-    cy.visit('/');
+    cy.visit('/workspaces');
   });
 
   // This tests depends on the mocked workspaces data at home page, needs revisit once workspace data fetched from BE
