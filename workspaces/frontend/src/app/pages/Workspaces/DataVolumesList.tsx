@@ -15,10 +15,10 @@ import { List, ListItem } from '@patternfly/react-core/dist/esm/components/List'
 import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
 import { DatabaseIcon } from '@patternfly/react-icons/dist/esm/icons/database-icon';
 import { LockedIcon } from '@patternfly/react-icons/dist/esm/icons/locked-icon';
-import { Workspace } from '~/shared/api/backendApiTypes';
+import { WorkspacesWorkspace } from '~/generated/data-contracts';
 
 interface DataVolumesListProps {
-  workspace: Workspace;
+  workspace: WorkspacesWorkspace;
 }
 
 export const DataVolumesList: React.FC<DataVolumesListProps> = ({ workspace }) => {

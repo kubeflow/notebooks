@@ -7,7 +7,7 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/ex
 import { ExclamationTriangleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-triangle-icon';
 import { InfoCircleIcon } from '@patternfly/react-icons/dist/esm/icons/info-circle-icon';
 import useWorkspaceKindByName from '~/app/hooks/useWorkspaceKindByName';
-import { WorkspaceKind } from '~/shared/api/backendApiTypes';
+import { WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
 
 const getLevelIcon = (level: string | undefined) => {
   switch (level) {
@@ -48,9 +48,9 @@ export const WorkspaceRedirectInformationView: React.FC<WorkspaceRedirectInforma
   const [activeKey, setActiveKey] = useState<string | number>(0);
   const [workspaceKind, workspaceKindLoaded] = useWorkspaceKindByName(kind);
   const [imageConfig, setImageConfig] =
-    useState<WorkspaceKind['podTemplate']['options']['imageConfig']>();
+    useState<WorkspacekindsWorkspaceKind['podTemplate']['options']['imageConfig']>();
   const [podConfig, setPodConfig] =
-    useState<WorkspaceKind['podTemplate']['options']['podConfig']>();
+    useState<WorkspacekindsWorkspaceKind['podTemplate']['options']['podConfig']>();
 
   useEffect(() => {
     if (!workspaceKindLoaded) {

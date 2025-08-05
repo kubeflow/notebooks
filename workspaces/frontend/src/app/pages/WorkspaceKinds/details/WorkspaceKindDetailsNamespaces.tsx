@@ -1,10 +1,10 @@
 import React from 'react';
-import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import { WorkspaceCountPerKind } from '~/app/hooks/useWorkspaceCountPerKind';
+import { WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
 import { WorkspaceKindDetailsTable } from './WorkspaceKindDetailsTable';
 
 type WorkspaceDetailsNamespacesProps = {
-  workspaceKind: WorkspaceKind;
+  workspaceKind: WorkspacekindsWorkspaceKind;
   workspaceCountPerKind: WorkspaceCountPerKind;
 };
 

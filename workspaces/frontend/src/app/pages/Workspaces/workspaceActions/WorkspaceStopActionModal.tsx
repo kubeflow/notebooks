@@ -9,14 +9,14 @@ import {
 } from '@patternfly/react-core/dist/esm/components/Modal';
 import { TabTitleText } from '@patternfly/react-core/dist/esm/components/Tabs';
 import { WorkspaceRedirectInformationView } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRedirectInformationView';
-import { Workspace, WorkspacePauseState } from '~/shared/api/backendApiTypes';
 import { ActionButton } from '~/shared/components/ActionButton';
+import { ApiWorkspaceActionPauseEnvelope, WorkspacesWorkspace } from '~/generated/data-contracts';
 
 interface StopActionAlertProps {
   onClose: () => void;
   isOpen: boolean;
-  workspace: Workspace | null;
-  onStop: () => Promise<WorkspacePauseState | void>;
+  workspace: WorkspacesWorkspace | null;
+  onStop: () => Promise<ApiWorkspaceActionPauseEnvelope>;
   onUpdateAndStop: () => Promise<void>;
   onActionDone?: () => void;
 }
@@ -35,10 +35,16 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
   const [actionOnGoing, setActionOnGoing] = useState<StopAction | null>(null);
 
   const executeAction = useCallback(
-    (args: { action: StopAction; callback: () => ReturnType<typeof onStop> }) => {
-      setActionOnGoing(args.action);
+    async <T,>({
+      action,
+      callback,
+    }: {
+      action: StopAction;
+      callback: () => Promise<T>;
+    }): Promise<T> => {
+      setActionOnGoing(action);
       try {
-        return args.callback();
+        return await callback();
       } finally {
         setActionOnGoing(null);
       }
@@ -50,7 +56,7 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
     try {
       const response = await executeAction({ action: 'stop', callback: onStop });
       // TODO: alert user about success
-      console.info('Workspace stopped successfully:', JSON.stringify(response));
+      console.info('Workspace stopped successfully:', JSON.stringify(response.data));
       onActionDone?.();
       onClose();
     } catch (error) {

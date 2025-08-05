@@ -1,103 +1,18 @@
 import { useCallback } from 'react';
-import { NotebookAPIs } from '~/shared/api/notebookApi';
-import {
-  createWorkspace,
-  createWorkspaceKind,
-  deleteWorkspace,
-  deleteWorkspaceKind,
-  getHealthCheck,
-  getWorkspace,
-  getWorkspaceKind,
-  listAllWorkspaces,
-  listNamespaces,
-  listWorkspaceKinds,
-  listWorkspaces,
-  patchWorkspace,
-  patchWorkspaceKind,
-  pauseWorkspace,
-  updateWorkspace,
-  updateWorkspaceKind,
-} from '~/shared/api/notebookService';
+import { NotebookApis, notebookApisImpl } from '~/shared/api/notebookApi';
 import { APIState } from '~/shared/api/types';
 import useAPIState from '~/shared/api/useAPIState';
-import {
-  mockCreateWorkspace,
-  mockCreateWorkspaceKind,
-  mockDeleteWorkspace,
-  mockDeleteWorkspaceKind,
-  mockGetHealthCheck,
-  mockGetWorkspace,
-  mockGetWorkspaceKind,
-  mockListAllWorkspaces,
-  mockListNamespaces,
-  mockListWorkspaceKinds,
-  mockListWorkspaces,
-  mockPatchWorkspace,
-  mockPatchWorkspaceKind,
-  mockPauseWorkspace,
-  mockUpdateWorkspace,
-  mockUpdateWorkspaceKind,
-} from '~/shared/mock/mockNotebookService';
+import { mockNotebookApisImpl } from '~/shared/mock/mockNotebookApis';
 
-export type NotebookAPIState = APIState<NotebookAPIs>;
+export type NotebookAPIState = APIState<NotebookApis>;
 
 const MOCK_API_ENABLED = process.env.WEBPACK_REPLACE__mockApiEnabled === 'true';
 
 const useNotebookAPIState = (
   hostPath: string | null,
 ): [apiState: NotebookAPIState, refreshAPIState: () => void] => {
-  const createApi = useCallback(
-    (path: string): NotebookAPIs => ({
-      // Health
-      getHealthCheck: getHealthCheck(path),
-      // Namespace
-      listNamespaces: listNamespaces(path),
-      // Workspace
-      listAllWorkspaces: listAllWorkspaces(path),
-      listWorkspaces: listWorkspaces(path),
-      createWorkspace: createWorkspace(path),
-      getWorkspace: getWorkspace(path),
-      updateWorkspace: updateWorkspace(path),
-      patchWorkspace: patchWorkspace(path),
-      deleteWorkspace: deleteWorkspace(path),
-      pauseWorkspace: pauseWorkspace(path),
-      // WorkspaceKind
-      listWorkspaceKinds: listWorkspaceKinds(path),
-      createWorkspaceKind: createWorkspaceKind(path),
-      getWorkspaceKind: getWorkspaceKind(path),
-      patchWorkspaceKind: patchWorkspaceKind(path),
-      deleteWorkspaceKind: deleteWorkspaceKind(path),
-      updateWorkspaceKind: updateWorkspaceKind(path),
-    }),
-    [],
-  );
-
-  const createMockApi = useCallback(
-    (path: string): NotebookAPIs => ({
-      // Health
-      getHealthCheck: mockGetHealthCheck(path),
-      // Namespace
-      listNamespaces: mockListNamespaces(path),
-      // Workspace
-      listAllWorkspaces: mockListAllWorkspaces(path),
-      listWorkspaces: mockListWorkspaces(path),
-      createWorkspace: mockCreateWorkspace(path),
-      getWorkspace: mockGetWorkspace(path),
-      updateWorkspace: mockUpdateWorkspace(path),
-      patchWorkspace: mockPatchWorkspace(path),
-      deleteWorkspace: mockDeleteWorkspace(path),
-      pauseWorkspace: mockPauseWorkspace(path),
-      // WorkspaceKind
-      listWorkspaceKinds: mockListWorkspaceKinds(path),
-      createWorkspaceKind: mockCreateWorkspaceKind(path),
-      getWorkspaceKind: mockGetWorkspaceKind(path),
-      patchWorkspaceKind: mockPatchWorkspaceKind(path),
-      deleteWorkspaceKind: mockDeleteWorkspaceKind(path),
-      updateWorkspaceKind: mockUpdateWorkspaceKind(path),
-    }),
-    [],
-  );
-
+  const createApi = useCallback((path: string) => notebookApisImpl(path), []);
+  const createMockApi = useCallback(() => mockNotebookApisImpl(), []);
   return useAPIState(hostPath, MOCK_API_ENABLED ? createMockApi : createApi);
 };
 

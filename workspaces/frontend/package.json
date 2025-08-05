@@ -19,6 +19,7 @@
     "build:bundle-analyze": "webpack-bundle-analyzer ./bundle.stats.json",
     "build:clean": "rimraf ./dist",
     "build:prod": "webpack --config ./config/webpack.prod.js",
+    "generate:api": "./scripts/generate-api.sh && npm run prettier",
     "start:dev": "cross-env STYLE_THEME=$npm_config_theme webpack serve --hot --color --config ./config/webpack.dev.js",
     "start:dev:mock": "cross-env MOCK_API_ENABLED=true STYLE_THEME=$npm_config_theme npm run start:dev",
     "test": "run-s prettier:check test:lint test:unit test:cypress-ci",
@@ -113,6 +114,7 @@
     "@patternfly/react-table": "^6.2.0",
     "@patternfly/react-tokens": "^6.2.0",
     "@types/js-yaml": "^4.0.9",
+    "axios": "^1.10.0",
     "date-fns": "^4.1.0",
     "eslint-plugin-local-rules": "^3.0.2",
     "js-yaml": "^4.1.0",
@@ -138,6 +140,7 @@
     "eslint-plugin-no-relative-import-paths": "^1.5.2",
     "eslint-plugin-prettier": "^5.0.0",
     "eslint-plugin-react": "^7.37.2",
-    "eslint-plugin-react-hooks": "^5.0.0"
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "swagger-typescript-api": "^13.2.7"
   }
 }

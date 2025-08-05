@@ -1,4 +1,8 @@
-import { Workspace, WorkspaceState, WorkspaceOptionLabel } from '~/shared/api/backendApiTypes';
+import {
+  WorkspacesOptionLabel,
+  WorkspacesWorkspace,
+  WorkspacesWorkspaceState,
+} from '~/generated/data-contracts';
 import {
   CPU_UNITS,
   MEMORY_UNITS_FOR_PARSING,
@@ -28,7 +32,7 @@ export const parseResourceValue = (
 };
 
 export const extractResourceValue = (
-  workspace: Workspace,
+  workspace: WorkspacesWorkspace,
   resourceType: ResourceType,
 ): string | undefined =>
   workspace.podTemplate.options.podConfig.current.labels.find((label) => label.key === resourceType)
@@ -48,35 +52,40 @@ export const formatResourceValue = (v: string | undefined, resourceType?: Resour
 };
 
 export const formatResourceFromWorkspace = (
-  workspace: Workspace,
+  workspace: WorkspacesWorkspace,
   resourceType: ResourceType,
 ): string => formatResourceValue(extractResourceValue(workspace, resourceType), resourceType);
 
-export const formatWorkspaceIdleState = (workspace: Workspace): string =>
-  workspace.state !== WorkspaceState.WorkspaceStateRunning ? YesNoValue.Yes : YesNoValue.No;
+export const formatWorkspaceIdleState = (workspace: WorkspacesWorkspace): string =>
+  workspace.state !== WorkspacesWorkspaceState.WorkspaceStateRunning
+    ? YesNoValue.Yes
+    : YesNoValue.No;
 
-export const isWorkspaceWithGpu = (workspace: Workspace): boolean =>
+export const isWorkspaceWithGpu = (workspace: WorkspacesWorkspace): boolean =>
   workspace.podTemplate.options.podConfig.current.labels.some((label) => label.key === 'gpu');
 
-export const isWorkspaceIdle = (workspace: Workspace): boolean =>
-  workspace.state !== WorkspaceState.WorkspaceStateRunning;
+export const isWorkspaceIdle = (workspace: WorkspacesWorkspace): boolean =>
+  workspace.state !== WorkspacesWorkspaceState.WorkspaceStateRunning;
 
-export const filterWorkspacesWithGpu = (workspaces: Workspace[]): Workspace[] =>
+export const filterWorkspacesWithGpu = (workspaces: WorkspacesWorkspace[]): WorkspacesWorkspace[] =>
   workspaces.filter(isWorkspaceWithGpu);
 
-export const filterIdleWorkspaces = (workspaces: Workspace[]): Workspace[] =>
+export const filterIdleWorkspaces = (workspaces: WorkspacesWorkspace[]): WorkspacesWorkspace[] =>
   workspaces.filter(isWorkspaceIdle);
 
-export const filterRunningWorkspaces = (workspaces: Workspace[]): Workspace[] =>
-  workspaces.filter((workspace) => workspace.state === WorkspaceState.WorkspaceStateRunning);
+export const filterRunningWorkspaces = (workspaces: WorkspacesWorkspace[]): WorkspacesWorkspace[] =>
+  workspaces.filter(
+    (workspace) => workspace.state === WorkspacesWorkspaceState.WorkspaceStateRunning,
+  );
 
-export const filterIdleWorkspacesWithGpu = (workspaces: Workspace[]): Workspace[] =>
-  filterIdleWorkspaces(filterWorkspacesWithGpu(workspaces));
+export const filterIdleWorkspacesWithGpu = (
+  workspaces: WorkspacesWorkspace[],
+): WorkspacesWorkspace[] => filterIdleWorkspaces(filterWorkspacesWithGpu(workspaces));
 
-export type WorkspaceGpuCountRecord = { workspaces: Workspace[]; gpuCount: number };
+export type WorkspaceGpuCountRecord = { workspaces: WorkspacesWorkspace[]; gpuCount: number };
 
 export const groupWorkspacesByNamespaceAndGpu = (
-  workspaces: Workspace[],
+  workspaces: WorkspacesWorkspace[],
   order: 'ASC' | 'DESC' = 'DESC',
 ): Record<string, WorkspaceGpuCountRecord> => {
   const grouped: Record<string, WorkspaceGpuCountRecord> = {};
@@ -97,7 +106,7 @@ export const groupWorkspacesByNamespaceAndGpu = (
   );
 };
 
-export const countGpusFromWorkspaces = (workspaces: Workspace[]): number =>
+export const countGpusFromWorkspaces = (workspaces: WorkspacesWorkspace[]): number =>
   workspaces.reduce((total, workspace) => {
     const [gpuValue] = splitValueUnit(extractResourceValue(workspace, 'gpu') || '0', OTHER);
     return total + (gpuValue ?? 0);
@@ -124,7 +133,7 @@ export const formatLabelKey = (key: string): string => {
 export const isPackageLabel = (key: string): boolean => key.endsWith('Version');
 
 // Extract package labels from workspace image config
-export const extractPackageLabels = (workspace: Workspace): WorkspaceOptionLabel[] =>
+export const extractPackageLabels = (workspace: WorkspacesWorkspace): WorkspacesOptionLabel[] =>
   workspace.podTemplate.options.imageConfig.current.labels.filter((label) =>
     isPackageLabel(label.key),
   );

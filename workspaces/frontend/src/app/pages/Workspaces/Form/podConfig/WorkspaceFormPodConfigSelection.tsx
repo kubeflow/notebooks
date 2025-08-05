@@ -3,12 +3,12 @@ import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import { Split, SplitItem } from '@patternfly/react-core/dist/esm/layouts/Split';
 import { WorkspaceFormPodConfigList } from '~/app/pages/Workspaces/Form/podConfig/WorkspaceFormPodConfigList';
 import { FilterByLabels } from '~/app/pages/Workspaces/Form/labelFilter/FilterByLabels';
-import { WorkspacePodConfigValue } from '~/shared/api/backendApiTypes';
+import { WorkspacekindsPodConfigValue } from '~/generated/data-contracts';
 
 interface WorkspaceFormPodConfigSelectionProps {
-  podConfigs: WorkspacePodConfigValue[];
-  selectedPodConfig: WorkspacePodConfigValue | undefined;
-  onSelect: (podConfig: WorkspacePodConfigValue | undefined) => void;
+  podConfigs: WorkspacekindsPodConfigValue[];
+  selectedPodConfig: WorkspacekindsPodConfigValue | undefined;
+  onSelect: (podConfig: WorkspacekindsPodConfigValue | undefined) => void;
 }
 
 const WorkspaceFormPodConfigSelection: React.FunctionComponent<

@@ -3,20 +3,23 @@ import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
 } from '~/shared/utilities/useFetchState';
-import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
+import {
+  ApiWorkspaceKindListEnvelope,
+  WorkspacekindsWorkspaceKind,
+} from '~/generated/data-contracts';
 
-const useWorkspaceKinds = (): FetchState<WorkspaceKind[]> => {
+const useWorkspaceKinds = (): FetchState<WorkspacekindsWorkspaceKind[]> => {
   const { api, apiAvailable } = useNotebookAPI();
-  const call = useCallback<FetchStateCallbackPromise<WorkspaceKind[]>>(
-    (opts) => {
-      if (!apiAvailable) {
-        return Promise.reject(new Error('API not yet available'));
-      }
-      return api.listWorkspaceKinds(opts);
-    },
-    [api, apiAvailable],
-  );
+  const call = useCallback<
+    FetchStateCallbackPromise<ApiWorkspaceKindListEnvelope['data']>
+  >(async () => {
+    if (!apiAvailable) {
+      return Promise.reject(new Error('API not yet available'));
+    }
+    const envelope = await api.workspaceKinds.listWorkspaceKinds();
+    return envelope.data;
+  }, [api, apiAvailable]);
 
   return useFetchState(call, []);
 };

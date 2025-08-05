@@ -10,9 +10,9 @@ import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/comp
 import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
 import { WorkspaceKindPodTemplateData } from '~/app/types';
 import { EditableLabels } from '~/app/pages/WorkspaceKinds/Form/EditableLabels';
-import { WorkspacePodVolumeMount } from '~/shared/api/backendApiTypes';
 import { ResourceInputWrapper } from '~/app/pages/WorkspaceKinds/Form/podConfig/ResourceInputWrapper';
 import { WorkspaceFormPropertiesVolumes } from '~/app/pages/Workspaces/Form/properties/WorkspaceFormPropertiesVolumes';
+import { WorkspacesPodVolumeMount } from '~/generated/data-contracts';
 
 interface WorkspaceKindFormPodTemplateProps {
   podTemplate: WorkspaceKindPodTemplateData;
@@ -24,7 +24,7 @@ export const WorkspaceKindFormPodTemplate: React.FC<WorkspaceKindFormPodTemplate
   updatePodTemplate,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [volumes, setVolumes] = useState<WorkspacePodVolumeMount[]>([]);
+  const [volumes, setVolumes] = useState<WorkspacesPodVolumeMount[]>([]);
 
   const toggleCullingEnabled = useCallback(
     (checked: boolean) => {
@@ -42,7 +42,7 @@ export const WorkspaceKindFormPodTemplate: React.FC<WorkspaceKindFormPodTemplate
   );
 
   const handleVolumes = useCallback(
-    (newVolumes: WorkspacePodVolumeMount[]) => {
+    (newVolumes: WorkspacesPodVolumeMount[]) => {
       setVolumes(newVolumes);
       updatePodTemplate({
         ...podTemplate,

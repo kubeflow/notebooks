@@ -10,13 +10,13 @@ import {
 } from '@patternfly/react-core/dist/esm/components/FormSelect';
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import {
-  WorkspaceOptionRedirect,
-  WorkspaceRedirectMessageLevel,
-} from '~/shared/api/backendApiTypes';
+  WorkspacekindsOptionRedirect,
+  WorkspacekindsRedirectMessageLevel,
+} from '~/generated/data-contracts';
 
 interface WorkspaceKindFormImageRedirectProps {
-  redirect: WorkspaceOptionRedirect;
-  setRedirect: (obj: WorkspaceOptionRedirect) => void;
+  redirect: WorkspacekindsOptionRedirect;
+  setRedirect: (obj: WorkspacekindsOptionRedirect) => void;
 }
 
 export const WorkspaceKindFormImageRedirect: React.FC<WorkspaceKindFormImageRedirectProps> = ({
@@ -26,18 +26,18 @@ export const WorkspaceKindFormImageRedirect: React.FC<WorkspaceKindFormImageRedi
   const redirectMsgOptions = [
     { value: 'please choose', label: 'Select one', disabled: true },
     {
-      value: WorkspaceRedirectMessageLevel.RedirectMessageLevelInfo,
-      label: WorkspaceRedirectMessageLevel.RedirectMessageLevelInfo,
+      value: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelInfo,
+      label: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelInfo,
       disabled: false,
     },
     {
-      value: WorkspaceRedirectMessageLevel.RedirectMessageLevelWarning,
-      label: WorkspaceRedirectMessageLevel.RedirectMessageLevelWarning,
+      value: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelWarning,
+      label: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelWarning,
       disabled: false,
     },
     {
-      value: WorkspaceRedirectMessageLevel.RedirectMessageLevelDanger,
-      label: WorkspaceRedirectMessageLevel.RedirectMessageLevelDanger,
+      value: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelDanger,
+      label: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelDanger,
       disabled: false,
     },
   ];
@@ -71,7 +71,7 @@ export const WorkspaceKindFormImageRedirect: React.FC<WorkspaceKindFormImageRedi
               ...redirect,
               message: {
                 text: redirect.message?.level || '',
-                level: val as WorkspaceRedirectMessageLevel,
+                level: val as WorkspacekindsRedirectMessageLevel,
               },
             })
           }
@@ -100,7 +100,8 @@ export const WorkspaceKindFormImageRedirect: React.FC<WorkspaceKindFormImageRedi
               ...redirect,
               message: {
                 level:
-                  redirect.message?.level || WorkspaceRedirectMessageLevel.RedirectMessageLevelInfo,
+                  redirect.message?.level ||
+                  WorkspacekindsRedirectMessageLevel.RedirectMessageLevelInfo,
                 text: val,
               },
             })

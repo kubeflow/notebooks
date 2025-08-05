@@ -8,12 +8,12 @@ import {
 import { Gallery } from '@patternfly/react-core/dist/esm/layouts/Gallery';
 import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
 import { Toolbar, ToolbarContent } from '@patternfly/react-core/dist/esm/components/Toolbar';
-import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import Filter, { FilteredColumn, FilterRef } from '~/shared/components/Filter';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
 import ImageFallback from '~/shared/components/ImageFallback';
 import WithValidImage from '~/shared/components/WithValidImage';
 import { defineDataFields, FilterableDataFieldKey } from '~/app/filterableDataHelper';
+import { WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const { fields, filterableLabelMap } = defineDataFields({
@@ -23,9 +23,9 @@ const { fields, filterableLabelMap } = defineDataFields({
 type FilterableDataFieldKeys = FilterableDataFieldKey<typeof fields>;
 
 type WorkspaceFormKindListProps = {
-  allWorkspaceKinds: WorkspaceKind[];
-  selectedKind: WorkspaceKind | undefined;
-  onSelect: (workspaceKind: WorkspaceKind | undefined) => void;
+  allWorkspaceKinds: WorkspacekindsWorkspaceKind[];
+  selectedKind: WorkspacekindsWorkspaceKind | undefined;
+  onSelect: (workspaceKind: WorkspacekindsWorkspaceKind | undefined) => void;
 };
 
 export const WorkspaceFormKindList: React.FunctionComponent<WorkspaceFormKindListProps> = ({

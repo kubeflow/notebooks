@@ -1,9 +1,9 @@
 import React from 'react';
 import { Title } from '@patternfly/react-core/dist/esm/components/Title';
-import { WorkspaceKind } from '~/shared/api/backendApiTypes';
+import { WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
 
 type WorkspaceFormKindDetailsProps = {
-  workspaceKind?: WorkspaceKind;
+  workspaceKind?: WorkspacekindsWorkspaceKind;
 };
 
 export const WorkspaceFormKindDetails: React.FunctionComponent<WorkspaceFormKindDetailsProps> = ({

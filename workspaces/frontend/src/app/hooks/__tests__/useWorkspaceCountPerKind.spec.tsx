@@ -3,13 +3,13 @@ import { renderHook } from '~/__tests__/unit/testUtils/hooks';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { useWorkspaceCountPerKind } from '~/app/hooks/useWorkspaceCountPerKind';
 import {
-  Workspace,
-  WorkspaceImageConfigValue,
-  WorkspaceKind,
-  WorkspaceKindInfo,
-  WorkspacePodConfigValue,
-} from '~/shared/api/backendApiTypes';
-import { NotebookAPIs } from '~/shared/api/notebookApi';
+  WorkspacekindsImageConfigValue,
+  WorkspacekindsPodConfigValue,
+  WorkspacekindsWorkspaceKind,
+  WorkspacesWorkspace,
+  WorkspacesWorkspaceKindInfo,
+} from '~/generated/data-contracts';
+import { NotebookApis } from '~/shared/api/notebookApi';
 import { buildMockWorkspace, buildMockWorkspaceKind } from '~/shared/mock/mockBuilder';
 
 jest.mock('~/app/hooks/useNotebookAPI', () => ({
@@ -18,7 +18,7 @@ jest.mock('~/app/hooks/useNotebookAPI', () => ({
 
 const mockUseNotebookAPI = useNotebookAPI as jest.MockedFunction<typeof useNotebookAPI>;
 
-const baseWorkspaceKindInfoTest: WorkspaceKindInfo = {
+const baseWorkspaceKindInfoTest: WorkspacesWorkspaceKindInfo = {
   name: 'jupyter',
   missing: false,
   icon: { url: '' },
@@ -31,7 +31,7 @@ const baseWorkspaceTest = buildMockWorkspace({
   workspaceKind: baseWorkspaceKindInfoTest,
 });
 
-const baseImageConfigTest: WorkspaceImageConfigValue = {
+const baseImageConfigTest: WorkspacekindsImageConfigValue = {
   id: 'image',
   displayName: 'Image',
   description: 'Test image',
@@ -40,7 +40,7 @@ const baseImageConfigTest: WorkspaceImageConfigValue = {
   clusterMetrics: undefined,
 };
 
-const basePodConfigTest: WorkspacePodConfigValue = {
+const basePodConfigTest: WorkspacekindsPodConfigValue = {
   id: 'podConfig',
   displayName: 'Pod Config',
   description: 'Test pod config',
@@ -53,23 +53,34 @@ describe('useWorkspaceCountPerKind', () => {
   const mockListAllWorkspaces = jest.fn();
   const mockListWorkspaceKinds = jest.fn();
 
-  const mockApi: Partial<NotebookAPIs> = {
-    listAllWorkspaces: mockListAllWorkspaces,
-    listWorkspaceKinds: mockListWorkspaceKinds,
+  const mockApi: Partial<NotebookApis> = {
+    workspaces: {
+      listAllWorkspaces: mockListAllWorkspaces,
+      listWorkspacesByNamespace: jest.fn(),
+      createWorkspace: jest.fn(),
+      updateWorkspacePauseState: jest.fn(),
+      getWorkspace: jest.fn(),
+      deleteWorkspace: jest.fn(),
+    },
+    workspaceKinds: {
+      listWorkspaceKinds: mockListWorkspaceKinds,
+      createWorkspaceKind: jest.fn(),
+      getWorkspaceKind: jest.fn(),
+    },
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseNotebookAPI.mockReturnValue({
-      api: mockApi as NotebookAPIs,
+      api: mockApi as NotebookApis,
       apiAvailable: true,
       refreshAllAPI: jest.fn(),
     });
   });
 
   it('should return empty object initially', () => {
-    mockListAllWorkspaces.mockResolvedValue([]);
-    mockListWorkspaceKinds.mockResolvedValue([]);
+    mockListAllWorkspaces.mockResolvedValue({ ok: true, data: [] });
+    mockListWorkspaceKinds.mockResolvedValue({ ok: true, data: [] });
 
     const { result } = renderHook(() => useWorkspaceCountPerKind());
 
@@ -79,7 +90,7 @@ describe('useWorkspaceCountPerKind', () => {
   });
 
   it('should fetch and calculate workspace counts on mount', async () => {
-    const mockWorkspaces: Workspace[] = [
+    const mockWorkspaces: WorkspacesWorkspace[] = [
       {
         ...baseWorkspaceTest,
         name: 'workspace1',
@@ -100,7 +111,7 @@ describe('useWorkspaceCountPerKind', () => {
       },
     ];
 
-    const mockWorkspaceKinds: WorkspaceKind[] = [
+    const mockWorkspaceKinds: WorkspacekindsWorkspaceKind[] = [
       buildMockWorkspaceKind({
         name: 'jupyter1',
         clusterMetrics: { workspacesCount: 10 },
@@ -173,8 +184,8 @@ describe('useWorkspaceCountPerKind', () => {
       }),
     ];
 
-    mockListAllWorkspaces.mockResolvedValue(mockWorkspaces);
-    mockListWorkspaceKinds.mockResolvedValue(mockWorkspaceKinds);
+    mockListAllWorkspaces.mockResolvedValue({ ok: true, data: mockWorkspaces });
+    mockListWorkspaceKinds.mockResolvedValue({ ok: true, data: mockWorkspaceKinds });
 
     const { result } = renderHook(() => useWorkspaceCountPerKind());
 
@@ -211,8 +222,8 @@ describe('useWorkspaceCountPerKind', () => {
   });
 
   it('should handle missing cluster metrics gracefully', async () => {
-    const mockEmptyWorkspaces: Workspace[] = [];
-    const mockWorkspaceKinds: WorkspaceKind[] = [
+    const mockEmptyWorkspaces: WorkspacesWorkspace[] = [];
+    const mockWorkspaceKinds: WorkspacekindsWorkspaceKind[] = [
       buildMockWorkspaceKind({
         name: 'no-metrics',
         clusterMetrics: undefined,
@@ -251,8 +262,8 @@ describe('useWorkspaceCountPerKind', () => {
       }),
     ];
 
-    mockListAllWorkspaces.mockResolvedValue(mockEmptyWorkspaces);
-    mockListWorkspaceKinds.mockResolvedValue(mockWorkspaceKinds);
+    mockListAllWorkspaces.mockResolvedValue({ ok: true, data: mockEmptyWorkspaces });
+    mockListWorkspaceKinds.mockResolvedValue({ ok: true, data: mockWorkspaceKinds });
 
     const { result } = renderHook(() => useWorkspaceCountPerKind());
 
@@ -290,7 +301,8 @@ describe('useWorkspaceCountPerKind', () => {
   });
 
   it('should handle empty workspace kinds array', async () => {
-    mockListWorkspaceKinds.mockResolvedValue([]);
+    mockListAllWorkspaces.mockResolvedValue({ ok: true, data: [] });
+    mockListWorkspaceKinds.mockResolvedValue({ ok: true, data: [] });
 
     const { result } = renderHook(() => useWorkspaceCountPerKind());
 
@@ -300,7 +312,7 @@ describe('useWorkspaceCountPerKind', () => {
   });
 
   it('should handle workspaces with no matching kinds', async () => {
-    const mockWorkspaces: Workspace[] = [baseWorkspaceTest];
+    const mockWorkspaces: WorkspacesWorkspace[] = [baseWorkspaceTest];
     const workspaceKind = buildMockWorkspaceKind({
       name: 'nomatch',
       clusterMetrics: { workspacesCount: 0 },
@@ -320,10 +332,10 @@ describe('useWorkspaceCountPerKind', () => {
       },
     });
 
-    const mockWorkspaceKinds: WorkspaceKind[] = [workspaceKind];
+    const mockWorkspaceKinds: WorkspacekindsWorkspaceKind[] = [workspaceKind];
 
-    mockListAllWorkspaces.mockResolvedValue(mockWorkspaces);
-    mockListWorkspaceKinds.mockResolvedValue(mockWorkspaceKinds);
+    mockListAllWorkspaces.mockResolvedValue({ ok: true, data: mockWorkspaces });
+    mockListWorkspaceKinds.mockResolvedValue({ ok: true, data: mockWorkspaceKinds });
 
     const { result } = renderHook(() => useWorkspaceCountPerKind());
 

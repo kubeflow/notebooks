@@ -14,15 +14,15 @@ import {
   TabContent,
 } from '@patternfly/react-core/dist/esm/components/Tabs';
 import { Title } from '@patternfly/react-core/dist/esm/components/Title';
-import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import { WorkspaceCountPerKind } from '~/app/hooks/useWorkspaceCountPerKind';
 import { WorkspaceKindDetailsNamespaces } from '~/app/pages/WorkspaceKinds/details/WorkspaceKindDetailsNamespaces';
+import { WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
 import { WorkspaceKindDetailsOverview } from './WorkspaceKindDetailsOverview';
 import { WorkspaceKindDetailsImages } from './WorkspaceKindDetailsImages';
 import { WorkspaceKindDetailsPodConfigs } from './WorkspaceKindDetailsPodConfigs';
 
 type WorkspaceKindDetailsProps = {
-  workspaceKind: WorkspaceKind;
+  workspaceKind: WorkspacekindsWorkspaceKind;
   workspaceCountPerKind: WorkspaceCountPerKind;
   onCloseClick: React.MouseEventHandler;
 };

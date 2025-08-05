@@ -5,11 +5,11 @@ import {
   DescriptionListGroup,
   DescriptionListDescription,
 } from '@patternfly/react-core/dist/esm/components/DescriptionList';
-import { Workspace } from '~/shared/api/backendApiTypes';
 import { formatResourceFromWorkspace } from '~/shared/utilities/WorkspaceUtils';
+import { WorkspacesWorkspace } from '~/generated/data-contracts';
 
 interface WorkspaceConfigDetailsProps {
-  workspace: Workspace;
+  workspace: WorkspacesWorkspace;
 }
 
 export const WorkspaceConfigDetails: React.FC<WorkspaceConfigDetailsProps> = ({ workspace }) => (
