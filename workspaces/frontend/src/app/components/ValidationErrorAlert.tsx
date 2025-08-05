@@ -1,12 +1,11 @@
 import React from 'react';
 import { Alert } from '@patternfly/react-core/dist/esm/components/Alert';
 import { List, ListItem } from '@patternfly/react-core/dist/esm/components/List';
-import { ValidationError } from '~/shared/api/backendApiTypes';
-import { ErrorEnvelopeException } from '~/shared/api/apiUtils';
+import { ApiValidationError } from '~/generated/data-contracts';
 
 interface ValidationErrorAlertProps {
   title: string;
-  errors: (ValidationError | ErrorEnvelopeException)[];
+  errors: ApiValidationError[];
 }
 
 export const ValidationErrorAlert: React.FC<ValidationErrorAlertProps> = ({ title, errors }) => {
@@ -18,7 +17,9 @@ export const ValidationErrorAlert: React.FC<ValidationErrorAlertProps> = ({ titl
     <Alert variant="danger" title={title} isInline>
       <List>
         {errors.map((error, index) => (
-          <ListItem key={index}>{error.message}</ListItem>
+          <ListItem key={index}>
+            {error.message}: &apos;{error.field}&apos;
+          </ListItem>
         ))}
       </List>
     </Alert>

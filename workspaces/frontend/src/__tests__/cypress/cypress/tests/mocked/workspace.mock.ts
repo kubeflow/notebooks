@@ -1,17 +1,17 @@
-import { WorkspaceState } from '~/shared/api/backendApiTypes';
-import type { Workspace, WorkspaceKindInfo } from '~/shared/api/backendApiTypes';
+import type { WorkspacesWorkspace, WorkspacesWorkspaceKindInfo } from '~/generated/data-contracts';
+import { WorkspacesWorkspaceState } from '~/generated/data-contracts';
 
 const generateMockWorkspace = (
   name: string,
   namespace: string,
-  state: WorkspaceState,
+  state: WorkspacesWorkspaceState,
   paused: boolean,
   imageConfigId: string,
   imageConfigDisplayName: string,
   podConfigId: string,
   podConfigDisplayName: string,
   pvcName: string,
-): Workspace => {
+): WorkspacesWorkspace => {
   const pausedTime = new Date(2025, 0, 1).getTime();
   const lastActivityTime = new Date(2025, 0, 2).getTime();
   const lastUpdateTime = new Date(2025, 0, 3).getTime();
@@ -19,16 +19,16 @@ const generateMockWorkspace = (
   return {
     name,
     namespace,
-    workspaceKind: { name: 'jupyterlab' } as WorkspaceKindInfo,
+    workspaceKind: { name: 'jupyterlab' } as WorkspacesWorkspaceKindInfo,
     deferUpdates: paused,
     paused,
     pausedTime,
     pendingRestart: Math.random() < 0.5, //to generate randomly True/False value
     state,
     stateMessage:
-      state === WorkspaceState.WorkspaceStateRunning
+      state === WorkspacesWorkspaceState.WorkspaceStateRunning
         ? 'Workspace is running smoothly.'
-        : state === WorkspaceState.WorkspaceStatePaused
+        : state === WorkspacesWorkspaceState.WorkspaceStatePaused
           ? 'Workspace is paused.'
           : 'Workspace is operational.',
     podTemplate: {
@@ -104,11 +104,11 @@ const generateMockWorkspaces = (numWorkspaces: number, byNamespace = false) => {
   for (let i = 1; i <= numWorkspaces; i++) {
     const state =
       i % 3 === 0
-        ? WorkspaceState.WorkspaceStateError
+        ? WorkspacesWorkspaceState.WorkspaceStateError
         : i % 2 === 0
-          ? WorkspaceState.WorkspaceStatePaused
-          : WorkspaceState.WorkspaceStateRunning;
-    const paused = state === WorkspaceState.WorkspaceStatePaused;
+          ? WorkspacesWorkspaceState.WorkspaceStatePaused
+          : WorkspacesWorkspaceState.WorkspaceStateRunning;
+    const paused = state === WorkspacesWorkspaceState.WorkspaceStatePaused;
     const name = `workspace-${i}`;
     const namespace = namespaces[i % namespaces.length];
     const pvcName = `data-pvc-${i}`;

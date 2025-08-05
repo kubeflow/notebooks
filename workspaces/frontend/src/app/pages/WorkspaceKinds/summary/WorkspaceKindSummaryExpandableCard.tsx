@@ -12,7 +12,6 @@ import { Divider } from '@patternfly/react-core/dist/esm/components/Divider';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import { t_global_spacer_md as MediumPadding } from '@patternfly/react-tokens';
-import { Workspace } from '~/shared/api/backendApiTypes';
 import {
   countGpusFromWorkspaces,
   filterIdleWorkspacesWithGpu,
@@ -20,11 +19,12 @@ import {
   groupWorkspacesByNamespaceAndGpu,
   YesNoValue,
 } from '~/shared/utilities/WorkspaceUtils';
+import { WorkspacesWorkspace } from '~/generated/data-contracts';
 
 const TOP_GPU_CONSUMERS_LIMIT = 2;
 
 interface WorkspaceKindSummaryExpandableCardProps {
-  workspaces: Workspace[];
+  workspaces: WorkspacesWorkspace[];
   isExpanded: boolean;
   onExpandToggle: () => void;
   onAddFilter: (columnKey: string, value: string) => void;

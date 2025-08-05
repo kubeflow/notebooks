@@ -5,11 +5,11 @@ import {
   DescriptionListGroup,
   DescriptionListDescription,
 } from '@patternfly/react-core/dist/esm/components/DescriptionList';
-import { Workspace } from '~/shared/api/backendApiTypes';
 import { DataVolumesList } from '~/app/pages/Workspaces/DataVolumesList';
+import { WorkspacesWorkspace } from '~/generated/data-contracts';
 
 interface WorkspaceStorageProps {
-  workspace: Workspace;
+  workspace: WorkspacesWorkspace;
 }
 
 export const WorkspaceStorage: React.FC<WorkspaceStorageProps> = ({ workspace }) => (

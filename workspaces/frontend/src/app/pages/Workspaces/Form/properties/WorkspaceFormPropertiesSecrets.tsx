@@ -24,11 +24,11 @@ import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggl
 import { Form, FormGroup } from '@patternfly/react-core/dist/esm/components/Form';
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
-import { WorkspacePodSecretMount } from '~/shared/api/backendApiTypes';
+import { WorkspacesPodSecretMount } from '~/generated/data-contracts';
 
 interface WorkspaceFormPropertiesSecretsProps {
-  secrets: WorkspacePodSecretMount[];
-  setSecrets: (secrets: WorkspacePodSecretMount[]) => void;
+  secrets: WorkspacesPodSecretMount[];
+  setSecrets: (secrets: WorkspacesPodSecretMount[]) => void;
 }
 
 const DEFAULT_MODE_OCTAL = (420).toString(8);
@@ -39,7 +39,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [formData, setFormData] = useState<WorkspacePodSecretMount>({
+  const [formData, setFormData] = useState<WorkspacesPodSecretMount>({
     secretName: '',
     mountPath: '',
     defaultMode: parseInt(DEFAULT_MODE_OCTAL, 8),

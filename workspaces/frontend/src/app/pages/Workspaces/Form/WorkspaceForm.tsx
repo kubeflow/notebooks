@@ -26,14 +26,14 @@ import { WorkspaceFormKindSelection } from '~/app/pages/Workspaces/Form/kind/Wor
 import { WorkspaceFormPodConfigSelection } from '~/app/pages/Workspaces/Form/podConfig/WorkspaceFormPodConfigSelection';
 import { WorkspaceFormPropertiesSelection } from '~/app/pages/Workspaces/Form/properties/WorkspaceFormPropertiesSelection';
 import { WorkspaceFormData } from '~/app/types';
-import {
-  WorkspaceCreate,
-  WorkspaceKind,
-  WorkspaceImageConfigValue,
-  WorkspacePodConfigValue,
-} from '~/shared/api/backendApiTypes';
 import useWorkspaceFormData from '~/app/hooks/useWorkspaceFormData';
 import { useTypedNavigate } from '~/app/routerHelper';
+import {
+  WorkspacekindsImageConfigValue,
+  WorkspacekindsPodConfigValue,
+  WorkspacekindsWorkspaceKind,
+  WorkspacesWorkspaceCreate,
+} from '~/generated/data-contracts';
 import { useWorkspaceFormLocationData } from '~/app/hooks/useWorkspaceFormLocationData';
 import { WorkspaceFormKindDetails } from '~/app/pages/Workspaces/Form/kind/WorkspaceFormKindDetails';
 import { WorkspaceFormImageDetails } from '~/app/pages/Workspaces/Form/image/WorkspaceFormImageDetails';
@@ -151,7 +151,7 @@ const WorkspaceForm: React.FC = () => {
     }
 
     // TODO: Prepare WorkspaceUpdate data accordingly when BE supports it
-    const submitData: WorkspaceCreate = {
+    const submitData: WorkspacesWorkspaceCreate = {
       name: data.properties.workspaceName,
       kind: data.kind.name,
       deferUpdates: data.properties.deferUpdates,
@@ -177,15 +177,13 @@ const WorkspaceForm: React.FC = () => {
 
     try {
       if (mode === 'edit') {
-        const updateWorkspace = await api.updateWorkspace({}, submitData.name, namespace, {
+        // TODO: call api to update workspace when implemented in backend
+      } else {
+        const workspaceEnvelope = await api.workspaces.createWorkspace(namespace, {
           data: submitData,
         });
         // TODO: alert user about success
-        console.info('Workspace updated:', JSON.stringify(updateWorkspace));
-      } else {
-        const newWorkspace = await api.createWorkspace({}, namespace, { data: submitData });
-        // TODO: alert user about success
-        console.info('New workspace created:', JSON.stringify(newWorkspace));
+        console.info('New workspace created:', JSON.stringify(workspaceEnvelope.data));
       }
 
       navigate('workspaces');
@@ -202,7 +200,7 @@ const WorkspaceForm: React.FC = () => {
   }, [navigate]);
 
   const handleKindSelect = useCallback(
-    (kind: WorkspaceKind | undefined) => {
+    (kind: WorkspacekindsWorkspaceKind | undefined) => {
       if (kind) {
         resetData();
         setData('kind', kind);
@@ -213,7 +211,7 @@ const WorkspaceForm: React.FC = () => {
   );
 
   const handleImageSelect = useCallback(
-    (image: WorkspaceImageConfigValue | undefined) => {
+    (image: WorkspacekindsImageConfigValue | undefined) => {
       if (image) {
         setData('image', image);
         setDrawerExpanded(true);
@@ -223,7 +221,7 @@ const WorkspaceForm: React.FC = () => {
   );
 
   const handlePodConfigSelect = useCallback(
-    (podConfig: WorkspacePodConfigValue | undefined) => {
+    (podConfig: WorkspacekindsPodConfigValue | undefined) => {
       if (podConfig) {
         setData('podConfig', podConfig);
         setDrawerExpanded(true);

@@ -1,5 +1,8 @@
 import { ImagePullPolicy, WorkspaceKindImagePort, WorkspaceKindPodConfigValue } from '~/app/types';
-import { WorkspaceOptionLabel, WorkspacePodConfigValue } from '~/shared/api/backendApiTypes';
+import {
+  WorkspacekindsOptionLabel,
+  WorkspacekindsPodConfigValue,
+} from '~/generated/data-contracts';
 import { PodResourceEntry } from './podConfig/WorkspaceKindFormResource';
 
 // Simple ID generator to avoid PatternFly dependency in tests
@@ -79,7 +82,7 @@ export const emptyImage = {
   description: '',
   hidden: false,
   imagePullPolicy: ImagePullPolicy.IfNotPresent,
-  labels: [] as WorkspaceOptionLabel[],
+  labels: [] as WorkspacekindsOptionLabel[],
   image: '',
   ports: [
     {
@@ -94,7 +97,7 @@ export const emptyImage = {
   },
 };
 
-export const emptyPodConfig: WorkspacePodConfigValue = {
+export const emptyPodConfig: WorkspacekindsPodConfigValue = {
   id: '',
   displayName: '',
   description: '',

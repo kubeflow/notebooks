@@ -5,11 +5,11 @@ import {
   FilterSidePanelCategoryItem,
 } from '@patternfly/react-catalog-view-extension';
 import '@patternfly/react-catalog-view-extension/dist/css/react-catalog-view-extension.css';
-import { WorkspaceOptionLabel } from '~/shared/api/backendApiTypes';
 import { formatLabelKey } from '~/shared/utilities/WorkspaceUtils';
+import { WorkspacesOptionLabel } from '~/generated/data-contracts';
 
 type FilterByLabelsProps = {
-  labelledObjects: WorkspaceOptionLabel[];
+  labelledObjects: WorkspacesOptionLabel[];
   selectedLabels: Map<string, Set<string>>;
   onSelect: (labels: Map<string, Set<string>>) => void;
 };

@@ -1,9 +1,9 @@
 import {
-  Workspace,
-  WorkspaceKind,
-  WorkspaceKindInfo,
-  WorkspaceState,
-} from '~/shared/api/backendApiTypes';
+  WorkspacekindsWorkspaceKind,
+  WorkspacesWorkspace,
+  WorkspacesWorkspaceKindInfo,
+  WorkspacesWorkspaceState,
+} from '~/generated/data-contracts';
 import {
   buildMockHealthCheckResponse,
   buildMockNamespace,
@@ -24,7 +24,7 @@ export const mockNamespace3 = buildMockNamespace({ name: 'workspace-test-3' });
 export const mockNamespaces = [mockNamespace1, mockNamespace2, mockNamespace3];
 
 // WorkspaceKind
-export const mockWorkspaceKind1: WorkspaceKind = buildMockWorkspaceKind({
+export const mockWorkspaceKind1: WorkspacekindsWorkspaceKind = buildMockWorkspaceKind({
   name: 'jupyterlab1',
   displayName: 'JupyterLab Notebook 1',
   clusterMetrics: {
@@ -32,7 +32,7 @@ export const mockWorkspaceKind1: WorkspaceKind = buildMockWorkspaceKind({
   },
 });
 
-export const mockWorkspaceKind2: WorkspaceKind = buildMockWorkspaceKind({
+export const mockWorkspaceKind2: WorkspacekindsWorkspaceKind = buildMockWorkspaceKind({
   name: 'jupyterlab2',
   displayName: 'JupyterLab Notebook 2',
   clusterMetrics: {
@@ -40,7 +40,7 @@ export const mockWorkspaceKind2: WorkspaceKind = buildMockWorkspaceKind({
   },
 });
 
-export const mockWorkspaceKind3: WorkspaceKind = buildMockWorkspaceKind({
+export const mockWorkspaceKind3: WorkspacekindsWorkspaceKind = buildMockWorkspaceKind({
   name: 'jupyterlab3',
   displayName: 'JupyterLab Notebook 3',
   clusterMetrics: {
@@ -50,25 +50,25 @@ export const mockWorkspaceKind3: WorkspaceKind = buildMockWorkspaceKind({
 
 export const mockWorkspaceKinds = [mockWorkspaceKind1, mockWorkspaceKind2, mockWorkspaceKind3];
 
-export const mockWorkspaceKindInfo1: WorkspaceKindInfo = buildMockWorkspaceKindInfo({
+export const mockWorkspaceKindInfo1: WorkspacesWorkspaceKindInfo = buildMockWorkspaceKindInfo({
   name: mockWorkspaceKind1.name,
 });
 
-export const mockWorkspaceKindInfo2: WorkspaceKindInfo = buildMockWorkspaceKindInfo({
+export const mockWorkspaceKindInfo2: WorkspacesWorkspaceKindInfo = buildMockWorkspaceKindInfo({
   name: mockWorkspaceKind2.name,
 });
 
 // Workspace
-export const mockWorkspace1: Workspace = buildMockWorkspace({
+export const mockWorkspace1: WorkspacesWorkspace = buildMockWorkspace({
   workspaceKind: mockWorkspaceKindInfo1,
   namespace: mockNamespace1.name,
 });
 
-export const mockWorkspace2: Workspace = buildMockWorkspace({
+export const mockWorkspace2: WorkspacesWorkspace = buildMockWorkspace({
   name: 'My Second Jupyter Notebook',
   workspaceKind: mockWorkspaceKindInfo1,
   namespace: mockNamespace2.name,
-  state: WorkspaceState.WorkspaceStatePaused,
+  state: WorkspacesWorkspaceState.WorkspaceStatePaused,
   paused: false,
   deferUpdates: false,
   activity: {
@@ -133,11 +133,11 @@ export const mockWorkspace2: Workspace = buildMockWorkspace({
   },
 });
 
-export const mockWorkspace3: Workspace = buildMockWorkspace({
+export const mockWorkspace3: WorkspacesWorkspace = buildMockWorkspace({
   name: 'My Third Jupyter Notebook',
   namespace: mockNamespace1.name,
   workspaceKind: mockWorkspaceKindInfo1,
-  state: WorkspaceState.WorkspaceStateRunning,
+  state: WorkspacesWorkspaceState.WorkspaceStateRunning,
   pendingRestart: true,
   activity: {
     lastActivity: new Date(2025, 2, 15).getTime(),
@@ -145,17 +145,17 @@ export const mockWorkspace3: Workspace = buildMockWorkspace({
   },
 });
 
-export const mockWorkspace4 = buildMockWorkspace({
+export const mockWorkspace4: WorkspacesWorkspace = buildMockWorkspace({
   name: 'My Fourth Jupyter Notebook',
   namespace: mockNamespace2.name,
-  state: WorkspaceState.WorkspaceStateError,
+  state: WorkspacesWorkspaceState.WorkspaceStateError,
   workspaceKind: mockWorkspaceKindInfo2,
 });
 
-export const mockWorkspace5 = buildMockWorkspace({
+export const mockWorkspace5: WorkspacesWorkspace = buildMockWorkspace({
   name: 'My Fifth Jupyter Notebook',
   namespace: mockNamespace2.name,
-  state: WorkspaceState.WorkspaceStateTerminating,
+  state: WorkspacesWorkspaceState.WorkspaceStateTerminating,
   workspaceKind: mockWorkspaceKindInfo2,
 });
 

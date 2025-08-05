@@ -11,12 +11,12 @@ import inlineEditStyles from '@patternfly/react-styles/css/components/InlineEdit
 import { css } from '@patternfly/react-styles';
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
 import { TrashAltIcon } from '@patternfly/react-icons/dist/esm/icons/trash-alt-icon';
-import { WorkspaceOptionLabel } from '~/shared/api/backendApiTypes';
+import { WorkspacekindsOptionLabel } from '~/generated/data-contracts';
 
 interface EditableRowInterface {
-  data: WorkspaceOptionLabel;
-  columnNames: ColumnNames<WorkspaceOptionLabel>;
-  saveChanges: (editedData: WorkspaceOptionLabel) => void;
+  data: WorkspacekindsOptionLabel;
+  columnNames: ColumnNames<WorkspacekindsOptionLabel>;
+  saveChanges: (editedData: WorkspacekindsOptionLabel) => void;
   ariaLabel: string;
   deleteRow: () => void;
 }
@@ -70,8 +70,8 @@ const EditableRow: React.FC<EditableRowInterface> = ({
 type ColumnNames<T> = { [K in keyof T]: string };
 
 interface EditableLabelsProps {
-  rows: WorkspaceOptionLabel[];
-  setRows: (value: WorkspaceOptionLabel[]) => void;
+  rows: WorkspacekindsOptionLabel[];
+  setRows: (value: WorkspacekindsOptionLabel[]) => void;
   title?: string;
   description?: string;
   buttonLabel?: string;
@@ -84,7 +84,7 @@ export const EditableLabels: React.FC<EditableLabelsProps> = ({
   description,
   buttonLabel = 'Label',
 }) => {
-  const columnNames: ColumnNames<WorkspaceOptionLabel> = {
+  const columnNames: ColumnNames<WorkspacekindsOptionLabel> = {
     key: 'Key',
     value: 'Value',
   };

@@ -5,12 +5,12 @@ import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack'
 import WorkspaceTable from '~/app/components/WorkspaceTable';
 import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
 import { useWorkspacesByNamespace } from '~/app/hooks/useWorkspaces';
-import { WorkspaceState } from '~/shared/api/backendApiTypes';
 import { DEFAULT_POLLING_RATE_MS } from '~/app/const';
 import { LoadingSpinner } from '~/app/components/LoadingSpinner';
 import { LoadError } from '~/app/components/LoadError';
 import { useWorkspaceRowActions } from '~/app/hooks/useWorkspaceRowActions';
 import { usePolling } from '~/app/hooks/usePolling';
+import { WorkspacesWorkspaceState } from '~/generated/data-contracts';
 
 export const Workspaces: React.FunctionComponent = () => {
   const { selectedNamespace } = useNamespaceContext();
@@ -27,17 +27,17 @@ export const Workspaces: React.FunctionComponent = () => {
     { id: 'separator' },
     {
       id: 'stop',
-      isVisible: (w) => w.state === WorkspaceState.WorkspaceStateRunning,
+      isVisible: (w) => w.state === WorkspacesWorkspaceState.WorkspaceStateRunning,
       onActionDone: refreshWorkspaces,
     },
     {
       id: 'start',
-      isVisible: (w) => w.state !== WorkspaceState.WorkspaceStateRunning,
+      isVisible: (w) => w.state !== WorkspacesWorkspaceState.WorkspaceStateRunning,
       onActionDone: refreshWorkspaces,
     },
     {
       id: 'restart',
-      isVisible: (w) => w.state === WorkspaceState.WorkspaceStateRunning,
+      isVisible: (w) => w.state === WorkspacesWorkspaceState.WorkspaceStateRunning,
       onActionDone: refreshWorkspaces,
     },
   ]);
