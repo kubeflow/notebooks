@@ -46,6 +46,8 @@ import (
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
+
+	istiov1 "istio.io/client-go/pkg/apis/networking/v1"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -94,6 +96,8 @@ var _ = BeforeSuite(func() {
 
 	By("setting up the scheme")
 	err = kubefloworgv1beta1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+	err = istiov1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme
