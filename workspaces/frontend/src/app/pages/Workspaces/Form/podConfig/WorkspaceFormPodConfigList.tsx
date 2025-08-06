@@ -22,30 +22,15 @@ type FilterableDataFieldKeys = FilterableDataFieldKey<typeof fields>;
 
 type WorkspaceFormPodConfigListProps = {
   podConfigs: WorkspacekindsPodConfigValue[];
-  selectedLabels: Map<string, Set<string>>;
   selectedPodConfig: WorkspacekindsPodConfigValue | undefined;
   onSelect: (workspacePodConfig: WorkspacekindsPodConfigValue | undefined) => void;
 };
 
 export const WorkspaceFormPodConfigList: React.FunctionComponent<
   WorkspaceFormPodConfigListProps
-> = ({ podConfigs, selectedLabels, selectedPodConfig, onSelect }) => {
+> = ({ podConfigs, selectedPodConfig, onSelect }) => {
   const [filters, setFilters] = useState<FilteredColumn[]>([]);
   const filterRef = useRef<FilterRef>(null);
-
-  const getFilteredWorkspacePodConfigsByLabels = useCallback(
-    (unfilteredPodConfigs: WorkspacekindsPodConfigValue[]) =>
-      unfilteredPodConfigs.filter((podConfig) =>
-        podConfig.labels.reduce((accumulator, label) => {
-          if (selectedLabels.has(label.key)) {
-            const labelValues: Set<string> | undefined = selectedLabels.get(label.key);
-            return accumulator && labelValues !== undefined && labelValues.has(label.value);
-          }
-          return accumulator;
-        }, true),
-      ),
-    [selectedLabels],
-  );
 
   const clearAllFilters = useCallback(() => {
     filterRef.current?.clearAll();
@@ -62,7 +47,7 @@ export const WorkspaceFormPodConfigList: React.FunctionComponent<
       } catch {
         searchValueInput = new RegExp(filter.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
       }
-      const filterResult = result.filter((podConfig) => {
+      return result.filter((podConfig) => {
         if (filter.value === '') {
           return true;
         }
@@ -77,9 +62,8 @@ export const WorkspaceFormPodConfigList: React.FunctionComponent<
             return true;
         }
       });
-      return getFilteredWorkspacePodConfigsByLabels(filterResult);
     }, podConfigs);
-  }, [filters, getFilteredWorkspacePodConfigsByLabels, podConfigs]);
+  }, [filters, podConfigs]);
 
   const onChange = useCallback(
     (event: React.FormEvent<HTMLInputElement>) => {

@@ -14,17 +14,17 @@ interface WorkspaceFormPodConfigSelectionProps {
 const WorkspaceFormPodConfigSelection: React.FunctionComponent<
   WorkspaceFormPodConfigSelectionProps
 > = ({ podConfigs, selectedPodConfig, onSelect }) => {
-  const [selectedLabels, setSelectedLabels] = useState<Map<string, Set<string>>>(new Map());
+  const [filteredPodConfigs, setFilteredPodConfigs] =
+    useState<WorkspacekindsPodConfigValue[]>(podConfigs);
 
   const podConfigFilterContent = useMemo(
     () => (
       <FilterByLabels
-        labelledObjects={podConfigs.flatMap((podConfig) => podConfig.labels)}
-        selectedLabels={selectedLabels}
-        onSelect={setSelectedLabels}
+        labelledObjects={podConfigs}
+        setLabelledObjects={(obj) => setFilteredPodConfigs(obj as WorkspacekindsPodConfigValue[])}
       />
     ),
-    [podConfigs, selectedLabels, setSelectedLabels],
+    [podConfigs, setFilteredPodConfigs],
   );
 
   return (
@@ -33,8 +33,7 @@ const WorkspaceFormPodConfigSelection: React.FunctionComponent<
         <SplitItem style={{ minWidth: '200px' }}>{podConfigFilterContent}</SplitItem>
         <SplitItem isFilled>
           <WorkspaceFormPodConfigList
-            podConfigs={podConfigs}
-            selectedLabels={selectedLabels}
+            podConfigs={filteredPodConfigs}
             selectedPodConfig={selectedPodConfig}
             onSelect={onSelect}
           />
