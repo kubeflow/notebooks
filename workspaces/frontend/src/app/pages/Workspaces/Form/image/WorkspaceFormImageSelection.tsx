@@ -16,17 +16,16 @@ const WorkspaceFormImageSelection: React.FunctionComponent<WorkspaceFormImageSel
   selectedImage,
   onSelect,
 }) => {
-  const [selectedLabels, setSelectedLabels] = useState<Map<string, Set<string>>>(new Map());
+  const [filteredImages, setFilteredImages] = useState<WorkspacekindsImageConfigValue[]>(images);
 
   const imageFilterContent = useMemo(
     () => (
       <FilterByLabels
-        labelledObjects={images.flatMap((image) => image.labels)}
-        selectedLabels={selectedLabels}
-        onSelect={setSelectedLabels}
+        labelledObjects={images}
+        setLabelledObjects={(obj) => setFilteredImages(obj as WorkspacekindsImageConfigValue[])}
       />
     ),
-    [images, selectedLabels, setSelectedLabels],
+    [images, setFilteredImages],
   );
 
   return (
@@ -35,8 +34,7 @@ const WorkspaceFormImageSelection: React.FunctionComponent<WorkspaceFormImageSel
         <SplitItem style={{ minWidth: '200px' }}>{imageFilterContent}</SplitItem>
         <SplitItem isFilled>
           <WorkspaceFormImageList
-            images={images}
-            selectedLabels={selectedLabels}
+            images={filteredImages}
             selectedImage={selectedImage}
             onSelect={onSelect}
           />

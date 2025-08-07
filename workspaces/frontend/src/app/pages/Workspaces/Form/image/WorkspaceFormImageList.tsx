@@ -22,33 +22,17 @@ type FilterableDataFieldKeys = FilterableDataFieldKey<typeof fields>;
 
 type WorkspaceFormImageListProps = {
   images: WorkspacekindsImageConfigValue[];
-  selectedLabels: Map<string, Set<string>>;
   selectedImage: WorkspacekindsImageConfigValue | undefined;
   onSelect: (workspaceImage: WorkspacekindsImageConfigValue | undefined) => void;
 };
 
 export const WorkspaceFormImageList: React.FunctionComponent<WorkspaceFormImageListProps> = ({
   images,
-  selectedLabels,
   selectedImage,
   onSelect,
 }) => {
   const [filters, setFilters] = useState<FilteredColumn[]>([]);
   const filterRef = useRef<FilterRef>(null);
-
-  const getFilteredWorkspaceImagesByLabels = useCallback(
-    (unfilteredImages: WorkspacekindsImageConfigValue[]) =>
-      unfilteredImages.filter((image) =>
-        image.labels.reduce((accumulator, label) => {
-          if (selectedLabels.has(label.key)) {
-            const labelValues: Set<string> | undefined = selectedLabels.get(label.key);
-            return accumulator && labelValues !== undefined && labelValues.has(label.value);
-          }
-          return accumulator;
-        }, true),
-      ),
-    [selectedLabels],
-  );
 
   const clearAllFilters = useCallback(() => {
     filterRef.current?.clearAll();
@@ -67,7 +51,7 @@ export const WorkspaceFormImageList: React.FunctionComponent<WorkspaceFormImageL
         searchValueInput = new RegExp(filter.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
       }
 
-      const filterResult = result.filter((image) => {
+      return result.filter((image) => {
         if (filter.value === '') {
           return true;
         }
@@ -82,9 +66,8 @@ export const WorkspaceFormImageList: React.FunctionComponent<WorkspaceFormImageL
             return true;
         }
       });
-      return getFilteredWorkspaceImagesByLabels(filterResult);
     }, images);
-  }, [filters, getFilteredWorkspaceImagesByLabels, images]);
+  }, [filters, images]);
 
   const onChange = useCallback(
     (event: React.FormEvent<HTMLInputElement>) => {
