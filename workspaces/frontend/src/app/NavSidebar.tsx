@@ -10,9 +10,8 @@ import {
 import { PageSidebar, PageSidebarBody } from '@patternfly/react-core/dist/esm/components/Page';
 import { useTypedLocation } from '~/app/routerHelper';
 import { useNavData, isNavDataGroup, NavDataHref, NavDataGroup } from './AppRoutes';
-import { isMUITheme, LOGO_LIGHT } from './const';
+import { APP_PREFIX, isMUITheme, LOGO_LIGHT } from './const';
 
-const APP_PREFIX = process.env.APP_PREFIX || '/workspaces';
 const NavHref: React.FC<{ item: NavDataHref }> = ({ item }) => {
   const location = useTypedLocation();
 
