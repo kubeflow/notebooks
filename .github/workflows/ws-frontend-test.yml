@@ -22,6 +22,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
@@ -35,6 +37,10 @@ jobs:
       - name: Clean
         working-directory: workspaces/frontend
         run: npm run build:clean
+
+      - name: Regenerate API layer code
+        working-directory: workspaces/frontend
+        run: npm run generate:api
 
       - name: Build
         working-directory: workspaces/frontend
