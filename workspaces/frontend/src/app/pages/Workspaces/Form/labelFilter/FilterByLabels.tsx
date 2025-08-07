@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   FilterSidePanel,
   FilterSidePanelCategory,
@@ -6,27 +6,28 @@ import {
 } from '@patternfly/react-catalog-view-extension';
 import '@patternfly/react-catalog-view-extension/dist/css/react-catalog-view-extension.css';
 import { formatLabelKey } from '~/shared/utilities/WorkspaceUtils';
-import { WorkspacesOptionLabel } from '~/generated/data-contracts';
 
 type FilterByLabelsProps = {
-  labelledObjects: WorkspacesOptionLabel[];
-  selectedLabels: Map<string, Set<string>>;
-  onSelect: (labels: Map<string, Set<string>>) => void;
+  labelledObjects: { labels: { key: string; value: string }[] }[];
+  setLabelledObjects: (labelledObjects: { labels: { key: string; value: string }[] }[]) => void;
 };
 
 export const FilterByLabels: React.FunctionComponent<FilterByLabelsProps> = ({
   labelledObjects,
-  selectedLabels,
-  onSelect,
+  setLabelledObjects,
 }) => {
+  const [selectedLabels, setSelectedLabels] = useState<Map<string, Set<string>>>(new Map());
+
   const filterMap = useMemo(() => {
     const labelsMap = new Map<string, Set<string>>();
-    labelledObjects.forEach((labelledObject) => {
-      if (!labelsMap.has(labelledObject.key)) {
-        labelsMap.set(labelledObject.key, new Set<string>());
-      }
-      labelsMap.get(labelledObject.key)?.add(labelledObject.value);
-    });
+    labelledObjects
+      .flatMap((labelledObject) => labelledObject.labels)
+      .forEach((label) => {
+        if (!labelsMap.has(label.key)) {
+          labelsMap.set(label.key, new Set<string>());
+        }
+        labelsMap.get(label.key)?.add(label.value);
+      });
     return labelsMap;
   }, [labelledObjects]);
 
@@ -53,9 +54,30 @@ export const FilterByLabels: React.FunctionComponent<FilterByLabelsProps> = ({
         }
       }
 
-      onSelect(newSelectedLabels);
+      setLabelledObjects(
+        labelledObjects.filter((labelledObject) =>
+          [...newSelectedLabels.entries()].reduce(
+            (accumulator, [selectedLabelKey, selectedLabelValues]) => {
+              if (selectedLabelValues.size > 0) {
+                return (
+                  accumulator &&
+                  labelledObject.labels.some(
+                    (imageLabel) =>
+                      imageLabel.key === selectedLabelKey &&
+                      selectedLabelValues.has(imageLabel.value),
+                  )
+                );
+              }
+              return accumulator;
+            },
+            true,
+          ),
+        ),
+      );
+
+      setSelectedLabels(newSelectedLabels);
     },
-    [selectedLabels, onSelect],
+    [selectedLabels, labelledObjects, setLabelledObjects],
   );
 
   return (
