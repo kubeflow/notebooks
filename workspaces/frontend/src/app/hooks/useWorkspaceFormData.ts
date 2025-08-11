@@ -6,7 +6,7 @@ import useFetchState, {
   FetchStateCallbackPromise,
 } from '~/shared/utilities/useFetchState';
 
-const EMPTY_FORM_DATA: WorkspaceFormData = {
+export const EMPTY_FORM_DATA: WorkspaceFormData = {
   kind: undefined,
   image: undefined,
   podConfig: undefined,
@@ -51,14 +51,14 @@ const useWorkspaceFormData = (args: {
         displayName: imageConfig.displayName,
         description: imageConfig.description,
         hidden: false,
-        labels: [],
+        labels: imageConfig.labels,
       },
       podConfig: {
         id: podConfig.id,
         displayName: podConfig.displayName,
         description: podConfig.description,
         hidden: false,
-        labels: [],
+        labels: podConfig.labels,
       },
       properties: {
         workspaceName: workspace.name,

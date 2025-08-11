@@ -5,6 +5,11 @@ import {
   NamespacesNamespace,
   WorkspacekindsRedirectMessageLevel,
   WorkspacekindsWorkspaceKind,
+  WorkspacesImageConfig,
+  WorkspacesOptionInfo,
+  WorkspacesPodConfig,
+  WorkspacesPodTemplate,
+  WorkspacesPodTemplateOptions,
   WorkspacesWorkspace,
   WorkspacesWorkspaceKindInfo,
   WorkspacesWorkspaceState,
@@ -39,6 +44,102 @@ export const buildMockWorkspaceKindInfo = (
   ...workspaceKindInfo,
 });
 
+export const buildMockOptionInfo = (
+  optionInfo?: Partial<WorkspacesOptionInfo>,
+): WorkspacesOptionInfo => ({
+  id: 'jupyterlab_scipy_190',
+  displayName: 'jupyter-scipy:v1.9.0',
+  description: 'JupyterLab, with SciPy Packages',
+  labels: [
+    {
+      key: 'pythonVersion',
+      value: '3.11',
+    },
+    {
+      key: 'jupyterlabVersion',
+      value: '1.9.0',
+    },
+  ],
+  ...optionInfo,
+});
+
+export const buildMockImageConfig = (
+  imageConfig?: Partial<WorkspacesImageConfig>,
+): WorkspacesImageConfig => ({
+  current: buildMockOptionInfo({}),
+  ...imageConfig,
+});
+
+export const buildMockPodConfig = (
+  podConfig?: Partial<WorkspacesPodConfig>,
+): WorkspacesPodConfig => ({
+  current: {
+    id: 'tiny_cpu',
+    displayName: 'Tiny CPU',
+    description: 'Pod with 0.1 CPU, 128 Mb RAM',
+    labels: [
+      {
+        key: 'cpu',
+        value: '100m',
+      },
+      {
+        key: 'memory',
+        value: '128Mi',
+      },
+      {
+        key: 'gpu',
+        value: '1',
+      },
+    ],
+  },
+  ...podConfig,
+});
+
+export const buildPodTemplateOptions = (
+  podTemplateOptions?: Partial<WorkspacesPodTemplateOptions>,
+): WorkspacesPodTemplateOptions => ({
+  imageConfig: buildMockImageConfig({}),
+  podConfig: buildMockPodConfig({}),
+  ...podTemplateOptions,
+});
+
+export const buildMockPodTemplate = (
+  podTemplate?: Partial<WorkspacesPodTemplate>,
+): WorkspacesPodTemplate => ({
+  podMetadata: {
+    labels: { labelKey1: 'labelValue1', labelKey2: 'labelValue2' },
+    annotations: { annotationKey1: 'annotationValue1', annotationKey2: 'annotationValue2' },
+  },
+  volumes: {
+    home: {
+      pvcName: 'Volume-Home',
+      mountPath: '/home',
+      readOnly: false,
+    },
+    data: [
+      {
+        pvcName: 'Volume-Data1',
+        mountPath: '/data',
+        readOnly: true,
+      },
+      {
+        pvcName: 'Volume-Data2',
+        mountPath: '/data',
+        readOnly: false,
+      },
+    ],
+    secrets: [
+      {
+        defaultMode: 0o644,
+        mountPath: '/secrets',
+        secretName: 'secret-1',
+      },
+    ],
+  },
+  options: buildPodTemplateOptions({}),
+  ...podTemplate,
+});
+
 export const buildMockWorkspace = (
   workspace?: Partial<WorkspacesWorkspace>,
 ): WorkspacesWorkspace => ({
@@ -50,71 +151,7 @@ export const buildMockWorkspace = (
   pausedTime: new Date(2025, 3, 1).getTime(),
   state: WorkspacesWorkspaceState.WorkspaceStateRunning,
   stateMessage: 'Workspace is running',
-  podTemplate: {
-    podMetadata: {
-      labels: { labelKey1: 'labelValue1', labelKey2: 'labelValue2' },
-      annotations: { annotationKey1: 'annotationValue1', annotationKey2: 'annotationValue2' },
-    },
-    volumes: {
-      home: {
-        pvcName: 'Volume-Home',
-        mountPath: '/home',
-        readOnly: false,
-      },
-      data: [
-        {
-          pvcName: 'Volume-Data1',
-          mountPath: '/data',
-          readOnly: true,
-        },
-        {
-          pvcName: 'Volume-Data2',
-          mountPath: '/data',
-          readOnly: false,
-        },
-      ],
-    },
-    options: {
-      imageConfig: {
-        current: {
-          id: 'jupyterlab_scipy_190',
-          displayName: 'jupyter-scipy:v1.9.0',
-          description: 'JupyterLab, with SciPy Packages',
-          labels: [
-            {
-              key: 'pythonVersion',
-              value: '3.11',
-            },
-            {
-              key: 'jupyterlabVersion',
-              value: '1.9.0',
-            },
-          ],
-        },
-      },
-      podConfig: {
-        current: {
-          id: 'tiny_cpu',
-          displayName: 'Tiny CPU',
-          description: 'Pod with 0.1 CPU, 128 Mb RAM',
-          labels: [
-            {
-              key: 'cpu',
-              value: '100m',
-            },
-            {
-              key: 'memory',
-              value: '128Mi',
-            },
-            {
-              key: 'gpu',
-              value: '1',
-            },
-          ],
-        },
-      },
-    },
-  },
+  podTemplate: buildMockPodTemplate({}),
   activity: {
     lastActivity: new Date(2025, 5, 1).getTime(),
     lastUpdate: new Date(2025, 4, 1).getTime(),
