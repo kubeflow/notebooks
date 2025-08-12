@@ -29,6 +29,16 @@ import (
 ===============================================================================
 */
 
+// PortId represents a port identifier
+//   - this is NOT used as the Container or Service port name, but as part of the HTTP path
+//   - this is used to reference the port in the `imageconfig` ports.[].id
+//   - this is also used to reference the port in the podtemplate ports.[].portId
+//
+// +kubebuilder:validation:MinLength:=1
+// +kubebuilder:validation:MaxLength:=32
+// +kubebuilder:validation:Pattern:=^[a-z0-9][a-z0-9_-]*[a-z0-9]$
+type PortId string
+
 // WorkspaceKindSpec defines the desired state of WorkspaceKind
 type WorkspaceKindSpec struct {
 
@@ -115,9 +125,9 @@ type WorkspaceKindPodTemplate struct {
 	// volume mount paths
 	VolumeMounts WorkspaceKindVolumeMounts `json:"volumeMounts"`
 
-	// http proxy configs (MUTABLE)
+	// ports that the container listens on
 	// +kubebuilder:validation:Optional
-	HTTPProxy *HTTPProxy `json:"httpProxy,omitempty"`
+	Ports []WorkspaceKindPort `json:"ports,omitempty"`
 
 	// environment variables for Workspace Pods (MUTABLE)
 	//  - the following go template functions are available:
@@ -149,6 +159,17 @@ type WorkspaceKindPodTemplate struct {
 
 	// options are the user-selectable fields, they determine the PodSpec of the Workspace
 	Options WorkspaceKindPodOptions `json:"options"`
+}
+
+type WorkspaceKindPort struct {
+	// the id of the port
+	// - identifier for the port in `imageconfig` ports.[].id
+	// +kubebuilder:example="jupyterlab"
+	PortId PortId `json:"portId"`
+
+	// the http proxy config for the port (MUTABLE)
+	// +kubebuilder:validation:Optional
+	HTTPProxy *HTTPProxy `json:"httpProxy,omitempty"`
 }
 
 type WorkspaceKindPodMetadata struct {
@@ -339,11 +360,8 @@ type ImageConfigSpec struct {
 type ImagePort struct {
 	// the id of the port
 	//  - this is NOT used as the Container or Service port name, but as part of the HTTP path
-	// +kubebuilder:validation:MinLength:=1
-	// +kubebuilder:validation:MaxLength:=32
-	// +kubebuilder:validation:Pattern:=^[a-z0-9][a-z0-9_-]*[a-z0-9]$
 	// +kubebuilder:example="jupyterlab"
-	Id string `json:"id"`
+	Id PortId `json:"id"`
 
 	// the port number
 	// +kubebuilder:validation:Minimum:=1
