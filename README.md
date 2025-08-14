@@ -1,4 +1,6 @@
 # Kubeflow Notebooks
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fkubeflow%2Fnotebooks.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fkubeflow%2Fnotebooks?ref=badge_shield)
+
 
 [Kubeflow Notebooks](https://www.kubeflow.org/docs/components/notebooks/overview/) lets you run web-based development environments on your Kubernetes cluster by running them inside Pods.
 
@@ -41,3 +43,7 @@ Connect with _other users_ and the [Notebooks Working Group](https://github.com/
 ## Contributing
 
 Please see the [`CONTRIBUTING.md`](CONTRIBUTING.md) file for more information.
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fkubeflow%2Fnotebooks.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fkubeflow%2Fnotebooks?ref=badge_large)
