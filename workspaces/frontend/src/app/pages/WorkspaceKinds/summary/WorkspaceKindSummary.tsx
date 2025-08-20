@@ -4,7 +4,7 @@ import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import { Breadcrumb } from '@patternfly/react-core/dist/esm/components/Breadcrumb';
 import { BreadcrumbItem } from '@patternfly/react-core/dist/esm/components/Breadcrumb/BreadcrumbItem';
-import { useTypedLocation, useTypedParams } from '~/app/routerHelper';
+import { useTypedLocation, useTypedNavigate, useTypedParams } from '~/app/routerHelper';
 import WorkspaceTable, { WorkspaceTableRef } from '~/app/components/WorkspaceTable';
 import { useWorkspacesByKind } from '~/app/hooks/useWorkspaces';
 import WorkspaceKindSummaryExpandableCard from '~/app/pages/WorkspaceKinds/summary/WorkspaceKindSummaryExpandableCard';
@@ -17,6 +17,7 @@ import { usePolling } from '~/app/hooks/usePolling';
 const WorkspaceKindSummary: React.FC = () => {
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
 
+  const navigate = useTypedNavigate();
   const { state } = useTypedLocation<'workspaceKindSummary'>();
   const { namespace, imageId, podConfigId } = state || {};
   const { kind } = useTypedParams<'workspaceKindSummary'>();
@@ -62,7 +63,9 @@ const WorkspaceKindSummary: React.FC = () => {
       <Stack hasGutter>
         <StackItem>
           <Breadcrumb>
-            <BreadcrumbItem to="workspaceKinds">Workspace Kinds</BreadcrumbItem>
+            <BreadcrumbItem component="button" onClick={() => navigate('workspaceKinds')}>
+              Workspace Kinds
+            </BreadcrumbItem>
             <BreadcrumbItem to="#" isActive>
               Workspaces in {kind}
             </BreadcrumbItem>
