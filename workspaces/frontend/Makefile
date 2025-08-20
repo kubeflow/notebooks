@@ -67,6 +67,10 @@ undeploy: kustomize ## Undeploy frontend from the K8s cluster specified in ~/.ku
 	@if [ -z "$(KUSTOMIZE_DIR)" ]; then echo "KUSTOMIZE_DIR is required (path to directory with kustomization.yaml)"; exit 1; fi
 	$(KUSTOMIZE) build $(KUSTOMIZE_DIR) | $(KUBECTL) delete --ignore-not-found=$(ignore-not-found) -f -
 
+.PHONY: clean
+clean: ## Remove local test/build artifacts.
+	rm -rf ./bin ./Dockerfile.cross ./workspaces/frontend/.testbin ./workspaces/frontend/.kztest
+
 ##@ Dependencies
 
 # Location to install dependencies to

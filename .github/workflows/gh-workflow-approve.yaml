@@ -18,6 +18,7 @@ jobs:
   ok-to-test:
     if: contains(github.event.pull_request.labels.*.name, 'ok-to-test')
     runs-on: ubuntu-latest
+    continue-on-error: true
 
     steps:
       - name: Approve Pending Workflow Runs

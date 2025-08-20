@@ -1,0 +1,47 @@
+name: Go Baseline Coverage
+
+on:
+  push:
+    paths:
+      - 'workspaces/backend/**'
+    branches:
+      - notebooks-v2
+
+permissions:
+  contents: write
+
+jobs:
+  backend-baseline:
+    name: Run Tests and Generate Coverage
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: workspaces/backend
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: workspaces/backend/go.mod
+          check-latest: true
+          cache-dependency-path: workspaces/backend/go.sum
+
+      - name: Download Dependencies
+        run: go mod download
+
+      - name: Run Tests with Coverage
+        run: |
+          make test
+          mv cover.out coverage.baseline
+
+      - name: Commit backend coverage file
+        run: |
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'github-actions@github.com'
+          git add coverage.baseline
+          git commit -m "Update coverage baseline" || echo "No changes to commit"
+          git push origin HEAD:notebooks-v2
