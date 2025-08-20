@@ -1,21 +1,28 @@
+import React, { useCallback, useState } from 'react';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
+import { Dropdown, DropdownItem } from '@patternfly/react-core/dist/esm/components/Dropdown';
+import { Form, FormGroup } from '@patternfly/react-core/dist/esm/components/Form';
+import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
 import {
-  Button,
-  Dropdown,
-  DropdownItem,
-  Form,
-  FormGroup,
-  MenuToggle,
   Modal,
   ModalBody,
   ModalFooter,
   ModalHeader,
   ModalVariant,
-  Switch,
-  TextInput,
-} from '@patternfly/react-core';
-import { EllipsisVIcon } from '@patternfly/react-icons';
-import { Table, TableVariant, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
-import React, { useCallback, useState } from 'react';
+} from '@patternfly/react-core/dist/esm/components/Modal';
+import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
+import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
+import { EllipsisVIcon } from '@patternfly/react-icons/dist/esm/icons/ellipsis-v-icon';
+import {
+  Table,
+  TableVariant,
+  Tbody,
+  Td,
+  Th,
+  Thead,
+  Tr,
+} from '@patternfly/react-table/dist/esm/components/Table';
+import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
 import { WorkspacePodVolumeMount } from '~/shared/api/backendApiTypes';
 
 interface WorkspaceFormPropertiesVolumesProps {
@@ -126,9 +133,10 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
         </Table>
       )}
       <Button
-        variant="primary"
+        variant="link"
+        icon={<PlusCircleIcon />}
         onClick={() => setIsModalOpen(true)}
-        style={{ marginTop: '1rem' }}
+        style={{ marginTop: '1rem', width: 'fit-content' }}
         className="pf-u-mt-md"
       >
         Create Volume

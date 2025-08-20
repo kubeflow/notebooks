@@ -85,11 +85,6 @@ const docTemplate = `{
         },
         "/workspacekinds": {
             "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Returns a list of all available workspace kinds. Workspace kinds define the different types of workspaces that can be created in the system.",
                 "consumes": [
                     "application/json"
@@ -127,15 +122,90 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "post": {
+                "description": "Creates a new workspace kind.",
+                "consumes": [
+                    "application/yaml"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspacekinds"
+                ],
+                "summary": "Create workspace kind",
+                "parameters": [
+                    {
+                        "description": "Kubernetes YAML manifest of a WorkspaceKind",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "WorkspaceKind created successfully",
+                        "schema": {
+                            "$ref": "#/definitions/api.WorkspaceKindEnvelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Authentication is required.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. User does not have permission to create WorkspaceKind.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict. WorkspaceKind with the same name already exists.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large. The request body is too large.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type. Content-Type header is not correct.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error. An unexpected error occurred on the server.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
             }
         },
         "/workspacekinds/{name}": {
             "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Returns details of a specific workspace kind identified by its name. Workspace kinds define the available types of workspaces that can be created.",
                 "consumes": [
                     "application/json"
@@ -150,7 +220,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "example": "jupyterlab",
+                        "x-example": "jupyterlab",
                         "description": "Name of the workspace kind",
                         "name": "name",
                         "in": "path",
@@ -199,11 +269,6 @@ const docTemplate = `{
         },
         "/workspaces": {
             "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Returns a list of workspaces. The endpoint supports two modes:\n1. List all workspaces across all namespaces (when no namespace is provided)\n2. List workspaces in a specific namespace (when namespace is provided)",
                 "consumes": [
                     "application/json"
@@ -251,11 +316,6 @@ const docTemplate = `{
         },
         "/workspaces/{namespace}": {
             "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Returns a list of workspaces. The endpoint supports two modes:\n1. List all workspaces across all namespaces (when no namespace is provided)\n2. List workspaces in a specific namespace (when namespace is provided)",
                 "consumes": [
                     "application/json"
@@ -270,10 +330,11 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "example": "kubeflow-user-example-com",
+                        "x-example": "kubeflow-user-example-com",
                         "description": "Namespace to filter workspaces. If not provided, returns all workspaces across all namespaces.",
                         "name": "namespace",
-                        "in": "path"
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -310,11 +371,6 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Creates a new workspace in the specified namespace.",
                 "consumes": [
                     "application/json"
@@ -329,7 +385,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "example": "kubeflow-user-example-com",
+                        "x-example": "kubeflow-user-example-com",
                         "description": "Namespace for the workspace",
                         "name": "namespace",
                         "in": "path",
@@ -376,6 +432,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }
                     },
+                    "413": {
+                        "description": "Request Entity Too Large. The request body is too large.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type. Content-Type header is not correct.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
                     "500": {
                         "description": "Internal server error. An unexpected error occurred on the server.",
                         "schema": {
@@ -387,11 +455,6 @@ const docTemplate = `{
         },
         "/workspaces/{namespace}/{workspace_name}": {
             "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Returns details of a specific workspace identified by namespace and workspace name.",
                 "consumes": [
                     "application/json"
@@ -406,7 +469,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "example": "kubeflow-user-example-com",
+                        "x-example": "kubeflow-user-example-com",
                         "description": "Namespace of the workspace",
                         "name": "namespace",
                         "in": "path",
@@ -414,7 +477,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "example": "my-workspace",
+                        "x-example": "my-workspace",
                         "description": "Name of the workspace",
                         "name": "workspace_name",
                         "in": "path",
@@ -461,11 +524,6 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Deletes a specific workspace identified by namespace and workspace name.",
                 "consumes": [
                     "application/json"
@@ -480,7 +538,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "example": "kubeflow-user-example-com",
+                        "x-example": "kubeflow-user-example-com",
                         "description": "Namespace of the workspace",
                         "name": "namespace",
                         "in": "path",
@@ -488,7 +546,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "example": "my-workspace",
+                        "x-example": "my-workspace",
                         "description": "Name of the workspace",
                         "name": "workspace_name",
                         "in": "path",

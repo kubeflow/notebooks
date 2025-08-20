@@ -1,5 +1,5 @@
-import * as React from 'react';
-import { Button } from '@patternfly/react-core';
+import React, { useCallback, useState } from 'react';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 
 type ActionButtonProps = {
   action: string;
@@ -13,9 +13,9 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
   onClick,
   ...props
 }) => {
-  const [isLoading, setIsLoading] = React.useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleClick = React.useCallback(async () => {
+  const handleClick = useCallback(async () => {
     setIsLoading(true);
     try {
       await onClick();

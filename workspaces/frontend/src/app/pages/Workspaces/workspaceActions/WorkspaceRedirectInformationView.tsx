@@ -1,10 +1,11 @@
-import { ExpandableSection, Icon, Tab, Tabs, TabTitleText, Content } from '@patternfly/react-core';
-import {
-  ExclamationCircleIcon,
-  ExclamationTriangleIcon,
-  InfoCircleIcon,
-} from '@patternfly/react-icons';
-import * as React from 'react';
+import React, { useEffect, useState } from 'react';
+import { ExpandableSection } from '@patternfly/react-core/dist/esm/components/ExpandableSection';
+import { Icon } from '@patternfly/react-core/dist/esm/components/Icon';
+import { Tab, Tabs, TabTitleText } from '@patternfly/react-core/dist/esm/components/Tabs';
+import { Content } from '@patternfly/react-core/dist/esm/components/Content';
+import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
+import { ExclamationTriangleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-triangle-icon';
+import { InfoCircleIcon } from '@patternfly/react-icons/dist/esm/icons/info-circle-icon';
 import useWorkspaceKindByName from '~/app/hooks/useWorkspaceKindByName';
 import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 
@@ -44,14 +45,14 @@ interface WorkspaceRedirectInformationViewProps {
 export const WorkspaceRedirectInformationView: React.FC<WorkspaceRedirectInformationViewProps> = ({
   kind,
 }) => {
-  const [activeKey, setActiveKey] = React.useState<string | number>(0);
+  const [activeKey, setActiveKey] = useState<string | number>(0);
   const [workspaceKind, workspaceKindLoaded] = useWorkspaceKindByName(kind);
   const [imageConfig, setImageConfig] =
-    React.useState<WorkspaceKind['podTemplate']['options']['imageConfig']>();
+    useState<WorkspaceKind['podTemplate']['options']['imageConfig']>();
   const [podConfig, setPodConfig] =
-    React.useState<WorkspaceKind['podTemplate']['options']['podConfig']>();
+    useState<WorkspaceKind['podTemplate']['options']['podConfig']>();
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!workspaceKindLoaded) {
       return;
     }

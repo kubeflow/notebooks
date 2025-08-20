@@ -150,6 +150,7 @@ var _ = BeforeSuite(func() {
 	By("creating the application")
 	// NOTE: we use the `k8sClient` rather than `k8sManager.GetClient()` to avoid race conditions with the cached client
 	a, err = NewApp(&config.EnvConfig{}, appLogger, k8sClient, k8sManager.GetScheme(), reqAuthN, reqAuthZ)
+	Expect(err).NotTo(HaveOccurred())
 
 	go func() {
 		defer GinkgoRecover()
@@ -312,7 +313,7 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 									},
 								},
 								Spec: kubefloworgv1beta1.ImageConfigSpec{
-									Image: "docker.io/kubeflownotebookswg/jupyter-scipy:v1.8.0",
+									Image: "ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.8.0",
 									Ports: []kubefloworgv1beta1.ImagePort{
 										{
 											Id:          "jupyterlab",
@@ -337,7 +338,7 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 									},
 								},
 								Spec: kubefloworgv1beta1.ImageConfigSpec{
-									Image: "docker.io/kubeflownotebookswg/jupyter-scipy:v1.9.0",
+									Image: "ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.9.0",
 									Ports: []kubefloworgv1beta1.ImagePort{
 										{
 											Id:          "jupyterlab",

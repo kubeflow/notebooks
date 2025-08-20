@@ -1,3 +1,5 @@
+import { ErrorEnvelope } from '~/shared/api/backendApiTypes';
+import { handleRestFailures } from '~/shared/api/errorUtils';
 import { APIOptions, ResponseBody } from '~/shared/api/types';
 import { EitherOrNone } from '~/shared/typeHelpers';
 import { AUTH_HEADER, DEV_MODE } from '~/shared/utilities/const';
@@ -17,6 +19,7 @@ export const mergeRequestInit = (
 type CallRestJSONOptions = {
   queryParams?: Record<string, unknown>;
   parseJSON?: boolean;
+  directYAML?: boolean;
 } & EitherOrNone<
   {
     fileContents: string;
@@ -30,7 +33,7 @@ const callRestJSON = <T>(
   host: string,
   path: string,
   requestInit: RequestInit,
-  { data, fileContents, queryParams, parseJSON = true }: CallRestJSONOptions,
+  { data, fileContents, queryParams, parseJSON = true, directYAML = false }: CallRestJSONOptions,
 ): Promise<T> => {
   const { method, ...otherOptions } = requestInit;
 
@@ -52,12 +55,17 @@ const callRestJSON = <T>(
   let contentType: string | undefined;
   let formData: FormData | undefined;
   if (fileContents) {
-    formData = new FormData();
-    formData.append(
-      'uploadfile',
-      new Blob([fileContents], { type: 'application/x-yaml' }),
-      'uploadedFile.yml',
-    );
+    if (directYAML) {
+      requestData = fileContents;
+      contentType = 'application/yaml';
+    } else {
+      formData = new FormData();
+      formData.append(
+        'uploadfile',
+        new Blob([fileContents], { type: 'application/x-yaml' }),
+        'uploadedFile.yml',
+      );
+    }
   } else if (data) {
     // It's OK for contentType and requestData to BOTH be undefined for e.g. a GET request or POST with no body.
     contentType = 'application/json;charset=UTF-8';
@@ -120,6 +128,7 @@ export const restFILE = <T>(
     fileContents,
     queryParams,
     parseJSON: options?.parseJSON,
+    directYAML: options?.directYAML,
   });
 
 /** POST -- but no body data -- targets simple endpoints */
@@ -180,9 +189,55 @@ export const isNotebookResponse = <T>(response: unknown): response is ResponseBo
   return false;
 };
 
+export const isErrorEnvelope = (e: unknown): e is ErrorEnvelope =>
+  typeof e === 'object' &&
+  e !== null &&
+  'error' in e &&
+  typeof (e as Record<string, unknown>).error === 'object' &&
+  (e as { error: unknown }).error !== null &&
+  typeof (e as { error: { message: unknown } }).error.message === 'string';
+
 export function extractNotebookResponse<T>(response: unknown): T {
+  // Check if this is an error envelope first
+  if (isErrorEnvelope(response)) {
+    throw new ErrorEnvelopeException(response);
+  }
   if (isNotebookResponse<T>(response)) {
     return response.data;
   }
   throw new Error('Invalid response format');
+}
+
+export function extractErrorEnvelope(error: unknown): ErrorEnvelope {
+  if (isErrorEnvelope(error)) {
+    return error;
+  }
+
+  const message =
+    error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unexpected error';
+
+  return {
+    error: {
+      message,
+      code: 'UNKNOWN_ERROR',
+    },
+  };
+}
+
+export async function wrapRequest<T>(promise: Promise<T>, extractData = true): Promise<T> {
+  try {
+    const res = await handleRestFailures<T>(promise);
+    return extractData ? extractNotebookResponse<T>(res) : res;
+  } catch (error) {
+    if (error instanceof ErrorEnvelopeException) {
+      throw error;
+    }
+    throw new ErrorEnvelopeException(extractErrorEnvelope(error));
+  }
+}
+
+export class ErrorEnvelopeException extends Error {
+  constructor(public envelope: ErrorEnvelope) {
+    super(envelope.error?.message ?? 'Unknown error');
+  }
 }

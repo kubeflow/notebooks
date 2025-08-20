@@ -1,28 +1,35 @@
-import * as React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import { Brand } from '@patternfly/react-core/dist/esm/components/Brand';
 import {
-  Brand,
   Nav,
   NavExpandable,
   NavItem,
   NavList,
-  PageSidebar,
-  PageSidebarBody,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/Nav';
+import { PageSidebar, PageSidebarBody } from '@patternfly/react-core/dist/esm/components/Page';
+import { useTypedLocation } from '~/app/routerHelper';
 import { useNavData, isNavDataGroup, NavDataHref, NavDataGroup } from './AppRoutes';
 import { isMUITheme, LOGO_LIGHT } from './const';
 
-const NavHref: React.FC<{ item: NavDataHref }> = ({ item }) => (
-  <NavItem key={item.label} data-id={item.label} itemId={item.label}>
-    <NavLink to={item.path} data-testid={`nav-link-${item.path}`}>
-      {item.label}
-    </NavLink>
-  </NavItem>
-);
+const NavHref: React.FC<{ item: NavDataHref }> = ({ item }) => {
+  const location = useTypedLocation();
+
+  // With the redirect in place, we can now use a simple path comparison.
+  const isActive = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
+
+  return (
+    <NavItem isActive={isActive} key={item.label} data-id={item.label} itemId={item.label}>
+      <NavLink to={item.path} data-testid={`nav-link-${item.path}`}>
+        {item.label}
+      </NavLink>
+    </NavItem>
+  );
+};
 
 const NavGroup: React.FC<{ item: NavDataGroup }> = ({ item }) => {
   const { children } = item;
-  const [expanded, setExpanded] = React.useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   return (
     <NavExpandable

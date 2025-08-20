@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Dropdown,
   DropdownItem,
   DropdownList,
+} from '@patternfly/react-core/dist/esm/components/Dropdown';
+import {
   MenuToggle,
   MenuToggleElement,
   MenuToggleAction,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/MenuToggle';
 import { Workspace, WorkspaceState } from '~/shared/api/backendApiTypes';
 
 type WorkspaceConnectActionProps = {
@@ -16,7 +18,7 @@ type WorkspaceConnectActionProps = {
 export const WorkspaceConnectAction: React.FunctionComponent<WorkspaceConnectActionProps> = ({
   workspace,
 }) => {
-  const [open, setIsOpen] = React.useState(false);
+  const [open, setIsOpen] = useState(false);
 
   const onToggleClick = () => {
     setIsOpen(!open);
@@ -52,6 +54,7 @@ export const WorkspaceConnectAction: React.FunctionComponent<WorkspaceConnectAct
       toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
         <MenuToggle
           ref={toggleRef}
+          variant="secondary"
           onClick={onToggleClick}
           isExpanded={open}
           isDisabled={workspace.state !== WorkspaceState.WorkspaceStateRunning}
@@ -60,6 +63,7 @@ export const WorkspaceConnectAction: React.FunctionComponent<WorkspaceConnectAct
               id="connect-endpoint-button"
               key="connect-endpoint-button"
               onClick={onClickConnect}
+              className="connect-button-no-wrap"
             >
               Connect
             </MenuToggleAction>,

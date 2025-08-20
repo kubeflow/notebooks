@@ -276,7 +276,7 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 									},
 								},
 								Spec: kubefloworgv1beta1.ImageConfigSpec{
-									Image: "docker.io/kubeflownotebookswg/jupyter-scipy:v1.8.0",
+									Image: "ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.8.0",
 									Ports: []kubefloworgv1beta1.ImagePort{
 										{
 											Id:          "jupyterlab",
@@ -301,7 +301,7 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 									},
 								},
 								Spec: kubefloworgv1beta1.ImageConfigSpec{
-									Image: "docker.io/kubeflownotebookswg/jupyter-scipy:v1.9.0",
+									Image: "ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.9.0",
 									Ports: []kubefloworgv1beta1.ImagePort{
 										{
 											Id:          "jupyterlab",
@@ -509,6 +509,28 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 			},
 		},
 	}
+}
+
+// NewExampleWorkspaceKindWithInvalidPodMetadataLabelKey returns a WorkspaceKind with an invalid PodMetadata label key.
+func NewExampleWorkspaceKindWithInvalidPodMetadataLabelKey(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+		Labels: map[string]string{
+			"!bad_key!": "value",
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithInvalidPodMetadataAnnotationKey returns a WorkspaceKind with an invalid PodMetadata annotation key.
+func NewExampleWorkspaceKindWithInvalidPodMetadataAnnotationKey(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+		Annotations: map[string]string{
+			"!bad_key!": "value",
+		},
+	}
+	return workspaceKind
 }
 
 // NewExampleWorkspaceKindWithImageConfigCycle returns a WorkspaceKind with a cycle in the ImageConfig options.

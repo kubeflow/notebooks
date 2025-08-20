@@ -1,12 +1,12 @@
-import * as React from 'react';
-import { ExclamationTriangleIcon } from '@patternfly/react-icons';
+import React from 'react';
+import { ExclamationTriangleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-triangle-icon';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import {
-  Button,
   EmptyState,
   EmptyStateBody,
   EmptyStateFooter,
-  PageSection,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/EmptyState';
+import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
 import { useTypedNavigate } from '~/app/routerHelper';
 
 const NotFound: React.FunctionComponent = () => {
@@ -24,7 +24,7 @@ const NotFound: React.FunctionComponent = () => {
     <PageSection>
       <EmptyState titleText="404 Page not found" variant="full" icon={ExclamationTriangleIcon}>
         <EmptyStateBody>
-          We didn&apos;t find a page that matches the address you navigated to.
+          We did not find a page that matches the address you navigated to.
         </EmptyStateBody>
         <EmptyStateFooter>
           <GoHomeBtn />

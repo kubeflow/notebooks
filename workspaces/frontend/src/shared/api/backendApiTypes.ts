@@ -90,7 +90,7 @@ export interface WorkspaceKindPodTemplate {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface WorkspaceKindCreate {}
+export type WorkspaceKindCreate = string;
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface WorkspaceKindUpdate {}
@@ -277,7 +277,41 @@ export interface WorkspaceUpdate extends WorkspaceCreate {}
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface WorkspacePatch {}
 
-// TODO: Update these types when applicable; meanwhile, they are empty objects
-type EmptyObject = Record<string, never>;
-export type PauseWorkspaceResponse = EmptyObject;
-export type StartWorkspaceResponse = EmptyObject;
+export interface WorkspacePauseState {
+  namespace: string;
+  workspaceName: string;
+  paused: boolean;
+}
+
+export enum FieldErrorType {
+  FieldValueRequired = 'FieldValueRequired',
+  FieldValueInvalid = 'FieldValueInvalid',
+  FieldValueNotSupported = 'FieldValueNotSupported',
+  FieldValueDuplicate = 'FieldValueDuplicate',
+  FieldValueTooLong = 'FieldValueTooLong',
+  FieldValueForbidden = 'FieldValueForbidden',
+  FieldValueNotFound = 'FieldValueNotFound',
+  FieldValueConflict = 'FieldValueConflict',
+  FieldValueTooShort = 'FieldValueTooShort',
+  FieldValueUnknown = 'FieldValueUnknown',
+}
+
+export interface ValidationError {
+  type: FieldErrorType;
+  field: string;
+  message: string;
+}
+
+export interface ErrorCause {
+  validation_errors?: ValidationError[]; // TODO: backend is not using camelCase for this field
+}
+
+export type HTTPError = {
+  code: string;
+  message: string;
+  cause?: ErrorCause;
+};
+
+export type ErrorEnvelope = {
+  error: HTTPError | null;
+};

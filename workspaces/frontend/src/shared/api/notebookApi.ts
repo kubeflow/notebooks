@@ -1,15 +1,13 @@
 import {
   HealthCheckResponse,
   Namespace,
-  PauseWorkspaceResponse,
-  StartWorkspaceResponse,
   Workspace,
   WorkspaceCreate,
   WorkspaceKind,
-  WorkspaceKindCreate,
   WorkspaceKindPatch,
   WorkspaceKindUpdate,
   WorkspacePatch,
+  WorkspacePauseState,
   WorkspaceUpdate,
 } from '~/shared/api/backendApiTypes';
 import { APIOptions, RequestData } from '~/shared/api/types';
@@ -54,20 +52,17 @@ export type PauseWorkspace = (
   opts: APIOptions,
   namespace: string,
   workspace: string,
-) => Promise<PauseWorkspaceResponse>;
+) => Promise<WorkspacePauseState>;
 export type StartWorkspace = (
   opts: APIOptions,
   namespace: string,
   workspace: string,
-) => Promise<StartWorkspaceResponse>;
+) => Promise<WorkspacePauseState>;
 
 // WorkspaceKind
 export type ListWorkspaceKinds = (opts: APIOptions) => Promise<WorkspaceKind[]>;
 export type GetWorkspaceKind = (opts: APIOptions, kind: string) => Promise<WorkspaceKind>;
-export type CreateWorkspaceKind = (
-  opts: APIOptions,
-  data: RequestData<WorkspaceKindCreate>,
-) => Promise<WorkspaceKind>;
+export type CreateWorkspaceKind = (opts: APIOptions, data: string) => Promise<WorkspaceKind>;
 export type UpdateWorkspaceKind = (
   opts: APIOptions,
   kind: string,

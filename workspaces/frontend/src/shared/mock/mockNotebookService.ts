@@ -1,3 +1,5 @@
+import { ErrorEnvelopeException } from '~/shared/api/apiUtils';
+import { FieldErrorType } from '~/shared/api/backendApiTypes';
 import {
   CreateWorkspaceAPI,
   CreateWorkspaceKindAPI,
@@ -21,10 +23,13 @@ import {
   mockAllWorkspaces,
   mockedHealthCheckResponse,
   mockNamespaces,
+  mockPausedStateResponse,
+  mockStartedStateResponse,
   mockWorkspace1,
   mockWorkspaceKind1,
   mockWorkspaceKinds,
 } from '~/shared/mock/mockNotebookServiceData';
+import { isInvalidYaml } from '~/shared/mock/mockUtils';
 
 const delay = (ms: number) =>
   new Promise((resolve) => {
@@ -53,14 +58,14 @@ export const mockDeleteWorkspace: DeleteWorkspaceAPI = () => async () => {
   await delay(1500);
 };
 
-export const mockPauseWorkspace: PauseWorkspaceAPI = () => async () => {
+export const mockPauseWorkspace: PauseWorkspaceAPI = () => async (_opts, namespace, workspace) => {
   await delay(1500);
-  return {};
+  return { ...mockPausedStateResponse, namespace, workspaceName: workspace };
 };
 
-export const mockStartWorkspace: StartWorkspaceAPI = () => async () => {
+export const mockStartWorkspace: StartWorkspaceAPI = () => async (_opts, namespace, workspace) => {
   await delay(1500);
-  return {};
+  return { ...mockStartedStateResponse, namespace, workspaceName: workspace };
 };
 
 export const mockListWorkspaceKinds: ListWorkspaceKindsAPI = () => async () => mockWorkspaceKinds;
@@ -68,7 +73,37 @@ export const mockListWorkspaceKinds: ListWorkspaceKindsAPI = () => async () => m
 export const mockGetWorkspaceKind: GetWorkspaceKindAPI = () => async (_opts, kind) =>
   mockWorkspaceKinds.find((w) => w.name === kind)!;
 
-export const mockCreateWorkspaceKind: CreateWorkspaceKindAPI = () => async () => mockWorkspaceKind1;
+export const mockCreateWorkspaceKind: CreateWorkspaceKindAPI = () => async (_opts, data) => {
+  if (isInvalidYaml(data)) {
+    throw new ErrorEnvelopeException({
+      error: {
+        code: 'invalid_yaml',
+        message: 'Invalid YAML provided',
+        cause: {
+          // eslint-disable-next-line camelcase
+          validation_errors: [
+            {
+              type: FieldErrorType.FieldValueRequired,
+              field: 'spec.spawner.displayName',
+              message: "Missing required 'spec.spawner.displayName' property",
+            },
+            {
+              type: FieldErrorType.FieldValueUnknown,
+              field: 'spec.spawner.xyz',
+              message: "Unknown property 'spec.spawner.xyz'",
+            },
+            {
+              type: FieldErrorType.FieldValueNotSupported,
+              field: 'spec.spawner.hidden',
+              message: "Invalid data type for 'spec.spawner.hidden', expected 'boolean'",
+            },
+          ],
+        },
+      },
+    });
+  }
+  return mockWorkspaceKind1;
+};
 
 export const mockUpdateWorkspaceKind: UpdateWorkspaceKindAPI = () => async () => mockWorkspaceKind1;
 

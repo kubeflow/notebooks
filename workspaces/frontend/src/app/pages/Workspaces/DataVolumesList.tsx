@@ -1,17 +1,20 @@
+import React from 'react';
 import {
   ClipboardCopy,
   ClipboardCopyVariant,
-  Content,
-  Flex,
-  FlexItem,
-  List,
-  ListItem,
-  Stack,
-  StackItem,
-  Tooltip,
-} from '@patternfly/react-core';
-import { DatabaseIcon, LockedIcon } from '@patternfly/react-icons';
-import * as React from 'react';
+} from '@patternfly/react-core/dist/esm/components/ClipboardCopy';
+import { Content } from '@patternfly/react-core/dist/esm/components/Content';
+import {
+  DescriptionList,
+  DescriptionListGroup,
+  DescriptionListTerm,
+  DescriptionListDescription,
+} from '@patternfly/react-core/dist/esm/components/DescriptionList';
+import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
+import { List, ListItem } from '@patternfly/react-core/dist/esm/components/List';
+import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
+import { DatabaseIcon } from '@patternfly/react-icons/dist/esm/icons/database-icon';
+import { LockedIcon } from '@patternfly/react-icons/dist/esm/icons/locked-icon';
 import { Workspace } from '~/shared/api/backendApiTypes';
 
 interface DataVolumesListProps {
@@ -43,32 +46,32 @@ export const DataVolumesList: React.FC<DataVolumesListProps> = ({ workspace }) =
             </Tooltip>
           )}
         </Content>
-        <Stack>
-          <StackItem>
-            <Content component="small">
-              Mount path:{' '}
-              <ClipboardCopy variant={ClipboardCopyVariant.inlineCompact}>
-                {data.mountPath}
-              </ClipboardCopy>
-            </Content>
-          </StackItem>
-        </Stack>
+        <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
+          <FlexItem>Mount path:</FlexItem>
+          <FlexItem>
+            <ClipboardCopy variant={ClipboardCopyVariant.inlineCompact} isCode>
+              {data.mountPath}
+            </ClipboardCopy>
+          </FlexItem>
+        </Flex>
       </FlexItem>
     </Flex>
   );
 
   return (
-    <Stack hasGutter>
-      <StackItem>
-        <strong data-testid="notebook-storage-bar-title">Cluster storage</strong>
-      </StackItem>
-      <StackItem>
-        <List isPlain>
-          {workspaceDataVol.map((data, index) => (
-            <ListItem key={`data-vol-${index}`}>{singleDataVolRenderer(data)}</ListItem>
-          ))}
-        </List>
-      </StackItem>
-    </Stack>
+    <DescriptionList>
+      <DescriptionListGroup>
+        <DescriptionListTerm data-testid="notebook-storage-bar-title">
+          Cluster storage
+        </DescriptionListTerm>
+        <DescriptionListDescription>
+          <List isPlain>
+            {workspaceDataVol.map((data, index) => (
+              <ListItem key={`data-vol-${index}`}>{singleDataVolRenderer(data)}</ListItem>
+            ))}
+          </List>
+        </DescriptionListDescription>
+      </DescriptionListGroup>
+    </DescriptionList>
   );
 };

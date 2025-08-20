@@ -1,18 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Modal,
   ModalBody,
   ModalFooter,
   ModalHeader,
   ModalVariant,
-  Button,
-  TextInput,
-  Stack,
-  StackItem,
-  FlexItem,
-  HelperText,
-  HelperTextItem,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/Modal';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
+import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
+import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
+import { FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
+import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { default as ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 import { ActionButton } from '~/shared/components/ActionButton';
 
@@ -34,7 +32,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   onDelete,
 }) => {
   const [inputValue, setInputValue] = useState('');
-  const [isDeleting, setIsDeleting] = React.useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {
@@ -90,7 +88,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
             {showWarning && (
               <HelperText data-testid="delete-modal-helper-text">
                 <HelperTextItem icon={<ExclamationCircleIcon />} variant="error">
-                  The name doesn&apos;t match. Please enter exactly: {resourceName}
+                  The name does not match. Please enter exactly: {resourceName}
                 </HelperTextItem>
               </HelperText>
             )}

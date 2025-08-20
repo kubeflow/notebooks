@@ -271,7 +271,7 @@ spec:
             spec:
               ## the container image to use
               ##
-              image: "docker.io/kubeflownotebookswg/jupyter-scipy:v1.8.0"
+              image: "ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.8.0"
 
               ## the pull policy for the container image
               ##  - default: "IfNotPresent"
@@ -301,7 +301,7 @@ spec:
                 - key: "python_version"
                   value: "3.11"
             spec:
-              image: "docker.io/kubeflownotebookswg/jupyter-scipy:v1.9.0"
+              image: "ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.9.0"
               imagePullPolicy: "IfNotPresent"
               ports:
                 - id: "jupyterlab"

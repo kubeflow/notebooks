@@ -1,0 +1,171 @@
+import React, { useCallback, useState } from 'react';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
+import { Content } from '@patternfly/react-core/dist/esm/components/Content';
+import {
+  Modal,
+  ModalHeader,
+  ModalFooter,
+  ModalVariant,
+} from '@patternfly/react-core/dist/esm/components/Modal';
+import {
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateFooter,
+  EmptyStateActions,
+} from '@patternfly/react-core/dist/esm/components/EmptyState';
+import { ExpandableSection } from '@patternfly/react-core/dist/esm/components/ExpandableSection';
+import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
+import { CubesIcon } from '@patternfly/react-icons/dist/esm/icons/cubes-icon';
+import { emptyPodConfig } from '~/app/pages/WorkspaceKinds/Form/helpers';
+import { WorkspaceKindPodConfigValue, WorkspaceKindPodConfigData } from '~/app/types';
+import { WorkspaceKindFormPaginatedTable } from '~/app/pages/WorkspaceKinds/Form/WorkspaceKindFormPaginatedTable';
+import { WorkspaceKindFormPodConfigModal } from './WorkspaceKindFormPodConfigModal';
+
+interface WorkspaceKindFormPodConfigProps {
+  podConfig: WorkspaceKindPodConfigData;
+  updatePodConfig: (podConfigs: WorkspaceKindPodConfigData) => void;
+}
+
+export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProps> = ({
+  podConfig,
+  updatePodConfig,
+}) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [defaultId, setDefaultId] = useState(podConfig.default || '');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
+  const [currConfig, setCurrConfig] = useState<WorkspaceKindPodConfigValue>({ ...emptyPodConfig });
+
+  const clearForm = useCallback(() => {
+    setCurrConfig({ ...emptyPodConfig });
+    setEditIndex(null);
+    setIsModalOpen(false);
+  }, []);
+
+  const openDeleteModal = useCallback((i: number) => {
+    setIsDeleteModalOpen(true);
+    setDeleteIndex(i);
+  }, []);
+
+  const handleAddOrEditSubmit = useCallback(
+    (config: WorkspaceKindPodConfigValue) => {
+      if (editIndex !== null) {
+        const updated = [...podConfig.values];
+        updated[editIndex] = config;
+        updatePodConfig({ ...podConfig, values: updated });
+      } else {
+        updatePodConfig({ ...podConfig, values: [...podConfig.values, config] });
+      }
+      clearForm();
+    },
+    [clearForm, editIndex, podConfig, updatePodConfig],
+  );
+
+  const handleEdit = useCallback(
+    (index: number) => {
+      setCurrConfig(podConfig.values[index]);
+      setEditIndex(index);
+      setIsModalOpen(true);
+    },
+    [podConfig.values],
+  );
+
+  const handleDelete = useCallback(() => {
+    if (deleteIndex === null) {
+      return;
+    }
+    updatePodConfig({
+      default: podConfig.values[deleteIndex].id === defaultId ? '' : defaultId,
+      values: podConfig.values.filter((_, i) => i !== deleteIndex),
+    });
+    if (podConfig.values[deleteIndex].id === defaultId) {
+      setDefaultId('');
+    }
+    setDeleteIndex(null);
+    setIsDeleteModalOpen(false);
+  }, [deleteIndex, podConfig, updatePodConfig, setDefaultId, defaultId]);
+
+  const addConfigBtn = (
+    <Button
+      variant="link"
+      icon={<PlusCircleIcon />}
+      onClick={() => {
+        setIsModalOpen(true);
+      }}
+    >
+      Add Config
+    </Button>
+  );
+
+  return (
+    <Content>
+      <div className="pf-u-mb-0">
+        <ExpandableSection
+          toggleText="Pod Configurations"
+          onToggle={() => setIsExpanded((prev) => !prev)}
+          isExpanded={isExpanded}
+          isIndented
+        >
+          {podConfig.values.length === 0 && (
+            <EmptyState
+              titleText="Start by creating a pod configuration"
+              headingLevel="h4"
+              icon={CubesIcon}
+            >
+              <EmptyStateBody>
+                Configure specifications for pods and containers in your Workspace Kind
+              </EmptyStateBody>
+              <EmptyStateFooter>
+                <EmptyStateActions>{addConfigBtn}</EmptyStateActions>
+              </EmptyStateFooter>
+            </EmptyState>
+          )}
+          {podConfig.values.length > 0 && (
+            <>
+              <WorkspaceKindFormPaginatedTable
+                ariaLabel="Pod Configs Table"
+                rows={podConfig.values}
+                defaultId={defaultId}
+                setDefaultId={(id) => {
+                  updatePodConfig({ ...podConfig, default: id });
+                  setDefaultId(id);
+                }}
+                handleEdit={handleEdit}
+                openDeleteModal={openDeleteModal}
+              />
+              {addConfigBtn}
+            </>
+          )}
+          <WorkspaceKindFormPodConfigModal
+            isOpen={isModalOpen}
+            onClose={clearForm}
+            onSubmit={handleAddOrEditSubmit}
+            editIndex={editIndex}
+            currConfig={currConfig}
+            setCurrConfig={setCurrConfig}
+          />
+          <Modal
+            isOpen={isDeleteModalOpen}
+            onClose={() => setIsDeleteModalOpen(false)}
+            variant={ModalVariant.small}
+          >
+            <ModalHeader
+              title="Remove Pod Config?"
+              description="The pod config will be removed from the workspace kind."
+            />
+            <ModalFooter>
+              <Button key="remove" variant="danger" onClick={handleDelete}>
+                Remove
+              </Button>
+              <Button key="cancel" variant="link" onClick={() => setIsDeleteModalOpen(false)}>
+                Cancel
+              </Button>
+            </ModalFooter>
+          </Modal>
+        </ExpandableSection>
+      </div>
+    </Content>
+  );
+};

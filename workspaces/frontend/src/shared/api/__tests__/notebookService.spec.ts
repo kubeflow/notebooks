@@ -1,10 +1,9 @@
 import { BFF_API_VERSION } from '~/app/const';
-import { restGET } from '~/shared/api/apiUtils';
-import { handleRestFailures } from '~/shared/api/errorUtils';
+import { restGET, wrapRequest } from '~/shared/api/apiUtils';
 import { listNamespaces } from '~/shared/api/notebookService';
 
-const mockRestPromise = Promise.resolve({ data: {} });
-const mockRestResponse = {};
+const mockRestResponse = { data: {} };
+const mockRestPromise = Promise.resolve(mockRestResponse);
 
 jest.mock('~/shared/api/apiUtils', () => ({
   restCREATE: jest.fn(() => mockRestPromise),
@@ -12,13 +11,10 @@ jest.mock('~/shared/api/apiUtils', () => ({
   restPATCH: jest.fn(() => mockRestPromise),
   isNotebookResponse: jest.fn(() => true),
   extractNotebookResponse: jest.fn(() => mockRestResponse),
+  wrapRequest: jest.fn(() => mockRestPromise),
 }));
 
-jest.mock('~/shared/api/errorUtils', () => ({
-  handleRestFailures: jest.fn(() => mockRestPromise),
-}));
-
-const handleRestFailuresMock = jest.mocked(handleRestFailures);
+const wrapRequestMock = jest.mocked(wrapRequest);
 const restGETMock = jest.mocked(restGET);
 const APIOptionsMock = {};
 
@@ -33,7 +29,7 @@ describe('getNamespaces', () => {
       {},
       APIOptionsMock,
     );
-    expect(handleRestFailuresMock).toHaveBeenCalledTimes(1);
-    expect(handleRestFailuresMock).toHaveBeenCalledWith(mockRestPromise);
+    expect(wrapRequestMock).toHaveBeenCalledTimes(1);
+    expect(wrapRequestMock).toHaveBeenCalledWith(mockRestPromise);
   });
 });

@@ -1,12 +1,11 @@
-import * as React from 'react';
+import React, { useState } from 'react';
 import {
   Dropdown,
-  DropdownList,
-  MenuToggle,
   DropdownItem,
-  Flex,
-  FlexItem,
-} from '@patternfly/react-core';
+  DropdownList,
+} from '@patternfly/react-core/dist/esm/components/Dropdown';
+import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
+import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 
 interface WorkspaceDetailsActionsProps {
   // TODO: Uncomment when edit action is fully supported
@@ -18,7 +17,7 @@ export const WorkspaceDetailsActions: React.FC<WorkspaceDetailsActionsProps> = (
   // onEditClick,
   onDeleteClick,
 }) => {
-  const [isOpen, setOpen] = React.useState(false);
+  const [isOpen, setOpen] = useState(false);
 
   return (
     <Flex>

@@ -20,7 +20,10 @@ import (
 	"context"
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	apivalidation "k8s.io/apimachinery/pkg/api/validation"
+	v1validation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -76,12 +79,12 @@ func (v *WorkspaceValidator) ValidateCreate(ctx context.Context, obj runtime.Obj
 	}
 
 	// validate the Workspace
-	if err := v.validateImageConfig(workspace, workspaceKind); err != nil {
-		allErrs = append(allErrs, err)
-	}
-	if err := v.validatePodConfig(workspace, workspaceKind); err != nil {
-		allErrs = append(allErrs, err)
-	}
+	// NOTE: we do this after fetching the WorkspaceKind as there will be multiple types in the future,
+	//       and we need to know which one the Workspace is using to validate it correctly.
+	allErrs = append(allErrs, v.validatePodTemplatePodMetadata(workspace)...)
+	allErrs = append(allErrs, v.validateImageConfig(workspace, workspaceKind)...)
+	allErrs = append(allErrs, v.validatePodConfig(workspace, workspaceKind)...)
+
 	if len(allErrs) == 0 {
 		return nil, nil
 	}
@@ -113,10 +116,14 @@ func (v *WorkspaceValidator) ValidateUpdate(ctx context.Context, oldObj, newObj 
 
 	// check if workspace kind related fields have changed
 	var workspaceKindChange = false
+	var podMetadataChange = false
 	var imageConfigChange = false
 	var podConfigChange = false
 	if newWorkspace.Spec.Kind != oldWorkspace.Spec.Kind {
 		workspaceKindChange = true
+	}
+	if !equality.Semantic.DeepEqual(newWorkspace.Spec.PodTemplate.PodMetadata, oldWorkspace.Spec.PodTemplate.PodMetadata) {
+		podMetadataChange = true
 	}
 	if newWorkspace.Spec.PodTemplate.Options.ImageConfig != oldWorkspace.Spec.PodTemplate.Options.ImageConfig {
 		imageConfigChange = true
@@ -126,7 +133,7 @@ func (v *WorkspaceValidator) ValidateUpdate(ctx context.Context, oldObj, newObj 
 	}
 
 	// if any of the workspace kind related fields have changed, revalidate the workspace
-	if workspaceKindChange || imageConfigChange || podConfigChange {
+	if workspaceKindChange || podMetadataChange || imageConfigChange || podConfigChange {
 		// fetch the WorkspaceKind
 		workspaceKind, err := v.validateWorkspaceKind(ctx, newWorkspace)
 		if err != nil {
@@ -140,18 +147,19 @@ func (v *WorkspaceValidator) ValidateUpdate(ctx context.Context, oldObj, newObj 
 			)
 		}
 
+		// validate the new podTemplate podMetadata
+		if podMetadataChange {
+			allErrs = append(allErrs, v.validatePodTemplatePodMetadata(newWorkspace)...)
+		}
+
 		// validate the new imageConfig
 		if imageConfigChange {
-			if err := v.validateImageConfig(newWorkspace, workspaceKind); err != nil {
-				allErrs = append(allErrs, err)
-			}
+			allErrs = append(allErrs, v.validateImageConfig(newWorkspace, workspaceKind)...)
 		}
 
 		// validate the new podConfig
 		if podConfigChange {
-			if err := v.validatePodConfig(newWorkspace, workspaceKind); err != nil {
-				allErrs = append(allErrs, err)
-			}
+			allErrs = append(allErrs, v.validatePodConfig(newWorkspace, workspaceKind)...)
 		}
 	}
 
@@ -197,36 +205,79 @@ func (v *WorkspaceValidator) validateWorkspaceKind(ctx context.Context, workspac
 	return workspaceKind, nil
 }
 
-// validateImageConfig checks if the imageConfig selected by a Workspace exists a WorkspaceKind
-func (v *WorkspaceValidator) validateImageConfig(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind) *field.Error {
-	imageConfig := workspace.Spec.PodTemplate.Options.ImageConfig
-	for _, value := range workspaceKind.Spec.PodTemplate.Options.ImageConfig.Values {
-		if imageConfig == value.Id {
-			// imageConfig found
-			return nil
-		}
+// validatePodTemplatePodMetadata validates the podMetadata of a Workspace's PodTemplate
+func (v *WorkspaceValidator) validatePodTemplatePodMetadata(workspace *kubefloworgv1beta1.Workspace) []*field.Error {
+	var errs []*field.Error
+
+	podMetadata := workspace.Spec.PodTemplate.PodMetadata
+	podMetadataPath := field.NewPath("spec", "podTemplate", "podMetadata")
+
+	// if podMetadata is nil, we cannot validate it
+	if podMetadata == nil {
+		return nil
 	}
-	imageConfigPath := field.NewPath("spec", "podTemplate", "options", "imageConfig")
-	return field.Invalid(
-		imageConfigPath,
-		imageConfig,
-		fmt.Sprintf("imageConfig with id %q not found in workspace kind %q", imageConfig, workspaceKind.Name),
-	)
+
+	// validate labels
+	labels := podMetadata.Labels
+	labelsPath := podMetadataPath.Child("labels")
+	errs = append(errs, v1validation.ValidateLabels(labels, labelsPath)...)
+
+	// validate annotations
+	annotations := podMetadata.Annotations
+	annotationsPath := podMetadataPath.Child("annotations")
+	errs = append(errs, apivalidation.ValidateAnnotations(annotations, annotationsPath)...)
+
+	return errs
 }
 
-// validatePodConfig checks if the podConfig selected by a Workspace exists a WorkspaceKind
-func (v *WorkspaceValidator) validatePodConfig(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind) *field.Error {
-	podConfig := workspace.Spec.PodTemplate.Options.PodConfig
-	for _, value := range workspaceKind.Spec.PodTemplate.Options.PodConfig.Values {
-		if podConfig == value.Id {
-			// podConfig found
-			return nil
+// validateImageConfig validates the imageConfig selected by a Workspace
+func (v *WorkspaceValidator) validateImageConfig(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind) []*field.Error {
+	var errs []*field.Error
+
+	imageConfig := workspace.Spec.PodTemplate.Options.ImageConfig
+	imageConfigPath := field.NewPath("spec", "podTemplate", "options", "imageConfig")
+
+	// ensure the imageConfig exists in the WorkspaceKind
+	foundImageConfig := false
+	for _, value := range workspaceKind.Spec.PodTemplate.Options.ImageConfig.Values {
+		if imageConfig == value.Id {
+			foundImageConfig = true
+			break
 		}
 	}
+	if !foundImageConfig {
+		errs = append(errs, field.Invalid(
+			imageConfigPath,
+			imageConfig,
+			fmt.Sprintf("imageConfig with id %q not found in workspace kind %q", imageConfig, workspaceKind.Name),
+		))
+	}
+
+	return errs
+}
+
+// validatePodConfig validates the podConfig selected by a Workspace
+func (v *WorkspaceValidator) validatePodConfig(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind) []*field.Error {
+	var errs []*field.Error
+
+	podConfig := workspace.Spec.PodTemplate.Options.PodConfig
 	podConfigPath := field.NewPath("spec", "podTemplate", "options", "podConfig")
-	return field.Invalid(
-		podConfigPath,
-		podConfig,
-		fmt.Sprintf("podConfig with id %q not found in workspace kind %q", podConfig, workspaceKind.Name),
-	)
+
+	// ensure the podConfig exists in the WorkspaceKind
+	foundPodConfig := false
+	for _, value := range workspaceKind.Spec.PodTemplate.Options.PodConfig.Values {
+		if podConfig == value.Id {
+			foundPodConfig = true
+			break
+		}
+	}
+	if !foundPodConfig {
+		errs = append(errs, field.Invalid(
+			podConfigPath,
+			podConfig,
+			fmt.Sprintf("podConfig with id %q not found in workspace kind %q", podConfig, workspaceKind.Name),
+		))
+	}
+
+	return errs
 }

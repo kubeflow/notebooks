@@ -1,6 +1,13 @@
 import React from 'react';
-import { List, ListItem, Title } from '@patternfly/react-core';
+import {
+  DescriptionList,
+  DescriptionListTerm,
+  DescriptionListGroup,
+  DescriptionListDescription,
+} from '@patternfly/react-core/dist/esm/components/DescriptionList';
+import { Title } from '@patternfly/react-core/dist/esm/components/Title';
 import { WorkspacePodConfigValue } from '~/shared/api/backendApiTypes';
+import { formatLabelKey } from '~/shared/utilities/WorkspaceUtils';
 
 type WorkspaceFormImageDetailsProps = {
   workspaceImage?: WorkspacePodConfigValue;
@@ -9,19 +16,27 @@ type WorkspaceFormImageDetailsProps = {
 export const WorkspaceFormImageDetails: React.FunctionComponent<WorkspaceFormImageDetailsProps> = ({
   workspaceImage,
 }) => (
-  <div style={{ marginLeft: 'var(--pf-t--global--spacer--md)' }}>
+  <>
     {workspaceImage && (
       <>
         <Title headingLevel="h3">{workspaceImage.displayName}</Title>
         <br />
-        <List isPlain>
-          {workspaceImage.labels.map((label) => (
-            <ListItem key={label.key}>
-              {label.key}={label.value}
-            </ListItem>
-          ))}
-        </List>
+        {workspaceImage.labels.map((label) => (
+          <DescriptionList
+            key={label.key}
+            isHorizontal
+            isCompact
+            horizontalTermWidthModifier={{
+              default: '17ch',
+            }}
+          >
+            <DescriptionListGroup>
+              <DescriptionListTerm>{formatLabelKey(label.key)}</DescriptionListTerm>
+              <DescriptionListDescription>{label.value}</DescriptionListDescription>
+            </DescriptionListGroup>
+          </DescriptionList>
+        ))}
       </>
     )}
-  </div>
+  </>
 );

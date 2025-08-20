@@ -3,13 +3,7 @@ export type APIOptions = {
   signal?: AbortSignal;
   parseJSON?: boolean;
   headers?: Record<string, string>;
-};
-
-export type APIError = {
-  error: {
-    code: string;
-    message: string;
-  };
+  directYAML?: boolean;
 };
 
 export type APIState<T> = {

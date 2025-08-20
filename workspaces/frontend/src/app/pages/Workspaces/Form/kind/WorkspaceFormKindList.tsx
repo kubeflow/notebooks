@@ -1,17 +1,26 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   CardBody,
   CardTitle,
-  Gallery,
-  PageSection,
-  Toolbar,
-  ToolbarContent,
   Card,
   CardHeader,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/Card';
+import { Gallery } from '@patternfly/react-core/dist/esm/layouts/Gallery';
+import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
+import { Toolbar, ToolbarContent } from '@patternfly/react-core/dist/esm/components/Toolbar';
 import { WorkspaceKind } from '~/shared/api/backendApiTypes';
 import Filter, { FilteredColumn, FilterRef } from '~/shared/components/Filter';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
+import ImageFallback from '~/shared/components/ImageFallback';
+import WithValidImage from '~/shared/components/WithValidImage';
+import { defineDataFields, FilterableDataFieldKey } from '~/app/filterableDataHelper';
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const { fields, filterableLabelMap } = defineDataFields({
+  name: { label: 'Name', isFilterable: true, isSortable: false },
+});
+
+type FilterableDataFieldKeys = FilterableDataFieldKey<typeof fields>;
 
 type WorkspaceFormKindListProps = {
   allWorkspaceKinds: WorkspaceKind[];
@@ -24,47 +33,32 @@ export const WorkspaceFormKindList: React.FunctionComponent<WorkspaceFormKindLis
   selectedKind,
   onSelect,
 }) => {
-  const [workspaceKinds, setWorkspaceKinds] = useState<WorkspaceKind[]>(allWorkspaceKinds);
-  const filterRef = React.useRef<FilterRef>(null);
+  const [filters, setFilters] = useState<FilteredColumn[]>([]);
+  const filterRef = useRef<FilterRef>(null);
 
-  const filterableColumns = useMemo(
-    () => ({
-      name: 'Name',
-    }),
-    [],
-  );
+  const filteredWorkspaceKinds = useMemo(() => {
+    if (allWorkspaceKinds.length === 0) {
+      return [];
+    }
+    return filters.reduce((result, filter) => {
+      let regex: RegExp;
+      try {
+        regex = new RegExp(filter.value, 'i');
+      } catch {
+        regex = new RegExp(filter.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      }
 
-  const onFilter = useCallback(
-    (filters: FilteredColumn[]) => {
-      // Search name with search value
-      let filteredWorkspaceKinds = allWorkspaceKinds;
-      filters.forEach((filter) => {
-        let searchValueInput: RegExp;
-        try {
-          searchValueInput = new RegExp(filter.value, 'i');
-        } catch {
-          searchValueInput = new RegExp(filter.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-        }
-
-        filteredWorkspaceKinds = filteredWorkspaceKinds.filter((kind) => {
-          if (filter.value === '') {
+      return result.filter((kind) => {
+        switch (filter.columnKey as FilterableDataFieldKeys) {
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          case 'name':
+            return kind.name.search(regex) >= 0 || kind.displayName.search(regex) >= 0;
+          default:
             return true;
-          }
-          switch (filter.columnName) {
-            case filterableColumns.name:
-              return (
-                kind.name.search(searchValueInput) >= 0 ||
-                kind.displayName.search(searchValueInput) >= 0
-              );
-            default:
-              return true;
-          }
-        });
+        }
       });
-      setWorkspaceKinds(filteredWorkspaceKinds);
-    },
-    [filterableColumns, allWorkspaceKinds],
-  );
+    }, allWorkspaceKinds);
+  }, [allWorkspaceKinds, filters]);
 
   const clearAllFilters = useCallback(() => {
     filterRef.current?.clearAll();
@@ -72,12 +66,12 @@ export const WorkspaceFormKindList: React.FunctionComponent<WorkspaceFormKindLis
 
   const onChange = useCallback(
     (event: React.FormEvent<HTMLInputElement>) => {
-      const newSelectedWorkspaceKind = workspaceKinds.find(
+      const newSelectedWorkspaceKind = filteredWorkspaceKinds.find(
         (kind) => kind.name === event.currentTarget.name,
       );
       onSelect(newSelectedWorkspaceKind);
     },
-    [workspaceKinds, onSelect],
+    [filteredWorkspaceKinds, onSelect],
   );
 
   return (
@@ -88,17 +82,20 @@ export const WorkspaceFormKindList: React.FunctionComponent<WorkspaceFormKindLis
             <Filter
               ref={filterRef}
               id="filter-workspace-images"
-              onFilter={onFilter}
-              columnNames={filterableColumns}
+              filters={filters}
+              setFilters={setFilters}
+              columnDefinition={filterableLabelMap}
             />
           </ToolbarContent>
         </Toolbar>
       </PageSection>
       <PageSection isFilled>
-        {workspaceKinds.length === 0 && <CustomEmptyState onClearFilters={clearAllFilters} />}
-        {workspaceKinds.length > 0 && (
+        {filteredWorkspaceKinds.length === 0 && (
+          <CustomEmptyState onClearFilters={clearAllFilters} />
+        )}
+        {filteredWorkspaceKinds.length > 0 && (
           <Gallery hasGutter aria-label="Selectable card container">
-            {workspaceKinds.map((kind) => (
+            {filteredWorkspaceKinds.map((kind) => (
               <Card
                 isCompact
                 isSelectable
@@ -115,9 +112,23 @@ export const WorkspaceFormKindList: React.FunctionComponent<WorkspaceFormKindLis
                     onChange,
                   }}
                 >
-                  <img src={kind.icon.url} alt={`${kind.name} icon`} style={{ maxWidth: '60px' }} />
-                  <CardTitle>{kind.displayName}</CardTitle>
+                  <WithValidImage
+                    imageSrc={kind.logo.url}
+                    skeletonWidth="60px"
+                    fallback={
+                      <ImageFallback
+                        imageSrc={kind.logo.url}
+                        extended
+                        message="Cannot load logo image"
+                      />
+                    }
+                  >
+                    {(validSrc) => (
+                      <img src={validSrc} alt={`${kind.name} logo`} style={{ maxWidth: '60px' }} />
+                    )}
+                  </WithValidImage>
                 </CardHeader>
+                <CardTitle>{kind.displayName}</CardTitle>
                 <CardBody>{kind.description}</CardBody>
               </Card>
             ))}

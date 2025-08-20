@@ -1,17 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   DrawerActions,
   DrawerCloseButton,
   DrawerHead,
-  DrawerPanelBody,
   DrawerPanelContent,
+  DrawerPanelBody,
+} from '@patternfly/react-core/dist/esm/components/Drawer';
+import {
   Tabs,
   Tab,
   TabTitleText,
-  Title,
   TabContentBody,
   TabContent,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/Tabs';
+import { Title } from '@patternfly/react-core/dist/esm/components/Title';
 import { Workspace } from '~/shared/api/backendApiTypes';
 import { WorkspaceDetailsOverview } from '~/app/pages/Workspaces/Details/WorkspaceDetailsOverview';
 import { WorkspaceDetailsActions } from '~/app/pages/Workspaces/Details/WorkspaceDetailsActions';
@@ -32,7 +34,7 @@ export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = 
   // onEditClick,
   onDeleteClick,
 }) => {
-  const [activeTabKey, setActiveTabKey] = React.useState<string | number>(0);
+  const [activeTabKey, setActiveTabKey] = useState<string | number>(0);
 
   const handleTabClick = (
     event: React.MouseEvent | React.KeyboardEvent | MouseEvent,

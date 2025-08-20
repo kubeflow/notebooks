@@ -1,24 +1,24 @@
-import * as React from 'react';
+import React, { useCallback, useState } from 'react';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
+import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import {
-  Button,
-  Content,
   Modal,
   ModalBody,
   ModalFooter,
   ModalHeader,
-  TabTitleText,
-} from '@patternfly/react-core';
+} from '@patternfly/react-core/dist/esm/components/Modal';
+import { TabTitleText } from '@patternfly/react-core/dist/esm/components/Tabs';
 import { WorkspaceRedirectInformationView } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRedirectInformationView';
-import { Workspace } from '~/shared/api/backendApiTypes';
+import { Workspace, WorkspacePauseState } from '~/shared/api/backendApiTypes';
 import { ActionButton } from '~/shared/components/ActionButton';
 
 interface StopActionAlertProps {
   onClose: () => void;
   isOpen: boolean;
   workspace: Workspace | null;
-  onStop: () => Promise<void>;
+  onStop: () => Promise<WorkspacePauseState | void>;
   onUpdateAndStop: () => Promise<void>;
-  onActionDone: () => void;
+  onActionDone?: () => void;
 }
 
 type StopAction = 'stop' | 'updateAndStop';
@@ -32,13 +32,13 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
   onActionDone,
 }) => {
   const workspacePendingUpdate = workspace?.pendingRestart;
-  const [actionOnGoing, setActionOnGoing] = React.useState<StopAction | null>(null);
+  const [actionOnGoing, setActionOnGoing] = useState<StopAction | null>(null);
 
-  const executeAction = React.useCallback(
-    async (args: { action: StopAction; callback: () => Promise<void> }) => {
+  const executeAction = useCallback(
+    (args: { action: StopAction; callback: () => ReturnType<typeof onStop> }) => {
       setActionOnGoing(args.action);
       try {
-        return await args.callback();
+        return args.callback();
       } finally {
         setActionOnGoing(null);
       }
@@ -46,12 +46,12 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
     [],
   );
 
-  const handleStop = React.useCallback(async () => {
+  const handleStop = useCallback(async () => {
     try {
-      await executeAction({ action: 'stop', callback: onStop });
+      const response = await executeAction({ action: 'stop', callback: onStop });
       // TODO: alert user about success
-      console.info('Workspace stopped successfully');
-      onActionDone();
+      console.info('Workspace stopped successfully:', JSON.stringify(response));
+      onActionDone?.();
       onClose();
     } catch (error) {
       // TODO: alert user about error
@@ -60,12 +60,12 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
   }, [executeAction, onActionDone, onClose, onStop]);
 
   // TODO: combine handleStop and handleUpdateAndStop if they end up being similar
-  const handleUpdateAndStop = React.useCallback(async () => {
+  const handleUpdateAndStop = useCallback(async () => {
     try {
-      await executeAction({ action: 'updateAndStop', callback: onUpdateAndStop });
+      const response = await executeAction({ action: 'updateAndStop', callback: onUpdateAndStop });
       // TODO: alert user about success
-      console.info('Workspace updated and stopped successfully');
-      onActionDone();
+      console.info('Workspace updated and stopped successfully:', JSON.stringify(response));
+      onActionDone?.();
       onClose();
     } catch (error) {
       // TODO: alert user about error
@@ -73,7 +73,7 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
     }
   }, [executeAction, onActionDone, onClose, onUpdateAndStop]);
 
-  const shouldShowActionButton = React.useCallback(
+  const shouldShowActionButton = useCallback(
     (action: StopAction) => !actionOnGoing || actionOnGoing === action,
     [actionOnGoing],
   );
