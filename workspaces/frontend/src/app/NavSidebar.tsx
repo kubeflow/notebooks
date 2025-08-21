@@ -9,8 +9,8 @@ import {
 } from '@patternfly/react-core/dist/esm/components/Nav';
 import { PageSidebar, PageSidebarBody } from '@patternfly/react-core/dist/esm/components/Page';
 import { useTypedLocation } from '~/app/routerHelper';
+import { isMUITheme, LOGO_LIGHT, URL_PREFIX } from '~/shared/utilities/const';
 import { useNavData, isNavDataGroup, NavDataHref, NavDataGroup } from './AppRoutes';
-import { APP_PREFIX, isMUITheme, LOGO_LIGHT } from './const';
 
 const NavHref: React.FC<{ item: NavDataHref }> = ({ item }) => {
   const location = useTypedLocation();
@@ -61,7 +61,7 @@ const NavSidebar: React.FC = () => {
               <NavItem>
                 <Brand
                   className="kubeflow_brand"
-                  src={`${window.location.origin}${APP_PREFIX}/images/${LOGO_LIGHT}`}
+                  src={`${window.location.origin}${URL_PREFIX}/images/${LOGO_LIGHT}`}
                   alt="Kubeflow Logo"
                 />
               </NavItem>

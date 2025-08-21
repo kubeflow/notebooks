@@ -1,4 +1,4 @@
-import { TextEncoder } from 'util';
+import { TextEncoder as UtilTextEncoder } from 'util';
 import { JestAssertionError } from 'expect';
 import 'core-js/actual/array/to-sorted';
 import {
@@ -7,7 +7,10 @@ import {
   createComparativeValue,
 } from '~/__tests__/unit/testUtils/hooks';
 
-global.TextEncoder = TextEncoder;
+// Ensure TextEncoder is available in the JSDOM environment for tests.
+// Node's util.TextEncoder has slightly different TS types than DOM's, so cast to any.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(globalThis as any).TextEncoder = UtilTextEncoder;
 
 const tryExpect = (expectFn: () => void) => {
   try {

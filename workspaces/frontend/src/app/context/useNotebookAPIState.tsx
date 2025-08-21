@@ -3,10 +3,9 @@ import { NotebookApis, notebookApisImpl } from '~/shared/api/notebookApi';
 import { APIState } from '~/shared/api/types';
 import useAPIState from '~/shared/api/useAPIState';
 import { mockNotebookApisImpl } from '~/shared/mock/mockNotebookApis';
+import { MOCK_API_ENABLED } from '~/shared/utilities/const';
 
 export type NotebookAPIState = APIState<NotebookApis>;
-
-const MOCK_API_ENABLED = process.env.WEBPACK_REPLACE__mockApiEnabled === 'true';
 
 const useNotebookAPIState = (
   hostPath: string | null,

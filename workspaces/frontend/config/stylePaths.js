@@ -23,5 +23,6 @@ module.exports = {
       relativeDir,
       'node_modules/@patternfly/react-inline-edit-extension/node_modules/@patternfly/react-styles/css',
     ),
+    path.resolve(relativeDir, 'node_modules/@patternfly/react-catalog-view-extension/dist/css'),
   ],
 };

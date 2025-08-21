@@ -22,14 +22,15 @@ import { BarsIcon } from '@patternfly/react-icons/dist/esm/icons/bars-icon';
 import ErrorBoundary from '~/app/error/ErrorBoundary';
 import NamespaceSelector from '~/shared/components/NamespaceSelector';
 import logoDarkTheme from '~/images/logo-dark-theme.svg';
+import { DEPLOYMENT_MODE, isMUITheme } from '~/shared/utilities/const';
+import { DeploymentMode, Theme } from '~/shared/utilities/types';
 import { NamespaceContextProvider } from './context/NamespaceContextProvider';
 import AppRoutes from './AppRoutes';
 import NavSidebar from './NavSidebar';
 import { NotebookContextProvider } from './context/NotebookContext';
-import { isMUITheme, Theme } from './const';
 import { BrowserStorageContextProvider } from './context/BrowserStorageContext';
 
-const isStandalone = process.env.PRODUCTION !== 'true';
+const isStandalone = DEPLOYMENT_MODE === DeploymentMode.Standalone;
 
 const App: React.FC = () => {
   useEffect(() => {

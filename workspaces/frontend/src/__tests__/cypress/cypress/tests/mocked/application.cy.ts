@@ -13,7 +13,7 @@ describe('Application', () => {
     cy.intercept('GET', `/api/v1/workspaces/${mockNamespaces[0].name}`, {
       body: mockBFFResponse({ mockWorkspace1 }),
     }).as('getWorkspaces');
-    cy.visit('/workspaces');
+    cy.visit('/');
     cy.wait('@getNamespaces');
     cy.wait('@getWorkspaces');
   });
