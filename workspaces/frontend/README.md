@@ -50,11 +50,7 @@ This is the default setup for running the UI locally. Make sure you build the pr
   npm run start:dev
   ```
 
-The command above requires the backend to be active in order to serve data. To run the UI independently, without establishing a connection to the backend, use the following command to start the application with a mocked API:
-
-  ```bash
-  npm run start:dev:mock
-  ```
+The command above starts the UI with mocked data by default, so you can run the application without requiring a connection to the backend. This behavior can be customized in the `.env.development` file by setting the `MOCK_API_ENABLED` environment variable to `false`.
 
 ### Testing
 

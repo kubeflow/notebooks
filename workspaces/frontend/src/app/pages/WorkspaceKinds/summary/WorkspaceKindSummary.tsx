@@ -8,11 +8,11 @@ import { useTypedLocation, useTypedNavigate, useTypedParams } from '~/app/router
 import WorkspaceTable, { WorkspaceTableRef } from '~/app/components/WorkspaceTable';
 import { useWorkspacesByKind } from '~/app/hooks/useWorkspaces';
 import WorkspaceKindSummaryExpandableCard from '~/app/pages/WorkspaceKinds/summary/WorkspaceKindSummaryExpandableCard';
-import { DEFAULT_POLLING_RATE_MS } from '~/app/const';
 import { LoadingSpinner } from '~/app/components/LoadingSpinner';
 import { LoadError } from '~/app/components/LoadError';
 import { useWorkspaceRowActions } from '~/app/hooks/useWorkspaceRowActions';
 import { usePolling } from '~/app/hooks/usePolling';
+import { POLL_INTERVAL } from '~/shared/utilities/const';
 
 const WorkspaceKindSummary: React.FC = () => {
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
@@ -30,7 +30,7 @@ const WorkspaceKindSummary: React.FC = () => {
       podConfigId,
     });
 
-  usePolling(refreshWorkspaces, DEFAULT_POLLING_RATE_MS);
+  usePolling(refreshWorkspaces, POLL_INTERVAL);
 
   const tableRowActions = useWorkspaceRowActions([{ id: 'viewDetails' }]);
 

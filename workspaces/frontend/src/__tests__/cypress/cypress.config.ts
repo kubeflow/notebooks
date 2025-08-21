@@ -4,12 +4,16 @@ import { defineConfig } from 'cypress';
 import coverage from '@cypress/code-coverage/task';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore no types available
+import webpack from '@cypress/webpack-preprocessor';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore no types available
 import cypressHighResolution from 'cypress-high-resolution';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore no types available
 import { beforeRunHook, afterRunHook } from 'cypress-mochawesome-reporter/lib';
 import { mergeFiles } from 'junit-report-merger';
 import { env, BASE_URL } from '~/__tests__/cypress/cypress/utils/testConfig';
+import webpackConfig from './cypress/webpack.config';
 
 const resultsDir = `${env.CY_RESULTS_DIR || 'results'}/${env.CY_MOCK ? 'mocked' : 'e2e'}`;
 
@@ -41,7 +45,6 @@ export default defineConfig({
   env: {
     MOCK: !!env.CY_MOCK,
     coverage: !!env.CY_COVERAGE,
-    APP_PREFIX: env.APP_PREFIX || '/workspaces',
     codeCoverage: {
       exclude: [path.resolve(__dirname, '../../third_party/**')],
     },
@@ -49,12 +52,20 @@ export default defineConfig({
   },
   defaultCommandTimeout: 10000,
   e2e: {
-    baseUrl: env.CY_MOCK ? BASE_URL || 'http://localhost:9001' : 'http://localhost:9000',
+    baseUrl: BASE_URL,
     specPattern: env.CY_MOCK ? `cypress/tests/mocked/**/*.cy.ts` : `cypress/tests/e2e/**/*.cy.ts`,
     experimentalInteractiveRunEvents: true,
     setupNodeEvents(on, config) {
       cypressHighResolution(on, config);
       coverage(on, config);
+
+      // Configure webpack preprocessor with custom webpack config
+      const options = {
+        webpackOptions: webpackConfig,
+        watchOptions: {},
+      };
+      on('file:preprocessor', webpack(options));
+
       on('task', {
         readJSON(filePath: string) {
           const absPath = path.resolve(__dirname, filePath);

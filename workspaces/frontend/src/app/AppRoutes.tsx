@@ -69,7 +69,10 @@ const AppRoutes: React.FC = () => {
       <Route path={AppRoutePaths.workspaceKinds} element={<WorkspaceKinds />} />
       <Route path={AppRoutePaths.workspaceKindCreate} element={<WorkspaceKindForm />} />
       <Route path={AppRoutePaths.workspaceKindEdit} element={<WorkspaceKindForm />} />
-      <Route path="/" element={<Navigate to={AppRoutePaths.workspaces} replace />} />
+      <Route
+        path={AppRoutePaths.root}
+        element={<Navigate to={AppRoutePaths.workspaces} replace />}
+      />
       <Route path="*" element={<NotFound />} />
       {
         // TODO: Remove the linter skip when we implement authentication

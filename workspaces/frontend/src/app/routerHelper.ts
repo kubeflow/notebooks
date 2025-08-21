@@ -62,7 +62,7 @@ type NavigateOptions<T extends AppRouteKey> = CommonNavigateOptions &
  *   Go to my route
  * </Link>
  */
-export function buildPath<T extends AppRouteKey>(to: T, params: RouteParamsMap[T]): string {
+export function buildPath<T extends AppRouteKey>(to: T, params?: RouteParamsMap[T]): string {
   return generatePath(AppRoutePaths[to], params as RouteParamsMap[T]);
 }
 

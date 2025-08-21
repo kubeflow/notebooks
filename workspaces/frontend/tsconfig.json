@@ -1,14 +1,13 @@
 {
   "compilerOptions": {
-    "baseUrl": "./src",
     "rootDir": ".",
     "outDir": "dist",
     "module": "esnext",
-    "target": "ES6",
-    "lib": ["es6", "dom"],
+    "target": "es2021",
+    "lib": ["es2021", "dom", "ES2023.Array"],
     "sourceMap": true,
     "jsx": "react",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "downlevelIteration": true,
     "forceConsistentCasingInFileNames": true,
     "noImplicitReturns": true,
@@ -18,12 +17,16 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
+    "baseUrl": "./src",
     "paths": {
       "~/*": ["./*"]
     },
     "importHelpers": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "noErrorTruncation": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true
   },
   "include": ["**/*.ts", "**/*.tsx", "**/*.jsx", "**/*.js"],
-  "exclude": ["node_modules", "src/__tests__/cypress"]
+  "exclude": ["node_modules", "dist", "public-cypress", "src/__tests__/cypress"]
 }
