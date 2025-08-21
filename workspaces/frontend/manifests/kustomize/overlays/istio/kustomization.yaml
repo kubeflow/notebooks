@@ -50,15 +50,6 @@ replacements:
       name: workspaces-frontend
       version: v1beta1
   - fieldPaths:
-    - spec.http.1.route.0.destination.host
-    options:
-      delimiter: .
-    select:
-      group: networking.istio.io
-      kind: VirtualService
-      name: workspaces-frontend
-      version: v1beta1
-  - fieldPaths:
     - spec.host
     options:
       delimiter: .
@@ -75,16 +66,6 @@ replacements:
   targets:
   - fieldPaths:
     - spec.http.0.route.0.destination.host
-    options:
-      delimiter: .
-      index: 1
-    select:
-      group: networking.istio.io
-      kind: VirtualService
-      name: workspaces-frontend
-      version: v1beta1
-  - fieldPaths:
-    - spec.http.1.route.0.destination.host
     options:
       delimiter: .
       index: 1
@@ -111,13 +92,6 @@ replacements:
   targets:
   - fieldPaths:
     - spec.http.0.route.0.destination.port.number
-    select:
-      group: networking.istio.io
-      kind: VirtualService
-      name: workspaces-frontend
-      version: v1beta1
-  - fieldPaths:
-    - spec.http.1.route.0.destination.port.number
     select:
       group: networking.istio.io
       kind: VirtualService

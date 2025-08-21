@@ -12,6 +12,8 @@ spec:
       maxUnavailable: 0
       maxSurge: 1
   template:
+    metadata:
+      labels: {}
     spec:
       terminationGracePeriodSeconds: 30
       containers:
