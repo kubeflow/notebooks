@@ -1,5 +1,5 @@
 # Image URL to use all building/pushing image targets
-IMG ?= nbv2-backend:latest
+IMG ?= nb-backend:latest
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.31.0
 
@@ -124,11 +124,13 @@ $(LOCALBIN):
 
 ## Tool Binaries
 KUBECTL ?= kubectl
+KUSTOMIZE := $(LOCALBIN)/kustomize
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 SWAGGER = $(LOCALBIN)/swag
 
 ## Tool Versions
+KUSTOMIZE_VERSION ?= v5.5.0
 ENVTEST_VERSION ?= release-0.19
 GOLANGCI_LINT_VERSION ?= v1.61.0
 SWAGGER_VERSION ?= v1.16.6
@@ -147,6 +149,26 @@ $(ENVTEST): $(LOCALBIN)
 golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
 $(GOLANGCI_LINT): $(LOCALBIN)
 	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/cmd/golangci-lint,$(GOLANGCI_LINT_VERSION))
+
+
+##@ deployment
+
+.PHONY: deploy
+deploy: kustomize ## Deploy backend to the K8s cluster specified in ~/.kube/config.
+	cd manifests/kustomize/overlays/istio && $(KUSTOMIZE) edit set image workspaces-backend=${IMG}
+	$(KUBECTL) apply -k manifests/kustomize/overlays/istio
+
+.PHONY: undeploy
+undeploy: kustomize ## Undeploy backend from the K8s cluster specified in ~/.kube/config.
+	$(KUBECTL) delete -k manifests/kustomize/overlays/istio --ignore-not-found=true
+
+
+##@ Dependencies
+
+.PHONY: kustomize
+kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
+$(KUSTOMIZE): $(LOCALBIN)
+	$(call go-install-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v5,$(KUSTOMIZE_VERSION))
 
 # go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
 # $1 - target path with name of binary
