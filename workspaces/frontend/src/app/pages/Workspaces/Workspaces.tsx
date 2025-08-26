@@ -5,12 +5,12 @@ import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack'
 import WorkspaceTable from '~/app/components/WorkspaceTable';
 import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
 import { useWorkspacesByNamespace } from '~/app/hooks/useWorkspaces';
-import { DEFAULT_POLLING_RATE_MS } from '~/app/const';
 import { LoadingSpinner } from '~/app/components/LoadingSpinner';
 import { LoadError } from '~/app/components/LoadError';
 import { useWorkspaceRowActions } from '~/app/hooks/useWorkspaceRowActions';
 import { usePolling } from '~/app/hooks/usePolling';
 import { WorkspacesWorkspaceState } from '~/generated/data-contracts';
+import { POLL_INTERVAL } from '~/shared/utilities/const';
 
 export const Workspaces: React.FunctionComponent = () => {
   const { selectedNamespace } = useNamespaceContext();
@@ -18,7 +18,7 @@ export const Workspaces: React.FunctionComponent = () => {
   const [workspaces, workspacesLoaded, workspacesLoadError, refreshWorkspaces] =
     useWorkspacesByNamespace(selectedNamespace);
 
-  usePolling(refreshWorkspaces, DEFAULT_POLLING_RATE_MS);
+  usePolling(refreshWorkspaces, POLL_INTERVAL);
 
   const tableRowActions = useWorkspaceRowActions([
     { id: 'viewDetails' },

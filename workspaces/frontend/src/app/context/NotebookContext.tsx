@@ -1,6 +1,6 @@
 import React, { ReactNode, useMemo } from 'react';
-import { APP_PREFIX, BFF_API_VERSION } from '~/app/const';
 import EnsureAPIAvailability from '~/app/EnsureAPIAvailability';
+import { BFF_API_PREFIX, BFF_API_VERSION } from '~/shared/utilities/const';
 import useNotebookAPIState, { NotebookAPIState } from './useNotebookAPIState';
 
 export type NotebookContextType = {
@@ -19,8 +19,8 @@ interface NotebookContextProviderProps {
 }
 
 export const NotebookContextProvider: React.FC<NotebookContextProviderProps> = ({ children }) => {
-  // Remove trailing slash from APP_PREFIX to avoid double slashes
-  const cleanPrefix = APP_PREFIX.replace(/\/$/, '');
+  // Remove trailing slash from BFF_API_PREFIX to avoid double slashes
+  const cleanPrefix = BFF_API_PREFIX.replace(/\/$/, '');
   const hostPath = `${cleanPrefix}/api/${BFF_API_VERSION}`;
 
   const [apiState, refreshAPIState] = useNotebookAPIState(hostPath);

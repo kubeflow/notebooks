@@ -504,12 +504,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                   })}
                   {canCreateWorkspaces && (
                     <ToolbarItem>
-                      <Button
-                        size="lg"
-                        variant="primary"
-                        ouiaId="Primary"
-                        onClick={createWorkspace}
-                      >
+                      <Button variant="primary" ouiaId="Primary" onClick={createWorkspace}>
                         Create workspace
                       </Button>
                     </ToolbarItem>

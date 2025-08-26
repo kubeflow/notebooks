@@ -6,3 +6,5 @@ millicores
 workspacekind
 workspacekinds
 healthcheck
+pficon
+svgs
