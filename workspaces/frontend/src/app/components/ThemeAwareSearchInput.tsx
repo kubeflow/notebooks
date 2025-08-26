@@ -4,8 +4,8 @@ import {
   SearchInputProps,
 } from '@patternfly/react-core/dist/esm/components/SearchInput';
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
-import FormFieldset from 'app/components/FormFieldset';
-import { isMUITheme } from 'app/const';
+import FormFieldset from '~/app/components/FormFieldset';
+import { isMUITheme } from '~/shared/utilities/const';
 
 type ThemeAwareSearchInputProps = Omit<SearchInputProps, 'onChange' | 'onClear'> & {
   onChange: (value: string) => void; // Simplified onChange signature

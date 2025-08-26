@@ -1,60 +1,141 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
-
+const { execSync } = require('child_process');
 const path = require('path');
-const { EnvironmentPlugin } = require('webpack');
 const { merge } = require('webpack-merge');
-const common = require('./webpack.common.js');
-const { stylePaths } = require('./stylePaths');
-const HOST = process.env.HOST || 'localhost';
-const PORT = process.env.PORT || '9000';
-const PROXY_HOST = process.env.PROXY_HOST || 'localhost';
-const PROXY_PORT = process.env.PROXY_PORT || '4000';
-const PROXY_PROTOCOL = process.env.PROXY_PROTOCOL || 'http:';
-const MOCK_API_ENABLED = process.env.MOCK_API_ENABLED || 'false';
-const relativeDir = path.resolve(__dirname, '..');
-const APP_PREFIX = process.env.APP_PREFIX || '/workspaces';
+const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dotenv');
+const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
+const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
+const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
 
-module.exports = merge(common('development'), {
-  mode: 'development',
-  devtool: 'eval-source-map',
-  devServer: {
-    host: HOST,
-    port: PORT,
-    historyApiFallback: {
-      index: APP_PREFIX + '/index.html',
+const smp = new SpeedMeasurePlugin({ disable: !process.env.MEASURE });
+
+setupDotenvFilesForEnv({ env: 'development' });
+const webpackCommon = require('./webpack.common.js');
+
+const RELATIVE_DIRNAME = process.env._RELATIVE_DIRNAME;
+const IS_PROJECT_ROOT_DIR = process.env._IS_PROJECT_ROOT_DIR;
+const SRC_DIR = process.env._SRC_DIR;
+const COMMON_DIR = process.env._COMMON_DIR;
+const PUBLIC_PATH = process.env._PUBLIC_PATH;
+const DIST_DIR = process.env._DIST_DIR;
+const HOST = process.env._HOST;
+const PORT = process.env._PORT;
+const PROXY_PROTOCOL = process.env._PROXY_PROTOCOL;
+const PROXY_HOST = process.env._PROXY_HOST;
+const PROXY_PORT = process.env._PROXY_PORT;
+const DEPLOYMENT_MODE = process.env._DEPLOYMENT_MODE;
+const AUTH_METHOD = process.env._AUTH_METHOD;
+const BASE_PATH = DEPLOYMENT_MODE === 'kubeflow' ? '/workspaces' : PUBLIC_PATH;
+
+// Function to generate headers based on deployment mode
+const getProxyHeaders = () => {
+  if (AUTH_METHOD === 'internal') {
+    return {
+      'kubeflow-userid': 'user@example.com',
+    };
+  }
+  if (AUTH_METHOD === 'user_token') {
+    try {
+      const token = execSync(
+        "kubectl config view --raw --minify --flatten -o jsonpath='{.users[].user.token}'",
+      )
+        .toString()
+        .trim();
+      const username = execSync("kubectl auth whoami -o jsonpath='{.status.userInfo.username}'")
+        .toString()
+        .trim();
+      // eslint-disable-next-line no-console
+      console.info('Logged in as user:', username);
+      return {
+        Authorization: `Bearer ${token}`,
+        'x-forwarded-access-token': token,
+      };
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to get Kubernetes token:', error.message);
+      return {};
+    }
+  }
+  return {};
+};
+
+module.exports = smp.wrap(
+  merge(
+    {
+      plugins: [
+        ...setupWebpackDotenvFilesForEnv({
+          directory: RELATIVE_DIRNAME,
+          env: 'development',
+          isRoot: IS_PROJECT_ROOT_DIR,
+        }),
+      ],
     },
-    open: [APP_PREFIX],
-    static: {
-      directory: path.resolve(relativeDir, 'dist'),
-      publicPath: APP_PREFIX,
-    },
-    client: {
-      overlay: true,
-    },
-    proxy: [
-      {
-        context: ['/api'],
-        target: {
-          host: PROXY_HOST,
-          protocol: PROXY_PROTOCOL,
-          port: PROXY_PORT,
+    webpackCommon('development'),
+    {
+      mode: 'development',
+      devtool: 'eval-source-map',
+      optimization: {
+        runtimeChunk: 'single',
+        removeEmptyChunks: true,
+      },
+      devServer: {
+        host: HOST,
+        port: PORT,
+        compress: true,
+        historyApiFallback: {
+          index: `${BASE_PATH}/index.html`,
         },
-        changeOrigin: true,
+        hot: true,
+        open: [BASE_PATH],
+        proxy: [
+          {
+            context: ['/api', '/workspaces/api'],
+            target: {
+              host: PROXY_HOST,
+              protocol: PROXY_PROTOCOL,
+              port: PROXY_PORT,
+            },
+            changeOrigin: true,
+            headers: getProxyHeaders(),
+          },
+        ],
+        devMiddleware: {
+          stats: 'errors-only',
+        },
+        client: {
+          overlay: false,
+        },
+        static: {
+          directory: DIST_DIR,
+          publicPath: BASE_PATH,
+        },
+        onListening: (devServer) => {
+          if (devServer) {
+            // eslint-disable-next-line no-console
+            console.log(
+              `\x1b[32m✓ Dashboard available at: \x1b[4mhttp://localhost:${
+                devServer.server.address().port
+              }\x1b[0m`,
+            );
+          }
+        },
       },
-    ],
-  },
-  module: {
-    rules: [
-      {
-        test: /\.css$/,
-        include: [...stylePaths],
-        use: ['style-loader', 'css-loader'],
+      module: {
+        rules: [
+          {
+            test: /\.css$/,
+            include: [
+              SRC_DIR,
+              COMMON_DIR,
+              path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly'),
+            ],
+            use: ['style-loader', 'css-loader'],
+          },
+        ],
       },
-    ],
-  },
-  plugins: [
-    new EnvironmentPlugin({
-      WEBPACK_REPLACE__mockApiEnabled: MOCK_API_ENABLED,
-    }),
-  ],
-});
+      plugins: [
+        new ForkTsCheckerWebpackPlugin(),
+        new ReactRefreshWebpackPlugin({ overlay: false }),
+      ],
+    },
+  ),
+);
