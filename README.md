@@ -10,6 +10,8 @@
 > We are currently developing _Kubeflow Notebooks 2.0_ in this repository under the [`notebooks-v2`](https://github.com/kubeflow/notebooks/tree/notebooks-v2) branch.
 > Please see [`kubeflow/notebooks#85`](https://github.com/kubeflow/notebooks/issues/85) for more information.
 
+TEST PR FOR FOSSA
+
 ## What is Kubeflow Notebooks?
 
 Key features of Kubeflow Notebooks:
