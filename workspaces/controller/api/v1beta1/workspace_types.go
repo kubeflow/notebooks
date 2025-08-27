@@ -98,6 +98,14 @@ type WorkspacePodVolumes struct {
 	// +listType:="map"
 	// +listMapKey:="mountPath"
 	Data []PodVolumeMount `json:"data,omitempty"`
+
+	// secrets to mount
+	//  - these secrets must already exist in the Namespace
+	//  - secrets are mounted as folders with the secret keys as files
+	// +kubebuilder:validation:Optional
+	// +listType:="map"
+	// +listMapKey:="mountPath"
+	Secrets []PodSecretMount `json:"secrets,omitempty"`
 }
 
 type PodVolumeMount struct {
@@ -119,6 +127,33 @@ type PodVolumeMount struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=false
 	ReadOnly *bool `json:"readOnly,omitempty"`
+}
+
+type PodSecretMount struct {
+	// the name of the Secret to mount
+	// +kubebuilder:validation:MinLength:=2
+	// +kubebuilder:validation:MaxLength:=63
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+	// +kubebuilder:example="my-secret"
+	SecretName string `json:"secretName"`
+
+	// the mount path for the Secret
+	// +kubebuilder:validation:MinLength:=2
+	// +kubebuilder:validation:MaxLength:=4096
+	// +kubebuilder:validation:Pattern:=^/[^/].*$
+	// +kubebuilder:example="/secrets/my-secret"
+	MountPath string `json:"mountPath"`
+
+	// default mode bits used to set permissions on files in the Secret
+	//  - must be a decimal value between 0 and 511, or an octal value between 0000 and 0777
+	//  - for example, 420 is equivalent to 0644, and 511 is equivalent to 0777
+	//  - YAML accepts both octal and decimal values, JSON requires decimal
+	//  - Defaults to 420 (octal: 0644) if not specified.
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Minimum:=0
+	// +kubebuilder:validation:Maximum:=511
+	// +kubebuilder:default=420
+	DefaultMode int32 `json:"defaultMode,omitempty"`
 }
 
 type WorkspacePodOptions struct {
