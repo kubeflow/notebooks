@@ -19,6 +19,7 @@ package helper
 import (
 	"reflect"
 
+	istiov1 "istio.io/client-go/pkg/apis/networking/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -112,6 +113,44 @@ func CopyServiceFields(desired *corev1.Service, target *corev1.Service) bool {
 	// copy `spec.type`
 	if target.Spec.Type != desired.Spec.Type {
 		target.Spec.Type = desired.Spec.Type
+		requireUpdate = true
+	}
+
+	return requireUpdate
+}
+
+// CopyVirtualServiceFields updates a target VirtualService with the fields from a desired VirtualService, returning true if an update is required.
+func CopyVirtualServiceFields(desired *istiov1.VirtualService, target *istiov1.VirtualService) bool {
+	requireUpdate := false
+
+	// Using the Spec definition https://pkg.go.dev/istio.io/api/networking/v1alpha3alpha3#VirtualService
+	if !reflect.DeepEqual(target.Spec.Gateways, desired.Spec.Gateways) {
+		target.Spec.Gateways = desired.Spec.Gateways
+		requireUpdate = true
+	}
+
+	if !reflect.DeepEqual(target.Spec.Hosts, desired.Spec.Hosts) {
+		target.Spec.Hosts = desired.Spec.Hosts
+		requireUpdate = true
+	}
+
+	if !reflect.DeepEqual(target.Spec.Http, desired.Spec.Http) {
+		target.Spec.Http = desired.Spec.Http
+		requireUpdate = true
+	}
+
+	if !reflect.DeepEqual(target.Spec.Tls, desired.Spec.Tls) {
+		target.Spec.Tls = desired.Spec.Tls
+		requireUpdate = true
+	}
+
+	if !reflect.DeepEqual(target.Spec.Tcp, desired.Spec.Tcp) {
+		target.Spec.Tcp = desired.Spec.Tcp
+		requireUpdate = true
+	}
+
+	if !reflect.DeepEqual(target.Spec.ExportTo, desired.Spec.ExportTo) {
+		target.Spec.ExportTo = desired.Spec.ExportTo
 		requireUpdate = true
 	}
 

@@ -64,6 +64,22 @@ spec:
           - --leader-elect
           - --health-probe-bind-address=:8081
           - --metrics-bind-address=0
+        env:
+          - name: USE_ISTIO
+            valueFrom:
+              configMapKeyRef:
+                name: config
+                key: USE_ISTIO
+          - name: ISTIO_GATEWAY
+            valueFrom:
+              configMapKeyRef:
+                name: config
+                key: ISTIO_GATEWAY
+          - name: ISTIO_HOST
+            valueFrom:
+              configMapKeyRef:
+                name: config
+                key: ISTIO_HOST
         image: controller:latest
         imagePullPolicy: IfNotPresent
         name: manager
