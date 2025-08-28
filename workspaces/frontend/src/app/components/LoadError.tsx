@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { Alert } from '@patternfly/react-core/dist/esm/components/Alert';
 import { Bullseye } from '@patternfly/react-core/dist/esm/layouts/Bullseye';
 

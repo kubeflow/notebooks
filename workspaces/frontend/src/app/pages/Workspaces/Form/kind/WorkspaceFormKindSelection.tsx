@@ -3,6 +3,8 @@ import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import { WorkspaceFormKindList } from '~/app/pages/Workspaces/Form/kind/WorkspaceFormKindList';
 import { WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
+import { LoadingSpinner } from '~/app/components/LoadingSpinner';
+import { LoadError } from '~/app/components/LoadError';
 
 interface WorkspaceFormKindSelectionProps {
   selectedKind: WorkspacekindsWorkspaceKind | undefined;
@@ -16,11 +18,11 @@ const WorkspaceFormKindSelection: React.FunctionComponent<WorkspaceFormKindSelec
   const [workspaceKinds, loaded, error] = useWorkspaceKinds();
 
   if (error) {
-    return <p>Error loading workspace kinds: {error.message}</p>; // TODO: UX for error state
+    return <LoadError error={error} />;
   }
 
   if (!loaded) {
-    return <p>Loading...</p>; // TODO: UX for loading state
+    return <LoadingSpinner />;
   }
 
   return (

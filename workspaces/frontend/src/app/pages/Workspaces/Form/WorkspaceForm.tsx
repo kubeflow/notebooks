@@ -19,6 +19,7 @@ import {
   DrawerPanelContent,
 } from '@patternfly/react-core/dist/esm/components/Drawer';
 import { Title } from '@patternfly/react-core/dist/esm/components/Title';
+import { useNotification } from 'mod-arch-core';
 import useGenericObjectState from '~/app/hooks/useGenericObjectState';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspaceFormImageSelection } from '~/app/pages/Workspaces/Form/image/WorkspaceFormImageSelection';
@@ -38,6 +39,8 @@ import { useWorkspaceFormLocationData } from '~/app/hooks/useWorkspaceFormLocati
 import { WorkspaceFormKindDetails } from '~/app/pages/Workspaces/Form/kind/WorkspaceFormKindDetails';
 import { WorkspaceFormImageDetails } from '~/app/pages/Workspaces/Form/image/WorkspaceFormImageDetails';
 import { WorkspaceFormPodConfigDetails } from '~/app/pages/Workspaces/Form/podConfig/WorkspaceFormPodConfigDetails';
+import { LoadingSpinner } from '~/app/components/LoadingSpinner';
+import { LoadError } from '~/app/components/LoadError';
 
 enum WorkspaceFormSteps {
   KindSelection,
@@ -58,6 +61,7 @@ const stepDescriptions: { [key in WorkspaceFormSteps]?: string } = {
 
 const WorkspaceForm: React.FC = () => {
   const navigate = useTypedNavigate();
+  const notification = useNotification();
   const { api } = useNotebookAPI();
 
   const { mode, namespace, workspaceName } = useWorkspaceFormLocationData();
@@ -182,8 +186,7 @@ const WorkspaceForm: React.FC = () => {
         const workspaceEnvelope = await api.workspaces.createWorkspace(namespace, {
           data: submitData,
         });
-        // TODO: alert user about success
-        console.info('New workspace created:', JSON.stringify(workspaceEnvelope.data));
+        notification.success(`Workspace '${workspaceEnvelope.data.name}' created successfully`);
       }
 
       navigate('workspaces');
@@ -193,7 +196,7 @@ const WorkspaceForm: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [data, mode, navigate, api, namespace]);
+  }, [data, mode, navigate, api, namespace, notification]);
 
   const cancel = useCallback(() => {
     navigate('workspaces');
@@ -257,11 +260,11 @@ const WorkspaceForm: React.FC = () => {
   };
 
   if (initialFormDataError) {
-    return <p>Error loading workspace data: {initialFormDataError.message}</p>; // TODO: UX for error state
+    return <LoadError error={initialFormDataError} />;
   }
 
   if (!initialFormDataLoaded) {
-    return <p>Loading...</p>; // TODO: UX for loading state
+    return <LoadingSpinner />;
   }
 
   const panelContent = (

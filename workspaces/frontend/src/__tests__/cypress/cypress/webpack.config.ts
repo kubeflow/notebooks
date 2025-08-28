@@ -37,6 +37,7 @@ const webpackConfig = {
           ),
           path.resolve(__dirname, '../../../node_modules/@patternfly/patternfly/assets/fonts'),
           path.resolve(__dirname, '../../../node_modules/@patternfly/patternfly/assets/pficon'),
+          path.resolve(__dirname, '../../../node_modules/mod-arch-shared'),
         ],
         use: {
           loader: 'file-loader',
@@ -63,9 +64,9 @@ const webpackConfig = {
       },
       {
         test: /\.svg$/,
-        // Handle SVG files
+        // Handle SVG files from mod-arch-shared and other sources
         include: (input: string): boolean =>
-          input.indexOf('images') > -1 &&
+          (input.indexOf('mod-arch-shared') > -1 || input.indexOf('images') > -1) &&
           input.indexOf('fonts') === -1 &&
           input.indexOf('background-filter') === -1 &&
           input.indexOf('pficon') === -1,
@@ -88,6 +89,7 @@ const webpackConfig = {
             __dirname,
             '../../../node_modules/@patternfly/react-core/dist/styles/assets/images',
           ),
+          path.resolve(__dirname, '../../../node_modules/mod-arch-shared'),
         ],
         use: [
           {

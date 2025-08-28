@@ -1,8 +1,5 @@
+import { FetchState, FetchStateCallbackPromise, useFetchState } from 'mod-arch-core';
 import { useCallback } from 'react';
-import useFetchState, {
-  FetchState,
-  FetchStateCallbackPromise,
-} from '~/shared/utilities/useFetchState';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { ApiWorkspaceListEnvelope } from '~/generated/data-contracts';
 
