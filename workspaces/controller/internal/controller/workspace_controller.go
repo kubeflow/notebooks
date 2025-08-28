@@ -650,7 +650,7 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 		seenPorts[port.Port] = true
 
 		// NOTE: we construct this map for use in the go string templates
-		containerPortsIdMap[port.Id] = port
+		containerPortsIdMap[string(port.Id)] = port
 	}
 
 	// generate container env

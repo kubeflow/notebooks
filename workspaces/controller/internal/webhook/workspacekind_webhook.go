@@ -78,6 +78,9 @@ func (v *WorkspaceKindValidator) ValidateCreate(ctx context.Context, obj runtime
 	// validate the extra environment variables
 	allErrs = append(allErrs, validateExtraEnv(workspaceKind)...)
 
+	// validate the ports configuration
+	allErrs = append(allErrs, validatePorts(workspaceKind)...)
+
 	// generate helper maps for imageConfig values
 	imageConfigIdMap := make(map[string]kubefloworgv1beta1.ImageConfigValue)
 	imageConfigRedirectMap := make(map[string]string)
@@ -154,6 +157,11 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 	// validate the extra environment variables
 	if !equality.Semantic.DeepEqual(newWorkspaceKind.Spec.PodTemplate.ExtraEnv, oldWorkspaceKind.Spec.PodTemplate.ExtraEnv) {
 		allErrs = append(allErrs, validateExtraEnv(newWorkspaceKind)...)
+	}
+
+	// validate the ports configuration
+	if !equality.Semantic.DeepEqual(newWorkspaceKind.Spec.PodTemplate.Ports, oldWorkspaceKind.Spec.PodTemplate.Ports) {
+		allErrs = append(allErrs, validatePorts(newWorkspaceKind)...)
 	}
 
 	// calculate changes to imageConfig values
@@ -516,6 +524,61 @@ func (v *WorkspaceKindValidator) validatePodTemplatePodMetadata(workspaceKind *k
 	return errs
 }
 
+// validatePorts validates the ports in podTemplate.ports of WorkspaceKind
+func validatePorts(workspaceKind *kubefloworgv1beta1.WorkspaceKind) []*field.Error {
+	var errs []*field.Error
+
+	ports := workspaceKind.Spec.PodTemplate.Ports
+	portsPath := field.NewPath("spec", "podTemplate", "ports")
+
+	// if no ports are defined, we can skip validation
+	if len(ports) == 0 {
+		return errs
+	}
+
+	// collect all referenced port IDs from imageConfig values
+	referencedPortIds := make(map[string]bool)
+	for _, imageConfigValue := range workspaceKind.Spec.PodTemplate.Options.ImageConfig.Values {
+		for _, imagePort := range imageConfigValue.Spec.Ports {
+			referencedPortIds[string(imagePort.Id)] = true
+		}
+	}
+
+	// track seen port IDs to ensure uniqueness
+	seenPortIds := make(map[string]bool)
+
+	// validate each port in the ports array
+	for i, port := range ports {
+		portId := port.PortId
+		portPath := portsPath.Index(i)
+		portIdPath := portPath.Child("portId")
+
+		// validate that portId is not empty (should be caught by CRD validation, but be safe)
+		if portId == "" {
+			errs = append(errs, field.Required(portIdPath, "portId is required"))
+			continue
+		}
+
+		// validate that each port has a unique portId
+		if seenPortIds[string(portId)] {
+			errs = append(errs, field.Duplicate(portIdPath, portId))
+		} else {
+			seenPortIds[string(portId)] = true
+		}
+
+		// validate that the portId references a valid port from imageConfig
+		if !referencedPortIds[string(portId)] {
+			errs = append(errs, field.Invalid(portIdPath, portId,
+				fmt.Sprintf("portId %q does not match any port defined in imageConfig values", portId)))
+		}
+
+		// httpProxy is optional, so no validation needed for nil
+		// The structure validation is handled by the CRD schema
+	}
+
+	return errs
+}
+
 // validateExtraEnv validates the extra environment variables in a WorkspaceKind
 func validateExtraEnv(workspaceKind *kubefloworgv1beta1.WorkspaceKind) []*field.Error {
 	var errs []*field.Error
@@ -575,7 +638,7 @@ func validateImageConfigValue(imageConfigValue *kubefloworgv1beta1.ImageConfigVa
 	// validate the ports
 	seenPorts := make(map[int32]bool)
 	for _, port := range imageConfigValue.Spec.Ports {
-		portId := port.Id
+		portId := string(port.Id)
 		portNumber := port.Port
 		if _, exists := seenPorts[portNumber]; exists {
 			portPath := imageConfigValuePath.Child("spec", "ports").Key(portId).Child("port")
