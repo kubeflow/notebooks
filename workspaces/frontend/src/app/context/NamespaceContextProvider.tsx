@@ -1,9 +1,19 @@
-import React, { ReactNode, useCallback, useContext, useMemo, useState } from 'react';
-import useMount from '~/app/hooks/useMount';
+import React, {
+  ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import useNamespaces from '~/app/hooks/useNamespaces';
+import { DEPLOYMENT_MODE } from '~/shared/utilities/const';
+import { DeploymentMode } from '~/shared/utilities/types';
 import { useStorage } from './BrowserStorageContext';
 
 const storageKey = 'kubeflow.notebooks.namespace.lastUsed';
+const isStandalone = DEPLOYMENT_MODE === DeploymentMode.Standalone;
 
 interface NamespaceContextType {
   namespaces: string[];
@@ -32,6 +42,58 @@ export const NamespaceContextProvider: React.FC<NamespaceContextProviderProps> =
   const [selectedNamespace, setSelectedNamespace] = useState<string>('');
   const [namespacesData, loaded, loadError] = useNamespaces();
   const [lastUsedNamespace, setLastUsedNamespace] = useStorage<string>(storageKey, '');
+  const [scriptLoaded, setScriptLoaded] = useState(false);
+
+  // Track when central dashboard is updating to prevent conflicts with cross-tab sync
+  const centralDashboardUpdateRef = useRef(false);
+
+  useEffect(() => {
+    if (isStandalone) {
+      return;
+    }
+    const scriptUrl = '/dashboard_lib.bundle.js';
+    fetch(scriptUrl, { method: 'HEAD' })
+      .then((response) => {
+        if (response.ok) {
+          const script = document.createElement('script');
+          script.src = scriptUrl;
+          script.async = true;
+          script.onload = () => {
+            setScriptLoaded(true);
+          };
+          script.onerror = () => {
+            console.error('Failed to load the script');
+          };
+          document.head.appendChild(script);
+        } else {
+          console.warn('Script not found');
+        }
+      })
+      .catch((err) => {
+        console.error('Error loading script', err);
+      });
+  }, []);
+
+  useEffect(() => {
+    if (scriptLoaded) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @cspell/spellchecker
+      (window as any).centraldashboard.CentralDashboardEventHandler.init((cdeh: any) => {
+        // Namespace selection https://github.com/kubeflow/kubeflow/blob/master/components/centraldashboard/README.md
+        // eslint-disable-next-line no-param-reassign, @cspell/spellchecker
+        cdeh.onNamespaceSelected = (namespace: string) => {
+          centralDashboardUpdateRef.current = true;
+          setSelectedNamespace(namespace);
+          // Always update lastUsedNamespace to enable cross-tab synchronization
+          setLastUsedNamespace(storageKey, namespace);
+          console.info('Central Dashboard Namespace Selected: ', namespace);
+          // Reset flag after update
+          setTimeout(() => {
+            centralDashboardUpdateRef.current = false;
+          }, 100);
+        };
+      });
+    }
+  }, [scriptLoaded, setLastUsedNamespace]);
 
   const fetchNamespaces = useCallback(() => {
     if (loaded && namespacesData) {
@@ -55,7 +117,23 @@ export const NamespaceContextProvider: React.FC<NamespaceContextProviderProps> =
     [setLastUsedNamespace],
   );
 
-  useMount(fetchNamespaces);
+  // Listen for changes in lastUsedNamespace from other tabs and update selectedNamespace
+  useEffect(() => {
+    if (
+      !isStandalone &&
+      lastUsedNamespace &&
+      lastUsedNamespace !== selectedNamespace &&
+      !centralDashboardUpdateRef.current
+    ) {
+      setSelectedNamespace(lastUsedNamespace);
+    }
+  }, [lastUsedNamespace, selectedNamespace]);
+
+  useEffect(() => {
+    if (isStandalone && loaded && namespacesData) {
+      fetchNamespaces();
+    }
+  }, [loaded, namespacesData, fetchNamespaces]);
 
   const namespacesContextValues = useMemo(
     () => ({
