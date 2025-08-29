@@ -1,0 +1,4 @@
+/* TODO: Temp fix for the MUI theme which breaks the page background color */
+.mui-theme .pf-v6-c-page {
+  background: unset !important;
+}

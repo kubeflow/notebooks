@@ -7,6 +7,7 @@ import {
   ModalHeader,
 } from '@patternfly/react-core/dist/esm/components/Modal';
 import { TabTitleText } from '@patternfly/react-core/dist/esm/components/Tabs';
+import { useNotification } from 'mod-arch-core';
 import { WorkspaceRedirectInformationView } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRedirectInformationView';
 import { ActionButton } from '~/shared/components/ActionButton';
 import { ApiWorkspaceActionPauseEnvelope, WorkspacesWorkspace } from '~/generated/data-contracts';
@@ -30,6 +31,7 @@ export const WorkspaceStartActionModal: React.FC<StartActionAlertProps> = ({
   onUpdateAndStart,
   onActionDone,
 }) => {
+  const notification = useNotification();
   const [actionOnGoing, setActionOnGoing] = useState<StartAction | null>(null);
 
   const executeAction = useCallback(
@@ -52,33 +54,31 @@ export const WorkspaceStartActionModal: React.FC<StartActionAlertProps> = ({
 
   const handleStart = useCallback(async () => {
     try {
-      const response = await executeAction({ action: 'start', callback: onStart });
-      // TODO: alert user about success
-      console.info('Workspace started successfully:', JSON.stringify(response.data));
+      await executeAction({ action: 'start', callback: onStart });
+      notification.info(`Workspace '${workspace?.name}' started successfully`);
       onActionDone?.();
       onClose();
     } catch (error) {
       // TODO: alert user about error
       console.error('Error starting workspace:', error);
     }
-  }, [executeAction, onActionDone, onClose, onStart]);
+  }, [executeAction, onActionDone, onClose, onStart, notification, workspace]);
 
   // TODO: combine handleStart and handleUpdateAndStart if they end up being similar
   const handleUpdateAndStart = useCallback(async () => {
     try {
-      const response = await executeAction({
+      await executeAction({
         action: 'updateAndStart',
         callback: onUpdateAndStart,
       });
-      // TODO: alert user about success
-      console.info('Workspace updated and started successfully:', JSON.stringify(response));
+      notification.info(`Workspace '${workspace?.name}' updated and started successfully`);
       onActionDone?.();
       onClose();
     } catch (error) {
       // TODO: alert user about error
       console.error('Error updating and stopping workspace:', error);
     }
-  }, [executeAction, onActionDone, onClose, onUpdateAndStart]);
+  }, [executeAction, onActionDone, onClose, onUpdateAndStart, notification, workspace]);
 
   const shouldShowActionButton = useCallback(
     (action: StartAction) => !actionOnGoing || actionOnGoing === action,

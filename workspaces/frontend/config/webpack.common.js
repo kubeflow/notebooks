@@ -4,6 +4,8 @@ const CopyPlugin = require('copy-webpack-plugin');
 const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
 const { name } = require('../package.json');
 
+const { moduleFederationPlugins } = require('./moduleFederation');
+
 const RELATIVE_DIRNAME = process.env._RELATIVE_DIRNAME;
 const IS_PROJECT_ROOT_DIR = process.env._IS_PROJECT_ROOT_DIR;
 const IMAGES_DIRNAME = process.env._IMAGES_DIRNAME;
@@ -180,6 +182,7 @@ module.exports = (env) => ({
     uniqueName: name,
   },
   plugins: [
+    ...moduleFederationPlugins,
     ...setupWebpackDotenvFilesForEnv({
       directory: RELATIVE_DIRNAME,
       isRoot: IS_PROJECT_ROOT_DIR,

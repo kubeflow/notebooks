@@ -4,6 +4,7 @@ import {
   DrawerContent,
   DrawerContentBody,
 } from '@patternfly/react-core/dist/esm/components/Drawer';
+import { useNotification } from 'mod-arch-core';
 import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspaceDetails } from '~/app/pages/Workspaces/Details/WorkspaceDetails';
@@ -62,6 +63,7 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
   children,
 }) => {
   const navigate = useTypedNavigate();
+  const notification = useNotification();
   const { api } = useNotebookAPI();
   const { selectedNamespace } = useNamespaceContext();
   const [activeWsAction, setActiveWsAction] = useState<WorkspaceAction | null>(null);
@@ -115,14 +117,13 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
 
     try {
       await api.workspaces.deleteWorkspace(selectedNamespace, activeWsAction.workspace.name);
-      // TODO: alert user about success
-      console.info(`Workspace '${activeWsAction.workspace.name}' deleted successfully`);
+      notification.info(`Workspace '${activeWsAction.workspace.name}' deleted successfully`);
       activeWsAction.onActionDone?.();
     } catch (err) {
       // TODO: alert user about error
       console.error(`Error deleting workspace '${activeWsAction.workspace.name}': ${err}`);
     }
-  }, [api, selectedNamespace, activeWsAction]);
+  }, [api, selectedNamespace, activeWsAction, notification]);
 
   useEffect(() => {
     if (!activeWsAction) {

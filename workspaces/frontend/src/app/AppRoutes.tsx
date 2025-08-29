@@ -3,12 +3,12 @@ import { Route, Routes, Navigate } from 'react-router-dom';
 import { AppRoutePaths } from '~/app/routes';
 import { WorkspaceKindSummaryWrapper } from '~/app/pages/WorkspaceKinds/summary/WorkspaceKindSummaryWrapper';
 import { WorkspaceForm } from '~/app/pages/Workspaces/Form/WorkspaceForm';
+import { useAppContext } from '~/app/context/AppContext';
 import { Debug } from './pages/Debug/Debug';
 import { NotFound } from './pages/notFound/NotFound';
 import { WorkspaceKinds } from './pages/WorkspaceKinds/WorkspaceKinds';
 import { WorkspacesWrapper } from './pages/Workspaces/WorkspacesWrapper';
 import { WorkspaceKindForm } from './pages/WorkspaceKinds/Form/WorkspaceKindForm';
-import '~/shared/style/MUI-theme.scss';
 
 export const isNavDataGroup = (navItem: NavDataItem): navItem is NavDataGroup =>
   'children' in navItem;
@@ -28,12 +28,9 @@ export type NavDataGroup = NavDataCommon & {
 type NavDataItem = NavDataHref | NavDataGroup;
 
 export const useAdminDebugSettings = (): NavDataItem[] => {
-  // get auth access for example set admin as true
-  const isAdmin = true; //this should be a call to getting auth / role access
+  const { user } = useAppContext();
 
-  // TODO: Remove the linter skip when we implement authentication
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (!isAdmin) {
+  if (!user?.clusterAdmin) {
     return [];
   }
 
@@ -58,7 +55,7 @@ export const useNavData = (): NavDataItem[] => [
 ];
 
 const AppRoutes: React.FC = () => {
-  const isAdmin = true;
+  const { user } = useAppContext();
 
   return (
     <Routes>
@@ -74,11 +71,7 @@ const AppRoutes: React.FC = () => {
         element={<Navigate to={AppRoutePaths.workspaces} replace />}
       />
       <Route path="*" element={<NotFound />} />
-      {
-        // TODO: Remove the linter skip when we implement authentication
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        isAdmin && <Route path="/notebookDebugSettings/*" element={<Debug />} />
-      }
+      {user?.clusterAdmin && <Route path="/notebookDebugSettings/*" element={<Debug />} />}
     </Routes>
   );
 };

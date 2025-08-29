@@ -8,9 +8,10 @@ import {
   NavList,
 } from '@patternfly/react-core/dist/esm/components/Nav';
 import { PageSidebar, PageSidebarBody } from '@patternfly/react-core/dist/esm/components/Page';
+import { useThemeContext, images as kubeflowImages } from 'mod-arch-kubeflow';
+import { isNavDataGroup, NavDataHref, NavDataGroup } from '~/app/standalone/types';
 import { useTypedLocation } from '~/app/routerHelper';
-import { isMUITheme, LOGO_LIGHT, URL_PREFIX } from '~/shared/utilities/const';
-import { useNavData, isNavDataGroup, NavDataHref, NavDataGroup } from './AppRoutes';
+import { useNavData } from '~/app/AppRoutes';
 
 const NavHref: React.FC<{ item: NavDataHref }> = ({ item }) => {
   const location = useTypedLocation();
@@ -51,23 +52,21 @@ const NavGroup: React.FC<{ item: NavDataGroup }> = ({ item }) => {
 
 const NavSidebar: React.FC = () => {
   const navData = useNavData();
-
+  const { isMUITheme } = useThemeContext();
   return (
     <PageSidebar>
       <PageSidebarBody>
         <Nav id="nav-primary-simple">
           <NavList id="nav-list-simple">
-            {isMUITheme() ? (
+            {isMUITheme ? (
               <NavItem>
                 <Brand
                   className="kubeflow_brand"
-                  src={`${window.location.origin}${URL_PREFIX}/images/${LOGO_LIGHT}`}
+                  src={kubeflowImages.logoKubeflowLight}
                   alt="Kubeflow Logo"
                 />
               </NavItem>
-            ) : (
-              ''
-            )}
+            ) : null}
             {navData.map((item) =>
               isNavDataGroup(item) ? (
                 <NavGroup key={item.label} item={item} />

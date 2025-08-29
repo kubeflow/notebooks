@@ -1,10 +1,7 @@
 import { useCallback } from 'react';
+import { FetchState, FetchStateCallbackPromise, useFetchState } from 'mod-arch-core';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { ApiNamespaceListEnvelope } from '~/generated/data-contracts';
-import useFetchState, {
-  FetchState,
-  FetchStateCallbackPromise,
-} from '~/shared/utilities/useFetchState';
 
 const useNamespaces = (): FetchState<ApiNamespaceListEnvelope['data'] | null> => {
   const { api, apiAvailable } = useNotebookAPI();

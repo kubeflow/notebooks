@@ -1,10 +1,7 @@
 import { useCallback } from 'react';
+import { FetchState, FetchStateCallbackPromise, useFetchState } from 'mod-arch-core';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspaceFormData } from '~/app/types';
-import useFetchState, {
-  FetchState,
-  FetchStateCallbackPromise,
-} from '~/shared/utilities/useFetchState';
 
 export const EMPTY_FORM_DATA: WorkspaceFormData = {
   kind: undefined,

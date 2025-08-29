@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { Bullseye } from '@patternfly/react-core/dist/esm/layouts/Bullseye';
 import { Spinner } from '@patternfly/react-core/dist/esm/components/Spinner';
 

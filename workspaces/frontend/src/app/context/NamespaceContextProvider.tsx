@@ -1,16 +1,10 @@
-import React, { ReactNode, useCallback, useContext, useMemo, useState } from 'react';
-import useMount from '~/app/hooks/useMount';
-import useNamespaces from '~/app/hooks/useNamespaces';
-import { useStorage } from './BrowserStorageContext';
+import React, { ReactNode, useContext, useMemo, useRef, useEffect } from 'react';
+import { useBrowserStorage, useNamespaceSelector } from 'mod-arch-core';
 
 const storageKey = 'kubeflow.notebooks.namespace.lastUsed';
 
 interface NamespaceContextType {
-  namespaces: string[];
   selectedNamespace: string;
-  setSelectedNamespace: (namespace: string) => void;
-  lastUsedNamespace: string;
-  updateLastUsedNamespace: (value: string) => void;
 }
 
 const NamespaceContext = React.createContext<NamespaceContextType | undefined>(undefined);
@@ -28,44 +22,77 @@ interface NamespaceContextProviderProps {
 }
 
 export const NamespaceContextProvider: React.FC<NamespaceContextProviderProps> = ({ children }) => {
-  const [namespaces, setNamespaces] = useState<string[]>([]);
-  const [selectedNamespace, setSelectedNamespace] = useState<string>('');
-  const [namespacesData, loaded, loadError] = useNamespaces();
-  const [lastUsedNamespace, setLastUsedNamespace] = useStorage<string>(storageKey, '');
+  const {
+    namespaces: namespacesModArc,
+    preferredNamespace,
+    updatePreferredNamespace,
+    namespacesLoaded,
+  } = useNamespaceSelector();
+  const [lastUsedNamespace, setLastUsedNamespace] = useBrowserStorage<string>(storageKey, '');
+  const namespaces = useMemo(() => namespacesModArc.map((ns) => ns.name), [namespacesModArc]);
 
-  const fetchNamespaces = useCallback(() => {
-    if (loaded && namespacesData) {
-      const namespaceNames = namespacesData.map((ns) => ns.name);
-      setNamespaces(namespaceNames);
-      setSelectedNamespace(lastUsedNamespace.length ? lastUsedNamespace : namespaceNames[0]);
-      if (!lastUsedNamespace.length || !namespaceNames.includes(lastUsedNamespace)) {
-        setLastUsedNamespace(storageKey, namespaceNames[0]);
+  const isInitializedRef = useRef(false);
+  const previousPreferredNamespaceRef = useRef<string | undefined>(undefined);
+
+  const selectedNamespace = useMemo(() => {
+    const currentPreferredName = preferredNamespace?.name ?? '';
+
+    if (!isInitializedRef.current && namespacesLoaded) {
+      if (lastUsedNamespace && namespaces.includes(lastUsedNamespace)) {
+        return lastUsedNamespace;
       }
-    } else {
-      if (loadError) {
-        console.error('Error loading namespaces: ', loadError);
-      }
-      setNamespaces([]);
-      setSelectedNamespace('');
+      return currentPreferredName;
     }
-  }, [loaded, namespacesData, lastUsedNamespace, setLastUsedNamespace, loadError]);
 
-  const updateLastUsedNamespace = useCallback(
-    (value: string) => setLastUsedNamespace(storageKey, value),
-    [setLastUsedNamespace],
-  );
+    if (lastUsedNamespace && namespaces.includes(lastUsedNamespace)) {
+      return lastUsedNamespace;
+    }
 
-  useMount(fetchNamespaces);
+    return currentPreferredName;
+  }, [lastUsedNamespace, namespaces, preferredNamespace?.name, namespacesLoaded]);
+
+  useEffect(() => {
+    if (isInitializedRef.current || !namespacesLoaded) {
+      return;
+    }
+
+    isInitializedRef.current = true;
+
+    if (lastUsedNamespace && namespaces.includes(lastUsedNamespace)) {
+      updatePreferredNamespace({ name: lastUsedNamespace });
+    } else {
+      const fallbackNamespace = preferredNamespace?.name || '';
+      setLastUsedNamespace(fallbackNamespace);
+    }
+  }, [
+    namespacesLoaded,
+    lastUsedNamespace,
+    namespaces,
+    preferredNamespace?.name,
+    updatePreferredNamespace,
+    setLastUsedNamespace,
+  ]);
+
+  useEffect(() => {
+    const currentPreferredName = preferredNamespace?.name;
+    const previousPreferredName = previousPreferredNamespaceRef.current;
+
+    previousPreferredNamespaceRef.current = currentPreferredName;
+
+    if (
+      isInitializedRef.current &&
+      currentPreferredName !== previousPreferredName &&
+      currentPreferredName
+    ) {
+      setLastUsedNamespace(currentPreferredName);
+    }
+  }, [preferredNamespace?.name, setLastUsedNamespace]);
 
   const namespacesContextValues = useMemo(
     () => ({
-      namespaces,
       selectedNamespace,
-      setSelectedNamespace,
-      lastUsedNamespace,
-      updateLastUsedNamespace,
     }),
-    [namespaces, selectedNamespace, lastUsedNamespace, updateLastUsedNamespace],
+    [selectedNamespace],
   );
 
   return (
