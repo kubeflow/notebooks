@@ -86,6 +86,10 @@ build: fmt vet swag ## Build backend binary.
 run: fmt vet swag ## Run a backend from your host.
 	go run ./cmd/main.go --port=$(PORT)
 
+.PHONY: run-envtest
+run-envtest: fmt vet prepare-envtest-assets  ## Run envtest.
+	go run ./cmd/main.go --enable-envtest --port=$(PORT)
+
 # If you wish to build the manager image targeting other platforms you can use the --platform flag.
 # (i.e. docker build --platform linux/arm64). However, you must enable docker buildKit for it.
 # More info: https://docs.docker.com/develop/develop-images/build_enhancements/
@@ -134,6 +138,11 @@ KUSTOMIZE_VERSION ?= v5.5.0
 ENVTEST_VERSION ?= release-0.19
 GOLANGCI_LINT_VERSION ?= v1.61.0
 SWAGGER_VERSION ?= v1.16.6
+
+.PHONY: prepare-envtest-assets
+prepare-envtest-assets: envtest ## Download K8s control plane binaries directly into ./bin/k8s/
+	@echo ">>>> Downloading envtest Kubernetes control plane binaries to ./bin/k8s/..."
+	$(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir=$(LOCALBIN)
 
 .PHONY: SWAGGER
 SWAGGER: $(SWAGGER)
