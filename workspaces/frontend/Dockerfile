@@ -15,7 +15,7 @@ RUN npm cache clean --force \
 COPY . .
 
 # Build the application
-RUN npm run build:prod
+RUN npm run build:kubeflow
 
 
 # ---------- Production stage ----------
