@@ -7,4 +7,5 @@ coverage
 .idea
 .vscode/*
 !.vscode/settings.json
-/bin/
+bin/*
+Dockerfile.cross
