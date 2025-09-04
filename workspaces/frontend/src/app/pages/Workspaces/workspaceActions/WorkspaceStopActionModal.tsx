@@ -8,6 +8,7 @@ import {
   ModalHeader,
 } from '@patternfly/react-core/dist/esm/components/Modal';
 import { TabTitleText } from '@patternfly/react-core/dist/esm/components/Tabs';
+import { useNotification } from 'mod-arch-core';
 import { WorkspaceRedirectInformationView } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRedirectInformationView';
 import { ActionButton } from '~/shared/components/ActionButton';
 import { ApiWorkspaceActionPauseEnvelope, WorkspacesWorkspace } from '~/generated/data-contracts';
@@ -31,6 +32,7 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
   onUpdateAndStop,
   onActionDone,
 }) => {
+  const notification = useNotification();
   const workspacePendingUpdate = workspace?.pendingRestart;
   const [actionOnGoing, setActionOnGoing] = useState<StopAction | null>(null);
 
@@ -54,30 +56,28 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
 
   const handleStop = useCallback(async () => {
     try {
-      const response = await executeAction({ action: 'stop', callback: onStop });
-      // TODO: alert user about success
-      console.info('Workspace stopped successfully:', JSON.stringify(response.data));
+      await executeAction({ action: 'stop', callback: onStop });
+      notification.info(`Workspace '${workspace?.name}' stopped successfully`);
       onActionDone?.();
       onClose();
     } catch (error) {
       // TODO: alert user about error
       console.error('Error stopping workspace:', error);
     }
-  }, [executeAction, onActionDone, onClose, onStop]);
+  }, [executeAction, onActionDone, onClose, onStop, notification, workspace]);
 
   // TODO: combine handleStop and handleUpdateAndStop if they end up being similar
   const handleUpdateAndStop = useCallback(async () => {
     try {
-      const response = await executeAction({ action: 'updateAndStop', callback: onUpdateAndStop });
-      // TODO: alert user about success
-      console.info('Workspace updated and stopped successfully:', JSON.stringify(response));
+      await executeAction({ action: 'updateAndStop', callback: onUpdateAndStop });
+      notification.info(`Workspace '${workspace?.name}' updated and stopped successfully`);
       onActionDone?.();
       onClose();
     } catch (error) {
       // TODO: alert user about error
       console.error('Error updating and stopping workspace:', error);
     }
-  }, [executeAction, onActionDone, onClose, onUpdateAndStop]);
+  }, [executeAction, onActionDone, onClose, onUpdateAndStop, notification, workspace]);
 
   const shouldShowActionButton = useCallback(
     (action: StopAction) => !actionOnGoing || actionOnGoing === action,

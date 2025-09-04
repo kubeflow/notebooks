@@ -2,6 +2,7 @@ import { mockNamespaces } from '~/__mocks__/mockNamespaces';
 import { mockWorkspaces } from '~/__mocks__/mockWorkspaces';
 import { mockBFFResponse } from '~/__mocks__/utils';
 import { home } from '~/__tests__/cypress/cypress/pages/home';
+import { mockWorkspaceKinds } from '~/shared/mock/mockNotebookServiceData';
 
 const useFilter = (filterKey: string, filterName: string, searchValue: string) => {
   cy.get("[id$='filter-workspaces-dropdown']").click();
@@ -19,8 +20,11 @@ describe('Application', () => {
     cy.intercept('GET', '/api/v1/workspaces', {
       body: mockBFFResponse(mockWorkspaces),
     }).as('getWorkspaces');
-    cy.intercept('GET', '/api/v1/workspaces/default', {
+    cy.intercept('GET', '/api/v1/workspaces/custom-namespace', {
       body: mockBFFResponse(mockWorkspaces),
+    });
+    cy.intercept('GET', '/api/v1/workspacekinds', {
+      body: mockBFFResponse(mockWorkspaceKinds),
     });
     cy.intercept('GET', '/api/namespaces/test-namespace/workspaces').as('getWorkspaces');
   });

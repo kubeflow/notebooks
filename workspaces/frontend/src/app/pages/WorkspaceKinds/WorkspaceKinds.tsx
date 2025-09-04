@@ -45,6 +45,8 @@ import WithValidImage from '~/shared/components/WithValidImage';
 import ImageFallback from '~/shared/components/ImageFallback';
 import { useTypedNavigate } from '~/app/routerHelper';
 import { WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
+import { LoadError } from '~/app/components/LoadError';
+import { LoadingSpinner } from '~/app/components/LoadingSpinner';
 import { WorkspaceKindDetails } from './details/WorkspaceKindDetails';
 
 export enum ActionType {
@@ -316,11 +318,11 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
   const DESCRIPTION_CHAR_LIMIT = 50;
 
   if (workspaceKindsError) {
-    return <p>Error loading workspace kinds: {workspaceKindsError.message}</p>; // TODO: UX for error state
+    return <LoadError error={workspaceKindsError} />;
   }
 
   if (!workspaceKindsLoaded) {
-    return <p>Loading...</p>; // TODO: UX for loading state
+    return <LoadingSpinner />;
   }
 
   return (

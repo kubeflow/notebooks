@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { Content, ContentVariants } from '@patternfly/react-core/dist/esm/components/Content';
 import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
