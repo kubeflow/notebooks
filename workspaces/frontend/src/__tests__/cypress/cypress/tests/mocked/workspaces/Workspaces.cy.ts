@@ -6,6 +6,7 @@ import {
   mockWorkspacesByNS,
 } from '~/__tests__/cypress/cypress/tests/mocked/workspace.mock';
 import type { WorkspacesWorkspace } from '~/generated/data-contracts';
+import { navBar } from '~/__tests__/cypress/cypress/pages/navBar';
 
 // Helper function to validate the content of a single workspace row in the table
 const validateWorkspaceRow = (workspace: WorkspacesWorkspace, index: number) => {
@@ -67,7 +68,7 @@ describe('Workspace by namespace functionality', () => {
       body: mockBFFResponse(mockNamespaces),
     }).as('getNamespaces');
 
-    cy.intercept('GET', 'api/v1/workspaces', { body: mockBFFResponse(mockWorkspaces) }).as(
+    cy.intercept('GET', '/api/v1/workspaces', { body: mockBFFResponse(mockWorkspaces) }).as(
       'getWorkspaces',
     );
 
@@ -87,8 +88,7 @@ describe('Workspace by namespace functionality', () => {
       .should('have.length', mockWorkspaces.length);
 
     // Change namespace to "kubeflow"
-    cy.findByTestId('namespace-toggle').click();
-    cy.findByTestId('dropdown-item-kubeflow').click();
+    navBar.selectNamespace('kubeflow');
 
     // Verify the API call is made with the new namespace
     cy.wait('@getKubeflowWorkspaces')
@@ -110,10 +110,10 @@ describe('Workspaces Component', () => {
       body: mockBFFResponse(mockNamespaces),
     }).as('getNamespaces');
     cy.wait('@getNamespaces');
-    cy.intercept('GET', 'api/v1/workspaces', {
+    cy.intercept('GET', '/api/v1/workspaces', {
       body: mockBFFResponse(mockWorkspaces),
     }).as('getWorkspaces');
-    cy.intercept('GET', 'api/v1/workspaces/kubeflow', {
+    cy.intercept('GET', '/api/v1/workspaces/kubeflow', {
       body: mockBFFResponse(mockWorkspacesByNS),
     });
   });
@@ -136,8 +136,7 @@ describe('Workspaces Component', () => {
     ];
 
     // Change namespace to "kubeflow"
-    cy.findByTestId('namespace-toggle').click();
-    cy.findByTestId('dropdown-item-kubeflow').click();
+    navBar.selectNamespace('kubeflow');
 
     closeModalActions.forEach((closeAction) => {
       openDeleteModal();
@@ -156,8 +155,7 @@ describe('Workspaces Component', () => {
 
   it('should verify the delete modal verification mechanism', () => {
     // Change namespace to "kubeflow"
-    cy.findByTestId('namespace-toggle').click();
-    cy.findByTestId('dropdown-item-kubeflow').click();
+    navBar.selectNamespace('kubeflow');
     openDeleteModal();
     cy.findByTestId('delete-modal').within(() => {
       cy.get('strong')

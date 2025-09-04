@@ -7,6 +7,7 @@ import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack'
 import { t_global_spacer_sm as SmallPadding } from '@patternfly/react-tokens';
 import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 import { EmptyState, EmptyStateBody } from '@patternfly/react-core/dist/esm/components/EmptyState';
+import { useNotification } from 'mod-arch-core';
 import { ValidationErrorAlert } from '~/app/components/ValidationErrorAlert';
 import useWorkspaceKindByName from '~/app/hooks/useWorkspaceKindByName';
 import { useTypedNavigate, useTypedParams } from '~/app/routerHelper';
@@ -16,8 +17,8 @@ import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspaceKindFormData } from '~/app/types';
 import { safeApiCall } from '~/shared/api/apiUtils';
 import { CONTENT_TYPE_KEY } from '~/shared/utilities/const';
-import { ApiValidationError, WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
 import { ContentType } from '~/shared/utilities/types';
+import { ApiValidationError, WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
 import { WorkspaceKindFileUpload } from './fileUpload/WorkspaceKindFileUpload';
 import { WorkspaceKindFormProperties } from './properties/WorkspaceKindFormProperties';
 import { WorkspaceKindFormImage } from './image/WorkspaceKindFormImage';
@@ -47,6 +48,7 @@ const convertToFormData = (initialData: WorkspacekindsWorkspaceKind): WorkspaceK
 
 export const WorkspaceKindForm: React.FC = () => {
   const navigate = useTypedNavigate();
+  const notification = useNotification();
   const { api } = useNotebookAPI();
   // TODO: Detect mode by route
   const [yamlValue, setYamlValue] = useState('');
@@ -85,8 +87,9 @@ export const WorkspaceKindForm: React.FC = () => {
         );
 
         if (createResult.ok) {
-          // TODO: alert user about success
-          console.info('New workspace kind created:', JSON.stringify(createResult.data));
+          notification.success(
+            `Workspace kind '${createResult.data.data.name}' created successfully`,
+          );
           navigate('workspaceKinds');
         } else {
           const validationErrors = createResult.errorEnvelope.error.cause?.validation_errors;
@@ -114,7 +117,7 @@ export const WorkspaceKindForm: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [api, mode, navigate, yamlValue]);
+  }, [api, mode, navigate, yamlValue, notification]);
 
   const canSubmit = useMemo(
     () => !isSubmitting && validated === 'success',
