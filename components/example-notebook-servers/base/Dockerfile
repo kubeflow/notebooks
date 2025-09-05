@@ -102,7 +102,10 @@ RUN curl -fsSL "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${TARGETA
  && chmod +x /usr/local/bin/kubectl
 
 # create user and set required ownership
-RUN useradd -M -N \
+# Starting with Ubuntu 23.04, the system includes a default user named 'ubuntu' with UID 1000,
+# which conflicts with our default NB_UID. As this user is not needed, it is removed.
+RUN userdel -r ubuntu || true \
+ && useradd -M -N \
     --shell /bin/bash \
     --home ${HOME} \
     --uid ${NB_UID} \
