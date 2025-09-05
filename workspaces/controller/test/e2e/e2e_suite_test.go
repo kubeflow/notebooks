@@ -40,6 +40,9 @@ var (
 
 	// isPrometheusOperatorAlreadyInstalled will be set true when prometheus CRDs be found on the cluster
 	// isPrometheusOperatorAlreadyInstalled = false
+
+	isIstioctlAlreadyInstalled = false
+	skipIstioctlInstall = os.Getenv("ISTIO_INSTALL_SKIP") == "true"
 )
 
 // TestE2E runs the end-to-end (e2e) test suite for the project. These tests execute in an isolated,
@@ -88,6 +91,21 @@ var _ = BeforeSuite(func() {
 	}
 	By("checking that cert manager is running")
 	Expect(utils.WaitCertManagerRunning()).To(Succeed(), "CertManager is not running")
+
+	
+	if !skipIstioctlInstall {
+		By("checking if istioctl is installed already")
+		isIstioctlAlreadyInstalled = utils.IsIstioInstalled()
+		if !isIstioctlAlreadyInstalled {
+			_, _ = fmt.Fprintf(GinkgoWriter, "Installing istioctl...\n")
+			Expect(utils.InstallIstioctl()).To(Succeed(), "Failed to install istioctl")
+		} else {
+			_, _ = fmt.Fprintf(GinkgoWriter, "WARNING: istioctl is already installed. Skipping installation...\n")
+		}
+	}
+	By("checking that istioctl is available")
+	Expect(utils.WaitIstioctlAvailable()).To(Succeed(), "istioctl is not available")
+
 })
 
 var _ = AfterSuite(func() {
