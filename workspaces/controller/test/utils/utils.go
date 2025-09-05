@@ -17,6 +17,7 @@ limitations under the License.
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -26,6 +27,10 @@ import (
 )
 
 const (
+
+	// use LTS version of istioctl
+	istioctlVersion = "1.27.0"
+	istioctlURL 	= ""
 
 	// use LTS version of prometheus-operator
 	prometheusOperatorVersion = "v0.72.0"
@@ -59,6 +64,73 @@ func Run(cmd *exec.Cmd) (string, error) {
 	}
 
 	return string(output), nil
+}
+
+// UninstallPrometheusOperator uninstalls the prometheus
+func UninstallIstioctl() {
+	url := fmt.Sprintf(prometheusOperatorURL, prometheusOperatorVersion)
+	cmd := exec.Command("kubectl", "delete", "-f", url)
+	if _, err := Run(cmd); err != nil {
+		warnError(err)
+	}
+}
+
+// InstallIstioctl installs the istioctl to be used to manage istio resources.
+func InstallIstioctl() error{
+	url := fmt.Sprintf("https://github.com/istio/istio/releases/download/%[1]s/istioctl-%[1]s-linux-amd64.tar.gz", istioctlVersion)
+    downloadCmd := exec.Command("curl", "-L", url, "-o", "istioctl.tar.gz")
+    extractCmd := exec.Command("tar", "-xzf", "istioctl.tar.gz")
+    chmodCmd := exec.Command("chmod", "+x", "istioctl")
+    moveCmd := exec.Command("sudo", "mv", "istioctl", "~/usr/local/bin/istioctl")
+
+    downloadCmd.Stdout, downloadCmd.Stderr = os.Stdout, os.Stderr
+    extractCmd.Stdout, extractCmd.Stderr = os.Stdout, os.Stderr
+    chmodCmd.Stdout, chmodCmd.Stderr = os.Stdout, os.Stderr
+    moveCmd.Stdout, moveCmd.Stderr = os.Stdout, os.Stderr
+
+    if err := downloadCmd.Run(); err != nil {
+        return fmt.Errorf("failed to download istioctl: %w", err)
+    }
+    if err := extractCmd.Run(); err != nil {
+        return fmt.Errorf("failed to extract istioctl: %w", err)
+    }
+    if err := chmodCmd.Run(); err != nil {
+        return fmt.Errorf("failed to make istioctl executable: %w", err)
+    }
+    if err := moveCmd.Run(); err != nil {
+        return fmt.Errorf("failed to move istioctl to /usr/local/bin: %w", err)
+    }
+    return nil
+}
+
+// InstallIstioMinimalWithIngress installs Istio with minimal profile and ingressgateway enabled.
+func InstallIstioMinimalWithIngress(namespace string) error {
+    cmd := exec.Command("istioctl",
+        "install",
+        "--set", "profile=minimal",
+        "--set", "values.gateways.istio-ingressgateway.enabled=true",
+        "--set", fmt.Sprintf("values.global.istioNamespace=%s", namespace),
+        "-y",
+    )
+    cmd.Stdout = os.Stdout
+    cmd.Stderr = os.Stderr
+    return cmd.Run()
+}
+
+// TODO:
+func IsIstioInstalled() bool {
+	cmd := exec.Command("istioctl", "version")
+	_, err := Run(cmd)
+	return err == nil
+}
+
+// WaitIstioctlAvailable checks if 'istioctl' is available in PATH.
+// Returns nil if found, or an error if not found.
+func WaitIstioctlAvailable() error {
+    if _, err := exec.LookPath("istioctl"); err != nil {
+        return errors.New("istioctl binary not found in PATH")
+    }
+    return nil
 }
 
 // UninstallPrometheusOperator uninstalls the prometheus
