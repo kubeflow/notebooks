@@ -104,7 +104,7 @@ var _ = BeforeSuite(func() {
 		}
 	}
 	By("checking that istioctl is available")
-	Expect(utils.WaitIstioctlAvailable()).To(Succeed(), "istioctl is not available")
+	Expect(utils.WaitIstioAvailable()).To(Succeed(), "istioctl is not available")
 
 })
 
