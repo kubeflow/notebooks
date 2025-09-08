@@ -67,38 +67,43 @@ func Run(cmd *exec.Cmd) (string, error) {
 }
 
 func UninstallIstioctl() {
-    // First, uninstall Istio components if they exist
-    if IsIstioInstalled() {
-        fmt.Println("Uninstalling Istio components...")
-        cmd := exec.Command("istioctl", "uninstall", "--purge", "-y")
-        if _, err := Run(cmd); err != nil {
-            warnError(fmt.Errorf("failed to uninstall Istio components: %w", err))
-        }
-        
-        // Delete istio-system namespace
-        cmd = exec.Command("kubectl", "delete", "namespace", "istio-system", "--ignore-not-found")
-        if _, err := Run(cmd); err != nil {
-            warnError(fmt.Errorf("failed to delete istio-system namespace: %w", err))
-        }
-    }
+	// First, uninstall Istio components if they exist
+	if IsIstioInstalled() {
+		fmt.Println("Uninstalling Istio components...")
+		cmd := exec.Command("istioctl", "uninstall", "--purge", "-y")
+		if _, err := Run(cmd); err != nil {
+			warnError(fmt.Errorf("failed to uninstall Istio components: %w", err))
+		}
 
-    // Remove istioctl binary from system
-    osName := runtime.GOOS
-    var rmCmd *exec.Cmd
-    
-    if osName == "windows" {
-        // Windows: Remove from C:\istioctl
-        rmCmd = exec.Command("del", "/f", "/q", "C:\\istioctl\\istioctl.exe")
-    } else {
-        // Unix-like: Remove from /usr/local/bin
-        rmCmd = exec.Command("sudo", "rm", "-f", "/usr/local/bin/istioctl")
-    }
-    
-    if _, err := Run(rmCmd); err != nil {
-        warnError(fmt.Errorf("failed to remove istioctl binary: %w", err))
-    }
-    
-    fmt.Println("Istioctl uninstalled successfully")
+		// Delete istio-system namespace
+		cmd = exec.Command("kubectl", "delete", "namespace", "istio-system", "--ignore-not-found")
+		if _, err := Run(cmd); err != nil {
+			warnError(fmt.Errorf("failed to delete istio-system namespace: %w", err))
+		}
+	}
+
+	// Remove istioctl binary from system
+	osName := runtime.GOOS
+	var rmCmd *exec.Cmd
+
+	if osName == "windows" {
+		// Windows: Remove from C:\istioctl
+		rmCmd = exec.Command("del", "/f", "/q", "C:\\istioctl\\istioctl.exe")
+	} else {
+		// Unix-like: Remove from local bin directory
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			warnError(fmt.Errorf("failed to get user home directory: %w", err))
+			return
+		}
+		rmCmd = exec.Command("rm", "-f", homeDir+"/.local/bin/istioctl")
+	}
+
+	if _, err := Run(rmCmd); err != nil {
+		warnError(fmt.Errorf("failed to remove istioctl binary: %w", err))
+	}
+
+	fmt.Println("Istioctl uninstalled successfully")
 }
 
 // InstallIstioctl installs the istioctl to be used to manage istio resources.
@@ -186,13 +191,13 @@ func InstallIstioctl() error {
 	// Extract based on file type
 	var extractCmd *exec.Cmd
 	switch fileExt {
-		case "tar.gz":
-			extractCmd = exec.Command("tar", "-xzf", fileName)
-		case "zip":
-			extractCmd = exec.Command("unzip", "-q", fileName)
-		default:
-			return fmt.Errorf("unsupported file extension: %s", fileExt)
-		}
+	case "tar.gz":
+		extractCmd = exec.Command("tar", "-xzf", fileName)
+	case "zip":
+		extractCmd = exec.Command("unzip", "-q", fileName)
+	default:
+		return fmt.Errorf("unsupported file extension: %s", fileExt)
+	}
 	extractCmd.Stdout, extractCmd.Stderr = os.Stdout, os.Stderr
 
 	if err := extractCmd.Run(); err != nil {
@@ -216,8 +221,10 @@ func InstallIstioctl() error {
 		binaryPath = strings.Split(binaryPath, "\n")[0]
 	}
 
-	// Copy the binary to current directory with standard name
-	if binaryPath != binaryName {
+	// Copy the binary to current directory with standard name if needed
+	// Handle case where binaryPath might be "./istioctl" vs "istioctl"
+	normalizedPath := strings.TrimPrefix(binaryPath, "./")
+	if normalizedPath != binaryName {
 		var cpCmd *exec.Cmd
 		if osName == "win" {
 			cpCmd = exec.Command("copy", binaryPath, binaryName)
@@ -238,19 +245,43 @@ func InstallIstioctl() error {
 	}
 
 	// Move to appropriate bin directory
+	// Use local bin directory to avoid sudo requirements
+	var binDir string
 	var moveCmd *exec.Cmd
+
 	if osName == "win" {
-		// Try to create and use a local bin directory on Windows
-		mkdirCmd := exec.Command("mkdir", "-p", "C:\\istioctl")
+		// Use a local bin directory on Windows
+		binDir = "C:\\istioctl"
+		mkdirCmd := exec.Command("mkdir", "-p", binDir)
 		mkdirCmd.Run() // Ignore errors if directory exists
-		moveCmd = exec.Command("move", binaryName, "C:\\istioctl\\istioctl.exe")
+		moveCmd = exec.Command("move", binaryName, binDir+"\\istioctl.exe")
 	} else {
-		moveCmd = exec.Command("sudo", "mv", binaryName, "/usr/local/bin/istioctl")
+		// Use local bin directory instead of /usr/local/bin to avoid sudo
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("failed to get user home directory: %w", err)
+		}
+		binDir = homeDir + "/.local/bin"
+
+		// Create the bin directory if it doesn't exist
+		mkdirCmd := exec.Command("mkdir", "-p", binDir)
+		if err := mkdirCmd.Run(); err != nil {
+			return fmt.Errorf("failed to create local bin directory: %w", err)
+		}
+
+		moveCmd = exec.Command("mv", binaryName, binDir+"/istioctl")
 	}
 
 	moveCmd.Stdout, moveCmd.Stderr = os.Stdout, os.Stderr
 	if err := moveCmd.Run(); err != nil {
 		return fmt.Errorf("failed to move istioctl to bin directory: %w", err)
+	}
+
+	// Add to PATH notice
+	if osName != "win" {
+		fmt.Printf("istioctl installed to %s\n", binDir)
+		fmt.Printf("Make sure %s is in your PATH by adding this to your shell profile:\n", binDir)
+		fmt.Printf("export PATH=\"%s:$PATH\"\n", binDir)
 	}
 
 	// Clean up downloaded files
@@ -287,13 +318,10 @@ func IsIstioInstalled() bool {
 // WaitIstioAvailable waits for Istio to be available and running.
 // Returns nil if Istio is ready, or an error if not ready within timeout.
 func WaitIstioAvailable() error {
-	// Wait for istio-system namespace to exist
-	cmd := exec.Command("kubectl", "wait",
-		"--for=condition=Ready",
-		"namespace/istio-system",
-		"--timeout=300s")
+	// First check if istio-system namespace exists
+	cmd := exec.Command("kubectl", "get", "namespace", "istio-system")
 	if _, err := Run(cmd); err != nil {
-		return fmt.Errorf("istio-system namespace not ready: %w", err)
+		return fmt.Errorf("istio-system namespace not found: %w", err)
 	}
 
 	// Wait for Istio control plane (istiod) pods to be ready
@@ -326,7 +354,7 @@ func WaitIstioAvailable() error {
 		"-n", "istio-system",
 		"--no-headers")
 	output, err := Run(cmd)
-	if err == nil && len(strings.TrimSpace(output)) > 0 {
+	if err == nil && len(strings.TrimSpace(output)) > 0 && !strings.Contains(output, "No resources found") {
 		// Egress gateway exists, wait for it to be ready
 		cmd = exec.Command("kubectl", "wait",
 			"--for=condition=Ready",
@@ -350,94 +378,93 @@ func WaitIstioAvailable() error {
 
 // IsIstioIngressGatewayInstalled checks if istio-ingressgateway is installed
 func IsIstioIngressGatewayInstalled() bool {
-    cmd := exec.Command("kubectl", "get", "deployment", 
-        "-n", "istio-system", 
-        "istio-ingressgateway", 
-        "--ignore-not-found")
-    output, err := Run(cmd)
-    if err != nil {
-        return false
-    }
-    return len(strings.TrimSpace(output)) > 0
+	cmd := exec.Command("kubectl", "get", "deployment",
+		"-n", "istio-system",
+		"istio-ingressgateway",
+		"--ignore-not-found")
+	output, err := Run(cmd)
+	if err != nil {
+		return false
+	}
+	return len(strings.TrimSpace(output)) > 0
 }
 
 // InstallIstioIngressGateway installs the istio-ingressgateway
 func InstallIstioIngressGateway() error {
-    // Check if Istio is installed first
-    if !IsIstioInstalled() {
-        return fmt.Errorf("istio must be installed before installing ingress gateway")
-    }
+	// Check if Istio is installed first
+	if !IsIstioInstalled() {
+		return fmt.Errorf("istio must be installed before installing ingress gateway")
+	}
 
-    // Install ingress gateway using istioctl
-    cmd := exec.Command("istioctl", "install", 
-        "--set", "components.ingressGateways[0].enabled=true",
-        "--set", "components.ingressGateways[0].name=istio-ingressgateway",
-        "-y")
-    
-    _, err := Run(cmd)
-    return err
+	// Install ingress gateway using istioctl
+	cmd := exec.Command("istioctl", "install",
+		"--set", "components.ingressGateways[0].enabled=true",
+		"--set", "components.ingressGateways[0].name=istio-ingressgateway",
+		"-y")
+
+	_, err := Run(cmd)
+	return err
 }
 
 // WaitIstioIngressGatewayReady waits for istio-ingressgateway to be ready
 func WaitIstioIngressGatewayReady() error {
-    // Wait for the deployment to be available
-    cmd := exec.Command("kubectl", "wait",
-        "--for=condition=Available",
-        "deployment/istio-ingressgateway",
-        "-n", "istio-system",
-        "--timeout=300s")
-    
-    if _, err := Run(cmd); err != nil {
-        return fmt.Errorf("istio-ingressgateway deployment not available: %w", err)
-    }
+	// Wait for the deployment to be available
+	cmd := exec.Command("kubectl", "wait",
+		"--for=condition=Available",
+		"deployment/istio-ingressgateway",
+		"-n", "istio-system",
+		"--timeout=300s")
 
-    // Wait for the pods to be ready
-    cmd = exec.Command("kubectl", "wait",
-        "--for=condition=Ready",
-        "pods",
-        "-l", "app=istio-ingressgateway",
-        "-n", "istio-system",
-        "--timeout=300s")
-    
-    if _, err := Run(cmd); err != nil {
-        return fmt.Errorf("istio-ingressgateway pods not ready: %w", err)
-    }
+	if _, err := Run(cmd); err != nil {
+		return fmt.Errorf("istio-ingressgateway deployment not available: %w", err)
+	}
 
-    // Wait for the service to have external IP (if LoadBalancer type)
-    cmd = exec.Command("kubectl", "get", "service",
-        "istio-ingressgateway",
-        "-n", "istio-system",
-        "-o", "jsonpath={.status.loadBalancer.ingress[0].ip}")
-    
-    // Note: This might not apply for all environments (like kind/minikube)
-    // so we don't fail if external IP is not assigned
-    Run(cmd) // Ignore error for external IP check
-    
-    return nil
+	// Wait for the pods to be ready
+	cmd = exec.Command("kubectl", "wait",
+		"--for=condition=Ready",
+		"pods",
+		"-l", "app=istio-ingressgateway",
+		"-n", "istio-system",
+		"--timeout=300s")
+
+	if _, err := Run(cmd); err != nil {
+		return fmt.Errorf("istio-ingressgateway pods not ready: %w", err)
+	}
+
+	// Wait for the service to have external IP (if LoadBalancer type)
+	cmd = exec.Command("kubectl", "get", "service",
+		"istio-ingressgateway",
+		"-n", "istio-system",
+		"-o", "jsonpath={.status.loadBalancer.ingress[0].ip}")
+
+	// Note: This might not apply for all environments (like kind/minikube)
+	// so we don't fail if external IP is not assigned
+	Run(cmd) // Ignore error for external IP check
+
+	return nil
 }
 
 // EnsureIstioIngressGateway checks, installs, and waits for istio-ingressgateway
 func EnsureIstioIngressGateway() error {
-    // Check if already installed
-    if IsIstioIngressGatewayInstalled() {
-        fmt.Println("Istio ingress gateway is already installed")
-    } else {
-        fmt.Println("Installing Istio ingress gateway...")
-        if err := InstallIstioIngressGateway(); err != nil {
-            return fmt.Errorf("failed to install istio-ingressgateway: %w", err)
-        }
-    }
+	// Check if already installed
+	if IsIstioIngressGatewayInstalled() {
+		fmt.Println("Istio ingress gateway is already installed")
+	} else {
+		fmt.Println("Installing Istio ingress gateway...")
+		if err := InstallIstioIngressGateway(); err != nil {
+			return fmt.Errorf("failed to install istio-ingressgateway: %w", err)
+		}
+	}
 
-    // Wait for it to be ready
-    fmt.Println("Waiting for Istio ingress gateway to be ready...")
-    if err := WaitIstioIngressGatewayReady(); err != nil {
-        return fmt.Errorf("istio-ingressgateway failed to become ready: %w", err)
-    }
+	// Wait for it to be ready
+	fmt.Println("Waiting for Istio ingress gateway to be ready...")
+	if err := WaitIstioIngressGatewayReady(); err != nil {
+		return fmt.Errorf("istio-ingressgateway failed to become ready: %w", err)
+	}
 
-    fmt.Println("Istio ingress gateway is ready!")
-    return nil
+	fmt.Println("Istio ingress gateway is ready!")
+	return nil
 }
-
 
 // UninstallPrometheusOperator uninstalls the prometheus
 func UninstallPrometheusOperator() {
@@ -555,6 +582,49 @@ func WaitCertManagerRunning() error {
 	)
 	_, err = Run(cmd)
 	return err
+
+	// First check if cert-manager namespace exists, if not install cert-manager
+	// cmd := exec.Command("kubectl", "get", "namespace", "cert-manager")
+	// if _, err := Run(cmd); err != nil {
+	// 	// Namespace doesn't exist, install cert-manager
+	// 	fmt.Println("cert-manager namespace not found, installing cert-manager...")
+	// 	if err := InstallCertManager(); err != nil {
+	// 		return fmt.Errorf("failed to install cert-manager: %w", err)
+	// 	}
+	// }
+
+	// // Wait for the cert-manager namespace to be ready
+	// cmd = exec.Command("kubectl", "wait", "--for=condition=Ready", "namespace/cert-manager", "--timeout=300s")
+	// if _, err := Run(cmd); err != nil {
+	// 	return fmt.Errorf("cert-manager namespace not ready: %w", err)
+	// }
+
+	// // Wait for each CertManager deployment individually by name (most reliable)
+	// deployments := []string{"cert-manager", "cert-manager-cainjector", "cert-manager-webhook"}
+
+	// for _, deployment := range deployments {
+	// 	cmd := exec.Command("kubectl", "wait", "deployment", deployment,
+	// 		"-n", "cert-manager",
+	// 		"--for", "condition=Available",
+	// 		"--timeout", "300s")
+
+	// 	if _, err := Run(cmd); err != nil {
+	// 		return fmt.Errorf("deployment %s not ready: %w", deployment, err)
+	// 	}
+	// }
+
+	// // Wait for the cert-manager webhook to be ready (critical for functionality)
+	// cmd = exec.Command("kubectl", "wait", "pods",
+	// 	"-n", "cert-manager",
+	// 	"-l", "app=webhook",
+	// 	"--for", "condition=Ready",
+	// 	"--timeout", "300s")
+
+	// if _, err := Run(cmd); err != nil {
+	// 	return fmt.Errorf("cert-manager webhook pods not ready: %w", err)
+	// }
+
+	// return nil
 }
 
 // IsCertManagerCRDsInstalled checks if any Cert Manager CRDs are installed
