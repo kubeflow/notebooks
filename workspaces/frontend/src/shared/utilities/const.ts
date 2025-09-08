@@ -3,7 +3,7 @@ import { Theme } from 'mod-arch-kubeflow';
 
 export const STYLE_THEME = asEnumMember(process.env.STYLE_THEME, Theme) || Theme.MUI;
 export const DEPLOYMENT_MODE =
-  asEnumMember(process.env.DEPLOYMENT_MODE, DeploymentMode) || DeploymentMode.Federated;
+  asEnumMember(process.env.DEPLOYMENT_MODE, DeploymentMode) || DeploymentMode.Kubeflow;
 export const DEV_MODE = process.env.APP_ENV === 'development';
 export const POLL_INTERVAL = process.env.POLL_INTERVAL
   ? parseInt(process.env.POLL_INTERVAL)
