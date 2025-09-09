@@ -42,7 +42,7 @@
     "prepare": "cd ../../ && husky workspaces/frontend/.husky"
   },
   "devDependencies": {
-    "@module-federation/enhanced": "^0.13.1",
+    "@module-federation/enhanced": "^0.18.4",
     "@mui/icons-material": "^6.4.8",
     "@mui/material": "^6.3.1",
     "@mui/types": "^7.2.21",
@@ -103,6 +103,8 @@
     "webpack-merge": "^6.0.1"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
     "@patternfly/patternfly": "^6.3.1",
     "@patternfly/react-catalog-view-extension": "^6.2.0",
     "@patternfly/react-code-editor": "^6.3.1",
@@ -113,11 +115,9 @@
     "@patternfly/react-templates": "^6.3.1",
     "@patternfly/react-tokens": "^6.3.1",
     "@types/js-yaml": "^4.0.9",
-    "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.0",
     "axios": "^1.10.0",
-    "date-fns": "^4.1.0",
     "classnames": "^2.2.6",
+    "date-fns": "^4.1.0",
     "dompurify": "^3.2.4",
     "js-yaml": "^4.1.0",
     "lodash-es": "^4.17.15",
