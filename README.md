@@ -1,12 +1,13 @@
 # Kubeflow Notebooks
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/9942/badge)](https://www.bestpractices.dev/projects/9942)
 
 [Kubeflow Notebooks](https://www.kubeflow.org/docs/components/notebooks/overview/) lets you run web-based development environments on your Kubernetes cluster by running them inside Pods.
 
 > ⚠️ __Note__ ⚠️
-> 
+>
 > We are currently moving the _Kubeflow Notebooks 1.0_ codebase from [`kubeflow/kubeflow`](https://github.com/kubeflow/kubeflow) to this repository ([`kubeflow/notebooks`](https://github.com/kubeflow/notebooks)).
 > Please see [`kubeflow/kubeflow#7549`](https://github.com/kubeflow/kubeflow/issues/7549) for more information.
-> 
+>
 > We are currently developing _Kubeflow Notebooks 2.0_ in this repository under the [`notebooks-v2`](https://github.com/kubeflow/notebooks/tree/notebooks-v2) branch.
 > Please see [`kubeflow/notebooks#85`](https://github.com/kubeflow/notebooks/issues/85) for more information.
 
