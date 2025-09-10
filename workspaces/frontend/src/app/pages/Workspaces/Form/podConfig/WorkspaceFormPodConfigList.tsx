@@ -96,28 +96,30 @@ export const WorkspaceFormPodConfigList: React.FunctionComponent<
         )}
         {filteredWorkspacePodConfigs.length > 0 && (
           <Gallery hasGutter aria-label="Selectable card container">
-            {filteredWorkspacePodConfigs.map((podConfig) => (
-              <Card
-                isCompact
-                isSelectable
-                key={podConfig.id}
-                id={podConfig.id.replace(/ /g, '-')}
-                isSelected={podConfig.id === selectedPodConfig?.id}
-              >
-                <CardHeader
-                  selectableActions={{
-                    selectableActionId: `selectable-actions-item-${podConfig.id.replace(/ /g, '-')}`,
-                    selectableActionAriaLabelledby: podConfig.displayName.replace(/ /g, '-'),
-                    name: podConfig.displayName,
-                    variant: 'single',
-                    onChange,
-                  }}
+            {filteredWorkspacePodConfigs
+              .filter((podConfig) => !podConfig.hidden)
+              .map((podConfig) => (
+                <Card
+                  isCompact
+                  isSelectable
+                  key={podConfig.id}
+                  id={podConfig.id.replace(/ /g, '-')}
+                  isSelected={podConfig.id === selectedPodConfig?.id}
                 >
-                  <CardTitle>{podConfig.displayName}</CardTitle>
-                  <CardBody>{podConfig.id}</CardBody>
-                </CardHeader>
-              </Card>
-            ))}
+                  <CardHeader
+                    selectableActions={{
+                      selectableActionId: `selectable-actions-item-${podConfig.id.replace(/ /g, '-')}`,
+                      selectableActionAriaLabelledby: podConfig.displayName.replace(/ /g, '-'),
+                      name: podConfig.displayName,
+                      variant: 'single',
+                      onChange,
+                    }}
+                  >
+                    <CardTitle>{podConfig.displayName}</CardTitle>
+                    <CardBody>{podConfig.id}</CardBody>
+                  </CardHeader>
+                </Card>
+              ))}
           </Gallery>
         )}
       </PageSection>
