@@ -1,3 +1,7 @@
+labels:
+  - area/frontend
+  - area/backend
+  - area/v1
 approvers:
   - kimwnasptd
   - thesuperzapper
