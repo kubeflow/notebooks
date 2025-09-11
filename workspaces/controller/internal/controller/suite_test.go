@@ -220,12 +220,19 @@ func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 				VolumeMounts: kubefloworgv1beta1.WorkspaceKindVolumeMounts{
 					Home: "/home/jovyan",
 				},
-				HTTPProxy: &kubefloworgv1beta1.HTTPProxy{
-					RemovePathPrefix: ptr.To(false),
-					RequestHeaders: &kubefloworgv1beta1.IstioHeaderOperations{
-						Set:    map[string]string{"X-RStudio-Root-Path": "{{ .PathPrefix }}"},
-						Add:    map[string]string{},
-						Remove: []string{},
+				Ports: []kubefloworgv1beta1.WorkspaceKindPort{
+					{
+						Id:                 "jupyterlab",
+						DefaultDisplayName: "JupyterLab",
+						Protocol:           "HTTP",
+						HTTPProxy: &kubefloworgv1beta1.HTTPProxy{
+							RemovePathPrefix: ptr.To(false),
+							RequestHeaders: &kubefloworgv1beta1.IstioHeaderOperations{
+								Set:    map[string]string{},
+								Add:    map[string]string{},
+								Remove: []string{},
+							},
+						},
 					},
 				},
 				ExtraEnv: []v1.EnvVar{
@@ -292,9 +299,8 @@ func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 									Ports: []kubefloworgv1beta1.ImagePort{
 										{
 											Id:          "jupyterlab",
-											DisplayName: "JupyterLab",
+											DisplayName: ptr.To("JupyterLab"),
 											Port:        8888,
-											Protocol:    "HTTP",
 										},
 									},
 								},
@@ -317,9 +323,8 @@ func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 									Ports: []kubefloworgv1beta1.ImagePort{
 										{
 											Id:          "jupyterlab",
-											DisplayName: "JupyterLab",
+											DisplayName: ptr.To("JupyterLab"),
 											Port:        8888,
-											Protocol:    "HTTP",
 										},
 									},
 								},

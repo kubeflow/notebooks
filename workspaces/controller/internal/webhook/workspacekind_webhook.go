@@ -78,6 +78,9 @@ func (v *WorkspaceKindValidator) ValidateCreate(ctx context.Context, obj runtime
 	// validate the extra environment variables
 	allErrs = append(allErrs, validateExtraEnv(workspaceKind)...)
 
+	// validate the ports configuration
+	allErrs = append(allErrs, validatePorts(workspaceKind)...)
+
 	// generate helper maps for imageConfig values
 	imageConfigIdMap := make(map[string]kubefloworgv1beta1.ImageConfigValue)
 	imageConfigRedirectMap := make(map[string]string)
@@ -156,6 +159,9 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 		allErrs = append(allErrs, validateExtraEnv(newWorkspaceKind)...)
 	}
 
+	// validate the ports configuration
+	shouldValidatePorts := !equality.Semantic.DeepEqual(newWorkspaceKind.Spec.PodTemplate.Ports, oldWorkspaceKind.Spec.PodTemplate.Ports)
+
 	// calculate changes to imageConfig values
 	var shouldValidateImageConfigRedirects = false
 	toValidateImageConfigIds := make(map[string]bool)
@@ -181,6 +187,10 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 			// we always need to validate the imageConfig redirects if an imageConfig value was added
 			// because the new imageConfig value could be used by a redirect or cause a cycle
 			shouldValidateImageConfigRedirects = true
+
+			// we also need to validate ports if a new imageConfig value was added
+			// because it might reference ports that don't exist
+			shouldValidatePorts = true
 		} else {
 			// if we haven't already decided to validate the imageConfig redirects,
 			// check if the redirect has changed
@@ -192,6 +202,12 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 			if !reflect.DeepEqual(oldImageConfigIdMap[imageConfigValue.Id].Spec, imageConfigValue.Spec) {
 				// we need to validate this imageConfig value since it has changed
 				toValidateImageConfigIds[imageConfigValue.Id] = true
+
+				// check if the ports in the spec have changed
+				if !reflect.DeepEqual(oldImageConfigIdMap[imageConfigValue.Id].Spec.Ports, imageConfigValue.Spec.Ports) {
+					// we need to validate ports if imageConfig ports have changed
+					shouldValidatePorts = true
+				}
 
 				// check how many workspaces are using this imageConfig value
 				usageCount, err := getImageConfigUsageCount(imageConfigValue.Id)
@@ -362,6 +378,11 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 		allErrs = append(allErrs, validatePodConfigRedirects(newPodConfigIdMap, newPodConfigRedirectMap)...)
 	}
 
+	// validate ports if needed
+	if shouldValidatePorts {
+		allErrs = append(allErrs, validatePorts(newWorkspaceKind)...)
+	}
+
 	if len(allErrs) == 0 {
 		return nil, nil
 	}
@@ -516,6 +537,59 @@ func (v *WorkspaceKindValidator) validatePodTemplatePodMetadata(workspaceKind *k
 	return errs
 }
 
+// validatePorts validates the ports in podTemplate.ports of WorkspaceKind
+func validatePorts(workspaceKind *kubefloworgv1beta1.WorkspaceKind) []*field.Error {
+	var errs []*field.Error
+
+	ports := workspaceKind.Spec.PodTemplate.Ports
+	portsPath := field.NewPath("spec", "podTemplate", "ports")
+
+	// collect all referenced port IDs from imageConfig values
+	referencedPortIds := make(map[string]bool)
+	for _, imageConfigValue := range workspaceKind.Spec.PodTemplate.Options.ImageConfig.Values {
+		for _, imagePort := range imageConfigValue.Spec.Ports {
+			referencedPortIds[string(imagePort.Id)] = true
+		}
+	}
+
+	// track seen port IDs to ensure uniqueness
+	seenPortIds := make(map[string]bool)
+
+	// validate each port in the ports list
+	for i, port := range ports {
+		portId := string(port.Id)
+		portPath := portsPath.Index(i)
+
+		// check for duplicate port IDs
+		if _, exists := seenPortIds[portId]; exists {
+			errs = append(errs, field.Duplicate(portPath.Child("id"), portId))
+		}
+		seenPortIds[portId] = true
+
+		// validate port configuration
+		if port.Id == "" {
+			errs = append(errs, field.Required(portPath.Child("id"), "port ID is required"))
+		}
+
+		if port.DefaultDisplayName == "" {
+			errs = append(errs, field.Required(portPath.Child("displayName"), "display name is required"))
+		}
+
+		if port.Protocol == "" {
+			errs = append(errs, field.Required(portPath.Child("protocol"), "protocol is required"))
+		}
+	}
+
+	// check that all referenced port IDs from imageConfig values are defined in ports
+	for referencedPortId := range referencedPortIds {
+		if _, exists := seenPortIds[referencedPortId]; !exists {
+			errs = append(errs, field.Invalid(portsPath, referencedPortId, fmt.Sprintf("port ID %q is referenced in imageConfig but not defined in ports", referencedPortId)))
+		}
+	}
+
+	return errs
+}
+
 // validateExtraEnv validates the extra environment variables in a WorkspaceKind
 func validateExtraEnv(workspaceKind *kubefloworgv1beta1.WorkspaceKind) []*field.Error {
 	var errs []*field.Error
@@ -575,7 +649,7 @@ func validateImageConfigValue(imageConfigValue *kubefloworgv1beta1.ImageConfigVa
 	// validate the ports
 	seenPorts := make(map[int32]bool)
 	for _, port := range imageConfigValue.Spec.Ports {
-		portId := port.Id
+		portId := string(port.Id)
 		portNumber := port.Port
 		if _, exists := seenPorts[portNumber]; exists {
 			portPath := imageConfigValuePath.Child("spec", "ports").Key(portId).Child("port")
