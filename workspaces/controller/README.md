@@ -4,7 +4,7 @@ The Kubeflow Workspace Controller is responsible for reconciling the `Workspace`
 > ⚠️ __Warning__ ⚠️
 >
 > The Kubeflow Workspace Controller is a work in progress and is __NOT__ currently ready for use.
-> We greatly appreciate any contributions. 
+> We greatly appreciate any contributions.
 
 ## Getting Started
 
@@ -18,7 +18,7 @@ The Kubeflow Workspace Controller is responsible for reconciling the `Workspace`
 **Build and push your image to the location specified by `IMG`:**
 
 ```sh
-make docker-build docker-push IMG=<some-registry>/workspace-controller:tag
+make docker-build docker-push IMG=<some-registry>/workspaces-controller:tag
 ```
 
 **NOTE:** This image ought to be published in the personal registry you specified.
@@ -34,7 +34,7 @@ make install
 **Deploy the Manager to the cluster with the image specified by `IMG`:**
 
 ```sh
-make deploy IMG=<some-registry>/workspace-controller:tag
+make deploy IMG=<some-registry>/workspaces-controller:tag
 ```
 
 > **NOTE**: If you encounter RBAC errors, you may need to grant yourself cluster-admin
@@ -75,7 +75,7 @@ Following are the steps to build the installer and distribute this project to us
 1. Build the installer for the image built and published in the registry:
 
 ```sh
-make build-installer IMG=<some-registry>/workspace-controller:tag
+make build-installer IMG=<some-registry>/workspaces-controller:tag
 ```
 
 NOTE: The makefile target mentioned above generates an 'install.yaml'
@@ -88,5 +88,5 @@ its dependencies.
 Users can just run kubectl apply -f <URL for YAML BUNDLE> to install the project, i.e.:
 
 ```sh
-kubectl apply -f https://raw.githubusercontent.com/<org>/workspace-controller/<tag or branch>/dist/install.yaml
+kubectl apply -f https://raw.githubusercontent.com/<org>/workspaces-controller/<tag or branch>/dist/install.yaml
 ```

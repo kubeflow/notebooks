@@ -1,12 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  labels:
-    control-plane: controller-manager
-    app.kubernetes.io/name: workspace-controller
-    app.kubernetes.io/managed-by: kustomize
-  name: controller-manager-metrics-service
-  namespace: system
+  name: workspaces-controller-metrics-service
 spec:
   ports:
   - name: http
@@ -14,4 +9,4 @@ spec:
     protocol: TCP
     targetPort: 8080
   selector:
-    control-plane: controller-manager
+    app.kubernetes.io/component: controller-manager
