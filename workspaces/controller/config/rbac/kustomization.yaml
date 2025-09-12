@@ -1,3 +1,7 @@
+labels:
+- pairs:
+    app.kubernetes.io/component: controller-manager
+
 resources:
 # All RBAC will be applied under this service account in
 # the deployment namespace. You may comment out this resource
@@ -18,3 +22,4 @@ resources:
 - workspacekind_viewer_role.yaml
 - workspace_editor_role.yaml
 - workspace_viewer_role.yaml
+

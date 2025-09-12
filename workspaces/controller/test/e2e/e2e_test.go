@@ -34,8 +34,8 @@ import (
 
 const (
 	// controller configs
-	controllerNamespace = "workspace-controller-system"
-	controllerImage     = "ghcr.io/kubeflow/notebooks/workspace-controller:latest"
+	controllerNamespace = "kubeflow-workspaces"
+	controllerImage     = "ghcr.io/kubeflow/notebooks/workspaces-controller:latest"
 
 	// workspace configs
 	workspaceNamespace = "workspace-test"
@@ -89,17 +89,17 @@ var _ = Describe("controller", Ordered, func() {
 		_, err = utils.Run(cmd)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
-		By("deploying the controller-manager")
+		By("deploying the workspaces-controller")
 		cmd = exec.Command("make", "deploy", fmt.Sprintf("IMG=%s", controllerImage))
 		_, err = utils.Run(cmd)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
-		By("validating that the controller-manager pod is running as expected")
+		By("validating that the workspaces-controller pod is running as expected")
 		var controllerPodName string
 		verifyControllerUp := func(g Gomega) {
 			// Get controller pod name
 			cmd := exec.Command("kubectl", "get", "pods",
-				"-l", "control-plane=controller-manager",
+				"-l", "app.kubernetes.io/component=controller-manager",
 				"-n", controllerNamespace,
 				"-o", "go-template={{ range .items }}"+
 					"{{ if not .metadata.deletionTimestamp }}"+
@@ -107,13 +107,13 @@ var _ = Describe("controller", Ordered, func() {
 					"{{ \"\\n\" }}{{ end }}{{ end }}",
 			)
 			podOutput, err := utils.Run(cmd)
-			g.Expect(err).NotTo(HaveOccurred(), "failed to get controller-manager pod")
+			g.Expect(err).NotTo(HaveOccurred(), "failed to get workspaces-controller pod")
 
 			// Ensure only 1 controller pod is running
 			podNames := utils.GetNonEmptyLines(podOutput)
 			g.Expect(podNames).To(HaveLen(1), "expected 1 controller pod running")
 			controllerPodName = podNames[0]
-			g.Expect(controllerPodName).To(ContainSubstring("controller-manager"))
+			g.Expect(controllerPodName).To(ContainSubstring("workspaces-controller"))
 
 			// Validate controller pod status
 			cmd = exec.Command("kubectl", "get", "pods",
@@ -123,7 +123,7 @@ var _ = Describe("controller", Ordered, func() {
 			)
 			statusPhase, err := utils.Run(cmd)
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(statusPhase).To(BeEquivalentTo(corev1.PodRunning), "Incorrect controller-manager pod phase")
+			g.Expect(statusPhase).To(BeEquivalentTo(corev1.PodRunning), "Incorrect workspaces-controller pod phase")
 		}
 		Eventually(verifyControllerUp, timeout, interval).Should(Succeed())
 
