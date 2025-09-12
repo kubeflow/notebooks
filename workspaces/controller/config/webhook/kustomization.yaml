@@ -1,3 +1,7 @@
+labels:
+- pairs:
+    app.kubernetes.io/component: webhook
+
 resources:
 - manifests.yaml
 - service.yaml

@@ -1,3 +1,7 @@
+labels:
+- pairs:
+    app.kubernetes.io/component: certmanager
+
 resources:
 - certificate.yaml
 
