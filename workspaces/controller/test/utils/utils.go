@@ -29,8 +29,8 @@ import (
 const (
 
 	// use LTS version of istioctl
-	istioctlVersion = "1.27.0"
-	istioctlURL     = ""
+	istioctlVersion     = "1.27.0"
+	istioctlURLTemplate = "https://github.com/istio/istio/releases/download/%s/%s"
 
 	// use LTS version of prometheus-operator
 	prometheusOperatorVersion = "v0.72.0"
@@ -141,7 +141,7 @@ func InstallIstioctl() error {
 
 	// Construct the download URL dynamically
 	fileName := fmt.Sprintf("istioctl-%s-%s-%s.%s", istioctlVersion, osName, archName, fileExt)
-	url := fmt.Sprintf("https://github.com/istio/istio/releases/download/%s/%s", istioctlVersion, fileName)
+	url := fmt.Sprintf(istioctlURLTemplate, istioctlVersion, fileName)
 
 	// Set the binary name based on OS
 	binaryName := "istioctl"
