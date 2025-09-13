@@ -308,9 +308,74 @@ func InstallIstioMinimalWithIngress(namespace string) error {
 	return cmd.Run()
 }
 
-// TODO:
+// InstallIstio installs Istio with default configuration.
+func InstallIstio() error {
+	// First ensure istioctl is available
+	if !IsIstioctlInstalled() {
+		fmt.Println("istioctl not found, installing istioctl...")
+		if err := InstallIstioctl(); err != nil {
+			return fmt.Errorf("failed to install istioctl: %w", err)
+		}
+
+		// Verify installation
+		if !IsIstioctlInstalled() {
+			return fmt.Errorf("istioctl installation failed - binary not available after installation")
+		}
+	}
+
+	// Check if Istio is already installed
+	if IsIstioInstalled() {
+		fmt.Println("Istio is already installed")
+		return nil
+	}
+
+	// Install Istio with default configuration
+	fmt.Println("Installing Istio...")
+	cmd := exec.Command("istioctl", "install",
+		"--set", "values.defaultRevision=default",
+		"-y")
+	if _, err := Run(cmd); err != nil {
+		return fmt.Errorf("failed to install Istio: %w", err)
+	}
+
+	fmt.Println("Istio installation completed")
+	return nil
+}
+
+// IsIstioctlInstalled checks if istioctl binary is available and working
+func IsIstioctlInstalled() bool {
+	// Check if istioctl binary exists in PATH
+	if _, err := exec.LookPath("istioctl"); err != nil {
+		return false
+	}
+
+	// Verify istioctl can run and show version
+	cmd := exec.Command("istioctl", "version", "--short", "--remote=false")
+	_, err := Run(cmd)
+	return err == nil
+}
+
+// IsIstioInstalled checks if Istio is installed in the cluster
 func IsIstioInstalled() bool {
-	cmd := exec.Command("istioctl", "version")
+	// Check if istioctl binary is available first
+	if !IsIstioctlInstalled() {
+		return false
+	}
+
+	// Check if istio-system namespace exists
+	cmd := exec.Command("kubectl", "get", "namespace", "istio-system")
+	if _, err := Run(cmd); err != nil {
+		return false
+	}
+
+	// Check if istiod deployment exists and is available
+	cmd = exec.Command("kubectl", "get", "deployment", "istiod", "-n", "istio-system")
+	if _, err := Run(cmd); err != nil {
+		return false
+	}
+
+	// Verify istioctl can communicate with the cluster
+	cmd = exec.Command("istioctl", "version", "--short")
 	_, err := Run(cmd)
 	return err == nil
 }
@@ -318,10 +383,14 @@ func IsIstioInstalled() bool {
 // WaitIstioAvailable waits for Istio to be available and running.
 // Returns nil if Istio is ready, or an error if not ready within timeout.
 func WaitIstioAvailable() error {
-	// First check if istio-system namespace exists
+	// First check if istio-system namespace exists, if not install Istio
 	cmd := exec.Command("kubectl", "get", "namespace", "istio-system")
 	if _, err := Run(cmd); err != nil {
-		return fmt.Errorf("istio-system namespace not found: %w", err)
+		// Namespace doesn't exist, install Istio
+		fmt.Println("istio-system namespace not found, installing Istio...")
+		if err := InstallIstio(); err != nil {
+			return fmt.Errorf("failed to install Istio: %w", err)
+		}
 	}
 
 	// Wait for Istio control plane (istiod) pods to be ready
@@ -580,51 +649,44 @@ func WaitCertManagerRunning() error {
 		"--all-namespaces",
 		"--timeout", "2m",
 	)
-	_, err = Run(cmd)
-	return err
-
+	if _, err := Run(cmd); err != nil {
+		return fmt.Errorf("cert-manager endpoints not ready: %w", err)
+	}
 	// First check if cert-manager namespace exists, if not install cert-manager
-	// cmd := exec.Command("kubectl", "get", "namespace", "cert-manager")
-	// if _, err := Run(cmd); err != nil {
-	// 	// Namespace doesn't exist, install cert-manager
-	// 	fmt.Println("cert-manager namespace not found, installing cert-manager...")
-	// 	if err := InstallCertManager(); err != nil {
-	// 		return fmt.Errorf("failed to install cert-manager: %w", err)
-	// 	}
-	// }
+	cmd = exec.Command("kubectl", "get", "namespace", "cert-manager")
+	if _, err := Run(cmd); err != nil {
+		// Namespace doesn't exist, install cert-manager
+		fmt.Println("cert-manager namespace not found, installing cert-manager...")
+		if err := InstallCertManager(); err != nil {
+			return fmt.Errorf("failed to install cert-manager: %w", err)
+		}
+	}
 
-	// // Wait for the cert-manager namespace to be ready
-	// cmd = exec.Command("kubectl", "wait", "--for=condition=Ready", "namespace/cert-manager", "--timeout=300s")
-	// if _, err := Run(cmd); err != nil {
-	// 	return fmt.Errorf("cert-manager namespace not ready: %w", err)
-	// }
+	// Wait for each CertManager deployment individually by name (most reliable)
+	deployments := []string{"cert-manager", "cert-manager-cainjector", "cert-manager-webhook"}
 
-	// // Wait for each CertManager deployment individually by name (most reliable)
-	// deployments := []string{"cert-manager", "cert-manager-cainjector", "cert-manager-webhook"}
+	for _, deployment := range deployments {
+		cmd := exec.Command("kubectl", "wait", "deployment", deployment,
+			"-n", "cert-manager",
+			"--for", "condition=Available",
+			"--timeout", "300s")
 
-	// for _, deployment := range deployments {
-	// 	cmd := exec.Command("kubectl", "wait", "deployment", deployment,
-	// 		"-n", "cert-manager",
-	// 		"--for", "condition=Available",
-	// 		"--timeout", "300s")
+		if _, err := Run(cmd); err != nil {
+			return fmt.Errorf("deployment %s not ready: %w", deployment, err)
+		}
+	}
 
-	// 	if _, err := Run(cmd); err != nil {
-	// 		return fmt.Errorf("deployment %s not ready: %w", deployment, err)
-	// 	}
-	// }
+	// Wait for the cert-manager webhook to be ready (critical for functionality)
+	cmd = exec.Command("kubectl", "wait", "pods",
+		"-n", "cert-manager",
+		"-l", "app=webhook",
+		"--for", "condition=Ready",
+		"--timeout", "300s")
 
-	// // Wait for the cert-manager webhook to be ready (critical for functionality)
-	// cmd = exec.Command("kubectl", "wait", "pods",
-	// 	"-n", "cert-manager",
-	// 	"-l", "app=webhook",
-	// 	"--for", "condition=Ready",
-	// 	"--timeout", "300s")
-
-	// if _, err := Run(cmd); err != nil {
-	// 	return fmt.Errorf("cert-manager webhook pods not ready: %w", err)
-	// }
-
-	// return nil
+	if _, err := Run(cmd); err != nil {
+		return fmt.Errorf("cert-manager webhook pods not ready: %w", err)
+	}
+	return err
 }
 
 // IsCertManagerCRDsInstalled checks if any Cert Manager CRDs are installed

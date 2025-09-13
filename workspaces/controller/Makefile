@@ -78,22 +78,7 @@ test-e2e: manifests generate fmt vet ## Run the e2e tests. Expected an isolated 
 		echo "No Kind cluster is running. Please start a Kind cluster before running the e2e tests."; \
 		exit 1; \
 	}
-	@echo "Installing CertManager..."
-	@if [ "$(CERT_MANAGER_INSTALL_SKIP)" != "true" ]; then \
-		kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.18.2/cert-manager.yaml; \
-		echo "Waiting for CertManager deployments to be ready..."; \
-		kubectl wait --for=condition=Available --timeout=300s deployment/cert-manager -n cert-manager; \
-		kubectl wait --for=condition=Available --timeout=300s deployment/cert-manager-cainjector -n cert-manager; \
-		kubectl wait --for=condition=Available --timeout=300s deployment/cert-manager-webhook -n cert-manager; \
-		echo "CertManager is ready!"; \
-	fi
-	@echo "Installing Istio..."
-	@if [ "$(ISTIO_INSTALL_SKIP)" != "true" ]; then \
-		echo "Istio installation will be handled by the test suite"; \
-	fi
-	@if [ "$(PROMETHEUS_INSTALL_SKIP)" != "true" ]; then \
-		echo "Installing Prometheus (if needed)..."; \
-	fi
+	
 	go test ./test/e2e/ -v -ginkgo.v
 
 .PHONY: lint

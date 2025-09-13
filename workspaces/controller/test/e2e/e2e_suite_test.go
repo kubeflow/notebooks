@@ -94,7 +94,7 @@ var _ = BeforeSuite(func() {
 
 	if !skipIstioctlInstall {
 		By("checking if istioctl is installed already")
-		isIstioctlAlreadyInstalled = utils.IsIstioInstalled()
+		isIstioctlAlreadyInstalled = utils.IsIstioctlInstalled()
 		if !isIstioctlAlreadyInstalled {
 			_, _ = fmt.Fprintf(GinkgoWriter, "Installing istioctl...\n")
 			Expect(utils.InstallIstioctl()).To(Succeed(), "Failed to install istioctl")
