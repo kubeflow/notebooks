@@ -30,6 +30,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -505,6 +506,206 @@ metadata:
 					},
 				},
 			))
+		})
+	})
+
+	// NOTE: these tests create and delete resources on the cluster, so cannot be run in parallel.
+	//       therefore, we run them using the `Serial` Ginkgo decorator.
+	Context("when creating a WorkspaceKind", Serial, func() {
+
+		var newWorkspaceKindName = "wsk-create-test"
+		var validYAML []byte
+
+		BeforeEach(func() {
+			validYAML = []byte(fmt.Sprintf(`
+apiVersion: kubeflow.org/v1beta1
+kind: WorkspaceKind
+metadata:
+  name: %s
+spec:
+  spawner:
+    displayName: "JupyterLab Notebook"
+    description: "A Workspace which runs JupyterLab in a Pod"
+    icon:
+      url: "https://jupyter.org/assets/favicons/apple-touch-icon.png"
+    logo:
+      url: "https://jupyter.org/assets/logos/jupyter/jupyter.png"
+  podTemplate:
+    serviceAccount:
+      name: default-editor
+    volumeMounts:
+      home: "/home/jovyan"
+    options:
+      imageConfig:
+        default: "jupyterlab_scipy_180"
+        values:
+        - id: "jupyterlab_scipy_180"
+          displayName: "JupyterLab SciPy 1.8.0"
+          description: "JupyterLab with SciPy 1.8.0"
+          spec:
+            image: "jupyter/scipy-notebook:2024.1.0"
+      podConfig:
+        default: "tiny_cpu"
+        values:
+        - id: "tiny_cpu"
+          displayName: "Tiny CPU"
+          description: "1 CPU core, 2GB RAM"
+          spec:
+            resources:
+              requests:
+                cpu: "100m"
+                memory: "512Mi"
+              limits:
+                cpu: "1"
+                memory: "2Gi"
+`, newWorkspaceKindName))
+		})
+
+		AfterEach(func() {
+			By("deleting the WorkspaceKind if it exists")
+			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: newWorkspaceKindName,
+				},
+			}
+			_ = k8sClient.Delete(ctx, workspaceKind)
+		})
+
+		It("should create a WorkspaceKind successfully without dry-run", func() {
+			By("creating the HTTP request")
+			req, err := http.NewRequest(http.MethodPost, AllWorkspaceKindsPath, bytes.NewReader(validYAML))
+			Expect(err).NotTo(HaveOccurred())
+
+			By("setting required headers")
+			req.Header.Set("Content-Type", MediaTypeYaml)
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing CreateWorkspaceKindHandler")
+			ps := httprouter.Params{}
+			rr := httptest.NewRecorder()
+			a.CreateWorkspaceKindHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusCreated), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("verifying the Location header")
+			location := rs.Header.Get("Location")
+			Expect(location).To(Equal(fmt.Sprintf("/api/v1/workspacekinds/%s", newWorkspaceKindName)))
+
+			By("reading and parsing the response body")
+			body, err := io.ReadAll(rs.Body)
+			Expect(err).NotTo(HaveOccurred())
+
+			var response WorkspaceKindCreateEnvelope
+			err = json.Unmarshal(body, &response)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("verifying the created resource exists in the cluster")
+			createdWorkspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
+			err = k8sClient.Get(ctx, types.NamespacedName{Name: newWorkspaceKindName}, createdWorkspaceKind)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("verifying the response matches the created resource")
+			expectedWorkspaceKind := models.NewWorkspaceKindModelFromWorkspaceKind(createdWorkspaceKind)
+			Expect(response.Data).To(BeComparableTo(expectedWorkspaceKind))
+		})
+
+		It("should validate WorkspaceKind with dry-run=true without creating it", func() {
+			By("creating the HTTP request with dry-run=true")
+			req, err := http.NewRequest(http.MethodPost, AllWorkspaceKindsPath+"?dry_run=true", bytes.NewReader(validYAML))
+			Expect(err).NotTo(HaveOccurred())
+
+			By("setting required headers")
+			req.Header.Set("Content-Type", MediaTypeYaml)
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing CreateWorkspaceKindHandler")
+			ps := httprouter.Params{}
+			rr := httptest.NewRecorder()
+			a.CreateWorkspaceKindHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusOK), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("reading and parsing the response body")
+			body, err := io.ReadAll(rs.Body)
+			Expect(err).NotTo(HaveOccurred())
+
+			var response WorkspaceKindEnvelope
+			err = json.Unmarshal(body, &response)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("verifying the resource was not created in the cluster")
+			notCreatedWorkspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
+			err = k8sClient.Get(ctx, types.NamespacedName{Name: newWorkspaceKindName}, notCreatedWorkspaceKind)
+			Expect(err).To(HaveOccurred())
+			Expect(apierrors.IsNotFound(err)).To(BeTrue())
+		})
+
+		It("should return 400 for invalid YAML", func() {
+			invalidYAML := []byte("invalid: yaml: :")
+
+			By("creating the HTTP request")
+			req, err := http.NewRequest(http.MethodPost, AllWorkspaceKindsPath, bytes.NewReader(invalidYAML))
+			Expect(err).NotTo(HaveOccurred())
+
+			By("setting required headers")
+			req.Header.Set("Content-Type", MediaTypeYaml)
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing CreateWorkspaceKindHandler")
+			ps := httprouter.Params{}
+			rr := httptest.NewRecorder()
+			a.CreateWorkspaceKindHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest), descUnexpectedHTTPStatus, rr.Body.String())
+		})
+
+		It("should return 415 for wrong content-type", func() {
+			By("creating the HTTP request")
+			req, err := http.NewRequest(http.MethodPost, AllWorkspaceKindsPath, bytes.NewReader(validYAML))
+			Expect(err).NotTo(HaveOccurred())
+
+			By("setting wrong content-type header")
+			req.Header.Set("Content-Type", MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing CreateWorkspaceKindHandler")
+			ps := httprouter.Params{}
+			rr := httptest.NewRecorder()
+			a.CreateWorkspaceKindHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusUnsupportedMediaType), descUnexpectedHTTPStatus, rr.Body.String())
+		})
+
+		It("should return 400 for invalid dry-run value", func() {
+			By("creating the HTTP request with invalid dry-run value")
+			req, err := http.NewRequest(http.MethodPost, AllWorkspaceKindsPath+"?dry_run=invalid", bytes.NewReader(validYAML))
+			Expect(err).NotTo(HaveOccurred())
+
+			By("setting required headers")
+			req.Header.Set("Content-Type", MediaTypeYaml)
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing CreateWorkspaceKindHandler")
+			ps := httprouter.Params{}
+			rr := httptest.NewRecorder()
+			a.CreateWorkspaceKindHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest), descUnexpectedHTTPStatus, rr.Body.String())
 		})
 	})
 })

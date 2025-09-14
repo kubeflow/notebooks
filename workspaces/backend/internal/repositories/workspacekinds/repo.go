@@ -70,24 +70,27 @@ func (r *WorkspaceKindRepository) GetWorkspaceKinds(ctx context.Context) ([]mode
 	return workspaceKindsModels, nil
 }
 
-func (r *WorkspaceKindRepository) Create(ctx context.Context, workspaceKind *kubefloworgv1beta1.WorkspaceKind) (*models.WorkspaceKind, error) {
-	// create workspace kind
+func (r *WorkspaceKindRepository) Create(ctx context.Context, workspaceKind *kubefloworgv1beta1.WorkspaceKind, dryRun bool) (*models.WorkspaceKind, error) {
+	if dryRun {
+		// For dry-run, just convert to model and return without creating
+		workspaceKindModel := models.NewWorkspaceKindModelFromWorkspaceKind(workspaceKind)
+		return &workspaceKindModel, nil
+	}
+
+	// Create workspace kind only if not dry-run
 	if err := r.client.Create(ctx, workspaceKind); err != nil {
 		if apierrors.IsAlreadyExists(err) {
 			return nil, ErrWorkspaceKindAlreadyExists
 		}
 		if apierrors.IsInvalid(err) {
 			// NOTE: we don't wrap this error so we can unpack it in the caller
-			//       and extract the validation errors returned by the Kubernetes API server
+			// and extract the validation errors returned by the Kubernetes API server
 			return nil, err
 		}
 		return nil, err
 	}
 
-	// convert the created workspace to a WorkspaceKindUpdate model
-	//
-	// TODO: this function should return the WorkspaceKindUpdate model, once the update WSK api is implemented
-	//
+	// Convert the created workspace to a WorkspaceKindUpdate model
 	createdWorkspaceKindModel := models.NewWorkspaceKindModelFromWorkspaceKind(workspaceKind)
 
 	return &createdWorkspaceKindModel, nil
