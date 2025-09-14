@@ -509,8 +509,7 @@ metadata:
 		})
 	})
 
-	// NOTE: these tests create and delete resources on the cluster, so cannot be run in parallel.
-	//       therefore, we run them using the `Serial` Ginkgo decorator.
+
 	Context("when creating a WorkspaceKind", Serial, func() {
 
 		var newWorkspaceKindName = "wsk-create-test"
