@@ -95,43 +95,49 @@ export const WorkspaceFormKindList: React.FunctionComponent<WorkspaceFormKindLis
         )}
         {filteredWorkspaceKinds.length > 0 && (
           <Gallery hasGutter aria-label="Selectable card container">
-            {filteredWorkspaceKinds.map((kind) => (
-              <Card
-                isCompact
-                isSelectable
-                key={kind.name}
-                id={kind.name.replace(/ /g, '-')}
-                isSelected={kind.name === selectedKind?.name}
-              >
-                <CardHeader
-                  selectableActions={{
-                    selectableActionId: `selectable-actions-item-${kind.name.replace(/ /g, '-')}`,
-                    selectableActionAriaLabelledby: kind.name.replace(/ /g, '-'),
-                    name: kind.name,
-                    variant: 'single',
-                    onChange,
-                  }}
+            {filteredWorkspaceKinds
+              .filter((kind) => !kind.hidden)
+              .map((kind) => (
+                <Card
+                  isCompact
+                  isSelectable
+                  key={kind.name}
+                  id={kind.name.replace(/ /g, '-')}
+                  isSelected={kind.name === selectedKind?.name}
                 >
-                  <WithValidImage
-                    imageSrc={kind.logo.url}
-                    skeletonWidth="60px"
-                    fallback={
-                      <ImageFallback
-                        imageSrc={kind.logo.url}
-                        extended
-                        message="Cannot load logo image"
-                      />
-                    }
+                  <CardHeader
+                    selectableActions={{
+                      selectableActionId: `selectable-actions-item-${kind.name.replace(/ /g, '-')}`,
+                      selectableActionAriaLabelledby: kind.name.replace(/ /g, '-'),
+                      name: kind.name,
+                      variant: 'single',
+                      onChange,
+                    }}
                   >
-                    {(validSrc) => (
-                      <img src={validSrc} alt={`${kind.name} logo`} style={{ maxWidth: '60px' }} />
-                    )}
-                  </WithValidImage>
-                </CardHeader>
-                <CardTitle>{kind.displayName}</CardTitle>
-                <CardBody>{kind.description}</CardBody>
-              </Card>
-            ))}
+                    <WithValidImage
+                      imageSrc={kind.logo.url}
+                      skeletonWidth="60px"
+                      fallback={
+                        <ImageFallback
+                          imageSrc={kind.logo.url}
+                          extended
+                          message="Cannot load logo image"
+                        />
+                      }
+                    >
+                      {(validSrc) => (
+                        <img
+                          src={validSrc}
+                          alt={`${kind.name} logo`}
+                          style={{ maxWidth: '60px' }}
+                        />
+                      )}
+                    </WithValidImage>
+                  </CardHeader>
+                  <CardTitle>{kind.displayName}</CardTitle>
+                  <CardBody>{kind.description}</CardBody>
+                </Card>
+              ))}
           </Gallery>
         )}
       </PageSection>

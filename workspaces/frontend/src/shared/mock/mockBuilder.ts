@@ -217,7 +217,7 @@ export const buildMockWorkspaceKind = (
               { key: 'pythonVersion', value: '3.11' },
               { key: 'jupyterlabVersion', value: '1.8.0' },
             ],
-            hidden: true,
+            hidden: false,
             clusterMetrics: {
               workspacesCount: 0,
             },
@@ -257,7 +257,7 @@ export const buildMockWorkspaceKind = (
               { key: 'pythonVersion', value: '3.12' },
               { key: 'jupyterlabVersion', value: '2.0.0' },
             ],
-            hidden: true,
+            hidden: false,
             redirect: {
               to: 'jupyterlab_scipy_210',
               message: {
@@ -318,7 +318,7 @@ export const buildMockWorkspaceKind = (
             id: 'large_cpu',
             displayName: 'Large CPU',
             description: 'Pod with 1 CPU, 1 Gb RAM',
-            hidden: false,
+            hidden: true,
             labels: [
               { key: 'cpu', value: '1000m' },
               { key: 'memory', value: '1Gi' },
