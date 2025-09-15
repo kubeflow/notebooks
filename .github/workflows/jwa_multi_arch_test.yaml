@@ -1,0 +1,75 @@
+name: JWA Multi-Arch Build Test
+on:
+  pull_request:
+    paths:
+      - components/crud-web-apps/jupyter/**
+      - components/crud-web-apps/common/**
+      - releasing/version/VERSION
+    branches:
+      - master
+      - notebooks-v1
+      - 'v*-branch'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.number }}
+  cancel-in-progress: true
+
+env:
+  IMG: ghcr.io/kubeflow/notebooks/jupyter-web-app
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup QEMU
+      uses: docker/setup-qemu-action@v3
+
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build multi-arch Images (AMD64 & PPC64LE)
+      run: |
+        cd components/crud-web-apps/jupyter
+        ARCH=linux/amd64 make docker-build-multi-arch-verify
+        ARCH=linux/ppc64le make docker-build-multi-arch-verify
+
+    - name: Build ARM64 Image (Optional)
+      timeout-minutes: 60
+      continue-on-error: true
+      run: |
+        cd components/crud-web-apps/jupyter
+        ARCH=linux/arm64/v8 make docker-build-multi-arch-verify
+        echo "Completed linux/arm64/v8 build!"
+
+    - name: Verify multi-arch builds
+      run: |
+        echo "Verifying multi-arch build results:"
+        echo "Listing all jupyter-web-app images:"
+        docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}\t{{.CreatedAt}}" | grep jupyter-web-app || echo "No jupyter-web-app images found"
+        
+        echo ""
+        echo "Checking individual architectures:"
+        TAG=$(git describe --tags --always --dirty)
+        echo "Base TAG: $TAG"
+        
+        # Check each architecture
+        if docker images | grep -q "jupyter-web-app.*${TAG}-linux-amd64"; then
+          echo "✅ AMD64: SUCCESS"
+        else
+          echo "❌ AMD64: FAILED"
+        fi
+        
+        if docker images | grep -q "jupyter-web-app.*${TAG}-linux-ppc64le"; then
+          echo "✅ PPC64LE: SUCCESS"
+        else
+          echo "❌ PPC64LE: FAILED"
+        fi
+        
+        if docker images | grep -q "jupyter-web-app.*${TAG}-linux-arm64-v8"; then
+          echo "✅ ARM64: SUCCESS"
+        else
+          echo "ℹ️  ARM64: Not built (expected if timeout occurred)"
+        fi
