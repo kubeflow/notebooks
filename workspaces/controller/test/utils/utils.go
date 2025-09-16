@@ -82,22 +82,13 @@ func UninstallIstioctl() {
 		}
 	}
 
-	// Remove istioctl binary from system
-	osName := runtime.GOOS
-	var rmCmd *exec.Cmd
-
-	if osName == "windows" {
-		// Windows: Remove from C:\istioctl
-		rmCmd = exec.Command("del", "/f", "/q", "C:\\istioctl\\istioctl.exe")
-	} else {
-		// Unix-like: Remove from local bin directory
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			warnError(fmt.Errorf("failed to get user home directory: %w", err))
-			return
-		}
-		rmCmd = exec.Command("rm", "-f", homeDir+"/.local/bin/istioctl")
+	// Remove istioctl binary from local bin directory
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		warnError(fmt.Errorf("failed to get user home directory: %w", err))
+		return
 	}
+	rmCmd := exec.Command("rm", "-f", homeDir+"/.local/bin/istioctl")
 
 	if _, err := Run(rmCmd); err != nil {
 		warnError(fmt.Errorf("failed to remove istioctl binary: %w", err))
@@ -123,21 +114,16 @@ func InstallIstioctl() error {
 		return fmt.Errorf("unsupported architecture: %s", archName)
 	}
 
-	// Map Go OS names to Istio release names and determine file extension
-	var fileExt string
+	// Map Go OS names to Istio release names
 	switch osName {
 	case "linux":
 		osName = "linux"
-		fileExt = "tar.gz"
 	case "darwin":
 		osName = "osx"
-		fileExt = "tar.gz"
-	case "windows":
-		osName = "win"
-		fileExt = "zip"
 	default:
-		return fmt.Errorf("unsupported operating system: %s", osName)
+		return fmt.Errorf("only Linux and macOS are supported, got: %s", osName)
 	}
+	fileExt := "tar.gz"
 
 	// Construct the download URL dynamically
 	fileName := fmt.Sprintf("istioctl-%s-%s-%s.%s", istioctlVersion, osName, archName, fileExt)
@@ -145,47 +131,26 @@ func InstallIstioctl() error {
 
 	// Set the binary name based on OS
 	binaryName := "istioctl"
-	if osName == "win" {
-		binaryName = "istioctl.exe"
-	}
 
-	// Download the file using platform-appropriate method with fallbacks
+	// Download the file using curl with wget as fallback
 	downloadSuccess := false
 
-	// Try primary download method
-	var primaryCmd *exec.Cmd
-	var fallbackCmd *exec.Cmd
-
-	if osName == "win" {
-		// Windows: PowerShell first, curl as fallback
-		// Use proper PowerShell syntax with double quotes and escape handling
-		primaryCmd = exec.Command("powershell", "-ExecutionPolicy", "Bypass", "-Command",
-			fmt.Sprintf(`Invoke-WebRequest -Uri "%s" -OutFile "%s"`, url, fileName))
-		fallbackCmd = exec.Command("curl", "-L", url, "-o", fileName)
-	} else {
-		// Unix-like: curl first, wget as fallback
-		primaryCmd = exec.Command("curl", "-L", url, "-o", fileName)
-		fallbackCmd = exec.Command("wget", "-O", fileName, url)
-	}
-
-	// Try primary method
-	primaryCmd.Stdout, primaryCmd.Stderr = os.Stdout, os.Stderr
-	if err := primaryCmd.Run(); err == nil {
+	// Try curl first
+	curlCmd := exec.Command("curl", "-L", url, "-o", fileName)
+	curlCmd.Stdout, curlCmd.Stderr = os.Stdout, os.Stderr
+	if err := curlCmd.Run(); err == nil {
 		downloadSuccess = true
 	} else {
-		// Try fallback method
-		fallbackCmd.Stdout, fallbackCmd.Stderr = os.Stdout, os.Stderr
-		if err := fallbackCmd.Run(); err == nil {
+		// Try wget as fallback
+		wgetCmd := exec.Command("wget", "-O", fileName, url)
+		wgetCmd.Stdout, wgetCmd.Stderr = os.Stdout, os.Stderr
+		if err := wgetCmd.Run(); err == nil {
 			downloadSuccess = true
 		}
 	}
 
 	if !downloadSuccess {
-		if osName == "win" {
-			return fmt.Errorf("failed to download istioctl from %s using both PowerShell and curl", url)
-		} else {
-			return fmt.Errorf("failed to download istioctl from %s using both curl and wget", url)
-		}
+		return fmt.Errorf("failed to download istioctl from %s using both curl and wget", url)
 	}
 
 	// Extract based on file type
@@ -226,51 +191,30 @@ func InstallIstioctl() error {
 	normalizedPath := strings.TrimPrefix(binaryPath, "./")
 	if normalizedPath != binaryName {
 		var cpCmd *exec.Cmd
-		if osName == "win" {
-			cpCmd = exec.Command("copy", binaryPath, binaryName)
-		} else {
-			cpCmd = exec.Command("cp", binaryPath, binaryName)
-		}
+		cpCmd = exec.Command("cp", binaryPath, binaryName)
+
 		if err := cpCmd.Run(); err != nil {
 			return fmt.Errorf("failed to copy istioctl binary: %w", err)
 		}
 	}
+	chmodCmd := exec.Command("chmod", "+x", binaryName)
+	if err := chmodCmd.Run(); err != nil {
+		return fmt.Errorf("failed to make istioctl executable: %w", err)
+	}
+	// Move to local bin directory
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("failed to get user home directory: %w", err)
+	}
+	binDir := homeDir + "/.local/bin"
 
-	// Make executable (not needed on Windows)
-	if osName != "win" {
-		chmodCmd := exec.Command("chmod", "+x", binaryName)
-		if err := chmodCmd.Run(); err != nil {
-			return fmt.Errorf("failed to make istioctl executable: %w", err)
-		}
+	// Create the bin directory if it doesn't exist
+	mkdirCmd := exec.Command("mkdir", "-p", binDir)
+	if err := mkdirCmd.Run(); err != nil {
+		return fmt.Errorf("failed to create local bin directory: %w", err)
 	}
 
-	// Move to appropriate bin directory
-	// Use local bin directory to avoid sudo requirements
-	var binDir string
-	var moveCmd *exec.Cmd
-
-	if osName == "win" {
-		// Use a local bin directory on Windows
-		binDir = "C:\\istioctl"
-		mkdirCmd := exec.Command("mkdir", "-p", binDir)
-		mkdirCmd.Run() // Ignore errors if directory exists
-		moveCmd = exec.Command("move", binaryName, binDir+"\\istioctl.exe")
-	} else {
-		// Use local bin directory instead of /usr/local/bin to avoid sudo
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			return fmt.Errorf("failed to get user home directory: %w", err)
-		}
-		binDir = homeDir + "/.local/bin"
-
-		// Create the bin directory if it doesn't exist
-		mkdirCmd := exec.Command("mkdir", "-p", binDir)
-		if err := mkdirCmd.Run(); err != nil {
-			return fmt.Errorf("failed to create local bin directory: %w", err)
-		}
-
-		moveCmd = exec.Command("mv", binaryName, binDir+"/istioctl")
-	}
+	moveCmd := exec.Command("mv", binaryName, binDir+"/istioctl")
 
 	moveCmd.Stdout, moveCmd.Stderr = os.Stdout, os.Stderr
 	if err := moveCmd.Run(); err != nil {
@@ -278,17 +222,12 @@ func InstallIstioctl() error {
 	}
 
 	// Add to PATH notice
-	if osName != "win" {
-		fmt.Printf("istioctl installed to %s\n", binDir)
-		fmt.Printf("Make sure %s is in your PATH by adding this to your shell profile:\n", binDir)
-		fmt.Printf("export PATH=\"%s:$PATH\"\n", binDir)
-	}
+	fmt.Printf("istioctl installed to %s\n", binDir)
+	fmt.Printf("Make sure %s is in your PATH by adding this to your shell profile:\n", binDir)
+	fmt.Printf("export PATH=\"%s:$PATH\"\n", binDir)
 
 	// Clean up downloaded files
 	cleanupCmd := exec.Command("rm", "-f", fileName)
-	if osName == "win" {
-		cleanupCmd = exec.Command("del", "/f", fileName)
-	}
 	cleanupCmd.Run() // Ignore cleanup errors
 
 	return nil
