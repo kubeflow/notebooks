@@ -42,6 +42,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+
+	istiov1 "istio.io/client-go/pkg/apis/networking/v1"
+
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
 	// +kubebuilder:scaffold:imports
 )
@@ -87,6 +90,8 @@ var _ = BeforeSuite(func() {
 
 	By("setting up the scheme")
 	err = kubefloworgv1beta1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+	err = istiov1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme
@@ -220,12 +225,19 @@ func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 				VolumeMounts: kubefloworgv1beta1.WorkspaceKindVolumeMounts{
 					Home: "/home/jovyan",
 				},
-				HTTPProxy: &kubefloworgv1beta1.HTTPProxy{
-					RemovePathPrefix: ptr.To(false),
-					RequestHeaders: &kubefloworgv1beta1.IstioHeaderOperations{
-						Set:    map[string]string{"X-RStudio-Root-Path": "{{ .PathPrefix }}"},
-						Add:    map[string]string{},
-						Remove: []string{},
+				Ports: []kubefloworgv1beta1.WorkspaceKindPort{
+					{
+						Id:                 "jupyterlab",
+						DefaultDisplayName: "JupyterLab",
+						Protocol:           "HTTP",
+						HTTPProxy: &kubefloworgv1beta1.HTTPProxy{
+							RemovePathPrefix: ptr.To(false),
+							RequestHeaders: &kubefloworgv1beta1.IstioHeaderOperations{
+								Set:    map[string]string{},
+								Add:    map[string]string{},
+								Remove: []string{},
+							},
+						},
 					},
 				},
 				ExtraEnv: []v1.EnvVar{
@@ -292,9 +304,8 @@ func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 									Ports: []kubefloworgv1beta1.ImagePort{
 										{
 											Id:          "jupyterlab",
-											DisplayName: "JupyterLab",
+											DisplayName: ptr.To("JupyterLab"),
 											Port:        8888,
-											Protocol:    "HTTP",
 										},
 									},
 								},
@@ -316,10 +327,8 @@ func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 									Image: "ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.9.0",
 									Ports: []kubefloworgv1beta1.ImagePort{
 										{
-											Id:          "jupyterlab",
-											DisplayName: "JupyterLab",
-											Port:        8888,
-											Protocol:    "HTTP",
+											Id:   "jupyterlab",
+											Port: 8888,
 										},
 									},
 								},
