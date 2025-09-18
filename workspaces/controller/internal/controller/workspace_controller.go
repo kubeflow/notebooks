@@ -1003,7 +1003,7 @@ func generateVirtualService(workspace *kubefloworgv1beta1.Workspace, currentPodT
 	for _, port := range imageConfigSpec.Ports {
 		if _, exists := currentPodTemplatePortsMap[port.Id]; exists {
 			podTemplatePort := currentPodTemplatePortsMap[port.Id]
-			matchUriPrefix := fmt.Sprintf("/workspaces/connect/%s/%s/%s/", workspace.Namespace, workspace.Name, port.Id)
+			matchUriPrefix := fmt.Sprintf("/workspace/connect/%s/%s/%s/", workspace.Namespace, workspace.Name, port.Id)
 
 			// Additional Cases would be added for SSH, etc.
 			switch podTemplatePort.Protocol { //nolint:gocritic
@@ -1012,6 +1012,7 @@ func generateVirtualService(workspace *kubefloworgv1beta1.Workspace, currentPodT
 					Headers: &networkingv1.Headers{
 						Request: &networkingv1.Headers_HeaderOperations{},
 					},
+					Rewrite: &networkingv1.HTTPRewrite{},
 					Match: []*networkingv1.HTTPMatchRequest{
 						{
 							Uri: &networkingv1.StringMatch{
@@ -1032,8 +1033,8 @@ func generateVirtualService(workspace *kubefloworgv1beta1.Workspace, currentPodT
 						},
 					},
 				}
-				if !*podTemplatePort.HTTPProxy.RemovePathPrefix {
-					virtualServiceSpecHttp.Rewrite.Uri = fmt.Sprintf("/workspaces/connect/%s/%s/%s/", workspace.Namespace, workspace.Name, port.Id)
+				if !ptr.Deref(podTemplatePort.HTTPProxy.RemovePathPrefix, false) {
+					virtualServiceSpecHttp.Rewrite.Uri = fmt.Sprintf("/workspace/connect/%s/%s/%s/", workspace.Namespace, workspace.Name, port.Id)
 				}
 				if podTemplatePort.HTTPProxy.RequestHeaders.Set != nil {
 					virtualServiceSpecHttp.Headers.Request.Set = podTemplatePort.HTTPProxy.RequestHeaders.Set
