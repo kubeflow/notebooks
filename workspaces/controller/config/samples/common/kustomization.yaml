@@ -1,4 +1,5 @@
 resources:
 - workspace_data_pvc.yaml
 - workspace_home_pvc.yaml
+- workspace_secret.yaml
 - workspace_service_account.yaml
