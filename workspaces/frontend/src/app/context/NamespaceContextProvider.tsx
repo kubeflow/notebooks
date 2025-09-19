@@ -5,6 +5,7 @@ const storageKey = 'kubeflow.notebooks.namespace.lastUsed';
 
 interface NamespaceContextType {
   selectedNamespace: string;
+  namespacesLoaded: boolean;
 }
 
 const NamespaceContext = React.createContext<NamespaceContextType | undefined>(undefined);
@@ -91,8 +92,9 @@ export const NamespaceContextProvider: React.FC<NamespaceContextProviderProps> =
   const namespacesContextValues = useMemo(
     () => ({
       selectedNamespace,
+      namespacesLoaded,
     }),
-    [selectedNamespace],
+    [selectedNamespace, namespacesLoaded],
   );
 
   return (

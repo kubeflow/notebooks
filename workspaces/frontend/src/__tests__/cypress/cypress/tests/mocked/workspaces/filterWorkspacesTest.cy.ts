@@ -2,6 +2,7 @@ import { mockNamespaces } from '~/__mocks__/mockNamespaces';
 import { mockWorkspaces } from '~/__mocks__/mockWorkspaces';
 import { mockBFFResponse } from '~/__mocks__/utils';
 import { home } from '~/__tests__/cypress/cypress/pages/home';
+import { navBar } from '~/__tests__/cypress/cypress/pages/navBar';
 import { mockWorkspaceKinds } from '~/shared/mock/mockNotebookServiceData';
 
 const useFilter = (filterKey: string, filterName: string, searchValue: string) => {
@@ -16,25 +17,28 @@ describe('Application', () => {
   beforeEach(() => {
     cy.intercept('GET', '/api/v1/namespaces', {
       body: mockBFFResponse(mockNamespaces),
-    });
+    }).as('getNamespaces');
     cy.intercept('GET', '/api/v1/workspaces', {
       body: mockBFFResponse(mockWorkspaces),
     }).as('getWorkspaces');
+    cy.intercept('GET', '/api/v1/workspaces/default', {
+      body: mockBFFResponse(mockWorkspaces),
+    }).as('getDefaultWorkspaces');
     cy.intercept('GET', '/api/v1/workspaces/custom-namespace', {
       body: mockBFFResponse(mockWorkspaces),
     });
     cy.intercept('GET', '/api/v1/workspacekinds', {
       body: mockBFFResponse(mockWorkspaceKinds),
     });
-    cy.intercept('GET', '/api/namespaces/test-namespace/workspaces').as('getWorkspaces');
+    home.visit();
+    cy.wait('@getNamespaces');
+    // Select a namespace to enable workspace loading
+    navBar.selectNamespace('default');
+    // Wait for workspaces to load after namespace selection
+    cy.wait('@getDefaultWorkspaces');
   });
 
   it('filter rows with single filter', () => {
-    home.visit();
-
-    // Wait for the API call before trying to interact with the UI
-    cy.wait('@getWorkspaces');
-
     useFilter('name', 'Name', 'My');
     cy.get("[id$='workspaces-table-content']").find('tr').should('have.length', 2);
     cy.get("[id$='workspaces-table-row-1']").contains('My First Jupyter Notebook');
@@ -42,7 +46,6 @@ describe('Application', () => {
   });
 
   it('filter rows with multiple filters', () => {
-    home.visit();
     // First filter by name
     useFilter('name', 'Name', 'My');
     cy.get("[id$='workspaces-table-content']").find('tr').should('have.length', 2);
@@ -57,7 +60,6 @@ describe('Application', () => {
   });
 
   it('filter rows with multiple filters and remove one', () => {
-    home.visit();
     // Add name filter
     useFilter('name', 'Name', 'My');
     cy.get("[id$='workspaces-table-content']").find('tr').should('have.length', 2);
@@ -79,7 +81,6 @@ describe('Application', () => {
   });
 
   it('filter rows with multiple filters and remove all', () => {
-    home.visit();
     // Add name filter
     useFilter('name', 'Name', 'My');
     cy.get("[id$='workspaces-table-content']").find('tr').should('have.length', 2);

@@ -23,7 +23,7 @@ const generateMockWorkspace = (
     deferUpdates: paused,
     paused,
     pausedTime,
-    pendingRestart: Math.random() < 0.5, //to generate randomly True/False value
+    pendingRestart: true, // Make it deterministic for testing
     state,
     stateMessage:
       state === WorkspacesWorkspaceState.WorkspaceStateRunning
