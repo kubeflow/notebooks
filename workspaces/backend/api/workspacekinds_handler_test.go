@@ -299,7 +299,6 @@ spec:
                 - id: "jupyterlab"
                   displayName: "JupyterLab"
                   port: 8888
-                  protocol: "HTTP"
       podConfig:
         spawner:
           default: "tiny_cpu"

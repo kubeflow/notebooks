@@ -25,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
@@ -96,6 +97,21 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 			{
 				description:   "should reject creation with duplicate ports in imageConfig",
 				workspaceKind: NewExampleWorkspaceKindWithDuplicatePorts("wsk-webhook-create--image-config-duplicate-ports"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with empty ports array in podTemplate",
+				workspaceKind: NewExampleWorkspaceKindWithEmptyPortsArrayInPodTemplate("wsk-webhook-create--pod-template-empty-ports-array"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with duplicate ports in podTemplate.ports",
+				workspaceKind: NewExampleWorkspaceKindWithDuplicatePortsInPodTemplate("wsk-webhook-create--pod-template-duplicate-portids"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with non-existent portId in imageConfig.ports",
+				workspaceKind: NewExampleWorkspaceKindWithNonExistentPortIdInImageConfig("wsk-webhook-create--image-config-non-existent-portid"),
 				shouldSucceed: false,
 			},
 			{
@@ -494,18 +510,37 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 					wsk.Spec.PodTemplate.Options.ImageConfig.Values[1].Spec.Ports = []kubefloworgv1beta1.ImagePort{
 						{
 							Id:          "jupyterlab",
-							DisplayName: "JupyterLab",
+							DisplayName: ptr.To("JupyterLab"),
 							Port:        duplicatePortNumber,
-							Protocol:    "HTTP",
 						},
 						{
 							Id:          "jupyterlab2",
-							DisplayName: "JupyterLab2",
+							DisplayName: ptr.To("JupyterLab2"),
 							Port:        duplicatePortNumber,
-							Protocol:    "HTTP",
 						},
 					}
 					return ContainSubstring("port %d is defined more than once", duplicatePortNumber)
+				},
+			},
+			{
+				description:   "should reject updating a portId in podTemplate.ports to a duplicate portId",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					wsk.Spec.PodTemplate.Ports[1].Id = "jupyterlab"
+					return And(ContainSubstring("Duplicate value:"), ContainSubstring("jupyterlab"))
+				},
+			},
+			{
+				description:   "should reject updating a portId in podTemplate.ports to a non-existent portId in imageConfig.ports",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					existingPortId := wsk.Spec.PodTemplate.Ports[0].Id
+					wsk.Spec.PodTemplate.Ports[0].Id = "non-existent-port-id"
+					return ContainSubstring("%q: missing from spec.podTemplate.ports", existingPortId)
 				},
 			},
 			{
