@@ -5,7 +5,7 @@
 domain: kubeflow.org
 layout:
 - go.kubebuilder.io/v4
-projectName: workspace-controller
+projectName: workspaces-controller
 repo: github.com/kubeflow/notebooks/workspaces/controller
 resources:
 - api:
