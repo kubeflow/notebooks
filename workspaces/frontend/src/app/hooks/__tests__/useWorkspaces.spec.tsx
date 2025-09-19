@@ -17,6 +17,17 @@ jest.mock('~/app/hooks/useNotebookAPI', () => ({
   useNotebookAPI: jest.fn(),
 }));
 
+// Mock the namespace context for this test file only
+const mockNamespaceContext = {
+  selectedNamespace: 'test-namespace',
+  namespacesLoaded: true,
+};
+
+jest.mock('~/app/context/NamespaceContextProvider', () => ({
+  useNamespaceContext: () => mockNamespaceContext,
+  NamespaceContextProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
 const mockUseNotebookAPI = useNotebookAPI as jest.MockedFunction<typeof useNotebookAPI>;
 
 describe('useWorkspaces', () => {

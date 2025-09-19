@@ -13,7 +13,7 @@ import { WorkspacesWorkspaceState } from '~/generated/data-contracts';
 import { POLL_INTERVAL } from '~/shared/utilities/const';
 
 export const Workspaces: React.FunctionComponent = () => {
-  const { selectedNamespace } = useNamespaceContext();
+  const { namespacesLoaded, selectedNamespace } = useNamespaceContext();
 
   const [workspaces, workspacesLoaded, workspacesLoadError, refreshWorkspaces] =
     useWorkspacesByNamespace(selectedNamespace);
@@ -46,7 +46,7 @@ export const Workspaces: React.FunctionComponent = () => {
     return <LoadError error={workspacesLoadError} />;
   }
 
-  if (!workspacesLoaded) {
+  if (!workspacesLoaded || !namespacesLoaded || selectedNamespace === '') {
     return <LoadingSpinner />;
   }
 
