@@ -39,7 +39,7 @@ docker-push: ## Push docker image for the frontend.
 	$(CONTAINER_TOOL) push ${IMG}
 
 # PLATFORMS defines the target platforms for cross-platform support.
-PLATFORMS ?= linux/arm64,linux/amd64,linux/s390x,linux/ppc64le
+PLATFORMS ?= linux/arm64/v8,linux/amd64,linux/ppc64le
 
 .PHONY: docker-buildx
 docker-buildx: ## Build and push docker image for cross-platform support.
