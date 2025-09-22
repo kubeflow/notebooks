@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  IMG: ghcr.io/kubeflow/kubeflow/tensorboard-controller
+  IMG: ghcr.io/kubeflow/notebooks/tensorboard-controller
   TAG: integration-test
 
 jobs:
