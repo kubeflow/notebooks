@@ -136,3 +136,4 @@ echo "Downloading $(2)" ;\
 GOBIN=$(PROJECT_DIR)/bin go install $(2) ;\
 }
 endef
+
