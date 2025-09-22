@@ -5,7 +5,7 @@ on:
       - components/tensorboard-controller/**
       - releasing/version/VERSION
     branches:
-      - master
+      - main
       - v*-branch
       - notebooks-v1
 
