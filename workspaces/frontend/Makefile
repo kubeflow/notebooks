@@ -1,5 +1,11 @@
+GIT_COMMIT     := $(shell git rev-parse HEAD)
+GIT_TREE_STATE := $(shell test -n "`git status --porcelain`" && echo "-dirty" || echo "")
+
 # Image URL to use for building/pushing the frontend image
-IMG ?= nbv2-frontend:latest
+REGISTRY ?= ghcr.io/kubeflow/notebooks
+NAME ?= workspaces-frontend
+TAG ?= sha-$(GIT_COMMIT)$(GIT_TREE_STATE)
+IMG ?= $(REGISTRY)/$(NAME):$(TAG)
 
 # CONTAINER_TOOL defines the container tool to be used for building images.
 # Tested with Docker by default. You may replace with podman.
