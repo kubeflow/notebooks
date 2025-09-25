@@ -3676,11 +3676,18 @@ spec:
                         type: object
                     type: object
                   ports:
-                    description: ports that the container listens on
+                    description: |-
+                      port definitions which can be referenced in image config values
+                      - think of port definitions as the "types" of services which could be provided by a specific image
+                      - a port definition has a common id (URL path) for consistency if the listening TCP port changes
+                      - ports are referenced in image config values by their `id` and their definition here establishes
+                        their protocol type, and default display name in the UI
                     items:
                       properties:
-                        displayName:
-                          description: the display name of the port
+                        defaultDisplayName:
+                          description: |-
+                            the default display name of the port
+                            - note, this can be overridden on a per image config value basis
                           example: JupyterLab
                           maxLength: 64
                           minLength: 2
@@ -3747,7 +3754,7 @@ spec:
                           example: HTTP
                           type: string
                       required:
-                      - displayName
+                      - defaultDisplayName
                       - id
                       - protocol
                       type: object

@@ -29,7 +29,7 @@ import (
 ===============================================================================
 */
 
-// PortId the id of the port
+// an id of the port
 //
 // +kubebuilder:validation:MinLength:=1
 // +kubebuilder:validation:MaxLength:=32
@@ -122,7 +122,11 @@ type WorkspaceKindPodTemplate struct {
 	// volume mount paths
 	VolumeMounts WorkspaceKindVolumeMounts `json:"volumeMounts"`
 
-	// ports that the container listens on
+	// port definitions which can be referenced in image config values
+	// - think of port definitions as the "types" of services which could be provided by a specific image
+	// - a port definition has a common id (URL path) for consistency if the listening TCP port changes
+	// - ports are referenced in image config values by their `id` and their definition here establishes
+	//   their protocol type, and default display name in the UI
 	// +kubebuilder:validation:MinItems:=1
 	// +listType:="map"
 	// +listMapKey:="id"
@@ -170,11 +174,12 @@ type WorkspaceKindPort struct {
 	// +kubebuilder:example:="HTTP"
 	Protocol ImagePortProtocol `json:"protocol"`
 
-	// the display name of the port
+	// the default display name of the port
+	// - note, this can be overridden on a per image config value basis
 	// +kubebuilder:validation:MinLength:=2
 	// +kubebuilder:validation:MaxLength:=64
 	// +kubebuilder:example:="JupyterLab"
-	DefaultDisplayName string `json:"displayName"`
+	DefaultDisplayName string `json:"defaultDisplayName"`
 
 	// the http proxy config for the port (MUTABLE)
 	// +kubebuilder:validation:Optional

@@ -135,18 +135,21 @@ spec:
       ##
       home: "/home/jovyan"
 
-    ## port configs (MUTABLE)
+    ## port definitions which can be referenced in image config values (MUTABLE)
+    ##  - think of port definitions as the "types" of services which could be provided by a specific image
+    ##  - a port definition has a common id (URL path) for consistency if the listening TCP port changes
+    ##  - ports are referenced in image config values by their `id` and their definition here establishes
+    ##    their protocol type, and default display name in the UI
+    ##
     ports:
 
-      ## the list of ports that the Workspace exposes
-      ## configs apply to a single port
-      ## portId is the identifier for the port in `imageconfig` ports.[].id
       - id: "jupyterlab"
-        displayName: "JupyterLab"
+        defaultDisplayName: "JupyterLab"
         protocol: "HTTP"
 
         ## http proxy configs (MUTABLE)
         ## only "HTTP" protocol ports are supported
+        ##
         httpProxy:
 
           ## if the path prefix is stripped from incoming HTTP requests
@@ -166,7 +169,7 @@ spec:
           requestHeaders: {}
             #set: { "X-RStudio-Root-Path": "{{ .PathPrefix }}" } # for RStudio
             #add: {}
-          #remove: []
+            #remove: []
 
     ## environment variables for Workspace Pods (MUTABLE)
     ##  - spec for EnvVar:

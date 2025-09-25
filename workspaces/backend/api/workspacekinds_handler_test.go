@@ -285,7 +285,7 @@ spec:
       home: "/home/jovyan"
     ports:
       - id: "jupyterlab"
-        displayName: "JupyterLab"
+        defaultDisplayName: "JupyterLab"
         protocol: "HTTP"
     options:
       imageConfig:
