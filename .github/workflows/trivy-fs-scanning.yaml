@@ -1,0 +1,58 @@
+name: Trivy FS scanning
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # Every day at 6:00 AM UTC
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to scan'
+        required: true
+        default: 'notebooks-v2'
+        type: choice
+        options:
+          - notebooks-v1
+          - notebooks-v2
+
+permissions:
+  actions: read
+  security-events: write
+
+jobs:
+  build:
+    if: github.event_name == 'workflow_dispatch' || ( github.event_name == 'schedule' && github.repository == 'kubeflow/notebooks' )
+    name: Trivy FS scan
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        branch: ${{ github.event_name == 'workflow_dispatch' && fromJSON(format('["{0}"]', github.event.inputs.branch)) || fromJSON('["notebooks-v1", "notebooks-v2"]') }}
+    steps:
+    - name: Checkout code
+      id: checkout
+      uses: actions/checkout@v4
+      with:
+        ref: refs/heads/${{ matrix.branch }}  # using explicit refs syntax due to requirements of upload-sarif action
+
+    - name: Run Trivy vulnerability scanner in fs mode
+      uses: aquasecurity/trivy-action@0.33.1
+      with:
+        scan-type: 'fs'
+        format: 'sarif'
+        severity: 'CRITICAL,HIGH,MEDIUM'
+        limit-severities-for-sarif: true
+        ignore-unfixed: true
+        output: 'trivy-fs-scan-results-${{ matrix.branch }}.sarif'
+
+    - name: Add branch metadata to SARIF
+      run: |
+        # Modify ruleId to include branch information for identification
+        jq '.runs[0].results[] |= (.ruleId = "trivy/${{ matrix.branch }}/" + .ruleId)' \
+           trivy-fs-scan-results-${{ matrix.branch }}.sarif > trivy-fs-scan-results-${{ matrix.branch }}-processed.sarif
+        mv trivy-fs-scan-results-${{ matrix.branch }}-processed.sarif trivy-fs-scan-results-${{ matrix.branch }}.sarif
+
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+          sarif_file: 'trivy-fs-scan-results-${{ matrix.branch }}.sarif'
+          ref: ${{ steps.checkout.outputs.ref }}
+          sha: ${{ steps.checkout.outputs.commit }}
