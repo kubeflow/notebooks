@@ -1,5 +1,11 @@
+GIT_COMMIT     := $(shell git rev-parse HEAD)
+GIT_TREE_STATE := $(shell test -n "`git status --porcelain`" && echo "-dirty" || echo "")
+
 # Image URL to use all building/pushing image targets
-IMG ?= nb-backend:latest
+REGISTRY ?= ghcr.io/kubeflow/notebooks
+NAME ?= workspaces-backend
+TAG ?= sha-$(GIT_COMMIT)$(GIT_TREE_STATE)
+IMG ?= $(REGISTRY)/$(NAME):$(TAG)
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.31.0
 
