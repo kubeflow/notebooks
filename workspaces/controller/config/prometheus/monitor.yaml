@@ -2,12 +2,7 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  labels:
-    control-plane: controller-manager
-    app.kubernetes.io/name: workspace-controller
-    app.kubernetes.io/managed-by: kustomize
-  name: controller-manager-metrics-monitor
-  namespace: system
+  name: workspaces-controller-metrics-monitor
 spec:
   endpoints:
     - path: /metrics
@@ -15,4 +10,4 @@ spec:
       scheme: http
   selector:
     matchLabels:
-      control-plane: controller-manager
+      app.kubernetes.io/component: controller-manager
