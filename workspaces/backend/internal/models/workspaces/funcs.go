@@ -91,6 +91,10 @@ func NewWorkspaceModelFromWorkspace(ws *kubefloworgv1beta1.Workspace, wsk *kubef
 
 	imageConfigModel, imageConfigValue := buildImageConfig(ws, wsk)
 	podConfigModel, _ := buildPodConfig(ws, wsk)
+	var wskPodTemplatePorts []kubefloworgv1beta1.WorkspaceKindPort
+	if wskExists(wsk) {
+		wskPodTemplatePorts = wsk.Spec.PodTemplate.Ports
+	}
 
 	workspaceModel := Workspace{
 		Name:      ws.Name,
@@ -128,7 +132,7 @@ func NewWorkspaceModelFromWorkspace(ws *kubefloworgv1beta1.Workspace, wsk *kubef
 			//       https://github.com/kubeflow/notebooks/issues/38
 			LastProbe: nil,
 		},
-		Services: buildServices(ws, imageConfigValue),
+		Services: buildServices(ws, wskPodTemplatePorts, imageConfigValue),
 	}
 	return workspaceModel
 }
@@ -332,7 +336,7 @@ func buildRedirectMessage(msg *kubefloworgv1beta1.RedirectMessage) *RedirectMess
 	}
 }
 
-func buildServices(ws *kubefloworgv1beta1.Workspace, imageConfigValue *kubefloworgv1beta1.ImageConfigValue) []Service {
+func buildServices(ws *kubefloworgv1beta1.Workspace, wskPodTemplatePorts []kubefloworgv1beta1.WorkspaceKindPort, imageConfigValue *kubefloworgv1beta1.ImageConfigValue) []Service {
 	if imageConfigValue == nil {
 		return nil
 	}
@@ -340,10 +344,12 @@ func buildServices(ws *kubefloworgv1beta1.Workspace, imageConfigValue *kubeflowo
 	services := make([]Service, len(imageConfigValue.Spec.Ports))
 	for i := range imageConfigValue.Spec.Ports {
 		port := imageConfigValue.Spec.Ports[i]
-		switch port.Protocol { //nolint:gocritic
+		protocol := wskPodTemplatePorts[i].Protocol
+		// golint complains about the single case in switch statement
+		switch protocol { //nolint:gocritic
 		case kubefloworgv1beta1.ImagePortProtocolHTTP:
 			services[i].HttpService = &HttpService{
-				DisplayName: port.DisplayName,
+				DisplayName: ptr.Deref(port.DisplayName, wskPodTemplatePorts[i].DefaultDisplayName),
 				HttpPath:    fmt.Sprintf("/workspace/%s/%s/%s/", ws.Namespace, ws.Name, port.Id),
 			}
 		}
