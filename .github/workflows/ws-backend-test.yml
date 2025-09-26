@@ -52,6 +52,17 @@ jobs:
               exit 1
           fi
 
+  image-build:
+    needs: build
+    uses: ./.github/workflows/ws-build-image.yml
+    with:
+      image_name: workspaces-backend
+      build_file: ./workspaces/backend/Dockerfile
+      ## NOTE: we build the backend from the parent folder so it can COPY from controller
+      build_context: ./workspaces
+      build_platforms: linux/amd64,linux/ppc64le,linux/arm64/v8
+      tag_with_sha: true
+
   unit-tests:
     runs-on: ubuntu-latest
     needs: build

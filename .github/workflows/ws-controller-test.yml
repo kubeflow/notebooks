@@ -52,6 +52,16 @@ jobs:
               exit 1
           fi
 
+  image-build:
+    needs: build
+    uses: ./.github/workflows/ws-build-image.yml
+    with:
+      image_name: workspaces-controller
+      build_file: ./workspaces/controller/Dockerfile
+      build_context: ./workspaces/controller
+      build_platforms: linux/amd64,linux/ppc64le,linux/arm64/v8
+      tag_with_sha: true
+
   unit-tests:
     runs-on: ubuntu-latest
     needs: build
