@@ -87,3 +87,12 @@ jobs:
               git diff
               exit 1
           fi
+
+  image-build:
+    uses: ./.github/workflows/ws-build-image.yml
+    with:
+      image_name: workspaces-frontend
+      build_file: ./workspaces/frontend/Dockerfile
+      build_context: ./workspaces/frontend
+      build_platforms: linux/amd64,linux/ppc64le,linux/arm64/v8
+      tag_with_sha: true

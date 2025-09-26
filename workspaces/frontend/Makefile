@@ -1,9 +1,13 @@
-# Image URL to use for building/pushing the frontend image
-IMG ?= nbv2-frontend:latest
+GIT_COMMIT     := $(shell git rev-parse HEAD)
+GIT_TREE_STATE := $(shell test -n "`git status --porcelain`" && echo "-dirty" || echo "")
 
-# CONTAINER_TOOL defines the container tool to be used for building images.
-# Tested with Docker by default. You may replace with podman.
-CONTAINER_TOOL ?= docker
+# Image URL to use all building/pushing image targets
+REGISTRY ?= ghcr.io/kubeflow/notebooks
+NAME ?= workspaces-frontend
+TAG ?= sha-$(GIT_COMMIT)$(GIT_TREE_STATE)
+IMG ?= $(REGISTRY)/$(NAME):$(TAG)
+ARCH ?= linux/arm64/v8,linux/amd64,linux/ppc64le
+
 
 # Setting SHELL to bash allows bash commands to be executed by recipes.
 # Options are set to exit when a recipe line exits non-zero or a piped command fails.
@@ -28,28 +32,21 @@ clean: ## Remove local test/build artifacts.
 
 ##@ Build
 
-# If you wish to build the image targeting other platforms you can use the --platform flag.
-# (i.e. docker build --platform linux/arm64). Requires Docker BuildKit.
 .PHONY: docker-build
-docker-build: ## Build docker image for the frontend.
-	$(CONTAINER_TOOL) build -t ${IMG} .
+docker-build:
+	docker build --tag ${IMG} .
 
 .PHONY: docker-push
-docker-push: ## Push docker image for the frontend.
-	$(CONTAINER_TOOL) push ${IMG}
+docker-push:
+	docker push ${IMG}
 
-# PLATFORMS defines the target platforms for cross-platform support.
-PLATFORMS ?= linux/arm64/v8,linux/amd64,linux/ppc64le
+.PHONY: docker-build-multi-arch
+docker-build-multi-arch:
+	docker buildx build --platform ${ARCH} --tag ${IMG} .
 
-.PHONY: docker-buildx
-docker-buildx: ## Build and push docker image for cross-platform support.
-	# copy existing Dockerfile and insert --platform=$${BUILDPLATFORM} into Dockerfile.cross, preserving the original
-	sed -e '1 s/\(^FROM\)/FROM --platform=\$$\{BUILDPLATFORM\}/; t' -e ' 1,// s//FROM --platform=\$$\{BUILDPLATFORM\}/' Dockerfile > Dockerfile.cross
-	- $(CONTAINER_TOOL) buildx create --name project-v3-builder
-	$(CONTAINER_TOOL) buildx use project-v3-builder
-	- $(CONTAINER_TOOL) buildx build --push --platform=$(PLATFORMS) --tag ${IMG} -f Dockerfile.cross .
-	- $(CONTAINER_TOOL) buildx rm project-v3-builder
-	rm Dockerfile.cross
+.PHONY: docker-build-push-multi-arch
+docker-build-push-multi-arch:
+	docker buildx build --platform ${ARCH} --tag ${IMG} --push .
 
 ##@ Deployment
 
