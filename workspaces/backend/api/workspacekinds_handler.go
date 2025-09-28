@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
@@ -153,9 +154,17 @@ func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _
 //	@Failure		500		{object}	ErrorEnvelope			"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspacekinds [post]
 func (a *App) CreateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	// Parse dry-run query parameter
+	dryRun := r.URL.Query().Get("dry_run")
+	if dryRun != "" && dryRun != "true" && dryRun != "false" {
+		a.badRequestResponse(w, r, fmt.Errorf("Invalid dry_run value. Must be 'true' or 'false'"))
+		return
+	}
+	isDryRun := dryRun == "true"
 
 	// validate the Content-Type header
-	if success := a.ValidateContentType(w, r, MediaTypeYaml); !success {
+	if !strings.EqualFold(r.Header.Get("Content-Type"), MediaTypeYaml) {
+		a.unsupportedMediaTypeResponse(w, r, fmt.Errorf("Only application/yaml is supported"))
 		return
 	}
 
@@ -204,7 +213,7 @@ func (a *App) CreateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 	}
 	// ============================================================
 
-	createdWorkspaceKind, err := a.repositories.WorkspaceKind.Create(r.Context(), workspaceKind)
+	createdWorkspaceKind, err := a.repositories.WorkspaceKind.Create(r.Context(), workspaceKind, isDryRun)
 	if err != nil {
 		if errors.Is(err, repository.ErrWorkspaceKindAlreadyExists) {
 			a.conflictResponse(w, r, err)
@@ -216,6 +225,16 @@ func (a *App) CreateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 			return
 		}
 		a.serverErrorResponse(w, r, fmt.Errorf("error creating workspace kind: %w", err))
+		return
+	}
+
+	// Set response Content-Type header
+	w.Header().Set("Content-Type", "application/json")
+
+	// Return appropriate response based on dry-run
+	if isDryRun {
+		responseEnvelope := &WorkspaceKindEnvelope{Data: *createdWorkspaceKind}
+		a.dataResponse(w, r, responseEnvelope)
 		return
 	}
 
