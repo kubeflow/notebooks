@@ -1,4 +1,4 @@
-IMG ?= ghcr.io/kubeflow/kubeflow/jupyter-web-app
+IMG ?= ghcr.io/kubeflow/notebooks/jupyter-web-app
 TAG ?= $(shell git describe --tags --always --dirty)
 DOCKERFILE ?= jupyter/Dockerfile
 ARCH ?= linux/amd64
@@ -13,7 +13,6 @@ docker-push:
 .PHONY: docker-build-multi-arch
 docker-build-multi-arch: ##  Build multi-arch docker images with docker buildx
 	cd ../ && docker buildx build --load --platform ${ARCH} --tag ${IMG}:${TAG} -f ${DOCKERFILE} .
-
 
 .PHONY: docker-build-push-multi-arch
 docker-build-push-multi-arch: ## Build multi-arch docker images with docker buildx and push to docker registry 
