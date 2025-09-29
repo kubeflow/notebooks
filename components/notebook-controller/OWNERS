@@ -1,0 +1,10 @@
+labels:
+  - area/controller
+  - area/v1
+approvers:
+  - kimwnasptd
+  - thesuperzapper
+emeritus_approvers:
+  - elikatsis
+  - StefanoFioravanzo
+  - yanniszark
