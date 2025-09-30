@@ -1,0 +1,90 @@
+name: Build & Publish JWA Docker image
+on:
+  push:
+    branches:
+      - main
+      - v*-branch
+      - notebooks-v1
+    paths:
+      - components/crud-web-apps/jupyter/**
+      - components/crud-web-apps/common/**
+      - releasing/version/VERSION
+
+env:
+  IMG: ghcr.io/kubeflow/notebooks/jupyter-web-app
+  PLATFORMS: linux/amd64,linux/ppc64le,linux/arm64
+
+jobs:
+  push_to_registry:
+    name: Build & Push image to GHCR Hub
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - uses: dorny/paths-filter@v3
+      id: filter
+      with:
+        base: ${{ github.ref }}
+        filters: |
+          version:
+            - 'releasing/version/VERSION'
+
+    - name: Login to GHCR
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup QEMU
+      uses: docker/setup-qemu-action@v3
+      with:
+        platforms: amd64,ppc64le,arm64
+
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build and push multi-arch docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: components/crud-web-apps/
+        file: components/crud-web-apps/jupyter/Dockerfile
+        platforms: ${{ env.PLATFORMS }}
+        push: true
+        tags: |
+          ${{ env.IMG }}:${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Build and push latest multi-arch docker image
+      if: github.ref == 'refs/heads/main'
+      uses: docker/build-push-action@v5
+      with:
+        context: components/crud-web-apps/
+        file: components/crud-web-apps/jupyter/Dockerfile
+        platforms: ${{ env.PLATFORMS }}
+        push: true
+        tags: |
+          ${{ env.IMG }}:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Get version tag
+      id: version-tag
+      if: steps.filter.outputs.version == 'true'
+      run: echo "version=$(cat releasing/version/VERSION)" >> $GITHUB_OUTPUT
+
+    - name: Build and push multi-arch docker image on Version change
+      id: version-build
+      if: steps.filter.outputs.version == 'true'
+      uses: docker/build-push-action@v5
+      with:
+        context: components/crud-web-apps/
+        file: components/crud-web-apps/jupyter/Dockerfile
+        platforms: ${{ env.PLATFORMS }}
+        push: true
+        tags: |
+          ${{ env.IMG }}:${{ steps.version-tag.outputs.version }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
