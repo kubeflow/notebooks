@@ -45,7 +45,7 @@ on:
         type: boolean
 
 env:
-  IMAGE_REGISTRY: ghcr.io/${{ github.repository_owner }}
+  IMAGE_REGISTRY: ghcr.io/${{ github.repository }}
 
 jobs:
   build_image:
