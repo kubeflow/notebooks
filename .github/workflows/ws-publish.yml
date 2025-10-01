@@ -60,9 +60,9 @@ jobs:
     with:
       image_name: ${{ matrix.image_name }}
       tag_with_latest: false # we don't use 'latest' tags for workspace images
-      tag_with_semver: ${{ needs.check_version.version_changed == 'true' }}
+      tag_with_semver: ${{ needs.check_version.outputs.version_changed == 'true' }}
       tag_with_sha: true
-      semver_raw: ${{ needs.check_version.version_raw }}
+      semver_raw: ${{ needs.check_version.outputs.version_raw }}
       build_file: ${{ matrix.build_file }}
       build_context: ${{ matrix.build_context }}
       build_platforms: linux/amd64,linux/ppc64le,linux/arm64/v8
