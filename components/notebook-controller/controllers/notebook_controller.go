@@ -45,6 +45,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+	gwapiv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 )
 
 const DefaultContainerPort = 8888
@@ -85,6 +86,7 @@ type NotebookReconciler struct {
 // +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs="*"
 // +kubebuilder:rbac:groups=kubeflow.org,resources=notebooks;notebooks/status;notebooks/finalizers,verbs="*"
 // +kubebuilder:rbac:groups="networking.istio.io",resources=virtualservices,verbs="*"
+// +kubebuilder:rbac:groups="gateway.networking.k8s.io",resources=httproutes,verbs="*"
 
 func (r *NotebookReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("notebook", req.NamespacedName)
@@ -199,9 +201,17 @@ func (r *NotebookReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 	}
 
-	// Reconcile virtual service if we use ISTIO.
+	// Reconcile VirtualService if we use ISTIO.
 	if os.Getenv("USE_ISTIO") == "true" {
 		err = r.reconcileVirtualService(instance)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	// Reconcile HTTPRoute if we use Gateway API.
+	if os.Getenv("USE_GATEWAY_API") == "true" {
+		err = r.reconcileHTTPRoute(instance)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -567,7 +577,135 @@ func generateVirtualService(instance *v1beta1.Notebook) (*unstructured.Unstructu
 	}
 
 	return vsvc, nil
+}
 
+func generateHTTPRoute(instance *v1beta1.Notebook) (*gwapiv1beta1.HTTPRoute, error) {
+	name := instance.Name
+	namespace := instance.Namespace
+	pathPrefix := fmt.Sprintf("/notebook/%s/%s", namespace, name)
+
+	// unpack annotations from Notebook resource
+	annotations := make(map[string]string)
+	for k, v := range instance.ObjectMeta.Annotations {
+		annotations[k] = v
+	}
+
+	pathRewrite := fmt.Sprintf("/notebook/%s/%s", namespace, name)
+	// If AnnotationRewriteURI is present, use this value for path rewrite
+	if _, ok := annotations[AnnotationRewriteURI]; ok && len(annotations[AnnotationRewriteURI]) > 0 {
+		pathRewrite = annotations[AnnotationRewriteURI]
+	}
+
+	// Get gateway configuration
+	gatewayName := os.Getenv("K8S_GATEWAY_NAME")
+	if len(gatewayName) == 0 {
+		gatewayName = "kubeflow-gateway"
+	}
+	gatewayNamespace := os.Getenv("K8S_GATEWAY_NAMESPACE")
+	if len(gatewayNamespace) == 0 {
+		gatewayNamespace = "kubeflow"
+	}
+
+	pathMatchType := gwapiv1beta1.PathMatchPathPrefix
+	pathRewriteType := gwapiv1beta1.PrefixMatchHTTPPathModifier
+	urlRewriteType := gwapiv1beta1.HTTPRouteFilterURLRewrite
+	portNumber := gwapiv1beta1.PortNumber(DefaultServingPort)
+
+	httpRoute := &gwapiv1beta1.HTTPRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      virtualServiceName(name, namespace),
+			Namespace: namespace,
+		},
+		Spec: gwapiv1beta1.HTTPRouteSpec{
+			CommonRouteSpec: gwapiv1beta1.CommonRouteSpec{
+				ParentRefs: []gwapiv1beta1.ParentReference{
+					{
+						Name:      gwapiv1beta1.ObjectName(gatewayName),
+						Namespace: (*gwapiv1beta1.Namespace)(&gatewayNamespace),
+					},
+				},
+			},
+			Rules: []gwapiv1beta1.HTTPRouteRule{
+				{
+					Matches: []gwapiv1beta1.HTTPRouteMatch{
+						{
+							Path: &gwapiv1beta1.HTTPPathMatch{
+								Type:  &pathMatchType,
+								Value: &pathPrefix,
+							},
+						},
+					},
+					Filters: []gwapiv1beta1.HTTPRouteFilter{
+						{
+							Type: urlRewriteType,
+							URLRewrite: &gwapiv1beta1.HTTPURLRewriteFilter{
+								Path: &gwapiv1beta1.HTTPPathModifier{
+									Type:               pathRewriteType,
+									ReplacePrefixMatch: &pathRewrite,
+								},
+							},
+						},
+					},
+					BackendRefs: []gwapiv1beta1.HTTPBackendRef{
+						{
+							BackendRef: gwapiv1beta1.BackendRef{
+								BackendObjectReference: gwapiv1beta1.BackendObjectReference{
+									Name: gwapiv1beta1.ObjectName(name),
+									Port: &portNumber,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	return httpRoute, nil
+}
+
+
+func (r *NotebookReconciler) reconcileHTTPRoute(instance *v1beta1.Notebook) error {
+	log := r.Log.WithValues("notebook", instance.Namespace)
+	httpRoute, err := generateHTTPRoute(instance)
+	if err != nil {
+		log.Info("Unable to generate HTTPRoute...", err)
+		return err
+	}
+	if err := ctrl.SetControllerReference(instance, httpRoute, r.Scheme); err != nil {
+		return err
+	}
+	// Check if the HTTPRoute already exists.
+	foundHTTPRoute := &gwapiv1beta1.HTTPRoute{}
+	justCreated := false
+	err = r.Get(context.TODO(), types.NamespacedName{Name: virtualServiceName(instance.Name,
+		instance.Namespace), Namespace: instance.Namespace}, foundHTTPRoute)
+	if err != nil && apierrs.IsNotFound(err) {
+		log.Info("Creating HTTPRoute", "namespace", instance.Namespace, "name",
+			virtualServiceName(instance.Name, instance.Namespace))
+		err = r.Create(context.TODO(), httpRoute)
+		justCreated = true
+		if err != nil {
+			return err
+		}
+	} else if err != nil {
+		return err
+	}
+
+	if !justCreated {
+		// Copy the spec from the desired HTTPRoute to the existing one
+		if !reflect.DeepEqual(httpRoute.Spec, foundHTTPRoute.Spec) {
+			log.Info("Updating HTTPRoute", "namespace", instance.Namespace, "name",
+				virtualServiceName(instance.Name, instance.Namespace))
+			foundHTTPRoute.Spec = httpRoute.Spec
+			err = r.Update(context.TODO(), foundHTTPRoute)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func (r *NotebookReconciler) reconcileVirtualService(instance *v1beta1.Notebook) error {
@@ -728,6 +866,11 @@ func (r *NotebookReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		virtualService.SetAPIVersion("networking.istio.io/v1alpha3")
 		virtualService.SetKind("VirtualService")
 		builder.Owns(virtualService)
+	}
+
+	// watch HTTPRoute
+	if os.Getenv("USE_GATEWAY_API") == "true" {
+		builder.Owns(&gwapiv1beta1.HTTPRoute{})
 	}
 
 	err := builder.Complete(r)
