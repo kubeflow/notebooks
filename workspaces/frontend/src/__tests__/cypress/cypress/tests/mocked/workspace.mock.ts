@@ -80,7 +80,7 @@ const generateMockWorkspace = (
       {
         httpService: {
           displayName: 'Jupyter-lab',
-          httpPath: `/workspace/${namespace}/${name}/Jupyter-lab/`,
+          httpPath: `/workspace/connect/${namespace}/${name}/Jupyter-lab/`,
         },
       },
     ],

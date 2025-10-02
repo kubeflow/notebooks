@@ -282,7 +282,7 @@ var _ = Describe("controller", Ordered, func() {
 			Eventually(getServiceName, timeout, interval).Should(Succeed())
 
 			By("validating that the workspace service endpoint is reachable")
-			serviceEndpoint := fmt.Sprintf("http://%s:%d/workspace/%s/%s/%s/lab",
+			serviceEndpoint := fmt.Sprintf("http://%s:%d/workspace/connect/%s/%s/%s/lab",
 				workspaceSvcName, workspacePortInt, workspaceNamespace, workspaceName, workspacePortId,
 			)
 			curlService := func() error {

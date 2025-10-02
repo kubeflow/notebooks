@@ -19,6 +19,8 @@ package helper
 import (
 	"reflect"
 
+	"google.golang.org/protobuf/proto"
+	istiov1 "istio.io/client-go/pkg/apis/networking/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -26,25 +28,46 @@ import (
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 )
 
+// copyLabelFields copies metadata.labels from desired to target, returning the updated map and whether an update is required.
+func copyLabelFields(desiredLabels map[string]string, targetLabels map[string]string) (map[string]string, bool) {
+	requireUpdate := false
+
+	for k, v := range targetLabels {
+		if desiredLabels[k] != v {
+			requireUpdate = true
+		}
+	}
+	return desiredLabels, requireUpdate
+}
+
+// copyAnnotationFields copies metadata.annotations from desired to target, returning the updated map and whether an update is required.
+func copyAnnotationFields(desiredAnnotations map[string]string, targetAnnotations map[string]string) (map[string]string, bool) {
+	requireUpdate := false
+
+	for k, v := range targetAnnotations {
+		if desiredAnnotations[k] != v {
+			requireUpdate = true
+		}
+	}
+	return desiredAnnotations, requireUpdate
+}
+
 // CopyStatefulSetFields updates a target StatefulSet with the fields from a desired StatefulSet, returning true if an update is required.
 func CopyStatefulSetFields(desired *appsv1.StatefulSet, target *appsv1.StatefulSet) bool {
 	requireUpdate := false
 
 	// copy `metadata.labels`
-	for k, v := range target.Labels {
-		if desired.Labels[k] != v {
-			requireUpdate = true
-		}
+	var updated bool
+	target.Labels, updated = copyLabelFields(desired.Labels, target.Labels)
+	if updated {
+		requireUpdate = true
 	}
-	target.Labels = desired.Labels
 
 	// copy `metadata.annotations`
-	for k, v := range target.Annotations {
-		if desired.Annotations[k] != v {
-			requireUpdate = true
-		}
+	target.Annotations, updated = copyAnnotationFields(desired.Annotations, target.Annotations)
+	if updated {
+		requireUpdate = true
 	}
-	target.Annotations = desired.Annotations
 
 	// copy `spec.replicas`
 	if *desired.Spec.Replicas != *target.Spec.Replicas {
@@ -80,20 +103,17 @@ func CopyServiceFields(desired *corev1.Service, target *corev1.Service) bool {
 	requireUpdate := false
 
 	// copy `metadata.labels`
-	for k, v := range target.Labels {
-		if desired.Labels[k] != v {
-			requireUpdate = true
-		}
+	var updated bool
+	target.Labels, updated = copyLabelFields(desired.Labels, target.Labels)
+	if updated {
+		requireUpdate = true
 	}
-	target.Labels = desired.Labels
 
 	// copy `metadata.annotations`
-	for k, v := range target.Annotations {
-		if desired.Annotations[k] != v {
-			requireUpdate = true
-		}
+	target.Annotations, updated = copyAnnotationFields(desired.Annotations, target.Annotations)
+	if updated {
+		requireUpdate = true
 	}
-	target.Annotations = desired.Annotations
 
 	// NOTE: we don't copy the entire `spec` because we can't overwrite the `spec.clusterIp` and similar fields
 
@@ -112,6 +132,34 @@ func CopyServiceFields(desired *corev1.Service, target *corev1.Service) bool {
 	// copy `spec.type`
 	if target.Spec.Type != desired.Spec.Type {
 		target.Spec.Type = desired.Spec.Type
+		requireUpdate = true
+	}
+
+	return requireUpdate
+}
+
+// CopyVirtualServiceFields updates a target VirtualService with the fields from a desired VirtualService, returning true if an update is required.
+func CopyVirtualServiceFields(desired *istiov1.VirtualService, target *istiov1.VirtualService) bool {
+	requireUpdate := false
+
+	// copy `metadata.labels`
+	var updated bool
+	target.Labels, updated = copyLabelFields(desired.Labels, target.Labels)
+	if updated {
+		requireUpdate = true
+	}
+
+	// copy `metadata.annotations`
+	target.Annotations, updated = copyAnnotationFields(desired.Annotations, target.Annotations)
+	if updated {
+		requireUpdate = true
+	}
+
+	// copy `spec`
+	// NOTE: we use proto.Equal to compare the specs of Istio resources are protobuf messages
+	//       and messages with the same value are not considered equal with reflect.DeepEqual
+	if !proto.Equal(&target.Spec, &desired.Spec) {
+		target.Spec = *desired.Spec.DeepCopy()
 		requireUpdate = true
 	}
 
