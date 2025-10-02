@@ -153,7 +153,7 @@ spec:
         httpProxy:
 
           ## if the path prefix is stripped from incoming HTTP requests
-          ##  - if true, the '/workspace/{profile_name}/{workspace_name}/' path prefix
+          ##  - if true, the '/workspace/connect/{profile_name}/{workspace_name}/' path prefix
           ##    is stripped from incoming requests, the application sees the request
           ##    as if it was made to '/...'
           ##  - this only works if the application serves RELATIVE URLs for its assets
@@ -164,7 +164,7 @@ spec:
           ##  - sets the `spec.http[].headers.request` of the Istio VirtualService
           ##    https://istio.io/latest/docs/reference/config/networking/virtual-service/#Headers-HeaderOperations
           ##  - the following string templates are available:
-          ##      - `.PathPrefix`: the path prefix of the Workspace (e.g. '/workspace/{profile_name}/{workspace_name}/')
+          ##      - `.PathPrefix`: the path prefix of the Workspace (e.g. '/workspace/connect/{profile_name}/{workspace_name}/')
           ##
           requestHeaders: {}
             #set: { "X-RStudio-Root-Path": "{{ .PathPrefix }}" } # for RStudio

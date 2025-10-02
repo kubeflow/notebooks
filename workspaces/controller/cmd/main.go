@@ -20,11 +20,13 @@ import (
 	"crypto/tls"
 	"flag"
 	"os"
+	"strconv"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	istiov1 "istio.io/client-go/pkg/apis/networking/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -36,6 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	"github.com/kubeflow/notebooks/workspaces/controller/internal/config"
 	controllerInternal "github.com/kubeflow/notebooks/workspaces/controller/internal/controller"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
 	webhookInternal "github.com/kubeflow/notebooks/workspaces/controller/internal/webhook"
@@ -50,6 +53,8 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
+	utilruntime.Must(istiov1.AddToScheme(scheme))
+
 	utilruntime.Must(kubefloworgv1beta1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
@@ -60,6 +65,10 @@ func main() {
 	var probeAddr string
 	var secureMetrics bool
 	var enableHTTP2 bool
+
+	// Define command line flags
+	cfg := &config.EnvConfig{}
+
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
@@ -69,6 +78,15 @@ func main() {
 		"If set the metrics endpoint is served securely")
 	flag.BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
+	flag.StringVar(&cfg.IstioGateway, "istio-gateway", getEnvAsStr("ISTIO_GATEWAY", ""),
+		"The name of the Istio gateway to use")
+	flag.StringVar(&cfg.IstioHosts, "istio-hosts", getEnvAsStr("ISTIO_HOSTS", "*"),
+		"The hosts to use for the Istio VirtualService")
+	flag.StringVar(&cfg.ClusterDomain, "cluster-domain", getEnvAsStr("CLUSTER_DOMAIN", "cluster.local"),
+		"The domain to use for the Istio VirtualService")
+	flag.BoolVar(&cfg.UseIstio, "use-istio", getEnvAsBool("USE_ISTIO", false),
+		"If set, Istio will be used")
+
 	opts := zap.Options{
 		Development: true,
 	}
@@ -129,7 +147,7 @@ func main() {
 
 	// setup field indexers on the manager cache. we use these indexes to efficiently
 	// query the cache for things like which Workspaces are using a particular WorkspaceKind
-	if err := helper.SetupManagerFieldIndexers(mgr); err != nil {
+	if err := helper.SetupManagerFieldIndexers(mgr, cfg); err != nil {
 		setupLog.Error(err, "unable to setup field indexers")
 		os.Exit(1)
 	}
@@ -137,6 +155,7 @@ func main() {
 	if err = (&controllerInternal.WorkspaceReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
+		Config: cfg,
 	}).SetupWithManager(mgr, controller.Options{
 		RateLimiter: helper.BuildRateLimiter(),
 	}); err != nil {
@@ -187,4 +206,20 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+func getEnvAsStr(name string, defaultVal string) string {
+	if value, exists := os.LookupEnv(name); exists {
+		return value
+	}
+	return defaultVal
+}
+
+func getEnvAsBool(name string, defaultVal bool) bool {
+	if value, exists := os.LookupEnv(name); exists {
+		if boolValue, err := strconv.ParseBool(value); err == nil {
+			return boolValue
+		}
+	}
+	return defaultVal
 }
