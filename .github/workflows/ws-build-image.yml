@@ -1,0 +1,95 @@
+name: Build Image
+
+on:
+  workflow_call:
+    inputs:
+      image_name:
+        required: true
+        description: "the name of the image"
+        type: string
+
+      tag_with_latest:
+        default: false
+        description: "if true, image tags will include 'latest'"
+        type: boolean
+      tag_with_semver:
+        default: false
+        description: "if true, image tags will include the version (from semver_raw, without 'v' prefix)"
+        type: boolean
+      tag_with_sha:
+        default: false
+        description: "if true, image tags will include the commit SHA (both short and long)"
+        type: boolean
+
+      semver_raw:
+        default: "UNSET_SEMVER"
+        description: "the raw semver version (e.g., from VERSION file), used if tag_with_semver is true"
+        type: string
+
+      build_file:
+        required: true
+        description: "path to Dockerfile"
+        type: string
+      build_context:
+        required: true
+        description: "path to build context folder"
+        type: string
+      build_platforms:
+        required: true
+        description: "list of target platforms for build, comma separated (e.g., linux/amd64,linux/arm64/v8)"
+        type: string
+
+      push_to_registry:
+        default: false
+        description: "if true, push the built image to the registry"
+        type: boolean
+
+env:
+  IMAGE_REGISTRY: ghcr.io/${{ github.repository }}
+
+jobs:
+  build_image:
+    name: Build '${{ inputs.image_name }}' Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Install Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        if: ${{ inputs.push_to_registry }}
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate Image Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.IMAGE_REGISTRY }}/${{ inputs.image_name }}
+          flavor: |
+            latest=${{ inputs.tag_with_latest }}
+          tags: |
+            type=semver,priority=1000,pattern={{version}},enable=${{ inputs.tag_with_semver }},value=${{ inputs.semver_raw }}
+            type=semver,priority=900,pattern={{major}}.{{minor}},enable=${{ inputs.tag_with_semver }},value=${{ inputs.semver_raw }}
+            type=sha,priority=200,prefix=sha-,format=short,enable=${{ inputs.tag_with_sha }}
+            type=sha,priority=100,prefix=sha-,format=long,enable=${{ inputs.tag_with_sha }}
+
+      - name: Build and Push Image
+        uses: docker/build-push-action@v6
+        with:
+          annotations: ${{ steps.meta.outputs.annotations }}
+          context: ${{ inputs.build_context }}
+          file: ${{ inputs.build_file }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: ${{ inputs.build_platforms }}
+          push: ${{ inputs.push_to_registry }}
+          tags: ${{ steps.meta.outputs.tags }}

@@ -1,0 +1,69 @@
+name: Publish
+
+permissions:
+  contents: read
+  packages: write
+
+on:
+  push:
+    branches:
+      - main
+      - notebooks-v2
+      - v*-branch
+    paths:
+      - releasing/version/VERSION
+      ## NOTE: we publish container images on any commit to all components, so the tags are consistent across components
+      - workspaces/**
+
+jobs:
+  check_version:
+    runs-on: ubuntu-latest
+    outputs:
+      version_changed: ${{ steps.filter.outputs.version }}
+      version_raw: ${{ steps.get_version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          base: ${{ github.ref }}
+          filters: |
+            version:
+              - 'releasing/version/VERSION'
+
+      - name: Get Version
+        id: get_version
+        run: echo "version=$(cat releasing/version/VERSION)" >> $GITHUB_OUTPUT
+
+  images:
+    uses: ./.github/workflows/ws-build-image.yml
+    needs: check_version
+    secrets: inherit
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image_name: workspaces-backend
+            build_file: ./workspaces/backend/Dockerfile
+            ## NOTE: we build the backend from the parent folder so it can COPY from controller
+            build_context: ./workspaces
+
+          - image_name: workspaces-controller
+            build_file: ./workspaces/controller/Dockerfile
+            build_context: ./workspaces/controller
+
+          - image_name: workspaces-frontend
+            build_file: ./workspaces/frontend/Dockerfile
+            build_context: ./workspaces/frontend
+    with:
+      image_name: ${{ matrix.image_name }}
+      tag_with_latest: false # we don't use 'latest' tags for workspace images
+      tag_with_semver: ${{ needs.check_version.outputs.version_changed == 'true' }}
+      tag_with_sha: true
+      semver_raw: ${{ needs.check_version.outputs.version_raw }}
+      build_file: ${{ matrix.build_file }}
+      build_context: ${{ matrix.build_context }}
+      build_platforms: linux/amd64,linux/ppc64le,linux/arm64/v8
+      push_to_registry: true
