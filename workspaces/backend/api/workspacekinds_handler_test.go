@@ -283,6 +283,10 @@ spec:
       name: "default-editor"
     volumeMounts:
       home: "/home/jovyan"
+    ports:
+      - id: "jupyterlab"
+        defaultDisplayName: "JupyterLab"
+        protocol: "HTTP"
     options:
       imageConfig:
         spawner:
@@ -299,7 +303,6 @@ spec:
                 - id: "jupyterlab"
                   displayName: "JupyterLab"
                   port: 8888
-                  protocol: "HTTP"
       podConfig:
         spawner:
           default: "tiny_cpu"

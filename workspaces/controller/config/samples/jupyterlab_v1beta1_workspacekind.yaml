@@ -135,28 +135,41 @@ spec:
       ##
       home: "/home/jovyan"
 
-    ## http proxy configs (MUTABLE)
+    ## port definitions which can be referenced in image config values (MUTABLE)
+    ##  - think of port definitions as the "types" of services which could be provided by a specific image
+    ##  - a port definition has a common id (URL path) for consistency if the listening TCP port changes
+    ##  - ports are referenced in image config values by their `id` and their definition here establishes
+    ##    their protocol type, and default display name in the UI
     ##
-    httpProxy:
+    ports:
 
-      ## if the path prefix is stripped from incoming HTTP requests
-      ##  - if true, the '/workspace/{profile_name}/{workspace_name}/' path prefix
-      ##    is stripped from incoming requests, the application sees the request
-      ##    as if it was made to '/...'
-      ##  - this only works if the application serves RELATIVE URLs for its assets
-      ##
-      removePathPrefix: false
+      - id: "jupyterlab"
+        defaultDisplayName: "JupyterLab"
+        protocol: "HTTP"
 
-      ## header manipulation rules for incoming HTTP requests
-      ##  - sets the `spec.http[].headers.request` of the Istio VirtualService
-      ##    https://istio.io/latest/docs/reference/config/networking/virtual-service/#Headers-HeaderOperations
-      ##  - the following string templates are available:
-      ##      - `.PathPrefix`: the path prefix of the Workspace (e.g. '/workspace/{profile_name}/{workspace_name}/')
-      ##
-      requestHeaders: {}
-        #set: { "X-RStudio-Root-Path": "{{ .PathPrefix }}" } # for RStudio
-        #add: {}
-      #remove: []
+        ## http proxy configs (MUTABLE)
+        ## only "HTTP" protocol ports are supported
+        ##
+        httpProxy:
+
+          ## if the path prefix is stripped from incoming HTTP requests
+          ##  - if true, the '/workspace/{profile_name}/{workspace_name}/' path prefix
+          ##    is stripped from incoming requests, the application sees the request
+          ##    as if it was made to '/...'
+          ##  - this only works if the application serves RELATIVE URLs for its assets
+          ##
+          removePathPrefix: false
+
+          ## header manipulation rules for incoming HTTP requests
+          ##  - sets the `spec.http[].headers.request` of the Istio VirtualService
+          ##    https://istio.io/latest/docs/reference/config/networking/virtual-service/#Headers-HeaderOperations
+          ##  - the following string templates are available:
+          ##      - `.PathPrefix`: the path prefix of the Workspace (e.g. '/workspace/{profile_name}/{workspace_name}/')
+          ##
+          requestHeaders: {}
+            #set: { "X-RStudio-Root-Path": "{{ .PathPrefix }}" } # for RStudio
+            #add: {}
+            #remove: []
 
     ## environment variables for Workspace Pods (MUTABLE)
     ##  - spec for EnvVar:
@@ -286,9 +299,8 @@ spec:
               ##
               ports:
                 - id: "jupyterlab"
-                  displayName: "JupyterLab"
                   port: 8888
-                  protocol: "HTTP"
+
 
           ## ================================
           ## EXAMPLE 2: a visible option
@@ -305,9 +317,8 @@ spec:
               imagePullPolicy: "IfNotPresent"
               ports:
                 - id: "jupyterlab"
-                  displayName: "JupyterLab"
                   port: 8888
-                  protocol: "HTTP"
+
 
       ## ============================================================
       ## POD CONFIG OPTIONS

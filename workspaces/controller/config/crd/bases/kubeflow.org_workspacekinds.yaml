@@ -2275,51 +2275,6 @@ spec:
                     x-kubernetes-list-map-keys:
                     - name
                     x-kubernetes-list-type: map
-                  httpProxy:
-                    description: http proxy configs (MUTABLE)
-                    properties:
-                      removePathPrefix:
-                        default: false
-                        description: |-
-                          if the path prefix is stripped from incoming HTTP requests
-                           - if true, the '/workspace/{profile_name}/{workspace_name}/' path prefix
-                             is stripped from incoming requests, the application sees the request
-                             as if it was made to '/...'
-                           - this only works if the application serves RELATIVE URLs for its assets
-                        type: boolean
-                      requestHeaders:
-                        description: |-
-                          header manipulation rules for incoming HTTP requests
-                           - sets the `spec.http[].headers.request` of the Istio VirtualService
-                             https://istio.io/latest/docs/reference/config/networking/virtual-service/#Headers-HeaderOperations
-                           - the following string templates are available:
-                              - `.PathPrefix`: the path prefix of the Workspace (e.g. '/workspace/{profile_name}/{workspace_name}/')
-                        properties:
-                          add:
-                            additionalProperties:
-                              type: string
-                            description: append the given values to the headers specified
-                              by keys (will create a comma-separated list of values)
-                            example:
-                              My-Header: value-to-append
-                            type: object
-                          remove:
-                            description: remove the specified headers
-                            example:
-                            - Header-To-Remove
-                            items:
-                              type: string
-                            type: array
-                          set:
-                            additionalProperties:
-                              type: string
-                            description: overwrite the headers specified by key with
-                              the given values
-                            example:
-                              X-RStudio-Root-Path: '{{ .PathPrefix }}'
-                            type: object
-                        type: object
-                    type: object
                   options:
                     description: options are the user-selectable fields, they determine
                       the PodSpec of the Workspace
@@ -2457,7 +2412,6 @@ spec:
                                         properties:
                                           displayName:
                                             description: the display name of the port
-                                            example: JupyterLab
                                             maxLength: 64
                                             minLength: 2
                                             type: string
@@ -2477,17 +2431,9 @@ spec:
                                             maximum: 65535
                                             minimum: 1
                                             type: integer
-                                          protocol:
-                                            description: the protocol of the port
-                                            enum:
-                                            - HTTP
-                                            example: HTTP
-                                            type: string
                                         required:
-                                        - displayName
                                         - id
                                         - port
-                                        - protocol
                                         type: object
                                       minItems: 1
                                       type: array
@@ -3729,6 +3675,94 @@ spec:
                         description: labels to be applied to the Pod resource
                         type: object
                     type: object
+                  ports:
+                    description: |-
+                      port definitions which can be referenced in image config values
+                      - think of port definitions as the "types" of services which could be provided by a specific image
+                      - a port definition has a common id (URL path) for consistency if the listening TCP port changes
+                      - ports are referenced in image config values by their `id` and their definition here establishes
+                        their protocol type, and default display name in the UI
+                    items:
+                      properties:
+                        defaultDisplayName:
+                          description: |-
+                            the default display name of the port
+                            - note, this can be overridden on a per image config value basis
+                          example: JupyterLab
+                          maxLength: 64
+                          minLength: 2
+                          type: string
+                        httpProxy:
+                          description: the http proxy config for the port (MUTABLE)
+                          properties:
+                            removePathPrefix:
+                              default: false
+                              description: |-
+                                if the path prefix is stripped from incoming HTTP requests
+                                 - if true, the '/workspace/{profile_name}/{workspace_name}/' path prefix
+                                   is stripped from incoming requests, the application sees the request
+                                   as if it was made to '/...'
+                                 - this only works if the application serves RELATIVE URLs for its assets
+                              type: boolean
+                            requestHeaders:
+                              description: |-
+                                header manipulation rules for incoming HTTP requests
+                                 - sets the `spec.http[].headers.request` of the Istio VirtualService
+                                   https://istio.io/latest/docs/reference/config/networking/virtual-service/#Headers-HeaderOperations
+                                 - the following string templates are available:
+                                    - `.PathPrefix`: the path prefix of the Workspace (e.g. '/workspace/{profile_name}/{workspace_name}/')
+                              properties:
+                                add:
+                                  additionalProperties:
+                                    type: string
+                                  description: append the given values to the headers
+                                    specified by keys (will create a comma-separated
+                                    list of values)
+                                  example:
+                                    My-Header: value-to-append
+                                  type: object
+                                remove:
+                                  description: remove the specified headers
+                                  example:
+                                  - Header-To-Remove
+                                  items:
+                                    type: string
+                                  type: array
+                                set:
+                                  additionalProperties:
+                                    type: string
+                                  description: overwrite the headers specified by
+                                    key with the given values
+                                  example:
+                                    X-RStudio-Root-Path: '{{ .PathPrefix }}'
+                                  type: object
+                              type: object
+                          type: object
+                        id:
+                          description: |-
+                            the id of the port
+                            - identifier for the port in `imageconfig` ports.[].id
+                          example: jupyterlab
+                          maxLength: 32
+                          minLength: 1
+                          pattern: ^[a-z0-9][a-z0-9_-]*[a-z0-9]$
+                          type: string
+                        protocol:
+                          description: the protocol of the port
+                          enum:
+                          - HTTP
+                          example: HTTP
+                          type: string
+                      required:
+                      - defaultDisplayName
+                      - id
+                      - protocol
+                      type: object
+                    minItems: 1
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - id
+                    x-kubernetes-list-type: map
                   probes:
                     description: standard probes to determine Container health (MUTABLE)
                     properties:
@@ -4434,6 +4468,7 @@ spec:
                     type: object
                 required:
                 - options
+                - ports
                 - serviceAccount
                 - volumeMounts
                 type: object

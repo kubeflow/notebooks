@@ -625,8 +625,8 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 
 	// define go string template functions
 	// NOTE: these are used in places like the `extraEnv` values
-	containerPortsIdMap := make(map[string]kubefloworgv1beta1.ImagePort)
-	httpPathPrefixFunc := func(portId string) string {
+	containerPortsIdMap := make(map[kubefloworgv1beta1.PortId]kubefloworgv1beta1.ImagePort)
+	httpPathPrefixFunc := func(portId kubefloworgv1beta1.PortId) string {
 		port, ok := containerPortsIdMap[portId]
 		if ok {
 			return fmt.Sprintf("/workspace/%s/%s/%s/", workspace.Namespace, workspace.Name, port.Id)

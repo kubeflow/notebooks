@@ -98,6 +98,12 @@ func (v *WorkspaceKindValidator) ValidateCreate(ctx context.Context, obj runtime
 		}
 	}
 
+	// generate helper maps for podtemplate ports
+	podTemplatePortsIdMap := make(map[kubefloworgv1beta1.PortId]kubefloworgv1beta1.WorkspaceKindPort)
+	for _, port := range workspaceKind.Spec.PodTemplate.Ports {
+		podTemplatePortsIdMap[port.Id] = port
+	}
+
 	// validate default options
 	allErrs = append(allErrs, validateDefaultImageConfig(workspaceKind, imageConfigIdMap)...)
 	allErrs = append(allErrs, validateDefaultPodConfig(workspaceKind, podConfigIdMap)...)
@@ -106,7 +112,7 @@ func (v *WorkspaceKindValidator) ValidateCreate(ctx context.Context, obj runtime
 	for _, imageConfigValue := range imageConfigIdMap {
 		imageConfigValueId := imageConfigValue.Id
 		imageConfigValuePath := field.NewPath("spec", "podTemplate", "options", "imageConfig", "values").Key(imageConfigValueId)
-		allErrs = append(allErrs, validateImageConfigValue(&imageConfigValue, imageConfigValuePath)...)
+		allErrs = append(allErrs, validateImageConfigValue(&imageConfigValue, imageConfigValuePath, podTemplatePortsIdMap)...)
 	}
 
 	// validate redirects
@@ -156,6 +162,15 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 		allErrs = append(allErrs, validateExtraEnv(newWorkspaceKind)...)
 	}
 
+	// if the ports config changed, we need to validate all image config values again
+	shouldValidateAllImageConfigValues := !equality.Semantic.DeepEqual(newWorkspaceKind.Spec.PodTemplate.Ports, oldWorkspaceKind.Spec.PodTemplate.Ports)
+
+	// generate helper maps for podtemplate ports
+	podTemplatePortsIdMap := make(map[kubefloworgv1beta1.PortId]kubefloworgv1beta1.WorkspaceKindPort)
+	for _, port := range newWorkspaceKind.Spec.PodTemplate.Ports {
+		podTemplatePortsIdMap[port.Id] = port
+	}
+
 	// calculate changes to imageConfig values
 	var shouldValidateImageConfigRedirects = false
 	toValidateImageConfigIds := make(map[string]bool)
@@ -173,6 +188,11 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 			newImageConfigRedirectMap[imageConfigValue.Id] = imageConfigValue.Redirect.To
 		}
 
+		// if ports changed, we need to validate all image config values
+		if shouldValidateAllImageConfigValues {
+			toValidateImageConfigIds[imageConfigValue.Id] = true
+		}
+
 		// check if the imageConfig value is new
 		if _, exists := oldImageConfigIdMap[imageConfigValue.Id]; !exists {
 			// we need to validate this imageConfig value since it is new
@@ -181,6 +201,7 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 			// we always need to validate the imageConfig redirects if an imageConfig value was added
 			// because the new imageConfig value could be used by a redirect or cause a cycle
 			shouldValidateImageConfigRedirects = true
+
 		} else {
 			// if we haven't already decided to validate the imageConfig redirects,
 			// check if the redirect has changed
@@ -331,7 +352,7 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 	for imageConfigValueId := range toValidateImageConfigIds {
 		imageConfigValue := newImageConfigIdMap[imageConfigValueId]
 		imageConfigValuePath := field.NewPath("spec", "podTemplate", "options", "imageConfig", "values").Key(imageConfigValueId)
-		allErrs = append(allErrs, validateImageConfigValue(&imageConfigValue, imageConfigValuePath)...)
+		allErrs = append(allErrs, validateImageConfigValue(&imageConfigValue, imageConfigValuePath, podTemplatePortsIdMap)...)
 	}
 
 	// process bad imageConfig values
@@ -521,7 +542,7 @@ func validateExtraEnv(workspaceKind *kubefloworgv1beta1.WorkspaceKind) []*field.
 	var errs []*field.Error
 
 	// the real httpPathPrefix can't fail, so we return a dummy value
-	httpPathPrefixFunc := func(portId string) string {
+	httpPathPrefixFunc := func(portId kubefloworgv1beta1.PortId) string {
 		return "DUMMY_HTTP_PATH_PREFIX"
 	}
 
@@ -569,19 +590,33 @@ func validateDefaultPodConfig(workspaceKind *kubefloworgv1beta1.WorkspaceKind, p
 }
 
 // validateImageConfigValue validates an imageConfig value
-func validateImageConfigValue(imageConfigValue *kubefloworgv1beta1.ImageConfigValue, imageConfigValuePath *field.Path) []*field.Error {
+func validateImageConfigValue(imageConfigValue *kubefloworgv1beta1.ImageConfigValue, imageConfigValuePath *field.Path, podTemplatePortsIdMap map[kubefloworgv1beta1.PortId]kubefloworgv1beta1.WorkspaceKindPort) []*field.Error {
 	var errs []*field.Error
 
 	// validate the ports
 	seenPorts := make(map[int32]bool)
 	for _, port := range imageConfigValue.Spec.Ports {
-		portId := port.Id
+		portId := string(port.Id)
 		portNumber := port.Port
 		if _, exists := seenPorts[portNumber]; exists {
 			portPath := imageConfigValuePath.Child("spec", "ports").Key(portId).Child("port")
 			errs = append(errs, field.Invalid(portPath, portNumber, fmt.Sprintf("port %d is defined more than once", portNumber)))
 		}
 		seenPorts[portNumber] = true
+
+		// validate that the port ID exists in podTemplate.ports
+		if _, exists := podTemplatePortsIdMap[port.Id]; !exists {
+			portIdPath := imageConfigValuePath.Child("spec", "ports").Key(portId).Child("id")
+			errs = append(errs, field.Invalid(portIdPath, port.Id, "missing from spec.podTemplate.ports"))
+		} else {
+			// Validate protocol-specific fields
+			// NOTE: When a new protocol is added, add a case here and validate protocol-specific config
+			podTemplatePort := podTemplatePortsIdMap[port.Id]
+			switch podTemplatePort.Protocol { //nolint:gocritic
+			case kubefloworgv1beta1.ImagePortProtocolHTTP:
+				// noop - when adding new protocols, explicitly disallow unrelated fields
+			}
+		}
 	}
 
 	return errs

@@ -29,6 +29,13 @@ import (
 ===============================================================================
 */
 
+// the id of a port
+//
+// +kubebuilder:validation:MinLength:=1
+// +kubebuilder:validation:MaxLength:=32
+// +kubebuilder:validation:Pattern:=^[a-z0-9][a-z0-9_-]*[a-z0-9]$
+type PortId string
+
 // WorkspaceKindSpec defines the desired state of WorkspaceKind
 type WorkspaceKindSpec struct {
 
@@ -115,9 +122,15 @@ type WorkspaceKindPodTemplate struct {
 	// volume mount paths
 	VolumeMounts WorkspaceKindVolumeMounts `json:"volumeMounts"`
 
-	// http proxy configs (MUTABLE)
-	// +kubebuilder:validation:Optional
-	HTTPProxy *HTTPProxy `json:"httpProxy,omitempty"`
+	// port definitions which can be referenced in image config values
+	// - think of port definitions as the "types" of services which could be provided by a specific image
+	// - a port definition has a common id (URL path) for consistency if the listening TCP port changes
+	// - ports are referenced in image config values by their `id` and their definition here establishes
+	//   their protocol type, and default display name in the UI
+	// +kubebuilder:validation:MinItems:=1
+	// +listType:="map"
+	// +listMapKey:="id"
+	Ports []WorkspaceKindPort `json:"ports"`
 
 	// environment variables for Workspace Pods (MUTABLE)
 	//  - the following go template functions are available:
@@ -149,6 +162,28 @@ type WorkspaceKindPodTemplate struct {
 
 	// options are the user-selectable fields, they determine the PodSpec of the Workspace
 	Options WorkspaceKindPodOptions `json:"options"`
+}
+
+type WorkspaceKindPort struct {
+	// the id of the port
+	// - identifier for the port in `imageconfig` ports.[].id
+	// +kubebuilder:example="jupyterlab"
+	Id PortId `json:"id"`
+
+	// the protocol of the port
+	// +kubebuilder:example:="HTTP"
+	Protocol ImagePortProtocol `json:"protocol"`
+
+	// the default display name of the port
+	// - note, this can be overridden on a per image config value basis
+	// +kubebuilder:validation:MinLength:=2
+	// +kubebuilder:validation:MaxLength:=64
+	// +kubebuilder:example:="JupyterLab"
+	DefaultDisplayName string `json:"defaultDisplayName"`
+
+	// the http proxy config for the port (MUTABLE)
+	// +kubebuilder:validation:Optional
+	HTTPProxy *HTTPProxy `json:"httpProxy,omitempty"`
 }
 
 type WorkspaceKindPodMetadata struct {
@@ -339,11 +374,8 @@ type ImageConfigSpec struct {
 type ImagePort struct {
 	// the id of the port
 	//  - this is NOT used as the Container or Service port name, but as part of the HTTP path
-	// +kubebuilder:validation:MinLength:=1
-	// +kubebuilder:validation:MaxLength:=32
-	// +kubebuilder:validation:Pattern:=^[a-z0-9][a-z0-9_-]*[a-z0-9]$
 	// +kubebuilder:example="jupyterlab"
-	Id string `json:"id"`
+	Id PortId `json:"id"`
 
 	// the port number
 	// +kubebuilder:validation:Minimum:=1
@@ -354,12 +386,8 @@ type ImagePort struct {
 	// the display name of the port
 	// +kubebuilder:validation:MinLength:=2
 	// +kubebuilder:validation:MaxLength:=64
-	// +kubebuilder:example:="JupyterLab"
-	DisplayName string `json:"displayName"`
-
-	// the protocol of the port
-	// +kubebuilder:example:="HTTP"
-	Protocol ImagePortProtocol `json:"protocol"`
+	// +kubebuilder:validation:Optional
+	DisplayName *string `json:"displayName,omitempty"`
 }
 
 // +kubebuilder:validation:Enum:={"HTTP"}
