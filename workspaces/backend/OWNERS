@@ -1,5 +1,5 @@
 labels:
   - area/backend
   - area/v2
-reviewers:
+approvers:
   - andyatmiami
