@@ -609,17 +609,12 @@ func validateImageConfigValue(imageConfigValue *kubefloworgv1beta1.ImageConfigVa
 			portIdPath := imageConfigValuePath.Child("spec", "ports").Key(portId).Child("id")
 			errs = append(errs, field.Invalid(portIdPath, port.Id, "missing from spec.podTemplate.ports"))
 		} else {
-			// validate HTTPProxy is only set if protocol is HTTP
+			// Validate protocol-specific fields
+			// NOTE: When a new protocol is added, add a case here and validate protocol-specific config
 			podTemplatePort := podTemplatePortsIdMap[port.Id]
-			switch podTemplatePort.Protocol {
+			switch podTemplatePort.Protocol { //nolint:gocritic
 			case kubefloworgv1beta1.ImagePortProtocolHTTP:
 				// noop - when adding new protocols, explicitly disallow unrelated fields
-			default:
-				// Non-HTTP protocols - httpProxy should not be set
-				if podTemplatePort.HTTPProxy != nil {
-					httpProxyPath := imageConfigValuePath.Child("spec", "ports").Key(portId).Child("httpProxy")
-					errs = append(errs, field.Invalid(httpProxyPath, podTemplatePort.HTTPProxy, "httpProxy can only be set when protocol is HTTP"))
-				}
 			}
 		}
 	}

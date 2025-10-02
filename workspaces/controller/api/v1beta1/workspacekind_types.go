@@ -29,7 +29,7 @@ import (
 ===============================================================================
 */
 
-// an id of the port
+// the id of a port
 //
 // +kubebuilder:validation:MinLength:=1
 // +kubebuilder:validation:MaxLength:=32

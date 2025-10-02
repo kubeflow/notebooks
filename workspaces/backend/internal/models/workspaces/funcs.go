@@ -346,12 +346,19 @@ func buildServices(ws *kubefloworgv1beta1.Workspace, wskPodTemplatePorts map[kub
 	services := make([]Service, len(imageConfigValue.Spec.Ports))
 	for i := range imageConfigValue.Spec.Ports {
 		port := imageConfigValue.Spec.Ports[i]
-		protocol := wskPodTemplatePorts[port.Id].Protocol
+
+		// Check if the port ID exists in the workspace kind
+		wskPort, exists := wskPodTemplatePorts[port.Id]
+		if !exists {
+			panic(fmt.Sprintf("workspace portID \"%q\" does not exist in the workspace kind", port.Id))
+		}
+
+		protocol := wskPort.Protocol
 		// golint complains about the single case in switch statement
 		switch protocol { //nolint:gocritic
 		case kubefloworgv1beta1.ImagePortProtocolHTTP:
 			services[i].HttpService = &HttpService{
-				DisplayName: ptr.Deref(port.DisplayName, wskPodTemplatePorts[port.Id].DefaultDisplayName),
+				DisplayName: ptr.Deref(port.DisplayName, wskPort.DefaultDisplayName),
 				HttpPath:    fmt.Sprintf("/workspace/%s/%s/%s/", ws.Namespace, ws.Name, port.Id),
 			}
 		}
