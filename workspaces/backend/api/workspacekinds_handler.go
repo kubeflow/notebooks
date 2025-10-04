@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
@@ -154,17 +153,24 @@ func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _
 //	@Failure		500		{object}	ErrorEnvelope			"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspacekinds [post]
 func (a *App) CreateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	// Parse dry-run query parameter
-	dryRun := r.URL.Query().Get("dry_run")
-	if dryRun != "" && dryRun != "true" && dryRun != "false" {
-		a.badRequestResponse(w, r, fmt.Errorf("Invalid dry_run value. Must be 'true' or 'false'"))
-		return
+	// Parse dry_run query parameter using helper
+	isDryRun, err := a.GetBooleanQueryParameter(w, r, "dry_run")
+	if err != nil {
+		return // 400 already written
 	}
-	isDryRun := dryRun == "true"
+	hasDryRun := r.URL.Query().Get("dry_run") != ""
 
-	// validate the Content-Type header
-	if !strings.EqualFold(r.Header.Get("Content-Type"), MediaTypeYaml) {
-		a.unsupportedMediaTypeResponse(w, r, fmt.Errorf("Only application/yaml is supported"))
+	// Content-Type validation
+	if !a.ValidateContentType(w, r, MediaTypeYaml) {
+		if hasDryRun {
+			// Special case: dry_run provided with wrong media type → 400
+			a.badRequestResponse(w, r,
+				fmt.Errorf("dry_run is only supported when Content-Type: %s", MediaTypeYaml))
+		} else {
+			// Normal case: wrong media type → 415
+			a.unsupportedMediaTypeResponse(w, r,
+				fmt.Errorf("only %s is supported", MediaTypeYaml))
+		}
 		return
 	}
 
@@ -227,9 +233,6 @@ func (a *App) CreateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 		a.serverErrorResponse(w, r, fmt.Errorf("error creating workspace kind: %w", err))
 		return
 	}
-
-	// Set response Content-Type header
-	w.Header().Set("Content-Type", "application/json")
 
 	// Return appropriate response based on dry-run
 	if isDryRun {
