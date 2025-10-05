@@ -154,8 +154,24 @@ func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _
 //	@Router			/workspacekinds [post]
 func (a *App) CreateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
+	// Parse dry_run query parameter using helper
+	isDryRun, err := a.GetBooleanQueryParameter(w, r, "dry_run")
+	if err != nil {
+		return
+	}
+	hasDryRun := r.URL.Query().Get("dry_run") != ""
+
 	// validate the Content-Type header
-	if success := a.ValidateContentType(w, r, MediaTypeYaml); !success {
+	if !a.ValidateContentType(w, r, MediaTypeYaml) {
+		if hasDryRun {
+			// Special case: dry_run provided with wrong media type → 400
+			a.badRequestResponse(w, r,
+				fmt.Errorf("dry_run is only supported when Content-Type: %s", MediaTypeYaml))
+		} else {
+			// Normal case: wrong media type → 415
+			a.unsupportedMediaTypeResponse(w, r,
+				fmt.Errorf("only %s is supported", MediaTypeYaml))
+		}
 		return
 	}
 
@@ -204,7 +220,7 @@ func (a *App) CreateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 	}
 	// ============================================================
 
-	createdWorkspaceKind, err := a.repositories.WorkspaceKind.Create(r.Context(), workspaceKind)
+	createdWorkspaceKind, err := a.repositories.WorkspaceKind.Create(r.Context(), workspaceKind, isDryRun)
 	if err != nil {
 		if errors.Is(err, repository.ErrWorkspaceKindAlreadyExists) {
 			a.conflictResponse(w, r, err)
@@ -216,6 +232,13 @@ func (a *App) CreateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 			return
 		}
 		a.serverErrorResponse(w, r, fmt.Errorf("error creating workspace kind: %w", err))
+		return
+	}
+
+	// Return appropriate response based on dry-run
+	if isDryRun {
+		responseEnvelope := &WorkspaceKindEnvelope{Data: *createdWorkspaceKind}
+		a.dataResponse(w, r, responseEnvelope)
 		return
 	}
 
