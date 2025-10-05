@@ -22,6 +22,7 @@ import (
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds"
@@ -70,9 +71,14 @@ func (r *WorkspaceKindRepository) GetWorkspaceKinds(ctx context.Context) ([]mode
 	return workspaceKindsModels, nil
 }
 
-func (r *WorkspaceKindRepository) Create(ctx context.Context, workspaceKind *kubefloworgv1beta1.WorkspaceKind) (*models.WorkspaceKind, error) {
+func (r *WorkspaceKindRepository) Create(ctx context.Context, workspaceKind *kubefloworgv1beta1.WorkspaceKind, dryRun bool) (*models.WorkspaceKind, error) {
+	opts := &client.CreateOptions{}
+	if dryRun {
+		opts.DryRun = []string{metav1.DryRunAll} // server-side dry-run
+	}
+
 	// create workspace kind
-	if err := r.client.Create(ctx, workspaceKind); err != nil {
+	if err := r.client.Create(ctx, workspaceKind, opts); err != nil {
 		if apierrors.IsAlreadyExists(err) {
 			return nil, ErrWorkspaceKindAlreadyExists
 		}
