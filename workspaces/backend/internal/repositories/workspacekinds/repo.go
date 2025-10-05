@@ -85,6 +85,11 @@ func (r *WorkspaceKindRepository) Create(ctx context.Context, workspaceKind *kub
 		return nil, err
 	}
 
+	// convert the created workspace to a WorkspaceKindUpdate model
+	//
+	// TODO: this function should return the WorkspaceKindUpdate model, once the update WSK api is implemented
+	//
+
 	// Convert the created workspace to a WorkspaceKindUpdate model
 	createdWorkspaceKindModel := models.NewWorkspaceKindModelFromWorkspaceKind(workspaceKind)
 
