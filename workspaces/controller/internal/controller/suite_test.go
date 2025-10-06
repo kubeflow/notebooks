@@ -45,6 +45,7 @@ import (
 
 	istiov1 "istio.io/client-go/pkg/apis/networking/v1"
 
+	"github.com/kubeflow/notebooks/workspaces/controller/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
 	// +kubebuilder:scaffold:imports
 )
@@ -111,13 +112,16 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	By("setting up the field indexers for the controller manager")
-	err = helper.SetupManagerFieldIndexers(k8sManager)
+	// Use test config with UseIstio disabled to avoid VirtualService CRD requirements in tests
+	testCfg := &config.EnvConfig{UseIstio: false}
+	err = helper.SetupManagerFieldIndexers(k8sManager, testCfg)
 	Expect(err).NotTo(HaveOccurred())
 
 	By("setting up the Workspace controller")
 	err = (&WorkspaceReconciler{
 		Client: k8sManager.GetClient(),
 		Scheme: k8sManager.GetScheme(),
+		Config: testCfg,
 	}).SetupWithManager(k8sManager, controller.Options{
 		RateLimiter: helper.BuildRateLimiter(),
 	})

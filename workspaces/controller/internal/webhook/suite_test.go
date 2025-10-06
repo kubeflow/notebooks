@@ -45,6 +45,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	"github.com/kubeflow/notebooks/workspaces/controller/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
 
 	istiov1 "istio.io/client-go/pkg/apis/networking/v1"
@@ -124,7 +125,9 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	By("setting up the field indexers for the controller manager")
-	err = helper.SetupManagerFieldIndexers(k8sManager)
+	// Use test config with UseIstio disabled to avoid VirtualService CRD requirements in tests
+	testCfg := &config.EnvConfig{UseIstio: false}
+	err = helper.SetupManagerFieldIndexers(k8sManager, testCfg)
 	Expect(err).NotTo(HaveOccurred())
 
 	By("setting up the Workspace webhook")
