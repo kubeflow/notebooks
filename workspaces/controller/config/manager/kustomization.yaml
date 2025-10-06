@@ -8,12 +8,6 @@ labels:
   pairs:
     app.kubernetes.io/component: controller-manager
 
-configMapGenerator:
-- envs:
-  - params.env
-  name: config
-generatorOptions:
-  disableNameSuffixHash: true
 images:
 - name: workspaces-controller
   newName: ghcr.io/kubeflow/notebooks/workspaces-controller
