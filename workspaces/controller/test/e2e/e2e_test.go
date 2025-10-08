@@ -76,6 +76,14 @@ var _ = Describe("controller", Ordered, func() {
 		cmd = exec.Command("kubectl", "create", "ns", workspaceNamespace)
 		_, _ = utils.Run(cmd) // ignore errors because namespace may already exist
 
+		// TODO: enable Istio injection once we have logic to create VirtualServices during Workspace reconciliation
+		// By("labeling namespaces for Istio injection")
+		// err := utils.LabelNamespaceForIstioInjection(controllerNamespace)
+		// ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+		// err = utils.LabelNamespaceForIstioInjection(workspaceNamespace)
+		// ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
 		By("creating common workspace resources")
 		cmd = exec.Command("kubectl", "apply",
 			"-k", filepath.Join(projectDir, "config/samples/common"),
@@ -93,6 +101,16 @@ var _ = Describe("controller", Ordered, func() {
 		cmd = exec.Command("make", "deploy", fmt.Sprintf("IMG=%s", controllerImage))
 		_, err = utils.Run(cmd)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+		By("waiting for workspaces-controller deployment to be ready")
+		cmd = exec.Command("kubectl", "wait", "deployment/workspaces-controller",
+			"-n", controllerNamespace,
+			"--for=condition=Available",
+			"--timeout=180s")
+		_, err = utils.Run(cmd)
+
+		ExpectWithOffset(1, err).NotTo(HaveOccurred(),
+			"workspaces-controller deployment failed to become ready within 3 minutes")
 
 		By("validating that the workspaces-controller pod is running as expected")
 		var controllerPodName string

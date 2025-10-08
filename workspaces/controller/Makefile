@@ -72,7 +72,7 @@ test: manifests generate fmt vet envtest ## Run tests.
 # - CERT_MANAGER_INSTALL_SKIP=true
 # - ISTIO_INSTALL_SKIP=true
 .PHONY: test-e2e
-test-e2e: manifests generate fmt vet ## Run the e2e tests. Expected an isolated environment using Kind.
+test-e2e: manifests generate fmt vet istioctl ## Run the e2e tests. Expected an isolated environment using Kind.
 	@command -v kind >/dev/null 2>&1 || { \
 		echo "Kind is not installed. Please install Kind manually."; \
 		exit 1; \
@@ -81,7 +81,7 @@ test-e2e: manifests generate fmt vet ## Run the e2e tests. Expected an isolated 
 		echo "No Kind cluster is running. Please start a Kind cluster before running the e2e tests."; \
 		exit 1; \
 	}
-	
+
 	go test ./test/e2e/ -v -ginkgo.v
 
 .PHONY: lint
@@ -159,12 +159,14 @@ KUBECTL ?= kubectl
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
+ISTIOCTL ?= $(LOCALBIN)/istioctl
 GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.5.0
 CONTROLLER_TOOLS_VERSION ?= v0.16.4
 ENVTEST_VERSION ?= release-0.19
+ISTIOCTL_VERSION ?= 1.27.0
 GOLANGCI_LINT_VERSION ?= v1.61.0
 
 .PHONY: kustomize
@@ -181,6 +183,44 @@ $(CONTROLLER_GEN): $(LOCALBIN)
 envtest: $(ENVTEST) ## Download setup-envtest locally if necessary.
 $(ENVTEST): $(LOCALBIN)
 	$(call go-install-tool,$(ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest,$(ENVTEST_VERSION))
+
+.PHONY: check-platform
+check-platform: ## Check if the current platform is supported
+	@OS_NAME=$$(go env GOOS); \
+	ARCH_NAME=$$(go env GOARCH); \
+	if [ "$$OS_NAME" = "darwin" ]; then \
+		OS_NAME="osx"; \
+	fi; \
+	if [ "$$OS_NAME" != "linux" ] && [ "$$OS_NAME" != "osx" ]; then \
+		echo "Error: platform $$OS_NAME is not supported"; \
+		echo "Supported platforms: Linux (amd64/arm64), macOS (amd64/arm64)"; \
+		exit 1; \
+	fi; \
+	if [ "$$ARCH_NAME" != "amd64" ] && [ "$$ARCH_NAME" != "arm64" ]; then \
+		echo "Error: architecture $$ARCH_NAME is not supported"; \
+		echo "Supported architectures: amd64, arm64"; \
+		exit 1; \
+	fi
+
+.PHONY: istioctl
+istioctl: check-platform $(ISTIOCTL) ## Download istioctl locally if necessary.
+$(ISTIOCTL): $(LOCALBIN)
+	@echo "Downloading istioctl $(ISTIOCTL_VERSION)..."
+	@OS_NAME=$$(go env GOOS); \
+	if [ "$$OS_NAME" = "darwin" ]; then \
+		OS_NAME="osx"; \
+	fi; \
+	ARCH_NAME=$$(go env GOARCH); \
+	FILE_NAME="istioctl-$(ISTIOCTL_VERSION)-$${OS_NAME}-$${ARCH_NAME}.tar.gz"; \
+	URL="https://github.com/istio/istio/releases/download/$(ISTIOCTL_VERSION)/$${FILE_NAME}"; \
+	cd $(LOCALBIN) && \
+	curl -L "$${URL}" -o "$${FILE_NAME}" && \
+	tar -xzf "$${FILE_NAME}" && \
+	find . -name "istioctl" -type f | head -1 | xargs -I {} cp {} istioctl-$(ISTIOCTL_VERSION) && \
+	chmod +x istioctl-$(ISTIOCTL_VERSION) && \
+	rm -f "$${FILE_NAME}" && \
+	rm -rf istio-* && \
+	ln -sf istioctl-$(ISTIOCTL_VERSION) istioctl
 
 .PHONY: golangci-lint
 golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
