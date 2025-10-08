@@ -41,8 +41,8 @@ var (
 	// isPrometheusOperatorAlreadyInstalled will be set true when prometheus CRDs be found on the cluster
 	// isPrometheusOperatorAlreadyInstalled = false
 
-	isIstioctlAlreadyInstalled = false
-	skipIstioctlInstall        = os.Getenv("ISTIO_INSTALL_SKIP") == "true"
+	skipIstioInstall        = os.Getenv("ISTIO_INSTALL_SKIP") == "true"
+	isIstioAlreadyInstalled = false
 )
 
 // TestE2E runs the end-to-end (e2e) test suite for the project. These tests execute in an isolated,
@@ -92,19 +92,21 @@ var _ = BeforeSuite(func() {
 	By("checking that cert manager is running")
 	Expect(utils.WaitCertManagerRunning()).To(Succeed(), "CertManager is not running")
 
-	if !skipIstioctlInstall {
-		By("checking if istioctl is installed already")
-		isIstioctlAlreadyInstalled = utils.IsIstioctlInstalled()
-		if !isIstioctlAlreadyInstalled {
-			_, _ = fmt.Fprintf(GinkgoWriter, "Installing istioctl...\n")
-			Expect(utils.InstallIstioctl()).To(Succeed(), "Failed to install istioctl")
-		} else {
-			_, _ = fmt.Fprintf(GinkgoWriter, "WARNING: istioctl is already installed. Skipping installation...\n")
-		}
-	}
-	By("checking that istioctl is available")
-	Expect(utils.WaitIstioAvailable()).To(Succeed(), "istioctl is not available")
+	if !skipIstioInstall {
+		By("checking if istio is installed already")
+		isIstioAlreadyInstalled = utils.IsIstioCRDsInstalled()
 
+		if !isIstioAlreadyInstalled {
+			_, _ = fmt.Fprintf(GinkgoWriter, "Installing istio...\n")
+			Expect(utils.InstallIstio()).To(Succeed(), "Failed to install istio")
+		} else {
+			_, _ = fmt.Fprintf(GinkgoWriter,
+				"WARNING: istio is already installed. Skipping installation...\n")
+		}
+
+		By("checking that istio is available")
+		Expect(utils.WaitIstioAvailable()).To(Succeed(), "istio is not available")
+	}
 })
 
 var _ = AfterSuite(func() {
@@ -119,5 +121,11 @@ var _ = AfterSuite(func() {
 		By("uninstalling CertManager")
 		_, _ = fmt.Fprintf(GinkgoWriter, "Uninstalling CertManager...\n")
 		utils.UninstallCertManager()
+	}
+
+	if !skipIstioInstall && !isIstioAlreadyInstalled {
+		By("uninstalling Istio")
+		_, _ = fmt.Fprintf(GinkgoWriter, "Uninstalling Istio...\n")
+		utils.UninstallIstio()
 	}
 })
