@@ -22,6 +22,8 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
+	networkingv1 "istio.io/api/networking/v1"
+	istiov1 "istio.io/client-go/pkg/apis/networking/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -44,6 +46,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	"github.com/kubeflow/notebooks/workspaces/controller/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
 )
 
@@ -56,9 +59,13 @@ const (
 	workspacePodTemplateContainerName = "main"
 
 	// lengths for resource names
-	generateNameSuffixLength = 6
-	maxServiceNameLength     = 63
-	maxStatefulSetNameLength = 52 // https://github.com/kubernetes/kubernetes/issues/64023
+	generateNameSuffixLength    = 6
+	maxServiceNameLength        = 63
+	maxVirtualServiceNameLength = 63
+	maxStatefulSetNameLength    = 52 // https://github.com/kubernetes/kubernetes/issues/64023
+
+	// workspace connection path template
+	workspaceConnectPathTemplate = "/workspace/connect/%s/%s/%s/"
 
 	// state message formats for Workspace status
 	stateMsgErrorUnknownWorkspaceKind      = "Workspace references unknown WorkspaceKind: %s"
@@ -68,6 +75,7 @@ const (
 	stateMsgErrorGenFailureService         = "Workspace failed to generate Service with error: %s"
 	stateMsgErrorMultipleStatefulSets      = "Workspace owns multiple StatefulSets: %s"
 	stateMsgErrorMultipleServices          = "Workspace owns multiple Services: %s"
+	stateMsgErrorMultipleVirtualServices   = "Workspace owns multiple VirtualServices: %s"
 	stateMsgErrorStatefulSetWarningEvent   = "Workspace StatefulSet has warning event: %s"
 	stateMsgErrorPodUnschedulable          = "Workspace Pod is unschedulable: %s"
 	stateMsgErrorPodSchedulingGate         = "Workspace Pod is waiting for scheduling gate: %s"
@@ -85,6 +93,7 @@ const (
 type WorkspaceReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+	Config *config.EnvConfig
 }
 
 // +kubebuilder:rbac:groups=kubeflow.org,resources=workspaces,verbs=create;delete;get;list;patch;update;watch
@@ -354,10 +363,71 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 	}
 
-	//
-	// TODO: reconcile the Istio VirtualService to expose the Workspace
-	//       and implement the `spec.podTemplate.httpProxy` options
-	//
+	if r.Config.UseIstio {
+		log.V(2).Info("reconciling VirtualService for Workspace")
+		// generateVirtualService
+		virtualsvc, err := generateVirtualService(workspace, workspaceKind, serviceName, currentImageConfig.Spec, r.Config)
+		if err != nil {
+			log.V(0).Info("failed to generate VirtualService for Workspace", "error", err.Error())
+			return r.updateWorkspaceState(ctx, log, workspace,
+				kubefloworgv1beta1.WorkspaceStateError,
+				fmt.Sprintf("failed to generate VirtualService for Workspace: %s", err.Error()),
+			)
+		}
+		if err := ctrl.SetControllerReference(workspace, virtualsvc, r.Scheme); err != nil {
+			log.Error(err, "unable to set controller reference on VirtualService")
+			return ctrl.Result{}, err
+		}
+
+		// fetch VirtualServices
+		// NOTE: we filter by VirtualServices that are owned by the Workspace, not by name
+		//	     this allows us to generate a random name for the VirtualService with `metadata.generateName`
+		var VirtualServiceName string
+		ownedVirtualServices := &istiov1.VirtualServiceList{}
+		listOpts = &client.ListOptions{
+			FieldSelector: fields.OneTermEqualSelector(helper.IndexWorkspaceOwnerField, workspace.Name),
+			Namespace:     req.Namespace,
+		}
+		if err := r.List(ctx, ownedVirtualServices, listOpts); err != nil {
+			log.Error(err, "unable to list VirtualServices")
+			return ctrl.Result{}, err
+		}
+
+		switch numVirtualServices := len(ownedVirtualServices.Items); {
+		case numVirtualServices > 1:
+			virtualServiceList := make([]string, len(ownedVirtualServices.Items))
+			for i, vs := range ownedVirtualServices.Items {
+				virtualServiceList[i] = vs.Name
+			}
+			virtualServiceListString := strings.Join(virtualServiceList, ", ")
+			log.Error(nil, "Workspace owns multiple VirtualServices", "virtualServices", virtualServiceListString)
+			return r.updateWorkspaceState(ctx, log, workspace,
+				kubefloworgv1beta1.WorkspaceStateError,
+				fmt.Sprintf(stateMsgErrorMultipleVirtualServices, virtualServiceListString),
+			)
+		case numVirtualServices == 0:
+			if err := r.Create(ctx, virtualsvc); err != nil {
+				log.Error(err, "unable to create VirtualService")
+				return ctrl.Result{}, err
+			}
+			VirtualServiceName = virtualsvc.ObjectMeta.Name
+			log.V(2).Info("VirtualService created", "virtualService", VirtualServiceName)
+		default:
+			foundVirtualService := ownedVirtualServices.Items[0]
+			VirtualServiceName = foundVirtualService.ObjectMeta.Name
+			if helper.CopyVirtualServiceFields(virtualsvc, foundVirtualService) {
+				if err := r.Update(ctx, foundVirtualService); err != nil {
+					if apierrors.IsConflict(err) {
+						log.V(2).Info("update conflict while updating VirtualService, will requeue")
+						return ctrl.Result{Requeue: true}, nil
+					}
+					log.Error(err, "unable to update VirtualService")
+					return ctrl.Result{}, err
+				}
+				log.V(2).Info("VirtualService updated", "virtualService", VirtualServiceName)
+			}
+		}
+	}
 
 	// fetch Pod
 	// NOTE: the first StatefulSet Pod is always called "{statefulSetName}-0"
@@ -418,11 +488,19 @@ func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager, opts controller
 		return labelExists
 	})
 
-	return ctrl.NewControllerManagedBy(mgr).
+	// Build the controller with core resources
+	controllerBuilder := ctrl.NewControllerManagedBy(mgr).
 		WithOptions(opts).
 		For(&kubefloworgv1beta1.Workspace{}).
 		Owns(&appsv1.StatefulSet{}).
-		Owns(&corev1.Service{}).
+		Owns(&corev1.Service{})
+
+	if r.Config.UseIstio {
+
+		controllerBuilder = controllerBuilder.Owns(&istiov1.VirtualService{})
+	}
+
+	return controllerBuilder.
 		Watches(
 			&kubefloworgv1beta1.WorkspaceKind{},
 			handler.EnqueueRequestsFromMapFunc(r.mapWorkspaceKindToRequest),
@@ -570,6 +648,11 @@ func getPodConfig(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefl
 	}
 }
 
+// getWorkspaceConnectPath generates the HTTP path for connecting to a workspace port
+func getWorkspaceConnectPath(namespace, workspaceName string, portId kubefloworgv1beta1.PortId) string {
+	return fmt.Sprintf(workspaceConnectPathTemplate, namespace, workspaceName, portId)
+}
+
 // generateNamePrefix generates a name prefix for a Workspace
 // the format is "ws-{WORKSPACE_NAME}-" the workspace name is truncated to fit within the max length
 func generateNamePrefix(workspaceName string, maxLength int) string {
@@ -629,7 +712,7 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 	httpPathPrefixFunc := func(portId kubefloworgv1beta1.PortId) string {
 		port, ok := containerPortsIdMap[portId]
 		if ok {
-			return fmt.Sprintf("/workspace/%s/%s/%s/", workspace.Namespace, workspace.Name, port.Id)
+			return getWorkspaceConnectPath(workspace.Namespace, workspace.Name, port.Id)
 		} else {
 			return ""
 		}
@@ -879,6 +962,96 @@ func generateService(workspace *kubefloworgv1beta1.Workspace, imageConfigSpec ku
 	}
 
 	return service, nil
+}
+
+// generateVirtualService generates a VirtualService for a Workspace
+func generateVirtualService(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind, serviceName string, imageConfigSpec kubefloworgv1beta1.ImageConfigSpec, cfg *config.EnvConfig) (*istiov1.VirtualService, error) {
+	// NOTE: the name prefix is used to generate a unique name for the VirtualService
+	namePrefix := generateNamePrefix(workspace.Name, maxVirtualServiceNameLength)
+
+	currentPodTemplatePortsMap := make(map[kubefloworgv1beta1.PortId]kubefloworgv1beta1.WorkspaceKindPort)
+	for _, port := range workspaceKind.Spec.PodTemplate.Ports {
+		currentPodTemplatePortsMap[port.Id] = port
+	}
+
+	clusterDomain := "cluster.local"
+	if cfg.ClusterDomain != "" {
+		clusterDomain = cfg.ClusterDomain
+	}
+	serviceHost := fmt.Sprintf("%s.%s.svc.%s", serviceName, workspace.Namespace, clusterDomain)
+
+	httpRoutes := []*networkingv1.HTTPRoute{}
+	for _, port := range imageConfigSpec.Ports {
+		if _, exists := currentPodTemplatePortsMap[port.Id]; exists {
+			podTemplatePort := currentPodTemplatePortsMap[port.Id]
+			matchUriPrefix := getWorkspaceConnectPath(workspace.Namespace, workspace.Name, port.Id)
+
+			// Additional Cases would be added for SSH, etc.
+			switch podTemplatePort.Protocol { //nolint:gocritic
+			case kubefloworgv1beta1.ImagePortProtocolHTTP:
+				virtualServiceSpecHttp := &networkingv1.HTTPRoute{
+					Headers: &networkingv1.Headers{
+						Request: &networkingv1.Headers_HeaderOperations{},
+					},
+					Rewrite: &networkingv1.HTTPRewrite{},
+					Match: []*networkingv1.HTTPMatchRequest{
+						{
+							Uri: &networkingv1.StringMatch{
+								MatchType: &networkingv1.StringMatch_Prefix{
+									Prefix: matchUriPrefix,
+								},
+							},
+						},
+					},
+					Route: []*networkingv1.HTTPRouteDestination{
+						{
+							Destination: &networkingv1.Destination{
+								Host: serviceHost,
+								Port: &networkingv1.PortSelector{
+									Number: uint32(port.Port), //nolint:gosec
+								},
+							},
+						},
+					},
+				}
+				if !ptr.Deref(podTemplatePort.HTTPProxy.RemovePathPrefix, false) {
+					virtualServiceSpecHttp.Rewrite.Uri = matchUriPrefix
+				}
+				if podTemplatePort.HTTPProxy.RequestHeaders != nil {
+					virtualServiceSpecHttp.Headers.Request.Set = podTemplatePort.HTTPProxy.RequestHeaders.Set
+					virtualServiceSpecHttp.Headers.Request.Add = podTemplatePort.HTTPProxy.RequestHeaders.Add
+					virtualServiceSpecHttp.Headers.Request.Remove = podTemplatePort.HTTPProxy.RequestHeaders.Remove
+				}
+				httpRoutes = append(httpRoutes, virtualServiceSpecHttp)
+			}
+		}
+	}
+
+	if cfg.IstioGateway == "" {
+		return nil, fmt.Errorf("ISTIO_GATEWAY environment variable is not set")
+	}
+
+	istioHosts := "*"
+	if cfg.IstioHosts != "" {
+		istioHosts = cfg.IstioHosts
+	}
+
+	virtualService := &istiov1.VirtualService{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: namePrefix,
+			Namespace:    workspace.Namespace,
+			Labels: map[string]string{
+				workspaceNameLabel: workspace.Name,
+			},
+		},
+		Spec: networkingv1.VirtualService{
+			Gateways: []string{cfg.IstioGateway},
+			Hosts:    []string{istioHosts},
+			Http:     httpRoutes,
+		},
+	}
+
+	return virtualService, nil
 }
 
 // generateWorkspaceStatus generates a WorkspaceStatus for a Workspace
