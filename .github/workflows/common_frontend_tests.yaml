@@ -1,0 +1,60 @@
+name: Common Frontend Tests
+on:
+  pull_request:
+    paths:
+      - components/crud-web-apps/common/frontend/kubeflow-common-lib/**
+      - releasing/version/VERSION
+    branches:
+      - main
+      - v*-branch
+      - notebooks-v1
+
+env:
+  FRONTEND_DIR: components/crud-web-apps/common/frontend/kubeflow-common-lib
+
+jobs:
+  frontend-format-lint-check:
+    name: Check code format and lint
+    runs-on: ubuntu-22.04
+    defaults:
+      run:
+        working-directory: ${{ env.FRONTEND_DIR }} 
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 16
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check frontend code formatting
+        run: npm run format:check
+
+      - name: Check frontend code linting
+        run: npm run lint-check
+
+  frontend-unit-tests:
+    runs-on: ubuntu-22.04
+    name: Unit tests
+    defaults:
+      run:
+        working-directory: ${{ env.FRONTEND_DIR }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup node version to 16
+        uses: actions/setup-node@v4
+        with:
+          node-version: 16
+
+      - name: Install Kubeflow common library dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm run test:prod
