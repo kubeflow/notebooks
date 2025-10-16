@@ -156,6 +156,47 @@ spec:
                         minLength: 2
                         pattern: ^[a-z0-9][-a-z0-9]*[a-z0-9]$
                         type: string
+                      secrets:
+                        description: |-
+                          secrets to mount
+                           - these secrets must already exist in the Namespace
+                           - secrets are mounted as folders with the secret keys as files
+                        items:
+                          properties:
+                            defaultMode:
+                              default: 420
+                              description: |-
+                                default mode bits used to set permissions on files in the Secret
+                                 - must be a decimal value between 0 and 511, or an octal value between 0000 and 0777
+                                 - for example, 420 is equivalent to 0644, and 511 is equivalent to 0777
+                                 - YAML accepts both octal and decimal values, JSON requires decimal
+                                 - Defaults to 420 (octal: 0644) if not specified.
+                              format: int32
+                              maximum: 511
+                              minimum: 0
+                              type: integer
+                            mountPath:
+                              description: the mount path for the Secret
+                              example: /secrets/my-secret
+                              maxLength: 4096
+                              minLength: 2
+                              pattern: ^/[^/].*$
+                              type: string
+                            secretName:
+                              description: the name of the Secret to mount
+                              example: my-secret
+                              maxLength: 63
+                              minLength: 2
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                          required:
+                          - mountPath
+                          - secretName
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - mountPath
+                        x-kubernetes-list-type: map
                     type: object
                 required:
                 - options
