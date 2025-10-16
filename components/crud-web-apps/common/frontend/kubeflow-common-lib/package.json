@@ -12,8 +12,8 @@
     "lint-check": "ng lint",
     "lint": "ng lint --fix",
     "e2e": "ng e2e",
-    "copyCSS": "cp -r ./projects/kubeflow/src/styles ./dist/kubeflow/styles",
-    "copyAssets": "cp -r ./projects/kubeflow/src/assets ./dist/kubeflow/assets",
+    "copyCSS": "npx copyfiles -u 1 ./projects/kubeflow/src/styles/* ./dist/kubeflow/styles/",
+    "copyAssets": "npx copyfiles -u 1 ./projects/kubeflow/src/assets/* ./dist/kubeflow/assets/",
     "postinstall": "ngcc",
     "format:check": "prettier --check 'projects/kubeflow/src/**/*.{js,ts,html,scss,css}' || node scripts/check-format-error.js",
     "format:write": "prettier --write 'projects/kubeflow/src/**/*.{js,ts,html,scss,css}'"
@@ -64,6 +64,7 @@
     "@types/node": "^12.11.1",
     "@typescript-eslint/eslint-plugin": "4.28.2",
     "@typescript-eslint/parser": "4.28.2",
+    "copyfiles": "^2.4.1",
     "eslint": "^7.26.0",
     "eslint-plugin-import": "latest",
     "eslint-plugin-jsdoc": "^34.0.0",
