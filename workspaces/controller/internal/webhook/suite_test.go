@@ -62,6 +62,8 @@ var (
 	cancel context.CancelFunc
 )
 
+const namespaceName = "default"
+
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
 
@@ -185,8 +187,9 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 				},
 				Logo: kubefloworgv1beta1.WorkspaceKindIcon{
 					ConfigMap: &kubefloworgv1beta1.WorkspaceKindConfigMap{
-						Name: "my-logos",
-						Key:  "apple-touch-icon-152x152.png",
+						Name:      "my-logos",
+						Namespace: namespaceName,
+						Key:       "apple-touch-icon-152x152.png",
 					},
 				},
 			},
