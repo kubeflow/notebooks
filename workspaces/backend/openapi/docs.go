@@ -345,12 +345,6 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.WorkspaceListEnvelope"
                         }
                     },
-                    "400": {
-                        "description": "Bad Request. Invalid namespace format.",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
                     "401": {
                         "description": "Unauthorized. Authentication is required.",
                         "schema": {
@@ -359,6 +353,12 @@ const docTemplate = `{
                     },
                     "403": {
                         "description": "Forbidden. User does not have permission to list workspaces.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }
@@ -411,7 +411,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request. Invalid request body or namespace format.",
+                        "description": "Bad Request.",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }
@@ -442,6 +442,12 @@ const docTemplate = `{
                     },
                     "415": {
                         "description": "Unsupported Media Type. Content-Type header is not correct.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }
@@ -527,6 +533,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }
                     },
+                    "409": {
+                        "description": "Conflict. Workspace not in valid state for action.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
                     "413": {
                         "description": "Request Entity Too Large. The request body is too large.",
                         "schema": {
@@ -540,7 +552,7 @@ const docTemplate = `{
                         }
                     },
                     "422": {
-                        "description": "Unprocessable Entity. Workspace is not in appropriate state.",
+                        "description": "Unprocessable Entity. Validation error.",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }
@@ -593,12 +605,6 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.WorkspaceEnvelope"
                         }
                     },
-                    "400": {
-                        "description": "Bad Request. Invalid namespace or workspace name format.",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
                     "401": {
                         "description": "Unauthorized. Authentication is required.",
                         "schema": {
@@ -613,6 +619,12 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found. Workspace does not exist.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }
@@ -660,12 +672,6 @@ const docTemplate = `{
                     "204": {
                         "description": "Workspace deleted successfully"
                     },
-                    "400": {
-                        "description": "Bad Request. Invalid namespace or workspace name format.",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
                     "401": {
                         "description": "Unauthorized. Authentication is required.",
                         "schema": {
@@ -680,6 +686,12 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found. Workspace does not exist.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }
@@ -706,16 +718,52 @@ const docTemplate = `{
                 }
             }
         },
+        "api.ConflictError": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "description": "A human-readable description of the cause of the error.\nThis field may be presented as-is to a reader.",
+                    "type": "string"
+                },
+                "origin": {
+                    "description": "Origin indicates where the conflict error originated.\nIf value is empty, the origin is unknown.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/api.ErrorCauseOrigin"
+                        }
+                    ]
+                }
+            }
+        },
         "api.ErrorCause": {
             "type": "object",
             "properties": {
+                "conflict_cause": {
+                    "description": "ConflictCauses contains details about conflict errors that caused the request to fail.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/api.ConflictError"
+                    }
+                },
                 "validation_errors": {
+                    "description": "ValidationErrors contains details about validation errors that caused the request to fail.",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/api.ValidationError"
                     }
                 }
             }
+        },
+        "api.ErrorCauseOrigin": {
+            "type": "string",
+            "enum": [
+                "INTERNAL",
+                "KUBERNETES"
+            ],
+            "x-enum-varnames": [
+                "OriginInternal",
+                "OriginKubernetes"
+            ]
         },
         "api.ErrorEnvelope": {
             "type": "object",
@@ -736,12 +784,19 @@ const docTemplate = `{
             ],
             "properties": {
                 "cause": {
-                    "$ref": "#/definitions/api.ErrorCause"
+                    "description": "Cause contains detailed information about the cause of the error.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/api.ErrorCause"
+                        }
+                    ]
                 },
                 "code": {
+                    "description": "Code is a string representation of the HTTP status code.",
                     "type": "string"
                 },
                 "message": {
+                    "description": "Message is a human-readable description of the error.",
                     "type": "string"
                 }
             }
@@ -762,20 +817,30 @@ const docTemplate = `{
         },
         "api.ValidationError": {
             "type": "object",
-            "required": [
-                "field",
-                "message",
-                "type"
-            ],
             "properties": {
                 "field": {
+                    "description": "The field of the resource that has caused this error, as named by its JSON serialization.\nMay include dot and postfix notation for nested attributes.\nArrays are zero-indexed.\nFields may appear more than once in an array of causes due to fields having multiple errors.\n\nExamples:\n  \"name\" - the field \"name\" on the current resource\n  \"items[0].name\" - the field \"name\" on the first array entry in \"items\"",
                     "type": "string"
                 },
                 "message": {
+                    "description": "A human-readable description of the cause of the error.\nThis field may be presented as-is to a reader.",
                     "type": "string"
                 },
+                "origin": {
+                    "description": "Origin indicates where the validation error originated.\nIf value is empty, the origin is unknown.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/api.ErrorCauseOrigin"
+                        }
+                    ]
+                },
                 "type": {
-                    "$ref": "#/definitions/field.ErrorType"
+                    "description": "A machine-readable description of the cause of the error.\nIf value is empty, there is no information available.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/field.ErrorType"
+                        }
+                    ]
                 }
             }
         },

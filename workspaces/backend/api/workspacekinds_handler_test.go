@@ -384,6 +384,7 @@ spec:
 			Expect(response.Error.Cause.ValidationErrors).To(BeComparableTo(
 				[]ValidationError{
 					{
+						Origin:  OriginInternal,
 						Type:    field.ErrorTypeRequired,
 						Field:   "metadata.name",
 						Message: field.ErrorTypeRequired.String(),
@@ -502,6 +503,19 @@ metadata:
 			Expect(response.Error.Cause.ValidationErrors).To(BeComparableTo(
 				[]ValidationError{
 					{
+						Origin:  OriginInternal,
+						Type:    field.ErrorTypeRequired,
+						Field:   "apiVersion",
+						Message: field.ErrorTypeRequired.String(),
+					},
+					{
+						Origin:  OriginInternal,
+						Type:    field.ErrorTypeRequired,
+						Field:   "kind",
+						Message: field.ErrorTypeRequired.String(),
+					},
+					{
+						Origin:  OriginInternal,
 						Type:    field.ErrorTypeRequired,
 						Field:   "metadata.name",
 						Message: field.ErrorTypeRequired.String(),

@@ -283,7 +283,7 @@ var _ = Describe("Workspace Actions Handler", func() {
 			Expect(rs.StatusCode).To(Equal(http.StatusNotFound), descUnexpectedHTTPStatus, rr.Body.String())
 		})
 
-		It("should return 422 when starting a workspace that is not in Paused state", func() {
+		It("should return 409 when starting a workspace that is not in Paused state", func() {
 			By("setting the workspace's status state to Unknown and spec.paused to false")
 			workspace := &kubefloworgv1beta1.Workspace{}
 			Expect(k8sClient.Get(ctx, workspaceKey1, workspace)).To(Succeed())
@@ -321,11 +321,11 @@ var _ = Describe("Workspace Actions Handler", func() {
 			rs := rr.Result()
 			defer rs.Body.Close()
 
-			By("verifying the HTTP response status code is 422")
-			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity), descUnexpectedHTTPStatus, rr.Body.String())
+			By("verifying the HTTP response status code is 409")
+			Expect(rs.StatusCode).To(Equal(http.StatusConflict), descUnexpectedHTTPStatus, rr.Body.String())
 		})
 
-		It("should return 422 when pausing a workspace that is already paused", func() {
+		It("should return 409 when pausing a workspace that is already paused", func() {
 			By("setting the workspace's spec.paused to true")
 			workspace := &kubefloworgv1beta1.Workspace{}
 			Expect(k8sClient.Get(ctx, workspaceKey1, workspace)).To(Succeed())
@@ -361,8 +361,8 @@ var _ = Describe("Workspace Actions Handler", func() {
 			rs := rr.Result()
 			defer rs.Body.Close()
 
-			By("verifying the HTTP response status code is 422")
-			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity), descUnexpectedHTTPStatus, rr.Body.String())
+			By("verifying the HTTP response status code is 409")
+			Expect(rs.StatusCode).To(Equal(http.StatusConflict), descUnexpectedHTTPStatus, rr.Body.String())
 		})
 
 		It("should return 422 when request body is missing data field", func() {

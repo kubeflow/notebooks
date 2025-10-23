@@ -20,8 +20,11 @@ import (
 	"errors"
 	"strings"
 
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	apivalidation "k8s.io/apimachinery/pkg/api/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1validation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
@@ -75,6 +78,50 @@ func ValidateFieldIsDNS1123Subdomain(path *field.Path, value string) field.Error
 	return errs
 }
 
+// ValidateWorkspaceName validates a field contains a valid Workspace name.
+func ValidateWorkspaceName(path *field.Path, value string) field.ErrorList {
+	return ValidateFieldIsDNS1123Subdomain(path, value)
+}
+
+// ValidateWorkspaceKindName validates a field contains a valid WorkspaceKind name.
+func ValidateWorkspaceKindName(path *field.Path, value string) field.ErrorList {
+	return ValidateFieldIsDNS1123Subdomain(path, value)
+}
+
+// ValidateWorkspaceKindGVK validates the provided apiVersion and kind are for a WorkspaceKind.
+func ValidateWorkspaceKindGVK(apiVersion, kind string) field.ErrorList {
+	var errs field.ErrorList
+
+	// validate apiVersion
+	apiVersionPath := field.NewPath("apiVersion")
+	if apiVersion == "" {
+		errs = append(errs, field.Required(apiVersionPath, ""))
+	} else {
+		expectedApiVersion := kubefloworgv1beta1.GroupVersion.String()
+		if apiVersion != expectedApiVersion {
+			errs = append(errs, field.Invalid(apiVersionPath, apiVersion, "invalid apiVersion for a WorkspaceKind"))
+		}
+	}
+
+	// validate kind
+	kindPath := field.NewPath("kind")
+	if kind == "" {
+		errs = append(errs, field.Required(kindPath, ""))
+	} else {
+		expectedKind := "WorkspaceKind"
+		if kind != expectedKind {
+			errs = append(errs, field.Invalid(kindPath, kind, "invalid kind for a WorkspaceKind"))
+		}
+	}
+
+	return errs
+}
+
+// ValidateKubernetesSecretName validates a field contains a valid Kubernetes Secret name.
+func ValidateKubernetesSecretName(path *field.Path, value string) field.ErrorList {
+	return ValidateFieldIsDNS1123Subdomain(path, value)
+}
+
 // ValidateFieldIsDNS1123Label validates a field contains an RCF 1123 DNS label.
 // USED FOR:
 //   - names of: Namespaces, Services, etc.
@@ -91,4 +138,24 @@ func ValidateFieldIsDNS1123Label(path *field.Path, value string) field.ErrorList
 	}
 
 	return errs
+}
+
+// ValidateKubernetesNamespaceName validates a field contains a valid Kubernetes Namespace name.
+func ValidateKubernetesNamespaceName(path *field.Path, value string) field.ErrorList {
+	return ValidateFieldIsDNS1123Label(path, value)
+}
+
+// ValidateKubernetesServicesName validates a field contains a valid Kubernetes Service name.
+func ValidateKubernetesServicesName(path *field.Path, value string) field.ErrorList {
+	return ValidateFieldIsDNS1123Label(path, value)
+}
+
+// ValidateKubernetesAnnotations validates a map of Kubernetes annotations.
+func ValidateKubernetesAnnotations(path *field.Path, annotations map[string]string) field.ErrorList {
+	return apivalidation.ValidateAnnotations(annotations, path)
+}
+
+// ValidateKubernetesLabels validates a map of Kubernetes labels.
+func ValidateKubernetesLabels(path *field.Path, labels map[string]string) field.ErrorList {
+	return v1validation.ValidateLabels(labels, path)
 }
