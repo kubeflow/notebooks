@@ -769,9 +769,7 @@ var _ = Describe("Workspaces Handler", func() {
 				},
 			}
 			Expect(createdWorkspace.Spec.PodTemplate.Volumes.Data).To(Equal(expected))
-
-			// TODO: Verify secrets once #240 merged
-			// Expect(createdWorkspace.Spec.PodTemplate.Volumes.Secrets).To(BeEmpty())
+			Expect(createdWorkspace.Spec.PodTemplate.Volumes.Secrets).To(BeEmpty())
 
 			By("creating an HTTP request to delete the Workspace")
 			path = strings.Replace(WorkspacesByNamePath, ":"+NamespacePathParam, namespaceNameCrud, 1)
@@ -808,8 +806,7 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(apierrors.IsNotFound(err)).To(BeTrue())
 		})
 
-		// TODO: Change to It when #240 merged
-		XIt("should create a workspace with secrets", func() {
+		It("should create a workspace with secrets", func() {
 			// Create a workspace with secrets
 			workspace := &models.WorkspaceCreate{
 				Name: "test-workspace",
@@ -865,11 +862,14 @@ var _ = Describe("Workspaces Handler", func() {
 			createdWorkspace := &kubefloworgv1beta1.Workspace{}
 			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: workspace.Name, Namespace: namespaceNameCrud}, createdWorkspace)).To(Succeed())
 
-			// TODO: Verify the secrets are properly set once #240 merged
-			// Expect(createdWorkspace.Spec.PodTemplate.Volumes.Secrets).To(HaveLen(1))
-			// Expect(createdWorkspace.Spec.PodTemplate.Volumes.Secrets[0].SecretName).To(Equal("test-secret"))
-			// Expect(createdWorkspace.Spec.PodTemplate.Volumes.Secrets[0].MountPath).To(Equal("/secrets"))
-			// Expect(createdWorkspace.Spec.PodTemplate.Volumes.Secrets[0].DefaultMode).To(Equal(int32(0o644)))
+			expected := []kubefloworgv1beta1.PodSecretMount{
+				{
+					SecretName:  workspace.PodTemplate.Volumes.Secrets[0].SecretName,
+					MountPath:   workspace.PodTemplate.Volumes.Secrets[0].MountPath,
+					DefaultMode: workspace.PodTemplate.Volumes.Secrets[0].DefaultMode,
+				},
+			}
+			Expect(createdWorkspace.Spec.PodTemplate.Volumes.Secrets).To(Equal(expected))
 		})
 
 		// TODO: test when fail to create a Workspace when:
