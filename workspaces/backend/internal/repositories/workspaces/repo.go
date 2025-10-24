@@ -33,9 +33,10 @@ import (
 )
 
 var (
-	ErrWorkspaceNotFound      = fmt.Errorf("workspace not found")
-	ErrWorkspaceAlreadyExists = fmt.Errorf("workspace already exists")
-	ErrWorkspaceInvalidState  = fmt.Errorf("workspace is in an invalid state for this operation")
+	ErrWorkspaceNotFound           = fmt.Errorf("workspace not found")
+	ErrWorkspaceAlreadyExists      = fmt.Errorf("workspace already exists")
+	ErrWorkspaceInvalidState       = fmt.Errorf("workspace is in an invalid state for this operation")
+	ErrWorkspaceGenerationConflict = fmt.Errorf("current workspace generation does not match request")
 )
 
 type WorkspaceRepository struct {
@@ -200,6 +201,20 @@ func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, workspaceCrea
 	createdWorkspaceModel := models.NewWorkspaceCreateModelFromWorkspace(workspace)
 
 	return createdWorkspaceModel, nil
+}
+
+func (r *WorkspaceRepository) UpdateWorkspace(ctx context.Context, workspaceUpdate *models.WorkspaceUpdate, namespace, workspaceName string) (*models.WorkspaceUpdate, error) {
+	//
+	// TODO: implement update logic,
+	//
+	// TODO: conflict detection based on generation
+	//       make sure to raise `ErrWorkspaceGenerationConflict` which is handled by the caller
+	//       (?? does this mean we should avoid the cache when getting the current workspace)
+	//
+	//
+	// TODO: ensure we raise ErrWorkspaceNotFound if the workspace does not exist (and handle by calkler)
+	//
+	return nil, fmt.Errorf("update workspace not implemented yet")
 }
 
 func (r *WorkspaceRepository) DeleteWorkspace(ctx context.Context, namespace, workspaceName string) error {
