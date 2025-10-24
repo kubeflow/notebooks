@@ -35,6 +35,8 @@ import (
 
 type WorkspaceCreateEnvelope Envelope[*models.WorkspaceCreate]
 
+type WorkspaceUpdateEnvelope Envelope[*models.WorkspaceUpdate]
+
 type WorkspaceListEnvelope Envelope[[]models.Workspace]
 
 type WorkspaceEnvelope Envelope[models.Workspace]
@@ -290,6 +292,135 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 
 	responseEnvelope := &WorkspaceCreateEnvelope{Data: createdWorkspace}
 	a.createdResponse(w, r, responseEnvelope, location)
+}
+
+// UpdateWorkspaceHandler updates an existing workspace.
+//
+//	@Summary		Update workspace
+//	@Description	Updates an existing workspace
+//	@Tags			workspaces
+//	@ID				updateWorkspace
+//	@Accept			json
+//	@Produce		json
+//	@Param			namespace	path		string					true	"Namespace of the workspace"	extensions(x-example=kubeflow-user-example-com)
+//	@Param			name		path		string					true	"Name of the workspace"			extensions(x-example=my-workspace)
+//	@Param			body		body		WorkspaceCreateEnvelope	true	"Workspace creation configuration"
+//	@Success		200			{object}	WorkspaceEnvelope		"Workspace updated successfully"
+//	@Failure		400			{object}	ErrorEnvelope			"Bad Request."
+//	@Failure		401			{object}	ErrorEnvelope			"Unauthorized. Authentication is required."
+//	@Failure		403			{object}	ErrorEnvelope			"Forbidden. User does not have permission to create workspace."
+//	@Failure		409			{object}	ErrorEnvelope			"Conflict. Current workspace generation is newer than provided."
+//	@Failure		413			{object}	ErrorEnvelope			"Request Entity Too Large. The request body is too large."
+//	@Failure		415			{object}	ErrorEnvelope			"Unsupported Media Type. Content-Type header is not correct."
+//	@Failure		422			{object}	ErrorEnvelope			"Unprocessable Entity. Validation error."
+//	@Failure		500			{object}	ErrorEnvelope			"Internal server error. An unexpected error occurred on the server."
+//	@Router			/workspaces/{namespace}/{name} [patch]
+func (a *App) UpdateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	namespace := ps.ByName(NamespacePathParam)
+	workspaceName := ps.ByName(ResourceNamePathParam)
+
+	// validate path parameters
+	var valErrs field.ErrorList
+	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
+	valErrs = append(valErrs, helper.ValidateWorkspaceName(field.NewPath(ResourceNamePathParam), workspaceName)...)
+	if len(valErrs) > 0 {
+		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
+		return
+	}
+
+	//
+	// TODO: require the caller to provide the generation base that they are expecting to update.
+	//       either include the generation as a field in the request body, or a header.
+	//
+
+	//
+	// TODO: update the "get" workspace (not list) to return the current generation of the workspace.
+	//       this probably means swapping the GET for Workspace with return a WorkspaceUpdate rather than a Workspace
+	//        - it also means that we will be treating GET as only used for retrieving the current state of the workspace,
+	//          before updating it, whereas LIST is used for getting the details of all workspaces (e.g. the table view in the UI).
+	//
+
+	// validate the Content-Type header
+	if success := a.ValidateContentType(w, r, "application/json"); !success {
+		return
+	}
+
+	// decode the request body
+	bodyEnvelope := &WorkspaceUpdateEnvelope{}
+	err := a.DecodeJSON(r, bodyEnvelope)
+	if err != nil {
+		if a.IsMaxBytesError(err) {
+			a.requestEntityTooLargeResponse(w, r, err)
+			return
+		}
+		//
+		// TODO: handle UnmarshalTypeError and return 422,
+		//       decode the paths which were failed to decode (included in the error)
+		//       and also do this in the other handlers which decode json
+		//
+		a.badRequestResponse(w, r, fmt.Errorf("error decoding request body: %w", err))
+		return
+	}
+
+	// validate the request body
+	dataPath := field.NewPath("data")
+	if bodyEnvelope.Data == nil {
+		valErrs = field.ErrorList{field.Required(dataPath, "data is required")}
+		a.failedValidationResponse(w, r, errMsgRequestBodyInvalid, valErrs, nil)
+		return
+	}
+	valErrs = bodyEnvelope.Data.Validate(dataPath)
+	if len(valErrs) > 0 {
+		a.failedValidationResponse(w, r, errMsgRequestBodyInvalid, valErrs, nil)
+		return
+	}
+
+	workspaceUpdate := bodyEnvelope.Data
+
+	// =========================== AUTH ===========================
+	authPolicies := []*auth.ResourcePolicy{
+		auth.NewResourcePolicy(
+			auth.ResourceVerbUpdate,
+			&kubefloworgv1beta1.Workspace{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: namespace,
+					Name:      workspaceName,
+				},
+			},
+		),
+	}
+	if success := a.requireAuth(w, r, authPolicies); !success {
+		return
+	}
+	// ============================================================
+
+	updatedWorkspace, err := a.repositories.Workspace.UpdateWorkspace(r.Context(), workspaceUpdate, namespace, workspaceName)
+	if err != nil {
+		if errors.Is(err, repository.ErrWorkspaceNotFound) {
+			a.notFoundResponse(w, r)
+			return
+		}
+		//
+		// TODO: there is still a race condition once we actually try and patch/update the workspace,
+		//       unless we use optimistic locking with the generation field
+		//      (or resourceVersion, with the risk of unexpected 500 errors to the caller).
+		//
+		if errors.Is(err, repository.ErrWorkspaceGenerationConflict) {
+			causes := helper.StatusCausesFromAPIStatus(err)
+			a.conflictResponse(w, r, err, causes)
+			return
+		}
+		if apierrors.IsInvalid(err) {
+			causes := helper.StatusCausesFromAPIStatus(err)
+			a.failedValidationResponse(w, r, errMsgKubernetesValidation, nil, causes)
+			return
+		}
+		a.serverErrorResponse(w, r, fmt.Errorf("error updating workspace: %w", err))
+		return
+	}
+
+	responseEnvelope := &WorkspaceUpdateEnvelope{Data: updatedWorkspace}
+	a.dataResponse(w, r, responseEnvelope)
 }
 
 // DeleteWorkspaceHandler deletes a specific workspace by namespace and name.
