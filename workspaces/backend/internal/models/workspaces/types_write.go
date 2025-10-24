@@ -51,6 +51,31 @@ func (w *WorkspaceCreate) Validate(prefix *field.Path) []*field.Error {
 	return errs
 }
 
+// WorkspaceUpdate is used to update an existing workspace.
+// NOTE: we only do basic validation, more complex validation is done by the controller when attempting to update the workspace.
+type WorkspaceUpdate struct {
+	//
+	// TODO: it probably makes sense to return the generation here,
+	//       so both the GET and PATCH requests include it, so we can detect update conflicts.
+	//
+	// ...
+
+	Paused       bool              `json:"paused"`       // TODO: remove `paused` once we have an "actions" api for pausing workspaces
+	DeferUpdates bool              `json:"deferUpdates"` // TODO: remove `deferUpdates` once the controller is no longer applying redirects
+	PodTemplate  PodTemplateMutate `json:"podTemplate"`
+}
+
+// Validate validates the WorkspaceUpdate struct.
+func (w *WorkspaceUpdate) Validate(prefix *field.Path) []*field.Error {
+	var errs []*field.Error
+
+	// validate pod template
+	podTemplatePath := prefix.Child("podTemplate")
+	errs = append(errs, w.PodTemplate.Validate(podTemplatePath)...)
+
+	return errs
+}
+
 type PodTemplateMutate struct {
 	PodMetadata PodMetadataMutate        `json:"podMetadata"`
 	Volumes     PodVolumesMutate         `json:"volumes"`
