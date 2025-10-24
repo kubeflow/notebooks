@@ -6,6 +6,7 @@ import {
   DescriptionListDescription,
 } from '@patternfly/react-core/dist/esm/components/DescriptionList';
 import { Divider } from '@patternfly/react-core/dist/esm/components/Divider';
+import { Label, LabelGroup } from '@patternfly/react-core/dist/esm/components/Label';
 import { WorkspacesWorkspace } from '~/generated/data-contracts';
 
 type WorkspaceDetailsOverviewProps = {
@@ -29,9 +30,13 @@ export const WorkspaceDetailsOverview: React.FunctionComponent<WorkspaceDetailsO
     <DescriptionListGroup>
       <DescriptionListTerm>Labels</DescriptionListTerm>
       <DescriptionListDescription>
-        {Object.entries(workspace.podTemplate.podMetadata.labels)
-          .map(([key, value]) => `${key}=${value}`)
-          .join(', ')}
+        <LabelGroup>
+          {Object.entries(workspace.podTemplate.podMetadata.labels).map(([key, value]) => (
+            <Label key={key} isCompact>
+              {key}={value}
+            </Label>
+          ))}
+        </LabelGroup>
       </DescriptionListDescription>
     </DescriptionListGroup>
     <Divider />
