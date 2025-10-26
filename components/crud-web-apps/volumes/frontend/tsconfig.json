@@ -20,7 +20,6 @@
       "dom",
       "es2019"
     ],
-    "skipLibCheck": true,
     "paths": {
       "@shared/*": ["../../angular-frontend-shared/*"],
       "@app/environment": ["src/environments/environment"]
