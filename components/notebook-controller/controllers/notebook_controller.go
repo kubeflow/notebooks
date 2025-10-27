@@ -366,6 +366,10 @@ func generateStatefulSet(instance *v1beta1.Notebook) *appsv1.StatefulSet {
 
 	ss := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
+			Labels: map[string]string{
+				"statefulset":   instance.Name,
+				"notebook-name": instance.Name,
+			},
 			Name:      instance.Name,
 			Namespace: instance.Namespace,
 		},
