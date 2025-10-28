@@ -2,7 +2,6 @@ import React from 'react';
 import '@patternfly/patternfly/patternfly-addons.css';
 import '@patternfly/react-core/dist/styles/base.css';
 import '~/app/app.css';
-import '~/app/theme-overrides.css';
 import { Page, PageSidebar } from '@patternfly/react-core/dist/esm/components/Page';
 import { DeploymentMode, logout, useModularArchContext } from 'mod-arch-core';
 import ErrorBoundary from '~/app/error/ErrorBoundary';
