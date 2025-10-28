@@ -39,6 +39,7 @@ export type WorkspaceActionsContextType = {
   requestStartAction: RequestAction;
   requestRestartAction: RequestAction;
   requestStopAction: RequestAction;
+  isDrawerExpanded: boolean;
 };
 
 export const WorkspaceActionsContext = React.createContext<WorkspaceActionsContextType | undefined>(
@@ -148,6 +149,8 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
     }
   }, [activeWsAction, executeEditAction]);
 
+  const isDrawerExpanded = activeWsAction?.action === ActionType.ViewDetails;
+
   const contextValue = useMemo(
     () => ({
       requestViewDetailsAction,
@@ -156,6 +159,7 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
       requestStartAction,
       requestRestartAction,
       requestStopAction,
+      isDrawerExpanded,
     }),
     [
       requestViewDetailsAction,
@@ -164,12 +168,19 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
       requestStartAction,
       requestRestartAction,
       requestStopAction,
+      isDrawerExpanded,
     ],
   );
 
   return (
     <WorkspaceActionsContext.Provider value={contextValue}>
-      <Drawer isInline isExpanded={activeWsAction?.action === ActionType.ViewDetails}>
+      <Drawer
+        isInline
+        isExpanded={isDrawerExpanded}
+        onExpand={() => {
+          /* drawer expanded */
+        }}
+      >
         <DrawerContent panelContent={drawerContent}>
           <DrawerContentBody>
             {children}

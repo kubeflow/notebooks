@@ -24,6 +24,7 @@ import {
 } from '@patternfly/react-table/dist/esm/components/Table';
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
 import { WorkspacesPodVolumeMount } from '~/generated/data-contracts';
+import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 
 interface WorkspaceFormPropertiesVolumesProps {
   volumes: WorkspacesPodVolumeMount[];
@@ -149,7 +150,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
         />
         <ModalBody>
           <Form>
-            <FormGroup label="PVC Name" isRequired fieldId="pvc-name">
+            <ThemeAwareFormGroupWrapper label="PVC Name" isRequired fieldId="pvc-name">
               <TextInput
                 name="pvcName"
                 isRequired
@@ -158,8 +159,8 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
                 onChange={(_, val) => setFormData({ ...formData, pvcName: val })}
                 id="pvc-name"
               />
-            </FormGroup>
-            <FormGroup label="Mount Path" isRequired fieldId="mount-path">
+            </ThemeAwareFormGroupWrapper>
+            <ThemeAwareFormGroupWrapper label="Mount Path" isRequired fieldId="mount-path">
               <TextInput
                 name="mountPath"
                 isRequired
@@ -168,7 +169,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
                 onChange={(_, val) => setFormData({ ...formData, mountPath: val })}
                 id="mount-path"
               />
-            </FormGroup>
+            </ThemeAwareFormGroupWrapper>
             <FormGroup fieldId="readonly-access">
               <Switch
                 id="readonly-access-switch"

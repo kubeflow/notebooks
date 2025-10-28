@@ -27,6 +27,7 @@ describe('useWorkspaceRowActions', () => {
     requestStartAction: (args: RequestActionArgs) => void;
     requestRestartAction: (args: RequestActionArgs) => void;
     requestStopAction: (args: RequestActionArgs) => void;
+    isDrawerExpanded: boolean;
   };
 
   const contextValue: WorkspaceActionsContextLike = {
@@ -36,6 +37,7 @@ describe('useWorkspaceRowActions', () => {
     requestStartAction: jest.fn(),
     requestRestartAction: jest.fn(),
     requestStopAction: jest.fn(),
+    isDrawerExpanded: false,
   };
 
   const wrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
