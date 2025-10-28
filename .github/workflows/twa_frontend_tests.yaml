@@ -1,0 +1,98 @@
+name: TWA Frontend Tests
+on:
+  pull_request:
+    paths:
+      - components/crud-web-apps/tensorboards/frontend/**
+      - releasing/version/VERSION
+    branches:
+      - main
+      - v*-branch
+      - notebooks-v1
+
+jobs:
+  frontend-format-linting-check:
+    name: Code format and lint
+    runs-on: ubuntu-22.04
+    defaults:
+      run:
+        working-directory: components/crud-web-apps/tensorboards/frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 16
+
+      - name: Format tensorboards web app
+        run: |
+            npm ci
+            npm run format:check
+  
+      - name: Lint tensorboards web app
+        run: |
+            npm ci
+            npm run lint-check
+
+  frontend-unit-tests:
+    runs-on: ubuntu-22.04
+    name: Unit tests
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup node version to 16
+        uses: actions/setup-node@v4
+        with:
+          node-version: 16
+
+      - name: Install common library dependencies
+        run: |
+          cd components/crud-web-apps/common/frontend/kubeflow-common-lib
+          npm ci
+          npm run build
+          npm link ./dist/kubeflow
+
+      - name: Install TWA dependencies
+        run: |
+          cd components/crud-web-apps/tensorboards/frontend
+          npm ci
+          npm link kubeflow
+
+      - name: Run unit tests
+        run: |
+          cd components/crud-web-apps/tensorboards/frontend
+          npm run test:prod
+
+  frontend-ui-tests:
+    name: UI tests with Cypress
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 16
+
+      - name: Install common library dependencies
+        run: |
+          cd components/crud-web-apps/common/frontend/kubeflow-common-lib
+          npm ci
+          npm run build
+          npm link ./dist/kubeflow
+
+      - name: Install TWA dependencies
+        run: |
+          cd components/crud-web-apps/tensorboards/frontend
+          npm ci
+          npm link kubeflow
+
+      - name: Serve UI & run Cypress tests in Chrome and Firefox
+        run: |
+          cd components/crud-web-apps/tensorboards/frontend
+          npm run serve > serve.log 2>&1 & npx wait-on http://localhost:4200
+          npm run ui-test-ci-all
