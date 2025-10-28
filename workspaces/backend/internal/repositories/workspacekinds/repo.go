@@ -22,6 +22,7 @@ import (
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds"
@@ -91,4 +92,21 @@ func (r *WorkspaceKindRepository) Create(ctx context.Context, workspaceKind *kub
 	createdWorkspaceKindModel := models.NewWorkspaceKindModelFromWorkspaceKind(workspaceKind)
 
 	return &createdWorkspaceKindModel, nil
+}
+
+func (r *WorkspaceKindRepository) DeleteWorkspaceKind(ctx context.Context, name string) error {
+	workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+
+	if err := r.client.Delete(ctx, workspaceKind); err != nil {
+		if apierrors.IsNotFound(err) {
+			return ErrWorkspaceKindNotFound
+		}
+		return err
+	}
+
+	return nil
 }

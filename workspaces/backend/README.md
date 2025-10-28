@@ -50,7 +50,7 @@ make run PORT=8000
 | GET /api/v1/workspacekinds/{name}                         | workspacekinds_handler    | Get a WorkspaceKind entity              |
 | PATCH /api/v1/workspacekinds/{name}                       | TBD                       | Patch a WorkspaceKind entity            |
 | PUT /api/v1/workspacekinds/{name}                         | TBD                       | Update a WorkspaceKind entity           |
-| DELETE /api/v1/workspacekinds/{name}                      | TBD                       | Delete a WorkspaceKind entity           |
+| DELETE /api/v1/workspacekinds/{name}                      | workspacekinds_handler    | Delete a WorkspaceKind entity           |
 
 ### Sample local calls
 
@@ -174,4 +174,11 @@ Get a WorkspaceKind:
 ```shell
 # GET /api/v1/workspacekinds/{name}
 curl -i localhost:4000/api/v1/workspacekinds/jupyterlab
+```
+
+Delete a WorkspaceKind:
+
+```shell
+# DELETE /api/v1/workspacekinds/{name}
+curl -X DELETE localhost:4000/api/v1/workspacekinds/jupyterlab
 ```
