@@ -30,6 +30,7 @@ export const WorkspaceDetailsActions: React.FC<WorkspaceDetailsActionsProps> = (
           toggle={(toggleRef) => (
             <MenuToggle
               variant="primary"
+              className="workspace-details-action-toggle"
               ref={toggleRef}
               onClick={() => setOpen(!isOpen)}
               isExpanded={isOpen}
