@@ -3,6 +3,7 @@ import {
   HealthCheckHealthCheck,
   HealthCheckServiceStatus,
   NamespacesNamespace,
+  SecretsSecretListItem,
   WorkspacekindsRedirectMessageLevel,
   WorkspacekindsWorkspaceKind,
   WorkspacesImageConfig,
@@ -633,4 +634,22 @@ export const buildMockWorkspaceUpdateFromWorkspace = (args: {
   }),
   revision: args.workspaceUpdate?.revision ?? '1234567890',
   ...args.workspaceUpdate,
+});
+
+export const buildMockSecret = (
+  secret?: Partial<SecretsSecretListItem>,
+): SecretsSecretListItem => ({
+  name: 'secret-1',
+  type: 'Opaque',
+  immutable: false,
+  canMount: true,
+  canUpdate: true,
+  audit: {
+    createdAt: new Date(2025, 4, 1).toISOString(),
+    createdBy: 'test',
+    updatedAt: new Date(2025, 4, 1).toISOString(),
+    updatedBy: 'test',
+    deletedAt: '',
+  },
+  ...secret,
 });

@@ -1,4 +1,5 @@
 import {
+  SecretsSecretCreate,
   WorkspacekindsWorkspaceKind,
   WorkspacesWorkspaceListItem,
   WorkspacesWorkspaceKindInfo,
@@ -13,6 +14,7 @@ import {
   buildMockWorkspaceKindInfo,
   buildMockWorkspaceList,
   buildMockWorkspaceUpdate,
+  buildMockSecret,
 } from '~/shared/mock/mockBuilder';
 
 // Health
@@ -177,3 +179,22 @@ export const mockAllWorkspaces = [
 export const mockWorkspaceCreate = buildMockWorkspaceCreate({});
 
 export const mockWorkspaceUpdate = buildMockWorkspaceUpdate({});
+export const mockSecretCreate: SecretsSecretCreate = {
+  name: 'secret-1',
+  type: 'Opaque',
+  immutable: false,
+  contents: {
+    username: {
+      base64: 'abcd',
+    },
+  },
+};
+
+export const mockSecretsList = [
+  buildMockSecret({
+    name: 'secret-1',
+  }),
+  buildMockSecret({
+    name: 'secret-2',
+  }),
+];

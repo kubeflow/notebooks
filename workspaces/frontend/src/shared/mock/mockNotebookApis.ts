@@ -5,6 +5,8 @@ import {
   mockedHealthCheckResponse,
   mockNamespaces,
   mockWorkspaceCreate,
+  mockSecretCreate,
+  mockSecretsList,
   mockWorkspaceKind1,
   mockWorkspaceKinds,
   mockWorkspaceUpdate,
@@ -106,6 +108,24 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
         throw buildAxiosError(apiErrorEnvelope);
       }
       return { data: mockWorkspaceKind1 };
+    },
+  },
+  secrets: {
+    listSecrets: async () => ({
+      data: mockSecretsList,
+    }),
+    createSecret: async () => ({
+      data: mockSecretCreate,
+    }),
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    getSecret: async () => ({
+      data: mockSecretCreate,
+    }),
+    updateSecret: async () => ({
+      data: mockSecretCreate,
+    }),
+    deleteSecret: async () => {
+      await delay(1500);
     },
   },
 });
