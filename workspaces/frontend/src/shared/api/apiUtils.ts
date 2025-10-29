@@ -20,8 +20,8 @@ function isApiErrorEnvelope(data: unknown): data is ApiErrorEnvelope {
 
 export async function safeApiCall<T>(fn: () => Promise<T>): Promise<ApiCallResult<T>> {
   try {
-    const data = await fn();
-    return { ok: true, data };
+    const result = await fn();
+    return { ok: true, result };
   } catch (error: unknown) {
     if (axios.isAxiosError<ApiErrorEnvelope>(error)) {
       const apiError = error.response?.data;

@@ -16,10 +16,8 @@ export const WorkspaceKindDetailsPodConfigs: React.FunctionComponent<
       id: podConfig.id,
       displayName: podConfig.displayName,
       kindName: workspaceKind.name,
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      workspaceCount: workspaceCountPerKind[workspaceKind.name]
-        ? (workspaceCountPerKind[workspaceKind.name].countByPodConfig[podConfig.id] ?? 0)
-        : 0,
+      workspaceCount:
+        workspaceCountPerKind[workspaceKind.name]?.countByPodConfig[podConfig.id] ?? 0,
       workspaceCountRouteState: {
         podConfigId: podConfig.id,
       },

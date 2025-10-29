@@ -88,7 +88,7 @@ export const WorkspaceKindForm: React.FC = () => {
 
         if (createResult.ok) {
           notification.success(
-            `Workspace kind '${createResult.data.data.name}' created successfully`,
+            `Workspace kind '${createResult.result.data.name}' created successfully`,
           );
           navigate('workspaceKinds');
         } else {

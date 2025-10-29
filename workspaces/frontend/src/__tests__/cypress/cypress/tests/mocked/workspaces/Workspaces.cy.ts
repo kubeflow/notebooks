@@ -1,5 +1,5 @@
+import { mockModArchResponse } from 'mod-arch-core';
 import { mockNamespaces } from '~/__mocks__/mockNamespaces';
-import { mockBFFResponse } from '~/__mocks__/utils';
 import { home } from '~/__tests__/cypress/cypress/pages/home';
 import {
   mockWorkspaces,
@@ -26,11 +26,11 @@ describe('Workspaces Tests', () => {
     home.visit();
 
     cy.intercept('GET', '/api/v1/namespaces', {
-      body: mockBFFResponse(mockNamespaces),
+      body: mockModArchResponse(mockNamespaces),
     }).as('getNamespaces');
 
     cy.intercept('GET', '/api/v1/workspaces', {
-      body: mockBFFResponse(mockWorkspaces),
+      body: mockModArchResponse(mockWorkspaces),
     }).as('getWorkspaces');
     cy.wait('@getWorkspaces');
   });
@@ -65,15 +65,15 @@ describe('Workspace by namespace functionality', () => {
     home.visit();
 
     cy.intercept('GET', '/api/v1/namespaces', {
-      body: mockBFFResponse(mockNamespaces),
+      body: mockModArchResponse(mockNamespaces),
     }).as('getNamespaces');
 
-    cy.intercept('GET', '/api/v1/workspaces', { body: mockBFFResponse(mockWorkspaces) }).as(
+    cy.intercept('GET', '/api/v1/workspaces', { body: mockModArchResponse(mockWorkspaces) }).as(
       'getWorkspaces',
     );
 
     cy.intercept('GET', '/api/v1/workspaces/kubeflow', {
-      body: mockBFFResponse(mockWorkspacesByNS),
+      body: mockModArchResponse(mockWorkspacesByNS),
     }).as('getKubeflowWorkspaces');
 
     cy.wait('@getNamespaces');
@@ -107,14 +107,14 @@ describe('Workspaces Component', () => {
 
     cy.visit('/');
     cy.intercept('GET', '/api/v1/namespaces', {
-      body: mockBFFResponse(mockNamespaces),
+      body: mockModArchResponse(mockNamespaces),
     }).as('getNamespaces');
     cy.wait('@getNamespaces');
     cy.intercept('GET', '/api/v1/workspaces', {
-      body: mockBFFResponse(mockWorkspaces),
+      body: mockModArchResponse(mockWorkspaces),
     }).as('getWorkspaces');
     cy.intercept('GET', '/api/v1/workspaces/kubeflow', {
-      body: mockBFFResponse(mockWorkspacesByNS),
+      body: mockModArchResponse(mockWorkspacesByNS),
     });
   });
 

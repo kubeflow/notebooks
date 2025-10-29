@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
+import { useAPIState, APIState } from 'mod-arch-core';
 import { NotebookApis, notebookApisImpl } from '~/shared/api/notebookApi';
-import { APIState } from '~/shared/api/types';
-import useAPIState from '~/shared/api/useAPIState';
 import { mockNotebookApisImpl } from '~/shared/mock/mockNotebookApis';
 import { MOCK_API_ENABLED } from '~/shared/utilities/const';
 

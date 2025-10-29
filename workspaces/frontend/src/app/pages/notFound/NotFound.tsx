@@ -9,6 +9,8 @@ import {
 import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
 import { useTypedNavigate } from '~/app/routerHelper';
 
+// TODO: replace with mod-arch-shared NotFound component
+// Currently, not possible because mod-arch-shared version assumes home route is '/'
 const NotFound: React.FunctionComponent = () => {
   function GoHomeBtn() {
     const navigate = useTypedNavigate();
