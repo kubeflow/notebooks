@@ -179,7 +179,7 @@ export const mockSecretCreate: SecretsSecretCreate = {
   type: 'Opaque',
   immutable: false,
   contents: {
-    username: {
+    data: {
       base64: 'abcd',
     },
   },

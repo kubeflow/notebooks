@@ -23,7 +23,6 @@ import { Dropdown, DropdownItem } from '@patternfly/react-core/dist/esm/componen
 import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
 import { Form, FormGroup } from '@patternfly/react-core/dist/esm/components/Form';
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
-import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
 import { SecretsSecretListItem, WorkspacesPodSecretMount } from '~/generated/data-contracts';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
@@ -51,7 +50,8 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
   const [isDefaultModeValid, setIsDefaultModeValid] = useState(true);
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
-  const [, setAvailableSecrets] = useState<SecretsSecretListItem[]>([]);
+  const [availableSecrets, setAvailableSecrets] = useState<SecretsSecretListItem[]>([]);
+  const [attachedSecrets, setAttachedSecrets] = useState<SecretsSecretListItem[]>([]);
 
   const { api } = useNotebookAPI();
   const { selectedNamespace } = useNamespaceContext();
@@ -174,7 +174,6 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
       )}
       <Button
         variant="primary"
-        icon={<PlusCircleIcon />}
         onClick={() => setIsModalOpen(true)}
         style={{ marginTop: '1rem', width: 'fit-content' }}
       >
