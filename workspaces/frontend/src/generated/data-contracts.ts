@@ -77,6 +77,18 @@ export interface ApiNamespaceListEnvelope {
   data: NamespacesNamespace[];
 }
 
+export interface ApiSecretCreateEnvelope {
+  data: SecretsSecretCreate;
+}
+
+export interface ApiSecretEnvelope {
+  data: SecretsSecretUpdate;
+}
+
+export interface ApiSecretListEnvelope {
+  data: SecretsSecretListItem[];
+}
+
 export interface ApiValidationError {
   field: string;
   message: string;
@@ -107,6 +119,13 @@ export interface ApiWorkspaceListEnvelope {
   data: WorkspacesWorkspace[];
 }
 
+export interface CommonAudit {
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+  updatedBy: string;
+}
+
 export interface HealthCheckHealthCheck {
   status: HealthCheckServiceStatus;
   systemInfo: HealthCheckSystemInfo;
@@ -118,6 +137,41 @@ export interface HealthCheckSystemInfo {
 
 export interface NamespacesNamespace {
   name: string;
+}
+
+export interface SecretsSecretCreate {
+  contents: SecretsSecretData;
+  immutable: boolean;
+  name: string;
+  type: string;
+}
+
+export type SecretsSecretData = Record<string, SecretsSecretValue>;
+
+export interface SecretsSecretListItem {
+  audit: CommonAudit;
+  canMount: boolean;
+  canUpdate: boolean;
+  immutable: boolean;
+  mounts?: SecretsSecretMount[];
+  name: string;
+  type: string;
+}
+
+export interface SecretsSecretMount {
+  group: string;
+  kind: string;
+  name: string;
+}
+
+export interface SecretsSecretUpdate {
+  contents: SecretsSecretData;
+  immutable: boolean;
+  type: string;
+}
+
+export interface SecretsSecretValue {
+  base64?: string;
 }
 
 export interface WorkspacekindsImageConfig {
