@@ -23,8 +23,9 @@ import { Dropdown, DropdownItem } from '@patternfly/react-core/dist/esm/componen
 import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
 import { Form, FormGroup } from '@patternfly/react-core/dist/esm/components/Form';
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
-import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
-import { WorkspacesPodSecretMount } from '~/generated/data-contracts';
+import { SecretsSecretListItem, WorkspacesPodSecretMount } from '~/generated/data-contracts';
+import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
+import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
 
 interface WorkspaceFormPropertiesSecretsProps {
   secrets: WorkspacesPodSecretMount[];
@@ -49,6 +50,19 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
   const [isDefaultModeValid, setIsDefaultModeValid] = useState(true);
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
+  const [availableSecrets, setAvailableSecrets] = useState<SecretsSecretListItem[]>([]);
+  const [attachedSecrets, setAttachedSecrets] = useState<SecretsSecretListItem[]>([]);
+
+  const { api } = useNotebookAPI();
+  const { selectedNamespace } = useNamespaceContext();
+
+  useEffect(() => {
+    const fetchSecrets = async () => {
+      const secretsResponse = await api.secrets.listSecrets(selectedNamespace);
+      setAvailableSecrets(secretsResponse.data);
+    };
+    fetchSecrets();
+  }, [api.secrets, selectedNamespace]);
 
   const openDeleteModal = useCallback((i: number) => {
     setIsDeleteModalOpen(true);
