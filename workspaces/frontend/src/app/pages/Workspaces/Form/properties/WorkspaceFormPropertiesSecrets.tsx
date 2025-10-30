@@ -12,20 +12,17 @@ import {
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import {
   Modal,
-  ModalBody,
   ModalFooter,
   ModalHeader,
   ModalVariant,
 } from '@patternfly/react-core/dist/esm/components/Modal';
-import { ValidatedOptions } from '@patternfly/react-core/helpers';
-import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import { Dropdown, DropdownItem } from '@patternfly/react-core/dist/esm/components/Dropdown';
 import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
-import { Form, FormGroup } from '@patternfly/react-core/dist/esm/components/Form';
-import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { SecretsSecretListItem, WorkspacesPodSecretMount } from '~/generated/data-contracts';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
+import { SecretsAttachModal } from './secrets/SecretsAttachModal';
+import { SecretsCreateModal } from './secrets/SecretsCreateModal';
 
 interface WorkspaceFormPropertiesSecretsProps {
   secrets: WorkspacesPodSecretMount[];
@@ -38,20 +35,19 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
   secrets,
   setSecrets,
 }) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isAttachModalOpen, setIsAttachModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [formData, setFormData] = useState<WorkspacesPodSecretMount>({
-    secretName: '',
-    mountPath: '',
-    defaultMode: parseInt(DEFAULT_MODE_OCTAL, 8),
-  });
+  const [editingSecret, setEditingSecret] = useState<WorkspacesPodSecretMount | undefined>(
+    undefined,
+  );
   const [editIndex, setEditIndex] = useState<number | null>(null);
-  const [defaultMode, setDefaultMode] = useState(DEFAULT_MODE_OCTAL);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
-  const [isDefaultModeValid, setIsDefaultModeValid] = useState(true);
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
   const [availableSecrets, setAvailableSecrets] = useState<SecretsSecretListItem[]>([]);
-  const [attachedSecrets, setAttachedSecrets] = useState<SecretsSecretListItem[]>([]);
+  const [attachedSecrets, setAttachedSecrets] = useState<WorkspacesPodSecretMount[]>([]);
+  const [attachedMountPath, setAttachedMountPath] = useState('');
+  const [attachedDefaultMode, setAttachedDefaultMode] = useState(DEFAULT_MODE_OCTAL);
 
   const { api } = useNotebookAPI();
   const { selectedNamespace } = useNamespaceContext();
@@ -71,62 +67,86 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
 
   const handleEdit = useCallback(
     (index: number) => {
-      setFormData(secrets[index]);
-      setDefaultMode(secrets[index].defaultMode?.toString(8) ?? DEFAULT_MODE_OCTAL);
+      setEditingSecret(secrets[index]);
       setEditIndex(index);
-      setIsModalOpen(true);
+      setIsCreateModalOpen(true);
     },
     [secrets],
   );
 
-  const handleDefaultModeInput = useCallback(
-    (val: string) => {
-      if (val.length <= 3) {
-        // 0 no permissions, 4 read only, 5 read + execute, 6 read + write, 7 all permissions
-        setDefaultMode(val);
-        const permissions = ['0', '4', '5', '6', '7'];
-        const isValid = Array.from(val).every((char) => permissions.includes(char));
-        if (val.length < 3 || !isValid) {
-          setIsDefaultModeValid(false);
-        } else {
-          setIsDefaultModeValid(true);
-        }
-        const decimalVal = parseInt(val, 8);
-        setFormData({ ...formData, defaultMode: decimalVal });
-      }
+  const handleAttachSecrets = useCallback(
+    (newSecrets: SecretsSecretListItem[], mountPath: string, mode: number) => {
+      const newAttachedSecrets = newSecrets.map((secret) => ({
+        secretName: secret.name,
+        mountPath,
+        defaultMode: mode,
+      }));
+      const oldAttachedNames = new Set(attachedSecrets.map((s) => s.secretName));
+      const secretsWithoutOldAttached = secrets.filter((s) => !oldAttachedNames.has(s.secretName));
+      const manualSecretNames = new Set(secretsWithoutOldAttached.map((s) => s.secretName));
+      const filteredNewAttached = newAttachedSecrets.filter(
+        (s) => !manualSecretNames.has(s.secretName),
+      );
+
+      // Update both states
+      setAttachedSecrets(filteredNewAttached);
+      setSecrets([...secretsWithoutOldAttached, ...filteredNewAttached]);
+      setAttachedMountPath(mountPath);
+      setAttachedDefaultMode(mode.toString(8));
+      setIsAttachModalOpen(false);
     },
-    [setFormData, setIsDefaultModeValid, setDefaultMode, formData],
+    [attachedSecrets, secrets, setSecrets],
   );
 
-  const clearForm = useCallback(() => {
-    setFormData({ secretName: '', mountPath: '', defaultMode: 420 });
+  const handleCreateOrEditSubmit = useCallback(
+    (secret: WorkspacesPodSecretMount) => {
+      if (editIndex !== null) {
+        const updated = [...secrets];
+        updated[editIndex] = secret;
+        setSecrets(updated);
+      } else {
+        setSecrets([...secrets, secret]);
+      }
+      setEditingSecret(undefined);
+      setEditIndex(null);
+      setIsCreateModalOpen(false);
+    },
+    [editIndex, secrets, setSecrets],
+  );
+
+  const handleCreateModalClose = useCallback(() => {
+    setEditingSecret(undefined);
     setEditIndex(null);
-    setIsModalOpen(false);
-    setIsDefaultModeValid(true);
+    setIsCreateModalOpen(false);
   }, []);
 
-  const handleAddOrEditSubmit = useCallback(() => {
-    if (!formData.secretName || !formData.mountPath) {
-      return;
-    }
-    if (editIndex !== null) {
-      const updated = [...secrets];
-      updated[editIndex] = formData;
-      setSecrets(updated);
-    } else {
-      setSecrets([...secrets, formData]);
-    }
-    clearForm();
-  }, [clearForm, editIndex, formData, secrets, setSecrets]);
+  const isAttachedSecret = useCallback(
+    (secretName: string) => attachedSecrets.some((s) => s.secretName === secretName),
+    [attachedSecrets],
+  );
 
   const handleDelete = useCallback(() => {
     if (deleteIndex === null) {
       return;
     }
+    const secretToDelete = secrets[deleteIndex];
     setSecrets(secrets.filter((_, i) => i !== deleteIndex));
+
+    // If it's an attached secret, also remove from attachedSecrets
+    if (isAttachedSecret(secretToDelete.secretName)) {
+      const updatedAttachedSecrets = attachedSecrets.filter(
+        (s) => s.secretName !== secretToDelete.secretName,
+      );
+      setAttachedSecrets(updatedAttachedSecrets);
+      if (updatedAttachedSecrets.length === 0) {
+        setAttachedMountPath('');
+        setAttachedDefaultMode(DEFAULT_MODE_OCTAL);
+      }
+    }
+
     setDeleteIndex(null);
     setIsDeleteModalOpen(false);
-  }, [deleteIndex, secrets, setSecrets]);
+  }, [deleteIndex, secrets, setSecrets, attachedSecrets, isAttachedSecret]);
 
   return (
     <>
@@ -163,7 +183,9 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
                     onSelect={() => setDropdownOpen(null)}
                     popperProps={{ position: 'right' }}
                   >
-                    <DropdownItem onClick={() => handleEdit(index)}>Edit</DropdownItem>
+                    {!isAttachedSecret(secret.secretName) && (
+                      <DropdownItem onClick={() => handleEdit(index)}>Edit</DropdownItem>
+                    )}
                     <DropdownItem onClick={() => openDeleteModal(index)}>Remove</DropdownItem>
                   </Dropdown>
                 </Td>
@@ -173,78 +195,34 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
         </Table>
       )}
       <Button
-        variant="primary"
-        onClick={() => setIsModalOpen(true)}
+        variant="secondary"
+        onClick={() => setIsAttachModalOpen(true)}
+        style={{ marginTop: '1rem', marginRight: '1rem', width: 'fit-content' }}
+      >
+        Attach Existing Secrets
+      </Button>
+      <Button
+        variant="secondary"
+        onClick={() => setIsCreateModalOpen(true)}
         style={{ marginTop: '1rem', width: 'fit-content' }}
       >
         Create Secret
       </Button>
-      <Modal isOpen={isModalOpen} onClose={clearForm} variant={ModalVariant.small}>
-        <ModalHeader
-          title={editIndex === null ? 'Create Secret' : 'Edit Secret'}
-          labelId="secret-modal-title"
-          description={
-            editIndex === null
-              ? 'Add a secret to securely use API keys, tokens, or other credentials in your workspace.'
-              : ''
-          }
-        />
-        <ModalBody id="secret-modal-box-body">
-          <Form onSubmit={handleAddOrEditSubmit}>
-            <FormGroup label="Secret Name" isRequired fieldId="secret-name">
-              <TextInput
-                name="secretName"
-                isRequired
-                type="text"
-                value={formData.secretName}
-                onChange={(_, val) => setFormData({ ...formData, secretName: val })}
-                id="secret-name"
-              />
-            </FormGroup>
-            <FormGroup label="Mount Path" isRequired fieldId="mount-path">
-              <TextInput
-                name="mountPath"
-                isRequired
-                type="text"
-                value={formData.mountPath}
-                onChange={(_, val) => setFormData({ ...formData, mountPath: val })}
-                id="mount-path"
-              />
-            </FormGroup>
-            <FormGroup label="Default Mode" isRequired fieldId="default-mode">
-              <TextInput
-                name="defaultMode"
-                isRequired
-                type="text"
-                value={defaultMode}
-                validated={!isDefaultModeValid ? ValidatedOptions.error : undefined}
-                onChange={(_, val) => handleDefaultModeInput(val)}
-                id="default-mode"
-              />
-              {!isDefaultModeValid && (
-                <HelperText>
-                  <HelperTextItem variant="error">
-                    Must be a valid UNIX file system permission value (i.e. 644)
-                  </HelperTextItem>
-                </HelperText>
-              )}
-            </FormGroup>
-          </Form>
-        </ModalBody>
-        <ModalFooter>
-          <Button
-            key="confirm"
-            variant="primary"
-            onClick={handleAddOrEditSubmit}
-            isDisabled={!isDefaultModeValid}
-          >
-            {editIndex !== null ? 'Save' : 'Create'}
-          </Button>
-          <Button key="cancel" variant="link" onClick={clearForm}>
-            Cancel
-          </Button>
-        </ModalFooter>
-      </Modal>
+      <SecretsAttachModal
+        availableSecrets={availableSecrets}
+        isOpen={isAttachModalOpen}
+        setIsOpen={setIsAttachModalOpen}
+        selectedSecrets={attachedSecrets.map((secret) => secret.secretName)}
+        onClose={handleAttachSecrets}
+        initialMountPath={attachedMountPath}
+        initialDefaultMode={attachedDefaultMode}
+      />
+      <SecretsCreateModal
+        isOpen={isCreateModalOpen}
+        setIsOpen={handleCreateModalClose}
+        onSubmit={handleCreateOrEditSubmit}
+        editSecret={editingSecret}
+      />
       <Modal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}

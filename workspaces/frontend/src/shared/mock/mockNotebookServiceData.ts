@@ -191,5 +191,6 @@ export const mockSecretsList = [
   }),
   buildMockSecret({
     name: 'secret-2',
+    canMount: false,
   }),
 ];
