@@ -1,5 +1,5 @@
 # Use the golang image to build the application
-FROM golang:1.22 AS builder
+FROM --platform=$BUILDPLATFORM golang:1.22 AS builder
 ARG TARGETOS
 ARG TARGETARCH
 
@@ -8,7 +8,7 @@ WORKDIR /workspace
 # Copy the Go Modules manifests
 COPY backend/go.mod backend/go.sum ./
 
-# Copy controller directory 
+# Copy controller directory
 COPY controller /workspace/controller
 
 # Rewrite the go.mod to update the replace directive and download dependencies
