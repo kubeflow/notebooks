@@ -4,9 +4,8 @@ import { WorkspaceCountPerOption } from '~/app/types';
 import { WorkspacekindsWorkspaceKind, WorkspacesWorkspace } from '~/generated/data-contracts';
 import { NotebookApis } from '~/shared/api/notebookApi';
 
-export type WorkspaceCountPerKind = Record<
-  WorkspacekindsWorkspaceKind['name'],
-  WorkspaceCountPerOption
+export type WorkspaceCountPerKind = Partial<
+  Record<WorkspacekindsWorkspaceKind['name'], WorkspaceCountPerOption>
 >;
 
 export const useWorkspaceCountPerKind = (): WorkspaceCountPerKind => {

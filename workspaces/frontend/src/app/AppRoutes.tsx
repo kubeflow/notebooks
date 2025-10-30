@@ -37,7 +37,7 @@ export const useAdminDebugSettings = (): NavDataItem[] => {
   return [
     {
       label: 'Debug',
-      children: [{ label: 'Notebooks', path: '/notebookDebugSettings' }],
+      children: [{ label: 'Notebooks', path: AppRoutePaths.notebookDebugSettings }],
     },
     {
       label: 'Workspace kinds',
@@ -70,8 +70,10 @@ const AppRoutes: React.FC = () => {
         path={AppRoutePaths.root}
         element={<Navigate to={AppRoutePaths.workspaces} replace />}
       />
+      {user?.clusterAdmin && (
+        <Route path={AppRoutePaths.notebookDebugSettings} element={<Debug />} />
+      )}
       <Route path="*" element={<NotFound />} />
-      {user?.clusterAdmin && <Route path="/notebookDebugSettings/*" element={<Debug />} />}
     </Routes>
   );
 };

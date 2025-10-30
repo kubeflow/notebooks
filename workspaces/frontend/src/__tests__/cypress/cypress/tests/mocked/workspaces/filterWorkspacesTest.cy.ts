@@ -1,6 +1,6 @@
+import { mockModArchResponse } from 'mod-arch-core';
 import { mockNamespaces } from '~/__mocks__/mockNamespaces';
 import { mockWorkspaces } from '~/__mocks__/mockWorkspaces';
-import { mockBFFResponse } from '~/__mocks__/utils';
 import { home } from '~/__tests__/cypress/cypress/pages/home';
 import { navBar } from '~/__tests__/cypress/cypress/pages/navBar';
 import { mockWorkspaceKinds } from '~/shared/mock/mockNotebookServiceData';
@@ -16,19 +16,19 @@ const useFilter = (filterKey: string, filterName: string, searchValue: string) =
 describe('Application', () => {
   beforeEach(() => {
     cy.intercept('GET', '/api/v1/namespaces', {
-      body: mockBFFResponse(mockNamespaces),
+      body: mockModArchResponse(mockNamespaces),
     }).as('getNamespaces');
     cy.intercept('GET', '/api/v1/workspaces', {
-      body: mockBFFResponse(mockWorkspaces),
+      body: mockModArchResponse(mockWorkspaces),
     }).as('getWorkspaces');
     cy.intercept('GET', '/api/v1/workspaces/default', {
-      body: mockBFFResponse(mockWorkspaces),
+      body: mockModArchResponse(mockWorkspaces),
     }).as('getDefaultWorkspaces');
     cy.intercept('GET', '/api/v1/workspaces/custom-namespace', {
-      body: mockBFFResponse(mockWorkspaces),
+      body: mockModArchResponse(mockWorkspaces),
     });
     cy.intercept('GET', '/api/v1/workspacekinds', {
-      body: mockBFFResponse(mockWorkspaceKinds),
+      body: mockModArchResponse(mockWorkspaceKinds),
     });
     home.visit();
     cy.wait('@getNamespaces');

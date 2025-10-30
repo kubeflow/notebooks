@@ -20,11 +20,7 @@ export const WorkspaceKindDetailsImages: React.FunctionComponent<WorkspaceDetail
       workspaceCountRouteState: {
         imageId: image.id,
       },
-      workspaceCount:
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        workspaceCountPerKind[workspaceKind.name]
-          ? (workspaceCountPerKind[workspaceKind.name].countByImage[image.id] ?? 0)
-          : 0,
+      workspaceCount: workspaceCountPerKind[workspaceKind.name]?.countByImage[image.id] ?? 0,
     }))}
     tableKind="image"
   />

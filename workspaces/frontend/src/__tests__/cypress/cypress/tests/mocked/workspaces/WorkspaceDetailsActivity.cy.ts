@@ -1,4 +1,4 @@
-import { mockBFFResponse } from '~/__mocks__/utils';
+import { mockModArchResponse } from 'mod-arch-core';
 import { mockNamespaces } from '~/__mocks__/mockNamespaces';
 import { mockWorkspaces } from '~/__tests__/cypress/cypress/tests/mocked/workspace.mock';
 import { navBar } from '~/__tests__/cypress/cypress/pages/navBar';
@@ -6,13 +6,13 @@ import { navBar } from '~/__tests__/cypress/cypress/pages/navBar';
 describe('WorkspaceDetailsActivity Component', () => {
   beforeEach(() => {
     cy.intercept('GET', '/api/v1/namespaces', {
-      body: mockBFFResponse(mockNamespaces),
+      body: mockModArchResponse(mockNamespaces),
     }).as('getNamespaces');
     cy.intercept('GET', '/api/v1/workspaces', {
-      body: mockBFFResponse(mockWorkspaces),
+      body: mockModArchResponse(mockWorkspaces),
     }).as('getWorkspaces');
     cy.intercept('GET', '/api/v1/workspaces/default', {
-      body: mockBFFResponse(mockWorkspaces),
+      body: mockModArchResponse(mockWorkspaces),
     }).as('getDefaultWorkspaces');
     cy.visit('/');
     cy.wait('@getNamespaces');
