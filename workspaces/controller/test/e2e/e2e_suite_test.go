@@ -40,6 +40,11 @@ var (
 
 	// isPrometheusOperatorAlreadyInstalled will be set true when prometheus CRDs be found on the cluster
 	// isPrometheusOperatorAlreadyInstalled = false
+
+	skipIstioInstall                      = os.Getenv("ISTIO_INSTALL_SKIP") == "true"
+	isIstioAlreadyInstalled               = false
+	isIstioIngressGatewayAlreadyInstalled = false
+	istioNamespace                        = ""
 )
 
 // TestE2E runs the end-to-end (e2e) test suite for the project. These tests execute in an isolated,
@@ -88,6 +93,42 @@ var _ = BeforeSuite(func() {
 	}
 	By("checking that cert manager is running")
 	Expect(utils.WaitCertManagerRunning()).To(Succeed(), "CertManager is not running")
+
+	if !skipIstioInstall {
+		By("checking if istio is installed already")
+		isIstioAlreadyInstalled, istioNamespace = utils.IsIstioInstalled()
+		if !isIstioAlreadyInstalled {
+			_, _ = fmt.Fprintf(GinkgoWriter, "Installing istio...\n")
+			Expect(utils.InstallIstio()).To(Succeed(), "Failed to install istio")
+			// Get the namespace after installation
+			istioNamespace = utils.GetIstioNamespace()
+		} else {
+			_, _ = fmt.Fprintf(GinkgoWriter,
+				"WARNING: istio is already installed in namespace %s. Skipping installation...\n",
+				istioNamespace)
+		}
+		By("checking that istio is available")
+		Expect(utils.WaitIstioAvailable(istioNamespace)).To(Succeed(), "istio is not available")
+
+		By("checking if istio ingress gateway is installed already")
+		// note: if isIstioAlreadyInstalled is false, then the istioctl install command will create an istio-ingressgateway
+		// as such, this block would only execute if the test cluster had istio installed
+		// already but no ingress gateway was present
+		isIstioIngressGatewayAlreadyInstalled = utils.IsIstioIngressGatewayInstalled(istioNamespace)
+		if !isIstioIngressGatewayAlreadyInstalled {
+			_, _ = fmt.Fprintf(GinkgoWriter, "Installing istio ingress gateway...\n")
+			Expect(utils.InstallIstioIngressGateway(istioNamespace)).To(Succeed(), "Failed to install istio ingress gateway")
+		} else {
+			_, _ = fmt.Fprintf(GinkgoWriter, "WARNING: istio ingress gateway is already installed. Skipping installation...\n")
+			// Check if Gateway CR exists, if not create
+			if !utils.IsIngressGatewayCRInstalled(istioNamespace) {
+				_, _ = fmt.Fprintf(GinkgoWriter, "Gateway CR not found, creating it...\n")
+				Expect(utils.CreateIngressGatewayCR(istioNamespace)).To(Succeed(), "Failed to create Gateway CR")
+			}
+		}
+		By("checking that istio ingress gateway is available")
+		Expect(utils.WaitIstioIngressGatewayReady(istioNamespace)).To(Succeed(), "istio ingress gateway is not available")
+	}
 })
 
 var _ = AfterSuite(func() {
@@ -102,5 +143,20 @@ var _ = AfterSuite(func() {
 		By("uninstalling CertManager")
 		_, _ = fmt.Fprintf(GinkgoWriter, "Uninstalling CertManager...\n")
 		utils.UninstallCertManager()
+	}
+
+	if !skipIstioInstall {
+		if !isIstioIngressGatewayAlreadyInstalled {
+			By("uninstalling Istio ingress gateway")
+			// note: this will only execute if the test cluster had istio installed already but no ingress gateway was present
+			_, _ = fmt.Fprintf(GinkgoWriter, "Uninstalling Istio ingress gateway...\n")
+			utils.UninstallIstioIngressGateway(istioNamespace)
+		}
+
+		if !isIstioAlreadyInstalled {
+			By("uninstalling Istio")
+			_, _ = fmt.Fprintf(GinkgoWriter, "Uninstalling Istio...\n")
+			utils.UninstallIstio(istioNamespace)
+		}
 	}
 })

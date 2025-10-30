@@ -42,6 +42,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+
+	istiov1 "istio.io/client-go/pkg/apis/networking/v1"
+
+	"github.com/kubeflow/notebooks/workspaces/controller/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
 	// +kubebuilder:scaffold:imports
 )
@@ -88,6 +92,8 @@ var _ = BeforeSuite(func() {
 	By("setting up the scheme")
 	err = kubefloworgv1beta1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
+	err = istiov1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme
 
@@ -106,13 +112,16 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	By("setting up the field indexers for the controller manager")
-	err = helper.SetupManagerFieldIndexers(k8sManager)
+	// Use test config with UseIstio disabled to avoid VirtualService CRD requirements in tests
+	testCfg := &config.EnvConfig{UseIstio: false}
+	err = helper.SetupManagerFieldIndexers(k8sManager, testCfg)
 	Expect(err).NotTo(HaveOccurred())
 
 	By("setting up the Workspace controller")
 	err = (&WorkspaceReconciler{
 		Client: k8sManager.GetClient(),
 		Scheme: k8sManager.GetScheme(),
+		Config: testCfg,
 	}).SetupWithManager(k8sManager, controller.Options{
 		RateLimiter: helper.BuildRateLimiter(),
 	})
