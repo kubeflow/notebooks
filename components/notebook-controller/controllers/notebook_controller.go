@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	reconcilehelper "github.com/kubeflow/kubeflow/components/common/reconcilehelper"
+	reconcilehelper "github.com/kubeflow/kubeflow/components/notebook-controller/reconcilehelper"
 	"github.com/kubeflow/kubeflow/components/notebook-controller/api/v1beta1"
 	"github.com/kubeflow/kubeflow/components/notebook-controller/pkg/metrics"
 	appsv1 "k8s.io/api/apps/v1"
