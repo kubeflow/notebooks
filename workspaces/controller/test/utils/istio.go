@@ -74,9 +74,16 @@ func buildIstioIngressGatewayParams(command string, istioNamespace string) []str
 }
 
 func UninstallIstioIngressGateway(istioNamespace string) {
+	// Delete the Gateway CR first
+	cmd := exec.Command("kubectl", "delete", "gateway", istioIngressGatewayName,
+		"-n", istioNamespace, "--ignore-not-found=true")
+	if _, err := Run(cmd); err != nil {
+		warnError(fmt.Errorf("failed to delete Gateway CR: %w", err))
+	}
+
 	// Uninstall Istio ingress gateway using the same base params as installation
 	params := buildIstioIngressGatewayParams("uninstall", istioNamespace)
-	cmd := exec.Command(getIstioctlPath(), params...)
+	cmd = exec.Command(getIstioctlPath(), params...)
 	if _, err := Run(cmd); err != nil {
 		warnError(fmt.Errorf("failed to uninstall Istio ingress gateway: %w", err))
 		return
@@ -119,6 +126,44 @@ func InstallIstioIngressGateway(istioNamespace string) error {
 	}
 
 	fmt.Println("Istio ingress gateway installation completed")
+
+	// Create the Gateway CR in the same namespace as the ingress gateway
+	fmt.Printf("Creating Gateway CR in namespace %s...\n", istioNamespace)
+	if err := CreateIngressGatewayCR(istioNamespace); err != nil {
+		return fmt.Errorf("failed to create Gateway CR: %w", err)
+	}
+
+	return nil
+}
+
+// CreateIngressGatewayCR creates a Gateway CR for the istio-ingressgateway
+func CreateIngressGatewayCR(istioNamespace string) error {
+	// Create the Gateway CR in the istio namespace
+	// This configures the istio-ingressgateway to accept HTTP/HTTPS traffic
+	gatewayYAML := fmt.Sprintf(`apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: %s
+  namespace: %s
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*"
+`, istioIngressGatewayName, istioNamespace)
+
+	cmd := exec.Command("kubectl", "apply", "-f", "-")
+	cmd.Stdin = strings.NewReader(gatewayYAML)
+	if _, err := Run(cmd); err != nil {
+		return fmt.Errorf("failed to create Gateway CR: %w", err)
+	}
+
+	fmt.Printf("Gateway CR '%s' created in namespace %s\n", istioIngressGatewayName, istioNamespace)
 	return nil
 }
 
@@ -265,4 +310,14 @@ func LabelNamespaceForIstioInjection(namespace string) error {
 		return fmt.Errorf("failed to label namespace %s for Istio injection: %w", namespace, err)
 	}
 	return nil
+}
+
+// IsIngressGatewayCRInstalled checks if the Gateway CR exists in the istio namespace
+func IsIngressGatewayCRInstalled(istioNamespace string) bool {
+	cmd := exec.Command("kubectl", "get", "gateway", istioIngressGatewayName, "-n", istioNamespace, "--ignore-not-found")
+	output, err := Run(cmd)
+	if err != nil {
+		return false
+	}
+	return strings.TrimSpace(output) != ""
 }

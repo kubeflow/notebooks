@@ -120,6 +120,11 @@ var _ = BeforeSuite(func() {
 			Expect(utils.InstallIstioIngressGateway(istioNamespace)).To(Succeed(), "Failed to install istio ingress gateway")
 		} else {
 			_, _ = fmt.Fprintf(GinkgoWriter, "WARNING: istio ingress gateway is already installed. Skipping installation...\n")
+			// Check if Gateway CR exists, if not create
+			if !utils.IsIngressGatewayCRInstalled(istioNamespace) {
+				_, _ = fmt.Fprintf(GinkgoWriter, "Gateway CR not found, creating it...\n")
+				Expect(utils.CreateIngressGatewayCR(istioNamespace)).To(Succeed(), "Failed to create Gateway CR")
+			}
 		}
 		By("checking that istio ingress gateway is available")
 		Expect(utils.WaitIstioIngressGatewayReady(istioNamespace)).To(Succeed(), "istio ingress gateway is not available")
