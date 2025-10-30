@@ -40,6 +40,9 @@ var (
 
 	// isPrometheusOperatorAlreadyInstalled will be set true when prometheus CRDs be found on the cluster
 	// isPrometheusOperatorAlreadyInstalled = false
+
+	skipIstioInstall        = os.Getenv("ISTIO_INSTALL_SKIP") == "true"
+	isIstioAlreadyInstalled = false
 )
 
 // TestE2E runs the end-to-end (e2e) test suite for the project. These tests execute in an isolated,
@@ -88,6 +91,22 @@ var _ = BeforeSuite(func() {
 	}
 	By("checking that cert manager is running")
 	Expect(utils.WaitCertManagerRunning()).To(Succeed(), "CertManager is not running")
+
+	if !skipIstioInstall {
+		By("checking if istio is installed already")
+		isIstioAlreadyInstalled = utils.IsIstioCRDsInstalled()
+
+		if !isIstioAlreadyInstalled {
+			_, _ = fmt.Fprintf(GinkgoWriter, "Installing istio...\n")
+			Expect(utils.InstallIstio()).To(Succeed(), "Failed to install istio")
+		} else {
+			_, _ = fmt.Fprintf(GinkgoWriter,
+				"WARNING: istio is already installed. Skipping installation...\n")
+		}
+
+		By("checking that istio is available")
+		Expect(utils.WaitIstioAvailable()).To(Succeed(), "istio is not available")
+	}
 })
 
 var _ = AfterSuite(func() {
@@ -102,5 +121,11 @@ var _ = AfterSuite(func() {
 		By("uninstalling CertManager")
 		_, _ = fmt.Fprintf(GinkgoWriter, "Uninstalling CertManager...\n")
 		utils.UninstallCertManager()
+	}
+
+	if !skipIstioInstall && !isIstioAlreadyInstalled {
+		By("uninstalling Istio")
+		_, _ = fmt.Fprintf(GinkgoWriter, "Uninstalling Istio...\n")
+		utils.UninstallIstio()
 	}
 })
