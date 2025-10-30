@@ -22,6 +22,7 @@ import { SecretsSecretListItem, WorkspacesPodSecretMount } from '~/generated/dat
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
 import { SecretsCreateModal } from './secrets/SecretsCreateModal';
+import { SecretsAttachModal } from './secrets/SecretsAttachModal';
 
 interface WorkspaceFormPropertiesSecretsProps {
   secrets: WorkspacesPodSecretMount[];
@@ -32,15 +33,16 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
   secrets,
   setSecrets,
 }) => {
-  const { api } = useNotebookAPI();
-  const { selectedNamespace } = useNamespaceContext();
-
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isAttachModalOpen, setIsAttachModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
-  // Keep baseline secrets fetching from PR #698 for future attach functionality
-  const [, setAvailableSecrets] = useState<SecretsSecretListItem[]>([]);
+  const [availableSecrets, setAvailableSecrets] = useState<SecretsSecretListItem[]>([]);
+  const [attachedSecretKeys, setAttachedSecretKeys] = useState<Set<string>>(new Set());
+
+  const { api } = useNotebookAPI();
+  const { selectedNamespace } = useNamespaceContext();
 
   useEffect(() => {
     const fetchSecrets = async () => {
@@ -50,19 +52,52 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
     fetchSecrets();
   }, [api.secrets, selectedNamespace]);
 
+  const getSecretKey = (secret: WorkspacesPodSecretMount): string =>
+    `${secret.secretName}:${secret.mountPath}`;
+
   const openDeleteModal = useCallback((i: number) => {
     setIsDeleteModalOpen(true);
     setDeleteIndex(i);
   }, []);
 
+  const handleAttachSecrets = useCallback(
+    (newSecrets: SecretsSecretListItem[], mountPath: string, mode: number) => {
+      const newSecretMounts = newSecrets.map((secret) => ({
+        secretName: secret.name,
+        mountPath,
+        defaultMode: mode,
+      }));
+
+      // Track the keys of attached secrets
+      const newKeys = new Set(attachedSecretKeys);
+      newSecretMounts.forEach((mount) => {
+        newKeys.add(getSecretKey(mount));
+      });
+      setAttachedSecretKeys(newKeys);
+
+      setSecrets([...secrets, ...newSecretMounts]);
+      setIsAttachModalOpen(false);
+    },
+    [secrets, setSecrets, attachedSecretKeys],
+  );
+
   const handleDelete = useCallback(() => {
     if (deleteIndex === null) {
       return;
     }
+    const secretToDelete = secrets[deleteIndex];
+
+    // Remove from attached keys if it was attached
+    if (attachedSecretKeys.has(getSecretKey(secretToDelete))) {
+      const newKeys = new Set(attachedSecretKeys);
+      newKeys.delete(getSecretKey(secretToDelete));
+      setAttachedSecretKeys(newKeys);
+    }
+
     setSecrets(secrets.filter((_, i) => i !== deleteIndex));
     setDeleteIndex(null);
     setIsDeleteModalOpen(false);
-  }, [deleteIndex, secrets, setSecrets]);
+  }, [deleteIndex, secrets, setSecrets, attachedSecretKeys]);
 
   const handleSecretCreated = useCallback(
     (secretName: string) => {
@@ -128,22 +163,27 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
         </Table>
       )}
       <Button
-        variant="primary"
+        variant="secondary"
+        onClick={() => setIsAttachModalOpen(true)}
+        style={{ marginTop: '1rem', marginRight: '1rem', width: 'fit-content' }}
+      >
+        Attach Existing Secrets
+      </Button>
+      <Button
+        variant="secondary"
         onClick={() => setIsCreateModalOpen(true)}
-        style={{ width: 'fit-content' }}
+        style={{ marginTop: '1rem', width: 'fit-content' }}
       >
         Create New Secret
       </Button>
 
-      {/* <SecretsAttachModal
+      <SecretsAttachModal
+        availableSecrets={availableSecrets}
         isOpen={isAttachModalOpen}
         setIsOpen={setIsAttachModalOpen}
         onClose={handleAttachSecrets}
-        selectedSecrets={selectedSecretNames}
-        availableSecrets={availableSecrets}
-        initialMountPath={attachedMountPath}
-        initialDefaultMode={attachedDefaultMode}
-      /> */}
+        existingSecretKeys={attachedSecretKeys}
+      />
 
       <SecretsCreateModal
         isOpen={isCreateModalOpen}
