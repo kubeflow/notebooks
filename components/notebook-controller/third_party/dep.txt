@@ -147,7 +147,6 @@ github.com/kr/logfmt
 github.com/kr/pretty
 github.com/kr/pty
 github.com/kr/text
-github.com/kubeflow/kubeflow/components/common
 github.com/magiconair/properties
 github.com/mailru/easyjson
 github.com/mattn/go-colorable

@@ -4,8 +4,6 @@
 #
 # ${PATH_TO_KUBEFLOW/KUBEFLOW repo}/components
 #
-# This is necessary because the Jupyter controller now depends on
-# components/common
 ARG GOLANG_VERSION=1.17
 FROM golang:${GOLANG_VERSION} as builder
 
@@ -13,7 +11,6 @@ WORKDIR /workspace
 
 # Copy the Go Modules manifests
 COPY notebook-controller /workspace/notebook-controller
-COPY common /workspace/common
 
 # cache deps before building and copying source so that we don't need to re-download as much
 # and so that source changes don't invalidate our downloaded layer
