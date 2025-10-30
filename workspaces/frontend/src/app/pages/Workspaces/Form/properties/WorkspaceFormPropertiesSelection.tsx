@@ -10,6 +10,7 @@ import { WorkspaceFormImageDetails } from '~/app/pages/Workspaces/Form/image/Wor
 import { WorkspaceFormPropertiesVolumes } from '~/app/pages/Workspaces/Form/properties/WorkspaceFormPropertiesVolumes';
 import { WorkspacekindsImageConfigValue } from '~/generated/data-contracts';
 import { WorkspaceFormProperties } from '~/app/types';
+import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { WorkspaceFormPropertiesSecrets } from './WorkspaceFormPropertiesSecrets';
 
 interface WorkspaceFormPropertiesSelectionProps {
@@ -36,11 +37,11 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
         <SplitItem isFilled>
           <div className="pf-u-p-lg pf-u-max-width-xl">
             <Form>
-              <FormGroup
+              <ThemeAwareFormGroupWrapper
                 label="Workspace Name"
                 isRequired
                 fieldId="workspace-name"
-                style={{ width: 520 }}
+                className="pf-u-width-520"
               >
                 <TextInput
                   isRequired
@@ -49,7 +50,7 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
                   onChange={(_, value) => onSelect({ ...selectedProperties, workspaceName: value })}
                   id="workspace-name"
                 />
-              </FormGroup>
+              </ThemeAwareFormGroupWrapper>
               <FormGroup fieldId="defer-updates">
                 <Checkbox
                   label="Defer Updates"
@@ -73,10 +74,10 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
                 >
                   {isVolumesExpanded && (
                     <>
-                      <FormGroup
+                      <ThemeAwareFormGroupWrapper
                         label="Home Directory"
                         fieldId="home-directory"
-                        style={{ width: 500 }}
+                        className="pf-u-width-500"
                       >
                         <TextInput
                           value={selectedProperties.homeDirectory}
@@ -87,8 +88,10 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
                             });
                           }}
                           id="home-directory"
+                          type="text"
+                          name="home-directory"
                         />
-                      </FormGroup>
+                      </ThemeAwareFormGroupWrapper>
 
                       <FormGroup fieldId="volumes-table" style={{ marginTop: '1rem' }}>
                         <WorkspaceFormPropertiesVolumes
