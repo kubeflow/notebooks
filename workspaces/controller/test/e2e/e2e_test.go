@@ -77,19 +77,19 @@ var _ = Describe("controller", Ordered, func() {
 		_, _ = utils.Run(cmd) // ignore errors because namespace may already exist
 
 		// TODO: enable Istio injection once we have logic to create VirtualServices during Workspace reconciliation
-		// By("labeling namespaces for Istio injection")
-		// err := utils.LabelNamespaceForIstioInjection(controllerNamespace)
-		// ExpectWithOffset(1, err).NotTo(HaveOccurred())
+		By("labeling namespaces for Istio injection")
+		err := utils.LabelNamespaceForIstioInjection(controllerNamespace)
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
-		// err = utils.LabelNamespaceForIstioInjection(workspaceNamespace)
-		// ExpectWithOffset(1, err).NotTo(HaveOccurred())
+		err = utils.LabelNamespaceForIstioInjection(workspaceNamespace)
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 		By("creating common workspace resources")
 		cmd = exec.Command("kubectl", "apply",
 			"-k", filepath.Join(projectDir, "config/samples/common"),
 			"-n", workspaceNamespace,
 		)
-		_, err := utils.Run(cmd)
+		_, err = utils.Run(cmd)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 		By("installing CRDs")
@@ -98,6 +98,13 @@ var _ = Describe("controller", Ordered, func() {
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 		By("deploying the workspaces-controller")
+		// Update the ISTIO_GATEWAY config to use istio-system/istio-ingressgateway
+		cmd = exec.Command("sed", "-i",
+			"s|ISTIO_GATEWAY=.*|ISTIO_GATEWAY=istio-system/istio-ingressgateway|",
+			"config/components/istio/params.env")
+		_, err = utils.Run(cmd)
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
 		cmd = exec.Command("make", "deploy", fmt.Sprintf("IMG=%s", controllerImage))
 		_, err = utils.Run(cmd)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
@@ -288,7 +295,7 @@ var _ = Describe("controller", Ordered, func() {
 			curlService := func() error {
 				// NOTE: this command should exit with a non-zero status code if the HTTP status code is >= 400
 				cmd := exec.Command("kubectl", "run",
-					"tmp-curl", "-n", workspaceNamespace,
+					"tmp-curl", "-n", workspaceNamespace, "--labels", "sidecar.istio.io/inject=false",
 					"--attach", "--command", fmt.Sprintf("--image=%s", curlImage), "--rm", "--restart=Never", "--",
 					"curl", "-sSL", "-o", "/dev/null", "--fail-with-body", serviceEndpoint,
 				)
@@ -296,6 +303,60 @@ var _ = Describe("controller", Ordered, func() {
 				return err
 			}
 			Eventually(curlService, timeout, interval).Should(Succeed())
+
+			By("validating that the workspace virtual service was created")
+			var workspaceVirtualServiceName string
+			verifyWorkspaceVirtualService := func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "virtualservices",
+					"-l", fmt.Sprintf("notebooks.kubeflow.org/workspace-name=%s", workspaceName),
+					"-n", workspaceNamespace,
+					"-o", "go-template={{ range .items }}"+
+						"{{ if not .metadata.deletionTimestamp }}"+
+						"{{ .metadata.name }}"+
+						"{{ \"\\n\" }}{{ end }}{{ end }}",
+				)
+				vsOutput, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+
+				// Ensure only 1 virtual service is found
+				vsNames := utils.GetNonEmptyLines(vsOutput)
+				g.Expect(vsNames).To(HaveLen(1), "expected 1 virtual service found")
+				workspaceVirtualServiceName = vsNames[0]
+				g.Expect(workspaceVirtualServiceName).To(ContainSubstring(fmt.Sprintf("ws-%s", workspaceName)))
+			}
+			Eventually(verifyWorkspaceVirtualService, timeout, interval).Should(Succeed())
+
+			By("validating that the workspace virtual service endpoint is reachable via Istio gateway")
+			// Start port-forward to istio-ingressgateway service
+			// The service exposes HTTP on port 80
+			localPort := "18080"
+			serviceHTTPPort := "80"
+			portForwardSpec := fmt.Sprintf("%s:%s", localPort, serviceHTTPPort)
+
+			pf, err := utils.StartPortForward(istioNamespace, "istio-ingressgateway", portForwardSpec, 30*time.Second)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			defer pf.Stop()
+
+			// Give port-forward a moment to stabilize
+			time.Sleep(2 * time.Second)
+
+			// Test the workspace endpoint through the Istio gateway
+			gatewayEndpoint := fmt.Sprintf("http://localhost:%s/workspace/connect/%s/%s/%s/lab",
+				localPort, workspaceNamespace, workspaceName, workspacePortId,
+			)
+			_, _ = fmt.Fprintf(GinkgoWriter, "Testing gateway endpoint: %s\n", gatewayEndpoint)
+
+			testGatewayEndpoint := func() error {
+				cmd := exec.Command("curl", "-sSL", "-o", "/dev/null", "--fail-with-body", "-w", "%{http_code}", gatewayEndpoint)
+				output, err := utils.Run(cmd)
+				if err != nil {
+					return fmt.Errorf("curl failed: %w (HTTP status: %s)", err, output)
+				}
+				_, _ = fmt.Fprintf(GinkgoWriter, "Gateway endpoint returned HTTP status: %s\n", output)
+				return nil
+			}
+			Eventually(testGatewayEndpoint, timeout, interval).Should(Succeed(),
+				"Workspace should be reachable through Istio gateway at %s", gatewayEndpoint)
 
 			By("ensuring in-use imageConfig values cannot be removed from WorkspaceKind")
 			removeInUseImageConfig := func() error {
