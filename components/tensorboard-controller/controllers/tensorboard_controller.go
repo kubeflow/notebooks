@@ -39,6 +39,7 @@ import (
 
 	reconcilehelper "github.com/kubeflow/kubeflow/components/common/reconcilehelper"
 	tensorboardv1alpha1 "github.com/kubeflow/kubeflow/components/tensorboard-controller/api/v1alpha1"
+	gwapiv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 )
 
 // TensorboardReconciler reconciles a Tensorboard object
@@ -53,6 +54,7 @@ type TensorboardReconciler struct {
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update
 // +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update
 // +kubebuilder:rbac:groups=networking.istio.io,resources=virtualservices,verbs=get;list;watch;create;update
+// +kubebuilder:rbac:groups=gateway.networking.k8s.io,resources=httproutes,verbs=get;list;watch;create;update
 // +kubebuilder:rbac:groups=core,resources=persistentvolumeclaims,verbs=get;list;watch
 // +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch
 
@@ -109,13 +111,15 @@ func (r *TensorboardReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
-	// Reconcile istio virtual service.
-	virtualService, err := generateVirtualService(instance)
-	if err := ctrl.SetControllerReference(instance, virtualService, r.Scheme()); err != nil {
-		return ctrl.Result{}, err
-	}
-	if err := reconcilehelper.VirtualService(ctx, r, virtualService.GetName(), virtualService.GetNamespace(), virtualService, logger); err != nil {
-		return ctrl.Result{}, err
+	// Reconcile routing: HTTPRoute if Gateway API is enabled, otherwise VirtualService
+	if os.Getenv("USE_GATEWAY_API") == "true" {
+		if err := r.reconcileHTTPRoute(ctx, instance, logger); err != nil {
+			return ctrl.Result{}, err
+		}
+	} else {
+		if err := r.reconcileVirtualService(ctx, instance, logger); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	foundDeployment := &appsv1.Deployment{}
@@ -375,6 +379,134 @@ func generateVirtualService(tb *tensorboardv1alpha1.Tensorboard) (*unstructured.
 	}
 
 	return vsvc, nil
+}
+
+func generateHTTPRoute(tb *tensorboardv1alpha1.Tensorboard) (*gwapiv1beta1.HTTPRoute, error) {
+	prefix := fmt.Sprintf("/tensorboard/%s/%s", tb.Namespace, tb.Name)
+	pathRewrite := "/"
+	
+	// Get gateway configuration
+	gatewayName := os.Getenv("K8S_GATEWAY_NAME")
+	if len(gatewayName) == 0 {
+		gatewayName = "kubeflow-gateway"
+	}
+	gatewayNamespace := os.Getenv("K8S_GATEWAY_NAMESPACE")
+	if len(gatewayNamespace) == 0 {
+		gatewayNamespace = "kubeflow"
+	}
+
+	pathMatchType := gwapiv1beta1.PathMatchPathPrefix
+	pathRewriteType := gwapiv1beta1.PrefixMatchHTTPPathModifier
+	urlRewriteType := gwapiv1beta1.HTTPRouteFilterURLRewrite
+	portNumber := gwapiv1beta1.PortNumber(80)
+
+	httpRoute := &gwapiv1beta1.HTTPRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      tb.Name,
+			Namespace: tb.Namespace,
+		},
+		Spec: gwapiv1beta1.HTTPRouteSpec{
+			CommonRouteSpec: gwapiv1beta1.CommonRouteSpec{
+				ParentRefs: []gwapiv1beta1.ParentReference{
+					{
+						Name:      gwapiv1beta1.ObjectName(gatewayName),
+						Namespace: (*gwapiv1beta1.Namespace)(&gatewayNamespace),
+					},
+				},
+			},
+			Rules: []gwapiv1beta1.HTTPRouteRule{
+				{
+					Matches: []gwapiv1beta1.HTTPRouteMatch{
+						{
+							Path: &gwapiv1beta1.HTTPPathMatch{
+								Type:  &pathMatchType,
+								Value: &prefix,
+							},
+						},
+					},
+					Filters: []gwapiv1beta1.HTTPRouteFilter{
+						{
+							Type: urlRewriteType,
+							URLRewrite: &gwapiv1beta1.HTTPURLRewriteFilter{
+								Path: &gwapiv1beta1.HTTPPathModifier{
+									Type:               pathRewriteType,
+									ReplacePrefixMatch: &pathRewrite,
+								},
+							},
+						},
+					},
+					BackendRefs: []gwapiv1beta1.HTTPBackendRef{
+						{
+							BackendRef: gwapiv1beta1.BackendRef{
+								BackendObjectReference: gwapiv1beta1.BackendObjectReference{
+									Name: gwapiv1beta1.ObjectName(tb.Name),
+									Port: &portNumber,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	
+	return httpRoute, nil
+}
+
+
+func (r *TensorboardReconciler) reconcileHTTPRoute(ctx context.Context, instance *tensorboardv1alpha1.Tensorboard, logger logr.Logger) error {
+	httpRoute, err := generateHTTPRoute(instance)
+	if err != nil {
+		return err
+	}
+	if err := ctrl.SetControllerReference(instance, httpRoute, r.Scheme()); err != nil {
+		return err
+	}
+	
+	// Check if the HTTPRoute already exists
+	foundHTTPRoute := &gwapiv1beta1.HTTPRoute{}
+	justCreated := false
+	if err := r.Get(ctx, types.NamespacedName{Name: httpRoute.Name, Namespace: httpRoute.Namespace}, foundHTTPRoute); err != nil {
+		if apierrs.IsNotFound(err) {
+			logger.Info("Creating HTTPRoute", "namespace", httpRoute.Namespace, "name", httpRoute.Name)
+			if err := r.Create(ctx, httpRoute); err != nil {
+				logger.Error(err, "unable to create HTTPRoute")
+				return err
+			}
+			justCreated = true
+		} else {
+			logger.Error(err, "error getting HTTPRoute")
+			return err
+		}
+	}
+	
+	if !justCreated {
+		// Copy the spec from the desired HTTPRoute to the existing one
+		if !reflect.DeepEqual(httpRoute.Spec, foundHTTPRoute.Spec) {
+			logger.Info("Updating HTTPRoute", "namespace", httpRoute.Namespace, "name", httpRoute.Name)
+			foundHTTPRoute.Spec = httpRoute.Spec
+			if err := r.Update(ctx, foundHTTPRoute); err != nil {
+				logger.Error(err, "unable to update HTTPRoute")
+				return err
+			}
+		}
+	}
+	
+	return nil
+}
+
+func (r *TensorboardReconciler) reconcileVirtualService(ctx context.Context, instance *tensorboardv1alpha1.Tensorboard, logger logr.Logger) error {
+	virtualService, err := generateVirtualService(instance)
+	if err != nil {
+		return err
+	}
+	if err := ctrl.SetControllerReference(instance, virtualService, r.Scheme()); err != nil {
+		return err
+	}
+	if err := reconcilehelper.VirtualService(ctx, r, virtualService.GetName(), virtualService.GetNamespace(), virtualService, logger); err != nil {
+		return err
+	}
+	return nil
 }
 
 func isCloudPath(path string) bool {

@@ -217,3 +217,4 @@ func CopyVirtualService(from, to *unstructured.Unstructured) bool {
 	}
 	return requiresUpdate
 }
+
