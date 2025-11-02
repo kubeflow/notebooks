@@ -7,7 +7,7 @@ import (
 
 	// "strconv"
 
-	kubefloworgv1alpha1 "github.com/kubeflow/kubeflow/components/pvc-viewer/api/v1alpha1"
+	kubefloworgv1alpha1 "github.com/kubeflow/notebooks/components/pvc-viewer/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
