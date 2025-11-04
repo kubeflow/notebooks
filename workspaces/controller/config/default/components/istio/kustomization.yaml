@@ -5,12 +5,6 @@ configMapGenerator:
 - envs:
   - params.env
   name: kubeflow-workspaces-istio-config
-generatorOptions:
-  disableNameSuffixHash: true
-
-labels:
-- pairs:
-    app.kubernetes.io/component: controller-manager
 
 patches:
 - path: manager_istio_patch.yaml

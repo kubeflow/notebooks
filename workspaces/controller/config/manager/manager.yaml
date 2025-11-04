@@ -54,22 +54,6 @@ spec:
           - --health-probe-bind-address=:8081
           - --metrics-bind-address=0
         image: workspaces-controller
-        env:
-          - name: USE_ISTIO
-            valueFrom:
-              configMapKeyRef:
-                name: config
-                key: USE_ISTIO
-          - name: ISTIO_GATEWAY
-            valueFrom:
-              configMapKeyRef:
-                name: config
-                key: ISTIO_GATEWAY
-          - name: ISTIO_HOST
-            valueFrom:
-              configMapKeyRef:
-                name: config
-                key: ISTIO_HOST
         imagePullPolicy: IfNotPresent
         name: manager
         securityContext:

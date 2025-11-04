@@ -15,6 +15,7 @@ resources:
 
 components:
 - components/common
+- components/istio
 
 patches:
 # [METRICS] The following patch will enable the metrics endpoint. Ensure that you also protect this endpoint.
