@@ -366,16 +366,8 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	if r.Config.UseIstio {
-		log.V(2).Info("reconciling VirtualService for Workspace")
-		// generateVirtualService
-		virtualsvc, err := generateVirtualService(workspace, workspaceKind, serviceName, currentImageConfig.Spec, r.Config)
-		if err != nil {
-			log.V(0).Info("failed to generate VirtualService for Workspace", "error", err.Error())
-			return r.updateWorkspaceState(ctx, log, workspace,
-				kubefloworgv1beta1.WorkspaceStateError,
-				fmt.Sprintf("failed to generate VirtualService for Workspace: %s", err.Error()),
-			)
-		}
+		// generate VirtualService
+		virtualsvc := r.generateVirtualService(workspace, workspaceKind, service, currentImageConfig.Spec)
 		if err := ctrl.SetControllerReference(workspace, virtualsvc, r.Scheme); err != nil {
 			log.Error(err, "unable to set controller reference on VirtualService")
 			return ctrl.Result{}, err
@@ -996,19 +988,42 @@ func generateService(workspace *kubefloworgv1beta1.Workspace, imageConfigSpec ku
 	return service, nil
 }
 
-// buildHTTPRoute creates an HTTPRoute for a given port configuration
-func buildHTTPRoute(
-	serviceHost string,
-	matchUriPrefix string,
-	port kubefloworgv1beta1.ImagePort,
+// generateVirtualServiceHTTPRoute creates an HTTPRoute for a given port configuration
+func generateVirtualServiceHTTPRoute(
+	workspace *kubefloworgv1beta1.Workspace,
+	service *corev1.Service,
+	imageConfigPort kubefloworgv1beta1.ImagePort,
 	podTemplatePort kubefloworgv1beta1.WorkspaceKindPort,
+	cfg *config.EnvConfig,
 ) *networkingv1.HTTPRoute {
 
+	// generate the match URI prefix
+	matchUriPrefix := getWorkspaceConnectPath(workspace.Namespace, workspace.Name, imageConfigPort.Id)
+
+	// determine rewrite configuration
+	var httpRouteRewrite *networkingv1.HTTPRewrite
+	if !ptr.Deref(podTemplatePort.HTTPProxy.RemovePathPrefix, false) {
+		httpRouteRewrite = &networkingv1.HTTPRewrite{
+			Uri: matchUriPrefix,
+		}
+	}
+
+	// determine headers configuration
+	var httpRouteHeaders *networkingv1.Headers
+	if podTemplatePort.HTTPProxy.RequestHeaders != nil {
+		httpRouteHeaders = &networkingv1.Headers{
+			Request: &networkingv1.Headers_HeaderOperations{
+				Set:    podTemplatePort.HTTPProxy.RequestHeaders.Set,
+				Add:    podTemplatePort.HTTPProxy.RequestHeaders.Add,
+				Remove: podTemplatePort.HTTPProxy.RequestHeaders.Remove,
+			},
+		}
+	}
+
+	// construct the HTTPRoute with all fields
 	httpRoute := &networkingv1.HTTPRoute{
-		Headers: &networkingv1.Headers{
-			Request: &networkingv1.Headers_HeaderOperations{},
-		},
-		Rewrite: &networkingv1.HTTPRewrite{},
+		Headers: httpRouteHeaders,
+		Rewrite: httpRouteRewrite,
 		Match: []*networkingv1.HTTPMatchRequest{
 			{
 				Uri: &networkingv1.StringMatch{
@@ -1021,34 +1036,20 @@ func buildHTTPRoute(
 		Route: []*networkingv1.HTTPRouteDestination{
 			{
 				Destination: &networkingv1.Destination{
-					Host: serviceHost,
+					Host: fmt.Sprintf("%s.%s.svc.%s", service.Name, service.Namespace, cfg.ClusterDomain),
 					Port: &networkingv1.PortSelector{
-						Number: uint32(port.Port), //nolint:gosec
+						Number: uint32(imageConfigPort.Port), //nolint:gosec
 					},
 				},
 			},
 		},
 	}
 
-	if !ptr.Deref(podTemplatePort.HTTPProxy.RemovePathPrefix, false) {
-		httpRoute.Rewrite.Uri = matchUriPrefix
-	}
-
-	if podTemplatePort.HTTPProxy.RequestHeaders != nil {
-		httpRoute.Headers.Request.Set = podTemplatePort.HTTPProxy.RequestHeaders.Set
-		httpRoute.Headers.Request.Add = podTemplatePort.HTTPProxy.RequestHeaders.Add
-		httpRoute.Headers.Request.Remove = podTemplatePort.HTTPProxy.RequestHeaders.Remove
-	}
-
 	return httpRoute
 }
 
 // generateVirtualService generates a VirtualService for a Workspace
-func generateVirtualService(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind, serviceName string, imageConfigSpec kubefloworgv1beta1.ImageConfigSpec, cfg *config.EnvConfig) (*istiov1.VirtualService, error) {
-	if cfg.IstioGateway == "" {
-		return nil, fmt.Errorf("ISTIO_GATEWAY environment variable is not set")
-	}
-
+func (r *WorkspaceReconciler) generateVirtualService(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind, service *corev1.Service, imageConfigSpec kubefloworgv1beta1.ImageConfigSpec) *istiov1.VirtualService {
 	// NOTE: the name prefix is used to generate a unique name for the VirtualService
 	namePrefix := generateNamePrefix(workspace.Name, maxVirtualServiceNameLength)
 
@@ -1057,22 +1058,20 @@ func generateVirtualService(workspace *kubefloworgv1beta1.Workspace, workspaceKi
 		currentPodTemplatePortsMap[port.Id] = port
 	}
 
-	serviceHost := fmt.Sprintf("%s.%s.svc.%s", serviceName, workspace.Namespace, cfg.ClusterDomain)
-
 	httpRoutes := []*networkingv1.HTTPRoute{}
-	for _, port := range imageConfigSpec.Ports {
-		// Guard: skip if port doesn't exist in current pod template
-		if _, exists := currentPodTemplatePortsMap[port.Id]; !exists {
+	for _, imageConfigPort := range imageConfigSpec.Ports {
+		// silently ignore port ids not defined in the workspace kind
+		// NOTE: this should not be possible as the webhook blocks undefined ports
+		if _, exists := currentPodTemplatePortsMap[imageConfigPort.Id]; !exists {
 			continue
 		}
 
-		podTemplatePort := currentPodTemplatePortsMap[port.Id]
-		matchUriPrefix := getWorkspaceConnectPath(workspace.Namespace, workspace.Name, port.Id)
+		podTemplatePort := currentPodTemplatePortsMap[imageConfigPort.Id]
 
 		// Additional Cases would be added for SSH, etc.
 		switch podTemplatePort.Protocol { //nolint:gocritic
 		case kubefloworgv1beta1.ImagePortProtocolHTTP:
-			httpRoute := buildHTTPRoute(serviceHost, matchUriPrefix, port, podTemplatePort)
+			httpRoute := generateVirtualServiceHTTPRoute(workspace, service, imageConfigPort, podTemplatePort, r.Config)
 			httpRoutes = append(httpRoutes, httpRoute)
 		}
 	}
@@ -1086,13 +1085,13 @@ func generateVirtualService(workspace *kubefloworgv1beta1.Workspace, workspaceKi
 			},
 		},
 		Spec: networkingv1.VirtualService{
-			Gateways: []string{cfg.IstioGateway},
-			Hosts:    []string{cfg.IstioHosts},
+			Gateways: []string{r.Config.IstioGateway},
+			Hosts:    []string{r.Config.IstioHosts},
 			Http:     httpRoutes,
 		},
 	}
 
-	return virtualService, nil
+	return virtualService
 }
 
 // generateWorkspaceStatus generates a WorkspaceStatus for a Workspace
