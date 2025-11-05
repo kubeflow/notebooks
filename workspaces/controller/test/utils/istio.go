@@ -234,13 +234,3 @@ func LabelNamespaceForIstioInjection(namespace string) error {
 	}
 	return nil
 }
-
-// IsIngressGatewayCRInstalled checks if the Gateway CR exists in the istio namespace
-func IsIngressGatewayCRInstalled(istioNamespace string) bool {
-	cmd := exec.Command("kubectl", "get", "gateway", istioIngressGatewayName, "-n", istioNamespace, "--ignore-not-found")
-	output, err := Run(cmd)
-	if err != nil {
-		return false
-	}
-	return strings.TrimSpace(output) != ""
-}
