@@ -5,7 +5,6 @@ go 1.17
 require (
 	github.com/go-logr/logr v1.2.0
 	github.com/gogo/protobuf v1.3.2
-	github.com/kubeflow/kubeflow/components/common v0.0.0-20220309223711-d224549f11b6
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.17.0
 	k8s.io/api v0.23.0

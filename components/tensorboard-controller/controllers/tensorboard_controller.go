@@ -37,7 +37,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	reconcilehelper "github.com/kubeflow/kubeflow/components/common/reconcilehelper"
+	reconcilehelper "github.com/kubeflow/kubeflow/components/tensorboard-controller/reconcilehelper"
 	tensorboardv1alpha1 "github.com/kubeflow/kubeflow/components/tensorboard-controller/api/v1alpha1"
 )
 
