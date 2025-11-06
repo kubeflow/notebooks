@@ -377,8 +377,8 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 		// fetch VirtualServices
 		// NOTE: we filter by VirtualServices that are owned by the Workspace, not by name
-		//	     this allows us to generate a random name for the VirtualService with `metadata.generateName`
-		var VirtualServiceName string
+		//	     this allows us to generate a random name for the virtualService with `metadata.generateName`
+		var virtualServiceName string
 		ownedVirtualServices := &istiov1.VirtualServiceList{}
 		listOpts = &client.ListOptions{
 			FieldSelector: fields.OneTermEqualSelector(helper.IndexWorkspaceOwnerField, workspace.Name),
@@ -406,11 +406,11 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 				log.Error(err, "unable to create VirtualService")
 				return ctrl.Result{}, err
 			}
-			VirtualServiceName = virtualsvc.ObjectMeta.Name
-			log.V(2).Info("VirtualService created", "virtualService", VirtualServiceName)
+			virtualServiceName = virtualsvc.ObjectMeta.Name
+			log.V(2).Info("VirtualService created", "virtualService", virtualServiceName)
 		default:
 			foundVirtualService := ownedVirtualServices.Items[0]
-			VirtualServiceName = foundVirtualService.ObjectMeta.Name
+			virtualServiceName = foundVirtualService.ObjectMeta.Name
 			if helper.CopyVirtualServiceFields(virtualsvc, foundVirtualService) {
 				if err := r.Update(ctx, foundVirtualService); err != nil {
 					if apierrors.IsConflict(err) {
@@ -420,7 +420,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 					log.Error(err, "unable to update VirtualService")
 					return ctrl.Result{}, err
 				}
-				log.V(2).Info("VirtualService updated", "virtualService", VirtualServiceName)
+				log.V(2).Info("VirtualService updated", "virtualService", virtualServiceName)
 			}
 		}
 	}
@@ -991,12 +991,11 @@ func generateService(workspace *kubefloworgv1beta1.Workspace, imageConfigSpec ku
 }
 
 // generateVirtualServiceHTTPRoute creates an HTTPRoute for a given port configuration
-func generateVirtualServiceHTTPRoute(
+func (r *WorkspaceReconciler) generateVirtualServiceHTTPRoute(
 	workspace *kubefloworgv1beta1.Workspace,
 	service *corev1.Service,
 	imageConfigPort kubefloworgv1beta1.ImagePort,
 	podTemplatePort kubefloworgv1beta1.WorkspaceKindPort,
-	cfg *config.EnvConfig,
 ) *networkingv1.HTTPRoute {
 
 	// generate the match URI prefix
@@ -1038,7 +1037,7 @@ func generateVirtualServiceHTTPRoute(
 		Route: []*networkingv1.HTTPRouteDestination{
 			{
 				Destination: &networkingv1.Destination{
-					Host: fmt.Sprintf("%s.%s.svc.%s", service.Name, service.Namespace, cfg.ClusterDomain),
+					Host: fmt.Sprintf("%s.%s.svc.%s", service.Name, service.Namespace, r.Config.ClusterDomain),
 					Port: &networkingv1.PortSelector{
 						Number: uint32(imageConfigPort.Port), //nolint:gosec
 					},
@@ -1073,7 +1072,7 @@ func (r *WorkspaceReconciler) generateVirtualService(workspace *kubefloworgv1bet
 		// Additional Cases would be added for SSH, etc.
 		switch podTemplatePort.Protocol { //nolint:gocritic
 		case kubefloworgv1beta1.ImagePortProtocolHTTP:
-			httpRoute := generateVirtualServiceHTTPRoute(workspace, service, imageConfigPort, podTemplatePort, r.Config)
+			httpRoute := r.generateVirtualServiceHTTPRoute(workspace, service, imageConfigPort, podTemplatePort)
 			httpRoutes = append(httpRoutes, httpRoute)
 		}
 	}

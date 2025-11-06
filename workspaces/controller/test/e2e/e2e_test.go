@@ -108,7 +108,7 @@ var _ = Describe("controller", Ordered, func() {
 				"serving-cert",
 				"-n", controllerNamespace,
 				"--for=condition=Ready",
-				"--timeout=5s",
+				fmt.Sprintf("--timeout=%s", timeout),
 			)
 			_, err := utils.Run(cmd)
 			g.Expect(err).NotTo(HaveOccurred(), "Certificate resource not ready")
@@ -163,15 +163,14 @@ var _ = Describe("controller", Ordered, func() {
 		cmd := exec.Command("kubectl", "delete", "-f",
 			filepath.Join(projectDir, "config/samples/jupyterlab_v1beta1_workspace.yaml"),
 			"-n", workspaceNamespace,
+			"--wait",
+			fmt.Sprintf("--timeout=%s", timeout),
 		)
 		_, _ = utils.Run(cmd)
 
-		By("waiting for workspace pod to be deleted")
-		cmd = exec.Command("kubectl", "wait", "pods",
-			"-l", fmt.Sprintf("notebooks.kubeflow.org/workspace-name=%s", workspaceName),
-			"-n", workspaceNamespace,
-			"--for=delete",
-			"--timeout=60s",
+		By("deleting sample WorkspaceKind")
+		cmd = exec.Command("kubectl", "delete",
+			"-f", filepath.Join(projectDir, "config/samples/jupyterlab_v1beta1_workspacekind.yaml"),
 		)
 		_, _ = utils.Run(cmd)
 
@@ -179,12 +178,6 @@ var _ = Describe("controller", Ordered, func() {
 		cmd = exec.Command("kubectl", "delete",
 			"-k", filepath.Join(projectDir, "config/samples/common"),
 			"-n", workspaceNamespace,
-		)
-		_, _ = utils.Run(cmd)
-
-		By("deleting sample WorkspaceKind")
-		cmd = exec.Command("kubectl", "delete",
-			"-f", filepath.Join(projectDir, "config/samples/jupyterlab_v1beta1_workspacekind.yaml"),
 		)
 		_, _ = utils.Run(cmd)
 
