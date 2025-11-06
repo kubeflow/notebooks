@@ -101,6 +101,28 @@ var _ = Describe("controller", Ordered, func() {
 		_, err = utils.Run(cmd)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
+		By("waiting for the webhook certificate to be ready")
+		waitForWebhookCert := func(g Gomega) {
+			// First check if cert-manager has processed the Certificate resource
+			cmd := exec.Command("kubectl", "wait", "certificate",
+				"serving-cert",
+				"-n", controllerNamespace,
+				"--for=condition=Ready",
+				"--timeout=5s",
+			)
+			_, err := utils.Run(cmd)
+			g.Expect(err).NotTo(HaveOccurred(), "Certificate resource not ready")
+
+			// Also verify the secret was created
+			cmd = exec.Command("kubectl", "get", "secret",
+				"webhook-server-cert",
+				"-n", controllerNamespace,
+			)
+			_, err = utils.Run(cmd)
+			g.Expect(err).NotTo(HaveOccurred(), "webhook-server-cert secret not found")
+		}
+		Eventually(waitForWebhookCert, timeout, interval).Should(Succeed())
+
 		By("validating that the workspaces-controller pod is running as expected")
 		var controllerPodName string
 		verifyControllerUp := func(g Gomega) {
@@ -144,6 +166,22 @@ var _ = Describe("controller", Ordered, func() {
 		)
 		_, _ = utils.Run(cmd)
 
+		By("waiting for workspace pod to be deleted")
+		cmd = exec.Command("kubectl", "wait", "pods",
+			"-l", fmt.Sprintf("notebooks.kubeflow.org/workspace-name=%s", workspaceName),
+			"-n", workspaceNamespace,
+			"--for=delete",
+			"--timeout=60s",
+		)
+		_, _ = utils.Run(cmd)
+
+		By("deleting common workspace resources")
+		cmd = exec.Command("kubectl", "delete",
+			"-k", filepath.Join(projectDir, "config/samples/common"),
+			"-n", workspaceNamespace,
+		)
+		_, _ = utils.Run(cmd)
+
 		By("deleting sample WorkspaceKind")
 		cmd = exec.Command("kubectl", "delete",
 			"-f", filepath.Join(projectDir, "config/samples/jupyterlab_v1beta1_workspacekind.yaml"),
@@ -152,13 +190,6 @@ var _ = Describe("controller", Ordered, func() {
 
 		By("deleting the controller")
 		cmd = exec.Command("make", "undeploy")
-		_, _ = utils.Run(cmd)
-
-		By("deleting common workspace resources")
-		cmd = exec.Command("kubectl", "delete",
-			"-k", filepath.Join(projectDir, "config/samples/common"),
-			"-n", workspaceNamespace,
-		)
 		_, _ = utils.Run(cmd)
 
 		By("deleting controller namespace")

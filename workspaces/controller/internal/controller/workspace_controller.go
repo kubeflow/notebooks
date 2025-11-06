@@ -363,6 +363,8 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			}
 			log.V(2).Info("Service updated", "service", serviceName)
 		}
+		// Update service var to the found Service, so it can be used to generate the VirtualService
+		service = foundService
 	}
 
 	if r.Config.UseIstio {

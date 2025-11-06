@@ -17,7 +17,6 @@ limitations under the License.
 package utils
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -72,20 +71,4 @@ func GetProjectDir() (string, error) {
 	}
 	wd = strings.ReplaceAll(wd, "/test/e2e", "")
 	return wd, nil
-}
-
-// PortForward represents a running port-forward session
-type PortForward struct {
-	cmd    *exec.Cmd
-	cancel context.CancelFunc
-}
-
-// Stop stops the port-forward session
-func (pf *PortForward) Stop() {
-	if pf.cancel != nil {
-		pf.cancel()
-	}
-	if pf.cmd != nil && pf.cmd.Process != nil {
-		_ = pf.cmd.Process.Kill()
-	}
 }
