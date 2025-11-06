@@ -62,6 +62,7 @@ import {
 import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
 import { WorkspacesWorkspace, WorkspacesWorkspaceState } from '~/generated/data-contracts';
+import { useWorkspaceActionsContext } from '~/app/context/WorkspaceActionsContext';
 
 const {
   fields: wsTableColumns,
@@ -128,6 +129,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
     },
     ref,
   ) => {
+    const { isDrawerExpanded } = useWorkspaceActionsContext();
     const [workspaceKinds] = useWorkspaceKinds();
     const [expandedWorkspacesNames, setExpandedWorkspacesNames] = useState<string[]>([]);
     const [filters, setFilters] = useState<Record<FilterKey, string>>({
@@ -518,6 +520,8 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
           data-testid="workspaces-table"
           aria-label="Sortable table"
           ouiaId="SortableTable"
+          variant="compact"
+          gridBreakPoint={isDrawerExpanded ? 'grid' : 'grid-lg'}
           style={{ tableLayout: 'fixed' }}
         >
           <Thead>
@@ -570,7 +574,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                     {visibleColumnKeys.map((columnKey) => {
                       if (columnKey === 'connect') {
                         return (
-                          <Td key="connect" isActionCell>
+                          <Td key="connect" dataLabel={wsTableColumns[columnKey].label}>
                             <WorkspaceConnectAction workspace={workspace} />
                           </Td>
                         );
@@ -578,7 +582,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
 
                       if (columnKey === 'actions') {
                         return (
-                          <Td key="actions" isActionCell data-testid="action-column">
+                          <Td key="actions" data-testid="action-column">
                             <ActionsColumn
                               items={rowActions(workspace).map((action) => ({
                                 ...action,
@@ -638,9 +642,11 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                           )}
                           {columnKey === 'namespace' && workspace.namespace}
                           {columnKey === 'state' && (
-                            <Label color={extractStateColor(workspace.state)}>
-                              {workspace.state}
-                            </Label>
+                            <div className="pf-v6-u-display-inline-block">
+                              <Label color={extractStateColor(workspace.state)}>
+                                {workspace.state}
+                              </Label>
+                            </div>
                           )}
                           {columnKey === 'gpu' && formatResourceFromWorkspace(workspace, 'gpu')}
                           {columnKey === 'idleGpu' && formatWorkspaceIdleState(workspace)}

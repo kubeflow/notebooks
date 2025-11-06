@@ -47,47 +47,49 @@ export const WorkspaceConnectAction: React.FunctionComponent<WorkspaceConnectAct
   };
 
   return (
-    <Dropdown
-      isOpen={open}
-      onSelect={onSelect}
-      onOpenChange={(isOpen: boolean) => setIsOpen(isOpen)}
-      toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-        <MenuToggle
-          ref={toggleRef}
-          variant="secondary"
-          onClick={onToggleClick}
-          isExpanded={open}
-          isDisabled={workspace.state !== WorkspacesWorkspaceState.WorkspaceStateRunning}
-          splitButtonItems={[
-            <MenuToggleAction
-              id="connect-endpoint-button"
-              key="connect-endpoint-button"
-              onClick={onClickConnect}
-              className="connect-button-no-wrap"
-            >
-              Connect
-            </MenuToggleAction>,
-          ]}
-        />
-      )}
-      ouiaId="BasicDropdown"
-      shouldFocusToggleOnSelect
-    >
-      <DropdownList>
-        {workspace.services.map((service) => {
-          if (!service.httpService) {
-            return null;
-          }
-          return (
-            <DropdownItem
-              value={service.httpService.httpPath}
-              key={`${workspace.name}-${service.httpService.displayName}`}
-            >
-              {service.httpService.displayName}
-            </DropdownItem>
-          );
-        })}
-      </DropdownList>
-    </Dropdown>
+    <div className="workspace-connect-wrapper pf-v6-u-display-inline-block">
+      <Dropdown
+        isOpen={open}
+        onSelect={onSelect}
+        onOpenChange={(isOpen: boolean) => setIsOpen(isOpen)}
+        toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+          <MenuToggle
+            ref={toggleRef}
+            variant="secondary"
+            onClick={onToggleClick}
+            isExpanded={open}
+            isDisabled={workspace.state !== WorkspacesWorkspaceState.WorkspaceStateRunning}
+            splitButtonItems={[
+              <MenuToggleAction
+                id="connect-endpoint-button"
+                key="connect-endpoint-button"
+                onClick={onClickConnect}
+                className="connect-button-no-wrap"
+              >
+                Connect
+              </MenuToggleAction>,
+            ]}
+          />
+        )}
+        ouiaId="BasicDropdown"
+        shouldFocusToggleOnSelect
+      >
+        <DropdownList>
+          {workspace.services.map((service) => {
+            if (!service.httpService) {
+              return null;
+            }
+            return (
+              <DropdownItem
+                value={service.httpService.httpPath}
+                key={`${workspace.name}-${service.httpService.displayName}`}
+              >
+                {service.httpService.displayName}
+              </DropdownItem>
+            );
+          })}
+        </DropdownList>
+      </Dropdown>
+    </div>
   );
 };
