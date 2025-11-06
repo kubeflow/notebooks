@@ -359,7 +359,7 @@ func buildServices(ws *kubefloworgv1beta1.Workspace, wskPodTemplatePorts map[kub
 		case kubefloworgv1beta1.ImagePortProtocolHTTP:
 			services[i].HttpService = &HttpService{
 				DisplayName: ptr.Deref(port.DisplayName, wskPort.DefaultDisplayName),
-				HttpPath:    fmt.Sprintf("/workspace/%s/%s/%s/", ws.Namespace, ws.Name, port.Id),
+				HttpPath:    fmt.Sprintf("/workspace/connect/%s/%s/%s/", ws.Namespace, ws.Name, port.Id),
 			}
 		}
 	}

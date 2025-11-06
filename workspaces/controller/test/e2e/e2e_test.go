@@ -76,20 +76,19 @@ var _ = Describe("controller", Ordered, func() {
 		cmd = exec.Command("kubectl", "create", "ns", workspaceNamespace)
 		_, _ = utils.Run(cmd) // ignore errors because namespace may already exist
 
-		// TODO: enable Istio injection once we have logic to create VirtualServices during Workspace reconciliation
-		// By("labeling namespaces for Istio injection")
-		// err := utils.LabelNamespaceForIstioInjection(controllerNamespace)
-		// ExpectWithOffset(1, err).NotTo(HaveOccurred())
+		By("labeling namespaces for Istio injection")
+		err := utils.LabelNamespaceForIstioInjection(controllerNamespace)
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
-		// err = utils.LabelNamespaceForIstioInjection(workspaceNamespace)
-		// ExpectWithOffset(1, err).NotTo(HaveOccurred())
+		err = utils.LabelNamespaceForIstioInjection(workspaceNamespace)
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 		By("creating common workspace resources")
 		cmd = exec.Command("kubectl", "apply",
 			"-k", filepath.Join(projectDir, "config/samples/common"),
 			"-n", workspaceNamespace,
 		)
-		_, err := utils.Run(cmd)
+		_, err = utils.Run(cmd)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 		By("installing CRDs")
@@ -101,6 +100,28 @@ var _ = Describe("controller", Ordered, func() {
 		cmd = exec.Command("make", "deploy", fmt.Sprintf("IMG=%s", controllerImage))
 		_, err = utils.Run(cmd)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+		By("waiting for the webhook certificate to be ready")
+		waitForWebhookCert := func(g Gomega) {
+			// First check if cert-manager has processed the Certificate resource
+			cmd := exec.Command("kubectl", "wait", "certificate",
+				"serving-cert",
+				"-n", controllerNamespace,
+				"--for=condition=Ready",
+				fmt.Sprintf("--timeout=%s", timeout),
+			)
+			_, err := utils.Run(cmd)
+			g.Expect(err).NotTo(HaveOccurred(), "Certificate resource not ready")
+
+			// Also verify the secret was created
+			cmd = exec.Command("kubectl", "get", "secret",
+				"webhook-server-cert",
+				"-n", controllerNamespace,
+			)
+			_, err = utils.Run(cmd)
+			g.Expect(err).NotTo(HaveOccurred(), "webhook-server-cert secret not found")
+		}
+		Eventually(waitForWebhookCert, timeout, interval).Should(Succeed())
 
 		By("validating that the workspaces-controller pod is running as expected")
 		var controllerPodName string
@@ -142,6 +163,8 @@ var _ = Describe("controller", Ordered, func() {
 		cmd := exec.Command("kubectl", "delete", "-f",
 			filepath.Join(projectDir, "config/samples/jupyterlab_v1beta1_workspace.yaml"),
 			"-n", workspaceNamespace,
+			"--wait",
+			fmt.Sprintf("--timeout=%s", timeout),
 		)
 		_, _ = utils.Run(cmd)
 
@@ -151,15 +174,15 @@ var _ = Describe("controller", Ordered, func() {
 		)
 		_, _ = utils.Run(cmd)
 
-		By("deleting the controller")
-		cmd = exec.Command("make", "undeploy")
-		_, _ = utils.Run(cmd)
-
 		By("deleting common workspace resources")
 		cmd = exec.Command("kubectl", "delete",
 			"-k", filepath.Join(projectDir, "config/samples/common"),
 			"-n", workspaceNamespace,
 		)
+		_, _ = utils.Run(cmd)
+
+		By("deleting the controller")
+		cmd = exec.Command("make", "undeploy")
 		_, _ = utils.Run(cmd)
 
 		By("deleting controller namespace")
@@ -282,13 +305,13 @@ var _ = Describe("controller", Ordered, func() {
 			Eventually(getServiceName, timeout, interval).Should(Succeed())
 
 			By("validating that the workspace service endpoint is reachable")
-			serviceEndpoint := fmt.Sprintf("http://%s:%d/workspace/%s/%s/%s/lab",
+			serviceEndpoint := fmt.Sprintf("http://%s:%d/workspace/connect/%s/%s/%s/lab",
 				workspaceSvcName, workspacePortInt, workspaceNamespace, workspaceName, workspacePortId,
 			)
 			curlService := func() error {
 				// NOTE: this command should exit with a non-zero status code if the HTTP status code is >= 400
 				cmd := exec.Command("kubectl", "run",
-					"tmp-curl", "-n", workspaceNamespace,
+					"tmp-curl", "-n", workspaceNamespace, "--labels", "sidecar.istio.io/inject=false",
 					"--attach", "--command", fmt.Sprintf("--image=%s", curlImage), "--rm", "--restart=Never", "--",
 					"curl", "-sSL", "-o", "/dev/null", "--fail-with-body", serviceEndpoint,
 				)
@@ -296,6 +319,28 @@ var _ = Describe("controller", Ordered, func() {
 				return err
 			}
 			Eventually(curlService, timeout, interval).Should(Succeed())
+
+			By("validating that the workspace virtual service was created")
+			var workspaceVirtualServiceName string
+			verifyWorkspaceVirtualService := func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "virtualservices",
+					"-l", fmt.Sprintf("notebooks.kubeflow.org/workspace-name=%s", workspaceName),
+					"-n", workspaceNamespace,
+					"-o", "go-template={{ range .items }}"+
+						"{{ if not .metadata.deletionTimestamp }}"+
+						"{{ .metadata.name }}"+
+						"{{ \"\\n\" }}{{ end }}{{ end }}",
+				)
+				vsOutput, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+
+				// Ensure only 1 virtual service is found
+				vsNames := utils.GetNonEmptyLines(vsOutput)
+				g.Expect(vsNames).To(HaveLen(1), "expected 1 virtual service found")
+				workspaceVirtualServiceName = vsNames[0]
+				g.Expect(workspaceVirtualServiceName).To(ContainSubstring(fmt.Sprintf("ws-%s", workspaceName)))
+			}
+			Eventually(verifyWorkspaceVirtualService, timeout, interval).Should(Succeed())
 
 			By("ensuring in-use imageConfig values cannot be removed from WorkspaceKind")
 			removeInUseImageConfig := func() error {

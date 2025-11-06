@@ -34,6 +34,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	istiov1 "istio.io/client-go/pkg/apis/networking/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -44,8 +45,10 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	"github.com/kubeflow/notebooks/workspaces/controller/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
+
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -95,6 +98,8 @@ var _ = BeforeSuite(func() {
 	By("setting up the scheme")
 	err = kubefloworgv1beta1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
+	err = istiov1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme
 
@@ -119,8 +124,14 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).NotTo(HaveOccurred())
 
+	envConfig := &config.EnvConfig{
+		// Istio CRDs are not installed in EnvTest
+		// but even once they are, the webhook does not need to interact with Istio
+		UseIstio: false,
+	}
+
 	By("setting up the field indexers for the controller manager")
-	err = helper.SetupManagerFieldIndexers(k8sManager)
+	err = helper.SetupManagerFieldIndexers(k8sManager, envConfig)
 	Expect(err).NotTo(HaveOccurred())
 
 	By("setting up the Workspace webhook")
