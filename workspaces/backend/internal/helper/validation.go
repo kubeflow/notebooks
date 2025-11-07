@@ -29,8 +29,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
-// StatusCausesFromAPIStatus extracts status causes from a Kubernetes apierrors.APIStatus validation error.
-// NOTE: we use this to convert them to our own validation error format.
+// StatusCausesFromAPIStatus extracts status causes from a Kubernetes apierrors.APIStatus error.
+// NOTE: we use this to convert them to our own validation/conflict error format.
 func StatusCausesFromAPIStatus(err error) []metav1.StatusCause {
 	// ensure this is an APIStatus error
 	var statusErr apierrors.APIStatus
@@ -40,9 +40,9 @@ func StatusCausesFromAPIStatus(err error) []metav1.StatusCause {
 		return nil
 	}
 
-	// only attempt to extract if the status is a validation error
+	// only attempt to extract causes if the status has details
 	errStatus := statusErr.Status()
-	if errStatus.Reason != metav1.StatusReasonInvalid {
+	if errStatus.Details == nil {
 		return nil
 	}
 

@@ -79,6 +79,7 @@ func (a *App) PauseActionWorkspaceHandler(w http.ResponseWriter, r *http.Request
 			a.requestEntityTooLargeResponse(w, r, err)
 			return
 		}
+
 		//
 		// TODO: handle UnmarshalTypeError and return 422,
 		//       decode the paths which were failed to decode (included in the error)
@@ -121,7 +122,13 @@ func (a *App) PauseActionWorkspaceHandler(w http.ResponseWriter, r *http.Request
 			return
 		}
 		if errors.Is(err, repository.ErrWorkspaceInvalidState) {
-			a.conflictResponse(w, r, err, nil)
+			causes := helper.StatusCausesFromAPIStatus(err)
+			// The patch can fail due to a 'test' operation that ensures the workspace is in a valid state for the action.
+			// In these cases, Kubernetes returns an Invalid error but without StatusCauses.
+			// We prepend a StatusCause with the `ErrWorkspaceInvalidState` error message to provide context,
+			// but preserve any existing causes in case Kubernetes provides more details in the future.
+			causes = append([]metav1.StatusCause{{Message: err.Error()}}, causes...)
+			a.conflictResponse(w, r, err, causes)
 			return
 		}
 		a.serverErrorResponse(w, r, err)

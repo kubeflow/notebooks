@@ -227,6 +227,7 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 			a.requestEntityTooLargeResponse(w, r, err)
 			return
 		}
+
 		//
 		// TODO: handle UnmarshalTypeError and return 422,
 		//       decode the paths which were failed to decode (included in the error)
