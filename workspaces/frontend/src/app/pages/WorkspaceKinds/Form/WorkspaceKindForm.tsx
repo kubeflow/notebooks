@@ -184,32 +184,40 @@ export const WorkspaceKindForm: React.FC = () => {
           </Stack>
         )}
         {mode === 'edit' && (
-          <>
-            <WorkspaceKindFormProperties
-              mode={mode}
-              properties={data.properties}
-              updateField={(properties) => setData('properties', properties)}
-            />
-            <WorkspaceKindFormImage
-              mode={mode}
-              imageConfig={data.imageConfig}
-              updateImageConfig={(imageInput) => {
-                setData('imageConfig', imageInput);
-              }}
-            />
-            <WorkspaceKindFormPodConfig
-              podConfig={data.podConfig}
-              updatePodConfig={(podConfig) => {
-                setData('podConfig', podConfig);
-              }}
-            />
-            <WorkspaceKindFormPodTemplate
-              podTemplate={data.podTemplate}
-              updatePodTemplate={(podTemplate) => {
-                setData('podTemplate', podTemplate);
-              }}
-            />
-          </>
+          <Stack hasGutter>
+            <StackItem>
+              <WorkspaceKindFormProperties
+                mode={mode}
+                properties={data.properties}
+                updateField={(properties) => setData('properties', properties)}
+              />
+            </StackItem>
+            <StackItem>
+              <WorkspaceKindFormImage
+                mode={mode}
+                imageConfig={data.imageConfig}
+                updateImageConfig={(imageInput) => {
+                  setData('imageConfig', imageInput);
+                }}
+              />
+            </StackItem>
+            <StackItem>
+              <WorkspaceKindFormPodConfig
+                podConfig={data.podConfig}
+                updatePodConfig={(podConfig) => {
+                  setData('podConfig', podConfig);
+                }}
+              />
+            </StackItem>
+            <StackItem>
+              <WorkspaceKindFormPodTemplate
+                podTemplate={data.podTemplate}
+                updatePodTemplate={(podTemplate) => {
+                  setData('podTemplate', podTemplate);
+                }}
+              />
+            </StackItem>
+          </Stack>
         )}
       </PageSection>
       <PageSection isFilled={false} stickyOnBreakpoint={{ default: 'bottom' }}>
@@ -226,7 +234,7 @@ export const WorkspaceKindForm: React.FC = () => {
             </Button>
           </FlexItem>
           <FlexItem>
-            <Button variant="link" isInline onClick={cancel}>
+            <Button variant="link" onClick={cancel}>
               Cancel
             </Button>
           </FlexItem>
