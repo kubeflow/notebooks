@@ -34,11 +34,11 @@ type Repositories struct {
 }
 
 // NewRepositories creates a new Repositories instance from a controller-runtime client.
-func NewRepositories(cl client.Client) *Repositories {
+func NewRepositories(cl client.Client, configMapClient client.Client) *Repositories {
 	return &Repositories{
 		HealthCheck:   health_check.NewHealthCheckRepository(),
 		Namespace:     namespaces.NewNamespaceRepository(cl),
-		Workspace:     workspaces.NewWorkspaceRepository(cl),
-		WorkspaceKind: workspacekinds.NewWorkspaceKindRepository(cl),
+		Workspace:     workspaces.NewWorkspaceRepository(cl, configMapClient),
+		WorkspaceKind: workspacekinds.NewWorkspaceKindRepository(cl, configMapClient),
 	}
 }

@@ -78,15 +78,15 @@ type WorkspaceKindSpawner struct {
 
 	// the icon of the WorkspaceKind
 	//  - a small (favicon-sized) icon used in the Workspace Spawner UI
-	Icon WorkspaceKindIcon `json:"icon"`
+	Icon WorkspaceKindAsset `json:"icon"`
 
 	// the logo of the WorkspaceKind
 	//  - a 1:1 (card size) logo used in the Workspace Spawner UI
-	Logo WorkspaceKindIcon `json:"logo"`
+	Logo WorkspaceKindAsset `json:"logo"`
 }
 
 // +kubebuilder:validation:XValidation:message="must specify exactly one of 'url' or 'configMap'",rule="!(has(self.url) && has(self.configMap)) && (has(self.url) || has(self.configMap))"
-type WorkspaceKindIcon struct {
+type WorkspaceKindAsset struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:example="https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png"
 	Url *string `json:"url,omitempty"`
@@ -101,6 +101,13 @@ type WorkspaceKindConfigMap struct {
 
 	// +kubebuilder:example="apple-touch-icon-152x152.png"
 	Key string `json:"key"`
+
+	// the namespace of the ConfigMap
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=63
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+	// +kubebuilder:example="kubeflow"
+	Namespace string `json:"namespace"`
 }
 
 type WorkspaceKindPodTemplate struct {
