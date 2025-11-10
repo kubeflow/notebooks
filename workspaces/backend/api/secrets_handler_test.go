@@ -30,6 +30,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/secrets"
 )
@@ -198,17 +199,15 @@ var _ = Describe("Secrets Handler", func() {
 
 		It("should return 201 for create secret (mock implementation)", func() {
 			By("creating the HTTP request body")
-			createReq := models.SecretCreate{
-				Name: "test-secret",
-				SecretBase: models.SecretBase{
-					Type:      "Opaque",
-					Immutable: false,
-					Contents: models.SecretData{
-						"username": {Base64: "dGVzdHVzZXI="}, // base64 for "testuser"
-						"password": {Base64: "dGVzdHBhc3M="}, // base64 for "testpass"
-					},
+			createReq := models.NewSecretCreate(
+				"test-secret",
+				"Opaque",
+				false,
+				models.SecretData{
+					"username": {Base64: ptr.To("dGVzdHVzZXI=")}, // base64 for "testuser"
+					"password": {Base64: ptr.To("dGVzdHBhc3M=")}, // base64 for "testpass"
 				},
-			}
+			)
 			bodyEnvelope := SecretCreateEnvelope{Data: &createReq}
 			reqBody, err := json.Marshal(bodyEnvelope)
 			Expect(err).NotTo(HaveOccurred())
@@ -258,15 +257,14 @@ var _ = Describe("Secrets Handler", func() {
 
 		It("should return 422 for missing name", func() {
 			By("creating the HTTP request body without name")
-			createReq := models.SecretCreate{
-				SecretBase: models.SecretBase{
-					Type:      "Opaque",
-					Immutable: false,
-					Contents: models.SecretData{
-						"username": {Base64: "dGVzdHVzZXI="}, // base64 for "testuser"
-					},
+			createReq := models.NewSecretCreate(
+				"", // empty name to trigger validation error
+				"Opaque",
+				false,
+				models.SecretData{
+					"username": {Base64: ptr.To("dGVzdHVzZXI=")}, // base64 for "testuser"
 				},
-			}
+			)
 			bodyEnvelope := SecretCreateEnvelope{Data: &createReq}
 			reqBody, err := json.Marshal(bodyEnvelope)
 			Expect(err).NotTo(HaveOccurred())
@@ -319,16 +317,14 @@ var _ = Describe("Secrets Handler", func() {
 
 		It("should return 200 for update secret (mock implementation)", func() {
 			By("creating the HTTP request body")
-			updateReq := models.SecretUpdate{
-				SecretBase: models.SecretBase{
-					Type:      "Opaque",
-					Immutable: false,
-					Contents: models.SecretData{
-						"username": {Base64: "dXBkYXRlZHVzZXI="}, // base64 for "updateduser"
-						"password": {Base64: "dXBkYXRlZHBhc3M="}, // base64 for "updatedpass"
-					},
+			updateReq := models.NewSecretUpdate(
+				"Opaque",
+				false,
+				models.SecretData{
+					"username": {Base64: ptr.To("dXBkYXRlZHVzZXI=")}, // base64 for "updateduser"
+					"password": {Base64: ptr.To("dXBkYXRlZHBhc3M=")}, // base64 for "updatedpass"
 				},
-			}
+			)
 			bodyEnvelope := SecretEnvelope{Data: &updateReq}
 			reqBody, err := json.Marshal(bodyEnvelope)
 			Expect(err).NotTo(HaveOccurred())
@@ -357,16 +353,14 @@ var _ = Describe("Secrets Handler", func() {
 
 		It("should return 404 for update non-existent secret", func() {
 			By("creating the HTTP request body")
-			updateReq := models.SecretUpdate{
-				SecretBase: models.SecretBase{
-					Type:      "Opaque",
-					Immutable: false,
-					Contents: models.SecretData{
-						"username": {Base64: "dXBkYXRlZHVzZXI="}, // base64 for "updateduser"
-						"password": {Base64: "dXBkYXRlZHBhc3M="}, // base64 for "updatedpass"
-					},
+			updateReq := models.NewSecretUpdate(
+				"Opaque",
+				false,
+				models.SecretData{
+					"username": {Base64: ptr.To("dXBkYXRlZHVzZXI=")}, // base64 for "updateduser"
+					"password": {Base64: ptr.To("dXBkYXRlZHBhc3M=")}, // base64 for "updatedpass"
 				},
-			}
+			)
 			bodyEnvelope := SecretEnvelope{Data: &updateReq}
 			reqBody, err := json.Marshal(bodyEnvelope)
 			Expect(err).NotTo(HaveOccurred())
@@ -418,9 +412,10 @@ var _ = Describe("Secrets Handler", func() {
 			Expect(k8sClient.Delete(ctx, namespace)).To(Succeed())
 		})
 
-		It("should return 204 for delete secret (stub implementation)", func() {
+		It("should return 204 for delete secret (mock implementation)", func() {
 			By("creating the HTTP request")
-			req, err := http.NewRequest(http.MethodDelete, "/api/v1/secrets/"+namespaceName+"/test-secret", http.NoBody)
+			// Use a mock secret name that exists in the mock data
+			req, err := http.NewRequest(http.MethodDelete, "/api/v1/secrets/"+namespaceName+"/database-credentials", http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("setting the auth headers")
@@ -429,7 +424,7 @@ var _ = Describe("Secrets Handler", func() {
 			By("executing DeleteSecretHandler")
 			ps := httprouter.Params{
 				{Key: NamespacePathParam, Value: namespaceName},
-				{Key: ResourceNamePathParam, Value: "test-secret"},
+				{Key: ResourceNamePathParam, Value: "database-credentials"},
 			}
 			rr := httptest.NewRecorder()
 			a.DeleteSecretHandler(rr, req, ps)
@@ -438,6 +433,28 @@ var _ = Describe("Secrets Handler", func() {
 
 			By("verifying the HTTP response status code")
 			Expect(rs.StatusCode).To(Equal(http.StatusNoContent), descUnexpectedHTTPStatus, rr.Body.String())
+		})
+
+		It("should return 404 for delete non-existent secret", func() {
+			By("creating the HTTP request")
+			req, err := http.NewRequest(http.MethodDelete, "/api/v1/secrets/"+namespaceName+"/non-existent", http.NoBody)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing DeleteSecretHandler")
+			ps := httprouter.Params{
+				{Key: NamespacePathParam, Value: namespaceName},
+				{Key: ResourceNamePathParam, Value: "non-existent"},
+			}
+			rr := httptest.NewRecorder()
+			a.DeleteSecretHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusNotFound), descUnexpectedHTTPStatus, rr.Body.String())
 		})
 	})
 })

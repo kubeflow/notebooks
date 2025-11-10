@@ -40,8 +40,8 @@ func NewSecretCreateModelFromSecret(secret *corev1.Secret) SecretCreate {
 
 	return SecretCreate{
 		Name: secret.Name,
-		SecretBase: SecretBase{
-			Type:      SecretType(secret.Type),
+		secretBase: secretBase{
+			Type:      string(secret.Type),
 			Immutable: ptr.Deref(secret.Immutable, false),
 			Contents:  contents,
 		},
@@ -53,8 +53,8 @@ func NewSecretUpdateModelFromSecret(secret *corev1.Secret) SecretUpdate {
 	contents := secretDataFromKubernetesSecret(secret.Data)
 
 	return SecretUpdate{
-		SecretBase: SecretBase{
-			Type:      SecretType(secret.Type),
+		secretBase: secretBase{
+			Type:      string(secret.Type),
 			Immutable: ptr.Deref(secret.Immutable, false),
 			Contents:  contents,
 		},
@@ -66,9 +66,10 @@ func (s *SecretCreate) ToKubernetesSecret(namespace string, userEmail string) *c
 	// Convert SecretValue back to []byte for Kubernetes
 	data := make(map[string][]byte)
 	for key, value := range s.Contents {
-		if value.Base64 != "" {
+		if value.Base64 != nil {
 			// Store base64-encoded string as []byte (Kubernetes expects base64-encoded data)
-			data[key] = []byte(value.Base64)
+			// Empty string is a valid value, so we include it
+			data[key] = []byte(*value.Base64)
 		}
 	}
 
@@ -101,9 +102,10 @@ func (s *SecretUpdate) ToKubernetesSecret(currentSecret *corev1.Secret, userEmai
 	// Convert SecretValue back to []byte for Kubernetes
 	data := make(map[string][]byte)
 	for key, value := range s.Contents {
-		if value.Base64 != "" {
+		if value.Base64 != nil {
 			// Store base64-encoded string as []byte (Kubernetes expects base64-encoded data)
-			data[key] = []byte(value.Base64)
+			// Empty string is a valid value, so we include it
+			data[key] = []byte(*value.Base64)
 		}
 	}
 
