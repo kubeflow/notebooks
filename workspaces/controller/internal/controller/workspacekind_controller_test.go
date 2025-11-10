@@ -17,9 +17,12 @@ limitations under the License.
 package controller
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
@@ -29,6 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
 )
 
 var _ = Describe("WorkspaceKind Controller", func() {
@@ -116,11 +120,12 @@ var _ = Describe("WorkspaceKind Controller", func() {
 
 			By("only allowing one of `spec.spawner.icon.{url,configMap}` to be set")
 			newWorkspaceKind := workspaceKind.DeepCopy()
-			newWorkspaceKind.Spec.Spawner.Icon = kubefloworgv1beta1.WorkspaceKindIcon{
+			newWorkspaceKind.Spec.Spawner.Icon = kubefloworgv1beta1.WorkspaceKindAsset{
 				Url: ptr.To("https://example.com/icon.png"),
 				ConfigMap: &kubefloworgv1beta1.WorkspaceKindConfigMap{
-					Name: "my-logos",
-					Key:  "icon.png",
+					Name:      "my-logos",
+					Key:       "icon.png",
+					Namespace: namespaceName,
 				},
 			}
 			Expect(k8sClient.Patch(ctx, newWorkspaceKind, patch)).NotTo(Succeed())
@@ -257,6 +262,140 @@ var _ = Describe("WorkspaceKind Controller", func() {
 			By("deleting the WorkspaceKind")
 			Expect(k8sClient.Delete(ctx, workspaceKind)).To(Succeed())
 			Expect(k8sClient.Get(ctx, workspaceKindKey, workspaceKind)).NotTo(Succeed())
+		})
+	})
+
+	Context("When reconciling a WorkspaceKind with ConfigMap-based assets", Serial, Ordered, func() {
+
+		const (
+			iconSVGContent = `<svg xmlns="http://www.w3.org/2000/svg"><circle r="10"/></svg>`
+			logoSVGContent = `<svg xmlns="http://www.w3.org/2000/svg"><rect width="100" height="50"/></svg>`
+		)
+
+		var (
+			workspaceKindName string
+			workspaceKindKey  types.NamespacedName
+			iconConfigMapName string
+			logoConfigMapName string
+		)
+
+		// pre-compute expected SHA256 hashes
+		iconHash := func() string {
+			h := sha256.Sum256([]byte(iconSVGContent))
+			return hex.EncodeToString(h[:])
+		}()
+		logoHash := func() string {
+			h := sha256.Sum256([]byte(logoSVGContent))
+			return hex.EncodeToString(h[:])
+		}()
+
+		BeforeAll(func() {
+			uniqueName := "wsk-configmap-test"
+			workspaceKindName = fmt.Sprintf("workspacekind-%s", uniqueName)
+			workspaceKindKey = types.NamespacedName{Name: workspaceKindName}
+			iconConfigMapName = fmt.Sprintf("test-icons-%s", uniqueName)
+			logoConfigMapName = fmt.Sprintf("test-logos-%s", uniqueName)
+
+			By("creating the icon ConfigMap")
+			iconCM := &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      iconConfigMapName,
+					Namespace: namespaceName,
+					Labels: map[string]string{
+						helper.ImageSourceLabel: "true",
+					},
+				},
+				Data: map[string]string{
+					"icon.svg": iconSVGContent,
+				},
+			}
+			Expect(k8sClient.Create(ctx, iconCM)).To(Succeed())
+
+			By("creating the logo ConfigMap")
+			logoCM := &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      logoConfigMapName,
+					Namespace: namespaceName,
+					Labels: map[string]string{
+						helper.ImageSourceLabel: "true",
+					},
+				},
+				Data: map[string]string{
+					"logo.svg": logoSVGContent,
+				},
+			}
+			Expect(k8sClient.Create(ctx, logoCM)).To(Succeed())
+
+			By("creating the WorkspaceKind with ConfigMap-based assets")
+			workspaceKind := NewExampleWorkspaceKindWithConfigMapAssets(
+				workspaceKindName, iconConfigMapName, logoConfigMapName, namespaceName,
+			)
+			Expect(k8sClient.Create(ctx, workspaceKind)).To(Succeed())
+		})
+
+		AfterAll(func() {
+			By("deleting the WorkspaceKind")
+			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: workspaceKindName,
+				},
+			}
+			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, workspaceKind))).To(Succeed())
+
+			By("deleting remaining ConfigMaps")
+			for _, cmName := range []string{iconConfigMapName, logoConfigMapName} {
+				cm := &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      cmName,
+						Namespace: namespaceName,
+					},
+				}
+				Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, cm))).To(Succeed())
+			}
+		})
+
+		It("should populate SHA256 hashes in status from ConfigMap assets", func() {
+			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
+
+			By("waiting for the controller to reconcile the icon SHA256 hash")
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, workspaceKindKey, workspaceKind)).To(Succeed())
+				g.Expect(workspaceKind.Status.SpawnerIcon.Sha256).To(Equal(iconHash))
+				g.Expect(workspaceKind.Status.SpawnerIcon.ConfigMap).To(BeNil())
+			}, timeout, interval).Should(Succeed())
+
+			By("waiting for the controller to reconcile the logo SHA256 hash")
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, workspaceKindKey, workspaceKind)).To(Succeed())
+				g.Expect(workspaceKind.Status.SpawnerLogo.Sha256).To(Equal(logoHash))
+				g.Expect(workspaceKind.Status.SpawnerLogo.ConfigMap).To(BeNil())
+			}, timeout, interval).Should(Succeed())
+		})
+
+		It("should report error when ConfigMap is missing", func() {
+			By("deleting the icon ConfigMap")
+			iconCM := &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      iconConfigMapName,
+					Namespace: namespaceName,
+				},
+			}
+			Expect(k8sClient.Delete(ctx, iconCM)).To(Succeed())
+
+			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
+
+			By("waiting for the controller to report a ConfigMap error for the icon")
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, workspaceKindKey, workspaceKind)).To(Succeed())
+				g.Expect(workspaceKind.Status.SpawnerIcon.Sha256).To(BeEmpty())
+				g.Expect(workspaceKind.Status.SpawnerIcon.ConfigMap).NotTo(BeNil())
+				g.Expect(workspaceKind.Status.SpawnerIcon.ConfigMap.Error).NotTo(BeNil())
+				g.Expect(*workspaceKind.Status.SpawnerIcon.ConfigMap.Error).To(Equal(kubefloworgv1beta1.ConfigMapErrorNotFound))
+			}, timeout, interval).Should(Succeed())
+
+			By("verifying the logo still has its SHA256 hash")
+			Expect(workspaceKind.Status.SpawnerLogo.Sha256).To(Equal(logoHash))
+			Expect(workspaceKind.Status.SpawnerLogo.ConfigMap).To(BeNil())
 		})
 	})
 })

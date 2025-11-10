@@ -19,24 +19,30 @@ package workspacekinds
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	commonassets "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common/assets"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds"
+	assetmodels "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/assets"
 )
 
 var ErrWorkspaceKindNotFound = errors.New("workspace kind not found")
 var ErrWorkspaceKindAlreadyExists = errors.New("workspacekind already exists")
 
 type WorkspaceKindRepository struct {
-	client client.Client
+	client          client.Client
+	configMapClient client.Client // filtered cache client for ConfigMaps with notebooks.kubeflow.org/image-source: true
 }
 
-func NewWorkspaceKindRepository(cl client.Client) *WorkspaceKindRepository {
+func NewWorkspaceKindRepository(cl client.Client, configMapClient client.Client) *WorkspaceKindRepository {
 	return &WorkspaceKindRepository{
-		client: cl,
+		client:          cl,
+		configMapClient: configMapClient,
 	}
 }
 
@@ -50,7 +56,8 @@ func (r *WorkspaceKindRepository) GetWorkspaceKind(ctx context.Context, name str
 		return models.WorkspaceKind{}, err
 	}
 
-	workspaceKindModel := models.NewWorkspaceKindModelFromWorkspaceKind(workspaceKind)
+	assetCtx := commonassets.NewAssetContextFromStatus(workspaceKind.Status.SpawnerIcon, workspaceKind.Status.SpawnerLogo)
+	workspaceKindModel := models.NewWorkspaceKindModelFromWorkspaceKindWithAssetContext(workspaceKind, assetCtx)
 	return workspaceKindModel, nil
 }
 
@@ -64,7 +71,9 @@ func (r *WorkspaceKindRepository) GetWorkspaceKinds(ctx context.Context) ([]mode
 	workspaceKindsModels := make([]models.WorkspaceKind, len(workspaceKindList.Items))
 	for i := range workspaceKindList.Items {
 		workspaceKind := &workspaceKindList.Items[i]
-		workspaceKindsModels[i] = models.NewWorkspaceKindModelFromWorkspaceKind(workspaceKind)
+
+		assetCtx := commonassets.NewAssetContextFromStatus(workspaceKind.Status.SpawnerIcon, workspaceKind.Status.SpawnerLogo)
+		workspaceKindsModels[i] = models.NewWorkspaceKindModelFromWorkspaceKindWithAssetContext(workspaceKind, assetCtx)
 	}
 
 	return workspaceKindsModels, nil
@@ -91,4 +100,48 @@ func (r *WorkspaceKindRepository) Create(ctx context.Context, workspaceKind *kub
 	createdWorkspaceKindModel := models.NewWorkspaceKindModelFromWorkspaceKind(workspaceKind)
 
 	return &createdWorkspaceKindModel, nil
+}
+
+// GetWorkspaceKindAsset retrieves a single asset (icon or logo) from a WorkspaceKind.
+func (r *WorkspaceKindRepository) GetWorkspaceKindAsset(ctx context.Context, name string, assetType commonassets.WorkspaceKindAssetType) (commonassets.WorkspaceKindAsset, error) {
+	workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
+	err := r.client.Get(ctx, client.ObjectKey{Name: name}, workspaceKind)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return commonassets.WorkspaceKindAsset{}, ErrWorkspaceKindNotFound
+		}
+		return commonassets.WorkspaceKindAsset{}, err
+	}
+
+	asset := assetmodels.NewWorkspaceKindAssetFromWorkspaceKind(workspaceKind, assetType)
+	return asset, nil
+}
+
+// GetConfigMapContent retrieves the content from a ConfigMap referenced by a WorkspaceKindAsset.
+// Returns the content as a string, or an error if the ConfigMap or key cannot be found.
+func (r *WorkspaceKindRepository) GetConfigMapContent(ctx context.Context, asset commonassets.WorkspaceKindAsset) (string, error) {
+	if asset.ConfigMap == nil {
+		return "", fmt.Errorf("asset does not reference a ConfigMap")
+	}
+
+	configMap := &corev1.ConfigMap{}
+	err := r.configMapClient.Get(ctx, client.ObjectKey{
+		Namespace: asset.ConfigMap.Namespace,
+		Name:      asset.ConfigMap.Name,
+	}, configMap)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return "", commonassets.ErrWorkspaceKindAssetConfigMapNotFound
+		}
+		return "", commonassets.ErrWorkspaceKindAssetConfigMapUnknown
+	}
+
+	if data, exists := configMap.Data[asset.ConfigMap.Key]; exists {
+		return data, nil
+	}
+	if binaryData, exists := configMap.BinaryData[asset.ConfigMap.Key]; exists {
+		return string(binaryData), nil
+	}
+
+	return "", commonassets.ErrWorkspaceKindAssetConfigMapKeyNotFound
 }

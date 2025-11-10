@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	modelsCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
+	commonassets "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common/assets"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces"
 	modelsActions "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/actions"
 )
@@ -68,47 +69,26 @@ func (r *WorkspaceRepository) GetWorkspace(ctx context.Context, namespace string
 }
 
 func (r *WorkspaceRepository) GetWorkspaces(ctx context.Context, namespace string) ([]models.WorkspaceListItem, error) {
-	// get all workspaces in the namespace
-	workspaceList := &kubefloworgv1beta1.WorkspaceList{}
-	listOptions := []client.ListOption{
-		client.InNamespace(namespace),
-	}
-	err := r.client.List(ctx, workspaceList, listOptions...)
-	if err != nil {
-		return nil, err
-	}
-
-	// convert workspaces to models
-	workspacesModels := make([]models.WorkspaceListItem, len(workspaceList.Items))
-	for i, workspace := range workspaceList.Items {
-
-		// get workspace kind, if it exists
-		workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
-		workspaceKindName := workspace.Spec.Kind
-		if err := r.client.Get(ctx, client.ObjectKey{Name: workspaceKindName}, workspaceKind); err != nil {
-			// ignore error if workspace kind does not exist, as we can still create a model without it
-			if !apierrors.IsNotFound(err) {
-				return nil, err
-			}
-		}
-
-		workspacesModels[i] = models.NewWorkspaceListItemFromWorkspace(&workspace, workspaceKind)
-	}
-
-	return workspacesModels, nil
+	return r.getWorkspaceModels(ctx, client.InNamespace(namespace))
 }
 
 func (r *WorkspaceRepository) GetAllWorkspaces(ctx context.Context) ([]models.WorkspaceListItem, error) {
-	// get all workspaces in the cluster
+	return r.getWorkspaceModels(ctx)
+}
+
+// getWorkspaceModels lists workspaces using the provided ListOptions and converts them to models.
+// For each workspace, it retrieves the associated WorkspaceKind and reads asset SHA256 hashes
+// from WorkspaceKind status to populate the ImageRef fields.
+func (r *WorkspaceRepository) getWorkspaceModels(ctx context.Context, listOptions ...client.ListOption) ([]models.WorkspaceListItem, error) {
+	// get workspaces using the provided list options
 	workspaceList := &kubefloworgv1beta1.WorkspaceList{}
-	if err := r.client.List(ctx, workspaceList); err != nil {
+	if err := r.client.List(ctx, workspaceList, listOptions...); err != nil {
 		return nil, err
 	}
 
-	// convert workspaces to models
+	// convert workspaces to WorkspaceListItem models
 	workspacesModels := make([]models.WorkspaceListItem, len(workspaceList.Items))
 	for i, workspace := range workspaceList.Items {
-
 		// get workspace kind, if it exists
 		workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
 		workspaceKindName := workspace.Spec.Kind
@@ -117,9 +97,17 @@ func (r *WorkspaceRepository) GetAllWorkspaces(ctx context.Context) ([]models.Wo
 			if !apierrors.IsNotFound(err) {
 				return nil, err
 			}
+			// If not found, set workspaceKind to nil to indicate it doesn't exist
+			workspaceKind = nil
 		}
 
-		workspacesModels[i] = models.NewWorkspaceListItemFromWorkspace(&workspace, workspaceKind)
+		// Read asset SHA256 hashes and errors from WorkspaceKind status
+		var assetCtx *commonassets.WorkspaceKindAssetContext
+		if workspaceKind != nil && workspaceKind.UID != "" {
+			assetCtx = commonassets.NewAssetContextFromStatus(workspaceKind.Status.SpawnerIcon, workspaceKind.Status.SpawnerLogo)
+		}
+
+		workspacesModels[i] = models.NewWorkspaceListItemFromWorkspaceWithAssetContext(&workspace, workspaceKind, assetCtx)
 	}
 
 	return workspacesModels, nil

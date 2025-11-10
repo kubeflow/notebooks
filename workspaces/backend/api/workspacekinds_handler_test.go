@@ -33,7 +33,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/ptr"
 
+	commonassets "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common/assets"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds"
 )
 
@@ -522,6 +524,186 @@ metadata:
 					},
 				},
 			))
+		})
+	})
+
+	// Tests that the backend correctly reads SHA256 hashes and error codes from WorkspaceKind status
+	// for ConfigMap-based assets, rather than computing them itself.
+	Context("with ConfigMap-based assets in status", Serial, Ordered, func() {
+
+		var (
+			workspaceKindName string
+			workspaceKindKey  types.NamespacedName
+		)
+
+		BeforeAll(func() {
+			workspaceKindName = "wsk-configmap-asset-test"
+			workspaceKindKey = types.NamespacedName{Name: workspaceKindName}
+
+			By("creating a WorkspaceKind with ConfigMap-based assets")
+			wk := NewExampleWorkspaceKind(workspaceKindName)
+			// Override URL-based assets with ConfigMap-based assets
+			wk.Spec.Spawner.Icon = kubefloworgv1beta1.WorkspaceKindAsset{
+				ConfigMap: &kubefloworgv1beta1.WorkspaceKindConfigMap{
+					Name: "my-icons", Key: "icon.svg", Namespace: "default",
+				},
+			}
+			wk.Spec.Spawner.Logo = kubefloworgv1beta1.WorkspaceKindAsset{
+				ConfigMap: &kubefloworgv1beta1.WorkspaceKindConfigMap{
+					Name: "my-logos", Key: "logo.svg", Namespace: "default",
+				},
+			}
+			Expect(k8sClient.Create(ctx, wk)).To(Succeed())
+
+			By("populating the WorkspaceKind status with SHA256 hashes")
+			// Re-fetch to get the latest resourceVersion after create
+			Expect(k8sClient.Get(ctx, workspaceKindKey, wk)).To(Succeed())
+			wk.Status.SpawnerIcon = kubefloworgv1beta1.ImageAssetStatus{
+				Sha256: "abc123iconhash",
+			}
+			wk.Status.SpawnerLogo = kubefloworgv1beta1.ImageAssetStatus{
+				Sha256: "def456logohash",
+			}
+			// The CRD requires podTemplateOptions in status
+			wk.Status.PodTemplateOptions = kubefloworgv1beta1.PodTemplateOptionsMetrics{
+				ImageConfig: []kubefloworgv1beta1.OptionMetric{},
+				PodConfig:   []kubefloworgv1beta1.OptionMetric{},
+			}
+			Expect(k8sClient.Status().Update(ctx, wk)).To(Succeed())
+		})
+
+		AfterAll(func() {
+			By("deleting the WorkspaceKind")
+			wk := &kubefloworgv1beta1.WorkspaceKind{
+				ObjectMeta: metav1.ObjectMeta{Name: workspaceKindName},
+			}
+			Expect(k8sClient.Delete(ctx, wk)).To(Succeed())
+		})
+
+		It("should include SHA256 query parameters in icon and logo URLs (list)", func() {
+			By("creating the HTTP request")
+			req, err := http.NewRequest(http.MethodGet, AllWorkspaceKindsPath, http.NoBody)
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing GetWorkspaceKindsHandler")
+			rr := httptest.NewRecorder()
+			a.GetWorkspaceKindsHandler(rr, req, httprouter.Params{})
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			Expect(rs.StatusCode).To(Equal(http.StatusOK), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("reading the response")
+			body, err := io.ReadAll(rs.Body)
+			Expect(err).NotTo(HaveOccurred())
+			var response WorkspaceKindListEnvelope
+			Expect(json.Unmarshal(body, &response)).To(Succeed())
+
+			By("finding the WorkspaceKind with ConfigMap assets in the response")
+			var found *models.WorkspaceKind
+			for i := range response.Data {
+				if response.Data[i].Name == workspaceKindName {
+					found = &response.Data[i]
+					break
+				}
+			}
+			Expect(found).NotTo(BeNil(), "WorkspaceKind %q not found in response", workspaceKindName)
+
+			By("verifying the icon URL contains the SHA256 query parameter")
+			Expect(found.Icon.URL).To(ContainSubstring("sha256=abc123iconhash"))
+			Expect(found.Icon.Error).To(BeNil())
+
+			By("verifying the logo URL contains the SHA256 query parameter")
+			Expect(found.Logo.URL).To(ContainSubstring("sha256=def456logohash"))
+			Expect(found.Logo.Error).To(BeNil())
+		})
+
+		It("should include SHA256 query parameters in icon and logo URLs (single get)", func() {
+			By("creating the HTTP request")
+			path := strings.Replace(WorkspaceKindsByNamePath, ":"+ResourceNamePathParam, workspaceKindName, 1)
+			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing GetWorkspaceKindHandler")
+			ps := httprouter.Params{
+				httprouter.Param{Key: ResourceNamePathParam, Value: workspaceKindName},
+			}
+			rr := httptest.NewRecorder()
+			a.GetWorkspaceKindHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			Expect(rs.StatusCode).To(Equal(http.StatusOK), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("reading the response")
+			body, err := io.ReadAll(rs.Body)
+			Expect(err).NotTo(HaveOccurred())
+			var response WorkspaceKindEnvelope
+			Expect(json.Unmarshal(body, &response)).To(Succeed())
+
+			By("verifying the icon URL contains the SHA256 query parameter")
+			Expect(response.Data.Icon.URL).To(ContainSubstring("sha256=abc123iconhash"))
+			Expect(response.Data.Icon.Error).To(BeNil())
+
+			By("verifying the logo URL contains the SHA256 query parameter")
+			Expect(response.Data.Logo.URL).To(ContainSubstring("sha256=def456logohash"))
+			Expect(response.Data.Logo.Error).To(BeNil())
+		})
+
+		It("should include error codes when status has ConfigMap errors", func() {
+			By("updating the WorkspaceKind status with errors")
+			wk := &kubefloworgv1beta1.WorkspaceKind{}
+			Expect(k8sClient.Get(ctx, workspaceKindKey, wk)).To(Succeed())
+			wk.Status.SpawnerIcon = kubefloworgv1beta1.ImageAssetStatus{
+				ConfigMap: &kubefloworgv1beta1.WorkspaceKindConfigMapStatus{
+					Error:        ptr.To(kubefloworgv1beta1.ConfigMapErrorNotFound),
+					ErrorMessage: ptr.To("ConfigMap not found"),
+				},
+			}
+			wk.Status.SpawnerLogo = kubefloworgv1beta1.ImageAssetStatus{
+				ConfigMap: &kubefloworgv1beta1.WorkspaceKindConfigMapStatus{
+					Error:        ptr.To(kubefloworgv1beta1.ConfigMapErrorKeyNotFound),
+					ErrorMessage: ptr.To("key not found in ConfigMap"),
+				},
+			}
+			wk.Status.PodTemplateOptions = kubefloworgv1beta1.PodTemplateOptionsMetrics{
+				ImageConfig: []kubefloworgv1beta1.OptionMetric{},
+				PodConfig:   []kubefloworgv1beta1.OptionMetric{},
+			}
+			Expect(k8sClient.Status().Update(ctx, wk)).To(Succeed())
+
+			By("creating the HTTP request")
+			path := strings.Replace(WorkspaceKindsByNamePath, ":"+ResourceNamePathParam, workspaceKindName, 1)
+			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing GetWorkspaceKindHandler")
+			ps := httprouter.Params{
+				httprouter.Param{Key: ResourceNamePathParam, Value: workspaceKindName},
+			}
+			rr := httptest.NewRecorder()
+			a.GetWorkspaceKindHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			Expect(rs.StatusCode).To(Equal(http.StatusOK), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("reading the response")
+			body, err := io.ReadAll(rs.Body)
+			Expect(err).NotTo(HaveOccurred())
+			var response WorkspaceKindEnvelope
+			Expect(json.Unmarshal(body, &response)).To(Succeed())
+
+			By("verifying the icon has CONFIGMAP_MISSING error")
+			Expect(response.Data.Icon.Error).NotTo(BeNil())
+			Expect(*response.Data.Icon.Error).To(Equal(commonassets.ImageRefErrorCodeConfigMapMissing))
+
+			By("verifying the logo has CONFIGMAP_KEY_MISSING error")
+			Expect(response.Data.Logo.Error).NotTo(BeNil())
+			Expect(*response.Data.Logo.Error).To(Equal(commonassets.ImageRefErrorCodeConfigMapKeyMissing))
 		})
 	})
 })

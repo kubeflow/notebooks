@@ -130,10 +130,15 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).NotTo(HaveOccurred())
 
+	By("building the image source ConfigMap cache")
+	imageSourceCache, err := helper.BuildImageSourceConfigMapCache(k8sManager)
+	Expect(err).NotTo(HaveOccurred())
+
 	By("setting up the WorkspaceKind controller")
 	err = (&WorkspaceKindReconciler{
-		Client: k8sManager.GetClient(),
-		Scheme: k8sManager.GetScheme(),
+		Client:           k8sManager.GetClient(),
+		Scheme:           k8sManager.GetScheme(),
+		ImageSourceCache: imageSourceCache,
 	}).SetupWithManager(k8sManager, controller.Options{
 		RateLimiter: helper.BuildRateLimiter(),
 	})
@@ -190,6 +195,28 @@ func NewExampleWorkspace1(name string, namespace string, workspaceKind string) *
 	}
 }
 
+// NewExampleWorkspaceKindWithConfigMapAssets returns a WorkspaceKind that uses ConfigMap-based
+// icon and logo assets instead of URL-based ones. The namespace parameter specifies where the
+// referenced ConfigMaps live.
+func NewExampleWorkspaceKindWithConfigMapAssets(name string, iconCMName string, logoCMName string, namespace string) *kubefloworgv1beta1.WorkspaceKind {
+	wk := NewExampleWorkspaceKind1(name)
+	wk.Spec.Spawner.Icon = kubefloworgv1beta1.WorkspaceKindAsset{
+		ConfigMap: &kubefloworgv1beta1.WorkspaceKindConfigMap{
+			Name:      iconCMName,
+			Key:       "icon.svg",
+			Namespace: namespace,
+		},
+	}
+	wk.Spec.Spawner.Logo = kubefloworgv1beta1.WorkspaceKindAsset{
+		ConfigMap: &kubefloworgv1beta1.WorkspaceKindConfigMap{
+			Name:      logoCMName,
+			Key:       "logo.svg",
+			Namespace: namespace,
+		},
+	}
+	return wk
+}
+
 // NewExampleWorkspaceKind1 returns the common "WorkspaceKind 1" object used in tests.
 func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 	return &kubefloworgv1beta1.WorkspaceKind{
@@ -203,14 +230,11 @@ func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 				Hidden:             ptr.To(false),
 				Deprecated:         ptr.To(false),
 				DeprecationMessage: ptr.To("This WorkspaceKind will be removed on 20XX-XX-XX, please use another WorkspaceKind."),
-				Icon: kubefloworgv1beta1.WorkspaceKindIcon{
+				Icon: kubefloworgv1beta1.WorkspaceKindAsset{
 					Url: ptr.To("https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png"),
 				},
-				Logo: kubefloworgv1beta1.WorkspaceKindIcon{
-					ConfigMap: &kubefloworgv1beta1.WorkspaceKindConfigMap{
-						Name: "my-logos",
-						Key:  "apple-touch-icon-152x152.png",
-					},
+				Logo: kubefloworgv1beta1.WorkspaceKindAsset{
+					Url: ptr.To("https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png"),
 				},
 			},
 			PodTemplate: kubefloworgv1beta1.WorkspaceKindPodTemplate{
