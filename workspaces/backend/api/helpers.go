@@ -127,3 +127,10 @@ func (a *App) LocationGetWorkspaceKind(name string) string {
 	path := strings.Replace(WorkspaceKindsByNamePath, ":"+ResourceNamePathParam, name, 1)
 	return path
 }
+
+// LocationGetSecret returns the GET location (HTTP path) for a secret resource.
+func (a *App) LocationGetSecret(namespace, name string) string {
+	path := strings.Replace(SecretsByNamePath, ":"+NamespacePathParam, namespace, 1)
+	path = strings.Replace(path, ":"+ResourceNamePathParam, name, 1)
+	return path
+}

@@ -22,20 +22,17 @@ import (
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 )
 
-// SecretType represents the type of a secret
-type SecretType string
-
 // SecretValue represents a secret value with base64 encoding
 type SecretValue struct {
-	Base64 string `json:"base64,omitempty"`
+	Base64 *string `json:"base64,omitempty"`
 }
 
 // SecretData represents a map of secret key-value pairs
 type SecretData map[string]SecretValue
 
-// SecretBase represents the common fields shared between SecretCreate and SecretUpdate
-type SecretBase struct {
-	Type      SecretType `json:"type"`
+// secretBase represents the common fields shared between SecretCreate and SecretUpdate
+type secretBase struct {
+	Type      string     `json:"type"`
 	Immutable bool       `json:"immutable"`
 	Contents  SecretData `json:"contents"`
 }
@@ -43,12 +40,35 @@ type SecretBase struct {
 // SecretCreate is used to create a new secret.
 type SecretCreate struct {
 	Name string `json:"name"`
-	SecretBase
+	secretBase
 }
 
 // SecretUpdate represents the request body for updating a secret
 type SecretUpdate struct {
-	SecretBase
+	secretBase
+}
+
+// NewSecretCreate creates a new SecretCreate with the specified fields.
+func NewSecretCreate(name, secretType string, immutable bool, contents SecretData) SecretCreate {
+	return SecretCreate{
+		Name: name,
+		secretBase: secretBase{
+			Type:      secretType,
+			Immutable: immutable,
+			Contents:  contents,
+		},
+	}
+}
+
+// NewSecretUpdate creates a new SecretUpdate with the specified fields.
+func NewSecretUpdate(secretType string, immutable bool, contents SecretData) SecretUpdate {
+	return SecretUpdate{
+		secretBase: secretBase{
+			Type:      secretType,
+			Immutable: immutable,
+			Contents:  contents,
+		},
+	}
 }
 
 // Validate validates the SecretCreate struct.
@@ -58,10 +78,10 @@ func (s *SecretCreate) Validate(prefix *field.Path) []*field.Error {
 
 	// validate the secret name
 	namePath := prefix.Child("name")
-	errs = append(errs, helper.ValidateFieldIsDNS1123Subdomain(namePath, s.Name)...)
+	errs = append(errs, helper.ValidateKubernetesSecretName(namePath, s.Name)...)
 
 	// validate common fields (type and contents)
-	errs = append(errs, s.SecretBase.ValidateBase(prefix)...)
+	errs = append(errs, s.secretBase.validateBase(prefix)...)
 
 	return errs
 }
@@ -70,10 +90,10 @@ func (s *SecretCreate) Validate(prefix *field.Path) []*field.Error {
 // NOTE: we only do basic validation, more complex validation is done by Kubernetes when attempting to update the secret.
 func (s *SecretUpdate) Validate(prefix *field.Path) []*field.Error {
 	// validate common fields (type and contents)
-	return s.SecretBase.ValidateBase(prefix)
+	return s.secretBase.validateBase(prefix)
 }
 
-// ValidateContents validates the contents map of a secret.
+// Validate validates the SecretData struct.
 func (s *SecretData) Validate(prefix *field.Path) []*field.Error {
 	var errs []*field.Error
 
@@ -81,48 +101,18 @@ func (s *SecretData) Validate(prefix *field.Path) []*field.Error {
 		return errs // nil is valid for optional fields
 	}
 
-	for key, value := range *s {
-		keyPath := prefix.Key(key)
+	for key := range *s {
+		// TODO: come up with a better way to highlight the error is on the key not the value at that key
+		keyPath := prefix.Child(key)
 		errs = append(errs, helper.ValidateFieldIsConfigMapKey(keyPath, key)...)
-
-		// TODO: determine proper way to validate secret values
-		// Only validate base64 if it's present
-		if value.Base64 != "" {
-			errs = append(errs, helper.ValidateFieldIsBase64Encoded(keyPath, value.Base64)...)
-		}
 	}
 
 	return errs
 }
 
-// ValidateSecretType validates the secret type field.
-// Currently only supports "Opaque" type, with empty type defaulting to "Opaque".
-func (s *SecretType) Validate(prefix *field.Path) []*field.Error {
+// validateBase validates the common fields of a secret (contents).
+func (sb *secretBase) validateBase(prefix *field.Path) []*field.Error {
 	var errs []*field.Error
-
-	if s == nil || *s == "" {
-		return errs // nil or empty is valid for optional fields
-	}
-
-	// Currently only "Opaque" type is supported
-	if *s != "Opaque" {
-		errs = append(errs, field.Invalid(prefix, *s, "only 'Opaque' type is supported"))
-	}
-
-	return errs
-}
-
-// ValidateBase validates the common fields of a secret (type and contents).
-func (sb *SecretBase) ValidateBase(prefix *field.Path) []*field.Error {
-	var errs []*field.Error
-
-	typePath := prefix.Child("type")
-	errs = append(errs, sb.Type.Validate(typePath)...)
-
-	// Set default type if empty
-	if sb.Type == "" {
-		sb.Type = "Opaque"
-	}
 
 	contentsPath := prefix.Child("contents")
 	errs = append(errs, sb.Contents.Validate(contentsPath)...)

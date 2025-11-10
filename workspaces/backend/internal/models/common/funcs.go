@@ -26,25 +26,25 @@ import (
 // It extracts audit information from annotations, falling back to Kubernetes
 // creation timestamp when annotations are not available.
 func NewAuditFromObjectMeta(objectMeta *metav1.ObjectMeta) Audit {
-	audit := Audit{
-		CreatedAt: objectMeta.CreationTimestamp.Time, // Default to Kubernetes creation time
-		CreatedBy: objectMeta.Annotations["notebooks.kubeflow.org/created-by"],
-		UpdatedAt: objectMeta.CreationTimestamp.Time, // Default to creation time
-		UpdatedBy: objectMeta.Annotations["notebooks.kubeflow.org/updated-by"],
+	audit := Audit{}
+	if objectMeta == nil {
+		return audit
 	}
 
-	// Parse created timestamp if available
-	if createTimeStr, exists := objectMeta.Annotations["notebooks.kubeflow.org/created-at"]; exists {
-		if createTime, err := time.Parse(time.RFC3339, createTimeStr); err == nil {
-			audit.CreatedAt = createTime
+	audit.CreatedAt = objectMeta.CreationTimestamp
+	audit.DeletedAt = objectMeta.DeletionTimestamp
+
+	if createdBy, ok := objectMeta.Annotations[AnnotationCreatedBy]; ok {
+		audit.CreatedBy = &createdBy
+	}
+	if updatedAtStr, ok := objectMeta.Annotations[AnnotationUpdatedAt]; ok {
+		if updateTime, err := time.Parse(time.RFC3339, updatedAtStr); err == nil {
+			updatedAt := metav1.NewTime(updateTime)
+			audit.UpdatedAt = &updatedAt
 		}
 	}
-
-	// Parse updated timestamp if available
-	if updateTimeStr, exists := objectMeta.Annotations["notebooks.kubeflow.org/updated-at"]; exists {
-		if updateTime, err := time.Parse(time.RFC3339, updateTimeStr); err == nil {
-			audit.UpdatedAt = updateTime
-		}
+	if updatedBy, ok := objectMeta.Annotations[AnnotationUpdatedBy]; ok {
+		audit.UpdatedBy = &updatedBy
 	}
 
 	return audit

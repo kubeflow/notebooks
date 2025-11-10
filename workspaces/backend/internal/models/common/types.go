@@ -17,13 +17,22 @@ limitations under the License.
 package common
 
 import (
-	"time"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	AnnotationCreatedBy = "notebooks.kubeflow.org/created-by"
+	AnnotationUpdatedAt = "notebooks.kubeflow.org/updated-at"
+	AnnotationUpdatedBy = "notebooks.kubeflow.org/updated-by"
+	LabelCanMount       = "notebooks.kubeflow.org/can-mount"
+	LabelCanUpdate      = "notebooks.kubeflow.org/can-update"
 )
 
 // Audit represents audit information for resources
 type Audit struct {
-	CreatedAt time.Time `json:"createdAt"`
-	CreatedBy string    `json:"createdBy"`
-	UpdatedAt time.Time `json:"updatedAt"`
-	UpdatedBy string    `json:"updatedBy"`
+	CreatedAt metav1.Time  `json:"createdAt"`
+	CreatedBy *string      `json:"createdBy"`
+	UpdatedAt *metav1.Time `json:"updatedAt"`
+	UpdatedBy *string      `json:"updatedBy"`
+	DeletedAt *metav1.Time `json:"deletedAt"`
 }

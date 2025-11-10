@@ -17,19 +17,20 @@ limitations under the License.
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/julienschmidt/httprouter"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/secrets"
+	repository "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/secrets"
 )
 
 type SecretEnvelope Envelope[*models.SecretUpdate]
@@ -50,11 +51,11 @@ type SecretCreateEnvelope Envelope[*models.SecretCreate]
 //	@Failure		422			{object}	ErrorEnvelope		"Unprocessable Entity. Validation error."
 //	@Failure		500			{object}	ErrorEnvelope		"Internal server error"
 //	@Router			/secrets/{namespace} [get]
-func (a *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (a *App) GetSecretsByNamespaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(NamespacePathParam)
 
 	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateFieldIsDNS1123Subdomain(field.NewPath(NamespacePathParam), namespace)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
 
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
@@ -77,67 +78,14 @@ func (a *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, ps httpr
 	}
 	// ============================================================
 
-	// TODO: Replace with actual repository call when implemented
-	// For now, return dummy data as stub
-	secretList := getMockSecrets()
+	secretList, err := a.repositories.Secret.GetSecrets(r.Context(), namespace)
+	if err != nil {
+		a.serverErrorResponse(w, r, err)
+		return
+	}
+
 	responseEnvelope := &SecretListEnvelope{Data: secretList}
 	a.dataResponse(w, r, responseEnvelope)
-}
-
-// getMockSecrets returns temporary mock data for frontend development
-// TODO: Remove this function when actual repository implementation is ready
-func getMockSecrets() []models.SecretListItem {
-	return []models.SecretListItem{
-		{
-			Name:      "database-credentials",
-			Type:      "Opaque",
-			Immutable: false,
-			CanUpdate: true,
-			CanMount:  true,
-			Mounts: []models.SecretMount{
-				{Group: "apps", Kind: "Deployment", Name: "web-app"},
-				{Group: "apps", Kind: "Deployment", Name: "api-server"},
-			},
-			Audit: common.Audit{
-				CreatedAt: time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC),
-				CreatedBy: "admin@example.com",
-				UpdatedAt: time.Date(2024, 2, 20, 14, 45, 0, 0, time.UTC),
-				UpdatedBy: "admin@example.com",
-			},
-		},
-		{
-			Name:      "api-key-secret",
-			Type:      "Opaque",
-			Immutable: true,
-			CanUpdate: false,
-			CanMount:  true,
-			Mounts: []models.SecretMount{
-				{Group: "apps", Kind: "Deployment", Name: "external-api-client"},
-			},
-			Audit: common.Audit{
-				CreatedAt: time.Date(2024, 1, 10, 9, 15, 0, 0, time.UTC),
-				CreatedBy: "devops@example.com",
-				UpdatedAt: time.Date(2024, 1, 10, 9, 15, 0, 0, time.UTC),
-				UpdatedBy: "devops@example.com",
-			},
-		},
-		{
-			Name:      "tls-certificate",
-			Type:      "kubernetes.io/tls",
-			Immutable: false,
-			CanUpdate: false,
-			CanMount:  true,
-			Mounts: []models.SecretMount{
-				{Group: "networking.k8s.io", Kind: "Ingress", Name: "web-ingress"},
-			},
-			Audit: common.Audit{
-				CreatedAt: time.Date(2024, 3, 5, 16, 20, 0, 0, time.UTC),
-				CreatedBy: "security@example.com",
-				UpdatedAt: time.Date(2024, 3, 12, 11, 30, 0, 0, time.UTC),
-				UpdatedBy: "security@example.com",
-			},
-		},
-	}
 }
 
 // GetSecretHandler returns a specific secret by name and namespace.
@@ -156,14 +104,14 @@ func getMockSecrets() []models.SecretListItem {
 //	@Failure		422			{object}	ErrorEnvelope	"Unprocessable Entity. Validation error."
 //	@Failure		500			{object}	ErrorEnvelope	"Internal server error"
 //	@Router			/secrets/{namespace}/{name} [get]
-func (a *App) GetSecretHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (a *App) GetSecretHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) { //nolint:dupl // TODO: Abstract common API patterns once implemented
 	namespace := ps.ByName(NamespacePathParam)
 	secretName := ps.ByName(ResourceNamePathParam)
 
 	// validate path parameters
 	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateFieldIsDNS1123Subdomain(field.NewPath(NamespacePathParam), namespace)...)
-	valErrs = append(valErrs, helper.ValidateFieldIsDNS1123Subdomain(field.NewPath(ResourceNamePathParam), secretName)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesSecretName(field.NewPath(ResourceNamePathParam), secretName)...)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
@@ -176,6 +124,7 @@ func (a *App) GetSecretHandler(w http.ResponseWriter, r *http.Request, ps httpro
 			&corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: namespace,
+					Name:      secretName,
 				},
 			},
 		),
@@ -185,107 +134,19 @@ func (a *App) GetSecretHandler(w http.ResponseWriter, r *http.Request, ps httpro
 	}
 	// ============================================================
 
-	// TODO: Replace with actual repository call when implemented
-	// For now, return mock data as stub
-	secret := getMockSecret(secretName)
-	if secret == nil {
-		a.notFoundResponse(w, r)
+	secret, err := a.repositories.Secret.GetSecret(r.Context(), namespace, secretName)
+	if err != nil {
+		// Check if it's a not found error
+		if errors.Is(err, repository.ErrSecretNotFound) {
+			a.notFoundResponse(w, r)
+			return
+		}
+		a.serverErrorResponse(w, r, err)
 		return
 	}
+
 	responseEnvelope := &SecretEnvelope{Data: secret}
 	a.dataResponse(w, r, responseEnvelope)
-}
-
-// getMockSecret returns temporary mock data for a specific secret by name
-// TODO: Remove this function when actual repository implementation is ready
-func getMockSecret(secretName string) *models.SecretUpdate {
-	switch secretName {
-	case "database-credentials":
-		return &models.SecretUpdate{
-			SecretBase: models.SecretBase{
-				Type:      "Opaque",
-				Immutable: false,
-				Contents: models.SecretData{
-					"username": models.SecretValue{},
-					"password": models.SecretValue{},
-					"host":     models.SecretValue{},
-					"port":     models.SecretValue{},
-				},
-			},
-		}
-	case "api-key-secret":
-		return &models.SecretUpdate{
-			SecretBase: models.SecretBase{
-				Type:      "Opaque",
-				Immutable: true,
-				Contents: models.SecretData{
-					"api-key":    models.SecretValue{},
-					"api-secret": models.SecretValue{},
-				},
-			},
-		}
-	case "tls-certificate":
-		return &models.SecretUpdate{
-			SecretBase: models.SecretBase{
-				Type:      "kubernetes.io/tls",
-				Immutable: false,
-				Contents: models.SecretData{
-					"tls.crt": models.SecretValue{},
-					"tls.key": models.SecretValue{},
-				},
-			},
-		}
-	default:
-		return nil // Return nil for unknown secret names to trigger 404
-	}
-}
-
-// createMockSecretFromRequest returns temporary mock data based on the create request
-// TODO: Remove this function when actual repository implementation is ready
-func createMockSecretFromRequest(secretCreate *models.SecretCreate) *models.SecretCreate {
-	// Create empty contents to never expose actual secret values
-	contents := make(models.SecretData)
-	for key := range secretCreate.Contents {
-		contents[key] = models.SecretValue{} // Empty value - never return actual data
-	}
-
-	// Use the request data to create a mock response
-	// This simulates what would happen after creating the secret
-	return &models.SecretCreate{
-		Name: secretCreate.Name,
-		SecretBase: models.SecretBase{
-			Type:      secretCreate.Type,
-			Immutable: secretCreate.Immutable,
-			Contents:  contents,
-		},
-	}
-}
-
-// updateMockSecretFromRequest returns temporary mock data based on the update request
-// TODO: Remove this function when actual repository implementation is ready
-func updateMockSecretFromRequest(secretName string, secretUpdate *models.SecretUpdate) *models.SecretUpdate {
-	// Check if the secret exists in our mock data
-	switch secretName {
-	case "database-credentials", "api-key-secret", "tls-certificate":
-
-		// Create empty contents to never expose actual secret values
-		contents := make(models.SecretData)
-		for key := range secretUpdate.Contents {
-			contents[key] = models.SecretValue{} // Empty value - never return actual data
-		}
-
-		// Return the updated secret data (simulating successful update)
-		return &models.SecretUpdate{
-			SecretBase: models.SecretBase{
-				Type:      secretUpdate.Type,
-				Immutable: secretUpdate.Immutable,
-				Contents:  contents,
-			},
-		}
-	default:
-		// Return nil for unknown secret names to trigger 404
-		return nil
-	}
 }
 
 // CreateSecretHandler creates a new secret.
@@ -312,28 +173,12 @@ func (a *App) CreateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 	namespace := ps.ByName(NamespacePathParam)
 
 	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateFieldIsDNS1123Subdomain(field.NewPath(NamespacePathParam), namespace)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
 
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
 	}
-
-	// =========================== AUTH ===========================
-	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(
-			auth.ResourceVerbCreate,
-			&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: namespace,
-				},
-			},
-		),
-	}
-	if success := a.requireAuth(w, r, authPolicies); !success {
-		return
-	}
-	// ============================================================
 
 	// Parse request body
 	bodyEnvelope := &SecretCreateEnvelope{}
@@ -343,6 +188,12 @@ func (a *App) CreateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 			a.requestEntityTooLargeResponse(w, r, err)
 			return
 		}
+
+		//
+		// TODO: handle UnmarshalTypeError and return 422,
+		//       decode the paths which were failed to decode (included in the error)
+		//       and also do this in the other handlers which decode json
+		//
 		a.badRequestResponse(w, r, fmt.Errorf("error decoding request body: %w", err))
 		return
 	}
@@ -360,11 +211,41 @@ func (a *App) CreateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	// TODO: Replace with actual repository call when implemented
-	// For now, return mock data as stub
-	secret := createMockSecretFromRequest(bodyEnvelope.Data)
+	secretCreate := bodyEnvelope.Data
+
+	// =========================== AUTH ===========================
+	authPolicies := []*auth.ResourcePolicy{
+		auth.NewResourcePolicy(
+			auth.ResourceVerbCreate,
+			&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: namespace,
+					Name:      secretCreate.Name,
+				},
+			},
+		),
+	}
+	if success := a.requireAuth(w, r, authPolicies); !success {
+		return
+	}
+	// ============================================================
+
+	secret, err := a.repositories.Secret.CreateSecret(r.Context(), namespace, secretCreate)
+	if err != nil {
+		if errors.Is(err, repository.ErrSecretAlreadyExists) {
+			causes := helper.StatusCausesFromAPIStatus(err)
+			a.conflictResponse(w, r, err, causes)
+			return
+		}
+
+		a.serverErrorResponse(w, r, fmt.Errorf("error creating secret: %w", err))
+		return
+	}
+
+	// calculate the GET location for the created secret (for the Location header)
+	location := a.LocationGetSecret(namespace, secret.Name)
+
 	responseEnvelope := &SecretCreateEnvelope{Data: secret}
-	location := fmt.Sprintf("/secrets/%s/%s", namespace, bodyEnvelope.Data.Name)
 	a.createdResponse(w, r, responseEnvelope, location)
 }
 
@@ -395,8 +276,8 @@ func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 
 	// validate path parameters
 	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateFieldIsDNS1123Subdomain(field.NewPath(NamespacePathParam), namespace)...)
-	valErrs = append(valErrs, helper.ValidateFieldIsDNS1123Subdomain(field.NewPath(ResourceNamePathParam), secretName)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesSecretName(field.NewPath(ResourceNamePathParam), secretName)...)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
@@ -409,6 +290,7 @@ func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 			&corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: namespace,
+					Name:      secretName,
 				},
 			},
 		),
@@ -426,11 +308,17 @@ func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 			a.requestEntityTooLargeResponse(w, r, err)
 			return
 		}
+
+		//
+		// TODO: handle UnmarshalTypeError and return 422,
+		//       decode the paths which were failed to decode (included in the error)
+		//       and also do this in the other handlers which decode json
+		//
 		a.badRequestResponse(w, r, fmt.Errorf("error decoding request body: %w", err))
 		return
 	}
 
-	// Validate the request body
+	// validate the request body
 	dataPath := field.NewPath("data")
 	if bodyEnvelope.Data == nil {
 		valErrs := field.ErrorList{field.Required(dataPath, "data is required")}
@@ -443,13 +331,16 @@ func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	// TODO: Replace with actual repository call when implemented
-	// For now, return mock data as stub
-	secret := updateMockSecretFromRequest(secretName, bodyEnvelope.Data)
-	if secret == nil {
-		a.notFoundResponse(w, r)
+	secret, err := a.repositories.Secret.UpdateSecret(r.Context(), namespace, secretName, bodyEnvelope.Data)
+	if err != nil {
+		if errors.Is(err, repository.ErrSecretNotFound) {
+			a.notFoundResponse(w, r)
+			return
+		}
+		a.serverErrorResponse(w, r, fmt.Errorf("error updating secret: %w", err))
 		return
 	}
+
 	responseEnvelope := &SecretEnvelope{Data: secret}
 	a.dataResponse(w, r, responseEnvelope)
 }
@@ -475,8 +366,8 @@ func (a *App) DeleteSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 
 	// validate path parameters
 	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateFieldIsDNS1123Subdomain(field.NewPath(NamespacePathParam), namespace)...)
-	valErrs = append(valErrs, helper.ValidateFieldIsDNS1123Subdomain(field.NewPath(ResourceNamePathParam), secretName)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesSecretName(field.NewPath(ResourceNamePathParam), secretName)...)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
@@ -489,6 +380,7 @@ func (a *App) DeleteSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 			&corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: namespace,
+					Name:      secretName,
 				},
 			},
 		),
@@ -498,7 +390,19 @@ func (a *App) DeleteSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 	}
 	// ============================================================
 
-	// TODO: Replace with actual repository call when implemented
-	// For now, always return 204 No Content as stub
+	err := a.repositories.Secret.DeleteSecret(r.Context(), namespace, secretName)
+	if err != nil {
+		if errors.Is(err, repository.ErrSecretNotFound) {
+			a.notFoundResponse(w, r)
+			return
+		} else if apierrors.IsConflict(err) {
+			causes := helper.StatusCausesFromAPIStatus(err)
+			a.conflictResponse(w, r, err, causes)
+			return
+		}
+		a.serverErrorResponse(w, r, fmt.Errorf("error deleting secret: %w", err))
+		return
+	}
+
 	a.deletedResponse(w, r)
 }

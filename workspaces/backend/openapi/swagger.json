@@ -1319,6 +1319,7 @@
             "required": [
                 "createdAt",
                 "createdBy",
+                "deletedAt",
                 "updatedAt",
                 "updatedBy"
             ],
@@ -1327,6 +1328,9 @@
                     "type": "string"
                 },
                 "createdBy": {
+                    "type": "string"
+                },
+                "deletedAt": {
                     "type": "string"
                 },
                 "updatedAt": {

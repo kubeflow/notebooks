@@ -61,8 +61,8 @@ const (
 	AllNamespacesPath = PathPrefix + "/namespaces"
 
 	// secrets
-	AllSecretsPath    = PathPrefix + "/secrets/:" + NamespacePathParam
-	SecretsByNamePath = AllSecretsPath + "/:" + ResourceNamePathParam
+	SecretsByNamespacePath = PathPrefix + "/secrets/:" + NamespacePathParam
+	SecretsByNamePath      = SecretsByNamespacePath + "/:" + ResourceNamePathParam
 
 	// swagger
 	SwaggerPath    = PathPrefix + "/swagger/*any"
@@ -117,8 +117,8 @@ func (a *App) Routes() http.Handler {
 	router.GET(AllNamespacesPath, a.GetNamespacesHandler)
 
 	// secrets
-	router.GET(AllSecretsPath, a.GetSecretsHandler)
-	router.POST(AllSecretsPath, a.CreateSecretHandler)
+	router.GET(SecretsByNamespacePath, a.GetSecretsByNamespaceHandler)
+	router.POST(SecretsByNamespacePath, a.CreateSecretHandler)
 	router.GET(SecretsByNamePath, a.GetSecretHandler)
 	router.PUT(SecretsByNamePath, a.UpdateSecretHandler)
 	router.DELETE(SecretsByNamePath, a.DeleteSecretHandler)

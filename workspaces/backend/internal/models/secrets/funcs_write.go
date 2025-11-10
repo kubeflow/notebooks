@@ -17,10 +17,7 @@ limitations under the License.
 package secrets
 
 import (
-	"time"
-
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
 
@@ -40,8 +37,8 @@ func NewSecretCreateModelFromSecret(secret *corev1.Secret) SecretCreate {
 
 	return SecretCreate{
 		Name: secret.Name,
-		SecretBase: SecretBase{
-			Type:      SecretType(secret.Type),
+		secretBase: secretBase{
+			Type:      string(secret.Type),
 			Immutable: ptr.Deref(secret.Immutable, false),
 			Contents:  contents,
 		},
@@ -53,79 +50,10 @@ func NewSecretUpdateModelFromSecret(secret *corev1.Secret) SecretUpdate {
 	contents := secretDataFromKubernetesSecret(secret.Data)
 
 	return SecretUpdate{
-		SecretBase: SecretBase{
-			Type:      SecretType(secret.Type),
+		secretBase: secretBase{
+			Type:      string(secret.Type),
 			Immutable: ptr.Deref(secret.Immutable, false),
 			Contents:  contents,
 		},
-	}
-}
-
-// ToKubernetesSecret converts a SecretCreate model to a Kubernetes Secret object.
-func (s *SecretCreate) ToKubernetesSecret(namespace string, userEmail string) *corev1.Secret {
-	// Convert SecretValue back to []byte for Kubernetes
-	data := make(map[string][]byte)
-	for key, value := range s.Contents {
-		if value.Base64 != "" {
-			// Store base64-encoded string as []byte (Kubernetes expects base64-encoded data)
-			data[key] = []byte(value.Base64)
-		}
-	}
-
-	now := time.Now().Format(time.RFC3339)
-
-	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      s.Name,
-			Namespace: namespace,
-			Labels: map[string]string{
-				"notebooks.kubeflow.org/can-mount":  "true",
-				"notebooks.kubeflow.org/can-update": "true",
-			},
-			Annotations: map[string]string{
-				"notebooks.kubeflow.org/created-by": userEmail,
-				"notebooks.kubeflow.org/created-at": now,
-				"notebooks.kubeflow.org/updated-by": userEmail,
-				"notebooks.kubeflow.org/updated-at": now,
-			},
-		},
-		Type:      corev1.SecretType(s.Type),
-		Data:      data,
-		Immutable: &s.Immutable,
-	}
-}
-
-// ToKubernetesSecret converts a SecretUpdate model to a Kubernetes Secret object.
-// TODO: implement logic to merge SecretUpdate with currentSecret.
-func (s *SecretUpdate) ToKubernetesSecret(currentSecret *corev1.Secret, userEmail string) *corev1.Secret {
-	// Convert SecretValue back to []byte for Kubernetes
-	data := make(map[string][]byte)
-	for key, value := range s.Contents {
-		if value.Base64 != "" {
-			// Store base64-encoded string as []byte (Kubernetes expects base64-encoded data)
-			data[key] = []byte(value.Base64)
-		}
-	}
-
-	now := time.Now().Format(time.RFC3339)
-
-	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      currentSecret.Name,
-			Namespace: currentSecret.Namespace,
-			Labels: map[string]string{
-				"notebooks.kubeflow.org/can-mount":  "true",
-				"notebooks.kubeflow.org/can-update": "true",
-			},
-			Annotations: map[string]string{
-				"notebooks.kubeflow.org/created-by": currentSecret.Annotations["notebooks.kubeflow.org/created-by"],
-				"notebooks.kubeflow.org/created-at": currentSecret.Annotations["notebooks.kubeflow.org/created-at"],
-				"notebooks.kubeflow.org/updated-by": userEmail,
-				"notebooks.kubeflow.org/updated-at": now,
-			},
-		},
-		Type:      corev1.SecretType(s.Type),
-		Data:      data,
-		Immutable: &s.Immutable,
 	}
 }

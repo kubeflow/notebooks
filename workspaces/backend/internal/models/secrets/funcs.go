@@ -36,8 +36,8 @@ func NewSecretListItemFromSecret(secret *corev1.Secret) SecretListItem {
 	audit := common.NewAuditFromObjectMeta(&secret.ObjectMeta)
 
 	// Check labels for permissions
-	canUpdate := secret.Labels["notebooks.kubeflow.org/can-update"] == "true"
-	canMount := secret.Labels["notebooks.kubeflow.org/can-mount"] == "true"
+	canUpdate := secret.Labels[common.LabelCanUpdate] == "true"
+	canMount := secret.Labels[common.LabelCanMount] == "true"
 
 	// TODO: Extract mounts from workspace references (would need to query workspaces)
 	mounts := []SecretMount{}

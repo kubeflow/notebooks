@@ -1321,6 +1321,7 @@ const docTemplate = `{
             "required": [
                 "createdAt",
                 "createdBy",
+                "deletedAt",
                 "updatedAt",
                 "updatedBy"
             ],
@@ -1329,6 +1330,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "createdBy": {
+                    "type": "string"
+                },
+                "deletedAt": {
                     "type": "string"
                 },
                 "updatedAt": {

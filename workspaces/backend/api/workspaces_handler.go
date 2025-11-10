@@ -56,7 +56,7 @@ type WorkspaceEnvelope Envelope[models.Workspace]
 //	@Failure		422				{object}	ErrorEnvelope		"Unprocessable Entity. Validation error."
 //	@Failure		500				{object}	ErrorEnvelope		"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspaces/{namespace}/{workspace_name} [get]
-func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) { //nolint:dupl // TODO: Abstract common API patterns once implemented
 	namespace := ps.ByName(NamespacePathParam)
 	workspaceName := ps.ByName(ResourceNamePathParam)
 

@@ -17,7 +17,6 @@ limitations under the License.
 package helper
 
 import (
-	"encoding/base64"
 	"errors"
 	"strings"
 
@@ -173,25 +172,6 @@ func ValidateFieldIsConfigMapKey(path *field.Path, value string) field.ErrorList
 		failures := validation.IsConfigMapKey(value)
 		if len(failures) > 0 {
 			errs = append(errs, field.Invalid(path, value, strings.Join(failures, "; ")))
-		}
-	}
-
-	return errs
-}
-
-// ValidateFieldIsBase64Encoded validates a field value can be base64 decoded.
-// USED FOR:
-//   - values of: Secrets
-func ValidateFieldIsBase64Encoded(path *field.Path, value string) field.ErrorList {
-	var errs field.ErrorList
-
-	if value == "" {
-		errs = append(errs, field.Required(path, ""))
-	} else {
-		// Use standard Go library to validate base64 encoding
-		_, err := base64.StdEncoding.DecodeString(value)
-		if err != nil {
-			errs = append(errs, field.Invalid(path, value, "must be valid base64 encoded string"))
 		}
 	}
 
