@@ -17,9 +17,9 @@ limitations under the License.
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/julienschmidt/httprouter"
 	corev1 "k8s.io/api/core/v1"
@@ -28,13 +28,27 @@ import (
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/secrets"
+	repository "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/secrets"
 )
 
 type SecretEnvelope Envelope[*models.SecretUpdate]
 type SecretListEnvelope Envelope[[]models.SecretListItem]
 type SecretCreateEnvelope Envelope[*models.SecretCreate]
+
+// getSecretAuthPolicies creates authorization policies for secret operations.
+func getSecretAuthPolicies(verb auth.ResourceVerb, namespace string) []*auth.ResourcePolicy {
+	return []*auth.ResourcePolicy{
+		auth.NewResourcePolicy(
+			verb,
+			&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: namespace,
+				},
+			},
+		),
+	}
+}
 
 // GetSecretsHandler returns a list of all secrets in a namespace.
 //
@@ -62,82 +76,20 @@ func (a *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, ps httpr
 	}
 
 	// =========================== AUTH ===========================
-	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(
-			auth.ResourceVerbList,
-			&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: namespace,
-				},
-			},
-		),
-	}
+	authPolicies := getSecretAuthPolicies(auth.ResourceVerbList, namespace)
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return
 	}
 	// ============================================================
 
-	// TODO: Replace with actual repository call when implemented
-	// For now, return dummy data as stub
-	secretList := getMockSecrets()
+	secretList, err := a.repositories.Secret.GetSecrets(r.Context(), namespace)
+	if err != nil {
+		a.serverErrorResponse(w, r, err)
+		return
+	}
+
 	responseEnvelope := &SecretListEnvelope{Data: secretList}
 	a.dataResponse(w, r, responseEnvelope)
-}
-
-// getMockSecrets returns temporary mock data for frontend development
-// TODO: Remove this function when actual repository implementation is ready
-func getMockSecrets() []models.SecretListItem {
-	return []models.SecretListItem{
-		{
-			Name:      "database-credentials",
-			Type:      "Opaque",
-			Immutable: false,
-			CanUpdate: true,
-			CanMount:  true,
-			Mounts: []models.SecretMount{
-				{Group: "apps", Kind: "Deployment", Name: "web-app"},
-				{Group: "apps", Kind: "Deployment", Name: "api-server"},
-			},
-			Audit: common.Audit{
-				CreatedAt: time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC),
-				CreatedBy: "admin@example.com",
-				UpdatedAt: time.Date(2024, 2, 20, 14, 45, 0, 0, time.UTC),
-				UpdatedBy: "admin@example.com",
-			},
-		},
-		{
-			Name:      "api-key-secret",
-			Type:      "Opaque",
-			Immutable: true,
-			CanUpdate: false,
-			CanMount:  true,
-			Mounts: []models.SecretMount{
-				{Group: "apps", Kind: "Deployment", Name: "external-api-client"},
-			},
-			Audit: common.Audit{
-				CreatedAt: time.Date(2024, 1, 10, 9, 15, 0, 0, time.UTC),
-				CreatedBy: "devops@example.com",
-				UpdatedAt: time.Date(2024, 1, 10, 9, 15, 0, 0, time.UTC),
-				UpdatedBy: "devops@example.com",
-			},
-		},
-		{
-			Name:      "tls-certificate",
-			Type:      "kubernetes.io/tls",
-			Immutable: false,
-			CanUpdate: false,
-			CanMount:  true,
-			Mounts: []models.SecretMount{
-				{Group: "networking.k8s.io", Kind: "Ingress", Name: "web-ingress"},
-			},
-			Audit: common.Audit{
-				CreatedAt: time.Date(2024, 3, 5, 16, 20, 0, 0, time.UTC),
-				CreatedBy: "security@example.com",
-				UpdatedAt: time.Date(2024, 3, 12, 11, 30, 0, 0, time.UTC),
-				UpdatedBy: "security@example.com",
-			},
-		},
-	}
 }
 
 // GetSecretHandler returns a specific secret by name and namespace.
@@ -170,122 +122,25 @@ func (a *App) GetSecretHandler(w http.ResponseWriter, r *http.Request, ps httpro
 	}
 
 	// =========================== AUTH ===========================
-	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(
-			auth.ResourceVerbGet,
-			&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: namespace,
-				},
-			},
-		),
-	}
+	authPolicies := getSecretAuthPolicies(auth.ResourceVerbGet, namespace)
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return
 	}
 	// ============================================================
 
-	// TODO: Replace with actual repository call when implemented
-	// For now, return mock data as stub
-	secret := getMockSecret(secretName)
-	if secret == nil {
-		a.notFoundResponse(w, r)
+	secret, err := a.repositories.Secret.GetSecret(r.Context(), namespace, secretName)
+	if err != nil {
+		// Check if it's a not found error
+		if errors.Is(err, repository.ErrSecretNotFound) {
+			a.notFoundResponse(w, r)
+			return
+		}
+		a.serverErrorResponse(w, r, err)
 		return
 	}
+
 	responseEnvelope := &SecretEnvelope{Data: secret}
 	a.dataResponse(w, r, responseEnvelope)
-}
-
-// getMockSecret returns temporary mock data for a specific secret by name
-// TODO: Remove this function when actual repository implementation is ready
-func getMockSecret(secretName string) *models.SecretUpdate {
-	switch secretName {
-	case "database-credentials":
-		return &models.SecretUpdate{
-			SecretBase: models.SecretBase{
-				Type:      "Opaque",
-				Immutable: false,
-				Contents: models.SecretData{
-					"username": models.SecretValue{},
-					"password": models.SecretValue{},
-					"host":     models.SecretValue{},
-					"port":     models.SecretValue{},
-				},
-			},
-		}
-	case "api-key-secret":
-		return &models.SecretUpdate{
-			SecretBase: models.SecretBase{
-				Type:      "Opaque",
-				Immutable: true,
-				Contents: models.SecretData{
-					"api-key":    models.SecretValue{},
-					"api-secret": models.SecretValue{},
-				},
-			},
-		}
-	case "tls-certificate":
-		return &models.SecretUpdate{
-			SecretBase: models.SecretBase{
-				Type:      "kubernetes.io/tls",
-				Immutable: false,
-				Contents: models.SecretData{
-					"tls.crt": models.SecretValue{},
-					"tls.key": models.SecretValue{},
-				},
-			},
-		}
-	default:
-		return nil // Return nil for unknown secret names to trigger 404
-	}
-}
-
-// createMockSecretFromRequest returns temporary mock data based on the create request
-// TODO: Remove this function when actual repository implementation is ready
-func createMockSecretFromRequest(secretCreate *models.SecretCreate) *models.SecretCreate {
-	// Create empty contents to never expose actual secret values
-	contents := make(models.SecretData)
-	for key := range secretCreate.Contents {
-		contents[key] = models.SecretValue{} // Empty value - never return actual data
-	}
-
-	// Use the request data to create a mock response
-	// This simulates what would happen after creating the secret
-	return &models.SecretCreate{
-		Name: secretCreate.Name,
-		SecretBase: models.SecretBase{
-			Type:      secretCreate.Type,
-			Immutable: secretCreate.Immutable,
-			Contents:  contents,
-		},
-	}
-}
-
-// updateMockSecretFromRequest returns temporary mock data based on the update request
-// TODO: Remove this function when actual repository implementation is ready
-func updateMockSecretFromRequest(secretName string, secretUpdate *models.SecretUpdate) *models.SecretUpdate {
-	// Check if the secret exists in our mock data
-	switch secretName {
-	case "database-credentials", "api-key-secret", "tls-certificate":
-
-		// Create empty contents to never expose actual secret values
-		contents := make(models.SecretData)
-		for key := range secretUpdate.Contents {
-			contents[key] = models.SecretValue{} // Empty value - never return actual data
-		}
-
-		// Return the updated secret data (simulating successful update)
-		return &models.SecretUpdate{
-			SecretBase: models.SecretBase{
-				Type:      secretUpdate.Type,
-				Immutable: secretUpdate.Immutable,
-				Contents:  contents,
-			},
-		}
-	default:
-		// Return nil for unknown secret names to trigger 404
-		return nil
-	}
 }
 
 // CreateSecretHandler creates a new secret.
@@ -320,16 +175,7 @@ func (a *App) CreateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 	}
 
 	// =========================== AUTH ===========================
-	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(
-			auth.ResourceVerbCreate,
-			&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: namespace,
-				},
-			},
-		),
-	}
+	authPolicies := getSecretAuthPolicies(auth.ResourceVerbCreate, namespace)
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return
 	}
@@ -360,11 +206,20 @@ func (a *App) CreateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	// TODO: Replace with actual repository call when implemented
-	// For now, return mock data as stub
-	secret := createMockSecretFromRequest(bodyEnvelope.Data)
+	secret, err := a.repositories.Secret.CreateSecret(r.Context(), namespace, bodyEnvelope.Data)
+	if err != nil {
+		// Check if it's an already exists error
+		if errors.Is(err, repository.ErrSecretAlreadyExists) {
+			causes := helper.StatusCausesFromAPIStatus(err)
+			a.conflictResponse(w, r, err, causes)
+			return
+		}
+		a.serverErrorResponse(w, r, err)
+		return
+	}
+
 	responseEnvelope := &SecretCreateEnvelope{Data: secret}
-	location := fmt.Sprintf("/secrets/%s/%s", namespace, bodyEnvelope.Data.Name)
+	location := fmt.Sprintf("/secrets/%s/%s", namespace, secret.Name)
 	a.createdResponse(w, r, responseEnvelope, location)
 }
 
@@ -403,16 +258,7 @@ func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 	}
 
 	// =========================== AUTH ===========================
-	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(
-			auth.ResourceVerbUpdate,
-			&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: namespace,
-				},
-			},
-		),
-	}
+	authPolicies := getSecretAuthPolicies(auth.ResourceVerbUpdate, namespace)
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return
 	}
@@ -443,13 +289,17 @@ func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	// TODO: Replace with actual repository call when implemented
-	// For now, return mock data as stub
-	secret := updateMockSecretFromRequest(secretName, bodyEnvelope.Data)
-	if secret == nil {
-		a.notFoundResponse(w, r)
+	secret, err := a.repositories.Secret.UpdateSecret(r.Context(), namespace, secretName, bodyEnvelope.Data)
+	if err != nil {
+		// Check if it's a not found error
+		if errors.Is(err, repository.ErrSecretNotFound) {
+			a.notFoundResponse(w, r)
+			return
+		}
+		a.serverErrorResponse(w, r, err)
 		return
 	}
+
 	responseEnvelope := &SecretEnvelope{Data: secret}
 	a.dataResponse(w, r, responseEnvelope)
 }
@@ -483,22 +333,22 @@ func (a *App) DeleteSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 	}
 
 	// =========================== AUTH ===========================
-	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(
-			auth.ResourceVerbDelete,
-			&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: namespace,
-				},
-			},
-		),
-	}
+	authPolicies := getSecretAuthPolicies(auth.ResourceVerbDelete, namespace)
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return
 	}
 	// ============================================================
 
-	// TODO: Replace with actual repository call when implemented
-	// For now, always return 204 No Content as stub
+	err := a.repositories.Secret.DeleteSecret(r.Context(), namespace, secretName)
+	if err != nil {
+		// Check if it's a not found error
+		if errors.Is(err, repository.ErrSecretNotFound) {
+			a.notFoundResponse(w, r)
+			return
+		}
+		a.serverErrorResponse(w, r, err)
+		return
+	}
+
 	a.deletedResponse(w, r)
 }
