@@ -1058,6 +1058,96 @@ const docTemplate = `{
                 }
             }
         },
+        "/workspacekinds/{name}/assets/icon.svg": {
+            "get": {
+                "description": "Returns the icon image for a specific workspace kind. If the icon is stored in a ConfigMap, it serves the image content. If the icon is a remote URL, returns 404 (browser should fetch directly).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "image/svg+xml"
+                ],
+                "tags": [
+                    "workspacekinds"
+                ],
+                "summary": "Get workspace kind icon",
+                "operationId": "getWorkspaceKindIcon",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Name of the workspace kind",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "SVG image content",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found. Icon uses remote URL or resource does not exist.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/workspacekinds/{name}/assets/logo.svg": {
+            "get": {
+                "description": "Returns the logo image for a specific workspace kind. If the logo is stored in a ConfigMap, it serves the image content. If the logo is a remote URL, returns 404 (browser should fetch directly).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "image/svg+xml"
+                ],
+                "tags": [
+                    "workspacekinds"
+                ],
+                "summary": "Get workspace kind logo",
+                "operationId": "getWorkspaceKindLogo",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Name of the workspace kind",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "SVG image content",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found. Logo uses remote URL or resource does not exist.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
         "/workspacekinds/{name}/podtemplate/options/listvalues": {
             "post": {
                 "description": "Returns filtered imageConfig and podConfig options based on the provided context.",
@@ -2005,6 +2095,35 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "assets.ImageRef": {
+            "type": "object",
+            "required": [
+                "url"
+            ],
+            "properties": {
+                "error": {
+                    "$ref": "#/definitions/assets.ImageRefErrorCode"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "assets.ImageRefErrorCode": {
+            "type": "string",
+            "enum": [
+                "CONFIGMAP_MISSING",
+                "CONFIGMAP_KEY_MISSING",
+                "CONFIGMAP_UNKNOWN",
+                "UNKNOWN"
+            ],
+            "x-enum-varnames": [
+                "ImageRefErrorCodeConfigMapMissing",
+                "ImageRefErrorCodeConfigMapKeyMissing",
+                "ImageRefErrorCodeConfigMapUnknown",
+                "ImageRefErrorCodeUnknown"
+            ]
         },
         "common.Audit": {
             "type": "object",
@@ -6482,17 +6601,6 @@ const docTemplate = `{
                 }
             }
         },
-        "workspacekinds.ImageRef": {
-            "type": "object",
-            "required": [
-                "url"
-            ],
-            "properties": {
-                "url": {
-                    "type": "string"
-                }
-            }
-        },
         "workspacekinds.PodMetadata": {
             "type": "object",
             "required": [
@@ -6602,10 +6710,10 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "icon": {
-                    "$ref": "#/definitions/workspacekinds.ImageRef"
+                    "$ref": "#/definitions/assets.ImageRef"
                 },
                 "logo": {
-                    "$ref": "#/definitions/workspacekinds.ImageRef"
+                    "$ref": "#/definitions/assets.ImageRef"
                 },
                 "name": {
                     "type": "string"
@@ -6684,17 +6792,6 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/workspaces.RedirectStep"
                     }
-                }
-            }
-        },
-        "workspaces.ImageRef": {
-            "type": "object",
-            "required": [
-                "url"
-            ],
-            "properties": {
-                "url": {
-                    "type": "string"
                 }
             }
         },
@@ -7110,10 +7207,10 @@ const docTemplate = `{
             ],
             "properties": {
                 "icon": {
-                    "$ref": "#/definitions/workspaces.ImageRef"
+                    "$ref": "#/definitions/assets.ImageRef"
                 },
                 "logo": {
-                    "$ref": "#/definitions/workspaces.ImageRef"
+                    "$ref": "#/definitions/assets.ImageRef"
                 },
                 "missing": {
                     "type": "boolean"

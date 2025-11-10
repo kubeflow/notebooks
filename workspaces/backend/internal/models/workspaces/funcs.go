@@ -22,7 +22,9 @@ import (
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"k8s.io/utils/ptr"
 
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
+	commonCore "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
+	commonAssets "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common/assets"
 )
 
 const (
@@ -35,26 +37,11 @@ const (
 
 // NewWorkspaceListItemFromWorkspace creates a WorkspaceListItem model from a Workspace and WorkspaceKind object.
 // NOTE: the WorkspaceKind might not exist, so we handle the case where it is nil or has no UID.
-func NewWorkspaceListItemFromWorkspace(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.WorkspaceKind) WorkspaceListItem {
+// Asset SHA256 hashes and error codes are read directly from the WorkspaceKind status.
+func NewWorkspaceListItemFromWorkspace(cfg *config.EnvConfig, ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.WorkspaceKind) WorkspaceListItem {
 	// ensure the provided WorkspaceKind matches the Workspace
 	if wskExists(wsk) && ws.Spec.Kind != wsk.Name {
 		panic("provided WorkspaceKind does not match the Workspace")
-	}
-
-	// we only know the icon url if the WorkspaceKind exists
-	iconURL := UnknownIconURL
-	if wskExists(wsk) {
-		// TODO: icons MUST be either set to remote URL or read from a ConfigMap
-		//       we can remove this fallback once we implement the ConfigMap option.
-		iconURL = ptr.Deref(wsk.Spec.Spawner.Icon.Url, UnknownIconURL)
-	}
-
-	// we only know the logo url if the WorkspaceKind exists
-	logoURL := UnknownLogoURL
-	if wskExists(wsk) {
-		// TODO: logos MUST be either set to remote URL or read from a ConfigMap
-		//       we can remove this fallback once we implement the ConfigMap option.
-		logoURL = ptr.Deref(wsk.Spec.Spawner.Logo.Url, UnknownLogoURL)
 	}
 
 	podLabels := make(map[string]string)
@@ -94,12 +81,8 @@ func NewWorkspaceListItemFromWorkspace(ws *kubefloworgv1beta1.Workspace, wsk *ku
 		WorkspaceKind: WorkspaceKindInfo{
 			Name:    ws.Spec.Kind,
 			Missing: !wskExists(wsk),
-			Icon: ImageRef{
-				URL: iconURL,
-			},
-			Logo: ImageRef{
-				URL: logoURL,
-			},
+			Icon:    buildIconImageRef(cfg, ws, wsk),
+			Logo:    buildLogoImageRef(cfg, ws, wsk),
 		},
 		Paused:         ptr.Deref(ws.Spec.Paused, false),
 		PausedTime:     ws.Status.PauseTime,
@@ -128,7 +111,7 @@ func NewWorkspaceListItemFromWorkspace(ws *kubefloworgv1beta1.Workspace, wsk *ku
 			LastProbe: nil,
 		},
 		Services: buildServices(ws, wskPodTemplatePorts, imageConfigValue),
-		Audit:    common.NewAuditFromObjectMeta(&ws.ObjectMeta),
+		Audit:    commonCore.NewAuditFromObjectMeta(&ws.ObjectMeta),
 	}
 	return workspaceModel
 }
@@ -348,4 +331,22 @@ func buildServices(ws *kubefloworgv1beta1.Workspace, wskPodTemplatePorts map[kub
 	}
 
 	return services
+}
+
+// buildIconImageRef creates an ImageRef from the icon asset of a WorkspaceKind.
+// If WorkspaceKind is nil or missing, returns an empty ImageRef.
+func buildIconImageRef(cfg *config.EnvConfig, ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.WorkspaceKind) commonAssets.ImageRef {
+	if !wskExists(wsk) {
+		return commonAssets.ImageRef{URL: ""}
+	}
+	return commonAssets.BuildImageRef(cfg, wsk.Spec.Spawner.Icon, ws.Spec.Kind, commonAssets.WorkspaceKindAssetTypeIcon, wsk.Status.SpawnerIcon)
+}
+
+// buildLogoImageRef creates an ImageRef from the logo asset of a WorkspaceKind.
+// If WorkspaceKind is nil or missing, returns an empty ImageRef.
+func buildLogoImageRef(cfg *config.EnvConfig, ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.WorkspaceKind) commonAssets.ImageRef {
+	if !wskExists(wsk) {
+		return commonAssets.ImageRef{URL: ""}
+	}
+	return commonAssets.BuildImageRef(cfg, wsk.Spec.Spawner.Logo, ws.Spec.Kind, commonAssets.WorkspaceKindAssetTypeLogo, wsk.Status.SpawnerLogo)
 }

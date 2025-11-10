@@ -9,3 +9,6 @@ resources:
 labels:
 - pairs:
     app.kubernetes.io/component: api
+
+patches:
+- path: deployment_patch.yaml

@@ -19,7 +19,8 @@ package workspaces
 import (
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
+	commonCore "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
+	commonAssets "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common/assets"
 )
 
 // WorkspaceListItem represents a workspace in the system, and is returned by LIST operations.
@@ -38,18 +39,14 @@ type WorkspaceListItem struct {
 	PodTemplate    PodTemplate                       `json:"podTemplate"`
 	Activity       Activity                          `json:"activity"`
 	Services       []Service                         `json:"services"`
-	Audit          common.Audit                      `json:"audit"`
+	Audit          commonCore.Audit                  `json:"audit"`
 }
 
 type WorkspaceKindInfo struct {
-	Name    string   `json:"name"`
-	Missing bool     `json:"missing"`
-	Icon    ImageRef `json:"icon"`
-	Logo    ImageRef `json:"logo"`
-}
-
-type ImageRef struct {
-	URL string `json:"url"`
+	Name    string                `json:"name"`
+	Missing bool                  `json:"missing"`
+	Icon    commonAssets.ImageRef `json:"icon"`
+	Logo    commonAssets.ImageRef `json:"logo"`
 }
 
 type PodTemplate struct {

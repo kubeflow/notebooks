@@ -22,15 +22,18 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/namespaces"
 )
 
 type NamespaceRepository struct {
+	cfg    *config.EnvConfig
 	client client.Client
 }
 
-func NewNamespaceRepository(cl client.Client) *NamespaceRepository {
+func NewNamespaceRepository(cfg *config.EnvConfig, cl client.Client) *NamespaceRepository {
 	return &NamespaceRepository{
+		cfg:    cfg,
 		client: cl,
 	}
 }

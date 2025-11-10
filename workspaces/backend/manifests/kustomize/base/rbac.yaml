@@ -20,6 +20,9 @@ rules:
   - ""
   resources:
   - namespaces
+  # configmaps: required for workspace kind assets (icons/logos) stored in ConfigMaps
+  # the backend uses a filtered cache for ConfigMaps with label: notebooks.kubeflow.org/image-source=true
+  - configmaps
   verbs:
   - get
   - list

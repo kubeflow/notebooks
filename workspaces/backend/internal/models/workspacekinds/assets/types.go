@@ -14,27 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package config
+package assets
 
-type EnvConfig struct {
-	Port int
-
-	ClientQPS   float64
-	ClientBurst int
-
-	DisableAuth bool
-
-	UserIdHeader string
-	UserIdPrefix string
-	GroupsHeader string
-
-	// UrlPrefix is the external URL path prefix prepended to backend-generated URLs
-	// (e.g., asset URLs for icons/logos). This accounts for reverse proxy path rewriting
-	// (e.g., Istio VirtualService rewriting "/workspaces/api/" to "/api/").
-	UrlPrefix string
-
-	SwaggerEnabled  bool
-	SwaggerHost     string
-	SwaggerBasePath string
-	SwaggerScheme   string
-}
+// This file is intentionally minimal. Most asset-related functionality has been moved to
+// common/assets to be shared between workspacekinds and workspaces packages.
+// Only workspacekinds-specific types would be included here.

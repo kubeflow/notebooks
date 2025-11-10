@@ -22,15 +22,18 @@ import (
 	storagev1 "k8s.io/api/storage/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/storageclasses"
 )
 
 type StorageClassRepository struct {
+	cfg    *config.EnvConfig
 	client client.Client
 }
 
-func NewStorageClassRepository(cl client.Client) *StorageClassRepository {
+func NewStorageClassRepository(cfg *config.EnvConfig, cl client.Client) *StorageClassRepository {
 	return &StorageClassRepository{
+		cfg:    cfg,
 		client: cl,
 	}
 }

@@ -26,6 +26,15 @@ func (a *App) dataResponse(w http.ResponseWriter, r *http.Request, body any) {
 	}
 }
 
+// HTTP: 200
+// Note: SVG images are the only type of image that is served by this API.
+func (a *App) imageResponse(w http.ResponseWriter, r *http.Request, content []byte) {
+	err := a.WriteSVG(w, http.StatusOK, content, nil)
+	if err != nil {
+		a.serverErrorResponse(w, r, err)
+	}
+}
+
 // HTTP: 201
 func (a *App) createdResponse(w http.ResponseWriter, r *http.Request, body any, location string) {
 	w.Header().Set("Location", location)
