@@ -39,6 +39,7 @@ const (
 
 	MediaTypeJson = "application/json"
 	MediaTypeYaml = "application/yaml"
+	MediaTypeSVG  = "image/svg+xml"
 
 	NamespacePathParam    = "namespace"
 	ResourceNamePathParam = "name"
@@ -56,6 +57,9 @@ const (
 	// workspacekinds
 	AllWorkspaceKindsPath    = PathPrefix + "/workspacekinds"
 	WorkspaceKindsByNamePath = AllWorkspaceKindsPath + "/:" + ResourceNamePathParam
+	WorkspaceKindsAssetsPath = WorkspaceKindsByNamePath + "/assets"
+	WorkspaceKindIconPath    = WorkspaceKindsAssetsPath + "/icon.svg"
+	WorkspaceKindLogoPath    = WorkspaceKindsAssetsPath + "/logo.svg"
 
 	// namespaces
 	AllNamespacesPath = PathPrefix + "/namespaces"
@@ -76,7 +80,7 @@ type App struct {
 }
 
 // NewApp creates a new instance of the app
-func NewApp(cfg *config.EnvConfig, logger *slog.Logger, cl client.Client, scheme *runtime.Scheme, reqAuthN authenticator.Request, reqAuthZ authorizer.Authorizer) (*App, error) {
+func NewApp(cfg *config.EnvConfig, logger *slog.Logger, cl client.Client, configMapClient client.Client, scheme *runtime.Scheme, reqAuthN authenticator.Request, reqAuthZ authorizer.Authorizer) (*App, error) {
 
 	// TODO: log the configuration on startup
 
@@ -90,7 +94,7 @@ func NewApp(cfg *config.EnvConfig, logger *slog.Logger, cl client.Client, scheme
 	app := &App{
 		Config:               cfg,
 		logger:               logger,
-		repositories:         repositories.NewRepositories(cl),
+		repositories:         repositories.NewRepositories(cl, configMapClient),
 		Scheme:               scheme,
 		StrictYamlSerializer: yamlSerializerInfo.StrictSerializer,
 		RequestAuthN:         reqAuthN,
@@ -124,6 +128,8 @@ func (a *App) Routes() http.Handler {
 	router.GET(AllWorkspaceKindsPath, a.GetWorkspaceKindsHandler)
 	router.GET(WorkspaceKindsByNamePath, a.GetWorkspaceKindHandler)
 	router.POST(AllWorkspaceKindsPath, a.CreateWorkspaceKindHandler)
+	router.GET(WorkspaceKindIconPath, a.GetWorkspaceKindIconHandler)
+	router.GET(WorkspaceKindLogoPath, a.GetWorkspaceKindLogoHandler)
 
 	// swagger
 	router.GET(SwaggerPath, a.GetSwaggerHandler)

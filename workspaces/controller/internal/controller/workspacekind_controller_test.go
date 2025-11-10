@@ -116,11 +116,12 @@ var _ = Describe("WorkspaceKind Controller", func() {
 
 			By("only allowing one of `spec.spawner.icon.{url,configMap}` to be set")
 			newWorkspaceKind := workspaceKind.DeepCopy()
-			newWorkspaceKind.Spec.Spawner.Icon = kubefloworgv1beta1.WorkspaceKindIcon{
+			newWorkspaceKind.Spec.Spawner.Icon = kubefloworgv1beta1.WorkspaceKindAsset{
 				Url: ptr.To("https://example.com/icon.png"),
 				ConfigMap: &kubefloworgv1beta1.WorkspaceKindConfigMap{
-					Name: "my-logos",
-					Key:  "icon.png",
+					Name:      "my-logos",
+					Key:       "icon.png",
+					Namespace: namespaceName,
 				},
 			}
 			Expect(k8sClient.Patch(ctx, newWorkspaceKind, patch)).NotTo(Succeed())

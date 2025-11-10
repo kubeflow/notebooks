@@ -58,6 +58,22 @@ func (a *App) WriteJSON(w http.ResponseWriter, status int, data any, headers htt
 	return nil
 }
 
+// WriteSVG writes an SVG response with the given status code, content, and headers.
+func (a *App) WriteSVG(w http.ResponseWriter, status int, content []byte, headers http.Header) error {
+	for key, value := range headers {
+		w.Header()[key] = value
+	}
+
+	w.Header().Set("Content-Type", MediaTypeSVG)
+	w.WriteHeader(status)
+	_, err := w.Write(content)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // DecodeJSON decodes the JSON request body into the given value.
 func (a *App) DecodeJSON(r *http.Request, v any) error {
 	decoder := json.NewDecoder(r.Body)
