@@ -305,6 +305,60 @@ func allKernelsAreIdle(kernels []KernelStatus, log logr.Logger) bool {
 	return true
 }
 
+func getMostRecentKernelActivity(kernels []KernelStatus, log logr.Logger) (time.Time, error) {
+	// Get the most recent last_activity timestamp from all kernels
+	var recentTime time.Time
+
+	if len(kernels) == 0 {
+		return recentTime, nil
+	}
+
+	// Parse the first kernel's timestamp
+	kernelTime, err := time.Parse(time.RFC3339, kernels[0].LastActivity)
+	if err != nil {
+		log.Error(err, "Error parsing the last-activity from the /api/kernels")
+		return recentTime, err
+	}
+	recentTime = kernelTime
+
+	// Check remaining kernels for more recent activity
+	for i := 1; i < len(kernels); i++ {
+		kernelLastActivity, err := time.Parse(time.RFC3339, kernels[i].LastActivity)
+		if err != nil {
+			log.Error(err, "Error parsing the last-activity from the /api/kernels")
+			continue
+		}
+		if kernelLastActivity.After(recentTime) {
+			recentTime = kernelLastActivity
+		}
+	}
+
+	return recentTime, nil
+}
+
+func getMostRecentTerminalActivity(terminals []TerminalStatus, log logr.Logger) (time.Time, error) {
+	// Get the most recent last_activity timestamp from all terminals
+	var recentTime time.Time
+
+	if len(terminals) == 0 {
+		return recentTime, nil
+	}
+
+	// Check all terminals for most recent activity
+	for i := 0; i < len(terminals); i++ {
+		terminalLastActivity, err := time.Parse(time.RFC3339, terminals[i].LastActivity)
+		if err != nil {
+			log.Error(err, "Error parsing the last-activity from the /api/terminals")
+			continue
+		}
+		if recentTime.IsZero() || terminalLastActivity.After(recentTime) {
+			recentTime = terminalLastActivity
+		}
+	}
+
+	return recentTime, nil
+}
+
 // Update LAST_ACTIVITY_ANNOTATION
 func updateNotebookLastActivityAnnotation(meta *metav1.ObjectMeta, log logr.Logger) {
 
@@ -337,7 +391,7 @@ func updateNotebookLastActivityAnnotation(meta *metav1.ObjectMeta, log logr.Logg
 func updateTimestampFromActivity(meta *metav1.ObjectMeta, kernels []KernelStatus, terminals []TerminalStatus, log logr.Logger) {
 
 	// If any kernel is busy, update to current time
-	if !allKernelsAreIdle(kernels, log) {
+	if len(kernels) > 0 && !allKernelsAreIdle(kernels, log) {
 		// At least one kernel is "busy" so the last-activity annotation should
 		// be the current time.
 		t := createTimestamp()
@@ -347,43 +401,14 @@ func updateTimestampFromActivity(meta *metav1.ObjectMeta, kernels []KernelStatus
 		return
 	}
 
-	// Find the most recent activity from kernels and terminals
-	var recentTime time.Time
+	// Get the most recent activity from kernels and terminals using helper functions
+	kernelTime, _ := getMostRecentKernelActivity(kernels, log)
+	terminalTime, _ := getMostRecentTerminalActivity(terminals, log)
 
-	// Check kernel last_activity timestamps
-	if len(kernels) > 0 {
-		kernelTime, err := time.Parse(time.RFC3339, kernels[0].LastActivity)
-		if err != nil {
-			log.Error(err, "Error parsing the last-activity from the /api/kernels")
-		} else {
-			recentTime = kernelTime
-		}
-
-		for i := 1; i < len(kernels); i++ {
-			kernelLastActivity, err := time.Parse(time.RFC3339, kernels[i].LastActivity)
-			if err != nil {
-				log.Error(err, "Error parsing the last-activity from the /api/kernels")
-				continue
-			}
-			if kernelLastActivity.After(recentTime) {
-				recentTime = kernelLastActivity
-			}
-		}
-	}
-
-	// Check terminal last_activity timestamps
-	if len(terminals) > 0 {
-		for i := 0; i < len(terminals); i++ {
-			terminalLastActivity, err := time.Parse(time.RFC3339, terminals[i].LastActivity)
-			if err != nil {
-				log.Error(err, "Error parsing the last-activity from the /api/terminals")
-				continue
-			}
-			// If recentTime hasn't been set yet, or terminal is more recent
-			if recentTime.IsZero() || terminalLastActivity.After(recentTime) {
-				recentTime = terminalLastActivity
-			}
-		}
+	// Use whichever timestamp is most recent
+	recentTime := kernelTime
+	if terminalTime.After(kernelTime) {
+		recentTime = terminalTime
 	}
 
 	// Update the annotation with the most recent activity
@@ -392,11 +417,6 @@ func updateTimestampFromActivity(meta *metav1.ObjectMeta, kernels []KernelStatus
 		meta.Annotations[LAST_ACTIVITY_ANNOTATION] = t
 		log.Info(fmt.Sprintf("Successfully updated last-activity from latest kernel/terminal action, %s", t))
 	}
-}
-
-// Legacy function kept for backwards compatibility
-func updateTimestampFromKernelsActivity(meta *metav1.ObjectMeta, kernels []KernelStatus, log logr.Logger) {
-	updateTimestampFromActivity(meta, kernels, nil, log)
 }
 
 func updateLastCullingCheckTimestampAnnotation(meta *metav1.ObjectMeta, log logr.Logger) {
