@@ -1,12 +1,12 @@
 import React from 'react';
 import {
-  FormGroup,
   FormFieldGroupExpandable,
   FormFieldGroupHeader,
 } from '@patternfly/react-core/dist/esm/components/Form';
 import { Grid, GridItem } from '@patternfly/react-core/dist/esm/layouts/Grid';
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import { WorkspaceKindImagePort } from '~/app/types';
+import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 
 interface WorkspaceKindFormImagePortProps {
   ports: WorkspaceKindImagePort[];
@@ -31,7 +31,7 @@ export const WorkspaceKindFormImagePort: React.FC<WorkspaceKindFormImagePortProp
   >
     <Grid hasGutter md={6}>
       <GridItem span={3}>
-        <FormGroup label="ID" isRequired fieldId="port-id">
+        <ThemeAwareFormGroupWrapper label="ID" isRequired fieldId="port-id">
           <TextInput
             name="id"
             isRequired
@@ -40,10 +40,10 @@ export const WorkspaceKindFormImagePort: React.FC<WorkspaceKindFormImagePortProp
             onChange={(_, val) => setPorts([{ ...ports[0], id: val }])}
             id="port-id"
           />
-        </FormGroup>
+        </ThemeAwareFormGroupWrapper>
       </GridItem>
       <GridItem span={3}>
-        <FormGroup label="Display Name" isRequired fieldId="port-display-name">
+        <ThemeAwareFormGroupWrapper label="Display Name" isRequired fieldId="port-display-name">
           <TextInput
             name="displayName"
             isRequired
@@ -52,10 +52,10 @@ export const WorkspaceKindFormImagePort: React.FC<WorkspaceKindFormImagePortProp
             onChange={(_, val) => setPorts([{ ...ports[0], displayName: val }])}
             id="port-display-name"
           />
-        </FormGroup>
+        </ThemeAwareFormGroupWrapper>
       </GridItem>
       <GridItem span={3}>
-        <FormGroup label="Port" isRequired fieldId="port-number">
+        <ThemeAwareFormGroupWrapper label="Port" isRequired fieldId="port-number">
           <TextInput
             name="port"
             isRequired
@@ -64,10 +64,10 @@ export const WorkspaceKindFormImagePort: React.FC<WorkspaceKindFormImagePortProp
             onChange={(_, val) => setPorts([{ ...ports[0], port: Number(val) }])}
             id="port-number"
           />
-        </FormGroup>
+        </ThemeAwareFormGroupWrapper>
       </GridItem>
       <GridItem span={3}>
-        <FormGroup label="Protocol" isRequired fieldId="port-protocol">
+        <ThemeAwareFormGroupWrapper label="Protocol" isRequired fieldId="port-protocol">
           <TextInput
             name="displayName"
             isDisabled
@@ -75,7 +75,7 @@ export const WorkspaceKindFormImagePort: React.FC<WorkspaceKindFormImagePortProp
             value={ports[0].protocol}
             id="port-protocol"
           />
-        </FormGroup>
+        </ThemeAwareFormGroupWrapper>
       </GridItem>
     </Grid>
   </FormFieldGroupExpandable>

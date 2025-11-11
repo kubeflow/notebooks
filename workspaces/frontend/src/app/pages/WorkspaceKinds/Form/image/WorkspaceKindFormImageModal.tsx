@@ -17,7 +17,7 @@ import { HelperText } from '@patternfly/react-core/dist/esm/components/HelperTex
 import { WorkspaceKindImageConfigValue, ImagePullPolicy } from '~/app/types';
 import { EditableLabels } from '~/app/pages/WorkspaceKinds/Form/EditableLabels';
 import { emptyImage } from '~/app/pages/WorkspaceKinds/Form/helpers';
-
+import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { WorkspaceKindFormImageRedirect } from './WorkspaceKindFormImageRedirect';
 import { WorkspaceKindFormImagePort } from './WorkspaceKindFormImagePort';
 
@@ -55,7 +55,7 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
       />
       <ModalBody>
         <Form>
-          <FormGroup label="ID" isRequired fieldId="workspace-kind-image-id">
+          <ThemeAwareFormGroupWrapper label="ID" isRequired fieldId="workspace-kind-image-id">
             <TextInput
               isRequired
               type="text"
@@ -63,8 +63,12 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
               onChange={(_, value) => setImage({ ...image, id: value })}
               id="workspace-kind-image-id"
             />
-          </FormGroup>
-          <FormGroup label="Display Name" isRequired fieldId="workspace-kind-image-name">
+          </ThemeAwareFormGroupWrapper>
+          <ThemeAwareFormGroupWrapper
+            label="Display Name"
+            isRequired
+            fieldId="workspace-kind-image-name"
+          >
             <TextInput
               isRequired
               type="text"
@@ -72,8 +76,11 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
               onChange={(_, value) => setImage({ ...image, displayName: value })}
               id="workspace-kind-image-name"
             />
-          </FormGroup>
-          <FormGroup label="Description" fieldId="workspace-kind-image-description">
+          </ThemeAwareFormGroupWrapper>
+          <ThemeAwareFormGroupWrapper
+            label="Description"
+            fieldId="workspace-kind-image-description"
+          >
             <TextInput
               isRequired
               type="text"
@@ -81,8 +88,12 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
               onChange={(_, value) => setImage({ ...image, description: value })}
               id="workspace-kind-image-description"
             />
-          </FormGroup>
-          <FormGroup label="Image URL" isRequired fieldId="workspace-kind-image-url">
+          </ThemeAwareFormGroupWrapper>
+          <ThemeAwareFormGroupWrapper
+            label="Image URL"
+            isRequired
+            fieldId="workspace-kind-image-url"
+          >
             <TextInput
               isRequired
               type="url"
@@ -90,7 +101,7 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
               onChange={(_, value) => setImage({ ...image, image: value })}
               id="workspace-kind-image-url"
             />
-          </FormGroup>
+          </ThemeAwareFormGroupWrapper>
           <FormGroup
             isRequired
             fieldId="workspace-kind-image-hidden"

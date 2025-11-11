@@ -6,6 +6,7 @@ import { HelperText } from '@patternfly/react-core/dist/esm/components/HelperTex
 import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import { WorkspaceKindProperties } from '~/app/types';
+import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 
 interface WorkspaceKindFormPropertiesProps {
   mode: string;
@@ -28,7 +29,11 @@ export const WorkspaceKindFormProperties: React.FC<WorkspaceKindFormPropertiesPr
         isIndented
       >
         <Form>
-          <FormGroup label="Workspace Kind Name" isRequired fieldId="workspace-kind-name">
+          <ThemeAwareFormGroupWrapper
+            label="Workspace Kind Name"
+            isRequired
+            fieldId="workspace-kind-name"
+          >
             <TextInput
               isRequired
               type="text"
@@ -36,15 +41,15 @@ export const WorkspaceKindFormProperties: React.FC<WorkspaceKindFormPropertiesPr
               onChange={(_, value) => updateField({ ...properties, displayName: value })}
               id="workspace-kind-name"
             />
-          </FormGroup>
-          <FormGroup label="Description" fieldId="workspace-kind-description">
+          </ThemeAwareFormGroupWrapper>
+          <ThemeAwareFormGroupWrapper label="Description" fieldId="workspace-kind-description">
             <TextInput
               type="text"
               value={properties.description}
               onChange={(_, value) => updateField({ ...properties, description: value })}
               id="workspace-kind-description"
             />
-          </FormGroup>
+          </ThemeAwareFormGroupWrapper>
           {mode === 'edit' && (
             <FormGroup
               style={{ marginTop: 'var(--mui-spacing-16px)' }}
@@ -69,37 +74,41 @@ export const WorkspaceKindFormProperties: React.FC<WorkspaceKindFormPropertiesPr
             </FormGroup>
           )}
           {mode === 'edit' && properties.deprecated && (
-            <FormGroup>
+            <ThemeAwareFormGroupWrapper
+              label="Deprecation message"
+              fieldId="workspace-kind-deprecated-msg"
+            >
               <TextInput
                 isDisabled={!properties.deprecated}
                 type="text"
-                label="Deprecation message"
                 value={properties.deprecationMessage}
                 placeholder="Deprecation message"
                 onChange={(_, value) => updateField({ ...properties, deprecationMessage: value })}
                 id="workspace-kind-deprecated-msg"
               />
+            </ThemeAwareFormGroupWrapper>
+          )}
+          {mode === 'edit' && (
+            <FormGroup
+              fieldId="workspace-kind-hidden"
+              style={{ marginTop: 'var(--mui-spacing-16px)' }}
+            >
+              <Switch
+                isChecked={properties.hidden}
+                onChange={() => updateField({ ...properties, hidden: !properties.hidden })}
+                id="workspace-kind-hidden"
+                name="workspace-kind-hidden-switch"
+                aria-label="workspace-kind-hidden"
+                label={
+                  <div>
+                    <div>Hidden</div>
+                    <HelperText>Hide this workspace kind from users</HelperText>
+                  </div>
+                }
+              />
             </FormGroup>
           )}
-          <FormGroup
-            fieldId="workspace-kind-hidden"
-            style={{ marginTop: 'var(--mui-spacing-16px)' }}
-          >
-            <Switch
-              isChecked={properties.hidden}
-              onChange={() => updateField({ ...properties, hidden: !properties.hidden })}
-              id="workspace-kind-hidden"
-              name="workspace-kind-hidden-switch"
-              aria-label="workspace-kind-hidden"
-              label={
-                <div>
-                  <div>Hidden</div>
-                  <HelperText>Hide this workspace kind from users</HelperText>
-                </div>
-              }
-            />
-          </FormGroup>
-          <FormGroup label="Icon URL" isRequired fieldId="workspace-kind-icon">
+          <ThemeAwareFormGroupWrapper label="Icon URL" isRequired fieldId="workspace-kind-icon">
             <TextInput
               isRequired
               type="text"
@@ -107,8 +116,8 @@ export const WorkspaceKindFormProperties: React.FC<WorkspaceKindFormPropertiesPr
               onChange={(_, value) => updateField({ ...properties, icon: { url: value } })}
               id="workspace-kind-icon"
             />
-          </FormGroup>
-          <FormGroup label="Logo URL" isRequired fieldId="workspace-kind-logo">
+          </ThemeAwareFormGroupWrapper>
+          <ThemeAwareFormGroupWrapper label="Logo URL" isRequired fieldId="workspace-kind-logo">
             <TextInput
               isRequired
               type="text"
@@ -116,7 +125,7 @@ export const WorkspaceKindFormProperties: React.FC<WorkspaceKindFormPropertiesPr
               onChange={(_, value) => updateField({ ...properties, logo: { url: value } })}
               id="workspace-kind-logo"
             />
-          </FormGroup>
+          </ThemeAwareFormGroupWrapper>
         </Form>
       </ExpandableSection>
     </Content>

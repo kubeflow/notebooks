@@ -14,6 +14,7 @@ import { WorkspaceKindPodConfigValue } from '~/app/types';
 import { EditableLabels } from '~/app/pages/WorkspaceKinds/Form/EditableLabels';
 import { getResources } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { WorkspacekindsOptionLabel } from '~/generated/data-contracts';
+import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { WorkspaceKindFormResource, PodResourceEntry } from './WorkspaceKindFormResource';
 
 interface WorkspaceKindFormPodConfigModalProps {
@@ -135,7 +136,7 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
       />
       <ModalBody>
         <Form>
-          <FormGroup label="ID" isRequired fieldId="workspace-kind-pod-config-id">
+          <ThemeAwareFormGroupWrapper label="ID" isRequired fieldId="workspace-kind-pod-config-id">
             <TextInput
               isRequired
               type="text"
@@ -143,8 +144,12 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
               onChange={(_, value) => setId(value)}
               id="workspace-kind-pod-config-id"
             />
-          </FormGroup>
-          <FormGroup label="Display Name" isRequired fieldId="workspace-kind-pod-config-name">
+          </ThemeAwareFormGroupWrapper>
+          <ThemeAwareFormGroupWrapper
+            label="Display Name"
+            isRequired
+            fieldId="workspace-kind-pod-config-name"
+          >
             <TextInput
               isRequired
               type="text"
@@ -152,15 +157,18 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
               onChange={(_, value) => setDisplayName(value)}
               id="workspace-kind-pod-config-name"
             />
-          </FormGroup>
-          <FormGroup label="Description" fieldId="workspace-kind-pod-config-description">
+          </ThemeAwareFormGroupWrapper>
+          <ThemeAwareFormGroupWrapper
+            label="Description"
+            fieldId="workspace-kind-pod-config-description"
+          >
             <TextInput
               type="text"
               value={description}
               onChange={(_, value) => setDescription(value)}
               id="workspace-kind-pod-config-description"
             />
-          </FormGroup>
+          </ThemeAwareFormGroupWrapper>
           <FormGroup
             isRequired
             style={{ marginTop: 'var(--mui-spacing-16px)' }}
