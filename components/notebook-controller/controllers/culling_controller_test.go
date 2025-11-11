@@ -261,3 +261,163 @@ func TestNotebookIsIdle(t *testing.T) {
 		})
 	}
 }
+
+func TestUpdateTimestampFromActivity(t *testing.T) {
+	testCases := []struct {
+		testName   string
+		meta       *metav1.ObjectMeta
+		kernels    []KernelStatus
+		terminals  []TerminalStatus
+		expectTime string // "current" means should be current time, "kernel" means kernel time, "terminal" means terminal time
+	}{
+		{
+			testName: "Busy kernel should update to current time",
+			meta: &metav1.ObjectMeta{
+				Annotations: map[string]string{
+					LAST_ACTIVITY_ANNOTATION: "2021-01-01T00:00:00Z",
+				},
+			},
+			kernels: []KernelStatus{
+				{
+					ExecutionState: KERNEL_EXECUTION_STATE_BUSY,
+					LastActivity:   "2021-01-01T00:00:00Z",
+				},
+			},
+			terminals:  []TerminalStatus{},
+			expectTime: "current",
+		},
+		{
+			testName: "Only idle kernels should use kernel timestamp",
+			meta: &metav1.ObjectMeta{
+				Annotations: map[string]string{
+					LAST_ACTIVITY_ANNOTATION: "2021-01-01T00:00:00Z",
+				},
+			},
+			kernels: []KernelStatus{
+				{
+					ExecutionState: KERNEL_EXECUTION_STATE_IDLE,
+					LastActivity:   "2021-08-30T15:00:00Z",
+				},
+			},
+			terminals:  []TerminalStatus{},
+			expectTime: "kernel",
+		},
+		{
+			testName: "Only terminal activity should use terminal timestamp",
+			meta: &metav1.ObjectMeta{
+				Annotations: map[string]string{
+					LAST_ACTIVITY_ANNOTATION: "2021-01-01T00:00:00Z",
+				},
+			},
+			kernels: []KernelStatus{},
+			terminals: []TerminalStatus{
+				{
+					Name:         "1",
+					LastActivity: "2021-08-30T16:00:00Z",
+				},
+			},
+			expectTime: "terminal",
+		},
+		{
+			testName: "Terminal activity more recent than kernel should use terminal",
+			meta: &metav1.ObjectMeta{
+				Annotations: map[string]string{
+					LAST_ACTIVITY_ANNOTATION: "2021-01-01T00:00:00Z",
+				},
+			},
+			kernels: []KernelStatus{
+				{
+					ExecutionState: KERNEL_EXECUTION_STATE_IDLE,
+					LastActivity:   "2021-08-30T14:00:00Z",
+				},
+			},
+			terminals: []TerminalStatus{
+				{
+					Name:         "1",
+					LastActivity: "2021-08-30T16:00:00Z",
+				},
+			},
+			expectTime: "terminal",
+		},
+		{
+			testName: "Kernel activity more recent than terminal should use kernel",
+			meta: &metav1.ObjectMeta{
+				Annotations: map[string]string{
+					LAST_ACTIVITY_ANNOTATION: "2021-01-01T00:00:00Z",
+				},
+			},
+			kernels: []KernelStatus{
+				{
+					ExecutionState: KERNEL_EXECUTION_STATE_IDLE,
+					LastActivity:   "2021-08-30T18:00:00Z",
+				},
+			},
+			terminals: []TerminalStatus{
+				{
+					Name:         "1",
+					LastActivity: "2021-08-30T16:00:00Z",
+				},
+			},
+			expectTime: "kernel",
+		},
+		{
+			testName: "Multiple terminals should use most recent",
+			meta: &metav1.ObjectMeta{
+				Annotations: map[string]string{
+					LAST_ACTIVITY_ANNOTATION: "2021-01-01T00:00:00Z",
+				},
+			},
+			kernels: []KernelStatus{},
+			terminals: []TerminalStatus{
+				{
+					Name:         "1",
+					LastActivity: "2021-08-30T14:00:00Z",
+				},
+				{
+					Name:         "2",
+					LastActivity: "2021-08-30T17:00:00Z",
+				},
+				{
+					Name:         "3",
+					LastActivity: "2021-08-30T15:00:00Z",
+				},
+			},
+			expectTime: "2021-08-30T17:00:00Z",
+		},
+	}
+
+	for _, c := range testCases {
+		t.Run(c.testName, func(t *testing.T) {
+			updateTimestampFromActivity(c.meta, c.kernels, c.terminals, TestLogger)
+
+			newTimestamp := c.meta.Annotations[LAST_ACTIVITY_ANNOTATION]
+
+			switch c.expectTime {
+			case "current":
+				// Should be very recent (within 5 seconds)
+				parsedTime, err := time.Parse(time.RFC3339, newTimestamp)
+				if err != nil {
+					t.Errorf("Failed to parse timestamp: %v", err)
+				}
+				if time.Since(parsedTime) > 5*time.Second {
+					t.Errorf("Expected current time, but got %s", newTimestamp)
+				}
+			case "kernel":
+				expectedTime := c.kernels[0].LastActivity
+				if newTimestamp != expectedTime {
+					t.Errorf("Expected kernel timestamp %s, but got %s", expectedTime, newTimestamp)
+				}
+			case "terminal":
+				expectedTime := c.terminals[0].LastActivity
+				if newTimestamp != expectedTime {
+					t.Errorf("Expected terminal timestamp %s, but got %s", expectedTime, newTimestamp)
+				}
+			default:
+				// Specific timestamp provided
+				if newTimestamp != c.expectTime {
+					t.Errorf("Expected timestamp %s, but got %s", c.expectTime, newTimestamp)
+				}
+			}
+		})
+	}
+}
