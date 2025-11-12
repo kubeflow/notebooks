@@ -72,7 +72,7 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
                 isIndented
               >
                 {isVolumesExpanded && (
-                  <>
+                  <Form>
                     <ThemeAwareFormGroupWrapper
                       label="Home Directory"
                       fieldId="home-directory"
@@ -98,7 +98,7 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
                         setVolumes={(volumes) => onSelect({ ...selectedProperties, volumes })}
                       />
                     </FormGroup>
-                  </>
+                  </Form>
                 )}
               </ExpandableSection>
               {!isVolumesExpanded && (
