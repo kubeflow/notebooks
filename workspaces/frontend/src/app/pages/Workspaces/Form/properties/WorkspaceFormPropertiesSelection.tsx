@@ -51,7 +51,7 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
                   id="workspace-name"
                 />
               </ThemeAwareFormGroupWrapper>
-              <FormGroup fieldId="defer-updates">
+              <FormGroup fieldId="defer-updates" className="pf-v6-u-pt-sm pf-v6-u-pb-sm">
                 <Checkbox
                   label="Defer Updates"
                   isChecked={selectedProperties.deferUpdates}
@@ -102,9 +102,9 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
                 )}
               </ExpandableSection>
               {!isVolumesExpanded && (
-                <div style={{ paddingLeft: '36px', marginTop: '-10px' }}>
+                <div className="pf-v6-u-pl-xl pf-v6-u-pt-sm">
                   <div>Workspace volumes enable your project data to persist.</div>
-                  <div className="pf-u-font-size-sm">
+                  <div className="pf-u-font-size-sm pf-v6-u-pb-md">
                     <strong>{selectedProperties.volumes.length} added</strong>
                   </div>
                 </div>
@@ -125,7 +125,7 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
                 )}
               </ExpandableSection>
               {!isSecretsExpanded && (
-                <div style={{ paddingLeft: '36px', marginTop: '-10px' }}>
+                <div className="pf-v6-u-pl-xl pf-v6-u-mt-sm">
                   <div>Secrets enable your project to securely access and manage credentials.</div>
                   <div className="pf-u-font-size-sm">
                     <strong>{selectedProperties.secrets.length} added</strong>
