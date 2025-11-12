@@ -105,66 +105,64 @@ export const WorkspaceKindFormImage: React.FC<WorkspaceKindFormImageProps> = ({
 
   return (
     <Content>
-      <div className="pf-u-mb-0">
-        <ExpandableSection
-          toggleText="Workspace Images"
-          onToggle={() => setIsExpanded((prev) => !prev)}
-          isExpanded={isExpanded}
-          isIndented
-        >
-          {imageConfig.values.length === 0 && (
-            <EmptyState titleText="Start by creating an image" headingLevel="h4" icon={CubesIcon}>
-              <EmptyStateBody>Add an image configuration to your Workspace Kind</EmptyStateBody>
-              <EmptyStateFooter>
-                <EmptyStateActions>{addImageBtn}</EmptyStateActions>
-              </EmptyStateFooter>
-            </EmptyState>
-          )}
-          {imageConfig.values.length > 0 && (
-            <div>
-              <WorkspaceKindFormPaginatedTable
-                ariaLabel="Images table"
-                rows={imageConfig.values}
-                defaultId={defaultId}
-                setDefaultId={(id) => {
-                  updateImageConfig({ ...imageConfig, default: id });
-                  setDefaultId(id);
-                }}
-                handleEdit={handleEdit}
-                openDeleteModal={openDeleteModal}
-              />
-              {addImageBtn}
-            </div>
-          )}
-          <WorkspaceKindFormImageModal
-            isOpen={isModalOpen}
-            onClose={clearForm}
-            onSubmit={handleAddOrEditSubmit}
-            editIndex={editIndex}
-            image={image}
-            setImage={setImage}
-            mode={mode}
-          />
-          <Modal
-            isOpen={isDeleteModalOpen}
-            onClose={() => setIsDeleteModalOpen(false)}
-            variant={ModalVariant.small}
-          >
-            <ModalHeader
-              title="Remove Image?"
-              description="This image will be removed from the workspace kind."
+      <ExpandableSection
+        toggleText="Workspace Images"
+        onToggle={() => setIsExpanded((prev) => !prev)}
+        isExpanded={isExpanded}
+        isIndented
+      >
+        {imageConfig.values.length === 0 && (
+          <EmptyState titleText="Start by creating an image" headingLevel="h4" icon={CubesIcon}>
+            <EmptyStateBody>Add an image configuration to your Workspace Kind</EmptyStateBody>
+            <EmptyStateFooter>
+              <EmptyStateActions>{addImageBtn}</EmptyStateActions>
+            </EmptyStateFooter>
+          </EmptyState>
+        )}
+        {imageConfig.values.length > 0 && (
+          <div>
+            <WorkspaceKindFormPaginatedTable
+              ariaLabel="Images table"
+              rows={imageConfig.values}
+              defaultId={defaultId}
+              setDefaultId={(id) => {
+                updateImageConfig({ ...imageConfig, default: id });
+                setDefaultId(id);
+              }}
+              handleEdit={handleEdit}
+              openDeleteModal={openDeleteModal}
             />
-            <ModalFooter>
-              <Button key="remove" variant="danger" onClick={handleDelete}>
-                Remove
-              </Button>
-              <Button key="cancel" variant="link" onClick={() => setIsDeleteModalOpen(false)}>
-                Cancel
-              </Button>
-            </ModalFooter>
-          </Modal>
-        </ExpandableSection>
-      </div>
+            {addImageBtn}
+          </div>
+        )}
+        <WorkspaceKindFormImageModal
+          isOpen={isModalOpen}
+          onClose={clearForm}
+          onSubmit={handleAddOrEditSubmit}
+          editIndex={editIndex}
+          image={image}
+          setImage={setImage}
+          mode={mode}
+        />
+        <Modal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          variant={ModalVariant.small}
+        >
+          <ModalHeader
+            title="Remove Image?"
+            description="This image will be removed from the workspace kind."
+          />
+          <ModalFooter>
+            <Button key="remove" variant="danger" onClick={handleDelete}>
+              Remove
+            </Button>
+            <Button key="cancel" variant="link" onClick={() => setIsDeleteModalOpen(false)}>
+              Cancel
+            </Button>
+          </ModalFooter>
+        </Modal>
+      </ExpandableSection>
     </Content>
   );
 };

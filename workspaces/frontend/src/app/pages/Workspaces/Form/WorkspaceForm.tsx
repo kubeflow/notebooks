@@ -410,7 +410,7 @@ const WorkspaceForm: React.FC = () => {
                     )}
                   </FlexItem>
                   <FlexItem>
-                    <Button variant="link" isInline onClick={cancel}>
+                    <Button variant="link" onClick={cancel}>
                       Cancel
                     </Button>
                   </FlexItem>

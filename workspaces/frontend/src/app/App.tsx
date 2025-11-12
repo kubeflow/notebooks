@@ -27,6 +27,7 @@ const App: React.FC = () => {
               <NamespaceContextProvider>
                 <Page
                   mainContainerId="primary-app-container"
+                  isContentFilled
                   masthead={
                     isStandalone ? (
                       <NavBar

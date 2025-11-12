@@ -86,7 +86,7 @@ export const WorkspaceKindFileUpload: React.FC<WorkspaceKindFileUploadProps> = (
   }, []);
 
   return (
-    <Content style={{ height: '100%' }}>
+    <Content>
       <FileUpload
         className="workspacekind-file-upload"
         id="text-file-simple"

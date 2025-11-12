@@ -101,71 +101,69 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
 
   return (
     <Content>
-      <div className="pf-u-mb-0">
-        <ExpandableSection
-          toggleText="Pod Configurations"
-          onToggle={() => setIsExpanded((prev) => !prev)}
-          isExpanded={isExpanded}
-          isIndented
-        >
-          {podConfig.values.length === 0 && (
-            <EmptyState
-              titleText="Start by creating a pod configuration"
-              headingLevel="h4"
-              icon={CubesIcon}
-            >
-              <EmptyStateBody>
-                Configure specifications for pods and containers in your Workspace Kind
-              </EmptyStateBody>
-              <EmptyStateFooter>
-                <EmptyStateActions>{addConfigBtn}</EmptyStateActions>
-              </EmptyStateFooter>
-            </EmptyState>
-          )}
-          {podConfig.values.length > 0 && (
-            <>
-              <WorkspaceKindFormPaginatedTable
-                ariaLabel="Pod Configs Table"
-                rows={podConfig.values}
-                defaultId={defaultId}
-                setDefaultId={(id) => {
-                  updatePodConfig({ ...podConfig, default: id });
-                  setDefaultId(id);
-                }}
-                handleEdit={handleEdit}
-                openDeleteModal={openDeleteModal}
-              />
-              {addConfigBtn}
-            </>
-          )}
-          <WorkspaceKindFormPodConfigModal
-            isOpen={isModalOpen}
-            onClose={clearForm}
-            onSubmit={handleAddOrEditSubmit}
-            editIndex={editIndex}
-            currConfig={currConfig}
-            setCurrConfig={setCurrConfig}
-          />
-          <Modal
-            isOpen={isDeleteModalOpen}
-            onClose={() => setIsDeleteModalOpen(false)}
-            variant={ModalVariant.small}
+      <ExpandableSection
+        toggleText="Pod Configurations"
+        onToggle={() => setIsExpanded((prev) => !prev)}
+        isExpanded={isExpanded}
+        isIndented
+      >
+        {podConfig.values.length === 0 && (
+          <EmptyState
+            titleText="Start by creating a pod configuration"
+            headingLevel="h4"
+            icon={CubesIcon}
           >
-            <ModalHeader
-              title="Remove Pod Config?"
-              description="The pod config will be removed from the workspace kind."
+            <EmptyStateBody>
+              Configure specifications for pods and containers in your Workspace Kind
+            </EmptyStateBody>
+            <EmptyStateFooter>
+              <EmptyStateActions>{addConfigBtn}</EmptyStateActions>
+            </EmptyStateFooter>
+          </EmptyState>
+        )}
+        {podConfig.values.length > 0 && (
+          <>
+            <WorkspaceKindFormPaginatedTable
+              ariaLabel="Pod Configs Table"
+              rows={podConfig.values}
+              defaultId={defaultId}
+              setDefaultId={(id) => {
+                updatePodConfig({ ...podConfig, default: id });
+                setDefaultId(id);
+              }}
+              handleEdit={handleEdit}
+              openDeleteModal={openDeleteModal}
             />
-            <ModalFooter>
-              <Button key="remove" variant="danger" onClick={handleDelete}>
-                Remove
-              </Button>
-              <Button key="cancel" variant="link" onClick={() => setIsDeleteModalOpen(false)}>
-                Cancel
-              </Button>
-            </ModalFooter>
-          </Modal>
-        </ExpandableSection>
-      </div>
+            {addConfigBtn}
+          </>
+        )}
+        <WorkspaceKindFormPodConfigModal
+          isOpen={isModalOpen}
+          onClose={clearForm}
+          onSubmit={handleAddOrEditSubmit}
+          editIndex={editIndex}
+          currConfig={currConfig}
+          setCurrConfig={setCurrConfig}
+        />
+        <Modal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          variant={ModalVariant.small}
+        >
+          <ModalHeader
+            title="Remove Pod Config?"
+            description="The pod config will be removed from the workspace kind."
+          />
+          <ModalFooter>
+            <Button key="remove" variant="danger" onClick={handleDelete}>
+              Remove
+            </Button>
+            <Button key="cancel" variant="link" onClick={() => setIsDeleteModalOpen(false)}>
+              Cancel
+            </Button>
+          </ModalFooter>
+        </Modal>
+      </ExpandableSection>
     </Content>
   );
 };
