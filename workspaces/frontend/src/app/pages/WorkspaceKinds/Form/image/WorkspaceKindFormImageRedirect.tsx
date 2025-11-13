@@ -13,6 +13,7 @@ import {
   WorkspacekindsOptionRedirect,
   WorkspacekindsRedirectMessageLevel,
 } from '~/generated/data-contracts';
+import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 
 interface WorkspaceKindFormImageRedirectProps {
   redirect: WorkspacekindsOptionRedirect;
@@ -53,7 +54,7 @@ export const WorkspaceKindFormImageRedirect: React.FC<WorkspaceKindFormImageRedi
         />
       }
     >
-      <FormGroup label="Redirect To" isRequired fieldId="redirect-to-id">
+      <ThemeAwareFormGroupWrapper label="Redirect To" isRequired fieldId="redirect-to-id">
         <TextInput
           name="redirect-to-id"
           isRequired
@@ -62,7 +63,7 @@ export const WorkspaceKindFormImageRedirect: React.FC<WorkspaceKindFormImageRedi
           onChange={(_, val) => setRedirect({ ...redirect, to: val })}
           id="redirect-to-id"
         />
-      </FormGroup>
+      </ThemeAwareFormGroupWrapper>
       <FormGroup label="Redirect Message Level" isRequired fieldId="redirect-msg-lvl">
         <FormSelect
           value={redirect.message?.level || ''}
@@ -89,7 +90,7 @@ export const WorkspaceKindFormImageRedirect: React.FC<WorkspaceKindFormImageRedi
           ))}
         </FormSelect>{' '}
       </FormGroup>
-      <FormGroup label="Text" isRequired fieldId="redirect-message-text">
+      <ThemeAwareFormGroupWrapper label="Text" isRequired fieldId="redirect-message-text">
         <TextInput
           name="redirect-message-text"
           isRequired
@@ -108,7 +109,7 @@ export const WorkspaceKindFormImageRedirect: React.FC<WorkspaceKindFormImageRedi
           }
           id="redirect-message-text"
         />
-      </FormGroup>
+      </ThemeAwareFormGroupWrapper>
     </FormFieldGroupExpandable>
   );
 };

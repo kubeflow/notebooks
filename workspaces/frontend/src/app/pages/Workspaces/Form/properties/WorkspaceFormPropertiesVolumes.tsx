@@ -138,7 +138,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
         icon={<PlusCircleIcon />}
         onClick={() => setIsModalOpen(true)}
         style={{ marginTop: '1rem', width: 'fit-content' }}
-        className="pf-u-mt-md"
+        className="pf-v6-u-mb-md "
       >
         Create Volume
       </Button>
@@ -170,7 +170,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
                 id="mount-path"
               />
             </ThemeAwareFormGroupWrapper>
-            <FormGroup fieldId="readonly-access">
+            <FormGroup fieldId="readonly-access" className="pf-v6-u-pt-lg">
               <Switch
                 id="readonly-access-switch"
                 label="Enable read-only access"

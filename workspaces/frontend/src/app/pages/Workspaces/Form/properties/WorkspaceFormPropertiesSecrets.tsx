@@ -21,10 +21,11 @@ import { ValidatedOptions } from '@patternfly/react-core/helpers';
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import { Dropdown, DropdownItem } from '@patternfly/react-core/dist/esm/components/Dropdown';
 import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
-import { Form, FormGroup } from '@patternfly/react-core/dist/esm/components/Form';
+import { Form } from '@patternfly/react-core/dist/esm/components/Form';
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
 import { WorkspacesPodSecretMount } from '~/generated/data-contracts';
+import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 
 interface WorkspaceFormPropertiesSecretsProps {
   secrets: WorkspacesPodSecretMount[];
@@ -178,7 +179,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
         />
         <ModalBody id="secret-modal-box-body">
           <Form onSubmit={handleAddOrEditSubmit}>
-            <FormGroup label="Secret Name" isRequired fieldId="secret-name">
+            <ThemeAwareFormGroupWrapper label="Secret Name" isRequired fieldId="secret-name">
               <TextInput
                 name="secretName"
                 isRequired
@@ -187,8 +188,8 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
                 onChange={(_, val) => setFormData({ ...formData, secretName: val })}
                 id="secret-name"
               />
-            </FormGroup>
-            <FormGroup label="Mount Path" isRequired fieldId="mount-path">
+            </ThemeAwareFormGroupWrapper>
+            <ThemeAwareFormGroupWrapper label="Mount Path" isRequired fieldId="mount-path">
               <TextInput
                 name="mountPath"
                 isRequired
@@ -197,8 +198,21 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
                 onChange={(_, val) => setFormData({ ...formData, mountPath: val })}
                 id="mount-path"
               />
-            </FormGroup>
-            <FormGroup label="Default Mode" isRequired fieldId="default-mode">
+            </ThemeAwareFormGroupWrapper>
+            <ThemeAwareFormGroupWrapper
+              label="Default Mode"
+              isRequired
+              fieldId="default-mode"
+              helperTextNode={
+                !isDefaultModeValid ? (
+                  <HelperText>
+                    <HelperTextItem variant="error">
+                      Must be a valid UNIX file system permission value (i.e. 644)
+                    </HelperTextItem>
+                  </HelperText>
+                ) : null
+              }
+            >
               <TextInput
                 name="defaultMode"
                 isRequired
@@ -208,14 +222,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
                 onChange={(_, val) => handleDefaultModeInput(val)}
                 id="default-mode"
               />
-              {!isDefaultModeValid && (
-                <HelperText>
-                  <HelperTextItem variant="error">
-                    Must be a valid UNIX file system permission value (i.e. 644)
-                  </HelperTextItem>
-                </HelperText>
-              )}
-            </FormGroup>
+            </ThemeAwareFormGroupWrapper>
           </Form>
         </ModalBody>
         <ModalFooter>

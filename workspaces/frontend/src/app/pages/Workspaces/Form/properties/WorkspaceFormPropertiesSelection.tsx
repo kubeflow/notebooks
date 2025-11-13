@@ -51,7 +51,7 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
                   id="workspace-name"
                 />
               </ThemeAwareFormGroupWrapper>
-              <FormGroup fieldId="defer-updates">
+              <FormGroup fieldId="defer-updates" className="pf-v6-u-pt-sm pf-v6-u-pb-sm">
                 <Checkbox
                   label="Defer Updates"
                   isChecked={selectedProperties.deferUpdates}
@@ -65,71 +65,67 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
                 />
               </FormGroup>
               <Divider />
-              <div className="pf-u-mb-0">
-                <ExpandableSection
-                  toggleText="Volumes"
-                  onToggle={() => setIsVolumesExpanded((prev) => !prev)}
-                  isExpanded={isVolumesExpanded}
-                  isIndented
-                >
-                  {isVolumesExpanded && (
-                    <>
-                      <ThemeAwareFormGroupWrapper
-                        label="Home Directory"
-                        fieldId="home-directory"
-                        className="pf-u-width-500"
-                      >
-                        <TextInput
-                          value={selectedProperties.homeDirectory}
-                          onChange={(_, value) => {
-                            onSelect({
-                              ...selectedProperties,
-                              homeDirectory: value,
-                            });
-                          }}
-                          id="home-directory"
-                          type="text"
-                          name="home-directory"
-                        />
-                      </ThemeAwareFormGroupWrapper>
+              <ExpandableSection
+                toggleText="Volumes"
+                onToggle={() => setIsVolumesExpanded((prev) => !prev)}
+                isExpanded={isVolumesExpanded}
+                isIndented
+              >
+                {isVolumesExpanded && (
+                  <Form>
+                    <ThemeAwareFormGroupWrapper
+                      label="Home Directory"
+                      fieldId="home-directory"
+                      className="pf-u-width-500"
+                    >
+                      <TextInput
+                        value={selectedProperties.homeDirectory}
+                        onChange={(_, value) => {
+                          onSelect({
+                            ...selectedProperties,
+                            homeDirectory: value,
+                          });
+                        }}
+                        id="home-directory"
+                        type="text"
+                        name="home-directory"
+                      />
+                    </ThemeAwareFormGroupWrapper>
 
-                      <FormGroup fieldId="volumes-table" style={{ marginTop: '1rem' }}>
-                        <WorkspaceFormPropertiesVolumes
-                          volumes={selectedProperties.volumes}
-                          setVolumes={(volumes) => onSelect({ ...selectedProperties, volumes })}
-                        />
-                      </FormGroup>
-                    </>
-                  )}
-                </ExpandableSection>
-              </div>
+                    <FormGroup fieldId="volumes-table" style={{ marginTop: '1rem' }}>
+                      <WorkspaceFormPropertiesVolumes
+                        volumes={selectedProperties.volumes}
+                        setVolumes={(volumes) => onSelect({ ...selectedProperties, volumes })}
+                      />
+                    </FormGroup>
+                  </Form>
+                )}
+              </ExpandableSection>
               {!isVolumesExpanded && (
-                <div style={{ paddingLeft: '36px', marginTop: '-10px' }}>
+                <div className="pf-v6-u-pl-xl pf-v6-u-pt-sm">
                   <div>Workspace volumes enable your project data to persist.</div>
-                  <div className="pf-u-font-size-sm">
+                  <div className="pf-u-font-size-sm pf-v6-u-pb-md">
                     <strong>{selectedProperties.volumes.length} added</strong>
                   </div>
                 </div>
               )}
-              <div className="pf-u-mb-0">
-                <ExpandableSection
-                  toggleText="Secrets"
-                  onToggle={() => setIsSecretsExpanded((prev) => !prev)}
-                  isExpanded={isSecretsExpanded}
-                  isIndented
-                >
-                  {isSecretsExpanded && (
-                    <FormGroup fieldId="secrets-table" style={{ marginTop: '1rem' }}>
-                      <WorkspaceFormPropertiesSecrets
-                        secrets={selectedProperties.secrets}
-                        setSecrets={(secrets) => onSelect({ ...selectedProperties, secrets })}
-                      />
-                    </FormGroup>
-                  )}
-                </ExpandableSection>
-              </div>
+              <ExpandableSection
+                toggleText="Secrets"
+                onToggle={() => setIsSecretsExpanded((prev) => !prev)}
+                isExpanded={isSecretsExpanded}
+                isIndented
+              >
+                {isSecretsExpanded && (
+                  <FormGroup fieldId="secrets-table" style={{ marginTop: '1rem' }}>
+                    <WorkspaceFormPropertiesSecrets
+                      secrets={selectedProperties.secrets}
+                      setSecrets={(secrets) => onSelect({ ...selectedProperties, secrets })}
+                    />
+                  </FormGroup>
+                )}
+              </ExpandableSection>
               {!isSecretsExpanded && (
-                <div style={{ paddingLeft: '36px', marginTop: '-10px' }}>
+                <div className="pf-v6-u-pl-xl pf-v6-u-mt-sm">
                   <div>Secrets enable your project to securely access and manage credentials.</div>
                   <div className="pf-u-font-size-sm">
                     <strong>{selectedProperties.secrets.length} added</strong>
