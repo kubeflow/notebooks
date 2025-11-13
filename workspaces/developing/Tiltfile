@@ -1,0 +1,216 @@
+# Tiltfile for Kubeflow Notebooks development
+# - Streamlines local development of controller, backend, and frontend components
+
+# Disable analytics
+analytics_settings(False)
+
+# Enforce minimum Tilt version
+version_settings(check_updates=True, constraint=">=0.33.0")
+
+# Increase timeout for k8s operations
+update_settings(k8s_upsert_timeout_secs=120)
+
+
+# Allow skipping frontend via environment variable
+enable_frontend = os.getenv("ENABLE_FRONTEND", "true").lower() == "true"
+
+# Get paths relative to Tiltfile location
+# Tilt evaluates paths relative to the Tiltfile directory
+tilt_root = os.path.dirname(os.path.abspath(__file__))
+# Go up 2 levels from Tiltfile location: developing -> workspaces -> repo root
+workspace_root = os.path.dirname(os.path.dirname(tilt_root))
+
+# Define paths relative to workspace root
+controller_dir = os.path.join(workspace_root, "workspaces/controller")
+backend_dir = os.path.join(workspace_root, "workspaces/backend")
+frontend_dir = os.path.join(workspace_root, "workspaces/frontend")
+
+
+# Exclude generated files/directories from file watching to prevent rebuild loops
+# This prevents rebuild loops when auto-generated files are updated
+# Patterns are scoped to specific directories so they don't affect other components
+watch_settings(
+    ignore=[
+        # Controller generated files
+        os.path.join(controller_dir, "**/zz_generated.*"),
+        os.path.join(controller_dir, "config/crd/**"),
+        os.path.join(controller_dir, "config/webhook/manifests.yaml"),
+        # Backend generated files
+        os.path.join(backend_dir, "openapi/**"),
+        # Frontend generated files
+        os.path.join(frontend_dir, "src/generated/**"),
+    ],
+)
+
+
+
+# ============================================================================
+# Setup Resources (must run first)
+# ============================================================================
+
+# Kind Cluster Setup - must be first, no dependencies
+local_resource(
+    "setup-kind",
+    cmd=os.path.join(tilt_root, "scripts/setup-kind.sh"),
+    labels=["setup"],
+    resource_deps=[],
+    allow_parallel=False,
+)
+
+# Cert-Manager Installation - depends on Kind cluster
+local_resource(
+    "setup-cert-manager",
+    cmd=os.path.join(tilt_root, "scripts/setup-cert-manager.sh"),
+    labels=["setup"],
+    resource_deps=["setup-kind"],
+    allow_parallel=False,
+)
+
+# ============================================================================
+# Controller
+# ============================================================================
+
+# Generate manifests and code (needed before Docker build)
+# Note: Skip 'fmt' step to prevent infinite rebuild loops (fmt modifies files in place)
+local_resource(
+    "controller-generate",
+    cmd="cd {} && make build".format(controller_dir),
+    deps=[
+        os.path.join(controller_dir, "cmd"),
+        os.path.join(controller_dir, "api"),
+        os.path.join(controller_dir, "internal"),
+        os.path.join(controller_dir, "go.mod"),
+        os.path.join(controller_dir, "go.sum"),
+    ],
+    ignore=["bin/", "**/zz_generated.*", "**/config/crd/**"],
+    labels=["controller"],
+)
+
+# CRDs Installation - depends on cert-manager and controller generate
+# Runs after controller-generate to ensure we install the latest generated CRDs
+# Note: No deps parameter - we don't want to watch for file changes since both
+# controller-generate and install-crds run manifests which would create a loop
+local_resource(
+    "install-crds",
+    cmd="cd {} && make install".format(controller_dir),
+    labels=["controller"],
+    resource_deps=["setup-cert-manager", "controller-generate"],
+    allow_parallel=False,
+)
+
+# Docker build for controller using production Dockerfile
+# The production Dockerfile builds the binary inside Docker, avoiding .dockerignore issues
+# Note: kustomize replaces 'workspaces-controller' with 'ghcr.io/kubeflow/notebooks/workspaces-controller'
+# so we build with that name to match the final YAML
+docker_build(
+    "ghcr.io/kubeflow/notebooks/workspaces-controller",
+    dockerfile=os.path.join(controller_dir, "Dockerfile"),
+    context=controller_dir,
+)
+
+# K8s deployment for controller - use kustomize to build and preprocess YAMLs
+# Note: kustomize needs to be available (installed via controller Makefile)
+# Note: cert-manager must be installed before deploying (handled by setup-cert-manager)
+controller_kustomize_path = "config/default"
+
+# Build manifests with kustomize
+manifests = local("cd {} && make -C {} kustomize && {}/bin/kustomize build {}".format(
+    controller_dir, controller_dir, controller_dir, controller_kustomize_path))
+
+# Decode YAMLs to modify them for development
+objects = decode_yaml_stream(manifests)
+
+# Modify the controller deployment for development
+for o in objects:
+    # Defensive check: skip if missing kind/name
+    kind = o.get("kind")
+    name = o.get("metadata", {}).get("name")
+    if not kind or not name:
+        continue
+
+    # Modify the controller Deployment for dev
+    if kind == "Deployment" and name == "workspaces-controller":
+        containers = o.get("spec", {}).get("template", {}).get("spec", {}).get("containers", [])
+        for container in containers:
+            if container.get("name") == "manager":
+                env = container.setdefault("env", [])
+                use_istio_found = False
+                for i, env_var in enumerate(env):
+                    if env_var.get("name") == "USE_ISTIO":
+                        env[i] = {"name": "USE_ISTIO", "value": "false"}
+                        use_istio_found = True
+                        break
+                if not use_istio_found:
+                    env.append({"name": "USE_ISTIO", "value": "false"})
+
+# Encode back to YAML and apply
+# This applies all controller manifests: CRDs, RBAC, ConfigMaps, Deployment, etc.
+overridden_manifests = encode_yaml_stream(objects)
+k8s_yaml(overridden_manifests)
+
+# Configure k8s resource for the controller deployment
+k8s_resource(
+    "workspaces-controller",
+    port_forwards=["8080:8080", "8081:8081"],  # metrics and health probe
+    resource_deps=["controller-generate", "setup-cert-manager", "install-crds"],
+    labels=["controller"],
+)
+
+# ============================================================================
+# Backend
+# ============================================================================
+
+# Docker build for backend using production Dockerfile
+docker_build(
+    "workspaces-backend",
+    dockerfile=os.path.join(backend_dir, "Dockerfile"),
+    context=os.path.dirname(backend_dir),  # Production Dockerfile expects workspaces/ as context
+)
+
+# K8s deployment for backend - use kustomize to build
+# Note: kustomize needs to be available (installed via backend Makefile)
+# allow_duplicates=True because namespace is already defined by controller
+backend_kustomize_path = "manifests/kustomize/base"
+k8s_yaml(
+    local("cd {} && make -C {} kustomize && {}/bin/kustomize build {}".format(
+        backend_dir, backend_dir, backend_dir, backend_kustomize_path)),
+    allow_duplicates=True,
+)
+
+# Configure k8s resource
+# Backend waits for controller to be ready first
+# Tilt automatically matches the image based on the image name in the YAML
+k8s_resource(
+    "workspaces-backend",
+    port_forwards="4000",
+    resource_deps=["workspaces-controller"],
+    labels=["backend"],
+)
+
+# ============================================================================
+# Frontend (optional)
+# ============================================================================
+
+if enable_frontend:
+    # Run frontend as local resource using webpack dev server
+    # This enables hot-reloading and faster development iteration
+    # Uses the start:tilt script which sets TILT_ENV=true to load .env.tilt
+    # Frontend will be available at http://localhost:9000
+    # Note: This is a long-running process, so it will show as "Updating" in Tilt UI
+    # Other resources don't need to wait for it (frontend proxies to backend)
+    local_resource(
+        "workspaces-frontend",
+        serve_cmd="cd {} && npm run start:tilt".format(frontend_dir),
+        deps=[
+            frontend_dir,
+        ],
+        ignore=[
+            os.path.join(frontend_dir, "node_modules"),
+            os.path.join(frontend_dir, "dist"),
+            os.path.join(frontend_dir, "coverage"),
+        ],
+        # No resource_deps - frontend doesn't block other resources
+        # Frontend will proxy to backend when ready, but doesn't need to wait
+        labels=["frontend"],
+    )
+
