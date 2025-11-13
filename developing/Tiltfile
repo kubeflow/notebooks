@@ -1,0 +1,228 @@
+# Tiltfile for Kubeflow Notebooks development
+# - Streamlines local development of controller, backend, and frontend components
+
+# Disable analytics
+analytics_settings(False)
+
+# Enforce minimum Tilt version
+version_settings(check_updates=True, constraint=">=0.33.0")
+
+# Increase timeout for k8s operations
+update_settings(k8s_upsert_timeout_secs=120)
+
+# Allow kind-tilt context (set up by Makefile before tilt runs)
+allow_k8s_contexts('kind-tilt')
+
+# Allow skipping frontend via environment variable
+enable_frontend = os.getenv("ENABLE_FRONTEND", "true").lower() == "true"
+
+# Get paths relative to Tiltfile location
+# Tilt evaluates paths relative to the Tiltfile directory
+tilt_root = os.path.dirname(os.path.abspath(__file__))
+# Go up 1 level from Tiltfile location: developing -> repo root
+workspace_root = os.path.dirname(tilt_root)
+
+# Define paths relative to workspace root
+controller_dir = os.path.join(workspace_root, "workspaces/controller")
+backend_dir = os.path.join(workspace_root, "workspaces/backend")
+frontend_dir = os.path.join(workspace_root, "workspaces/frontend")
+
+# Kustomize binary path (installed by Makefile)
+kustomize_bin = os.path.join(tilt_root, "bin/kustomize")
+
+
+
+
+
+# ============================================================================
+# Controller
+# ============================================================================
+# Note: Kind cluster and cert-manager are set up by the Makefile before Tilt starts
+
+
+# Docker build for controller using production Dockerfile
+# The production Dockerfile builds the binary inside Docker, avoiding .dockerignore issues
+# Note: kustomize replaces 'workspaces-controller' with 'ghcr.io/kubeflow/notebooks/workspaces-controller'
+# so we build with that name to match the final YAML
+docker_build(
+    "ghcr.io/kubeflow/notebooks/workspaces-controller",
+    dockerfile=os.path.join(controller_dir, "Dockerfile"),
+    context=controller_dir,
+)
+
+# K8s deployment for controller - use kustomize to build and preprocess YAMLs
+controller_kustomize_path = os.path.join(controller_dir, "manifests/kustomize/overlays/istio")
+
+# Build manifests with kustomize (using kustomize binary from Makefile)
+manifests = kustomize(controller_kustomize_path, kustomize_bin=kustomize_bin)
+
+# Decode YAMLs to modify them for development
+objects = decode_yaml_stream(manifests)
+
+# Modify the controller deployment for development
+for o in objects:
+    # Defensive check: skip if missing kind/name
+    kind = o.get("kind")
+    name = o.get("metadata", {}).get("name")
+    if not kind or not name:
+        continue
+
+    # Modify the controller Deployment for dev
+    if kind == "Deployment" and name == "workspaces-controller":
+        containers = o.get("spec", {}).get("template", {}).get("spec", {}).get("containers", [])
+        for container in containers:
+            if container.get("name") == "manager":
+                env = container.setdefault("env", [])
+                use_istio_found = False
+                for i, env_var in enumerate(env):
+                    if env_var.get("name") == "USE_ISTIO":
+                        env[i] = {"name": "USE_ISTIO", "value": "false"}
+                        use_istio_found = True
+                        break
+                if not use_istio_found:
+                    env.append({"name": "USE_ISTIO", "value": "false"})
+
+# Encode back to YAML and apply
+# This applies all controller manifests: CRDs, RBAC, ConfigMaps, Deployment, etc.
+overridden_manifests = encode_yaml_stream(objects)
+k8s_yaml(overridden_manifests)
+
+# Configure k8s resource for the controller deployment
+k8s_resource(
+    "workspaces-controller",
+    port_forwards=["8080:8080", "8081:8081"],  # metrics and health probe
+    labels=["controller"],
+)
+
+# ============================================================================
+# Backend
+# ============================================================================
+
+# Docker build for backend using production Dockerfile
+# Note: kustomize replaces 'workspaces-backend' with 'ghcr.io/kubeflow/notebooks/workspaces-backend'
+# so we build with that name to match the final YAML
+docker_build(
+    "ghcr.io/kubeflow/notebooks/workspaces-backend",
+    dockerfile=os.path.join(backend_dir, "Dockerfile"),
+    context=os.path.dirname(backend_dir),  # Production Dockerfile expects workspaces/ as context
+)
+
+# K8s deployment for backend - use kustomize to build
+# allow_duplicates=True because namespace is already defined by controller
+backend_kustomize_path = os.path.join(backend_dir, "manifests/kustomize/base")
+k8s_yaml(
+    kustomize(backend_kustomize_path, kustomize_bin=kustomize_bin),
+    allow_duplicates=True,
+)
+
+# Configure k8s resource
+# Backend waits for controller to be ready first
+# Tilt automatically matches the image based on the image name in the YAML
+k8s_resource(
+    "workspaces-backend",
+    port_forwards="4000",
+    resource_deps=["workspaces-controller"],
+    labels=["backend"],
+)
+
+# ============================================================================
+# Frontend (optional)
+# ============================================================================
+
+if enable_frontend:
+    # Docker build for frontend using development Dockerfile with live_update
+    # This enables fast in-place updates without rebuilding the image
+    # Webpack dev server with HMR provides instant feedback on code changes
+    # Note: kustomize replaces 'workspaces-frontend' with 'ghcr.io/kubeflow/notebooks/workspaces-frontend'
+    # so we build with that name to match the final YAML
+    docker_build(
+        "ghcr.io/kubeflow/notebooks/workspaces-frontend",
+        dockerfile=os.path.join(tilt_root, "dockerfiles/Dockerfile.frontend.tilt"),
+        context=frontend_dir,  # Use workspaces/frontend/ as context
+        live_update=[
+            # Sync source files into the container
+            # Changes to these files trigger webpack HMR without container restart
+            sync(os.path.join(frontend_dir, "src"), "/app/src"),
+            sync(os.path.join(frontend_dir, "config"), "/app/config"),
+
+            # If package.json or package-lock.json changes, reinstall dependencies
+            # This ensures new packages are available without a full rebuild
+            run(
+                "cd /app && npm install",
+                trigger=[
+                    os.path.join(frontend_dir, "package.json"),
+                    os.path.join(frontend_dir, "package-lock.json"),
+                ],
+            ),
+        ],
+        # Ignore files that shouldn't trigger rebuilds
+        ignore=[
+            os.path.join(frontend_dir, "node_modules"),
+            os.path.join(frontend_dir, "dist"),
+            os.path.join(frontend_dir, "coverage"),
+            os.path.join(frontend_dir, "*.md"),
+        ],
+    )
+
+    # K8s deployment for frontend - use kustomize to build
+    # allow_duplicates=True because namespace is already defined by controller
+    frontend_kustomize_path = os.path.join(frontend_dir, "manifests/kustomize/base")
+
+    # Build and decode manifests to modify for development
+    frontend_manifests = kustomize(frontend_kustomize_path, kustomize_bin=kustomize_bin)
+    frontend_objects = decode_yaml_stream(frontend_manifests)
+
+    # Modify the frontend deployment for development with webpack dev server
+    for o in frontend_objects:
+        kind = o.get("kind")
+        name = o.get("metadata", {}).get("name")
+        if not kind or not name:
+            continue
+
+        # Modify frontend deployment for webpack dev server
+        if kind == "Deployment" and name == "workspaces-frontend":
+            containers = o.get("spec", {}).get("template", {}).get("spec", {}).get("containers", [])
+            for container in containers:
+                if container.get("name") == "workspaces-frontend":
+                    # Increase memory limits for webpack dev server
+                    # Production uses 512Mi but webpack compilation needs much more
+                    container["resources"] = {
+                        "limits": {
+                            "cpu": "2",
+                            "memory": "2Gi",
+                        },
+                        "requests": {
+                            "cpu": "500m",
+                            "memory": "1Gi",
+                        },
+                    }
+
+                    # Add startup probe for webpack dev server
+                    # Webpack needs time to compile the bundle before serving requests
+                    # Startup probe allows up to 5 minutes (30 * 10s) for initial compilation
+                    # Once startup probe passes, liveness/readiness probes take over
+                    container["startupProbe"] = {
+                        "httpGet": {
+                            "path": "/",
+                            "port": 8080,
+                            "scheme": "HTTP",
+                        },
+                        "initialDelaySeconds": 10,
+                        "periodSeconds": 10,
+                        "timeoutSeconds": 5,
+                        "failureThreshold": 30,
+                    }
+
+    # Apply modified manifests
+    k8s_yaml(encode_yaml_stream(frontend_objects), allow_duplicates=True)
+
+    # Configure k8s resource for frontend
+    # Frontend waits for backend to be ready to avoid 504 errors on initial page load
+    # Port forward: localhost:9000 -> container:8080 (avoids conflict with controller on 8080)
+    k8s_resource(
+        "workspaces-frontend",
+        port_forwards="9000:8080",
+        resource_deps=["workspaces-backend"],
+        labels=["frontend"],
+    )
+
