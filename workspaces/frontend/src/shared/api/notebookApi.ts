@@ -1,5 +1,6 @@
 import { Healthcheck } from '~/generated/Healthcheck';
 import { Namespaces } from '~/generated/Namespaces';
+import { Secrets } from '~/generated/Secrets';
 import { Workspacekinds } from '~/generated/Workspacekinds';
 import { Workspaces } from '~/generated/Workspaces';
 import { ApiInstance } from '~/shared/api/types';
@@ -9,6 +10,7 @@ export interface NotebookApis {
   namespaces: ApiInstance<typeof Namespaces>;
   workspaces: ApiInstance<typeof Workspaces>;
   workspaceKinds: ApiInstance<typeof Workspacekinds>;
+  secrets: ApiInstance<typeof Secrets>;
 }
 
 export const notebookApisImpl = (path: string): NotebookApis => {
@@ -19,5 +21,6 @@ export const notebookApisImpl = (path: string): NotebookApis => {
     namespaces: new Namespaces(commonConfig),
     workspaces: new Workspaces(commonConfig),
     workspaceKinds: new Workspacekinds(commonConfig),
+    secrets: new Secrets(commonConfig),
   };
 };
