@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: workspaces-controller-metrics-service
+  name: webhook-service
 spec:
   ports:
-  - name: http
-    port: 8080
-    protocol: TCP
-    targetPort: 8080
+    - name: webhook
+      port: 443
+      protocol: TCP
+      targetPort: 9443
   selector:
     app.kubernetes.io/component: controller-manager
