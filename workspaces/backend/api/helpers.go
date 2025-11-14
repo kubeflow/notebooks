@@ -111,3 +111,19 @@ func (a *App) LocationGetWorkspaceKind(name string) string {
 	path := strings.Replace(WorkspaceKindsByNamePath, ":"+ResourceNamePathParam, name, 1)
 	return path
 }
+
+// GetBooleanQueryParameter reads a query parameter that only accepts "true"/"false".
+// If the parameter is absent, returns (false, nil).
+// On invalid value, writes a 400 and returns an error.
+func (a *App) GetBooleanQueryParameter(w http.ResponseWriter, r *http.Request, paramName string) (bool, error) {
+	val := r.URL.Query().Get(paramName)
+	if val == "" {
+		return false, nil // default if not provided
+	}
+	if val != "true" && val != "false" {
+		err := fmt.Errorf("invalid query parameter '%s' value '%s'. Must be 'true' or 'false'", paramName, val)
+		a.badRequestResponse(w, r, err)
+		return false, err
+	}
+	return val == "true", nil
+}
