@@ -82,11 +82,11 @@ var _ = BeforeSuite(func() {
 	ctx, cancel = context.WithCancel(context.Background())
 
 	By("bootstrapping test environment")
-	path := filepath.Join("..", "..", "controller", "config", "crd", "bases")
+	path := filepath.Join("..", "..", "controller", "manifests", "kustomize", "base", "crd")
 	fmt.Println(path)
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths: []string{
-			filepath.Join("..", "..", "controller", "config", "crd", "bases"),
+			filepath.Join("..", "..", "controller", "manifests", "kustomize", "base", "crd"),
 		},
 		ErrorIfCRDPathMissing: true,
 
