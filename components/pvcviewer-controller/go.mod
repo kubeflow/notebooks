@@ -1,4 +1,4 @@
-module github.com/kubeflow/kubeflow/components/pvc-viewer
+module github.com/kubeflow/notebooks/components/pvc-viewer
 
 go 1.22.2
 

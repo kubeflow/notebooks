@@ -26,7 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	nbv1beta1 "github.com/kubeflow/kubeflow/components/notebook-controller/api/v1beta1"
+	nbv1beta1 "github.com/kubeflow/notebooks/components/notebook-controller/api/v1beta1"
 )
 
 var _ = Describe("Notebook controller", func() {

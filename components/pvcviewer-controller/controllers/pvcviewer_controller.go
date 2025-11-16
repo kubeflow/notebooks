@@ -34,7 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	kubefloworgv1alpha1 "github.com/kubeflow/kubeflow/components/pvc-viewer/api/v1alpha1"
+	kubefloworgv1alpha1 "github.com/kubeflow/notebooks/components/pvc-viewer/api/v1alpha1"
 )
 
 // PVCViewerReconciler reconciles a PVCViewer object

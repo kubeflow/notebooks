@@ -19,8 +19,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/kubeflow/kubeflow/components/notebook-controller/api/v1beta1"
-	"github.com/kubeflow/kubeflow/components/notebook-controller/pkg/metrics"
+	"github.com/kubeflow/notebooks/components/notebook-controller/api/v1beta1"
+	"github.com/kubeflow/notebooks/components/notebook-controller/pkg/metrics"
 )
 
 // The constants with name 'DEFAULT_{ENV_Var}' are the default values to be

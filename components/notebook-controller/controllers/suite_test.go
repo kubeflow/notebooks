@@ -20,7 +20,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	controllermetrics "github.com/kubeflow/kubeflow/components/notebook-controller/pkg/metrics"
+	controllermetrics "github.com/kubeflow/notebooks/components/notebook-controller/pkg/metrics"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -33,7 +33,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	nbv1beta1 "github.com/kubeflow/kubeflow/components/notebook-controller/api/v1beta1"
+	nbv1beta1 "github.com/kubeflow/notebooks/components/notebook-controller/api/v1beta1"
 	// +kubebuilder:scaffold:imports
 )
 

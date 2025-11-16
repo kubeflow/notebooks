@@ -14,7 +14,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 
-	nbv1beta1 "github.com/kubeflow/kubeflow/components/notebook-controller/api/v1beta1"
+	nbv1beta1 "github.com/kubeflow/notebooks/components/notebook-controller/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 

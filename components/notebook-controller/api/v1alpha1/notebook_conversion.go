@@ -18,7 +18,7 @@ package v1alpha1
 import (
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
-	nbv1beta1 "github.com/kubeflow/kubeflow/components/notebook-controller/api/v1beta1"
+	nbv1beta1 "github.com/kubeflow/notebooks/components/notebook-controller/api/v1beta1"
 )
 
 // ConvertTo converts this Notebook to the Hub version (v1beta1).

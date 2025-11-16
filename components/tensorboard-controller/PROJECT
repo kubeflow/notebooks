@@ -2,7 +2,7 @@
 layout:
 - go.kubebuilder.io/v3
 projectName: tensorboard-controller
-repo: github.com/kubeflow/kubeflow/components/tensorboard-controller
+repo: github.com/kubeflow/notebooks/components/tensorboard-controller
 resources:
 - api:
     crdVersion: v1
@@ -11,6 +11,6 @@ resources:
   domain: kubeflow.org
   group: tensorboard
   kind: Tensorboard
-  path: github.com/kubeflow/kubeflow/components/tensorboard-controller/api/v1alpha1
+  path: github.com/kubeflow/notebooks/components/tensorboard-controller/api/v1alpha1
   version: v1alpha1
 version: "3"

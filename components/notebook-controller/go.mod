@@ -1,4 +1,4 @@
-module github.com/kubeflow/kubeflow/components/notebook-controller
+module github.com/kubeflow/notebooks/components/notebook-controller
 
 go 1.17
 
