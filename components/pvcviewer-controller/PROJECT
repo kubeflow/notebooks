@@ -1,8 +1,8 @@
 domain: kubeflow.org
 layout:
 - go.kubebuilder.io/v4-alpha
-projectName: pvc-viewer
-repo: github.com/kubeflow/kubeflow/components/pvc-viewer
+projectName: pvcviewer-controller
+repo: github.com/kubeflow/notebooks/components/pvcviewer-controller
 resources:
 - api:
     crdVersion: v1
@@ -10,7 +10,7 @@ resources:
   controller: true
   domain: kubeflow.org
   kind: PVCViewer
-  path: github.com/kubeflow/kubeflow/components/pvc-viewer/api/v1alpha1
+  path: github.com/kubeflow/notebooks/components/pvcviewer-controller/api/v1alpha1
   version: v1alpha1
   webhooks:
     defaulting: true
