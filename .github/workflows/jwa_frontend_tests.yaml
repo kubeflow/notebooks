@@ -9,6 +9,9 @@ on:
       - notebooks-v1
       - 'v*-branch'
 
+env:
+  NODE_VERSION: 24.11.1
+
 jobs:
   frontend-format-linting-check:
     name: Check code format and lint
@@ -22,7 +25,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: ${{ env.NODE_VERSION }}
       - name: Install dependencies
         run: npm ci
       - name: Check frontend formatting
@@ -37,10 +40,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup node version to 16
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: Install Kubeflow common library dependecies
         run: |
@@ -67,10 +70,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup node version to 16
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: Install Kubeflow common library dependecies
         run: |

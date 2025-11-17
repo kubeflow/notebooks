@@ -1,6 +1,10 @@
 {
   "name": "frontend",
   "version": "0.0.0",
+  "engines": {
+    "node": ">=24 <25",
+    "npm": ">=10"
+  },
   "scripts": {
     "ng": "ng",
     "build": "npm run copyLibAssets && ng build --base-href /tensorboards/ --deploy-url static/",
