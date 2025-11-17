@@ -17,6 +17,8 @@ limitations under the License.
 package workspaces
 
 import (
+	"strconv"
+
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"k8s.io/utils/ptr"
 )
@@ -44,6 +46,15 @@ func NewWorkspaceCreateModelFromWorkspace(ws *kubefloworgv1beta1.Workspace) *Wor
 		}
 	}
 
+	secretMounts := make([]PodSecretMount, len(ws.Spec.PodTemplate.Volumes.Secrets))
+	for i, s := range ws.Spec.PodTemplate.Volumes.Secrets {
+		secretMounts[i] = PodSecretMount{
+			SecretName:  s.SecretName,
+			MountPath:   s.MountPath,
+			DefaultMode: s.DefaultMode,
+		}
+	}
+
 	workspaceCreateModel := &WorkspaceCreate{
 		Name:         ws.Name,
 		Kind:         ws.Spec.Kind,
@@ -55,8 +66,9 @@ func NewWorkspaceCreateModelFromWorkspace(ws *kubefloworgv1beta1.Workspace) *Wor
 				Annotations: podAnnotations,
 			},
 			Volumes: PodVolumesMutate{
-				Home: ws.Spec.PodTemplate.Volumes.Home,
-				Data: dataVolumes,
+				Home:    ws.Spec.PodTemplate.Volumes.Home,
+				Data:    dataVolumes,
+				Secrets: secretMounts,
 			},
 			Options: PodTemplateOptionsMutate{
 				ImageConfig: ws.Spec.PodTemplate.Options.ImageConfig,
@@ -91,7 +103,17 @@ func NewWorkspaceUpdateModelFromWorkspace(ws *kubefloworgv1beta1.Workspace) *Wor
 		}
 	}
 
+	secretMounts := make([]PodSecretMount, len(ws.Spec.PodTemplate.Volumes.Secrets))
+	for i, s := range ws.Spec.PodTemplate.Volumes.Secrets {
+		secretMounts[i] = PodSecretMount{
+			SecretName:  s.SecretName,
+			MountPath:   s.MountPath,
+			DefaultMode: s.DefaultMode,
+		}
+	}
+
 	workspaceUpdateModel := &WorkspaceUpdate{
+		Revision:     strconv.FormatInt(ws.Generation, 10),
 		Paused:       ptr.Deref(ws.Spec.Paused, false),
 		DeferUpdates: ptr.Deref(ws.Spec.DeferUpdates, false),
 		PodTemplate: PodTemplateMutate{
@@ -100,8 +122,9 @@ func NewWorkspaceUpdateModelFromWorkspace(ws *kubefloworgv1beta1.Workspace) *Wor
 				Annotations: podAnnotations,
 			},
 			Volumes: PodVolumesMutate{
-				Home: ws.Spec.PodTemplate.Volumes.Home,
-				Data: dataVolumes,
+				Home:    ws.Spec.PodTemplate.Volumes.Home,
+				Data:    dataVolumes,
+				Secrets: secretMounts,
 			},
 			Options: PodTemplateOptionsMutate{
 				ImageConfig: ws.Spec.PodTemplate.Options.ImageConfig,
