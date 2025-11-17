@@ -1,6 +1,10 @@
 {
   "name": "frontend",
   "version": "0.0.0",
+  "engines": {
+    "node": ">=24 <25",
+    "npm": ">=10"
+  },
   "type": "module",
   "scripts": {
     "ng": "ng",
@@ -64,7 +68,7 @@
     "@playwright/test": "~1.37.0",
     "@types/jasmine": "~3.6.0",
     "@types/jasminewd2": "^2.0.9",
-    "@types/node": "^12.11.1",
+    "@types/node": "^16.18.0",
     "@typescript-eslint/eslint-plugin": "4.28.2",
     "@typescript-eslint/parser": "4.28.2",
     "eslint": "^7.26.0",
