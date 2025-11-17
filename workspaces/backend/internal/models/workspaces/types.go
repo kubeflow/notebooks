@@ -16,9 +16,15 @@ limitations under the License.
 
 package workspaces
 
-// Workspace represents a workspace in the system, and is returned by GET and LIST operations.
-// NOTE: this type is not used for CREATE or UPDATE operations, see WorkspaceCreate
-type Workspace struct {
+import (
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
+)
+
+// WorkspaceListItem represents a workspace in the system, and is returned by LIST operations.
+// NOTE: this type is not used for GET, CREATE or UPDATE operations, see WorkspaceUpdate and WorkspaceCreate
+// TODO: we need to validate which fields should actually be returned in the response
+//   - should only be returning fields relevant to the list view in the UI
+type WorkspaceListItem struct {
 	Name           string            `json:"name"`
 	Namespace      string            `json:"namespace"`
 	WorkspaceKind  WorkspaceKindInfo `json:"workspaceKind"`
@@ -31,6 +37,7 @@ type Workspace struct {
 	PodTemplate    PodTemplate       `json:"podTemplate"`
 	Activity       Activity          `json:"activity"`
 	Services       []Service         `json:"services"`
+	Audit          common.Audit      `json:"audit"`
 }
 
 type WorkspaceState string
@@ -66,6 +73,7 @@ type PodMetadata struct {
 	Annotations map[string]string `json:"annotations"`
 }
 
+// TODO: determine proper use of omitempty for PodVolumes
 type PodVolumes struct {
 	Home    *PodVolumeInfo  `json:"home,omitempty"`
 	Data    []PodVolumeInfo `json:"data"`

@@ -36,6 +36,7 @@ var (
 	ErrWorkspaceNotFound           = fmt.Errorf("workspace not found")
 	ErrWorkspaceAlreadyExists      = fmt.Errorf("workspace already exists")
 	ErrWorkspaceInvalidState       = fmt.Errorf("workspace is in an invalid state for this operation")
+	ErrWorkspaceInvalidRevision    = fmt.Errorf("workspace revision must be a positive integer")
 	ErrWorkspaceGenerationConflict = fmt.Errorf("current workspace generation does not match request")
 )
 
@@ -49,33 +50,23 @@ func NewWorkspaceRepository(cl client.Client) *WorkspaceRepository {
 	}
 }
 
-func (r *WorkspaceRepository) GetWorkspace(ctx context.Context, namespace string, workspaceName string) (models.Workspace, error) {
+func (r *WorkspaceRepository) GetWorkspace(ctx context.Context, namespace string, workspaceName string) (*models.WorkspaceUpdate, error) {
 	// get workspace
 	workspace := &kubefloworgv1beta1.Workspace{}
 	if err := r.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: workspaceName}, workspace); err != nil {
 		if apierrors.IsNotFound(err) {
-			return models.Workspace{}, ErrWorkspaceNotFound
+			return nil, ErrWorkspaceNotFound
 		}
-		return models.Workspace{}, err
+		return nil, err
 	}
 
-	// get workspace kind, if it exists
-	workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
-	workspaceKindName := workspace.Spec.Kind
-	if err := r.client.Get(ctx, client.ObjectKey{Name: workspaceKindName}, workspaceKind); err != nil {
-		// ignore error if workspace kind does not exist, as we can still create a model without it
-		if !apierrors.IsNotFound(err) {
-			return models.Workspace{}, err
-		}
-	}
+	// convert workspace to WorkspaceUpdate model
+	workspaceUpdateModel := models.NewWorkspaceUpdateModelFromWorkspace(workspace)
 
-	// convert workspace to model
-	workspaceModel := models.NewWorkspaceModelFromWorkspace(workspace, workspaceKind)
-
-	return workspaceModel, nil
+	return workspaceUpdateModel, nil
 }
 
-func (r *WorkspaceRepository) GetWorkspaces(ctx context.Context, namespace string) ([]models.Workspace, error) {
+func (r *WorkspaceRepository) GetWorkspaces(ctx context.Context, namespace string) ([]models.WorkspaceListItem, error) {
 	// get all workspaces in the namespace
 	workspaceList := &kubefloworgv1beta1.WorkspaceList{}
 	listOptions := []client.ListOption{
@@ -87,7 +78,7 @@ func (r *WorkspaceRepository) GetWorkspaces(ctx context.Context, namespace strin
 	}
 
 	// convert workspaces to models
-	workspacesModels := make([]models.Workspace, len(workspaceList.Items))
+	workspacesModels := make([]models.WorkspaceListItem, len(workspaceList.Items))
 	for i, workspace := range workspaceList.Items {
 
 		// get workspace kind, if it exists
@@ -100,13 +91,13 @@ func (r *WorkspaceRepository) GetWorkspaces(ctx context.Context, namespace strin
 			}
 		}
 
-		workspacesModels[i] = models.NewWorkspaceModelFromWorkspace(&workspace, workspaceKind)
+		workspacesModels[i] = models.NewWorkspaceListItemFromWorkspace(&workspace, workspaceKind)
 	}
 
 	return workspacesModels, nil
 }
 
-func (r *WorkspaceRepository) GetAllWorkspaces(ctx context.Context) ([]models.Workspace, error) {
+func (r *WorkspaceRepository) GetAllWorkspaces(ctx context.Context) ([]models.WorkspaceListItem, error) {
 	// get all workspaces in the cluster
 	workspaceList := &kubefloworgv1beta1.WorkspaceList{}
 	if err := r.client.List(ctx, workspaceList); err != nil {
@@ -114,7 +105,7 @@ func (r *WorkspaceRepository) GetAllWorkspaces(ctx context.Context) ([]models.Wo
 	}
 
 	// convert workspaces to models
-	workspacesModels := make([]models.Workspace, len(workspaceList.Items))
+	workspacesModels := make([]models.WorkspaceListItem, len(workspaceList.Items))
 	for i, workspace := range workspaceList.Items {
 
 		// get workspace kind, if it exists
@@ -127,7 +118,7 @@ func (r *WorkspaceRepository) GetAllWorkspaces(ctx context.Context) ([]models.Wo
 			}
 		}
 
-		workspacesModels[i] = models.NewWorkspaceModelFromWorkspace(&workspace, workspaceKind)
+		workspacesModels[i] = models.NewWorkspaceListItemFromWorkspace(&workspace, workspaceKind)
 	}
 
 	return workspacesModels, nil
@@ -204,17 +195,35 @@ func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, workspaceCrea
 }
 
 func (r *WorkspaceRepository) UpdateWorkspace(ctx context.Context, workspaceUpdate *models.WorkspaceUpdate, namespace, workspaceName string) (*models.WorkspaceUpdate, error) {
+	// get workspace
+	workspace := &kubefloworgv1beta1.Workspace{}
+	if err := r.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: workspaceName}, workspace); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, ErrWorkspaceNotFound
+		}
+		return nil, err
+	}
+
+	// calculate current revision: sha256(<.metadata.uid>:<.metadata.name>:<.metadata.generation>)
+	currentRevision := models.CalculateWorkspaceRevision(workspace)
+
+	// compare with provided revision
+	if workspaceUpdate.Revision != currentRevision {
+		return nil, ErrWorkspaceGenerationConflict
+	}
+
+	// TODO: implement update logic
+	//   1. Return ErrWorkspaceGenerationConflict if mismatch
+	//       - (?? does this mean we should avoid the cache when getting the current workspace)
+	//       - (?? what information should we return to the caller if conflict is detected)
+	//   2. Apply updates to workspace.Spec (Paused, DeferUpdates, PodTemplate)
+	//   3. Update workspace in Kubernetes
 	//
-	// TODO: implement update logic,
-	//
-	// TODO: conflict detection based on generation
-	//       make sure to raise `ErrWorkspaceGenerationConflict` which is handled by the caller
-	//       (?? does this mean we should avoid the cache when getting the current workspace)
-	//
-	//
-	// TODO: ensure we raise ErrWorkspaceNotFound if the workspace does not exist (and handle by calkler)
-	//
-	return nil, fmt.Errorf("update workspace not implemented yet")
+
+	// convert workspace to WorkspaceUpdate model
+	workspaceUpdateModel := models.NewWorkspaceUpdateModelFromWorkspace(workspace)
+
+	return workspaceUpdateModel, nil
 }
 
 func (r *WorkspaceRepository) DeleteWorkspace(ctx context.Context, namespace, workspaceName string) error {

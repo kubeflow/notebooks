@@ -17,71 +17,73 @@ limitations under the License.
 package workspaces
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
+
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"k8s.io/utils/ptr"
 )
 
 // NewWorkspaceCreateModelFromWorkspace creates WorkspaceCreate model from a Workspace object.
 func NewWorkspaceCreateModelFromWorkspace(ws *kubefloworgv1beta1.Workspace) *WorkspaceCreate {
-	podLabels := make(map[string]string)
-	podAnnotations := make(map[string]string)
-	if ws.Spec.PodTemplate.PodMetadata != nil {
-		// NOTE: we copy the maps to avoid creating a reference to the original maps.
-		for k, v := range ws.Spec.PodTemplate.PodMetadata.Labels {
-			podLabels[k] = v
-		}
-		for k, v := range ws.Spec.PodTemplate.PodMetadata.Annotations {
-			podAnnotations[k] = v
-		}
-	}
-
-	dataVolumes := make([]PodVolumeMount, len(ws.Spec.PodTemplate.Volumes.Data))
-	for i, v := range ws.Spec.PodTemplate.Volumes.Data {
-		dataVolumes[i] = PodVolumeMount{
-			PVCName:   v.PVCName,
-			MountPath: v.MountPath,
-			ReadOnly:  ptr.Deref(v.ReadOnly, false),
-		}
-	}
-
-	workspaceCreateModel := &WorkspaceCreate{
+	return &WorkspaceCreate{
 		Name:         ws.Name,
 		Kind:         ws.Spec.Kind,
 		Paused:       ptr.Deref(ws.Spec.Paused, false),
 		DeferUpdates: ptr.Deref(ws.Spec.DeferUpdates, false),
-		PodTemplate: PodTemplateMutate{
-			PodMetadata: PodMetadataMutate{
-				Labels:      podLabels,
-				Annotations: podAnnotations,
-			},
-			Volumes: PodVolumesMutate{
-				Home: ws.Spec.PodTemplate.Volumes.Home,
-				Data: dataVolumes,
-			},
-			Options: PodTemplateOptionsMutate{
-				ImageConfig: ws.Spec.PodTemplate.Options.ImageConfig,
-				PodConfig:   ws.Spec.PodTemplate.Options.PodConfig,
-			},
-		},
+		PodTemplate:  buildPodTemplateMutate(ws),
 	}
-
-	return workspaceCreateModel
 }
 
 // NewWorkspaceUpdateModelFromWorkspace creates WorkspaceUpdate model from a Workspace object.
 func NewWorkspaceUpdateModelFromWorkspace(ws *kubefloworgv1beta1.Workspace) *WorkspaceUpdate {
-	podLabels := make(map[string]string)
-	podAnnotations := make(map[string]string)
+	return &WorkspaceUpdate{
+		Revision:     CalculateWorkspaceRevision(ws),
+		Paused:       ptr.Deref(ws.Spec.Paused, false),
+		DeferUpdates: ptr.Deref(ws.Spec.DeferUpdates, false),
+		PodTemplate:  buildPodTemplateMutate(ws),
+	}
+}
+
+// buildPodTemplateMutate constructs a PodTemplateMutate from a Workspace spec.
+func buildPodTemplateMutate(ws *kubefloworgv1beta1.Workspace) PodTemplateMutate {
+	podLabels, podAnnotations := extractPodMetadata(ws)
+	return PodTemplateMutate{
+		PodMetadata: PodMetadataMutate{
+			Labels:      podLabels,
+			Annotations: podAnnotations,
+		},
+		Volumes: PodVolumesMutate{
+			Home:    ws.Spec.PodTemplate.Volumes.Home,
+			Data:    extractDataVolumes(ws),
+			Secrets: extractSecretMounts(ws),
+		},
+		Options: PodTemplateOptionsMutate{
+			ImageConfig: ws.Spec.PodTemplate.Options.ImageConfig,
+			PodConfig:   ws.Spec.PodTemplate.Options.PodConfig,
+		},
+	}
+}
+
+// extractPodMetadata extracts and copies pod labels and annotations from a Workspace spec.
+// Returns copies of the maps to avoid creating references to the original maps.
+func extractPodMetadata(ws *kubefloworgv1beta1.Workspace) (labels map[string]string, annotations map[string]string) {
+	labels = make(map[string]string)
+	annotations = make(map[string]string)
 	if ws.Spec.PodTemplate.PodMetadata != nil {
-		// NOTE: we copy the maps to avoid creating a reference to the original maps.
 		for k, v := range ws.Spec.PodTemplate.PodMetadata.Labels {
-			podLabels[k] = v
+			labels[k] = v
 		}
 		for k, v := range ws.Spec.PodTemplate.PodMetadata.Annotations {
-			podAnnotations[k] = v
+			annotations[k] = v
 		}
 	}
+	return labels, annotations
+}
 
+// extractDataVolumes converts workspace data volumes to PodVolumeMount slice.
+func extractDataVolumes(ws *kubefloworgv1beta1.Workspace) []PodVolumeMount {
 	dataVolumes := make([]PodVolumeMount, len(ws.Spec.PodTemplate.Volumes.Data))
 	for i, v := range ws.Spec.PodTemplate.Volumes.Data {
 		dataVolumes[i] = PodVolumeMount{
@@ -90,25 +92,28 @@ func NewWorkspaceUpdateModelFromWorkspace(ws *kubefloworgv1beta1.Workspace) *Wor
 			ReadOnly:  ptr.Deref(v.ReadOnly, false),
 		}
 	}
+	return dataVolumes
+}
 
-	workspaceUpdateModel := &WorkspaceUpdate{
-		Paused:       ptr.Deref(ws.Spec.Paused, false),
-		DeferUpdates: ptr.Deref(ws.Spec.DeferUpdates, false),
-		PodTemplate: PodTemplateMutate{
-			PodMetadata: PodMetadataMutate{
-				Labels:      podLabels,
-				Annotations: podAnnotations,
-			},
-			Volumes: PodVolumesMutate{
-				Home: ws.Spec.PodTemplate.Volumes.Home,
-				Data: dataVolumes,
-			},
-			Options: PodTemplateOptionsMutate{
-				ImageConfig: ws.Spec.PodTemplate.Options.ImageConfig,
-				PodConfig:   ws.Spec.PodTemplate.Options.PodConfig,
-			},
-		},
+// extractSecretMounts converts workspace secret volumes to PodSecretMount slice.
+func extractSecretMounts(ws *kubefloworgv1beta1.Workspace) []PodSecretMount {
+	secretMounts := make([]PodSecretMount, len(ws.Spec.PodTemplate.Volumes.Secrets))
+	for i, s := range ws.Spec.PodTemplate.Volumes.Secrets {
+		secretMounts[i] = PodSecretMount{
+			SecretName:  s.SecretName,
+			MountPath:   s.MountPath,
+			DefaultMode: s.DefaultMode,
+		}
 	}
+	return secretMounts
+}
 
-	return workspaceUpdateModel
+// CalculateWorkspaceRevision calculates the revision token for a workspace.
+// The revision is a sha256 hash of the format: <.metadata.uid>:<.metadata.name>:<.metadata.generation>
+// This ensures that the revision changes not only when the generation changes, but also guarantees
+// that the resource itself is the same (via UID and name).
+func CalculateWorkspaceRevision(workspace *kubefloworgv1beta1.Workspace) string {
+	revisionInput := fmt.Sprintf("%s:%s:%d", workspace.UID, workspace.Name, workspace.Generation)
+	hash := sha256.Sum256([]byte(revisionInput))
+	return hex.EncodeToString(hash[:])
 }
