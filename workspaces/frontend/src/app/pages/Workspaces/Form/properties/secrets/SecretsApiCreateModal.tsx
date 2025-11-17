@@ -1,0 +1,277 @@
+import React, { useCallback, useState } from 'react';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
+import { Divider } from '@patternfly/react-core/dist/esm/components/Divider';
+import { Form } from '@patternfly/react-core/dist/esm/components/Form';
+import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
+import {
+  Modal,
+  ModalVariant,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+} from '@patternfly/react-core/dist/esm/components/Modal';
+import { Alert, AlertVariant } from '@patternfly/react-core/dist/esm/components/Alert';
+import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
+import { useThemeContext } from 'mod-arch-kubeflow';
+import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
+import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
+import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
+import SecretKeyValuePairInput from './SecretKeyValuePairInput';
+
+interface SecretKeyValuePair {
+  key: string;
+  value: string;
+}
+
+interface SecretsApiCreateModalProps {
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
+  onSecretCreated?: () => void;
+}
+
+const EMPTY_KEY_VALUE_PAIR: SecretKeyValuePair = { key: '', value: '' };
+
+// DNS-1123 subdomain regex - lowercase alphanumeric, hyphens, dots
+// Must start and end with alphanumeric, max 253 chars
+const SECRET_NAME_REGEX = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/;
+
+// ConfigMap key regex - alphanumeric, hyphens, underscores, dots
+const CONFIG_MAP_KEY_REGEX = /^[-._a-zA-Z0-9]+$/;
+
+export const SecretsApiCreateModal: React.FC<SecretsApiCreateModalProps> = ({
+  isOpen,
+  setIsOpen,
+  onSecretCreated,
+}) => {
+  const { api } = useNotebookAPI();
+  const { selectedNamespace } = useNamespaceContext();
+
+  const [secretName, setSecretName] = useState('');
+  const [keyValuePairs, setKeyValuePairs] = useState<SecretKeyValuePair[]>([EMPTY_KEY_VALUE_PAIR]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const validateSecretName = useCallback((name: string): string | null => {
+    if (!name) {
+      return 'Secret name is required';
+    }
+    if (name.length > 253) {
+      return 'Secret name must be at most 253 characters';
+    }
+    if (!SECRET_NAME_REGEX.test(name)) {
+      return 'Secret name must consist of lower case alphanumeric characters, hyphens, or dots, and must start and end with an alphanumeric character';
+    }
+    return null;
+  }, []);
+
+  const validateKey = useCallback((key: string): string | null => {
+    if (!key) {
+      return 'Key is required';
+    }
+    if (!CONFIG_MAP_KEY_REGEX.test(key)) {
+      return 'Key must consist of alphanumeric characters, hyphens, underscores, or dots';
+    }
+    return null;
+  }, []);
+
+  const validateForm = useCallback((): string | null => {
+    const nameError = validateSecretName(secretName);
+    if (nameError) {
+      return nameError;
+    }
+
+    for (let i = 0; i < keyValuePairs.length; i++) {
+      const pair = keyValuePairs[i];
+      const keyError = validateKey(pair.key);
+      if (keyError) {
+        return `${keyError} (pair ${i + 1})`;
+      }
+      if (!pair.value) {
+        return `Value is required (pair ${i + 1})`;
+      }
+    }
+
+    // Check for duplicate keys
+    const keys = keyValuePairs.map((p) => p.key);
+    const uniqueKeys = new Set(keys);
+    if (keys.length !== uniqueKeys.size) {
+      return 'Duplicate keys are not allowed';
+    }
+
+    return null;
+  }, [secretName, keyValuePairs, validateSecretName, validateKey]);
+
+  const updateArrayValue = useCallback(
+    (index: number, updates: Partial<SecretKeyValuePair>) => {
+      const updated = [...keyValuePairs];
+      updated[index] = { ...updated[index], ...updates };
+      setKeyValuePairs(updated);
+    },
+    [keyValuePairs],
+  );
+
+  const removeArrayItem = useCallback(
+    (index: number) => {
+      setKeyValuePairs(keyValuePairs.filter((_, i) => i !== index));
+    },
+    [keyValuePairs],
+  );
+
+  const handleAddKeyValuePair = useCallback(() => {
+    setKeyValuePairs([...keyValuePairs, EMPTY_KEY_VALUE_PAIR]);
+  }, [keyValuePairs]);
+
+  const handleSubmit = useCallback(async () => {
+    console.log('🔍 [DEBUG] handleSubmit called');
+    console.log('🔍 [DEBUG] Secret name:', secretName);
+    console.log('🔍 [DEBUG] Key-value pairs:', keyValuePairs);
+    console.log('🔍 [DEBUG] Selected namespace:', selectedNamespace);
+
+    const validationError = validateForm();
+    if (validationError) {
+      console.log('❌ [DEBUG] Validation failed:', validationError);
+      setError(validationError);
+      return;
+    }
+
+    console.log('✅ [DEBUG] Validation passed, submitting...');
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      // Convert key-value pairs to the API format with base64 encoding
+      const contents: Record<string, { base64?: string }> = {};
+      keyValuePairs.forEach((pair) => {
+        // Base64 encode the value
+        const base64Value = btoa(pair.value);
+        contents[pair.key] = { base64: base64Value };
+      });
+
+      const payload = {
+        data: {
+          name: secretName,
+          type: 'Opaque',
+          immutable: false,
+          contents,
+        },
+      };
+
+      console.log('📤 [DEBUG] Sending POST request with payload:', payload);
+
+      const response = await api.secrets.createSecret(selectedNamespace, payload);
+
+      console.log('✅ [DEBUG] Secret created successfully:', response);
+
+      // Reset form
+      setSecretName('');
+      setKeyValuePairs([EMPTY_KEY_VALUE_PAIR]);
+      setIsOpen(false);
+
+      // Notify parent to refresh secrets list
+      if (onSecretCreated) {
+        onSecretCreated();
+      }
+    } catch (err) {
+      console.error('❌ [DEBUG] Failed to create secret:', err);
+      console.error('❌ [DEBUG] Error details:', {
+        message: err instanceof Error ? err.message : 'Unknown error',
+        stack: err instanceof Error ? err.stack : undefined,
+        fullError: err,
+      });
+      setError(err instanceof Error ? err.message : 'Failed to create secret. Please try again.');
+    } finally {
+      console.log('🏁 [DEBUG] handleSubmit finished, isSubmitting set to false');
+      setIsSubmitting(false);
+    }
+  }, [
+    validateForm,
+    keyValuePairs,
+    api.secrets,
+    selectedNamespace,
+    secretName,
+    setIsOpen,
+    onSecretCreated,
+  ]);
+
+  const handleClose = useCallback(() => {
+    setSecretName('');
+    setKeyValuePairs([EMPTY_KEY_VALUE_PAIR]);
+    setError(null);
+    setIsOpen(false);
+  }, [setIsOpen]);
+
+  const { isMUITheme } = useThemeContext();
+
+  return (
+    <Modal
+      variant={ModalVariant.medium}
+      isOpen={isOpen}
+      onClose={handleClose}
+      aria-labelledby="create-secret-modal-title"
+    >
+      <ModalHeader title="Create Secret" labelId="create-secret-modal-title" />
+      <ModalBody>
+        {error && (
+          <Alert variant={AlertVariant.danger} isInline title="Error">
+            {error}
+          </Alert>
+        )}
+        <Form>
+          <ThemeAwareFormGroupWrapper label="Secret name" isRequired fieldId="secret-name">
+            <TextInput
+              id="secret-name"
+              data-testid="secret-name-input"
+              isRequired
+              value={secretName}
+              onChange={(_event, value) => setSecretName(value)}
+              aria-label="Secret name"
+            />
+          </ThemeAwareFormGroupWrapper>
+          {keyValuePairs.map(({ key, value }, i) => (
+            <React.Fragment key={i}>
+              <SecretKeyValuePairInput
+                index={i}
+                keyValue={key}
+                valueValue={value}
+                onKeyChange={(updatedKey) => updateArrayValue(i, { key: updatedKey })}
+                onValueChange={(updatedValue) => updateArrayValue(i, { value: updatedValue })}
+                onRemove={() => removeArrayItem(i)}
+                canRemove={keyValuePairs.length > 1}
+              />
+              {i !== keyValuePairs.length - 1 && (
+                <Divider className={isMUITheme ? 'pf-v6-u-mt-md' : ''} />
+              )}
+            </React.Fragment>
+          ))}
+          <Button
+            variant="link"
+            data-testid="another-key-value-pair-button"
+            isInline
+            icon={<PlusCircleIcon />}
+            className={isMUITheme ? 'pf-v6-u-mt-md' : ''}
+            iconPosition="left"
+            onClick={handleAddKeyValuePair}
+          >
+            Add another key / value pair
+          </Button>
+        </Form>
+      </ModalBody>
+      <ModalFooter>
+        <Button
+          key="create"
+          variant="primary"
+          onClick={handleSubmit}
+          isLoading={isSubmitting}
+          isDisabled={isSubmitting}
+        >
+          Create
+        </Button>
+        <Button key="cancel" variant="link" onClick={handleClose} isDisabled={isSubmitting}>
+          Cancel
+        </Button>
+      </ModalFooter>
+    </Modal>
+  );
+};
+
+export default SecretsApiCreateModal;
