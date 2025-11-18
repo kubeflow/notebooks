@@ -6,6 +6,7 @@ import {
   mockNamespaces,
   mockWorkspaceCreate,
   mockSecretCreate,
+  mockSecretCreate3,
   mockSecretsList,
   mockWorkspaceKind1,
   mockWorkspaceKinds,
@@ -118,8 +119,8 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
       data: mockSecretCreate,
     }),
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    getSecret: async () => ({
-      data: mockSecretCreate,
+    getSecret: async (_, name) => ({
+      data: name === 'secret-3' ? mockSecretCreate3 : mockSecretCreate,
     }),
     updateSecret: async () => ({
       data: mockSecretCreate,

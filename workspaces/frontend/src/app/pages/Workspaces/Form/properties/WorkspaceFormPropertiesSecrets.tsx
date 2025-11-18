@@ -23,6 +23,7 @@ import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
 import { SecretsCreateModal } from './secrets/SecretsCreateModal';
 import { SecretsAttachModal } from './secrets/SecretsAttachModal';
+import { SecretsViewPopover } from './secrets/SecretsViewPopover';
 
 interface WorkspaceFormPropertiesSecretsProps {
   secrets: WorkspacesPodSecretMount[];
@@ -134,7 +135,9 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
           <Tbody>
             {secrets.map((secret, index) => (
               <Tr key={index}>
-                <Td>{secret.secretName}</Td>
+                <Td>
+                  {secret.secretName} <SecretsViewPopover secretName={secret.secretName} />
+                </Td>
                 <Td>{secret.mountPath}</Td>
                 <Td>{secret.defaultMode?.toString(8) ?? '644'}</Td>
                 <Td isActionCell>
