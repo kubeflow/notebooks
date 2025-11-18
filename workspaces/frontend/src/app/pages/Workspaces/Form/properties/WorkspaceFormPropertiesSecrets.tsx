@@ -23,6 +23,7 @@ import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
 import { SecretsAttachModal } from './secrets/SecretsAttachModal';
 import { SecretsCreateModal } from './secrets/SecretsCreateModal';
+import { SecretsViewPopover } from './secrets/SecretsViewPopover';
 
 interface WorkspaceFormPropertiesSecretsProps {
   secrets: WorkspacesPodSecretMount[];
@@ -48,7 +49,6 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
   const [attachedSecrets, setAttachedSecrets] = useState<WorkspacesPodSecretMount[]>([]);
   const [attachedMountPath, setAttachedMountPath] = useState('');
   const [attachedDefaultMode, setAttachedDefaultMode] = useState(DEFAULT_MODE_OCTAL);
-
   const { api } = useNotebookAPI();
   const { selectedNamespace } = useNamespaceContext();
 
@@ -157,6 +157,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
               <Th>Secret Name</Th>
               <Th>Mount Path</Th>
               <Th>Default Mode</Th>
+              <Th aria-label="View Secret" />
               <Th aria-label="Actions" />
             </Tr>
           </Thead>
@@ -166,6 +167,9 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
                 <Td>{secret.secretName}</Td>
                 <Td>{secret.mountPath}</Td>
                 <Td>{secret.defaultMode?.toString(8) ?? DEFAULT_MODE_OCTAL}</Td>
+                <Td isActionCell>
+                  <SecretsViewPopover secretName={secret.secretName} />
+                </Td>
                 <Td isActionCell>
                   <Dropdown
                     toggle={(toggleRef) => (
@@ -223,6 +227,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
         onSubmit={handleCreateOrEditSubmit}
         editSecret={editingSecret}
       />
+
       <Modal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}

@@ -179,9 +179,18 @@ export const mockSecretCreate: SecretsSecretCreate = {
   type: 'Opaque',
   immutable: false,
   contents: {
-    data: {
-      base64: 'abcd',
-    },
+    username: {},
+    password: {},
+  },
+};
+
+export const mockSecretCreate3: SecretsSecretCreate = {
+  name: 'secret-3',
+  type: 'Opaque',
+  immutable: false,
+  contents: {
+    apiKey: {},
+    apiSecret: {},
   },
 };
 
@@ -192,5 +201,8 @@ export const mockSecretsList = [
   buildMockSecret({
     name: 'secret-2',
     canMount: false,
+  }),
+  buildMockSecret({
+    name: 'secret-3',
   }),
 ];
