@@ -43,9 +43,9 @@ node --version
 npm --version
 ```
 
-### Install Kind (Optional)
+### Install Kind
 
-**Note**: Tilt will automatically create a Kind cluster named `tilt` if it doesn't exist. However, you still need to have `kind` installed.
+**Note**: The Makefile will automatically create a Kind cluster named `tilt` if it doesn't exist. However, you still need to have `kind` installed.
 
 ```bash
 # macOS
@@ -54,21 +54,38 @@ brew install kind
 # Or follow instructions at: https://kind.sigs.k8s.io/docs/user/quick-start/#installation
 ```
 
-**Alternative**: If you prefer to use a different Kubernetes cluster (Docker Desktop, Minikube, etc.), you can skip Kind installation. Just ensure your cluster is running and `kubectl` is configured to use it. Tilt will detect and use your current `kubectl` context.
+
+### Using Kind Provider (Optional)
+
+You can choose to set the `KIND_EXPERIMENTAL_PROVIDER` environment variable in your shell session:
+
+```bash
+export KIND_EXPERIMENTAL_PROVIDER=podman
+```
+
+The Makefile will honor this environment variable when creating the Kind cluster.
 
 ## Quick Start
 
 1. **Navigate to the developing directory**:
    ```bash
-   cd workspaces/developing
+   cd developing
    ```
 
-2. **Start Tilt**:
+2. **Start Tilt using the Makefile**:
    ```bash
-   tilt up
+   make tilt
    ```
+
+   **Important**: Always use `make tilt` instead of running `tilt up` directly. The Makefile ensures:
+   - The Kind cluster exists and is properly configured
+   - The Kubernetes context is switched to `kind-tilt`
+   - Cert-manager is installed (required for webhooks)
+   - All prerequisites are met before Tilt starts
 
    This will:
+   - Set up the Kind cluster (if it doesn't exist)
+   - Install cert-manager
    - Open the Tilt UI in your browser (usually http://localhost:10350)
    - Build the controller and backend Docker images
    - Deploy them to your Kubernetes cluster
@@ -80,21 +97,19 @@ brew install kind
 
    Watch the Tilt UI in your browser. You should see:
 
-   1. **Setup Resources** (one-time setup):
-      - `setup-kind` - Creating/verifying Kind cluster (if using Kind)
-      - `setup-cert-manager` - Installing cert-manager (required for webhooks)
-      - `install-crds` - Installing CRDs
-
-   2. **Local Resources**:
+   1. **Local Resources**:
       - `controller-generate` - Generating manifests and code
+      - `install-crds` - Installing CRDs
       - `workspaces-frontend` - Running webpack dev server (if enabled)
 
-   3. **Docker Resources** (building images):
+   2. **Docker Resources** (building images):
       - `workspaces-controller`
       - `workspaces-backend`
 
-   4. **Kubernetes Resources** (deploying):
+   3. **Kubernetes Resources** (deploying):
       - Deployments, Services, etc.
+
+   **Note**: The Kind cluster and cert-manager setup are handled by the Makefile before Tilt starts, so you won't see those as Tilt resources.
 
    Wait until all resources show green/healthy status.
 
@@ -107,6 +122,8 @@ brew install kind
    ```bash
    # In the terminal where Tilt is running, press Ctrl+C
    # Or in another terminal:
+   make tilt-down
+   # Or:
    tilt down
    ```
 
@@ -128,12 +145,22 @@ kind delete cluster --name tilt
 
 ## Configuration
 
+### Makefile Targets
+
+The Makefile provides several targets for managing your development environment:
+
+- `make tilt` or `make` - Set up Kind cluster, install cert-manager, and start Tilt
+- `make tilt-up` - Alias for `make tilt`
+- `make tilt-down` - Stop Tilt
+- `make setup-kind` - Set up the Kind cluster only (without starting Tilt)
+- `make setup-cert-manager` - Install cert-manager only (requires Kind cluster)
+
 ### Skipping Frontend
 
 To run Tilt without the frontend (useful for backend/controller-only development):
 
 ```bash
-ENABLE_FRONTEND=false tilt up
+ENABLE_FRONTEND=false make tilt
 ```
 
 ### Custom Ports
@@ -206,21 +233,32 @@ export DOCKER_BUILDKIT=0
 
 ### Kubernetes Connection Issues
 
-Ensure:
-- `kubectl` is configured correctly (`kubectl cluster-info`)
-- Your cluster is running and accessible
-- You have permissions to create resources in the `kubeflow-workspaces` namespace
+The Makefile automatically handles context switching to `kind-tilt`. If you encounter issues:
 
-```bash
-# Verify cluster is accessible
-kubectl cluster-info
+1. **Verify the Kind cluster exists**:
+   ```bash
+   kind get clusters
+   ```
 
-# Check current context
-kubectl config current-context
+2. **Check the current context**:
+   ```bash
+   kubectl config current-context
+   # Should be: kind-tilt
+   ```
 
-# List available contexts
-kubectl config get-contexts
-```
+3. **If context is wrong, manually switch**:
+   ```bash
+   kubectl config use-context kind-tilt
+   ```
+
+4. **Verify cluster is accessible**:
+   ```bash
+   kubectl cluster-info
+   ```
+
+5. **Ensure you have permissions** to create resources in the `kubeflow-workspaces` namespace
+
+**Note**: If you're running `tilt up` directly (not via `make tilt`), you may be on the wrong Kubernetes context. Always use `make tilt` to ensure the correct context is set.
 
 ### Port Already in Use
 
@@ -262,5 +300,6 @@ Also check that you have cluster-admin permissions or appropriate RBAC.
    - Node modules: `npm ci` in frontend
 
 3. **Clean up resources**:
-   - Always run `tilt down` when done
+   - Always run `make tilt-down` (or `tilt down`) when done
    - Optionally: `kubectl delete namespace kubeflow-workspaces`
+   - Optionally: `kind delete cluster --name tilt` to remove the Kind cluster

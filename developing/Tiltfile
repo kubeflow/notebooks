@@ -10,6 +10,8 @@ version_settings(check_updates=True, constraint=">=0.33.0")
 # Increase timeout for k8s operations
 update_settings(k8s_upsert_timeout_secs=120)
 
+# Allow kind-tilt context (set up by Makefile before tilt runs)
+allow_k8s_contexts('kind-tilt')
 
 # Allow skipping frontend via environment variable
 enable_frontend = os.getenv("ENABLE_FRONTEND", "true").lower() == "true"
@@ -17,13 +19,16 @@ enable_frontend = os.getenv("ENABLE_FRONTEND", "true").lower() == "true"
 # Get paths relative to Tiltfile location
 # Tilt evaluates paths relative to the Tiltfile directory
 tilt_root = os.path.dirname(os.path.abspath(__file__))
-# Go up 2 levels from Tiltfile location: developing -> workspaces -> repo root
-workspace_root = os.path.dirname(os.path.dirname(tilt_root))
+# Go up 1 level from Tiltfile location: developing -> repo root
+workspace_root = os.path.dirname(tilt_root)
 
 # Define paths relative to workspace root
 controller_dir = os.path.join(workspace_root, "workspaces/controller")
 backend_dir = os.path.join(workspace_root, "workspaces/backend")
 frontend_dir = os.path.join(workspace_root, "workspaces/frontend")
+
+# Kustomize binary path (installed by Makefile)
+kustomize_bin = os.path.join(tilt_root, "bin/kustomize")
 
 
 # Exclude generated files/directories from file watching to prevent rebuild loops
@@ -32,12 +37,15 @@ frontend_dir = os.path.join(workspace_root, "workspaces/frontend")
 watch_settings(
     ignore=[
         # Controller generated files
+        os.path.join(controller_dir, "bin/**"),
         os.path.join(controller_dir, "**/zz_generated.*"),
         os.path.join(controller_dir, "config/crd/**"),
         os.path.join(controller_dir, "config/webhook/manifests.yaml"),
         # Backend generated files
+        os.path.join(backend_dir, "bin/**"),
         os.path.join(backend_dir, "openapi/**"),
         # Frontend generated files
+        os.path.join(frontend_dir, "bin/**"),
         os.path.join(frontend_dir, "src/generated/**"),
     ],
 )
@@ -45,58 +53,10 @@ watch_settings(
 
 
 # ============================================================================
-# Setup Resources (must run first)
-# ============================================================================
-
-# Kind Cluster Setup - must be first, no dependencies
-local_resource(
-    "setup-kind",
-    cmd=os.path.join(tilt_root, "scripts/setup-kind.sh"),
-    labels=["setup"],
-    resource_deps=[],
-    allow_parallel=False,
-)
-
-# Cert-Manager Installation - depends on Kind cluster
-local_resource(
-    "setup-cert-manager",
-    cmd=os.path.join(tilt_root, "scripts/setup-cert-manager.sh"),
-    labels=["setup"],
-    resource_deps=["setup-kind"],
-    allow_parallel=False,
-)
-
-# ============================================================================
 # Controller
 # ============================================================================
+# Note: Kind cluster and cert-manager are set up by the Makefile before Tilt starts
 
-# Generate manifests and code (needed before Docker build)
-# Note: Skip 'fmt' step to prevent infinite rebuild loops (fmt modifies files in place)
-local_resource(
-    "controller-generate",
-    cmd="cd {} && make build".format(controller_dir),
-    deps=[
-        os.path.join(controller_dir, "cmd"),
-        os.path.join(controller_dir, "api"),
-        os.path.join(controller_dir, "internal"),
-        os.path.join(controller_dir, "go.mod"),
-        os.path.join(controller_dir, "go.sum"),
-    ],
-    ignore=["bin/", "**/zz_generated.*", "**/config/crd/**"],
-    labels=["controller"],
-)
-
-# CRDs Installation - depends on cert-manager and controller generate
-# Runs after controller-generate to ensure we install the latest generated CRDs
-# Note: No deps parameter - we don't want to watch for file changes since both
-# controller-generate and install-crds run manifests which would create a loop
-local_resource(
-    "install-crds",
-    cmd="cd {} && make install".format(controller_dir),
-    labels=["controller"],
-    resource_deps=["setup-cert-manager", "controller-generate"],
-    allow_parallel=False,
-)
 
 # Docker build for controller using production Dockerfile
 # The production Dockerfile builds the binary inside Docker, avoiding .dockerignore issues
@@ -109,13 +69,10 @@ docker_build(
 )
 
 # K8s deployment for controller - use kustomize to build and preprocess YAMLs
-# Note: kustomize needs to be available (installed via controller Makefile)
-# Note: cert-manager must be installed before deploying (handled by setup-cert-manager)
-controller_kustomize_path = "config/default"
+controller_kustomize_path = os.path.join(controller_dir, "config/default")
 
-# Build manifests with kustomize
-manifests = local("cd {} && make -C {} kustomize && {}/bin/kustomize build {}".format(
-    controller_dir, controller_dir, controller_dir, controller_kustomize_path))
+# Build manifests with kustomize (using kustomize binary from Makefile)
+manifests = kustomize(controller_kustomize_path, kustomize_bin=kustomize_bin)
 
 # Decode YAMLs to modify them for development
 objects = decode_yaml_stream(manifests)
@@ -152,7 +109,6 @@ k8s_yaml(overridden_manifests)
 k8s_resource(
     "workspaces-controller",
     port_forwards=["8080:8080", "8081:8081"],  # metrics and health probe
-    resource_deps=["controller-generate", "setup-cert-manager", "install-crds"],
     labels=["controller"],
 )
 
@@ -168,12 +124,10 @@ docker_build(
 )
 
 # K8s deployment for backend - use kustomize to build
-# Note: kustomize needs to be available (installed via backend Makefile)
 # allow_duplicates=True because namespace is already defined by controller
-backend_kustomize_path = "manifests/kustomize/base"
+backend_kustomize_path = os.path.join(backend_dir, "manifests/kustomize/base")
 k8s_yaml(
-    local("cd {} && make -C {} kustomize && {}/bin/kustomize build {}".format(
-        backend_dir, backend_dir, backend_dir, backend_kustomize_path)),
+    kustomize(backend_kustomize_path, kustomize_bin=kustomize_bin),
     allow_duplicates=True,
 )
 
@@ -194,10 +148,10 @@ k8s_resource(
 if enable_frontend:
     # Run frontend as local resource using webpack dev server
     # This enables hot-reloading and faster development iteration
-    # Uses the start:tilt script which sets TILT_ENV=true to load .env.tilt
+    # Uses the start:tilt script which sets DEV_ENV=tilt to load .env.tilt
     # Frontend will be available at http://localhost:9000
     # Note: This is a long-running process, so it will show as "Updating" in Tilt UI
-    # Other resources don't need to wait for it (frontend proxies to backend)
+    # Frontend waits for backend to be ready to avoid 504 errors on initial page load
     local_resource(
         "workspaces-frontend",
         serve_cmd="cd {} && npm run start:tilt".format(frontend_dir),
@@ -209,8 +163,7 @@ if enable_frontend:
             os.path.join(frontend_dir, "dist"),
             os.path.join(frontend_dir, "coverage"),
         ],
-        # No resource_deps - frontend doesn't block other resources
-        # Frontend will proxy to backend when ready, but doesn't need to wait
+        resource_deps=["workspaces-backend"],
         labels=["frontend"],
     )
 

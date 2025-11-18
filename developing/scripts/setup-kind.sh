@@ -5,6 +5,8 @@
 set -euo pipefail
 
 CLUSTER_NAME="tilt"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+KIND_CONFIG="${SCRIPT_DIR}/kind.yaml"
 
 # Check if kind command exists
 if ! command -v kind >/dev/null 2>&1; then
@@ -16,8 +18,8 @@ fi
 
 # Check if cluster exists
 if ! kind get clusters 2>/dev/null | grep -q "^${CLUSTER_NAME}$"; then
-  echo "Creating Kind cluster '${CLUSTER_NAME}'..."
-  kind create cluster --name "${CLUSTER_NAME}" --wait 60s
+  echo "Creating Kind cluster '${CLUSTER_NAME}' with config from ${KIND_CONFIG}..."
+  kind create cluster --name "${CLUSTER_NAME}" --config "${KIND_CONFIG}" --wait 60s
   echo "Kind cluster created successfully"
 else
   echo "Kind cluster '${CLUSTER_NAME}' already exists"

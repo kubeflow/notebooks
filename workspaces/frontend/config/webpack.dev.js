@@ -8,9 +8,7 @@ const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
 
 const smp = new SpeedMeasurePlugin({ disable: !process.env.MEASURE });
 
-// Use 'tilt' env if TILT_ENV is set, otherwise default to 'development'
-// This allows dotenv.js to naturally load .env.tilt without code changes
-const env = process.env.TILT_ENV === 'true' ? 'tilt' : 'development';
+const env = process.env.DEV_ENV ?? 'development';
 setupDotenvFilesForEnv({ env });
 const webpackCommon = require('./webpack.common.js');
 
@@ -85,7 +83,7 @@ module.exports = smp.wrap(
         port: PORT,
         compress: true,
         historyApiFallback: {
-          index: `${BASE_PATH}/index.html`,
+          index: `${BASE_PATH}/index.html`.replace('//', '/'),
         },
         hot: true,
         open: [BASE_PATH],
