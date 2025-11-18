@@ -23,7 +23,7 @@ def create_app(name, static_folder, config):
 
     if (config.ENV == BackendMode.DEVELOPMENT.value
             or config.ENV == BackendMode.DEVELOPMENT_FULL.value):  # noqa: W503
-        log.warn("RUNNING IN DEVELOPMENT MODE")
+        log.warning("RUNNING IN DEVELOPMENT MODE")
 
     # Register all the blueprints
     app.register_blueprint(authn_bp)
