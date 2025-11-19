@@ -1,6 +1,7 @@
-import { test, expect, Page } from '@playwright/test';
-import settings from '../fixtures/settings.json' assert { type: 'json' };
-import { setupCustomPage, CustomPage } from '../support/e2e';
+import { test, expect } from '@playwright/test';
+import type { Page } from '@playwright/test';
+import settings from '../fixtures/settings.json' with { type: 'json' };
+import { setupCustomPage, type CustomPage } from '../support/e2e';
 
 test.describe('New notebook form', () => {
   let customPage: CustomPage;

@@ -22,7 +22,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: 24
       - name: Install dependencies
         run: npm ci
       - name: Check frontend formatting
@@ -37,10 +37,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup node version to 16
+      - name: Setup node version to 24
         uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: 24
 
       - name: Install Kubeflow common library dependecies
         run: |
@@ -67,10 +67,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup node version to 16
+      - name: Setup node version to 24
         uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: 24
 
       - name: Install Kubeflow common library dependecies
         run: |
