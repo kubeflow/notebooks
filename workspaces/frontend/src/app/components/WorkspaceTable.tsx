@@ -78,8 +78,8 @@ const {
   gpu: { label: 'GPU', isFilterable: true, isSortable: true, width: 15 },
   idleGpu: { label: 'Idle GPU', isFilterable: true, isSortable: true, width: 15 },
   lastActivity: { label: 'Last activity', isFilterable: false, isSortable: true, width: 15 },
-  connect: { label: '', isFilterable: false, isSortable: false, width: 25 },
-  actions: { label: '', isFilterable: false, isSortable: false, width: 10 },
+  connect: { label: '', isFilterable: false, isSortable: false, width: undefined },
+  actions: { label: '', isFilterable: false, isSortable: false, width: undefined },
 });
 
 export type WorkspaceTableColumnKeys = DataFieldKey<typeof wsTableColumns>;
@@ -534,11 +534,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                 return (
                   <Th
                     key={`workspace-table-column-${columnKey}`}
-                    width={
-                      columnKey === 'connect' || columnKey === 'actions'
-                        ? undefined
-                        : wsTableColumns[columnKey].width
-                    }
+                    width={wsTableColumns[columnKey].width}
                     sort={specialProps.hasContent ? getSortParams(columnKey) : undefined}
                     aria-label={specialProps.hasContent ? columnKey : undefined}
                     modifier={modifier}
