@@ -20,12 +20,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"reflect"
 	"sync"
 
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1validation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -408,11 +410,28 @@ func (v *WorkspaceKindValidator) ValidateDelete(ctx context.Context, obj runtime
 
 	// don't allow deletion of WorkspaceKind if it is used by any workspaces
 	if workspaceKind.Status.Workspaces > 0 {
-		return nil, apierrors.NewConflict(
-			schema.GroupResource{Group: kubefloworgv1beta1.GroupVersion.Group, Resource: "WorkspaceKind"},
-			workspaceKind.Name,
-			fmt.Errorf("WorkspaceKind is used by %d workspace(s)", workspaceKind.Status.Workspaces),
-		)
+		return nil, &apierrors.StatusError{
+			ErrStatus: metav1.Status{
+				Status: metav1.StatusFailure,
+				Code:   http.StatusConflict,
+				Reason: metav1.StatusReasonConflict,
+				Details: &metav1.StatusDetails{
+					Group: workspaceKind.GroupVersionKind().Group,
+					Kind:  workspaceKind.GroupVersionKind().Kind,
+					Name:  workspaceKind.Name,
+					Causes: []metav1.StatusCause{
+						{
+							Message: fmt.Sprintf("WorkspaceKind is used by %d workspace(s)", workspaceKind.Status.Workspaces),
+						},
+					},
+				},
+				Message: fmt.Sprintf(
+					"Operation cannot be fulfilled on %s %q",
+					workspaceKind.GroupVersionKind().GroupKind().String(),
+					workspaceKind.Name,
+				),
+			},
+		}
 	}
 
 	// don't allow deletion of WorkspaceKind if it has the protection finalizer
@@ -420,11 +439,28 @@ func (v *WorkspaceKindValidator) ValidateDelete(ctx context.Context, obj runtime
 	//       it is impossible to "un-delete" a resource once it has started terminating
 	//       and this is a bad user experience, so we prevent deletion in the first place
 	if controllerutil.ContainsFinalizer(workspaceKind, controller.WorkspaceKindFinalizer) {
-		return nil, apierrors.NewConflict(
-			schema.GroupResource{Group: kubefloworgv1beta1.GroupVersion.Group, Resource: "WorkspaceKind"},
-			workspaceKind.Name,
-			errors.New("WorkspaceKind has protection finalizer, indicating one or more workspaces are still using it"),
-		)
+		return nil, &apierrors.StatusError{
+			ErrStatus: metav1.Status{
+				Status: metav1.StatusFailure,
+				Code:   http.StatusConflict,
+				Reason: metav1.StatusReasonConflict,
+				Details: &metav1.StatusDetails{
+					Group: workspaceKind.GroupVersionKind().Group,
+					Kind:  workspaceKind.GroupVersionKind().Kind,
+					Name:  workspaceKind.Name,
+					Causes: []metav1.StatusCause{
+						{
+							Message: "WorkspaceKind has protection finalizer, indicating one or more workspaces are still using it",
+						},
+					},
+				},
+				Message: fmt.Sprintf(
+					"Operation cannot be fulfilled on %s %q",
+					workspaceKind.GroupVersionKind().GroupKind().String(),
+					workspaceKind.Name,
+				),
+			},
+		}
 	}
 
 	return nil, nil

@@ -50,10 +50,10 @@ type WorkspaceEnvelope Envelope[models.Workspace]
 //	@Param			namespace		path		string				true	"Namespace of the workspace"	extensions(x-example=kubeflow-user-example-com)
 //	@Param			workspace_name	path		string				true	"Name of the workspace"			extensions(x-example=my-workspace)
 //	@Success		200				{object}	WorkspaceEnvelope	"Successful operation. Returns the requested workspace details."
-//	@Failure		400				{object}	ErrorEnvelope		"Bad Request. Invalid namespace or workspace name format."
 //	@Failure		401				{object}	ErrorEnvelope		"Unauthorized. Authentication is required."
 //	@Failure		403				{object}	ErrorEnvelope		"Forbidden. User does not have permission to access the workspace."
 //	@Failure		404				{object}	ErrorEnvelope		"Not Found. Workspace does not exist."
+//	@Failure		422				{object}	ErrorEnvelope		"Unprocessable Entity. Validation error."
 //	@Failure		500				{object}	ErrorEnvelope		"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspaces/{namespace}/{workspace_name} [get]
 func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -62,8 +62,8 @@ func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps htt
 
 	// validate path parameters
 	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateFieldIsDNS1123Subdomain(field.NewPath(NamespacePathParam), namespace)...)
-	valErrs = append(valErrs, helper.ValidateFieldIsDNS1123Subdomain(field.NewPath(ResourceNamePathParam), workspaceName)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
+	valErrs = append(valErrs, helper.ValidateWorkspaceName(field.NewPath(ResourceNamePathParam), workspaceName)...)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
@@ -127,9 +127,9 @@ func (a *App) GetAllWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps
 //	@Produce		json
 //	@Param			namespace	path		string					true	"Namespace to filter workspaces"	extensions(x-example=kubeflow-user-example-com)
 //	@Success		200			{object}	WorkspaceListEnvelope	"Successful operation. Returns a list of workspaces in the specified namespace."
-//	@Failure		400			{object}	ErrorEnvelope			"Bad Request. Invalid namespace format."
 //	@Failure		401			{object}	ErrorEnvelope			"Unauthorized. Authentication is required."
 //	@Failure		403			{object}	ErrorEnvelope			"Forbidden. User does not have permission to list workspaces."
+//	@Failure		422			{object}	ErrorEnvelope			"Unprocessable Entity. Validation error."
 //	@Failure		500			{object}	ErrorEnvelope			"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspaces/{namespace} [get]
 func (a *App) GetWorkspacesByNamespaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -144,7 +144,7 @@ func (a *App) getWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps ht
 	// NOTE: namespace is optional, if not provided, we list all workspaces across all namespaces
 	var valErrs field.ErrorList
 	if namespace != "" {
-		valErrs = append(valErrs, helper.ValidateFieldIsDNS1123Subdomain(field.NewPath(NamespacePathParam), namespace)...)
+		valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
 	}
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
@@ -194,12 +194,13 @@ func (a *App) getWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps ht
 //	@Param			namespace	path		string					true	"Namespace for the workspace"	extensions(x-example=kubeflow-user-example-com)
 //	@Param			body		body		WorkspaceCreateEnvelope	true	"Workspace creation configuration"
 //	@Success		201			{object}	WorkspaceEnvelope		"Workspace created successfully"
-//	@Failure		400			{object}	ErrorEnvelope			"Bad Request. Invalid request body or namespace format."
+//	@Failure		400			{object}	ErrorEnvelope			"Bad Request."
 //	@Failure		401			{object}	ErrorEnvelope			"Unauthorized. Authentication is required."
 //	@Failure		403			{object}	ErrorEnvelope			"Forbidden. User does not have permission to create workspace."
 //	@Failure		409			{object}	ErrorEnvelope			"Conflict. Workspace with the same name already exists."
 //	@Failure		413			{object}	ErrorEnvelope			"Request Entity Too Large. The request body is too large."
 //	@Failure		415			{object}	ErrorEnvelope			"Unsupported Media Type. Content-Type header is not correct."
+//	@Failure		422			{object}	ErrorEnvelope			"Unprocessable Entity. Validation error."
 //	@Failure		500			{object}	ErrorEnvelope			"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspaces/{namespace} [post]
 func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -207,7 +208,7 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 
 	// validate path parameters
 	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateFieldIsDNS1123Subdomain(field.NewPath(NamespacePathParam), namespace)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
@@ -226,6 +227,12 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 			a.requestEntityTooLargeResponse(w, r, err)
 			return
 		}
+
+		//
+		// TODO: handle UnmarshalTypeError and return 422,
+		//       decode the paths which were failed to decode (included in the error)
+		//       and also do this in the other handlers which decode json
+		//
 		a.badRequestResponse(w, r, fmt.Errorf("error decoding request body: %w", err))
 		return
 	}
@@ -265,7 +272,8 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 	createdWorkspace, err := a.repositories.Workspace.CreateWorkspace(r.Context(), workspaceCreate, namespace)
 	if err != nil {
 		if errors.Is(err, repository.ErrWorkspaceAlreadyExists) {
-			a.conflictResponse(w, r, err)
+			causes := helper.StatusCausesFromAPIStatus(err)
+			a.conflictResponse(w, r, err, causes)
 			return
 		}
 		if apierrors.IsInvalid(err) {
@@ -295,10 +303,10 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 //	@Param			namespace		path		string			true	"Namespace of the workspace"	extensions(x-example=kubeflow-user-example-com)
 //	@Param			workspace_name	path		string			true	"Name of the workspace"			extensions(x-example=my-workspace)
 //	@Success		204				{object}	nil				"Workspace deleted successfully"
-//	@Failure		400				{object}	ErrorEnvelope	"Bad Request. Invalid namespace or workspace name format."
 //	@Failure		401				{object}	ErrorEnvelope	"Unauthorized. Authentication is required."
 //	@Failure		403				{object}	ErrorEnvelope	"Forbidden. User does not have permission to delete the workspace."
 //	@Failure		404				{object}	ErrorEnvelope	"Not Found. Workspace does not exist."
+//	@Failure		422				{object}	ErrorEnvelope	"Unprocessable Entity. Validation error."
 //	@Failure		500				{object}	ErrorEnvelope	"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspaces/{namespace}/{workspace_name} [delete]
 func (a *App) DeleteWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -307,8 +315,8 @@ func (a *App) DeleteWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 
 	// validate path parameters
 	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateFieldIsDNS1123Subdomain(field.NewPath(NamespacePathParam), namespace)...)
-	valErrs = append(valErrs, helper.ValidateFieldIsDNS1123Subdomain(field.NewPath(ResourceNamePathParam), workspaceName)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
+	valErrs = append(valErrs, helper.ValidateWorkspaceName(field.NewPath(ResourceNamePathParam), workspaceName)...)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
@@ -335,6 +343,10 @@ func (a *App) DeleteWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 	if err != nil {
 		if errors.Is(err, repository.ErrWorkspaceNotFound) {
 			a.notFoundResponse(w, r)
+			return
+		} else if apierrors.IsConflict(err) {
+			causes := helper.StatusCausesFromAPIStatus(err)
+			a.conflictResponse(w, r, err, causes)
 			return
 		}
 		a.serverErrorResponse(w, r, err)

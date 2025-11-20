@@ -50,9 +50,10 @@ type WorkspaceActionPauseEnvelope Envelope[*models.WorkspaceActionPause]
 //	@Failure		401				{object}	ErrorEnvelope					"Unauthorized. Authentication is required."
 //	@Failure		403				{object}	ErrorEnvelope					"Forbidden. User does not have permission to access the workspace."
 //	@Failure		404				{object}	ErrorEnvelope					"Not Found. Workspace does not exist."
+//	@Failure		409				{object}	ErrorEnvelope					"Conflict. Workspace not in valid state for action."
 //	@Failure		413				{object}	ErrorEnvelope					"Request Entity Too Large. The request body is too large."
 //	@Failure		415				{object}	ErrorEnvelope					"Unsupported Media Type. Content-Type header is not correct."
-//	@Failure		422				{object}	ErrorEnvelope					"Unprocessable Entity. Workspace is not in appropriate state."
+//	@Failure		422				{object}	ErrorEnvelope					"Unprocessable Entity. Validation error."
 //	@Failure		500				{object}	ErrorEnvelope					"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspaces/{namespace}/{workspaceName}/actions/pause [post]
 func (a *App) PauseActionWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -60,8 +61,8 @@ func (a *App) PauseActionWorkspaceHandler(w http.ResponseWriter, r *http.Request
 	workspaceName := ps.ByName(ResourceNamePathParam)
 
 	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateFieldIsDNS1123Subdomain(field.NewPath(NamespacePathParam), namespace)...)
-	valErrs = append(valErrs, helper.ValidateFieldIsDNS1123Subdomain(field.NewPath(ResourceNamePathParam), workspaceName)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
+	valErrs = append(valErrs, helper.ValidateWorkspaceName(field.NewPath(ResourceNamePathParam), workspaceName)...)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
@@ -78,6 +79,12 @@ func (a *App) PauseActionWorkspaceHandler(w http.ResponseWriter, r *http.Request
 			a.requestEntityTooLargeResponse(w, r, err)
 			return
 		}
+
+		//
+		// TODO: handle UnmarshalTypeError and return 422,
+		//       decode the paths which were failed to decode (included in the error)
+		//       and also do this in the other handlers which decode json
+		//
 		a.badRequestResponse(w, r, fmt.Errorf("error decoding request body: %w", err))
 		return
 	}
@@ -115,7 +122,13 @@ func (a *App) PauseActionWorkspaceHandler(w http.ResponseWriter, r *http.Request
 			return
 		}
 		if errors.Is(err, repository.ErrWorkspaceInvalidState) {
-			a.failedValidationResponse(w, r, err.Error(), nil, nil)
+			causes := helper.StatusCausesFromAPIStatus(err)
+			// The patch can fail due to a 'test' operation that ensures the workspace is in a valid state for the action.
+			// In these cases, Kubernetes returns an Invalid error but without StatusCauses.
+			// We prepend a StatusCause with the `ErrWorkspaceInvalidState` error message to provide context,
+			// but preserve any existing causes in case Kubernetes provides more details in the future.
+			causes = append([]metav1.StatusCause{{Message: err.Error()}}, causes...)
+			a.conflictResponse(w, r, err, causes)
 			return
 		}
 		a.serverErrorResponse(w, r, err)

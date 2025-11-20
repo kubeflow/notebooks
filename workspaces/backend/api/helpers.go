@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"mime"
 	"net/http"
 	"strings"
@@ -66,6 +67,13 @@ func (a *App) DecodeJSON(r *http.Request, v any) error {
 		if a.IsMaxBytesError(err) {
 			return err
 		}
+
+		// provide better error message for the case where the body is empty
+		// NOTE: io.EOF is only returned when the body is completely empty or contains only whitespace.
+		//       If there's any actual JSON content (even malformed), json.Decoder returns different errors.
+		if a.IsEOFError(err) {
+			return fmt.Errorf("request body was empty: %w", err)
+		}
 		return fmt.Errorf("error decoding JSON: %w", err)
 	}
 	return nil
@@ -75,6 +83,14 @@ func (a *App) DecodeJSON(r *http.Request, v any) error {
 func (a *App) IsMaxBytesError(err error) bool {
 	var maxBytesError *http.MaxBytesError
 	return errors.As(err, &maxBytesError)
+}
+
+// IsEOFError checks if the error is an EOF error (empty request body).
+// This returns true when the request body is completely empty, which happens when:
+// - Content-Length is 0, or
+// - The body stream ends immediately without any data (io.EOF)
+func (a *App) IsEOFError(err error) bool {
+	return errors.Is(err, io.EOF)
 }
 
 // ValidateContentType validates the Content-Type header of the request.

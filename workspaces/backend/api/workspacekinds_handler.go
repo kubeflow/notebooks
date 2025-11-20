@@ -63,7 +63,7 @@ func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps
 
 	// validate path parameters
 	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateFieldIsDNS1123Subdomain(field.NewPath(ResourceNamePathParam), name)...)
+	valErrs = append(valErrs, helper.ValidateWorkspaceKindName(field.NewPath(ResourceNamePathParam), name)...)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
@@ -172,6 +172,16 @@ func (a *App) CreateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 	workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
 	err = runtime.DecodeInto(a.StrictYamlSerializer, bodyBytes, workspaceKind)
 	if err != nil {
+		if err, ok := runtime.AsStrictDecodingError(err); ok {
+			valErrs := field.ErrorList{}
+			for _, e := range err.Errors() {
+				if e != nil {
+					valErrs = append(valErrs, field.Invalid(nil, nil, e.Error()))
+				}
+			}
+			a.failedValidationResponse(w, r, errMsgRequestBodyInvalid, valErrs, nil)
+			return
+		}
 		a.badRequestResponse(w, r, fmt.Errorf("error decoding request body: %w", err))
 		return
 	}
@@ -181,8 +191,9 @@ func (a *App) CreateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 	//       comprehensive validation will be done by Kubernetes
 	// NOTE: checking the name field is non-empty also verifies that the workspace kind is not nil/empty
 	var valErrs field.ErrorList
+	valErrs = append(valErrs, helper.ValidateWorkspaceKindGVK(workspaceKind.APIVersion, workspaceKind.Kind)...)
 	wskNamePath := field.NewPath("metadata", "name")
-	valErrs = append(valErrs, helper.ValidateFieldIsDNS1123Subdomain(wskNamePath, workspaceKind.Name)...)
+	valErrs = append(valErrs, helper.ValidateWorkspaceKindName(wskNamePath, workspaceKind.Name)...)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgRequestBodyInvalid, valErrs, nil)
 		return
@@ -207,7 +218,8 @@ func (a *App) CreateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 	createdWorkspaceKind, err := a.repositories.WorkspaceKind.Create(r.Context(), workspaceKind)
 	if err != nil {
 		if errors.Is(err, repository.ErrWorkspaceKindAlreadyExists) {
-			a.conflictResponse(w, r, err)
+			causes := helper.StatusCausesFromAPIStatus(err)
+			a.conflictResponse(w, r, err, causes)
 			return
 		}
 		if apierrors.IsInvalid(err) {
