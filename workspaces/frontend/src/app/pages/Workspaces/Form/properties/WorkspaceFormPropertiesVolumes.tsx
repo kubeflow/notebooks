@@ -137,7 +137,6 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
         variant="link"
         icon={<PlusCircleIcon />}
         onClick={() => setIsModalOpen(true)}
-        style={{ marginTop: '1rem', width: 'fit-content' }}
         className="pf-v6-u-mb-md "
       >
         Create Volume

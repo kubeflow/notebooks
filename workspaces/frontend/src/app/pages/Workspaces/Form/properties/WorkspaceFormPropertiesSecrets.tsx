@@ -107,15 +107,13 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
           </Tbody>
         </Table>
       )}
-      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-        <Button
-          variant="primary"
-          onClick={() => setIsApiCreateModalOpen(true)}
-          style={{ width: 'fit-content' }}
-        >
-          Create New Secret
-        </Button>
-      </div>
+      <Button
+        variant="primary"
+        onClick={() => setIsApiCreateModalOpen(true)}
+        style={{ width: 'fit-content' }}
+      >
+        Create New Secret
+      </Button>
 
       {/* <SecretsAttachModal
         isOpen={isAttachModalOpen}
