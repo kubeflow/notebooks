@@ -81,8 +81,8 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
   const [activeActionType, setActiveActionType] = useState<ActionType | null>(null);
 
   // Column sorting
-  const [activeSortIndex, setActiveSortIndex] = useState<number | null>(null);
-  const [activeSortDirection, setActiveSortDirection] = useState<'asc' | 'desc' | null>(null);
+  const [activeSortIndex, setActiveSortIndex] = useState<number | null>(1);
+  const [activeSortDirection, setActiveSortDirection] = useState<'asc' | 'desc' | null>('asc');
 
   const getSortableRowValues = useCallback(
     (workspaceKind: WorkspacekindsWorkspaceKind): (string | boolean | number)[] => {

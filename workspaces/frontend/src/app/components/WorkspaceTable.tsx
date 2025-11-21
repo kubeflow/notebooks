@@ -142,8 +142,8 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
     });
 
     const [activeSortColumnKey, setActiveSortColumnKey] =
-      useState<WorkspaceTableSortableColumnKeys | null>(null);
-    const [activeSortDirection, setActiveSortDirection] = useState<'asc' | 'desc' | null>(null);
+      useState<WorkspaceTableSortableColumnKeys | null>('lastActivity');
+    const [activeSortDirection, setActiveSortDirection] = useState<'asc' | 'desc' | null>('desc');
     const [page, setPage] = useState(1);
     const [perPage, setPerPage] = useState(10);
 
