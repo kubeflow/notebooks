@@ -11,6 +11,8 @@ import {
   ModalFooter,
 } from '@patternfly/react-core/dist/esm/components/Modal';
 import { Alert, AlertVariant } from '@patternfly/react-core/dist/esm/components/Alert';
+import { Select } from '@patternfly/react-core/dist/esm/components/Select';
+import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
 import { useThemeContext } from 'mod-arch-kubeflow';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
@@ -80,6 +82,7 @@ export const SecretsApiCreateModal: React.FC<SecretsApiCreateModalProps> = ({
       return nameError;
     }
 
+    // Validate key-value pairs (Opaque is the only supported type)
     for (let i = 0; i < keyValuePairs.length; i++) {
       const pair = keyValuePairs[i];
       const keyError = validateKey(pair.key);
@@ -122,19 +125,12 @@ export const SecretsApiCreateModal: React.FC<SecretsApiCreateModalProps> = ({
   }, [keyValuePairs]);
 
   const handleSubmit = useCallback(async () => {
-    console.log('🔍 [DEBUG] handleSubmit called');
-    console.log('🔍 [DEBUG] Secret name:', secretName);
-    console.log('🔍 [DEBUG] Key-value pairs:', keyValuePairs);
-    console.log('🔍 [DEBUG] Selected namespace:', selectedNamespace);
-
     const validationError = validateForm();
     if (validationError) {
-      console.log('❌ [DEBUG] Validation failed:', validationError);
       setError(validationError);
       return;
     }
 
-    console.log('✅ [DEBUG] Validation passed, submitting...');
     setIsSubmitting(true);
     setError(null);
 
@@ -156,11 +152,7 @@ export const SecretsApiCreateModal: React.FC<SecretsApiCreateModalProps> = ({
         },
       };
 
-      console.log('📤 [DEBUG] Sending POST request with payload:', payload);
-
-      const response = await api.secrets.createSecret(selectedNamespace, payload);
-
-      console.log('✅ [DEBUG] Secret created successfully:', response);
+      await api.secrets.createSecret(selectedNamespace, payload);
 
       // Reset form
       setSecretName('');
@@ -172,15 +164,8 @@ export const SecretsApiCreateModal: React.FC<SecretsApiCreateModalProps> = ({
         onSecretCreated();
       }
     } catch (err) {
-      console.error('❌ [DEBUG] Failed to create secret:', err);
-      console.error('❌ [DEBUG] Error details:', {
-        message: err instanceof Error ? err.message : 'Unknown error',
-        stack: err instanceof Error ? err.stack : undefined,
-        fullError: err,
-      });
       setError(err instanceof Error ? err.message : 'Failed to create secret. Please try again.');
     } finally {
-      console.log('🏁 [DEBUG] handleSubmit finished, isSubmitting set to false');
       setIsSubmitting(false);
     }
   }, [
@@ -225,6 +210,32 @@ export const SecretsApiCreateModal: React.FC<SecretsApiCreateModalProps> = ({
               value={secretName}
               onChange={(_event, value) => setSecretName(value)}
               aria-label="Secret name"
+            />
+          </ThemeAwareFormGroupWrapper>
+          <ThemeAwareFormGroupWrapper label="Secret type" isRequired fieldId="secret-type">
+            <Select
+              selected="Opaque"
+              toggle={(toggleRef) => (
+                <MenuToggle
+                  isFullWidth
+                  // Remove className and style from the toggle once https://github.com/opendatahub-io/mod-arch-library/issues/65 is fixed
+                  className={isMUITheme ? 'pf-v6-u-pl-md pf-v6-u-pr-md' : ''}
+                  style={{
+                    ...(isMUITheme
+                      ? {
+                          height: '56px',
+                        }
+                      : {}),
+                  }}
+                  ref={toggleRef}
+                  id="secret-type-toggle"
+                  isExpanded={false}
+                  isDisabled
+                  data-testid="secret-type-select"
+                >
+                  Opaque
+                </MenuToggle>
+              )}
             />
           </ThemeAwareFormGroupWrapper>
           {keyValuePairs.map(({ key, value }, i) => (
