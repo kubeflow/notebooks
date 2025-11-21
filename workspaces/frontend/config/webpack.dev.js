@@ -8,7 +8,8 @@ const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
 
 const smp = new SpeedMeasurePlugin({ disable: !process.env.MEASURE });
 
-setupDotenvFilesForEnv({ env: 'development' });
+const env = process.env.DEV_ENV ?? 'development';
+setupDotenvFilesForEnv({ env });
 const webpackCommon = require('./webpack.common.js');
 
 const RELATIVE_DIRNAME = process.env._RELATIVE_DIRNAME;
@@ -64,7 +65,7 @@ module.exports = smp.wrap(
       plugins: [
         ...setupWebpackDotenvFilesForEnv({
           directory: RELATIVE_DIRNAME,
-          env: 'development',
+          env,
           isRoot: IS_PROJECT_ROOT_DIR,
         }),
       ],
@@ -82,7 +83,7 @@ module.exports = smp.wrap(
         port: PORT,
         compress: true,
         historyApiFallback: {
-          index: `${BASE_PATH}/index.html`,
+          index: `${BASE_PATH}/index.html`.replace('//', '/'),
         },
         hot: true,
         open: [BASE_PATH],
