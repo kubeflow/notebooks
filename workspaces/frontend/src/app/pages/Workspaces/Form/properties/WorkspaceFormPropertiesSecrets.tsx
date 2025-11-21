@@ -45,9 +45,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
   const [availableSecrets, setAvailableSecrets] = useState<SecretsSecretListItem[]>([]);
-  const [attachedSecrets, setAttachedSecrets] = useState<WorkspacesPodSecretMount[]>([]);
-  const [attachedMountPath, setAttachedMountPath] = useState('');
-  const [attachedDefaultMode, setAttachedDefaultMode] = useState(DEFAULT_MODE_OCTAL);
+  const [attachedSecretKeys, setAttachedSecretKeys] = useState<Set<string>>(new Set());
 
   const { api } = useNotebookAPI();
   const { selectedNamespace } = useNamespaceContext();
@@ -59,6 +57,9 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
     };
     fetchSecrets();
   }, [api.secrets, selectedNamespace]);
+
+  const getSecretKey = (secret: WorkspacesPodSecretMount): string =>
+    `${secret.secretName}:${secret.mountPath}:${secret.defaultMode}`;
 
   const openDeleteModal = useCallback((i: number) => {
     setIsDeleteModalOpen(true);
@@ -76,26 +77,23 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
 
   const handleAttachSecrets = useCallback(
     (newSecrets: SecretsSecretListItem[], mountPath: string, mode: number) => {
-      const newAttachedSecrets = newSecrets.map((secret) => ({
+      const newSecretMounts = newSecrets.map((secret) => ({
         secretName: secret.name,
         mountPath,
         defaultMode: mode,
       }));
-      const oldAttachedNames = new Set(attachedSecrets.map((s) => s.secretName));
-      const secretsWithoutOldAttached = secrets.filter((s) => !oldAttachedNames.has(s.secretName));
-      const manualSecretNames = new Set(secretsWithoutOldAttached.map((s) => s.secretName));
-      const filteredNewAttached = newAttachedSecrets.filter(
-        (s) => !manualSecretNames.has(s.secretName),
-      );
 
-      // Update both states
-      setAttachedSecrets(filteredNewAttached);
-      setSecrets([...secretsWithoutOldAttached, ...filteredNewAttached]);
-      setAttachedMountPath(mountPath);
-      setAttachedDefaultMode(mode.toString(8));
+      // Track the keys of attached secrets
+      const newKeys = new Set(attachedSecretKeys);
+      newSecretMounts.forEach((mount) => {
+        newKeys.add(getSecretKey(mount));
+      });
+      setAttachedSecretKeys(newKeys);
+
+      setSecrets([...secrets, ...newSecretMounts]);
       setIsAttachModalOpen(false);
     },
-    [attachedSecrets, secrets, setSecrets],
+    [secrets, setSecrets, attachedSecretKeys],
   );
 
   const handleCreateOrEditSubmit = useCallback(
@@ -121,8 +119,11 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
   }, []);
 
   const isAttachedSecret = useCallback(
-    (secretName: string) => attachedSecrets.some((s) => s.secretName === secretName),
-    [attachedSecrets],
+    (index: number): boolean => {
+      const secret = secrets[index];
+      return attachedSecretKeys.has(getSecretKey(secret));
+    },
+    [secrets, attachedSecretKeys],
   );
 
   const handleDelete = useCallback(() => {
@@ -130,23 +131,18 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
       return;
     }
     const secretToDelete = secrets[deleteIndex];
-    setSecrets(secrets.filter((_, i) => i !== deleteIndex));
 
-    // If it's an attached secret, also remove from attachedSecrets
-    if (isAttachedSecret(secretToDelete.secretName)) {
-      const updatedAttachedSecrets = attachedSecrets.filter(
-        (s) => s.secretName !== secretToDelete.secretName,
-      );
-      setAttachedSecrets(updatedAttachedSecrets);
-      if (updatedAttachedSecrets.length === 0) {
-        setAttachedMountPath('');
-        setAttachedDefaultMode(DEFAULT_MODE_OCTAL);
-      }
+    // Remove from attached keys if it was attached
+    if (attachedSecretKeys.has(getSecretKey(secretToDelete))) {
+      const newKeys = new Set(attachedSecretKeys);
+      newKeys.delete(getSecretKey(secretToDelete));
+      setAttachedSecretKeys(newKeys);
     }
 
+    setSecrets(secrets.filter((_, i) => i !== deleteIndex));
     setDeleteIndex(null);
     setIsDeleteModalOpen(false);
-  }, [deleteIndex, secrets, setSecrets, attachedSecrets, isAttachedSecret]);
+  }, [deleteIndex, secrets, setSecrets, attachedSecretKeys]);
 
   return (
     <>
@@ -183,7 +179,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
                     onSelect={() => setDropdownOpen(null)}
                     popperProps={{ position: 'right' }}
                   >
-                    {!isAttachedSecret(secret.secretName) && (
+                    {!isAttachedSecret(index) && (
                       <DropdownItem onClick={() => handleEdit(index)}>Edit</DropdownItem>
                     )}
                     <DropdownItem onClick={() => openDeleteModal(index)}>Remove</DropdownItem>
@@ -212,10 +208,8 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
         availableSecrets={availableSecrets}
         isOpen={isAttachModalOpen}
         setIsOpen={setIsAttachModalOpen}
-        selectedSecrets={attachedSecrets.map((secret) => secret.secretName)}
         onClose={handleAttachSecrets}
-        initialMountPath={attachedMountPath}
-        initialDefaultMode={attachedDefaultMode}
+        existingSecretKeys={attachedSecretKeys}
       />
       <SecretsCreateModal
         isOpen={isCreateModalOpen}

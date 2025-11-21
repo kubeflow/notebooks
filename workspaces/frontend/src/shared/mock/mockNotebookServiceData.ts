@@ -188,9 +188,25 @@ export const mockSecretCreate: SecretsSecretCreate = {
 export const mockSecretsList = [
   buildMockSecret({
     name: 'secret-1',
+    immutable: true,
   }),
   buildMockSecret({
     name: 'secret-2',
     canMount: false,
+  }),
+  buildMockSecret({
+    name: 'secret-3',
+    mounts: [
+      {
+        name: 'workspace-1',
+        group: 'group-1',
+        kind: 'kind-1',
+      },
+      {
+        name: 'workspace-2',
+        group: 'group-2',
+        kind: 'kind-2',
+      },
+    ],
   }),
 ];

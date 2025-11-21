@@ -487,9 +487,9 @@ export const buildMockSecret = (
   canUpdate: true,
   audit: {
     createdAt: new Date(2025, 4, 1).toISOString(),
-    createdBy: 'test',
+    createdBy: 'admin1',
     updatedAt: new Date(2025, 4, 1).toISOString(),
-    updatedBy: 'test',
+    updatedBy: 'user1',
   },
   ...secret,
 });
