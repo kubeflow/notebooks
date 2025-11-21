@@ -29,6 +29,7 @@ import {
 import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
 import {
   Table,
+  TableText,
   Thead,
   Tr,
   Th,
@@ -69,16 +70,16 @@ const {
   keyArray: wsTableColumnKeyArray,
   sortableKeyArray: sortableWsTableColumnKeyArray,
 } = defineDataFields({
-  name: { label: 'Name', isFilterable: true, isSortable: true, width: 35 },
-  image: { label: 'Image', isFilterable: true, isSortable: true, width: 25 },
-  kind: { label: 'Kind', isFilterable: true, isSortable: true, width: 15 },
+  name: { label: 'Name', isFilterable: true, isSortable: true, width: 20 },
+  image: { label: 'Image', isFilterable: true, isSortable: true, width: 20 },
+  kind: { label: 'Kind', isFilterable: true, isSortable: true, width: 10 },
   namespace: { label: 'Namespace', isFilterable: true, isSortable: true, width: 15 },
-  state: { label: 'State', isFilterable: true, isSortable: true, width: 15 },
+  state: { label: 'State', isFilterable: true, isSortable: true, width: 10 },
   gpu: { label: 'GPU', isFilterable: true, isSortable: true, width: 15 },
   idleGpu: { label: 'Idle GPU', isFilterable: true, isSortable: true, width: 15 },
   lastActivity: { label: 'Last activity', isFilterable: false, isSortable: true, width: 15 },
-  connect: { label: '', isFilterable: false, isSortable: false, width: 25 },
-  actions: { label: '', isFilterable: false, isSortable: false, width: 10 },
+  connect: { label: '', isFilterable: false, isSortable: false, width: undefined },
+  actions: { label: '', isFilterable: false, isSortable: false, width: undefined },
 });
 
 export type WorkspaceTableColumnKeys = DataFieldKey<typeof wsTableColumns>;
@@ -522,7 +523,6 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
           ouiaId="SortableTable"
           variant="compact"
           gridBreakPoint={isDrawerExpanded ? 'grid' : 'grid-lg'}
-          style={{ tableLayout: 'fixed' }}
         >
           <Thead>
             <Tr>
@@ -533,8 +533,8 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
 
                 return (
                   <Th
-                    width={wsTableColumns[columnKey].width}
                     key={`workspace-table-column-${columnKey}`}
+                    width={wsTableColumns[columnKey].width}
                     sort={specialProps.hasContent ? getSortParams(columnKey) : undefined}
                     aria-label={specialProps.hasContent ? columnKey : undefined}
                     modifier={modifier}
@@ -574,15 +574,22 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                     {visibleColumnKeys.map((columnKey) => {
                       if (columnKey === 'connect') {
                         return (
-                          <Td key="connect" dataLabel={wsTableColumns[columnKey].label}>
-                            <WorkspaceConnectAction workspace={workspace} />
+                          <Td
+                            dataLabel={wsTableColumns[columnKey].label}
+                            modifier="fitContent"
+                            hasAction
+                            key="connect"
+                          >
+                            <TableText>
+                              <WorkspaceConnectAction workspace={workspace} />
+                            </TableText>
                           </Td>
                         );
                       }
 
                       if (columnKey === 'actions') {
                         return (
-                          <Td key="actions" data-testid="action-column">
+                          <Td isActionCell key="actions" data-testid="action-column">
                             <ActionsColumn
                               items={rowActions(workspace).map((action) => ({
                                 ...action,
