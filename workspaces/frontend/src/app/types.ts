@@ -16,7 +16,6 @@ export interface WorkspaceColumnDefinition {
   id: string;
 }
 export interface WorkspaceKindsColumns {
-  icon: WorkspaceColumnDefinition;
   name: WorkspaceColumnDefinition;
   description: WorkspaceColumnDefinition;
   deprecated: WorkspaceColumnDefinition;

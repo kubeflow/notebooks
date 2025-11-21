@@ -57,7 +57,6 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
   // Table columns
   const columns: WorkspaceKindsColumns = useMemo(
     () => ({
-      icon: { name: '', label: 'Icon', id: 'icon' },
       name: { name: 'Name', label: 'Name', id: 'name' },
       description: { name: 'Description', label: 'Description', id: 'description' },
       deprecated: { name: 'Status', label: 'Status', id: 'status' },
@@ -87,20 +86,18 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
   const getSortableRowValues = useCallback(
     (workspaceKind: WorkspacekindsWorkspaceKind): (string | boolean | number)[] => {
       const {
-        icon,
         name,
         description,
         deprecated,
         numOfWorkspaces: numberOfWorkspaces,
       } = {
-        icon: '',
         name: workspaceKind.name,
         description: workspaceKind.description,
         deprecated: workspaceKind.deprecated,
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         numOfWorkspaces: workspaceCountPerKind[workspaceKind.name]?.count ?? 0,
       };
-      return [icon, name, description, deprecated, numberOfWorkspaces];
+      return [name, description, deprecated, numberOfWorkspaces];
     },
     [workspaceCountPerKind],
   );
@@ -424,7 +421,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                 filteredWorkspaceKinds.map((workspaceKind, rowIndex) => (
                   <Tbody id="workspace-kind-table-content" key={rowIndex} data-testid="table-body">
                     <Tr id={`workspace-kind-table-row-${rowIndex + 1}`}>
-                      <Td dataLabel={columns.icon.name} style={{ width: '50px' }}>
+                      <Td dataLabel={columns.name.name}>
                         <WithValidImage
                           imageSrc={workspaceKind.icon.url}
                           skeletonWidth="20px"
@@ -432,14 +429,20 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                         >
                           {(validSrc) => (
                             <img
+                              className="pf-v6-u-mr-sm"
                               src={validSrc}
-                              alt={workspaceKind.name}
-                              style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                              alt={`${workspaceKind.name} icon`}
+                              style={{
+                                width: '20px',
+                                height: '20px',
+                                objectFit: 'contain',
+                                verticalAlign: 'middle',
+                              }}
                             />
                           )}
                         </WithValidImage>
+                        {workspaceKind.name}
                       </Td>
-                      <Td dataLabel={columns.name.name}>{workspaceKind.name}</Td>
                       <Td
                         dataLabel={columns.description.name}
                         style={{ maxWidth: '200px', overflow: 'hidden' }}
