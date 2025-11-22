@@ -17,6 +17,8 @@ limitations under the License.
 package workspaces
 
 import (
+	"strconv"
+
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"k8s.io/utils/ptr"
 )
@@ -44,6 +46,15 @@ func NewWorkspaceCreateModelFromWorkspace(ws *kubefloworgv1beta1.Workspace) *Wor
 		}
 	}
 
+	secretMounts := make([]PodSecretMount, len(ws.Spec.PodTemplate.Volumes.Secrets))
+	for i, s := range ws.Spec.PodTemplate.Volumes.Secrets {
+		secretMounts[i] = PodSecretMount{
+			SecretName:  s.SecretName,
+			MountPath:   s.MountPath,
+			DefaultMode: s.DefaultMode,
+		}
+	}
+
 	workspaceCreateModel := &WorkspaceCreate{
 		Name:         ws.Name,
 		Kind:         ws.Spec.Kind,
@@ -55,8 +66,9 @@ func NewWorkspaceCreateModelFromWorkspace(ws *kubefloworgv1beta1.Workspace) *Wor
 				Annotations: podAnnotations,
 			},
 			Volumes: PodVolumesMutate{
-				Home: ws.Spec.PodTemplate.Volumes.Home,
-				Data: dataVolumes,
+				Home:    ws.Spec.PodTemplate.Volumes.Home,
+				Data:    dataVolumes,
+				Secrets: secretMounts,
 			},
 			Options: PodTemplateOptionsMutate{
 				ImageConfig: ws.Spec.PodTemplate.Options.ImageConfig,
@@ -66,4 +78,60 @@ func NewWorkspaceCreateModelFromWorkspace(ws *kubefloworgv1beta1.Workspace) *Wor
 	}
 
 	return workspaceCreateModel
+}
+
+// NewWorkspaceUpdateModelFromWorkspace creates WorkspaceUpdate model from a Workspace object.
+func NewWorkspaceUpdateModelFromWorkspace(ws *kubefloworgv1beta1.Workspace) *WorkspaceUpdate {
+	podLabels := make(map[string]string)
+	podAnnotations := make(map[string]string)
+	if ws.Spec.PodTemplate.PodMetadata != nil {
+		// NOTE: we copy the maps to avoid creating a reference to the original maps.
+		for k, v := range ws.Spec.PodTemplate.PodMetadata.Labels {
+			podLabels[k] = v
+		}
+		for k, v := range ws.Spec.PodTemplate.PodMetadata.Annotations {
+			podAnnotations[k] = v
+		}
+	}
+
+	dataVolumes := make([]PodVolumeMount, len(ws.Spec.PodTemplate.Volumes.Data))
+	for i, v := range ws.Spec.PodTemplate.Volumes.Data {
+		dataVolumes[i] = PodVolumeMount{
+			PVCName:   v.PVCName,
+			MountPath: v.MountPath,
+			ReadOnly:  ptr.Deref(v.ReadOnly, false),
+		}
+	}
+
+	secretMounts := make([]PodSecretMount, len(ws.Spec.PodTemplate.Volumes.Secrets))
+	for i, s := range ws.Spec.PodTemplate.Volumes.Secrets {
+		secretMounts[i] = PodSecretMount{
+			SecretName:  s.SecretName,
+			MountPath:   s.MountPath,
+			DefaultMode: s.DefaultMode,
+		}
+	}
+
+	workspaceUpdateModel := &WorkspaceUpdate{
+		Revision:     strconv.FormatInt(ws.Generation, 10),
+		Paused:       ptr.Deref(ws.Spec.Paused, false),
+		DeferUpdates: ptr.Deref(ws.Spec.DeferUpdates, false),
+		PodTemplate: PodTemplateMutate{
+			PodMetadata: PodMetadataMutate{
+				Labels:      podLabels,
+				Annotations: podAnnotations,
+			},
+			Volumes: PodVolumesMutate{
+				Home:    ws.Spec.PodTemplate.Volumes.Home,
+				Data:    dataVolumes,
+				Secrets: secretMounts,
+			},
+			Options: PodTemplateOptionsMutate{
+				ImageConfig: ws.Spec.PodTemplate.Options.ImageConfig,
+				PodConfig:   ws.Spec.PodTemplate.Options.PodConfig,
+			},
+		},
+	}
+
+	return workspaceUpdateModel
 }
