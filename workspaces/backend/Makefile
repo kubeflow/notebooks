@@ -154,8 +154,13 @@ $(GOLANGCI_LINT): $(LOCALBIN)
 
 .PHONY: deploy
 deploy: kustomize ## Deploy backend to the K8s cluster specified in ~/.kube/config.
-	cd manifests/kustomize/overlays/istio && $(KUSTOMIZE) edit set image workspaces-backend=${IMG}
-	$(KUBECTL) apply -k manifests/kustomize/overlays/istio
+	@echo "Copying kustomize directory structure to .output..."
+	@rm -rf manifests/kustomize/.output
+	@mkdir -p manifests/kustomize/.output
+	@cp -r manifests/kustomize/* manifests/kustomize/.output/
+	# Match both short name and registry-prefixed name (base kustomization may transform either)
+	@cd manifests/kustomize/.output/overlays/istio && $(KUSTOMIZE) edit set image $(NAME)=${IMG} $(REGISTRY)/$(NAME)=${IMG}
+	@$(KUBECTL) apply -k manifests/kustomize/.output/overlays/istio
 
 .PHONY: undeploy
 undeploy: kustomize ## Undeploy backend from the K8s cluster specified in ~/.kube/config.
