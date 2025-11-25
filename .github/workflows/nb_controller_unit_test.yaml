@@ -19,7 +19,7 @@ jobs:
     - name: Install Go
       uses: actions/setup-go@v5
       with:
-        go-version: "1.24"
+        go-version-file: 'components/notebook-controller/go.mod'
         check-latest: true
 
     - name: Run unit tests
