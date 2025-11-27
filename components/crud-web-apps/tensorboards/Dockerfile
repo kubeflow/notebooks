@@ -1,10 +1,12 @@
 # --- Build the backend kubeflow-wheel ---
-FROM python:3.10-slim AS backend-kubeflow-wheel
+# Python 3.12 upgrade
+FROM python:3.12-slim AS backend-kubeflow-wheel
 
 WORKDIR /src
 
 COPY ./common/backend/ .
-RUN python3 setup.py bdist_wheel
+RUN pip install --no-cache-dir setuptools wheel && \
+    python3 setup.py bdist_wheel
 
 # --- Build the frontend kubeflow library ---
 FROM node:16.20.2-bullseye as frontend-kubeflow-lib
@@ -41,7 +43,7 @@ COPY --from=frontend-kubeflow-lib /src/dist/kubeflow/ ./node_modules/kubeflow/
 RUN npm run build -- --output-path=./dist --configuration=production
 
 # Web App
-FROM python:3.10-slim
+FROM python:3.12-slim
 
 WORKDIR /package
 COPY --from=backend-kubeflow-wheel /src .

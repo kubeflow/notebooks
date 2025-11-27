@@ -1,16 +1,15 @@
 import setuptools
 
 REQUIRES = [
-    "Flask >= 1.1.1",
+    "Flask >= 2.3.2",
     "Flask-API >= 2.0",
-    "kubernetes == 22.6.0",
-    "requests >= 2.22.0",
-    "urllib3 >= 1.25.7",
-    "Werkzeug >= 0.16.0",
+    "kubernetes == 34.1.0",
+    "requests",
+    "urllib3",
+    "Werkzeug >= 3.0.6",
     "Flask-Cors >= 3.0.8",
     "gevent",
     "prometheus-flask-exporter >= 0.23.1",
-    "importlib-metadata >= 1.0;python_version<'3.8'",
 ]
 
 setuptools.setup(
@@ -27,5 +26,5 @@ setuptools.setup(
         "Topic :: Software Development :: Libraries",
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
-    python_requires=">=3.6",
+    python_requires=">=3.12",
 )
