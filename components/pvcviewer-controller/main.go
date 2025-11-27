@@ -34,8 +34,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	kubefloworgv1alpha1 "github.com/kubeflow/notebooks/components/pvc-viewer/api/v1alpha1"
-	"github.com/kubeflow/notebooks/components/pvc-viewer/controllers"
+	kubefloworgv1alpha1 "github.com/kubeflow/notebooks/components/pvcviewer-controller/api/v1alpha1"
+	"github.com/kubeflow/notebooks/components/pvcviewer-controller/controllers"
 	//+kubebuilder:scaffold:imports
 )
 
