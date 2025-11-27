@@ -17,10 +17,10 @@ jobs:
       - name: Checkout source repository
         uses: actions/checkout@v4
 
-      - name: Set up Python environment 3.8
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.8"
+          python-version: "3.12"
 
       - name: flake8 Lint
         uses: py-actions/flake8@v2

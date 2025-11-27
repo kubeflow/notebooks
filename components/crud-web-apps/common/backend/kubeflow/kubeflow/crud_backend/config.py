@@ -59,7 +59,7 @@ class DevConfig(Config):
 
     def __init__(self):
         super()
-        log.warn("RUNNING IN DEVELOPMENT MODE")
+        log.warning("RUNNING IN DEVELOPMENT MODE")
 
 
 class ProdConfig(Config):
