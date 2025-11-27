@@ -20,6 +20,7 @@ import (
 	"context"
 	"flag"
 	"os"
+
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -34,8 +35,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	tensorboardv1alpha1 "github.com/kubeflow/kubeflow/components/tensorboard-controller/api/v1alpha1"
-	"github.com/kubeflow/kubeflow/components/tensorboard-controller/controllers"
+	tensorboardv1alpha1 "github.com/kubeflow/notebooks/components/tensorboard-controller/api/v1alpha1"
+	"github.com/kubeflow/notebooks/components/tensorboard-controller/controllers"
 	//+kubebuilder:scaffold:imports
 )
 
