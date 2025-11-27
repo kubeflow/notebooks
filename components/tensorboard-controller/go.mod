@@ -1,4 +1,4 @@
-module github.com/kubeflow/kubeflow/components/tensorboard-controller
+module github.com/kubeflow/notebooks/components/tensorboard-controller
 
 go 1.17
 

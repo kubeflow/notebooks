@@ -14,7 +14,7 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	kubefloworgv1alpha1 "github.com/kubeflow/kubeflow/components/pvc-viewer/api/v1alpha1"
+	kubefloworgv1alpha1 "github.com/kubeflow/notebooks/components/pvcviewer-controller/api/v1alpha1"
 )
 
 // Variables required for the tests utilities and passed by the test suite

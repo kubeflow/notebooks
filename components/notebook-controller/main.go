@@ -31,11 +31,11 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	nbv1 "github.com/kubeflow/kubeflow/components/notebook-controller/api/v1"
-	nbv1alpha1 "github.com/kubeflow/kubeflow/components/notebook-controller/api/v1alpha1"
-	nbv1beta1 "github.com/kubeflow/kubeflow/components/notebook-controller/api/v1beta1"
-	"github.com/kubeflow/kubeflow/components/notebook-controller/controllers"
-	controller_metrics "github.com/kubeflow/kubeflow/components/notebook-controller/pkg/metrics"
+	nbv1 "github.com/kubeflow/notebooks/components/notebook-controller/api/v1"
+	nbv1alpha1 "github.com/kubeflow/notebooks/components/notebook-controller/api/v1alpha1"
+	nbv1beta1 "github.com/kubeflow/notebooks/components/notebook-controller/api/v1beta1"
+	"github.com/kubeflow/notebooks/components/notebook-controller/controllers"
+	controller_metrics "github.com/kubeflow/notebooks/components/notebook-controller/pkg/metrics"
 	//+kubebuilder:scaffold:imports
 )
 
