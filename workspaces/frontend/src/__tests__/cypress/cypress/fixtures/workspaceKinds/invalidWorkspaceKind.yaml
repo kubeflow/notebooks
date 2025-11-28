@@ -1,0 +1,15 @@
+apiVersion: kubeflow.org/v1beta1
+kind: WorkspaceKind
+metadata:
+  name: invalid-workspace-kind
+spec:
+  spawner:
+    displayName: Invalid Workspace Kind
+    description: This will pass frontend validation but fail backend
+  podTemplate:
+    options:
+      imageConfig:
+        values: []
+      podConfig:
+        values: []
+

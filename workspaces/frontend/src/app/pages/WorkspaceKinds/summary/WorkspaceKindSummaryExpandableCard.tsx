@@ -45,8 +45,13 @@ const WorkspaceKindSummaryExpandableCard: React.FC<WorkspaceKindSummaryExpandabl
   );
 
   return (
-    <Card isExpanded={isExpanded} variant="secondary">
-      <CardHeader onExpand={onExpandToggle}>
+    <Card isExpanded={isExpanded} variant="secondary" data-testid="workspace-kind-summary-card">
+      <CardHeader
+        onExpand={onExpandToggle}
+        toggleButtonProps={{
+          'aria-label': isExpanded ? 'Collapse workspaces summary' : 'Expand workspaces summary',
+        }}
+      >
         <CardTitle>
           <Content component={ContentVariants.h2}>Workspaces summary</Content>
         </CardTitle>
@@ -56,12 +61,15 @@ const WorkspaceKindSummaryExpandableCard: React.FC<WorkspaceKindSummaryExpandabl
           <Flex wrap="wrap">
             <SectionFlex title="Total GPUs in use">
               <FlexItem>
-                <Content className="pf-v6-u-font-size-4xl pf-v6-u-font-weight-bold">
+                <Content
+                  className="pf-v6-u-font-size-4xl pf-v6-u-font-weight-bold"
+                  data-testid="total-gpus-in-use"
+                >
                   {countGpusFromWorkspaces(filterRunningWorkspaces(workspaces))} GPUs
                 </Content>
               </FlexItem>
               <FlexItem>
-                <Content>{`Requested of ${countGpusFromWorkspaces(workspaces)} GPUs`}</Content>
+                <Content data-testid="total-gpus-requested">{`Requested of ${countGpusFromWorkspaces(workspaces)} GPUs`}</Content>
               </FlexItem>
             </SectionFlex>
             <SectionDivider />
@@ -71,6 +79,7 @@ const WorkspaceKindSummaryExpandableCard: React.FC<WorkspaceKindSummaryExpandabl
                   variant="link"
                   isInline
                   className="pf-v6-u-font-size-4xl pf-v6-u-font-weight-bold"
+                  data-testid="idle-gpu-workspaces-button"
                   onClick={() => {
                     onAddFilter('idleGpu', YesNoValue.Yes);
                   }}
@@ -85,7 +94,7 @@ const WorkspaceKindSummaryExpandableCard: React.FC<WorkspaceKindSummaryExpandabl
             <SectionDivider />
             <SectionFlex title="Top GPU Consumer Namespaces">
               <Content>
-                <Stack className="pf-v6-u-pt-sm">
+                <Stack className="pf-v6-u-pt-sm" data-testid="top-gpu-consumers">
                   {topGpuConsumersByNamespace.length > 0 ? (
                     topGpuConsumersByNamespace.map(([ns, record]) => (
                       <StackItem key={ns}>
@@ -98,7 +107,7 @@ const WorkspaceKindSummaryExpandableCard: React.FC<WorkspaceKindSummaryExpandabl
                     ))
                   ) : (
                     <StackItem>
-                      <Content>None</Content>
+                      <Content data-testid="no-gpu-consumers">None</Content>
                     </StackItem>
                   )}
                 </Stack>
@@ -152,6 +161,7 @@ const NamespaceGpuConsumer: React.FC<NamespaceConsumerProps> = ({
     <Button
       variant="link"
       isInline
+      data-testid={`gpu-consumer-namespace-${namespace}`}
       onClick={() => {
         onAddFilter('namespace', namespace);
       }}

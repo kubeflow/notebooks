@@ -128,9 +128,13 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
   );
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} variant="medium">
+    <Modal isOpen={isOpen} onClose={onClose} variant="medium" data-testid="pod-config-modal">
       <ModalHeader
-        title={editIndex === null ? 'Create A Pod Configuration' : 'Edit Pod Configuration'}
+        title={
+          <span data-testid="pod-config-modal-title">
+            {editIndex === null ? 'Create A Pod Configuration' : 'Edit Pod Configuration'}
+          </span>
+        }
         labelId="pod-config-modal-title"
         description={editIndex === null ? 'Add a pod configuration to your Workspace Kind' : ''}
       />
@@ -143,6 +147,7 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
               value={id}
               onChange={(_, value) => setId(value)}
               id="workspace-kind-pod-config-id"
+              data-testid="workspace-kind-pod-config-id-input"
             />
           </ThemeAwareFormGroupWrapper>
           <ThemeAwareFormGroupWrapper
@@ -156,6 +161,7 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
               value={displayName}
               onChange={(_, value) => setDisplayName(value)}
               id="workspace-kind-pod-config-name"
+              data-testid="workspace-kind-pod-config-name-input"
             />
           </ThemeAwareFormGroupWrapper>
           <ThemeAwareFormGroupWrapper
@@ -167,6 +173,7 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
               value={description}
               onChange={(_, value) => setDescription(value)}
               id="workspace-kind-pod-config-description"
+              data-testid="workspace-kind-pod-config-description-input"
             />
           </ThemeAwareFormGroupWrapper>
           <FormGroup
@@ -198,10 +205,20 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
         </Form>
       </ModalBody>
       <ModalFooter>
-        <Button key="confirm" variant="primary" onClick={handleSubmit}>
+        <Button
+          key="confirm"
+          variant="primary"
+          onClick={handleSubmit}
+          data-testid="pod-config-modal-submit-button"
+        >
           {editIndex !== null ? 'Save' : 'Create'}
         </Button>
-        <Button key="cancel" variant="link" onClick={onClose}>
+        <Button
+          key="cancel"
+          variant="link"
+          onClick={onClose}
+          data-testid="pod-config-modal-cancel-button"
+        >
           Cancel
         </Button>
       </ModalFooter>

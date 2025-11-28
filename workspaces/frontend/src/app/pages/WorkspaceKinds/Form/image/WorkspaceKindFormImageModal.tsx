@@ -47,9 +47,13 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
     { value: ImagePullPolicy.Never, label: ImagePullPolicy.Never, disabled: false },
   ];
   return (
-    <Modal isOpen={isOpen} onClose={onClose} variant="medium">
+    <Modal isOpen={isOpen} onClose={onClose} variant="medium" data-testid="image-modal">
       <ModalHeader
-        title={editIndex === null ? 'Add Image' : 'Edit Image'}
+        title={
+          <span data-testid="image-modal-title">
+            {editIndex === null ? 'Add Image' : 'Edit Image'}
+          </span>
+        }
         labelId="image-modal-title"
         description={editIndex === null ? 'Add an image configuration to your Workspace Kind' : ''}
       />
@@ -62,6 +66,7 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
               value={image.id}
               onChange={(_, value) => setImage({ ...image, id: value })}
               id="workspace-kind-image-id"
+              data-testid="workspace-kind-image-id-input"
             />
           </ThemeAwareFormGroupWrapper>
           <ThemeAwareFormGroupWrapper
@@ -75,6 +80,7 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
               value={image.displayName}
               onChange={(_, value) => setImage({ ...image, displayName: value })}
               id="workspace-kind-image-name"
+              data-testid="workspace-kind-image-name-input"
             />
           </ThemeAwareFormGroupWrapper>
           <ThemeAwareFormGroupWrapper
@@ -87,6 +93,7 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
               value={image.description}
               onChange={(_, value) => setImage({ ...image, description: value })}
               id="workspace-kind-image-description"
+              data-testid="workspace-kind-image-description-input"
             />
           </ThemeAwareFormGroupWrapper>
           <ThemeAwareFormGroupWrapper
@@ -100,6 +107,7 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
               value={image.image}
               onChange={(_, value) => setImage({ ...image, image: value })}
               id="workspace-kind-image-url"
+              data-testid="workspace-kind-image-url-input"
             />
           </ThemeAwareFormGroupWrapper>
           <FormGroup
@@ -162,10 +170,20 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
         </Form>
       </ModalBody>
       <ModalFooter>
-        <Button key="confirm" variant="primary" onClick={() => onSubmit(image)}>
+        <Button
+          key="confirm"
+          variant="primary"
+          onClick={() => onSubmit(image)}
+          data-testid="image-modal-submit-button"
+        >
           {editIndex !== null ? 'Save' : 'Add'}
         </Button>
-        <Button key="cancel" variant="link" onClick={onClose}>
+        <Button
+          key="cancel"
+          variant="link"
+          onClick={onClose}
+          data-testid="image-modal-cancel-button"
+        >
           Cancel
         </Button>
       </ModalFooter>

@@ -147,7 +147,7 @@ export const WorkspaceKindForm: React.FC = () => {
           <Stack hasGutter>
             <Flex direction={{ default: 'column' }} rowGap={{ default: 'rowGapXl' }}>
               <FlexItem>
-                <Content component={ContentVariants.h1}>
+                <Content component={ContentVariants.h1} data-testid="app-page-title">
                   {`${mode === 'create' ? 'Create' : 'Edit'} workspace kind`}
                 </Content>
                 <Content component={ContentVariants.p}>
@@ -184,7 +184,7 @@ export const WorkspaceKindForm: React.FC = () => {
           </Stack>
         )}
         {mode === 'edit' && (
-          <Stack hasGutter>
+          <Stack hasGutter data-testid="workspace-kind-form-properties">
             <StackItem>
               <WorkspaceKindFormProperties
                 mode={mode}
@@ -227,6 +227,7 @@ export const WorkspaceKindForm: React.FC = () => {
               variant="primary"
               ouiaId="Primary"
               onClick={handleSubmit}
+              data-testid="submit-button"
               // TODO: button is always disabled on edit mode. Need to modify when WorkspaceKind edit is finalized
               isDisabled={!canSubmit || mode === 'edit'}
             >
@@ -234,7 +235,7 @@ export const WorkspaceKindForm: React.FC = () => {
             </Button>
           </FlexItem>
           <FlexItem>
-            <Button variant="link" onClick={cancel}>
+            <Button variant="link" onClick={cancel} data-testid="cancel-button">
               Cancel
             </Button>
           </FlexItem>

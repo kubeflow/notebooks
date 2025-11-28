@@ -123,6 +123,7 @@ export const WorkspaceKindFormImage: React.FC<WorkspaceKindFormImageProps> = ({
           <div>
             <WorkspaceKindFormPaginatedTable
               ariaLabel="Images table"
+              dataTestId="images-table"
               rows={imageConfig.values}
               defaultId={defaultId}
               setDefaultId={(id) => {
@@ -148,16 +149,27 @@ export const WorkspaceKindFormImage: React.FC<WorkspaceKindFormImageProps> = ({
           isOpen={isDeleteModalOpen}
           onClose={() => setIsDeleteModalOpen(false)}
           variant={ModalVariant.small}
+          data-testid="remove-image-modal"
         >
           <ModalHeader
             title="Remove Image?"
             description="This image will be removed from the workspace kind."
           />
           <ModalFooter>
-            <Button key="remove" variant="danger" onClick={handleDelete}>
+            <Button
+              key="remove"
+              variant="danger"
+              onClick={handleDelete}
+              data-testid="remove-image-confirm-button"
+            >
               Remove
             </Button>
-            <Button key="cancel" variant="link" onClick={() => setIsDeleteModalOpen(false)}>
+            <Button
+              key="cancel"
+              variant="link"
+              onClick={() => setIsDeleteModalOpen(false)}
+              data-testid="remove-image-cancel-button"
+            >
               Cancel
             </Button>
           </ModalFooter>

@@ -49,6 +49,7 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
                   value={selectedProperties.workspaceName}
                   onChange={(_, value) => onSelect({ ...selectedProperties, workspaceName: value })}
                   id="workspace-name"
+                  data-testid="workspace-name"
                 />
               </ThemeAwareFormGroupWrapper>
               <FormGroup fieldId="defer-updates" className="pf-v6-u-pt-sm pf-v6-u-pb-sm">

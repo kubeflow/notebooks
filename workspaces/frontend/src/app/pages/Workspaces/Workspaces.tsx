@@ -54,7 +54,9 @@ export const Workspaces: React.FunctionComponent = () => {
     <PageSection isFilled>
       <Stack hasGutter>
         <StackItem>
-          <Content component={ContentVariants.h1}>Workspaces</Content>
+          <Content component={ContentVariants.h1} data-testid="app-page-title">
+            Workspaces
+          </Content>
         </StackItem>
         <StackItem>
           <Content component={ContentVariants.p}>

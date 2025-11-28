@@ -103,6 +103,7 @@ export const WorkspaceKindFileUpload: React.FC<WorkspaceKindFileUploadProps> = (
         validated={validated}
         allowEditingUploadedText={false}
         browseButtonText="Choose File"
+        data-testid="upload-file-field"
         dropzoneProps={{
           accept: { [YAML_MIME_TYPE]: YAML_EXTENSIONS },
           onDropRejected: (rejections) => {

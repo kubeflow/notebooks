@@ -44,12 +44,14 @@ export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = 
   };
 
   return (
-    <DrawerPanelContent data-testid="workspaceDetails">
+    <DrawerPanelContent data-testid="workspace-details">
       <DrawerHead>
-        <Title headingLevel="h6">{workspace.name}</Title>
+        <Title headingLevel="h6" data-testid="title">
+          {workspace.name}
+        </Title>
         <WorkspaceDetailsActions /*onEditClick={onEditClick}*/ onDeleteClick={onDeleteClick} />
         <DrawerActions>
-          <DrawerCloseButton onClick={onCloseClick} />
+          <DrawerCloseButton onClick={onCloseClick} data-testid="close-button" />
         </DrawerActions>
       </DrawerHead>
 
@@ -59,6 +61,7 @@ export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = 
             eventKey={0}
             title={<TabTitleText>Overview</TabTitleText>}
             tabContentId="overviewTabContent"
+            data-testid="overview-tab"
             aria-label="Overview"
           />
           <Tab
@@ -66,7 +69,7 @@ export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = 
             title={<TabTitleText>Activity</TabTitleText>}
             tabContentId="activityTabContent"
             aria-label="Activity"
-            data-testid="activityTab"
+            data-testid="activity-tab"
           />
           {/* TODO: Uncomment when Logs visualization is fully supported
           <Tab
@@ -92,6 +95,7 @@ export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = 
           key={0}
           eventKey={0}
           id="overviewTabContent"
+          data-testid="overview-tab-content"
           activeKey={activeTabKey}
           hidden={activeTabKey !== 0}
         >
@@ -104,6 +108,7 @@ export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = 
           key={1}
           eventKey={1}
           id="activityTabContent"
+          data-testid="activity-tab-content"
           activeKey={activeTabKey}
           hidden={activeTabKey !== 1}
         >

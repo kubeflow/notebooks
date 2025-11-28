@@ -53,6 +53,10 @@ export default defineConfig({
   defaultCommandTimeout: 10000,
   e2e: {
     baseUrl: BASE_URL,
+    retries: {
+      runMode: 2,
+      openMode: 0,
+    },
     specPattern: env.CY_MOCK ? `cypress/tests/mocked/**/*.cy.ts` : `cypress/tests/e2e/**/*.cy.ts`,
     experimentalInteractiveRunEvents: true,
     setupNodeEvents(on, config) {

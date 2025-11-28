@@ -181,7 +181,7 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
           /* drawer expanded */
         }}
       >
-        <DrawerContent panelContent={drawerContent}>
+        <DrawerContent panelContent={drawerContent} data-testid="workspace-actions-drawer-content">
           <DrawerContentBody>
             {children}
             {activeWsAction && (

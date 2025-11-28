@@ -21,6 +21,7 @@ interface PaginatedTableProps {
   handleEdit: (index: number) => void;
   openDeleteModal: (index: number) => void;
   ariaLabel: string;
+  dataTestId?: string;
 }
 
 export const WorkspaceKindFormPaginatedTable: React.FC<PaginatedTableProps> = ({
@@ -30,6 +31,7 @@ export const WorkspaceKindFormPaginatedTable: React.FC<PaginatedTableProps> = ({
   handleEdit,
   openDeleteModal,
   ariaLabel,
+  dataTestId,
 }) => {
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
   const [page, setPage] = useState(1);
@@ -59,7 +61,7 @@ export const WorkspaceKindFormPaginatedTable: React.FC<PaginatedTableProps> = ({
   };
   return (
     <PageSection>
-      <Table aria-label={ariaLabel}>
+      <Table aria-label={ariaLabel} data-testid={dataTestId}>
         <Thead>
           <Tr>
             <Th>Display Name</Th>
@@ -105,6 +107,7 @@ export const WorkspaceKindFormPaginatedTable: React.FC<PaginatedTableProps> = ({
                       onClick={() => setDropdownOpen(dropdownOpen === index ? null : index)}
                       variant="plain"
                       aria-label="plain kebab"
+                      data-testid={`${dataTestId}-row-${index}-kebab`}
                     >
                       <EllipsisVIcon />
                     </MenuToggle>

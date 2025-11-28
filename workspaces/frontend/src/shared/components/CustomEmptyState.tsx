@@ -16,11 +16,11 @@ const CustomEmptyState: React.FC<CustomEmptyStateProps> = ({ onClearFilters }) =
   const title = 'No results found';
   const body = 'No results match the filter criteria. Clear all filters and try again.';
   return (
-    <EmptyState headingLevel="h4" titleText={title} icon={SearchIcon}>
+    <EmptyState headingLevel="h4" titleText={title} icon={SearchIcon} data-testid="empty-state">
       <EmptyStateBody>{body}</EmptyStateBody>
       <EmptyStateFooter>
         <EmptyStateActions>
-          <Button variant="link" onClick={onClearFilters}>
+          <Button variant="link" onClick={onClearFilters} data-testid="clear-all-filters">
             Clear all filters
           </Button>
         </EmptyStateActions>

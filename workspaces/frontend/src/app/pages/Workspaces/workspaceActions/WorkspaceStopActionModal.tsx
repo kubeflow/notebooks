@@ -86,6 +86,7 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
 
   return (
     <Modal
+      data-testid="stop-modal"
       variant="medium"
       isOpen={isOpen}
       aria-describedby="modal-title-icon-description"
@@ -123,13 +124,14 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
             titleOnLoading="Stopping ..."
             onClick={() => handleStop()}
             variant={workspacePendingUpdate ? 'secondary' : 'primary'}
+            data-testid="stop-button"
           >
             {workspacePendingUpdate ? 'Stop and defer updates' : 'Stop'}
           </ActionButton>
         )}
 
         {!actionOnGoing && (
-          <Button variant="link" onClick={onClose}>
+          <Button variant="link" onClick={onClose} data-testid="cancel-button">
             Cancel
           </Button>
         )}

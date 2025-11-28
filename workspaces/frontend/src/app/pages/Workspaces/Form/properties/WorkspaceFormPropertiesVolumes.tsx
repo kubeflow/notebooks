@@ -92,7 +92,11 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
   return (
     <>
       {volumes.length > 0 && (
-        <Table variant={TableVariant.compact} aria-label="Volumes Table">
+        <Table
+          variant={TableVariant.compact}
+          aria-label="Volumes Table"
+          data-testid="volumes-table"
+        >
           <Thead>
             <Tr>
               <Th>PVC Name</Th>
@@ -139,11 +143,17 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
         onClick={() => setIsModalOpen(true)}
         style={{ marginTop: '1rem', width: 'fit-content' }}
         className="pf-v6-u-mb-md "
+        data-testid="create-volume-button"
       >
         Create Volume
       </Button>
 
-      <Modal isOpen={isModalOpen} onClose={resetForm} variant={ModalVariant.small}>
+      <Modal
+        isOpen={isModalOpen}
+        onClose={resetForm}
+        variant={ModalVariant.small}
+        data-testid="volume-modal"
+      >
         <ModalHeader
           title={editIndex !== null ? 'Edit Volume' : 'Create Volume'}
           description="Add a volume and optionally connect it with an existing workspace."
@@ -158,6 +168,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
                 value={formData.pvcName}
                 onChange={(_, val) => setFormData({ ...formData, pvcName: val })}
                 id="pvc-name"
+                data-testid="pvc-name-input"
               />
             </ThemeAwareFormGroupWrapper>
             <ThemeAwareFormGroupWrapper label="Mount Path" isRequired fieldId="mount-path">
@@ -168,6 +179,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
                 value={formData.mountPath}
                 onChange={(_, val) => setFormData({ ...formData, mountPath: val })}
                 id="mount-path"
+                data-testid="mount-path-input"
               />
             </ThemeAwareFormGroupWrapper>
             <FormGroup fieldId="readonly-access" className="pf-v6-u-pt-lg">
@@ -176,6 +188,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
                 label="Enable read-only access"
                 isChecked={formData.readOnly}
                 onChange={() => setFormData({ ...formData, readOnly: !formData.readOnly })}
+                data-testid="readonly-access-switch"
               />
             </FormGroup>
           </Form>
@@ -185,10 +198,16 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
             key="confirm"
             onClick={handleAddOrEdit}
             isDisabled={!formData.pvcName || !formData.mountPath}
+            data-testid="volume-modal-submit-button"
           >
             {editIndex !== null ? 'Save' : 'Create'}
           </Button>
-          <Button key="cancel" variant="link" onClick={resetForm}>
+          <Button
+            key="cancel"
+            variant="link"
+            onClick={resetForm}
+            data-testid="volume-modal-cancel-button"
+          >
             Cancel
           </Button>
         </ModalFooter>
@@ -197,16 +216,27 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         variant={ModalVariant.small}
+        data-testid="detach-volume-modal"
       >
         <ModalHeader
           title="Detach Volume?"
           description="The volume and all of its resources will be detached from the workspace."
         />
         <ModalFooter>
-          <Button key="detach" variant="danger" onClick={handleDelete}>
+          <Button
+            key="detach"
+            variant="danger"
+            onClick={handleDelete}
+            data-testid="detach-volume-confirm-button"
+          >
             Detach
           </Button>
-          <Button key="cancel" variant="link" onClick={() => setIsDeleteModalOpen(false)}>
+          <Button
+            key="cancel"
+            variant="link"
+            onClick={() => setIsDeleteModalOpen(false)}
+            data-testid="detach-volume-cancel-button"
+          >
             Cancel
           </Button>
         </ModalFooter>

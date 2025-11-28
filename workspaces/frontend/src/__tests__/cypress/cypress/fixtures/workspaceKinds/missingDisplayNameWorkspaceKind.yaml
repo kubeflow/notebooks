@@ -1,0 +1,15 @@
+apiVersion: kubeflow.org/v1beta1
+kind: WorkspaceKind
+metadata:
+  name: test-workspace-kind
+spec:
+  spawner:
+    displayName: ''
+    description: A test workspace kind with empty display name
+  podTemplate:
+    options:
+      imageConfig:
+        values: []
+      podConfig:
+        values: []
+

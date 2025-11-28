@@ -49,6 +49,7 @@ export const WorkspaceConnectAction: React.FunctionComponent<WorkspaceConnectAct
           onClick={onToggleClick}
           isExpanded={open}
           isDisabled={workspace.state !== WorkspacesWorkspaceState.WorkspaceStateRunning}
+          aria-label="Select connection endpoint"
         >
           Connect
         </MenuToggle>
