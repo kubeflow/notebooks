@@ -60,4 +60,24 @@ describe('FormWorkspaceVolumeComponent', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  it('should add new volume', () => {
+    // initialize a blank volGroup
+    component.volGroup = new FormGroup({
+      mount: new FormControl(),
+    });
+
+    expect(component.volGroup.get('newPvc')).toBeFalsy();
+
+    component.addNewVolume();
+
+    expect(component.volGroup.get('newPvc')).toBeTruthy();
+    expect(component.volGroup.get('newPvc.metadata.name').value).toBe('{notebook-name}-workspace');
+
+    expect(component.volGroup.get('mount').value).toBe('/home/jovyan');
+
+    expect(component.volGroup.enabled).toBeTrue();
+
+    expect(component.volGroup.get('newPvc.spec.storageClassName').enabled).toBeFalse();
+  });
 });
