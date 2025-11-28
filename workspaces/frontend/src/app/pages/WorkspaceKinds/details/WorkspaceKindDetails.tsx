@@ -49,9 +49,11 @@ export const WorkspaceKindDetails: React.FunctionComponent<WorkspaceKindDetailsP
   return (
     <DrawerPanelContent minSize="45%" isResizable data-testid="workspaceDetails">
       <DrawerHead>
-        <Title headingLevel="h6">{workspaceKind.name}</Title>
+        <Title headingLevel="h6" data-testid="workspace-kind-details-title">
+          {workspaceKind.name}
+        </Title>
         <DrawerActions>
-          <DrawerCloseButton onClick={onCloseClick} />
+          <DrawerCloseButton onClick={onCloseClick} data-testid="workspace-kind-details-close" />
         </DrawerActions>
       </DrawerHead>
 
@@ -62,24 +64,28 @@ export const WorkspaceKindDetails: React.FunctionComponent<WorkspaceKindDetailsP
             title={<TabTitleText>Overview</TabTitleText>}
             tabContentId="overviewTabContent"
             aria-label="Overview"
+            data-testid="overview-tab"
           />
           <Tab
             eventKey={imagesTabKey}
             title={<TabTitleText>Images</TabTitleText>}
             tabContentId="imagesTabContent"
             aria-label="Images"
+            data-testid="images-tab"
           />
           <Tab
             eventKey={podConfigsTabKey}
             title={<TabTitleText>Pod configs</TabTitleText>}
             tabContentId="podConfigsTabContent"
             aria-label="Pod Configs"
+            data-testid="pod-configs-tab"
           />
           <Tab
             eventKey={namespacesTabKey}
             title={<TabTitleText>Namespaces</TabTitleText>}
             tabContentId="namespacesTabContent"
             aria-label="Namespaces"
+            data-testid="namespaces-tab"
           />
         </Tabs>
       </DrawerPanelBody>

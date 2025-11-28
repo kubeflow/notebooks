@@ -222,14 +222,19 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
           onClick={() => setIsStatusMenuOpen(!isStatusMenuOpen)}
           isExpanded={isStatusMenuOpen}
           style={{ width: '200px' } as React.CSSProperties}
+          data-testid="filter-status-dropdown"
         >
           Filter by status
         </MenuToggle>
       )}
     >
       <SelectList>
-        <SelectOption value="Deprecated">Deprecated</SelectOption>
-        <SelectOption value="Active">Active</SelectOption>
+        <SelectOption value="Deprecated" data-testid="filter-status-deprecated">
+          Deprecated
+        </SelectOption>
+        <SelectOption value="Active" data-testid="filter-status-active">
+          Active
+        </SelectOption>
       </SelectList>
     </Select>
   );
@@ -255,15 +260,22 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
           onClick={() => setIsAttributeMenuOpen(!isAttributeMenuOpen)}
           isExpanded={isAttributeMenuOpen}
           icon={<FilterIcon />}
+          data-testid="filter-attribute-dropdown"
         >
           {activeAttributeMenu}
         </MenuToggle>
       )}
     >
       <SelectList>
-        <SelectOption value="Name">Name</SelectOption>
-        <SelectOption value="Description">Description</SelectOption>
-        <SelectOption value="Status">Status</SelectOption>
+        <SelectOption value="Name" data-testid="filter-attribute-name">
+          Name
+        </SelectOption>
+        <SelectOption value="Description" data-testid="filter-attribute-description">
+          Description
+        </SelectOption>
+        <SelectOption value="Status" data-testid="filter-attribute-status">
+          Status
+        </SelectOption>
       </SelectList>
     </Select>
   );
@@ -331,7 +343,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
         <DrawerContentBody>
           <PageSection isFilled>
             <Content>
-              <h1>Workspace kinds</h1>
+              <h1 data-testid="app-page-title">Workspace kinds</h1>
               <p>View your existing workspace kinds.</p>
             </Content>
             <br />
@@ -355,6 +367,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                             placeholder="Filter by name"
                             fieldLabel="Find by name"
                             aria-label="Filter by name"
+                            data-testid="filter-name-input"
                           />
                         </ToolbarItem>
                       </ToolbarFilter>
@@ -376,6 +389,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                             placeholder="Filter by description"
                             fieldLabel="Find by description"
                             aria-label="Filter by description"
+                            data-testid="filter-description-input"
                           />
                         </ToolbarItem>
                       </ToolbarFilter>
@@ -389,7 +403,12 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                         {statusSelect}
                       </ToolbarFilter>
                       <ToolbarItem>
-                        <Button variant="primary" ouiaId="Primary" onClick={createWorkspaceKind}>
+                        <Button
+                          variant="primary"
+                          ouiaId="Primary"
+                          onClick={createWorkspaceKind}
+                          data-testid="create-workspace-kind-button"
+                        >
                           Create workspace kind
                         </Button>
                       </ToolbarItem>
@@ -398,7 +417,11 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                 </ToolbarContent>
               </Toolbar>
             </Content>
-            <Table aria-label="Sortable table" ouiaId="SortableTable">
+            <Table
+              aria-label="Sortable table"
+              ouiaId="SortableTable"
+              data-testid="workspace-kinds-table"
+            >
               <Thead>
                 <Tr>
                   {Object.values(columns).map((column, index) => (
@@ -420,7 +443,10 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
               {filteredWorkspaceKinds.length > 0 &&
                 filteredWorkspaceKinds.map((workspaceKind, rowIndex) => (
                   <Tbody id="workspace-kind-table-content" key={rowIndex} data-testid="table-body">
-                    <Tr id={`workspace-kind-table-row-${rowIndex + 1}`}>
+                    <Tr
+                      id={`workspace-kind-table-row-${rowIndex + 1}`}
+                      data-testid={`workspace-kind-row-${rowIndex}`}
+                    >
                       <Td dataLabel={columns.name.name}>
                         <WithValidImage
                           imageSrc={workspaceKind.icon.url}
@@ -441,11 +467,12 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                             />
                           )}
                         </WithValidImage>
-                        {workspaceKind.name}
+                        <span data-testid="workspace-kind-name">{workspaceKind.name}</span>
                       </Td>
                       <Td
                         dataLabel={columns.description.name}
                         style={{ maxWidth: '200px', overflow: 'hidden' }}
+                        data-testid="workspace-kind-description"
                       >
                         <Tooltip content={workspaceKind.description}>
                           <span>
@@ -458,13 +485,20 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                       <Td dataLabel={columns.deprecated.name}>
                         {workspaceKind.deprecated ? (
                           <Tooltip content={workspaceKind.deprecationMessage}>
-                            <Label color="red">Deprecated</Label>
+                            <Label color="red" data-testid="status-label">
+                              Deprecated
+                            </Label>
                           </Tooltip>
                         ) : (
-                          <Label color="green">Active</Label>
+                          <Label color="green" data-testid="status-label">
+                            Active
+                          </Label>
                         )}
                       </Td>
-                      <Td dataLabel={columns.numberOfWorkspaces.name}>
+                      <Td
+                        dataLabel={columns.numberOfWorkspaces.name}
+                        data-testid="workspace-kind-workspace-count"
+                      >
                         <Button
                           variant="link"
                           className="workspace-kind-summary-button"

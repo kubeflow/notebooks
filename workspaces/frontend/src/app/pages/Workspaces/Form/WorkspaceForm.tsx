@@ -384,6 +384,7 @@ const WorkspaceForm: React.FC = () => {
                       ouiaId="Secondary"
                       onClick={previousStep}
                       isDisabled={!canGoToPreviousStep}
+                      data-testid="previous-button"
                     >
                       Previous
                     </Button>
@@ -395,6 +396,7 @@ const WorkspaceForm: React.FC = () => {
                         ouiaId="Primary"
                         onClick={nextStep}
                         isDisabled={!isCurrentStepValid}
+                        data-testid="next-button"
                       >
                         Next
                       </Button>
@@ -404,13 +406,14 @@ const WorkspaceForm: React.FC = () => {
                         ouiaId="Primary"
                         onClick={handleSubmit}
                         isDisabled={!canSubmit}
+                        data-testid="submit-button"
                       >
                         {mode === 'create' ? 'Create' : 'Save'}
                       </Button>
                     )}
                   </FlexItem>
                   <FlexItem>
-                    <Button variant="link" onClick={cancel}>
+                    <Button variant="link" onClick={cancel} data-testid="cancel-button">
                       Cancel
                     </Button>
                   </FlexItem>

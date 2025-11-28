@@ -89,10 +89,13 @@ export const EditableLabels: React.FC<EditableLabelsProps> = ({
     value: 'Value',
   };
 
+  const dataTestId = title.toLowerCase().replace(/\s+/g, '-');
+
   return (
     <FormFieldGroupExpandable
       className="form-label-field-group"
       toggleAriaLabel="Labels"
+      data-testid={`${dataTestId}-section`}
       header={
         <FormFieldGroupHeader
           titleText={{
@@ -114,7 +117,7 @@ export const EditableLabels: React.FC<EditableLabelsProps> = ({
       }
     >
       {rows.length !== 0 && (
-        <Table aria-label="Editable table">
+        <Table aria-label="Editable table" data-testid={`${dataTestId}-table`}>
           <Thead>
             <Tr>
               <Th>{columnNames.key}</Th>
@@ -144,6 +147,7 @@ export const EditableLabels: React.FC<EditableLabelsProps> = ({
         variant="link"
         style={{ width: 'fit-content' }}
         icon={<PlusCircleIcon />}
+        data-testid={`add-${dataTestId}-button`}
         onClick={() => {
           setRows([
             ...rows,

@@ -87,6 +87,7 @@ export const WorkspaceStartActionModal: React.FC<StartActionAlertProps> = ({
 
   return (
     <Modal
+      data-testid="start-modal"
       variant="medium"
       isOpen={isOpen}
       aria-describedby="modal-title-icon-description"
@@ -116,12 +117,13 @@ export const WorkspaceStartActionModal: React.FC<StartActionAlertProps> = ({
             titleOnLoading="Starting ..."
             onClick={() => handleStart()}
             variant="secondary"
+            data-testid="start-button"
           >
             Start
           </ActionButton>
         )}
         {!actionOnGoing && (
-          <Button variant="link" onClick={onClose}>
+          <Button variant="link" onClick={onClose} data-testid="cancel-button">
             Cancel
           </Button>
         )}

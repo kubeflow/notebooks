@@ -1,0 +1,40 @@
+apiVersion: kubeflow.org/v1beta1
+kind: WorkspaceKind
+metadata:
+  name: test-workspace-kind
+spec:
+  spawner:
+    displayName: Test Workspace Kind
+    description: A test workspace kind for testing
+  podTemplate:
+    podMetadata:
+      labels: {}
+      annotations: {}
+    volumeMounts:
+      home: /home/jovyan
+    options:
+      imageConfig:
+        default: jupyter_scipy_latest
+        values:
+          - id: jupyter_scipy_latest
+            displayName: jupyter-scipy:latest
+            description: JupyterLab with SciPy packages
+            labels: []
+            hidden: false
+            image: jupyter/scipy-notebook:latest
+      podConfig:
+        default: small_cpu
+        values:
+          - id: small_cpu
+            displayName: Small CPU
+            description: 1 CPU, 2Gi RAM
+            labels: []
+            hidden: false
+            resources:
+              requests:
+                cpu: "1"
+                memory: 2Gi
+              limits:
+                cpu: "1"
+                memory: 2Gi
+

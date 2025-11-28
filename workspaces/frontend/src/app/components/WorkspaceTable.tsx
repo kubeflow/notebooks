@@ -1,4 +1,4 @@
-import React, { useCallback, useImperativeHandle, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import {
   TimestampTooltipVariant,
   Timestamp,
@@ -188,7 +188,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
           toggle={(toggleRef) => (
             <MenuToggle
               ref={toggleRef}
-              id="filter-workspaces-dropdown"
+              data-testid="filter-workspaces-dropdown"
               onClick={onAttributeToggleClick}
               isExpanded={isAttributeMenuOpen}
               icon={<FilterIcon />}
@@ -199,7 +199,11 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
         >
           <SelectList>
             {filterConfigs.map(({ key, label }) => (
-              <SelectOption key={key} value={label} id={`filter-workspaces-dropdown-${key}`}>
+              <SelectOption
+                key={key}
+                value={label}
+                data-testid={`filter-workspaces-dropdown-${key}`}
+              >
                 {label}
               </SelectOption>
             ))}
@@ -323,6 +327,13 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
           : String(bValue).localeCompare(String(aValue));
       });
     }, [filteredWorkspaces, activeSortColumnKey, activeSortDirection]);
+
+    useEffect(() => {
+      const totalPages = Math.max(1, Math.ceil(sortedWorkspaces.length / perPage) || 1);
+      if (page > totalPages) {
+        setPage(totalPages);
+      }
+    }, [sortedWorkspaces.length, perPage, page]);
 
     const getSortParams = (columnKey: WorkspaceTableColumnKeys): ThProps['sort'] => {
       const sortableColumnKey = columnKey as WorkspaceTableSortableColumnKeys;
@@ -461,7 +472,11 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
     return (
       <>
         <Content style={{ display: 'flex', alignItems: 'flex-start', columnGap: '20px' }}>
-          <Toolbar id="workspace-filter-toolbar" clearAllFilters={clearAllFilters}>
+          <Toolbar
+            id="workspace-filter-toolbar"
+            clearAllFilters={clearAllFilters}
+            data-testid="workspace-table-toolbar"
+          >
             <ToolbarContent>
               <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="xl">
                 <ToolbarGroup variant="filter-group">
@@ -615,7 +630,9 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                           {columnKey === 'name' && workspace.name}
                           {columnKey === 'image' && (
                             <Content>
-                              {workspace.podTemplate.options.imageConfig.current.displayName}{' '}
+                              <span data-testid="workspace-image-name">
+                                {workspace.podTemplate.options.imageConfig.current.displayName}
+                              </span>{' '}
                               {workspaceRedirectStatus[workspace.workspaceKind.name]
                                 ? getRedirectStatusIcon(
                                     workspaceRedirectStatus[workspace.workspaceKind.name]?.message

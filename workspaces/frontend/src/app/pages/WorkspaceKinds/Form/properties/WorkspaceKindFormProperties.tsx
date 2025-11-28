@@ -40,6 +40,7 @@ export const WorkspaceKindFormProperties: React.FC<WorkspaceKindFormPropertiesPr
               value={properties.displayName}
               onChange={(_, value) => updateField({ ...properties, displayName: value })}
               id="workspace-kind-name"
+              data-testid="workspace-kind-name-input"
             />
           </ThemeAwareFormGroupWrapper>
           <ThemeAwareFormGroupWrapper label="Description" fieldId="workspace-kind-description">
@@ -48,6 +49,7 @@ export const WorkspaceKindFormProperties: React.FC<WorkspaceKindFormPropertiesPr
               value={properties.description}
               onChange={(_, value) => updateField({ ...properties, description: value })}
               id="workspace-kind-description"
+              data-testid="workspace-kind-description-input"
             />
           </ThemeAwareFormGroupWrapper>
           {mode === 'edit' && (
@@ -70,6 +72,7 @@ export const WorkspaceKindFormProperties: React.FC<WorkspaceKindFormPropertiesPr
                 onChange={() => updateField({ ...properties, deprecated: !properties.deprecated })}
                 id="workspace-kind-deprecated"
                 name="workspace-kind-deprecated-switch"
+                data-testid="workspace-kind-deprecated-switch"
               />
             </FormGroup>
           )}
@@ -85,6 +88,7 @@ export const WorkspaceKindFormProperties: React.FC<WorkspaceKindFormPropertiesPr
                 placeholder="Deprecation message"
                 onChange={(_, value) => updateField({ ...properties, deprecationMessage: value })}
                 id="workspace-kind-deprecated-msg"
+                data-testid="workspace-kind-deprecated-msg-input"
               />
             </ThemeAwareFormGroupWrapper>
           )}
@@ -99,6 +103,7 @@ export const WorkspaceKindFormProperties: React.FC<WorkspaceKindFormPropertiesPr
                 id="workspace-kind-hidden"
                 name="workspace-kind-hidden-switch"
                 aria-label="workspace-kind-hidden"
+                data-testid="workspace-kind-hidden-switch"
                 label={
                   <div>
                     <div>Hidden</div>
@@ -115,6 +120,7 @@ export const WorkspaceKindFormProperties: React.FC<WorkspaceKindFormPropertiesPr
               value={properties.icon.url}
               onChange={(_, value) => updateField({ ...properties, icon: { url: value } })}
               id="workspace-kind-icon"
+              data-testid="workspace-kind-icon-input"
             />
           </ThemeAwareFormGroupWrapper>
           <ThemeAwareFormGroupWrapper label="Logo URL" isRequired fieldId="workspace-kind-logo">
@@ -124,6 +130,7 @@ export const WorkspaceKindFormProperties: React.FC<WorkspaceKindFormPropertiesPr
               value={properties.logo.url}
               onChange={(_, value) => updateField({ ...properties, logo: { url: value } })}
               id="workspace-kind-logo"
+              data-testid="workspace-kind-logo-input"
             />
           </ThemeAwareFormGroupWrapper>
         </Form>

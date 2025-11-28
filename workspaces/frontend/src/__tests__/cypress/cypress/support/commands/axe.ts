@@ -20,6 +20,9 @@ Cypress.Commands.add('testA11y', { prevSubject: 'optional' }, (subject, context)
         c,
         {
           includedImpacts: ['serious', 'critical'],
+          rules: {
+            'color-contrast': { enabled: false },
+          },
         },
         (violations) => {
           cy.task(

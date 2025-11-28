@@ -1,29 +1,38 @@
 import { mockModArchResponse } from 'mod-arch-core';
 import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
 import { home } from '~/__tests__/cypress/cypress/pages/home';
-import { mockNamespaces } from '~/__mocks__/mockNamespaces';
-import { mockWorkspace1 } from '~/shared/mock/mockNotebookServiceData';
-import { navBar } from '~/__tests__/cypress/cypress/pages/navBar';
+import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
+import { workspaces } from '~/__tests__/cypress/cypress/pages/workspaces/workspaces';
+import { buildMockNamespace, buildMockWorkspace } from '~/shared/mock/mockBuilder';
 
 describe('Application', () => {
-  it('Page not found should render', () => {
+  it('should redirect to page not found when visiting a non-existent page', () => {
     pageNotfound.visit();
+    pageNotfound.assertPageVisible();
   });
 
-  it('Home page should have primary button', () => {
-    cy.intercept('GET', '/api/v1/namespaces', {
-      body: mockModArchResponse(mockNamespaces),
-    }).as('getNamespaces');
-    cy.intercept('GET', `/api/v1/workspaces/${mockNamespaces[0].name}`, {
-      body: mockModArchResponse([mockWorkspace1]),
-    }).as('getWorkspaces');
+  it('should redirect to Workspaces page when visiting the root', () => {
+    const mockNamespace = buildMockNamespace({ name: 'default' });
+    const mockWorkspace = buildMockWorkspace({ namespace: mockNamespace.name });
+
+    cy.interceptApi(
+      'GET /api/:apiVersion/namespaces',
+      { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+      mockModArchResponse([mockNamespace]),
+    ).as('getNamespaces');
+
+    cy.interceptApi(
+      'GET /api/:apiVersion/workspaces/:namespace',
+      { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
+      mockModArchResponse([mockWorkspace]),
+    ).as('getWorkspaces');
 
     home.visit();
-    navBar.selectNamespace(mockNamespaces[0].name);
 
     cy.wait('@getNamespaces');
     cy.wait('@getWorkspaces');
 
-    home.findButton();
+    workspaces.findPageTitle();
+    workspaces.verifyPageURL();
   });
 });

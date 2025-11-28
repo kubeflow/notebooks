@@ -353,6 +353,7 @@ export const buildMockWorkspaceList = (args: {
   count: number;
   namespace: string;
   kind: WorkspacesWorkspaceKindInfo;
+  state?: WorkspacesWorkspaceState;
 }): WorkspacesWorkspace[] => {
   const states = Object.values(WorkspacesWorkspaceState);
   const imageConfigs = [
@@ -390,7 +391,7 @@ export const buildMockWorkspaceList = (args: {
 
   const workspaces: WorkspacesWorkspace[] = [];
   for (let i = 1; i <= args.count; i++) {
-    const state = states[(i - 1) % states.length];
+    const state = args.state || states[(i - 1) % states.length];
     const labels = {
       [`labelKey${i}`]: `labelValue${i}`,
       [`labelKey${i + 1}`]: `labelValue${i + 1}`,
