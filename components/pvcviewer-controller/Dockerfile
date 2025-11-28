@@ -1,5 +1,5 @@
 # Build the manager binary
-ARG GOLANG_VERSION=1.22.2
+ARG GOLANG_VERSION=1.24
 FROM golang:${GOLANG_VERSION} as builder
 
 WORKDIR /workspace
