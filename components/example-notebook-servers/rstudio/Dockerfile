@@ -10,7 +10,7 @@ ARG TARGETARCH
 # args - software versions (python)
 ARG MINIFORGE_VERSION=24.11.3-0
 ARG PIP_VERSION=24.3.1
-ARG PYTHON_VERSION=3.11.11
+ARG PYTHON_VERSION=3.12.6
 
 # args - software versions (R)
 # - rstudio: https://dailies.rstudio.com/release/
