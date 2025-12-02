@@ -133,6 +133,68 @@ func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _
 	a.dataResponse(w, r, responseEnvelope)
 }
 
+// DeleteWorkspaceKindHandler deletes a specific workspace kind by name.
+//
+//	@Summary		Delete workspace kind
+//	@Description	Deletes a specific workspace kind identified by its name.
+//	@Tags			workspacekinds
+//	@ID				deleteWorkspaceKind
+//	@Accept			json
+//	@Produce		json
+//	@Param			name	path		string			true	"Name of the workspace kind"	extensions(x-example=jupyterlab)
+//	@Success		204		{object}	nil				"Workspace kind deleted successfully"
+//	@Failure		401		{object}	ErrorEnvelope	"Unauthorized. Authentication is required."
+//	@Failure		403		{object}	ErrorEnvelope	"Forbidden. User does not have permission to delete the workspace kind."
+//	@Failure		404		{object}	ErrorEnvelope	"Not Found. Workspace kind does not exist."
+//	@Failure		409		{object}	ErrorEnvelope	"Conflict. Workspace kind is in use by one or more workspaces."
+//	@Failure		422		{object}	ErrorEnvelope	"Unprocessable Entity. Validation error."
+//	@Failure		500		{object}	ErrorEnvelope	"Internal server error. An unexpected error occurred on the server."
+//	@Router			/workspacekinds/{name} [delete]
+func (a *App) DeleteWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	name := ps.ByName(ResourceNamePathParam)
+
+	// validate path parameters
+	var valErrs field.ErrorList
+	valErrs = append(valErrs, helper.ValidateWorkspaceKindName(field.NewPath(ResourceNamePathParam), name)...)
+	if len(valErrs) > 0 {
+		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
+		return
+	}
+
+	// =========================== AUTH ===========================
+	authPolicies := []*auth.ResourcePolicy{
+		auth.NewResourcePolicy(
+			auth.ResourceVerbDelete,
+			&kubefloworgv1beta1.WorkspaceKind{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: name,
+				},
+			},
+		),
+	}
+	if success := a.requireAuth(w, r, authPolicies); !success {
+		return
+	}
+	// ============================================================
+
+	err := a.repositories.WorkspaceKind.DeleteWorkspaceKind(r.Context(), name)
+	if err != nil {
+		if errors.Is(err, repository.ErrWorkspaceKindNotFound) {
+			a.notFoundResponse(w, r)
+			return
+		}
+		if apierrors.IsConflict(err) {
+			causes := helper.StatusCausesFromAPIStatus(err)
+			a.conflictResponse(w, r, err, causes)
+			return
+		}
+		a.serverErrorResponse(w, r, err)
+		return
+	}
+
+	a.deletedResponse(w, r)
+}
+
 // CreateWorkspaceKindHandler creates a new workspace kind.
 //
 //	@Summary		Create workspace kind
