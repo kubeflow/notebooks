@@ -125,6 +125,7 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
           <>
             <WorkspaceKindFormPaginatedTable
               ariaLabel="Pod Configs Table"
+              dataTestId="pod-configs-table"
               rows={podConfig.values}
               defaultId={defaultId}
               setDefaultId={(id) => {
@@ -149,16 +150,27 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
           isOpen={isDeleteModalOpen}
           onClose={() => setIsDeleteModalOpen(false)}
           variant={ModalVariant.small}
+          data-testid="remove-pod-config-modal"
         >
           <ModalHeader
             title="Remove Pod Config?"
             description="The pod config will be removed from the workspace kind."
           />
           <ModalFooter>
-            <Button key="remove" variant="danger" onClick={handleDelete}>
+            <Button
+              key="remove"
+              variant="danger"
+              onClick={handleDelete}
+              data-testid="remove-pod-config-confirm-button"
+            >
               Remove
             </Button>
-            <Button key="cancel" variant="link" onClick={() => setIsDeleteModalOpen(false)}>
+            <Button
+              key="cancel"
+              variant="link"
+              onClick={() => setIsDeleteModalOpen(false)}
+              data-testid="remove-pod-config-cancel-button"
+            >
               Cancel
             </Button>
           </ModalFooter>

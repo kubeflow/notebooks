@@ -72,7 +72,9 @@ const WorkspaceKindSummary: React.FC = () => {
           </Breadcrumb>
         </StackItem>
         <StackItem>
-          <Content component={ContentVariants.h1}>{kind}</Content>
+          <Content component={ContentVariants.h1} data-testid="app-page-title">
+            {kind}
+          </Content>
           <Content component={ContentVariants.p}>
             View a summary of your workspaces and their GPU usage.
           </Content>

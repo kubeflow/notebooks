@@ -14,7 +14,7 @@ export const ValidationErrorAlert: React.FC<ValidationErrorAlertProps> = ({ titl
   }
 
   return (
-    <Alert variant="danger" title={title} isInline>
+    <Alert variant="danger" title={title} isInline data-testid="validation-error-alert">
       <List>
         {errors.map((error, index) => (
           <ListItem key={index}>

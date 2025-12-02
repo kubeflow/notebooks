@@ -104,11 +104,17 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
             variant="danger"
             isDisabled={inputValue !== resourceName}
             aria-disabled={inputValue !== resourceName}
+            data-testid="delete-button"
           >
             Delete
           </ActionButton>
           {!isDeleting && (
-            <Button onClick={onClose} variant="link" style={{ marginLeft: '1rem' }}>
+            <Button
+              onClick={onClose}
+              variant="link"
+              style={{ marginLeft: '1rem' }}
+              data-testid="cancel-button"
+            >
               Cancel
             </Button>
           )}

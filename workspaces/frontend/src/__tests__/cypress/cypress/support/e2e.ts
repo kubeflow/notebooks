@@ -17,6 +17,8 @@ import chaiSubset from 'chai-subset';
 import '@cypress/code-coverage/support';
 import 'cypress-mochawesome-reporter/register';
 import './commands';
+import { mockUserSettings } from '~/__mocks__/mockUserSettings';
+import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 
 chai.use(chaiSubset);
 
@@ -28,5 +30,11 @@ beforeEach(() => {
   if (Cypress.env('MOCK')) {
     // fallback: return 404 for all api requests
     cy.intercept({ pathname: '/api/**' }, { statusCode: 404 });
+
+    cy.interceptApi(
+      'GET /api/:apiVersion/user',
+      { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+      mockUserSettings({}),
+    );
   }
 });
