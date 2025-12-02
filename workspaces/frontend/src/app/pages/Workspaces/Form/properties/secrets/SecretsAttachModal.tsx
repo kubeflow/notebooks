@@ -7,12 +7,14 @@ import {
   ModalHeader,
   ModalVariant,
 } from '@patternfly/react-core/dist/esm/components/Modal';
+import { Alert, AlertVariant } from '@patternfly/react-core/dist/esm/components/Alert';
 import { MultiTypeaheadSelect, MultiTypeaheadSelectOption } from '@patternfly/react-templates';
 import { Form } from '@patternfly/react-core/dist/esm/components/Form';
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import { ValidatedOptions } from '@patternfly/react-core/helpers';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
+import { Label, LabelGroup } from '@patternfly/react-core/dist/esm/components/Label';
 import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
 import { InfoCircleIcon } from '@patternfly/react-icons/dist/esm/icons/info-circle-icon';
 import { Truncate } from '@patternfly/react-core/dist/esm/components/Truncate';
@@ -55,8 +57,7 @@ export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
     }
   }, [isOpen]);
 
-  const getSecretKey = (secretName: string, path: string, mode: number): string =>
-    `${secretName}:${path}:${mode}`;
+  const getSecretKey = (secretName: string, path: string): string => `${secretName}:${path}`;
 
   const handleDefaultModeChange = (val: string) => {
     if (val.length <= 3) {
@@ -72,8 +73,10 @@ export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
 
     // Check for duplicates
     const duplicates: string[] = [];
+    // Handle trailing slashes in mount path
+    const trimmedMountPath = mountPath.trim().replace(/\/+$/, '');
     selected.forEach((secretName) => {
-      const key = getSecretKey(secretName, mountPath.trim(), mode);
+      const key = getSecretKey(secretName, trimmedMountPath);
       if (existingSecretKeys.has(key)) {
         duplicates.push(secretName);
       }
@@ -82,7 +85,7 @@ export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
     if (duplicates.length > 0) {
       const secretList = duplicates.join(', ');
       setError(
-        `The following secret${duplicates.length > 1 ? 's are' : ' is'} already mounted to "${mountPath.trim()}" with mode ${defaultMode}: ${secretList}`,
+        `The following secret${duplicates.length > 1 ? 's are' : ' is'} already mounted to "${mountPath.trim()}": ${secretList}`,
       );
       return;
     }
@@ -90,7 +93,7 @@ export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
     // No duplicates, proceed with attaching
     onClose(
       availableSecrets.filter((secret) => selected.includes(secret.name)),
-      mountPath.trim(),
+      trimmedMountPath,
       mode,
     );
   };
@@ -102,20 +105,22 @@ export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
         value: secret.name,
         isDisabled: !secret.canMount,
         description: (
-          // <Grid style={{ maxWidth: '45vw' }}>
           <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-            <FlexItem style={{ maxWidth: '35vw' }}>
+            <FlexItem>
               <Stack>
                 <StackItem>
-                  Type: {secret.type}
-                  {secret.immutable && '. Immutable'}
+                  <LabelGroup>
+                    <Label isCompact>Type: {secret.type}</Label>
+                    {secret.immutable && <Label isCompact>Immutable</Label>}
+                  </LabelGroup>
                 </StackItem>
                 {secret.mounts && (
-                  <StackItem>
-                    {`Mounted to: `}
+                  <StackItem style={{ paddingLeft: '1.25ch' }}>
+                    Mounted to:&ensp;
                     <Truncate
                       content={secret.mounts.map((mount) => mount.name).join(', ')}
-                      position="middle"
+                      position="end"
+                      maxCharsDisplayed={100}
                     />
                   </StackItem>
                 )}
@@ -126,28 +131,24 @@ export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
                 <Tooltip
                   aria="none"
                   aria-live="polite"
-                  content=<Stack>
-                    <StackItem>
-                      Created at: {new Date(secret.audit.createdAt).toLocaleString()} {`by `}
-                      {secret.audit.createdBy}
-                    </StackItem>
-                    <StackItem>
-                      Updated at: {new Date(secret.audit.updatedAt).toLocaleString()} {`by `}
-                      {secret.audit.updatedBy}
-                    </StackItem>
-                  </Stack>
+                  content={
+                    <Stack>
+                      <StackItem>
+                        {`Created at: ${new Date(secret.audit.createdAt).toLocaleString()} by 
+                        ${secret.audit.createdBy}`}
+                      </StackItem>
+                      <StackItem>
+                        {`Updated at: ${new Date(secret.audit.updatedAt).toLocaleString()} by 
+                        ${secret.audit.updatedBy}`}
+                      </StackItem>
+                    </Stack>
+                  }
                 >
-                  <Button
-                    aria-label="Show secret details"
-                    variant="plain"
-                    id="tt-ref"
-                    icon={<InfoCircleIcon />}
-                  />
+                  <InfoCircleIcon />
                 </Tooltip>
               )}
             </FlexItem>
           </Flex>
-          // </Grid>
         ),
       })),
     [availableSecrets],
@@ -164,10 +165,17 @@ export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
     >
       <ModalHeader title="Attach Existing Secrets" labelId="basic-modal-title" />
       <ModalBody id="modal-box-body-basic">
+        {error && (
+          <Alert variant={AlertVariant.danger} isInline title="Error">
+            {error}
+          </Alert>
+        )}
         <Form>
           <ThemeAwareFormGroupWrapper label="Secret" fieldId="secret-select">
             <MultiTypeaheadSelect
               initialOptions={initialOptions}
+              menuHeight="15rem"
+              isScrollable
               id="secret-select"
               placeholder="Select a secret"
               noOptionsFoundMessage={(filter) => `No secret was found for "${filter}"`}
@@ -209,11 +217,6 @@ export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
             )}
           </ThemeAwareFormGroupWrapper>
         </Form>
-        {error && (
-          <HelperText>
-            <HelperTextItem variant="error">{error}</HelperTextItem>
-          </HelperText>
-        )}
       </ModalBody>
       <ModalFooter>
         <Button

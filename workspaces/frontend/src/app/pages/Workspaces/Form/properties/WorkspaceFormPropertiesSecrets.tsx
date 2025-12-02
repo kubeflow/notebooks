@@ -59,7 +59,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
   }, [api.secrets, selectedNamespace]);
 
   const getSecretKey = (secret: WorkspacesPodSecretMount): string =>
-    `${secret.secretName}:${secret.mountPath}:${secret.defaultMode}`;
+    `${secret.secretName}:${secret.mountPath}`;
 
   const openDeleteModal = useCallback((i: number) => {
     setIsDeleteModalOpen(true);
