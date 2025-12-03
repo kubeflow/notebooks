@@ -11,6 +11,7 @@ import { editWorkspaceKind } from '~/__tests__/cypress/cypress/pages/workspaceKi
 
 const DEFAULT_NAMESPACE = 'default';
 const TOTAL_FILTER_TEST_WORKSPACEKINDS = 6;
+const DEFAULT_PAGE_SIZE = 10;
 
 type WorkspaceKindsSetup = {
   mockWorkspaceKinds: WorkspacekindsWorkspaceKind[];
@@ -20,9 +21,6 @@ const setupWorkspaceKinds = (count: number): WorkspaceKindsSetup => {
   const mockWorkspaceKinds = Array.from({ length: count }, (_, index) =>
     buildMockWorkspaceKind({
       name: `workspace-kind-${index}`,
-      displayName: `Workspace Kind ${index}`,
-      description: `Description for workspace kind ${index}`,
-      deprecated: false,
     }),
   );
 
@@ -416,6 +414,148 @@ describe('WorkspaceKinds', () => {
 
       // Verify that deprecated comes first
       workspaceKinds.assertWorkspaceKindRowName(0, 'deprecated-kind');
+    });
+  });
+
+  describe('Pagination', () => {
+    it('should navigate through pages of workspace kinds', () => {
+      const { mockWorkspaceKinds } = setupWorkspaceKinds(25);
+
+      visitWorkspaceKinds();
+
+      // First page
+      workspaceKinds.assertWorkspaceKindCount(DEFAULT_PAGE_SIZE);
+      workspaceKinds.assertPaginationExists();
+      workspaceKinds.assertWorkspaceKindRowName(0, mockWorkspaceKinds[0].name);
+      workspaceKinds.assertWorkspaceKindRowName(9, mockWorkspaceKinds[9].name);
+      workspaceKinds.assertPaginationRange({ firstItem: 1, lastItem: 10, totalItems: 25 });
+
+      // Second page
+      workspaceKinds.goToNextPage();
+      workspaceKinds.assertWorkspaceKindCount(DEFAULT_PAGE_SIZE);
+      workspaceKinds.assertWorkspaceKindRowName(0, mockWorkspaceKinds[10].name);
+      workspaceKinds.assertWorkspaceKindRowName(9, mockWorkspaceKinds[19].name);
+      workspaceKinds.assertPaginationRange({ firstItem: 11, lastItem: 20, totalItems: 25 });
+
+      // Third page
+      workspaceKinds.goToNextPage();
+      workspaceKinds.assertWorkspaceKindCount(5);
+      workspaceKinds.assertWorkspaceKindRowName(0, mockWorkspaceKinds[20].name);
+      workspaceKinds.assertWorkspaceKindRowName(4, mockWorkspaceKinds[24].name);
+      workspaceKinds.assertPaginationRange({ firstItem: 21, lastItem: 25, totalItems: 25 });
+
+      // Back to second page
+      workspaceKinds.goToPreviousPage();
+      workspaceKinds.assertWorkspaceKindCount(DEFAULT_PAGE_SIZE);
+      workspaceKinds.assertWorkspaceKindRowName(0, mockWorkspaceKinds[10].name);
+      workspaceKinds.assertPaginationRange({ firstItem: 11, lastItem: 20, totalItems: 25 });
+
+      // Back to first page
+      workspaceKinds.goToPreviousPage();
+      workspaceKinds.assertWorkspaceKindCount(DEFAULT_PAGE_SIZE);
+      workspaceKinds.assertWorkspaceKindRowName(0, mockWorkspaceKinds[0].name);
+      workspaceKinds.assertWorkspaceKindRowName(9, mockWorkspaceKinds[9].name);
+      workspaceKinds.assertPaginationRange({ firstItem: 1, lastItem: 10, totalItems: 25 });
+    });
+
+    it('should handle exactly one page of workspace kinds with disabled controls', () => {
+      setupWorkspaceKinds(DEFAULT_PAGE_SIZE);
+
+      visitWorkspaceKinds();
+
+      workspaceKinds.assertWorkspaceKindCount(DEFAULT_PAGE_SIZE);
+      workspaceKinds.assertPaginationExists();
+      workspaceKinds.assertPrevNextDisabled();
+      workspaceKinds.assertPaginationRange({ firstItem: 1, lastItem: 10, totalItems: 10 });
+    });
+
+    it('should reset pagination when applying filters', () => {
+      const { mockWorkspaceKinds } = setupWorkspaceKinds(25);
+
+      visitWorkspaceKinds();
+
+      // Navigate to page 3
+      workspaceKinds.goToNextPage();
+      workspaceKinds.goToNextPage();
+      workspaceKinds.assertWorkspaceKindCount(5);
+      workspaceKinds.assertWorkspaceKindRowName(0, mockWorkspaceKinds[20].name);
+
+      const targetWorkspaceKind = mockWorkspaceKinds[4];
+      workspaceKinds.applyNameFilter(targetWorkspaceKind.name);
+
+      workspaceKinds.assertWorkspaceKindCount(1);
+      workspaceKinds.assertWorkspaceKindRowName(0, targetWorkspaceKind.name);
+      workspaceKinds.assertPaginationRange({ firstItem: 1, lastItem: 1, totalItems: 1 });
+    });
+
+    it('should update pagination count when filtering', () => {
+      const { mockWorkspaceKinds } = setupWorkspaceKinds(11);
+
+      visitWorkspaceKinds();
+
+      // Navigate to page 2
+      workspaceKinds.goToNextPage();
+      workspaceKinds.assertWorkspaceKindCount(1);
+      workspaceKinds.assertWorkspaceKindRowName(0, mockWorkspaceKinds[10].name);
+
+      const targetWorkspaceKind = mockWorkspaceKinds[0];
+      workspaceKinds.applyNameFilter(targetWorkspaceKind.name);
+
+      workspaceKinds.assertWorkspaceKindCount(1);
+      workspaceKinds.assertWorkspaceKindRowName(0, targetWorkspaceKind.name);
+      workspaceKinds.assertPaginationRange({ firstItem: 1, lastItem: 1, totalItems: 1 });
+    });
+
+    it('should show correct pagination range when filter returns multiple results', () => {
+      setupWorkspaceKinds(25);
+
+      visitWorkspaceKinds();
+
+      workspaceKinds.assertWorkspaceKindCount(DEFAULT_PAGE_SIZE);
+      workspaceKinds.assertPaginationRange({ firstItem: 1, lastItem: 10, totalItems: 25 });
+
+      workspaceKinds.applyNameFilter('workspace-kind-1');
+
+      workspaceKinds.assertWorkspaceKindCount(DEFAULT_PAGE_SIZE);
+      workspaceKinds.assertWorkspaceKindRowName(0, 'workspace-kind-1');
+      workspaceKinds.assertWorkspaceKindRowName(9, 'workspace-kind-18');
+      workspaceKinds.assertPaginationRange({ firstItem: 1, lastItem: 10, totalItems: 11 });
+    });
+
+    it('should change number of rows when page size is changed', () => {
+      const { mockWorkspaceKinds } = setupWorkspaceKinds(25);
+
+      visitWorkspaceKinds();
+
+      workspaceKinds.assertWorkspaceKindCount(DEFAULT_PAGE_SIZE);
+      workspaceKinds.assertPaginationRange({ firstItem: 1, lastItem: 10, totalItems: 25 });
+
+      workspaceKinds.selectPerPage(20);
+
+      workspaceKinds.assertWorkspaceKindCount(20);
+      workspaceKinds.assertWorkspaceKindRowName(0, mockWorkspaceKinds[0].name);
+      workspaceKinds.assertWorkspaceKindRowName(19, mockWorkspaceKinds[19].name);
+      workspaceKinds.assertPaginationRange({ firstItem: 1, lastItem: 20, totalItems: 25 });
+
+      workspaceKinds.selectPerPage(50);
+
+      workspaceKinds.assertWorkspaceKindCount(25);
+      workspaceKinds.assertWorkspaceKindRowName(0, mockWorkspaceKinds[0].name);
+      workspaceKinds.assertWorkspaceKindRowName(24, mockWorkspaceKinds[24].name);
+      workspaceKinds.assertPaginationRange({ firstItem: 1, lastItem: 25, totalItems: 25 });
+    });
+
+    it('should show empty state when filter returns no results', () => {
+      setupWorkspaceKinds(10);
+
+      visitWorkspaceKinds();
+
+      workspaceKinds.assertWorkspaceKindCount(DEFAULT_PAGE_SIZE);
+
+      workspaceKinds.applyNameFilter('nonexistent-workspace-kind');
+
+      workspaceKinds.assertWorkspaceKindCount(0);
+      workspaceKinds.assertEmptyStateVisible();
     });
   });
 

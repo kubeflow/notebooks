@@ -1,10 +1,14 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Drawer,
   DrawerContent,
   DrawerContentBody,
 } from '@patternfly/react-core/dist/esm/components/Drawer';
 import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
+import {
+  Pagination,
+  PaginationVariant,
+} from '@patternfly/react-core/dist/esm/components/Pagination';
 import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
 import { Label } from '@patternfly/react-core/dist/esm/components/Label';
@@ -82,6 +86,10 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
   // Column sorting
   const [activeSortIndex, setActiveSortIndex] = useState<number | null>(1);
   const [activeSortDirection, setActiveSortDirection] = useState<'asc' | 'desc' | null>('asc');
+
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
 
   const getSortableRowValues = useCallback(
     (workspaceKind: WorkspacekindsWorkspaceKind): (string | boolean | number)[] => {
@@ -188,6 +196,33 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
   const filteredWorkspaceKinds = useMemo(
     () => sortedWorkspaceKinds.filter(onFilter),
     [sortedWorkspaceKinds, onFilter],
+  );
+
+  // Reset page when filtered results change and current page is out of bounds
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(filteredWorkspaceKinds.length / perPage) || 1);
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [filteredWorkspaceKinds.length, perPage, page]);
+
+  const onSetPage = useCallback(
+    (_event: React.MouseEvent | React.KeyboardEvent | MouseEvent, newPage: number) => {
+      setPage(newPage);
+    },
+    [],
+  );
+
+  const onPerPageSelect = useCallback(
+    (
+      _event: React.MouseEvent | React.KeyboardEvent | MouseEvent,
+      newPerPage: number,
+      newPage: number,
+    ) => {
+      setPerPage(newPerPage);
+      setPage(newPage);
+    },
+    [],
   );
 
   const clearAllFilters = useCallback(() => {
@@ -441,94 +476,100 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                 </Tr>
               </Thead>
               {filteredWorkspaceKinds.length > 0 &&
-                filteredWorkspaceKinds.map((workspaceKind, rowIndex) => (
-                  <Tbody id="workspace-kind-table-content" key={rowIndex} data-testid="table-body">
-                    <Tr
-                      id={`workspace-kind-table-row-${rowIndex + 1}`}
-                      data-testid={`workspace-kind-row-${rowIndex}`}
+                filteredWorkspaceKinds
+                  .slice(perPage * (page - 1), perPage * page)
+                  .map((workspaceKind, rowIndex) => (
+                    <Tbody
+                      id="workspace-kind-table-content"
+                      key={rowIndex}
+                      data-testid="table-body"
                     >
-                      <Td dataLabel={columns.name.name}>
-                        <WithValidImage
-                          imageSrc={workspaceKind.icon.url}
-                          skeletonWidth="20px"
-                          fallback={<ImageFallback imageSrc={workspaceKind.icon.url} />}
-                        >
-                          {(validSrc) => (
-                            <img
-                              className="pf-v6-u-mr-sm"
-                              src={validSrc}
-                              alt={`${workspaceKind.name} icon`}
-                              style={{
-                                width: '20px',
-                                height: '20px',
-                                objectFit: 'contain',
-                                verticalAlign: 'middle',
-                              }}
-                            />
-                          )}
-                        </WithValidImage>
-                        <span data-testid="workspace-kind-name">{workspaceKind.name}</span>
-                      </Td>
-                      <Td
-                        dataLabel={columns.description.name}
-                        style={{ maxWidth: '200px', overflow: 'hidden' }}
-                        data-testid="workspace-kind-description"
+                      <Tr
+                        id={`workspace-kind-table-row-${rowIndex + 1}`}
+                        data-testid={`workspace-kind-row-${rowIndex}`}
                       >
-                        <Tooltip content={workspaceKind.description}>
-                          <span>
-                            {workspaceKind.description.length > DESCRIPTION_CHAR_LIMIT
-                              ? `${workspaceKind.description.slice(0, DESCRIPTION_CHAR_LIMIT)}...`
-                              : workspaceKind.description}
-                          </span>
-                        </Tooltip>
-                      </Td>
-                      <Td dataLabel={columns.deprecated.name}>
-                        {workspaceKind.deprecated ? (
-                          <Tooltip content={workspaceKind.deprecationMessage}>
-                            <Label color="red" data-testid="status-label">
-                              Deprecated
-                            </Label>
+                        <Td dataLabel={columns.name.name}>
+                          <WithValidImage
+                            imageSrc={workspaceKind.icon.url}
+                            skeletonWidth="20px"
+                            fallback={<ImageFallback imageSrc={workspaceKind.icon.url} />}
+                          >
+                            {(validSrc) => (
+                              <img
+                                className="pf-v6-u-mr-sm"
+                                src={validSrc}
+                                alt={`${workspaceKind.name} icon`}
+                                style={{
+                                  width: '20px',
+                                  height: '20px',
+                                  objectFit: 'contain',
+                                  verticalAlign: 'middle',
+                                }}
+                              />
+                            )}
+                          </WithValidImage>
+                          <span data-testid="workspace-kind-name">{workspaceKind.name}</span>
+                        </Td>
+                        <Td
+                          dataLabel={columns.description.name}
+                          style={{ maxWidth: '200px', overflow: 'hidden' }}
+                          data-testid="workspace-kind-description"
+                        >
+                          <Tooltip content={workspaceKind.description}>
+                            <span>
+                              {workspaceKind.description.length > DESCRIPTION_CHAR_LIMIT
+                                ? `${workspaceKind.description.slice(0, DESCRIPTION_CHAR_LIMIT)}...`
+                                : workspaceKind.description}
+                            </span>
                           </Tooltip>
-                        ) : (
-                          <Label color="green" data-testid="status-label">
-                            Active
-                          </Label>
-                        )}
-                      </Td>
-                      <Td
-                        dataLabel={columns.numberOfWorkspaces.name}
-                        data-testid="workspace-kind-workspace-count"
-                      >
-                        <Button
-                          variant="link"
-                          className="workspace-kind-summary-button"
-                          isInline
-                          onClick={() =>
-                            navigate('workspaceKindSummary', {
-                              params: { kind: workspaceKind.name },
-                              state: {},
-                            })
-                          }
+                        </Td>
+                        <Td dataLabel={columns.deprecated.name}>
+                          {workspaceKind.deprecated ? (
+                            <Tooltip content={workspaceKind.deprecationMessage}>
+                              <Label color="red" data-testid="status-label">
+                                Deprecated
+                              </Label>
+                            </Tooltip>
+                          ) : (
+                            <Label color="green" data-testid="status-label">
+                              Active
+                            </Label>
+                          )}
+                        </Td>
+                        <Td
+                          dataLabel={columns.numberOfWorkspaces.name}
+                          data-testid="workspace-kind-workspace-count"
                         >
-                          {
-                            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                            workspaceCountPerKind[workspaceKind.name]?.count ?? 0
-                          }
-                          {' Workspaces'}
-                        </Button>
-                      </Td>
+                          <Button
+                            variant="link"
+                            className="workspace-kind-summary-button"
+                            isInline
+                            onClick={() =>
+                              navigate('workspaceKindSummary', {
+                                params: { kind: workspaceKind.name },
+                                state: {},
+                              })
+                            }
+                          >
+                            {
+                              // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+                              workspaceCountPerKind[workspaceKind.name]?.count ?? 0
+                            }
+                            {' Workspaces'}
+                          </Button>
+                        </Td>
 
-                      <Td isActionCell data-testid="action-column">
-                        <ActionsColumn
-                          items={workspaceKindsDefaultActions(workspaceKind).map((action) => ({
-                            ...action,
-                            'data-testid': `action-${action.id || ''}`,
-                          }))}
-                        />
-                      </Td>
-                    </Tr>
-                  </Tbody>
-                ))}
+                        <Td isActionCell data-testid="action-column">
+                          <ActionsColumn
+                            items={workspaceKindsDefaultActions(workspaceKind).map((action) => ({
+                              ...action,
+                              'data-testid': `action-${action.id || ''}`,
+                            }))}
+                          />
+                        </Td>
+                      </Tr>
+                    </Tbody>
+                  ))}
               {filteredWorkspaceKinds.length === 0 && (
                 <Tr>
                   <Td colSpan={8} id="empty-state">
@@ -537,6 +578,17 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                 </Tr>
               )}
             </Table>
+            <Pagination
+              itemCount={filteredWorkspaceKinds.length}
+              widgetId="workspace-kinds-pagination"
+              perPage={perPage}
+              page={page}
+              variant={PaginationVariant.bottom}
+              isCompact
+              onSetPage={onSetPage}
+              onPerPageSelect={onPerPageSelect}
+              data-testid="workspace-kinds-pagination"
+            />
           </PageSection>
         </DrawerContentBody>
       </DrawerContent>

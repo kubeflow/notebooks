@@ -133,6 +133,39 @@ class WorkspaceKinds {
   assertEmptyStateVisible() {
     this.findEmptyState().should('exist');
   }
+
+  findPagination() {
+    return cy.findByTestId('workspace-kinds-pagination');
+  }
+
+  goToNextPage() {
+    return this.findPagination().find('button[aria-label*="Go to next page"]').click();
+  }
+
+  goToPreviousPage() {
+    return this.findPagination().find('button[aria-label*="Go to previous page"]').click();
+  }
+
+  selectPerPage(perPage: number) {
+    this.findPagination().find('.pf-v6-c-menu-toggle').first().click({ force: true });
+    return cy.get('.pf-v6-c-menu__item').contains(`${perPage}`).click({ force: true });
+  }
+
+  assertPaginationExists() {
+    this.findPagination().should('exist');
+  }
+
+  assertPrevNextDisabled() {
+    this.findPagination().find('button[aria-label*="Go to previous page"]').should('be.disabled');
+    this.findPagination().find('button[aria-label*="Go to next page"]').should('be.disabled');
+  }
+
+  assertPaginationRange(args: { firstItem: number; lastItem: number; totalItems: number }) {
+    this.findPagination().should(
+      'contain.text',
+      `${args.firstItem} - ${args.lastItem} of ${args.totalItems}`,
+    );
+  }
 }
 
 class WorkspaceKindDetailsDrawer {
