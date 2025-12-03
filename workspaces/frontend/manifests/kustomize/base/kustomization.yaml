@@ -4,11 +4,11 @@ kind: Kustomization
 namespace: kubeflow-workspaces
 
 resources:
-- namespace.yaml
-- deployment.yaml
-- service.yaml
+  - namespace.yaml
+  - deployment.yaml
+  - service.yaml
 
 labels:
-- includeSelectors: true
-  pairs:
-    app.kubernetes.io/component: ui
+  - includeSelectors: true
+    pairs:
+      app.kubernetes.io/component: ui

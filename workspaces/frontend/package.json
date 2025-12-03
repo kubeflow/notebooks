@@ -37,8 +37,8 @@
     "cypress:run:mock": "CY_MOCK=1 npm run cypress:run -- ",
     "cypress:server:build": "npm run build",
     "cypress:server": "serve ./dist -p 9001 -s -L",
-    "prettier": "prettier --ignore-path .gitignore --write \"**/*{.ts,.tsx,.js,.cjs,.jsx,.css,.json}\"",
-    "prettier:check": "prettier --ignore-path .gitignore --check \"**/*{.ts,.tsx,.js,.cjs,.jsx,.css,.json}\"",
+    "prettier": "prettier --ignore-path .gitignore --write \"**/*{.ts,.tsx,.js,.cjs,.jsx,.css,.json,.yaml}\"",
+    "prettier:check": "prettier --ignore-path .gitignore --check \"**/*{.ts,.tsx,.js,.cjs,.jsx,.css,.json,.yaml}\"",
     "prepare": "cd ../../ && husky workspaces/frontend/.husky"
   },
   "devDependencies": {
