@@ -169,6 +169,18 @@ const buildMockSecretList = (startIndex: number, count: number) => {
   return secrets;
 };
 
+const buildMockSecretMountList = (startIndex: number, count: number) => {
+  const mounts = [];
+  for (let i = startIndex; i <= startIndex + count; i++) {
+    mounts.push({
+      name: `workspace-${i}`,
+      group: `group-${i}`,
+      kind: `kind-${i}`,
+    });
+  }
+  return mounts;
+};
+
 export const mockAllWorkspaces = [
   mockWorkspace1,
   mockWorkspace2,
@@ -197,32 +209,16 @@ export const mockSecretsList = [
   buildMockSecret({
     name: 'secret-1',
     immutable: true,
-    mounts: [
-      {
-        name: 'workspace-1',
-        group: 'group-1',
-        kind: 'kind-1',
-      },
-    ],
+    mounts: buildMockSecretMountList(1, 5),
   }),
   buildMockSecret({
     name: 'secret-2',
     canMount: false,
+    mounts: buildMockSecretMountList(1, 2),
   }),
   buildMockSecret({
     name: 'secret-3',
-    mounts: [
-      {
-        name: 'workspace-1',
-        group: 'group-1',
-        kind: 'kind-1',
-      },
-      {
-        name: 'workspace-2, workspace-3, workspace-4, workspace-5, workspace-6, workspace-7, workspace-8, workspace-9, workspace-10',
-        group: 'group-2',
-        kind: 'kind-2',
-      },
-    ],
+    mounts: buildMockSecretMountList(1, 20),
   }),
   ...buildMockSecretList(4, 20),
 ];

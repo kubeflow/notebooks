@@ -17,11 +17,12 @@ import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { Label, LabelGroup } from '@patternfly/react-core/dist/esm/components/Label';
 import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
 import { InfoCircleIcon } from '@patternfly/react-icons/dist/esm/icons/info-circle-icon';
-import { Truncate } from '@patternfly/react-core/dist/esm/components/Truncate';
+import { WrenchIcon } from '@patternfly/react-icons/dist/esm/icons/wrench-icon';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import { SecretsSecretListItem } from '~/generated/data-contracts';
 import { isValidDefaultMode } from '~/app/pages/Workspaces/Form/helpers';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
+import { LabelGroupWithTooltip } from '~/app/components/LabelGroupWithTooltip';
 
 export interface SecretsAttachModalProps {
   isOpen: boolean;
@@ -112,41 +113,47 @@ export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
                   <LabelGroup>
                     <Label isCompact>Type: {secret.type}</Label>
                     {secret.immutable && <Label isCompact>Immutable</Label>}
+                    {!secret.canMount && <Label isCompact>Unmountable</Label>}
                   </LabelGroup>
                 </StackItem>
                 {secret.mounts && (
-                  <StackItem style={{ paddingLeft: '1.25ch' }}>
-                    Mounted to:&ensp;
-                    <Truncate
-                      content={secret.mounts.map((mount) => mount.name).join(', ')}
-                      position="end"
-                      maxCharsDisplayed={100}
-                    />
+                  <StackItem style={{ marginLeft: '1.25ch', marginTop: '0.25rem' }}>
+                    <Flex gap={{ default: 'gapXs' }}>
+                      <FlexItem>Mounted to:</FlexItem>
+                      <FlexItem>
+                        <LabelGroupWithTooltip
+                          labels={secret.mounts.map((mount) => mount.name)}
+                          limit={5}
+                          variant="outline"
+                          icon={<WrenchIcon color="teal" />}
+                          isCompact
+                          color="teal"
+                        />
+                      </FlexItem>
+                    </Flex>
                   </StackItem>
                 )}
               </Stack>
             </FlexItem>
             <FlexItem>
-              {secret.canMount && (
-                <Tooltip
-                  aria="none"
-                  aria-live="polite"
-                  content={
-                    <Stack>
-                      <StackItem>
-                        {`Created at: ${new Date(secret.audit.createdAt).toLocaleString()} by 
+              <Tooltip
+                aria="none"
+                aria-live="polite"
+                content={
+                  <Stack>
+                    <StackItem>
+                      {`Created at: ${new Date(secret.audit.createdAt).toLocaleString()} by 
                         ${secret.audit.createdBy}`}
-                      </StackItem>
-                      <StackItem>
-                        {`Updated at: ${new Date(secret.audit.updatedAt).toLocaleString()} by 
+                    </StackItem>
+                    <StackItem>
+                      {`Updated at: ${new Date(secret.audit.updatedAt).toLocaleString()} by 
                         ${secret.audit.updatedBy}`}
-                      </StackItem>
-                    </Stack>
-                  }
-                >
-                  <InfoCircleIcon />
-                </Tooltip>
-              )}
+                    </StackItem>
+                  </Stack>
+                }
+              >
+                <InfoCircleIcon />
+              </Tooltip>
             </FlexItem>
           </Flex>
         ),
