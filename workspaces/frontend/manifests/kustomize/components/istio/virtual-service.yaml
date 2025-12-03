@@ -6,7 +6,7 @@ spec:
   gateways:
     - kubeflow/kubeflow-gateway
   hosts:
-  - '*'
+    - '*'
   http:
     - match:
         - uri:
