@@ -1,5 +1,5 @@
 # Build the manager binary
-ARG GOLANG_VERSION=1.22.2
+ARG GOLANG_VERSION=1.24
 FROM golang:${GOLANG_VERSION} as builder
 
 WORKDIR /workspace
@@ -16,7 +16,7 @@ COPY pvcviewer-controller/api/ api/
 COPY pvcviewer-controller/controllers/ controllers/
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GO111MODULE=on go build -a -mod=mod -o manager main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -o manager main.go
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
