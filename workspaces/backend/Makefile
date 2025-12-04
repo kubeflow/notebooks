@@ -9,6 +9,10 @@ IMG ?= $(REGISTRY)/$(NAME):$(TAG)
 ARCH ?= linux/arm64/v8,linux/amd64,linux/ppc64le
 
 
+# The version of Kubernetes to use for envtest.
+# If updating, also update the version referenced in `BinaryAssetsDirectory` of suite_test.go files.
+ENVTEST_K8S_VERSION = 1.31.0
+
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -56,7 +60,12 @@ vet: ## Run go vet against code.
 
 .PHONY: test
 test: fmt vet envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./... -coverprofile cover.out
+	$(eval KUBEBUILDER_ASSETS := $(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path))
+	## For unknown reasons, setup-envtest changes the binary permissions to 0555,
+	## this makes it difficult to clean up the downloaded binaries later.
+	## https://github.com/kubernetes-sigs/controller-runtime/blob/v0.22.4/tools/setup-envtest/store/store.go#L191
+	chmod -R u+w $(LOCALBIN)
+	KUBEBUILDER_ASSETS=${KUBEBUILDER_ASSETS} go test ./... -coverprofile cover.out
 
 .PHONY: lint
 lint: golangci-lint ## Run golangci-lint linter
