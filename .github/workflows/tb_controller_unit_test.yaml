@@ -1,0 +1,28 @@
+name: Run TensorBoard Controller unit tests
+on:
+  pull_request:
+    paths:
+      - components/tensorboard-controller/**
+      - releasing/version/VERSION
+    branches:
+      - main
+      - notebooks-v1
+      - 'v*-branch'
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: 'components/tensorboard-controller/go.mod'
+        check-latest: true
+
+    - name: Run unit tests
+      run: |
+        cd components/tensorboard-controller
+        make test

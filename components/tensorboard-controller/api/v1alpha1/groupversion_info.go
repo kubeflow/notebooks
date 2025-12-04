@@ -15,8 +15,8 @@ limitations under the License.
 */
 
 // Package v1alpha1 contains API Schema definitions for the tensorboard v1alpha1 API group
-//+kubebuilder:object:generate=true
-//+groupName=tensorboard.kubeflow.org
+// +kubebuilder:object:generate=true
+// +groupName=tensorboard.kubeflow.org
 package v1alpha1
 
 import (
