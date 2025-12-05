@@ -35,20 +35,11 @@ A semantic commit message must start with one of the following __prefixes__:
 
 To indicate a breaking change, add `!` after the prefix, e.g. `feat!: my commit message`.
 
-### Scopes
-
-You may optionally include a __scope__ after the prefix, for example:
-
-- `nb` (changes to notebooks - web-app, controller, images)
-- `pvc` (changes to volumes - web-app, controller)
-- `tb` (changes to tensorboards - web-app, controller)
-- `ws` (changes to workspaces - frontend, backend, controller, images)
-
 ### Examples
 
 Here are some examples of semantic commit messages:
 
-- `fix(nb): something that was broken`
-- `feat(ws): a new feature`
+- `fix: something that was broken`
+- `feat: a new feature`
 - `improve: a general improvement`
 - `chore: update readme`
