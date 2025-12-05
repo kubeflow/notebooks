@@ -1,14 +1,14 @@
-# Kubeflow Notebooks
+# Kubeflow Notebooks - v1
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/9942/badge)](https://www.bestpractices.dev/projects/9942)
 
-[Kubeflow Notebooks](https://www.kubeflow.org/docs/components/notebooks/overview/) lets you run web-based development environments on your Kubernetes cluster by running them inside Pods.
+[Kubeflow Notebooks](https://www.kubeflow.org/docs/components/notebooks/overview/) runs __interactive development environments__ for AI, ML, and Data workloads on __Kubernetes__.
 
-> ⚠️ __Note__ ⚠️
-> 
-> We are currently moving the _Kubeflow Notebooks 1.0_ codebase from [`kubeflow/kubeflow`](https://github.com/kubeflow/kubeflow) to this repository ([`kubeflow/notebooks`](https://github.com/kubeflow/notebooks)).
-> Please see [`kubeflow/kubeflow#7549`](https://github.com/kubeflow/kubeflow/issues/7549) for more information.
-> 
-> We are currently developing _Kubeflow Notebooks 2.0_ in this repository under the [`notebooks-v2`](https://github.com/kubeflow/notebooks/tree/notebooks-v2) branch.
-> Please see [`kubeflow/notebooks#85`](https://github.com/kubeflow/notebooks/issues/85) for more information.
+> [!NOTE]
+>
+> This repository contains two major versions of Kubeflow Notebooks:
+>
+> - The `notebooks-v1` branch contains the codebase for _Kubeflow Notebooks v1_.
+> - The [`notebooks-v2`](https://github.com/kubeflow/notebooks/tree/notebooks-v2) branch contains the codebase for _Kubeflow Notebooks v2_.
 
 ## What is Kubeflow Notebooks?
 
@@ -21,7 +21,7 @@ Key features of Kubeflow Notebooks:
 
 ## Installation
 
-Kubeflow Notebooks is designed to be deployed as part of a [Kubeflow Platform](https://www.kubeflow.org/docs/started/introduction/#what-is-kubeflow-platform) (not as a standalone component).
+Kubeflow Notebooks v1 is designed to be deployed as part of a [Kubeflow Platform](https://www.kubeflow.org/docs/started/introduction/#what-is-kubeflow-platform) (not as a standalone component).
 
 Please refer to the [Installing Kubeflow](https://www.kubeflow.org/docs/started/installing-kubeflow/) page for more information.
 
@@ -40,4 +40,4 @@ Connect with _other users_ and the [Notebooks Working Group](https://github.com/
 
 ## Contributing
 
-Please see the [`CONTRIBUTING.md`](CONTRIBUTING.md) file for more information.
+Please see the [`CONTRIBUTING.md`](https://github.com/kubeflow/notebooks/blob/main/CONTRIBUTING.md) file for more information.
