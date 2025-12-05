@@ -1,6 +1,14 @@
-# Kubeflow Notebooks
+# Kubeflow Notebooks - v2
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/9942/badge)](https://www.bestpractices.dev/projects/9942)
 
-[Kubeflow Notebooks](https://www.kubeflow.org/docs/components/notebooks/overview/) lets you run web-based development environments on your Kubernetes cluster by running them inside Pods.
+[Kubeflow Notebooks](https://www.kubeflow.org/docs/components/notebooks/overview/) runs __interactive development environments__ for AI, ML, and Data workloads on __Kubernetes__.
+
+> [!NOTE]
+>
+> This repository contains two major versions of Kubeflow Notebooks:
+>
+> - The [`notebooks-v1`](https://github.com/kubeflow/notebooks/tree/notebooks-v1) branch contains the codebase for _Kubeflow Notebooks v1_.
+> - The `notebooks-v2` branch contains the codebase for _Kubeflow Notebooks v2_.
 
 ## What is Kubeflow Notebooks?
 
@@ -13,9 +21,10 @@ Key features of Kubeflow Notebooks:
 
 ## Installation
 
-Currently, Kubeflow Notebooks must be deployed as part of a full Kubeflow platform (not as a standalone component).
-
-Please refer to the [Installing Kubeflow](https://www.kubeflow.org/docs/started/installing-kubeflow/) page for more information.
+> [!WARNING]
+>
+> Kubeflow Notebooks v2 is __not yet released__. We are actively developing the first stable release and will share updates soon.
+> See [`kubeflow/notebooks#85`](https://github.com/kubeflow/notebooks/issues/85) for more details.
 
 ## Documentation
 
@@ -25,16 +34,11 @@ The official documentation for Kubeflow Notebooks can be found [here](https://ww
 
 Kubeflow Notebooks is part of the Kubeflow project, refer to the [Kubeflow Community](https://www.kubeflow.org/docs/about/community/) page for more information.
 
-Connect with _other users_ and the [Notebooks Working Group](https://github.com/kubeflow/community/tree/master/wg-notebooks) in the following places:
+Connect with _other users_ and the [Notebooks Working Group](https://github.com/kubeflow/community/tree/master/wg-notebooks) (maintainers of Kubeflow Notebooks) in the following places:
 
-- [Kubeflow Slack](https://www.kubeflow.org/docs/about/community/#kubeflow-slack) - Join the [`#kubeflow-notebooks`](https://kubeflow.slack.com/archives/CESP7FCQ7) channel.
+- [Kubeflow Slack](https://www.kubeflow.org/docs/about/community/#kubeflow-slack-channels) - Join the [`#kubeflow-notebooks`](https://cloud-native.slack.com/archives/C073W562HFY) channel.
 - [Kubeflow Mailing List](https://groups.google.com/g/kubeflow-discuss)
 
 ## Contributing
 
-> ⚠️ __Note__ ⚠️
-> 
-> We are currently moving the Kubeflow Notebooks codebase from [`kubeflow/kubeflow`](https://github.com/kubeflow/kubeflow) to this repository ([`kubeflow/notebooks`](https://github.com/kubeflow/notebooks)).
-> For now, please continue to make contributions by raising PRs on `kubeflow/kubeflow`.
-
-Please see the [Contributing to Kubeflow](https://www.kubeflow.org/docs/about/contributing/) page for more information.
+Please see the [`CONTRIBUTING.md`](https://github.com/kubeflow/notebooks/blob/main/CONTRIBUTING.md) file for more information.
