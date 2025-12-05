@@ -1,6 +1,5 @@
 labels:
   - area/controller
-  - area/v1
 approvers:
   - apo-ger
   - kimwnasptd
