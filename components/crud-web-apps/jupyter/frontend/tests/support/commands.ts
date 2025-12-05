@@ -1,9 +1,9 @@
-import { Page, Route, Request as PlaywrightRequest } from '@playwright/test';
+import type { Page, Route, Request as PlaywrightRequest } from '@playwright/test';
 
-import config from '../fixtures/config.json' assert { type: 'json' };
-import namespaces from '../fixtures/namespaces.json' assert { type: 'json' };
-import notebooks from '../fixtures/notebooks.json' assert { type: 'json' };
-import poddefaults from '../fixtures/poddefaults.json' assert { type: 'json' };
+import config from '../fixtures/config.json' with { type: 'json' };
+import namespaces from '../fixtures/namespaces.json' with { type: 'json' };
+import notebooks from '../fixtures/notebooks.json' with { type: 'json' };
+import poddefaults from '../fixtures/poddefaults.json' with { type: 'json' };
 
 
 export async function selectAllNamespaces(page: Page) {

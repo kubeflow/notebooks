@@ -9,6 +9,9 @@ on:
       - v*-branch
       - notebooks-v1
 
+env:
+  NODE_VERSION: 24.11.1
+
 jobs:
   frontend-format-linting-check:
     name: Code format and lint
@@ -21,10 +24,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: Format tensorboards web app
         run: |
@@ -43,10 +46,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup node version to 16
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: Install common library dependencies
         run: |
@@ -73,10 +76,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: Install common library dependencies
         run: |

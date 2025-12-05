@@ -12,7 +12,7 @@ This web app is responsible for allowing the user to manipulate Tensorboard inst
 ## Development
 
 Requirements:
-* node 16.20.2
+* node 24
 * python 3.12
 
 ### Frontend
