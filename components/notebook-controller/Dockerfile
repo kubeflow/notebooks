@@ -4,7 +4,7 @@
 #
 # ${PATH_TO_KUBEFLOW/KUBEFLOW repo}/components
 #
-ARG GOLANG_VERSION=1.17
+ARG GOLANG_VERSION=1.24
 FROM golang:${GOLANG_VERSION} as builder
 
 WORKDIR /workspace
@@ -16,10 +16,18 @@ COPY notebook-controller /workspace/notebook-controller
 # and so that source changes don't invalidate our downloaded layer
 RUN cd /workspace/notebook-controller && go mod download
 
+# Force download and extract all HashiCorp modules so they exist under /go/pkg/mod
+RUN set -e; cd /workspace/notebook-controller; \
+  for m in $(go list -m all | awk '/^github.com\/hashicorp\// {print $1 "@" $2}'); do \
+    go mod download "$m"; \
+    pkg="${m%@*}"; \
+    go list "$pkg/..." >/dev/null 2>&1 || true; \
+  done
+
 WORKDIR /workspace/notebook-controller
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GO111MODULE=on go build -a -mod=mod -o manager main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -o manager main.go
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
