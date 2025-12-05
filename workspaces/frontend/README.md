@@ -60,6 +60,20 @@ Run all tests:
   npm run test
   ```
 
+#### Code Coverage
+
+Code coverage is collected from both **Jest** (unit tests) and **Cypress** (mocked UI tests), then merged into a single unified report.
+
+Run coverage:
+
+  ```bash
+  npm run test:coverage
+  ```
+
+This command runs both test suites with coverage instrumentation and merges the results. Coverage stats will be printed to the terminal upon completion.
+
+To view the detailed HTML report, open `coverage/report/index.html` in your browser.
+
 ### Linting
 
 Check for linting issues:

@@ -44,7 +44,7 @@ export default defineConfig({
   videosFolder: `${resultsDir}/videos`,
   env: {
     MOCK: !!env.CY_MOCK,
-    coverage: !!env.CY_COVERAGE,
+    coverage: !!env.COVERAGE,
     codeCoverage: {
       exclude: [path.resolve(__dirname, '../../third_party/**')],
     },
