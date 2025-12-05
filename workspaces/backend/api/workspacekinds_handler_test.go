@@ -137,6 +137,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			Expect(k8sClient.Get(ctx, workspaceKind2Key, workspacekind2)).To(Succeed())
 
 			By("ensuring the response contains the expected WorkspaceKinds")
+			// TODO: determine if/how we want to handle SHA256 hashes for ConfigMap-based assets in the tests
 			Expect(response.Data).To(ConsistOf(
 				models.NewWorkspaceKindModelFromWorkspaceKind(workspacekind1),
 				models.NewWorkspaceKindModelFromWorkspaceKind(workspacekind2),
@@ -185,6 +186,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			Expect(k8sClient.Get(ctx, workspaceKind1Key, workspacekind1)).To(Succeed())
 
 			By("ensuring the response matches the expected WorkspaceKind")
+			// TODO: determine if/how we want to handle SHA256 hashes for ConfigMap-based assets in the tests
 			expectedWorkspaceKind := models.NewWorkspaceKindModelFromWorkspaceKind(workspacekind1)
 			Expect(response.Data).To(BeComparableTo(expectedWorkspaceKind))
 

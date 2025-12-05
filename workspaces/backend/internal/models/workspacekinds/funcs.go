@@ -17,14 +17,25 @@ limitations under the License.
 package workspacekinds
 
 import (
-	"fmt"
-
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"k8s.io/utils/ptr"
+
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common/assets"
 )
 
 // NewWorkspaceKindModelFromWorkspaceKind creates a WorkspaceKind model from a WorkspaceKind object.
+// This is a convenience function that calls NewWorkspaceKindModelFromWorkspaceKindWithAssetContext with nil WorkspaceKindAssetContext.
+// For cases where asset information is available (e.g., ConfigMap-based assets), use NewWorkspaceKindModelFromWorkspaceKindWithAssetContext instead.
 func NewWorkspaceKindModelFromWorkspaceKind(wsk *kubefloworgv1beta1.WorkspaceKind) WorkspaceKind {
+	return NewWorkspaceKindModelFromWorkspaceKindWithAssetContext(wsk, nil)
+}
+
+// NewWorkspaceKindModelFromWorkspaceKindWithAssetContext creates a WorkspaceKind model from a WorkspaceKind object.
+// assetCtx contains metadata about icon and logo assets (SHA256 hashes and errors).
+// If nil, assets will be built without hash or error information.
+// SHA256 hashes will be appended as query parameters to ConfigMap-based asset URLs.
+// Errors will be set in ImageRef.Error when ConfigMap retrieval fails.
+func NewWorkspaceKindModelFromWorkspaceKindWithAssetContext(wsk *kubefloworgv1beta1.WorkspaceKind, assetCtx *assets.WorkspaceKindAssetContext) WorkspaceKind {
 	podLabels := make(map[string]string)
 	podAnnotations := make(map[string]string)
 	if wsk.Spec.PodTemplate.PodMetadata != nil {
@@ -39,19 +50,18 @@ func NewWorkspaceKindModelFromWorkspaceKind(wsk *kubefloworgv1beta1.WorkspaceKin
 	statusImageConfigMap := buildOptionMetricsMap(wsk.Status.PodTemplateOptions.ImageConfig)
 	statusPodConfigMap := buildOptionMetricsMap(wsk.Status.PodTemplateOptions.PodConfig)
 
-	// TODO: icons can either be a remote URL or read from a ConfigMap.
-	//       in BOTH cases, we should cache and serve the image under a path on the backend API:
-	//       /api/v1/workspacekinds/{name}/assets/icon
-	iconRef := ImageRef{
-		URL: fmt.Sprintf("/workspaces/backend/api/v1/workspacekinds/%s/assets/icon", wsk.Name),
+	var iconInfo assets.WorkspaceKindAssetDetails
+	var logoInfo assets.WorkspaceKindAssetDetails
+	if assetCtx != nil {
+		iconInfo = assetCtx.Icon
+		logoInfo = assetCtx.Logo
+	} else {
+		// Create empty AssetInfo with types set when WorkspaceKindAssetContext is nil
+		iconInfo = assets.NewIconAssetInfo("", nil)
+		logoInfo = assets.NewLogoAssetInfo("", nil)
 	}
-
-	// TODO: logos can either be a remote URL or read from a ConfigMap.
-	//       in BOTH cases, we should cache and serve the image under a path on the backend API:
-	//       /api/v1/workspacekinds/{name}/assets/logo
-	logoRef := ImageRef{
-		URL: fmt.Sprintf("/workspaces/backend/api/v1/workspacekinds/%s/assets/logo", wsk.Name),
-	}
+	iconRef := buildIconImageRef(wsk, iconInfo)
+	logoRef := buildLogoImageRef(wsk, logoInfo)
 
 	return WorkspaceKind{
 		Name:               wsk.Name,
@@ -174,4 +184,14 @@ func buildOptionRedirect(redirect *kubefloworgv1beta1.OptionRedirect) *OptionRed
 		To:      redirect.To,
 		Message: message,
 	}
+}
+
+// buildIconImageRef creates an ImageRef from the icon asset of a WorkspaceKind.
+func buildIconImageRef(wsk *kubefloworgv1beta1.WorkspaceKind, iconInfo assets.WorkspaceKindAssetDetails) assets.ImageRef {
+	return assets.BuildImageRef(wsk.Spec.Spawner.Icon, wsk.Name, iconInfo)
+}
+
+// buildLogoImageRef creates an ImageRef from the logo asset of a WorkspaceKind.
+func buildLogoImageRef(wsk *kubefloworgv1beta1.WorkspaceKind, logoInfo assets.WorkspaceKindAssetDetails) assets.ImageRef {
+	return assets.BuildImageRef(wsk.Spec.Spawner.Logo, wsk.Name, logoInfo)
 }
