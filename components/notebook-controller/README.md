@@ -80,7 +80,7 @@ notebook-controller-deployment-564d76877-mqsm8   1/1     Running   0          16
 ```
 
 ### Build and Run the Controller locally
-In order to build the controller you will need to use Go 1.17 and up in order to have Go Modules support. You will also need to have a k8s cluster.
+In order to build the controller you will need to use Go 1.24 and up in order to have Go Modules support. You will also need to have a k8s cluster.
 
 1. Install the CRDs into the cluster:
 
@@ -135,7 +135,7 @@ make uninstall
 
 To develop on `notebook-controller`, your environment must have the following:
 
-- [go](https://golang.org/dl/) version v1.17+.
+- [go](https://golang.org/dl/) version v1.24+.
 - [docker](https://docs.docker.com/install/) version 20.10+.
 - [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) version 1.22.0+.
 - [kustomize](https://sigs.k8s.io/kustomize/docs/INSTALL.md) version 3.8.7+.
