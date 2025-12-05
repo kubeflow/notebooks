@@ -1,6 +1,0 @@
-resources:
-- monitor.yaml
-
-labels:
-- pairs:
-    app.kubernetes.io/component: metrics

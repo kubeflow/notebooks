@@ -8,3 +8,4 @@ configMapGenerator:
 
 patches:
 - path: manager_istio_patch.yaml
+- path: istio_inject_patch.yaml

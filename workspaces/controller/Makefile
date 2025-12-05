@@ -49,7 +49,10 @@ help: ## Display this help.
 
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." \
+		output:crd:artifacts:config=manifests/kustomize/base/crd \
+		output:webhook:artifacts:config=manifests/kustomize/base/webhook \
+		output:rbac:artifacts:config=manifests/kustomize/base/manager
 
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
@@ -124,12 +127,6 @@ docker-build-multi-arch:
 docker-build-push-multi-arch:
 	docker buildx build --platform ${ARCH} --tag ${IMG} --push .
 
-.PHONY: build-installer
-build-installer: manifests generate kustomize ## Generate a consolidated YAML with CRDs and deployment.
-	mkdir -p dist
-	cd config/manager && $(KUSTOMIZE) edit set image workspaces-controller=${IMG}
-	$(KUSTOMIZE) build config/default > dist/install.yaml
-
 ##@ Deployment
 
 ifndef ignore-not-found
@@ -138,20 +135,20 @@ endif
 
 .PHONY: install
 install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/crd | $(KUBECTL) apply -f -
+	$(KUSTOMIZE) build manifests/kustomize/base/crd | $(KUBECTL) apply -f -
 
 .PHONY: uninstall
 uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	$(KUSTOMIZE) build config/crd | $(KUBECTL) delete --ignore-not-found=$(ignore-not-found) -f -
+	$(KUSTOMIZE) build manifests/kustomize/base/crd | $(KUBECTL) delete --ignore-not-found=$(ignore-not-found) -f -
 
 .PHONY: deploy
 deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager && $(KUSTOMIZE) edit set image workspaces-controller=${IMG}
-	$(KUSTOMIZE) build config/default | $(KUBECTL) apply -f -
+	cd manifests/kustomize/overlays/istio && $(KUSTOMIZE) edit set image workspaces-controller=${IMG}
+	$(KUBECTL) apply -k manifests/kustomize/overlays/istio
 
 .PHONY: undeploy
 undeploy: kustomize ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	$(KUSTOMIZE) build config/default | $(KUBECTL) delete --ignore-not-found=$(ignore-not-found) -f -
+	$(KUBECTL) delete -k manifests/kustomize/overlays/istio --ignore-not-found=$(ignore-not-found)
 
 ##@ Dependencies
 

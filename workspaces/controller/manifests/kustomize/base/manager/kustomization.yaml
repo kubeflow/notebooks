@@ -1,8 +1,8 @@
-labels:
-- pairs:
-    app.kubernetes.io/component: controller-manager
-
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
 resources:
+- namespace.yaml
+- manager.yaml
 # All RBAC will be applied under this service account in
 # the deployment namespace. You may comment out this resource
 # if your manager will use a service account that exists at
@@ -13,7 +13,6 @@ resources:
 - role_binding.yaml
 - leader_election_role.yaml
 - leader_election_role_binding.yaml
-- metrics_service.yaml
 # For each CRD, "Editor" and "Viewer" roles are scaffolded by
 # default, aiding admins in cluster management. Those roles are
 # not used by the Project itself. You can comment the following lines
@@ -23,3 +22,12 @@ resources:
 - workspace_editor_role.yaml
 - workspace_viewer_role.yaml
 
+labels:
+- includeSelectors: true
+  pairs:
+    app.kubernetes.io/component: controller-manager
+
+images:
+- name: workspaces-controller
+  newName: ghcr.io/kubeflow/notebooks/workspaces-controller
+  newTag: latest

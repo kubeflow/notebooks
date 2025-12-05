@@ -85,7 +85,7 @@ var _ = Describe("controller", Ordered, func() {
 
 		By("creating common workspace resources")
 		cmd = exec.Command("kubectl", "apply",
-			"-k", filepath.Join(projectDir, "config/samples/common"),
+			"-k", filepath.Join(projectDir, "manifests/kustomize/samples/common"),
 			"-n", workspaceNamespace,
 		)
 		_, err = utils.Run(cmd)
@@ -161,7 +161,7 @@ var _ = Describe("controller", Ordered, func() {
 	AfterAll(func() {
 		By("deleting sample Workspace")
 		cmd := exec.Command("kubectl", "delete", "-f",
-			filepath.Join(projectDir, "config/samples/jupyterlab_v1beta1_workspace.yaml"),
+			filepath.Join(projectDir, "manifests/kustomize/samples/jupyterlab_v1beta1_workspace.yaml"),
 			"-n", workspaceNamespace,
 			"--wait",
 			fmt.Sprintf("--timeout=%s", timeout),
@@ -170,13 +170,13 @@ var _ = Describe("controller", Ordered, func() {
 
 		By("deleting sample WorkspaceKind")
 		cmd = exec.Command("kubectl", "delete",
-			"-f", filepath.Join(projectDir, "config/samples/jupyterlab_v1beta1_workspacekind.yaml"),
+			"-f", filepath.Join(projectDir, "manifests/kustomize/samples/jupyterlab_v1beta1_workspacekind.yaml"),
 		)
 		_, _ = utils.Run(cmd)
 
 		By("deleting common workspace resources")
 		cmd = exec.Command("kubectl", "delete",
-			"-k", filepath.Join(projectDir, "config/samples/common"),
+			"-k", filepath.Join(projectDir, "manifests/kustomize/samples/common"),
 			"-n", workspaceNamespace,
 		)
 		_, _ = utils.Run(cmd)
@@ -206,7 +206,7 @@ var _ = Describe("controller", Ordered, func() {
 			By("creating an instance of WorkspaceKind")
 			createWorkspaceKindSample := func() error {
 				cmd := exec.Command("kubectl", "apply",
-					"-f", filepath.Join(projectDir, "config/samples/jupyterlab_v1beta1_workspacekind.yaml"),
+					"-f", filepath.Join(projectDir, "manifests/kustomize/samples/jupyterlab_v1beta1_workspacekind.yaml"),
 				)
 				_, err := utils.Run(cmd)
 				return err
@@ -216,7 +216,7 @@ var _ = Describe("controller", Ordered, func() {
 			By("creating an instance of Workspace")
 			createWorkspaceSample := func() error {
 				cmd := exec.Command("kubectl", "apply",
-					"-f", filepath.Join(projectDir, "config/samples/jupyterlab_v1beta1_workspace.yaml"),
+					"-f", filepath.Join(projectDir, "manifests/kustomize/samples/jupyterlab_v1beta1_workspace.yaml"),
 					"-n", workspaceNamespace,
 				)
 				_, err := utils.Run(cmd)
