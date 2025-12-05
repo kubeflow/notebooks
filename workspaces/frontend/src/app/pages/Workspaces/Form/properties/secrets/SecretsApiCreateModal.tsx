@@ -13,6 +13,7 @@ import {
 import { Alert, AlertVariant } from '@patternfly/react-core/dist/esm/components/Alert';
 import { Select } from '@patternfly/react-core/dist/esm/components/Select';
 import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
+import { HelperText } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
 import { useThemeContext } from 'mod-arch-kubeflow';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
@@ -28,7 +29,7 @@ interface SecretKeyValuePair {
 interface SecretsApiCreateModalProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-  onSecretCreated?: () => void;
+  onSecretCreated?: (secretName: string) => void;
 }
 
 const EMPTY_KEY_VALUE_PAIR: SecretKeyValuePair = { key: '', value: '' };
@@ -155,13 +156,14 @@ export const SecretsApiCreateModal: React.FC<SecretsApiCreateModalProps> = ({
       await api.secrets.createSecret(selectedNamespace, payload);
 
       // Reset form
+      const createdSecretName = secretName;
       setSecretName('');
       setKeyValuePairs([EMPTY_KEY_VALUE_PAIR]);
       setIsOpen(false);
 
-      // Notify parent to refresh secrets list
+      // Notify parent with the created secret name
       if (onSecretCreated) {
-        onSecretCreated();
+        onSecretCreated(createdSecretName);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create secret. Please try again.');
@@ -202,7 +204,17 @@ export const SecretsApiCreateModal: React.FC<SecretsApiCreateModalProps> = ({
           </Alert>
         )}
         <Form>
-          <ThemeAwareFormGroupWrapper label="Secret name" isRequired fieldId="secret-name">
+          <ThemeAwareFormGroupWrapper
+            label="Secret name"
+            isRequired
+            fieldId="secret-name"
+            helperTextNode={
+              <HelperText>
+                Must start and end with a letter or number. Valid characters include lowercase
+                letters, numbers, and hyphens (-).
+              </HelperText>
+            }
+          >
             <TextInput
               id="secret-name"
               data-testid="secret-name-input"

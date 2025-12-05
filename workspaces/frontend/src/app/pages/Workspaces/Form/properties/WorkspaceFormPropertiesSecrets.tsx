@@ -64,6 +64,26 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
     setIsDeleteModalOpen(false);
   }, [deleteIndex, secrets, setSecrets]);
 
+  const handleSecretCreated = useCallback(
+    (secretName: string) => {
+      // Check if secret is already in the list
+      const existingSecret = secrets.find((s) => s.secretName === secretName);
+      if (existingSecret) {
+        return;
+      }
+
+      // Add the newly created secret to the table with default mount path and mode
+      const newSecret: WorkspacesPodSecretMount = {
+        secretName,
+        mountPath: `/secrets/${secretName}`,
+        defaultMode: 420, // 0644 in octal, default as per backend validation
+      };
+
+      setSecrets([...secrets, newSecret]);
+    },
+    [secrets, setSecrets],
+  );
+
   return (
     <>
       {secrets.length > 0 && (
@@ -125,7 +145,11 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
         initialDefaultMode={attachedDefaultMode}
       /> */}
 
-      <SecretsApiCreateModal isOpen={isApiCreateModalOpen} setIsOpen={setIsApiCreateModalOpen} />
+      <SecretsApiCreateModal
+        isOpen={isApiCreateModalOpen}
+        setIsOpen={setIsApiCreateModalOpen}
+        onSecretCreated={handleSecretCreated}
+      />
 
       <Modal
         isOpen={isDeleteModalOpen}
