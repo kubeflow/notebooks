@@ -12,6 +12,7 @@ import { css } from '@patternfly/react-styles';
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
 import { TrashAltIcon } from '@patternfly/react-icons/dist/esm/icons/trash-alt-icon';
 import { WorkspacekindsOptionLabel } from '~/generated/data-contracts';
+import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 
 interface EditableRowInterface {
   data: WorkspacekindsOptionLabel;
@@ -33,14 +34,16 @@ const EditableRow: React.FC<EditableRowInterface> = ({
   return (
     <Tr className={css(inlineEditStyles.inlineEdit, inlineEditStyles.modifiers.inlineEditable)}>
       <Td>
-        <TextInput
-          aria-label={`${columnNames.key} ${ariaLabel}`}
-          id={`${columnNames.key} ${ariaLabel} key`}
-          ref={inputRef}
-          value={data.key}
-          onChange={(e) => saveChanges({ ...data, key: (e.target as HTMLInputElement).value })}
-          placeholder="Enter key"
-        />
+        <ThemeAwareFormGroupWrapper isRequired fieldId="key">
+          <TextInput
+            aria-label={`${columnNames.key} ${ariaLabel}`}
+            id={`${columnNames.key} ${ariaLabel} key`}
+            ref={inputRef}
+            value={data.key}
+            onChange={(e) => saveChanges({ ...data, key: (e.target as HTMLInputElement).value })}
+            placeholder="Enter key"
+          />
+        </ThemeAwareFormGroupWrapper>
       </Td>
       <Td>
         <TextInput
