@@ -43,6 +43,8 @@
     "@fortawesome/free-solid-svg-icons": "^5.12.0",
     "@kubernetes/client-node": "^0.16.3",
     "date-fns": "1.29.0",
+    "form-data": "4.0.4",
+    "jsonpath-plus": "10.3.0",
     "lodash": "^4.17.21",
     "lodash-es": "~4.17.21",
     "material-icons": "^0.7.7",
@@ -84,5 +86,8 @@
     "ts-node": "^10.4.0",
     "typescript": "~4.7.0",
     "wait-on": "^7.2.0"
+  },
+  "overrides": {
+    "form-data": "4.0.4"
   }
 }

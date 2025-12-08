@@ -38,3 +38,15 @@ Sessionx.vim
 .AppleDouble
 .LSOverride
 ._*
+
+# Angular cache
+.angular/
+
+# Local builds
+*.tgz
+
+# Dist outputs
+dist/
+
+# Node modules
+node_modules/
