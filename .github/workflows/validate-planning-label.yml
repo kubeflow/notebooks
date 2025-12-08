@@ -1,0 +1,126 @@
+name: Validate Planning Issue
+
+on:
+  issues:
+    types: [opened, labeled]
+
+env:
+  AUTHORIZED_USERS: '["thesuperzapper", "ederign", "andyatmiami", "paulovmr", "jenny-s51", "harshad16", "thaorell", "kimwnasptd", "liavweiss"]'
+
+permissions:
+  issues: write
+
+jobs:
+  validate-issue:
+    if: |
+      (github.event.action == 'labeled' && (github.event.label.name == 'kind/plan-epic' || github.event.label.name == 'kind/plan-feature' || github.event.label.name == 'kind/plan-task')) ||
+      (github.event.action == 'opened' && (contains(github.event.issue.labels.*.name, 'kind/plan-epic') || contains(github.event.issue.labels.*.name, 'kind/plan-feature') || contains(github.event.issue.labels.*.name, 'kind/plan-task')))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log trigger
+        uses: actions/github-script@v7
+        with:
+          script: |
+            console.log(`Action triggered by: ${context.eventName} event with action: ${context.payload.action}`);
+            if (context.payload.action === 'labeled') {
+              console.log(`Label added: ${context.payload.label.name}`);
+            } else if (context.payload.action === 'opened') {
+              console.log(`Issue opened with labels: ${context.payload.issue.labels.map(l => l.name).join(', ')}`);
+            }
+
+      - name: Handle labeled action
+        if: github.event.action == 'labeled'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const AUTHORIZED_USERS = JSON.parse(process.env.AUTHORIZED_USERS);
+            const actor = context.actor;
+            const issueNumber = context.issue.number;
+            const addedLabel = context.payload.label.name;
+
+            // First check user authorization
+            if (!AUTHORIZED_USERS.includes(actor)) {
+              // Remove the planning label
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                name: addedLabel
+              });
+
+              // Add a comment explaining why the label was removed
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body: `@${actor} You are not authorized to add planning labels. Only authorized users can add planning labels to issues.`
+              });
+
+              core.setFailed(`User ${actor} is not authorized to add planning labels`);
+            }
+
+            console.log(`User ${actor} is authorized to add planning labels`);
+
+            // Then check planning label requirements
+            const { data: issue } = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber
+            });
+
+            const currentLabels = issue.labels.map(label => label.name);
+            const planningLabels = ['kind/plan-epic', 'kind/plan-feature', 'kind/plan-task'];
+            const presentPlanningLabels = currentLabels.filter(label => planningLabels.includes(label));
+
+            if (presentPlanningLabels.length !== 1) {
+              // Remove the planning label
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                name: addedLabel
+              });
+
+              // Add a comment explaining why the label was removed
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body: `@${actor} Planning labels require exactly one planning label to be present: ${planningLabels.join(', ')}. Please ensure only one planning label is applied.`
+              });
+
+              core.setFailed(`Planning labels require exactly one of: ${planningLabels.join(', ')}`);
+            }
+
+            console.log(`Issue has valid planning label: ${presentPlanningLabels[0]}`);
+
+      - name: Handle opened action
+        if: github.event.action == 'opened'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const AUTHORIZED_USERS = JSON.parse(process.env.AUTHORIZED_USERS);
+            const actor = context.actor;
+            const issueNumber = context.issue.number;
+
+            if (!AUTHORIZED_USERS.includes(actor)) {
+              // Add a comment explaining why the issue will be closed
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body: `@${actor} You are not authorized to create planning issues. Only authorized users can create planning issues.`
+              });
+
+              // Close the issue
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                state: 'closed'
+              });
+
+              core.setFailed(`User ${actor} is not authorized to create planning issues`);
+            }
+
+            console.log(`User ${actor} is authorized to create planning issues`);
