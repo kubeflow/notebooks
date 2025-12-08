@@ -1,6 +1,11 @@
 {
   "name": "kubeflow",
   "version": "0.0.4",
+  "description": "Kubeflow Angular UI common library",
+  "license": "Apache-2.0",
+  "sideEffects": [
+    "assets/**"
+  ],
   "dependencies": {
     "tslib": "^2.0.0"
   },

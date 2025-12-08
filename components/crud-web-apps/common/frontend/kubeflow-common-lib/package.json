@@ -41,14 +41,15 @@
     "@fortawesome/free-brands-svg-icons": "^5.12.0",
     "@fortawesome/free-solid-svg-icons": "^5.12.0",
     "date-fns": "1.29.0",
+    "form-data": "4.0.4",
+    "jsonpath-plus": "10.3.0",
     "lodash": "^4.17.21",
     "lodash-es": "^4.17.21",
     "material-icons": "^0.7.7",
     "monaco-editor": "^0.33.0",
     "rxjs": "~7.4.0",
     "tslib": "^2.0.0",
-    "zone.js": "~0.11.4",
-    "jsonpath-plus": "10.3.0"
+    "zone.js": "~0.11.4"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "~14.2.13",
@@ -85,5 +86,8 @@
     "process": "^0.11.10",
     "ts-node": "^10.4.0",
     "typescript": "~4.8.0"
+  },
+  "overrides": {
+    "form-data": "4.0.4"
   }
 }
