@@ -7,7 +7,13 @@
   "license": "Apache-2.0",
   "private": true,
   "overrides": {
-    "rimraf": "^6.0.1"
+    "rimraf": "^6.0.1",
+    "nyc": {
+      "rimraf": "^3.0.2"
+    },
+    "istanbul-lib-processinfo": {
+      "rimraf": "^3.0.2"
+    }
   },
   "engines": {
     "node": ">=20.0.0"
@@ -26,13 +32,16 @@
     "test:jest": "jest --passWithNoTests",
     "test:unit": "npm run test:jest -- --silent",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
+    "test:coverage": "rimraf coverage && run-s test:jest:coverage cypress:coverage test:coverage:merge",
+    "test:coverage:merge": "rimraf coverage && istanbul-merge --out coverage/coverage-final.json jest-coverage/coverage-final.json src/__tests__/cypress/coverage/coverage-final.json && nyc report --reporter html --reporter json-summary --reporter text -t coverage --report-dir coverage/report",
+    "test:jest:coverage": "rimraf jest-coverage && npm run test:jest -- --silent --coverage --coverageReporters=json --coverageReporters=lcov",
     "test:lint": "eslint --max-warnings 0 --ext .js,.ts,.jsx,.tsx ./src",
     "test:lint:fix": "eslint --ext .js,.ts,.jsx,.tsx ./src --fix",
     "test:type-check": "tsc --noEmit",
     "test:fix": "run-s prettier test:lint:fix",
     "cypress:open": "cypress open --project src/__tests__/cypress",
     "cypress:open:mock": "CY_MOCK=1 CY_WS_PORT=9002 npm run cypress:open -- ",
+    "cypress:coverage": "rimraf src/__tests__/cypress/.nyc_output src/__tests__/cypress/coverage && COVERAGE=true npm run test:cypress-ci --",
     "cypress:run": "cypress run -b chrome --project src/__tests__/cypress",
     "cypress:run:mock": "CY_MOCK=1 npm run cypress:run -- ",
     "cypress:server:build": "npm run build",
@@ -138,6 +147,7 @@
     "@cspell/eslint-plugin": "^9.1.2",
     "@cypress/code-coverage": "^3.14.1",
     "@cypress/webpack-preprocessor": "^6.0.4",
+    "@jsdevtools/coverage-istanbul-loader": "^3.0.5",
     "@testing-library/cypress": "^10.0.3",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.2",
@@ -150,6 +160,7 @@
     "cypress-high-resolution": "^1.0.0",
     "cypress-mochawesome-reporter": "^3.8.2",
     "cypress-multi-reporters": "^2.0.5",
+    "mocha-junit-reporter": "^2.2.1",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-import-resolver-node": "^0.3.7",
@@ -163,7 +174,11 @@
     "eslint-plugin-prettier": "^5.4.0",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
+    "babel-jest": "^29.7.0",
+    "babel-plugin-istanbul": "^7.0.0",
+    "istanbul-merge": "^2.0.0",
     "npm-run-all": "^4.1.5",
+    "nyc": "^17.1.0",
     "serve": "^14.2.4",
     "ts-jest": "^29.4.0"
   }

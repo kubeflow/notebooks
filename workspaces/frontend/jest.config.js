@@ -25,6 +25,11 @@ module.exports = {
   // The test environment that will be used for testing.
   testEnvironment: 'jest-environment-jsdom',
 
+  // Use babel-jest to apply babel.config.js (including istanbul plugin for coverage)
+  transform: {
+    '^.+\\.(ts|tsx|js|jsx)$': 'babel-jest',
+  },
+
   // include projects from node_modules as required
   transformIgnorePatterns: [
     'node_modules/(?!yaml|lodash-es|uuid|@patternfly|delaunator|mod-arch-shared|mod-arch-core|mod-arch-kubeflow)',
@@ -41,6 +46,8 @@ module.exports = {
     '<rootDir>/src/**/*.{ts,tsx}',
     '!<rootDir>/src/__tests__/**',
     '!<rootDir>/src/__mocks__/**',
+    '!<rootDir>/src/generated/**',
     '!**/*.spec.{ts,tsx}',
+    '!**/*.d.ts',
   ],
 };
