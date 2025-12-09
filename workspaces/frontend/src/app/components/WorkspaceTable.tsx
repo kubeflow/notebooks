@@ -652,6 +652,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                                   imageSrc={kindLogoDict[workspace.workspaceKind.name]}
                                 />
                               }
+                              storageKey={`workspace-kind-logo-${workspace.workspaceKind.name}`}
                             >
                               {(validSrc) => (
                                 <Tooltip content={workspace.workspaceKind.name}>

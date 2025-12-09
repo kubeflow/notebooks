@@ -124,6 +124,7 @@ export const WorkspaceFormKindList: React.FunctionComponent<WorkspaceFormKindLis
                           message="Cannot load logo image"
                         />
                       }
+                      storageKey={`workspace-kind-logo-${kind.name}`}
                     >
                       {(validSrc) => (
                         <img

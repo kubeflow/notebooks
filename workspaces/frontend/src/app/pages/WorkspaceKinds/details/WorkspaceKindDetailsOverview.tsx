@@ -59,6 +59,7 @@ export const WorkspaceKindDetailsOverview: React.FunctionComponent<
               message="Cannot load icon image"
             />
           }
+          storageKey={`workspace-kind-icon-${workspaceKind.name}`}
         >
           {(validSrc) => <img src={validSrc} alt={workspaceKind.name} style={{ width: '40px' }} />}
         </WithValidImage>
@@ -84,6 +85,7 @@ export const WorkspaceKindDetailsOverview: React.FunctionComponent<
               message="Cannot load logo image"
             />
           }
+          storageKey={`workspace-kind-logo-${workspaceKind.name}`}
         >
           {(validSrc) => <img src={validSrc} alt={workspaceKind.name} style={{ width: '40px' }} />}
         </WithValidImage>
