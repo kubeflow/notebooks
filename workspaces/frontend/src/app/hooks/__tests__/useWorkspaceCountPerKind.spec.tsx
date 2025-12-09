@@ -70,6 +70,8 @@ describe('useWorkspaceCountPerKind', () => {
       updateWorkspaceKind: jest.fn(),
       deleteWorkspaceKind: jest.fn(),
       podTemplateOptionsListValues: jest.fn(),
+      getWorkspaceKindIcon: jest.fn(),
+      getWorkspaceKindLogo: jest.fn(),
     },
   };
 

@@ -63,7 +63,7 @@ export const buildMockWorkspaceKindInfo = (
     url: 'https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png',
   },
   logo: {
-    url: 'https://upload.wikimedia.org/wikipedia/commons/3/38/Jupyter_logo.svg',
+    url: '/api/v1/workspacekinds/jupyter/assets/logo.svg',
   },
   ...workspaceKindInfo,
 });
@@ -454,7 +454,7 @@ export const buildMockWorkspaceKind = (
     url: 'https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png',
   },
   logo: {
-    url: 'https://upload.wikimedia.org/wikipedia/commons/3/38/Jupyter_logo.svg',
+    url: '/api/v1/workspacekinds/jupyter/assets/logo.svg',
   },
   clusterMetrics: {
     workspacesCount: 10,

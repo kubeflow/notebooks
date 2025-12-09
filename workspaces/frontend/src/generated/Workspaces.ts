@@ -92,6 +92,28 @@ export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityD
       ...params,
     });
   /**
+   * @description Returns the current state of a specific workspace identified by namespace and workspace name, including the revision for optimistic locking. This endpoint is intended for retrieving the workspace state before updating it.
+   *
+   * @tags workspaces
+   * @name GetWorkspace
+   * @summary Get workspace
+   * @request GET:/workspaces/{namespace}/{name}
+   * @response `200` `ApiWorkspaceEnvelope` Successful operation. Returns the requested workspace details with new revision.
+   * @response `401` `ApiErrorEnvelope` Unauthorized. Authentication is required.
+   * @response `403` `ApiErrorEnvelope` Forbidden. User does not have permission to access the workspace.
+   * @response `404` `ApiErrorEnvelope` Not Found. Workspace does not exist.
+   * @response `422` `ApiErrorEnvelope` Unprocessable Entity. Validation error.
+   * @response `500` `ApiErrorEnvelope` Internal server error. An unexpected error occurred on the server.
+   */
+  getWorkspace = (namespace: string, name: string, params: RequestParams = {}) =>
+    this.request<ApiWorkspaceEnvelope, ApiErrorEnvelope>({
+      path: `/workspaces/${namespace}/${name}`,
+      method: 'GET',
+      type: ContentType.Json,
+      format: 'json',
+      ...params,
+    });
+  /**
    * @description Updates an existing workspace.
    *
    * @tags workspaces
@@ -123,12 +145,34 @@ export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityD
       ...params,
     });
   /**
+   * @description Deletes a specific workspace identified by namespace and name.
+   *
+   * @tags workspaces
+   * @name DeleteWorkspace
+   * @summary Delete workspace
+   * @request DELETE:/workspaces/{namespace}/{name}
+   * @response `204` `void` Workspace deleted successfully
+   * @response `401` `ApiErrorEnvelope` Unauthorized. Authentication is required.
+   * @response `403` `ApiErrorEnvelope` Forbidden. User does not have permission to delete the workspace.
+   * @response `404` `ApiErrorEnvelope` Not Found. Workspace does not exist.
+   * @response `409` `ApiErrorEnvelope` Conflict
+   * @response `422` `ApiErrorEnvelope` Unprocessable Entity. Validation error.
+   * @response `500` `ApiErrorEnvelope` Internal server error. An unexpected error occurred on the server.
+   */
+  deleteWorkspace = (namespace: string, name: string, params: RequestParams = {}) =>
+    this.request<void, ApiErrorEnvelope>({
+      path: `/workspaces/${namespace}/${name}`,
+      method: 'DELETE',
+      type: ContentType.Json,
+      ...params,
+    });
+  /**
    * @description Pauses or unpauses a workspace, stopping or resuming all associated pods.
    *
    * @tags workspaces
    * @name UpdateWorkspacePauseState
    * @summary Pause or unpause a workspace
-   * @request POST:/workspaces/{namespace}/{workspaceName}/actions/pause
+   * @request POST:/workspaces/{namespace}/{name}/actions/pause
    * @response `200` `ApiWorkspaceActionPauseEnvelope` Successful action. Returns the current pause state.
    * @response `400` `ApiErrorEnvelope` Bad Request.
    * @response `401` `ApiErrorEnvelope` Unauthorized. Authentication is required.
@@ -142,60 +186,16 @@ export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityD
    */
   updateWorkspacePauseState = (
     namespace: string,
-    workspaceName: string,
+    name: string,
     body: ApiWorkspaceActionPauseEnvelope,
     params: RequestParams = {},
   ) =>
     this.request<ApiWorkspaceActionPauseEnvelope, ApiErrorEnvelope>({
-      path: `/workspaces/${namespace}/${workspaceName}/actions/pause`,
+      path: `/workspaces/${namespace}/${name}/actions/pause`,
       method: 'POST',
       body: body,
       type: ContentType.Json,
       format: 'json',
-      ...params,
-    });
-  /**
-   * @description Returns the current state of a specific workspace identified by namespace and workspace name, including the revision for optimistic locking. This endpoint is intended for retrieving the workspace state before updating it.
-   *
-   * @tags workspaces
-   * @name GetWorkspace
-   * @summary Get workspace
-   * @request GET:/workspaces/{namespace}/{workspace_name}
-   * @response `200` `ApiWorkspaceEnvelope` Successful operation. Returns the requested workspace details with new revision.
-   * @response `401` `ApiErrorEnvelope` Unauthorized. Authentication is required.
-   * @response `403` `ApiErrorEnvelope` Forbidden. User does not have permission to access the workspace.
-   * @response `404` `ApiErrorEnvelope` Not Found. Workspace does not exist.
-   * @response `422` `ApiErrorEnvelope` Unprocessable Entity. Validation error.
-   * @response `500` `ApiErrorEnvelope` Internal server error. An unexpected error occurred on the server.
-   */
-  getWorkspace = (namespace: string, workspaceName: string, params: RequestParams = {}) =>
-    this.request<ApiWorkspaceEnvelope, ApiErrorEnvelope>({
-      path: `/workspaces/${namespace}/${workspaceName}`,
-      method: 'GET',
-      type: ContentType.Json,
-      format: 'json',
-      ...params,
-    });
-  /**
-   * @description Deletes a specific workspace identified by namespace and name.
-   *
-   * @tags workspaces
-   * @name DeleteWorkspace
-   * @summary Delete workspace
-   * @request DELETE:/workspaces/{namespace}/{workspace_name}
-   * @response `204` `void` Workspace deleted successfully
-   * @response `401` `ApiErrorEnvelope` Unauthorized. Authentication is required.
-   * @response `403` `ApiErrorEnvelope` Forbidden. User does not have permission to delete the workspace.
-   * @response `404` `ApiErrorEnvelope` Not Found. Workspace does not exist.
-   * @response `409` `ApiErrorEnvelope` Conflict
-   * @response `422` `ApiErrorEnvelope` Unprocessable Entity. Validation error.
-   * @response `500` `ApiErrorEnvelope` Internal server error. An unexpected error occurred on the server.
-   */
-  deleteWorkspace = (namespace: string, workspaceName: string, params: RequestParams = {}) =>
-    this.request<void, ApiErrorEnvelope>({
-      path: `/workspaces/${namespace}/${workspaceName}`,
-      method: 'DELETE',
-      type: ContentType.Json,
       ...params,
     });
 }

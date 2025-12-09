@@ -338,9 +338,11 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                             skeletonWidth="20px"
                             fallback={
                               <span className="pf-v6-u-mr-sm">
-                                <ImageFallback imageSrc={workspaceKind.icon.url} />
+                                <ImageFallback imageSrc={workspaceKind.icon.url} />{' '}
                               </span>
                             }
+                            assetType="icon"
+                            kindName={workspaceKind.name}
                           >
                             {(validSrc) => (
                               <img

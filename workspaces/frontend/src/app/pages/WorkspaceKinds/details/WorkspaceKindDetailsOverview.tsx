@@ -59,6 +59,8 @@ export const WorkspaceKindDetailsOverview: React.FunctionComponent<
               message="Cannot load icon image"
             />
           }
+          assetType="icon"
+          kindName={workspaceKind.name}
         >
           {(validSrc) => <img src={validSrc} alt={workspaceKind.name} style={{ width: '40px' }} />}
         </WithValidImage>
@@ -84,6 +86,8 @@ export const WorkspaceKindDetailsOverview: React.FunctionComponent<
               message="Cannot load logo image"
             />
           }
+          assetType="logo"
+          kindName={workspaceKind.name}
         >
           {(validSrc) => <img src={validSrc} alt={workspaceKind.name} style={{ width: '40px' }} />}
         </WithValidImage>

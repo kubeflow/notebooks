@@ -37,7 +37,10 @@ export class Workspacekinds<SecurityDataType = unknown> extends HttpClient<Secur
    */
   listWorkspaceKinds = (
     query?: {
-      /** Namespace used for workspace creation authorization */
+      /**
+       * Namespace to filter workspace kinds
+       * @example "kubeflow-user-example-com"
+       */
       namespaceFilter?: string;
     },
     params: RequestParams = {},
@@ -148,6 +151,72 @@ export class Workspacekinds<SecurityDataType = unknown> extends HttpClient<Secur
       path: `/workspacekinds/${name}`,
       method: 'DELETE',
       type: ContentType.Json,
+      ...params,
+    });
+  /**
+   * @description Returns the icon image for a specific workspace kind. If the icon is stored in a ConfigMap, it serves the image content. If the icon is a remote URL, returns 404 (browser should fetch directly).
+   *
+   * @tags workspacekinds
+   * @name GetWorkspaceKindIcon
+   * @summary Get workspace kind icon
+   * @request GET:/workspacekinds/{name}/assets/icon
+   * @response `200` `File` The image file content.
+   * @response `401` `ApiErrorEnvelope` Unauthorized. Authentication is required.
+   * @response `403` `ApiErrorEnvelope` Forbidden. User does not have permission to get asset.
+   * @response `404` `ApiErrorEnvelope` Not Found. Icon uses remote URL or resource does not exist.
+   * @response `422` `ApiErrorEnvelope` Unprocessable Entity. Validation error.
+   * @response `500` `ApiErrorEnvelope` Internal server error.
+   */
+  getWorkspaceKindIcon = (
+    name: string,
+    query?: {
+      /**
+       * Namespace to request asset for.
+       * @example "kubeflow-user-example-com"
+       */
+      namespace?: string;
+    },
+    params: RequestParams = {},
+  ) =>
+    this.request<File, ApiErrorEnvelope>({
+      path: `/workspacekinds/${name}/assets/icon`,
+      method: 'GET',
+      query: query,
+      type: ContentType.Json,
+      format: 'json',
+      ...params,
+    });
+  /**
+   * @description Returns the logo image for a specific workspace kind. If the logo is stored in a ConfigMap, it serves the image content. If the logo is a remote URL, returns 404 (browser should fetch directly).
+   *
+   * @tags workspacekinds
+   * @name GetWorkspaceKindLogo
+   * @summary Get workspace kind logo
+   * @request GET:/workspacekinds/{name}/assets/logo
+   * @response `200` `File` The image file content.
+   * @response `401` `ApiErrorEnvelope` Unauthorized. Authentication is required.
+   * @response `403` `ApiErrorEnvelope` Forbidden. User does not have permission to get asset.
+   * @response `404` `ApiErrorEnvelope` Not Found. Logo uses remote URL or resource does not exist.
+   * @response `422` `ApiErrorEnvelope` Unprocessable Entity. Validation error.
+   * @response `500` `ApiErrorEnvelope` Internal server error.
+   */
+  getWorkspaceKindLogo = (
+    name: string,
+    query?: {
+      /**
+       * Namespace to request asset for.
+       * @example "kubeflow-user-example-com"
+       */
+      namespace?: string;
+    },
+    params: RequestParams = {},
+  ) =>
+    this.request<File, ApiErrorEnvelope>({
+      path: `/workspacekinds/${name}/assets/logo`,
+      method: 'GET',
+      query: query,
+      type: ContentType.Json,
+      format: 'json',
       ...params,
     });
   /**
