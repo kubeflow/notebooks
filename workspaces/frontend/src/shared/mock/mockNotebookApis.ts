@@ -43,9 +43,18 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
   },
   workspaceKinds: {
     listWorkspaceKinds: async () => ({ data: mockWorkspaceKinds }),
-    getWorkspaceKindIcon: async (kind) =>
-      mockWorkspaceKinds.find((w) => w.name === kind)?.icon.url ?? '',
-    getWorkspaceKindLogo: async (kind) => mockWorkspaceKinds.find((w) => w.name === kind)!.logo.url,
+    getWorkspaceKindIcon: async () => {
+      const response = await fetch(
+        'https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png',
+      );
+      return (await response.blob()) as unknown as string;
+    },
+    getWorkspaceKindLogo: async () => {
+      const response = await fetch(
+        'https://upload.wikimedia.org/wikipedia/commons/3/38/Jupyter_logo.svg',
+      );
+      return (await response.blob()) as unknown as string;
+    },
     getWorkspaceKind: async (kind) => ({
       data: mockWorkspaceKinds.find((w) => w.name === kind)!,
     }),

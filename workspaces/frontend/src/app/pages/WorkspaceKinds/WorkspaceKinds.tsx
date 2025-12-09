@@ -493,6 +493,8 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                             imageSrc={workspaceKind.icon.url}
                             skeletonWidth="20px"
                             fallback={<ImageFallback imageSrc={workspaceKind.icon.url} />}
+                            assetType="icon"
+                            kindName={workspaceKind.name}
                           >
                             {(validSrc) => (
                               <img

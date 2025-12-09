@@ -124,6 +124,8 @@ export const WorkspaceFormKindList: React.FunctionComponent<WorkspaceFormKindLis
                           message="Cannot load logo image"
                         />
                       }
+                      assetType="logo"
+                      kindName={kind.name}
                     >
                       {(validSrc) => (
                         <img

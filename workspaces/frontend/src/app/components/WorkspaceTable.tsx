@@ -652,6 +652,8 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                                   imageSrc={kindLogoDict[workspace.workspaceKind.name]}
                                 />
                               }
+                              assetType="logo"
+                              kindName={workspace.workspaceKind.name}
                             >
                               {(validSrc) => (
                                 <Tooltip content={workspace.workspaceKind.name}>
