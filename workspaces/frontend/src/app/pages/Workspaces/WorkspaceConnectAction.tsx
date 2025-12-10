@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import {
   Dropdown,
   DropdownItem,
@@ -8,10 +7,11 @@ import {
   MenuToggle,
   MenuToggleElement,
 } from '@patternfly/react-core/dist/esm/components/MenuToggle';
-import { WorkspacesWorkspace, WorkspacesWorkspaceState } from '~/generated/data-contracts';
+import React, { useState } from 'react';
+import { WorkspacesWorkspaceListItem, WorkspacesWorkspaceState } from '~/generated/data-contracts';
 
 type WorkspaceConnectActionProps = {
-  workspace: WorkspacesWorkspace;
+  workspace: WorkspacesWorkspaceListItem;
 };
 
 export const WorkspaceConnectAction: React.FunctionComponent<WorkspaceConnectActionProps> = ({

@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { Alert } from '@patternfly/react-core/dist/esm/components/Alert';
 import {
   CardBody,
   CardTitle,
@@ -26,12 +27,14 @@ type WorkspaceFormKindListProps = {
   allWorkspaceKinds: WorkspacekindsWorkspaceKind[];
   selectedKind: WorkspacekindsWorkspaceKind | undefined;
   onSelect: (workspaceKind: WorkspacekindsWorkspaceKind | undefined) => void;
+  isSelectionDisabled: boolean;
 };
 
 export const WorkspaceFormKindList: React.FunctionComponent<WorkspaceFormKindListProps> = ({
   allWorkspaceKinds,
   selectedKind,
   onSelect,
+  isSelectionDisabled,
 }) => {
   const [filters, setFilters] = useState<FilteredColumn[]>([]);
   const filterRef = useRef<FilterRef>(null);
@@ -66,16 +69,45 @@ export const WorkspaceFormKindList: React.FunctionComponent<WorkspaceFormKindLis
 
   const onChange = useCallback(
     (event: React.FormEvent<HTMLInputElement>) => {
+      const clickedKindName = event.currentTarget.name;
+      const isSelectedKind = clickedKindName === selectedKind?.name;
+
+      // Allow clicking on the selected item even when selection is disabled
+      if (isSelectionDisabled && !isSelectedKind) {
+        return;
+      }
       const newSelectedWorkspaceKind = filteredWorkspaceKinds.find(
-        (kind) => kind.name === event.currentTarget.name,
+        (kind) => kind.name === clickedKindName,
       );
       onSelect(newSelectedWorkspaceKind);
     },
-    [filteredWorkspaceKinds, onSelect],
+    [filteredWorkspaceKinds, isSelectionDisabled, onSelect, selectedKind?.name],
+  );
+
+  const handleCardClick = useCallback(
+    (kind: WorkspacekindsWorkspaceKind) => {
+      if (kind.name !== selectedKind?.name) {
+        return;
+      }
+      onSelect(kind);
+    },
+    [selectedKind?.name, onSelect],
   );
 
   return (
     <>
+      {isSelectionDisabled && (
+        <PageSection>
+          <Alert
+            className="pf-v6-c-alert--no-title-margin"
+            variant="info"
+            isInline
+            isPlain
+            title="Workspace kind cannot be changed after creation."
+            data-testid="workspace-kind-cannot-be-changed-alert"
+          />
+        </PageSection>
+      )}
       <PageSection>
         <Toolbar id="toolbar-group-types">
           <ToolbarContent>
@@ -104,6 +136,12 @@ export const WorkspaceFormKindList: React.FunctionComponent<WorkspaceFormKindLis
                   key={kind.name}
                   id={kind.name.replace(/ /g, '-')}
                   isSelected={kind.name === selectedKind?.name}
+                  style={
+                    isSelectionDisabled && kind.name !== selectedKind?.name
+                      ? { opacity: 0.5, cursor: 'not-allowed' }
+                      : undefined
+                  }
+                  onClick={() => handleCardClick(kind)}
                 >
                   <CardHeader
                     selectableActions={{

@@ -55,11 +55,32 @@ export enum FieldErrorType {
   ErrorTypeTypeInvalid = 'FieldValueTypeInvalid',
 }
 
+export enum ApiErrorCauseOrigin {
+  OriginInternal = 'INTERNAL',
+  OriginKubernetes = 'KUBERNETES',
+}
+
 export interface ActionsWorkspaceActionPause {
   paused: boolean;
 }
 
+export interface ApiConflictError {
+  /**
+   * A human-readable description of the cause of the error.
+   * This field may be presented as-is to a reader.
+   */
+  message?: string;
+  /**
+   * Origin indicates where the conflict error originated.
+   * If value is empty, the origin is unknown.
+   */
+  origin?: ApiErrorCauseOrigin;
+}
+
 export interface ApiErrorCause {
+  /** ConflictCauses contains details about conflict errors that caused the request to fail. */
+  conflict_cause?: ApiConflictError[];
+  /** ValidationErrors contains details about validation errors that caused the request to fail. */
   validation_errors?: ApiValidationError[];
 }
 
@@ -68,8 +89,11 @@ export interface ApiErrorEnvelope {
 }
 
 export interface ApiHTTPError {
+  /** Cause contains detailed information about the cause of the error. */
   cause?: ApiErrorCause;
+  /** Code is a string representation of the HTTP status code. */
   code: string;
+  /** Message is a human-readable description of the error. */
   message: string;
 }
 
@@ -78,9 +102,32 @@ export interface ApiNamespaceListEnvelope {
 }
 
 export interface ApiValidationError {
-  field: string;
-  message: string;
-  type: FieldErrorType;
+  /**
+   * The field of the resource that has caused this error, as named by its JSON serialization.
+   * May include dot and postfix notation for nested attributes.
+   * Arrays are zero-indexed.
+   * Fields may appear more than once in an array of causes due to fields having multiple errors.
+   *
+   * Examples:
+   *   "name" - the field "name" on the current resource
+   *   "items[0].name" - the field "name" on the first array entry in "items"
+   */
+  field?: string;
+  /**
+   * A human-readable description of the cause of the error.
+   * This field may be presented as-is to a reader.
+   */
+  message?: string;
+  /**
+   * Origin indicates where the validation error originated.
+   * If value is empty, the origin is unknown.
+   */
+  origin?: ApiErrorCauseOrigin;
+  /**
+   * A machine-readable description of the cause of the error.
+   * If value is empty, there is no information available.
+   */
+  type?: FieldErrorType;
 }
 
 export interface ApiWorkspaceActionPauseEnvelope {
@@ -92,7 +139,7 @@ export interface ApiWorkspaceCreateEnvelope {
 }
 
 export interface ApiWorkspaceEnvelope {
-  data: WorkspacesWorkspace;
+  data: WorkspacesWorkspaceUpdate;
 }
 
 export interface ApiWorkspaceKindEnvelope {
@@ -104,7 +151,7 @@ export interface ApiWorkspaceKindListEnvelope {
 }
 
 export interface ApiWorkspaceListEnvelope {
-  data: WorkspacesWorkspace[];
+  data: WorkspacesWorkspaceListItem[];
 }
 
 export interface HealthCheckHealthCheck {
@@ -339,7 +386,22 @@ export interface WorkspacesService {
   httpService?: WorkspacesHttpService;
 }
 
-export interface WorkspacesWorkspace {
+export interface WorkspacesWorkspaceCreate {
+  deferUpdates: boolean;
+  kind: string;
+  name: string;
+  paused: boolean;
+  podTemplate: WorkspacesPodTemplateMutate;
+}
+
+export interface WorkspacesWorkspaceKindInfo {
+  icon: WorkspacesImageRef;
+  logo: WorkspacesImageRef;
+  missing: boolean;
+  name: string;
+}
+
+export interface WorkspacesWorkspaceListItem {
   activity: WorkspacesActivity;
   deferUpdates: boolean;
   name: string;
@@ -354,19 +416,19 @@ export interface WorkspacesWorkspace {
   workspaceKind: WorkspacesWorkspaceKindInfo;
 }
 
-export interface WorkspacesWorkspaceCreate {
+export interface WorkspacesWorkspaceUpdate {
+  /** TODO: remove `deferUpdates` once the controller is no longer applying redirects */
   deferUpdates: boolean;
-  kind: string;
-  name: string;
+  /** TODO: remove `paused` once we have an "actions" api for pausing workspaces */
   paused: boolean;
   podTemplate: WorkspacesPodTemplateMutate;
-}
-
-export interface WorkspacesWorkspaceKindInfo {
-  icon: WorkspacesImageRef;
-  logo: WorkspacesImageRef;
-  missing: boolean;
-  name: string;
+  /**
+   * Revision is an opaque token for optimistic locking.
+   * Clients receive this value from GET requests and must include it
+   * in PATCH requests to ensure they are updating the expected version.
+   * Clients must not parse, interpret, or compare revision values.
+   */
+  revision: string;
 }
 
 /** Kubernetes YAML manifest of a WorkspaceKind */

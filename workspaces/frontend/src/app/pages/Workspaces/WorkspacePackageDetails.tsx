@@ -7,10 +7,10 @@ import {
 } from '@patternfly/react-core/dist/esm/components/DescriptionList';
 import { ListItem, List } from '@patternfly/react-core/dist/esm/components/List';
 import { extractPackageLabels, formatLabelKey } from '~/shared/utilities/WorkspaceUtils';
-import { WorkspacesWorkspace } from '~/generated/data-contracts';
+import { WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
 
 interface WorkspacePackageDetailsProps {
-  workspace: WorkspacesWorkspace;
+  workspace: WorkspacesWorkspaceListItem;
 }
 
 export const WorkspacePackageDetails: React.FC<WorkspacePackageDetailsProps> = ({ workspace }) => {

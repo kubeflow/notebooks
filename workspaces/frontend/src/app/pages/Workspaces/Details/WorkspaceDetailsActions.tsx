@@ -8,13 +8,12 @@ import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggl
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 
 interface WorkspaceDetailsActionsProps {
-  // TODO: Uncomment when edit action is fully supported
-  // onEditClick: React.MouseEventHandler;
+  onEditClick: React.MouseEventHandler;
   onDeleteClick: React.MouseEventHandler;
 }
 
 export const WorkspaceDetailsActions: React.FC<WorkspaceDetailsActionsProps> = ({
-  // onEditClick,
+  onEditClick,
   onDeleteClick,
 }) => {
   const [isOpen, setOpen] = useState(false);
@@ -42,17 +41,18 @@ export const WorkspaceDetailsActions: React.FC<WorkspaceDetailsActionsProps> = (
           )}
         >
           <DropdownList>
-            {/* TODO: Uncomment when edit action is fully supported */}
-            {/* <DropdownItem
+            <DropdownItem
               id="workspace-details-action-edit-button"
+              data-testid="workspace-details-action-edit-button"
               aria-label="Edit workspace"
               key="edit-workspace-button"
               onClick={onEditClick}
             >
               Edit
-            </DropdownItem> */}
+            </DropdownItem>
             <DropdownItem
               id="workspace-details-action-delete-button"
+              data-testid="workspace-details-action-delete-button"
               aria-label="Delete workspace"
               key="delete-workspace-button"
               onClick={onDeleteClick}

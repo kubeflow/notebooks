@@ -5,13 +5,16 @@ import { WorkspaceFormKindList } from '~/app/pages/Workspaces/Form/kind/Workspac
 import { WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
 import { LoadingSpinner } from '~/app/components/LoadingSpinner';
 import { LoadError } from '~/app/components/LoadError';
+import { WorkspaceFormMode } from '~/app/types';
 
 interface WorkspaceFormKindSelectionProps {
+  mode: WorkspaceFormMode;
   selectedKind: WorkspacekindsWorkspaceKind | undefined;
   onSelect: (kind: WorkspacekindsWorkspaceKind | undefined) => void;
 }
 
 const WorkspaceFormKindSelection: React.FunctionComponent<WorkspaceFormKindSelectionProps> = ({
+  mode,
   selectedKind,
   onSelect,
 }) => {
@@ -31,6 +34,7 @@ const WorkspaceFormKindSelection: React.FunctionComponent<WorkspaceFormKindSelec
         allWorkspaceKinds={workspaceKinds}
         selectedKind={selectedKind}
         onSelect={onSelect}
+        isSelectionDisabled={mode === 'update'}
       />
     </Content>
   );

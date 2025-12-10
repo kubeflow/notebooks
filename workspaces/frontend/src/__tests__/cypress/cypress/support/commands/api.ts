@@ -3,6 +3,7 @@ import type {
   ApiErrorEnvelope,
   ApiNamespaceListEnvelope,
   ApiWorkspaceActionPauseEnvelope,
+  ApiWorkspaceCreateEnvelope,
   ApiWorkspaceEnvelope,
   ApiWorkspaceKindEnvelope,
   ApiWorkspaceKindListEnvelope,
@@ -53,6 +54,11 @@ declare global {
         ((
           type: 'POST /api/:apiVersion/workspaces/:namespace',
           options: { path: { apiVersion: string; namespace: string } },
+          response: ApiWorkspaceCreateEnvelope | ApiErrorEnvelope,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'PUT /api/:apiVersion/workspaces/:namespace/:workspaceName',
+          options: { path: { apiVersion: string; namespace: string; workspaceName: string } },
           response: ApiWorkspaceEnvelope | ApiErrorEnvelope,
         ) => Cypress.Chainable<null>) &
         ((

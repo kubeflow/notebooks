@@ -33,12 +33,20 @@ describe('useWorkspaceFormLocationData', () => {
 
   it('returns edit mode data', () => {
     const initialEntries = [
-      { pathname: '/workspaces/edit', state: { namespace: 'ns2', workspaceName: 'ws' } },
+      {
+        pathname: '/workspaces/edit',
+        state: { namespace: 'ns2', workspaceName: 'ws', workspaceKindName: 'wk' },
+      },
     ];
     const { result } = renderHook(() => useWorkspaceFormLocationData(), {
       wrapper: (props) => wrapper({ ...props, initialEntries }),
     });
-    expect(result.current).toEqual({ mode: 'edit', namespace: 'ns2', workspaceName: 'ws' });
+    expect(result.current).toEqual({
+      mode: 'update',
+      namespace: 'ns2',
+      workspaceName: 'ws',
+      workspaceKindName: 'wk',
+    });
   });
 
   it('throws when missing workspaceName in edit mode', () => {

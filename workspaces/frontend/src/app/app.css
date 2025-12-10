@@ -3,3 +3,8 @@ body,
 #root {
   height: 100%;
 }
+
+/* Workaround to remove the margin-block-start from the alert title */
+.pf-v6-c-alert--no-title-margin .pf-v6-c-alert__title {
+  margin-block-start: 0;
+}
