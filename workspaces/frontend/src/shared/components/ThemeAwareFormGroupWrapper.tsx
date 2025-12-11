@@ -6,11 +6,14 @@ import FormFieldset from '~/app/components/FormFieldset';
 // Props required by this wrapper component
 type ThemeAwareFormGroupWrapperProps = {
   children: React.ReactNode; // The input component
-  label: string;
+  label?: string;
   fieldId: string;
   isRequired?: boolean;
   helperTextNode?: React.ReactNode; // The pre-rendered HelperText component or null
+  hasError?: boolean; // Whether the helper text represents an error (defaults to false)
   className?: string; // Optional className for the outer FormGroup
+  role?: string; // Optional role attribute for accessibility
+  isInline?: boolean; // Optional isInline prop for FormGroup
 };
 
 const ThemeAwareFormGroupWrapper: React.FC<ThemeAwareFormGroupWrapperProps> = ({
@@ -19,10 +22,12 @@ const ThemeAwareFormGroupWrapper: React.FC<ThemeAwareFormGroupWrapperProps> = ({
   fieldId,
   isRequired,
   helperTextNode,
+  hasError = false,
   className,
+  role,
+  isInline,
 }) => {
   const { isMUITheme } = useThemeContext();
-  const hasError = !!helperTextNode; // Determine error state based on helper text presence
 
   if (isMUITheme) {
     // For MUI theme, render FormGroup -> FormFieldset -> Input
@@ -34,6 +39,8 @@ const ThemeAwareFormGroupWrapper: React.FC<ThemeAwareFormGroupWrapperProps> = ({
           label={label}
           isRequired={isRequired}
           fieldId={fieldId}
+          role={role}
+          isInline={isInline}
         >
           <FormFieldset component={children} field={label} />
         </FormGroup>
@@ -50,6 +57,8 @@ const ThemeAwareFormGroupWrapper: React.FC<ThemeAwareFormGroupWrapperProps> = ({
         label={label}
         isRequired={isRequired}
         fieldId={fieldId}
+        role={role}
+        isInline={isInline}
       >
         {children}
         {helperTextNode}
