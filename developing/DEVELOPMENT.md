@@ -215,7 +215,7 @@ cd workspaces/controller && make build
 cd workspaces/backend && make build
 
 # Frontend dev container issues (test the Tilt Dockerfile)
-docker build -f developing/dockerfiles/Dockerfile.frontend.tilt workspaces/frontend
+docker build -f workspaces/frontend/Dockerfile.dev workspaces/frontend
 
 # Frontend production build issues (for testing production builds)
 cd workspaces/frontend && npm ci && npm run build:prod

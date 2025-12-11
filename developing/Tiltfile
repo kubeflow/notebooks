@@ -137,7 +137,7 @@ if enable_frontend:
     # so we build with that name to match the final YAML
     docker_build(
         "ghcr.io/kubeflow/notebooks/workspaces-frontend",
-        dockerfile=os.path.join(tilt_root, "dockerfiles/Dockerfile.frontend.tilt"),
+        dockerfile=os.path.join(frontend_dir, "Dockerfile.dev"),
         context=frontend_dir,  # Use workspaces/frontend/ as context
         live_update=[
             # Sync source files into the container

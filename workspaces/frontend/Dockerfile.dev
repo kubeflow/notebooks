@@ -33,4 +33,3 @@ ENV HOST=0.0.0.0
 # Start webpack dev server with hot reload
 # start:tilt sets DEV_ENV=tilt which configures webpack for development mode
 CMD ["npm", "run", "start:tilt"]
-
