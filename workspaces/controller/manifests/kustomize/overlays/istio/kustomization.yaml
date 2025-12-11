@@ -10,6 +10,7 @@ components:
 - ../../components/certmanager
 - ../../components/istio
 - ../../components/common
+#- ../../components/prometheus
 
 patches:
 - patch: |-
@@ -127,7 +128,3 @@ replacements:
     select:
       kind: Deployment
       name: workspaces-controller
-images:
-- name: workspaces-controller
-  newName: ghcr.io/kubeflow/notebooks/workspaces-controller
-  newTag: latest

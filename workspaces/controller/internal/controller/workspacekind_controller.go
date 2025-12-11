@@ -48,7 +48,7 @@ type WorkspaceKindReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=kubeflow.org,resources=workspacekinds,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=kubeflow.org,resources=workspacekinds,verbs=create;delete;get;list;patch;update;watch
 // +kubebuilder:rbac:groups=kubeflow.org,resources=workspacekinds/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=kubeflow.org,resources=workspacekinds/finalizers,verbs=update
 // +kubebuilder:rbac:groups=kubeflow.org,resources=workspaces,verbs=get;list;watch

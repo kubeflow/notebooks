@@ -14,3 +14,8 @@ labels:
 - includeSelectors: true
   pairs:
     app.kubernetes.io/component: api
+
+images:
+- name: workspaces-backend
+  newName: ghcr.io/kubeflow/notebooks/workspaces-backend
+  newTag: latest
