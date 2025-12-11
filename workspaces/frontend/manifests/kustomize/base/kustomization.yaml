@@ -12,3 +12,8 @@ labels:
   - includeSelectors: true
     pairs:
       app.kubernetes.io/component: ui
+
+images:
+  - name: workspaces-frontend
+    newName: ghcr.io/kubeflow/notebooks/workspaces-frontend
+    newTag: latest
