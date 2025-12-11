@@ -33,4 +33,3 @@ kubectl wait --for=condition=established crd/issuers.cert-manager.io --timeout=6
 kubectl wait --for=condition=established crd/clusterissuers.cert-manager.io --timeout=60s || true
 
 echo "Cert-manager installation complete"
-

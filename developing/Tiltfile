@@ -1,6 +1,3 @@
-# Tiltfile for Kubeflow Notebooks development
-# - Streamlines local development of controller, backend, and frontend components
-
 # Disable analytics
 analytics_settings(False)
 
@@ -19,6 +16,7 @@ enable_frontend = os.getenv("ENABLE_FRONTEND", "true").lower() == "true"
 # Get paths relative to Tiltfile location
 # Tilt evaluates paths relative to the Tiltfile directory
 tilt_root = os.path.dirname(os.path.abspath(__file__))
+
 # Go up 1 level from Tiltfile location: developing -> repo root
 workspace_root = os.path.dirname(tilt_root)
 
@@ -31,43 +29,35 @@ frontend_dir = os.path.join(workspace_root, "workspaces/frontend")
 kustomize_bin = os.path.join(tilt_root, "bin/kustomize")
 
 
-
-
-
 # ============================================================================
 # Controller
 # ============================================================================
 # Note: Kind cluster and cert-manager are set up by the Makefile before Tilt starts
 
-
-# Docker build for controller using production Dockerfile
-# The production Dockerfile builds the binary inside Docker, avoiding .dockerignore issues
-# Note: kustomize replaces 'workspaces-controller' with 'ghcr.io/kubeflow/notebooks/workspaces-controller'
-# so we build with that name to match the final YAML
+# We use the production Dockerfile for controller.
 docker_build(
     "ghcr.io/kubeflow/notebooks/workspaces-controller",
     dockerfile=os.path.join(controller_dir, "Dockerfile"),
     context=controller_dir,
 )
 
-# K8s deployment for controller - use kustomize to build and preprocess YAMLs
+# Build manifests with kustomize
 controller_kustomize_path = os.path.join(controller_dir, "manifests/kustomize/overlays/istio")
-
-# Build manifests with kustomize (using kustomize binary from Makefile)
 manifests = kustomize(controller_kustomize_path, kustomize_bin=kustomize_bin)
 
-# Decode YAMLs to modify them for development
-objects = decode_yaml_stream(manifests)
-
-# Modify the controller deployment for development
-for o in objects:
-    # Defensive check: skip if missing kind/name
+# Mutate the manifest objects before applying
+controller_objects = decode_yaml_stream(manifests)
+for o in controller_objects:
+    # skip if missing kind/name
     kind = o.get("kind")
     name = o.get("metadata", {}).get("name")
     if not kind or not name:
         continue
 
-    # Modify the controller Deployment for dev
+    # modify the controller deployment to disable istio integration
+    #
+    # TODO: remove this mutation once istio integration is supported in dev
+    #
     if kind == "Deployment" and name == "workspaces-controller":
         containers = o.get("spec", {}).get("template", {}).get("spec", {}).get("containers", [])
         for container in containers:
@@ -82,63 +72,66 @@ for o in objects:
                 if not use_istio_found:
                     env.append({"name": "USE_ISTIO", "value": "false"})
 
-# Encode back to YAML and apply
-# This applies all controller manifests: CRDs, RBAC, ConfigMaps, Deployment, etc.
-overridden_manifests = encode_yaml_stream(objects)
-k8s_yaml(overridden_manifests)
+# Apply modified manifests
+k8s_yaml(encode_yaml_stream(controller_objects))
 
-# Configure k8s resource for the controller deployment
+# Port-Forward controller service for local access
 k8s_resource(
     "workspaces-controller",
-    port_forwards=["8080:8080", "8081:8081"],  # metrics and health probe
+    port_forwards=[
+      "8080:8080", # healthz
+      "8081:8081", # metrics
+    ],
     labels=["controller"],
 )
+
 
 # ============================================================================
 # Backend
 # ============================================================================
 
-# Docker build for backend using production Dockerfile
-# Note: kustomize replaces 'workspaces-backend' with 'ghcr.io/kubeflow/notebooks/workspaces-backend'
-# so we build with that name to match the final YAML
+# We use the production Dockerfile for backend.
+# NOTE: Production Dockerfile expects 'workspaces/' as context
 docker_build(
     "ghcr.io/kubeflow/notebooks/workspaces-backend",
     dockerfile=os.path.join(backend_dir, "Dockerfile"),
-    context=os.path.dirname(backend_dir),  # Production Dockerfile expects workspaces/ as context
+    context=os.path.dirname(backend_dir),
 )
 
-# K8s deployment for backend - use kustomize to build
-# allow_duplicates=True because namespace is already defined by controller
+# Build manifests with kustomize and apply
+#
+# TODO: use the istio overlay with backend once istio is supported in dev
+#
 backend_kustomize_path = os.path.join(backend_dir, "manifests/kustomize/base")
 k8s_yaml(
     kustomize(backend_kustomize_path, kustomize_bin=kustomize_bin),
+    # NOTE: allow_duplicates=True because namespace is already defined by controller
     allow_duplicates=True,
 )
 
-# Configure k8s resource
-# Backend waits for controller to be ready first
-# Tilt automatically matches the image based on the image name in the YAML
+# Port-Forward backend service for local access
 k8s_resource(
     "workspaces-backend",
-    port_forwards="4000",
+    port_forwards=[
+      "4000:4000", # api
+    ],
     resource_deps=["workspaces-controller"],
     labels=["backend"],
 )
+
 
 # ============================================================================
 # Frontend (optional)
 # ============================================================================
 
 if enable_frontend:
-    # Docker build for frontend using development Dockerfile with live_update
-    # This enables fast in-place updates without rebuilding the image
-    # Webpack dev server with HMR provides instant feedback on code changes
-    # Note: kustomize replaces 'workspaces-frontend' with 'ghcr.io/kubeflow/notebooks/workspaces-frontend'
-    # so we build with that name to match the final YAML
+
+    # We use a development Dockerfile for frontend as the production Dockerfile
+    # does not include dev dependencies like node.js and webpack.
     docker_build(
         "ghcr.io/kubeflow/notebooks/workspaces-frontend",
         dockerfile=os.path.join(frontend_dir, "Dockerfile.dev"),
-        context=frontend_dir,  # Use workspaces/frontend/ as context
+        context=frontend_dir,
         live_update=[
             # Sync source files into the container
             # Changes to these files trigger webpack HMR without container restart
@@ -164,22 +157,23 @@ if enable_frontend:
         ],
     )
 
-    # K8s deployment for frontend - use kustomize to build
-    # allow_duplicates=True because namespace is already defined by controller
+    # Build manifests with kustomize
+    #
+    # TODO: use the istio overlay with frontend once istio is supported in dev
+    #
     frontend_kustomize_path = os.path.join(frontend_dir, "manifests/kustomize/base")
-
-    # Build and decode manifests to modify for development
     frontend_manifests = kustomize(frontend_kustomize_path, kustomize_bin=kustomize_bin)
-    frontend_objects = decode_yaml_stream(frontend_manifests)
 
-    # Modify the frontend deployment for development with webpack dev server
+    # Mutate the manifest objects before applying
+    frontend_objects = decode_yaml_stream(frontend_manifests)
     for o in frontend_objects:
+        # skip if missing kind/name
         kind = o.get("kind")
         name = o.get("metadata", {}).get("name")
         if not kind or not name:
             continue
 
-        # Modify frontend deployment for webpack dev server
+        # modify the frontend deployment for dev
         if kind == "Deployment" and name == "workspaces-frontend":
             containers = o.get("spec", {}).get("template", {}).get("spec", {}).get("containers", [])
             for container in containers:
@@ -214,15 +208,19 @@ if enable_frontend:
                     }
 
     # Apply modified manifests
-    k8s_yaml(encode_yaml_stream(frontend_objects), allow_duplicates=True)
+    k8s_yaml(
+        encode_yaml_stream(frontend_objects),
+        # NOTE: allow_duplicates=True because namespace is already defined by controller
+        allow_duplicates=True
+    )
 
-    # Configure k8s resource for frontend
-    # Frontend waits for backend to be ready to avoid 504 errors on initial page load
-    # Port forward: localhost:9000 -> container:8080 (avoids conflict with controller on 8080)
+    # Port-Forward frontend service for local access
     k8s_resource(
         "workspaces-frontend",
-        port_forwards="9000:8080",
+        port_forwards=[
+          "9000:8080", # frontend - use host port 9000 to avoid conflict with controller
+        ],
+        # wait for backend to be ready to avoid 504 errors on initial page load
         resource_deps=["workspaces-backend"],
         labels=["frontend"],
     )
-

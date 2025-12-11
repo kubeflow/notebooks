@@ -29,4 +29,3 @@ fi
 kubectl config use-context "kind-${CLUSTER_NAME}" || true
 
 echo "Kind cluster setup complete"
-
