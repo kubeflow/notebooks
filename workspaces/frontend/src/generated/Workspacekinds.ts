@@ -86,4 +86,42 @@ export class Workspacekinds<SecurityDataType = unknown> extends HttpClient<Secur
       format: 'json',
       ...params,
     });
+  /**
+   * @description Returns the icon image for a specific workspace kind. If the icon is stored in a ConfigMap, it serves the image content. If the icon is a remote URL, returns 404 (browser should fetch directly).
+   *
+   * @tags workspacekinds
+   * @name GetWorkspaceKindIcon
+   * @summary Get workspace kind icon
+   * @request GET:/workspacekinds/{name}/assets/icon.svg
+   * @response `200` `string` SVG image content
+   * @response `404` `ApiErrorEnvelope` Not Found. Icon uses remote URL or resource does not exist.
+   * @response `500` `ApiErrorEnvelope` Internal server error.
+   */
+  getWorkspaceKindIcon = (name: string, params: RequestParams = {}) =>
+    this.request<string, ApiErrorEnvelope>({
+      path: `/workspacekinds/${name}/assets/icon.svg`,
+      method: 'GET',
+      type: ContentType.Json,
+      format: 'blob',
+      ...params,
+    });
+  /**
+   * @description Returns the logo image for a specific workspace kind. If the logo is stored in a ConfigMap, it serves the image content. If the logo is a remote URL, returns 404 (browser should fetch directly).
+   *
+   * @tags workspacekinds
+   * @name GetWorkspaceKindLogo
+   * @summary Get workspace kind logo
+   * @request GET:/workspacekinds/{name}/assets/logo.svg
+   * @response `200` `string` SVG image content
+   * @response `404` `ApiErrorEnvelope` Not Found. Logo uses remote URL or resource does not exist.
+   * @response `500` `ApiErrorEnvelope` Internal server error.
+   */
+  getWorkspaceKindLogo = (name: string, params: RequestParams = {}) =>
+    this.request<string, ApiErrorEnvelope>({
+      path: `/workspacekinds/${name}/assets/logo.svg`,
+      method: 'GET',
+      type: ContentType.Json,
+      format: 'blob',
+      ...params,
+    });
 }

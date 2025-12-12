@@ -43,6 +43,9 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
   },
   workspaceKinds: {
     listWorkspaceKinds: async () => ({ data: mockWorkspaceKinds }),
+    getWorkspaceKindIcon: async (kind) =>
+      mockWorkspaceKinds.find((w) => w.name === kind)?.icon.url ?? '',
+    getWorkspaceKindLogo: async (kind) => mockWorkspaceKinds.find((w) => w.name === kind)!.logo.url,
     getWorkspaceKind: async (kind) => ({
       data: mockWorkspaceKinds.find((w) => w.name === kind)!,
     }),

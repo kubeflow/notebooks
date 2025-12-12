@@ -66,6 +66,8 @@ describe('useWorkspaceCountPerKind', () => {
       listWorkspaceKinds: mockListWorkspaceKinds,
       createWorkspaceKind: jest.fn(),
       getWorkspaceKind: jest.fn(),
+      getWorkspaceKindIcon: jest.fn(),
+      getWorkspaceKindLogo: jest.fn(),
     },
   };
 
