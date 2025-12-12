@@ -27,6 +27,7 @@
     "build:prod": "webpack --config ./config/webpack.prod.js",
     "generate:api": "./scripts/generate-api.sh && npm run prettier",
     "start:dev": "webpack serve --hot --color --config ./config/webpack.dev.js",
+    "start:tilt": "DEV_ENV=tilt npm run start:dev",
     "test": "run-s prettier:check test:lint test:type-check test:unit test:cypress-ci",
     "test:cypress-ci": "npx concurrently -P -k -s first \"CY_MOCK=1 npm run cypress:server:build && npm run cypress:server\" \"npx wait-on tcp:127.0.0.1:9001 && npm run cypress:run:mock -- {@}\" -- ",
     "test:jest": "jest --passWithNoTests",

@@ -1,0 +1,35 @@
+# ---------- Development Dockerfile for Frontend ----------
+# This Dockerfile is optimized for Tilt live_update development.
+# It runs webpack-dev-server with hot module replacement (HMR).
+#
+# Build context: workspaces/frontend/
+#
+# Environment is configured via DEV_ENV=tilt which sets up appropriate
+# defaults for development. Container-specific overrides are set below.
+
+FROM node:20-slim
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files first for better layer caching
+# This allows npm install to be cached when only source files change
+COPY package*.json ./
+
+# Install dependencies
+# Using npm ci for reproducible builds, but falling back to npm install
+# if package-lock.json is out of sync during development
+RUN npm ci || npm install
+
+# Copy source code and configuration
+COPY . ./
+
+# Expose the webpack dev server port (matches production deployment)
+EXPOSE 8080
+
+# Container networking: listen on all interfaces
+ENV HOST=0.0.0.0
+
+# Start webpack dev server with hot reload
+# start:tilt sets DEV_ENV=tilt which configures webpack for development mode
+CMD ["npm", "run", "start:tilt"]
