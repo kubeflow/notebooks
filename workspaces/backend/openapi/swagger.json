@@ -83,6 +83,370 @@
                 }
             }
         },
+        "/secrets/{namespace}": {
+            "get": {
+                "description": "Provides a list of all secrets that the user has access to in the specified namespace",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "secrets"
+                ],
+                "summary": "Returns a list of all secrets in a namespace",
+                "operationId": "listSecrets",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "x-example": "my-namespace",
+                        "description": "Namespace name",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful secrets response",
+                        "schema": {
+                            "$ref": "#/definitions/api.SecretListEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Creates a new secret in the specified namespace",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "secrets"
+                ],
+                "summary": "Creates a new secret",
+                "operationId": "createSecret",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Namespace name",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Secret creation request",
+                        "name": "secret",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.SecretCreateEnvelope"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Secret created successfully",
+                        "schema": {
+                            "$ref": "#/definitions/api.SecretCreateEnvelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "409": {
+                        "description": "Secret already exists",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large. The request body is too large.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type. Content-Type header is not correct.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/secrets/{namespace}/{name}": {
+            "get": {
+                "description": "Provides details of a specific secret by name and namespace",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "secrets"
+                ],
+                "summary": "Returns a specific secret",
+                "operationId": "getSecret",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Namespace name",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "x-example": "my-secret",
+                        "description": "Secret name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful secret response",
+                        "schema": {
+                            "$ref": "#/definitions/api.SecretEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "404": {
+                        "description": "Secret not found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Updates an existing secret in the specified namespace",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "secrets"
+                ],
+                "summary": "Updates an existing secret",
+                "operationId": "updateSecret",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Namespace name",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Secret name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Secret update request",
+                        "name": "secret",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/secrets.SecretUpdate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Secret updated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/api.SecretEnvelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "404": {
+                        "description": "Secret not found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large. The request body is too large.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type. Content-Type header is not correct.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Deletes a secret from the specified namespace",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "secrets"
+                ],
+                "summary": "Deletes a secret",
+                "operationId": "deleteSecret",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "x-example": "my-namespace",
+                        "description": "Namespace name",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "x-example": "my-secret",
+                        "description": "Secret name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "404": {
+                        "description": "Secret not found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
         "/workspacekinds": {
             "get": {
                 "description": "Returns a list of all available workspace kinds. Workspace kinds define the different types of workspaces that can be created in the system.",
@@ -813,6 +1177,42 @@
                 }
             }
         },
+        "api.SecretCreateEnvelope": {
+            "type": "object",
+            "required": [
+                "data"
+            ],
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/secrets.SecretCreate"
+                }
+            }
+        },
+        "api.SecretEnvelope": {
+            "type": "object",
+            "required": [
+                "data"
+            ],
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/secrets.SecretUpdate"
+                }
+            }
+        },
+        "api.SecretListEnvelope": {
+            "type": "object",
+            "required": [
+                "data"
+            ],
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/secrets.SecretListItem"
+                    }
+                }
+            }
+        },
         "api.ValidationError": {
             "type": "object",
             "properties": {
@@ -914,6 +1314,29 @@
                 }
             }
         },
+        "common.Audit": {
+            "type": "object",
+            "required": [
+                "createdAt",
+                "createdBy",
+                "updatedAt",
+                "updatedBy"
+            ],
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "createdBy": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "updatedBy": {
+                    "type": "string"
+                }
+            }
+        },
         "field.ErrorType": {
             "type": "string",
             "enum": [
@@ -985,6 +1408,118 @@
             ],
             "properties": {
                 "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "secrets.SecretCreate": {
+            "type": "object",
+            "required": [
+                "contents",
+                "immutable",
+                "name",
+                "type"
+            ],
+            "properties": {
+                "contents": {
+                    "$ref": "#/definitions/secrets.SecretData"
+                },
+                "immutable": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "secrets.SecretData": {
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "#/definitions/secrets.SecretValue"
+            }
+        },
+        "secrets.SecretListItem": {
+            "type": "object",
+            "required": [
+                "audit",
+                "canMount",
+                "canUpdate",
+                "immutable",
+                "name",
+                "type"
+            ],
+            "properties": {
+                "audit": {
+                    "$ref": "#/definitions/common.Audit"
+                },
+                "canMount": {
+                    "type": "boolean"
+                },
+                "canUpdate": {
+                    "type": "boolean"
+                },
+                "immutable": {
+                    "type": "boolean"
+                },
+                "mounts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/secrets.SecretMount"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "secrets.SecretMount": {
+            "type": "object",
+            "required": [
+                "group",
+                "kind",
+                "name"
+            ],
+            "properties": {
+                "group": {
+                    "type": "string"
+                },
+                "kind": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "secrets.SecretUpdate": {
+            "type": "object",
+            "required": [
+                "contents",
+                "immutable",
+                "type"
+            ],
+            "properties": {
+                "contents": {
+                    "$ref": "#/definitions/secrets.SecretData"
+                },
+                "immutable": {
+                    "type": "boolean"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "secrets.SecretValue": {
+            "type": "object",
+            "properties": {
+                "base64": {
                     "type": "string"
                 }
             }

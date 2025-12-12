@@ -21,6 +21,7 @@ import (
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/health_check"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/namespaces"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/secrets"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/workspacekinds"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/workspaces"
 )
@@ -29,6 +30,7 @@ import (
 type Repositories struct {
 	HealthCheck   *health_check.HealthCheckRepository
 	Namespace     *namespaces.NamespaceRepository
+	Secret        *secrets.SecretRepository
 	Workspace     *workspaces.WorkspaceRepository
 	WorkspaceKind *workspacekinds.WorkspaceKindRepository
 }
@@ -38,6 +40,7 @@ func NewRepositories(cl client.Client) *Repositories {
 	return &Repositories{
 		HealthCheck:   health_check.NewHealthCheckRepository(),
 		Namespace:     namespaces.NewNamespaceRepository(cl),
+		Secret:        secrets.NewSecretRepository(cl),
 		Workspace:     workspaces.NewWorkspaceRepository(cl),
 		WorkspaceKind: workspacekinds.NewWorkspaceKindRepository(cl),
 	}
