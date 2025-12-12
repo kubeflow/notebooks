@@ -15,3 +15,6 @@ src/__tests__/cypress/results
 src/__tests__/cypress/.nyc_output
 jest-coverage
 coverage
+
+# Intermediate output from kustomize
+**/kustomize/.output/

@@ -1,0 +1,53 @@
+name: Workspaces E2E Tests
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - main
+      - notebooks-v2
+      - v*-branch
+  pull_request:
+    paths:
+      - 'workspaces/**'
+      - 'releasing/version/VERSION'
+
+jobs:
+  e2e-test:
+    runs-on: ubuntu-latest
+    env:
+      GO_VERSION: '1.22'
+    defaults:
+      run:
+        working-directory: testing
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+
+      - name: Generate cache key from Makefile
+        id: cache-key
+        run: |
+          VERSION_HASH=$(make dependency-hash)
+          echo "cache_key=testing-bin-${{ runner.os }}-go${{ env.GO_VERSION }}-$VERSION_HASH" >> $GITHUB_OUTPUT
+
+      - name: Cache testing/bin directory
+        uses: actions/cache@v4
+        id: cache-testing-bin
+        with:
+          path: testing/bin
+          key: ${{ steps.cache-key.outputs.cache_key }}
+
+      - name: Setup cluster
+        run: make setup-cluster
+
+      - name: Run local-e2e tests
+        run: make local-e2e
+
