@@ -197,17 +197,17 @@ var _ = Describe("Workspaces Handler", func() {
 
 			By("ensuring the response contains the expected Workspaces")
 			Expect(response.Data).To(ConsistOf(
-				models.NewWorkspaceModelFromWorkspace(workspace1, workspaceKind),
-				models.NewWorkspaceModelFromWorkspace(workspace2, workspaceKind),
-				models.NewWorkspaceModelFromWorkspace(workspace3, workspaceKind),
+				models.NewWorkspaceListItemFromWorkspace(workspace1, workspaceKind),
+				models.NewWorkspaceListItemFromWorkspace(workspace2, workspaceKind),
+				models.NewWorkspaceListItemFromWorkspace(workspace3, workspaceKind),
 			))
 
-			By("ensuring the response can be marshaled to JSON and back to []Workspace")
+			By("ensuring the response can be marshaled to JSON and back to []WorkspaceListItem")
 			dataJSON, err := json.Marshal(response.Data)
 			Expect(err).NotTo(HaveOccurred(), "failed to marshal data to JSON")
-			var dataObject []models.Workspace
+			var dataObject []models.WorkspaceListItem
 			err = json.Unmarshal(dataJSON, &dataObject)
-			Expect(err).NotTo(HaveOccurred(), "failed to unmarshal JSON to []Workspace")
+			Expect(err).NotTo(HaveOccurred(), "failed to unmarshal JSON to []WorkspaceListItem")
 		})
 
 		It("should retrieve Workspaces from Namespace 1 successfully", func() {
@@ -252,16 +252,16 @@ var _ = Describe("Workspaces Handler", func() {
 
 			By("ensuring the response contains the expected Workspaces")
 			Expect(response.Data).To(ConsistOf(
-				models.NewWorkspaceModelFromWorkspace(workspace1, workspaceKind),
-				models.NewWorkspaceModelFromWorkspace(workspace2, workspaceKind),
+				models.NewWorkspaceListItemFromWorkspace(workspace1, workspaceKind),
+				models.NewWorkspaceListItemFromWorkspace(workspace2, workspaceKind),
 			))
 
-			By("ensuring the response can be marshaled to JSON and back to []Workspace")
+			By("ensuring the response can be marshaled to JSON and back to []WorkspaceListItem")
 			dataJSON, err := json.Marshal(response.Data)
 			Expect(err).NotTo(HaveOccurred(), "failed to marshal data to JSON")
-			var dataObject []models.Workspace
+			var dataObject []models.WorkspaceListItem
 			err = json.Unmarshal(dataJSON, &dataObject)
-			Expect(err).NotTo(HaveOccurred(), "failed to unmarshal JSON to []Workspace")
+			Expect(err).NotTo(HaveOccurred(), "failed to unmarshal JSON to []WorkspaceListItem")
 		})
 
 		It("should retrieve a single Workspace successfully", func() {
@@ -296,23 +296,24 @@ var _ = Describe("Workspaces Handler", func() {
 			err = json.Unmarshal(body, &response)
 			Expect(err).NotTo(HaveOccurred())
 
-			By("getting the WorkspaceKind from the Kubernetes API")
-			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
-			Expect(k8sClient.Get(ctx, workspaceKindKey, workspaceKind)).To(Succeed())
-
 			By("getting the Workspace from the Kubernetes API")
 			workspace := &kubefloworgv1beta1.Workspace{}
 			Expect(k8sClient.Get(ctx, workspaceKey1, workspace)).To(Succeed())
 
-			By("ensuring the response matches the expected Workspace")
-			Expect(response.Data).To(BeComparableTo(models.NewWorkspaceModelFromWorkspace(workspace, workspaceKind)))
+			By("ensuring the response matches the expected WorkspaceUpdate")
+			expectedWorkspaceUpdate := models.NewWorkspaceUpdateModelFromWorkspace(workspace)
+			// Normalize Secrets to nil if empty to match JSON unmarshaling behavior (omitempty causes empty slices to become nil)
+			if len(expectedWorkspaceUpdate.PodTemplate.Volumes.Secrets) == 0 {
+				expectedWorkspaceUpdate.PodTemplate.Volumes.Secrets = nil
+			}
+			Expect(response.Data).To(BeComparableTo(expectedWorkspaceUpdate))
 
-			By("ensuring the response can be marshaled to JSON and back to Workspace")
+			By("ensuring the response can be marshaled to JSON and back to WorkspaceUpdate")
 			dataJSON, err := json.Marshal(response.Data)
 			Expect(err).NotTo(HaveOccurred(), "failed to marshal data to JSON")
-			var dataObject models.Workspace
+			var dataObject models.WorkspaceUpdate
 			err = json.Unmarshal(dataJSON, &dataObject)
-			Expect(err).NotTo(HaveOccurred(), "failed to unmarshal JSON to Workspace")
+			Expect(err).NotTo(HaveOccurred(), "failed to unmarshal JSON to WorkspaceUpdate")
 		})
 	})
 
@@ -463,7 +464,7 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(k8sClient.Get(ctx, workspaceInvalidImageConfigKey, workspaceInvalidImageConfig)).To(Succeed())
 
 			By("ensuring the model for Workspace with missing WorkspaceKind is as expected")
-			workspaceMissingWskModel := models.NewWorkspaceModelFromWorkspace(workspaceMissingWsk, nil)
+			workspaceMissingWskModel := models.NewWorkspaceListItemFromWorkspace(workspaceMissingWsk, nil)
 			Expect(workspaceMissingWskModel.WorkspaceKind.Missing).To(BeTrue())
 			Expect(workspaceMissingWskModel.PodTemplate.Volumes.Home.MountPath).To(Equal(models.UnknownHomeMountPath))
 			Expect(workspaceMissingWskModel.PodTemplate.Options.PodConfig.Current.DisplayName).To(Equal(models.UnknownPodConfig))
@@ -472,12 +473,12 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(workspaceMissingWskModel.PodTemplate.Options.ImageConfig.Current.Description).To(Equal(models.UnknownImageConfig))
 
 			By("ensuring the model for Workspace with invalid PodConfig is as expected")
-			workspaceInvalidPodConfigModel := models.NewWorkspaceModelFromWorkspace(workspaceInvalidPodConfig, workspaceKind)
+			workspaceInvalidPodConfigModel := models.NewWorkspaceListItemFromWorkspace(workspaceInvalidPodConfig, workspaceKind)
 			Expect(workspaceInvalidPodConfigModel.PodTemplate.Options.PodConfig.Current.DisplayName).To(Equal(models.UnknownPodConfig))
 			Expect(workspaceInvalidPodConfigModel.PodTemplate.Options.PodConfig.Current.Description).To(Equal(models.UnknownPodConfig))
 
 			By("ensuring the model for Workspace with invalid ImageConfig is as expected")
-			workspaceInvalidImageConfigModel := models.NewWorkspaceModelFromWorkspace(workspaceInvalidImageConfig, workspaceKind)
+			workspaceInvalidImageConfigModel := models.NewWorkspaceListItemFromWorkspace(workspaceInvalidImageConfig, workspaceKind)
 			Expect(workspaceInvalidImageConfigModel.PodTemplate.Options.ImageConfig.Current.DisplayName).To(Equal(models.UnknownImageConfig))
 			Expect(workspaceInvalidImageConfigModel.PodTemplate.Options.ImageConfig.Current.Description).To(Equal(models.UnknownImageConfig))
 
@@ -489,7 +490,7 @@ var _ = Describe("Workspaces Handler", func() {
 			))
 		})
 
-		It("should retrieve a single invalid Workspace successfully", func() {
+		It("should retrieve a single Workspace successfully", func() {
 			By("creating the HTTP request")
 			path := strings.Replace(WorkspacesByNamePath, ":"+NamespacePathParam, namespaceName1, 1)
 			path = strings.Replace(path, ":"+ResourceNamePathParam, workspaceMissingWskName, 1)
@@ -525,8 +526,12 @@ var _ = Describe("Workspaces Handler", func() {
 			workspaceMissingWsk := &kubefloworgv1beta1.Workspace{}
 			Expect(k8sClient.Get(ctx, workspaceMissingWskKey, workspaceMissingWsk)).To(Succeed())
 
-			By("ensuring the response matches the expected Workspace")
-			workspaceMissingWskModel := models.NewWorkspaceModelFromWorkspace(workspaceMissingWsk, nil)
+			By("ensuring the response matches the expected WorkspaceUpdate")
+			workspaceMissingWskModel := models.NewWorkspaceUpdateModelFromWorkspace(workspaceMissingWsk)
+			// Normalize Secrets to nil if empty to match JSON unmarshaling behavior (omitempty causes empty slices to become nil)
+			if len(workspaceMissingWskModel.PodTemplate.Volumes.Secrets) == 0 {
+				workspaceMissingWskModel.PodTemplate.Volumes.Secrets = nil
+			}
 			Expect(response.Data).To(BeComparableTo(workspaceMissingWskModel))
 		})
 	})

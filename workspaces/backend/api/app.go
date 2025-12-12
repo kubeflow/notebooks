@@ -117,6 +117,7 @@ func (a *App) Routes() http.Handler {
 	router.GET(WorkspacesByNamespacePath, a.GetWorkspacesByNamespaceHandler)
 	router.GET(WorkspacesByNamePath, a.GetWorkspaceHandler)
 	router.POST(WorkspacesByNamespacePath, a.CreateWorkspaceHandler)
+	router.PUT(WorkspacesByNamePath, a.UpdateWorkspaceHandler)
 	router.DELETE(WorkspacesByNamePath, a.DeleteWorkspaceHandler)
 	router.POST(PauseWorkspacePath, a.PauseActionWorkspaceHandler)
 
