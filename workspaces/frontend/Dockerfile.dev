@@ -9,12 +9,14 @@
 
 FROM node:20-slim
 
-# Set working directory
+# Create app directory with correct ownership, then switch to non-root user
+RUN mkdir /app && chown 1000:1000 /app
+USER 1000:1000
 WORKDIR /app
 
 # Copy package files first for better layer caching
-# This allows npm install to be cached when only source files change
-COPY package*.json ./
+# chmod=777 allows Tilt live_update to write files without CAP_CHOWN
+COPY --chmod=777 package*.json ./
 
 # Install dependencies
 # Using npm ci for reproducible builds, but falling back to npm install
@@ -22,7 +24,7 @@ COPY package*.json ./
 RUN npm ci || npm install
 
 # Copy source code and configuration
-COPY . ./
+COPY --chmod=777 . ./
 
 # Expose the webpack dev server port (matches production deployment)
 EXPOSE 8080
