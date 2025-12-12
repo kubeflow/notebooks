@@ -3,7 +3,7 @@ import { act } from 'react-dom/test-utils';
 import { renderHook } from '~/__tests__/unit/testUtils/hooks';
 import { WorkspaceActionsContext } from '~/app/context/WorkspaceActionsContext';
 import { useWorkspaceRowActions } from '~/app/hooks/useWorkspaceRowActions';
-import { WorkspacesWorkspace } from '~/generated/data-contracts';
+import { WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
 import { buildMockWorkspace } from '~/shared/mock/mockBuilder';
 
 jest.mock('~/app/context/WorkspaceActionsContext', () => {
@@ -19,7 +19,7 @@ describe('useWorkspaceRowActions', () => {
   const workspace = buildMockWorkspace({ name: 'ws', namespace: 'ns' });
 
   type MinimalAction = { title?: string; isSeparator?: boolean; onClick?: () => void };
-  type RequestActionArgs = { workspace: WorkspacesWorkspace; onActionDone?: () => void };
+  type RequestActionArgs = { workspace: WorkspacesWorkspaceListItem; onActionDone?: () => void };
   type WorkspaceActionsContextLike = {
     requestViewDetailsAction: (args: RequestActionArgs) => void;
     requestEditAction: (args: RequestActionArgs) => void;
@@ -54,7 +54,7 @@ describe('useWorkspaceRowActions', () => {
     const actionsToInclude = [
       { id: 'viewDetails' as const },
       { id: 'separator' as const },
-      { id: 'edit' as const, isVisible: (w: WorkspacesWorkspace) => w.name === 'ws' },
+      { id: 'edit' as const, isVisible: (w: WorkspacesWorkspaceListItem) => w.name === 'ws' },
       { id: 'delete' as const, isVisible: false },
     ];
 

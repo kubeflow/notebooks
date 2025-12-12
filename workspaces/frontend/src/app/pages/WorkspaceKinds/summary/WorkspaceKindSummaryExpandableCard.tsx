@@ -19,12 +19,12 @@ import {
   groupWorkspacesByNamespaceAndGpu,
   YesNoValue,
 } from '~/shared/utilities/WorkspaceUtils';
-import { WorkspacesWorkspace } from '~/generated/data-contracts';
+import { WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
 
 const TOP_GPU_CONSUMERS_LIMIT = 2;
 
 interface WorkspaceKindSummaryExpandableCardProps {
-  workspaces: WorkspacesWorkspace[];
+  workspaces: WorkspacesWorkspaceListItem[];
   isExpanded: boolean;
   onExpandToggle: () => void;
   onAddFilter: (columnKey: string, value: string) => void;

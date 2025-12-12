@@ -1,69 +1,69 @@
-import React, { useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react';
-import {
-  TimestampTooltipVariant,
-  Timestamp,
-} from '@patternfly/react-core/dist/esm/components/Timestamp';
-import { Label } from '@patternfly/react-core/dist/esm/components/Label';
-import {
-  PaginationVariant,
-  Pagination,
-} from '@patternfly/react-core/dist/esm/components/Pagination';
-import { Content } from '@patternfly/react-core/dist/esm/components/Content';
-import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
-import { Bullseye } from '@patternfly/react-core/dist/esm/layouts/Bullseye';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
+import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import { Icon } from '@patternfly/react-core/dist/esm/components/Icon';
+import { Label } from '@patternfly/react-core/dist/esm/components/Label';
+import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
 import {
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
-  ToolbarGroup,
-  ToolbarFilter,
-  ToolbarToggleGroup,
-} from '@patternfly/react-core/dist/esm/components/Toolbar';
+  Pagination,
+  PaginationVariant,
+} from '@patternfly/react-core/dist/esm/components/Pagination';
 import {
   Select,
   SelectList,
   SelectOption,
 } from '@patternfly/react-core/dist/esm/components/Select';
-import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
 import {
-  Table,
-  TableText,
-  Thead,
-  Tr,
-  Th,
-  Tbody,
-  Td,
-  ThProps,
-  ActionsColumn,
-  IActions,
-} from '@patternfly/react-table/dist/esm/components/Table';
+  Timestamp,
+  TimestampTooltipVariant,
+} from '@patternfly/react-core/dist/esm/components/Timestamp';
+import {
+  Toolbar,
+  ToolbarContent,
+  ToolbarFilter,
+  ToolbarGroup,
+  ToolbarItem,
+  ToolbarToggleGroup,
+} from '@patternfly/react-core/dist/esm/components/Toolbar';
+import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
+import { Bullseye } from '@patternfly/react-core/dist/esm/layouts/Bullseye';
+import { ExclamationTriangleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-triangle-icon';
 import { FilterIcon } from '@patternfly/react-icons/dist/esm/icons/filter-icon';
 import { InfoCircleIcon } from '@patternfly/react-icons/dist/esm/icons/info-circle-icon';
-import { ExclamationTriangleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-triangle-icon';
-import { TimesCircleIcon } from '@patternfly/react-icons/dist/esm/icons/times-circle-icon';
 import { QuestionCircleIcon } from '@patternfly/react-icons/dist/esm/icons/question-circle-icon';
+import { TimesCircleIcon } from '@patternfly/react-icons/dist/esm/icons/times-circle-icon';
+import {
+  ActionsColumn,
+  IActions,
+  Table,
+  TableText,
+  Tbody,
+  Td,
+  Th,
+  Thead,
+  ThProps,
+  Tr,
+} from '@patternfly/react-table/dist/esm/components/Table';
 import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
-import { DataFieldKey, defineDataFields, SortableDataFieldKey } from '~/app/filterableDataHelper';
-import { useTypedNavigate } from '~/app/routerHelper';
+import React, { useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import {
   buildKindLogoDictionary,
   buildWorkspaceRedirectStatus,
 } from '~/app/actions/WorkspaceKindsActions';
-import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
-import { WorkspaceConnectAction } from '~/app/pages/Workspaces/WorkspaceConnectAction';
 import ThemeAwareSearchInput from '~/app/components/ThemeAwareSearchInput';
-import WithValidImage from '~/shared/components/WithValidImage';
+import { useWorkspaceActionsContext } from '~/app/context/WorkspaceActionsContext';
+import { DataFieldKey, defineDataFields, SortableDataFieldKey } from '~/app/filterableDataHelper';
+import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
+import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
+import { WorkspaceConnectAction } from '~/app/pages/Workspaces/WorkspaceConnectAction';
+import { useTypedNavigate } from '~/app/routerHelper';
+import { WorkspacesWorkspaceListItem, WorkspacesWorkspaceState } from '~/generated/data-contracts';
+import CustomEmptyState from '~/shared/components/CustomEmptyState';
 import ImageFallback from '~/shared/components/ImageFallback';
+import WithValidImage from '~/shared/components/WithValidImage';
 import {
   formatResourceFromWorkspace,
   formatWorkspaceIdleState,
 } from '~/shared/utilities/WorkspaceUtils';
-import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
-import CustomEmptyState from '~/shared/components/CustomEmptyState';
-import { WorkspacesWorkspace, WorkspacesWorkspaceState } from '~/generated/data-contracts';
-import { useWorkspaceActionsContext } from '~/app/context/WorkspaceActionsContext';
 
 const {
   fields: wsTableColumns,
@@ -86,11 +86,11 @@ export type WorkspaceTableColumnKeys = DataFieldKey<typeof wsTableColumns>;
 type WorkspaceTableSortableColumnKeys = SortableDataFieldKey<typeof wsTableColumns>;
 
 interface WorkspaceTableProps {
-  workspaces: WorkspacesWorkspace[];
+  workspaces: WorkspacesWorkspaceListItem[];
   canCreateWorkspaces?: boolean;
   canExpandRows?: boolean;
   hiddenColumns?: WorkspaceTableColumnKeys[];
-  rowActions?: (workspace: WorkspacesWorkspace) => IActions;
+  rowActions?: (workspace: WorkspacesWorkspaceListItem) => IActions;
 }
 
 const allFiltersConfig = {
@@ -240,19 +240,20 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       [clearAllFilters],
     );
 
-    const filterableProperties: Record<FilterKey, (ws: WorkspacesWorkspace) => string> = useMemo(
-      () => ({
-        name: (ws) => ws.name,
-        kind: (ws) => ws.workspaceKind.name,
-        image: (ws) => ws.podTemplate.options.imageConfig.current.displayName,
-        state: (ws) => ws.state,
-        namespace: (ws) => ws.namespace,
-        idleGpu: (ws) => formatWorkspaceIdleState(ws),
-      }),
-      [],
-    );
+    const filterableProperties: Record<FilterKey, (ws: WorkspacesWorkspaceListItem) => string> =
+      useMemo(
+        () => ({
+          name: (ws) => ws.name,
+          kind: (ws) => ws.workspaceKind.name,
+          image: (ws) => ws.podTemplate.options.imageConfig.current.displayName,
+          state: (ws) => ws.state,
+          namespace: (ws) => ws.namespace,
+          idleGpu: (ws) => formatWorkspaceIdleState(ws),
+        }),
+        [],
+      );
 
-    const setWorkspaceExpanded = (workspace: WorkspacesWorkspace, isExpanding = true) =>
+    const setWorkspaceExpanded = (workspace: WorkspacesWorkspaceListItem, isExpanding = true) =>
       setExpandedWorkspacesNames((prevExpanded) => {
         const newExpandedWorkspacesNames = prevExpanded.filter(
           (wsName) => wsName !== workspace.name,
@@ -262,7 +263,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
           : newExpandedWorkspacesNames;
       });
 
-    const isWorkspaceExpanded = (workspace: WorkspacesWorkspace) =>
+    const isWorkspaceExpanded = (workspace: WorkspacesWorkspaceListItem) =>
       expandedWorkspacesNames.includes(workspace.name);
 
     const filteredWorkspaces = useMemo(() => {
@@ -296,7 +297,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
     // Column sorting
 
     const getSortableRowValues = (
-      workspace: WorkspacesWorkspace,
+      workspace: WorkspacesWorkspaceListItem,
     ): Record<WorkspaceTableSortableColumnKeys, string | number> => ({
       name: workspace.name,
       kind: workspace.workspaceKind.name,

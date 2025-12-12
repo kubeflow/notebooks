@@ -58,6 +58,7 @@ export type RouteStateMap = {
   workspaceEdit: {
     namespace: string;
     workspaceName: string;
+    workspaceKindName: string;
   };
   workspaceKinds: undefined;
   workspaceKindSummary: {

@@ -405,7 +405,7 @@
                     "201": {
                         "description": "Workspace created successfully",
                         "schema": {
-                            "$ref": "#/definitions/api.WorkspaceEnvelope"
+                            "$ref": "#/definitions/api.WorkspaceCreateEnvelope"
                         }
                     },
                     "400": {
@@ -428,6 +428,105 @@
                     },
                     "409": {
                         "description": "Conflict. Workspace with the same name already exists.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large. The request body is too large.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type. Content-Type header is not correct.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error. An unexpected error occurred on the server.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/workspaces/{namespace}/{name}": {
+            "put": {
+                "description": "Updates an existing workspace",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspaces"
+                ],
+                "summary": "Update workspace",
+                "operationId": "updateWorkspace",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "x-example": "kubeflow-user-example-com",
+                        "description": "Namespace of the workspace",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "x-example": "my-workspace",
+                        "description": "Name of the workspace",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Workspace update configuration",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.WorkspaceEnvelope"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Workspace updated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/api.WorkspaceEnvelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Authentication is required.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. User does not have permission to create workspace.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict. Current workspace generation is newer than provided.",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }
@@ -566,7 +665,7 @@
         },
         "/workspaces/{namespace}/{workspace_name}": {
             "get": {
-                "description": "Returns details of a specific workspace identified by namespace and workspace name.",
+                "description": "Returns the current state of a specific workspace identified by namespace and workspace name, including the revision for optimistic locking. This endpoint is intended for retrieving the workspace state before updating it.",
                 "consumes": [
                     "application/json"
                 ],
@@ -598,7 +697,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Successful operation. Returns the requested workspace details.",
+                        "description": "Successful operation. Returns the requested workspace details with revision.",
                         "schema": {
                             "$ref": "#/definitions/api.WorkspaceEnvelope"
                         }
@@ -871,7 +970,7 @@
             ],
             "properties": {
                 "data": {
-                    "$ref": "#/definitions/workspaces.Workspace"
+                    "$ref": "#/definitions/workspaces.WorkspaceUpdate"
                 }
             }
         },
@@ -909,7 +1008,7 @@
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/workspaces.Workspace"
+                        "$ref": "#/definitions/workspaces.WorkspaceListItem"
                     }
                 }
             }
@@ -1736,7 +1835,57 @@
                 }
             }
         },
-        "workspaces.Workspace": {
+        "workspaces.WorkspaceCreate": {
+            "type": "object",
+            "required": [
+                "deferUpdates",
+                "kind",
+                "name",
+                "paused",
+                "podTemplate"
+            ],
+            "properties": {
+                "deferUpdates": {
+                    "type": "boolean"
+                },
+                "kind": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "paused": {
+                    "type": "boolean"
+                },
+                "podTemplate": {
+                    "$ref": "#/definitions/workspaces.PodTemplateMutate"
+                }
+            }
+        },
+        "workspaces.WorkspaceKindInfo": {
+            "type": "object",
+            "required": [
+                "icon",
+                "logo",
+                "missing",
+                "name"
+            ],
+            "properties": {
+                "icon": {
+                    "$ref": "#/definitions/workspaces.ImageRef"
+                },
+                "logo": {
+                    "$ref": "#/definitions/workspaces.ImageRef"
+                },
+                "missing": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspaces.WorkspaceListItem": {
             "type": "object",
             "required": [
                 "activity",
@@ -1794,56 +1943,6 @@
                 }
             }
         },
-        "workspaces.WorkspaceCreate": {
-            "type": "object",
-            "required": [
-                "deferUpdates",
-                "kind",
-                "name",
-                "paused",
-                "podTemplate"
-            ],
-            "properties": {
-                "deferUpdates": {
-                    "type": "boolean"
-                },
-                "kind": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "paused": {
-                    "type": "boolean"
-                },
-                "podTemplate": {
-                    "$ref": "#/definitions/workspaces.PodTemplateMutate"
-                }
-            }
-        },
-        "workspaces.WorkspaceKindInfo": {
-            "type": "object",
-            "required": [
-                "icon",
-                "logo",
-                "missing",
-                "name"
-            ],
-            "properties": {
-                "icon": {
-                    "$ref": "#/definitions/workspaces.ImageRef"
-                },
-                "logo": {
-                    "$ref": "#/definitions/workspaces.ImageRef"
-                },
-                "missing": {
-                    "type": "boolean"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
         "workspaces.WorkspaceState": {
             "type": "string",
             "enum": [
@@ -1862,6 +1961,32 @@
                 "WorkspaceStateError",
                 "WorkspaceStateUnknown"
             ]
+        },
+        "workspaces.WorkspaceUpdate": {
+            "type": "object",
+            "required": [
+                "deferUpdates",
+                "paused",
+                "podTemplate",
+                "revision"
+            ],
+            "properties": {
+                "deferUpdates": {
+                    "description": "TODO: remove `deferUpdates` once the controller is no longer applying redirects",
+                    "type": "boolean"
+                },
+                "paused": {
+                    "description": "TODO: remove `paused` once we have an \"actions\" api for pausing workspaces",
+                    "type": "boolean"
+                },
+                "podTemplate": {
+                    "$ref": "#/definitions/workspaces.PodTemplateMutate"
+                },
+                "revision": {
+                    "description": "Revision is an opaque token for optimistic locking.\nClients receive this value from GET requests and must include it\nin PATCH requests to ensure they are updating the expected version.\nClients must not parse, interpret, or compare revision values.",
+                    "type": "string"
+                }
+            }
         }
     }
 }

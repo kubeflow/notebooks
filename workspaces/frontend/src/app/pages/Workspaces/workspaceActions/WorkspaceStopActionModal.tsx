@@ -11,12 +11,15 @@ import { TabTitleText } from '@patternfly/react-core/dist/esm/components/Tabs';
 import { useNotification } from 'mod-arch-core';
 import { WorkspaceRedirectInformationView } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRedirectInformationView';
 import { ActionButton } from '~/shared/components/ActionButton';
-import { ApiWorkspaceActionPauseEnvelope, WorkspacesWorkspace } from '~/generated/data-contracts';
+import {
+  ApiWorkspaceActionPauseEnvelope,
+  WorkspacesWorkspaceListItem,
+} from '~/generated/data-contracts';
 
 interface StopActionAlertProps {
   onClose: () => void;
   isOpen: boolean;
-  workspace: WorkspacesWorkspace | null;
+  workspace: WorkspacesWorkspaceListItem | null;
   onStop: () => Promise<ApiWorkspaceActionPauseEnvelope>;
   onUpdateAndStop: () => Promise<void>;
   onActionDone?: () => void;

@@ -13,7 +13,7 @@ import DeleteModal from '~/shared/components/DeleteModal';
 import { WorkspaceStartActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceStartActionModal';
 import { WorkspaceRestartActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRestartActionModal';
 import { WorkspaceStopActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceStopActionModal';
-import { WorkspacesWorkspace } from '~/generated/data-contracts';
+import { WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
 
 export enum ActionType {
   ViewDetails = 'ViewDetails',
@@ -26,7 +26,7 @@ export enum ActionType {
 
 export interface WorkspaceAction {
   action: ActionType;
-  workspace: WorkspacesWorkspace;
+  workspace: WorkspacesWorkspaceListItem;
   onActionDone?: () => void;
 }
 
@@ -76,8 +76,10 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
           workspace={activeWsAction.workspace}
           onCloseClick={() => setActiveWsAction(null)}
           onDeleteClick={() => requestDeleteAction({ workspace: activeWsAction.workspace })}
-          // TODO: Uncomment when edit action is fully supported
-          // onEditClick={() => executeEditAction()}
+          onEditClick={() => {
+            requestEditAction({ workspace: activeWsAction.workspace });
+            executeEditAction();
+          }}
         />
       )}
     </>
@@ -89,7 +91,7 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
 
   const createActionRequester =
     (actionType: ActionType) =>
-    (args: { workspace: WorkspacesWorkspace; onActionDone?: () => void }) =>
+    (args: { workspace: WorkspacesWorkspaceListItem; onActionDone?: () => void }) =>
       setActiveWsAction({ action: actionType, ...args });
 
   const requestViewDetailsAction = createActionRequester(ActionType.ViewDetails);
@@ -107,6 +109,7 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
       state: {
         namespace: activeWsAction.workspace.namespace,
         workspaceName: activeWsAction.workspace.name,
+        workspaceKindName: activeWsAction.workspace.workspaceKind.name,
       },
     });
   }, [navigate, activeWsAction]);

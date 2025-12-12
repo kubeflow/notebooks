@@ -18,20 +18,19 @@ import { WorkspaceDetailsOverview } from '~/app/pages/Workspaces/Details/Workspa
 import { WorkspaceDetailsActions } from '~/app/pages/Workspaces/Details/WorkspaceDetailsActions';
 import { WorkspaceDetailsActivity } from '~/app/pages/Workspaces/Details/WorkspaceDetailsActivity';
 import { WorkspaceDetailsPodTemplate } from '~/app/pages/Workspaces/Details/WorkspaceDetailsPodTemplate';
-import { WorkspacesWorkspace } from '~/generated/data-contracts';
+import { WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
 
 type WorkspaceDetailsProps = {
-  workspace: WorkspacesWorkspace;
+  workspace: WorkspacesWorkspaceListItem;
   onCloseClick: React.MouseEventHandler;
-  // TODO: Uncomment when edit action is fully supported
-  // onEditClick: React.MouseEventHandler;
+  onEditClick: React.MouseEventHandler;
   onDeleteClick: React.MouseEventHandler;
 };
 
 export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = ({
   workspace,
   onCloseClick,
-  // onEditClick,
+  onEditClick,
   onDeleteClick,
 }) => {
   const [activeTabKey, setActiveTabKey] = useState<string | number>(0);
@@ -49,7 +48,7 @@ export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = 
         <Title headingLevel="h6" data-testid="title">
           {workspace.name}
         </Title>
-        <WorkspaceDetailsActions /*onEditClick={onEditClick}*/ onDeleteClick={onDeleteClick} />
+        <WorkspaceDetailsActions onEditClick={onEditClick} onDeleteClick={onDeleteClick} />
         <DrawerActions>
           <DrawerCloseButton onClick={onCloseClick} data-testid="close-button" />
         </DrawerActions>

@@ -51,6 +51,37 @@ func (w *WorkspaceCreate) Validate(prefix *field.Path) []*field.Error {
 	return errs
 }
 
+// WorkspaceUpdate is used to update an existing workspace.
+// NOTE: we only do basic validation, more complex validation is done by the controller when attempting to update the workspace.
+type WorkspaceUpdate struct {
+	// Revision is an opaque token for optimistic locking.
+	// Clients receive this value from GET requests and must include it
+	// in PATCH requests to ensure they are updating the expected version.
+	// Clients must not parse, interpret, or compare revision values.
+	Revision string `json:"revision"`
+
+	Paused       bool              `json:"paused"`       // TODO: remove `paused` once we have an "actions" api for pausing workspaces
+	DeferUpdates bool              `json:"deferUpdates"` // TODO: remove `deferUpdates` once the controller is no longer applying redirects
+	PodTemplate  PodTemplateMutate `json:"podTemplate"`
+}
+
+// Validate validates the WorkspaceUpdate struct.
+func (w *WorkspaceUpdate) Validate(prefix *field.Path) []*field.Error {
+	var errs []*field.Error
+
+	// Validate revision is present
+	revisionPath := prefix.Child("revision")
+	if w.Revision == "" {
+		errs = append(errs, field.Required(revisionPath, "revision is required"))
+	}
+
+	// validate pod template
+	podTemplatePath := prefix.Child("podTemplate")
+	errs = append(errs, w.PodTemplate.Validate(podTemplatePath)...)
+
+	return errs
+}
+
 type PodTemplateMutate struct {
 	PodMetadata PodMetadataMutate        `json:"podMetadata"`
 	Volumes     PodVolumesMutate         `json:"volumes"`
@@ -76,6 +107,9 @@ func (p *PodTemplateMutate) Validate(prefix *field.Path) []*field.Error {
 	return errs
 }
 
+// TODO: figure out how we want to handle labels/annotations
+//   - we do not want users to be able to set labels/annotations
+//   - but we probably want them to be returned in the response
 type PodMetadataMutate struct {
 	Labels      map[string]string `json:"labels"`
 	Annotations map[string]string `json:"annotations"`

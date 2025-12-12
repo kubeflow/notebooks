@@ -6,8 +6,9 @@ import {
   WorkspacekindsPodVolumeMounts,
   WorkspacekindsWorkspaceKind,
   WorkspacesPodSecretMount,
+  WorkspacesPodTemplateOptionsMutate,
   WorkspacesPodVolumeMount,
-  WorkspacesWorkspace,
+  WorkspacesWorkspaceListItem,
 } from '~/generated/data-contracts';
 
 export interface WorkspaceColumnDefinition {
@@ -22,6 +23,8 @@ export interface WorkspaceKindsColumns {
   numberOfWorkspaces: WorkspaceColumnDefinition;
 }
 
+export type WorkspaceFormMode = 'create' | 'update';
+
 export interface WorkspaceFormProperties {
   workspaceName: string;
   deferUpdates: boolean;
@@ -31,9 +34,10 @@ export interface WorkspaceFormProperties {
 }
 
 export interface WorkspaceFormData {
+  revision: string;
   kind: WorkspacekindsWorkspaceKind | undefined;
-  image: WorkspacekindsImageConfigValue | undefined;
-  podConfig: WorkspacekindsPodConfigValue | undefined;
+  imageConfig: WorkspacesPodTemplateOptionsMutate['imageConfig'] | undefined;
+  podConfig: WorkspacesPodTemplateOptionsMutate['podConfig'] | undefined;
   properties: WorkspaceFormProperties;
 }
 
@@ -41,7 +45,7 @@ export interface WorkspaceCountPerOption {
   count: number;
   countByImage: Record<WorkspacekindsImageConfigValue['id'], number>;
   countByPodConfig: Record<WorkspacekindsPodConfigValue['id'], number>;
-  countByNamespace: Record<WorkspacesWorkspace['namespace'], number>;
+  countByNamespace: Record<WorkspacesWorkspaceListItem['namespace'], number>;
 }
 
 export interface WorkspaceKindProperties {

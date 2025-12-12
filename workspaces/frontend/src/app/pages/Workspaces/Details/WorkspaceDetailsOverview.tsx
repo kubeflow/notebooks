@@ -7,10 +7,10 @@ import {
 } from '@patternfly/react-core/dist/esm/components/DescriptionList';
 import { Divider } from '@patternfly/react-core/dist/esm/components/Divider';
 import { Label, LabelGroup } from '@patternfly/react-core/dist/esm/components/Label';
-import { WorkspacesWorkspace } from '~/generated/data-contracts';
+import { WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
 
 type WorkspaceDetailsOverviewProps = {
-  workspace: WorkspacesWorkspace;
+  workspace: WorkspacesWorkspaceListItem;
 };
 
 export const WorkspaceDetailsOverview: React.FunctionComponent<WorkspaceDetailsOverviewProps> = ({

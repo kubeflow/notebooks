@@ -6,10 +6,10 @@ import {
   DescriptionListDescription,
 } from '@patternfly/react-core/dist/esm/components/DescriptionList';
 import { DataVolumesList } from '~/app/pages/Workspaces/DataVolumesList';
-import { WorkspacesWorkspace } from '~/generated/data-contracts';
+import { WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
 
 interface WorkspaceStorageProps {
-  workspace: WorkspacesWorkspace;
+  workspace: WorkspacesWorkspaceListItem;
 }
 
 export const WorkspaceStorage: React.FC<WorkspaceStorageProps> = ({ workspace }) => (

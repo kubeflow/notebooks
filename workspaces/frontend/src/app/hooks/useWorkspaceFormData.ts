@@ -4,8 +4,9 @@ import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspaceFormData } from '~/app/types';
 
 export const EMPTY_FORM_DATA: WorkspaceFormData = {
+  revision: '',
   kind: undefined,
-  image: undefined,
+  imageConfig: undefined,
   podConfig: undefined,
   properties: {
     deferUpdates: false,
@@ -19,8 +20,9 @@ export const EMPTY_FORM_DATA: WorkspaceFormData = {
 const useWorkspaceFormData = (args: {
   namespace: string | undefined;
   workspaceName: string | undefined;
+  workspaceKindName: string | undefined;
 }): FetchState<WorkspaceFormData> => {
-  const { namespace, workspaceName } = args;
+  const { namespace, workspaceName, workspaceKindName } = args;
   const { api, apiAvailable } = useNotebookAPI();
 
   const call = useCallback<FetchStateCallbackPromise<WorkspaceFormData>>(async () => {
@@ -28,44 +30,31 @@ const useWorkspaceFormData = (args: {
       throw new Error('API not yet available');
     }
 
-    if (!namespace || !workspaceName) {
+    if (!namespace || !workspaceName || !workspaceKindName) {
       return EMPTY_FORM_DATA;
     }
 
     const workspaceEnvelope = await api.workspaces.getWorkspace(namespace, workspaceName);
-    const workspace = workspaceEnvelope.data;
-    const workspaceKindEnvelope = await api.workspaceKinds.getWorkspaceKind(
-      workspace.workspaceKind.name,
-    );
+    const workspaceUpdate = workspaceEnvelope.data;
+    const workspaceKindEnvelope = await api.workspaceKinds.getWorkspaceKind(workspaceKindName);
     const workspaceKind = workspaceKindEnvelope.data;
-    const imageConfig = workspace.podTemplate.options.imageConfig.current;
-    const podConfig = workspace.podTemplate.options.podConfig.current;
+    const { imageConfig, podConfig } = workspaceUpdate.podTemplate.options;
 
     return {
+      revision: workspaceUpdate.revision,
       kind: workspaceKind,
-      image: {
-        id: imageConfig.id,
-        displayName: imageConfig.displayName,
-        description: imageConfig.description,
-        hidden: false,
-        labels: imageConfig.labels,
-      },
-      podConfig: {
-        id: podConfig.id,
-        displayName: podConfig.displayName,
-        description: podConfig.description,
-        hidden: false,
-        labels: podConfig.labels,
-      },
+      imageConfig,
+      podConfig,
       properties: {
-        workspaceName: workspace.name,
-        deferUpdates: workspace.deferUpdates,
-        volumes: workspace.podTemplate.volumes.data.map((volume) => ({ ...volume })),
-        secrets: workspace.podTemplate.volumes.secrets?.map((secret) => ({ ...secret })) ?? [],
-        homeDirectory: workspace.podTemplate.volumes.home?.mountPath ?? '',
+        workspaceName,
+        deferUpdates: workspaceUpdate.deferUpdates,
+        volumes: workspaceUpdate.podTemplate.volumes.data.map((volume) => ({ ...volume })),
+        secrets:
+          workspaceUpdate.podTemplate.volumes.secrets?.map((secret) => ({ ...secret })) ?? [],
+        homeDirectory: workspaceUpdate.podTemplate.volumes.home ?? '',
       },
     };
-  }, [api, apiAvailable, namespace, workspaceName]);
+  }, [api, apiAvailable, namespace, workspaceName, workspaceKindName]);
 
   return useFetchState(call, EMPTY_FORM_DATA);
 };

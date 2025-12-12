@@ -29,9 +29,9 @@ const (
 	UnknownPodConfig     = "__UNKNOWN_POD_CONFIG__"
 )
 
-// NewWorkspaceModelFromWorkspace creates a Workspace model from a Workspace and WorkspaceKind object.
+// NewWorkspaceListItemFromWorkspace creates a WorkspaceListItem model from a Workspace and WorkspaceKind object.
 // NOTE: the WorkspaceKind might not exist, so we handle the case where it is nil or has no UID.
-func NewWorkspaceModelFromWorkspace(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.WorkspaceKind) Workspace {
+func NewWorkspaceListItemFromWorkspace(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.WorkspaceKind) WorkspaceListItem {
 	// ensure the provided WorkspaceKind matches the Workspace
 	if wskExists(wsk) && ws.Spec.Kind != wsk.Name {
 		panic("provided WorkspaceKind does not match the Workspace")
@@ -98,7 +98,7 @@ func NewWorkspaceModelFromWorkspace(ws *kubefloworgv1beta1.Workspace, wsk *kubef
 		}
 	}
 
-	workspaceModel := Workspace{
+	workspaceModel := WorkspaceListItem{
 		Name:      ws.Name,
 		Namespace: ws.Namespace,
 		WorkspaceKind: WorkspaceKindInfo{

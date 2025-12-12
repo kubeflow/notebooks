@@ -96,7 +96,7 @@ class Workspaces {
   }
 
   findAction(args: {
-    action: 'delete' | 'start' | 'stop' | 'restart' | 'viewDetails';
+    action: 'delete' | 'start' | 'stop' | 'restart' | 'viewDetails' | 'edit';
     workspaceName: string;
   }) {
     this.openWorkspaceActionDropdown(args.workspaceName);
@@ -174,6 +174,14 @@ class Workspaces {
   assertPrevNextDisabled() {
     this.findPagination().find('button[aria-label*="Go to previous page"]').should('be.disabled');
     this.findPagination().find('button[aria-label*="Go to next page"]').should('be.disabled');
+  }
+
+  assertSuccessAlertVisible(message: string) {
+    cy.findByTestId('toast-notification-success').should('be.visible').and('contain.text', message);
+  }
+
+  assertErrorAlertVisible(message: string) {
+    cy.findByTestId('toast-notification-error').should('be.visible').and('contain.text', message);
   }
 }
 
@@ -264,6 +272,32 @@ class WorkspaceDetailsDrawer {
 
   assertActivityTabAriaSelected(selected: boolean) {
     this.findActivityTab().should('have.attr', 'aria-selected', selected ? 'true' : 'false');
+  }
+
+  findActionsToggle() {
+    return this.find().findByTestId('workspace-details-action-toggle');
+  }
+
+  clickActionsToggle() {
+    return this.findActionsToggle().click();
+  }
+
+  findEditAction() {
+    return cy.findByTestId('workspace-details-action-edit-button');
+  }
+
+  clickEditAction() {
+    this.clickActionsToggle();
+    return this.findEditAction().click();
+  }
+
+  findDeleteAction() {
+    return cy.findByTestId('workspace-details-action-delete-button');
+  }
+
+  clickDeleteAction() {
+    this.clickActionsToggle();
+    return this.findDeleteAction().click();
   }
 }
 
