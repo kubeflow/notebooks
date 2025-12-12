@@ -35,15 +35,14 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/utils/ptr"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
@@ -128,12 +127,7 @@ var _ = BeforeSuite(func() {
 	})).To(Succeed())
 
 	By("setting up the controller manager")
-	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme: scheme.Scheme,
-		Metrics: metricsserver.Options{
-			BindAddress: "0", // disable metrics serving
-		},
-	})
+	k8sManager, err := helper.NewManager(cfg, scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	By("initializing the application logger")
@@ -147,9 +141,13 @@ var _ = BeforeSuite(func() {
 	reqAuthZ, err := auth.NewRequestAuthorizer(k8sManager.GetConfig(), k8sManager.GetHTTPClient())
 	Expect(err).NotTo(HaveOccurred())
 
+	By("creating the image source ConfigMap client")
+	imageSourceConfigMapClient, err := helper.BuildImageSourceConfigMapClient(k8sManager)
+	Expect(err).NotTo(HaveOccurred())
+
 	By("creating the application")
 	// NOTE: we use the `k8sClient` rather than `k8sManager.GetClient()` to avoid race conditions with the cached client
-	a, err = NewApp(&config.EnvConfig{}, appLogger, k8sClient, k8sManager.GetScheme(), reqAuthN, reqAuthZ)
+	a, err = NewApp(&config.EnvConfig{}, appLogger, k8sClient, imageSourceConfigMapClient, k8sManager.GetScheme(), reqAuthN, reqAuthZ)
 	Expect(err).NotTo(HaveOccurred())
 
 	go func() {
@@ -217,14 +215,11 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 				Hidden:             ptr.To(false),
 				Deprecated:         ptr.To(false),
 				DeprecationMessage: ptr.To("This WorkspaceKind will be removed on 20XX-XX-XX, please use another WorkspaceKind."),
-				Icon: kubefloworgv1beta1.WorkspaceKindIcon{
+				Icon: kubefloworgv1beta1.WorkspaceKindAsset{
 					Url: ptr.To("https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png"),
 				},
-				Logo: kubefloworgv1beta1.WorkspaceKindIcon{
-					ConfigMap: &kubefloworgv1beta1.WorkspaceKindConfigMap{
-						Name: "my-logos",
-						Key:  "apple-touch-icon-152x152.png",
-					},
+				Logo: kubefloworgv1beta1.WorkspaceKindAsset{
+					Url: ptr.To("https://upload.wikimedia.org/wikipedia/commons/3/38/Jupyter_logo.svg"),
 				},
 			},
 			PodTemplate: kubefloworgv1beta1.WorkspaceKindPodTemplate{

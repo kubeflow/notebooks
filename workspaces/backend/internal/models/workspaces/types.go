@@ -16,6 +16,10 @@ limitations under the License.
 
 package workspaces
 
+import (
+	commonassets "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common/assets"
+)
+
 // Workspace represents a workspace in the system, and is returned by GET and LIST operations.
 // NOTE: this type is not used for CREATE or UPDATE operations, see WorkspaceCreate
 type Workspace struct {
@@ -45,14 +49,10 @@ const (
 )
 
 type WorkspaceKindInfo struct {
-	Name    string   `json:"name"`
-	Missing bool     `json:"missing"`
-	Icon    ImageRef `json:"icon"`
-	Logo    ImageRef `json:"logo"`
-}
-
-type ImageRef struct {
-	URL string `json:"url"`
+	Name    string                `json:"name"`
+	Missing bool                  `json:"missing"`
+	Icon    commonassets.ImageRef `json:"icon"`
+	Logo    commonassets.ImageRef `json:"logo"`
 }
 
 type PodTemplate struct {

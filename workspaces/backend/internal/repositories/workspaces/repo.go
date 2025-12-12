@@ -18,16 +18,20 @@ package workspaces
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	commonassets "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common/assets"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces"
 	action_models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/actions"
 )
@@ -39,12 +43,14 @@ var (
 )
 
 type WorkspaceRepository struct {
-	client client.Client
+	client          client.Client
+	configMapClient client.Client // filtered cache client for ConfigMaps with notebooks.kubeflow.org/image-source: true
 }
 
-func NewWorkspaceRepository(cl client.Client) *WorkspaceRepository {
+func NewWorkspaceRepository(cl client.Client, configMapClient client.Client) *WorkspaceRepository {
 	return &WorkspaceRepository{
-		client: cl,
+		client:          cl,
+		configMapClient: configMapClient,
 	}
 }
 
@@ -75,47 +81,26 @@ func (r *WorkspaceRepository) GetWorkspace(ctx context.Context, namespace string
 }
 
 func (r *WorkspaceRepository) GetWorkspaces(ctx context.Context, namespace string) ([]models.Workspace, error) {
-	// get all workspaces in the namespace
-	workspaceList := &kubefloworgv1beta1.WorkspaceList{}
-	listOptions := []client.ListOption{
-		client.InNamespace(namespace),
-	}
-	err := r.client.List(ctx, workspaceList, listOptions...)
-	if err != nil {
-		return nil, err
-	}
-
-	// convert workspaces to models
-	workspacesModels := make([]models.Workspace, len(workspaceList.Items))
-	for i, workspace := range workspaceList.Items {
-
-		// get workspace kind, if it exists
-		workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
-		workspaceKindName := workspace.Spec.Kind
-		if err := r.client.Get(ctx, client.ObjectKey{Name: workspaceKindName}, workspaceKind); err != nil {
-			// ignore error if workspace kind does not exist, as we can still create a model without it
-			if !apierrors.IsNotFound(err) {
-				return nil, err
-			}
-		}
-
-		workspacesModels[i] = models.NewWorkspaceModelFromWorkspace(&workspace, workspaceKind)
-	}
-
-	return workspacesModels, nil
+	return r.getWorkspaceModels(ctx, client.InNamespace(namespace))
 }
 
 func (r *WorkspaceRepository) GetAllWorkspaces(ctx context.Context) ([]models.Workspace, error) {
-	// get all workspaces in the cluster
+	return r.getWorkspaceModels(ctx)
+}
+
+// getWorkspaceModels lists workspaces using the provided ListOptions and converts them to models.
+// For each workspace, it retrieves the associated WorkspaceKind and computes asset SHA256 hashes
+// for ConfigMap-based assets to populate the ImageRef fields.
+func (r *WorkspaceRepository) getWorkspaceModels(ctx context.Context, listOptions ...client.ListOption) ([]models.Workspace, error) {
+	// get workspaces using the provided list options
 	workspaceList := &kubefloworgv1beta1.WorkspaceList{}
-	if err := r.client.List(ctx, workspaceList); err != nil {
+	if err := r.client.List(ctx, workspaceList, listOptions...); err != nil {
 		return nil, err
 	}
 
 	// convert workspaces to models
 	workspacesModels := make([]models.Workspace, len(workspaceList.Items))
 	for i, workspace := range workspaceList.Items {
-
 		// get workspace kind, if it exists
 		workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
 		workspaceKindName := workspace.Spec.Kind
@@ -124,9 +109,18 @@ func (r *WorkspaceRepository) GetAllWorkspaces(ctx context.Context) ([]models.Wo
 			if !apierrors.IsNotFound(err) {
 				return nil, err
 			}
+			// If not found, set workspaceKind to nil to indicate it doesn't exist
+			workspaceKind = nil
 		}
 
-		workspacesModels[i] = models.NewWorkspaceModelFromWorkspace(&workspace, workspaceKind)
+		// Compute SHA256 hashes for ConfigMap-based assets if WorkspaceKind exists
+		// Capture errors to populate ImageRef.Error field
+		var assetCtx *commonassets.WorkspaceKindAssetContext
+		if workspaceKind != nil && workspaceKind.UID != "" {
+			assetCtx = r.getWorkspaceKindAssetContext(ctx, workspaceKind)
+		}
+
+		workspacesModels[i] = models.NewWorkspaceModelFromWorkspaceWithAssetContext(&workspace, workspaceKind, assetCtx)
 	}
 
 	return workspacesModels, nil
@@ -218,6 +212,67 @@ func (r *WorkspaceRepository) DeleteWorkspace(ctx context.Context, namespace, wo
 	}
 
 	return nil
+}
+
+// getWorkspaceKindAssetContext computes the SHA256 hashes for both icon and logo assets of a WorkspaceKind.
+// Returns a WorkspaceKindAssetContext containing the SHA256 hashes and any errors encountered during retrieval.
+func (r *WorkspaceRepository) getWorkspaceKindAssetContext(ctx context.Context, workspaceKind *kubefloworgv1beta1.WorkspaceKind) *commonassets.WorkspaceKindAssetContext {
+	iconSHA256, iconErr := r.computeAssetSHA256(ctx, workspaceKind.Spec.Spawner.Icon)
+	logoSHA256, logoErr := r.computeAssetSHA256(ctx, workspaceKind.Spec.Spawner.Logo)
+	return commonassets.NewAssetContext(iconSHA256, logoSHA256, iconErr, logoErr)
+}
+
+// computeAssetSHA256 computes the SHA256 hash of a WorkspaceKindAsset if it uses a ConfigMap.
+// Returns empty string if the asset does not use a ConfigMap or if there's an error retrieving the ConfigMap.
+func (r *WorkspaceRepository) computeAssetSHA256(ctx context.Context, asset kubefloworgv1beta1.WorkspaceKindAsset) (string, error) {
+	if asset.ConfigMap == nil {
+		return "", nil
+	}
+
+	assetModel := commonassets.WorkspaceKindAsset{
+		ConfigMap: &commonassets.WorkspaceKindAssetConfigMap{
+			Name:      asset.ConfigMap.Name,
+			Key:       asset.ConfigMap.Key,
+			Namespace: asset.ConfigMap.Namespace,
+		},
+	}
+
+	content, err := r.getConfigMapContent(ctx, assetModel)
+	if err != nil {
+		return "", err
+	}
+
+	hash := sha256.Sum256([]byte(content))
+	return hex.EncodeToString(hash[:]), nil
+}
+
+// getConfigMapContent retrieves the content from a ConfigMap referenced by a WorkspaceKindAsset.
+// Returns the content as a string, or an error if the ConfigMap or key cannot be found.
+func (r *WorkspaceRepository) getConfigMapContent(ctx context.Context, asset commonassets.WorkspaceKindAsset) (string, error) {
+	if asset.ConfigMap == nil {
+		return "", fmt.Errorf("asset does not reference a ConfigMap")
+	}
+
+	configMap := &corev1.ConfigMap{}
+	err := r.configMapClient.Get(ctx, client.ObjectKey{
+		Namespace: asset.ConfigMap.Namespace,
+		Name:      asset.ConfigMap.Name,
+	}, configMap)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return "", commonassets.ErrWorkspaceKindAssetConfigMapNotFound
+		}
+		return "", commonassets.ErrWorkspaceKindAssetConfigMapUnknown
+	}
+
+	if data, exists := configMap.Data[asset.ConfigMap.Key]; exists {
+		return data, nil
+	}
+	if binaryData, exists := configMap.BinaryData[asset.ConfigMap.Key]; exists {
+		return string(binaryData), nil
+	}
+
+	return "", commonassets.ErrWorkspaceKindAssetConfigMapKeyNotFound
 }
 
 // WorkspacePatchOperation represents a single JSONPatch operation
