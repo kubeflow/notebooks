@@ -48,9 +48,9 @@ export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityD
    * @summary List workspaces by namespace
    * @request GET:/workspaces/{namespace}
    * @response `200` `ApiWorkspaceListEnvelope` Successful operation. Returns a list of workspaces in the specified namespace.
-   * @response `400` `ApiErrorEnvelope` Bad Request. Invalid namespace format.
    * @response `401` `ApiErrorEnvelope` Unauthorized. Authentication is required.
    * @response `403` `ApiErrorEnvelope` Forbidden. User does not have permission to list workspaces.
+   * @response `422` `ApiErrorEnvelope` Unprocessable Entity. Validation error.
    * @response `500` `ApiErrorEnvelope` Internal server error. An unexpected error occurred on the server.
    */
   listWorkspacesByNamespace = (namespace: string, params: RequestParams = {}) =>
@@ -69,12 +69,13 @@ export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityD
    * @summary Create workspace
    * @request POST:/workspaces/{namespace}
    * @response `201` `ApiWorkspaceEnvelope` Workspace created successfully
-   * @response `400` `ApiErrorEnvelope` Bad Request. Invalid request body or namespace format.
+   * @response `400` `ApiErrorEnvelope` Bad Request.
    * @response `401` `ApiErrorEnvelope` Unauthorized. Authentication is required.
    * @response `403` `ApiErrorEnvelope` Forbidden. User does not have permission to create workspace.
    * @response `409` `ApiErrorEnvelope` Conflict. Workspace with the same name already exists.
    * @response `413` `ApiErrorEnvelope` Request Entity Too Large. The request body is too large.
    * @response `415` `ApiErrorEnvelope` Unsupported Media Type. Content-Type header is not correct.
+   * @response `422` `ApiErrorEnvelope` Unprocessable Entity. Validation error.
    * @response `500` `ApiErrorEnvelope` Internal server error. An unexpected error occurred on the server.
    */
   createWorkspace = (
@@ -102,9 +103,10 @@ export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityD
    * @response `401` `ApiErrorEnvelope` Unauthorized. Authentication is required.
    * @response `403` `ApiErrorEnvelope` Forbidden. User does not have permission to access the workspace.
    * @response `404` `ApiErrorEnvelope` Not Found. Workspace does not exist.
+   * @response `409` `ApiErrorEnvelope` Conflict. Workspace not in valid state for action.
    * @response `413` `ApiErrorEnvelope` Request Entity Too Large. The request body is too large.
    * @response `415` `ApiErrorEnvelope` Unsupported Media Type. Content-Type header is not correct.
-   * @response `422` `ApiErrorEnvelope` Unprocessable Entity. Workspace is not in appropriate state.
+   * @response `422` `ApiErrorEnvelope` Unprocessable Entity. Validation error.
    * @response `500` `ApiErrorEnvelope` Internal server error. An unexpected error occurred on the server.
    */
   updateWorkspacePauseState = (
@@ -129,10 +131,10 @@ export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityD
    * @summary Get workspace
    * @request GET:/workspaces/{namespace}/{workspace_name}
    * @response `200` `ApiWorkspaceEnvelope` Successful operation. Returns the requested workspace details.
-   * @response `400` `ApiErrorEnvelope` Bad Request. Invalid namespace or workspace name format.
    * @response `401` `ApiErrorEnvelope` Unauthorized. Authentication is required.
    * @response `403` `ApiErrorEnvelope` Forbidden. User does not have permission to access the workspace.
    * @response `404` `ApiErrorEnvelope` Not Found. Workspace does not exist.
+   * @response `422` `ApiErrorEnvelope` Unprocessable Entity. Validation error.
    * @response `500` `ApiErrorEnvelope` Internal server error. An unexpected error occurred on the server.
    */
   getWorkspace = (namespace: string, workspaceName: string, params: RequestParams = {}) =>
@@ -151,10 +153,10 @@ export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityD
    * @summary Delete workspace
    * @request DELETE:/workspaces/{namespace}/{workspace_name}
    * @response `204` `void` Workspace deleted successfully
-   * @response `400` `ApiErrorEnvelope` Bad Request. Invalid namespace or workspace name format.
    * @response `401` `ApiErrorEnvelope` Unauthorized. Authentication is required.
    * @response `403` `ApiErrorEnvelope` Forbidden. User does not have permission to delete the workspace.
    * @response `404` `ApiErrorEnvelope` Not Found. Workspace does not exist.
+   * @response `422` `ApiErrorEnvelope` Unprocessable Entity. Validation error.
    * @response `500` `ApiErrorEnvelope` Internal server error. An unexpected error occurred on the server.
    */
   deleteWorkspace = (namespace: string, workspaceName: string, params: RequestParams = {}) =>
