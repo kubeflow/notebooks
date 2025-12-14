@@ -8,7 +8,6 @@ metadata:
   name: jupyterlab-workspace
 spec:
   paused: false
-  deferUpdates: false
   kind: "jupyterlab"
   podTemplate:
     podMetadata:

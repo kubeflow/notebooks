@@ -68,7 +68,6 @@ describe('useWorkspaceFormData', () => {
       },
       properties: {
         workspaceName: mockWorkspace.name,
-        deferUpdates: mockWorkspace.deferUpdates,
         volumes: mockWorkspace.podTemplate.volumes.data,
         secrets: mockWorkspace.podTemplate.volumes.secrets,
         homeDirectory: mockWorkspace.podTemplate.volumes.home?.mountPath,

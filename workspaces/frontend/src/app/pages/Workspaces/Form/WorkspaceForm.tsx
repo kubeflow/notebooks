@@ -158,7 +158,6 @@ const WorkspaceForm: React.FC = () => {
     const submitData: WorkspacesWorkspaceCreate = {
       name: data.properties.workspaceName,
       kind: data.kind.name,
-      deferUpdates: data.properties.deferUpdates,
       paused: false,
       podTemplate: {
         podMetadata: {

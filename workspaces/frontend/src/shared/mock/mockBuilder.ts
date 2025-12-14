@@ -147,7 +147,6 @@ export const buildMockWorkspace = (
   namespace: 'default',
   workspaceKind: buildMockWorkspaceKindInfo(),
   paused: true,
-  deferUpdates: true,
   pausedTime: new Date(2025, 3, 1).getTime(),
   state: WorkspacesWorkspaceState.WorkspaceStateRunning,
   stateMessage: 'Workspace is running',

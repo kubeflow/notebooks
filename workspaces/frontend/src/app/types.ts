@@ -24,7 +24,6 @@ export interface WorkspaceKindsColumns {
 
 export interface WorkspaceFormProperties {
   workspaceName: string;
-  deferUpdates: boolean;
   homeDirectory: string;
   volumes: WorkspacesPodVolumeMount[];
   secrets: WorkspacesPodSecretMount[];
