@@ -215,27 +215,6 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	//       will result in a forced restart of all Workspaces using the WorkspaceKind.
 	//
 
-	// if a restart is pending and the Workspace is paused, update the Workspace with the new options
-	if workspace.Status.PendingRestart && *workspace.Spec.Paused && !*workspace.Spec.DeferUpdates {
-
-		// update the Workspace with the new options
-		workspace.Spec.PodTemplate.Options.ImageConfig = workspace.Status.PodTemplateOptions.ImageConfig.Desired
-		workspace.Spec.PodTemplate.Options.PodConfig = workspace.Status.PodTemplateOptions.PodConfig.Desired
-
-		// update the Workspace
-		if err := r.Update(ctx, workspace); err != nil {
-			if apierrors.IsConflict(err) {
-				log.V(2).Info("update conflict while updating Workspace, will requeue")
-				return ctrl.Result{Requeue: true}, nil
-			}
-			log.Error(err, "unable to update Workspace")
-			return ctrl.Result{}, err
-		}
-
-		// return and requeue to pick up the changes
-		return ctrl.Result{Requeue: true}, nil
-	}
-
 	// generate StatefulSet
 	statefulSet, err := generateStatefulSet(workspace, workspaceKind, currentImageConfig.Spec, currentPodConfig.Spec)
 	if err != nil {

@@ -241,8 +241,8 @@ spec:
       ##     - hidden options are still available to the controller and manually created Workspace resources
       ##  - options may be "redirected" by setting `redirect.to` to another option:
       ##     - redirected options are NOT shown in the Spawner UI
-      ##     - redirected options are like an HTTP 302 redirect, the controller will use the target option
-      ##       without actually changing the `spec.podTemplate.options` field of the Workspace
+      ##     - redirected options are computed by the controller and shown in status fields
+      ##     - users must explicitly update their Workspace via the API to apply redirects
       ##     - the Spawner UI will warn users about Workspaces with pending restarts
       ##
 

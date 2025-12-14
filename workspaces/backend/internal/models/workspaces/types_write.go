@@ -24,11 +24,10 @@ import (
 
 // WorkspaceCreate is used to create a new workspace.
 type WorkspaceCreate struct {
-	Name         string            `json:"name"`
-	Kind         string            `json:"kind"`
-	Paused       bool              `json:"paused"`
-	DeferUpdates bool              `json:"deferUpdates"`
-	PodTemplate  PodTemplateMutate `json:"podTemplate"`
+	Name        string            `json:"name"`
+	Kind        string            `json:"kind"`
+	Paused      bool              `json:"paused"`
+	PodTemplate PodTemplateMutate `json:"podTemplate"`
 }
 
 // Validate validates the WorkspaceCreate struct.

@@ -45,10 +45,9 @@ func NewWorkspaceCreateModelFromWorkspace(ws *kubefloworgv1beta1.Workspace) *Wor
 	}
 
 	workspaceCreateModel := &WorkspaceCreate{
-		Name:         ws.Name,
-		Kind:         ws.Spec.Kind,
-		Paused:       ptr.Deref(ws.Spec.Paused, false),
-		DeferUpdates: ptr.Deref(ws.Spec.DeferUpdates, false),
+		Name:   ws.Name,
+		Kind:   ws.Spec.Kind,
+		Paused: ptr.Deref(ws.Spec.Paused, false),
 		PodTemplate: PodTemplateMutate{
 			PodMetadata: PodMetadataMutate{
 				Labels:      podLabels,

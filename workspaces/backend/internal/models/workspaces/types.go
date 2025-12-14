@@ -22,7 +22,6 @@ type Workspace struct {
 	Name           string            `json:"name"`
 	Namespace      string            `json:"namespace"`
 	WorkspaceKind  WorkspaceKindInfo `json:"workspaceKind"`
-	DeferUpdates   bool              `json:"deferUpdates"`
 	Paused         bool              `json:"paused"`
 	PausedTime     int64             `json:"pausedTime"`
 	PendingRestart bool              `json:"pendingRestart"`
