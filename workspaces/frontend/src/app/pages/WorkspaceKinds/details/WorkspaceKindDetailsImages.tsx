@@ -1,16 +1,16 @@
 import React from 'react';
-import { WorkspaceCountPerKind } from '~/app/hooks/useWorkspaceCountPerKind';
+import { WorkspaceCountResult } from '~/app/hooks/useWorkspaceCountPerKind';
 import { WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
 import { WorkspaceKindDetailsTable } from './WorkspaceKindDetailsTable';
 
 type WorkspaceDetailsImagesProps = {
   workspaceKind: WorkspacekindsWorkspaceKind;
-  workspaceCountPerKind: WorkspaceCountPerKind;
+  workspaceCountResult: WorkspaceCountResult;
 };
 
 export const WorkspaceKindDetailsImages: React.FunctionComponent<WorkspaceDetailsImagesProps> = ({
   workspaceKind,
-  workspaceCountPerKind,
+  workspaceCountResult,
 }) => (
   <WorkspaceKindDetailsTable
     rows={workspaceKind.podTemplate.options.imageConfig.values.map((image) => ({
@@ -20,8 +20,10 @@ export const WorkspaceKindDetailsImages: React.FunctionComponent<WorkspaceDetail
       workspaceCountRouteState: {
         imageId: image.id,
       },
-      workspaceCount: workspaceCountPerKind[workspaceKind.name]?.countByImage[image.id] ?? 0,
+      workspaceCount:
+        workspaceCountResult.workspaceCountPerKind[workspaceKind.name]?.countByImage[image.id] ?? 0,
     }))}
     tableKind="image"
+    workspaceCountError={workspaceCountResult.error}
   />
 );

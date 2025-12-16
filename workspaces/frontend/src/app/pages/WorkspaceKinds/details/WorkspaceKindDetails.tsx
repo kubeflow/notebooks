@@ -14,7 +14,7 @@ import {
   TabContent,
 } from '@patternfly/react-core/dist/esm/components/Tabs';
 import { Title } from '@patternfly/react-core/dist/esm/components/Title';
-import { WorkspaceCountPerKind } from '~/app/hooks/useWorkspaceCountPerKind';
+import { WorkspaceCountResult } from '~/app/hooks/useWorkspaceCountPerKind';
 import { WorkspaceKindDetailsNamespaces } from '~/app/pages/WorkspaceKinds/details/WorkspaceKindDetailsNamespaces';
 import { WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
 import { WorkspaceKindDetailsOverview } from './WorkspaceKindDetailsOverview';
@@ -23,13 +23,13 @@ import { WorkspaceKindDetailsPodConfigs } from './WorkspaceKindDetailsPodConfigs
 
 type WorkspaceKindDetailsProps = {
   workspaceKind: WorkspacekindsWorkspaceKind;
-  workspaceCountPerKind: WorkspaceCountPerKind;
+  workspaceCountResult: WorkspaceCountResult;
   onCloseClick: React.MouseEventHandler;
 };
 
 export const WorkspaceKindDetails: React.FunctionComponent<WorkspaceKindDetailsProps> = ({
   workspaceKind,
-  workspaceCountPerKind,
+  workspaceCountResult,
   onCloseClick,
 }) => {
   const overviewTabKey = 0;
@@ -112,7 +112,7 @@ export const WorkspaceKindDetails: React.FunctionComponent<WorkspaceKindDetailsP
           <TabContentBody hasPadding>
             <WorkspaceKindDetailsImages
               workspaceKind={workspaceKind}
-              workspaceCountPerKind={workspaceCountPerKind}
+              workspaceCountResult={workspaceCountResult}
             />
           </TabContentBody>
         </TabContent>
@@ -126,7 +126,7 @@ export const WorkspaceKindDetails: React.FunctionComponent<WorkspaceKindDetailsP
           <TabContentBody hasPadding>
             <WorkspaceKindDetailsPodConfigs
               workspaceKind={workspaceKind}
-              workspaceCountPerKind={workspaceCountPerKind}
+              workspaceCountResult={workspaceCountResult}
             />
           </TabContentBody>
         </TabContent>
@@ -140,7 +140,7 @@ export const WorkspaceKindDetails: React.FunctionComponent<WorkspaceKindDetailsP
           <TabContentBody hasPadding>
             <WorkspaceKindDetailsNamespaces
               workspaceKind={workspaceKind}
-              workspaceCountPerKind={workspaceCountPerKind}
+              workspaceCountResult={workspaceCountResult}
             />
           </TabContentBody>
         </TabContent>

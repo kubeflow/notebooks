@@ -134,6 +134,14 @@ class CreateWorkspace {
   assertNoResultsFound() {
     cy.contains('No results found').should('be.visible');
   }
+
+  findErrorAlert() {
+    return cy.findByTestId('workspace-form-error');
+  }
+
+  assertErrorAlertContainsMessage(message: string) {
+    cy.findByTestId('workspace-form-error-message').should('have.text', `Error: ${message}`);
+  }
 }
 
 export const createWorkspace = new CreateWorkspace();

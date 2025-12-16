@@ -3,30 +3,37 @@ import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspaceCountPerOption } from '~/app/types';
 import { WorkspacekindsWorkspaceKind, WorkspacesWorkspace } from '~/generated/data-contracts';
 import { NotebookApis } from '~/shared/api/notebookApi';
+import { extractErrorMessage } from '~/shared/api/apiUtils';
 
 export type WorkspaceCountPerKind = Partial<
   Record<WorkspacekindsWorkspaceKind['name'], WorkspaceCountPerOption>
 >;
 
-export const useWorkspaceCountPerKind = (): WorkspaceCountPerKind => {
+export type WorkspaceCountResult = {
+  workspaceCountPerKind: WorkspaceCountPerKind;
+  error: string | null;
+};
+
+export const useWorkspaceCountPerKind = (): WorkspaceCountResult => {
   const { api } = useNotebookAPI();
   const [workspaceCountPerKind, setWorkspaceCountPerKind] = useState<WorkspaceCountPerKind>({});
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchAndSetCounts = async () => {
       try {
         const countPerKind = await loadWorkspaceCounts(api);
         setWorkspaceCountPerKind(countPerKind);
+        setError(null);
       } catch (err) {
-        // TODO: alert user about error
-        console.error('Failed to fetch workspace counts:', err);
+        setError(extractErrorMessage(err));
       }
     };
 
     fetchAndSetCounts();
   }, [api]);
 
-  return workspaceCountPerKind;
+  return { workspaceCountPerKind, error };
 };
 
 async function loadWorkspaceCounts(api: NotebookApis): Promise<WorkspaceCountPerKind> {

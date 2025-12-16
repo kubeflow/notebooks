@@ -38,6 +38,12 @@ const setupCreateWorkspaceKindTest = () => {
     mockModArchResponse([]),
   ).as('getWorkspaces');
 
+  cy.interceptApi(
+    'GET /api/:apiVersion/workspaces',
+    { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+    mockModArchResponse([]),
+  ).as('getAllWorkspaces');
+
   return { mockNamespace };
 };
 
@@ -93,7 +99,7 @@ describe('Create workspace kind', () => {
       workspaceKinds.verifyPageURL();
     });
 
-    it('should not navigate away when creation fails', () => {
+    it('should display error alert and not navigate away when creation fails', () => {
       cy.interceptApi(
         'POST /api/:apiVersion/workspacekinds',
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
@@ -110,6 +116,8 @@ describe('Create workspace kind', () => {
       createWorkspaceKind.uploadYamlContent(validWorkspaceKindYaml);
       createWorkspaceKind.clickSubmit();
       cy.wait('@createWorkspaceKindServerError');
+
+      createWorkspaceKind.assertErrorAlertContainsMessage('Internal server error');
 
       createWorkspaceKind.verifyPageURL();
     });

@@ -7,6 +7,7 @@ import {
 import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { useTypedNavigate } from '~/app/routerHelper';
+import { ErrorPopover } from '~/shared/components/ErrorPopover';
 import { RouteStateMap } from '~/app/routes';
 
 export interface WorkspaceKindDetailsTableRow {
@@ -20,11 +21,13 @@ export interface WorkspaceKindDetailsTableRow {
 interface WorkspaceKindDetailsTableProps {
   rows: WorkspaceKindDetailsTableRow[];
   tableKind: 'image' | 'podConfig' | 'namespace';
+  workspaceCountError: string | null;
 }
 
 export const WorkspaceKindDetailsTable: React.FC<WorkspaceKindDetailsTableProps> = ({
   rows,
   tableKind,
+  workspaceCountError,
 }) => {
   const navigate = useTypedNavigate();
 
@@ -67,19 +70,26 @@ export const WorkspaceKindDetailsTable: React.FC<WorkspaceKindDetailsTableProps>
             <Tr key={row.id}>
               <Td>{row.displayName}</Td>
               <Td>
-                <Button
-                  variant="link"
-                  isInline
-                  className="workspace-kind-summary-button"
-                  onClick={() =>
-                    navigate('workspaceKindSummary', {
-                      params: { kind: row.kindName },
-                      state: row.workspaceCountRouteState,
-                    })
-                  }
-                >
-                  {row.workspaceCount} Workspaces
-                </Button>
+                {workspaceCountError ? (
+                  <ErrorPopover
+                    title="Failed to load workspace counts"
+                    message={workspaceCountError}
+                  />
+                ) : (
+                  <Button
+                    variant="link"
+                    isInline
+                    className="workspace-kind-summary-button"
+                    onClick={() =>
+                      navigate('workspaceKindSummary', {
+                        params: { kind: row.kindName },
+                        state: row.workspaceCountRouteState,
+                      })
+                    }
+                  >
+                    {row.workspaceCount} Workspaces
+                  </Button>
+                )}
               </Td>
             </Tr>
           ))}

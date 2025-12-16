@@ -751,6 +751,34 @@ describe('Workspaces', () => {
 
         deleteModal.assertModalNotExists();
       });
+
+      it('should display error in modal when delete fails', () => {
+        cy.interceptApi(
+          'DELETE /api/:apiVersion/workspaces/:namespace/:workspaceName',
+          {
+            path: {
+              apiVersion: NOTEBOOKS_API_VERSION,
+              namespace: DEFAULT_NAMESPACE,
+              workspaceName: WORKSPACE_A,
+            },
+          },
+          {
+            error: {
+              code: '500',
+              message: 'Failed to delete workspace',
+            },
+          },
+        ).as('deleteWorkspaceError');
+
+        workspaces.findAction({ action: 'delete', workspaceName: WORKSPACE_A }).click();
+        deleteModal.findConfirmationInput().type(WORKSPACE_A);
+        deleteModal.findSubmitButton().click();
+
+        cy.wait('@deleteWorkspaceError');
+
+        deleteModal.assertModalExists();
+        deleteModal.assertErrorAlertContainsMessage('Failed to delete workspace');
+      });
     });
 
     describe('Start', () => {
@@ -790,6 +818,33 @@ describe('Workspaces', () => {
         startModal.assertModalNotExists();
         cy.get('@startWorkspace.all').should('have.length', 0);
       });
+
+      it('should display error in modal when start fails', () => {
+        cy.interceptApi(
+          'POST /api/:apiVersion/workspaces/:namespace/:workspaceName/actions/pause',
+          {
+            path: {
+              apiVersion: NOTEBOOKS_API_VERSION,
+              namespace: DEFAULT_NAMESPACE,
+              workspaceName: TEST_WORKSPACE_NAME,
+            },
+          },
+          {
+            error: {
+              code: '500',
+              message: 'Failed to start workspace',
+            },
+          },
+        ).as('startWorkspaceError');
+
+        workspaces.findAction({ action: 'start', workspaceName: TEST_WORKSPACE_NAME }).click();
+        startModal.findStartButton().click();
+
+        cy.wait('@startWorkspaceError');
+
+        startModal.assertModalExists();
+        startModal.assertErrorAlertContainsMessage('Failed to start workspace');
+      });
     });
 
     describe('Stop', () => {
@@ -828,6 +883,33 @@ describe('Workspaces', () => {
         stopModal.findCancelButton().click();
         stopModal.assertModalNotExists();
         cy.get('@stopWorkspace.all').should('have.length', 0);
+      });
+
+      it('should display error in modal when stop fails', () => {
+        cy.interceptApi(
+          'POST /api/:apiVersion/workspaces/:namespace/:workspaceName/actions/pause',
+          {
+            path: {
+              apiVersion: NOTEBOOKS_API_VERSION,
+              namespace: DEFAULT_NAMESPACE,
+              workspaceName: TEST_WORKSPACE_NAME,
+            },
+          },
+          {
+            error: {
+              code: '500',
+              message: 'Failed to stop workspace',
+            },
+          },
+        ).as('stopWorkspaceError');
+
+        workspaces.findAction({ action: 'stop', workspaceName: TEST_WORKSPACE_NAME }).click();
+        stopModal.findStopButton().click();
+
+        cy.wait('@stopWorkspaceError');
+
+        stopModal.assertModalExists();
+        stopModal.assertErrorAlertContainsMessage('Failed to stop workspace');
       });
     });
 

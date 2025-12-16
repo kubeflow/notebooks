@@ -232,6 +232,41 @@ describe('Create workspace', () => {
       createWorkspace.verifyPageURL();
       createWorkspace.assertProgressStepVisible(STEP_NAMES.KIND);
     });
+
+    it('should display error alert when workspace creation fails', () => {
+      workspaces.findCreateWorkspaceButton().click();
+      cy.wait('@getWorkspaceKinds');
+
+      createWorkspace.selectKind(mockWorkspaceKind.name);
+      createWorkspace.clickNext();
+
+      createWorkspace.selectImage(mockImage.id);
+      createWorkspace.clickNext();
+
+      createWorkspace.selectPodConfig(mockPodConfig.id);
+      createWorkspace.clickNext();
+
+      createWorkspace.typeWorkspaceName('my-test-workspace');
+
+      cy.interceptApi(
+        'POST /api/:apiVersion/workspaces/:namespace',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
+        {
+          error: {
+            code: '500',
+            message: 'An internal server error occurred',
+          },
+        },
+      ).as('createWorkspaceError');
+
+      createWorkspace.clickCreate();
+
+      cy.wait('@createWorkspaceError');
+
+      createWorkspace.assertErrorAlertContainsMessage('An internal server error occurred');
+
+      createWorkspace.verifyPageURL();
+    });
   });
 
   describe('Selection management', () => {

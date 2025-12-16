@@ -13,6 +13,8 @@ import { FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { default as ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 import { ActionButton } from '~/shared/components/ActionButton';
+import { ErrorAlert } from '~/shared/components/ErrorAlert';
+import { extractErrorMessage } from '~/shared/api/apiUtils';
 
 interface DeleteModalProps {
   isOpen: boolean;
@@ -33,20 +35,27 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
       setInputValue('');
+      setError(null);
     }
   }, [isOpen]);
 
   const handleDelete = useCallback(async () => {
     if (inputValue === resourceName) {
       setIsDeleting(true);
-      await onDelete(resourceName);
-      setIsDeleting(false);
-
-      onClose();
+      setError(null);
+      try {
+        await onDelete(resourceName);
+        onClose();
+      } catch (err) {
+        setError(extractErrorMessage(err));
+      } finally {
+        setIsDeleting(false);
+      }
     } else {
       alert('Resource name does not match.');
     }
@@ -69,6 +78,15 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
       <ModalHeader title={title} titleIconVariant="warning" />
       <ModalBody>
         <Stack hasGutter>
+          {error && (
+            <StackItem>
+              <ErrorAlert
+                title="Failed to delete workspace"
+                message={error}
+                testId="delete-modal-error"
+              />
+            </StackItem>
+          )}
           <StackItem>
             <FlexItem>
               Are you sure you want to delete <strong>{resourceName}</strong> in namespace{' '}

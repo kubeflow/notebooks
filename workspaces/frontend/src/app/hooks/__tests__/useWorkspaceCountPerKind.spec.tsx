@@ -85,7 +85,8 @@ describe('useWorkspaceCountPerKind', () => {
     const { result } = renderHook(() => useWorkspaceCountPerKind());
 
     waitFor(() => {
-      expect(result.current).toEqual({});
+      expect(result.current.workspaceCountPerKind).toEqual({});
+      expect(result.current.error).toBeNull();
     });
   });
 
@@ -190,7 +191,7 @@ describe('useWorkspaceCountPerKind', () => {
     const { result } = renderHook(() => useWorkspaceCountPerKind());
 
     await waitFor(() => {
-      expect(result.current).toEqual({
+      expect(result.current.workspaceCountPerKind).toEqual({
         jupyter1: {
           count: 10,
           countByImage: {
@@ -218,6 +219,7 @@ describe('useWorkspaceCountPerKind', () => {
           },
         },
       });
+      expect(result.current.error).toBeNull();
     });
   });
 
@@ -268,7 +270,7 @@ describe('useWorkspaceCountPerKind', () => {
     const { result } = renderHook(() => useWorkspaceCountPerKind());
 
     await waitFor(() => {
-      expect(result.current).toEqual({
+      expect(result.current.workspaceCountPerKind).toEqual({
         'no-metrics': {
           count: 0,
           countByImage: {
@@ -286,17 +288,19 @@ describe('useWorkspaceCountPerKind', () => {
           countByNamespace: {},
         },
       });
+      expect(result.current.error).toBeNull();
     });
   });
 
-  it('should return empty object in case of API errors rather than propagating them', async () => {
+  it('should return error when API call fails', async () => {
     mockListAllWorkspaces.mockRejectedValue(new Error('API Error'));
     mockListWorkspaceKinds.mockRejectedValue(new Error('API Error'));
 
     const { result } = renderHook(() => useWorkspaceCountPerKind());
 
     await waitFor(() => {
-      expect(result.current).toEqual({});
+      expect(result.current.workspaceCountPerKind).toEqual({});
+      expect(result.current.error).toBe('API Error');
     });
   });
 
@@ -307,7 +311,8 @@ describe('useWorkspaceCountPerKind', () => {
     const { result } = renderHook(() => useWorkspaceCountPerKind());
 
     await waitFor(() => {
-      expect(result.current).toEqual({});
+      expect(result.current.workspaceCountPerKind).toEqual({});
+      expect(result.current.error).toBeNull();
     });
   });
 
@@ -340,7 +345,7 @@ describe('useWorkspaceCountPerKind', () => {
     const { result } = renderHook(() => useWorkspaceCountPerKind());
 
     await waitFor(() => {
-      expect(result.current).toEqual({
+      expect(result.current.workspaceCountPerKind).toEqual({
         [workspaceKind.name]: {
           count: 0,
           countByImage: { [baseImageConfigTest.id]: 0 },
@@ -348,6 +353,7 @@ describe('useWorkspaceCountPerKind', () => {
           countByNamespace: {},
         },
       });
+      expect(result.current.error).toBeNull();
     });
   });
 });

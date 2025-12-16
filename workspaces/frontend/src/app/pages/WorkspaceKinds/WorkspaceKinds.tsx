@@ -47,6 +47,7 @@ import ThemeAwareSearchInput from '~/app/components/ThemeAwareSearchInput';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
 import WithValidImage from '~/shared/components/WithValidImage';
 import ImageFallback from '~/shared/components/ImageFallback';
+import { ErrorPopover } from '~/shared/components/ErrorPopover';
 import { useTypedNavigate } from '~/app/routerHelper';
 import { WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
 import { LoadError } from '~/app/components/LoadError';
@@ -78,7 +79,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     navigate('workspaceKindCreate');
   }, [navigate]);
   const [workspaceKinds, workspaceKindsLoaded, workspaceKindsError] = useWorkspaceKinds();
-  const workspaceCountPerKind = useWorkspaceCountPerKind();
+  const workspaceCountResult = useWorkspaceCountPerKind();
   const [selectedWorkspaceKind, setSelectedWorkspaceKind] =
     useState<WorkspacekindsWorkspaceKind | null>(null);
   const [activeActionType, setActiveActionType] = useState<ActionType | null>(null);
@@ -102,12 +103,11 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
         name: workspaceKind.name,
         description: workspaceKind.description,
         deprecated: workspaceKind.deprecated,
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        numOfWorkspaces: workspaceCountPerKind[workspaceKind.name]?.count ?? 0,
+        numOfWorkspaces: workspaceCountResult.workspaceCountPerKind[workspaceKind.name]?.count ?? 0,
       };
       return [name, description, deprecated, numberOfWorkspaces];
     },
-    [workspaceCountPerKind],
+    [workspaceCountResult],
   );
 
   const sortedWorkspaceKinds = useMemo(() => {
@@ -352,7 +352,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
       {selectedWorkspaceKind && (
         <WorkspaceKindDetails
           workspaceKind={selectedWorkspaceKind}
-          workspaceCountPerKind={workspaceCountPerKind}
+          workspaceCountResult={workspaceCountResult}
           onCloseClick={() => setSelectedWorkspaceKind(null)}
         />
       )}
@@ -362,7 +362,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
   const DESCRIPTION_CHAR_LIMIT = 50;
 
   if (workspaceKindsError) {
-    return <LoadError error={workspaceKindsError} />;
+    return <LoadError title="Failed to load workspace kinds" error={workspaceKindsError} />;
   }
 
   if (!workspaceKindsLoaded) {
@@ -492,7 +492,11 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                           <WithValidImage
                             imageSrc={workspaceKind.icon.url}
                             skeletonWidth="20px"
-                            fallback={<ImageFallback imageSrc={workspaceKind.icon.url} />}
+                            fallback={
+                              <span className="pf-v6-u-mr-sm">
+                                <ImageFallback imageSrc={workspaceKind.icon.url} />
+                              </span>
+                            }
                           >
                             {(validSrc) => (
                               <img
@@ -540,23 +544,28 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                           dataLabel={columns.numberOfWorkspaces.name}
                           data-testid="workspace-kind-workspace-count"
                         >
-                          <Button
-                            variant="link"
-                            className="workspace-kind-summary-button"
-                            isInline
-                            onClick={() =>
-                              navigate('workspaceKindSummary', {
-                                params: { kind: workspaceKind.name },
-                                state: {},
-                              })
-                            }
-                          >
-                            {
-                              // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                              workspaceCountPerKind[workspaceKind.name]?.count ?? 0
-                            }
-                            {' Workspaces'}
-                          </Button>
+                          {workspaceCountResult.error ? (
+                            <ErrorPopover
+                              title="Failed to load workspace counts"
+                              message={workspaceCountResult.error}
+                            />
+                          ) : (
+                            <Button
+                              variant="link"
+                              className="workspace-kind-summary-button"
+                              isInline
+                              onClick={() =>
+                                navigate('workspaceKindSummary', {
+                                  params: { kind: workspaceKind.name },
+                                  state: {},
+                                })
+                              }
+                            >
+                              {workspaceCountResult.workspaceCountPerKind[workspaceKind.name]
+                                ?.count ?? 0}
+                              {' Workspaces'}
+                            </Button>
+                          )}
                         </Td>
 
                         <Td isActionCell data-testid="action-column">

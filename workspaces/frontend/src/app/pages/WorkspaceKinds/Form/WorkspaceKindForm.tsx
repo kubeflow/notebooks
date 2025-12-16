@@ -4,9 +4,6 @@ import { Content, ContentVariants } from '@patternfly/react-core/dist/esm/compon
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { PageGroup, PageSection } from '@patternfly/react-core/dist/esm/components/Page';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
-import { t_global_spacer_sm as SmallPadding } from '@patternfly/react-tokens';
-import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
-import { EmptyState, EmptyStateBody } from '@patternfly/react-core/dist/esm/components/EmptyState';
 import { useNotification } from 'mod-arch-core';
 import { ValidationErrorAlert } from '~/app/components/ValidationErrorAlert';
 import useWorkspaceKindByName from '~/app/hooks/useWorkspaceKindByName';
@@ -15,9 +12,16 @@ import { useCurrentRouteKey } from '~/app/hooks/useCurrentRouteKey';
 import useGenericObjectState from '~/app/hooks/useGenericObjectState';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspaceKindFormData } from '~/app/types';
-import { safeApiCall } from '~/shared/api/apiUtils';
+import {
+  extractErrorEnvelopeMessage,
+  extractErrorMessage,
+  extractValidationErrors,
+  safeApiCall,
+} from '~/shared/api/apiUtils';
+import { ErrorAlert } from '~/shared/components/ErrorAlert';
 import { CONTENT_TYPE_KEY } from '~/shared/utilities/const';
 import { ContentType } from '~/shared/utilities/types';
+import { LoadError } from '~/app/components/LoadError';
 import { ApiValidationError, WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
 import { WorkspaceKindFileUpload } from './fileUpload/WorkspaceKindFileUpload';
 import { WorkspaceKindFormProperties } from './properties/WorkspaceKindFormProperties';
@@ -56,6 +60,7 @@ export const WorkspaceKindForm: React.FC = () => {
   const [validated, setValidated] = useState<ValidationStatus>('default');
   const mode: FormMode = useCurrentRouteKey() === 'workspaceKindCreate' ? 'create' : 'edit';
   const [specErrors, setSpecErrors] = useState<ApiValidationError[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   const routeParams = useTypedParams<'workspaceKindEdit' | 'workspaceKindCreate'>();
   const [initialFormData, initialFormDataLoaded, initialFormDataError] = useWorkspaceKindByName(
@@ -75,6 +80,7 @@ export const WorkspaceKindForm: React.FC = () => {
 
   const handleSubmit = useCallback(async () => {
     setIsSubmitting(true);
+    setError(null);
     // TODO: Complete handleCreate with API call to create a new WS kind
     try {
       if (mode === 'create') {
@@ -92,17 +98,14 @@ export const WorkspaceKindForm: React.FC = () => {
           );
           navigate('workspaceKinds');
         } else {
-          const validationErrors = createResult.errorEnvelope.error.cause?.validation_errors;
-          if (validationErrors && validationErrors.length > 0) {
+          const validationErrors = extractValidationErrors(createResult.errorEnvelope);
+          if (validationErrors.length > 0) {
             setSpecErrors((prev) => [...prev, ...validationErrors]);
             setValidated('error');
             return;
           }
-          // TODO: alert user about generic error with no validation errors
+          setError(extractErrorEnvelopeMessage(createResult.errorEnvelope));
           setValidated('error');
-          console.error(
-            `Error while creating workspace kind: ${JSON.stringify(createResult.errorEnvelope)}`,
-          );
         }
       }
       // TODO: Finish when WSKind API is finalized
@@ -110,10 +113,7 @@ export const WorkspaceKindForm: React.FC = () => {
       // console.info('Workspace Kind updated:', JSON.stringify(updatedWorkspace));
       // navigate('workspaceKinds');
     } catch (err) {
-      // TODO: alert user about unexpected error
-      console.error(
-        `Unexpected error while ${mode === 'edit' ? 'editing' : 'creating'} workspace kind: ${err}`,
-      );
+      setError(extractErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -129,16 +129,7 @@ export const WorkspaceKindForm: React.FC = () => {
   }, [navigate]);
 
   if (mode === 'edit' && initialFormDataError) {
-    return (
-      <EmptyState
-        titleText="Error loading Workspace Kind data"
-        headingLevel="h4"
-        icon={ExclamationCircleIcon}
-        status="danger"
-      >
-        <EmptyStateBody>{initialFormDataError.message}</EmptyStateBody>
-      </EmptyState>
-    );
+    return <LoadError title="Failed to load workspace kind data" error={initialFormDataError} />;
   }
   return (
     <>
@@ -162,13 +153,22 @@ export const WorkspaceKindForm: React.FC = () => {
         </PageSection>
       </PageGroup>
       <PageSection isFilled>
-        {mode === 'create' && (
-          <Stack>
-            {specErrors.length > 0 && (
-              <StackItem style={{ padding: SmallPadding.value }}>
-                <ValidationErrorAlert title="Error creating workspace kind" errors={specErrors} />
-              </StackItem>
-            )}
+        <Stack hasGutter>
+          {error && (
+            <StackItem>
+              <ErrorAlert
+                title={`Failed to ${mode === 'edit' ? 'edit' : 'create'} workspace kind`}
+                message={error}
+                testId="workspace-kind-form-error"
+              />
+            </StackItem>
+          )}
+          {mode === 'create' && specErrors.length > 0 && (
+            <StackItem>
+              <ValidationErrorAlert title="Error creating workspace kind" errors={specErrors} />
+            </StackItem>
+          )}
+          {mode === 'create' && (
             <StackItem style={{ height: '100%' }}>
               <WorkspaceKindFileUpload
                 resetData={resetData}
@@ -178,47 +178,48 @@ export const WorkspaceKindForm: React.FC = () => {
                 setValidated={setValidated}
                 onClear={() => {
                   setSpecErrors([]);
+                  setError(null);
                 }}
               />
             </StackItem>
-          </Stack>
-        )}
-        {mode === 'edit' && (
-          <Stack hasGutter data-testid="workspace-kind-form-properties">
-            <StackItem>
-              <WorkspaceKindFormProperties
-                mode={mode}
-                properties={data.properties}
-                updateField={(properties) => setData('properties', properties)}
-              />
-            </StackItem>
-            <StackItem>
-              <WorkspaceKindFormImage
-                mode={mode}
-                imageConfig={data.imageConfig}
-                updateImageConfig={(imageInput) => {
-                  setData('imageConfig', imageInput);
-                }}
-              />
-            </StackItem>
-            <StackItem>
-              <WorkspaceKindFormPodConfig
-                podConfig={data.podConfig}
-                updatePodConfig={(podConfig) => {
-                  setData('podConfig', podConfig);
-                }}
-              />
-            </StackItem>
-            <StackItem>
-              <WorkspaceKindFormPodTemplate
-                podTemplate={data.podTemplate}
-                updatePodTemplate={(podTemplate) => {
-                  setData('podTemplate', podTemplate);
-                }}
-              />
-            </StackItem>
-          </Stack>
-        )}
+          )}
+          {mode === 'edit' && (
+            <>
+              <StackItem data-testid="workspace-kind-form-properties">
+                <WorkspaceKindFormProperties
+                  mode={mode}
+                  properties={data.properties}
+                  updateField={(properties) => setData('properties', properties)}
+                />
+              </StackItem>
+              <StackItem>
+                <WorkspaceKindFormImage
+                  mode={mode}
+                  imageConfig={data.imageConfig}
+                  updateImageConfig={(imageInput) => {
+                    setData('imageConfig', imageInput);
+                  }}
+                />
+              </StackItem>
+              <StackItem>
+                <WorkspaceKindFormPodConfig
+                  podConfig={data.podConfig}
+                  updatePodConfig={(podConfig) => {
+                    setData('podConfig', podConfig);
+                  }}
+                />
+              </StackItem>
+              <StackItem>
+                <WorkspaceKindFormPodTemplate
+                  podTemplate={data.podTemplate}
+                  updatePodTemplate={(podTemplate) => {
+                    setData('podTemplate', podTemplate);
+                  }}
+                />
+              </StackItem>
+            </>
+          )}
+        </Stack>
       </PageSection>
       <PageSection isFilled={false} stickyOnBreakpoint={{ default: 'bottom' }}>
         <Flex>

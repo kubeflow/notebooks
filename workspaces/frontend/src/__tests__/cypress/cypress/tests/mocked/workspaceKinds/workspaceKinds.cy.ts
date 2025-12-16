@@ -44,6 +44,12 @@ const setupWorkspaceKinds = (count: number): WorkspaceKindsSetup => {
     mockModArchResponse([]),
   ).as('getWorkspaces');
 
+  cy.interceptApi(
+    'GET /api/:apiVersion/workspaces',
+    { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+    mockModArchResponse([]),
+  ).as('getAllWorkspaces');
+
   return { mockWorkspaceKinds };
 };
 
@@ -126,6 +132,46 @@ describe('WorkspaceKinds', () => {
       });
     });
 
+    it('should display error icon when loading workspace counts fails', () => {
+      const mockNamespace = buildMockNamespace({ name: DEFAULT_NAMESPACE });
+      const mockWorkspaceKind = buildMockWorkspaceKind({ name: 'test-kind' });
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/namespaces',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+        mockModArchResponse([mockNamespace]),
+      ).as('getNamespaces');
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspacekinds',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+        mockModArchResponse([mockWorkspaceKind]),
+      ).as('getWorkspaceKinds');
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspaces/:namespace',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
+        mockModArchResponse([]),
+      ).as('getWorkspaces');
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspaces',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+        {
+          error: {
+            code: '500',
+            message: 'Failed to load workspace counts',
+          },
+        },
+      ).as('getAllWorkspacesError');
+
+      visitWorkspaceKinds();
+
+      cy.wait('@getAllWorkspacesError');
+
+      workspaceKinds.assertWorkspaceCountErrorPopoverExists(0);
+    });
+
     it('should display deprecated status for deprecated workspace kinds', () => {
       const mockWorkspaceKind = buildMockWorkspaceKind({
         name: 'deprecated-kind',
@@ -152,6 +198,12 @@ describe('WorkspaceKinds', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
         mockModArchResponse([]),
       ).as('getWorkspaces');
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspaces',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+        mockModArchResponse([]),
+      ).as('getAllWorkspaces');
 
       visitWorkspaceKinds();
 
@@ -240,6 +292,12 @@ describe('WorkspaceKinds', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
         mockModArchResponse([]),
       ).as('getWorkspaces');
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspaces',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+        mockModArchResponse([]),
+      ).as('getAllWorkspaces');
 
       visitWorkspaceKinds();
     });
@@ -353,6 +411,12 @@ describe('WorkspaceKinds', () => {
         mockModArchResponse([]),
       ).as('getWorkspaces');
 
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspaces',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+        mockModArchResponse([]),
+      ).as('getAllWorkspaces');
+
       visitWorkspaceKinds();
 
       // Click on Name column header to sort
@@ -398,6 +462,12 @@ describe('WorkspaceKinds', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
         mockModArchResponse([]),
       ).as('getWorkspaces');
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspaces',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+        mockModArchResponse([]),
+      ).as('getAllWorkspaces');
 
       visitWorkspaceKinds();
 
@@ -592,6 +662,12 @@ describe('WorkspaceKinds', () => {
         mockModArchResponse([]),
       ).as('getWorkspaces');
 
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspaces',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+        mockModArchResponse([]),
+      ).as('getAllWorkspaces');
+
       visitWorkspaceKinds();
 
       return mockWorkspaceKind;
@@ -649,6 +725,12 @@ describe('WorkspaceKinds', () => {
           { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
           mockModArchResponse([]),
         ).as('getWorkspaces');
+
+        cy.interceptApi(
+          'GET /api/:apiVersion/workspaces',
+          { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+          mockModArchResponse([]),
+        ).as('getAllWorkspaces');
 
         visitWorkspaceKinds();
 

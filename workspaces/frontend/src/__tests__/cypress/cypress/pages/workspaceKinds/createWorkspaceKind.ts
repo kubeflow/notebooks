@@ -38,6 +38,14 @@ class CreateWorkspaceKind {
     return cy.findByTestId('validation-error-alert');
   }
 
+  findErrorAlert() {
+    return cy.findByTestId('workspace-kind-form-error');
+  }
+
+  assertErrorAlertContainsMessage(message: string) {
+    cy.findByTestId('workspace-kind-form-error-message').should('have.text', `Error: ${message}`);
+  }
+
   findFormPropertiesSection() {
     return cy.findByTestId('workspace-kind-form-properties');
   }

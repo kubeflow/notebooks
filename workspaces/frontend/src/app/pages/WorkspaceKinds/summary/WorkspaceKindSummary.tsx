@@ -51,7 +51,7 @@ const WorkspaceKindSummary: React.FC = () => {
   );
 
   if (workspacesLoadError) {
-    return <LoadError error={workspacesLoadError} />;
+    return <LoadError title="Failed to load workspaces" error={workspacesLoadError} />;
   }
 
   if (!workspacesLoaded) {

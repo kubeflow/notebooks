@@ -6,11 +6,14 @@ import {
   ModalFooter,
   ModalHeader,
 } from '@patternfly/react-core/dist/esm/components/Modal';
+import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import { TabTitleText } from '@patternfly/react-core/dist/esm/components/Tabs';
 import { useNotification } from 'mod-arch-core';
 import { WorkspaceRedirectInformationView } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRedirectInformationView';
 import { ActionButton } from '~/shared/components/ActionButton';
+import { ErrorAlert } from '~/shared/components/ErrorAlert';
 import { ApiWorkspaceActionPauseEnvelope, WorkspacesWorkspace } from '~/generated/data-contracts';
+import { extractErrorMessage } from '~/shared/api/apiUtils';
 
 interface StartActionAlertProps {
   onClose: () => void;
@@ -33,6 +36,7 @@ export const WorkspaceStartActionModal: React.FC<StartActionAlertProps> = ({
 }) => {
   const notification = useNotification();
   const [actionOnGoing, setActionOnGoing] = useState<StartAction | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const executeAction = useCallback(
     async <T,>({
@@ -53,19 +57,20 @@ export const WorkspaceStartActionModal: React.FC<StartActionAlertProps> = ({
   );
 
   const handleStart = useCallback(async () => {
+    setError(null);
     try {
       await executeAction({ action: 'start', callback: onStart });
       notification.info(`Workspace '${workspace?.name}' started successfully`);
       onActionDone?.();
       onClose();
-    } catch (error) {
-      // TODO: alert user about error
-      console.error('Error starting workspace:', error);
+    } catch (err) {
+      setError(extractErrorMessage(err));
     }
   }, [executeAction, onActionDone, onClose, onStart, notification, workspace]);
 
   // TODO: combine handleStart and handleUpdateAndStart if they end up being similar
   const handleUpdateAndStart = useCallback(async () => {
+    setError(null);
     try {
       await executeAction({
         action: 'updateAndStart',
@@ -74,9 +79,8 @@ export const WorkspaceStartActionModal: React.FC<StartActionAlertProps> = ({
       notification.info(`Workspace '${workspace?.name}' updated and started successfully`);
       onActionDone?.();
       onClose();
-    } catch (error) {
-      // TODO: alert user about error
-      console.error('Error updating and stopping workspace:', error);
+    } catch (err) {
+      setError(extractErrorMessage(err));
     }
   }, [executeAction, onActionDone, onClose, onUpdateAndStart, notification, workspace]);
 
@@ -96,10 +100,28 @@ export const WorkspaceStartActionModal: React.FC<StartActionAlertProps> = ({
     >
       <ModalHeader title="Start Workspace" />
       <ModalBody>
-        <TabTitleText>
-          There are pending redirect updates for that workspace. Are you sure you want to proceed?
-        </TabTitleText>
-        {workspace && <WorkspaceRedirectInformationView kind={workspace.workspaceKind.name} />}
+        <Stack hasGutter>
+          {error && (
+            <StackItem>
+              <ErrorAlert
+                title="Failed to start workspace"
+                message={error}
+                testId="start-modal-error"
+              />
+            </StackItem>
+          )}
+          <StackItem>
+            <TabTitleText>
+              There are pending redirect updates for that workspace. Are you sure you want to
+              proceed?
+            </TabTitleText>
+          </StackItem>
+          {workspace && (
+            <StackItem>
+              <WorkspaceRedirectInformationView kind={workspace.workspaceKind.name} />
+            </StackItem>
+          )}
+        </Stack>
       </ModalBody>
       <ModalFooter>
         {shouldShowActionButton('updateAndStart') && (

@@ -7,7 +7,7 @@ import {
   ProgressStep,
   ProgressStepper,
 } from '@patternfly/react-core/dist/esm/components/ProgressStepper';
-import { Stack } from '@patternfly/react-core/dist/esm/layouts/Stack';
+import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import {
   Drawer,
   DrawerActions,
@@ -35,6 +35,8 @@ import {
   WorkspacekindsWorkspaceKind,
   WorkspacesWorkspaceCreate,
 } from '~/generated/data-contracts';
+import { extractErrorMessage } from '~/shared/api/apiUtils';
+import { ErrorAlert } from '~/shared/components/ErrorAlert';
 import { useWorkspaceFormLocationData } from '~/app/hooks/useWorkspaceFormLocationData';
 import { WorkspaceFormKindDetails } from '~/app/pages/Workspaces/Form/kind/WorkspaceFormKindDetails';
 import { WorkspaceFormImageDetails } from '~/app/pages/Workspaces/Form/image/WorkspaceFormImageDetails';
@@ -73,6 +75,7 @@ const WorkspaceForm: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(WorkspaceFormSteps.KindSelection);
   const [drawerExpanded, setDrawerExpanded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [data, setData, resetData, replaceData] =
     useGenericObjectState<WorkspaceFormData>(initialFormData);
@@ -178,6 +181,7 @@ const WorkspaceForm: React.FC = () => {
     };
 
     setIsSubmitting(true);
+    setError(null);
 
     try {
       if (mode === 'edit') {
@@ -191,8 +195,7 @@ const WorkspaceForm: React.FC = () => {
 
       navigate('workspaces');
     } catch (err) {
-      // TODO: alert user about error
-      console.error(`Error ${mode === 'edit' ? 'updating' : 'creating'} workspace: ${err}`);
+      setError(extractErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -260,7 +263,7 @@ const WorkspaceForm: React.FC = () => {
   };
 
   if (initialFormDataError) {
-    return <LoadError error={initialFormDataError} />;
+    return <LoadError title="Failed to load workspace data" error={initialFormDataError} />;
   }
 
   if (!initialFormDataLoaded) {
@@ -346,33 +349,46 @@ const WorkspaceForm: React.FC = () => {
             </FlexItem>
             <FlexItem flex={{ default: 'flex_1' }}>
               <PageSection isFilled>
-                {currentStep === WorkspaceFormSteps.KindSelection && (
-                  <WorkspaceFormKindSelection
-                    selectedKind={data.kind}
-                    onSelect={handleKindSelect}
-                  />
-                )}
-                {currentStep === WorkspaceFormSteps.ImageSelection && (
-                  <WorkspaceFormImageSelection
-                    selectedImage={data.image}
-                    onSelect={handleImageSelect}
-                    images={data.kind?.podTemplate.options.imageConfig.values ?? []}
-                  />
-                )}
-                {currentStep === WorkspaceFormSteps.PodConfigSelection && (
-                  <WorkspaceFormPodConfigSelection
-                    selectedPodConfig={data.podConfig}
-                    onSelect={handlePodConfigSelect}
-                    podConfigs={data.kind?.podTemplate.options.podConfig.values ?? []}
-                  />
-                )}
-                {currentStep === WorkspaceFormSteps.Properties && (
-                  <WorkspaceFormPropertiesSelection
-                    selectedProperties={data.properties}
-                    onSelect={(properties) => setData('properties', properties)}
-                    selectedImage={data.image}
-                  />
-                )}
+                <Stack hasGutter>
+                  {error && (
+                    <StackItem>
+                      <ErrorAlert
+                        title={`Failed to ${mode === 'create' ? 'create' : 'edit'} workspace`}
+                        message={error}
+                        testId="workspace-form-error"
+                      />
+                    </StackItem>
+                  )}
+                  <StackItem isFilled>
+                    {currentStep === WorkspaceFormSteps.KindSelection && (
+                      <WorkspaceFormKindSelection
+                        selectedKind={data.kind}
+                        onSelect={handleKindSelect}
+                      />
+                    )}
+                    {currentStep === WorkspaceFormSteps.ImageSelection && (
+                      <WorkspaceFormImageSelection
+                        selectedImage={data.image}
+                        onSelect={handleImageSelect}
+                        images={data.kind?.podTemplate.options.imageConfig.values ?? []}
+                      />
+                    )}
+                    {currentStep === WorkspaceFormSteps.PodConfigSelection && (
+                      <WorkspaceFormPodConfigSelection
+                        selectedPodConfig={data.podConfig}
+                        onSelect={handlePodConfigSelect}
+                        podConfigs={data.kind?.podTemplate.options.podConfig.values ?? []}
+                      />
+                    )}
+                    {currentStep === WorkspaceFormSteps.Properties && (
+                      <WorkspaceFormPropertiesSelection
+                        selectedProperties={data.properties}
+                        onSelect={(properties) => setData('properties', properties)}
+                        selectedImage={data.image}
+                      />
+                    )}
+                  </StackItem>
+                </Stack>
               </PageSection>
             </FlexItem>
             <FlexItem>

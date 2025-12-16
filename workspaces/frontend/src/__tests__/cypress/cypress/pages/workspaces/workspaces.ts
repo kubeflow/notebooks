@@ -296,6 +296,14 @@ class DeleteModal {
     this.findSubmitButton().should('be.disabled');
   }
 
+  findErrorAlert() {
+    return this.find().findByTestId('delete-modal-error');
+  }
+
+  assertErrorAlertContainsMessage(message: string) {
+    this.find().findByTestId('delete-modal-error-message').should('have.text', `Error: ${message}`);
+  }
+
   assertSubmitButtonEnabled() {
     this.findSubmitButton().should('not.be.disabled');
   }
@@ -317,6 +325,18 @@ class StartModal {
   assertModalNotExists() {
     this.find().should('not.exist');
   }
+
+  assertModalExists() {
+    this.find().should('exist');
+  }
+
+  findErrorAlert() {
+    return this.find().findByTestId('start-modal-error');
+  }
+
+  assertErrorAlertContainsMessage(message: string) {
+    this.find().findByTestId('start-modal-error-message').should('have.text', `Error: ${message}`);
+  }
 }
 
 class StopModal {
@@ -334,6 +354,18 @@ class StopModal {
 
   assertModalNotExists() {
     this.find().should('not.exist');
+  }
+
+  assertModalExists() {
+    this.find().should('exist');
+  }
+
+  findErrorAlert() {
+    return this.find().findByTestId('stop-modal-error');
+  }
+
+  assertErrorAlertContainsMessage(message: string) {
+    this.find().findByTestId('stop-modal-error-message').should('have.text', `Error: ${message}`);
   }
 }
 

@@ -75,6 +75,15 @@ class WorkspaceKinds {
       .should('have.text', `${count} Workspaces`);
   }
 
+  assertWorkspaceCountErrorPopoverExists(index: number) {
+    return cy
+      .findByTestId(`workspace-kind-row-${index}`)
+      .findByTestId('workspace-kind-workspace-count')
+      .find('.pf-v6-c-button')
+      .find('svg')
+      .should('exist');
+  }
+
   applyNameFilter(value: string) {
     cy.findByTestId('filter-attribute-dropdown').click();
     cy.findByTestId('filter-attribute-name').click();

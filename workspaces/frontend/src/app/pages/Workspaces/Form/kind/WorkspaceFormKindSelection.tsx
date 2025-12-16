@@ -18,7 +18,7 @@ const WorkspaceFormKindSelection: React.FunctionComponent<WorkspaceFormKindSelec
   const [workspaceKinds, loaded, error] = useWorkspaceKinds();
 
   if (error) {
-    return <LoadError error={error} />;
+    return <LoadError title="Failed to load workspace kinds" error={error} />;
   }
 
   if (!loaded) {

@@ -7,11 +7,14 @@ import {
   ModalFooter,
   ModalHeader,
 } from '@patternfly/react-core/dist/esm/components/Modal';
+import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import { TabTitleText } from '@patternfly/react-core/dist/esm/components/Tabs';
 import { useNotification } from 'mod-arch-core';
 import { WorkspaceRedirectInformationView } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRedirectInformationView';
 import { ActionButton } from '~/shared/components/ActionButton';
+import { ErrorAlert } from '~/shared/components/ErrorAlert';
 import { ApiWorkspaceActionPauseEnvelope, WorkspacesWorkspace } from '~/generated/data-contracts';
+import { extractErrorMessage } from '~/shared/api/apiUtils';
 
 interface StopActionAlertProps {
   onClose: () => void;
@@ -35,6 +38,7 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
   const notification = useNotification();
   const workspacePendingUpdate = workspace?.pendingRestart;
   const [actionOnGoing, setActionOnGoing] = useState<StopAction | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const executeAction = useCallback(
     async <T,>({
@@ -55,27 +59,27 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
   );
 
   const handleStop = useCallback(async () => {
+    setError(null);
     try {
       await executeAction({ action: 'stop', callback: onStop });
       notification.info(`Workspace '${workspace?.name}' stopped successfully`);
       onActionDone?.();
       onClose();
-    } catch (error) {
-      // TODO: alert user about error
-      console.error('Error stopping workspace:', error);
+    } catch (err) {
+      setError(extractErrorMessage(err));
     }
   }, [executeAction, onActionDone, onClose, onStop, notification, workspace]);
 
   // TODO: combine handleStop and handleUpdateAndStop if they end up being similar
   const handleUpdateAndStop = useCallback(async () => {
+    setError(null);
     try {
       await executeAction({ action: 'updateAndStop', callback: onUpdateAndStop });
       notification.info(`Workspace '${workspace?.name}' updated and stopped successfully`);
       onActionDone?.();
       onClose();
-    } catch (error) {
-      // TODO: alert user about error
-      console.error('Error updating and stopping workspace:', error);
+    } catch (err) {
+      setError(extractErrorMessage(err));
     }
   }, [executeAction, onActionDone, onClose, onUpdateAndStop, notification, workspace]);
 
@@ -95,17 +99,30 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
     >
       <ModalHeader title="Stop workspace" />
       <ModalBody>
-        {workspacePendingUpdate ? (
-          <>
-            <TabTitleText>
-              There are pending redirect updates for that workspace. Are you sure you want to
-              proceed?
-            </TabTitleText>
-            <WorkspaceRedirectInformationView kind={workspace.workspaceKind.name} />
-          </>
-        ) : (
-          <Content>Are you sure you want to stop the workspace?</Content>
-        )}
+        <Stack hasGutter>
+          {error && (
+            <StackItem>
+              <ErrorAlert
+                title="Failed to stop workspace"
+                message={error}
+                testId="stop-modal-error"
+              />
+            </StackItem>
+          )}
+          <StackItem>
+            {workspacePendingUpdate ? (
+              <>
+                <TabTitleText>
+                  There are pending redirect updates for that workspace. Are you sure you want to
+                  proceed?
+                </TabTitleText>
+                <WorkspaceRedirectInformationView kind={workspace.workspaceKind.name} />
+              </>
+            ) : (
+              <Content>Are you sure you want to stop the workspace?</Content>
+            )}
+          </StackItem>
+        </Stack>
       </ModalBody>
       <ModalFooter>
         {shouldShowActionButton('updateAndStop') && workspacePendingUpdate && (

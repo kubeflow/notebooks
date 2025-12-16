@@ -50,6 +50,12 @@ const setupEditWorkspaceKind = (
     mockModArchResponse([]),
   ).as('getWorkspaces');
 
+  cy.interceptApi(
+    'GET /api/:apiVersion/workspaces',
+    { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+    mockModArchResponse([]),
+  ).as('getAllWorkspaces');
+
   return { mockWorkspaceKind, mockNamespace };
 };
 
