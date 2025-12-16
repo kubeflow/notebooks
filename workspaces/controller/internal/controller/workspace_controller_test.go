@@ -216,8 +216,7 @@ var _ = Describe("Workspace Controller", func() {
 			//        - when adding a redirect to the currently selected `imageConfig` or `podConfig`
 			//            - if the workspace is NOT paused, NO resource changes are made except setting `status.pendingRestart`
 			//              and `status.podTemplateOptions` (`desired` along with `redirectChain`)
-			//            - if the workspace IS paused, but `deferUpdates` is true, the same as above
-			//            - if the workspace IS paused and `deferUpdates` is false:
+			//            - if the workspace IS paused:
 			//                - the selected options (under `spec`) should be changed to the redirect
 			//                  and `status.pendingRestart` should become false, and `podTemplateOptions` should be empty
 			//                - the new options should be applied to the StatefulSet

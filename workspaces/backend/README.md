@@ -93,7 +93,6 @@ curl -X POST http://localhost:4000/api/v1/workspaces/default \
         "name": "dora",
         "kind": "jupyterlab",
         "paused": false,
-        "deferUpdates": false,
         "podTemplate": {
             "podMetadata": {
                 "labels": {

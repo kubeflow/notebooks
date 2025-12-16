@@ -1742,7 +1742,6 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "activity",
-                "deferUpdates",
                 "name",
                 "namespace",
                 "paused",
@@ -1757,9 +1756,6 @@ const docTemplate = `{
             "properties": {
                 "activity": {
                     "$ref": "#/definitions/workspaces.Activity"
-                },
-                "deferUpdates": {
-                    "type": "boolean"
                 },
                 "name": {
                     "type": "string"
@@ -1799,16 +1795,12 @@ const docTemplate = `{
         "workspaces.WorkspaceCreate": {
             "type": "object",
             "required": [
-                "deferUpdates",
                 "kind",
                 "name",
                 "paused",
                 "podTemplate"
             ],
             "properties": {
-                "deferUpdates": {
-                    "type": "boolean"
-                },
                 "kind": {
                     "type": "string"
                 },

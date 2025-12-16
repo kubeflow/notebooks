@@ -6,10 +6,6 @@ spec:
   ## if the workspace is paused (no pods running)
   paused: false
 
-  ## if true, pending updates are NOT applied when the Workspace is paused
-  ## if false, pending updates are applied when the Workspace is paused
-  deferUpdates: false
-
   ## the WorkspaceKind to use
   kind: "jupyterlab"
 
