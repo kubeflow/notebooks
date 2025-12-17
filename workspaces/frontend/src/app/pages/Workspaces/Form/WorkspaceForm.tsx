@@ -349,7 +349,7 @@ const WorkspaceForm: React.FC = () => {
               </PageSection>
             </FlexItem>
             <FlexItem flex={{ default: 'flex_1' }}>
-              <PageSection isFilled>
+              <PageSection style={{ height: '100%' }} isFilled>
                 <Stack hasGutter>
                   {error && (
                     <StackItem>
