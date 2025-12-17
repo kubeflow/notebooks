@@ -27,7 +27,7 @@ module.exports = {
 
   // Use babel-jest to apply babel.config.js (including istanbul plugin for coverage)
   transform: {
-    '^.+\\.(ts|tsx|js|jsx)$': 'babel-jest',
+    '^.+\\.(ts|tsx|js|jsx|mjs)$': 'babel-jest',
   },
 
   // include projects from node_modules as required

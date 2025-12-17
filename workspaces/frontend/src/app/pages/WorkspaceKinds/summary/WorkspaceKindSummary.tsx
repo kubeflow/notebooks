@@ -11,8 +11,6 @@ import WorkspaceKindSummaryExpandableCard from '~/app/pages/WorkspaceKinds/summa
 import { LoadingSpinner } from '~/app/components/LoadingSpinner';
 import { LoadError } from '~/app/components/LoadError';
 import { useWorkspaceRowActions } from '~/app/hooks/useWorkspaceRowActions';
-import { usePolling } from '~/app/hooks/usePolling';
-import { POLL_INTERVAL } from '~/shared/utilities/const';
 
 const WorkspaceKindSummary: React.FC = () => {
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
@@ -29,8 +27,6 @@ const WorkspaceKindSummary: React.FC = () => {
       imageId,
       podConfigId,
     });
-
-  usePolling(refreshWorkspaces, POLL_INTERVAL);
 
   const tableRowActions = useWorkspaceRowActions([{ id: 'viewDetails' }]);
 
@@ -91,6 +87,7 @@ const WorkspaceKindSummary: React.FC = () => {
           <WorkspaceTable
             ref={workspaceTableRef}
             workspaces={workspaces}
+            refreshWorkspaces={refreshWorkspaces}
             canCreateWorkspaces={false}
             hiddenColumns={['connect', 'kind']}
             rowActions={tableRowActions}

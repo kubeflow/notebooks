@@ -8,17 +8,13 @@ import { useWorkspacesByNamespace } from '~/app/hooks/useWorkspaces';
 import { LoadingSpinner } from '~/app/components/LoadingSpinner';
 import { LoadError } from '~/app/components/LoadError';
 import { useWorkspaceRowActions } from '~/app/hooks/useWorkspaceRowActions';
-import { usePolling } from '~/app/hooks/usePolling';
 import { WorkspacesWorkspaceState } from '~/generated/data-contracts';
-import { POLL_INTERVAL } from '~/shared/utilities/const';
 
 export const Workspaces: React.FunctionComponent = () => {
   const { namespacesLoaded, selectedNamespace } = useNamespaceContext();
 
   const [workspaces, workspacesLoaded, workspacesLoadError, refreshWorkspaces] =
     useWorkspacesByNamespace(selectedNamespace);
-
-  usePolling(refreshWorkspaces, POLL_INTERVAL);
 
   const tableRowActions = useWorkspaceRowActions([
     { id: 'viewDetails' },
@@ -68,6 +64,7 @@ export const Workspaces: React.FunctionComponent = () => {
             workspaces={workspaces}
             rowActions={tableRowActions}
             hiddenColumns={['namespace', 'gpu', 'idleGpu']}
+            refreshWorkspaces={refreshWorkspaces}
           />
         </StackItem>
       </Stack>

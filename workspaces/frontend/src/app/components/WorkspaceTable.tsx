@@ -39,6 +39,7 @@ import {
   ActionsColumn,
   IActions,
 } from '@patternfly/react-table/dist/esm/components/Table';
+import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { FilterIcon } from '@patternfly/react-icons/dist/esm/icons/filter-icon';
 import { InfoCircleIcon } from '@patternfly/react-icons/dist/esm/icons/info-circle-icon';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-triangle-icon';
@@ -64,6 +65,8 @@ import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRo
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
 import { WorkspacesWorkspace, WorkspacesWorkspaceState } from '~/generated/data-contracts';
 import { useWorkspaceActionsContext } from '~/app/context/WorkspaceActionsContext';
+import { POLL_INTERVAL } from '~/shared/utilities/const';
+import { RefreshCounter } from '~/app/components/RefreshCounter';
 
 const {
   fields: wsTableColumns,
@@ -87,6 +90,7 @@ type WorkspaceTableSortableColumnKeys = SortableDataFieldKey<typeof wsTableColum
 
 interface WorkspaceTableProps {
   workspaces: WorkspacesWorkspace[];
+  refreshWorkspaces: () => void;
   canCreateWorkspaces?: boolean;
   canExpandRows?: boolean;
   hiddenColumns?: WorkspaceTableColumnKeys[];
@@ -123,6 +127,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
   (
     {
       workspaces,
+      refreshWorkspaces,
       canCreateWorkspaces = true,
       canExpandRows = true,
       hiddenColumns = [],
@@ -705,16 +710,23 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
             </Tr>
           )}
         </Table>
-        <Pagination
-          itemCount={sortedWorkspaces.length}
-          widgetId="bottom-example"
-          perPage={perPage}
-          page={page}
-          variant={PaginationVariant.bottom}
-          isCompact
-          onSetPage={onSetPage}
-          onPerPageSelect={onPerPageSelect}
-        />
+        <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
+          <FlexItem>
+            <RefreshCounter interval={POLL_INTERVAL} onRefresh={refreshWorkspaces} />
+          </FlexItem>
+          <FlexItem>
+            <Pagination
+              itemCount={sortedWorkspaces.length}
+              widgetId="bottom-example"
+              perPage={perPage}
+              page={page}
+              variant={PaginationVariant.bottom}
+              isCompact
+              onSetPage={onSetPage}
+              onPerPageSelect={onPerPageSelect}
+            />
+          </FlexItem>
+        </Flex>
       </>
     );
   },
