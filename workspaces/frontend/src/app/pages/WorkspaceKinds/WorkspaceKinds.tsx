@@ -547,7 +547,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                           {workspaceCountResult.error ? (
                             <ErrorPopover
                               title="Failed to load workspace counts"
-                              message={workspaceCountResult.error}
+                              content={workspaceCountResult.error}
                             />
                           ) : (
                             <Button

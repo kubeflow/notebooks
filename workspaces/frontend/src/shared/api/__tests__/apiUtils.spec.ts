@@ -2,11 +2,12 @@ import axios, { AxiosError, AxiosHeaders } from 'axios';
 import {
   safeApiCall,
   extractErrorMessage,
-  extractErrorEnvelopeMessage,
   extractValidationErrors,
   extractConflictCauses,
+  formatValidationErrorMessages,
+  formatConflictErrorMessages,
 } from '~/shared/api/apiUtils';
-import { ApiErrorEnvelope, FieldErrorType } from '~/generated/data-contracts';
+import { ApiErrorCauseOrigin, ApiErrorEnvelope, FieldErrorType } from '~/generated/data-contracts';
 
 // Helper to create mock Axios errors
 const createAxiosError = (status: number, data?: unknown, code?: string): AxiosError<unknown> => {
@@ -80,85 +81,16 @@ describe('extractErrorMessage', () => {
 
   it('should return API error message when available', () => {
     const axiosError = createAxiosError(400, {
-      error: { message: 'Custom API error message' },
+      error: { code: '400', message: 'Custom API error message' },
     });
 
     jest.spyOn(axios, 'isAxiosError').mockReturnValue(true);
 
-    expect(extractErrorMessage(axiosError)).toBe('Custom API error message');
-  });
+    const envelope: ApiErrorEnvelope = {
+      error: { code: '400', message: 'Custom API error message' },
+    };
 
-  it('should show single conflict cause instead of main error message', () => {
-    const axiosError = createAxiosError(409, {
-      error: {
-        code: '409',
-        message: 'Conflict occurred',
-        cause: {
-          // eslint-disable-next-line camelcase
-          conflict_cause: [{ message: 'Resource already exists' }],
-        },
-      },
-    });
-
-    jest.spyOn(axios, 'isAxiosError').mockReturnValue(true);
-
-    expect(extractErrorMessage(axiosError)).toBe('Resource already exists');
-  });
-
-  it('should show multiple conflict causes instead of main error message', () => {
-    const axiosError = createAxiosError(409, {
-      error: {
-        code: '409',
-        message: 'Conflict occurred',
-        cause: {
-          // eslint-disable-next-line camelcase
-          conflict_cause: [
-            { message: 'Resource already exists' },
-            { message: 'Name is already taken' },
-          ],
-        },
-      },
-    });
-
-    jest.spyOn(axios, 'isAxiosError').mockReturnValue(true);
-
-    expect(extractErrorMessage(axiosError)).toBe(
-      '• Resource already exists\n• Name is already taken',
-    );
-  });
-
-  it('should ignore conflict causes with empty messages', () => {
-    const axiosError = createAxiosError(409, {
-      error: {
-        code: '409',
-        message: 'Conflict occurred',
-        cause: {
-          // eslint-disable-next-line camelcase
-          conflict_cause: [{ message: '' }, { message: 'Valid message' }],
-        },
-      },
-    });
-
-    jest.spyOn(axios, 'isAxiosError').mockReturnValue(true);
-
-    expect(extractErrorMessage(axiosError)).toBe('Valid message');
-  });
-
-  it('should return base message when conflict causes array is empty', () => {
-    const axiosError = createAxiosError(409, {
-      error: {
-        code: '409',
-        message: 'Conflict occurred',
-        cause: {
-          // eslint-disable-next-line camelcase
-          conflict_cause: [],
-        },
-      },
-    });
-
-    jest.spyOn(axios, 'isAxiosError').mockReturnValue(true);
-
-    expect(extractErrorMessage(axiosError)).toBe('Conflict occurred');
+    expect(extractErrorMessage(axiosError)).toEqual(envelope);
   });
 
   it('should return status-based message when no API error message is present', () => {
@@ -206,84 +138,6 @@ describe('extractErrorMessage', () => {
   });
 });
 
-describe('extractErrorEnvelopeMessage', () => {
-  it('should return error message when no conflict causes', () => {
-    const envelope: ApiErrorEnvelope = {
-      error: {
-        code: '400',
-        message: 'Bad request',
-      },
-    };
-
-    expect(extractErrorEnvelopeMessage(envelope)).toBe('Bad request');
-  });
-
-  it('should return single conflict cause instead of main message', () => {
-    const envelope: ApiErrorEnvelope = {
-      error: {
-        code: '409',
-        message: 'Conflict occurred',
-        cause: {
-          // eslint-disable-next-line camelcase
-          conflict_cause: [{ message: 'Resource already exists' }],
-        },
-      },
-    };
-
-    expect(extractErrorEnvelopeMessage(envelope)).toBe('Resource already exists');
-  });
-
-  it('should return multiple conflict causes as bulleted list', () => {
-    const envelope: ApiErrorEnvelope = {
-      error: {
-        code: '409',
-        message: 'Conflict occurred',
-        cause: {
-          // eslint-disable-next-line camelcase
-          conflict_cause: [
-            { message: 'Resource already exists' },
-            { message: 'Name is already taken' },
-          ],
-        },
-      },
-    };
-
-    expect(extractErrorEnvelopeMessage(envelope)).toBe(
-      '• Resource already exists\n• Name is already taken',
-    );
-  });
-
-  it('should fall back to main message when conflict causes have no messages', () => {
-    const envelope: ApiErrorEnvelope = {
-      error: {
-        code: '409',
-        message: 'Conflict occurred',
-        cause: {
-          // eslint-disable-next-line camelcase
-          conflict_cause: [{ message: '' }, {}],
-        },
-      },
-    };
-
-    expect(extractErrorEnvelopeMessage(envelope)).toBe('Conflict occurred');
-  });
-
-  it('should fall back to main message when conflict causes array is empty', () => {
-    const envelope: ApiErrorEnvelope = {
-      error: {
-        code: '409',
-        message: 'Conflict occurred',
-        cause: {
-          // eslint-disable-next-line camelcase
-          conflict_cause: [],
-        },
-      },
-    };
-
-    expect(extractErrorEnvelopeMessage(envelope)).toBe('Conflict occurred');
-  });
-});
-
 describe('extractValidationErrors', () => {
   it('should return validation errors when present', () => {
     const envelope: ApiErrorEnvelope = {
@@ -300,13 +154,13 @@ describe('extractValidationErrors', () => {
       },
     };
 
-    const errors = extractValidationErrors(envelope);
+    const errors = extractValidationErrors(envelope) ?? [];
     expect(errors).toHaveLength(2);
     expect(errors[0].field).toBe('name');
     expect(errors[1].field).toBe('email');
   });
 
-  it('should return empty array when no validation errors', () => {
+  it('should return undefined when no validation errors', () => {
     const envelope: ApiErrorEnvelope = {
       error: {
         code: '400',
@@ -314,10 +168,10 @@ describe('extractValidationErrors', () => {
       },
     };
 
-    expect(extractValidationErrors(envelope)).toEqual([]);
+    expect(extractValidationErrors(envelope)).toBeUndefined();
   });
 
-  it('should return empty array when cause exists but no validation errors', () => {
+  it('should return undefined when cause exists but no validation errors', () => {
     const envelope: ApiErrorEnvelope = {
       error: {
         code: '409',
@@ -329,7 +183,7 @@ describe('extractValidationErrors', () => {
       },
     };
 
-    expect(extractValidationErrors(envelope)).toEqual([]);
+    expect(extractValidationErrors(envelope)).toBeUndefined();
   });
 });
 
@@ -346,13 +200,13 @@ describe('extractConflictCauses', () => {
       },
     };
 
-    const causes = extractConflictCauses(envelope);
+    const causes = extractConflictCauses(envelope) ?? [];
     expect(causes).toHaveLength(2);
     expect(causes[0].message).toBe('Resource already exists');
     expect(causes[1].message).toBe('Name is taken');
   });
 
-  it('should return empty array when no conflict causes', () => {
+  it('should return undefined when no conflict causes', () => {
     const envelope: ApiErrorEnvelope = {
       error: {
         code: '400',
@@ -360,10 +214,10 @@ describe('extractConflictCauses', () => {
       },
     };
 
-    expect(extractConflictCauses(envelope)).toEqual([]);
+    expect(extractConflictCauses(envelope)).toBeUndefined();
   });
 
-  it('should return empty array when cause exists but no conflict causes', () => {
+  it('should return undefined when cause exists but no conflict causes', () => {
     const envelope: ApiErrorEnvelope = {
       error: {
         code: '422',
@@ -377,6 +231,76 @@ describe('extractConflictCauses', () => {
       },
     };
 
-    expect(extractConflictCauses(envelope)).toEqual([]);
+    expect(extractConflictCauses(envelope)).toBeUndefined();
+  });
+});
+
+describe('formatValidationErrorMessages', () => {
+  it('should format validation errors with message and field', () => {
+    const envelope: ApiErrorEnvelope = {
+      error: {
+        code: '422',
+        message: 'Validation failed',
+        cause: {
+          // eslint-disable-next-line camelcase
+          validation_errors: [
+            { type: FieldErrorType.ErrorTypeRequired, field: 'name', message: 'Name is required' },
+            { type: FieldErrorType.ErrorTypeInvalid, field: 'email', message: 'Invalid email' },
+            { type: FieldErrorType.ErrorTypeInvalid, message: 'Unknown field' },
+          ],
+        },
+      },
+    };
+
+    expect(formatValidationErrorMessages(envelope)).toEqual([
+      'Name is required: name',
+      'Invalid email: email',
+      'Unknown field',
+    ]);
+  });
+
+  it('should return empty array when no validation errors', () => {
+    const envelope: ApiErrorEnvelope = {
+      error: {
+        code: '400',
+        message: 'Bad request',
+      },
+    };
+
+    expect(formatValidationErrorMessages(envelope)).toEqual([]);
+  });
+});
+
+describe('formatConflictErrorMessages', () => {
+  it('should format conflict errors with message and origin', () => {
+    const envelope: ApiErrorEnvelope = {
+      error: {
+        code: '409',
+        message: 'Conflict occurred',
+        cause: {
+          // eslint-disable-next-line camelcase
+          conflict_cause: [
+            { message: 'Resource exists', origin: ApiErrorCauseOrigin.OriginKubernetes },
+            { message: 'Name taken' },
+          ],
+        },
+      },
+    };
+
+    expect(formatConflictErrorMessages(envelope)).toEqual([
+      'Resource exists (KUBERNETES)',
+      'Name taken',
+    ]);
+  });
+
+  it('should return empty array when no conflict causes', () => {
+    const envelope: ApiErrorEnvelope = {
+      error: {
+        code: '400',
+        message: 'Bad request',
+      },
+    };
+
+    expect(formatConflictErrorMessages(envelope)).toEqual([]);
   });
 });

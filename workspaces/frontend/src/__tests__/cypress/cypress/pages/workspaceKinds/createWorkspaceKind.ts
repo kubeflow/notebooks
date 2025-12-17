@@ -34,16 +34,12 @@ class CreateWorkspaceKind {
     return cy.findByTestId('cancel-button');
   }
 
-  findValidationErrorAlert() {
-    return cy.findByTestId('validation-error-alert');
-  }
-
   findErrorAlert() {
     return cy.findByTestId('workspace-kind-form-error');
   }
 
   assertErrorAlertContainsMessage(message: string) {
-    cy.findByTestId('workspace-kind-form-error-message').should('have.text', `Error: ${message}`);
+    cy.findByTestId('workspace-kind-form-error-message').should('have.text', message);
   }
 
   findFormPropertiesSection() {
@@ -96,16 +92,6 @@ class CreateWorkspaceKind {
 
   assertSubmitButtonDisabled() {
     this.findSubmitButton().should('be.disabled');
-    return this;
-  }
-
-  assertValidationErrorExists() {
-    this.findValidationErrorAlert().should('exist');
-    return this;
-  }
-
-  assertValidationErrorNotExists() {
-    this.findValidationErrorAlert().should('not.exist');
     return this;
   }
 

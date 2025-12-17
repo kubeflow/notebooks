@@ -9,6 +9,7 @@ import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { useTypedNavigate } from '~/app/routerHelper';
 import { ErrorPopover } from '~/shared/components/ErrorPopover';
 import { RouteStateMap } from '~/app/routes';
+import { ApiErrorEnvelope } from '~/generated/data-contracts';
 
 export interface WorkspaceKindDetailsTableRow {
   id: string;
@@ -21,7 +22,7 @@ export interface WorkspaceKindDetailsTableRow {
 interface WorkspaceKindDetailsTableProps {
   rows: WorkspaceKindDetailsTableRow[];
   tableKind: 'image' | 'podConfig' | 'namespace';
-  workspaceCountError: string | null;
+  workspaceCountError: string | ApiErrorEnvelope | null;
 }
 
 export const WorkspaceKindDetailsTable: React.FC<WorkspaceKindDetailsTableProps> = ({
@@ -73,7 +74,7 @@ export const WorkspaceKindDetailsTable: React.FC<WorkspaceKindDetailsTableProps>
                 {workspaceCountError ? (
                   <ErrorPopover
                     title="Failed to load workspace counts"
-                    message={workspaceCountError}
+                    content={workspaceCountError}
                   />
                 ) : (
                   <Button

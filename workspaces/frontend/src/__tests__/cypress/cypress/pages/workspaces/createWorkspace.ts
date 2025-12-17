@@ -140,7 +140,7 @@ class CreateWorkspace {
   }
 
   assertErrorAlertContainsMessage(message: string) {
-    cy.findByTestId('workspace-form-error-message').should('have.text', `Error: ${message}`);
+    cy.findByTestId('workspace-form-error-message').should('have.text', message);
   }
 }
 

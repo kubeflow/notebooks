@@ -301,7 +301,7 @@ class DeleteModal {
   }
 
   assertErrorAlertContainsMessage(message: string) {
-    this.find().findByTestId('delete-modal-error-message').should('have.text', `Error: ${message}`);
+    this.find().findByTestId('delete-modal-error-message').should('have.text', message);
   }
 
   assertSubmitButtonEnabled() {
@@ -335,7 +335,7 @@ class StartModal {
   }
 
   assertErrorAlertContainsMessage(message: string) {
-    this.find().findByTestId('start-modal-error-message').should('have.text', `Error: ${message}`);
+    this.find().findByTestId('start-modal-error-message').should('have.text', message);
   }
 }
 
@@ -365,7 +365,7 @@ class StopModal {
   }
 
   assertErrorAlertContainsMessage(message: string) {
-    this.find().findByTestId('stop-modal-error-message').should('have.text', `Error: ${message}`);
+    this.find().findByTestId('stop-modal-error-message').should('have.text', message);
   }
 }
 

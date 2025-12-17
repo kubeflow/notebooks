@@ -12,7 +12,11 @@ import { useNotification } from 'mod-arch-core';
 import { WorkspaceRedirectInformationView } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRedirectInformationView';
 import { ActionButton } from '~/shared/components/ActionButton';
 import { ErrorAlert } from '~/shared/components/ErrorAlert';
-import { ApiWorkspaceActionPauseEnvelope, WorkspacesWorkspace } from '~/generated/data-contracts';
+import {
+  ApiErrorEnvelope,
+  ApiWorkspaceActionPauseEnvelope,
+  WorkspacesWorkspace,
+} from '~/generated/data-contracts';
 import { extractErrorMessage } from '~/shared/api/apiUtils';
 
 interface StartActionAlertProps {
@@ -36,7 +40,7 @@ export const WorkspaceStartActionModal: React.FC<StartActionAlertProps> = ({
 }) => {
   const notification = useNotification();
   const [actionOnGoing, setActionOnGoing] = useState<StartAction | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | ApiErrorEnvelope | null>(null);
 
   const executeAction = useCallback(
     async <T,>({
@@ -105,7 +109,7 @@ export const WorkspaceStartActionModal: React.FC<StartActionAlertProps> = ({
             <StackItem>
               <ErrorAlert
                 title="Failed to start workspace"
-                message={error}
+                content={error}
                 testId="start-modal-error"
               />
             </StackItem>

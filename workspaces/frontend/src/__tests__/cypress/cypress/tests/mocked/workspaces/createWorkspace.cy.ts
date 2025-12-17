@@ -263,7 +263,7 @@ describe('Create workspace', () => {
 
       cy.wait('@createWorkspaceError');
 
-      createWorkspace.assertErrorAlertContainsMessage('An internal server error occurred');
+      createWorkspace.assertErrorAlertContainsMessage('Error: An internal server error occurred');
 
       createWorkspace.verifyPageURL();
     });

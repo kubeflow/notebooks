@@ -8,7 +8,7 @@ import {
   mockWorkspaceKind1,
   mockWorkspaceKinds,
 } from '~/shared/mock/mockNotebookServiceData';
-import { buildAxiosError, isInvalidYaml } from '~/shared/mock/mockUtils';
+import { buildAxiosError, isInvalidWorkspace, isInvalidYaml } from '~/shared/mock/mockUtils';
 
 const delay = (ms: number) =>
   new Promise((resolve) => {
@@ -30,7 +30,28 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
     getWorkspace: async (namespace, workspace) => ({
       data: mockAllWorkspaces.find((w) => w.name === workspace && w.namespace === namespace)!,
     }),
-    createWorkspace: async () => ({ data: mockWorkspace1 }),
+    createWorkspace: async (_namespace, body) => {
+      if (isInvalidWorkspace(body.data)) {
+        const apiErrorEnvelope: ApiErrorEnvelope = {
+          error: {
+            code: 'invalid_name',
+            message: 'Invalid name',
+            cause: {
+              // eslint-disable-next-line camelcase
+              validation_errors: [
+                {
+                  type: FieldErrorType.ErrorTypeInvalid,
+                  field: 'name',
+                  message: 'Invalid field',
+                },
+              ],
+            },
+          },
+        };
+        throw buildAxiosError(apiErrorEnvelope);
+      }
+      return { data: mockWorkspace1 };
+    },
     deleteWorkspace: async () => {
       await delay(1500);
     },

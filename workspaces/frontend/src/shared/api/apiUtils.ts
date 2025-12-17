@@ -15,7 +15,7 @@ const HTTP_STATUS_MESSAGES: Record<number, string> = {
   500: 'An internal server error occurred. Please try again later.',
 };
 
-function isApiErrorEnvelope(data: unknown): data is ApiErrorEnvelope {
+export function isApiErrorEnvelope(data: unknown): data is ApiErrorEnvelope {
   if (typeof data !== 'object' || data === null || !('error' in data)) {
     return false;
   }
@@ -46,48 +46,51 @@ export async function safeApiCall<T>(fn: () => Promise<T>): Promise<ApiCallResul
   }
 }
 
-function formatConflictCauses(conflictCauses: ApiConflictError[]): string | null {
-  const messages = conflictCauses
-    .map((cause) => cause.message)
-    .filter((message): message is string => Boolean(message));
+export function extractValidationErrors(
+  errorEnvelope: ApiErrorEnvelope,
+): ApiValidationError[] | undefined {
+  return errorEnvelope.error.cause?.validation_errors;
+}
 
-  if (messages.length === 0) {
-    return null;
+export function extractConflictCauses(
+  errorEnvelope: ApiErrorEnvelope,
+): ApiConflictError[] | undefined {
+  return errorEnvelope.error.cause?.conflict_cause;
+}
+
+export function formatValidationErrorMessages(errorEnvelope: ApiErrorEnvelope): string[] {
+  const errors = extractValidationErrors(errorEnvelope) ?? [];
+  return errors
+    .map((error) => [error.message, error.field].filter(Boolean).join(': '))
+    .filter((text) => text.length > 0);
+}
+
+export function formatConflictErrorMessages(errorEnvelope: ApiErrorEnvelope): string[] {
+  const errors = extractConflictCauses(errorEnvelope) ?? [];
+  return errors
+    .map((error) => {
+      const parts = [];
+      if (error.message) {
+        parts.push(error.message);
+      }
+      if (error.origin) {
+        parts.push(`(${error.origin})`);
+      }
+      return parts.join(' ');
+    })
+    .filter((text) => text.length > 0);
+}
+
+export function extractErrorMessage(error: unknown | ApiErrorEnvelope): string | ApiErrorEnvelope {
+  if (isApiErrorEnvelope(error)) {
+    return error;
   }
 
-  if (messages.length === 1) {
-    return messages[0];
-  }
-
-  return messages.map((msg) => `• ${msg}`).join('\n');
-}
-
-export function extractValidationErrors(errorEnvelope: ApiErrorEnvelope): ApiValidationError[] {
-  return errorEnvelope.error.cause?.validation_errors ?? [];
-}
-
-export function extractConflictCauses(errorEnvelope: ApiErrorEnvelope): ApiConflictError[] {
-  return errorEnvelope.error.cause?.conflict_cause ?? [];
-}
-
-export function extractErrorEnvelopeMessage(errorEnvelope: ApiErrorEnvelope): string {
-  const conflictCauses = extractConflictCauses(errorEnvelope);
-  if (conflictCauses.length > 0) {
-    const conflictDetails = formatConflictCauses(conflictCauses);
-    if (conflictDetails) {
-      return conflictDetails;
-    }
-  }
-
-  return errorEnvelope.error.message;
-}
-
-export function extractErrorMessage(error: unknown): string {
   if (axios.isAxiosError<ApiErrorEnvelope>(error)) {
     const responseData = error.response?.data;
 
     if (responseData && isApiErrorEnvelope(responseData)) {
-      return extractErrorEnvelopeMessage(responseData);
+      return responseData;
     }
 
     // Fall back to status-based message

@@ -30,6 +30,7 @@ import { WorkspaceFormData } from '~/app/types';
 import useWorkspaceFormData from '~/app/hooks/useWorkspaceFormData';
 import { useTypedNavigate } from '~/app/routerHelper';
 import {
+  ApiErrorEnvelope,
   WorkspacekindsImageConfigValue,
   WorkspacekindsPodConfigValue,
   WorkspacekindsWorkspaceKind,
@@ -75,7 +76,7 @@ const WorkspaceForm: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(WorkspaceFormSteps.KindSelection);
   const [drawerExpanded, setDrawerExpanded] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | ApiErrorEnvelope | null>(null);
 
   const [data, setData, resetData, replaceData] =
     useGenericObjectState<WorkspaceFormData>(initialFormData);
@@ -354,7 +355,7 @@ const WorkspaceForm: React.FC = () => {
                     <StackItem>
                       <ErrorAlert
                         title={`Failed to ${mode === 'create' ? 'create' : 'edit'} workspace`}
-                        message={error}
+                        content={error}
                         testId="workspace-form-error"
                       />
                     </StackItem>

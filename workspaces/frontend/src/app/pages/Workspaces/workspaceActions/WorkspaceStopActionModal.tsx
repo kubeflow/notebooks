@@ -13,7 +13,11 @@ import { useNotification } from 'mod-arch-core';
 import { WorkspaceRedirectInformationView } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRedirectInformationView';
 import { ActionButton } from '~/shared/components/ActionButton';
 import { ErrorAlert } from '~/shared/components/ErrorAlert';
-import { ApiWorkspaceActionPauseEnvelope, WorkspacesWorkspace } from '~/generated/data-contracts';
+import {
+  ApiErrorEnvelope,
+  ApiWorkspaceActionPauseEnvelope,
+  WorkspacesWorkspace,
+} from '~/generated/data-contracts';
 import { extractErrorMessage } from '~/shared/api/apiUtils';
 
 interface StopActionAlertProps {
@@ -38,7 +42,7 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
   const notification = useNotification();
   const workspacePendingUpdate = workspace?.pendingRestart;
   const [actionOnGoing, setActionOnGoing] = useState<StopAction | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | ApiErrorEnvelope | null>(null);
 
   const executeAction = useCallback(
     async <T,>({
@@ -104,7 +108,7 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
             <StackItem>
               <ErrorAlert
                 title="Failed to stop workspace"
-                message={error}
+                content={error}
                 testId="stop-modal-error"
               />
             </StackItem>

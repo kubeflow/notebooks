@@ -15,6 +15,7 @@ import { default as ExclamationCircleIcon } from '@patternfly/react-icons/dist/e
 import { ActionButton } from '~/shared/components/ActionButton';
 import { ErrorAlert } from '~/shared/components/ErrorAlert';
 import { extractErrorMessage } from '~/shared/api/apiUtils';
+import { ApiErrorEnvelope } from '~/generated/data-contracts';
 
 interface DeleteModalProps {
   isOpen: boolean;
@@ -35,7 +36,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | ApiErrorEnvelope | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -82,7 +83,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
             <StackItem>
               <ErrorAlert
                 title="Failed to delete workspace"
-                message={error}
+                content={error}
                 testId="delete-modal-error"
               />
             </StackItem>

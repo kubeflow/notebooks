@@ -117,7 +117,7 @@ describe('Create workspace kind', () => {
       createWorkspaceKind.clickSubmit();
       cy.wait('@createWorkspaceKindServerError');
 
-      createWorkspaceKind.assertErrorAlertContainsMessage('Internal server error');
+      createWorkspaceKind.assertErrorAlertContainsMessage('Error: Internal server error');
 
       createWorkspaceKind.verifyPageURL();
     });
@@ -184,7 +184,7 @@ describe('Create workspace kind', () => {
       cy.wait('@createWorkspaceKindError').then((interception) => {
         expect(interception.response?.statusCode).to.be.equal(400);
       });
-      createWorkspaceKind.assertValidationErrorExists();
+      createWorkspaceKind.assertErrorAlertContainsMessage('Name is required: metadata.name');
     });
 
     it('should display error for missing required fields', () => {
@@ -215,7 +215,9 @@ describe('Create workspace kind', () => {
       cy.wait('@createWorkspaceKindMissingField').then((interception) => {
         expect(interception.response?.statusCode).to.be.equal(400);
       });
-      createWorkspaceKind.assertValidationErrorExists();
+      createWorkspaceKind.assertErrorAlertContainsMessage(
+        'Display name is required: spec.displayName',
+      );
     });
 
     it('should disable submit button when YAML is empty', () => {
@@ -260,9 +262,8 @@ describe('Create workspace kind', () => {
       createWorkspaceKind.clickSubmit();
       cy.wait('@createWorkspaceKindError');
 
-      createWorkspaceKind.assertValidationErrorExists();
+      createWorkspaceKind.assertErrorAlertContainsMessage('Name is required: metadata.name');
       createWorkspaceKind.uploadYamlContent(validWorkspaceKindYaml);
-      createWorkspaceKind.assertValidationErrorNotExists();
     });
   });
 });

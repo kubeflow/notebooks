@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspaceCountPerOption } from '~/app/types';
-import { WorkspacekindsWorkspaceKind, WorkspacesWorkspace } from '~/generated/data-contracts';
+import {
+  ApiErrorEnvelope,
+  WorkspacekindsWorkspaceKind,
+  WorkspacesWorkspace,
+} from '~/generated/data-contracts';
 import { NotebookApis } from '~/shared/api/notebookApi';
 import { extractErrorMessage } from '~/shared/api/apiUtils';
 
@@ -11,13 +15,13 @@ export type WorkspaceCountPerKind = Partial<
 
 export type WorkspaceCountResult = {
   workspaceCountPerKind: WorkspaceCountPerKind;
-  error: string | null;
+  error: string | ApiErrorEnvelope | null;
 };
 
 export const useWorkspaceCountPerKind = (): WorkspaceCountResult => {
   const { api } = useNotebookAPI();
   const [workspaceCountPerKind, setWorkspaceCountPerKind] = useState<WorkspaceCountPerKind>({});
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | ApiErrorEnvelope | null>(null);
 
   useEffect(() => {
     const fetchAndSetCounts = async () => {

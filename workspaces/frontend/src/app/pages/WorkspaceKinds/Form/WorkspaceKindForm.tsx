@@ -5,24 +5,18 @@ import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { PageGroup, PageSection } from '@patternfly/react-core/dist/esm/components/Page';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import { useNotification } from 'mod-arch-core';
-import { ValidationErrorAlert } from '~/app/components/ValidationErrorAlert';
 import useWorkspaceKindByName from '~/app/hooks/useWorkspaceKindByName';
 import { useTypedNavigate, useTypedParams } from '~/app/routerHelper';
 import { useCurrentRouteKey } from '~/app/hooks/useCurrentRouteKey';
 import useGenericObjectState from '~/app/hooks/useGenericObjectState';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspaceKindFormData } from '~/app/types';
-import {
-  extractErrorEnvelopeMessage,
-  extractErrorMessage,
-  extractValidationErrors,
-  safeApiCall,
-} from '~/shared/api/apiUtils';
+import { extractErrorMessage, safeApiCall } from '~/shared/api/apiUtils';
 import { ErrorAlert } from '~/shared/components/ErrorAlert';
 import { CONTENT_TYPE_KEY } from '~/shared/utilities/const';
 import { ContentType } from '~/shared/utilities/types';
 import { LoadError } from '~/app/components/LoadError';
-import { ApiValidationError, WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
+import { ApiErrorEnvelope, WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
 import { WorkspaceKindFileUpload } from './fileUpload/WorkspaceKindFileUpload';
 import { WorkspaceKindFormProperties } from './properties/WorkspaceKindFormProperties';
 import { WorkspaceKindFormImage } from './image/WorkspaceKindFormImage';
@@ -59,8 +53,7 @@ export const WorkspaceKindForm: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validated, setValidated] = useState<ValidationStatus>('default');
   const mode: FormMode = useCurrentRouteKey() === 'workspaceKindCreate' ? 'create' : 'edit';
-  const [specErrors, setSpecErrors] = useState<ApiValidationError[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | ApiErrorEnvelope | null>(null);
 
   const routeParams = useTypedParams<'workspaceKindEdit' | 'workspaceKindCreate'>();
   const [initialFormData, initialFormDataLoaded, initialFormDataError] = useWorkspaceKindByName(
@@ -92,21 +85,14 @@ export const WorkspaceKindForm: React.FC = () => {
           }),
         );
 
-        if (createResult.ok) {
-          notification.success(
-            `Workspace kind '${createResult.result.data.name}' created successfully`,
-          );
-          navigate('workspaceKinds');
-        } else {
-          const validationErrors = extractValidationErrors(createResult.errorEnvelope);
-          if (validationErrors.length > 0) {
-            setSpecErrors((prev) => [...prev, ...validationErrors]);
-            setValidated('error');
-            return;
-          }
-          setError(extractErrorEnvelopeMessage(createResult.errorEnvelope));
-          setValidated('error');
+        if (!createResult.ok) {
+          throw createResult.errorEnvelope;
         }
+
+        notification.success(
+          `Workspace kind '${createResult.result.data.name}' created successfully`,
+        );
+        navigate('workspaceKinds');
       }
       // TODO: Finish when WSKind API is finalized
       // const updatedWorkspace = await api.updateWorkspaceKind({}, kind, { data: {} });
@@ -114,6 +100,7 @@ export const WorkspaceKindForm: React.FC = () => {
       // navigate('workspaceKinds');
     } catch (err) {
       setError(extractErrorMessage(err));
+      setValidated('error');
     } finally {
       setIsSubmitting(false);
     }
@@ -158,14 +145,9 @@ export const WorkspaceKindForm: React.FC = () => {
             <StackItem>
               <ErrorAlert
                 title={`Failed to ${mode === 'edit' ? 'edit' : 'create'} workspace kind`}
-                message={error}
+                content={error}
                 testId="workspace-kind-form-error"
               />
-            </StackItem>
-          )}
-          {mode === 'create' && specErrors.length > 0 && (
-            <StackItem>
-              <ValidationErrorAlert title="Error creating workspace kind" errors={specErrors} />
             </StackItem>
           )}
           {mode === 'create' && (
@@ -177,7 +159,6 @@ export const WorkspaceKindForm: React.FC = () => {
                 validated={validated}
                 setValidated={setValidated}
                 onClear={() => {
-                  setSpecErrors([]);
                   setError(null);
                 }}
               />

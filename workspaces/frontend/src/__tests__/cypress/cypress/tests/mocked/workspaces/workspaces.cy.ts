@@ -777,7 +777,7 @@ describe('Workspaces', () => {
         cy.wait('@deleteWorkspaceError');
 
         deleteModal.assertModalExists();
-        deleteModal.assertErrorAlertContainsMessage('Failed to delete workspace');
+        deleteModal.assertErrorAlertContainsMessage('Error: Failed to delete workspace');
       });
     });
 
@@ -843,7 +843,7 @@ describe('Workspaces', () => {
         cy.wait('@startWorkspaceError');
 
         startModal.assertModalExists();
-        startModal.assertErrorAlertContainsMessage('Failed to start workspace');
+        startModal.assertErrorAlertContainsMessage('Error: Failed to start workspace');
       });
     });
 
@@ -909,7 +909,7 @@ describe('Workspaces', () => {
         cy.wait('@stopWorkspaceError');
 
         stopModal.assertModalExists();
-        stopModal.assertErrorAlertContainsMessage('Failed to stop workspace');
+        stopModal.assertErrorAlertContainsMessage('Error: Failed to stop workspace');
       });
     });
 
