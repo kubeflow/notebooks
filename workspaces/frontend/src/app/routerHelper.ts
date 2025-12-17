@@ -16,6 +16,7 @@ import {
   RouteSearchParamsMap,
   RouteStateMap,
 } from '~/app/routes';
+import { ROUTES_PREFIX } from '~/shared/utilities/const';
 
 type OptionalRouteParams<T extends AppRouteKey> = RouteParamsMap[T] extends undefined
   ? object
@@ -177,7 +178,7 @@ export function useTypedNavigate() {
     const query = 'searchParams' in opts ? buildSearchParams(opts.searchParams) : '';
     const path = 'params' in opts ? buildPath(to, opts.params) : pathTemplate;
     const state = 'state' in opts ? opts.state : undefined;
-    const fullPath = path + query;
+    const fullPath = ROUTES_PREFIX + path + query;
 
     const navigationOptions = {
       ...(state !== undefined && { state }),
