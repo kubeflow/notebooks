@@ -37,7 +37,7 @@ type SecretEnvelope Envelope[*models.SecretUpdate]
 type SecretListEnvelope Envelope[[]models.SecretListItem]
 type SecretCreateEnvelope Envelope[*models.SecretCreate]
 
-// GetSecretsHandler returns a list of all secrets in a namespace.
+// GetSecretsByNamespaceHandler returns a list of all secrets in a namespace.
 //
 //	@Summary		Returns a list of all secrets in a namespace
 //	@Description	Provides a list of all secrets that the user has access to in the specified namespace
@@ -172,15 +172,20 @@ func (a *App) GetSecretHandler(w http.ResponseWriter, r *http.Request, ps httpro
 func (a *App) CreateSecretHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(NamespacePathParam)
 
+	// validate path parameters
 	var valErrs field.ErrorList
 	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
-
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
 	}
 
-	// Parse request body
+	// validate the Content-Type header
+	if success := a.ValidateContentType(w, r, MediaTypeJson); !success {
+		return
+	}
+
+	// parse request body
 	bodyEnvelope := &SecretCreateEnvelope{}
 	err := a.DecodeJSON(r, bodyEnvelope)
 	if err != nil {
@@ -198,7 +203,7 @@ func (a *App) CreateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	// Validate the request body
+	// validate the request body
 	dataPath := field.NewPath("data")
 	if bodyEnvelope.Data == nil {
 		valErrs := field.ErrorList{field.Required(dataPath, "data is required")}
@@ -211,6 +216,7 @@ func (a *App) CreateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
+	// give the request data a clear name
 	secretCreate := bodyEnvelope.Data
 
 	// =========================== AUTH ===========================
@@ -230,7 +236,8 @@ func (a *App) CreateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 	}
 	// ============================================================
 
-	secret, err := a.repositories.Secret.CreateSecret(r.Context(), namespace, secretCreate)
+	// create the secret
+	secret, err := a.repositories.Secret.CreateSecret(r.Context(), secretCreate, namespace)
 	if err != nil {
 		if errors.Is(err, repository.ErrSecretAlreadyExists) {
 			causes := helper.StatusCausesFromAPIStatus(err)
@@ -300,7 +307,12 @@ func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 	}
 	// ============================================================
 
-	// Parse request body
+	// validate the Content-Type header
+	if success := a.ValidateContentType(w, r, MediaTypeJson); !success {
+		return
+	}
+
+	// parse request body
 	bodyEnvelope := &SecretEnvelope{}
 	err := a.DecodeJSON(r, bodyEnvelope)
 	if err != nil {
@@ -331,7 +343,10 @@ func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	secret, err := a.repositories.Secret.UpdateSecret(r.Context(), namespace, secretName, bodyEnvelope.Data)
+	// give the request data a clear name
+	secretUpdate := bodyEnvelope.Data
+
+	secret, err := a.repositories.Secret.UpdateSecret(r.Context(), secretUpdate, namespace, secretName)
 	if err != nil {
 		if errors.Is(err, repository.ErrSecretNotFound) {
 			a.notFoundResponse(w, r)

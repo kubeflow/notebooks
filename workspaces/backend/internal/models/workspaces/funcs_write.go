@@ -108,9 +108,9 @@ func extractSecretMounts(ws *kubefloworgv1beta1.Workspace) []PodSecretMount {
 	return secretMounts
 }
 
-// CalculateWorkspaceRevision calculates the revision token for a workspace.
-// The revision is a sha256 hash of the format: <.metadata.uid>:<.metadata.name>:<.metadata.generation>
-// This ensures that the revision changes not only when the generation changes, but also guarantees
+// CalculateWorkspaceRevision calculates the revision/etag for a workspace.
+// FORMAT: hex(sha256("<WORKSPACE_UUID>:<WORKSPACE_NAME>:<WORKSPACE_GENERATION>"))
+// this detects changes to the `spec` of the workspace, while also ensuring
 // that the resource itself is the same (via UID and name).
 func CalculateWorkspaceRevision(workspace *kubefloworgv1beta1.Workspace) string {
 	revisionInput := fmt.Sprintf("%s:%s:%d", workspace.UID, workspace.Name, workspace.Generation)

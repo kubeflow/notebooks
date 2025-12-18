@@ -73,7 +73,6 @@ type PodMetadata struct {
 	Annotations map[string]string `json:"annotations"`
 }
 
-// TODO: determine proper use of omitempty for PodVolumes
 type PodVolumes struct {
 	Home    *PodVolumeInfo  `json:"home,omitempty"`
 	Data    []PodVolumeInfo `json:"data"`

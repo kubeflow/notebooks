@@ -49,6 +49,8 @@ type SecretUpdate struct {
 }
 
 // NewSecretCreate creates a new SecretCreate with the specified fields.
+// TODO: remove this function, as its not used in real code, only tests
+// also because we should not need the "secretBase" field in the constructor
 func NewSecretCreate(name, secretType string, immutable bool, contents SecretData) SecretCreate {
 	return SecretCreate{
 		Name: name,
@@ -61,6 +63,8 @@ func NewSecretCreate(name, secretType string, immutable bool, contents SecretDat
 }
 
 // NewSecretUpdate creates a new SecretUpdate with the specified fields.
+// TODO: remove this function, as its not used in real code, only tests
+// also because we should not need the "secretBase" field in the constructor
 func NewSecretUpdate(secretType string, immutable bool, contents SecretData) SecretUpdate {
 	return SecretUpdate{
 		secretBase: secretBase{

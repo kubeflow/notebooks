@@ -22,9 +22,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	AnnotationCreatedBy = "notebooks.kubeflow.org/created-by"
+	AnnotationUpdatedAt = "notebooks.kubeflow.org/updated-at"
+	AnnotationUpdatedBy = "notebooks.kubeflow.org/updated-by"
+
+	LabelCanMount  = "notebooks.kubeflow.org/can-mount"
+	LabelCanUpdate = "notebooks.kubeflow.org/can-update"
+)
+
 // NewAuditFromObjectMeta creates an Audit instance from Kubernetes ObjectMeta.
-// It extracts audit information from annotations, falling back to Kubernetes
-// creation timestamp when annotations are not available.
 func NewAuditFromObjectMeta(objectMeta *metav1.ObjectMeta) Audit {
 	audit := Audit{}
 	if objectMeta == nil {
@@ -48,4 +55,33 @@ func NewAuditFromObjectMeta(objectMeta *metav1.ObjectMeta) Audit {
 	}
 
 	return audit
+}
+
+// UpdateObjectMetaForCreate updates the ObjectMeta for a create operation.
+func UpdateObjectMetaForCreate(objectMeta *metav1.ObjectMeta, actor string) {
+	// we only use pointers to avoid copying the entire object
+	if objectMeta == nil {
+		panic("objectMeta cannot be nil")
+	}
+
+	if objectMeta.Annotations == nil {
+		objectMeta.Annotations = make(map[string]string)
+	}
+	objectMeta.Annotations[AnnotationCreatedBy] = actor
+	objectMeta.Annotations[AnnotationUpdatedAt] = objectMeta.CreationTimestamp.Format(time.RFC3339)
+	objectMeta.Annotations[AnnotationUpdatedBy] = actor
+}
+
+// UpdateObjectMetaForUpdate updates the ObjectMeta for an update operation.
+func UpdateObjectMetaForUpdate(objectMeta *metav1.ObjectMeta, actor string, now time.Time) {
+	// we only use pointers to avoid copying the entire object
+	if objectMeta == nil {
+		panic("objectMeta cannot be nil")
+	}
+
+	if objectMeta.Annotations == nil {
+		objectMeta.Annotations = make(map[string]string)
+	}
+	objectMeta.Annotations[AnnotationUpdatedAt] = now.Format(time.RFC3339)
+	objectMeta.Annotations[AnnotationUpdatedBy] = actor
 }

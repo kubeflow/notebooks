@@ -20,14 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	AnnotationCreatedBy = "notebooks.kubeflow.org/created-by"
-	AnnotationUpdatedAt = "notebooks.kubeflow.org/updated-at"
-	AnnotationUpdatedBy = "notebooks.kubeflow.org/updated-by"
-	LabelCanMount       = "notebooks.kubeflow.org/can-mount"
-	LabelCanUpdate      = "notebooks.kubeflow.org/can-update"
-)
-
 // Audit represents audit information for resources
 type Audit struct {
 	CreatedAt metav1.Time  `json:"createdAt"`

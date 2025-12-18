@@ -1063,7 +1063,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Successful operation. Returns the requested workspace details with revision.",
+                        "description": "Successful operation. Returns the requested workspace details with new revision.",
                         "schema": {
                             "$ref": "#/definitions/api.WorkspaceEnvelope"
                         }
@@ -2528,7 +2528,7 @@ const docTemplate = `{
                     "$ref": "#/definitions/workspaces.PodTemplateMutate"
                 },
                 "revision": {
-                    "description": "Revision is an opaque token for optimistic locking.\nClients receive this value from GET requests and must include it\nin PATCH requests to ensure they are updating the expected version.\nClients must not parse, interpret, or compare revision values.",
+                    "description": "Revision is an opaque token that can be treated like an etag.\n- Clients receive this value from GET requests and must include it\n  in update requests to ensure they are updating the expected version.\n- Clients must not parse, interpret, or compare revision values\n  other than for equality, as the format is not guaranteed to be stable.",
                     "type": "string"
                 }
             }

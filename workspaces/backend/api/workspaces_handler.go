@@ -49,7 +49,7 @@ type WorkspaceListEnvelope Envelope[[]models.WorkspaceListItem]
 //	@Produce		json
 //	@Param			namespace		path		string				true	"Namespace of the workspace"	extensions(x-example=kubeflow-user-example-com)
 //	@Param			workspace_name	path		string				true	"Name of the workspace"			extensions(x-example=my-workspace)
-//	@Success		200				{object}	WorkspaceEnvelope	"Successful operation. Returns the requested workspace details with revision."
+//	@Success		200				{object}	WorkspaceEnvelope	"Successful operation. Returns the requested workspace details with new revision."
 //	@Failure		401				{object}	ErrorEnvelope		"Unauthorized. Authentication is required."
 //	@Failure		403				{object}	ErrorEnvelope		"Forbidden. User does not have permission to access the workspace."
 //	@Failure		404				{object}	ErrorEnvelope		"Not Found. Workspace does not exist."
@@ -60,6 +60,7 @@ func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps htt
 	namespace := ps.ByName(NamespacePathParam)
 	workspaceName := ps.ByName(ResourceNamePathParam)
 
+	// validate path parameters
 	var valErrs field.ErrorList
 	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
 	valErrs = append(valErrs, helper.ValidateWorkspaceName(field.NewPath(ResourceNamePathParam), workspaceName)...)
@@ -205,6 +206,7 @@ func (a *App) getWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps ht
 func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(NamespacePathParam)
 
+	// validate path parameters
 	var valErrs field.ErrorList
 	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
 	if len(valErrs) > 0 {
@@ -212,10 +214,12 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 		return
 	}
 
+	// validate the Content-Type header
 	if success := a.ValidateContentType(w, r, MediaTypeJson); !success {
 		return
 	}
 
+	// decode the request body
 	bodyEnvelope := &WorkspaceCreateEnvelope{}
 	err := a.DecodeJSON(r, bodyEnvelope)
 	if err != nil {
@@ -233,6 +237,7 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 		return
 	}
 
+	// validate the request body
 	dataPath := field.NewPath("data")
 	if bodyEnvelope.Data == nil {
 		valErrs = field.ErrorList{field.Required(dataPath, "data is required")}
@@ -245,6 +250,7 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 		return
 	}
 
+	// give the request data a clear name
 	workspaceCreate := bodyEnvelope.Data
 
 	// =========================== AUTH ===========================
@@ -312,6 +318,7 @@ func (a *App) UpdateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 	namespace := ps.ByName(NamespacePathParam)
 	workspaceName := ps.ByName(ResourceNamePathParam)
 
+	// validate path parameters
 	var valErrs field.ErrorList
 	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
 	valErrs = append(valErrs, helper.ValidateWorkspaceName(field.NewPath(ResourceNamePathParam), workspaceName)...)
@@ -319,40 +326,6 @@ func (a *App) UpdateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
 	}
-
-	if success := a.ValidateContentType(w, r, "application/json"); !success {
-		return
-	}
-
-	bodyEnvelope := &WorkspaceEnvelope{}
-	err := a.DecodeJSON(r, bodyEnvelope)
-	if err != nil {
-		if a.IsMaxBytesError(err) {
-			a.requestEntityTooLargeResponse(w, r, err)
-			return
-		}
-		//
-		// TODO: handle UnmarshalTypeError and return 422,
-		//       decode the paths which were failed to decode (included in the error)
-		//       and also do this in the other handlers which decode json
-		//
-		a.badRequestResponse(w, r, fmt.Errorf("error decoding request body: %w", err))
-		return
-	}
-
-	dataPath := field.NewPath("data")
-	if bodyEnvelope.Data == nil {
-		valErrs = field.ErrorList{field.Required(dataPath, "data is required")}
-		a.failedValidationResponse(w, r, errMsgRequestBodyInvalid, valErrs, nil)
-		return
-	}
-	valErrs = bodyEnvelope.Data.Validate(dataPath)
-	if len(valErrs) > 0 {
-		a.failedValidationResponse(w, r, errMsgRequestBodyInvalid, valErrs, nil)
-		return
-	}
-
-	workspaceUpdate := bodyEnvelope.Data
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
@@ -371,26 +344,51 @@ func (a *App) UpdateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 	}
 	// ============================================================
 
+	// validate the Content-Type header
+	if success := a.ValidateContentType(w, r, MediaTypeJson); !success {
+		return
+	}
+
+	// decode the request body
+	bodyEnvelope := &WorkspaceEnvelope{}
+	err := a.DecodeJSON(r, bodyEnvelope)
+	if err != nil {
+		if a.IsMaxBytesError(err) {
+			a.requestEntityTooLargeResponse(w, r, err)
+			return
+		}
+		//
+		// TODO: handle UnmarshalTypeError and return 422,
+		//       decode the paths which were failed to decode (included in the error)
+		//       and also do this in the other handlers which decode json
+		//
+		a.badRequestResponse(w, r, fmt.Errorf("error decoding request body: %w", err))
+		return
+	}
+
+	// validate the request body
+	dataPath := field.NewPath("data")
+	if bodyEnvelope.Data == nil {
+		valErrs = field.ErrorList{field.Required(dataPath, "data is required")}
+		a.failedValidationResponse(w, r, errMsgRequestBodyInvalid, valErrs, nil)
+		return
+	}
+	valErrs = bodyEnvelope.Data.Validate(dataPath)
+	if len(valErrs) > 0 {
+		a.failedValidationResponse(w, r, errMsgRequestBodyInvalid, valErrs, nil)
+		return
+	}
+
+	// give the request data a clear name
+	workspaceUpdate := bodyEnvelope.Data
+
 	updatedWorkspace, err := a.repositories.Workspace.UpdateWorkspace(r.Context(), workspaceUpdate, namespace, workspaceName)
 	if err != nil {
 		if errors.Is(err, repository.ErrWorkspaceNotFound) {
 			a.notFoundResponse(w, r)
 			return
 		}
-		if errors.Is(err, repository.ErrWorkspaceInvalidRevision) {
-			// Extract the underlying error message for better user feedback
-			var valErrs field.ErrorList
-			revisionPath := field.NewPath("data", "revision")
-			valErrs = append(valErrs, field.Invalid(revisionPath, workspaceUpdate.Revision, err.Error()))
-			a.failedValidationResponse(w, r, errMsgRequestBodyInvalid, valErrs, nil)
-			return
-		}
-		//
-		// TODO: there is still a race condition once we actually try and patch/update the workspace,
-		//       unless we use optimistic locking with the generation field
-		//      (or resourceVersion, with the risk of unexpected 500 errors to the caller).
-		//
-		if errors.Is(err, repository.ErrWorkspaceGenerationConflict) {
+		if errors.Is(err, repository.ErrWorkspaceRevisionConflict) {
 			causes := helper.StatusCausesFromAPIStatus(err)
 			a.conflictResponse(w, r, err, causes)
 			return
@@ -429,6 +427,7 @@ func (a *App) DeleteWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 	namespace := ps.ByName(NamespacePathParam)
 	workspaceName := ps.ByName(ResourceNamePathParam)
 
+	// validate path parameters
 	var valErrs field.ErrorList
 	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
 	valErrs = append(valErrs, helper.ValidateWorkspaceName(field.NewPath(ResourceNamePathParam), workspaceName)...)

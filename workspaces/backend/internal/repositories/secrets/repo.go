@@ -26,7 +26,7 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	common_models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
+	modelsCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/secrets"
 )
 
@@ -46,12 +46,10 @@ func NewSecretRepository(cl client.Client) *SecretRepository {
 }
 
 // GetSecrets returns a list of all secrets in a namespace.
-// TODO: Implement actual K8s control plane interaction
 func (r *SecretRepository) GetSecrets(ctx context.Context, namespace string) ([]models.SecretListItem, error) {
-	// Get mock secrets as K8s Secret objects
+	// TODO: get actual secrets from K8s
 	mockSecrets := getMockSecrets(namespace)
 
-	// Convert to API models
 	secretList := make([]models.SecretListItem, len(mockSecrets))
 	for i, secret := range mockSecrets {
 		// TODO: will need to process all workspace objects in namespace to get mounts for each secret
@@ -62,63 +60,72 @@ func (r *SecretRepository) GetSecrets(ctx context.Context, namespace string) ([]
 }
 
 // GetSecret returns a specific secret by name and namespace.
-// TODO: Implement actual K8s control plane interaction
 func (r *SecretRepository) GetSecret(ctx context.Context, namespace string, secretName string) (*models.SecretUpdate, error) {
-	// Get mock secret as K8s Secret object
+	// TODO: get actual secret from K8s
 	mockSecret := getMockSecret(namespace, secretName)
 	if mockSecret == nil {
 		return nil, ErrSecretNotFound
 	}
 
-	// Convert to API model
 	secretUpdate := models.NewSecretUpdateModelFromSecret(mockSecret)
 	return &secretUpdate, nil
 }
 
 // CreateSecret creates a new secret in the specified namespace.
-// TODO: Implement actual K8s control plane interaction
-func (r *SecretRepository) CreateSecret(ctx context.Context, namespace string, secretCreate *models.SecretCreate) (*models.SecretCreate, error) {
-	// Convert to K8s Secret object (using empty user email for mock)
-	// TODO: Get actual user email from context when implementing real K8s interaction
-	userEmail := "mock@example.com"
-	k8sSecret := secretCreateModelToKubernetesSecret(secretCreate, namespace, userEmail)
+func (r *SecretRepository) CreateSecret(ctx context.Context, secretCreate *models.SecretCreate, namespace string) (*models.SecretCreate, error) {
+	// TODO: get actual user email from request context
+	actor := "mock@example.com"
 
-	// For now, just simulate creating the secret by converting back to model
-	// TODO: Actually create the secret in K8s
-	createdSecret := models.NewSecretCreateModelFromSecret(k8sSecret)
+	secret := newSecretFromSecretCreateModel(secretCreate, namespace)
+	modelsCommon.UpdateObjectMetaForCreate(&secret.ObjectMeta, actor)
+
+	// TODO: create the secret in K8s
+	// ...
+
+	createdSecret := models.NewSecretCreateModelFromSecret(secret)
 	return &createdSecret, nil
 }
 
 // UpdateSecret updates an existing secret in the specified namespace.
-// TODO: Implement actual K8s control plane interaction
-func (r *SecretRepository) UpdateSecret(ctx context.Context, namespace string, secretName string, secretUpdate *models.SecretUpdate) (*models.SecretUpdate, error) {
-	// Get existing mock secret to simulate update
+func (r *SecretRepository) UpdateSecret(ctx context.Context, secretUpdate *models.SecretUpdate, namespace string, secretName string) (*models.SecretUpdate, error) {
+	// TODO: get actual user email from request context
+	actor := "mock@example.com"
+	now := time.Now()
+
+	// TODO: fetch the current secret from K8s
 	currentSecret := getMockSecret(namespace, secretName)
 	if currentSecret == nil {
 		return nil, ErrSecretNotFound
 	}
 
-	// Convert to K8s Secret object (using empty user email for mock)
-	// TODO: Get actual user email from context when implementing real K8s interaction
-	userEmail := "mock@example.com"
-	k8sSecret := secretUpdateModelToKubernetesSecret(secretUpdate, currentSecret, userEmail)
+	secret := updateSecretFromSecretUpdateModel(secretUpdate, currentSecret)
+	modelsCommon.UpdateObjectMetaForUpdate(&secret.ObjectMeta, actor, now)
 
-	// For now, just simulate updating the secret by converting back to model
-	// TODO: Actually update the secret in K8s
-	updatedSecret := models.NewSecretUpdateModelFromSecret(k8sSecret)
+	// TODO: update the secret in K8s
+	// TODO: if the update fails due to a kubernetes conflict, this implies our cache is stale.
+	//       we should retry the entire update operation a few times before returning a 500 error to the caller
+	//       (DO NOT return a 409, as it's not the caller's fault)
+	// ...
+
+	updatedSecret := models.NewSecretUpdateModelFromSecret(secret)
 	return &updatedSecret, nil
 }
 
 // DeleteSecret deletes a secret from the specified namespace.
-// TODO: Implement actual K8s control plane interaction
 func (r *SecretRepository) DeleteSecret(ctx context.Context, namespace string, secretName string) error {
-	// Check if secret exists in mock data
+	// TODO: get actual secret from K8s
 	mockSecret := getMockSecret(namespace, secretName)
 	if mockSecret == nil {
 		return ErrSecretNotFound
 	}
 
-	// TODO: Actually delete the secret in K8s
+	// TODO: fail with 400 if the secret does not have LabelCanUpdate.
+	//       probably make a helper function in modelsCommon for this
+	// ...
+
+	// TODO: delete the secret from K8s
+	// ...
+
 	return nil
 }
 
@@ -131,13 +138,13 @@ func getMockSecrets(namespace string) []*corev1.Secret {
 				Name:      "database-credentials",
 				Namespace: namespace,
 				Labels: map[string]string{
-					common_models.LabelCanUpdate: "true",
-					common_models.LabelCanMount:  "true",
+					modelsCommon.LabelCanUpdate: "true",
+					modelsCommon.LabelCanMount:  "true",
 				},
 				Annotations: map[string]string{
-					common_models.AnnotationCreatedBy: "admin@example.com",
-					common_models.AnnotationUpdatedBy: "admin@example.com",
-					common_models.AnnotationUpdatedAt: time.Date(2024, 2, 20, 14, 45, 0, 0, time.UTC).Format(time.RFC3339),
+					modelsCommon.AnnotationCreatedBy: "admin@example.com",
+					modelsCommon.AnnotationUpdatedBy: "admin@example.com",
+					modelsCommon.AnnotationUpdatedAt: time.Date(2024, 2, 20, 14, 45, 0, 0, time.UTC).Format(time.RFC3339),
 				},
 			},
 			Type: corev1.SecretTypeOpaque,
@@ -154,13 +161,13 @@ func getMockSecrets(namespace string) []*corev1.Secret {
 				Name:      "api-key-secret",
 				Namespace: namespace,
 				Labels: map[string]string{
-					common_models.LabelCanUpdate: "false",
-					common_models.LabelCanMount:  "true",
+					modelsCommon.LabelCanUpdate: "false",
+					modelsCommon.LabelCanMount:  "true",
 				},
 				Annotations: map[string]string{
-					common_models.AnnotationCreatedBy: "devops@example.com",
-					common_models.AnnotationUpdatedBy: "devops@example.com",
-					common_models.AnnotationUpdatedAt: time.Date(2024, 1, 10, 9, 15, 0, 0, time.UTC).Format(time.RFC3339),
+					modelsCommon.AnnotationCreatedBy: "devops@example.com",
+					modelsCommon.AnnotationUpdatedBy: "devops@example.com",
+					modelsCommon.AnnotationUpdatedAt: time.Date(2024, 1, 10, 9, 15, 0, 0, time.UTC).Format(time.RFC3339),
 				},
 			},
 			Type: corev1.SecretTypeOpaque,
@@ -175,13 +182,13 @@ func getMockSecrets(namespace string) []*corev1.Secret {
 				Name:      "tls-certificate",
 				Namespace: namespace,
 				Labels: map[string]string{
-					common_models.LabelCanUpdate: "false",
-					common_models.LabelCanMount:  "true",
+					modelsCommon.LabelCanUpdate: "false",
+					modelsCommon.LabelCanMount:  "true",
 				},
 				Annotations: map[string]string{
-					common_models.AnnotationCreatedBy: "security@example.com",
-					common_models.AnnotationUpdatedBy: "security@example.com",
-					common_models.AnnotationUpdatedAt: time.Date(2024, 3, 12, 11, 30, 0, 0, time.UTC).Format(time.RFC3339),
+					modelsCommon.AnnotationCreatedBy: "security@example.com",
+					modelsCommon.AnnotationUpdatedBy: "security@example.com",
+					modelsCommon.AnnotationUpdatedAt: time.Date(2024, 3, 12, 11, 30, 0, 0, time.UTC).Format(time.RFC3339),
 				},
 			},
 			Type: corev1.SecretTypeTLS,
@@ -206,8 +213,8 @@ func getMockSecret(namespace string, secretName string) *corev1.Secret {
 	return nil // Return nil for unknown secret names to trigger 404
 }
 
-// secretCreateModelToKubernetesSecret converts a SecretCreate model to a Kubernetes Secret object.
-func secretCreateModelToKubernetesSecret(secretCreate *models.SecretCreate, namespace string, userEmail string) *corev1.Secret {
+// newSecretFromSecretCreateModel creates a Kubernetes Secret object from a SecretCreate model.
+func newSecretFromSecretCreateModel(secretCreate *models.SecretCreate, namespace string) *corev1.Secret {
 	// Convert SecretValue back to []byte for Kubernetes
 	data := make(map[string][]byte)
 	for key, value := range secretCreate.Contents {
@@ -222,13 +229,6 @@ func secretCreateModelToKubernetesSecret(secretCreate *models.SecretCreate, name
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      secretCreate.Name,
 			Namespace: namespace,
-			Labels: map[string]string{
-				common_models.LabelCanMount:  "true",
-				common_models.LabelCanUpdate: "true",
-			},
-			Annotations: map[string]string{
-				common_models.AnnotationCreatedBy: userEmail,
-			},
 		},
 		Type:      corev1.SecretType(secretCreate.Type),
 		Data:      data,
@@ -236,36 +236,30 @@ func secretCreateModelToKubernetesSecret(secretCreate *models.SecretCreate, name
 	}
 }
 
-// secretUpdateModelToKubernetesSecret converts a SecretUpdate model to a Kubernetes Secret object.
-// TODO: implement logic to merge SecretUpdate with currentSecret.
-func secretUpdateModelToKubernetesSecret(secretUpdate *models.SecretUpdate, currentSecret *corev1.Secret, userEmail string) *corev1.Secret {
-	// Convert SecretValue back to []byte for Kubernetes
-	data := make(map[string][]byte)
+// updateSecretFromSecretUpdateModel updates a Kubernetes Secret object using a SecretUpdate model.
+func updateSecretFromSecretUpdateModel(secretUpdate *models.SecretUpdate, currentSecret *corev1.Secret) *corev1.Secret {
+	newData := make(map[string][]byte, len(secretUpdate.Contents))
 	for key, value := range secretUpdate.Contents {
+		// TODO: this needs to handle cases where the key is not being updated (i.e., value.Base64 is nil)
+		//       and retain the existing value from currentSecret.Data
 		if value.Base64 != nil {
-			// Store base64-encoded string as []byte (Kubernetes expects base64-encoded data)
-			// Empty string is a valid value, so we include it
-			data[key] = []byte(*value.Base64)
+			// secretUpdate.Contents contains base64-encoded strings
+			// TODO: confirm that we are encoding in the same way as Kubernetes expects (e.g. UTF-8 vs others)
+			newData[key] = []byte(*value.Base64)
 		}
 	}
-
-	now := time.Now().Format(time.RFC3339)
 
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      currentSecret.Name,
 			Namespace: currentSecret.Namespace,
 			Labels: map[string]string{
-				common_models.LabelCanMount:  "true",
-				common_models.LabelCanUpdate: "true",
-			},
-			Annotations: map[string]string{
-				common_models.AnnotationUpdatedBy: userEmail,
-				common_models.AnnotationUpdatedAt: now,
+				modelsCommon.LabelCanMount:  "true",
+				modelsCommon.LabelCanUpdate: "true",
 			},
 		},
 		Type:      corev1.SecretType(secretUpdate.Type),
-		Data:      data,
+		Data:      newData,
 		Immutable: &secretUpdate.Immutable,
 	}
 }

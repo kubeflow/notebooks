@@ -528,7 +528,8 @@ var _ = Describe("Workspaces Handler", func() {
 
 			By("ensuring the response matches the expected WorkspaceUpdate")
 			workspaceMissingWskModel := models.NewWorkspaceUpdateModelFromWorkspace(workspaceMissingWsk)
-			// Normalize Secrets to nil if empty to match JSON unmarshaling behavior (omitempty causes empty slices to become nil)
+			// normalize secret as nil if empty (otherwise BeComparableTo will be false)
+			// TODO: investigate how to use `quality.Semantic.DeepEqual` here
 			if len(workspaceMissingWskModel.PodTemplate.Volumes.Secrets) == 0 {
 				workspaceMissingWskModel.PodTemplate.Volumes.Secrets = nil
 			}

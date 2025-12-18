@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -28,16 +29,16 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	modelsCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces"
-	action_models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/actions"
+	modelsActions "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/actions"
 )
 
 var (
-	ErrWorkspaceNotFound           = fmt.Errorf("workspace not found")
-	ErrWorkspaceAlreadyExists      = fmt.Errorf("workspace already exists")
-	ErrWorkspaceInvalidState       = fmt.Errorf("workspace is in an invalid state for this operation")
-	ErrWorkspaceInvalidRevision    = fmt.Errorf("workspace revision must be a positive integer")
-	ErrWorkspaceGenerationConflict = fmt.Errorf("current workspace generation does not match request")
+	ErrWorkspaceNotFound         = fmt.Errorf("workspace not found")
+	ErrWorkspaceAlreadyExists    = fmt.Errorf("workspace already exists")
+	ErrWorkspaceInvalidState     = fmt.Errorf("workspace is in an invalid state for this operation")
+	ErrWorkspaceRevisionConflict = fmt.Errorf("current workspace revision does not match request")
 )
 
 type WorkspaceRepository struct {
@@ -125,6 +126,9 @@ func (r *WorkspaceRepository) GetAllWorkspaces(ctx context.Context) ([]models.Wo
 }
 
 func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, workspaceCreate *models.WorkspaceCreate, namespace string) (*models.WorkspaceCreate, error) {
+	// TODO: get actual user email from request context
+	actor := "mock@example.com"
+
 	// get data volumes from workspace model
 	dataVolumeMounts := make([]kubefloworgv1beta1.PodVolumeMount, len(workspaceCreate.PodTemplate.Volumes.Data))
 	for i, dataVolume := range workspaceCreate.PodTemplate.Volumes.Data {
@@ -175,6 +179,9 @@ func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, workspaceCrea
 		},
 	}
 
+	// set audit annotations
+	modelsCommon.UpdateObjectMetaForCreate(&workspace.ObjectMeta, actor)
+
 	// create workspace
 	if err := r.client.Create(ctx, workspace); err != nil {
 		if apierrors.IsAlreadyExists(err) {
@@ -188,13 +195,15 @@ func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, workspaceCrea
 		return nil, err
 	}
 
-	// convert the created workspace to a WorkspaceCreate model
 	createdWorkspaceModel := models.NewWorkspaceCreateModelFromWorkspace(workspace)
-
 	return createdWorkspaceModel, nil
 }
 
 func (r *WorkspaceRepository) UpdateWorkspace(ctx context.Context, workspaceUpdate *models.WorkspaceUpdate, namespace, workspaceName string) (*models.WorkspaceUpdate, error) {
+	// TODO: get actual user email from request context
+	actor := "mock@example.com"
+	now := time.Now()
+
 	// get workspace
 	workspace := &kubefloworgv1beta1.Workspace{}
 	if err := r.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: workspaceName}, workspace); err != nil {
@@ -204,25 +213,25 @@ func (r *WorkspaceRepository) UpdateWorkspace(ctx context.Context, workspaceUpda
 		return nil, err
 	}
 
-	// calculate current revision: sha256(<.metadata.uid>:<.metadata.name>:<.metadata.generation>)
-	currentRevision := models.CalculateWorkspaceRevision(workspace)
-
-	// compare with provided revision
-	if workspaceUpdate.Revision != currentRevision {
-		return nil, ErrWorkspaceGenerationConflict
+	// ensure caller's revision matches current workspace revision
+	// prevents updates by callers with a stale view of the workspace
+	clusterRevision := models.CalculateWorkspaceRevision(workspace)
+	callerRevision := workspaceUpdate.Revision
+	if clusterRevision != callerRevision {
+		return nil, ErrWorkspaceRevisionConflict
 	}
 
-	// TODO: implement update logic
-	//   1. Return ErrWorkspaceGenerationConflict if mismatch
-	//       - (?? does this mean we should avoid the cache when getting the current workspace)
-	//       - (?? what information should we return to the caller if conflict is detected)
-	//   2. Apply updates to workspace.Spec (Paused, DeferUpdates, PodTemplate)
-	//   3. Update workspace in Kubernetes
-	//
+	// TODO: update workspace fields from workspaceUpdate model
+	// ...
+	modelsCommon.UpdateObjectMetaForUpdate(&workspace.ObjectMeta, actor, now)
 
-	// convert workspace to WorkspaceUpdate model
+	// TODO: update the workspace in K8s
+	// TODO: if the update fails due to a kubernetes conflict, this implies our cache is stale.
+	//       we should retry the entire update operation a few times (including recalculating clusterRevision)
+	//       before returning a 500 error to the caller (DO NOT return a 409, as it's not the caller's fault)
+	// ...
+
 	workspaceUpdateModel := models.NewWorkspaceUpdateModelFromWorkspace(workspace)
-
 	return workspaceUpdateModel, nil
 }
 
@@ -252,7 +261,7 @@ type WorkspacePatchOperation struct {
 }
 
 // HandlePauseAction handles pause/start operations for a workspace
-func (r *WorkspaceRepository) HandlePauseAction(ctx context.Context, namespace, workspaceName string, workspaceActionPause *action_models.WorkspaceActionPause) (*action_models.WorkspaceActionPause, error) {
+func (r *WorkspaceRepository) HandlePauseAction(ctx context.Context, namespace, workspaceName string, workspaceActionPause *modelsActions.WorkspaceActionPause) (*modelsActions.WorkspaceActionPause, error) {
 	targetPauseState := workspaceActionPause.Paused
 
 	// Build patch operations incrementally
@@ -294,6 +303,10 @@ func (r *WorkspaceRepository) HandlePauseAction(ctx context.Context, namespace, 
 		},
 	}
 
+	// TODO: update the UpdatedAt and UpdatedBy annotations in the patch as well
+	//       investigate how to do this cleanly, since we are using a JSON patch
+	//       and its not clear that modelsCommon.UpdateObjectMetaForUpdate can be used here
+
 	if err := r.client.Patch(ctx, workspace, client.RawPatch(types.JSONPatchType, patchBytes)); err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil, ErrWorkspaceNotFound
@@ -304,6 +317,6 @@ func (r *WorkspaceRepository) HandlePauseAction(ctx context.Context, namespace, 
 		return nil, fmt.Errorf("failed to patch workspace: %w", err)
 	}
 
-	workspaceActionPauseModel := action_models.NewWorkspaceActionPauseFromWorkspace(workspace)
+	workspaceActionPauseModel := modelsActions.NewWorkspaceActionPauseFromWorkspace(workspace)
 	return workspaceActionPauseModel, nil
 }
