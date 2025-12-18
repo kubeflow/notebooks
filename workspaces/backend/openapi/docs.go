@@ -886,13 +886,13 @@ const docTemplate = `{
                         }
                     },
                     "403": {
-                        "description": "Forbidden. User does not have permission to create workspace.",
+                        "description": "Forbidden. User does not have permission to update workspace.",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }
                     },
                     "409": {
-                        "description": "Conflict. Current workspace generation is newer than provided.",
+                        "description": "Conflict. Current workspace revision is newer than provided.",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }
