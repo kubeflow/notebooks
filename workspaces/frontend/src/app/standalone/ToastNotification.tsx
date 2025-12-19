@@ -43,6 +43,7 @@ const ToastNotification: React.FC<ToastNotificationProps> = ({ notification }) =
       actionClose={<AlertActionCloseButton onClose={() => notifications.remove(notification.id)} />}
       onMouseEnter={() => setMouseOver(true)}
       onMouseLeave={() => setMouseOver(false)}
+      data-testid={`toast-notification-${notification.status}`}
     >
       {notification.message}
     </Alert>

@@ -12,17 +12,17 @@ import { useNotification } from 'mod-arch-core';
 import { WorkspaceRedirectInformationView } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRedirectInformationView';
 import { ActionButton } from '~/shared/components/ActionButton';
 import { ErrorAlert } from '~/shared/components/ErrorAlert';
+import { extractErrorMessage } from '~/shared/api/apiUtils';
 import {
   ApiErrorEnvelope,
   ApiWorkspaceActionPauseEnvelope,
-  WorkspacesWorkspace,
+  WorkspacesWorkspaceListItem,
 } from '~/generated/data-contracts';
-import { extractErrorMessage } from '~/shared/api/apiUtils';
 
 interface StartActionAlertProps {
   onClose: () => void;
   isOpen: boolean;
-  workspace: WorkspacesWorkspace | null;
+  workspace: WorkspacesWorkspaceListItem | null;
   onStart: () => Promise<ApiWorkspaceActionPauseEnvelope>;
   onUpdateAndStart: () => Promise<void>;
   onActionDone?: () => void;

@@ -7,6 +7,7 @@ import {
   workspaceDetailsDrawer,
   workspaces,
 } from '~/__tests__/cypress/cypress/pages/workspaces/workspaces';
+import { editWorkspace } from '~/__tests__/cypress/cypress/pages/workspaces/editWorkspace';
 import {
   buildMockActionsWorkspaceActionPause,
   buildMockNamespace,
@@ -1028,6 +1029,43 @@ describe('Workspaces', () => {
         // Open second workspace details
         workspaces.findAction({ action: 'viewDetails', workspaceName: workspace2Name }).click();
         workspaceDetailsDrawer.assertDrawerTitle(workspace2Name);
+      });
+
+      it('should open delete modal from details drawer actions', () => {
+        workspaces
+          .findAction({ action: 'viewDetails', workspaceName: TEST_WORKSPACE_NAME })
+          .click();
+        workspaceDetailsDrawer.assertDrawerExists();
+
+        workspaceDetailsDrawer.clickDeleteAction();
+
+        deleteModal.assertModalExists();
+      });
+
+      it('should navigate to edit page from details drawer actions', () => {
+        workspaces
+          .findAction({ action: 'viewDetails', workspaceName: TEST_WORKSPACE_NAME })
+          .click();
+        workspaceDetailsDrawer.assertDrawerExists();
+
+        workspaceDetailsDrawer.clickEditAction();
+
+        editWorkspace.verifyPageURL();
+      });
+    });
+
+    describe('Edit', () => {
+      beforeEach(() => {
+        setupWorkspaceActionTest(
+          TEST_WORKSPACE_NAME,
+          WorkspacesWorkspaceState.WorkspaceStateRunning,
+        );
+      });
+
+      it('should navigate to edit workspace page from actions menu', () => {
+        workspaces.findAction({ action: 'edit', workspaceName: TEST_WORKSPACE_NAME }).click();
+
+        editWorkspace.verifyPageURL();
       });
     });
   });

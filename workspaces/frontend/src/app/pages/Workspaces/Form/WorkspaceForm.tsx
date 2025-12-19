@@ -34,7 +34,6 @@ import {
   WorkspacekindsImageConfigValue,
   WorkspacekindsPodConfigValue,
   WorkspacekindsWorkspaceKind,
-  WorkspacesWorkspaceCreate,
 } from '~/generated/data-contracts';
 import { extractErrorMessage } from '~/shared/api/apiUtils';
 import { ErrorAlert } from '~/shared/components/ErrorAlert';
@@ -44,6 +43,7 @@ import { WorkspaceFormImageDetails } from '~/app/pages/Workspaces/Form/image/Wor
 import { WorkspaceFormPodConfigDetails } from '~/app/pages/Workspaces/Form/podConfig/WorkspaceFormPodConfigDetails';
 import { LoadingSpinner } from '~/app/components/LoadingSpinner';
 import { LoadError } from '~/app/components/LoadError';
+import { submitFormData } from '~/app/pages/Workspaces/Form/submitHelper';
 
 enum WorkspaceFormSteps {
   KindSelection,
@@ -67,10 +67,11 @@ const WorkspaceForm: React.FC = () => {
   const notification = useNotification();
   const { api } = useNotebookAPI();
 
-  const { mode, namespace, workspaceName } = useWorkspaceFormLocationData();
+  const { mode, namespace, workspaceName, workspaceKindName } = useWorkspaceFormLocationData();
   const [initialFormData, initialFormDataLoaded, initialFormDataError] = useWorkspaceFormData({
     namespace,
     workspaceName,
+    workspaceKindName,
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -87,6 +88,17 @@ const WorkspaceForm: React.FC = () => {
     }
     replaceData(initialFormData);
   }, [initialFormData, initialFormDataLoaded, mode, replaceData]);
+
+  // Open drawer automatically in edit mode on KindSelection step
+  useEffect(() => {
+    if (
+      initialFormDataLoaded &&
+      mode !== 'create' &&
+      currentStep === WorkspaceFormSteps.KindSelection
+    ) {
+      setDrawerExpanded(true);
+    }
+  }, [initialFormDataLoaded, mode, currentStep]);
 
   const getStepVariant = useCallback(
     (step: WorkspaceFormSteps) => {
@@ -107,7 +119,7 @@ const WorkspaceForm: React.FC = () => {
         case WorkspaceFormSteps.KindSelection:
           return !!data.kind;
         case WorkspaceFormSteps.ImageSelection:
-          return !!data.image;
+          return !!data.imageConfig;
         case WorkspaceFormSteps.PodConfigSelection:
           return !!data.podConfig;
         case WorkspaceFormSteps.Properties:
@@ -116,7 +128,7 @@ const WorkspaceForm: React.FC = () => {
           return false;
       }
     },
-    [data.kind, data.image, data.podConfig, data.properties.workspaceName],
+    [data.kind, data.imageConfig, data.podConfig, data.properties.workspaceName],
   );
 
   const showDrawer = useCallback(
@@ -142,6 +154,22 @@ const WorkspaceForm: React.FC = () => {
 
   const isCurrentStepValid = useMemo(() => isStepValid(currentStep), [isStepValid, currentStep]);
 
+  const selectedImage = useMemo(
+    () =>
+      data.kind?.podTemplate.options.imageConfig.values.find(
+        (image) => image.id === data.imageConfig,
+      ),
+    [data.kind, data.imageConfig],
+  );
+
+  const selectedPodConfig = useMemo(
+    () =>
+      data.kind?.podTemplate.options.podConfig.values.find(
+        (podConfig) => podConfig.id === data.podConfig,
+      ),
+    [data.kind, data.podConfig],
+  );
+
   const canGoToNextStep = useMemo(
     () => currentStep < Object.keys(WorkspaceFormSteps).length / 2 - 1,
     [currentStep],
@@ -153,48 +181,15 @@ const WorkspaceForm: React.FC = () => {
   );
 
   const handleSubmit = useCallback(async () => {
-    // TODO: properly validate data before submitting
-    if (!data.kind || !data.image || !data.podConfig) {
-      return;
-    }
-
-    // TODO: Prepare WorkspaceUpdate data accordingly when BE supports it
-    const submitData: WorkspacesWorkspaceCreate = {
-      name: data.properties.workspaceName,
-      kind: data.kind.name,
-      deferUpdates: data.properties.deferUpdates,
-      paused: false,
-      podTemplate: {
-        podMetadata: {
-          labels: {},
-          annotations: {},
-        },
-        options: {
-          imageConfig: data.image.id,
-          podConfig: data.podConfig.id,
-        },
-        volumes: {
-          home: data.properties.homeDirectory,
-          data: data.properties.volumes,
-          secrets: data.properties.secrets,
-        },
-      },
-    };
-
     setIsSubmitting(true);
     setError(null);
 
     try {
-      if (mode === 'edit') {
-        // TODO: call api to update workspace when implemented in backend
-      } else {
-        const workspaceEnvelope = await api.workspaces.createWorkspace(namespace, {
-          data: submitData,
-        });
-        notification.success(`Workspace '${workspaceEnvelope.data.name}' created successfully`);
-      }
-
+      await submitFormData({ mode, data, api, namespace });
       navigate('workspaces');
+      notification.success(
+        `Workspace '${data.properties.workspaceName}' ${mode === 'create' ? 'created' : 'updated'} successfully`,
+      );
     } catch (err) {
       setError(extractErrorMessage(err));
     } finally {
@@ -208,19 +203,22 @@ const WorkspaceForm: React.FC = () => {
 
   const handleKindSelect = useCallback(
     (kind: WorkspacekindsWorkspaceKind | undefined) => {
-      if (kind) {
+      if (!kind) {
+        return;
+      }
+      if (mode === 'create') {
         resetData();
         setData('kind', kind);
-        setDrawerExpanded(true);
       }
+      setDrawerExpanded(true);
     },
-    [resetData, setData],
+    [mode, resetData, setData],
   );
 
   const handleImageSelect = useCallback(
     (image: WorkspacekindsImageConfigValue | undefined) => {
       if (image) {
-        setData('image', image);
+        setData('imageConfig', image.id);
         setDrawerExpanded(true);
       }
     },
@@ -230,7 +228,7 @@ const WorkspaceForm: React.FC = () => {
   const handlePodConfigSelect = useCallback(
     (podConfig: WorkspacekindsPodConfigValue | undefined) => {
       if (podConfig) {
-        setData('podConfig', podConfig);
+        setData('podConfig', podConfig.id);
         setDrawerExpanded(true);
       }
     },
@@ -242,9 +240,9 @@ const WorkspaceForm: React.FC = () => {
       case WorkspaceFormSteps.KindSelection:
         return <WorkspaceFormKindDetails workspaceKind={data.kind} />;
       case WorkspaceFormSteps.ImageSelection:
-        return <WorkspaceFormImageDetails workspaceImage={data.image} />;
+        return <WorkspaceFormImageDetails workspaceImage={selectedImage} />;
       case WorkspaceFormSteps.PodConfigSelection:
-        return <WorkspaceFormPodConfigDetails workspacePodConfig={data.podConfig} />;
+        return <WorkspaceFormPodConfigDetails workspacePodConfig={selectedPodConfig} />;
       default:
         return null;
     }
@@ -300,12 +298,15 @@ const WorkspaceForm: React.FC = () => {
                   <Flex direction={{ default: 'column' }} rowGap={{ default: 'rowGapXl' }}>
                     <FlexItem>
                       <Content>
-                        <h1>{`${mode === 'create' ? 'Create' : 'Edit'} workspace`}</h1>
+                        <h1 data-testid="workspace-form-title">{`${mode === 'create' ? 'Create' : 'Edit'} workspace`}</h1>
                         <p>{stepDescriptions[currentStep]}</p>
                       </Content>
                     </FlexItem>
                     <FlexItem>
-                      <ProgressStepper aria-label="Workspace form stepper">
+                      <ProgressStepper
+                        aria-label="Workspace form stepper"
+                        data-testid="workspace-form-stepper"
+                      >
                         <ProgressStep
                           variant={getStepVariant(WorkspaceFormSteps.KindSelection)}
                           isCurrent={currentStep === WorkspaceFormSteps.KindSelection}
@@ -363,29 +364,31 @@ const WorkspaceForm: React.FC = () => {
                   <StackItem isFilled>
                     {currentStep === WorkspaceFormSteps.KindSelection && (
                       <WorkspaceFormKindSelection
+                        mode={mode}
                         selectedKind={data.kind}
                         onSelect={handleKindSelect}
                       />
                     )}
                     {currentStep === WorkspaceFormSteps.ImageSelection && (
                       <WorkspaceFormImageSelection
-                        selectedImage={data.image}
+                        selectedImage={selectedImage}
                         onSelect={handleImageSelect}
                         images={data.kind?.podTemplate.options.imageConfig.values ?? []}
                       />
                     )}
                     {currentStep === WorkspaceFormSteps.PodConfigSelection && (
                       <WorkspaceFormPodConfigSelection
-                        selectedPodConfig={data.podConfig}
+                        selectedPodConfig={selectedPodConfig}
                         onSelect={handlePodConfigSelect}
                         podConfigs={data.kind?.podTemplate.options.podConfig.values ?? []}
                       />
                     )}
                     {currentStep === WorkspaceFormSteps.Properties && (
                       <WorkspaceFormPropertiesSelection
+                        mode={mode}
                         selectedProperties={data.properties}
                         onSelect={(properties) => setData('properties', properties)}
-                        selectedImage={data.image}
+                        selectedImage={selectedImage}
                       />
                     )}
                   </StackItem>

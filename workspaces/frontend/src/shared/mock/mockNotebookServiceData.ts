@@ -1,6 +1,6 @@
 import {
   WorkspacekindsWorkspaceKind,
-  WorkspacesWorkspace,
+  WorkspacesWorkspaceListItem,
   WorkspacesWorkspaceKindInfo,
   WorkspacesWorkspaceState,
 } from '~/generated/data-contracts';
@@ -8,9 +8,11 @@ import {
   buildMockHealthCheckResponse,
   buildMockNamespace,
   buildMockWorkspace,
+  buildMockWorkspaceCreate,
   buildMockWorkspaceKind,
   buildMockWorkspaceKindInfo,
   buildMockWorkspaceList,
+  buildMockWorkspaceUpdate,
 } from '~/shared/mock/mockBuilder';
 
 // Health
@@ -59,12 +61,12 @@ export const mockWorkspaceKindInfo2: WorkspacesWorkspaceKindInfo = buildMockWork
 });
 
 // Workspace
-export const mockWorkspace1: WorkspacesWorkspace = buildMockWorkspace({
+export const mockWorkspace1: WorkspacesWorkspaceListItem = buildMockWorkspace({
   workspaceKind: mockWorkspaceKindInfo1,
   namespace: mockNamespace1.name,
 });
 
-export const mockWorkspace2: WorkspacesWorkspace = buildMockWorkspace({
+export const mockWorkspace2: WorkspacesWorkspaceListItem = buildMockWorkspace({
   name: 'My Second Jupyter Notebook',
   workspaceKind: mockWorkspaceKindInfo1,
   namespace: mockNamespace2.name,
@@ -133,7 +135,7 @@ export const mockWorkspace2: WorkspacesWorkspace = buildMockWorkspace({
   },
 });
 
-export const mockWorkspace3: WorkspacesWorkspace = buildMockWorkspace({
+export const mockWorkspace3: WorkspacesWorkspaceListItem = buildMockWorkspace({
   name: 'My Third Jupyter Notebook',
   namespace: mockNamespace1.name,
   workspaceKind: mockWorkspaceKindInfo1,
@@ -145,14 +147,14 @@ export const mockWorkspace3: WorkspacesWorkspace = buildMockWorkspace({
   },
 });
 
-export const mockWorkspace4: WorkspacesWorkspace = buildMockWorkspace({
+export const mockWorkspace4: WorkspacesWorkspaceListItem = buildMockWorkspace({
   name: 'My Fourth Jupyter Notebook',
   namespace: mockNamespace2.name,
   state: WorkspacesWorkspaceState.WorkspaceStateError,
   workspaceKind: mockWorkspaceKindInfo2,
 });
 
-export const mockWorkspace5: WorkspacesWorkspace = buildMockWorkspace({
+export const mockWorkspace5: WorkspacesWorkspaceListItem = buildMockWorkspace({
   name: 'My Fifth Jupyter Notebook',
   namespace: mockNamespace2.name,
   state: WorkspacesWorkspaceState.WorkspaceStateTerminating,
@@ -171,3 +173,7 @@ export const mockAllWorkspaces = [
     kind: mockWorkspaceKindInfo1,
   }),
 ];
+
+export const mockWorkspaceCreate = buildMockWorkspaceCreate({});
+
+export const mockWorkspaceUpdate = buildMockWorkspaceUpdate({});

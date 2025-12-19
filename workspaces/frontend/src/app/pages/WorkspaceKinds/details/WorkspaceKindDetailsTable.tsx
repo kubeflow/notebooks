@@ -6,6 +6,8 @@ import {
 } from '@patternfly/react-core/dist/esm/components/Pagination';
 import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
+import { EmptyState, EmptyStateBody } from '@patternfly/react-core/dist/esm/components/EmptyState';
+import { CubesIcon } from '@patternfly/react-icons/dist/esm/icons/cubes-icon';
 import { useTypedNavigate } from '~/app/routerHelper';
 import { ErrorPopover } from '~/shared/components/ErrorPopover';
 import { RouteStateMap } from '~/app/routes';
@@ -57,6 +59,15 @@ export const WorkspaceKindDetailsTable: React.FC<WorkspaceKindDetailsTableProps>
     setPerPage(newPerPage);
     setPage(newPage);
   };
+
+  if (rows.length === 0) {
+    return (
+      <EmptyState headingLevel="h4" titleText="No results found" icon={CubesIcon}>
+        <EmptyStateBody>No items are available for this workspace kind.</EmptyStateBody>
+      </EmptyState>
+    );
+  }
+
   return (
     <Content>
       <Table aria-label={`workspace-kind-details-${tableKind}`}>

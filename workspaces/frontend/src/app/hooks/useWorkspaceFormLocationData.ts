@@ -2,13 +2,15 @@ import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
 import { useCurrentRouteKey } from '~/app/hooks/useCurrentRouteKey';
 import { useTypedLocation } from '~/app/routerHelper';
 import { AppRouteKey, RouteStateMap } from '~/app/routes';
+import { WorkspaceFormMode } from '~/app/types';
 
 type WorkspaceFormLocationState = RouteStateMap['workspaceEdit'] | RouteStateMap['workspaceCreate'];
 
 interface WorkspaceFormLocationData {
-  mode: 'edit' | 'create';
+  mode: WorkspaceFormMode;
   namespace: string;
   workspaceName?: string;
+  workspaceKindName?: string;
 }
 
 function getRouteStateIfMatch<K extends AppRouteKey>(
@@ -33,15 +35,17 @@ export function useWorkspaceFormLocationData(): WorkspaceFormLocationData {
     const editState = getRouteStateIfMatch('workspaceEdit', routeKey, rawState);
     const namespace = editState?.namespace ?? selectedNamespace;
     const workspaceName = editState?.workspaceName;
+    const workspaceKindName = editState?.workspaceKindName;
 
-    if (!workspaceName) {
-      throw new Error('Workspace name is required for edit mode');
+    if (!workspaceName || !workspaceKindName) {
+      throw new Error('Workspace name and workspace kind name are required for update mode');
     }
 
     return {
-      mode: 'edit',
+      mode: 'update',
       namespace,
       workspaceName,
+      workspaceKindName,
     };
   }
 

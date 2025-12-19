@@ -79,6 +79,16 @@ export const WorkspaceFormImageList: React.FunctionComponent<WorkspaceFormImageL
     [filteredWorkspaceImages, onSelect],
   );
 
+  const handleCardClick = useCallback(
+    (image: WorkspacekindsImageConfigValue) => {
+      if (image.id !== selectedImage?.id) {
+        return;
+      }
+      onSelect(image);
+    },
+    [selectedImage, onSelect],
+  );
+
   return (
     <>
       <PageSection>
@@ -109,6 +119,7 @@ export const WorkspaceFormImageList: React.FunctionComponent<WorkspaceFormImageL
                   key={image.id}
                   id={image.id.replace(/ /g, '-')}
                   isSelected={image.id === selectedImage?.id}
+                  onClick={() => handleCardClick(image)}
                 >
                   <CardHeader
                     selectableActions={{

@@ -63,7 +63,7 @@ import {
 } from '~/shared/utilities/WorkspaceUtils';
 import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
-import { WorkspacesWorkspace, WorkspacesWorkspaceState } from '~/generated/data-contracts';
+import { WorkspacesWorkspaceListItem, WorkspacesWorkspaceState } from '~/generated/data-contracts';
 import { useWorkspaceActionsContext } from '~/app/context/WorkspaceActionsContext';
 import { POLL_INTERVAL } from '~/shared/utilities/const';
 import { RefreshCounter } from '~/app/components/RefreshCounter';
@@ -89,12 +89,12 @@ export type WorkspaceTableColumnKeys = DataFieldKey<typeof wsTableColumns>;
 type WorkspaceTableSortableColumnKeys = SortableDataFieldKey<typeof wsTableColumns>;
 
 interface WorkspaceTableProps {
-  workspaces: WorkspacesWorkspace[];
+  workspaces: WorkspacesWorkspaceListItem[];
   refreshWorkspaces: () => void;
   canCreateWorkspaces?: boolean;
   canExpandRows?: boolean;
   hiddenColumns?: WorkspaceTableColumnKeys[];
-  rowActions?: (workspace: WorkspacesWorkspace) => IActions;
+  rowActions?: (workspace: WorkspacesWorkspaceListItem) => IActions;
 }
 
 const allFiltersConfig = {
@@ -245,19 +245,20 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       [clearAllFilters],
     );
 
-    const filterableProperties: Record<FilterKey, (ws: WorkspacesWorkspace) => string> = useMemo(
-      () => ({
-        name: (ws) => ws.name,
-        kind: (ws) => ws.workspaceKind.name,
-        image: (ws) => ws.podTemplate.options.imageConfig.current.displayName,
-        state: (ws) => ws.state,
-        namespace: (ws) => ws.namespace,
-        idleGpu: (ws) => formatWorkspaceIdleState(ws),
-      }),
-      [],
-    );
+    const filterableProperties: Record<FilterKey, (ws: WorkspacesWorkspaceListItem) => string> =
+      useMemo(
+        () => ({
+          name: (ws) => ws.name,
+          kind: (ws) => ws.workspaceKind.name,
+          image: (ws) => ws.podTemplate.options.imageConfig.current.displayName,
+          state: (ws) => ws.state,
+          namespace: (ws) => ws.namespace,
+          idleGpu: (ws) => formatWorkspaceIdleState(ws),
+        }),
+        [],
+      );
 
-    const setWorkspaceExpanded = (workspace: WorkspacesWorkspace, isExpanding = true) =>
+    const setWorkspaceExpanded = (workspace: WorkspacesWorkspaceListItem, isExpanding = true) =>
       setExpandedWorkspacesNames((prevExpanded) => {
         const newExpandedWorkspacesNames = prevExpanded.filter(
           (wsName) => wsName !== workspace.name,
@@ -267,7 +268,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
           : newExpandedWorkspacesNames;
       });
 
-    const isWorkspaceExpanded = (workspace: WorkspacesWorkspace) =>
+    const isWorkspaceExpanded = (workspace: WorkspacesWorkspaceListItem) =>
       expandedWorkspacesNames.includes(workspace.name);
 
     const filteredWorkspaces = useMemo(() => {
@@ -301,7 +302,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
     // Column sorting
 
     const getSortableRowValues = (
-      workspace: WorkspacesWorkspace,
+      workspace: WorkspacesWorkspaceListItem,
     ): Record<WorkspaceTableSortableColumnKeys, string | number> => ({
       name: workspace.name,
       kind: workspace.workspaceKind.name,

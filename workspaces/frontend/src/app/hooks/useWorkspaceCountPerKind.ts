@@ -4,7 +4,7 @@ import { WorkspaceCountPerOption } from '~/app/types';
 import {
   ApiErrorEnvelope,
   WorkspacekindsWorkspaceKind,
-  WorkspacesWorkspace,
+  WorkspacesWorkspaceListItem,
 } from '~/generated/data-contracts';
 import { NotebookApis } from '~/shared/api/notebookApi';
 import { extractErrorMessage } from '~/shared/api/apiUtils';
@@ -51,7 +51,7 @@ async function loadWorkspaceCounts(api: NotebookApis): Promise<WorkspaceCountPer
 
 function extractCountByNamespace(args: {
   kind: WorkspacekindsWorkspaceKind;
-  workspaces: WorkspacesWorkspace[];
+  workspaces: WorkspacesWorkspaceListItem[];
 }): WorkspaceCountPerOption['countByNamespace'] {
   const { kind, workspaces } = args;
   return workspaces.reduce<WorkspaceCountPerOption['countByNamespace']>(
@@ -93,7 +93,7 @@ function extractTotalCount(workspaceKind: WorkspacekindsWorkspaceKind): number {
 
 function extractCountPerKind(args: {
   workspaceKinds: WorkspacekindsWorkspaceKind[];
-  workspaces: WorkspacesWorkspace[];
+  workspaces: WorkspacesWorkspaceListItem[];
 }): WorkspaceCountPerKind {
   const { workspaceKinds, workspaces } = args;
 

@@ -4,11 +4,13 @@ import {
   mockAllWorkspaces,
   mockedHealthCheckResponse,
   mockNamespaces,
-  mockWorkspace1,
+  mockWorkspaceCreate,
   mockWorkspaceKind1,
   mockWorkspaceKinds,
+  mockWorkspaceUpdate,
 } from '~/shared/mock/mockNotebookServiceData';
 import { buildAxiosError, isInvalidWorkspace, isInvalidYaml } from '~/shared/mock/mockUtils';
+import { buildMockWorkspaceUpdateFromWorkspace } from './mockBuilder';
 
 const delay = (ms: number) =>
   new Promise((resolve) => {
@@ -27,9 +29,13 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
     listWorkspacesByNamespace: async (namespace) => ({
       data: mockAllWorkspaces.filter((w) => w.namespace === namespace),
     }),
-    getWorkspace: async (namespace, workspace) => ({
-      data: mockAllWorkspaces.find((w) => w.name === workspace && w.namespace === namespace)!,
-    }),
+    getWorkspace: async (namespace, workspaceName) => {
+      const workspace = mockAllWorkspaces.find(
+        (w) => w.name === workspaceName && w.namespace === namespace,
+      )!;
+      const workspaceUpdate = buildMockWorkspaceUpdateFromWorkspace({ workspace });
+      return { data: workspaceUpdate };
+    },
     createWorkspace: async (_namespace, body) => {
       if (isInvalidWorkspace(body.data)) {
         const apiErrorEnvelope: ApiErrorEnvelope = {
@@ -50,8 +56,9 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
         };
         throw buildAxiosError(apiErrorEnvelope);
       }
-      return { data: mockWorkspace1 };
+      return { data: mockWorkspaceCreate };
     },
+    updateWorkspace: async () => ({ data: mockWorkspaceUpdate }),
     deleteWorkspace: async () => {
       await delay(1500);
     },

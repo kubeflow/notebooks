@@ -101,6 +101,18 @@ export interface ApiNamespaceListEnvelope {
   data: NamespacesNamespace[];
 }
 
+export interface ApiSecretCreateEnvelope {
+  data: SecretsSecretCreate;
+}
+
+export interface ApiSecretEnvelope {
+  data: SecretsSecretUpdate;
+}
+
+export interface ApiSecretListEnvelope {
+  data: SecretsSecretListItem[];
+}
+
 export interface ApiValidationError {
   /**
    * The field of the resource that has caused this error, as named by its JSON serialization.
@@ -139,7 +151,7 @@ export interface ApiWorkspaceCreateEnvelope {
 }
 
 export interface ApiWorkspaceEnvelope {
-  data: WorkspacesWorkspace;
+  data: WorkspacesWorkspaceUpdate;
 }
 
 export interface ApiWorkspaceKindEnvelope {
@@ -151,7 +163,15 @@ export interface ApiWorkspaceKindListEnvelope {
 }
 
 export interface ApiWorkspaceListEnvelope {
-  data: WorkspacesWorkspace[];
+  data: WorkspacesWorkspaceListItem[];
+}
+
+export interface CommonAudit {
+  createdAt: string;
+  createdBy: string;
+  deletedAt: string;
+  updatedAt: string;
+  updatedBy: string;
 }
 
 export interface HealthCheckHealthCheck {
@@ -165,6 +185,41 @@ export interface HealthCheckSystemInfo {
 
 export interface NamespacesNamespace {
   name: string;
+}
+
+export interface SecretsSecretCreate {
+  contents: SecretsSecretData;
+  immutable: boolean;
+  name: string;
+  type: string;
+}
+
+export type SecretsSecretData = Record<string, SecretsSecretValue>;
+
+export interface SecretsSecretListItem {
+  audit: CommonAudit;
+  canMount: boolean;
+  canUpdate: boolean;
+  immutable: boolean;
+  mounts?: SecretsSecretMount[];
+  name: string;
+  type: string;
+}
+
+export interface SecretsSecretMount {
+  group: string;
+  kind: string;
+  name: string;
+}
+
+export interface SecretsSecretUpdate {
+  contents: SecretsSecretData;
+  immutable: boolean;
+  type: string;
+}
+
+export interface SecretsSecretValue {
+  base64?: string;
 }
 
 export interface WorkspacekindsImageConfig {
@@ -386,21 +441,6 @@ export interface WorkspacesService {
   httpService?: WorkspacesHttpService;
 }
 
-export interface WorkspacesWorkspace {
-  activity: WorkspacesActivity;
-  deferUpdates: boolean;
-  name: string;
-  namespace: string;
-  paused: boolean;
-  pausedTime: number;
-  pendingRestart: boolean;
-  podTemplate: WorkspacesPodTemplate;
-  services: WorkspacesService[];
-  state: WorkspacesWorkspaceState;
-  stateMessage: string;
-  workspaceKind: WorkspacesWorkspaceKindInfo;
-}
-
 export interface WorkspacesWorkspaceCreate {
   deferUpdates: boolean;
   kind: string;
@@ -414,6 +454,38 @@ export interface WorkspacesWorkspaceKindInfo {
   logo: WorkspacesImageRef;
   missing: boolean;
   name: string;
+}
+
+export interface WorkspacesWorkspaceListItem {
+  activity: WorkspacesActivity;
+  audit: CommonAudit;
+  deferUpdates: boolean;
+  name: string;
+  namespace: string;
+  paused: boolean;
+  pausedTime: number;
+  pendingRestart: boolean;
+  podTemplate: WorkspacesPodTemplate;
+  services: WorkspacesService[];
+  state: WorkspacesWorkspaceState;
+  stateMessage: string;
+  workspaceKind: WorkspacesWorkspaceKindInfo;
+}
+
+export interface WorkspacesWorkspaceUpdate {
+  /** TODO: remove `deferUpdates` once the controller is no longer applying redirects */
+  deferUpdates: boolean;
+  /** TODO: remove `paused` once we have an "actions" api for pausing workspaces */
+  paused: boolean;
+  podTemplate: WorkspacesPodTemplateMutate;
+  /**
+   * Revision is an opaque token that can be treated like an etag.
+   * - Clients receive this value from GET requests and must include it
+   *   in update requests to ensure they are updating the expected version.
+   * - Clients must not parse, interpret, or compare revision values
+   *   other than for equality, as the format is not guaranteed to be stable.
+   */
+  revision: string;
 }
 
 /** Kubernetes YAML manifest of a WorkspaceKind */

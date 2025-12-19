@@ -75,6 +75,16 @@ export const WorkspaceFormPodConfigList: React.FunctionComponent<
     [filteredWorkspacePodConfigs, onSelect],
   );
 
+  const handleCardClick = useCallback(
+    (podConfig: WorkspacekindsPodConfigValue) => {
+      if (podConfig.id !== selectedPodConfig?.id) {
+        return;
+      }
+      onSelect(podConfig);
+    },
+    [selectedPodConfig?.id, onSelect],
+  );
+
   return (
     <>
       <PageSection>
@@ -105,6 +115,7 @@ export const WorkspaceFormPodConfigList: React.FunctionComponent<
                   key={podConfig.id}
                   id={podConfig.id.replace(/ /g, '-')}
                   isSelected={podConfig.id === selectedPodConfig?.id}
+                  onClick={() => handleCardClick(podConfig)}
                 >
                   <CardHeader
                     selectableActions={{

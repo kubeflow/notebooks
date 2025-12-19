@@ -6,8 +6,8 @@ import {
   WorkspacekindsImageConfigValue,
   WorkspacekindsPodConfigValue,
   WorkspacekindsWorkspaceKind,
-  WorkspacesWorkspace,
   WorkspacesWorkspaceKindInfo,
+  WorkspacesWorkspaceListItem,
 } from '~/generated/data-contracts';
 import { NotebookApis } from '~/shared/api/notebookApi';
 import { buildMockWorkspace, buildMockWorkspaceKind } from '~/shared/mock/mockBuilder';
@@ -58,6 +58,7 @@ describe('useWorkspaceCountPerKind', () => {
       listAllWorkspaces: mockListAllWorkspaces,
       listWorkspacesByNamespace: jest.fn(),
       createWorkspace: jest.fn(),
+      updateWorkspace: jest.fn(),
       updateWorkspacePauseState: jest.fn(),
       getWorkspace: jest.fn(),
       deleteWorkspace: jest.fn(),
@@ -91,7 +92,7 @@ describe('useWorkspaceCountPerKind', () => {
   });
 
   it('should fetch and calculate workspace counts on mount', async () => {
-    const mockWorkspaces: WorkspacesWorkspace[] = [
+    const mockWorkspaces: WorkspacesWorkspaceListItem[] = [
       {
         ...baseWorkspaceTest,
         name: 'workspace1',
@@ -224,7 +225,7 @@ describe('useWorkspaceCountPerKind', () => {
   });
 
   it('should handle missing cluster metrics gracefully', async () => {
-    const mockEmptyWorkspaces: WorkspacesWorkspace[] = [];
+    const mockEmptyWorkspaces: WorkspacesWorkspaceListItem[] = [];
     const mockWorkspaceKinds: WorkspacekindsWorkspaceKind[] = [
       buildMockWorkspaceKind({
         name: 'no-metrics',
@@ -317,7 +318,7 @@ describe('useWorkspaceCountPerKind', () => {
   });
 
   it('should handle workspaces with no matching kinds', async () => {
-    const mockWorkspaces: WorkspacesWorkspace[] = [baseWorkspaceTest];
+    const mockWorkspaces: WorkspacesWorkspaceListItem[] = [baseWorkspaceTest];
     const workspaceKind = buildMockWorkspaceKind({
       name: 'nomatch',
       clusterMetrics: { workspacesCount: 0 },

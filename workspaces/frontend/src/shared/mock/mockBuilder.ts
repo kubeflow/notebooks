@@ -8,11 +8,18 @@ import {
   WorkspacesImageConfig,
   WorkspacesOptionInfo,
   WorkspacesPodConfig,
+  WorkspacesPodMetadata,
+  WorkspacesPodMetadataMutate,
   WorkspacesPodTemplate,
+  WorkspacesPodTemplateMutate,
   WorkspacesPodTemplateOptions,
-  WorkspacesWorkspace,
+  WorkspacesPodTemplateOptionsMutate,
+  WorkspacesPodVolumesMutate,
+  WorkspacesWorkspaceCreate,
   WorkspacesWorkspaceKindInfo,
+  WorkspacesWorkspaceListItem,
   WorkspacesWorkspaceState,
+  WorkspacesWorkspaceUpdate,
 } from '~/generated/data-contracts';
 
 export const buildMockHealthCheckResponse = (
@@ -103,13 +110,18 @@ export const buildPodTemplateOptions = (
   ...podTemplateOptions,
 });
 
+export const buildMockPodMetadata = (
+  podMetadata?: Partial<WorkspacesPodMetadata>,
+): WorkspacesPodMetadata => ({
+  labels: { labelKey1: 'labelValue1', labelKey2: 'labelValue2' },
+  annotations: { annotationKey1: 'annotationValue1', annotationKey2: 'annotationValue2' },
+  ...podMetadata,
+});
+
 export const buildMockPodTemplate = (
   podTemplate?: Partial<WorkspacesPodTemplate>,
 ): WorkspacesPodTemplate => ({
-  podMetadata: {
-    labels: { labelKey1: 'labelValue1', labelKey2: 'labelValue2' },
-    annotations: { annotationKey1: 'annotationValue1', annotationKey2: 'annotationValue2' },
-  },
+  podMetadata: buildMockPodMetadata({}),
   volumes: {
     home: {
       pvcName: 'Volume-Home',
@@ -141,9 +153,16 @@ export const buildMockPodTemplate = (
 });
 
 export const buildMockWorkspace = (
-  workspace?: Partial<WorkspacesWorkspace>,
-): WorkspacesWorkspace => ({
+  workspace?: Partial<WorkspacesWorkspaceListItem>,
+): WorkspacesWorkspaceListItem => ({
   name: 'My First Jupyter Notebook',
+  audit: {
+    createdAt: new Date(2025, 5, 1).toISOString(),
+    createdBy: 'test-user',
+    updatedAt: new Date(2025, 6, 1).toISOString(),
+    updatedBy: 'test-user',
+    deletedAt: '',
+  },
   namespace: 'default',
   workspaceKind: buildMockWorkspaceKindInfo(),
   paused: true,
@@ -237,7 +256,7 @@ export const buildMockWorkspaceKind = (
               { key: 'pythonVersion', value: '3.12' },
               { key: 'jupyterlabVersion', value: '1.9.0' },
             ],
-            hidden: true,
+            hidden: false,
             redirect: {
               to: 'jupyterlab_scipy_200',
               message: {
@@ -277,7 +296,7 @@ export const buildMockWorkspaceKind = (
               { key: 'pythonVersion', value: '3.13' },
               { key: 'jupyterlabVersion', value: '2.1.0' },
             ],
-            hidden: true,
+            hidden: false,
             redirect: {
               to: 'jupyterlab_scipy_220',
               message: {
@@ -287,6 +306,19 @@ export const buildMockWorkspaceKind = (
             },
             clusterMetrics: {
               workspacesCount: 3,
+            },
+          },
+          {
+            id: 'jupyterlab_scipy_220_hidden',
+            displayName: 'jupyter-scipy:v2.2.0 (Hidden)',
+            description: 'JupyterLab, with SciPy Packages',
+            labels: [
+              { key: 'pythonVersion', value: '3.13' },
+              { key: 'jupyterlabVersion', value: '2.2.0' },
+            ],
+            hidden: true,
+            clusterMetrics: {
+              workspacesCount: 0,
             },
           },
         ],
@@ -315,13 +347,33 @@ export const buildMockWorkspaceKind = (
             },
           },
           {
-            id: 'large_cpu',
-            displayName: 'Large CPU',
+            id: 'small_cpu',
+            displayName: 'Small CPU',
+            description: 'Pod with 0.5 CPU, 512 Mb RAM',
+            hidden: false,
+            labels: [
+              { key: 'cpu', value: '500m' },
+              { key: 'memory', value: '512Mi' },
+            ],
+          },
+          {
+            id: 'medium_cpu',
+            displayName: 'Medium CPU',
             description: 'Pod with 1 CPU, 1 Gb RAM',
-            hidden: true,
+            hidden: false,
             labels: [
               { key: 'cpu', value: '1000m' },
               { key: 'memory', value: '1Gi' },
+            ],
+          },
+          {
+            id: 'large_cpu',
+            displayName: 'Large CPU',
+            description: 'Pod with 4 CPU, 4 Gb RAM',
+            hidden: false,
+            labels: [
+              { key: 'cpu', value: '4000m' },
+              { key: 'memory', value: '4Gi' },
               { key: 'gpu', value: '1' },
             ],
             redirect: {
@@ -333,6 +385,20 @@ export const buildMockWorkspaceKind = (
             },
             clusterMetrics: {
               workspacesCount: 5,
+            },
+          },
+          {
+            id: 'large_cpu_hidden',
+            displayName: 'Large CPU (Hidden)',
+            description: 'Pod with 4 CPU, 4 Gb RAM',
+            hidden: true,
+            labels: [
+              { key: 'cpu', value: '4000m' },
+              { key: 'memory', value: '4Gi' },
+              { key: 'gpu', value: '1' },
+            ],
+            clusterMetrics: {
+              workspacesCount: 0,
             },
           },
         ],
@@ -354,7 +420,7 @@ export const buildMockWorkspaceList = (args: {
   namespace: string;
   kind: WorkspacesWorkspaceKindInfo;
   state?: WorkspacesWorkspaceState;
-}): WorkspacesWorkspace[] => {
+}): WorkspacesWorkspaceListItem[] => {
   const states = Object.values(WorkspacesWorkspaceState);
   const imageConfigs = [
     {
@@ -389,7 +455,7 @@ export const buildMockWorkspaceList = (args: {
     { id: 'large_cpu', displayName: 'Large CPU' },
   ];
 
-  const workspaces: WorkspacesWorkspace[] = [];
+  const workspaces: WorkspacesWorkspaceListItem[] = [];
   for (let i = 1; i <= args.count; i++) {
     const state = args.state || states[(i - 1) % states.length];
     const labels = {
@@ -476,3 +542,95 @@ export const buildMockWorkspaceList = (args: {
   }
   return workspaces;
 };
+
+export const buildMockPodTemplateOptionsMutate = (
+  podTemplateOptionsMutate?: Partial<WorkspacesPodTemplateOptionsMutate>,
+): WorkspacesPodTemplateOptionsMutate => ({
+  imageConfig: 'jupyterlab_scipy_190',
+  podConfig: 'tiny_cpu',
+  ...podTemplateOptionsMutate,
+});
+
+export const buildMockPodMetadataMutate = (
+  podMetadataMutate?: Partial<WorkspacesPodMetadataMutate>,
+): WorkspacesPodMetadataMutate => ({
+  labels: { labelKey1: 'labelValue1', labelKey2: 'labelValue2' },
+  annotations: { annotationKey1: 'annotationValue1', annotationKey2: 'annotationValue2' },
+  ...podMetadataMutate,
+});
+
+export const buildMockPodVolumesMutate = (
+  podVolumesMutate?: Partial<WorkspacesPodVolumesMutate>,
+): WorkspacesPodVolumesMutate => ({
+  data: [
+    {
+      pvcName: 'Volume-Data1',
+      mountPath: '/data',
+      readOnly: true,
+    },
+  ],
+  ...podVolumesMutate,
+});
+
+export const buildMockPodTemplateMutate = (
+  podTemplateMutate?: Partial<WorkspacesPodTemplateMutate>,
+): WorkspacesPodTemplateMutate => ({
+  options: buildMockPodTemplateOptionsMutate({}),
+  podMetadata: buildMockPodMetadataMutate({}),
+  volumes: buildMockPodVolumesMutate({}),
+  ...podTemplateMutate,
+});
+
+export const buildMockWorkspaceCreate = (
+  workspaceCreate?: Partial<WorkspacesWorkspaceCreate>,
+): WorkspacesWorkspaceCreate => ({
+  deferUpdates: false,
+  kind: 'jupyterlab',
+  name: 'My Notebook',
+  paused: false,
+  podTemplate: buildMockPodTemplateMutate({}),
+  ...workspaceCreate,
+});
+
+export const buildMockWorkspaceUpdate = (
+  workspaceUpdate?: Partial<WorkspacesWorkspaceUpdate>,
+): WorkspacesWorkspaceUpdate => ({
+  deferUpdates: false,
+  paused: false,
+  podTemplate: buildMockPodTemplateMutate({}),
+  revision: '1234567890',
+  ...workspaceUpdate,
+});
+
+export const buildMockWorkspaceUpdateFromWorkspace = (args: {
+  workspace?: Partial<WorkspacesWorkspaceListItem>;
+  workspaceUpdate?: Partial<WorkspacesWorkspaceUpdate>;
+}): WorkspacesWorkspaceUpdate => ({
+  deferUpdates: args.workspace?.deferUpdates ?? false,
+  paused: args.workspace?.paused ?? false,
+  podTemplate: buildMockPodTemplateMutate({
+    options: buildMockPodTemplateOptionsMutate({
+      imageConfig: args.workspace?.podTemplate?.options.imageConfig.current.id ?? '',
+      podConfig: args.workspace?.podTemplate?.options.podConfig.current.id ?? '',
+    }),
+    podMetadata: buildMockPodMetadataMutate({
+      labels: args.workspace?.podTemplate?.podMetadata.labels,
+      annotations: args.workspace?.podTemplate?.podMetadata.annotations,
+    }),
+    volumes: buildMockPodVolumesMutate({
+      home: args.workspace?.podTemplate?.volumes.home?.mountPath ?? '',
+      data: args.workspace?.podTemplate?.volumes.data.map((d) => ({
+        pvcName: d.pvcName,
+        mountPath: d.mountPath,
+        readOnly: d.readOnly,
+      })),
+      secrets: args.workspace?.podTemplate?.volumes.secrets?.map((s) => ({
+        defaultMode: s.defaultMode,
+        mountPath: s.mountPath,
+        secretName: s.secretName,
+      })),
+    }),
+  }),
+  revision: args.workspaceUpdate?.revision ?? '1234567890',
+  ...args.workspaceUpdate,
+});

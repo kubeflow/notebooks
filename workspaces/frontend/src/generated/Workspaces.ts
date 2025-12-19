@@ -68,7 +68,7 @@ export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityD
    * @name CreateWorkspace
    * @summary Create workspace
    * @request POST:/workspaces/{namespace}
-   * @response `201` `ApiWorkspaceEnvelope` Workspace created successfully
+   * @response `201` `ApiWorkspaceCreateEnvelope` Workspace created successfully
    * @response `400` `ApiErrorEnvelope` Bad Request.
    * @response `401` `ApiErrorEnvelope` Unauthorized. Authentication is required.
    * @response `403` `ApiErrorEnvelope` Forbidden. User does not have permission to create workspace.
@@ -83,9 +83,40 @@ export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityD
     body: ApiWorkspaceCreateEnvelope,
     params: RequestParams = {},
   ) =>
-    this.request<ApiWorkspaceEnvelope, ApiErrorEnvelope>({
+    this.request<ApiWorkspaceCreateEnvelope, ApiErrorEnvelope>({
       path: `/workspaces/${namespace}`,
       method: 'POST',
+      body: body,
+      type: ContentType.Json,
+      format: 'json',
+      ...params,
+    });
+  /**
+   * @description Updates an existing workspace
+   *
+   * @tags workspaces
+   * @name UpdateWorkspace
+   * @summary Update workspace
+   * @request PUT:/workspaces/{namespace}/{name}
+   * @response `200` `ApiWorkspaceEnvelope` Workspace updated successfully
+   * @response `400` `ApiErrorEnvelope` Bad Request.
+   * @response `401` `ApiErrorEnvelope` Unauthorized. Authentication is required.
+   * @response `403` `ApiErrorEnvelope` Forbidden. User does not have permission to update workspace.
+   * @response `409` `ApiErrorEnvelope` Conflict. Current workspace revision is newer than provided.
+   * @response `413` `ApiErrorEnvelope` Request Entity Too Large. The request body is too large.
+   * @response `415` `ApiErrorEnvelope` Unsupported Media Type. Content-Type header is not correct.
+   * @response `422` `ApiErrorEnvelope` Unprocessable Entity. Validation error.
+   * @response `500` `ApiErrorEnvelope` Internal server error. An unexpected error occurred on the server.
+   */
+  updateWorkspace = (
+    namespace: string,
+    name: string,
+    body: ApiWorkspaceEnvelope,
+    params: RequestParams = {},
+  ) =>
+    this.request<ApiWorkspaceEnvelope, ApiErrorEnvelope>({
+      path: `/workspaces/${namespace}/${name}`,
+      method: 'PUT',
       body: body,
       type: ContentType.Json,
       format: 'json',
@@ -124,13 +155,13 @@ export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityD
       ...params,
     });
   /**
-   * @description Returns details of a specific workspace identified by namespace and workspace name.
+   * @description Returns the current state of a specific workspace identified by namespace and workspace name, including the revision for optimistic locking. This endpoint is intended for retrieving the workspace state before updating it.
    *
    * @tags workspaces
    * @name GetWorkspace
    * @summary Get workspace
    * @request GET:/workspaces/{namespace}/{workspace_name}
-   * @response `200` `ApiWorkspaceEnvelope` Successful operation. Returns the requested workspace details.
+   * @response `200` `ApiWorkspaceEnvelope` Successful operation. Returns the requested workspace details with new revision.
    * @response `401` `ApiErrorEnvelope` Unauthorized. Authentication is required.
    * @response `403` `ApiErrorEnvelope` Forbidden. User does not have permission to access the workspace.
    * @response `404` `ApiErrorEnvelope` Not Found. Workspace does not exist.

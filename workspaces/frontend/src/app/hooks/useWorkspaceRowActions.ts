@@ -1,25 +1,25 @@
 import { useCallback } from 'react';
 import { IActions } from '@patternfly/react-table/dist/esm/components/Table';
 import { useWorkspaceActionsContext, WorkspaceAction } from '~/app/context/WorkspaceActionsContext';
-import { WorkspacesWorkspace } from '~/generated/data-contracts';
+import { WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
 
 export type WorkspaceRowActionId = 'viewDetails' | 'edit' | 'delete' | 'start' | 'stop' | 'restart';
 
 interface WorkspaceRowAction {
   id: WorkspaceRowActionId;
   onActionDone?: WorkspaceAction['onActionDone'];
-  isVisible?: boolean | ((workspace: WorkspacesWorkspace) => boolean);
+  isVisible?: boolean | ((workspace: WorkspacesWorkspaceListItem) => boolean);
 }
 
 type WorkspaceRowActionItem = WorkspaceRowAction | { id: 'separator' };
 
 export const useWorkspaceRowActions = (
   actionsToInclude: WorkspaceRowActionItem[],
-): ((workspace: WorkspacesWorkspace) => IActions) => {
+): ((workspace: WorkspacesWorkspaceListItem) => IActions) => {
   const actionsContext = useWorkspaceActionsContext();
 
   return useCallback(
-    (workspace: WorkspacesWorkspace): IActions => {
+    (workspace: WorkspacesWorkspaceListItem): IActions => {
       const actions: IActions = [];
 
       for (const item of actionsToInclude) {
@@ -47,7 +47,7 @@ export const useWorkspaceRowActions = (
 function buildAction(
   id: WorkspaceRowActionId,
   onActionDone: WorkspaceAction['onActionDone'] | undefined,
-  workspace: WorkspacesWorkspace,
+  workspace: WorkspacesWorkspaceListItem,
   actionsContext: ReturnType<typeof useWorkspaceActionsContext>,
 ): IActions[number] {
   const map: Record<WorkspaceRowActionId, () => IActions[number]> = {
