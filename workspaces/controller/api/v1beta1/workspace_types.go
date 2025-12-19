@@ -36,12 +36,6 @@ type WorkspaceSpec struct {
 	// +kubebuilder:default=false
 	Paused *bool `json:"paused,omitempty"`
 
-	// if true, pending updates are NOT applied when the Workspace is paused
-	// if false, pending updates are applied when the Workspace is paused
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=false
-	DeferUpdates *bool `json:"deferUpdates,omitempty"`
-
 	// the WorkspaceKind to use
 	// +kubebuilder:validation:MinLength:=2
 	// +kubebuilder:validation:MaxLength:=63

@@ -1149,11 +1149,6 @@ func (in *WorkspaceSpec) DeepCopyInto(out *WorkspaceSpec) {
 		*out = new(bool)
 		**out = **in
 	}
-	if in.DeferUpdates != nil {
-		in, out := &in.DeferUpdates, &out.DeferUpdates
-		*out = new(bool)
-		**out = **in
-	}
 	in.PodTemplate.DeepCopyInto(&out.PodTemplate)
 }
 

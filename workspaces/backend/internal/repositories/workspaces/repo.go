@@ -158,9 +158,8 @@ func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, workspaceCrea
 			Namespace: namespace,
 		},
 		Spec: kubefloworgv1beta1.WorkspaceSpec{
-			Paused:       &workspaceCreate.Paused,
-			DeferUpdates: &workspaceCreate.DeferUpdates,
-			Kind:         workspaceKindName,
+			Paused: &workspaceCreate.Paused,
+			Kind:   workspaceKindName,
 			PodTemplate: kubefloworgv1beta1.WorkspacePodTemplate{
 				PodMetadata: &kubefloworgv1beta1.WorkspacePodMetadata{
 					Labels:      workspaceCreate.PodTemplate.PodMetadata.Labels,

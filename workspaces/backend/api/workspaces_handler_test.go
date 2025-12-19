@@ -696,10 +696,9 @@ var _ = Describe("Workspaces Handler", func() {
 
 			By("defining a WorkspaceCreate model")
 			workspaceCreate := &models.WorkspaceCreate{
-				Name:         workspaceName,
-				Kind:         workspaceKindName,
-				Paused:       false,
-				DeferUpdates: false,
+				Name:   workspaceName,
+				Kind:   workspaceKindName,
+				Paused: false,
 				PodTemplate: models.PodTemplateMutate{
 					PodMetadata: models.PodMetadataMutate{
 						Labels: map[string]string{
@@ -763,7 +762,6 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(createdWorkspace.ObjectMeta.Name).To(Equal(workspaceName))
 			Expect(createdWorkspace.Spec.Kind).To(Equal(workspaceKindName))
 			Expect(createdWorkspace.Spec.Paused).To(Equal(&workspaceCreate.Paused))
-			Expect(createdWorkspace.Spec.DeferUpdates).To(Equal(&workspaceCreate.DeferUpdates))
 			Expect(createdWorkspace.Spec.PodTemplate.PodMetadata.Labels).To(Equal(workspaceCreate.PodTemplate.PodMetadata.Labels))
 			Expect(createdWorkspace.Spec.PodTemplate.PodMetadata.Annotations).To(Equal(workspaceCreate.PodTemplate.PodMetadata.Annotations))
 			Expect(createdWorkspace.Spec.PodTemplate.Volumes.Home).To(Equal(workspaceCreate.PodTemplate.Volumes.Home))

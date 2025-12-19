@@ -28,21 +28,19 @@ import (
 // NewWorkspaceCreateModelFromWorkspace creates WorkspaceCreate model from a Workspace object.
 func NewWorkspaceCreateModelFromWorkspace(ws *kubefloworgv1beta1.Workspace) *WorkspaceCreate {
 	return &WorkspaceCreate{
-		Name:         ws.Name,
-		Kind:         ws.Spec.Kind,
-		Paused:       ptr.Deref(ws.Spec.Paused, false),
-		DeferUpdates: ptr.Deref(ws.Spec.DeferUpdates, false),
-		PodTemplate:  buildPodTemplateMutate(ws),
+		Name:        ws.Name,
+		Kind:        ws.Spec.Kind,
+		Paused:      ptr.Deref(ws.Spec.Paused, false),
+		PodTemplate: buildPodTemplateMutate(ws),
 	}
 }
 
 // NewWorkspaceUpdateModelFromWorkspace creates WorkspaceUpdate model from a Workspace object.
 func NewWorkspaceUpdateModelFromWorkspace(ws *kubefloworgv1beta1.Workspace) *WorkspaceUpdate {
 	return &WorkspaceUpdate{
-		Revision:     CalculateWorkspaceRevision(ws),
-		Paused:       ptr.Deref(ws.Spec.Paused, false),
-		DeferUpdates: ptr.Deref(ws.Spec.DeferUpdates, false),
-		PodTemplate:  buildPodTemplateMutate(ws),
+		Revision:    CalculateWorkspaceRevision(ws),
+		Paused:      ptr.Deref(ws.Spec.Paused, false),
+		PodTemplate: buildPodTemplateMutate(ws),
 	}
 }
 

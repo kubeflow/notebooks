@@ -24,11 +24,10 @@ import (
 
 // WorkspaceCreate is used to create a new workspace.
 type WorkspaceCreate struct {
-	Name         string            `json:"name"`
-	Kind         string            `json:"kind"`
-	Paused       bool              `json:"paused"`
-	DeferUpdates bool              `json:"deferUpdates"`
-	PodTemplate  PodTemplateMutate `json:"podTemplate"`
+	Name        string            `json:"name"`
+	Kind        string            `json:"kind"`
+	Paused      bool              `json:"paused"`
+	PodTemplate PodTemplateMutate `json:"podTemplate"`
 }
 
 // Validate validates the WorkspaceCreate struct.
@@ -61,9 +60,8 @@ type WorkspaceUpdate struct {
 	//   other than for equality, as the format is not guaranteed to be stable.
 	Revision string `json:"revision"`
 
-	Paused       bool              `json:"paused"`       // TODO: remove `paused` once we have an "actions" api for pausing workspaces
-	DeferUpdates bool              `json:"deferUpdates"` // TODO: remove `deferUpdates` once the controller is no longer applying redirects
-	PodTemplate  PodTemplateMutate `json:"podTemplate"`
+	Paused      bool              `json:"paused"` // TODO: remove `paused` once we have an "actions" api for pausing workspaces
+	PodTemplate PodTemplateMutate `json:"podTemplate"`
 }
 
 // Validate validates the WorkspaceUpdate struct.

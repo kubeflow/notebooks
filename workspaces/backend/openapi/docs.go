@@ -2379,16 +2379,12 @@ const docTemplate = `{
         "workspaces.WorkspaceCreate": {
             "type": "object",
             "required": [
-                "deferUpdates",
                 "kind",
                 "name",
                 "paused",
                 "podTemplate"
             ],
             "properties": {
-                "deferUpdates": {
-                    "type": "boolean"
-                },
                 "kind": {
                     "type": "string"
                 },
@@ -2431,7 +2427,6 @@ const docTemplate = `{
             "required": [
                 "activity",
                 "audit",
-                "deferUpdates",
                 "name",
                 "namespace",
                 "paused",
@@ -2449,9 +2444,6 @@ const docTemplate = `{
                 },
                 "audit": {
                     "$ref": "#/definitions/common.Audit"
-                },
-                "deferUpdates": {
-                    "type": "boolean"
                 },
                 "name": {
                     "type": "string"
@@ -2510,16 +2502,11 @@ const docTemplate = `{
         "workspaces.WorkspaceUpdate": {
             "type": "object",
             "required": [
-                "deferUpdates",
                 "paused",
                 "podTemplate",
                 "revision"
             ],
             "properties": {
-                "deferUpdates": {
-                    "description": "TODO: remove ` + "`" + `deferUpdates` + "`" + ` once the controller is no longer applying redirects",
-                    "type": "boolean"
-                },
                 "paused": {
                     "description": "TODO: remove ` + "`" + `paused` + "`" + ` once we have an \"actions\" api for pausing workspaces",
                     "type": "boolean"

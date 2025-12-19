@@ -44,12 +44,6 @@ spec:
           spec:
             description: WorkspaceSpec defines the desired state of Workspace
             properties:
-              deferUpdates:
-                default: false
-                description: |-
-                  if true, pending updates are NOT applied when the Workspace is paused
-                  if false, pending updates are applied when the Workspace is paused
-                type: boolean
               kind:
                 description: the WorkspaceKind to use
                 example: jupyterlab

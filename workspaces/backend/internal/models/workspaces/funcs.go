@@ -109,7 +109,6 @@ func NewWorkspaceListItemFromWorkspace(ws *kubefloworgv1beta1.Workspace, wsk *ku
 			Icon:    iconRef,
 			Logo:    logoRef,
 		},
-		DeferUpdates:   ptr.Deref(ws.Spec.DeferUpdates, false),
 		Paused:         ptr.Deref(ws.Spec.Paused, false),
 		PausedTime:     ws.Status.PauseTime,
 		PendingRestart: ws.Status.PendingRestart,
