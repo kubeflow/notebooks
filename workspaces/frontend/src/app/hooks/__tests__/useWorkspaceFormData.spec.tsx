@@ -75,7 +75,6 @@ describe('useWorkspaceFormData', () => {
       podConfig: mockWorkspace.podTemplate.options.podConfig.current.id,
       properties: {
         workspaceName: mockWorkspace.name,
-        deferUpdates: mockWorkspace.deferUpdates,
         volumes: mockWorkspace.podTemplate.volumes.data,
         secrets: mockWorkspace.podTemplate.volumes.secrets,
         homeDirectory: mockWorkspace.podTemplate.volumes.home?.mountPath,

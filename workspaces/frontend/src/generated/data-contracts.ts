@@ -442,7 +442,6 @@ export interface WorkspacesService {
 }
 
 export interface WorkspacesWorkspaceCreate {
-  deferUpdates: boolean;
   kind: string;
   name: string;
   paused: boolean;
@@ -459,7 +458,6 @@ export interface WorkspacesWorkspaceKindInfo {
 export interface WorkspacesWorkspaceListItem {
   activity: WorkspacesActivity;
   audit: CommonAudit;
-  deferUpdates: boolean;
   name: string;
   namespace: string;
   paused: boolean;
@@ -473,8 +471,6 @@ export interface WorkspacesWorkspaceListItem {
 }
 
 export interface WorkspacesWorkspaceUpdate {
-  /** TODO: remove `deferUpdates` once the controller is no longer applying redirects */
-  deferUpdates: boolean;
   /** TODO: remove `paused` once we have an "actions" api for pausing workspaces */
   paused: boolean;
   podTemplate: WorkspacesPodTemplateMutate;

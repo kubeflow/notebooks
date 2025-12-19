@@ -9,7 +9,6 @@ export const EMPTY_FORM_DATA: WorkspaceFormData = {
   imageConfig: undefined,
   podConfig: undefined,
   properties: {
-    deferUpdates: false,
     homeDirectory: '',
     volumes: [],
     secrets: [],
@@ -47,7 +46,6 @@ const useWorkspaceFormData = (args: {
       podConfig,
       properties: {
         workspaceName,
-        deferUpdates: workspaceUpdate.deferUpdates,
         volumes: workspaceUpdate.podTemplate.volumes.data.map((volume) => ({ ...volume })),
         secrets:
           workspaceUpdate.podTemplate.volumes.secrets?.map((secret) => ({ ...secret })) ?? [],

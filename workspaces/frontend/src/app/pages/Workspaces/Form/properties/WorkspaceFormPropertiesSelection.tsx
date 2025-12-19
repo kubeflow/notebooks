@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from 'react';
-import { Checkbox } from '@patternfly/react-core/dist/esm/components/Checkbox';
 import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import { Divider } from '@patternfly/react-core/dist/esm/components/Divider';
 import { ExpandableSection } from '@patternfly/react-core/dist/esm/components/ExpandableSection';
@@ -71,20 +70,6 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
                   </HelperTextItem>
                 </HelperText>
               )}
-              <FormGroup fieldId="defer-updates" className="pf-v6-u-pt-sm pf-v6-u-pb-sm">
-                <Checkbox
-                  label="Defer Updates"
-                  isChecked={selectedProperties.deferUpdates}
-                  onChange={() =>
-                    onSelect({
-                      ...selectedProperties,
-                      deferUpdates: !selectedProperties.deferUpdates,
-                    })
-                  }
-                  id="defer-updates"
-                  data-testid="defer-updates-checkbox"
-                />
-              </FormGroup>
               <Divider />
               <ExpandableSection
                 toggleText="Volumes"

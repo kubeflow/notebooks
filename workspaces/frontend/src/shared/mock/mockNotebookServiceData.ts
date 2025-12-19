@@ -74,7 +74,6 @@ export const mockWorkspace2: WorkspacesWorkspaceListItem = buildMockWorkspace({
   namespace: mockNamespace2.name,
   state: WorkspacesWorkspaceState.WorkspaceStatePaused,
   paused: false,
-  deferUpdates: false,
   activity: {
     lastActivity: new Date(2024, 11, 31).getTime(),
     lastUpdate: new Date(2024, 11, 20).getTime(),

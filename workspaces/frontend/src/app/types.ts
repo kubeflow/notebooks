@@ -27,7 +27,6 @@ export type WorkspaceFormMode = 'create' | 'update';
 
 export interface WorkspaceFormProperties {
   workspaceName: string;
-  deferUpdates: boolean;
   homeDirectory: string;
   volumes: WorkspacesPodVolumeMount[];
   secrets: WorkspacesPodSecretMount[];

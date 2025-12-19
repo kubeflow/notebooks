@@ -32,7 +32,6 @@ const createWorkspace = async (args: {
   const wsCreateData: WorkspacesWorkspaceCreate = {
     name: data.properties.workspaceName,
     kind: data.kind.name,
-    deferUpdates: data.properties.deferUpdates,
     paused: false,
     podTemplate: {
       podMetadata: {
@@ -64,7 +63,6 @@ const updateWorkspace = async (args: {
   const { data, api, namespace } = args;
 
   const wsUpdateData: WorkspacesWorkspaceUpdate = {
-    deferUpdates: data.properties.deferUpdates,
     paused: false,
     podTemplate: {
       podMetadata: {

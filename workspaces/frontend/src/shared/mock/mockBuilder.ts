@@ -167,7 +167,6 @@ export const buildMockWorkspace = (
   namespace: 'default',
   workspaceKind: buildMockWorkspaceKindInfo(),
   paused: true,
-  deferUpdates: true,
   pausedTime: new Date(2025, 3, 1).getTime(),
   state: WorkspacesWorkspaceState.WorkspaceStateRunning,
   stateMessage: 'Workspace is running',
@@ -585,7 +584,6 @@ export const buildMockPodTemplateMutate = (
 export const buildMockWorkspaceCreate = (
   workspaceCreate?: Partial<WorkspacesWorkspaceCreate>,
 ): WorkspacesWorkspaceCreate => ({
-  deferUpdates: false,
   kind: 'jupyterlab',
   name: 'My Notebook',
   paused: false,
@@ -596,7 +594,6 @@ export const buildMockWorkspaceCreate = (
 export const buildMockWorkspaceUpdate = (
   workspaceUpdate?: Partial<WorkspacesWorkspaceUpdate>,
 ): WorkspacesWorkspaceUpdate => ({
-  deferUpdates: false,
   paused: false,
   podTemplate: buildMockPodTemplateMutate({}),
   revision: '1234567890',
@@ -607,7 +604,6 @@ export const buildMockWorkspaceUpdateFromWorkspace = (args: {
   workspace?: Partial<WorkspacesWorkspaceListItem>;
   workspaceUpdate?: Partial<WorkspacesWorkspaceUpdate>;
 }): WorkspacesWorkspaceUpdate => ({
-  deferUpdates: args.workspace?.deferUpdates ?? false,
   paused: args.workspace?.paused ?? false,
   podTemplate: buildMockPodTemplateMutate({
     options: buildMockPodTemplateOptionsMutate({
