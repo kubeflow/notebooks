@@ -32,6 +32,11 @@ jobs:
           check-latest: true
           cache-dependency-path: workspaces/backend/go.sum
 
+      - ## NOTE: this will cause the porcelain check to fail if go.mod/go.sum are out of date
+        name: Go Mod Tidy
+        working-directory: workspaces/backend
+        run: go mod tidy
+
       - name: Lint
         working-directory: workspaces/backend
         run: make lint
