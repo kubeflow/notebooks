@@ -47,6 +47,7 @@ module.exports = {
     '!<rootDir>/src/__tests__/**',
     '!<rootDir>/src/__mocks__/**',
     '!<rootDir>/src/generated/**',
+    '!<rootDir>/src/shared/mock/**',
     '!**/*.spec.{ts,tsx}',
     '!**/*.d.ts',
   ],

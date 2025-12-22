@@ -5,7 +5,13 @@
   "sourceMap": true,
   "instrument": false,
   "include": ["src/**/*.{ts,tsx,js,jsx}"],
-  "exclude": ["src/__tests__/**", "src/__mocks__/**", "src/generated/**", "**/*.d.ts"],
+  "exclude": [
+    "src/__tests__/**",
+    "src/__mocks__/**",
+    "src/generated/**",
+    "src/shared/mock/**",
+    "**/*.d.ts"
+  ],
   "reporter": ["text-summary", "lcov", "html"],
   "report-dir": "src/__tests__/cypress/coverage",
   "temp-dir": "src/__tests__/cypress/.nyc_output"

@@ -19,7 +19,13 @@ module.exports = {
         [
           'istanbul',
           {
-            exclude: ['**/__tests__/**', '**/__mocks__/**', '**/generated/**', '**/*.d.ts'],
+            exclude: [
+              '**/__tests__/**',
+              '**/__mocks__/**',
+              '**/generated/**',
+              '**/shared/mock/**',
+              '**/*.d.ts',
+            ],
           },
         ],
       ],
