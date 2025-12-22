@@ -12,20 +12,7 @@ import {
 import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
 import { Label } from '@patternfly/react-core/dist/esm/components/Label';
-import {
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
-  ToolbarGroup,
-  ToolbarFilter,
-  ToolbarToggleGroup,
-} from '@patternfly/react-core/dist/esm/components/Toolbar';
-import {
-  Select,
-  SelectList,
-  SelectOption,
-} from '@patternfly/react-core/dist/esm/components/Select';
-import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
+import { ToolbarItem } from '@patternfly/react-core/dist/esm/components/Toolbar';
 import { Bullseye } from '@patternfly/react-core/dist/esm/layouts/Bullseye';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import {
@@ -39,11 +26,9 @@ import {
   ActionsColumn,
   IActions,
 } from '@patternfly/react-table/dist/esm/components/Table';
-import { FilterIcon } from '@patternfly/react-icons/dist/esm/icons/filter-icon';
 import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import { useWorkspaceCountPerKind } from '~/app/hooks/useWorkspaceCountPerKind';
 import { WorkspaceKindsColumns } from '~/app/types';
-import ThemeAwareSearchInput from '~/app/components/ThemeAwareSearchInput';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
 import WithValidImage from '~/shared/components/WithValidImage';
 import ImageFallback from '~/shared/components/ImageFallback';
@@ -52,11 +37,38 @@ import { useTypedNavigate } from '~/app/routerHelper';
 import { WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
 import { LoadError } from '~/app/components/LoadError';
 import { LoadingSpinner } from '~/app/components/LoadingSpinner';
+import ToolbarFilter, { FilterConfigMap } from '~/shared/components/ToolbarFilter';
+import { useToolbarFilters, applyFilters } from '~/shared/hooks/useToolbarFilters';
+import {
+  WORKSPACE_KIND_STATUS_COLORS,
+  extractWorkspaceKindStatusColor,
+  WorkspaceKindStatus,
+} from '~/shared/utilities/WorkspaceKindUtils';
 import { WorkspaceKindDetails } from './details/WorkspaceKindDetails';
 
 export enum ActionType {
   ViewDetails,
 }
+
+const filterConfig = {
+  name: { type: 'text', label: 'Name', placeholder: 'Filter by name' },
+  description: { type: 'text', label: 'Description', placeholder: 'Filter by description' },
+  status: {
+    type: 'select',
+    label: 'Status',
+    placeholder: 'Filter by status',
+    options: (Object.keys(WORKSPACE_KIND_STATUS_COLORS) as WorkspaceKindStatus[])
+      .sort((a, b) => a.localeCompare(b))
+      .map((status) => ({
+        value: status,
+        label: status,
+      })),
+  },
+} as const satisfies FilterConfigMap<string>;
+
+type WorkspaceKindFilterKey = keyof typeof filterConfig;
+
+const visibleFilterKeys: readonly WorkspaceKindFilterKey[] = ['name', 'description', 'status'];
 
 export const WorkspaceKinds: React.FunctionComponent = () => {
   // Table columns
@@ -84,13 +96,13 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     useState<WorkspacekindsWorkspaceKind | null>(null);
   const [activeActionType, setActiveActionType] = useState<ActionType | null>(null);
 
-  // Column sorting
-  const [activeSortIndex, setActiveSortIndex] = useState<number | null>(1);
-  const [activeSortDirection, setActiveSortDirection] = useState<'asc' | 'desc' | null>('asc');
-
   // Pagination
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
+
+  // Column sorting
+  const [activeSortIndex, setActiveSortIndex] = useState<number | null>(1);
+  const [activeSortDirection, setActiveSortDirection] = useState<'asc' | 'desc' | null>('asc');
 
   const getSortableRowValues = useCallback(
     (workspaceKind: WorkspacekindsWorkspaceKind): (string | boolean | number)[] => {
@@ -145,57 +157,25 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     [activeSortIndex, activeSortDirection],
   );
 
-  // Set up filter - Attribute search.
-  const [searchNameValue, setSearchNameValue] = useState('');
-  const [searchDescriptionValue, setSearchDescriptionValue] = useState('');
-  const [statusSelection, setStatusSelection] = useState('');
+  // Filter
+  const { filterValues, setFilter, clearAllFilters } =
+    useToolbarFilters<WorkspaceKindFilterKey>(filterConfig);
 
-  const onSearchNameChange = useCallback((value: string) => {
-    setSearchNameValue(value);
-  }, []);
-
-  const onSearchDescriptionChange = useCallback((value: string) => {
-    setSearchDescriptionValue(value);
-  }, []);
-
-  const onFilter = useCallback(
-    (workspaceKind: WorkspacekindsWorkspaceKind) => {
-      let nameRegex: RegExp;
-      let descriptionRegex: RegExp;
-
-      try {
-        nameRegex = new RegExp(searchNameValue, 'i');
-        descriptionRegex = new RegExp(searchDescriptionValue, 'i');
-      } catch {
-        nameRegex = new RegExp(searchNameValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-        descriptionRegex = new RegExp(
-          searchDescriptionValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
-          'i',
-        );
-      }
-
-      const matchesNameSearch = searchNameValue === '' || nameRegex.test(workspaceKind.name);
-      const matchesDescriptionSearch =
-        searchDescriptionValue === '' || descriptionRegex.test(workspaceKind.description);
-
-      let matchesStatus = false;
-      if (statusSelection === 'Deprecated') {
-        matchesStatus = workspaceKind.deprecated === true;
-      }
-      if (statusSelection === 'Active') {
-        matchesStatus = workspaceKind.deprecated === false;
-      }
-
-      return (
-        matchesNameSearch && matchesDescriptionSearch && (statusSelection === '' || matchesStatus)
-      );
-    },
-    [searchNameValue, searchDescriptionValue, statusSelection],
+  const filterableProperties: Record<
+    WorkspaceKindFilterKey,
+    (wk: WorkspacekindsWorkspaceKind) => string
+  > = useMemo(
+    () => ({
+      name: (wk) => wk.name,
+      description: (wk) => wk.description,
+      status: (wk) => (wk.deprecated ? 'Deprecated' : 'Active'),
+    }),
+    [],
   );
 
   const filteredWorkspaceKinds = useMemo(
-    () => sortedWorkspaceKinds.filter(onFilter),
-    [sortedWorkspaceKinds, onFilter],
+    () => applyFilters(sortedWorkspaceKinds, filterValues, filterableProperties),
+    [sortedWorkspaceKinds, filterValues, filterableProperties],
   );
 
   // Reset page when filtered results change and current page is out of bounds
@@ -225,103 +205,12 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     [],
   );
 
-  const clearAllFilters = useCallback(() => {
-    setSearchNameValue('');
-    setStatusSelection('');
-    setSearchDescriptionValue('');
-  }, []);
-
-  // Set up status single select
-  const [isStatusMenuOpen, setIsStatusMenuOpen] = useState<boolean>(false);
-
-  const onStatusSelect = (
-    _event: React.MouseEvent | undefined,
-    value: string | number | undefined,
-  ) => {
-    if (typeof value === 'undefined') {
-      return;
-    }
-    setStatusSelection(value.toString());
-    setIsStatusMenuOpen(false);
-  };
-
-  const statusSelect = (
-    <Select
-      isOpen={isStatusMenuOpen}
-      selected={statusSelection}
-      onSelect={onStatusSelect}
-      onOpenChange={(isOpen) => setIsStatusMenuOpen(isOpen)}
-      toggle={(toggleRef) => (
-        <MenuToggle
-          ref={toggleRef}
-          onClick={() => setIsStatusMenuOpen(!isStatusMenuOpen)}
-          isExpanded={isStatusMenuOpen}
-          style={{ width: '200px' } as React.CSSProperties}
-          data-testid="filter-status-dropdown"
-        >
-          Filter by status
-        </MenuToggle>
-      )}
-    >
-      <SelectList>
-        <SelectOption value="Deprecated" data-testid="filter-status-deprecated">
-          Deprecated
-        </SelectOption>
-        <SelectOption value="Active" data-testid="filter-status-active">
-          Active
-        </SelectOption>
-      </SelectList>
-    </Select>
-  );
-
-  // Set up attribute selector
-  const [activeAttributeMenu, setActiveAttributeMenu] = useState<'Name' | 'Description' | 'Status'>(
-    'Name',
-  );
-  const [isAttributeMenuOpen, setIsAttributeMenuOpen] = useState(false);
-
-  const attributeDropdown = (
-    <Select
-      isOpen={isAttributeMenuOpen}
-      selected={activeAttributeMenu}
-      onSelect={(_ev, itemId) => {
-        setActiveAttributeMenu(itemId?.toString() as 'Name' | 'Description' | 'Status');
-        setIsAttributeMenuOpen(false);
-      }}
-      onOpenChange={(isOpen) => setIsAttributeMenuOpen(isOpen)}
-      toggle={(toggleRef) => (
-        <MenuToggle
-          ref={toggleRef}
-          onClick={() => setIsAttributeMenuOpen(!isAttributeMenuOpen)}
-          isExpanded={isAttributeMenuOpen}
-          icon={<FilterIcon />}
-          data-testid="filter-attribute-dropdown"
-        >
-          {activeAttributeMenu}
-        </MenuToggle>
-      )}
-    >
-      <SelectList>
-        <SelectOption value="Name" data-testid="filter-attribute-name">
-          Name
-        </SelectOption>
-        <SelectOption value="Description" data-testid="filter-attribute-description">
-          Description
-        </SelectOption>
-        <SelectOption value="Status" data-testid="filter-attribute-status">
-          Status
-        </SelectOption>
-      </SelectList>
-    </Select>
-  );
-
   const emptyState = useMemo(
     () => <CustomEmptyState onClearFilters={clearAllFilters} />,
     [clearAllFilters],
   );
 
   // Actions
-
   const viewDetailsClick = useCallback((workspaceKind: WorkspacekindsWorkspaceKind) => {
     setSelectedWorkspaceKind(workspaceKind);
     setActiveActionType(ActionType.ViewDetails);
@@ -361,6 +250,20 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
 
   const DESCRIPTION_CHAR_LIMIT = 50;
 
+  // Toolbar actions
+  const toolbarActions = (
+    <ToolbarItem>
+      <Button
+        variant="primary"
+        ouiaId="Primary"
+        onClick={createWorkspaceKind}
+        data-testid="create-workspace-kind-button"
+      >
+        Create workspace kind
+      </Button>
+    </ToolbarItem>
+  );
+
   if (workspaceKindsError) {
     return <LoadError title="Failed to load workspace kinds" error={workspaceKindsError} />;
   }
@@ -383,74 +286,15 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
             </Content>
             <br />
             <Content style={{ display: 'flex', alignItems: 'flex-start', columnGap: '20px' }}>
-              <Toolbar id="attribute-search-filter-toolbar" clearAllFilters={clearAllFilters}>
-                <ToolbarContent>
-                  <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="xl">
-                    <ToolbarGroup variant="filter-group">
-                      <ToolbarItem>{attributeDropdown}</ToolbarItem>
-                      <ToolbarFilter
-                        labels={searchNameValue !== '' ? [searchNameValue] : ([] as string[])}
-                        deleteLabel={() => setSearchNameValue('')}
-                        deleteLabelGroup={() => setSearchNameValue('')}
-                        categoryName="Name"
-                        showToolbarItem={activeAttributeMenu === 'Name'}
-                      >
-                        <ToolbarItem>
-                          <ThemeAwareSearchInput
-                            value={searchNameValue}
-                            onChange={onSearchNameChange}
-                            placeholder="Filter by name"
-                            fieldLabel="Find by name"
-                            aria-label="Filter by name"
-                            data-testid="filter-name-input"
-                          />
-                        </ToolbarItem>
-                      </ToolbarFilter>
-                      <ToolbarFilter
-                        labels={
-                          searchDescriptionValue !== ''
-                            ? [searchDescriptionValue]
-                            : ([] as string[])
-                        }
-                        deleteLabel={() => setSearchDescriptionValue('')}
-                        deleteLabelGroup={() => setSearchDescriptionValue('')}
-                        categoryName="Description"
-                        showToolbarItem={activeAttributeMenu === 'Description'}
-                      >
-                        <ToolbarItem>
-                          <ThemeAwareSearchInput
-                            value={searchDescriptionValue}
-                            onChange={onSearchDescriptionChange}
-                            placeholder="Filter by description"
-                            fieldLabel="Find by description"
-                            aria-label="Filter by description"
-                            data-testid="filter-description-input"
-                          />
-                        </ToolbarItem>
-                      </ToolbarFilter>
-                      <ToolbarFilter
-                        labels={statusSelection !== '' ? [statusSelection] : ([] as string[])}
-                        deleteLabel={() => setStatusSelection('')}
-                        deleteLabelGroup={() => setStatusSelection('')}
-                        categoryName="Status"
-                        showToolbarItem={activeAttributeMenu === 'Status'}
-                      >
-                        {statusSelect}
-                      </ToolbarFilter>
-                      <ToolbarItem>
-                        <Button
-                          variant="primary"
-                          ouiaId="Primary"
-                          onClick={createWorkspaceKind}
-                          data-testid="create-workspace-kind-button"
-                        >
-                          Create workspace kind
-                        </Button>
-                      </ToolbarItem>
-                    </ToolbarGroup>
-                  </ToolbarToggleGroup>
-                </ToolbarContent>
-              </Toolbar>
+              <ToolbarFilter
+                filterConfig={filterConfig}
+                visibleFilterKeys={visibleFilterKeys}
+                filterValues={filterValues}
+                onFilterChange={setFilter}
+                onClearAllFilters={clearAllFilters}
+                toolbarActions={toolbarActions}
+                testIdPrefix="filter"
+              />
             </Content>
             <Table
               aria-label="Sortable table"
@@ -530,12 +374,18 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                         <Td dataLabel={columns.deprecated.name}>
                           {workspaceKind.deprecated ? (
                             <Tooltip content={workspaceKind.deprecationMessage}>
-                              <Label color="red" data-testid="status-label">
+                              <Label
+                                color={extractWorkspaceKindStatusColor('Deprecated')}
+                                data-testid="status-label"
+                              >
                                 Deprecated
                               </Label>
                             </Tooltip>
                           ) : (
-                            <Label color="green" data-testid="status-label">
+                            <Label
+                              color={extractWorkspaceKindStatusColor('Active')}
+                              data-testid="status-label"
+                            >
                               Active
                             </Label>
                           )}

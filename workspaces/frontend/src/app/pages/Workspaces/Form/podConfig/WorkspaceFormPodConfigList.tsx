@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   CardTitle,
   Card,
@@ -7,18 +7,26 @@ import {
 } from '@patternfly/react-core/dist/esm/components/Card';
 import { Gallery } from '@patternfly/react-core/dist/esm/layouts/Gallery';
 import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
-import { Toolbar, ToolbarContent } from '@patternfly/react-core/dist/esm/components/Toolbar';
-import Filter, { FilteredColumn, FilterRef } from '~/shared/components/Filter';
+import ToolbarFilter, { FilterConfigMap } from '~/shared/components/ToolbarFilter';
+import { useToolbarFilters, applyFilters } from '~/shared/hooks/useToolbarFilters';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
-import { defineDataFields, FilterableDataFieldKey } from '~/app/filterableDataHelper';
 import { WorkspacekindsPodConfigValue } from '~/generated/data-contracts';
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const { fields, filterableLabelMap } = defineDataFields({
-  name: { label: 'Name', isFilterable: true, isSortable: false },
-});
+type PodConfigFilterKey = 'name';
 
-type FilterableDataFieldKeys = FilterableDataFieldKey<typeof fields>;
+const filterConfig = {
+  name: { type: 'text', label: 'Name', placeholder: 'Filter by name' },
+} as const satisfies FilterConfigMap<PodConfigFilterKey>;
+
+const visibleFilterKeys: readonly PodConfigFilterKey[] = ['name'];
+
+const filterableProperties: Record<
+  PodConfigFilterKey,
+  (item: WorkspacekindsPodConfigValue) => string
+> = {
+  // Combine id and displayName for matching (separated by space so regex can match either)
+  name: (podConfig) => `${podConfig.id} ${podConfig.displayName}`,
+};
 
 type WorkspaceFormPodConfigListProps = {
   podConfigs: WorkspacekindsPodConfigValue[];
@@ -29,41 +37,13 @@ type WorkspaceFormPodConfigListProps = {
 export const WorkspaceFormPodConfigList: React.FunctionComponent<
   WorkspaceFormPodConfigListProps
 > = ({ podConfigs, selectedPodConfig, onSelect }) => {
-  const [filters, setFilters] = useState<FilteredColumn[]>([]);
-  const filterRef = useRef<FilterRef>(null);
+  const { filterValues, setFilter, clearAllFilters } =
+    useToolbarFilters<PodConfigFilterKey>(filterConfig);
 
-  const clearAllFilters = useCallback(() => {
-    filterRef.current?.clearAll();
-  }, []);
-
-  const filteredWorkspacePodConfigs = useMemo(() => {
-    if (podConfigs.length === 0) {
-      return [];
-    }
-    return filters.reduce((result, filter) => {
-      let searchValueInput: RegExp;
-      try {
-        searchValueInput = new RegExp(filter.value, 'i');
-      } catch {
-        searchValueInput = new RegExp(filter.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-      }
-      return result.filter((podConfig) => {
-        if (filter.value === '') {
-          return true;
-        }
-        switch (filter.columnKey as FilterableDataFieldKeys) {
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-          case 'name':
-            return (
-              podConfig.id.search(searchValueInput) >= 0 ||
-              podConfig.displayName.search(searchValueInput) >= 0
-            );
-          default:
-            return true;
-        }
-      });
-    }, podConfigs);
-  }, [filters, podConfigs]);
+  const filteredWorkspacePodConfigs = useMemo(
+    () => applyFilters(podConfigs, filterValues, filterableProperties),
+    [podConfigs, filterValues],
+  );
 
   const onChange = useCallback(
     (event: React.FormEvent<HTMLInputElement>) => {
@@ -88,17 +68,14 @@ export const WorkspaceFormPodConfigList: React.FunctionComponent<
   return (
     <>
       <PageSection>
-        <Toolbar id="toolbar-group-types">
-          <ToolbarContent>
-            <Filter
-              ref={filterRef}
-              id="filter-workspace-images"
-              filters={filters}
-              setFilters={setFilters}
-              columnDefinition={filterableLabelMap}
-            />
-          </ToolbarContent>
-        </Toolbar>
+        <ToolbarFilter
+          filterConfig={filterConfig}
+          visibleFilterKeys={visibleFilterKeys}
+          filterValues={filterValues}
+          onFilterChange={setFilter}
+          onClearAllFilters={clearAllFilters}
+          testIdPrefix="pod-config-filter"
+        />
       </PageSection>
       <PageSection isFilled>
         {filteredWorkspacePodConfigs.length === 0 && (

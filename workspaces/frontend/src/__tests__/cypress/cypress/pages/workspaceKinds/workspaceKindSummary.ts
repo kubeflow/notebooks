@@ -143,7 +143,7 @@ class WorkspaceKindSummary {
   }
 
   findToolbar() {
-    return cy.findByTestId('workspace-table-toolbar');
+    return cy.findByTestId('filter-workspaces-toolbar');
   }
 
   findActiveFilters() {

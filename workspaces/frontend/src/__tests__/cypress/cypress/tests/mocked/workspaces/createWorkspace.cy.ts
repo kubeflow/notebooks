@@ -515,4 +515,266 @@ describe('Create workspace', () => {
       createWorkspace.assertNextButtonEnabled();
     });
   });
+
+  describe('Filter', () => {
+    const mockWorkspaceKind2 = buildMockWorkspaceKind({
+      name: 'vscode',
+      displayName: 'VS Code',
+    });
+
+    const mockImage2 = buildMockOptionInfo({
+      id: 'jupyterlab_scipy_210',
+      displayName: 'jupyter-scipy:v2.1.0',
+    });
+
+    const mockPodConfig2 = buildMockOptionInfo({
+      id: 'large_cpu',
+      displayName: 'Large CPU',
+    });
+
+    const mockWorkspaceKindWithMultipleOptions = buildMockWorkspaceKind({
+      podTemplate: {
+        ...mockWorkspaceKind.podTemplate,
+        options: {
+          imageConfig: {
+            default: mockImage.id,
+            values: [
+              buildMockImageConfigValue(
+                mockImage.id,
+                mockImage.displayName,
+                'JupyterLab, with SciPy Packages',
+              ),
+              buildMockImageConfigValue(
+                mockImage2.id,
+                mockImage2.displayName,
+                'JupyterLab, with SciPy Packages v2.1.0',
+              ),
+            ],
+          },
+          podConfig: {
+            default: mockPodConfig.id,
+            values: [
+              buildMockPodConfigValue(mockPodConfig.id, mockPodConfig.displayName, 'Tiny CPU'),
+              buildMockPodConfigValue(mockPodConfig2.id, mockPodConfig2.displayName, 'Large CPU'),
+            ],
+          },
+        },
+      },
+    });
+
+    describe('Workspace kind filter', () => {
+      beforeEach(() => {
+        cy.interceptApi(
+          'GET /api/:apiVersion/workspacekinds',
+          { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+          mockModArchResponse([mockWorkspaceKind, mockWorkspaceKind2]),
+        ).as('getMultipleWorkspaceKinds');
+      });
+
+      it('should filter workspace kinds by name', () => {
+        createWorkspace.visit();
+        cy.wait('@getMultipleWorkspaceKinds');
+
+        createWorkspace.assertCardVisible(mockWorkspaceKind.name);
+        createWorkspace.assertCardVisible(mockWorkspaceKind2.name);
+
+        createWorkspace.typeKindFilter(mockWorkspaceKind.displayName);
+
+        createWorkspace.assertCardVisible(mockWorkspaceKind.name);
+        createWorkspace.assertCardNotVisible(mockWorkspaceKind2.name);
+      });
+
+      it('should filter workspace kinds by partial name match', () => {
+        createWorkspace.visit();
+        cy.wait('@getMultipleWorkspaceKinds');
+
+        createWorkspace.typeKindFilter('VS');
+
+        createWorkspace.assertCardNotVisible(mockWorkspaceKind.name);
+        createWorkspace.assertCardVisible(mockWorkspaceKind2.name);
+      });
+
+      it('should show no results when filter matches nothing', () => {
+        createWorkspace.visit();
+        cy.wait('@getMultipleWorkspaceKinds');
+
+        createWorkspace.typeKindFilter('NonExistentKind');
+
+        createWorkspace.assertNoResultsFound();
+      });
+
+      it('should clear filter and show all kinds', () => {
+        createWorkspace.visit();
+        cy.wait('@getMultipleWorkspaceKinds');
+
+        createWorkspace.typeKindFilter(mockWorkspaceKind.displayName);
+        createWorkspace.assertCardNotVisible(mockWorkspaceKind2.name);
+
+        createWorkspace.clearKindFilter();
+
+        createWorkspace.assertCardVisible(mockWorkspaceKind.name);
+        createWorkspace.assertCardVisible(mockWorkspaceKind2.name);
+      });
+    });
+
+    describe('Image filter', () => {
+      beforeEach(() => {
+        cy.interceptApi(
+          'GET /api/:apiVersion/workspacekinds',
+          { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+          mockModArchResponse([mockWorkspaceKindWithMultipleOptions]),
+        ).as('getWorkspaceKindsWithOptions');
+      });
+
+      it('should filter images by name', () => {
+        createWorkspace.visit();
+        cy.wait('@getWorkspaceKindsWithOptions');
+
+        createWorkspace.selectKind(mockWorkspaceKindWithMultipleOptions.name);
+        createWorkspace.clickNext();
+
+        createWorkspace.assertCardVisible(mockImage.id);
+        createWorkspace.assertCardVisible(mockImage2.id);
+
+        createWorkspace.typeImageFilter('v2.0.0');
+
+        createWorkspace.assertCardVisible(mockImage.id);
+        createWorkspace.assertCardNotVisible(mockImage2.id);
+      });
+
+      it('should filter images by id', () => {
+        createWorkspace.visit();
+        cy.wait('@getWorkspaceKindsWithOptions');
+
+        createWorkspace.selectKind(mockWorkspaceKindWithMultipleOptions.name);
+        createWorkspace.clickNext();
+
+        createWorkspace.typeImageFilter('210');
+
+        createWorkspace.assertCardNotVisible(mockImage.id);
+        createWorkspace.assertCardVisible(mockImage2.id);
+      });
+
+      it('should show no results when image filter matches nothing', () => {
+        createWorkspace.visit();
+        cy.wait('@getWorkspaceKindsWithOptions');
+
+        createWorkspace.selectKind(mockWorkspaceKindWithMultipleOptions.name);
+        createWorkspace.clickNext();
+
+        createWorkspace.typeImageFilter('NonExistentImage');
+
+        createWorkspace.assertNoResultsFound();
+      });
+    });
+
+    describe('Pod config filter', () => {
+      beforeEach(() => {
+        cy.interceptApi(
+          'GET /api/:apiVersion/workspacekinds',
+          { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+          mockModArchResponse([mockWorkspaceKindWithMultipleOptions]),
+        ).as('getWorkspaceKindsWithOptions');
+      });
+
+      it('should filter pod configs by name', () => {
+        createWorkspace.visit();
+        cy.wait('@getWorkspaceKindsWithOptions');
+
+        createWorkspace.selectKind(mockWorkspaceKindWithMultipleOptions.name);
+        createWorkspace.clickNext();
+
+        createWorkspace.selectImage(mockImage.id);
+        createWorkspace.clickNext();
+
+        createWorkspace.assertCardVisible(mockPodConfig.id);
+        createWorkspace.assertCardVisible(mockPodConfig2.id);
+
+        createWorkspace.typePodConfigFilter('Tiny');
+
+        createWorkspace.assertCardVisible(mockPodConfig.id);
+        createWorkspace.assertCardNotVisible(mockPodConfig2.id);
+      });
+
+      it('should filter pod configs by id', () => {
+        createWorkspace.visit();
+        cy.wait('@getWorkspaceKindsWithOptions');
+
+        createWorkspace.selectKind(mockWorkspaceKindWithMultipleOptions.name);
+        createWorkspace.clickNext();
+
+        createWorkspace.selectImage(mockImage.id);
+        createWorkspace.clickNext();
+
+        createWorkspace.typePodConfigFilter('large');
+
+        createWorkspace.assertCardNotVisible(mockPodConfig.id);
+        createWorkspace.assertCardVisible(mockPodConfig2.id);
+      });
+
+      it('should show no results when pod config filter matches nothing', () => {
+        createWorkspace.visit();
+        cy.wait('@getWorkspaceKindsWithOptions');
+
+        createWorkspace.selectKind(mockWorkspaceKindWithMultipleOptions.name);
+        createWorkspace.clickNext();
+
+        createWorkspace.selectImage(mockImage.id);
+        createWorkspace.clickNext();
+
+        createWorkspace.typePodConfigFilter('NonExistentPodConfig');
+
+        createWorkspace.assertNoResultsFound();
+      });
+
+      it('should clear filter using clear all filters button', () => {
+        createWorkspace.visit();
+        cy.wait('@getWorkspaceKindsWithOptions');
+
+        createWorkspace.selectKind(mockWorkspaceKindWithMultipleOptions.name);
+        createWorkspace.clickNext();
+
+        createWorkspace.selectImage(mockImage.id);
+        createWorkspace.clickNext();
+
+        createWorkspace.typePodConfigFilter('Tiny');
+        createWorkspace.assertCardNotVisible(mockPodConfig2.id);
+
+        createWorkspace.clickClearAllFilters();
+
+        createWorkspace.assertCardVisible(mockPodConfig.id);
+        createWorkspace.assertCardVisible(mockPodConfig2.id);
+      });
+    });
+
+    describe('Filter with regex', () => {
+      beforeEach(() => {
+        cy.interceptApi(
+          'GET /api/:apiVersion/workspacekinds',
+          { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+          mockModArchResponse([mockWorkspaceKind, mockWorkspaceKind2]),
+        ).as('getMultipleWorkspaceKinds');
+      });
+
+      it('should support regex pattern in filter', () => {
+        createWorkspace.visit();
+        cy.wait('@getMultipleWorkspaceKinds');
+
+        createWorkspace.typeKindFilter('JupyterLab|VS Code');
+
+        createWorkspace.assertCardVisible(mockWorkspaceKind.name);
+        createWorkspace.assertCardVisible(mockWorkspaceKind2.name);
+      });
+
+      it('should support case insensitive filter', () => {
+        createWorkspace.visit();
+        cy.wait('@getMultipleWorkspaceKinds');
+
+        createWorkspace.typeKindFilter('jupyterlab');
+
+        createWorkspace.assertCardVisible(mockWorkspaceKind.name);
+        createWorkspace.assertCardNotVisible(mockWorkspaceKind2.name);
+      });
+    });
+  });
 });

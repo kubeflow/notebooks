@@ -381,6 +381,86 @@ describe('WorkspaceKinds', () => {
       workspaceKinds.assertWorkspaceKindCount(0);
       workspaceKinds.assertEmptyStateVisible();
     });
+
+    it('should match lowercase search against mixed case name (case-insensitive)', () => {
+      workspaceKinds.applyNameFilter('jupyterlab');
+      workspaceKinds.assertWorkspaceKindCount(2); // jupyterlab, old-jupyterlab
+    });
+
+    it('should match uppercase search against lowercase name (case-insensitive)', () => {
+      workspaceKinds.applyNameFilter('VSCODE');
+      workspaceKinds.assertWorkspaceKindCount(1);
+    });
+
+    it('should match mixed case search in description (case-insensitive)', () => {
+      workspaceKinds.applyDescriptionFilter('TENSORFLOW');
+      workspaceKinds.assertWorkspaceKindCount(1);
+    });
+
+    it('should support regex pattern matching with start anchor', () => {
+      workspaceKinds.applyNameFilter('^old');
+      workspaceKinds.assertWorkspaceKindCount(1); // old-jupyterlab
+    });
+
+    it('should support regex pattern matching with alternation', () => {
+      workspaceKinds.applyNameFilter('jupyterlab|vscode');
+      workspaceKinds.assertWorkspaceKindCount(3); // jupyterlab, old-jupyterlab, vscode
+    });
+
+    it('should support regex pattern matching with end anchor', () => {
+      workspaceKinds.applyNameFilter('notebook$');
+      workspaceKinds.assertWorkspaceKindCount(1); // legacy-notebook
+    });
+
+    it('should handle invalid regex gracefully', () => {
+      workspaceKinds.applyNameFilter('[invalid');
+      workspaceKinds.assertWorkspaceKindCount(0);
+    });
+
+    it('should filter names containing special characters (dashes)', () => {
+      workspaceKinds.applyNameFilter('r-studio');
+      workspaceKinds.assertWorkspaceKindCount(1);
+    });
+
+    it('should display all filter attribute options', () => {
+      workspaceKinds.assertFilterDropdownOptionsExist(['name', 'description', 'status']);
+    });
+
+    it('should preserve filter values when switching between filter types', () => {
+      workspaceKinds.applyNameFilter('jupyterlab');
+      workspaceKinds.assertWorkspaceKindCount(2);
+
+      workspaceKinds.applyStatusFilter('Active');
+
+      workspaceKinds.assertWorkspaceKindCount(1); // Only active jupyterlab
+    });
+
+    it('should show filter chips when multiple filters are applied', () => {
+      workspaceKinds.applyNameFilter('jupyterlab');
+      workspaceKinds.applyStatusFilter('Deprecated');
+
+      workspaceKinds.findFilterChip('jupyterlab').should('exist');
+      workspaceKinds.findFilterChip('Deprecated').should('exist');
+    });
+
+    it('should remove filter via clear all', () => {
+      workspaceKinds.applyNameFilter('jupyterlab');
+      workspaceKinds.assertWorkspaceKindCount(2);
+
+      workspaceKinds.clearAllFilters();
+      workspaceKinds.assertWorkspaceKindCount(TOTAL_FILTER_TEST_WORKSPACEKINDS);
+    });
+
+    it('should remove individual filter from multiple active filters', () => {
+      workspaceKinds.applyNameFilter('jupyterlab');
+      workspaceKinds.applyStatusFilter('Deprecated');
+      workspaceKinds.assertWorkspaceKindCount(1); // old-jupyterlab
+
+      workspaceKinds.removeFilter('Status');
+
+      workspaceKinds.assertWorkspaceKindCount(2);
+      workspaceKinds.findFilterChip('jupyterlab').should('exist');
+    });
   });
 
   describe('Sorting', () => {

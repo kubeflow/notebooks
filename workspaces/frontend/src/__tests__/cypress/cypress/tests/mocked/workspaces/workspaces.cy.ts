@@ -648,6 +648,69 @@ describe('Workspaces', () => {
       workspaces.assertWorkspaceCount(0);
       workspaces.assertEmptyStateExists();
     });
+
+    it('should display all state options in the dropdown', () => {
+      workspaces.assertStateFilterOptionsExist([
+        'Running',
+        'Pending',
+        'Paused',
+        'Terminating',
+        'Error',
+        'Unknown',
+      ]);
+    });
+
+    it('should match lowercase search against title case name (case-insensitive)', () => {
+      workspaces.applyFilter({ key: 'name', value: 'workspace', name: 'Name' });
+      workspaces.assertWorkspaceCount(3); // Workspace 1, 2, 3
+    });
+
+    it('should match uppercase search against title case name (case-insensitive)', () => {
+      workspaces.applyFilter({ key: 'name', value: 'WORKSPACE', name: 'Name' });
+      workspaces.assertWorkspaceCount(3);
+    });
+
+    it('should support regex pattern matching with start anchor', () => {
+      workspaces.applyFilter({ key: 'name', value: '^WS', name: 'Name' });
+      workspaces.assertWorkspaceCount(2); // WS X, WS Y
+    });
+
+    it('should support regex pattern matching with alternation', () => {
+      workspaces.applyFilter({ key: 'name', value: 'Workspace 1|WS X', name: 'Name' });
+      workspaces.assertWorkspaceCount(2);
+    });
+
+    it('should handle invalid regex gracefully', () => {
+      workspaces.applyFilter({ key: 'name', value: '[invalid', name: 'Name' });
+      workspaces.assertWorkspaceCount(0);
+    });
+
+    it('should filter names with spaces', () => {
+      // Test data includes 'WS X' and 'WS Y' with spaces
+      workspaces.applyFilter({ key: 'name', value: 'WS X', name: 'Name' });
+      workspaces.assertWorkspaceCount(1);
+    });
+
+    it('should display all filter attribute options', () => {
+      workspaces.assertFilterDropdownOptionsExist(['name', 'state', 'kind', 'image']);
+    });
+
+    it('should preserve filter values when switching between filter types', () => {
+      workspaces.applyFilter({ key: 'name', value: 'Workspace', name: 'Name' });
+      workspaces.assertWorkspaceCount(3);
+
+      workspaces.applyFilter({ key: 'image', value: 'jupyter-scipy:v1.0.0', name: 'Image' });
+
+      workspaces.assertWorkspaceCount(2);
+    });
+
+    it('should remove filter by clicking chip close button', () => {
+      workspaces.applyFilter({ key: 'name', value: 'Workspace', name: 'Name' });
+      workspaces.assertWorkspaceCount(3);
+
+      workspaces.removeFilter('Name');
+      workspaces.assertWorkspaceCount(TOTAL_FILTER_TEST_WORKSPACES);
+    });
   });
 
   describe('Actions', () => {

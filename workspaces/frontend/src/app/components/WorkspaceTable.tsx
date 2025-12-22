@@ -1,4 +1,11 @@
-import React, { useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   TimestampTooltipVariant,
   Timestamp,
@@ -13,20 +20,7 @@ import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
 import { Bullseye } from '@patternfly/react-core/dist/esm/layouts/Bullseye';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { Icon } from '@patternfly/react-core/dist/esm/components/Icon';
-import {
-  Toolbar,
-  ToolbarContent,
-  ToolbarItem,
-  ToolbarGroup,
-  ToolbarFilter,
-  ToolbarToggleGroup,
-} from '@patternfly/react-core/dist/esm/components/Toolbar';
-import {
-  Select,
-  SelectList,
-  SelectOption,
-} from '@patternfly/react-core/dist/esm/components/Select';
-import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
+import { ToolbarItem } from '@patternfly/react-core/dist/esm/components/Toolbar';
 import {
   Table,
   TableText,
@@ -40,7 +34,6 @@ import {
   IActions,
 } from '@patternfly/react-table/dist/esm/components/Table';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
-import { FilterIcon } from '@patternfly/react-icons/dist/esm/icons/filter-icon';
 import { InfoCircleIcon } from '@patternfly/react-icons/dist/esm/icons/info-circle-icon';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-triangle-icon';
 import { TimesCircleIcon } from '@patternfly/react-icons/dist/esm/icons/times-circle-icon';
@@ -54,12 +47,13 @@ import {
 } from '~/app/actions/WorkspaceKindsActions';
 import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import { WorkspaceConnectAction } from '~/app/pages/Workspaces/WorkspaceConnectAction';
-import ThemeAwareSearchInput from '~/app/components/ThemeAwareSearchInput';
 import WithValidImage from '~/shared/components/WithValidImage';
 import ImageFallback from '~/shared/components/ImageFallback';
 import {
   formatResourceFromWorkspace,
   formatWorkspaceIdleState,
+  extractWorkspaceStateColor,
+  WORKSPACE_STATE_COLORS,
 } from '~/shared/utilities/WorkspaceUtils';
 import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
@@ -67,6 +61,11 @@ import { WorkspacesWorkspaceListItem, WorkspacesWorkspaceState } from '~/generat
 import { useWorkspaceActionsContext } from '~/app/context/WorkspaceActionsContext';
 import { POLL_INTERVAL } from '~/shared/utilities/const';
 import { RefreshCounter } from '~/app/components/RefreshCounter';
+import ToolbarFilter, {
+  FilterConfigMap,
+  ToolbarFilterRef,
+} from '~/shared/components/ToolbarFilter';
+import { useToolbarFilters, applyFilters } from '~/shared/hooks/useToolbarFilters';
 
 const {
   fields: wsTableColumns,
@@ -97,30 +96,33 @@ interface WorkspaceTableProps {
   rowActions?: (workspace: WorkspacesWorkspaceListItem) => IActions;
 }
 
-const allFiltersConfig = {
-  name: { label: 'Name', placeholder: 'Filter by name' },
-  kind: { label: 'Kind', placeholder: 'Filter by kind' },
-  image: { label: 'Image', placeholder: 'Filter by image' },
-  state: { label: 'State', placeholder: 'Filter by state' },
-  namespace: { label: 'Namespace' },
-  idleGpu: { label: 'Idle GPU' },
-} as const;
+const filterConfig = {
+  name: { type: 'text', label: 'Name', placeholder: 'Filter by name' },
+  kind: { type: 'text', label: 'Kind', placeholder: 'Filter by kind' },
+  image: { type: 'text', label: 'Image', placeholder: 'Filter by image' },
+  state: {
+    type: 'select',
+    label: 'State',
+    placeholder: 'Filter by state',
+    options: (Object.keys(WORKSPACE_STATE_COLORS) as WorkspacesWorkspaceState[])
+      .sort((a, b) => a.localeCompare(b))
+      .map((state) => ({
+        value: state,
+        label: state,
+      })),
+  },
+  namespace: { type: 'text', label: 'Namespace', placeholder: 'Filter by namespace' },
+  idleGpu: { type: 'text', label: 'Idle GPU', placeholder: 'Filter by idle GPU' },
+} as const satisfies FilterConfigMap<string>;
 
-// Defines which of the above filters should appear in the dropdown
-const dropdownFilterKeys = ['name', 'kind', 'image', 'state'] as const;
+type WorkspaceFilterKey = keyof typeof filterConfig;
 
-const filterConfigs = dropdownFilterKeys.map((key) => ({
-  key,
-  label: allFiltersConfig[key].label,
-  placeholder: allFiltersConfig[key].placeholder!, // '!' asserts placeholder is not undefined here
-}));
-
-type FilterKey = keyof typeof allFiltersConfig;
-type FilterLabel = (typeof allFiltersConfig)[FilterKey]['label'];
+// Defines which filters should appear in the dropdown
+const visibleFilterKeys: readonly WorkspaceFilterKey[] = ['name', 'kind', 'image', 'state'];
 
 export interface WorkspaceTableRef {
   clearAllFilters: () => void;
-  setFilter: (key: FilterKey, value: string) => void;
+  setFilter: (key: WorkspaceFilterKey, value: string) => void;
 }
 
 const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
@@ -138,14 +140,9 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
     const { isDrawerExpanded } = useWorkspaceActionsContext();
     const [workspaceKinds] = useWorkspaceKinds();
     const [expandedWorkspacesNames, setExpandedWorkspacesNames] = useState<string[]>([]);
-    const [filters, setFilters] = useState<Record<FilterKey, string>>({
-      name: '',
-      kind: '',
-      image: '',
-      state: '',
-      namespace: '',
-      idleGpu: '',
-    });
+
+    const { filterValues, setFilter, clearAllFilters } =
+      useToolbarFilters<WorkspaceFilterKey>(filterConfig);
 
     const [activeSortColumnKey, setActiveSortColumnKey] =
       useState<WorkspaceTableSortableColumnKeys | null>('lastActivity');
@@ -157,65 +154,53 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
     const kindLogoDict = buildKindLogoDictionary(workspaceKinds);
     const workspaceRedirectStatus = buildWorkspaceRedirectStatus(workspaceKinds);
 
-    // Use the derived FilterLabel type for the active menu
-    const [activeAttributeMenu, setActiveAttributeMenu] = useState<FilterLabel>('Name');
-    const [isAttributeMenuOpen, setIsAttributeMenuOpen] = useState(false);
+    const toolbarFilterRef = useRef<ToolbarFilterRef<WorkspaceFilterKey> | null>(null);
 
-    const handleFilterChange = useCallback((key: FilterKey, value: string) => {
-      setFilters((prev) => ({ ...prev, [key]: value }));
-    }, []);
+    useImperativeHandle(ref, () => ({
+      clearAllFilters,
+      setFilter,
+    }));
 
-    const clearAllFilters = useCallback(() => {
-      setFilters({
-        name: '',
-        kind: '',
-        image: '',
-        state: '',
-        namespace: '',
-        idleGpu: '',
+    const createWorkspace = useCallback(() => {
+      navigate('workspaceCreate');
+    }, [navigate]);
+
+    const emptyState = useMemo(
+      () => <CustomEmptyState onClearFilters={clearAllFilters} />,
+      [clearAllFilters],
+    );
+
+    const filterableProperties: Record<
+      WorkspaceFilterKey,
+      (ws: WorkspacesWorkspaceListItem) => string
+    > = useMemo(
+      () => ({
+        name: (ws) => ws.name,
+        kind: (ws) => ws.workspaceKind.name,
+        image: (ws) => ws.podTemplate.options.imageConfig.current.displayName,
+        state: (ws) => ws.state,
+        namespace: (ws) => ws.namespace,
+        idleGpu: (ws) => formatWorkspaceIdleState(ws),
+      }),
+      [],
+    );
+
+    const setWorkspaceExpanded = (workspace: WorkspacesWorkspaceListItem, isExpanding = true) =>
+      setExpandedWorkspacesNames((prevExpanded) => {
+        const newExpandedWorkspacesNames = prevExpanded.filter(
+          (wsName) => wsName !== workspace.name,
+        );
+        return isExpanding
+          ? [...newExpandedWorkspacesNames, workspace.name]
+          : newExpandedWorkspacesNames;
       });
-    }, []);
 
-    const onAttributeToggleClick = useCallback(() => {
-      setIsAttributeMenuOpen((prev) => !prev);
-    }, []);
+    const isWorkspaceExpanded = (workspace: WorkspacesWorkspaceListItem) =>
+      expandedWorkspacesNames.includes(workspace.name);
 
-    const attributeDropdown = useMemo(
-      () => (
-        <Select
-          isOpen={isAttributeMenuOpen}
-          onSelect={(_ev, itemId) => {
-            setActiveAttributeMenu(itemId?.toString() as FilterLabel);
-            setIsAttributeMenuOpen(false);
-          }}
-          selected={activeAttributeMenu}
-          onOpenChange={(isOpen) => setIsAttributeMenuOpen(isOpen)}
-          toggle={(toggleRef) => (
-            <MenuToggle
-              ref={toggleRef}
-              data-testid="filter-workspaces-dropdown"
-              onClick={onAttributeToggleClick}
-              isExpanded={isAttributeMenuOpen}
-              icon={<FilterIcon />}
-            >
-              {activeAttributeMenu}
-            </MenuToggle>
-          )}
-        >
-          <SelectList>
-            {filterConfigs.map(({ key, label }) => (
-              <SelectOption
-                key={key}
-                value={label}
-                data-testid={`filter-workspaces-dropdown-${key}`}
-              >
-                {label}
-              </SelectOption>
-            ))}
-          </SelectList>
-        </Select>
-      ),
-      [isAttributeMenuOpen, activeAttributeMenu, onAttributeToggleClick],
+    const filteredWorkspaces = useMemo(
+      () => applyFilters(workspaces, filterValues, filterableProperties),
+      [workspaces, filterValues, filterableProperties],
     );
 
     const visibleColumnKeys: WorkspaceTableColumnKeys[] = useMemo(
@@ -231,76 +216,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       [visibleColumnKeys],
     );
 
-    useImperativeHandle(ref, () => ({
-      clearAllFilters,
-      setFilter: handleFilterChange,
-    }));
-
-    const createWorkspace = useCallback(() => {
-      navigate('workspaceCreate');
-    }, [navigate]);
-
-    const emptyState = useMemo(
-      () => <CustomEmptyState onClearFilters={clearAllFilters} />,
-      [clearAllFilters],
-    );
-
-    const filterableProperties: Record<FilterKey, (ws: WorkspacesWorkspaceListItem) => string> =
-      useMemo(
-        () => ({
-          name: (ws) => ws.name,
-          kind: (ws) => ws.workspaceKind.name,
-          image: (ws) => ws.podTemplate.options.imageConfig.current.displayName,
-          state: (ws) => ws.state,
-          namespace: (ws) => ws.namespace,
-          idleGpu: (ws) => formatWorkspaceIdleState(ws),
-        }),
-        [],
-      );
-
-    const setWorkspaceExpanded = (workspace: WorkspacesWorkspaceListItem, isExpanding = true) =>
-      setExpandedWorkspacesNames((prevExpanded) => {
-        const newExpandedWorkspacesNames = prevExpanded.filter(
-          (wsName) => wsName !== workspace.name,
-        );
-        return isExpanding
-          ? [...newExpandedWorkspacesNames, workspace.name]
-          : newExpandedWorkspacesNames;
-      });
-
-    const isWorkspaceExpanded = (workspace: WorkspacesWorkspaceListItem) =>
-      expandedWorkspacesNames.includes(workspace.name);
-
-    const filteredWorkspaces = useMemo(() => {
-      if (workspaces.length === 0) {
-        return [];
-      }
-      const testRegex = (value: string, searchValue: string) => {
-        if (!searchValue) {
-          return true;
-        }
-        try {
-          return new RegExp(searchValue, 'i').test(value);
-        } catch {
-          return new RegExp(searchValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(value);
-        }
-      };
-
-      const activeFilters = Object.entries(filters).filter(([, value]) => value);
-      if (activeFilters.length === 0) {
-        return workspaces;
-      }
-
-      return workspaces.filter((ws) =>
-        activeFilters.every(([key, searchValue]) => {
-          const propertyGetter = filterableProperties[key as FilterKey];
-          return testRegex(propertyGetter(ws), searchValue);
-        }),
-      );
-    }, [workspaces, filters, filterableProperties]);
-
     // Column sorting
-
     const getSortableRowValues = (
       workspace: WorkspacesWorkspaceListItem,
     ): Record<WorkspaceTableSortableColumnKeys, string | number> => ({
@@ -394,24 +310,6 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       }
     };
 
-    const extractStateColor = (state: WorkspacesWorkspaceState) => {
-      switch (state) {
-        case WorkspacesWorkspaceState.WorkspaceStateRunning:
-          return 'green';
-        case WorkspacesWorkspaceState.WorkspaceStatePending:
-          return 'orange';
-        case WorkspacesWorkspaceState.WorkspaceStateTerminating:
-          return 'yellow';
-        case WorkspacesWorkspaceState.WorkspaceStateError:
-          return 'red';
-        case WorkspacesWorkspaceState.WorkspaceStatePaused:
-          return 'purple';
-        case WorkspacesWorkspaceState.WorkspaceStateUnknown:
-        default:
-          return 'grey';
-      }
-    };
-
     const getRedirectStatusIcon = (level: string | undefined, message: string) => {
       switch (level) {
         case 'Info':
@@ -458,7 +356,6 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
     };
 
     // Pagination
-
     const onSetPage = (
       _event: React.MouseEvent | React.KeyboardEvent | MouseEvent,
       newPage: number,
@@ -475,68 +372,28 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       setPage(newPage);
     };
 
+    // Toolbar actions
+    const toolbarActions = canCreateWorkspaces ? (
+      <ToolbarItem>
+        <Button variant="primary" ouiaId="Primary" onClick={createWorkspace}>
+          Create workspace
+        </Button>
+      </ToolbarItem>
+    ) : undefined;
+
     return (
       <>
         <Content style={{ display: 'flex', alignItems: 'flex-start', columnGap: '20px' }}>
-          <Toolbar
-            id="workspace-filter-toolbar"
-            clearAllFilters={clearAllFilters}
-            data-testid="workspace-table-toolbar"
-          >
-            <ToolbarContent>
-              <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="xl">
-                <ToolbarGroup variant="filter-group">
-                  <ToolbarItem>{attributeDropdown}</ToolbarItem>
-                  {filterConfigs.map(({ key, label, placeholder }) => (
-                    <ToolbarFilter
-                      key={key}
-                      labels={filters[key] ? [filters[key]] : []}
-                      deleteLabel={() => handleFilterChange(key, '')}
-                      deleteLabelGroup={() => handleFilterChange(key, '')}
-                      categoryName={label}
-                      showToolbarItem={activeAttributeMenu === label}
-                    >
-                      <ToolbarItem>
-                        <ThemeAwareSearchInput
-                          value={filters[key]}
-                          onChange={(value: string) => handleFilterChange(key, value)}
-                          placeholder={placeholder}
-                          fieldLabel={placeholder}
-                          aria-label={placeholder}
-                          data-testid="filter-workspaces-search-input"
-                        />
-                      </ToolbarItem>
-                    </ToolbarFilter>
-                  ))}
-                  {Object.entries(filters).map(([key, value]) => {
-                    // Check if the key is not in the dropdown config and has a value
-                    const isWsSummaryFilter = !filterConfigs.some((config) => config.key === key);
-                    if (!isWsSummaryFilter || !value) {
-                      return null;
-                    }
-
-                    return (
-                      <ToolbarFilter
-                        key={key}
-                        labels={[value]}
-                        deleteLabel={() => handleFilterChange(key as FilterKey, '')}
-                        categoryName={allFiltersConfig[key as FilterKey].label}
-                        // eslint-disable-next-line react/no-children-prop
-                        children={undefined}
-                      />
-                    );
-                  })}
-                  {canCreateWorkspaces && (
-                    <ToolbarItem>
-                      <Button variant="primary" ouiaId="Primary" onClick={createWorkspace}>
-                        Create workspace
-                      </Button>
-                    </ToolbarItem>
-                  )}
-                </ToolbarGroup>
-              </ToolbarToggleGroup>
-            </ToolbarContent>
-          </Toolbar>
+          <ToolbarFilter
+            ref={toolbarFilterRef}
+            filterConfig={filterConfig}
+            visibleFilterKeys={visibleFilterKeys}
+            filterValues={filterValues}
+            onFilterChange={setFilter}
+            onClearAllFilters={clearAllFilters}
+            toolbarActions={toolbarActions}
+            testIdPrefix="filter-workspaces"
+          />
         </Content>
         <Table
           data-testid="workspaces-table"
@@ -673,7 +530,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                           {columnKey === 'namespace' && workspace.namespace}
                           {columnKey === 'state' && (
                             <div className="pf-v6-u-display-inline-block">
-                              <Label color={extractStateColor(workspace.state)}>
+                              <Label color={extractWorkspaceStateColor(workspace.state)}>
                                 {workspace.state}
                               </Label>
                             </div>

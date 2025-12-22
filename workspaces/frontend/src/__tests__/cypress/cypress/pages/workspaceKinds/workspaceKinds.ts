@@ -85,22 +85,22 @@ class WorkspaceKinds {
   }
 
   applyNameFilter(value: string) {
-    cy.findByTestId('filter-attribute-dropdown').click();
-    cy.findByTestId('filter-attribute-name').click();
+    cy.findByTestId('filter-dropdown').click();
+    cy.findByTestId('filter-dropdown-name').click();
     cy.findByTestId('filter-name-input').clear();
     cy.findByTestId('filter-name-input').type(value);
   }
 
   applyDescriptionFilter(value: string) {
-    cy.findByTestId('filter-attribute-dropdown').click();
-    cy.findByTestId('filter-attribute-description').click();
+    cy.findByTestId('filter-dropdown').click();
+    cy.findByTestId('filter-dropdown-description').click();
     cy.findByTestId('filter-description-input').clear();
     cy.findByTestId('filter-description-input').type(value);
   }
 
   applyStatusFilter(status: 'Active' | 'Deprecated') {
-    cy.findByTestId('filter-attribute-dropdown').click();
-    cy.findByTestId('filter-attribute-status').click();
+    cy.findByTestId('filter-dropdown').click();
+    cy.findByTestId('filter-dropdown-status').click();
     cy.findByTestId('filter-status-dropdown').click();
     const testId = status === 'Active' ? 'filter-status-active' : 'filter-status-deprecated';
     cy.findByTestId(testId).click();
@@ -117,6 +117,42 @@ class WorkspaceKinds {
 
   clearAllFilters() {
     cy.contains('button', 'Clear all filters').click();
+  }
+
+  findFilterDropdown() {
+    return cy.findByTestId('filter-dropdown');
+  }
+
+  findFilterDropdownOption(key: string) {
+    return cy.findByTestId(`filter-dropdown-${key}`);
+  }
+
+  assertFilterDropdownOptionsExist(options: string[]) {
+    this.findFilterDropdown().click();
+    options.forEach((option) => {
+      this.findFilterDropdownOption(option).should('exist');
+    });
+    // Close dropdown
+    this.findFilterDropdown().click();
+  }
+
+  findFilterChip(value: string) {
+    return cy.get('.pf-v6-c-label').filter(`:contains("${value}")`).first();
+  }
+
+  removeFilterByChipValue(value: string) {
+    this.findFilterChip(value)
+      .find('button[aria-label="close"], button[aria-label="Close"]')
+      .first()
+      .click();
+  }
+
+  findFilterInput(key: string) {
+    return cy.findByTestId(`filter-${key}-input`);
+  }
+
+  assertFilterInputValue(key: string, value: string) {
+    this.findFilterInput(key).should('have.value', value);
   }
 
   openWorkspaceKindActionDropdown(workspaceKindName: string) {

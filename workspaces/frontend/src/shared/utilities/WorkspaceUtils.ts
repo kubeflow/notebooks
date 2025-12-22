@@ -61,6 +61,20 @@ export const formatWorkspaceIdleState = (workspace: WorkspacesWorkspaceListItem)
     ? YesNoValue.Yes
     : YesNoValue.No;
 
+export type LabelColor = 'green' | 'orange' | 'purple' | 'red' | 'grey' | 'yellow';
+
+export const WORKSPACE_STATE_COLORS: Record<WorkspacesWorkspaceState, LabelColor> = {
+  [WorkspacesWorkspaceState.WorkspaceStateRunning]: 'green',
+  [WorkspacesWorkspaceState.WorkspaceStatePending]: 'orange',
+  [WorkspacesWorkspaceState.WorkspaceStateTerminating]: 'yellow',
+  [WorkspacesWorkspaceState.WorkspaceStateError]: 'red',
+  [WorkspacesWorkspaceState.WorkspaceStatePaused]: 'purple',
+  [WorkspacesWorkspaceState.WorkspaceStateUnknown]: 'grey',
+};
+
+export const extractWorkspaceStateColor = (state: WorkspacesWorkspaceState): LabelColor =>
+  WORKSPACE_STATE_COLORS[state];
+
 export const isWorkspaceWithGpu = (workspace: WorkspacesWorkspaceListItem): boolean =>
   workspace.podTemplate.options.podConfig.current.labels.some((label) => label.key === 'gpu');
 
