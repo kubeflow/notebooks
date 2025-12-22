@@ -63,6 +63,7 @@ import { POLL_INTERVAL } from '~/shared/utilities/const';
 import { RefreshCounter } from '~/app/components/RefreshCounter';
 import ToolbarFilter, {
   FilterConfigMap,
+  FilterValue,
   ToolbarFilterRef,
 } from '~/shared/components/ToolbarFilter';
 import { useToolbarFilters, applyFilters } from '~/shared/hooks/useToolbarFilters';
@@ -122,7 +123,7 @@ const visibleFilterKeys: readonly WorkspaceFilterKey[] = ['name', 'kind', 'image
 
 export interface WorkspaceTableRef {
   clearAllFilters: () => void;
-  setFilter: (key: WorkspaceFilterKey, value: string) => void;
+  setFilter: (key: WorkspaceFilterKey, value: FilterValue) => void;
 }
 
 const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(

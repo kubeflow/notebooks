@@ -21,6 +21,20 @@ describe('useToolbarFilters', () => {
     },
   } as const satisfies FilterConfigMap<string>;
 
+  const multiselectFilterConfig = {
+    name: { type: 'text', label: 'Name', placeholder: 'Filter by name' },
+    tags: {
+      type: 'multiselect',
+      label: 'Tags',
+      placeholder: 'Filter by tags',
+      options: [
+        { value: 'frontend', label: 'Frontend' },
+        { value: 'backend', label: 'Backend' },
+        { value: 'database', label: 'Database' },
+      ],
+    },
+  } as const satisfies FilterConfigMap<string>;
+
   describe('initialization', () => {
     it('should initialize all filter values to empty strings', () => {
       const { result } = renderHook(() => useToolbarFilters(textFilterConfig));
@@ -195,6 +209,78 @@ describe('useToolbarFilters', () => {
       });
     });
   });
+
+  describe('multiselect filters', () => {
+    it('should initialize multiselect filters with empty array', () => {
+      const { result } = renderHook(() => useToolbarFilters(multiselectFilterConfig));
+
+      expect(result.current.filterValues).toEqual({
+        name: '',
+        tags: [],
+      });
+    });
+
+    it('should set multiselect filter with array values', () => {
+      const { result } = renderHook(() => useToolbarFilters(multiselectFilterConfig));
+
+      act(() => {
+        result.current.setFilter('tags', ['frontend', 'backend']);
+      });
+
+      expect(result.current.filterValues.tags).toEqual(['frontend', 'backend']);
+    });
+
+    it('should detect active filters for non-empty multiselect arrays', () => {
+      const { result } = renderHook(() => useToolbarFilters(multiselectFilterConfig));
+
+      expect(result.current.hasActiveFilters).toBe(false);
+
+      act(() => {
+        result.current.setFilter('tags', ['frontend']);
+      });
+
+      expect(result.current.hasActiveFilters).toBe(true);
+    });
+
+    it('should not detect active filters for empty multiselect arrays', () => {
+      const { result } = renderHook(() => useToolbarFilters(multiselectFilterConfig));
+
+      act(() => {
+        result.current.setFilter('tags', []);
+      });
+
+      expect(result.current.hasActiveFilters).toBe(false);
+    });
+
+    it('should clear multiselect filter to empty array', () => {
+      const { result } = renderHook(() => useToolbarFilters(multiselectFilterConfig));
+
+      act(() => {
+        result.current.setFilter('tags', ['frontend', 'backend']);
+      });
+
+      act(() => {
+        result.current.clearAllFilters();
+      });
+
+      expect(result.current.filterValues.tags).toEqual([]);
+    });
+
+    it('should handle text and multiselect filters together', () => {
+      const { result } = renderHook(() => useToolbarFilters(multiselectFilterConfig));
+
+      act(() => {
+        result.current.setFilter('name', 'test');
+        result.current.setFilter('tags', ['frontend']);
+      });
+
+      expect(result.current.filterValues).toEqual({
+        name: 'test',
+        tags: ['frontend'],
+      });
+      expect(result.current.hasActiveFilters).toBe(true);
+    });
+  });
 });
 
 describe('applyFilters', () => {
@@ -345,6 +431,64 @@ describe('applyFilters', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual(testData[0]);
+    });
+  });
+
+  describe('multiselect filtering', () => {
+    it('should match items when multiselect has single value (OR within filter)', () => {
+      const filterValues = { name: '', status: ['Active'], category: '' };
+      const result = applyFilters(testData, filterValues, propertyGetters);
+
+      expect(result).toHaveLength(3);
+      expect(result.every((item) => item.status === 'Active')).toBe(true);
+    });
+
+    it('should match items when multiselect has multiple values (OR within filter)', () => {
+      const filterValues = { name: '', status: ['Active', 'Inactive'], category: '' };
+      const result = applyFilters(testData, filterValues, propertyGetters);
+
+      // Should match all items since all have either Active or Inactive status
+      expect(result).toHaveLength(5);
+    });
+
+    it('should apply AND logic between different multiselect filters', () => {
+      const filterValues = { name: '', status: ['Active'], category: ['A'] };
+      const result = applyFilters(testData, filterValues, propertyGetters);
+
+      // Only items with Active status AND category A
+      expect(result).toHaveLength(2);
+      expect(result.every((item) => item.status === 'Active' && item.category === 'A')).toBe(true);
+    });
+
+    it('should return all data when multiselect array is empty', () => {
+      const filterValues = { name: '', status: [], category: '' };
+      const result = applyFilters(testData, filterValues, propertyGetters);
+
+      expect(result).toHaveLength(5);
+    });
+
+    it('should combine text and multiselect filters with AND logic', () => {
+      const filterValues = { name: 'a', status: ['Active'], category: '' };
+      const result = applyFilters(testData, filterValues, propertyGetters);
+
+      // Items with 'a' in name AND Active status: Alpha, Gamma, Delta has 'a' but is Inactive
+      expect(result).toHaveLength(2);
+      expect(result.map((item) => item.name).sort()).toEqual(['Alpha', 'Gamma']);
+    });
+
+    it('should be case insensitive for multiselect matching', () => {
+      const filterValues = { name: '', status: ['active'], category: '' };
+      const result = applyFilters(testData, filterValues, propertyGetters);
+
+      expect(result).toHaveLength(3);
+      expect(result.every((item) => item.status === 'Active')).toBe(true);
+    });
+
+    it('should return no results when multiselect value matches nothing', () => {
+      const filterValues = { name: '', status: ['NonExistent'], category: '' };
+      const result = applyFilters(testData, filterValues, propertyGetters);
+
+      expect(result).toHaveLength(0);
     });
   });
 });

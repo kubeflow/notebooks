@@ -372,4 +372,101 @@ describe('ToolbarFilter', () => {
       expect(screen.queryByTestId('filter-name-input')).not.toBeInTheDocument();
     });
   });
+
+  describe('Multiselect filter', () => {
+    const multiselectConfig = {
+      tags: {
+        type: 'multiselect',
+        label: 'Tags',
+        placeholder: 'Filter by tags',
+        options: [
+          { value: 'frontend', label: 'Frontend' },
+          { value: 'backend', label: 'Backend' },
+          { value: 'database', label: 'Database' },
+        ],
+      },
+    } as const satisfies FilterConfigMap<string>;
+
+    const multiselectProps = {
+      filterConfig: multiselectConfig,
+      visibleFilterKeys: ['tags'],
+      filterValues: { tags: [] },
+      onFilterChange: jest.fn(),
+      onClearAllFilters: jest.fn(),
+      testIdPrefix: 'filter',
+    };
+
+    it('should render a multiselect dropdown for multiselect filter type', () => {
+      render(<ToolbarFilter {...multiselectProps} />);
+
+      expect(screen.getByTestId('filter-tags-dropdown')).toBeInTheDocument();
+    });
+
+    it('should display the placeholder in the multiselect toggle', () => {
+      render(<ToolbarFilter {...multiselectProps} />);
+
+      const selectToggle = screen.getByTestId('filter-tags-dropdown');
+      expect(selectToggle).toHaveTextContent('Filter by tags');
+    });
+
+    it('should keep placeholder and show badge when values are selected', () => {
+      render(
+        <ToolbarFilter {...multiselectProps} filterValues={{ tags: ['frontend', 'backend'] }} />,
+      );
+
+      const selectToggle = screen.getByTestId('filter-tags-dropdown');
+      expect(selectToggle).toHaveTextContent('Filter by tags');
+      expect(selectToggle).toHaveTextContent('2');
+    });
+
+    it('should open multiselect dropdown when clicked', async () => {
+      const user = userEvent.setup();
+      render(<ToolbarFilter {...multiselectProps} />);
+
+      const selectToggle = screen.getByTestId('filter-tags-dropdown');
+      await user.click(selectToggle);
+
+      expect(selectToggle).toHaveAttribute('aria-expanded', 'true');
+    });
+
+    it('should render multiselect options with checkboxes when dropdown is open', async () => {
+      const user = userEvent.setup();
+      render(<ToolbarFilter {...multiselectProps} />);
+
+      await user.click(screen.getByTestId('filter-tags-dropdown'));
+
+      expect(screen.getByTestId('filter-tags-frontend')).toBeInTheDocument();
+      expect(screen.getByTestId('filter-tags-backend')).toBeInTheDocument();
+      expect(screen.getByTestId('filter-tags-database')).toBeInTheDocument();
+    });
+
+    it('should display chips for each selected value in multiselect', () => {
+      render(
+        <ToolbarFilter {...multiselectProps} filterValues={{ tags: ['frontend', 'backend'] }} />,
+      );
+
+      expect(screen.getByText('frontend')).toBeInTheDocument();
+      expect(screen.getByText('backend')).toBeInTheDocument();
+    });
+
+    it('should call onFilterChange with updated array when chip is deleted', async () => {
+      const user = userEvent.setup();
+      const onFilterChange = jest.fn();
+      render(
+        <ToolbarFilter
+          {...multiselectProps}
+          filterValues={{ tags: ['frontend', 'backend'] }}
+          onFilterChange={onFilterChange}
+        />,
+      );
+
+      const chip = screen.getByText('frontend').closest('.pf-v6-c-label') as HTMLElement;
+      expect(chip).toBeInTheDocument();
+
+      const closeButton = within(chip).getByRole('button', { name: /close/i });
+      await user.click(closeButton);
+
+      expect(onFilterChange).toHaveBeenCalledWith('tags', ['backend']);
+    });
+  });
 });

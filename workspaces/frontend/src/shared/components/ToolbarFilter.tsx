@@ -12,7 +12,11 @@ import {
   SelectList,
   SelectOption,
 } from '@patternfly/react-core/dist/esm/components/Select';
-import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
+import {
+  MenuToggle,
+  MenuToggleElement,
+} from '@patternfly/react-core/dist/esm/components/MenuToggle';
+import { Badge } from '@patternfly/react-core/dist/esm/components/Badge';
 import { FilterIcon } from '@patternfly/react-icons/dist/esm/icons/filter-icon';
 import ThemeAwareSearchInput from '~/app/components/ThemeAwareSearchInput';
 
@@ -30,19 +34,29 @@ export interface SelectFilterConfig extends CommonFilterConfig {
   options: { value: string; label: string }[];
 }
 
-export type FilterConfig = TextFilterConfig | SelectFilterConfig;
+export interface MultiselectFilterConfig extends CommonFilterConfig {
+  type: 'multiselect';
+  options: { value: string; label: string }[];
+}
+
+export type FilterConfig = TextFilterConfig | SelectFilterConfig | MultiselectFilterConfig;
+
+export type FilterType = FilterConfig['type'];
 
 export type FilterConfigMap<K extends string> = {
   [key in K]: FilterConfig;
 };
 
-export type FilterState<K extends string> = Record<K, string>;
+/** Filter value type - string for text/select, string[] for multiselect */
+export type FilterValue = string | string[];
+
+export type FilterState<K extends string> = Record<K, FilterValue>;
 
 export interface ToolbarFilterProps<K extends string> {
   filterConfig: FilterConfigMap<K>;
   visibleFilterKeys: readonly K[];
   filterValues: FilterState<K>;
-  onFilterChange: (key: K, value: string) => void;
+  onFilterChange: (key: K, value: FilterValue) => void;
   onClearAllFilters: () => void;
   toolbarActions?: React.ReactNode;
   testIdPrefix?: string;
@@ -50,7 +64,7 @@ export interface ToolbarFilterProps<K extends string> {
 
 export interface ToolbarFilterRef<K extends string> {
   clearAll: () => void;
-  setFilter: (key: K, value: string) => void;
+  setFilter: (key: K, value: FilterValue) => void;
 }
 
 /**
@@ -99,6 +113,7 @@ function ToolbarFilterInner<K extends string>(
   const [activeFilterKey, setActiveFilterKey] = useState<K>(visibleFilterKeys[0]);
   const [isAttributeMenuOpen, setIsAttributeMenuOpen] = useState(false);
   const [isSelectFilterOpen, setIsSelectFilterOpen] = useState(false);
+  const [isMultiselectFilterOpen, setIsMultiselectFilterOpen] = useState(false);
 
   const activeFilterLabel = visibleFilterKeys.length > 0 ? filterConfig[activeFilterKey].label : '';
 
@@ -169,16 +184,20 @@ function ToolbarFilterInner<K extends string>(
   );
 
   const renderTextFilter = useCallback(
-    (key: K, config: TextFilterConfig) => (
-      <ThemeAwareSearchInput
-        value={filterValues[key]}
-        onChange={(value: string) => onFilterChange(key, value)}
-        placeholder={config.placeholder}
-        fieldLabel={config.placeholder}
-        aria-label={config.placeholder}
-        data-testid={`${testIdPrefix}-${key}-input`}
-      />
-    ),
+    (key: K, config: TextFilterConfig) => {
+      const value = filterValues[key];
+      const textValue = typeof value === 'string' ? value : '';
+      return (
+        <ThemeAwareSearchInput
+          value={textValue}
+          onChange={(newValue: string) => onFilterChange(key, newValue)}
+          placeholder={config.placeholder}
+          fieldLabel={config.placeholder}
+          aria-label={config.placeholder}
+          data-testid={`${testIdPrefix}-${key}-input`}
+        />
+      );
+    },
     [filterValues, onFilterChange, testIdPrefix],
   );
 
@@ -195,7 +214,8 @@ function ToolbarFilterInner<K extends string>(
 
   const renderSelectFilter = useCallback(
     (key: K, config: SelectFilterConfig) => {
-      const selected = filterValues[key];
+      const value = filterValues[key];
+      const selected = typeof value === 'string' ? value : '';
       const displayValue = selected
         ? (config.options.find((option) => option.value === selected)?.label ?? selected)
         : config.placeholder;
@@ -203,7 +223,7 @@ function ToolbarFilterInner<K extends string>(
       return (
         <Select
           isOpen={isSelectFilterOpen && activeFilterKey === key}
-          selected={filterValues[key]}
+          selected={selected}
           onSelect={onSelectFilterChange(key)}
           onOpenChange={(isOpen) => setIsSelectFilterOpen(isOpen)}
           toggle={(toggleRef) => (
@@ -235,24 +255,98 @@ function ToolbarFilterInner<K extends string>(
     [isSelectFilterOpen, activeFilterKey, filterValues, onSelectFilterChange, testIdPrefix],
   );
 
+  const renderMultiselectFilter = useCallback(
+    (key: K, config: MultiselectFilterConfig) => {
+      const value = filterValues[key];
+      const selectedValues: string[] = Array.isArray(value) ? value : [];
+
+      const onToggleSelection = (selectedValue: string) => {
+        const newValues = selectedValues.includes(selectedValue)
+          ? selectedValues.filter((v) => v !== selectedValue)
+          : [...selectedValues, selectedValue];
+        onFilterChange(key, newValues);
+      };
+
+      return (
+        <Select
+          role="menu"
+          isOpen={isMultiselectFilterOpen && activeFilterKey === key}
+          selected={selectedValues}
+          onSelect={(_ev, selection) => {
+            if (selection !== undefined) {
+              onToggleSelection(selection.toString());
+            }
+          }}
+          onOpenChange={(isOpen) => setIsMultiselectFilterOpen(isOpen)}
+          toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+            <MenuToggle
+              ref={toggleRef}
+              onClick={() => setIsMultiselectFilterOpen((prev) => !prev)}
+              isExpanded={isMultiselectFilterOpen && activeFilterKey === key}
+              style={{ width: '200px' }}
+              data-testid={`${testIdPrefix}-${key}-dropdown`}
+              badge={
+                selectedValues.length > 0 ? (
+                  <Badge isRead>{selectedValues.length}</Badge>
+                ) : undefined
+              }
+            >
+              {config.placeholder}
+            </MenuToggle>
+          )}
+        >
+          <SelectList>
+            {config.options.map((option) => (
+              <SelectOption
+                key={option.value}
+                value={option.value}
+                hasCheckbox
+                isSelected={selectedValues.includes(option.value)}
+                data-testid={`${testIdPrefix}-${key}-${option.value.toLowerCase()}`}
+              >
+                {option.label}
+              </SelectOption>
+            ))}
+          </SelectList>
+        </Select>
+      );
+    },
+    [isMultiselectFilterOpen, activeFilterKey, filterValues, onFilterChange, testIdPrefix],
+  );
+
   const renderFilterInput = useCallback(
     (key: K) => {
       const config = filterConfig[key];
       if (config.type === 'text') {
         return renderTextFilter(key, config);
       }
+      if (config.type === 'multiselect') {
+        return renderMultiselectFilter(key, config);
+      }
       return renderSelectFilter(key, config);
     },
-    [filterConfig, renderTextFilter, renderSelectFilter],
+    [filterConfig, renderTextFilter, renderSelectFilter, renderMultiselectFilter],
   );
 
   const getFilterLabels = (key: K): string[] => {
     const value = filterValues[key];
+    if (Array.isArray(value)) {
+      return value;
+    }
     return value ? [value] : [];
   };
 
-  const handleDeleteLabel = (key: K) => {
-    onFilterChange(key, '');
+  const handleDeleteLabel = (key: K, labelToDelete?: string) => {
+    const config = filterConfig[key];
+    if (config.type === 'multiselect' && labelToDelete !== undefined) {
+      const value = filterValues[key];
+      const currentValues = Array.isArray(value) ? value : [];
+      const newValues = currentValues.filter((v) => v !== labelToDelete);
+      onFilterChange(key, newValues);
+    } else {
+      // For text and select filters, clear the entire value
+      onFilterChange(key, config.type === 'multiselect' ? [] : '');
+    }
   };
 
   return (
@@ -269,7 +363,10 @@ function ToolbarFilterInner<K extends string>(
               <PFToolbarFilter
                 key={key}
                 labels={getFilterLabels(key)}
-                deleteLabel={() => handleDeleteLabel(key)}
+                deleteLabel={(_category, label) => {
+                  const labelStr = typeof label === 'string' ? label : label.key;
+                  handleDeleteLabel(key, labelStr);
+                }}
                 deleteLabelGroup={() => handleDeleteLabel(key)}
                 categoryName={filterConfig[key].label}
                 showToolbarItem={activeFilterKey === key}
@@ -278,12 +375,20 @@ function ToolbarFilterInner<K extends string>(
               </PFToolbarFilter>
             ))}
             {Object.keys(filterConfig)
-              .filter((key) => !visibleFilterKeys.includes(key as K) && filterValues[key as K])
+              .filter((key) => {
+                const value = filterValues[key as K];
+                const hasValue = Array.isArray(value) ? value.length > 0 : Boolean(value);
+                return !visibleFilterKeys.includes(key as K) && hasValue;
+              })
               .map((key) => (
                 <PFToolbarFilter
                   key={key}
-                  labels={[filterValues[key as K]]}
-                  deleteLabel={() => handleDeleteLabel(key as K)}
+                  labels={getFilterLabels(key as K)}
+                  deleteLabel={(_category, label) => {
+                    const labelStr = typeof label === 'string' ? label : label.key;
+                    handleDeleteLabel(key as K, labelStr);
+                  }}
+                  deleteLabelGroup={() => handleDeleteLabel(key as K)}
                   categoryName={filterConfig[key as K].label}
                 >
                   {null}

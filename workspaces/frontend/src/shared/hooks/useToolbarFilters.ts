@@ -1,12 +1,26 @@
 import { useCallback, useMemo, useState } from 'react';
-import { FilterConfigMap, FilterState } from '~/shared/components/ToolbarFilter';
+import {
+  FilterConfigMap,
+  FilterState,
+  FilterType,
+  FilterValue,
+} from '~/shared/components/ToolbarFilter';
 
 interface UseToolbarFiltersResult<K extends string> {
   filterValues: FilterState<K>;
-  setFilter: (key: K, value: string) => void;
+  setFilter: (key: K, value: FilterValue) => void;
   clearAllFilters: () => void;
   hasActiveFilters: boolean;
 }
+
+const isEmptyFilterValue = (value: FilterValue): boolean => {
+  if (Array.isArray(value)) {
+    return value.length === 0;
+  }
+  return value === '';
+};
+
+const getInitialFilterValue = (type: FilterType): FilterValue => (type === 'multiselect' ? [] : '');
 
 /**
  * Custom hook for managing table filter state
@@ -20,6 +34,7 @@ interface UseToolbarFiltersResult<K extends string> {
  * const filterConfig = {
  *   name: { type: 'text', label: 'Name', placeholder: 'Filter by name' },
  *   status: { type: 'select', label: 'Status', placeholder: 'Filter by status', options: [...] },
+ *   tags: { type: 'multiselect', label: 'Tags', placeholder: 'Filter by tags', options: [...] },
  * } as const;
  *
  * const { filterValues, setFilter, clearAllFilters, hasActiveFilters } =
@@ -29,16 +44,22 @@ interface UseToolbarFiltersResult<K extends string> {
 export function useToolbarFilters<K extends string>(
   filterConfig: FilterConfigMap<K>,
 ): UseToolbarFiltersResult<K> {
-  // Initialize all filter values to empty strings
+  // Initialize filter values based on their types
   const initialState = useMemo(
     () =>
-      Object.keys(filterConfig).reduce((acc, key) => ({ ...acc, [key]: '' }), {} as FilterState<K>),
+      Object.keys(filterConfig).reduce(
+        (acc, key) => ({
+          ...acc,
+          [key]: getInitialFilterValue(filterConfig[key as K].type),
+        }),
+        {} as FilterState<K>,
+      ),
     [filterConfig],
   );
 
   const [filterValues, setFilterValues] = useState<FilterState<K>>(initialState);
 
-  const setFilter = useCallback((key: K, value: string) => {
+  const setFilter = useCallback((key: K, value: FilterValue) => {
     setFilterValues((prev) => ({ ...prev, [key]: value }));
   }, []);
 
@@ -47,7 +68,7 @@ export function useToolbarFilters<K extends string>(
   }, [initialState]);
 
   const hasActiveFilters = useMemo(
-    () => Object.values(filterValues).some((value) => value !== ''),
+    () => Object.values(filterValues).some((value) => !isEmptyFilterValue(value as FilterValue)),
     [filterValues],
   );
 
@@ -87,23 +108,67 @@ export function applyFilters<T, K extends string>(
   filterValues: FilterState<K>,
   propertyGetters: Record<K, (item: T) => string>,
 ): T[] {
-  const activeFilters = Object.entries(filterValues).filter(([, value]) => value !== '');
-  if (activeFilters.length === 0 || data.length === 0) {
+  type ActiveStringFilter = { key: K; regex: RegExp };
+  type ActiveMultiselectFilter = { key: K; selectedLower: Set<string> };
+
+  const escapeRegExp = (input: string): string => input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  const compileUserRegex = (input: string): RegExp => {
+    try {
+      return new RegExp(input, 'i');
+    } catch {
+      // If regex is invalid, treat the input as a literal string.
+      return new RegExp(escapeRegExp(input), 'i');
+    }
+  };
+
+  const getActiveFilters = (): {
+    stringFilters: ActiveStringFilter[];
+    multiselectFilters: ActiveMultiselectFilter[];
+  } => {
+    const stringFilters: ActiveStringFilter[] = [];
+    const multiselectFilters: ActiveMultiselectFilter[] = [];
+
+    (Object.entries(filterValues) as Array<[K, FilterValue]>).forEach(([key, value]) => {
+      if (isEmptyFilterValue(value)) {
+        return;
+      }
+
+      if (Array.isArray(value)) {
+        multiselectFilters.push({
+          key,
+          selectedLower: new Set(value.map((v) => v.toLowerCase())),
+        });
+        return;
+      }
+
+      stringFilters.push({ key, regex: compileUserRegex(value) });
+    });
+
+    return { stringFilters, multiselectFilters };
+  };
+
+  const matchesStringFilters = (item: T, filters: ActiveStringFilter[]) =>
+    filters.every(({ key, regex }) => regex.test(propertyGetters[key](item)));
+
+  const matchesMultiselectFilters = (item: T, filters: ActiveMultiselectFilter[]) =>
+    filters.every(({ key, selectedLower }) =>
+      selectedLower.has(propertyGetters[key](item).toLowerCase()),
+    );
+
+  const { stringFilters, multiselectFilters } = getActiveFilters();
+
+  if (stringFilters.length === 0 && multiselectFilters.length === 0) {
     return data;
   }
 
-  const compiledFilters = activeFilters.map(([key, searchValue]) => {
-    let regex: RegExp;
-    try {
-      regex = new RegExp(searchValue as string, 'i');
-    } catch {
-      // If regex is invalid, escape special characters and try again
-      regex = new RegExp((searchValue as string).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-    }
-    return { key: key as K, regex };
-  });
+  if (data.length === 0) {
+    return data;
+  }
 
-  return data.filter((item) =>
-    compiledFilters.every(({ key, regex }) => regex.test(propertyGetters[key](item))),
+  return data.filter(
+    (item) =>
+      matchesStringFilters(item, stringFilters) &&
+      matchesMultiselectFilters(item, multiselectFilters),
   );
 }

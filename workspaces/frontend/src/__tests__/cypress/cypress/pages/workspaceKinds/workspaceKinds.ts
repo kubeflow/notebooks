@@ -132,7 +132,6 @@ class WorkspaceKinds {
     options.forEach((option) => {
       this.findFilterDropdownOption(option).should('exist');
     });
-    // Close dropdown
     this.findFilterDropdown().click();
   }
 
