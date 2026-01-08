@@ -987,19 +987,28 @@ describe('Create workspace', () => {
         const key2 = 'password';
         const value2 = 'secret123';
 
+        const mockSecretResponse = {
+          name: secretName,
+          type: 'Opaque',
+          immutable: false,
+          contents: {
+            [key1]: { base64: btoa(value1) },
+            [key2]: { base64: btoa(value2) },
+          },
+        };
+
         cy.interceptApi(
           'POST /api/:apiVersion/secrets/:namespace',
           { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
-          mockModArchResponse({
-            name: secretName,
-            type: 'Opaque',
-            immutable: false,
-            contents: {
-              [key1]: { base64: btoa(value1) },
-              [key2]: { base64: btoa(value2) },
-            },
-          }),
+          mockModArchResponse(mockSecretResponse),
         ).as('createSecret');
+
+        // Mock getSecret for the SecretsViewPopover that will mount after creation
+        cy.intercept(
+          'GET',
+          `/api/${NOTEBOOKS_API_VERSION}/secrets/${mockNamespace.name}/${secretName}`,
+          { data: mockSecretResponse },
+        ).as('getSecret');
 
         openSecretsCreationModal();
 
@@ -1028,18 +1037,27 @@ describe('Create workspace', () => {
       it('should add created secret to the secrets table', () => {
         const secretName = 'my-new-secret';
 
+        const mockSecretResponse = {
+          name: secretName,
+          type: 'Opaque',
+          immutable: false,
+          contents: {
+            key1: { base64: btoa('value1') },
+          },
+        };
+
         cy.interceptApi(
           'POST /api/:apiVersion/secrets/:namespace',
           { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
-          mockModArchResponse({
-            name: secretName,
-            type: 'Opaque',
-            immutable: false,
-            contents: {
-              key1: { base64: btoa('value1') },
-            },
-          }),
+          mockModArchResponse(mockSecretResponse),
         ).as('createSecret');
+
+        // Mock getSecret for the SecretsViewPopover
+        cy.intercept(
+          'GET',
+          `/api/${NOTEBOOKS_API_VERSION}/secrets/${mockNamespace.name}/${secretName}`,
+          { data: mockSecretResponse },
+        ).as('getSecret');
 
         openSecretsCreationModal();
 
@@ -1089,18 +1107,27 @@ describe('Create workspace', () => {
       it('should reset form after successful creation', () => {
         const secretName = 'reset-test-secret';
 
+        const mockSecretResponse = {
+          name: secretName,
+          type: 'Opaque',
+          immutable: false,
+          contents: {
+            key1: { base64: btoa('value1') },
+          },
+        };
+
         cy.interceptApi(
           'POST /api/:apiVersion/secrets/:namespace',
           { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
-          mockModArchResponse({
-            name: secretName,
-            type: 'Opaque',
-            immutable: false,
-            contents: {
-              key1: { base64: btoa('value1') },
-            },
-          }),
+          mockModArchResponse(mockSecretResponse),
         ).as('createSecret');
+
+        // Mock getSecret for the SecretsViewPopover
+        cy.intercept(
+          'GET',
+          `/api/${NOTEBOOKS_API_VERSION}/secrets/${mockNamespace.name}/${secretName}`,
+          { data: mockSecretResponse },
+        ).as('getSecret');
 
         openSecretsCreationModal();
 
@@ -1112,8 +1139,12 @@ describe('Create workspace', () => {
 
         cy.wait('@createSecret');
 
+        // Modal should close
+        secretsCreateModal.assertModalNotExists();
+
         // Open modal again
         createWorkspace.clickCreateNewSecret();
+        secretsCreateModal.assertModalExists();
 
         // Form should be reset
         secretsCreateModal.assertSecretNameValue('');

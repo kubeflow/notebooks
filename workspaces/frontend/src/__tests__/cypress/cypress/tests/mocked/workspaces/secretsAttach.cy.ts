@@ -65,6 +65,24 @@ describe('SecretsAttachModal', () => {
       data: mockSecrets,
     }).as('listSecrets');
 
+    // Mock getSecret for each available secret (SecretsViewPopover fetches on mount)
+    mockSecrets.forEach((secret) => {
+      cy.intercept(
+        'GET',
+        `/api/${NOTEBOOKS_API_VERSION}/secrets/${mockNamespace.name}/${secret.name}`,
+        {
+          data: {
+            name: secret.name,
+            type: secret.type,
+            immutable: secret.immutable,
+            contents: {
+              key1: { base64: 'dmFsdWUx' }, // base64 for 'value1'
+            },
+          },
+        },
+      ).as(`getSecret-${secret.name}`);
+    });
+
     // Navigate to edit workspace properties step
     workspaces.visit();
     cy.wait('@getNamespaces');
