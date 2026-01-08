@@ -27,7 +27,7 @@ import { LabelGroupWithTooltip } from '~/app/components/LabelGroupWithTooltip';
 export interface SecretsAttachModalProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-  onClose: (secrets: SecretsSecretListItem[], mountPath: string, mode: number) => void;
+  onAttach: (secrets: SecretsSecretListItem[], mountPath: string, mode: number) => void;
   availableSecrets: SecretsSecretListItem[];
   existingSecretKeys: Set<string>;
 }
@@ -37,7 +37,7 @@ const DEFAULT_MODE_OCTAL = (420).toString(8);
 export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
   isOpen,
   setIsOpen,
-  onClose,
+  onAttach,
   availableSecrets,
   existingSecretKeys,
 }) => {
@@ -95,7 +95,7 @@ export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
     }
 
     // No duplicates, proceed with attaching
-    onClose(
+    onAttach(
       availableSecrets.filter((secret) => selected.includes(secret.name)),
       trimmedMountPath,
       mode,
@@ -106,7 +106,7 @@ export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
     mountPath,
     selected,
     availableSecrets,
-    onClose,
+    onAttach,
     defaultMode,
   ]);
 

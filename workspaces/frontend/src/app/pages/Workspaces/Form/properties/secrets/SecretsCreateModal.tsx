@@ -30,6 +30,7 @@ interface SecretsCreateModalProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
   onSecretCreated?: (secretName: string) => void;
+  existingSecretNames?: string[];
 }
 
 const EMPTY_KEY_VALUE_PAIR: SecretKeyValuePair = { key: '', value: '' };
@@ -45,6 +46,7 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
   isOpen,
   setIsOpen,
   onSecretCreated,
+  existingSecretNames = [],
 }) => {
   const { api } = useNotebookAPI();
   const { selectedNamespace } = useNamespaceContext();
@@ -54,18 +56,24 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const validateSecretName = useCallback((name: string): string | null => {
-    if (!name) {
-      return 'Secret name is required';
-    }
-    if (name.length > 253) {
-      return 'Secret name must be at most 253 characters';
-    }
-    if (!SECRET_NAME_REGEX.test(name)) {
-      return 'Secret name must consist of lower case alphanumeric characters, hyphens, or dots, and must start and end with an alphanumeric character';
-    }
-    return null;
-  }, []);
+  const validateSecretName = useCallback(
+    (name: string): string | null => {
+      if (!name) {
+        return 'Secret name is required';
+      }
+      if (name.length > 253) {
+        return 'Secret name must be at most 253 characters';
+      }
+      if (!SECRET_NAME_REGEX.test(name)) {
+        return 'Secret name must consist of lower case alphanumeric characters, hyphens, or dots, and must start and end with an alphanumeric character';
+      }
+      if (existingSecretNames.includes(name)) {
+        return 'A secret with this name is already attached to this workspace';
+      }
+      return null;
+    },
+    [existingSecretNames],
+  );
 
   const validateKey = useCallback((key: string): string | null => {
     if (!key) {

@@ -181,7 +181,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
         availableSecrets={availableSecrets}
         isOpen={isAttachModalOpen}
         setIsOpen={setIsAttachModalOpen}
-        onClose={handleAttachSecrets}
+        onAttach={handleAttachSecrets}
         existingSecretKeys={attachedSecretKeys}
       />
 
@@ -189,6 +189,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
         isOpen={isCreateModalOpen}
         setIsOpen={setIsCreateModalOpen}
         onSecretCreated={handleSecretCreated}
+        existingSecretNames={secrets.map((s) => s.secretName)}
       />
 
       <Modal
