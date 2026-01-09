@@ -11,6 +11,7 @@ import { Checkbox } from '@patternfly/react-core/dist/esm/components/Checkbox';
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
 import { TrashAltIcon } from '@patternfly/react-icons/dist/esm/icons/trash-alt-icon';
+import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { generateUniqueId } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { isMemoryLimitLarger } from '~/shared/utilities/valueUnits';
 import { ResourceInputWrapper } from './ResourceInputWrapper';
@@ -304,12 +305,14 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
       {custom.map((res) => (
         <Grid key={res.id} hasGutter className="pf-u-mb-sm">
           <GridItem span={10} className="custom-resource-type-input">
-            <TextInput
-              value={res.type}
-              placeholder="Resource name (e.g. nvidia.com/gpu)"
-              aria-label="Custom resource type"
-              onChange={(_event, value) => handleChange(res.id, 'type', value)}
-            />
+            <ThemeAwareFormGroupWrapper fieldId={`custom-resource-type-${res.id}`}>
+              <TextInput
+                value={res.type}
+                placeholder="Resource name (e.g. nvidia.com/gpu)"
+                aria-label="Custom resource type"
+                onChange={(_event, value) => handleChange(res.id, 'type', value)}
+              />
+            </ThemeAwareFormGroupWrapper>
           </GridItem>
 
           <GridItem span={2}>

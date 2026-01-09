@@ -46,14 +46,16 @@ const EditableRow: React.FC<EditableRowInterface> = ({
         </ThemeAwareFormGroupWrapper>
       </Td>
       <Td>
-        <TextInput
-          aria-label={`${columnNames.key} ${ariaLabel}`}
-          id={`${columnNames.key} ${ariaLabel} value`}
-          ref={inputRef}
-          value={data.value}
-          onChange={(e) => saveChanges({ ...data, value: (e.target as HTMLInputElement).value })}
-          placeholder="Enter value"
-        />
+        <ThemeAwareFormGroupWrapper fieldId="value">
+          <TextInput
+            aria-label={`${columnNames.value} ${ariaLabel}`}
+            id={`${columnNames.value} ${ariaLabel} value`}
+            ref={inputRef}
+            value={data.value}
+            onChange={(e) => saveChanges({ ...data, value: (e.target as HTMLInputElement).value })}
+            placeholder="Enter value"
+          />
+        </ThemeAwareFormGroupWrapper>
       </Td>
 
       <Td dataLabel="Delete button">

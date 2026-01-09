@@ -133,7 +133,7 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
             rows={image.labels}
             setRows={(labels) => setImage({ ...image, labels })}
           />
-          <FormGroup
+          <ThemeAwareFormGroupWrapper
             label="Image Pull Policy"
             isRequired
             fieldId="workspace-kind-image-pull-policy"
@@ -156,7 +156,7 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
                 />
               ))}
             </FormSelect>
-          </FormGroup>
+          </ThemeAwareFormGroupWrapper>
           <WorkspaceKindFormImagePort
             ports={image.ports || []}
             setPorts={(ports) => setImage({ ...image, ports })}
