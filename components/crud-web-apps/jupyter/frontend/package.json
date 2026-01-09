@@ -86,5 +86,16 @@
     "ts-node": "^10.4.0",
     "typescript": "~4.7.0",
     "wait-on": "^7.2.0"
+  },
+  "overrides": {
+    "@istanbuljs/load-nyc-config": {
+      "js-yaml": "4.1.1"
+    },
+    "@eslint/eslintrc": {
+      "js-yaml": "4.1.1"
+    },
+    "eslint": {
+      "js-yaml": "4.1.1"
+    }
   }
 }
