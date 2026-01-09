@@ -213,13 +213,8 @@ var _ = Describe("Workspace Controller", func() {
 			//            - imageConfig - updates the StatefulSet and possibly the Service
 			//            - podConfig - updates the StatefulSet
 			//     - workspaceKind redirect behavior:
-			//        - when adding a redirect to the currently selected `imageConfig` or `podConfig`
-			//            - if the workspace is NOT paused, NO resource changes are made except setting `status.pendingRestart`
-			//              and `status.podTemplateOptions` (`desired` along with `redirectChain`)
-			//            - if the workspace IS paused:
-			//                - the selected options (under `spec`) should be changed to the redirect
-			//                  and `status.pendingRestart` should become false, and `podTemplateOptions` should be empty
-			//                - the new options should be applied to the StatefulSet
+			//        - NO resource changes are made except setting `status.pendingRestart`
+			//          and `status.podTemplateOptions` (`desired` along with `redirectChain`)
 			//     - error states:
 			//        - referencing a missing WorkspaceKind results in error state
 			//        - invalid WorkspaceKind (with bad option redirect - circular / missing) results in error state
