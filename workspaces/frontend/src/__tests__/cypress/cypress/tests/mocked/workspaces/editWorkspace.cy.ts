@@ -63,7 +63,6 @@ const setupEditWorkspace = (): EditWorkspaceSetup => {
   });
 
   const mockWorkspaceUpdateResponse = buildMockWorkspaceUpdate({
-    deferUpdates: true,
     podTemplate: {
       options: {
         imageConfig: IMAGE_CONFIG_ID,
@@ -245,16 +244,12 @@ describe('Edit workspace', () => {
       editWorkspace.selectPodConfig(newPodConfigId);
       editWorkspace.clickNext();
 
-      // Step 4: Properties - toggle defer updates (was true, now false)
-      editWorkspace.findDeferUpdatesCheckbox().click();
-
       editWorkspace.clickSave();
 
       cy.wait('@updateWorkspace').then((interception) => {
         const requestBody = interception.request.body.data;
         expect(requestBody.podTemplate.options.imageConfig).to.equal(newImageConfigId);
         expect(requestBody.podTemplate.options.podConfig).to.equal(newPodConfigId);
-        expect(requestBody.deferUpdates).to.equal(false);
       });
     });
   });
@@ -303,7 +298,7 @@ describe('Edit workspace', () => {
       editWorkspace.clickNext();
 
       editWorkspace.assertWorkspaceName(TEST_WORKSPACE_NAME);
-      editWorkspace.assertDeferUpdatesChecked(true);
+
       editWorkspace.assertVolumesCount(2);
       editWorkspace.assertSecretsCount(1);
     });

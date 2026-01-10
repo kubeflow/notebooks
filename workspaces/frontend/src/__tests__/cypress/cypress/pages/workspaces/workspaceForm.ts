@@ -143,14 +143,6 @@ class WorkspaceForm {
     cy.contains('No results found').should('be.visible');
   }
 
-  findDeferUpdatesCheckbox(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('defer-updates-checkbox');
-  }
-
-  assertDeferUpdatesChecked(checked: boolean): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findDeferUpdatesCheckbox().should(checked ? 'be.checked' : 'not.be.checked');
-  }
-
   assertVolumesCount(count: number): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('volumes-count').should('have.text', `${count} added`);
   }
