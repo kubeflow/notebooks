@@ -7,11 +7,13 @@ import {
   ModalVariant,
 } from '@patternfly/react-core/dist/esm/components/Modal';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
+import { Form } from '@patternfly/react-core/dist/esm/components/Form';
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import { FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { default as ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
+import { useThemeContext } from 'mod-arch-kubeflow';
 import { ActionButton } from '~/shared/components/ActionButton';
 import { ErrorAlert } from '~/shared/components/ErrorAlert';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
@@ -38,6 +40,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   const [inputValue, setInputValue] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | ApiErrorEnvelope | null>(null);
+  const { isMUITheme } = useThemeContext();
 
   useEffect(() => {
     if (!isOpen) {
@@ -79,7 +82,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
     >
       <ModalHeader title={title} titleIconVariant="warning" />
       <ModalBody>
-        <Stack hasGutter>
+        <Stack hasGutter={!isMUITheme}>
           {error && (
             <StackItem>
               <ErrorAlert
@@ -96,29 +99,31 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
             </FlexItem>
           </StackItem>
           <StackItem>
-            <ThemeAwareFormGroupWrapper
-              label="Please type the resource name to confirm:"
-              fieldId="delete-modal-input"
-              hasError={showWarning}
-              helperTextNode={
-                showWarning ? (
-                  <HelperText data-testid="delete-modal-helper-text">
-                    <HelperTextItem icon={<ExclamationCircleIcon />} variant="error">
-                      The name does not match. Please enter exactly: {resourceName}
-                    </HelperTextItem>
-                  </HelperText>
-                ) : null
-              }
-            >
-              <TextInput
-                value={inputValue}
-                type="text"
-                onChange={handleInputChange}
-                aria-label="Resource name confirmation"
-                validated={showWarning ? 'error' : 'default'}
-                data-testid="delete-modal-input"
-              />
-            </ThemeAwareFormGroupWrapper>
+            <Form>
+              <ThemeAwareFormGroupWrapper
+                label="Please type the resource name to confirm:"
+                fieldId="delete-modal-input"
+                hasError={showWarning}
+                helperTextNode={
+                  showWarning ? (
+                    <HelperText data-testid="delete-modal-helper-text">
+                      <HelperTextItem icon={<ExclamationCircleIcon />} variant="error">
+                        The name does not match. Please enter exactly: {resourceName}
+                      </HelperTextItem>
+                    </HelperText>
+                  ) : null
+                }
+              >
+                <TextInput
+                  value={inputValue}
+                  type="text"
+                  onChange={handleInputChange}
+                  aria-label="Resource name confirmation"
+                  validated={showWarning ? 'error' : 'default'}
+                  data-testid="delete-modal-input"
+                />
+              </ThemeAwareFormGroupWrapper>
+            </Form>
           </StackItem>
         </Stack>
       </ModalBody>

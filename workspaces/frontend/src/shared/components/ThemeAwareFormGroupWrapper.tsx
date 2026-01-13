@@ -14,6 +14,7 @@ type ThemeAwareFormGroupWrapperProps = {
   className?: string; // Optional className for the outer FormGroup
   role?: string; // Optional role attribute for accessibility
   isInline?: boolean; // Optional isInline prop for FormGroup
+  skipFieldset?: boolean; // If true, skip wrapping in FormFieldset (for NumberInput, etc.)
 };
 
 const ThemeAwareFormGroupWrapper: React.FC<ThemeAwareFormGroupWrapperProps> = ({
@@ -26,10 +27,11 @@ const ThemeAwareFormGroupWrapper: React.FC<ThemeAwareFormGroupWrapperProps> = ({
   className,
   role,
   isInline,
+  skipFieldset = false,
 }) => {
   const { isMUITheme } = useThemeContext();
 
-  if (isMUITheme) {
+  if (isMUITheme && !skipFieldset) {
     // For MUI theme, render FormGroup -> FormFieldset -> Input
     // Helper text is rendered *after* the FormGroup wrapper
     return (
@@ -43,6 +45,26 @@ const ThemeAwareFormGroupWrapper: React.FC<ThemeAwareFormGroupWrapperProps> = ({
           isInline={isInline}
         >
           <FormFieldset component={children} field={label} />
+        </FormGroup>
+        {helperTextNode}
+      </>
+    );
+  }
+
+  if (isMUITheme && skipFieldset) {
+    // For MUI theme with skipFieldset, render FormGroup -> Input (no FormFieldset)
+    // This is for components like NumberInput that don't need the fieldset wrapper
+    return (
+      <>
+        <FormGroup
+          className={`${className || ''} ${hasError ? 'pf-m-error' : ''}`.trim()} // Apply className and error state class
+          label={label}
+          isRequired={isRequired}
+          fieldId={fieldId}
+          role={role}
+          isInline={isInline}
+        >
+          {children}
         </FormGroup>
         {helperTextNode}
       </>

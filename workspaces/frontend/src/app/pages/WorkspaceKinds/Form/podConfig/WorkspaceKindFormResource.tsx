@@ -1,16 +1,21 @@
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { Grid, GridItem } from '@patternfly/react-core/dist/esm/layouts/Grid';
+import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table/dist/esm/components/Table';
+import { Divider } from '@patternfly/react-core/dist/esm/components/Divider';
 import { Title } from '@patternfly/react-core/dist/esm/components/Title';
 import {
+  Form,
   FormFieldGroupExpandable,
   FormFieldGroupHeader,
+  FormGroup,
 } from '@patternfly/react-core/dist/esm/components/Form';
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import { Checkbox } from '@patternfly/react-core/dist/esm/components/Checkbox';
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
 import { TrashAltIcon } from '@patternfly/react-icons/dist/esm/icons/trash-alt-icon';
+import { useThemeContext } from 'mod-arch-kubeflow';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { generateUniqueId } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { isMemoryLimitLarger } from '~/shared/utilities/valueUnits';
@@ -50,7 +55,7 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
     });
     return customToggles;
   });
-
+  const { isMUITheme } = useThemeContext();
   useEffect(() => {
     setCpuRequestEnabled(cpu.request.length > 0);
     setMemoryRequestEnabled(memory.request.length > 0);
@@ -179,6 +184,7 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
 
   return (
     <FormFieldGroupExpandable
+      className="form-label-field-group"
       toggleAriaLabel="Resources"
       header={
         <FormFieldGroupHeader
@@ -199,184 +205,208 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
         />
       }
     >
-      <Title headingLevel="h6">Standard Resources</Title>
-      <Grid hasGutter className="pf-v6-u-mb-sm">
-        <GridItem span={6}>
-          <Checkbox
-            id="cpu-request-checkbox"
-            onChange={(_event, checked) => handleCpuRequestToggle(checked)}
-            isChecked={cpuRequestEnabled}
-            label="CPU Request"
-          />
-        </GridItem>
-        <GridItem span={6}>
-          <Checkbox
-            id="memory-request-checkbox"
-            onChange={(_event, checked) => handleMemoryRequestToggle(checked)}
-            isChecked={memoryRequestEnabled}
-            label="Memory Request"
-          />
-        </GridItem>
-        <GridItem span={6}>
-          <ResourceInputWrapper
-            type="cpu"
-            value={cpu.request}
-            onChange={(value) => handleChange(cpu.id, 'request', value)}
-            placeholder="e.g. 1"
-            min={1}
-            aria-label="CPU request"
-            isDisabled={!cpuRequestEnabled}
-          />
-        </GridItem>
-        <GridItem span={6}>
-          <ResourceInputWrapper
-            type="memory"
-            value={memory.request}
-            onChange={(value) => handleChange(memory.id, 'request', value)}
-            placeholder="e.g. 512Mi"
-            min={1}
-            aria-label="Memory request"
-            isDisabled={!memoryRequestEnabled}
-          />
-        </GridItem>
-        <GridItem span={6}>
-          <Checkbox
-            id="cpu-limit-checkbox"
-            onChange={(_event, checked) => handleCpuLimitToggle(checked)}
-            isChecked={cpuLimitEnabled}
-            label="CPU Limit"
-            isDisabled={!cpuRequestEnabled}
-            aria-label="Enable CPU limit"
-          />
-        </GridItem>
-        <GridItem span={6}>
-          <Checkbox
-            id="memory-limit-checkbox"
-            onChange={(_event, checked) => handleMemoryLimitToggle(checked)}
-            isChecked={memoryLimitEnabled}
-            isDisabled={!memoryRequestEnabled}
-            label="Memory Limit"
-            aria-label="Enable Memory limit"
-          />
-        </GridItem>
-        <GridItem span={6}>
-          <ResourceInputWrapper
-            type="cpu"
-            value={cpu.limit}
-            onChange={(value) => handleChange(cpu.id, 'limit', value)}
-            placeholder="e.g. 2"
-            min={parseFloat(cpu.request)}
-            step={1}
-            aria-label="CPU limit"
-            isDisabled={!cpuRequestEnabled || !cpuLimitEnabled}
-          />
-        </GridItem>
-        <GridItem span={6}>
-          <ResourceInputWrapper
-            type="memory"
-            value={memory.limit}
-            onChange={(value) => handleChange(memory.id, 'limit', value)}
-            placeholder="e.g. 1Gi"
-            min={parseFloat(memory.request)}
-            aria-label="Memory limit"
-            isDisabled={!memoryRequestEnabled || !memoryLimitEnabled}
-          />
-        </GridItem>
-        <GridItem span={6}>
-          {cpuRequestLargerThanLimit && (
-            <HelperText>
-              <HelperTextItem variant="error">
-                CPU limit should not be smaller than the request value
-              </HelperTextItem>
-            </HelperText>
-          )}
-        </GridItem>
-        <GridItem span={6}>
-          {memoryRequestLargerThanLimit && (
-            <HelperText>
-              <HelperTextItem variant="error">
-                Memory limit should not be smaller than the request value
-              </HelperTextItem>
-            </HelperText>
-          )}
-        </GridItem>
-      </Grid>
-      <Title headingLevel="h6">Custom Resources</Title>
-      {custom.map((res) => (
-        <Grid key={res.id} hasGutter className="pf-u-mb-sm">
-          <GridItem span={10} className="custom-resource-type-input">
-            <ThemeAwareFormGroupWrapper fieldId={`custom-resource-type-${res.id}`}>
-              <TextInput
-                value={res.type}
-                placeholder="Resource name (e.g. nvidia.com/gpu)"
-                aria-label="Custom resource type"
-                onChange={(_event, value) => handleChange(res.id, 'type', value)}
-              />
-            </ThemeAwareFormGroupWrapper>
-          </GridItem>
-
-          <GridItem span={2}>
-            <Button
-              variant="link"
-              isDanger
-              onClick={() => handleRemoveCustom(res.id)}
-              aria-label={`Remove ${res.type || 'custom resource'}`}
-            >
-              <TrashAltIcon />
-            </Button>
-          </GridItem>
-          <GridItem span={12}>Request</GridItem>
-          <GridItem span={12}>
-            <ResourceInputWrapper
-              type="custom"
-              value={res.request}
-              onChange={(value) => handleChange(res.id, 'request', value)}
-              placeholder="Request"
-              min={1}
-              aria-label="Custom resource request"
-            />
-          </GridItem>
-          <GridItem span={12}>
+      <Form>
+        <Title headingLevel="h6">Standard Resources</Title>
+        <Grid hasGutter className="pf-v6-u-mb-sm">
+          <GridItem span={6}>
             <Checkbox
-              id={`custom-limit-switch-${res.id}`}
-              label="Set Limit"
-              isChecked={customLimitsEnabled[res.id] || false}
-              onChange={(_event, checked) => {
-                handleChange(res.id, 'limit', res.request);
-                handleCustomLimitToggle(res.id, checked);
-              }}
-              aria-label={`Enable limit for ${res.type || 'custom resource'}`}
+              id="cpu-request-checkbox"
+              onChange={(_event, checked) => handleCpuRequestToggle(checked)}
+              isChecked={cpuRequestEnabled}
+              label="CPU Request"
             />
           </GridItem>
-          <GridItem span={12}>
-            <ResourceInputWrapper
-              type="custom"
-              value={res.limit}
-              onChange={(value) => handleChange(res.id, 'limit', value)}
-              placeholder="Limit"
-              min={parseFloat(res.request)}
-              isDisabled={!customLimitsEnabled[res.id]}
-              aria-label={`${res.type || 'Custom resource'} limit`}
+          <GridItem span={6}>
+            <Checkbox
+              id="memory-request-checkbox"
+              onChange={(_event, checked) => handleMemoryRequestToggle(checked)}
+              isChecked={memoryRequestEnabled}
+              label="Memory Request"
             />
+          </GridItem>
+          <GridItem span={6}>
+            <ResourceInputWrapper
+              type="cpu"
+              value={cpu.request}
+              onChange={(value) => handleChange(cpu.id, 'request', value)}
+              placeholder="e.g. 1"
+              min={1}
+              aria-label="CPU request"
+              isDisabled={!cpuRequestEnabled}
+            />
+          </GridItem>
+          <GridItem span={6}>
+            <ResourceInputWrapper
+              type="memory"
+              value={memory.request}
+              onChange={(value) => handleChange(memory.id, 'request', value)}
+              placeholder="e.g. 512Mi"
+              min={1}
+              aria-label="Memory request"
+              isDisabled={!memoryRequestEnabled}
+            />
+          </GridItem>
+          <GridItem span={6}>
+            <Checkbox
+              id="cpu-limit-checkbox"
+              onChange={(_event, checked) => handleCpuLimitToggle(checked)}
+              isChecked={cpuLimitEnabled}
+              label="CPU Limit"
+              isDisabled={!cpuRequestEnabled}
+              aria-label="Enable CPU limit"
+            />
+          </GridItem>
+          <GridItem span={6}>
+            <Checkbox
+              id="memory-limit-checkbox"
+              onChange={(_event, checked) => handleMemoryLimitToggle(checked)}
+              isChecked={memoryLimitEnabled}
+              isDisabled={!memoryRequestEnabled}
+              label="Memory Limit"
+              aria-label="Enable Memory limit"
+            />
+          </GridItem>
+          <GridItem span={6}>
+            <ResourceInputWrapper
+              type="cpu"
+              value={cpu.limit}
+              onChange={(value) => handleChange(cpu.id, 'limit', value)}
+              placeholder="e.g. 2"
+              min={parseFloat(cpu.request)}
+              step={1}
+              aria-label="CPU limit"
+              isDisabled={!cpuRequestEnabled || !cpuLimitEnabled}
+            />
+          </GridItem>
+          <GridItem span={6}>
+            <ResourceInputWrapper
+              type="memory"
+              value={memory.limit}
+              onChange={(value) => handleChange(memory.id, 'limit', value)}
+              placeholder="e.g. 1Gi"
+              min={parseFloat(memory.request)}
+              aria-label="Memory limit"
+              isDisabled={!memoryRequestEnabled || !memoryLimitEnabled}
+            />
+          </GridItem>
+          <GridItem span={6}>
+            {cpuRequestLargerThanLimit && (
+              <HelperText>
+                <HelperTextItem variant="error">
+                  CPU limit should not be smaller than the request value
+                </HelperTextItem>
+              </HelperText>
+            )}
+          </GridItem>
+          <GridItem span={6}>
+            {memoryRequestLargerThanLimit && (
+              <HelperText>
+                <HelperTextItem variant="error">
+                  Memory limit should not be smaller than the request value
+                </HelperTextItem>
+              </HelperText>
+            )}
           </GridItem>
         </Grid>
-      ))}
-      <Button
-        style={{ width: 'fit-content' }}
-        variant="link"
-        icon={<PlusCircleIcon />}
-        onClick={handleAddCustom}
-        className="pf-u-mt-sm"
-      >
-        Add Custom Resource
-      </Button>
-      {requestRequestLargerThanLimit && (
-        <HelperText>
-          <HelperTextItem variant="error">
-            Resource limit should not be smaller than the request value
-          </HelperTextItem>
-        </HelperText>
-      )}
+        <Title headingLevel="h6">Custom Resources</Title>
+        {custom.map((res) => (
+          <React.Fragment key={res.id}>
+            <Table borders={false} aria-label="Custom resource" className="pf-u-mb-sm">
+              <Thead>
+                <Tr>
+                  <Th>Resource name</Th>
+                  <Th screenReaderText="Delete button" />
+                </Tr>
+              </Thead>
+              <Tbody>
+                <Tr>
+                  <Td>
+                    <ThemeAwareFormGroupWrapper fieldId={`custom-resource-type-${res.id}`}>
+                      <TextInput
+                        value={res.type}
+                        placeholder="Resource name (e.g. nvidia.com/gpu)"
+                        aria-label="Custom resource type"
+                        onChange={(_event, value) => handleChange(res.id, 'type', value)}
+                      />
+                    </ThemeAwareFormGroupWrapper>
+                  </Td>
+
+                  <Td dataLabel="Delete button">
+                    <Button
+                      variant="link"
+                      isDanger
+                      onClick={() => handleRemoveCustom(res.id)}
+                      aria-label={`Remove ${res.type || 'custom resource'}`}
+                    >
+                      <TrashAltIcon />
+                    </Button>
+                  </Td>
+                </Tr>
+              </Tbody>
+            </Table>
+            <ThemeAwareFormGroupWrapper
+              label="Request"
+              fieldId={`custom-resource-request-${res.id}`}
+              skipFieldset
+              className={isMUITheme ? 'pf-v6-u-pl-sm' : undefined}
+            >
+              <ResourceInputWrapper
+                type="custom"
+                value={res.request}
+                onChange={(value) => handleChange(res.id, 'request', value)}
+                placeholder="Request"
+                min={1}
+                aria-label="Custom resource request"
+              />
+            </ThemeAwareFormGroupWrapper>
+            <FormGroup className={isMUITheme ? 'pf-v6-u-pl-sm pf-v6-u-mt-lg' : undefined}>
+              <Checkbox
+                id={`custom-limit-switch-${res.id}`}
+                label="Set Limit"
+                isChecked={customLimitsEnabled[res.id] || false}
+                onChange={(_event, checked) => {
+                  handleChange(res.id, 'limit', res.request);
+                  handleCustomLimitToggle(res.id, checked);
+                }}
+                aria-label={`Enable limit for ${res.type || 'custom resource'}`}
+              />
+            </FormGroup>
+            <ThemeAwareFormGroupWrapper
+              label="Limit"
+              fieldId={`custom-resource-limit-${res.id}`}
+              skipFieldset
+              className={isMUITheme ? 'pf-v6-u-pl-sm pf-v6-u-mb-lg' : undefined}
+            >
+              <ResourceInputWrapper
+                type="custom"
+                value={res.limit}
+                onChange={(value) => handleChange(res.id, 'limit', value)}
+                placeholder="Limit"
+                min={parseFloat(res.request)}
+                isDisabled={!customLimitsEnabled[res.id]}
+                aria-label={`${res.type || 'Custom resource'} limit`}
+              />
+            </ThemeAwareFormGroupWrapper>
+            <Divider />
+          </React.Fragment>
+        ))}
+        <Button
+          style={{ width: 'fit-content' }}
+          variant="link"
+          icon={<PlusCircleIcon />}
+          onClick={handleAddCustom}
+          className="pf-u-mt-sm"
+        >
+          Add Custom Resource
+        </Button>
+        {requestRequestLargerThanLimit && (
+          <HelperText>
+            <HelperTextItem variant="error">
+              Resource limit should not be smaller than the request value
+            </HelperTextItem>
+          </HelperText>
+        )}
+      </Form>
     </FormFieldGroupExpandable>
   );
 };
