@@ -10,12 +10,6 @@ import {
   TableVariant,
 } from '@patternfly/react-table/dist/esm/components/Table';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
-import {
-  Modal,
-  ModalFooter,
-  ModalHeader,
-  ModalVariant,
-} from '@patternfly/react-core/dist/esm/components/Modal';
 import { Dropdown, DropdownItem } from '@patternfly/react-core/dist/esm/components/Dropdown';
 import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
 import { Label } from '@patternfly/react-core/dist/esm/components/Label';
@@ -25,6 +19,7 @@ import { SecretsSecretListItem, WorkspacesPodSecretMount } from '~/generated/dat
 import { DEFAULT_MODE } from '~/app/pages/Workspaces/Form/helpers';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
+import DeleteModal from '~/shared/components/DeleteModal';
 import { SecretsCreateModal } from './secrets/SecretsCreateModal';
 import { SecretsAttachModal } from './secrets/SecretsAttachModal';
 import { SecretsViewPopover } from './secrets/SecretsViewPopover';
@@ -92,7 +87,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
     [secrets, setSecrets, attachedSecretKeys],
   );
 
-  const handleDelete = useCallback(() => {
+  const handleDelete = useCallback(async () => {
     if (deleteIndex === null) {
       return;
     }
@@ -103,12 +98,16 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
       const newKeys = new Set(attachedSecretKeys);
       newKeys.delete(getSecretKey(secretToDelete));
       setAttachedSecretKeys(newKeys);
+    } else {
+      await api.secrets.deleteSecret(selectedNamespace, secretToDelete.secretName);
     }
-
     setSecrets(secrets.filter((_, i) => i !== deleteIndex));
+  }, [deleteIndex, secrets, attachedSecretKeys, api.secrets, selectedNamespace, setSecrets]);
+
+  const onDeleteModalClose = useCallback(() => {
     setDeleteIndex(null);
     setIsDeleteModalOpen(false);
-  }, [deleteIndex, secrets, setSecrets, attachedSecretKeys]);
+  }, []);
 
   const handleSecretCreated = useCallback(
     async (secretName: string) => {
@@ -303,24 +302,16 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
         existingSecretNames={secrets.map((s) => s.secretName)}
       />
 
-      <Modal
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        variant={ModalVariant.small}
-      >
-        <ModalHeader
+      {deleteIndex !== null && (
+        <DeleteModal
+          isOpen={isDeleteModalOpen}
           title="Remove Secret?"
-          description="The secret will be removed from the workspace."
+          onClose={() => onDeleteModalClose()}
+          onDelete={handleDelete}
+          resourceName={secrets[deleteIndex].secretName}
+          namespace={selectedNamespace}
         />
-        <ModalFooter>
-          <Button key="remove" variant="danger" onClick={handleDelete}>
-            Remove
-          </Button>
-          <Button key="cancel" variant="link" onClick={() => setIsDeleteModalOpen(false)}>
-            Cancel
-          </Button>
-        </ModalFooter>
-      </Modal>
+      )}
     </>
   );
 };

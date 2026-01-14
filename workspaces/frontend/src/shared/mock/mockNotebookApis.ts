@@ -125,7 +125,18 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
     updateSecret: async () => ({
       data: mockSecretCreate,
     }),
-    deleteSecret: async () => {
+    deleteSecret: async (namespace, name) => {
+      console.info('deleting secret', namespace, name);
+      const random = Math.random();
+      if (random < 0.5) {
+        const apiErrorEnvelope: ApiErrorEnvelope = {
+          error: {
+            code: 'invalid_name',
+            message: 'Invalid name',
+          },
+        };
+        throw buildAxiosError(apiErrorEnvelope);
+      }
       await delay(1500);
     },
   },
