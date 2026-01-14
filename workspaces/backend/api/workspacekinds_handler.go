@@ -27,7 +27,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
@@ -110,26 +109,24 @@ func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps
 //	@Success		200	{object}	WorkspaceKindListEnvelope	"Successful operation. Returns a list of all available workspace kinds."
 //	@Failure		401	{object}	ErrorEnvelope				"Unauthorized. Authentication is required."
 //	@Failure		403	{object}	ErrorEnvelope				"Forbidden. User does not have permission to list workspace kinds."
-//	@Failure		422	{object}	ErrorEnvelope				"Unprocessable Entity. Invalid namespaceFilter value."
+//	@Failure		422	{object}	ErrorEnvelope				"Unprocessable Entity. Validation error."
 //	@Failure		500	{object}	ErrorEnvelope				"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspacekinds [get]
 func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	namespaceFilter := r.URL.Query().Get("namespaceFilter")
 
 	if namespaceFilter != "" {
-		if errs := validation.IsDNS1123Label(namespaceFilter); len(errs) > 0 {
-			errMsgQueryParamsInvalid := ""
+		valErrs := helper.ValidateKubernetesNamespaceName(
+			field.NewPath("namespaceFilter"),
+			namespaceFilter,
+		)
+
+		if len(valErrs) > 0 {
 			a.failedValidationResponse(
 				w,
 				r,
-				errMsgQueryParamsInvalid,
-				field.ErrorList{
-					field.Invalid(
-						field.NewPath("namespaceFilter"),
-						namespaceFilter,
-						"invalid Kubernetes namespace",
-					),
-				},
+				errMsgPathParamsInvalid,
+				valErrs,
 				nil,
 			)
 			return
@@ -230,6 +227,9 @@ func (a *App) CreateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 	}
 
 	// validate the workspace kind
+	// NOTE: we only do basic validation so we know it's safe to send to the Kubernetes API server
+	//       comprehensive validation will be done by Kubernetes
+	// NOTE: checking the name field is non-empty also verifies that the workspace kind is not nil/empty
 	var valErrs field.ErrorList
 	valErrs = append(valErrs, helper.ValidateWorkspaceKindGVK(workspaceKind.APIVersion, workspaceKind.Kind)...)
 	wskNamePath := field.NewPath("metadata", "name")
@@ -271,6 +271,7 @@ func (a *App) CreateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
+	// calculate the GET location for the created workspace kind (for the Location header)
 	location := a.LocationGetWorkspaceKind(createdWorkspaceKind.Name)
 
 	responseEnvelope := &WorkspaceKindCreateEnvelope{Data: createdWorkspaceKind}
