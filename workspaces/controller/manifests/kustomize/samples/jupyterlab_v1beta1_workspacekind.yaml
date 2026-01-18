@@ -422,3 +422,31 @@ spec:
                   memory: 16Gi
                 limits:
                   nvidia.com/gpu: 1
+          ## ================================
+          ## EXAMPLE 4: Qualcomm Cloud AI 100 pod
+          ## ================================
+          - id: "qualcomm_ai100"
+            spawner:
+              displayName: "Qualcomm Cloud AI 100"
+              description: "Pod with 4 CPU, 16 GB RAM, and 1 Qualcomm AI 100 accelerator"
+              labels:
+                - key: "cpu"
+                  value: "4000m"
+                - key: "memory"
+                  value: "16Gi"
+                - key: "accelerator"
+                  value: "Qualcomm AI 100"
+              hidden: false
+            spec:
+              affinity: {}
+              nodeSelector: {}
+              tolerations:
+                - key: "qaic.qualcomm.com/accelerator"
+                  operator: "Exists"
+                  effect: "NoSchedule"
+              resources:
+                requests:
+                  cpu: 4000m
+                  memory: 16Gi
+                limits:
+                  qaic.qualcomm.com/accelerator: 1
