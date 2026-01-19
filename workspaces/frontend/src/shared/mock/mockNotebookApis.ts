@@ -126,9 +126,8 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
       data: mockSecretCreate,
     }),
     deleteSecret: async (namespace, name) => {
-      console.info('deleting secret', namespace, name);
-      const random = Math.random();
-      if (random < 0.5) {
+      // For mock API errors, a secret is considered invalid if the name contains a specific pattern.
+      if (name.includes('-invalid')) {
         const apiErrorEnvelope: ApiErrorEnvelope = {
           error: {
             code: 'invalid_name',

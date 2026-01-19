@@ -1,8 +1,9 @@
-import { WorkspaceFormData, WorkspaceFormMode } from '~/app/types';
+import { WorkspaceFormData, WorkspaceFormMode, WorkspacesPodSecretMountValue } from '~/app/types';
 import {
   ApiWorkspaceCreateEnvelope,
   ApiWorkspaceEnvelope,
   WorkspacekindsWorkspaceKind,
+  WorkspacesPodSecretMount,
   WorkspacesWorkspaceCreate,
   WorkspacesWorkspaceUpdate,
 } from '~/generated/data-contracts';
@@ -87,6 +88,14 @@ const updateWorkspace = async (args: {
   });
 };
 
+/**
+ * Converts WorkspacesPodSecretMountValue[] to WorkspacesPodSecretMount[]
+ * by omitting the `isAttached` field from each item.
+ */
+const toSecretMounts = (secrets: WorkspacesPodSecretMountValue[]): WorkspacesPodSecretMount[] =>
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  secrets.map(({ isAttached, ...rest }): WorkspacesPodSecretMount => rest);
+
 export const submitFormData = (args: {
   mode: WorkspaceFormMode;
   data: WorkspaceFormData;
@@ -94,7 +103,7 @@ export const submitFormData = (args: {
   namespace: string;
 }): Promise<ApiWorkspaceCreateEnvelope | ApiWorkspaceEnvelope> => {
   const { data, api, mode, namespace } = args;
-
+  data.properties.secrets = toSecretMounts(data.properties.secrets);
   if (!isValidWorkspaceFormData(data)) {
     throw new Error('Invalid form data');
   }
