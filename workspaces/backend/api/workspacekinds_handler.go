@@ -105,19 +105,59 @@ func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps
 //	@ID				listWorkspaceKinds
 //	@Accept			json
 //	@Produce		json
-//	@Success		200	{object}	WorkspaceKindListEnvelope	"Successful operation. Returns a list of all available workspace kinds."
-//	@Failure		401	{object}	ErrorEnvelope				"Unauthorized. Authentication is required."
-//	@Failure		403	{object}	ErrorEnvelope				"Forbidden. User does not have permission to list workspace kinds."
-//	@Failure		500	{object}	ErrorEnvelope				"Internal server error. An unexpected error occurred on the server."
+//	@Param			namespaceFilter	query		string						false	"Namespace used for workspace creation authorization"
+//	@Success		200				{object}	WorkspaceKindListEnvelope	"Successful operation. Returns a list of all available workspace kinds."
+//	@Failure		401				{object}	ErrorEnvelope				"Unauthorized. Authentication is required."
+//	@Failure		403				{object}	ErrorEnvelope				"Forbidden. User does not have permission to list workspace kinds."
+//	@Failure		422				{object}	ErrorEnvelope				"Unprocessable Entity. Validation error."
+//	@Failure		500				{object}	ErrorEnvelope				"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspacekinds [get]
 func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	// =========================== AUTH ===========================
-	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(
-			auth.ResourceVerbList,
-			&kubefloworgv1beta1.WorkspaceKind{},
-		),
+	namespaceFilter := r.URL.Query().Get(NamespaceFilterQueryParam)
+
+	if namespaceFilter != "" {
+		valErrs := helper.ValidateKubernetesNamespaceName(
+			field.NewPath(NamespaceFilterQueryParam),
+			namespaceFilter,
+		)
+
+		if len(valErrs) > 0 {
+			a.failedValidationResponse(
+				w,
+				r,
+				errMsgQueryParamsInvalid,
+				valErrs,
+				nil,
+			)
+			return
+		}
 	}
+
+	// =========================== AUTH ===========================
+	var authPolicies []*auth.ResourcePolicy
+
+	if namespaceFilter != "" {
+		// user intends to create a workspace in the namespace
+		authPolicies = []*auth.ResourcePolicy{
+			auth.NewResourcePolicy(
+				auth.ResourceVerbCreate,
+				&kubefloworgv1beta1.Workspace{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: namespaceFilter,
+					},
+				},
+			),
+		}
+	} else {
+		// administrative listing of workspace kinds
+		authPolicies = []*auth.ResourcePolicy{
+			auth.NewResourcePolicy(
+				auth.ResourceVerbList,
+				&kubefloworgv1beta1.WorkspaceKind{},
+			),
+		}
+	}
+
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return
 	}
@@ -147,7 +187,7 @@ func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _
 //	@Failure		401		{object}	ErrorEnvelope			"Unauthorized. Authentication is required."
 //	@Failure		403		{object}	ErrorEnvelope			"Forbidden. User does not have permission to create WorkspaceKind."
 //	@Failure		409		{object}	ErrorEnvelope			"Conflict. WorkspaceKind with the same name already exists."
-//	@Failure		413		{object}	ErrorEnvelope			"Request Entity Too Large. The request body is too large.""
+//	@Failure		413		{object}	ErrorEnvelope			"Request Entity Too Large. The request body is too large."
 //	@Failure		415		{object}	ErrorEnvelope			"Unsupported Media Type. Content-Type header is not correct."
 //	@Failure		422		{object}	ErrorEnvelope			"Unprocessable Entity. Validation error."
 //	@Failure		500		{object}	ErrorEnvelope			"Internal server error. An unexpected error occurred on the server."
