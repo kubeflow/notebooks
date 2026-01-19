@@ -105,19 +105,19 @@ func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps
 //	@ID				listWorkspaceKinds
 //	@Accept			json
 //	@Produce		json
-//	@Param			namespaceFilter	query	string	false	"Namespace used for workspace creation authorization"
-//	@Success		200	{object}	WorkspaceKindListEnvelope	"Successful operation. Returns a list of all available workspace kinds."
-//	@Failure		401	{object}	ErrorEnvelope				"Unauthorized. Authentication is required."
-//	@Failure		403	{object}	ErrorEnvelope				"Forbidden. User does not have permission to list workspace kinds."
-//	@Failure		422	{object}	ErrorEnvelope				"Unprocessable Entity. Validation error."
-//	@Failure		500	{object}	ErrorEnvelope				"Internal server error. An unexpected error occurred on the server."
+//	@Param			namespaceFilter	query		string						false	"Namespace used for workspace creation authorization"
+//	@Success		200				{object}	WorkspaceKindListEnvelope	"Successful operation. Returns a list of all available workspace kinds."
+//	@Failure		401				{object}	ErrorEnvelope				"Unauthorized. Authentication is required."
+//	@Failure		403				{object}	ErrorEnvelope				"Forbidden. User does not have permission to list workspace kinds."
+//	@Failure		422				{object}	ErrorEnvelope				"Unprocessable Entity. Validation error."
+//	@Failure		500				{object}	ErrorEnvelope				"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspacekinds [get]
 func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	namespaceFilter := r.URL.Query().Get("namespaceFilter")
+	namespaceFilter := r.URL.Query().Get(NamespaceFilterQueryParam)
 
 	if namespaceFilter != "" {
 		valErrs := helper.ValidateKubernetesNamespaceName(
-			field.NewPath("namespaceFilter"),
+			field.NewPath(NamespaceFilterQueryParam),
 			namespaceFilter,
 		)
 
@@ -125,7 +125,7 @@ func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _
 			a.failedValidationResponse(
 				w,
 				r,
-				errMsgPathParamsInvalid,
+				errMsgQueryParamsInvalid,
 				valErrs,
 				nil,
 			)
