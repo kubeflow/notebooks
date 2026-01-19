@@ -99,12 +99,12 @@ func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps
 //	@ID				listWorkspaceKinds
 //	@Accept			json
 //	@Produce		json
-//	@Param			namespaceFilter	query	string	false	"Namespace used for workspace creation authorization"
-//	@Success		200	{object}	WorkspaceKindListEnvelope	"Successful operation. Returns a list of all available workspace kinds."
-//	@Failure		401	{object}	ErrorEnvelope				"Unauthorized. Authentication is required."
-//	@Failure		403	{object}	ErrorEnvelope				"Forbidden. User does not have permission to list workspace kinds."
-//	@Failure		422	{object}	ErrorEnvelope				"Unprocessable Entity. Validation error."
-//	@Failure		500	{object}	ErrorEnvelope				"Internal server error. An unexpected error occurred on the server."
+//	@Param			namespaceFilter	query		string						false	"Namespace used for workspace creation authorization"
+//	@Success		200				{object}	WorkspaceKindListEnvelope	"Successful operation. Returns a list of all available workspace kinds."
+//	@Failure		401				{object}	ErrorEnvelope				"Unauthorized. Authentication is required."
+//	@Failure		403				{object}	ErrorEnvelope				"Forbidden. User does not have permission to list workspace kinds."
+//	@Failure		422				{object}	ErrorEnvelope				"Unprocessable Entity. Validation error."
+//	@Failure		500				{object}	ErrorEnvelope				"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspacekinds [get]
 func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	namespace := r.URL.Query().Get("namespaceFilter")
@@ -116,7 +116,7 @@ func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _
 	}
 
 	if len(valErrs) > 0 {
-		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
+		a.failedValidationResponse(w, r, errMsgQueryParamsInvalid, valErrs, nil)
 		return
 	}
 

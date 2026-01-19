@@ -714,6 +714,14 @@ const docTemplate = `{
                 ],
                 "summary": "List workspace kinds",
                 "operationId": "listWorkspaceKinds",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Namespace used for workspace creation authorization",
+                        "name": "namespaceFilter",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Successful operation. Returns a list of all available workspace kinds.",
@@ -729,6 +737,12 @@ const docTemplate = `{
                     },
                     "403": {
                         "description": "Forbidden. User does not have permission to list workspace kinds.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }

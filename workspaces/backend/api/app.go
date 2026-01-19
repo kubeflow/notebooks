@@ -40,8 +40,9 @@ const (
 	MediaTypeJson = "application/json"
 	MediaTypeYaml = "application/yaml"
 
-	NamespacePathParam    = "namespace"
-	ResourceNamePathParam = "name"
+	NamespacePathParam        = "namespace"
+	ResourceNamePathParam     = "name"
+	NamespaceFilterQueryParam = "namespaceFilter"
 
 	// healthcheck
 	HealthCheckPath = PathPrefix + "/healthcheck"
