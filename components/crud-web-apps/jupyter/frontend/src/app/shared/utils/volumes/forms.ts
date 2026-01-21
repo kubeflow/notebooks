@@ -70,11 +70,11 @@ export function createExistingSourceFormGroup(): FormGroup {
 
 // for volume.newPvc
 export function createNewPvcFormGroup(
-  name = '{notebook-name}-volume',
+  name = '{notebook-name}-volume-',
 ): FormGroup {
   return new FormGroup({
     metadata: new FormGroup({
-      name: new FormControl(name, Validators.required),
+      generateName: new FormControl(name, Validators.required),
     }),
     spec: new FormGroup({
       accessModes: new FormControl(['ReadWriteOnce']),
