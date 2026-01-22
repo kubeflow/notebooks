@@ -21,13 +21,13 @@ import (
 	"net/http"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
 	authorizationv1 "k8s.io/client-go/kubernetes/typed/authorization/v1"
 	"k8s.io/client-go/rest"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -73,31 +73,55 @@ func NewRequestAuthorizer(restConfig *rest.Config, httpClient *http.Client) (aut
 type ResourcePolicy struct {
 	Verb ResourceVerb
 
-	Group   string
-	Version string
-	Kind    string
+	Group    string
+	Version  string
+	Resource string
 
 	Namespace string
 	Name      string
 }
 
-// NewResourcePolicy returns a new resource policy based on the provided verb and resource object.
-func NewResourcePolicy(verb ResourceVerb, object client.Object) *ResourcePolicy {
+// ResourcePolicyResource is a string enum for the resource types used in resource policies.
+type ResourcePolicyResource string
+
+const (
+	ResourcePolicyResourceWorkspaces     ResourcePolicyResource = "workspaces"
+	ResourcePolicyResourceWorkspaceKinds ResourcePolicyResource = "workspacekinds"
+	ResourcePolicyResourceSecrets        ResourcePolicyResource = "secrets"
+	ResourcePolicyResourceNamespaces     ResourcePolicyResource = "namespaces"
+)
+
+// resourceGVMap maps resource policy resources to their API group and version.
+var resourceGVMap = map[ResourcePolicyResource]struct{ Group, Version string }{
+	ResourcePolicyResourceWorkspaces:     {Group: "kubeflow.org", Version: "v1beta1"},
+	ResourcePolicyResourceWorkspaceKinds: {Group: "kubeflow.org", Version: "v1beta1"},
+	ResourcePolicyResourceSecrets:        {Group: "", Version: "v1"},
+	ResourcePolicyResourceNamespaces:     {Group: "", Version: "v1"},
+}
+
+// NewResourcePolicy returns a resource policy for the given verb and resource type.
+// Optional scope is passed via meta; use &metav1.ObjectMeta{} or nil for list/create or cluster-scoped resources.
+// Group and version are resolved from a hardcoded lookup map.
+func NewResourcePolicy(verb ResourceVerb, resource ResourcePolicyResource, meta *metav1.ObjectMeta) *ResourcePolicy {
+	gv, ok := resourceGVMap[resource]
+	if !ok {
+		panic(fmt.Sprintf("NewResourcePolicy: unknown resource %q", resource))
+	}
+
 	policy := &ResourcePolicy{
-		Verb:    verb,
-		Group:   object.GetObjectKind().GroupVersionKind().Group,
-		Version: object.GetObjectKind().GroupVersionKind().Version,
-		Kind:    object.GetObjectKind().GroupVersionKind().Kind,
+		Verb:     verb,
+		Group:    gv.Group,
+		Version:  gv.Version,
+		Resource: string(resource),
 	}
-
-	if object.GetNamespace() != "" {
-		policy.Namespace = object.GetNamespace()
+	if meta != nil {
+		if meta.Namespace != "" {
+			policy.Namespace = meta.Namespace
+		}
+		if meta.Name != "" {
+			policy.Name = meta.Name
+		}
 	}
-
-	if object.GetName() != "" {
-		policy.Name = object.GetName()
-	}
-
 	return policy
 }
 
@@ -109,7 +133,7 @@ func (p *ResourcePolicy) AttributesFor(u user.Info) authorizer.Attributes {
 		Namespace:       p.Namespace,
 		APIGroup:        p.Group,
 		APIVersion:      p.Version,
-		Resource:        p.Kind,
+		Resource:        p.Resource,
 		Name:            p.Name,
 		ResourceRequest: true,
 	}

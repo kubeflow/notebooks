@@ -71,12 +71,7 @@ func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(
-			auth.ResourceVerbGet,
-			&kubefloworgv1beta1.WorkspaceKind{
-				ObjectMeta: metav1.ObjectMeta{Name: name},
-			},
-		),
+		auth.NewResourcePolicy(auth.ResourceVerbGet, auth.ResourcePolicyResourceWorkspaceKinds, &metav1.ObjectMeta{Name: name}),
 	}
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return
@@ -113,10 +108,7 @@ func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps
 func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(
-			auth.ResourceVerbList,
-			&kubefloworgv1beta1.WorkspaceKind{},
-		),
+		auth.NewResourcePolicy(auth.ResourceVerbList, auth.ResourcePolicyResourceWorkspaceKinds, &metav1.ObjectMeta{}),
 	}
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return
@@ -201,14 +193,7 @@ func (a *App) CreateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(
-			auth.ResourceVerbCreate,
-			&kubefloworgv1beta1.WorkspaceKind{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: workspaceKind.Name,
-				},
-			},
-		),
+		auth.NewResourcePolicy(auth.ResourceVerbCreate, auth.ResourcePolicyResourceWorkspaceKinds, &metav1.ObjectMeta{Name: workspaceKind.Name}),
 	}
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return

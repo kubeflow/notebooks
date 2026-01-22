@@ -22,7 +22,6 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -71,15 +70,7 @@ func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps htt
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(
-			auth.ResourceVerbGet,
-			&kubefloworgv1beta1.Workspace{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: namespace,
-					Name:      workspaceName,
-				},
-			},
-		),
+		auth.NewResourcePolicy(auth.ResourceVerbGet, auth.ResourcePolicyResourceWorkspaces, &metav1.ObjectMeta{Namespace: namespace, Name: workspaceName}),
 	}
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return
@@ -153,14 +144,7 @@ func (a *App) getWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps ht
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(
-			auth.ResourceVerbList,
-			&kubefloworgv1beta1.Workspace{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: namespace,
-				},
-			},
-		),
+		auth.NewResourcePolicy(auth.ResourceVerbList, auth.ResourcePolicyResourceWorkspaces, &metav1.ObjectMeta{Namespace: namespace}),
 	}
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return
@@ -255,15 +239,7 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(
-			auth.ResourceVerbCreate,
-			&kubefloworgv1beta1.Workspace{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: namespace,
-					Name:      workspaceCreate.Name,
-				},
-			},
-		),
+		auth.NewResourcePolicy(auth.ResourceVerbCreate, auth.ResourcePolicyResourceWorkspaces, &metav1.ObjectMeta{Namespace: namespace, Name: workspaceCreate.Name}),
 	}
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return
@@ -329,15 +305,7 @@ func (a *App) UpdateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(
-			auth.ResourceVerbUpdate,
-			&kubefloworgv1beta1.Workspace{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: namespace,
-					Name:      workspaceName,
-				},
-			},
-		),
+		auth.NewResourcePolicy(auth.ResourceVerbUpdate, auth.ResourcePolicyResourceWorkspaces, &metav1.ObjectMeta{Namespace: namespace, Name: workspaceName}),
 	}
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return
@@ -438,15 +406,7 @@ func (a *App) DeleteWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(
-			auth.ResourceVerbDelete,
-			&kubefloworgv1beta1.Workspace{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: namespace,
-					Name:      workspaceName,
-				},
-			},
-		),
+		auth.NewResourcePolicy(auth.ResourceVerbDelete, auth.ResourcePolicyResourceWorkspaces, &metav1.ObjectMeta{Namespace: namespace, Name: workspaceName}),
 	}
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return
