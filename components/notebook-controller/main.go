@@ -36,6 +36,7 @@ import (
 	nbv1beta1 "github.com/kubeflow/notebooks/components/notebook-controller/api/v1beta1"
 	"github.com/kubeflow/notebooks/components/notebook-controller/controllers"
 	controller_metrics "github.com/kubeflow/notebooks/components/notebook-controller/pkg/metrics"
+	gwapiv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -50,6 +51,7 @@ func init() {
 	utilruntime.Must(nbv1.AddToScheme(scheme))
 	utilruntime.Must(nbv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(nbv1beta1.AddToScheme(scheme))
+	utilruntime.Must(gwapiv1beta1.AddToScheme(scheme))
 
 	//+kubebuilder:scaffold:scheme
 }
