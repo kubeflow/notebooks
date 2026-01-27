@@ -11,6 +11,7 @@ import inlineEditStyles from '@patternfly/react-styles/css/components/InlineEdit
 import { css } from '@patternfly/react-styles';
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
 import { TrashAltIcon } from '@patternfly/react-icons/dist/esm/icons/trash-alt-icon';
+import { useThemeContext } from 'mod-arch-kubeflow';
 import { WorkspacekindsOptionLabel } from '~/generated/data-contracts';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 
@@ -30,10 +31,15 @@ const EditableRow: React.FC<EditableRowInterface> = ({
   deleteRow,
 }) => {
   const inputRef = useRef(null);
+  const { isMUITheme } = useThemeContext();
 
+  // Temp fix: Add padding-top utility class for MUI theme until the style is fixed in MUI-theme.scss
   return (
     <Tr className={css(inlineEditStyles.inlineEdit, inlineEditStyles.modifiers.inlineEditable)}>
-      <Td>
+      <Td
+        // TODO: Remove this when https://github.com/opendatahub-io/mod-arch-library/issues/97 is completed.
+        className={isMUITheme ? 'pf-v6-u-pt-md' : undefined}
+      >
         <ThemeAwareFormGroupWrapper isRequired fieldId="key">
           <TextInput
             aria-label={`${columnNames.key} ${ariaLabel}`}
@@ -45,7 +51,10 @@ const EditableRow: React.FC<EditableRowInterface> = ({
           />
         </ThemeAwareFormGroupWrapper>
       </Td>
-      <Td>
+      <Td
+        // TODO: Remove this when https://github.com/opendatahub-io/mod-arch-library/issues/97 is completed.
+        className={isMUITheme ? 'pf-v6-u-pt-md' : undefined}
+      >
         <ThemeAwareFormGroupWrapper fieldId="value">
           <TextInput
             aria-label={`${columnNames.value} ${ariaLabel}`}
@@ -58,7 +67,7 @@ const EditableRow: React.FC<EditableRowInterface> = ({
         </ThemeAwareFormGroupWrapper>
       </Td>
 
-      <Td dataLabel="Delete button">
+      <Td dataLabel="Delete button" className={isMUITheme ? 'pf-v6-u-pt-md' : undefined}>
         <Button
           ref={inputRef}
           aria-label={`Delete ${ariaLabel}`}
