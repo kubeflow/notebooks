@@ -67,7 +67,11 @@ const EditableRow: React.FC<EditableRowInterface> = ({
         </ThemeAwareFormGroupWrapper>
       </Td>
 
-      <Td dataLabel="Delete button" className={isMUITheme ? 'pf-v6-u-pt-md' : undefined}>
+      <Td
+        dataLabel="Delete button"
+        // TODO: Remove this when https://github.com/opendatahub-io/mod-arch-library/issues/97 is completed.
+        className={isMUITheme ? 'pf-v6-u-pt-md' : undefined}
+      >
         <Button
           ref={inputRef}
           aria-label={`Delete ${ariaLabel}`}
