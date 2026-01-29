@@ -20,7 +20,6 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/namespaces"
@@ -44,7 +43,7 @@ func (a *App) GetNamespacesHandler(w http.ResponseWriter, r *http.Request, _ htt
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(auth.ResourceVerbList, auth.ResourcePolicyResourceNamespaces, &metav1.ObjectMeta{}),
+		auth.NewResourcePolicy(auth.VerbList, auth.Namespaces, auth.ResourcePolicyResourceMeta{}),
 	}
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return

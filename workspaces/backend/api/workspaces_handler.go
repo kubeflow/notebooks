@@ -23,7 +23,6 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
@@ -70,7 +69,7 @@ func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps htt
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(auth.ResourceVerbGet, auth.ResourcePolicyResourceWorkspaces, &metav1.ObjectMeta{Namespace: namespace, Name: workspaceName}),
+		auth.NewResourcePolicy(auth.VerbGet, auth.Workspaces, auth.ResourcePolicyResourceMeta{Namespace: namespace, Name: workspaceName}),
 	}
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return
@@ -144,7 +143,7 @@ func (a *App) getWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps ht
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(auth.ResourceVerbList, auth.ResourcePolicyResourceWorkspaces, &metav1.ObjectMeta{Namespace: namespace}),
+		auth.NewResourcePolicy(auth.VerbList, auth.Workspaces, auth.ResourcePolicyResourceMeta{Namespace: namespace}),
 	}
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return
@@ -239,7 +238,7 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(auth.ResourceVerbCreate, auth.ResourcePolicyResourceWorkspaces, &metav1.ObjectMeta{Namespace: namespace, Name: workspaceCreate.Name}),
+		auth.NewResourcePolicy(auth.VerbCreate, auth.Workspaces, auth.ResourcePolicyResourceMeta{Namespace: namespace, Name: workspaceCreate.Name}),
 	}
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return
@@ -305,7 +304,7 @@ func (a *App) UpdateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(auth.ResourceVerbUpdate, auth.ResourcePolicyResourceWorkspaces, &metav1.ObjectMeta{Namespace: namespace, Name: workspaceName}),
+		auth.NewResourcePolicy(auth.VerbUpdate, auth.Workspaces, auth.ResourcePolicyResourceMeta{Namespace: namespace, Name: workspaceName}),
 	}
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return
@@ -406,7 +405,7 @@ func (a *App) DeleteWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(auth.ResourceVerbDelete, auth.ResourcePolicyResourceWorkspaces, &metav1.ObjectMeta{Namespace: namespace, Name: workspaceName}),
+		auth.NewResourcePolicy(auth.VerbDelete, auth.Workspaces, auth.ResourcePolicyResourceMeta{Namespace: namespace, Name: workspaceName}),
 	}
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return
