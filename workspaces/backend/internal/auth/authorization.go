@@ -21,13 +21,15 @@ import (
 	"net/http"
 	"time"
 
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
 	authorizationv1 "k8s.io/client-go/kubernetes/typed/authorization/v1"
 	"k8s.io/client-go/rest"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -70,35 +72,35 @@ func NewRequestAuthorizer(restConfig *rest.Config, httpClient *http.Client) (aut
 	return delegatingAuthorizer, nil
 }
 
-type ResourcePolicy struct {
-	Verb ResourceVerb
-
-	Group   string
-	Version string
-	Kind    string
-
-	Namespace string
-	Name      string
+// resourceGVRMap maps resource policy resources to their API group and version.
+var resourceGVRMap = map[ResourcePolicyResource]schema.GroupVersionResource{
+	Namespaces:     corev1.SchemeGroupVersion.WithResource(string(Namespaces)),
+	Secrets:        corev1.SchemeGroupVersion.WithResource(string(Secrets)),
+	WorkspaceKinds: kubefloworgv1beta1.GroupVersion.WithResource(string(WorkspaceKinds)),
+	Workspaces:     kubefloworgv1beta1.GroupVersion.WithResource(string(Workspaces)),
 }
 
-// NewResourcePolicy returns a new resource policy based on the provided verb and resource object.
-func NewResourcePolicy(verb ResourceVerb, object client.Object) *ResourcePolicy {
+// NewResourcePolicy returns a resource policy for the given verb and resource type.
+func NewResourcePolicy(verb ResourcePolicyVerb, resource ResourcePolicyResource, resourceMeta ResourcePolicyResourceMeta) *ResourcePolicy {
+	gvr, ok := resourceGVRMap[resource]
+	if !ok {
+		// this should never happen unless we forgot to update the map
+		panic(fmt.Sprintf("unsupported ResourcePolicyResource: %s", resource))
+	}
+
 	policy := &ResourcePolicy{
-		Verb:    verb,
-		Group:   object.GetObjectKind().GroupVersionKind().Group,
-		Version: object.GetObjectKind().GroupVersionKind().Version,
-		Kind:    object.GetObjectKind().GroupVersionKind().Kind,
-	}
-
-	if object.GetNamespace() != "" {
-		policy.Namespace = object.GetNamespace()
-	}
-
-	if object.GetName() != "" {
-		policy.Name = object.GetName()
+		Verb:         verb,
+		GVR:          gvr,
+		ResourceMeta: resourceMeta,
 	}
 
 	return policy
+}
+
+type ResourcePolicy struct {
+	Verb         ResourcePolicyVerb
+	GVR          schema.GroupVersionResource
+	ResourceMeta ResourcePolicyResourceMeta
 }
 
 // AttributesFor returns an authorizer.Attributes which could be used with an authorizer.Authorizer to authorize the user for the resource policy.
@@ -106,23 +108,53 @@ func (p *ResourcePolicy) AttributesFor(u user.Info) authorizer.Attributes {
 	return authorizer.AttributesRecord{
 		User:            u,
 		Verb:            string(p.Verb),
-		Namespace:       p.Namespace,
-		APIGroup:        p.Group,
-		APIVersion:      p.Version,
-		Resource:        p.Kind,
-		Name:            p.Name,
+		Namespace:       p.ResourceMeta.Namespace,
+		APIGroup:        p.GVR.Group,
+		APIVersion:      p.GVR.Version,
+		Resource:        p.GVR.Resource,
+		Subresource:     "", // not currently used
+		Name:            p.ResourceMeta.Name,
 		ResourceRequest: true,
 	}
 }
 
-// ResourceVerb represents a verb for an action on a resource.
-type ResourceVerb string
+// ResourcePolicyVerb are the verbs available for resource policies.
+// Corresponds to the verbs of a SubjectAccessReview:
+// https://github.com/kubernetes/kubernetes/blob/v1.35.0/pkg/apis/authorization/types.go#L78-L79
+type ResourcePolicyVerb string
 
 const (
-	ResourceVerbCreate ResourceVerb = "create"
-	ResourceVerbGet    ResourceVerb = "get"
-	ResourceVerbList   ResourceVerb = "list"
-	ResourceVerbUpdate ResourceVerb = "update"
-	ResourceVerbPatch  ResourceVerb = "patch"
-	ResourceVerbDelete ResourceVerb = "delete"
+	VerbCreate ResourcePolicyVerb = "create"
+	VerbDelete ResourcePolicyVerb = "delete"
+	VerbGet    ResourcePolicyVerb = "get"
+	VerbList   ResourcePolicyVerb = "list"
+	VerbPatch  ResourcePolicyVerb = "patch"
+	VerbUpdate ResourcePolicyVerb = "update"
 )
+
+// ResourcePolicyResource are the resource types (kinds) available for resource policies.
+type ResourcePolicyResource string
+
+const (
+	//
+	// WARNING: these MUST be the "plural" form of the resource name because
+	//          URLs of Kubernetes APIs are structured as: /apis/<group>/<version>/<plural>
+	//
+
+	Namespaces     ResourcePolicyResource = "namespaces"
+	Secrets        ResourcePolicyResource = "secrets"
+	WorkspaceKinds ResourcePolicyResource = "workspacekinds"
+	Workspaces     ResourcePolicyResource = "workspaces"
+)
+
+// ResourcePolicyResourceMeta selects specific resources based on their object metadata.
+type ResourcePolicyResourceMeta struct {
+	// Namespace is the namespace of the resource which the action will be performed on.
+	// "" (empty) is the only valid value for cluster-scoped resources
+	// "" (empty) means the caller must be authorized to perform the action in all namespaces.
+	Namespace string
+
+	// Name is the name of the resource which the action will be performed on.
+	// "" (empty) means the caller must be authorized to perform the action on all resources of this type.
+	Name string
+}

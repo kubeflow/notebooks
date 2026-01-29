@@ -25,7 +25,6 @@ import (
 	"github.com/julienschmidt/httprouter"
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
@@ -71,12 +70,7 @@ func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(
-			auth.ResourceVerbGet,
-			&kubefloworgv1beta1.WorkspaceKind{
-				ObjectMeta: metav1.ObjectMeta{Name: name},
-			},
-		),
+		auth.NewResourcePolicy(auth.VerbGet, auth.WorkspaceKinds, auth.ResourcePolicyResourceMeta{Name: name}),
 	}
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return
@@ -113,10 +107,7 @@ func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps
 func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(
-			auth.ResourceVerbList,
-			&kubefloworgv1beta1.WorkspaceKind{},
-		),
+		auth.NewResourcePolicy(auth.VerbList, auth.WorkspaceKinds, auth.ResourcePolicyResourceMeta{}),
 	}
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return
@@ -201,14 +192,7 @@ func (a *App) CreateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(
-			auth.ResourceVerbCreate,
-			&kubefloworgv1beta1.WorkspaceKind{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: workspaceKind.Name,
-				},
-			},
-		),
+		auth.NewResourcePolicy(auth.VerbCreate, auth.WorkspaceKinds, auth.ResourcePolicyResourceMeta{Name: workspaceKind.Name}),
 	}
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return
