@@ -51,6 +51,12 @@ rules:
   - update
   - watch
 - apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  verbs:
+  - '*'
+- apiGroups:
   - tensorboard.kubeflow.org
   resources:
   - tensorboards
