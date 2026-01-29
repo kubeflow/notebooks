@@ -162,10 +162,20 @@ func (r *TensorboardReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *TensorboardReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
+	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&tensorboardv1alpha1.Tensorboard{}).
-		Owns(&appsv1.Deployment{}).
-		Complete(r)
+		Owns(&appsv1.Deployment{})
+
+	if os.Getenv("USE_GATEWAY_API") == "true" {
+		builder.Owns(&gwapiv1beta1.HTTPRoute{})
+	} else {
+		virtualService := &unstructured.Unstructured{}
+		virtualService.SetAPIVersion("networking.istio.io/v1alpha3")
+		virtualService.SetKind("VirtualService")
+		builder.Owns(virtualService)
+	}
+
+	return builder.Complete(r)
 }
 
 func generateDeployment(tb *tensorboardv1alpha1.Tensorboard, log logr.Logger, r *TensorboardReconciler) (*appsv1.Deployment, error) {
