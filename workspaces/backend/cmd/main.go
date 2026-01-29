@@ -140,7 +140,7 @@ func main() {
 	}
 
 	// Create the application and server
-	app, err := application.NewApp(cfg, logger, mgr.GetClient(), mgr.GetScheme(), mgr.GetRESTMapper(), reqAuthN, reqAuthZ)
+	app, err := application.NewApp(cfg, logger, mgr.GetClient(), mgr.GetScheme(), reqAuthN, reqAuthZ)
 	if err != nil {
 		logger.Error("failed to create app", "error", err)
 		os.Exit(1)

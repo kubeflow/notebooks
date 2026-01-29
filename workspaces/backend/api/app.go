@@ -22,7 +22,6 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
@@ -74,15 +73,14 @@ type App struct {
 	Config               *config.EnvConfig
 	logger               *slog.Logger
 	repositories         *repositories.Repositories
-	scheme               *runtime.Scheme
-	restMapper           meta.RESTMapper
+	Scheme               *runtime.Scheme
 	StrictYamlSerializer runtime.Serializer
 	RequestAuthN         authenticator.Request
 	RequestAuthZ         authorizer.Authorizer
 }
 
 // NewApp creates a new instance of the app
-func NewApp(cfg *config.EnvConfig, logger *slog.Logger, cl client.Client, scheme *runtime.Scheme, restMapper meta.RESTMapper, reqAuthN authenticator.Request, reqAuthZ authorizer.Authorizer) (*App, error) {
+func NewApp(cfg *config.EnvConfig, logger *slog.Logger, cl client.Client, scheme *runtime.Scheme, reqAuthN authenticator.Request, reqAuthZ authorizer.Authorizer) (*App, error) {
 
 	// TODO: log the configuration on startup
 
@@ -97,8 +95,7 @@ func NewApp(cfg *config.EnvConfig, logger *slog.Logger, cl client.Client, scheme
 		Config:               cfg,
 		logger:               logger,
 		repositories:         repositories.NewRepositories(cl),
-		scheme:               scheme,
-		restMapper:           restMapper,
+		Scheme:               scheme,
 		StrictYamlSerializer: yamlSerializerInfo.StrictSerializer,
 		RequestAuthN:         reqAuthN,
 		RequestAuthZ:         reqAuthZ,
