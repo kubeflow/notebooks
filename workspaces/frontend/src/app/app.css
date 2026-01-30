@@ -10,7 +10,10 @@ body,
 }
 
 /* File upload full height layout */
-/* Stack container needs height for FileUpload to fill available space */
+/* Page main body and Stack container need height for FileUpload to fill available space */
+.pf-v6-c-page__main-section .pf-v6-c-page__main-body {
+  height: 100%;
+}
 .pf-v6-c-page__main-body > .pf-v6-l-stack,
 .pf-v6-c-page__main-section.pf-m-fill > .pf-v6-l-stack {
   height: 100%;
