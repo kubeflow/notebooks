@@ -8,3 +8,22 @@ body,
 .pf-v6-c-alert--no-title-margin .pf-v6-c-alert__title {
   margin-block-start: 0;
 }
+
+/* File upload full height layout */
+/* Stack container needs height for FileUpload to fill available space */
+.pf-v6-c-page__main-body > .pf-v6-l-stack,
+.pf-v6-c-page__main-section.pf-m-fill > .pf-v6-l-stack {
+  height: 100%;
+  flex-grow: 1;
+}
+.pf-v6-c-file-upload {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.pf-v6-c-file-upload__file-details {
+  flex-grow: 1;
+}
+.pf-v6-c-file-upload__file-details .pf-v6-c-form-control {
+  height: 100%;
+}
