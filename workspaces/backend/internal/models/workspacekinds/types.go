@@ -109,3 +109,70 @@ const (
 	RedirectMessageLevelWarning RedirectMessageLevel = "Warning"
 	RedirectMessageLevelDanger  RedirectMessageLevel = "Danger"
 )
+
+type ListValuesRequest struct {
+	Data ListValuesRequestData `json:"data"`
+}
+
+type ListValuesRequestData struct {
+	Context *ListValuesContext `json:"context,omitempty"`
+}
+
+type ListValuesContext struct {
+	Namespace   *ContextNamespace   `json:"namespace,omitempty"`
+	PodConfig   *ContextPodConfig   `json:"podConfig,omitempty"`
+	ImageConfig *ContextImageConfig `json:"imageConfig,omitempty"`
+}
+
+type ContextNamespace struct {
+	Name string `json:"name"`
+}
+
+type ContextPodConfig struct {
+	Id string `json:"id"`
+}
+
+type ContextImageConfig struct {
+	Id string `json:"id"`
+}
+
+type ListValuesResponse struct {
+	ImageConfig ImageConfigWithRules `json:"imageConfig"`
+	PodConfig   PodConfigWithRules   `json:"podConfig"`
+}
+
+type ImageConfigWithRules struct {
+	Default string                      `json:"default"`
+	Values  []ImageConfigValueWithRules `json:"values"`
+}
+
+type ImageConfigValueWithRules struct {
+	Id             string          `json:"id"`
+	DisplayName    string          `json:"displayName"`
+	Description    string          `json:"description"`
+	Labels         []OptionLabel   `json:"labels"`
+	Hidden         bool            `json:"hidden"`
+	Redirect       *OptionRedirect `json:"redirect,omitempty"`
+	ClusterMetrics clusterMetrics  `json:"clusterMetrics,omitempty"`
+	RuleEffects    RuleEffects     `json:"rule_effects"`
+}
+
+type PodConfigWithRules struct {
+	Default string                    `json:"default"`
+	Values  []PodConfigValueWithRules `json:"values"`
+}
+
+type PodConfigValueWithRules struct {
+	Id             string          `json:"id"`
+	DisplayName    string          `json:"displayName"`
+	Description    string          `json:"description"`
+	Labels         []OptionLabel   `json:"labels"`
+	Hidden         bool            `json:"hidden"`
+	Redirect       *OptionRedirect `json:"redirect,omitempty"`
+	ClusterMetrics clusterMetrics  `json:"clusterMetrics,omitempty"`
+	RuleEffects    RuleEffects     `json:"rule_effects"`
+}
+
+type RuleEffects struct {
+	UiHide bool `json:"ui_hide"`
+}
