@@ -20,7 +20,7 @@ import { InfoCircleIcon } from '@patternfly/react-icons/dist/esm/icons/info-circ
 import { WrenchIcon } from '@patternfly/react-icons/dist/esm/icons/wrench-icon';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import { SecretsSecretListItem } from '~/generated/data-contracts';
-import { isValidDefaultMode } from '~/app/pages/Workspaces/Form/helpers';
+import { isValidDefaultMode, DEFAULT_MODE_OCTAL } from '~/app/pages/Workspaces/Form/helpers';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { LabelGroupWithTooltip } from '~/app/components/LabelGroupWithTooltip';
 
@@ -31,8 +31,6 @@ export interface SecretsAttachModalProps {
   availableSecrets: SecretsSecretListItem[];
   existingSecretKeys: Set<string>;
 }
-
-const DEFAULT_MODE_OCTAL = (420).toString(8);
 
 export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
   isOpen,
@@ -123,12 +121,16 @@ export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
                 <StackItem>
                   <LabelGroup>
                     <Label isCompact>Type: {secret.type}</Label>
-                    {secret.immutable && <Label isCompact>Immutable</Label>}
+                    {secret.immutable && (
+                      <Label color="orange" isCompact>
+                        Immutable
+                      </Label>
+                    )}
                     {!secret.canMount && <Label isCompact>Unmountable</Label>}
                   </LabelGroup>
                 </StackItem>
                 {secret.mounts && (
-                  <StackItem style={{ marginLeft: '1.25ch', marginTop: '0.25rem' }}>
+                  <StackItem className="pf-v6-u-ml-sm pf-v6-u-mt-xs">
                     <Flex gap={{ default: 'gapXs' }}>
                       <FlexItem>Mounted to:</FlexItem>
                       <FlexItem>

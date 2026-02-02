@@ -3,6 +3,7 @@ import type {
   ApiErrorEnvelope,
   ApiNamespaceListEnvelope,
   ApiSecretCreateEnvelope,
+  ApiSecretEnvelope,
   ApiSecretListEnvelope,
   ApiWorkspaceActionPauseEnvelope,
   ApiWorkspaceCreateEnvelope,
@@ -97,6 +98,16 @@ declare global {
           type: 'GET /api/:apiVersion/secrets/:namespace',
           options: { path: { apiVersion: string; namespace: string } },
           response: ApiSecretListEnvelope | ApiErrorEnvelope,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/:apiVersion/secrets/:namespace/:secretName',
+          options: { path: { apiVersion: string; namespace: string; secretName: string } },
+          response: ApiSecretEnvelope | ApiErrorEnvelope,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'PUT /api/:apiVersion/secrets/:namespace/:secretName',
+          options: { path: { apiVersion: string; namespace: string; secretName: string } },
+          response: ApiSecretEnvelope | ApiErrorEnvelope,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'POST /api/:apiVersion/secrets/:namespace',
