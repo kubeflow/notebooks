@@ -21,8 +21,10 @@ export class ConfirmDialogComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.applying$.subscribe(b => {
-      this.isApplying = b;
+    this.applying$.subscribe({
+      next: b => {
+        this.isApplying = b;
+      },
     });
   }
 

@@ -82,8 +82,10 @@ export class TableComponent
   @HostBinding('class.lib-table') selfClass = true;
   @ViewChild(MatPaginator, { static: true }) paginator: MatPaginator;
   @ViewChild(MatSort, { static: true }) sort: MatSort;
-  @ViewChild('chipInput') chipInput: ElementRef<HTMLInputElement>;
-  @ViewChild(MatAutocompleteTrigger) autocomplete: MatAutocompleteTrigger;
+  @ViewChild('chipInput', { static: false })
+  chipInput: ElementRef<HTMLInputElement>;
+  @ViewChild(MatAutocompleteTrigger, { static: false })
+  autocomplete: MatAutocompleteTrigger;
 
   TABLE_THEME = TABLE_THEME;
 
@@ -110,26 +112,30 @@ export class TableComponent
   @Output() actionsEmitter = new EventEmitter<ActionEvent>();
 
   constructor(public ns: NamespaceService, private dtService: DateTimeService) {
-    this.chipCtrl.valueChanges.subscribe(chip => {
-      this.filteredHeaders = this.filter(chip);
+    this.chipCtrl.valueChanges.subscribe({
+      next: chip => {
+        this.filteredHeaders = this.filter(chip);
+      },
     });
   }
 
   ngOnInit() {
-    this.nsSub = this.ns.getSelectedNamespace2().subscribe(ns => {
-      if (
-        !this.config ||
-        !this.config.dynamicNamespaceColumn ||
-        this.config.columns.length === 0
-      ) {
-        return;
-      }
+    this.nsSub = this.ns.getSelectedNamespace2().subscribe({
+      next: ns => {
+        if (
+          !this.config ||
+          !this.config.dynamicNamespaceColumn ||
+          this.config.columns.length === 0
+        ) {
+          return;
+        }
 
-      if (Array.isArray(ns)) {
-        addColumn(this.config, NAMESPACE_COLUMN, 'name');
-      } else {
-        removeColumn(this.config, 'namespace');
-      }
+        if (Array.isArray(ns)) {
+          addColumn(this.config, NAMESPACE_COLUMN, 'name');
+        } else {
+          removeColumn(this.config, 'namespace');
+        }
+      },
     });
 
     const sortByColumn = this.config.sortByColumn || 'name';

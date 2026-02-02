@@ -15,6 +15,7 @@ export * from './lib/namespace-select/namespace-select.module';
 
 export * from './lib/resource-table/resource-table.module';
 export * from './lib/resource-table/resource-table.component';
+export * from './lib/resource-table/component-value/component-value.component';
 
 export * from './lib/confirm-dialog/confirm-dialog.module';
 export * from './lib/confirm-dialog/dialog/dialog.component';

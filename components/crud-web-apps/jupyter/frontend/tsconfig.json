@@ -7,16 +7,17 @@
     "declaration": false,
     "downlevelIteration": true,
     "experimentalDecorators": true,
-    "module": "esnext",
+    "ignoreDeprecations": "5.0",
+    "module": "ES2020",
     "moduleResolution": "node",
     "importHelpers": true,
-    "target": "es2015",
+    "target": "ES2020",
     "paths": {
       "@shared/*": ["../../angular-frontend-shared/*"],
       "@app/environment": ["src/environments/environment"]
     },
     "typeRoots": ["node_modules/@types"],
-    "lib": ["es2018", "dom", "es2019"],
+    "lib": ["ES2020", "dom"],
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true
   },

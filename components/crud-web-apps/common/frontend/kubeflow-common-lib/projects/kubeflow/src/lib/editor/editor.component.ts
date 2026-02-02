@@ -84,32 +84,36 @@ export class EditorComponent implements AfterViewInit, OnDestroy, OnChanges {
     });
 
     this.subscriptions.add(
-      this.text$.subscribe(text => {
-        if (text !== this.prvEditor.getModel().getValue()) {
-          this.prvEditor.getModel().setValue(text);
-        }
+      this.text$.subscribe({
+        next: text => {
+          if (text !== this.prvEditor.getModel().getValue()) {
+            this.prvEditor.getModel().setValue(text);
+          }
+        },
       }),
     );
 
     this.subscriptions.add(
-      this.options$.subscribe(newOptions => {
-        if (newOptions.readOnly === true || newOptions.readOnly === false) {
-          this.prvEditor.updateOptions({
-            readOnly: newOptions.readOnly,
-          });
-        }
-        if (newOptions.language) {
-          monaco.editor.setModelLanguage(
-            this.prvEditor.getModel(),
-            newOptions.language,
-          );
-        }
-        if (newOptions.width && newOptions.height) {
-          this.prvEditor.layout({
-            width: newOptions.width,
-            height: newOptions.height,
-          });
-        }
+      this.options$.subscribe({
+        next: newOptions => {
+          if (newOptions.readOnly === true || newOptions.readOnly === false) {
+            this.prvEditor.updateOptions({
+              readOnly: newOptions.readOnly,
+            });
+          }
+          if (newOptions.language) {
+            monaco.editor.setModelLanguage(
+              this.prvEditor.getModel(),
+              newOptions.language,
+            );
+          }
+          if (newOptions.width && newOptions.height) {
+            this.prvEditor.layout({
+              width: newOptions.width,
+              height: newOptions.height,
+            });
+          }
+        },
       }),
     );
 
@@ -146,10 +150,12 @@ export class EditorComponent implements AfterViewInit, OnDestroy, OnChanges {
   ngAfterViewInit() {
     this.monacoInitState = this.editorLoader.monacoInitState;
     this.subscriptions.add(
-      this.editorLoader.monacoInitState.subscribe(ready => {
-        if (ready) {
-          this.initEditor();
-        }
+      this.editorLoader.monacoInitState.subscribe({
+        next: ready => {
+          if (ready) {
+            this.initEditor();
+          }
+        },
       }),
     );
   }
