@@ -1,14 +1,14 @@
 import { FetchState, FetchStateCallbackPromise, useFetchState, NotReadyError } from 'mod-arch-core';
 import { useCallback } from 'react';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
+import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 import { ApiWorkspaceListEnvelope } from '~/generated/data-contracts';
-import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
 
 export const useWorkspacesByNamespace = (
   namespace: string,
 ): FetchState<ApiWorkspaceListEnvelope['data']> => {
   const { api, apiAvailable } = useNotebookAPI();
-  const { namespacesLoaded, selectedNamespace } = useNamespaceContext();
+  const { namespacesLoaded, selectedNamespace } = useNamespaceSelectorWrapper();
 
   const call = useCallback<
     FetchStateCallbackPromise<ApiWorkspaceListEnvelope['data']>

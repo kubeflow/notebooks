@@ -5,7 +5,7 @@ import {
   DrawerContentBody,
 } from '@patternfly/react-core/dist/esm/components/Drawer';
 import { useNotification } from 'mod-arch-core';
-import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
+import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspaceDetails } from '~/app/pages/Workspaces/Details/WorkspaceDetails';
 import { useTypedNavigate } from '~/app/routerHelper';
@@ -66,7 +66,7 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
   const navigate = useTypedNavigate();
   const notification = useNotification();
   const { api } = useNotebookAPI();
-  const { selectedNamespace } = useNamespaceContext();
+  const { selectedNamespace } = useNamespaceSelectorWrapper();
   const [activeWsAction, setActiveWsAction] = useState<WorkspaceAction | null>(null);
 
   const drawerContent = (

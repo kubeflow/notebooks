@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import { Content } from '@patternfly/react-core/dist/esm/components/Content';
-import { Divider } from '@patternfly/react-core/dist/esm/components/Divider';
 import { ExpandableSection } from '@patternfly/react-core/dist/esm/components/ExpandableSection';
 import { Form, FormGroup } from '@patternfly/react-core/dist/esm/components/Form';
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
@@ -70,7 +69,6 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
                   </HelperTextItem>
                 </HelperText>
               )}
-              <Divider />
               <ExpandableSection
                 toggleText="Volumes"
                 onToggle={() => setIsVolumesExpanded((prev) => !prev)}

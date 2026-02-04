@@ -20,7 +20,7 @@ import { Dropdown, DropdownItem } from '@patternfly/react-core/dist/esm/componen
 import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
 import { SecretsSecretListItem, WorkspacesPodSecretMount } from '~/generated/data-contracts';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
-import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
+import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 import { SecretsCreateModal } from './secrets/SecretsCreateModal';
 import { SecretsAttachModal } from './secrets/SecretsAttachModal';
 import { SecretsViewPopover } from './secrets/SecretsViewPopover';
@@ -43,7 +43,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
   const [attachedSecretKeys, setAttachedSecretKeys] = useState<Set<string>>(new Set());
 
   const { api } = useNotebookAPI();
-  const { selectedNamespace } = useNamespaceContext();
+  const { selectedNamespace } = useNamespaceSelectorWrapper();
 
   useEffect(() => {
     const fetchSecrets = async () => {
