@@ -28,6 +28,8 @@ spec:
   # podSpec: {}
   # If defined, the viewer will be exposed via a Service and a VirtualService
   networking:
+    # Specifies the cluster domain
+    clusterDomain: cluster.local
     # Specifies the application's target port used by the Service
     targetPort: 8080
     # The base prefix is suffixed by '/namespace/name' to create the
