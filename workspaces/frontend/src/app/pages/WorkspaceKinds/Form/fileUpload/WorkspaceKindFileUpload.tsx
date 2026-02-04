@@ -7,7 +7,6 @@ import {
 } from '@patternfly/react-core/dist/esm/components/FileUpload';
 import { DropEvent } from '@patternfly/react-core/dist/esm/helpers/typeUtils';
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
-import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import { isValidWorkspaceKindYaml } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { ValidationStatus } from '~/app/pages/WorkspaceKinds/Form/WorkspaceKindForm';
 
@@ -86,46 +85,44 @@ export const WorkspaceKindFileUpload: React.FC<WorkspaceKindFileUploadProps> = (
   }, []);
 
   return (
-    <Content>
-      <FileUpload
-        className="workspacekind-file-upload"
-        id="text-file-simple"
-        type="text"
-        value={value}
-        filename={filename}
-        filenamePlaceholder="Drag and drop a YAML file here or upload one"
-        onFileInputChange={handleFileInputChange}
-        onDataChange={handleDataChange}
-        onReadStarted={handleFileReadStarted}
-        onReadFinished={handleFileReadFinished}
-        onClearClick={handleClear}
-        isLoading={isLoading}
-        validated={validated}
-        allowEditingUploadedText={false}
-        browseButtonText="Choose File"
-        data-testid="upload-file-field"
-        dropzoneProps={{
-          accept: { [YAML_MIME_TYPE]: YAML_EXTENSIONS },
-          onDropRejected: (rejections) => {
-            const error = rejections[0]?.errors?.[0] ?? {};
-            setFileUploadHelperText(
-              error.code === DropzoneErrorCode.FileInvalidType
-                ? 'Invalid file. Only YAML files are allowed.'
-                : error.message,
-            );
-          },
-        }}
-      >
-        {fileUploadHelperText && (
-          <FileUploadHelperText>
-            <HelperText>
-              <HelperTextItem id="helper-text-example-helpText" variant="error">
-                {fileUploadHelperText}
-              </HelperTextItem>
-            </HelperText>
-          </FileUploadHelperText>
-        )}
-      </FileUpload>
-    </Content>
+    <FileUpload
+      className="workspacekind-file-upload"
+      id="text-file-simple"
+      type="text"
+      value={value}
+      filename={filename}
+      filenamePlaceholder="Drag and drop a YAML file here or upload one"
+      onFileInputChange={handleFileInputChange}
+      onDataChange={handleDataChange}
+      onReadStarted={handleFileReadStarted}
+      onReadFinished={handleFileReadFinished}
+      onClearClick={handleClear}
+      isLoading={isLoading}
+      validated={validated}
+      allowEditingUploadedText={false}
+      browseButtonText="Choose File"
+      data-testid="upload-file-field"
+      dropzoneProps={{
+        accept: { [YAML_MIME_TYPE]: YAML_EXTENSIONS },
+        onDropRejected: (rejections) => {
+          const error = rejections[0]?.errors?.[0] ?? {};
+          setFileUploadHelperText(
+            error.code === DropzoneErrorCode.FileInvalidType
+              ? 'Invalid file. Only YAML files are allowed.'
+              : error.message,
+          );
+        },
+      }}
+    >
+      {fileUploadHelperText && (
+        <FileUploadHelperText>
+          <HelperText>
+            <HelperTextItem id="helper-text-example-helpText" variant="error">
+              {fileUploadHelperText}
+            </HelperTextItem>
+          </HelperText>
+        </FileUploadHelperText>
+      )}
+    </FileUpload>
   );
 };

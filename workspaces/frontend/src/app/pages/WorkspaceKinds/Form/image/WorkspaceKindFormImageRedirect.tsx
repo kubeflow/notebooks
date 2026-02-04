@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  FormGroup,
   FormFieldGroupExpandable,
   FormFieldGroupHeader,
 } from '@patternfly/react-core/dist/esm/components/Form';
@@ -64,7 +63,11 @@ export const WorkspaceKindFormImageRedirect: React.FC<WorkspaceKindFormImageRedi
           id="redirect-to-id"
         />
       </ThemeAwareFormGroupWrapper>
-      <FormGroup label="Redirect Message Level" isRequired fieldId="redirect-msg-lvl">
+      <ThemeAwareFormGroupWrapper
+        label="Redirect Message Level"
+        isRequired
+        fieldId="redirect-msg-lvl"
+      >
         <FormSelect
           value={redirect.message?.level || ''}
           onChange={(_, val) =>
@@ -89,7 +92,7 @@ export const WorkspaceKindFormImageRedirect: React.FC<WorkspaceKindFormImageRedi
             />
           ))}
         </FormSelect>{' '}
-      </FormGroup>
+      </ThemeAwareFormGroupWrapper>
       <ThemeAwareFormGroupWrapper label="Text" isRequired fieldId="redirect-message-text">
         <TextInput
           name="redirect-message-text"
