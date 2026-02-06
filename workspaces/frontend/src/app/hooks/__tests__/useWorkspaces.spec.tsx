@@ -1,6 +1,7 @@
 import { renderHook } from '~/__tests__/unit/testUtils/hooks';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { useWorkspacesByKind, useWorkspacesByNamespace } from '~/app/hooks/useWorkspaces';
+import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 import { NotebookApis } from '~/shared/api/notebookApi';
 import {
   buildMockImageConfig,
@@ -16,19 +17,14 @@ import {
 jest.mock('~/app/hooks/useNotebookAPI', () => ({
   useNotebookAPI: jest.fn(),
 }));
-
-// Mock the namespace context for this test file only
-const mockNamespaceContext = {
-  selectedNamespace: 'test-namespace',
-  namespacesLoaded: true,
-};
-
-jest.mock('~/app/context/NamespaceContextProvider', () => ({
-  useNamespaceContext: () => mockNamespaceContext,
-  NamespaceContextProvider: ({ children }: { children: React.ReactNode }) => children,
+jest.mock('~/app/hooks/useNamespaceSelectorWrapper', () => ({
+  useNamespaceSelectorWrapper: jest.fn(),
 }));
 
 const mockUseNotebookAPI = useNotebookAPI as jest.MockedFunction<typeof useNotebookAPI>;
+const mockUseNamespaceSelectorWrapper = useNamespaceSelectorWrapper as jest.MockedFunction<
+  typeof useNamespaceSelectorWrapper
+>;
 
 describe('useWorkspaces', () => {
   beforeEach(() => {
@@ -37,6 +33,10 @@ describe('useWorkspaces', () => {
 
   describe('useWorkspacesByNamespace', () => {
     it('returns error when API unavailable', async () => {
+      mockUseNamespaceSelectorWrapper.mockReturnValue({
+        namespacesLoaded: true,
+        selectedNamespace: 'ns',
+      } as ReturnType<typeof useNamespaceSelectorWrapper>);
       mockUseNotebookAPI.mockReturnValue({
         api: {} as NotebookApis,
         apiAvailable: false,
@@ -52,6 +52,10 @@ describe('useWorkspaces', () => {
     });
 
     it('fetches workspaces by namespace', async () => {
+      mockUseNamespaceSelectorWrapper.mockReturnValue({
+        namespacesLoaded: true,
+        selectedNamespace: 'ns',
+      } as ReturnType<typeof useNamespaceSelectorWrapper>);
       const mockWorkspace = buildMockWorkspace({});
       const mockWorkspaces = buildMockWorkspaceList({
         count: 10,

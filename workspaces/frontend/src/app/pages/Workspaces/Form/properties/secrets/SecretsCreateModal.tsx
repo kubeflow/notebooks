@@ -17,7 +17,7 @@ import { HelperText } from '@patternfly/react-core/dist/esm/components/HelperTex
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
 import { useThemeContext } from 'mod-arch-kubeflow';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
-import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
+import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import SecretKeyValuePairInput from './SecretKeyValuePairInput';
 
@@ -49,7 +49,7 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
   existingSecretNames = [],
 }) => {
   const { api } = useNotebookAPI();
-  const { selectedNamespace } = useNamespaceContext();
+  const { selectedNamespace } = useNamespaceSelectorWrapper();
 
   const [secretName, setSecretName] = useState('');
   const [keyValuePairs, setKeyValuePairs] = useState<SecretKeyValuePair[]>([EMPTY_KEY_VALUE_PAIR]);

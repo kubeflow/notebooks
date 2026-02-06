@@ -20,7 +20,7 @@ import {
 } from '@patternfly/react-core/dist/esm/components/Drawer';
 import { Title } from '@patternfly/react-core/dist/esm/components/Title';
 import { useNotification } from 'mod-arch-core';
-import useGenericObjectState from '~/app/hooks/useGenericObjectState';
+import useGenericObjectState from 'mod-arch-core/dist/utilities/useGenericObjectState';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspaceFormImageSelection } from '~/app/pages/Workspaces/Form/image/WorkspaceFormImageSelection';
 import { WorkspaceFormKindSelection } from '~/app/pages/Workspaces/Form/kind/WorkspaceFormKindSelection';

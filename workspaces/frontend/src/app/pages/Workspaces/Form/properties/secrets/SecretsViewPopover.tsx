@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Popover } from '@patternfly/react-core/dist/esm/components/Popover';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { InfoCircleIcon } from '@patternfly/react-icons/dist/esm/icons/info-circle-icon';
-import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
+import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { SecretsSecretUpdate } from '~/generated/data-contracts';
 
@@ -11,7 +11,7 @@ export interface SecretsViewPopoverProps {
 }
 export const SecretsViewPopover: React.FC<SecretsViewPopoverProps> = ({ secretName }) => {
   const { api } = useNotebookAPI();
-  const { selectedNamespace } = useNamespaceContext();
+  const { selectedNamespace } = useNamespaceSelectorWrapper();
   const [secret, setSecret] = useState<SecretsSecretUpdate | null>(null);
   useEffect(() => {
     const fetchSecret = async () => {
