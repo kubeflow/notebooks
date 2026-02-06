@@ -7,8 +7,8 @@ import {
   buildMockNamespace,
   buildMockOptionInfo,
   buildMockWorkspace,
+  buildMockWorkspaceCreate,
   buildMockWorkspaceKind,
-  buildMockWorkspaceKindInfo,
 } from '~/shared/mock/mockBuilder';
 import { navBar } from '~/__tests__/cypress/cypress/pages/components/navBar';
 import type {
@@ -169,10 +169,9 @@ describe('Create workspace', () => {
         'POST /api/:apiVersion/workspaces/:namespace',
         { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
         mockModArchResponse(
-          buildMockWorkspace({
+          buildMockWorkspaceCreate({
             name: workspaceName,
-            namespace: mockNamespace.name,
-            workspaceKind: buildMockWorkspaceKindInfo({}),
+            kind: mockWorkspaceKind.name,
           }),
         ),
       ).as('createWorkspace');
