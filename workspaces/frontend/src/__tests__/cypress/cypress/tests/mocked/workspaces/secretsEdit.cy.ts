@@ -50,7 +50,6 @@ describe('Edit Secret Modal', () => {
 
   const mockSecretContents = {
     'test-secret': {
-      name: 'test-secret',
       type: 'Opaque',
       immutable: false,
       contents: {
@@ -59,7 +58,6 @@ describe('Edit Secret Modal', () => {
       },
     },
     'immutable-secret': {
-      name: 'immutable-secret',
       type: 'Opaque',
       immutable: true,
       contents: {
@@ -281,7 +279,6 @@ describe('Edit Secret Modal', () => {
       },
       {
         data: {
-          name: 'no-update-secret',
           type: 'Opaque',
           immutable: false,
           contents: { key: { base64: btoa('value') } },

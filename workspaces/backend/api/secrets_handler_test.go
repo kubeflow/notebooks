@@ -318,6 +318,7 @@ var _ = Describe("Secrets Handler", func() {
 		It("should return 200 for update secret (mock implementation)", func() {
 			By("creating the HTTP request body")
 			updateReq := models.NewSecretUpdate(
+				"database-credentials",
 				"Opaque",
 				false,
 				models.SecretData{
@@ -354,6 +355,7 @@ var _ = Describe("Secrets Handler", func() {
 		It("should return 404 for update non-existent secret", func() {
 			By("creating the HTTP request body")
 			updateReq := models.NewSecretUpdate(
+				"non-existent-secret",
 				"Opaque",
 				false,
 				models.SecretData{
@@ -366,7 +368,7 @@ var _ = Describe("Secrets Handler", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("creating the HTTP request")
-			req, err := http.NewRequest(http.MethodPut, "/api/v1/secrets/"+namespaceName+"/non-existent", bytes.NewBuffer(reqBody))
+			req, err := http.NewRequest(http.MethodPut, "/api/v1/secrets/"+namespaceName+"/non-existent-secret", bytes.NewBuffer(reqBody))
 			Expect(err).NotTo(HaveOccurred())
 			req.Header.Set("Content-Type", "application/json")
 
@@ -376,7 +378,7 @@ var _ = Describe("Secrets Handler", func() {
 			By("executing UpdateSecretHandler")
 			ps := httprouter.Params{
 				{Key: NamespacePathParam, Value: namespaceName},
-				{Key: ResourceNamePathParam, Value: "non-existent"},
+				{Key: ResourceNamePathParam, Value: "non-existent-secret"},
 			}
 			rr := httptest.NewRecorder()
 			a.UpdateSecretHandler(rr, req, ps)

@@ -310,7 +310,13 @@ func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	// give the request data a clear name
+	// if body includes name, it must match the path (secret name is immutable)
+	if bodyEnvelope.Data.Name != "" && bodyEnvelope.Data.Name != secretName {
+		valErrs := field.ErrorList{field.Invalid(dataPath.Child("name"), bodyEnvelope.Data.Name, "must match the secret name in the URL path")}
+		a.failedValidationResponse(w, r, errMsgRequestBodyInvalid, valErrs, nil)
+		return
+	}
+
 	secretUpdate := bodyEnvelope.Data
 
 	secret, err := a.repositories.Secret.UpdateSecret(r.Context(), secretUpdate, namespace, secretName)
