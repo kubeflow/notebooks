@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { FetchState, FetchStateCallbackPromise, useFetchState, NotReadyError } from 'mod-arch-core';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
-import { useNamespaceContext } from '~/app/context/NamespaceContextProvider';
+import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 
 export interface SecretKeyValuePair {
   key: string;
@@ -18,7 +18,7 @@ const useSecretContents = ({
   secretName,
 }: UseSecretContentsOptions): FetchState<SecretKeyValuePair[]> => {
   const { api, apiAvailable } = useNotebookAPI();
-  const { selectedNamespace } = useNamespaceContext();
+  const { selectedNamespace } = useNamespaceSelectorWrapper();
 
   const call = useCallback<FetchStateCallbackPromise<SecretKeyValuePair[]>>(async () => {
     if (!apiAvailable) {
