@@ -1605,6 +1605,7 @@
             "required": [
                 "contents",
                 "immutable",
+                "name",
                 "type"
             ],
             "properties": {
@@ -1613,6 +1614,9 @@
                 },
                 "immutable": {
                     "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
                 },
                 "type": {
                     "type": "string"

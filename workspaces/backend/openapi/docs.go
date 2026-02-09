@@ -1607,6 +1607,7 @@ const docTemplate = `{
             "required": [
                 "contents",
                 "immutable",
+                "name",
                 "type"
             ],
             "properties": {
@@ -1615,6 +1616,9 @@ const docTemplate = `{
                 },
                 "immutable": {
                     "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
                 },
                 "type": {
                     "type": "string"
