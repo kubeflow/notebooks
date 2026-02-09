@@ -117,6 +117,7 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
               )}
               <ExpandableSection
                 toggleText="Secrets"
+                data-testid="secrets-expandable-section"
                 onToggle={() => setIsSecretsExpanded((prev) => !prev)}
                 isExpanded={isSecretsExpanded}
                 isIndented
