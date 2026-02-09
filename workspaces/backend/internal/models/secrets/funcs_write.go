@@ -50,7 +50,6 @@ func NewSecretUpdateModelFromSecret(secret *corev1.Secret) SecretUpdate {
 	contents := secretDataFromKubernetesSecret(secret.Data)
 
 	return SecretUpdate{
-		Name: secret.Name,
 		secretBase: secretBase{
 			Type:      string(secret.Type),
 			Immutable: ptr.Deref(secret.Immutable, false),

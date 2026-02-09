@@ -43,9 +43,8 @@ type SecretCreate struct {
 	secretBase
 }
 
-// SecretUpdate represents the secret payload for GET response and PUT body. Name is returned by GET; for PUT it must match the path.
+// SecretUpdate represents the request body for updating a secret
 type SecretUpdate struct {
-	Name string `json:"name"`
 	secretBase
 }
 
@@ -66,9 +65,8 @@ func NewSecretCreate(name, secretType string, immutable bool, contents SecretDat
 // NewSecretUpdate creates a new SecretUpdate with the specified fields.
 // TODO: remove this function, as its not used in real code, only tests
 // also because we should not need the "secretBase" field in the constructor
-func NewSecretUpdate(name, secretType string, immutable bool, contents SecretData) SecretUpdate {
+func NewSecretUpdate(secretType string, immutable bool, contents SecretData) SecretUpdate {
 	return SecretUpdate{
-		Name: name,
 		secretBase: secretBase{
 			Type:      secretType,
 			Immutable: immutable,
