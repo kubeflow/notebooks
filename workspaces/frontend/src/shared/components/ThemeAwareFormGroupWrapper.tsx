@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { FormGroup } from '@patternfly/react-core/dist/esm/components/Form';
-import { useThemeContext } from 'mod-arch-kubeflow';
+import { useThemeContext } from '~/app/hooks/useThemeContext';
 import FormFieldset from '~/app/components/FormFieldset';
 
 // Props required by this wrapper component

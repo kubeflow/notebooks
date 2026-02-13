@@ -13,7 +13,7 @@ import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack'
 import { FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { default as ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
-import { useThemeContext } from 'mod-arch-kubeflow';
+import { useThemeContext } from '~/app/hooks/useThemeContext';
 import { ActionButton } from '~/shared/components/ActionButton';
 import { ErrorAlert } from '~/shared/components/ErrorAlert';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';

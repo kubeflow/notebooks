@@ -8,7 +8,8 @@ import {
   NavList,
 } from '@patternfly/react-core/dist/esm/components/Nav';
 import { PageSidebar, PageSidebarBody } from '@patternfly/react-core/dist/esm/components/Page';
-import { useThemeContext, images as kubeflowImages } from 'mod-arch-kubeflow';
+import { images as kubeflowImages } from 'mod-arch-kubeflow';
+import { useThemeContext } from '~/app/hooks/useThemeContext';
 import { isNavDataGroup, NavDataHref, NavDataGroup } from '~/app/standalone/types';
 import { useTypedLocation } from '~/app/routerHelper';
 import { useNavData } from '~/app/AppRoutes';
