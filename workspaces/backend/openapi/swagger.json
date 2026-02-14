@@ -83,6 +83,218 @@
                 }
             }
         },
+        "/persistentvolumeclaims/{namespace}": {
+            "get": {
+                "description": "Provides a list of all persistent volume claims with comprehensive metadata in the specified namespace",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "persistentvolumeclaims"
+                ],
+                "summary": "Returns a list of all PVCs in a namespace",
+                "operationId": "listPVCs",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "x-example": "my-namespace",
+                        "description": "Namespace name",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful PVCs response",
+                        "schema": {
+                            "$ref": "#/definitions/api.PVCListEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Creates a new persistent volume claim in the specified namespace",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "persistentvolumeclaims"
+                ],
+                "summary": "Creates a new PVC",
+                "operationId": "createPVC",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Namespace name",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "PVC creation request",
+                        "name": "pvc",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.PVCCreateEnvelope"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "PVC created successfully",
+                        "schema": {
+                            "$ref": "#/definitions/api.PVCCreateEnvelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "409": {
+                        "description": "PVC already exists",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large. The request body is too large.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type. Content-Type header is not correct.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/persistentvolumeclaims/{namespace}/{name}": {
+            "delete": {
+                "description": "Deletes a persistent volume claim from the specified namespace",
+                "tags": [
+                    "persistentvolumeclaims"
+                ],
+                "summary": "Deletes a PVC",
+                "operationId": "deletePVC",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "x-example": "my-namespace",
+                        "description": "Namespace name",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "x-example": "my-pvc",
+                        "description": "PVC name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "404": {
+                        "description": "PVC not found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
         "/secrets/{namespace}": {
             "get": {
                 "description": "Provides a list of all secrets that the user has access to in the specified namespace",
@@ -434,6 +646,45 @@
                     },
                     "404": {
                         "description": "Secret not found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/storageclasses": {
+            "get": {
+                "description": "Provides a list of storage classes available for volume provisioning",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "storageclasses"
+                ],
+                "summary": "Returns a list of available storage classes",
+                "operationId": "listStorageClasses",
+                "responses": {
+                    "200": {
+                        "description": "Successful storage classes response",
+                        "schema": {
+                            "$ref": "#/definitions/api.StorageClassListEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }
@@ -1276,6 +1527,31 @@
                 }
             }
         },
+        "api.PVCCreateEnvelope": {
+            "type": "object",
+            "required": [
+                "data"
+            ],
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/pvcs.PVCCreate"
+                }
+            }
+        },
+        "api.PVCListEnvelope": {
+            "type": "object",
+            "required": [
+                "data"
+            ],
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/pvcs.PVCListItem"
+                    }
+                }
+            }
+        },
         "api.SecretCreateEnvelope": {
             "type": "object",
             "required": [
@@ -1308,6 +1584,20 @@
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/secrets.SecretListItem"
+                    }
+                }
+            }
+        },
+        "api.StorageClassListEnvelope": {
+            "type": "object",
+            "required": [
+                "data"
+            ],
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/storageclasses.StorageClassListItem"
                     }
                 }
             }
@@ -1515,6 +1805,223 @@
                 }
             }
         },
+        "pvcs.PVCCreate": {
+            "type": "object",
+            "required": [
+                "accessModes",
+                "name",
+                "requests",
+                "storageClassName"
+            ],
+            "properties": {
+                "accessModes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "requests": {
+                    "$ref": "#/definitions/pvcs.StorageRequests"
+                },
+                "storageClassName": {
+                    "type": "string"
+                }
+            }
+        },
+        "pvcs.PVCListItem": {
+            "type": "object",
+            "required": [
+                "audit",
+                "canMount",
+                "canUpdate",
+                "name",
+                "pods",
+                "pvcSpec",
+                "workspaces"
+            ],
+            "properties": {
+                "audit": {
+                    "$ref": "#/definitions/common.Audit"
+                },
+                "canMount": {
+                    "type": "boolean"
+                },
+                "canUpdate": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "pods": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/pvcs.PVCPod"
+                    }
+                },
+                "pv": {
+                    "$ref": "#/definitions/pvcs.PVInfo"
+                },
+                "pvcSpec": {
+                    "$ref": "#/definitions/pvcs.PVCSpec"
+                },
+                "workspaces": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/pvcs.PVCWorkspace"
+                    }
+                }
+            }
+        },
+        "pvcs.PVCPod": {
+            "type": "object",
+            "required": [
+                "name",
+                "phase"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "node": {
+                    "$ref": "#/definitions/pvcs.PodNode"
+                },
+                "phase": {
+                    "type": "string"
+                }
+            }
+        },
+        "pvcs.PVCSpec": {
+            "type": "object",
+            "required": [
+                "accessModes",
+                "requests",
+                "storageClassName",
+                "volumeMode"
+            ],
+            "properties": {
+                "accessModes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "requests": {
+                    "$ref": "#/definitions/pvcs.StorageRequests"
+                },
+                "storageClassName": {
+                    "type": "string"
+                },
+                "volumeMode": {
+                    "type": "string"
+                }
+            }
+        },
+        "pvcs.PVCWorkspace": {
+            "type": "object",
+            "required": [
+                "name",
+                "state",
+                "stateMessage"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "podTemplatePod": {
+                    "$ref": "#/definitions/pvcs.PodTemplatePod"
+                },
+                "state": {
+                    "type": "string"
+                },
+                "stateMessage": {
+                    "type": "string"
+                }
+            }
+        },
+        "pvcs.PVInfo": {
+            "type": "object",
+            "required": [
+                "accessModes",
+                "name",
+                "persistentVolumeReclaimPolicy",
+                "volumeMode"
+            ],
+            "properties": {
+                "accessModes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "persistentVolumeReclaimPolicy": {
+                    "type": "string"
+                },
+                "storageClass": {
+                    "$ref": "#/definitions/pvcs.PVStorageClass"
+                },
+                "volumeMode": {
+                    "type": "string"
+                }
+            }
+        },
+        "pvcs.PVStorageClass": {
+            "type": "object",
+            "required": [
+                "description",
+                "displayName",
+                "name"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "displayName": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "pvcs.PodNode": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "pvcs.PodTemplatePod": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "pvcs.StorageRequests": {
+            "type": "object",
+            "required": [
+                "storage"
+            ],
+            "properties": {
+                "storage": {
+                    "type": "string"
+                }
+            }
+        },
         "secrets.SecretCreate": {
             "type": "object",
             "required": [
@@ -1623,6 +2130,29 @@
             "type": "object",
             "properties": {
                 "base64": {
+                    "type": "string"
+                }
+            }
+        },
+        "storageclasses.StorageClassListItem": {
+            "type": "object",
+            "required": [
+                "canUse",
+                "description",
+                "displayName",
+                "name"
+            ],
+            "properties": {
+                "canUse": {
+                    "type": "boolean"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "displayName": {
+                    "type": "string"
+                },
+                "name": {
                     "type": "string"
                 }
             }

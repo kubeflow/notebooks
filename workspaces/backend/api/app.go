@@ -64,6 +64,13 @@ const (
 	SecretsByNamespacePath = PathPrefix + "/secrets/:" + NamespacePathParam
 	SecretsByNamePath      = SecretsByNamespacePath + "/:" + ResourceNamePathParam
 
+	// storageclasses
+	AllStorageClassesPath = PathPrefix + "/storageclasses"
+
+	// persistentvolumeclaims
+	PVCsByNamespacePath = PathPrefix + "/persistentvolumeclaims/:" + NamespacePathParam
+	PVCsByNamePath      = PVCsByNamespacePath + "/:" + ResourceNamePathParam
+
 	// swagger
 	SwaggerPath    = PathPrefix + "/swagger/*any"
 	SwaggerDocPath = PathPrefix + "/swagger/doc.json"
@@ -136,6 +143,14 @@ func (a *App) Routes() http.Handler {
 	router.GET(AllWorkspaceKindsPath, a.GetWorkspaceKindsHandler)
 	router.GET(WorkspaceKindsByNamePath, a.GetWorkspaceKindHandler)
 	router.POST(AllWorkspaceKindsPath, a.CreateWorkspaceKindHandler)
+
+	// storageclasses
+	router.GET(AllStorageClassesPath, a.GetStorageClassesHandler)
+
+	// persistentvolumeclaims
+	router.GET(PVCsByNamespacePath, a.GetPVCsByNamespaceHandler)
+	router.POST(PVCsByNamespacePath, a.CreatePVCHandler)
+	router.DELETE(PVCsByNamePath, a.DeletePVCHandler)
 
 	// swagger
 	router.GET(SwaggerPath, a.GetSwaggerHandler)
