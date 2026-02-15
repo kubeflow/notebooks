@@ -57,17 +57,17 @@ spec:
     options:
       imageConfig:
         spawner:
-          default: "codeserver_190"
+          default: "codeserver_192"
         values:
-          - id: "codeserver_190"
+          - id: "codeserver_192"
             spawner:
-              displayName: "codeserver:v1.9.0"
+              displayName: "codeserver:v1.9.2"
               description: "code-server in the browser"
               labels:
                 - key: "codeserver_version"
-                  value: "v1.9.0"
+                  value: "v1.9.2"
             spec:
-              image: "ghcr.io/kubeflow/kubeflow/notebook-servers/codeserver:v1.9.0"
+              image: "ghcr.io/kubeflow/kubeflow/notebook-servers/codeserver:v1.9.2"
               imagePullPolicy: "IfNotPresent"
               ports:
                 - id: "codeserver"
