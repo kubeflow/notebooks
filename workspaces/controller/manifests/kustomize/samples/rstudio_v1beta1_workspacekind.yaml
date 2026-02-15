@@ -38,7 +38,8 @@ spec:
         httpProxy:
           removePathPrefix: false
           requestHeaders:
-            set: { "X-RStudio-Root-Path": "{{ .PathPrefix }}" }
+            set:
+              "X-RStudio-Root-Path": "{{ .PathPrefix }}"
     extraEnv: []
     extraVolumeMounts:
       - name: "dshm"
