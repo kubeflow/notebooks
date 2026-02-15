@@ -77,10 +77,24 @@ spec:
         spawner:
           default: "small_cpu"
         values:
+          - id: "tiny_cpu"
+            spawner:
+              displayName: "Tiny CPU"
+              description: "Pod with 0.1 CPU, 128 Mb RAM"
+              labels:
+                - key: "cpu"
+                  value: "100m"
+                - key: "memory"
+                  value: "128Mi"
+            spec:
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
           - id: "small_cpu"
             spawner:
               displayName: "Small CPU"
-              description: "1 CPU, 2 GB RAM"
+              description: "Pod with 1 CPU, 2 GB RAM"
               labels:
                 - key: "cpu"
                   value: "1000m"
@@ -91,3 +105,25 @@ spec:
                 requests:
                   cpu: 1000m
                   memory: 2Gi
+          - id: "big_gpu"
+            spawner:
+              displayName: "Big GPU"
+              description: "Pod with 4 CPU, 16 GB RAM, and 1 GPU"
+              labels:
+                - key: "cpu"
+                  value: "4000m"
+                - key: "memory"
+                  value: "16Gi"
+                - key: "gpu"
+                  value: "1"
+            spec:
+              resources:
+                requests:
+                  cpu: 4000m
+                  memory: 16Gi
+                limits:
+                  nvidia.com/gpu: 1
+              tolerations:
+                - key: "nvidia.com/gpu"
+                  operator: "Exists"
+                  effect: "NoSchedule"
