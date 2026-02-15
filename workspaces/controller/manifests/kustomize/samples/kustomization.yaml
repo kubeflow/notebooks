@@ -8,3 +8,5 @@ resources:
 - ./common
 - jupyterlab_v1beta1_workspacekind.yaml
 - jupyterlab_v1beta1_workspace.yaml
+- rstudio_v1beta1_workspacekind.yaml
+- codeserver_v1beta1_workspacekind.yaml
