@@ -17,6 +17,10 @@ metadata:
   labels:
     rbac.authorization.kubeflow.org/aggregate-to-kubeflow-edit: "true"
     rbac.authorization.kubeflow.org/aggregate-to-kubeflow-workspaces-admin: "true"
+aggregationRule:
+  clusterRoleSelectors:
+  - matchLabels:
+      rbac.authorization.kubeflow.org/aggregate-to-kubeflow-workspaces-edit: "true"
 rules:
 - apiGroups:
   - kubeflow.org
@@ -39,6 +43,7 @@ metadata:
   name: kubeflow-workspaces-view
   labels:
     rbac.authorization.kubeflow.org/aggregate-to-kubeflow-view: "true"
+    rbac.authorization.kubeflow.org/aggregate-to-kubeflow-workspaces-edit: "true"
 rules:
 - apiGroups:
   - kubeflow.org
