@@ -254,20 +254,97 @@ func (r *WorkspaceRepository) UpdateWorkspace(ctx context.Context, workspaceUpda
 		return nil, ErrWorkspaceRevisionConflict
 	}
 
-	// TODO: validate the requested updates (e.g. validate new home PVC is mountable, etc.)
-	// ...
+	// NOTE: currently all Workspaces are "podTemplate"-type, if other types are
+	//       introduced in the future, this logic will need to be updated.
 
-	// TODO: update workspace fields from workspaceUpdate model
-	// ...
+	var allValErrs field.ErrorList
+
+	// unpack and validate home volume
+	homeVolumeName := workspaceUpdate.PodTemplate.Volumes.Home
+	homeVolumeNameField := field.NewPath("podTemplate", "volumes", "home")
+	if homeVolumeName != nil {
+		valErrs, err := helper.ValidateKubernetesPVCIsMountable(ctx, r.client, homeVolumeNameField, namespace, *homeVolumeName)
+		if err != nil {
+			return nil, err
+		}
+		allValErrs = append(allValErrs, valErrs...)
+	}
+
+	// unpack and validate data volume mounts
+	dataVolumeMounts := make([]kubefloworgv1beta1.PodVolumeMount, len(workspaceUpdate.PodTemplate.Volumes.Data))
+	for i, dataVolume := range workspaceUpdate.PodTemplate.Volumes.Data {
+		dataVolumeName := dataVolume.PVCName
+		dataVolumeNameField := field.NewPath("podTemplate", "volumes", "data").Index(i).Child("pvcName")
+		valErrs, err := helper.ValidateKubernetesPVCIsMountable(ctx, r.client, dataVolumeNameField, namespace, dataVolumeName)
+		if err != nil {
+			return nil, err
+		}
+		allValErrs = append(allValErrs, valErrs...)
+		dataVolumeMounts[i] = kubefloworgv1beta1.PodVolumeMount{
+			PVCName:   dataVolumeName,
+			MountPath: dataVolume.MountPath,
+			ReadOnly:  ptr.To(dataVolume.ReadOnly),
+		}
+	}
+
+	// unpack and validate secret mounts
+	secretMounts := make([]kubefloworgv1beta1.PodSecretMount, len(workspaceUpdate.PodTemplate.Volumes.Secrets))
+	for i, secret := range workspaceUpdate.PodTemplate.Volumes.Secrets {
+		secretName := secret.SecretName
+		secretNameField := field.NewPath("podTemplate", "volumes", "secrets").Index(i).Child("secretName")
+		valErrs, err := helper.ValidateKubernetesSecretIsMountable(ctx, r.client, secretNameField, namespace, secretName)
+		if err != nil {
+			return nil, err
+		}
+		allValErrs = append(allValErrs, valErrs...)
+		secretMounts[i] = kubefloworgv1beta1.PodSecretMount{
+			SecretName:  secretName,
+			MountPath:   secret.MountPath,
+			DefaultMode: secret.DefaultMode,
+		}
+	}
+
+	// if there are any validation errors at this point, return an aggregated error to the caller
+	if len(allValErrs) > 0 {
+		return nil, helper.NewInternalValidationError(allValErrs)
+	}
+
+	// apply model fields to workspace spec
+	workspace.Spec.Paused = ptr.To(workspaceUpdate.Paused)
+	workspace.Spec.PodTemplate = kubefloworgv1beta1.WorkspacePodTemplate{
+		PodMetadata: &kubefloworgv1beta1.WorkspacePodMetadata{
+			Labels:      workspaceUpdate.PodTemplate.PodMetadata.Labels,
+			Annotations: workspaceUpdate.PodTemplate.PodMetadata.Annotations,
+		},
+		Volumes: kubefloworgv1beta1.WorkspacePodVolumes{
+			Home:    workspaceUpdate.PodTemplate.Volumes.Home,
+			Data:    dataVolumeMounts,
+			Secrets: secretMounts,
+		},
+		Options: kubefloworgv1beta1.WorkspacePodOptions{
+			ImageConfig: workspaceUpdate.PodTemplate.Options.ImageConfig,
+			PodConfig:   workspaceUpdate.PodTemplate.Options.PodConfig,
+		},
+	}
 
 	// set audit annotations
 	modelsCommon.UpdateObjectMetaForUpdate(&workspace.ObjectMeta, actor, now)
 
-	// TODO: update the workspace in K8s
 	// TODO: if the update fails due to a kubernetes conflict, this implies our cache is stale.
-	//       we should retry the entire update operation a few times (including recalculating clusterRevision)
-	//       before returning a 500 error to the caller (DO NOT return a 409, as it's not the caller's fault)
-	// ...
+	//       we should wrap this operation in retry.RetryOnConflict to retry the entire update
+	//       (including re-fetching and recalculating clusterRevision) before returning a 500
+	//       error to the caller (DO NOT return a 409, as it's not the caller's fault)
+	if err := r.client.Update(ctx, workspace); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, ErrWorkspaceNotFound
+		}
+		if apierrors.IsInvalid(err) {
+			// NOTE: we don't wrap this error so we can unpack it in the caller
+			//       and extract the validation errors returned by the Kubernetes API server
+			return nil, err
+		}
+		return nil, fmt.Errorf("failed to update workspace: %w", err)
+	}
 
 	workspaceUpdateModel := models.NewWorkspaceUpdateModelFromWorkspace(workspace)
 	return workspaceUpdateModel, nil
