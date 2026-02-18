@@ -34,7 +34,7 @@ jobs:
         ref: refs/heads/${{ matrix.branch }}  # using explicit refs syntax due to requirements of upload-sarif action
 
     - name: Run Trivy vulnerability scanner in fs mode
-      uses: aquasecurity/trivy-action@0.33.1
+      uses: aquasecurity/trivy-action@0.34.0
       with:
         scan-type: 'fs'
         format: 'sarif'
