@@ -14,19 +14,27 @@ body,
 .pf-v6-c-page__main-section .pf-v6-c-page__main-body {
   height: 100%;
 }
-.pf-v6-c-page__main-body > .pf-v6-l-stack,
-.pf-v6-c-page__main-section.pf-m-fill > .pf-v6-l-stack {
+
+.pf-v6-c-page__main-body>.pf-v6-l-stack,
+.pf-v6-c-page__main-section.pf-m-fill>.pf-v6-l-stack {
   height: 100%;
   flex-grow: 1;
 }
+
 .pf-v6-c-file-upload {
   height: 100%;
   display: flex;
   flex-direction: column;
 }
+
 .pf-v6-c-file-upload__file-details {
   flex-grow: 1;
 }
+
 .pf-v6-c-file-upload__file-details .pf-v6-c-form-control {
   height: 100%;
+}
+
+.delete-secret-modal .pf-v6-c-modal-box__body {
+  padding: 2rem 2.5rem;
 }

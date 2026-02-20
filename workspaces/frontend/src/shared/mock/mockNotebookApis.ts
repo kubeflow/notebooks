@@ -13,12 +13,14 @@ import {
   mockWorkspaceUpdate,
 } from '~/shared/mock/mockNotebookServiceData';
 import { buildAxiosError, isInvalidWorkspace, isInvalidYaml } from '~/shared/mock/mockUtils';
-import { buildMockWorkspaceUpdateFromWorkspace } from './mockBuilder';
+import { buildMockSecret, buildMockWorkspaceUpdateFromWorkspace } from './mockBuilder';
 
 const delay = (ms: number) =>
   new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
+
+let secretsStore = [...mockSecretsList];
 
 export const mockNotebookApisImpl = (): NotebookApis => ({
   healthCheck: {
@@ -113,20 +115,43 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
   },
   secrets: {
     listSecrets: async () => ({
-      data: mockSecretsList,
+      data: secretsStore,
     }),
-    createSecret: async () => ({
-      data: mockSecretCreate,
-    }),
+    createSecret: async (_namespace, body) => {
+      const newSecret = buildMockSecret({
+        name: body.data.name,
+        type: body.data.type,
+        immutable: body.data.immutable,
+      });
+      secretsStore = [newSecret, ...secretsStore];
+      return {
+        data: {
+          name: body.data.name,
+          type: body.data.type,
+          immutable: body.data.immutable,
+          contents: body.data.contents,
+        },
+      };
+    },
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     getSecret: async (_, name) => ({
       data: name === 'secret-3' ? mockSecretCreate3 : mockSecretCreate,
     }),
-    updateSecret: async () => ({
-      data: mockSecretCreate,
-    }),
-    deleteSecret: async () => {
+    updateSecret: async (_namespace, name, body) => {
+      secretsStore = secretsStore.map((s) =>
+        s.name === name ? { ...s, type: body.type, immutable: body.immutable } : s,
+      );
+      return {
+        data: {
+          type: body.type,
+          immutable: body.immutable,
+          contents: body.contents,
+        },
+      };
+    },
+    deleteSecret: async (_namespace, name) => {
       await delay(1500);
+      secretsStore = secretsStore.filter((s) => s.name !== name);
     },
   },
 });

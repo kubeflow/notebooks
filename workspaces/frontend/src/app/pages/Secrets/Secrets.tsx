@@ -18,6 +18,7 @@ import {
   IActions,
 } from '@patternfly/react-table/dist/esm/components/Table';
 import { CubesIcon } from '@patternfly/react-icons/dist/esm/icons/cubes-icon';
+import { ExclamationTriangleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-triangle-icon';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import {
   Toolbar,
@@ -29,6 +30,7 @@ import { Spinner } from '@patternfly/react-core/dist/esm/components/Spinner';
 import {
   Modal,
   ModalHeader,
+  ModalBody,
   ModalFooter,
   ModalVariant,
 } from '@patternfly/react-core/dist/esm/components/Modal';
@@ -198,25 +200,65 @@ export const Secrets: React.FunctionComponent = () => {
         />
       )}
 
-      <Modal
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        variant={ModalVariant.small}
-      >
-        <ModalHeader title="Delete Secret?" />
-        <EmptyStateBody>
-          Are you sure you want to delete secret <b>{activeSecret?.name}</b>? This action cannot be
-          undone.
-        </EmptyStateBody>
-        <ModalFooter>
-          <Button key="delete" variant="danger" isLoading={deleteLoading} onClick={confirmDelete}>
-            Delete
-          </Button>
-          <Button key="cancel" variant="link" onClick={() => setIsDeleteModalOpen(false)}>
-            Cancel
-          </Button>
-        </ModalFooter>
-      </Modal>
+      {activeSecret && (
+        <Modal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          variant={ModalVariant.small}
+          className="delete-secret-modal"
+        >
+          <ModalHeader title="Delete Secret?" titleIconVariant="warning" />
+          <ModalBody>
+            <div style={{ marginBottom: 'var(--pf-v6-global--spacer--md)' }}>
+              Are you sure you want to delete secret <b>{activeSecret.name}</b>? This action cannot
+              be undone.
+            </div>
+            {activeSecret.mounts && activeSecret.mounts.length > 0 && (
+              <div
+                style={{
+                  marginTop: 'var(--pf-v6-global--spacer--md)',
+                  background: 'var(--pf-v5-global--danger-color--200)',
+                  padding: 'var(--pf-v6-global--spacer--md)',
+                  borderRadius: 'var(--pf-v5-global--BorderRadius--sm)',
+                  borderLeft: '4px solid var(--pf-v5-global--danger-color--100)',
+                }}
+              >
+                <p
+                  style={{
+                    color: 'var(--pf-v5-global--danger-color--100)',
+                    fontWeight: 'bold',
+                    marginBottom: 'var(--pf-v5-global--spacer--xs)',
+                  }}
+                >
+                  <ExclamationTriangleIcon /> This secret is in use!
+                </p>
+                <p style={{ fontSize: 'var(--pf-v5-global--FontSize--sm)' }}>
+                  It is currently mounted by the following workspaces:
+                </p>
+                <ul
+                  style={{
+                    fontSize: 'var(--pf-v5-global--FontSize--sm)',
+                    marginLeft: 'var(--pf-v5-global--spacer--md)',
+                    marginTop: 'var(--pf-v5-global--spacer--xs)',
+                  }}
+                >
+                  {activeSecret.mounts.map((m) => (
+                    <li key={m.name}>{m.name}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            <Button key="delete" variant="danger" isLoading={deleteLoading} onClick={confirmDelete}>
+              Delete
+            </Button>
+            <Button key="cancel" variant="link" onClick={() => setIsDeleteModalOpen(false)}>
+              Cancel
+            </Button>
+          </ModalFooter>
+        </Modal>
+      )}
     </PageSection>
   );
 };
