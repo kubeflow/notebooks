@@ -46,6 +46,7 @@ type WorkspaceKindSpec struct {
 	PodTemplate WorkspaceKindPodTemplate `json:"podTemplate"`
 }
 
+// +kubebuilder:validation:XValidation:message="deprecationMessage must be empty or at least 2 characters",rule="!has(self.deprecationMessage) || self.deprecationMessage == '' || size(self.deprecationMessage) >= 2"
 type WorkspaceKindSpawner struct {
 	// the display name of the WorkspaceKind
 	// +kubebuilder:validation:MinLength:=2
@@ -70,8 +71,8 @@ type WorkspaceKindSpawner struct {
 	Deprecated *bool `json:"deprecated,omitempty"`
 
 	// a message to show in Workspace Spawner UI when the WorkspaceKind is deprecated
+	// May be omitted or empty; when non-empty must be at least 2 characters (enforced by CEL on WorkspaceKindSpawner).
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:MinLength:=2
 	// +kubebuilder:validation:MaxLength:=256
 	// +kubebuilder:example:="This WorkspaceKind will be removed on 20XX-XX-XX, please use another WorkspaceKind."
 	DeprecationMessage *string `json:"deprecationMessage,omitempty"`
