@@ -4481,12 +4481,12 @@ spec:
                     description: if this WorkspaceKind is deprecated
                     type: boolean
                   deprecationMessage:
-                    description: a message to show in Workspace Spawner UI when the
-                      WorkspaceKind is deprecated
+                    description: |-
+                      a message to show in Workspace Spawner UI when the WorkspaceKind is deprecated
+                      May be omitted or empty; when non-empty must be at least 2 characters (enforced by CEL on WorkspaceKindSpawner).
                     example: This WorkspaceKind will be removed on 20XX-XX-XX, please
                       use another WorkspaceKind.
                     maxLength: 256
-                    minLength: 2
                     type: string
                   description:
                     description: the description of the WorkspaceKind
@@ -4561,6 +4561,10 @@ spec:
                 - icon
                 - logo
                 type: object
+                x-kubernetes-validations:
+                - message: deprecationMessage must be empty or at least 2 characters
+                  rule: '!has(self.deprecationMessage) || self.deprecationMessage
+                    == ” || size(self.deprecationMessage) >= 2'
             required:
             - podTemplate
             - spawner
