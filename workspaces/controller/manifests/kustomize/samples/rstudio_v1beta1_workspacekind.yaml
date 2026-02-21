@@ -10,9 +10,9 @@ spec:
     deprecated: false
     deprecationMessage: ""
     icon:
-      url: "https://www.rstudio.com/wp-content/uploads/2018/10/RStudio-Logo-Flat.png"
+      url: "https://comptoir-du-libre.org/img/files/Softwares/RStudio/avatar/RStudio_Logo.png"
     logo:
-      url: "https://www.rstudio.com/wp-content/uploads/2018/10/RStudio-Logo-Flat.png"
+      url: "https://rtask.thinkr.fr/wp-content/uploads/RStudio_Logo.png"
 
   podTemplate:
     podMetadata:
