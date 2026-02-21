@@ -1,4 +1,12 @@
-import * as React from 'react';
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+  createContext,
+  FC,
+  ReactNode,
+} from 'react';
 import { createTheme, ThemeProvider as MUIThemeProvider } from '@mui/material/styles';
 import { Theme } from 'mod-arch-kubeflow';
 import '~/style/MUI-theme.scss';
@@ -9,24 +17,26 @@ export type ThemeContextProps = {
   toggleDarkMode: () => void;
 };
 
-export const ThemeContext = React.createContext<ThemeContextProps>({
+export const ThemeContext = createContext<ThemeContextProps>({
   isMUITheme: false,
   isDarkMode: false,
-  toggleDarkMode: () => {},
+  toggleDarkMode: () => {
+    throw new Error('toggleDarkMode must be used within ThemeProvider');
+  },
 });
 
 const DARK_MODE_STORAGE_KEY = 'kubeflow-dark-mode';
 
-export const ThemeProvider: React.FC<{ theme?: Theme; children: React.ReactNode }> = ({
+export const ThemeProvider: FC<{ theme?: Theme; children: ReactNode }> = ({
   theme = Theme.Patternfly,
   children,
 }) => {
-  const [isDarkMode, setIsDarkMode] = React.useState<boolean>(() => {
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     const saved = localStorage.getItem(DARK_MODE_STORAGE_KEY);
     return saved === 'true';
   });
 
-  const toggleDarkMode = React.useCallback(() => {
+  const toggleDarkMode = useCallback(() => {
     setIsDarkMode((prev) => {
       const newVal = !prev;
       localStorage.setItem(DARK_MODE_STORAGE_KEY, String(newVal));
@@ -34,7 +44,7 @@ export const ThemeProvider: React.FC<{ theme?: Theme; children: React.ReactNode 
     });
   }, []);
 
-  const muiTheme = React.useMemo(
+  const muiTheme = useMemo(
     () =>
       createTheme({
         cssVariables: true,
@@ -45,7 +55,7 @@ export const ThemeProvider: React.FC<{ theme?: Theme; children: React.ReactNode 
     [isDarkMode],
   );
 
-  React.useEffect(() => {
+  useEffect(() => {
     const html = document.documentElement;
 
     if (theme === Theme.MUI) {
@@ -61,7 +71,7 @@ export const ThemeProvider: React.FC<{ theme?: Theme; children: React.ReactNode 
     }
   }, [theme, isDarkMode]);
 
-  const value = React.useMemo(
+  const value = useMemo(
     () => ({
       isMUITheme: theme === Theme.MUI,
       isDarkMode,

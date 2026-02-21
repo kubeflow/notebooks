@@ -29,9 +29,7 @@
   --pf-t--global--background--color--floating--default: var(--mui-palette-background-paper);
   --pf-t--global--background--color--action--plain--hover: var(--mui-palette-action-hover);
   --pf-t--global--background--color--control--default: var(--mui-palette-background-paper);
-  --pf-t--global--background--color--disabled--default: var(
-    --mui-palette-action-disabledBackground
-  );
+  --pf-t--global--background--color--disabled--default: var(--mui-palette-action-disabledBackground);
 
   // Icon Colors
   --pf-t--global--icon--color--regular: var(--mui-palette-action-active);
@@ -190,9 +188,7 @@
   --mui-menu__item--PaddingInlineStart: 16px;
   --mui-menu__item--PaddingInlineEnd: 16px;
   --mui-menu__item--FontSize: 1rem;
-  --mui-menu__item--selected--BackgroundColor: rgb(
-    var(--mui-palette-primary-mainChannel) / calc(var(--mui-palette-action-selectedOpacity, 0.08))
-  );
+  --mui-menu__item--selected--BackgroundColor: rgb(var(--mui-palette-primary-mainChannel) / calc(var(--mui-palette-action-selectedOpacity, 0.08)));
 
   // Menu toggle
   --mui-menu-toggle__toggle-icon--MinHeight: auto;
@@ -295,9 +291,7 @@
 }
 
 .mui-theme .pf-v6-c-alert {
-  --pf-v6-c-alert--m-warning__title--Color: var(
-    --pf-t--global--text--color--status--warning--default
-  );
+  --pf-v6-c-alert--m-warning__title--Color: var(--pf-t--global--text--color--status--warning--default);
   --pf-v6-c-alert__icon--MarginInlineEnd: var(--mui-alert__icon--MarginInlineEnd);
   --pf-v6-c-alert__title--FontWeight: var(--mui-alert__title--FontWeight);
   --pf-v6-c-alert__icon--MarginBlockStart: var(--mui-alert__icon--MarginBlockStart);
@@ -411,9 +405,7 @@
 }
 
 .mui-theme .pf-v6-c-drawer {
-  --pf-v6-c-drawer--m-inline--m-expanded__panel--after--BackgroundColor: var(
-    --mui-drawer-BorderLeft
-  );
+  --pf-v6-c-drawer--m-inline--m-expanded__panel--after--BackgroundColor: var(--mui-drawer-BorderLeft);
 }
 
 .mui-theme .pf-v6-c-drawer.pf-m-inline.pf-m-expanded {
@@ -513,10 +505,7 @@
     --pf-v6-c-form-control--PaddingBlockEnd: var(--mui-spacing-8px);
 
     &.workspace-kind-unit-select {
-      --pf-v6-c-form-control--PaddingInlineEnd: calc(
-        var(--pf-v6-c-form-control__select--PaddingInlineEnd) +
-          var(--pf-v6-c-form-control__icon--FontSize)
-      );
+      --pf-v6-c-form-control--PaddingInlineEnd: calc(var(--pf-v6-c-form-control__select--PaddingInlineEnd) + var(--pf-v6-c-form-control__icon--FontSize));
     }
   }
 }
@@ -525,8 +514,7 @@
 // This provides proper borders without relying on ::before/::after which can conflict
 // Exclude spans from getting borders (they're used for labels/legends)
 .mui-theme .pf-v6-c-form-control:not(span) {
-  border: var(--pf-v6-c-form-control--BorderWidth, 1px) solid
-    var(--pf-v6-c-form-control--BorderColor, var(--pf-t--global--border--color--default));
+  border: var(--pf-v6-c-form-control--BorderWidth, 1px) solid var(--pf-v6-c-form-control--BorderColor, var(--pf-t--global--border--color--default));
   border-radius: var(--pf-v6-c-form-control--BorderRadius, var(--mui-shape-borderRadius));
 }
 
@@ -534,8 +522,7 @@
 // This adds the border specifically to NumberInput's form-control span.
 // Uses PF component variables which inherit from global tokens set at :root
 .mui-theme .pf-v6-c-number-input span.pf-v6-c-form-control {
-  border: var(--pf-v6-c-form-control--before--BorderWidth) solid
-    var(--pf-v6-c-form-control--before--BorderColor);
+  border: var(--pf-v6-c-form-control--before--BorderWidth) solid var(--pf-v6-c-form-control--before--BorderColor);
   box-sizing: border-box;
 
   // Hover state - uses PF component hover variable
@@ -632,23 +619,21 @@
   --pf-v6-c-text-input-group__icon--Color: var(--mui-icon-subtle-Color);
 }
 
-.mui-theme .pf-v6-c-form-control > :is(input, select, textarea):focus {
+.mui-theme .pf-v6-c-form-control> :is(input, select, textarea):focus {
   --pf-v6-c-form-control--OutlineOffset: 0;
   outline: none;
 }
 
 .mui-theme .workspacekind-form-resource-input,
 .custom-resource-type-input {
+
   // Make sure input and select have the same height in ResourceInputWrapper
   .pf-v6-c-form-control {
     --pf-v6-c-form-control--PaddingBlockStart: var(--mui-spacing-8px);
     --pf-v6-c-form-control--PaddingBlockEnd: var(--mui-spacing-8px);
 
     &:has(select) {
-      --pf-v6-c-form-control--PaddingInlineEnd: calc(
-        var(--pf-v6-c-form-control__select--PaddingInlineEnd) +
-          var(--pf-v6-c-form-control__icon--FontSize)
-      );
+      --pf-v6-c-form-control--PaddingInlineEnd: calc(var(--pf-v6-c-form-control__select--PaddingInlineEnd) + var(--pf-v6-c-form-control__icon--FontSize));
     }
   }
 }
@@ -676,11 +661,8 @@
   border-color: var(--mui-form-hover-BorderColor);
 }
 
-.mui-theme
-  .form-fieldset-wrapper:focus-within
-  span.pf-v6-c-form-control.pf-m-disabled
-  ~ .form-fieldset,
-.mui-theme .form-fieldset-wrapper:hover span.pf-v6-c-form-control.pf-m-disabled ~ .form-fieldset {
+.mui-theme .form-fieldset-wrapper:focus-within span.pf-v6-c-form-control.pf-m-disabled~.form-fieldset,
+.mui-theme .form-fieldset-wrapper:hover span.pf-v6-c-form-control.pf-m-disabled~.form-fieldset {
   border-color: var(--pf-t--global--border--color--default);
 }
 
@@ -699,15 +681,11 @@
   border: none;
 }
 
-.mui-theme .form-fieldset-wrapper span.pf-v6-c-form-control.pf-m-error ~ .form-fieldset {
+.mui-theme .form-fieldset-wrapper span.pf-v6-c-form-control.pf-m-error~.form-fieldset {
   border-color: var(--mui-palette-error-main);
 }
 
-.mui-theme
-  .form-fieldset-wrapper
-  .pf-v6-c-input-group
-  span.pf-v6-c-form-control.pf-m-error
-  ~ .form-fieldset {
+.mui-theme .form-fieldset-wrapper .pf-v6-c-input-group span.pf-v6-c-form-control.pf-m-error~.form-fieldset {
   border-color: var(--mui-palette-error-main);
 }
 
@@ -764,48 +742,25 @@
   border-color: var(--mui-form-hover-BorderColor);
 }
 
-.mui-theme
-  .pf-v6-c-form
-  .form-fieldset-wrapper:focus-within
-  span.pf-v6-c-form-control.pf-m-disabled
-  ~ .form-fieldset,
-.mui-theme
-  .pf-v6-c-form
-  .form-fieldset-wrapper:hover
-  span.pf-v6-c-form-control.pf-m-disabled
-  ~ .form-fieldset {
+.mui-theme .pf-v6-c-form .form-fieldset-wrapper:focus-within span.pf-v6-c-form-control.pf-m-disabled~.form-fieldset,
+.mui-theme .pf-v6-c-form .form-fieldset-wrapper:hover span.pf-v6-c-form-control.pf-m-disabled~.form-fieldset {
   border-color: var(--mui-form-fieldset--BorderColor);
 }
 
 // Disabled menu toggle inside fieldset wrapper - use disabled border color
-.mui-theme
-  .pf-v6-c-form
-  .form-fieldset-wrapper:has(.pf-v6-c-menu-toggle.pf-m-disabled)
-  .form-fieldset {
+.mui-theme .pf-v6-c-form .form-fieldset-wrapper:has(.pf-v6-c-menu-toggle.pf-m-disabled) .form-fieldset {
   border-color: var(--mui-palette-action-disabled);
 }
 
-.mui-theme
-  .pf-v6-c-form
-  .form-fieldset-wrapper:has(.pf-v6-c-menu-toggle.pf-m-disabled):hover
-  .form-fieldset {
+.mui-theme .pf-v6-c-form .form-fieldset-wrapper:has(.pf-v6-c-menu-toggle.pf-m-disabled):hover .form-fieldset {
   border-color: var(--mui-palette-action-disabled);
 }
 
-.mui-theme
-  .pf-v6-c-form
-  .form-fieldset-wrapper
-  span.pf-v6-c-form-control.pf-m-error
-  ~ .form-fieldset {
+.mui-theme .pf-v6-c-form .form-fieldset-wrapper span.pf-v6-c-form-control.pf-m-error~.form-fieldset {
   border-color: var(--mui-palette-error-main);
 }
 
-.mui-theme
-  .pf-v6-c-form
-  .form-fieldset-wrapper
-  .pf-v6-c-input-group
-  span.pf-v6-c-form-control.pf-m-error
-  ~ .form-fieldset {
+.mui-theme .pf-v6-c-form .form-fieldset-wrapper .pf-v6-c-input-group span.pf-v6-c-form-control.pf-m-error~.form-fieldset {
   border-color: var(--mui-palette-error-main);
 }
 
@@ -874,48 +829,25 @@
   border-color: var(--mui-form-hover-BorderColor);
 }
 
-.mui-theme
-  [class*='pf-v6-l-']
-  .form-fieldset-wrapper:focus-within
-  span.pf-v6-c-form-control.pf-m-disabled
-  ~ .form-fieldset,
-.mui-theme
-  [class*='pf-v6-l-']
-  .form-fieldset-wrapper:hover
-  span.pf-v6-c-form-control.pf-m-disabled
-  ~ .form-fieldset {
+.mui-theme [class*='pf-v6-l-'] .form-fieldset-wrapper:focus-within span.pf-v6-c-form-control.pf-m-disabled~.form-fieldset,
+.mui-theme [class*='pf-v6-l-'] .form-fieldset-wrapper:hover span.pf-v6-c-form-control.pf-m-disabled~.form-fieldset {
   border-color: var(--mui-form-fieldset--BorderColor);
 }
 
 // Disabled menu toggle inside fieldset wrapper - use disabled border color
-.mui-theme
-  [class*='pf-v6-l-']
-  .form-fieldset-wrapper:has(.pf-v6-c-menu-toggle.pf-m-disabled)
-  .form-fieldset {
+.mui-theme [class*='pf-v6-l-'] .form-fieldset-wrapper:has(.pf-v6-c-menu-toggle.pf-m-disabled) .form-fieldset {
   border-color: var(--mui-palette-action-disabled);
 }
 
-.mui-theme
-  [class*='pf-v6-l-']
-  .form-fieldset-wrapper:has(.pf-v6-c-menu-toggle.pf-m-disabled):hover
-  .form-fieldset {
+.mui-theme [class*='pf-v6-l-'] .form-fieldset-wrapper:has(.pf-v6-c-menu-toggle.pf-m-disabled):hover .form-fieldset {
   border-color: var(--mui-palette-action-disabled);
 }
 
-.mui-theme
-  [class*='pf-v6-l-']
-  .form-fieldset-wrapper
-  span.pf-v6-c-form-control.pf-m-error
-  ~ .form-fieldset {
+.mui-theme [class*='pf-v6-l-'] .form-fieldset-wrapper span.pf-v6-c-form-control.pf-m-error~.form-fieldset {
   border-color: var(--mui-palette-error-main);
 }
 
-.mui-theme
-  [class*='pf-v6-l-']
-  .form-fieldset-wrapper
-  .pf-v6-c-input-group
-  span.pf-v6-c-form-control.pf-m-error
-  ~ .form-fieldset {
+.mui-theme [class*='pf-v6-l-'] .form-fieldset-wrapper .pf-v6-c-input-group span.pf-v6-c-form-control.pf-m-error~.form-fieldset {
   border-color: var(--mui-palette-error-main);
 }
 
@@ -1045,39 +977,21 @@
   color: var(--mui-palette-primary-main);
 }
 
-.mui-theme
-  .pf-v6-c-expandable-section
-  .form-fieldset-wrapper
-  span.pf-v6-c-form-control.pf-m-error
-  ~ .form-fieldset {
+.mui-theme .pf-v6-c-expandable-section .form-fieldset-wrapper span.pf-v6-c-form-control.pf-m-error~.form-fieldset {
   border-color: var(--mui-palette-error-main);
 }
 
-.mui-theme
-  .pf-v6-c-expandable-section
-  .form-fieldset-wrapper:focus-within
-  span.pf-v6-c-form-control.pf-m-disabled
-  ~ .form-fieldset,
-.mui-theme
-  .pf-v6-c-expandable-section
-  .form-fieldset-wrapper:hover
-  span.pf-v6-c-form-control.pf-m-disabled
-  ~ .form-fieldset {
+.mui-theme .pf-v6-c-expandable-section .form-fieldset-wrapper:focus-within span.pf-v6-c-form-control.pf-m-disabled~.form-fieldset,
+.mui-theme .pf-v6-c-expandable-section .form-fieldset-wrapper:hover span.pf-v6-c-form-control.pf-m-disabled~.form-fieldset {
   border-color: var(--pf-t--global--border--color--default);
 }
 
 // Disabled menu toggle inside fieldset wrapper - use disabled border color
-.mui-theme
-  .pf-v6-c-expandable-section
-  .form-fieldset-wrapper:has(.pf-v6-c-menu-toggle.pf-m-disabled)
-  .form-fieldset {
+.mui-theme .pf-v6-c-expandable-section .form-fieldset-wrapper:has(.pf-v6-c-menu-toggle.pf-m-disabled) .form-fieldset {
   border-color: var(--mui-palette-action-disabled);
 }
 
-.mui-theme
-  .pf-v6-c-expandable-section
-  .form-fieldset-wrapper:has(.pf-v6-c-menu-toggle.pf-m-disabled):hover
-  .form-fieldset {
+.mui-theme .pf-v6-c-expandable-section .form-fieldset-wrapper:has(.pf-v6-c-menu-toggle.pf-m-disabled):hover .form-fieldset {
   border-color: var(--mui-palette-action-disabled);
 }
 
@@ -1085,11 +999,8 @@
   --pf-v6-c-form__field-group-body--PaddingBlockStart: 8px;
 }
 
-.mui-theme .pf-v6-c-form__group .pf-v6-c-form-control:focus-within + .pf-v6-c-form__label,
-.mui-theme
-  .pf-v6-c-form__group
-  .pf-v6-c-form-control:not(:placeholder-shown)
-  + .pf-v6-c-form__label {
+.mui-theme .pf-v6-c-form__group .pf-v6-c-form-control:focus-within+.pf-v6-c-form__label,
+.mui-theme .pf-v6-c-form__group .pf-v6-c-form-control:not(:placeholder-shown)+.pf-v6-c-form__label {
   color: var(--mui-palette-primary-main);
 }
 
@@ -1170,9 +1081,7 @@
 .mui-theme .pf-v6-c-menu-toggle {
   --pf-v6-c-menu-toggle__toggle-icon--MinHeight: var(--mui-menu-toggle__toggle-icon--MinHeight);
   --pf-v6-c-menu-toggle__controls--MinWidth: var(--mui-menu-toggle__controls--MinWidth);
-  --pf-v6-c-menu-toggle--expanded--BackgroundColor: var(
-    --mui-menu-toggle--expanded--BackgroundColor
-  );
+  --pf-v6-c-menu-toggle--expanded--BackgroundColor: var(--mui-menu-toggle--expanded--BackgroundColor);
   --pf-v6-c-menu-toggle--expanded--BorderColor: var(--mui-menu-toggle--expanded--BorderColor);
   --pf-v6-c-menu-toggle--PaddingInlineStart: var(--mui-menu-toggle--PaddingInlineStart);
   --pf-v6-c-menu-toggle--PaddingInlineEnd: var(--mui-menu-toggle--PaddingInlineEnd);
@@ -1181,15 +1090,9 @@
   --pf-v6-c-menu-toggle--hover--BorderColor: var(--mui-menu-toggle--hover--BorderColor);
   --pf-v6-c-menu-toggle--BorderColor: var(--mui-menu-toggle--BorderColor);
 
-  --pf-v6-c-menu-toggle--hover--BackgroundColor: var(
-    --pf-t--global--background--color--action--plain--hover
-  );
-  --pf-v6-c-menu-toggle--m-split-button--m-action--m-primary--expanded--child--BackgroundColor: var(
-    --pf-t--global--color--brand--default
-  );
-  --pf-v6-c-menu-toggle--m-split-button--m-action--m-primary--child--BorderInlineStartColor: var(
-    --mui-palette-primary-dark
-  );
+  --pf-v6-c-menu-toggle--hover--BackgroundColor: var(--pf-t--global--background--color--action--plain--hover);
+  --pf-v6-c-menu-toggle--m-split-button--m-action--m-primary--expanded--child--BackgroundColor: var(--pf-t--global--color--brand--default);
+  --pf-v6-c-menu-toggle--m-split-button--m-action--m-primary--child--BorderInlineStartColor: var(--mui-palette-primary-dark);
 
   font-weight: var(--mui-button-FontWeight);
   letter-spacing: 0.02857em;
@@ -1311,12 +1214,8 @@
   --pf-v6-c-menu-toggle--expanded--Color: var(--pf-t--global--text--color--on-brand--clicked);
 }
 
-.mui-theme
-  .pf-v6-c-menu-toggle.pf-m-primary.pf-m-split-button
-  .pf-v6-c-menu-toggle__button[aria-expanded='true'] {
-  --pf-v6-c-menu-toggle--m-split-button--m-action--m-primary--child--BackgroundColor: var(
-    --mui-palette-primary-dark
-  );
+.mui-theme .pf-v6-c-menu-toggle.pf-m-primary.pf-m-split-button .pf-v6-c-menu-toggle__button[aria-expanded='true'] {
+  --pf-v6-c-menu-toggle--m-split-button--m-action--m-primary--child--BackgroundColor: var(--mui-palette-primary-dark);
 }
 
 .mui-theme .pf-v6-c-menu-toggle.pf-m-secondary.pf-m-split-button {
@@ -1438,9 +1337,7 @@
 }
 
 /* When radio is checked */
-.mui-theme
-  .pf-v6-c-radio__input:not(.pf-v6-c-card .pf-v6-c-radio__input):checked
-  + .pf-v6-c-radio__label::before {
+.mui-theme .pf-v6-c-radio__input:not(.pf-v6-c-card .pf-v6-c-radio__input):checked+.pf-v6-c-radio__label::before {
   background: var(--mui-palette-common-white);
   border-color: var(--mui-palette-primary-main);
 }
@@ -1505,9 +1402,7 @@
 }
 
 /* Inner dot for checked state */
-.mui-theme
-  .pf-v6-c-radio__input:not(.pf-v6-c-card .pf-v6-c-radio__input):checked
-  + .pf-v6-c-radio__label::after {
+.mui-theme .pf-v6-c-radio__input:not(.pf-v6-c-card .pf-v6-c-radio__input):checked+.pf-v6-c-radio__label::after {
   content: '';
   display: block;
   position: absolute;
@@ -1528,9 +1423,7 @@
   // --pf-v6-c-table__sort-indicator--Color uses --pf-t--global--icon--color--subtle (set to MUI text-secondary)
 
   // Intentional overrides for MUI-specific styling:
-  --pf-v6-c-table__sort--m-selected__button--Color: var(
-    --mui-palette-text-primary
-  ); // MUI uses black, not brand color
+  --pf-v6-c-table__sort--m-selected__button--Color: var(--mui-palette-text-primary); // MUI uses black, not brand color
   --pf-v6-c-table__sort__button--hover__sort-indicator--Color: var(--mui-palette-text-secondary);
   --pf-v6-c-table__sort__button--hover__text--Color: var(--mui-palette-text-secondary);
 
@@ -1544,15 +1437,11 @@
   --pf-v6-c-table--cell--PaddingInlineEnd: var(--mui-table--cell--PaddingInlineEnd);
   --pf-v6-c-table--cell--PaddingBlockStart: var(--mui-table--cell--PaddingBlockStart);
   --pf-v6-c-table--cell--PaddingBlockEnd: var(--mui-table--cell--PaddingBlockEnd);
-  --pf-v6-c-table--cell--first-last-child--PaddingInline: var(
-    --mui-table--cell--first-last-child--PaddingInline
-  );
+  --pf-v6-c-table--cell--first-last-child--PaddingInline: var(--mui-table--cell--first-last-child--PaddingInline);
   --pf-v6-c-table__thead--cell--FontWeight: var(--mui-button-FontWeight);
   --pf-v6-c-table__thead--cell--FontSize: var(--mui-table__thead--cell--FontSize);
   --pf-v6-c-table__tr--BorderBlockEndColor: var(--mui-palette-grey-300);
-  --pf-v6-c-table__sort-indicator--MarginInlineStart: var(
-    --mui-table__sort-indicator--MarginInlineStart
-  );
+  --pf-v6-c-table__sort-indicator--MarginInlineStart: var(--mui-table__sort-indicator--MarginInlineStart);
 
   letter-spacing: 0.01071em;
 }
@@ -1574,7 +1463,7 @@
 /* CSS workaround for spacing in labels in Workspace Kind */
 /* Special handling for form fields in table cells - remove extra top spacing */
 /* Layout properties (vertical-align, display, overflow) - no PF variables exist */
-.mui-theme .form-label-field-group .pf-v6-c-table tr:where(.pf-v6-c-table__tr) > :where(th, td) {
+.mui-theme .form-label-field-group .pf-v6-c-table tr:where(.pf-v6-c-table__tr)> :where(th, td) {
   /* Layout property - no PF variable exists */
   vertical-align: middle;
   /* Balance padding - use PF component variable for consistency */
@@ -1583,12 +1472,7 @@
 
 /* Remove spacing to align form elements at top of table cells */
 /* Margin/padding: No PF variables exist for zero values - using direct CSS */
-.mui-theme
-  .form-label-field-group
-  .pf-v6-c-table
-  tr:where(.pf-v6-c-table__tr)
-  > :where(th, td)
-  .pf-v6-c-form__group {
+.mui-theme .form-label-field-group .pf-v6-c-table tr:where(.pf-v6-c-table__tr)> :where(th, td) .pf-v6-c-form__group {
   /* No PF variables for zero margin/padding - layout constraint */
   margin: 0;
   padding: 0;
@@ -1598,12 +1482,7 @@
   align-self: flex-start;
 }
 
-.mui-theme
-  .form-label-field-group
-  .pf-v6-c-table
-  tr:where(.pf-v6-c-table__tr)
-  > :where(th, td)
-  .pf-v6-c-form__group-control {
+.mui-theme .form-label-field-group .pf-v6-c-table tr:where(.pf-v6-c-table__tr)> :where(th, td) .pf-v6-c-form__group-control {
   /* No PF variables for zero margin/padding - layout constraint */
   margin: 0;
   padding: 0;
@@ -1676,8 +1555,7 @@
 /* Add top border and remove bottom border for table rows when pf-m-border-top-only class is applied */
 /* Border properties - using PF border width and color variables for consistency */
 .mui-theme .pf-v6-c-table .pf-m-border-top-only {
-  border-block-start: var(--pf-v6-c-table__tr--BorderBlockEndWidth) solid
-    var(--pf-v6-c-table__tr--BorderBlockEndColor);
+  border-block-start: var(--pf-v6-c-table__tr--BorderBlockEndWidth) solid var(--pf-v6-c-table__tr--BorderBlockEndColor);
   border-block-end: none;
 }
 
@@ -1755,9 +1633,7 @@
   --pf-v6-c-tabs__link--PaddingInlineStart: var(--mui-tabs__link--PaddingInlineStart);
   --pf-v6-c-tabs__link--PaddingInlineEnd: var(--mui-tabs__link--PaddingInlineEnd);
   --pf-v6-c-tabs__item--m-current__link--Color: var(--mui-tabs__item--m-current__link--Color);
-  --pf-v6-c-tabs__item--m-current__link--after--BorderWidth: var(
-    --mui-tabs__item--m-current__link--after--BorderWidth
-  );
+  --pf-v6-c-tabs__item--m-current__link--after--BorderWidth: var(--mui-tabs__item--m-current__link--after--BorderWidth);
   --pf-v6-c-tabs__link--FontSize: 0.875rem;
 }
 
@@ -1930,9 +1806,7 @@
   text-transform: none;
 }
 
-.mui-theme
-  .pf-v6-c-pagination__page-menu
-  > .pf-v6-c-menu-toggle.pf-m-expanded.pf-m-plain.pf-m-text {
+.mui-theme .pf-v6-c-pagination__page-menu>.pf-v6-c-menu-toggle.pf-m-expanded.pf-m-plain.pf-m-text {
   box-shadow: none;
 }
 
@@ -2024,9 +1898,7 @@
 
   &:focus-within {
     --pf-v6-c-menu-toggle--BorderColor: var(--mui-palette-primary-main);
-    border-width: var(
-      --mui-form--focus--BorderWidth
-    ); // Thicker border for focus state (intentional for emphasis)
+    border-width: var(--mui-form--focus--BorderWidth); // Thicker border for focus state (intentional for emphasis)
     --pf-v6-c-menu-toggle--BackgroundColor: var(--mui-palette-common-white);
   }
 
@@ -2087,18 +1959,13 @@
 }
 
 /* Only apply fixed width to filter dropdown in toolbar filter group */
-.mui-theme
-  .pf-v6-c-toolbar__group.pf-m-filter-group
-  .pf-v6-c-menu-toggle:not(.pf-m-split-button):not(.pf-m-plain) {
+.mui-theme .pf-v6-c-toolbar__group.pf-m-filter-group .pf-v6-c-menu-toggle:not(.pf-m-split-button):not(.pf-m-plain) {
   --pf-v6-c-menu-toggle--MinWidth: 140px;
   min-width: 140px;
   width: 140px;
 }
 
-.mui-theme
-  .pf-v6-c-toolbar__group.pf-m-filter-group
-  .pf-v6-c-menu-toggle:not(.pf-m-split-button):not(.pf-m-plain)
-  .pf-v6-c-menu-toggle__button {
+.mui-theme .pf-v6-c-toolbar__group.pf-m-filter-group .pf-v6-c-menu-toggle:not(.pf-m-split-button):not(.pf-m-plain) .pf-v6-c-menu-toggle__button {
   min-width: 140px;
   width: 140px;
   justify-content: flex-start;
@@ -2136,6 +2003,7 @@
 
   // Connect button cell styling in grid view
   .pf-v6-c-table__td:has(.workspace-connect-wrapper) {
+
     // Remove the label for Connect cell since it's empty anyway
     &::before {
       content: none;
@@ -2149,7 +2017,8 @@
 }
 
 // Dark Mode Overrides
-.mui-theme.pf-v6-theme-dark:root {
+:root.pf-v6-theme-dark,
+.pf-v6-theme-dark:root {
   --pf-t--global--border--color--default: rgba(255, 255, 255, 0.23);
   --mui-form-control--BorderColor: rgba(255, 255, 255, 0.23);
   --mui-toggle-group--selected--BackgroundColor: var(--mui-palette-primary-dark);
@@ -2181,29 +2050,29 @@
   --pf-v6-c-menu-toggle--Color: #e0e0e0;
 
   // State Labels (Subtle variants for Dark Mode)
-  --pf-v6-c-label--m-green--BackgroundColor: rgba(76, 175, 80, 0.2);
-  --pf-v6-c-label--m-green--Color: #81c784;
-  --pf-v6-c-label--m-green__content--Color: #81c784;
+  --pf-v6-c-label--m-green--BackgroundColor: #a5d6a7;
+  --pf-v6-c-label--m-green--Color: #1b5e20;
+  --pf-v6-c-label--m-green__content--Color: #1b5e20;
 
-  --pf-v6-c-label--m-yellow--BackgroundColor: rgba(255, 235, 59, 0.2);
-  --pf-v6-c-label--m-yellow--Color: #fff176;
-  --pf-v6-c-label--m-yellow__content--Color: #fff176;
+  --pf-v6-c-label--m-yellow--BackgroundColor: #fff59d;
+  --pf-v6-c-label--m-yellow--Color: #7f6000;
+  --pf-v6-c-label--m-yellow__content--Color: #7f6000;
 
-  --pf-v6-c-label--m-orange--BackgroundColor: rgba(255, 152, 0, 0.2);
-  --pf-v6-c-label--m-orange--Color: #ffb74d;
-  --pf-v6-c-label--m-orange__content--Color: #ffb74d;
+  --pf-v6-c-label--m-orange--BackgroundColor: #ffcc80;
+  --pf-v6-c-label--m-orange--Color: #e65100;
+  --pf-v6-c-label--m-orange__content--Color: #e65100;
 
-  --pf-v6-c-label--m-red--BackgroundColor: rgba(244, 67, 54, 0.2);
-  --pf-v6-c-label--m-red--Color: #e57373;
-  --pf-v6-c-label--m-red__content--Color: #e57373;
+  --pf-v6-c-label--m-red--BackgroundColor: #ef9a9a;
+  --pf-v6-c-label--m-red--Color: #b71c1c;
+  --pf-v6-c-label--m-red__content--Color: #b71c1c;
 
-  --pf-v6-c-label--m-purple--BackgroundColor: rgba(156, 39, 176, 0.2);
-  --pf-v6-c-label--m-purple--Color: #ba68c8;
-  --pf-v6-c-label--m-purple__content--Color: #ba68c8;
+  --pf-v6-c-label--m-purple--BackgroundColor: #ce93d8;
+  --pf-v6-c-label--m-purple--Color: #4a148c;
+  --pf-v6-c-label--m-purple__content--Color: #4a148c;
 
-  --pf-v6-c-label--m-grey--BackgroundColor: rgba(158, 158, 158, 0.2);
-  --pf-v6-c-label--m-grey--Color: #bdbdbd;
-  --pf-v6-c-label--m-grey__content--Color: #bdbdbd;
+  --pf-v6-c-label--m-grey--BackgroundColor: #616161;
+  --pf-v6-c-label--m-grey--Color: #ffffff;
+  --pf-v6-c-label--m-grey__content--Color: #ffffff;
 
   // Remove borders from labels in dark mode for a cleaner look
   --pf-v6-c-label--BorderWidth: 0;
@@ -2252,7 +2121,8 @@
 }
 
 // Ensure these apply even if PF has more specific internal variables
-.mui-theme.pf-v6-theme-dark {
+.pf-v6-theme-dark {
+
   // Apply generic dark mode styles only to DEFAULT chips and labels
   .pf-v6-c-chip:not([class*='pf-m-']),
   .pf-v6-c-label:not([class*='pf-m-']) {
@@ -2273,10 +2143,16 @@
     }
   }
 
-  // Specific overrides for Colored State Labels to ensure the TEXT color is applied
+  // Specific overrides for Colored State Labels to ensure the TEXT and BG color is applied
   .pf-v6-c-label {
-    &.pf-m-green {
+
+    // Force dark text on light background for status states
+    &.pf-m-green,
+    &.pf-m-teal {
+      background-color: var(--pf-v6-c-label--m-green--BackgroundColor) !important;
       color: var(--pf-v6-c-label--m-green--Color) !important;
+      --pf-v6-c-label--Color: var(--pf-v6-c-label--m-green--Color) !important;
+      --pf-v6-c-label--BackgroundColor: var(--pf-v6-c-label--m-green--BackgroundColor) !important;
 
       .pf-v6-c-label__content,
       .pf-v6-c-label__text {
@@ -2285,7 +2161,10 @@
     }
 
     &.pf-m-yellow {
+      background-color: var(--pf-v6-c-label--m-yellow--BackgroundColor) !important;
       color: var(--pf-v6-c-label--m-yellow--Color) !important;
+      --pf-v6-c-label--Color: var(--pf-v6-c-label--m-yellow--Color) !important;
+      --pf-v6-c-label--BackgroundColor: var(--pf-v6-c-label--m-yellow--BackgroundColor) !important;
 
       .pf-v6-c-label__content,
       .pf-v6-c-label__text {
@@ -2294,7 +2173,10 @@
     }
 
     &.pf-m-orange {
+      background-color: var(--pf-v6-c-label--m-orange--BackgroundColor) !important;
       color: var(--pf-v6-c-label--m-orange--Color) !important;
+      --pf-v6-c-label--Color: var(--pf-v6-c-label--m-orange--Color) !important;
+      --pf-v6-c-label--BackgroundColor: var(--pf-v6-c-label--m-orange--BackgroundColor) !important;
 
       .pf-v6-c-label__content,
       .pf-v6-c-label__text {
@@ -2303,7 +2185,10 @@
     }
 
     &.pf-m-red {
+      background-color: var(--pf-v6-c-label--m-red--BackgroundColor) !important;
       color: var(--pf-v6-c-label--m-red--Color) !important;
+      --pf-v6-c-label--Color: var(--pf-v6-c-label--m-red--Color) !important;
+      --pf-v6-c-label--BackgroundColor: var(--pf-v6-c-label--m-red--BackgroundColor) !important;
 
       .pf-v6-c-label__content,
       .pf-v6-c-label__text {
@@ -2312,7 +2197,10 @@
     }
 
     &.pf-m-purple {
+      background-color: var(--pf-v6-c-label--m-purple--BackgroundColor) !important;
       color: var(--pf-v6-c-label--m-purple--Color) !important;
+      --pf-v6-c-label--Color: var(--pf-v6-c-label--m-purple--Color) !important;
+      --pf-v6-c-label--BackgroundColor: var(--pf-v6-c-label--m-purple--BackgroundColor) !important;
 
       .pf-v6-c-label__content,
       .pf-v6-c-label__text {
@@ -2321,7 +2209,10 @@
     }
 
     &.pf-m-grey {
+      background-color: var(--pf-v6-c-label--m-grey--BackgroundColor) !important;
       color: var(--pf-v6-c-label--m-grey--Color) !important;
+      --pf-v6-c-label--Color: var(--pf-v6-c-label--m-grey--Color) !important;
+      --pf-v6-c-label--BackgroundColor: var(--pf-v6-c-label--m-grey--BackgroundColor) !important;
 
       .pf-v6-c-label__content,
       .pf-v6-c-label__text {
