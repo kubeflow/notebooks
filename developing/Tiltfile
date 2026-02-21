@@ -224,3 +224,8 @@ if enable_frontend:
         resource_deps=["workspaces-backend"],
         labels=["frontend"],
     )
+
+# Setup the samples (WorspaceKinds, ServiceAccounts etc.)
+samples_kustomize_path = os.path.join(controller_dir, "manifests/kustomize/samples")
+samples = kustomize(samples_kustomize_path, kustomize_bin=kustomize_bin)
+k8s_yaml(samples)
