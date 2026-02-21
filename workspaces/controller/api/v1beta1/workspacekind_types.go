@@ -46,7 +46,7 @@ type WorkspaceKindSpec struct {
 	PodTemplate WorkspaceKindPodTemplate `json:"podTemplate"`
 }
 
-// +kubebuilder:validation:XValidation:message="deprecationMessage must be empty or at least 2 characters",rule="!has(self.deprecationMessage) || self.deprecationMessage == ” || size(self.deprecationMessage) >= 2"
+// +kubebuilder:validation:XValidation:message="deprecationMessage must be empty or at least 2 characters",rule="!has(self.deprecationMessage) || size(self.deprecationMessage) == 0 || size(self.deprecationMessage) >= 2"
 type WorkspaceKindSpawner struct {
 	// the display name of the WorkspaceKind
 	// +kubebuilder:validation:MinLength:=2
