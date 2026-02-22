@@ -41,6 +41,16 @@ rules:
   - update
   - watch
 - apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  verbs:
+  - create
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
   - kubeflow.org
   resources:
   - pvcviewers
@@ -76,9 +86,3 @@ rules:
   - list
   - update
   - watch
-- apiGroups:
-  - gateway.networking.k8s.io
-  resources:
-  - httproutes
-  verbs:
-  - '*'
