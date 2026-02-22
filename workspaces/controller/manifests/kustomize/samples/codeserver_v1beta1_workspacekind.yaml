@@ -23,7 +23,7 @@ spec:
     culling:
       enabled: false
     volumeMounts:
-      home: "/home/codeserver"
+      home: "/home/jovyan"
     ports:
       - id: "codeserver"
         defaultDisplayName: "VS Code (code-server)"

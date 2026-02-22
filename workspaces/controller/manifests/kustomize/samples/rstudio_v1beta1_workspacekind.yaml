@@ -23,7 +23,7 @@ spec:
     culling:
       enabled: false
     volumeMounts:
-      home: "/home/rstudio"
+      home: "/home/jovyan"
     ports:
       - id: "rstudio"
         defaultDisplayName: "RStudio"
