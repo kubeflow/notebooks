@@ -209,7 +209,7 @@ func (r *NotebookReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-	} else if os.Getenv("USE_GATEWAY_API") == "true" {
+	} else if os.Getenv("EXPERIMENTAL_USE_GATEWAY_API") == "true" {
 		// Reconcile HTTPRoute if we use Gateway API.
 		err = r.reconcileHTTPRoute(instance)
 		if err != nil {
@@ -599,11 +599,11 @@ func generateHTTPRoute(instance *v1beta1.Notebook) *gwapiv1beta1.HTTPRoute {
 	}
 
 	// Get gateway configuration
-	gatewayName := os.Getenv("K8S_GATEWAY_NAME")
+	gatewayName := os.Getenv("EXPERIMENTAL_K8S_GATEWAY_NAME")
 	if len(gatewayName) == 0 {
 		gatewayName = "kubeflow-gateway"
 	}
-	gatewayNamespace := os.Getenv("K8S_GATEWAY_NAMESPACE")
+	gatewayNamespace := os.Getenv("EXPERIMENTAL_K8S_GATEWAY_NAMESPACE")
 	if len(gatewayNamespace) == 0 {
 		gatewayNamespace = "kubeflow"
 	}
@@ -862,7 +862,7 @@ func (r *NotebookReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		virtualService.SetAPIVersion("networking.istio.io/v1alpha3")
 		virtualService.SetKind("VirtualService")
 		builder.Owns(virtualService)
-	} else if os.Getenv("USE_GATEWAY_API") == "true" {
+	} else if os.Getenv("EXPERIMENTAL_USE_GATEWAY_API") == "true" {
 		// watch HTTPRoute
 		builder.Owns(&gwapiv1beta1.HTTPRoute{})
 	}

@@ -111,7 +111,7 @@ func (r *TensorboardReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 
 	// Reconcile routing: HTTPRoute if Gateway API is enabled, otherwise VirtualService
-	if os.Getenv("USE_GATEWAY_API") == "true" {
+	if os.Getenv("EXPERIMENTAL_USE_GATEWAY_API") == "true" {
 		if err := r.reconcileHTTPRoute(ctx, instance, logger); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -165,7 +165,7 @@ func (r *TensorboardReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&tensorboardv1alpha1.Tensorboard{}).
 		Owns(&appsv1.Deployment{})
 
-	if os.Getenv("USE_GATEWAY_API") == "true" {
+	if os.Getenv("EXPERIMENTAL_USE_GATEWAY_API") == "true" {
 		builder.Owns(&gwapiv1beta1.HTTPRoute{})
 	} else {
 		virtualService := &unstructured.Unstructured{}
@@ -399,11 +399,11 @@ func generateHTTPRoute(tb *tensorboardv1alpha1.Tensorboard) *gwapiv1beta1.HTTPRo
 	pathRewrite := "/"
 
 	// Get gateway configuration
-	gatewayName := os.Getenv("K8S_GATEWAY_NAME")
+	gatewayName := os.Getenv("EXPERIMENTAL_K8S_GATEWAY_NAME")
 	if len(gatewayName) == 0 {
 		gatewayName = "kubeflow-gateway"
 	}
-	gatewayNamespace := os.Getenv("K8S_GATEWAY_NAMESPACE")
+	gatewayNamespace := os.Getenv("EXPERIMENTAL_K8S_GATEWAY_NAMESPACE")
 	if len(gatewayNamespace) == 0 {
 		gatewayNamespace = "kubeflow"
 	}
