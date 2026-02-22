@@ -48,10 +48,12 @@ import (
 	gwapiv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 )
 
-const DefaultContainerPort = 8888
-const DefaultServingPort = 80
-const AnnotationRewriteURI = "notebooks.kubeflow.org/http-rewrite-uri"
-const AnnotationHeadersRequestSet = "notebooks.kubeflow.org/http-headers-request-set"
+const (
+	DefaultContainerPort        = 8888
+	DefaultServingPort          = 80
+	AnnotationRewriteURI        = "notebooks.kubeflow.org/http-rewrite-uri"
+	AnnotationHeadersRequestSet = "notebooks.kubeflow.org/http-headers-request-set"
+)
 
 const PrefixEnvVar = "NB_PREFIX"
 
@@ -207,10 +209,8 @@ func (r *NotebookReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-	}
-
-	// Reconcile HTTPRoute if we use Gateway API.
-	if os.Getenv("USE_GATEWAY_API") == "true" {
+	} else if os.Getenv("USE_GATEWAY_API") == "true" {
+		// Reconcile HTTPRoute if we use Gateway API.
 		err = r.reconcileHTTPRoute(instance)
 		if err != nil {
 			return ctrl.Result{}, err
@@ -235,8 +235,8 @@ func (r *NotebookReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 }
 
 func updateNotebookStatus(r *NotebookReconciler, nb *v1beta1.Notebook,
-	sts *appsv1.StatefulSet, pod *corev1.Pod, req ctrl.Request) error {
-
+	sts *appsv1.StatefulSet, pod *corev1.Pod, req ctrl.Request,
+) error {
 	log := r.Log.WithValues("notebook", req.NamespacedName)
 	ctx := context.Background()
 
@@ -251,8 +251,8 @@ func updateNotebookStatus(r *NotebookReconciler, nb *v1beta1.Notebook,
 }
 
 func createNotebookStatus(r *NotebookReconciler, nb *v1beta1.Notebook,
-	sts *appsv1.StatefulSet, pod *corev1.Pod, req ctrl.Request) (v1beta1.NotebookStatus, error) {
-
+	sts *appsv1.StatefulSet, pod *corev1.Pod, req ctrl.Request,
+) (v1beta1.NotebookStatus, error) {
 	log := r.Log.WithValues("notebook", req.NamespacedName)
 
 	// Initialize Notebook CR Status
@@ -312,7 +312,6 @@ func createNotebookStatus(r *NotebookReconciler, nb *v1beta1.Notebook,
 }
 
 func PodCondToNotebookCond(podc corev1.PodCondition) v1beta1.NotebookCondition {
-
 	condition := v1beta1.NotebookCondition{}
 
 	if len(podc.Type) > 0 {
@@ -513,7 +512,6 @@ func generateVirtualService(instance *v1beta1.Notebook) (*unstructured.Unstructu
 	}
 	if err := unstructured.SetNestedStringSlice(vsvc.Object, []string{istioHost}, "spec", "hosts"); err != nil {
 		return nil, fmt.Errorf("Set .spec.hosts error: %v", err)
-
 	}
 
 	istioGateway := os.Getenv("ISTIO_GATEWAY")
@@ -663,7 +661,6 @@ func generateHTTPRoute(instance *v1beta1.Notebook) (*gwapiv1beta1.HTTPRoute, err
 
 	return httpRoute, nil
 }
-
 
 func (r *NotebookReconciler) reconcileHTTPRoute(instance *v1beta1.Notebook) error {
 	log := r.Log.WithValues("notebook", instance.Namespace)
@@ -827,7 +824,6 @@ func predNBEvents(r *NotebookReconciler) predicate.Funcs {
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *NotebookReconciler) SetupWithManager(mgr ctrl.Manager) error {
-
 	// Map function to convert pod events to reconciliation requests
 	mapPodToRequest := func(object client.Object) []reconcile.Request {
 		return []reconcile.Request{
