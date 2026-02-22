@@ -91,14 +91,14 @@ func (r *PVCViewerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		// This controller manages, i.e. creates these kinds for a PVCViewer
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{})
-	
+
 	// Add routing resource ownership based on mode
 	if os.Getenv("USE_GATEWAY_API") == "true" {
 		builder.Owns(httpRouteTemplate)
 	} else {
 		builder.Owns(virtualServiceTemplate)
 	}
-	
+
 	return builder.Complete(r)
 }
 
@@ -270,6 +270,15 @@ func (r *PVCViewerReconciler) reconcileService(ctx context.Context, log logr.Log
 	return r.Update(ctx, service)
 }
 
+func ingressPath(viewer *kubefloworgv1alpha1.PVCViewer) string {
+	return fmt.Sprintf(
+		"%s/%s/%s/",
+		viewer.Spec.Networking.BasePrefix,
+		viewer.Namespace,
+		viewer.Name,
+	)
+}
+
 func (r *PVCViewerReconciler) reconcileVirtualService(ctx context.Context, log logr.Logger, viewer *kubefloworgv1alpha1.PVCViewer, commonLabels map[string]string) error {
 	if viewer.Spec.Networking == (kubefloworgv1alpha1.Networking{}) {
 		return nil
@@ -294,7 +303,7 @@ func (r *PVCViewerReconciler) reconcileVirtualService(ctx context.Context, log l
 		createVirtualService = true
 	}
 
-	prefix := fmt.Sprintf("%s/%s/%s/", viewer.Spec.Networking.BasePrefix, viewer.Namespace, viewer.Name)
+	prefix := ingressPath(viewer)
 	rewrite := prefix
 	if viewer.Spec.Networking.Rewrite != "" {
 		rewrite = viewer.Spec.Networking.Rewrite
@@ -355,14 +364,13 @@ func (r *PVCViewerReconciler) reconcileVirtualService(ctx context.Context, log l
 	return r.Update(ctx, virtualService)
 }
 
-
 func (r *PVCViewerReconciler) reconcileHTTPRoute(ctx context.Context, log logr.Logger, viewer *kubefloworgv1alpha1.PVCViewer, commonLabels map[string]string) error {
-	prefix := fmt.Sprintf("%s/%s/%s", viewer.Spec.Networking.BasePrefix, viewer.Namespace, viewer.Name)
+	prefix := ingressPath(viewer)
 	rewrite := prefix
 	if viewer.Spec.Networking.Rewrite != "" {
 		rewrite = viewer.Spec.Networking.Rewrite
 	}
-	
+
 	// Get gateway configuration
 	gatewayName := os.Getenv("K8S_GATEWAY_NAME")
 	if gatewayName == "" {

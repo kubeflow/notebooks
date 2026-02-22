@@ -473,6 +473,10 @@ func generateService(instance *v1beta1.Notebook) *corev1.Service {
 	return svc
 }
 
+func ingressPath(instance *v1beta1.Notebook) string {
+	return fmt.Sprintf("/notebook/%s/%s/", instance.Namespace, instance.Name)
+}
+
 func virtualServiceName(kfName string, namespace string) string {
 	return fmt.Sprintf("notebook-%s-%s", namespace, kfName)
 }
@@ -481,7 +485,7 @@ func generateVirtualService(instance *v1beta1.Notebook) (*unstructured.Unstructu
 	name := instance.Name
 	namespace := instance.Namespace
 	clusterDomain := "cluster.local"
-	prefix := fmt.Sprintf("/notebook/%s/%s/", namespace, name)
+	prefix := ingressPath(instance)
 
 	// unpack annotations from Notebook resource
 	annotations := make(map[string]string)
@@ -580,7 +584,7 @@ func generateVirtualService(instance *v1beta1.Notebook) (*unstructured.Unstructu
 func generateHTTPRoute(instance *v1beta1.Notebook) (*gwapiv1beta1.HTTPRoute, error) {
 	name := instance.Name
 	namespace := instance.Namespace
-	pathPrefix := fmt.Sprintf("/notebook/%s/%s", namespace, name)
+	pathPrefix := ingressPath(instance)
 
 	// unpack annotations from Notebook resource
 	annotations := make(map[string]string)
