@@ -39,7 +39,11 @@ rules:
   resources:
   - httproutes
   verbs:
-  - '*'
+  - create
+  - get
+  - list
+  - update
+  - watch
 - apiGroups:
   - kubeflow.org
   resources:
