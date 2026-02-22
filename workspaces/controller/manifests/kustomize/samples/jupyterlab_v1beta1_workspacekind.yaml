@@ -259,14 +259,14 @@ spec:
           ## the id of the default option
           ##  - this will be selected by default in the spawner ui
           ##
-          default: "jupyterlab_scipy_190"
+          default: "jupyterlab_scipy_110"
 
         ## the list of image configs that are available
         ##
         values:
 
           ## ================================
-          ## EXAMPLE 1: a hidden option
+          ## SciPy: a hidden and redirected option
           ## ================================
           - id: "jupyterlab_scipy_180"
             spawner:
@@ -277,10 +277,10 @@ spec:
                   value: "3.11"
               hidden: true
             redirect:
-              to: "jupyterlab_scipy_190"
+              to: "jupyterlab_scipy_192"
               message:
-                level: "Info" # "Info" | "Warning" | "Danger"
-                text: "This update will change..."
+                level: "Warning"
+                text: "jupyter-scipy:v1.8.0 is deprecated, please use jupyter-scipy:v1.9.2"
             spec:
               ## the container image to use
               ##
@@ -301,19 +301,79 @@ spec:
                 - id: "jupyterlab"
                   port: 8888
 
+          ## ================================
+          ## SciPy: a visible but redirected option
+          ## ================================
+          - id: "jupyterlab_scipy_192"
+            spawner:
+              displayName: "jupyter-scipy:v1.9.2"
+              description: "JupyterLab, with SciPy Packages"
+              labels:
+                - key: "python_version"
+                  value: "3.11"
+            redirect:
+              to: "jupyterlab_scipy_110"
+              message:
+                level: "Info"
+                text: "jupyter-scipy:v1.9.2 is deprecated, please use jupyter-scipy:v1.10.0"
+            spec:
+              image: "ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.9.2"
+              imagePullPolicy: "IfNotPresent"
+              ports:
+                - id: "jupyterlab"
+                  port: 8888
 
           ## ================================
-          ## EXAMPLE 2: a visible option
+          ## SciPy: the default option
           ## ================================
-          - id: "jupyterlab_scipy_190"
+          - id: "jupyterlab_scipy_110"
             spawner:
-              displayName: "jupyter-scipy:v1.9.0"
+              displayName: "jupyter-scipy:v1.10.0"
               description: "JupyterLab, with SciPy Packages"
               labels:
                 - key: "python_version"
                   value: "3.11"
             spec:
-              image: "ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.9.0"
+              image: "ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.10.0"
+              imagePullPolicy: "IfNotPresent"
+              ports:
+                - id: "jupyterlab"
+                  port: 8888
+
+          ## ================================
+          ## PyTorch CUDA: a visible but redirected option
+          ## ================================
+          - id: "jupyterlab_pytorch_cuda_192"
+            spawner:
+              displayName: "jupyter-pytorch-cuda:v1.9.2"
+              description: "JupyterLab, with PyTorch and CUDA"
+              labels:
+                - key: "python_version"
+                  value: "3.11"
+            redirect:
+              to: "jupyterlab_pytorch_cuda_110"
+              message:
+                level: "Info"
+                text: "jupyter-pytorch-cuda:v1.9.2 is deprecated, please use jupyter-pytorch-cuda:v1.10.0"
+            spec:
+              image: "ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-pytorch-cuda:v1.9.2"
+              imagePullPolicy: "IfNotPresent"
+              ports:
+                - id: "jupyterlab"
+                  port: 8888
+
+          ## ================================
+          ## PyTorch CUDA: the default option
+          ## ================================
+          - id: "jupyterlab_pytorch_cuda_110"
+            spawner:
+              displayName: "jupyter-pytorch-cuda:v1.10.0"
+              description: "JupyterLab, with PyTorch and CUDA"
+              labels:
+                - key: "python_version"
+                  value: "3.11"
+            spec:
+              image: "ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-pytorch-cuda:v1.10.0"
               imagePullPolicy: "IfNotPresent"
               ports:
                 - id: "jupyterlab"

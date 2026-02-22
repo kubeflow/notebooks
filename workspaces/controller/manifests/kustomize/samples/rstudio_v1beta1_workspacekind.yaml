@@ -52,9 +52,9 @@ spec:
     options:
       imageConfig:
         spawner:
-          default: "rstudio_1100"
+          default: "rstudio_110"
         values:
-          - id: "rstudio_1100"
+          - id: "rstudio_110"
             spawner:
               displayName: "rstudio:v1.10.0"
               description: "RStudio base image"
