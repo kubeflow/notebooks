@@ -88,7 +88,7 @@ type NotebookReconciler struct {
 // +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs="*"
 // +kubebuilder:rbac:groups=kubeflow.org,resources=notebooks;notebooks/status;notebooks/finalizers,verbs="*"
 // +kubebuilder:rbac:groups="networking.istio.io",resources=virtualservices,verbs="*"
-// +kubebuilder:rbac:groups="gateway.networking.k8s.io",resources=httproutes,verbs="*"
+// +kubebuilder:rbac:groups=gateway.networking.k8s.io,resources=httproutes,verbs=get;list;watch;create;update
 
 func (r *NotebookReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("notebook", req.NamespacedName)
