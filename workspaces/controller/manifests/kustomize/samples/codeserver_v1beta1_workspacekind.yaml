@@ -8,7 +8,7 @@ spec:
     description: "A workspace which runs VS Code in the browser via code-server"
     hidden: false
     deprecated: false
-    deprecationMessage: ""
+    # deprecationMessage: ""
     icon:
       url: "https://code.visualstudio.com/assets/favicon.ico"
     logo:

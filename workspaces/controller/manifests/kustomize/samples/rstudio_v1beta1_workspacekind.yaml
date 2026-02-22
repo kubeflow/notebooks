@@ -8,7 +8,7 @@ spec:
     description: "A workspace which runs RStudio in a pod"
     hidden: false
     deprecated: false
-    deprecationMessage: ""
+    # deprecationMessage: ""
     icon:
       url: "https://comptoir-du-libre.org/img/files/Softwares/RStudio/avatar/RStudio_Logo.png"
     logo:
