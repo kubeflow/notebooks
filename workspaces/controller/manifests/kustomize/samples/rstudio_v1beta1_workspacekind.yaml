@@ -59,17 +59,17 @@ spec:
     options:
       imageConfig:
         spawner:
-          default: "rstudio_192"
+          default: "rstudio_1100"
         values:
-          - id: "rstudio_192"
+          - id: "rstudio_1100"
             spawner:
-              displayName: "rstudio:v1.9.2"
-              description: "RStudio base image (R, Conda, Python)"
+              displayName: "rstudio:v1.10.0"
+              description: "RStudio base image"
               labels:
-                - key: "r_version"
-                  value: "4.x"
+                - key: "rstudio_version"
+                  value: "v1.10.0"
             spec:
-              image: "ghcr.io/kubeflow/kubeflow/notebook-servers/rstudio:v1.9.2"
+              image: "ghcr.io/kubeflow/kubeflow/notebook-servers/rstudio:v1.10.0"
               imagePullPolicy: "IfNotPresent"
               ports:
                 - id: "rstudio"
