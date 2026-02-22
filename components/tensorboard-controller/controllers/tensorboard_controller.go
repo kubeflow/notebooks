@@ -463,7 +463,6 @@ func generateHTTPRoute(tb *tensorboardv1alpha1.Tensorboard) (*gwapiv1beta1.HTTPR
 	return httpRoute, nil
 }
 
-
 func (r *TensorboardReconciler) reconcileHTTPRoute(ctx context.Context, instance *tensorboardv1alpha1.Tensorboard, logger logr.Logger) error {
 	httpRoute, err := generateHTTPRoute(instance)
 	if err != nil {

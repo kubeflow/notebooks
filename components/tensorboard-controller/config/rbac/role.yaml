@@ -25,8 +25,31 @@ rules:
   - watch
 - apiGroups:
   - apps
+<<<<<<< HEAD
   resources:
   - deployments
+  verbs:
+  - create
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - networking.istio.io
+=======
+>>>>>>> cb9e0e2 (fix: update envtest for gsc pull errors in unit tests)
+  resources:
+  - deployments
+  verbs:
+  - create
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
   verbs:
   - create
   - get
@@ -43,12 +66,6 @@ rules:
   - list
   - update
   - watch
-- apiGroups:
-  - gateway.networking.k8s.io
-  resources:
-  - httproutes
-  verbs:
-  - '*'
 - apiGroups:
   - tensorboard.kubeflow.org
   resources:
