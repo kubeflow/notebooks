@@ -862,10 +862,8 @@ func (r *NotebookReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		virtualService.SetAPIVersion("networking.istio.io/v1alpha3")
 		virtualService.SetKind("VirtualService")
 		builder.Owns(virtualService)
-	}
-
-	// watch HTTPRoute
-	if os.Getenv("USE_GATEWAY_API") == "true" {
+	} else if os.Getenv("USE_GATEWAY_API") == "true" {
+		// watch HTTPRoute
 		builder.Owns(&gwapiv1beta1.HTTPRoute{})
 	}
 
