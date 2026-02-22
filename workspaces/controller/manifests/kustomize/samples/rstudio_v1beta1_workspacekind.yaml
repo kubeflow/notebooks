@@ -20,8 +20,6 @@ spec:
       annotations: {}
     serviceAccount:
       name: "default-editor"
-    culling:
-      enabled: false
     volumeMounts:
       home: "/home/jovyan"
     ports:
