@@ -21,14 +21,7 @@ spec:
     serviceAccount:
       name: "default-editor"
     culling:
-      enabled: true
-      maxInactiveSeconds: 86400
-      activityProbe:
-        exec:
-          command:
-            - "bash"
-            - "-c"
-            - "exit 0"
+      enabled: false
     volumeMounts:
       home: "/home/codeserver"
     ports:
