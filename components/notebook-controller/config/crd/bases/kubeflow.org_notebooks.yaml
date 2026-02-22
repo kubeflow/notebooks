@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.17.0
   name: notebooks.kubeflow.org
 spec:
   group: kubeflow.org
@@ -623,6 +623,7 @@ spec:
                                       format: int32
                                       type: integer
                                     service:
+                                      default: ""
                                       type: string
                                   required:
                                   - port
@@ -727,6 +728,7 @@ spec:
                                       format: int32
                                       type: integer
                                     service:
+                                      default: ""
                                       type: string
                                   required:
                                   - port
@@ -885,6 +887,7 @@ spec:
                                       format: int32
                                       type: integer
                                     service:
+                                      default: ""
                                       type: string
                                   required:
                                   - port
@@ -1240,6 +1243,7 @@ spec:
                                       format: int32
                                       type: integer
                                     service:
+                                      default: ""
                                       type: string
                                   required:
                                   - port
@@ -1344,6 +1348,7 @@ spec:
                                       format: int32
                                       type: integer
                                     service:
+                                      default: ""
                                       type: string
                                   required:
                                   - port
@@ -1502,6 +1507,7 @@ spec:
                                       format: int32
                                       type: integer
                                     service:
+                                      default: ""
                                       type: string
                                   required:
                                   - port
@@ -1862,6 +1868,7 @@ spec:
                                       format: int32
                                       type: integer
                                     service:
+                                      default: ""
                                       type: string
                                   required:
                                   - port
@@ -1966,6 +1973,7 @@ spec:
                                       format: int32
                                       type: integer
                                     service:
+                                      default: ""
                                       type: string
                                   required:
                                   - port
@@ -2124,6 +2132,7 @@ spec:
                                       format: int32
                                       type: integer
                                     service:
+                                      default: ""
                                       type: string
                                   required:
                                   - port
@@ -2397,6 +2406,9 @@ spec:
                               type: object
                               x-kubernetes-map-type: atomic
                             maxSkew:
+                              format: int32
+                              type: integer
+                            minDomains:
                               format: int32
                               type: integer
                             topologyKey:
@@ -3801,6 +3813,7 @@ spec:
                                       format: int32
                                       type: integer
                                     service:
+                                      default: ""
                                       type: string
                                   required:
                                   - port
@@ -3905,6 +3918,7 @@ spec:
                                       format: int32
                                       type: integer
                                     service:
+                                      default: ""
                                       type: string
                                   required:
                                   - port
@@ -4063,6 +4077,7 @@ spec:
                                       format: int32
                                       type: integer
                                     service:
+                                      default: ""
                                       type: string
                                   required:
                                   - port
@@ -4418,6 +4433,7 @@ spec:
                                       format: int32
                                       type: integer
                                     service:
+                                      default: ""
                                       type: string
                                   required:
                                   - port
@@ -4522,6 +4538,7 @@ spec:
                                       format: int32
                                       type: integer
                                     service:
+                                      default: ""
                                       type: string
                                   required:
                                   - port
@@ -4680,6 +4697,7 @@ spec:
                                       format: int32
                                       type: integer
                                     service:
+                                      default: ""
                                       type: string
                                   required:
                                   - port
@@ -5040,6 +5058,7 @@ spec:
                                       format: int32
                                       type: integer
                                     service:
+                                      default: ""
                                       type: string
                                   required:
                                   - port
@@ -5144,6 +5163,7 @@ spec:
                                       format: int32
                                       type: integer
                                     service:
+                                      default: ""
                                       type: string
                                   required:
                                   - port
@@ -5302,6 +5322,7 @@ spec:
                                       format: int32
                                       type: integer
                                     service:
+                                      default: ""
                                       type: string
                                   required:
                                   - port
@@ -5575,6 +5596,9 @@ spec:
                               type: object
                               x-kubernetes-map-type: atomic
                             maxSkew:
+                              format: int32
+                              type: integer
+                            minDomains:
                               format: int32
                               type: integer
                             topologyKey:
@@ -6979,6 +7003,7 @@ spec:
                                       format: int32
                                       type: integer
                                     service:
+                                      default: ""
                                       type: string
                                   required:
                                   - port
@@ -7083,6 +7108,7 @@ spec:
                                       format: int32
                                       type: integer
                                     service:
+                                      default: ""
                                       type: string
                                   required:
                                   - port
@@ -7241,6 +7267,7 @@ spec:
                                       format: int32
                                       type: integer
                                     service:
+                                      default: ""
                                       type: string
                                   required:
                                   - port
@@ -7596,6 +7623,7 @@ spec:
                                       format: int32
                                       type: integer
                                     service:
+                                      default: ""
                                       type: string
                                   required:
                                   - port
@@ -7700,6 +7728,7 @@ spec:
                                       format: int32
                                       type: integer
                                     service:
+                                      default: ""
                                       type: string
                                   required:
                                   - port
@@ -7858,6 +7887,7 @@ spec:
                                       format: int32
                                       type: integer
                                     service:
+                                      default: ""
                                       type: string
                                   required:
                                   - port
@@ -8218,6 +8248,7 @@ spec:
                                       format: int32
                                       type: integer
                                     service:
+                                      default: ""
                                       type: string
                                   required:
                                   - port
@@ -8322,6 +8353,7 @@ spec:
                                       format: int32
                                       type: integer
                                     service:
+                                      default: ""
                                       type: string
                                   required:
                                   - port
@@ -8480,6 +8512,7 @@ spec:
                                       format: int32
                                       type: integer
                                     service:
+                                      default: ""
                                       type: string
                                   required:
                                   - port
@@ -8753,6 +8786,9 @@ spec:
                               type: object
                               x-kubernetes-map-type: atomic
                             maxSkew:
+                              format: int32
+                              type: integer
+                            minDomains:
                               format: int32
                               type: integer
                             topologyKey:

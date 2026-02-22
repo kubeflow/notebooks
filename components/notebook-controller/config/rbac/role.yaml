@@ -5,12 +5,6 @@ metadata:
   name: role
 rules:
 - apiGroups:
-  - apps
-  resources:
-  - statefulsets
-  verbs:
-  - '*'
-- apiGroups:
   - ""
   resources:
   - events
@@ -34,6 +28,22 @@ rules:
   - services
   verbs:
   - '*'
+- apiGroups:
+  - apps
+  resources:
+  - statefulsets
+  verbs:
+  - '*'
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  verbs:
+  - create
+  - get
+  - list
+  - update
+  - watch
 - apiGroups:
   - kubeflow.org
   resources:
