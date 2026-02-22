@@ -29,7 +29,7 @@ spec:
         defaultDisplayName: "RStudio"
         protocol: "HTTP"
         httpProxy:
-          removePathPrefix: false
+          removePathPrefix: true
           requestHeaders:
             set:
               "X-RStudio-Root-Path": "{{ .PathPrefix }}"
