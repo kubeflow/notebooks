@@ -581,7 +581,7 @@ func generateVirtualService(instance *v1beta1.Notebook) (*unstructured.Unstructu
 	return vsvc, nil
 }
 
-func generateHTTPRoute(instance *v1beta1.Notebook) (*gwapiv1beta1.HTTPRoute, error) {
+func generateHTTPRoute(instance *v1beta1.Notebook) *gwapiv1beta1.HTTPRoute {
 	name := instance.Name
 	namespace := instance.Namespace
 	pathPrefix := ingressPath(instance)
@@ -663,23 +663,19 @@ func generateHTTPRoute(instance *v1beta1.Notebook) (*gwapiv1beta1.HTTPRoute, err
 		},
 	}
 
-	return httpRoute, nil
+	return httpRoute
 }
 
 func (r *NotebookReconciler) reconcileHTTPRoute(instance *v1beta1.Notebook) error {
 	log := r.Log.WithValues("notebook", instance.Namespace)
-	httpRoute, err := generateHTTPRoute(instance)
-	if err != nil {
-		log.Info("Unable to generate HTTPRoute...", err)
-		return err
-	}
+	httpRoute := generateHTTPRoute(instance)
 	if err := ctrl.SetControllerReference(instance, httpRoute, r.Scheme); err != nil {
 		return err
 	}
 	// Check if the HTTPRoute already exists.
 	foundHTTPRoute := &gwapiv1beta1.HTTPRoute{}
 	justCreated := false
-	err = r.Get(context.TODO(), types.NamespacedName{Name: virtualServiceName(instance.Name,
+	err := r.Get(context.TODO(), types.NamespacedName{Name: virtualServiceName(instance.Name,
 		instance.Namespace), Namespace: instance.Namespace}, foundHTTPRoute)
 	if err != nil && apierrs.IsNotFound(err) {
 		log.Info("Creating HTTPRoute", "namespace", instance.Namespace, "name",
