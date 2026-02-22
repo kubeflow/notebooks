@@ -93,7 +93,7 @@ func (r *PVCViewerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.Service{})
 
 	// Add routing resource ownership based on mode
-	if os.Getenv("USE_GATEWAY_API") == "true" {
+	if os.Getenv("EXPERIMENTAL_USE_GATEWAY_API") == "true" {
 		builder.Owns(httpRouteTemplate)
 	} else {
 		builder.Owns(virtualServiceTemplate)
@@ -145,7 +145,7 @@ func (r *PVCViewerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// Reconcile routing: HTTPRoute if Gateway API is enabled, otherwise VirtualService
 	if instance.Spec.Networking != (kubefloworgv1alpha1.Networking{}) {
-		if os.Getenv("USE_GATEWAY_API") == "true" {
+		if os.Getenv("EXPERIMENTAL_USE_GATEWAY_API") == "true" {
 			if err := r.reconcileHTTPRoute(ctx, log, instance, commonLabels); err != nil {
 				log.Error(err, "Error while reconciling HTTPRoute")
 				return ctrl.Result{}, err
@@ -372,11 +372,11 @@ func (r *PVCViewerReconciler) reconcileHTTPRoute(ctx context.Context, log logr.L
 	}
 
 	// Get gateway configuration
-	gatewayName := os.Getenv("K8S_GATEWAY_NAME")
+	gatewayName := os.Getenv("EXPERIMENTAL_K8S_GATEWAY_NAME")
 	if gatewayName == "" {
 		gatewayName = "kubeflow-gateway"
 	}
-	gatewayNamespace := os.Getenv("K8S_GATEWAY_NAMESPACE")
+	gatewayNamespace := os.Getenv("EXPERIMENTAL_K8S_GATEWAY_NAMESPACE")
 	if gatewayNamespace == "" {
 		gatewayNamespace = "kubeflow"
 	}
