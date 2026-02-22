@@ -67,7 +67,6 @@ type TensorboardReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
 func (r *TensorboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-
 	logger := r.Log.WithValues("tensorboard", req.NamespacedName)
 
 	instance := &tensorboardv1alpha1.Tensorboard{}
@@ -123,8 +122,8 @@ func (r *TensorboardReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 
 	foundDeployment := &appsv1.Deployment{}
-	//Update the instance.Status.ReadyReplicas if the foundDeployment.Status.ReadyReplicas
-	//has changed.
+	// Update the instance.Status.ReadyReplicas if the foundDeployment.Status.ReadyReplicas
+	// has changed.
 	_err := r.Get(ctx, types.NamespacedName{Name: deployment.Name, Namespace: deployment.Namespace}, foundDeployment)
 
 	if _err != nil {
@@ -182,23 +181,23 @@ func generateDeployment(tb *tensorboardv1alpha1.Tensorboard, log logr.Logger, r 
 	var volumeMounts []corev1.VolumeMount
 	var volumes []corev1.Volume
 	var mountpath, subpath string = tb.Spec.LogsPath, ""
-	var affinity = &corev1.Affinity{}
+	affinity := &corev1.Affinity{}
 	tensorboardImage, err := getEnvVariable("TENSORBOARD_IMAGE")
 	if err != nil {
 		return nil, err
 	}
 
-	//In this case, a PVC is used as a log storage for the Tensorboard server.
+	// In this case, a PVC is used as a log storage for the Tensorboard server.
 	if !isCloudPath(tb.Spec.LogsPath) {
 		var pvcname string
 
-		//General case, in which tb.Spec.LogsPath follows the format: "pvc://<pvc-name>/<local-path>".
+		// General case, in which tb.Spec.LogsPath follows the format: "pvc://<pvc-name>/<local-path>".
 		if isPVCPath(tb.Spec.LogsPath) {
 			pvcname = extractPVCName(tb.Spec.LogsPath)
 			mountpath = "/tensorboard_logs/"
 			subpath = extractPVCSubPath(tb.Spec.LogsPath)
 		} else {
-			//Maintaining backwards compatibility with previous version of the controller.
+			// Maintaining backwards compatibility with previous version of the controller.
 			pvcname = "tb-volume"
 			subpath = ""
 		}
@@ -221,12 +220,12 @@ func generateDeployment(tb *tensorboardv1alpha1.Tensorboard, log logr.Logger, r 
 		if err, sch := rwoPVCScheduling(); err != nil {
 			return nil, err
 		} else if sch {
-			//If 'RWO_PVC_SCHEDULING' env var is set to "true", an extra scheduling functionality is added,
-			//for the case that the Tensorboard Server is using a RWO PVC (as a log storage)
-			//and the PVC is already mounted by another pod.
+			// If 'RWO_PVC_SCHEDULING' env var is set to "true", an extra scheduling functionality is added,
+			// for the case that the Tensorboard Server is using a RWO PVC (as a log storage)
+			// and the PVC is already mounted by another pod.
 
-			//Get the PVC that will be accessed by the Tensorboard Server.
-			var pvc = &corev1.PersistentVolumeClaim{}
+			// Get the PVC that will be accessed by the Tensorboard Server.
+			pvc := &corev1.PersistentVolumeClaim{}
 			if err := r.Get(context.Background(), client.ObjectKey{
 				Namespace: tb.Namespace,
 				Name:      pvcname,
@@ -244,7 +243,7 @@ func generateDeployment(tb *tensorboardv1alpha1.Tensorboard, log logr.Logger, r 
 			}
 		}
 	} else if isGoogleCloudPath(tb.Spec.LogsPath) {
-		//In this case, a Google cloud bucket is used as a log storage for the Tensorboard server.
+		// In this case, a Google cloud bucket is used as a log storage for the Tensorboard server.
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
 			Name:      "gcp-creds",
 			ReadOnly:  true,
@@ -322,7 +321,7 @@ func generateService(tb *tensorboardv1alpha1.Tensorboard) *corev1.Service {
 			Type:     "ClusterIP",
 			Selector: map[string]string{"app": tb.Name},
 			Ports: []corev1.ServicePort{
-				corev1.ServicePort{
+				{
 					Name:       "http-" + tb.Name,
 					Port:       80,
 					TargetPort: intstr.FromInt(6006),
@@ -332,8 +331,12 @@ func generateService(tb *tensorboardv1alpha1.Tensorboard) *corev1.Service {
 	}
 }
 
+func ingressPath(tb *tensorboardv1alpha1.Tensorboard) string {
+	return fmt.Sprintf("/notebook/%s/%s/", tb.Namespace, tb.Name)
+}
+
 func generateVirtualService(tb *tensorboardv1alpha1.Tensorboard) (*unstructured.Unstructured, error) {
-	prefix := fmt.Sprintf("/tensorboard/%s/%s/", tb.Namespace, tb.Name)
+	prefix := ingressPath(tb)
 	rewrite := "/"
 	service := fmt.Sprintf("%s.%s.svc.cluster.local", tb.Name, tb.Namespace)
 	istioGateway, err := getEnvVariable("ISTIO_GATEWAY")
@@ -392,7 +395,7 @@ func generateVirtualService(tb *tensorboardv1alpha1.Tensorboard) (*unstructured.
 }
 
 func generateHTTPRoute(tb *tensorboardv1alpha1.Tensorboard) (*gwapiv1beta1.HTTPRoute, error) {
-	prefix := fmt.Sprintf("/tensorboard/%s/%s", tb.Namespace, tb.Name)
+	prefix := ingressPath(tb)
 	pathRewrite := "/"
 
 	// Get gateway configuration
@@ -531,8 +534,8 @@ func isPVCPath(path string) bool {
 }
 
 func extractPVCName(path string) string {
-	trimmed := strings.TrimPrefix(path, "pvc://") //removing "pvc://" prefix
-	ending := strings.Index(trimmed, "/")         //finding ending index of pvc-name string
+	trimmed := strings.TrimPrefix(path, "pvc://") // removing "pvc://" prefix
+	ending := strings.Index(trimmed, "/")         // finding ending index of pvc-name string
 	if ending == -1 {
 		return trimmed
 	} else {
@@ -541,8 +544,8 @@ func extractPVCName(path string) string {
 }
 
 func extractPVCSubPath(path string) string {
-	trimmed := strings.TrimPrefix(path, "pvc://") //removing "pvc://" prefix
-	start := strings.Index(trimmed, "/")          //finding starting index of local path inside PVC
+	trimmed := strings.TrimPrefix(path, "pvc://") // removing "pvc://" prefix
+	start := strings.Index(trimmed, "/")          // finding starting index of local path inside PVC
 	if start == -1 || len(trimmed) == start+1 {
 		return ""
 	} else {
@@ -568,25 +571,25 @@ func extractNodeName(pod corev1.Pod) string {
 
 func generateNodeAffinity(affinity *corev1.Affinity, pvcname string, r *TensorboardReconciler, tb *tensorboardv1alpha1.Tensorboard) error {
 	var nodename string
-	var pods = &corev1.PodList{}
+	pods := &corev1.PodList{}
 	var pod corev1.Pod
 
-	//List all pods that access the PVC that has ClaimName: pvcname.
-	//NOTE: We use only one custom field selector to filter out pods that don't use this PVC.
+	// List all pods that access the PVC that has ClaimName: pvcname.
+	// NOTE: We use only one custom field selector to filter out pods that don't use this PVC.
 	if err := r.List(context.Background(), pods, client.InNamespace(tb.Namespace), client.MatchingFields{"spec.volumes.persistentvolumeclaim.claimname": pvcname}); err != nil {
 		return fmt.Errorf("List pods error: %v", err)
 	}
 
-	//Find a running pod that uses the PVC.
+	// Find a running pod that uses the PVC.
 	pod = findRunningPod(pods)
 
-	//If there is no running pod that uses the PVC, then: nodename == "".
-	//Else, nodename contains the name of the node that the pod is running on.
+	// If there is no running pod that uses the PVC, then: nodename == "".
+	// Else, nodename contains the name of the node that the pod is running on.
 	nodename = extractNodeName(pod)
 
-	//In this case, there is a running pod that uses the PVC, therefore we create
-	//a nodeAffinity field so that the Tensorboard server will be scheduled (if possible)
-	//on the same node as the running pod.
+	// In this case, there is a running pod that uses the PVC, therefore we create
+	// a nodeAffinity field so that the Tensorboard server will be scheduled (if possible)
+	// on the same node as the running pod.
 	if nodename == "" {
 		return nil
 	}
@@ -621,8 +624,8 @@ func rwoPVCScheduling() (error, bool) {
 		return nil, true
 	}
 
-	//If 'RWO_PVC_SCHEDULING' is present in the environment but has an invalid value,
-	//then an error is returned.
+	// If 'RWO_PVC_SCHEDULING' is present in the environment but has an invalid value,
+	// then an error is returned.
 	return fmt.Errorf("Invalid value for 'RWO_PVC_SCEDULING' env var."), false
 }
 
