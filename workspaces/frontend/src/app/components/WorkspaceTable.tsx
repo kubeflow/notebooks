@@ -562,11 +562,13 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                 </Tbody>
               ))}
           {sortedWorkspaces.length === 0 && (
-            <Tr>
-              <Td colSpan={8} id="empty-state-cell">
-                <Bullseye>{emptyState}</Bullseye>
-              </Td>
-            </Tr>
+            <Tbody>
+              <Tr>
+                <Td colSpan={8} id="empty-state-cell">
+                  <Bullseye>{emptyState}</Bullseye>
+                </Td>
+              </Tr>
+            </Tbody>
           )}
         </Table>
         <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
