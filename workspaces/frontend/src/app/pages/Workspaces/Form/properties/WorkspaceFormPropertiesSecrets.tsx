@@ -58,9 +58,6 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
     fetchSecrets();
   }, [api.secrets, selectedNamespace]);
 
-  // const getSecretKey = (secret: WorkspacesPodSecretMount): string =>
-  //   `${secret.secretName}:${secret.mountPath}`;
-
   const openDeleteModal = useCallback((i: number) => {
     setIsDeleteModalOpen(true);
     setDeleteIndex(i);
@@ -74,13 +71,6 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
         defaultMode: mode,
         isAttached: true,
       }));
-
-      // Track the keys of attached secrets
-      // const newKeys = new Set(attachedSecretKeys);
-      // newSecretMounts.forEach((mount) => {
-      //   newKeys.add(getSecretKey(mount));
-      // });
-      // setAttachedSecretKeys(newKeys);
 
       setSecrets([...secrets, ...newSecretMounts]);
       setIsAttachModalOpen(false);
