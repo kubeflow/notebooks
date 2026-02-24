@@ -65,7 +65,7 @@ describe('SecretsAttachModal', () => {
       data: mockSecrets,
     }).as('listSecrets');
 
-    // Mock getSecret for each available secret (SecretsViewPopover fetches on mount)
+    // Mock getSecret for each available secret (fetched lazily on row expand)
     mockSecrets.forEach((secret) => {
       cy.intercept(
         'GET',
@@ -105,18 +105,26 @@ describe('SecretsAttachModal', () => {
 
     // Select secret using the typeahead input
     // eslint-disable-next-line @cspell/spellchecker
-    cy.get('[aria-labelledby="basic-modal-title"]').find('input[type="text"]').first().click();
+    cy.get('[aria-labelledby="basic-modal-title"]')
+      .find('input[type="text"]')
+      .first()
+      .as('secretTypeahead');
+    // eslint-disable-next-line cypress/unsafe-to-chain-command -- click after get is required; rule flags any .click() chain
+    cy.get('@secretTypeahead').click();
     cy.contains('.pf-v6-c-menu__list-item', 'api-secret').click();
     cy.get('body').click(0, 0);
 
-    // Fill mount path
-    cy.get('#mount-path').type('/mnt/secrets');
+    // Mount path auto-fills to /secrets/api-secret; click Edit to change it
+    cy.findByTestId('mount-path-edit').click();
+    cy.findByTestId('mount-path-input').clear();
+    cy.findByTestId('mount-path-input').type('/mnt/secrets');
+    cy.findByTestId('mount-path-save').as('mountPathSave');
+    // eslint-disable-next-line cypress/unsafe-to-chain-command -- click after get is required; rule flags any .click() chain
+    cy.get('@mountPathSave').click();
 
     // Attach button in modal footer should be enabled
-    cy.get('.pf-v6-c-modal-box__footer')
-      .contains('button', 'Attach')
-      .should('not.be.disabled')
-      .click();
+    cy.get('.pf-v6-c-modal-box__footer').contains('button', 'Attach').should('not.be.disabled');
+    cy.get('.pf-v6-c-modal-box__footer').contains('button', 'Attach').click();
 
     // Verify secret appears in table
     cy.findByTestId('secrets-table').should('contain', 'api-secret');
@@ -130,10 +138,20 @@ describe('SecretsAttachModal', () => {
 
     // Select secret using the typeahead input
     // eslint-disable-next-line @cspell/spellchecker
-    cy.get('[aria-labelledby="basic-modal-title"]').find('input[type="text"]').first().click();
+    cy.get('[aria-labelledby="basic-modal-title"]')
+      .find('input[type="text"]')
+      .first()
+      .as('secretTypeahead2');
+    // eslint-disable-next-line cypress/unsafe-to-chain-command -- click after get is required; rule flags any .click() chain
+    cy.get('@secretTypeahead2').click();
     cy.contains('.pf-v6-c-menu__list-item', 'api-secret').click();
     cy.get('body').click(0, 0);
-    cy.get('#mount-path').type('/mnt/secrets');
+    cy.findByTestId('mount-path-edit').click();
+    cy.findByTestId('mount-path-input').clear();
+    cy.findByTestId('mount-path-input').type('/mnt/secrets');
+    cy.findByTestId('mount-path-save').as('mountPathSave2');
+    // eslint-disable-next-line cypress/unsafe-to-chain-command -- click after get is required; rule flags any .click() chain
+    cy.get('@mountPathSave2').click();
 
     // Enter invalid mode
     cy.get('#default-mode').clear();

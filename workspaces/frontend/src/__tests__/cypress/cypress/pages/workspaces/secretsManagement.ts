@@ -47,35 +47,39 @@ class SecretsManagementPage {
   }
 
   findCreateSecretButton() {
-    return cy.findByTestId('create-secret-button');
+    return cy.findByTestId('attach-new-secret-button');
   }
 
-  // Secrets View Popover
-  clickViewSecret(secretName: string) {
-    this.findSecretRow(secretName).find('button').first().click();
+  // Expandable rows for key/value pairs
+  expandSecretRow(secretName: string) {
+    return cy.findByTestId(`expand-secret-${secretName}`).click();
   }
 
-  findSecretPopover() {
-    // PatternFly v6 Popover uses pf-v6-c-popover class
-    return cy.get('.pf-v6-c-popover');
+  assertExpandedRowContainsKeys(secretName: string, keys: string[]) {
+    this.findSecretRow(secretName)
+      .parent('tbody')
+      .within(() => {
+        keys.forEach((key) => {
+          cy.contains('td', key).should('exist');
+        });
+      });
   }
 
-  assertPopoverOpen() {
-    this.findSecretPopover().should('be.visible');
+  assertExpandedRowValuesMasked(secretName: string) {
+    this.findSecretRow(secretName)
+      .parent('tbody')
+      .within(() => {
+        cy.contains('td', '*********').should('exist');
+      });
   }
 
-  assertPopoverTitle(secretName: string) {
-    this.findSecretPopover().should('contain', secretName);
+  // Empty state
+  findEmptyState() {
+    return cy.findByTestId('secrets-empty-state');
   }
 
-  assertPopoverContainsKeys(keys: string[]) {
-    keys.forEach((key) => {
-      this.findSecretPopover().should('contain', `${key}: *********`);
-    });
-  }
-
-  assertSecretValuesMasked() {
-    this.findSecretPopover().should('contain', '*********');
+  assertEmptyStateVisible() {
+    this.findEmptyState().should('be.visible');
   }
 }
 
@@ -109,7 +113,7 @@ class SecretsModal {
   }
 
   findKeyInput() {
-    return cy.findAllByTestId('key-input');
+    return this.find().findAllByTestId('key-input');
   }
 
   assertModalVisible() {

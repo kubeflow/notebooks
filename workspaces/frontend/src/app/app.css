@@ -35,3 +35,75 @@ body,
 .workspacekind-file-upload .pf-v6-c-form-control:has(textarea[readonly]) {
   background-color: var(--pf-t--global--background--color--disabled--default);
 }
+
+/* Read-only mount path input (pencil-to-edit pattern): styled to match disabled appearance */
+.mui-theme .mount-path-readonly .pf-v6-c-form-control {
+  --pf-v6-c-form-control--Color: var(--pf-t--global--text--color--on-disabled);
+  --pf-v6-c-form-control--before--BorderColor: var(--pf-t--global--border--color--disabled);
+  pointer-events: none;
+  cursor: default;
+}
+
+/* PF theme: grey the form label */
+.mui-theme .mount-path-readonly .pf-v6-c-form__label {
+  color: var(--pf-t--global--text--color--on-disabled);
+}
+
+/* MUI theme: grey the fieldset border and floating legend label; suppress hover/focus styles */
+.mui-theme .mount-path-readonly .form-fieldset {
+  border-color: var(--pf-t--global--border--color--disabled);
+}
+
+.mui-theme .mount-path-readonly .form-fieldset-wrapper:hover .form-fieldset,
+.mui-theme .mount-path-readonly .form-fieldset-wrapper:focus-within .form-fieldset {
+  border-color: var(--pf-t--global--border--color--disabled);
+}
+
+.mui-theme .mount-path-readonly .pf-v6-c-form__group-label .pf-v6-c-form__label {
+  color: var(--pf-t--global--text--color--on-disabled);
+}
+
+/* TODO: remove when https://github.com/opendatahub-io/mod-arch-library/issues/134 is complete. Revert file upload control buttons to default PF style; MUI-theme will exclude .pf-v6-c-file-upload via selector instead. */
+.mui-theme .workspacekind-file-upload .pf-v6-c-input-group__item .pf-v6-c-button.pf-m-control {
+  --pf-v6-c-button--BorderColor: var(--pf-t--global--border--color--default);
+  --pf-v6-c-button--hover--BorderColor: var(--pf-t--global--border--color--hover);
+  --pf-v6-c-button--m-control--BorderColor: var(--pf-t--global--border--color--default);
+  --pf-v6-c-button--m-control--hover--BorderColor: var(--pf-t--global--border--color--hover);
+  --pf-v6-c-button--m-control--m-clicked--BorderColor: var(--pf-t--global--border--color--clicked);
+  --pf-v6-c-button--PaddingBlockStart: var(--pf-t--global--spacer--control--vertical--default);
+  --pf-v6-c-button--PaddingBlockEnd: var(--pf-t--global--spacer--control--vertical--default);
+  --pf-v6-c-button--PaddingInlineStart: var(--pf-t--global--spacer--control--horizontal--default);
+  --pf-v6-c-button--PaddingInlineEnd: var(--pf-t--global--spacer--control--horizontal--default);
+  --pf-v6-c-button--m-control--BorderRadius: var(--pf-t--global--border--radius--small);
+  width: auto;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  border-radius: var(--pf-t--global--border--radius--small);
+  line-height: var(--pf-t--global--font--line-height--body);
+  align-self: stretch;
+}
+.mui-theme .workspacekind-file-upload .pf-v6-c-input-group__item:has(.pf-v6-c-button.pf-m-control):last-child {
+  padding-inline-end: 0;
+}
+.mui-theme .workspacekind-file-upload .pf-v6-c-input-group__item .pf-v6-c-button.pf-m-control:hover,
+.mui-theme .workspacekind-file-upload .pf-v6-c-input-group__item .pf-v6-c-button.pf-m-control:focus-visible {
+  border-radius: var(--pf-t--global--border--radius--small);
+}
+
+/* Custom inline-edit input in secrets table row (editable label in table — not supported natively by PF). */
+.mui-theme .secrets-inline-edit__input.pf-v6-c-form-control {
+  --pf-v6-c-form-control--PaddingBlockStart: var(--pf-t--global--spacer--xs, 0.25rem);
+  --pf-v6-c-form-control--PaddingBlockEnd: var(--pf-t--global--spacer--xs, 0.25rem);
+  border: 1px solid var(--mui-form-control--BorderColor, rgba(0, 0, 0, 0.23));
+  border-radius: var(--mui-shape-borderRadius, 4px);
+}
+
+.mui-theme .secrets-inline-edit__input.pf-v6-c-form-control:hover {
+  border-color: var(--pf-v6-c-form-control--hover--after--BorderColor, rgba(0, 0, 0, 0.87));
+}
+
+.mui-theme .secrets-inline-edit__input.pf-v6-c-form-control:focus-within {
+  border-color: var(--mui-palette-primary-main, #1976d2);
+  box-shadow: inset 0 0 0 1px var(--mui-palette-primary-main, #1976d2);
+}

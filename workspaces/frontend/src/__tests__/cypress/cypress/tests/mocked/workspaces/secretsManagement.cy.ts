@@ -13,7 +13,7 @@ import {
 import { navBar } from '~/__tests__/cypress/cypress/pages/components/navBar';
 import { WorkspacesWorkspaceState } from '~/generated/data-contracts';
 
-describe('SecretsViewPopover', () => {
+describe('Secrets Expandable Key/Value Pairs', () => {
   const mockNamespace = buildMockNamespace({ name: 'default' });
   const mockWorkspaceKindInfo = buildMockWorkspaceKindInfo({ name: 'jupyterlab' });
   const mockWorkspaceKindFull = buildMockWorkspaceKind({ name: 'jupyterlab' });
@@ -69,7 +69,7 @@ describe('SecretsViewPopover', () => {
       data: [],
     }).as('listSecrets');
 
-    // Intercept getSecret API calls (SecretsViewPopover fetches on mount)
+    // Intercept getSecret API calls (fetched lazily on row expand)
     cy.intercept(
       'GET',
       `/api/${NOTEBOOKS_API_VERSION}/secrets/${mockNamespace.name}/api-key-secret`,
@@ -125,26 +125,25 @@ describe('SecretsViewPopover', () => {
     cy.contains('button', 'Secrets').click();
   });
 
-  it('should display secret contents with masked values in popover', () => {
-    // Click the view button for the attached secret (data already fetched on mount)
-    secretsManagement.clickViewSecret('api-key-secret');
+  it('should display secret keys with masked values in expanded row', () => {
+    // Expand the secret row to see key/value pairs
+    secretsManagement.expandSecretRow('api-key-secret');
+    cy.wait('@getSecret1');
 
-    // Verify popover displays secret name and keys with masked values
-    secretsManagement.assertPopoverOpen();
-    secretsManagement.assertPopoverTitle('api-key-secret');
-    secretsManagement.assertPopoverContainsKeys(['username', 'password']);
-    secretsManagement.assertSecretValuesMasked();
+    // Verify expanded row displays keys with masked values
+    secretsManagement.assertExpandedRowContainsKeys('api-key-secret', ['username', 'password']);
+    secretsManagement.assertExpandedRowValuesMasked('api-key-secret');
   });
 
   it('should display different contents for different secrets', () => {
-    // View first secret
-    secretsManagement.clickViewSecret('api-key-secret');
-    secretsManagement.assertPopoverContainsKeys(['username', 'password']);
+    // Expand first secret
+    secretsManagement.expandSecretRow('api-key-secret');
+    cy.wait('@getSecret1');
+    secretsManagement.assertExpandedRowContainsKeys('api-key-secret', ['username', 'password']);
 
-    // Close and view second secret
-    cy.get('body').click(0, 0); // Close popover
-
-    secretsManagement.clickViewSecret('db-credentials');
-    secretsManagement.assertPopoverContainsKeys(['dbHost', 'dbPassword']);
+    // Expand second secret
+    secretsManagement.expandSecretRow('db-credentials');
+    cy.wait('@getSecret2');
+    secretsManagement.assertExpandedRowContainsKeys('db-credentials', ['dbHost', 'dbPassword']);
   });
 });

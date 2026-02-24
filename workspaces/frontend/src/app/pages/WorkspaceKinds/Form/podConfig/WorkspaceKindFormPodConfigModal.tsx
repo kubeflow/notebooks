@@ -11,7 +11,7 @@ import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput'
 import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
 import { HelperText } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { WorkspaceKindPodConfigValue } from '~/app/types';
-import { EditableLabels } from '~/app/pages/WorkspaceKinds/Form/EditableLabels';
+import { EditableRowsTable } from '~/app/pages/WorkspaceKinds/Form/EditableRowsTable';
 import { getResources } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { WorkspacekindsOptionLabel } from '~/generated/data-contracts';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
@@ -195,7 +195,7 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
               name="check5"
             />
           </FormGroup>
-          <EditableLabels rows={labels} setRows={(newLabels) => setLabels(newLabels)} />
+          <EditableRowsTable rows={labels} setRows={(newLabels) => setLabels(newLabels)} />
           <WorkspaceKindFormResource
             setResources={setResources}
             cpu={cpuResource}

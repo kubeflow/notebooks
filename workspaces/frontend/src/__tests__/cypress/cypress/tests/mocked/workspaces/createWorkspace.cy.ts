@@ -799,7 +799,7 @@ describe('Create workspace', () => {
     const openSecretsCreationModal = () => {
       navigateToPropertiesStep();
       createWorkspace.expandSecretsSection();
-      createWorkspace.clickCreateNewSecret();
+      createWorkspace.clickAttachNewSecret();
     };
 
     beforeEach(() => {
@@ -816,9 +816,9 @@ describe('Create workspace', () => {
 
         // Open modal
         createWorkspace.expandSecretsSection();
-        createWorkspace.clickCreateNewSecret();
+        createWorkspace.clickAttachNewSecret();
         secretsCreateModal.assertModalExists();
-        secretsCreateModal.find().contains('Create Secret').should('be.visible');
+        secretsCreateModal.find().contains('Attach New Secret').should('be.visible');
 
         // Close modal via Cancel button
         secretsCreateModal.clickCancel();
@@ -1015,7 +1015,7 @@ describe('Create workspace', () => {
           mockModArchResponse(mockSecretResponse),
         ).as('createSecret');
 
-        // Mock getSecret for the SecretsViewPopover that will mount after creation
+        // Mock getSecret for lazy loading key/value pairs on row expand
         cy.intercept(
           'GET',
           `/api/${NOTEBOOKS_API_VERSION}/secrets/${mockNamespace.name}/${secretName}`,
@@ -1064,7 +1064,7 @@ describe('Create workspace', () => {
           mockModArchResponse(mockSecretResponse),
         ).as('createSecret');
 
-        // Mock getSecret for the SecretsViewPopover
+        // Mock getSecret for lazy loading key/value pairs on row expand
         cy.intercept(
           'GET',
           `/api/${NOTEBOOKS_API_VERSION}/secrets/${mockNamespace.name}/${secretName}`,
@@ -1134,7 +1134,7 @@ describe('Create workspace', () => {
           mockModArchResponse(mockSecretResponse),
         ).as('createSecret');
 
-        // Mock getSecret for the SecretsViewPopover
+        // Mock getSecret for lazy loading key/value pairs on row expand
         cy.intercept(
           'GET',
           `/api/${NOTEBOOKS_API_VERSION}/secrets/${mockNamespace.name}/${secretName}`,
@@ -1155,7 +1155,7 @@ describe('Create workspace', () => {
         secretsCreateModal.assertModalNotExists();
 
         // Open modal again
-        createWorkspace.clickCreateNewSecret();
+        createWorkspace.clickAttachNewSecret();
         secretsCreateModal.assertModalExists();
 
         // Form should be reset
@@ -1211,10 +1211,10 @@ describe('Create workspace', () => {
         cy.wait('@listSecrets');
 
         // Wait for the create button to be visible
-        cy.findByTestId('create-new-secret-button').should('be.visible');
+        cy.findByTestId('attach-new-secret-button').should('be.visible');
 
         // Create a new secret
-        createWorkspace.clickCreateNewSecret();
+        createWorkspace.clickAttachNewSecret();
         secretsCreateModal.assertModalExists();
         secretsCreateModal.typeSecretName(secretName);
         secretsCreateModal.typeKey(0, key1);
@@ -1275,7 +1275,7 @@ describe('Create workspace', () => {
         cy.wait('@listSecrets');
 
         // Wait for the create button to be visible
-        cy.findByTestId('create-new-secret-button').should('be.visible');
+        cy.findByTestId('attach-new-secret-button').should('be.visible');
 
         // Create first secret
         cy.interceptApi(
@@ -1296,7 +1296,7 @@ describe('Create workspace', () => {
           { statusCode: 200, body: { data: {} } },
         ).as('deleteSecret1');
 
-        createWorkspace.clickCreateNewSecret();
+        createWorkspace.clickAttachNewSecret();
         secretsCreateModal.typeSecretName(secret1);
         secretsCreateModal.typeKey(0, 'key1');
         secretsCreateModal.typeValue(0, 'value1');
@@ -1322,7 +1322,7 @@ describe('Create workspace', () => {
           { statusCode: 200, body: { data: {} } },
         ).as('deleteSecret2');
 
-        createWorkspace.clickCreateNewSecret();
+        createWorkspace.clickAttachNewSecret();
         secretsCreateModal.typeSecretName(secret2);
         secretsCreateModal.typeKey(0, 'key2');
         secretsCreateModal.typeValue(0, 'value2');

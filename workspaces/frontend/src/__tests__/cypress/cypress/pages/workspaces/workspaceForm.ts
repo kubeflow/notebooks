@@ -159,14 +159,12 @@ class WorkspaceForm {
     return this.findSecretsExpandableToggle().click();
   }
 
-  findCreateNewSecretButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.contains('button', 'Create New Secret') as unknown as Cypress.Chainable<
-      JQuery<HTMLElement>
-    >;
+  findAttachNewSecretButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('attach-new-secret-button');
   }
 
-  clickCreateNewSecret(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findCreateNewSecretButton().click();
+  clickAttachNewSecret(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findAttachNewSecretButton().click();
   }
 
   findLabelFilterPanel(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -239,7 +237,7 @@ class WorkspaceForm {
 
 class SecretsCreateModal {
   find() {
-    return cy.get('[aria-labelledby="create-secret-modal-title"]');
+    return cy.findByTestId('secrets-modal');
   }
 
   assertModalExists() {
@@ -275,7 +273,7 @@ class SecretsCreateModal {
   }
 
   findKeyInput(index = 0) {
-    return cy.findAllByTestId('key-input').eq(index);
+    return this.find().findAllByTestId('key-input').eq(index);
   }
 
   typeKey(index: number, key: string) {
@@ -287,7 +285,7 @@ class SecretsCreateModal {
   }
 
   findValueInput(index = 0) {
-    return cy.findAllByTestId('value-input').eq(index);
+    return this.find().findAllByTestId('value-input').eq(index);
   }
 
   typeValue(index: number, value: string) {
@@ -299,7 +297,7 @@ class SecretsCreateModal {
   }
 
   findRemoveKeyValuePairButton(index = 0) {
-    return cy.findAllByTestId('remove-key-value-pair').eq(index);
+    return this.find().findAllByTestId('remove-key-value-pair').eq(index);
   }
 
   clickRemoveKeyValuePair(index: number) {
@@ -323,11 +321,7 @@ class SecretsCreateModal {
   }
 
   findCreateButton() {
-    // Find the button element that contains 'Create' text in the modal footer
-    return this.find()
-      .find('footer button, .pf-v6-c-modal-box__footer button')
-      .filter(':contains("Create")')
-      .first();
+    return cy.findByTestId('secret-modal-submit-button');
   }
 
   clickCreate() {
@@ -343,11 +337,7 @@ class SecretsCreateModal {
   }
 
   findCancelButton() {
-    // Find the button element that contains 'Cancel' text in the modal footer
-    return this.find()
-      .find('footer button, .pf-v6-c-modal-box__footer button')
-      .filter(':contains("Cancel")')
-      .first();
+    return cy.findByTestId('secret-modal-cancel-button');
   }
 
   clickCancel() {
@@ -355,8 +345,7 @@ class SecretsCreateModal {
   }
 
   findErrorAlert() {
-    // PatternFly Alert component - look for the alert class or role
-    return this.find().find('.pf-v6-c-alert, [role="alert"]');
+    return this.find().find('[data-testid="error-alert"]');
   }
 
   assertErrorAlertExists() {
