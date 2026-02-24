@@ -2,16 +2,12 @@ import React from 'react';
 import { Banner } from '@patternfly/react-core/dist/esm/components/Banner';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-triangle-icon';
-import { SHOW_PRE_GA_BANNER } from '~/shared/utilities/const';
+import { HIDE_PRE_GA_BANNER, PRE_GA_LEARN_MORE_LINK } from '~/shared/utilities/const';
 
 const PreGABanner: React.FC = () => {
-  // Hide banner if flag is disabled
-  if (!SHOW_PRE_GA_BANNER) {
+  if (HIDE_PRE_GA_BANNER) {
     return null;
   }
-
-  // Example link - TODO: replace with redirect URL
-  const placeholderLink = 'https://kubeflow.org';
 
   return (
     <Banner
@@ -35,7 +31,7 @@ const PreGABanner: React.FC = () => {
           <a
             // TODO: Remove when https://github.com/opendatahub-io/mod-arch-library/issues/99 is completed
             className="pf-v6-u-text-color-inverse"
-            href={placeholderLink}
+            href={PRE_GA_LEARN_MORE_LINK}
             target="_blank"
             rel="noopener noreferrer"
           >
