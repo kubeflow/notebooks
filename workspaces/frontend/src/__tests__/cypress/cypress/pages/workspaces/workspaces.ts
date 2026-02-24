@@ -28,7 +28,7 @@ class Workspaces {
   }
 
   findWorkspacesTableRows() {
-    return this.findWorkspacesTable().find('tbody tr');
+    return this.findWorkspacesTable().find('tr[data-testid^="workspace-row-"]');
   }
 
   findWorkspaceTableRow(workspaceName: string) {
