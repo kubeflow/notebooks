@@ -119,8 +119,8 @@ describe('SecretsAttachModal', () => {
       .click();
 
     // Verify secret appears in table
-    cy.get('table[aria-label="Secrets Table"]').should('contain', 'api-secret');
-    cy.get('table[aria-label="Secrets Table"]').should('contain', '/mnt/secrets');
+    cy.findByTestId('secrets-table').should('contain', 'api-secret');
+    cy.findByTestId('secrets-table').should('contain', '/mnt/secrets');
   });
 
   it('should validate default mode input', () => {

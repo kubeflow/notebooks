@@ -25,11 +25,17 @@ export interface WorkspaceKindsColumns {
 
 export type WorkspaceFormMode = 'create' | 'update';
 
+// Utility type that adds isAttached to any base type
+type WithAttached<T> = T & { isAttached?: boolean };
+
+export type WorkspacesPodSecretMountValue = WithAttached<WorkspacesPodSecretMount>;
+export type WorkspacesPodVolumeMountValue = WithAttached<WorkspacesPodVolumeMount>;
+
 export interface WorkspaceFormProperties {
   workspaceName: string;
   homeDirectory: string;
   volumes: WorkspacesPodVolumeMount[];
-  secrets: WorkspacesPodSecretMount[];
+  secrets: WorkspacesPodSecretMountValue[];
 }
 
 export interface WorkspaceFormData {

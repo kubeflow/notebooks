@@ -1151,5 +1151,207 @@ describe('Create workspace', () => {
         secretsCreateModal.assertValueValue(0, '');
       });
     });
+
+    describe('Secret removal flows', () => {
+      it('should trigger API call when removing a created secret', () => {
+        const secretName = 'created-secret-to-remove';
+        const key1 = 'API_KEY';
+        const value1 = 'secret-value-123';
+
+        const mockSecretResponse = {
+          name: secretName,
+          type: 'Opaque',
+          immutable: false,
+          contents: {
+            [key1]: { base64: btoa(value1) },
+          },
+        };
+
+        // Mock createSecret API
+        cy.interceptApi(
+          'POST /api/:apiVersion/secrets/:namespace',
+          { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
+          mockModArchResponse(mockSecretResponse),
+        ).as('createSecret');
+
+        // Mock getSecret for the SecretsViewPopover
+        cy.intercept(
+          'GET',
+          `/api/${NOTEBOOKS_API_VERSION}/secrets/${mockNamespace.name}/${secretName}`,
+          { data: mockSecretResponse },
+        ).as('getSecret');
+
+        // Mock deleteSecret API call
+        cy.intercept(
+          'DELETE',
+          `/api/${NOTEBOOKS_API_VERSION}/secrets/${mockNamespace.name}/${secretName}`,
+          {
+            statusCode: 200,
+            body: { data: {} },
+          },
+        ).as('deleteSecret');
+
+        navigateToPropertiesStep();
+        createWorkspace.expandSecretsSection();
+
+        // Wait for listSecrets API to complete (component fetches on mount)
+        cy.wait('@listSecrets');
+
+        // Wait for the create button to be visible
+        cy.findByTestId('create-new-secret-button').should('be.visible');
+
+        // Create a new secret
+        createWorkspace.clickCreateNewSecret();
+        secretsCreateModal.assertModalExists();
+        secretsCreateModal.typeSecretName(secretName);
+        secretsCreateModal.typeKey(0, key1);
+        secretsCreateModal.typeValue(0, value1);
+
+        secretsCreateModal.clickCreate();
+        cy.wait('@createSecret');
+        secretsCreateModal.assertModalNotExists();
+
+        // Verify secret appears in table
+        cy.findByTestId('secrets-table').should('be.visible');
+        cy.findByTestId('secrets-table').should('contain', secretName);
+
+        // Remove the secret
+        cy.findByTestId('secrets-table')
+          .contains('tr', secretName)
+          .findByTestId(`secret-kebab-${secretName}`)
+          .click();
+        cy.contains('button', 'Remove').click();
+
+        // Confirm deletion in modal
+        cy.findByTestId('delete-modal').should('be.visible');
+        cy.findByTestId('delete-modal').should('contain', secretName);
+
+        // Type the secret name to enable the delete button
+        cy.findByTestId('delete-modal-input').type(secretName);
+        cy.findByTestId('delete-button').should('not.be.disabled').click();
+
+        // Verify API call was made
+        cy.wait('@deleteSecret');
+
+        // Verify secret is removed from table or table disappears
+        cy.findByTestId('secrets-table').should('not.exist');
+      });
+
+      it('should handle multiple secret creation and removal operations', () => {
+        const secret1 = 'multi-secret-1';
+        const secret2 = 'multi-secret-2';
+
+        const mockSecret1Response = {
+          name: secret1,
+          type: 'Opaque',
+          immutable: false,
+          contents: { key1: { base64: btoa('value1') } },
+        };
+
+        const mockSecret2Response = {
+          name: secret2,
+          type: 'Opaque',
+          immutable: false,
+          contents: { key2: { base64: btoa('value2') } },
+        };
+
+        navigateToPropertiesStep();
+        createWorkspace.expandSecretsSection();
+
+        // Wait for listSecrets API to complete (component fetches on mount)
+        cy.wait('@listSecrets');
+
+        // Wait for the create button to be visible
+        cy.findByTestId('create-new-secret-button').should('be.visible');
+
+        // Create first secret
+        cy.interceptApi(
+          'POST /api/:apiVersion/secrets/:namespace',
+          { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
+          mockModArchResponse(mockSecret1Response),
+        ).as('createSecret1');
+
+        cy.intercept(
+          'GET',
+          `/api/${NOTEBOOKS_API_VERSION}/secrets/${mockNamespace.name}/${secret1}`,
+          { data: mockSecret1Response },
+        ).as('getSecret1');
+
+        cy.intercept(
+          'DELETE',
+          `/api/${NOTEBOOKS_API_VERSION}/secrets/${mockNamespace.name}/${secret1}`,
+          { statusCode: 200, body: { data: {} } },
+        ).as('deleteSecret1');
+
+        createWorkspace.clickCreateNewSecret();
+        secretsCreateModal.typeSecretName(secret1);
+        secretsCreateModal.typeKey(0, 'key1');
+        secretsCreateModal.typeValue(0, 'value1');
+        secretsCreateModal.clickCreate();
+        cy.wait('@createSecret1');
+
+        // Create second secret
+        cy.interceptApi(
+          'POST /api/:apiVersion/secrets/:namespace',
+          { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
+          mockModArchResponse(mockSecret2Response),
+        ).as('createSecret2');
+
+        cy.intercept(
+          'GET',
+          `/api/${NOTEBOOKS_API_VERSION}/secrets/${mockNamespace.name}/${secret2}`,
+          { data: mockSecret2Response },
+        ).as('getSecret2');
+
+        cy.intercept(
+          'DELETE',
+          `/api/${NOTEBOOKS_API_VERSION}/secrets/${mockNamespace.name}/${secret2}`,
+          { statusCode: 200, body: { data: {} } },
+        ).as('deleteSecret2');
+
+        createWorkspace.clickCreateNewSecret();
+        secretsCreateModal.typeSecretName(secret2);
+        secretsCreateModal.typeKey(0, 'key2');
+        secretsCreateModal.typeValue(0, 'value2');
+        secretsCreateModal.clickCreate();
+        cy.wait('@createSecret2');
+
+        // Verify both secrets are in the table
+        cy.findByTestId('secrets-table').should('be.visible');
+        cy.findByTestId('secrets-table').should('contain', secret1);
+        cy.findByTestId('secrets-table').should('contain', secret2);
+
+        // Remove first secret
+        cy.findByTestId('secrets-table')
+          .contains('tr', secret1)
+          .findByTestId(`secret-kebab-${secret1}`)
+          .click();
+        cy.contains('button', 'Remove').click();
+
+        // Confirm first deletion
+        cy.findByTestId('delete-modal-input').type(secret1);
+        cy.findByTestId('delete-button').should('not.be.disabled').click();
+        cy.wait('@deleteSecret1');
+
+        // Verify only secret2 remains
+        cy.findByTestId('secrets-table').should('not.contain', secret1);
+        cy.findByTestId('secrets-table').should('contain', secret2);
+
+        // Remove second secret
+        cy.findByTestId('secrets-table')
+          .contains('tr', secret2)
+          .findByTestId(`secret-kebab-${secret2}`)
+          .click();
+        cy.contains('button', 'Remove').click();
+
+        // Confirm second deletion
+        cy.findByTestId('delete-modal-input').type(secret2);
+        cy.findByTestId('delete-button').should('not.be.disabled').click();
+        cy.wait('@deleteSecret2');
+
+        // Verify table is gone (no secrets left)
+        cy.findByTestId('secrets-table').should('not.exist');
+      });
+    });
   });
 });

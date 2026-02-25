@@ -125,7 +125,17 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
     updateSecret: async () => ({
       data: mockSecretCreate,
     }),
-    deleteSecret: async () => {
+    deleteSecret: async (namespace, name) => {
+      // For mock API errors, a secret is considered invalid if the name contains a specific pattern.
+      if (name.includes('-invalid')) {
+        const apiErrorEnvelope: ApiErrorEnvelope = {
+          error: {
+            code: 'invalid_name',
+            message: 'Invalid name',
+          },
+        };
+        throw buildAxiosError(apiErrorEnvelope);
+      }
       await delay(1500);
     },
   },

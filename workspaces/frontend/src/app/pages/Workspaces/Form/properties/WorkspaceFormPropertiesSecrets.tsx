@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { EllipsisVIcon } from '@patternfly/react-icons/dist/esm/icons/ellipsis-v-icon';
 import {
   Table,
@@ -10,28 +10,24 @@ import {
   TableVariant,
 } from '@patternfly/react-table/dist/esm/components/Table';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
-import {
-  Modal,
-  ModalFooter,
-  ModalHeader,
-  ModalVariant,
-} from '@patternfly/react-core/dist/esm/components/Modal';
 import { Dropdown, DropdownItem } from '@patternfly/react-core/dist/esm/components/Dropdown';
 import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
 import { Label } from '@patternfly/react-core/dist/esm/components/Label';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
-import { SecretsSecretListItem, WorkspacesPodSecretMount } from '~/generated/data-contracts';
 import { DEFAULT_MODE } from '~/app/pages/Workspaces/Form/helpers';
-import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
+import { SecretsSecretListItem } from '~/generated/data-contracts';
+import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
+import { WorkspacesPodSecretMountValue } from '~/app/types';
+import DeleteModal from '~/shared/components/DeleteModal';
 import { SecretsCreateModal } from './secrets/SecretsCreateModal';
 import { SecretsAttachModal } from './secrets/SecretsAttachModal';
 import { SecretsViewPopover } from './secrets/SecretsViewPopover';
 
 interface WorkspaceFormPropertiesSecretsProps {
-  secrets: WorkspacesPodSecretMount[];
-  setSecrets: (secrets: WorkspacesPodSecretMount[]) => void;
+  secrets: WorkspacesPodSecretMountValue[];
+  setSecrets: (secrets: WorkspacesPodSecretMountValue[]) => void;
 }
 
 export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSecretsProps> = ({
@@ -45,7 +41,6 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
   const [availableSecrets, setAvailableSecrets] = useState<SecretsSecretListItem[]>([]);
-  const [attachedSecretKeys, setAttachedSecretKeys] = useState<Set<string>>(new Set());
   const [secretToEdit, setSecretToEdit] = useState<SecretsSecretListItem | undefined>(undefined);
 
   const { api } = useNotebookAPI();
@@ -63,9 +58,6 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
     fetchSecrets();
   }, [api.secrets, selectedNamespace]);
 
-  const getSecretKey = (secret: WorkspacesPodSecretMount): string =>
-    `${secret.secretName}:${secret.mountPath}`;
-
   const openDeleteModal = useCallback((i: number) => {
     setIsDeleteModalOpen(true);
     setDeleteIndex(i);
@@ -73,42 +65,36 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
 
   const handleAttachSecrets = useCallback(
     (newSecrets: SecretsSecretListItem[], mountPath: string, mode: number) => {
-      const newSecretMounts = newSecrets.map((secret) => ({
+      const newSecretMounts: WorkspacesPodSecretMountValue[] = newSecrets.map((secret) => ({
         secretName: secret.name,
         mountPath,
         defaultMode: mode,
+        isAttached: true,
       }));
-
-      // Track the keys of attached secrets
-      const newKeys = new Set(attachedSecretKeys);
-      newSecretMounts.forEach((mount) => {
-        newKeys.add(getSecretKey(mount));
-      });
-      setAttachedSecretKeys(newKeys);
 
       setSecrets([...secrets, ...newSecretMounts]);
       setIsAttachModalOpen(false);
     },
-    [secrets, setSecrets, attachedSecretKeys],
+    [secrets, setSecrets],
   );
 
-  const handleDelete = useCallback(() => {
+  const handleDelete = useCallback(async () => {
     if (deleteIndex === null) {
       return;
     }
     const secretToDelete = secrets[deleteIndex];
 
     // Remove from attached keys if it was attached
-    if (attachedSecretKeys.has(getSecretKey(secretToDelete))) {
-      const newKeys = new Set(attachedSecretKeys);
-      newKeys.delete(getSecretKey(secretToDelete));
-      setAttachedSecretKeys(newKeys);
+    if (!secretToDelete.isAttached) {
+      await api.secrets.deleteSecret(selectedNamespace, secretToDelete.secretName);
     }
-
     setSecrets(secrets.filter((_, i) => i !== deleteIndex));
+  }, [deleteIndex, secrets, api.secrets, selectedNamespace, setSecrets]);
+
+  const onDeleteModalClose = useCallback(() => {
     setDeleteIndex(null);
     setIsDeleteModalOpen(false);
-  }, [deleteIndex, secrets, setSecrets, attachedSecretKeys]);
+  }, []);
 
   const handleSecretCreated = useCallback(
     async (secretName: string) => {
@@ -119,10 +105,11 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
       }
 
       // Add the newly created secret to the table with default mount path and mode
-      const newSecret: WorkspacesPodSecretMount = {
+      const newSecret: WorkspacesPodSecretMountValue = {
         secretName,
         mountPath: `/secrets/${secretName}`,
         defaultMode: DEFAULT_MODE,
+        isAttached: false,
       };
 
       setSecrets([...secrets, newSecret]);
@@ -171,6 +158,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
     }
   }, []);
 
+  const mountedKeys = useMemo(() => new Set(secrets.map((secret) => secret.secretName)), [secrets]);
   return (
     <>
       {secrets.length > 0 && (
@@ -267,7 +255,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
         variant="secondary"
         onClick={() => setIsAttachModalOpen(true)}
         className="pf-v6-u-mt-md pf-v6-u-mr-md"
-        data-testid="attach-secrets-button"
+        data-testid="attach-existing-secrets-button"
       >
         Attach Existing Secrets
       </Button>
@@ -275,7 +263,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
         variant="secondary"
         onClick={() => setIsCreateModalOpen(true)}
         className="pf-v6-u-mt-md"
-        data-testid="create-secret-button"
+        data-testid="create-new-secret-button"
       >
         Create New Secret
       </Button>
@@ -285,7 +273,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
         isOpen={isAttachModalOpen}
         setIsOpen={setIsAttachModalOpen}
         onAttach={handleAttachSecrets}
-        existingSecretKeys={attachedSecretKeys}
+        mountedKeys={mountedKeys}
       />
 
       <SecretsCreateModal
@@ -303,24 +291,16 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
         existingSecretNames={secrets.map((s) => s.secretName)}
       />
 
-      <Modal
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        variant={ModalVariant.small}
-      >
-        <ModalHeader
+      {deleteIndex !== null && (
+        <DeleteModal
+          isOpen={isDeleteModalOpen}
           title="Remove Secret?"
-          description="The secret will be removed from the workspace."
+          onClose={() => onDeleteModalClose()}
+          onDelete={handleDelete}
+          resourceName={secrets[deleteIndex].secretName}
+          namespace={selectedNamespace}
         />
-        <ModalFooter>
-          <Button key="remove" variant="danger" onClick={handleDelete}>
-            Remove
-          </Button>
-          <Button key="cancel" variant="link" onClick={() => setIsDeleteModalOpen(false)}>
-            Cancel
-          </Button>
-        </ModalFooter>
-      </Modal>
+      )}
     </>
   );
 };

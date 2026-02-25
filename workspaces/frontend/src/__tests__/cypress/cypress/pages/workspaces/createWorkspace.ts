@@ -108,6 +108,14 @@ class CreateWorkspace extends WorkspaceForm {
   clickClearAllFilters() {
     return this.findClearAllFiltersButton().click();
   }
+
+  clickAttachExistingSecrets(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('attach-existing-secrets-button').click();
+  }
+
+  clickCreateNewSecret(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('create-new-secret-button').click();
+  }
 }
 
 export const createWorkspace = new CreateWorkspace();

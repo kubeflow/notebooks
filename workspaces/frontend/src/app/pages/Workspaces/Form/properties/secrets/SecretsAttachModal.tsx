@@ -29,7 +29,7 @@ export interface SecretsAttachModalProps {
   setIsOpen: (isOpen: boolean) => void;
   onAttach: (secrets: SecretsSecretListItem[], mountPath: string, mode: number) => void;
   availableSecrets: SecretsSecretListItem[];
-  existingSecretKeys: Set<string>;
+  mountedKeys: Set<string>;
 }
 
 export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
@@ -37,7 +37,7 @@ export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
   setIsOpen,
   onAttach,
   availableSecrets,
-  existingSecretKeys,
+  mountedKeys,
 }) => {
   const [selected, setSelected] = useState<string[]>([]);
   const [mountPath, setMountPath] = useState('');
@@ -72,14 +72,13 @@ export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
 
   const handleAttach = useCallback(() => {
     const mode = parseInt(defaultMode, 8);
-
     // Check for duplicates
     const duplicates: string[] = [];
     // Handle trailing slashes in mount path
     const trimmedMountPath = mountPath.trim().replace(/\/+$/, '');
     selected.forEach((secretName) => {
       const key = getSecretKey(secretName, trimmedMountPath);
-      if (existingSecretKeys.has(key)) {
+      if (mountedKeys.has(key)) {
         duplicates.push(secretName);
       }
     });
@@ -98,15 +97,7 @@ export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
       trimmedMountPath,
       mode,
     );
-  }, [
-    getSecretKey,
-    existingSecretKeys,
-    mountPath,
-    selected,
-    availableSecrets,
-    onAttach,
-    defaultMode,
-  ]);
+  }, [getSecretKey, mountedKeys, mountPath, selected, availableSecrets, onAttach, defaultMode]);
 
   const initialOptions = useMemo<MultiTypeaheadSelectOption[]>(
     () =>

@@ -185,7 +185,16 @@ const WorkspaceForm: React.FC = () => {
     setError(null);
 
     try {
-      await submitFormData({ mode, data, api, namespace });
+      // Strip the `isAttached` field from secrets before submitting to the API
+      const preparedData: WorkspaceFormData = {
+        ...data,
+        properties: {
+          ...data.properties,
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          secrets: data.properties.secrets.map(({ isAttached: _, ...rest }) => rest),
+        },
+      };
+      await submitFormData({ mode, data: preparedData, api, namespace });
       navigate('workspaces');
       notification.success(
         `Workspace '${data.properties.workspaceName}' ${mode === 'create' ? 'created' : 'updated'} successfully`,

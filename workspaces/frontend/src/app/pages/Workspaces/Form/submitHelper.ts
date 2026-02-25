@@ -94,7 +94,6 @@ export const submitFormData = (args: {
   namespace: string;
 }): Promise<ApiWorkspaceCreateEnvelope | ApiWorkspaceEnvelope> => {
   const { data, api, mode, namespace } = args;
-
   if (!isValidWorkspaceFormData(data)) {
     throw new Error('Invalid form data');
   }
