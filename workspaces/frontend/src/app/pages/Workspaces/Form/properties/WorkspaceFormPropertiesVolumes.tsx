@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { Dropdown, DropdownItem } from '@patternfly/react-core/dist/esm/components/Dropdown';
 import { Form, FormGroup } from '@patternfly/react-core/dist/esm/components/Form';
@@ -23,8 +23,11 @@ import {
   Tr,
 } from '@patternfly/react-table/dist/esm/components/Table';
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
-import { WorkspacesPodVolumeMount } from '~/generated/data-contracts';
+import { PvcsPVCListItem, WorkspacesPodVolumeMount } from '~/generated/data-contracts';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
+import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
+import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
+import { VolumesAttachModal } from './volumes/VolumesAttachModal';
 
 interface WorkspaceFormPropertiesVolumesProps {
   volumes: WorkspacesPodVolumeMount[];
@@ -36,6 +39,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
   setVolumes,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAttachModalOpen, setIsAttachModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [formData, setFormData] = useState<WorkspacesPodVolumeMount>({
     pvcName: '',
@@ -45,6 +49,22 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
+  const [availablePVCs, setAvailablePVCs] = useState<PvcsPVCListItem[]>([]);
+
+  const { api } = useNotebookAPI();
+  const { selectedNamespace } = useNamespaceSelectorWrapper();
+
+  useEffect(() => {
+    const fetchPVCs = async () => {
+      try {
+        const response = await api.pvc.listPvCs(selectedNamespace);
+        setAvailablePVCs(response.data);
+      } catch {
+        // PVC list unavailable - user can still create volumes manually
+      }
+    };
+    fetchPVCs();
+  }, [api.pvc, selectedNamespace]);
 
   const resetForm = useCallback(() => {
     setFormData({ pvcName: '', mountPath: '', readOnly: false });
@@ -88,6 +108,16 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
     setIsDeleteModalOpen(false);
     setDeleteIndex(null);
   }, [deleteIndex, volumes, setVolumes]);
+
+  const mountedPaths = useMemo(() => new Set(volumes.map((v) => v.mountPath)), [volumes]);
+
+  const handleAttachPVC = useCallback(
+    (pvc: PvcsPVCListItem, mountPath: string, readOnly: boolean) => {
+      setVolumes([...volumes, { pvcName: pvc.name, mountPath, readOnly }]);
+      setIsAttachModalOpen(false);
+    },
+    [volumes, setVolumes],
+  );
 
   return (
     <>
@@ -137,6 +167,14 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
           </Tbody>
         </Table>
       )}
+      <Button
+        variant="secondary"
+        onClick={() => setIsAttachModalOpen(true)}
+        className="pf-v6-u-mt-md pf-v6-u-mr-md"
+        data-testid="attach-existing-pvc-button"
+      >
+        Attach Existing PVC
+      </Button>
       <Button
         variant="link"
         icon={<PlusCircleIcon />}
@@ -240,6 +278,14 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
           </Button>
         </ModalFooter>
       </Modal>
+
+      <VolumesAttachModal
+        isOpen={isAttachModalOpen}
+        setIsOpen={setIsAttachModalOpen}
+        availablePVCs={availablePVCs}
+        mountedPaths={mountedPaths}
+        onAttach={handleAttachPVC}
+      />
     </>
   );
 };
