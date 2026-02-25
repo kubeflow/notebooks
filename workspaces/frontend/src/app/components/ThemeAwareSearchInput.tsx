@@ -4,7 +4,7 @@ import {
   SearchInputProps,
 } from '@patternfly/react-core/dist/esm/components/SearchInput';
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
-import { useThemeContext } from 'mod-arch-kubeflow';
+import { useThemeContext } from '~/app/hooks/useThemeContext';
 import FormFieldset from '~/app/components/FormFieldset';
 
 type ThemeAwareSearchInputProps = Omit<SearchInputProps, 'onChange' | 'onClear'> & {

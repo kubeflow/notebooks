@@ -15,7 +15,7 @@ import { Checkbox } from '@patternfly/react-core/dist/esm/components/Checkbox';
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
 import { TrashAltIcon } from '@patternfly/react-icons/dist/esm/icons/trash-alt-icon';
-import { useThemeContext } from 'mod-arch-kubeflow';
+import { useThemeContext } from '~/app/hooks/useThemeContext';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { generateUniqueId } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { isMemoryLimitLarger } from '~/shared/utilities/valueUnits';

@@ -7,7 +7,7 @@ import {
   ModularArchContextProvider,
   NotificationContextProvider,
 } from 'mod-arch-core';
-import { ThemeProvider } from 'mod-arch-kubeflow';
+import { ThemeProvider } from '~/app/context/ThemeContext';
 import App from './app/App';
 import {
   DEPLOYMENT_MODE,

@@ -17,7 +17,7 @@ import { Select } from '@patternfly/react-core/dist/esm/components/Select';
 import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
 import { HelperText } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
-import { useThemeContext } from 'mod-arch-kubeflow';
+import { useThemeContext } from '~/app/hooks/useThemeContext';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 import { SecretsSecretListItem } from '~/generated/data-contracts';

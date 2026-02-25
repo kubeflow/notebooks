@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Brand } from '@patternfly/react-core/dist/esm/components/Brand';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import {
   Dropdown,
   DropdownItem,
@@ -26,9 +27,11 @@ import {
 } from '@patternfly/react-core/dist/esm/components/Toolbar';
 import { SimpleSelect } from '@patternfly/react-templates';
 import { BarsIcon } from '@patternfly/react-icons/dist/esm/icons/bars-icon';
+import { MoonIcon } from '@patternfly/react-icons/dist/esm/icons/moon-icon';
+import { SunIcon } from '@patternfly/react-icons/dist/esm/icons/sun-icon';
 import { useNamespaceSelector, useModularArchContext } from 'mod-arch-core';
-import { useThemeContext } from 'mod-arch-kubeflow';
 import { images as sharedImages } from 'mod-arch-shared';
+import { useThemeContext } from '~/app/hooks/useThemeContext';
 
 interface NavBarProps {
   username?: string;
@@ -38,7 +41,7 @@ interface NavBarProps {
 const NavBar: React.FC<NavBarProps> = ({ username, onLogout }) => {
   const { namespaces, preferredNamespace, updatePreferredNamespace } = useNamespaceSelector();
   const { config } = useModularArchContext();
-  const { isMUITheme } = useThemeContext();
+  const { isMUITheme, isDarkMode, toggleDarkMode } = useThemeContext();
 
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
@@ -99,8 +102,18 @@ const NavBar: React.FC<NavBarProps> = ({ username, onLogout }) => {
                 />
               </ToolbarItem>
             </ToolbarGroup>
-            {username && (
-              <ToolbarGroup variant="action-group-plain" align={{ default: 'alignEnd' }}>
+            <ToolbarGroup variant="action-group-plain" align={{ default: 'alignEnd' }}>
+              {isMUITheme && (
+                <ToolbarItem>
+                  <Button
+                    variant="plain"
+                    aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+                    onClick={toggleDarkMode}
+                    icon={isDarkMode ? <SunIcon /> : <MoonIcon />}
+                  />
+                </ToolbarItem>
+              )}
+              {username && (
                 <ToolbarItem>
                   <Dropdown
                     popperProps={{ position: 'right' }}
@@ -122,8 +135,8 @@ const NavBar: React.FC<NavBarProps> = ({ username, onLogout }) => {
                     <DropdownList>{userMenuItems}</DropdownList>
                   </Dropdown>
                 </ToolbarItem>
-              </ToolbarGroup>
-            )}
+              )}
+            </ToolbarGroup>
           </ToolbarContent>
         </Toolbar>
       </MastheadContent>
