@@ -15,9 +15,9 @@ const useWorkspaceKinds = (): FetchState<WorkspacekindsWorkspaceKind[]> => {
       return Promise.reject(new Error('API not yet available'));
     }
     const envelope = await api.workspaceKinds.listWorkspaceKinds();
+    console.log(await api.pvc.listPvCs('default'));
     return envelope.data;
   }, [api, apiAvailable]);
-
   return useFetchState(call, []);
 };
 

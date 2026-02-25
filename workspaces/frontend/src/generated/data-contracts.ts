@@ -101,6 +101,14 @@ export interface ApiNamespaceListEnvelope {
   data: NamespacesNamespace[];
 }
 
+export interface ApiPVCCreateEnvelope {
+  data: PvcsPVCCreate;
+}
+
+export interface ApiPVCListEnvelope {
+  data: PvcsPVCListItem[];
+}
+
 export interface ApiSecretCreateEnvelope {
   data: SecretsSecretCreate;
 }
@@ -111,6 +119,10 @@ export interface ApiSecretEnvelope {
 
 export interface ApiSecretListEnvelope {
   data: SecretsSecretListItem[];
+}
+
+export interface ApiStorageClassListEnvelope {
+  data: StorageclassesStorageClassListItem[];
 }
 
 export interface ApiValidationError {
@@ -187,6 +199,70 @@ export interface NamespacesNamespace {
   name: string;
 }
 
+export interface PvcsPVCCreate {
+  accessModes: string[];
+  name: string;
+  requests: PvcsStorageRequests;
+  storageClassName: string;
+}
+
+export interface PvcsPVCListItem {
+  audit: CommonAudit;
+  canMount: boolean;
+  canUpdate: boolean;
+  name: string;
+  pods: PvcsPVCPod[];
+  pv?: PvcsPVInfo;
+  pvcSpec: PvcsPVCSpec;
+  workspaces: PvcsPVCWorkspace[];
+}
+
+export interface PvcsPVCPod {
+  name: string;
+  node?: PvcsPodNode;
+  phase: string;
+}
+
+export interface PvcsPVCSpec {
+  accessModes: string[];
+  requests: PvcsStorageRequests;
+  storageClassName: string;
+  volumeMode: string;
+}
+
+export interface PvcsPVCWorkspace {
+  name: string;
+  podTemplatePod?: PvcsPodTemplatePod;
+  state: string;
+  stateMessage: string;
+}
+
+export interface PvcsPVInfo {
+  accessModes: string[];
+  name: string;
+  persistentVolumeReclaimPolicy: string;
+  storageClass?: PvcsPVStorageClass;
+  volumeMode: string;
+}
+
+export interface PvcsPVStorageClass {
+  description: string;
+  displayName: string;
+  name: string;
+}
+
+export interface PvcsPodNode {
+  name: string;
+}
+
+export interface PvcsPodTemplatePod {
+  name: string;
+}
+
+export interface PvcsStorageRequests {
+  storage: string;
+}
+
 export interface SecretsSecretCreate {
   contents: SecretsSecretData;
   immutable: boolean;
@@ -220,6 +296,13 @@ export interface SecretsSecretUpdate {
 
 export interface SecretsSecretValue {
   base64?: string;
+}
+
+export interface StorageclassesStorageClassListItem {
+  canUse: boolean;
+  description: string;
+  displayName: string;
+  name: string;
 }
 
 export interface WorkspacekindsImageConfig {

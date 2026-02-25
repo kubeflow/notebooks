@@ -1,4 +1,5 @@
 import {
+  PvcsPVCCreate,
   SecretsSecretCreate,
   WorkspacekindsWorkspaceKind,
   WorkspacesRedirectMessageLevel,
@@ -9,13 +10,16 @@ import {
 import {
   buildMockHealthCheckResponse,
   buildMockNamespace,
+  buildMockPVC,
+  buildMockPVCCreate,
+  buildMockSecret,
+  buildMockStorageClass,
   buildMockWorkspace,
   buildMockWorkspaceCreate,
   buildMockWorkspaceKind,
   buildMockWorkspaceKindInfo,
   buildMockWorkspaceList,
   buildMockWorkspaceUpdate,
-  buildMockSecret,
 } from '~/shared/mock/mockBuilder';
 
 // Health
@@ -350,3 +354,203 @@ export const mockSecretsList = [
   }),
   ...buildMockSecretList(4, 20),
 ];
+
+// Storage Classes
+export const mockStorageClassStandard = buildMockStorageClass({
+  name: 'standard',
+  displayName: 'Standard',
+  description: 'Default storage class backed by standard HDDs',
+  canUse: true,
+});
+
+export const mockStorageClassSSD = buildMockStorageClass({
+  name: 'ssd',
+  displayName: 'SSD',
+  description: 'High-performance storage class backed by SSDs',
+  canUse: true,
+});
+
+export const mockStorageClassRestricted = buildMockStorageClass({
+  name: 'restricted',
+  displayName: 'Restricted',
+  description: 'Restricted storage class (no permissions)',
+  canUse: false,
+});
+
+export const mockStorageClassesList = [
+  mockStorageClassStandard,
+  mockStorageClassSSD,
+  mockStorageClassRestricted,
+];
+
+// PVCs
+const toStorageClassInfo = ({
+  name,
+  displayName,
+  description,
+}: {
+  name: string;
+  displayName: string;
+  description: string;
+}) => ({
+  name,
+  displayName,
+  description,
+});
+
+const STORAGE_CLASS_INFO = {
+  standard: toStorageClassInfo(mockStorageClassStandard),
+  ssd: toStorageClassInfo(mockStorageClassSSD),
+};
+
+const buildPersistentVolume = (
+  name: string,
+  mode: string,
+  storageClass: 'standard' | 'ssd',
+  reclaimPolicy = 'Retain',
+) => ({
+  name,
+  accessModes: [mode],
+  persistentVolumeReclaimPolicy: reclaimPolicy,
+  volumeMode: 'Filesystem',
+  storageClass: STORAGE_CLASS_INFO[storageClass],
+});
+
+const buildPVCSpecConfig = (mode: string, storage: string, storageClassName: string) => ({
+  accessModes: [mode],
+  requests: { storage },
+  storageClassName,
+  volumeMode: 'Filesystem',
+});
+
+const WORKSPACE_STATES = ['Running', 'Paused', 'Pending', 'Error'];
+const POD_PHASES = ['Running', 'Pending', 'Succeeded', 'Failed'];
+
+// Builds coherently linked workspace and pod lists where each running workspace
+// references its pod, and pods reference the node they run on.
+const buildLinkedWorkspacesAndPods = (prefix: string, count: number, nodeName: string) => {
+  const workspaces = Array.from({ length: count }, (_, i) => {
+    const state = WORKSPACE_STATES[i % 4];
+    const isRunning = state === 'Running';
+    return {
+      name: `${prefix}-ws-${i + 1}`,
+      state,
+      stateMessage: state === 'Error' ? 'Something went wrong' : '',
+      ...(isRunning ? { podTemplatePod: { name: `${prefix}-ws-${i + 1}-pod` } } : {}),
+    };
+  });
+
+  const pods = workspaces
+    .filter((ws) => ws.podTemplatePod)
+    .map((ws, i) => ({
+      name: ws.podTemplatePod!.name,
+      phase: POD_PHASES[i % 4],
+      node: { name: nodeName },
+    }));
+
+  return { workspaces, pods };
+};
+
+const ACCESS_MODES = ['ReadWriteOnce', 'ReadOnlyMany', 'ReadWriteMany', 'ReadWriteOncePod'];
+const STORAGE_CLASSES: ('standard' | 'ssd')[] = ['standard', 'ssd'];
+
+// Derives canMount based on Kubernetes access mode semantics:
+// - ReadWriteOnce (RWO): unmountable if workspaces is non-empty (single-node)
+// - ReadWriteOncePod (RWOP): unmountable if pods is non-empty (single-pod)
+// - ReadOnlyMany (ROX) / ReadWriteMany (RWX): always mountable (multi-node)
+const deriveCanMount = (mode: string, workspaces: unknown[], pods: unknown[]): boolean => {
+  switch (mode) {
+    case 'ReadWriteOnce':
+      return workspaces.length === 0;
+    case 'ReadWriteOncePod':
+      return pods.length === 0;
+    default:
+      return true;
+  }
+};
+
+const buildPVCList = (count: number, startIndex = 1) =>
+  Array.from({ length: count }, (_, i) => {
+    const idx = startIndex + i;
+    const mode = ACCESS_MODES[idx % 4];
+    const sc = STORAGE_CLASSES[idx % 2];
+    const nodeName = `node-${(idx % 3) + 1}`;
+
+    // RWO/RWOP: single workspace + single pod on same node
+    // ROX/RWX: multiple workspaces + pods across nodes
+    const wsCount = mode === 'ReadWriteOnce' || mode === 'ReadWriteOncePod' ? 1 : (idx % 5) + 2;
+    const { workspaces, pods } = buildLinkedWorkspacesAndPods(`pvc-${idx}`, wsCount, nodeName);
+
+    return {
+      name: `pvc-${idx}`,
+      canMount: deriveCanMount(mode, workspaces, pods),
+      canUpdate: idx % 3 === 0,
+      pvcSpec: buildPVCSpecConfig(mode, `${(idx + 1) * 10}Gi`, sc),
+      pv: buildPersistentVolume(`pv-${idx}`, mode, sc),
+      workspaces,
+      pods,
+    };
+  });
+
+export const mockPVCsList = [
+  buildMockPVC({
+    name: 'pvc-rwo',
+    canMount: false, // RWO with workspaces → unmountable
+    pvcSpec: buildPVCSpecConfig('ReadWriteOnce', '10Gi', 'standard'),
+    workspaces: [
+      {
+        name: 'workspace-1',
+        state: 'Running',
+        stateMessage: '',
+        podTemplatePod: { name: 'workspace-1-pod' },
+      },
+    ],
+    pods: [
+      {
+        name: 'workspace-1-pod',
+        phase: 'Running',
+        node: { name: 'node-1' },
+      },
+    ],
+  }),
+  buildMockPVC({
+    name: 'pvc-rox',
+    canMount: true, // ROX → always mountable
+    canUpdate: false,
+    pvcSpec: buildPVCSpecConfig('ReadOnlyMany', '100Gi', 'standard'),
+    pv: buildPersistentVolume('pv-rox', 'ReadOnlyMany', 'standard'),
+    ...buildLinkedWorkspacesAndPods('pvc-rox', 3, 'node-1'),
+  }),
+  buildMockPVC({
+    name: 'pvc-rwx',
+    canMount: true, // RWX → always mountable
+    canUpdate: false,
+    pvcSpec: buildPVCSpecConfig('ReadWriteMany', '50Gi', 'ssd'),
+    pv: buildPersistentVolume('pv-rwx', 'ReadWriteMany', 'ssd'),
+    ...buildLinkedWorkspacesAndPods('pvc-rwx', 20, 'node-2'),
+  }),
+  buildMockPVC({
+    name: 'pvc-rwop',
+    canMount: true,
+    pvcSpec: buildPVCSpecConfig('ReadWriteOncePod', '20Gi', 'ssd'),
+    pv: buildPersistentVolume('pv-rwop', 'ReadWriteOncePod', 'ssd', 'Delete'),
+    workspaces: [],
+    pods: [],
+  }),
+  buildMockPVC({
+    name: 'pvc-restricted',
+    canMount: false, // restricted storage class, no permissions
+    canUpdate: false,
+    pvcSpec: buildPVCSpecConfig('ReadWriteOnce', '5Gi', 'restricted'),
+    workspaces: [],
+    pods: [],
+  }),
+  ...buildPVCList(10).map(buildMockPVC),
+];
+
+export const mockPVCCreate: PvcsPVCCreate = buildMockPVCCreate({
+  name: 'new-pvc',
+  accessModes: ['ReadWriteOnce'],
+  requests: { storage: '10Gi' },
+  storageClassName: 'standard',
+});

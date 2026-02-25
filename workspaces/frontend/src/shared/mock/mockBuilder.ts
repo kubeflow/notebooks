@@ -3,7 +3,10 @@ import {
   HealthCheckHealthCheck,
   HealthCheckServiceStatus,
   NamespacesNamespace,
+  PvcsPVCCreate,
+  PvcsPVCListItem,
   SecretsSecretListItem,
+  StorageclassesStorageClassListItem,
   WorkspacekindsRedirectMessageLevel,
   WorkspacekindsWorkspaceKind,
   WorkspacesImageConfig,
@@ -847,4 +850,44 @@ export const buildMockSecret = (
     updatedBy: 'user1',
   },
   ...secret,
+});
+
+export const buildMockStorageClass = (
+  storageClass?: Partial<StorageclassesStorageClassListItem>,
+): StorageclassesStorageClassListItem => ({
+  name: 'standard',
+  displayName: 'Standard',
+  description: 'Standard storage class',
+  canUse: true,
+  ...storageClass,
+});
+
+export const buildMockPVC = (pvc?: Partial<PvcsPVCListItem>): PvcsPVCListItem => ({
+  name: 'my-pvc',
+  canMount: true,
+  canUpdate: true,
+  pods: [],
+  workspaces: [],
+  pvcSpec: {
+    accessModes: ['ReadWriteOnce'],
+    requests: { storage: '10Gi' },
+    storageClassName: 'standard',
+    volumeMode: 'Filesystem',
+  },
+  audit: {
+    createdAt: new Date(2025, 4, 1).toISOString(),
+    createdBy: 'admin1',
+    updatedAt: new Date(2025, 4, 1).toISOString(),
+    deletedAt: '',
+    updatedBy: 'user1',
+  },
+  ...pvc,
+});
+
+export const buildMockPVCCreate = (pvc?: Partial<PvcsPVCCreate>): PvcsPVCCreate => ({
+  name: 'my-pvc',
+  accessModes: ['ReadWriteOnce'],
+  requests: { storage: '10Gi' },
+  storageClassName: 'standard',
+  ...pvc,
 });
