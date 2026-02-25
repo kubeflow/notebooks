@@ -9,6 +9,7 @@ import { NotFound } from './pages/notFound/NotFound';
 import { WorkspaceKinds } from './pages/WorkspaceKinds/WorkspaceKinds';
 import { WorkspacesWrapper } from './pages/Workspaces/WorkspacesWrapper';
 import { WorkspaceKindForm } from './pages/WorkspaceKinds/Form/WorkspaceKindForm';
+import { Secrets } from './pages/Secrets/Secrets';
 
 export const isNavDataGroup = (navItem: NavDataItem): navItem is NavDataGroup =>
   'children' in navItem;
@@ -51,6 +52,10 @@ export const useNavData = (): NavDataItem[] => [
     label: 'Workspaces',
     path: AppRoutePaths.workspaces,
   },
+  {
+    label: 'Secrets',
+    path: AppRoutePaths.secrets,
+  },
   ...useAdminDebugSettings(),
 ];
 
@@ -62,6 +67,7 @@ const AppRoutes: React.FC = () => {
       <Route path={AppRoutePaths.workspaceCreate} element={<WorkspaceForm />} />
       <Route path={AppRoutePaths.workspaceEdit} element={<WorkspaceForm />} />
       <Route path={AppRoutePaths.workspaces} element={<WorkspacesWrapper />} />
+      <Route path={AppRoutePaths.secrets} element={<Secrets />} />
       <Route path={AppRoutePaths.workspaceKindSummary} element={<WorkspaceKindSummaryWrapper />} />
       <Route path={AppRoutePaths.workspaceKinds} element={<WorkspaceKinds />} />
       <Route path={AppRoutePaths.workspaceKindCreate} element={<WorkspaceKindForm />} />
