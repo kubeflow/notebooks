@@ -30,3 +30,8 @@ body,
 .pf-v6-c-file-upload__file-details .pf-v6-c-form-control {
   height: 100%;
 }
+
+/* Grey background for read-only file upload textarea */
+.workspacekind-file-upload .pf-v6-c-form-control:has(textarea[readonly]) {
+  background-color: var(--pf-t--global--background--color--disabled--default);
+}
