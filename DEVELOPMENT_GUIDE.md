@@ -98,9 +98,10 @@ What this does:
 
 - Set up the Kind cluster (if it doesn't exist)
 - Install cert-manager
+- Install Istio service mesh and configure the ingress gateway
 - Open the Tilt UI in your browser (usually http://localhost:10350)
 - Build and deploy the controller, backend, and frontend (if enabled) to your Kubernetes cluster
-- Set up port forwards for easy access
+- Set up port forwarding through the Istio ingress gateway for production-like routing
 - Enable live updates when you make code changes
 
 > [!IMPORTANT]
@@ -111,6 +112,7 @@ What this does:
 > - The Kind cluster exists and is properly configured
 > - The Kubernetes context is switched to `kind-tilt`
 > - Cert-manager is installed (required for webhooks)
+> - Istio is installed and the ingress gateway is ready
 > - All prerequisites are met before Tilt starts
 
 > [!TIP]
@@ -124,11 +126,21 @@ What this does:
 Wait until all resources show green/healthy status. 
 The frontend may take a couple of minutes on first start as webpack compiles the bundle.
 
-Access the components:
+Access the components through the Istio ingress gateway:
 
-- Controller health: `http://localhost:8081/healthz`
-- Backend API: [Swagger UI](http://localhost:4000/api/v1/swagger/)
-- Frontend UI: `http://localhost:9000` (if enabled)
+- Frontend UI: `https://localhost:8443/workspaces/` (if enabled)
+- Backend API: [Swagger UI](https://localhost:8443/workspaces/api/v1/swagger/)
+- Controller health: `http://localhost:8080/healthz` (bypasses Istio)
+
+> [!NOTE]
+>
+> The Istio ingress gateway uses a self-signed TLS certificate.
+> Your browser will show a certificate warning on first access — you can safely accept it for local development.
+
+> [!NOTE]
+>
+> The frontend uses webpack's file watching for live updates, but hot module replacement (HMR) over WebSocket is not available through the Istio gateway.
+> After making frontend changes, manually refresh your browser to see the updates.
 
 You can now make changes to the codebase, and Tilt will automatically rebuild and redeploy the affected components.
 
