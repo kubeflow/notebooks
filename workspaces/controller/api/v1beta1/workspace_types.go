@@ -36,6 +36,13 @@ type WorkspaceSpec struct {
 	// +kubebuilder:default=false
 	Paused *bool `json:"paused,omitempty"`
 
+	// an optional human-readable name for the Workspace, displayed in the UI instead of metadata.name
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=128
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:example:="My Workspace"
+	DisplayName *string `json:"displayName,omitempty"`
+
 	// the WorkspaceKind to use
 	// +kubebuilder:validation:MinLength:=1
 	// +kubebuilder:validation:MaxLength:=253

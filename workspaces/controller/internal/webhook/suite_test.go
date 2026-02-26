@@ -757,7 +757,8 @@ func NewExampleWorkspace(name, namespace, workspaceKindName string) *kubefloworg
 			Namespace: namespace,
 		},
 		Spec: kubefloworgv1beta1.WorkspaceSpec{
-			Kind: workspaceKindName,
+			DisplayName: ptr.To("Example Workspace"),
+			Kind:        workspaceKindName,
 			PodTemplate: kubefloworgv1beta1.WorkspacePodTemplate{Options: kubefloworgv1beta1.WorkspacePodOptions{
 				ImageConfig: "jupyterlab_scipy_180",
 				PodConfig:   "tiny_cpu",
@@ -772,4 +773,11 @@ func NewExampleWorkspaceKindWithActivityRules(name string, rules []kubefloworgv1
 	workspaceKind := NewExampleWorkspaceKind(name)
 	workspaceKind.Spec.ActivityRules = rules
 	return workspaceKind
+}
+
+// NewExampleWorkspaceWithoutDisplayName returns a Workspace with no DisplayName set (nil).
+func NewExampleWorkspaceWithoutDisplayName(name, namespace, workspaceKindName string) *kubefloworgv1beta1.Workspace {
+	ws := NewExampleWorkspace(name, namespace, workspaceKindName)
+	ws.Spec.DisplayName = nil
+	return ws
 }
