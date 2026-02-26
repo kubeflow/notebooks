@@ -190,24 +190,6 @@ func buildImageConfig(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.
 		currentImageConfig.Labels = buildOptionLabels(cfg.Spawner.Labels)
 	}
 
-	// get the desired image config
-	// NOTE: the desired image config will be nil if it is the same as the current image config
-	var desiredImageConfig *OptionInfo
-	desiredImageConfigId := ws.Status.PodTemplateOptions.ImageConfig.Desired
-	if desiredImageConfigId != "" && desiredImageConfigId != currentImageConfig.Id {
-		desiredImageConfig = &OptionInfo{
-			Id:          desiredImageConfigId,
-			DisplayName: UnknownImageConfig,
-			Description: UnknownImageConfig,
-			Labels:      nil,
-		}
-		if cfg, ok := imageConfigMap[desiredImageConfig.Id]; ok {
-			desiredImageConfig.DisplayName = cfg.Spawner.DisplayName
-			desiredImageConfig.Description = ptr.Deref(cfg.Spawner.Description, "")
-			desiredImageConfig.Labels = buildOptionLabels(cfg.Spawner.Labels)
-		}
-	}
-
 	// build the redirect chain
 	// NOTE: the redirect chain will be nil (not an empty slice) if there are no redirects
 	var redirectChain []RedirectStep
@@ -217,9 +199,34 @@ func buildImageConfig(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.
 	}
 	for i := range ws.Status.PodTemplateOptions.ImageConfig.RedirectChain {
 		step := ws.Status.PodTemplateOptions.ImageConfig.RedirectChain[i]
+
+		sourceInfo := OptionInfo{
+			Id:          step.Source,
+			DisplayName: UnknownImageConfig,
+			Description: UnknownImageConfig,
+			Labels:      nil,
+		}
+		if cfg, ok := imageConfigMap[step.Source]; ok {
+			sourceInfo.DisplayName = cfg.Spawner.DisplayName
+			sourceInfo.Description = ptr.Deref(cfg.Spawner.Description, "")
+			sourceInfo.Labels = buildOptionLabels(cfg.Spawner.Labels)
+		}
+
+		targetInfo := OptionInfo{
+			Id:          step.Target,
+			DisplayName: UnknownImageConfig,
+			Description: UnknownImageConfig,
+			Labels:      nil,
+		}
+		if cfg, ok := imageConfigMap[step.Target]; ok {
+			targetInfo.DisplayName = cfg.Spawner.DisplayName
+			targetInfo.Description = ptr.Deref(cfg.Spawner.Description, "")
+			targetInfo.Labels = buildOptionLabels(cfg.Spawner.Labels)
+		}
+
 		redirectChain[i] = RedirectStep{
-			SourceId: step.Source,
-			TargetId: step.Target,
+			Source: sourceInfo,
+			Target: targetInfo,
 		}
 		if cfg, ok := imageConfigMap[step.Source]; ok {
 			// skip the redirect if it's not the target we expect
@@ -231,7 +238,6 @@ func buildImageConfig(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.
 
 	return ImageConfig{
 		Current:       currentImageConfig,
-		Desired:       desiredImageConfig,
 		RedirectChain: redirectChain,
 	}, currentImageConfigValue
 }
@@ -262,24 +268,6 @@ func buildPodConfig(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.Wo
 		currentPodConfig.Labels = buildOptionLabels(cfg.Spawner.Labels)
 	}
 
-	// get the desired pod config
-	// NOTE: the desired pod config will be nil if it is the same as the current pod config
-	var desiredPodConfig *OptionInfo
-	desiredPodConfigId := ws.Status.PodTemplateOptions.PodConfig.Desired
-	if desiredPodConfigId != "" && desiredPodConfigId != currentPodConfig.Id {
-		desiredPodConfig = &OptionInfo{
-			Id:          desiredPodConfigId,
-			DisplayName: UnknownPodConfig,
-			Description: UnknownPodConfig,
-			Labels:      nil,
-		}
-		if cfg, ok := podConfigMap[desiredPodConfig.Id]; ok {
-			desiredPodConfig.DisplayName = cfg.Spawner.DisplayName
-			desiredPodConfig.Description = ptr.Deref(cfg.Spawner.Description, "")
-			desiredPodConfig.Labels = buildOptionLabels(cfg.Spawner.Labels)
-		}
-	}
-
 	// build the redirect chain
 	// NOTE: the redirect chain will be nil (not an empty slice) if there are no redirects
 	var redirectChain []RedirectStep
@@ -289,9 +277,34 @@ func buildPodConfig(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.Wo
 	}
 	for i := range ws.Status.PodTemplateOptions.PodConfig.RedirectChain {
 		step := ws.Status.PodTemplateOptions.PodConfig.RedirectChain[i]
+
+		sourceInfo := OptionInfo{
+			Id:          step.Source,
+			DisplayName: UnknownPodConfig,
+			Description: UnknownPodConfig,
+			Labels:      nil,
+		}
+		if cfg, ok := podConfigMap[step.Source]; ok {
+			sourceInfo.DisplayName = cfg.Spawner.DisplayName
+			sourceInfo.Description = ptr.Deref(cfg.Spawner.Description, "")
+			sourceInfo.Labels = buildOptionLabels(cfg.Spawner.Labels)
+		}
+
+		targetInfo := OptionInfo{
+			Id:          step.Target,
+			DisplayName: UnknownPodConfig,
+			Description: UnknownPodConfig,
+			Labels:      nil,
+		}
+		if cfg, ok := podConfigMap[step.Target]; ok {
+			targetInfo.DisplayName = cfg.Spawner.DisplayName
+			targetInfo.Description = ptr.Deref(cfg.Spawner.Description, "")
+			targetInfo.Labels = buildOptionLabels(cfg.Spawner.Labels)
+		}
+
 		redirectChain[i] = RedirectStep{
-			SourceId: step.Source,
-			TargetId: step.Target,
+			Source: sourceInfo,
+			Target: targetInfo,
 		}
 		if cfg, ok := podConfigMap[step.Source]; ok {
 			// skip the redirect if it's not the target we expect
@@ -303,7 +316,6 @@ func buildPodConfig(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.Wo
 
 	return PodConfig{
 		Current:       currentPodConfig,
-		Desired:       desiredPodConfig,
 		RedirectChain: redirectChain,
 	}, currentPodConfigValue
 }
