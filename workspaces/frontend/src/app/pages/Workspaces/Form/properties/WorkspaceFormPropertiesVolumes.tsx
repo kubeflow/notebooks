@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { Dropdown, DropdownItem } from '@patternfly/react-core/dist/esm/components/Dropdown';
+import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
 import { Form, FormGroup } from '@patternfly/react-core/dist/esm/components/Form';
+import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
 import {
   Modal,
@@ -22,28 +24,33 @@ import {
   Thead,
   Tr,
 } from '@patternfly/react-table/dist/esm/components/Table';
-import { PvcsPVCListItem, WorkspacesPodVolumeMount } from '~/generated/data-contracts';
+import { PvcsPVCListItem } from '~/generated/data-contracts';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
+import { WorkspacesPodVolumeMountValue } from '~/app/types';
 import { VolumesAttachModal } from './volumes/VolumesAttachModal';
 
 interface WorkspaceFormPropertiesVolumesProps {
-  volumes: WorkspacesPodVolumeMount[];
-  setVolumes: (volumes: WorkspacesPodVolumeMount[]) => void;
+  volumes: WorkspacesPodVolumeMountValue[];
+  setVolumes: (volumes: WorkspacesPodVolumeMountValue[]) => void;
+  fixedMountPath?: string; // For home volume only
 }
 
 export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVolumesProps> = ({
   volumes,
   setVolumes,
+  fixedMountPath,
 }) => {
+  const isHomeMounted = !!fixedMountPath && volumes.length > 0;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAttachModalOpen, setIsAttachModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [formData, setFormData] = useState<WorkspacesPodVolumeMount>({
+  const [formData, setFormData] = useState<WorkspacesPodVolumeMountValue>({
     pvcName: '',
-    mountPath: '',
+    mountPath: fixedMountPath ?? '',
     readOnly: false,
+    isAttached: false,
   });
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
@@ -66,10 +73,15 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
   }, [api.pvc, selectedNamespace]);
 
   const resetForm = useCallback(() => {
-    setFormData({ pvcName: '', mountPath: '', readOnly: false });
+    setFormData({
+      pvcName: '',
+      mountPath: fixedMountPath ?? '',
+      readOnly: false,
+      isAttached: false,
+    });
     setEditIndex(null);
     setIsModalOpen(false);
-  }, []);
+  }, [fixedMountPath]);
 
   const handleAddOrEdit = useCallback(() => {
     if (!formData.pvcName || !formData.mountPath) {
@@ -112,7 +124,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
 
   const handleAttachPVC = useCallback(
     (pvc: PvcsPVCListItem, mountPath: string, readOnly: boolean) => {
-      setVolumes([...volumes, { pvcName: pvc.name, mountPath, readOnly }]);
+      setVolumes([...volumes, { pvcName: pvc.name, mountPath, readOnly, isAttached: true }]);
       setIsAttachModalOpen(false);
     },
     [volumes, setVolumes],
@@ -157,7 +169,13 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
                     onSelect={() => setDropdownOpen(null)}
                     popperProps={{ position: 'right' }}
                   >
-                    <DropdownItem onClick={() => handleEdit(index)}>Edit</DropdownItem>
+                    {volume.isAttached ? (
+                      <Tooltip content="Attached volumes cannot be edited.">
+                        <DropdownItem isAriaDisabled>Edit</DropdownItem>
+                      </Tooltip>
+                    ) : (
+                      <DropdownItem onClick={() => handleEdit(index)}>Edit</DropdownItem>
+                    )}
                     <DropdownItem onClick={() => openDetachModal(index)}>Detach</DropdownItem>
                   </Dropdown>
                 </Td>
@@ -166,22 +184,34 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
           </Tbody>
         </Table>
       )}
-      <Button
-        variant="secondary"
-        onClick={() => setIsAttachModalOpen(true)}
-        className="pf-v6-u-mt-md pf-v6-u-mr-md"
-        data-testid="attach-existing-pvc-button"
+      <Tooltip
+        content="Only one home volume can be mounted."
+        trigger={isHomeMounted ? 'mouseenter focus' : ''}
       >
-        Attach Existing PVC
-      </Button>
-      <Button
-        variant="secondary"
-        onClick={() => setIsModalOpen(true)}
-        className="pf-v6-u-mb-md "
-        data-testid="create-volume-button"
+        <Button
+          variant="secondary"
+          onClick={() => setIsAttachModalOpen(true)}
+          isDisabled={isHomeMounted}
+          className="pf-v6-u-mt-md pf-v6-u-mr-md"
+          data-testid="attach-existing-pvc-button"
+        >
+          Attach Existing PVC
+        </Button>
+      </Tooltip>
+      <Tooltip
+        content="Only one home volume can be mounted."
+        trigger={isHomeMounted ? 'mouseenter focus' : ''}
       >
-        Create New PVC
-      </Button>
+        <Button
+          variant="secondary"
+          onClick={() => setIsModalOpen(true)}
+          isDisabled={isHomeMounted}
+          className="pf-v6-u-mb-md"
+          data-testid="create-volume-button"
+        >
+          Create New PVC
+        </Button>
+      </Tooltip>
 
       <Modal
         isOpen={isModalOpen}
@@ -206,12 +236,26 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
                 data-testid="pvc-name-input"
               />
             </ThemeAwareFormGroupWrapper>
-            <ThemeAwareFormGroupWrapper label="Mount Path" isRequired fieldId="mount-path">
+            <ThemeAwareFormGroupWrapper
+              label="Mount Path"
+              isRequired
+              fieldId="mount-path"
+              helperTextNode={
+                fixedMountPath && (
+                  <HelperText>
+                    <HelperTextItem>
+                      The mount path is defined by the workspace kind and cannot be changed.
+                    </HelperTextItem>
+                  </HelperText>
+                )
+              }
+            >
               <TextInput
                 name="mountPath"
                 isRequired
                 type="text"
                 value={formData.mountPath}
+                isDisabled={!!fixedMountPath}
                 onChange={(_, val) => setFormData({ ...formData, mountPath: val })}
                 id="mount-path"
                 data-testid="mount-path-input"
@@ -283,6 +327,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
         availablePVCs={availablePVCs}
         mountedPaths={mountedPaths}
         onAttach={handleAttachPVC}
+        fixedMountPath={fixedMountPath}
       />
     </>
   );

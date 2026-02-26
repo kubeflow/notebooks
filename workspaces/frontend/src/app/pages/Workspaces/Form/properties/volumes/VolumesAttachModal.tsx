@@ -9,6 +9,7 @@ import {
 } from '@patternfly/react-core/dist/esm/components/Modal';
 import { Alert, AlertVariant } from '@patternfly/react-core/dist/esm/components/Alert';
 import { Form, FormGroup } from '@patternfly/react-core/dist/esm/components/Form';
+import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
 import { Label, LabelGroup } from '@patternfly/react-core/dist/esm/components/Label';
@@ -63,6 +64,11 @@ export interface VolumesAttachModalProps {
   availablePVCs: PvcsPVCListItem[];
   /** Set of mount paths already in use across all attached volumes */
   mountedPaths: Set<string>;
+  /**
+   * When provided the mount path is locked to this value (sourced from the
+   * workspace kind's podTemplate.volumeMounts.home) and cannot be edited.
+   */
+  fixedMountPath?: string;
 }
 
 const isRWO = (pvc: PvcsPVCListItem): boolean =>
@@ -78,10 +84,11 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
   onAttach,
   availablePVCs,
   mountedPaths,
+  fixedMountPath,
 }) => {
   // Form state
   const [selectedPvcName, setSelectedPvcName] = useState('');
-  const [mountPath, setMountPath] = useState('/data/');
+  const [mountPath, setMountPath] = useState(fixedMountPath ?? '/data/');
   const [readOnly, setReadOnly] = useState(false);
   const [formError, setFormError] = useState('');
 
@@ -96,7 +103,7 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setSelectedPvcName('');
-      setMountPath('/data/');
+      setMountPath(fixedMountPath ?? '/data/');
       setReadOnly(false);
       setFormError('');
       setIsSelectOpen(false);
@@ -105,7 +112,7 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
       setFocusedItemIndex(null);
       setActiveItemId(null);
     }
-  }, [isOpen]);
+  }, [isOpen, fixedMountPath]);
 
   // ── PVC option building ──────────────────────────────────────────────────
 
@@ -255,13 +262,13 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
       // Values are prefixed with the group abbreviation: "rwx|pvc-name"
       const pvcName = value.includes('|') ? value.split('|').slice(1).join('|') : value;
       setSelectedPvcName(pvcName);
-      setMountPath(`/data/${pvcName}`);
+      setMountPath(fixedMountPath ?? `/data/${pvcName}`);
       setInputValue(pvcName);
       setFilterValue('');
       setFormError('');
       closeMenu();
     },
-    [closeMenu],
+    [closeMenu, fixedMountPath],
   );
 
   const handleInternalSelect = useCallback(
@@ -511,13 +518,27 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
                   )}
                 </Select>
               </ThemeAwareFormGroupWrapper>
-              <ThemeAwareFormGroupWrapper label="Mount Path" isRequired fieldId="pvc-mount-path">
+              <ThemeAwareFormGroupWrapper
+                label="Mount Path"
+                isRequired
+                fieldId="pvc-mount-path"
+                helperTextNode={
+                  fixedMountPath && (
+                    <HelperText>
+                      <HelperTextItem variant="warning">
+                        The mount path is defined by the workspace kind and cannot be changed.
+                      </HelperTextItem>
+                    </HelperText>
+                  )
+                }
+              >
                 <TextInput
                   name="mountPath"
                   isRequired
                   type="text"
                   id="pvc-mount-path"
                   value={mountPath}
+                  isDisabled={!!fixedMountPath}
                   onChange={(_, val) => {
                     setMountPath(val);
                     setFormError('');
