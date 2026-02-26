@@ -50,10 +50,8 @@ manifests = kustomize(controller_kustomize_path, kustomize_bin=kustomize_bin)
 k8s_yaml(manifests, allow_duplicates=True)
 
 # Manage k8s_yaml resources
-#   - Apply Tilt-specific grouping/labels
-#   - Port-forward controller for local access
-# Note: controller opts out of Istio sidecar (sidecar.istio.io/inject: "false"),
-# so its ports are directly accessible without going through the gateway.
+# - Apply Tilt-specific grouping/labels
+# - Port-forward controller for local access
 k8s_resource(
     "workspaces-controller",
     port_forwards=[
@@ -112,8 +110,8 @@ k8s_yaml(
 )
 
 # Manage k8s_yaml resources
-#   - Apply Tilt-specific grouping/labels
-#   - Resource dependencies on controller
+# - Apply Tilt-specific grouping/labels
+# - Resource dependencies on controller
 k8s_resource(
     "workspaces-backend",
     resource_deps=["workspaces-controller"],
@@ -222,8 +220,8 @@ if enable_frontend:
     )
 
     # Manage k8s_yaml resources
-    #   - Apply Tilt-specific grouping/labels
-    #   - Resource dependencies on backend
+    # - Apply Tilt-specific grouping/labels
+    # - Resource dependencies on backend
     k8s_resource(
         "workspaces-frontend",
         # wait for backend to be ready to avoid 504 errors on initial page load
@@ -245,8 +243,10 @@ k8s_yaml(
     allow_duplicates=True,
 )
 
+# TODO: determine if we can capture these objects
+#       without hardcoding names here
 # Manage k8s_yaml resources
-#   - Apply Tilt-specific grouping/labels
+# - Apply Tilt-specific grouping/labels
 k8s_resource(
     objects=[
         "selfsigned-issuer:clusterissuer",
