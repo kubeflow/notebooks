@@ -24,7 +24,9 @@ import (
 
 // WorkspaceCreate is used to create a new workspace.
 type WorkspaceCreate struct {
-	Name        string            `json:"name"`
+	Name string `json:"name"`
+	// DisplayName is an optional human-readable name for the workspace.
+	DisplayName string            `json:"displayName,omitempty"`
 	Kind        string            `json:"kind"`
 	Paused      bool              `json:"paused"`
 	PodTemplate PodTemplateMutate `json:"podTemplate"`
@@ -59,6 +61,8 @@ type WorkspaceUpdate struct {
 	// - Clients must not parse, interpret, or compare revision values
 	//   other than for equality, as the format is not guaranteed to be stable.
 	Revision string `json:"revision"`
+	// DisplayName is an optional human-readable name for the workspace.
+	DisplayName string `json:"displayName,omitempty"`
 
 	Paused      bool              `json:"paused"` // TODO: remove `paused` once we have an "actions" api for pausing workspaces
 	PodTemplate PodTemplateMutate `json:"podTemplate"`

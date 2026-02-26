@@ -101,8 +101,9 @@ func NewWorkspaceListItemFromWorkspace(ws *kubefloworgv1beta1.Workspace, wsk *ku
 	}
 
 	workspaceModel := WorkspaceListItem{
-		Name:      ws.Name,
-		Namespace: ws.Namespace,
+		Name:        ws.Name,
+		DisplayName: ptr.Deref(ws.Spec.DisplayName, ""),
+		Namespace:   ws.Namespace,
 		WorkspaceKind: WorkspaceKindInfo{
 			Name:    ws.Spec.Kind,
 			Missing: !wskExists(wsk),

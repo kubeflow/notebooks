@@ -25,7 +25,9 @@ import (
 // TODO: we need to validate which fields should actually be returned in the response
 //   - should only be returning fields relevant to the list view in the UI
 type WorkspaceListItem struct {
-	Name           string            `json:"name"`
+	Name string `json:"name"`
+	// DisplayName is an optional human-readable name for the workspace.
+	DisplayName    string            `json:"displayName,omitempty"`
 	Namespace      string            `json:"namespace"`
 	WorkspaceKind  WorkspaceKindInfo `json:"workspaceKind"`
 	Paused         bool              `json:"paused"`

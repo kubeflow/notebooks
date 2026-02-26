@@ -29,6 +29,7 @@ import (
 func NewWorkspaceCreateModelFromWorkspace(ws *kubefloworgv1beta1.Workspace) *WorkspaceCreate {
 	return &WorkspaceCreate{
 		Name:        ws.Name,
+		DisplayName: ptr.Deref(ws.Spec.DisplayName, ""),
 		Kind:        ws.Spec.Kind,
 		Paused:      ptr.Deref(ws.Spec.Paused, false),
 		PodTemplate: buildPodTemplateMutate(ws),
@@ -39,6 +40,7 @@ func NewWorkspaceCreateModelFromWorkspace(ws *kubefloworgv1beta1.Workspace) *Wor
 func NewWorkspaceUpdateModelFromWorkspace(ws *kubefloworgv1beta1.Workspace) *WorkspaceUpdate {
 	return &WorkspaceUpdate{
 		Revision:    CalculateWorkspaceRevision(ws),
+		DisplayName: ptr.Deref(ws.Spec.DisplayName, ""),
 		Paused:      ptr.Deref(ws.Spec.Paused, false),
 		PodTemplate: buildPodTemplateMutate(ws),
 	}

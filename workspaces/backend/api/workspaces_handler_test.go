@@ -334,6 +334,9 @@ var _ = Describe("Workspaces Handler", func() {
 			workspaceInvalidImageConfig    string
 			workspaceInvalidImageConfigKey types.NamespacedName
 
+			workspaceNilDisplayName    string
+			workspaceNilDisplayNameKey types.NamespacedName
+
 			workspaceKindName string
 			workspaceKindKey  types.NamespacedName
 		)
@@ -346,6 +349,8 @@ var _ = Describe("Workspaces Handler", func() {
 			workspaceInvalidPodConfigKey = types.NamespacedName{Name: workspaceInvalidPodConfig, Namespace: namespaceName1}
 			workspaceInvalidImageConfig = fmt.Sprintf("workspace-invalid-ic-%s", uniqueName)
 			workspaceInvalidImageConfigKey = types.NamespacedName{Name: workspaceInvalidImageConfig, Namespace: namespaceName1}
+			workspaceNilDisplayName = fmt.Sprintf("workspace-nil-dn-%s", uniqueName)
+			workspaceNilDisplayNameKey = types.NamespacedName{Name: workspaceNilDisplayName, Namespace: namespaceName1}
 			workspaceKindName = fmt.Sprintf("workspacekind-%s", uniqueName)
 			workspaceKindKey = types.NamespacedName{Name: workspaceKindName}
 
@@ -374,6 +379,11 @@ var _ = Describe("Workspaces Handler", func() {
 			workspaceInvalidImageConfig := NewExampleWorkspace(workspaceInvalidImageConfig, namespaceName1, workspaceKindName)
 			workspaceInvalidImageConfig.Spec.PodTemplate.Options.ImageConfig = "bad-ic"
 			Expect(k8sClient.Create(ctx, workspaceInvalidImageConfig)).To(Succeed())
+
+			By("creating Workspace with nil DisplayName")
+			workspaceNilDN := NewExampleWorkspace(workspaceNilDisplayName, namespaceName1, workspaceKindName)
+			workspaceNilDN.Spec.DisplayName = nil
+			Expect(k8sClient.Create(ctx, workspaceNilDN)).To(Succeed())
 		})
 
 		AfterAll(func() {
@@ -403,6 +413,15 @@ var _ = Describe("Workspaces Handler", func() {
 				},
 			}
 			Expect(k8sClient.Delete(ctx, workspaceInvalidImageConfig)).To(Succeed())
+
+			By("deleting Workspace with nil DisplayName")
+			workspaceNilDN := &kubefloworgv1beta1.Workspace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      workspaceNilDisplayName,
+					Namespace: namespaceName1,
+				},
+			}
+			Expect(k8sClient.Delete(ctx, workspaceNilDN)).To(Succeed())
 
 			By("deleting WorkspaceKind")
 			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
@@ -462,6 +481,8 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(k8sClient.Get(ctx, workspaceInvalidPodConfigKey, workspaceInvalidPodConfig)).To(Succeed())
 			workspaceInvalidImageConfig := &kubefloworgv1beta1.Workspace{}
 			Expect(k8sClient.Get(ctx, workspaceInvalidImageConfigKey, workspaceInvalidImageConfig)).To(Succeed())
+			workspaceNilDN := &kubefloworgv1beta1.Workspace{}
+			Expect(k8sClient.Get(ctx, workspaceNilDisplayNameKey, workspaceNilDN)).To(Succeed())
 
 			By("ensuring the model for Workspace with missing WorkspaceKind is as expected")
 			workspaceMissingWskModel := models.NewWorkspaceListItemFromWorkspace(workspaceMissingWsk, nil)
@@ -482,11 +503,17 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(workspaceInvalidImageConfigModel.PodTemplate.Options.ImageConfig.Current.DisplayName).To(Equal(models.UnknownImageConfig))
 			Expect(workspaceInvalidImageConfigModel.PodTemplate.Options.ImageConfig.Current.Description).To(Equal(models.UnknownImageConfig))
 
+			By("ensuring the model for Workspace with nil DisplayName defaults to empty string")
+			workspaceNilDNModel := models.NewWorkspaceListItemFromWorkspace(workspaceNilDN, workspaceKind)
+			Expect(workspaceNilDN.Spec.DisplayName).To(BeNil())
+			Expect(workspaceNilDNModel.DisplayName).To(Equal(""))
+
 			By("ensuring the response contains the expected Workspaces")
 			Expect(response.Data).To(ConsistOf(
 				workspaceMissingWskModel,
 				workspaceInvalidPodConfigModel,
 				workspaceInvalidImageConfigModel,
+				workspaceNilDNModel,
 			))
 		})
 
@@ -534,6 +561,42 @@ var _ = Describe("Workspaces Handler", func() {
 				workspaceMissingWskModel.PodTemplate.Volumes.Secrets = nil
 			}
 			Expect(response.Data).To(BeComparableTo(workspaceMissingWskModel))
+		})
+
+		It("should retrieve a single Workspace with nil DisplayName successfully", func() {
+			By("creating the HTTP request")
+			path := strings.Replace(WorkspacesByNamePath, ":"+NamespacePathParam, namespaceName1, 1)
+			path = strings.Replace(path, ":"+ResourceNamePathParam, workspaceNilDisplayName, 1)
+			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing GetWorkspaceHandler")
+			ps := httprouter.Params{
+				httprouter.Param{Key: NamespacePathParam, Value: namespaceName1},
+				httprouter.Param{Key: ResourceNamePathParam, Value: workspaceNilDisplayName},
+			}
+			rr := httptest.NewRecorder()
+			a.GetWorkspaceHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusOK), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("reading the HTTP response body")
+			body, err := io.ReadAll(rs.Body)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("unmarshalling the response JSON to WorkspaceEnvelope")
+			var response WorkspaceEnvelope
+			err = json.Unmarshal(body, &response)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("ensuring the response DisplayName defaults to empty string")
+			Expect(response.Data.DisplayName).To(Equal(""))
 		})
 	})
 
@@ -696,9 +759,10 @@ var _ = Describe("Workspaces Handler", func() {
 
 			By("defining a WorkspaceCreate model")
 			workspaceCreate := &models.WorkspaceCreate{
-				Name:   workspaceName,
-				Kind:   workspaceKindName,
-				Paused: false,
+				Name:        workspaceName,
+				DisplayName: "My Test Workspace",
+				Kind:        workspaceKindName,
+				Paused:      false,
 				PodTemplate: models.PodTemplateMutate{
 					PodMetadata: models.PodMetadataMutate{
 						Labels: map[string]string{
@@ -760,6 +824,7 @@ var _ = Describe("Workspaces Handler", func() {
 
 			By("ensuring the created Workspace matches the expected Workspace")
 			Expect(createdWorkspace.ObjectMeta.Name).To(Equal(workspaceName))
+			Expect(createdWorkspace.Spec.DisplayName).To(Equal(ptr.To(workspaceCreate.DisplayName)))
 			Expect(createdWorkspace.Spec.Kind).To(Equal(workspaceKindName))
 			Expect(createdWorkspace.Spec.Paused).To(Equal(&workspaceCreate.Paused))
 			Expect(createdWorkspace.Spec.PodTemplate.PodMetadata.Labels).To(Equal(workspaceCreate.PodTemplate.PodMetadata.Labels))
@@ -813,8 +878,9 @@ var _ = Describe("Workspaces Handler", func() {
 		It("should create a workspace with secrets", func() {
 			// Create a workspace with secrets
 			workspace := &models.WorkspaceCreate{
-				Name: "test-workspace",
-				Kind: "test-kind",
+				Name:        "test-workspace",
+				DisplayName: "Test Workspace",
+				Kind:        "test-kind",
 				PodTemplate: models.PodTemplateMutate{
 					Options: models.PodTemplateOptionsMutate{
 						ImageConfig: "test-image",
@@ -874,6 +940,77 @@ var _ = Describe("Workspaces Handler", func() {
 				},
 			}
 			Expect(createdWorkspace.Spec.PodTemplate.Volumes.Secrets).To(Equal(expected))
+		})
+
+		It("should create a Workspace without displayName successfully", func() {
+			wsName := "workspace-no-display-name"
+			wsKey := types.NamespacedName{Name: wsName, Namespace: namespaceNameCrud}
+
+			By("defining a WorkspaceCreate model without displayName")
+			workspaceCreate := &models.WorkspaceCreate{
+				Name:   wsName,
+				Kind:   workspaceKindName,
+				Paused: false,
+				PodTemplate: models.PodTemplateMutate{
+					PodMetadata: models.PodMetadataMutate{
+						Labels:      map[string]string{},
+						Annotations: map[string]string{},
+					},
+					Volumes: models.PodVolumesMutate{
+						Home: ptr.To("my-home-pvc"),
+						Data: []models.PodVolumeMount{
+							{
+								PVCName:   "my-data-pvc",
+								MountPath: "/data/1",
+								ReadOnly:  false,
+							},
+						},
+					},
+					Options: models.PodTemplateOptionsMutate{
+						ImageConfig: "jupyterlab_scipy_180",
+						PodConfig:   "tiny_cpu",
+					},
+				},
+			}
+			bodyEnvelope := WorkspaceCreateEnvelope{Data: workspaceCreate}
+
+			By("marshaling the WorkspaceCreate model to JSON")
+			bodyEnvelopeJSON, err := json.Marshal(bodyEnvelope)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("creating an HTTP request to create the Workspace")
+			path := strings.Replace(WorkspacesByNamespacePath, ":"+NamespacePathParam, namespaceNameCrud, 1)
+			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(bodyEnvelopeJSON)))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", MediaTypeJson)
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing CreateWorkspaceHandler")
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{
+				httprouter.Param{
+					Key:   NamespacePathParam,
+					Value: namespaceNameCrud,
+				},
+			}
+			a.CreateWorkspaceHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusCreated), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("getting the created Workspace from the Kubernetes API")
+			createdWorkspace := &kubefloworgv1beta1.Workspace{}
+			Expect(k8sClient.Get(ctx, wsKey, createdWorkspace)).To(Succeed())
+
+			By("ensuring the created Workspace has nil displayName")
+			Expect(createdWorkspace.Spec.DisplayName).To(BeNil())
+
+			By("deleting the Workspace")
+			Expect(k8sClient.Delete(ctx, createdWorkspace)).To(Succeed())
 		})
 
 		// TODO: test when fail to create a Workspace when:

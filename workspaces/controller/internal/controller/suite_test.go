@@ -164,8 +164,9 @@ func NewExampleWorkspace1(name string, namespace string, workspaceKind string) *
 			Namespace: namespace,
 		},
 		Spec: kubefloworgv1beta1.WorkspaceSpec{
-			Paused: ptr.To(false),
-			Kind:   workspaceKind,
+			Paused:      ptr.To(false),
+			DisplayName: ptr.To("Example Workspace"),
+			Kind:        workspaceKind,
 			PodTemplate: kubefloworgv1beta1.WorkspacePodTemplate{
 				PodMetadata: &kubefloworgv1beta1.WorkspacePodMetadata{
 					Labels:      nil,
