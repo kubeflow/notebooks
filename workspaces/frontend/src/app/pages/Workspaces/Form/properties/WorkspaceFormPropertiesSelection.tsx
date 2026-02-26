@@ -70,7 +70,7 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
                 </HelperText>
               )}
               <ExpandableSection
-                toggleText="Volumes"
+                toggleText="Data Volumes"
                 onToggle={() => setIsVolumesExpanded((prev) => !prev)}
                 isExpanded={isVolumesExpanded}
                 isIndented

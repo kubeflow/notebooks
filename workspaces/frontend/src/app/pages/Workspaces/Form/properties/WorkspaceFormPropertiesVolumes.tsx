@@ -22,7 +22,6 @@ import {
   Thead,
   Tr,
 } from '@patternfly/react-table/dist/esm/components/Table';
-import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
 import { PvcsPVCListItem, WorkspacesPodVolumeMount } from '~/generated/data-contracts';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
@@ -176,13 +175,12 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
         Attach Existing PVC
       </Button>
       <Button
-        variant="link"
-        icon={<PlusCircleIcon />}
+        variant="secondary"
         onClick={() => setIsModalOpen(true)}
         className="pf-v6-u-mb-md "
         data-testid="create-volume-button"
       >
-        Create Volume
+        Create New PVC
       </Button>
 
       <Modal
