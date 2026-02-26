@@ -5,15 +5,11 @@ metadata:
 spec:
   spawner:
     displayName: "RStudio"
-    description: "A workspace which runs RStudio in a pod"
-    hidden: false
-    deprecated: false
-    # deprecationMessage: ""
+    description: "A Workspace which runs RStudio in a Pod"
     icon:
-      url: "https://comptoir-du-libre.org/img/files/Softwares/RStudio/avatar/RStudio_Logo.png"
+      url: "https://upload.wikimedia.org/wikipedia/commons/1/1b/R_logo.svg"
     logo:
-      url: "https://rtask.thinkr.fr/wp-content/uploads/RStudio_Logo.png"
-
+      url: "https://upload.wikimedia.org/wikipedia/commons/1/1b/R_logo.svg"
   podTemplate:
     podMetadata:
       labels: {}
@@ -50,17 +46,19 @@ spec:
     options:
       imageConfig:
         spawner:
-          default: "rstudio_110"
+          default: "rstudio-tidyverse:v1.10.0"
         values:
-          - id: "rstudio_110"
+          - id: "rstudio-tidyverse:v1.10.0"
             spawner:
-              displayName: "rstudio:v1.10.0"
-              description: "RStudio base image"
+              displayName: "rstudio-tidyverse:v1.10.0"
+              description: "RStudio, with Tidyverse and Conda Python"
               labels:
-                - key: "rstudio_version"
-                  value: "v1.10.0"
+                - key: "python_version"
+                  value: "3.11.11"
+                - key: "r_version"
+                  value: "4.4.2"
             spec:
-              image: "ghcr.io/kubeflow/kubeflow/notebook-servers/rstudio:v1.10.0"
+              image: "ghcr.io/kubeflow/kubeflow/notebook-servers/rstudio-tidyverse:v1.10.0"
               imagePullPolicy: "IfNotPresent"
               ports:
                 - id: "rstudio"

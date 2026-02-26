@@ -5,15 +5,11 @@ metadata:
 spec:
   spawner:
     displayName: "VS Code (code-server)"
-    description: "A workspace which runs VS Code in the browser via code-server"
-    hidden: false
-    deprecated: false
-    # deprecationMessage: ""
+    description: "A Workspace which runs VS Code (code-server) in a Pod"
     icon:
-      url: "https://code.visualstudio.com/assets/favicon.ico"
+      url: "https://upload.wikimedia.org/wikipedia/commons/9/9a/Visual_Studio_Code_1.35_icon.svg"
     logo:
-      url: "https://code.visualstudio.com/assets/favicon.ico"
-
+      url: "https://upload.wikimedia.org/wikipedia/commons/9/9a/Visual_Studio_Code_1.35_icon.svg"
   podTemplate:
     podMetadata:
       labels: {}
@@ -48,17 +44,17 @@ spec:
     options:
       imageConfig:
         spawner:
-          default: "codeserver_110"
+          default: "codeserver-python:v1.10.0"
         values:
-          - id: "codeserver_110"
+          - id: "codeserver-python:v1.10.0"
             spawner:
-              displayName: "codeserver:v1.10.0"
-              description: "Code-server in the browser"
+              displayName: "codeserver-python:v1.10.0"
+              description: "code-server, with Conda Python"
               labels:
-                - key: "codeserver_version"
-                  value: "v1.10.0"
+                - key: "python_version"
+                  value: "3.11.11"
             spec:
-              image: "ghcr.io/kubeflow/kubeflow/notebook-servers/codeserver:v1.10.0"
+              image: "ghcr.io/kubeflow/kubeflow/notebook-servers/codeserver-python:v1.10.0"
               imagePullPolicy: "IfNotPresent"
               ports:
                 - id: "codeserver"
