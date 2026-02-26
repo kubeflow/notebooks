@@ -13,3 +13,4 @@ xlarge
 storageclasses
 pvcs
 rwop
+persistentvolumeclaims
