@@ -14,19 +14,23 @@ body,
 .pf-v6-c-page__main-section .pf-v6-c-page__main-body {
   height: 100%;
 }
+
 .pf-v6-c-page__main-body > .pf-v6-l-stack,
 .pf-v6-c-page__main-section.pf-m-fill > .pf-v6-l-stack {
   height: 100%;
   flex-grow: 1;
 }
+
 .pf-v6-c-file-upload {
   height: 100%;
   display: flex;
   flex-direction: column;
 }
+
 .pf-v6-c-file-upload__file-details {
   flex-grow: 1;
 }
+
 .pf-v6-c-file-upload__file-details .pf-v6-c-form-control {
   height: 100%;
 }
@@ -83,11 +87,18 @@ body,
   line-height: var(--pf-t--global--font--line-height--body);
   align-self: stretch;
 }
-.mui-theme .workspacekind-file-upload .pf-v6-c-input-group__item:has(.pf-v6-c-button.pf-m-control):last-child {
+
+.mui-theme
+  .workspacekind-file-upload
+  .pf-v6-c-input-group__item:has(.pf-v6-c-button.pf-m-control):last-child {
   padding-inline-end: 0;
 }
+
 .mui-theme .workspacekind-file-upload .pf-v6-c-input-group__item .pf-v6-c-button.pf-m-control:hover,
-.mui-theme .workspacekind-file-upload .pf-v6-c-input-group__item .pf-v6-c-button.pf-m-control:focus-visible {
+.mui-theme
+  .workspacekind-file-upload
+  .pf-v6-c-input-group__item
+  .pf-v6-c-button.pf-m-control:focus-visible {
   border-radius: var(--pf-t--global--border--radius--small);
 }
 
