@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"reflect"
 	"sync"
 
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -207,12 +206,12 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 		} else {
 			// if we haven't already decided to validate the imageConfig redirects,
 			// check if the redirect has changed
-			if !shouldValidateImageConfigRedirects && !reflect.DeepEqual(oldImageConfigIdMap[imageConfigValue.Id].Redirect, imageConfigValue.Redirect) {
+			if !shouldValidateImageConfigRedirects && !equality.Semantic.DeepEqual(oldImageConfigIdMap[imageConfigValue.Id].Redirect, imageConfigValue.Redirect) {
 				shouldValidateImageConfigRedirects = true
 			}
 
 			// check if the spec has changed
-			if !reflect.DeepEqual(oldImageConfigIdMap[imageConfigValue.Id].Spec, imageConfigValue.Spec) {
+			if !equality.Semantic.DeepEqual(oldImageConfigIdMap[imageConfigValue.Id].Spec, imageConfigValue.Spec) {
 				// we need to validate this imageConfig value since it has changed
 				toValidateImageConfigIds[imageConfigValue.Id] = true
 
@@ -278,33 +277,16 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 		} else {
 			// if we haven't already decided to validate the podConfig redirects,
 			// check if the redirect has changed
-			if !shouldValidatePodConfigRedirects && !reflect.DeepEqual(oldPodConfigIdMap[podConfigValue.Id].Redirect, podConfigValue.Redirect) {
+			if !shouldValidatePodConfigRedirects && !equality.Semantic.DeepEqual(oldPodConfigIdMap[podConfigValue.Id].Redirect, podConfigValue.Redirect) {
 				shouldValidatePodConfigRedirects = true
 			}
 
 			// we must normalize the podConfig specs so that we can compare them
 			newPodConfigSpec := podConfigValue.Spec
-			err := helper.NormalizePodConfigSpec(newPodConfigSpec)
-			if err != nil {
-				podConfigValueSpecPath := field.NewPath("spec", "podTemplate", "options", "podConfig", "values").Key(podConfigValue.Id).Child("spec")
-				allErrs = append(allErrs, field.InternalError(podConfigValueSpecPath, fmt.Errorf("failed to normalize podConfig spec: %w", err)))
-
-				// if the spec could not be normalized, we cannot validate the WorkspaceKind further
-				return nil, apierrors.NewInvalid(
-					schema.GroupKind{Group: kubefloworgv1beta1.GroupVersion.Group, Kind: "WorkspaceKind"},
-					newWorkspaceKind.Name,
-					allErrs,
-				)
-			}
 			oldPodConfigSpec := oldPodConfigIdMap[podConfigValue.Id].Spec
-			err = helper.NormalizePodConfigSpec(oldPodConfigSpec)
-			if err != nil {
-				// this should never happen, as it would indicate that the old podConfig spec is invalid
-				return nil, apierrors.NewInternalError(fmt.Errorf("old podConfig spec of %q could not be normalized: %w", podConfigValue.Id, err))
-			}
 
 			// check if the spec has changed
-			if !reflect.DeepEqual(oldPodConfigSpec, newPodConfigSpec) {
+			if !equality.Semantic.DeepEqual(oldPodConfigSpec, newPodConfigSpec) {
 				// check how many workspaces are using this podConfig value
 				usageCount, err := getPodConfigUsageCount(podConfigValue.Id)
 				if err != nil {
