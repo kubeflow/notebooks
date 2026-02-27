@@ -1,5 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { EllipsisVIcon } from '@patternfly/react-icons/dist/esm/icons/ellipsis-v-icon';
+import { PencilAltIcon } from '@patternfly/react-icons/dist/esm/icons/pencil-alt-icon';
+import { CheckIcon } from '@patternfly/react-icons/dist/esm/icons/check-icon';
+import { TimesIcon } from '@patternfly/react-icons/dist/esm/icons/times-icon';
+import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
 import {
   Table,
   Thead,
@@ -8,6 +12,7 @@ import {
   Th,
   Td,
   TableVariant,
+  ExpandableRowContent,
 } from '@patternfly/react-table/dist/esm/components/Table';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { Dropdown, DropdownItem } from '@patternfly/react-core/dist/esm/components/Dropdown';
@@ -15,20 +20,36 @@ import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggl
 import { Label } from '@patternfly/react-core/dist/esm/components/Label';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
-import { DEFAULT_MODE } from '~/app/pages/Workspaces/Form/helpers';
+import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
+import { Spinner } from '@patternfly/react-core/dist/esm/components/Spinner';
+import {
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateFooter,
+  EmptyStateActions,
+} from '@patternfly/react-core/dist/esm/components/EmptyState';
+import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
+import { ValidatedOptions } from '@patternfly/react-core/helpers';
+import {
+  DEFAULT_MODE,
+  getMountPathValidationError,
+  normalizeMountPath,
+} from '~/app/pages/Workspaces/Form/helpers';
 import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 import { SecretsSecretListItem } from '~/generated/data-contracts';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspacesPodSecretMountValue } from '~/app/types';
 import DeleteModal from '~/shared/components/DeleteModal';
+import { useSecretKeys } from '~/app/hooks/useSecretKeys';
 import { SecretsCreateModal } from './secrets/SecretsCreateModal';
 import { SecretsAttachModal } from './secrets/SecretsAttachModal';
-import { SecretsViewPopover } from './secrets/SecretsViewPopover';
 
 interface WorkspaceFormPropertiesSecretsProps {
   secrets: WorkspacesPodSecretMountValue[];
   setSecrets: (secrets: WorkspacesPodSecretMountValue[]) => void;
 }
+
+const NUM_TABLE_COLUMNS = 5; // expand toggle + Secret Name + Mount Path + Default Mode + Actions
 
 export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSecretsProps> = ({
   secrets,
@@ -42,9 +63,13 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
   const [availableSecrets, setAvailableSecrets] = useState<SecretsSecretListItem[]>([]);
   const [secretToEdit, setSecretToEdit] = useState<SecretsSecretListItem | undefined>(undefined);
+  const [expandedSecrets, setExpandedSecrets] = useState<Set<string>>(new Set());
+  const [editingMountPath, setEditingMountPath] = useState<number | null>(null);
+  const [editMountPathValue, setEditMountPathValue] = useState('');
 
   const { api } = useNotebookAPI();
   const { selectedNamespace } = useNamespaceSelectorWrapper();
+  const { getSecretKeysState, fetchSecretKeys } = useSecretKeys();
 
   useEffect(() => {
     const fetchSecrets = async () => {
@@ -63,6 +88,22 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
     setDeleteIndex(i);
   }, []);
 
+  const handleToggleExpand = useCallback(
+    (secretName: string) => {
+      setExpandedSecrets((prev) => {
+        const next = new Set(prev);
+        if (next.has(secretName)) {
+          next.delete(secretName);
+        } else {
+          next.add(secretName);
+          fetchSecretKeys(secretName);
+        }
+        return next;
+      });
+    },
+    [fetchSecretKeys],
+  );
+
   const handleAttachSecrets = useCallback(
     (newSecrets: SecretsSecretListItem[], mountPath: string, mode: number) => {
       const newSecretMounts: WorkspacesPodSecretMountValue[] = newSecrets.map((secret) => ({
@@ -78,27 +119,26 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
     [secrets, setSecrets],
   );
 
+  const onDeleteModalClose = useCallback(() => {
+    setDeleteIndex(null);
+    setIsDeleteModalOpen(false);
+  }, []);
+
   const handleDelete = useCallback(async () => {
     if (deleteIndex === null) {
       return;
     }
     const secretToDelete = secrets[deleteIndex];
 
-    // Remove from attached keys if it was attached
     if (!secretToDelete.isAttached) {
       await api.secrets.deleteSecret(selectedNamespace, secretToDelete.secretName);
     }
     setSecrets(secrets.filter((_, i) => i !== deleteIndex));
-  }, [deleteIndex, secrets, api.secrets, selectedNamespace, setSecrets]);
-
-  const onDeleteModalClose = useCallback(() => {
-    setDeleteIndex(null);
-    setIsDeleteModalOpen(false);
-  }, []);
+    onDeleteModalClose();
+  }, [deleteIndex, secrets, api.secrets, selectedNamespace, setSecrets, onDeleteModalClose]);
 
   const handleSecretCreated = useCallback(
     async (secretName: string) => {
-      // Check if secret is already in the list
       const existingSecret = secrets.find((s) => s.secretName === secretName);
       if (existingSecret) {
         return;
@@ -114,7 +154,6 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
 
       setSecrets([...secrets, newSecret]);
 
-      // Refresh the available secrets list to get the new secret's details (including immutable status)
       const secretsResponse = await api.secrets.listSecrets(selectedNamespace);
       setAvailableSecrets(secretsResponse.data);
     },
@@ -123,10 +162,12 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
 
   const openEditModal = useCallback(
     (secretName: string) => {
-      // Find the secret in available secrets to get full details
       const secret = availableSecrets.find((s) => s.name === secretName);
 
-      // Create a minimal secret object if not found (modal will fetch full details)
+      if (secret && !secret.canUpdate) {
+        return;
+      }
+
       const secretData = secret ?? {
         name: secretName,
         type: 'Opaque',
@@ -136,7 +177,6 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
         audit: { createdAt: '', createdBy: '', updatedAt: '', updatedBy: '', deletedAt: '' },
       };
 
-      // Set open first, then data (matching delete modal pattern)
       setIsEditModalOpen(true);
       setSecretToEdit(secretData);
     },
@@ -144,7 +184,6 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
   );
 
   const handleSecretUpdated = useCallback(async () => {
-    // Refresh the available secrets list to get updated data
     const secretsResponse = await api.secrets.listSecrets(selectedNamespace);
     setAvailableSecrets(secretsResponse.data);
     setSecretToEdit(undefined);
@@ -158,115 +197,315 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
     }
   }, []);
 
-  const mountedKeys = useMemo(() => new Set(secrets.map((secret) => secret.secretName)), [secrets]);
+  const mountedKeys = useMemo(
+    () => new Set(secrets.map((s) => `${s.secretName}:${s.mountPath}`)),
+    [secrets],
+  );
+
+  const handleStartMountPathEdit = useCallback(
+    (index: number) => {
+      setEditingMountPath(index);
+      setEditMountPathValue(secrets[index].mountPath);
+    },
+    [secrets],
+  );
+
+  const handleConfirmMountPathEdit = useCallback(() => {
+    if (editingMountPath === null) {
+      return;
+    }
+    const validationError = getMountPathValidationError(
+      secrets,
+      editMountPathValue,
+      editingMountPath,
+    );
+    if (validationError) {
+      return;
+    }
+    const normalized = normalizeMountPath(editMountPathValue);
+    const updated = [...secrets];
+    updated[editingMountPath] = { ...updated[editingMountPath], mountPath: normalized };
+    setSecrets(updated);
+    setEditingMountPath(null);
+  }, [editingMountPath, editMountPathValue, secrets, setSecrets]);
+
+  const handleCancelMountPathEdit = useCallback(() => {
+    setEditingMountPath(null);
+  }, []);
+
+  const mountPathValidationError =
+    editingMountPath !== null
+      ? getMountPathValidationError(secrets, editMountPathValue, editingMountPath)
+      : null;
+
+  const attachButton = (
+    <Button
+      variant="secondary"
+      onClick={() => setIsAttachModalOpen(true)}
+      data-testid="attach-existing-secrets-button"
+    >
+      Attach Existing Secrets
+    </Button>
+  );
+
+  const createButton = (
+    <Button
+      variant="secondary"
+      onClick={() => setIsCreateModalOpen(true)}
+      data-testid="attach-new-secret-button"
+    >
+      Attach New Secret
+    </Button>
+  );
+
+  const renderExpandedContent = (secretName: string) => {
+    const state = getSecretKeysState(secretName);
+
+    if (!state.isLoaded) {
+      return <Spinner size="md" aria-label="Loading secret keys" />;
+    }
+
+    if (state.error) {
+      return <span>{state.error}</span>;
+    }
+
+    if (state.keys.length === 0) {
+      return <span>No keys found in this secret.</span>;
+    }
+
+    return (
+      <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
+        {state.keys.map((key) => (
+          <Flex
+            key={key}
+            spaceItems={{ default: 'spaceItemsMd' }}
+            alignItems={{ default: 'alignItemsBaseline' }}
+          >
+            <FlexItem>
+              <strong>{key}</strong>
+            </FlexItem>
+            <FlexItem>*********</FlexItem>
+          </Flex>
+        ))}
+      </Flex>
+    );
+  };
+
+  const renderMountPathCell = (secret: WorkspacesPodSecretMountValue, index: number) => {
+    if (editingMountPath === index) {
+      return (
+        <Flex
+          alignItems={{ default: 'alignItemsCenter' }}
+          spaceItems={{ default: 'spaceItemsXs' }}
+          flexWrap={{ default: 'wrap' }}
+        >
+          <FlexItem flex={{ default: 'flex_1' }}>
+            <TextInput
+              id={`edit-mount-path-${secret.secretName}`}
+              value={editMountPathValue}
+              onChange={(_, val) => setEditMountPathValue(val)}
+              validated={mountPathValidationError ? ValidatedOptions.error : undefined}
+              aria-label="Edit mount path"
+              data-testid={`edit-mount-path-input-${secret.secretName}`}
+              autoFocus
+              className="secrets-inline-edit__input"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleConfirmMountPathEdit();
+                } else if (e.key === 'Escape') {
+                  handleCancelMountPathEdit();
+                }
+              }}
+            />
+          </FlexItem>
+          <FlexItem>
+            <Button
+              variant="plain"
+              aria-label="Save mount path"
+              onClick={handleConfirmMountPathEdit}
+              isDisabled={!!mountPathValidationError}
+              data-testid={`confirm-mount-path-${secret.secretName}`}
+            >
+              <CheckIcon />
+            </Button>
+          </FlexItem>
+          <FlexItem>
+            <Button
+              variant="plain"
+              aria-label="Cancel edit"
+              onClick={handleCancelMountPathEdit}
+              data-testid={`cancel-mount-path-${secret.secretName}`}
+            >
+              <TimesIcon />
+            </Button>
+          </FlexItem>
+          {mountPathValidationError && (
+            <FlexItem fullWidth={{ default: 'fullWidth' }}>
+              <HelperText>
+                <HelperTextItem variant="error">{mountPathValidationError}</HelperTextItem>
+              </HelperText>
+            </FlexItem>
+          )}
+        </Flex>
+      );
+    }
+
+    return (
+      <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
+        <FlexItem>{secret.mountPath}</FlexItem>
+        <FlexItem>
+          <Button
+            variant="plain"
+            aria-label="Edit mount path"
+            onClick={() => handleStartMountPathEdit(index)}
+            data-testid={`edit-mount-path-${secret.secretName}`}
+          >
+            <PencilAltIcon />
+          </Button>
+        </FlexItem>
+      </Flex>
+    );
+  };
+
   return (
     <>
-      {secrets.length > 0 && (
-        <Table
-          variant={TableVariant.compact}
-          aria-label="Secrets Table"
-          data-testid="secrets-table"
+      {secrets.length === 0 ? (
+        <EmptyState
+          titleText="No secrets yet"
+          headingLevel="h4"
+          icon={PlusCircleIcon}
+          data-testid="secrets-empty-state"
         >
-          <Thead>
-            <Tr>
-              <Th>Secret Name</Th>
-              <Th>Mount Path</Th>
-              <Th>Default Mode</Th>
-              <Th aria-label="Actions" />
-            </Tr>
-          </Thead>
-          <Tbody>
+          <EmptyStateBody>To get started, attach a secret.</EmptyStateBody>
+          <EmptyStateFooter>
+            <EmptyStateActions>
+              {attachButton}
+              {createButton}
+            </EmptyStateActions>
+          </EmptyStateFooter>
+        </EmptyState>
+      ) : (
+        <>
+          <Table
+            className="secrets-table mui-table-cells-middle"
+            variant={TableVariant.compact}
+            aria-label="Secrets Table"
+            data-testid="secrets-table"
+          >
+            <Thead>
+              <Tr>
+                <Th screenReaderText="Row expansion" />
+                <Th width={30}>Secret Name</Th>
+                <Th width={30}>Mount Path</Th>
+                <Th>Default Mode</Th>
+                <Th aria-label="Actions" />
+              </Tr>
+            </Thead>
             {secrets.map((secret, index) => {
               const secretDetails = availableSecrets.find((s) => s.name === secret.secretName);
               const isImmutable = secretDetails?.immutable ?? false;
+              const canUpdate = secretDetails?.canUpdate ?? true;
+              const isExpanded = expandedSecrets.has(secret.secretName);
 
               return (
-                <Tr key={secret.secretName}>
-                  <Td>
-                    <Flex
-                      spaceItems={{ default: 'spaceItemsSm' }}
-                      alignItems={{ default: 'alignItemsCenter' }}
-                    >
-                      <FlexItem>
-                        {secret.secretName} <SecretsViewPopover secretName={secret.secretName} />
-                      </FlexItem>
-                      {isImmutable && (
-                        <FlexItem>
-                          <Label color="orange" isCompact>
-                            Immutable
-                          </Label>
-                        </FlexItem>
-                      )}
-                    </Flex>
-                  </Td>
-                  <Td>{secret.mountPath}</Td>
-                  <Td>{secret.defaultMode?.toString(8) ?? '644'}</Td>
-                  <Td isActionCell>
-                    <Dropdown
-                      toggle={(toggleRef) => (
-                        <MenuToggle
-                          ref={toggleRef}
-                          isExpanded={dropdownOpen === index}
-                          onClick={() => setDropdownOpen(dropdownOpen === index ? null : index)}
-                          variant="plain"
-                          aria-label="Actions"
-                          data-testid={`secret-kebab-${secret.secretName}`}
-                        >
-                          <EllipsisVIcon />
-                        </MenuToggle>
-                      )}
-                      isOpen={dropdownOpen === index}
-                      onSelect={() => setDropdownOpen(null)}
-                      onOpenChange={(isOpen) => setDropdownOpen(isOpen ? index : null)}
-                      popperProps={{ position: 'right' }}
-                    >
-                      {isImmutable ? (
-                        <Tooltip content="This secret is immutable and cannot be edited.">
+                <Tbody key={`${secret.secretName}:${secret.mountPath}`} isExpanded={isExpanded}>
+                  <Tr>
+                    <Td
+                      expand={{
+                        rowIndex: index,
+                        isExpanded,
+                        onToggle: () => handleToggleExpand(secret.secretName),
+                      }}
+                      data-testid={`expand-secret-${secret.secretName}`}
+                    />
+                    <Td dataLabel="Secret Name">
+                      <Flex
+                        spaceItems={{ default: 'spaceItemsSm' }}
+                        alignItems={{ default: 'alignItemsCenter' }}
+                      >
+                        <FlexItem>{secret.secretName}</FlexItem>
+                        {isImmutable && (
+                          <FlexItem>
+                            <Label color="orange" isCompact>
+                              Immutable
+                            </Label>
+                          </FlexItem>
+                        )}
+                      </Flex>
+                    </Td>
+                    <Td dataLabel="Mount Path" hasAction>
+                      {renderMountPathCell(secret, index)}
+                    </Td>
+                    <Td dataLabel="Default Mode">{secret.defaultMode?.toString(8) ?? '644'}</Td>
+                    <Td isActionCell hasAction>
+                      <Dropdown
+                        toggle={(toggleRef) => (
+                          <MenuToggle
+                            ref={toggleRef}
+                            isExpanded={dropdownOpen === index}
+                            onClick={() => setDropdownOpen(dropdownOpen === index ? null : index)}
+                            variant="plain"
+                            aria-label="Actions"
+                            data-testid={`secret-kebab-${secret.secretName}`}
+                          >
+                            <EllipsisVIcon />
+                          </MenuToggle>
+                        )}
+                        isOpen={dropdownOpen === index}
+                        onSelect={() => setDropdownOpen(null)}
+                        onOpenChange={(isOpen) => setDropdownOpen(isOpen ? index : null)}
+                        popperProps={{ position: 'right' }}
+                      >
+                        {isImmutable || !canUpdate ? (
+                          <Tooltip
+                            content={
+                              isImmutable
+                                ? 'This secret is immutable and cannot be edited.'
+                                : 'You do not have permission to edit this secret.'
+                            }
+                          >
+                            <DropdownItem
+                              isAriaDisabled
+                              data-testid={`edit-secret-${secret.secretName}`}
+                            >
+                              Edit
+                            </DropdownItem>
+                          </Tooltip>
+                        ) : (
                           <DropdownItem
-                            isAriaDisabled
+                            onClick={() => openEditModal(secret.secretName)}
                             data-testid={`edit-secret-${secret.secretName}`}
                           >
                             Edit
                           </DropdownItem>
-                        </Tooltip>
-                      ) : (
+                        )}
                         <DropdownItem
-                          onClick={() => openEditModal(secret.secretName)}
-                          data-testid={`edit-secret-${secret.secretName}`}
+                          onClick={() => openDeleteModal(index)}
+                          data-testid={`remove-secret-${secret.secretName}`}
                         >
-                          Edit
+                          Remove
                         </DropdownItem>
-                      )}
-                      <DropdownItem
-                        onClick={() => openDeleteModal(index)}
-                        data-testid={`remove-secret-${secret.secretName}`}
-                      >
-                        Remove
-                      </DropdownItem>
-                    </Dropdown>
-                  </Td>
-                </Tr>
+                      </Dropdown>
+                    </Td>
+                  </Tr>
+                  <Tr isExpanded={isExpanded}>
+                    <Td />
+                    <Td colSpan={NUM_TABLE_COLUMNS - 1}>
+                      <ExpandableRowContent>
+                        {renderExpandedContent(secret.secretName)}
+                      </ExpandableRowContent>
+                    </Td>
+                  </Tr>
+                </Tbody>
               );
             })}
-          </Tbody>
-        </Table>
+          </Table>
+          <Flex className="pf-v6-u-mt-md" spaceItems={{ default: 'spaceItemsMd' }}>
+            <FlexItem>{attachButton}</FlexItem>
+            <FlexItem>{createButton}</FlexItem>
+          </Flex>
+        </>
       )}
-      <Button
-        variant="secondary"
-        onClick={() => setIsAttachModalOpen(true)}
-        className="pf-v6-u-mt-md pf-v6-u-mr-md"
-        data-testid="attach-existing-secrets-button"
-      >
-        Attach Existing Secrets
-      </Button>
-      <Button
-        variant="secondary"
-        onClick={() => setIsCreateModalOpen(true)}
-        className="pf-v6-u-mt-md"
-        data-testid="create-new-secret-button"
-      >
-        Create New Secret
-      </Button>
 
       <SecretsAttachModal
         availableSecrets={availableSecrets}
@@ -274,6 +513,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
         setIsOpen={setIsAttachModalOpen}
         onAttach={handleAttachSecrets}
         mountedKeys={mountedKeys}
+        existingMountPaths={secrets.map((s) => s.mountPath)}
       />
 
       <SecretsCreateModal

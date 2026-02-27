@@ -11,6 +11,7 @@ interface PasswordInputProps {
   'aria-label': string;
   isRequired?: boolean;
   'data-testid'?: string;
+  className?: string;
 }
 
 const PasswordInput: React.FC<PasswordInputProps> = ({
@@ -19,11 +20,12 @@ const PasswordInput: React.FC<PasswordInputProps> = ({
   'aria-label': ariaLabel,
   isRequired = false,
   'data-testid': dataTestId,
+  className,
 }) => {
   const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <InputGroup>
+    <InputGroup className={className}>
       <InputGroupItem isFill>
         <TextInput
           type={showPassword ? TextInputTypes.text : TextInputTypes.password}

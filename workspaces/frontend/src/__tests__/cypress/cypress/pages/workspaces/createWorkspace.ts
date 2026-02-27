@@ -113,8 +113,8 @@ class CreateWorkspace extends WorkspaceForm {
     return cy.findByTestId('attach-existing-secrets-button').click();
   }
 
-  clickCreateNewSecret(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('create-new-secret-button').click();
+  clickAttachNewSecret(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('attach-new-secret-button').click();
   }
 }
 
