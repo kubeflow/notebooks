@@ -1972,9 +1972,6 @@ const docTemplate = `{
                 "current": {
                     "$ref": "#/definitions/workspaces.OptionInfo"
                 },
-                "desired": {
-                    "$ref": "#/definitions/workspaces.OptionInfo"
-                },
                 "redirectChain": {
                     "type": "array",
                     "items": {
@@ -2067,9 +2064,6 @@ const docTemplate = `{
             ],
             "properties": {
                 "current": {
-                    "$ref": "#/definitions/workspaces.OptionInfo"
-                },
-                "desired": {
                     "$ref": "#/definitions/workspaces.OptionInfo"
                 },
                 "redirectChain": {
@@ -2353,18 +2347,18 @@ const docTemplate = `{
         "workspaces.RedirectStep": {
             "type": "object",
             "required": [
-                "sourceId",
-                "targetId"
+                "source",
+                "target"
             ],
             "properties": {
                 "message": {
                     "$ref": "#/definitions/workspaces.RedirectMessage"
                 },
-                "sourceId": {
-                    "type": "string"
+                "source": {
+                    "$ref": "#/definitions/workspaces.OptionInfo"
                 },
-                "targetId": {
-                    "type": "string"
+                "target": {
+                    "$ref": "#/definitions/workspaces.OptionInfo"
                 }
             }
         },

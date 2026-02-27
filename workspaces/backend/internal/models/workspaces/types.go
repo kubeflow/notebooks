@@ -97,13 +97,11 @@ type PodTemplateOptions struct {
 
 type ImageConfig struct {
 	Current       OptionInfo     `json:"current"`
-	Desired       *OptionInfo    `json:"desired,omitempty"`
 	RedirectChain []RedirectStep `json:"redirectChain,omitempty"`
 }
 
 type PodConfig struct {
 	Current       OptionInfo     `json:"current"`
-	Desired       *OptionInfo    `json:"desired,omitempty"`
 	RedirectChain []RedirectStep `json:"redirectChain,omitempty"`
 }
 
@@ -120,9 +118,9 @@ type OptionLabel struct {
 }
 
 type RedirectStep struct {
-	SourceId string           `json:"sourceId"`
-	TargetId string           `json:"targetId"`
-	Message  *RedirectMessage `json:"message,omitempty"`
+	Source  OptionInfo       `json:"source"`
+	Target  OptionInfo       `json:"target"`
+	Message *RedirectMessage `json:"message,omitempty"`
 }
 
 type RedirectMessage struct {
