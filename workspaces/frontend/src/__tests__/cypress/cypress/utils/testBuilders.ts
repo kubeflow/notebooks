@@ -118,3 +118,48 @@ export const createMockPodTemplateWithImage = (
       }),
     }),
   });
+
+export const buildMockImageWithLabels = (
+  id: string,
+  displayName: string,
+  labels: { key: string; value: string }[],
+  hidden = false,
+): {
+  id: string;
+  displayName: string;
+  description: string;
+  labels: { key: string; value: string }[];
+  hidden: boolean;
+  redirect?: undefined;
+  clusterMetrics?: undefined;
+} => ({
+  id,
+  displayName,
+  description: `Image: ${displayName}`,
+  labels,
+  hidden,
+  redirect: undefined,
+  clusterMetrics: undefined,
+});
+
+export const buildMockPodConfigWithLabels = (
+  id: string,
+  displayName: string,
+  labels: { key: string; value: string }[],
+): {
+  id: string;
+  displayName: string;
+  description: string;
+  labels: { key: string; value: string }[];
+  hidden: boolean;
+  redirect?: undefined;
+  clusterMetrics?: undefined;
+} => ({
+  id,
+  displayName,
+  description: `Pod config: ${displayName}`,
+  labels,
+  hidden: false,
+  redirect: undefined,
+  clusterMetrics: undefined,
+});

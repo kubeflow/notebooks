@@ -2,7 +2,10 @@ import React, { useMemo, useState } from 'react';
 import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import { Split, SplitItem } from '@patternfly/react-core/dist/esm/layouts/Split';
 import { WorkspaceFormImageList } from '~/app/pages/Workspaces/Form/image/WorkspaceFormImageList';
-import { FilterByLabels } from '~/app/pages/Workspaces/Form/labelFilter/FilterByLabels';
+import {
+  ExtraFilter,
+  FilterByLabels,
+} from '~/app/pages/Workspaces/Form/labelFilter/FilterByLabels';
 import { WorkspacekindsImageConfigValue } from '~/generated/data-contracts';
 
 interface WorkspaceFormImageSelectionProps {
@@ -18,14 +21,35 @@ const WorkspaceFormImageSelection: React.FunctionComponent<WorkspaceFormImageSel
 }) => {
   const [filteredImages, setFilteredImages] = useState<WorkspacekindsImageConfigValue[]>(images);
 
+  const extraFilters: ExtraFilter<WorkspacekindsImageConfigValue>[] = useMemo(
+    () => [
+      {
+        label: 'Show hidden',
+        value: false,
+        key: 'showHidden',
+        matchesFilter: (image: WorkspacekindsImageConfigValue, value: boolean) =>
+          value || !image.hidden,
+      },
+      {
+        label: 'Show redirected',
+        value: false,
+        key: 'showRedirected',
+        matchesFilter: (image: WorkspacekindsImageConfigValue, value: boolean) =>
+          value || image.redirect === undefined,
+      },
+    ],
+    [],
+  );
+
   const imageFilterContent = useMemo(
     () => (
       <FilterByLabels
         labelledObjects={images}
         setLabelledObjects={(obj) => setFilteredImages(obj as WorkspacekindsImageConfigValue[])}
+        extraFilters={extraFilters}
       />
     ),
-    [images, setFilteredImages],
+    [images, setFilteredImages, extraFilters],
   );
 
   return (

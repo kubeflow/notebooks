@@ -85,31 +85,29 @@ export const WorkspaceFormImageList: React.FunctionComponent<WorkspaceFormImageL
         )}
         {filteredWorkspaceImages.length > 0 && (
           <Gallery hasGutter aria-label="Selectable card container">
-            {filteredWorkspaceImages
-              .filter((image) => !image.hidden)
-              .map((image) => (
-                <Card
-                  isCompact
-                  isSelectable
-                  key={image.id}
-                  id={image.id.replace(/ /g, '-')}
-                  isSelected={image.id === selectedImage?.id}
-                  onClick={() => handleCardClick(image)}
+            {filteredWorkspaceImages.map((image) => (
+              <Card
+                isCompact
+                isSelectable
+                key={image.id}
+                id={image.id.replace(/ /g, '-')}
+                isSelected={image.id === selectedImage?.id}
+                onClick={() => handleCardClick(image)}
+              >
+                <CardHeader
+                  selectableActions={{
+                    selectableActionId: `selectable-actions-item-${image.id.replace(/ /g, '-')}`,
+                    selectableActionAriaLabelledby: image.displayName.replace(/ /g, '-'),
+                    name: image.displayName,
+                    variant: 'single',
+                    onChange,
+                  }}
                 >
-                  <CardHeader
-                    selectableActions={{
-                      selectableActionId: `selectable-actions-item-${image.id.replace(/ /g, '-')}`,
-                      selectableActionAriaLabelledby: image.displayName.replace(/ /g, '-'),
-                      name: image.displayName,
-                      variant: 'single',
-                      onChange,
-                    }}
-                  >
-                    <CardTitle>{image.displayName}</CardTitle>
-                    <CardBody>{image.id}</CardBody>
-                  </CardHeader>
-                </Card>
-              ))}
+                  <CardTitle>{image.displayName}</CardTitle>
+                  <CardBody>{image.id}</CardBody>
+                </CardHeader>
+              </Card>
+            ))}
           </Gallery>
         )}
       </PageSection>
