@@ -297,13 +297,6 @@ export const buildMockWorkspaceKind = (
               { key: 'jupyterlabVersion', value: '2.1.0' },
             ],
             hidden: false,
-            redirect: {
-              to: 'jupyterlab_scipy_220',
-              message: {
-                text: 'This update will change...',
-                level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelWarning,
-              },
-            },
             clusterMetrics: {
               workspacesCount: 3,
             },

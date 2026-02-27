@@ -168,11 +168,77 @@ class WorkspaceForm {
   clickCreateNewSecret(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findCreateNewSecretButton().click();
   }
+
+  findLabelFilterPanel(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('label-filter-panel');
+  }
+
+  findLabelCategory(labelKey: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`label-category-${labelKey}`);
+  }
+
+  clickLabelFilter(labelKey: string, labelValue: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy
+      .findByTestId(`label-filter-${labelKey}-${labelValue}`)
+      .find('input[type="checkbox"]')
+      .click();
+  }
+
+  assertLabelFilterChecked(
+    labelKey: string,
+    labelValue: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy
+      .findByTestId(`label-filter-${labelKey}-${labelValue}`)
+      .find('input[type="checkbox"]')
+      .should('be.checked');
+  }
+
+  assertLabelFilterNotChecked(
+    labelKey: string,
+    labelValue: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy
+      .findByTestId(`label-filter-${labelKey}-${labelValue}`)
+      .find('input[type="checkbox"]')
+      .should('not.be.checked');
+  }
+
+  findExtraFilter(filterKey: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`extra-filter-${filterKey}`);
+  }
+
+  clickExtraFilter(filterKey: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findExtraFilter(filterKey).find('input[type="checkbox"]').click();
+  }
+
+  checkExtraFilter(filterKey: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findExtraFilter(filterKey).find('input[type="checkbox"]').check();
+  }
+
+  uncheckExtraFilter(filterKey: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findExtraFilter(filterKey).find('input[type="checkbox"]').uncheck();
+  }
+
+  assertExtraFilterChecked(filterKey: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findExtraFilter(filterKey).find('input[type="checkbox"]').should('be.checked');
+  }
+
+  assertExtraFilterNotChecked(filterKey: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findExtraFilter(filterKey).find('input[type="checkbox"]').should('not.be.checked');
+  }
+
+  assertLabelCategoryExists(labelKey: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findLabelCategory(labelKey).should('exist');
+  }
+
+  assertLabelCategoryNotExists(labelKey: string): void {
+    cy.findByTestId(`label-category-${labelKey}`).should('not.exist');
+  }
 }
 
 class SecretsCreateModal {
   find() {
-    // eslint-disable-next-line @cspell/spellchecker
     return cy.get('[aria-labelledby="create-secret-modal-title"]');
   }
 

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FilterSidePanel,
   FilterSidePanelCategory,
@@ -7,20 +7,34 @@ import {
 import '@patternfly/react-catalog-view-extension/dist/css/react-catalog-view-extension.css';
 import { formatLabelKey } from '~/shared/utilities/WorkspaceUtils';
 
-type FilterByLabelsProps = {
-  labelledObjects: { labels: { key: string; value: string }[] }[];
-  setLabelledObjects: (labelledObjects: { labels: { key: string; value: string }[] }[]) => void;
+type LabelledObject<T> = { labels: { key: string; value: string }[] } & T;
+
+export type ExtraFilter<T> = {
+  key: string;
+  value: boolean;
+  label: string;
+  matchesFilter: (obj: LabelledObject<T>, value: boolean) => boolean;
 };
 
-export const FilterByLabels: React.FunctionComponent<FilterByLabelsProps> = ({
-  labelledObjects,
-  setLabelledObjects,
-}) => {
+type FilterByLabelsProps<T> = {
+  labelledObjects: LabelledObject<T>[];
+  setLabelledObjects: (labelledObjects: LabelledObject<T>[]) => void;
+  extraFilters?: ExtraFilter<T>[];
+};
+
+export const FilterByLabels = <T,>(props: FilterByLabelsProps<T>): React.ReactElement => {
   const [selectedLabels, setSelectedLabels] = useState<Map<string, Set<string>>>(new Map());
+  const [selectedExtraFilters, setSelectedExtraFilters] = useState<Map<string, ExtraFilter<T>>>(
+    () => {
+      const extraFiltersMap = new Map();
+      props.extraFilters?.map((extraFilter) => extraFiltersMap.set(extraFilter.key, extraFilter));
+      return extraFiltersMap;
+    },
+  );
 
   const filterMap = useMemo(() => {
     const labelsMap = new Map<string, Set<string>>();
-    labelledObjects
+    props.labelledObjects
       .flatMap((labelledObject) => labelledObject.labels)
       .forEach((label) => {
         if (!labelsMap.has(label.key)) {
@@ -29,12 +43,42 @@ export const FilterByLabels: React.FunctionComponent<FilterByLabelsProps> = ({
         labelsMap.get(label.key)?.add(label.value);
       });
     return labelsMap;
-  }, [labelledObjects]);
+  }, [props.labelledObjects]);
 
-  const isChecked = useCallback(
+  const isLabelChecked = useCallback(
     (label: string, labelValue: string) => selectedLabels.get(label)?.has(labelValue),
     [selectedLabels],
   );
+
+  const updateLabelledObjects = useCallback(() => {
+    props.setLabelledObjects(
+      props.labelledObjects.filter(
+        (labelledObject) =>
+          [...selectedExtraFilters.values()].reduce(
+            (accumulator, selectedExtraFilter) =>
+              accumulator &&
+              selectedExtraFilter.matchesFilter(labelledObject, selectedExtraFilter.value),
+            true,
+          ) &&
+          [...selectedLabels.entries()].reduce(
+            (accumulator, [selectedLabelKey, selectedLabelValues]) => {
+              if (selectedLabelValues.size > 0) {
+                return (
+                  accumulator &&
+                  labelledObject.labels.some(
+                    (imageLabel) =>
+                      imageLabel.key === selectedLabelKey &&
+                      selectedLabelValues.has(imageLabel.value),
+                  )
+                );
+              }
+              return accumulator;
+            },
+            true,
+          ),
+      ),
+    );
+  }, [selectedExtraFilters, selectedLabels, props]);
 
   const onChange = useCallback(
     (labelKey: string, labelValue: string, event: React.SyntheticEvent<HTMLElement>) => {
@@ -54,40 +98,59 @@ export const FilterByLabels: React.FunctionComponent<FilterByLabelsProps> = ({
         }
       }
 
-      setLabelledObjects(
-        labelledObjects.filter((labelledObject) =>
-          [...newSelectedLabels.entries()].reduce(
-            (accumulator, [selectedLabelKey, selectedLabelValues]) => {
-              if (selectedLabelValues.size > 0) {
-                return (
-                  accumulator &&
-                  labelledObject.labels.some(
-                    (imageLabel) =>
-                      imageLabel.key === selectedLabelKey &&
-                      selectedLabelValues.has(imageLabel.value),
-                  )
-                );
-              }
-              return accumulator;
-            },
-            true,
-          ),
-        ),
-      );
-
       setSelectedLabels(newSelectedLabels);
     },
-    [selectedLabels, labelledObjects, setLabelledObjects],
+    [selectedLabels],
   );
 
+  const onChangeExtraFilters = useCallback(
+    (extraFilter: ExtraFilter<T>, event: React.SyntheticEvent<HTMLElement>) => {
+      const { checked } = event.currentTarget as HTMLInputElement;
+      const newSelectedExtraFilters: Map<string, ExtraFilter<T>> = new Map(selectedExtraFilters);
+
+      newSelectedExtraFilters.set(extraFilter.key, {
+        key: extraFilter.key,
+        value: checked,
+        label: extraFilter.label,
+        matchesFilter: extraFilter.matchesFilter,
+      });
+
+      setSelectedExtraFilters(newSelectedExtraFilters);
+    },
+    [selectedExtraFilters],
+  );
+
+  useEffect(() => {
+    updateLabelledObjects();
+  }, [selectedLabels, selectedExtraFilters, updateLabelledObjects]);
+
   return (
-    <FilterSidePanel id="filter-panel">
+    <FilterSidePanel id="filter-panel" data-testid="label-filter-panel">
+      {selectedExtraFilters.size > 0 && (
+        <FilterSidePanelCategory key="extraFilters" data-testid="extra-filters-category">
+          {[...selectedExtraFilters.values()].map((extraFilter) => (
+            <FilterSidePanelCategoryItem
+              key={extraFilter.key}
+              data-testid={`extra-filter-${extraFilter.key}`}
+              checked={extraFilter.value}
+              onClick={(e) => onChangeExtraFilters(extraFilter, e)}
+            >
+              {extraFilter.label}
+            </FilterSidePanelCategoryItem>
+          ))}
+        </FilterSidePanelCategory>
+      )}
       {[...filterMap.keys()].map((label) => (
-        <FilterSidePanelCategory key={label} title={formatLabelKey(label)}>
+        <FilterSidePanelCategory
+          key={label}
+          data-testid={`label-category-${label}`}
+          title={formatLabelKey(label)}
+        >
           {Array.from(filterMap.get(label)?.values() ?? []).map((labelValue) => (
             <FilterSidePanelCategoryItem
               key={`${label}|||${labelValue}`}
-              checked={isChecked(label, labelValue)}
+              data-testid={`label-filter-${label}-${labelValue}`}
+              checked={isLabelChecked(label, labelValue)}
               onClick={(e) => onChange(label, labelValue, e)}
             >
               {labelValue}
