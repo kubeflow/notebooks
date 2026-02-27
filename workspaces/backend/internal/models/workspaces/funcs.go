@@ -177,13 +177,13 @@ func buildImageConfig(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.
 
 	// get the current image config
 	var currentImageConfigValue *kubefloworgv1beta1.ImageConfigValue
-	var currentSpawner *kubefloworgv1beta1.OptionSpawnerInfo
+	var currentSpawnerInfo *kubefloworgv1beta1.OptionSpawnerInfo
 	currentImageConfigId := ws.Spec.PodTemplate.Options.ImageConfig
 	if cfg, ok := imageConfigMap[currentImageConfigId]; ok {
 		currentImageConfigValue = &cfg
-		currentSpawner = &cfg.Spawner
+		currentSpawnerInfo = &cfg.Spawner
 	}
-	currentImageConfig := buildOptionInfo(currentImageConfigId, UnknownImageConfig, currentSpawner)
+	currentImageConfig := buildOptionInfo(currentImageConfigId, UnknownImageConfig, currentSpawnerInfo)
 
 	// build the redirect chain
 	// NOTE: the redirect chain will be nil (not an empty slice) if there are no redirects
@@ -195,18 +195,18 @@ func buildImageConfig(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.
 	for i := range ws.Status.PodTemplateOptions.ImageConfig.RedirectChain {
 		step := ws.Status.PodTemplateOptions.ImageConfig.RedirectChain[i]
 
-		var sourceSpawner *kubefloworgv1beta1.OptionSpawnerInfo
+		var sourceSpawnerInfo *kubefloworgv1beta1.OptionSpawnerInfo
 		if cfg, ok := imageConfigMap[step.Source]; ok {
-			sourceSpawner = &cfg.Spawner
+			sourceSpawnerInfo = &cfg.Spawner
 		}
-		var targetSpawner *kubefloworgv1beta1.OptionSpawnerInfo
+		var targetSpawnerInfo *kubefloworgv1beta1.OptionSpawnerInfo
 		if cfg, ok := imageConfigMap[step.Target]; ok {
-			targetSpawner = &cfg.Spawner
+			targetSpawnerInfo = &cfg.Spawner
 		}
 
 		redirectChain[i] = RedirectStep{
-			Source: buildOptionInfo(step.Source, UnknownImageConfig, sourceSpawner),
-			Target: buildOptionInfo(step.Target, UnknownImageConfig, targetSpawner),
+			Source: buildOptionInfo(step.Source, UnknownImageConfig, sourceSpawnerInfo),
+			Target: buildOptionInfo(step.Target, UnknownImageConfig, targetSpawnerInfo),
 		}
 		if cfg, ok := imageConfigMap[step.Source]; ok {
 			// skip the redirect if it's not the target we expect
@@ -235,13 +235,13 @@ func buildPodConfig(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.Wo
 
 	// get the current pod config
 	var currentPodConfigValue *kubefloworgv1beta1.PodConfigValue
-	var currentSpawner *kubefloworgv1beta1.OptionSpawnerInfo
+	var currentSpawnerInfo *kubefloworgv1beta1.OptionSpawnerInfo
 	currentPodConfigId := ws.Spec.PodTemplate.Options.PodConfig
 	if cfg, ok := podConfigMap[currentPodConfigId]; ok {
 		currentPodConfigValue = &cfg
-		currentSpawner = &cfg.Spawner
+		currentSpawnerInfo = &cfg.Spawner
 	}
-	currentPodConfig := buildOptionInfo(currentPodConfigId, UnknownPodConfig, currentSpawner)
+	currentPodConfig := buildOptionInfo(currentPodConfigId, UnknownPodConfig, currentSpawnerInfo)
 
 	// build the redirect chain
 	// NOTE: the redirect chain will be nil (not an empty slice) if there are no redirects
@@ -253,18 +253,18 @@ func buildPodConfig(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.Wo
 	for i := range ws.Status.PodTemplateOptions.PodConfig.RedirectChain {
 		step := ws.Status.PodTemplateOptions.PodConfig.RedirectChain[i]
 
-		var sourceSpawner *kubefloworgv1beta1.OptionSpawnerInfo
+		var sourceSpawnerInfo *kubefloworgv1beta1.OptionSpawnerInfo
 		if cfg, ok := podConfigMap[step.Source]; ok {
-			sourceSpawner = &cfg.Spawner
+			sourceSpawnerInfo = &cfg.Spawner
 		}
-		var targetSpawner *kubefloworgv1beta1.OptionSpawnerInfo
+		var targetSpawnerInfo *kubefloworgv1beta1.OptionSpawnerInfo
 		if cfg, ok := podConfigMap[step.Target]; ok {
-			targetSpawner = &cfg.Spawner
+			targetSpawnerInfo = &cfg.Spawner
 		}
 
 		redirectChain[i] = RedirectStep{
-			Source: buildOptionInfo(step.Source, UnknownPodConfig, sourceSpawner),
-			Target: buildOptionInfo(step.Target, UnknownPodConfig, targetSpawner),
+			Source: buildOptionInfo(step.Source, UnknownPodConfig, sourceSpawnerInfo),
+			Target: buildOptionInfo(step.Target, UnknownPodConfig, targetSpawnerInfo),
 		}
 		if cfg, ok := podConfigMap[step.Source]; ok {
 			// skip the redirect if it's not the target we expect
@@ -280,16 +280,13 @@ func buildPodConfig(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.Wo
 	}, currentPodConfigValue
 }
 
-// buildOptionInfo constructs an OptionInfo from an ID and optional spawner info.
-// If spawner is nil (e.g. the config was not found in the WorkspaceKind), the
-// unknownFallback string is used for DisplayName and Description.
-func buildOptionInfo(id string, unknownFallback string, spawner *kubefloworgv1beta1.OptionSpawnerInfo) OptionInfo {
-	if spawner != nil {
+func buildOptionInfo(id string, unknownFallback string, spawnerInfo *kubefloworgv1beta1.OptionSpawnerInfo) OptionInfo {
+	if spawnerInfo != nil {
 		return OptionInfo{
 			Id:          id,
-			DisplayName: spawner.DisplayName,
-			Description: ptr.Deref(spawner.Description, ""),
-			Labels:      buildOptionLabels(spawner.Labels),
+			DisplayName: spawnerInfo.DisplayName,
+			Description: ptr.Deref(spawnerInfo.Description, ""),
+			Labels:      buildOptionLabels(spawnerInfo.Labels),
 		}
 	}
 	return OptionInfo{
