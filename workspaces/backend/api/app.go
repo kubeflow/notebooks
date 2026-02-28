@@ -65,8 +65,7 @@ const (
 	SecretsByNamePath      = SecretsByNamespacePath + "/:" + ResourceNamePathParam
 
 	// swagger
-	SwaggerPath    = PathPrefix + "/swagger/*any"
-	SwaggerDocPath = PathPrefix + "/swagger/doc.json"
+	SwaggerPath = PathPrefix + "/swagger/*any"
 )
 
 type App struct {

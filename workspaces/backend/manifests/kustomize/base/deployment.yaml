@@ -34,6 +34,13 @@ spec:
         env:
         - name: PORT
           value: "4000"
+        # TODO: Move those values somewhere tilt file specific
+        - name: SWAGGER_SCHEME
+          value: "https"
+        - name: SWAGGER_HOST
+          value: "localhost:8443"
+        - name: SWAGGER_BASE_PATH
+          value: "/workspaces/api/v1"
         resources:
           limits:
             cpu: 1
