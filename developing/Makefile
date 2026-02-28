@@ -68,19 +68,21 @@ $(KUSTOMIZE): $(LOCALBIN)
 # Install istioctl
 istioctl: $(ISTIOCTL)
 $(ISTIOCTL): $(LOCALBIN)
-	$(call go-install-tool,$(ISTIOCTL),istio.io/istio/istioctl/cmd/istioctl,$(ISTIOCTL_VERSION))
+	$(call go-install-tool,$(ISTIOCTL),istio.io/istio/istioctl/cmd/istioctl,$(ISTIOCTL_VERSION),"-X istio.io/istio/pkg/version.buildVersion=$(ISTIOCTL_VERSION) -X istio.io/istio/pkg/version.buildTag=$(ISTIOCTL_VERSION) -X istio.io/istio/pkg/version.buildHub=docker.io/istio")
 
 # go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
 # $1 - target path with name of binary
 # $2 - package url which can be installed
 # $3 - specific version of package
+# $4 - (optional) extra ldflags to set with the installation
 define go-install-tool
 @[ -f "$(1)-$(3)" ] || { \
 set -e; \
 package=$(2)@$(3) ;\
+ldflags=$(4) ;\
 echo "Downloading $${package}" ;\
 rm -f $(1) || true ;\
-GOBIN=$(LOCALBIN) go install $${package} ;\
+GOBIN=$(LOCALBIN) go install $${ldflags:+-ldflags "$${ldflags}"} $${package} ;\
 mv $(1) $(1)-$(3) ;\
 } ;\
 ln -sf $(1)-$(3) $(1)
