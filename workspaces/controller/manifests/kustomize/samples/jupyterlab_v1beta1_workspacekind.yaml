@@ -22,7 +22,7 @@ spec:
     deprecated: false
 
     ## a message to show in Workspace Spawner UI when the WorkspaceKind is deprecated
-    deprecationMessage: "This WorkspaceKind will be removed on 20XX-XX-XX, please use another WorkspaceKind."
+    #deprecationMessage: "This WorkspaceKind will be removed on 20XX-XX-XX, please use another WorkspaceKind."
 
     ## the icon of the WorkspaceKind
     ##  - a small (favicon-sized) icon used in the Workspace Spawner UI
@@ -167,9 +167,6 @@ spec:
           ##      - `.PathPrefix`: the path prefix of the Workspace (e.g. '/workspace/connect/{profile_name}/{workspace_name}/')
           ##
           requestHeaders: {}
-            #set: { "X-RStudio-Root-Path": "{{ .PathPrefix }}" } # for RStudio
-            #add: {}
-            #remove: []
 
     ## environment variables for Workspace Pods (MUTABLE)
     ##  - spec for EnvVar:
@@ -237,7 +234,7 @@ spec:
       ##     - this prevents options being removed that are still in use by existing Workspaces
       ##     - this limitation may be removed in the future
       ##  - options may be "hidden" by setting `spawner.hidden` to `true`
-      ##     - hidden options are NOT selectable in the Spawner UI
+      ##     - hidden options are NOT visible by default in the Spawner UI
       ##     - hidden options are still available to the controller and manually created Workspace resources
       ##  - options may be "redirected" by setting `redirect.to` to another option:
       ##     - redirected options are NOT shown in the Spawner UI
@@ -259,28 +256,31 @@ spec:
           ## the id of the default option
           ##  - this will be selected by default in the spawner ui
           ##
-          default: "jupyterlab_scipy_190"
+          default: "jupyter-scipy:v1.10.0"
 
         ## the list of image configs that are available
         ##
         values:
 
-          ## ================================
-          ## EXAMPLE 1: a hidden option
-          ## ================================
-          - id: "jupyterlab_scipy_180"
+          ## ================================================================
+          ## jupyter-scipy:v1.8.0
+          ## ================================================================
+          - id: "jupyter-scipy:v1.8.0"
             spawner:
               displayName: "jupyter-scipy:v1.8.0"
               description: "JupyterLab, with SciPy Packages"
               labels:
                 - key: "python_version"
-                  value: "3.11"
+                  value: "3.11.6"
+              ## NOTE: this option is hidden
               hidden: true
             redirect:
-              to: "jupyterlab_scipy_190"
+              to: "jupyter-scipy:v1.9.2"
               message:
-                level: "Info" # "Info" | "Warning" | "Danger"
-                text: "This update will change..."
+                level: "Info"
+                text: >
+                  This update does not introduce any breaking changes in Python packages from SciPy.
+                  However, the version of JupyterLab has been updated from 3.6.6 to 4.2.5.
             spec:
               ## the container image to use
               ##
@@ -301,24 +301,98 @@ spec:
                 - id: "jupyterlab"
                   port: 8888
 
-
-          ## ================================
-          ## EXAMPLE 2: a visible option
-          ## ================================
-          - id: "jupyterlab_scipy_190"
+          ## ================================================================
+          ## jupyter-scipy:v1.9.2
+          ## ================================================================
+          - id: "jupyter-scipy:v1.9.2"
             spawner:
-              displayName: "jupyter-scipy:v1.9.0"
+              displayName: "jupyter-scipy:v1.9.2"
               description: "JupyterLab, with SciPy Packages"
               labels:
                 - key: "python_version"
-                  value: "3.11"
+                  value: "3.11.10"
+            redirect:
+              to: "jupyter-scipy:v1.10.0"
+              message:
+                level: "Info"
+                text: >
+                  This update does not introduce any breaking changes in Python packages from SciPy.
             spec:
-              image: "ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.9.0"
+              image: "ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.9.2"
               imagePullPolicy: "IfNotPresent"
               ports:
                 - id: "jupyterlab"
                   port: 8888
 
+          ## ================================================================
+          ## jupyter-scipy:v1.10.0
+          ## ================================================================
+          - id: "jupyter-scipy:v1.10.0"
+            spawner:
+              displayName: "jupyter-scipy:v1.10.0"
+              description: "JupyterLab, with SciPy Packages"
+              labels:
+                - key: "python_version"
+                  value: "3.11.11"
+            spec:
+              image: "ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.10.0"
+              imagePullPolicy: "IfNotPresent"
+              ports:
+                - id: "jupyterlab"
+                  port: 8888
+
+          ## ================================================================
+          ## jupyter-pytorch-cuda-full:v1.9.2
+          ## ================================================================
+          - id: "jupyter-pytorch-cuda-full:v1.9.2"
+            spawner:
+              displayName: "jupyter-pytorch-cuda-full:v1.9.2"
+              description: "JupyterLab, with PyTorch (CUDA), and Common Python Packages"
+              labels:
+                - key: "python_version"
+                  value: "3.11.10"
+                - key: "pytorch_version"
+                  value: "2.3.1"
+                - key: "cuda_version"
+                  value: "12.1"
+                - key: "nccl_version"
+                  value: "2.20.5"
+            redirect:
+              to: "jupyter-pytorch-cuda-full:v1.10.0"
+              message:
+                level: "Warning"
+                text: >
+                  This update changes the version of PyTorch from 2.3.1 to 2.5.1.
+                  This only breaking change in a common python package is xgboost, which updated from 1.7.6 to 2.1.4.
+            spec:
+              image: "ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-pytorch-cuda-full:v1.9.2"
+              imagePullPolicy: "IfNotPresent"
+              ports:
+                - id: "jupyterlab"
+                  port: 8888
+
+          ## ================================================================
+          ## jupyter-pytorch-cuda-full:v1.10.0
+          ## ================================================================
+          - id: "jupyter-pytorch-cuda-full:v1.10.0"
+            spawner:
+              displayName: "jupyter-pytorch-cuda-full:v1.10.0"
+              description: "JupyterLab, with PyTorch (CUDA), and Common Python Packages"
+              labels:
+                - key: "python_version"
+                  value: "3.11.11"
+                - key: "pytorch_version"
+                  value: "2.5.1"
+                - key: "cuda_version"
+                  value: "12.4"
+                - key: "nccl_version"
+                  value: "2.21.5"
+            spec:
+              image: "ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-pytorch-cuda-full:v1.10.0"
+              imagePullPolicy: "IfNotPresent"
+              ports:
+                - id: "jupyterlab"
+                  port: 8888
 
       ## ============================================================
       ## POD CONFIG OPTIONS
@@ -339,9 +413,9 @@ spec:
         ##
         values:
 
-          ## ================================
+          ## ================================================================
           ## EXAMPLE 1: a tiny CPU pod
-          ## ================================
+          ## ================================================================
           - id: "tiny_cpu"
             spawner:
               displayName: "Tiny CPU"
@@ -351,25 +425,6 @@ spec:
                   value: "100m"
                 - key: "memory"
                   value: "128Mi"
-            spec:
-              resources:
-                requests:
-                  cpu: 100m
-                  memory: 128Mi
-
-          ## ================================
-          ## EXAMPLE 2: a small CPU pod
-          ## ================================
-          - id: "small_cpu"
-            spawner:
-              displayName: "Small CPU"
-              description: "Pod with 1 CPU, 2 GB RAM"
-              labels:
-                - key: "cpu"
-                  value: "1000m"
-                - key: "memory"
-                  value: "2Gi"
-              hidden: false
             spec:
               ## affinity configs for the pod
               ##  - https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#affinity-v1-core
@@ -391,12 +446,30 @@ spec:
               ##
               resources:
                 requests:
+                  cpu: 100m
+                  memory: 128Mi
+
+          ## ================================================================
+          ## EXAMPLE 2: a small CPU pod
+          ## ================================================================
+          - id: "small_cpu"
+            spawner:
+              displayName: "Small CPU"
+              description: "Pod with 1 CPU, 2 GB RAM"
+              labels:
+                - key: "cpu"
+                  value: "1000m"
+                - key: "memory"
+                  value: "2Gi"
+            spec:
+              resources:
+                requests:
                   cpu: 1000m
                   memory: 2Gi
 
-          ## ================================
+          ## ================================================================
           ## EXAMPLE 3: a big GPU pod
-          ## ================================
+          ## ================================================================
           - id: "big_gpu"
             spawner:
               displayName: "Big GPU"
@@ -408,17 +481,16 @@ spec:
                   value: "16Gi"
                 - key: "gpu"
                   value: "1"
-              hidden: false
             spec:
               affinity: {}
               nodeSelector: {}
-              tolerations:
-                - key: "nvidia.com/gpu"
-                  operator: "Exists"
-                  effect: "NoSchedule"
               resources:
                 requests:
                   cpu: 4000m
                   memory: 16Gi
                 limits:
                   nvidia.com/gpu: 1
+              tolerations:
+                - key: "nvidia.com/gpu"
+                  operator: "Exists"
+                  effect: "NoSchedule"
