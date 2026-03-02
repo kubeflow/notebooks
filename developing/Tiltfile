@@ -86,6 +86,20 @@ for o in backend_objects:
     if not kind or not name:
         continue
 
+    if kind == "Deployment" and name == "workspaces-backend":
+        containers = o.get("spec", {}).get("template", {}).get("spec", {}).get("containers", {})
+        env = containers[0].get("env", {})
+        tilt_env_vars = {
+            "SWAGGER_SCHEME": "https",
+            "SWAGGER_HOST": "localhost:8443",
+            "SWAGGER_BASE_PATH": "/workspaces/api/v1"
+        }
+        for (key, value) in tilt_env_vars.items():
+            env.append({
+                "name": key,
+                "value": value,
+            })
+
 k8s_yaml(
     encode_yaml_stream(backend_objects),
     # NOTE: allow_duplicates=True because namespace is already defined by controller
