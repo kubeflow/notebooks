@@ -40,6 +40,7 @@ import {
 } from '~/app/pages/Workspaces/Form/helpers';
 import { MountPathField } from '~/app/pages/Workspaces/Form/MountPathField';
 import { VolumesAttachModal } from './volumes/VolumesAttachModal';
+import { VolumesCreateModal } from './volumes/VolumesCreateModal';
 
 interface WorkspaceFormPropertiesVolumesProps {
   volumes: WorkspacesPodVolumeMountValue[];
@@ -57,10 +58,11 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
   excludedPvcNames,
 }) => {
   const isHomeMounted = !!fixedMountPath && volumes.length > 0;
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAttachModalOpen, setIsAttachModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [formData, setFormData] = useState<WorkspacesPodVolumeMountValue>({
+  const [editFormData, setEditFormData] = useState<WorkspacesPodVolumeMountValue>({
     pvcName: '',
     mountPath: fixedMountPath ?? '',
     readOnly: false,
@@ -100,36 +102,34 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
     fetchStorageClasses();
   }, [api.pvc, api.storageClasses, selectedNamespace]);
 
-  const resetForm = useCallback(() => {
-    setFormData({
+  const resetEditForm = useCallback(() => {
+    setEditFormData({
       pvcName: '',
       mountPath: fixedMountPath ?? '',
       readOnly: false,
       isAttached: false,
     });
     setEditIndex(null);
-    setIsModalOpen(false);
+    setIsEditModalOpen(false);
   }, [fixedMountPath]);
 
-  const handleAddOrEdit = useCallback(() => {
-    if (!formData.pvcName || !formData.mountPath) {
+  const handleSaveEdit = useCallback(() => {
+    if (!editFormData.pvcName) {
       return;
     }
     if (editIndex !== null) {
       const updated = [...volumes];
-      updated[editIndex] = formData;
+      updated[editIndex] = editFormData;
       setVolumes(updated);
-    } else {
-      setVolumes([...volumes, formData]);
     }
-    resetForm();
-  }, [formData, editIndex, volumes, setVolumes, resetForm]);
+    resetEditForm();
+  }, [editFormData, editIndex, volumes, setVolumes, resetEditForm]);
 
   const handleEdit = useCallback(
     (index: number) => {
-      setFormData(volumes[index]);
+      setEditFormData(volumes[index]);
       setEditIndex(index);
-      setIsModalOpen(true);
+      setIsEditModalOpen(true);
     },
     [volumes],
   );
@@ -162,6 +162,13 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
     (pvc: PvcsPVCListItem, mountPath: string, readOnly: boolean) => {
       setVolumes([...volumes, { pvcName: pvc.name, mountPath, readOnly, isAttached: true }]);
       setIsAttachModalOpen(false);
+    },
+    [volumes, setVolumes],
+  );
+
+  const handleVolumeCreated = useCallback(
+    (volume: WorkspacesPodVolumeMountValue) => {
+      setVolumes([...volumes, volume]);
     },
     [volumes, setVolumes],
   );
@@ -401,7 +408,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
       >
         <Button
           variant="secondary"
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => setIsCreateModalOpen(true)}
           isDisabled={isHomeMounted}
           className="pf-v6-u-mb-md"
           data-testid="create-volume-button"
@@ -410,33 +417,30 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
         </Button>
       </Tooltip>
 
+      {/* Edit modal - for toggling read-only access on all volumes */}
       <Modal
-        isOpen={isModalOpen}
-        onClose={resetForm}
+        isOpen={isEditModalOpen}
+        onClose={resetEditForm}
         variant={ModalVariant.small}
-        data-testid="volume-modal"
+        data-testid="edit-volume-modal"
       >
-        <ModalHeader
-          title={editIndex !== null ? 'Edit Volume' : 'Create Volume'}
-          description="Add a volume and optionally connect it with an existing workspace."
-        />
+        <ModalHeader title="Edit Volume" />
         <ModalBody>
           <Form>
-            <ThemeAwareFormGroupWrapper label="PVC Name" isRequired fieldId="pvc-name">
+            <ThemeAwareFormGroupWrapper label="PVC Name" fieldId="edit-pvc-name">
               <TextInput
                 name="pvcName"
-                isRequired
                 type="text"
-                value={formData.pvcName}
-                onChange={(_, val) => setFormData({ ...formData, pvcName: val })}
-                id="pvc-name"
-                data-testid="pvc-name-input"
+                value={editFormData.pvcName}
+                isDisabled
+                id="edit-pvc-name"
+                data-testid="edit-pvc-name-input"
               />
             </ThemeAwareFormGroupWrapper>
             <ThemeAwareFormGroupWrapper
               label="Mount Path"
               isRequired
-              fieldId="mount-path"
+              fieldId="edit-mount-path"
               helperTextNode={
                 fixedMountPath && (
                   <HelperText>
@@ -451,20 +455,21 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
                 name="mountPath"
                 isRequired
                 type="text"
-                value={formData.mountPath}
-                isDisabled={!!fixedMountPath}
-                onChange={(_, val) => setFormData({ ...formData, mountPath: val })}
-                id="mount-path"
-                data-testid="mount-path-input"
+                value={editFormData.mountPath}
+                isDisabled
+                id="edit-mount-path"
+                data-testid="edit-mount-path-input"
               />
             </ThemeAwareFormGroupWrapper>
-            <FormGroup fieldId="readonly-access" className="pf-v6-u-pt-lg">
+            <FormGroup fieldId="edit-readonly-access" className="pf-v6-u-pt-lg">
               <Switch
-                id="readonly-access-switch"
+                id="edit-readonly-access-switch"
                 label="Enable read-only access"
-                isChecked={formData.readOnly}
-                onChange={() => setFormData({ ...formData, readOnly: !formData.readOnly })}
-                data-testid="readonly-access-switch"
+                isChecked={editFormData.readOnly}
+                onChange={() =>
+                  setEditFormData({ ...editFormData, readOnly: !editFormData.readOnly })
+                }
+                data-testid="edit-readonly-access-switch"
               />
             </FormGroup>
           </Form>
@@ -472,22 +477,23 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
         <ModalFooter>
           <Button
             key="confirm"
-            onClick={handleAddOrEdit}
-            isDisabled={!formData.pvcName || !formData.mountPath}
-            data-testid="volume-modal-submit-button"
+            onClick={handleSaveEdit}
+            isDisabled={!editFormData.pvcName}
+            data-testid="edit-volume-submit-button"
           >
-            {editIndex !== null ? 'Save' : 'Create'}
+            Save
           </Button>
           <Button
             key="cancel"
             variant="link"
-            onClick={resetForm}
-            data-testid="volume-modal-cancel-button"
+            onClick={resetEditForm}
+            data-testid="edit-volume-cancel-button"
           >
             Cancel
           </Button>
         </ModalFooter>
       </Modal>
+
       <Modal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
@@ -527,6 +533,12 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
         fixedMountPath={fixedMountPath}
         excludedPvcNames={allExcludedPvcNames}
         storageClasses={storageClasses}
+      />
+
+      <VolumesCreateModal
+        isOpen={isCreateModalOpen}
+        setIsOpen={setIsCreateModalOpen}
+        onVolumeCreated={handleVolumeCreated}
       />
     </>
   );
