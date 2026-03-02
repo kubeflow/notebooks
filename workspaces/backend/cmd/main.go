@@ -93,6 +93,12 @@ func main() {
 		getEnvAsStr("GROUPS_HEADER", "kubeflow-groups"),
 		"Key of request header containing user groups",
 	)
+	flag.BoolVar(
+		&cfg.SwaggerEnabled,
+		"swagger-enabled",
+		getEnvAsBool("SWAGGER_ENABLED", false),
+		"Enable the Swagger UI",
+	)
 	flag.StringVar(
 		&cfg.SwaggerHost,
 		"swagger-host",
@@ -113,9 +119,11 @@ func main() {
 	)
 
 	// Override Swagger metadata with runtime config
-	openapi.SwaggerInfo.Host = cfg.SwaggerHost
-	openapi.SwaggerInfo.BasePath = cfg.SwaggerBasePath
-	openapi.SwaggerInfo.Schemes = []string{cfg.SwaggerScheme}
+	if cfg.SwaggerEnabled {
+		openapi.SwaggerInfo.Host = cfg.SwaggerHost
+		openapi.SwaggerInfo.BasePath = cfg.SwaggerBasePath
+		openapi.SwaggerInfo.Schemes = []string{cfg.SwaggerScheme}
+	}
 
 	// Initialize the logger
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))

@@ -137,7 +137,9 @@ func (a *App) Routes() http.Handler {
 	router.POST(AllWorkspaceKindsPath, a.CreateWorkspaceKindHandler)
 
 	// swagger
-	router.GET(SwaggerPath, a.GetSwaggerHandler)
+	if a.Config.SwaggerEnabled {
+		router.GET(SwaggerPath, a.GetSwaggerHandler)
+	}
 
 	return a.recoverPanic(a.enableCORS(router))
 }

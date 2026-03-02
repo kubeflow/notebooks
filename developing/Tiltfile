@@ -90,6 +90,7 @@ for o in backend_objects:
         containers = o.get("spec", {}).get("template", {}).get("spec", {}).get("containers", {})
         env = containers[0].get("env", {})
         tilt_env_vars = {
+            "SWAGGER_ENABLED": "true",
             "SWAGGER_SCHEME": "https",
             "SWAGGER_HOST": "localhost:8443",
             "SWAGGER_BASE_PATH": "/workspaces/api/v1"
