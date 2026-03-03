@@ -9,8 +9,6 @@ import {
 } from '@patternfly/react-core/dist/esm/components/Modal';
 import { Alert, AlertVariant } from '@patternfly/react-core/dist/esm/components/Alert';
 import { Form, FormGroup } from '@patternfly/react-core/dist/esm/components/Form';
-import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
-import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
 import { Label, LabelGroup } from '@patternfly/react-core/dist/esm/components/Label';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
@@ -35,6 +33,12 @@ import {
 import { PvcsPVCListItem } from '~/generated/data-contracts';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { LabelGroupWithTooltip } from '~/app/components/LabelGroupWithTooltip';
+import {
+  normalizeMountPath,
+  validateMountPath,
+  getMountPathUniquenessError,
+} from '~/app/pages/Workspaces/Form/helpers';
+import { MountPathField } from '~/app/pages/Workspaces/Form/MountPathField';
 
 const ACCESS_MODE_GROUPS = [
   { label: 'ReadWriteMany (RWX) Storage', mode: 'ReadWriteMany', abbr: 'rwx' },
@@ -89,8 +93,15 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
   // Form state
   const [selectedPvcName, setSelectedPvcName] = useState('');
   const [mountPath, setMountPath] = useState(fixedMountPath ?? '/data/');
+  const [isMountPathEditing, setIsMountPathEditing] = useState(false);
   const [readOnly, setReadOnly] = useState(false);
   const [formError, setFormError] = useState('');
+
+  const mountPathFormatError = isMountPathEditing ? validateMountPath(mountPath) : null;
+  const mountPathUniquenessError = !mountPathFormatError
+    ? getMountPathUniquenessError([...mountedPaths], mountPath)
+    : null;
+  const mountPathError = mountPathFormatError ?? mountPathUniquenessError;
 
   // Typeahead select state
   const [isSelectOpen, setIsSelectOpen] = useState(false);
@@ -104,6 +115,7 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
     if (isOpen) {
       setSelectedPvcName('');
       setMountPath(fixedMountPath ?? '/data/');
+      setIsMountPathEditing(false);
       setReadOnly(false);
       setFormError('');
       setIsSelectOpen(false);
@@ -113,6 +125,29 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
       setActiveItemId(null);
     }
   }, [isOpen, fixedMountPath]);
+
+  const handleStartMountPathEdit = useCallback(() => {
+    setIsMountPathEditing(true);
+    setFormError('');
+  }, []);
+
+  const handleConfirmMountPathEdit = useCallback(() => {
+    const err =
+      validateMountPath(mountPath) ?? getMountPathUniquenessError([...mountedPaths], mountPath);
+    if (err) {
+      return;
+    }
+    setIsMountPathEditing(false);
+  }, [mountPath, mountedPaths]);
+
+  const handleCancelMountPathEdit = useCallback(() => {
+    if (selectedPvcName) {
+      setMountPath(fixedMountPath ?? `/data/${selectedPvcName}`);
+    } else {
+      setMountPath(fixedMountPath ?? '/data/');
+    }
+    setIsMountPathEditing(false);
+  }, [selectedPvcName, fixedMountPath]);
 
   // ── PVC option building ──────────────────────────────────────────────────
 
@@ -124,11 +159,9 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
         <FlexItem>
           <Stack style={{ width: '100%' }}>
             <StackItem>
-              <LabelGroup>
+              <LabelGroup numLabels={5}>
                 <Label isCompact>{pvc.pvcSpec.requests.storage}</Label>
-                <Label isCompact variant="outline">
-                  {pvc.pvcSpec.storageClassName}
-                </Label>
+                <Label isCompact>{pvc.pvcSpec.storageClassName}</Label>
                 {pvc.pvcSpec.accessModes.map((mode) => (
                   <Label key={mode} isCompact color={mode === 'ReadWriteOnce' ? 'blue' : 'green'}>
                     {mode}
@@ -136,7 +169,7 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
                 ))}
                 {inUse && rwo && (
                   <Label isCompact color="red">
-                    In use (RWO)
+                    In use (RWO/RWOP)
                   </Label>
                 )}
                 {inUse && !rwo && (
@@ -154,7 +187,7 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
                   <FlexItem>
                     <LabelGroupWithTooltip
                       labels={pvc.workspaces.map((w) => w.name)}
-                      limit={3}
+                      limit={5}
                       variant="outline"
                       icon={<CubeIcon color="teal" />}
                       isCompact
@@ -171,7 +204,7 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
                   <FlexItem>
                     <LabelGroupWithTooltip
                       labels={pvc.pods.map((pod) => pod.name)}
-                      limit={3}
+                      limit={5}
                       variant="outline"
                       isCompact
                     />
@@ -263,6 +296,7 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
       const pvcName = value.includes('|') ? value.split('|').slice(1).join('|') : value;
       setSelectedPvcName(pvcName);
       setMountPath(fixedMountPath ?? `/data/${pvcName}`);
+      setIsMountPathEditing(false);
       setInputValue(pvcName);
       setFilterValue('');
       setFormError('');
@@ -393,7 +427,7 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
     if (!selectedPvc) {
       return;
     }
-    const trimmedPath = mountPath.trim().replace(/\/+$/, '');
+    const trimmedPath = normalizeMountPath(mountPath);
     if (mountedPaths.has(trimmedPath)) {
       setFormError(`Mount path "${trimmedPath}" is already in use by another volume.`);
       return;
@@ -447,7 +481,7 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
       aria-describedby="volumes-attach-modal-body"
       variant={ModalVariant.large}
     >
-      <ModalHeader title="Attach Existing PVC" labelId="volumes-attach-modal-title" />
+      <ModalHeader title="Attach Existing Volume" labelId="volumes-attach-modal-title" />
       <ModalBody id="volumes-attach-modal-body">
         <Stack hasGutter>
           {formError && (
@@ -518,34 +552,21 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
                   )}
                 </Select>
               </ThemeAwareFormGroupWrapper>
-              <ThemeAwareFormGroupWrapper
-                label="Mount Path"
-                isRequired
+              <MountPathField
+                variant="input"
+                value={mountPath}
+                onChange={(val) => {
+                  setMountPath(val);
+                  setFormError('');
+                }}
+                isEditing={isMountPathEditing}
+                onStartEdit={handleStartMountPathEdit}
+                onConfirm={handleConfirmMountPathEdit}
+                onCancel={handleCancelMountPathEdit}
+                error={mountPathError}
+                isFixed={!!fixedMountPath}
                 fieldId="pvc-mount-path"
-                helperTextNode={
-                  fixedMountPath && (
-                    <HelperText>
-                      <HelperTextItem variant="warning">
-                        The mount path is defined by the workspace kind and cannot be changed.
-                      </HelperTextItem>
-                    </HelperText>
-                  )
-                }
-              >
-                <TextInput
-                  name="mountPath"
-                  isRequired
-                  type="text"
-                  id="pvc-mount-path"
-                  value={mountPath}
-                  isDisabled={!!fixedMountPath}
-                  onChange={(_, val) => {
-                    setMountPath(val);
-                    setFormError('');
-                  }}
-                  placeholder="/data/my-volume"
-                />
-              </ThemeAwareFormGroupWrapper>
+              />
               <FormGroup fieldId="pvc-read-only" className="pf-v6-u-pt-sm">
                 <Switch
                   id="pvc-read-only-switch"
@@ -563,7 +584,9 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
         <Button
           key="attach"
           variant="primary"
-          isDisabled={!selectedPvcName || !mountPath.trim()}
+          isDisabled={
+            !selectedPvcName || !mountPath.trim() || !!mountPathError || isMountPathEditing
+          }
           onClick={handleAttach}
           data-testid="attach-pvc-button"
         >

@@ -51,7 +51,7 @@ class VolumesManagementPage {
 
   // Buttons
   findAttachExistingPVCButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('attach-existing-pvc-button');
+    return cy.findByTestId('attach-existing-volume-button');
   }
 
   clickAttachExistingPVC(): Cypress.Chainable<JQuery<HTMLElement>> {

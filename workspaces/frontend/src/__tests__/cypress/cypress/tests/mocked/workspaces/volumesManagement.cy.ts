@@ -138,7 +138,7 @@ describe('Volumes Management - Attach and Create', () => {
     cy.wait('@listPVCs');
   });
 
-  describe('Attach Existing PVC Modal', () => {
+  describe('Attach Existing Volume Modal', () => {
     it('should open attach modal and display available PVCs', () => {
       volumesManagement.clickAttachExistingPVC();
       volumesAttachModal.assertModalVisible();

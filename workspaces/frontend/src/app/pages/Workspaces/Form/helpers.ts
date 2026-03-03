@@ -57,13 +57,13 @@ export function getMountPathUniquenessError<T extends { mountPath: string }>(
   if (excludeIndex === undefined) {
     const paths = existingMountPathsOrItems as string[];
     const duplicate = paths.some((p) => normalizeMountPath(p) === normalized);
-    return duplicate ? 'Mount path is already in use by another secret' : null;
+    return duplicate ? 'Mount path is already in use' : null;
   }
   const items = existingMountPathsOrItems as T[];
   const duplicate = items.some(
     (item, i) => i !== excludeIndex && normalizeMountPath(item.mountPath) === normalized,
   );
-  return duplicate ? 'Mount path is already in use by another secret' : null;
+  return duplicate ? 'Mount path is already in use' : null;
 }
 
 /**

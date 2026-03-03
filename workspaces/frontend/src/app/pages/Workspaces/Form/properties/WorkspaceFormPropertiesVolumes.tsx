@@ -29,6 +29,11 @@ import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupW
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 import { WorkspacesPodVolumeMountValue } from '~/app/types';
+import {
+  getMountPathValidationError,
+  normalizeMountPath,
+} from '~/app/pages/Workspaces/Form/helpers';
+import { MountPathField } from '~/app/pages/Workspaces/Form/MountPathField';
 import { VolumesAttachModal } from './volumes/VolumesAttachModal';
 
 interface WorkspaceFormPropertiesVolumesProps {
@@ -56,6 +61,8 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
   const [availablePVCs, setAvailablePVCs] = useState<PvcsPVCListItem[]>([]);
+  const [editingMountPath, setEditingMountPath] = useState<number | null>(null);
+  const [editMountPathValue, setEditMountPathValue] = useState('');
 
   const { api } = useNotebookAPI();
   const { selectedNamespace } = useNamespaceSelectorWrapper();
@@ -130,6 +137,42 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
     [volumes, setVolumes],
   );
 
+  const handleStartMountPathEdit = useCallback(
+    (index: number) => {
+      setEditingMountPath(index);
+      setEditMountPathValue(volumes[index].mountPath);
+    },
+    [volumes],
+  );
+
+  const handleConfirmMountPathEdit = useCallback(() => {
+    if (editingMountPath === null) {
+      return;
+    }
+    const validationError = getMountPathValidationError(
+      volumes,
+      editMountPathValue,
+      editingMountPath,
+    );
+    if (validationError) {
+      return;
+    }
+    const normalized = normalizeMountPath(editMountPathValue);
+    const updated = [...volumes];
+    updated[editingMountPath] = { ...updated[editingMountPath], mountPath: normalized };
+    setVolumes(updated);
+    setEditingMountPath(null);
+  }, [editingMountPath, editMountPathValue, volumes, setVolumes]);
+
+  const handleCancelMountPathEdit = useCallback(() => {
+    setEditingMountPath(null);
+  }, []);
+
+  const mountPathValidationError =
+    editingMountPath !== null
+      ? getMountPathValidationError(volumes, editMountPathValue, editingMountPath)
+      : null;
+
   return (
     <>
       {volumes.length > 0 && (
@@ -150,7 +193,21 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
             {volumes.map((volume, index) => (
               <Tr key={index}>
                 <Td>{volume.pvcName}</Td>
-                <Td>{volume.mountPath}</Td>
+                <Td dataLabel="Mount Path" hasAction>
+                  <MountPathField
+                    variant="cell"
+                    value={editingMountPath === index ? editMountPathValue : volume.mountPath}
+                    index={index}
+                    editingIndex={editingMountPath}
+                    itemId={volume.pvcName}
+                    onChange={setEditMountPathValue}
+                    onStartEdit={handleStartMountPathEdit}
+                    onConfirm={handleConfirmMountPathEdit}
+                    onCancel={handleCancelMountPathEdit}
+                    error={mountPathValidationError}
+                    isFixed={!!fixedMountPath}
+                  />
+                </Td>
                 <Td>{volume.readOnly ? 'Enabled' : 'Disabled'}</Td>
                 <Td isActionCell>
                   <Dropdown
@@ -193,9 +250,9 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
           onClick={() => setIsAttachModalOpen(true)}
           isDisabled={isHomeMounted}
           className="pf-v6-u-mt-md pf-v6-u-mr-md"
-          data-testid="attach-existing-pvc-button"
+          data-testid="attach-existing-volume-button"
         >
-          Attach Existing PVC
+          Attach Existing Volume
         </Button>
       </Tooltip>
       <Tooltip
@@ -209,7 +266,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
           className="pf-v6-u-mb-md"
           data-testid="create-volume-button"
         >
-          Create New PVC
+          Attach New Volume
         </Button>
       </Tooltip>
 
