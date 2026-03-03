@@ -8,6 +8,7 @@ import { Split, SplitItem } from '@patternfly/react-core/dist/esm/layouts/Split'
 import {
   CPU_UNITS,
   MEMORY_UNITS_FOR_SELECTION,
+  STORAGE_UNITS_FOR_SELECTION,
   TIME_UNIT_FOR_SELECTION,
   UnitOption,
 } from '~/shared/utilities/valueUnits';
@@ -16,7 +17,7 @@ import { parseResourceValue } from '~/shared/utilities/WorkspaceUtils';
 interface ResourceInputWrapperProps {
   value: string;
   onChange: (value: string) => void;
-  type: 'cpu' | 'memory' | 'time' | 'custom';
+  type: 'cpu' | 'memory' | 'storage' | 'time' | 'custom';
   min?: number;
   max?: number;
   step?: number;
@@ -29,14 +30,16 @@ const unitMap: {
   [key: string]: UnitOption[];
 } = {
   memory: MEMORY_UNITS_FOR_SELECTION,
+  storage: STORAGE_UNITS_FOR_SELECTION,
   cpu: CPU_UNITS,
   time: TIME_UNIT_FOR_SELECTION,
 };
 
 const DEFAULT_STEP = 1;
 
-const DEFAULT_UNITS = {
+const DEFAULT_UNITS: Record<string, string> = {
   memory: 'Mi',
+  storage: 'Gi',
   cpu: '',
 };
 export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
