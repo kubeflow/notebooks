@@ -232,6 +232,98 @@ class Workspaces {
     this.findPagination().find('button[aria-label*="Go to previous page"]').should('be.disabled');
     this.findPagination().find('button[aria-label*="Go to next page"]').should('be.disabled');
   }
+
+  findWorkspaceRowImageRedirectIcon(rowIndex: number) {
+    return cy
+      .findByTestId(`workspace-row-${rowIndex}`)
+      .find('[data-testid="workspace-image"]')
+      .find('svg[aria-label="Redirect information"]');
+  }
+
+  findWorkspaceRowPodConfigRedirectIcon(rowIndex: number) {
+    return cy
+      .findByTestId(`workspace-row-${rowIndex}`)
+      .find('[data-testid="workspace-podConfig"]')
+      .find('svg[aria-label="Redirect information"]');
+  }
+
+  clickImageRedirectIcon(rowIndex: number) {
+    cy.findByTestId(`workspace-row-${rowIndex}`)
+      .find('[data-testid="workspace-image"]')
+      .findByTestId('redirect-icon')
+      .click();
+  }
+
+  clickPodConfigRedirectIcon(rowIndex: number) {
+    cy.findByTestId(`workspace-row-${rowIndex}`)
+      .find('[data-testid="workspace-podConfig"]')
+      .findByTestId('redirect-icon')
+      .click();
+  }
+
+  findRedirectPopover() {
+    return cy.get('.pf-v6-c-popover');
+  }
+
+  findRedirectPopoverHeader() {
+    return this.findRedirectPopover().find('.pf-v6-c-popover__header');
+  }
+
+  findRedirectPopoverBody() {
+    return this.findRedirectPopover().find('.pf-v6-c-popover__body');
+  }
+
+  assertImageRedirectIconExists(rowIndex: number) {
+    this.findWorkspaceRowImageRedirectIcon(rowIndex).should('exist');
+  }
+
+  assertImageRedirectIconNotExists(rowIndex: number) {
+    cy.findByTestId(`workspace-row-${rowIndex}`)
+      .find('[data-testid="workspace-image"]')
+      .find('svg[aria-label="Redirect information"]')
+      .should('not.exist');
+  }
+
+  assertPodConfigRedirectIconExists(rowIndex: number) {
+    this.findWorkspaceRowPodConfigRedirectIcon(rowIndex).should('exist');
+  }
+
+  assertPodConfigRedirectIconNotExists(rowIndex: number) {
+    cy.findByTestId(`workspace-row-${rowIndex}`)
+      .find('[data-testid="workspace-podConfig"]')
+      .find('svg[aria-label="Redirect information"]')
+      .should('not.exist');
+  }
+
+  assertRedirectPopoverExists() {
+    this.findRedirectPopover().should('be.visible');
+  }
+
+  assertRedirectPopoverNotExists() {
+    this.findRedirectPopover().should('not.exist');
+  }
+
+  assertRedirectPopoverHeaderContains(text: string) {
+    this.findRedirectPopoverHeader().should('contain.text', text);
+  }
+
+  assertRedirectPopoverBodyContains(text: string) {
+    this.findRedirectPopoverBody().should('contain.text', text);
+  }
+
+  assertRedirectPopoverHasLabel(labelText: string) {
+    this.findRedirectPopoverBody().find('.pf-v6-c-label').contains(labelText).should('exist');
+  }
+
+  assertRedirectPopoverLabelColor(labelText: string, color: string) {
+    this.findRedirectPopoverBody()
+      .contains('.pf-v6-c-label', labelText)
+      .should('have.class', `pf-m-${color}`);
+  }
+
+  assertRedirectPopoverHasDividers(count: number) {
+    this.findRedirectPopoverBody().find('.pf-v6-c-divider').should('have.length', count);
+  }
 }
 
 class WorkspaceDetailsDrawer {

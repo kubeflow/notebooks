@@ -16,6 +16,8 @@ import {
   WorkspacesPodTemplateOptions,
   WorkspacesPodTemplateOptionsMutate,
   WorkspacesPodVolumesMutate,
+  WorkspacesRedirectMessageLevel,
+  WorkspacesRedirectStep,
   WorkspacesWorkspaceCreate,
   WorkspacesWorkspaceKindInfo,
   WorkspacesWorkspaceListItem,
@@ -102,6 +104,237 @@ export const buildMockPodConfig = (
   },
   ...podConfig,
 });
+
+type ImageVersionKey = '1.8.0' | '1.9.0' | '2.0.0' | '2.1.0';
+
+const IMAGE_VERSION_MAP: Record<
+  ImageVersionKey,
+  {
+    id: string;
+    displayName: string;
+    description: string;
+    labels: { key: string; value: string }[];
+  }
+> = {
+  '1.8.0': {
+    id: 'jupyterlab_scipy_180',
+    displayName: 'jupyter-scipy:v1.8.0',
+    description: 'JupyterLab, with SciPy Packages',
+    labels: [
+      { key: 'pythonVersion', value: '3.11' },
+      { key: 'jupyterlabVersion', value: '1.8.0' },
+    ],
+  },
+  '1.9.0': {
+    id: 'jupyterlab_scipy_190',
+    displayName: 'jupyter-scipy:v1.9.0',
+    description: 'JupyterLab, with SciPy Packages',
+    labels: [
+      { key: 'pythonVersion', value: '3.12' },
+      { key: 'jupyterlabVersion', value: '1.9.0' },
+    ],
+  },
+  '2.0.0': {
+    id: 'jupyterlab_scipy_200',
+    displayName: 'jupyter-scipy:v2.0.0',
+    description: 'JupyterLab, with SciPy Packages',
+    labels: [
+      { key: 'pythonVersion', value: '3.12' },
+      { key: 'jupyterlabVersion', value: '2.0.0' },
+    ],
+  },
+  '2.1.0': {
+    id: 'jupyterlab_scipy_210',
+    displayName: 'jupyter-scipy:v2.1.0',
+    description: 'JupyterLab, with SciPy Packages',
+    labels: [
+      { key: 'pythonVersion', value: '3.13' },
+      { key: 'jupyterlabVersion', value: '2.1.0' },
+    ],
+  },
+};
+
+const IMAGE_VERSIONS: ImageVersionKey[] = ['1.8.0', '1.9.0', '2.0.0', '2.1.0'];
+
+type PodConfigKey = 'tinyCpu' | 'smallCpu' | 'mediumCpu' | 'largeCpu';
+
+const POD_CONFIG_MAP: Record<
+  PodConfigKey,
+  {
+    id: string;
+    displayName: string;
+    description: string;
+    labels: { key: string; value: string }[];
+  }
+> = {
+  tinyCpu: {
+    id: 'tiny_cpu',
+    displayName: 'Tiny CPU',
+    description: 'Pod with 0.1 CPU, 128 Mb RAM',
+    labels: [
+      { key: 'cpu', value: '100m' },
+      { key: 'memory', value: '128Mi' },
+    ],
+  },
+  smallCpu: {
+    id: 'small_cpu',
+    displayName: 'Small CPU',
+    description: 'Pod with 0.5 CPU, 512 Mb RAM',
+    labels: [
+      { key: 'cpu', value: '500m' },
+      { key: 'memory', value: '512Mi' },
+    ],
+  },
+  mediumCpu: {
+    id: 'medium_cpu',
+    displayName: 'Medium CPU',
+    description: 'Pod with 1 CPU, 1 Gb RAM',
+    labels: [
+      { key: 'cpu', value: '1000m' },
+      { key: 'memory', value: '1Gi' },
+    ],
+  },
+  largeCpu: {
+    id: 'large_cpu',
+    displayName: 'Large CPU',
+    description: 'Pod with 4 CPU, 4 Gb RAM',
+    labels: [
+      { key: 'cpu', value: '4000m' },
+      { key: 'memory', value: '4Gi' },
+    ],
+  },
+};
+
+const POD_CONFIGS: PodConfigKey[] = ['tinyCpu', 'smallCpu', 'mediumCpu', 'largeCpu'];
+
+export const buildImageRedirectChain = (args: {
+  startVersion: ImageVersionKey;
+  endVersion: ImageVersionKey;
+}): WorkspacesRedirectStep[] => {
+  const startIdx = IMAGE_VERSIONS.indexOf(args.startVersion);
+  const endIdx = IMAGE_VERSIONS.indexOf(args.endVersion);
+
+  const chain: WorkspacesRedirectStep[] = [];
+  for (let i = startIdx; i < endIdx; i++) {
+    const sourceVer = IMAGE_VERSIONS[i];
+    const targetVer = IMAGE_VERSIONS[i + 1];
+
+    let messageLevel: WorkspacesRedirectMessageLevel;
+    if (i === startIdx) {
+      messageLevel = WorkspacesRedirectMessageLevel.RedirectMessageLevelDanger;
+    } else if (i === endIdx - 1) {
+      messageLevel = WorkspacesRedirectMessageLevel.RedirectMessageLevelInfo;
+    } else {
+      messageLevel = WorkspacesRedirectMessageLevel.RedirectMessageLevelWarning;
+    }
+
+    chain.push({
+      source: IMAGE_VERSION_MAP[sourceVer],
+      target: IMAGE_VERSION_MAP[targetVer],
+      message: {
+        level: messageLevel,
+        text: `Your admin has upgraded the image from ${IMAGE_VERSION_MAP[sourceVer].displayName} to ${IMAGE_VERSION_MAP[targetVer].displayName}`,
+      },
+    });
+  }
+
+  return chain;
+};
+
+export const buildPodRedirectChain = (args: {
+  startConfig: PodConfigKey;
+  endConfig: PodConfigKey;
+}): WorkspacesRedirectStep[] => {
+  const startIdx = POD_CONFIGS.indexOf(args.startConfig);
+  const endIdx = POD_CONFIGS.indexOf(args.endConfig);
+
+  const chain: WorkspacesRedirectStep[] = [];
+  for (let i = startIdx; i < endIdx; i++) {
+    const sourceConfig = POD_CONFIGS[i];
+    const targetConfig = POD_CONFIGS[i + 1];
+
+    chain.push({
+      source: POD_CONFIG_MAP[sourceConfig],
+      target: POD_CONFIG_MAP[targetConfig],
+      message: {
+        level: WorkspacesRedirectMessageLevel.RedirectMessageLevelWarning,
+        text: `Your admin has upgraded the pod configuration from ${POD_CONFIG_MAP[sourceConfig].displayName} to ${POD_CONFIG_MAP[targetConfig].displayName}`,
+      },
+    });
+  }
+
+  return chain;
+};
+
+const buildMockImageConfigWithRedirects = (
+  index: number,
+  imageConfig: { id: string; displayName: string; labels: { key: string; value: string }[] },
+): WorkspacesImageConfig => {
+  if (index % 5 === 1 || index % 5 === 4) {
+    return {
+      current: IMAGE_VERSION_MAP['1.8.0'],
+      redirectChain: buildImageRedirectChain({
+        startVersion: '1.8.0',
+        endVersion: '2.1.0',
+      }),
+    };
+  }
+  if (index % 5 === 2) {
+    return {
+      current: IMAGE_VERSION_MAP['1.9.0'],
+      redirectChain: buildImageRedirectChain({
+        startVersion: '1.9.0',
+        endVersion: '2.1.0',
+      }),
+    };
+  }
+
+  return {
+    current: {
+      id: imageConfig.id,
+      displayName: imageConfig.displayName,
+      description: 'JupyterLab, with SciPy Packages',
+      labels: imageConfig.labels,
+    },
+  };
+};
+
+const buildMockPodConfigWithRedirects = (
+  index: number,
+  podConfig: { id: string; displayName: string },
+): WorkspacesPodConfig => {
+  if (index % 5 === 3 || index % 5 === 4) {
+    return {
+      current: POD_CONFIG_MAP.smallCpu,
+      redirectChain: buildPodRedirectChain({
+        startConfig: 'smallCpu',
+        endConfig: 'largeCpu',
+      }),
+    };
+  }
+
+  return {
+    current: {
+      id: podConfig.id,
+      displayName: podConfig.displayName,
+      description: `Pod with ${index}00 Millicores, ${index} GiB RAM`,
+      labels: [
+        {
+          key: 'cpu',
+          value: `${index}00m`,
+        },
+        {
+          key: 'memory',
+          value: `${index}Gi`,
+        },
+        {
+          key: 'gpu',
+          value: String(index % 2 === 0 ? 2 : 1),
+        },
+      ],
+    },
+  };
+};
 
 export const buildPodTemplateOptions = (
   podTemplateOptions?: Partial<WorkspacesPodTemplateOptions>,
@@ -495,35 +728,8 @@ export const buildMockWorkspaceList = (args: {
             ],
           },
           options: {
-            imageConfig: {
-              current: {
-                id: imageConfig.id,
-                displayName: imageConfig.displayName,
-                description: 'JupyterLab, with SciPy Packages',
-                labels: imageConfig.labels,
-              },
-            },
-            podConfig: {
-              current: {
-                id: podConfig.id,
-                displayName: podConfig.displayName,
-                description: `Pod with ${i}00 Millicores, ${i} GiB RAM`,
-                labels: [
-                  {
-                    key: 'cpu',
-                    value: `${i}00m`,
-                  },
-                  {
-                    key: 'memory',
-                    value: `${i}Gi`,
-                  },
-                  {
-                    key: 'gpu',
-                    value: String(i % 2 === 0 ? 2 : 1),
-                  },
-                ],
-              },
-            },
+            imageConfig: buildMockImageConfigWithRedirects(i, imageConfig),
+            podConfig: buildMockPodConfigWithRedirects(i, podConfig),
           },
         },
         activity: {

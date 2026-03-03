@@ -18,8 +18,8 @@ import {
 import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
 import { Bullseye } from '@patternfly/react-core/dist/esm/layouts/Bullseye';
+import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
-import { Icon } from '@patternfly/react-core/dist/esm/components/Icon';
 import { ToolbarItem } from '@patternfly/react-core/dist/esm/components/Toolbar';
 import {
   Table,
@@ -33,18 +33,10 @@ import {
   ActionsColumn,
   IActions,
 } from '@patternfly/react-table/dist/esm/components/Table';
-import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
-import { InfoCircleIcon } from '@patternfly/react-icons/dist/esm/icons/info-circle-icon';
-import { ExclamationTriangleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-triangle-icon';
-import { TimesCircleIcon } from '@patternfly/react-icons/dist/esm/icons/times-circle-icon';
-import { QuestionCircleIcon } from '@patternfly/react-icons/dist/esm/icons/question-circle-icon';
 import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
 import { DataFieldKey, defineDataFields, SortableDataFieldKey } from '~/app/filterableDataHelper';
 import { useTypedNavigate } from '~/app/routerHelper';
-import {
-  buildKindLogoDictionary,
-  buildWorkspaceRedirectStatus,
-} from '~/app/actions/WorkspaceKindsActions';
+import { buildKindLogoDictionary } from '~/app/actions/WorkspaceKindsActions';
 import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import { WorkspaceConnectAction } from '~/app/pages/Workspaces/WorkspaceConnectAction';
 import WithValidImage from '~/shared/components/WithValidImage';
@@ -59,6 +51,7 @@ import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRo
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
 import { WorkspacesWorkspaceListItem, WorkspacesWorkspaceState } from '~/generated/data-contracts';
 import { useWorkspaceActionsContext } from '~/app/context/WorkspaceActionsContext';
+import { RedirectIconWithPopover } from '~/app/components/RedirectIconWithPopover';
 import { POLL_INTERVAL } from '~/shared/utilities/const';
 import { RefreshCounter } from '~/app/components/RefreshCounter';
 import ToolbarFilter, {
@@ -74,7 +67,8 @@ const {
   sortableKeyArray: sortableWsTableColumnKeyArray,
 } = defineDataFields({
   name: { label: 'Name', isFilterable: true, isSortable: true, width: 20 },
-  image: { label: 'Image', isFilterable: true, isSortable: true, width: 20 },
+  image: { label: 'Image', isFilterable: true, isSortable: true, width: 15 },
+  podConfig: { label: 'Pod config', isFilterable: true, isSortable: true, width: 15 },
   kind: { label: 'Kind', isFilterable: true, isSortable: true, width: 10 },
   namespace: { label: 'Namespace', isFilterable: true, isSortable: true, width: 15 },
   state: { label: 'State', isFilterable: true, isSortable: true, width: 10 },
@@ -101,6 +95,7 @@ const filterConfig = {
   name: { type: 'text', label: 'Name', placeholder: 'Filter by name' },
   kind: { type: 'text', label: 'Kind', placeholder: 'Filter by kind' },
   image: { type: 'text', label: 'Image', placeholder: 'Filter by image' },
+  podConfig: { type: 'text', label: 'Pod config', placeholder: 'Filter by pod config' },
   state: {
     type: 'select',
     label: 'State',
@@ -141,6 +136,8 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
     const { isDrawerExpanded } = useWorkspaceActionsContext();
     const [workspaceKinds] = useWorkspaceKinds();
     const [expandedWorkspacesNames, setExpandedWorkspacesNames] = useState<string[]>([]);
+    const [activeRedirectPopover, setActiveRedirectPopover] = useState<string | null>(null);
+    const [pinnedRedirectPopover, setPinnedRedirectPopover] = useState<string | null>(null);
 
     const { filterValues, setFilter, clearAllFilters } =
       useToolbarFilters<WorkspaceFilterKey>(filterConfig);
@@ -153,7 +150,6 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
 
     const navigate = useTypedNavigate();
     const kindLogoDict = buildKindLogoDictionary(workspaceKinds);
-    const workspaceRedirectStatus = buildWorkspaceRedirectStatus(workspaceKinds);
 
     const toolbarFilterRef = useRef<ToolbarFilterRef<WorkspaceFilterKey> | null>(null);
 
@@ -179,6 +175,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
         name: (ws) => ws.name,
         kind: (ws) => ws.workspaceKind.name,
         image: (ws) => ws.podTemplate.options.imageConfig.current.displayName,
+        podConfig: (ws) => ws.podTemplate.options.podConfig.current.displayName,
         state: (ws) => ws.state,
         namespace: (ws) => ws.namespace,
         idleGpu: (ws) => formatWorkspaceIdleState(ws),
@@ -225,6 +222,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       kind: workspace.workspaceKind.name,
       namespace: workspace.namespace,
       image: workspace.podTemplate.options.imageConfig.current.displayName,
+      podConfig: workspace.podTemplate.options.podConfig.current.displayName,
       state: workspace.state,
       gpu: formatResourceFromWorkspace(workspace, 'gpu'),
       idleGpu: formatWorkspaceIdleState(workspace),
@@ -289,6 +287,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
         case 'kind':
           return 'nowrap';
         case 'image':
+        case 'podConfig':
         case 'namespace':
         case 'state':
         case 'gpu':
@@ -308,51 +307,6 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
           return { screenReaderText: 'Primary action', hasContent: false };
         default:
           return { hasContent: true };
-      }
-    };
-
-    const getRedirectStatusIcon = (level: string | undefined, message: string) => {
-      switch (level) {
-        case 'Info':
-          return (
-            <Tooltip content={message}>
-              <Icon status="info" isInline>
-                <InfoCircleIcon aria-hidden="true" />
-              </Icon>
-            </Tooltip>
-          );
-        case 'Warning':
-          return (
-            <Tooltip content={message}>
-              <Icon isInline>
-                <ExclamationTriangleIcon color="orange" aria-hidden="true" />
-              </Icon>
-            </Tooltip>
-          );
-        case 'Danger':
-          return (
-            <Tooltip content={message}>
-              <Icon isInline>
-                <TimesCircleIcon color="red" aria-hidden="true" />
-              </Icon>
-            </Tooltip>
-          );
-        case undefined:
-          return (
-            <Tooltip content={message}>
-              <Icon isInline>
-                <QuestionCircleIcon color="gray" aria-hidden="true" />
-              </Icon>
-            </Tooltip>
-          );
-        default:
-          return (
-            <Tooltip content={`Invalid level: ${level}`}>
-              <Icon isInline>
-                <QuestionCircleIcon color="gray" aria-hidden="true" />
-              </Icon>
-            </Tooltip>
-          );
       }
     };
 
@@ -497,14 +451,33 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                               <span data-testid="workspace-image-name">
                                 {workspace.podTemplate.options.imageConfig.current.displayName}
                               </span>{' '}
-                              {workspaceRedirectStatus[workspace.workspaceKind.name]
-                                ? getRedirectStatusIcon(
-                                    workspaceRedirectStatus[workspace.workspaceKind.name]?.message
-                                      ?.level,
-                                    workspaceRedirectStatus[workspace.workspaceKind.name]?.message
-                                      ?.text || 'No API response available',
-                                  )
-                                : getRedirectStatusIcon(undefined, 'No API response available')}
+                              <RedirectIconWithPopover
+                                redirectChain={
+                                  workspace.podTemplate.options.imageConfig.redirectChain
+                                }
+                                popoverId={`${workspace.name}-image`}
+                                activePopoverId={activeRedirectPopover}
+                                pinnedPopoverId={pinnedRedirectPopover}
+                                onActiveChange={setActiveRedirectPopover}
+                                onPinnedChange={setPinnedRedirectPopover}
+                              />
+                            </Content>
+                          )}
+                          {columnKey === 'podConfig' && (
+                            <Content>
+                              <span data-testid="workspace-pod-config-name">
+                                {workspace.podTemplate.options.podConfig.current.displayName}
+                              </span>{' '}
+                              <RedirectIconWithPopover
+                                redirectChain={
+                                  workspace.podTemplate.options.podConfig.redirectChain
+                                }
+                                popoverId={`${workspace.name}-podConfig`}
+                                activePopoverId={activeRedirectPopover}
+                                pinnedPopoverId={pinnedRedirectPopover}
+                                onActiveChange={setActiveRedirectPopover}
+                                onPinnedChange={setPinnedRedirectPopover}
+                              />
                             </Content>
                           )}
                           {columnKey === 'kind' && (

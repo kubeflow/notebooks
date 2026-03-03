@@ -30,7 +30,9 @@ export const ExpandedWorkspaceRow: React.FC<ExpandedWorkspaceRowProps> = ({
 
   const storageColumnIndex = visibleColumnKeys.includes('name') ? getColumnIndex('name') : 1;
   const packageColumnIndex = visibleColumnKeys.includes('image') ? getColumnIndex('image') : 2;
-  const configColumnIndex = visibleColumnKeys.includes('kind') ? getColumnIndex('kind') : 3;
+  const configColumnIndex = visibleColumnKeys.includes('podConfig')
+    ? getColumnIndex('podConfig')
+    : 3;
 
   return (
     <Tr isExpanded>

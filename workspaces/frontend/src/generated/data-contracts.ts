@@ -323,7 +323,6 @@ export interface WorkspacesHttpService {
 
 export interface WorkspacesImageConfig {
   current: WorkspacesOptionInfo;
-  desired?: WorkspacesOptionInfo;
   redirectChain?: WorkspacesRedirectStep[];
 }
 
@@ -354,7 +353,6 @@ export interface WorkspacesOptionLabel {
 
 export interface WorkspacesPodConfig {
   current: WorkspacesOptionInfo;
-  desired?: WorkspacesOptionInfo;
   redirectChain?: WorkspacesRedirectStep[];
 }
 
@@ -433,8 +431,8 @@ export interface WorkspacesRedirectMessage {
 
 export interface WorkspacesRedirectStep {
   message?: WorkspacesRedirectMessage;
-  sourceId: string;
-  targetId: string;
+  source: WorkspacesOptionInfo;
+  target: WorkspacesOptionInfo;
 }
 
 export interface WorkspacesService {
