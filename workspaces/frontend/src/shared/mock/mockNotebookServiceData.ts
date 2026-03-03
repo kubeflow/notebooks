@@ -1,6 +1,7 @@
 import {
   SecretsSecretCreate,
   WorkspacekindsWorkspaceKind,
+  WorkspacesRedirectMessageLevel,
   WorkspacesWorkspaceListItem,
   WorkspacesWorkspaceKindInfo,
   WorkspacesWorkspaceState,
@@ -100,37 +101,149 @@ export const mockWorkspace2: WorkspacesWorkspaceListItem = buildMockWorkspace({
     options: {
       imageConfig: {
         current: {
-          id: 'jupyterlab_scipy_190',
-          displayName: 'jupyter-scipy:v1.9.0',
+          id: 'jupyterlab_scipy_180',
+          displayName: 'jupyter-scipy:v1.8.0',
           description: 'JupyterLab, with SciPy Packages',
           labels: [
-            {
-              key: 'pythonVersion',
-              value: '3.11',
-            },
+            { key: 'pythonVersion', value: '3.11' },
+            { key: 'jupyterlabVersion', value: '1.8.0' },
           ],
         },
+        redirectChain: [
+          {
+            source: {
+              id: 'jupyterlab_scipy_180',
+              displayName: 'jupyter-scipy:v1.8.0',
+              description: 'JupyterLab, with SciPy Packages',
+              labels: [
+                { key: 'pythonVersion', value: '3.11' },
+                { key: 'jupyterlabVersion', value: '1.8.0' },
+              ],
+            },
+            target: {
+              id: 'jupyterlab_scipy_190',
+              displayName: 'jupyter-scipy:v1.9.0',
+              description: 'JupyterLab, with SciPy Packages',
+              labels: [
+                { key: 'pythonVersion', value: '3.12' },
+                { key: 'jupyterlabVersion', value: '1.9.0' },
+              ],
+            },
+            message: {
+              level: WorkspacesRedirectMessageLevel.RedirectMessageLevelDanger,
+              text: 'Your admin has upgraded the image from jupyter-scipy:v1.8.0 to jupyter-scipy:v1.9.0',
+            },
+          },
+          {
+            source: {
+              id: 'jupyterlab_scipy_190',
+              displayName: 'jupyter-scipy:v1.9.0',
+              description: 'JupyterLab, with SciPy Packages',
+              labels: [
+                { key: 'pythonVersion', value: '3.12' },
+                { key: 'jupyterlabVersion', value: '1.9.0' },
+              ],
+            },
+            target: {
+              id: 'jupyterlab_scipy_200',
+              displayName: 'jupyter-scipy:v2.0.0',
+              description: 'JupyterLab, with SciPy Packages',
+              labels: [
+                { key: 'pythonVersion', value: '3.12' },
+                { key: 'jupyterlabVersion', value: '2.0.0' },
+              ],
+            },
+            message: {
+              level: WorkspacesRedirectMessageLevel.RedirectMessageLevelWarning,
+              text: 'Your admin has upgraded the image from jupyter-scipy:v1.9.0 to jupyter-scipy:v2.0.0',
+            },
+          },
+          {
+            source: {
+              id: 'jupyterlab_scipy_200',
+              displayName: 'jupyter-scipy:v2.0.0',
+              description: 'JupyterLab, with SciPy Packages',
+              labels: [
+                { key: 'pythonVersion', value: '3.12' },
+                { key: 'jupyterlabVersion', value: '2.0.0' },
+              ],
+            },
+            target: {
+              id: 'jupyterlab_scipy_210',
+              displayName: 'jupyter-scipy:v2.1.0',
+              description: 'JupyterLab, with SciPy Packages',
+              labels: [
+                { key: 'pythonVersion', value: '3.13' },
+                { key: 'jupyterlabVersion', value: '2.1.0' },
+              ],
+            },
+            message: {
+              level: WorkspacesRedirectMessageLevel.RedirectMessageLevelInfo,
+              text: 'Your admin has upgraded the image from jupyter-scipy:v2.0.0 to jupyter-scipy:v2.1.0',
+            },
+          },
+        ],
       },
       podConfig: {
         current: {
-          id: 'large_cpu',
-          displayName: 'Large CPU',
-          description: 'Pod with 4 CPU, 16 Gb RAM',
+          id: 'small_cpu',
+          displayName: 'Small CPU',
+          description: 'Pod with 0.5 CPU, 512 Mb RAM',
           labels: [
-            {
-              key: 'cpu',
-              value: '4000m',
-            },
-            {
-              key: 'memory',
-              value: '16Gi',
-            },
-            {
-              key: 'gpu',
-              value: '4',
-            },
+            { key: 'cpu', value: '500m' },
+            { key: 'memory', value: '512Mi' },
           ],
         },
+        redirectChain: [
+          {
+            source: {
+              id: 'small_cpu',
+              displayName: 'Small CPU',
+              description: 'Pod with 0.5 CPU, 512 Mb RAM',
+              labels: [
+                { key: 'cpu', value: '500m' },
+                { key: 'memory', value: '512Mi' },
+              ],
+            },
+            target: {
+              id: 'medium_cpu',
+              displayName: 'Medium CPU',
+              description: 'Pod with 1 CPU, 1 Gb RAM',
+              labels: [
+                { key: 'cpu', value: '1000m' },
+                { key: 'memory', value: '1Gi' },
+              ],
+            },
+            message: {
+              level: WorkspacesRedirectMessageLevel.RedirectMessageLevelWarning,
+              text: 'Your admin has upgraded the pod configuration from Small CPU to Medium CPU',
+            },
+          },
+          {
+            source: {
+              id: 'medium_cpu',
+              displayName: 'Medium CPU',
+              description: 'Pod with 1 CPU, 1 Gb RAM',
+              labels: [
+                { key: 'cpu', value: '1000m' },
+                { key: 'memory', value: '1Gi' },
+              ],
+            },
+            target: {
+              id: 'large_cpu',
+              displayName: 'Large CPU',
+              description: 'Pod with 4 CPU, 4 Gb RAM',
+              labels: [
+                { key: 'cpu', value: '4000m' },
+                { key: 'memory', value: '4Gi' },
+              ],
+            },
+            message: {
+              level: WorkspacesRedirectMessageLevel.RedirectMessageLevelWarning,
+              text: 'Your admin has upgraded the pod configuration from Medium CPU to Large CPU',
+            },
+          },
+        ],
       },
     },
   },
