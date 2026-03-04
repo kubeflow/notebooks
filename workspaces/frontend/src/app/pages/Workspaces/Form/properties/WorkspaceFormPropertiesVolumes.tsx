@@ -3,21 +3,17 @@ import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { Dropdown, DropdownItem } from '@patternfly/react-core/dist/esm/components/Dropdown';
 import { Label, LabelGroup } from '@patternfly/react-core/dist/esm/components/Label';
 import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
-import { Form, FormGroup } from '@patternfly/react-core/dist/esm/components/Form';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
-import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
-import {
-  Modal,
-  ModalBody,
-  ModalFooter,
-  ModalHeader,
-  ModalVariant,
-} from '@patternfly/react-core/dist/esm/components/Modal';
-import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
-import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import { Alert, AlertVariant } from '@patternfly/react-core/dist/esm/components/Alert';
+import {
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateFooter,
+  EmptyStateActions,
+} from '@patternfly/react-core/dist/esm/components/EmptyState';
 import { EllipsisVIcon } from '@patternfly/react-icons/dist/esm/icons/ellipsis-v-icon';
+import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
 import {
   ExpandableRowContent,
   Table,
@@ -30,7 +26,7 @@ import {
 } from '@patternfly/react-table/dist/esm/components/Table';
 import { CubeIcon } from '@patternfly/react-icons/dist/esm/icons/cube-icon';
 import { PvcsPVCListItem, StorageclassesStorageClassListItem } from '~/generated/data-contracts';
-import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
+import DeleteModal from '~/shared/components/DeleteModal';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 import { WorkspacesPodVolumeMountValue } from '~/app/types';
@@ -59,16 +55,8 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
 }) => {
   const isHomeMounted = !!fixedMountPath && volumes.length > 0;
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAttachModalOpen, setIsAttachModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [editFormData, setEditFormData] = useState<WorkspacesPodVolumeMountValue>({
-    pvcName: '',
-    mountPath: fixedMountPath ?? '',
-    readOnly: false,
-    isAttached: false,
-  });
-  const [editIndex, setEditIndex] = useState<number | null>(null);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
   const [availablePVCs, setAvailablePVCs] = useState<PvcsPVCListItem[]>([]);
@@ -102,51 +90,26 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
     fetchStorageClasses();
   }, [api.pvc, api.storageClasses, selectedNamespace]);
 
-  const resetEditForm = useCallback(() => {
-    setEditFormData({
-      pvcName: '',
-      mountPath: fixedMountPath ?? '',
-      readOnly: false,
-      isAttached: false,
-    });
-    setEditIndex(null);
-    setIsEditModalOpen(false);
-  }, [fixedMountPath]);
-
-  const handleSaveEdit = useCallback(() => {
-    if (!editFormData.pvcName) {
-      return;
-    }
-    if (editIndex !== null) {
-      const updated = [...volumes];
-      updated[editIndex] = editFormData;
-      setVolumes(updated);
-    }
-    resetEditForm();
-  }, [editFormData, editIndex, volumes, setVolumes, resetEditForm]);
-
-  const handleEdit = useCallback(
-    (index: number) => {
-      setEditFormData(volumes[index]);
-      setEditIndex(index);
-      setIsEditModalOpen(true);
-    },
-    [volumes],
-  );
-
   const openDetachModal = useCallback((index: number) => {
     setDeleteIndex(index);
     setIsDeleteModalOpen(true);
   }, []);
 
-  const handleDelete = useCallback(() => {
+  const onDeleteModalClose = useCallback(() => {
+    setDeleteIndex(null);
+    setIsDeleteModalOpen(false);
+  }, []);
+
+  const handleDelete = useCallback(async () => {
     if (deleteIndex === null) {
       return;
     }
+    if (!volumes[deleteIndex].isAttached) {
+      await api.pvc.deletePvc(selectedNamespace, volumes[deleteIndex].pvcName);
+    }
     setVolumes(volumes.filter((_, i) => i !== deleteIndex));
-    setIsDeleteModalOpen(false);
-    setDeleteIndex(null);
-  }, [deleteIndex, volumes, setVolumes]);
+    onDeleteModalClose();
+  }, [deleteIndex, volumes, setVolumes, onDeleteModalClose, api.pvc, selectedNamespace]);
 
   const mountedPaths = useMemo(() => new Set(volumes.map((v) => v.mountPath)), [volumes]);
 
@@ -292,6 +255,38 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
       ? getMountPathValidationError(volumes, editMountPathValue, editingMountPath)
       : null;
 
+  const attachButton = (
+    <Tooltip
+      content="Only one home volume can be mounted."
+      trigger={isHomeMounted ? 'mouseenter focus' : ''}
+    >
+      <Button
+        variant="secondary"
+        onClick={() => setIsAttachModalOpen(true)}
+        isDisabled={isHomeMounted}
+        data-testid="attach-existing-volume-button"
+      >
+        Attach Existing Volume
+      </Button>
+    </Tooltip>
+  );
+
+  const createButton = (
+    <Tooltip
+      content="Only one home volume can be mounted."
+      trigger={isHomeMounted ? 'mouseenter focus' : ''}
+    >
+      <Button
+        variant="secondary"
+        onClick={() => setIsCreateModalOpen(true)}
+        isDisabled={isHomeMounted}
+        data-testid="create-volume-button"
+      >
+        Attach New Volume
+      </Button>
+    </Tooltip>
+  );
+
   return (
     <>
       {pvcLoadError && (
@@ -302,7 +297,22 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
           className="pf-v6-u-mb-sm"
         />
       )}
-      {volumes.length > 0 && (
+      {volumes.length === 0 ? (
+        <EmptyState
+          titleText="No volumes attached"
+          headingLevel="h4"
+          icon={PlusCircleIcon}
+          data-testid="volumes-empty-state"
+        >
+          <EmptyStateBody>To get started, attach a volume.</EmptyStateBody>
+          <EmptyStateFooter>
+            <EmptyStateActions>
+              {attachButton}
+              {createButton}
+            </EmptyStateActions>
+          </EmptyStateFooter>
+        </EmptyState>
+      ) : (
         <Table
           variant={TableVariant.compact}
           aria-label="Volumes Table"
@@ -310,7 +320,6 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
         >
           <Thead>
             <Tr>
-              <Th screenReaderText="Row expansion" />
               <Th>PVC Name</Th>
               <Th>Mount Path</Th>
               <Th>Read-only Access</Th>
@@ -321,7 +330,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
             const isExpanded = expandedVolumes.has(volume.pvcName);
             return (
               <Tbody key={`${volume.pvcName}:${volume.mountPath}`} isExpanded={isExpanded}>
-                <Tr>
+                <Tr key={index}>
                   <Td
                     expand={{
                       rowIndex: index,
@@ -364,13 +373,6 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
                       onSelect={() => setDropdownOpen(null)}
                       popperProps={{ position: 'right' }}
                     >
-                      {volume.isAttached ? (
-                        <Tooltip content="Attached volumes cannot be edited.">
-                          <DropdownItem isAriaDisabled>Edit</DropdownItem>
-                        </Tooltip>
-                      ) : (
-                        <DropdownItem onClick={() => handleEdit(index)}>Edit</DropdownItem>
-                      )}
                       <DropdownItem onClick={() => openDetachModal(index)}>Detach</DropdownItem>
                     </Dropdown>
                   </Td>
@@ -388,141 +390,20 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
           })}
         </Table>
       )}
-      <Tooltip
-        content="Only one home volume can be mounted."
-        trigger={isHomeMounted ? 'mouseenter focus' : ''}
-      >
-        <Button
-          variant="secondary"
-          onClick={() => setIsAttachModalOpen(true)}
-          isDisabled={isHomeMounted}
-          className="pf-v6-u-mt-md pf-v6-u-mr-md"
-          data-testid="attach-existing-volume-button"
-        >
-          Attach Existing Volume
-        </Button>
-      </Tooltip>
-      <Tooltip
-        content="Only one home volume can be mounted."
-        trigger={isHomeMounted ? 'mouseenter focus' : ''}
-      >
-        <Button
-          variant="secondary"
-          onClick={() => setIsCreateModalOpen(true)}
-          isDisabled={isHomeMounted}
-          className="pf-v6-u-mb-md"
-          data-testid="create-volume-button"
-        >
-          Attach New Volume
-        </Button>
-      </Tooltip>
-
-      {/* Edit modal - for toggling read-only access on all volumes */}
-      <Modal
-        isOpen={isEditModalOpen}
-        onClose={resetEditForm}
-        variant={ModalVariant.small}
-        data-testid="edit-volume-modal"
-      >
-        <ModalHeader title="Edit Volume" />
-        <ModalBody>
-          <Form>
-            <ThemeAwareFormGroupWrapper label="PVC Name" fieldId="edit-pvc-name">
-              <TextInput
-                name="pvcName"
-                type="text"
-                value={editFormData.pvcName}
-                isDisabled
-                id="edit-pvc-name"
-                data-testid="edit-pvc-name-input"
-              />
-            </ThemeAwareFormGroupWrapper>
-            <ThemeAwareFormGroupWrapper
-              label="Mount Path"
-              isRequired
-              fieldId="edit-mount-path"
-              helperTextNode={
-                fixedMountPath && (
-                  <HelperText>
-                    <HelperTextItem>
-                      The mount path is defined by the workspace kind and cannot be changed.
-                    </HelperTextItem>
-                  </HelperText>
-                )
-              }
-            >
-              <TextInput
-                name="mountPath"
-                isRequired
-                type="text"
-                value={editFormData.mountPath}
-                isDisabled
-                id="edit-mount-path"
-                data-testid="edit-mount-path-input"
-              />
-            </ThemeAwareFormGroupWrapper>
-            <FormGroup fieldId="edit-readonly-access" className="pf-v6-u-pt-lg">
-              <Switch
-                id="edit-readonly-access-switch"
-                label="Enable read-only access"
-                isChecked={editFormData.readOnly}
-                onChange={() =>
-                  setEditFormData({ ...editFormData, readOnly: !editFormData.readOnly })
-                }
-                data-testid="edit-readonly-access-switch"
-              />
-            </FormGroup>
-          </Form>
-        </ModalBody>
-        <ModalFooter>
-          <Button
-            key="confirm"
-            onClick={handleSaveEdit}
-            isDisabled={!editFormData.pvcName}
-            data-testid="edit-volume-submit-button"
-          >
-            Save
-          </Button>
-          <Button
-            key="cancel"
-            variant="link"
-            onClick={resetEditForm}
-            data-testid="edit-volume-cancel-button"
-          >
-            Cancel
-          </Button>
-        </ModalFooter>
-      </Modal>
-
-      <Modal
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        variant={ModalVariant.small}
-        data-testid="detach-volume-modal"
-      >
-        <ModalHeader
+      <Flex className="pf-v6-u-mt-md" spaceItems={{ default: 'spaceItemsMd' }}>
+        <FlexItem>{attachButton}</FlexItem>
+        <FlexItem>{createButton}</FlexItem>
+      </Flex>
+      {deleteIndex !== null && (
+        <DeleteModal
+          isOpen={isDeleteModalOpen}
           title="Detach Volume?"
-          description="The volume and all of its resources will be detached from the workspace."
+          onClose={onDeleteModalClose}
+          onDelete={handleDelete}
+          resourceName={volumes[deleteIndex].pvcName}
+          namespace={selectedNamespace}
         />
-        <ModalFooter>
-          <Button
-            key="detach"
-            variant="danger"
-            onClick={handleDelete}
-            data-testid="detach-volume-confirm-button"
-          >
-            Detach
-          </Button>
-          <Button
-            key="cancel"
-            variant="link"
-            onClick={() => setIsDeleteModalOpen(false)}
-            data-testid="detach-volume-cancel-button"
-          >
-            Cancel
-          </Button>
-        </ModalFooter>
-      </Modal>
+      )}
 
       <VolumesAttachModal
         isOpen={isAttachModalOpen}

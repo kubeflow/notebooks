@@ -1,7 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, AlertVariant } from '@patternfly/react-core/dist/esm/components/Alert';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
-import { Form, FormGroup } from '@patternfly/react-core/dist/esm/components/Form';
+import {
+  Form,
+  FormFieldGroupExpandable,
+  FormFieldGroupHeader,
+  FormGroup,
+} from '@patternfly/react-core/dist/esm/components/Form';
+import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import {
   FormSelect,
   FormSelectOption,
@@ -16,12 +22,16 @@ import {
 import { Radio } from '@patternfly/react-core/dist/esm/components/Radio';
 import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
+import { List, ListItem } from '@patternfly/react-core/dist/esm/components/List';
+import { Popover } from '@patternfly/react-core/dist/esm/components/Popover';
+import { InfoCircleIcon } from '@patternfly/react-icons/dist/esm/icons/info-circle-icon';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons/dist/esm/icons/outlined-question-circle-icon';
 import { StorageclassesStorageClassListItem } from '~/generated/data-contracts';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 import { WorkspacesPodVolumeMountValue } from '~/app/types';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
-import { ResourceInputWrapper } from '~/app/pages/WorkspaceKinds/Form/podConfig/ResourceInputWrapper';
+import { ResourceInputWrapper } from '~/shared/components/ResourceInputWrapper';
 
 // DNS-1123 subdomain regex - lowercase alphanumeric, hyphens, dots
 // Must start and end with alphanumeric, max 253 chars
@@ -92,13 +102,13 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
 
   const validateForm = useCallback((): string | null => {
     if (!pvcName) {
-      return 'PVC name is required';
+      return 'Volume name is required';
     }
     if (pvcName.length > 253) {
-      return 'PVC name must be at most 253 characters';
+      return 'Volume name must be at most 253 characters';
     }
     if (!PVC_NAME_REGEX.test(pvcName)) {
-      return 'PVC name must consist of lowercase alphanumeric characters or hyphens, and must start and end with an alphanumeric character';
+      return 'Volume name must consist of lowercase alphanumeric characters or hyphens, and must start and end with an alphanumeric character';
     }
     if (!storageClassName) {
       return 'Storage class is required';
@@ -163,7 +173,11 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
       data-testid="create-volume-modal"
       aria-labelledby="create-volume-modal-title"
     >
-      <ModalHeader title="Create New PVC" labelId="create-volume-modal-title" />
+      <ModalHeader
+        title="Attach New Volume"
+        description="Create a new volume and attach it to the workspace"
+        labelId="create-volume-modal-title"
+      />
       <ModalBody>
         <Form>
           {error && (
@@ -171,7 +185,7 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
               {error}
             </Alert>
           )}
-          <ThemeAwareFormGroupWrapper label="PVC Name" isRequired fieldId="pvc-name">
+          <ThemeAwareFormGroupWrapper label="Volume Name" isRequired fieldId="pvc-name">
             <TextInput
               id="pvc-name"
               data-testid="pvc-name-input"
@@ -213,41 +227,6 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
               />
             )}
           </ThemeAwareFormGroupWrapper>
-          <ThemeAwareFormGroupWrapper
-            label="Storage Size"
-            isRequired
-            fieldId="storage-size"
-            skipFieldset
-          >
-            <ResourceInputWrapper
-              value={storageSize}
-              onChange={setStorageSize}
-              type="memory"
-              min={1}
-              aria-label="storage-size"
-            />
-          </ThemeAwareFormGroupWrapper>
-          <ThemeAwareFormGroupWrapper
-            label="Access Mode"
-            isRequired
-            fieldId="access-mode"
-            role="radiogroup"
-            skipFieldset
-            isInline
-          >
-            {ACCESS_MODES.map(({ label, value }) => (
-              <Radio
-                key={value}
-                id={`access-mode-${value}`}
-                data-testid={`access-mode-${value}`}
-                name="access-mode"
-                label={label}
-                value={value}
-                isChecked={accessMode === value}
-                onChange={() => setAccessMode(value)}
-              />
-            ))}
-          </ThemeAwareFormGroupWrapper>
           <FormGroup fieldId="read-only" className="pf-v6-u-pt-sm">
             <Switch
               id="read-only-switch"
@@ -257,6 +236,95 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
               onChange={(_ev, checked) => setReadOnly(checked)}
             />
           </FormGroup>
+          <FormFieldGroupExpandable
+            className="form-label-field-group"
+            toggleAriaLabel="Volume Configuration"
+            isExpanded
+            header={
+              <FormFieldGroupHeader
+                titleText={{
+                  text: 'Volume Configuration',
+                  id: 'volume-configuration-title',
+                }}
+                titleDescription="Configure volume access mode and size"
+              />
+            }
+          >
+            <ThemeAwareFormGroupWrapper
+              label="Access Mode"
+              isRequired
+              fieldId="access-mode"
+              role="radiogroup"
+              skipFieldset
+              isInline
+              labelHelp={
+                <Popover
+                  headerContent="Access mode"
+                  bodyContent={
+                    <>
+                      Access mode is a Kubernetes concept that determines how nodes can interact
+                      with the volume
+                      <List className="pf-v6-u-mt-sm">
+                        <ListItem>
+                          <strong>ReadWriteMany (RWX)</strong> means that the volume can be attached
+                          to many workspaces simultaneously
+                        </ListItem>
+                        <ListItem>
+                          <strong>ReadOnlyMany (ROX)</strong> means that the volume can be attached
+                          to many workspaces as read-onl
+                        </ListItem>
+                        <ListItem>
+                          <strong>ReadWriteOnce (RWO)</strong> means that the volume can be attached
+                          to a single workspace at a given time
+                        </ListItem>
+                        <ListItem>
+                          <strong>ReadWriteOncePod (RWOP)</strong> means that the volume can be
+                          attached to a single pod on a single node as read-write
+                        </ListItem>
+                      </List>
+                    </>
+                  }
+                >
+                  <OutlinedQuestionCircleIcon />
+                </Popover>
+              }
+              helperTextNode={
+                <HelperText>
+                  <HelperTextItem>
+                    <InfoCircleIcon className="pf-v6-u-mr-xs" />
+                    Access mode cannot be changed after creation
+                  </HelperTextItem>
+                </HelperText>
+              }
+            >
+              {ACCESS_MODES.map(({ label, value }) => (
+                <Radio
+                  key={value}
+                  id={`access-mode-${value}`}
+                  data-testid={`access-mode-${value}`}
+                  name="access-mode"
+                  label={label}
+                  value={value}
+                  isChecked={accessMode === value}
+                  onChange={() => setAccessMode(value)}
+                />
+              ))}
+            </ThemeAwareFormGroupWrapper>
+            <ThemeAwareFormGroupWrapper
+              label="Volume Size"
+              isRequired
+              fieldId="volume-size"
+              skipFieldset
+            >
+              <ResourceInputWrapper
+                value={storageSize}
+                onChange={setStorageSize}
+                type="storage"
+                min={1}
+                aria-label="volume-size"
+              />
+            </ThemeAwareFormGroupWrapper>
+          </FormFieldGroupExpandable>
         </Form>
       </ModalBody>
       <ModalFooter>
