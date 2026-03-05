@@ -11,6 +11,8 @@ spec:
     kind: Workspace
     listKind: WorkspaceList
     plural: workspaces
+    shortNames:
+    - ws
     singular: workspace
   scope: Namespaced
   versions:

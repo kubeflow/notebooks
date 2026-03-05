@@ -11,6 +11,8 @@ spec:
     kind: WorkspaceKind
     listKind: WorkspaceKindList
     plural: workspacekinds
+    shortNames:
+    - wsk
     singular: workspacekind
   scope: Cluster
   versions:

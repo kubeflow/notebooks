@@ -292,6 +292,7 @@ const (
 // +kubebuilder:object:root=true
 // +kubebuilder:printcolumn:name="State",type="string",JSONPath=".status.state",description="The current state of the Workspace"
 // +kubebuilder:subresource:status
+// +kubebuilder:resource:shortName=ws
 
 // Workspace is the Schema for the Workspaces API
 type Workspace struct {
