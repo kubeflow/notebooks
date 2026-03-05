@@ -29,8 +29,8 @@ kubectl wait deployment.apps --for condition=Available \
   --all-namespaces \
   --timeout=120s
 
-kubectl wait endpoints \
-  --for "jsonpath=subsets[0].addresses[0].targetRef.kind=Pod" \
+kubectl wait endpointslice \
+  --for="jsonpath=endpoints[0].targetRef.kind=Pod" \
   --selector app.kubernetes.io/instance=cert-manager \
   --all-namespaces \
   --timeout=120s
