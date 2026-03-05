@@ -197,6 +197,16 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
     [secrets],
   );
 
+  const otherMountPaths = useMemo(
+    () =>
+      new Set(
+        secrets
+          .filter((_, i) => i !== editingMountPath)
+          .map((s) => normalizeMountPath(s.mountPath)),
+      ),
+    [secrets, editingMountPath],
+  );
+
   const handleStartMountPathEdit = useCallback(
     (index: number) => {
       setEditingMountPath(index);
@@ -209,11 +219,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
     if (editingMountPath === null) {
       return;
     }
-    const validationError = getMountPathValidationError(
-      secrets,
-      editMountPathValue,
-      editingMountPath,
-    );
+    const validationError = getMountPathValidationError(otherMountPaths, editMountPathValue);
     if (validationError) {
       return;
     }
@@ -222,7 +228,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
     updated[editingMountPath] = { ...updated[editingMountPath], mountPath: normalized };
     setSecrets(updated);
     setEditingMountPath(null);
-  }, [editingMountPath, editMountPathValue, secrets, setSecrets]);
+  }, [editingMountPath, editMountPathValue, otherMountPaths, secrets, setSecrets]);
 
   const handleCancelMountPathEdit = useCallback(() => {
     setEditingMountPath(null);
@@ -230,7 +236,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
 
   const mountPathValidationError =
     editingMountPath !== null
-      ? getMountPathValidationError(secrets, editMountPathValue, editingMountPath)
+      ? getMountPathValidationError(otherMountPaths, editMountPathValue)
       : null;
 
   const attachButton = (
@@ -443,7 +449,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
         setIsOpen={setIsAttachModalOpen}
         onAttach={handleAttachSecrets}
         mountedKeys={mountedKeys}
-        existingMountPaths={secrets.map((s) => s.mountPath)}
+        existingMountPaths={new Set(secrets.map((s) => s.mountPath))}
       />
 
       <SecretsCreateModal

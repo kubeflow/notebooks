@@ -72,7 +72,7 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
 
   const mountPathFormatError = isMountPathEditing ? validateMountPath(mountPath) : null;
   const mountPathUniquenessError = !mountPathFormatError
-    ? getMountPathUniquenessError([...mountedPaths], mountPath)
+    ? getMountPathUniquenessError(mountedPaths, mountPath)
     : null;
   const mountPathError = mountPathFormatError ?? mountPathUniquenessError;
 
@@ -97,7 +97,7 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
 
   const handleConfirmMountPathEdit = useCallback(() => {
     const err =
-      validateMountPath(mountPath) ?? getMountPathUniquenessError([...mountedPaths], mountPath);
+      validateMountPath(mountPath) ?? getMountPathUniquenessError(mountedPaths, mountPath);
     if (err) {
       return;
     }

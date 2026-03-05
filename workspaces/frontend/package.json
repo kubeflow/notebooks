@@ -133,7 +133,7 @@
     "js-yaml": "^4.1.0",
     "lodash-es": "^4.17.15",
     "mod-arch-core": "^1.10.0",
-    "mod-arch-kubeflow": "^1.10.0",
+    "mod-arch-kubeflow": "file:../../../../mod-arch-library/mod-arch-kubeflow",
     "mod-arch-shared": "^1.9.1",
     "react": "^18",
     "react-dom": "^18",

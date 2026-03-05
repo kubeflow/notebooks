@@ -43,56 +43,35 @@ export const validateMountPath = (path: string): string | null => {
 
 /**
  * Returns an error if proposedPath (after normalization) is already in existingMountPaths.
- * Use for attach flow where existing paths are a string array.
+ * Use for attach flow where existing paths are a Set for O(1) lookup.
  */
 export function getMountPathUniquenessError(
-  existingMountPaths: string[],
+  existingMountPaths: Set<string>,
   proposedPath: string,
 ): string | null;
 
-/**
- * Returns an error if proposedPath (after normalization) is already used by another item.
- * Use excludeIndex when editing one row so the current row's existing path is ignored.
- */
-export function getMountPathUniquenessError<T extends { mountPath: string }>(
-  items: T[],
+export function getMountPathUniquenessError(
+  existingMountPaths: Set<string>,
   proposedPath: string,
-  excludeIndex: number,
-): string | null;
-
-export function getMountPathUniquenessError<T extends { mountPath: string }>(
-  existingMountPathsOrItems: string[] | T[],
-  proposedPath: string,
-  excludeIndex?: number,
 ): string | null {
   const normalized = normalizeMountPath(proposedPath);
   if (!normalized) {
     return null;
   }
-  if (excludeIndex === undefined) {
-    const paths = existingMountPathsOrItems as string[];
-    const duplicate = paths.some((p) => normalizeMountPath(p) === normalized);
-    return duplicate ? 'Mount path is already in use' : null;
-  }
-  const items = existingMountPathsOrItems as T[];
-  const duplicate = items.some(
-    (item, i) => i !== excludeIndex && normalizeMountPath(item.mountPath) === normalized,
-  );
-  return duplicate ? 'Mount path is already in use' : null;
+  return existingMountPaths.has(normalized) ? 'Mount path is already in use' : null;
 }
 
 /**
- * Returns the first validation error for a mount path when editing one row:
- * format error from validateMountPath, or uniqueness error excluding the row at excludeIndex.
+ * Returns the first validation error for a mount path when editing one row.
+ * otherMountPaths must be a pre-normalized Set of all paths *except* the row being edited,
+ * allowing O(1) uniqueness lookup.
  */
-export function getMountPathValidationError<T extends { mountPath: string }>(
-  items: T[],
+export function getMountPathValidationError(
+  otherMountPaths: Set<string>,
   proposedPath: string,
-  excludeIndex: number,
 ): string | null {
   return (
-    validateMountPath(proposedPath) ??
-    getMountPathUniquenessError(items, proposedPath, excludeIndex)
+    validateMountPath(proposedPath) ?? getMountPathUniquenessError(otherMountPaths, proposedPath)
   );
 }
 
@@ -101,7 +80,7 @@ export function getMountPathValidationError<T extends { mountPath: string }>(
  * format error from validateMountPath, or uniqueness error against existing paths.
  */
 export function getMountPathValidationErrorForPaths(
-  existingMountPaths: string[],
+  existingMountPaths: Set<string>,
   proposedPath: string,
 ): string | null {
   return (

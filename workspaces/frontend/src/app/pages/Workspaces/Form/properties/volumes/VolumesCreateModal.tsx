@@ -48,12 +48,15 @@ export interface VolumesCreateModalProps {
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
   onVolumeCreated: (volume: WorkspacesPodVolumeMountValue) => void;
+  /** PVC names already mounted in the other volume section (home or data) */
+  excludedPvcNames?: Set<string>;
 }
 
 export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
   isOpen,
   setIsOpen,
   onVolumeCreated,
+  excludedPvcNames,
 }) => {
   const { api } = useNotebookAPI();
   const { selectedNamespace } = useNamespaceSelectorWrapper();
@@ -110,6 +113,9 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
     if (!PVC_NAME_REGEX.test(pvcName)) {
       return 'Volume name must consist of lowercase alphanumeric characters or hyphens, and must start and end with an alphanumeric character';
     }
+    if (excludedPvcNames?.has(pvcName)) {
+      return 'A volume with this name is already mounted in the workspace';
+    }
     if (!storageClassName) {
       return 'Storage class is required';
     }
@@ -117,7 +123,7 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
       return 'Storage size is required';
     }
     return null;
-  }, [pvcName, storageClassName, storageSize]);
+  }, [pvcName, storageClassName, storageSize, excludedPvcNames]);
 
   const handleSubmit = useCallback(async () => {
     const validationError = validateForm();

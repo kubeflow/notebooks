@@ -40,7 +40,7 @@ export interface SecretsAttachModalProps {
   onAttach: (secrets: SecretsSecretListItem[], mountPath: string, mode: number) => void;
   availableSecrets: SecretsSecretListItem[];
   mountedKeys: Set<string>;
-  existingMountPaths: string[];
+  existingMountPaths: Set<string>;
 }
 
 export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({

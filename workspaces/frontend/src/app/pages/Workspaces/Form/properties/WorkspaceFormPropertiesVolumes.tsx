@@ -148,11 +148,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
     if (editingMountPath === null) {
       return;
     }
-    const validationError = getMountPathValidationError(
-      volumes,
-      editMountPathValue,
-      editingMountPath,
-    );
+    const validationError = getMountPathValidationError(otherMountPaths, editMountPathValue);
     if (validationError) {
       return;
     }
@@ -161,7 +157,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
     updated[editingMountPath] = { ...updated[editingMountPath], mountPath: normalized };
     setVolumes(updated);
     setEditingMountPath(null);
-  }, [editingMountPath, editMountPathValue, volumes, setVolumes]);
+  }, [editingMountPath, editMountPathValue, otherMountPaths, volumes, setVolumes]);
 
   const handleCancelMountPathEdit = useCallback(() => {
     setEditingMountPath(null);
@@ -252,7 +248,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
 
   const mountPathValidationError =
     editingMountPath !== null
-      ? getMountPathValidationError(volumes, editMountPathValue, editingMountPath)
+      ? getMountPathValidationError(otherMountPaths, editMountPathValue)
       : null;
 
   const attachButton = (
@@ -352,7 +348,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
                       onConfirm={handleConfirmMountPathEdit}
                       onCancel={handleCancelMountPathEdit}
                       error={mountPathValidationError}
-                      isFixed={!!fixedMountPath}
+                      isFixed={volume.mountPath === fixedMountPath}
                     />
                   </Td>
                   <Td dataLabel="Read-only Access">{volume.readOnly ? 'Enabled' : 'Disabled'}</Td>
@@ -420,6 +416,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
         isOpen={isCreateModalOpen}
         setIsOpen={setIsCreateModalOpen}
         onVolumeCreated={handleVolumeCreated}
+        excludedPvcNames={excludedPvcNames}
       />
     </>
   );
