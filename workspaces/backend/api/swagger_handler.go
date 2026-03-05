@@ -17,15 +17,19 @@ limitations under the License.
 package api
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
+
+	"github.com/kubeflow/notebooks/workspaces/backend/openapi"
 )
 
 func (a *App) GetSwaggerHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	httpSwagger.Handler(
-		httpSwagger.URL(SwaggerDocPath),
+		// this url is the one that the swagger frontend uses to fetch the OpenAPI definiton
+		httpSwagger.URL(fmt.Sprintf("%s/swagger/doc.json", openapi.SwaggerInfo.BasePath)),
 		httpSwagger.DeepLinking(true),
 		httpSwagger.DocExpansion("list"),
 		httpSwagger.DomID("swagger-ui"),

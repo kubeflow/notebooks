@@ -129,7 +129,7 @@ The frontend may take a couple of minutes on first start as webpack compiles the
 Access the components through the Istio ingress gateway:
 
 - Frontend UI: `https://localhost:8443/workspaces/` (if enabled)
-- Backend API: [Swagger UI](https://localhost:8443/workspaces/api/v1/swagger/)
+- Backend API: [Swagger UI](https://localhost:8443/workspaces/api/v1/swagger/index.html)
 - Controller health: `http://localhost:8080/healthz` (bypasses Istio)
 
 > [!NOTE]
