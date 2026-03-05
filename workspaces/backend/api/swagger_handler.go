@@ -28,7 +28,7 @@ import (
 
 func (a *App) GetSwaggerHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	httpSwagger.Handler(
-		// this url is the one that the swagger frontend uses to fetch the OpenAPI definiton
+		// this url is the one that the swagger frontend uses to fetch the OpenAPI definition
 		httpSwagger.URL(fmt.Sprintf("%s/swagger/doc.json", openapi.SwaggerInfo.BasePath)),
 		httpSwagger.DeepLinking(true),
 		httpSwagger.DocExpansion("list"),
