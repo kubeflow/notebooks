@@ -33,7 +33,7 @@ import (
 //
 // +kubebuilder:validation:MinLength:=1
 // +kubebuilder:validation:MaxLength:=32
-// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+// +kubebuilder:validation:Pattern:=^[a-z0-9][a-z0-9_-]*[a-z0-9]$
 type PortId string
 
 // WorkspaceKindSpec defines the desired state of WorkspaceKind
@@ -97,9 +97,15 @@ type WorkspaceKindIcon struct {
 
 type WorkspaceKindConfigMap struct {
 	// +kubebuilder:example="my-logos"
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
 	Name string `json:"name"`
 
 	// +kubebuilder:example="apple-touch-icon-152x152.png"
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
+	// +kubebuilder:validation:Pattern:=^[-._a-zA-Z0-9]+$
 	Key string `json:"key"`
 }
 
