@@ -90,10 +90,10 @@ func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps htt
 	a.dataResponse(w, r, responseEnvelope)
 }
 
-// GetAllWorkspacesHandler returns a list of all workspaces across all namespaces.
+// GetAllWorkspacesHandler returns a list of all workspaces in the cluster.
 //
 //	@Summary		List all workspaces
-//	@Description	Returns a list of all workspaces across all namespaces.
+//	@Description	Returns a list of all workspaces in the cluster.
 //	@Tags			workspaces
 //	@ID				listAllWorkspaces
 //	@Accept			json
@@ -271,7 +271,7 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 // UpdateWorkspaceHandler updates an existing workspace.
 //
 //	@Summary		Update workspace
-//	@Description	Updates an existing workspace
+//	@Description	Updates an existing workspace.
 //	@Tags			workspaces
 //	@ID				updateWorkspace
 //	@Accept			json
@@ -376,7 +376,7 @@ func (a *App) UpdateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 // DeleteWorkspaceHandler deletes a specific workspace by namespace and name.
 //
 //	@Summary		Delete workspace
-//	@Description	Deletes a specific workspace identified by namespace and workspace name.
+//	@Description	Deletes a specific workspace identified by namespace and name.
 //	@Tags			workspaces
 //	@ID				deleteWorkspace
 //	@Accept			json
@@ -387,6 +387,7 @@ func (a *App) UpdateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 //	@Failure		401				{object}	ErrorEnvelope	"Unauthorized. Authentication is required."
 //	@Failure		403				{object}	ErrorEnvelope	"Forbidden. User does not have permission to delete the workspace."
 //	@Failure		404				{object}	ErrorEnvelope	"Not Found. Workspace does not exist."
+//	@Failure		409				{object}	ErrorEnvelope	"Conflict"
 //	@Failure		422				{object}	ErrorEnvelope	"Unprocessable Entity. Validation error."
 //	@Failure		500				{object}	ErrorEnvelope	"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspaces/{namespace}/{workspace_name} [delete]
@@ -422,7 +423,7 @@ func (a *App) DeleteWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 			a.conflictResponse(w, r, err, causes)
 			return
 		}
-		a.serverErrorResponse(w, r, err)
+		a.serverErrorResponse(w, r, fmt.Errorf("error deleting Workspace: %w", err))
 		return
 	}
 

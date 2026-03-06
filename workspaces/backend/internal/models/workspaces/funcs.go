@@ -53,22 +53,6 @@ func NewWorkspaceListItemFromWorkspace(ws *kubefloworgv1beta1.Workspace, wsk *ku
 		URL: fmt.Sprintf("/workspaces/backend/api/v1/workspacekinds/%s/assets/logo", ws.Spec.Kind),
 	}
 
-	wsState := WorkspaceStateUnknown
-	switch ws.Status.State {
-	case kubefloworgv1beta1.WorkspaceStateRunning:
-		wsState = WorkspaceStateRunning
-	case kubefloworgv1beta1.WorkspaceStateTerminating:
-		wsState = WorkspaceStateTerminating
-	case kubefloworgv1beta1.WorkspaceStatePaused:
-		wsState = WorkspaceStatePaused
-	case kubefloworgv1beta1.WorkspaceStatePending:
-		wsState = WorkspaceStatePending
-	case kubefloworgv1beta1.WorkspaceStateError:
-		wsState = WorkspaceStateError
-	case kubefloworgv1beta1.WorkspaceStateUnknown:
-		wsState = WorkspaceStateUnknown
-	}
-
 	podLabels := make(map[string]string)
 	podAnnotations := make(map[string]string)
 	if ws.Spec.PodTemplate.PodMetadata != nil {
@@ -112,7 +96,7 @@ func NewWorkspaceListItemFromWorkspace(ws *kubefloworgv1beta1.Workspace, wsk *ku
 		Paused:         ptr.Deref(ws.Spec.Paused, false),
 		PausedTime:     ws.Status.PauseTime,
 		PendingRestart: ws.Status.PendingRestart,
-		State:          wsState,
+		State:          ws.Status.State,
 		StateMessage:   ws.Status.StateMessage,
 		PodTemplate: PodTemplate{
 			PodMetadata: PodMetadata{

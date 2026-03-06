@@ -339,8 +339,12 @@ spec:
                   name:
                     description: the name of the Pod resource
                     type: string
+                  nodeName:
+                    description: the name of the node on which the Pod is scheduled
+                    type: string
                 required:
                 - name
+                - nodeName
                 type: object
               state:
                 default: Unknown

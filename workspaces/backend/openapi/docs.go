@@ -48,14 +48,14 @@ const docTemplate = `{
         },
         "/namespaces": {
             "get": {
-                "description": "Provides a list of all namespaces that the user has access to",
+                "description": "Returns a list of all namespaces in the cluster.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "namespaces"
                 ],
-                "summary": "Returns a list of all namespaces",
+                "summary": "List namespaces",
                 "operationId": "listNamespaces",
                 "responses": {
                     "200": {
@@ -87,14 +87,14 @@ const docTemplate = `{
         },
         "/persistentvolumeclaims/{namespace}": {
             "get": {
-                "description": "Provides a list of all persistent volume claims with comprehensive metadata in the specified namespace",
+                "description": "Returns a list of persistent volume claims in a specific namespace.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "persistentvolumeclaims"
                 ],
-                "summary": "Returns a list of all PVCs in a namespace",
+                "summary": "List persistent volume claims by namespace",
                 "operationId": "listPVCs",
                 "parameters": [
                     {
@@ -140,7 +140,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Creates a new persistent volume claim in the specified namespace",
+                "description": "Creates a new persistent volume claim in the specified namespace.",
                 "consumes": [
                     "application/json"
                 ],
@@ -150,7 +150,7 @@ const docTemplate = `{
                 "tags": [
                     "persistentvolumeclaims"
                 ],
-                "summary": "Creates a new PVC",
+                "summary": "Create persistent volume claim",
                 "operationId": "createPVC",
                 "parameters": [
                     {
@@ -230,11 +230,11 @@ const docTemplate = `{
         },
         "/persistentvolumeclaims/{namespace}/{name}": {
             "delete": {
-                "description": "Deletes a persistent volume claim from the specified namespace",
+                "description": "Deletes a specific persistent volume claim identified by namespace and name.",
                 "tags": [
                     "persistentvolumeclaims"
                 ],
-                "summary": "Deletes a PVC",
+                "summary": "Deletes a persistent volume claim",
                 "operationId": "deletePVC",
                 "parameters": [
                     {
@@ -299,14 +299,14 @@ const docTemplate = `{
         },
         "/secrets/{namespace}": {
             "get": {
-                "description": "Provides a list of all secrets that the user has access to in the specified namespace",
+                "description": "Returns a list of secrets in a specific namespace.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "secrets"
                 ],
-                "summary": "Returns a list of all secrets in a namespace",
+                "summary": "List secrets by namespace",
                 "operationId": "listSecrets",
                 "parameters": [
                     {
@@ -352,7 +352,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Creates a new secret in the specified namespace",
+                "description": "Creates a new secret in the specified namespace.",
                 "consumes": [
                     "application/json"
                 ],
@@ -362,7 +362,7 @@ const docTemplate = `{
                 "tags": [
                     "secrets"
                 ],
-                "summary": "Creates a new secret",
+                "summary": "Create secret",
                 "operationId": "createSecret",
                 "parameters": [
                     {
@@ -442,14 +442,14 @@ const docTemplate = `{
         },
         "/secrets/{namespace}/{name}": {
             "get": {
-                "description": "Provides details of a specific secret by name and namespace",
+                "description": "Returns the current state of a specific secret identified by namespace and name. This endpoint is intended for retrieving the secret state before updating it.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "secrets"
                 ],
-                "summary": "Returns a specific secret",
+                "summary": "Get secret",
                 "operationId": "getSecret",
                 "parameters": [
                     {
@@ -508,7 +508,7 @@ const docTemplate = `{
                 }
             },
             "put": {
-                "description": "Updates an existing secret in the specified namespace",
+                "description": "Updates an existing secret.",
                 "consumes": [
                     "application/json"
                 ],
@@ -518,7 +518,7 @@ const docTemplate = `{
                 "tags": [
                     "secrets"
                 ],
-                "summary": "Updates an existing secret",
+                "summary": "Update secret",
                 "operationId": "updateSecret",
                 "parameters": [
                     {
@@ -603,14 +603,14 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "Deletes a secret from the specified namespace",
+                "description": "Deletes a specific secret identified by namespace and name.",
                 "consumes": [
                     "application/json"
                 ],
                 "tags": [
                     "secrets"
                 ],
-                "summary": "Deletes a secret",
+                "summary": "Delete secret",
                 "operationId": "deleteSecret",
                 "parameters": [
                     {
@@ -663,14 +663,14 @@ const docTemplate = `{
         },
         "/storageclasses": {
             "get": {
-                "description": "Provides a list of storage classes available for volume provisioning",
+                "description": "Returns a list of all storage classes in the cluster.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "storageclasses"
                 ],
-                "summary": "Returns a list of available storage classes",
+                "summary": "List storage classes",
                 "operationId": "listStorageClasses",
                 "responses": {
                     "200": {
@@ -702,7 +702,7 @@ const docTemplate = `{
         },
         "/workspacekinds": {
             "get": {
-                "description": "Returns a list of all available workspace kinds. Workspace kinds define the different types of workspaces that can be created in the system.",
+                "description": "Returns a list of all workspace kinds in the cluster.",
                 "consumes": [
                     "application/json"
                 ],
@@ -825,7 +825,7 @@ const docTemplate = `{
         },
         "/workspacekinds/{name}": {
             "get": {
-                "description": "Returns details of a specific workspace kind identified by its name. Workspace kinds define the available types of workspaces that can be created.",
+                "description": "Returns details of a specific workspace kind identified by its name.",
                 "consumes": [
                     "application/json"
                 ],
@@ -889,7 +889,7 @@ const docTemplate = `{
         },
         "/workspaces": {
             "get": {
-                "description": "Returns a list of all workspaces across all namespaces.",
+                "description": "Returns a list of all workspaces in the cluster.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1078,7 +1078,7 @@ const docTemplate = `{
         },
         "/workspaces/{namespace}/{name}": {
             "put": {
-                "description": "Updates an existing workspace",
+                "description": "Updates an existing workspace.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1352,7 +1352,7 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "Deletes a specific workspace identified by namespace and workspace name.",
+                "description": "Deletes a specific workspace identified by namespace and name.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1400,6 +1400,12 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found. Workspace does not exist.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }
@@ -1819,7 +1825,7 @@ const docTemplate = `{
                 "accessModes": {
                     "type": "array",
                     "items": {
-                        "type": "string"
+                        "$ref": "#/definitions/v1.PersistentVolumeAccessMode"
                     }
                 },
                 "name": {
@@ -1860,11 +1866,16 @@ const docTemplate = `{
                 "pods": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/pvcs.PVCPod"
+                        "$ref": "#/definitions/pvcs.PodInfo"
                     }
                 },
                 "pv": {
-                    "$ref": "#/definitions/pvcs.PVInfo"
+                    "description": "This field is nil until a PV is bound to the PVC.\nhttps://kubernetes.io/docs/concepts/storage/persistent-volumes/#binding",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/pvcs.PVInfo"
+                        }
+                    ]
                 },
                 "pvcSpec": {
                     "$ref": "#/definitions/pvcs.PVCSpec"
@@ -1872,26 +1883,8 @@ const docTemplate = `{
                 "workspaces": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/pvcs.PVCWorkspace"
+                        "$ref": "#/definitions/pvcs.WorkspaceInfo"
                     }
-                }
-            }
-        },
-        "pvcs.PVCPod": {
-            "type": "object",
-            "required": [
-                "name",
-                "phase"
-            ],
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "node": {
-                    "$ref": "#/definitions/pvcs.PodNode"
-                },
-                "phase": {
-                    "type": "string"
                 }
             }
         },
@@ -1907,39 +1900,18 @@ const docTemplate = `{
                 "accessModes": {
                     "type": "array",
                     "items": {
-                        "type": "string"
+                        "$ref": "#/definitions/v1.PersistentVolumeAccessMode"
                     }
                 },
                 "requests": {
                     "$ref": "#/definitions/pvcs.StorageRequests"
                 },
                 "storageClassName": {
+                    "description": "This field may be an empty string in two cases:\n1. The PVC is requesting the default storage class, and it has not been bound to a PV yet.\n2. The PVC is explicitly requesting a PV with no storage class (i.e. manual or out-of-band binding).",
                     "type": "string"
                 },
                 "volumeMode": {
-                    "type": "string"
-                }
-            }
-        },
-        "pvcs.PVCWorkspace": {
-            "type": "object",
-            "required": [
-                "name",
-                "state",
-                "stateMessage"
-            ],
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "podTemplatePod": {
-                    "$ref": "#/definitions/pvcs.PodTemplatePod"
-                },
-                "state": {
-                    "type": "string"
-                },
-                "stateMessage": {
-                    "type": "string"
+                    "$ref": "#/definitions/v1.PersistentVolumeMode"
                 }
             }
         },
@@ -1955,39 +1927,43 @@ const docTemplate = `{
                 "accessModes": {
                     "type": "array",
                     "items": {
-                        "type": "string"
+                        "$ref": "#/definitions/v1.PersistentVolumeAccessMode"
                     }
                 },
                 "name": {
                     "type": "string"
                 },
                 "persistentVolumeReclaimPolicy": {
-                    "type": "string"
+                    "$ref": "#/definitions/v1.PersistentVolumeReclaimPolicy"
                 },
                 "storageClass": {
-                    "$ref": "#/definitions/pvcs.PVStorageClass"
+                    "description": "This field should only be nil if the bound PV does not have a storage class (i.e. manual or out-of-band binding).",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/pvcs.StorageClassInfo"
+                        }
+                    ]
                 },
                 "volumeMode": {
-                    "type": "string"
+                    "$ref": "#/definitions/v1.PersistentVolumeMode"
                 }
             }
         },
-        "pvcs.PVStorageClass": {
+        "pvcs.PodInfo": {
             "type": "object",
             "required": [
-                "description",
-                "displayName",
-                "name"
+                "name",
+                "phase"
             ],
             "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "displayName": {
-                    "type": "string"
-                },
                 "name": {
                     "type": "string"
+                },
+                "node": {
+                    "$ref": "#/definitions/pvcs.PodNode"
+                },
+                "phase": {
+                    "$ref": "#/definitions/v1.PodPhase"
                 }
             }
         },
@@ -2010,6 +1986,28 @@ const docTemplate = `{
             "properties": {
                 "name": {
                     "type": "string"
+                },
+                "node": {
+                    "$ref": "#/definitions/pvcs.PodNode"
+                }
+            }
+        },
+        "pvcs.StorageClassInfo": {
+            "type": "object",
+            "required": [
+                "description",
+                "displayName",
+                "name"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "displayName": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
                 }
             }
         },
@@ -2020,6 +2018,28 @@ const docTemplate = `{
             ],
             "properties": {
                 "storage": {
+                    "type": "string"
+                }
+            }
+        },
+        "pvcs.WorkspaceInfo": {
+            "type": "object",
+            "required": [
+                "name",
+                "state",
+                "stateMessage"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "podTemplatePod": {
+                    "$ref": "#/definitions/pvcs.PodTemplatePod"
+                },
+                "state": {
+                    "$ref": "#/definitions/v1beta1.WorkspaceState"
+                },
+                "stateMessage": {
                     "type": "string"
                 }
             }
@@ -2158,6 +2178,81 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "v1.PersistentVolumeAccessMode": {
+            "type": "string",
+            "enum": [
+                "ReadWriteOnce",
+                "ReadOnlyMany",
+                "ReadWriteMany",
+                "ReadWriteOncePod"
+            ],
+            "x-enum-varnames": [
+                "ReadWriteOnce",
+                "ReadOnlyMany",
+                "ReadWriteMany",
+                "ReadWriteOncePod"
+            ]
+        },
+        "v1.PersistentVolumeMode": {
+            "type": "string",
+            "enum": [
+                "Block",
+                "Filesystem"
+            ],
+            "x-enum-varnames": [
+                "PersistentVolumeBlock",
+                "PersistentVolumeFilesystem"
+            ]
+        },
+        "v1.PersistentVolumeReclaimPolicy": {
+            "type": "string",
+            "enum": [
+                "Recycle",
+                "Delete",
+                "Retain"
+            ],
+            "x-enum-varnames": [
+                "PersistentVolumeReclaimRecycle",
+                "PersistentVolumeReclaimDelete",
+                "PersistentVolumeReclaimRetain"
+            ]
+        },
+        "v1.PodPhase": {
+            "type": "string",
+            "enum": [
+                "Pending",
+                "Running",
+                "Succeeded",
+                "Failed",
+                "Unknown"
+            ],
+            "x-enum-varnames": [
+                "PodPending",
+                "PodRunning",
+                "PodSucceeded",
+                "PodFailed",
+                "PodUnknown"
+            ]
+        },
+        "v1beta1.WorkspaceState": {
+            "type": "string",
+            "enum": [
+                "Running",
+                "Terminating",
+                "Paused",
+                "Pending",
+                "Error",
+                "Unknown"
+            ],
+            "x-enum-varnames": [
+                "WorkspaceStateRunning",
+                "WorkspaceStateTerminating",
+                "WorkspaceStatePaused",
+                "WorkspaceStatePending",
+                "WorkspaceStateError",
+                "WorkspaceStateUnknown"
+            ]
         },
         "workspacekinds.ImageConfig": {
             "type": "object",
@@ -2994,7 +3089,7 @@ const docTemplate = `{
                     }
                 },
                 "state": {
-                    "$ref": "#/definitions/workspaces.WorkspaceState"
+                    "$ref": "#/definitions/v1beta1.WorkspaceState"
                 },
                 "stateMessage": {
                     "type": "string"
@@ -3003,25 +3098,6 @@ const docTemplate = `{
                     "$ref": "#/definitions/workspaces.WorkspaceKindInfo"
                 }
             }
-        },
-        "workspaces.WorkspaceState": {
-            "type": "string",
-            "enum": [
-                "Running",
-                "Terminating",
-                "Paused",
-                "Pending",
-                "Error",
-                "Unknown"
-            ],
-            "x-enum-varnames": [
-                "WorkspaceStateRunning",
-                "WorkspaceStateTerminating",
-                "WorkspaceStatePaused",
-                "WorkspaceStatePending",
-                "WorkspaceStateError",
-                "WorkspaceStateUnknown"
-            ]
         },
         "workspaces.WorkspaceUpdate": {
             "type": "object",

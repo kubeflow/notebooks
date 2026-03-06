@@ -64,7 +64,7 @@ func (r *PVCRepository) GetPVCs(ctx context.Context, namespace string) ([]models
 	if err != nil {
 		return nil, err
 	}
-	pvcToPods := buildPVCToPodMap(podList)
+	pvcToPodInfoList := buildPodInfoMap(podList)
 
 	// list all workspaces in the namespace and build a map of PVC name to workspaces that reference it
 	workspaceList := &kubefloworgv1beta1.WorkspaceList{}
@@ -72,18 +72,12 @@ func (r *PVCRepository) GetPVCs(ctx context.Context, namespace string) ([]models
 	if err != nil {
 		return nil, err
 	}
-	pvcToWorkspaces := buildPVCToWorkspaceMap(workspaceList)
+	pvcToWorkspaceInfoList := buildWorkspaceInfoMap(workspaceList)
 
 	// convert PVCs to models
 	pvcModels := make([]models.PVCListItem, len(pvcList.Items))
 	for i := range pvcList.Items {
 		pvc := &pvcList.Items[i]
-
-		// get pods that mount this PVC
-		pods := pvcToPods[pvc.Name]
-
-		// get workspaces that reference this PVC
-		workspaces := pvcToWorkspaces[pvc.Name]
 
 		// get bound PV, if it exists
 		pv := &corev1.PersistentVolume{}
@@ -97,9 +91,9 @@ func (r *PVCRepository) GetPVCs(ctx context.Context, namespace string) ([]models
 			}
 		}
 
-		// get StorageClass of the bound PV, if it exists
+		// we use the PVC storage class name so that we can show the requested storage class in the UI, even if a PV is not yet bound.
 		sc := &storagev1.StorageClass{}
-		if pv.UID != "" && pv.Spec.StorageClassName != "" {
+		if pvc.Spec.StorageClassName != nil && *pvc.Spec.StorageClassName != "" {
 			if err := r.client.Get(ctx, client.ObjectKey{Name: pv.Spec.StorageClassName}, sc); err != nil {
 				// ignore error if StorageClass does not exist, as we can still create a model without it
 				if !apierrors.IsNotFound(err) {
@@ -108,59 +102,91 @@ func (r *PVCRepository) GetPVCs(ctx context.Context, namespace string) ([]models
 			}
 		}
 
-		pvcModels[i] = models.NewPVCListItemFromPVC(pvc, pods, workspaces, pv, sc)
+		pvcModels[i] = models.NewPVCListItemFromPVC(pvc, pv, sc, pvcToPodInfoList, pvcToWorkspaceInfoList)
 	}
 
 	return pvcModels, nil
 }
 
-// buildPVCToPodMap creates a map of PVC name to pods that mount it.
-// This allows O(1) lookup of pods per PVC instead of scanning pods for each PVC.
-func buildPVCToPodMap(podList *corev1.PodList) map[string][]corev1.Pod {
-	pvcToPods := make(map[string][]corev1.Pod)
+// buildPodInfoMap builds a map from PVC name to pods that mount it from a list of pods.
+func buildPodInfoMap(podList *corev1.PodList) map[string][]models.PodInfo {
+	pvcToPodInfo := make(map[string][]models.PodInfo)
 	for i := range podList.Items {
 		pod := podList.Items[i]
+		podInfo := models.PodInfo{
+			Name:  pod.Name,
+			Phase: pod.Status.Phase,
+		}
+		if pod.Spec.NodeName != "" {
+			podInfo.Node = &models.PodNode{
+				Name: pod.Spec.NodeName,
+			}
+		}
+
+		// a Pod may mount the same PVC multiple times, but we only want to include it once for each PVC
+		seenPVCs := make(map[string]bool)
+
 		for _, volume := range pod.Spec.Volumes {
 			if volume.PersistentVolumeClaim != nil {
 				pvcName := volume.PersistentVolumeClaim.ClaimName
-				pvcToPods[pvcName] = append(pvcToPods[pvcName], pod)
+				if !seenPVCs[pvcName] {
+					pvcToPodInfo[pvcName] = append(pvcToPodInfo[pvcName], podInfo)
+					seenPVCs[pvcName] = true
+				}
 			}
 		}
 	}
-	return pvcToPods
+	return pvcToPodInfo
 }
 
-// buildPVCToWorkspaceMap creates a map of PVC name to workspaces that reference it.
-// A workspace references PVCs through its home volume and data volumes.
-// This allows O(1) lookup of workspaces per PVC instead of scanning workspaces for each PVC.
-func buildPVCToWorkspaceMap(workspaceList *kubefloworgv1beta1.WorkspaceList) map[string][]kubefloworgv1beta1.Workspace {
-	pvcToWorkspaces := make(map[string][]kubefloworgv1beta1.Workspace)
+// buildWorkspaceInfoMap builds a map from PVC name to workspaces that mount it from a list of workspaces.
+func buildWorkspaceInfoMap(workspaceList *kubefloworgv1beta1.WorkspaceList) map[string][]models.WorkspaceInfo {
+	pvcToWsInfo := make(map[string][]models.WorkspaceInfo)
 	for i := range workspaceList.Items {
 		ws := workspaceList.Items[i]
+		wsInfo := models.WorkspaceInfo{
+			Name:         ws.Name,
+			State:        ws.Status.State,
+			StateMessage: ws.Status.StateMessage,
+		}
+		if ws.Status.PodTemplatePod.Name != "" {
+			wsInfo.PodTemplatePod = &models.PodTemplatePod{
+				Name: ws.Status.PodTemplatePod.Name,
+			}
+			if ws.Status.PodTemplatePod.NodeName != "" {
+				wsInfo.PodTemplatePod.Node = &models.PodNode{
+					Name: ws.Status.PodTemplatePod.NodeName,
+				}
+			}
+		}
+
+		// a Workspace may mount the same PVC multiple times, but we only want to include it once for each PVC
+		seenPVCs := make(map[string]bool)
 
 		// check home volume
 		if ws.Spec.PodTemplate.Volumes.Home != nil {
 			pvcName := *ws.Spec.PodTemplate.Volumes.Home
-			pvcToWorkspaces[pvcName] = append(pvcToWorkspaces[pvcName], ws)
+			if !seenPVCs[pvcName] {
+				pvcToWsInfo[pvcName] = append(pvcToWsInfo[pvcName], wsInfo)
+				seenPVCs[pvcName] = true
+			}
 		}
 
 		// check data volumes
 		for _, dataVolume := range ws.Spec.PodTemplate.Volumes.Data {
-			pvcToWorkspaces[dataVolume.PVCName] = append(pvcToWorkspaces[dataVolume.PVCName], ws)
+			pvcName := dataVolume.PVCName
+			if !seenPVCs[pvcName] {
+				pvcToWsInfo[pvcName] = append(pvcToWsInfo[pvcName], wsInfo)
+				seenPVCs[pvcName] = true
+			}
 		}
 	}
-	return pvcToWorkspaces
+	return pvcToWsInfo
 }
 
 func (r *PVCRepository) CreatePVC(ctx context.Context, pvcCreate *models.PVCCreate, namespace string) (*models.PVCCreate, error) {
 	// TODO: get actual user email from request context
 	actor := "mock@example.com"
-
-	// get access modes from model
-	accessModes := make([]corev1.PersistentVolumeAccessMode, len(pvcCreate.AccessModes))
-	for i, mode := range pvcCreate.AccessModes {
-		accessModes[i] = corev1.PersistentVolumeAccessMode(mode)
-	}
 
 	// define PVC object from model
 	pvc := &corev1.PersistentVolumeClaim{
@@ -173,7 +199,7 @@ func (r *PVCRepository) CreatePVC(ctx context.Context, pvcCreate *models.PVCCrea
 			},
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
-			AccessModes:      accessModes,
+			AccessModes:      pvcCreate.AccessModes,
 			StorageClassName: &pvcCreate.StorageClassName,
 			Resources: corev1.VolumeResourceRequirements{
 				Requests: corev1.ResourceList{

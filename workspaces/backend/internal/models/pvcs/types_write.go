@@ -17,6 +17,7 @@ limitations under the License.
 package pvcs
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
@@ -24,10 +25,10 @@ import (
 
 // PVCCreate represents the request and response body for creating a PVC.
 type PVCCreate struct {
-	Name             string          `json:"name"`
-	AccessModes      []string        `json:"accessModes"`
-	StorageClassName string          `json:"storageClassName"`
-	Requests         StorageRequests `json:"requests"`
+	Name             string                              `json:"name"`
+	AccessModes      []corev1.PersistentVolumeAccessMode `json:"accessModes"`
+	StorageClassName string                              `json:"storageClassName"`
+	Requests         StorageRequests                     `json:"requests"`
 }
 
 // Validate validates the PVCCreate struct.

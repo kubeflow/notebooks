@@ -34,10 +34,10 @@ import (
 type PVCListEnvelope Envelope[[]models.PVCListItem]
 type PVCCreateEnvelope Envelope[*models.PVCCreate]
 
-// GetPVCsByNamespaceHandler returns a list of all PVCs in a namespace.
+// GetPVCsByNamespaceHandler returns a list of persistent volume claims in a specific namespace.
 //
-//	@Summary		Returns a list of all PVCs in a namespace
-//	@Description	Provides a list of all persistent volume claims with comprehensive metadata in the specified namespace
+//	@Summary		List persistent volume claims by namespace
+//	@Description	Returns a list of persistent volume claims in a specific namespace.
 //	@Tags			persistentvolumeclaims
 //	@ID				listPVCs
 //	@Produce		application/json
@@ -78,10 +78,10 @@ func (a *App) GetPVCsByNamespaceHandler(w http.ResponseWriter, r *http.Request, 
 	a.dataResponse(w, r, responseEnvelope)
 }
 
-// CreatePVCHandler creates a new PVC.
+// CreatePVCHandler creates a new persistent volume claim in the specified namespace.
 //
-//	@Summary		Creates a new PVC
-//	@Description	Creates a new persistent volume claim in the specified namespace
+//	@Summary		Create persistent volume claim
+//	@Description	Creates a new persistent volume claim in the specified namespace.
 //	@Tags			persistentvolumeclaims
 //	@ID				createPVC
 //	@Accept			json
@@ -173,15 +173,18 @@ func (a *App) CreatePVCHandler(w http.ResponseWriter, r *http.Request, ps httpro
 		return
 	}
 
-	// NOTE: Location header is empty because there is no GET-by-name endpoint for PVCs
+	// calculate the GET location for the created PVC (for the Location header)
+	// TODO: create a helper LocationGetPVC and call it here when a GET PVC by name endpoint is implemented
+	location := ""
+
 	responseEnvelope := &PVCCreateEnvelope{Data: createdPVC}
-	a.createdResponse(w, r, responseEnvelope, "")
+	a.createdResponse(w, r, responseEnvelope, location)
 }
 
-// DeletePVCHandler deletes a PVC.
+// DeletePVCHandler deletes a specific persistent volume claim by namespace and name.
 //
-//	@Summary		Deletes a PVC
-//	@Description	Deletes a persistent volume claim from the specified namespace
+//	@Summary		Deletes a persistent volume claim
+//	@Description	Deletes a specific persistent volume claim identified by namespace and name.
 //	@Tags			persistentvolumeclaims
 //	@ID				deletePVC
 //	@Param			namespace	path	string	true	"Namespace name"	extensions(x-example=my-namespace)
@@ -201,7 +204,7 @@ func (a *App) DeletePVCHandler(w http.ResponseWriter, r *http.Request, ps httpro
 	// validate path parameters
 	var valErrs field.ErrorList
 	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
-	valErrs = append(valErrs, helper.ValidateFieldIsDNS1123Subdomain(field.NewPath(ResourceNamePathParam), pvcName)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesPVCName(field.NewPath(ResourceNamePathParam), pvcName)...)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return

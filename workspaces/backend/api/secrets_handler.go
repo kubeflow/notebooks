@@ -35,10 +35,10 @@ type SecretEnvelope Envelope[*models.SecretUpdate]
 type SecretListEnvelope Envelope[[]models.SecretListItem]
 type SecretCreateEnvelope Envelope[*models.SecretCreate]
 
-// GetSecretsByNamespaceHandler returns a list of all secrets in a namespace.
+// GetSecretsByNamespaceHandler returns a list of secrets in a specific namespace.
 //
-//	@Summary		Returns a list of all secrets in a namespace
-//	@Description	Provides a list of all secrets that the user has access to in the specified namespace
+//	@Summary		List secrets by namespace
+//	@Description	Returns a list of secrets in a specific namespace.
 //	@Tags			secrets
 //	@ID				listSecrets
 //	@Produce		application/json
@@ -81,8 +81,8 @@ func (a *App) GetSecretsByNamespaceHandler(w http.ResponseWriter, r *http.Reques
 
 // GetSecretHandler returns a specific secret by name and namespace.
 //
-//	@Summary		Returns a specific secret
-//	@Description	Provides details of a specific secret by name and namespace
+//	@Summary		Get secret
+//	@Description	Returns the current state of a specific secret identified by namespace and name. This endpoint is intended for retrieving the secret state before updating it.
 //	@Tags			secrets
 //	@ID				getSecret
 //	@Produce		application/json
@@ -132,10 +132,10 @@ func (a *App) GetSecretHandler(w http.ResponseWriter, r *http.Request, ps httpro
 	a.dataResponse(w, r, responseEnvelope)
 }
 
-// CreateSecretHandler creates a new secret.
+// CreateSecretHandler creates a new secret in the specified namespace.
 //
-//	@Summary		Creates a new secret
-//	@Description	Creates a new secret in the specified namespace
+//	@Summary		Create secret
+//	@Description	Creates a new secret in the specified namespace.
 //	@Tags			secrets
 //	@ID				createSecret
 //	@Accept			json
@@ -233,8 +233,8 @@ func (a *App) CreateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 
 // UpdateSecretHandler updates an existing secret.
 //
-//	@Summary		Updates an existing secret
-//	@Description	Updates an existing secret in the specified namespace
+//	@Summary		Update secret
+//	@Description	Updates an existing secret.
 //	@Tags			secrets
 //	@ID				updateSecret
 //	@Accept			json
@@ -327,10 +327,10 @@ func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 	a.dataResponse(w, r, responseEnvelope)
 }
 
-// DeleteSecretHandler deletes a secret.
+// DeleteSecretHandler deletes a specific secret by namespace and name.
 //
-//	@Summary		Deletes a secret
-//	@Description	Deletes a secret from the specified namespace
+//	@Summary		Delete secret
+//	@Description	Deletes a specific secret identified by namespace and name.
 //	@Tags			secrets
 //	@ID				deleteSecret
 //	@Accept			json

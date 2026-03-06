@@ -17,20 +17,18 @@ limitations under the License.
 package pvcs
 
 import (
-	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/utils/ptr"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
-	scModels "github.com/kubeflow/notebooks/workspaces/backend/internal/models/storageclasses"
 )
 
 // NewPVCCreateModelFromPVC creates a new PVCCreate model from a PersistentVolumeClaim object.
 func NewPVCCreateModelFromPVC(pvc *corev1.PersistentVolumeClaim) *PVCCreate {
 	return &PVCCreate{
 		Name:             pvc.Name,
-		AccessModes:      accessModesToStrings(pvc.Spec.AccessModes),
+		AccessModes:      pvc.Spec.AccessModes,
 		StorageClassName: ptr.Deref(pvc.Spec.StorageClassName, ""),
 		Requests: StorageRequests{
 			Storage: pvc.Spec.Resources.Requests.Storage().String(),
@@ -39,104 +37,62 @@ func NewPVCCreateModelFromPVC(pvc *corev1.PersistentVolumeClaim) *PVCCreate {
 }
 
 // NewPVCListItemFromPVC creates a new PVCListItem model from a PersistentVolumeClaim object.
-// The pods parameter is the list of pods that mount this PVC.
-// The workspaces parameter is the list of workspaces that reference this PVC.
-// The pv parameter is the bound PersistentVolume, if it exists.
-// The sc parameter is the StorageClass of the bound PV, if it exists.
-func NewPVCListItemFromPVC(pvc *corev1.PersistentVolumeClaim, pods []corev1.Pod, workspaces []kubefloworgv1beta1.Workspace, pv *corev1.PersistentVolume, sc *storagev1.StorageClass) PVCListItem {
+func NewPVCListItemFromPVC(pvc *corev1.PersistentVolumeClaim, pv *corev1.PersistentVolume, sc *storagev1.StorageClass, pvcToPodInfoList map[string][]PodInfo, pvcToWorkspaceInfoList map[string][]WorkspaceInfo) PVCListItem {
+
+	// if the PV exists, build the PVInfo.
+	// Note that the PV may not exist if the PVC is not yet bound.
+	var pvInfo *PVInfo
+	if pvExists(pv) {
+		pvInfo = &PVInfo{
+			Name:                          pv.Name,
+			PersistentVolumeReclaimPolicy: pv.Spec.PersistentVolumeReclaimPolicy,
+			VolumeMode:                    ptr.Deref(pv.Spec.VolumeMode, corev1.PersistentVolumeFilesystem),
+			AccessModes:                   pv.Spec.AccessModes,
+		}
+		if scExists(sc) {
+			scInfo := &StorageClassInfo{
+				Name:        sc.Name,
+				DisplayName: common.GetDisplayNameFromObjectMeta(&sc.ObjectMeta),
+				Description: common.GetDescriptionFromObjectMeta(&sc.ObjectMeta),
+			}
+			pvInfo.StorageClass = scInfo
+		}
+	}
+
+	// build the list of PodInfo for pods that mount this PVC, if any.
+	var podList []PodInfo
+	if pvcToPodInfoList[pvc.Name] != nil {
+		podList = pvcToPodInfoList[pvc.Name]
+	}
+
+	// build the list of WorkspaceInfo for workspaces that reference this PVC, if any.
+	var workspaceList []WorkspaceInfo
+	if pvcToWorkspaceInfoList[pvc.Name] != nil {
+		workspaceList = pvcToWorkspaceInfoList[pvc.Name]
+	}
+
 	return PVCListItem{
 		Name:       pvc.Name,
 		CanMount:   pvc.Labels[common.LabelCanMount] == "true",
 		CanUpdate:  pvc.Labels[common.LabelCanUpdate] == "true",
-		Pods:       buildPVCPods(pods),
-		Workspaces: buildPVCWorkspaces(workspaces),
+		Pods:       podList,
+		Workspaces: workspaceList,
 		Audit:      common.NewAuditFromObjectMeta(&pvc.ObjectMeta),
 		PVCSpec: PVCSpec{
 			Requests: StorageRequests{
 				Storage: pvc.Spec.Resources.Requests.Storage().String(),
 			},
-			AccessModes:      accessModesToStrings(pvc.Spec.AccessModes),
+			AccessModes:      pvc.Spec.AccessModes,
 			StorageClassName: ptr.Deref(pvc.Spec.StorageClassName, ""),
-			VolumeMode:       string(ptr.Deref(pvc.Spec.VolumeMode, "")),
+			VolumeMode:       ptr.Deref(pvc.Spec.VolumeMode, corev1.PersistentVolumeFilesystem),
 		},
-		PV: buildPVInfo(pv, sc),
+		//
+		// TODO: move storage class info to the root, and remove it from PVInfo.
+		//       this allows us to return storage class info even when the PV is not yet bound.
+		//       also, remove StorageClassName from PVCSpec since it would be redundant.
+		//
+		PV: pvInfo,
 	}
-}
-
-// buildPVCPods creates a list of PVCPod models from pods that mount the PVC.
-func buildPVCPods(pods []corev1.Pod) []PVCPod {
-	pvcPods := make([]PVCPod, len(pods))
-	for i := range pods {
-		pod := &pods[i]
-		pvcPod := PVCPod{
-			Name:  pod.Name,
-			Phase: string(pod.Status.Phase),
-		}
-		if pod.Spec.NodeName != "" {
-			pvcPod.Node = &PodNode{
-				Name: pod.Spec.NodeName,
-			}
-		}
-		pvcPods[i] = pvcPod
-	}
-
-	return pvcPods
-}
-
-// buildPVCWorkspaces creates a list of PVCWorkspace models from workspaces that reference the PVC.
-func buildPVCWorkspaces(workspaces []kubefloworgv1beta1.Workspace) []PVCWorkspace {
-	pvcWorkspaces := make([]PVCWorkspace, len(workspaces))
-	for i := range workspaces {
-		ws := &workspaces[i]
-		pvcWorkspace := PVCWorkspace{
-			Name:         ws.Name,
-			State:        string(ws.Status.State),
-			StateMessage: ws.Status.StateMessage,
-		}
-		if ws.Status.PodTemplatePod.Name != "" {
-			pvcWorkspace.PodTemplatePod = &PodTemplatePod{
-				Name: ws.Status.PodTemplatePod.Name,
-			}
-		}
-		pvcWorkspaces[i] = pvcWorkspace
-	}
-
-	return pvcWorkspaces
-}
-
-// buildPVInfo creates a PVInfo model from a PersistentVolume and its StorageClass.
-// Returns nil if the PV does not exist (e.g., PVC is not yet bound).
-func buildPVInfo(pv *corev1.PersistentVolume, sc *storagev1.StorageClass) *PVInfo {
-	if !pvExists(pv) {
-		return nil
-	}
-
-	pvInfo := &PVInfo{
-		Name:                          pv.Name,
-		PersistentVolumeReclaimPolicy: string(pv.Spec.PersistentVolumeReclaimPolicy),
-		VolumeMode:                    string(ptr.Deref(pv.Spec.VolumeMode, "")),
-		AccessModes:                   accessModesToStrings(pv.Spec.AccessModes),
-	}
-
-	// populate storage class info if the StorageClass exists
-	if scExists(sc) {
-		pvInfo.StorageClass = &PVStorageClass{
-			Name:        sc.Name,
-			DisplayName: sc.Annotations[scModels.AnnotationDisplayName],
-			Description: sc.Annotations[scModels.AnnotationDescription],
-		}
-	}
-
-	return pvInfo
-}
-
-// accessModesToStrings converts a slice of PersistentVolumeAccessMode to a slice of strings.
-func accessModesToStrings(modes []corev1.PersistentVolumeAccessMode) []string {
-	s := make([]string, len(modes))
-	for i, m := range modes {
-		s[i] = string(m)
-	}
-	return s
 }
 
 func pvExists(pv *corev1.PersistentVolume) bool {

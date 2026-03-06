@@ -27,10 +27,10 @@ import (
 
 type StorageClassListEnvelope Envelope[[]models.StorageClassListItem]
 
-// GetStorageClassesHandler returns a list of available storage classes.
+// GetStorageClassesHandler returns a list of all storage classes in the cluster.
 //
-//	@Summary		Returns a list of available storage classes
-//	@Description	Provides a list of storage classes available for volume provisioning
+//	@Summary		List storage classes
+//	@Description	Returns a list of all storage classes in the cluster.
 //	@Tags			storageclasses
 //	@ID				listStorageClasses
 //	@Produce		application/json

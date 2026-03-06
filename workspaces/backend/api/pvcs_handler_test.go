@@ -38,8 +38,8 @@ import (
 	"k8s.io/utils/ptr"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
+	commonModels "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/pvcs"
-	scModels "github.com/kubeflow/notebooks/workspaces/backend/internal/models/storageclasses"
 )
 
 var _ = Describe("PVCs Handler", func() {
@@ -231,7 +231,7 @@ var _ = Describe("PVCs Handler", func() {
 			By("creating the HTTP request body")
 			pvcCreate := &models.PVCCreate{
 				Name:             "test-create-pvc",
-				AccessModes:      []string{"ReadWriteOnce"},
+				AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 				StorageClassName: "standard",
 				Requests: models.StorageRequests{
 					Storage: "10Gi",
@@ -272,11 +272,7 @@ var _ = Describe("PVCs Handler", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("ensuring the response contains the expected PVC data")
-			Expect(response.Data).NotTo(BeNil())
-			Expect(response.Data.Name).To(Equal("test-create-pvc"))
-			Expect(response.Data.AccessModes).To(ConsistOf("ReadWriteOnce"))
-			Expect(response.Data.StorageClassName).To(Equal("standard"))
-			Expect(response.Data.Requests.Storage).To(Equal("10Gi"))
+			Expect(response.Data).To(BeComparableTo(pvcCreate))
 
 			By("verifying the PVC was created in Kubernetes with the expected labels")
 			createdPVC := &corev1.PersistentVolumeClaim{}
@@ -426,8 +422,8 @@ var _ = Describe("PVCs Handler", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: storageClassName1,
 					Annotations: map[string]string{
-						scModels.AnnotationDisplayName: "Test Storage",
-						scModels.AnnotationDescription: "A test storage class",
+						commonModels.AnnotationDisplayName: "Test Storage",
+						commonModels.AnnotationDescription: "A test storage class",
 					},
 				},
 				Provisioner:   "kubernetes.io/no-provisioner",
@@ -762,18 +758,44 @@ var _ = Describe("PVCs Handler", func() {
 			}
 			Expect(pvc1Response).NotTo(BeNil(), "PVC 1 should be present in the response")
 
-			By("verifying the bound PV cross-reference")
-			Expect(pvc1Response.PV).NotTo(BeNil())
-			Expect(pvc1Response.PV.Name).To(Equal(pvName1))
-			Expect(pvc1Response.PV.PersistentVolumeReclaimPolicy).To(Equal("Delete"))
-			Expect(pvc1Response.PV.VolumeMode).To(Equal("Filesystem"))
-			Expect(pvc1Response.PV.AccessModes).To(ConsistOf("ReadWriteOnce"))
-
-			By("verifying the StorageClass cross-reference on the bound PV")
-			Expect(pvc1Response.PV.StorageClass).NotTo(BeNil())
-			Expect(pvc1Response.PV.StorageClass.Name).To(Equal(storageClassName1))
-			Expect(pvc1Response.PV.StorageClass.DisplayName).To(Equal("Test Storage"))
-			Expect(pvc1Response.PV.StorageClass.Description).To(Equal("A test storage class"))
+			By("verifying the PV and StorageClass cross-references")
+			expectedPVC := &models.PVCListItem{
+				Name:      pvcName1,
+				CanMount:  true,
+				CanUpdate: true,
+				Pods: []models.PodInfo{
+					{
+						Name:  podName1,
+						Phase: pvc1Response.Pods[0].Phase, // phase can vary, so we use the actual value from the response
+					},
+				},
+				Workspaces: []models.WorkspaceInfo{
+					{
+						Name: workspaceName1,
+					},
+				},
+				Audit: pvc1Response.Audit, // audit fields can vary, so we use the actual value from the response
+				PVCSpec: models.PVCSpec{
+					Requests: models.StorageRequests{
+						Storage: "10Gi",
+					},
+					AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+					VolumeMode:       corev1.PersistentVolumeFilesystem,
+					StorageClassName: storageClassName1,
+				},
+				PV: &models.PVInfo{
+					Name:                          pvName1,
+					PersistentVolumeReclaimPolicy: corev1.PersistentVolumeReclaimDelete,
+					VolumeMode:                    corev1.PersistentVolumeFilesystem,
+					AccessModes:                   []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+					StorageClass: &models.StorageClassInfo{
+						Name:        storageClassName1,
+						DisplayName: "Test Storage",
+						Description: "A test storage class",
+					},
+				},
+			}
+			Expect(pvc1Response).To(BeComparableTo(expectedPVC))
 		})
 
 		It("should not include cross-references for PVC 2", func() {

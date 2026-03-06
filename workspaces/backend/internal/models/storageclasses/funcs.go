@@ -16,20 +16,17 @@ limitations under the License.
 
 package storageclasses
 
-import storagev1 "k8s.io/api/storage/v1"
-
-const (
-	LabelCanUse           = "notebooks.kubeflow.org/can-use"
-	AnnotationDisplayName = "notebooks.kubeflow.org/display-name"
-	AnnotationDescription = "notebooks.kubeflow.org/description"
+import (
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
+	storagev1 "k8s.io/api/storage/v1"
 )
 
 // NewStorageClassListItemFromStorageClass creates a new StorageClassListItem model from a StorageClass object.
 func NewStorageClassListItemFromStorageClass(sc *storagev1.StorageClass) StorageClassListItem {
 	return StorageClassListItem{
 		Name:        sc.Name,
-		DisplayName: sc.Annotations[AnnotationDisplayName],
-		Description: sc.Annotations[AnnotationDescription],
-		CanUse:      sc.Labels[LabelCanUse] == "true",
+		DisplayName: common.GetDisplayNameFromObjectMeta(&sc.ObjectMeta),
+		Description: common.GetDescriptionFromObjectMeta(&sc.ObjectMeta),
+		CanUse:      sc.Labels[common.LabelCanUse] == "true",
 	}
 }

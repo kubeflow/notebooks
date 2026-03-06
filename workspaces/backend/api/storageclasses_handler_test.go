@@ -29,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
+	commonModels "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/storageclasses"
 )
 
@@ -47,11 +48,11 @@ var _ = Describe("StorageClasses Handler", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: storageClassName1,
 					Labels: map[string]string{
-						models.LabelCanUse: "true",
+						commonModels.LabelCanUse: "true",
 					},
 					Annotations: map[string]string{
-						models.AnnotationDisplayName: "Test Storage Class 1",
-						models.AnnotationDescription: "A test storage class",
+						commonModels.AnnotationDisplayName: "Test Storage Class 1",
+						commonModels.AnnotationDescription: "A test storage class",
 					},
 				},
 				Provisioner: "kubernetes.io/no-provisioner",
@@ -63,11 +64,11 @@ var _ = Describe("StorageClasses Handler", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: storageClassName2,
 					Labels: map[string]string{
-						models.LabelCanUse: "true",
+						commonModels.LabelCanUse: "true",
 					},
 					Annotations: map[string]string{
-						models.AnnotationDisplayName: "Test Storage Class 2",
-						models.AnnotationDescription: "Another test storage class",
+						commonModels.AnnotationDisplayName: "Test Storage Class 2",
+						commonModels.AnnotationDescription: "Another test storage class",
 					},
 				},
 				Provisioner: "kubernetes.io/no-provisioner",

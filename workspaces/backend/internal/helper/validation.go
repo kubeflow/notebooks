@@ -122,6 +122,11 @@ func ValidateKubernetesSecretName(path *field.Path, value string) field.ErrorLis
 	return ValidateFieldIsDNS1123Subdomain(path, value)
 }
 
+// ValidateKubernetesPVCName validates a field contains a valid Kubernetes PersistentVolumeClaim name.
+func ValidateKubernetesPVCName(path *field.Path, value string) field.ErrorList {
+	return ValidateFieldIsDNS1123Subdomain(path, value)
+}
+
 // ValidateFieldIsDNS1123Label validates a field contains an RCF 1123 DNS label.
 // USED FOR:
 //   - names of: Namespaces, Services, etc.
