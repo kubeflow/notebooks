@@ -40,24 +40,20 @@ import {
 } from '~/app/pages/Workspaces/Form/helpers';
 import { MountPathField } from '~/app/pages/Workspaces/Form/MountPathField';
 
-const ACCESS_MODE_GROUPS = [
-  { label: 'ReadWriteMany (RWX) Storage', mode: 'ReadWriteMany', abbr: 'rwx' },
-  { label: 'ReadOnlyMany (ROX) Storage', mode: 'ReadOnlyMany', abbr: 'rox' },
-  { label: 'ReadWriteOnce (RWO) Storage', mode: 'ReadWriteOnce', abbr: 'rwo' },
-  { label: 'ReadWriteOncePod (RWOP) Storage', mode: 'ReadWriteOncePod', abbr: 'rwop' },
-] as const;
-
 interface PVCOptionData {
   /** Display text and filter target */
   content: string;
-  /** Unique per group instance: `${abbr}|${pvcName}` */
   value: string;
   isDisabled: boolean;
   description: React.ReactNode;
+  /** Explains why the PVC is unmountable, shown as a tooltip on hover */
+  tooltip: string | null;
 }
 
 interface PVCGroupData {
   label: string;
+  /** Storage class description from the bound PV */
+  description: string;
   options: PVCOptionData[];
 }
 
@@ -81,6 +77,20 @@ const isRWO = (pvc: PvcsPVCListItem): boolean =>
   !pvc.pvcSpec.accessModes.includes('ReadWriteMany');
 
 const isInUse = (pvc: PvcsPVCListItem): boolean => pvc.pods.length > 0 || pvc.workspaces.length > 0;
+
+const getUnmountableTooltip = (pvc: PvcsPVCListItem): string | null => {
+  if (pvc.canMount) {
+    return null;
+  }
+  const modes = pvc.pvcSpec.accessModes;
+  if (modes.includes('ReadWriteOncePod') && pvc.pods.length > 0) {
+    return 'This volume uses ReadWriteOncePod access and is already mounted by a pod.';
+  }
+  if (modes.includes('ReadWriteOnce') && pvc.workspaces.length > 0) {
+    return 'This volume uses ReadWriteOnce access and is already mounted by a workspace.';
+  }
+  return null;
+};
 
 export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
   isOpen,
@@ -151,33 +161,31 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
 
   // ── PVC option building ──────────────────────────────────────────────────
 
-  const buildDescription = useCallback((pvc: PvcsPVCListItem): React.ReactNode => {
-    const inUse = isInUse(pvc);
-    const rwo = isRWO(pvc);
-    return (
+  const buildDescription = useCallback(
+    (pvc: PvcsPVCListItem): React.ReactNode => (
       <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
         <FlexItem>
           <Stack style={{ width: '100%' }}>
             <StackItem>
               <LabelGroup numLabels={5}>
-                <Label isCompact>{pvc.pvcSpec.requests.storage}</Label>
-                <Label isCompact>{pvc.pvcSpec.storageClassName}</Label>
+                <Label isCompact className={!pvc.canMount ? 'pf-m-disabled' : undefined}>
+                  {pvc.pvcSpec.requests.storage}
+                </Label>
                 {pvc.pvcSpec.accessModes.map((mode) => (
-                  <Label key={mode} isCompact color={mode === 'ReadWriteOnce' ? 'blue' : 'green'}>
+                  <Label
+                    key={mode}
+                    isCompact
+                    className={!pvc.canMount ? 'pf-m-disabled' : undefined}
+                    color="blue"
+                  >
                     {mode}
                   </Label>
                 ))}
-                {inUse && rwo && (
-                  <Label isCompact color="red">
-                    In use (RWO/RWOP)
+                {!pvc.canMount && (
+                  <Label isCompact className="pf-m-disabled">
+                    Unmountable
                   </Label>
                 )}
-                {inUse && !rwo && (
-                  <Label isCompact color="orange">
-                    In use
-                  </Label>
-                )}
-                {!pvc.canMount && <Label isCompact>Unmountable</Label>}
               </LabelGroup>
             </StackItem>
             {pvc.workspaces.length > 0 && (
@@ -192,21 +200,7 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
                       icon={<CubeIcon color="teal" />}
                       isCompact
                       color="teal"
-                    />
-                  </FlexItem>
-                </Flex>
-              </StackItem>
-            )}
-            {pvc.pods.length > 0 && (
-              <StackItem className="pf-v6-u-ml-sm pf-v6-u-mt-xs">
-                <Flex gap={{ default: 'gapXs' }}>
-                  <FlexItem>Pods:</FlexItem>
-                  <FlexItem>
-                    <LabelGroupWithTooltip
-                      labels={pvc.pods.map((pod) => pod.name)}
-                      limit={5}
-                      variant="outline"
-                      isCompact
+                      className={!pvc.canMount ? 'pf-m-disabled' : undefined}
                     />
                   </FlexItem>
                 </Flex>
@@ -231,28 +225,40 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
           </Tooltip>
         </FlexItem>
       </Flex>
-    );
-  }, []);
+    ),
+    [],
+  );
 
   // ── Grouped / filtered option data ──────────────────────────────────────
 
-  const pvcGroups = useMemo(
-    (): PVCGroupData[] =>
-      ACCESS_MODE_GROUPS.flatMap(({ label, mode, abbr }) => {
-        const options = availablePVCs
-          .filter((pvc) => pvc.pvcSpec.accessModes.includes(mode))
-          .map(
-            (pvc): PVCOptionData => ({
-              content: pvc.name,
-              value: `${abbr}|${pvc.name}`,
-              isDisabled: !pvc.canMount,
-              description: buildDescription(pvc),
-            }),
-          );
-        return options.length > 0 ? [{ label, options }] : [];
-      }),
-    [availablePVCs, buildDescription],
-  );
+  const pvcGroups = useMemo((): PVCGroupData[] => {
+    const grouped = new Map<
+      string,
+      { description: string; displayName: string; options: PVCOptionData[] }
+    >();
+    for (const pvc of availablePVCs) {
+      const sc = pvc.pvcSpec.storageClassName || 'default';
+      if (!grouped.has(sc)) {
+        grouped.set(sc, {
+          description: pvc.pv?.storageClass?.description ?? '',
+          displayName: pvc.pv?.storageClass?.displayName ?? sc,
+          options: [],
+        });
+      }
+      grouped.get(sc)!.options.push({
+        content: pvc.name,
+        value: pvc.name,
+        isDisabled: !pvc.canMount,
+        description: buildDescription(pvc),
+        tooltip: getUnmountableTooltip(pvc),
+      });
+    }
+    return Array.from(grouped.entries()).map(([sc, { description, displayName, options }]) => ({
+      label: displayName || sc,
+      description,
+      options: options.sort((a, b) => Number(a.isDisabled) - Number(b.isDisabled)),
+    }));
+  }, [availablePVCs, buildDescription]);
 
   /** Flat ordered list used for keyboard navigation and focus tracking. */
   const filteredFlatOptions = useMemo((): PVCOptionData[] => {
@@ -292,8 +298,7 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
 
   const handleSelectOption = useCallback(
     (value: string) => {
-      // Values are prefixed with the group abbreviation: "rwx|pvc-name"
-      const pvcName = value.includes('|') ? value.split('|').slice(1).join('|') : value;
+      const pvcName = value;
       setSelectedPvcName(pvcName);
       setMountPath(fixedMountPath ?? `/data/${pvcName}`);
       setIsMountPathEditing(false);
@@ -307,11 +312,16 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
 
   const handleInternalSelect = useCallback(
     (_ev: React.MouseEvent | undefined, value?: string | number) => {
-      if (value !== undefined) {
-        handleSelectOption(String(value));
+      if (value === undefined) {
+        return;
       }
+      const opt = filteredFlatOptions.find((o) => o.value === String(value));
+      if (opt?.isDisabled) {
+        return;
+      }
+      handleSelectOption(String(value));
     },
-    [handleSelectOption],
+    [handleSelectOption, filteredFlatOptions],
   );
 
   const handleInputChange = useCallback(
@@ -410,14 +420,14 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
     if (isRWO(selectedPvc)) {
       return {
         variant: AlertVariant.danger,
-        title: 'PVC is in use with ReadWriteOnce or ReadWriteOncePod access',
-        body: 'This PVC uses ReadWriteOnce or ReadWriteOncePod access mode and is already mounted. Attaching it to this workspace may fail if it is scheduled on a different node.',
+        title: 'Volume is in use with ReadWriteOnce or ReadWriteOncePod access',
+        body: 'This volume uses ReadWriteOnce or ReadWriteOncePod access mode and is already mounted. Attaching it to this workspace may fail if it is scheduled on a different node.',
       };
     }
     return {
       variant: AlertVariant.warning,
-      title: 'PVC is currently in use',
-      body: 'This PVC is already mounted by other workspaces or pods. Verify that sharing is supported.',
+      title: 'Volume is currently in use',
+      body: 'This volume is already mounted by other workspaces or pods. Verify that sharing is supported.',
     };
   }, [selectedPvc]);
 
@@ -441,7 +451,7 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
     <MenuToggle
       ref={toggleRef}
       variant="typeahead"
-      aria-label="PVC typeahead menu toggle"
+      aria-label="Volume typeahead menu toggle"
       onClick={handleToggleClick}
       isExpanded={isSelectOpen}
       isFullWidth
@@ -454,7 +464,7 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
           onKeyDown={handleKeyDown}
           autoComplete="off"
           innerRef={textInputRef}
-          placeholder="Select a PVC"
+          placeholder="Select a volume"
           role="combobox"
           isExpanded={isSelectOpen}
           aria-controls="pvc-select-listbox"
@@ -464,7 +474,7 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
           <Button
             variant="plain"
             onClick={handleClearButtonClick}
-            aria-label="Clear PVC selection"
+            aria-label="Clear volume selection"
             icon={<TimesIcon />}
           />
         </TextInputGroupUtilities>
@@ -500,7 +510,7 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
           )}
           <StackItem>
             <Form>
-              <ThemeAwareFormGroupWrapper label="PVC" fieldId="pvc-select">
+              <ThemeAwareFormGroupWrapper label="Volume" fieldId="pvc-select">
                 <Select
                   id="pvc-select"
                   isOpen={isSelectOpen}
@@ -514,13 +524,19 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
                   toggle={toggle}
                   variant="typeahead"
                   isScrollable
-                  maxMenuHeight="30rem"
+                  maxMenuHeight="25rem"
                 >
                   {filteredGroups.length > 0 ? (
                     filteredGroups.map((group, index) => (
                       <React.Fragment key={group.label}>
                         {index > 0 && <Divider />}
-                        <SelectGroup label={group.label}>
+                        <SelectGroup
+                          label={
+                            group.description
+                              ? `${group.label} — ${group.description}`
+                              : group.label
+                          }
+                        >
                           <SelectList>
                             {group.options.map((opt) => {
                               const flatIndex = filteredFlatOptions.findIndex(
@@ -530,7 +546,11 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
                                 <SelectOption
                                   key={opt.value}
                                   value={opt.value}
-                                  isDisabled={opt.isDisabled}
+                                  isDisabled={opt.isDisabled && !opt.tooltip}
+                                  isAriaDisabled={opt.isDisabled && !!opt.tooltip}
+                                  {...(opt.tooltip
+                                    ? { tooltipProps: { content: opt.tooltip } }
+                                    : {})}
                                   isFocused={focusedItemIndex === flatIndex}
                                   id={opt.value}
                                   description={opt.description}
@@ -546,7 +566,9 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
                   ) : (
                     <SelectList>
                       <SelectOption isAriaDisabled value="no-results">
-                        {filterValue ? `No PVC found for "${filterValue}"` : 'No PVCs available'}
+                        {filterValue
+                          ? `No volume found for "${filterValue}"`
+                          : 'No volumes available'}
                       </SelectOption>
                     </SelectList>
                   )}

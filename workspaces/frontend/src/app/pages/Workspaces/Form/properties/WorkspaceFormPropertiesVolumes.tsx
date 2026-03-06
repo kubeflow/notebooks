@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { Dropdown, DropdownItem } from '@patternfly/react-core/dist/esm/components/Dropdown';
+import { Label, LabelGroup } from '@patternfly/react-core/dist/esm/components/Label';
 import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
 import { Form, FormGroup } from '@patternfly/react-core/dist/esm/components/Form';
+import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
 import {
@@ -16,6 +18,7 @@ import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import { EllipsisVIcon } from '@patternfly/react-icons/dist/esm/icons/ellipsis-v-icon';
 import {
+  ExpandableRowContent,
   Table,
   TableVariant,
   Tbody,
@@ -24,6 +27,7 @@ import {
   Thead,
   Tr,
 } from '@patternfly/react-table/dist/esm/components/Table';
+import { CubeIcon } from '@patternfly/react-icons/dist/esm/icons/cube-icon';
 import { PvcsPVCListItem } from '~/generated/data-contracts';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
@@ -41,6 +45,8 @@ interface WorkspaceFormPropertiesVolumesProps {
   setVolumes: (volumes: WorkspacesPodVolumeMountValue[]) => void;
   fixedMountPath?: string; // For home volume only
 }
+
+const NUM_TABLE_COLUMNS = 5; // expand toggle + PVC Name + Mount Path + Read-only Access + Actions
 
 export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVolumesProps> = ({
   volumes,
@@ -63,6 +69,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
   const [availablePVCs, setAvailablePVCs] = useState<PvcsPVCListItem[]>([]);
   const [editingMountPath, setEditingMountPath] = useState<number | null>(null);
   const [editMountPathValue, setEditMountPathValue] = useState('');
+  const [expandedVolumes, setExpandedVolumes] = useState<Set<string>>(new Set());
 
   const { api } = useNotebookAPI();
   const { selectedNamespace } = useNamespaceSelectorWrapper();
@@ -168,6 +175,89 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
     setEditingMountPath(null);
   }, []);
 
+  const handleToggleExpand = useCallback((pvcName: string) => {
+    setExpandedVolumes((prev) => {
+      const next = new Set(prev);
+      if (next.has(pvcName)) {
+        next.delete(pvcName);
+      } else {
+        next.add(pvcName);
+      }
+      return next;
+    });
+  }, []);
+
+  const renderExpandedContent = useCallback(
+    (pvcName: string) => {
+      const pvc = availablePVCs.find((p) => p.name === pvcName);
+      if (!pvc || (pvc.workspaces.length === 0 && pvc.pods.length === 0)) {
+        return <span>No connected workspaces or pods.</span>;
+      }
+
+      return (
+        <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
+          <FlexItem>This volume is currently connected to the following resources:</FlexItem>
+          {pvc.workspaces.length > 0 && (
+            <Flex alignItems={{ default: 'alignItemsCenter' }}>
+              <FlexItem style={{ minWidth: '6rem' }}>Workspaces:</FlexItem>
+              <FlexItem style={{ flex: 1 }}>
+                <LabelGroup numLabels={10}>
+                  {pvc.workspaces.map((ws) => (
+                    <Tooltip
+                      key={ws.name}
+                      content={
+                        <>
+                          {ws.podTemplatePod && <div>Pod: {ws.podTemplatePod.name}</div>}
+                          <div>State: {ws.state}</div>
+                          {ws.stateMessage && <div>{ws.stateMessage}</div>}
+                        </>
+                      }
+                    >
+                      <Label
+                        isCompact
+                        variant="outline"
+                        color="teal"
+                        icon={<CubeIcon color="teal" />}
+                      >
+                        {ws.name}
+                      </Label>
+                    </Tooltip>
+                  ))}
+                </LabelGroup>
+              </FlexItem>
+            </Flex>
+          )}
+          {pvc.pods.length > 0 && (
+            <Flex alignItems={{ default: 'alignItemsCenter' }}>
+              <FlexItem style={{ minWidth: '6rem' }}>Pods:</FlexItem>
+              <FlexItem style={{ flex: 1 }}>
+                <LabelGroup numLabels={10}>
+                  {pvc.pods.map((pod) => (
+                    <Tooltip
+                      key={pod.name}
+                      content={
+                        <>
+                          <div>Name: {pod.name}</div>
+                          {pod.node && <div>Node: {pod.node.name}</div>}
+                          <div>Phase: {pod.phase}</div>
+                        </>
+                      }
+                    >
+                      <Label isCompact variant="outline">
+                        {pod.name}
+                      </Label>
+                    </Tooltip>
+                  ))}
+                </LabelGroup>
+              </FlexItem>
+            </Flex>
+          )}
+        </Flex>
+      );
+    },
+    [availablePVCs],
+  );
+
   const mountPathValidationError =
     editingMountPath !== null
       ? getMountPathValidationError(volumes, editMountPathValue, editingMountPath)
@@ -183,62 +273,82 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
         >
           <Thead>
             <Tr>
+              <Th screenReaderText="Row expansion" />
               <Th>PVC Name</Th>
               <Th>Mount Path</Th>
               <Th>Read-only Access</Th>
               <Th aria-label="Actions" />
             </Tr>
           </Thead>
-          <Tbody>
-            {volumes.map((volume, index) => (
-              <Tr key={index}>
-                <Td>{volume.pvcName}</Td>
-                <Td dataLabel="Mount Path" hasAction>
-                  <MountPathField
-                    variant="cell"
-                    value={editingMountPath === index ? editMountPathValue : volume.mountPath}
-                    index={index}
-                    editingIndex={editingMountPath}
-                    itemId={volume.pvcName}
-                    onChange={setEditMountPathValue}
-                    onStartEdit={handleStartMountPathEdit}
-                    onConfirm={handleConfirmMountPathEdit}
-                    onCancel={handleCancelMountPathEdit}
-                    error={mountPathValidationError}
-                    isFixed={!!fixedMountPath}
+          {volumes.map((volume, index) => {
+            const isExpanded = expandedVolumes.has(volume.pvcName);
+            return (
+              <Tbody key={`${volume.pvcName}:${volume.mountPath}`} isExpanded={isExpanded}>
+                <Tr>
+                  <Td
+                    expand={{
+                      rowIndex: index,
+                      isExpanded,
+                      onToggle: () => handleToggleExpand(volume.pvcName),
+                    }}
+                    data-testid={`expand-volume-${volume.pvcName}`}
                   />
-                </Td>
-                <Td>{volume.readOnly ? 'Enabled' : 'Disabled'}</Td>
-                <Td isActionCell>
-                  <Dropdown
-                    toggle={(toggleRef) => (
-                      <MenuToggle
-                        ref={toggleRef}
-                        isExpanded={dropdownOpen === index}
-                        onClick={() => setDropdownOpen(dropdownOpen === index ? null : index)}
-                        variant="plain"
-                        aria-label="plain kebab"
-                      >
-                        <EllipsisVIcon />
-                      </MenuToggle>
-                    )}
-                    isOpen={dropdownOpen === index}
-                    onSelect={() => setDropdownOpen(null)}
-                    popperProps={{ position: 'right' }}
-                  >
-                    {volume.isAttached ? (
-                      <Tooltip content="Attached volumes cannot be edited.">
-                        <DropdownItem isAriaDisabled>Edit</DropdownItem>
-                      </Tooltip>
-                    ) : (
-                      <DropdownItem onClick={() => handleEdit(index)}>Edit</DropdownItem>
-                    )}
-                    <DropdownItem onClick={() => openDetachModal(index)}>Detach</DropdownItem>
-                  </Dropdown>
-                </Td>
-              </Tr>
-            ))}
-          </Tbody>
+                  <Td dataLabel="PVC Name">{volume.pvcName}</Td>
+                  <Td dataLabel="Mount Path" hasAction>
+                    <MountPathField
+                      variant="cell"
+                      value={editingMountPath === index ? editMountPathValue : volume.mountPath}
+                      index={index}
+                      editingIndex={editingMountPath}
+                      itemId={volume.pvcName}
+                      onChange={setEditMountPathValue}
+                      onStartEdit={handleStartMountPathEdit}
+                      onConfirm={handleConfirmMountPathEdit}
+                      onCancel={handleCancelMountPathEdit}
+                      error={mountPathValidationError}
+                      isFixed={!!fixedMountPath}
+                    />
+                  </Td>
+                  <Td dataLabel="Read-only Access">{volume.readOnly ? 'Enabled' : 'Disabled'}</Td>
+                  <Td isActionCell>
+                    <Dropdown
+                      toggle={(toggleRef) => (
+                        <MenuToggle
+                          ref={toggleRef}
+                          isExpanded={dropdownOpen === index}
+                          onClick={() => setDropdownOpen(dropdownOpen === index ? null : index)}
+                          variant="plain"
+                          aria-label="plain kebab"
+                        >
+                          <EllipsisVIcon />
+                        </MenuToggle>
+                      )}
+                      isOpen={dropdownOpen === index}
+                      onSelect={() => setDropdownOpen(null)}
+                      popperProps={{ position: 'right' }}
+                    >
+                      {volume.isAttached ? (
+                        <Tooltip content="Attached volumes cannot be edited.">
+                          <DropdownItem isAriaDisabled>Edit</DropdownItem>
+                        </Tooltip>
+                      ) : (
+                        <DropdownItem onClick={() => handleEdit(index)}>Edit</DropdownItem>
+                      )}
+                      <DropdownItem onClick={() => openDetachModal(index)}>Detach</DropdownItem>
+                    </Dropdown>
+                  </Td>
+                </Tr>
+                <Tr isExpanded={isExpanded}>
+                  <Td />
+                  <Td colSpan={NUM_TABLE_COLUMNS - 1}>
+                    <ExpandableRowContent>
+                      {renderExpandedContent(volume.pvcName)}
+                    </ExpandableRowContent>
+                  </Td>
+                </Tr>
+              </Tbody>
+            );
+          })}
         </Table>
       )}
       <Tooltip
