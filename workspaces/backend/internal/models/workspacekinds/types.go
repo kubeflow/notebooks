@@ -16,25 +16,25 @@ limitations under the License.
 
 package workspacekinds
 
+import (
+	commonassets "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common/assets"
+)
+
 type WorkspaceKind struct {
-	Name               string         `json:"name"`
-	DisplayName        string         `json:"displayName"`
-	Description        string         `json:"description"`
-	Deprecated         bool           `json:"deprecated"`
-	DeprecationMessage string         `json:"deprecationMessage"`
-	Hidden             bool           `json:"hidden"`
-	Icon               ImageRef       `json:"icon"`
-	Logo               ImageRef       `json:"logo"`
-	ClusterMetrics     clusterMetrics `json:"clusterMetrics,omitempty"`
-	PodTemplate        PodTemplate    `json:"podTemplate"`
+	Name               string                `json:"name"`
+	DisplayName        string                `json:"displayName"`
+	Description        string                `json:"description"`
+	Deprecated         bool                  `json:"deprecated"`
+	DeprecationMessage string                `json:"deprecationMessage"`
+	Hidden             bool                  `json:"hidden"`
+	Icon               commonassets.ImageRef `json:"icon"`
+	Logo               commonassets.ImageRef `json:"logo"`
+	ClusterMetrics     clusterMetrics        `json:"clusterMetrics,omitempty"`
+	PodTemplate        PodTemplate           `json:"podTemplate"`
 }
 
 type clusterMetrics struct {
 	Workspaces int32 `json:"workspacesCount"`
-}
-
-type ImageRef struct {
-	URL string `json:"url"`
 }
 
 type PodTemplate struct {

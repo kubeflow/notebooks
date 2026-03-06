@@ -4520,9 +4520,17 @@ spec:
                           name:
                             example: my-logos
                             type: string
+                          namespace:
+                            description: the namespace of the ConfigMap
+                            example: kubeflow
+                            maxLength: 63
+                            minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                            type: string
                         required:
                         - key
                         - name
+                        - namespace
                         type: object
                       url:
                         example: https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png
@@ -4545,9 +4553,17 @@ spec:
                           name:
                             example: my-logos
                             type: string
+                          namespace:
+                            description: the namespace of the ConfigMap
+                            example: kubeflow
+                            maxLength: 63
+                            minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                            type: string
                         required:
                         - key
                         - name
+                        - namespace
                         type: object
                       url:
                         example: https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png
@@ -4625,6 +4641,48 @@ spec:
                 - imageConfig
                 - podConfig
                 type: object
+              spawnerIcon:
+                description: status of the spawner icon
+                properties:
+                  configMap:
+                    description: status of the configMap reference
+                    properties:
+                      errorMessage:
+                        description: error message when reading the configMap
+                        type: string
+                      errorType:
+                        description: cause of the error when reading the configMap
+                        enum:
+                        - NotFound
+                        - KeyNotFound
+                        - Other
+                        type: string
+                    type: object
+                  sha256:
+                    description: sha256 hash of image asset content
+                    type: string
+                type: object
+              spawnerLogo:
+                description: status of the spawner logo
+                properties:
+                  configMap:
+                    description: status of the configMap reference
+                    properties:
+                      errorMessage:
+                        description: error message when reading the configMap
+                        type: string
+                      errorType:
+                        description: cause of the error when reading the configMap
+                        enum:
+                        - NotFound
+                        - KeyNotFound
+                        - Other
+                        type: string
+                    type: object
+                  sha256:
+                    description: sha256 hash of image asset content
+                    type: string
+                type: object
               workspaces:
                 default: 0
                 description: the number of Workspaces that are using this WorkspaceKind
@@ -4632,6 +4690,8 @@ spec:
                 type: integer
             required:
             - podTemplateOptions
+            - spawnerIcon
+            - spawnerLogo
             - workspaces
             type: object
         type: object

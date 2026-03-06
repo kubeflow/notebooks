@@ -22,7 +22,8 @@ import (
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"k8s.io/utils/ptr"
 
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
+	commonCore "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
+	commonAssets "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common/assets"
 )
 
 const (
@@ -32,26 +33,39 @@ const (
 )
 
 // NewWorkspaceListItemFromWorkspace creates a WorkspaceListItem model from a Workspace and WorkspaceKind object.
-// NOTE: the WorkspaceKind might not exist, so we handle the case where it is nil or has no UID.
+// This is a convenience function that calls NewWorkspaceListItemFromWorkspaceWithAssetContext with nil WorkspaceKindAssetContext.
+// For cases where asset information is available (e.g., ConfigMap-based assets), use NewWorkspaceModelFromWorkspaceWithAssetContext instead.
 func NewWorkspaceListItemFromWorkspace(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.WorkspaceKind) WorkspaceListItem {
+	return NewWorkspaceListItemFromWorkspaceWithAssetContext(ws, wsk, nil)
+}
+
+// NewWorkspaceListItemFromWorkspaceWithAssetContext creates a Workspace model from a Workspace and WorkspaceKind object.
+// NOTE: the WorkspaceKind might not exist, so we handle the case where it is nil or has no UID.
+// assetCtx contains metadata about icon and logo assets (SHA256 hashes and errors).
+// If nil, assets will be built without hash or error information.
+// SHA256 hashes will be appended as query parameters to ConfigMap-based asset URLs.
+// Errors will be set in ImageRef.Error when ConfigMap retrieval fails.
+func NewWorkspaceListItemFromWorkspaceWithAssetContext(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.WorkspaceKind, assetCtx *commonAssets.WorkspaceKindAssetContext) WorkspaceListItem {
 	// ensure the provided WorkspaceKind matches the Workspace
 	if wskExists(wsk) && ws.Spec.Kind != wsk.Name {
 		panic("provided WorkspaceKind does not match the Workspace")
 	}
 
-	// TODO: icons can either be a remote URL or read from a ConfigMap.
-	//       in BOTH cases, we should cache and serve the image under a path on the backend API:
-	//       /api/v1/workspacekinds/{name}/assets/icon
-	iconRef := ImageRef{
-		URL: fmt.Sprintf("/workspaces/backend/api/v1/workspacekinds/%s/assets/icon", ws.Spec.Kind),
+	var iconInfo commonAssets.WorkspaceKindAssetDetails
+	var logoInfo commonAssets.WorkspaceKindAssetDetails
+	if assetCtx != nil {
+		iconInfo = assetCtx.Icon
+		logoInfo = assetCtx.Logo
+	} else {
+		iconInfo = commonAssets.WorkspaceKindIconInfo{}
+		logoInfo = commonAssets.WorkspaceKindLogoInfo{}
 	}
 
-	// TODO: logos can either be a remote URL or read from a ConfigMap.
-	//       in BOTH cases, we should cache and serve the image under a path on the backend API:
-	//       /api/v1/workspacekinds/{name}/assets/logo
-	logoRef := ImageRef{
-		URL: fmt.Sprintf("/workspaces/backend/api/v1/workspacekinds/%s/assets/logo", ws.Spec.Kind),
-	}
+	// Build icon reference based on source type (URL or ConfigMap)
+	iconRef := buildIconImageRef(ws, wsk, iconInfo)
+
+	// Build logo reference based on source type (URL or ConfigMap)
+	logoRef := buildLogoImageRef(ws, wsk, logoInfo)
 
 	wsState := WorkspaceStateUnknown
 	switch ws.Status.State {
@@ -136,7 +150,7 @@ func NewWorkspaceListItemFromWorkspace(ws *kubefloworgv1beta1.Workspace, wsk *ku
 			LastProbe: nil,
 		},
 		Services: buildServices(ws, wskPodTemplatePorts, imageConfigValue),
-		Audit:    common.NewAuditFromObjectMeta(&ws.ObjectMeta),
+		Audit:    commonCore.NewAuditFromObjectMeta(&ws.ObjectMeta),
 	}
 	return workspaceModel
 }
@@ -356,4 +370,26 @@ func buildServices(ws *kubefloworgv1beta1.Workspace, wskPodTemplatePorts map[kub
 	}
 
 	return services
+}
+
+// buildIconImageRef creates an ImageRef from the icon asset of a WorkspaceKind.
+// If WorkspaceKind is nil or missing, returns an empty ImageRef.
+// If the asset uses a URL, it returns the URL directly.
+// If the asset uses a ConfigMap, it generates a backend API URL with an optional SHA256 hash as a query parameter.
+func buildIconImageRef(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.WorkspaceKind, iconInfo commonAssets.WorkspaceKindAssetDetails) commonAssets.ImageRef {
+	if !wskExists(wsk) {
+		return commonAssets.ImageRef{URL: ""}
+	}
+	return commonAssets.BuildImageRef(wsk.Spec.Spawner.Icon, ws.Spec.Kind, iconInfo)
+}
+
+// buildLogoImageRef creates an ImageRef from the logo asset of a WorkspaceKind.
+// If WorkspaceKind is nil or missing, returns an empty ImageRef.
+// If the asset uses a URL, it returns the URL directly.
+// If the asset uses a ConfigMap, it generates a backend API URL with an optional SHA256 hash as a query parameter.
+func buildLogoImageRef(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.WorkspaceKind, logoInfo commonAssets.WorkspaceKindAssetDetails) commonAssets.ImageRef {
+	if !wskExists(wsk) {
+		return commonAssets.ImageRef{URL: ""}
+	}
+	return commonAssets.BuildImageRef(wsk.Spec.Spawner.Logo, ws.Spec.Kind, logoInfo)
 }

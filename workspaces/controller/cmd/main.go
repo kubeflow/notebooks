@@ -162,9 +162,15 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Workspace")
 		os.Exit(1)
 	}
+	imageSourceCache, err := helper.BuildImageSourceConfigMapCache(mgr)
+	if err != nil {
+		setupLog.Error(err, "unable to build image source ConfigMap cache")
+		os.Exit(1)
+	}
 	if err = (&controllerInternal.WorkspaceKindReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:           mgr.GetClient(),
+		Scheme:           mgr.GetScheme(),
+		ImageSourceCache: imageSourceCache,
 	}).SetupWithManager(mgr, controller.Options{
 		RateLimiter: helper.BuildRateLimiter(),
 	}); err != nil {
