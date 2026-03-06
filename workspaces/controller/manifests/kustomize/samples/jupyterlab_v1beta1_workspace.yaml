@@ -6,6 +6,9 @@ spec:
   ## if the workspace is paused (no pods running)
   paused: false
 
+  ## the display name of the workspace
+  displayName: "Example JupyterLab Workspace"
+
   ## the WorkspaceKind to use
   kind: "jupyterlab"
 

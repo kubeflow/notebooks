@@ -158,8 +158,9 @@ func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, workspaceCrea
 			Namespace: namespace,
 		},
 		Spec: kubefloworgv1beta1.WorkspaceSpec{
-			Paused: &workspaceCreate.Paused,
-			Kind:   workspaceKindName,
+			Paused:      &workspaceCreate.Paused,
+			DisplayName: displayNamePtr(workspaceCreate.DisplayName),
+			Kind:        workspaceKindName,
 			PodTemplate: kubefloworgv1beta1.WorkspacePodTemplate{
 				PodMetadata: &kubefloworgv1beta1.WorkspacePodMetadata{
 					Labels:      workspaceCreate.PodTemplate.PodMetadata.Labels,
@@ -318,4 +319,11 @@ func (r *WorkspaceRepository) HandlePauseAction(ctx context.Context, namespace, 
 
 	workspaceActionPauseModel := modelsActions.NewWorkspaceActionPauseFromWorkspace(workspace)
 	return workspaceActionPauseModel, nil
+}
+
+func displayNamePtr(displayName string) *string {
+	if displayName == "" {
+		return nil
+	}
+	return &displayName
 }

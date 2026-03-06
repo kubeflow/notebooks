@@ -46,6 +46,12 @@ spec:
           spec:
             description: WorkspaceSpec defines the desired state of Workspace
             properties:
+              displayName:
+                description: the display name of the Workspace
+                example: My Workspace
+                maxLength: 128
+                minLength: 2
+                type: string
               kind:
                 description: the WorkspaceKind to use
                 example: jupyterlab

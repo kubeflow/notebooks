@@ -36,6 +36,13 @@ type WorkspaceSpec struct {
 	// +kubebuilder:default=false
 	Paused *bool `json:"paused,omitempty"`
 
+	// the display name of the Workspace
+	// +kubebuilder:validation:MinLength:=2
+	// +kubebuilder:validation:MaxLength:=128
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:example:="My Workspace"
+	DisplayName *string `json:"displayName,omitempty"`
+
 	// the WorkspaceKind to use
 	// +kubebuilder:validation:MinLength:=2
 	// +kubebuilder:validation:MaxLength:=63

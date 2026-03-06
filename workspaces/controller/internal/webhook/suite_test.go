@@ -681,7 +681,8 @@ func NewExampleWorkspace(name, namespace, workspaceKindName string) *kubefloworg
 			Namespace: namespace,
 		},
 		Spec: kubefloworgv1beta1.WorkspaceSpec{
-			Kind: workspaceKindName,
+			DisplayName: ptr.To("Example Workspace"),
+			Kind:        workspaceKindName,
 			PodTemplate: kubefloworgv1beta1.WorkspacePodTemplate{Options: kubefloworgv1beta1.WorkspacePodOptions{
 				ImageConfig: "jupyterlab_scipy_180",
 				PodConfig:   "tiny_cpu",
