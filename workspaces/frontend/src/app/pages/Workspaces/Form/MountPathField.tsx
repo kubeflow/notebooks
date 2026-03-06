@@ -87,9 +87,9 @@ const EditControls: React.FC<EditControlsProps> = ({
 
   return (
     <Flex
-      alignItems={{ default: 'alignItemsCenter' }}
-      spaceItems={{ default: 'spaceItemsXs' }}
       flexWrap={{ default: 'wrap' }}
+      justifyContent={{ default: 'justifyContentSpaceBetween' }}
+      className="pf-v6-u-w-100"
     >
       <FlexItem flex={{ default: 'flex_1' }}>
         <TextInput

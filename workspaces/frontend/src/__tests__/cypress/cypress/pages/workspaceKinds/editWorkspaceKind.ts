@@ -775,7 +775,7 @@ class EditWorkspaceKind {
     if (count === 0) {
       cy.findByTestId('volumes-table').should('not.exist');
     } else {
-      this.findVolumesTable().find('tbody tr').should('have.length', count);
+      this.findVolumesTable().find('tbody').should('have.length', count);
     }
   }
 

@@ -42,6 +42,16 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
     [selectedProperties.homeVolume],
   );
 
+  const homePvcNames = useMemo(
+    () => new Set(selectedProperties.homeVolume ? [selectedProperties.homeVolume.pvcName] : []),
+    [selectedProperties.homeVolume],
+  );
+
+  const dataPvcNames = useMemo(
+    () => new Set(selectedProperties.volumes.map((v) => v.pvcName)),
+    [selectedProperties.volumes],
+  );
+
   const handleSetHomeVolume = (volumes: WorkspacesPodVolumeMountValue[]) => {
     onSelect({ ...selectedProperties, homeVolume: volumes[0] });
   };
@@ -96,6 +106,7 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
                       volumes={homeVolumeArray}
                       setVolumes={handleSetHomeVolume}
                       fixedMountPath={homeVolumeMountPath}
+                      excludedPvcNames={dataPvcNames}
                     />
                   </FormGroup>
                 )}
@@ -121,6 +132,7 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
                     <WorkspaceFormPropertiesVolumes
                       volumes={selectedProperties.volumes}
                       setVolumes={(volumes) => onSelect({ ...selectedProperties, volumes })}
+                      excludedPvcNames={homePvcNames}
                     />
                   </FormGroup>
                 )}

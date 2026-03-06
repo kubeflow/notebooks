@@ -30,7 +30,7 @@ import {
   TextInputGroupMain,
   TextInputGroupUtilities,
 } from '@patternfly/react-core/dist/esm/components/TextInputGroup';
-import { PvcsPVCListItem } from '~/generated/data-contracts';
+import { PvcsPVCListItem, StorageclassesStorageClassListItem } from '~/generated/data-contracts';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { LabelGroupWithTooltip } from '~/app/components/LabelGroupWithTooltip';
 import {
@@ -52,7 +52,7 @@ interface PVCOptionData {
 
 interface PVCGroupData {
   label: string;
-  /** Storage class description from the bound PV */
+  displayName: string;
   description: string;
   options: PVCOptionData[];
 }
@@ -69,6 +69,10 @@ export interface VolumesAttachModalProps {
    * workspace kind's podTemplate.volumeMounts.home) and cannot be edited.
    */
   fixedMountPath?: string;
+  /** PVC names already mounted in the other volume section (home or data) */
+  excludedPvcNames?: Set<string>;
+  /** API-loaded storage classes for display name and description lookup */
+  storageClasses: StorageclassesStorageClassListItem[];
 }
 
 const isRWO = (pvc: PvcsPVCListItem): boolean =>
@@ -99,6 +103,8 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
   availablePVCs,
   mountedPaths,
   fixedMountPath,
+  excludedPvcNames,
+  storageClasses,
 }) => {
   // Form state
   const [selectedPvcName, setSelectedPvcName] = useState('');
@@ -162,76 +168,85 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
   // ── PVC option building ──────────────────────────────────────────────────
 
   const buildDescription = useCallback(
-    (pvc: PvcsPVCListItem): React.ReactNode => (
-      <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-        <FlexItem>
-          <Stack style={{ width: '100%' }}>
-            <StackItem>
-              <LabelGroup numLabels={5}>
-                <Label isCompact className={!pvc.canMount ? 'pf-m-disabled' : undefined}>
-                  {pvc.pvcSpec.requests.storage}
-                </Label>
-                {pvc.pvcSpec.accessModes.map((mode) => (
-                  <Label
-                    key={mode}
-                    isCompact
-                    className={!pvc.canMount ? 'pf-m-disabled' : undefined}
-                    color="blue"
-                  >
-                    {mode}
+    (pvc: PvcsPVCListItem): React.ReactNode => {
+      const isExcluded = excludedPvcNames?.has(pvc.name) ?? false;
+      return (
+        <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
+          <FlexItem>
+            <Stack style={{ width: '100%' }}>
+              <StackItem>
+                <LabelGroup numLabels={5}>
+                  <Label isCompact className={!pvc.canMount ? 'pf-m-disabled' : undefined}>
+                    {pvc.pvcSpec.requests.storage}
                   </Label>
-                ))}
-                {!pvc.canMount && (
-                  <Label isCompact className="pf-m-disabled">
-                    Unmountable
-                  </Label>
-                )}
-              </LabelGroup>
-            </StackItem>
-            {pvc.workspaces.length > 0 && (
-              <StackItem className="pf-v6-u-ml-sm pf-v6-u-mt-xs">
-                <Flex gap={{ default: 'gapXs' }}>
-                  <FlexItem>Workspaces:</FlexItem>
-                  <FlexItem>
-                    <LabelGroupWithTooltip
-                      labels={pvc.workspaces.map((w) => w.name)}
-                      limit={5}
-                      variant="outline"
-                      icon={<CubeIcon color="teal" />}
+                  {pvc.pvcSpec.accessModes.map((mode) => (
+                    <Label
+                      key={mode}
                       isCompact
-                      color="teal"
                       className={!pvc.canMount ? 'pf-m-disabled' : undefined}
-                    />
-                  </FlexItem>
-                </Flex>
+                      color="blue"
+                    >
+                      {mode}
+                    </Label>
+                  ))}
+                  {isExcluded && (
+                    <Label isCompact color="purple">
+                      Already mounted
+                    </Label>
+                  )}
+                  {!pvc.canMount && (
+                    <Label isCompact className="pf-m-disabled">
+                      Unmountable
+                    </Label>
+                  )}
+                </LabelGroup>
               </StackItem>
-            )}
-          </Stack>
-        </FlexItem>
-        <FlexItem>
-          <Tooltip
-            aria="none"
-            aria-live="polite"
-            content={
-              <Stack>
-                <StackItem>{`Created at: ${new Date(pvc.audit.createdAt).toLocaleString()} by ${pvc.audit.createdBy}`}</StackItem>
-                <StackItem>{`Updated at: ${new Date(pvc.audit.updatedAt).toLocaleString()} by ${pvc.audit.updatedBy}`}</StackItem>
-              </Stack>
-            }
-          >
-            <span style={{ cursor: 'default' }}>
-              <InfoCircleIcon />
-            </span>
-          </Tooltip>
-        </FlexItem>
-      </Flex>
-    ),
-    [],
+              {pvc.workspaces.length > 0 && (
+                <StackItem className="pf-v6-u-ml-sm pf-v6-u-mt-xs">
+                  <Flex gap={{ default: 'gapXs' }}>
+                    <FlexItem>Connected Workspaces:</FlexItem>
+                    <FlexItem>
+                      <LabelGroupWithTooltip
+                        labels={pvc.workspaces.map((w) => w.name)}
+                        limit={5}
+                        variant="outline"
+                        icon={<CubeIcon color="teal" />}
+                        isCompact
+                        color="teal"
+                        className={!pvc.canMount ? 'pf-m-disabled' : undefined}
+                      />
+                    </FlexItem>
+                  </Flex>
+                </StackItem>
+              )}
+            </Stack>
+          </FlexItem>
+          <FlexItem>
+            <Tooltip
+              aria="none"
+              aria-live="polite"
+              content={
+                <Stack>
+                  <StackItem>{`Created at: ${new Date(pvc.audit.createdAt).toLocaleString()} by ${pvc.audit.createdBy}`}</StackItem>
+                  <StackItem>{`Updated at: ${new Date(pvc.audit.updatedAt).toLocaleString()} by ${pvc.audit.updatedBy}`}</StackItem>
+                </Stack>
+              }
+            >
+              <span style={{ cursor: 'default' }}>
+                <InfoCircleIcon />
+              </span>
+            </Tooltip>
+          </FlexItem>
+        </Flex>
+      );
+    },
+    [excludedPvcNames],
   );
 
   // ── Grouped / filtered option data ──────────────────────────────────────
 
   const pvcGroups = useMemo((): PVCGroupData[] => {
+    const scMap = new Map(storageClasses.map((s) => [s.name, s]));
     const grouped = new Map<
       string,
       { description: string; displayName: string; options: PVCOptionData[] }
@@ -240,25 +255,26 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
       const sc = pvc.pvcSpec.storageClassName || 'default';
       if (!grouped.has(sc)) {
         grouped.set(sc, {
-          description: pvc.pv?.storageClass?.description ?? '',
-          displayName: pvc.pv?.storageClass?.displayName ?? sc,
+          description: scMap.get(sc)?.description ?? '',
+          displayName: scMap.get(sc)?.displayName ?? sc,
           options: [],
         });
       }
       grouped.get(sc)!.options.push({
         content: pvc.name,
         value: pvc.name,
-        isDisabled: !pvc.canMount,
+        isDisabled: !pvc.canMount || (excludedPvcNames?.has(pvc.name) ?? false),
         description: buildDescription(pvc),
         tooltip: getUnmountableTooltip(pvc),
       });
     }
     return Array.from(grouped.entries()).map(([sc, { description, displayName, options }]) => ({
       label: displayName || sc,
+      displayName,
       description,
       options: options.sort((a, b) => Number(a.isDisabled) - Number(b.isDisabled)),
     }));
-  }, [availablePVCs, buildDescription]);
+  }, [availablePVCs, buildDescription, excludedPvcNames, storageClasses]);
 
   /** Flat ordered list used for keyboard navigation and focus tracking. */
   const filteredFlatOptions = useMemo((): PVCOptionData[] => {
@@ -531,11 +547,7 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
                       <React.Fragment key={group.label}>
                         {index > 0 && <Divider />}
                         <SelectGroup
-                          label={
-                            group.description
-                              ? `${group.label} — ${group.description}`
-                              : group.label
-                          }
+                          label={`${group.displayName ? group.displayName : group.label} ${group.description ? `- ${group.description}` : ''}`}
                         >
                           <SelectList>
                             {group.options.map((opt) => {

@@ -28,7 +28,7 @@ import {
   Tr,
 } from '@patternfly/react-table/dist/esm/components/Table';
 import { CubeIcon } from '@patternfly/react-icons/dist/esm/icons/cube-icon';
-import { PvcsPVCListItem } from '~/generated/data-contracts';
+import { PvcsPVCListItem, StorageclassesStorageClassListItem } from '~/generated/data-contracts';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
@@ -44,6 +44,7 @@ interface WorkspaceFormPropertiesVolumesProps {
   volumes: WorkspacesPodVolumeMountValue[];
   setVolumes: (volumes: WorkspacesPodVolumeMountValue[]) => void;
   fixedMountPath?: string; // For home volume only
+  excludedPvcNames?: Set<string>; // PVC names used in the other section
 }
 
 const NUM_TABLE_COLUMNS = 5; // expand toggle + PVC Name + Mount Path + Read-only Access + Actions
@@ -52,6 +53,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
   volumes,
   setVolumes,
   fixedMountPath,
+  excludedPvcNames,
 }) => {
   const isHomeMounted = !!fixedMountPath && volumes.length > 0;
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -67,6 +69,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
   const [availablePVCs, setAvailablePVCs] = useState<PvcsPVCListItem[]>([]);
+  const [storageClasses, setStorageClasses] = useState<StorageclassesStorageClassListItem[]>([]);
   const [editingMountPath, setEditingMountPath] = useState<number | null>(null);
   const [editMountPathValue, setEditMountPathValue] = useState('');
   const [expandedVolumes, setExpandedVolumes] = useState<Set<string>>(new Set());
@@ -80,11 +83,20 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
         const response = await api.pvc.listPvCs(selectedNamespace);
         setAvailablePVCs(response.data);
       } catch {
-        // PVC list unavailable - user can still create volumes manually
+        // PVC list unavailable
+      }
+    };
+    const fetchStorageClasses = async () => {
+      try {
+        const response = await api.storageClasses.listStorageClasses();
+        setStorageClasses(response.data);
+      } catch {
+        // Storage classes unavailable - group labels will fall back to raw names
       }
     };
     fetchPVCs();
-  }, [api.pvc, selectedNamespace]);
+    fetchStorageClasses();
+  }, [api.pvc, api.storageClasses, selectedNamespace]);
 
   const resetForm = useCallback(() => {
     setFormData({
@@ -135,6 +147,14 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
   }, [deleteIndex, volumes, setVolumes]);
 
   const mountedPaths = useMemo(() => new Set(volumes.map((v) => v.mountPath)), [volumes]);
+
+  const allExcludedPvcNames = useMemo(() => {
+    const set = new Set(excludedPvcNames);
+    for (const v of volumes) {
+      set.add(v.pvcName);
+    }
+    return set;
+  }, [excludedPvcNames, volumes]);
 
   const handleAttachPVC = useCallback(
     (pvc: PvcsPVCListItem, mountPath: string, readOnly: boolean) => {
@@ -495,6 +515,8 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
         mountedPaths={mountedPaths}
         onAttach={handleAttachPVC}
         fixedMountPath={fixedMountPath}
+        excludedPvcNames={allExcludedPvcNames}
+        storageClasses={storageClasses}
       />
     </>
   );
