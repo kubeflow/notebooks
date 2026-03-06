@@ -37,7 +37,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	commonModels "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/pvcs"
 )
@@ -79,8 +78,8 @@ var _ = Describe("PVCs Handler", func() {
 					Name:      pvcName1,
 					Namespace: namespaceName1,
 					Labels: map[string]string{
-						common.LabelCanMount:  "true",
-						common.LabelCanUpdate: "true",
+						commonModels.LabelCanMount:  "true",
+						commonModels.LabelCanUpdate: "true",
 					},
 				},
 				Spec: corev1.PersistentVolumeClaimSpec{
@@ -102,7 +101,7 @@ var _ = Describe("PVCs Handler", func() {
 					Name:      pvcName2,
 					Namespace: namespaceName1,
 					Labels: map[string]string{
-						common.LabelCanMount: "true",
+						commonModels.LabelCanMount: "true",
 					},
 				},
 				Spec: corev1.PersistentVolumeClaimSpec{
@@ -277,8 +276,8 @@ var _ = Describe("PVCs Handler", func() {
 			By("verifying the PVC was created in Kubernetes with the expected labels")
 			createdPVC := &corev1.PersistentVolumeClaim{}
 			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-create-pvc", Namespace: namespaceName1}, createdPVC)).To(Succeed())
-			Expect(createdPVC.Labels[common.LabelCanMount]).To(Equal("true"))
-			Expect(createdPVC.Labels[common.LabelCanUpdate]).To(Equal("true"))
+			Expect(createdPVC.Labels[commonModels.LabelCanMount]).To(Equal("true"))
+			Expect(createdPVC.Labels[commonModels.LabelCanUpdate]).To(Equal("true"))
 		})
 	})
 
@@ -304,8 +303,8 @@ var _ = Describe("PVCs Handler", func() {
 					Name:      "test-delete-pvc",
 					Namespace: namespaceName1,
 					Labels: map[string]string{
-						common.LabelCanMount:  "true",
-						common.LabelCanUpdate: "true",
+						commonModels.LabelCanMount:  "true",
+						commonModels.LabelCanUpdate: "true",
 					},
 				},
 				Spec: corev1.PersistentVolumeClaimSpec{
@@ -462,8 +461,8 @@ var _ = Describe("PVCs Handler", func() {
 					Name:      pvcName1,
 					Namespace: namespaceName1,
 					Labels: map[string]string{
-						common.LabelCanMount:  "true",
-						common.LabelCanUpdate: "true",
+						commonModels.LabelCanMount:  "true",
+						commonModels.LabelCanUpdate: "true",
 					},
 				},
 				Spec: corev1.PersistentVolumeClaimSpec{
@@ -487,7 +486,7 @@ var _ = Describe("PVCs Handler", func() {
 					Name:      pvcName2,
 					Namespace: namespaceName1,
 					Labels: map[string]string{
-						common.LabelCanMount: "true",
+						commonModels.LabelCanMount: "true",
 					},
 				},
 				Spec: corev1.PersistentVolumeClaimSpec{

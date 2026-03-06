@@ -17,8 +17,9 @@ limitations under the License.
 package storageclasses
 
 import (
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	storagev1 "k8s.io/api/storage/v1"
+
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 )
 
 // NewStorageClassListItemFromStorageClass creates a new StorageClassListItem model from a StorageClass object.

@@ -17,9 +17,10 @@ limitations under the License.
 package pvcs
 
 import (
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
+
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 )
 
 // PVCListItem represents a PVC in the list response with comprehensive metadata

@@ -17,8 +17,9 @@ limitations under the License.
 package workspaces
 
 import (
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 )
 
 // WorkspaceListItem represents a workspace in the system, and is returned by LIST operations.
