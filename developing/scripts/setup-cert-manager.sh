@@ -24,6 +24,17 @@ kubectl wait --for=condition=ready pod \
   -n cert-manager \
   --timeout=120s
 
+kubectl wait deployment.apps --for condition=Available \
+  --selector app.kubernetes.io/instance=cert-manager \
+  --all-namespaces \
+  --timeout=120s
+
+kubectl wait endpointslice \
+  --for="jsonpath=endpoints[0].targetRef.kind=Pod" \
+  --selector app.kubernetes.io/instance=cert-manager \
+  --all-namespaces \
+  --timeout=120s
+
 # Also wait for the CRDs to be established
 kubectl wait --for=condition=established crd/certificates.cert-manager.io --timeout=60s
 kubectl wait --for=condition=established crd/issuers.cert-manager.io --timeout=60s

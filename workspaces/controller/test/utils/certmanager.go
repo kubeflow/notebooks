@@ -79,8 +79,8 @@ func WaitCertManagerRunning() error {
 	// Wait for the cert-manager Endpoints to be ready
 	// NOTE: the webhooks will not function correctly until this is ready
 	cmd = exec.Command("kubectl", "wait",
-		"endpoints",
-		"--for", "jsonpath=subsets[0].addresses[0].targetRef.kind=Pod",
+		"endpointslice",
+		"--for", "jsonpath=endpoints[0].targetRef.kind=Pod",
 		"--selector", "app.kubernetes.io/instance=cert-manager",
 		"--all-namespaces",
 		"--timeout", "2m",
