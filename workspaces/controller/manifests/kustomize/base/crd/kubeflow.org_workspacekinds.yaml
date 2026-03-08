@@ -4445,6 +4445,9 @@ spec:
                            - we will not show this WorkspaceKind in the Spawner UI
                              if the SA does not exist in the Namespace
                         example: default-editor
+                        maxLength: 253
+                        minLength: 1
+                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                         type: string
                         x-kubernetes-validations:
                         - message: ServiceAccount 'name' is immutable
