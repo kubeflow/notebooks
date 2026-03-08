@@ -247,6 +247,11 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 
 	createdWorkspace, err := a.repositories.Workspace.CreateWorkspace(r.Context(), workspaceCreate, namespace)
 	if err != nil {
+		if helper.IsInternalValidationError(err) {
+			fieldErrs := helper.FieldErrorsFromInternalValidationError(err)
+			a.failedValidationResponse(w, r, errMsgInternalValidation, fieldErrs, nil)
+			return
+		}
 		if errors.Is(err, repository.ErrWorkspaceAlreadyExists) {
 			causes := helper.StatusCausesFromAPIStatus(err)
 			a.conflictResponse(w, r, err, causes)
@@ -353,6 +358,11 @@ func (a *App) UpdateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 	if err != nil {
 		if errors.Is(err, repository.ErrWorkspaceNotFound) {
 			a.notFoundResponse(w, r)
+			return
+		}
+		if helper.IsInternalValidationError(err) {
+			fieldErrs := helper.FieldErrorsFromInternalValidationError(err)
+			a.failedValidationResponse(w, r, errMsgInternalValidation, fieldErrs, nil)
 			return
 		}
 		if errors.Is(err, repository.ErrWorkspaceRevisionConflict) {

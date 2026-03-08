@@ -1832,7 +1832,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "requests": {
-                    "$ref": "#/definitions/pvcs.StorageRequests"
+                    "$ref": "#/definitions/pvcs.StorageRequestsMutate"
                 },
                 "storageClassName": {
                     "type": "string"
@@ -2012,6 +2012,17 @@ const docTemplate = `{
             }
         },
         "pvcs.StorageRequests": {
+            "type": "object",
+            "required": [
+                "storage"
+            ],
+            "properties": {
+                "storage": {
+                    "type": "string"
+                }
+            }
+        },
+        "pvcs.StorageRequestsMutate": {
             "type": "object",
             "required": [
                 "storage"

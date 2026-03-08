@@ -139,6 +139,12 @@ type PodVolumesMutate struct {
 func (p *PodVolumesMutate) Validate(prefix *field.Path) []*field.Error {
 	var errs []*field.Error
 
+	// validate the home volume
+	homePath := prefix.Child("home")
+	if p.Home != nil {
+		errs = append(errs, helper.ValidateKubernetesPVCName(homePath, *p.Home)...)
+	}
+
 	// validate the data volumes
 	dataVolumesPath := prefix.Child("data")
 	for i, volume := range p.Data {
@@ -168,7 +174,7 @@ func (p *PodVolumeMount) Validate(prefix *field.Path) []*field.Error {
 
 	// validate the PVC name
 	pvcNamePath := prefix.Child("pvcName")
-	errs = append(errs, helper.ValidateFieldIsNotEmpty(pvcNamePath, p.PVCName)...)
+	errs = append(errs, helper.ValidateKubernetesPVCName(pvcNamePath, p.PVCName)...)
 
 	// validate the mount path
 	mountPath := prefix.Child("mountPath")
@@ -189,7 +195,7 @@ func (p *PodSecretMount) Validate(prefix *field.Path) []*field.Error {
 
 	// validate the secret name
 	secretNamePath := prefix.Child("secretName")
-	errs = append(errs, helper.ValidateFieldIsNotEmpty(secretNamePath, p.SecretName)...)
+	errs = append(errs, helper.ValidateKubernetesSecretName(secretNamePath, p.SecretName)...)
 
 	// validate the mount path
 	mountPath := prefix.Child("mountPath")

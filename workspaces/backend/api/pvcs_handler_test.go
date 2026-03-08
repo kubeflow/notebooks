@@ -43,6 +43,15 @@ import (
 
 var _ = Describe("PVCs Handler", func() {
 
+	//
+	// TODO: add test which fails when CREATING a PVC that references a StorageClass that does not
+	//       have the `notebooks.kubeflow.org/can-use=true` label.
+	//
+	//
+	// TODO: add test which fails when DELETING a PVC that does not
+	//       have the `notebooks.kubeflow.org/can-update=true` label.
+	//
+
 	// NOTE: the tests in this context work on the same resources, they must be run in order.
 	//       also, they assume a specific state of the cluster, so cannot be run in parallel with other tests.
 	//       therefore, we run them using the `Ordered` and `Serial` Ginkgo decorators.
@@ -232,7 +241,7 @@ var _ = Describe("PVCs Handler", func() {
 				Name:             "test-create-pvc",
 				AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 				StorageClassName: "standard",
-				Requests: models.StorageRequests{
+				Requests: models.StorageRequestsMutate{
 					Storage: "10Gi",
 				},
 			}

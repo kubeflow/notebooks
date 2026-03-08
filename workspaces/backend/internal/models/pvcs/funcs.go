@@ -30,7 +30,7 @@ func NewPVCCreateModelFromPVC(pvc *corev1.PersistentVolumeClaim) *PVCCreate {
 		Name:             pvc.Name,
 		AccessModes:      pvc.Spec.AccessModes,
 		StorageClassName: ptr.Deref(pvc.Spec.StorageClassName, ""),
-		Requests: StorageRequests{
+		Requests: StorageRequestsMutate{
 			Storage: pvc.Spec.Resources.Requests.Storage().String(),
 		},
 	}

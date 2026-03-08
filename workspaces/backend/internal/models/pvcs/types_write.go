@@ -18,6 +18,7 @@ package pvcs
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
@@ -28,7 +29,7 @@ type PVCCreate struct {
 	Name             string                              `json:"name"`
 	AccessModes      []corev1.PersistentVolumeAccessMode `json:"accessModes"`
 	StorageClassName string                              `json:"storageClassName"`
-	Requests         StorageRequests                     `json:"requests"`
+	Requests         StorageRequestsMutate               `json:"requests"`
 }
 
 // Validate validates the PVCCreate struct.
@@ -38,21 +39,39 @@ func (p *PVCCreate) Validate(prefix *field.Path) []*field.Error {
 
 	// validate the PVC name
 	namePath := prefix.Child("name")
-	errs = append(errs, helper.ValidateFieldIsDNS1123Subdomain(namePath, p.Name)...)
+	errs = append(errs, helper.ValidateKubernetesPVCName(namePath, p.Name)...)
 
 	// validate the access modes
 	accessModesPath := prefix.Child("accessModes")
 	if len(p.AccessModes) == 0 {
-		errs = append(errs, field.Required(accessModesPath, ""))
+		errs = append(errs, field.Required(accessModesPath, "at least one access mode is required"))
 	}
 
 	// validate the storage class name
 	storageClassNamePath := prefix.Child("storageClassName")
-	errs = append(errs, helper.ValidateFieldIsNotEmpty(storageClassNamePath, p.StorageClassName)...)
+	errs = append(errs, helper.ValidateKubernetesStorageClassName(storageClassNamePath, p.StorageClassName)...)
+
+	// validate the storage requests
+	storageRequestsPath := prefix.Child("requests")
+	errs = append(errs, p.Requests.Validate(storageRequestsPath)...)
+
+	return errs
+}
+
+type StorageRequestsMutate struct {
+	Storage string `json:"storage"`
+}
+
+// Validate validates the StorageRequestsMutate struct.
+func (s *StorageRequestsMutate) Validate(prefix *field.Path) []*field.Error {
+	var errs []*field.Error
 
 	// validate the storage request
-	storagePath := prefix.Child("requests").Child("storage")
-	errs = append(errs, helper.ValidateFieldIsNotEmpty(storagePath, p.Requests.Storage)...)
+	storagePath := prefix.Child("storage")
+	_, err := resource.ParseQuantity(s.Storage)
+	if err != nil {
+		errs = append(errs, field.Invalid(storagePath, s.Storage, err.Error()))
+	}
 
 	return errs
 }

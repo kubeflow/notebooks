@@ -159,6 +159,11 @@ func (a *App) CreatePVCHandler(w http.ResponseWriter, r *http.Request, ps httpro
 
 	createdPVC, err := a.repositories.PVC.CreatePVC(r.Context(), pvcCreate, namespace)
 	if err != nil {
+		if helper.IsInternalValidationError(err) {
+			fieldErrs := helper.FieldErrorsFromInternalValidationError(err)
+			a.failedValidationResponse(w, r, errMsgInternalValidation, fieldErrs, nil)
+			return
+		}
 		if errors.Is(err, repository.ErrPVCAlreadyExists) {
 			causes := helper.StatusCausesFromAPIStatus(err)
 			a.conflictResponse(w, r, err, causes)
@@ -197,7 +202,7 @@ func (a *App) CreatePVCHandler(w http.ResponseWriter, r *http.Request, ps httpro
 //	@Failure		422			{object}	ErrorEnvelope	"Unprocessable Entity. Validation error."
 //	@Failure		500			{object}	ErrorEnvelope	"Internal server error"
 //	@Router			/persistentvolumeclaims/{namespace}/{name} [delete]
-func (a *App) DeletePVCHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) { //nolint:dupl
+func (a *App) DeletePVCHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(NamespacePathParam)
 	pvcName := ps.ByName(ResourceNamePathParam)
 
@@ -224,7 +229,12 @@ func (a *App) DeletePVCHandler(w http.ResponseWriter, r *http.Request, ps httpro
 		if errors.Is(err, repository.ErrPVCNotFound) {
 			a.notFoundResponse(w, r)
 			return
-		} else if apierrors.IsConflict(err) {
+		}
+		if errors.Is(err, repository.ErrPVCNotCanUpdate) {
+			a.badRequestResponse(w, r, err)
+			return
+		}
+		if apierrors.IsConflict(err) {
 			causes := helper.StatusCausesFromAPIStatus(err)
 			a.conflictResponse(w, r, err, causes)
 			return

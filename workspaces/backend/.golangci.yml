@@ -78,6 +78,9 @@ linters-settings:
       - unnamedResult
       - whyNoLint
 
+  goconst:
+    ignore-strings: "^(true|false)$"
+
   goimports:
     local-prefixes: github.com/kubeflow/notebooks/workspaces/backend
 

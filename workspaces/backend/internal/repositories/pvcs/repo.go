@@ -19,6 +19,7 @@ package pvcs
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -26,8 +27,10 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	modelsCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/pvcs"
 )
@@ -35,6 +38,7 @@ import (
 var (
 	ErrPVCNotFound      = errors.New("PVC not found")
 	ErrPVCAlreadyExists = errors.New("PVC already exists")
+	ErrPVCNotCanUpdate  = fmt.Errorf("PVC cannot be modified because it is not labeled with %s=true", modelsCommon.LabelCanUpdate)
 )
 
 type PVCRepository struct {
@@ -188,6 +192,30 @@ func (r *PVCRepository) CreatePVC(ctx context.Context, pvcCreate *models.PVCCrea
 	// TODO: get actual user email from request context
 	actor := "mock@example.com"
 
+	var allValErrs field.ErrorList
+
+	// get and validate the storage class
+	scName := pvcCreate.StorageClassName
+	scNameField := field.NewPath("storageClassName")
+	valErrs, err := helper.ValidateKubernetesStorageClassIsUsable(ctx, r.client, scNameField, scName)
+	if err != nil {
+		return nil, err
+	}
+	allValErrs = append(allValErrs, valErrs...)
+
+	// unpack the storage request quantity and validate it
+	storageRequestString := pvcCreate.Requests.Storage
+	storageRequestField := field.NewPath("requests").Child("storage")
+	storageRequestQuantity, err := resource.ParseQuantity(storageRequestString)
+	if err != nil {
+		allValErrs = append(allValErrs, field.Invalid(storageRequestField, storageRequestString, err.Error()))
+	}
+
+	// if there are any validation errors at this point, return an aggregated error to the caller
+	if len(allValErrs) > 0 {
+		return nil, helper.NewInternalValidationError(allValErrs)
+	}
+
 	// define PVC object from model
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
@@ -200,10 +228,10 @@ func (r *PVCRepository) CreatePVC(ctx context.Context, pvcCreate *models.PVCCrea
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
 			AccessModes:      pvcCreate.AccessModes,
-			StorageClassName: &pvcCreate.StorageClassName,
+			StorageClassName: &scName,
 			Resources: corev1.VolumeResourceRequirements{
 				Requests: corev1.ResourceList{
-					corev1.ResourceStorage: resource.MustParse(pvcCreate.Requests.Storage),
+					corev1.ResourceStorage: storageRequestQuantity,
 				},
 			},
 		},
@@ -230,12 +258,28 @@ func (r *PVCRepository) CreatePVC(ctx context.Context, pvcCreate *models.PVCCrea
 }
 
 func (r *PVCRepository) DeletePVC(ctx context.Context, namespace, pvcName string) error {
+	// get and validate the current PVC from K8s
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      pvcName,
 		},
 	}
+	if err := r.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: pvcName}, pvc); err != nil {
+		if apierrors.IsNotFound(err) {
+			return ErrPVCNotFound
+		}
+		return err
+	}
+	if pvc.Labels[modelsCommon.LabelCanUpdate] != "true" {
+		return ErrPVCNotCanUpdate
+	}
+
+	//
+	// TODO: consider failing if the PVC is currently in use by a Pod/Workspace
+	//       this may help prevent users putting the PVC into a deleting state,
+	//       which can not be easily undone.
+	//
 
 	// NOTE: if the PVC is in use by a pod, Kubernetes will accept the delete request
 	//       but defer actual deletion until the PVC is no longer mounted (storage object in use protection)
