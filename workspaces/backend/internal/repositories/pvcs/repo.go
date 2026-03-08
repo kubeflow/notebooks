@@ -98,7 +98,7 @@ func (r *PVCRepository) GetPVCs(ctx context.Context, namespace string) ([]models
 		// we use the PVC storage class name so that we can show the requested storage class in the UI, even if a PV is not yet bound.
 		sc := &storagev1.StorageClass{}
 		if pvc.Spec.StorageClassName != nil && *pvc.Spec.StorageClassName != "" {
-			if err := r.client.Get(ctx, client.ObjectKey{Name: pv.Spec.StorageClassName}, sc); err != nil {
+			if err := r.client.Get(ctx, client.ObjectKey{Name: *pvc.Spec.StorageClassName}, sc); err != nil {
 				// ignore error if StorageClass does not exist, as we can still create a model without it
 				if !apierrors.IsNotFound(err) {
 					return nil, err

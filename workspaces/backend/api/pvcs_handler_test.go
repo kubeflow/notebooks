@@ -204,7 +204,11 @@ var _ = Describe("PVCs Handler", func() {
 	//       therefore, we run them using the `Ordered` and `Serial` Ginkgo decorators.
 	Context("when creating PVCs", Serial, Ordered, func() {
 
-		const namespaceName1 = "pvc-create-ns1"
+		const (
+			namespaceName1   = "pvc-create-ns1"
+			storageClassName = "standard"
+			pvcCreateName    = "test-create-pvc"
+		)
 
 		BeforeAll(func() {
 			By("creating Namespace 1")
@@ -214,17 +218,37 @@ var _ = Describe("PVCs Handler", func() {
 				},
 			}
 			Expect(k8sClient.Create(ctx, namespace1)).To(Succeed())
+
+			By("creating the StorageClass")
+			sc := &storagev1.StorageClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: storageClassName,
+					Labels: map[string]string{
+						commonModels.LabelCanUse: "true",
+					},
+				},
+				Provisioner: "kubernetes.io/no-provisioner",
+			}
+			Expect(k8sClient.Create(ctx, sc)).To(Succeed())
 		})
 
 		AfterAll(func() {
 			By("deleting test PVC")
 			pvc := &corev1.PersistentVolumeClaim{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-create-pvc",
+					Name:      pvcCreateName,
 					Namespace: namespaceName1,
 				},
 			}
 			Expect(k8sClient.Delete(ctx, pvc)).To(Succeed())
+
+			By("deleting the StorageClass")
+			sc := &storagev1.StorageClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: storageClassName,
+				},
+			}
+			Expect(k8sClient.Delete(ctx, sc)).To(Succeed())
 
 			By("deleting Namespace 1")
 			namespace1 := &corev1.Namespace{
@@ -238,9 +262,9 @@ var _ = Describe("PVCs Handler", func() {
 		It("should create a PVC successfully", func() {
 			By("creating the HTTP request body")
 			pvcCreate := &models.PVCCreate{
-				Name:             "test-create-pvc",
+				Name:             pvcCreateName,
 				AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-				StorageClassName: "standard",
+				StorageClassName: storageClassName,
 				Requests: models.StorageRequestsMutate{
 					Storage: "10Gi",
 				},
