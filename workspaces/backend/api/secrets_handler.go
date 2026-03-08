@@ -70,13 +70,13 @@ func (a *App) GetSecretsByNamespaceHandler(w http.ResponseWriter, r *http.Reques
 	}
 	// ============================================================
 
-	secretList, err := a.repositories.Secret.GetSecrets(r.Context(), namespace)
+	secrets, err := a.repositories.Secret.GetSecrets(r.Context(), namespace)
 	if err != nil {
 		a.serverErrorResponse(w, r, err)
 		return
 	}
 
-	responseEnvelope := &SecretListEnvelope{Data: secretList}
+	responseEnvelope := &SecretListEnvelope{Data: secrets}
 	a.dataResponse(w, r, responseEnvelope)
 }
 
@@ -120,7 +120,6 @@ func (a *App) GetSecretHandler(w http.ResponseWriter, r *http.Request, ps httpro
 
 	secret, err := a.repositories.Secret.GetSecret(r.Context(), namespace, secretName)
 	if err != nil {
-		// Check if it's a not found error
 		if errors.Is(err, repository.ErrSecretNotFound) {
 			a.notFoundResponse(w, r)
 			return
@@ -214,11 +213,20 @@ func (a *App) CreateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 	// ============================================================
 
 	// create the secret
-	secret, err := a.repositories.Secret.CreateSecret(r.Context(), actor, secretCreate, namespace)
+	createdSecret, err := a.repositories.Secret.CreateSecret(r.Context(), actor, secretCreate, namespace)
 	if err != nil {
+		if errors.Is(err, models.ErrSecretBase64Invalid) {
+			a.badRequestResponse(w, r, err)
+			return
+		}
 		if errors.Is(err, repository.ErrSecretAlreadyExists) {
 			causes := helper.StatusCausesFromAPIStatus(err)
 			a.conflictResponse(w, r, err, causes)
+			return
+		}
+		if apierrors.IsInvalid(err) {
+			causes := helper.StatusCausesFromAPIStatus(err)
+			a.failedValidationResponse(w, r, errMsgKubernetesValidation, nil, causes)
 			return
 		}
 
@@ -227,9 +235,9 @@ func (a *App) CreateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 	}
 
 	// calculate the GET location for the created secret (for the Location header)
-	location := a.LocationGetSecret(namespace, secret.Name)
+	location := a.LocationGetSecret(namespace, createdSecret.Name)
 
-	responseEnvelope := &SecretCreateEnvelope{Data: secret}
+	responseEnvelope := &SecretCreateEnvelope{Data: createdSecret}
 	a.createdResponse(w, r, responseEnvelope, location)
 }
 
@@ -241,18 +249,19 @@ func (a *App) CreateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 //	@ID				updateSecret
 //	@Accept			json
 //	@Produce		json
-//	@Param			namespace	path		string				true	"Namespace name"
-//	@Param			name		path		string				true	"Secret name"
-//	@Param			secret		body		models.SecretUpdate	true	"Secret update request"
-//	@Success		200			{object}	SecretEnvelope		"Secret updated successfully"
-//	@Failure		400			{object}	ErrorEnvelope		"Bad request"
-//	@Failure		401			{object}	ErrorEnvelope		"Unauthorized"
-//	@Failure		403			{object}	ErrorEnvelope		"Forbidden"
-//	@Failure		404			{object}	ErrorEnvelope		"Secret not found"
-//	@Failure		413			{object}	ErrorEnvelope		"Request Entity Too Large. The request body is too large."
-//	@Failure		415			{object}	ErrorEnvelope		"Unsupported Media Type. Content-Type header is not correct."
-//	@Failure		422			{object}	ErrorEnvelope		"Unprocessable Entity. Validation error."
-//	@Failure		500			{object}	ErrorEnvelope		"Internal server error"
+//	@Param			namespace	path		string			true	"Namespace name"
+//	@Param			name		path		string			true	"Secret name"
+//	@Param			secret		body		SecretEnvelope	true	"Secret update request"
+//	@Success		200			{object}	SecretEnvelope	"Secret updated successfully"
+//	@Failure		400			{object}	ErrorEnvelope	"Bad request"
+//	@Failure		401			{object}	ErrorEnvelope	"Unauthorized"
+//	@Failure		403			{object}	ErrorEnvelope	"Forbidden"
+//	@Failure		404			{object}	ErrorEnvelope	"Secret not found"
+//	@Failure		409			{object}	ErrorEnvelope	"Conflict"
+//	@Failure		413			{object}	ErrorEnvelope	"Request Entity Too Large. The request body is too large."
+//	@Failure		415			{object}	ErrorEnvelope	"Unsupported Media Type. Content-Type header is not correct."
+//	@Failure		422			{object}	ErrorEnvelope	"Unprocessable Entity. Validation error."
+//	@Failure		500			{object}	ErrorEnvelope	"Internal server error"
 //	@Router			/secrets/{namespace}/{name} [put]
 func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(constants.NamespacePathParam)
@@ -316,17 +325,30 @@ func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 	// give the request data a clear name
 	secretUpdate := bodyEnvelope.Data
 
-	secret, err := a.repositories.Secret.UpdateSecret(r.Context(), actor, secretUpdate, namespace, secretName)
+	updatedSecret, err := a.repositories.Secret.UpdateSecret(r.Context(), actor, secretUpdate, namespace, secretName)
 	if err != nil {
+		if errors.Is(err, models.ErrSecretBase64Invalid) {
+			a.badRequestResponse(w, r, err)
+			return
+		}
 		if errors.Is(err, repository.ErrSecretNotFound) {
 			a.notFoundResponse(w, r)
+			return
+		}
+		if errors.Is(err, repository.ErrSecretNotCanUpdate) {
+			a.badRequestResponse(w, r, err)
+			return
+		}
+		if apierrors.IsInvalid(err) {
+			causes := helper.StatusCausesFromAPIStatus(err)
+			a.failedValidationResponse(w, r, errMsgKubernetesValidation, nil, causes)
 			return
 		}
 		a.serverErrorResponse(w, r, fmt.Errorf("error updating secret: %w", err))
 		return
 	}
 
-	responseEnvelope := &SecretEnvelope{Data: secret}
+	responseEnvelope := &SecretEnvelope{Data: updatedSecret}
 	a.dataResponse(w, r, responseEnvelope)
 }
 
@@ -336,13 +358,15 @@ func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 //	@Description	Deletes a specific secret identified by namespace and name.
 //	@Tags			secrets
 //	@ID				deleteSecret
-//	@Accept			json
 //	@Param			namespace	path	string	true	"Namespace name"	extensions(x-example=my-namespace)
 //	@Param			name		path	string	true	"Secret name"		extensions(x-example=my-secret)
 //	@Success		204			"No Content"
+//	@Failure		400			{object}	ErrorEnvelope	"Bad request"
 //	@Failure		401			{object}	ErrorEnvelope	"Unauthorized"
 //	@Failure		403			{object}	ErrorEnvelope	"Forbidden"
 //	@Failure		404			{object}	ErrorEnvelope	"Secret not found"
+//	@Failure		409			{object}	ErrorEnvelope	"Conflict"
+//	@Failure		422			{object}	ErrorEnvelope	"Unprocessable Entity. Validation error."
 //	@Failure		500			{object}	ErrorEnvelope	"Internal server error"
 //	@Router			/secrets/{namespace}/{name} [delete]
 func (a *App) DeleteSecretHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -372,7 +396,12 @@ func (a *App) DeleteSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 		if errors.Is(err, repository.ErrSecretNotFound) {
 			a.notFoundResponse(w, r)
 			return
-		} else if apierrors.IsConflict(err) {
+		}
+		if errors.Is(err, repository.ErrSecretNotCanUpdate) {
+			a.badRequestResponse(w, r, err)
+			return
+		}
+		if apierrors.IsConflict(err) {
 			causes := helper.StatusCausesFromAPIStatus(err)
 			a.conflictResponse(w, r, err, causes)
 			return

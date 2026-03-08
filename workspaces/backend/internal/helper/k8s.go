@@ -22,6 +22,7 @@ import (
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/selection"
@@ -133,4 +134,57 @@ func BuildImageSourceConfigMapClient(mgr ctrl.Manager) (client.Client, error) {
 	}
 
 	return configMapClient, nil
+}
+
+// BuildSecretMetadataClient creates a client backed by a metadata-only cache for Secrets.
+// This cache stores only the ObjectMeta of each Secret (name, labels, annotations, etc.)
+// and does NOT store secret data values, making it safe for high-cardinality and sensitive resources.
+//
+// NOTE: this client can ONLY be used with PartialObjectMetadata types for Secrets.
+//
+//	it will fail if used with full Secret objects or other resource types.
+//
+// References:
+//   - https://github.com/kubernetes-sigs/controller-runtime/issues/2570#issuecomment-2471247755
+func BuildSecretMetadataClient(mgr ctrl.Manager) (client.Client, error) {
+	secretMeta := &metav1.PartialObjectMetadata{}
+	secretMeta.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("Secret"))
+
+	secretMetadataCacheOpts := cache.Options{
+		HTTPClient: mgr.GetHTTPClient(),
+		Scheme:     mgr.GetScheme(),
+		Mapper:     mgr.GetRESTMapper(),
+		ByObject: map[client.Object]cache.ByObject{
+			secretMeta: {},
+		},
+		ReaderFailOnMissingInformer: true,
+	}
+	secretMetadataCache, err := cache.New(mgr.GetConfig(), secretMetadataCacheOpts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Secret metadata cache: %w", err)
+	}
+
+	_, err = secretMetadataCache.GetInformer(context.Background(), secretMeta)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get Secret metadata informer: %w", err)
+	}
+
+	err = mgr.Add(secretMetadataCache)
+	if err != nil {
+		return nil, fmt.Errorf("failed to add Secret metadata cache to manager: %w", err)
+	}
+
+	secretMetadataClient, err := client.New(mgr.GetConfig(), client.Options{
+		HTTPClient: mgr.GetHTTPClient(),
+		Scheme:     mgr.GetScheme(),
+		Mapper:     mgr.GetRESTMapper(),
+		Cache: &client.CacheOptions{
+			Reader: secretMetadataCache,
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Secret metadata client: %w", err)
+	}
+
+	return secretMetadataClient, nil
 }

@@ -17,6 +17,7 @@ limitations under the License.
 package secrets
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
@@ -30,71 +31,36 @@ type SecretValue struct {
 // SecretData represents a map of secret key-value pairs
 type SecretData map[string]SecretValue
 
-// secretBase represents the common fields shared between SecretCreate and SecretUpdate
-type secretBase struct {
-	Type      string     `json:"type"`
-	Immutable bool       `json:"immutable"`
-	Contents  SecretData `json:"contents"`
-}
-
 // SecretCreate is used to create a new secret.
 type SecretCreate struct {
-	Name string `json:"name"`
-	secretBase
+	Name      string            `json:"name"`
+	Type      corev1.SecretType `json:"type"`
+	Immutable bool              `json:"immutable"`
+	Contents  SecretData        `json:"contents"`
 }
 
-// SecretUpdate represents the request body for updating a secret
+// SecretUpdate represents the request body for updating a secret.
 type SecretUpdate struct {
-	secretBase
-}
-
-// NewSecretCreate creates a new SecretCreate with the specified fields.
-// TODO: remove this function, as its not used in real code, only tests
-// also because we should not need the "secretBase" field in the constructor
-func NewSecretCreate(name, secretType string, immutable bool, contents SecretData) SecretCreate {
-	return SecretCreate{
-		Name: name,
-		secretBase: secretBase{
-			Type:      secretType,
-			Immutable: immutable,
-			Contents:  contents,
-		},
-	}
-}
-
-// NewSecretUpdate creates a new SecretUpdate with the specified fields.
-// TODO: remove this function, as its not used in real code, only tests
-// also because we should not need the "secretBase" field in the constructor
-func NewSecretUpdate(secretType string, immutable bool, contents SecretData) SecretUpdate {
-	return SecretUpdate{
-		secretBase: secretBase{
-			Type:      secretType,
-			Immutable: immutable,
-			Contents:  contents,
-		},
-	}
+	Type      corev1.SecretType `json:"type"`
+	Immutable bool              `json:"immutable"`
+	Contents  SecretData        `json:"contents"`
 }
 
 // Validate validates the SecretCreate struct.
 // NOTE: we only do basic validation, more complex validation is done by Kubernetes when attempting to create the secret.
 func (s *SecretCreate) Validate(prefix *field.Path) []*field.Error {
 	var errs []*field.Error
-
-	// validate the secret name
-	namePath := prefix.Child("name")
-	errs = append(errs, helper.ValidateKubernetesSecretName(namePath, s.Name)...)
-
-	// validate common fields (type and contents)
-	errs = append(errs, s.secretBase.validateBase(prefix)...)
-
+	errs = append(errs, helper.ValidateKubernetesSecretName(prefix.Child("name"), s.Name)...)
+	errs = append(errs, s.Contents.Validate(prefix.Child("contents"))...)
 	return errs
 }
 
 // Validate validates the SecretUpdate struct.
 // NOTE: we only do basic validation, more complex validation is done by Kubernetes when attempting to update the secret.
 func (s *SecretUpdate) Validate(prefix *field.Path) []*field.Error {
-	// validate common fields (type and contents)
-	return s.secretBase.validateBase(prefix)
+	var errs []*field.Error
+	errs = append(errs, s.Contents.Validate(prefix.Child("contents"))...)
+	return errs
 }
 
 // Validate validates the SecretData struct.
@@ -110,16 +76,6 @@ func (s *SecretData) Validate(prefix *field.Path) []*field.Error {
 		keyPath := prefix.Child(key)
 		errs = append(errs, helper.ValidateFieldIsConfigMapKey(keyPath, key)...)
 	}
-
-	return errs
-}
-
-// validateBase validates the common fields of a secret (contents).
-func (sb *secretBase) validateBase(prefix *field.Path) []*field.Error {
-	var errs []*field.Error
-
-	contentsPath := prefix.Child("contents")
-	errs = append(errs, sb.Contents.Validate(contentsPath)...)
 
 	return errs
 }
