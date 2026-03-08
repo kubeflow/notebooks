@@ -35,15 +35,14 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/utils/ptr"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
@@ -127,13 +126,12 @@ var _ = BeforeSuite(func() {
 		},
 	})).To(Succeed())
 
-	By("setting up the controller manager")
-	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme: scheme.Scheme,
-		Metrics: metricsserver.Options{
-			BindAddress: "0", // disable metrics serving
-		},
-	})
+	By("setting up the controller manager (with Secret caching disabled)")
+	k8sManager, err := helper.NewManager(cfg, scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
+	By("creating the Secret metadata client")
+	secretMetadataClient, err := helper.BuildSecretMetadataClient(k8sManager)
 	Expect(err).NotTo(HaveOccurred())
 
 	By("initializing the application logger")
@@ -149,7 +147,7 @@ var _ = BeforeSuite(func() {
 
 	By("creating the application")
 	// NOTE: we use the `k8sClient` rather than `k8sManager.GetClient()` to avoid race conditions with the cached client
-	a, err = NewApp(&config.EnvConfig{}, appLogger, k8sClient, k8sManager.GetScheme(), reqAuthN, reqAuthZ)
+	a, err = NewApp(&config.EnvConfig{}, appLogger, k8sClient, secretMetadataClient, k8sManager.GetScheme(), reqAuthN, reqAuthZ)
 	Expect(err).NotTo(HaveOccurred())
 
 	go func() {

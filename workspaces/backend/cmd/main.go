@@ -23,7 +23,6 @@ import (
 	"strconv"
 
 	ctrl "sigs.k8s.io/controller-runtime"
-	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	application "github.com/kubeflow/notebooks/workspaces/backend/api"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
@@ -144,17 +143,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Create the controller manager
-	mgr, err := ctrl.NewManager(kubeconfig, ctrl.Options{
-		Scheme: scheme,
-		Metrics: metricsserver.Options{
-			BindAddress: "0", // disable metrics serving
-		},
-		HealthProbeBindAddress: "0", // disable health probe serving
-		LeaderElection:         false,
-	})
+	// Create the controller manager (with Secret caching disabled)
+	mgr, err := helper.NewManager(kubeconfig, scheme)
 	if err != nil {
 		logger.Error("unable to create manager", "error", err)
+		os.Exit(1)
+	}
+
+	// Create a metadata-only cached client for listing Secrets
+	secretMetadataClient, err := helper.BuildSecretMetadataClient(mgr)
+	if err != nil {
+		logger.Error("failed to create Secret metadata client", "error", err)
 		os.Exit(1)
 	}
 
@@ -172,7 +171,7 @@ func main() {
 	}
 
 	// Create the application and server
-	app, err := application.NewApp(cfg, logger, mgr.GetClient(), mgr.GetScheme(), reqAuthN, reqAuthZ)
+	app, err := application.NewApp(cfg, logger, mgr.GetClient(), secretMetadataClient, mgr.GetScheme(), reqAuthN, reqAuthZ)
 	if err != nil {
 		logger.Error("failed to create app", "error", err)
 		os.Exit(1)

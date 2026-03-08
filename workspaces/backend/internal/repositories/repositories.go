@@ -40,12 +40,13 @@ type Repositories struct {
 }
 
 // NewRepositories creates a new Repositories instance from a controller-runtime client.
-func NewRepositories(cl client.Client) *Repositories {
+// secretMetadataClient is a metadata-only cached client for listing Secrets without caching sensitive data.
+func NewRepositories(cl client.Client, secretMetadataClient client.Client) *Repositories {
 	return &Repositories{
 		HealthCheck:   health_check.NewHealthCheckRepository(),
 		Namespace:     namespaces.NewNamespaceRepository(cl),
 		PVC:           pvcs.NewPVCRepository(cl),
-		Secret:        secrets.NewSecretRepository(cl),
+		Secret:        secrets.NewSecretRepository(cl, secretMetadataClient),
 		StorageClass:  storageclasses.NewStorageClassRepository(cl),
 		Workspace:     workspaces.NewWorkspaceRepository(cl),
 		WorkspaceKind: workspacekinds.NewWorkspaceKindRepository(cl),
