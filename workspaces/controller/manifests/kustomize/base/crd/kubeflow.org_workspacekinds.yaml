@@ -2424,7 +2424,7 @@ spec:
                                             example: jupyterlab
                                             maxLength: 32
                                             minLength: 1
-                                            pattern: ^[a-z0-9][a-z0-9_-]*[a-z0-9]$
+                                            pattern: ^[a-z0-9]([a-z0-9_-]*[a-z0-9])?$
                                             type: string
                                           port:
                                             description: the port number
@@ -3747,7 +3747,7 @@ spec:
                           example: jupyterlab
                           maxLength: 32
                           minLength: 1
-                          pattern: ^[a-z0-9][a-z0-9_-]*[a-z0-9]$
+                          pattern: ^[a-z0-9]([a-z0-9_-]*[a-z0-9])?$
                           type: string
                         protocol:
                           description: the protocol of the port

@@ -33,7 +33,7 @@ import (
 //
 // +kubebuilder:validation:MinLength:=1
 // +kubebuilder:validation:MaxLength:=32
-// +kubebuilder:validation:Pattern:=^[a-z0-9][a-z0-9_-]*[a-z0-9]$
+// +kubebuilder:validation:Pattern:=^[a-z0-9]([a-z0-9_-]*[a-z0-9])?$
 type PortId string
 
 // WorkspaceKindSpec defines the desired state of WorkspaceKind
