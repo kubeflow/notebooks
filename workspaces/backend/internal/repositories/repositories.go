@@ -41,12 +41,14 @@ type Repositories struct {
 }
 
 // NewRepositories creates a new Repositories instance from a controller-runtime client.
-func NewRepositories(cfg *config.EnvConfig, cl client.Client, configMapClient client.Client) *Repositories {
+// configMapClient is a label-filtered cached client for image-source ConfigMaps.
+// secretMetadataClient is a metadata-only cached client for listing Secrets without caching sensitive data.
+func NewRepositories(cfg *config.EnvConfig, cl client.Client, configMapClient client.Client, secretMetadataClient client.Client) *Repositories {
 	return &Repositories{
 		HealthCheck:   health_check.NewHealthCheckRepository(cfg),
 		Namespace:     namespaces.NewNamespaceRepository(cfg, cl),
 		PVC:           pvcs.NewPVCRepository(cfg, cl),
-		Secret:        secrets.NewSecretRepository(cfg, cl),
+		Secret:        secrets.NewSecretRepository(cfg, cl, secretMetadataClient),
 		StorageClass:  storageclasses.NewStorageClassRepository(cfg, cl),
 		Workspace:     workspaces.NewWorkspaceRepository(cfg, cl),
 		WorkspaceKind: workspacekinds.NewWorkspaceKindRepository(cfg, cl, configMapClient),

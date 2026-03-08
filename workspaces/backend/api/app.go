@@ -44,8 +44,10 @@ type App struct {
 	RequestAuthZ         authorizer.Authorizer
 }
 
-// NewApp creates a new instance of the app
-func NewApp(cfg *config.EnvConfig, logger *slog.Logger, cl client.Client, configMapClient client.Client, scheme *runtime.Scheme, reqAuthN authenticator.Request, reqAuthZ authorizer.Authorizer) (*App, error) {
+// NewApp creates a new instance of the app.
+// configMapClient is a label-filtered cached client for image-source ConfigMaps.
+// secretMetadataClient is a metadata-only cached client for listing Secrets without caching sensitive data.
+func NewApp(cfg *config.EnvConfig, logger *slog.Logger, cl client.Client, configMapClient client.Client, secretMetadataClient client.Client, scheme *runtime.Scheme, reqAuthN authenticator.Request, reqAuthZ authorizer.Authorizer) (*App, error) {
 
 	// TODO: log the configuration on startup
 
@@ -59,7 +61,7 @@ func NewApp(cfg *config.EnvConfig, logger *slog.Logger, cl client.Client, config
 	app := &App{
 		Config:               cfg,
 		logger:               logger,
-		repositories:         repositories.NewRepositories(cfg, cl, configMapClient),
+		repositories:         repositories.NewRepositories(cfg, cl, configMapClient, secretMetadataClient),
 		Scheme:               scheme,
 		StrictYamlSerializer: yamlSerializerInfo.StrictSerializer,
 		RequestAuthN:         reqAuthN,
