@@ -609,7 +609,11 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 				if tc.workspace != nil {
 					By("creating the Workspace")
 					// NOTE: cleanup is handled in the AfterEach()
-					Expect(k8sClient.Create(ctx, tc.workspace)).To(Succeed())
+					// NOTE: we use Eventually because the webhook's cached client may not have seen
+					//       the newly created WorkspaceKind yet, causing a transient "not found" error.
+					Eventually(func() error {
+						return k8sClient.Create(ctx, tc.workspace)
+					}).Should(Succeed())
 
 					By("retrieving the Workspace")
 					workspace := &kubefloworgv1beta1.Workspace{}

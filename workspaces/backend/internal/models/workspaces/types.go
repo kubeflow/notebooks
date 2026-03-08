@@ -17,6 +17,8 @@ limitations under the License.
 package workspaces
 
 import (
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 )
 
@@ -25,30 +27,19 @@ import (
 // TODO: we need to validate which fields should actually be returned in the response
 //   - should only be returning fields relevant to the list view in the UI
 type WorkspaceListItem struct {
-	Name           string            `json:"name"`
-	Namespace      string            `json:"namespace"`
-	WorkspaceKind  WorkspaceKindInfo `json:"workspaceKind"`
-	Paused         bool              `json:"paused"`
-	PausedTime     int64             `json:"pausedTime"`
-	PendingRestart bool              `json:"pendingRestart"`
-	State          WorkspaceState    `json:"state"`
-	StateMessage   string            `json:"stateMessage"`
-	PodTemplate    PodTemplate       `json:"podTemplate"`
-	Activity       Activity          `json:"activity"`
-	Services       []Service         `json:"services"`
-	Audit          common.Audit      `json:"audit"`
+	Name           string                            `json:"name"`
+	Namespace      string                            `json:"namespace"`
+	WorkspaceKind  WorkspaceKindInfo                 `json:"workspaceKind"`
+	Paused         bool                              `json:"paused"`
+	PausedTime     int64                             `json:"pausedTime"`
+	PendingRestart bool                              `json:"pendingRestart"`
+	State          kubefloworgv1beta1.WorkspaceState `json:"state"`
+	StateMessage   string                            `json:"stateMessage"`
+	PodTemplate    PodTemplate                       `json:"podTemplate"`
+	Activity       Activity                          `json:"activity"`
+	Services       []Service                         `json:"services"`
+	Audit          common.Audit                      `json:"audit"`
 }
-
-type WorkspaceState string
-
-const (
-	WorkspaceStateRunning     WorkspaceState = "Running"
-	WorkspaceStateTerminating WorkspaceState = "Terminating"
-	WorkspaceStatePaused      WorkspaceState = "Paused"
-	WorkspaceStatePending     WorkspaceState = "Pending"
-	WorkspaceStateError       WorkspaceState = "Error"
-	WorkspaceStateUnknown     WorkspaceState = "Unknown"
-)
 
 type WorkspaceKindInfo struct {
 	Name    string   `json:"name"`

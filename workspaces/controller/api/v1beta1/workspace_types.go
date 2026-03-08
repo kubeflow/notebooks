@@ -257,6 +257,9 @@ type WorkspacePodStatus struct {
 	// the name of the Pod resource
 	Name string `json:"name"`
 
+	// the name of the node on which the Pod is scheduled
+	NodeName string `json:"nodeName"`
+
 	// information about the Pod's containers
 	// +kubebuilder:validation:Optional
 	Containers []WorkspacePodContainer `json:"containers,omitempty"`

@@ -38,6 +38,14 @@ import (
 // TODO: Fix tests to not rely on mocked data once repository implementation is ready
 var _ = Describe("Secrets Handler", func() {
 
+	//
+	// TODO: add test which fails when UPDATING a SECRET that does not
+	//       have the `notebooks.kubeflow.org/can-update=true` label.
+	//
+	// TODO: add test which fails when DELETING a SECRET that does not
+	//       have the `notebooks.kubeflow.org/can-update=true` label.
+	//
+
 	// NOTE: these tests assume a specific state of the cluster, so cannot be run in parallel with other tests.
 	//       therefore, we run them using the `Serial` Ginkgo decorators.
 	Context("when secrets exist", Serial, func() {

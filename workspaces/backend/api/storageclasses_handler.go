@@ -22,40 +22,40 @@ import (
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
-	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/namespaces"
+	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/storageclasses"
 )
 
-type NamespaceListEnvelope Envelope[[]models.Namespace]
+type StorageClassListEnvelope Envelope[[]models.StorageClassListItem]
 
-// GetNamespacesHandler returns a list of all namespaces in the cluster.
+// GetStorageClassesHandler returns a list of all storage classes in the cluster.
 //
-//	@Summary		List namespaces
-//	@Description	Returns a list of all namespaces in the cluster.
-//	@Tags			namespaces
-//	@ID				listNamespaces
+//	@Summary		List storage classes
+//	@Description	Returns a list of all storage classes in the cluster.
+//	@Tags			storageclasses
+//	@ID				listStorageClasses
 //	@Produce		application/json
-//	@Success		200	{object}	NamespaceListEnvelope	"Successful namespaces response"
-//	@Failure		401	{object}	ErrorEnvelope			"Unauthorized"
-//	@Failure		403	{object}	ErrorEnvelope			"Forbidden"
-//	@Failure		500	{object}	ErrorEnvelope			"Internal server error"
-//	@Router			/namespaces [get]
-func (a *App) GetNamespacesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+//	@Success		200	{object}	StorageClassListEnvelope	"Successful storage classes response"
+//	@Failure		401	{object}	ErrorEnvelope				"Unauthorized"
+//	@Failure		403	{object}	ErrorEnvelope				"Forbidden"
+//	@Failure		500	{object}	ErrorEnvelope				"Internal server error"
+//	@Router			/storageclasses [get]
+func (a *App) GetStorageClassesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(auth.VerbList, auth.Namespaces, auth.ResourcePolicyResourceMeta{}),
+		auth.NewResourcePolicy(auth.VerbList, auth.StorageClasses, auth.ResourcePolicyResourceMeta{}),
 	}
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return
 	}
 	// ============================================================
 
-	namespaces, err := a.repositories.Namespace.GetNamespaces(r.Context())
+	storageClasses, err := a.repositories.StorageClass.GetStorageClasses(r.Context())
 	if err != nil {
 		a.serverErrorResponse(w, r, err)
 		return
 	}
 
-	responseEnvelope := &NamespaceListEnvelope{Data: namespaces}
+	responseEnvelope := &StorageClassListEnvelope{Data: storageClasses}
 	a.dataResponse(w, r, responseEnvelope)
 }

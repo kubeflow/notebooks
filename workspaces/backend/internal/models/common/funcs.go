@@ -27,8 +27,12 @@ const (
 	AnnotationUpdatedAt = "notebooks.kubeflow.org/updated-at"
 	AnnotationUpdatedBy = "notebooks.kubeflow.org/updated-by"
 
+	AnnotationDisplayName = "notebooks.kubeflow.org/display-name"
+	AnnotationDescription = "notebooks.kubeflow.org/description"
+
 	LabelCanMount  = "notebooks.kubeflow.org/can-mount"
 	LabelCanUpdate = "notebooks.kubeflow.org/can-update"
+	LabelCanUse    = "notebooks.kubeflow.org/can-use"
 )
 
 // NewAuditFromObjectMeta creates an Audit instance from Kubernetes ObjectMeta.
@@ -84,4 +88,20 @@ func UpdateObjectMetaForUpdate(objectMeta *metav1.ObjectMeta, actor string, now 
 	}
 	objectMeta.Annotations[AnnotationUpdatedAt] = now.Format(time.RFC3339)
 	objectMeta.Annotations[AnnotationUpdatedBy] = actor
+}
+
+// GetDisplayNameFromObjectMeta retrieves the display name from ObjectMeta annotations, if it exists.
+func GetDisplayNameFromObjectMeta(objectMeta *metav1.ObjectMeta) string {
+	if objectMeta == nil || objectMeta.Annotations == nil {
+		return ""
+	}
+	return objectMeta.Annotations[AnnotationDisplayName]
+}
+
+// GetDescriptionFromObjectMeta retrieves the description from ObjectMeta annotations, if it exists.
+func GetDescriptionFromObjectMeta(objectMeta *metav1.ObjectMeta) string {
+	if objectMeta == nil || objectMeta.Annotations == nil {
+		return ""
+	}
+	return objectMeta.Annotations[AnnotationDescription]
 }
