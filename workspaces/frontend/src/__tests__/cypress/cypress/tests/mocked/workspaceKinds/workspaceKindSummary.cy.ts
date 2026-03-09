@@ -19,7 +19,7 @@ import {
   buildMockWorkspaceWithPodConfig,
 } from '~/__tests__/cypress/cypress/utils/testBuilders';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
-import { WorkspacesWorkspaceState } from '~/generated/data-contracts';
+import { V1Beta1WorkspaceState } from '~/generated/data-contracts';
 
 const DEFAULT_NAMESPACE = 'default';
 const NAMESPACE_A = 'namespace-a';
@@ -48,7 +48,7 @@ const setupWorkspaceKindSummary = (args: {
       count: workspaceCount,
       namespace: mockNamespace.name,
       kind: mockWorkspaceKind,
-      state: WorkspacesWorkspaceState.WorkspaceStateRunning,
+      state: V1Beta1WorkspaceState.WorkspaceStateRunning,
     });
 
   cy.interceptApi(
@@ -86,14 +86,14 @@ const setupMultiNamespaceWorkspaces = (args: {
     count: namespaceACount,
     namespace: mockNamespaceA.name,
     kind: mockWorkspaceKind,
-    state: WorkspacesWorkspaceState.WorkspaceStateRunning,
+    state: V1Beta1WorkspaceState.WorkspaceStateRunning,
   });
 
   const namespaceBWorkspaces = buildMockWorkspaceList({
     count: namespaceBCount,
     namespace: mockNamespaceB.name,
     kind: mockWorkspaceKind,
-    state: WorkspacesWorkspaceState.WorkspaceStateRunning,
+    state: V1Beta1WorkspaceState.WorkspaceStateRunning,
   });
 
   const allWorkspaces = [...namespaceAWorkspaces, ...namespaceBWorkspaces];
@@ -257,21 +257,21 @@ describe('Workspace Kind Summary', () => {
           namespace: DEFAULT_NAMESPACE,
           workspaceKindName: TEST_WORKSPACE_KIND,
           gpuCount: 2,
-          state: WorkspacesWorkspaceState.WorkspaceStateRunning,
+          state: V1Beta1WorkspaceState.WorkspaceStateRunning,
         }),
         buildMockWorkspaceWithGPU({
           name: 'Workspace 2',
           namespace: DEFAULT_NAMESPACE,
           workspaceKindName: TEST_WORKSPACE_KIND,
           gpuCount: 3,
-          state: WorkspacesWorkspaceState.WorkspaceStateRunning,
+          state: V1Beta1WorkspaceState.WorkspaceStateRunning,
         }),
         buildMockWorkspaceWithGPU({
           name: 'Workspace 3',
           namespace: DEFAULT_NAMESPACE,
           workspaceKindName: TEST_WORKSPACE_KIND,
           gpuCount: 4,
-          state: WorkspacesWorkspaceState.WorkspaceStatePaused,
+          state: V1Beta1WorkspaceState.WorkspaceStatePaused,
         }),
       ];
 
@@ -296,7 +296,7 @@ describe('Workspace Kind Summary', () => {
           name: 'Workspace 1',
           namespace: DEFAULT_NAMESPACE,
           workspaceKind: buildMockWorkspaceKindInfo({ name: TEST_WORKSPACE_KIND }),
-          state: WorkspacesWorkspaceState.WorkspaceStateRunning,
+          state: V1Beta1WorkspaceState.WorkspaceStateRunning,
           podTemplate: buildMockPodTemplate({
             options: buildPodTemplateOptions({
               podConfig: buildMockPodConfig({
@@ -335,7 +335,7 @@ describe('Workspace Kind Summary', () => {
           namespace: DEFAULT_NAMESPACE,
           workspaceKindName: TEST_WORKSPACE_KIND,
           gpuCount: 1,
-          state: WorkspacesWorkspaceState.WorkspaceStateRunning,
+          state: V1Beta1WorkspaceState.WorkspaceStateRunning,
           activity: {
             lastActivity: now,
             lastUpdate: now,
@@ -346,7 +346,7 @@ describe('Workspace Kind Summary', () => {
           namespace: DEFAULT_NAMESPACE,
           workspaceKindName: TEST_WORKSPACE_KIND,
           gpuCount: 2,
-          state: WorkspacesWorkspaceState.WorkspaceStatePaused,
+          state: V1Beta1WorkspaceState.WorkspaceStatePaused,
           activity: {
             lastActivity: twoHoursAgo,
             lastUpdate: twoHoursAgo,
@@ -376,7 +376,7 @@ describe('Workspace Kind Summary', () => {
           namespace: DEFAULT_NAMESPACE,
           workspaceKindName: TEST_WORKSPACE_KIND,
           gpuCount: 1,
-          state: WorkspacesWorkspaceState.WorkspaceStateRunning,
+          state: V1Beta1WorkspaceState.WorkspaceStateRunning,
           activity: {
             lastActivity: now,
             lastUpdate: now,
@@ -387,7 +387,7 @@ describe('Workspace Kind Summary', () => {
           namespace: DEFAULT_NAMESPACE,
           workspaceKindName: TEST_WORKSPACE_KIND,
           gpuCount: 2,
-          state: WorkspacesWorkspaceState.WorkspaceStatePaused,
+          state: V1Beta1WorkspaceState.WorkspaceStatePaused,
           activity: {
             lastActivity: twoHoursAgo,
             lastUpdate: twoHoursAgo,
@@ -421,7 +421,7 @@ describe('Workspace Kind Summary', () => {
           name: 'Workspace A1',
           namespace: mockNamespaceA.name,
           workspaceKind: mockWorkspaceKind,
-          state: WorkspacesWorkspaceState.WorkspaceStateRunning,
+          state: V1Beta1WorkspaceState.WorkspaceStateRunning,
           podTemplate: buildMockPodTemplate({
             options: buildPodTemplateOptions({
               podConfig: buildMockPodConfig({
@@ -439,7 +439,7 @@ describe('Workspace Kind Summary', () => {
           name: 'Workspace B1',
           namespace: mockNamespaceB.name,
           workspaceKind: mockWorkspaceKind,
-          state: WorkspacesWorkspaceState.WorkspaceStateRunning,
+          state: V1Beta1WorkspaceState.WorkspaceStateRunning,
           podTemplate: buildMockPodTemplate({
             options: buildPodTemplateOptions({
               podConfig: buildMockPodConfig({
@@ -496,7 +496,7 @@ describe('Workspace Kind Summary', () => {
           name: 'Workspace 1',
           namespace: DEFAULT_NAMESPACE,
           workspaceKind: buildMockWorkspaceKindInfo({ name: TEST_WORKSPACE_KIND }),
-          state: WorkspacesWorkspaceState.WorkspaceStateRunning,
+          state: V1Beta1WorkspaceState.WorkspaceStateRunning,
           podTemplate: buildMockPodTemplate({
             options: buildPodTemplateOptions({
               podConfig: buildMockPodConfig({
@@ -706,19 +706,19 @@ describe('Workspace Kind Summary', () => {
           name: 'Running Workspace',
           namespace: DEFAULT_NAMESPACE,
           workspaceKind: buildMockWorkspaceKindInfo({ name: TEST_WORKSPACE_KIND }),
-          state: WorkspacesWorkspaceState.WorkspaceStateRunning,
+          state: V1Beta1WorkspaceState.WorkspaceStateRunning,
         }),
         buildMockWorkspace({
           name: 'Paused Workspace',
           namespace: DEFAULT_NAMESPACE,
           workspaceKind: buildMockWorkspaceKindInfo({ name: TEST_WORKSPACE_KIND }),
-          state: WorkspacesWorkspaceState.WorkspaceStatePaused,
+          state: V1Beta1WorkspaceState.WorkspaceStatePaused,
         }),
         buildMockWorkspace({
           name: 'Error Workspace',
           namespace: DEFAULT_NAMESPACE,
           workspaceKind: buildMockWorkspaceKindInfo({ name: TEST_WORKSPACE_KIND }),
-          state: WorkspacesWorkspaceState.WorkspaceStateError,
+          state: V1Beta1WorkspaceState.WorkspaceStateError,
         }),
       ];
 

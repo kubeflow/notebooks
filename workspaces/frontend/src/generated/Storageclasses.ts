@@ -15,11 +15,11 @@ import { HttpClient, RequestParams } from './http-client';
 
 export class Storageclasses<SecurityDataType = unknown> extends HttpClient<SecurityDataType> {
   /**
-   * @description Provides a list of storage classes available for volume provisioning
+   * @description Returns a list of all storage classes in the cluster.
    *
    * @tags storageclasses
    * @name ListStorageClasses
-   * @summary Returns a list of available storage classes
+   * @summary List storage classes
    * @request GET:/storageclasses
    * @response `200` `ApiStorageClassListEnvelope` Successful storage classes response
    * @response `401` `ApiErrorEnvelope` Unauthorized

@@ -49,7 +49,7 @@ import {
 } from '~/shared/utilities/WorkspaceUtils';
 import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
-import { WorkspacesWorkspaceListItem, WorkspacesWorkspaceState } from '~/generated/data-contracts';
+import { WorkspacesWorkspaceListItem, V1Beta1WorkspaceState } from '~/generated/data-contracts';
 import { useWorkspaceActionsContext } from '~/app/context/WorkspaceActionsContext';
 import { RedirectIconWithPopover } from '~/app/components/RedirectIconWithPopover';
 import { POLL_INTERVAL } from '~/shared/utilities/const';
@@ -100,7 +100,7 @@ const filterConfig = {
     type: 'select',
     label: 'State',
     placeholder: 'Filter by state',
-    options: (Object.keys(WORKSPACE_STATE_COLORS) as WorkspacesWorkspaceState[])
+    options: (Object.keys(WORKSPACE_STATE_COLORS) as V1Beta1WorkspaceState[])
       .sort((a, b) => a.localeCompare(b))
       .map((state) => ({
         value: state,

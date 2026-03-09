@@ -17,11 +17,11 @@ export class Persistentvolumeclaims<
   SecurityDataType = unknown,
 > extends HttpClient<SecurityDataType> {
   /**
-   * @description Provides a list of all persistent volume claims with comprehensive metadata in the specified namespace
+   * @description Returns a list of persistent volume claims in a specific namespace.
    *
    * @tags persistentvolumeclaims
    * @name ListPvCs
-   * @summary Returns a list of all PVCs in a namespace
+   * @summary List persistent volume claims by namespace
    * @request GET:/persistentvolumeclaims/{namespace}
    * @response `200` `ApiPVCListEnvelope` Successful PVCs response
    * @response `401` `ApiErrorEnvelope` Unauthorized
@@ -37,11 +37,11 @@ export class Persistentvolumeclaims<
       ...params,
     });
   /**
-   * @description Creates a new persistent volume claim in the specified namespace
+   * @description Creates a new persistent volume claim in the specified namespace.
    *
    * @tags persistentvolumeclaims
    * @name CreatePvc
-   * @summary Creates a new PVC
+   * @summary Create persistent volume claim
    * @request POST:/persistentvolumeclaims/{namespace}
    * @response `201` `ApiPVCCreateEnvelope` PVC created successfully
    * @response `400` `ApiErrorEnvelope` Bad request
@@ -63,11 +63,11 @@ export class Persistentvolumeclaims<
       ...params,
     });
   /**
-   * @description Deletes a persistent volume claim from the specified namespace
+   * @description Deletes a specific persistent volume claim identified by namespace and name.
    *
    * @tags persistentvolumeclaims
    * @name DeletePvc
-   * @summary Deletes a PVC
+   * @summary Deletes a persistent volume claim
    * @request DELETE:/persistentvolumeclaims/{namespace}/{name}
    * @response `204` `void` No Content
    * @response `401` `ApiErrorEnvelope` Unauthorized

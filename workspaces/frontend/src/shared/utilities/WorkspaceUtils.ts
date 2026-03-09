@@ -1,7 +1,7 @@
 import {
   WorkspacesOptionLabel,
   WorkspacesWorkspaceListItem,
-  WorkspacesWorkspaceState,
+  V1Beta1WorkspaceState,
 } from '~/generated/data-contracts';
 import {
   CPU_UNITS,
@@ -57,29 +57,27 @@ export const formatResourceFromWorkspace = (
 ): string => formatResourceValue(extractResourceValue(workspace, resourceType), resourceType);
 
 export const formatWorkspaceIdleState = (workspace: WorkspacesWorkspaceListItem): string =>
-  workspace.state !== WorkspacesWorkspaceState.WorkspaceStateRunning
-    ? YesNoValue.Yes
-    : YesNoValue.No;
+  workspace.state !== V1Beta1WorkspaceState.WorkspaceStateRunning ? YesNoValue.Yes : YesNoValue.No;
 
 export type LabelColor = 'green' | 'orange' | 'purple' | 'red' | 'grey' | 'yellow';
 
-export const WORKSPACE_STATE_COLORS: Record<WorkspacesWorkspaceState, LabelColor> = {
-  [WorkspacesWorkspaceState.WorkspaceStateRunning]: 'green',
-  [WorkspacesWorkspaceState.WorkspaceStatePending]: 'orange',
-  [WorkspacesWorkspaceState.WorkspaceStateTerminating]: 'yellow',
-  [WorkspacesWorkspaceState.WorkspaceStateError]: 'red',
-  [WorkspacesWorkspaceState.WorkspaceStatePaused]: 'purple',
-  [WorkspacesWorkspaceState.WorkspaceStateUnknown]: 'grey',
+export const WORKSPACE_STATE_COLORS: Record<V1Beta1WorkspaceState, LabelColor> = {
+  [V1Beta1WorkspaceState.WorkspaceStateRunning]: 'green',
+  [V1Beta1WorkspaceState.WorkspaceStatePending]: 'orange',
+  [V1Beta1WorkspaceState.WorkspaceStateTerminating]: 'yellow',
+  [V1Beta1WorkspaceState.WorkspaceStateError]: 'red',
+  [V1Beta1WorkspaceState.WorkspaceStatePaused]: 'purple',
+  [V1Beta1WorkspaceState.WorkspaceStateUnknown]: 'grey',
 };
 
-export const extractWorkspaceStateColor = (state: WorkspacesWorkspaceState): LabelColor =>
+export const extractWorkspaceStateColor = (state: V1Beta1WorkspaceState): LabelColor =>
   WORKSPACE_STATE_COLORS[state];
 
 export const isWorkspaceWithGpu = (workspace: WorkspacesWorkspaceListItem): boolean =>
   workspace.podTemplate.options.podConfig.current.labels.some((label) => label.key === 'gpu');
 
 export const isWorkspaceIdle = (workspace: WorkspacesWorkspaceListItem): boolean =>
-  workspace.state !== WorkspacesWorkspaceState.WorkspaceStateRunning;
+  workspace.state !== V1Beta1WorkspaceState.WorkspaceStateRunning;
 
 export const filterWorkspacesWithGpu = (
   workspaces: WorkspacesWorkspaceListItem[],
@@ -92,9 +90,7 @@ export const filterIdleWorkspaces = (
 export const filterRunningWorkspaces = (
   workspaces: WorkspacesWorkspaceListItem[],
 ): WorkspacesWorkspaceListItem[] =>
-  workspaces.filter(
-    (workspace) => workspace.state === WorkspacesWorkspaceState.WorkspaceStateRunning,
-  );
+  workspaces.filter((workspace) => workspace.state === V1Beta1WorkspaceState.WorkspaceStateRunning);
 
 export const filterIdleWorkspacesWithGpu = (
   workspaces: WorkspacesWorkspaceListItem[],

@@ -9,7 +9,7 @@ import {
   buildMockWorkspaceUpdate,
 } from '~/shared/mock/mockBuilder';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
-import { WorkspacesWorkspaceState } from '~/generated/data-contracts';
+import { V1Beta1WorkspaceState } from '~/generated/data-contracts';
 import { toastNotification } from '~/__tests__/cypress/cypress/pages/components/toastNotification';
 
 const DEFAULT_NAMESPACE = 'default';
@@ -31,7 +31,7 @@ const setupEditWorkspace = (): EditWorkspaceSetup => {
     name: TEST_WORKSPACE_NAME,
     namespace: mockNamespace.name,
     workspaceKind: buildMockWorkspaceKindInfo({ name: WORKSPACE_KIND_NAME }),
-    state: WorkspacesWorkspaceState.WorkspaceStateRunning,
+    state: V1Beta1WorkspaceState.WorkspaceStateRunning,
     podTemplate: {
       podMetadata: {
         labels: { testLabel: 'testValue' },
@@ -328,7 +328,7 @@ describe('Edit workspace', () => {
         name: TEST_WORKSPACE_NAME,
         namespace: mockNamespace.name,
         workspaceKind: buildMockWorkspaceKindInfo({ name: WORKSPACE_KIND_NAME }),
-        state: WorkspacesWorkspaceState.WorkspaceStateRunning,
+        state: V1Beta1WorkspaceState.WorkspaceStateRunning,
       });
       const mockWorkspaceUpdateResponse = buildMockWorkspaceUpdate({
         podTemplate: {
