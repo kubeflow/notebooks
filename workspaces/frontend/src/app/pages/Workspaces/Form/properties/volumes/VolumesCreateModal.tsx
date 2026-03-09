@@ -32,6 +32,12 @@ import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWra
 import { WorkspacesPodVolumeMountValue } from '~/app/types';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { ResourceInputWrapper } from '~/shared/components/ResourceInputWrapper';
+import {
+  validateMountPath,
+  getMountPathUniquenessError,
+  normalizeMountPath,
+} from '~/app/pages/Workspaces/Form/helpers';
+import { MountPathField } from '~/app/pages/Workspaces/Form/MountPathField';
 
 // DNS-1123 subdomain regex - lowercase alphanumeric, hyphens, dots
 // Must start and end with alphanumeric, max 253 chars
@@ -50,6 +56,10 @@ export interface VolumesCreateModalProps {
   onVolumeCreated: (volume: WorkspacesPodVolumeMountValue) => void;
   /** PVC names already mounted in the other volume section (home or data) */
   excludedPvcNames?: Set<string>;
+  /** Set of mount paths already in use across all attached volumes */
+  mountedPaths: Set<string>;
+  /** When provided the mount path is locked to this value and cannot be edited */
+  fixedMountPath?: string;
 }
 
 export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
@@ -57,12 +67,16 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
   setIsOpen,
   onVolumeCreated,
   excludedPvcNames,
+  mountedPaths,
+  fixedMountPath,
 }) => {
   const { api } = useNotebookAPI();
   const { selectedNamespace } = useNamespaceSelectorWrapper();
 
   // Form state
   const [pvcName, setPvcName] = useState('');
+  const [mountPath, setMountPath] = useState(fixedMountPath ?? '/data/');
+  const [isMountPathEditing, setIsMountPathEditing] = useState(false);
   const [storageClassName, setStorageClassName] = useState('');
   const [storageSize, setStorageSize] = useState('1Gi');
   const [accessMode, setAccessMode] = useState('ReadWriteOnce');
@@ -95,13 +109,44 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setPvcName('');
+      setMountPath(fixedMountPath ?? '/data/');
+      setIsMountPathEditing(false);
       setStorageSize('1Gi');
       setAccessMode('ReadWriteOnce');
       setReadOnly(false);
       setIsSubmitting(false);
       setError(null);
     }
-  }, [isOpen]);
+  }, [isOpen, fixedMountPath]);
+
+  const mountPathFormatError = isMountPathEditing ? validateMountPath(mountPath) : null;
+  const mountPathUniquenessError = !mountPathFormatError
+    ? getMountPathUniquenessError(mountedPaths, mountPath)
+    : null;
+  const mountPathError = mountPathFormatError ?? mountPathUniquenessError;
+
+  const handleStartMountPathEdit = useCallback(() => {
+    setIsMountPathEditing(true);
+    setError(null);
+  }, []);
+
+  const handleConfirmMountPathEdit = useCallback(() => {
+    const err =
+      validateMountPath(mountPath) ?? getMountPathUniquenessError(mountedPaths, mountPath);
+    if (err) {
+      return;
+    }
+    setIsMountPathEditing(false);
+  }, [mountPath, mountedPaths]);
+
+  const handleCancelMountPathEdit = useCallback(() => {
+    if (pvcName) {
+      setMountPath(fixedMountPath ?? `/data/${pvcName}`);
+    } else {
+      setMountPath(fixedMountPath ?? '/data/');
+    }
+    setIsMountPathEditing(false);
+  }, [pvcName, fixedMountPath]);
 
   const validateForm = useCallback((): string | null => {
     if (!pvcName) {
@@ -132,11 +177,16 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
       return;
     }
 
+    const trimmedPath = normalizeMountPath(mountPath);
+    const mountErr =
+      validateMountPath(trimmedPath) ?? getMountPathUniquenessError(mountedPaths, trimmedPath);
+    if (mountErr) {
+      setError(mountErr);
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
-
-    // Mount path is auto-defaulted to /data/{pvcName} and can be edited inline in the table
-    const mountPath = `/data/${pvcName}`;
 
     try {
       await api.pvc.createPvc(selectedNamespace, {
@@ -148,7 +198,7 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
         },
       });
       setIsOpen(false);
-      onVolumeCreated({ pvcName, mountPath, readOnly });
+      onVolumeCreated({ pvcName, mountPath: trimmedPath, readOnly });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create PVC. Please try again.');
     } finally {
@@ -159,6 +209,8 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
     api.pvc,
     selectedNamespace,
     pvcName,
+    mountPath,
+    mountedPaths,
     storageClassName,
     storageSize,
     accessMode,
@@ -200,6 +252,9 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
               value={pvcName}
               onChange={(_, val) => {
                 setPvcName(val);
+                if (!isMountPathEditing) {
+                  setMountPath(fixedMountPath ?? `/data/${val}`);
+                }
                 setError(null);
               }}
             />
@@ -233,6 +288,21 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
               />
             )}
           </ThemeAwareFormGroupWrapper>
+          <MountPathField
+            variant="input"
+            value={mountPath}
+            onChange={(val) => {
+              setMountPath(val);
+              setError(null);
+            }}
+            isEditing={isMountPathEditing}
+            onStartEdit={handleStartMountPathEdit}
+            onConfirm={handleConfirmMountPathEdit}
+            onCancel={handleCancelMountPathEdit}
+            error={mountPathError}
+            isFixed={!!fixedMountPath}
+            fieldId="create-volume-mount-path"
+          />
           <FormGroup fieldId="read-only" className="pf-v6-u-pt-sm">
             <Switch
               id="read-only-switch"
@@ -339,7 +409,14 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
           variant="primary"
           onClick={handleSubmit}
           isLoading={isSubmitting}
-          isDisabled={isSubmitting || !pvcName || !storageClassName || !storageSize}
+          isDisabled={
+            isSubmitting ||
+            !pvcName ||
+            !storageClassName ||
+            !storageSize ||
+            !!mountPathError ||
+            isMountPathEditing
+          }
           data-testid="create-volume-submit-button"
         >
           Create

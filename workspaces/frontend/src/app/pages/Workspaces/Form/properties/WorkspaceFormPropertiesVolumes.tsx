@@ -309,87 +309,91 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
           </EmptyStateFooter>
         </EmptyState>
       ) : (
-        <Table
-          variant={TableVariant.compact}
-          aria-label="Volumes Table"
-          data-testid="volumes-table"
-        >
-          <Thead>
-            <Tr>
-              <Th>PVC Name</Th>
-              <Th>Mount Path</Th>
-              <Th>Read-only Access</Th>
-              <Th aria-label="Actions" />
-            </Tr>
-          </Thead>
-          {volumes.map((volume, index) => {
-            const isExpanded = expandedVolumes.has(volume.pvcName);
-            return (
-              <Tbody key={`${volume.pvcName}:${volume.mountPath}`} isExpanded={isExpanded}>
-                <Tr key={index}>
-                  <Td
-                    expand={{
-                      rowIndex: index,
-                      isExpanded,
-                      onToggle: () => handleToggleExpand(volume.pvcName),
-                    }}
-                    data-testid={`expand-volume-${volume.pvcName}`}
-                  />
-                  <Td dataLabel="PVC Name">{volume.pvcName}</Td>
-                  <Td dataLabel="Mount Path" hasAction>
-                    <MountPathField
-                      variant="cell"
-                      value={editingMountPath === index ? editMountPathValue : volume.mountPath}
-                      index={index}
-                      editingIndex={editingMountPath}
-                      itemId={volume.pvcName}
-                      onChange={setEditMountPathValue}
-                      onStartEdit={handleStartMountPathEdit}
-                      onConfirm={handleConfirmMountPathEdit}
-                      onCancel={handleCancelMountPathEdit}
-                      error={mountPathValidationError}
-                      isFixed={volume.mountPath === fixedMountPath}
+        <>
+          <Table
+            variant={TableVariant.compact}
+            aria-label="Volumes Table"
+            data-testid="volumes-table"
+          >
+            <Thead>
+              <Tr>
+                <Th screenReaderText="Row expansion" />
+                <Th>PVC Name</Th>
+                <Th>Mount Path</Th>
+                <Th>Read-only Access</Th>
+                <Th aria-label="Actions" />
+              </Tr>
+            </Thead>
+            {volumes.map((volume, index) => {
+              const isExpanded = expandedVolumes.has(volume.pvcName);
+              return (
+                <Tbody key={`${volume.pvcName}:${volume.mountPath}`} isExpanded={isExpanded}>
+                  <Tr key={index}>
+                    <Td
+                      expand={{
+                        rowIndex: index,
+                        isExpanded,
+                        onToggle: () => handleToggleExpand(volume.pvcName),
+                      }}
+                      data-testid={`expand-volume-${volume.pvcName}`}
                     />
-                  </Td>
-                  <Td dataLabel="Read-only Access">{volume.readOnly ? 'Enabled' : 'Disabled'}</Td>
-                  <Td isActionCell>
-                    <Dropdown
-                      toggle={(toggleRef) => (
-                        <MenuToggle
-                          ref={toggleRef}
-                          isExpanded={dropdownOpen === index}
-                          onClick={() => setDropdownOpen(dropdownOpen === index ? null : index)}
-                          variant="plain"
-                          aria-label="plain kebab"
-                        >
-                          <EllipsisVIcon />
-                        </MenuToggle>
-                      )}
-                      isOpen={dropdownOpen === index}
-                      onSelect={() => setDropdownOpen(null)}
-                      popperProps={{ position: 'right' }}
-                    >
-                      <DropdownItem onClick={() => openDetachModal(index)}>Detach</DropdownItem>
-                    </Dropdown>
-                  </Td>
-                </Tr>
-                <Tr isExpanded={isExpanded}>
-                  <Td />
-                  <Td colSpan={NUM_TABLE_COLUMNS - 1}>
-                    <ExpandableRowContent>
-                      {renderExpandedContent(volume.pvcName)}
-                    </ExpandableRowContent>
-                  </Td>
-                </Tr>
-              </Tbody>
-            );
-          })}
-        </Table>
+                    <Td dataLabel="PVC Name">{volume.pvcName}</Td>
+                    <Td dataLabel="Mount Path" hasAction>
+                      <MountPathField
+                        variant="cell"
+                        value={editingMountPath === index ? editMountPathValue : volume.mountPath}
+                        index={index}
+                        editingIndex={editingMountPath}
+                        itemId={volume.pvcName}
+                        onChange={setEditMountPathValue}
+                        onStartEdit={handleStartMountPathEdit}
+                        onConfirm={handleConfirmMountPathEdit}
+                        onCancel={handleCancelMountPathEdit}
+                        error={mountPathValidationError}
+                        isFixed={volume.mountPath === fixedMountPath}
+                      />
+                    </Td>
+                    <Td dataLabel="Read-only Access">{volume.readOnly ? 'Enabled' : 'Disabled'}</Td>
+                    <Td isActionCell>
+                      <Dropdown
+                        toggle={(toggleRef) => (
+                          <MenuToggle
+                            ref={toggleRef}
+                            isExpanded={dropdownOpen === index}
+                            onClick={() => setDropdownOpen(dropdownOpen === index ? null : index)}
+                            variant="plain"
+                            aria-label="plain kebab"
+                          >
+                            <EllipsisVIcon />
+                          </MenuToggle>
+                        )}
+                        isOpen={dropdownOpen === index}
+                        onSelect={() => setDropdownOpen(null)}
+                        popperProps={{ position: 'right' }}
+                      >
+                        <DropdownItem onClick={() => openDetachModal(index)}>Detach</DropdownItem>
+                      </Dropdown>
+                    </Td>
+                  </Tr>
+                  <Tr isExpanded={isExpanded}>
+                    <Td />
+                    <Td colSpan={NUM_TABLE_COLUMNS - 1}>
+                      <ExpandableRowContent>
+                        {renderExpandedContent(volume.pvcName)}
+                      </ExpandableRowContent>
+                    </Td>
+                  </Tr>
+                </Tbody>
+              );
+            })}
+          </Table>
+          <Flex className="pf-v6-u-mt-md" spaceItems={{ default: 'spaceItemsMd' }}>
+            <FlexItem>{attachButton}</FlexItem>
+            <FlexItem>{createButton}</FlexItem>
+          </Flex>
+        </>
       )}
-      <Flex className="pf-v6-u-mt-md" spaceItems={{ default: 'spaceItemsMd' }}>
-        <FlexItem>{attachButton}</FlexItem>
-        <FlexItem>{createButton}</FlexItem>
-      </Flex>
+
       {deleteIndex !== null && (
         <DeleteModal
           isOpen={isDeleteModalOpen}
@@ -417,6 +421,8 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
         setIsOpen={setIsCreateModalOpen}
         onVolumeCreated={handleVolumeCreated}
         excludedPvcNames={excludedPvcNames}
+        mountedPaths={mountedPaths}
+        fixedMountPath={fixedMountPath}
       />
     </>
   );
