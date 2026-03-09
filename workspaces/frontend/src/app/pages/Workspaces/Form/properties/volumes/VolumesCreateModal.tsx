@@ -8,10 +8,12 @@ import {
   FormGroup,
 } from '@patternfly/react-core/dist/esm/components/Form';
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
+import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
 import {
-  FormSelect,
-  FormSelectOption,
-} from '@patternfly/react-core/dist/esm/components/FormSelect';
+  Select,
+  SelectList,
+  SelectOption,
+} from '@patternfly/react-core/dist/esm/components/Select';
 import {
   Modal,
   ModalBody,
@@ -82,6 +84,7 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
   const [accessMode, setAccessMode] = useState('ReadWriteOnce');
   const [readOnly, setReadOnly] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isStorageClassOpen, setIsStorageClassOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Storage classes
@@ -115,6 +118,7 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
       setAccessMode('ReadWriteOnce');
       setReadOnly(false);
       setIsSubmitting(false);
+      setIsStorageClassOpen(false);
       setError(null);
     }
   }, [isOpen, fixedMountPath]);
@@ -261,21 +265,36 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
           </ThemeAwareFormGroupWrapper>
           <ThemeAwareFormGroupWrapper label="Storage Class" isRequired fieldId="storage-class">
             {storageClasses.length > 0 ? (
-              <FormSelect
+              <Select
                 id="storage-class"
-                data-testid="storage-class-select"
-                value={storageClassName}
-                onChange={(_, val) => setStorageClassName(val)}
-                aria-label="Storage class"
+                isOpen={isStorageClassOpen}
+                selected={storageClassName}
+                onSelect={(_ev, value) => {
+                  setStorageClassName(String(value));
+                  setIsStorageClassOpen(false);
+                }}
+                onOpenChange={setIsStorageClassOpen}
+                toggle={(toggleRef) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    onClick={() => setIsStorageClassOpen((prev) => !prev)}
+                    isExpanded={isStorageClassOpen}
+                    isFullWidth
+                    data-testid="storage-class-select"
+                  >
+                    {storageClasses.find((sc) => sc.name === storageClassName)?.displayName ||
+                      storageClassName}
+                  </MenuToggle>
+                )}
               >
-                {storageClasses.map((sc) => (
-                  <FormSelectOption
-                    key={sc.name}
-                    value={sc.name}
-                    label={sc.displayName || sc.name}
-                  />
-                ))}
-              </FormSelect>
+                <SelectList>
+                  {storageClasses.map((sc) => (
+                    <SelectOption key={sc.name} value={sc.name} description={sc.description}>
+                      {sc.displayName || sc.name}
+                    </SelectOption>
+                  ))}
+                </SelectList>
+              </Select>
             ) : (
               <TextInput
                 id="storage-class"
