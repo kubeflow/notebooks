@@ -237,9 +237,11 @@ describe('Filter Pod Configs by Labels', () => {
     });
   });
 
-  describe('No extra filters', () => {
-    it('should not display extra filters category for pod configs', () => {
-      cy.findByTestId('extra-filters-category').should('not.exist');
+  describe('Extra filters for pod configs', () => {
+    it('should display extra filters category with unchecked filters when no options are hidden or redirected', () => {
+      cy.findByTestId('extra-filters-category').should('exist');
+      cy.findByTestId('extra-filter-showHidden').find('input').should('not.be.checked');
+      cy.findByTestId('extra-filter-showRedirected').find('input').should('not.be.checked');
     });
   });
 });

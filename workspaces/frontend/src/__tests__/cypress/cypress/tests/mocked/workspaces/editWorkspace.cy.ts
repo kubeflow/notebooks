@@ -237,7 +237,8 @@ describe('Edit workspace', () => {
       editWorkspace.clickNext();
 
       // Step 2: Image Selection - change to a different image
-      editWorkspace.clickExtraFilter('showRedirected');
+      editWorkspace.checkExtraFilter('showRedirected');
+      editWorkspace.checkExtraFilter('showHidden');
       editWorkspace.selectImage(newImageConfigId);
       editWorkspace.clickNext();
 
@@ -273,7 +274,7 @@ describe('Edit workspace', () => {
       cy.wait('@getWorkspaceKind');
       editWorkspace.clickNext();
 
-      editWorkspace.clickExtraFilter('showRedirected');
+      editWorkspace.checkExtraFilter('showRedirected');
       editWorkspace.assertImageSelected(IMAGE_CONFIG_ID);
     });
 
@@ -428,7 +429,7 @@ describe('Edit workspace', () => {
       editWorkspace.clickNext();
 
       // Step 2: Image Selection
-      editWorkspace.clickExtraFilter('showRedirected');
+      editWorkspace.checkExtraFilter('showRedirected');
       editWorkspace.assertImageSelected(IMAGE_CONFIG_ID);
       editWorkspace.assertNextButtonEnabled();
       editWorkspace.clickNext();

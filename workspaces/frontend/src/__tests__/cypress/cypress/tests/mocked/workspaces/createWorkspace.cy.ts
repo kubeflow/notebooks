@@ -36,7 +36,8 @@ const selectWorkspaceKind = (kindName: string): void => {
 };
 
 const selectImage = (imageId: string): void => {
-  createWorkspace.clickExtraFilter('showRedirected');
+  createWorkspace.checkExtraFilter('showRedirected');
+  createWorkspace.checkExtraFilter('showHidden');
   createWorkspace.selectImage(imageId);
   createWorkspace.assertImageSelected(imageId);
   createWorkspace.clickNext();
@@ -141,9 +142,10 @@ describe('Create workspace', () => {
       createWorkspace.clickNext();
       createWorkspace.assertProgressStepVisible(STEP_NAMES.IMAGE);
       createWorkspace.assertPreviousButtonEnabled();
-      createWorkspace.assertNextButtonDisabled();
+      createWorkspace.assertNextButtonEnabled();
 
-      createWorkspace.clickExtraFilter('showRedirected');
+      createWorkspace.checkExtraFilter('showRedirected');
+      createWorkspace.checkExtraFilter('showHidden');
       createWorkspace.selectImage(mockImage.id);
       createWorkspace.assertImageSelected(mockImage.id);
       createWorkspace.assertNextButtonEnabled();
@@ -151,7 +153,7 @@ describe('Create workspace', () => {
       // Step 3: Select Pod Config
       createWorkspace.clickNext();
       createWorkspace.assertProgressStepVisible(STEP_NAMES.POD_CONFIG);
-      createWorkspace.assertNextButtonDisabled();
+      createWorkspace.assertNextButtonEnabled();
 
       createWorkspace.selectPodConfig(mockPodConfig.id);
       createWorkspace.assertPodConfigSelected(mockPodConfig.id);
@@ -197,8 +199,10 @@ describe('Create workspace', () => {
       // Go back to image selection
       createWorkspace.clickPrevious();
       createWorkspace.assertProgressStepVisible(STEP_NAMES.IMAGE);
-      createWorkspace.clickExtraFilter('showRedirected');
-      createWorkspace.assertImageSelected(mockImage.id);
+      createWorkspace.assertExtraFilterChecked('showRedirected');
+      createWorkspace.findImageCard(mockImage.id).should('not.exist');
+      createWorkspace.checkExtraFilter('showHidden');
+      createWorkspace.findImageCard(mockImage.id).should('be.visible');
 
       // Go back to kind selection
       createWorkspace.clickPrevious();
@@ -243,7 +247,8 @@ describe('Create workspace', () => {
       createWorkspace.selectKind(mockWorkspaceKind.name);
       createWorkspace.clickNext();
 
-      createWorkspace.clickExtraFilter('showRedirected');
+      createWorkspace.checkExtraFilter('showRedirected');
+      createWorkspace.checkExtraFilter('showHidden');
       createWorkspace.selectImage(mockImage.id);
       createWorkspace.clickNext();
 
@@ -316,7 +321,8 @@ describe('Create workspace', () => {
       createWorkspace.selectKind(mockWorkspaceKindWithMultipleImages.name);
       createWorkspace.clickNext();
 
-      createWorkspace.clickExtraFilter('showRedirected');
+      createWorkspace.checkExtraFilter('showRedirected');
+      createWorkspace.checkExtraFilter('showHidden');
       // Select first image
       createWorkspace.selectImage(mockImage.id);
       createWorkspace.assertImageSelected(mockImage.id);
@@ -365,7 +371,8 @@ describe('Create workspace', () => {
       createWorkspace.selectKind(mockWorkspaceKindWithMultiplePodConfigs.name);
       createWorkspace.clickNext();
 
-      createWorkspace.clickExtraFilter('showRedirected');
+      createWorkspace.checkExtraFilter('showRedirected');
+      createWorkspace.checkExtraFilter('showHidden');
       createWorkspace.selectImage(mockImage.id);
       createWorkspace.clickNext();
 
@@ -402,7 +409,8 @@ describe('Create workspace', () => {
       createWorkspace.selectKind(mockWorkspaceKind.name);
       createWorkspace.clickNext();
 
-      createWorkspace.clickExtraFilter('showRedirected');
+      createWorkspace.checkExtraFilter('showRedirected');
+      createWorkspace.checkExtraFilter('showHidden');
       createWorkspace.selectImage(mockImage.id);
       createWorkspace.clickNext();
 
@@ -416,9 +424,7 @@ describe('Create workspace', () => {
       createWorkspace.selectKind(mockWorkspaceKind2.name);
       createWorkspace.clickNext();
 
-      // Verify previous image selection is not applied
-      // (the UI should show unselected state or different options)
-      createWorkspace.assertNextButtonDisabled();
+      createWorkspace.assertNextButtonEnabled();
     });
   });
 
@@ -479,7 +485,8 @@ describe('Create workspace', () => {
       createWorkspace.selectKind(mockWorkspaceKindSingleImage.name);
       createWorkspace.clickNext();
 
-      createWorkspace.clickExtraFilter('showRedirected');
+      createWorkspace.checkExtraFilter('showRedirected');
+      createWorkspace.checkExtraFilter('showHidden');
       // Select the single available image
       createWorkspace.selectImage(mockImage.id);
       createWorkspace.assertImageSelected(mockImage.id);
@@ -514,7 +521,8 @@ describe('Create workspace', () => {
       createWorkspace.selectKind(mockWorkspaceKindSinglePodConfig.name);
       createWorkspace.clickNext();
 
-      createWorkspace.clickExtraFilter('showRedirected');
+      createWorkspace.checkExtraFilter('showRedirected');
+      createWorkspace.checkExtraFilter('showHidden');
       createWorkspace.selectImage(mockImage.id);
       createWorkspace.clickNext();
 
@@ -693,7 +701,8 @@ describe('Create workspace', () => {
         createWorkspace.selectKind(mockWorkspaceKindWithMultipleOptions.name);
         createWorkspace.clickNext();
 
-        createWorkspace.clickExtraFilter('showRedirected');
+        createWorkspace.checkExtraFilter('showRedirected');
+        createWorkspace.checkExtraFilter('showHidden');
         createWorkspace.selectImage(mockImage.id);
         createWorkspace.clickNext();
 
@@ -713,7 +722,8 @@ describe('Create workspace', () => {
         createWorkspace.selectKind(mockWorkspaceKindWithMultipleOptions.name);
         createWorkspace.clickNext();
 
-        createWorkspace.clickExtraFilter('showRedirected');
+        createWorkspace.checkExtraFilter('showRedirected');
+        createWorkspace.checkExtraFilter('showHidden');
         createWorkspace.selectImage(mockImage.id);
         createWorkspace.clickNext();
 
@@ -730,7 +740,8 @@ describe('Create workspace', () => {
         createWorkspace.selectKind(mockWorkspaceKindWithMultipleOptions.name);
         createWorkspace.clickNext();
 
-        createWorkspace.clickExtraFilter('showRedirected');
+        createWorkspace.checkExtraFilter('showRedirected');
+        createWorkspace.checkExtraFilter('showHidden');
         createWorkspace.selectImage(mockImage.id);
         createWorkspace.clickNext();
 
@@ -746,7 +757,8 @@ describe('Create workspace', () => {
         createWorkspace.selectKind(mockWorkspaceKindWithMultipleOptions.name);
         createWorkspace.clickNext();
 
-        createWorkspace.clickExtraFilter('showRedirected');
+        createWorkspace.checkExtraFilter('showRedirected');
+        createWorkspace.checkExtraFilter('showHidden');
         createWorkspace.selectImage(mockImage.id);
         createWorkspace.clickNext();
 
