@@ -78,7 +78,7 @@ const WorkspaceFormPodConfigSelection: React.FunctionComponent<
         <SplitItem style={{ minWidth: '200px' }}>{podConfigFilterContent}</SplitItem>
         <SplitItem isFilled>
           <WorkspaceFormPodConfigList
-            podConfigs={filteredPodConfigs}
+            filteredPodConfigs={filteredPodConfigs}
             allPodConfigs={podConfigs}
             selectedPodConfig={selectedPodConfig}
             onSelect={onSelect}

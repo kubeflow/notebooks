@@ -4,6 +4,75 @@ import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/comma
 import { buildMockNamespace, buildMockWorkspaceKind } from '~/shared/mock/mockBuilder';
 import { WorkspacekindsRedirectMessageLevel } from '~/generated/data-contracts';
 
+type ImageConfigOption = {
+  id: string;
+  displayName: string;
+  description: string;
+  labels?: { key: string; value: string }[];
+  hidden?: boolean;
+  redirect?: {
+    to: string;
+    message?: {
+      text: string;
+      level: WorkspacekindsRedirectMessageLevel;
+    };
+  };
+};
+
+type PodConfigOption = {
+  id: string;
+  displayName: string;
+  description: string;
+  labels?: { key: string; value: string }[];
+  hidden?: boolean;
+};
+
+const buildWorkspaceKindWithOptions = (overrides: {
+  name?: string;
+  defaultImageId?: string;
+  imageOptions?: ImageConfigOption[];
+  defaultPodConfigId?: string;
+  podConfigOptions?: PodConfigOption[];
+}) => {
+  const {
+    name = 'jupyterlab',
+    defaultImageId = '',
+    imageOptions = [],
+    defaultPodConfigId = '',
+    podConfigOptions = [],
+  } = overrides;
+
+  return buildMockWorkspaceKind({
+    name,
+    podTemplate: {
+      ...buildMockWorkspaceKind().podTemplate,
+      options: {
+        imageConfig: {
+          default: defaultImageId,
+          values: imageOptions.map((img) => ({
+            id: img.id,
+            displayName: img.displayName,
+            description: img.description,
+            labels: img.labels || [],
+            hidden: img.hidden || false,
+            redirect: img.redirect,
+          })),
+        },
+        podConfig: {
+          default: defaultPodConfigId,
+          values: podConfigOptions.map((pc) => ({
+            id: pc.id,
+            displayName: pc.displayName,
+            description: pc.description,
+            labels: pc.labels || [],
+            hidden: pc.hidden || false,
+          })),
+        },
+      },
+    },
+  });
+};
+
 describe('Workspace Form - Option Card Display', () => {
   const mockNamespace = buildMockNamespace({ name: 'default' });
 
@@ -17,44 +86,23 @@ describe('Workspace Form - Option Card Display', () => {
 
   describe('Visual indicators for hidden options', () => {
     it('should show grey left border and hidden icon for hidden option', () => {
-      const mockWorkspaceKind = buildMockWorkspaceKind({
-        name: 'jupyterlab',
-        podTemplate: {
-          ...buildMockWorkspaceKind().podTemplate,
-          options: {
-            imageConfig: {
-              default: 'jupyterlab_scipy_190',
-              values: [
-                {
-                  id: 'jupyterlab_scipy_190',
-                  displayName: 'jupyter-scipy:v1.9.0',
-                  description: 'JupyterLab v1.9.0',
-                  labels: [],
-                  hidden: false,
-                },
-                {
-                  id: 'jupyterlab_scipy_200_hidden',
-                  displayName: 'jupyter-scipy:v2.0.0 (Hidden)',
-                  description: 'JupyterLab v2.0.0',
-                  labels: [],
-                  hidden: true,
-                },
-              ],
-            },
-            podConfig: {
-              default: 'tiny_cpu',
-              values: [
-                {
-                  id: 'tiny_cpu',
-                  displayName: 'Tiny CPU',
-                  description: 'Small pod',
-                  labels: [],
-                  hidden: false,
-                },
-              ],
-            },
+      const mockWorkspaceKind = buildWorkspaceKindWithOptions({
+        defaultImageId: 'jupyterlab_scipy_190',
+        imageOptions: [
+          {
+            id: 'jupyterlab_scipy_190',
+            displayName: 'jupyter-scipy:v1.9.0',
+            description: 'JupyterLab v1.9.0',
           },
-        },
+          {
+            id: 'jupyterlab_scipy_200_hidden',
+            displayName: 'jupyter-scipy:v2.0.0 (Hidden)',
+            description: 'JupyterLab v2.0.0',
+            hidden: true,
+          },
+        ],
+        defaultPodConfigId: 'tiny_cpu',
+        podConfigOptions: [{ id: 'tiny_cpu', displayName: 'Tiny CPU', description: 'Small pod' }],
       });
 
       cy.interceptApi(
@@ -72,66 +120,36 @@ describe('Workspace Form - Option Card Display', () => {
       // Enable "Show hidden" to see the hidden option
       createWorkspace.checkExtraFilter('showHidden');
 
-      // Check that hidden option has the correct class
-      cy.get('#jupyterlab_scipy_200_hidden')
-        .should('have.class', 'workspace-option-card--hidden')
-        .within(() => {
-          // Hidden icon should be visible
-          cy.get('[data-testid*="hidden-icon"]').should('exist');
-        });
-
-      // Non-hidden option should not have the class
-      cy.get('#jupyterlab_scipy_190').should('not.have.class', 'workspace-option-card--hidden');
+      createWorkspace.assertCardHasHiddenIndicator('jupyterlab_scipy_200_hidden');
+      createWorkspace.assertCardDoesNotHaveHiddenIndicator('jupyterlab_scipy_190');
     });
   });
 
   describe('Visual indicators for redirected options', () => {
     it('should show brown left border and redirect icon for redirected option', () => {
-      const mockWorkspaceKind = buildMockWorkspaceKind({
-        name: 'jupyterlab',
-        podTemplate: {
-          ...buildMockWorkspaceKind().podTemplate,
-          options: {
-            imageConfig: {
-              default: 'jupyterlab_scipy_190',
-              values: [
-                {
-                  id: 'jupyterlab_scipy_180',
-                  displayName: 'jupyter-scipy:v1.8.0',
-                  description: 'JupyterLab v1.8.0',
-                  labels: [],
-                  hidden: false,
-                  redirect: {
-                    to: 'jupyterlab_scipy_190',
-                    message: {
-                      text: 'Redirecting to newer version',
-                      level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelInfo,
-                    },
-                  },
-                },
-                {
-                  id: 'jupyterlab_scipy_190',
-                  displayName: 'jupyter-scipy:v1.9.0',
-                  description: 'JupyterLab v1.9.0',
-                  labels: [],
-                  hidden: false,
-                },
-              ],
-            },
-            podConfig: {
-              default: 'tiny_cpu',
-              values: [
-                {
-                  id: 'tiny_cpu',
-                  displayName: 'Tiny CPU',
-                  description: 'Small pod',
-                  labels: [],
-                  hidden: false,
-                },
-              ],
+      const mockWorkspaceKind = buildWorkspaceKindWithOptions({
+        defaultImageId: 'jupyterlab_scipy_190',
+        imageOptions: [
+          {
+            id: 'jupyterlab_scipy_180',
+            displayName: 'jupyter-scipy:v1.8.0',
+            description: 'JupyterLab v1.8.0',
+            redirect: {
+              to: 'jupyterlab_scipy_190',
+              message: {
+                text: 'Redirecting to newer version',
+                level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelInfo,
+              },
             },
           },
-        },
+          {
+            id: 'jupyterlab_scipy_190',
+            displayName: 'jupyter-scipy:v1.9.0',
+            description: 'JupyterLab v1.9.0',
+          },
+        ],
+        defaultPodConfigId: 'tiny_cpu',
+        podConfigOptions: [{ id: 'tiny_cpu', displayName: 'Tiny CPU', description: 'Small pod' }],
       });
 
       cy.interceptApi(
@@ -149,66 +167,37 @@ describe('Workspace Form - Option Card Display', () => {
       // Enable "Show redirected" to see the redirected option
       createWorkspace.checkExtraFilter('showRedirected');
 
-      // Check that redirected option has the correct class
-      cy.get('#jupyterlab_scipy_180')
-        .should('have.class', 'workspace-option-card--redirected')
-        .within(() => {
-          // Redirect icon should be visible
-          cy.get('[data-testid*="redirect-icon"]').should('exist');
-        });
-
-      // Non-redirected option should not have the class
-      cy.get('#jupyterlab_scipy_190').should('not.have.class', 'workspace-option-card--redirected');
+      createWorkspace.assertCardHasRedirectIndicator('jupyterlab_scipy_180');
+      createWorkspace.assertCardDoesNotHaveRedirectIndicator('jupyterlab_scipy_190');
     });
   });
 
   describe('Visual indicators for hidden AND redirected options', () => {
     it('should show grey border (hidden takes precedence) with both icons', () => {
-      const mockWorkspaceKind = buildMockWorkspaceKind({
-        name: 'jupyterlab',
-        podTemplate: {
-          ...buildMockWorkspaceKind().podTemplate,
-          options: {
-            imageConfig: {
-              default: 'jupyterlab_scipy_190',
-              values: [
-                {
-                  id: 'jupyterlab_scipy_180_hidden',
-                  displayName: 'jupyter-scipy:v1.8.0 (Hidden)',
-                  description: 'JupyterLab v1.8.0',
-                  labels: [],
-                  hidden: true,
-                  redirect: {
-                    to: 'jupyterlab_scipy_190',
-                    message: {
-                      text: 'Redirecting to newer version',
-                      level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelWarning,
-                    },
-                  },
-                },
-                {
-                  id: 'jupyterlab_scipy_190',
-                  displayName: 'jupyter-scipy:v1.9.0',
-                  description: 'JupyterLab v1.9.0',
-                  labels: [],
-                  hidden: false,
-                },
-              ],
-            },
-            podConfig: {
-              default: 'tiny_cpu',
-              values: [
-                {
-                  id: 'tiny_cpu',
-                  displayName: 'Tiny CPU',
-                  description: 'Small pod',
-                  labels: [],
-                  hidden: false,
-                },
-              ],
+      const mockWorkspaceKind = buildWorkspaceKindWithOptions({
+        defaultImageId: 'jupyterlab_scipy_190',
+        imageOptions: [
+          {
+            id: 'jupyterlab_scipy_180_hidden',
+            displayName: 'jupyter-scipy:v1.8.0 (Hidden)',
+            description: 'JupyterLab v1.8.0',
+            hidden: true,
+            redirect: {
+              to: 'jupyterlab_scipy_190',
+              message: {
+                text: 'Redirecting to newer version',
+                level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelWarning,
+              },
             },
           },
-        },
+          {
+            id: 'jupyterlab_scipy_190',
+            displayName: 'jupyter-scipy:v1.9.0',
+            description: 'JupyterLab v1.9.0',
+          },
+        ],
+        defaultPodConfigId: 'tiny_cpu',
+        podConfigOptions: [{ id: 'tiny_cpu', displayName: 'Tiny CPU', description: 'Small pod' }],
       });
 
       cy.interceptApi(
@@ -227,58 +216,28 @@ describe('Workspace Form - Option Card Display', () => {
       createWorkspace.checkExtraFilter('showHidden');
       createWorkspace.checkExtraFilter('showRedirected');
 
-      // Check that option has both classes
-      cy.get('#jupyterlab_scipy_180_hidden')
-        .should('have.class', 'workspace-option-card--hidden')
-        .should('have.class', 'workspace-option-card--redirected')
-        .within(() => {
-          // Both icons should be visible
-          cy.get('[data-testid*="hidden-icon"]').should('exist');
-          cy.get('[data-testid*="redirect-icon"]').should('exist');
-        });
+      createWorkspace.assertCardHasBothIndicators('jupyterlab_scipy_180_hidden');
     });
   });
 
   describe('Default badge display', () => {
     it('should show "Default" badge on default option', () => {
-      const mockWorkspaceKind = buildMockWorkspaceKind({
-        name: 'jupyterlab',
-        podTemplate: {
-          ...buildMockWorkspaceKind().podTemplate,
-          options: {
-            imageConfig: {
-              default: 'jupyterlab_scipy_190',
-              values: [
-                {
-                  id: 'jupyterlab_scipy_180',
-                  displayName: 'jupyter-scipy:v1.8.0',
-                  description: 'JupyterLab v1.8.0',
-                  labels: [],
-                  hidden: false,
-                },
-                {
-                  id: 'jupyterlab_scipy_190',
-                  displayName: 'jupyter-scipy:v1.9.0',
-                  description: 'JupyterLab v1.9.0',
-                  labels: [],
-                  hidden: false,
-                },
-              ],
-            },
-            podConfig: {
-              default: 'tiny_cpu',
-              values: [
-                {
-                  id: 'tiny_cpu',
-                  displayName: 'Tiny CPU',
-                  description: 'Small pod',
-                  labels: [],
-                  hidden: false,
-                },
-              ],
-            },
+      const mockWorkspaceKind = buildWorkspaceKindWithOptions({
+        defaultImageId: 'jupyterlab_scipy_190',
+        imageOptions: [
+          {
+            id: 'jupyterlab_scipy_180',
+            displayName: 'jupyter-scipy:v1.8.0',
+            description: 'JupyterLab v1.8.0',
           },
-        },
+          {
+            id: 'jupyterlab_scipy_190',
+            displayName: 'jupyter-scipy:v1.9.0',
+            description: 'JupyterLab v1.9.0',
+          },
+        ],
+        defaultPodConfigId: 'tiny_cpu',
+        podConfigOptions: [{ id: 'tiny_cpu', displayName: 'Tiny CPU', description: 'Small pod' }],
       });
 
       cy.interceptApi(
@@ -305,44 +264,20 @@ describe('Workspace Form - Option Card Display', () => {
     });
 
     it('should show "Default" badge on default pod config', () => {
-      const mockWorkspaceKind = buildMockWorkspaceKind({
-        name: 'jupyterlab',
-        podTemplate: {
-          ...buildMockWorkspaceKind().podTemplate,
-          options: {
-            imageConfig: {
-              default: 'jupyterlab_scipy_190',
-              values: [
-                {
-                  id: 'jupyterlab_scipy_190',
-                  displayName: 'jupyter-scipy:v1.9.0',
-                  description: 'JupyterLab v1.9.0',
-                  labels: [],
-                  hidden: false,
-                },
-              ],
-            },
-            podConfig: {
-              default: 'medium_cpu',
-              values: [
-                {
-                  id: 'tiny_cpu',
-                  displayName: 'Tiny CPU',
-                  description: 'Small pod',
-                  labels: [],
-                  hidden: false,
-                },
-                {
-                  id: 'medium_cpu',
-                  displayName: 'Medium CPU',
-                  description: 'Medium pod',
-                  labels: [],
-                  hidden: false,
-                },
-              ],
-            },
+      const mockWorkspaceKind = buildWorkspaceKindWithOptions({
+        defaultImageId: 'jupyterlab_scipy_190',
+        imageOptions: [
+          {
+            id: 'jupyterlab_scipy_190',
+            displayName: 'jupyter-scipy:v1.9.0',
+            description: 'JupyterLab v1.9.0',
           },
-        },
+        ],
+        defaultPodConfigId: 'medium_cpu',
+        podConfigOptions: [
+          { id: 'tiny_cpu', displayName: 'Tiny CPU', description: 'Small pod' },
+          { id: 'medium_cpu', displayName: 'Medium CPU', description: 'Medium pod' },
+        ],
       });
 
       cy.interceptApi(
@@ -372,44 +307,22 @@ describe('Workspace Form - Option Card Display', () => {
 
   describe('Selection highlighting', () => {
     it('should highlight selected card with grey background', () => {
-      const mockWorkspaceKind = buildMockWorkspaceKind({
-        name: 'jupyterlab',
-        podTemplate: {
-          ...buildMockWorkspaceKind().podTemplate,
-          options: {
-            imageConfig: {
-              default: 'jupyterlab_scipy_190',
-              values: [
-                {
-                  id: 'jupyterlab_scipy_190',
-                  displayName: 'jupyter-scipy:v1.9.0',
-                  description: 'JupyterLab v1.9.0',
-                  labels: [],
-                  hidden: false,
-                },
-                {
-                  id: 'jupyterlab_scipy_200',
-                  displayName: 'jupyter-scipy:v2.0.0',
-                  description: 'JupyterLab v2.0.0',
-                  labels: [],
-                  hidden: false,
-                },
-              ],
-            },
-            podConfig: {
-              default: 'tiny_cpu',
-              values: [
-                {
-                  id: 'tiny_cpu',
-                  displayName: 'Tiny CPU',
-                  description: 'Small pod',
-                  labels: [],
-                  hidden: false,
-                },
-              ],
-            },
+      const mockWorkspaceKind = buildWorkspaceKindWithOptions({
+        defaultImageId: 'jupyterlab_scipy_190',
+        imageOptions: [
+          {
+            id: 'jupyterlab_scipy_190',
+            displayName: 'jupyter-scipy:v1.9.0',
+            description: 'JupyterLab v1.9.0',
           },
-        },
+          {
+            id: 'jupyterlab_scipy_200',
+            displayName: 'jupyter-scipy:v2.0.0',
+            description: 'JupyterLab v2.0.0',
+          },
+        ],
+        defaultPodConfigId: 'tiny_cpu',
+        podConfigOptions: [{ id: 'tiny_cpu', displayName: 'Tiny CPU', description: 'Small pod' }],
       });
 
       cy.interceptApi(
@@ -440,44 +353,23 @@ describe('Workspace Form - Option Card Display', () => {
 
   describe('Combined visual states', () => {
     it('should correctly display hidden default option with all indicators', () => {
-      const mockWorkspaceKind = buildMockWorkspaceKind({
-        name: 'jupyterlab',
-        podTemplate: {
-          ...buildMockWorkspaceKind().podTemplate,
-          options: {
-            imageConfig: {
-              default: 'jupyterlab_scipy_200_hidden',
-              values: [
-                {
-                  id: 'jupyterlab_scipy_190',
-                  displayName: 'jupyter-scipy:v1.9.0',
-                  description: 'JupyterLab v1.9.0',
-                  labels: [],
-                  hidden: false,
-                },
-                {
-                  id: 'jupyterlab_scipy_200_hidden',
-                  displayName: 'jupyter-scipy:v2.0.0 (Hidden)',
-                  description: 'JupyterLab v2.0.0',
-                  labels: [],
-                  hidden: true,
-                },
-              ],
-            },
-            podConfig: {
-              default: 'tiny_cpu',
-              values: [
-                {
-                  id: 'tiny_cpu',
-                  displayName: 'Tiny CPU',
-                  description: 'Small pod',
-                  labels: [],
-                  hidden: false,
-                },
-              ],
-            },
+      const mockWorkspaceKind = buildWorkspaceKindWithOptions({
+        defaultImageId: 'jupyterlab_scipy_200_hidden',
+        imageOptions: [
+          {
+            id: 'jupyterlab_scipy_190',
+            displayName: 'jupyter-scipy:v1.9.0',
+            description: 'JupyterLab v1.9.0',
           },
-        },
+          {
+            id: 'jupyterlab_scipy_200_hidden',
+            displayName: 'jupyter-scipy:v2.0.0 (Hidden)',
+            description: 'JupyterLab v2.0.0',
+            hidden: true,
+          },
+        ],
+        defaultPodConfigId: 'tiny_cpu',
+        podConfigOptions: [{ id: 'tiny_cpu', displayName: 'Tiny CPU', description: 'Small pod' }],
       });
 
       cy.interceptApi(
@@ -492,17 +384,9 @@ describe('Workspace Form - Option Card Display', () => {
       createWorkspace.selectKind('jupyterlab');
       createWorkspace.clickNext();
 
-      cy.get('#jupyterlab_scipy_200_hidden')
-        // Should be selected (auto-selected as default)
-        .should('have.class', 'pf-m-selected')
-        // Should have hidden class (grey border)
-        .should('have.class', 'workspace-option-card--hidden')
-        .within(() => {
-          // Should show "Default" badge
-          cy.contains('Default').should('be.visible');
-          // Should show hidden icon
-          cy.get('[data-testid*="hidden-icon"]').should('exist');
-        });
+      createWorkspace.assertCardIsSelected('jupyterlab_scipy_200_hidden');
+      createWorkspace.assertCardHasHiddenIndicator('jupyterlab_scipy_200_hidden');
+      createWorkspace.assertCardHasDefaultBadge('jupyterlab_scipy_200_hidden');
     });
   });
 });

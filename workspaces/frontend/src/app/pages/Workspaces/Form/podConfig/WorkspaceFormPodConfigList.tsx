@@ -24,7 +24,7 @@ const filterableProperties: Record<
 };
 
 type WorkspaceFormPodConfigListProps = {
-  podConfigs: WorkspacekindsPodConfigValue[];
+  filteredPodConfigs: WorkspacekindsPodConfigValue[];
   allPodConfigs: WorkspacekindsPodConfigValue[];
   selectedPodConfig: WorkspacekindsPodConfigValue | undefined;
   onSelect: (workspacePodConfig: WorkspacekindsPodConfigValue | undefined) => void;
@@ -33,15 +33,15 @@ type WorkspaceFormPodConfigListProps = {
 
 export const WorkspaceFormPodConfigList: React.FunctionComponent<
   WorkspaceFormPodConfigListProps
-> = ({ podConfigs, allPodConfigs, selectedPodConfig, onSelect, defaultPodConfigId }) => {
+> = ({ filteredPodConfigs, allPodConfigs, selectedPodConfig, onSelect, defaultPodConfigId }) => {
   const { filterValues, setFilter, clearAllFilters } =
     useToolbarFilters<PodConfigFilterKey>(filterConfig);
   const [activePopoverId, setActivePopoverId] = useState<string | null>(null);
   const [pinnedPopoverId, setPinnedPopoverId] = useState<string | null>(null);
 
   const reorderedPodConfigs = useMemo(
-    () => moveDefaultToFront(podConfigs, defaultPodConfigId),
-    [podConfigs, defaultPodConfigId],
+    () => moveDefaultToFront(filteredPodConfigs, defaultPodConfigId),
+    [filteredPodConfigs, defaultPodConfigId],
   );
 
   const filteredWorkspacePodConfigs = useMemo(

@@ -78,7 +78,7 @@ const WorkspaceFormImageSelection: React.FunctionComponent<WorkspaceFormImageSel
         <SplitItem style={{ minWidth: '200px' }}>{imageFilterContent}</SplitItem>
         <SplitItem isFilled>
           <WorkspaceFormImageList
-            images={filteredImages}
+            filteredImages={filteredImages}
             allImages={images}
             selectedImage={selectedImage}
             onSelect={onSelect}

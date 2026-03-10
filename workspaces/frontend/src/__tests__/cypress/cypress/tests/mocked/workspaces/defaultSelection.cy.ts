@@ -3,6 +3,67 @@ import { createWorkspace } from '~/__tests__/cypress/cypress/pages/workspaces/cr
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import { buildMockNamespace, buildMockWorkspaceKind } from '~/shared/mock/mockBuilder';
 
+type ImageConfigOption = {
+  id: string;
+  displayName: string;
+  description: string;
+  labels?: { key: string; value: string }[];
+  hidden?: boolean;
+};
+
+type PodConfigOption = {
+  id: string;
+  displayName: string;
+  description: string;
+  labels?: { key: string; value: string }[];
+  hidden?: boolean;
+};
+
+const buildWorkspaceKindWithOptions = (overrides: {
+  name?: string;
+  defaultImageId?: string;
+  imageOptions?: ImageConfigOption[];
+  defaultPodConfigId?: string;
+  podConfigOptions?: PodConfigOption[];
+}) => {
+  const {
+    name = 'jupyterlab',
+    defaultImageId = '',
+    imageOptions = [],
+    defaultPodConfigId = '',
+    podConfigOptions = [],
+  } = overrides;
+
+  return buildMockWorkspaceKind({
+    name,
+    podTemplate: {
+      ...buildMockWorkspaceKind().podTemplate,
+      options: {
+        imageConfig: {
+          default: defaultImageId,
+          values: imageOptions.map((img) => ({
+            id: img.id,
+            displayName: img.displayName,
+            description: img.description,
+            labels: img.labels || [],
+            hidden: img.hidden || false,
+          })),
+        },
+        podConfig: {
+          default: defaultPodConfigId,
+          values: podConfigOptions.map((pc) => ({
+            id: pc.id,
+            displayName: pc.displayName,
+            description: pc.description,
+            labels: pc.labels || [],
+            hidden: pc.hidden || false,
+          })),
+        },
+      },
+    },
+  });
+};
+
 describe('Workspace Form - Default Selection', () => {
   const mockNamespace = buildMockNamespace({ name: 'default' });
 
@@ -16,44 +77,22 @@ describe('Workspace Form - Default Selection', () => {
 
   describe('Auto-selection of defaults', () => {
     it('should auto-select default image when workspace kind selected', () => {
-      const mockWorkspaceKind = buildMockWorkspaceKind({
-        name: 'jupyterlab',
-        podTemplate: {
-          ...buildMockWorkspaceKind().podTemplate,
-          options: {
-            imageConfig: {
-              default: 'jupyterlab_scipy_190',
-              values: [
-                {
-                  id: 'jupyterlab_scipy_180',
-                  displayName: 'jupyter-scipy:v1.8.0',
-                  description: 'JupyterLab v1.8.0',
-                  labels: [],
-                  hidden: false,
-                },
-                {
-                  id: 'jupyterlab_scipy_190',
-                  displayName: 'jupyter-scipy:v1.9.0',
-                  description: 'JupyterLab v1.9.0',
-                  labels: [],
-                  hidden: false,
-                },
-              ],
-            },
-            podConfig: {
-              default: 'tiny_cpu',
-              values: [
-                {
-                  id: 'tiny_cpu',
-                  displayName: 'Tiny CPU',
-                  description: 'Small pod',
-                  labels: [],
-                  hidden: false,
-                },
-              ],
-            },
+      const mockWorkspaceKind = buildWorkspaceKindWithOptions({
+        defaultImageId: 'jupyterlab_scipy_190',
+        imageOptions: [
+          {
+            id: 'jupyterlab_scipy_180',
+            displayName: 'jupyter-scipy:v1.8.0',
+            description: 'JupyterLab v1.8.0',
           },
-        },
+          {
+            id: 'jupyterlab_scipy_190',
+            displayName: 'jupyter-scipy:v1.9.0',
+            description: 'JupyterLab v1.9.0',
+          },
+        ],
+        defaultPodConfigId: 'tiny_cpu',
+        podConfigOptions: [{ id: 'tiny_cpu', displayName: 'Tiny CPU', description: 'Small pod' }],
       });
 
       cy.interceptApi(
@@ -73,44 +112,20 @@ describe('Workspace Form - Default Selection', () => {
     });
 
     it('should auto-select default pod config when workspace kind selected', () => {
-      const mockWorkspaceKind = buildMockWorkspaceKind({
-        name: 'jupyterlab',
-        podTemplate: {
-          ...buildMockWorkspaceKind().podTemplate,
-          options: {
-            imageConfig: {
-              default: 'jupyterlab_scipy_190',
-              values: [
-                {
-                  id: 'jupyterlab_scipy_190',
-                  displayName: 'jupyter-scipy:v1.9.0',
-                  description: 'JupyterLab v1.9.0',
-                  labels: [],
-                  hidden: false,
-                },
-              ],
-            },
-            podConfig: {
-              default: 'small_cpu',
-              values: [
-                {
-                  id: 'tiny_cpu',
-                  displayName: 'Tiny CPU',
-                  description: 'Small pod',
-                  labels: [],
-                  hidden: false,
-                },
-                {
-                  id: 'small_cpu',
-                  displayName: 'Small CPU',
-                  description: 'Medium pod',
-                  labels: [],
-                  hidden: false,
-                },
-              ],
-            },
+      const mockWorkspaceKind = buildWorkspaceKindWithOptions({
+        defaultImageId: 'jupyterlab_scipy_190',
+        imageOptions: [
+          {
+            id: 'jupyterlab_scipy_190',
+            displayName: 'jupyter-scipy:v1.9.0',
+            description: 'JupyterLab v1.9.0',
           },
-        },
+        ],
+        defaultPodConfigId: 'small_cpu',
+        podConfigOptions: [
+          { id: 'tiny_cpu', displayName: 'Tiny CPU', description: 'Small pod' },
+          { id: 'small_cpu', displayName: 'Small CPU', description: 'Medium pod' },
+        ],
       });
 
       cy.interceptApi(
@@ -131,51 +146,25 @@ describe('Workspace Form - Default Selection', () => {
     });
 
     it('should auto-select both defaults when kind has both defined', () => {
-      const mockWorkspaceKind = buildMockWorkspaceKind({
-        name: 'jupyterlab',
-        podTemplate: {
-          ...buildMockWorkspaceKind().podTemplate,
-          options: {
-            imageConfig: {
-              default: 'jupyterlab_scipy_200',
-              values: [
-                {
-                  id: 'jupyterlab_scipy_190',
-                  displayName: 'jupyter-scipy:v1.9.0',
-                  description: 'JupyterLab v1.9.0',
-                  labels: [],
-                  hidden: false,
-                },
-                {
-                  id: 'jupyterlab_scipy_200',
-                  displayName: 'jupyter-scipy:v2.0.0',
-                  description: 'JupyterLab v2.0.0',
-                  labels: [],
-                  hidden: false,
-                },
-              ],
-            },
-            podConfig: {
-              default: 'medium_cpu',
-              values: [
-                {
-                  id: 'tiny_cpu',
-                  displayName: 'Tiny CPU',
-                  description: 'Small pod',
-                  labels: [],
-                  hidden: false,
-                },
-                {
-                  id: 'medium_cpu',
-                  displayName: 'Medium CPU',
-                  description: 'Medium pod',
-                  labels: [],
-                  hidden: false,
-                },
-              ],
-            },
+      const mockWorkspaceKind = buildWorkspaceKindWithOptions({
+        defaultImageId: 'jupyterlab_scipy_200',
+        imageOptions: [
+          {
+            id: 'jupyterlab_scipy_190',
+            displayName: 'jupyter-scipy:v1.9.0',
+            description: 'JupyterLab v1.9.0',
           },
-        },
+          {
+            id: 'jupyterlab_scipy_200',
+            displayName: 'jupyter-scipy:v2.0.0',
+            description: 'JupyterLab v2.0.0',
+          },
+        ],
+        defaultPodConfigId: 'medium_cpu',
+        podConfigOptions: [
+          { id: 'tiny_cpu', displayName: 'Tiny CPU', description: 'Small pod' },
+          { id: 'medium_cpu', displayName: 'Medium CPU', description: 'Medium pod' },
+        ],
       });
 
       cy.interceptApi(
@@ -198,44 +187,22 @@ describe('Workspace Form - Default Selection', () => {
     });
 
     it('should not auto-select when kind has no default image', () => {
-      const mockWorkspaceKind = buildMockWorkspaceKind({
-        name: 'jupyterlab',
-        podTemplate: {
-          ...buildMockWorkspaceKind().podTemplate,
-          options: {
-            imageConfig: {
-              default: '', // No default (empty string means no match)
-              values: [
-                {
-                  id: 'jupyterlab_scipy_190',
-                  displayName: 'jupyter-scipy:v1.9.0',
-                  description: 'JupyterLab v1.9.0',
-                  labels: [],
-                  hidden: false,
-                },
-                {
-                  id: 'jupyterlab_scipy_200',
-                  displayName: 'jupyter-scipy:v2.0.0',
-                  description: 'JupyterLab v2.0.0',
-                  labels: [],
-                  hidden: false,
-                },
-              ],
-            },
-            podConfig: {
-              default: 'tiny_cpu',
-              values: [
-                {
-                  id: 'tiny_cpu',
-                  displayName: 'Tiny CPU',
-                  description: 'Small pod',
-                  labels: [],
-                  hidden: false,
-                },
-              ],
-            },
+      const mockWorkspaceKind = buildWorkspaceKindWithOptions({
+        defaultImageId: '', // No default (empty string means no match)
+        imageOptions: [
+          {
+            id: 'jupyterlab_scipy_190',
+            displayName: 'jupyter-scipy:v1.9.0',
+            description: 'JupyterLab v1.9.0',
           },
-        },
+          {
+            id: 'jupyterlab_scipy_200',
+            displayName: 'jupyter-scipy:v2.0.0',
+            description: 'JupyterLab v2.0.0',
+          },
+        ],
+        defaultPodConfigId: 'tiny_cpu',
+        podConfigOptions: [{ id: 'tiny_cpu', displayName: 'Tiny CPU', description: 'Small pod' }],
       });
 
       cy.interceptApi(
@@ -258,51 +225,27 @@ describe('Workspace Form - Default Selection', () => {
 
   describe('Default option ordering', () => {
     it('should display default image first in list', () => {
-      const mockWorkspaceKind = buildMockWorkspaceKind({
-        name: 'jupyterlab',
-        podTemplate: {
-          ...buildMockWorkspaceKind().podTemplate,
-          options: {
-            imageConfig: {
-              default: 'jupyterlab_scipy_200', // Third in original list
-              values: [
-                {
-                  id: 'jupyterlab_scipy_180',
-                  displayName: 'jupyter-scipy:v1.8.0',
-                  description: 'JupyterLab v1.8.0',
-                  labels: [],
-                  hidden: false,
-                },
-                {
-                  id: 'jupyterlab_scipy_190',
-                  displayName: 'jupyter-scipy:v1.9.0',
-                  description: 'JupyterLab v1.9.0',
-                  labels: [],
-                  hidden: false,
-                },
-                {
-                  id: 'jupyterlab_scipy_200',
-                  displayName: 'jupyter-scipy:v2.0.0',
-                  description: 'JupyterLab v2.0.0',
-                  labels: [],
-                  hidden: false,
-                },
-              ],
-            },
-            podConfig: {
-              default: 'tiny_cpu',
-              values: [
-                {
-                  id: 'tiny_cpu',
-                  displayName: 'Tiny CPU',
-                  description: 'Small pod',
-                  labels: [],
-                  hidden: false,
-                },
-              ],
-            },
+      const mockWorkspaceKind = buildWorkspaceKindWithOptions({
+        defaultImageId: 'jupyterlab_scipy_200', // Third in original list
+        imageOptions: [
+          {
+            id: 'jupyterlab_scipy_180',
+            displayName: 'jupyter-scipy:v1.8.0',
+            description: 'JupyterLab v1.8.0',
           },
-        },
+          {
+            id: 'jupyterlab_scipy_190',
+            displayName: 'jupyter-scipy:v1.9.0',
+            description: 'JupyterLab v1.9.0',
+          },
+          {
+            id: 'jupyterlab_scipy_200',
+            displayName: 'jupyter-scipy:v2.0.0',
+            description: 'JupyterLab v2.0.0',
+          },
+        ],
+        defaultPodConfigId: 'tiny_cpu',
+        podConfigOptions: [{ id: 'tiny_cpu', displayName: 'Tiny CPU', description: 'Small pod' }],
       });
 
       cy.interceptApi(
@@ -322,44 +265,22 @@ describe('Workspace Form - Default Selection', () => {
     });
 
     it('should display "Default" badge on default option', () => {
-      const mockWorkspaceKind = buildMockWorkspaceKind({
-        name: 'jupyterlab',
-        podTemplate: {
-          ...buildMockWorkspaceKind().podTemplate,
-          options: {
-            imageConfig: {
-              default: 'jupyterlab_scipy_190',
-              values: [
-                {
-                  id: 'jupyterlab_scipy_190',
-                  displayName: 'jupyter-scipy:v1.9.0',
-                  description: 'JupyterLab v1.9.0',
-                  labels: [],
-                  hidden: false,
-                },
-                {
-                  id: 'jupyterlab_scipy_200',
-                  displayName: 'jupyter-scipy:v2.0.0',
-                  description: 'JupyterLab v2.0.0',
-                  labels: [],
-                  hidden: false,
-                },
-              ],
-            },
-            podConfig: {
-              default: 'tiny_cpu',
-              values: [
-                {
-                  id: 'tiny_cpu',
-                  displayName: 'Tiny CPU',
-                  description: 'Small pod',
-                  labels: [],
-                  hidden: false,
-                },
-              ],
-            },
+      const mockWorkspaceKind = buildWorkspaceKindWithOptions({
+        defaultImageId: 'jupyterlab_scipy_190',
+        imageOptions: [
+          {
+            id: 'jupyterlab_scipy_190',
+            displayName: 'jupyter-scipy:v1.9.0',
+            description: 'JupyterLab v1.9.0',
           },
-        },
+          {
+            id: 'jupyterlab_scipy_200',
+            displayName: 'jupyter-scipy:v2.0.0',
+            description: 'JupyterLab v2.0.0',
+          },
+        ],
+        defaultPodConfigId: 'tiny_cpu',
+        podConfigOptions: [{ id: 'tiny_cpu', displayName: 'Tiny CPU', description: 'Small pod' }],
       });
 
       cy.interceptApi(

@@ -116,6 +116,55 @@ class CreateWorkspace extends WorkspaceForm {
   clickAttachNewSecret(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('attach-new-secret-button').click();
   }
+
+  assertCardHasHiddenIndicator(cardId: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    const normalizedId = cardId.replace(/ /g, '-');
+    cy.get(`#${normalizedId}`).should('have.class', 'workspace-option-card--hidden');
+    return cy.get(`#${normalizedId}`).within(() => {
+      cy.get('[data-testid*="hidden-icon"]').should('exist');
+    });
+  }
+
+  assertCardHasRedirectIndicator(cardId: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    const normalizedId = cardId.replace(/ /g, '-');
+    cy.get(`#${normalizedId}`).should('have.class', 'workspace-option-card--redirected');
+    return cy.get(`#${normalizedId}`).within(() => {
+      cy.get('[data-testid*="redirect-icon"]').should('exist');
+    });
+  }
+
+  assertCardHasBothIndicators(cardId: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    const normalizedId = cardId.replace(/ /g, '-');
+    cy.get(`#${normalizedId}`)
+      .should('have.class', 'workspace-option-card--hidden')
+      .and('have.class', 'workspace-option-card--redirected');
+    return cy.get(`#${normalizedId}`).within(() => {
+      cy.get('[data-testid*="hidden-icon"]').should('exist');
+      cy.get('[data-testid*="redirect-icon"]').should('exist');
+    });
+  }
+
+  assertCardDoesNotHaveHiddenIndicator(cardId: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy
+      .get(`#${cardId.replace(/ /g, '-')}`)
+      .should('not.have.class', 'workspace-option-card--hidden');
+  }
+
+  assertCardDoesNotHaveRedirectIndicator(cardId: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy
+      .get(`#${cardId.replace(/ /g, '-')}`)
+      .should('not.have.class', 'workspace-option-card--redirected');
+  }
+
+  assertCardIsSelected(cardId: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.get(`#${cardId.replace(/ /g, '-')}`).should('have.class', 'pf-m-selected');
+  }
+
+  assertCardHasDefaultBadge(cardId: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.get(`#${cardId.replace(/ /g, '-')}`).within(() => {
+      cy.contains('Default').should('be.visible');
+    });
+  }
 }
 
 export const createWorkspace = new CreateWorkspace();

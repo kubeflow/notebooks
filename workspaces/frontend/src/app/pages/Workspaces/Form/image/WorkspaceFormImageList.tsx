@@ -24,7 +24,7 @@ const filterableProperties: Record<
 };
 
 type WorkspaceFormImageListProps = {
-  images: WorkspacekindsImageConfigValue[];
+  filteredImages: WorkspacekindsImageConfigValue[];
   allImages: WorkspacekindsImageConfigValue[];
   selectedImage: WorkspacekindsImageConfigValue | undefined;
   onSelect: (workspaceImage: WorkspacekindsImageConfigValue | undefined) => void;
@@ -32,7 +32,7 @@ type WorkspaceFormImageListProps = {
 };
 
 export const WorkspaceFormImageList: React.FunctionComponent<WorkspaceFormImageListProps> = ({
-  images,
+  filteredImages,
   allImages,
   selectedImage,
   onSelect,
@@ -44,8 +44,8 @@ export const WorkspaceFormImageList: React.FunctionComponent<WorkspaceFormImageL
   const [pinnedPopoverId, setPinnedPopoverId] = useState<string | null>(null);
 
   const reorderedImages = useMemo(
-    () => moveDefaultToFront(images, defaultImageId),
-    [images, defaultImageId],
+    () => moveDefaultToFront(filteredImages, defaultImageId),
+    [filteredImages, defaultImageId],
   );
 
   const filteredWorkspaceImages = useMemo(
