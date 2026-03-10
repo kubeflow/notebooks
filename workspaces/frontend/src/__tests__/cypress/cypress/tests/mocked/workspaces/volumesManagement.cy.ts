@@ -16,7 +16,12 @@ import {
   buildMockWorkspaceUpdateFromWorkspace,
 } from '~/shared/mock/mockBuilder';
 import { navBar } from '~/__tests__/cypress/cypress/pages/components/navBar';
-import { WorkspacesWorkspaceState } from '~/generated/data-contracts';
+import {
+  V1Beta1WorkspaceState,
+  V1PersistentVolumeAccessMode,
+  V1PersistentVolumeMode,
+  V1PodPhase,
+} from '~/generated/data-contracts';
 
 describe('Volumes Management - Attach and Create', () => {
   const mockNamespace = buildMockNamespace({ name: 'default' });
@@ -28,7 +33,7 @@ describe('Volumes Management - Attach and Create', () => {
     name: 'test-workspace',
     namespace: mockNamespace.name,
     workspaceKind: mockWorkspaceKindInfo,
-    state: WorkspacesWorkspaceState.WorkspaceStateRunning,
+    state: V1Beta1WorkspaceState.WorkspaceStateRunning,
   });
 
   // Override to have empty volumes
@@ -46,10 +51,10 @@ describe('Volumes Management - Attach and Create', () => {
       pods: [],
       workspaces: [],
       pvcSpec: {
-        accessModes: ['ReadWriteOnce'],
+        accessModes: [V1PersistentVolumeAccessMode.ReadWriteOnce],
         requests: { storage: '10Gi' },
         storageClassName: 'standard',
-        volumeMode: 'Filesystem',
+        volumeMode: V1PersistentVolumeMode.PersistentVolumeFilesystem,
       },
     }),
     buildMockPVC({
@@ -58,22 +63,22 @@ describe('Volumes Management - Attach and Create', () => {
       pods: [],
       workspaces: [],
       pvcSpec: {
-        accessModes: ['ReadWriteMany'],
+        accessModes: [V1PersistentVolumeAccessMode.ReadWriteMany],
         requests: { storage: '50Gi' },
         storageClassName: 'nfs',
-        volumeMode: 'Filesystem',
+        volumeMode: V1PersistentVolumeMode.PersistentVolumeFilesystem,
       },
     }),
     buildMockPVC({
       name: 'in-use-pvc',
       canMount: true,
-      pods: [{ name: 'other-pod', phase: 'Running' }],
+      pods: [{ name: 'other-pod', phase: V1PodPhase.PodRunning }],
       workspaces: [],
       pvcSpec: {
-        accessModes: ['ReadWriteOnce'],
+        accessModes: [V1PersistentVolumeAccessMode.ReadWriteOnce],
         requests: { storage: '20Gi' },
         storageClassName: 'standard',
-        volumeMode: 'Filesystem',
+        volumeMode: V1PersistentVolumeMode.PersistentVolumeFilesystem,
       },
     }),
     buildMockPVC({
@@ -82,10 +87,10 @@ describe('Volumes Management - Attach and Create', () => {
       pods: [],
       workspaces: [],
       pvcSpec: {
-        accessModes: ['ReadWriteOnce'],
+        accessModes: [V1PersistentVolumeAccessMode.ReadWriteOnce],
         requests: { storage: '5Gi' },
         storageClassName: 'standard',
-        volumeMode: 'Filesystem',
+        volumeMode: V1PersistentVolumeMode.PersistentVolumeFilesystem,
       },
     }),
   ];

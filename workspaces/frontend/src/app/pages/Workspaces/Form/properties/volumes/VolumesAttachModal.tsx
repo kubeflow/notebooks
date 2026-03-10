@@ -30,7 +30,11 @@ import {
   TextInputGroupMain,
   TextInputGroupUtilities,
 } from '@patternfly/react-core/dist/esm/components/TextInputGroup';
-import { PvcsPVCListItem, StorageclassesStorageClassListItem } from '~/generated/data-contracts';
+import {
+  PvcsPVCListItem,
+  StorageclassesStorageClassListItem,
+  V1PersistentVolumeAccessMode,
+} from '~/generated/data-contracts';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { LabelGroupWithTooltip } from '~/app/components/LabelGroupWithTooltip';
 import {
@@ -76,9 +80,8 @@ export interface VolumesAttachModalProps {
 }
 
 const isRWO = (pvc: PvcsPVCListItem): boolean =>
-  (pvc.pvcSpec.accessModes.includes('ReadWriteOnce') ||
-    pvc.pvcSpec.accessModes.includes('ReadWriteOncePod')) &&
-  !pvc.pvcSpec.accessModes.includes('ReadWriteMany');
+  pvc.pvcSpec.accessModes.includes(V1PersistentVolumeAccessMode.ReadWriteOnce) ||
+  pvc.pvcSpec.accessModes.includes(V1PersistentVolumeAccessMode.ReadWriteOncePod);
 
 const isInUse = (pvc: PvcsPVCListItem): boolean => pvc.pods.length > 0 || pvc.workspaces.length > 0;
 
@@ -87,10 +90,10 @@ const getUnmountableTooltip = (pvc: PvcsPVCListItem): string | null => {
     return null;
   }
   const modes = pvc.pvcSpec.accessModes;
-  if (modes.includes('ReadWriteOncePod') && pvc.pods.length > 0) {
+  if (modes.includes(V1PersistentVolumeAccessMode.ReadWriteOncePod) && pvc.pods.length > 0) {
     return 'This volume uses ReadWriteOncePod access and is already mounted by a pod.';
   }
-  if (modes.includes('ReadWriteOnce') && pvc.workspaces.length > 0) {
+  if (modes.includes(V1PersistentVolumeAccessMode.ReadWriteOnce) && pvc.workspaces.length > 0) {
     return 'This volume uses ReadWriteOnce access and is already mounted by a workspace.';
   }
   return null;
@@ -176,21 +179,24 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
             <Stack style={{ width: '100%' }}>
               <StackItem>
                 <LabelGroup numLabels={5}>
-                  <Label isCompact className={!pvc.canMount ? 'pf-m-disabled' : undefined}>
+                  <Label
+                    isCompact
+                    className={!pvc.canMount || isExcluded ? 'pf-m-disabled' : undefined}
+                  >
                     {pvc.pvcSpec.requests.storage}
                   </Label>
                   {pvc.pvcSpec.accessModes.map((mode) => (
                     <Label
                       key={mode}
                       isCompact
-                      className={!pvc.canMount ? 'pf-m-disabled' : undefined}
+                      className={!pvc.canMount || isExcluded ? 'pf-m-disabled' : undefined}
                       color="blue"
                     >
                       {mode}
                     </Label>
                   ))}
                   {isExcluded && (
-                    <Label isCompact color="purple">
+                    <Label isCompact className="pf-m-disabled">
                       Already mounted
                     </Label>
                   )}
