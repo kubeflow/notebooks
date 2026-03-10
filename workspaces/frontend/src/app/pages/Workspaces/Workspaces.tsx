@@ -8,7 +8,7 @@ import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWra
 import { LoadingSpinner } from '~/app/components/LoadingSpinner';
 import { LoadError } from '~/app/components/LoadError';
 import { useWorkspaceRowActions } from '~/app/hooks/useWorkspaceRowActions';
-import { WorkspacesWorkspaceState } from '~/generated/data-contracts';
+import { V1Beta1WorkspaceState } from '~/generated/data-contracts';
 
 export const Workspaces: React.FunctionComponent = () => {
   const { namespacesLoaded, selectedNamespace } = useNamespaceSelectorWrapper();
@@ -23,17 +23,17 @@ export const Workspaces: React.FunctionComponent = () => {
     { id: 'separator' },
     {
       id: 'stop',
-      isVisible: (w) => w.state === WorkspacesWorkspaceState.WorkspaceStateRunning,
+      isVisible: (w) => w.state === V1Beta1WorkspaceState.WorkspaceStateRunning,
       onActionDone: refreshWorkspaces,
     },
     {
       id: 'start',
-      isVisible: (w) => w.state !== WorkspacesWorkspaceState.WorkspaceStateRunning,
+      isVisible: (w) => w.state !== V1Beta1WorkspaceState.WorkspaceStateRunning,
       onActionDone: refreshWorkspaces,
     },
     {
       id: 'restart',
-      isVisible: (w) => w.state === WorkspacesWorkspaceState.WorkspaceStateRunning,
+      isVisible: (w) => w.state === V1Beta1WorkspaceState.WorkspaceStateRunning,
       onActionDone: refreshWorkspaces,
     },
   ]);

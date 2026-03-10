@@ -8,7 +8,7 @@ import {
   MenuToggleElement,
 } from '@patternfly/react-core/dist/esm/components/MenuToggle';
 import React, { useState } from 'react';
-import { WorkspacesWorkspaceListItem, WorkspacesWorkspaceState } from '~/generated/data-contracts';
+import { WorkspacesWorkspaceListItem, V1Beta1WorkspaceState } from '~/generated/data-contracts';
 
 type WorkspaceConnectActionProps = {
   workspace: WorkspacesWorkspaceListItem;
@@ -48,7 +48,7 @@ export const WorkspaceConnectAction: React.FunctionComponent<WorkspaceConnectAct
           variant="secondary"
           onClick={onToggleClick}
           isExpanded={open}
-          isDisabled={workspace.state !== WorkspacesWorkspaceState.WorkspaceStateRunning}
+          isDisabled={workspace.state !== V1Beta1WorkspaceState.WorkspaceStateRunning}
           aria-label="Select connection endpoint"
         >
           Connect

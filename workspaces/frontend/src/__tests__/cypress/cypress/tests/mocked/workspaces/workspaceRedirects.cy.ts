@@ -14,7 +14,7 @@ import {
 } from '~/shared/mock/mockBuilder';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import { navBar } from '~/__tests__/cypress/cypress/pages/components/navBar';
-import { WorkspacesWorkspaceState } from '~/generated/data-contracts';
+import { V1Beta1WorkspaceState } from '~/generated/data-contracts';
 
 const DEFAULT_NAMESPACE = 'default';
 
@@ -28,7 +28,7 @@ describe('Workspace Redirects', () => {
         name: 'Workspace with Image Redirect',
         namespace: mockNamespace.name,
         workspaceKind: mockWorkspaceKind,
-        state: WorkspacesWorkspaceState.WorkspaceStateRunning,
+        state: V1Beta1WorkspaceState.WorkspaceStateRunning,
         podTemplate: buildMockPodTemplate({
           options: buildPodTemplateOptions({
             imageConfig: {
@@ -78,7 +78,7 @@ describe('Workspace Redirects', () => {
         name: 'Workspace with Pod Config Redirect',
         namespace: mockNamespace.name,
         workspaceKind: mockWorkspaceKind,
-        state: WorkspacesWorkspaceState.WorkspaceStateRunning,
+        state: V1Beta1WorkspaceState.WorkspaceStateRunning,
         podTemplate: buildMockPodTemplate({
           options: buildPodTemplateOptions({
             podConfig: {
@@ -128,7 +128,7 @@ describe('Workspace Redirects', () => {
         name: 'Workspace without Redirects',
         namespace: mockNamespace.name,
         workspaceKind: mockWorkspaceKind,
-        state: WorkspacesWorkspaceState.WorkspaceStateRunning,
+        state: V1Beta1WorkspaceState.WorkspaceStateRunning,
         podTemplate: buildMockPodTemplate({
           options: buildPodTemplateOptions({
             imageConfig: buildMockImageConfig({
@@ -176,7 +176,7 @@ describe('Workspace Redirects', () => {
         name: 'Workspace with Both Redirects',
         namespace: mockNamespace.name,
         workspaceKind: mockWorkspaceKind,
-        state: WorkspacesWorkspaceState.WorkspaceStateRunning,
+        state: V1Beta1WorkspaceState.WorkspaceStateRunning,
         podTemplate: buildMockPodTemplate({
           options: buildPodTemplateOptions({
             imageConfig: {
@@ -242,7 +242,7 @@ describe('Workspace Redirects', () => {
         name: 'Test Workspace',
         namespace: mockNamespace.name,
         workspaceKind: mockWorkspaceKind,
-        state: WorkspacesWorkspaceState.WorkspaceStateRunning,
+        state: V1Beta1WorkspaceState.WorkspaceStateRunning,
         podTemplate: buildMockPodTemplate({
           options: buildPodTemplateOptions({
             imageConfig: {
@@ -289,7 +289,7 @@ describe('Workspace Redirects', () => {
         name: 'Test Workspace',
         namespace: mockNamespace.name,
         workspaceKind: mockWorkspaceKind,
-        state: WorkspacesWorkspaceState.WorkspaceStateRunning,
+        state: V1Beta1WorkspaceState.WorkspaceStateRunning,
         podTemplate: buildMockPodTemplate({
           options: buildPodTemplateOptions({
             imageConfig: {
@@ -340,7 +340,7 @@ describe('Workspace Redirects', () => {
         name: 'Multi-step Redirect Workspace',
         namespace: mockNamespace.name,
         workspaceKind: mockWorkspaceKind,
-        state: WorkspacesWorkspaceState.WorkspaceStateRunning,
+        state: V1Beta1WorkspaceState.WorkspaceStateRunning,
         podTemplate: buildMockPodTemplate({
           options: buildPodTemplateOptions({
             imageConfig: {
@@ -392,7 +392,7 @@ describe('Workspace Redirects', () => {
         name: 'Severity Labels Workspace',
         namespace: mockNamespace.name,
         workspaceKind: mockWorkspaceKind,
-        state: WorkspacesWorkspaceState.WorkspaceStateRunning,
+        state: V1Beta1WorkspaceState.WorkspaceStateRunning,
         podTemplate: buildMockPodTemplate({
           options: buildPodTemplateOptions({
             imageConfig: {
@@ -447,7 +447,7 @@ describe('Workspace Redirects', () => {
         name: 'Messages Workspace',
         namespace: mockNamespace.name,
         workspaceKind: mockWorkspaceKind,
-        state: WorkspacesWorkspaceState.WorkspaceStateRunning,
+        state: V1Beta1WorkspaceState.WorkspaceStateRunning,
         podTemplate: buildMockPodTemplate({
           options: buildPodTemplateOptions({
             imageConfig: {
@@ -503,7 +503,7 @@ describe('Workspace Redirects', () => {
         name: 'Pod Config Redirect Workspace',
         namespace: mockNamespace.name,
         workspaceKind: mockWorkspaceKind,
-        state: WorkspacesWorkspaceState.WorkspaceStateRunning,
+        state: V1Beta1WorkspaceState.WorkspaceStateRunning,
         podTemplate: buildMockPodTemplate({
           options: buildPodTemplateOptions({
             podConfig: {

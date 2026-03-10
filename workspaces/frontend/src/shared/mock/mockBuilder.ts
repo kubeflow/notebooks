@@ -3,7 +3,12 @@ import {
   HealthCheckHealthCheck,
   HealthCheckServiceStatus,
   NamespacesNamespace,
+  PvcsPVCCreate,
+  PvcsPVCListItem,
+  V1PersistentVolumeAccessMode,
+  V1PersistentVolumeMode,
   SecretsSecretListItem,
+  StorageclassesStorageClassListItem,
   WorkspacekindsRedirectMessageLevel,
   WorkspacekindsWorkspaceKind,
   WorkspacesImageConfig,
@@ -21,7 +26,7 @@ import {
   WorkspacesWorkspaceCreate,
   WorkspacesWorkspaceKindInfo,
   WorkspacesWorkspaceListItem,
-  WorkspacesWorkspaceState,
+  V1Beta1WorkspaceState,
   WorkspacesWorkspaceUpdate,
 } from '~/generated/data-contracts';
 
@@ -401,7 +406,7 @@ export const buildMockWorkspace = (
   workspaceKind: buildMockWorkspaceKindInfo(),
   paused: true,
   pausedTime: new Date(2025, 3, 1).getTime(),
-  state: WorkspacesWorkspaceState.WorkspaceStateRunning,
+  state: V1Beta1WorkspaceState.WorkspaceStateRunning,
   stateMessage: 'Workspace is running',
   podTemplate: buildMockPodTemplate({}),
   activity: {
@@ -645,9 +650,9 @@ export const buildMockWorkspaceList = (args: {
   count: number;
   namespace: string;
   kind: WorkspacesWorkspaceKindInfo;
-  state?: WorkspacesWorkspaceState;
+  state?: V1Beta1WorkspaceState;
 }): WorkspacesWorkspaceListItem[] => {
-  const states = Object.values(WorkspacesWorkspaceState);
+  const states = Object.values(V1Beta1WorkspaceState);
   const imageConfigs = [
     {
       id: 'jupyterlab_scipy_190',
@@ -704,7 +709,7 @@ export const buildMockWorkspaceList = (args: {
         workspaceKind: args.kind,
         state,
         stateMessage: `Workspace is in ${state} state`,
-        paused: state === WorkspacesWorkspaceState.WorkspaceStatePaused,
+        paused: state === V1Beta1WorkspaceState.WorkspaceStatePaused,
         pendingRestart: booleanValue,
         podTemplate: {
           podMetadata: { labels, annotations },
@@ -847,4 +852,44 @@ export const buildMockSecret = (
     updatedBy: 'user1',
   },
   ...secret,
+});
+
+export const buildMockStorageClass = (
+  storageClass?: Partial<StorageclassesStorageClassListItem>,
+): StorageclassesStorageClassListItem => ({
+  name: 'standard',
+  displayName: 'Standard',
+  description: 'Standard storage class',
+  canUse: true,
+  ...storageClass,
+});
+
+export const buildMockPVC = (pvc?: Partial<PvcsPVCListItem>): PvcsPVCListItem => ({
+  name: 'my-pvc',
+  canMount: true,
+  canUpdate: true,
+  pods: [],
+  workspaces: [],
+  pvcSpec: {
+    accessModes: [V1PersistentVolumeAccessMode.ReadWriteOnce],
+    requests: { storage: '10Gi' },
+    storageClassName: 'standard',
+    volumeMode: V1PersistentVolumeMode.PersistentVolumeFilesystem,
+  },
+  audit: {
+    createdAt: new Date(2025, 4, 1).toISOString(),
+    createdBy: 'admin1',
+    updatedAt: new Date(2025, 4, 1).toISOString(),
+    deletedAt: '',
+    updatedBy: 'user1',
+  },
+  ...pvc,
+});
+
+export const buildMockPVCCreate = (pvc?: Partial<PvcsPVCCreate>): PvcsPVCCreate => ({
+  name: 'my-pvc',
+  accessModes: [V1PersistentVolumeAccessMode.ReadWriteOnce],
+  requests: { storage: '10Gi' },
+  storageClassName: 'standard',
+  ...pvc,
 });

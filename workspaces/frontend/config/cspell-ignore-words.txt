@@ -10,3 +10,6 @@ pficon
 svgs
 labelledby
 xlarge
+storageclasses
+pvcs
+rwop

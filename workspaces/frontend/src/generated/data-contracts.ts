@@ -10,15 +10,6 @@
  * ---------------------------------------------------------------
  */
 
-export enum WorkspacesWorkspaceState {
-  WorkspaceStateRunning = 'Running',
-  WorkspaceStateTerminating = 'Terminating',
-  WorkspaceStatePaused = 'Paused',
-  WorkspaceStatePending = 'Pending',
-  WorkspaceStateError = 'Error',
-  WorkspaceStateUnknown = 'Unknown',
-}
-
 export enum WorkspacesRedirectMessageLevel {
   RedirectMessageLevelInfo = 'Info',
   RedirectMessageLevelWarning = 'Warning',
@@ -35,6 +26,41 @@ export enum WorkspacekindsRedirectMessageLevel {
   RedirectMessageLevelInfo = 'Info',
   RedirectMessageLevelWarning = 'Warning',
   RedirectMessageLevelDanger = 'Danger',
+}
+
+export enum V1Beta1WorkspaceState {
+  WorkspaceStateRunning = 'Running',
+  WorkspaceStateTerminating = 'Terminating',
+  WorkspaceStatePaused = 'Paused',
+  WorkspaceStatePending = 'Pending',
+  WorkspaceStateError = 'Error',
+  WorkspaceStateUnknown = 'Unknown',
+}
+
+export enum V1PodPhase {
+  PodPending = 'Pending',
+  PodRunning = 'Running',
+  PodSucceeded = 'Succeeded',
+  PodFailed = 'Failed',
+  PodUnknown = 'Unknown',
+}
+
+export enum V1PersistentVolumeReclaimPolicy {
+  PersistentVolumeReclaimRecycle = 'Recycle',
+  PersistentVolumeReclaimDelete = 'Delete',
+  PersistentVolumeReclaimRetain = 'Retain',
+}
+
+export enum V1PersistentVolumeMode {
+  PersistentVolumeBlock = 'Block',
+  PersistentVolumeFilesystem = 'Filesystem',
+}
+
+export enum V1PersistentVolumeAccessMode {
+  ReadWriteOnce = 'ReadWriteOnce',
+  ReadOnlyMany = 'ReadOnlyMany',
+  ReadWriteMany = 'ReadWriteMany',
+  ReadWriteOncePod = 'ReadWriteOncePod',
 }
 
 export enum HealthCheckServiceStatus {
@@ -101,6 +127,14 @@ export interface ApiNamespaceListEnvelope {
   data: NamespacesNamespace[];
 }
 
+export interface ApiPVCCreateEnvelope {
+  data: PvcsPVCCreate;
+}
+
+export interface ApiPVCListEnvelope {
+  data: PvcsPVCListItem[];
+}
+
 export interface ApiSecretCreateEnvelope {
   data: SecretsSecretCreate;
 }
@@ -111,6 +145,10 @@ export interface ApiSecretEnvelope {
 
 export interface ApiSecretListEnvelope {
   data: SecretsSecretListItem[];
+}
+
+export interface ApiStorageClassListEnvelope {
+  data: StorageclassesStorageClassListItem[];
 }
 
 export interface ApiValidationError {
@@ -187,6 +225,85 @@ export interface NamespacesNamespace {
   name: string;
 }
 
+export interface PvcsPVCCreate {
+  accessModes: V1PersistentVolumeAccessMode[];
+  name: string;
+  requests: PvcsStorageRequestsMutate;
+  storageClassName: string;
+}
+
+export interface PvcsPVCListItem {
+  audit: CommonAudit;
+  canMount: boolean;
+  canUpdate: boolean;
+  name: string;
+  pods: PvcsPodInfo[];
+  /**
+   * This field is nil until a PV is bound to the PVC.
+   * https://kubernetes.io/docs/concepts/storage/persistent-volumes/#binding
+   */
+  pv?: PvcsPVInfo;
+  pvcSpec: PvcsPVCSpec;
+  workspaces: PvcsWorkspaceInfo[];
+}
+
+export interface PvcsPVCSpec {
+  accessModes: V1PersistentVolumeAccessMode[];
+  requests: PvcsStorageRequests;
+  /**
+   * This field may be an empty string in two cases:
+   * 1. The PVC is requesting the default storage class, and it has not been bound to a PV yet.
+   * 2. The PVC is explicitly requesting a PV with no storage class (i.e. manual or out-of-band binding).
+   */
+  storageClassName: string;
+  volumeMode: V1PersistentVolumeMode;
+}
+
+export interface PvcsPVInfo {
+  accessModes: V1PersistentVolumeAccessMode[];
+  name: string;
+  persistentVolumeReclaimPolicy: V1PersistentVolumeReclaimPolicy;
+  /** This field should only be nil if the bound PV does not have a storage class (i.e. manual or out-of-band binding). */
+  storageClass?: PvcsStorageClassInfo;
+  volumeMode: V1PersistentVolumeMode;
+}
+
+export interface PvcsPodInfo {
+  name: string;
+  node?: PvcsPodNode;
+  phase: V1PodPhase;
+}
+
+export interface PvcsPodNode {
+  name: string;
+}
+
+export interface PvcsPodTemplatePod {
+  name: string;
+  node?: PvcsPodNode;
+}
+
+export interface PvcsStorageClassInfo {
+  description: string;
+  displayName: string;
+  name: string;
+}
+
+export interface PvcsStorageRequests {
+  storage: string;
+}
+
+export interface PvcsStorageRequestsMutate {
+  storage: string;
+}
+
+export interface PvcsWorkspaceInfo {
+  name: string;
+  podTemplatePod?: PvcsPodTemplatePod;
+  state: V1Beta1WorkspaceState;
+  stateMessage: string;
+}
+
 export interface SecretsSecretCreate {
   contents: SecretsSecretData;
   immutable: boolean;
@@ -220,6 +337,13 @@ export interface SecretsSecretUpdate {
 
 export interface SecretsSecretValue {
   base64?: string;
+}
+
+export interface StorageclassesStorageClassListItem {
+  canUse: boolean;
+  description: string;
+  displayName: string;
+  name: string;
 }
 
 export interface WorkspacekindsImageConfig {
@@ -463,7 +587,7 @@ export interface WorkspacesWorkspaceListItem {
   pendingRestart: boolean;
   podTemplate: WorkspacesPodTemplate;
   services: WorkspacesService[];
-  state: WorkspacesWorkspaceState;
+  state: V1Beta1WorkspaceState;
   stateMessage: string;
   workspaceKind: WorkspacesWorkspaceKindInfo;
 }

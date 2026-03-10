@@ -10,25 +10,25 @@
  * ---------------------------------------------------------------
  */
 
-import { ApiErrorEnvelope, ApiNamespaceListEnvelope } from './data-contracts';
+import { ApiErrorEnvelope, ApiStorageClassListEnvelope } from './data-contracts';
 import { HttpClient, RequestParams } from './http-client';
 
-export class Namespaces<SecurityDataType = unknown> extends HttpClient<SecurityDataType> {
+export class Storageclasses<SecurityDataType = unknown> extends HttpClient<SecurityDataType> {
   /**
-   * @description Returns a list of all namespaces in the cluster.
+   * @description Returns a list of all storage classes in the cluster.
    *
-   * @tags namespaces
-   * @name ListNamespaces
-   * @summary List namespaces
-   * @request GET:/namespaces
-   * @response `200` `ApiNamespaceListEnvelope` Successful namespaces response
+   * @tags storageclasses
+   * @name ListStorageClasses
+   * @summary List storage classes
+   * @request GET:/storageclasses
+   * @response `200` `ApiStorageClassListEnvelope` Successful storage classes response
    * @response `401` `ApiErrorEnvelope` Unauthorized
    * @response `403` `ApiErrorEnvelope` Forbidden
    * @response `500` `ApiErrorEnvelope` Internal server error
    */
-  listNamespaces = (params: RequestParams = {}) =>
-    this.request<ApiNamespaceListEnvelope, ApiErrorEnvelope>({
-      path: `/namespaces`,
+  listStorageClasses = (params: RequestParams = {}) =>
+    this.request<ApiStorageClassListEnvelope, ApiErrorEnvelope>({
+      path: `/storageclasses`,
       method: 'GET',
       format: 'json',
       ...params,

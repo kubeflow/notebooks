@@ -21,7 +21,7 @@ import { ContentType, HttpClient, RequestParams } from './http-client';
 
 export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityDataType> {
   /**
-   * @description Returns a list of all workspaces across all namespaces.
+   * @description Returns a list of all workspaces in the cluster.
    *
    * @tags workspaces
    * @name ListAllWorkspaces
@@ -92,7 +92,7 @@ export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityD
       ...params,
     });
   /**
-   * @description Updates an existing workspace
+   * @description Updates an existing workspace.
    *
    * @tags workspaces
    * @name UpdateWorkspace
@@ -177,7 +177,7 @@ export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityD
       ...params,
     });
   /**
-   * @description Deletes a specific workspace identified by namespace and workspace name.
+   * @description Deletes a specific workspace identified by namespace and name.
    *
    * @tags workspaces
    * @name DeleteWorkspace
@@ -187,6 +187,7 @@ export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityD
    * @response `401` `ApiErrorEnvelope` Unauthorized. Authentication is required.
    * @response `403` `ApiErrorEnvelope` Forbidden. User does not have permission to delete the workspace.
    * @response `404` `ApiErrorEnvelope` Not Found. Workspace does not exist.
+   * @response `409` `ApiErrorEnvelope` Conflict
    * @response `422` `ApiErrorEnvelope` Unprocessable Entity. Validation error.
    * @response `500` `ApiErrorEnvelope` Internal server error. An unexpected error occurred on the server.
    */
