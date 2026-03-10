@@ -97,31 +97,46 @@ export const RedirectIconWithPopover: React.FC<RedirectIconWithPopoverProps> = (
   onActiveChange,
   onPinnedChange,
 }) => {
-  const handleClick = useCallback(() => {
-    if (pinnedPopoverId === popoverId) {
-      onPinnedChange(null);
-    } else {
-      onPinnedChange(popoverId);
-      onActiveChange(null);
-    }
-  }, [pinnedPopoverId, popoverId, onPinnedChange, onActiveChange]);
+  const handleClick = useCallback(
+    (e?: React.MouseEvent) => {
+      if (e) {
+        e.stopPropagation();
+      }
+      if (pinnedPopoverId === popoverId) {
+        onPinnedChange(null);
+      } else {
+        onPinnedChange(popoverId);
+        onActiveChange(null);
+      }
+    },
+    [pinnedPopoverId, popoverId, onPinnedChange, onActiveChange],
+  );
 
-  const handleMouseEnter = useCallback(() => {
-    if (pinnedPopoverId !== popoverId) {
-      onActiveChange(popoverId);
-    }
-  }, [pinnedPopoverId, popoverId, onActiveChange]);
+  const handleMouseEnter = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (pinnedPopoverId !== popoverId) {
+        onActiveChange(popoverId);
+      }
+    },
+    [pinnedPopoverId, popoverId, onActiveChange],
+  );
 
-  const handleMouseLeave = useCallback(() => {
-    if (pinnedPopoverId !== popoverId) {
-      onActiveChange(null);
-    }
-  }, [pinnedPopoverId, popoverId, onActiveChange]);
+  const handleMouseLeave = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (pinnedPopoverId !== popoverId) {
+        onActiveChange(null);
+      }
+    },
+    [pinnedPopoverId, popoverId, onActiveChange],
+  );
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
+        e.stopPropagation();
         handleClick();
       }
     },
@@ -136,37 +151,39 @@ export const RedirectIconWithPopover: React.FC<RedirectIconWithPopoverProps> = (
   const isVisible = activePopoverId === popoverId || pinnedPopoverId === popoverId;
 
   return (
-    <Popover
-      headerContent="Redirect Information"
-      bodyContent={popoverContent}
-      minWidth="400px"
-      maxWidth="600px"
-      isVisible={isVisible}
-      shouldClose={() => {
-        onPinnedChange(null);
-        onActiveChange(null);
-      }}
-      shouldOpen={() => {
-        if (!isVisible) {
-          onActiveChange(popoverId);
-        }
-      }}
-    >
-      <span
-        role="button"
-        tabIndex={0}
-        aria-label="View redirect information"
-        onClick={handleClick}
-        onKeyDown={handleKeyDown}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
-        data-testid="redirect-icon"
+    <div style={{ display: 'inline-block' }}>
+      <Popover
+        headerContent="Redirect Information"
+        bodyContent={popoverContent}
+        minWidth="25rem"
+        maxWidth="37.5rem"
+        isVisible={isVisible}
+        shouldClose={() => {
+          onPinnedChange(null);
+          onActiveChange(null);
+        }}
+        shouldOpen={() => {
+          if (!isVisible) {
+            onActiveChange(popoverId);
+          }
+        }}
       >
-        <Icon isInline>
-          <ExclamationTriangleIcon color="orange" aria-label="Redirect information" />
-        </Icon>
-      </span>
-    </Popover>
+        <span
+          role="button"
+          tabIndex={0}
+          aria-label="View redirect information"
+          onClick={handleClick}
+          onKeyDown={handleKeyDown}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
+          data-testid="redirect-icon"
+        >
+          <Icon isInline>
+            <ExclamationTriangleIcon color="orange" aria-label="Redirect information" />
+          </Icon>
+        </span>
+      </Popover>
+    </div>
   );
 };

@@ -116,6 +116,19 @@ export const WorkspaceFormOptionCard: React.FC<
     .filter(Boolean)
     .join(' ');
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Check if click originated from an icon (hidden or redirect)
+    const target = e.target as HTMLElement;
+    const clickedIcon = target.closest(
+      '[data-testid="hidden-icon"], [data-testid="redirect-icon"]',
+    );
+
+    // Only trigger card selection if not clicking on an icon
+    if (!clickedIcon) {
+      onClick(option);
+    }
+  };
+
   return (
     <Card
       isCompact
@@ -123,7 +136,7 @@ export const WorkspaceFormOptionCard: React.FC<
       key={option.id}
       id={cardId}
       isSelected={isSelected}
-      onClick={() => onClick(option)}
+      onClick={handleCardClick}
       className={cardClasses}
     >
       <CardHeader
@@ -135,43 +148,45 @@ export const WorkspaceFormOptionCard: React.FC<
           onChange,
         }}
       >
-        <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
-          <FlexItem flex={{ default: 'flex_1' }}>
-            <CardTitle>{option.displayName}</CardTitle>
-          </FlexItem>
-          {isDefault && (
-            <FlexItem>
-              <Label color="blue" isCompact>
-                Default
-              </Label>
-            </FlexItem>
-          )}
-          {option.hidden && (
-            <FlexItem>
-              <HiddenIconWithPopover
-                popoverId={popoverIdHidden}
-                activePopoverId={activePopoverId}
-                pinnedPopoverId={pinnedPopoverId}
-                onActiveChange={onActivePopoverChange}
-                onPinnedChange={onPinnedPopoverChange}
-              />
-            </FlexItem>
-          )}
-          {redirectChain && (
-            <FlexItem>
-              <RedirectIconWithPopover
-                redirectChain={redirectChain}
-                popoverId={popoverIdRedirect}
-                activePopoverId={activePopoverId}
-                pinnedPopoverId={pinnedPopoverId}
-                onActiveChange={onActivePopoverChange}
-                onPinnedChange={onPinnedPopoverChange}
-              />
-            </FlexItem>
-          )}
-        </Flex>
+        <CardTitle>{option.displayName}</CardTitle>
         <CardBody>{option.id}</CardBody>
       </CardHeader>
+      <Flex
+        alignItems={{ default: 'alignItemsCenter' }}
+        spaceItems={{ default: 'spaceItemsSm' }}
+        style={{ position: 'absolute', top: '1rem', right: '1rem', zIndex: 1 }}
+      >
+        {isDefault && (
+          <FlexItem>
+            <Label color="blue" isCompact>
+              Default
+            </Label>
+          </FlexItem>
+        )}
+        {option.hidden && (
+          <FlexItem>
+            <HiddenIconWithPopover
+              popoverId={popoverIdHidden}
+              activePopoverId={activePopoverId}
+              pinnedPopoverId={pinnedPopoverId}
+              onActiveChange={onActivePopoverChange}
+              onPinnedChange={onPinnedPopoverChange}
+            />
+          </FlexItem>
+        )}
+        {redirectChain && (
+          <FlexItem>
+            <RedirectIconWithPopover
+              redirectChain={redirectChain}
+              popoverId={popoverIdRedirect}
+              activePopoverId={activePopoverId}
+              pinnedPopoverId={pinnedPopoverId}
+              onActiveChange={onActivePopoverChange}
+              onPinnedChange={onPinnedPopoverChange}
+            />
+          </FlexItem>
+        )}
+      </Flex>
     </Card>
   );
 };

@@ -18,31 +18,46 @@ export const HiddenIconWithPopover: React.FC<HiddenIconWithPopoverProps> = ({
   onActiveChange,
   onPinnedChange,
 }) => {
-  const handleClick = useCallback(() => {
-    if (pinnedPopoverId === popoverId) {
-      onPinnedChange(null);
-    } else {
-      onPinnedChange(popoverId);
-      onActiveChange(null);
-    }
-  }, [pinnedPopoverId, popoverId, onPinnedChange, onActiveChange]);
+  const handleClick = useCallback(
+    (e?: React.MouseEvent) => {
+      if (e) {
+        e.stopPropagation();
+      }
+      if (pinnedPopoverId === popoverId) {
+        onPinnedChange(null);
+      } else {
+        onPinnedChange(popoverId);
+        onActiveChange(null);
+      }
+    },
+    [pinnedPopoverId, popoverId, onPinnedChange, onActiveChange],
+  );
 
-  const handleMouseEnter = useCallback(() => {
-    if (pinnedPopoverId !== popoverId) {
-      onActiveChange(popoverId);
-    }
-  }, [pinnedPopoverId, popoverId, onActiveChange]);
+  const handleMouseEnter = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (pinnedPopoverId !== popoverId) {
+        onActiveChange(popoverId);
+      }
+    },
+    [pinnedPopoverId, popoverId, onActiveChange],
+  );
 
-  const handleMouseLeave = useCallback(() => {
-    if (pinnedPopoverId !== popoverId) {
-      onActiveChange(null);
-    }
-  }, [pinnedPopoverId, popoverId, onActiveChange]);
+  const handleMouseLeave = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (pinnedPopoverId !== popoverId) {
+        onActiveChange(null);
+      }
+    },
+    [pinnedPopoverId, popoverId, onActiveChange],
+  );
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
+        e.stopPropagation();
         handleClick();
       }
     },
@@ -52,37 +67,39 @@ export const HiddenIconWithPopover: React.FC<HiddenIconWithPopoverProps> = ({
   const isVisible = activePopoverId === popoverId || pinnedPopoverId === popoverId;
 
   return (
-    <Popover
-      headerContent="Hidden Option"
-      bodyContent="Your administrator has hidden this option. If you are sure of your choice, you can still use it."
-      minWidth="300px"
-      maxWidth="500px"
-      isVisible={isVisible}
-      shouldClose={() => {
-        onPinnedChange(null);
-        onActiveChange(null);
-      }}
-      shouldOpen={() => {
-        if (!isVisible) {
-          onActiveChange(popoverId);
-        }
-      }}
-    >
-      <span
-        role="button"
-        tabIndex={0}
-        aria-label="View hidden option information"
-        onClick={handleClick}
-        onKeyDown={handleKeyDown}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
-        data-testid="hidden-icon"
+    <div style={{ display: 'inline-block' }}>
+      <Popover
+        headerContent="Hidden Option"
+        bodyContent="Your administrator has hidden this option. If you are sure of your choice, you can still use it."
+        minWidth="18.75rem"
+        maxWidth="31.25rem"
+        isVisible={isVisible}
+        shouldClose={() => {
+          onPinnedChange(null);
+          onActiveChange(null);
+        }}
+        shouldOpen={() => {
+          if (!isVisible) {
+            onActiveChange(popoverId);
+          }
+        }}
       >
-        <Icon isInline>
-          <QuestionCircleIcon color="grey" aria-label="Hidden option information" />
-        </Icon>
-      </span>
-    </Popover>
+        <span
+          role="button"
+          tabIndex={0}
+          aria-label="View hidden option information"
+          onClick={handleClick}
+          onKeyDown={handleKeyDown}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
+          data-testid="hidden-icon"
+        >
+          <Icon isInline>
+            <QuestionCircleIcon color="grey" aria-label="Hidden option information" />
+          </Icon>
+        </span>
+      </Popover>
+    </div>
   );
 };
