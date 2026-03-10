@@ -67,7 +67,7 @@ export const HiddenIconWithPopover: React.FC<HiddenIconWithPopoverProps> = ({
   const isVisible = activePopoverId === popoverId || pinnedPopoverId === popoverId;
 
   return (
-    <div style={{ display: 'inline-block' }}>
+    <div className="pf-v6-u-display-inline-block">
       <Popover
         headerContent="Hidden Option"
         bodyContent="Your administrator has hidden this option. If you are sure of your choice, you can still use it."

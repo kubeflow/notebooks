@@ -151,7 +151,7 @@ export const RedirectIconWithPopover: React.FC<RedirectIconWithPopoverProps> = (
   const isVisible = activePopoverId === popoverId || pinnedPopoverId === popoverId;
 
   return (
-    <div style={{ display: 'inline-block' }}>
+    <div className="pf-v6-u-display-inline-block">
       <Popover
         headerContent="Redirect Information"
         bodyContent={popoverContent}
