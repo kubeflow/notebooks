@@ -1,11 +1,9 @@
 .pf-v6-c-card.workspace-option-card--hidden {
-  border-left: 8px solid var(--pf-t--global--border--color--default);
   opacity: 0.7;
 }
 
 .pf-v6-c-card.workspace-option-card--redirected {
-  border-left: 8px solid #a57c52;
-  opacity: 0.7;
+  border-left: 8px solid var(--pf-t--global--border--color--default);
 }
 
 .pf-v6-c-card.workspace-option-card--hidden.workspace-option-card--redirected {
