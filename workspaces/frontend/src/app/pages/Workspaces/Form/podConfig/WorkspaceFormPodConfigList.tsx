@@ -1,16 +1,12 @@
-import React, { useCallback, useMemo } from 'react';
-import {
-  CardTitle,
-  Card,
-  CardHeader,
-  CardBody,
-} from '@patternfly/react-core/dist/esm/components/Card';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Gallery } from '@patternfly/react-core/dist/esm/layouts/Gallery';
 import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
 import ToolbarFilter, { FilterConfigMap } from '~/shared/components/ToolbarFilter';
 import { useToolbarFilters, applyFilters } from '~/shared/hooks/useToolbarFilters';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
 import { WorkspacekindsPodConfigValue } from '~/generated/data-contracts';
+import { WorkspaceFormOptionCard } from '~/app/pages/Workspaces/Form/shared/WorkspaceFormOptionCard';
+import { moveDefaultToFront } from '~/app/pages/Workspaces/Form/utils/optionOrdering';
 
 type PodConfigFilterKey = 'name';
 
@@ -24,25 +20,33 @@ const filterableProperties: Record<
   PodConfigFilterKey,
   (item: WorkspacekindsPodConfigValue) => string
 > = {
-  // Combine id and displayName for matching (separated by space so regex can match either)
   name: (podConfig) => `${podConfig.id} ${podConfig.displayName}`,
 };
 
 type WorkspaceFormPodConfigListProps = {
-  podConfigs: WorkspacekindsPodConfigValue[];
+  filteredPodConfigs: WorkspacekindsPodConfigValue[];
+  allPodConfigs: WorkspacekindsPodConfigValue[];
   selectedPodConfig: WorkspacekindsPodConfigValue | undefined;
   onSelect: (workspacePodConfig: WorkspacekindsPodConfigValue | undefined) => void;
+  defaultPodConfigId?: string;
 };
 
 export const WorkspaceFormPodConfigList: React.FunctionComponent<
   WorkspaceFormPodConfigListProps
-> = ({ podConfigs, selectedPodConfig, onSelect }) => {
+> = ({ filteredPodConfigs, allPodConfigs, selectedPodConfig, onSelect, defaultPodConfigId }) => {
   const { filterValues, setFilter, clearAllFilters } =
     useToolbarFilters<PodConfigFilterKey>(filterConfig);
+  const [activePopoverId, setActivePopoverId] = useState<string | null>(null);
+  const [pinnedPopoverId, setPinnedPopoverId] = useState<string | null>(null);
+
+  const reorderedPodConfigs = useMemo(
+    () => moveDefaultToFront(filteredPodConfigs, defaultPodConfigId),
+    [filteredPodConfigs, defaultPodConfigId],
+  );
 
   const filteredWorkspacePodConfigs = useMemo(
-    () => applyFilters(podConfigs, filterValues, filterableProperties),
-    [podConfigs, filterValues],
+    () => applyFilters(reorderedPodConfigs, filterValues, filterableProperties),
+    [reorderedPodConfigs, filterValues],
   );
 
   const onChange = useCallback(
@@ -83,31 +87,21 @@ export const WorkspaceFormPodConfigList: React.FunctionComponent<
         )}
         {filteredWorkspacePodConfigs.length > 0 && (
           <Gallery hasGutter aria-label="Selectable card container">
-            {filteredWorkspacePodConfigs
-              .filter((podConfig) => !podConfig.hidden)
-              .map((podConfig) => (
-                <Card
-                  isCompact
-                  isSelectable
-                  key={podConfig.id}
-                  id={podConfig.id.replace(/ /g, '-')}
-                  isSelected={podConfig.id === selectedPodConfig?.id}
-                  onClick={() => handleCardClick(podConfig)}
-                >
-                  <CardHeader
-                    selectableActions={{
-                      selectableActionId: `selectable-actions-item-${podConfig.id.replace(/ /g, '-')}`,
-                      selectableActionAriaLabelledby: podConfig.displayName.replace(/ /g, '-'),
-                      name: podConfig.displayName,
-                      variant: 'single',
-                      onChange,
-                    }}
-                  >
-                    <CardTitle>{podConfig.displayName}</CardTitle>
-                    <CardBody>{podConfig.id}</CardBody>
-                  </CardHeader>
-                </Card>
-              ))}
+            {filteredWorkspacePodConfigs.map((podConfig) => (
+              <WorkspaceFormOptionCard
+                key={podConfig.id}
+                option={podConfig}
+                allOptions={allPodConfigs}
+                isSelected={podConfig.id === selectedPodConfig?.id}
+                isDefault={podConfig.id === defaultPodConfigId}
+                onClick={handleCardClick}
+                onChange={onChange}
+                activePopoverId={activePopoverId}
+                pinnedPopoverId={pinnedPopoverId}
+                onActivePopoverChange={setActivePopoverId}
+                onPinnedPopoverChange={setPinnedPopoverId}
+              />
+            ))}
           </Gallery>
         )}
       </PageSection>

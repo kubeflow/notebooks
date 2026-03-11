@@ -508,13 +508,13 @@ export const buildMockWorkspaceKind = (
           },
           {
             id: 'jupyterlab_scipy_200',
-            displayName: 'jupyter-scipy:v2.0.0',
+            displayName: 'jupyter-scipy:v2.0.0 (Hidden)',
             description: 'JupyterLab, with SciPy Packages',
             labels: [
               { key: 'pythonVersion', value: '3.12' },
               { key: 'jupyterlabVersion', value: '2.0.0' },
             ],
-            hidden: false,
+            hidden: true,
             redirect: {
               to: 'jupyterlab_scipy_210',
               message: {
@@ -608,7 +608,7 @@ export const buildMockWorkspaceKind = (
               { key: 'gpu', value: '1' },
             ],
             redirect: {
-              to: 'large_cpu',
+              to: 'large_cpu_hidden',
               message: {
                 text: 'This update will change...',
                 level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelDanger,
