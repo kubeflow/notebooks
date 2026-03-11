@@ -324,7 +324,7 @@ describe('Volumes Management - Attach and Create', () => {
       cy.wait('@listStorageClasses');
 
       volumesCreateModal.selectStorageClass('ssd');
-      volumesCreateModal.findStorageClassSelect().should('have.value', 'ssd');
+      volumesCreateModal.findStorageClassSelect().should('contain.text', 'SSD');
     });
 
     it('should disable submit button when volume name is empty', () => {

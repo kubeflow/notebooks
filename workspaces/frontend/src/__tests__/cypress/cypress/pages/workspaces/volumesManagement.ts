@@ -233,8 +233,9 @@ class VolumesCreateModal {
     return cy.findByTestId('storage-class-input');
   }
 
-  selectStorageClass(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findStorageClassSelect().select(name);
+  selectStorageClass(name: string): void {
+    this.findStorageClassSelect().click();
+    cy.findByTestId(`storage-class-option-${name}`).click();
   }
 
   typeStorageClassName(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
