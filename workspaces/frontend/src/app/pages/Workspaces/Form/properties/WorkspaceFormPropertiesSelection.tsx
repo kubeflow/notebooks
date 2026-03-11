@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import { ExpandableSection } from '@patternfly/react-core/dist/esm/components/ExpandableSection';
 import { Form, FormGroup } from '@patternfly/react-core/dist/esm/components/Form';
@@ -52,9 +52,12 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
     [selectedProperties.volumes],
   );
 
-  const handleSetHomeVolume = (volumes: WorkspacesPodVolumeMountValue[]) => {
-    onSelect({ ...selectedProperties, homeVolume: volumes[0] });
-  };
+  const handleSetHomeVolume = useCallback(
+    (volumes: WorkspacesPodVolumeMountValue[]) => {
+      onSelect({ ...selectedProperties, homeVolume: volumes[0] });
+    },
+    [selectedProperties, onSelect],
+  );
 
   return (
     <Content style={{ height: '100%' }}>

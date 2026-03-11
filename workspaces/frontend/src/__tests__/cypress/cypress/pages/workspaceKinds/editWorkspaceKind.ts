@@ -744,7 +744,7 @@ class EditWorkspaceKind {
   }
 
   findVolumeRow(index: number) {
-    return this.findVolumesTable().find('tbody tr').eq(index);
+    return this.findVolumesTable().find('tbody').eq(index).find('tr').first();
   }
 
   findVolumeRowKebab(index: number) {

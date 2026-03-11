@@ -123,3 +123,8 @@ body,
 .pf-v6-c-content .pf-v6-c-label-group__list {
   flex-direction: row;
 }
+
+/* Top border separator for non-first storage class group headers in the PVC typeahead select */
+.pvc-select-group-header--with-divider {
+  border-top: 1px solid var(--pf-t--global--border--color--default);
+}

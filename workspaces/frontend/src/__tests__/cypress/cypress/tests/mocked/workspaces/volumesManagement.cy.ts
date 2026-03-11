@@ -108,22 +108,28 @@ describe('Volumes Management - Attach and Create', () => {
       mockModArchResponse([mockWorkspaceListItem]),
     ).as('getWorkspaces');
 
-    cy.intercept(
-      'GET',
-      `/api/${NOTEBOOKS_API_VERSION}/workspaces/${mockNamespace.name}/${mockWorkspaceListItem.name}`,
+    cy.interceptApi(
+      'GET /api/:apiVersion/workspaces/:namespace/:workspaceName',
+      {
+        path: {
+          apiVersion: NOTEBOOKS_API_VERSION,
+          namespace: mockNamespace.name,
+          workspaceName: mockWorkspaceListItem.name,
+        },
+      },
       mockModArchResponse(mockWorkspaceUpdate),
     ).as('getWorkspace');
 
-    cy.intercept(
-      'GET',
-      `/api/${NOTEBOOKS_API_VERSION}/workspacekinds/${mockWorkspaceKindInfo.name}`,
+    cy.interceptApi(
+      'GET /api/:apiVersion/workspacekinds/:kind',
+      { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKindInfo.name } },
       mockModArchResponse(mockWorkspaceKindFull),
     ).as('getWorkspaceKind');
 
-    cy.intercept(
-      'GET',
-      `/api/${NOTEBOOKS_API_VERSION}/persistentvolumeclaims/${mockNamespace.name}`,
-      { data: mockPVCs },
+    cy.interceptApi(
+      'GET /api/:apiVersion/persistentvolumeclaims/:namespace',
+      { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
+      mockModArchResponse(mockPVCs),
     ).as('listPVCs');
 
     // Navigate to volumes section

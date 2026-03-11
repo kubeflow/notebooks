@@ -35,7 +35,9 @@ class VolumesManagementPage {
     pvcName: string,
     mountPath: string,
   ): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findVolumeRow(pvcName).should('contain', mountPath);
+    return this.findVolumeRow(pvcName)
+      .find('[data-label="Mount Path"]')
+      .should('have.text', mountPath);
   }
 
   assertVolumeReadOnly(pvcName: string, enabled: boolean): Cypress.Chainable<JQuery<HTMLElement>> {

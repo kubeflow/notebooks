@@ -16,6 +16,7 @@ import {
 } from '@patternfly/react-core/dist/esm/components/Modal';
 import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
+import { Alert, AlertVariant } from '@patternfly/react-core/dist/esm/components/Alert';
 import { EllipsisVIcon } from '@patternfly/react-icons/dist/esm/icons/ellipsis-v-icon';
 import {
   ExpandableRowContent,
@@ -73,6 +74,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
   const [editingMountPath, setEditingMountPath] = useState<number | null>(null);
   const [editMountPathValue, setEditMountPathValue] = useState('');
   const [expandedVolumes, setExpandedVolumes] = useState<Set<string>>(new Set());
+  const [pvcLoadError, setPvcLoadError] = useState<string | null>(null);
 
   const { api } = useNotebookAPI();
   const { selectedNamespace } = useNamespaceSelectorWrapper();
@@ -83,7 +85,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
         const response = await api.pvc.listPvCs(selectedNamespace);
         setAvailablePVCs(response.data);
       } catch {
-        // PVC list unavailable
+        setPvcLoadError('Failed to load volume details. Connection info may be unavailable.');
       }
     };
     const fetchStorageClasses = async () => {
@@ -285,6 +287,14 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
 
   return (
     <>
+      {pvcLoadError && (
+        <Alert
+          variant={AlertVariant.warning}
+          isInline
+          title={pvcLoadError}
+          className="pf-v6-u-mb-sm"
+        />
+      )}
       {volumes.length > 0 && (
         <Table
           variant={TableVariant.compact}
@@ -522,4 +532,4 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
   );
 };
 
-export default WorkspaceFormPropertiesVolumesProps;
+export default WorkspaceFormPropertiesVolumes;
