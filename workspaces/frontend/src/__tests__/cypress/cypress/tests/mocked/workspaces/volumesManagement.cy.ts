@@ -370,4 +370,43 @@ describe('Volumes Management - Attach and Create', () => {
       volumesCreateModal.assertErrorAlertVisible();
     });
   });
+
+  describe('Edit Volume Modal', () => {
+    beforeEach(() => {
+      // Attach a volume first so we have something to edit
+      volumesManagement.clickAttachExistingPVC();
+      volumesAttachModal.selectPVC('data-pvc');
+      volumesAttachModal.clickAttach();
+      volumesManagement.assertVolumeRowExists('data-pvc');
+    });
+
+    it('should open edit modal without PVC configuration fields', () => {
+      volumesManagement.clickEditAction('data-pvc');
+      volumesCreateModal.assertModalVisible();
+      volumesCreateModal.findPVCNameInput().should('not.exist');
+      volumesCreateModal.findStorageClassSelect().should('not.exist');
+    });
+
+    it('should update read-only access via edit modal', () => {
+      volumesManagement.assertVolumeReadOnly('data-pvc', false);
+
+      volumesManagement.clickEditAction('data-pvc');
+      volumesCreateModal.assertModalVisible();
+      volumesCreateModal.toggleReadOnly();
+      volumesCreateModal.clickSubmit();
+
+      volumesCreateModal.assertModalNotExists();
+      volumesManagement.assertVolumeReadOnly('data-pvc', true);
+    });
+
+    it('should close edit modal on cancel without changes', () => {
+      volumesManagement.clickEditAction('data-pvc');
+      volumesCreateModal.assertModalVisible();
+      volumesCreateModal.toggleReadOnly();
+      volumesCreateModal.clickCancel();
+
+      volumesCreateModal.assertModalNotExists();
+      volumesManagement.assertVolumeReadOnly('data-pvc', false);
+    });
+  });
 });

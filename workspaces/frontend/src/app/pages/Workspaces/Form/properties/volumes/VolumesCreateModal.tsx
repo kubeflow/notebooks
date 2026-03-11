@@ -64,6 +64,10 @@ export interface VolumesCreateModalProps {
   mountedPaths: Set<string>;
   /** When provided the mount path is locked to this value and cannot be edited */
   fixedMountPath?: string;
+  /** When provided, the modal operates in edit mode */
+  volumeToEdit?: WorkspacesPodVolumeMountValue;
+  /** Called when a volume is saved in edit mode */
+  onVolumeEdited?: (mountPath: string, readOnly: boolean) => void;
 }
 
 export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
@@ -73,9 +77,13 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
   excludedPvcNames,
   mountedPaths,
   fixedMountPath,
+  volumeToEdit,
+  onVolumeEdited,
 }) => {
   const { api } = useNotebookAPI();
   const { selectedNamespace } = useNamespaceSelectorWrapper();
+
+  const isEditMode = !!volumeToEdit;
 
   // Form state
   const [pvcName, setPvcName] = useState('');
@@ -95,6 +103,9 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
   const [storageClasses, setStorageClasses] = useState<StorageclassesStorageClassListItem[]>([]);
 
   useEffect(() => {
+    if (isEditMode) {
+      return;
+    }
     const fetch = async () => {
       try {
         const response = await api.storageClasses.listStorageClasses();
@@ -110,22 +121,28 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
     if (isOpen) {
       fetch();
     }
-  }, [api.storageClasses, isOpen]);
+  }, [api.storageClasses, isOpen, isEditMode]);
 
   // Reset form when modal opens
   useEffect(() => {
     if (isOpen) {
-      setPvcName('');
-      setMountPath(fixedMountPath ?? '/data/');
+      if (isEditMode) {
+        setPvcName(volumeToEdit.pvcName);
+        setMountPath(volumeToEdit.mountPath);
+        setReadOnly(volumeToEdit.readOnly ?? false);
+      } else {
+        setPvcName('');
+        setMountPath(fixedMountPath ?? '/data/');
+        setStorageSize('1Gi');
+        setAccessMode(V1PersistentVolumeAccessMode.ReadWriteOnce);
+        setReadOnly(false);
+      }
       setIsMountPathEditing(false);
-      setStorageSize('1Gi');
-      setAccessMode(V1PersistentVolumeAccessMode.ReadWriteOnce);
-      setReadOnly(false);
       setIsSubmitting(false);
       setIsStorageClassOpen(false);
       setError(null);
     }
-  }, [isOpen, fixedMountPath]);
+  }, [isOpen, fixedMountPath, isEditMode, volumeToEdit]);
 
   const mountPathFormatError = isMountPathEditing ? validateMountPath(mountPath) : null;
   const mountPathUniquenessError = !mountPathFormatError
@@ -148,13 +165,15 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
   }, [mountPath, mountedPaths]);
 
   const handleCancelMountPathEdit = useCallback(() => {
-    if (pvcName) {
+    if (isEditMode) {
+      setMountPath(volumeToEdit.mountPath);
+    } else if (pvcName) {
       setMountPath(fixedMountPath ?? `/data/${pvcName}`);
     } else {
       setMountPath(fixedMountPath ?? '/data/');
     }
     setIsMountPathEditing(false);
-  }, [pvcName, fixedMountPath]);
+  }, [pvcName, fixedMountPath, isEditMode, volumeToEdit]);
 
   const validateForm = useCallback((): string | null => {
     if (!pvcName) {
@@ -179,17 +198,23 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
   }, [pvcName, storageClassName, storageSize, excludedPvcNames]);
 
   const handleSubmit = useCallback(async () => {
-    const validationError = validateForm();
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
     const trimmedPath = normalizeMountPath(mountPath);
     const mountErr =
       validateMountPath(trimmedPath) ?? getMountPathUniquenessError(mountedPaths, trimmedPath);
     if (mountErr) {
       setError(mountErr);
+      return;
+    }
+
+    if (isEditMode) {
+      onVolumeEdited?.(trimmedPath, readOnly);
+      setIsOpen(false);
+      return;
+    }
+
+    const validationError = validateForm();
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -224,7 +249,9 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
     accessMode,
     setIsOpen,
     onVolumeCreated,
+    onVolumeEdited,
     readOnly,
+    isEditMode,
   ]);
 
   const handleClose = useCallback(() => {
@@ -240,8 +267,12 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
       aria-labelledby="create-volume-modal-title"
     >
       <ModalHeader
-        title="Create New Volume"
-        description="Create a new persistent volume claim (PVC) and configure how it is mounted in the workspace"
+        title={isEditMode ? 'Edit Volume' : 'Create New Volume'}
+        description={
+          isEditMode
+            ? `Edit the mount configuration for the volume ${volumeToEdit.pvcName}`
+            : 'Create a new persistent volume claim (PVC) and configure how it is mounted in the workspace'
+        }
         labelId="create-volume-modal-title"
       />
       <ModalBody>
@@ -251,209 +282,223 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
               {error}
             </Alert>
           )}
-          <FormFieldGroup
-            className="form-label-field-group"
-            header={
-              <FormFieldGroupHeader
-                titleText={{
-                  text: 'PVC Configuration',
-                  id: 'pvc-configuration-title',
-                }}
-                titleDescription="Configure the persistent volume claim's name, storage class, access mode, and size"
-              />
-            }
-          >
-            <ThemeAwareFormGroupWrapper label="Volume Name" isRequired fieldId="pvc-name">
-              <TextInput
-                id="pvc-name"
-                data-testid="pvc-name-input"
-                isRequired
-                type="text"
-                value={pvcName}
-                onChange={(_, val) => {
-                  setPvcName(val);
-                  if (!isMountPathEditing) {
-                    setMountPath(fixedMountPath ?? `/data/${val}`);
-                  }
-                  setError(null);
-                }}
-              />
-            </ThemeAwareFormGroupWrapper>
-            <ThemeAwareFormGroupWrapper label="Storage Class" isRequired fieldId="storage-class">
-              {storageClasses.length > 0 ? (
-                <Select
-                  id="storage-class"
-                  isOpen={isStorageClassOpen}
-                  selected={storageClassName}
-                  onSelect={(_ev, value) => {
-                    setStorageClassName(String(value));
-                    setIsStorageClassOpen(false);
+          {!isEditMode && (
+            <FormFieldGroup
+              className="form-label-field-group"
+              header={
+                <FormFieldGroupHeader
+                  titleText={{
+                    text: 'PVC Configuration',
+                    id: 'pvc-configuration-title',
                   }}
-                  onOpenChange={setIsStorageClassOpen}
-                  toggle={(toggleRef) => (
-                    <MenuToggle
-                      ref={toggleRef}
-                      onClick={() => setIsStorageClassOpen((prev) => !prev)}
-                      isExpanded={isStorageClassOpen}
-                      isFullWidth
-                      data-testid="storage-class-select"
-                    >
-                      {storageClasses.find((sc) => sc.name === storageClassName)?.displayName ||
-                        storageClassName}
-                    </MenuToggle>
-                  )}
-                >
-                  <SelectList>
-                    {storageClasses.map((sc) => (
-                      <SelectOption
-                        key={sc.name}
-                        value={sc.name}
-                        description={sc.description}
-                        isDisabled={!sc.canUse}
-                        data-testid={`storage-class-option-${sc.name}`}
-                      >
-                        {sc.displayName || sc.name}
-                      </SelectOption>
-                    ))}
-                  </SelectList>
-                </Select>
-              ) : (
+                  titleDescription="Configure the persistent volume claim's name, storage class, access mode, and size"
+                />
+              }
+            >
+              <ThemeAwareFormGroupWrapper label="Volume Name" isRequired fieldId="pvc-name">
                 <TextInput
-                  id="storage-class"
-                  data-testid="storage-class-input"
+                  id="pvc-name"
+                  data-testid="pvc-name-input"
                   isRequired
                   type="text"
-                  value={storageClassName}
-                  onChange={(_, val) => setStorageClassName(val)}
-                  placeholder="Enter storage class name"
+                  value={pvcName}
+                  onChange={(_, val) => {
+                    setPvcName(val);
+                    if (!isMountPathEditing) {
+                      setMountPath(fixedMountPath ?? `/data/${val}`);
+                    }
+                    setError(null);
+                  }}
                 />
-              )}
-            </ThemeAwareFormGroupWrapper>
-            <ThemeAwareFormGroupWrapper
-              label="Access Mode"
-              isRequired
-              fieldId="access-mode"
-              role="radiogroup"
-              skipFieldset
-              isInline
-              labelHelp={
-                <Popover
-                  headerContent="Access mode"
-                  bodyContent={
-                    <>
-                      Access mode is a Kubernetes concept that determines how nodes can interact
-                      with the volume
-                      <List className="pf-v6-u-mt-sm">
-                        <ListItem>
-                          <strong>ReadWriteMany (RWX)</strong> means that the volume can be attached
-                          to many workspaces simultaneously
-                        </ListItem>
-                        <ListItem>
-                          <strong>ReadOnlyMany (ROX)</strong> means that the volume can be attached
-                          to many workspaces as read-onl
-                        </ListItem>
-                        <ListItem>
-                          <strong>ReadWriteOnce (RWO)</strong> means that the volume can be attached
-                          to a single workspace at a given time
-                        </ListItem>
-                        <ListItem>
-                          <strong>ReadWriteOncePod (RWOP)</strong> means that the volume can be
-                          attached to a single pod on a single node as read-write
-                        </ListItem>
-                      </List>
-                    </>
+              </ThemeAwareFormGroupWrapper>
+              <ThemeAwareFormGroupWrapper label="Storage Class" isRequired fieldId="storage-class">
+                {storageClasses.length > 0 ? (
+                  <Select
+                    id="storage-class"
+                    isOpen={isStorageClassOpen}
+                    selected={storageClassName}
+                    onSelect={(_ev, value) => {
+                      setStorageClassName(String(value));
+                      setIsStorageClassOpen(false);
+                    }}
+                    onOpenChange={setIsStorageClassOpen}
+                    toggle={(toggleRef) => (
+                      <MenuToggle
+                        ref={toggleRef}
+                        onClick={() => setIsStorageClassOpen((prev) => !prev)}
+                        isExpanded={isStorageClassOpen}
+                        isFullWidth
+                        data-testid="storage-class-select"
+                      >
+                        {storageClasses.find((sc) => sc.name === storageClassName)?.displayName ||
+                          storageClassName}
+                      </MenuToggle>
+                    )}
+                  >
+                    <SelectList>
+                      {storageClasses.map((sc) => (
+                        <SelectOption
+                          key={sc.name}
+                          value={sc.name}
+                          description={sc.description}
+                          isDisabled={!sc.canUse}
+                          data-testid={`storage-class-option-${sc.name}`}
+                        >
+                          {sc.displayName || sc.name}
+                        </SelectOption>
+                      ))}
+                    </SelectList>
+                  </Select>
+                ) : (
+                  <TextInput
+                    id="storage-class"
+                    data-testid="storage-class-input"
+                    isRequired
+                    type="text"
+                    value={storageClassName}
+                    onChange={(_, val) => setStorageClassName(val)}
+                    placeholder="Enter storage class name"
+                  />
+                )}
+              </ThemeAwareFormGroupWrapper>
+              <ThemeAwareFormGroupWrapper
+                label="Access Mode"
+                isRequired
+                fieldId="access-mode"
+                role="radiogroup"
+                skipFieldset
+                isInline
+                labelHelp={
+                  <Popover
+                    headerContent="Access mode"
+                    bodyContent={
+                      <>
+                        Access mode is a Kubernetes concept that determines how nodes can interact
+                        with the volume
+                        <List className="pf-v6-u-mt-sm">
+                          <ListItem>
+                            <strong>ReadWriteMany (RWX)</strong> means that the volume can be
+                            attached to many workspaces simultaneously
+                          </ListItem>
+                          <ListItem>
+                            <strong>ReadOnlyMany (ROX)</strong> means that the volume can be
+                            attached to many workspaces as read-onl
+                          </ListItem>
+                          <ListItem>
+                            <strong>ReadWriteOnce (RWO)</strong> means that the volume can be
+                            attached to a single workspace at a given time
+                          </ListItem>
+                          <ListItem>
+                            <strong>ReadWriteOncePod (RWOP)</strong> means that the volume can be
+                            attached to a single pod on a single node as read-write
+                          </ListItem>
+                        </List>
+                      </>
+                    }
+                  >
+                    <OutlinedQuestionCircleIcon />
+                  </Popover>
+                }
+                helperTextNode={
+                  <HelperText>
+                    <HelperTextItem>
+                      <InfoCircleIcon className="pf-v6-u-mr-xs" />
+                      Access mode cannot be changed after creation
+                    </HelperTextItem>
+                  </HelperText>
+                }
+              >
+                {ACCESS_MODES.map(({ label, value }) => (
+                  <Radio
+                    key={value}
+                    id={`access-mode-${value}`}
+                    data-testid={`access-mode-${value}`}
+                    name="access-mode"
+                    label={label}
+                    value={value}
+                    isChecked={accessMode === value}
+                    onChange={() => setAccessMode(value)}
+                  />
+                ))}
+              </ThemeAwareFormGroupWrapper>
+              <ThemeAwareFormGroupWrapper
+                label="Volume Size"
+                isRequired
+                fieldId="volume-size"
+                skipFieldset
+              >
+                <ResourceInputWrapper
+                  value={storageSize}
+                  onChange={setStorageSize}
+                  type="storage"
+                  min={1}
+                  aria-label="volume-size"
+                />
+              </ThemeAwareFormGroupWrapper>
+            </FormFieldGroup>
+          )}
+          {(() => {
+            const mountConfigFields = (
+              <>
+                <MountPathField
+                  variant="input"
+                  value={mountPath}
+                  onChange={(val) => {
+                    setMountPath(val);
+                    setError(null);
+                  }}
+                  isEditing={isMountPathEditing}
+                  onStartEdit={handleStartMountPathEdit}
+                  onConfirm={handleConfirmMountPathEdit}
+                  onCancel={handleCancelMountPathEdit}
+                  error={mountPathError}
+                  isFixed={!!fixedMountPath}
+                  fieldId="create-volume-mount-path"
+                />
+                <ThemeAwareFormGroupWrapper
+                  label="Read-only Access"
+                  fieldId="read-only"
+                  skipFieldset
+                  labelHelp={
+                    <Popover
+                      headerContent="Read-only access"
+                      bodyContent="Mount the volume as read-only when this workspace only needs to read data. This prevents accidental or unintended writes to shared volumes."
+                    >
+                      <OutlinedQuestionCircleIcon />
+                    </Popover>
                   }
                 >
-                  <OutlinedQuestionCircleIcon />
-                </Popover>
-              }
-              helperTextNode={
-                <HelperText>
-                  <HelperTextItem>
-                    <InfoCircleIcon className="pf-v6-u-mr-xs" />
-                    Access mode cannot be changed after creation
-                  </HelperTextItem>
-                </HelperText>
-              }
-            >
-              {ACCESS_MODES.map(({ label, value }) => (
-                <Radio
-                  key={value}
-                  id={`access-mode-${value}`}
-                  data-testid={`access-mode-${value}`}
-                  name="access-mode"
-                  label={label}
-                  value={value}
-                  isChecked={accessMode === value}
-                  onChange={() => setAccessMode(value)}
-                />
-              ))}
-            </ThemeAwareFormGroupWrapper>
-            <ThemeAwareFormGroupWrapper
-              label="Volume Size"
-              isRequired
-              fieldId="volume-size"
-              skipFieldset
-            >
-              <ResourceInputWrapper
-                value={storageSize}
-                onChange={setStorageSize}
-                type="storage"
-                min={1}
-                aria-label="volume-size"
-              />
-            </ThemeAwareFormGroupWrapper>
-          </FormFieldGroup>
-          <FormFieldGroup
-            className="form-label-field-group"
-            header={
-              <FormFieldGroupHeader
-                titleText={{
-                  text: 'Mount Configuration',
-                  id: 'mount-configuration-title',
-                }}
-                titleDescription="Configure how the volume is mounted in the workspace"
-              />
-            }
-          >
-            <MountPathField
-              variant="input"
-              value={mountPath}
-              onChange={(val) => {
-                setMountPath(val);
-                setError(null);
-              }}
-              isEditing={isMountPathEditing}
-              onStartEdit={handleStartMountPathEdit}
-              onConfirm={handleConfirmMountPathEdit}
-              onCancel={handleCancelMountPathEdit}
-              error={mountPathError}
-              isFixed={!!fixedMountPath}
-              fieldId="create-volume-mount-path"
-            />
-            <ThemeAwareFormGroupWrapper
-              label="Read-only Access"
-              fieldId="read-only"
-              skipFieldset
-              labelHelp={
-                <Popover
-                  headerContent="Read-only access"
-                  bodyContent="Mount the volume as read-only when this workspace only needs to read data. This prevents accidental or unintended writes to shared volumes."
-                >
-                  <OutlinedQuestionCircleIcon />
-                </Popover>
-              }
-            >
-              <Switch
-                id="read-only-switch"
-                data-testid="read-only-switch"
-                label="Enabled"
-                hasCheckIcon
-                isChecked={readOnly}
-                onChange={(_ev, checked) => setReadOnly(checked)}
-              />
-            </ThemeAwareFormGroupWrapper>
-          </FormFieldGroup>
+                  <Switch
+                    id="read-only-switch"
+                    data-testid="read-only-switch"
+                    label="Enabled"
+                    hasCheckIcon
+                    isChecked={readOnly}
+                    onChange={(_ev, checked) => setReadOnly(checked)}
+                  />
+                </ThemeAwareFormGroupWrapper>
+              </>
+            );
+
+            return isEditMode ? (
+              mountConfigFields
+            ) : (
+              <FormFieldGroup
+                className="form-label-field-group"
+                header={
+                  <FormFieldGroupHeader
+                    titleText={{
+                      text: 'Mount Configuration',
+                      id: 'mount-configuration-title',
+                    }}
+                    titleDescription="Configure how the volume is mounted in the workspace"
+                  />
+                }
+              >
+                {mountConfigFields}
+              </FormFieldGroup>
+            );
+          })()}
         </Form>
       </ModalBody>
       <ModalFooter>
@@ -464,15 +509,13 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
           isLoading={isSubmitting}
           isDisabled={
             isSubmitting ||
-            !pvcName ||
-            !storageClassName ||
-            !storageSize ||
             !!mountPathError ||
-            isMountPathEditing
+            isMountPathEditing ||
+            (!isEditMode && (!pvcName || !storageClassName || !storageSize))
           }
           data-testid="create-volume-submit-button"
         >
-          Create
+          {isEditMode ? 'Save' : 'Create'}
         </Button>
         <Button
           key="cancel"

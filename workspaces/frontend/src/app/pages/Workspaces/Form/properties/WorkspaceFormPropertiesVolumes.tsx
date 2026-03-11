@@ -58,6 +58,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
   const [isAttachModalOpen, setIsAttachModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
+  const [editIndex, setEditIndex] = useState<number | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
   const [availablePVCs, setAvailablePVCs] = useState<PvcsPVCListItem[]>([]);
   const [storageClasses, setStorageClasses] = useState<StorageclassesStorageClassListItem[]>([]);
@@ -143,6 +144,40 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
     },
     [volumes, setVolumes],
   );
+
+  const handleOpenEditModal = useCallback((index: number) => {
+    setEditIndex(index);
+    setIsCreateModalOpen(true);
+  }, []);
+
+  const handleSaveEdit = useCallback(
+    (mountPath: string, readOnly: boolean) => {
+      if (editIndex === null) {
+        return;
+      }
+      const updated = [...volumes];
+      updated[editIndex] = { ...updated[editIndex], mountPath, readOnly };
+      setVolumes(updated);
+      setIsCreateModalOpen(false);
+      setEditIndex(null);
+    },
+    [editIndex, volumes, setVolumes],
+  );
+
+  const handleSetCreateModalOpen = useCallback((open: boolean) => {
+    setIsCreateModalOpen(open);
+    if (!open) {
+      setEditIndex(null);
+    }
+  }, []);
+
+  const createModalMountedPaths = useMemo(() => {
+    const paths = new Set(volumes.map((v) => v.mountPath));
+    if (editIndex !== null) {
+      paths.delete(volumes[editIndex].mountPath);
+    }
+    return paths;
+  }, [volumes, editIndex]);
 
   const handleStartMountPathEdit = useCallback(
     (index: number) => {
@@ -379,6 +414,12 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
                         onSelect={() => setDropdownOpen(null)}
                         popperProps={{ position: 'right' }}
                       >
+                        <DropdownItem
+                          onClick={() => handleOpenEditModal(index)}
+                          data-testid={`edit-volume-${volume.pvcName}`}
+                        >
+                          Edit
+                        </DropdownItem>
                         <DropdownItem onClick={() => openDetachModal(index)}>Detach</DropdownItem>
                       </Dropdown>
                     </Td>
@@ -426,11 +467,13 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
 
       <VolumesCreateModal
         isOpen={isCreateModalOpen}
-        setIsOpen={setIsCreateModalOpen}
+        setIsOpen={handleSetCreateModalOpen}
         onVolumeCreated={handleVolumeCreated}
         excludedPvcNames={excludedPvcNames}
-        mountedPaths={mountedPaths}
+        mountedPaths={createModalMountedPaths}
         fixedMountPath={fixedMountPath}
+        volumeToEdit={editIndex !== null ? volumes[editIndex] : undefined}
+        onVolumeEdited={handleSaveEdit}
       />
     </>
   );

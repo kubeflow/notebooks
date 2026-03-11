@@ -11,8 +11,7 @@ import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
 import { WorkspaceKindPodTemplateData, WorkspacesPodVolumeMountValue } from '~/app/types';
 import { EditableRowsTable } from '~/app/pages/WorkspaceKinds/Form/EditableRowsTable';
 import { ResourceInputWrapper } from '~/shared/components/ResourceInputWrapper';
-import { WorkspaceKindVolumesSection } from '~/app/pages/WorkspaceKinds/Form/podTemplate/WorkspaceKindVolumesSection';
-import { WorkspacesPodVolumeMount } from '~/generated/data-contracts';
+import { WorkspaceFormPropertiesVolumes } from '~/app/pages/Workspaces/Form/properties/WorkspaceFormPropertiesVolumes';
 
 interface WorkspaceKindFormPodTemplateProps {
   podTemplate: WorkspaceKindPodTemplateData;
@@ -186,7 +185,7 @@ export const WorkspaceKindFormPodTemplate: React.FC<WorkspaceKindFormPodTemplate
             />
           }
         >
-          <WorkspaceKindVolumesSection volumes={volumes} setVolumes={handleVolumes} />
+          <WorkspaceFormPropertiesVolumes volumes={volumes} setVolumes={handleVolumes} />
         </FormFieldGroup>
       </Form>
     </ExpandableSection>

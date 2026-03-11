@@ -86,6 +86,11 @@ class VolumesManagementPage {
     this.openRowKebabMenu(pvcName);
     return cy.contains('Detach').click() as unknown as Cypress.Chainable<JQuery<HTMLElement>>;
   }
+
+  clickEditAction(pvcName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    this.openRowKebabMenu(pvcName);
+    return cy.findByTestId(`edit-volume-${pvcName}`).click();
+  }
 }
 
 class VolumesAttachModal {
@@ -222,6 +227,10 @@ class VolumesCreateModal {
 
   assertPVCNameValue(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findPVCNameInput().should('have.value', name);
+  }
+
+  assertPVCNameDisabled(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findPVCNameInput().should('be.disabled');
   }
 
   // Storage Class
