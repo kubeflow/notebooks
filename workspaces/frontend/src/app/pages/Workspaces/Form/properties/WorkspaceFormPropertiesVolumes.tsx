@@ -113,6 +113,14 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
 
   const mountedPaths = useMemo(() => new Set(volumes.map((v) => v.mountPath)), [volumes]);
 
+  const otherMountPaths = useMemo(() => {
+    const paths = new Set(volumes.map((v) => v.mountPath));
+    if (editingMountPath !== null) {
+      paths.delete(volumes[editingMountPath].mountPath);
+    }
+    return paths;
+  }, [volumes, editingMountPath]);
+
   const allExcludedPvcNames = useMemo(() => {
     const set = new Set(excludedPvcNames);
     for (const v of volumes) {

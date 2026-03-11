@@ -3,9 +3,8 @@ import { Alert, AlertVariant } from '@patternfly/react-core/dist/esm/components/
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import {
   Form,
-  FormFieldGroupExpandable,
+  FormFieldGroup,
   FormFieldGroupHeader,
-  FormGroup,
 } from '@patternfly/react-core/dist/esm/components/Form';
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
@@ -28,7 +27,10 @@ import { List, ListItem } from '@patternfly/react-core/dist/esm/components/List'
 import { Popover } from '@patternfly/react-core/dist/esm/components/Popover';
 import { InfoCircleIcon } from '@patternfly/react-icons/dist/esm/icons/info-circle-icon';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons/dist/esm/icons/outlined-question-circle-icon';
-import { StorageclassesStorageClassListItem } from '~/generated/data-contracts';
+import {
+  StorageclassesStorageClassListItem,
+  V1PersistentVolumeAccessMode,
+} from '~/generated/data-contracts';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 import { WorkspacesPodVolumeMountValue } from '~/app/types';
@@ -46,10 +48,10 @@ import { MountPathField } from '~/app/pages/Workspaces/Form/MountPathField';
 const PVC_NAME_REGEX = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/;
 
 const ACCESS_MODES = [
-  { label: 'ReadWriteOnce (RWO)', value: 'ReadWriteOnce' },
-  { label: 'ReadWriteMany (RWX)', value: 'ReadWriteMany' },
-  { label: 'ReadOnlyMany (ROX)', value: 'ReadOnlyMany' },
-  { label: 'ReadWriteOncePod (RWOP)', value: 'ReadWriteOncePod' },
+  { label: 'ReadWriteOnce (RWO)', value: V1PersistentVolumeAccessMode.ReadWriteOnce },
+  { label: 'ReadWriteMany (RWX)', value: V1PersistentVolumeAccessMode.ReadWriteMany },
+  { label: 'ReadOnlyMany (ROX)', value: V1PersistentVolumeAccessMode.ReadOnlyMany },
+  { label: 'ReadWriteOncePod (RWOP)', value: V1PersistentVolumeAccessMode.ReadWriteOncePod },
 ] as const;
 
 export interface VolumesCreateModalProps {
@@ -81,7 +83,9 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
   const [isMountPathEditing, setIsMountPathEditing] = useState(false);
   const [storageClassName, setStorageClassName] = useState('');
   const [storageSize, setStorageSize] = useState('1Gi');
-  const [accessMode, setAccessMode] = useState('ReadWriteOnce');
+  const [accessMode, setAccessMode] = useState<V1PersistentVolumeAccessMode>(
+    V1PersistentVolumeAccessMode.ReadWriteOnce,
+  );
   const [readOnly, setReadOnly] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isStorageClassOpen, setIsStorageClassOpen] = useState(false);
@@ -94,10 +98,10 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
     const fetch = async () => {
       try {
         const response = await api.storageClasses.listStorageClasses();
-        const usable = response.data.filter((sc) => sc.canUse);
-        setStorageClasses(usable);
-        if (usable.length > 0) {
-          setStorageClassName(usable[0].name);
+        setStorageClasses(response.data);
+        const firstUsable = response.data.find((sc) => sc.canUse);
+        if (firstUsable) {
+          setStorageClassName(firstUsable.name);
         }
       } catch {
         // Storage classes unavailable - user can still type a name manually
@@ -115,7 +119,7 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
       setMountPath(fixedMountPath ?? '/data/');
       setIsMountPathEditing(false);
       setStorageSize('1Gi');
-      setAccessMode('ReadWriteOnce');
+      setAccessMode(V1PersistentVolumeAccessMode.ReadWriteOnce);
       setReadOnly(false);
       setIsSubmitting(false);
       setIsStorageClassOpen(false);
@@ -236,8 +240,8 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
       aria-labelledby="create-volume-modal-title"
     >
       <ModalHeader
-        title="Attach New Volume"
-        description="Create a new volume and attach it to the workspace"
+        title="Create New Volume"
+        description="Create a new persistent volume claim (PVC) and configure how it is mounted in the workspace"
         labelId="create-volume-modal-title"
       />
       <ModalBody>
@@ -247,104 +251,84 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
               {error}
             </Alert>
           )}
-          <ThemeAwareFormGroupWrapper label="Volume Name" isRequired fieldId="pvc-name">
-            <TextInput
-              id="pvc-name"
-              data-testid="pvc-name-input"
-              isRequired
-              type="text"
-              value={pvcName}
-              onChange={(_, val) => {
-                setPvcName(val);
-                if (!isMountPathEditing) {
-                  setMountPath(fixedMountPath ?? `/data/${val}`);
-                }
-                setError(null);
-              }}
-            />
-          </ThemeAwareFormGroupWrapper>
-          <ThemeAwareFormGroupWrapper label="Storage Class" isRequired fieldId="storage-class">
-            {storageClasses.length > 0 ? (
-              <Select
-                id="storage-class"
-                isOpen={isStorageClassOpen}
-                selected={storageClassName}
-                onSelect={(_ev, value) => {
-                  setStorageClassName(String(value));
-                  setIsStorageClassOpen(false);
-                }}
-                onOpenChange={setIsStorageClassOpen}
-                toggle={(toggleRef) => (
-                  <MenuToggle
-                    ref={toggleRef}
-                    onClick={() => setIsStorageClassOpen((prev) => !prev)}
-                    isExpanded={isStorageClassOpen}
-                    isFullWidth
-                    data-testid="storage-class-select"
-                  >
-                    {storageClasses.find((sc) => sc.name === storageClassName)?.displayName ||
-                      storageClassName}
-                  </MenuToggle>
-                )}
-              >
-                <SelectList>
-                  {storageClasses.map((sc) => (
-                    <SelectOption key={sc.name} value={sc.name} description={sc.description}>
-                      {sc.displayName || sc.name}
-                    </SelectOption>
-                  ))}
-                </SelectList>
-              </Select>
-            ) : (
-              <TextInput
-                id="storage-class"
-                data-testid="storage-class-input"
-                isRequired
-                type="text"
-                value={storageClassName}
-                onChange={(_, val) => setStorageClassName(val)}
-                placeholder="Enter storage class name"
-              />
-            )}
-          </ThemeAwareFormGroupWrapper>
-          <MountPathField
-            variant="input"
-            value={mountPath}
-            onChange={(val) => {
-              setMountPath(val);
-              setError(null);
-            }}
-            isEditing={isMountPathEditing}
-            onStartEdit={handleStartMountPathEdit}
-            onConfirm={handleConfirmMountPathEdit}
-            onCancel={handleCancelMountPathEdit}
-            error={mountPathError}
-            isFixed={!!fixedMountPath}
-            fieldId="create-volume-mount-path"
-          />
-          <FormGroup fieldId="read-only" className="pf-v6-u-pt-sm">
-            <Switch
-              id="read-only-switch"
-              data-testid="read-only-switch"
-              label="Read-only access"
-              isChecked={readOnly}
-              onChange={(_ev, checked) => setReadOnly(checked)}
-            />
-          </FormGroup>
-          <FormFieldGroupExpandable
+          <FormFieldGroup
             className="form-label-field-group"
-            toggleAriaLabel="Volume Configuration"
-            isExpanded
             header={
               <FormFieldGroupHeader
                 titleText={{
-                  text: 'Volume Configuration',
-                  id: 'volume-configuration-title',
+                  text: 'PVC Configuration',
+                  id: 'pvc-configuration-title',
                 }}
-                titleDescription="Configure volume access mode and size"
+                titleDescription="Configure the persistent volume claim's name, storage class, access mode, and size"
               />
             }
           >
+            <ThemeAwareFormGroupWrapper label="Volume Name" isRequired fieldId="pvc-name">
+              <TextInput
+                id="pvc-name"
+                data-testid="pvc-name-input"
+                isRequired
+                type="text"
+                value={pvcName}
+                onChange={(_, val) => {
+                  setPvcName(val);
+                  if (!isMountPathEditing) {
+                    setMountPath(fixedMountPath ?? `/data/${val}`);
+                  }
+                  setError(null);
+                }}
+              />
+            </ThemeAwareFormGroupWrapper>
+            <ThemeAwareFormGroupWrapper label="Storage Class" isRequired fieldId="storage-class">
+              {storageClasses.length > 0 ? (
+                <Select
+                  id="storage-class"
+                  isOpen={isStorageClassOpen}
+                  selected={storageClassName}
+                  onSelect={(_ev, value) => {
+                    setStorageClassName(String(value));
+                    setIsStorageClassOpen(false);
+                  }}
+                  onOpenChange={setIsStorageClassOpen}
+                  toggle={(toggleRef) => (
+                    <MenuToggle
+                      ref={toggleRef}
+                      onClick={() => setIsStorageClassOpen((prev) => !prev)}
+                      isExpanded={isStorageClassOpen}
+                      isFullWidth
+                      data-testid="storage-class-select"
+                    >
+                      {storageClasses.find((sc) => sc.name === storageClassName)?.displayName ||
+                        storageClassName}
+                    </MenuToggle>
+                  )}
+                >
+                  <SelectList>
+                    {storageClasses.map((sc) => (
+                      <SelectOption
+                        key={sc.name}
+                        value={sc.name}
+                        description={sc.description}
+                        isDisabled={!sc.canUse}
+                        data-testid={`storage-class-option-${sc.name}`}
+                      >
+                        {sc.displayName || sc.name}
+                      </SelectOption>
+                    ))}
+                  </SelectList>
+                </Select>
+              ) : (
+                <TextInput
+                  id="storage-class"
+                  data-testid="storage-class-input"
+                  isRequired
+                  type="text"
+                  value={storageClassName}
+                  onChange={(_, val) => setStorageClassName(val)}
+                  placeholder="Enter storage class name"
+                />
+              )}
+            </ThemeAwareFormGroupWrapper>
             <ThemeAwareFormGroupWrapper
               label="Access Mode"
               isRequired
@@ -419,7 +403,57 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
                 aria-label="volume-size"
               />
             </ThemeAwareFormGroupWrapper>
-          </FormFieldGroupExpandable>
+          </FormFieldGroup>
+          <FormFieldGroup
+            className="form-label-field-group"
+            header={
+              <FormFieldGroupHeader
+                titleText={{
+                  text: 'Mount Configuration',
+                  id: 'mount-configuration-title',
+                }}
+                titleDescription="Configure how the volume is mounted in the workspace"
+              />
+            }
+          >
+            <MountPathField
+              variant="input"
+              value={mountPath}
+              onChange={(val) => {
+                setMountPath(val);
+                setError(null);
+              }}
+              isEditing={isMountPathEditing}
+              onStartEdit={handleStartMountPathEdit}
+              onConfirm={handleConfirmMountPathEdit}
+              onCancel={handleCancelMountPathEdit}
+              error={mountPathError}
+              isFixed={!!fixedMountPath}
+              fieldId="create-volume-mount-path"
+            />
+            <ThemeAwareFormGroupWrapper
+              label="Read-only Access"
+              fieldId="read-only"
+              skipFieldset
+              labelHelp={
+                <Popover
+                  headerContent="Read-only access"
+                  bodyContent="Mount the volume as read-only when this workspace only needs to read data. This prevents accidental or unintended writes to shared volumes."
+                >
+                  <OutlinedQuestionCircleIcon />
+                </Popover>
+              }
+            >
+              <Switch
+                id="read-only-switch"
+                data-testid="read-only-switch"
+                label="Enabled"
+                hasCheckIcon
+                isChecked={readOnly}
+                onChange={(_ev, checked) => setReadOnly(checked)}
+              />
+            </ThemeAwareFormGroupWrapper>
+          </FormFieldGroup>
         </Form>
       </ModalBody>
       <ModalFooter>
