@@ -136,3 +136,13 @@ body,
   border-color: var(--mui-palette-primary-main, #1976d2);
   box-shadow: inset 0 0 0 1px var(--mui-palette-primary-main, #1976d2);
 }
+
+/* Override pf-v6-c-content ul rule that forces flex-direction: column on LabelGroup lists */
+.pf-v6-c-content .pf-v6-c-label-group__list {
+  flex-direction: row;
+}
+
+/* Top border separator for non-first storage class group headers in the PVC typeahead select */
+.pvc-select-group-header--with-divider {
+  border-top: 1px solid var(--pf-t--global--border--color--default);
+}

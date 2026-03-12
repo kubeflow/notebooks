@@ -744,7 +744,7 @@ class EditWorkspaceKind {
   }
 
   findVolumeRow(index: number) {
-    return this.findVolumesTable().find('tbody tr').eq(index);
+    return this.findVolumesTable().find('tbody').eq(index).find('tr').first();
   }
 
   findVolumeRowKebab(index: number) {
@@ -775,7 +775,7 @@ class EditWorkspaceKind {
     if (count === 0) {
       cy.findByTestId('volumes-table').should('not.exist');
     } else {
-      this.findVolumesTable().find('tbody tr').should('have.length', count);
+      this.findVolumesTable().find('tbody').should('have.length', count);
     }
   }
 

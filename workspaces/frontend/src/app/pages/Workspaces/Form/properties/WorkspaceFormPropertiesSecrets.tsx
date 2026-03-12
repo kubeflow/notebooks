@@ -1,8 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { EllipsisVIcon } from '@patternfly/react-icons/dist/esm/icons/ellipsis-v-icon';
-import { PencilAltIcon } from '@patternfly/react-icons/dist/esm/icons/pencil-alt-icon';
-import { CheckIcon } from '@patternfly/react-icons/dist/esm/icons/check-icon';
-import { TimesIcon } from '@patternfly/react-icons/dist/esm/icons/times-icon';
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
 import {
   Table,
@@ -20,7 +17,6 @@ import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggl
 import { Label } from '@patternfly/react-core/dist/esm/components/Label';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
-import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import { Spinner } from '@patternfly/react-core/dist/esm/components/Spinner';
 import {
   EmptyState,
@@ -28,8 +24,6 @@ import {
   EmptyStateFooter,
   EmptyStateActions,
 } from '@patternfly/react-core/dist/esm/components/EmptyState';
-import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
-import { ValidatedOptions } from '@patternfly/react-core/helpers';
 import {
   DEFAULT_MODE,
   getMountPathValidationError,
@@ -41,6 +35,7 @@ import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspacesPodSecretMountValue } from '~/app/types';
 import DeleteModal from '~/shared/components/DeleteModal';
 import { useSecretKeys } from '~/app/hooks/useSecretKeys';
+import { MountPathField } from '~/app/pages/Workspaces/Form/MountPathField';
 import { SecretsCreateModal } from './secrets/SecretsCreateModal';
 import { SecretsAttachModal } from './secrets/SecretsAttachModal';
 
@@ -291,82 +286,6 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
     );
   };
 
-  const renderMountPathCell = (secret: WorkspacesPodSecretMountValue, index: number) => {
-    if (editingMountPath === index) {
-      return (
-        <Flex
-          alignItems={{ default: 'alignItemsCenter' }}
-          spaceItems={{ default: 'spaceItemsXs' }}
-          flexWrap={{ default: 'wrap' }}
-        >
-          <FlexItem flex={{ default: 'flex_1' }}>
-            <TextInput
-              id={`edit-mount-path-${secret.secretName}`}
-              value={editMountPathValue}
-              onChange={(_, val) => setEditMountPathValue(val)}
-              validated={mountPathValidationError ? ValidatedOptions.error : undefined}
-              aria-label="Edit mount path"
-              data-testid={`edit-mount-path-input-${secret.secretName}`}
-              autoFocus
-              className="secrets-inline-edit__input"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleConfirmMountPathEdit();
-                } else if (e.key === 'Escape') {
-                  handleCancelMountPathEdit();
-                }
-              }}
-            />
-          </FlexItem>
-          <FlexItem>
-            <Button
-              variant="plain"
-              aria-label="Save mount path"
-              onClick={handleConfirmMountPathEdit}
-              isDisabled={!!mountPathValidationError}
-              data-testid={`confirm-mount-path-${secret.secretName}`}
-            >
-              <CheckIcon />
-            </Button>
-          </FlexItem>
-          <FlexItem>
-            <Button
-              variant="plain"
-              aria-label="Cancel edit"
-              onClick={handleCancelMountPathEdit}
-              data-testid={`cancel-mount-path-${secret.secretName}`}
-            >
-              <TimesIcon />
-            </Button>
-          </FlexItem>
-          {mountPathValidationError && (
-            <FlexItem fullWidth={{ default: 'fullWidth' }}>
-              <HelperText>
-                <HelperTextItem variant="error">{mountPathValidationError}</HelperTextItem>
-              </HelperText>
-            </FlexItem>
-          )}
-        </Flex>
-      );
-    }
-
-    return (
-      <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
-        <FlexItem>{secret.mountPath}</FlexItem>
-        <FlexItem>
-          <Button
-            variant="plain"
-            aria-label="Edit mount path"
-            onClick={() => handleStartMountPathEdit(index)}
-            data-testid={`edit-mount-path-${secret.secretName}`}
-          >
-            <PencilAltIcon />
-          </Button>
-        </FlexItem>
-      </Flex>
-    );
-  };
-
   return (
     <>
       {secrets.length === 0 ? (
@@ -434,7 +353,18 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
                       </Flex>
                     </Td>
                     <Td dataLabel="Mount Path" hasAction>
-                      {renderMountPathCell(secret, index)}
+                      <MountPathField
+                        variant="cell"
+                        value={editingMountPath === index ? editMountPathValue : secret.mountPath}
+                        index={index}
+                        editingIndex={editingMountPath}
+                        itemId={secret.secretName}
+                        onChange={setEditMountPathValue}
+                        onStartEdit={handleStartMountPathEdit}
+                        onConfirm={handleConfirmMountPathEdit}
+                        onCancel={handleCancelMountPathEdit}
+                        error={mountPathValidationError}
+                      />
                     </Td>
                     <Td dataLabel="Default Mode">{secret.defaultMode?.toString(8) ?? '644'}</Td>
                     <Td isActionCell hasAction>

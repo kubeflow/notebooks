@@ -11,6 +11,7 @@ export interface LabelGroupWithTooltipProps {
   icon?: React.ReactNode;
   status?: LabelProps['status'];
   color?: LabelProps['color'];
+  className?: string;
 }
 
 export const LabelGroupWithTooltip: React.FC<LabelGroupWithTooltipProps> = ({
@@ -21,6 +22,7 @@ export const LabelGroupWithTooltip: React.FC<LabelGroupWithTooltipProps> = ({
   icon,
   status,
   color,
+  className,
 }) => {
   if (labels.length === 0) {
     return null;
@@ -34,7 +36,14 @@ export const LabelGroupWithTooltip: React.FC<LabelGroupWithTooltipProps> = ({
     <Flex gap={{ default: 'gapXs' }}>
       {visibleLabels.map((label, index) => (
         <FlexItem key={`${label}-${index}`}>
-          <Label isCompact={isCompact} variant={variant} icon={icon} status={status} color={color}>
+          <Label
+            isCompact={isCompact}
+            variant={variant}
+            icon={icon}
+            status={status}
+            color={color}
+            className={className}
+          >
             {label}
           </Label>
         </FlexItem>
@@ -42,7 +51,7 @@ export const LabelGroupWithTooltip: React.FC<LabelGroupWithTooltipProps> = ({
       {hasMore && (
         <FlexItem>
           <Tooltip content={`${remainingLabels.join(', ')}`}>
-            <Label isCompact={isCompact} variant={variant} color={color}>
+            <Label isCompact={isCompact} variant={variant} color={color} className={className}>
               +{remainingLabels.length} more
             </Label>
           </Tooltip>
