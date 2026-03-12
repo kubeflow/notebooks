@@ -981,7 +981,6 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.clickVolumeRowKebab(0);
       editWorkspaceKind.clickDetachVolume();
-      editWorkspaceKind.typeDetachResourceName('detach-pvc');
       editWorkspaceKind.confirmDetachVolume();
 
       editWorkspaceKind.assertDetachVolumeModalVisible(false);

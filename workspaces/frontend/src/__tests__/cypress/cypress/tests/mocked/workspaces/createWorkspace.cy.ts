@@ -6,11 +6,13 @@ import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/comma
 import {
   buildMockNamespace,
   buildMockOptionInfo,
+  buildMockPVC,
   buildMockWorkspace,
   buildMockWorkspaceCreate,
   buildMockWorkspaceKind,
 } from '~/shared/mock/mockBuilder';
 import { navBar } from '~/__tests__/cypress/cypress/pages/components/navBar';
+import { volumesAttachModal } from '~/__tests__/cypress/cypress/pages/workspaces/volumesManagement';
 import type {
   WorkspacekindsImageConfigValue,
   WorkspacekindsPodConfigValue,
@@ -125,6 +127,12 @@ describe('Create workspace', () => {
 
   describe('Basic', () => {
     it('should navigate through all steps to create a workspace', () => {
+      cy.interceptApi(
+        'GET /api/:apiVersion/persistentvolumeclaims/:namespace',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
+        mockModArchResponse([buildMockPVC({ name: 'home-pvc' })]),
+      ).as('listPVCs');
+
       workspaces.findCreateWorkspaceButton().click();
       createWorkspace.verifyPageURL();
       cy.wait('@getWorkspaceKinds');
@@ -164,6 +172,13 @@ describe('Create workspace', () => {
       createWorkspace.assertProgressStepVisible(STEP_NAMES.PROPERTIES);
       createWorkspace.assertCreateButtonExists();
       createWorkspace.assertCreateButtonDisabled();
+
+      // Attach home volume (required)
+      cy.contains('button', 'Home Volume').click();
+      cy.wait('@listPVCs');
+      cy.findByTestId('attach-existing-volume-button').click();
+      volumesAttachModal.selectPVC('home-pvc');
+      volumesAttachModal.clickAttach();
 
       const workspaceName = 'My Test Workspace';
       createWorkspace.typeWorkspaceName(workspaceName);
@@ -219,7 +234,22 @@ describe('Create workspace', () => {
     });
 
     it('should validate workspace name is required', () => {
+      cy.interceptApi(
+        'GET /api/:apiVersion/persistentvolumeclaims/:namespace',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
+        mockModArchResponse([buildMockPVC({ name: 'home-pvc' })]),
+      ).as('listPVCs');
+
       completeAllStepsToProperties(mockWorkspaceKind.name, mockImage.id, mockPodConfig.id);
+
+      createWorkspace.assertCreateButtonDisabled();
+
+      // Attach home volume (required) — Create should still be disabled without a name
+      cy.contains('button', 'Home Volume').click();
+      cy.wait('@listPVCs');
+      cy.findByTestId('attach-existing-volume-button').click();
+      volumesAttachModal.selectPVC('home-pvc');
+      volumesAttachModal.clickAttach();
 
       createWorkspace.assertCreateButtonDisabled();
 
@@ -241,6 +271,12 @@ describe('Create workspace', () => {
     });
 
     it('should display error alert when workspace creation fails', () => {
+      cy.interceptApi(
+        'GET /api/:apiVersion/persistentvolumeclaims/:namespace',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
+        mockModArchResponse([buildMockPVC({ name: 'home-pvc' })]),
+      ).as('listPVCs');
+
       workspaces.findCreateWorkspaceButton().click();
       cy.wait('@getWorkspaceKinds');
 
@@ -256,6 +292,13 @@ describe('Create workspace', () => {
       createWorkspace.clickNext();
 
       createWorkspace.typeWorkspaceName('my-test-workspace');
+
+      // Attach home volume (required)
+      cy.contains('button', 'Home Volume').click();
+      cy.wait('@listPVCs');
+      cy.findByTestId('attach-existing-volume-button').click();
+      volumesAttachModal.selectPVC('home-pvc');
+      volumesAttachModal.clickAttach();
 
       cy.interceptApi(
         'POST /api/:apiVersion/workspaces/:namespace',
@@ -1266,15 +1309,13 @@ describe('Create workspace', () => {
           .contains('tr', secretName)
           .findByTestId(`secret-kebab-${secretName}`)
           .click();
-        cy.contains('button', 'Remove').click();
+        cy.contains('button', 'Detach').click();
 
-        // Confirm deletion in modal
-        cy.findByTestId('delete-modal').should('be.visible');
-        cy.findByTestId('delete-modal').should('contain', secretName);
+        // Confirm detach in modal
+        cy.findByTestId('detach-secret-modal').should('be.visible');
+        cy.findByTestId('detach-secret-modal').should('contain', secretName);
 
-        // Type the secret name to enable the delete button
-        cy.findByTestId('delete-modal-input').type(secretName);
-        cy.findByTestId('delete-button').should('not.be.disabled').click();
+        cy.findByTestId('confirm-button').should('not.be.disabled').click();
 
         // Verify API call was made
         cy.wait('@deleteSecret');
@@ -1372,11 +1413,10 @@ describe('Create workspace', () => {
           .contains('tr', secret1)
           .findByTestId(`secret-kebab-${secret1}`)
           .click();
-        cy.contains('button', 'Remove').click();
+        cy.contains('button', 'Detach').click();
 
-        // Confirm first deletion
-        cy.findByTestId('delete-modal-input').type(secret1);
-        cy.findByTestId('delete-button').should('not.be.disabled').click();
+        // Confirm first detach
+        cy.findByTestId('confirm-button').should('not.be.disabled').click();
         cy.wait('@deleteSecret1');
 
         // Verify only secret2 remains
@@ -1388,11 +1428,10 @@ describe('Create workspace', () => {
           .contains('tr', secret2)
           .findByTestId(`secret-kebab-${secret2}`)
           .click();
-        cy.contains('button', 'Remove').click();
+        cy.contains('button', 'Detach').click();
 
-        // Confirm second deletion
-        cy.findByTestId('delete-modal-input').type(secret2);
-        cy.findByTestId('delete-button').should('not.be.disabled').click();
+        // Confirm second detach
+        cy.findByTestId('confirm-button').should('not.be.disabled').click();
         cy.wait('@deleteSecret2');
 
         // Verify table is gone (no secrets left)

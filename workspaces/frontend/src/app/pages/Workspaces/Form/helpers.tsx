@@ -161,7 +161,7 @@ export const buildPVCOptionDescription = (
                     icon={<CubeIcon color="teal" />}
                     isCompact
                     color="teal"
-                    className={!pvc.canMount ? 'pf-m-disabled' : undefined}
+                    className={!pvc.canMount || isExcluded ? 'pf-m-disabled' : undefined}
                   />
                 </FlexItem>
               </Flex>

@@ -70,7 +70,7 @@ class VolumesManagementPage {
   }
 
   findCreateVolumeButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('create-volume-button');
+    return cy.findByTestId('attach-new-volume-button');
   }
 
   clickCreateVolume(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -314,7 +314,7 @@ class VolumesCreateModal {
 
 class VolumesDetachModal {
   find(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('delete-modal');
+    return cy.findByTestId('detach-volume-modal');
   }
 
   assertModalVisible(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -322,27 +322,19 @@ class VolumesDetachModal {
   }
 
   assertModalNotExists(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('delete-modal').should('not.exist');
+    return cy.findByTestId('detach-volume-modal').should('not.exist');
   }
 
-  findDeleteInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('delete-modal-input');
+  findConfirmButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('confirm-button');
   }
 
-  typeResourceName(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findDeleteInput().clear().type(name);
-  }
-
-  findDeleteButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('delete-button');
-  }
-
-  clickDelete(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findDeleteButton().click();
+  clickConfirm(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findConfirmButton().click();
   }
 
   findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('cancel-button');
+    return this.find().findByTestId('cancel-button');
   }
 
   clickCancel(): Cypress.Chainable<JQuery<HTMLElement>> {

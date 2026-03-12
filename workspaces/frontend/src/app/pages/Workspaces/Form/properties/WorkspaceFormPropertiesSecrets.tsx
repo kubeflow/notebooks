@@ -33,7 +33,7 @@ import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWra
 import { SecretsSecretListItem } from '~/generated/data-contracts';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspacesPodSecretMountValue } from '~/app/types';
-import DeleteModal from '~/shared/components/DeleteModal';
+import { ConfirmModal } from '~/shared/components/ConfirmModal';
 import { useSecretKeys } from '~/app/hooks/useSecretKeys';
 import { MountPathField } from '~/app/pages/Workspaces/Form/MountPathField';
 import { SecretsCreateModal } from './secrets/SecretsCreateModal';
@@ -124,13 +124,11 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
       return;
     }
     const secretToDelete = secrets[deleteIndex];
-
     if (!secretToDelete.isAttached) {
       await api.secrets.deleteSecret(selectedNamespace, secretToDelete.secretName);
     }
     setSecrets(secrets.filter((_, i) => i !== deleteIndex));
-    onDeleteModalClose();
-  }, [deleteIndex, secrets, api.secrets, selectedNamespace, setSecrets, onDeleteModalClose]);
+  }, [deleteIndex, secrets, api.secrets, selectedNamespace, setSecrets]);
 
   const handleSecretCreated = useCallback(
     async (secretName: string) => {
@@ -419,7 +417,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
                           onClick={() => openDeleteModal(index)}
                           data-testid={`remove-secret-${secret.secretName}`}
                         >
-                          Remove
+                          Detach
                         </DropdownItem>
                       </Dropdown>
                     </Td>
@@ -468,14 +466,18 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
       />
 
       {deleteIndex !== null && (
-        <DeleteModal
+        <ConfirmModal
           isOpen={isDeleteModalOpen}
-          title="Remove Secret?"
-          onClose={() => onDeleteModalClose()}
-          onDelete={handleDelete}
-          resourceName={secrets[deleteIndex].secretName}
-          namespace={selectedNamespace}
-        />
+          title="Detach Secret?"
+          onConfirm={handleDelete}
+          onClose={onDeleteModalClose}
+          confirmLabel="Detach"
+          confirmLabelOnLoading="Detaching..."
+          errorTitle="Failed to detach secret"
+          testId="detach-secret-modal"
+        >
+          Are you sure you want to detach <strong>{secrets[deleteIndex].secretName}</strong>?
+        </ConfirmModal>
       )}
     </>
   );

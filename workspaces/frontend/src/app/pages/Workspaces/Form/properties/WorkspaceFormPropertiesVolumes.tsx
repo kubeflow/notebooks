@@ -26,7 +26,7 @@ import {
 } from '@patternfly/react-table/dist/esm/components/Table';
 import { CubeIcon } from '@patternfly/react-icons/dist/esm/icons/cube-icon';
 import { PvcsPVCListItem, StorageclassesStorageClassListItem } from '~/generated/data-contracts';
-import DeleteModal from '~/shared/components/DeleteModal';
+import { ConfirmModal } from '~/shared/components/ConfirmModal';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 import { WorkspacesPodVolumeMountValue } from '~/app/types';
@@ -66,7 +66,6 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
   const [editMountPathValue, setEditMountPathValue] = useState('');
   const [expandedVolumes, setExpandedVolumes] = useState<Set<string>>(new Set());
   const [pvcLoadError, setPvcLoadError] = useState<string | null>(null);
-
   const { api } = useNotebookAPI();
   const { selectedNamespace } = useNamespaceSelectorWrapper();
 
@@ -109,8 +108,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
       await api.pvc.deletePvc(selectedNamespace, volumes[deleteIndex].pvcName);
     }
     setVolumes(volumes.filter((_, i) => i !== deleteIndex));
-    onDeleteModalClose();
-  }, [deleteIndex, volumes, setVolumes, onDeleteModalClose, api.pvc, selectedNamespace]);
+  }, [deleteIndex, volumes, setVolumes, api.pvc, selectedNamespace]);
 
   const mountedPaths = useMemo(() => new Set(volumes.map((v) => v.mountPath)), [volumes]);
 
@@ -319,7 +317,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
         variant="secondary"
         onClick={() => setIsCreateModalOpen(true)}
         isDisabled={isHomeMounted}
-        data-testid="create-volume-button"
+        data-testid="attach-new-volume-button"
       >
         Attach New Volume
       </Button>
@@ -444,14 +442,18 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
       )}
 
       {deleteIndex !== null && (
-        <DeleteModal
+        <ConfirmModal
           isOpen={isDeleteModalOpen}
           title="Detach Volume?"
+          onConfirm={handleDelete}
           onClose={onDeleteModalClose}
-          onDelete={handleDelete}
-          resourceName={volumes[deleteIndex].pvcName}
-          namespace={selectedNamespace}
-        />
+          confirmLabel="Detach"
+          confirmLabelOnLoading="Detaching..."
+          errorTitle="Failed to detach volume"
+          testId="detach-volume-modal"
+        >
+          Are you sure you want to detach <strong>{volumes[deleteIndex].pvcName}</strong>?
+        </ConfirmModal>
       )}
 
       <VolumesAttachModal

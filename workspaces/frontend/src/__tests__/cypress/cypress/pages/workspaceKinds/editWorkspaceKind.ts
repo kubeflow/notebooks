@@ -732,7 +732,7 @@ class EditWorkspaceKind {
 
   // Additional Volumes
   findCreateVolumeButton() {
-    return cy.findByTestId('create-volume-button');
+    return cy.findByTestId('attach-new-volume-button');
   }
 
   clickCreateVolume() {
@@ -868,19 +868,15 @@ class EditWorkspaceKind {
 
   // Detach Volume Modal
   findDetachVolumeModal() {
-    return cy.findByTestId('delete-modal');
+    return cy.findByTestId('detach-volume-modal');
   }
 
   findDetachVolumeModalConfirmButton() {
-    return this.findDetachVolumeModal().findByTestId('delete-button');
+    return this.findDetachVolumeModal().findByTestId('confirm-button');
   }
 
   findDetachVolumeModalCancelButton() {
     return this.findDetachVolumeModal().findByTestId('cancel-button');
-  }
-
-  typeDetachResourceName(name: string) {
-    this.findDetachVolumeModal().findByTestId('delete-modal-input').clear().type(name);
   }
 
   confirmDetachVolume() {
