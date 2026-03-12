@@ -93,8 +93,20 @@ for o in backend_objects:
             "SWAGGER_ENABLED": "true",
             "SWAGGER_SCHEME": "https",
             "SWAGGER_HOST": "localhost:8443",
-            "SWAGGER_BASE_PATH": "/workspaces/api/v1"
+            "SWAGGER_BASE_PATH": "/workspaces/api/v1",
+            "DISABLE_AUTH": "true",
         }
+
+        # Replace existing keys and add missing ones
+        for (i, var) in enumerate(env):
+            key = var["name"]
+            if key in tilt_env_vars.keys():
+                env[i] = {
+                    "name": key,
+                    "value": tilt_env_vars[key],
+                }
+                tilt_env_vars.pop(key)
+
         for (key, value) in tilt_env_vars.items():
             env.append({
                 "name": key,
