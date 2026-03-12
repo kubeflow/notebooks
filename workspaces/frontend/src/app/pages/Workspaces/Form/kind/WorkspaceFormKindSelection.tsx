@@ -29,7 +29,7 @@ const WorkspaceFormKindSelection: React.FunctionComponent<WorkspaceFormKindSelec
   }
 
   return (
-    <Content style={{ height: '100%' }}>
+    <Content className="workspace-form__full-height">
       <WorkspaceFormKindList
         allWorkspaceKinds={workspaceKinds}
         selectedKind={selectedKind}

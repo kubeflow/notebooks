@@ -42,7 +42,7 @@ describe('WorkspaceFormOptionCard', () => {
   });
 
   describe('Basic rendering', () => {
-    it('should render option displayName and id', () => {
+    it('should render option displayName and description', () => {
       const workspaceKind = buildMockWorkspaceKind();
       const option = workspaceKind.podTemplate.options.imageConfig.values[0];
       const allOptions = workspaceKind.podTemplate.options.imageConfig.values;
@@ -50,7 +50,7 @@ describe('WorkspaceFormOptionCard', () => {
       render(<WorkspaceFormOptionCard {...defaultProps} option={option} allOptions={allOptions} />);
 
       expect(screen.getByText(option.displayName)).toBeInTheDocument();
-      expect(screen.getByText(option.id)).toBeInTheDocument();
+      expect(screen.getByText(option.description)).toBeInTheDocument();
     });
 
     it('should show "Default" label when isDefault is true', () => {
@@ -440,6 +440,86 @@ describe('WorkspaceFormOptionCard', () => {
     });
   });
 
+  describe('CardHeader CSS classes', () => {
+    it('should apply workspace-option-card__header--with-icons class when option has hidden flag', () => {
+      const workspaceKind = buildMockWorkspaceKind();
+      const hiddenOption: WorkspacekindsImageConfigValue = {
+        ...workspaceKind.podTemplate.options.imageConfig.values[0],
+        id: 'hidden-option',
+        hidden: true,
+        redirect: undefined,
+      };
+      const allOptions = [hiddenOption];
+
+      const { container } = render(
+        <WorkspaceFormOptionCard {...defaultProps} option={hiddenOption} allOptions={allOptions} />,
+      );
+
+      const cardHeader = container.querySelector('.pf-v6-c-card__header');
+      expect(cardHeader).toHaveClass('workspace-option-card__header--with-icons');
+    });
+
+    it('should apply workspace-option-card__header--with-icons class when option has redirect', () => {
+      const workspaceKind = buildMockWorkspaceKind();
+      const redirectedOption: WorkspacekindsImageConfigValue = {
+        ...workspaceKind.podTemplate.options.imageConfig.values[0],
+        id: 'redirected-option',
+        hidden: false,
+        redirect: {
+          to: 'target-option',
+          message: {
+            text: 'Redirecting...',
+            level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelInfo,
+          },
+        },
+      };
+      const allOptions = [redirectedOption];
+
+      const { container } = render(
+        <WorkspaceFormOptionCard
+          {...defaultProps}
+          option={redirectedOption}
+          allOptions={allOptions}
+        />,
+      );
+
+      const cardHeader = container.querySelector('.pf-v6-c-card__header');
+      expect(cardHeader).toHaveClass('workspace-option-card__header--with-icons');
+    });
+
+    it('should NOT apply workspace-option-card__header--with-icons class when option has neither hidden nor redirect', () => {
+      const workspaceKind = buildMockWorkspaceKind();
+      const normalOption: WorkspacekindsImageConfigValue = {
+        ...workspaceKind.podTemplate.options.imageConfig.values[0],
+        id: 'normal-option',
+        hidden: false,
+        redirect: undefined,
+      };
+      const allOptions = [normalOption];
+
+      const { container } = render(
+        <WorkspaceFormOptionCard {...defaultProps} option={normalOption} allOptions={allOptions} />,
+      );
+
+      const cardHeader = container.querySelector('.pf-v6-c-card__header');
+      expect(cardHeader).not.toHaveClass('workspace-option-card__header--with-icons');
+    });
+
+    it('should render description with workspace-option-card__description class when description exists', () => {
+      const workspaceKind = buildMockWorkspaceKind();
+      const option = workspaceKind.podTemplate.options.imageConfig.values[0];
+      const allOptions = workspaceKind.podTemplate.options.imageConfig.values;
+
+      const { container } = render(
+        <WorkspaceFormOptionCard {...defaultProps} option={option} allOptions={allOptions} />,
+      );
+
+      const description = container.querySelector('.workspace-option-card__description');
+      expect(description).toBeInTheDocument();
+      expect(description).toHaveTextContent(option.description);
+    });
+  });
+
   describe('PodConfig options', () => {
     it('should work with pod config options', () => {
       const workspaceKind = buildMockWorkspaceKind();
@@ -455,7 +535,7 @@ describe('WorkspaceFormOptionCard', () => {
       );
 
       expect(screen.getByText(podConfigOption.displayName)).toBeInTheDocument();
-      expect(screen.getByText(podConfigOption.id)).toBeInTheDocument();
+      expect(screen.getByText(podConfigOption.description)).toBeInTheDocument();
     });
   });
 });

@@ -147,14 +147,19 @@ export const WorkspaceFormOptionCard: React.FC<
           variant: 'single',
           onChange,
         }}
+        className={
+          option.hidden || option.redirect ? 'workspace-option-card__header--with-icons' : undefined
+        }
       >
         <CardTitle>{option.displayName}</CardTitle>
-        <CardBody>{option.id}</CardBody>
       </CardHeader>
+      {option.description && (
+        <CardBody className="workspace-option-card__description">{option.description}</CardBody>
+      )}
       <Flex
         alignItems={{ default: 'alignItemsCenter' }}
         spaceItems={{ default: 'spaceItemsSm' }}
-        style={{ position: 'absolute', top: '1rem', right: '1rem', zIndex: 1 }}
+        className="workspace-option-card__icons-container"
       >
         {isDefault && (
           <FlexItem>
