@@ -1521,6 +1521,28 @@ const docTemplate = `{
                 }
             }
         },
+        "api.ListValuesEnvelope": {
+            "type": "object",
+            "required": [
+                "data"
+            ],
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/workspacekinds.ListValuesResponse"
+                }
+            }
+        },
+        "api.ListValuesRequestEnvelope": {
+            "type": "object",
+            "required": [
+                "data"
+            ],
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/workspacekinds.ListValuesRequestData"
+                }
+            }
+        },
         "api.NamespaceListEnvelope": {
             "type": "object",
             "required": [
@@ -2327,6 +2349,43 @@ const docTemplate = `{
             "properties": {
                 "url": {
                     "type": "string"
+                }
+            }
+        },
+        "workspacekinds.ListValuesContext": {
+            "type": "object",
+            "properties": {
+                "imageConfig": {
+                    "$ref": "#/definitions/workspacekinds.ContextImageConfig"
+                },
+                "namespace": {
+                    "$ref": "#/definitions/workspacekinds.ContextNamespace"
+                },
+                "podConfig": {
+                    "$ref": "#/definitions/workspacekinds.ContextPodConfig"
+                }
+            }
+        },
+        "workspacekinds.ListValuesRequestData": {
+            "type": "object",
+            "properties": {
+                "context": {
+                    "$ref": "#/definitions/workspacekinds.ListValuesContext"
+                }
+            }
+        },
+        "workspacekinds.ListValuesResponse": {
+            "type": "object",
+            "required": [
+                "imageConfig",
+                "podConfig"
+            ],
+            "properties": {
+                "imageConfig": {
+                    "$ref": "#/definitions/workspacekinds.ImageConfigWithRules"
+                },
+                "podConfig": {
+                    "$ref": "#/definitions/workspacekinds.PodConfigWithRules"
                 }
             }
         },

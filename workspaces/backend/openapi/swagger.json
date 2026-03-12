@@ -885,6 +885,79 @@
                 }
             }
         },
+        "/workspacekinds/{name}/podtemplate/options/listvalues": {
+            "post": {
+                "description": "Returns filtered imageConfig and podConfig options based on the provided context. This endpoint is used by the workspace creation wizard to show compatible options.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspacekinds"
+                ],
+                "summary": "List values for workspace kind options",
+                "operationId": "listValues",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "x-example": "jupyterlab",
+                        "description": "Name of the workspace kind",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Request body with optional context filters",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.ListValuesRequestEnvelope"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation. Returns filtered options with rule_effects.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ListValuesEnvelope"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request. Invalid workspace kind name or request body.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Authentication is required.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. User does not have permission to access the workspace kind.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found. Workspace kind does not exist.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error. An unexpected error occurred on the server.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
         "/workspaces": {
             "get": {
                 "description": "Returns a list of all workspaces in the cluster.",
@@ -1516,6 +1589,28 @@
                 "message": {
                     "description": "Message is a human-readable description of the error.",
                     "type": "string"
+                }
+            }
+        },
+        "api.ListValuesEnvelope": {
+            "type": "object",
+            "required": [
+                "data"
+            ],
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/workspacekinds.ListValuesResponse"
+                }
+            }
+        },
+        "api.ListValuesRequestEnvelope": {
+            "type": "object",
+            "required": [
+                "data"
+            ],
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/workspacekinds.ListValuesRequestData"
                 }
             }
         },
@@ -2325,6 +2420,43 @@
             "properties": {
                 "url": {
                     "type": "string"
+                }
+            }
+        },
+        "workspacekinds.ListValuesContext": {
+            "type": "object",
+            "properties": {
+                "imageConfig": {
+                    "$ref": "#/definitions/workspacekinds.ContextImageConfig"
+                },
+                "namespace": {
+                    "$ref": "#/definitions/workspacekinds.ContextNamespace"
+                },
+                "podConfig": {
+                    "$ref": "#/definitions/workspacekinds.ContextPodConfig"
+                }
+            }
+        },
+        "workspacekinds.ListValuesRequestData": {
+            "type": "object",
+            "properties": {
+                "context": {
+                    "$ref": "#/definitions/workspacekinds.ListValuesContext"
+                }
+            }
+        },
+        "workspacekinds.ListValuesResponse": {
+            "type": "object",
+            "required": [
+                "imageConfig",
+                "podConfig"
+            ],
+            "properties": {
+                "imageConfig": {
+                    "$ref": "#/definitions/workspacekinds.ImageConfigWithRules"
+                },
+                "podConfig": {
+                    "$ref": "#/definitions/workspacekinds.PodConfigWithRules"
                 }
             }
         },
