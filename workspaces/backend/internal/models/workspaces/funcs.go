@@ -29,6 +29,8 @@ const (
 	UnknownHomeMountPath = "__UNKNOWN_HOME_MOUNT_PATH__"
 	UnknownImageConfig   = "__UNKNOWN_IMAGE_CONFIG__"
 	UnknownPodConfig     = "__UNKNOWN_POD_CONFIG__"
+	UnknownIconURL       = "__UNKNOWN_ICON_URL__"
+	UnknownLogoURL       = "__UNKNOWN_LOGO_URL__"
 )
 
 // NewWorkspaceListItemFromWorkspace creates a WorkspaceListItem model from a Workspace and WorkspaceKind object.
@@ -39,18 +41,20 @@ func NewWorkspaceListItemFromWorkspace(ws *kubefloworgv1beta1.Workspace, wsk *ku
 		panic("provided WorkspaceKind does not match the Workspace")
 	}
 
-	// TODO: icons can either be a remote URL or read from a ConfigMap.
-	//       in BOTH cases, we should cache and serve the image under a path on the backend API:
-	//       /api/v1/workspacekinds/{name}/assets/icon
-	iconRef := ImageRef{
-		URL: ptr.Deref(wsk.Spec.Spawner.Icon.Url, "UNKNOWN_ICON_URL"),
+	// we only know the icon url if the WorkspaceKind exists
+	iconURL := UnknownIconURL
+	if wskExists(wsk) {
+		// TODO: icons MUST be either set to remote URL or read from a ConfigMap
+		//       we can remove this fallback once we implement the ConfigMap option.
+		iconURL = ptr.Deref(wsk.Spec.Spawner.Icon.Url, UnknownIconURL)
 	}
 
-	// TODO: logos can either be a remote URL or read from a ConfigMap.
-	//       in BOTH cases, we should cache and serve the image under a path on the backend API:
-	//       /api/v1/workspacekinds/{name}/assets/logo
-	logoRef := ImageRef{
-		URL: ptr.Deref(wsk.Spec.Spawner.Icon.Url, "UNKNOWN_ICON_URL"),
+	// we only know the logo url if the WorkspaceKind exists
+	logoURL := UnknownLogoURL
+	if wskExists(wsk) {
+		// TODO: logos MUST be either set to remote URL or read from a ConfigMap
+		//       we can remove this fallback once we implement the ConfigMap option.
+		logoURL = ptr.Deref(wsk.Spec.Spawner.Logo.Url, UnknownLogoURL)
 	}
 
 	podLabels := make(map[string]string)
@@ -90,8 +94,12 @@ func NewWorkspaceListItemFromWorkspace(ws *kubefloworgv1beta1.Workspace, wsk *ku
 		WorkspaceKind: WorkspaceKindInfo{
 			Name:    ws.Spec.Kind,
 			Missing: !wskExists(wsk),
-			Icon:    iconRef,
-			Logo:    logoRef,
+			Icon: ImageRef{
+				URL: iconURL,
+			},
+			Logo: ImageRef{
+				URL: logoURL,
+			},
 		},
 		Paused:         ptr.Deref(ws.Spec.Paused, false),
 		PausedTime:     ws.Status.PauseTime,
