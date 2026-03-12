@@ -1177,6 +1177,27 @@ describe('Create workspace', () => {
       });
     });
 
+    describe('Home Volume validation', () => {
+      it('should display required helper when no home volume is mounted', () => {
+        completeAllStepsToProperties(mockWorkspaceKind.name, mockImage.id, mockPodConfig.id);
+
+        cy.findByTestId('home-volume-status').should('have.text', 'None mounted');
+        cy.findByTestId('workspace-home-volume-required-helper').should('be.visible');
+        cy.findByTestId('workspace-home-volume-required-helper').should(
+          'contain.text',
+          'Mounting a home volume is required.',
+        );
+      });
+
+      it('should hide the required helper when the Home Volume section is expanded', () => {
+        completeAllStepsToProperties(mockWorkspaceKind.name, mockImage.id, mockPodConfig.id);
+
+        cy.contains('button', 'Home Volume').click();
+
+        cy.findByTestId('workspace-home-volume-required-helper').should('not.exist');
+      });
+    });
+
     describe('Secret removal flows', () => {
       it('should trigger API call when removing a created secret', () => {
         const secretName = 'created-secret-to-remove';
