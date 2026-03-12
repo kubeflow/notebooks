@@ -60,10 +60,10 @@ const setupEditWorkspaceKind = (
     mockModArchResponse([]),
   ).as('getAllWorkspaces');
 
-  cy.intercept(
-    'GET',
-    `/api/${NOTEBOOKS_API_VERSION}/persistentvolumeclaims/${mockNamespace.name}`,
-    { data: [] },
+  cy.interceptApi(
+    'GET /api/:apiVersion/persistentvolumeclaims/:namespace',
+    { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
+    mockModArchResponse([]),
   ).as('listPVCs');
 
   cy.intercept('GET', `/api/${NOTEBOOKS_API_VERSION}/storageclasses`, {

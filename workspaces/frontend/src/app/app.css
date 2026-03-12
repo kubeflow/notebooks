@@ -138,7 +138,6 @@ body,
 }
 
 .mui-theme .pf-v6-c-form__group-control .form-fieldset-wrapper .pf-v6-c-menu-toggle {
-  /* stylelint-disable-next-line declaration-no-important */
   height: calc(
     var(--pf-v6-c-menu-toggle--FontSize) * var(--pf-v6-c-menu-toggle--LineHeight) + 1rem * 2
   );

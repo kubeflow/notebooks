@@ -96,7 +96,6 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
   }, []);
 
   const onDeleteModalClose = useCallback(() => {
-    setDeleteIndex(null);
     setIsDeleteModalOpen(false);
   }, []);
 
@@ -107,6 +106,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
     if (!volumes[deleteIndex].isAttached) {
       await api.pvc.deletePvc(selectedNamespace, volumes[deleteIndex].pvcName);
     }
+    setDeleteIndex(null);
     setVolumes(volumes.filter((_, i) => i !== deleteIndex));
   }, [deleteIndex, volumes, setVolumes, api.pvc, selectedNamespace]);
 
@@ -323,7 +323,6 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
       </Button>
     </Tooltip>
   );
-
   return (
     <>
       {pvcLoadError && (

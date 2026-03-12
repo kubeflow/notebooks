@@ -115,7 +115,6 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
   );
 
   const onDeleteModalClose = useCallback(() => {
-    setDeleteIndex(null);
     setIsDeleteModalOpen(false);
   }, []);
 
@@ -128,6 +127,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
       await api.secrets.deleteSecret(selectedNamespace, secretToDelete.secretName);
     }
     setSecrets(secrets.filter((_, i) => i !== deleteIndex));
+    setDeleteIndex(null);
   }, [deleteIndex, secrets, api.secrets, selectedNamespace, setSecrets]);
 
   const handleSecretCreated = useCallback(

@@ -12,7 +12,10 @@ import {
   buildMockWorkspaceKind,
 } from '~/shared/mock/mockBuilder';
 import { navBar } from '~/__tests__/cypress/cypress/pages/components/navBar';
-import { volumesAttachModal } from '~/__tests__/cypress/cypress/pages/workspaces/volumesManagement';
+import {
+  secretsDetachModal,
+  secretsManagement,
+} from '~/__tests__/cypress/cypress/pages/workspaces/secretsManagement';
 import type {
   WorkspacekindsImageConfigValue,
   WorkspacekindsPodConfigValue,
@@ -174,11 +177,7 @@ describe('Create workspace', () => {
       createWorkspace.assertCreateButtonDisabled();
 
       // Attach home volume (required)
-      cy.contains('button', 'Home Volume').click();
-      cy.wait('@listPVCs');
-      cy.findByTestId('attach-existing-volume-button').click();
-      volumesAttachModal.selectPVC('home-pvc');
-      volumesAttachModal.clickAttach();
+      createWorkspace.attachHomeVolume('home-pvc');
 
       const workspaceName = 'My Test Workspace';
       createWorkspace.typeWorkspaceName(workspaceName);
@@ -245,11 +244,7 @@ describe('Create workspace', () => {
       createWorkspace.assertCreateButtonDisabled();
 
       // Attach home volume (required) — Create should still be disabled without a name
-      cy.contains('button', 'Home Volume').click();
-      cy.wait('@listPVCs');
-      cy.findByTestId('attach-existing-volume-button').click();
-      volumesAttachModal.selectPVC('home-pvc');
-      volumesAttachModal.clickAttach();
+      createWorkspace.attachHomeVolume('home-pvc');
 
       createWorkspace.assertCreateButtonDisabled();
 
@@ -294,11 +289,7 @@ describe('Create workspace', () => {
       createWorkspace.typeWorkspaceName('my-test-workspace');
 
       // Attach home volume (required)
-      cy.contains('button', 'Home Volume').click();
-      cy.wait('@listPVCs');
-      cy.findByTestId('attach-existing-volume-button').click();
-      volumesAttachModal.selectPVC('home-pvc');
-      volumesAttachModal.clickAttach();
+      createWorkspace.attachHomeVolume('home-pvc');
 
       cy.interceptApi(
         'POST /api/:apiVersion/workspaces/:namespace',
@@ -1235,8 +1226,7 @@ describe('Create workspace', () => {
       it('should hide the required helper when the Home Volume section is expanded', () => {
         completeAllStepsToProperties(mockWorkspaceKind.name, mockImage.id, mockPodConfig.id);
 
-        cy.contains('button', 'Home Volume').click();
-
+        createWorkspace.expandHomeVolumeSection();
         cy.findByTestId('workspace-home-volume-required-helper').should('not.exist');
       });
     });
@@ -1305,17 +1295,13 @@ describe('Create workspace', () => {
         cy.findByTestId('secrets-table').should('contain', secretName);
 
         // Remove the secret
-        cy.findByTestId('secrets-table')
-          .contains('tr', secretName)
-          .findByTestId(`secret-kebab-${secretName}`)
-          .click();
-        cy.contains('button', 'Detach').click();
+        secretsManagement.clickKebabMenu(secretName);
+        secretsManagement.clickRemoveAction(secretName);
 
         // Confirm detach in modal
-        cy.findByTestId('detach-secret-modal').should('be.visible');
-        cy.findByTestId('detach-secret-modal').should('contain', secretName);
-
-        cy.findByTestId('confirm-button').should('not.be.disabled').click();
+        secretsDetachModal.assertModalVisible();
+        secretsDetachModal.assertContains(secretName);
+        secretsDetachModal.clickConfirm();
 
         // Verify API call was made
         cy.wait('@deleteSecret');
@@ -1409,14 +1395,11 @@ describe('Create workspace', () => {
         cy.findByTestId('secrets-table').should('contain', secret2);
 
         // Remove first secret
-        cy.findByTestId('secrets-table')
-          .contains('tr', secret1)
-          .findByTestId(`secret-kebab-${secret1}`)
-          .click();
-        cy.contains('button', 'Detach').click();
+        secretsManagement.clickKebabMenu(secret1);
+        secretsManagement.clickRemoveAction(secret1);
 
         // Confirm first detach
-        cy.findByTestId('confirm-button').should('not.be.disabled').click();
+        secretsDetachModal.clickConfirm();
         cy.wait('@deleteSecret1');
 
         // Verify only secret2 remains
@@ -1424,14 +1407,11 @@ describe('Create workspace', () => {
         cy.findByTestId('secrets-table').should('contain', secret2);
 
         // Remove second secret
-        cy.findByTestId('secrets-table')
-          .contains('tr', secret2)
-          .findByTestId(`secret-kebab-${secret2}`)
-          .click();
-        cy.contains('button', 'Detach').click();
+        secretsManagement.clickKebabMenu(secret2);
+        secretsManagement.clickRemoveAction(secret2);
 
         // Confirm second detach
-        cy.findByTestId('confirm-button').should('not.be.disabled').click();
+        secretsDetachModal.clickConfirm();
         cy.wait('@deleteSecret2');
 
         // Verify table is gone (no secrets left)

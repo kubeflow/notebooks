@@ -1,4 +1,5 @@
 import { WorkspaceForm } from '~/__tests__/cypress/cypress/pages/workspaces/workspaceForm';
+import { volumesAttachModal } from '~/__tests__/cypress/cypress/pages/workspaces/volumesManagement';
 
 class CreateWorkspace extends WorkspaceForm {
   readonly CREATE_WORKSPACE_ROUTE = '/workspaces/create';
@@ -107,6 +108,23 @@ class CreateWorkspace extends WorkspaceForm {
 
   clickClearAllFilters() {
     return this.findClearAllFiltersButton().click();
+  }
+
+  findHomeVolumeToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.contains('button', 'Home Volume') as unknown as Cypress.Chainable<
+      JQuery<HTMLElement>
+    >;
+  }
+
+  expandHomeVolumeSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findHomeVolumeToggle().click();
+  }
+
+  attachHomeVolume(pvcName: string): void {
+    this.expandHomeVolumeSection();
+    cy.findByTestId('attach-existing-volume-button').click();
+    volumesAttachModal.selectPVC(pvcName);
+    volumesAttachModal.clickAttach();
   }
 
   clickAttachExistingSecrets(): Cypress.Chainable<JQuery<HTMLElement>> {

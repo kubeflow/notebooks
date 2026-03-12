@@ -231,7 +231,7 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
         },
       });
       setIsOpen(false);
-      onVolumeCreated({ pvcName, mountPath: trimmedPath, readOnly });
+      onVolumeCreated({ pvcName, mountPath: trimmedPath, readOnly, isAttached: false });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create PVC. Please try again.');
     } finally {
@@ -257,6 +257,48 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
   const handleClose = useCallback(() => {
     setIsOpen(false);
   }, [setIsOpen]);
+
+  const mountConfigFields = (
+    <>
+      <MountPathField
+        variant="input"
+        value={mountPath}
+        onChange={(val) => {
+          setMountPath(val);
+          setError(null);
+        }}
+        isEditing={isMountPathEditing}
+        onStartEdit={handleStartMountPathEdit}
+        onConfirm={handleConfirmMountPathEdit}
+        onCancel={handleCancelMountPathEdit}
+        error={mountPathError}
+        isFixed={!!fixedMountPath}
+        fieldId="create-volume-mount-path"
+      />
+      <ThemeAwareFormGroupWrapper
+        label="Read-only Access"
+        fieldId="read-only"
+        skipFieldset
+        labelHelp={
+          <Popover
+            headerContent="Read-only access"
+            bodyContent="Mount the volume as read-only when this workspace only needs to read data. This prevents accidental or unintended writes to shared volumes."
+          >
+            <OutlinedQuestionCircleIcon />
+          </Popover>
+        }
+      >
+        <Switch
+          id="read-only-switch"
+          data-testid="read-only-switch"
+          label="Enabled"
+          hasCheckIcon
+          isChecked={readOnly}
+          onChange={(_ev, checked) => setReadOnly(checked)}
+        />
+      </ThemeAwareFormGroupWrapper>
+    </>
+  );
 
   return (
     <Modal
@@ -382,7 +424,7 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
                           </ListItem>
                           <ListItem>
                             <strong>ReadOnlyMany (ROX)</strong> means that the volume can be
-                            attached to many workspaces as read-onl
+                            attached to many workspaces as read-only
                           </ListItem>
                           <ListItem>
                             <strong>ReadWriteOnce (RWO)</strong> means that the volume can be
@@ -437,68 +479,24 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
               </ThemeAwareFormGroupWrapper>
             </FormFieldGroup>
           )}
-          {(() => {
-            const mountConfigFields = (
-              <>
-                <MountPathField
-                  variant="input"
-                  value={mountPath}
-                  onChange={(val) => {
-                    setMountPath(val);
-                    setError(null);
+          {isEditMode ? (
+            mountConfigFields
+          ) : (
+            <FormFieldGroup
+              className="form-label-field-group"
+              header={
+                <FormFieldGroupHeader
+                  titleText={{
+                    text: 'Mount Configuration',
+                    id: 'mount-configuration-title',
                   }}
-                  isEditing={isMountPathEditing}
-                  onStartEdit={handleStartMountPathEdit}
-                  onConfirm={handleConfirmMountPathEdit}
-                  onCancel={handleCancelMountPathEdit}
-                  error={mountPathError}
-                  isFixed={!!fixedMountPath}
-                  fieldId="create-volume-mount-path"
+                  titleDescription="Configure how the volume is mounted in the workspace"
                 />
-                <ThemeAwareFormGroupWrapper
-                  label="Read-only Access"
-                  fieldId="read-only"
-                  skipFieldset
-                  labelHelp={
-                    <Popover
-                      headerContent="Read-only access"
-                      bodyContent="Mount the volume as read-only when this workspace only needs to read data. This prevents accidental or unintended writes to shared volumes."
-                    >
-                      <OutlinedQuestionCircleIcon />
-                    </Popover>
-                  }
-                >
-                  <Switch
-                    id="read-only-switch"
-                    data-testid="read-only-switch"
-                    label="Enabled"
-                    hasCheckIcon
-                    isChecked={readOnly}
-                    onChange={(_ev, checked) => setReadOnly(checked)}
-                  />
-                </ThemeAwareFormGroupWrapper>
-              </>
-            );
-
-            return isEditMode ? (
-              mountConfigFields
-            ) : (
-              <FormFieldGroup
-                className="form-label-field-group"
-                header={
-                  <FormFieldGroupHeader
-                    titleText={{
-                      text: 'Mount Configuration',
-                      id: 'mount-configuration-title',
-                    }}
-                    titleDescription="Configure how the volume is mounted in the workspace"
-                  />
-                }
-              >
-                {mountConfigFields}
-              </FormFieldGroup>
-            );
-          })()}
+              }
+            >
+              {mountConfigFields}
+            </FormFieldGroup>
+          )}
         </Form>
       </ModalBody>
       <ModalFooter>
