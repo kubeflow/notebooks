@@ -17,8 +17,6 @@ limitations under the License.
 package workspacekinds
 
 import (
-	"fmt"
-
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"k8s.io/utils/ptr"
 )
@@ -43,14 +41,14 @@ func NewWorkspaceKindModelFromWorkspaceKind(wsk *kubefloworgv1beta1.WorkspaceKin
 	//       in BOTH cases, we should cache and serve the image under a path on the backend API:
 	//       /api/v1/workspacekinds/{name}/assets/icon
 	iconRef := ImageRef{
-		URL: fmt.Sprintf("/workspaces/backend/api/v1/workspacekinds/%s/assets/icon", wsk.Name),
+		URL: ptr.Deref(wsk.Spec.Spawner.Icon.Url, "UNKNOWN_ICON_URL"),
 	}
 
 	// TODO: logos can either be a remote URL or read from a ConfigMap.
 	//       in BOTH cases, we should cache and serve the image under a path on the backend API:
 	//       /api/v1/workspacekinds/{name}/assets/logo
 	logoRef := ImageRef{
-		URL: fmt.Sprintf("/workspaces/backend/api/v1/workspacekinds/%s/assets/logo", wsk.Name),
+		URL: ptr.Deref(wsk.Spec.Spawner.Icon.Url, "UNKNOWN_ICON_URL"),
 	}
 
 	return WorkspaceKind{

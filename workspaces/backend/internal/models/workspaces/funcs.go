@@ -43,14 +43,14 @@ func NewWorkspaceListItemFromWorkspace(ws *kubefloworgv1beta1.Workspace, wsk *ku
 	//       in BOTH cases, we should cache and serve the image under a path on the backend API:
 	//       /api/v1/workspacekinds/{name}/assets/icon
 	iconRef := ImageRef{
-		URL: fmt.Sprintf("/workspaces/backend/api/v1/workspacekinds/%s/assets/icon", ws.Spec.Kind),
+		URL: ptr.Deref(wsk.Spec.Spawner.Icon.Url, "UNKNOWN_ICON_URL"),
 	}
 
 	// TODO: logos can either be a remote URL or read from a ConfigMap.
 	//       in BOTH cases, we should cache and serve the image under a path on the backend API:
 	//       /api/v1/workspacekinds/{name}/assets/logo
 	logoRef := ImageRef{
-		URL: fmt.Sprintf("/workspaces/backend/api/v1/workspacekinds/%s/assets/logo", ws.Spec.Kind),
+		URL: ptr.Deref(wsk.Spec.Spawner.Icon.Url, "UNKNOWN_ICON_URL"),
 	}
 
 	podLabels := make(map[string]string)
