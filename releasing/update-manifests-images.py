@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-import argparse
 import logging
+import os
 import sys
 import ruamel.yaml
 
@@ -36,8 +36,7 @@ components = [
     {
         "name": "Workspaces Controller",
         "kustomization": (
-            "workspaces/controller/manifests/kustomize/"
-            "base/manager/kustomization.yaml"
+            "workspaces/controller/manifests/kustomize/base/manager/kustomization.yaml"
         ),
         "images": [
             {
@@ -49,8 +48,7 @@ components = [
     {
         "name": "Workspaces Backend",
         "kustomization": (
-            "workspaces/backend/manifests/kustomize/"
-            "base/kustomization.yaml"
+            "workspaces/backend/manifests/kustomize/base/kustomization.yaml"
         ),
         "images": [
             {
@@ -62,8 +60,7 @@ components = [
     {
         "name": "Workspaces Frontend",
         "kustomization": (
-            "workspaces/frontend/manifests/kustomize/"
-            "base/kustomization.yaml"
+            "workspaces/frontend/manifests/kustomize/base/kustomization.yaml"
         ),
         "images": [
             {
@@ -91,26 +88,29 @@ def update_manifests_images(components, tag):
                     found = True
                     break
             if not found:
-                images.append({
-                    "name": target_image["name"],
-                    "newName": target_image["newName"],
-                    "newTag": tag})
+                images.append(
+                    {
+                        "name": target_image["name"],
+                        "newName": target_image["newName"],
+                        "newTag": tag,
+                    }
+                )
         kustomize["images"] = images
 
         with open(component["kustomization"], "w") as file:
             yaml.dump(kustomize, file)
 
 
-def parse_args():
-    parser = argparse.ArgumentParser("Update image tags in manifests.")
-    parser.add_argument("tag", type=str, help="Image tag to use.")
-    return parser.parse_args()
-
-
 def main():
     logging.basicConfig(level=logging.INFO)
-    args = parse_args()
-    update_manifests_images(components, args.tag)
+
+    # read the tag from the VERSION file
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    version_file_path = os.path.join(base_dir, "./version/VERSION")
+    with open(version_file_path, "r") as file:
+        version = file.read().strip()
+
+    update_manifests_images(components, version)
 
 
 if __name__ == "__main__":

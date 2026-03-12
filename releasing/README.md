@@ -3,12 +3,6 @@
 This folder contains scripts and instructions for releasing images and manifests
 for the components of this repository.
 
-## Release Process
-
-The Notebooks Working Group release process follows the Kubeflow [release timeline](https://github.com/kubeflow/community/blob/master/releases/handbook.md#timeline)
-and the [release versioning policy](https://github.com/kubeflow/community/blob/master/releases/handbook.md#versioning-policy),
-as defined in the [Kubeflow release handbook](https://github.com/kubeflow/community/blob/master/releases/handbook.md).
-
 ## Steps for releasing
 
 ### Prepare (MINOR RELEASE)
@@ -16,7 +10,8 @@ as defined in the [Kubeflow release handbook](https://github.com/kubeflow/commun
 1. Create a new release branch from `notebooks-v2`:
 
 ```sh
-RELEASE_BRANCH="v2.0-branch"
+RELEASE_BRANCH="v2.0-alpha-branch" # for an alpha release
+#RELEASE_BRANCH="v2.0-branch"      # for a GA release
 git checkout -b $RELEASE_BRANCH origin/notebooks-v2
 # OR: git checkout -b $RELEASE_BRANCH upstream/notebooks-v2
 
@@ -30,7 +25,6 @@ git push origin $RELEASE_BRANCH
 1. Check out the release branch for the version you are releasing:
 
 ```sh
-RELEASE_BRANCH="v2.0-branch"
 git checkout $RELEASE_BRANCH
 ```
 
@@ -48,31 +42,31 @@ git push origin $RELEASE_BRANCH
 
 ### Create Release (ALL RELEASES)
 
-1. Update the image tags in the manifests to the new version:
+1. Bump version in `releasing/version/VERSION` file:
 
 ```sh
-VERSION="v2.0.0-rc.0" # for a release candidate
-# VERSION="v2.0.0" # for a final release
+VERSION="v2.0.0-alpha.0" # for an alpha release
+#VERSION="v2.0.0-rc.0"   # for a release candidate
+#VERSION="v2.0.0"        # for a GA release
+echo "$VERSION" > releasing/version/VERSION
+```
 
+2. Update the image tags in the manifests to the new version:
+
+```sh
 # Ensure required Python dependency is installed
 pip install ruamel.yaml
 
 # Run the release script
-python3 releasing/update-manifests-images.py $VERSION
-```
-
-2. Bump version in `releasing/version/VERSION` file:
-
-```sh
-echo "$VERSION" > releasing/version/VERSION
+python3 releasing/update-manifests-images.py
 ```
 
 3. Create a PR into the release branch with the changes from steps 1 and 2:
 
-    - The PR should be titled `chore: Release vX.X.X-rc.X` or `chore: Release vX.X.X`.
-    - This is to trigger the GitHub Actions tests, and ensure a release is possible.
-    - The only changes should be the image tags in the manifests and the VERSION bump.
-    - Once the tests pass, merge the PR (this will trigger the release builds).
+   - The PR should be titled `chore: Release vX.X.X-rc.X` or `chore: Release vX.X.X`.
+   - This is to trigger the GitHub Actions tests, and ensure a release is possible.
+   - The only changes should be the image tags in the manifests and the VERSION bump.
+   - Once the tests pass, merge the PR (this will trigger the release builds).
 
 4. Create a tag in the release branch:
 
