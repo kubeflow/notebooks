@@ -17,7 +17,7 @@ export const MANDATORY_NAMESPACE = process.env.MANDATORY_NAMESPACE || undefined;
 export const COMPANY_URI = process.env.COMPANY_URI || 'oci://kubeflow.io';
 export const WORKSPACE_KIND_EXAMPLES_URL =
   process.env.WORKSPACE_KIND_EXAMPLES_URL ||
-  'https://github.com/kubeflow/notebooks/tree/notebooks-v2/workspaces/controller/manifests/kustomize/samples';
+  'https://github.com/kubeflow/notebooks/wiki/WorkspaceKinds';
 export const MOCK_API_ENABLED = process.env.MOCK_API_ENABLED === 'true';
 /** Set HIDE_PRE_GA_BANNER=true to hide the pre-GA banner; shown by default. */
 export const HIDE_PRE_GA_BANNER = process.env.HIDE_PRE_GA_BANNER === 'true';
