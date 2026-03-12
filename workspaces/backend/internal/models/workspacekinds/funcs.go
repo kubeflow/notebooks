@@ -45,7 +45,7 @@ func NewWorkspaceKindModelFromWorkspaceKind(wsk *kubefloworgv1beta1.WorkspaceKin
 	logoRef := ImageRef{
 		// TODO: logos MUST be either set to remote URL or read from a ConfigMap
 		//       we can remove this fallback once we implement the ConfigMap option.
-		URL: ptr.Deref(wsk.Spec.Spawner.Icon.Url, "__UNKNOWN_LOGO_URL__"),
+		URL: ptr.Deref(wsk.Spec.Spawner.Logo.Url, "__UNKNOWN_LOGO_URL__"),
 	}
 
 	return WorkspaceKind{
