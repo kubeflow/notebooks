@@ -300,7 +300,7 @@ func (a *App) ListValuesHandler(w http.ResponseWriter, r *http.Request, ps httpr
 	}
 
 	// build the response with rule_effects and context filtering
-	response := models.BuildListValuesResponse(workspaceKind, bodyEnvelope.Data.Context)
+	response := models.BuildListValuesResponse(&workspaceKind, bodyEnvelope.Data.Context)
 
 	responseEnvelope := &ListValuesEnvelope{Data: response}
 	a.dataResponse(w, r, responseEnvelope)
