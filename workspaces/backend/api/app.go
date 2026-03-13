@@ -56,6 +56,7 @@ const (
 	// workspacekinds
 	AllWorkspaceKindsPath    = PathPrefix + "/workspacekinds"
 	WorkspaceKindsByNamePath = AllWorkspaceKindsPath + "/:" + ResourceNamePathParam
+	ListValuesPath           = WorkspaceKindsByNamePath + "/podtemplate/options/listvalues"
 
 	// namespaces
 	AllNamespacesPath = PathPrefix + "/namespaces"
@@ -142,6 +143,7 @@ func (a *App) Routes() http.Handler {
 	router.GET(AllWorkspaceKindsPath, a.GetWorkspaceKindsHandler)
 	router.GET(WorkspaceKindsByNamePath, a.GetWorkspaceKindHandler)
 	router.POST(AllWorkspaceKindsPath, a.CreateWorkspaceKindHandler)
+	router.POST(ListValuesPath, a.ListValuesHandler)
 
 	// storageclasses
 	router.GET(AllStorageClassesPath, a.GetStorageClassesHandler)
