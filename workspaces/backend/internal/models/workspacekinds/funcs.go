@@ -17,6 +17,8 @@ limitations under the License.
 package workspacekinds
 
 import (
+	"fmt"
+
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"k8s.io/utils/ptr"
 )
@@ -37,15 +39,18 @@ func NewWorkspaceKindModelFromWorkspaceKind(wsk *kubefloworgv1beta1.WorkspaceKin
 	statusImageConfigMap := buildOptionMetricsMap(wsk.Status.PodTemplateOptions.ImageConfig)
 	statusPodConfigMap := buildOptionMetricsMap(wsk.Status.PodTemplateOptions.PodConfig)
 
+	// TODO: icons can either be a remote URL or read from a ConfigMap.
+	//       in BOTH cases, we should cache and serve the image under a path on the backend API:
+	//       /api/v1/workspacekinds/{name}/assets/icon
 	iconRef := ImageRef{
-		// TODO: icons MUST be either set to remote URL or read from a ConfigMap
-		//       we can remove this fallback once we implement the ConfigMap option.
-		URL: ptr.Deref(wsk.Spec.Spawner.Icon.Url, "__UNKNOWN_ICON_URL__"),
+		URL: fmt.Sprintf("/workspaces/backend/api/v1/workspacekinds/%s/assets/icon", wsk.Name),
 	}
+
+	// TODO: logos can either be a remote URL or read from a ConfigMap.
+	//       in BOTH cases, we should cache and serve the image under a path on the backend API:
+	//       /api/v1/workspacekinds/{name}/assets/logo
 	logoRef := ImageRef{
-		// TODO: logos MUST be either set to remote URL or read from a ConfigMap
-		//       we can remove this fallback once we implement the ConfigMap option.
-		URL: ptr.Deref(wsk.Spec.Spawner.Logo.Url, "__UNKNOWN_LOGO_URL__"),
+		URL: fmt.Sprintf("/workspaces/backend/api/v1/workspacekinds/%s/assets/logo", wsk.Name),
 	}
 
 	return WorkspaceKind{
@@ -169,4 +174,76 @@ func buildOptionRedirect(redirect *kubefloworgv1beta1.OptionRedirect) *OptionRed
 		To:      redirect.To,
 		Message: message,
 	}
+}
+
+// BuildListValuesResponse transforms a WorkspaceKind into a ListValuesResponse
+// by adding rule_effects to each option value and applying context filters
+func BuildListValuesResponse(wsk WorkspaceKind, context *ListValuesContext) ListValuesResponse {
+	imageValues := buildImageConfigValuesWithRules(wsk.PodTemplate.Options.ImageConfig, context)
+	podValues := buildPodConfigValuesWithRules(wsk.PodTemplate.Options.PodConfig, context)
+
+	return ListValuesResponse{
+		ImageConfig: ImageConfigWithRules{
+			Default: wsk.PodTemplate.Options.ImageConfig.Default,
+			Values:  imageValues,
+		},
+		PodConfig: PodConfigWithRules{
+			Default: wsk.PodTemplate.Options.PodConfig.Default,
+			Values:  podValues,
+		},
+	}
+}
+
+func buildImageConfigValuesWithRules(imageConfig ImageConfig, context *ListValuesContext) []ImageConfigValueWithRules {
+	values := []ImageConfigValueWithRules{}
+
+	for _, v := range imageConfig.Values {
+		// Filter by context if imageConfig.id is specified
+		if context != nil && context.ImageConfig != nil {
+			if v.Id != context.ImageConfig.Id {
+				continue // skip this value
+			}
+		}
+
+		// Transform and add rule_effects
+		values = append(values, ImageConfigValueWithRules{
+			Id:             v.Id,
+			DisplayName:    v.DisplayName,
+			Description:    v.Description,
+			Labels:         v.Labels,
+			Hidden:         v.Hidden,
+			Redirect:       v.Redirect,
+			ClusterMetrics: v.ClusterMetrics,
+			RuleEffects:    RuleEffects{UiHide: false}, // Always false for stub
+		})
+	}
+
+	return values
+}
+
+func buildPodConfigValuesWithRules(podConfig PodConfig, context *ListValuesContext) []PodConfigValueWithRules {
+	values := []PodConfigValueWithRules{}
+
+	for _, v := range podConfig.Values {
+		// Filter by context if podConfig.id is specified
+		if context != nil && context.PodConfig != nil {
+			if v.Id != context.PodConfig.Id {
+				continue // skip this value
+			}
+		}
+
+		// Transform and add rule_effects
+		values = append(values, PodConfigValueWithRules{
+			Id:             v.Id,
+			DisplayName:    v.DisplayName,
+			Description:    v.Description,
+			Labels:         v.Labels,
+			Hidden:         v.Hidden,
+			Redirect:       v.Redirect,
+			ClusterMetrics: v.ClusterMetrics,
+			RuleEffects:    RuleEffects{UiHide: false}, // Always false for stub
+		})
+	}
+
+	return values
 }
