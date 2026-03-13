@@ -281,12 +281,7 @@ func (a *App) ListValuesHandler(w http.ResponseWriter, r *http.Request, ps httpr
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(
-			auth.ResourceVerbGet,
-			&kubefloworgv1beta1.WorkspaceKind{
-				ObjectMeta: metav1.ObjectMeta{Name: name},
-			},
-		),
+		auth.NewResourcePolicy(auth.VerbGet, auth.WorkspaceKinds, auth.ResourcePolicyResourceMeta{Name: name}),
 	}
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return
