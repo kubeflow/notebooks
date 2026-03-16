@@ -33,8 +33,6 @@ describe('SummaryRedirectIcon', () => {
     setActivePopoverId: mockSetActivePopoverId,
     setPinnedPopoverId: mockSetPinnedPopoverId,
     buildRedirectPopoverContent: mockBuildRedirectPopoverContent,
-    hideTimeoutRef: { current: null } as React.MutableRefObject<NodeJS.Timeout | null>,
-    isHoveringPopoverRef: { current: false } as React.MutableRefObject<boolean>,
   };
 
   beforeEach(() => {
@@ -166,29 +164,20 @@ describe('SummaryRedirectIcon', () => {
   describe('Delayed hide behavior', () => {
     it('should start 1 second timer on mouse leave', async () => {
       const user = userEvent.setup({ delay: null });
-      const hideTimeoutRef = { current: null } as React.MutableRefObject<NodeJS.Timeout | null>;
 
-      render(<SummaryRedirectIcon {...defaultProps} hideTimeoutRef={hideTimeoutRef} />);
+      render(<SummaryRedirectIcon {...defaultProps} />);
 
       const button = screen.getByRole('button', { name: /view redirect information/i });
       await user.hover(button);
       await user.unhover(button);
 
-      expect(hideTimeoutRef.current).not.toBeNull();
+      expect(mockSetActivePopoverId).toHaveBeenCalledWith('redirect-summary-1-test');
     });
 
     it('should hide popover after 1 second if not hovering popover', async () => {
       const user = userEvent.setup({ delay: null });
-      const hideTimeoutRef = { current: null } as React.MutableRefObject<NodeJS.Timeout | null>;
-      const isHoveringPopoverRef = { current: false } as React.MutableRefObject<boolean>;
 
-      render(
-        <SummaryRedirectIcon
-          {...defaultProps}
-          hideTimeoutRef={hideTimeoutRef}
-          isHoveringPopoverRef={isHoveringPopoverRef}
-        />,
-      );
+      render(<SummaryRedirectIcon {...defaultProps} />);
 
       const button = screen.getByRole('button', { name: /view redirect information/i });
       await user.hover(button);
@@ -203,93 +192,72 @@ describe('SummaryRedirectIcon', () => {
 
     it('should NOT hide popover after 1 second if hovering popover', async () => {
       const user = userEvent.setup({ delay: null });
-      const hideTimeoutRef = { current: null } as React.MutableRefObject<NodeJS.Timeout | null>;
-      const isHoveringPopoverRef = { current: true } as React.MutableRefObject<boolean>;
 
-      render(
-        <SummaryRedirectIcon
-          {...defaultProps}
-          activePopoverId="redirect-summary-1-test"
-          hideTimeoutRef={hideTimeoutRef}
-          isHoveringPopoverRef={isHoveringPopoverRef}
-        />,
-      );
+      render(<SummaryRedirectIcon {...defaultProps} activePopoverId="redirect-summary-1-test" />);
+
+      const button = screen.getByRole('button', { name: /view redirect information/i });
+
+      await user.unhover(button);
+
+      jest.advanceTimersByTime(1000);
+
+      expect(mockSetActivePopoverId).not.toHaveBeenCalled();
+    });
+
+    it('should not start timer on mouse leave if popover is pinned', async () => {
+      const user = userEvent.setup({ delay: null });
+
+      render(<SummaryRedirectIcon {...defaultProps} pinnedPopoverId="redirect-summary-1-test" />);
 
       const button = screen.getByRole('button', { name: /view redirect information/i });
       await user.unhover(button);
 
       jest.advanceTimersByTime(1000);
 
-      await waitFor(() => {
-        expect(mockSetActivePopoverId).not.toHaveBeenCalled();
-      });
-    });
-
-    it('should not start timer on mouse leave if popover is pinned', async () => {
-      const user = userEvent.setup({ delay: null });
-      const hideTimeoutRef = { current: null } as React.MutableRefObject<NodeJS.Timeout | null>;
-
-      render(
-        <SummaryRedirectIcon
-          {...defaultProps}
-          pinnedPopoverId="redirect-summary-1-test"
-          hideTimeoutRef={hideTimeoutRef}
-        />,
-      );
-
-      const button = screen.getByRole('button', { name: /view redirect information/i });
-      await user.unhover(button);
-
-      expect(hideTimeoutRef.current).toBeNull();
+      expect(mockSetActivePopoverId).not.toHaveBeenCalledWith(null);
     });
 
     it('should clear timeout on mouse re-enter', async () => {
       const user = userEvent.setup({ delay: null });
-      const hideTimeoutRef = { current: null } as React.MutableRefObject<NodeJS.Timeout | null>;
 
-      render(<SummaryRedirectIcon {...defaultProps} hideTimeoutRef={hideTimeoutRef} />);
+      render(<SummaryRedirectIcon {...defaultProps} />);
 
       const button = screen.getByRole('button', { name: /view redirect information/i });
 
       await user.hover(button);
       await user.unhover(button);
-      const timeoutId = hideTimeoutRef.current;
-      expect(timeoutId).not.toBeNull();
 
       await user.hover(button);
-      expect(hideTimeoutRef.current).toBeNull();
+
+      jest.advanceTimersByTime(1000);
+
+      expect(mockSetActivePopoverId).toHaveBeenCalledWith('redirect-summary-1-test');
     });
   });
 
-  describe('Ref mutations', () => {
-    it('should set isHoveringPopoverRef to true on popover mouse enter', () => {
-      const isHoveringPopoverRef = { current: false } as React.MutableRefObject<boolean>;
+  describe('Internal state management', () => {
+    it('should manage hover state internally', () => {
+      render(<SummaryRedirectIcon {...defaultProps} activePopoverId="redirect-summary-1-test" />);
 
-      render(
-        <SummaryRedirectIcon
-          {...defaultProps}
-          activePopoverId="redirect-summary-1-test"
-          isHoveringPopoverRef={isHoveringPopoverRef}
-        />,
-      );
-
-      expect(isHoveringPopoverRef.current).toBe(false);
+      expect(screen.getByTestId('redirect-icon-1-test')).toBeInTheDocument();
     });
 
-    it('should clear timeout ref when clicking', async () => {
+    it('should clear internal timeout when clicking', async () => {
       const user = userEvent.setup({ delay: null });
-      const hideTimeoutRef = {
-        current: setTimeout(() => {
-          /* no-op */
-        }, 1000),
-      } as React.MutableRefObject<NodeJS.Timeout | null>;
 
-      render(<SummaryRedirectIcon {...defaultProps} hideTimeoutRef={hideTimeoutRef} />);
+      render(<SummaryRedirectIcon {...defaultProps} />);
 
       const button = screen.getByRole('button', { name: /view redirect information/i });
+
+      await user.hover(button);
+      await user.unhover(button);
       await user.click(button);
 
-      expect(hideTimeoutRef.current).toBeNull();
+      expect(mockSetPinnedPopoverId).toHaveBeenCalledWith('redirect-summary-1-test');
+
+      jest.advanceTimersByTime(1000);
+
+      expect(mockSetActivePopoverId).toHaveBeenCalledWith(null);
     });
   });
 });

@@ -171,7 +171,7 @@ describe('Workspace Form Styling', () => {
     });
 
     it('should apply summary-redirect-icon-button class to redirect icon', () => {
-      cy.get('[data-testid*="redirect-icon"]')
+      cy.findByTestId('redirect-icon-1-current')
         .should('exist')
         .should('have.class', 'summary-redirect-icon-button');
     });

@@ -1,13 +1,15 @@
-import React, { useCallback, useState, useRef, useEffect } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { Card, CardBody, CardTitle } from '@patternfly/react-core/dist/esm/components/Card';
 import { Content, ContentVariants } from '@patternfly/react-core/dist/esm/components/Content';
-import { Label, LabelGroup } from '@patternfly/react-core/dist/esm/components/Label';
+import { Label } from '@patternfly/react-core/dist/esm/components/Label';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
-import { Divider } from '@patternfly/react-core/dist/esm/components/Divider';
-import { PencilAltIcon } from '@patternfly/react-icons/dist/esm/icons/pencil-alt-icon';
 import { SummaryRedirectIcon } from '~/app/pages/Workspaces/Form/SummaryRedirectIcon';
+import { SummaryDiffSection } from '~/app/pages/Workspaces/Form/SummaryDiffSection';
+import { SummaryContentSection } from '~/app/pages/Workspaces/Form/SummaryContentSection';
+import { SummaryPropertiesSection } from '~/app/pages/Workspaces/Form/SummaryPropertiesSection';
+import { normalizeLabels } from '~/app/pages/Workspaces/Form/summaryHelpers';
 import {
   WorkspacekindsImageConfigValue,
   WorkspacekindsPodConfigValue,
@@ -58,25 +60,10 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
   originalProperties,
 }) => {
   const isEditMode = mode === 'update';
-  const showDiff = isEditMode && (originalKind || originalImage || originalPodConfig);
+  const showDiff = Boolean(isEditMode && (originalKind || originalImage || originalPodConfig));
 
-  // Popover state management
   const [activePopoverId, setActivePopoverId] = useState<string | null>(null);
   const [pinnedPopoverId, setPinnedPopoverId] = useState<string | null>(null);
-
-  // Refs for delayed popover hiding
-  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isHoveringPopoverRef = useRef(false);
-
-  // Clean up timeout on unmount
-  useEffect(
-    () => () => {
-      if (hideTimeoutRef.current) {
-        clearTimeout(hideTimeoutRef.current);
-      }
-    },
-    [],
-  );
 
   const getMessageLevelColor = useCallback(
     (level?: WorkspacekindsRedirectMessageLevel): 'blue' | 'orange' | 'red' => {
@@ -243,29 +230,9 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
 
       const changed = hasChanged(step);
 
-      // Helper to convert labels to consistent format
-      const normalizeLabels = (
-        labelData: WorkspacekindsOptionLabel[] | Record<string, string> | undefined,
-      ): Record<string, string> | undefined => {
-        if (!labelData) {
-          return undefined;
-        }
-        if (Array.isArray(labelData)) {
-          return labelData.reduce(
-            (acc, label) => {
-              acc[label.key] = label.value;
-              return acc;
-            },
-            {} as Record<string, string>,
-          );
-        }
-        return labelData;
-      };
-
       const normalizedLabels = normalizeLabels(labels);
       const normalizedOriginalLabels = normalizeLabels(originalLabels);
 
-      // Render redirect icon as a reusable component
       const renderRedirectIcon = (popoverIdSuffix: string) => {
         if (!redirect || !targetDisplayName || !onClickTarget) {
           return null;
@@ -284,114 +251,42 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
             setActivePopoverId={setActivePopoverId}
             setPinnedPopoverId={setPinnedPopoverId}
             buildRedirectPopoverContent={buildRedirectPopoverContent}
-            hideTimeoutRef={hideTimeoutRef}
-            isHoveringPopoverRef={isHoveringPopoverRef}
           />
         );
       };
 
       return (
         <StackItem key={step}>
-          <Card isCompact>
+          <Card
+            isCompact
+            isClickable
+            isSelectable
+            className="summary-card--clickable"
+            onClick={() => onNavigateToStep(step)}
+            data-testid={`summary-card-${step}`}
+          >
             <CardTitle>
-              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-                <FlexItem>
-                  <Content component={ContentVariants.h3}>{title}</Content>
-                </FlexItem>
-                <FlexItem>
-                  <Button
-                    variant="plain"
-                    aria-label={`Edit ${title}`}
-                    onClick={() => onNavigateToStep(step)}
-                    icon={<PencilAltIcon />}
-                    data-testid={`summary-edit-${step}`}
-                  />
-                </FlexItem>
-              </Flex>
+              <Content component={ContentVariants.h3}>{title}</Content>
             </CardTitle>
             <CardBody>
               <Stack hasGutter>
                 {showDiff && changed ? (
-                  <>
-                    {/* NEW section */}
-                    <StackItem>
-                      <Content component={ContentVariants.p}>
-                        <strong>NEW:</strong>
-                      </Content>
-                      <Flex
-                        alignItems={{ default: 'alignItemsCenter' }}
-                        spaceItems={{ default: 'spaceItemsSm' }}
-                      >
-                        {displayName && (
-                          <FlexItem>
-                            <Content component={ContentVariants.p}>{displayName}</Content>
-                          </FlexItem>
-                        )}
-                        <FlexItem>{renderRedirectIcon('new')}</FlexItem>
-                      </Flex>
-                      {description && (
-                        <Content component={ContentVariants.small}>{description}</Content>
-                      )}
-                      {normalizedLabels && Object.keys(normalizedLabels).length > 0 && (
-                        <LabelGroup numLabels={5}>
-                          {Object.entries(normalizedLabels).map(([key, value]) => (
-                            <Label key={key} isCompact color="blue">
-                              {key}: {value}
-                            </Label>
-                          ))}
-                        </LabelGroup>
-                      )}
-                    </StackItem>
-                    <Divider />
-                    {/* OLD section */}
-                    <StackItem>
-                      <Content component={ContentVariants.p}>
-                        <strong>OLD:</strong>
-                      </Content>
-                      {originalDisplayName && (
-                        <Content component={ContentVariants.p}>{originalDisplayName}</Content>
-                      )}
-                      {originalDescription && (
-                        <Content component={ContentVariants.small}>{originalDescription}</Content>
-                      )}
-                      {normalizedOriginalLabels &&
-                        Object.keys(normalizedOriginalLabels).length > 0 && (
-                          <LabelGroup numLabels={5}>
-                            {Object.entries(normalizedOriginalLabels).map(([key, value]) => (
-                              <Label key={key} isCompact>
-                                {key}: {value}
-                              </Label>
-                            ))}
-                          </LabelGroup>
-                        )}
-                    </StackItem>
-                  </>
+                  <SummaryDiffSection
+                    displayName={displayName}
+                    description={description}
+                    labels={normalizedLabels}
+                    originalDisplayName={originalDisplayName}
+                    originalDescription={originalDescription}
+                    originalLabels={normalizedOriginalLabels}
+                    redirectIcon={renderRedirectIcon('new')}
+                  />
                 ) : (
-                  <>
-                    <Flex
-                      alignItems={{ default: 'alignItemsCenter' }}
-                      spaceItems={{ default: 'spaceItemsSm' }}
-                    >
-                      {displayName && (
-                        <FlexItem>
-                          <Content component={ContentVariants.p}>{displayName}</Content>
-                        </FlexItem>
-                      )}
-                      <FlexItem>{renderRedirectIcon('current')}</FlexItem>
-                    </Flex>
-                    {description && (
-                      <Content component={ContentVariants.small}>{description}</Content>
-                    )}
-                    {normalizedLabels && Object.keys(normalizedLabels).length > 0 && (
-                      <LabelGroup numLabels={5}>
-                        {Object.entries(normalizedLabels).map(([key, value]) => (
-                          <Label key={key} isCompact>
-                            {key}: {value}
-                          </Label>
-                        ))}
-                      </LabelGroup>
-                    )}
-                  </>
+                  <SummaryContentSection
+                    displayName={displayName}
+                    description={description}
+                    labels={normalizedLabels}
+                    redirectIcon={renderRedirectIcon('current')}
+                  />
                 )}
               </Stack>
             </CardBody>
@@ -414,7 +309,7 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
     <Stack hasGutter>
       <StackItem>
         <Content component={ContentVariants.p}>
-          Review your options. Click the edit icon to modify a section.
+          Review your options. Click a section to modify it.
         </Content>
       </StackItem>
 
@@ -487,164 +382,23 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
 
       {(properties.workspaceName.trim() || currentStep >= SummaryStep.Properties) && (
         <StackItem>
-          <Card isCompact>
+          <Card
+            isCompact
+            isClickable
+            isSelectable
+            className="summary-card--clickable"
+            onClick={() => onNavigateToStep(SummaryStep.Properties)}
+            data-testid="summary-card-3"
+          >
             <CardTitle>
-              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
-                <FlexItem>
-                  <Content component={ContentVariants.h3}>Properties</Content>
-                </FlexItem>
-                <FlexItem>
-                  <Button
-                    variant="plain"
-                    aria-label="Edit Properties"
-                    onClick={() => onNavigateToStep(SummaryStep.Properties)}
-                    icon={<PencilAltIcon />}
-                    data-testid="summary-edit-3"
-                  />
-                </FlexItem>
-              </Flex>
+              <Content component={ContentVariants.h3}>Properties</Content>
             </CardTitle>
             <CardBody>
-              <Stack hasGutter>
-                <StackItem>
-                  <Content component={ContentVariants.p}>
-                    Name:{' '}
-                    {showDiff && properties.workspaceName !== originalProperties?.workspaceName ? (
-                      <>
-                        <span className="strikethrough">{originalProperties?.workspaceName}</span>{' '}
-                        {properties.workspaceName}
-                      </>
-                    ) : (
-                      properties.workspaceName
-                    )}
-                  </Content>
-                </StackItem>
-
-                {(properties.homeVolume || originalProperties?.homeVolume) && (
-                  <StackItem>
-                    <Content component={ContentVariants.small}>
-                      Home Volume:{' '}
-                      {showDiff &&
-                      properties.homeVolume?.pvcName !== originalProperties?.homeVolume?.pvcName ? (
-                        <>
-                          {originalProperties?.homeVolume?.pvcName && (
-                            <>
-                              <span className="strikethrough">
-                                {originalProperties.homeVolume.pvcName}
-                              </span>{' '}
-                            </>
-                          )}
-                          {properties.homeVolume?.pvcName || 'None'}
-                        </>
-                      ) : (
-                        properties.homeVolume?.pvcName || 'None'
-                      )}
-                    </Content>
-                  </StackItem>
-                )}
-
-                {(properties.volumes.length > 0 ||
-                  (originalProperties?.volumes && originalProperties.volumes.length > 0)) && (
-                  <StackItem>
-                    <Content component={ContentVariants.small}>
-                      Data Volumes:{' '}
-                      {(() => {
-                        const currentVolumeNames = properties.volumes.map((v) => v.pvcName);
-                        const originalVolumeNames = originalProperties?.volumes
-                          ? originalProperties.volumes.map((v) => v.pvcName)
-                          : [];
-
-                        if (showDiff && originalVolumeNames.length > 0) {
-                          // Combine all volume names and track their status
-                          const allVolumeNames = new Set([
-                            ...originalVolumeNames,
-                            ...currentVolumeNames,
-                          ]);
-                          const volumeElements: React.ReactNode[] = [];
-
-                          allVolumeNames.forEach((name) => {
-                            const wasInOriginal = originalVolumeNames.includes(name);
-                            const isInCurrent = currentVolumeNames.includes(name);
-
-                            if (wasInOriginal && !isInCurrent) {
-                              // Removed - show with strikethrough
-                              volumeElements.push(
-                                <span key={name} className="strikethrough">
-                                  {name}
-                                </span>,
-                              );
-                            } else {
-                              // Added or unchanged - show normally
-                              volumeElements.push(<span key={name}>{name}</span>);
-                            }
-                          });
-
-                          // Join with commas
-                          return volumeElements.reduce<React.ReactNode[]>(
-                            (acc, elem, idx) => (idx === 0 ? [elem] : [...acc, ', ', elem]),
-                            [],
-                          );
-                        }
-
-                        return currentVolumeNames.length > 0
-                          ? currentVolumeNames.join(', ')
-                          : 'None';
-                      })()}
-                    </Content>
-                  </StackItem>
-                )}
-
-                {(properties.secrets.length > 0 ||
-                  (originalProperties?.secrets && originalProperties.secrets.length > 0)) && (
-                  <StackItem>
-                    <Content component={ContentVariants.small}>
-                      Secrets:{' '}
-                      {(() => {
-                        const currentSecretNames = properties.secrets.map((s) => s.secretName);
-                        const originalSecretNames = originalProperties?.secrets
-                          ? originalProperties.secrets.map((s) => s.secretName)
-                          : [];
-
-                        if (showDiff && originalSecretNames.length > 0) {
-                          // Combine all secret names and track their status
-                          const allSecretNames = new Set([
-                            ...originalSecretNames,
-                            ...currentSecretNames,
-                          ]);
-                          const secretElements: React.ReactNode[] = [];
-
-                          allSecretNames.forEach((name) => {
-                            const wasInOriginal = originalSecretNames.includes(name);
-                            const isInCurrent = currentSecretNames.includes(name);
-
-                            if (wasInOriginal && !isInCurrent) {
-                              // Removed - show with strikethrough
-                              secretElements.push(
-                                <span key={name} className="strikethrough">
-                                  {name}
-                                </span>,
-                              );
-                            } else {
-                              // Added or unchanged - show normally
-                              secretElements.push(<span key={name}>{name}</span>);
-                            }
-                          });
-
-                          // Join with commas
-                          return secretElements.reduce<React.ReactNode[]>(
-                            (acc, elem, idx) => (idx === 0 ? [elem] : [...acc, ', ', elem]),
-                            [],
-                          );
-                        }
-
-                        return currentSecretNames.length > 0
-                          ? currentSecretNames.join(', ')
-                          : 'None';
-                      })()}
-                    </Content>
-                  </StackItem>
-                )}
-              </Stack>
+              <SummaryPropertiesSection
+                properties={properties}
+                originalProperties={originalProperties}
+                showDiff={showDiff}
+              />
             </CardBody>
           </Card>
         </StackItem>

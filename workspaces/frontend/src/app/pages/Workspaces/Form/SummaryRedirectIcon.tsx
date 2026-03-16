@@ -1,4 +1,4 @@
-import React, { FC } from 'react';
+import React, { FC, useRef, useCallback } from 'react';
 import { Popover } from '@patternfly/react-core/dist/esm/components/Popover';
 import { Icon } from '@patternfly/react-core/dist/esm/components/Icon';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-triangle-icon';
@@ -33,8 +33,6 @@ interface SummaryRedirectIconProps {
     };
     onClickTarget: () => void;
   }) => React.ReactNode;
-  hideTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
-  isHoveringPopoverRef: React.MutableRefObject<boolean>;
 }
 
 export const SummaryRedirectIcon: FC<SummaryRedirectIconProps> = ({
@@ -49,19 +47,19 @@ export const SummaryRedirectIcon: FC<SummaryRedirectIconProps> = ({
   setActivePopoverId,
   setPinnedPopoverId,
   buildRedirectPopoverContent,
-  hideTimeoutRef,
-  isHoveringPopoverRef,
 }) => {
   const popoverId = `redirect-summary-${step}-${popoverIdSuffix}`;
   const isVisible = activePopoverId === popoverId || pinnedPopoverId === popoverId;
 
-  const clearHideTimeout = () => {
+  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isHoveringPopoverRef = useRef(false);
+
+  const clearHideTimeout = useCallback(() => {
     if (hideTimeoutRef.current) {
       clearTimeout(hideTimeoutRef.current);
-      // eslint-disable-next-line no-param-reassign
       hideTimeoutRef.current = null;
     }
-  };
+  }, []);
 
   const popoverContentInner = buildRedirectPopoverContent({
     displayName,
@@ -74,11 +72,9 @@ export const SummaryRedirectIcon: FC<SummaryRedirectIconProps> = ({
     <div
       onMouseEnter={() => {
         clearHideTimeout();
-        // eslint-disable-next-line no-param-reassign
         isHoveringPopoverRef.current = true;
       }}
       onMouseLeave={() => {
-        // eslint-disable-next-line no-param-reassign
         isHoveringPopoverRef.current = false;
         if (pinnedPopoverId !== popoverId) {
           setActivePopoverId(null);
@@ -99,7 +95,6 @@ export const SummaryRedirectIcon: FC<SummaryRedirectIconProps> = ({
         isVisible={isVisible}
         shouldClose={() => {
           clearHideTimeout();
-          // eslint-disable-next-line no-param-reassign
           isHoveringPopoverRef.current = false;
           setPinnedPopoverId(null);
           setActivePopoverId(null);
@@ -148,7 +143,6 @@ export const SummaryRedirectIcon: FC<SummaryRedirectIconProps> = ({
             e.stopPropagation();
             if (pinnedPopoverId !== popoverId) {
               // Start a 1 second timer before hiding
-              // eslint-disable-next-line no-param-reassign
               hideTimeoutRef.current = setTimeout(() => {
                 // Only hide if we're not hovering over the popover
                 if (!isHoveringPopoverRef.current) {
