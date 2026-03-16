@@ -10,6 +10,7 @@ import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/comma
 import {
   buildMockNamespace,
   buildMockPVC,
+  buildMockStorageClass,
   buildMockWorkspace,
   buildMockWorkspaceKind,
   buildMockWorkspaceKindInfo,
@@ -95,6 +96,22 @@ describe('Volumes Management - Attach and Create', () => {
     }),
   ];
 
+  // Create mock storage classes for create modal
+  const mockStorageClasses = [
+    buildMockStorageClass({
+      name: 'standard',
+      displayName: 'Standard',
+      description: 'Default storage class',
+      canUse: true,
+    }),
+    buildMockStorageClass({
+      name: 'ssd',
+      displayName: 'SSD',
+      description: 'High-performance SSD storage',
+      canUse: true,
+    }),
+  ];
+
   beforeEach(() => {
     cy.interceptApi(
       'GET /api/:apiVersion/namespaces',
@@ -132,6 +149,10 @@ describe('Volumes Management - Attach and Create', () => {
       mockModArchResponse(mockPVCs),
     ).as('listPVCs');
 
+    cy.intercept('GET', `/api/${NOTEBOOKS_API_VERSION}/storageclasses`, {
+      data: mockStorageClasses,
+    }).as('listStorageClasses');
+
     // Navigate to volumes section
     workspaces.visit();
     cy.wait('@getNamespaces');
@@ -147,6 +168,17 @@ describe('Volumes Management - Attach and Create', () => {
     // Expand the Volumes section
     cy.contains('button', 'Volumes').click();
     cy.wait('@listPVCs');
+  });
+
+  describe('Empty State', () => {
+    it('should display empty state when no volumes are attached', () => {
+      volumesManagement.assertEmptyStateVisible();
+    });
+
+    it('should display attach and create buttons in empty state', () => {
+      volumesManagement.findAttachExistingPVCButton().should('be.visible');
+      volumesManagement.findCreateVolumeButton().should('be.visible');
+    });
   });
 
   describe('Attach Existing Volume Modal', () => {
@@ -203,46 +235,102 @@ describe('Volumes Management - Attach and Create', () => {
     it('should open create volume modal', () => {
       volumesManagement.clickCreateVolume();
       volumesCreateModal.assertModalVisible();
-      volumesCreateModal.assertCreateMode();
     });
 
-    it('should create a volume manually', () => {
+    it('should display storage class dropdown with available classes', () => {
+      volumesManagement.clickCreateVolume();
+      cy.wait('@listStorageClasses');
+      volumesCreateModal.assertModalVisible();
+
+      volumesCreateModal.findStorageClassSelect().should('be.visible');
+    });
+
+    it('should have ReadWriteOnce selected as default access mode', () => {
       volumesManagement.clickCreateVolume();
       volumesCreateModal.assertModalVisible();
 
-      volumesCreateModal.typePVCName('manual-pvc');
-      volumesCreateModal.typeMountPath('/mnt/manual');
+      volumesCreateModal.assertAccessModeChecked('ReadWriteOnce');
+    });
+
+    it('should create a volume and display it in the table', () => {
+      cy.intercept(
+        'POST',
+        `/api/${NOTEBOOKS_API_VERSION}/persistentvolumeclaims/${mockNamespace.name}`,
+        {
+          data: {
+            name: 'new-volume',
+            accessModes: ['ReadWriteOnce'],
+            requests: { storage: '1Gi' },
+            storageClassName: 'standard',
+          },
+        },
+      ).as('createPVC');
+
+      volumesManagement.clickCreateVolume();
+      cy.wait('@listStorageClasses');
+      volumesCreateModal.assertModalVisible();
+
+      volumesCreateModal.typePVCName('new-volume');
       volumesCreateModal.assertSubmitButtonEnabled();
       volumesCreateModal.clickSubmit();
+
+      cy.wait('@createPVC');
 
       // Modal should close
       volumesCreateModal.assertModalNotExists();
 
-      // Verify volume appears in table
-      volumesManagement.assertVolumeRowExists('manual-pvc');
-      volumesManagement.assertVolumeMountPath('manual-pvc', '/mnt/manual');
+      // Verify volume appears in table with auto-generated mount path
+      volumesManagement.assertVolumeRowExists('new-volume');
+      volumesManagement.assertVolumeMountPath('new-volume', '/data/new-volume');
+      volumesManagement.assertVolumeReadOnly('new-volume', false);
     });
 
     it('should create a volume with read-only access', () => {
+      cy.intercept(
+        'POST',
+        `/api/${NOTEBOOKS_API_VERSION}/persistentvolumeclaims/${mockNamespace.name}`,
+        {
+          data: {
+            name: 'readonly-vol',
+            accessModes: ['ReadWriteOnce'],
+            requests: { storage: '1Gi' },
+            storageClassName: 'standard',
+          },
+        },
+      ).as('createPVC');
+
       volumesManagement.clickCreateVolume();
-      volumesCreateModal.typePVCName('readonly-pvc');
-      volumesCreateModal.typeMountPath('/mnt/readonly');
+      cy.wait('@listStorageClasses');
+      volumesCreateModal.typePVCName('readonly-vol');
       volumesCreateModal.toggleReadOnly();
       volumesCreateModal.clickSubmit();
 
-      volumesManagement.assertVolumeRowExists('readonly-pvc');
-      volumesManagement.assertVolumeReadOnly('readonly-pvc', true);
+      cy.wait('@createPVC');
+
+      volumesManagement.assertVolumeRowExists('readonly-vol');
+      volumesManagement.assertVolumeReadOnly('readonly-vol', true);
     });
 
-    it('should disable submit button when fields are empty', () => {
+    it('should allow selecting a different access mode', () => {
       volumesManagement.clickCreateVolume();
-      volumesCreateModal.assertSubmitButtonDisabled();
+      volumesCreateModal.assertModalVisible();
 
-      volumesCreateModal.typePVCName('test');
-      volumesCreateModal.assertSubmitButtonDisabled();
+      volumesCreateModal.selectAccessMode('ReadWriteMany');
+      volumesCreateModal.assertAccessModeChecked('ReadWriteMany');
+    });
 
-      volumesCreateModal.typeMountPath('/mnt/test');
-      volumesCreateModal.assertSubmitButtonEnabled();
+    it('should allow selecting a different storage class', () => {
+      volumesManagement.clickCreateVolume();
+      cy.wait('@listStorageClasses');
+
+      volumesCreateModal.selectStorageClass('ssd');
+      volumesCreateModal.findStorageClassSelect().should('contain.text', 'SSD');
+    });
+
+    it('should disable submit button when volume name is empty', () => {
+      volumesManagement.clickCreateVolume();
+      cy.wait('@listStorageClasses');
+      volumesCreateModal.assertSubmitButtonDisabled();
     });
 
     it('should close modal on cancel', () => {
@@ -252,8 +340,73 @@ describe('Volumes Management - Attach and Create', () => {
       volumesCreateModal.clickCancel();
       volumesCreateModal.assertModalNotExists();
     });
+
+    it('should reset form when reopened', () => {
+      volumesManagement.clickCreateVolume();
+      cy.wait('@listStorageClasses');
+
+      volumesCreateModal.typePVCName('test-name');
+      volumesCreateModal.clickCancel();
+
+      volumesManagement.clickCreateVolume();
+      volumesCreateModal.assertPVCNameValue('');
+    });
+
+    it('should show error when API call fails', () => {
+      cy.intercept(
+        'POST',
+        `/api/${NOTEBOOKS_API_VERSION}/persistentvolumeclaims/${mockNamespace.name}`,
+        { statusCode: 409, body: { message: 'PVC already exists' } },
+      ).as('createPVCFail');
+
+      volumesManagement.clickCreateVolume();
+      cy.wait('@listStorageClasses');
+
+      volumesCreateModal.typePVCName('existing-pvc');
+      volumesCreateModal.clickSubmit();
+
+      cy.wait('@createPVCFail');
+
+      volumesCreateModal.assertErrorAlertVisible();
+    });
+  });
+
+  describe('Edit Volume Modal', () => {
+    beforeEach(() => {
+      // Attach a volume first so we have something to edit
+      volumesManagement.clickAttachExistingPVC();
+      volumesAttachModal.selectPVC('data-pvc');
+      volumesAttachModal.clickAttach();
+      volumesManagement.assertVolumeRowExists('data-pvc');
+    });
+
+    it('should open edit modal without PVC configuration fields', () => {
+      volumesManagement.clickEditAction('data-pvc');
+      volumesCreateModal.assertModalVisible();
+      volumesCreateModal.findPVCNameInput().should('not.exist');
+      volumesCreateModal.findStorageClassSelect().should('not.exist');
+    });
+
+    it('should update read-only access via edit modal', () => {
+      volumesManagement.assertVolumeReadOnly('data-pvc', false);
+
+      volumesManagement.clickEditAction('data-pvc');
+      volumesCreateModal.assertModalVisible();
+      volumesCreateModal.toggleReadOnly();
+      volumesCreateModal.clickSubmit();
+
+      volumesCreateModal.assertModalNotExists();
+      volumesManagement.assertVolumeReadOnly('data-pvc', true);
+    });
+
+    it('should close edit modal on cancel without changes', () => {
+      volumesManagement.clickEditAction('data-pvc');
+      volumesCreateModal.assertModalVisible();
+      volumesCreateModal.toggleReadOnly();
+      volumesCreateModal.clickCancel();
+
+      volumesCreateModal.assertModalNotExists();
+      volumesManagement.assertVolumeReadOnly('data-pvc', false);
+    });
   });
 });
-
-// Note: Edit and Detach volume tests require additional mock setup for workspaces
-// with pre-existing volumes. These will be covered in integration tests.

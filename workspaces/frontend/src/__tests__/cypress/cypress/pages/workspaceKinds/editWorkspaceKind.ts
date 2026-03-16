@@ -732,7 +732,7 @@ class EditWorkspaceKind {
 
   // Additional Volumes
   findCreateVolumeButton() {
-    return cy.findByTestId('create-volume-button');
+    return cy.findByTestId('attach-new-volume-button');
   }
 
   clickCreateVolume() {
@@ -755,12 +755,8 @@ class EditWorkspaceKind {
     this.findVolumeRowKebab(index).click();
   }
 
-  findEditVolumeMenuItem() {
-    return cy.contains('[role="menuitem"]', 'Edit');
-  }
-
-  clickEditVolume() {
-    this.findEditVolumeMenuItem().click();
+  clickEditVolume(pvcName: string) {
+    cy.findByTestId(`edit-volume-${pvcName}`).click();
   }
 
   findDetachVolumeMenuItem() {
@@ -793,7 +789,7 @@ class EditWorkspaceKind {
 
   // Volume Modal
   findVolumeModal() {
-    return cy.findByTestId('volume-modal');
+    return cy.findByTestId('create-volume-modal');
   }
 
   findVolumeModalTitle() {
@@ -808,8 +804,12 @@ class EditWorkspaceKind {
     return cy.findByTestId('mount-path-input');
   }
 
+  clickEditMountPath() {
+    cy.findByTestId('mount-path-edit').click();
+  }
+
   findReadOnlySwitch() {
-    return cy.findByTestId('readonly-access-switch');
+    return cy.findByTestId('read-only-switch');
   }
 
   typePvcName(name: string) {
@@ -817,7 +817,9 @@ class EditWorkspaceKind {
   }
 
   typeMountPath(path: string) {
+    this.clickEditMountPath();
     this.findMountPathInput().clear().type(path);
+    cy.findByTestId('mount-path-save').click();
   }
 
   toggleReadOnly() {
@@ -825,11 +827,11 @@ class EditWorkspaceKind {
   }
 
   findVolumeModalSubmitButton() {
-    return cy.findByTestId('volume-modal-submit-button');
+    return cy.findByTestId('create-volume-submit-button');
   }
 
   findVolumeModalCancelButton() {
-    return cy.findByTestId('volume-modal-cancel-button');
+    return cy.findByTestId('create-volume-cancel-button');
   }
 
   submitVolumeModal() {
@@ -870,11 +872,11 @@ class EditWorkspaceKind {
   }
 
   findDetachVolumeModalConfirmButton() {
-    return cy.findByTestId('detach-volume-confirm-button');
+    return this.findDetachVolumeModal().findByTestId('confirm-button');
   }
 
   findDetachVolumeModalCancelButton() {
-    return cy.findByTestId('detach-volume-cancel-button');
+    return this.findDetachVolumeModal().findByTestId('cancel-button');
   }
 
   confirmDetachVolume() {

@@ -10,7 +10,7 @@ import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/comp
 import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
 import { WorkspaceKindPodTemplateData, WorkspacesPodVolumeMountValue } from '~/app/types';
 import { EditableRowsTable } from '~/app/pages/WorkspaceKinds/Form/EditableRowsTable';
-import { ResourceInputWrapper } from '~/app/pages/WorkspaceKinds/Form/podConfig/ResourceInputWrapper';
+import { ResourceInputWrapper } from '~/shared/components/ResourceInputWrapper';
 import { WorkspaceFormPropertiesVolumes } from '~/app/pages/Workspaces/Form/properties/WorkspaceFormPropertiesVolumes';
 
 interface WorkspaceKindFormPodTemplateProps {

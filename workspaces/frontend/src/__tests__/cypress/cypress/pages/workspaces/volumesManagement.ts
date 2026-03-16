@@ -12,6 +12,15 @@ class VolumesManagementPage {
     return this.findVolumesSection().click();
   }
 
+  // Empty State
+  findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('volumes-empty-state');
+  }
+
+  assertEmptyStateVisible(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findEmptyState().should('be.visible');
+  }
+
   // Table
   findVolumesTable(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('volumes-table');
@@ -61,7 +70,7 @@ class VolumesManagementPage {
   }
 
   findCreateVolumeButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('create-volume-button');
+    return cy.findByTestId('attach-new-volume-button');
   }
 
   clickCreateVolume(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -73,14 +82,14 @@ class VolumesManagementPage {
     return this.findVolumeRow(pvcName).find('[aria-label="plain kebab"]').click();
   }
 
-  clickEditAction(pvcName: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    this.openRowKebabMenu(pvcName);
-    return cy.contains('Edit').click() as unknown as Cypress.Chainable<JQuery<HTMLElement>>;
-  }
-
   clickDetachAction(pvcName: string): Cypress.Chainable<JQuery<HTMLElement>> {
     this.openRowKebabMenu(pvcName);
     return cy.contains('Detach').click() as unknown as Cypress.Chainable<JQuery<HTMLElement>>;
+  }
+
+  clickEditAction(pvcName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    this.openRowKebabMenu(pvcName);
+    return cy.findByTestId(`edit-volume-${pvcName}`).click();
   }
 }
 
@@ -196,7 +205,7 @@ class VolumesAttachModal {
 
 class VolumesCreateModal {
   find(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('volume-modal');
+    return cy.findByTestId('create-volume-modal');
   }
 
   assertModalVisible(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -204,15 +213,7 @@ class VolumesCreateModal {
   }
 
   assertModalNotExists(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('volume-modal').should('not.exist');
-  }
-
-  assertEditMode(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().should('contain', 'Edit Volume');
-  }
-
-  assertCreateMode(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().should('contain', 'Create Volume');
+    return cy.findByTestId('create-volume-modal').should('not.exist');
   }
 
   // Form Fields
@@ -228,29 +229,66 @@ class VolumesCreateModal {
     return this.findPVCNameInput().should('have.value', name);
   }
 
-  findMountPathInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('mount-path-input');
+  assertPVCNameDisabled(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findPVCNameInput().should('be.disabled');
   }
 
-  typeMountPath(path: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findMountPathInput().clear().type(path);
+  // Storage Class
+  findStorageClassSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('storage-class-select');
   }
 
-  assertMountPathValue(path: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findMountPathInput().should('have.value', path);
+  findStorageClassInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('storage-class-input');
   }
 
+  selectStorageClass(name: string): void {
+    this.findStorageClassSelect().click();
+    cy.findByTestId(`storage-class-option-${name}`).click();
+  }
+
+  typeStorageClassName(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findStorageClassInput().clear().type(name);
+  }
+
+  // Access Mode
+  findAccessModeRadio(mode: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`access-mode-${mode}`);
+  }
+
+  selectAccessMode(mode: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findAccessModeRadio(mode).click({ force: true });
+  }
+
+  assertAccessModeChecked(mode: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findAccessModeRadio(mode).should('be.checked');
+  }
+
+  // Read-only Switch
   findReadOnlySwitch(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('readonly-access-switch');
+    return cy.findByTestId('read-only-switch');
   }
 
   toggleReadOnly(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findReadOnlySwitch().click({ force: true });
   }
 
+  // Error Alert
+  findErrorAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('.pf-v6-c-alert.pf-m-danger');
+  }
+
+  assertErrorAlertVisible(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findErrorAlert().should('be.visible');
+  }
+
+  assertErrorAlertContains(message: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findErrorAlert().should('contain', message);
+  }
+
   // Footer Buttons
   findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('volume-modal-submit-button');
+    return cy.findByTestId('create-volume-submit-button');
   }
 
   clickSubmit(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -265,12 +303,8 @@ class VolumesCreateModal {
     return this.findSubmitButton().should('be.disabled');
   }
 
-  assertSubmitButtonText(text: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findSubmitButton().should('have.text', text);
-  }
-
   findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('volume-modal-cancel-button');
+    return cy.findByTestId('create-volume-cancel-button');
   }
 
   clickCancel(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -291,16 +325,16 @@ class VolumesDetachModal {
     return cy.findByTestId('detach-volume-modal').should('not.exist');
   }
 
-  findDetachButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('detach-volume-confirm-button');
+  findConfirmButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('confirm-button');
   }
 
-  clickDetach(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findDetachButton().click();
+  clickConfirm(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findConfirmButton().click();
   }
 
   findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('detach-volume-cancel-button');
+    return this.find().findByTestId('cancel-button');
   }
 
   clickCancel(): Cypress.Chainable<JQuery<HTMLElement>> {

@@ -7,10 +7,11 @@ import {
   CPU_UNITS,
   MEMORY_UNITS_FOR_PARSING,
   OTHER,
+  STORAGE_UNITS_FOR_SELECTION,
   splitValueUnit,
 } from '~/shared/utilities/valueUnits';
 
-export type ResourceType = 'cpu' | 'memory' | 'gpu';
+export type ResourceType = 'cpu' | 'memory' | 'storage' | 'gpu';
 
 export enum YesNoValue {
   Yes = 'Yes',
@@ -20,6 +21,7 @@ export enum YesNoValue {
 const RESOURCE_UNIT_CONFIG = {
   cpu: CPU_UNITS,
   memory: MEMORY_UNITS_FOR_PARSING,
+  storage: STORAGE_UNITS_FOR_SELECTION,
   gpu: OTHER,
 };
 

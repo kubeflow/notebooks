@@ -123,12 +123,18 @@ const WorkspaceForm: React.FC = () => {
         case WorkspaceFormSteps.PodConfigSelection:
           return !!data.podConfig;
         case WorkspaceFormSteps.Properties:
-          return !!data.properties.workspaceName.trim();
+          return !!data.properties.workspaceName.trim() && !!data.properties.homeVolume;
         default:
           return false;
       }
     },
-    [data.kind, data.imageConfig, data.podConfig, data.properties.workspaceName],
+    [
+      data.kind,
+      data.imageConfig,
+      data.podConfig,
+      data.properties.workspaceName,
+      data.properties.homeVolume,
+    ],
   );
 
   const showDrawer = useCallback(

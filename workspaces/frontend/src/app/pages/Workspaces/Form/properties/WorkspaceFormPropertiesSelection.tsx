@@ -121,6 +121,18 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
                     <strong data-testid="home-volume-status">
                       {selectedProperties.homeVolume ? '1 mounted' : 'None mounted'}
                     </strong>
+                    {!selectedProperties.homeVolume && (
+                      <HelperText>
+                        <HelperTextItem
+                          variant="error"
+                          data-testid="workspace-home-volume-required-helper"
+                          className="pf-v6-u-ml-0"
+                        >
+                          <InfoCircleIcon className="pf-v6-u-mr-xs" />
+                          <strong>Mounting a home volume is required.</strong>
+                        </HelperTextItem>
+                      </HelperText>
+                    )}
                   </div>
                 </div>
               )}
