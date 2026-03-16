@@ -20,7 +20,7 @@ import { ContentType, HttpClient, RequestParams } from './http-client';
 
 export class Workspacekinds<SecurityDataType = unknown> extends HttpClient<SecurityDataType> {
   /**
-   * @description Returns a list of all workspace kinds in the cluster.
+   * @description Returns a list of all available workspace kinds. Workspace kinds define the different types of workspaces that can be created in the system.
    *
    * @tags workspacekinds
    * @name ListWorkspaceKinds
@@ -65,7 +65,7 @@ export class Workspacekinds<SecurityDataType = unknown> extends HttpClient<Secur
       ...params,
     });
   /**
-   * @description Returns details of a specific workspace kind identified by its name.
+   * @description Returns details of a specific workspace kind identified by its name. Workspace kinds define the available types of workspaces that can be created.
    *
    * @tags workspacekinds
    * @name GetWorkspaceKind

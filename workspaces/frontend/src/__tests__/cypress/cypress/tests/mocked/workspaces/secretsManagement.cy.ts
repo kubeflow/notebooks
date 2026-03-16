@@ -11,7 +11,7 @@ import {
   buildMockWorkspaceUpdateFromWorkspace,
 } from '~/shared/mock/mockBuilder';
 import { navBar } from '~/__tests__/cypress/cypress/pages/components/navBar';
-import { V1Beta1WorkspaceState } from '~/generated/data-contracts';
+import { WorkspacesWorkspaceState } from '~/generated/data-contracts';
 
 describe('Secrets Expandable Key/Value Pairs', () => {
   const mockNamespace = buildMockNamespace({ name: 'default' });
@@ -23,7 +23,7 @@ describe('Secrets Expandable Key/Value Pairs', () => {
     name: 'test-workspace',
     namespace: mockNamespace.name,
     workspaceKind: mockWorkspaceKindInfo,
-    state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+    state: WorkspacesWorkspaceState.WorkspaceStateRunning,
   });
 
   // Override the secrets in the workspace

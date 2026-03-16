@@ -2424,7 +2424,7 @@ spec:
                                             example: jupyterlab
                                             maxLength: 32
                                             minLength: 1
-                                            pattern: ^[a-z0-9]([a-z0-9_-]*[a-z0-9])?$
+                                            pattern: ^[a-z0-9][a-z0-9_-]*[a-z0-9]$
                                             type: string
                                           port:
                                             description: the port number
@@ -3747,7 +3747,7 @@ spec:
                           example: jupyterlab
                           maxLength: 32
                           minLength: 1
-                          pattern: ^[a-z0-9]([a-z0-9_-]*[a-z0-9])?$
+                          pattern: ^[a-z0-9][a-z0-9_-]*[a-z0-9]$
                           type: string
                         protocol:
                           description: the protocol of the port
@@ -4445,9 +4445,6 @@ spec:
                            - we will not show this WorkspaceKind in the Spawner UI
                              if the SA does not exist in the Namespace
                         example: default-editor
-                        maxLength: 253
-                        minLength: 1
-                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                         type: string
                         x-kubernetes-validations:
                         - message: ServiceAccount 'name' is immutable
@@ -4519,15 +4516,9 @@ spec:
                         properties:
                           key:
                             example: apple-touch-icon-152x152.png
-                            maxLength: 253
-                            minLength: 1
-                            pattern: ^[-._a-zA-Z0-9]+$
                             type: string
                           name:
                             example: my-logos
-                            maxLength: 253
-                            minLength: 1
-                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                             type: string
                         required:
                         - key
@@ -4550,15 +4541,9 @@ spec:
                         properties:
                           key:
                             example: apple-touch-icon-152x152.png
-                            maxLength: 253
-                            minLength: 1
-                            pattern: ^[-._a-zA-Z0-9]+$
                             type: string
                           name:
                             example: my-logos
-                            maxLength: 253
-                            minLength: 1
-                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                             type: string
                         required:
                         - key

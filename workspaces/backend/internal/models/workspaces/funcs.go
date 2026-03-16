@@ -29,8 +29,6 @@ const (
 	UnknownHomeMountPath = "__UNKNOWN_HOME_MOUNT_PATH__"
 	UnknownImageConfig   = "__UNKNOWN_IMAGE_CONFIG__"
 	UnknownPodConfig     = "__UNKNOWN_POD_CONFIG__"
-	UnknownIconURL       = "__UNKNOWN_ICON_URL__"
-	UnknownLogoURL       = "__UNKNOWN_LOGO_URL__"
 )
 
 // NewWorkspaceListItemFromWorkspace creates a WorkspaceListItem model from a Workspace and WorkspaceKind object.
@@ -41,20 +39,34 @@ func NewWorkspaceListItemFromWorkspace(ws *kubefloworgv1beta1.Workspace, wsk *ku
 		panic("provided WorkspaceKind does not match the Workspace")
 	}
 
-	// we only know the icon url if the WorkspaceKind exists
-	iconURL := UnknownIconURL
-	if wskExists(wsk) {
-		// TODO: icons MUST be either set to remote URL or read from a ConfigMap
-		//       we can remove this fallback once we implement the ConfigMap option.
-		iconURL = ptr.Deref(wsk.Spec.Spawner.Icon.Url, UnknownIconURL)
+	// TODO: icons can either be a remote URL or read from a ConfigMap.
+	//       in BOTH cases, we should cache and serve the image under a path on the backend API:
+	//       /api/v1/workspacekinds/{name}/assets/icon
+	iconRef := ImageRef{
+		URL: fmt.Sprintf("/workspaces/backend/api/v1/workspacekinds/%s/assets/icon", ws.Spec.Kind),
 	}
 
-	// we only know the logo url if the WorkspaceKind exists
-	logoURL := UnknownLogoURL
-	if wskExists(wsk) {
-		// TODO: logos MUST be either set to remote URL or read from a ConfigMap
-		//       we can remove this fallback once we implement the ConfigMap option.
-		logoURL = ptr.Deref(wsk.Spec.Spawner.Logo.Url, UnknownLogoURL)
+	// TODO: logos can either be a remote URL or read from a ConfigMap.
+	//       in BOTH cases, we should cache and serve the image under a path on the backend API:
+	//       /api/v1/workspacekinds/{name}/assets/logo
+	logoRef := ImageRef{
+		URL: fmt.Sprintf("/workspaces/backend/api/v1/workspacekinds/%s/assets/logo", ws.Spec.Kind),
+	}
+
+	wsState := WorkspaceStateUnknown
+	switch ws.Status.State {
+	case kubefloworgv1beta1.WorkspaceStateRunning:
+		wsState = WorkspaceStateRunning
+	case kubefloworgv1beta1.WorkspaceStateTerminating:
+		wsState = WorkspaceStateTerminating
+	case kubefloworgv1beta1.WorkspaceStatePaused:
+		wsState = WorkspaceStatePaused
+	case kubefloworgv1beta1.WorkspaceStatePending:
+		wsState = WorkspaceStatePending
+	case kubefloworgv1beta1.WorkspaceStateError:
+		wsState = WorkspaceStateError
+	case kubefloworgv1beta1.WorkspaceStateUnknown:
+		wsState = WorkspaceStateUnknown
 	}
 
 	podLabels := make(map[string]string)
@@ -94,17 +106,13 @@ func NewWorkspaceListItemFromWorkspace(ws *kubefloworgv1beta1.Workspace, wsk *ku
 		WorkspaceKind: WorkspaceKindInfo{
 			Name:    ws.Spec.Kind,
 			Missing: !wskExists(wsk),
-			Icon: ImageRef{
-				URL: iconURL,
-			},
-			Logo: ImageRef{
-				URL: logoURL,
-			},
+			Icon:    iconRef,
+			Logo:    logoRef,
 		},
 		Paused:         ptr.Deref(ws.Spec.Paused, false),
 		PausedTime:     ws.Status.PauseTime,
 		PendingRestart: ws.Status.PendingRestart,
-		State:          ws.Status.State,
+		State:          wsState,
 		StateMessage:   ws.Status.StateMessage,
 		PodTemplate: PodTemplate{
 			PodMetadata: PodMetadata{

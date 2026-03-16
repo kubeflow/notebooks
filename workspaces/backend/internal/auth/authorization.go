@@ -23,7 +23,6 @@ import (
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
-	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authentication/user"
@@ -75,12 +74,10 @@ func NewRequestAuthorizer(restConfig *rest.Config, httpClient *http.Client) (aut
 
 // resourceGVRMap maps resource policy resources to their API group and version.
 var resourceGVRMap = map[ResourcePolicyResource]schema.GroupVersionResource{
-	Namespaces:             corev1.SchemeGroupVersion.WithResource(string(Namespaces)),
-	PersistentVolumeClaims: corev1.SchemeGroupVersion.WithResource(string(PersistentVolumeClaims)),
-	Secrets:                corev1.SchemeGroupVersion.WithResource(string(Secrets)),
-	StorageClasses:         storagev1.SchemeGroupVersion.WithResource(string(StorageClasses)),
-	WorkspaceKinds:         kubefloworgv1beta1.GroupVersion.WithResource(string(WorkspaceKinds)),
-	Workspaces:             kubefloworgv1beta1.GroupVersion.WithResource(string(Workspaces)),
+	Namespaces:     corev1.SchemeGroupVersion.WithResource(string(Namespaces)),
+	Secrets:        corev1.SchemeGroupVersion.WithResource(string(Secrets)),
+	WorkspaceKinds: kubefloworgv1beta1.GroupVersion.WithResource(string(WorkspaceKinds)),
+	Workspaces:     kubefloworgv1beta1.GroupVersion.WithResource(string(Workspaces)),
 }
 
 // NewResourcePolicy returns a resource policy for the given verb and resource type.
@@ -144,12 +141,10 @@ const (
 	//          URLs of Kubernetes APIs are structured as: /apis/<group>/<version>/<plural>
 	//
 
-	Namespaces             ResourcePolicyResource = "namespaces"
-	PersistentVolumeClaims ResourcePolicyResource = "persistentvolumeclaims"
-	Secrets                ResourcePolicyResource = "secrets"
-	StorageClasses         ResourcePolicyResource = "storageclasses"
-	WorkspaceKinds         ResourcePolicyResource = "workspacekinds"
-	Workspaces             ResourcePolicyResource = "workspaces"
+	Namespaces     ResourcePolicyResource = "namespaces"
+	Secrets        ResourcePolicyResource = "secrets"
+	WorkspaceKinds ResourcePolicyResource = "workspacekinds"
+	Workspaces     ResourcePolicyResource = "workspaces"
 )
 
 // ResourcePolicyResourceMeta selects specific resources based on their object metadata.

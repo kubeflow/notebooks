@@ -18,7 +18,7 @@ import {
 import { createMockPodTemplateWithImage } from '~/__tests__/cypress/cypress/utils/testBuilders';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import { navBar } from '~/__tests__/cypress/cypress/pages/components/navBar';
-import { V1Beta1WorkspaceState } from '~/generated/data-contracts';
+import { WorkspacesWorkspaceState } from '~/generated/data-contracts';
 
 const DEFAULT_NAMESPACE = 'default';
 const KUBEFLOW_NAMESPACE = 'kubeflow';
@@ -120,31 +120,31 @@ const createFilterTestWorkspaces = () => {
     buildMockWorkspace({
       name: 'Workspace 1',
       workspaceKind: buildMockWorkspaceKindInfo({ name: 'jupyterlab' }),
-      state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+      state: WorkspacesWorkspaceState.WorkspaceStateRunning,
       podTemplate: mockPodTemplate('jupyter-scipy:v1.0.0'),
     }),
     buildMockWorkspace({
       name: 'Workspace 2',
       workspaceKind: buildMockWorkspaceKindInfo({ name: 'jupyterlab' }),
-      state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+      state: WorkspacesWorkspaceState.WorkspaceStateRunning,
       podTemplate: mockPodTemplate('jupyter-scipy:v1.0.0'),
     }),
     buildMockWorkspace({
       name: 'Workspace 3',
       workspaceKind: buildMockWorkspaceKindInfo({ name: 'jupyterlab' }),
-      state: V1Beta1WorkspaceState.WorkspaceStatePaused,
+      state: WorkspacesWorkspaceState.WorkspaceStatePaused,
       podTemplate: mockPodTemplate('jupyter-scipy:v2.0.0'),
     }),
     buildMockWorkspace({
       name: 'WS X',
       workspaceKind: buildMockWorkspaceKindInfo({ name: 'vscode' }),
-      state: V1Beta1WorkspaceState.WorkspaceStateError,
+      state: WorkspacesWorkspaceState.WorkspaceStateError,
       podTemplate: mockPodTemplate('jupyter-scipy:v1.0.0'),
     }),
     buildMockWorkspace({
       name: 'WS Y',
       workspaceKind: buildMockWorkspaceKindInfo({ name: 'vscode' }),
-      state: V1Beta1WorkspaceState.WorkspaceStateError,
+      state: WorkspacesWorkspaceState.WorkspaceStateError,
       podTemplate: mockPodTemplate('jupyter-scipy:v2.0.0'),
     }),
   ];
@@ -255,7 +255,7 @@ describe('Workspaces', () => {
         name: TEST_WORKSPACE_NAME,
         namespace: mockNamespace.name,
         workspaceKind: mockWorkspaceKind,
-        state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+        state: WorkspacesWorkspaceState.WorkspaceStateRunning,
       });
 
       cy.interceptApi(
@@ -292,11 +292,11 @@ describe('Workspaces', () => {
       const mockNamespace = buildMockNamespace({ name: DEFAULT_NAMESPACE });
       const workspace1 = buildMockWorkspace({
         name: 'Workspace1',
-        state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+        state: WorkspacesWorkspaceState.WorkspaceStateRunning,
       });
       const workspace2 = buildMockWorkspace({
         name: 'Workspace2',
-        state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+        state: WorkspacesWorkspaceState.WorkspaceStateRunning,
       });
 
       cy.interceptApi(
@@ -448,17 +448,17 @@ describe('Workspaces', () => {
         buildMockWorkspace({
           name: 'workspace-running',
           workspaceKind: mockWorkspaceKind,
-          state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+          state: WorkspacesWorkspaceState.WorkspaceStateRunning,
         }),
         buildMockWorkspace({
           name: 'workspace-error',
           workspaceKind: mockWorkspaceKind,
-          state: V1Beta1WorkspaceState.WorkspaceStateError,
+          state: WorkspacesWorkspaceState.WorkspaceStateError,
         }),
         buildMockWorkspace({
           name: 'workspace-paused',
           workspaceKind: mockWorkspaceKind,
-          state: V1Beta1WorkspaceState.WorkspaceStatePaused,
+          state: WorkspacesWorkspaceState.WorkspaceStatePaused,
         }),
       ];
 
@@ -716,7 +716,7 @@ describe('Workspaces', () => {
   describe('Actions', () => {
     const setupWorkspaceActionTest = (
       workspaceName: string,
-      state: V1Beta1WorkspaceState,
+      state: WorkspacesWorkspaceState,
       namespaceName = DEFAULT_NAMESPACE,
     ) => {
       const mockNamespace = buildMockNamespace({ name: namespaceName });
@@ -787,6 +787,17 @@ describe('Workspaces', () => {
         deleteModal.assertModalNotExists();
       });
 
+      it('should successfully delete a workspace by pressing Enter with correct confirmation', () => {
+        workspaces.findAction({ action: 'delete', workspaceName: WORKSPACE_A }).click();
+        deleteModal.findConfirmationInput().type(`${WORKSPACE_A}{enter}`);
+
+        cy.wait('@deleteWorkspaceA').then((interception) => {
+          expect(interception.response?.statusCode).to.be.equal(200);
+        });
+
+        deleteModal.assertModalNotExists();
+      });
+
       it('should cancel workspace deletion when cancel button is clicked', () => {
         workspaces.findAction({ action: 'delete', workspaceName: WORKSPACE_A }).click();
         deleteModal.findCancelButton().click();
@@ -849,7 +860,7 @@ describe('Workspaces', () => {
       beforeEach(() => {
         const { mockNamespace } = setupWorkspaceActionTest(
           TEST_WORKSPACE_NAME,
-          V1Beta1WorkspaceState.WorkspaceStatePaused,
+          WorkspacesWorkspaceState.WorkspaceStatePaused,
         );
 
         cy.interceptApi(
@@ -915,7 +926,7 @@ describe('Workspaces', () => {
       beforeEach(() => {
         const { mockNamespace } = setupWorkspaceActionTest(
           TEST_WORKSPACE_NAME,
-          V1Beta1WorkspaceState.WorkspaceStateRunning,
+          WorkspacesWorkspaceState.WorkspaceStateRunning,
         );
 
         cy.interceptApi(
@@ -979,7 +990,10 @@ describe('Workspaces', () => {
 
     describe('Details', () => {
       beforeEach(() => {
-        setupWorkspaceActionTest(TEST_WORKSPACE_NAME, V1Beta1WorkspaceState.WorkspaceStateRunning);
+        setupWorkspaceActionTest(
+          TEST_WORKSPACE_NAME,
+          WorkspacesWorkspaceState.WorkspaceStateRunning,
+        );
       });
 
       it('should open workspace details drawer from actions menu', () => {
@@ -1058,11 +1072,11 @@ describe('Workspaces', () => {
         const mockWorkspaces = [
           buildMockWorkspace({
             name: TEST_WORKSPACE_NAME,
-            state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+            state: WorkspacesWorkspaceState.WorkspaceStateRunning,
           }),
           buildMockWorkspace({
             name: workspace2Name,
-            state: V1Beta1WorkspaceState.WorkspaceStatePaused,
+            state: WorkspacesWorkspaceState.WorkspaceStatePaused,
           }),
         ];
 
@@ -1116,7 +1130,10 @@ describe('Workspaces', () => {
 
     describe('Edit', () => {
       beforeEach(() => {
-        setupWorkspaceActionTest(TEST_WORKSPACE_NAME, V1Beta1WorkspaceState.WorkspaceStateRunning);
+        setupWorkspaceActionTest(
+          TEST_WORKSPACE_NAME,
+          WorkspacesWorkspaceState.WorkspaceStateRunning,
+        );
       });
 
       it('should navigate to edit workspace page from actions menu', () => {

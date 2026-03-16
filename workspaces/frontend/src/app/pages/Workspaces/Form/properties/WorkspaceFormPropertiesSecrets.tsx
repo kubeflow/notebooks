@@ -1,5 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { EllipsisVIcon } from '@patternfly/react-icons/dist/esm/icons/ellipsis-v-icon';
+import { PencilAltIcon } from '@patternfly/react-icons/dist/esm/icons/pencil-alt-icon';
+import { CheckIcon } from '@patternfly/react-icons/dist/esm/icons/check-icon';
+import { TimesIcon } from '@patternfly/react-icons/dist/esm/icons/times-icon';
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
 import {
   Table,
@@ -17,6 +20,7 @@ import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggl
 import { Label } from '@patternfly/react-core/dist/esm/components/Label';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
+import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import { Spinner } from '@patternfly/react-core/dist/esm/components/Spinner';
 import {
   EmptyState,
@@ -24,6 +28,8 @@ import {
   EmptyStateFooter,
   EmptyStateActions,
 } from '@patternfly/react-core/dist/esm/components/EmptyState';
+import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
+import { ValidatedOptions } from '@patternfly/react-core/helpers';
 import {
   DEFAULT_MODE,
   getMountPathValidationError,
@@ -33,9 +39,8 @@ import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWra
 import { SecretsSecretListItem } from '~/generated/data-contracts';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspacesPodSecretMountValue } from '~/app/types';
-import { ConfirmModal } from '~/shared/components/ConfirmModal';
+import DeleteModal from '~/shared/components/DeleteModal';
 import { useSecretKeys } from '~/app/hooks/useSecretKeys';
-import { MountPathField } from '~/app/pages/Workspaces/Form/MountPathField';
 import { SecretsCreateModal } from './secrets/SecretsCreateModal';
 import { SecretsAttachModal } from './secrets/SecretsAttachModal';
 
@@ -115,6 +120,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
   );
 
   const onDeleteModalClose = useCallback(() => {
+    setDeleteIndex(null);
     setIsDeleteModalOpen(false);
   }, []);
 
@@ -123,12 +129,13 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
       return;
     }
     const secretToDelete = secrets[deleteIndex];
+
     if (!secretToDelete.isAttached) {
       await api.secrets.deleteSecret(selectedNamespace, secretToDelete.secretName);
     }
     setSecrets(secrets.filter((_, i) => i !== deleteIndex));
-    setDeleteIndex(null);
-  }, [deleteIndex, secrets, api.secrets, selectedNamespace, setSecrets]);
+    onDeleteModalClose();
+  }, [deleteIndex, secrets, api.secrets, selectedNamespace, setSecrets, onDeleteModalClose]);
 
   const handleSecretCreated = useCallback(
     async (secretName: string) => {
@@ -195,16 +202,6 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
     [secrets],
   );
 
-  const otherMountPaths = useMemo(
-    () =>
-      new Set(
-        secrets
-          .filter((_, i) => i !== editingMountPath)
-          .map((s) => normalizeMountPath(s.mountPath)),
-      ),
-    [secrets, editingMountPath],
-  );
-
   const handleStartMountPathEdit = useCallback(
     (index: number) => {
       setEditingMountPath(index);
@@ -217,7 +214,11 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
     if (editingMountPath === null) {
       return;
     }
-    const validationError = getMountPathValidationError(otherMountPaths, editMountPathValue);
+    const validationError = getMountPathValidationError(
+      secrets,
+      editMountPathValue,
+      editingMountPath,
+    );
     if (validationError) {
       return;
     }
@@ -226,7 +227,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
     updated[editingMountPath] = { ...updated[editingMountPath], mountPath: normalized };
     setSecrets(updated);
     setEditingMountPath(null);
-  }, [editingMountPath, editMountPathValue, otherMountPaths, secrets, setSecrets]);
+  }, [editingMountPath, editMountPathValue, secrets, setSecrets]);
 
   const handleCancelMountPathEdit = useCallback(() => {
     setEditingMountPath(null);
@@ -234,7 +235,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
 
   const mountPathValidationError =
     editingMountPath !== null
-      ? getMountPathValidationError(otherMountPaths, editMountPathValue)
+      ? getMountPathValidationError(secrets, editMountPathValue, editingMountPath)
       : null;
 
   const attachButton = (
@@ -286,6 +287,82 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
             <FlexItem>*********</FlexItem>
           </Flex>
         ))}
+      </Flex>
+    );
+  };
+
+  const renderMountPathCell = (secret: WorkspacesPodSecretMountValue, index: number) => {
+    if (editingMountPath === index) {
+      return (
+        <Flex
+          alignItems={{ default: 'alignItemsCenter' }}
+          spaceItems={{ default: 'spaceItemsXs' }}
+          flexWrap={{ default: 'wrap' }}
+        >
+          <FlexItem flex={{ default: 'flex_1' }}>
+            <TextInput
+              id={`edit-mount-path-${secret.secretName}`}
+              value={editMountPathValue}
+              onChange={(_, val) => setEditMountPathValue(val)}
+              validated={mountPathValidationError ? ValidatedOptions.error : undefined}
+              aria-label="Edit mount path"
+              data-testid={`edit-mount-path-input-${secret.secretName}`}
+              autoFocus
+              className="secrets-inline-edit__input"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleConfirmMountPathEdit();
+                } else if (e.key === 'Escape') {
+                  handleCancelMountPathEdit();
+                }
+              }}
+            />
+          </FlexItem>
+          <FlexItem>
+            <Button
+              variant="plain"
+              aria-label="Save mount path"
+              onClick={handleConfirmMountPathEdit}
+              isDisabled={!!mountPathValidationError}
+              data-testid={`confirm-mount-path-${secret.secretName}`}
+            >
+              <CheckIcon />
+            </Button>
+          </FlexItem>
+          <FlexItem>
+            <Button
+              variant="plain"
+              aria-label="Cancel edit"
+              onClick={handleCancelMountPathEdit}
+              data-testid={`cancel-mount-path-${secret.secretName}`}
+            >
+              <TimesIcon />
+            </Button>
+          </FlexItem>
+          {mountPathValidationError && (
+            <FlexItem fullWidth={{ default: 'fullWidth' }}>
+              <HelperText>
+                <HelperTextItem variant="error">{mountPathValidationError}</HelperTextItem>
+              </HelperText>
+            </FlexItem>
+          )}
+        </Flex>
+      );
+    }
+
+    return (
+      <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
+        <FlexItem>{secret.mountPath}</FlexItem>
+        <FlexItem>
+          <Button
+            variant="plain"
+            aria-label="Edit mount path"
+            onClick={() => handleStartMountPathEdit(index)}
+            data-testid={`edit-mount-path-${secret.secretName}`}
+          >
+            <PencilAltIcon />
+          </Button>
+        </FlexItem>
       </Flex>
     );
   };
@@ -357,18 +434,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
                       </Flex>
                     </Td>
                     <Td dataLabel="Mount Path" hasAction>
-                      <MountPathField
-                        variant="cell"
-                        value={editingMountPath === index ? editMountPathValue : secret.mountPath}
-                        index={index}
-                        editingIndex={editingMountPath}
-                        itemId={secret.secretName}
-                        onChange={setEditMountPathValue}
-                        onStartEdit={handleStartMountPathEdit}
-                        onConfirm={handleConfirmMountPathEdit}
-                        onCancel={handleCancelMountPathEdit}
-                        error={mountPathValidationError}
-                      />
+                      {renderMountPathCell(secret, index)}
                     </Td>
                     <Td dataLabel="Default Mode">{secret.defaultMode?.toString(8) ?? '644'}</Td>
                     <Td isActionCell hasAction>
@@ -417,7 +483,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
                           onClick={() => openDeleteModal(index)}
                           data-testid={`remove-secret-${secret.secretName}`}
                         >
-                          Detach
+                          Remove
                         </DropdownItem>
                       </Dropdown>
                     </Td>
@@ -447,7 +513,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
         setIsOpen={setIsAttachModalOpen}
         onAttach={handleAttachSecrets}
         mountedKeys={mountedKeys}
-        existingMountPaths={new Set(secrets.map((s) => s.mountPath))}
+        existingMountPaths={secrets.map((s) => s.mountPath)}
       />
 
       <SecretsCreateModal
@@ -466,18 +532,14 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
       />
 
       {deleteIndex !== null && (
-        <ConfirmModal
+        <DeleteModal
           isOpen={isDeleteModalOpen}
-          title="Detach Secret?"
-          onConfirm={handleDelete}
-          onClose={onDeleteModalClose}
-          confirmLabel="Detach"
-          confirmLabelOnLoading="Detaching..."
-          errorTitle="Failed to detach secret"
-          testId="detach-secret-modal"
-        >
-          Are you sure you want to detach <strong>{secrets[deleteIndex].secretName}</strong>?
-        </ConfirmModal>
+          title="Remove Secret?"
+          onClose={() => onDeleteModalClose()}
+          onDelete={handleDelete}
+          resourceName={secrets[deleteIndex].secretName}
+          namespace={selectedNamespace}
+        />
       )}
     </>
   );

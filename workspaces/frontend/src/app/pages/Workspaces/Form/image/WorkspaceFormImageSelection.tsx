@@ -8,7 +8,7 @@ import {
   FilterControlHandle,
 } from '~/app/pages/Workspaces/Form/labelFilter/FilterByLabels';
 import { WorkspacekindsImageConfigValue } from '~/generated/data-contracts';
-import { computeDefaultFilterValues } from '~/app/pages/Workspaces/Form/utils/filterDefaults';
+import { computeDefaultFilterValues } from '~/app/pages/Workspaces/Form/helpers';
 
 export type ImageSelectionFilterHandle = {
   adaptFiltersForImage: (image: WorkspacekindsImageConfigValue) => void;
@@ -122,11 +122,9 @@ const WorkspaceFormImageSelection: React.FunctionComponent<WorkspaceFormImageSel
         </SplitItem>
         <SplitItem isFilled>
           <WorkspaceFormImageList
-            filteredImages={filteredImages}
-            allImages={images}
+            images={filteredImages}
             selectedImage={selectedImage}
             onSelect={onSelect}
-            defaultImageId={defaultImageId}
           />
         </SplitItem>
       </Split>

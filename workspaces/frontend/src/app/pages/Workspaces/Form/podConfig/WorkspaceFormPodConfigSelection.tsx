@@ -8,7 +8,7 @@ import {
   FilterControlHandle,
 } from '~/app/pages/Workspaces/Form/labelFilter/FilterByLabels';
 import { WorkspacekindsPodConfigValue } from '~/generated/data-contracts';
-import { computeDefaultFilterValues } from '~/app/pages/Workspaces/Form/utils/filterDefaults';
+import { computeDefaultFilterValues } from '~/app/pages/Workspaces/Form/helpers';
 
 export type PodConfigSelectionFilterHandle = {
   adaptFiltersForPodConfig: (podConfig: WorkspacekindsPodConfigValue) => void;
@@ -119,11 +119,9 @@ const WorkspaceFormPodConfigSelection: React.FunctionComponent<
         <SplitItem className="workspace-form__filter-sidebar">{podConfigFilterContent}</SplitItem>
         <SplitItem isFilled>
           <WorkspaceFormPodConfigList
-            filteredPodConfigs={filteredPodConfigs}
-            allPodConfigs={podConfigs}
+            podConfigs={filteredPodConfigs}
             selectedPodConfig={selectedPodConfig}
             onSelect={onSelect}
-            defaultPodConfigId={defaultPodConfigId}
           />
         </SplitItem>
       </Split>

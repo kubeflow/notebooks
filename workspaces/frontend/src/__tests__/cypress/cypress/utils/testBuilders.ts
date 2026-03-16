@@ -7,14 +7,14 @@ import {
   buildPodTemplateOptions,
   buildMockImageConfig,
 } from '~/shared/mock/mockBuilder';
-import { V1Beta1WorkspaceState } from '~/generated/data-contracts';
+import { WorkspacesWorkspaceState } from '~/generated/data-contracts';
 
 export const buildMockWorkspaceWithGPU = (args: {
   name: string;
   namespace: string;
   workspaceKindName: string;
   gpuCount: number;
-  state?: V1Beta1WorkspaceState;
+  state?: WorkspacesWorkspaceState;
   activity?: { lastActivity: number; lastUpdate: number };
 }): ReturnType<typeof buildMockWorkspace> => {
   const { name, namespace, workspaceKindName, gpuCount, state, activity } = args;
@@ -22,7 +22,7 @@ export const buildMockWorkspaceWithGPU = (args: {
     name,
     namespace,
     workspaceKind: buildMockWorkspaceKindInfo({ name: workspaceKindName }),
-    state: state || V1Beta1WorkspaceState.WorkspaceStateRunning,
+    state: state || WorkspacesWorkspaceState.WorkspaceStateRunning,
     ...(activity && { activity }),
     podTemplate: buildMockPodTemplate({
       options: buildPodTemplateOptions({
@@ -45,14 +45,14 @@ export const buildMockWorkspaceWithImage = (args: {
   workspaceKindName: string;
   imageId: string;
   imageDisplayName: string;
-  state?: V1Beta1WorkspaceState;
+  state?: WorkspacesWorkspaceState;
 }): ReturnType<typeof buildMockWorkspace> => {
   const { name, namespace, workspaceKindName, imageId, imageDisplayName, state } = args;
   return buildMockWorkspace({
     name,
     namespace,
     workspaceKind: buildMockWorkspaceKindInfo({ name: workspaceKindName }),
-    state: state || V1Beta1WorkspaceState.WorkspaceStateRunning,
+    state: state || WorkspacesWorkspaceState.WorkspaceStateRunning,
     podTemplate: buildMockPodTemplate({
       options: buildPodTemplateOptions({
         imageConfig: buildMockImageConfig({
@@ -76,7 +76,7 @@ export const buildMockWorkspaceWithPodConfig = (args: {
   podConfigDisplayName: string;
   podConfigDescription: string;
   labels: Array<{ key: string; value: string }>;
-  state?: V1Beta1WorkspaceState;
+  state?: WorkspacesWorkspaceState;
 }): ReturnType<typeof buildMockWorkspace> => {
   const {
     name,
@@ -92,7 +92,7 @@ export const buildMockWorkspaceWithPodConfig = (args: {
     name,
     namespace,
     workspaceKind: buildMockWorkspaceKindInfo({ name: workspaceKindName }),
-    state: state || V1Beta1WorkspaceState.WorkspaceStateRunning,
+    state: state || WorkspacesWorkspaceState.WorkspaceStateRunning,
     podTemplate: buildMockPodTemplate({
       options: buildPodTemplateOptions({
         podConfig: buildMockPodConfig({

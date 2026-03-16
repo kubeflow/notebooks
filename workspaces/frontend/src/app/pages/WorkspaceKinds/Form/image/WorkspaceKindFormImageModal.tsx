@@ -58,7 +58,12 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
         description={editIndex === null ? 'Add an image configuration to your Workspace Kind' : ''}
       />
       <ModalBody>
-        <Form>
+        <Form
+          onSubmit={(e) => {
+            e.preventDefault();
+            onSubmit(image);
+          }}
+        >
           <ThemeAwareFormGroupWrapper label="ID" isRequired fieldId="workspace-kind-image-id">
             <TextInput
               isRequired

@@ -15,11 +15,11 @@ import { HttpClient, RequestParams } from './http-client';
 
 export class Namespaces<SecurityDataType = unknown> extends HttpClient<SecurityDataType> {
   /**
-   * @description Returns a list of all namespaces in the cluster.
+   * @description Provides a list of all namespaces that the user has access to
    *
    * @tags namespaces
    * @name ListNamespaces
-   * @summary List namespaces
+   * @summary Returns a list of all namespaces
    * @request GET:/namespaces
    * @response `200` `ApiNamespaceListEnvelope` Successful namespaces response
    * @response `401` `ApiErrorEnvelope` Unauthorized

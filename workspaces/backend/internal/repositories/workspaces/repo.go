@@ -26,11 +26,9 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	modelsCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces"
 	modelsActions "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/actions"
@@ -131,56 +129,24 @@ func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, workspaceCrea
 	// TODO: get actual user email from request context
 	actor := "mock@example.com"
 
-	var allValErrs field.ErrorList
-
-	// unpack and validate home volume
-	homeVolumeName := workspaceCreate.PodTemplate.Volumes.Home
-	homeVolumeNameField := field.NewPath("podTemplate", "volumes", "home")
-	if homeVolumeName != nil {
-		valErrs, err := helper.ValidateKubernetesPVCIsMountable(ctx, r.client, homeVolumeNameField, namespace, *homeVolumeName)
-		if err != nil {
-			return nil, err
-		}
-		allValErrs = append(allValErrs, valErrs...)
-	}
-
-	// unpack and validate data volume mounts
+	// get data volumes from workspace model
 	dataVolumeMounts := make([]kubefloworgv1beta1.PodVolumeMount, len(workspaceCreate.PodTemplate.Volumes.Data))
 	for i, dataVolume := range workspaceCreate.PodTemplate.Volumes.Data {
-		dataVolumeName := dataVolume.PVCName
-		dataVolumeNameField := field.NewPath("podTemplate", "volumes", "data").Index(i).Child("pvcName")
-		valErrs, err := helper.ValidateKubernetesPVCIsMountable(ctx, r.client, dataVolumeNameField, namespace, dataVolumeName)
-		if err != nil {
-			return nil, err
-		}
-		allValErrs = append(allValErrs, valErrs...)
 		dataVolumeMounts[i] = kubefloworgv1beta1.PodVolumeMount{
-			PVCName:   dataVolumeName,
+			PVCName:   dataVolume.PVCName,
 			MountPath: dataVolume.MountPath,
 			ReadOnly:  ptr.To(dataVolume.ReadOnly),
 		}
 	}
 
-	// unpack and validate secret mounts
+	// get secrets from workspace model
 	secretMounts := make([]kubefloworgv1beta1.PodSecretMount, len(workspaceCreate.PodTemplate.Volumes.Secrets))
 	for i, secret := range workspaceCreate.PodTemplate.Volumes.Secrets {
-		secretName := secret.SecretName
-		secretNameField := field.NewPath("podTemplate", "volumes", "secrets").Index(i).Child("secretName")
-		valErrs, err := helper.ValidateKubernetesSecretIsMountable(ctx, r.client, secretNameField, namespace, secretName)
-		if err != nil {
-			return nil, err
-		}
-		allValErrs = append(allValErrs, valErrs...)
 		secretMounts[i] = kubefloworgv1beta1.PodSecretMount{
-			SecretName:  secretName,
+			SecretName:  secret.SecretName,
 			MountPath:   secret.MountPath,
 			DefaultMode: secret.DefaultMode,
 		}
-	}
-
-	// if there are any validation errors at this point, return an aggregated error to the caller
-	if len(allValErrs) > 0 {
-		return nil, helper.NewInternalValidationError(allValErrs)
 	}
 
 	// define workspace object from model
@@ -200,7 +166,7 @@ func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, workspaceCrea
 					Annotations: workspaceCreate.PodTemplate.PodMetadata.Annotations,
 				},
 				Volumes: kubefloworgv1beta1.WorkspacePodVolumes{
-					Home:    homeVolumeName,
+					Home:    workspaceCreate.PodTemplate.Volumes.Home,
 					Data:    dataVolumeMounts,
 					Secrets: secretMounts,
 				},
@@ -254,13 +220,8 @@ func (r *WorkspaceRepository) UpdateWorkspace(ctx context.Context, workspaceUpda
 		return nil, ErrWorkspaceRevisionConflict
 	}
 
-	// TODO: validate the requested updates (e.g. validate new home PVC is mountable, etc.)
-	// ...
-
 	// TODO: update workspace fields from workspaceUpdate model
 	// ...
-
-	// set audit annotations
 	modelsCommon.UpdateObjectMetaForUpdate(&workspace.ObjectMeta, actor, now)
 
 	// TODO: update the workspace in K8s

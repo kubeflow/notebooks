@@ -52,13 +52,13 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
 
   return (
     <Content className="workspace-form__full-height">
-      <div className="pf-u-p-lg pf-u-max-width-xl">
+      <div className="pf-v6-u-p-lg pf-v6-u-max-width-xl">
         <Form>
           <ThemeAwareFormGroupWrapper
             label="Workspace Name"
             isRequired
             fieldId="workspace-name"
-            className="pf-u-width-520"
+            className="pf-v6-u-w-50"
           >
             <TextInput
               isDisabled={mode === 'update'}
@@ -83,7 +83,7 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
           )}
           <ExpandableSection
             toggleText="Home Volume"
-            onToggle={() => setIsHomeVolumeExpanded((prev) => !prev)}
+            onToggle={(_e, isExpanded) => setIsHomeVolumeExpanded(isExpanded)}
             isExpanded={isHomeVolumeExpanded}
             isIndented
           >
@@ -101,7 +101,7 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
           {!isHomeVolumeExpanded && (
             <div className="pf-v6-u-pl-xl pf-v6-u-pt-sm">
               <div>The home volume persists your workspace home directory.</div>
-              <div className="pf-u-font-size-sm pf-v6-u-pb-md">
+              <div className="pf-v6-u-font-size-sm pf-v6-u-pb-md">
                 <strong data-testid="home-volume-status">
                   {selectedProperties.homeVolume ? '1 mounted' : 'None mounted'}
                 </strong>
@@ -122,7 +122,7 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
           )}
           <ExpandableSection
             toggleText="Data Volumes"
-            onToggle={() => setIsDataVolumesExpanded((prev) => !prev)}
+            onToggle={(_e, isExpanded) => setIsDataVolumesExpanded(isExpanded)}
             isExpanded={isDataVolumesExpanded}
             isIndented
           >
@@ -139,7 +139,7 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
           {!isDataVolumesExpanded && (
             <div className="pf-v6-u-pl-xl pf-v6-u-pt-sm">
               <div>Workspace volumes enable your project data to persist.</div>
-              <div className="pf-u-font-size-sm pf-v6-u-pb-md">
+              <div className="pf-v6-u-font-size-sm pf-v6-u-pb-md">
                 <strong data-testid="volumes-count">
                   {selectedProperties.volumes.length} added
                 </strong>
@@ -149,7 +149,7 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
           <ExpandableSection
             toggleText="Secrets"
             data-testid="secrets-expandable-section"
-            onToggle={() => setIsSecretsExpanded((prev) => !prev)}
+            onToggle={(_e, isExpanded) => setIsSecretsExpanded(isExpanded)}
             isExpanded={isSecretsExpanded}
             isIndented
           >
@@ -165,7 +165,7 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
           {!isSecretsExpanded && (
             <div className="pf-v6-u-pl-xl pf-v6-u-mt-sm">
               <div>Secrets enable your project to securely access and manage credentials.</div>
-              <div className="pf-u-font-size-sm">
+              <div className="pf-v6-u-font-size-sm">
                 <strong data-testid="secrets-count">
                   {selectedProperties.secrets.length} added
                 </strong>

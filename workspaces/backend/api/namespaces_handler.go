@@ -27,10 +27,10 @@ import (
 
 type NamespaceListEnvelope Envelope[[]models.Namespace]
 
-// GetNamespacesHandler returns a list of all namespaces in the cluster.
+// GetNamespacesHandler returns a list of all namespaces.
 //
-//	@Summary		List namespaces
-//	@Description	Returns a list of all namespaces in the cluster.
+//	@Summary		Returns a list of all namespaces
+//	@Description	Provides a list of all namespaces that the user has access to
 //	@Tags			namespaces
 //	@ID				listNamespaces
 //	@Produce		application/json

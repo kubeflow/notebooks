@@ -15,7 +15,7 @@ import {
   buildMockWorkspaceUpdateFromWorkspace,
 } from '~/shared/mock/mockBuilder';
 import { navBar } from '~/__tests__/cypress/cypress/pages/components/navBar';
-import { V1Beta1WorkspaceState } from '~/generated/data-contracts';
+import { WorkspacesWorkspaceState } from '~/generated/data-contracts';
 
 describe('Edit Secret Modal', () => {
   const mockNamespace = buildMockNamespace({ name: 'default' });
@@ -26,7 +26,7 @@ describe('Edit Secret Modal', () => {
     name: 'test-workspace',
     namespace: mockNamespace.name,
     workspaceKind: mockWorkspaceKindInfo,
-    state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+    state: WorkspacesWorkspaceState.WorkspaceStateRunning,
   });
 
   // Add a secret to the workspace
@@ -194,7 +194,7 @@ describe('Edit Secret Modal', () => {
       name: 'test-workspace',
       namespace: mockNamespace.name,
       workspaceKind: mockWorkspaceKindInfo,
-      state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+      state: WorkspacesWorkspaceState.WorkspaceStateRunning,
     });
     workspaceWithImmutableSecret.podTemplate.volumes.secrets = [
       { secretName: 'immutable-secret', mountPath: '/mnt/immutable', defaultMode: 420 },

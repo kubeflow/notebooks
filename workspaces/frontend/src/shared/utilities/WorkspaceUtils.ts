@@ -1,17 +1,16 @@
 import {
   WorkspacesOptionLabel,
   WorkspacesWorkspaceListItem,
-  V1Beta1WorkspaceState,
+  WorkspacesWorkspaceState,
 } from '~/generated/data-contracts';
 import {
   CPU_UNITS,
   MEMORY_UNITS_FOR_PARSING,
   OTHER,
-  STORAGE_UNITS_FOR_SELECTION,
   splitValueUnit,
 } from '~/shared/utilities/valueUnits';
 
-export type ResourceType = 'cpu' | 'memory' | 'storage' | 'gpu';
+export type ResourceType = 'cpu' | 'memory' | 'gpu';
 
 export enum YesNoValue {
   Yes = 'Yes',
@@ -21,7 +20,6 @@ export enum YesNoValue {
 const RESOURCE_UNIT_CONFIG = {
   cpu: CPU_UNITS,
   memory: MEMORY_UNITS_FOR_PARSING,
-  storage: STORAGE_UNITS_FOR_SELECTION,
   gpu: OTHER,
 };
 
@@ -59,27 +57,29 @@ export const formatResourceFromWorkspace = (
 ): string => formatResourceValue(extractResourceValue(workspace, resourceType), resourceType);
 
 export const formatWorkspaceIdleState = (workspace: WorkspacesWorkspaceListItem): string =>
-  workspace.state !== V1Beta1WorkspaceState.WorkspaceStateRunning ? YesNoValue.Yes : YesNoValue.No;
+  workspace.state !== WorkspacesWorkspaceState.WorkspaceStateRunning
+    ? YesNoValue.Yes
+    : YesNoValue.No;
 
 export type LabelColor = 'green' | 'orange' | 'purple' | 'red' | 'grey' | 'yellow';
 
-export const WORKSPACE_STATE_COLORS: Record<V1Beta1WorkspaceState, LabelColor> = {
-  [V1Beta1WorkspaceState.WorkspaceStateRunning]: 'green',
-  [V1Beta1WorkspaceState.WorkspaceStatePending]: 'orange',
-  [V1Beta1WorkspaceState.WorkspaceStateTerminating]: 'yellow',
-  [V1Beta1WorkspaceState.WorkspaceStateError]: 'red',
-  [V1Beta1WorkspaceState.WorkspaceStatePaused]: 'purple',
-  [V1Beta1WorkspaceState.WorkspaceStateUnknown]: 'grey',
+export const WORKSPACE_STATE_COLORS: Record<WorkspacesWorkspaceState, LabelColor> = {
+  [WorkspacesWorkspaceState.WorkspaceStateRunning]: 'green',
+  [WorkspacesWorkspaceState.WorkspaceStatePending]: 'orange',
+  [WorkspacesWorkspaceState.WorkspaceStateTerminating]: 'yellow',
+  [WorkspacesWorkspaceState.WorkspaceStateError]: 'red',
+  [WorkspacesWorkspaceState.WorkspaceStatePaused]: 'purple',
+  [WorkspacesWorkspaceState.WorkspaceStateUnknown]: 'grey',
 };
 
-export const extractWorkspaceStateColor = (state: V1Beta1WorkspaceState): LabelColor =>
+export const extractWorkspaceStateColor = (state: WorkspacesWorkspaceState): LabelColor =>
   WORKSPACE_STATE_COLORS[state];
 
 export const isWorkspaceWithGpu = (workspace: WorkspacesWorkspaceListItem): boolean =>
   workspace.podTemplate.options.podConfig.current.labels.some((label) => label.key === 'gpu');
 
 export const isWorkspaceIdle = (workspace: WorkspacesWorkspaceListItem): boolean =>
-  workspace.state !== V1Beta1WorkspaceState.WorkspaceStateRunning;
+  workspace.state !== WorkspacesWorkspaceState.WorkspaceStateRunning;
 
 export const filterWorkspacesWithGpu = (
   workspaces: WorkspacesWorkspaceListItem[],
@@ -92,7 +92,9 @@ export const filterIdleWorkspaces = (
 export const filterRunningWorkspaces = (
   workspaces: WorkspacesWorkspaceListItem[],
 ): WorkspacesWorkspaceListItem[] =>
-  workspaces.filter((workspace) => workspace.state === V1Beta1WorkspaceState.WorkspaceStateRunning);
+  workspaces.filter(
+    (workspace) => workspace.state === WorkspacesWorkspaceState.WorkspaceStateRunning,
+  );
 
 export const filterIdleWorkspacesWithGpu = (
   workspaces: WorkspacesWorkspaceListItem[],

@@ -2,11 +2,7 @@ import { mockModArchResponse } from 'mod-arch-core';
 import { editWorkspaceKind } from '~/__tests__/cypress/cypress/pages/workspaceKinds/editWorkspaceKind';
 import { workspaceKinds } from '~/__tests__/cypress/cypress/pages/workspaceKinds/workspaceKinds';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
-import {
-  buildMockNamespace,
-  buildMockStorageClass,
-  buildMockWorkspaceKind,
-} from '~/shared/mock/mockBuilder';
+import { buildMockNamespace, buildMockWorkspaceKind } from '~/shared/mock/mockBuilder';
 import type { WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
 
 const DEFAULT_NAMESPACE = 'default';
@@ -59,35 +55,6 @@ const setupEditWorkspaceKind = (
     { path: { apiVersion: NOTEBOOKS_API_VERSION } },
     mockModArchResponse([]),
   ).as('getAllWorkspaces');
-
-  cy.interceptApi(
-    'GET /api/:apiVersion/persistentvolumeclaims/:namespace',
-    { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
-    mockModArchResponse([]),
-  ).as('listPVCs');
-
-  cy.intercept('GET', `/api/${NOTEBOOKS_API_VERSION}/storageclasses`, {
-    data: [
-      buildMockStorageClass({
-        name: 'standard',
-        displayName: 'Standard',
-        description: 'Default storage class',
-        canUse: true,
-      }),
-    ],
-  }).as('listStorageClasses');
-
-  cy.intercept(
-    'POST',
-    `/api/${NOTEBOOKS_API_VERSION}/persistentvolumeclaims/${mockNamespace.name}`,
-    { statusCode: 200, body: {} },
-  ).as('createPvc');
-
-  cy.intercept(
-    'DELETE',
-    `/api/${NOTEBOOKS_API_VERSION}/persistentvolumeclaims/${mockNamespace.name}/*`,
-    { statusCode: 200, body: {} },
-  ).as('deletePvc');
 
   return { mockWorkspaceKind, mockNamespace };
 };
@@ -829,7 +796,7 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.clickCreateVolume();
 
       editWorkspaceKind.assertVolumeModalVisible(true);
-      editWorkspaceKind.assertVolumeModalTitle('Create New Volume');
+      editWorkspaceKind.assertVolumeModalTitle('Create Volume');
     });
 
     it('should create a new volume', () => {
@@ -843,8 +810,8 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.clickCreateVolume();
       editWorkspaceKind.typePvcName('my-pvc');
+      editWorkspaceKind.typeMountPath('/data');
       editWorkspaceKind.submitVolumeModal();
-      cy.wait('@createPvc');
 
       editWorkspaceKind.assertVolumeModalVisible(false);
       editWorkspaceKind.assertVolumeCount(1);
@@ -860,10 +827,10 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.clickCreateVolume();
       editWorkspaceKind.typePvcName('readonly-pvc');
+      editWorkspaceKind.typeMountPath('/readonly-data');
       editWorkspaceKind.toggleReadOnly();
       editWorkspaceKind.assertReadOnlyChecked(true);
       editWorkspaceKind.submitVolumeModal();
-      cy.wait('@createPvc');
 
       editWorkspaceKind.assertVolumeCount(1);
       editWorkspaceKind.assertVolumeInTable('readonly-pvc');
@@ -878,6 +845,7 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.clickCreateVolume();
       editWorkspaceKind.typePvcName('cancelled-pvc');
+      editWorkspaceKind.typeMountPath('/cancelled');
       editWorkspaceKind.cancelVolumeModal();
 
       editWorkspaceKind.assertVolumeModalVisible(false);
@@ -893,18 +861,19 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.clickCreateVolume();
       editWorkspaceKind.typePvcName('edit-test-pvc');
+      editWorkspaceKind.typeMountPath('/edit-test');
       editWorkspaceKind.submitVolumeModal();
-      cy.wait('@createPvc');
 
       editWorkspaceKind.clickVolumeRowKebab(0);
-      editWorkspaceKind.clickEditVolume('edit-test-pvc');
+      editWorkspaceKind.clickEditVolume();
 
       editWorkspaceKind.assertVolumeModalVisible(true);
       editWorkspaceKind.assertVolumeModalTitle('Edit Volume');
-      editWorkspaceKind.assertMountPath('/data/edit-test-pvc');
+      editWorkspaceKind.assertPvcName('edit-test-pvc');
+      editWorkspaceKind.assertMountPath('/edit-test');
     });
 
-    it('should edit an existing volume mount path', () => {
+    it('should edit an existing volume', () => {
       const { mockWorkspaceKind } = setupEditWorkspaceKind();
 
       visitEditWorkspaceKind(mockWorkspaceKind.name);
@@ -913,17 +882,19 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.clickCreateVolume();
       editWorkspaceKind.typePvcName('original-pvc');
+      editWorkspaceKind.typeMountPath('/original');
       editWorkspaceKind.submitVolumeModal();
-      cy.wait('@createPvc');
 
       editWorkspaceKind.clickVolumeRowKebab(0);
-      editWorkspaceKind.clickEditVolume('original-pvc');
+      editWorkspaceKind.clickEditVolume();
 
+      editWorkspaceKind.typePvcName('edited-pvc');
       editWorkspaceKind.typeMountPath('/edited');
       editWorkspaceKind.submitVolumeModal();
 
       editWorkspaceKind.assertVolumeCount(1);
-      editWorkspaceKind.assertVolumeInTable('original-pvc');
+      editWorkspaceKind.assertVolumeInTable('edited-pvc');
+      editWorkspaceKind.assertVolumeNotInTable('original-pvc');
     });
 
     it('should open detach modal when clicking detach from actions menu', () => {
@@ -935,8 +906,8 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.clickCreateVolume();
       editWorkspaceKind.typePvcName('detach-test-pvc');
+      editWorkspaceKind.typeMountPath('/detach-test');
       editWorkspaceKind.submitVolumeModal();
-      cy.wait('@createPvc');
 
       editWorkspaceKind.clickVolumeRowKebab(0);
       editWorkspaceKind.clickDetachVolume();
@@ -953,8 +924,8 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.clickCreateVolume();
       editWorkspaceKind.typePvcName('cancel-detach-pvc');
+      editWorkspaceKind.typeMountPath('/cancel-detach');
       editWorkspaceKind.submitVolumeModal();
-      cy.wait('@createPvc');
 
       editWorkspaceKind.clickVolumeRowKebab(0);
       editWorkspaceKind.clickDetachVolume();
@@ -974,8 +945,8 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.clickCreateVolume();
       editWorkspaceKind.typePvcName('detach-pvc');
+      editWorkspaceKind.typeMountPath('/detach');
       editWorkspaceKind.submitVolumeModal();
-      cy.wait('@createPvc');
 
       editWorkspaceKind.assertVolumeCount(1);
 

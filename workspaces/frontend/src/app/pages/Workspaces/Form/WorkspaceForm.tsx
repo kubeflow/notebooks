@@ -122,18 +122,12 @@ const WorkspaceForm: React.FC = () => {
         case WorkspaceFormSteps.PodConfigSelection:
           return !!data.podConfig;
         case WorkspaceFormSteps.Properties:
-          return !!data.properties.workspaceName.trim() && !!data.properties.homeVolume;
+          return !!data.properties.workspaceName.trim();
         default:
           return false;
       }
     },
-    [
-      data.kind,
-      data.imageConfig,
-      data.podConfig,
-      data.properties.workspaceName,
-      data.properties.homeVolume,
-    ],
+    [data.kind, data.imageConfig, data.podConfig, data.properties.workspaceName],
   );
 
   const previousStep = useCallback(() => {
@@ -185,23 +179,13 @@ const WorkspaceForm: React.FC = () => {
     setError(null);
 
     try {
-      // Strip the UI-only `isAttached` field from homeVolume, volumes, and secrets before submitting
-      const { homeVolume } = data.properties;
+      // Strip the `isAttached` field from secrets before submitting to the API
       const preparedData: WorkspaceFormData = {
         ...data,
         properties: {
           ...data.properties,
-          homeVolume: homeVolume
-            ? {
-                pvcName: homeVolume.pvcName,
-                mountPath: homeVolume.mountPath,
-                readOnly: homeVolume.readOnly,
-              }
-            : undefined,
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           secrets: data.properties.secrets.map(({ isAttached: _, ...rest }) => rest),
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          volumes: data.properties.volumes.map(({ isAttached: _, ...rest }) => rest),
         },
       };
       await submitFormData({ mode, data: preparedData, api, namespace });
@@ -228,16 +212,6 @@ const WorkspaceForm: React.FC = () => {
       if (mode === 'create') {
         resetData();
         setData('kind', kind);
-
-        const defaultImageId = kind.podTemplate.options.imageConfig.default;
-        const defaultPodConfigId = kind.podTemplate.options.podConfig.default;
-
-        if (defaultImageId) {
-          setData('imageConfig', defaultImageId);
-        }
-        if (defaultPodConfigId) {
-          setData('podConfig', defaultPodConfigId);
-        }
       }
     },
     [mode, resetData, setData],
@@ -433,6 +407,7 @@ const WorkspaceForm: React.FC = () => {
                         selectedProperties={data.properties}
                         onSelect={(properties) => setData('properties', properties)}
                         homeVolumeMountPath={data.kind?.podTemplate.volumeMounts.home}
+                        selectedImage={selectedImage}
                       />
                     )}
                   </StackItem>

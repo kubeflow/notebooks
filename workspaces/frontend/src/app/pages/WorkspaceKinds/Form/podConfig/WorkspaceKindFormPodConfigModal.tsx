@@ -139,7 +139,12 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
         description={editIndex === null ? 'Add a pod configuration to your Workspace Kind' : ''}
       />
       <ModalBody>
-        <Form>
+        <Form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSubmit();
+          }}
+        >
           <ThemeAwareFormGroupWrapper label="ID" isRequired fieldId="workspace-kind-pod-config-id">
             <TextInput
               isRequired

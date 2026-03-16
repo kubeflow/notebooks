@@ -16,10 +16,15 @@ import { ValidatedOptions } from '@patternfly/react-core/helpers';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { Label, LabelGroup } from '@patternfly/react-core/dist/esm/components/Label';
 import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
+import { ActionList, ActionListItem } from '@patternfly/react-core/dist/esm/components/ActionList';
 import { InfoCircleIcon } from '@patternfly/react-icons/dist/esm/icons/info-circle-icon';
 import { WrenchIcon } from '@patternfly/react-icons/dist/esm/icons/wrench-icon';
+import { PencilAltIcon } from '@patternfly/react-icons/dist/esm/icons/pencil-alt-icon';
+import { CheckIcon } from '@patternfly/react-icons/dist/esm/icons/check-icon';
+import { TimesIcon } from '@patternfly/react-icons/dist/esm/icons/times-icon';
+import { InputGroup, InputGroupItem } from '@patternfly/react-core/dist/esm/components/InputGroup';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
-import { MountPathField } from '~/app/pages/Workspaces/Form/MountPathField';
+import { useThemeContext } from 'mod-arch-kubeflow';
 import { SecretsSecretListItem } from '~/generated/data-contracts';
 import {
   isValidDefaultMode,
@@ -40,7 +45,7 @@ export interface SecretsAttachModalProps {
   onAttach: (secrets: SecretsSecretListItem[], mountPath: string, mode: number) => void;
   availableSecrets: SecretsSecretListItem[];
   mountedKeys: Set<string>;
-  existingMountPaths: Set<string>;
+  existingMountPaths: string[];
 }
 
 export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
@@ -51,6 +56,7 @@ export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
   mountedKeys,
   existingMountPaths,
 }) => {
+  const { isMUITheme } = useThemeContext();
   const [selected, setSelected] = useState<string | null>(null);
   const [mountPath, setMountPath] = useState('/secrets/');
   const [defaultMode, setDefaultMode] = useState(DEFAULT_MODE_OCTAL);
@@ -239,7 +245,12 @@ export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
             {error}
           </Alert>
         )}
-        <Form>
+        <Form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleAttach();
+          }}
+        >
           <ThemeAwareFormGroupWrapper label="Secret" fieldId="secret-select">
             <TypeaheadSelect
               key={selected ?? SECRET_SELECT_EMPTY_KEY}
@@ -259,20 +270,188 @@ export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
               }}
             />
           </ThemeAwareFormGroupWrapper>
-          <MountPathField
-            variant="input"
-            value={mountPath}
-            onChange={(val) => {
-              setMountPath(val);
-              setError('');
-            }}
-            isEditing={isMountPathEditing}
-            onStartEdit={handleStartMountPathEdit}
-            onConfirm={handleConfirmMountPathEdit}
-            onCancel={handleCancelMountPathEdit}
-            error={mountPathError}
-            fieldId="mount-path"
-          />
+          {isMUITheme ? (
+            <ThemeAwareFormGroupWrapper
+              label="Mount Path"
+              isRequired
+              fieldId="mount-path"
+              hasError={!!mountPathError}
+              className={!isMountPathEditing ? 'mount-path-readonly' : ''}
+              helperTextNode={
+                mountPathError ? (
+                  <HelperText>
+                    <HelperTextItem variant="error">{mountPathError}</HelperTextItem>
+                  </HelperText>
+                ) : null
+              }
+            >
+              {isMountPathEditing ? (
+                <InputGroup>
+                  <InputGroupItem isFill>
+                    <TextInput
+                      id="mount-path"
+                      name="mountPath"
+                      isRequired
+                      type="text"
+                      value={mountPath}
+                      validated={mountPathError ? ValidatedOptions.error : undefined}
+                      onChange={(_, val) => {
+                        setMountPath(val);
+                        setError('');
+                      }}
+                      aria-label="Edit mount path"
+                      data-testid="mount-path-input"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleConfirmMountPathEdit();
+                        } else if (e.key === 'Escape') {
+                          handleCancelMountPathEdit();
+                        }
+                      }}
+                    />
+                  </InputGroupItem>
+                  <InputGroupItem>
+                    <Button
+                      variant="control"
+                      aria-label="Save mount path"
+                      onClick={handleConfirmMountPathEdit}
+                      isDisabled={!!mountPathError}
+                      data-testid="mount-path-save"
+                    >
+                      <CheckIcon />
+                    </Button>
+                  </InputGroupItem>
+                  <InputGroupItem>
+                    <Button
+                      variant="control"
+                      aria-label="Cancel edit"
+                      onClick={handleCancelMountPathEdit}
+                      data-testid="mount-path-cancel"
+                    >
+                      <TimesIcon />
+                    </Button>
+                  </InputGroupItem>
+                </InputGroup>
+              ) : (
+                <InputGroup>
+                  <InputGroupItem isFill>
+                    <TextInput
+                      id="mount-path"
+                      name="mountPath"
+                      isRequired
+                      readOnly
+                      type="text"
+                      value={mountPath}
+                      validated={mountPathError ? ValidatedOptions.error : undefined}
+                      aria-label="Mount path"
+                      data-testid="mount-path-input"
+                    />
+                  </InputGroupItem>
+                  <InputGroupItem>
+                    <Button
+                      variant="control"
+                      aria-label="Edit mount path"
+                      onClick={handleStartMountPathEdit}
+                      data-testid="mount-path-edit"
+                    >
+                      <PencilAltIcon />
+                    </Button>
+                  </InputGroupItem>
+                </InputGroup>
+              )}
+            </ThemeAwareFormGroupWrapper>
+          ) : (
+            <FormGroup
+              fieldId={isMountPathEditing ? 'mount-path' : 'mount-path-display'}
+              label="Mount Path"
+              isRequired
+              labelHelp={
+                isMountPathEditing ? (
+                  <Button
+                    variant="plain"
+                    aria-hidden
+                    tabIndex={-1}
+                    style={{ visibility: 'hidden' }}
+                  >
+                    <PencilAltIcon />
+                  </Button>
+                ) : (
+                  <Tooltip content="Edit mount path">
+                    <Button
+                      variant="plain"
+                      aria-label="Edit mount path"
+                      onClick={handleStartMountPathEdit}
+                      data-testid="mount-path-edit"
+                    >
+                      <PencilAltIcon />
+                    </Button>
+                  </Tooltip>
+                )
+              }
+            >
+              {isMountPathEditing ? (
+                <>
+                  <Flex>
+                    <FlexItem grow={{ default: 'grow' }}>
+                      <TextInput
+                        id="mount-path"
+                        name="mountPath"
+                        isRequired
+                        type="text"
+                        value={mountPath}
+                        validated={mountPathError ? ValidatedOptions.error : undefined}
+                        onChange={(_, val) => {
+                          setMountPath(val);
+                          setError('');
+                        }}
+                        aria-label="Edit mount path"
+                        data-testid="mount-path-input"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleConfirmMountPathEdit();
+                          } else if (e.key === 'Escape') {
+                            handleCancelMountPathEdit();
+                          }
+                        }}
+                      />
+                    </FlexItem>
+                    <FlexItem>
+                      <ActionList isIconList>
+                        <ActionListItem>
+                          <Button
+                            variant="link"
+                            icon={<CheckIcon />}
+                            aria-label="Save mount path"
+                            onClick={handleConfirmMountPathEdit}
+                            isDisabled={!!mountPathError}
+                            data-testid="mount-path-save"
+                          />
+                        </ActionListItem>
+                        <ActionListItem>
+                          <Button
+                            variant="plain"
+                            icon={<TimesIcon />}
+                            aria-label="Cancel edit"
+                            onClick={handleCancelMountPathEdit}
+                            data-testid="mount-path-cancel"
+                          />
+                        </ActionListItem>
+                      </ActionList>
+                    </FlexItem>
+                  </Flex>
+                  {mountPathError && (
+                    <HelperText>
+                      <HelperTextItem variant="error">{mountPathError}</HelperTextItem>
+                    </HelperText>
+                  )}
+                </>
+              ) : (
+                <span data-testid="mount-path-text">{mountPath}</span>
+              )}
+            </FormGroup>
+          )}
           <ThemeAwareFormGroupWrapper label="Default Mode" isRequired fieldId="default-mode">
             <FormGroup fieldId="default-mode" isRequired>
               <TextInput

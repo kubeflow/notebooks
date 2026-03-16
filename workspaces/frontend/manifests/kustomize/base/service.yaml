@@ -4,7 +4,7 @@ metadata:
   name: workspaces-frontend
 spec:
   ports:
-  - name: http-ui
-    port: 8080
-    targetPort: http-ui
+    - name: http-ui
+      port: 8080
+      targetPort: http-ui
   type: ClusterIP

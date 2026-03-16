@@ -249,7 +249,12 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
             Loading secret data...
           </Alert>
         )}
-        <Form>
+        <Form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSubmit();
+          }}
+        >
           <ThemeAwareFormGroupWrapper
             label="Secret name"
             isRequired

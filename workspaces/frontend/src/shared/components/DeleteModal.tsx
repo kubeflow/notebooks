@@ -99,7 +99,12 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
             </FlexItem>
           </StackItem>
           <StackItem>
-            <Form>
+            <Form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleDelete();
+              }}
+            >
               <ThemeAwareFormGroupWrapper
                 label="Please type the resource name to confirm:"
                 fieldId="delete-modal-input"
@@ -118,6 +123,12 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
                   value={inputValue}
                   type="text"
                   onChange={handleInputChange}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleDelete();
+                    }
+                  }}
                   aria-label="Resource name confirmation"
                   validated={showWarning ? 'error' : 'default'}
                   data-testid="delete-modal-input"

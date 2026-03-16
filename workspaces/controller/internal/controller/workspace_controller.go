@@ -1119,9 +1119,6 @@ func generateWorkspacePodStatus(pod *corev1.Pod) kubefloworgv1beta1.WorkspacePod
 	// populate the name
 	podStatus.Name = pod.Name
 
-	// populate the node name
-	podStatus.NodeName = pod.Spec.NodeName
-
 	// populate the containers
 	containers := make([]kubefloworgv1beta1.WorkspacePodContainer, len(pod.Spec.Containers))
 	for i, container := range pod.Spec.Containers {

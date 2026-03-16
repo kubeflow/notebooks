@@ -44,7 +44,7 @@ type WorkspaceKindEnvelope Envelope[models.WorkspaceKind]
 // GetWorkspaceKindHandler retrieves a specific workspace kind by name.
 //
 //	@Summary		Get workspace kind
-//	@Description	Returns details of a specific workspace kind identified by its name.
+//	@Description	Returns details of a specific workspace kind identified by its name. Workspace kinds define the available types of workspaces that can be created.
 //	@Tags			workspacekinds
 //	@ID				getWorkspaceKind
 //	@Accept			json
@@ -91,10 +91,10 @@ func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps
 	a.dataResponse(w, r, responseEnvelope)
 }
 
-// GetWorkspaceKindsHandler returns a list of all workspace kinds in the cluster.
+// GetWorkspaceKindsHandler returns a list of all available workspace kinds.
 //
 //	@Summary		List workspace kinds
-//	@Description	Returns a list of all workspace kinds in the cluster.
+//	@Description	Returns a list of all available workspace kinds. Workspace kinds define the different types of workspaces that can be created in the system.
 //	@Tags			workspacekinds
 //	@ID				listWorkspaceKinds
 //	@Accept			json
@@ -105,7 +105,6 @@ func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps
 //	@Failure		500	{object}	ErrorEnvelope				"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspacekinds [get]
 func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
 		auth.NewResourcePolicy(auth.VerbList, auth.WorkspaceKinds, auth.ResourcePolicyResourceMeta{}),

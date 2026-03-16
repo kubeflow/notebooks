@@ -19,7 +19,7 @@ import { useThemeContext } from 'mod-arch-kubeflow';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { generateUniqueId } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { isMemoryLimitLarger } from '~/shared/utilities/valueUnits';
-import { ResourceInputWrapper } from '~/shared/components/ResourceInputWrapper';
+import { ResourceInputWrapper } from './ResourceInputWrapper';
 
 export type PodResourceEntry = {
   id: string; // Unique identifier for each resource entry

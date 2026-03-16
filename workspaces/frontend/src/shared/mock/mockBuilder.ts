@@ -3,12 +3,7 @@ import {
   HealthCheckHealthCheck,
   HealthCheckServiceStatus,
   NamespacesNamespace,
-  PvcsPVCCreate,
-  PvcsPVCListItem,
-  V1PersistentVolumeAccessMode,
-  V1PersistentVolumeMode,
   SecretsSecretListItem,
-  StorageclassesStorageClassListItem,
   WorkspacekindsRedirectMessageLevel,
   WorkspacekindsWorkspaceKind,
   WorkspacesImageConfig,
@@ -26,7 +21,7 @@ import {
   WorkspacesWorkspaceCreate,
   WorkspacesWorkspaceKindInfo,
   WorkspacesWorkspaceListItem,
-  V1Beta1WorkspaceState,
+  WorkspacesWorkspaceState,
   WorkspacesWorkspaceUpdate,
 } from '~/generated/data-contracts';
 
@@ -406,7 +401,7 @@ export const buildMockWorkspace = (
   workspaceKind: buildMockWorkspaceKindInfo(),
   paused: true,
   pausedTime: new Date(2025, 3, 1).getTime(),
-  state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+  state: WorkspacesWorkspaceState.WorkspaceStateRunning,
   stateMessage: 'Workspace is running',
   podTemplate: buildMockPodTemplate({}),
   activity: {
@@ -508,13 +503,13 @@ export const buildMockWorkspaceKind = (
           },
           {
             id: 'jupyterlab_scipy_200',
-            displayName: 'jupyter-scipy:v2.0.0 (Hidden)',
+            displayName: 'jupyter-scipy:v2.0.0',
             description: 'JupyterLab, with SciPy Packages',
             labels: [
               { key: 'pythonVersion', value: '3.12' },
               { key: 'jupyterlabVersion', value: '2.0.0' },
             ],
-            hidden: true,
+            hidden: false,
             redirect: {
               to: 'jupyterlab_scipy_210',
               message: {
@@ -608,7 +603,7 @@ export const buildMockWorkspaceKind = (
               { key: 'gpu', value: '1' },
             ],
             redirect: {
-              to: 'large_cpu_hidden',
+              to: 'large_cpu',
               message: {
                 text: 'This update will change...',
                 level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelDanger,
@@ -650,9 +645,9 @@ export const buildMockWorkspaceList = (args: {
   count: number;
   namespace: string;
   kind: WorkspacesWorkspaceKindInfo;
-  state?: V1Beta1WorkspaceState;
+  state?: WorkspacesWorkspaceState;
 }): WorkspacesWorkspaceListItem[] => {
-  const states = Object.values(V1Beta1WorkspaceState);
+  const states = Object.values(WorkspacesWorkspaceState);
   const imageConfigs = [
     {
       id: 'jupyterlab_scipy_190',
@@ -709,7 +704,7 @@ export const buildMockWorkspaceList = (args: {
         workspaceKind: args.kind,
         state,
         stateMessage: `Workspace is in ${state} state`,
-        paused: state === V1Beta1WorkspaceState.WorkspaceStatePaused,
+        paused: state === WorkspacesWorkspaceState.WorkspaceStatePaused,
         pendingRestart: booleanValue,
         podTemplate: {
           podMetadata: { labels, annotations },
@@ -852,44 +847,4 @@ export const buildMockSecret = (
     updatedBy: 'user1',
   },
   ...secret,
-});
-
-export const buildMockStorageClass = (
-  storageClass?: Partial<StorageclassesStorageClassListItem>,
-): StorageclassesStorageClassListItem => ({
-  name: 'standard',
-  displayName: 'Standard',
-  description: 'Standard storage class',
-  canUse: true,
-  ...storageClass,
-});
-
-export const buildMockPVC = (pvc?: Partial<PvcsPVCListItem>): PvcsPVCListItem => ({
-  name: 'my-pvc',
-  canMount: true,
-  canUpdate: true,
-  pods: [],
-  workspaces: [],
-  pvcSpec: {
-    accessModes: [V1PersistentVolumeAccessMode.ReadWriteOnce],
-    requests: { storage: '10Gi' },
-    storageClassName: 'standard',
-    volumeMode: V1PersistentVolumeMode.PersistentVolumeFilesystem,
-  },
-  audit: {
-    createdAt: new Date(2025, 4, 1).toISOString(),
-    createdBy: 'admin1',
-    updatedAt: new Date(2025, 4, 1).toISOString(),
-    deletedAt: '',
-    updatedBy: 'user1',
-  },
-  ...pvc,
-});
-
-export const buildMockPVCCreate = (pvc?: Partial<PvcsPVCCreate>): PvcsPVCCreate => ({
-  name: 'my-pvc',
-  accessModes: [V1PersistentVolumeAccessMode.ReadWriteOnce],
-  requests: { storage: '10Gi' },
-  storageClassName: 'standard',
-  ...pvc,
 });

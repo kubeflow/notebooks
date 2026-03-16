@@ -154,7 +154,6 @@ export const RedirectIconWithPopover: React.FC<RedirectIconWithPopoverProps> = (
     (e: React.KeyboardEvent) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
-        e.stopPropagation();
         handleClick();
       }
     },
@@ -223,3 +222,5 @@ export const RedirectIconWithPopover: React.FC<RedirectIconWithPopoverProps> = (
     </div>
   );
 };
+
+export default RedirectIconWithPopover;

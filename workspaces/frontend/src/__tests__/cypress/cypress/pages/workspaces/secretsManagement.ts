@@ -129,40 +129,5 @@ class SecretsModal {
   }
 }
 
-class SecretsDetachModal {
-  find(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('detach-secret-modal');
-  }
-
-  assertModalVisible(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().should('be.visible');
-  }
-
-  assertModalNotExists(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('detach-secret-modal').should('not.exist');
-  }
-
-  assertContains(text: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().should('contain', text);
-  }
-
-  findConfirmButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('confirm-button');
-  }
-
-  clickConfirm(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findConfirmButton().click();
-  }
-
-  findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('cancel-button');
-  }
-
-  clickCancel(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findCancelButton().click();
-  }
-}
-
 export const secretsManagement = new SecretsManagementPage();
 export const secretsModal = new SecretsModal();
-export const secretsDetachModal = new SecretsDetachModal();

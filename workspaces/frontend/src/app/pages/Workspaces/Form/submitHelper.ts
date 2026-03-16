@@ -43,7 +43,7 @@ const createWorkspace = async (args: {
         podConfig: data.podConfig,
       },
       volumes: {
-        home: data.properties.homeVolume?.pvcName,
+        home: data.properties.homeDirectory,
         data: data.properties.volumes,
         secrets: data.properties.secrets,
       },
@@ -74,7 +74,7 @@ const updateWorkspace = async (args: {
         podConfig: data.podConfig,
       },
       volumes: {
-        home: data.properties.homeVolume?.pvcName,
+        home: data.properties.homeDirectory,
         data: data.properties.volumes,
         secrets: data.properties.secrets,
       },

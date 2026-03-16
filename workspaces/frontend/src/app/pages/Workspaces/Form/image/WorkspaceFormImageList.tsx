@@ -1,12 +1,16 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo } from 'react';
+import {
+  CardTitle,
+  Card,
+  CardHeader,
+  CardBody,
+} from '@patternfly/react-core/dist/esm/components/Card';
 import { Gallery } from '@patternfly/react-core/dist/esm/layouts/Gallery';
 import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
 import ToolbarFilter, { FilterConfigMap } from '~/shared/components/ToolbarFilter';
 import { useToolbarFilters, applyFilters } from '~/shared/hooks/useToolbarFilters';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
 import { WorkspacekindsImageConfigValue } from '~/generated/data-contracts';
-import { WorkspaceFormOptionCard } from '~/app/pages/Workspaces/Form/shared/WorkspaceFormOptionCard';
-import { moveDefaultToFront } from '~/app/pages/Workspaces/Form/utils/optionOrdering';
 
 type ImageFilterKey = 'name';
 
@@ -20,37 +24,27 @@ const filterableProperties: Record<
   ImageFilterKey,
   (item: WorkspacekindsImageConfigValue) => string
 > = {
+  // Combine id and displayName for matching (separated by space so regex can match either)
   name: (image) => `${image.id} ${image.displayName}`,
 };
 
 type WorkspaceFormImageListProps = {
-  filteredImages: WorkspacekindsImageConfigValue[];
-  allImages: WorkspacekindsImageConfigValue[];
+  images: WorkspacekindsImageConfigValue[];
   selectedImage: WorkspacekindsImageConfigValue | undefined;
   onSelect: (workspaceImage: WorkspacekindsImageConfigValue | undefined) => void;
-  defaultImageId?: string;
 };
 
 export const WorkspaceFormImageList: React.FunctionComponent<WorkspaceFormImageListProps> = ({
-  filteredImages,
-  allImages,
+  images,
   selectedImage,
   onSelect,
-  defaultImageId,
 }) => {
   const { filterValues, setFilter, clearAllFilters } =
     useToolbarFilters<ImageFilterKey>(filterConfig);
-  const [activePopoverId, setActivePopoverId] = useState<string | null>(null);
-  const [pinnedPopoverId, setPinnedPopoverId] = useState<string | null>(null);
-
-  const reorderedImages = useMemo(
-    () => moveDefaultToFront(filteredImages, defaultImageId),
-    [filteredImages, defaultImageId],
-  );
 
   const filteredWorkspaceImages = useMemo(
-    () => applyFilters(reorderedImages, filterValues, filterableProperties),
-    [reorderedImages, filterValues],
+    () => applyFilters(images, filterValues, filterableProperties),
+    [images, filterValues],
   );
 
   const onChange = useCallback(
@@ -92,19 +86,27 @@ export const WorkspaceFormImageList: React.FunctionComponent<WorkspaceFormImageL
         {filteredWorkspaceImages.length > 0 && (
           <Gallery hasGutter aria-label="Selectable card container">
             {filteredWorkspaceImages.map((image) => (
-              <WorkspaceFormOptionCard
+              <Card
+                isCompact
+                isSelectable
                 key={image.id}
-                option={image}
-                allOptions={allImages}
+                id={image.id.replace(/ /g, '-')}
                 isSelected={image.id === selectedImage?.id}
-                isDefault={image.id === defaultImageId}
-                onClick={handleCardClick}
-                onChange={onChange}
-                activePopoverId={activePopoverId}
-                pinnedPopoverId={pinnedPopoverId}
-                onActivePopoverChange={setActivePopoverId}
-                onPinnedPopoverChange={setPinnedPopoverId}
-              />
+                onClick={() => handleCardClick(image)}
+              >
+                <CardHeader
+                  selectableActions={{
+                    selectableActionId: `selectable-actions-item-${image.id.replace(/ /g, '-')}`,
+                    selectableActionAriaLabelledby: image.displayName.replace(/ /g, '-'),
+                    name: image.displayName,
+                    variant: 'single',
+                    onChange,
+                  }}
+                >
+                  <CardTitle>{image.displayName}</CardTitle>
+                  <CardBody>{image.id}</CardBody>
+                </CardHeader>
+              </Card>
             ))}
           </Gallery>
         )}

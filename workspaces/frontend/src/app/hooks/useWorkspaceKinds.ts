@@ -17,6 +17,7 @@ const useWorkspaceKinds = (): FetchState<WorkspacekindsWorkspaceKind[]> => {
     const envelope = await api.workspaceKinds.listWorkspaceKinds();
     return envelope.data;
   }, [api, apiAvailable]);
+
   return useFetchState(call, []);
 };
 

@@ -30,26 +30,14 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 
-	commonModels "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces"
 )
 
 var _ = Describe("Workspaces Handler", func() {
-
-	//
-	// TODO: add a test which fails when CREATING/UPDATING a Workspace with a home PVC that does not have `notebooks.kubeflow.org/can-mount=true` label
-	//
-	// TODO: add a test which fails when CREATING/UPDATING a Workspace with a dataVolume PVC that does not have `notebooks.kubeflow.org/can-mount=true` label
-	//       the test should include multiple dataVolumes, some of which are mountable and some of which are not.
-	//
-	// TODO: add a test which fails when CREATING/UPDATING a Workspace with a SECRET that does not have `notebooks.kubeflow.org/can-mount=true` label
-	//       the test should include multiple secrets, some of which are mountable and some of which are not.
-	//
 
 	// NOTE: the tests in this context work on the same resources, they must be run in order.
 	//       also, they assume a specific state of the cluster, so cannot be run in parallel with other tests.
@@ -652,13 +640,7 @@ var _ = Describe("Workspaces Handler", func() {
 	//       therefore, we run them using the `Ordered` Ginkgo decorator.
 	Context("CRUD Workspaces", Ordered, func() {
 
-		const (
-			namespaceNameCrud = "ws-crud-ns"
-			homePVCName       = "my-home-pvc"
-			dataPVCName       = "my-data-pvc"
-			testPVCName       = "test-pvc"
-			testSecretName    = "test-secret"
-		)
+		const namespaceNameCrud = "ws-crud-ns"
 
 		var (
 			workspaceName     string
@@ -686,67 +668,9 @@ var _ = Describe("Workspaces Handler", func() {
 			workspaceKind := NewExampleWorkspaceKind(workspaceKindName)
 			Expect(k8sClient.Create(ctx, workspaceKind)).To(Succeed())
 
-			By("creating the home PVC")
-			homePVC := &corev1.PersistentVolumeClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      homePVCName,
-					Namespace: namespaceNameCrud,
-					Labels: map[string]string{
-						commonModels.LabelCanMount: "true",
-					},
-				},
-				Spec: corev1.PersistentVolumeClaimSpec{
-					AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-					Resources: corev1.VolumeResourceRequirements{
-						Requests: corev1.ResourceList{
-							corev1.ResourceStorage: resource.MustParse("1Gi"),
-						},
-					},
-				},
-			}
-			Expect(k8sClient.Create(ctx, homePVC)).To(Succeed())
-
-			By("creating the data PVC")
-			dataPVC := &corev1.PersistentVolumeClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      dataPVCName,
-					Namespace: namespaceNameCrud,
-					Labels: map[string]string{
-						commonModels.LabelCanMount: "true",
-					},
-				},
-				Spec: corev1.PersistentVolumeClaimSpec{
-					AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-					Resources: corev1.VolumeResourceRequirements{
-						Requests: corev1.ResourceList{
-							corev1.ResourceStorage: resource.MustParse("1Gi"),
-						},
-					},
-				},
-			}
-			Expect(k8sClient.Create(ctx, dataPVC)).To(Succeed())
-
 		})
 
 		AfterAll(func() {
-			By("deleting the home PVC")
-			homePVC := &corev1.PersistentVolumeClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      homePVCName,
-					Namespace: namespaceNameCrud,
-				},
-			}
-			Expect(k8sClient.Delete(ctx, homePVC)).To(Succeed())
-
-			By("deleting the data PVC")
-			dataPVC := &corev1.PersistentVolumeClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      dataPVCName,
-					Namespace: namespaceNameCrud,
-				},
-			}
-			Expect(k8sClient.Delete(ctx, dataPVC)).To(Succeed())
-
 			By("deleting the WorkspaceKind")
 			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
 				ObjectMeta: metav1.ObjectMeta{
@@ -785,10 +709,10 @@ var _ = Describe("Workspaces Handler", func() {
 						},
 					},
 					Volumes: models.PodVolumesMutate{
-						Home: ptr.To(homePVCName),
+						Home: ptr.To("my-home-pvc"),
 						Data: []models.PodVolumeMount{
 							{
-								PVCName:   dataPVCName,
+								PVCName:   "my-data-pvc",
 								MountPath: "/data/1",
 								ReadOnly:  false,
 							},
@@ -887,60 +811,25 @@ var _ = Describe("Workspaces Handler", func() {
 		})
 
 		It("should create a workspace with secrets", func() {
-			By("creating prerequisite PVC for secrets test")
-			testPVC := &corev1.PersistentVolumeClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      testPVCName,
-					Namespace: namespaceNameCrud,
-					Labels: map[string]string{
-						commonModels.LabelCanMount: "true",
-					},
-				},
-				Spec: corev1.PersistentVolumeClaimSpec{
-					AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-					Resources: corev1.VolumeResourceRequirements{
-						Requests: corev1.ResourceList{
-							corev1.ResourceStorage: resource.MustParse("1Gi"),
-						},
-					},
-				},
-			}
-			Expect(k8sClient.Create(ctx, testPVC)).To(Succeed())
-
-			By("creating prerequisite Secret for secrets test")
-			testSecret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      testSecretName,
-					Namespace: namespaceNameCrud,
-					Labels: map[string]string{
-						commonModels.LabelCanMount: "true",
-					},
-				},
-				Data: map[string][]byte{
-					"key": []byte("value"),
-				},
-			}
-			Expect(k8sClient.Create(ctx, testSecret)).To(Succeed())
-
 			// Create a workspace with secrets
 			workspace := &models.WorkspaceCreate{
 				Name: "test-workspace",
-				Kind: workspaceKindName,
+				Kind: "test-kind",
 				PodTemplate: models.PodTemplateMutate{
 					Options: models.PodTemplateOptionsMutate{
-						ImageConfig: "jupyterlab_scipy_180",
-						PodConfig:   "tiny_cpu",
+						ImageConfig: "test-image",
+						PodConfig:   "test-config",
 					},
 					Volumes: models.PodVolumesMutate{
 						Data: []models.PodVolumeMount{
 							{
-								PVCName:   testPVCName,
+								PVCName:   "test-pvc",
 								MountPath: "/data",
 							},
 						},
 						Secrets: []models.PodSecretMount{
 							{
-								SecretName:  testSecretName,
+								SecretName:  "test-secret",
 								MountPath:   "/secrets",
 								DefaultMode: int32(0o644),
 							},

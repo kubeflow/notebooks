@@ -48,14 +48,14 @@ const docTemplate = `{
         },
         "/namespaces": {
             "get": {
-                "description": "Returns a list of all namespaces in the cluster.",
+                "description": "Provides a list of all namespaces that the user has access to",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "namespaces"
                 ],
-                "summary": "List namespaces",
+                "summary": "Returns a list of all namespaces",
                 "operationId": "listNamespaces",
                 "responses": {
                     "200": {
@@ -85,228 +85,16 @@ const docTemplate = `{
                 }
             }
         },
-        "/persistentvolumeclaims/{namespace}": {
-            "get": {
-                "description": "Returns a list of persistent volume claims in a specific namespace.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "persistentvolumeclaims"
-                ],
-                "summary": "List persistent volume claims by namespace",
-                "operationId": "listPVCs",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "x-example": "my-namespace",
-                        "description": "Namespace name",
-                        "name": "namespace",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful PVCs response",
-                        "schema": {
-                            "$ref": "#/definitions/api.PVCListEnvelope"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Entity. Validation error.",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "Creates a new persistent volume claim in the specified namespace.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "persistentvolumeclaims"
-                ],
-                "summary": "Create persistent volume claim",
-                "operationId": "createPVC",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Namespace name",
-                        "name": "namespace",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "PVC creation request",
-                        "name": "pvc",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/api.PVCCreateEnvelope"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "PVC created successfully",
-                        "schema": {
-                            "$ref": "#/definitions/api.PVCCreateEnvelope"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad request",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
-                    "409": {
-                        "description": "PVC already exists",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
-                    "413": {
-                        "description": "Request Entity Too Large. The request body is too large.",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
-                    "415": {
-                        "description": "Unsupported Media Type. Content-Type header is not correct.",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Entity. Validation error.",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    }
-                }
-            }
-        },
-        "/persistentvolumeclaims/{namespace}/{name}": {
-            "delete": {
-                "description": "Deletes a specific persistent volume claim identified by namespace and name.",
-                "tags": [
-                    "persistentvolumeclaims"
-                ],
-                "summary": "Deletes a persistent volume claim",
-                "operationId": "deletePVC",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "x-example": "my-namespace",
-                        "description": "Namespace name",
-                        "name": "namespace",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "x-example": "my-pvc",
-                        "description": "PVC name",
-                        "name": "name",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content"
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
-                    "404": {
-                        "description": "PVC not found",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
-                    "409": {
-                        "description": "Conflict",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Entity. Validation error.",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    }
-                }
-            }
-        },
         "/secrets/{namespace}": {
             "get": {
-                "description": "Returns a list of secrets in a specific namespace.",
+                "description": "Provides a list of all secrets that the user has access to in the specified namespace",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "secrets"
                 ],
-                "summary": "List secrets by namespace",
+                "summary": "Returns a list of all secrets in a namespace",
                 "operationId": "listSecrets",
                 "parameters": [
                     {
@@ -352,7 +140,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Creates a new secret in the specified namespace.",
+                "description": "Creates a new secret in the specified namespace",
                 "consumes": [
                     "application/json"
                 ],
@@ -362,7 +150,7 @@ const docTemplate = `{
                 "tags": [
                     "secrets"
                 ],
-                "summary": "Create secret",
+                "summary": "Creates a new secret",
                 "operationId": "createSecret",
                 "parameters": [
                     {
@@ -442,14 +230,14 @@ const docTemplate = `{
         },
         "/secrets/{namespace}/{name}": {
             "get": {
-                "description": "Returns the current state of a specific secret identified by namespace and name. This endpoint is intended for retrieving the secret state before updating it.",
+                "description": "Provides details of a specific secret by name and namespace",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "secrets"
                 ],
-                "summary": "Get secret",
+                "summary": "Returns a specific secret",
                 "operationId": "getSecret",
                 "parameters": [
                     {
@@ -508,7 +296,7 @@ const docTemplate = `{
                 }
             },
             "put": {
-                "description": "Updates an existing secret.",
+                "description": "Updates an existing secret in the specified namespace",
                 "consumes": [
                     "application/json"
                 ],
@@ -518,7 +306,7 @@ const docTemplate = `{
                 "tags": [
                     "secrets"
                 ],
-                "summary": "Update secret",
+                "summary": "Updates an existing secret",
                 "operationId": "updateSecret",
                 "parameters": [
                     {
@@ -603,14 +391,14 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "Deletes a specific secret identified by namespace and name.",
+                "description": "Deletes a secret from the specified namespace",
                 "consumes": [
                     "application/json"
                 ],
                 "tags": [
                     "secrets"
                 ],
-                "summary": "Delete secret",
+                "summary": "Deletes a secret",
                 "operationId": "deleteSecret",
                 "parameters": [
                     {
@@ -661,48 +449,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/storageclasses": {
-            "get": {
-                "description": "Returns a list of all storage classes in the cluster.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "storageclasses"
-                ],
-                "summary": "List storage classes",
-                "operationId": "listStorageClasses",
-                "responses": {
-                    "200": {
-                        "description": "Successful storage classes response",
-                        "schema": {
-                            "$ref": "#/definitions/api.StorageClassListEnvelope"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    }
-                }
-            }
-        },
         "/workspacekinds": {
             "get": {
-                "description": "Returns a list of all workspace kinds in the cluster.",
+                "description": "Returns a list of all available workspace kinds. Workspace kinds define the different types of workspaces that can be created in the system.",
                 "consumes": [
                     "application/json"
                 ],
@@ -825,7 +574,7 @@ const docTemplate = `{
         },
         "/workspacekinds/{name}": {
             "get": {
-                "description": "Returns details of a specific workspace kind identified by its name.",
+                "description": "Returns details of a specific workspace kind identified by its name. Workspace kinds define the available types of workspaces that can be created.",
                 "consumes": [
                     "application/json"
                 ],
@@ -889,7 +638,7 @@ const docTemplate = `{
         },
         "/workspaces": {
             "get": {
-                "description": "Returns a list of all workspaces in the cluster.",
+                "description": "Returns a list of all workspaces across all namespaces.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1078,7 +827,7 @@ const docTemplate = `{
         },
         "/workspaces/{namespace}/{name}": {
             "put": {
-                "description": "Updates an existing workspace.",
+                "description": "Updates an existing workspace",
                 "consumes": [
                     "application/json"
                 ],
@@ -1352,7 +1101,7 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "Deletes a specific workspace identified by namespace and name.",
+                "description": "Deletes a specific workspace identified by namespace and workspace name.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1400,12 +1149,6 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found. Workspace does not exist.",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
-                    "409": {
-                        "description": "Conflict",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }
@@ -1535,31 +1278,6 @@ const docTemplate = `{
                 }
             }
         },
-        "api.PVCCreateEnvelope": {
-            "type": "object",
-            "required": [
-                "data"
-            ],
-            "properties": {
-                "data": {
-                    "$ref": "#/definitions/pvcs.PVCCreate"
-                }
-            }
-        },
-        "api.PVCListEnvelope": {
-            "type": "object",
-            "required": [
-                "data"
-            ],
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/pvcs.PVCListItem"
-                    }
-                }
-            }
-        },
         "api.SecretCreateEnvelope": {
             "type": "object",
             "required": [
@@ -1592,20 +1310,6 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/secrets.SecretListItem"
-                    }
-                }
-            }
-        },
-        "api.StorageClassListEnvelope": {
-            "type": "object",
-            "required": [
-                "data"
-            ],
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/storageclasses.StorageClassListItem"
                     }
                 }
             }
@@ -1813,248 +1517,6 @@ const docTemplate = `{
                 }
             }
         },
-        "pvcs.PVCCreate": {
-            "type": "object",
-            "required": [
-                "accessModes",
-                "name",
-                "requests",
-                "storageClassName"
-            ],
-            "properties": {
-                "accessModes": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/v1.PersistentVolumeAccessMode"
-                    }
-                },
-                "name": {
-                    "type": "string"
-                },
-                "requests": {
-                    "$ref": "#/definitions/pvcs.StorageRequestsMutate"
-                },
-                "storageClassName": {
-                    "type": "string"
-                }
-            }
-        },
-        "pvcs.PVCListItem": {
-            "type": "object",
-            "required": [
-                "audit",
-                "canMount",
-                "canUpdate",
-                "name",
-                "pods",
-                "pvcSpec",
-                "workspaces"
-            ],
-            "properties": {
-                "audit": {
-                    "$ref": "#/definitions/common.Audit"
-                },
-                "canMount": {
-                    "type": "boolean"
-                },
-                "canUpdate": {
-                    "type": "boolean"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "pods": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/pvcs.PodInfo"
-                    }
-                },
-                "pv": {
-                    "description": "This field is nil until a PV is bound to the PVC.\nhttps://kubernetes.io/docs/concepts/storage/persistent-volumes/#binding",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/pvcs.PVInfo"
-                        }
-                    ]
-                },
-                "pvcSpec": {
-                    "$ref": "#/definitions/pvcs.PVCSpec"
-                },
-                "workspaces": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/pvcs.WorkspaceInfo"
-                    }
-                }
-            }
-        },
-        "pvcs.PVCSpec": {
-            "type": "object",
-            "required": [
-                "accessModes",
-                "requests",
-                "storageClassName",
-                "volumeMode"
-            ],
-            "properties": {
-                "accessModes": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/v1.PersistentVolumeAccessMode"
-                    }
-                },
-                "requests": {
-                    "$ref": "#/definitions/pvcs.StorageRequests"
-                },
-                "storageClassName": {
-                    "description": "This field may be an empty string in two cases:\n1. The PVC is requesting the default storage class, and it has not been bound to a PV yet.\n2. The PVC is explicitly requesting a PV with no storage class (i.e. manual or out-of-band binding).",
-                    "type": "string"
-                },
-                "volumeMode": {
-                    "$ref": "#/definitions/v1.PersistentVolumeMode"
-                }
-            }
-        },
-        "pvcs.PVInfo": {
-            "type": "object",
-            "required": [
-                "accessModes",
-                "name",
-                "persistentVolumeReclaimPolicy",
-                "volumeMode"
-            ],
-            "properties": {
-                "accessModes": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/v1.PersistentVolumeAccessMode"
-                    }
-                },
-                "name": {
-                    "type": "string"
-                },
-                "persistentVolumeReclaimPolicy": {
-                    "$ref": "#/definitions/v1.PersistentVolumeReclaimPolicy"
-                },
-                "storageClass": {
-                    "description": "This field should only be nil if the bound PV does not have a storage class (i.e. manual or out-of-band binding).",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/pvcs.StorageClassInfo"
-                        }
-                    ]
-                },
-                "volumeMode": {
-                    "$ref": "#/definitions/v1.PersistentVolumeMode"
-                }
-            }
-        },
-        "pvcs.PodInfo": {
-            "type": "object",
-            "required": [
-                "name",
-                "phase"
-            ],
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "node": {
-                    "$ref": "#/definitions/pvcs.PodNode"
-                },
-                "phase": {
-                    "$ref": "#/definitions/v1.PodPhase"
-                }
-            }
-        },
-        "pvcs.PodNode": {
-            "type": "object",
-            "required": [
-                "name"
-            ],
-            "properties": {
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "pvcs.PodTemplatePod": {
-            "type": "object",
-            "required": [
-                "name"
-            ],
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "node": {
-                    "$ref": "#/definitions/pvcs.PodNode"
-                }
-            }
-        },
-        "pvcs.StorageClassInfo": {
-            "type": "object",
-            "required": [
-                "description",
-                "displayName",
-                "name"
-            ],
-            "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "displayName": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "pvcs.StorageRequests": {
-            "type": "object",
-            "required": [
-                "storage"
-            ],
-            "properties": {
-                "storage": {
-                    "type": "string"
-                }
-            }
-        },
-        "pvcs.StorageRequestsMutate": {
-            "type": "object",
-            "required": [
-                "storage"
-            ],
-            "properties": {
-                "storage": {
-                    "type": "string"
-                }
-            }
-        },
-        "pvcs.WorkspaceInfo": {
-            "type": "object",
-            "required": [
-                "name",
-                "state",
-                "stateMessage"
-            ],
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "podTemplatePod": {
-                    "$ref": "#/definitions/pvcs.PodTemplatePod"
-                },
-                "state": {
-                    "$ref": "#/definitions/v1beta1.WorkspaceState"
-                },
-                "stateMessage": {
-                    "type": "string"
-                }
-            }
-        },
         "secrets.SecretCreate": {
             "type": "object",
             "required": [
@@ -2166,104 +1628,6 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
-        },
-        "storageclasses.StorageClassListItem": {
-            "type": "object",
-            "required": [
-                "canUse",
-                "description",
-                "displayName",
-                "name"
-            ],
-            "properties": {
-                "canUse": {
-                    "type": "boolean"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "displayName": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.PersistentVolumeAccessMode": {
-            "type": "string",
-            "enum": [
-                "ReadWriteOnce",
-                "ReadOnlyMany",
-                "ReadWriteMany",
-                "ReadWriteOncePod"
-            ],
-            "x-enum-varnames": [
-                "ReadWriteOnce",
-                "ReadOnlyMany",
-                "ReadWriteMany",
-                "ReadWriteOncePod"
-            ]
-        },
-        "v1.PersistentVolumeMode": {
-            "type": "string",
-            "enum": [
-                "Block",
-                "Filesystem"
-            ],
-            "x-enum-varnames": [
-                "PersistentVolumeBlock",
-                "PersistentVolumeFilesystem"
-            ]
-        },
-        "v1.PersistentVolumeReclaimPolicy": {
-            "type": "string",
-            "enum": [
-                "Recycle",
-                "Delete",
-                "Retain"
-            ],
-            "x-enum-varnames": [
-                "PersistentVolumeReclaimRecycle",
-                "PersistentVolumeReclaimDelete",
-                "PersistentVolumeReclaimRetain"
-            ]
-        },
-        "v1.PodPhase": {
-            "type": "string",
-            "enum": [
-                "Pending",
-                "Running",
-                "Succeeded",
-                "Failed",
-                "Unknown"
-            ],
-            "x-enum-varnames": [
-                "PodPending",
-                "PodRunning",
-                "PodSucceeded",
-                "PodFailed",
-                "PodUnknown"
-            ]
-        },
-        "v1beta1.WorkspaceState": {
-            "type": "string",
-            "enum": [
-                "Running",
-                "Terminating",
-                "Paused",
-                "Pending",
-                "Error",
-                "Unknown"
-            ],
-            "x-enum-varnames": [
-                "WorkspaceStateRunning",
-                "WorkspaceStateTerminating",
-                "WorkspaceStatePaused",
-                "WorkspaceStatePending",
-                "WorkspaceStateError",
-                "WorkspaceStateUnknown"
-            ]
         },
         "workspacekinds.ImageConfig": {
             "type": "object",
@@ -3100,7 +2464,7 @@ const docTemplate = `{
                     }
                 },
                 "state": {
-                    "$ref": "#/definitions/v1beta1.WorkspaceState"
+                    "$ref": "#/definitions/workspaces.WorkspaceState"
                 },
                 "stateMessage": {
                     "type": "string"
@@ -3109,6 +2473,25 @@ const docTemplate = `{
                     "$ref": "#/definitions/workspaces.WorkspaceKindInfo"
                 }
             }
+        },
+        "workspaces.WorkspaceState": {
+            "type": "string",
+            "enum": [
+                "Running",
+                "Terminating",
+                "Paused",
+                "Pending",
+                "Error",
+                "Unknown"
+            ],
+            "x-enum-varnames": [
+                "WorkspaceStateRunning",
+                "WorkspaceStateTerminating",
+                "WorkspaceStatePaused",
+                "WorkspaceStatePending",
+                "WorkspaceStateError",
+                "WorkspaceStateUnknown"
+            ]
         },
         "workspaces.WorkspaceUpdate": {
             "type": "object",

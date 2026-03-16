@@ -732,7 +732,7 @@ class EditWorkspaceKind {
 
   // Additional Volumes
   findCreateVolumeButton() {
-    return cy.findByTestId('attach-new-volume-button');
+    return cy.findByTestId('create-volume-button');
   }
 
   clickCreateVolume() {
@@ -744,7 +744,7 @@ class EditWorkspaceKind {
   }
 
   findVolumeRow(index: number) {
-    return this.findVolumesTable().find('tbody').eq(index).find('tr').first();
+    return this.findVolumesTable().find('tbody tr').eq(index);
   }
 
   findVolumeRowKebab(index: number) {
@@ -755,8 +755,12 @@ class EditWorkspaceKind {
     this.findVolumeRowKebab(index).click();
   }
 
-  clickEditVolume(pvcName: string) {
-    cy.findByTestId(`edit-volume-${pvcName}`).click();
+  findEditVolumeMenuItem() {
+    return cy.contains('[role="menuitem"]', 'Edit');
+  }
+
+  clickEditVolume() {
+    this.findEditVolumeMenuItem().click();
   }
 
   findDetachVolumeMenuItem() {
@@ -771,7 +775,7 @@ class EditWorkspaceKind {
     if (count === 0) {
       cy.findByTestId('volumes-table').should('not.exist');
     } else {
-      this.findVolumesTable().find('tbody').should('have.length', count);
+      this.findVolumesTable().find('tbody tr').should('have.length', count);
     }
   }
 
@@ -789,7 +793,7 @@ class EditWorkspaceKind {
 
   // Volume Modal
   findVolumeModal() {
-    return cy.findByTestId('create-volume-modal');
+    return cy.findByTestId('volume-modal');
   }
 
   findVolumeModalTitle() {
@@ -804,12 +808,8 @@ class EditWorkspaceKind {
     return cy.findByTestId('mount-path-input');
   }
 
-  clickEditMountPath() {
-    cy.findByTestId('mount-path-edit').click();
-  }
-
   findReadOnlySwitch() {
-    return cy.findByTestId('read-only-switch');
+    return cy.findByTestId('readonly-access-switch');
   }
 
   typePvcName(name: string) {
@@ -817,9 +817,7 @@ class EditWorkspaceKind {
   }
 
   typeMountPath(path: string) {
-    this.clickEditMountPath();
     this.findMountPathInput().clear().type(path);
-    cy.findByTestId('mount-path-save').click();
   }
 
   toggleReadOnly() {
@@ -827,11 +825,11 @@ class EditWorkspaceKind {
   }
 
   findVolumeModalSubmitButton() {
-    return cy.findByTestId('create-volume-submit-button');
+    return cy.findByTestId('volume-modal-submit-button');
   }
 
   findVolumeModalCancelButton() {
-    return cy.findByTestId('create-volume-cancel-button');
+    return cy.findByTestId('volume-modal-cancel-button');
   }
 
   submitVolumeModal() {
@@ -872,11 +870,11 @@ class EditWorkspaceKind {
   }
 
   findDetachVolumeModalConfirmButton() {
-    return this.findDetachVolumeModal().findByTestId('confirm-button');
+    return cy.findByTestId('detach-volume-confirm-button');
   }
 
   findDetachVolumeModalCancelButton() {
-    return this.findDetachVolumeModal().findByTestId('cancel-button');
+    return cy.findByTestId('detach-volume-cancel-button');
   }
 
   confirmDetachVolume() {

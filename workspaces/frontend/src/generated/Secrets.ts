@@ -21,11 +21,11 @@ import { ContentType, HttpClient, RequestParams } from './http-client';
 
 export class Secrets<SecurityDataType = unknown> extends HttpClient<SecurityDataType> {
   /**
-   * @description Returns a list of secrets in a specific namespace.
+   * @description Provides a list of all secrets that the user has access to in the specified namespace
    *
    * @tags secrets
    * @name ListSecrets
-   * @summary List secrets by namespace
+   * @summary Returns a list of all secrets in a namespace
    * @request GET:/secrets/{namespace}
    * @response `200` `ApiSecretListEnvelope` Successful secrets response
    * @response `401` `ApiErrorEnvelope` Unauthorized
@@ -41,11 +41,11 @@ export class Secrets<SecurityDataType = unknown> extends HttpClient<SecurityData
       ...params,
     });
   /**
-   * @description Creates a new secret in the specified namespace.
+   * @description Creates a new secret in the specified namespace
    *
    * @tags secrets
    * @name CreateSecret
-   * @summary Create secret
+   * @summary Creates a new secret
    * @request POST:/secrets/{namespace}
    * @response `201` `ApiSecretCreateEnvelope` Secret created successfully
    * @response `400` `ApiErrorEnvelope` Bad request
@@ -67,11 +67,11 @@ export class Secrets<SecurityDataType = unknown> extends HttpClient<SecurityData
       ...params,
     });
   /**
-   * @description Returns the current state of a specific secret identified by namespace and name. This endpoint is intended for retrieving the secret state before updating it.
+   * @description Provides details of a specific secret by name and namespace
    *
    * @tags secrets
    * @name GetSecret
-   * @summary Get secret
+   * @summary Returns a specific secret
    * @request GET:/secrets/{namespace}/{name}
    * @response `200` `ApiSecretEnvelope` Successful secret response
    * @response `401` `ApiErrorEnvelope` Unauthorized
@@ -88,11 +88,11 @@ export class Secrets<SecurityDataType = unknown> extends HttpClient<SecurityData
       ...params,
     });
   /**
-   * @description Updates an existing secret.
+   * @description Updates an existing secret in the specified namespace
    *
    * @tags secrets
    * @name UpdateSecret
-   * @summary Update secret
+   * @summary Updates an existing secret
    * @request PUT:/secrets/{namespace}/{name}
    * @response `200` `ApiSecretEnvelope` Secret updated successfully
    * @response `400` `ApiErrorEnvelope` Bad request
@@ -119,11 +119,11 @@ export class Secrets<SecurityDataType = unknown> extends HttpClient<SecurityData
       ...params,
     });
   /**
-   * @description Deletes a specific secret identified by namespace and name.
+   * @description Deletes a secret from the specified namespace
    *
    * @tags secrets
    * @name DeleteSecret
-   * @summary Delete secret
+   * @summary Deletes a secret
    * @request DELETE:/secrets/{namespace}/{name}
    * @response `204` `void` No Content
    * @response `401` `ApiErrorEnvelope` Unauthorized
