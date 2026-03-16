@@ -1,31 +1,48 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useRef, useMemo, useState, useImperativeHandle } from 'react';
 import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import { Split, SplitItem } from '@patternfly/react-core/dist/esm/layouts/Split';
 import { WorkspaceFormPodConfigList } from '~/app/pages/Workspaces/Form/podConfig/WorkspaceFormPodConfigList';
 import {
   ExtraFilter,
   FilterByLabels,
+  FilterControlHandle,
 } from '~/app/pages/Workspaces/Form/labelFilter/FilterByLabels';
 import { WorkspacekindsPodConfigValue } from '~/generated/data-contracts';
 import { computeDefaultFilterValues } from '~/app/pages/Workspaces/Form/utils/filterDefaults';
+
+export type PodConfigSelectionFilterHandle = {
+  adaptFiltersForPodConfig: (podConfig: WorkspacekindsPodConfigValue) => void;
+};
 
 interface WorkspaceFormPodConfigSelectionProps {
   podConfigs: WorkspacekindsPodConfigValue[];
   selectedPodConfig: WorkspacekindsPodConfigValue | undefined;
   onSelect: (podConfig: WorkspacekindsPodConfigValue | undefined) => void;
   defaultPodConfigId?: string;
+  filterControlRef?: React.Ref<PodConfigSelectionFilterHandle>;
 }
 
 const WorkspaceFormPodConfigSelection: React.FunctionComponent<
   WorkspaceFormPodConfigSelectionProps
-> = ({ podConfigs, selectedPodConfig, onSelect, defaultPodConfigId }) => {
+> = ({ podConfigs, selectedPodConfig, onSelect, defaultPodConfigId, filterControlRef }) => {
   const [filteredPodConfigs, setFilteredPodConfigs] =
     useState<WorkspacekindsPodConfigValue[]>(podConfigs);
+  const internalFilterControlRef = useRef<FilterControlHandle>(null);
+  const lastEnsuredVisiblePodConfigId = useRef<string | null>(null);
 
-  const defaultFilterValues = useMemo(
-    () => computeDefaultFilterValues(podConfigs, defaultPodConfigId),
-    [podConfigs, defaultPodConfigId],
-  );
+  const defaultFilterValues = useMemo(() => {
+    const defaults = computeDefaultFilterValues(podConfigs, defaultPodConfigId);
+    // Also enable filters if selectedPodConfig needs them
+    if (selectedPodConfig) {
+      if (selectedPodConfig.hidden) {
+        defaults.showHidden = true;
+      }
+      if (selectedPodConfig.redirect !== undefined) {
+        defaults.showRedirected = true;
+      }
+    }
+    return defaults;
+  }, [podConfigs, defaultPodConfigId, selectedPodConfig]);
 
   const extraFilters: ExtraFilter<WorkspacekindsPodConfigValue>[] = useMemo(
     () => [
@@ -52,6 +69,12 @@ const WorkspaceFormPodConfigSelection: React.FunctionComponent<
       return;
     }
 
+    // Skip deselection if we just ensured this pod config is visible
+    if (lastEnsuredVisiblePodConfigId.current === selectedPodConfig.id) {
+      lastEnsuredVisiblePodConfigId.current = null;
+      return;
+    }
+
     const isSelectedInFilteredList = filteredPodConfigs.some(
       (podConfig) => podConfig.id === selectedPodConfig.id,
     );
@@ -61,21 +84,39 @@ const WorkspaceFormPodConfigSelection: React.FunctionComponent<
     }
   }, [filteredPodConfigs, selectedPodConfig, onSelect]);
 
+  useImperativeHandle(
+    filterControlRef,
+    () => ({
+      adaptFiltersForPodConfig: (podConfig: WorkspacekindsPodConfigValue) => {
+        lastEnsuredVisiblePodConfigId.current = podConfig.id;
+        internalFilterControlRef.current?.clearAllFilters();
+        if (podConfig.hidden) {
+          internalFilterControlRef.current?.setExtraFilter('showHidden', true);
+        }
+        if (podConfig.redirect !== undefined) {
+          internalFilterControlRef.current?.setExtraFilter('showRedirected', true);
+        }
+      },
+    }),
+    [],
+  );
+
   const podConfigFilterContent = useMemo(
     () => (
       <FilterByLabels
         labelledObjects={podConfigs}
         setLabelledObjects={(obj) => setFilteredPodConfigs(obj as WorkspacekindsPodConfigValue[])}
         extraFilters={extraFilters}
+        filterControlRef={internalFilterControlRef}
       />
     ),
     [podConfigs, setFilteredPodConfigs, extraFilters],
   );
 
   return (
-    <Content style={{ height: '100%' }}>
+    <Content className="workspace-form__full-height">
       <Split hasGutter>
-        <SplitItem style={{ minWidth: '200px' }}>{podConfigFilterContent}</SplitItem>
+        <SplitItem className="workspace-form__filter-sidebar">{podConfigFilterContent}</SplitItem>
         <SplitItem isFilled>
           <WorkspaceFormPodConfigList
             filteredPodConfigs={filteredPodConfigs}

@@ -214,6 +214,8 @@ describe('Create workspace', () => {
       createWorkspace.clickPrevious();
       createWorkspace.assertProgressStepVisible(STEP_NAMES.IMAGE);
       createWorkspace.assertExtraFilterChecked('showRedirected');
+      createWorkspace.assertExtraFilterChecked('showHidden'); // Both filters are checked from before
+      createWorkspace.uncheckExtraFilter('showHidden'); // Uncheck to test the filter behavior
       createWorkspace.findImageCard(mockImage.id).should('not.exist');
       createWorkspace.checkExtraFilter('showHidden');
       createWorkspace.findImageCard(mockImage.id).should('be.visible');

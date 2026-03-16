@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
@@ -10,8 +10,6 @@ import {
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import {
   Drawer,
-  DrawerActions,
-  DrawerCloseButton,
   DrawerContent,
   DrawerContentBody,
   DrawerHead,
@@ -22,9 +20,15 @@ import { Title } from '@patternfly/react-core/dist/esm/components/Title';
 import { useNotification } from 'mod-arch-core';
 import useGenericObjectState from 'mod-arch-core/dist/utilities/useGenericObjectState';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
-import { WorkspaceFormImageSelection } from '~/app/pages/Workspaces/Form/image/WorkspaceFormImageSelection';
+import {
+  WorkspaceFormImageSelection,
+  ImageSelectionFilterHandle,
+} from '~/app/pages/Workspaces/Form/image/WorkspaceFormImageSelection';
 import { WorkspaceFormKindSelection } from '~/app/pages/Workspaces/Form/kind/WorkspaceFormKindSelection';
-import { WorkspaceFormPodConfigSelection } from '~/app/pages/Workspaces/Form/podConfig/WorkspaceFormPodConfigSelection';
+import {
+  WorkspaceFormPodConfigSelection,
+  PodConfigSelectionFilterHandle,
+} from '~/app/pages/Workspaces/Form/podConfig/WorkspaceFormPodConfigSelection';
 import { WorkspaceFormPropertiesSelection } from '~/app/pages/Workspaces/Form/properties/WorkspaceFormPropertiesSelection';
 import { WorkspaceFormData } from '~/app/types';
 import useWorkspaceFormData from '~/app/hooks/useWorkspaceFormData';
@@ -38,12 +42,10 @@ import {
 import { extractErrorMessage } from '~/shared/api/apiUtils';
 import { ErrorAlert } from '~/shared/components/ErrorAlert';
 import { useWorkspaceFormLocationData } from '~/app/hooks/useWorkspaceFormLocationData';
-import { WorkspaceFormKindDetails } from '~/app/pages/Workspaces/Form/kind/WorkspaceFormKindDetails';
-import { WorkspaceFormImageDetails } from '~/app/pages/Workspaces/Form/image/WorkspaceFormImageDetails';
-import { WorkspaceFormPodConfigDetails } from '~/app/pages/Workspaces/Form/podConfig/WorkspaceFormPodConfigDetails';
 import { LoadingSpinner } from '~/app/components/LoadingSpinner';
 import { LoadError } from '~/app/components/LoadError';
 import { submitFormData } from '~/app/pages/Workspaces/Form/submitHelper';
+import { WorkspaceFormSummaryPanel } from '~/app/pages/Workspaces/Form/WorkspaceFormSummaryPanel';
 
 enum WorkspaceFormSteps {
   KindSelection,
@@ -76,29 +78,26 @@ const WorkspaceForm: React.FC = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(WorkspaceFormSteps.KindSelection);
-  const [drawerExpanded, setDrawerExpanded] = useState(false);
   const [error, setError] = useState<string | ApiErrorEnvelope | null>(null);
 
   const [data, setData, resetData, replaceData] =
     useGenericObjectState<WorkspaceFormData>(initialFormData);
+
+  // Store original values for edit mode diff view
+  const [originalData, setOriginalData] = useState<WorkspaceFormData | undefined>(undefined);
+
+  // Refs for filter control
+  const imageFilterControlRef = useRef<ImageSelectionFilterHandle>(null);
+  const podConfigFilterControlRef = useRef<PodConfigSelectionFilterHandle>(null);
 
   useEffect(() => {
     if (!initialFormDataLoaded || mode === 'create') {
       return;
     }
     replaceData(initialFormData);
+    // Store original values for diff comparison
+    setOriginalData(initialFormData);
   }, [initialFormData, initialFormDataLoaded, mode, replaceData]);
-
-  // Open drawer automatically in edit mode on KindSelection step
-  useEffect(() => {
-    if (
-      initialFormDataLoaded &&
-      mode !== 'create' &&
-      currentStep === WorkspaceFormSteps.KindSelection
-    ) {
-      setDrawerExpanded(true);
-    }
-  }, [initialFormDataLoaded, mode, currentStep]);
 
   const getStepVariant = useCallback(
     (step: WorkspaceFormSteps) => {
@@ -137,24 +136,19 @@ const WorkspaceForm: React.FC = () => {
     ],
   );
 
-  const showDrawer = useCallback(
-    (step: WorkspaceFormSteps) =>
-      // Only show drawer for steps that have drawer content
-      step !== WorkspaceFormSteps.Properties && isStepValid(step),
-    [isStepValid],
-  );
-
   const previousStep = useCallback(() => {
     const newStep = currentStep - 1;
     setCurrentStep(newStep);
-    setDrawerExpanded(showDrawer(newStep));
-  }, [currentStep, showDrawer]);
+  }, [currentStep]);
 
   const nextStep = useCallback(() => {
     const newStep = currentStep + 1;
     setCurrentStep(newStep);
-    setDrawerExpanded(showDrawer(newStep));
-  }, [currentStep, showDrawer]);
+  }, [currentStep]);
+
+  const navigateToStep = useCallback((step: number) => {
+    setCurrentStep(step);
+  }, []);
 
   const canGoToPreviousStep = useMemo(() => currentStep > 0, [currentStep]);
 
@@ -245,7 +239,6 @@ const WorkspaceForm: React.FC = () => {
           setData('podConfig', defaultPodConfigId);
         }
       }
-      setDrawerExpanded(true);
     },
     [mode, resetData, setData],
   );
@@ -253,8 +246,11 @@ const WorkspaceForm: React.FC = () => {
   const handleImageSelect = useCallback(
     (image: WorkspacekindsImageConfigValue | undefined) => {
       if (image) {
+        // Clear filters if the selected image is hidden or redirected
+        if (image.hidden || image.redirect !== undefined) {
+          imageFilterControlRef.current?.adaptFiltersForImage(image);
+        }
         setData('imageConfig', image.id);
-        setDrawerExpanded(true);
       } else {
         setData('imageConfig', undefined);
       }
@@ -265,8 +261,11 @@ const WorkspaceForm: React.FC = () => {
   const handlePodConfigSelect = useCallback(
     (podConfig: WorkspacekindsPodConfigValue | undefined) => {
       if (podConfig) {
+        // Clear filters if the selected pod config is hidden or redirected
+        if (podConfig.hidden || podConfig.redirect !== undefined) {
+          podConfigFilterControlRef.current?.adaptFiltersForPodConfig(podConfig);
+        }
         setData('podConfig', podConfig.id);
-        setDrawerExpanded(true);
       } else {
         setData('podConfig', undefined);
       }
@@ -274,31 +273,22 @@ const WorkspaceForm: React.FC = () => {
     [setData],
   );
 
-  const getDrawerContent = () => {
-    switch (currentStep) {
-      case WorkspaceFormSteps.KindSelection:
-        return <WorkspaceFormKindDetails workspaceKind={data.kind} />;
-      case WorkspaceFormSteps.ImageSelection:
-        return <WorkspaceFormImageDetails workspaceImage={selectedImage} />;
-      case WorkspaceFormSteps.PodConfigSelection:
-        return <WorkspaceFormPodConfigDetails workspacePodConfig={selectedPodConfig} />;
-      default:
-        return null;
-    }
-  };
+  // Get original values for edit mode diff
+  const originalImage = useMemo(
+    () =>
+      originalData?.kind?.podTemplate.options.imageConfig.values.find(
+        (image) => image.id === originalData.imageConfig,
+      ),
+    [originalData],
+  );
 
-  const getDrawerTitle = () => {
-    switch (currentStep) {
-      case WorkspaceFormSteps.KindSelection:
-        return 'Workspace Kind';
-      case WorkspaceFormSteps.ImageSelection:
-        return 'Image';
-      case WorkspaceFormSteps.PodConfigSelection:
-        return 'Pod Config';
-      default:
-        return '';
-    }
-  };
+  const originalPodConfig = useMemo(
+    () =>
+      originalData?.kind?.podTemplate.options.podConfig.values.find(
+        (podConfig) => podConfig.id === originalData.podConfig,
+      ),
+    [originalData],
+  );
 
   if (initialFormDataError) {
     return <LoadError title="Failed to load workspace data" error={initialFormDataError} />;
@@ -311,25 +301,36 @@ const WorkspaceForm: React.FC = () => {
   const panelContent = (
     <DrawerPanelContent>
       <DrawerHead>
-        <Title headingLevel="h1">{getDrawerTitle()}</Title>
-        <DrawerActions>
-          <DrawerCloseButton onClick={() => setDrawerExpanded(false)} />
-        </DrawerActions>
+        <Title headingLevel="h1">Summary</Title>
       </DrawerHead>
       <DrawerPanelBody className="workspace-form__drawer-panel-body">
-        {getDrawerContent()}
+        <WorkspaceFormSummaryPanel
+          mode={mode}
+          selectedKind={data.kind}
+          selectedImage={selectedImage}
+          selectedPodConfig={selectedPodConfig}
+          properties={data.properties}
+          currentStep={currentStep}
+          onNavigateToStep={navigateToStep}
+          onSelectImage={handleImageSelect}
+          onSelectPodConfig={handlePodConfigSelect}
+          originalKind={originalData?.kind}
+          originalImage={originalImage}
+          originalPodConfig={originalPodConfig}
+          originalProperties={originalData?.properties}
+        />
       </DrawerPanelBody>
     </DrawerPanelContent>
   );
 
   return (
-    <Drawer isInline isExpanded={drawerExpanded}>
+    <Drawer isInline isExpanded>
       <DrawerContent panelContent={panelContent}>
         <DrawerContentBody>
           <Flex
             direction={{ default: 'column' }}
             flexWrap={{ default: 'nowrap' }}
-            style={{ height: '100%' }}
+            className="workspace-form__full-height"
           >
             <FlexItem>
               <PageSection>
@@ -389,7 +390,7 @@ const WorkspaceForm: React.FC = () => {
               </PageSection>
             </FlexItem>
             <FlexItem flex={{ default: 'flex_1' }}>
-              <PageSection style={{ height: '100%' }} isFilled>
+              <PageSection className="workspace-form__full-height" isFilled>
                 <Stack hasGutter>
                   {error && (
                     <StackItem>
@@ -414,6 +415,7 @@ const WorkspaceForm: React.FC = () => {
                         onSelect={handleImageSelect}
                         images={data.kind?.podTemplate.options.imageConfig.values ?? []}
                         defaultImageId={data.kind?.podTemplate.options.imageConfig.default}
+                        filterControlRef={imageFilterControlRef}
                       />
                     )}
                     {currentStep === WorkspaceFormSteps.PodConfigSelection && (
@@ -422,6 +424,7 @@ const WorkspaceForm: React.FC = () => {
                         onSelect={handlePodConfigSelect}
                         podConfigs={data.kind?.podTemplate.options.podConfig.values ?? []}
                         defaultPodConfigId={data.kind?.podTemplate.options.podConfig.default}
+                        filterControlRef={podConfigFilterControlRef}
                       />
                     )}
                     {currentStep === WorkspaceFormSteps.Properties && (
@@ -429,7 +432,6 @@ const WorkspaceForm: React.FC = () => {
                         mode={mode}
                         selectedProperties={data.properties}
                         onSelect={(properties) => setData('properties', properties)}
-                        selectedImage={selectedImage}
                         homeVolumeMountPath={data.kind?.podTemplate.volumeMounts.home}
                       />
                     )}

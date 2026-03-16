@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import {
   FilterSidePanel,
   FilterSidePanelCategory,
@@ -16,10 +16,16 @@ export type ExtraFilter<T> = {
   matchesFilter: (obj: LabelledObject<T>, value: boolean) => boolean;
 };
 
+export type FilterControlHandle = {
+  clearAllFilters: () => void;
+  setExtraFilter: (key: string, value: boolean) => void;
+};
+
 type FilterByLabelsProps<T> = {
   labelledObjects: LabelledObject<T>[];
   setLabelledObjects: (labelledObjects: LabelledObject<T>[]) => void;
   extraFilters?: ExtraFilter<T>[];
+  filterControlRef?: React.Ref<FilterControlHandle>;
 };
 
 export const FilterByLabels = <T,>(props: FilterByLabelsProps<T>): React.ReactElement => {
@@ -123,6 +129,26 @@ export const FilterByLabels = <T,>(props: FilterByLabelsProps<T>): React.ReactEl
   useEffect(() => {
     updateLabelledObjects();
   }, [selectedLabels, selectedExtraFilters, updateLabelledObjects]);
+
+  useImperativeHandle(
+    props.filterControlRef,
+    () => ({
+      clearAllFilters: () => {
+        setSelectedLabels(new Map());
+      },
+      setExtraFilter: (key: string, value: boolean) => {
+        const filter = props.extraFilters?.find((f) => f.key === key);
+        if (filter) {
+          setSelectedExtraFilters((prev) => {
+            const newMap = new Map(prev);
+            newMap.set(key, { ...filter, value });
+            return newMap;
+          });
+        }
+      },
+    }),
+    [props.extraFilters],
+  );
 
   return (
     <FilterSidePanel id="filter-panel" data-testid="label-filter-panel">

@@ -6,6 +6,7 @@ import {
   Card,
   CardHeader,
 } from '@patternfly/react-core/dist/esm/components/Card';
+import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { Gallery } from '@patternfly/react-core/dist/esm/layouts/Gallery';
 import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
 import ToolbarFilter, { FilterConfigMap } from '~/shared/components/ToolbarFilter';
@@ -131,28 +132,40 @@ export const WorkspaceFormKindList: React.FunctionComponent<WorkspaceFormKindLis
                       onChange,
                     }}
                   >
-                    <WithValidImage
-                      imageSrc={kind.logo.url}
-                      skeletonWidth="60px"
-                      fallback={
-                        <ImageFallback
-                          imageSrc={kind.logo.url}
-                          extended
-                          message="Cannot load logo image"
-                        />
-                      }
+                    <Flex
+                      alignItems={{ default: 'alignItemsCenter' }}
+                      spaceItems={{ default: 'spaceItemsMd' }}
                     >
-                      {(validSrc) => (
-                        <img
-                          src={validSrc}
-                          alt={`${kind.name} logo`}
-                          style={{ maxWidth: '60px' }}
-                        />
-                      )}
-                    </WithValidImage>
+                      <FlexItem>
+                        <WithValidImage
+                          imageSrc={kind.logo.url}
+                          skeletonWidth="60px"
+                          fallback={
+                            <ImageFallback
+                              imageSrc={kind.logo.url}
+                              extended
+                              message="Cannot load logo image"
+                            />
+                          }
+                        >
+                          {(validSrc) => (
+                            <img
+                              src={validSrc}
+                              alt={`${kind.name} logo`}
+                              className="workspace-kind-logo"
+                              data-testid={`kind-logo-${kind.name}`}
+                            />
+                          )}
+                        </WithValidImage>
+                      </FlexItem>
+                      <FlexItem>
+                        <CardTitle>{kind.displayName}</CardTitle>
+                      </FlexItem>
+                    </Flex>
                   </CardHeader>
-                  <CardTitle>{kind.displayName}</CardTitle>
-                  <CardBody>{kind.description}</CardBody>
+                  <CardBody className="workspace-option-card__description">
+                    {kind.description}
+                  </CardBody>
                 </Card>
               ))}
           </Gallery>

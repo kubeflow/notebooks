@@ -233,6 +233,45 @@ class WorkspaceForm {
   assertLabelCategoryNotExists(labelKey: string): void {
     cy.findByTestId(`label-category-${labelKey}`).should('not.exist');
   }
+
+  findKindLogo(kindName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`kind-logo-${kindName}`);
+  }
+
+  findOptionCardHeader(cardId: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`option-card-header-${cardId.replace(/ /g, '-')}`);
+  }
+
+  findOptionCardDescription(cardId: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`option-card-description-${cardId.replace(/ /g, '-')}`);
+  }
+
+  findOptionCardIcons(cardId: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`option-card-icons-${cardId.replace(/ /g, '-')}`);
+  }
+
+  findFilterSidebar(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('filter-sidebar');
+  }
+
+  findRedirectSummaryIcon(step: number, suffix: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`redirect-icon-${step}-${suffix}`);
+  }
+
+  findRedirectPopoverContent(step: number, suffix: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`redirect-popover-content-${step}-${suffix}`);
+  }
+
+  assertPopoverContentVisible(
+    step: number,
+    suffix: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findRedirectPopoverContent(step, suffix).should('be.visible');
+  }
+
+  assertPopoverContentNotExist(step: number, suffix: string): void {
+    cy.findByTestId(`redirect-popover-content-${step}-${suffix}`).should('not.exist');
+  }
 }
 
 class SecretsCreateModal {
