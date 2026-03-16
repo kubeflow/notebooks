@@ -92,35 +92,35 @@ describe('Summary Redirect Popover - Delayed Hide Behavior', () => {
       createWorkspace.clickNext(); // Pod config
       createWorkspace.clickNext(); // Properties
 
-      cy.findByTestId('redirect-icon-1-current').click();
-      cy.get('.pf-v6-c-popover').should('be.visible');
+      createWorkspace.findRedirectSummaryIcon(1, 'current').click();
+      createWorkspace.assertPopoverContentVisible(1, 'current');
 
-      cy.findByTestId('redirect-icon-1-current').trigger('mouseleave');
-      cy.get('.pf-v6-c-popover', { timeout: 2000 }).should('be.visible');
+      createWorkspace.findRedirectSummaryIcon(1, 'current').trigger('mouseleave');
+      createWorkspace.assertPopoverContentVisible(1, 'current');
     });
 
     it('should unpin popover on second click', () => {
       createWorkspace.clickNext(); // Pod config
       createWorkspace.clickNext(); // Properties
 
-      cy.findByTestId('redirect-icon-1-current').click();
-      cy.get('.pf-v6-c-popover').should('be.visible');
+      createWorkspace.findRedirectSummaryIcon(1, 'current').click();
+      createWorkspace.assertPopoverContentVisible(1, 'current');
 
-      cy.findByTestId('redirect-icon-1-current').click();
-      cy.get('.pf-v6-c-popover').should('not.be.visible');
+      createWorkspace.findRedirectSummaryIcon(1, 'current').click();
+      createWorkspace.assertPopoverContentNotExist(1, 'current');
     });
 
     it('should not start delayed hide timer when popover is pinned', () => {
       createWorkspace.clickNext(); // Pod config
       createWorkspace.clickNext(); // Properties
 
-      cy.findByTestId('redirect-icon-1-current').click();
-      cy.get('.pf-v6-c-popover').should('be.visible');
+      createWorkspace.findRedirectSummaryIcon(1, 'current').click();
+      createWorkspace.assertPopoverContentVisible(1, 'current');
 
-      cy.findByTestId('redirect-icon-1-current').trigger('mouseenter');
-      cy.findByTestId('redirect-icon-1-current').trigger('mouseleave');
+      createWorkspace.findRedirectSummaryIcon(1, 'current').trigger('mouseenter');
+      createWorkspace.findRedirectSummaryIcon(1, 'current').trigger('mouseleave');
 
-      cy.get('.pf-v6-c-popover', { timeout: 2000 }).should('be.visible');
+      createWorkspace.assertPopoverContentVisible(1, 'current');
     });
   });
 
@@ -129,18 +129,18 @@ describe('Summary Redirect Popover - Delayed Hide Behavior', () => {
       createWorkspace.clickNext(); // Pod config
       createWorkspace.clickNext(); // Properties
 
-      cy.findByTestId('redirect-icon-1-current').focus();
-      cy.findByTestId('redirect-icon-1-current').type('{enter}');
-      cy.get('.pf-v6-c-popover').should('be.visible');
+      createWorkspace.findRedirectSummaryIcon(1, 'current').focus();
+      createWorkspace.findRedirectSummaryIcon(1, 'current').type('{enter}');
+      createWorkspace.assertPopoverContentVisible(1, 'current');
     });
 
     it('should pin popover on Space key', () => {
       createWorkspace.clickNext(); // Pod config
       createWorkspace.clickNext(); // Properties
 
-      cy.findByTestId('redirect-icon-1-current').focus();
-      cy.findByTestId('redirect-icon-1-current').type(' ');
-      cy.get('.pf-v6-c-popover').should('be.visible');
+      createWorkspace.findRedirectSummaryIcon(1, 'current').focus();
+      createWorkspace.findRedirectSummaryIcon(1, 'current').type(' ');
+      createWorkspace.assertPopoverContentVisible(1, 'current');
     });
   });
 });

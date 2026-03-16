@@ -153,6 +153,7 @@ export const WorkspaceFormKindList: React.FunctionComponent<WorkspaceFormKindLis
                               src={validSrc}
                               alt={`${kind.name} logo`}
                               className="workspace-kind-logo"
+                              data-testid={`kind-logo-${kind.name}`}
                             />
                           )}
                         </WithValidImage>

@@ -117,7 +117,9 @@ const WorkspaceFormImageSelection: React.FunctionComponent<WorkspaceFormImageSel
   return (
     <Content className="workspace-form__full-height">
       <Split hasGutter>
-        <SplitItem className="workspace-form__filter-sidebar">{imageFilterContent}</SplitItem>
+        <SplitItem className="workspace-form__filter-sidebar" data-testid="filter-sidebar">
+          {imageFilterContent}
+        </SplitItem>
         <SplitItem isFilled>
           <WorkspaceFormImageList
             filteredImages={filteredImages}

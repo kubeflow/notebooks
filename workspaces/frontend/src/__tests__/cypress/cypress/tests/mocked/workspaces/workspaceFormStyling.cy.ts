@@ -88,8 +88,8 @@ describe('Workspace Form Styling', () => {
       navBar.selectNamespace(mockNamespace.name);
       cy.wait('@getWorkspaceKinds');
 
-      // Check that the logo has the correct CSS class (alt uses kind.name, not displayName)
-      cy.get('img[alt*="test-kind logo"]')
+      createWorkspace
+        .findKindLogo('test-kind')
         .should('exist')
         .should('have.class', 'workspace-kind-logo');
     });
@@ -100,7 +100,7 @@ describe('Workspace Form Styling', () => {
       navBar.selectNamespace(mockNamespace.name);
       cy.wait('@getWorkspaceKinds');
 
-      cy.get('.workspace-kind-logo').should('have.css', 'max-width', '60px');
+      createWorkspace.findKindLogo('test-kind').should('have.css', 'max-width', '60px');
     });
   });
 
@@ -117,38 +117,38 @@ describe('Workspace Form Styling', () => {
     it('should apply workspace-option-card__header--with-icons class to cards with hidden flag', () => {
       createWorkspace.checkExtraFilter('showHidden');
 
-      cy.get('#hidden-image .pf-v6-c-card__header').should(
-        'have.class',
-        'workspace-option-card__header--with-icons',
-      );
+      createWorkspace
+        .findOptionCardHeader('hidden-image')
+        .should('have.class', 'workspace-option-card__header--with-icons');
     });
 
     it('should apply workspace-option-card__header--with-icons class to cards with redirect', () => {
       createWorkspace.checkExtraFilter('showRedirected');
 
-      cy.get('#redirect-image .pf-v6-c-card__header').should(
-        'have.class',
-        'workspace-option-card__header--with-icons',
-      );
+      createWorkspace
+        .findOptionCardHeader('redirect-image')
+        .should('have.class', 'workspace-option-card__header--with-icons');
     });
 
     it('should NOT apply workspace-option-card__header--with-icons class to normal cards', () => {
-      cy.get('#normal-image .pf-v6-c-card__header').should(
-        'not.have.class',
-        'workspace-option-card__header--with-icons',
-      );
+      createWorkspace
+        .findOptionCardHeader('normal-image')
+        .should('not.have.class', 'workspace-option-card__header--with-icons');
     });
 
     it('should apply workspace-option-card__description class to card descriptions', () => {
-      cy.get('.workspace-option-card__description').should('exist').and('have.length.at.least', 1);
-
-      cy.get('.workspace-option-card__description').first().should('have.css', 'color');
+      createWorkspace
+        .findOptionCardDescription('normal-image')
+        .should('exist')
+        .should('have.class', 'workspace-option-card__description')
+        .should('have.css', 'color');
     });
 
     it('should position icons container absolutely on cards with icons', () => {
       createWorkspace.checkExtraFilter('showHidden');
 
-      cy.get('#hidden-image .workspace-option-card__icons-container')
+      createWorkspace
+        .findOptionCardIcons('hidden-image')
         .should('exist')
         .should('have.css', 'position', 'absolute');
     });
@@ -164,20 +164,22 @@ describe('Workspace Form Styling', () => {
       createWorkspace.clickNext(); // Image
 
       createWorkspace.checkExtraFilter('showRedirected');
-      cy.get('#redirect-image').click();
+      createWorkspace.selectImage('redirect-image');
 
       createWorkspace.clickNext(); // Pod config
       createWorkspace.clickNext(); // Properties - now at summary
     });
 
     it('should apply summary-redirect-icon-button class to redirect icon', () => {
-      cy.findByTestId('redirect-icon-1-current')
+      createWorkspace
+        .findRedirectSummaryIcon(1, 'current')
         .should('exist')
         .should('have.class', 'summary-redirect-icon-button');
     });
 
     it('should style redirect icon button with correct cursor and display', () => {
-      cy.get('.summary-redirect-icon-button')
+      createWorkspace
+        .findRedirectSummaryIcon(1, 'current')
         .should('have.css', 'cursor', 'pointer')
         .should('have.css', 'display', 'inline-flex');
     });
@@ -203,9 +205,7 @@ describe('Workspace Form Styling', () => {
       createWorkspace.selectKind('test-kind');
       createWorkspace.clickNext(); // Image selection
 
-      cy.get('.workspace-form__filter-sidebar')
-        .should('exist')
-        .should('have.css', 'min-width', '200px');
+      createWorkspace.findFilterSidebar().should('exist').should('have.css', 'min-width', '200px');
     });
   });
 
@@ -216,24 +216,27 @@ describe('Workspace Form Styling', () => {
       navBar.selectNamespace(mockNamespace.name);
       cy.wait('@getWorkspaceKinds');
 
-      cy.get('.workspace-kind-logo').should('exist').should('have.css', 'max-width', '60px');
+      createWorkspace
+        .findKindLogo('test-kind')
+        .should('exist')
+        .should('have.css', 'max-width', '60px');
 
       createWorkspace.selectKind('test-kind');
       createWorkspace.clickNext();
 
       cy.get('.workspace-form__full-height').should('exist');
 
-      cy.get('.workspace-form__filter-sidebar')
-        .should('exist')
-        .should('have.css', 'min-width', '200px');
+      createWorkspace.findFilterSidebar().should('exist').should('have.css', 'min-width', '200px');
 
       createWorkspace.checkExtraFilter('showHidden');
 
-      cy.get('.workspace-option-card__description').should('exist');
+      createWorkspace.findOptionCardDescription('hidden-image').should('exist');
 
-      cy.get('.workspace-option-card__header--with-icons').should('exist');
+      createWorkspace
+        .findOptionCardHeader('hidden-image')
+        .should('have.class', 'workspace-option-card__header--with-icons');
 
-      cy.get('.workspace-option-card__icons-container').should('exist');
+      createWorkspace.findOptionCardIcons('hidden-image').should('exist');
     });
   });
 });

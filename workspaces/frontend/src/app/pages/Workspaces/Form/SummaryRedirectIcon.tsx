@@ -70,6 +70,7 @@ export const SummaryRedirectIcon: FC<SummaryRedirectIconProps> = ({
 
   const popoverContent = (
     <div
+      data-testid={`redirect-popover-content-${step}-${popoverIdSuffix}`}
       onMouseEnter={() => {
         clearHideTimeout();
         isHoveringPopoverRef.current = true;
