@@ -128,6 +128,7 @@ def update_manifests_images(components, tag):
         with open(component["kustomization"], "w") as file:
             yaml.dump(kustomize, file)
 
+
 def update_jwa_spawner_config(config_path, tag):
     log.info("Updating JWA Spawner config `%s`", config_path)
     with open(config_path, "r") as file:
@@ -149,11 +150,13 @@ def update_jwa_spawner_config(config_path, tag):
     with open(config_path, "w") as file:
         yaml.dump(jwa_config, file)
 
+
 def _replace_image_tag(image_string, new_tag):
     parts = image_string.split(":")
     if len(parts) != 2:
         raise RuntimeError("Image `%s` doesn't have expected format <img>:<tag>")
     return parts[0] + ":" + new_tag
+
 
 def main():
     logging.basicConfig(level=logging.INFO)
