@@ -32,7 +32,7 @@ class YAML(ruamel.yaml.YAML):
 
 yaml = YAML()
 
-components = [
+COMPONENTS = [
     {
         "name": "Jupyter Web App",
         "kustomization": "components/crud-web-apps/jupyter/manifests/base/kustomization.yaml",
@@ -95,6 +95,10 @@ components = [
     },
 ]
 
+JWA_SPAWNER_CONFIGS = [
+    "components/crud-web-apps/jupyter/manifests/base/configs/spawner_ui_config.yaml",
+]
+
 
 def update_manifests_images(components, tag):
     for component in components:
@@ -124,6 +128,32 @@ def update_manifests_images(components, tag):
         with open(component["kustomization"], "w") as file:
             yaml.dump(kustomize, file)
 
+def update_jwa_spawner_config(config_path, tag):
+    log.info("Updating JWA Spawner config `%s`", config_path)
+    with open(config_path, "r") as file:
+        jwa_config = yaml.load(file)
+
+    # loop over each image type
+    for nb_type in ["image", "imageGroupTwo", "imageGroupOne"]:
+        image_config = jwa_config["spawnerFormDefaults"][nb_type]
+
+        # change the default image
+        old_image = image_config["value"]
+        image_config["value"] = _replace_image_tag(old_image, tag)
+
+        # change the image in each option
+        for i in range(len(image_config["options"])):
+            old_option_image = image_config["options"][i]
+            image_config["options"][i] = _replace_image_tag(old_option_image, tag)
+
+    with open(config_path, "w") as file:
+        yaml.dump(jwa_config, file)
+
+def _replace_image_tag(image_string, new_tag):
+    parts = image_string.split(":")
+    if len(parts) != 2:
+        raise RuntimeError("Image `%s` doesn't have expected format <img>:<tag>")
+    return parts[0] + ":" + new_tag
 
 def main():
     logging.basicConfig(level=logging.INFO)
@@ -134,7 +164,12 @@ def main():
     with open(version_file_path, "r") as file:
         version = file.read().strip()
 
-    update_manifests_images(components, version)
+    # Update Kustomize manifests with new image tags
+    update_manifests_images(COMPONENTS, version)
+
+    # Update JWA Spawner Configs with new image tags
+    for config_path in JWA_SPAWNER_CONFIGS:
+        update_jwa_spawner_config(config_path, version)
 
 
 if __name__ == "__main__":
