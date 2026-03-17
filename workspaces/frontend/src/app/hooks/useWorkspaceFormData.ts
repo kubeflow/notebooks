@@ -46,9 +46,15 @@ const useWorkspaceFormData = (args: {
       podConfig,
       properties: {
         workspaceName,
-        volumes: workspaceUpdate.podTemplate.volumes.data.map((volume) => ({ ...volume })),
+        volumes: workspaceUpdate.podTemplate.volumes.data.map((volume) => ({
+          ...volume,
+          isAttached: true,
+        })),
         secrets:
-          workspaceUpdate.podTemplate.volumes.secrets?.map((secret) => ({ ...secret })) ?? [],
+          workspaceUpdate.podTemplate.volumes.secrets?.map((secret) => ({
+            ...secret,
+            isAttached: true,
+          })) ?? [],
         // The update API returns home as a plain string (the PVC name). Reconstruct
         // a minimal volume value so the Home Volume section can display it.
         homeVolume: workspaceUpdate.podTemplate.volumes.home
@@ -56,6 +62,7 @@ const useWorkspaceFormData = (args: {
               pvcName: workspaceUpdate.podTemplate.volumes.home,
               mountPath: '',
               readOnly: false,
+              isAttached: true,
             }
           : undefined,
       },
