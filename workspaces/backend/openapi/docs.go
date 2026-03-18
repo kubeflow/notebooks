@@ -2429,6 +2429,24 @@ const docTemplate = `{
                 }
             }
         },
+        "workspacekinds.ImageConfigListResult": {
+            "type": "object",
+            "required": [
+                "default",
+                "values"
+            ],
+            "properties": {
+                "default": {
+                    "type": "string"
+                },
+                "values": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspacekinds.ImageConfigValueListItem"
+                    }
+                }
+            }
+        },
         "workspacekinds.ImageConfigValue": {
             "type": "object",
             "required": [
@@ -2465,7 +2483,7 @@ const docTemplate = `{
                 }
             }
         },
-        "workspacekinds.ImageConfigValueWithRules": {
+        "workspacekinds.ImageConfigValueListItem": {
             "type": "object",
             "required": [
                 "description",
@@ -2502,24 +2520,6 @@ const docTemplate = `{
                 },
                 "ruleEffects": {
                     "$ref": "#/definitions/workspacekinds.RuleEffects"
-                }
-            }
-        },
-        "workspacekinds.ImageConfigWithRules": {
-            "type": "object",
-            "required": [
-                "default",
-                "values"
-            ],
-            "properties": {
-                "default": {
-                    "type": "string"
-                },
-                "values": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/workspacekinds.ImageConfigValueWithRules"
-                    }
                 }
             }
         },
@@ -2564,10 +2564,10 @@ const docTemplate = `{
             ],
             "properties": {
                 "imageConfig": {
-                    "$ref": "#/definitions/workspacekinds.ImageConfigWithRules"
+                    "$ref": "#/definitions/workspacekinds.ImageConfigListResult"
                 },
                 "podConfig": {
-                    "$ref": "#/definitions/workspacekinds.PodConfigWithRules"
+                    "$ref": "#/definitions/workspacekinds.PodConfigListResult"
                 }
             }
         },
@@ -2618,6 +2618,24 @@ const docTemplate = `{
                 }
             }
         },
+        "workspacekinds.PodConfigListResult": {
+            "type": "object",
+            "required": [
+                "default",
+                "values"
+            ],
+            "properties": {
+                "default": {
+                    "type": "string"
+                },
+                "values": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspacekinds.PodConfigValueListItem"
+                    }
+                }
+            }
+        },
         "workspacekinds.PodConfigValue": {
             "type": "object",
             "required": [
@@ -2654,7 +2672,7 @@ const docTemplate = `{
                 }
             }
         },
-        "workspacekinds.PodConfigValueWithRules": {
+        "workspacekinds.PodConfigValueListItem": {
             "type": "object",
             "required": [
                 "description",
@@ -2691,24 +2709,6 @@ const docTemplate = `{
                 },
                 "ruleEffects": {
                     "$ref": "#/definitions/workspacekinds.RuleEffects"
-                }
-            }
-        },
-        "workspacekinds.PodConfigWithRules": {
-            "type": "object",
-            "required": [
-                "default",
-                "values"
-            ],
-            "properties": {
-                "default": {
-                    "type": "string"
-                },
-                "values": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/workspacekinds.PodConfigValueWithRules"
-                    }
                 }
             }
         },
