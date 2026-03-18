@@ -922,7 +922,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Successful operation. Returns filtered options with rule_effects.",
+                        "description": "Successful operation. Returns filtered options with ruleEffects.",
                         "schema": {
                             "$ref": "#/definitions/api.ListValuesEnvelope"
                         }
@@ -2455,7 +2455,7 @@ const docTemplate = `{
                 "hidden",
                 "id",
                 "labels",
-                "rule_effects"
+                "ruleEffects"
             ],
             "properties": {
                 "clusterMetrics": {
@@ -2482,7 +2482,7 @@ const docTemplate = `{
                 "redirect": {
                     "$ref": "#/definitions/workspacekinds.OptionRedirect"
                 },
-                "rule_effects": {
+                "ruleEffects": {
                     "$ref": "#/definitions/workspacekinds.RuleEffects"
                 }
             }
@@ -2644,7 +2644,7 @@ const docTemplate = `{
                 "hidden",
                 "id",
                 "labels",
-                "rule_effects"
+                "ruleEffects"
             ],
             "properties": {
                 "clusterMetrics": {
@@ -2671,7 +2671,7 @@ const docTemplate = `{
                 "redirect": {
                     "$ref": "#/definitions/workspacekinds.OptionRedirect"
                 },
-                "rule_effects": {
+                "ruleEffects": {
                     "$ref": "#/definitions/workspacekinds.RuleEffects"
                 }
             }

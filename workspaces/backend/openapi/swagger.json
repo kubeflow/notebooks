@@ -920,7 +920,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Successful operation. Returns filtered options with rule_effects.",
+                        "description": "Successful operation. Returns filtered options with ruleEffects.",
                         "schema": {
                             "$ref": "#/definitions/api.ListValuesEnvelope"
                         }
@@ -2453,7 +2453,7 @@
                 "hidden",
                 "id",
                 "labels",
-                "rule_effects"
+                "ruleEffects"
             ],
             "properties": {
                 "clusterMetrics": {
@@ -2480,7 +2480,7 @@
                 "redirect": {
                     "$ref": "#/definitions/workspacekinds.OptionRedirect"
                 },
-                "rule_effects": {
+                "ruleEffects": {
                     "$ref": "#/definitions/workspacekinds.RuleEffects"
                 }
             }
@@ -2642,7 +2642,7 @@
                 "hidden",
                 "id",
                 "labels",
-                "rule_effects"
+                "ruleEffects"
             ],
             "properties": {
                 "clusterMetrics": {
@@ -2669,7 +2669,7 @@
                 "redirect": {
                     "$ref": "#/definitions/workspacekinds.OptionRedirect"
                 },
-                "rule_effects": {
+                "ruleEffects": {
                     "$ref": "#/definitions/workspacekinds.RuleEffects"
                 }
             }

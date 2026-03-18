@@ -184,7 +184,7 @@ type ImageConfigValueWithRules struct {
 	Hidden         bool            `json:"hidden"`
 	Redirect       *OptionRedirect `json:"redirect,omitempty"`
 	ClusterMetrics clusterMetrics  `json:"clusterMetrics,omitempty"`
-	RuleEffects    RuleEffects     `json:"rule_effects"`
+	RuleEffects    RuleEffects     `json:"ruleEffects"`
 }
 
 type PodConfigWithRules struct {
@@ -200,7 +200,7 @@ type PodConfigValueWithRules struct {
 	Hidden         bool            `json:"hidden"`
 	Redirect       *OptionRedirect `json:"redirect,omitempty"`
 	ClusterMetrics clusterMetrics  `json:"clusterMetrics,omitempty"`
-	RuleEffects    RuleEffects     `json:"rule_effects"`
+	RuleEffects    RuleEffects     `json:"ruleEffects"`
 }
 
 type RuleEffects struct {

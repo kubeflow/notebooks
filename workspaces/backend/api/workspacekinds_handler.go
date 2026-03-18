@@ -237,7 +237,7 @@ func (a *App) CreateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 //	@Produce		json
 //	@Param			name	path		string						true	"Name of the workspace kind"	extensions(x-example=jupyterlab)
 //	@Param			body	body		ListValuesRequestEnvelope	true	"Request body with optional context filters"
-//	@Success		200		{object}	ListValuesEnvelope			"Successful operation. Returns filtered options with rule_effects."
+//	@Success		200		{object}	ListValuesEnvelope			"Successful operation. Returns filtered options with ruleEffects."
 //	@Failure		400		{object}	ErrorEnvelope				"Bad Request. Invalid workspace kind name or request body."
 //	@Failure		401		{object}	ErrorEnvelope				"Unauthorized. Authentication is required."
 //	@Failure		403		{object}	ErrorEnvelope				"Forbidden. User does not have permission to access the workspace kind."
@@ -299,7 +299,7 @@ func (a *App) ListValuesHandler(w http.ResponseWriter, r *http.Request, ps httpr
 		return
 	}
 
-	// build the response with rule_effects and context filtering
+	// build the response with ruleEffects and context filtering
 	response := models.BuildListValuesResponse(&workspaceKind, bodyEnvelope.Data.Context)
 
 	responseEnvelope := &ListValuesEnvelope{Data: response}
