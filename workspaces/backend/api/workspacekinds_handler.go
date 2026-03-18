@@ -255,6 +255,11 @@ func (a *App) ListValuesHandler(w http.ResponseWriter, r *http.Request, ps httpr
 		return
 	}
 
+	// validate the Content-Type header
+	if success := a.ValidateContentType(w, r, MediaTypeJson); !success {
+		return
+	}
+
 	// parse request body
 	bodyEnvelope := &ListValuesRequestEnvelope{}
 	if err := a.DecodeJSON(r, bodyEnvelope); err != nil {
