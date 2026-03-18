@@ -117,15 +117,11 @@ const (
 )
 
 type ListValuesRequest struct {
-	Data ListValuesRequestData `json:"data"`
-}
-
-type ListValuesRequestData struct {
 	Context *ListValuesContext `json:"context,omitempty"`
 }
 
 // Validate validates the listvalues request data by delegating to Context when present.
-func (d *ListValuesRequestData) Validate(prefix *field.Path) field.ErrorList {
+func (d *ListValuesRequest) Validate(prefix *field.Path) field.ErrorList {
 	var errs field.ErrorList
 	if d == nil {
 		return errs
