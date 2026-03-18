@@ -205,10 +205,10 @@ describe('Filter Pod Configs by Labels', () => {
       createWorkspace.assertNoResultsFound();
     });
 
-    it('should format label keys correctly', () => {
-      createWorkspace.findLabelCategory('cpu').should('contain', 'CPU');
-      createWorkspace.findLabelCategory('memory').should('contain', 'Memory');
-      createWorkspace.findLabelCategory('gpu').should('contain', 'GPU');
+    it('should display label keys without capitalization', () => {
+      createWorkspace.findLabelCategory('cpu').should('contain', 'cpu');
+      createWorkspace.findLabelCategory('memory').should('contain', 'memory');
+      createWorkspace.findLabelCategory('gpu').should('contain', 'gpu');
     });
   });
 

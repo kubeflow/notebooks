@@ -15,12 +15,6 @@ interface WorkspaceConfigDetailsProps {
 export const WorkspaceConfigDetails: React.FC<WorkspaceConfigDetailsProps> = ({ workspace }) => (
   <DescriptionList>
     <DescriptionListGroup>
-      <DescriptionListTerm>Pod config</DescriptionListTerm>
-      <DescriptionListDescription>
-        {workspace.podTemplate.options.podConfig.current.displayName}
-      </DescriptionListDescription>
-    </DescriptionListGroup>
-    <DescriptionListGroup>
       <DescriptionListTerm>CPU</DescriptionListTerm>
       <DescriptionListDescription>
         {formatResourceFromWorkspace(workspace, 'cpu')}

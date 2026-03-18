@@ -279,7 +279,6 @@ describe('Workspaces', () => {
       workspaces.assertExpandedRowExists(mockWorkspace.name);
       workspaces.assertExpandedRowContainsText(mockWorkspace.name, 'Home volume');
       workspaces.assertExpandedRowContainsText(mockWorkspace.name, 'Packages');
-      workspaces.assertExpandedRowContainsText(mockWorkspace.name, 'Pod config');
       workspaces.assertExpandedRowContainsText(mockWorkspace.name, 'CPU');
       workspaces.assertExpandedRowContainsText(mockWorkspace.name, 'Memory');
 

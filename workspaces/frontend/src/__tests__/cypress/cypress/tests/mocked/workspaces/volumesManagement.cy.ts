@@ -165,8 +165,8 @@ describe('Volumes Management - Attach and Create', () => {
     editWorkspace.clickNext(); // Skip image step
     editWorkspace.clickNext(); // Skip pod config step, now on properties
 
-    // Expand the Volumes section
-    cy.contains('button', 'Volumes').click();
+    // Expand the Data Volumes section
+    cy.contains('button', 'Data Volumes').click();
     cy.wait('@listPVCs');
   });
 

@@ -131,22 +131,8 @@ export const countGpusFromWorkspaces = (workspaces: WorkspacesWorkspaceListItem[
     return total + (gpuValue ?? 0);
   }, 0);
 
-// Helper function to format label keys into human-readable names
-export const formatLabelKey = (key: string): string => {
-  // Handle camelCase version labels (e.g., pythonVersion -> Python)
-  if (key.endsWith('Version')) {
-    const baseName = key.slice(0, -7); // Remove 'Version' suffix
-    return baseName.charAt(0).toUpperCase() + baseName.slice(1);
-  }
-
-  // Handle standard infrastructure resource types
-  if (key === 'cpu' || key === 'gpu') {
-    return key.toLocaleUpperCase();
-  }
-
-  // Otherwise just capitalize the first letter
-  return key.charAt(0).toUpperCase() + key.slice(1);
-};
+// For now, label keys will be showed as they are in the backend.
+export const formatLabelKey = (key: string): string => key;
 
 // Check if a label represents version/package information
 export const isPackageLabel = (key: string): boolean => key.endsWith('Version');

@@ -144,11 +144,19 @@ class WorkspaceForm {
   }
 
   assertVolumesCount(count: number): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('volumes-count').should('have.text', `${count} added`);
+    return cy
+      .findAllByTestId('volumes-count')
+      .filter(':visible')
+      .first()
+      .should('have.text', `${count} added`);
   }
 
   assertSecretsCount(count: number): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('secrets-count').should('have.text', `${count} added`);
+    return cy
+      .findAllByTestId('secrets-count')
+      .filter(':visible')
+      .first()
+      .should('have.text', `${count} added`);
   }
 
   findSecretsExpandableToggle(): Cypress.Chainable<JQuery<HTMLElement>> {

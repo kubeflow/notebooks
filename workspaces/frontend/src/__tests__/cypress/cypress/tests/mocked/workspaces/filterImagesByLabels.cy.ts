@@ -233,11 +233,11 @@ describe('Filter Images by Labels', () => {
       createWorkspace.findImageCard('pytorch-39').should('not.exist');
     });
 
-    it('should format label keys correctly', () => {
-      createWorkspace.findLabelCategory('pythonVersion').should('contain', 'Python');
-      createWorkspace.findLabelCategory('cpu').should('contain', 'CPU');
-      createWorkspace.findLabelCategory('gpu').should('contain', 'GPU');
-      createWorkspace.findLabelCategory('framework').should('contain', 'Framework');
+    it('should display label keys without capitalization', () => {
+      createWorkspace.findLabelCategory('pythonVersion').should('contain', 'pythonVersion');
+      createWorkspace.findLabelCategory('cpu').should('contain', 'cpu');
+      createWorkspace.findLabelCategory('gpu').should('contain', 'gpu');
+      createWorkspace.findLabelCategory('framework').should('contain', 'framework');
     });
   });
 

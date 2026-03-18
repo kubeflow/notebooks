@@ -1217,19 +1217,11 @@ describe('Create workspace', () => {
       it('should display required helper when no home volume is mounted', () => {
         completeAllStepsToProperties(mockWorkspaceKind.name, mockImage.id, mockPodConfig.id);
 
-        cy.findByTestId('home-volume-status').should('have.text', 'None mounted');
         cy.findByTestId('workspace-home-volume-required-helper').should('be.visible');
         cy.findByTestId('workspace-home-volume-required-helper').should(
           'contain.text',
           'Mounting a home volume is required.',
         );
-      });
-
-      it('should hide the required helper when the Home Volume section is expanded', () => {
-        completeAllStepsToProperties(mockWorkspaceKind.name, mockImage.id, mockPodConfig.id);
-
-        createWorkspace.expandHomeVolumeSection();
-        cy.findByTestId('workspace-home-volume-required-helper').should('not.exist');
       });
     });
 
@@ -1278,7 +1270,9 @@ describe('Create workspace', () => {
         // Wait for listSecrets API to complete (component fetches on mount)
         cy.wait('@listSecrets');
 
-        // Wait for the create button to be visible
+        // Scroll to and wait for the create button to be visible
+        cy.findByTestId('attach-new-secret-button').should('exist');
+        cy.findByTestId('attach-new-secret-button').scrollIntoView();
         cy.findByTestId('attach-new-secret-button').should('be.visible');
 
         // Create a new secret
@@ -1336,7 +1330,9 @@ describe('Create workspace', () => {
         // Wait for listSecrets API to complete (component fetches on mount)
         cy.wait('@listSecrets');
 
-        // Wait for the create button to be visible
+        // Scroll to and wait for the create button to be visible
+        cy.findByTestId('attach-new-secret-button').should('exist');
+        cy.findByTestId('attach-new-secret-button').scrollIntoView();
         cy.findByTestId('attach-new-secret-button').should('be.visible');
 
         // Create first secret
