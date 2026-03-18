@@ -163,40 +163,32 @@ type ContextImageConfig struct {
 }
 
 type ListValuesResponse struct {
-	ImageConfig ImageConfigWithRules `json:"imageConfig"`
-	PodConfig   PodConfigWithRules   `json:"podConfig"`
+	ImageConfig ImageConfigListResult `json:"imageConfig"`
+	PodConfig   PodConfigListResult   `json:"podConfig"`
 }
 
-type ImageConfigWithRules struct {
-	Default string                      `json:"default"`
-	Values  []ImageConfigValueWithRules `json:"values"`
+// ImageConfigListResult is the imageConfig section of a listvalues response.
+type ImageConfigListResult struct {
+	Default string                     `json:"default"`
+	Values  []ImageConfigValueListItem `json:"values"`
 }
 
-type ImageConfigValueWithRules struct {
-	Id             string          `json:"id"`
-	DisplayName    string          `json:"displayName"`
-	Description    string          `json:"description"`
-	Labels         []OptionLabel   `json:"labels"`
-	Hidden         bool            `json:"hidden"`
-	Redirect       *OptionRedirect `json:"redirect,omitempty"`
-	ClusterMetrics clusterMetrics  `json:"clusterMetrics,omitempty"`
-	RuleEffects    RuleEffects     `json:"ruleEffects"`
+// ImageConfigValueListItem is one image option in listvalues with ruleEffects.
+type ImageConfigValueListItem struct {
+	ImageConfigValue
+	RuleEffects RuleEffects `json:"ruleEffects"`
 }
 
-type PodConfigWithRules struct {
-	Default string                    `json:"default"`
-	Values  []PodConfigValueWithRules `json:"values"`
+// PodConfigListResult is the podConfig section of a listvalues response.
+type PodConfigListResult struct {
+	Default string                   `json:"default"`
+	Values  []PodConfigValueListItem `json:"values"`
 }
 
-type PodConfigValueWithRules struct {
-	Id             string          `json:"id"`
-	DisplayName    string          `json:"displayName"`
-	Description    string          `json:"description"`
-	Labels         []OptionLabel   `json:"labels"`
-	Hidden         bool            `json:"hidden"`
-	Redirect       *OptionRedirect `json:"redirect,omitempty"`
-	ClusterMetrics clusterMetrics  `json:"clusterMetrics,omitempty"`
-	RuleEffects    RuleEffects     `json:"ruleEffects"`
+// PodConfigValueListItem is one pod option in listvalues with ruleEffects.
+type PodConfigValueListItem struct {
+	PodConfigValue
+	RuleEffects RuleEffects `json:"ruleEffects"`
 }
 
 type RuleEffects struct {

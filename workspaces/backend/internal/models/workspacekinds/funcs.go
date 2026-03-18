@@ -179,69 +179,53 @@ func buildOptionRedirect(redirect *kubefloworgv1beta1.OptionRedirect) *OptionRed
 // BuildListValuesResponse transforms a WorkspaceKind into a ListValuesResponse
 // by adding ruleEffects to each option value and applying context filters
 func BuildListValuesResponse(wsk *WorkspaceKind, context *ListValuesContext) ListValuesResponse {
-	imageValues := buildImageConfigValuesWithRules(wsk.PodTemplate.Options.ImageConfig, context)
-	podValues := buildPodConfigValuesWithRules(wsk.PodTemplate.Options.PodConfig, context)
+	imageValues := buildImageConfigValueListItems(wsk.PodTemplate.Options.ImageConfig, context)
+	podValues := buildPodConfigValueListItems(wsk.PodTemplate.Options.PodConfig, context)
 
 	return ListValuesResponse{
-		ImageConfig: ImageConfigWithRules{
+		ImageConfig: ImageConfigListResult{
 			Default: wsk.PodTemplate.Options.ImageConfig.Default,
 			Values:  imageValues,
 		},
-		PodConfig: PodConfigWithRules{
+		PodConfig: PodConfigListResult{
 			Default: wsk.PodTemplate.Options.PodConfig.Default,
 			Values:  podValues,
 		},
 	}
 }
 
-func buildImageConfigValuesWithRules(imageConfig ImageConfig, context *ListValuesContext) []ImageConfigValueWithRules {
-	values := make([]ImageConfigValueWithRules, 0, len(imageConfig.Values))
+func buildImageConfigValueListItems(imageConfig ImageConfig, context *ListValuesContext) []ImageConfigValueListItem {
+	values := make([]ImageConfigValueListItem, 0, len(imageConfig.Values))
 
 	for _, v := range imageConfig.Values {
-		// Filter by context if imageConfig.id is specified
 		if context != nil && context.ImageConfig != nil {
 			if v.Id != context.ImageConfig.Id {
 				continue
 			}
 		}
 
-		// Transform and add ruleEffects
-		values = append(values, ImageConfigValueWithRules{
-			Id:             v.Id,
-			DisplayName:    v.DisplayName,
-			Description:    v.Description,
-			Labels:         v.Labels,
-			Hidden:         v.Hidden,
-			Redirect:       v.Redirect,
-			ClusterMetrics: v.ClusterMetrics,
-			RuleEffects:    RuleEffects{UiHide: false}, // Always false for stub
+		values = append(values, ImageConfigValueListItem{
+			ImageConfigValue: v,
+			RuleEffects:      RuleEffects{UiHide: false},
 		})
 	}
 
 	return values
 }
 
-func buildPodConfigValuesWithRules(podConfig PodConfig, context *ListValuesContext) []PodConfigValueWithRules {
-	values := make([]PodConfigValueWithRules, 0, len(podConfig.Values))
+func buildPodConfigValueListItems(podConfig PodConfig, context *ListValuesContext) []PodConfigValueListItem {
+	values := make([]PodConfigValueListItem, 0, len(podConfig.Values))
 
 	for _, v := range podConfig.Values {
-		// Filter by context if podConfig.id is specified
 		if context != nil && context.PodConfig != nil {
 			if v.Id != context.PodConfig.Id {
 				continue
 			}
 		}
 
-		// Transform and add ruleEffects
-		values = append(values, PodConfigValueWithRules{
-			Id:             v.Id,
-			DisplayName:    v.DisplayName,
-			Description:    v.Description,
-			Labels:         v.Labels,
-			Hidden:         v.Hidden,
-			Redirect:       v.Redirect,
-			ClusterMetrics: v.ClusterMetrics,
-			RuleEffects:    RuleEffects{UiHide: false}, // Always false for stub
+		values = append(values, PodConfigValueListItem{
+			PodConfigValue: v,
+			RuleEffects:    RuleEffects{UiHide: false},
 		})
 	}
 
