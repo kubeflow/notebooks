@@ -1624,7 +1624,7 @@
             ],
             "properties": {
                 "data": {
-                    "$ref": "#/definitions/workspacekinds.ListValuesRequestData"
+                    "$ref": "#/definitions/workspacekinds.ListValuesRequest"
                 }
             }
         },
@@ -2542,7 +2542,7 @@
                 }
             }
         },
-        "workspacekinds.ListValuesRequestData": {
+        "workspacekinds.ListValuesRequest": {
             "type": "object",
             "properties": {
                 "context": {
