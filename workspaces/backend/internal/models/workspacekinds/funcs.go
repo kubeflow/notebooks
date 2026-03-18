@@ -177,7 +177,7 @@ func buildOptionRedirect(redirect *kubefloworgv1beta1.OptionRedirect) *OptionRed
 }
 
 // BuildListValuesResponse transforms a WorkspaceKind into a ListValuesResponse
-// by adding rule_effects to each option value and applying context filters
+// by adding ruleEffects to each option value and applying context filters
 func BuildListValuesResponse(wsk *WorkspaceKind, context *ListValuesContext) ListValuesResponse {
 	imageValues := buildImageConfigValuesWithRules(wsk.PodTemplate.Options.ImageConfig, context)
 	podValues := buildPodConfigValuesWithRules(wsk.PodTemplate.Options.PodConfig, context)
@@ -205,7 +205,7 @@ func buildImageConfigValuesWithRules(imageConfig ImageConfig, context *ListValue
 			}
 		}
 
-		// Transform and add rule_effects
+		// Transform and add ruleEffects
 		values = append(values, ImageConfigValueWithRules{
 			Id:             v.Id,
 			DisplayName:    v.DisplayName,
@@ -232,7 +232,7 @@ func buildPodConfigValuesWithRules(podConfig PodConfig, context *ListValuesConte
 			}
 		}
 
-		// Transform and add rule_effects
+		// Transform and add ruleEffects
 		values = append(values, PodConfigValueWithRules{
 			Id:             v.Id,
 			DisplayName:    v.DisplayName,
