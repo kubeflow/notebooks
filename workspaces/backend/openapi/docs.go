@@ -1612,7 +1612,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "data": {
-                    "$ref": "#/definitions/workspacekinds.ListValuesRequestData"
+                    "$ref": "#/definitions/workspacekinds.ListValuesRequest"
                 }
             }
         },
@@ -2530,7 +2530,7 @@ const docTemplate = `{
                 }
             }
         },
-        "workspacekinds.ListValuesRequestData": {
+        "workspacekinds.ListValuesRequest": {
             "type": "object",
             "properties": {
                 "context": {
