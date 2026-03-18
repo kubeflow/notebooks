@@ -204,5 +204,5 @@ type PodConfigValueWithRules struct {
 }
 
 type RuleEffects struct {
-	UiHide bool `json:"ui_hide"`
+	UiHide bool `json:"uiHide"`
 }

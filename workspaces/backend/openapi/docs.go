@@ -2805,10 +2805,10 @@ const docTemplate = `{
         "workspacekinds.RuleEffects": {
             "type": "object",
             "required": [
-                "ui_hide"
+                "uiHide"
             ],
             "properties": {
-                "ui_hide": {
+                "uiHide": {
                     "type": "boolean"
                 }
             }
