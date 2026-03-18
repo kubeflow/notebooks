@@ -1,4 +1,4 @@
-name: Run PVCViewer Controller unit tests
+name: PVCViewer Controller unit tests
 on:
   pull_request:
     paths:

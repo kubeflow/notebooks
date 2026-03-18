@@ -12,8 +12,8 @@ commonLabels:
   app: tensorboards-web-app
   kustomize.component: tensorboards-web-app
 images:
-- name: ghcr.io/kubeflow/kubeflow/tensorboards-web-app
-  newName: ghcr.io/kubeflow/kubeflow/tensorboards-web-app
+- name: ghcr.io/kubeflow/notebooks/tensorboards-web-app
+  newName: ghcr.io/kubeflow/notebooks/tensorboards-web-app
   newTag: latest
 # We need the name to be unique without the suffix because the original name is what
 # gets used with patches

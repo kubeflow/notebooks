@@ -19,7 +19,19 @@ RUN cd /workspace/notebook-controller && go mod download
 # Force download and extract all HashiCorp modules so they exist under /go/pkg/mod
 RUN set -e; cd /workspace/notebook-controller; \
   for m in $(go list -m all | awk '/^github.com\/hashicorp\// {print $1 "@" $2}'); do \
-    go mod download "$m"; \
+    # download with retry (these downloads are flakey) \
+    for i in $(seq 1 5); do \
+      if go mod download "$m"; then \
+        echo "INFO: Successfully downloaded $m"; \
+        break; \
+      fi; \
+      if [ $i -eq 5 ]; then \
+        echo "ERROR: Failed to download $m after $i attempts"; \
+        exit 1; \
+      fi; \
+      echo "WARN: Retrying download of $m (attempt $i)"; \
+      sleep $((i * 2)); \
+    done; \
     pkg="${m%@*}"; \
     go list "$pkg/..." >/dev/null 2>&1 || true; \
   done
