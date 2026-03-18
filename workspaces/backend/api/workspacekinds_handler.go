@@ -43,7 +43,7 @@ type WorkspaceKindEnvelope Envelope[models.WorkspaceKind]
 
 type ListValuesEnvelope Envelope[models.ListValuesResponse]
 
-type ListValuesRequestEnvelope Envelope[*models.ListValuesRequestData]
+type ListValuesRequestEnvelope Envelope[*models.ListValuesRequest]
 
 // GetWorkspaceKindHandler retrieves a specific workspace kind by name.
 //
