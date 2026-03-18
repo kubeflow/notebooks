@@ -110,18 +110,7 @@ class CreateWorkspace extends WorkspaceForm {
     return this.findClearAllFiltersButton().click();
   }
 
-  findHomeVolumeToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.contains('button', 'Home Volume') as unknown as Cypress.Chainable<
-      JQuery<HTMLElement>
-    >;
-  }
-
-  expandHomeVolumeSection(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findHomeVolumeToggle().click();
-  }
-
   attachHomeVolume(pvcName: string): void {
-    this.expandHomeVolumeSection();
     cy.findByTestId('attach-existing-volume-button').click();
     volumesAttachModal.selectPVC(pvcName);
     volumesAttachModal.clickAttach();

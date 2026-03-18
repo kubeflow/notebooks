@@ -5,7 +5,9 @@
 class VolumesManagementPage {
   // Expandable Section
   findVolumesSection(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.contains('button', 'Volumes') as unknown as Cypress.Chainable<JQuery<HTMLElement>>;
+    return cy.contains('button', 'Data Volumes') as unknown as Cypress.Chainable<
+      JQuery<HTMLElement>
+    >;
   }
 
   expandVolumesSection(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -14,7 +16,7 @@ class VolumesManagementPage {
 
   // Empty State
   findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('volumes-empty-state');
+    return cy.findAllByTestId('volumes-empty-state').filter(':visible').last();
   }
 
   assertEmptyStateVisible(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -23,7 +25,7 @@ class VolumesManagementPage {
 
   // Table
   findVolumesTable(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('volumes-table');
+    return cy.findAllByTestId('volumes-table').filter(':visible').last();
   }
 
   findVolumeRow(pvcName: string): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -62,7 +64,7 @@ class VolumesManagementPage {
 
   // Buttons
   findAttachExistingPVCButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('attach-existing-volume-button');
+    return cy.findAllByTestId('attach-existing-volume-button').filter(':visible').last();
   }
 
   clickAttachExistingPVC(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -70,7 +72,7 @@ class VolumesManagementPage {
   }
 
   findCreateVolumeButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('attach-new-volume-button');
+    return cy.findAllByTestId('attach-new-volume-button').filter(':visible').last();
   }
 
   clickCreateVolume(): Cypress.Chainable<JQuery<HTMLElement>> {

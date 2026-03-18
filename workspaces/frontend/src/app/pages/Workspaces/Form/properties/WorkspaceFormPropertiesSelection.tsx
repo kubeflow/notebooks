@@ -24,7 +24,6 @@ interface WorkspaceFormPropertiesSelectionProps {
 const WorkspaceFormPropertiesSelection: React.FunctionComponent<
   WorkspaceFormPropertiesSelectionProps
 > = ({ mode, selectedProperties, onSelect, homeVolumeMountPath }) => {
-  const [isHomeVolumeExpanded, setIsHomeVolumeExpanded] = useState(false);
   const [isDataVolumesExpanded, setIsDataVolumesExpanded] = useState(false);
   const [isSecretsExpanded, setIsSecretsExpanded] = useState(false);
 
@@ -48,6 +47,24 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
       onSelect({ ...selectedProperties, homeVolume: volumes[0] });
     },
     [selectedProperties, onSelect],
+  );
+
+  const dataVolumesInfo = (
+    <div className="pf-v6-u-pl-xl pf-v6-u-pt-sm pf-v6-u-pb-sm">
+      <div>Workspace volumes enable your project data to persist.</div>
+      <div className="pf-u-font-size-sm">
+        <strong data-testid="volumes-count">{selectedProperties.volumes.length} added</strong>
+      </div>
+    </div>
+  );
+
+  const secretsInfo = (
+    <div className="pf-v6-u-pl-xl pf-v6-u-pt-sm pf-v6-u-pb-sm">
+      <div>Secrets enable your project to securely access and manage credentials.</div>
+      <div className="pf-u-font-size-sm">
+        <strong data-testid="secrets-count">{selectedProperties.secrets.length} added</strong>
+      </div>
+    </div>
   );
 
   return (
@@ -81,53 +98,42 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
               </HelperTextItem>
             </HelperText>
           )}
-          <ExpandableSection
-            toggleText="Home Volume"
-            onToggle={() => setIsHomeVolumeExpanded((prev) => !prev)}
-            isExpanded={isHomeVolumeExpanded}
-            isIndented
-          >
-            {isHomeVolumeExpanded && (
-              <FormGroup fieldId="home-volume-table" className="workspace-form__form-group--spaced">
-                <WorkspaceFormPropertiesVolumes
-                  volumes={homeVolumeArray}
-                  setVolumes={handleSetHomeVolume}
-                  fixedMountPath={homeVolumeMountPath}
-                  excludedPvcNames={dataPvcNames}
-                />
-              </FormGroup>
+          <ExpandableSection toggleText="Home Volume" isExpanded isIndented>
+            <div className="pf-v6-u-pl-xl pf-v6-u-pt-sm pf-v6-u-pb-sm">
+              <div>The home volume persists your workspace home directory.</div>
+            </div>
+            <FormGroup fieldId="home-volume-table" className="workspace-form__form-group--spaced">
+              <WorkspaceFormPropertiesVolumes
+                volumes={homeVolumeArray}
+                setVolumes={handleSetHomeVolume}
+                fixedMountPath={homeVolumeMountPath}
+                excludedPvcNames={dataPvcNames}
+              />
+            </FormGroup>
+            {!selectedProperties.homeVolume && (
+              <HelperText>
+                <HelperTextItem
+                  variant="error"
+                  data-testid="workspace-home-volume-required-helper"
+                  className="pf-v6-u-ml-0"
+                >
+                  <InfoCircleIcon className="pf-v6-u-mr-xs" />
+                  <strong>Mounting a home volume is required.</strong>
+                </HelperTextItem>
+              </HelperText>
             )}
           </ExpandableSection>
-          {!isHomeVolumeExpanded && (
-            <div className="pf-v6-u-pl-xl pf-v6-u-pt-sm">
-              <div>The home volume persists your workspace home directory.</div>
-              <div className="pf-u-font-size-sm pf-v6-u-pb-md">
-                <strong data-testid="home-volume-status">
-                  {selectedProperties.homeVolume ? '1 mounted' : 'None mounted'}
-                </strong>
-                {!selectedProperties.homeVolume && (
-                  <HelperText>
-                    <HelperTextItem
-                      variant="error"
-                      data-testid="workspace-home-volume-required-helper"
-                      className="pf-v6-u-ml-0"
-                    >
-                      <InfoCircleIcon className="pf-v6-u-mr-xs" />
-                      <strong>Mounting a home volume is required.</strong>
-                    </HelperTextItem>
-                  </HelperText>
-                )}
-              </div>
-            </div>
-          )}
           <ExpandableSection
             toggleText="Data Volumes"
             onToggle={() => setIsDataVolumesExpanded((prev) => !prev)}
             isExpanded={isDataVolumesExpanded}
-            isIndented
           >
+            {dataVolumesInfo}
             {isDataVolumesExpanded && (
-              <FormGroup fieldId="volumes-table" className="workspace-form__form-group--spaced">
+              <FormGroup
+                fieldId="volumes-table"
+                className="workspace-form__form-group--spaced pf-v6-u-pl-lg"
+              >
                 <WorkspaceFormPropertiesVolumes
                   volumes={selectedProperties.volumes}
                   setVolumes={(volumes) => onSelect({ ...selectedProperties, volumes })}
@@ -136,25 +142,19 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
               </FormGroup>
             )}
           </ExpandableSection>
-          {!isDataVolumesExpanded && (
-            <div className="pf-v6-u-pl-xl pf-v6-u-pt-sm">
-              <div>Workspace volumes enable your project data to persist.</div>
-              <div className="pf-u-font-size-sm pf-v6-u-pb-md">
-                <strong data-testid="volumes-count">
-                  {selectedProperties.volumes.length} added
-                </strong>
-              </div>
-            </div>
-          )}
+          {!isDataVolumesExpanded && dataVolumesInfo}
           <ExpandableSection
             toggleText="Secrets"
             data-testid="secrets-expandable-section"
             onToggle={() => setIsSecretsExpanded((prev) => !prev)}
             isExpanded={isSecretsExpanded}
-            isIndented
           >
+            {secretsInfo}
             {isSecretsExpanded && (
-              <FormGroup fieldId="secrets-table" className="workspace-form__form-group--spaced">
+              <FormGroup
+                fieldId="secrets-table"
+                className="workspace-form__form-group--spaced pf-v6-u-pl-lg"
+              >
                 <WorkspaceFormPropertiesSecrets
                   secrets={selectedProperties.secrets}
                   setSecrets={(secrets) => onSelect({ ...selectedProperties, secrets })}
@@ -162,16 +162,7 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
               </FormGroup>
             )}
           </ExpandableSection>
-          {!isSecretsExpanded && (
-            <div className="pf-v6-u-pl-xl pf-v6-u-mt-sm">
-              <div>Secrets enable your project to securely access and manage credentials.</div>
-              <div className="pf-u-font-size-sm">
-                <strong data-testid="secrets-count">
-                  {selectedProperties.secrets.length} added
-                </strong>
-              </div>
-            </div>
-          )}
+          {!isSecretsExpanded && secretsInfo}
         </Form>
       </div>
     </Content>
