@@ -13,7 +13,6 @@ import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack'
 import { FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { default as ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
-import { useThemeContext } from 'mod-arch-kubeflow';
 import { ActionButton } from '~/shared/components/ActionButton';
 import { ErrorAlert } from '~/shared/components/ErrorAlert';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
@@ -40,7 +39,6 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   const [inputValue, setInputValue] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | ApiErrorEnvelope | null>(null);
-  const { isMUITheme } = useThemeContext();
 
   useEffect(() => {
     if (!isOpen) {
@@ -82,7 +80,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
     >
       <ModalHeader title={title} titleIconVariant="warning" />
       <ModalBody>
-        <Stack hasGutter={!isMUITheme}>
+        <Stack hasGutter>
           {error && (
             <StackItem>
               <ErrorAlert
@@ -99,7 +97,12 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
             </FlexItem>
           </StackItem>
           <StackItem>
-            <Form>
+            <Form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleDelete();
+              }}
+            >
               <ThemeAwareFormGroupWrapper
                 label="Please type the resource name to confirm:"
                 fieldId="delete-modal-input"

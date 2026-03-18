@@ -15,7 +15,6 @@ import { Checkbox } from '@patternfly/react-core/dist/esm/components/Checkbox';
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
 import { TrashAltIcon } from '@patternfly/react-icons/dist/esm/icons/trash-alt-icon';
-import { useThemeContext } from 'mod-arch-kubeflow';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { generateUniqueId } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { isMemoryLimitLarger } from '~/shared/utilities/valueUnits';
@@ -55,7 +54,6 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
     });
     return customToggles;
   });
-  const { isMUITheme } = useThemeContext();
   useEffect(() => {
     setCpuRequestEnabled(cpu.request.length > 0);
     setMemoryRequestEnabled(memory.request.length > 0);
@@ -348,7 +346,6 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
               label="Request"
               fieldId={`custom-resource-request-${res.id}`}
               skipFieldset
-              className={isMUITheme ? 'pf-v6-u-pl-sm' : undefined}
             >
               <ResourceInputWrapper
                 type="custom"
@@ -359,7 +356,7 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
                 aria-label="Custom resource request"
               />
             </ThemeAwareFormGroupWrapper>
-            <FormGroup className={isMUITheme ? 'pf-v6-u-pl-sm pf-v6-u-mt-lg' : undefined}>
+            <FormGroup>
               <Checkbox
                 id={`custom-limit-switch-${res.id}`}
                 label="Set Limit"
@@ -375,7 +372,6 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
               label="Limit"
               fieldId={`custom-resource-limit-${res.id}`}
               skipFieldset
-              className={isMUITheme ? 'pf-v6-u-pl-sm pf-v6-u-mb-lg' : undefined}
             >
               <ResourceInputWrapper
                 type="custom"

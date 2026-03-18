@@ -15,7 +15,6 @@ import { Alert, AlertVariant } from '@patternfly/react-core/dist/esm/components/
 import { Select } from '@patternfly/react-core/dist/esm/components/Select';
 import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
 import { HelperText } from '@patternfly/react-core/dist/esm/components/HelperText';
-import { useThemeContext } from 'mod-arch-kubeflow';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 import { SecretsSecretListItem } from '~/generated/data-contracts';
@@ -224,8 +223,6 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
     setIsOpen(false);
   }, [resetForm, setIsOpen]);
 
-  const { isMUITheme } = useThemeContext();
-
   const modalTitle = isEditMode ? 'Edit Secret' : 'Attach New Secret';
   const submitButtonText = isEditMode ? 'Save' : 'Attach';
 
@@ -313,15 +310,6 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
               toggle={(toggleRef) => (
                 <MenuToggle
                   isFullWidth
-                  // Remove className and style from the toggle once https://github.com/opendatahub-io/mod-arch-library/issues/65 is fixed
-                  className={isMUITheme ? 'pf-v6-u-pl-md pf-v6-u-pr-md' : ''}
-                  style={{
-                    ...(isMUITheme
-                      ? {
-                          height: '56px',
-                        }
-                      : {}),
-                  }}
                   ref={toggleRef}
                   id="secret-type-toggle"
                   isExpanded={false}
