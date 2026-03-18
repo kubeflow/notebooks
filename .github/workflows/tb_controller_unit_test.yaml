@@ -1,4 +1,4 @@
-name: Run TensorBoard Controller unit tests
+name: TensorBoard Controller unit tests
 on:
   pull_request:
     paths:

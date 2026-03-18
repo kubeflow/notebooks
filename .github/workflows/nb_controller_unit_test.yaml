@@ -1,4 +1,4 @@
-name: Run Notebook Controller unit tests
+name: Notebook Controller unit tests
 on:
   pull_request:
     paths:
