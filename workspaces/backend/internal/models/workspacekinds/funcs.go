@@ -195,13 +195,13 @@ func BuildListValuesResponse(wsk *WorkspaceKind, context *ListValuesContext) Lis
 }
 
 func buildImageConfigValuesWithRules(imageConfig ImageConfig, context *ListValuesContext) []ImageConfigValueWithRules {
-	values := []ImageConfigValueWithRules{}
+	values := make([]ImageConfigValueWithRules, 0, len(imageConfig.Values))
 
 	for _, v := range imageConfig.Values {
 		// Filter by context if imageConfig.id is specified
 		if context != nil && context.ImageConfig != nil {
 			if v.Id != context.ImageConfig.Id {
-				continue // skip this value
+				continue
 			}
 		}
 
@@ -222,13 +222,13 @@ func buildImageConfigValuesWithRules(imageConfig ImageConfig, context *ListValue
 }
 
 func buildPodConfigValuesWithRules(podConfig PodConfig, context *ListValuesContext) []PodConfigValueWithRules {
-	values := []PodConfigValueWithRules{}
+	values := make([]PodConfigValueWithRules, 0, len(podConfig.Values))
 
 	for _, v := range podConfig.Values {
 		// Filter by context if podConfig.id is specified
 		if context != nil && context.PodConfig != nil {
 			if v.Id != context.PodConfig.Id {
-				continue // skip this value
+				continue
 			}
 		}
 
