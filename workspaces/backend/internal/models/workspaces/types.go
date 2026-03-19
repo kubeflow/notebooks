@@ -37,7 +37,7 @@ type WorkspaceListItem struct {
 	StateMessage   string                            `json:"stateMessage"`
 	PodTemplate    PodTemplate                       `json:"podTemplate"`
 	Activity       Activity                          `json:"activity"`
-	Services       []Service                         `json:"services"`
+	Services       []Service                         `json:"services,omitempty"`
 	Audit          common.Audit                      `json:"audit"`
 }
 
@@ -65,7 +65,7 @@ type PodMetadata struct {
 
 type PodVolumes struct {
 	Home    *PodVolumeInfo  `json:"home,omitempty"`
-	Data    []PodVolumeInfo `json:"data"`
+	Data    []PodVolumeInfo `json:"data,omitempty"`
 	Secrets []PodSecretInfo `json:"secrets,omitempty"`
 }
 
@@ -100,7 +100,7 @@ type OptionInfo struct {
 	Id          string        `json:"id"`
 	DisplayName string        `json:"displayName"`
 	Description string        `json:"description"`
-	Labels      []OptionLabel `json:"labels"`
+	Labels      []OptionLabel `json:"labels,omitempty"`
 }
 
 type OptionLabel struct {

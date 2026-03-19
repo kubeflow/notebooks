@@ -136,7 +136,7 @@ type WorkspaceKindPodTemplate struct {
 	// +kubebuilder:validation:MinItems:=1
 	// +listType:="map"
 	// +listMapKey:="id"
-	Ports []WorkspaceKindPort `json:"ports"`
+	Ports []WorkspaceKindPort `json:"ports,omitempty"`
 
 	// environment variables for Workspace Pods (MUTABLE)
 	//  - the following go template functions are available:
@@ -252,7 +252,7 @@ type ActivityProbeExec struct {
 	// the command to run
 	// +kubebuilder:validation:MinItems:=1
 	// +kubebuilder:example={"bash", "-c", "exit 0"}
-	Command []string `json:"command"`
+	Command []string `json:"command,omitempty"`
 }
 
 // +kubebuilder:validation:XValidation:message="'lastActivity' must be true",rule="has(self.lastActivity) && self.lastActivity"
@@ -338,7 +338,7 @@ type ImageConfig struct {
 	// +kubebuilder:validation:MinItems:=1
 	// +listType:="map"
 	// +listMapKey:="id"
-	Values []ImageConfigValue `json:"values"`
+	Values []ImageConfigValue `json:"values,omitempty"`
 }
 
 type ImageConfigValue struct {
@@ -377,7 +377,7 @@ type ImageConfigSpec struct {
 	// +kubebuilder:validation:MinItems:=1
 	// +listType:="map"
 	// +listMapKey:="id"
-	Ports []ImagePort `json:"ports"`
+	Ports []ImagePort `json:"ports,omitempty"`
 }
 
 type ImagePort struct {
@@ -414,7 +414,7 @@ type PodConfig struct {
 	// +kubebuilder:validation:MinItems:=1
 	// +listType:="map"
 	// +listMapKey:="id"
-	Values []PodConfigValue `json:"values"`
+	Values []PodConfigValue `json:"values,omitempty"`
 }
 
 type PodConfigValue struct {
@@ -553,12 +553,12 @@ type PodTemplateOptionsMetrics struct {
 	// metrics about the imageConfig options
 	// +listType:="map"
 	// +listMapKey:="id"
-	ImageConfig []OptionMetric `json:"imageConfig"`
+	ImageConfig []OptionMetric `json:"imageConfig,omitempty"`
 
 	// metrics about the podConfig options
 	// +listType:="map"
 	// +listMapKey:="id"
-	PodConfig []OptionMetric `json:"podConfig"`
+	PodConfig []OptionMetric `json:"podConfig,omitempty"`
 }
 
 type OptionMetric struct {
@@ -607,7 +607,7 @@ type WorkspaceKind struct {
 type WorkspaceKindList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []WorkspaceKind `json:"items"`
+	Items           []WorkspaceKind `json:"items,omitempty"`
 }
 
 func init() {

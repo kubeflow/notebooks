@@ -273,8 +273,6 @@ spec:
                                   type: string
                                 minItems: 1
                                 type: array
-                            required:
-                            - command
                             type: object
                           jupyter:
                             description: |-
@@ -2444,7 +2442,6 @@ spec:
                                       x-kubernetes-list-type: map
                                   required:
                                   - image
-                                  - ports
                                   type: object
                               required:
                               - id
@@ -2458,7 +2455,6 @@ spec:
                             x-kubernetes-list-type: map
                         required:
                         - spawner
-                        - values
                         type: object
                       podConfig:
                         description: podConfig options
@@ -3657,7 +3653,6 @@ spec:
                             x-kubernetes-list-type: map
                         required:
                         - spawner
-                        - values
                         type: object
                     required:
                     - imageConfig
@@ -4473,7 +4468,6 @@ spec:
                     type: object
                 required:
                 - options
-                - ports
                 - serviceAccount
                 - volumeMounts
                 type: object
@@ -4636,9 +4630,6 @@ spec:
                     x-kubernetes-list-map-keys:
                     - id
                     x-kubernetes-list-type: map
-                required:
-                - imageConfig
-                - podConfig
                 type: object
               workspaces:
                 default: 0
