@@ -889,7 +889,7 @@ const docTemplate = `{
         },
         "/workspacekinds/{name}/podtemplate/options/listvalues": {
             "post": {
-                "description": "Returns filtered imageConfig and podConfig options based on the provided context. This endpoint is used by the workspace creation wizard to show compatible options.",
+                "description": "Returns filtered imageConfig and podConfig options based on the provided context. Used by the workspace creation wizard to show compatible options.",
                 "consumes": [
                     "application/json"
                 ],
@@ -899,8 +899,8 @@ const docTemplate = `{
                 "tags": [
                     "workspacekinds"
                 ],
-                "summary": "List values for workspace kind options",
-                "operationId": "listValues",
+                "summary": "Pod template options list values",
+                "operationId": "podTemplateOptionsListValues",
                 "parameters": [
                     {
                         "type": "string",
@@ -916,7 +916,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api.ListValuesRequestEnvelope"
+                            "$ref": "#/definitions/api.PodTemplateOptionsListValuesRequestEnvelope"
                         }
                     }
                 ],
@@ -924,7 +924,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Successful operation. Returns filtered options with ruleEffects.",
                         "schema": {
-                            "$ref": "#/definitions/api.ListValuesEnvelope"
+                            "$ref": "#/definitions/api.PodTemplateOptionsListValuesEnvelope"
                         }
                     },
                     "400": {
@@ -1612,28 +1612,6 @@ const docTemplate = `{
                 }
             }
         },
-        "api.ListValuesEnvelope": {
-            "type": "object",
-            "required": [
-                "data"
-            ],
-            "properties": {
-                "data": {
-                    "$ref": "#/definitions/workspacekinds.ListValuesResponse"
-                }
-            }
-        },
-        "api.ListValuesRequestEnvelope": {
-            "type": "object",
-            "required": [
-                "data"
-            ],
-            "properties": {
-                "data": {
-                    "$ref": "#/definitions/workspacekinds.ListValuesRequest"
-                }
-            }
-        },
         "api.NamespaceListEnvelope": {
             "type": "object",
             "required": [
@@ -1670,6 +1648,28 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/pvcs.PVCListItem"
                     }
+                }
+            }
+        },
+        "api.PodTemplateOptionsListValuesEnvelope": {
+            "type": "object",
+            "required": [
+                "data"
+            ],
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/workspacekinds.ListValuesResponse"
+                }
+            }
+        },
+        "api.PodTemplateOptionsListValuesRequestEnvelope": {
+            "type": "object",
+            "required": [
+                "data"
+            ],
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/workspacekinds.ListValuesRequest"
                 }
             }
         },

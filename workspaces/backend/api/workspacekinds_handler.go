@@ -41,9 +41,9 @@ type WorkspaceKindListEnvelope Envelope[[]models.WorkspaceKind]
 
 type WorkspaceKindEnvelope Envelope[models.WorkspaceKind]
 
-type ListValuesEnvelope Envelope[models.ListValuesResponse]
+type PodTemplateOptionsListValuesEnvelope Envelope[models.ListValuesResponse]
 
-type ListValuesRequestEnvelope Envelope[*models.ListValuesRequest]
+type PodTemplateOptionsListValuesRequestEnvelope Envelope[*models.ListValuesRequest]
 
 // GetWorkspaceKindHandler retrieves a specific workspace kind by name.
 //
@@ -227,27 +227,27 @@ func (a *App) CreateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 	a.createdResponse(w, r, responseEnvelope, location)
 }
 
-// ListValuesHandler returns filtered imageConfig and podConfig options for a WorkspaceKind.
+// PodTemplateOptionsListValuesHandler returns filtered imageConfig and podConfig options for a WorkspaceKind.
 //
-//	@Summary		List values for workspace kind options
-//	@Description	Returns filtered imageConfig and podConfig options based on the provided context. This endpoint is used by the workspace creation wizard to show compatible options.
+//	@Summary		Pod template options list values
+//	@Description	Returns filtered imageConfig and podConfig options based on the provided context. Used by the workspace creation wizard to show compatible options.
 //	@Tags			workspacekinds
-//	@ID				listValues
+//	@ID				podTemplateOptionsListValues
 //	@Accept			json
 //	@Produce		json
-//	@Param			name	path		string						true	"Name of the workspace kind"	extensions(x-example=jupyterlab)
-//	@Param			body	body		ListValuesRequestEnvelope	true	"Request body with optional context filters"
-//	@Success		200		{object}	ListValuesEnvelope			"Successful operation. Returns filtered options with ruleEffects."
-//	@Failure		400		{object}	ErrorEnvelope				"Bad Request. Invalid workspace kind name or request body."
-//	@Failure		401		{object}	ErrorEnvelope				"Unauthorized. Authentication is required."
-//	@Failure		403		{object}	ErrorEnvelope				"Forbidden. User does not have permission to access the workspace kind."
-//	@Failure		404		{object}	ErrorEnvelope				"Not Found. Workspace kind does not exist."
-//	@Failure		413		{object}	ErrorEnvelope				"Request Entity Too Large. The request body is too large."
-//	@Failure		415		{object}	ErrorEnvelope				"Unsupported Media Type. Content-Type header is not correct."
-//	@Failure		422		{object}	ErrorEnvelope				"Unprocessable Entity. Validation error."
-//	@Failure		500		{object}	ErrorEnvelope				"Internal server error. An unexpected error occurred on the server."
+//	@Param			name	path		string										true	"Name of the workspace kind"	extensions(x-example=jupyterlab)
+//	@Param			body	body		PodTemplateOptionsListValuesRequestEnvelope	true	"Request body with optional context filters"
+//	@Success		200		{object}	PodTemplateOptionsListValuesEnvelope		"Successful operation. Returns filtered options with ruleEffects."
+//	@Failure		400		{object}	ErrorEnvelope								"Bad Request. Invalid workspace kind name or request body."
+//	@Failure		401		{object}	ErrorEnvelope								"Unauthorized. Authentication is required."
+//	@Failure		403		{object}	ErrorEnvelope								"Forbidden. User does not have permission to access the workspace kind."
+//	@Failure		404		{object}	ErrorEnvelope								"Not Found. Workspace kind does not exist."
+//	@Failure		413		{object}	ErrorEnvelope								"Request Entity Too Large. The request body is too large."
+//	@Failure		415		{object}	ErrorEnvelope								"Unsupported Media Type. Content-Type header is not correct."
+//	@Failure		422		{object}	ErrorEnvelope								"Unprocessable Entity. Validation error."
+//	@Failure		500		{object}	ErrorEnvelope								"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspacekinds/{name}/podtemplate/options/listvalues [post]
-func (a *App) ListValuesHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (a *App) PodTemplateOptionsListValuesHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	name := ps.ByName(ResourceNamePathParam)
 
 	// validate path parameters
@@ -264,7 +264,7 @@ func (a *App) ListValuesHandler(w http.ResponseWriter, r *http.Request, ps httpr
 	}
 
 	// parse request body
-	bodyEnvelope := &ListValuesRequestEnvelope{}
+	bodyEnvelope := &PodTemplateOptionsListValuesRequestEnvelope{}
 	if err := a.DecodeJSON(r, bodyEnvelope); err != nil {
 		if a.IsMaxBytesError(err) {
 			a.requestEntityTooLargeResponse(w, r, err)
@@ -310,6 +310,6 @@ func (a *App) ListValuesHandler(w http.ResponseWriter, r *http.Request, ps httpr
 	// build the response with ruleEffects and context filtering
 	response := models.BuildListValuesResponse(&workspaceKind, bodyEnvelope.Data.Context)
 
-	responseEnvelope := &ListValuesEnvelope{Data: response}
+	responseEnvelope := &PodTemplateOptionsListValuesEnvelope{Data: response}
 	a.dataResponse(w, r, responseEnvelope)
 }

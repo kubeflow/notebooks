@@ -54,9 +54,9 @@ const (
 	PauseWorkspacePath        = WorkspaceActionsPath + "/pause"
 
 	// workspacekinds
-	AllWorkspaceKindsPath    = PathPrefix + "/workspacekinds"
-	WorkspaceKindsByNamePath = AllWorkspaceKindsPath + "/:" + ResourceNamePathParam
-	ListValuesPath           = WorkspaceKindsByNamePath + "/podtemplate/options/listvalues"
+	AllWorkspaceKindsPath            = PathPrefix + "/workspacekinds"
+	WorkspaceKindsByNamePath         = AllWorkspaceKindsPath + "/:" + ResourceNamePathParam
+	PodTemplateOptionsListValuesPath = WorkspaceKindsByNamePath + "/podtemplate/options/listvalues"
 
 	// namespaces
 	AllNamespacesPath = PathPrefix + "/namespaces"
@@ -143,7 +143,7 @@ func (a *App) Routes() http.Handler {
 	router.GET(AllWorkspaceKindsPath, a.GetWorkspaceKindsHandler)
 	router.GET(WorkspaceKindsByNamePath, a.GetWorkspaceKindHandler)
 	router.POST(AllWorkspaceKindsPath, a.CreateWorkspaceKindHandler)
-	router.POST(ListValuesPath, a.ListValuesHandler)
+	router.POST(PodTemplateOptionsListValuesPath, a.PodTemplateOptionsListValuesHandler)
 
 	// storageclasses
 	router.GET(AllStorageClassesPath, a.GetStorageClassesHandler)
