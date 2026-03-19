@@ -74,6 +74,7 @@ describe('useWorkspaceFormData', () => {
           pvcName: mockWorkspaceUpdate.podTemplate.volumes.home,
           mountPath: '',
           readOnly: false,
+          isAttached: true,
         }
       : undefined;
     expect(workspaceFormData).toEqual({
@@ -82,8 +83,11 @@ describe('useWorkspaceFormData', () => {
       podConfig: mockWorkspace.podTemplate.options.podConfig.current.id,
       properties: {
         workspaceName: mockWorkspace.name,
-        volumes: mockWorkspace.podTemplate.volumes.data,
-        secrets: mockWorkspace.podTemplate.volumes.secrets,
+        volumes: mockWorkspace.podTemplate.volumes.data.map((v) => ({ ...v, isAttached: true })),
+        secrets: (mockWorkspace.podTemplate.volumes.secrets ?? []).map((s) => ({
+          ...s,
+          isAttached: true,
+        })),
         homeVolume: expectedHomeVolume,
       },
       revision: mockWorkspaceUpdate.revision,

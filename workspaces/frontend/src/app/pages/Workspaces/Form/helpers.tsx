@@ -1,4 +1,5 @@
 import React from 'react';
+import { Alert, AlertVariant } from '@patternfly/react-core/dist/esm/components/Alert';
 import { Label, LabelGroup } from '@patternfly/react-core/dist/esm/components/Label';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
@@ -95,6 +96,32 @@ export const isValidDefaultMode = (mode: string): boolean => {
   const permissions = ['0', '4', '5', '6', '7'];
   return Array.from(mode).every((char) => permissions.includes(char));
 };
+
+interface DetachWarningAlertProps {
+  resourceName: string;
+  testId: string;
+  isAttached: boolean;
+}
+
+export const DetachWarningAlert: React.FC<DetachWarningAlertProps> = ({
+  resourceName,
+  testId,
+  isAttached,
+}) => (
+  <>
+    Are you sure you want to detach <strong>{resourceName}</strong>?
+    {!isAttached && (
+      <Alert
+        data-testid={testId}
+        variant={AlertVariant.danger}
+        isInline
+        isPlain
+        className="pf-v6-u-mt-sm"
+        title={`Since ${resourceName} was just created and not yet mounted to a workspace, detaching it will permanently delete it from the namespace.`}
+      />
+    )}
+  </>
+);
 
 export const getUnmountableTooltip = (pvc: PvcsPVCListItem): string | null => {
   if (pvc.canMount) {

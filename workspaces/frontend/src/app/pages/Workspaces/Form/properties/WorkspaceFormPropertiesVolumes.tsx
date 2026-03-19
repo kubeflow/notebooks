@@ -31,6 +31,7 @@ import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 import { WorkspacesPodVolumeMountValue } from '~/app/types';
 import {
+  DetachWarningAlert,
   getMountPathValidationError,
   normalizeMountPath,
 } from '~/app/pages/Workspaces/Form/helpers';
@@ -451,7 +452,11 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
           errorTitle="Failed to detach volume"
           testId="detach-volume-modal"
         >
-          Are you sure you want to detach <strong>{volumes[deleteIndex].pvcName}</strong>?
+          <DetachWarningAlert
+            resourceName={volumes[deleteIndex].pvcName}
+            testId="detach-volume-danger-alert"
+            isAttached={!!volumes[deleteIndex].isAttached}
+          />
         </ConfirmModal>
       )}
 

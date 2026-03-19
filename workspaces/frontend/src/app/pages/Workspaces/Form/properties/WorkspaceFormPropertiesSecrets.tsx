@@ -26,6 +26,7 @@ import {
 } from '@patternfly/react-core/dist/esm/components/EmptyState';
 import {
   DEFAULT_MODE,
+  DetachWarningAlert,
   getMountPathValidationError,
   normalizeMountPath,
 } from '~/app/pages/Workspaces/Form/helpers';
@@ -476,7 +477,11 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
           errorTitle="Failed to detach secret"
           testId="detach-secret-modal"
         >
-          Are you sure you want to detach <strong>{secrets[deleteIndex].secretName}</strong>?
+          <DetachWarningAlert
+            resourceName={secrets[deleteIndex].secretName}
+            testId="detach-secret-danger-alert"
+            isAttached={!!secrets[deleteIndex].isAttached}
+          />
         </ConfirmModal>
       )}
     </>

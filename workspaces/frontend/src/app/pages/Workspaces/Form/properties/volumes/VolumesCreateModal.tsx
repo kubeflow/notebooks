@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React from 'react';
 import { Alert, AlertVariant } from '@patternfly/react-core/dist/esm/components/Alert';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import {
@@ -27,25 +27,13 @@ import { List, ListItem } from '@patternfly/react-core/dist/esm/components/List'
 import { Popover } from '@patternfly/react-core/dist/esm/components/Popover';
 import { InfoCircleIcon } from '@patternfly/react-icons/dist/esm/icons/info-circle-icon';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons/dist/esm/icons/outlined-question-circle-icon';
-import {
-  StorageclassesStorageClassListItem,
-  V1PersistentVolumeAccessMode,
-} from '~/generated/data-contracts';
-import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
-import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
+import { V1PersistentVolumeAccessMode } from '~/generated/data-contracts';
+import useStorageClasses from '~/app/hooks/useStorageClasses';
+import useVolumesFormState from '~/app/hooks/useVolumesFormState';
 import { WorkspacesPodVolumeMountValue } from '~/app/types';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { ResourceInputWrapper } from '~/shared/components/ResourceInputWrapper';
-import {
-  validateMountPath,
-  getMountPathUniquenessError,
-  normalizeMountPath,
-} from '~/app/pages/Workspaces/Form/helpers';
 import { MountPathField } from '~/app/pages/Workspaces/Form/MountPathField';
-
-// DNS-1123 subdomain regex - lowercase alphanumeric, hyphens, dots
-// Must start and end with alphanumeric, max 253 chars
-const PVC_NAME_REGEX = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/;
 
 const ACCESS_MODES = [
   { label: 'ReadWriteOnce (RWO)', value: V1PersistentVolumeAccessMode.ReadWriteOnce },
@@ -80,183 +68,46 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
   volumeToEdit,
   onVolumeEdited,
 }) => {
-  const { api } = useNotebookAPI();
-  const { selectedNamespace } = useNamespaceSelectorWrapper();
+  const { storageClasses, storageClassLoadError } = useStorageClasses();
 
   const isEditMode = !!volumeToEdit;
 
-  // Form state
-  const [pvcName, setPvcName] = useState('');
-  const [mountPath, setMountPath] = useState(fixedMountPath ?? '/data/');
-  const [isMountPathEditing, setIsMountPathEditing] = useState(false);
-  const [storageClassName, setStorageClassName] = useState('');
-  const [storageSize, setStorageSize] = useState('1Gi');
-  const [accessMode, setAccessMode] = useState<V1PersistentVolumeAccessMode>(
-    V1PersistentVolumeAccessMode.ReadWriteOnce,
-  );
-  const [readOnly, setReadOnly] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isStorageClassOpen, setIsStorageClassOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Storage classes
-  const [storageClasses, setStorageClasses] = useState<StorageclassesStorageClassListItem[]>([]);
-
-  useEffect(() => {
-    if (isEditMode) {
-      return;
-    }
-    const fetch = async () => {
-      try {
-        const response = await api.storageClasses.listStorageClasses();
-        setStorageClasses(response.data);
-        const firstUsable = response.data.find((sc) => sc.canUse);
-        if (firstUsable) {
-          setStorageClassName(firstUsable.name);
-        }
-      } catch {
-        // Storage classes unavailable - user can still type a name manually
-      }
-    };
-    if (isOpen) {
-      fetch();
-    }
-  }, [api.storageClasses, isOpen, isEditMode]);
-
-  // Reset form when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      if (isEditMode) {
-        setPvcName(volumeToEdit.pvcName);
-        setMountPath(volumeToEdit.mountPath);
-        setReadOnly(volumeToEdit.readOnly ?? false);
-      } else {
-        setPvcName('');
-        setMountPath(fixedMountPath ?? '/data/');
-        setStorageSize('1Gi');
-        setAccessMode(V1PersistentVolumeAccessMode.ReadWriteOnce);
-        setReadOnly(false);
-      }
-      setIsMountPathEditing(false);
-      setIsSubmitting(false);
-      setIsStorageClassOpen(false);
-      setError(null);
-    }
-  }, [isOpen, fixedMountPath, isEditMode, volumeToEdit]);
-
-  const mountPathFormatError = isMountPathEditing ? validateMountPath(mountPath) : null;
-  const mountPathUniquenessError = !mountPathFormatError
-    ? getMountPathUniquenessError(mountedPaths, mountPath)
-    : null;
-  const mountPathError = mountPathFormatError ?? mountPathUniquenessError;
-
-  const handleStartMountPathEdit = useCallback(() => {
-    setIsMountPathEditing(true);
-    setError(null);
-  }, []);
-
-  const handleConfirmMountPathEdit = useCallback(() => {
-    const err =
-      validateMountPath(mountPath) ?? getMountPathUniquenessError(mountedPaths, mountPath);
-    if (err) {
-      return;
-    }
-    setIsMountPathEditing(false);
-  }, [mountPath, mountedPaths]);
-
-  const handleCancelMountPathEdit = useCallback(() => {
-    if (isEditMode) {
-      setMountPath(volumeToEdit.mountPath);
-    } else if (pvcName) {
-      setMountPath(fixedMountPath ?? `/data/${pvcName}`);
-    } else {
-      setMountPath(fixedMountPath ?? '/data/');
-    }
-    setIsMountPathEditing(false);
-  }, [pvcName, fixedMountPath, isEditMode, volumeToEdit]);
-
-  const validateForm = useCallback((): string | null => {
-    if (!pvcName) {
-      return 'Volume name is required';
-    }
-    if (pvcName.length > 253) {
-      return 'Volume name must be at most 253 characters';
-    }
-    if (!PVC_NAME_REGEX.test(pvcName)) {
-      return 'Volume name must consist of lowercase alphanumeric characters or hyphens, and must start and end with an alphanumeric character';
-    }
-    if (excludedPvcNames?.has(pvcName)) {
-      return 'A volume with this name is already mounted in the workspace';
-    }
-    if (!storageClassName) {
-      return 'Storage class is required';
-    }
-    if (!storageSize) {
-      return 'Storage size is required';
-    }
-    return null;
-  }, [pvcName, storageClassName, storageSize, excludedPvcNames]);
-
-  const handleSubmit = useCallback(async () => {
-    const trimmedPath = normalizeMountPath(mountPath);
-    const mountErr =
-      validateMountPath(trimmedPath) ?? getMountPathUniquenessError(mountedPaths, trimmedPath);
-    if (mountErr) {
-      setError(mountErr);
-      return;
-    }
-
-    if (isEditMode) {
-      onVolumeEdited?.(trimmedPath, readOnly);
-      setIsOpen(false);
-      return;
-    }
-
-    const validationError = validateForm();
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
-    setIsSubmitting(true);
-    setError(null);
-
-    try {
-      await api.pvc.createPvc(selectedNamespace, {
-        data: {
-          name: pvcName,
-          storageClassName,
-          requests: { storage: storageSize },
-          accessModes: [accessMode],
-        },
-      });
-      setIsOpen(false);
-      onVolumeCreated({ pvcName, mountPath: trimmedPath, readOnly, isAttached: false });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create PVC. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [
-    validateForm,
-    api.pvc,
-    selectedNamespace,
+  const {
     pvcName,
+    setPvcName,
     mountPath,
-    mountedPaths,
+    setMountPath,
     storageClassName,
+    setStorageClassName,
     storageSize,
+    setStorageSize,
     accessMode,
+    setAccessMode,
+    readOnly,
+    setReadOnly,
+    isMountPathEditing,
+    isStorageClassOpen,
+    setIsStorageClassOpen,
+    isSubmitting,
+    error,
+    setError,
+    mountPathError,
+    handleStartMountPathEdit,
+    handleConfirmMountPathEdit,
+    handleCancelMountPathEdit,
+    handleSubmit,
+    handleClose,
+  } = useVolumesFormState({
+    isOpen,
+    fixedMountPath,
+    volumeToEdit,
+    excludedPvcNames,
+    mountedPaths,
+    storageClasses,
     setIsOpen,
     onVolumeCreated,
     onVolumeEdited,
-    readOnly,
-    isEditMode,
-  ]);
-
-  const handleClose = useCallback(() => {
-    setIsOpen(false);
-  }, [setIsOpen]);
+  });
 
   const mountConfigFields = (
     <>
@@ -392,15 +243,22 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
                     </SelectList>
                   </Select>
                 ) : (
-                  <TextInput
-                    id="storage-class"
-                    data-testid="storage-class-input"
-                    isRequired
-                    type="text"
-                    value={storageClassName}
-                    onChange={(_, val) => setStorageClassName(val)}
-                    placeholder="Enter storage class name"
-                  />
+                  <>
+                    <TextInput
+                      id="storage-class"
+                      data-testid="storage-class-input"
+                      isRequired
+                      type="text"
+                      value={storageClassName}
+                      onChange={(_, val) => setStorageClassName(val)}
+                      placeholder="Enter storage class name"
+                    />
+                    {storageClassLoadError && (
+                      <HelperText>
+                        <HelperTextItem variant="warning">{storageClassLoadError}</HelperTextItem>
+                      </HelperText>
+                    )}
+                  </>
                 )}
               </ThemeAwareFormGroupWrapper>
               <ThemeAwareFormGroupWrapper

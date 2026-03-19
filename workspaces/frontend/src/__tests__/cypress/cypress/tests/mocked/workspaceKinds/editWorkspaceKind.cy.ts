@@ -4,6 +4,7 @@ import { workspaceKinds } from '~/__tests__/cypress/cypress/pages/workspaceKinds
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import {
   buildMockNamespace,
+  buildMockPVCCreate,
   buildMockStorageClass,
   buildMockWorkspaceKind,
 } from '~/shared/mock/mockBuilder';
@@ -36,9 +37,9 @@ const setupEditWorkspaceKind = (
     mockModArchResponse([mockNamespace]),
   ).as('getNamespaces');
 
-  cy.intercept(
-    'GET',
-    `/api/${NOTEBOOKS_API_VERSION}/workspacekinds/${mockWorkspaceKind.name}`,
+  cy.interceptApi(
+    'GET /api/:apiVersion/workspacekinds/:kind',
+    { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKind.name } },
     mockModArchResponse(mockWorkspaceKind),
   ).as('getWorkspaceKind');
 
@@ -66,27 +67,31 @@ const setupEditWorkspaceKind = (
     mockModArchResponse([]),
   ).as('listPVCs');
 
-  cy.intercept('GET', `/api/${NOTEBOOKS_API_VERSION}/storageclasses`, {
-    data: [
-      buildMockStorageClass({
-        name: 'standard',
-        displayName: 'Standard',
-        description: 'Default storage class',
-        canUse: true,
-      }),
-    ],
-  }).as('listStorageClasses');
+  cy.interceptApi(
+    'GET /api/:apiVersion/storageclasses',
+    { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+    {
+      data: [
+        buildMockStorageClass({
+          name: 'standard',
+          displayName: 'Standard',
+          description: 'Default storage class',
+          canUse: true,
+        }),
+      ],
+    },
+  ).as('listStorageClasses');
 
-  cy.intercept(
-    'POST',
-    `/api/${NOTEBOOKS_API_VERSION}/persistentvolumeclaims/${mockNamespace.name}`,
-    { statusCode: 200, body: {} },
+  cy.interceptApi(
+    'POST /api/:apiVersion/persistentvolumeclaims/:namespace',
+    { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
+    mockModArchResponse(buildMockPVCCreate()),
   ).as('createPvc');
 
-  cy.intercept(
-    'DELETE',
-    `/api/${NOTEBOOKS_API_VERSION}/persistentvolumeclaims/${mockNamespace.name}/*`,
-    { statusCode: 200, body: {} },
+  cy.interceptApi(
+    'DELETE /api/:apiVersion/persistentvolumeclaims/:namespace/:pvcName',
+    { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name, pvcName: '*' } },
+    undefined,
   ).as('deletePvc');
 
   return { mockWorkspaceKind, mockNamespace };
