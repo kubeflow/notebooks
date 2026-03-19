@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - components/crud-web-apps/jupyter/backend/**
+      - components/crud-web-apps/common/backend/**
       - releasing/version/VERSION
     branches:
       - main

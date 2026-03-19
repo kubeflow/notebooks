@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - components/crud-web-apps/tensorboards/frontend/**
+      - components/crud-web-apps/common/frontend/**
       - releasing/version/VERSION
     branches:
       - main

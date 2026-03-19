@@ -7,7 +7,6 @@ on:
       - notebooks-v1
     paths:
       - components/notebook-controller/**
-      - components/common/**
       - releasing/version/VERSION
 
 env:
