@@ -340,6 +340,14 @@ class VolumesDetachModal {
   clickCancel(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findCancelButton().click();
   }
+
+  findDangerAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('detach-volume-danger-alert');
+  }
+
+  assertDangerAlertNotExists(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('detach-volume-danger-alert').should('not.exist');
+  }
 }
 
 export const volumesManagement = new VolumesManagementPage();

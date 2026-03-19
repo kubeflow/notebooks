@@ -477,15 +477,11 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
           errorTitle="Failed to detach secret"
           testId="detach-secret-modal"
         >
-          <>
-            Are you sure you want to detach <strong>{secrets[deleteIndex].secretName}</strong>?
-            {!secrets[deleteIndex].isAttached && (
-              <DetachWarningAlert
-                resourceName={secrets[deleteIndex].secretName}
-                testId="detach-secret-danger-alert"
-              />
-            )}
-          </>
+          <DetachWarningAlert
+            resourceName={secrets[deleteIndex].secretName}
+            testId="detach-secret-danger-alert"
+            isAttached={!!secrets[deleteIndex].isAttached}
+          />
         </ConfirmModal>
       )}
     </>

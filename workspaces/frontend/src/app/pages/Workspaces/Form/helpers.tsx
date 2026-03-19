@@ -100,17 +100,27 @@ export const isValidDefaultMode = (mode: string): boolean => {
 interface DetachWarningAlertProps {
   resourceName: string;
   testId: string;
+  isAttached: boolean;
 }
 
-export const DetachWarningAlert: React.FC<DetachWarningAlertProps> = ({ resourceName, testId }) => (
-  <Alert
-    data-testid={testId}
-    variant={AlertVariant.danger}
-    isInline
-    isPlain
-    className="pf-v6-u-mt-sm"
-    title={`Since ${resourceName} was just created and not yet mounted to a workspace, detaching it will permanently delete it from the namespace.`}
-  />
+export const DetachWarningAlert: React.FC<DetachWarningAlertProps> = ({
+  resourceName,
+  testId,
+  isAttached,
+}) => (
+  <>
+    Are you sure you want to detach <strong>{resourceName}</strong>?
+    {!isAttached && (
+      <Alert
+        data-testid={testId}
+        variant={AlertVariant.danger}
+        isInline
+        isPlain
+        className="pf-v6-u-mt-sm"
+        title={`Since ${resourceName} was just created and not yet mounted to a workspace, detaching it will permanently delete it from the namespace.`}
+      />
+    )}
+  </>
 );
 
 export const getUnmountableTooltip = (pvc: PvcsPVCListItem): string | null => {
