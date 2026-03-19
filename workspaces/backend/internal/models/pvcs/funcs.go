@@ -60,13 +60,13 @@ func NewPVCListItemFromPVC(pvc *corev1.PersistentVolumeClaim, pv *corev1.Persist
 	}
 
 	// build the list of PodInfo for pods that mount this PVC, if any.
-	var podList []PodInfo
+	podList := make([]PodInfo, 0)
 	if pvcToPodInfoList[pvc.Name] != nil {
 		podList = pvcToPodInfoList[pvc.Name]
 	}
 
 	// build the list of WorkspaceInfo for workspaces that reference this PVC, if any.
-	var workspaceList []WorkspaceInfo
+	workspaceList := make([]WorkspaceInfo, 0)
 	if pvcToWorkspaceInfoList[pvc.Name] != nil {
 		workspaceList = pvcToWorkspaceInfoList[pvc.Name]
 	}
