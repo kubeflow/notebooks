@@ -33,6 +33,9 @@ Sessionx.vim
 *.elc
 .\#*
 
+## Kustomize intermediate output
+**/kustomize/.output/
+
 ## macOS
 .DS_Store
 .AppleDouble
