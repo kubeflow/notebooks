@@ -27,6 +27,7 @@ import {
 import { SimpleSelect } from '@patternfly/react-templates';
 import { BarsIcon } from '@patternfly/react-icons/dist/esm/icons/bars-icon';
 import { useNamespaceSelector, useModularArchContext } from 'mod-arch-core';
+import { useThemeContext } from 'mod-arch-kubeflow';
 import { images as sharedImages } from 'mod-arch-shared';
 
 interface NavBarProps {
@@ -37,6 +38,7 @@ interface NavBarProps {
 const NavBar: React.FC<NavBarProps> = ({ username, onLogout }) => {
   const { namespaces, preferredNamespace, updatePreferredNamespace } = useNamespaceSelector();
   const { config } = useModularArchContext();
+  const { isMUITheme } = useThemeContext();
 
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
@@ -68,15 +70,17 @@ const NavBar: React.FC<NavBarProps> = ({ username, onLogout }) => {
             <BarsIcon />
           </PageToggleButton>
         </MastheadToggle>
-        <MastheadBrand>
-          <MastheadLogo component="a">
-            <Brand
-              src={sharedImages.logoLightThemePath}
-              alt="Kubeflow"
-              heights={{ default: '36px' }}
-            />
-          </MastheadLogo>
-        </MastheadBrand>
+        {!isMUITheme ? (
+          <MastheadBrand>
+            <MastheadLogo component="a">
+              <Brand
+                src={sharedImages.logoLightThemePath}
+                alt="Kubeflow"
+                heights={{ default: '36px' }}
+              />
+            </MastheadLogo>
+          </MastheadBrand>
+        ) : null}
       </MastheadMain>
       <MastheadContent>
         <Toolbar>
@@ -95,8 +99,8 @@ const NavBar: React.FC<NavBarProps> = ({ username, onLogout }) => {
                 />
               </ToolbarItem>
             </ToolbarGroup>
-            <ToolbarGroup variant="action-group-plain" align={{ default: 'alignEnd' }}>
-              {username && (
+            {username && (
+              <ToolbarGroup variant="action-group-plain" align={{ default: 'alignEnd' }}>
                 <ToolbarItem>
                   <Dropdown
                     popperProps={{ position: 'right' }}
@@ -118,8 +122,8 @@ const NavBar: React.FC<NavBarProps> = ({ username, onLogout }) => {
                     <DropdownList>{userMenuItems}</DropdownList>
                   </Dropdown>
                 </ToolbarItem>
-              )}
-            </ToolbarGroup>
+              </ToolbarGroup>
+            )}
           </ToolbarContent>
         </Toolbar>
       </MastheadContent>

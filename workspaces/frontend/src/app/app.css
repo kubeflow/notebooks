@@ -110,7 +110,7 @@ body,
 }
 
 /* Read-only mount path input (pencil-to-edit pattern): styled to match disabled appearance */
-.mount-path-readonly .pf-v6-c-form-control {
+.mui-theme .mount-path-readonly .pf-v6-c-form-control {
   --pf-v6-c-form-control--Color: var(--pf-t--global--text--color--on-disabled);
   --pf-v6-c-form-control--before--BorderColor: var(--pf-t--global--border--color--disabled);
   pointer-events: none;
@@ -118,26 +118,26 @@ body,
 }
 
 /* PF theme: grey the form label */
-.mount-path-readonly .pf-v6-c-form__label {
+.mui-theme .mount-path-readonly .pf-v6-c-form__label {
   color: var(--pf-t--global--text--color--on-disabled);
 }
 
-/* Grey the fieldset border and floating legend label; suppress hover/focus styles */
-.mount-path-readonly .form-fieldset {
+/* MUI theme: grey the fieldset border and floating legend label; suppress hover/focus styles */
+.mui-theme .mount-path-readonly .form-fieldset {
   border-color: var(--pf-t--global--border--color--disabled);
 }
 
-.mount-path-readonly .form-fieldset-wrapper:hover .form-fieldset,
-.mount-path-readonly .form-fieldset-wrapper:focus-within .form-fieldset {
+.mui-theme .mount-path-readonly .form-fieldset-wrapper:hover .form-fieldset,
+.mui-theme .mount-path-readonly .form-fieldset-wrapper:focus-within .form-fieldset {
   border-color: var(--pf-t--global--border--color--disabled);
 }
 
-.mount-path-readonly .pf-v6-c-form__group-label .pf-v6-c-form__label {
+.mui-theme .mount-path-readonly .pf-v6-c-form__group-label .pf-v6-c-form__label {
   color: var(--pf-t--global--text--color--on-disabled);
 }
 
-/* TODO: remove when https://github.com/opendatahub-io/mod-arch-library/issues/134 is complete. Revert file upload control buttons to default PF style */
-.workspacekind-file-upload .pf-v6-c-input-group__item .pf-v6-c-button.pf-m-control {
+/* TODO: remove when https://github.com/opendatahub-io/mod-arch-library/issues/134 is complete. Revert file upload control buttons to default PF style; MUI-theme will exclude .pf-v6-c-file-upload via selector instead. */
+.mui-theme .workspacekind-file-upload .pf-v6-c-input-group__item .pf-v6-c-button.pf-m-control {
   --pf-v6-c-button--BorderColor: var(--pf-t--global--border--color--default);
   --pf-v6-c-button--hover--BorderColor: var(--pf-t--global--border--color--hover);
   --pf-v6-c-button--m-control--BorderColor: var(--pf-t--global--border--color--default);
@@ -157,34 +157,43 @@ body,
   align-self: stretch;
 }
 
-.workspacekind-file-upload .pf-v6-c-input-group__item:has(.pf-v6-c-button.pf-m-control):last-child {
+.mui-theme
+  .workspacekind-file-upload
+  .pf-v6-c-input-group__item:has(.pf-v6-c-button.pf-m-control):last-child {
   padding-inline-end: 0;
 }
 
-.workspacekind-file-upload .pf-v6-c-input-group__item .pf-v6-c-button.pf-m-control:hover,
-.workspacekind-file-upload .pf-v6-c-input-group__item .pf-v6-c-button.pf-m-control:focus-visible {
+.mui-theme .workspacekind-file-upload .pf-v6-c-input-group__item .pf-v6-c-button.pf-m-control:hover,
+.mui-theme
+  .workspacekind-file-upload
+  .pf-v6-c-input-group__item
+  .pf-v6-c-button.pf-m-control:focus-visible {
   border-radius: var(--pf-t--global--border--radius--small);
 }
 
 /* Custom inline-edit input in secrets table row (editable label in table — not supported natively by PF). */
-.secrets-inline-edit__input.pf-v6-c-form-control {
+.mui-theme .secrets-inline-edit__input.pf-v6-c-form-control {
   --pf-v6-c-form-control--PaddingBlockStart: var(--pf-t--global--spacer--xs, 0.25rem);
   --pf-v6-c-form-control--PaddingBlockEnd: var(--pf-t--global--spacer--xs, 0.25rem);
-  border: 1px solid var(--pf-v6-c-form-control--BorderColor, rgba(0, 0, 0, 0.23));
-  border-radius: var(--pf-v6-global--BorderRadius--sm, 4px);
+  border: 1px solid var(--mui-form-control--BorderColor, rgba(0, 0, 0, 0.23));
+  border-radius: var(--mui-shape-borderRadius, 4px);
 }
 
-.secrets-inline-edit__input.pf-v6-c-form-control:hover {
+.mui-theme .secrets-inline-edit__input.pf-v6-c-form-control:hover {
   border-color: var(--pf-v6-c-form-control--hover--after--BorderColor, rgba(0, 0, 0, 0.87));
 }
 
-.secrets-inline-edit__input.pf-v6-c-form-control:focus-within {
-  border-color: var(--pf-v6-global--primary-color--100, #1976d2);
-  box-shadow: inset 0 0 0 1px var(--pf-v6-global--primary-color--100, #1976d2);
+.mui-theme .secrets-inline-edit__input.pf-v6-c-form-control:focus-within {
+  border-color: var(--mui-palette-primary-main, #1976d2);
+  box-shadow: inset 0 0 0 1px var(--mui-palette-primary-main, #1976d2);
 }
 
-.pf-v6-c-form__group-control .form-fieldset-wrapper .pf-v6-c-menu-toggle {
-  height: auto;
+.mui-theme .pf-v6-c-form__group-control .form-fieldset-wrapper .pf-v6-c-menu-toggle {
+  height: calc(
+    var(--pf-v6-c-menu-toggle--FontSize) * var(--pf-v6-c-menu-toggle--LineHeight) + 1rem * 2
+  );
+  padding-inline-start: var(--mui-spacing-16px);
+  padding-inline-end: var(--mui-spacing-16px);
 }
 
 /* Override pf-v6-c-content ul rule that forces flex-direction: column on LabelGroup lists */
