@@ -7,15 +7,13 @@ import {
   ModalVariant,
 } from '@patternfly/react-core/dist/esm/components/Modal';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
-import { Form } from '@patternfly/react-core/dist/esm/components/Form';
+import { Form, FormGroup } from '@patternfly/react-core/dist/esm/components/Form';
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
-import { FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { default as ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 import { ActionButton } from '~/shared/components/ActionButton';
 import { ErrorAlert } from '~/shared/components/ErrorAlert';
-import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { extractErrorMessage } from '~/shared/api/apiUtils';
 import { ApiErrorEnvelope } from '~/generated/data-contracts';
 
@@ -91,10 +89,8 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
             </StackItem>
           )}
           <StackItem>
-            <FlexItem>
-              Are you sure you want to delete <strong>{resourceName}</strong> in namespace{' '}
-              <strong>{namespace}</strong>?
-            </FlexItem>
+            Are you sure you want to delete <strong>{resourceName}</strong> in namespace{' '}
+            <strong>{namespace}</strong>?
           </StackItem>
           <StackItem>
             <Form
@@ -103,19 +99,9 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
                 handleDelete();
               }}
             >
-              <ThemeAwareFormGroupWrapper
+              <FormGroup
                 label="Please type the resource name to confirm:"
                 fieldId="delete-modal-input"
-                hasError={showWarning}
-                helperTextNode={
-                  showWarning ? (
-                    <HelperText data-testid="delete-modal-helper-text">
-                      <HelperTextItem icon={<ExclamationCircleIcon />} variant="error">
-                        The name does not match. Please enter exactly: {resourceName}
-                      </HelperTextItem>
-                    </HelperText>
-                  ) : null
-                }
               >
                 <TextInput
                   value={inputValue}
@@ -125,7 +111,14 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
                   validated={showWarning ? 'error' : 'default'}
                   data-testid="delete-modal-input"
                 />
-              </ThemeAwareFormGroupWrapper>
+              </FormGroup>
+              {showWarning && (
+                <HelperText data-testid="delete-modal-helper-text">
+                  <HelperTextItem icon={<ExclamationCircleIcon />} variant="error">
+                    The name does not match. Please enter exactly: {resourceName}
+                  </HelperTextItem>
+                </HelperText>
+              )}
             </Form>
           </StackItem>
         </Stack>
