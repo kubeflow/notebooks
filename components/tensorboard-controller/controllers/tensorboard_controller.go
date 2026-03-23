@@ -332,7 +332,7 @@ func generateService(tb *tensorboardv1alpha1.Tensorboard) *corev1.Service {
 }
 
 func ingressPath(tb *tensorboardv1alpha1.Tensorboard) string {
-	return fmt.Sprintf("/notebook/%s/%s/", tb.Namespace, tb.Name)
+	return fmt.Sprintf("/tensorboard/%s/%s/", tb.Namespace, tb.Name)
 }
 
 func generateVirtualService(tb *tensorboardv1alpha1.Tensorboard) (*unstructured.Unstructured, error) {
