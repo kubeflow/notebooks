@@ -29,12 +29,12 @@ jobs:
     steps:
     - name: Checkout code
       id: checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       with:
         ref: refs/heads/${{ matrix.branch }}  # using explicit refs syntax due to requirements of upload-sarif action
 
     - name: Run Trivy vulnerability scanner in fs mode
-      uses: aquasecurity/trivy-action@0.33.1
+      uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
       with:
         scan-type: 'fs'
         format: 'sarif'
@@ -51,7 +51,7 @@ jobs:
         mv trivy-fs-scan-results-${{ matrix.branch }}-processed.sarif trivy-fs-scan-results-${{ matrix.branch }}.sarif
 
     - name: Upload Trivy scan results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v3
+      uses: github/codeql-action/upload-sarif@ebcb5b36ded6beda4ceefea6a8bc4cc885255bb3 # v3.34.1
       with:
           sarif_file: 'trivy-fs-scan-results-${{ matrix.branch }}.sarif'
           ref: ${{ steps.checkout.outputs.ref }}
