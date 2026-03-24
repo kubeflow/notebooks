@@ -229,7 +229,7 @@ func (a *App) CreateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 
 // PodTemplateOptionsListValuesHandler returns filtered imageConfig and podConfig options for a WorkspaceKind.
 //
-//	@Summary		Pod template options list values
+//	@Summary		List pod template option values
 //	@Description	Returns filtered imageConfig and podConfig options based on the provided context. Used by the workspace creation wizard to show compatible options.
 //	@Tags			workspacekinds
 //	@ID				podTemplateOptionsListValues
