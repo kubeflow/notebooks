@@ -201,8 +201,8 @@ func buildImageConfigValueListItems(imageConfig ImageConfig, context *ListValues
 
 		values = append(values, ImageConfigValueListItem{
 			ImageConfigValue: v,
-            // TODO: replace hard-coded RuleEffects with value returned from actual rules evaluation when the backend logic is added
-			RuleEffects:      RuleEffects{UiHide: false},
+			// TODO: replace hard-coded RuleEffects with value returned from actual rules evaluation when the backend logic is added
+			RuleEffects: RuleEffects{UiHide: false},
 		})
 	}
 
@@ -221,8 +221,8 @@ func buildPodConfigValueListItems(podConfig PodConfig, context *ListValuesContex
 
 		values = append(values, PodConfigValueListItem{
 			PodConfigValue: v,
-            // TODO: replace hard-coded RuleEffects with value returned from actual rules evaluation when the backend logic is added
-			RuleEffects:      RuleEffects{UiHide: false},
+			// TODO: replace hard-coded RuleEffects with value returned from actual rules evaluation when the backend logic is added
+			RuleEffects: RuleEffects{UiHide: false},
 		})
 	}
 
