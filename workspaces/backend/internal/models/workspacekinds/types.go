@@ -139,7 +139,7 @@ type ListValuesContext struct {
 	ImageConfig *ContextImageConfig `json:"imageConfig,omitempty"`
 }
 
-// Validate validates the context (e.g. context.namespace.name when set).
+// Validate validates the context fields when present.
 func (c *ListValuesContext) Validate(prefix *field.Path) field.ErrorList {
 	var errs field.ErrorList
 	if c == nil {
@@ -147,6 +147,12 @@ func (c *ListValuesContext) Validate(prefix *field.Path) field.ErrorList {
 	}
 	if c.Namespace != nil {
 		errs = append(errs, helper.ValidateKubernetesNamespaceName(prefix.Child("namespace", "name"), c.Namespace.Name)...)
+	}
+	if c.PodConfig != nil {
+		errs = append(errs, helper.ValidateFieldIsNotEmpty(prefix.Child("podConfig", "id"), c.PodConfig.Id)...)
+	}
+	if c.ImageConfig != nil {
+		errs = append(errs, helper.ValidateFieldIsNotEmpty(prefix.Child("imageConfig", "id"), c.ImageConfig.Id)...)
 	}
 	return errs
 }
