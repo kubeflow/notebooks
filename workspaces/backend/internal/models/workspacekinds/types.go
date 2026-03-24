@@ -133,6 +133,7 @@ func (d *ListValuesRequest) Validate(prefix *field.Path) field.ErrorList {
 }
 
 type ListValuesContext struct {
+	// TODO: Namespace is reserved for future use, no behavior implemented yet.
 	Namespace   *ContextNamespace   `json:"namespace,omitempty"`
 	PodConfig   *ContextPodConfig   `json:"podConfig,omitempty"`
 	ImageConfig *ContextImageConfig `json:"imageConfig,omitempty"`
