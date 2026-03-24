@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Log trigger
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             console.log(`Action triggered by: ${context.eventName} event with action: ${context.payload.action}`);
@@ -30,7 +30,7 @@ jobs:
 
       - name: Handle labeled action
         if: github.event.action == 'labeled'
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             const AUTHORIZED_USERS = JSON.parse(process.env.AUTHORIZED_USERS);
@@ -96,7 +96,7 @@ jobs:
 
       - name: Handle opened action
         if: github.event.action == 'opened'
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             const AUTHORIZED_USERS = JSON.parse(process.env.AUTHORIZED_USERS);
