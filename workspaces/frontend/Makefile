@@ -55,8 +55,13 @@ docker-build-push-multi-arch:
 
 .PHONY: deploy
 deploy: kustomize ## Deploy frontend to the K8s cluster specified in ~/.kube/config.
-	cd manifests/kustomize/overlays/istio && $(KUSTOMIZE) edit set image workspaces-frontend=${IMG}
-	$(KUBECTL) apply -k manifests/kustomize/overlays/istio
+	@echo "Copying kustomize directory structure to .output..."
+	@rm -rf manifests/kustomize/.output
+	@mkdir -p manifests/kustomize/.output
+	@cp -r manifests/kustomize/* manifests/kustomize/.output/
+	# Match both short name and registry-prefixed name (base kustomization may transform either)
+	@cd manifests/kustomize/.output/overlays/istio && $(KUSTOMIZE) edit set image $(NAME)=${IMG} $(REGISTRY)/$(NAME)=${IMG}
+	@$(KUBECTL) apply -k manifests/kustomize/.output/overlays/istio
 
 .PHONY: undeploy
 undeploy: kustomize ## Undeploy frontend from the K8s cluster specified in ~/.kube/config.
