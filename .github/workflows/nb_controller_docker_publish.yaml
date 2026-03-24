@@ -59,7 +59,8 @@ jobs:
 
     - name: Build and push multi-arch docker image on Version change
       id: version
-      if: steps.filter.outputs.version == 'true'
+      # We only publish version-tagged images from release branches or tags
+      if: steps.filter.outputs.version == 'true' && (startsWith(github.ref, 'refs/heads/v') || startsWith(github.ref, 'refs/tags/v'))
       run: |
         export TAG=$(cat releasing/version/VERSION)
         cd components/notebook-controller
