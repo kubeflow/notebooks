@@ -88,13 +88,14 @@ describe('VolumeDetailsPageComponent', () => {
       expect(tabBodies.length).toEqual(allTabs.length);
 
       tabBodies.forEach((tabBody, index) => {
-        expect(tabBody.classes['mat-mdc-tab-body-active']).toBe(
-          allTabs[index] === name,
+        const isActive = tabBody.nativeElement.classList.contains(
+          'mat-mdc-tab-body-active',
         );
+        expect(isActive).toBe(allTabs[index] === name);
       });
 
-      const activeTabBody = tabBodies.find(
-        tabBody => tabBody.classes['mat-mdc-tab-body-active'],
+      const activeTabBody = tabBodies.find(tabBody =>
+        tabBody.nativeElement.classList.contains('mat-mdc-tab-body-active'),
       );
       expect(activeTabBody?.query(By.css(`app-${name}`))).toBeTruthy();
     };
@@ -116,6 +117,7 @@ describe('VolumeDetailsPageComponent', () => {
     setActiveTab('overview');
     setActiveTab('yaml');
 
+    flush();
     discardPeriodicTasks();
   }));
 
@@ -143,6 +145,7 @@ describe('VolumeDetailsPageComponent', () => {
     setActiveTab('overview');
     setActiveTab('yaml');
 
+    flush();
     discardPeriodicTasks();
   }));
 });
