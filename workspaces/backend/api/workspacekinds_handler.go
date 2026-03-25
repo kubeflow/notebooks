@@ -300,6 +300,11 @@ func (a *App) UpdateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 			a.notFoundResponse(w, r)
 			return
 		}
+		if helper.IsInternalValidationError(err) {
+			fieldErrs := helper.FieldErrorsFromInternalValidationError(err)
+			a.failedValidationResponse(w, r, errMsgInternalValidation, fieldErrs, nil)
+			return
+		}
 		if errors.Is(err, repository.ErrWorkspaceKindRevisionConflict) {
 			causes := helper.StatusCausesFromAPIStatus(err)
 			a.conflictResponse(w, r, err, causes)

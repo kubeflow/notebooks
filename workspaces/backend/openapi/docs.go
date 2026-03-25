@@ -5314,30 +5314,6 @@ const docTemplate = `{
                 }
             }
         },
-        "v1beta1.ImageConfig": {
-            "type": "object",
-            "required": [
-                "spawner",
-                "values"
-            ],
-            "properties": {
-                "spawner": {
-                    "description": "spawner ui configs",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.OptionsSpawnerConfig"
-                        }
-                    ]
-                },
-                "values": {
-                    "description": "the list of image configs that are available\n+kubebuilder:validation:MinItems:=1\n+listType:=\"map\"\n+listMapKey:=\"id\"",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/v1beta1.ImageConfigValue"
-                    }
-                }
-            }
-        },
         "v1beta1.ImageConfigSpec": {
             "type": "object",
             "required": [
@@ -5364,44 +5340,6 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/v1beta1.ImagePort"
                     }
-                }
-            }
-        },
-        "v1beta1.ImageConfigValue": {
-            "type": "object",
-            "required": [
-                "id",
-                "spawner",
-                "spec"
-            ],
-            "properties": {
-                "id": {
-                    "description": "the id of this image config\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=256\n+kubebuilder:example:=\"jupyterlab_scipy_190\"",
-                    "type": "string"
-                },
-                "redirect": {
-                    "description": "redirect configs\n+kubebuilder:validation:Optional",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.OptionRedirect"
-                        }
-                    ]
-                },
-                "spawner": {
-                    "description": "information for the spawner ui",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.OptionSpawnerInfo"
-                        }
-                    ]
-                },
-                "spec": {
-                    "description": "the spec of the image config",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.ImageConfigSpec"
-                        }
-                    ]
                 }
             }
         },
@@ -5525,42 +5463,6 @@ const docTemplate = `{
                 }
             }
         },
-        "v1beta1.OptionsSpawnerConfig": {
-            "type": "object",
-            "required": [
-                "default"
-            ],
-            "properties": {
-                "default": {
-                    "description": "the id of the default option\n - this will be selected by default in the spawner ui\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=256\n+kubebuilder:example=\"jupyterlab_scipy_190\"",
-                    "type": "string"
-                }
-            }
-        },
-        "v1beta1.PodConfig": {
-            "type": "object",
-            "required": [
-                "spawner",
-                "values"
-            ],
-            "properties": {
-                "spawner": {
-                    "description": "spawner ui configs",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.OptionsSpawnerConfig"
-                        }
-                    ]
-                },
-                "values": {
-                    "description": "the list of pod configs that are available\n+kubebuilder:validation:MinItems:=1\n+listType:=\"map\"\n+listMapKey:=\"id\"",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/v1beta1.PodConfigValue"
-                    }
-                }
-            }
-        },
         "v1beta1.PodConfigSpec": {
             "type": "object",
             "properties": {
@@ -5593,44 +5495,6 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/v1.Toleration"
                     }
-                }
-            }
-        },
-        "v1beta1.PodConfigValue": {
-            "type": "object",
-            "required": [
-                "id",
-                "spawner",
-                "spec"
-            ],
-            "properties": {
-                "id": {
-                    "description": "the id of this pod config\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=256\n+kubebuilder:example=\"big_gpu\"",
-                    "type": "string"
-                },
-                "redirect": {
-                    "description": "redirect configs\n+kubebuilder:validation:Optional",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.OptionRedirect"
-                        }
-                    ]
-                },
-                "spawner": {
-                    "description": "information for the spawner ui",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.OptionSpawnerInfo"
-                        }
-                    ]
-                },
-                "spec": {
-                    "description": "the spec of the pod config",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.PodConfigSpec"
-                        }
-                    ]
                 }
             }
         },
@@ -5709,170 +5573,6 @@ const docTemplate = `{
                 }
             }
         },
-        "v1beta1.WorkspaceKindIcon": {
-            "type": "object",
-            "properties": {
-                "configMap": {
-                    "description": "+kubebuilder:validation:Optional",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.WorkspaceKindConfigMap"
-                        }
-                    ]
-                },
-                "url": {
-                    "description": "+kubebuilder:validation:Optional\n+kubebuilder:example=\"https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png\"",
-                    "type": "string"
-                }
-            }
-        },
-        "v1beta1.WorkspaceKindPodMetadata": {
-            "type": "object",
-            "properties": {
-                "annotations": {
-                    "description": "annotations to be applied to the Pod resource\n+kubebuilder:validation:Optional",
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                },
-                "labels": {
-                    "description": "labels to be applied to the Pod resource\n+kubebuilder:validation:Optional",
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
-        "v1beta1.WorkspaceKindPodOptions": {
-            "type": "object",
-            "required": [
-                "imageConfig",
-                "podConfig"
-            ],
-            "properties": {
-                "imageConfig": {
-                    "description": "imageConfig options",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.ImageConfig"
-                        }
-                    ]
-                },
-                "podConfig": {
-                    "description": "podConfig options",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.PodConfig"
-                        }
-                    ]
-                }
-            }
-        },
-        "v1beta1.WorkspaceKindPodTemplate": {
-            "type": "object",
-            "required": [
-                "options",
-                "ports",
-                "serviceAccount",
-                "volumeMounts"
-            ],
-            "properties": {
-                "containerSecurityContext": {
-                    "description": "container security context for Workspace Pods (MUTABLE)\n+kubebuilder:validation:Optional",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1.SecurityContext"
-                        }
-                    ]
-                },
-                "culling": {
-                    "description": "culling configs for pausing inactive Workspaces (MUTABLE)\n+kubebuilder:validation:Optional",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.WorkspaceKindCullingConfig"
-                        }
-                    ]
-                },
-                "extraEnv": {
-                    "description": "environment variables for Workspace Pods (MUTABLE)\n - the following go template functions are available:\n    - ` + "`" + `httpPathPrefix(portId string)` + "`" + `: returns the HTTP path prefix of the specified port\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"name\"",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/v1.EnvVar"
-                    }
-                },
-                "extraVolumeMounts": {
-                    "description": "extra volume mounts for Workspace Pods (MUTABLE)\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"mountPath\"",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/v1.VolumeMount"
-                    }
-                },
-                "extraVolumes": {
-                    "description": "extra volumes for Workspace Pods (MUTABLE)\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"name\"",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/v1.Volume"
-                    }
-                },
-                "options": {
-                    "description": "options are the user-selectable fields, they determine the PodSpec of the Workspace",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.WorkspaceKindPodOptions"
-                        }
-                    ]
-                },
-                "podMetadata": {
-                    "description": "metadata for Workspace Pods (MUTABLE)\n+kubebuilder:validation:Optional",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.WorkspaceKindPodMetadata"
-                        }
-                    ]
-                },
-                "ports": {
-                    "description": "port definitions which can be referenced in image config values\n- think of port definitions as the \"types\" of services which could be provided by a specific image\n- a port definition has a common id (URL path) for consistency if the listening TCP port changes\n- ports are referenced in image config values by their ` + "`" + `id` + "`" + ` and their definition here establishes\n  their protocol type, and default display name in the UI\n+kubebuilder:validation:MinItems:=1\n+listType:=\"map\"\n+listMapKey:=\"id\"",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/v1beta1.WorkspaceKindPort"
-                    }
-                },
-                "probes": {
-                    "description": "standard probes to determine Container health (MUTABLE)\n+kubebuilder:validation:Optional",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.WorkspaceKindProbes"
-                        }
-                    ]
-                },
-                "securityContext": {
-                    "description": "security context for Workspace Pods (MUTABLE)\n+kubebuilder:validation:Optional",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1.PodSecurityContext"
-                        }
-                    ]
-                },
-                "serviceAccount": {
-                    "description": "service account configs for Workspace Pods",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.WorkspaceKindServiceAccount"
-                        }
-                    ]
-                },
-                "volumeMounts": {
-                    "description": "volume mount paths",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.WorkspaceKindVolumeMounts"
-                        }
-                    ]
-                }
-            }
-        },
         "v1beta1.WorkspaceKindPort": {
             "type": "object",
             "required": [
@@ -5936,102 +5636,6 @@ const docTemplate = `{
                 }
             }
         },
-        "v1beta1.WorkspaceKindServiceAccount": {
-            "type": "object",
-            "required": [
-                "name"
-            ],
-            "properties": {
-                "name": {
-                    "description": "the name of the ServiceAccount (NOT MUTABLE)\n - this Service Account MUST already exist in the Namespace\n   of the Workspace, the controller will NOT create it\n - we will not show this WorkspaceKind in the Spawner UI\n   if the SA does not exist in the Namespace\n+kubebuilder:validation:XValidation:rule=\"self == oldSelf\",message=\"ServiceAccount 'name' is immutable\"\n+kubebuilder:example=\"default-editor\"\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=253\n+kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$",
-                    "type": "string"
-                }
-            }
-        },
-        "v1beta1.WorkspaceKindSpawner": {
-            "type": "object",
-            "required": [
-                "description",
-                "displayName",
-                "icon",
-                "logo"
-            ],
-            "properties": {
-                "deprecated": {
-                    "description": "if this WorkspaceKind is deprecated\n+kubebuilder:validation:Optional\n+kubebuilder:default:=false",
-                    "type": "boolean"
-                },
-                "deprecationMessage": {
-                    "description": "a message to show in Workspace Spawner UI when the WorkspaceKind is deprecated\n+kubebuilder:validation:Optional\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=256\n+kubebuilder:example:=\"This WorkspaceKind will be removed on 20XX-XX-XX, please use another WorkspaceKind.\"",
-                    "type": "string"
-                },
-                "description": {
-                    "description": "the description of the WorkspaceKind\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=4096\n+kubebuilder:example:=\"A Workspace which runs JupyterLab in a Pod\"",
-                    "type": "string"
-                },
-                "displayName": {
-                    "description": "the display name of the WorkspaceKind\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=128\n+kubebuilder:example:=\"JupyterLab Notebook\"",
-                    "type": "string"
-                },
-                "hidden": {
-                    "description": "if this WorkspaceKind should be hidden from the Workspace Spawner UI\n+kubebuilder:validation:Optional\n+kubebuilder:default:=false",
-                    "type": "boolean"
-                },
-                "icon": {
-                    "description": "the icon of the WorkspaceKind\n - a small (favicon-sized) icon used in the Workspace Spawner UI",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.WorkspaceKindIcon"
-                        }
-                    ]
-                },
-                "logo": {
-                    "description": "the logo of the WorkspaceKind\n - a 1:1 (card size) logo used in the Workspace Spawner UI",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.WorkspaceKindIcon"
-                        }
-                    ]
-                }
-            }
-        },
-        "v1beta1.WorkspaceKindSpec": {
-            "type": "object",
-            "required": [
-                "podTemplate",
-                "spawner"
-            ],
-            "properties": {
-                "podTemplate": {
-                    "description": "podTemplate is the PodTemplate used to spawn Pods to run Workspaces of this WorkspaceKind",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.WorkspaceKindPodTemplate"
-                        }
-                    ]
-                },
-                "spawner": {
-                    "description": "spawner config determines how the WorkspaceKind is displayed in the Workspace Spawner UI",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.WorkspaceKindSpawner"
-                        }
-                    ]
-                }
-            }
-        },
-        "v1beta1.WorkspaceKindVolumeMounts": {
-            "type": "object",
-            "required": [
-                "home"
-            ],
-            "properties": {
-                "home": {
-                    "description": "the path to mount the home PVC (NOT MUTABLE)\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=4096\n+kubebuilder:validation:Pattern:=^/[^/].*$\n+kubebuilder:validation:XValidation:rule=\"self == oldSelf\",message=\"mount path of 'home' is immutable\"\n+kubebuilder:example:=\"/home/jovyan\"",
-                    "type": "string"
-                }
-            }
-        },
         "v1beta1.WorkspaceState": {
             "type": "string",
             "enum": [
@@ -6069,6 +5673,24 @@ const docTemplate = `{
                 }
             }
         },
+        "workspacekinds.ImageConfigMutate": {
+            "type": "object",
+            "required": [
+                "spawner",
+                "values"
+            ],
+            "properties": {
+                "spawner": {
+                    "$ref": "#/definitions/workspacekinds.OptionSpawnerConfigMutate"
+                },
+                "values": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspacekinds.ImageConfigValueMutate"
+                    }
+                }
+            }
+        },
         "workspacekinds.ImageConfigValue": {
             "type": "object",
             "required": [
@@ -6102,6 +5724,29 @@ const docTemplate = `{
                 },
                 "redirect": {
                     "$ref": "#/definitions/workspacekinds.OptionRedirect"
+                }
+            }
+        },
+        "workspacekinds.ImageConfigValueMutate": {
+            "type": "object",
+            "required": [
+                "id"
+            ],
+            "properties": {
+                "hidden": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "redirect": {
+                    "$ref": "#/definitions/v1beta1.OptionRedirect"
+                },
+                "spawner": {
+                    "$ref": "#/definitions/v1beta1.OptionSpawnerInfo"
+                },
+                "spec": {
+                    "$ref": "#/definitions/v1beta1.ImageConfigSpec"
                 }
             }
         },
@@ -6145,6 +5790,17 @@ const docTemplate = `{
                 }
             }
         },
+        "workspacekinds.OptionSpawnerConfigMutate": {
+            "type": "object",
+            "required": [
+                "default"
+            ],
+            "properties": {
+                "default": {
+                    "type": "string"
+                }
+            }
+        },
         "workspacekinds.PodConfig": {
             "type": "object",
             "required": [
@@ -6159,6 +5815,24 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/workspacekinds.PodConfigValue"
+                    }
+                }
+            }
+        },
+        "workspacekinds.PodConfigMutate": {
+            "type": "object",
+            "required": [
+                "spawner",
+                "values"
+            ],
+            "properties": {
+                "spawner": {
+                    "$ref": "#/definitions/workspacekinds.OptionSpawnerConfigMutate"
+                },
+                "values": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspacekinds.PodConfigValueMutate"
                     }
                 }
             }
@@ -6196,6 +5870,29 @@ const docTemplate = `{
                 },
                 "redirect": {
                     "$ref": "#/definitions/workspacekinds.OptionRedirect"
+                }
+            }
+        },
+        "workspacekinds.PodConfigValueMutate": {
+            "type": "object",
+            "required": [
+                "id"
+            ],
+            "properties": {
+                "hidden": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "redirect": {
+                    "$ref": "#/definitions/v1beta1.OptionRedirect"
+                },
+                "spawner": {
+                    "$ref": "#/definitions/v1beta1.OptionSpawnerInfo"
+                },
+                "spec": {
+                    "$ref": "#/definitions/v1beta1.PodConfigSpec"
                 }
             }
         },
@@ -6339,19 +6036,158 @@ const docTemplate = `{
                 }
             }
         },
+        "workspacekinds.WorkspaceKindIconMutate": {
+            "type": "object",
+            "properties": {
+                "configMap": {
+                    "$ref": "#/definitions/v1beta1.WorkspaceKindConfigMap"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspacekinds.WorkspaceKindOptionsMutate": {
+            "type": "object",
+            "required": [
+                "imageConfig",
+                "podConfig"
+            ],
+            "properties": {
+                "imageConfig": {
+                    "$ref": "#/definitions/workspacekinds.ImageConfigMutate"
+                },
+                "podConfig": {
+                    "$ref": "#/definitions/workspacekinds.PodConfigMutate"
+                }
+            }
+        },
+        "workspacekinds.WorkspaceKindPodMetadataMutate": {
+            "type": "object",
+            "properties": {
+                "annotations": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "labels": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "workspacekinds.WorkspaceKindPodTemplateMutate": {
+            "type": "object",
+            "required": [
+                "options"
+            ],
+            "properties": {
+                "containerSecurityContext": {
+                    "$ref": "#/definitions/v1.SecurityContext"
+                },
+                "culling": {
+                    "$ref": "#/definitions/v1beta1.WorkspaceKindCullingConfig"
+                },
+                "extraEnv": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/v1.EnvVar"
+                    }
+                },
+                "extraVolumeMounts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/v1.VolumeMount"
+                    }
+                },
+                "extraVolumes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/v1.Volume"
+                    }
+                },
+                "options": {
+                    "$ref": "#/definitions/workspacekinds.WorkspaceKindOptionsMutate"
+                },
+                "podMetadata": {
+                    "$ref": "#/definitions/workspacekinds.WorkspaceKindPodMetadataMutate"
+                },
+                "ports": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/v1beta1.WorkspaceKindPort"
+                    }
+                },
+                "probes": {
+                    "$ref": "#/definitions/v1beta1.WorkspaceKindProbes"
+                },
+                "securityContext": {
+                    "$ref": "#/definitions/v1.PodSecurityContext"
+                }
+            }
+        },
+        "workspacekinds.WorkspaceKindSpawnerMutate": {
+            "type": "object",
+            "required": [
+                "description",
+                "displayName",
+                "icon",
+                "logo"
+            ],
+            "properties": {
+                "deprecated": {
+                    "type": "boolean"
+                },
+                "deprecationMessage": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "displayName": {
+                    "type": "string"
+                },
+                "hidden": {
+                    "type": "boolean"
+                },
+                "icon": {
+                    "$ref": "#/definitions/workspacekinds.WorkspaceKindIconMutate"
+                },
+                "logo": {
+                    "$ref": "#/definitions/workspacekinds.WorkspaceKindIconMutate"
+                }
+            }
+        },
         "workspacekinds.WorkspaceKindUpdate": {
             "type": "object",
             "required": [
+                "podTemplate",
                 "revision",
-                "spec"
+                "spawner"
             ],
             "properties": {
+                "podTemplate": {
+                    "description": "PodTemplate contains mutable pod template fields.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/workspacekinds.WorkspaceKindPodTemplateMutate"
+                        }
+                    ]
+                },
                 "revision": {
-                    "description": "Revision is an opaque token that can be treated like an etag.\n- Clients receive this value from GET/Create requests and must include it\n  in update requests to ensure they are updating the expected version.\n- Clients must not parse, interpret, or compare revision values\n  other than for equality, as the format is not guaranteed to be stable.",
+                    "description": "Revision is an opaque token for optimistic locking.",
                     "type": "string"
                 },
-                "spec": {
-                    "$ref": "#/definitions/v1beta1.WorkspaceKindSpec"
+                "spawner": {
+                    "description": "Spawner contains mutable spawner fields.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/workspacekinds.WorkspaceKindSpawnerMutate"
+                        }
+                    ]
                 }
             }
         },

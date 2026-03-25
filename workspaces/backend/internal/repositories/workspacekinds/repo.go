@@ -25,6 +25,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	modelsCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds"
 )
@@ -113,20 +114,21 @@ func (r *WorkspaceKindRepository) UpdateWorkspaceKind(ctx context.Context, works
 		return nil, ErrWorkspaceKindRevisionConflict
 	}
 
-	// TODO: validate the requested updates (e.g. validate new options, etc.)
-	// ...
-
-	// TODO: update workspace kind fields from workspaceKindUpdate model
-	// ...
+	// validate and apply the update to the workspace kind object
+	if valErrs := models.ValidateAndApplyWorkspaceKindUpdate(workspaceKindUpdate, workspaceKind); len(valErrs) > 0 {
+		return nil, helper.NewInternalValidationError(valErrs)
+	}
 
 	// set audit annotations
 	modelsCommon.UpdateObjectMetaForUpdate(&workspaceKind.ObjectMeta, actor, now)
 
-	// TODO: update the workspace kind in K8s
-	// TODO: if the update fails due to a kubernetes conflict, this implies our cache is stale.
+	// update the workspace kind in K8s
+	// TODO(#853): if the update fails due to a kubernetes conflict, this implies our cache is stale.
 	//       we should retry the entire update operation a few times (including recalculating clusterRevision)
 	//       before returning a 500 error to the caller (DO NOT return a 409, as it's not the caller's fault)
-	// ...
+	if err := r.client.Update(ctx, workspaceKind); err != nil {
+		return nil, err
+	}
 
 	workspaceKindUpdateModel := models.NewWorkspaceKindUpdateModelFromWorkspaceKind(workspaceKind)
 	return workspaceKindUpdateModel, nil
