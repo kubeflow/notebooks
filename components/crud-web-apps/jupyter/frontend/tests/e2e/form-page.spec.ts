@@ -20,33 +20,53 @@ test.describe('New notebook form', () => {
     await customPage.goto('/new');
   });
 
-  test('should have a "New notebook" title', async ({ page }: { page: Page }) => {
+  test('should have a "New notebook" title', async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     const title = await page.locator('[data-cy-toolbar-title]').innerText();
     expect(title).toContain('New notebook');
   });
 
-  test('should auto update mount value when name change', async ({ page }: { page: Page }) => {
+  test('should auto update mount value when name change', async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await page.getByRole('button', { name: 'add new volume' }).click();
     await page.locator('.last[data-cy="data volumes"]').click();
 
-    const nameInput = page.locator('.last[data-cy="data volumes"] [data-cy="volume name input"]');
+    const nameInput = page.locator(
+      '.last[data-cy="data volumes"] [data-cy="volume name input"]',
+    );
     await nameInput.fill('new-volume-name');
-    
+
     const nameValue = await nameInput.inputValue();
-    const mountPathInput = page.locator('.last[data-cy="data volumes"] [data-cy="mount path"]');
+    const mountPathInput = page.locator(
+      '.last[data-cy="data volumes"] [data-cy="mount path"]',
+    );
     const mountValue = await mountPathInput.inputValue();
-    
+
     expect(mountValue).toEqual(`/home/jovyan/${nameValue}`);
   });
 
-  test('should not auto update mount value when it is dirty', async ({ page }: { page: Page }) => {
+  test('should not auto update mount value when it is dirty', async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await page.getByRole('button', { name: 'add new volume' }).click();
     await page.locator('.last[data-cy="data volumes"]').click();
 
-    const mountPathInput = page.locator('.last[data-cy="data volumes"] [data-cy="mount path"]');
+    const mountPathInput = page.locator(
+      '.last[data-cy="data volumes"] [data-cy="mount path"]',
+    );
     await mountPathInput.fill('dirty');
 
-    const nameInput = page.locator('.last[data-cy="data volumes"] [data-cy="volume name input"]');
+    const nameInput = page.locator(
+      '.last[data-cy="data volumes"] [data-cy="volume name input"]',
+    );
     await nameInput.fill('new-volume-name');
 
     const nameValue = await nameInput.inputValue();
@@ -55,16 +75,26 @@ test.describe('New notebook form', () => {
     expect(updatedMountValue).not.toEqual(`/home/jovyan/${nameValue}`);
   });
 
-  test('should update panel header name according to the name input field', async ({ page }: { page: Page }) => {
+  test('should update panel header name according to the name input field', async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await page.locator('[data-cy="workspace volume"]').click();
     const nameInput = page.locator('[data-cy="volume name input"]');
     await nameInput.fill('test');
 
-    const headerName = await page.locator('[data-cy="volume name header"]').innerText();
+    const headerName = await page
+      .locator('[data-cy="volume name header"]')
+      .innerText();
     expect(headerName).toContain('test');
   });
 
-  test('should update name input field according to the ConfigMap', async ({ page }: { page: Page }) => {
+  test('should update name input field according to the ConfigMap', async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await page.locator('[data-cy="workspace volume"]').click();
 
     const nameInput = page.locator('[data-cy="volume name input"]');
@@ -73,7 +103,11 @@ test.describe('New notebook form', () => {
     expect(nameValue).toEqual('-workspace');
   });
 
-  test('should update size input field according to the ConfigMap', async ({ page }: { page: Page }) => {
+  test('should update size input field according to the ConfigMap', async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await page.locator('[data-cy="workspace volume"]').click();
 
     const sizeInput = page.locator('[data-cy="size input"]');
@@ -82,7 +116,11 @@ test.describe('New notebook form', () => {
     expect(sizeValue).toEqual('20');
   });
 
-  test('should update access mode input field according to the ConfigMap', async ({ page }: { page: Page }) => {
+  test('should update access mode input field according to the ConfigMap', async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await page.locator('[data-cy="workspace volume"]').click();
 
     // 'ReadWriteMany' is the accessModes value of the config fixture

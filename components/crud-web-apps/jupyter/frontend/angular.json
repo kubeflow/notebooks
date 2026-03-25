@@ -2,9 +2,7 @@
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "cli": {
     "analytics": false,
-    "schematicCollections": [
-      "@angular-eslint/schematics"
-    ]
+    "schematicCollections": ["@angular-eslint/schematics"]
   },
   "version": 1,
   "newProjectRoot": "projects",
@@ -29,10 +27,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
-            "allowedCommonJsDependencies": [
-              "date-fns",
-              "lodash"
-            ],
+            "allowedCommonJsDependencies": ["date-fns", "lodash"],
             "aot": true,
             "preserveSymlinks": true,
             "outputPath": "dist/frontend",
@@ -49,9 +44,7 @@
                 "output": "assets/monaco-editor"
               }
             ],
-            "styles": [
-              "src/styles.scss"
-            ],
+            "styles": ["src/styles.scss"],
             "crossOrigin": "use-credentials",
             "vendorChunk": true,
             "extractLicenses": false,
@@ -66,10 +59,14 @@
             "namedChunks": true
           },
           "configurations": {
+            "development": {
+              "aot": false,
+              "main": "src/main.dev.ts",
+              "polyfills": "src/polyfills.dev.ts",
+              "tsConfig": "tsconfig.app.dev.json"
+            },
             "fr": {
-              "localize": [
-                "fr"
-              ]
+              "localize": ["fr"]
             },
             "production": {
               "fileReplacements": [
@@ -108,7 +105,7 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "browserTarget": "frontend:build"
+            "browserTarget": "frontend:build:development"
           },
           "configurations": {
             "production": {
@@ -133,13 +130,8 @@
             "polyfills": "src/polyfills.ts",
             "tsConfig": "tsconfig.spec.json",
             "karmaConfig": "karma.conf.cjs",
-            "assets": [
-              "src/favicon.ico",
-              "src/assets"
-            ],
-            "styles": [
-              "src/styles.scss"
-            ],
+            "assets": ["src/favicon.ico", "src/assets"],
+            "styles": ["src/styles.scss"],
             "scripts": [],
             "preserveSymlinks": true
           }
@@ -147,10 +139,7 @@
         "lint": {
           "builder": "@angular-eslint/builder:lint",
           "options": {
-            "lintFilePatterns": [
-              "src/**/*.ts",
-              "src/**/*.html"
-            ]
+            "lintFilePatterns": ["src/**/*.ts", "src/**/*.html"]
           }
         }
       }
