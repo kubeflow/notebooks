@@ -86,7 +86,9 @@ test.describe('New notebook form', () => {
     await page.locator('[data-cy="workspace volume"]').click();
 
     // 'ReadWriteMany' is the accessModes value of the config fixture
-    const accessModeRadio = page.locator('[data-cy="ReadWriteMany"]');
-    expect(await accessModeRadio.evaluate((node: HTMLElement) => node.classList.contains('mat-radio-checked'))).toBe(true);
+    const accessModeRadio = page.locator(
+      '[data-cy="ReadWriteMany"] input[type="radio"]',
+    );
+    await expect(accessModeRadio).toBeChecked();
   });
 });

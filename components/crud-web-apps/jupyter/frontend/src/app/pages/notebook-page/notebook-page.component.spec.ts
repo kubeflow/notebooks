@@ -2,6 +2,7 @@ import {
   ComponentFixture,
   discardPeriodicTasks,
   fakeAsync,
+  flush,
   TestBed,
   tick,
 } from '@angular/core/testing';
@@ -93,42 +94,42 @@ describe('NotebookPageComponent', () => {
   });
 
   it('should show only the proper tab according to query parameters', fakeAsync(() => {
+    const allTabs = ['overview', 'logs', 'events', 'yaml'];
     const checkActiveTab = (name: string) => {
-      const activeTab = fixture.debugElement.query(By.css(`app-${name}`));
-      expect(activeTab).toBeTruthy();
-    };
+      const tabBodies = fixture.debugElement.queryAll(
+        By.css('.mat-mdc-tab-body'),
+      );
+      expect(tabBodies.length).toEqual(allTabs.length);
 
-    const checkInactiveTabs = (name: string) => {
-      const allTabs = ['overview', 'logs', 'events', 'yaml'];
-      const indexOfActiveTab = allTabs.findIndex(v => v === name);
-      allTabs.splice(indexOfActiveTab, 1);
-
-      allTabs.forEach(tab => {
-        const inactiveTab = fixture.debugElement.query(By.css(`app-${tab}`));
-        if (!inactiveTab) {
-          expect(inactiveTab).toBeFalsy();
-        } else {
-          const parentElement = inactiveTab.parent.nativeElement;
-          const styles = getComputedStyle(parentElement);
-          expect(styles.overflow).toEqual('hidden');
-        }
+      tabBodies.forEach((tabBody, index) => {
+        expect(tabBody.classes['mat-mdc-tab-body-active']).toBe(
+          allTabs[index] === name,
+        );
       });
+
+      const activeTabBody = tabBodies.find(
+        tabBody => tabBody.classes['mat-mdc-tab-body-active'],
+      );
+      expect(activeTabBody?.query(By.css(`app-${name}`))).toBeTruthy();
     };
 
     const activatedRoute: ActivatedRoute = TestBed.inject(ActivatedRoute);
-    const queryParams = new Subject();
+    const queryParams = new Subject<{ tab: string }>();
     activatedRoute.queryParams = queryParams;
-    fixture.detectChanges();
-    activatedRoute.queryParams.subscribe(params => {
+    const setActiveTab = (name: string) => {
+      queryParams.next({ tab: name });
       fixture.detectChanges();
       tick();
-      checkActiveTab(params.tab);
-      checkInactiveTabs(params.tab);
-    });
-    queryParams.next({ tab: 'logs' });
-    queryParams.next({ tab: 'events' });
-    queryParams.next({ tab: 'overview' });
-    queryParams.next({ tab: 'yaml' });
+      flush();
+      fixture.detectChanges();
+      checkActiveTab(name);
+    };
+
+    fixture.detectChanges();
+    setActiveTab('logs');
+    setActiveTab('events');
+    setActiveTab('overview');
+    setActiveTab('yaml');
 
     discardPeriodicTasks();
   }));
@@ -141,18 +142,22 @@ describe('NotebookPageComponent', () => {
     };
 
     const activatedRoute: ActivatedRoute = TestBed.inject(ActivatedRoute);
-    const queryParams = new Subject();
+    const queryParams = new Subject<{ tab: string }>();
     activatedRoute.queryParams = queryParams;
-    fixture.detectChanges();
-    activatedRoute.queryParams.subscribe(params => {
+    const setActiveTab = (name: string) => {
+      queryParams.next({ tab: name });
       fixture.detectChanges();
       tick();
-      checkActiveTabIndex(params.tab);
-    });
-    queryParams.next({ tab: 'logs' });
-    queryParams.next({ tab: 'events' });
-    queryParams.next({ tab: 'overview' });
-    queryParams.next({ tab: 'yaml' });
+      flush();
+      fixture.detectChanges();
+      checkActiveTabIndex(name);
+    };
+
+    fixture.detectChanges();
+    setActiveTab('logs');
+    setActiveTab('events');
+    setActiveTab('overview');
+    setActiveTab('yaml');
 
     discardPeriodicTasks();
   }));

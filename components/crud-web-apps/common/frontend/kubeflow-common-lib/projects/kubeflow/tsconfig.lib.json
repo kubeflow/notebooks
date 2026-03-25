@@ -11,7 +11,8 @@
   },
   "angularCompilerOptions": {
     "strictInjectionParameters": true,
-    "enableResourceInlining": true
+    "enableResourceInlining": true,
+    "compilationMode": "full"
   },
   "exclude": ["src/test.ts", "**/*.spec.ts"]
 }

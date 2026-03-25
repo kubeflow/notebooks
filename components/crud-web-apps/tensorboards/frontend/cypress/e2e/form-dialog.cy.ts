@@ -24,9 +24,8 @@ describe('+New Tensorboard form dialog', () => {
       .should('be.visible');
 
     // Checks default radio button is selected and proper input field is shown
-    cy.get('[data-cy-form-radio-object-store]').should(
-      'have.class',
-      'mat-radio-checked',
+    cy.get('[data-cy-form-radio-object-store] input[type="radio"]').should(
+      'be.checked',
     );
     cy.get('[data-cy-form-input-label]').should('contain', 'Object Store Link');
 
