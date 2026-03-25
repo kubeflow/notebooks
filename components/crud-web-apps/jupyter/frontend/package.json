@@ -26,6 +26,9 @@
     "ui-test-ci-all": "playwright test --project=Chromium && playwright test --project=Firefox"
   },
   "private": true,
+  "overrides": {
+    "@parcel/watcher": "2.5.6"
+  },
   "dependencies": {
     "@angular/animations": "~16.2.12",
     "@angular/cdk": "~16.2.14",

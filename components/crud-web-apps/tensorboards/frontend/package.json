@@ -24,6 +24,9 @@
     "ui-test-ci-all": "cypress run . --e2e --browser=chrome && cypress run . --e2e --browser=firefox"
   },
   "private": true,
+  "overrides": {
+    "@parcel/watcher": "2.5.6"
+  },
   "dependencies": {
     "@angular/animations": "~16.2.12",
     "@angular/cdk": "~16.2.14",
