@@ -12,7 +12,7 @@
   "angularCompilerOptions": {
     "strictInjectionParameters": true,
     "enableResourceInlining": true,
-    "compilationMode": "full"
+    "compilationMode": "partial"
   },
   "exclude": ["src/test.ts", "**/*.spec.ts"]
 }
