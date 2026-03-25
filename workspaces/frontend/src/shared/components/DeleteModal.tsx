@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+﻿import React, { useCallback, useEffect, useState } from 'react';
 import {
   Modal,
   ModalBody,
@@ -17,6 +17,7 @@ import { ErrorAlert } from '~/shared/components/ErrorAlert';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { extractErrorMessage } from '~/shared/api/apiUtils';
 import { ApiErrorEnvelope } from '~/generated/data-contracts';
+import { useThemeContext } from 'mod-arch-kubeflow';
 
 interface DeleteModalProps {
   isOpen: boolean;
@@ -35,6 +36,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   onClose,
   onDelete,
 }) => {
+  const { isMUITheme } = useThemeContext();
   const [inputValue, setInputValue] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | ApiErrorEnvelope | null>(null);
@@ -79,7 +81,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
     >
       <ModalHeader title={title} titleIconVariant="warning" />
       <ModalBody>
-        <Stack hasGutter>
+        <Stack hasGutter={!isMUITheme}>
           {error && (
             <StackItem>
               <ErrorAlert
