@@ -11,10 +11,16 @@ import { of, Subject } from 'rxjs';
 import { NotebookPageComponent } from './notebook-page.component';
 import { RouterTestingModule } from '@angular/router/testing';
 import { ActionsService } from 'src/app/services/actions.service';
-import { KubeflowModule, NamespaceService, STATUS_TYPE } from 'kubeflow';
+import {
+  KubeflowModule,
+  NamespaceService,
+  PollerService,
+  STATUS_TYPE,
+} from 'kubeflow';
 import { ActivatedRoute } from '@angular/router';
 import { By } from '@angular/platform-browser';
 import { MatTabsModule } from '@angular/material/tabs';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { OverviewModule } from './overview/overview.module';
 import { LogsModule } from './logs/logs.module';
 import { YamlModule } from './yaml/yaml.module';
@@ -38,6 +44,9 @@ const NamespaceServiceStub: Partial<NamespaceService> = {
   updateSelectedNamespace: () => {},
   getSelectedNamespace2: () => of(),
 };
+const PollerServiceStub: Partial<PollerService> = {
+  exponential: request => request,
+};
 const ActivatedRouteStub: Partial<ActivatedRoute> = {
   params: of({ namespace: 'kubeflow-user', notebookName: 'asa232rstudio' }),
   queryParams: of({}),
@@ -54,6 +63,7 @@ describe('NotebookPageComponent', () => {
         { provide: JWABackendService, useValue: JWABackendServiceStub },
         { provide: ActionsService, useValue: ActionsServiceStub },
         { provide: NamespaceService, useValue: NamespaceServiceStub },
+        { provide: PollerService, useValue: PollerServiceStub },
         {
           provide: ActivatedRoute,
           useValue: ActivatedRouteStub,
@@ -63,6 +73,7 @@ describe('NotebookPageComponent', () => {
         RouterTestingModule,
         KubeflowModule,
         MatTabsModule,
+        NoopAnimationsModule,
         OverviewModule,
         LogsModule,
         EventsModule,

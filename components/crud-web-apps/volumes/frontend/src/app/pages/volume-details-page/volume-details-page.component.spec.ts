@@ -6,6 +6,7 @@ import {
   tick,
 } from '@angular/core/testing';
 import { MatTabsModule } from '@angular/material/tabs';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { By } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
@@ -58,6 +59,7 @@ describe('VolumeDetailsPageComponent', () => {
         RouterTestingModule,
         KubeflowModule,
         MatTabsModule,
+        NoopAnimationsModule,
         OverviewModule,
         EventsModule,
         YamlModule,
