@@ -899,7 +899,7 @@ const docTemplate = `{
                 "tags": [
                     "workspacekinds"
                 ],
-                "summary": "Pod template options list values",
+                "summary": "List pod template option values",
                 "operationId": "podTemplateOptionsListValues",
                 "parameters": [
                     {
@@ -2541,7 +2541,12 @@ const docTemplate = `{
                     "$ref": "#/definitions/workspacekinds.ContextImageConfig"
                 },
                 "namespace": {
-                    "$ref": "#/definitions/workspacekinds.ContextNamespace"
+                    "description": "TODO: Namespace is reserved for future use, no behavior implemented yet.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/workspacekinds.ContextNamespace"
+                        }
+                    ]
                 },
                 "podConfig": {
                     "$ref": "#/definitions/workspacekinds.ContextPodConfig"
