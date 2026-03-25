@@ -1,4 +1,10 @@
-import { STATUS_TYPE } from 'kubeflow';
+const STATUS_TYPE = {
+  READY: 'ready',
+  WAITING: 'waiting',
+  WARNING: 'warning',
+  UNAVAILABLE: 'unavailable',
+  TERMINATING: 'terminating',
+} as const;
 
 describe('+New Tensorboard form dialog', () => {
   beforeEach(() => {

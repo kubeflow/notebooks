@@ -3,8 +3,14 @@ import settings from '../fixtures/settings.json' with { type: 'json' };
 import notebooksRequest from '../fixtures/notebooks.json' with { type: 'json' };
 import { setupCustomPage, type CustomPage } from '../support/e2e';
 
-
-import { STATUS_TYPE } from 'kubeflow';
+const STATUS_TYPE = {
+  READY: 'ready',
+  WAITING: 'waiting',
+  WARNING: 'warning',
+  UNAVAILABLE: 'unavailable',
+  TERMINATING: 'terminating',
+  STOPPED: 'stopped',
+} as const;
 
 test.describe('Main table', () => {
   let customPage: CustomPage;
