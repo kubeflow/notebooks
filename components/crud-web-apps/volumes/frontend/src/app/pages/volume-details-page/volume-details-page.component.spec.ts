@@ -2,7 +2,6 @@ import {
   ComponentFixture,
   discardPeriodicTasks,
   fakeAsync,
-  flush,
   TestBed,
   tick,
 } from '@angular/core/testing';
@@ -10,12 +9,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { By } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
-import {
-  KubeflowModule,
-  LoadingSpinnerModule,
-  NamespaceService,
-  TitleActionsToolbarModule,
-} from 'kubeflow';
+import { KubeflowModule, NamespaceService, PollerService } from 'kubeflow';
 import { of, Subject } from 'rxjs';
 import { ActionsService } from 'src/app/services/actions.service';
 import { VWABackendService } from 'src/app/services/backend.service';
@@ -38,8 +32,11 @@ const NamespaceServiceStub: Partial<NamespaceService> = {
   updateSelectedNamespace: () => {},
   getSelectedNamespace2: () => of(),
 };
+const PollerServiceStub: Partial<PollerService> = {
+  exponential: request => request,
+};
 const ActivatedRouteStub: Partial<ActivatedRoute> = {
-  params: of({ namespace: 'kubeflow-user', notebookName: 'asa232rstudio' }),
+  params: of({ namespace: 'kubeflow-user', pvcName: 'asa232rstudio' }),
   queryParams: of({}),
 };
 
@@ -53,6 +50,8 @@ describe('VolumeDetailsPageComponent', () => {
       providers: [
         { provide: VWABackendService, useValue: VWABackendServiceStub },
         { provide: NamespaceService, useValue: NamespaceServiceStub },
+        { provide: PollerService, useValue: PollerServiceStub },
+        { provide: ActionsService, useValue: ActionsServiceStub },
         { provide: ActivatedRoute, useValue: ActivatedRouteStub },
       ],
       imports: [

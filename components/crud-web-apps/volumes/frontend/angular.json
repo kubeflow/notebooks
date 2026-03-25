@@ -33,6 +33,7 @@
               "date-fns",
               "lodash"
             ],
+            "aot": true,
             "preserveSymlinks": true,
             "outputPath": "dist/frontend",
             "index": "src/index.html",

@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
+import { ColumnsModule } from '../columns.module';
 import { UsedByComponent } from './used-by.component';
 
 const mockElement = {
@@ -24,7 +25,7 @@ describe('UsedByComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [UsedByComponent],
+      imports: [ColumnsModule],
     }).compileComponents();
   });
 
