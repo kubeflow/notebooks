@@ -184,16 +184,19 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			workspacekind1 := &kubefloworgv1beta1.WorkspaceKind{}
 			Expect(k8sClient.Get(ctx, workspaceKind1Key, workspacekind1)).To(Succeed())
 
-			By("ensuring the response matches the expected WorkspaceKind")
-			expectedWorkspaceKind := models.NewWorkspaceKindModelFromWorkspaceKind(workspacekind1)
-			Expect(response.Data).To(BeComparableTo(expectedWorkspaceKind))
+			By("ensuring the response matches the expected WorkspaceKindUpdate")
+			expectedWorkspaceKindUpdate := models.NewWorkspaceKindUpdateModelFromWorkspaceKind(workspacekind1)
+			Expect(response.Data).To(BeComparableTo(expectedWorkspaceKindUpdate))
+
+			By("ensuring the revision is non-empty")
+			Expect(response.Data.Revision).NotTo(BeEmpty())
 
 			By("ensuring the wrapped data can be marshaled to JSON and back")
 			dataJSON, err := json.Marshal(response.Data)
 			Expect(err).NotTo(HaveOccurred(), "failed to marshal data to JSON")
-			var dataObject models.WorkspaceKind
+			var dataObject models.WorkspaceKindUpdate
 			err = json.Unmarshal(dataJSON, &dataObject)
-			Expect(err).NotTo(HaveOccurred(), "failed to unmarshal JSON to WorkspaceKind")
+			Expect(err).NotTo(HaveOccurred(), "failed to unmarshal JSON to WorkspaceKindUpdate")
 		})
 	})
 
@@ -522,6 +525,298 @@ metadata:
 					},
 				},
 			))
+		})
+	})
+
+	Context("when updating a WorkspaceKind", Serial, Ordered, func() {
+
+		var (
+			wskName     string
+			wskRevision string
+		)
+
+		BeforeAll(func() {
+			wskName = "wsk-update-test"
+
+			By("creating the WorkspaceKind")
+			wsk := NewExampleWorkspaceKind(wskName)
+			Expect(k8sClient.Create(ctx, wsk)).To(Succeed())
+
+			By("getting the revision via GET")
+			getReq, err := http.NewRequest(http.MethodGet, strings.Replace(WorkspaceKindsByNamePath, ":"+ResourceNamePathParam, wskName, 1), http.NoBody)
+			Expect(err).NotTo(HaveOccurred())
+			getReq.Header.Set(userIdHeader, adminUser)
+			ps := httprouter.Params{
+				httprouter.Param{Key: ResourceNamePathParam, Value: wskName},
+			}
+			rr := httptest.NewRecorder()
+			a.GetWorkspaceKindHandler(rr, getReq, ps)
+			Expect(rr.Result().StatusCode).To(Equal(http.StatusOK), descUnexpectedHTTPStatus, rr.Body.String())
+			var getResponse WorkspaceKindEnvelope
+			err = json.Unmarshal(rr.Body.Bytes(), &getResponse)
+			Expect(err).NotTo(HaveOccurred())
+			wskRevision = getResponse.Data.Revision
+			Expect(wskRevision).NotTo(BeEmpty())
+		})
+
+		AfterAll(func() {
+			By("deleting the WorkspaceKind")
+			wsk := &kubefloworgv1beta1.WorkspaceKind{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: wskName,
+				},
+			}
+			Expect(k8sClient.Delete(ctx, wsk)).To(Succeed())
+		})
+
+		It("should update a WorkspaceKind successfully", func() {
+			By("building the update request body using the spec from GET response")
+			var getResponse WorkspaceKindEnvelope
+			getReq, err := http.NewRequest(http.MethodGet, strings.Replace(WorkspaceKindsByNamePath, ":"+ResourceNamePathParam, wskName, 1), http.NoBody)
+			Expect(err).NotTo(HaveOccurred())
+			getReq.Header.Set(userIdHeader, adminUser)
+			getRR := httptest.NewRecorder()
+			a.GetWorkspaceKindHandler(getRR, getReq, httprouter.Params{
+				httprouter.Param{Key: ResourceNamePathParam, Value: wskName},
+			})
+			Expect(getRR.Result().StatusCode).To(Equal(http.StatusOK))
+			err = json.Unmarshal(getRR.Body.Bytes(), &getResponse)
+			Expect(err).NotTo(HaveOccurred())
+
+			specJSON, err := json.Marshal(getResponse.Data.Spec)
+			Expect(err).NotTo(HaveOccurred())
+			updateBody := fmt.Sprintf(`{"data": {"revision": %q, "spec": %s}}`, wskRevision, string(specJSON))
+
+			By("creating the HTTP request")
+			path := strings.Replace(WorkspaceKindsByNamePath, ":"+ResourceNamePathParam, wskName, 1)
+			req, err := http.NewRequest(http.MethodPut, path, strings.NewReader(updateBody))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing UpdateWorkspaceKindHandler")
+			ps := httprouter.Params{
+				httprouter.Param{Key: ResourceNamePathParam, Value: wskName},
+			}
+			rr := httptest.NewRecorder()
+			a.UpdateWorkspaceKindHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusOK), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("unmarshalling the response JSON")
+			var response WorkspaceKindEnvelope
+			err = json.Unmarshal(rr.Body.Bytes(), &response)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("verifying the response has a revision")
+			Expect(response.Data).NotTo(BeNil())
+			Expect(response.Data.Revision).NotTo(BeEmpty())
+		})
+
+		It("should return 404 for a non-existent WorkspaceKind", func() {
+			missingName := "non-existent-wsk"
+			updateBody := `{
+				"data": {
+					"revision": "fake-revision",
+					"spec": {}
+				}
+			}`
+
+			By("creating the HTTP request")
+			path := strings.Replace(WorkspaceKindsByNamePath, ":"+ResourceNamePathParam, missingName, 1)
+			req, err := http.NewRequest(http.MethodPut, path, strings.NewReader(updateBody))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing UpdateWorkspaceKindHandler")
+			ps := httprouter.Params{
+				httprouter.Param{Key: ResourceNamePathParam, Value: missingName},
+			}
+			rr := httptest.NewRecorder()
+			a.UpdateWorkspaceKindHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusNotFound), descUnexpectedHTTPStatus, rr.Body.String())
+		})
+
+		It("should return 409 for a stale revision", func() {
+			updateBody := `{
+				"data": {
+					"revision": "stale-revision-that-does-not-match",
+					"spec": {}
+				}
+			}`
+
+			By("creating the HTTP request")
+			path := strings.Replace(WorkspaceKindsByNamePath, ":"+ResourceNamePathParam, wskName, 1)
+			req, err := http.NewRequest(http.MethodPut, path, strings.NewReader(updateBody))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing UpdateWorkspaceKindHandler")
+			ps := httprouter.Params{
+				httprouter.Param{Key: ResourceNamePathParam, Value: wskName},
+			}
+			rr := httptest.NewRecorder()
+			a.UpdateWorkspaceKindHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusConflict), descUnexpectedHTTPStatus, rr.Body.String())
+		})
+
+		It("should return 415 for wrong Content-Type", func() {
+			By("creating the HTTP request")
+			path := strings.Replace(WorkspaceKindsByNamePath, ":"+ResourceNamePathParam, wskName, 1)
+			req, err := http.NewRequest(http.MethodPut, path, strings.NewReader(`{}`))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", MediaTypeYaml)
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing UpdateWorkspaceKindHandler")
+			ps := httprouter.Params{
+				httprouter.Param{Key: ResourceNamePathParam, Value: wskName},
+			}
+			rr := httptest.NewRecorder()
+			a.UpdateWorkspaceKindHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusUnsupportedMediaType), descUnexpectedHTTPStatus, rr.Body.String())
+		})
+
+		It("should return 422 for missing revision", func() {
+			updateBody := `{
+				"data": {
+					"revision": "",
+					"spec": {}
+				}
+			}`
+
+			By("creating the HTTP request")
+			path := strings.Replace(WorkspaceKindsByNamePath, ":"+ResourceNamePathParam, wskName, 1)
+			req, err := http.NewRequest(http.MethodPut, path, strings.NewReader(updateBody))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing UpdateWorkspaceKindHandler")
+			ps := httprouter.Params{
+				httprouter.Param{Key: ResourceNamePathParam, Value: wskName},
+			}
+			rr := httptest.NewRecorder()
+			a.UpdateWorkspaceKindHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity), descUnexpectedHTTPStatus, rr.Body.String())
+		})
+
+		It("should return 422 for missing revision with non-empty spec", func() {
+			updateBody := `{
+				"data": {
+					"revision": "",
+					"spec": {
+						"spawner": {"displayName": "Test", "description": "Test"}
+					}
+				}
+			}`
+
+			By("creating the HTTP request")
+			path := strings.Replace(WorkspaceKindsByNamePath, ":"+ResourceNamePathParam, wskName, 1)
+			req, err := http.NewRequest(http.MethodPut, path, strings.NewReader(updateBody))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing UpdateWorkspaceKindHandler")
+			ps := httprouter.Params{
+				httprouter.Param{Key: ResourceNamePathParam, Value: wskName},
+			}
+			rr := httptest.NewRecorder()
+			a.UpdateWorkspaceKindHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity), descUnexpectedHTTPStatus, rr.Body.String())
+		})
+
+		It("should return 400 for invalid JSON body", func() {
+			By("creating the HTTP request")
+			path := strings.Replace(WorkspaceKindsByNamePath, ":"+ResourceNamePathParam, wskName, 1)
+			req, err := http.NewRequest(http.MethodPut, path, strings.NewReader(`{invalid json`))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing UpdateWorkspaceKindHandler")
+			ps := httprouter.Params{
+				httprouter.Param{Key: ResourceNamePathParam, Value: wskName},
+			}
+			rr := httptest.NewRecorder()
+			a.UpdateWorkspaceKindHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest), descUnexpectedHTTPStatus, rr.Body.String())
+		})
+
+		It("should return 422 for invalid path param", func() {
+			invalidName := "INVALID_NAME!!!"
+
+			By("creating the HTTP request")
+			path := strings.Replace(WorkspaceKindsByNamePath, ":"+ResourceNamePathParam, invalidName, 1)
+			req, err := http.NewRequest(http.MethodPut, path, strings.NewReader(`{}`))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing UpdateWorkspaceKindHandler")
+			ps := httprouter.Params{
+				httprouter.Param{Key: ResourceNamePathParam, Value: invalidName},
+			}
+			rr := httptest.NewRecorder()
+			a.UpdateWorkspaceKindHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity), descUnexpectedHTTPStatus, rr.Body.String())
+		})
+
+		It("should return 422 when data is null", func() {
+			updateBody := `{"data": null}`
+
+			By("creating the HTTP request")
+			path := strings.Replace(WorkspaceKindsByNamePath, ":"+ResourceNamePathParam, wskName, 1)
+			req, err := http.NewRequest(http.MethodPut, path, strings.NewReader(updateBody))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing UpdateWorkspaceKindHandler")
+			ps := httprouter.Params{
+				httprouter.Param{Key: ResourceNamePathParam, Value: wskName},
+			}
+			rr := httptest.NewRecorder()
+			a.UpdateWorkspaceKindHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity), descUnexpectedHTTPStatus, rr.Body.String())
 		})
 	})
 })
