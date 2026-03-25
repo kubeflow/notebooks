@@ -6,19 +6,15 @@ import {
   ToolbarFilter as PFToolbarFilter,
   ToolbarToggleGroup,
   ToolbarItem,
-} from '@patternfly/react-core/dist/esm/components/Toolbar';
-import {
   Select,
   SelectList,
   SelectOption,
-} from '@patternfly/react-core/dist/esm/components/Select';
-import {
   MenuToggle,
   MenuToggleElement,
-} from '@patternfly/react-core/dist/esm/components/MenuToggle';
-import { Badge } from '@patternfly/react-core/dist/esm/components/Badge';
-import { FilterIcon } from '@patternfly/react-icons/dist/esm/icons/filter-icon';
-import ThemeAwareSearchInput from '~/app/components/ThemeAwareSearchInput';
+  Badge,
+} from '@patternfly/react-core';
+import { FilterIcon } from '@patternfly/react-icons';
+import ThemeAwareSearchInput from '../../app/components/ThemeAwareSearchInput';
 
 interface CommonFilterConfig {
   label: string;
@@ -394,9 +390,9 @@ function ToolbarFilterInner<K extends string>(
                   {null}
                 </PFToolbarFilter>
               ))}
-            {toolbarActions}
           </ToolbarGroup>
         </ToolbarToggleGroup>
+        {toolbarActions && <ToolbarGroup variant="action-group">{toolbarActions}</ToolbarGroup>}
       </ToolbarContent>
     </Toolbar>
   );

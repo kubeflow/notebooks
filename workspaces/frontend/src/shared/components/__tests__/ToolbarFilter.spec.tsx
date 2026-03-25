@@ -7,27 +7,32 @@ import ToolbarFilter, {
   ToolbarFilterRef,
 } from '~/shared/components/ToolbarFilter';
 
-// Mock ThemeAwareSearchInput to simplify testing
-jest.mock('~/app/components/ThemeAwareSearchInput', () => {
-  const MockSearchInput = ({
-    value,
-    onChange,
-    placeholder,
-    'data-testid': testId,
-  }: {
-    value: string;
-    onChange: (val: string) => void;
-    placeholder: string;
-    'data-testid': string;
-  }) => (
-    <input
-      data-testid={testId}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-    />
-  );
-  return MockSearchInput;
+// Mock SearchInput from @patternfly/react-core to simplify testing
+jest.mock('@patternfly/react-core', () => {
+  const actual = jest.requireActual('@patternfly/react-core');
+  return {
+    ...actual,
+    SearchInput: jest.fn(
+      ({
+        value,
+        onChange,
+        placeholder,
+        'data-testid': testId,
+      }: {
+        value: string;
+        onChange: (event: React.FormEvent<HTMLInputElement>, val: string) => void;
+        placeholder: string;
+        'data-testid': string;
+      }) => (
+        <input
+          data-testid={testId}
+          value={value}
+          onChange={(e) => onChange(e as any, e.target.value)}
+          placeholder={placeholder}
+        />
+      ),
+    ),
+  };
 });
 
 describe('ToolbarFilter', () => {
