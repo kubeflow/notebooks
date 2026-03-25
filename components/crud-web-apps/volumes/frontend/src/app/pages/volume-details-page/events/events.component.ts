@@ -1,4 +1,4 @@
-import { Component, Input, OnDestroy, OnInit } from '@angular/core';
+import { Component, Input, OnDestroy } from '@angular/core';
 import { V1PersistentVolumeClaim } from '@kubernetes/client-node';
 import { PollerService } from 'kubeflow';
 import { Subscription } from 'rxjs';
@@ -11,7 +11,7 @@ import { defaultConfig } from './config';
   templateUrl: './events.component.html',
   styleUrls: ['./events.component.scss'],
 })
-export class EventsComponent implements OnInit, OnDestroy {
+export class EventsComponent implements OnDestroy {
   public events: EventObject[] = [];
   private prvPvc: V1PersistentVolumeClaim;
 
@@ -22,8 +22,6 @@ export class EventsComponent implements OnInit, OnDestroy {
     public backend: VWABackendService,
     public poller: PollerService,
   ) {}
-
-  ngOnInit(): void {}
 
   ngOnDestroy() {
     if (this.pollSub) {

@@ -1,4 +1,4 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { V1PersistentVolumeClaim } from '@kubernetes/client-node';
 import { dump } from 'js-yaml';
 
@@ -7,7 +7,7 @@ import { dump } from 'js-yaml';
   templateUrl: './yaml.component.html',
   styleUrls: ['./yaml.component.scss'],
 })
-export class YamlComponent implements OnInit {
+export class YamlComponent {
   @Input() pvc: V1PersistentVolumeClaim;
   @Input() pvcInfoLoaded = false;
 
@@ -24,8 +24,4 @@ export class YamlComponent implements OnInit {
       return dump(pvc);
     }
   }
-
-  constructor() {}
-
-  ngOnInit(): void {}
 }

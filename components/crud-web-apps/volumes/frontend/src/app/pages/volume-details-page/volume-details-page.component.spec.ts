@@ -7,15 +7,11 @@ import {
   tick,
 } from '@angular/core/testing';
 import { MatTabsModule } from '@angular/material/tabs';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { By } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
-import {
-  KubeflowModule,
-  LoadingSpinnerModule,
-  NamespaceService,
-  TitleActionsToolbarModule,
-} from 'kubeflow';
+import { KubeflowModule, NamespaceService, PollerService } from 'kubeflow';
 import { of, Subject } from 'rxjs';
 import { ActionsService } from 'src/app/services/actions.service';
 import { VWABackendService } from 'src/app/services/backend.service';
@@ -38,8 +34,11 @@ const NamespaceServiceStub: Partial<NamespaceService> = {
   updateSelectedNamespace: () => {},
   getSelectedNamespace2: () => of(),
 };
+const PollerServiceStub: Partial<PollerService> = {
+  exponential: request => request,
+};
 const ActivatedRouteStub: Partial<ActivatedRoute> = {
-  params: of({ namespace: 'kubeflow-user', notebookName: 'asa232rstudio' }),
+  params: of({ namespace: 'kubeflow-user', pvcName: 'asa232rstudio' }),
   queryParams: of({}),
 };
 
@@ -53,12 +52,15 @@ describe('VolumeDetailsPageComponent', () => {
       providers: [
         { provide: VWABackendService, useValue: VWABackendServiceStub },
         { provide: NamespaceService, useValue: NamespaceServiceStub },
+        { provide: PollerService, useValue: PollerServiceStub },
+        { provide: ActionsService, useValue: ActionsServiceStub },
         { provide: ActivatedRoute, useValue: ActivatedRouteStub },
       ],
       imports: [
         RouterTestingModule,
         KubeflowModule,
         MatTabsModule,
+        NoopAnimationsModule,
         OverviewModule,
         EventsModule,
         YamlModule,
@@ -78,45 +80,44 @@ describe('VolumeDetailsPageComponent', () => {
   });
 
   it('should show only the proper tab according to query parameters', fakeAsync(() => {
+    const allTabs = ['overview', 'events', 'yaml'];
     const checkActiveTab = (name: string) => {
-      const activeTab = fixture.debugElement.query(By.css(`app-${name}`));
-      expect(activeTab).toBeTruthy();
-      expect(
-        activeTab.parent.parent.classes['mat-tab-body-active'],
-      ).toBeTruthy();
-    };
+      const tabBodies = fixture.debugElement.queryAll(
+        By.css('.mat-mdc-tab-body'),
+      );
+      expect(tabBodies.length).toEqual(allTabs.length);
 
-    const checkTabs = (name: string) => {
-      // The order of tabs in this array should much the order we have in the
-      // template.
-      const allTabs = ['overview', 'events', 'yaml'];
-      allTabs.forEach((tab, index) => {
-        const tabBodies = fixture.debugElement.queryAll(
-          By.css('.mat-tab-body'),
+      tabBodies.forEach((tabBody, index) => {
+        const isActive = tabBody.nativeElement.classList.contains(
+          'mat-mdc-tab-body-active',
         );
-        const isActive = tabBodies[index].classes['mat-tab-body-active'];
-        if (tab === name) {
-          expect(isActive).toBeTrue();
-        } else {
-          expect(isActive).toBeFalsy();
-        }
+        expect(isActive).toBe(allTabs[index] === name);
       });
+
+      const activeTabBody = tabBodies.find(tabBody =>
+        tabBody.nativeElement.classList.contains('mat-mdc-tab-body-active'),
+      );
+      expect(activeTabBody?.query(By.css(`app-${name}`))).toBeTruthy();
     };
 
     const activatedRoute: ActivatedRoute = TestBed.inject(ActivatedRoute);
-    const queryParams = new Subject();
+    const queryParams = new Subject<{ tab: string }>();
     activatedRoute.queryParams = queryParams;
-    fixture.detectChanges();
-    activatedRoute.queryParams.subscribe(params => {
+    const setActiveTab = (name: string) => {
+      queryParams.next({ tab: name });
       fixture.detectChanges();
       tick();
-      checkActiveTab(params.tab);
-      checkTabs(params.tab);
-    });
-    queryParams.next({ tab: 'events' });
-    queryParams.next({ tab: 'overview' });
-    queryParams.next({ tab: 'yaml' });
+      flush();
+      fixture.detectChanges();
+      checkActiveTab(name);
+    };
 
+    fixture.detectChanges();
+    setActiveTab('events');
+    setActiveTab('overview');
+    setActiveTab('yaml');
+
+    flush();
     discardPeriodicTasks();
   }));
 
@@ -128,18 +129,23 @@ describe('VolumeDetailsPageComponent', () => {
     };
 
     const activatedRoute: ActivatedRoute = TestBed.inject(ActivatedRoute);
-    const queryParams = new Subject();
+    const queryParams = new Subject<{ tab: string }>();
     activatedRoute.queryParams = queryParams;
-    fixture.detectChanges();
-    activatedRoute.queryParams.subscribe(params => {
+    const setActiveTab = (name: string) => {
+      queryParams.next({ tab: name });
       fixture.detectChanges();
       tick();
-      checkActiveTabIndex(params.tab);
-    });
-    queryParams.next({ tab: 'events' });
-    queryParams.next({ tab: 'overview' });
-    queryParams.next({ tab: 'yaml' });
+      flush();
+      fixture.detectChanges();
+      checkActiveTabIndex(name);
+    };
 
+    fixture.detectChanges();
+    setActiveTab('events');
+    setActiveTab('overview');
+    setActiveTab('yaml');
+
+    flush();
     discardPeriodicTasks();
   }));
 });

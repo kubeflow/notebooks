@@ -1,11 +1,11 @@
-import { Component, OnInit, Input, HostBinding } from '@angular/core';
+import { Component, Input, HostBinding } from '@angular/core';
 
 @Component({
   selector: 'lib-icon',
   templateUrl: './icon.component.html',
   styleUrls: ['./icon.component.scss'],
 })
-export class IconComponent implements OnInit {
+export class IconComponent {
   @Input() icon = '';
 
   @HostBinding('class.lib-icon')
@@ -14,11 +14,6 @@ export class IconComponent implements OnInit {
   get iconSplit(): string[] {
     return this.icon.split(':');
   }
-
-  constructor() {}
-
-  ngOnInit() {}
-
   public getIcon() {
     if (this.iconSplit.length === 0) {
       console.error(`Invalid icon '${this.icon}'`);

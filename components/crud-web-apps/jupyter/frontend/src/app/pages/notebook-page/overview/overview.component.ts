@@ -1,4 +1,4 @@
-import { Component, Input, OnDestroy, OnInit } from '@angular/core';
+import { Component, Input, OnDestroy } from '@angular/core';
 import { V1EnvVar, V1Pod, V1Volume } from '@kubernetes/client-node';
 import { ChipDescriptor, PollerService, STATUS_TYPE, UrlItem } from 'kubeflow';
 import { Subscription } from 'rxjs';
@@ -22,7 +22,7 @@ import {
   templateUrl: './overview.component.html',
   styleUrls: ['./overview.component.scss'],
 })
-export class OverviewComponent implements OnInit, OnDestroy {
+export class OverviewComponent implements OnDestroy {
   public volGroups: VolumesGroup[] = [];
   public notebookInfoLoaded = false;
   private notebookEnv: ChipDescriptor[];
@@ -238,8 +238,6 @@ export class OverviewComponent implements OnInit, OnDestroy {
     public backend: JWABackendService,
     public poller: PollerService,
   ) {}
-
-  ngOnInit(): void {}
 
   ngOnDestroy(): void {
     if (this.pollSub) {

@@ -58,8 +58,6 @@ export class VolumeNameComponent implements OnDestroy {
     });
   }
 
-  constructor() {}
-
   ngOnDestroy(): void {
     this.subs.unsubscribe();
   }

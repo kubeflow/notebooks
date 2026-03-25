@@ -1,7 +1,8 @@
 {
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "cli": {
-    "analytics": false
+    "analytics": false,
+    "schematicCollections": ["@angular-eslint/schematics"]
   },
   "version": 1,
   "newProjectRoot": "projects",
@@ -26,10 +27,8 @@
         "build": {
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
-            "allowedCommonJsDependencies": [
-              "date-fns",
-              "lodash"
-            ],
+            "allowedCommonJsDependencies": ["date-fns", "lodash"],
+            "aot": true,
             "preserveSymlinks": true,
             "outputPath": "dist/frontend",
             "index": "src/index.html",
@@ -60,6 +59,12 @@
             "namedChunks": true
           },
           "configurations": {
+            "development": {
+              "aot": false,
+              "main": "src/main.dev.ts",
+              "polyfills": "src/polyfills.dev.ts",
+              "tsConfig": "tsconfig.app.dev.json"
+            },
             "fr": {
               "localize": ["fr"]
             },
@@ -95,13 +100,12 @@
                 }
               ]
             }
-          },
-          "defaultConfiguration": ""
+          }
         },
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "browserTarget": "frontend:build"
+            "browserTarget": "frontend:build:development"
           },
           "configurations": {
             "production": {
@@ -140,9 +144,5 @@
         }
       }
     }
-  },
-  "defaultProject": "frontend",
-  "cli": {
-    "defaultCollection": "@angular-eslint/schematics"
   }
 }

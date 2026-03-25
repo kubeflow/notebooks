@@ -1,4 +1,4 @@
-import { Component, OnInit, EventEmitter, Output, Input } from '@angular/core';
+import { Component, EventEmitter, Output, Input } from '@angular/core';
 import { STATUS_TYPE } from '../status/types';
 import { ActionButtonValue, ActionEvent } from '../types';
 
@@ -7,7 +7,7 @@ import { ActionButtonValue, ActionEvent } from '../types';
   templateUrl: './action-button.component.html',
   styleUrls: ['./action-button.component.scss'],
 })
-export class ActionButtonComponent implements OnInit {
+export class ActionButtonComponent {
   @Input()
   action: ActionButtonValue;
 
@@ -16,11 +16,6 @@ export class ActionButtonComponent implements OnInit {
 
   @Output()
   emitter = new EventEmitter<ActionEvent>();
-
-  constructor() {}
-
-  ngOnInit() {}
-
   // Event emitting functions
   public emitClickedEvent() {
     const ev = new ActionEvent(this.action.name, this.data);

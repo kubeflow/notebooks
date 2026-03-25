@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { TableColumnComponent } from 'kubeflow/lib/resource-table/component-value/component-value.component';
 
 @Component({
@@ -6,7 +6,7 @@ import { TableColumnComponent } from 'kubeflow/lib/resource-table/component-valu
   templateUrl: './used-by.component.html',
   styleUrls: ['./used-by.component.scss'],
 })
-export class UsedByComponent implements TableColumnComponent, OnInit {
+export class UsedByComponent implements TableColumnComponent {
   public data: any;
 
   set element(data: any) {
@@ -15,10 +15,6 @@ export class UsedByComponent implements TableColumnComponent, OnInit {
   get element() {
     return this.data;
   }
-
-  constructor() {}
-
-  ngOnInit(): void {}
 
   get pvcName() {
     return this.element.name;

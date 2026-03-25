@@ -32,7 +32,7 @@ $kubeflow-typography-config: mat.define-typography-config(
       $line-height: 20px,
       $letter-spacing: 0.25px,
     ),
-  $headline:
+  $headline-5:
     mat.define-typography-level(
       $font-family: Roboto,
       $font-weight: $kubeflow-font-weight-regular,
@@ -40,7 +40,7 @@ $kubeflow-typography-config: mat.define-typography-config(
       $line-height: 24px,
       $letter-spacing: 0.18px,
     ),
-  $title:
+  $headline-6:
     mat.define-typography-level(
       $font-family: Roboto,
       $font-weight: $kubeflow-font-weight-medium,
@@ -58,13 +58,12 @@ $kubeflow-theme: mat.define-light-theme(
       primary: mat.define-palette($kubeflow-primary-palette, 700),
       accent: mat.define-palette(mat.$pink-palette, A200, A100, A400),
     ),
+    typography: $kubeflow-typography-config,
   )
 );
 
 // Always include only once per project.
-// Passing the typography config to core mixin will apply the specified values
-// to the corresponding Angular Material components.
-@include mat.core($kubeflow-typography-config);
+@include mat.core();
 
 // Include theme styles for core and each component used in the app.
 // Alternatively, you can import and @include the theme mixins for each
@@ -81,7 +80,7 @@ $kubeflow-theme: mat.define-light-theme(
 
 // Use the material icons offline
 $material-icons-font-path: '~material-icons/iconfont/';
-@import '~material-icons/iconfont/material-icons.scss';
+@import 'material-icons/iconfont/material-icons.scss';
 
 // Material Form Field error message
 mat-form-field .mat-form-field {

@@ -15,8 +15,6 @@ export class FormCpuRamComponent implements OnInit {
   @Input() memoryLimitFactor: string;
   @Input() popoverPosition = 'below';
 
-  constructor() {}
-
   ngOnInit() {
     this.parentForm.get('cpu').valueChanges.subscribe(val => {
       // set cpu limit when value of the cpu request changes

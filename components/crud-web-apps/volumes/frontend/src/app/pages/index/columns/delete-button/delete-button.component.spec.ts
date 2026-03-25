@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
+import { ColumnsModule } from '../columns.module';
 import { DeleteButtonComponent } from './delete-button.component';
 
 const mockElement = {
@@ -24,7 +25,7 @@ describe('DeleteButtonComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [DeleteButtonComponent],
+      imports: [ColumnsModule],
     }).compileComponents();
   });
 

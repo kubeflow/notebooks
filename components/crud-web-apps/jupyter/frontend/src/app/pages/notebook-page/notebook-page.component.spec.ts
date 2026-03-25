@@ -2,6 +2,7 @@ import {
   ComponentFixture,
   discardPeriodicTasks,
   fakeAsync,
+  flush,
   TestBed,
   tick,
 } from '@angular/core/testing';
@@ -11,10 +12,16 @@ import { of, Subject } from 'rxjs';
 import { NotebookPageComponent } from './notebook-page.component';
 import { RouterTestingModule } from '@angular/router/testing';
 import { ActionsService } from 'src/app/services/actions.service';
-import { KubeflowModule, NamespaceService, STATUS_TYPE } from 'kubeflow';
+import {
+  KubeflowModule,
+  NamespaceService,
+  PollerService,
+  STATUS_TYPE,
+} from 'kubeflow';
 import { ActivatedRoute } from '@angular/router';
 import { By } from '@angular/platform-browser';
 import { MatTabsModule } from '@angular/material/tabs';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { OverviewModule } from './overview/overview.module';
 import { LogsModule } from './logs/logs.module';
 import { YamlModule } from './yaml/yaml.module';
@@ -38,6 +45,9 @@ const NamespaceServiceStub: Partial<NamespaceService> = {
   updateSelectedNamespace: () => {},
   getSelectedNamespace2: () => of(),
 };
+const PollerServiceStub: Partial<PollerService> = {
+  exponential: request => request,
+};
 const ActivatedRouteStub: Partial<ActivatedRoute> = {
   params: of({ namespace: 'kubeflow-user', notebookName: 'asa232rstudio' }),
   queryParams: of({}),
@@ -54,6 +64,7 @@ describe('NotebookPageComponent', () => {
         { provide: JWABackendService, useValue: JWABackendServiceStub },
         { provide: ActionsService, useValue: ActionsServiceStub },
         { provide: NamespaceService, useValue: NamespaceServiceStub },
+        { provide: PollerService, useValue: PollerServiceStub },
         {
           provide: ActivatedRoute,
           useValue: ActivatedRouteStub,
@@ -63,6 +74,7 @@ describe('NotebookPageComponent', () => {
         RouterTestingModule,
         KubeflowModule,
         MatTabsModule,
+        NoopAnimationsModule,
         OverviewModule,
         LogsModule,
         EventsModule,
@@ -82,43 +94,45 @@ describe('NotebookPageComponent', () => {
   });
 
   it('should show only the proper tab according to query parameters', fakeAsync(() => {
+    const allTabs = ['overview', 'logs', 'events', 'yaml'];
     const checkActiveTab = (name: string) => {
-      const activeTab = fixture.debugElement.query(By.css(`app-${name}`));
-      expect(activeTab).toBeTruthy();
-    };
+      const tabBodies = fixture.debugElement.queryAll(
+        By.css('.mat-mdc-tab-body'),
+      );
+      expect(tabBodies.length).toEqual(allTabs.length);
 
-    const checkInactiveTabs = (name: string) => {
-      const allTabs = ['overview', 'logs', 'events', 'yaml'];
-      const indexOfActiveTab = allTabs.findIndex(v => v === name);
-      allTabs.splice(indexOfActiveTab, 1);
-
-      allTabs.forEach(tab => {
-        const inactiveTab = fixture.debugElement.query(By.css(`app-${tab}`));
-        if (!inactiveTab) {
-          expect(inactiveTab).toBeFalsy();
-        } else {
-          const parentElement = inactiveTab.parent.nativeElement;
-          const styles = getComputedStyle(parentElement);
-          expect(styles.overflow).toEqual('hidden');
-        }
+      tabBodies.forEach((tabBody, index) => {
+        const isActive = tabBody.nativeElement.classList.contains(
+          'mat-mdc-tab-body-active',
+        );
+        expect(isActive).toBe(allTabs[index] === name);
       });
+
+      const activeTabBody = tabBodies.find(tabBody =>
+        tabBody.nativeElement.classList.contains('mat-mdc-tab-body-active'),
+      );
+      expect(activeTabBody?.query(By.css(`app-${name}`))).toBeTruthy();
     };
 
     const activatedRoute: ActivatedRoute = TestBed.inject(ActivatedRoute);
-    const queryParams = new Subject();
+    const queryParams = new Subject<{ tab: string }>();
     activatedRoute.queryParams = queryParams;
-    fixture.detectChanges();
-    activatedRoute.queryParams.subscribe(params => {
+    const setActiveTab = (name: string) => {
+      queryParams.next({ tab: name });
       fixture.detectChanges();
       tick();
-      checkActiveTab(params.tab);
-      checkInactiveTabs(params.tab);
-    });
-    queryParams.next({ tab: 'logs' });
-    queryParams.next({ tab: 'events' });
-    queryParams.next({ tab: 'overview' });
-    queryParams.next({ tab: 'yaml' });
+      flush();
+      fixture.detectChanges();
+      checkActiveTab(name);
+    };
 
+    fixture.detectChanges();
+    setActiveTab('logs');
+    setActiveTab('events');
+    setActiveTab('overview');
+    setActiveTab('yaml');
+
+    flush();
     discardPeriodicTasks();
   }));
 
@@ -130,19 +144,24 @@ describe('NotebookPageComponent', () => {
     };
 
     const activatedRoute: ActivatedRoute = TestBed.inject(ActivatedRoute);
-    const queryParams = new Subject();
+    const queryParams = new Subject<{ tab: string }>();
     activatedRoute.queryParams = queryParams;
-    fixture.detectChanges();
-    activatedRoute.queryParams.subscribe(params => {
+    const setActiveTab = (name: string) => {
+      queryParams.next({ tab: name });
       fixture.detectChanges();
       tick();
-      checkActiveTabIndex(params.tab);
-    });
-    queryParams.next({ tab: 'logs' });
-    queryParams.next({ tab: 'events' });
-    queryParams.next({ tab: 'overview' });
-    queryParams.next({ tab: 'yaml' });
+      flush();
+      fixture.detectChanges();
+      checkActiveTabIndex(name);
+    };
 
+    fixture.detectChanges();
+    setActiveTab('logs');
+    setActiveTab('events');
+    setActiveTab('overview');
+    setActiveTab('yaml');
+
+    flush();
     discardPeriodicTasks();
   }));
 

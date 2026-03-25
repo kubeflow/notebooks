@@ -12,14 +12,8 @@
     "esModuleInterop": true,
     "importHelpers": true,
     "target": "es2015",
-    "typeRoots": [
-      "node_modules/@types"
-    ],
-    "lib": [
-      "es2018",
-      "dom",
-      "es2019"
-    ],
+    "typeRoots": ["node_modules/@types"],
+    "lib": ["es2018", "dom", "es2019"],
     "paths": {
       "@shared/*": ["../../angular-frontend-shared/*"],
       "@app/environment": ["src/environments/environment"]
@@ -27,7 +21,6 @@
     "allowSyntheticDefaultImports": true
   },
   "angularCompilerOptions": {
-    "fullTemplateTypeCheck": true,
     "strictInjectionParameters": true
   }
 }
