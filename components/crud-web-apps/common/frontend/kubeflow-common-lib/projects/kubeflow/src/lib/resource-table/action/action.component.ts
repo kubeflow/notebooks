@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, EventEmitter, Output } from '@angular/core';
+import { Component, Input, EventEmitter, Output } from '@angular/core';
 import { STATUS_TYPE } from '../status/types';
 import { Observable, Subject } from 'rxjs';
 import { ActionIconValue, ActionEvent } from '../types';
@@ -9,7 +9,7 @@ import { get as getAttributeValue } from 'lodash-es';
   templateUrl: './action.component.html',
   styleUrls: ['./action.component.scss'],
 })
-export class ActionComponent implements OnInit {
+export class ActionComponent {
   // READY: Button will be enabled
   // WAITING: Button will be a Spinner
   // TERMINATING/UNAVAILABLE: Button will be disabled
@@ -26,11 +26,6 @@ export class ActionComponent implements OnInit {
 
   @Output()
   emitter = new EventEmitter<ActionEvent>();
-
-  constructor() {}
-
-  ngOnInit() {}
-
   // Event emitting functions
   public emitClickedEvent() {
     const ev = new ActionEvent(this.action.name, this.data);

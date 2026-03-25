@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, TrackByFunction } from '@angular/core';
+import { Component, Input, TrackByFunction } from '@angular/core';
 import { UrlItem } from 'kubeflow';
 import { LinkGroup } from './types';
 
@@ -7,7 +7,7 @@ import { LinkGroup } from './types';
   templateUrl: './link-groups-table.component.html',
   styleUrls: ['./link-groups-table.component.scss'],
 })
-export class LinkGroupsTableComponent implements OnInit {
+export class LinkGroupsTableComponent {
   private prvLinkGroups: LinkGroup[];
   @Input()
   set linkGroups(groups: LinkGroup[]) {
@@ -32,10 +32,6 @@ export class LinkGroupsTableComponent implements OnInit {
     const pvcName = directories[directories.length - 2];
     window.open(url, `${pvcName}: Edit file contents`, 'height=600,width=800');
   }
-
-  constructor() {}
-
-  ngOnInit(): void {}
 
   groupTrackByFn(group: LinkGroup) {
     return JSON.stringify(group);

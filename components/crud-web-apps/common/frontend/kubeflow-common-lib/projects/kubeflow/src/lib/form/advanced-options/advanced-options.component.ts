@@ -1,6 +1,5 @@
 import {
   Component,
-  OnInit,
   Input,
   ViewChild,
   ElementRef,
@@ -13,7 +12,7 @@ import {
   templateUrl: './advanced-options.component.html',
   styleUrls: ['./advanced-options.component.scss'],
 })
-export class AdvancedOptionsComponent implements OnInit, AfterViewInit {
+export class AdvancedOptionsComponent implements AfterViewInit {
   @Input() sectionIsExpanded = false;
   @Input() maxHeight = '5000px';
   @Input() text = $localize`Advanced Options`;
@@ -25,11 +24,6 @@ export class AdvancedOptionsComponent implements OnInit, AfterViewInit {
       ? 'material:expand_less'
       : 'material:expand_more';
   }
-
-  constructor() {}
-
-  ngOnInit() {}
-
   ngAfterViewInit() {
     this.updateHeight();
   }

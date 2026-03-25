@@ -1,4 +1,4 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { Configuration } from 'src/app/types/configuration';
 import { ConfigurationInfoDialogComponent } from './configuration-info-dialog/configuration-info-dialog.component';
@@ -8,12 +8,10 @@ import { ConfigurationInfoDialogComponent } from './configuration-info-dialog/co
   templateUrl: './configurations.component.html',
   styleUrls: ['./configurations.component.scss'],
 })
-export class ConfigurationsComponent implements OnInit {
+export class ConfigurationsComponent {
   @Input() configurations: Configuration[];
 
   constructor(private dialog: MatDialog) {}
-
-  ngOnInit(): void {}
 
   openDialog(config: Configuration) {
     this.dialog.open(ConfigurationInfoDialogComponent, {

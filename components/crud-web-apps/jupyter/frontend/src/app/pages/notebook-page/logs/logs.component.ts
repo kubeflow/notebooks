@@ -1,4 +1,4 @@
-import { Component, Input, OnDestroy, OnInit } from '@angular/core';
+import { Component, Input, OnDestroy } from '@angular/core';
 import { JWABackendService } from 'src/app/services/backend.service';
 import { Subscription } from 'rxjs';
 import { PollerService } from 'kubeflow';
@@ -9,7 +9,7 @@ import { V1Pod } from '@kubernetes/client-node';
   templateUrl: './logs.component.html',
   styleUrls: ['./logs.component.scss'],
 })
-export class LogsComponent implements OnInit, OnDestroy {
+export class LogsComponent implements OnDestroy {
   public goToBottom = true;
   public logs: string[];
   public logsRequestCompleted = false;
@@ -74,8 +74,6 @@ export class LogsComponent implements OnInit, OnDestroy {
     public backend: JWABackendService,
     public poller: PollerService,
   ) {}
-
-  ngOnInit() {}
 
   ngOnDestroy() {
     if (this.pollingSub) {

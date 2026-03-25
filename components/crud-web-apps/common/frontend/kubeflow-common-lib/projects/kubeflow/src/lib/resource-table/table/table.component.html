@@ -1,8 +1,8 @@
 <mat-form-field class="example-chip-list" appearance="none">
-  <mat-chip-list #chipList>
+  <mat-chip-grid #chipList>
     <mat-icon matPrefix class="filter-icon">filter_list</mat-icon>
     <span class="filter-header">Filter</span>
-    <mat-chip
+    <mat-chip-row
       *ngFor="let chip of chips"
       (removed)="remove(chip)"
       class="mat-chip-blue"
@@ -11,7 +11,7 @@
       <button matChipRemove>
         <mat-icon>cancel</mat-icon>
       </button>
-    </mat-chip>
+    </mat-chip-row>
     <input
       id="filterInput"
       placeholder="Enter property name or value"
@@ -22,7 +22,7 @@
       [matChipInputFor]="chipList"
       (matChipInputTokenEnd)="add($event)"
     />
-  </mat-chip-list>
+  </mat-chip-grid>
   <button
     mat-button
     *ngIf="chipCtrl.value || isClear"

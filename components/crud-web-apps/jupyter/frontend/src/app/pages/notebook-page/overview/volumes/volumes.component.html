@@ -35,13 +35,13 @@
 
   <lib-urls *ngIf="isPVCs(volGroup)" [urlList]="volGroup.array"></lib-urls>
 
-  <mat-chip-list *ngIf="!isPVCs(volGroup)" class="chip-list-wa">
+  <mat-chip-set *ngIf="!isPVCs(volGroup)" class="chip-list-wa">
     <div *ngFor="let chip of volGroup.array; trackBy: chipTrackByFn">
       <mat-chip color="primary" class="list-chip">
         {{ chip.value }}
       </mat-chip>
     </div>
-  </mat-chip-list>
+  </mat-chip-set>
 </div>
 
 <ng-content class="vertical-align"> </ng-content>

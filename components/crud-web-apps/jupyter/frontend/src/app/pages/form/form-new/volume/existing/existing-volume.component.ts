@@ -53,8 +53,6 @@ export class ExistingVolumeComponent implements OnInit {
     }
   }
 
-  constructor() {}
-
   ngOnInit(): void {
     const existingSource: V1Volume = this.volGroup.get('existingSource').value;
     this.yaml = dump(existingSource);

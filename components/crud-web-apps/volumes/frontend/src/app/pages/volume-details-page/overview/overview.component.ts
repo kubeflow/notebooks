@@ -1,4 +1,4 @@
-import { Component, Input, OnDestroy, OnInit } from '@angular/core';
+import { Component, Input, OnDestroy } from '@angular/core';
 import { environment } from '@app/environment';
 import { V1PersistentVolumeClaim, V1Pod } from '@kubernetes/client-node';
 import { ChipDescriptor, PollerService, UrlItem } from 'kubeflow';
@@ -11,7 +11,7 @@ import { LinkGroup } from './link-groups-table/types';
   templateUrl: './overview.component.html',
   styleUrls: ['./overview.component.scss'],
 })
-export class OverviewComponent implements OnInit, OnDestroy {
+export class OverviewComponent implements OnDestroy {
   public accessModes: ChipDescriptor[];
   public ownerRefs: ChipDescriptor[];
   public podGroups: LinkGroup[] = [];
@@ -222,8 +222,6 @@ export class OverviewComponent implements OnInit, OnDestroy {
     public backend: VWABackendService,
     public poller: PollerService,
   ) {}
-
-  ngOnInit(): void {}
 
   ngOnDestroy() {
     if (this.pollSub) {

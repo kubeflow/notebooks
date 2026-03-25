@@ -1,4 +1,4 @@
-import { Component, Input, OnDestroy, OnInit } from '@angular/core';
+import { Component, Input, OnDestroy } from '@angular/core';
 import { PollerService } from 'kubeflow';
 import { Subscription } from 'rxjs';
 import { JWABackendService } from 'src/app/services/backend.service';
@@ -12,7 +12,7 @@ import { isEqual } from 'lodash-es';
   templateUrl: './events.component.html',
   styleUrls: ['./events.component.scss'],
 })
-export class EventsComponent implements OnInit, OnDestroy {
+export class EventsComponent implements OnDestroy {
   private events: EventObject[] = [];
   public processedEvents: EventObject[] = [];
   public config = defaultConfig;
@@ -32,8 +32,6 @@ export class EventsComponent implements OnInit, OnDestroy {
     public backend: JWABackendService,
     public poller: PollerService,
   ) {}
-
-  ngOnInit(): void {}
 
   ngOnDestroy(): void {
     if (this.pollSub) {

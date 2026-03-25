@@ -22,8 +22,6 @@ export class VolumeMountComponent implements OnDestroy {
 
   private valueChangeSubscription: Subscription = new Subscription();
 
-  constructor() {}
-
   ngOnDestroy() {
     this.valueChangeSubscription.unsubscribe();
   }

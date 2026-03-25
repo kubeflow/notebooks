@@ -21,13 +21,16 @@
       "es2019"
     ],
     "paths": {
-      "@shared/*": ["../../angular-frontend-shared/*"],
-      "@app/environment": ["src/environments/environment"]
+      "@shared/*": [
+        "../../angular-frontend-shared/*"
+      ],
+      "@app/environment": [
+        "src/environments/environment"
+      ]
     },
     "allowSyntheticDefaultImports": true
   },
   "angularCompilerOptions": {
-    "fullTemplateTypeCheck": true,
     "strictInjectionParameters": true
   }
 }

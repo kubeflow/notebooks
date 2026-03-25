@@ -1,12 +1,12 @@
 <div class="env-group-container" *ngFor="let envGroup of envGroups">
   <div class="group-key">{{ envGroup.name }}</div>
-  <mat-chip-list class="chip-list-wa">
+  <mat-chip-set class="chip-list-wa">
     <div *ngFor="let chip of envGroup.chipsList">
       <mat-chip color="primary" class="list-chip">
         {{ chip.value }}
       </mat-chip>
     </div>
-  </mat-chip-list>
+  </mat-chip-set>
 </div>
 
 <ng-content class="vertical-align"> </ng-content>

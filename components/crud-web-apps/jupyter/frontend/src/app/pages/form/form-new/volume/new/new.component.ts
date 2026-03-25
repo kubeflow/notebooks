@@ -1,4 +1,4 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { dump } from 'js-yaml';
 import { parseYAML } from 'src/app/shared/utils/yaml';
@@ -11,7 +11,7 @@ import { environment } from '@app/environment';
   templateUrl: './new.component.html',
   styleUrls: ['./new.component.scss'],
 })
-export class NewVolumeComponent implements OnInit {
+export class NewVolumeComponent {
   env = environment;
 
   get volumeType(): NEW_VOLUME_TYPE {
@@ -54,10 +54,6 @@ export class NewVolumeComponent implements OnInit {
 
     this.volGroup.get('newPvc').setValue(parsed);
   }
-
-  constructor() {}
-
-  ngOnInit(): void {}
 
   typeChanged(type: NEW_VOLUME_TYPE) {
     if (type === NEW_VOLUME_TYPE.CUSTOM) {

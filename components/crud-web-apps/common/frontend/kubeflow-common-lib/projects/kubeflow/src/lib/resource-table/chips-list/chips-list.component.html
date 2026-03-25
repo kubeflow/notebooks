@@ -2,7 +2,7 @@
   {{ valueDescriptor.noValueText }}
 </ng-container>
 
-<mat-chip-list class="chip-list-wa">
+<mat-chip-set class="chip-list-wa">
   <mat-chip
     *ngFor="let chip of getVisibleChips(element); trackBy: trackByFn"
     [color]="chip.color"
@@ -12,4 +12,4 @@
   >
     {{ chip.value }}
   </mat-chip>
-</mat-chip-list>
+</mat-chip-set>

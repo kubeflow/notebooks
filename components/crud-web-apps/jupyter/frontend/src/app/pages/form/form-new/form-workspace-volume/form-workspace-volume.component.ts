@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, OnDestroy } from '@angular/core';
+import { Component, Input, OnDestroy } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { SnackBarService, SnackType } from 'kubeflow';
 
@@ -20,7 +20,7 @@ import { EXISTING_SOURCE, Volume } from 'src/app/types';
   templateUrl: './form-workspace-volume.component.html',
   styleUrls: ['./form-workspace-volume.component.scss'],
 })
-export class FormWorkspaceVolumeComponent implements OnInit, OnDestroy {
+export class FormWorkspaceVolumeComponent implements OnDestroy {
   panelOpen = false;
   subscriptions = new Subscription();
   getVolumeTitle = getVolumeTitle;
@@ -34,8 +34,6 @@ export class FormWorkspaceVolumeComponent implements OnInit, OnDestroy {
   @Input() externalName: string;
 
   constructor(private snackBar: SnackBarService) {}
-
-  ngOnInit() {}
 
   ngOnDestroy() {
     this.subscriptions.unsubscribe();

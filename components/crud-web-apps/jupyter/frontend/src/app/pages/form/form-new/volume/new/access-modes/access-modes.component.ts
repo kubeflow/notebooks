@@ -26,8 +26,6 @@ export class VolumeAccessModesComponent implements OnInit {
   // used in the form, takes the first value of the array
   mode = new FormControl('', Validators.required);
 
-  constructor() {}
-
   ngOnInit(): void {
     this.mode.valueChanges.subscribe(mode => {
       this.modesCtrl.setValue([mode]);

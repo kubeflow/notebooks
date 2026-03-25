@@ -1,4 +1,4 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { FormGroup } from '@angular/forms';
 
 @Component({
@@ -6,10 +6,6 @@ import { FormGroup } from '@angular/forms';
   templateUrl: './form-advanced-options.component.html',
   styleUrls: ['./form-advanced-options.component.scss'],
 })
-export class FormAdvancedOptionsComponent implements OnInit {
+export class FormAdvancedOptionsComponent {
   @Input() parentForm: FormGroup;
-
-  constructor() {}
-
-  ngOnInit() {}
 }

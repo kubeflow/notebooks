@@ -12,15 +12,23 @@
     "importHelpers": true,
     "target": "es2015",
     "paths": {
-      "@shared/*": ["../../angular-frontend-shared/*"],
-      "@app/environment": ["src/environments/environment"]
+      "@shared/*": [
+        "../../angular-frontend-shared/*"
+      ],
+      "@app/environment": [
+        "src/environments/environment"
+      ]
     },
-    "typeRoots": ["node_modules/@types"],
-    "lib": ["es2018", "dom"],
+    "typeRoots": [
+      "node_modules/@types"
+    ],
+    "lib": [
+      "es2018",
+      "dom"
+    ],
     "allowSyntheticDefaultImports": true
   },
   "angularCompilerOptions": {
-    "fullTemplateTypeCheck": true,
     "strictInjectionParameters": true
   }
 }

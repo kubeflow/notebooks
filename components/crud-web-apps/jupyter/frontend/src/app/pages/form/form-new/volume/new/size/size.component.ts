@@ -21,8 +21,6 @@ export class VolumeSizeComponent implements OnInit {
     this.sizeNum.setValue(this.parseK8sGiSizeToInt(size));
   }
 
-  constructor() {}
-
   ngOnInit(): void {
     // This is used for the form, and does not contain Gi
     this.sizeNum.setValue(this.parseK8sGiSizeToInt(this.sizeCtrl.value));
