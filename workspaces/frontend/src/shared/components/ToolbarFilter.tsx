@@ -6,15 +6,19 @@ import {
   ToolbarFilter as PFToolbarFilter,
   ToolbarToggleGroup,
   ToolbarItem,
+} from '@patternfly/react-core/dist/esm/components/Toolbar';
+import {
   Select,
   SelectList,
   SelectOption,
+} from '@patternfly/react-core/dist/esm/components/Select';
+import {
   MenuToggle,
   MenuToggleElement,
-  Badge,
-} from '@patternfly/react-core';
-import { FilterIcon } from '@patternfly/react-icons';
-import ThemeAwareSearchInput from '../../app/components/ThemeAwareSearchInput';
+} from '@patternfly/react-core/dist/esm/components/MenuToggle';
+import { Badge } from '@patternfly/react-core/dist/esm/components/Badge';
+import PFFilterIcon from '@patternfly/react-icons/dist/esm/icons/filter-icon';
+import ThemeAwareSearchInput from '~/app/components/ThemeAwareSearchInput';
 
 interface CommonFilterConfig {
   label: string;
@@ -43,7 +47,6 @@ export type FilterConfigMap<K extends string> = {
   [key in K]: FilterConfig;
 };
 
-/** Filter value type - string for text/select, string[] for multiselect */
 export type FilterValue = string | string[];
 
 export type FilterState<K extends string> = Record<K, FilterValue>;
@@ -151,7 +154,7 @@ function ToolbarFilterInner<K extends string>(
             ref={toggleRef}
             onClick={onAttributeToggle}
             isExpanded={isAttributeMenuOpen}
-            icon={<FilterIcon />}
+            icon={<PFFilterIcon />}
             data-testid={`${testIdPrefix}-dropdown`}
           >
             {activeFilterLabel}
@@ -340,7 +343,6 @@ function ToolbarFilterInner<K extends string>(
       const newValues = currentValues.filter((v) => v !== labelToDelete);
       onFilterChange(key, newValues);
     } else {
-      // For text and select filters, clear the entire value
       onFilterChange(key, config.type === 'multiselect' ? [] : '');
     }
   };
@@ -352,7 +354,8 @@ function ToolbarFilterInner<K extends string>(
       data-testid={`${testIdPrefix}-toolbar`}
     >
       <ToolbarContent>
-        <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="xl">
+        {toolbarActions && <ToolbarGroup variant="action-group">{toolbarActions}</ToolbarGroup>}
+        <ToolbarToggleGroup toggleIcon={<PFFilterIcon />} breakpoint="lg">
           <ToolbarGroup variant="filter-group">
             <ToolbarItem>{attributeDropdown}</ToolbarItem>
             {visibleFilterKeys.map((key) => (
@@ -392,7 +395,6 @@ function ToolbarFilterInner<K extends string>(
               ))}
           </ToolbarGroup>
         </ToolbarToggleGroup>
-        {toolbarActions && <ToolbarGroup variant="action-group">{toolbarActions}</ToolbarGroup>}
       </ToolbarContent>
     </Toolbar>
   );
