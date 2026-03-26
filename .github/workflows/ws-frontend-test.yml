@@ -11,6 +11,7 @@ on:
       - v*-branch
   pull_request:
     paths:
+      - releasing/version/VERSION
       - workspaces/frontend/**
     branches:
       - main
