@@ -11,6 +11,7 @@ on:
       - v*-branch
   pull_request:
     paths:
+      - releasing/version/VERSION
       - workspaces/backend/**
       ## NOTE: we also test on changes to the controller as the backend depends on the controller
       - workspaces/controller/**
