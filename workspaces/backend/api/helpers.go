@@ -37,12 +37,10 @@ type Envelope[D any] struct {
 // WriteJSON writes a JSON response with the given status code, data, and headers.
 func (a *App) WriteJSON(w http.ResponseWriter, status int, data any, headers http.Header) error {
 
-	js, err := json.MarshalIndent(data, "", "\t")
+	js, err := json.Marshal(data)
 	if err != nil {
 		return err
 	}
-
-	js = append(js, '\n')
 
 	for key, value := range headers {
 		w.Header()[key] = value
