@@ -5,6 +5,7 @@ kind: Kustomization
 namespace: kubeflow-workspaces
 
 resources:
+- namespace.yaml
 - crd
 - manager
 - webhook
