@@ -12,6 +12,17 @@ resources:
 configurations:
 - kustomizeconfig.yaml
 
+# Rename the generated ValidatingWebhookConfiguration to be unique
+# (controller-gen hardcodes the name as "validating-webhook-configuration")
+patches:
+- target:
+    kind: ValidatingWebhookConfiguration
+    name: validating-webhook-configuration
+  patch: |-
+    - op: replace
+      path: /metadata/name
+      value: workspaces-validating-webhook-configuration
+
 replacements:
 - source:
     kind: ValidatingWebhookConfiguration
@@ -26,7 +37,7 @@ replacements:
 - source:
     kind: Service
     version: v1
-    name: webhook-service
+    name: workspaces-webhook-service
     fieldPath: .metadata.name
   targets:
   - select:

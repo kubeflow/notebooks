@@ -5,8 +5,18 @@ metadata:
   name: workspaces-controller
 spec:
   template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
     spec:
       containers:
       - name: manager
         args:
-        - "--metrics-bind-address=0.0.0.0:8080"
+        - --leader-elect
+        - --health-probe-bind-address=:8081
+        - --metrics-bind-address=:8080
+        ports:
+        - containerPort: 8080
+          name: metrics
+          protocol: TCP

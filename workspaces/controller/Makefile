@@ -49,7 +49,7 @@ help: ## Display this help.
 
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." \
+	$(CONTROLLER_GEN) rbac:roleName=workspaces-manager-role crd webhook paths="./..." \
 		output:crd:artifacts:config=manifests/kustomize/base/crd \
 		output:webhook:artifacts:config=manifests/kustomize/base/webhook \
 		output:rbac:artifacts:config=manifests/kustomize/base/manager

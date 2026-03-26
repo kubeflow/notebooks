@@ -6,8 +6,8 @@ kind: Issuer
 metadata:
   labels:
     app.kubernetes.io/component: webhook
-    app.kubernetes.io/instance: serving-cert
-  name: selfsigned-issuer
+    app.kubernetes.io/instance: workspaces-serving-cert
+  name: workspaces-selfsigned-issuer
 spec:
   selfSigned: {}
 ---
@@ -16,8 +16,8 @@ kind: Certificate
 metadata:
   labels:
     app.kubernetes.io/component: webhook
-    app.kubernetes.io/instance: serving-cert
-  name: serving-cert  # this name should match the one appeared in kustomizeconfig.yaml
+    app.kubernetes.io/instance: workspaces-serving-cert
+  name: workspaces-serving-cert  # this name should match the one appeared in kustomizeconfig.yaml
 spec:
   # SERVICE_NAME and SERVICE_NAMESPACE will be substituted by kustomize
   dnsNames:
@@ -25,5 +25,5 @@ spec:
   - SERVICE_NAME.SERVICE_NAMESPACE.svc.cluster.local
   issuerRef:
     kind: Issuer
-    name: selfsigned-issuer
+    name: workspaces-selfsigned-issuer
   secretName: webhook-server-cert # this secret will not be prefixed, since it's not managed by kustomize
