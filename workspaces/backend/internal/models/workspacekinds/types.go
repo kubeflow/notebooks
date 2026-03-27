@@ -59,14 +59,14 @@ type PodTemplateOptions struct {
 
 type ImageConfig struct {
 	Default string             `json:"default"`
-	Values  []ImageConfigValue `json:"values"`
+	Values  []ImageConfigValue `json:"values,omitempty"`
 }
 
 type ImageConfigValue struct {
 	Id             string          `json:"id"`
 	DisplayName    string          `json:"displayName"`
 	Description    string          `json:"description"`
-	Labels         []OptionLabel   `json:"labels"`
+	Labels         []OptionLabel   `json:"labels,omitempty"`
 	Hidden         bool            `json:"hidden"`
 	Redirect       *OptionRedirect `json:"redirect,omitempty"`
 	ClusterMetrics clusterMetrics  `json:"clusterMetrics,omitempty"`
@@ -74,14 +74,14 @@ type ImageConfigValue struct {
 
 type PodConfig struct {
 	Default string           `json:"default"`
-	Values  []PodConfigValue `json:"values"`
+	Values  []PodConfigValue `json:"values,omitempty"`
 }
 
 type PodConfigValue struct {
 	Id             string          `json:"id"`
 	DisplayName    string          `json:"displayName"`
 	Description    string          `json:"description"`
-	Labels         []OptionLabel   `json:"labels"`
+	Labels         []OptionLabel   `json:"labels,omitempty"`
 	Hidden         bool            `json:"hidden"`
 	Redirect       *OptionRedirect `json:"redirect,omitempty"`
 	ClusterMetrics clusterMetrics  `json:"clusterMetrics,omitempty"`

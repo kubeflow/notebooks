@@ -131,7 +131,7 @@ func (p *PodMetadataMutate) Validate(prefix *field.Path) []*field.Error {
 
 type PodVolumesMutate struct {
 	Home    *string          `json:"home,omitempty"`
-	Data    []PodVolumeMount `json:"data"`
+	Data    []PodVolumeMount `json:"data,omitempty"`
 	Secrets []PodSecretMount `json:"secrets,omitempty"`
 }
 
