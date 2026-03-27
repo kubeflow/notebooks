@@ -12,12 +12,12 @@ import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput'
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { default as ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
+import { useThemeContext } from 'mod-arch-kubeflow';
 import { ActionButton } from '~/shared/components/ActionButton';
 import { ErrorAlert } from '~/shared/components/ErrorAlert';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { extractErrorMessage } from '~/shared/api/apiUtils';
 import { ApiErrorEnvelope } from '~/generated/data-contracts';
-import { useThemeContext } from 'mod-arch-kubeflow';
 
 interface DeleteModalProps {
   isOpen: boolean;
