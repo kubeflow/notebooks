@@ -21,8 +21,6 @@ components:
 patches:
 - patch: |-
     - op: remove
-      path: /metadata/labels/app.kubernetes.io~1component
-    - op: remove
       path: /metadata/labels/app.kubernetes.io~1name
   target:
     kind: Namespace

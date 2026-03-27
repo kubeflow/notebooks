@@ -13,7 +13,8 @@ spec:
       labels: {}
     spec:
       securityContext:
-        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - command:
         - /manager
@@ -26,8 +27,8 @@ spec:
         name: manager
         securityContext:
           allowPrivilegeEscalation: false
-          seccompProfile:
-            type: RuntimeDefault
+          runAsNonRoot: true
+          runAsUser: 65532
           capabilities:
             drop:
             - ALL
