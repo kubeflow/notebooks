@@ -53,8 +53,7 @@ type WorkspaceKindValidator struct {
 
 // SetupWebhookWithManager sets up the webhook with the manager
 func (v *WorkspaceKindValidator) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&kubefloworgv1beta1.WorkspaceKind{}).
+	return ctrl.NewWebhookManagedBy(mgr, &kubefloworgv1beta1.WorkspaceKind{}).
 		WithValidator(v).
 		Complete()
 }
@@ -62,14 +61,9 @@ func (v *WorkspaceKindValidator) SetupWebhookWithManager(mgr ctrl.Manager) error
 // ValidateCreate validates the WorkspaceKind on creation.
 // The optional warnings will be added to the response as warning messages.
 // Return an error if the object is invalid.
-func (v *WorkspaceKindValidator) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (v *WorkspaceKindValidator) ValidateCreate(ctx context.Context, workspaceKind *kubefloworgv1beta1.WorkspaceKind) (admission.Warnings, error) {
 	log := log.FromContext(ctx)
 	log.V(1).Info("validating WorkspaceKind create")
-
-	workspaceKind, ok := obj.(*kubefloworgv1beta1.WorkspaceKind)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a WorkspaceKind object but got %T", obj))
-	}
 
 	var allErrs field.ErrorList
 
@@ -134,18 +128,9 @@ func (v *WorkspaceKindValidator) ValidateCreate(ctx context.Context, obj runtime
 // ValidateUpdate validates the WorkspaceKind on update.
 // The optional warnings will be added to the response as warning messages.
 // Return an error if the object is invalid.
-func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) { //nolint:gocyclo
+func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldWorkspaceKind, newWorkspaceKind *kubefloworgv1beta1.WorkspaceKind) (admission.Warnings, error) { //nolint:gocyclo
 	log := log.FromContext(ctx)
 	log.V(1).Info("validating WorkspaceKind update")
-
-	newWorkspaceKind, ok := newObj.(*kubefloworgv1beta1.WorkspaceKind)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a WorkspaceKind object but got %T", newObj))
-	}
-	oldWorkspaceKind, ok := oldObj.(*kubefloworgv1beta1.WorkspaceKind)
-	if !ok {
-		return nil, apierrors.NewInternalError(fmt.Errorf("old object is not a WorkspaceKind, but a %T", oldObj))
-	}
 
 	var allErrs field.ErrorList
 
@@ -381,14 +366,9 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 // ValidateDelete validates the WorkspaceKind on deletion.
 // The optional warnings will be added to the response as warning messages.
 // Return an error if the object is invalid.
-func (v *WorkspaceKindValidator) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (v *WorkspaceKindValidator) ValidateDelete(ctx context.Context, workspaceKind *kubefloworgv1beta1.WorkspaceKind) (admission.Warnings, error) {
 	log := log.FromContext(ctx)
 	log.V(1).Info("validating WorkspaceKind delete")
-
-	workspaceKind, ok := obj.(*kubefloworgv1beta1.WorkspaceKind)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a WorkspaceKind object but got %T", obj))
-	}
 
 	// don't allow deletion of WorkspaceKind if it is used by any workspaces
 	if workspaceKind.Status.Workspaces > 0 {
