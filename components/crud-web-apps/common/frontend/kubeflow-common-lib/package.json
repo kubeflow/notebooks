@@ -47,7 +47,8 @@
     "monaco-editor": "^0.33.0",
     "rxjs": "~7.4.0",
     "tslib": "^2.0.0",
-    "zone.js": "~0.11.4"
+    "zone.js": "~0.11.4",
+    "jsonpath-plus": "10.3.0"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "~14.2.13",
