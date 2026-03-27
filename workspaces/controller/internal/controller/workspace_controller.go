@@ -648,6 +648,18 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 		replicas = int32(0)
 	}
 
+	// The default update strategy for a StatefulSet is "RollingUpdate",
+	// however updateStrategy.rollingUpdate.maxUnavailable has a default value
+	// of 1 which leads to long rollout times for updates on Workspaces with
+	// currently failed pods.
+	maxUnavailable := intstr.FromInt(1)
+	updateStrategy := appsv1.StatefulSetUpdateStrategy{
+		Type: appsv1.RollingUpdateStatefulSetStrategyType,
+		RollingUpdate: &appsv1.RollingUpdateStatefulSetStrategy{
+			MaxUnavailable: &maxUnavailable,
+		},
+	}
+
 	// generate pod metadata
 	// NOTE: pod metadata from the Workspace takes precedence over the WorkspaceKind
 	podAnnotations := make(map[string]string)
@@ -869,7 +881,8 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 		// NOTE: if you add new fields, ensure they are reflected in `helper.CopyStatefulSetFields()`
 		//
 		Spec: appsv1.StatefulSetSpec{
-			Replicas: &replicas,
+			Replicas:       &replicas,
+			UpdateStrategy: updateStrategy,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					workspaceNameLabel:     workspace.Name,
