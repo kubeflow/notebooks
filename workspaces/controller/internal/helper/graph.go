@@ -33,12 +33,7 @@ func DetectGraphCycle(startNode string, checkedNodes map[string]bool, edgeMap ma
 	currentPath := make([]string, 0)
 	currentPathNodes := make(map[string]bool)
 	var currentNode = startNode
-	for {
-		// if the current node has already been checked, no cycle is detected
-		if checkedNodes[currentNode] {
-			break
-		}
-
+	for !checkedNodes[currentNode] {
 		// if the current node is already in the current path, a cycle is detected
 		if currentPathNodes[currentNode] {
 			for i, node := range currentPath {
