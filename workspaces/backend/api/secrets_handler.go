@@ -49,11 +49,10 @@ type SecretCreateEnvelope Envelope[*models.SecretCreate]
 //	@Failure		422			{object}	ErrorEnvelope		"Unprocessable Entity. Validation error."
 //	@Failure		500			{object}	ErrorEnvelope		"Internal server error"
 //	@Router			/secrets/{namespace} [get]
-func (a *App) GetSecretsByNamespaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) { //nolint:dupl
+func (a *App) GetSecretsByNamespaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(NamespacePathParam)
 
-	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
+	valErrs := helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)
 
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
@@ -100,9 +99,10 @@ func (a *App) GetSecretHandler(w http.ResponseWriter, r *http.Request, ps httpro
 	secretName := ps.ByName(ResourceNamePathParam)
 
 	// validate path parameters
-	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
-	valErrs = append(valErrs, helper.ValidateKubernetesSecretName(field.NewPath(ResourceNamePathParam), secretName)...)
+	valErrs := append(
+		helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace),
+		helper.ValidateKubernetesSecretName(field.NewPath(ResourceNamePathParam), secretName)...,
+	)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
@@ -347,9 +347,10 @@ func (a *App) DeleteSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 	secretName := ps.ByName(ResourceNamePathParam)
 
 	// validate path parameters
-	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
-	valErrs = append(valErrs, helper.ValidateKubernetesSecretName(field.NewPath(ResourceNamePathParam), secretName)...)
+	valErrs := append(
+		helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace),
+		helper.ValidateKubernetesSecretName(field.NewPath(ResourceNamePathParam), secretName)...,
+	)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
