@@ -142,6 +142,7 @@ func (a *App) Routes() http.Handler {
 	router.GET(AllWorkspaceKindsPath, a.GetWorkspaceKindsHandler)
 	router.GET(WorkspaceKindsByNamePath, a.GetWorkspaceKindHandler)
 	router.POST(AllWorkspaceKindsPath, a.CreateWorkspaceKindHandler)
+	router.PUT(WorkspaceKindsByNamePath, a.UpdateWorkspaceKindHandler)
 
 	// storageclasses
 	router.GET(AllStorageClassesPath, a.GetStorageClassesHandler)

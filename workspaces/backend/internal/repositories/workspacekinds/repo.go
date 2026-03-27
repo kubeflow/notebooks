@@ -19,16 +19,20 @@ package workspacekinds
 import (
 	"context"
 	"errors"
+	"time"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
+	modelsCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds"
 )
 
 var ErrWorkspaceKindNotFound = errors.New("workspace kind not found")
 var ErrWorkspaceKindAlreadyExists = errors.New("workspacekind already exists")
+var ErrWorkspaceKindRevisionConflict = errors.New("current workspace kind revision does not match request")
 
 type WorkspaceKindRepository struct {
 	client client.Client
@@ -40,17 +44,17 @@ func NewWorkspaceKindRepository(cl client.Client) *WorkspaceKindRepository {
 	}
 }
 
-func (r *WorkspaceKindRepository) GetWorkspaceKind(ctx context.Context, name string) (models.WorkspaceKind, error) {
+func (r *WorkspaceKindRepository) GetWorkspaceKind(ctx context.Context, name string) (*models.WorkspaceKindUpdate, error) {
 	workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
 	err := r.client.Get(ctx, client.ObjectKey{Name: name}, workspaceKind)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			return models.WorkspaceKind{}, ErrWorkspaceKindNotFound
+			return nil, ErrWorkspaceKindNotFound
 		}
-		return models.WorkspaceKind{}, err
+		return nil, err
 	}
 
-	workspaceKindModel := models.NewWorkspaceKindModelFromWorkspaceKind(workspaceKind)
+	workspaceKindModel := models.NewWorkspaceKindUpdateModelFromWorkspaceKind(workspaceKind)
 	return workspaceKindModel, nil
 }
 
@@ -70,7 +74,7 @@ func (r *WorkspaceKindRepository) GetWorkspaceKinds(ctx context.Context) ([]mode
 	return workspaceKindsModels, nil
 }
 
-func (r *WorkspaceKindRepository) Create(ctx context.Context, workspaceKind *kubefloworgv1beta1.WorkspaceKind) (*models.WorkspaceKind, error) {
+func (r *WorkspaceKindRepository) Create(ctx context.Context, workspaceKind *kubefloworgv1beta1.WorkspaceKind) (*models.WorkspaceKindUpdate, error) {
 	// create workspace kind
 	if err := r.client.Create(ctx, workspaceKind); err != nil {
 		if apierrors.IsAlreadyExists(err) {
@@ -84,11 +88,48 @@ func (r *WorkspaceKindRepository) Create(ctx context.Context, workspaceKind *kub
 		return nil, err
 	}
 
-	// convert the created workspace to a WorkspaceKindUpdate model
-	//
-	// TODO: this function should return the WorkspaceKindUpdate model, once the update WSK api is implemented
-	//
-	createdWorkspaceKindModel := models.NewWorkspaceKindModelFromWorkspaceKind(workspaceKind)
+	createdWorkspaceKindModel := models.NewWorkspaceKindUpdateModelFromWorkspaceKind(workspaceKind)
+	return createdWorkspaceKindModel, nil
+}
 
-	return &createdWorkspaceKindModel, nil
+func (r *WorkspaceKindRepository) UpdateWorkspaceKind(ctx context.Context, workspaceKindUpdate *models.WorkspaceKindUpdate, name string) (*models.WorkspaceKindUpdate, error) {
+	// TODO: get actual user email from request context
+	actor := "mock@example.com"
+	now := time.Now()
+
+	// get workspace kind
+	workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
+	if err := r.client.Get(ctx, client.ObjectKey{Name: name}, workspaceKind); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, ErrWorkspaceKindNotFound
+		}
+		return nil, err
+	}
+
+	// ensure caller's revision matches current workspace kind revision
+	// prevents updates by callers with a stale view of the workspace kind
+	clusterRevision := models.CalculateWorkspaceKindRevision(workspaceKind)
+	callerRevision := workspaceKindUpdate.Revision
+	if clusterRevision != callerRevision {
+		return nil, ErrWorkspaceKindRevisionConflict
+	}
+
+	// validate and apply the update to the workspace kind object
+	if valErrs := models.ValidateAndApplyWorkspaceKindUpdate(workspaceKindUpdate, workspaceKind); len(valErrs) > 0 {
+		return nil, helper.NewInternalValidationError(valErrs)
+	}
+
+	// set audit annotations
+	modelsCommon.UpdateObjectMetaForUpdate(&workspaceKind.ObjectMeta, actor, now)
+
+	// update the workspace kind in K8s
+	// TODO(#853): if the update fails due to a kubernetes conflict, this implies our cache is stale.
+	//       we should retry the entire update operation a few times (including recalculating clusterRevision)
+	//       before returning a 500 error to the caller (DO NOT return a 409, as it's not the caller's fault)
+	if err := r.client.Update(ctx, workspaceKind); err != nil {
+		return nil, err
+	}
+
+	workspaceKindUpdateModel := models.NewWorkspaceKindUpdateModelFromWorkspaceKind(workspaceKind)
+	return workspaceKindUpdateModel, nil
 }
