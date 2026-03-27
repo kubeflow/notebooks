@@ -1,0 +1,25 @@
+version: 2
+updates:
+  - package-ecosystem: "gomod"
+    directories:
+      - "/workspaces/backend"
+      - "/workspaces/controller"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "npm"
+    directory: "/workspaces/frontend"
+    schedule:
+      interval: "weekly"
+    # Group mod-arch-* packages together for easier review
+    groups:
+      mod-arch-packages:
+        patterns:
+          - "mod-arch-*"
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
