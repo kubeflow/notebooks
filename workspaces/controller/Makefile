@@ -49,7 +49,7 @@ help: ## Display this help.
 
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." \
+	$(CONTROLLER_GEN) rbac:roleName=workspaces-manager-role crd webhook paths="./..." \
 		output:crd:artifacts:config=manifests/kustomize/base/crd \
 		output:webhook:artifacts:config=manifests/kustomize/base/webhook \
 		output:rbac:artifacts:config=manifests/kustomize/base/manager
@@ -172,7 +172,7 @@ GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.5.0
-CONTROLLER_TOOLS_VERSION ?= v0.16.4
+CONTROLLER_TOOLS_VERSION ?= v0.20.1
 ENVTEST_VERSION ?= release-0.19
 ISTIOCTL_VERSION ?= 1.27.3
 GOLANGCI_LINT_VERSION ?= v1.61.0

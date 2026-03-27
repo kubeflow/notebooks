@@ -105,7 +105,7 @@ var _ = Describe("controller", Ordered, func() {
 		waitForWebhookCert := func(g Gomega) {
 			// First check if cert-manager has processed the Certificate resource
 			cmd := exec.Command("kubectl", "wait", "certificate",
-				"serving-cert",
+				"workspaces-serving-cert",
 				"-n", controllerNamespace,
 				"--for=condition=Ready",
 				fmt.Sprintf("--timeout=%s", timeout),

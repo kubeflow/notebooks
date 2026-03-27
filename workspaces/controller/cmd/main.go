@@ -45,6 +45,8 @@ import (
 	// +kubebuilder:scaffold:imports
 )
 
+// +kubebuilder:webhookconfiguration:mutating=false,name=workspaces-validating-webhook-configuration
+
 var (
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
@@ -112,6 +114,7 @@ func main() {
 	}
 
 	webhookServer := webhook.NewServer(webhook.Options{
+		Port:    9443,
 		TLSOpts: tlsOpts,
 	})
 
