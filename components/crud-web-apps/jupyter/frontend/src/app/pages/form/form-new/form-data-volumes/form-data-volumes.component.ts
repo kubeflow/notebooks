@@ -39,7 +39,7 @@ export class FormDataVolumesComponent implements OnInit {
   addNewVolume() {
     const volId = this.volsArray.length + 1;
     const volGroup = createNewPvcVolumeFormGroup(
-      `{notebook-name}-datavol-${volId}`,
+      `{notebook-name}-datavol-${volId}-`,
     );
 
     this.volsArray.push(volGroup);
