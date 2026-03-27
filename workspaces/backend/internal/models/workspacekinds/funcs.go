@@ -170,3 +170,61 @@ func buildOptionRedirect(redirect *kubefloworgv1beta1.OptionRedirect) *OptionRed
 		Message: message,
 	}
 }
+
+// BuildListValuesResponse transforms a WorkspaceKind into a ListValuesResponse
+// by adding ruleEffects to each option value and applying context filters
+func BuildListValuesResponse(wsk *WorkspaceKind, context *ListValuesContext) ListValuesResponse {
+	imageValues := buildImageConfigValueListItems(wsk.PodTemplate.Options.ImageConfig, context)
+	podValues := buildPodConfigValueListItems(wsk.PodTemplate.Options.PodConfig, context)
+
+	return ListValuesResponse{
+		ImageConfig: ImageConfigListResult{
+			Default: wsk.PodTemplate.Options.ImageConfig.Default,
+			Values:  imageValues,
+		},
+		PodConfig: PodConfigListResult{
+			Default: wsk.PodTemplate.Options.PodConfig.Default,
+			Values:  podValues,
+		},
+	}
+}
+
+func buildImageConfigValueListItems(imageConfig ImageConfig, context *ListValuesContext) []ImageConfigValueListItem {
+	values := make([]ImageConfigValueListItem, 0, len(imageConfig.Values))
+
+	for _, v := range imageConfig.Values {
+		if context != nil && context.ImageConfig != nil {
+			if v.Id != context.ImageConfig.Id {
+				continue
+			}
+		}
+
+		values = append(values, ImageConfigValueListItem{
+			ImageConfigValue: v,
+			// TODO: replace hard-coded RuleEffects with value returned from actual rules evaluation when the backend logic is added
+			RuleEffects: RuleEffects{UiHide: false},
+		})
+	}
+
+	return values
+}
+
+func buildPodConfigValueListItems(podConfig PodConfig, context *ListValuesContext) []PodConfigValueListItem {
+	values := make([]PodConfigValueListItem, 0, len(podConfig.Values))
+
+	for _, v := range podConfig.Values {
+		if context != nil && context.PodConfig != nil {
+			if v.Id != context.PodConfig.Id {
+				continue
+			}
+		}
+
+		values = append(values, PodConfigValueListItem{
+			PodConfigValue: v,
+			// TODO: replace hard-coded RuleEffects with value returned from actual rules evaluation when the backend logic is added
+			RuleEffects: RuleEffects{UiHide: false},
+		})
+	}
+
+	return values
+}

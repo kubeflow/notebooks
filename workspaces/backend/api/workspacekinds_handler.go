@@ -41,6 +41,10 @@ type WorkspaceKindListEnvelope Envelope[[]models.WorkspaceKind]
 
 type WorkspaceKindEnvelope Envelope[models.WorkspaceKind]
 
+type PodTemplateOptionsListValuesEnvelope Envelope[models.ListValuesResponse]
+
+type PodTemplateOptionsListValuesRequestEnvelope Envelope[*models.ListValuesRequest]
+
 // GetWorkspaceKindHandler retrieves a specific workspace kind by name.
 //
 //	@Summary		Get workspace kind
@@ -221,4 +225,91 @@ func (a *App) CreateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 
 	responseEnvelope := &WorkspaceKindCreateEnvelope{Data: createdWorkspaceKind}
 	a.createdResponse(w, r, responseEnvelope, location)
+}
+
+// PodTemplateOptionsListValuesHandler returns filtered imageConfig and podConfig options for a WorkspaceKind.
+//
+//	@Summary		List pod template option values
+//	@Description	Returns filtered imageConfig and podConfig options based on the provided context. Used by the workspace creation wizard to show compatible options.
+//	@Tags			workspacekinds
+//	@ID				podTemplateOptionsListValues
+//	@Accept			json
+//	@Produce		json
+//	@Param			name	path		string										true	"Name of the workspace kind"	extensions(x-example=jupyterlab)
+//	@Param			body	body		PodTemplateOptionsListValuesRequestEnvelope	true	"Request body with optional context filters"
+//	@Success		200		{object}	PodTemplateOptionsListValuesEnvelope		"Successful operation. Returns filtered options with ruleEffects."
+//	@Failure		400		{object}	ErrorEnvelope								"Bad Request. Invalid workspace kind name or request body."
+//	@Failure		401		{object}	ErrorEnvelope								"Unauthorized. Authentication is required."
+//	@Failure		403		{object}	ErrorEnvelope								"Forbidden. User does not have permission to access the workspace kind."
+//	@Failure		404		{object}	ErrorEnvelope								"Not Found. Workspace kind does not exist."
+//	@Failure		413		{object}	ErrorEnvelope								"Request Entity Too Large. The request body is too large."
+//	@Failure		415		{object}	ErrorEnvelope								"Unsupported Media Type. Content-Type header is not correct."
+//	@Failure		422		{object}	ErrorEnvelope								"Unprocessable Entity. Validation error."
+//	@Failure		500		{object}	ErrorEnvelope								"Internal server error. An unexpected error occurred on the server."
+//	@Router			/workspacekinds/{name}/podtemplate/options/listvalues [post]
+func (a *App) PodTemplateOptionsListValuesHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	name := ps.ByName(ResourceNamePathParam)
+
+	// validate path parameters
+	var valErrs field.ErrorList
+	valErrs = append(valErrs, helper.ValidateWorkspaceKindName(field.NewPath(ResourceNamePathParam), name)...)
+	if len(valErrs) > 0 {
+		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
+		return
+	}
+
+	// validate the Content-Type header
+	if success := a.ValidateContentType(w, r, MediaTypeJson); !success {
+		return
+	}
+
+	// parse request body
+	bodyEnvelope := &PodTemplateOptionsListValuesRequestEnvelope{}
+	if err := a.DecodeJSON(r, bodyEnvelope); err != nil {
+		if a.IsMaxBytesError(err) {
+			a.requestEntityTooLargeResponse(w, r, err)
+			return
+		}
+		a.badRequestResponse(w, r, fmt.Errorf("error decoding request body: %w", err))
+		return
+	}
+
+	// validate the request body
+	dataPath := field.NewPath("data")
+	if bodyEnvelope.Data == nil {
+		valErrs = append(valErrs, field.Required(dataPath, "data is required"))
+		a.failedValidationResponse(w, r, errMsgRequestBodyInvalid, valErrs, nil)
+		return
+	}
+	valErrs = append(valErrs, bodyEnvelope.Data.Validate(dataPath)...)
+	if len(valErrs) > 0 {
+		a.failedValidationResponse(w, r, errMsgRequestBodyInvalid, valErrs, nil)
+		return
+	}
+
+	// =========================== AUTH ===========================
+	authPolicies := []*auth.ResourcePolicy{
+		auth.NewResourcePolicy(auth.VerbGet, auth.WorkspaceKinds, auth.ResourcePolicyResourceMeta{Name: name}),
+	}
+	if success := a.requireAuth(w, r, authPolicies); !success {
+		return
+	}
+	// ============================================================
+
+	// get the workspace kind
+	workspaceKind, err := a.repositories.WorkspaceKind.GetWorkspaceKind(r.Context(), name)
+	if err != nil {
+		if errors.Is(err, repository.ErrWorkspaceKindNotFound) {
+			a.notFoundResponse(w, r)
+			return
+		}
+		a.serverErrorResponse(w, r, err)
+		return
+	}
+
+	// build the response with ruleEffects and context filtering
+	response := models.BuildListValuesResponse(&workspaceKind, bodyEnvelope.Data.Context)
+
+	responseEnvelope := &PodTemplateOptionsListValuesEnvelope{Data: response}
+	a.dataResponse(w, r, responseEnvelope)
 }

@@ -16,6 +16,12 @@ limitations under the License.
 
 package workspacekinds
 
+import (
+	"k8s.io/apimachinery/pkg/util/validation/field"
+
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
+)
+
 type WorkspaceKind struct {
 	Name               string         `json:"name"`
 	DisplayName        string         `json:"displayName"`
@@ -109,3 +115,89 @@ const (
 	RedirectMessageLevelWarning RedirectMessageLevel = "Warning"
 	RedirectMessageLevelDanger  RedirectMessageLevel = "Danger"
 )
+
+type ListValuesRequest struct {
+	Context *ListValuesContext `json:"context,omitempty"`
+}
+
+// Validate validates the listvalues request data by delegating to Context when present.
+func (d *ListValuesRequest) Validate(prefix *field.Path) field.ErrorList {
+	var errs field.ErrorList
+	if d == nil {
+		return errs
+	}
+	if d.Context != nil {
+		errs = append(errs, d.Context.Validate(prefix.Child("context"))...)
+	}
+	return errs
+}
+
+type ListValuesContext struct {
+	// TODO: Namespace is reserved for future use, no behavior implemented yet.
+	Namespace   *ContextNamespace   `json:"namespace,omitempty"`
+	PodConfig   *ContextPodConfig   `json:"podConfig,omitempty"`
+	ImageConfig *ContextImageConfig `json:"imageConfig,omitempty"`
+}
+
+// Validate validates the context fields when present.
+func (c *ListValuesContext) Validate(prefix *field.Path) field.ErrorList {
+	var errs field.ErrorList
+	if c == nil {
+		return errs
+	}
+	if c.Namespace != nil {
+		errs = append(errs, helper.ValidateKubernetesNamespaceName(prefix.Child("namespace", "name"), c.Namespace.Name)...)
+	}
+	if c.PodConfig != nil {
+		errs = append(errs, helper.ValidateFieldIsNotEmpty(prefix.Child("podConfig", "id"), c.PodConfig.Id)...)
+	}
+	if c.ImageConfig != nil {
+		errs = append(errs, helper.ValidateFieldIsNotEmpty(prefix.Child("imageConfig", "id"), c.ImageConfig.Id)...)
+	}
+	return errs
+}
+
+type ContextNamespace struct {
+	Name string `json:"name"`
+}
+
+type ContextPodConfig struct {
+	Id string `json:"id"`
+}
+
+type ContextImageConfig struct {
+	Id string `json:"id"`
+}
+
+type ListValuesResponse struct {
+	ImageConfig ImageConfigListResult `json:"imageConfig"`
+	PodConfig   PodConfigListResult   `json:"podConfig"`
+}
+
+// ImageConfigListResult is the imageConfig section of a listvalues response.
+type ImageConfigListResult struct {
+	Default string                     `json:"default"`
+	Values  []ImageConfigValueListItem `json:"values"`
+}
+
+// ImageConfigValueListItem is one image option in listvalues with ruleEffects.
+type ImageConfigValueListItem struct {
+	ImageConfigValue
+	RuleEffects RuleEffects `json:"ruleEffects"`
+}
+
+// PodConfigListResult is the podConfig section of a listvalues response.
+type PodConfigListResult struct {
+	Default string                   `json:"default"`
+	Values  []PodConfigValueListItem `json:"values"`
+}
+
+// PodConfigValueListItem is one pod option in listvalues with ruleEffects.
+type PodConfigValueListItem struct {
+	PodConfigValue
+	RuleEffects RuleEffects `json:"ruleEffects"`
+}
+
+type RuleEffects struct {
+	UiHide bool `json:"uiHide"`
+}
