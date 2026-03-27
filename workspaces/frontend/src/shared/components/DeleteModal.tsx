@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+﻿import React, { useCallback, useEffect, useState } from 'react';
 import {
   Modal,
   ModalBody,
@@ -10,7 +10,6 @@ import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { Form } from '@patternfly/react-core/dist/esm/components/Form';
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
-import { FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { default as ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 import { useThemeContext } from 'mod-arch-kubeflow';
@@ -37,10 +36,10 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   onClose,
   onDelete,
 }) => {
+  const { isMUITheme } = useThemeContext();
   const [inputValue, setInputValue] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | ApiErrorEnvelope | null>(null);
-  const { isMUITheme } = useThemeContext();
 
   useEffect(() => {
     if (!isOpen) {
@@ -93,13 +92,16 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
             </StackItem>
           )}
           <StackItem>
-            <FlexItem>
-              Are you sure you want to delete <strong>{resourceName}</strong> in namespace{' '}
-              <strong>{namespace}</strong>?
-            </FlexItem>
+            Are you sure you want to delete <strong>{resourceName}</strong> in namespace{' '}
+            <strong>{namespace}</strong>?
           </StackItem>
           <StackItem>
-            <Form>
+            <Form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleDelete();
+              }}
+            >
               <ThemeAwareFormGroupWrapper
                 label="Please type the resource name to confirm:"
                 fieldId="delete-modal-input"
