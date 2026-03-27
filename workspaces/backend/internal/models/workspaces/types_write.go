@@ -33,11 +33,9 @@ type WorkspaceCreate struct {
 // Validate validates the WorkspaceCreate struct.
 // NOTE: we only do basic validation, more complex validation is done by the controller when attempting to create the workspace.
 func (w *WorkspaceCreate) Validate(prefix *field.Path) []*field.Error {
-	var errs []*field.Error
-
 	// validate the workspace name
 	namePath := prefix.Child("name")
-	errs = append(errs, helper.ValidateWorkspaceName(namePath, w.Name)...)
+	errs := helper.ValidateWorkspaceName(namePath, w.Name)
 
 	// validate the workspace kind name
 	kindPath := prefix.Child("kind")
@@ -89,11 +87,9 @@ type PodTemplateMutate struct {
 
 // Validate validates the PodTemplateMutate struct.
 func (p *PodTemplateMutate) Validate(prefix *field.Path) []*field.Error {
-	var errs []*field.Error
-
 	// validate the pod metadata
 	podMetadataPath := prefix.Child("podMetadata")
-	errs = append(errs, p.PodMetadata.Validate(podMetadataPath)...)
+	errs := p.PodMetadata.Validate(podMetadataPath)
 
 	// validate the volumes
 	volumesPath := prefix.Child("volumes")
@@ -116,11 +112,9 @@ type PodMetadataMutate struct {
 
 // Validate validates the PodMetadataMutate struct.
 func (p *PodMetadataMutate) Validate(prefix *field.Path) []*field.Error {
-	var errs []*field.Error
-
 	// validate the labels
 	labelsPath := prefix.Child("labels")
-	errs = append(errs, helper.ValidateKubernetesLabels(labelsPath, p.Labels)...)
+	errs := helper.ValidateKubernetesLabels(labelsPath, p.Labels)
 
 	// validate the annotations
 	annotationsPath := prefix.Child("annotations")
@@ -170,11 +164,9 @@ type PodVolumeMount struct {
 
 // Validate validates the PodVolumeMount struct.
 func (p *PodVolumeMount) Validate(prefix *field.Path) []*field.Error {
-	var errs []*field.Error
-
 	// validate the PVC name
 	pvcNamePath := prefix.Child("pvcName")
-	errs = append(errs, helper.ValidateKubernetesPVCName(pvcNamePath, p.PVCName)...)
+	errs := helper.ValidateKubernetesPVCName(pvcNamePath, p.PVCName)
 
 	// validate the mount path
 	mountPath := prefix.Child("mountPath")
@@ -219,11 +211,9 @@ type PodTemplateOptionsMutate struct {
 
 // Validate validates the PodTemplateOptionsMutate struct.
 func (p *PodTemplateOptionsMutate) Validate(prefix *field.Path) []*field.Error {
-	var errs []*field.Error
-
 	// validate the image config
 	imageConfigPath := prefix.Child("imageConfig")
-	errs = append(errs, helper.ValidateFieldIsNotEmpty(imageConfigPath, p.ImageConfig)...)
+	errs := helper.ValidateFieldIsNotEmpty(imageConfigPath, p.ImageConfig)
 
 	// validate the pod config
 	podConfigPath := prefix.Child("podConfig")

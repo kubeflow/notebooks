@@ -79,7 +79,7 @@ func (s *Server) SetupWithManager(mgr ctrl.Manager) error {
 // Blocks until the context is canceled
 func (s *Server) Start(ctx context.Context) error {
 	serverShutdown := make(chan struct{})
-	go func() {
+	go func() { //nolint:gosec // context.Background() is intentional: ctx is already canceled when shutdown runs
 		<-ctx.Done()
 		s.logger.Info("shutting down server")
 		if err := s.server.Shutdown(context.Background()); err != nil {

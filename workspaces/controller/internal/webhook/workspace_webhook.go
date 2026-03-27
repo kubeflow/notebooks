@@ -192,7 +192,7 @@ func (v *WorkspaceValidator) validateWorkspaceKind(ctx context.Context, workspac
 
 // validatePodTemplatePodMetadata validates the podMetadata of a Workspace's PodTemplate
 func (v *WorkspaceValidator) validatePodTemplatePodMetadata(workspace *kubefloworgv1beta1.Workspace) []*field.Error {
-	var errs []*field.Error
+	errs := make([]*field.Error, 0, 2)
 
 	podMetadata := workspace.Spec.PodTemplate.PodMetadata
 	podMetadataPath := field.NewPath("spec", "podTemplate", "podMetadata")

@@ -65,7 +65,7 @@ func (v *WorkspaceKindValidator) ValidateCreate(ctx context.Context, workspaceKi
 	log := log.FromContext(ctx)
 	log.V(1).Info("validating WorkspaceKind create")
 
-	var allErrs field.ErrorList
+	allErrs := make(field.ErrorList, 0, len(workspaceKind.Spec.PodTemplate.Options.ImageConfig.Values))
 
 	// validate the pod metadata
 	allErrs = append(allErrs, v.validatePodTemplatePodMetadata(workspaceKind)...)
@@ -512,7 +512,7 @@ func (v *WorkspaceKindValidator) getOptionsUsageCounts(ctx context.Context, work
 
 // validatePodTemplatePodMetadata validates the podMetadata of a WorkspaceKind's PodTemplate
 func (v *WorkspaceKindValidator) validatePodTemplatePodMetadata(workspaceKind *kubefloworgv1beta1.WorkspaceKind) []*field.Error {
-	var errs []*field.Error
+	errs := make([]*field.Error, 0, 2)
 
 	podMetadata := workspaceKind.Spec.PodTemplate.PodMetadata
 	podMetadataPath := field.NewPath("spec", "podTemplate", "podMetadata")
