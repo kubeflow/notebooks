@@ -368,6 +368,7 @@ func generateStatefulSet(instance *v1beta1.Notebook) *appsv1.StatefulSet {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instance.Name,
 			Namespace: instance.Namespace,
+			Labels:    map[string]string{},
 		},
 		Spec: appsv1.StatefulSetSpec{
 			Replicas: &replicas,
@@ -401,6 +402,12 @@ func generateStatefulSet(instance *v1beta1.Notebook) *appsv1.StatefulSet {
 		if !strings.Contains(k, "kubectl") && !strings.Contains(k, "notebook") {
 			(*a)[k] = v
 		}
+	}
+
+	// copy all of the Notebook labels to the StatefulSet
+	sl := &ss.Labels
+	for k, v := range instance.Labels {
+		(*sl)[k] = v
 	}
 
 	podSpec := &ss.Spec.Template.Spec
