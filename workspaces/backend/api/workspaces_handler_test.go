@@ -987,6 +987,475 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(createdWorkspace.Spec.PodTemplate.Volumes.Secrets).To(Equal(expected))
 		})
 
+		It("should update a Workspace successfully", func() {
+
+			By("creating a Workspace via the API")
+			workspaceCreate := &models.WorkspaceCreate{
+				Name:   workspaceName,
+				Kind:   workspaceKindName,
+				Paused: false,
+				PodTemplate: models.PodTemplateMutate{
+					PodMetadata: models.PodMetadataMutate{
+						Labels: map[string]string{
+							"app": "testing",
+						},
+						Annotations: map[string]string{
+							"example.com/testing": "true",
+						},
+					},
+					Volumes: models.PodVolumesMutate{
+						Home: ptr.To("my-home-pvc"),
+						Data: []models.PodVolumeMount{
+							{
+								PVCName:   "my-data-pvc",
+								MountPath: "/data/1",
+								ReadOnly:  false,
+							},
+						},
+					},
+					Options: models.PodTemplateOptionsMutate{
+						ImageConfig: "jupyterlab_scipy_180",
+						PodConfig:   "tiny_cpu",
+					},
+				},
+			}
+			createEnvelope := WorkspaceCreateEnvelope{Data: workspaceCreate}
+			createJSON, err := json.Marshal(createEnvelope)
+			Expect(err).NotTo(HaveOccurred())
+
+			path := strings.Replace(WorkspacesByNamespacePath, ":"+NamespacePathParam, namespaceNameCrud, 1)
+			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(createJSON)))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{
+				httprouter.Param{Key: NamespacePathParam, Value: namespaceNameCrud},
+			}
+			a.CreateWorkspaceHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+			Expect(rs.StatusCode).To(Equal(http.StatusCreated), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("getting the Workspace from the Kubernetes API to obtain its current revision")
+			createdWorkspace := &kubefloworgv1beta1.Workspace{}
+			Expect(k8sClient.Get(ctx, workspaceKey, createdWorkspace)).To(Succeed())
+			originalRevision := models.CalculateWorkspaceRevision(createdWorkspace)
+
+			By("building a WorkspaceUpdate model with changed fields")
+			workspaceUpdate := &models.WorkspaceUpdate{
+				Revision: originalRevision,
+				Paused:   true,
+				PodTemplate: models.PodTemplateMutate{
+					PodMetadata: models.PodMetadataMutate{
+						Labels: map[string]string{
+							"app":     "testing",
+							"version": "v2",
+						},
+						Annotations: map[string]string{
+							"example.com/testing": "false",
+						},
+					},
+					Volumes: models.PodVolumesMutate{
+						Home: ptr.To("my-home-pvc"),
+						Data: []models.PodVolumeMount{
+							{
+								PVCName:   "my-data-pvc",
+								MountPath: "/data/updated",
+								ReadOnly:  true,
+							},
+						},
+					},
+					Options: models.PodTemplateOptionsMutate{
+						ImageConfig: "jupyterlab_scipy_180",
+						PodConfig:   "small_cpu",
+					},
+				},
+			}
+			updateEnvelope := WorkspaceEnvelope{Data: workspaceUpdate}
+			updateJSON, err := json.Marshal(updateEnvelope)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("executing UpdateWorkspaceHandler")
+			path = strings.Replace(WorkspacesByNamePath, ":"+NamespacePathParam, namespaceNameCrud, 1)
+			path = strings.Replace(path, ":"+ResourceNamePathParam, workspaceName, 1)
+			req, err = http.NewRequest(http.MethodPut, path, strings.NewReader(string(updateJSON)))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			rr = httptest.NewRecorder()
+			ps = httprouter.Params{
+				httprouter.Param{Key: NamespacePathParam, Value: namespaceNameCrud},
+				httprouter.Param{Key: ResourceNamePathParam, Value: workspaceName},
+			}
+			a.UpdateWorkspaceHandler(rr, req, ps)
+			rs = rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusOK), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("reading the HTTP response body")
+			body, err := io.ReadAll(rs.Body)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("unmarshalling the response JSON to WorkspaceEnvelope")
+			var response WorkspaceEnvelope
+			err = json.Unmarshal(body, &response)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("verifying the response contains a new revision")
+			Expect(response.Data.Revision).NotTo(Equal(originalRevision))
+
+			By("getting the updated Workspace from the Kubernetes API")
+			updatedWorkspace := &kubefloworgv1beta1.Workspace{}
+			Expect(k8sClient.Get(ctx, workspaceKey, updatedWorkspace)).To(Succeed())
+
+			By("verifying all fields were applied")
+			Expect(ptr.Deref(updatedWorkspace.Spec.Paused, false)).To(BeTrue())
+			Expect(updatedWorkspace.Spec.PodTemplate.PodMetadata.Labels).To(Equal(workspaceUpdate.PodTemplate.PodMetadata.Labels))
+			Expect(updatedWorkspace.Spec.PodTemplate.PodMetadata.Annotations).To(Equal(workspaceUpdate.PodTemplate.PodMetadata.Annotations))
+			Expect(updatedWorkspace.Spec.PodTemplate.Options.PodConfig).To(Equal("small_cpu"))
+			Expect(updatedWorkspace.Spec.PodTemplate.Volumes.Data).To(Equal([]kubefloworgv1beta1.PodVolumeMount{
+				{
+					PVCName:   "my-data-pvc",
+					MountPath: "/data/updated",
+					ReadOnly:  ptr.To(true),
+				},
+			}))
+
+			By("cleaning up the Workspace")
+			Expect(k8sClient.Delete(ctx, updatedWorkspace)).To(Succeed())
+		})
+
+		It("should return 409 for a stale revision", func() {
+
+			By("creating a Workspace via the API")
+			workspaceCreate := &models.WorkspaceCreate{
+				Name:   workspaceName,
+				Kind:   workspaceKindName,
+				Paused: false,
+				PodTemplate: models.PodTemplateMutate{
+					PodMetadata: models.PodMetadataMutate{
+						Labels:      map[string]string{},
+						Annotations: map[string]string{},
+					},
+					Volumes: models.PodVolumesMutate{
+						Home: ptr.To("my-home-pvc"),
+						Data: []models.PodVolumeMount{
+							{
+								PVCName:   "my-data-pvc",
+								MountPath: "/data/1",
+								ReadOnly:  false,
+							},
+						},
+					},
+					Options: models.PodTemplateOptionsMutate{
+						ImageConfig: "jupyterlab_scipy_180",
+						PodConfig:   "tiny_cpu",
+					},
+				},
+			}
+			createEnvelope := WorkspaceCreateEnvelope{Data: workspaceCreate}
+			createJSON, err := json.Marshal(createEnvelope)
+			Expect(err).NotTo(HaveOccurred())
+
+			path := strings.Replace(WorkspacesByNamespacePath, ":"+NamespacePathParam, namespaceNameCrud, 1)
+			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(createJSON)))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{
+				httprouter.Param{Key: NamespacePathParam, Value: namespaceNameCrud},
+			}
+			a.CreateWorkspaceHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+			Expect(rs.StatusCode).To(Equal(http.StatusCreated), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("getting the Workspace to obtain the current revision")
+			workspace := &kubefloworgv1beta1.Workspace{}
+			Expect(k8sClient.Get(ctx, workspaceKey, workspace)).To(Succeed())
+			staleRevision := models.CalculateWorkspaceRevision(workspace)
+
+			By("modifying the Workspace directly to change its revision")
+			workspace.Spec.PodTemplate.Options.PodConfig = "small_cpu"
+			Expect(k8sClient.Update(ctx, workspace)).To(Succeed())
+
+			By("attempting to update via the API with the stale revision")
+			workspaceUpdate := &models.WorkspaceUpdate{
+				Revision: staleRevision,
+				Paused:   false,
+				PodTemplate: models.PodTemplateMutate{
+					PodMetadata: models.PodMetadataMutate{
+						Labels:      map[string]string{},
+						Annotations: map[string]string{},
+					},
+					Volumes: models.PodVolumesMutate{
+						Home: ptr.To("my-home-pvc"),
+						Data: []models.PodVolumeMount{
+							{
+								PVCName:   "my-data-pvc",
+								MountPath: "/data/1",
+								ReadOnly:  false,
+							},
+						},
+					},
+					Options: models.PodTemplateOptionsMutate{
+						ImageConfig: "jupyterlab_scipy_180",
+						PodConfig:   "tiny_cpu",
+					},
+				},
+			}
+			updateEnvelope := WorkspaceEnvelope{Data: workspaceUpdate}
+			updateJSON, err := json.Marshal(updateEnvelope)
+			Expect(err).NotTo(HaveOccurred())
+
+			path = strings.Replace(WorkspacesByNamePath, ":"+NamespacePathParam, namespaceNameCrud, 1)
+			path = strings.Replace(path, ":"+ResourceNamePathParam, workspaceName, 1)
+			req, err = http.NewRequest(http.MethodPut, path, strings.NewReader(string(updateJSON)))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			rr = httptest.NewRecorder()
+			ps = httprouter.Params{
+				httprouter.Param{Key: NamespacePathParam, Value: namespaceNameCrud},
+				httprouter.Param{Key: ResourceNamePathParam, Value: workspaceName},
+			}
+			a.UpdateWorkspaceHandler(rr, req, ps)
+			rs = rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code is 409")
+			Expect(rs.StatusCode).To(Equal(http.StatusConflict), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("cleaning up the Workspace")
+			Expect(k8sClient.Delete(ctx, workspace)).To(Succeed())
+		})
+
+		It("should return 404 for a non-existent Workspace update", func() {
+			missingWorkspaceName := "non-existent-workspace"
+
+			By("building an update request for a workspace that doesn't exist")
+			workspaceUpdate := &models.WorkspaceUpdate{
+				Revision: "fake-revision",
+				Paused:   false,
+				PodTemplate: models.PodTemplateMutate{
+					PodMetadata: models.PodMetadataMutate{
+						Labels:      map[string]string{},
+						Annotations: map[string]string{},
+					},
+					Volumes: models.PodVolumesMutate{
+						Data: []models.PodVolumeMount{},
+					},
+					Options: models.PodTemplateOptionsMutate{
+						ImageConfig: "jupyterlab_scipy_180",
+						PodConfig:   "tiny_cpu",
+					},
+				},
+			}
+			updateEnvelope := WorkspaceEnvelope{Data: workspaceUpdate}
+			updateJSON, err := json.Marshal(updateEnvelope)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("executing UpdateWorkspaceHandler")
+			path := strings.Replace(WorkspacesByNamePath, ":"+NamespacePathParam, namespaceNameCrud, 1)
+			path = strings.Replace(path, ":"+ResourceNamePathParam, missingWorkspaceName, 1)
+			req, err := http.NewRequest(http.MethodPut, path, strings.NewReader(string(updateJSON)))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{
+				httprouter.Param{Key: NamespacePathParam, Value: namespaceNameCrud},
+				httprouter.Param{Key: ResourceNamePathParam, Value: missingWorkspaceName},
+			}
+			a.UpdateWorkspaceHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code is 404")
+			Expect(rs.StatusCode).To(Equal(http.StatusNotFound), descUnexpectedHTTPStatus, rr.Body.String())
+		})
+
+		It("should return 422 when updating with unmountable data PVC and secret", func() {
+			unmountableDataPVCName := "unmountable-data-pvc"
+			unmountableSecretName := "unmountable-secret"
+
+			By("creating a PVC without the can-mount label")
+			unmountablePVC := &corev1.PersistentVolumeClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      unmountableDataPVCName,
+					Namespace: namespaceNameCrud,
+				},
+				Spec: corev1.PersistentVolumeClaimSpec{
+					AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+					Resources: corev1.VolumeResourceRequirements{
+						Requests: corev1.ResourceList{
+							corev1.ResourceStorage: resource.MustParse("1Gi"),
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, unmountablePVC)).To(Succeed())
+
+			By("creating a Secret without the can-mount label")
+			unmountableSecret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      unmountableSecretName,
+					Namespace: namespaceNameCrud,
+				},
+				Data: map[string][]byte{
+					"key": []byte("value"),
+				},
+			}
+			Expect(k8sClient.Create(ctx, unmountableSecret)).To(Succeed())
+
+			By("creating a Workspace via the API")
+			workspaceCreate := &models.WorkspaceCreate{
+				Name:   workspaceName,
+				Kind:   workspaceKindName,
+				Paused: false,
+				PodTemplate: models.PodTemplateMutate{
+					PodMetadata: models.PodMetadataMutate{
+						Labels:      map[string]string{},
+						Annotations: map[string]string{},
+					},
+					Volumes: models.PodVolumesMutate{
+						Home: ptr.To(homePVCName),
+						Data: []models.PodVolumeMount{
+							{
+								PVCName:   dataPVCName,
+								MountPath: "/data/1",
+								ReadOnly:  false,
+							},
+						},
+					},
+					Options: models.PodTemplateOptionsMutate{
+						ImageConfig: "jupyterlab_scipy_180",
+						PodConfig:   "tiny_cpu",
+					},
+				},
+			}
+			createEnvelope := WorkspaceCreateEnvelope{Data: workspaceCreate}
+			createJSON, err := json.Marshal(createEnvelope)
+			Expect(err).NotTo(HaveOccurred())
+
+			path := strings.Replace(WorkspacesByNamespacePath, ":"+NamespacePathParam, namespaceNameCrud, 1)
+			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(createJSON)))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{
+				httprouter.Param{Key: NamespacePathParam, Value: namespaceNameCrud},
+			}
+			a.CreateWorkspaceHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+			Expect(rs.StatusCode).To(Equal(http.StatusCreated), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("getting the Workspace to obtain the current revision")
+			createdWorkspace := &kubefloworgv1beta1.Workspace{}
+			Expect(k8sClient.Get(ctx, workspaceKey, createdWorkspace)).To(Succeed())
+			originalRevision := models.CalculateWorkspaceRevision(createdWorkspace)
+
+			By("attempting to update with unmountable data PVC and secret")
+			workspaceUpdate := &models.WorkspaceUpdate{
+				Revision: originalRevision,
+				Paused:   false,
+				PodTemplate: models.PodTemplateMutate{
+					PodMetadata: models.PodMetadataMutate{
+						Labels:      map[string]string{},
+						Annotations: map[string]string{},
+					},
+					Volumes: models.PodVolumesMutate{
+						Home: ptr.To(homePVCName),
+						Data: []models.PodVolumeMount{
+							{
+								PVCName:   unmountableDataPVCName,
+								MountPath: "/data/1",
+								ReadOnly:  false,
+							},
+						},
+						Secrets: []models.PodSecretMount{
+							{
+								SecretName: unmountableSecretName,
+								MountPath:  "/secrets/1",
+							},
+						},
+					},
+					Options: models.PodTemplateOptionsMutate{
+						ImageConfig: "jupyterlab_scipy_180",
+						PodConfig:   "tiny_cpu",
+					},
+				},
+			}
+			updateEnvelope := WorkspaceEnvelope{Data: workspaceUpdate}
+			updateJSON, err := json.Marshal(updateEnvelope)
+			Expect(err).NotTo(HaveOccurred())
+
+			path = strings.Replace(WorkspacesByNamePath, ":"+NamespacePathParam, namespaceNameCrud, 1)
+			path = strings.Replace(path, ":"+ResourceNamePathParam, workspaceName, 1)
+			req, err = http.NewRequest(http.MethodPut, path, strings.NewReader(string(updateJSON)))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			rr = httptest.NewRecorder()
+			ps = httprouter.Params{
+				httprouter.Param{Key: NamespacePathParam, Value: namespaceNameCrud},
+				httprouter.Param{Key: ResourceNamePathParam, Value: workspaceName},
+			}
+			a.UpdateWorkspaceHandler(rr, req, ps)
+			rs = rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code is 422")
+			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("reading the HTTP response body")
+			body, err := io.ReadAll(rs.Body)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("unmarshalling the response JSON to ErrorEnvelope")
+			var response ErrorEnvelope
+			err = json.Unmarshal(body, &response)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("verifying the error response contains validation errors for both resources")
+			Expect(response.Error.Cause.ValidationErrors).To(ConsistOf(
+				ValidationError{
+					Origin:  OriginInternal,
+					Type:    "FieldValueForbidden",
+					Field:   "podTemplate.volumes.data[0].pvcName",
+					Message: fmt.Sprintf("Forbidden: PersistentVolumeClaim %q in namespace %q is not labeled with %s=true", unmountableDataPVCName, namespaceNameCrud, commonModels.LabelCanMount),
+				},
+				ValidationError{
+					Origin:  OriginInternal,
+					Type:    "FieldValueForbidden",
+					Field:   "podTemplate.volumes.secrets[0].secretName",
+					Message: fmt.Sprintf("Forbidden: Secret %q in namespace %q is not labeled with %s=true", unmountableSecretName, namespaceNameCrud, commonModels.LabelCanMount),
+				},
+			))
+
+			By("cleaning up the Workspace")
+			Expect(k8sClient.Delete(ctx, createdWorkspace)).To(Succeed())
+
+			By("cleaning up the unmountable PVC")
+			Expect(k8sClient.Delete(ctx, unmountablePVC)).To(Succeed())
+
+			By("cleaning up the unmountable Secret")
+			Expect(k8sClient.Delete(ctx, unmountableSecret)).To(Succeed())
+		})
+
 		// TODO: test when fail to create a Workspace when:
 		//   - body payload invalid (missing name/kind, and/or non RCF 1123 name)
 		//   - invalid namespace HTTP path parameter (also test for other API handlers)
