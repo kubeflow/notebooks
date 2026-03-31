@@ -262,6 +262,26 @@ class WorkspaceForm {
     return cy.findByTestId('filter-sidebar');
   }
 
+  findSummaryCard(step: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`summary-card-${step}`);
+  }
+
+  clickSummaryCard(step: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findSummaryCard(step).click();
+  }
+
+  assertSummaryCardVisible(step: number): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findSummaryCard(step).should('be.visible');
+  }
+
+  findSummaryDiffCurrent(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('summary-diff-current');
+  }
+
+  findSummaryDiffNew(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('summary-diff-new');
+  }
+
   findRedirectSummaryIcon(step: number, suffix: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId(`redirect-icon-${step}-${suffix}`);
   }

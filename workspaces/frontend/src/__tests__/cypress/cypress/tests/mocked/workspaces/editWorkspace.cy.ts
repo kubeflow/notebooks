@@ -154,6 +154,7 @@ describe('Edit workspace', () => {
       editWorkspace.assertProgressStepVisible('Image');
       editWorkspace.assertProgressStepVisible('Pod Config');
       editWorkspace.assertProgressStepVisible('Properties');
+      editWorkspace.assertProgressStepVisible('Summary');
     });
 
     it('should have Save button instead of Create button on final step', () => {
@@ -162,6 +163,7 @@ describe('Edit workspace', () => {
       visitEditWorkspace();
 
       cy.wait('@getWorkspaceKind');
+      editWorkspace.clickNext();
       editWorkspace.clickNext();
       editWorkspace.clickNext();
       editWorkspace.clickNext();
@@ -199,6 +201,7 @@ describe('Edit workspace', () => {
       visitEditWorkspace();
 
       cy.wait('@getWorkspaceKind');
+      editWorkspace.clickNext();
       editWorkspace.clickNext();
       editWorkspace.clickNext();
       editWorkspace.clickNext();
@@ -248,6 +251,9 @@ describe('Edit workspace', () => {
 
       // Step 3: Pod Config Selection - change to a different pod config
       editWorkspace.selectPodConfig(newPodConfigId);
+      editWorkspace.clickNext();
+
+      // Step 4: Properties - just proceed
       editWorkspace.clickNext();
 
       editWorkspace.clickSave();
@@ -443,7 +449,11 @@ describe('Edit workspace', () => {
       editWorkspace.assertNextButtonEnabled();
       editWorkspace.clickNext();
 
-      // Step 4: Properties - Save button should appear
+      // Step 4: Properties
+      editWorkspace.assertNextButtonEnabled();
+      editWorkspace.clickNext();
+
+      // Step 5: Summary - Save button should appear
       editWorkspace.assertSaveButtonExists();
     });
 
