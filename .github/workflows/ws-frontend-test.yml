@@ -32,6 +32,16 @@ jobs:
           node-version-file: workspaces/frontend/package.json
           cache-dependency-path: workspaces/frontend/package-lock.json
 
+      # TODO: Remove this once it is possible to specify a npm version for
+      # `actions/setup-node` or the node version that we're using is new enough
+      # to ship with npm >= 11
+      #
+      # https://github.com/actions/setup-node/issues/529#issuecomment-4179457319
+      - name: Upgrade npm
+        working-directory: workspaces/frontend
+        # npm pkg get engines.npm -> "^11.10.0"
+        run: npm install --global npm@$(npm pkg get engines.npm | tr --delete '"')
+
       - name: Install dependencies
         working-directory: workspaces/frontend
         run: npm install
