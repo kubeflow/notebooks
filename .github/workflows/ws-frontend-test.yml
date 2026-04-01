@@ -29,7 +29,8 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@3235b876344d2a9aa001b8d1453c930bba69e610 # v3
         with:
-          node-version: "20"
+          node-version-file: workspaces/frontend/package.json
+          cache-dependency-path: workspaces/frontend/package-lock.json
 
       - name: Install dependencies
         working-directory: workspaces/frontend

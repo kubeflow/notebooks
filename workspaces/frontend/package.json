@@ -16,7 +16,7 @@
     }
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": "^20"
   },
   "scripts": {
     "build": "run-s build:prod",
