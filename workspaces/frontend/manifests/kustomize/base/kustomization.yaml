@@ -4,7 +4,6 @@ kind: Kustomization
 namespace: kubeflow-workspaces
 
 resources:
-- namespace.yaml
 - deployment.yaml
 - service.yaml
 
