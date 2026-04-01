@@ -44,7 +44,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: workspaces/frontend
-        run: npm install
+        run: npm ci
 
       - name: Clean
         working-directory: workspaces/frontend
