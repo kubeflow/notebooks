@@ -44,7 +44,6 @@ spawnerFormDefaults:
     - ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:latest
     - ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-pytorch-full:latest
     - ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-pytorch-cuda-full:latest
-    - ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-pytorch-gaudi-full:latest
     - ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-tensorflow-full:latest
     - ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-tensorflow-cuda-full:latest
 
