@@ -195,6 +195,75 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			err = json.Unmarshal(dataJSON, &dataObject)
 			Expect(err).NotTo(HaveOccurred(), "failed to unmarshal JSON to WorkspaceKind")
 		})
+
+		It("should retrieve WorkspaceKinds with valid namespaceFilter query parameter", func() {
+			By("creating the HTTP request with namespaceFilter query parameter")
+			req, err := http.NewRequest(http.MethodGet, AllWorkspaceKindsPath+"?namespaceFilter="+namespaceName1, http.NoBody)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing GetWorkspaceKindsHandler")
+			ps := httprouter.Params{}
+			rr := httptest.NewRecorder()
+			a.GetWorkspaceKindsHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusOK), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("reading the HTTP response body")
+			body, err := io.ReadAll(rs.Body)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("unmarshalling the response JSON to WorkspaceKindListEnvelope")
+			var response WorkspaceKindListEnvelope
+			err = json.Unmarshal(body, &response)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("getting the WorkspaceKinds from the Kubernetes API")
+			workspacekind1 := &kubefloworgv1beta1.WorkspaceKind{}
+			Expect(k8sClient.Get(ctx, workspaceKind1Key, workspacekind1)).To(Succeed())
+			workspacekind2 := &kubefloworgv1beta1.WorkspaceKind{}
+			Expect(k8sClient.Get(ctx, workspaceKind2Key, workspacekind2)).To(Succeed())
+
+			By("ensuring the response contains the expected WorkspaceKinds")
+			Expect(response.Data).To(ConsistOf(
+				models.NewWorkspaceKindModelFromWorkspaceKind(workspacekind1),
+				models.NewWorkspaceKindModelFromWorkspaceKind(workspacekind2),
+			))
+		})
+
+		It("should return 422 for an invalid namespaceFilter query parameter", func() {
+			By("creating the HTTP request with an invalid namespaceFilter query parameter")
+			req, err := http.NewRequest(http.MethodGet, AllWorkspaceKindsPath+"?namespaceFilter=INVALID_NS!!!", http.NoBody)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing GetWorkspaceKindsHandler")
+			ps := httprouter.Params{}
+			rr := httptest.NewRecorder()
+			a.GetWorkspaceKindsHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("decoding the error response")
+			var response ErrorEnvelope
+			err = json.Unmarshal(rr.Body.Bytes(), &response)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("verifying the error message indicates a query parameter validation failure")
+			Expect(response.Error.Message).To(Equal(errMsgQueryParamsInvalid))
+			Expect(response.Error.Cause.ValidationErrors).NotTo(BeEmpty())
+			Expect(response.Error.Cause.ValidationErrors[0].Field).To(Equal(NamespaceFilterQueryParam))
+		})
 	})
 
 	// NOTE: these tests assume a specific state of the cluster, so cannot be run in parallel with other tests.
