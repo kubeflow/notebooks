@@ -27,6 +27,7 @@ import (
 
 const (
 	errMsgPathParamsInvalid    = "path parameters were invalid"
+	errMsgQueryParamsInvalid   = "query parameters were invalid"
 	errMsgRequestBodyInvalid   = "request body was invalid"
 	errMsgInternalValidation   = "validation error (see .cause.validation_errors[] for details)"
 	errMsgKubernetesValidation = "kubernetes validation error (see .cause.validation_errors[] for details) (note: .cause.validation_errors[].field values correspond to the internal k8s object, NOT the request body)"
