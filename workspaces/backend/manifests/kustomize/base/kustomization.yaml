@@ -4,7 +4,6 @@ kind: Kustomization
 namespace: kubeflow-workspaces
 
 resources:
-- namespace.yaml
 - service_account.yaml
 - rbac.yaml
 - service.yaml
