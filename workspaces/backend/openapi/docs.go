@@ -702,7 +702,7 @@ const docTemplate = `{
         },
         "/workspacekinds": {
             "get": {
-                "description": "Returns a list of all workspace kinds in the cluster.",
+                "description": "Returns a list of all workspace kinds in the cluster. When namespaceFilter is provided, authorization checks whether the user can create workspaces in that namespace instead of requiring workspace kind list permission.",
                 "consumes": [
                     "application/json"
                 ],

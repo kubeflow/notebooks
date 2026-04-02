@@ -94,7 +94,7 @@ func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps
 // GetWorkspaceKindsHandler returns a list of all workspace kinds in the cluster.
 //
 //	@Summary		List workspace kinds
-//	@Description	Returns a list of all workspace kinds in the cluster.
+//	@Description	Returns a list of all workspace kinds in the cluster. When namespaceFilter is provided, authorization checks whether the user can create workspaces in that namespace instead of requiring workspace kind list permission.
 //	@Tags			workspacekinds
 //	@ID				listWorkspaceKinds
 //	@Accept			json
@@ -107,12 +107,12 @@ func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps
 //	@Failure		500				{object}	ErrorEnvelope				"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspacekinds [get]
 func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	namespace := r.URL.Query().Get("namespaceFilter")
+	namespace := r.URL.Query().Get(NamespaceFilterQueryParam)
 
 	// validate query parameters
 	var valErrs field.ErrorList
 	if namespace != "" {
-		valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
+		valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespaceFilterQueryParam), namespace)...)
 	}
 
 	if len(valErrs) > 0 {
