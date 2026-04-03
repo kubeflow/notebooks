@@ -47,5 +47,25 @@ describe('useWorkspaceKinds', () => {
     expect(workspaceKinds).toEqual([mockWorkspaceKind]);
     expect(loaded).toBe(true);
     expect(error).toBeUndefined();
+    expect(listWorkspaceKinds).toHaveBeenCalledWith(undefined);
+  });
+
+  it('passes namespaceFilter when namespace is provided', async () => {
+    const mockWorkspaceKind = buildMockWorkspaceKind({});
+    const listWorkspaceKinds = jest.fn().mockResolvedValue({ ok: true, data: [mockWorkspaceKind] });
+    mockUseNotebookAPI.mockReturnValue({
+      api: { workspaceKinds: { listWorkspaceKinds } } as unknown as NotebookApis,
+      apiAvailable: true,
+      refreshAllAPI: jest.fn(),
+    });
+
+    const { result, waitForNextUpdate } = renderHook(() => useWorkspaceKinds('test-ns'));
+    await waitForNextUpdate();
+
+    const [workspaceKinds, loaded, error] = result.current;
+    expect(workspaceKinds).toEqual([mockWorkspaceKind]);
+    expect(loaded).toBe(true);
+    expect(error).toBeUndefined();
+    expect(listWorkspaceKinds).toHaveBeenCalledWith({ namespaceFilter: 'test-ns' });
   });
 });

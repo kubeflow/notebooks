@@ -267,6 +267,14 @@ describe('Create workspace', () => {
       createWorkspace.assertProgressStepVisible(STEP_NAMES.KIND);
     });
 
+    it('should include namespaceFilter in workspace kinds request', () => {
+      workspaces.findCreateWorkspaceButton().click();
+
+      cy.wait('@getWorkspaceKinds').then((interception) => {
+        expect(interception.request.url).to.include(`namespaceFilter=${mockNamespace.name}`);
+      });
+    });
+
     it('should display error alert when workspace creation fails', () => {
       cy.interceptApi(
         'GET /api/:apiVersion/persistentvolumeclaims/:namespace',
