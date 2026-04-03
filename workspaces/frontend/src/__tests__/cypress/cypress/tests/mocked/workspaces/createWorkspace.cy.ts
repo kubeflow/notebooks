@@ -26,6 +26,7 @@ const STEP_NAMES = {
   IMAGE: 'Image',
   POD_CONFIG: 'Pod Config',
   PROPERTIES: 'Properties',
+  SUMMARY: 'Summary',
 } as const;
 
 // Helper functions
@@ -173,14 +174,19 @@ describe('Create workspace', () => {
       // Step 4: Properties
       createWorkspace.clickNext();
       createWorkspace.assertProgressStepVisible(STEP_NAMES.PROPERTIES);
-      createWorkspace.assertCreateButtonExists();
-      createWorkspace.assertCreateButtonDisabled();
+      createWorkspace.assertNextButtonDisabled();
 
       // Attach home volume (required)
       createWorkspace.attachHomeVolume('home-pvc');
 
       const workspaceName = 'My Test Workspace';
       createWorkspace.typeWorkspaceName(workspaceName);
+      createWorkspace.assertNextButtonEnabled();
+
+      // Step 5: Summary
+      createWorkspace.clickNext();
+      createWorkspace.assertProgressStepVisible(STEP_NAMES.SUMMARY);
+      createWorkspace.assertCreateButtonExists();
       createWorkspace.assertCreateButtonEnabled();
 
       cy.interceptApi(
@@ -243,18 +249,18 @@ describe('Create workspace', () => {
 
       completeAllStepsToProperties(mockWorkspaceKind.name, mockImage.id, mockPodConfig.id);
 
-      createWorkspace.assertCreateButtonDisabled();
+      createWorkspace.assertNextButtonDisabled();
 
-      // Attach home volume (required) — Create should still be disabled without a name
+      // Attach home volume (required) — Next should still be disabled without a name
       createWorkspace.attachHomeVolume('home-pvc');
 
-      createWorkspace.assertCreateButtonDisabled();
+      createWorkspace.assertNextButtonDisabled();
 
       createWorkspace.typeWorkspaceName('Test');
-      createWorkspace.assertCreateButtonEnabled();
+      createWorkspace.assertNextButtonEnabled();
 
       createWorkspace.findWorkspaceNameInput().clear();
-      createWorkspace.assertCreateButtonDisabled();
+      createWorkspace.assertNextButtonDisabled();
     });
 
     it('should navigate from workspaces list to create workspace', () => {
@@ -300,6 +306,9 @@ describe('Create workspace', () => {
 
       // Attach home volume (required)
       createWorkspace.attachHomeVolume('home-pvc');
+
+      // Navigate to Summary step
+      createWorkspace.clickNext();
 
       cy.interceptApi(
         'POST /api/:apiVersion/workspaces/:namespace',

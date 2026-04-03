@@ -489,10 +489,15 @@ export const buildMockWorkspaceKind = (
           {
             id: 'jupyterlab_scipy_190',
             displayName: 'jupyter-scipy:v1.9.0',
-            description: 'JupyterLab, with SciPy Packages',
+            description:
+              'JupyterLab with SciPy Packages — includes NumPy, pandas, and other commonly used scientific computing libraries pre-installed for data analysis and machine learning workflows',
             labels: [
               { key: 'pythonVersion', value: '3.12' },
               { key: 'jupyterlabVersion', value: '1.9.0' },
+              { key: 'gpuSupport', value: 'enabled' },
+              { key: 'arch', value: 'amd64' },
+              { key: 'framework', value: 'scipy' },
+              { key: 'maintainer', value: 'kubeflow' },
             ],
             hidden: false,
             redirect: {
@@ -529,10 +534,16 @@ export const buildMockWorkspaceKind = (
           {
             id: 'jupyterlab_scipy_210',
             displayName: 'jupyter-scipy:v2.1.0',
-            description: 'JupyterLab, with SciPy Packages',
+            description:
+              'JupyterLab with SciPy Packages — latest stable release featuring improved kernel management, enhanced JupyterLab extensions support, and optimized container image size for faster startup times in cloud environments',
             labels: [
               { key: 'pythonVersion', value: '3.13' },
               { key: 'jupyterlabVersion', value: '2.1.0' },
+              { key: 'gpuSupport', value: 'enabled' },
+              { key: 'arch', value: 'amd64' },
+              { key: 'framework', value: 'scipy' },
+              { key: 'maintainer', value: 'kubeflow' },
+              { key: 'status', value: 'stable' },
             ],
             hidden: false,
             clusterMetrics: {

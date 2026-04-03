@@ -52,6 +52,7 @@ enum WorkspaceFormSteps {
   ImageSelection,
   PodConfigSelection,
   Properties,
+  Summary,
 }
 
 const stepDescriptions: { [key in WorkspaceFormSteps]?: string } = {
@@ -62,6 +63,8 @@ const stepDescriptions: { [key in WorkspaceFormSteps]?: string } = {
   [WorkspaceFormSteps.PodConfigSelection]:
     'Select a pod config to use for the workspace. A pod config is a configuration that defines the resources and settings for a workspace.',
   [WorkspaceFormSteps.Properties]: 'Configure properties for your workspace.',
+  [WorkspaceFormSteps.Summary]:
+    'Review your selections before submitting. Click any section to go back and modify it.',
 };
 
 const WorkspaceForm: React.FC = () => {
@@ -123,6 +126,14 @@ const WorkspaceForm: React.FC = () => {
           return !!data.podConfig;
         case WorkspaceFormSteps.Properties:
           return !!data.properties.workspaceName.trim() && !!data.properties.homeVolume;
+        case WorkspaceFormSteps.Summary:
+          return (
+            !!data.kind &&
+            !!data.imageConfig &&
+            !!data.podConfig &&
+            !!data.properties.workspaceName.trim() &&
+            !!data.properties.homeVolume
+          );
         default:
           return false;
       }
@@ -298,34 +309,38 @@ const WorkspaceForm: React.FC = () => {
     return <LoadingSpinner />;
   }
 
+  const summaryPanelProps = {
+    mode,
+    selectedKind: data.kind,
+    selectedImage,
+    selectedPodConfig,
+    properties: data.properties,
+    currentStep,
+    onNavigateToStep: navigateToStep,
+    onSelectImage: handleImageSelect,
+    onSelectPodConfig: handlePodConfigSelect,
+    originalKind: originalData?.kind,
+    originalImage,
+    originalPodConfig,
+    originalProperties: originalData?.properties,
+  };
+
   const panelContent = (
     <DrawerPanelContent>
       <DrawerHead>
         <Title headingLevel="h1">Summary</Title>
       </DrawerHead>
       <DrawerPanelBody className="workspace-form__drawer-panel-body">
-        <WorkspaceFormSummaryPanel
-          mode={mode}
-          selectedKind={data.kind}
-          selectedImage={selectedImage}
-          selectedPodConfig={selectedPodConfig}
-          properties={data.properties}
-          currentStep={currentStep}
-          onNavigateToStep={navigateToStep}
-          onSelectImage={handleImageSelect}
-          onSelectPodConfig={handlePodConfigSelect}
-          originalKind={originalData?.kind}
-          originalImage={originalImage}
-          originalPodConfig={originalPodConfig}
-          originalProperties={originalData?.properties}
-        />
+        <WorkspaceFormSummaryPanel {...summaryPanelProps} />
       </DrawerPanelBody>
     </DrawerPanelContent>
   );
 
   return (
-    <Drawer isInline isExpanded>
-      <DrawerContent panelContent={panelContent}>
+    <Drawer isInline isExpanded={currentStep !== WorkspaceFormSteps.Summary}>
+      <DrawerContent
+        panelContent={currentStep !== WorkspaceFormSteps.Summary ? panelContent : undefined}
+      >
         <DrawerContentBody>
           <Flex
             direction={{ default: 'column' }}
@@ -338,7 +353,9 @@ const WorkspaceForm: React.FC = () => {
                   <Flex direction={{ default: 'column' }} rowGap={{ default: 'rowGapXl' }}>
                     <FlexItem>
                       <Content>
-                        <h1 data-testid="workspace-form-title">{`${mode === 'create' ? 'Create' : 'Edit'} workspace`}</h1>
+                        <h1 data-testid="workspace-form-title">
+                          {mode === 'create' ? 'Create workspace' : `Edit ${workspaceName}`}
+                        </h1>
                         <p>{stepDescriptions[currentStep]}</p>
                       </Content>
                     </FlexItem>
@@ -382,6 +399,15 @@ const WorkspaceForm: React.FC = () => {
                           aria-label="Properties step"
                         >
                           Properties
+                        </ProgressStep>
+                        <ProgressStep
+                          variant={getStepVariant(WorkspaceFormSteps.Summary)}
+                          isCurrent={currentStep === WorkspaceFormSteps.Summary}
+                          id="summary-step"
+                          titleId="summary-step-title"
+                          aria-label="Summary step"
+                        >
+                          Summary
                         </ProgressStep>
                       </ProgressStepper>
                     </FlexItem>
@@ -435,6 +461,9 @@ const WorkspaceForm: React.FC = () => {
                         onSelect={(properties) => setData('properties', properties)}
                         homeVolumeMountPath={data.kind?.podTemplate.volumeMounts.home}
                       />
+                    )}
+                    {currentStep === WorkspaceFormSteps.Summary && (
+                      <WorkspaceFormSummaryPanel {...summaryPanelProps} compact />
                     )}
                   </StackItem>
                 </Stack>
