@@ -6,7 +6,7 @@ import {
   WorkspacekindsWorkspaceKind,
 } from '~/generated/data-contracts';
 
-const useWorkspaceKinds = (): FetchState<WorkspacekindsWorkspaceKind[]> => {
+const useWorkspaceKinds = (namespaceFilter?: string): FetchState<WorkspacekindsWorkspaceKind[]> => {
   const { api, apiAvailable } = useNotebookAPI();
   const call = useCallback<
     FetchStateCallbackPromise<ApiWorkspaceKindListEnvelope['data']>
@@ -14,9 +14,10 @@ const useWorkspaceKinds = (): FetchState<WorkspacekindsWorkspaceKind[]> => {
     if (!apiAvailable) {
       return Promise.reject(new Error('API not yet available'));
     }
-    const envelope = await api.workspaceKinds.listWorkspaceKinds();
+    const query = namespaceFilter ? { namespaceFilter } : undefined;
+    const envelope = await api.workspaceKinds.listWorkspaceKinds(query);
     return envelope.data;
-  }, [api, apiAvailable]);
+  }, [api, apiAvailable, namespaceFilter]);
   return useFetchState(call, []);
 };
 

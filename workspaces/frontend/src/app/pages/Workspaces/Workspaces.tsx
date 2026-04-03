@@ -63,6 +63,7 @@ export const Workspaces: React.FunctionComponent = () => {
           <WorkspaceTable
             workspaces={workspaces}
             rowActions={tableRowActions}
+            namespace={selectedNamespace}
             hiddenColumns={['namespace', 'gpu', 'idleGpu']}
             refreshWorkspaces={refreshWorkspaces}
           />

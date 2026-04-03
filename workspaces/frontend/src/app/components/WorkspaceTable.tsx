@@ -85,6 +85,7 @@ type WorkspaceTableSortableColumnKeys = SortableDataFieldKey<typeof wsTableColum
 interface WorkspaceTableProps {
   workspaces: WorkspacesWorkspaceListItem[];
   refreshWorkspaces: () => void;
+  namespace?: string;
   canCreateWorkspaces?: boolean;
   canExpandRows?: boolean;
   hiddenColumns?: WorkspaceTableColumnKeys[];
@@ -126,6 +127,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
     {
       workspaces,
       refreshWorkspaces,
+      namespace,
       canCreateWorkspaces = true,
       canExpandRows = true,
       hiddenColumns = [],
@@ -134,7 +136,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
     ref,
   ) => {
     const { isDrawerExpanded } = useWorkspaceActionsContext();
-    const [workspaceKinds] = useWorkspaceKinds();
+    const [workspaceKinds] = useWorkspaceKinds(namespace);
     const [expandedWorkspacesNames, setExpandedWorkspacesNames] = useState<string[]>([]);
     const [activeRedirectPopover, setActiveRedirectPopover] = useState<string | null>(null);
     const [pinnedRedirectPopover, setPinnedRedirectPopover] = useState<string | null>(null);
