@@ -45,8 +45,7 @@ type WorkspaceValidator struct {
 
 // SetupWebhookWithManager sets up the webhook with the manager
 func (v *WorkspaceValidator) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&kubefloworgv1beta1.Workspace{}).
+	return ctrl.NewWebhookManagedBy(mgr, &kubefloworgv1beta1.Workspace{}).
 		WithValidator(v).
 		Complete()
 }
@@ -54,14 +53,9 @@ func (v *WorkspaceValidator) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // ValidateCreate validates the Workspace on creation.
 // The optional warnings will be added to the response as warning messages.
 // Return an error if the object is invalid.
-func (v *WorkspaceValidator) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (v *WorkspaceValidator) ValidateCreate(ctx context.Context, workspace *kubefloworgv1beta1.Workspace) (admission.Warnings, error) {
 	log := log.FromContext(ctx)
 	log.V(1).Info("validating Workspace create")
-
-	workspace, ok := obj.(*kubefloworgv1beta1.Workspace)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Workspace object but got %T", obj))
-	}
 
 	var allErrs field.ErrorList
 
@@ -99,18 +93,9 @@ func (v *WorkspaceValidator) ValidateCreate(ctx context.Context, obj runtime.Obj
 // ValidateUpdate validates the Workspace on update.
 // The optional warnings will be added to the response as warning messages.
 // Return an error if the object is invalid.
-func (v *WorkspaceValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+func (v *WorkspaceValidator) ValidateUpdate(ctx context.Context, oldWorkspace, newWorkspace *kubefloworgv1beta1.Workspace) (admission.Warnings, error) {
 	log := log.FromContext(ctx)
 	log.V(1).Info("validating Workspace update")
-
-	newWorkspace, ok := newObj.(*kubefloworgv1beta1.Workspace)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Workspace object but got %T", newObj))
-	}
-	oldWorkspace, ok := oldObj.(*kubefloworgv1beta1.Workspace)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected old object to be a Workspace but got %T", oldObj))
-	}
 
 	var allErrs field.ErrorList
 
@@ -177,7 +162,7 @@ func (v *WorkspaceValidator) ValidateUpdate(ctx context.Context, oldObj, newObj 
 // ValidateDelete validates the Workspace on deletion.
 // The optional warnings will be added to the response as warning messages.
 // Return an error if the object is invalid.
-func (v *WorkspaceValidator) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (v *WorkspaceValidator) ValidateDelete(ctx context.Context, _ *kubefloworgv1beta1.Workspace) (admission.Warnings, error) {
 	// no validation needed for deletion
 	// NOTE: add "delete" to the webhook configuration (+kubebuilder:webhook) if you want to enable deletion validation
 	return nil, nil
@@ -207,7 +192,7 @@ func (v *WorkspaceValidator) validateWorkspaceKind(ctx context.Context, workspac
 
 // validatePodTemplatePodMetadata validates the podMetadata of a Workspace's PodTemplate
 func (v *WorkspaceValidator) validatePodTemplatePodMetadata(workspace *kubefloworgv1beta1.Workspace) []*field.Error {
-	var errs []*field.Error
+	errs := make([]*field.Error, 0, 2)
 
 	podMetadata := workspace.Spec.PodTemplate.PodMetadata
 	podMetadataPath := field.NewPath("spec", "podTemplate", "podMetadata")
