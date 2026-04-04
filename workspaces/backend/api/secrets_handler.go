@@ -95,7 +95,7 @@ func (a *App) GetSecretsByNamespaceHandler(w http.ResponseWriter, r *http.Reques
 //	@Failure		422			{object}	ErrorEnvelope	"Unprocessable Entity. Validation error."
 //	@Failure		500			{object}	ErrorEnvelope	"Internal server error"
 //	@Router			/secrets/{namespace}/{name} [get]
-func (a *App) GetSecretHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) { //nolint:dupl // TODO: Abstract common API patterns once implemented
+func (a *App) GetSecretHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) { //nolint:dupl
 	namespace := ps.ByName(NamespacePathParam)
 	secretName := ps.ByName(ResourceNamePathParam)
 
@@ -119,7 +119,6 @@ func (a *App) GetSecretHandler(w http.ResponseWriter, r *http.Request, ps httpro
 
 	secret, err := a.repositories.Secret.GetSecret(r.Context(), namespace, secretName)
 	if err != nil {
-		// Check if it's a not found error
 		if errors.Is(err, repository.ErrSecretNotFound) {
 			a.notFoundResponse(w, r)
 			return
@@ -177,11 +176,6 @@ func (a *App) CreateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 			return
 		}
 
-		//
-		// TODO: handle UnmarshalTypeError and return 422,
-		//       decode the paths which were failed to decode (included in the error)
-		//       and also do this in the other handlers which decode json
-		//
 		a.badRequestResponse(w, r, fmt.Errorf("error decoding request body: %w", err))
 		return
 	}
@@ -219,6 +213,11 @@ func (a *App) CreateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 			a.conflictResponse(w, r, err, causes)
 			return
 		}
+		if apierrors.IsInvalid(err) {
+			causes := helper.StatusCausesFromAPIStatus(err)
+			a.failedValidationResponse(w, r, errMsgKubernetesValidation, nil, causes)
+			return
+		}
 
 		a.serverErrorResponse(w, r, fmt.Errorf("error creating secret: %w", err))
 		return
@@ -241,12 +240,13 @@ func (a *App) CreateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 //	@Produce		json
 //	@Param			namespace	path		string				true	"Namespace name"
 //	@Param			name		path		string				true	"Secret name"
-//	@Param			secret		body		models.SecretUpdate	true	"Secret update request"
+//	@Param			secret		body		SecretEnvelope		true	"Secret update request"
 //	@Success		200			{object}	SecretEnvelope		"Secret updated successfully"
 //	@Failure		400			{object}	ErrorEnvelope		"Bad request"
 //	@Failure		401			{object}	ErrorEnvelope		"Unauthorized"
 //	@Failure		403			{object}	ErrorEnvelope		"Forbidden"
 //	@Failure		404			{object}	ErrorEnvelope		"Secret not found"
+//	@Failure		409			{object}	ErrorEnvelope		"Conflict"
 //	@Failure		413			{object}	ErrorEnvelope		"Request Entity Too Large. The request body is too large."
 //	@Failure		415			{object}	ErrorEnvelope		"Unsupported Media Type. Content-Type header is not correct."
 //	@Failure		422			{object}	ErrorEnvelope		"Unprocessable Entity. Validation error."
@@ -265,15 +265,6 @@ func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	// =========================== AUTH ===========================
-	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(auth.VerbUpdate, auth.Secrets, auth.ResourcePolicyResourceMeta{Namespace: namespace, Name: secretName}),
-	}
-	if success := a.requireAuth(w, r, authPolicies); !success {
-		return
-	}
-	// ============================================================
-
 	// validate the Content-Type header
 	if success := a.ValidateContentType(w, r, MediaTypeJson); !success {
 		return
@@ -288,11 +279,6 @@ func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 			return
 		}
 
-		//
-		// TODO: handle UnmarshalTypeError and return 422,
-		//       decode the paths which were failed to decode (included in the error)
-		//       and also do this in the other handlers which decode json
-		//
 		a.badRequestResponse(w, r, fmt.Errorf("error decoding request body: %w", err))
 		return
 	}
@@ -313,10 +299,28 @@ func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 	// give the request data a clear name
 	secretUpdate := bodyEnvelope.Data
 
+	// =========================== AUTH ===========================
+	authPolicies := []*auth.ResourcePolicy{
+		auth.NewResourcePolicy(auth.VerbUpdate, auth.Secrets, auth.ResourcePolicyResourceMeta{Namespace: namespace, Name: secretName}),
+	}
+	if success := a.requireAuth(w, r, authPolicies); !success {
+		return
+	}
+	// ============================================================
+
 	secret, err := a.repositories.Secret.UpdateSecret(r.Context(), secretUpdate, namespace, secretName)
 	if err != nil {
 		if errors.Is(err, repository.ErrSecretNotFound) {
 			a.notFoundResponse(w, r)
+			return
+		}
+		if errors.Is(err, repository.ErrSecretNotCanUpdate) {
+			a.badRequestResponse(w, r, err)
+			return
+		}
+		if apierrors.IsInvalid(err) {
+			causes := helper.StatusCausesFromAPIStatus(err)
+			a.failedValidationResponse(w, r, errMsgKubernetesValidation, nil, causes)
 			return
 		}
 		a.serverErrorResponse(w, r, fmt.Errorf("error updating secret: %w", err))
@@ -337,9 +341,11 @@ func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 //	@Param			namespace	path	string	true	"Namespace name"	extensions(x-example=my-namespace)
 //	@Param			name		path	string	true	"Secret name"		extensions(x-example=my-secret)
 //	@Success		204			"No Content"
+//	@Failure		400			{object}	ErrorEnvelope	"Bad request"
 //	@Failure		401			{object}	ErrorEnvelope	"Unauthorized"
 //	@Failure		403			{object}	ErrorEnvelope	"Forbidden"
 //	@Failure		404			{object}	ErrorEnvelope	"Secret not found"
+//	@Failure		409			{object}	ErrorEnvelope	"Conflict"
 //	@Failure		500			{object}	ErrorEnvelope	"Internal server error"
 //	@Router			/secrets/{namespace}/{name} [delete]
 func (a *App) DeleteSecretHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) { //nolint:dupl
@@ -369,7 +375,12 @@ func (a *App) DeleteSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 		if errors.Is(err, repository.ErrSecretNotFound) {
 			a.notFoundResponse(w, r)
 			return
-		} else if apierrors.IsConflict(err) {
+		}
+		if errors.Is(err, repository.ErrSecretNotCanUpdate) {
+			a.badRequestResponse(w, r, err)
+			return
+		}
+		if apierrors.IsConflict(err) {
 			causes := helper.StatusCausesFromAPIStatus(err)
 			a.conflictResponse(w, r, err, causes)
 			return

@@ -202,7 +202,7 @@ func (a *App) CreatePVCHandler(w http.ResponseWriter, r *http.Request, ps httpro
 //	@Failure		422			{object}	ErrorEnvelope	"Unprocessable Entity. Validation error."
 //	@Failure		500			{object}	ErrorEnvelope	"Internal server error"
 //	@Router			/persistentvolumeclaims/{namespace}/{name} [delete]
-func (a *App) DeletePVCHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (a *App) DeletePVCHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) { //nolint:dupl
 	namespace := ps.ByName(NamespacePathParam)
 	pvcName := ps.ByName(ResourceNamePathParam)
 

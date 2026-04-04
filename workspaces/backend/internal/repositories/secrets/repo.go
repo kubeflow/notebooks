@@ -18,12 +18,15 @@ package secrets
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	modelsCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
@@ -31,43 +34,92 @@ import (
 )
 
 var (
-	ErrSecretNotFound      = fmt.Errorf("secret not found")
-	ErrSecretAlreadyExists = fmt.Errorf("secret already exists")
+	ErrSecretNotFound      = errors.New("secret not found")
+	ErrSecretAlreadyExists = errors.New("secret already exists")
+	ErrSecretNotCanUpdate  = fmt.Errorf("secret cannot be modified because it is not labeled with %s=true", modelsCommon.LabelCanUpdate)
 )
 
 type SecretRepository struct {
-	client client.Client
+	client               client.Client // general client (secret caching disabled, direct API calls)
+	secretMetadataClient client.Client // metadata-only cache client for listing secrets
 }
 
-func NewSecretRepository(cl client.Client) *SecretRepository {
+func NewSecretRepository(cl client.Client, secretMetadataClient client.Client) *SecretRepository {
 	return &SecretRepository{
-		client: cl,
+		client:               cl,
+		secretMetadataClient: secretMetadataClient,
 	}
 }
 
 // GetSecrets returns a list of all secrets in a namespace.
+// NOTE: uses a metadata-only cache for Secrets, so only ObjectMeta fields are available.
+//
+//	this avoids caching sensitive secret data values in memory.
 func (r *SecretRepository) GetSecrets(ctx context.Context, namespace string) ([]models.SecretListItem, error) {
-	// TODO: get actual secrets from K8s
-	mockSecrets := getMockSecrets(namespace)
-
-	secretList := make([]models.SecretListItem, len(mockSecrets))
-	for i, secret := range mockSecrets {
-		// TODO: will need to process all workspace objects in namespace to get mounts for each secret
-		secretList[i] = models.NewSecretListItemFromSecret(secret)
+	// list all secret metadata in the namespace using the metadata-only cache
+	secretMetaList := &metav1.PartialObjectMetadataList{}
+	secretMetaList.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "",
+		Version: "v1",
+		Kind:    "SecretList",
+	})
+	if err := r.secretMetadataClient.List(ctx, secretMetaList, client.InNamespace(namespace)); err != nil {
+		return nil, err
 	}
 
-	return secretList, nil
+	// list all workspaces in the namespace and build a map of secret name to workspaces that mount it
+	workspaceList := &kubefloworgv1beta1.WorkspaceList{}
+	if err := r.client.List(ctx, workspaceList, client.InNamespace(namespace)); err != nil {
+		return nil, err
+	}
+	secretToMountsList := buildSecretMountMap(workspaceList)
+
+	// convert secret metadata to models
+	secretModels := make([]models.SecretListItem, len(secretMetaList.Items))
+	for i := range secretMetaList.Items {
+		secret := &secretMetaList.Items[i]
+		secretModels[i] = models.NewSecretListItemFromSecretMetadata(secret, secretToMountsList)
+	}
+
+	return secretModels, nil
+}
+
+// buildSecretMountMap builds a map from secret name to workspaces that mount it from a list of workspaces.
+func buildSecretMountMap(workspaceList *kubefloworgv1beta1.WorkspaceList) map[string][]models.SecretMount {
+	secretToMounts := make(map[string][]models.SecretMount)
+	for i := range workspaceList.Items {
+		ws := workspaceList.Items[i]
+		mount := models.SecretMount{
+			Group: kubefloworgv1beta1.GroupVersion.Group,
+			Kind:  "Workspace",
+			Name:  ws.Name,
+		}
+
+		// a Workspace may mount the same secret multiple times, but we only want to include it once for each secret
+		seenSecrets := make(map[string]bool)
+
+		for _, secretVolume := range ws.Spec.PodTemplate.Volumes.Secrets {
+			secretName := secretVolume.SecretName
+			if !seenSecrets[secretName] {
+				secretToMounts[secretName] = append(secretToMounts[secretName], mount)
+				seenSecrets[secretName] = true
+			}
+		}
+	}
+	return secretToMounts
 }
 
 // GetSecret returns a specific secret by name and namespace.
 func (r *SecretRepository) GetSecret(ctx context.Context, namespace string, secretName string) (*models.SecretUpdate, error) {
-	// TODO: get actual secret from K8s
-	mockSecret := getMockSecret(namespace, secretName)
-	if mockSecret == nil {
-		return nil, ErrSecretNotFound
+	secret := &corev1.Secret{}
+	if err := r.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: secretName}, secret); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, ErrSecretNotFound
+		}
+		return nil, err
 	}
 
-	secretUpdate := models.NewSecretUpdateModelFromSecret(mockSecret)
+	secretUpdate := models.NewSecretUpdateModelFromSecret(secret)
 	return &secretUpdate, nil
 }
 
@@ -79,8 +131,18 @@ func (r *SecretRepository) CreateSecret(ctx context.Context, secretCreate *model
 	secret := newSecretFromSecretCreateModel(secretCreate, namespace)
 	modelsCommon.UpdateObjectMetaForCreate(&secret.ObjectMeta, actor)
 
-	// TODO: create the secret in K8s
-	// ...
+	// create the secret in K8s
+	if err := r.client.Create(ctx, secret); err != nil {
+		if apierrors.IsAlreadyExists(err) {
+			return nil, ErrSecretAlreadyExists
+		}
+		if apierrors.IsInvalid(err) {
+			// NOTE: we don't wrap this error so we can unpack it in the caller
+			//       and extract the validation errors returned by the Kubernetes API server
+			return nil, err
+		}
+		return nil, err
+	}
 
 	createdSecret := models.NewSecretCreateModelFromSecret(secret)
 	return &createdSecret, nil
@@ -92,20 +154,38 @@ func (r *SecretRepository) UpdateSecret(ctx context.Context, secretUpdate *model
 	actor := "mock@example.com"
 	now := time.Now()
 
-	// TODO: fetch the current secret from K8s
-	currentSecret := getMockSecret(namespace, secretName)
-	if currentSecret == nil {
-		return nil, ErrSecretNotFound
+	// fetch the current secret from K8s
+	currentSecret := &corev1.Secret{}
+	if err := r.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: secretName}, currentSecret); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, ErrSecretNotFound
+		}
+		return nil, err
 	}
 
-	secret := updateSecretFromSecretUpdateModel(secretUpdate, currentSecret)
+	// check if the secret has the can-update label
+	if currentSecret.Labels[modelsCommon.LabelCanUpdate] != "true" {
+		return nil, ErrSecretNotCanUpdate
+	}
+
+	// apply the update model to the current secret
+	secret := applySecretUpdateModel(secretUpdate, currentSecret)
 	modelsCommon.UpdateObjectMetaForUpdate(&secret.ObjectMeta, actor, now)
 
-	// TODO: update the secret in K8s
-	// TODO: if the update fails due to a kubernetes conflict, this implies our cache is stale.
-	//       we should retry the entire update operation a few times before returning a 500 error to the caller
-	//       (DO NOT return a 409, as it's not the caller's fault)
-	// ...
+	// update the secret in K8s
+	if err := r.client.Update(ctx, secret); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, ErrSecretNotFound
+		}
+		if apierrors.IsInvalid(err) {
+			// NOTE: we don't wrap this error so we can unpack it in the caller
+			//       and extract the validation errors returned by the Kubernetes API server
+			return nil, err
+		}
+		// NOTE: if the update fails due to a kubernetes conflict, this implies our cache is stale.
+		//       we return a 500 error to the caller (not a 409), as it's not the caller's fault.
+		return nil, fmt.Errorf("failed to update secret: %w", err)
+	}
 
 	updatedSecret := models.NewSecretUpdateModelFromSecret(secret)
 	return &updatedSecret, nil
@@ -113,114 +193,37 @@ func (r *SecretRepository) UpdateSecret(ctx context.Context, secretUpdate *model
 
 // DeleteSecret deletes a secret from the specified namespace.
 func (r *SecretRepository) DeleteSecret(ctx context.Context, namespace string, secretName string) error {
-	// TODO: get actual secret from K8s
-	mockSecret := getMockSecret(namespace, secretName)
-	if mockSecret == nil {
-		return ErrSecretNotFound
+	// get the current secret from K8s
+	secret := &corev1.Secret{}
+	if err := r.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: secretName}, secret); err != nil {
+		if apierrors.IsNotFound(err) {
+			return ErrSecretNotFound
+		}
+		return err
 	}
 
-	// TODO: fail with 400 if the secret does not have LabelCanUpdate.
-	//       probably make a helper function in modelsCommon for this
-	// ...
+	// check if the secret has the can-update label
+	if secret.Labels[modelsCommon.LabelCanUpdate] != "true" {
+		return ErrSecretNotCanUpdate
+	}
 
-	// TODO: delete the secret from K8s
-	// ...
+	// delete the secret from K8s
+	if err := r.client.Delete(ctx, secret); err != nil {
+		if apierrors.IsNotFound(err) {
+			return ErrSecretNotFound
+		}
+		return err
+	}
 
 	return nil
 }
 
-// getMockSecrets returns temporary mock data as K8s Secret objects for frontend development
-// TODO: Remove this function when actual repository implementation is ready
-func getMockSecrets(namespace string) []*corev1.Secret {
-	return []*corev1.Secret{
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "database-credentials",
-				Namespace: namespace,
-				Labels: map[string]string{
-					modelsCommon.LabelCanUpdate: "true",
-					modelsCommon.LabelCanMount:  "true",
-				},
-				Annotations: map[string]string{
-					modelsCommon.AnnotationCreatedBy: "admin@example.com",
-					modelsCommon.AnnotationUpdatedBy: "admin@example.com",
-					modelsCommon.AnnotationUpdatedAt: time.Date(2024, 2, 20, 14, 45, 0, 0, time.UTC).Format(time.RFC3339),
-				},
-			},
-			Type: corev1.SecretTypeOpaque,
-			Data: map[string][]byte{
-				"username": []byte("dummy"),
-				"password": []byte("dummy"),
-				"host":     []byte("dummy"),
-				"port":     []byte("dummy"),
-			},
-			Immutable: ptr.To(false),
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "api-key-secret",
-				Namespace: namespace,
-				Labels: map[string]string{
-					modelsCommon.LabelCanUpdate: "false",
-					modelsCommon.LabelCanMount:  "true",
-				},
-				Annotations: map[string]string{
-					modelsCommon.AnnotationCreatedBy: "devops@example.com",
-					modelsCommon.AnnotationUpdatedBy: "devops@example.com",
-					modelsCommon.AnnotationUpdatedAt: time.Date(2024, 1, 10, 9, 15, 0, 0, time.UTC).Format(time.RFC3339),
-				},
-			},
-			Type: corev1.SecretTypeOpaque,
-			Data: map[string][]byte{
-				"api-key":    []byte("dummy"),
-				"api-secret": []byte("dummy"),
-			},
-			Immutable: ptr.To(true),
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "tls-certificate",
-				Namespace: namespace,
-				Labels: map[string]string{
-					modelsCommon.LabelCanUpdate: "false",
-					modelsCommon.LabelCanMount:  "true",
-				},
-				Annotations: map[string]string{
-					modelsCommon.AnnotationCreatedBy: "security@example.com",
-					modelsCommon.AnnotationUpdatedBy: "security@example.com",
-					modelsCommon.AnnotationUpdatedAt: time.Date(2024, 3, 12, 11, 30, 0, 0, time.UTC).Format(time.RFC3339),
-				},
-			},
-			Type: corev1.SecretTypeTLS,
-			Data: map[string][]byte{
-				"tls.crt": []byte("dummy"),
-				"tls.key": []byte("dummy"),
-			},
-			Immutable: ptr.To(false),
-		},
-	}
-}
-
-// getMockSecret returns temporary mock data as a K8s Secret object for a specific secret by name
-// TODO: Remove this function when actual repository implementation is ready
-func getMockSecret(namespace string, secretName string) *corev1.Secret {
-	mockSecrets := getMockSecrets(namespace)
-	for _, secret := range mockSecrets {
-		if secret.Name == secretName {
-			return secret
-		}
-	}
-	return nil // Return nil for unknown secret names to trigger 404
-}
-
 // newSecretFromSecretCreateModel creates a Kubernetes Secret object from a SecretCreate model.
 func newSecretFromSecretCreateModel(secretCreate *models.SecretCreate, namespace string) *corev1.Secret {
-	// Convert SecretValue back to []byte for Kubernetes
+	// convert SecretValue back to []byte for Kubernetes
 	data := make(map[string][]byte)
 	for key, value := range secretCreate.Contents {
 		if value.Base64 != nil {
-			// Store base64-encoded string as []byte (Kubernetes expects base64-encoded data)
-			// Empty string is a valid value, so we include it
 			data[key] = []byte(*value.Base64)
 		}
 	}
@@ -229,6 +232,10 @@ func newSecretFromSecretCreateModel(secretCreate *models.SecretCreate, namespace
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      secretCreate.Name,
 			Namespace: namespace,
+			Labels: map[string]string{
+				modelsCommon.LabelCanMount:  "true",
+				modelsCommon.LabelCanUpdate: "true",
+			},
 		},
 		Type:      corev1.SecretType(secretCreate.Type),
 		Data:      data,
@@ -236,30 +243,30 @@ func newSecretFromSecretCreateModel(secretCreate *models.SecretCreate, namespace
 	}
 }
 
-// updateSecretFromSecretUpdateModel updates a Kubernetes Secret object using a SecretUpdate model.
-func updateSecretFromSecretUpdateModel(secretUpdate *models.SecretUpdate, currentSecret *corev1.Secret) *corev1.Secret {
+// applySecretUpdateModel applies a SecretUpdate model to an existing Kubernetes Secret.
+// Update semantics:
+//   - key present with {"base64": "..."} → set/update the value
+//   - key present with {} (Base64 is nil) → preserve the existing value from currentSecret.Data
+//   - key omitted from the request → delete that key
+func applySecretUpdateModel(secretUpdate *models.SecretUpdate, currentSecret *corev1.Secret) *corev1.Secret {
 	newData := make(map[string][]byte, len(secretUpdate.Contents))
 	for key, value := range secretUpdate.Contents {
-		// TODO: this needs to handle cases where the key is not being updated (i.e., value.Base64 is nil)
-		//       and retain the existing value from currentSecret.Data
 		if value.Base64 != nil {
-			// secretUpdate.Contents contains base64-encoded strings
-			// TODO: confirm that we are encoding in the same way as Kubernetes expects (e.g. UTF-8 vs others)
+			// explicit new value provided
 			newData[key] = []byte(*value.Base64)
+		} else {
+			// preserve existing value (key present with empty object {})
+			if existingValue, ok := currentSecret.Data[key]; ok {
+				newData[key] = existingValue
+			}
 		}
 	}
 
-	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      currentSecret.Name,
-			Namespace: currentSecret.Namespace,
-			Labels: map[string]string{
-				modelsCommon.LabelCanMount:  "true",
-				modelsCommon.LabelCanUpdate: "true",
-			},
-		},
-		Type:      corev1.SecretType(secretUpdate.Type),
-		Data:      newData,
-		Immutable: &secretUpdate.Immutable,
-	}
+	// use DeepCopy to preserve ResourceVersion, existing labels, annotations, etc.
+	secret := currentSecret.DeepCopy()
+	secret.Data = newData
+	secret.Type = corev1.SecretType(secretUpdate.Type)
+	secret.Immutable = &secretUpdate.Immutable
+
+	return secret
 }

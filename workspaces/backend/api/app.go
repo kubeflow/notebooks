@@ -86,8 +86,9 @@ type App struct {
 	RequestAuthZ         authorizer.Authorizer
 }
 
-// NewApp creates a new instance of the app
-func NewApp(cfg *config.EnvConfig, logger *slog.Logger, cl client.Client, scheme *runtime.Scheme, reqAuthN authenticator.Request, reqAuthZ authorizer.Authorizer) (*App, error) {
+// NewApp creates a new instance of the app.
+// secretMetadataClient is a metadata-only cached client for listing Secrets without caching sensitive data.
+func NewApp(cfg *config.EnvConfig, logger *slog.Logger, cl client.Client, secretMetadataClient client.Client, scheme *runtime.Scheme, reqAuthN authenticator.Request, reqAuthZ authorizer.Authorizer) (*App, error) {
 
 	// TODO: log the configuration on startup
 
@@ -101,7 +102,7 @@ func NewApp(cfg *config.EnvConfig, logger *slog.Logger, cl client.Client, scheme
 	app := &App{
 		Config:               cfg,
 		logger:               logger,
-		repositories:         repositories.NewRepositories(cl),
+		repositories:         repositories.NewRepositories(cl, secretMetadataClient),
 		Scheme:               scheme,
 		StrictYamlSerializer: yamlSerializerInfo.StrictSerializer,
 		RequestAuthN:         reqAuthN,
