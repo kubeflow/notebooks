@@ -217,7 +217,7 @@ npm run build:prod
 
 ## Developing Locally
 
-If you prefer to develop without Tilt, you can set up your environment to build and run the Kubeflow Notebooks v2 controller locally.
+If you prefer to develop without Tilt, you can set up your environment to build and run the Kubeflow Notebooks v2 components locally.
 
 > [!WARNING]
 > 
@@ -230,10 +230,264 @@ Before developing locally, ensure you have the following installed:
 
 - [Go](https://golang.org/doc/install) - v1.21.0 or later (for controller and backend)
 - [Node.js](https://nodejs.org/) - v20.0.0 or later (for frontend)
+- [kubectl](https://kubernetes.io/docs/tasks/tools/) - configured to connect to your cluster
+- A Kubernetes cluster (e.g., [Kind](https://kind.sigs.k8s.io/), [minikube](https://minikube.sigs.k8s.io/))
 
-### Local - Quick Start
+### Local - Controller
 
-Each component has a `Makefile` or `package.json` to help with building, testing, and running the component locally.
-You should start by reviewing the these files in each component directory.
+The controller is a Kubernetes operator that manages Workspace resources.
+
+```bash
+# Navigate to the controller directory
+cd workspaces/controller
+
+# View all available make targets
+make help
+
+# Build the controller binary (outputs to bin/manager)
+make build
+
+# Install CRDs into your cluster
+make install
+
+# Run the controller locally against your cluster (see "Working with Webhooks" section)
+make run
+
+# Run unit tests
+make test
+
+# Run integration tests (requires Kind cluster)
+make test-e2e
+
+# Run linter
+make lint
+```
+
+> [!NOTE]
+>
+> When running locally, webhooks require additional setup. See [Working with Webhooks](#local---working-with-webhooks) for options.
+
+### Local - Backend
+
+The backend is a REST API server that provides endpoints for the frontend.
+
+```bash
+# Navigate to the backend directory
+cd workspaces/backend
+
+# View all available make targets
+make help
+
+# Build the backend binary (outputs to bin/backend)
+make build
+
+# Run the backend locally (default port: 4000)
+make run
+
+# Run on a custom port
+PORT=8080 make run
+
+# Run unit tests
+make test
+
+# Regenerate Swagger/OpenAPI documentation
+make swag
+
+# Run linter
+make lint
+```
+
+> [!TIP]
+>
+> Access the Swagger UI at `http://localhost:4000/api/v1/swagger/` when running locally.
+
+### Local - Frontend
+
+The frontend is a React-based web application.
+
+```bash
+# Navigate to the frontend directory
+cd workspaces/frontend
+
+# Install dependencies
+npm ci
+
+# Start development server with hot reload
+npm run start:dev
+
+# Build for production (outputs to dist/)
+npm run build:prod
+
+# Run tests (unit tests + linting)
+npm run test
+
+# Run linter with auto-fix
+npm run test:fix
+
+# Format code with prettier
+npm run prettier
+```
+
+> [!TIP]
+>
+> The development server runs at `http://localhost:9000` by default.
+
+> [!IMPORTANT]
+>
+> The frontend requires a Kubernetes namespace to exist and proper environment configuration. Check `.env.development`:
+> ```bash
+> APP_ENV=development
+> DEPLOYMENT_MODE=standalone
+> MOCK_API_ENABLED=false              # Set to false to use real backend
+> MANDATORY_NAMESPACE=workspace-test-1  # This namespace must exist in your cluster
+> URL_PREFIX=                        # Must be empty to match local backend API path
+> ```
+> Create the namespace if it doesn't exist:
+> ```bash
+> kubectl create ns workspace-test-1
+> ```
+
+### Local - Working with Webhooks
+
+Webhooks are challenging to develop locally because they require the Kubernetes API server to reach your local machine. There are several options:
+
+#### Option 1: Disable Webhooks (Simplest)
+
+For controller logic that doesn't involve webhooks, you can disable them entirely:
+
+```bash
+cd workspaces/controller
+ENABLE_WEBHOOKS=false make run
+```
+
+This starts the controller without the webhook server. Note that resource validation won't run.
+
+#### Option 2: Self-Signed Certificates (Full Webhook Support)
+
+To run webhooks locally with a Kind cluster, run this single setup script from the repository root:
+
+```bash
+# Run from the repository root (not inside workspaces/controller)
+# This script sets up certificates and webhook configuration for local development
+
+# Step 1: Get host IP and generate certificate with IP SANs
+HOST_IP=$(hostname -I | awk '{print $1}')
+echo "Using host IP: $HOST_IP"
+
+mkdir -p /tmp/k8s-webhook-server/serving-certs
+openssl req -x509 -newkey rsa:4096 \
+  -keyout /tmp/k8s-webhook-server/serving-certs/tls.key \
+  -out /tmp/k8s-webhook-server/serving-certs/tls.crt \
+  -days 365 -nodes -subj "/CN=localhost" \
+  -addext "subjectAltName=DNS:localhost,IP:127.0.0.1,IP:$HOST_IP" 2>/dev/null
+
+# Step 2: Generate and apply webhook configuration
+CA_BUNDLE=$(cat /tmp/k8s-webhook-server/serving-certs/tls.crt | base64 -w0)
+
+cat > /tmp/local-webhook.yaml << EOF
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: workspaces-local-validating-webhook
+webhooks:
+- admissionReviewVersions: ["v1"]
+  clientConfig:
+    url: https://$HOST_IP:9443/validate-kubeflow-org-v1beta1-workspace
+    caBundle: $CA_BUNDLE
+  failurePolicy: Fail
+  name: vworkspace.kb.io
+  rules:
+  - apiGroups: ["kubeflow.org"]
+    apiVersions: ["v1beta1"]
+    operations: ["CREATE", "UPDATE"]
+    resources: ["workspaces"]
+  sideEffects: None
+- admissionReviewVersions: ["v1"]
+  clientConfig:
+    url: https://$HOST_IP:9443/validate-kubeflow-org-v1beta1-workspacekind
+    caBundle: $CA_BUNDLE
+  failurePolicy: Fail
+  name: vworkspacekind.kb.io
+  rules:
+  - apiGroups: ["kubeflow.org"]
+    apiVersions: ["v1beta1"]
+    operations: ["CREATE", "UPDATE", "DELETE"]
+    resources: ["workspacekinds"]
+  sideEffects: None
+EOF
+
+# Step 3: Install CRDs and apply webhook config
+(cd workspaces/controller && make install)
+kubectl apply -f /tmp/local-webhook.yaml
+
+echo "Setup complete! Now run: cd workspaces/controller && make run"
+```
+
+After running the setup script, start the controller:
+
+```bash
+cd workspaces/controller
+make run
+```
+
+Test the webhook by applying a sample resource:
+
+```bash
+kubectl apply -f manifests/kustomize/samples/jupyterlab_v1beta1_workspacekind.yaml
+```
+
+Verify the resource was created (webhook validation passed):
+
+```bash
+kubectl get workspacekinds
+```
+
+If successful, you should see output like:
+```
+NAME         WORKSPACES   DEPRECATED   HIDDEN
+jupyterlab   0            false        false
+```
+
+> [!TIP]
+>
+> To clean up the local webhook configuration:
+> ```bash
+> kubectl delete validatingwebhookconfiguration workspaces-local-validating-webhook
+> ```
+
+> [!TIP]
+>
+> If you see "address already in use" errors, kill the existing controller process:
+> ```bash
+> # Kill the process using port 8081 (or 8080/9443)
+> kill -9 $(lsof -t -i:8081) 2>/dev/null
+> ss -tlnp | grep -E "8080|8081|9443" || echo "Ports are free"
+> ```
+
+#### Option 3: Use Tilt (Recommended for Regular Development)
+
+Tilt handles webhook configuration automatically by deploying the controller inside the cluster with cert-manager. See [Developing with Tilt](#developing-with-tilt-recommended).
+
+### Local - Common Workflows
+
+**Iterating on controller logic:**
+```bash
+cd workspaces/controller
+make install  # Install/update CRDs
+make run      # Run controller (Ctrl+C to stop and restart)
+```
+
+**Testing API changes:**
+```bash
+cd workspaces/backend
+make swag     # Regenerate OpenAPI specs after API changes
+make run      # Start the backend server
+```
+
+**Frontend development with hot reload:**
+```bash
+cd workspaces/frontend
+npm run start:dev  # Changes auto-reload in browser
+```
 
 We welcome contributions to improve the local development experience, please open an issue or PR!
