@@ -261,11 +261,11 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			log.Error(err, "unable to create StatefulSet")
 			return ctrl.Result{}, err
 		}
-		statefulSetName = statefulSet.ObjectMeta.Name
+		statefulSetName = statefulSet.Name
 		log.V(2).Info("StatefulSet created", "statefulSet", statefulSetName)
 	default:
 		foundStatefulSet := &ownedStatefulSets.Items[0]
-		statefulSetName = foundStatefulSet.ObjectMeta.Name
+		statefulSetName = foundStatefulSet.Name
 		if helper.CopyStatefulSetFields(statefulSet, foundStatefulSet) {
 			if err := r.Update(ctx, foundStatefulSet); err != nil {
 				if apierrors.IsConflict(err) {
@@ -326,11 +326,11 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			log.Error(err, "unable to create Service")
 			return ctrl.Result{}, err
 		}
-		serviceName = service.ObjectMeta.Name
+		serviceName = service.Name
 		log.V(2).Info("Service created", "service", serviceName)
 	default:
 		foundService := &ownedServices.Items[0]
-		serviceName = foundService.ObjectMeta.Name
+		serviceName = foundService.Name
 		if helper.CopyServiceFields(service, foundService) {
 			if err := r.Update(ctx, foundService); err != nil {
 				if apierrors.IsConflict(err) {
@@ -385,11 +385,11 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 				log.Error(err, "unable to create VirtualService")
 				return ctrl.Result{}, err
 			}
-			virtualServiceName = virtualsvc.ObjectMeta.Name
+			virtualServiceName = virtualsvc.Name
 			log.V(2).Info("VirtualService created", "virtualService", virtualServiceName)
 		default:
 			foundVirtualService := ownedVirtualServices.Items[0]
-			virtualServiceName = foundVirtualService.ObjectMeta.Name
+			virtualServiceName = foundVirtualService.Name
 			if helper.CopyVirtualServiceFields(virtualsvc, foundVirtualService) {
 				if err := r.Update(ctx, foundVirtualService); err != nil {
 					if apierrors.IsConflict(err) {
@@ -440,7 +440,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
+func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager, opts *controller.Options) error {
 
 	// NOTE: the SetupManagerFieldIndexers() helper in `helper/index.go` should have already been
 	//       called on `mgr` by the time this function is called, so the indexes are already set up
@@ -465,7 +465,7 @@ func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager, opts controller
 
 	// Build the controller with core resources
 	controllerBuilder := ctrl.NewControllerManagedBy(mgr).
-		WithOptions(opts).
+		WithOptions(*opts).
 		For(&kubefloworgv1beta1.Workspace{}).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Service{})
@@ -551,10 +551,7 @@ func getImageConfig(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kube
 	desiredImageConfig := currentImageConfig
 	var redirectChain []kubefloworgv1beta1.WorkspacePodOptionRedirectStep
 	visitedNodes := map[string]bool{currentImageConfig.Id: true}
-	for {
-		if desiredImageConfig.Redirect == nil {
-			break
-		}
+	for desiredImageConfig.Redirect != nil {
 		if visitedNodes[desiredImageConfig.Redirect.To] {
 			return nil, nil, nil, fmt.Errorf("imageConfig with id %q has a circular redirect", desiredImageConfig.Id)
 		}
@@ -596,10 +593,7 @@ func getPodConfig(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefl
 	desiredPodConfig := currentPodConfig
 	var redirectChain []kubefloworgv1beta1.WorkspacePodOptionRedirectStep
 	visitedNodes := map[string]bool{currentPodConfig.Id: true}
-	for {
-		if desiredPodConfig.Redirect == nil {
-			break
-		}
+	for desiredPodConfig.Redirect != nil {
 		if visitedNodes[desiredPodConfig.Redirect.To] {
 			return nil, nil, nil, fmt.Errorf("podConfig with id %q has a circular redirect", desiredPodConfig.Id)
 		}

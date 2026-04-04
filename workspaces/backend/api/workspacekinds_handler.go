@@ -61,8 +61,7 @@ func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps
 	name := ps.ByName(ResourceNamePathParam)
 
 	// validate path parameters
-	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateWorkspaceKindName(field.NewPath(ResourceNamePathParam), name)...)
+	valErrs := helper.ValidateWorkspaceKindName(field.NewPath(ResourceNamePathParam), name)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
@@ -207,10 +206,10 @@ func (a *App) CreateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 	// NOTE: we only do basic validation so we know it's safe to send to the Kubernetes API server
 	//       comprehensive validation will be done by Kubernetes
 	// NOTE: checking the name field is non-empty also verifies that the workspace kind is not nil/empty
-	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateWorkspaceKindGVK(workspaceKind.APIVersion, workspaceKind.Kind)...)
-	wskNamePath := field.NewPath("metadata", "name")
-	valErrs = append(valErrs, helper.ValidateWorkspaceKindName(wskNamePath, workspaceKind.Name)...)
+	valErrs := append(
+		helper.ValidateWorkspaceKindGVK(workspaceKind.APIVersion, workspaceKind.Kind),
+		helper.ValidateWorkspaceKindName(field.NewPath("metadata", "name"), workspaceKind.Name)...,
+	)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgRequestBodyInvalid, valErrs, nil)
 		return

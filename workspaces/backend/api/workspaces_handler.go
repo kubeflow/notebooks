@@ -59,9 +59,10 @@ func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps htt
 	workspaceName := ps.ByName(ResourceNamePathParam)
 
 	// validate path parameters
-	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
-	valErrs = append(valErrs, helper.ValidateWorkspaceName(field.NewPath(ResourceNamePathParam), workspaceName)...)
+	valErrs := append(
+		helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace),
+		helper.ValidateWorkspaceName(field.NewPath(ResourceNamePathParam), workspaceName)...,
+	)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
@@ -406,9 +407,10 @@ func (a *App) DeleteWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 	workspaceName := ps.ByName(ResourceNamePathParam)
 
 	// validate path parameters
-	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
-	valErrs = append(valErrs, helper.ValidateWorkspaceName(field.NewPath(ResourceNamePathParam), workspaceName)...)
+	valErrs := append(
+		helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace),
+		helper.ValidateWorkspaceName(field.NewPath(ResourceNamePathParam), workspaceName)...,
+	)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return

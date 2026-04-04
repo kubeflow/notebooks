@@ -59,9 +59,10 @@ func (a *App) PauseActionWorkspaceHandler(w http.ResponseWriter, r *http.Request
 	namespace := ps.ByName(NamespacePathParam)
 	workspaceName := ps.ByName(ResourceNamePathParam)
 
-	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
-	valErrs = append(valErrs, helper.ValidateWorkspaceName(field.NewPath(ResourceNamePathParam), workspaceName)...)
+	valErrs := append(
+		helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace),
+		helper.ValidateWorkspaceName(field.NewPath(ResourceNamePathParam), workspaceName)...,
+	)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return

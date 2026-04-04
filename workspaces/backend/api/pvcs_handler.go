@@ -48,12 +48,11 @@ type PVCCreateEnvelope Envelope[*models.PVCCreate]
 //	@Failure		422			{object}	ErrorEnvelope	"Unprocessable Entity. Validation error."
 //	@Failure		500			{object}	ErrorEnvelope	"Internal server error"
 //	@Router			/persistentvolumeclaims/{namespace} [get]
-func (a *App) GetPVCsByNamespaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) { //nolint:dupl
+func (a *App) GetPVCsByNamespaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(NamespacePathParam)
 
 	// validate path parameters
-	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
+	valErrs := helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
@@ -207,9 +206,10 @@ func (a *App) DeletePVCHandler(w http.ResponseWriter, r *http.Request, ps httpro
 	pvcName := ps.ByName(ResourceNamePathParam)
 
 	// validate path parameters
-	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
-	valErrs = append(valErrs, helper.ValidateKubernetesPVCName(field.NewPath(ResourceNamePathParam), pvcName)...)
+	valErrs := append(
+		helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace),
+		helper.ValidateKubernetesPVCName(field.NewPath(ResourceNamePathParam), pvcName)...,
+	)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
