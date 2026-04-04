@@ -27,7 +27,7 @@ import (
 // PVCCreate represents the request and response body for creating a PVC.
 type PVCCreate struct {
 	Name             string                              `json:"name"`
-	AccessModes      []corev1.PersistentVolumeAccessMode `json:"accessModes"`
+	AccessModes      []corev1.PersistentVolumeAccessMode `json:"accessModes,omitempty"`
 	StorageClassName string                              `json:"storageClassName"`
 	Requests         StorageRequestsMutate               `json:"requests"`
 }

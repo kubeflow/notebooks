@@ -1828,7 +1828,6 @@
         "pvcs.PVCCreate": {
             "type": "object",
             "required": [
-                "accessModes",
                 "name",
                 "requests",
                 "storageClassName"
@@ -1858,9 +1857,7 @@
                 "canMount",
                 "canUpdate",
                 "name",
-                "pods",
-                "pvcSpec",
-                "workspaces"
+                "pvcSpec"
             ],
             "properties": {
                 "audit": {
@@ -1903,7 +1900,6 @@
         "pvcs.PVCSpec": {
             "type": "object",
             "required": [
-                "accessModes",
                 "requests",
                 "storageClassName",
                 "volumeMode"
@@ -1930,7 +1926,6 @@
         "pvcs.PVInfo": {
             "type": "object",
             "required": [
-                "accessModes",
                 "name",
                 "persistentVolumeReclaimPolicy",
                 "volumeMode"
@@ -2280,8 +2275,7 @@
         "workspacekinds.ImageConfig": {
             "type": "object",
             "required": [
-                "default",
-                "values"
+                "default"
             ],
             "properties": {
                 "default": {
@@ -2301,8 +2295,7 @@
                 "description",
                 "displayName",
                 "hidden",
-                "id",
-                "labels"
+                "id"
             ],
             "properties": {
                 "clusterMetrics": {
@@ -2374,8 +2367,7 @@
         "workspacekinds.PodConfig": {
             "type": "object",
             "required": [
-                "default",
-                "values"
+                "default"
             ],
             "properties": {
                 "default": {
@@ -2395,8 +2387,7 @@
                 "description",
                 "displayName",
                 "hidden",
-                "id",
-                "labels"
+                "id"
             ],
             "properties": {
                 "clusterMetrics": {
@@ -2669,8 +2660,7 @@
             "required": [
                 "description",
                 "displayName",
-                "id",
-                "labels"
+                "id"
             ],
             "properties": {
                 "description": {
@@ -2907,9 +2897,6 @@
         },
         "workspaces.PodVolumes": {
             "type": "object",
-            "required": [
-                "data"
-            ],
             "properties": {
                 "data": {
                     "type": "array",
@@ -2930,9 +2917,6 @@
         },
         "workspaces.PodVolumesMutate": {
             "type": "object",
-            "required": [
-                "data"
-            ],
             "properties": {
                 "data": {
                     "type": "array",
@@ -3075,7 +3059,6 @@
                 "pausedTime",
                 "pendingRestart",
                 "podTemplate",
-                "services",
                 "state",
                 "stateMessage",
                 "workspaceKind"

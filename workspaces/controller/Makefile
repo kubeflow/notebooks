@@ -94,8 +94,9 @@ test-e2e: manifests generate fmt vet istioctl ## Run the e2e tests. Expected an 
 	go test ./test/e2e/ -v -ginkgo.v
 
 .PHONY: lint
-lint: golangci-lint ## Run golangci-lint linter
+lint: golangci-lint jsonomitemptylint ## Run golangci-lint linter and custom linters
 	$(GOLANGCI_LINT) run
+	$(JSONLINT) ./...
 
 .PHONY: lint-fix
 lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes
@@ -169,6 +170,7 @@ CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 ISTIOCTL ?= $(LOCALBIN)/istioctl
 GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
+JSONLINT = $(LOCALBIN)/jsonomitemptylint
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.5.0
@@ -176,6 +178,8 @@ CONTROLLER_TOOLS_VERSION ?= v0.20.1
 ENVTEST_VERSION ?= release-0.19
 ISTIOCTL_VERSION ?= 1.27.3
 GOLANGCI_LINT_VERSION ?= v1.61.0
+
+REPO_ROOT := $(shell git -C $(shell pwd) rev-parse --show-toplevel)
 
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
@@ -202,6 +206,12 @@ $(ISTIOCTL): $(LOCALBIN)
 golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
 $(GOLANGCI_LINT): $(LOCALBIN)
 	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/cmd/golangci-lint,$(GOLANGCI_LINT_VERSION))
+
+.PHONY: jsonomitemptylint
+jsonomitemptylint: $(JSONLINT) ## Build and run the jsonomitemptylint linter.
+	$(JSONLINT) ./...
+$(JSONLINT): $(LOCALBIN) $(REPO_ROOT)/tools/linters/go.mod
+	cd $(REPO_ROOT)/tools/linters && go build -o $(JSONLINT) ./cmd/jsonomitemptylint
 
 # go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
 # $1 - target path with name of binary

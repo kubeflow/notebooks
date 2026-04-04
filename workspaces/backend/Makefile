@@ -68,8 +68,9 @@ test: fmt vet envtest ## Run tests.
 	KUBEBUILDER_ASSETS=${KUBEBUILDER_ASSETS} go test ./... -coverprofile cover.out
 
 .PHONY: lint
-lint: golangci-lint ## Run golangci-lint linter
+lint: golangci-lint jsonomitemptylint ## Run golangci-lint linter and custom linters
 	$(GOLANGCI_LINT) run
+	$(JSONLINT) ./...
 
 .PHONY: lint-fix
 lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes
@@ -127,12 +128,15 @@ KUSTOMIZE := $(LOCALBIN)/kustomize
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 SWAGGER = $(LOCALBIN)/swag
+JSONLINT = $(LOCALBIN)/jsonomitemptylint
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.5.0
 ENVTEST_VERSION ?= release-0.19
 GOLANGCI_LINT_VERSION ?= v1.61.0
 SWAGGER_VERSION ?= v1.16.6
+
+REPO_ROOT := $(shell git -C $(shell pwd) rev-parse --show-toplevel)
 
 .PHONY: SWAGGER
 SWAGGER: $(SWAGGER)
@@ -148,6 +152,12 @@ $(ENVTEST): $(LOCALBIN)
 golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
 $(GOLANGCI_LINT): $(LOCALBIN)
 	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/cmd/golangci-lint,$(GOLANGCI_LINT_VERSION))
+
+.PHONY: jsonomitemptylint
+jsonomitemptylint: $(JSONLINT) ## Build and run the jsonomitemptylint linter.
+	$(JSONLINT) ./...
+$(JSONLINT): $(LOCALBIN) $(REPO_ROOT)/tools/linters/go.mod
+	cd $(REPO_ROOT)/tools/linters && go build -o $(JSONLINT) ./cmd/jsonomitemptylint
 
 
 ##@ deployment
