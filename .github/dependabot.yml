@@ -1,0 +1,207 @@
+version: 2
+
+updates:
+
+  ########################
+  # --> notebooks-v2 <-- #
+  ########################
+
+  - package-ecosystem: "gomod"
+    target-branch: "notebooks-v2"
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+    directories:
+      - "/workspaces/backend"
+      - "/workspaces/controller"
+    schedule:
+      interval: "daily"
+    commit-message:
+      prefix: "chore"
+    ignore:
+      - dependency-name: "k8s.io/*"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+      - dependency-name: "sigs.k8s.io/*"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+    groups:
+      k8s-packages:
+        patterns:
+          - "k8s.io/*"
+          - "sigs.k8s.io/*"
+      go-test-packages:
+        patterns:
+          - "github.com/onsi/*"
+
+  - package-ecosystem: "npm"
+    target-branch: "notebooks-v2"
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+    directory: "/workspaces/frontend"
+    schedule:
+      interval: "daily"
+    commit-message:
+      prefix: "chore"
+    ignore:
+      - dependency-name: "@angular/*"
+        update-types:
+          - "version-update:semver-major"
+      - dependency-name: "@angular-eslint/*"
+        update-types:
+          - "version-update:semver-major"
+    # Group mod-arch-* packages together for easier review
+    groups:
+      mod-arch-packages:
+        patterns:
+          - "mod-arch-*"
+      angular-packages:
+        patterns:
+          - "@angular/*"
+          - "@angular-eslint/*"
+
+  - package-ecosystem: "docker"
+    target-branch: "notebooks-v2"
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+    # find . -name "Dockerfile" | xargs -i dirname {}| grep -v example
+    directories:
+      - "/workspaces/controller"
+      - "/workspaces/backend"
+      - "/workspaces/frontend"
+    schedule:
+      interval: "daily"
+    commit-message:
+      prefix: "chore"
+
+  - package-ecosystem: "github-actions"
+    target-branch: "notebooks-v2"
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+    directory: "/"
+    schedule:
+      interval: "daily"
+    commit-message:
+      prefix: "chore"
+    groups:
+      docker-actions:
+        patterns:
+          - "docker/*"
+
+  ########################
+  # --> notebooks-v1 <-- #
+  ########################
+
+  # - package-ecosystem: "gomod"
+  #   target-branch: "notebooks-v1"
+  #   open-pull-requests-limit: 5
+  #   cooldown:
+  #     default-days: 7
+  #   # find . -name "go.mod" | xargs -i dirname {}
+  #   directories:
+  #     - "/components/notebook-controller"
+  #     - "/components/pvcviewer-controller"
+  #     - "/components/tensorboard-controller"
+  #   schedule:
+  #     interval: "daily"
+  #   commit-message:
+  #     prefix: "chore"
+  #   ignore:
+  #     - dependency-name: "k8s.io/*"
+  #       update-types:
+  #         - "version-update:semver-major"
+  #         - "version-update:semver-minor"
+  #     - dependency-name: "sigs.k8s.io/*"
+  #       update-types:
+  #         - "version-update:semver-major"
+  #         - "version-update:semver-minor"
+  #   groups:
+  #     k8s-packages:
+  #       patterns:
+  #         - "k8s.io/*"
+  #         - "sigs.k8s.io/*"
+  #     go-test-packages:
+  #       patterns:
+  #         - "github.com/onsi/*"
+
+  # - package-ecosystem: "npm"
+  #   target-branch: "notebooks-v1"
+  #   open-pull-requests-limit: 5
+  #   cooldown:
+  #     default-days: 7
+  #   ignore:
+  #     - dependency-name: "*"
+  #       update-types:
+  #         - "version-update:semver-major"
+  #   # find . -name "package.json" | xargs -i dirname {}
+  #   directories:
+  #     - "/components/crud-web-apps/common/frontend/kubeflow-common-lib"
+  #     - "/components/crud-web-apps/common/frontend/kubeflow-common-lib/projects/kubeflow"
+  #     - "/components/crud-web-apps/jupyter/frontend"
+  #     - "/components/crud-web-apps/tensorboards/frontend"
+  #     - "/components/crud-web-apps/volumes/frontend"
+  #   schedule:
+  #     interval: "daily"
+  #   commit-message:
+  #     prefix: "chore"
+  #   groups:
+  #     angular-packages:
+  #       patterns:
+  #         - "@angular/*"
+  #         - "@angular-eslint/*"
+
+  - package-ecosystem: "docker"
+    target-branch: "notebooks-v1"
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+    # find . -name "Dockerfile" | xargs -i dirname {}| grep -v example
+    directories:
+      - "/components/crud-web-apps/jupyter"
+      - "/components/crud-web-apps/tensorboards"
+      - "/components/crud-web-apps/volumes"
+      - "/components/notebook-controller"
+      - "/components/pvcviewer-controller"
+      - "/components/tensorboard-controller"
+    schedule:
+      interval: "daily"
+    commit-message:
+      prefix: "chore"
+
+  - package-ecosystem: "github-actions"
+    target-branch: "notebooks-v1"
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+    directory: "/"
+    schedule:
+      interval: "daily"
+    commit-message:
+      prefix: "chore"
+    groups:
+      docker-actions:
+        patterns:
+          - "docker/*"
+
+  ########################
+  # -->     main     <-- #
+  ########################
+
+  - package-ecosystem: "github-actions"
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+    directory: "/"
+    schedule:
+      interval: "daily"
+    commit-message:
+      prefix: "chore"
+    groups:
+      docker-actions:
+        patterns:
+          - "docker/*"
