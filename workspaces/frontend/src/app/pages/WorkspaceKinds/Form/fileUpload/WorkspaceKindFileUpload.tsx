@@ -98,6 +98,7 @@ export const WorkspaceKindFileUpload: React.FC<WorkspaceKindFileUploadProps> = (
       onReadFinished={handleFileReadFinished}
       onClearClick={handleClear}
       isLoading={isLoading}
+      isReadOnly
       validated={validated}
       allowEditingUploadedText={false}
       browseButtonText="Choose File"
