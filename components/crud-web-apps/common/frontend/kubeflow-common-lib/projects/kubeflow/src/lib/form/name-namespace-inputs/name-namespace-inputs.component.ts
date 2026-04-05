@@ -7,7 +7,7 @@ import { getNameError, MAX_NAME_LENGTH } from '../validators';
   templateUrl: './name-namespace-inputs.component.html',
   styleUrls: ['./name-namespace-inputs.component.scss'],
 })
-export class NameNamespaceInputsComponent implements OnInit {
+export class NameNamespaceInputsComponent {
   private existingNamesPrv: Set<string>;
 
   @Input()
@@ -26,6 +26,4 @@ export class NameNamespaceInputsComponent implements OnInit {
   existingNames: Set<string>;
 
   constructor() {}
-
-  ngOnInit() {}
 }

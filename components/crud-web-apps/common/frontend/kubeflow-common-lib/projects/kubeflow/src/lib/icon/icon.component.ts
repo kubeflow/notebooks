@@ -5,7 +5,7 @@ import { Component, OnInit, Input, HostBinding } from '@angular/core';
   templateUrl: './icon.component.html',
   styleUrls: ['./icon.component.scss'],
 })
-export class IconComponent implements OnInit {
+export class IconComponent {
   @Input() icon = '';
 
   @HostBinding('class.lib-icon')
@@ -16,8 +16,6 @@ export class IconComponent implements OnInit {
   }
 
   constructor() {}
-
-  ngOnInit() {}
 
   public getIcon() {
     if (this.iconSplit.length === 0) {

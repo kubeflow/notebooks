@@ -1,4 +1,4 @@
-import { Component, Input, OnDestroy, OnInit } from '@angular/core';
+import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { NamespaceService } from '../services/namespace.service';
 import { BackendService } from '../services/backend/backend.service';
 import { ExponentialBackoff } from '../polling/exponential-backoff';
