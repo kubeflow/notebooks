@@ -60,7 +60,7 @@ describe('TableChipsListComponent', () => {
     fixture.detectChanges();
 
     const el = fixture.debugElement;
-    expect(el.queryAll(By.css('.mat-chip')).length).toEqual(MAX_CHIPS);
+    expect(el.queryAll(By.css('mat-chip')).length).toEqual(MAX_CHIPS);
   });
 
   it('should use the valueFn', () => {

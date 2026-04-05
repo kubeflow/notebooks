@@ -108,7 +108,9 @@ export class PopoverDirective implements OnDestroy {
       this.popoverInstance.classList = this.libPopoverClass;
     }
     this.popoverInstance.show(delay);
-    this.popoverInstance.afterHidden().subscribe(() => this.detach());
+    this.popoverInstance.afterHidden().subscribe({
+      next: () => this.detach(),
+    });
     this.updatePosition();
   }
 
@@ -160,8 +162,10 @@ export class PopoverDirective implements OnDestroy {
   updatePosition() {
     if (this.popoverInstance) {
       this.popoverInstance.markForCheck();
-      this.ngZone.onMicrotaskEmpty.pipe(take(1)).subscribe(() => {
-        this.overlayRef.updatePosition();
+      this.ngZone.onMicrotaskEmpty.pipe(take(1)).subscribe({
+        next: () => {
+          this.overlayRef.updatePosition();
+        },
       });
     }
   }

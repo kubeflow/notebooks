@@ -7,7 +7,7 @@ import { ActionButtonValue, ActionEvent } from '../types';
   templateUrl: './action-button.component.html',
   styleUrls: ['./action-button.component.scss'],
 })
-export class ActionButtonComponent implements OnInit {
+export class ActionButtonComponent {
   @Input()
   action: ActionButtonValue;
 
@@ -18,8 +18,6 @@ export class ActionButtonComponent implements OnInit {
   emitter = new EventEmitter<ActionEvent>();
 
   constructor() {}
-
-  ngOnInit() {}
 
   // Event emitting functions
   public emitClickedEvent() {

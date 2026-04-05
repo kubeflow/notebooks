@@ -35,32 +35,35 @@ export class NamespaceService {
   dashboardConnected$ = this.dashboardConnectedSource.asObservable();
 
   constructor() {
-    fromEvent(window, 'load').subscribe(_ => {
-      if (
-        window.centraldashboard &&
-        window.centraldashboard.CentralDashboardEventHandler
-      ) {
-        // Init method will invoke the callback with the event handler instance
-        // and a boolean indicating whether the page is iframed or not
-        window.centraldashboard.CentralDashboardEventHandler.init(
-          (cdeh, isIframed) => {
-            // Binds a callback that gets invoked anytime the Dashboard's
-            // namespace is changed
-            cdeh.onNamespaceSelected = this.updateSelectedNamespace.bind(this);
-            cdeh.onAllNamespacesSelected =
-              this.updateAllSelectedNamespaces.bind(this);
-          },
-        );
+    fromEvent(window, 'load').subscribe({
+      next: _ => {
+        if (
+          window.centraldashboard &&
+          window.centraldashboard.CentralDashboardEventHandler
+        ) {
+          // Init method will invoke the callback with the event handler instance
+          // and a boolean indicating whether the page is iframed or not
+          window.centraldashboard.CentralDashboardEventHandler.init(
+            (cdeh, isIframed) => {
+              // Binds a callback that gets invoked anytime the Dashboard's
+              // namespace is changed
+              cdeh.onNamespaceSelected =
+                this.updateSelectedNamespace.bind(this);
+              cdeh.onAllNamespacesSelected =
+                this.updateAllSelectedNamespaces.bind(this);
+            },
+          );
 
-        this.dashboardConnectedSource.next(DashboardState.Connected);
-        return;
-      }
+          this.dashboardConnectedSource.next(DashboardState.Connected);
+          return;
+        }
 
-      this.dashboardConnectedSource.next(DashboardState.Disconnected);
+        this.dashboardConnectedSource.next(DashboardState.Disconnected);
 
-      if (this.currNamespace === undefined) {
-        this.updateSelectedNamespace('kubeflow-user');
-      }
+        if (this.currNamespace === undefined) {
+          this.updateSelectedNamespace('kubeflow-user');
+        }
+      },
     });
   }
 

@@ -13,17 +13,17 @@
   <!--value-->
   <div class="list-entry-value" [matTooltip]="valueTooltip">
     <ng-container *ngIf="chipsList && chipsList.length > 0">
-      <mat-chip-list class="chip-list-wa">
+      <mat-chip-set class="chip-list-wa">
         <mat-chip
           *ngFor="let chip of chipsList"
-          [color]="chip.color"
+          [highlighted]="chip.color === 'primary'"
           [matTooltip]="chip.tooltip"
           matTooltipClass="custom-tooltip"
           class="list-chip"
         >
           {{ chip.value }}
         </mat-chip>
-      </mat-chip-list>
+      </mat-chip-set>
     </ng-container>
 
     <div *ngIf="value" class="flex">
