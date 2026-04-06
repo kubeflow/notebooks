@@ -323,13 +323,13 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
 
   return (
     <Stack hasGutter>
-      <StackItem>
-        {selectedKind && (
+      {selectedKind && (
+        <StackItem>
           <Content component={ContentVariants.p}>
             Review your options. Click a section to modify it.
           </Content>
-        )}
-      </StackItem>
+        </StackItem>
+      )}
 
       {renderSummarySection({
         step: SummaryStep.KindSelection,
@@ -401,7 +401,11 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
         originalLabels: originalPodConfig?.labels,
       })}
 
-      {(properties.workspaceName.trim() || currentStep > SummaryStep.Properties) && (
+      {(properties.workspaceName.trim() ||
+        properties.homeVolume ||
+        properties.volumes.length > 0 ||
+        properties.secrets.length > 0 ||
+        currentStep > SummaryStep.Properties) && (
         <StackItem>
           <Card
             isCompact
