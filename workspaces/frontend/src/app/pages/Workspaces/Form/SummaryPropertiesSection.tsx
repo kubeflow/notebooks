@@ -1,121 +1,85 @@
 import React, { FC } from 'react';
 import { Content, ContentVariants } from '@patternfly/react-core/dist/esm/components/Content';
+import { Label, LabelGroup } from '@patternfly/react-core/dist/esm/components/Label';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
-import { WorkspaceFormProperties } from '~/app/types';
+import { WorkspaceFormMode, WorkspaceFormProperties } from '~/app/types';
 
 interface SummaryPropertiesSectionProps {
   properties: WorkspaceFormProperties;
   originalProperties?: WorkspaceFormProperties;
   showDiff: boolean;
+  mode: WorkspaceFormMode;
 }
 
 export const SummaryPropertiesSection: FC<SummaryPropertiesSectionProps> = ({
   properties,
   originalProperties,
   showDiff,
+  mode,
 }) => {
-  const renderVolumeList = () => {
-    const currentVolumeNames = properties.volumes.map((v) => v.pvcName);
-    const originalVolumeNames = originalProperties?.volumes
-      ? originalProperties.volumes.map((v) => v.pvcName)
-      : [];
+  const isEditMode = mode === 'update';
 
-    if (showDiff && originalVolumeNames.length > 0) {
-      const allVolumeNames = new Set([...originalVolumeNames, ...currentVolumeNames]);
-      const volumeElements: React.ReactNode[] = [];
+  const renderDiffLabelGroup = (currentNames: string[], originalNames: string[]) => {
+    if (showDiff && originalNames.length > 0) {
+      const allNames = new Set([...originalNames, ...currentNames]);
 
-      allVolumeNames.forEach((name) => {
-        const wasInOriginal = originalVolumeNames.includes(name);
-        const isInCurrent = currentVolumeNames.includes(name);
+      return (
+        <LabelGroup numLabels={5}>
+          {[...allNames].map((name) => {
+            const wasInOriginal = originalNames.includes(name);
+            const isInCurrent = currentNames.includes(name);
 
-        if (wasInOriginal && !isInCurrent) {
-          volumeElements.push(
-            <span key={name} className="strikethrough">
-              {name}
-            </span>,
-          );
-        } else {
-          volumeElements.push(<span key={name}>{name}</span>);
-        }
-      });
-
-      return volumeElements.reduce<React.ReactNode[]>(
-        (acc, elem, idx) => (idx === 0 ? [elem] : [...acc, ', ', elem]),
-        [],
+            if (wasInOriginal && !isInCurrent) {
+              return (
+                <Label key={name} isCompact className="strikethrough">
+                  {name}
+                </Label>
+              );
+            }
+            return (
+              <Label
+                key={name}
+                isCompact
+                color={!wasInOriginal && isInCurrent ? 'blue' : undefined}
+              >
+                {name}
+              </Label>
+            );
+          })}
+        </LabelGroup>
       );
     }
 
-    return currentVolumeNames.length > 0 ? currentVolumeNames.join(', ') : 'None';
-  };
-
-  const renderSecretList = () => {
-    const currentSecretNames = properties.secrets.map((s) => s.secretName);
-    const originalSecretNames = originalProperties?.secrets
-      ? originalProperties.secrets.map((s) => s.secretName)
-      : [];
-
-    if (showDiff && originalSecretNames.length > 0) {
-      const allSecretNames = new Set([...originalSecretNames, ...currentSecretNames]);
-      const secretElements: React.ReactNode[] = [];
-
-      allSecretNames.forEach((name) => {
-        const wasInOriginal = originalSecretNames.includes(name);
-        const isInCurrent = currentSecretNames.includes(name);
-
-        if (wasInOriginal && !isInCurrent) {
-          secretElements.push(
-            <span key={name} className="strikethrough">
-              {name}
-            </span>,
-          );
-        } else {
-          secretElements.push(<span key={name}>{name}</span>);
-        }
-      });
-
-      return secretElements.reduce<React.ReactNode[]>(
-        (acc, elem, idx) => (idx === 0 ? [elem] : [...acc, ', ', elem]),
-        [],
-      );
+    if (currentNames.length === 0) {
+      return 'None';
     }
 
-    return currentSecretNames.length > 0 ? currentSecretNames.join(', ') : 'None';
+    return (
+      <LabelGroup numLabels={5}>
+        {currentNames.map((name) => (
+          <Label key={name} isCompact color={originalNames.length === 0 ? 'blue' : undefined}>
+            {name}
+          </Label>
+        ))}
+      </LabelGroup>
+    );
   };
 
   return (
     <Stack hasGutter>
-      <StackItem>
-        <Content component={ContentVariants.p}>
-          Name:{' '}
-          {showDiff && properties.workspaceName !== originalProperties?.workspaceName ? (
-            <>
-              <span className="strikethrough">{originalProperties?.workspaceName}</span>{' '}
-              {properties.workspaceName}
-            </>
-          ) : (
-            properties.workspaceName
-          )}
-        </Content>
-      </StackItem>
+      {!isEditMode && properties.workspaceName.trim() && (
+        <StackItem>
+          <Content component={ContentVariants.p}>Name: {properties.workspaceName}</Content>
+        </StackItem>
+      )}
 
       {(properties.homeVolume || originalProperties?.homeVolume) && (
         <StackItem>
           <Content component={ContentVariants.small}>
             Home Volume:{' '}
-            {showDiff &&
-            properties.homeVolume?.pvcName !== originalProperties?.homeVolume?.pvcName ? (
-              <>
-                {originalProperties?.homeVolume?.pvcName && (
-                  <>
-                    <span className="strikethrough">
-                      {originalProperties.homeVolume.pvcName}
-                    </span>{' '}
-                  </>
-                )}
-                {properties.homeVolume?.pvcName || 'None'}
-              </>
-            ) : (
-              properties.homeVolume?.pvcName || 'None'
+            {renderDiffLabelGroup(
+              properties.homeVolume ? [properties.homeVolume.pvcName] : [],
+              originalProperties?.homeVolume ? [originalProperties.homeVolume.pvcName] : [],
             )}
           </Content>
         </StackItem>
@@ -124,14 +88,26 @@ export const SummaryPropertiesSection: FC<SummaryPropertiesSectionProps> = ({
       {(properties.volumes.length > 0 ||
         (originalProperties?.volumes && originalProperties.volumes.length > 0)) && (
         <StackItem>
-          <Content component={ContentVariants.small}>Data Volumes: {renderVolumeList()}</Content>
+          <Content component={ContentVariants.small}>
+            Data Volumes:{' '}
+            {renderDiffLabelGroup(
+              properties.volumes.map((v) => v.pvcName),
+              originalProperties?.volumes.map((v) => v.pvcName) ?? [],
+            )}
+          </Content>
         </StackItem>
       )}
 
       {(properties.secrets.length > 0 ||
         (originalProperties?.secrets && originalProperties.secrets.length > 0)) && (
         <StackItem>
-          <Content component={ContentVariants.small}>Secrets: {renderSecretList()}</Content>
+          <Content component={ContentVariants.small}>
+            Secrets:{' '}
+            {renderDiffLabelGroup(
+              properties.secrets.map((s) => s.secretName),
+              originalProperties?.secrets.map((s) => s.secretName) ?? [],
+            )}
+          </Content>
         </StackItem>
       )}
     </Stack>
