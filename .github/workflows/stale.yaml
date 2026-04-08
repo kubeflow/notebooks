@@ -18,7 +18,7 @@ jobs:
           days-before-close: 21
 
           stale-issue-label: lifecycle/stale
-          exempt-issue-labels: lifecycle/frozen,kind/enhancement
+          exempt-issue-labels: lifecycle/frozen,kind/enhancement,kind/plan-epic,kind/plan-feature,kind/plan-task
 
           stale-pr-label: lifecycle/stale
           exempt-pr-labels: lifecycle/frozen,kind/enhancement
