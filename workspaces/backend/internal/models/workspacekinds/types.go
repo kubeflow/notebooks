@@ -121,11 +121,9 @@ type ListValuesRequest struct {
 }
 
 // Validate validates the listvalues request data by delegating to Context when present.
-func (d *ListValuesRequest) Validate(prefix *field.Path) field.ErrorList {
+func (d *ListValuesRequest) Validate(prefix *field.Path) []*field.Error {
 	var errs field.ErrorList
-	if d == nil {
-		return errs
-	}
+
 	if d.Context != nil {
 		errs = append(errs, d.Context.Validate(prefix.Child("context"))...)
 	}
@@ -140,7 +138,7 @@ type ListValuesContext struct {
 }
 
 // Validate validates the context fields when present.
-func (c *ListValuesContext) Validate(prefix *field.Path) field.ErrorList {
+func (c *ListValuesContext) Validate(prefix *field.Path) []*field.Error {
 	var errs field.ErrorList
 	if c == nil {
 		return errs
