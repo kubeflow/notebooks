@@ -11,7 +11,7 @@ import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput'
 import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
 import { HelperText } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { WorkspaceKindPodConfigValue } from '~/app/types';
-import { EditableRowsTable } from '~/app/pages/WorkspaceKinds/Form/EditableRowsTable';
+import { EditableRowsTable, KeyValueRow } from '~/app/pages/WorkspaceKinds/Form/EditableRowsTable';
 import { getResources } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { WorkspacekindsOptionLabel } from '~/generated/data-contracts';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
@@ -38,6 +38,9 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
 
   const [resources, setResources] = useState<PodResourceEntry[]>(initialResources);
   const [labels, setLabels] = useState<WorkspacekindsOptionLabel[]>(currConfig.labels);
+  const [nodeSelectors, setNodeSelectors] = useState<KeyValueRow[]>(
+    Object.entries(currConfig.nodeSelector ?? {}).map(([key, value]) => ({ key, value })),
+  );
   const [id, setId] = useState(currConfig.id);
   const [displayName, setDisplayName] = useState(currConfig.displayName);
   const [description, setDescription] = useState(currConfig.description);
@@ -50,6 +53,9 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
     setDescription(currConfig.description);
     setHidden(currConfig.hidden || false);
     setLabels(currConfig.labels);
+    setNodeSelectors(
+      Object.entries(currConfig.nodeSelector ?? {}).map(([key, value]) => ({ key, value })),
+    );
   }, [currConfig, isOpen, editIndex]);
 
   // merge resource entries to k8s resources type
@@ -84,6 +90,9 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
       hidden,
       resources: mergeResourceLabels(resources),
       labels,
+      nodeSelector: Object.fromEntries(
+        nodeSelectors.filter((ns) => ns.key.length > 0).map(({ key, value }) => [key, value]),
+      ),
     };
     setCurrConfig(updatedConfig);
     onSubmit(updatedConfig);
@@ -95,6 +104,7 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
     id,
     labels,
     mergeResourceLabels,
+    nodeSelectors,
     onSubmit,
     resources,
     setCurrConfig,
@@ -128,7 +138,7 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
   );
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} variant="medium" data-testid="pod-config-modal">
+    <Modal isOpen={isOpen} onClose={onClose} variant="large" data-testid="pod-config-modal">
       <ModalHeader
         title={
           <span data-testid="pod-config-modal-title">
@@ -196,6 +206,13 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
             />
           </FormGroup>
           <EditableRowsTable rows={labels} setRows={(newLabels) => setLabels(newLabels)} />
+          <EditableRowsTable
+            rows={nodeSelectors}
+            setRows={setNodeSelectors}
+            title="Node Selector"
+            description="Node selector constraints for pod scheduling. Key/value pairs that must match node labels."
+            buttonLabel="selector"
+          />
           <WorkspaceKindFormResource
             setResources={setResources}
             cpu={cpuResource}

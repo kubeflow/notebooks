@@ -91,6 +91,7 @@ export interface WorkspaceKindPodConfigValue extends WorkspacekindsPodConfigValu
       [key: string]: string;
     };
   };
+  nodeSelector?: Record<string, string>;
 }
 
 export interface WorkspaceKindImageConfigData {
