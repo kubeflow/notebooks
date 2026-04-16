@@ -97,7 +97,7 @@ class VolumesManagementPage {
 
 class VolumesAttachModal {
   find(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.get('[aria-labelledby="volumes-attach-modal-title"]');
+    return cy.findByTestId('volumes-attach-modal');
   }
 
   assertModalVisible(): Cypress.Chainable<JQuery<HTMLElement>> {

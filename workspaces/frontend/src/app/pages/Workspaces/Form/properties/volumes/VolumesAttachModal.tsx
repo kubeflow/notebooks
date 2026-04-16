@@ -181,6 +181,7 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
       ouiaId="VolumesAttachModal"
       aria-labelledby="volumes-attach-modal-title"
       aria-describedby="volumes-attach-modal-body"
+      data-testid="volumes-attach-modal"
       variant={ModalVariant.large}
     >
       <ModalHeader title="Attach Existing Volume" labelId="volumes-attach-modal-title" />

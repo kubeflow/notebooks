@@ -248,6 +248,7 @@ export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
       ouiaId="BasicModal"
       aria-labelledby="basic-modal-title"
       aria-describedby="modal-box-body-basic"
+      data-testid="secrets-attach-modal"
       variant={ModalVariant.large}
     >
       <ModalHeader title="Attach Existing Secrets" labelId="basic-modal-title" />
