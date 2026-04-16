@@ -52,7 +52,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 		)
 
 		BeforeAll(func() {
-			uniqueName := "wsk-exist-test"
+			uniqueName := "wsk-options-exist-test"
 			workspaceKind1Name = fmt.Sprintf("workspacekind-1-%s", uniqueName)
 			workspaceKind1Key = types.NamespacedName{Name: workspaceKind1Name}
 			workspaceKind2Name = fmt.Sprintf("workspacekind-2-%s", uniqueName)
