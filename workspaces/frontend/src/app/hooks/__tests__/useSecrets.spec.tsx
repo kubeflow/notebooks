@@ -35,6 +35,7 @@ describe('useSecrets', () => {
     const { result } = renderHook(() => useSecrets());
 
     expect(result.current.secrets).toEqual([]);
+    expect(result.current.secretsLoaded).toBe(false);
     expect(result.current.secretLoadError).toBeNull();
   });
 
@@ -53,6 +54,7 @@ describe('useSecrets', () => {
     const { result } = renderHook(() => useSecrets());
 
     expect(result.current.secrets).toEqual([]);
+    expect(result.current.secretsLoaded).toBe(false);
     expect(result.current.secretLoadError).toBeNull();
   });
 
@@ -74,6 +76,7 @@ describe('useSecrets', () => {
 
     expect(listSecrets).toHaveBeenCalledWith('test-namespace');
     expect(result.current.secrets).toEqual(mockSecrets);
+    expect(result.current.secretsLoaded).toBe(true);
     expect(result.current.secretLoadError).toBeNull();
   });
 
@@ -90,6 +93,7 @@ describe('useSecrets', () => {
     await waitForNextUpdate();
 
     expect(result.current.secrets).toEqual([]);
+    expect(result.current.secretsLoaded).toBe(false);
     expect(result.current.secretLoadError).toBe('Failed to load secret details.');
   });
 

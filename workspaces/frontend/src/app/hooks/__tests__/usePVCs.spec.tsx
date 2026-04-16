@@ -35,6 +35,7 @@ describe('usePVCs', () => {
     const { result } = renderHook(() => usePVCs());
 
     expect(result.current.pvcs).toEqual([]);
+    expect(result.current.pvcsLoaded).toBe(false);
     expect(result.current.pvcLoadError).toBeNull();
   });
 
@@ -53,6 +54,7 @@ describe('usePVCs', () => {
     const { result } = renderHook(() => usePVCs());
 
     expect(result.current.pvcs).toEqual([]);
+    expect(result.current.pvcsLoaded).toBe(false);
     expect(result.current.pvcLoadError).toBeNull();
   });
 
@@ -74,6 +76,7 @@ describe('usePVCs', () => {
 
     expect(listPvCs).toHaveBeenCalledWith('test-namespace');
     expect(result.current.pvcs).toEqual(mockPVCs);
+    expect(result.current.pvcsLoaded).toBe(true);
     expect(result.current.pvcLoadError).toBeNull();
   });
 
@@ -90,6 +93,7 @@ describe('usePVCs', () => {
     await waitForNextUpdate();
 
     expect(result.current.pvcs).toEqual([]);
+    expect(result.current.pvcsLoaded).toBe(false);
     expect(result.current.pvcLoadError).toBe(
       'Failed to load volume details. Connection info may be unavailable.',
     );

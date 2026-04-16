@@ -23,9 +23,9 @@ import {
   buildPVCSelectOptions,
 } from '~/app/pages/Workspaces/Form/helpers';
 import { MountPathField } from '~/app/pages/Workspaces/Form/MountPathField';
-import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
-import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
+import usePVCs from '~/app/hooks/usePVCs';
 import useStorageClasses from '~/app/hooks/useStorageClasses';
+import { LoadingSpinner } from '~/app/components/LoadingSpinner';
 
 const PVC_SELECT_EMPTY_KEY = 'pvc-select-empty';
 
@@ -60,10 +60,8 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
 }) => {
   // ── Data fetching ───────────────────────────────────────────────────────
 
-  const { api } = useNotebookAPI();
-  const { selectedNamespace } = useNamespaceSelectorWrapper();
+  const { pvcs: availablePVCs, pvcsLoaded, pvcLoadError, refreshPVCs } = usePVCs();
   const { storageClasses } = useStorageClasses();
-  const [availablePVCs, setAvailablePVCs] = useState<PvcsPVCListItem[]>([]);
 
   // ── Form state ───────────────────────────────────────────────────────────
 
@@ -79,7 +77,7 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
     : null;
   const mountPathError = mountPathFormatError ?? mountPathUniquenessError;
 
-  // ── Reset on open & fetch PVCs ──────────────────────────────────────────
+  // ── Reset on open & refresh PVCs ─────────────────────────────────────────
 
   useEffect(() => {
     if (isOpen) {
@@ -88,18 +86,15 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
       setIsMountPathEditing(false);
       setReadOnly(false);
       setFormError('');
-
-      const fetchPVCs = async () => {
-        try {
-          const response = await api.pvc.listPvCs(selectedNamespace);
-          setAvailablePVCs(response.data);
-        } catch {
-          // PVC list unavailable - dropdown will be empty
-        }
-      };
-      fetchPVCs();
+      refreshPVCs();
     }
-  }, [isOpen, fixedMountPath, api.pvc, selectedNamespace]);
+  }, [isOpen, fixedMountPath, refreshPVCs]);
+
+  useEffect(() => {
+    if (pvcLoadError) {
+      setFormError(pvcLoadError);
+    }
+  }, [pvcLoadError]);
 
   // ── Mount path handlers ──────────────────────────────────────────────────
 
@@ -202,63 +197,67 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
             </StackItem>
           )}
           <StackItem>
-            <Form>
-              <ThemeAwareFormGroupWrapper label="Volume" fieldId="pvc-select">
-                <TypeaheadSelect
-                  key={selectedPvcName || PVC_SELECT_EMPTY_KEY}
-                  id="pvc-select"
-                  initialOptions={initialOptions}
-                  placeholder="Select a volume"
-                  isScrollable
-                  maxMenuHeight="25rem"
-                  noOptionsFoundMessage={(filter) => `No volume found for "${filter}"`}
-                  onSelect={(_ev, value) => {
-                    setSelectedPvcName(value as string);
-                    setMountPath(fixedMountPath ?? `/data/${value}`);
-                    setIsMountPathEditing(false);
+            {!pvcsLoaded && availablePVCs.length === 0 ? (
+              <LoadingSpinner />
+            ) : (
+              <Form>
+                <ThemeAwareFormGroupWrapper label="Volume" fieldId="pvc-select">
+                  <TypeaheadSelect
+                    key={selectedPvcName || PVC_SELECT_EMPTY_KEY}
+                    id="pvc-select"
+                    initialOptions={initialOptions}
+                    placeholder="Select a volume"
+                    isScrollable
+                    maxMenuHeight="25rem"
+                    noOptionsFoundMessage={(filter) => `No volume found for "${filter}"`}
+                    onSelect={(_ev, value) => {
+                      setSelectedPvcName(value as string);
+                      setMountPath(fixedMountPath ?? `/data/${value}`);
+                      setIsMountPathEditing(false);
+                      setFormError('');
+                    }}
+                    onClearSelection={() => setSelectedPvcName('')}
+                  />
+                </ThemeAwareFormGroupWrapper>
+                <MountPathField
+                  variant="input"
+                  value={mountPath}
+                  onChange={(val) => {
+                    setMountPath(val);
                     setFormError('');
                   }}
-                  onClearSelection={() => setSelectedPvcName('')}
+                  isEditing={isMountPathEditing}
+                  onStartEdit={handleStartMountPathEdit}
+                  onConfirm={handleConfirmMountPathEdit}
+                  onCancel={handleCancelMountPathEdit}
+                  error={mountPathError}
+                  isFixed={!!fixedMountPath}
+                  fieldId="pvc-mount-path"
                 />
-              </ThemeAwareFormGroupWrapper>
-              <MountPathField
-                variant="input"
-                value={mountPath}
-                onChange={(val) => {
-                  setMountPath(val);
-                  setFormError('');
-                }}
-                isEditing={isMountPathEditing}
-                onStartEdit={handleStartMountPathEdit}
-                onConfirm={handleConfirmMountPathEdit}
-                onCancel={handleCancelMountPathEdit}
-                error={mountPathError}
-                isFixed={!!fixedMountPath}
-                fieldId="pvc-mount-path"
-              />
-              <ThemeAwareFormGroupWrapper
-                label="Read-only Access"
-                fieldId="pvc-read-only"
-                skipFieldset
-                labelHelp={
-                  <Popover
-                    headerContent="Read-only access"
-                    bodyContent="Mount the volume as read-only when this workspace only needs to read data. This prevents accidental or unintended writes to shared volumes."
-                  >
-                    <OutlinedQuestionCircleIcon />
-                  </Popover>
-                }
-              >
-                <Switch
-                  id="pvc-read-only-switch"
-                  data-testid="pvc-read-only-switch"
-                  label="Enabled"
-                  hasCheckIcon
-                  isChecked={readOnly}
-                  onChange={(_ev, checked) => setReadOnly(checked)}
-                />
-              </ThemeAwareFormGroupWrapper>
-            </Form>
+                <ThemeAwareFormGroupWrapper
+                  label="Read-only Access"
+                  fieldId="pvc-read-only"
+                  skipFieldset
+                  labelHelp={
+                    <Popover
+                      headerContent="Read-only access"
+                      bodyContent="Mount the volume as read-only when this workspace only needs to read data. This prevents accidental or unintended writes to shared volumes."
+                    >
+                      <OutlinedQuestionCircleIcon />
+                    </Popover>
+                  }
+                >
+                  <Switch
+                    id="pvc-read-only-switch"
+                    data-testid="pvc-read-only-switch"
+                    label="Enabled"
+                    hasCheckIcon
+                    isChecked={readOnly}
+                    onChange={(_ev, checked) => setReadOnly(checked)}
+                  />
+                </ThemeAwareFormGroupWrapper>
+              </Form>
+            )}
           </StackItem>
         </Stack>
       </ModalBody>
@@ -267,7 +266,11 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
           key="attach"
           variant="primary"
           isDisabled={
-            !selectedPvcName || !mountPath.trim() || !!mountPathError || isMountPathEditing
+            !pvcsLoaded ||
+            !selectedPvcName ||
+            !mountPath.trim() ||
+            !!mountPathError ||
+            isMountPathEditing
           }
           onClick={handleAttach}
           data-testid="attach-pvc-button"

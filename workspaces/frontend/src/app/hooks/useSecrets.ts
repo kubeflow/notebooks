@@ -6,6 +6,7 @@ import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWra
 
 interface UseSecretsResult {
   secrets: SecretsSecretListItem[];
+  secretsLoaded: boolean;
   secretLoadError: string | null;
   refreshSecrets: () => Promise<SecretsSecretListItem[] | undefined>;
 }
@@ -25,12 +26,13 @@ const useSecrets = (): UseSecretsResult => {
     return response.data;
   }, [api.secrets, apiAvailable, selectedNamespace]);
 
-  const [secrets, , error, refreshSecrets] = useFetchState(call, [], {
+  const [secrets, secretsLoaded, error, refreshSecrets] = useFetchState(call, [], {
     initialPromisePurity: true,
   });
 
   return {
     secrets,
+    secretsLoaded,
     secretLoadError:
       error && !(error instanceof NotReadyError) ? 'Failed to load secret details.' : null,
     refreshSecrets,

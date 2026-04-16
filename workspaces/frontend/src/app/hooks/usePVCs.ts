@@ -6,7 +6,9 @@ import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWra
 
 interface UsePVCsResult {
   pvcs: PvcsPVCListItem[];
+  pvcsLoaded: boolean;
   pvcLoadError: string | null;
+  refreshPVCs: () => Promise<PvcsPVCListItem[] | undefined>;
 }
 
 const usePVCs = (): UsePVCsResult => {
@@ -24,14 +26,18 @@ const usePVCs = (): UsePVCsResult => {
     return response.data;
   }, [api.pvc, apiAvailable, selectedNamespace]);
 
-  const [pvcs, , error] = useFetchState(call, [], { initialPromisePurity: true });
+  const [pvcs, pvcsLoaded, error, refreshPVCs] = useFetchState(call, [], {
+    initialPromisePurity: true,
+  });
 
   return {
     pvcs,
+    pvcsLoaded,
     pvcLoadError:
       error && !(error instanceof NotReadyError)
         ? 'Failed to load volume details. Connection info may be unavailable.'
         : null,
+    refreshPVCs,
   };
 };
 
