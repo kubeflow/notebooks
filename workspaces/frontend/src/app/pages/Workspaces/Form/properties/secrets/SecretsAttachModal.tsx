@@ -21,6 +21,8 @@ import { WrenchIcon } from '@patternfly/react-icons/dist/esm/icons/wrench-icon';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import { MountPathField } from '~/app/pages/Workspaces/Form/MountPathField';
 import { SecretsSecretListItem } from '~/generated/data-contracts';
+import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
+import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 import {
   isValidDefaultMode,
   DEFAULT_MODE_OCTAL,
@@ -38,7 +40,6 @@ export interface SecretsAttachModalProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
   onAttach: (secrets: SecretsSecretListItem[], mountPath: string, mode: number) => void;
-  availableSecrets: SecretsSecretListItem[];
   mountedKeys: Set<string>;
   existingMountPaths: Set<string>;
 }
@@ -47,10 +48,17 @@ export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
   isOpen,
   setIsOpen,
   onAttach,
-  availableSecrets,
   mountedKeys,
   existingMountPaths,
 }) => {
+  // ── Data fetching ───────────────────────────────────────────────────────
+
+  const { api } = useNotebookAPI();
+  const { selectedNamespace } = useNamespaceSelectorWrapper();
+  const [availableSecrets, setAvailableSecrets] = useState<SecretsSecretListItem[]>([]);
+
+  // ── Form state ───────────────────────────────────────────────────────────
+
   const [selected, setSelected] = useState<string | null>(null);
   const [mountPath, setMountPath] = useState('/secrets/');
   const [defaultMode, setDefaultMode] = useState(DEFAULT_MODE_OCTAL);
@@ -58,7 +66,7 @@ export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
   const [isMountPathEditing, setIsMountPathEditing] = useState(false);
   const [error, setError] = useState<string>('');
 
-  // Reset state when modal opens
+  // Reset state when modal opens & fetch secrets
   useEffect(() => {
     if (isOpen) {
       setSelected(null);
@@ -67,8 +75,18 @@ export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
       setIsDefaultModeValid(true);
       setIsMountPathEditing(false);
       setError('');
+
+      const fetchSecrets = async () => {
+        try {
+          const response = await api.secrets.listSecrets(selectedNamespace);
+          setAvailableSecrets(response.data);
+        } catch {
+          // Secrets list unavailable - dropdown will be empty
+        }
+      };
+      fetchSecrets();
     }
-  }, [isOpen]);
+  }, [isOpen, api.secrets, selectedNamespace]);
 
   // Auto-fill mount path when secret is selected
   useEffect(() => {

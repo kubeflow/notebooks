@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { EllipsisVIcon } from '@patternfly/react-icons/dist/esm/icons/ellipsis-v-icon';
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
 import {
@@ -36,6 +36,7 @@ import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspacesPodSecretMountValue } from '~/app/types';
 import { ConfirmModal } from '~/shared/components/ConfirmModal';
 import { useSecretKeys } from '~/app/hooks/useSecretKeys';
+import useSecrets from '~/app/hooks/useSecrets';
 import { MountPathField } from '~/app/pages/Workspaces/Form/MountPathField';
 import { SecretsCreateModal } from './secrets/SecretsCreateModal';
 import { SecretsAttachModal } from './secrets/SecretsAttachModal';
@@ -57,7 +58,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
-  const [availableSecrets, setAvailableSecrets] = useState<SecretsSecretListItem[]>([]);
+  const { secrets: availableSecrets, refreshSecrets } = useSecrets();
   const [secretToEdit, setSecretToEdit] = useState<SecretsSecretListItem | undefined>(undefined);
   const [expandedSecrets, setExpandedSecrets] = useState<Set<string>>(new Set());
   const [editingMountPath, setEditingMountPath] = useState<number | null>(null);
@@ -66,18 +67,6 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
   const { api } = useNotebookAPI();
   const { selectedNamespace } = useNamespaceSelectorWrapper();
   const { getSecretKeysState, fetchSecretKeys } = useSecretKeys();
-
-  useEffect(() => {
-    const fetchSecrets = async () => {
-      try {
-        const secretsResponse = await api.secrets.listSecrets(selectedNamespace);
-        setAvailableSecrets(secretsResponse.data);
-      } catch {
-        // Secrets list unavailable - user can still create new secrets
-      }
-    };
-    fetchSecrets();
-  }, [api.secrets, selectedNamespace]);
 
   const openDeleteModal = useCallback((i: number) => {
     setIsDeleteModalOpen(true);
@@ -132,7 +121,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
   }, [deleteIndex, secrets, api.secrets, selectedNamespace, setSecrets]);
 
   const handleSecretCreated = useCallback(
-    async (secretName: string) => {
+    (secretName: string) => {
       const existingSecret = secrets.find((s) => s.secretName === secretName);
       if (existingSecret) {
         return;
@@ -147,11 +136,9 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
       };
 
       setSecrets([...secrets, newSecret]);
-
-      const secretsResponse = await api.secrets.listSecrets(selectedNamespace);
-      setAvailableSecrets(secretsResponse.data);
+      refreshSecrets();
     },
-    [secrets, setSecrets, api.secrets, selectedNamespace],
+    [secrets, setSecrets, refreshSecrets],
   );
 
   const openEditModal = useCallback(
@@ -177,12 +164,11 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
     [availableSecrets],
   );
 
-  const handleSecretUpdated = useCallback(async () => {
-    const secretsResponse = await api.secrets.listSecrets(selectedNamespace);
-    setAvailableSecrets(secretsResponse.data);
+  const handleSecretUpdated = useCallback(() => {
+    refreshSecrets();
     setSecretToEdit(undefined);
     setIsEditModalOpen(false);
-  }, [api.secrets, selectedNamespace]);
+  }, [refreshSecrets]);
 
   const handleEditModalClose = useCallback((isOpen: boolean) => {
     setIsEditModalOpen(isOpen);
@@ -443,7 +429,6 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
       )}
 
       <SecretsAttachModal
-        availableSecrets={availableSecrets}
         isOpen={isAttachModalOpen}
         setIsOpen={setIsAttachModalOpen}
         onAttach={handleAttachSecrets}

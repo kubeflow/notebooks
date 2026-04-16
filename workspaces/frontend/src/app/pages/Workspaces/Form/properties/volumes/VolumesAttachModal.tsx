@@ -14,11 +14,7 @@ import { Form } from '@patternfly/react-core/dist/esm/components/Form';
 import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import { TypeaheadSelect } from '@patternfly/react-templates';
-import {
-  PvcsPVCListItem,
-  StorageclassesStorageClassListItem,
-  V1PersistentVolumeAccessMode,
-} from '~/generated/data-contracts';
+import { PvcsPVCListItem, V1PersistentVolumeAccessMode } from '~/generated/data-contracts';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import {
   normalizeMountPath,
@@ -27,6 +23,9 @@ import {
   buildPVCSelectOptions,
 } from '~/app/pages/Workspaces/Form/helpers';
 import { MountPathField } from '~/app/pages/Workspaces/Form/MountPathField';
+import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
+import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
+import useStorageClasses from '~/app/hooks/useStorageClasses';
 
 const PVC_SELECT_EMPTY_KEY = 'pvc-select-empty';
 
@@ -34,7 +33,6 @@ export interface VolumesAttachModalProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
   onAttach: (pvc: PvcsPVCListItem, mountPath: string, readOnly: boolean) => void;
-  availablePVCs: PvcsPVCListItem[];
   /** Set of mount paths already in use across all attached volumes */
   mountedPaths: Set<string>;
   /**
@@ -44,8 +42,6 @@ export interface VolumesAttachModalProps {
   fixedMountPath?: string;
   /** PVC names already mounted in the other volume section (home or data) */
   excludedPvcNames?: Set<string>;
-  /** API-loaded storage classes for display name and description lookup */
-  storageClasses: StorageclassesStorageClassListItem[];
 }
 
 const isRWO = (pvc: PvcsPVCListItem): boolean =>
@@ -58,12 +54,17 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
   isOpen,
   setIsOpen,
   onAttach,
-  availablePVCs,
   mountedPaths,
   fixedMountPath,
   excludedPvcNames,
-  storageClasses,
 }) => {
+  // ── Data fetching ───────────────────────────────────────────────────────
+
+  const { api } = useNotebookAPI();
+  const { selectedNamespace } = useNamespaceSelectorWrapper();
+  const { storageClasses } = useStorageClasses();
+  const [availablePVCs, setAvailablePVCs] = useState<PvcsPVCListItem[]>([]);
+
   // ── Form state ───────────────────────────────────────────────────────────
 
   const [selectedPvcName, setSelectedPvcName] = useState('');
@@ -78,7 +79,7 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
     : null;
   const mountPathError = mountPathFormatError ?? mountPathUniquenessError;
 
-  // ── Reset on open ────────────────────────────────────────────────────────
+  // ── Reset on open & fetch PVCs ──────────────────────────────────────────
 
   useEffect(() => {
     if (isOpen) {
@@ -87,8 +88,18 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
       setIsMountPathEditing(false);
       setReadOnly(false);
       setFormError('');
+
+      const fetchPVCs = async () => {
+        try {
+          const response = await api.pvc.listPvCs(selectedNamespace);
+          setAvailablePVCs(response.data);
+        } catch {
+          // PVC list unavailable - dropdown will be empty
+        }
+      };
+      fetchPVCs();
     }
-  }, [isOpen, fixedMountPath]);
+  }, [isOpen, fixedMountPath, api.pvc, selectedNamespace]);
 
   // ── Mount path handlers ──────────────────────────────────────────────────
 
