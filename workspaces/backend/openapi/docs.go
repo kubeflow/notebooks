@@ -903,7 +903,7 @@ const docTemplate = `{
         },
         "/workspacekinds/{name}/podtemplate/options/listvalues": {
             "post": {
-                "description": "Returns filtered imageConfig and podConfig options based on the provided context. Used by the workspace creation wizard to show compatible options.",
+                "description": "Returns filtered imageConfig and podConfig options based on the provided context.",
                 "consumes": [
                     "application/json"
                 ],
@@ -913,7 +913,7 @@ const docTemplate = `{
                 "tags": [
                     "workspacekinds"
                 ],
-                "summary": "List pod template option values",
+                "summary": "List options values for a pod template workspace kind",
                 "operationId": "podTemplateOptionsListValues",
                 "parameters": [
                     {
@@ -938,7 +938,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Successful operation. Returns filtered options with ruleEffects.",
                         "schema": {
-                            "$ref": "#/definitions/api.PodTemplateOptionsListValuesEnvelope"
+                            "$ref": "#/definitions/api.PodTemplateOptionsEnvelope"
                         }
                     },
                     "400": {
@@ -1665,14 +1665,14 @@ const docTemplate = `{
                 }
             }
         },
-        "api.PodTemplateOptionsListValuesEnvelope": {
+        "api.PodTemplateOptionsEnvelope": {
             "type": "object",
             "required": [
                 "data"
             ],
             "properties": {
                 "data": {
-                    "$ref": "#/definitions/workspacekinds.ListValuesResponse"
+                    "$ref": "#/definitions/options.PodTemplateOptions"
                 }
             }
         },
@@ -1683,7 +1683,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "data": {
-                    "$ref": "#/definitions/workspacekinds.ListValuesRequest"
+                    "$ref": "#/definitions/options.ListValuesRequest"
                 }
             }
         },
@@ -1939,6 +1939,251 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "options.ClusterOptionMetrics": {
+            "type": "object",
+            "required": [
+                "workspacesCount"
+            ],
+            "properties": {
+                "workspacesCount": {
+                    "type": "integer"
+                }
+            }
+        },
+        "options.ContextImageConfig": {
+            "type": "object",
+            "required": [
+                "id"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string"
+                }
+            }
+        },
+        "options.ContextNamespace": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "options.ContextPodConfig": {
+            "type": "object",
+            "required": [
+                "id"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string"
+                }
+            }
+        },
+        "options.ImageConfig": {
+            "type": "object",
+            "required": [
+                "default"
+            ],
+            "properties": {
+                "default": {
+                    "type": "string"
+                },
+                "values": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/options.ImageConfigValue"
+                    }
+                }
+            }
+        },
+        "options.ImageConfigValue": {
+            "type": "object",
+            "required": [
+                "description",
+                "displayName",
+                "hidden",
+                "id"
+            ],
+            "properties": {
+                "clusterMetrics": {
+                    "$ref": "#/definitions/options.ClusterOptionMetrics"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "displayName": {
+                    "type": "string"
+                },
+                "hidden": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "labels": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/options.OptionLabel"
+                    }
+                },
+                "redirect": {
+                    "$ref": "#/definitions/options.OptionRedirect"
+                }
+            }
+        },
+        "options.ListValuesContext": {
+            "type": "object",
+            "properties": {
+                "imageConfig": {
+                    "$ref": "#/definitions/options.ContextImageConfig"
+                },
+                "namespace": {
+                    "$ref": "#/definitions/options.ContextNamespace"
+                },
+                "podConfig": {
+                    "$ref": "#/definitions/options.ContextPodConfig"
+                }
+            }
+        },
+        "options.ListValuesRequest": {
+            "type": "object",
+            "required": [
+                "context"
+            ],
+            "properties": {
+                "context": {
+                    "$ref": "#/definitions/options.ListValuesContext"
+                }
+            }
+        },
+        "options.OptionLabel": {
+            "type": "object",
+            "required": [
+                "key",
+                "value"
+            ],
+            "properties": {
+                "key": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "options.OptionRedirect": {
+            "type": "object",
+            "required": [
+                "to"
+            ],
+            "properties": {
+                "message": {
+                    "$ref": "#/definitions/options.RedirectMessage"
+                },
+                "to": {
+                    "type": "string"
+                }
+            }
+        },
+        "options.PodConfig": {
+            "type": "object",
+            "required": [
+                "default"
+            ],
+            "properties": {
+                "default": {
+                    "type": "string"
+                },
+                "values": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/options.PodConfigValue"
+                    }
+                }
+            }
+        },
+        "options.PodConfigValue": {
+            "type": "object",
+            "required": [
+                "description",
+                "displayName",
+                "hidden",
+                "id"
+            ],
+            "properties": {
+                "clusterMetrics": {
+                    "$ref": "#/definitions/options.ClusterOptionMetrics"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "displayName": {
+                    "type": "string"
+                },
+                "hidden": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "labels": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/options.OptionLabel"
+                    }
+                },
+                "redirect": {
+                    "$ref": "#/definitions/options.OptionRedirect"
+                }
+            }
+        },
+        "options.PodTemplateOptions": {
+            "type": "object",
+            "required": [
+                "imageConfig",
+                "podConfig"
+            ],
+            "properties": {
+                "imageConfig": {
+                    "$ref": "#/definitions/options.ImageConfig"
+                },
+                "podConfig": {
+                    "$ref": "#/definitions/options.PodConfig"
+                }
+            }
+        },
+        "options.RedirectMessage": {
+            "type": "object",
+            "required": [
+                "level",
+                "text"
+            ],
+            "properties": {
+                "level": {
+                    "$ref": "#/definitions/options.RedirectMessageLevel"
+                },
+                "text": {
+                    "type": "string"
+                }
+            }
+        },
+        "options.RedirectMessageLevel": {
+            "type": "string",
+            "enum": [
+                "Info",
+                "Warning",
+                "Danger"
+            ],
+            "x-enum-varnames": [
+                "RedirectMessageLevelInfo",
+                "RedirectMessageLevelWarning",
+                "RedirectMessageLevelDanger"
+            ]
         },
         "pvcs.PVCCreate": {
             "type": "object",
@@ -2392,148 +2637,14 @@ const docTemplate = `{
                 "WorkspaceStateUnknown"
             ]
         },
-        "workspacekinds.ContextImageConfig": {
+        "workspacekinds.ClusterKindMetrics": {
             "type": "object",
             "required": [
-                "id"
+                "workspacesCount"
             ],
             "properties": {
-                "id": {
-                    "type": "string"
-                }
-            }
-        },
-        "workspacekinds.ContextNamespace": {
-            "type": "object",
-            "required": [
-                "name"
-            ],
-            "properties": {
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "workspacekinds.ContextPodConfig": {
-            "type": "object",
-            "required": [
-                "id"
-            ],
-            "properties": {
-                "id": {
-                    "type": "string"
-                }
-            }
-        },
-        "workspacekinds.ImageConfig": {
-            "type": "object",
-            "required": [
-                "default",
-                "values"
-            ],
-            "properties": {
-                "default": {
-                    "type": "string"
-                },
-                "values": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/workspacekinds.ImageConfigValue"
-                    }
-                }
-            }
-        },
-        "workspacekinds.ImageConfigListResult": {
-            "type": "object",
-            "required": [
-                "default",
-                "values"
-            ],
-            "properties": {
-                "default": {
-                    "type": "string"
-                },
-                "values": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/workspacekinds.ImageConfigValueListItem"
-                    }
-                }
-            }
-        },
-        "workspacekinds.ImageConfigValue": {
-            "type": "object",
-            "required": [
-                "description",
-                "displayName",
-                "hidden",
-                "id",
-                "labels"
-            ],
-            "properties": {
-                "clusterMetrics": {
-                    "$ref": "#/definitions/workspacekinds.clusterMetrics"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "displayName": {
-                    "type": "string"
-                },
-                "hidden": {
-                    "type": "boolean"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "labels": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/workspacekinds.OptionLabel"
-                    }
-                },
-                "redirect": {
-                    "$ref": "#/definitions/workspacekinds.OptionRedirect"
-                }
-            }
-        },
-        "workspacekinds.ImageConfigValueListItem": {
-            "type": "object",
-            "required": [
-                "description",
-                "displayName",
-                "hidden",
-                "id",
-                "labels",
-                "ruleEffects"
-            ],
-            "properties": {
-                "clusterMetrics": {
-                    "$ref": "#/definitions/workspacekinds.clusterMetrics"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "displayName": {
-                    "type": "string"
-                },
-                "hidden": {
-                    "type": "boolean"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "labels": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/workspacekinds.OptionLabel"
-                    }
-                },
-                "redirect": {
-                    "$ref": "#/definitions/workspacekinds.OptionRedirect"
-                },
-                "ruleEffects": {
-                    "$ref": "#/definitions/workspacekinds.RuleEffects"
+                "workspacesCount": {
+                    "type": "integer"
                 }
             }
         },
@@ -2545,189 +2656,6 @@ const docTemplate = `{
             "properties": {
                 "url": {
                     "type": "string"
-                }
-            }
-        },
-        "workspacekinds.ListValuesContext": {
-            "type": "object",
-            "properties": {
-                "imageConfig": {
-                    "$ref": "#/definitions/workspacekinds.ContextImageConfig"
-                },
-                "namespace": {
-                    "description": "TODO: Namespace is reserved for future use, no behavior implemented yet.",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/workspacekinds.ContextNamespace"
-                        }
-                    ]
-                },
-                "podConfig": {
-                    "$ref": "#/definitions/workspacekinds.ContextPodConfig"
-                }
-            }
-        },
-        "workspacekinds.ListValuesRequest": {
-            "type": "object",
-            "properties": {
-                "context": {
-                    "$ref": "#/definitions/workspacekinds.ListValuesContext"
-                }
-            }
-        },
-        "workspacekinds.ListValuesResponse": {
-            "type": "object",
-            "required": [
-                "imageConfig",
-                "podConfig"
-            ],
-            "properties": {
-                "imageConfig": {
-                    "$ref": "#/definitions/workspacekinds.ImageConfigListResult"
-                },
-                "podConfig": {
-                    "$ref": "#/definitions/workspacekinds.PodConfigListResult"
-                }
-            }
-        },
-        "workspacekinds.OptionLabel": {
-            "type": "object",
-            "required": [
-                "key",
-                "value"
-            ],
-            "properties": {
-                "key": {
-                    "type": "string"
-                },
-                "value": {
-                    "type": "string"
-                }
-            }
-        },
-        "workspacekinds.OptionRedirect": {
-            "type": "object",
-            "required": [
-                "to"
-            ],
-            "properties": {
-                "message": {
-                    "$ref": "#/definitions/workspacekinds.RedirectMessage"
-                },
-                "to": {
-                    "type": "string"
-                }
-            }
-        },
-        "workspacekinds.PodConfig": {
-            "type": "object",
-            "required": [
-                "default",
-                "values"
-            ],
-            "properties": {
-                "default": {
-                    "type": "string"
-                },
-                "values": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/workspacekinds.PodConfigValue"
-                    }
-                }
-            }
-        },
-        "workspacekinds.PodConfigListResult": {
-            "type": "object",
-            "required": [
-                "default",
-                "values"
-            ],
-            "properties": {
-                "default": {
-                    "type": "string"
-                },
-                "values": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/workspacekinds.PodConfigValueListItem"
-                    }
-                }
-            }
-        },
-        "workspacekinds.PodConfigValue": {
-            "type": "object",
-            "required": [
-                "description",
-                "displayName",
-                "hidden",
-                "id",
-                "labels"
-            ],
-            "properties": {
-                "clusterMetrics": {
-                    "$ref": "#/definitions/workspacekinds.clusterMetrics"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "displayName": {
-                    "type": "string"
-                },
-                "hidden": {
-                    "type": "boolean"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "labels": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/workspacekinds.OptionLabel"
-                    }
-                },
-                "redirect": {
-                    "$ref": "#/definitions/workspacekinds.OptionRedirect"
-                }
-            }
-        },
-        "workspacekinds.PodConfigValueListItem": {
-            "type": "object",
-            "required": [
-                "description",
-                "displayName",
-                "hidden",
-                "id",
-                "labels",
-                "ruleEffects"
-            ],
-            "properties": {
-                "clusterMetrics": {
-                    "$ref": "#/definitions/workspacekinds.clusterMetrics"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "displayName": {
-                    "type": "string"
-                },
-                "hidden": {
-                    "type": "boolean"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "labels": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/workspacekinds.OptionLabel"
-                    }
-                },
-                "redirect": {
-                    "$ref": "#/definitions/workspacekinds.OptionRedirect"
-                },
-                "ruleEffects": {
-                    "$ref": "#/definitions/workspacekinds.RuleEffects"
                 }
             }
         },
@@ -2761,28 +2689,18 @@ const docTemplate = `{
             ],
             "properties": {
                 "options": {
-                    "$ref": "#/definitions/workspacekinds.PodTemplateOptions"
+                    "description": "TODO: remove once frontend migrates to the new listValues endpoint for both create/update and wsk admin views",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/options.PodTemplateOptions"
+                        }
+                    ]
                 },
                 "podMetadata": {
                     "$ref": "#/definitions/workspacekinds.PodMetadata"
                 },
                 "volumeMounts": {
                     "$ref": "#/definitions/workspacekinds.PodVolumeMounts"
-                }
-            }
-        },
-        "workspacekinds.PodTemplateOptions": {
-            "type": "object",
-            "required": [
-                "imageConfig",
-                "podConfig"
-            ],
-            "properties": {
-                "imageConfig": {
-                    "$ref": "#/definitions/workspacekinds.ImageConfig"
-                },
-                "podConfig": {
-                    "$ref": "#/definitions/workspacekinds.PodConfig"
                 }
             }
         },
@@ -2797,48 +2715,10 @@ const docTemplate = `{
                 }
             }
         },
-        "workspacekinds.RedirectMessage": {
-            "type": "object",
-            "required": [
-                "level",
-                "text"
-            ],
-            "properties": {
-                "level": {
-                    "$ref": "#/definitions/workspacekinds.RedirectMessageLevel"
-                },
-                "text": {
-                    "type": "string"
-                }
-            }
-        },
-        "workspacekinds.RedirectMessageLevel": {
-            "type": "string",
-            "enum": [
-                "Info",
-                "Warning",
-                "Danger"
-            ],
-            "x-enum-varnames": [
-                "RedirectMessageLevelInfo",
-                "RedirectMessageLevelWarning",
-                "RedirectMessageLevelDanger"
-            ]
-        },
-        "workspacekinds.RuleEffects": {
-            "type": "object",
-            "required": [
-                "uiHide"
-            ],
-            "properties": {
-                "uiHide": {
-                    "type": "boolean"
-                }
-            }
-        },
         "workspacekinds.WorkspaceKind": {
             "type": "object",
             "required": [
+                "clusterMetrics",
                 "deprecated",
                 "deprecationMessage",
                 "description",
@@ -2851,7 +2731,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "clusterMetrics": {
-                    "$ref": "#/definitions/workspacekinds.clusterMetrics"
+                    "$ref": "#/definitions/workspacekinds.ClusterKindMetrics"
                 },
                 "deprecated": {
                     "type": "boolean"
@@ -2879,17 +2759,6 @@ const docTemplate = `{
                 },
                 "podTemplate": {
                     "$ref": "#/definitions/workspacekinds.PodTemplate"
-                }
-            }
-        },
-        "workspacekinds.clusterMetrics": {
-            "type": "object",
-            "required": [
-                "workspacesCount"
-            ],
-            "properties": {
-                "workspacesCount": {
-                    "type": "integer"
                 }
             }
         },

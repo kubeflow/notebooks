@@ -16,26 +16,22 @@ limitations under the License.
 
 package workspacekinds
 
-import (
-	"k8s.io/apimachinery/pkg/util/validation/field"
-
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
-)
+import "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/podtemplate/options"
 
 type WorkspaceKind struct {
-	Name               string         `json:"name"`
-	DisplayName        string         `json:"displayName"`
-	Description        string         `json:"description"`
-	Deprecated         bool           `json:"deprecated"`
-	DeprecationMessage string         `json:"deprecationMessage"`
-	Hidden             bool           `json:"hidden"`
-	Icon               ImageRef       `json:"icon"`
-	Logo               ImageRef       `json:"logo"`
-	ClusterMetrics     clusterMetrics `json:"clusterMetrics,omitempty"`
-	PodTemplate        PodTemplate    `json:"podTemplate"`
+	Name               string             `json:"name"`
+	DisplayName        string             `json:"displayName"`
+	Description        string             `json:"description"`
+	Deprecated         bool               `json:"deprecated"`
+	DeprecationMessage string             `json:"deprecationMessage"`
+	Hidden             bool               `json:"hidden"`
+	Icon               ImageRef           `json:"icon"`
+	Logo               ImageRef           `json:"logo"`
+	ClusterMetrics     ClusterKindMetrics `json:"clusterMetrics"`
+	PodTemplate        PodTemplate        `json:"podTemplate"`
 }
 
-type clusterMetrics struct {
+type ClusterKindMetrics struct {
 	Workspaces int32 `json:"workspacesCount"`
 }
 
@@ -44,9 +40,13 @@ type ImageRef struct {
 }
 
 type PodTemplate struct {
-	PodMetadata  PodMetadata        `json:"podMetadata"`
-	VolumeMounts PodVolumeMounts    `json:"volumeMounts"`
-	Options      PodTemplateOptions `json:"options"`
+	PodMetadata  PodMetadata     `json:"podMetadata"`
+	VolumeMounts PodVolumeMounts `json:"volumeMounts"`
+
+	//
+	// TODO: remove once frontend migrates to the new listValues endpoint for both create/update and wsk admin views
+	//
+	Options options.PodTemplateOptions `json:"options"`
 }
 
 type PodMetadata struct {
@@ -56,146 +56,4 @@ type PodMetadata struct {
 
 type PodVolumeMounts struct {
 	Home string `json:"home"`
-}
-
-type PodTemplateOptions struct {
-	ImageConfig ImageConfig `json:"imageConfig"`
-	PodConfig   PodConfig   `json:"podConfig"`
-}
-
-type ImageConfig struct {
-	Default string             `json:"default"`
-	Values  []ImageConfigValue `json:"values"`
-}
-
-type ImageConfigValue struct {
-	Id             string          `json:"id"`
-	DisplayName    string          `json:"displayName"`
-	Description    string          `json:"description"`
-	Labels         []OptionLabel   `json:"labels"`
-	Hidden         bool            `json:"hidden"`
-	Redirect       *OptionRedirect `json:"redirect,omitempty"`
-	ClusterMetrics clusterMetrics  `json:"clusterMetrics,omitempty"`
-}
-
-type PodConfig struct {
-	Default string           `json:"default"`
-	Values  []PodConfigValue `json:"values"`
-}
-
-type PodConfigValue struct {
-	Id             string          `json:"id"`
-	DisplayName    string          `json:"displayName"`
-	Description    string          `json:"description"`
-	Labels         []OptionLabel   `json:"labels"`
-	Hidden         bool            `json:"hidden"`
-	Redirect       *OptionRedirect `json:"redirect,omitempty"`
-	ClusterMetrics clusterMetrics  `json:"clusterMetrics,omitempty"`
-}
-
-type OptionLabel struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
-}
-
-type OptionRedirect struct {
-	To      string           `json:"to"`
-	Message *RedirectMessage `json:"message,omitempty"`
-}
-
-type RedirectMessage struct {
-	Text  string               `json:"text"`
-	Level RedirectMessageLevel `json:"level"`
-}
-
-type RedirectMessageLevel string
-
-const (
-	RedirectMessageLevelInfo    RedirectMessageLevel = "Info"
-	RedirectMessageLevelWarning RedirectMessageLevel = "Warning"
-	RedirectMessageLevelDanger  RedirectMessageLevel = "Danger"
-)
-
-type ListValuesRequest struct {
-	Context *ListValuesContext `json:"context,omitempty"`
-}
-
-// Validate validates the listvalues request data by delegating to Context when present.
-func (d *ListValuesRequest) Validate(prefix *field.Path) []*field.Error {
-	var errs field.ErrorList
-
-	if d.Context != nil {
-		errs = append(errs, d.Context.Validate(prefix.Child("context"))...)
-	}
-	return errs
-}
-
-type ListValuesContext struct {
-	// TODO: Namespace is reserved for future use, no behavior implemented yet.
-	Namespace   *ContextNamespace   `json:"namespace,omitempty"`
-	PodConfig   *ContextPodConfig   `json:"podConfig,omitempty"`
-	ImageConfig *ContextImageConfig `json:"imageConfig,omitempty"`
-}
-
-// Validate validates the context fields when present.
-func (c *ListValuesContext) Validate(prefix *field.Path) []*field.Error {
-	var errs field.ErrorList
-	if c == nil {
-		return errs
-	}
-	if c.Namespace != nil {
-		errs = append(errs, helper.ValidateKubernetesNamespaceName(prefix.Child("namespace", "name"), c.Namespace.Name)...)
-	}
-	if c.PodConfig != nil {
-		errs = append(errs, helper.ValidateFieldIsNotEmpty(prefix.Child("podConfig", "id"), c.PodConfig.Id)...)
-	}
-	if c.ImageConfig != nil {
-		errs = append(errs, helper.ValidateFieldIsNotEmpty(prefix.Child("imageConfig", "id"), c.ImageConfig.Id)...)
-	}
-	return errs
-}
-
-type ContextNamespace struct {
-	Name string `json:"name"`
-}
-
-type ContextPodConfig struct {
-	Id string `json:"id"`
-}
-
-type ContextImageConfig struct {
-	Id string `json:"id"`
-}
-
-type ListValuesResponse struct {
-	ImageConfig ImageConfigListResult `json:"imageConfig"`
-	PodConfig   PodConfigListResult   `json:"podConfig"`
-}
-
-// ImageConfigListResult is the imageConfig section of a listvalues response.
-type ImageConfigListResult struct {
-	Default string                     `json:"default"`
-	Values  []ImageConfigValueListItem `json:"values"`
-}
-
-// ImageConfigValueListItem is one image option in listvalues with ruleEffects.
-type ImageConfigValueListItem struct {
-	ImageConfigValue
-	RuleEffects RuleEffects `json:"ruleEffects"`
-}
-
-// PodConfigListResult is the podConfig section of a listvalues response.
-type PodConfigListResult struct {
-	Default string                   `json:"default"`
-	Values  []PodConfigValueListItem `json:"values"`
-}
-
-// PodConfigValueListItem is one pod option in listvalues with ruleEffects.
-type PodConfigValueListItem struct {
-	PodConfigValue
-	RuleEffects RuleEffects `json:"ruleEffects"`
-}
-
-type RuleEffects struct {
-	UiHide bool `json:"uiHide"`
 }
