@@ -440,7 +440,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
+func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager, opts *controller.Options) error {
 
 	// NOTE: the SetupManagerFieldIndexers() helper in `helper/index.go` should have already been
 	//       called on `mgr` by the time this function is called, so the indexes are already set up
@@ -465,7 +465,7 @@ func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager, opts controller
 
 	// Build the controller with core resources
 	controllerBuilder := ctrl.NewControllerManagedBy(mgr).
-		WithOptions(opts).
+		WithOptions(*opts).
 		For(&kubefloworgv1beta1.Workspace{}).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Service{})

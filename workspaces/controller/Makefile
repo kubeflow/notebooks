@@ -175,7 +175,7 @@ KUSTOMIZE_VERSION ?= v5.5.0
 CONTROLLER_TOOLS_VERSION ?= v0.20.1
 ENVTEST_VERSION ?= release-0.19
 ISTIOCTL_VERSION ?= 1.27.3
-GOLANGCI_LINT_VERSION ?= v1.61.0
+GOLANGCI_LINT_VERSION ?= v1.64.8
 
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.

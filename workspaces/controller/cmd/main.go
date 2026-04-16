@@ -159,7 +159,7 @@ func main() {
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 		Config: cfg,
-	}).SetupWithManager(mgr, controller.Options{
+	}).SetupWithManager(mgr, &controller.Options{
 		RateLimiter: helper.BuildRateLimiter(),
 	}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Workspace")
@@ -168,7 +168,7 @@ func main() {
 	if err = (&controllerInternal.WorkspaceKindReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr, controller.Options{
+	}).SetupWithManager(mgr, &controller.Options{
 		RateLimiter: helper.BuildRateLimiter(),
 	}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "WorkspaceKind")

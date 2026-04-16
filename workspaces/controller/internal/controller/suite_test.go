@@ -125,7 +125,7 @@ var _ = BeforeSuite(func() {
 		Client: k8sManager.GetClient(),
 		Scheme: k8sManager.GetScheme(),
 		Config: envConfig,
-	}).SetupWithManager(k8sManager, controller.Options{
+	}).SetupWithManager(k8sManager, &controller.Options{
 		RateLimiter: helper.BuildRateLimiter(),
 	})
 	Expect(err).NotTo(HaveOccurred())
@@ -134,7 +134,7 @@ var _ = BeforeSuite(func() {
 	err = (&WorkspaceKindReconciler{
 		Client: k8sManager.GetClient(),
 		Scheme: k8sManager.GetScheme(),
-	}).SetupWithManager(k8sManager, controller.Options{
+	}).SetupWithManager(k8sManager, &controller.Options{
 		RateLimiter: helper.BuildRateLimiter(),
 	})
 	Expect(err).NotTo(HaveOccurred())
