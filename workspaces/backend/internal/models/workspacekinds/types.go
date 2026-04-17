@@ -16,20 +16,22 @@ limitations under the License.
 
 package workspacekinds
 
+import "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/podtemplate/options"
+
 type WorkspaceKind struct {
-	Name               string         `json:"name"`
-	DisplayName        string         `json:"displayName"`
-	Description        string         `json:"description"`
-	Deprecated         bool           `json:"deprecated"`
-	DeprecationMessage string         `json:"deprecationMessage"`
-	Hidden             bool           `json:"hidden"`
-	Icon               ImageRef       `json:"icon"`
-	Logo               ImageRef       `json:"logo"`
-	ClusterMetrics     clusterMetrics `json:"clusterMetrics,omitempty"`
-	PodTemplate        PodTemplate    `json:"podTemplate"`
+	Name               string             `json:"name"`
+	DisplayName        string             `json:"displayName"`
+	Description        string             `json:"description"`
+	Deprecated         bool               `json:"deprecated"`
+	DeprecationMessage string             `json:"deprecationMessage"`
+	Hidden             bool               `json:"hidden"`
+	Icon               ImageRef           `json:"icon"`
+	Logo               ImageRef           `json:"logo"`
+	ClusterMetrics     ClusterKindMetrics `json:"clusterMetrics"`
+	PodTemplate        PodTemplate        `json:"podTemplate"`
 }
 
-type clusterMetrics struct {
+type ClusterKindMetrics struct {
 	Workspaces int32 `json:"workspacesCount"`
 }
 
@@ -38,9 +40,13 @@ type ImageRef struct {
 }
 
 type PodTemplate struct {
-	PodMetadata  PodMetadata        `json:"podMetadata"`
-	VolumeMounts PodVolumeMounts    `json:"volumeMounts"`
-	Options      PodTemplateOptions `json:"options"`
+	PodMetadata  PodMetadata     `json:"podMetadata"`
+	VolumeMounts PodVolumeMounts `json:"volumeMounts"`
+
+	//
+	// TODO: remove once frontend migrates to the new listValues endpoint for both create/update and wsk admin views
+	//
+	Options options.PodTemplateOptions `json:"options"`
 }
 
 type PodMetadata struct {
@@ -51,61 +57,3 @@ type PodMetadata struct {
 type PodVolumeMounts struct {
 	Home string `json:"home"`
 }
-
-type PodTemplateOptions struct {
-	ImageConfig ImageConfig `json:"imageConfig"`
-	PodConfig   PodConfig   `json:"podConfig"`
-}
-
-type ImageConfig struct {
-	Default string             `json:"default"`
-	Values  []ImageConfigValue `json:"values"`
-}
-
-type ImageConfigValue struct {
-	Id             string          `json:"id"`
-	DisplayName    string          `json:"displayName"`
-	Description    string          `json:"description"`
-	Labels         []OptionLabel   `json:"labels"`
-	Hidden         bool            `json:"hidden"`
-	Redirect       *OptionRedirect `json:"redirect,omitempty"`
-	ClusterMetrics clusterMetrics  `json:"clusterMetrics,omitempty"`
-}
-
-type PodConfig struct {
-	Default string           `json:"default"`
-	Values  []PodConfigValue `json:"values"`
-}
-
-type PodConfigValue struct {
-	Id             string          `json:"id"`
-	DisplayName    string          `json:"displayName"`
-	Description    string          `json:"description"`
-	Labels         []OptionLabel   `json:"labels"`
-	Hidden         bool            `json:"hidden"`
-	Redirect       *OptionRedirect `json:"redirect,omitempty"`
-	ClusterMetrics clusterMetrics  `json:"clusterMetrics,omitempty"`
-}
-
-type OptionLabel struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
-}
-
-type OptionRedirect struct {
-	To      string           `json:"to"`
-	Message *RedirectMessage `json:"message,omitempty"`
-}
-
-type RedirectMessage struct {
-	Text  string               `json:"text"`
-	Level RedirectMessageLevel `json:"level"`
-}
-
-type RedirectMessageLevel string
-
-const (
-	RedirectMessageLevelInfo    RedirectMessageLevel = "Info"
-	RedirectMessageLevelWarning RedirectMessageLevel = "Warning"
-	RedirectMessageLevelDanger  RedirectMessageLevel = "Danger"
-)

@@ -25,6 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds"
+	modelsPodTemplateOptions "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/podtemplate/options"
 )
 
 var ErrWorkspaceKindNotFound = errors.New("workspace kind not found")
@@ -91,4 +92,24 @@ func (r *WorkspaceKindRepository) Create(ctx context.Context, workspaceKind *kub
 	createdWorkspaceKindModel := models.NewWorkspaceKindModelFromWorkspaceKind(workspaceKind)
 
 	return &createdWorkspaceKindModel, nil
+}
+
+func (r *WorkspaceKindRepository) ListPodTemplateOptionsValues(ctx context.Context, name string, listValuesRequest *modelsPodTemplateOptions.ListValuesRequest) (*modelsPodTemplateOptions.PodTemplateOptions, error) {
+	// get workspace kind
+	workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
+	err := r.client.Get(ctx, client.ObjectKey{Name: name}, workspaceKind)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, ErrWorkspaceKindNotFound
+		}
+		return nil, err
+	}
+
+	// convert the WorkspaceKind and ListValuesRequest to PodTemplateOptions model
+	listValuesResponse, err := modelsPodTemplateOptions.NewPodTemplateOptionsModelFromWorkspaceKind(workspaceKind, listValuesRequest)
+	if err != nil {
+		return nil, err
+	}
+
+	return listValuesResponse, nil
 }
