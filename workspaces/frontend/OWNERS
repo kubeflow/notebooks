@@ -3,3 +3,6 @@ labels:
 approvers:
   - ederign
   - paulovmr
+reviewers:
+  - thaorell
+  - caponetto
