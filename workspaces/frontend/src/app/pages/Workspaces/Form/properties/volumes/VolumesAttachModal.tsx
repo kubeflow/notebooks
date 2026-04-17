@@ -90,12 +90,6 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
     }
   }, [isOpen, fixedMountPath, refreshPVCs]);
 
-  useEffect(() => {
-    if (pvcLoadError) {
-      setFormError(pvcLoadError);
-    }
-  }, [pvcLoadError]);
-
   // ── Mount path handlers ──────────────────────────────────────────────────
 
   const handleStartMountPathEdit = useCallback(() => {
@@ -181,25 +175,29 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
     >
       <ModalHeader title="Attach Existing Volume" labelId="volumes-attach-modal-title" />
       <ModalBody id="volumes-attach-modal-body">
-        <Stack hasGutter>
-          {formError && (
+        {pvcLoadError ? (
+          <Alert variant={AlertVariant.danger} isInline title="Error">
+            {pvcLoadError}
+          </Alert>
+        ) : !pvcsLoaded && availablePVCs.length === 0 ? (
+          <LoadingSpinner />
+        ) : (
+          <Stack hasGutter>
+            {formError && (
+              <StackItem>
+                <Alert variant={AlertVariant.danger} isInline title="Error">
+                  {formError}
+                </Alert>
+              </StackItem>
+            )}
+            {inUseAlert && (
+              <StackItem>
+                <Alert variant={inUseAlert.variant} isInline title={inUseAlert.title}>
+                  {inUseAlert.body}
+                </Alert>
+              </StackItem>
+            )}
             <StackItem>
-              <Alert variant={AlertVariant.danger} isInline title="Error">
-                {formError}
-              </Alert>
-            </StackItem>
-          )}
-          {inUseAlert && (
-            <StackItem>
-              <Alert variant={inUseAlert.variant} isInline title={inUseAlert.title}>
-                {inUseAlert.body}
-              </Alert>
-            </StackItem>
-          )}
-          <StackItem>
-            {!pvcsLoaded && availablePVCs.length === 0 ? (
-              <LoadingSpinner />
-            ) : (
               <Form>
                 <ThemeAwareFormGroupWrapper label="Volume" fieldId="pvc-select">
                   <TypeaheadSelect
@@ -257,9 +255,9 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
                   />
                 </ThemeAwareFormGroupWrapper>
               </Form>
-            )}
-          </StackItem>
-        </Stack>
+            </StackItem>
+          </Stack>
+        )}
       </ModalBody>
       <ModalFooter>
         <Button

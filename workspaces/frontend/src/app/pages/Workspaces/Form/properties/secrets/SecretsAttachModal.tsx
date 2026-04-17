@@ -82,12 +82,6 @@ export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
     }
   }, [isOpen, refreshSecrets]);
 
-  useEffect(() => {
-    if (secretLoadError) {
-      setError(secretLoadError);
-    }
-  }, [secretLoadError]);
-
   // Auto-fill mount path when secret is selected
   useEffect(() => {
     if (selected) {
@@ -253,69 +247,75 @@ export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
     >
       <ModalHeader title="Attach Existing Secrets" labelId="basic-modal-title" />
       <ModalBody id="modal-box-body-basic">
-        {error && (
+        {secretLoadError ? (
           <Alert variant={AlertVariant.danger} isInline title="Error">
-            {error}
+            {secretLoadError}
           </Alert>
-        )}
-        {!secretsLoaded && availableSecrets.length === 0 ? (
+        ) : !secretsLoaded && availableSecrets.length === 0 ? (
           <LoadingSpinner />
         ) : (
-          <Form>
-            <ThemeAwareFormGroupWrapper label="Secret" fieldId="secret-select">
-              <TypeaheadSelect
-                key={selected ?? SECRET_SELECT_EMPTY_KEY}
-                initialOptions={initialOptions}
-                id="secret-select"
-                placeholder="Select a secret"
-                isScrollable
-                maxMenuHeight="15rem"
-                noOptionsFoundMessage={(filter) => `No secret was found for "${filter}"`}
-                onSelect={(_ev, selection) => {
-                  setSelected(selection as string);
-                  setError('');
-                }}
-                onClearSelection={() => {
-                  setSelected(null);
-                  setError('');
-                }}
-              />
-            </ThemeAwareFormGroupWrapper>
-            <MountPathField
-              variant="input"
-              value={mountPath}
-              onChange={(val) => {
-                setMountPath(val);
-                setError('');
-              }}
-              isEditing={isMountPathEditing}
-              onStartEdit={handleStartMountPathEdit}
-              onConfirm={handleConfirmMountPathEdit}
-              onCancel={handleCancelMountPathEdit}
-              error={mountPathError}
-              fieldId="mount-path"
-            />
-            <ThemeAwareFormGroupWrapper label="Default Mode" isRequired fieldId="default-mode">
-              <FormGroup fieldId="default-mode" isRequired>
-                <TextInput
-                  name="defaultMode"
-                  isRequired
-                  type="text"
-                  value={defaultMode}
-                  validated={!isDefaultModeValid ? ValidatedOptions.error : undefined}
-                  onChange={(_, val) => handleDefaultModeChange(val)}
-                  id="default-mode"
+          <>
+            {error && (
+              <Alert variant={AlertVariant.danger} isInline title="Error">
+                {error}
+              </Alert>
+            )}
+            <Form>
+              <ThemeAwareFormGroupWrapper label="Secret" fieldId="secret-select">
+                <TypeaheadSelect
+                  key={selected ?? SECRET_SELECT_EMPTY_KEY}
+                  initialOptions={initialOptions}
+                  id="secret-select"
+                  placeholder="Select a secret"
+                  isScrollable
+                  maxMenuHeight="15rem"
+                  noOptionsFoundMessage={(filter) => `No secret was found for "${filter}"`}
+                  onSelect={(_ev, selection) => {
+                    setSelected(selection as string);
+                    setError('');
+                  }}
+                  onClearSelection={() => {
+                    setSelected(null);
+                    setError('');
+                  }}
                 />
-                {!isDefaultModeValid && (
-                  <HelperText>
-                    <HelperTextItem variant="error">
-                      Must be a valid UNIX file system permission value (i.e. 644)
-                    </HelperTextItem>
-                  </HelperText>
-                )}
-              </FormGroup>
-            </ThemeAwareFormGroupWrapper>
-          </Form>
+              </ThemeAwareFormGroupWrapper>
+              <MountPathField
+                variant="input"
+                value={mountPath}
+                onChange={(val) => {
+                  setMountPath(val);
+                  setError('');
+                }}
+                isEditing={isMountPathEditing}
+                onStartEdit={handleStartMountPathEdit}
+                onConfirm={handleConfirmMountPathEdit}
+                onCancel={handleCancelMountPathEdit}
+                error={mountPathError}
+                fieldId="mount-path"
+              />
+              <ThemeAwareFormGroupWrapper label="Default Mode" isRequired fieldId="default-mode">
+                <FormGroup fieldId="default-mode" isRequired>
+                  <TextInput
+                    name="defaultMode"
+                    isRequired
+                    type="text"
+                    value={defaultMode}
+                    validated={!isDefaultModeValid ? ValidatedOptions.error : undefined}
+                    onChange={(_, val) => handleDefaultModeChange(val)}
+                    id="default-mode"
+                  />
+                  {!isDefaultModeValid && (
+                    <HelperText>
+                      <HelperTextItem variant="error">
+                        Must be a valid UNIX file system permission value (i.e. 644)
+                      </HelperTextItem>
+                    </HelperText>
+                  )}
+                </FormGroup>
+              </ThemeAwareFormGroupWrapper>
+            </Form>
+          </>
         )}
       </ModalBody>
       <ModalFooter>
