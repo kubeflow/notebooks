@@ -59,3 +59,7 @@ If you want to enable the scheduling functionality for Tensorboard servers that 
 2. Modify the `manager.yaml` file by navigating to the `deployment.spec.template.spec` field and manually setting the value of the `RWO_PVC_SCHEDULING` env var to `"true"` in the manager container.
 
 3. Run: `make deploy IMG=YOUR_IMAGE_NAME`
+
+## IMAGE UPGRADES
+
+The Tensorboard server image is configured via the `TENSORBOARD_IMAGE` env var on the controller (see `config/base/kustomization.yaml`). When this value changes and the controller rolls, the controller reconciles the image onto every existing `Tensorboard`'s managed Deployment, not just newly created ones. This means active users will see their Tensorboard pod briefly restart and their browser tab need a refresh; the underlying event logs (on the PVC or cloud bucket referenced by `spec.logspath`) are unaffected, so no data is lost.
