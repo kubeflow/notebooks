@@ -10,7 +10,7 @@ Please see the [Contributing to Kubeflow](https://www.kubeflow.org/docs/about/co
 To certify you agree to the [Developer Certificate of Origin](https://developercertificate.org/) you must sign-off each commit message using `git commit --signoff`, or manually write the following:
 
 ```text
-feat(ws): my commit message`
+feat: my commit message
 
 Signed-off-by: John Smith <john-smith@users.noreply.github.com>
 ```
