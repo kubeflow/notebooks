@@ -44,6 +44,7 @@ import {
   extractWorkspaceKindStatusColor,
   WorkspaceKindStatus,
 } from '~/shared/utilities/WorkspaceKindUtils';
+import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 import { WorkspaceKindDetails } from './details/WorkspaceKindDetails';
 
 export enum ActionType {
@@ -90,7 +91,9 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
   const createWorkspaceKind = useCallback(() => {
     navigate('workspaceKindCreate');
   }, [navigate]);
-  const [workspaceKinds, workspaceKindsLoaded, workspaceKindsError] = useWorkspaceKinds();
+  const { selectedNamespace } = useNamespaceSelectorWrapper();
+  const [workspaceKinds, workspaceKindsLoaded, workspaceKindsError] =
+    useWorkspaceKinds(selectedNamespace);
   const workspaceCountResult = useWorkspaceCountPerKind();
   const [selectedWorkspaceKind, setSelectedWorkspaceKind] =
     useState<WorkspacekindsWorkspaceKind | null>(null);
