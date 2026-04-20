@@ -415,6 +415,14 @@ export interface WorkspacekindsRedirectMessage {
   text: string;
 }
 
+// TODO: this interface was added manually as a stub while the backend swagger spec is updated.
+// Once the backend exposes ruleEffects in swagger.json, regenerate this file using
+// `npm run generate:api` and remove this comment.
+export interface WorkspacekindsRuleEffects {
+  uiHide: boolean;
+  aclDeny: boolean;
+}
+
 export interface WorkspacekindsWorkspaceKind {
   clusterMetrics?: WorkspacekindsClusterMetrics;
   deprecated: boolean;
@@ -426,6 +434,7 @@ export interface WorkspacekindsWorkspaceKind {
   logo: WorkspacekindsImageRef;
   name: string;
   podTemplate: WorkspacekindsPodTemplate;
+  ruleEffects?: WorkspacekindsRuleEffects;
 }
 
 export interface WorkspacekindsClusterMetrics {

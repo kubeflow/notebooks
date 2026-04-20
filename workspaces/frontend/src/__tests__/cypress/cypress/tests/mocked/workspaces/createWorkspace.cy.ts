@@ -584,6 +584,74 @@ describe('Create workspace', () => {
       createWorkspace.assertPodConfigSelected(mockPodConfig.id);
       createWorkspace.assertNextButtonEnabled();
     });
+
+    it('should hide workspace kinds with ruleEffects.uiHide set to true', () => {
+      const visibleKind = buildMockWorkspaceKind({
+        name: 'visible-kind',
+        displayName: 'Visible kind',
+        ruleEffects: { uiHide: false, aclDeny: false },
+      });
+      const hiddenKind = buildMockWorkspaceKind({
+        name: 'hidden-kind',
+        displayName: 'Hidden kind',
+        ruleEffects: { uiHide: true, aclDeny: false },
+      });
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspacekinds',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+        mockModArchResponse([visibleKind, hiddenKind]),
+      ).as('getWorkspaceKindsWithRuleEffects');
+
+      createWorkspace.visit();
+      cy.wait('@getWorkspaceKindsWithRuleEffects');
+
+      createWorkspace.assertCardVisible(visibleKind.name);
+      createWorkspace.assertCardNotVisible(hiddenKind.name);
+    });
+
+    it('should show all kinds when ruleEffects is missing', () => {
+      const kindWithoutRuleEffects = buildMockWorkspaceKind({
+        name: 'kind-without-rule-effects',
+        displayName: 'Kind without rule effects',
+        ruleEffects: undefined,
+      });
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspacekinds',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+        mockModArchResponse([kindWithoutRuleEffects]),
+      ).as('getWorkspaceKindsNoRuleEffects');
+
+      createWorkspace.visit();
+      cy.wait('@getWorkspaceKindsNoRuleEffects');
+
+      createWorkspace.assertCardVisible(kindWithoutRuleEffects.name);
+    });
+
+    it('should show empty state when all kinds are hidden by ruleEffects.uiHide set to true', () => {
+      const hiddenKind1 = buildMockWorkspaceKind({
+        name: 'hidden-kind-1',
+        displayName: 'Hidden kind 1',
+        ruleEffects: { uiHide: true, aclDeny: false },
+      });
+      const hiddenKind2 = buildMockWorkspaceKind({
+        name: 'hidden-kind-2',
+        displayName: 'Hidden kind 2',
+        ruleEffects: { uiHide: true, aclDeny: false },
+      });
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspacekinds',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+        mockModArchResponse([hiddenKind1, hiddenKind2]),
+      ).as('getWorkspaceKindsAllHidden');
+
+      createWorkspace.visit();
+      cy.wait('@getWorkspaceKindsAllHidden');
+
+      createWorkspace.assertNoResultsFound();
+    });
   });
 
   describe('Filter', () => {

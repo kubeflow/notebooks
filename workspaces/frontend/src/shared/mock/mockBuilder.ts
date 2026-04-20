@@ -447,6 +447,10 @@ export const buildMockWorkspaceKind = (
   logo: {
     url: 'https://upload.wikimedia.org/wikipedia/commons/3/38/Jupyter_logo.svg',
   },
+  ruleEffects: {
+    uiHide: false,
+    aclDeny: false,
+  },
   clusterMetrics: {
     workspacesCount: 10,
   },
