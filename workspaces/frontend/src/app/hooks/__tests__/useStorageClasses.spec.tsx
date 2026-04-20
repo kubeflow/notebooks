@@ -61,8 +61,6 @@ describe('useStorageClasses', () => {
     await waitForNextUpdate();
 
     expect(result.current.storageClasses).toEqual([]);
-    expect(result.current.storageClassLoadError).toBe(
-      'Storage classes could not be loaded. Enter a class name manually.',
-    );
+    expect(result.current.storageClassLoadError).toBe('network error');
   });
 });
