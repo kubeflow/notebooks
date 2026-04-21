@@ -81,6 +81,27 @@ export interface WorkspaceKindImagePort {
   port: number;
   protocol: 'HTTP'; // ONLY HTTP is supported at the moment, per https://github.com/thesuperzapper/kubeflow-notebooks-v2-design/blob/main/crds/workspace-kind.yaml#L275
 }
+export enum TolerationOperator {
+  None = '',
+  Equal = 'Equal',
+  Exists = 'Exists',
+}
+
+export enum TolerationEffect {
+  None = '',
+  NoSchedule = 'NoSchedule',
+  PreferNoSchedule = 'PreferNoSchedule',
+  NoExecute = 'NoExecute',
+}
+
+export interface TolerationEntry {
+  id: string;
+  operator: TolerationOperator;
+  effect: TolerationEffect;
+  key: string;
+  value: string;
+  tolerationSeconds: number | null;
+}
 
 export interface WorkspaceKindPodConfigValue extends OptionsPodConfigValue {
   resources?: {
@@ -92,6 +113,7 @@ export interface WorkspaceKindPodConfigValue extends OptionsPodConfigValue {
     };
   };
   nodeSelector?: Record<string, string>;
+  tolerations?: TolerationEntry[];
 }
 
 export interface WorkspaceKindImageConfigData {

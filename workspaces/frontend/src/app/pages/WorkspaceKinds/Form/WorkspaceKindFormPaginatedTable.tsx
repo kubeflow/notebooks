@@ -32,7 +32,7 @@ interface PaginatedTableProps {
   paginated?: boolean;
   dataTestId?: string;
   expandedContent?: (
-    row: WorkspaceKindImageConfigValue | WorkspacekindsPodConfigValue,
+    row: WorkspaceKindImageConfigValue | OptionsPodConfigValue,
     globalIndex: number,
   ) => React.ReactNode;
 }

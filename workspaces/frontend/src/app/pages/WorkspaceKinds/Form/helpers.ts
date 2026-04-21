@@ -1,4 +1,11 @@
-import { ImagePullPolicy, WorkspaceKindImagePort, WorkspaceKindPodConfigValue } from '~/app/types';
+import {
+  ImagePullPolicy,
+  TolerationEffect,
+  TolerationEntry,
+  TolerationOperator,
+  WorkspaceKindImagePort,
+  WorkspaceKindPodConfigValue,
+} from '~/app/types';
 import { OptionsOptionLabel, OptionsPodConfigValue } from '~/generated/data-contracts';
 import { PodResourceEntry } from './podConfig/WorkspaceKindFormResource';
 
@@ -143,6 +150,15 @@ export const EMPTY_WORKSPACE_KIND_FORM_DATA = {
     },
   },
 };
+export const emptyToleration = (): TolerationEntry => ({
+  id: generateUniqueId(),
+  operator: TolerationOperator.Equal,
+  effect: TolerationEffect.NoExecute,
+  key: '',
+  value: '',
+  tolerationSeconds: null,
+});
+
 // convert from k8s resource object {limits: {}, requests{}} to array of {type: '', limit: '', request: ''} for each type of resource (e.g. CPU, memory, nvidia.com/gpu)
 export const getResources = (currConfig: WorkspaceKindPodConfigValue): PodResourceEntry[] => {
   const grouped = new Map<string, { request: string; limit: string }>([
