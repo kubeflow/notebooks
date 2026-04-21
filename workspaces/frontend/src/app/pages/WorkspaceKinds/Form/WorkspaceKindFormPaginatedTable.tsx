@@ -112,6 +112,7 @@ export const WorkspaceKindFormPaginatedTable: React.FC<PaginatedTableProps> = ({
             <Tr key={row.id}>
               {isExpandable && (
                 <Td
+                  data-testid={`${dataTestId}-row-${pageIndex}-expand`}
                   expand={{
                     rowIndex: globalIndex,
                     isExpanded,

@@ -197,8 +197,9 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
           <>
             <div className="pf-v6-u-pl-xl pf-v6-u-pt-sm pf-v6-u-pb-sm">
               <div>
-                Pod configurations allow specifying resource allocation for Workspace Kinds. Expand
-                each configuration to view and manage its tolerations.
+                Pod configurations define the hardware resource options available to a Workspace.
+                Expand each configuration to access nodeSelector and tolerations, allowing you to
+                constrain pods to specific node groups.
               </div>
             </div>
             <WorkspaceKindFormPaginatedTable

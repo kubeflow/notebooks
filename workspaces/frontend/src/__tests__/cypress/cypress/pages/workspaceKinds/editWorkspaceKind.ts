@@ -407,7 +407,7 @@ class EditWorkspaceKind {
   }
 
   findPodConfigsTableRows() {
-    return this.findPodConfigsTable().find('tbody tr');
+    return this.findPodConfigsTable().find('tbody');
   }
 
   assertPodConfigsTableVisible() {
@@ -958,6 +958,140 @@ class EditWorkspaceKind {
     } else {
       this.findDetachVolumeModal().should('not.exist');
     }
+  }
+
+  // Pod Config Row Expansion
+  findPodConfigRowExpand(rowIndex: number) {
+    return cy.findByTestId(`pod-configs-table-row-${rowIndex}-expand`);
+  }
+
+  expandPodConfigRow(rowIndex: number) {
+    this.findPodConfigRowExpand(rowIndex).find('button').click();
+  }
+
+  // Tolerations
+  findAddTolerationButton(globalIndex: number) {
+    return cy.findByTestId(`add-toleration-button-${globalIndex}`);
+  }
+
+  clickAddToleration(globalIndex: number) {
+    this.findAddTolerationButton(globalIndex).click();
+  }
+
+  findTolerationModal() {
+    return cy.findByTestId('toleration-modal');
+  }
+
+  assertTolerationModalVisible(visible: boolean) {
+    if (visible) {
+      this.findTolerationModal().should('be.visible');
+    } else {
+      this.findTolerationModal().should('not.exist');
+    }
+  }
+
+  findTolerationKeyInput() {
+    return cy.findByTestId('toleration-key-input');
+  }
+
+  typeTolerationKey(key: string) {
+    this.findTolerationKeyInput().clear().type(key);
+  }
+
+  findTolerationValueInput() {
+    return cy.findByTestId('toleration-value-input');
+  }
+
+  typeTolerationValue(value: string) {
+    this.findTolerationValueInput().clear().type(value);
+  }
+
+  findTolerationOperatorSelect() {
+    return cy.findByTestId('toleration-operator-select');
+  }
+
+  selectTolerationOperator(label: string) {
+    this.findTolerationOperatorSelect().click();
+    cy.findByTestId(`toleration-operator-option-${label}`).click();
+  }
+
+  findTolerationEffectSelect() {
+    return cy.findByTestId('toleration-effect-select');
+  }
+
+  selectTolerationEffect(label: string) {
+    this.findTolerationEffectSelect().click();
+    cy.findByTestId(`toleration-effect-option-${label}`).click();
+  }
+
+  findTolerationSecondsForever() {
+    return cy.findByTestId('toleration-seconds-forever');
+  }
+
+  findTolerationSecondsCustom() {
+    return cy.findByTestId('toleration-seconds-custom');
+  }
+
+  assertTolerationSecondsVisible(visible: boolean) {
+    if (visible) {
+      this.findTolerationSecondsForever().should('exist');
+      this.findTolerationSecondsCustom().should('exist');
+    } else {
+      cy.findByTestId('toleration-seconds-forever').should('not.exist');
+      cy.findByTestId('toleration-seconds-custom').should('not.exist');
+    }
+  }
+
+  findTolerationModalSubmitButton() {
+    return cy.findByTestId('toleration-modal-submit-button');
+  }
+
+  submitTolerationModal() {
+    this.findTolerationModalSubmitButton().click();
+  }
+
+  findTolerationModalCancelButton() {
+    return cy.findByTestId('toleration-modal-cancel-button');
+  }
+
+  cancelTolerationModal() {
+    this.findTolerationModalCancelButton().click();
+  }
+
+  findTolerationsTable() {
+    return cy.findByTestId('tolerations-table');
+  }
+
+  assertTolerationsTableVisible() {
+    this.findTolerationsTable().should('be.visible');
+  }
+
+  assertTolerationRowCount(count: number) {
+    if (count === 0) {
+      cy.findByTestId('tolerations-table').should('not.exist');
+    } else {
+      this.findTolerationsTable().find('tbody tr').should('have.length', count);
+    }
+  }
+
+  assertTolerationKeyCell(index: number, value: string) {
+    cy.findByTestId(`toleration-key-cell-${index}`).should('have.text', value);
+  }
+
+  assertTolerationValueCell(index: number, value: string) {
+    cy.findByTestId(`toleration-value-cell-${index}`).should('have.text', value);
+  }
+
+  assertTolerationOperatorCell(index: number, value: string) {
+    cy.findByTestId(`toleration-operator-cell-${index}`).should('have.text', value);
+  }
+
+  assertTolerationEffectCell(index: number, value: string) {
+    cy.findByTestId(`toleration-effect-cell-${index}`).should('have.text', value);
+  }
+
+  assertTolerationSecondsCell(index: number, value: string) {
+    cy.findByTestId(`toleration-seconds-cell-${index}`).should('have.text', value);
   }
 
   // Action Buttons

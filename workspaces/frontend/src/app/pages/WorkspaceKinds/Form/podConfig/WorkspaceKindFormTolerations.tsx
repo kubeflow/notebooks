@@ -71,16 +71,22 @@ export const WorkspaceKindFormTolerations: React.FC<WorkspaceKindFormTolerations
           </Thead>
           <Tbody>
             {tolerations.map((toleration, index) => (
-              <Tr key={toleration.id}>
-                <Td dataLabel="Key">{toleration.key || '-'}</Td>
-                <Td dataLabel="Value">
+              <Tr key={toleration.id} data-testid={`toleration-row-${index}`}>
+                <Td dataLabel="Key" data-testid={`toleration-key-cell-${index}`}>
+                  {toleration.key || '-'}
+                </Td>
+                <Td dataLabel="Value" data-testid={`toleration-value-cell-${index}`}>
                   {toleration.operator === TolerationOperator.Exists
                     ? '-'
                     : toleration.value || '-'}
                 </Td>
-                <Td dataLabel="Operator">{toleration.operator || 'None'}</Td>
-                <Td dataLabel="Effect">{toleration.effect || 'None'}</Td>
-                <Td dataLabel="Toleration Seconds">
+                <Td dataLabel="Operator" data-testid={`toleration-operator-cell-${index}`}>
+                  {toleration.operator || 'None'}
+                </Td>
+                <Td dataLabel="Effect" data-testid={`toleration-effect-cell-${index}`}>
+                  {toleration.effect || 'None'}
+                </Td>
+                <Td dataLabel="Toleration Seconds" data-testid={`toleration-seconds-cell-${index}`}>
                   {toleration.tolerationSeconds === null
                     ? 'Forever'
                     : `${toleration.tolerationSeconds}s`}
