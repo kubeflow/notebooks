@@ -1,6 +1,7 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { Content } from '@patternfly/react-core/dist/esm/components/Content';
+import { Title } from '@patternfly/react-core/dist/esm/components/Title';
 import {
   Modal,
   ModalHeader,
@@ -17,9 +18,14 @@ import { ExpandableSection } from '@patternfly/react-core/dist/esm/components/Ex
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
 import { CubesIcon } from '@patternfly/react-icons/dist/esm/icons/cubes-icon';
 import { emptyPodConfig } from '~/app/pages/WorkspaceKinds/Form/helpers';
-import { WorkspaceKindPodConfigValue, WorkspaceKindPodConfigData } from '~/app/types';
+import {
+  TolerationEntry,
+  WorkspaceKindPodConfigValue,
+  WorkspaceKindPodConfigData,
+} from '~/app/types';
 import { WorkspaceKindFormPaginatedTable } from '~/app/pages/WorkspaceKinds/Form/WorkspaceKindFormPaginatedTable';
 import { WorkspaceKindFormPodConfigModal } from './WorkspaceKindFormPodConfigModal';
+import { WorkspaceKindFormTolerations } from './WorkspaceKindFormTolerations';
 
 interface WorkspaceKindFormPodConfigProps {
   podConfig: WorkspaceKindPodConfigData;
@@ -37,6 +43,7 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
   const [currConfig, setCurrConfig] = useState<WorkspaceKindPodConfigValue>({ ...emptyPodConfig });
+  const [tolerationModalOpenFor, setTolerationModalOpenFor] = useState<number | null>(null);
 
   const clearForm = useCallback(() => {
     setCurrConfig({ ...emptyPodConfig });
@@ -89,6 +96,69 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
     setIsDeleteModalOpen(false);
   }, [deleteIndex, podConfig, updatePodConfig, setDefaultId, defaultId]);
 
+  const podConfigRef = useRef(podConfig);
+  podConfigRef.current = podConfig;
+  const updatePodConfigRef = useRef(updatePodConfig);
+  updatePodConfigRef.current = updatePodConfig;
+
+  const tolerationSettersCache = useRef(
+    new Map<number, React.Dispatch<React.SetStateAction<TolerationEntry[]>>>(),
+  );
+  const modalSettersCache = useRef(
+    new Map<number, React.Dispatch<React.SetStateAction<boolean>>>(),
+  );
+
+  const getTolerationsForConfig = useCallback(
+    (globalIndex: number): React.Dispatch<React.SetStateAction<TolerationEntry[]>> => {
+      let setter = tolerationSettersCache.current.get(globalIndex);
+      if (!setter) {
+        setter = (action) => {
+          const config = podConfigRef.current;
+          const updated = [...config.values];
+          const current = updated[globalIndex].tolerations ?? [];
+          const next = typeof action === 'function' ? action(current) : action;
+          updated[globalIndex] = { ...updated[globalIndex], tolerations: next };
+          updatePodConfigRef.current({ ...config, values: updated });
+        };
+        tolerationSettersCache.current.set(globalIndex, setter);
+      }
+      return setter;
+    },
+    [],
+  );
+
+  const getIsTolerationModalOpen = useCallback(
+    (globalIndex: number) => tolerationModalOpenFor === globalIndex,
+    [tolerationModalOpenFor],
+  );
+
+  const getSetIsTolerationModalOpen = useCallback(
+    (globalIndex: number): React.Dispatch<React.SetStateAction<boolean>> => {
+      let setter = modalSettersCache.current.get(globalIndex);
+      if (!setter) {
+        setter = (action) => {
+          setTolerationModalOpenFor((prev) => {
+            const isCurrentlyOpen = prev === globalIndex;
+            const next = typeof action === 'function' ? action(isCurrentlyOpen) : action;
+            return next ? globalIndex : null;
+          });
+        };
+        modalSettersCache.current.set(globalIndex, setter);
+      }
+      return setter;
+    },
+    [],
+  );
+
+  const tolerationDispatchers = useMemo(
+    () =>
+      podConfig.values.map((_, i) => ({
+        setTolerations: getTolerationsForConfig(i),
+        setIsTolerationModalOpen: getSetIsTolerationModalOpen(i),
+      })),
+    [podConfig.values, getTolerationsForConfig, getSetIsTolerationModalOpen],
+  );
+
   const addConfigBtn = (
     <Button
       variant="link"
@@ -125,6 +195,12 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
         )}
         {(podConfig.values ?? []).length > 0 && (
           <>
+            <div className="pf-v6-u-pl-xl pf-v6-u-pt-sm pf-v6-u-pb-sm">
+              <div>
+                Pod configurations allow specifying resource allocation for Workspace Kinds. Expand
+                each configuration to view and manage its tolerations.
+              </div>
+            </div>
             <WorkspaceKindFormPaginatedTable
               ariaLabel="Pod Configs Table"
               dataTestId="pod-configs-table"
@@ -136,6 +212,33 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
               }}
               handleEdit={handleEdit}
               openDeleteModal={openDeleteModal}
+              expandedContent={(_row, globalIndex) => (
+                <>
+                  <Title headingLevel="h4" className="pf-v6-u-mb-sm">
+                    Tolerations
+                  </Title>
+                  <p className="pf-v6-u-mb-md pf-v6-u-color-200">
+                    Tolerations are applied to pods and allow the scheduler to schedule pods on
+                    nodes with matching taints
+                  </p>
+                  <Button
+                    variant="secondary"
+                    className="pf-v6-u-mb-md"
+                    onClick={() => setTolerationModalOpenFor(globalIndex)}
+                    data-testid={`add-toleration-button-${globalIndex}`}
+                  >
+                    Add Toleration
+                  </Button>
+                  <WorkspaceKindFormTolerations
+                    tolerations={podConfig.values[globalIndex]?.tolerations ?? []}
+                    setTolerations={tolerationDispatchers[globalIndex].setTolerations}
+                    isTolerationModalOpen={getIsTolerationModalOpen(globalIndex)}
+                    setIsTolerationModalOpen={
+                      tolerationDispatchers[globalIndex].setIsTolerationModalOpen
+                    }
+                  />
+                </>
+              )}
             />
             {addConfigBtn}
           </>
