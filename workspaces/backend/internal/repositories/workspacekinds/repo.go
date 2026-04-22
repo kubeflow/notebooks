@@ -59,14 +59,14 @@ func (r *WorkspaceKindRepository) GetWorkspaceKind(ctx context.Context, name str
 	return workspaceKindModel, nil
 }
 
-func (r *WorkspaceKindRepository) GetWorkspaceKinds(ctx context.Context) ([]models.WorkspaceKind, error) {
+func (r *WorkspaceKindRepository) GetWorkspaceKinds(ctx context.Context) ([]models.WorkspaceKindListItem, error) {
 	workspaceKindList := &kubefloworgv1beta1.WorkspaceKindList{}
 	err := r.client.List(ctx, workspaceKindList)
 	if err != nil {
 		return nil, err
 	}
 
-	workspaceKindsModels := make([]models.WorkspaceKind, len(workspaceKindList.Items))
+	workspaceKindsModels := make([]models.WorkspaceKindListItem, len(workspaceKindList.Items))
 	for i := range workspaceKindList.Items {
 		workspaceKind := &workspaceKindList.Items[i]
 		workspaceKindsModels[i] = models.NewWorkspaceKindModelFromWorkspaceKind(workspaceKind)
@@ -109,14 +109,13 @@ func (r *WorkspaceKindRepository) UpdateWorkspaceKind(ctx context.Context, works
 
 	// ensure caller's revision matches current workspace kind revision
 	// prevents updates by callers with a stale view of the workspace kind
-	clusterRevision := models.CalculateWorkspaceKindRevision(workspaceKind)
+	clusterRevision := modelsCommon.CalculateRevision(&workspaceKind.ObjectMeta)
 	callerRevision := workspaceKindUpdate.Revision
 	if clusterRevision != callerRevision {
 		return nil, ErrWorkspaceKindRevisionConflict
 	}
 
 	// apply the update to the workspace kind object
-	// validation is deferred to the Kubernetes API server and controller webhooks
 	models.ApplyWorkspaceKindUpdateModelToWorkspaceKind(workspaceKindUpdate, workspaceKind)
 
 	// set audit annotations

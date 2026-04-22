@@ -863,7 +863,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Successful operation. Returns the requested workspace kind details (with revision).",
+                        "description": "Successful operation. Returns the requested workspace kind details with new revision.",
                         "schema": {
                             "$ref": "#/definitions/api.WorkspaceKindEnvelope"
                         }
@@ -1976,7 +1976,7 @@ const docTemplate = `{
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/workspacekinds.WorkspaceKind"
+                        "$ref": "#/definitions/workspacekinds.WorkspaceKindListItem"
                     }
                 }
             }
@@ -6538,7 +6538,7 @@ const docTemplate = `{
                 }
             }
         },
-        "workspacekinds.WorkspaceKind": {
+        "workspacekinds.WorkspaceKindListItem": {
             "type": "object",
             "required": [
                 "clusterMetrics",
@@ -6588,11 +6588,16 @@ const docTemplate = `{
         "workspacekinds.WorkspaceKindUpdate": {
             "type": "object",
             "required": [
+                "name",
                 "podTemplate",
                 "revision",
                 "spawner"
             ],
             "properties": {
+                "name": {
+                    "description": "Name is the unique identifier of the workspace kind.",
+                    "type": "string"
+                },
                 "podTemplate": {
                     "description": "PodTemplate contains the full pod template configuration.",
                     "allOf": [

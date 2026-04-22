@@ -148,7 +148,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			By("ensuring the wrapped data can be marshaled to JSON and back to []WorkspaceKind")
 			dataJSON, err := json.Marshal(response.Data)
 			Expect(err).NotTo(HaveOccurred(), "failed to marshal data to JSON")
-			var dataObject []models.WorkspaceKind
+			var dataObject []models.WorkspaceKindListItem
 			err = json.Unmarshal(dataJSON, &dataObject)
 			Expect(err).NotTo(HaveOccurred(), "failed to unmarshal JSON to []WorkspaceKind")
 		})

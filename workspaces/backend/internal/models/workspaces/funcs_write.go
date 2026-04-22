@@ -18,9 +18,6 @@ package workspaces
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
-	"fmt"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 )
 
 /*
@@ -36,16 +34,6 @@ import (
                               Helpers
 ===============================================================================
 */
-
-// CalculateWorkspaceRevision calculates the revision/etag for a workspace.
-// FORMAT: hex(sha256("<WORKSPACE_UUID>:<WORKSPACE_NAME>:<WORKSPACE_GENERATION>"))
-// this detects changes to the `spec` of the workspace, while also ensuring
-// that the resource itself is the same (via UID and name).
-func CalculateWorkspaceRevision(workspace *kubefloworgv1beta1.Workspace) string {
-	revisionInput := fmt.Sprintf("%s:%s:%d", workspace.UID, workspace.Name, workspace.Generation)
-	hash := sha256.Sum256([]byte(revisionInput))
-	return hex.EncodeToString(hash[:])
-}
 
 /*
 ===============================================================================
@@ -66,7 +54,7 @@ func NewWorkspaceCreateModelFromWorkspace(ws *kubefloworgv1beta1.Workspace) *Wor
 // NewWorkspaceUpdateModelFromWorkspace creates WorkspaceUpdate model from a Workspace object.
 func NewWorkspaceUpdateModelFromWorkspace(ws *kubefloworgv1beta1.Workspace) *WorkspaceUpdate {
 	return &WorkspaceUpdate{
-		Revision:    CalculateWorkspaceRevision(ws),
+		Revision:    common.CalculateRevision(&ws.ObjectMeta),
 		Paused:      ptr.Deref(ws.Spec.Paused, false),
 		PodTemplate: buildPodTemplateMutate(ws),
 	}

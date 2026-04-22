@@ -18,7 +18,7 @@ package workspacekinds
 
 import "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/podtemplate/options"
 
-type WorkspaceKind struct {
+type WorkspaceKindListItem struct {
 	Name               string             `json:"name"`
 	DisplayName        string             `json:"displayName"`
 	Description        string             `json:"description"`

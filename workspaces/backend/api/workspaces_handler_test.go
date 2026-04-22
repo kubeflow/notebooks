@@ -1041,7 +1041,7 @@ var _ = Describe("Workspaces Handler", func() {
 			By("getting the Workspace from the Kubernetes API to obtain its current revision")
 			createdWorkspace := &kubefloworgv1beta1.Workspace{}
 			Expect(k8sClient.Get(ctx, workspaceKey, createdWorkspace)).To(Succeed())
-			originalRevision := models.CalculateWorkspaceRevision(createdWorkspace)
+			originalRevision := commonModels.CalculateRevision(&createdWorkspace.ObjectMeta)
 
 			By("building a WorkspaceUpdate model with changed fields")
 			workspaceUpdate := &models.WorkspaceUpdate{
@@ -1180,7 +1180,7 @@ var _ = Describe("Workspaces Handler", func() {
 			By("getting the Workspace to obtain the current revision")
 			workspace := &kubefloworgv1beta1.Workspace{}
 			Expect(k8sClient.Get(ctx, workspaceKey, workspace)).To(Succeed())
-			staleRevision := models.CalculateWorkspaceRevision(workspace)
+			staleRevision := commonModels.CalculateRevision(&workspace.ObjectMeta)
 
 			By("modifying the Workspace directly to change its revision")
 			workspace.Spec.PodTemplate.Options.PodConfig = "small_cpu"
@@ -1365,7 +1365,7 @@ var _ = Describe("Workspaces Handler", func() {
 			By("getting the Workspace to obtain the current revision")
 			createdWorkspace := &kubefloworgv1beta1.Workspace{}
 			Expect(k8sClient.Get(ctx, workspaceKey, createdWorkspace)).To(Succeed())
-			originalRevision := models.CalculateWorkspaceRevision(createdWorkspace)
+			originalRevision := commonModels.CalculateRevision(&createdWorkspace.ObjectMeta)
 
 			By("attempting to update with unmountable data PVC and secret")
 			workspaceUpdate := &models.WorkspaceUpdate{

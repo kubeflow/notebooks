@@ -24,7 +24,7 @@ import (
 )
 
 // NewWorkspaceKindModelFromWorkspaceKind creates a WorkspaceKind model from a WorkspaceKind object.
-func NewWorkspaceKindModelFromWorkspaceKind(wsk *kubefloworgv1beta1.WorkspaceKind) WorkspaceKind {
+func NewWorkspaceKindModelFromWorkspaceKind(wsk *kubefloworgv1beta1.WorkspaceKind) WorkspaceKindListItem {
 	podLabels := make(map[string]string)
 	podAnnotations := make(map[string]string)
 	if wsk.Spec.PodTemplate.PodMetadata != nil {
@@ -57,7 +57,7 @@ func NewWorkspaceKindModelFromWorkspaceKind(wsk *kubefloworgv1beta1.WorkspaceKin
 		panic("invalid call to NewPodTemplateOptionsModelFromWorkspaceKind: " + err.Error())
 	}
 
-	return WorkspaceKind{
+	return WorkspaceKindListItem{
 		Name:               wsk.Name,
 		DisplayName:        wsk.Spec.Spawner.DisplayName,
 		Description:        wsk.Spec.Spawner.Description,

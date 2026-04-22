@@ -34,7 +34,7 @@ import (
 	repository "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/workspacekinds"
 )
 
-type WorkspaceKindListEnvelope Envelope[[]models.WorkspaceKind]
+type WorkspaceKindListEnvelope Envelope[[]models.WorkspaceKindListItem]
 
 type WorkspaceKindEnvelope Envelope[*models.WorkspaceKindUpdate]
 
@@ -47,7 +47,7 @@ type WorkspaceKindEnvelope Envelope[*models.WorkspaceKindUpdate]
 //	@Accept			json
 //	@Produce		json
 //	@Param			name	path		string					true	"Name of the workspace kind"	extensions(x-example=jupyterlab)
-//	@Success		200		{object}	WorkspaceKindEnvelope	"Successful operation. Returns the requested workspace kind details (with revision)."
+//	@Success		200		{object}	WorkspaceKindEnvelope	"Successful operation. Returns the requested workspace kind details with new revision."
 //	@Failure		400		{object}	ErrorEnvelope			"Bad Request. Invalid workspace kind name format."
 //	@Failure		401		{object}	ErrorEnvelope			"Unauthorized. Authentication is required."
 //	@Failure		403		{object}	ErrorEnvelope			"Forbidden. User does not have permission to access the workspace kind."
@@ -80,7 +80,7 @@ func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps
 			a.notFoundResponse(w, r)
 			return
 		}
-		a.serverErrorResponse(w, r, fmt.Errorf("error getting workspace kind: %w", err))
+		a.serverErrorResponse(w, r, err)
 		return
 	}
 
@@ -292,7 +292,7 @@ func (a *App) CreateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 	}
 
 	// calculate the GET location for the created workspace kind (for the Location header)
-	location := a.LocationGetWorkspaceKind(workspaceKind.Name)
+	location := a.LocationGetWorkspaceKind(createdWorkspaceKind.Name)
 
 	responseEnvelope := &WorkspaceKindEnvelope{Data: createdWorkspaceKind}
 	a.createdResponse(w, r, responseEnvelope, location)
@@ -352,6 +352,11 @@ func (a *App) UpdateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 			a.requestEntityTooLargeResponse(w, r, err)
 			return
 		}
+		//
+		// TODO: handle UnmarshalTypeError and return 422,
+		//       decode the paths which were failed to decode (included in the error)
+		//       and also do this in the other handlers which decode json
+		//
 		a.badRequestResponse(w, r, fmt.Errorf("error decoding request body: %w", err))
 		return
 	}
@@ -376,6 +381,11 @@ func (a *App) UpdateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 	if err != nil {
 		if errors.Is(err, repository.ErrWorkspaceKindNotFound) {
 			a.notFoundResponse(w, r)
+			return
+		}
+		if helper.IsInternalValidationError(err) {
+			fieldErrs := helper.FieldErrorsFromInternalValidationError(err)
+			a.failedValidationResponse(w, r, errMsgInternalValidation, fieldErrs, nil)
 			return
 		}
 		if errors.Is(err, repository.ErrWorkspaceKindRevisionConflict) {
