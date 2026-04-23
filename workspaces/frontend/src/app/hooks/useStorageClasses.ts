@@ -1,11 +1,12 @@
 import { useCallback } from 'react';
 import { FetchStateCallbackPromise, useFetchState, NotReadyError } from 'mod-arch-core';
-import { StorageclassesStorageClassListItem } from '~/generated/data-contracts';
+import { ApiErrorEnvelope, StorageclassesStorageClassListItem } from '~/generated/data-contracts';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
+import { extractErrorMessage } from '~/shared/api/apiUtils';
 
 interface UseStorageClassesResult {
   storageClasses: StorageclassesStorageClassListItem[];
-  storageClassLoadError: string | null;
+  storageClassLoadError: string | ApiErrorEnvelope | null;
 }
 
 const useStorageClasses = (): UseStorageClassesResult => {
@@ -26,9 +27,7 @@ const useStorageClasses = (): UseStorageClassesResult => {
   return {
     storageClasses,
     storageClassLoadError:
-      error && !(error instanceof NotReadyError)
-        ? 'Storage classes could not be loaded. Enter a class name manually.'
-        : null,
+      error && !(error instanceof NotReadyError) ? extractErrorMessage(error) : null,
   };
 };
 

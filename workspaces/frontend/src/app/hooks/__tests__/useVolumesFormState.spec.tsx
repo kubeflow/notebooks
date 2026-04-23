@@ -33,6 +33,7 @@ const defaultArgs = {
   isOpen: true,
   mountedPaths: new Set<string>(),
   storageClasses: mockStorageClasses,
+  storageClassLoadError: null,
   setIsOpen: jest.fn(),
   onVolumeCreated: jest.fn(),
 };

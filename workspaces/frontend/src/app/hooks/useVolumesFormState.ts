@@ -1,11 +1,13 @@
 import { Dispatch, SetStateAction, useCallback, useEffect, useState } from 'react';
 import {
+  ApiErrorEnvelope,
   StorageclassesStorageClassListItem,
   V1PersistentVolumeAccessMode,
 } from '~/generated/data-contracts';
 import { WorkspacesPodVolumeMountValue } from '~/app/types';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
+import { extractErrorMessage } from '~/shared/api/apiUtils';
 import {
   validateMountPath,
   getMountPathUniquenessError,
@@ -50,6 +52,7 @@ interface UseVolumesFormStateArgs {
   excludedPvcNames?: Set<string>;
   mountedPaths: Set<string>;
   storageClasses: StorageclassesStorageClassListItem[];
+  storageClassLoadError: string | ApiErrorEnvelope | null;
   setIsOpen: (open: boolean) => void;
   onVolumeCreated: (volume: WorkspacesPodVolumeMountValue) => void;
   onVolumeEdited?: (mountPath: string, readOnly: boolean) => void;
@@ -74,8 +77,8 @@ interface UseVolumesFormStateResult {
   isStorageClassOpen: boolean;
   setIsStorageClassOpen: Dispatch<SetStateAction<boolean>>;
   isSubmitting: boolean;
-  error: string | null;
-  setError: Dispatch<SetStateAction<string | null>>;
+  error: string | ApiErrorEnvelope | null;
+  setError: Dispatch<SetStateAction<string | ApiErrorEnvelope | null>>;
   // Derived
   mountPathError: string | null;
   // Handlers
@@ -93,6 +96,7 @@ const useVolumesFormState = ({
   excludedPvcNames,
   mountedPaths,
   storageClasses,
+  storageClassLoadError,
   setIsOpen,
   onVolumeCreated,
   onVolumeEdited,
@@ -113,7 +117,7 @@ const useVolumesFormState = ({
   const [readOnly, setReadOnly] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isStorageClassOpen, setIsStorageClassOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | ApiErrorEnvelope | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -133,9 +137,9 @@ const useVolumesFormState = ({
       setIsMountPathEditing(false);
       setIsSubmitting(false);
       setIsStorageClassOpen(false);
-      setError(null);
+      setError(storageClassLoadError);
     }
-  }, [isOpen, fixedMountPath, isEditMode, volumeToEdit, storageClasses]);
+  }, [isOpen, fixedMountPath, isEditMode, volumeToEdit, storageClasses, storageClassLoadError]);
 
   const mountPathFormatError = isMountPathEditing ? validateMountPath(mountPath) : null;
   const mountPathUniquenessError = !mountPathFormatError
@@ -204,7 +208,7 @@ const useVolumesFormState = ({
       setIsOpen(false);
       onVolumeCreated({ pvcName, mountPath: trimmedPath, readOnly, isAttached: false });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create PVC. Please try again.');
+      setError(extractErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }
