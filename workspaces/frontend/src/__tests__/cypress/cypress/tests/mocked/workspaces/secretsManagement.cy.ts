@@ -1,10 +1,14 @@
 import { mockModArchResponse } from 'mod-arch-core';
 import { editWorkspace } from '~/__tests__/cypress/cypress/pages/workspaces/editWorkspace';
-import { secretsManagement } from '~/__tests__/cypress/cypress/pages/workspaces/secretsManagement';
+import {
+  secretsManagement,
+  secretsAttachModal,
+} from '~/__tests__/cypress/cypress/pages/workspaces/secretsManagement';
 import { workspaces } from '~/__tests__/cypress/cypress/pages/workspaces/workspaces';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import {
   buildMockNamespace,
+  buildMockSecret,
   buildMockWorkspace,
   buildMockWorkspaceKind,
   buildMockWorkspaceKindInfo,
@@ -145,5 +149,90 @@ describe('Secrets Expandable Key/Value Pairs', () => {
     secretsManagement.expandSecretRow('db-credentials');
     cy.wait('@getSecret2');
     secretsManagement.assertExpandedRowContainsKeys('db-credentials', ['dbHost', 'dbPassword']);
+  });
+});
+
+describe('Secrets Management - Attach Modal', () => {
+  const mockNamespace = buildMockNamespace({ name: 'default' });
+  const mockWorkspaceKindInfo = buildMockWorkspaceKindInfo({ name: 'jupyterlab' });
+  const mockWorkspaceKindFull = buildMockWorkspaceKind({ name: 'jupyterlab' });
+
+  const mockWorkspaceListItem = buildMockWorkspace({
+    name: 'test-workspace',
+    namespace: mockNamespace.name,
+    workspaceKind: mockWorkspaceKindInfo,
+    state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+  });
+
+  // Start with no secrets
+  mockWorkspaceListItem.podTemplate.volumes.secrets = [];
+
+  const mockWorkspaceUpdate = buildMockWorkspaceUpdateFromWorkspace({
+    workspace: mockWorkspaceListItem,
+  });
+
+  const mockSecrets = [
+    buildMockSecret({ name: 'api-key', canMount: true }),
+    buildMockSecret({ name: 'db-credentials', canMount: true }),
+  ];
+
+  beforeEach(() => {
+    cy.interceptApi(
+      'GET /api/:apiVersion/namespaces',
+      { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+      mockModArchResponse([mockNamespace]),
+    ).as('getNamespaces');
+
+    cy.interceptApi(
+      'GET /api/:apiVersion/workspaces/:namespace',
+      { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
+      mockModArchResponse([mockWorkspaceListItem]),
+    ).as('getWorkspaces');
+
+    cy.interceptApi(
+      'GET /api/:apiVersion/workspaces/:namespace/:workspaceName',
+      {
+        path: {
+          apiVersion: NOTEBOOKS_API_VERSION,
+          namespace: mockNamespace.name,
+          workspaceName: mockWorkspaceListItem.name,
+        },
+      },
+      mockModArchResponse(mockWorkspaceUpdate),
+    ).as('getWorkspace');
+
+    cy.interceptApi(
+      'GET /api/:apiVersion/workspacekinds/:kind',
+      { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKindInfo.name } },
+      mockModArchResponse(mockWorkspaceKindFull),
+    ).as('getWorkspaceKind');
+
+    cy.interceptApi(
+      'GET /api/:apiVersion/secrets/:namespace',
+      { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
+      mockModArchResponse(mockSecrets),
+    ).as('listSecrets');
+
+    // Navigate to secrets section
+    workspaces.visit();
+    cy.wait('@getNamespaces');
+    navBar.selectNamespace(mockNamespace.name);
+    cy.wait('@getWorkspaces');
+    workspaces.findAction({ action: 'edit', workspaceName: mockWorkspaceListItem.name }).click();
+    cy.wait('@getWorkspace');
+    cy.wait('@getWorkspaceKind');
+    editWorkspace.clickNext();
+    editWorkspace.clickNext();
+    editWorkspace.clickNext();
+
+    cy.contains('button', 'Secrets').click();
+  });
+
+  it('should fetch secrets when attach modal opens', () => {
+    secretsManagement.clickAttachExistingSecrets();
+    secretsAttachModal.assertModalVisible();
+
+    // Verify the secrets list API is called when the modal opens
+    cy.wait('@listSecrets');
   });
 });

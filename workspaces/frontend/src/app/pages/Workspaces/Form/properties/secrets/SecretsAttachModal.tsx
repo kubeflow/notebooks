@@ -21,6 +21,7 @@ import { WrenchIcon } from '@patternfly/react-icons/dist/esm/icons/wrench-icon';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import { MountPathField } from '~/app/pages/Workspaces/Form/MountPathField';
 import { SecretsSecretListItem } from '~/generated/data-contracts';
+import useSecrets from '~/app/hooks/useSecrets';
 import {
   isValidDefaultMode,
   DEFAULT_MODE_OCTAL,
@@ -31,6 +32,7 @@ import {
 } from '~/app/pages/Workspaces/Form/helpers';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { LabelGroupWithTooltip } from '~/app/components/LabelGroupWithTooltip';
+import { LoadingSpinner } from '~/app/components/LoadingSpinner';
 
 const SECRET_SELECT_EMPTY_KEY = 'secret-select-empty';
 
@@ -38,7 +40,6 @@ export interface SecretsAttachModalProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
   onAttach: (secrets: SecretsSecretListItem[], mountPath: string, mode: number) => void;
-  availableSecrets: SecretsSecretListItem[];
   mountedKeys: Set<string>;
   existingMountPaths: Set<string>;
 }
@@ -47,10 +48,20 @@ export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
   isOpen,
   setIsOpen,
   onAttach,
-  availableSecrets,
   mountedKeys,
   existingMountPaths,
 }) => {
+  // ── Data fetching ───────────────────────────────────────────────────────
+
+  const {
+    secrets: availableSecrets,
+    secretsLoaded,
+    secretLoadError,
+    refreshSecrets,
+  } = useSecrets();
+
+  // ── Form state ───────────────────────────────────────────────────────────
+
   const [selected, setSelected] = useState<string | null>(null);
   const [mountPath, setMountPath] = useState('/secrets/');
   const [defaultMode, setDefaultMode] = useState(DEFAULT_MODE_OCTAL);
@@ -58,7 +69,7 @@ export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
   const [isMountPathEditing, setIsMountPathEditing] = useState(false);
   const [error, setError] = useState<string>('');
 
-  // Reset state when modal opens
+  // Reset state when modal opens & refresh secrets
   useEffect(() => {
     if (isOpen) {
       setSelected(null);
@@ -67,8 +78,9 @@ export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
       setIsDefaultModeValid(true);
       setIsMountPathEditing(false);
       setError('');
+      refreshSecrets();
     }
-  }, [isOpen]);
+  }, [isOpen, refreshSecrets]);
 
   // Auto-fill mount path when secret is selected
   useEffect(() => {
@@ -230,76 +242,89 @@ export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
       ouiaId="BasicModal"
       aria-labelledby="basic-modal-title"
       aria-describedby="modal-box-body-basic"
+      data-testid="secrets-attach-modal"
       variant={ModalVariant.large}
     >
       <ModalHeader title="Attach Existing Secrets" labelId="basic-modal-title" />
       <ModalBody id="modal-box-body-basic">
-        {error && (
+        {secretLoadError ? (
           <Alert variant={AlertVariant.danger} isInline title="Error">
-            {error}
+            {secretLoadError}
           </Alert>
-        )}
-        <Form>
-          <ThemeAwareFormGroupWrapper label="Secret" fieldId="secret-select">
-            <TypeaheadSelect
-              key={selected ?? SECRET_SELECT_EMPTY_KEY}
-              initialOptions={initialOptions}
-              id="secret-select"
-              placeholder="Select a secret"
-              isScrollable
-              maxMenuHeight="15rem"
-              noOptionsFoundMessage={(filter) => `No secret was found for "${filter}"`}
-              onSelect={(_ev, selection) => {
-                setSelected(selection as string);
-                setError('');
-              }}
-              onClearSelection={() => {
-                setSelected(null);
-                setError('');
-              }}
-            />
-          </ThemeAwareFormGroupWrapper>
-          <MountPathField
-            variant="input"
-            value={mountPath}
-            onChange={(val) => {
-              setMountPath(val);
-              setError('');
-            }}
-            isEditing={isMountPathEditing}
-            onStartEdit={handleStartMountPathEdit}
-            onConfirm={handleConfirmMountPathEdit}
-            onCancel={handleCancelMountPathEdit}
-            error={mountPathError}
-            fieldId="mount-path"
-          />
-          <ThemeAwareFormGroupWrapper label="Default Mode" isRequired fieldId="default-mode">
-            <FormGroup fieldId="default-mode" isRequired>
-              <TextInput
-                name="defaultMode"
-                isRequired
-                type="text"
-                value={defaultMode}
-                validated={!isDefaultModeValid ? ValidatedOptions.error : undefined}
-                onChange={(_, val) => handleDefaultModeChange(val)}
-                id="default-mode"
+        ) : !secretsLoaded && availableSecrets.length === 0 ? (
+          <LoadingSpinner />
+        ) : (
+          <>
+            {error && (
+              <Alert variant={AlertVariant.danger} isInline title="Error">
+                {error}
+              </Alert>
+            )}
+            <Form>
+              <ThemeAwareFormGroupWrapper label="Secret" fieldId="secret-select">
+                <TypeaheadSelect
+                  key={selected ?? SECRET_SELECT_EMPTY_KEY}
+                  initialOptions={initialOptions}
+                  id="secret-select"
+                  placeholder="Select a secret"
+                  isScrollable
+                  maxMenuHeight="15rem"
+                  noOptionsFoundMessage={(filter) => `No secret was found for "${filter}"`}
+                  onSelect={(_ev, selection) => {
+                    setSelected(selection as string);
+                    setError('');
+                  }}
+                  onClearSelection={() => {
+                    setSelected(null);
+                    setError('');
+                  }}
+                />
+              </ThemeAwareFormGroupWrapper>
+              <MountPathField
+                variant="input"
+                value={mountPath}
+                onChange={(val) => {
+                  setMountPath(val);
+                  setError('');
+                }}
+                isEditing={isMountPathEditing}
+                onStartEdit={handleStartMountPathEdit}
+                onConfirm={handleConfirmMountPathEdit}
+                onCancel={handleCancelMountPathEdit}
+                error={mountPathError}
+                fieldId="mount-path"
               />
-              {!isDefaultModeValid && (
-                <HelperText>
-                  <HelperTextItem variant="error">
-                    Must be a valid UNIX file system permission value (i.e. 644)
-                  </HelperTextItem>
-                </HelperText>
-              )}
-            </FormGroup>
-          </ThemeAwareFormGroupWrapper>
-        </Form>
+              <ThemeAwareFormGroupWrapper label="Default Mode" isRequired fieldId="default-mode">
+                <FormGroup fieldId="default-mode" isRequired>
+                  <TextInput
+                    name="defaultMode"
+                    isRequired
+                    type="text"
+                    value={defaultMode}
+                    validated={!isDefaultModeValid ? ValidatedOptions.error : undefined}
+                    onChange={(_, val) => handleDefaultModeChange(val)}
+                    id="default-mode"
+                  />
+                  {!isDefaultModeValid && (
+                    <HelperText>
+                      <HelperTextItem variant="error">
+                        Must be a valid UNIX file system permission value (i.e. 644)
+                      </HelperTextItem>
+                    </HelperText>
+                  )}
+                </FormGroup>
+              </ThemeAwareFormGroupWrapper>
+            </Form>
+          </>
+        )}
       </ModalBody>
       <ModalFooter>
         <Button
           key="attach"
           variant="primary"
-          isDisabled={!isDefaultModeValid || !isMountPathValid || !mountPath || !selected}
+          isDisabled={
+            !secretsLoaded || !isDefaultModeValid || !isMountPathValid || !mountPath || !selected
+          }
           onClick={handleAttach}
         >
           Attach

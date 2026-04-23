@@ -43,7 +43,11 @@ class SecretsManagementPage {
 
   // Buttons
   findAttachSecretsButton() {
-    return cy.findByTestId('attach-secrets-button');
+    return cy.findByTestId('attach-existing-secrets-button');
+  }
+
+  clickAttachExistingSecrets() {
+    return this.findAttachSecretsButton().click();
   }
 
   findCreateSecretButton() {
@@ -129,6 +133,20 @@ class SecretsModal {
   }
 }
 
+class SecretsAttachModal {
+  find() {
+    return cy.findByTestId('secrets-attach-modal');
+  }
+
+  assertModalVisible(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().should('be.visible');
+  }
+
+  assertModalNotExists(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().should('not.exist');
+  }
+}
+
 class SecretsDetachModal {
   find(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('detach-secret-modal');
@@ -164,5 +182,6 @@ class SecretsDetachModal {
 }
 
 export const secretsManagement = new SecretsManagementPage();
+export const secretsAttachModal = new SecretsAttachModal();
 export const secretsModal = new SecretsModal();
 export const secretsDetachModal = new SecretsDetachModal();

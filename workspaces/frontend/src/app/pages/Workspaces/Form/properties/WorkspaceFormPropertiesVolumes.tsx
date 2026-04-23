@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { Dropdown, DropdownItem } from '@patternfly/react-core/dist/esm/components/Dropdown';
 import { Label, LabelGroup } from '@patternfly/react-core/dist/esm/components/Label';
@@ -25,10 +25,11 @@ import {
   Tr,
 } from '@patternfly/react-table/dist/esm/components/Table';
 import { CubeIcon } from '@patternfly/react-icons/dist/esm/icons/cube-icon';
-import { PvcsPVCListItem, StorageclassesStorageClassListItem } from '~/generated/data-contracts';
+import { PvcsPVCListItem } from '~/generated/data-contracts';
 import { ConfirmModal } from '~/shared/components/ConfirmModal';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
+import usePVCs from '~/app/hooks/usePVCs';
 import { WorkspacesPodVolumeMountValue } from '~/app/types';
 import {
   DetachWarningAlert,
@@ -61,35 +62,12 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
-  const [availablePVCs, setAvailablePVCs] = useState<PvcsPVCListItem[]>([]);
-  const [storageClasses, setStorageClasses] = useState<StorageclassesStorageClassListItem[]>([]);
   const [editingMountPath, setEditingMountPath] = useState<number | null>(null);
   const [editMountPathValue, setEditMountPathValue] = useState('');
   const [expandedVolumes, setExpandedVolumes] = useState<Set<string>>(new Set());
-  const [pvcLoadError, setPvcLoadError] = useState<string | null>(null);
+  const { pvcs: availablePVCs, pvcLoadError } = usePVCs();
   const { api } = useNotebookAPI();
   const { selectedNamespace } = useNamespaceSelectorWrapper();
-
-  useEffect(() => {
-    const fetchPVCs = async () => {
-      try {
-        const response = await api.pvc.listPvCs(selectedNamespace);
-        setAvailablePVCs(response.data);
-      } catch {
-        setPvcLoadError('Failed to load volume details. Connection info may be unavailable.');
-      }
-    };
-    const fetchStorageClasses = async () => {
-      try {
-        const response = await api.storageClasses.listStorageClasses();
-        setStorageClasses(response.data);
-      } catch {
-        // Storage classes unavailable - group labels will fall back to raw names
-      }
-    };
-    fetchPVCs();
-    fetchStorageClasses();
-  }, [api.pvc, api.storageClasses, selectedNamespace]);
 
   const openDetachModal = useCallback((index: number) => {
     setDeleteIndex(index);
@@ -463,12 +441,10 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
       <VolumesAttachModal
         isOpen={isAttachModalOpen}
         setIsOpen={setIsAttachModalOpen}
-        availablePVCs={availablePVCs}
         mountedPaths={mountedPaths}
         onAttach={handleAttachPVC}
         fixedMountPath={fixedMountPath}
         excludedPvcNames={allExcludedPvcNames}
-        storageClasses={storageClasses}
       />
 
       <VolumesCreateModal

@@ -182,6 +182,14 @@ describe('Volumes Management - Attach and Create', () => {
   });
 
   describe('Attach Existing Volume Modal', () => {
+    it('should fetch PVCs when attach modal opens', () => {
+      volumesManagement.clickAttachExistingPVC();
+      volumesAttachModal.assertModalVisible();
+
+      // Verify the PVC list API is called when the modal opens
+      cy.wait('@listPVCs');
+    });
+
     it('should open attach modal and display available PVCs', () => {
       volumesManagement.clickAttachExistingPVC();
       volumesAttachModal.assertModalVisible();

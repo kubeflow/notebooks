@@ -14,11 +14,7 @@ import { Form } from '@patternfly/react-core/dist/esm/components/Form';
 import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import { TypeaheadSelect } from '@patternfly/react-templates';
-import {
-  PvcsPVCListItem,
-  StorageclassesStorageClassListItem,
-  V1PersistentVolumeAccessMode,
-} from '~/generated/data-contracts';
+import { PvcsPVCListItem, V1PersistentVolumeAccessMode } from '~/generated/data-contracts';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import {
   normalizeMountPath,
@@ -27,6 +23,9 @@ import {
   buildPVCSelectOptions,
 } from '~/app/pages/Workspaces/Form/helpers';
 import { MountPathField } from '~/app/pages/Workspaces/Form/MountPathField';
+import usePVCs from '~/app/hooks/usePVCs';
+import useStorageClasses from '~/app/hooks/useStorageClasses';
+import { LoadingSpinner } from '~/app/components/LoadingSpinner';
 
 const PVC_SELECT_EMPTY_KEY = 'pvc-select-empty';
 
@@ -34,7 +33,6 @@ export interface VolumesAttachModalProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
   onAttach: (pvc: PvcsPVCListItem, mountPath: string, readOnly: boolean) => void;
-  availablePVCs: PvcsPVCListItem[];
   /** Set of mount paths already in use across all attached volumes */
   mountedPaths: Set<string>;
   /**
@@ -44,8 +42,6 @@ export interface VolumesAttachModalProps {
   fixedMountPath?: string;
   /** PVC names already mounted in the other volume section (home or data) */
   excludedPvcNames?: Set<string>;
-  /** API-loaded storage classes for display name and description lookup */
-  storageClasses: StorageclassesStorageClassListItem[];
 }
 
 const isRWO = (pvc: PvcsPVCListItem): boolean =>
@@ -58,12 +54,15 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
   isOpen,
   setIsOpen,
   onAttach,
-  availablePVCs,
   mountedPaths,
   fixedMountPath,
   excludedPvcNames,
-  storageClasses,
 }) => {
+  // ── Data fetching ───────────────────────────────────────────────────────
+
+  const { pvcs: availablePVCs, pvcsLoaded, pvcLoadError, refreshPVCs } = usePVCs();
+  const { storageClasses } = useStorageClasses();
+
   // ── Form state ───────────────────────────────────────────────────────────
 
   const [selectedPvcName, setSelectedPvcName] = useState('');
@@ -78,7 +77,7 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
     : null;
   const mountPathError = mountPathFormatError ?? mountPathUniquenessError;
 
-  // ── Reset on open ────────────────────────────────────────────────────────
+  // ── Reset on open & refresh PVCs ─────────────────────────────────────────
 
   useEffect(() => {
     if (isOpen) {
@@ -87,8 +86,9 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
       setIsMountPathEditing(false);
       setReadOnly(false);
       setFormError('');
+      refreshPVCs();
     }
-  }, [isOpen, fixedMountPath]);
+  }, [isOpen, fixedMountPath, refreshPVCs]);
 
   // ── Mount path handlers ──────────────────────────────────────────────────
 
@@ -170,92 +170,105 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
       ouiaId="VolumesAttachModal"
       aria-labelledby="volumes-attach-modal-title"
       aria-describedby="volumes-attach-modal-body"
+      data-testid="volumes-attach-modal"
       variant={ModalVariant.large}
     >
       <ModalHeader title="Attach Existing Volume" labelId="volumes-attach-modal-title" />
       <ModalBody id="volumes-attach-modal-body">
-        <Stack hasGutter>
-          {formError && (
+        {pvcLoadError ? (
+          <Alert variant={AlertVariant.danger} isInline title="Error">
+            {pvcLoadError}
+          </Alert>
+        ) : !pvcsLoaded && availablePVCs.length === 0 ? (
+          <LoadingSpinner />
+        ) : (
+          <Stack hasGutter>
+            {formError && (
+              <StackItem>
+                <Alert variant={AlertVariant.danger} isInline title="Error">
+                  {formError}
+                </Alert>
+              </StackItem>
+            )}
+            {inUseAlert && (
+              <StackItem>
+                <Alert variant={inUseAlert.variant} isInline title={inUseAlert.title}>
+                  {inUseAlert.body}
+                </Alert>
+              </StackItem>
+            )}
             <StackItem>
-              <Alert variant={AlertVariant.danger} isInline title="Error">
-                {formError}
-              </Alert>
-            </StackItem>
-          )}
-          {inUseAlert && (
-            <StackItem>
-              <Alert variant={inUseAlert.variant} isInline title={inUseAlert.title}>
-                {inUseAlert.body}
-              </Alert>
-            </StackItem>
-          )}
-          <StackItem>
-            <Form>
-              <ThemeAwareFormGroupWrapper label="Volume" fieldId="pvc-select">
-                <TypeaheadSelect
-                  key={selectedPvcName || PVC_SELECT_EMPTY_KEY}
-                  id="pvc-select"
-                  initialOptions={initialOptions}
-                  placeholder="Select a volume"
-                  isScrollable
-                  maxMenuHeight="25rem"
-                  noOptionsFoundMessage={(filter) => `No volume found for "${filter}"`}
-                  onSelect={(_ev, value) => {
-                    setSelectedPvcName(value as string);
-                    setMountPath(fixedMountPath ?? `/data/${value}`);
-                    setIsMountPathEditing(false);
+              <Form>
+                <ThemeAwareFormGroupWrapper label="Volume" fieldId="pvc-select">
+                  <TypeaheadSelect
+                    key={selectedPvcName || PVC_SELECT_EMPTY_KEY}
+                    id="pvc-select"
+                    initialOptions={initialOptions}
+                    placeholder="Select a volume"
+                    isScrollable
+                    maxMenuHeight="25rem"
+                    noOptionsFoundMessage={(filter) => `No volume found for "${filter}"`}
+                    onSelect={(_ev, value) => {
+                      setSelectedPvcName(value as string);
+                      setMountPath(fixedMountPath ?? `/data/${value}`);
+                      setIsMountPathEditing(false);
+                      setFormError('');
+                    }}
+                    onClearSelection={() => setSelectedPvcName('')}
+                  />
+                </ThemeAwareFormGroupWrapper>
+                <MountPathField
+                  variant="input"
+                  value={mountPath}
+                  onChange={(val) => {
+                    setMountPath(val);
                     setFormError('');
                   }}
-                  onClearSelection={() => setSelectedPvcName('')}
+                  isEditing={isMountPathEditing}
+                  onStartEdit={handleStartMountPathEdit}
+                  onConfirm={handleConfirmMountPathEdit}
+                  onCancel={handleCancelMountPathEdit}
+                  error={mountPathError}
+                  isFixed={!!fixedMountPath}
+                  fieldId="pvc-mount-path"
                 />
-              </ThemeAwareFormGroupWrapper>
-              <MountPathField
-                variant="input"
-                value={mountPath}
-                onChange={(val) => {
-                  setMountPath(val);
-                  setFormError('');
-                }}
-                isEditing={isMountPathEditing}
-                onStartEdit={handleStartMountPathEdit}
-                onConfirm={handleConfirmMountPathEdit}
-                onCancel={handleCancelMountPathEdit}
-                error={mountPathError}
-                isFixed={!!fixedMountPath}
-                fieldId="pvc-mount-path"
-              />
-              <ThemeAwareFormGroupWrapper
-                label="Read-only Access"
-                fieldId="pvc-read-only"
-                skipFieldset
-                labelHelp={
-                  <Popover
-                    headerContent="Read-only access"
-                    bodyContent="Mount the volume as read-only when this workspace only needs to read data. This prevents accidental or unintended writes to shared volumes."
-                  >
-                    <OutlinedQuestionCircleIcon />
-                  </Popover>
-                }
-              >
-                <Switch
-                  id="pvc-read-only-switch"
-                  data-testid="pvc-read-only-switch"
-                  label="Enabled"
-                  hasCheckIcon
-                  isChecked={readOnly}
-                  onChange={(_ev, checked) => setReadOnly(checked)}
-                />
-              </ThemeAwareFormGroupWrapper>
-            </Form>
-          </StackItem>
-        </Stack>
+                <ThemeAwareFormGroupWrapper
+                  label="Read-only Access"
+                  fieldId="pvc-read-only"
+                  skipFieldset
+                  labelHelp={
+                    <Popover
+                      headerContent="Read-only access"
+                      bodyContent="Mount the volume as read-only when this workspace only needs to read data. This prevents accidental or unintended writes to shared volumes."
+                    >
+                      <OutlinedQuestionCircleIcon />
+                    </Popover>
+                  }
+                >
+                  <Switch
+                    id="pvc-read-only-switch"
+                    data-testid="pvc-read-only-switch"
+                    label="Enabled"
+                    hasCheckIcon
+                    isChecked={readOnly}
+                    onChange={(_ev, checked) => setReadOnly(checked)}
+                  />
+                </ThemeAwareFormGroupWrapper>
+              </Form>
+            </StackItem>
+          </Stack>
+        )}
       </ModalBody>
       <ModalFooter>
         <Button
           key="attach"
           variant="primary"
           isDisabled={
-            !selectedPvcName || !mountPath.trim() || !!mountPathError || isMountPathEditing
+            !pvcsLoaded ||
+            !selectedPvcName ||
+            !mountPath.trim() ||
+            !!mountPathError ||
+            isMountPathEditing
           }
           onClick={handleAttach}
           data-testid="attach-pvc-button"
