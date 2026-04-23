@@ -36,6 +36,7 @@ import (
 
 type WorkspaceKindListEnvelope Envelope[[]models.WorkspaceKindListItem]
 
+type WorkspaceKindCreateEnvelope Envelope[*models.WorkspaceKindCreate]
 type WorkspaceKindEnvelope Envelope[*models.WorkspaceKindUpdate]
 
 // GetWorkspaceKindHandler retrieves a specific workspace kind by name.
@@ -208,16 +209,16 @@ func (a *App) DeleteWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 //	@ID				createWorkspaceKind
 //	@Accept			application/yaml
 //	@Produce		json
-//	@Param			body	body		string					true	"Kubernetes YAML manifest of a WorkspaceKind"
-//	@Success		201		{object}	WorkspaceKindEnvelope	"WorkspaceKind created successfully"
-//	@Failure		400		{object}	ErrorEnvelope			"Bad Request."
-//	@Failure		401		{object}	ErrorEnvelope			"Unauthorized. Authentication is required."
-//	@Failure		403		{object}	ErrorEnvelope			"Forbidden. User does not have permission to create WorkspaceKind."
-//	@Failure		409		{object}	ErrorEnvelope			"Conflict. WorkspaceKind with the same name already exists."
-//	@Failure		413		{object}	ErrorEnvelope			"Request Entity Too Large. The request body is too large."
-//	@Failure		415		{object}	ErrorEnvelope			"Unsupported Media Type. Content-Type header is not correct."
-//	@Failure		422		{object}	ErrorEnvelope			"Unprocessable Entity. Validation error."
-//	@Failure		500		{object}	ErrorEnvelope			"Internal server error. An unexpected error occurred on the server."
+//	@Param			body	body		string						true	"Kubernetes YAML manifest of a WorkspaceKind"
+//	@Success		201		{object}	WorkspaceKindCreateEnvelope	"WorkspaceKind created successfully"
+//	@Failure		400		{object}	ErrorEnvelope				"Bad Request."
+//	@Failure		401		{object}	ErrorEnvelope				"Unauthorized. Authentication is required."
+//	@Failure		403		{object}	ErrorEnvelope				"Forbidden. User does not have permission to create WorkspaceKind."
+//	@Failure		409		{object}	ErrorEnvelope				"Conflict. WorkspaceKind with the same name already exists."
+//	@Failure		413		{object}	ErrorEnvelope				"Request Entity Too Large. The request body is too large."
+//	@Failure		415		{object}	ErrorEnvelope				"Unsupported Media Type. Content-Type header is not correct."
+//	@Failure		422		{object}	ErrorEnvelope				"Unprocessable Entity. Validation error."
+//	@Failure		500		{object}	ErrorEnvelope				"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspacekinds [post]
 func (a *App) CreateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
@@ -294,7 +295,7 @@ func (a *App) CreateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 	// calculate the GET location for the created workspace kind (for the Location header)
 	location := a.LocationGetWorkspaceKind(createdWorkspaceKind.Name)
 
-	responseEnvelope := &WorkspaceKindEnvelope{Data: createdWorkspaceKind}
+	responseEnvelope := &WorkspaceKindCreateEnvelope{Data: createdWorkspaceKind}
 	a.createdResponse(w, r, responseEnvelope, location)
 }
 

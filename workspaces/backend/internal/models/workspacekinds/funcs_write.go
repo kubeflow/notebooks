@@ -22,11 +22,20 @@ import (
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 )
 
+// NewWorkspaceKindCreateModelFromWorkspaceKind creates a WorkspaceKindCreate model from a WorkspaceKind object.
+// Used by Create response.
+func NewWorkspaceKindCreateModelFromWorkspaceKind(wsk *kubefloworgv1beta1.WorkspaceKind) *WorkspaceKindCreate {
+	return &WorkspaceKindCreate{
+		Name:        wsk.Name,
+		Spawner:     wsk.Spec.Spawner,
+		PodTemplate: wsk.Spec.PodTemplate,
+	}
+}
+
 // NewWorkspaceKindUpdateModelFromWorkspaceKind creates a WorkspaceKindUpdate model from a WorkspaceKind object.
-// Used by GET single and Create responses.
+// Used by GET (by name) and Update responses.
 func NewWorkspaceKindUpdateModelFromWorkspaceKind(wsk *kubefloworgv1beta1.WorkspaceKind) *WorkspaceKindUpdate {
 	return &WorkspaceKindUpdate{
-		Name:        wsk.Name,
 		Revision:    common.CalculateRevision(&wsk.ObjectMeta),
 		Spawner:     wsk.Spec.Spawner,
 		PodTemplate: wsk.Spec.PodTemplate,

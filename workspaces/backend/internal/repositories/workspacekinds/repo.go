@@ -75,7 +75,7 @@ func (r *WorkspaceKindRepository) GetWorkspaceKinds(ctx context.Context) ([]mode
 	return workspaceKindsModels, nil
 }
 
-func (r *WorkspaceKindRepository) Create(ctx context.Context, workspaceKind *kubefloworgv1beta1.WorkspaceKind) (*models.WorkspaceKindUpdate, error) {
+func (r *WorkspaceKindRepository) Create(ctx context.Context, workspaceKind *kubefloworgv1beta1.WorkspaceKind) (*models.WorkspaceKindCreate, error) {
 	// create workspace kind
 	if err := r.client.Create(ctx, workspaceKind); err != nil {
 		if apierrors.IsAlreadyExists(err) {
@@ -89,7 +89,7 @@ func (r *WorkspaceKindRepository) Create(ctx context.Context, workspaceKind *kub
 		return nil, err
 	}
 
-	createdWorkspaceKindModel := models.NewWorkspaceKindUpdateModelFromWorkspaceKind(workspaceKind)
+	createdWorkspaceKindModel := models.NewWorkspaceKindCreateModelFromWorkspaceKind(workspaceKind)
 	return createdWorkspaceKindModel, nil
 }
 

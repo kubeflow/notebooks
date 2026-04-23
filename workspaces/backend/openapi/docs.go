@@ -783,7 +783,7 @@ const docTemplate = `{
                     "201": {
                         "description": "WorkspaceKind created successfully",
                         "schema": {
-                            "$ref": "#/definitions/api.WorkspaceKindEnvelope"
+                            "$ref": "#/definitions/api.WorkspaceKindCreateEnvelope"
                         }
                     },
                     "400": {
@@ -1953,6 +1953,17 @@ const docTemplate = `{
             "properties": {
                 "data": {
                     "$ref": "#/definitions/workspaces.WorkspaceUpdate"
+                }
+            }
+        },
+        "api.WorkspaceKindCreateEnvelope": {
+            "type": "object",
+            "required": [
+                "data"
+            ],
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/workspacekinds.WorkspaceKindCreate"
                 }
             }
         },
@@ -6538,6 +6549,36 @@ const docTemplate = `{
                 }
             }
         },
+        "workspacekinds.WorkspaceKindCreate": {
+            "type": "object",
+            "required": [
+                "name",
+                "podTemplate",
+                "spawner"
+            ],
+            "properties": {
+                "name": {
+                    "description": "Name is the unique identifier of the workspace kind.",
+                    "type": "string"
+                },
+                "podTemplate": {
+                    "description": "PodTemplate contains the full pod template configuration.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.WorkspaceKindPodTemplate"
+                        }
+                    ]
+                },
+                "spawner": {
+                    "description": "Spawner contains the full spawner configuration.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.WorkspaceKindSpawner"
+                        }
+                    ]
+                }
+            }
+        },
         "workspacekinds.WorkspaceKindListItem": {
             "type": "object",
             "required": [
@@ -6588,16 +6629,11 @@ const docTemplate = `{
         "workspacekinds.WorkspaceKindUpdate": {
             "type": "object",
             "required": [
-                "name",
                 "podTemplate",
                 "revision",
                 "spawner"
             ],
             "properties": {
-                "name": {
-                    "description": "Name is the unique identifier of the workspace kind.",
-                    "type": "string"
-                },
                 "podTemplate": {
                     "description": "PodTemplate contains the full pod template configuration.",
                     "allOf": [

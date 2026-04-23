@@ -21,17 +21,23 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
-// WorkspaceKindUpdate represents the full WorkspaceKind spec for update operations.
-type WorkspaceKindUpdate struct {
+// WorkspaceKindCreate represents the full WorkspaceKind spec for create operations.
+type WorkspaceKindCreate struct {
 	// Name is the unique identifier of the workspace kind.
 	Name string `json:"name"`
 
-	// Revision is an opaque token for optimistic locking.
-	Revision string `json:"revision"`
-
 	// Spawner contains the full spawner configuration.
 	Spawner kubefloworgv1beta1.WorkspaceKindSpawner `json:"spawner"`
+	// PodTemplate contains the full pod template configuration.
+	PodTemplate kubefloworgv1beta1.WorkspaceKindPodTemplate `json:"podTemplate"`
+}
 
+// WorkspaceKindUpdate represents the full WorkspaceKind spec for update operations.
+type WorkspaceKindUpdate struct {
+	// Revision is an opaque token for optimistic locking.
+	Revision string `json:"revision"`
+	// Spawner contains the full spawner configuration.
+	Spawner kubefloworgv1beta1.WorkspaceKindSpawner `json:"spawner"`
 	// PodTemplate contains the full pod template configuration.
 	PodTemplate kubefloworgv1beta1.WorkspaceKindPodTemplate `json:"podTemplate"`
 }
