@@ -126,6 +126,7 @@ def update_manifests_images(components, tag):
         kustomize["images"] = images
 
         with open(component["kustomization"], "w") as file:
+            yaml.width = 4096
             yaml.dump(kustomize, file)
 
 
