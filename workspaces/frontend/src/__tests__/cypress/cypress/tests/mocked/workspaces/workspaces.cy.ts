@@ -194,6 +194,33 @@ describe('Workspaces', () => {
         });
       });
     });
+
+    it('should display "unknown" for last activity when epoch is 0', () => {
+      const mockNamespace = buildMockNamespace({ name: DEFAULT_NAMESPACE });
+      const mockWorkspace = buildMockWorkspace({
+        name: 'zero-activity-workspace',
+        activity: {
+          lastActivity: 0,
+          lastUpdate: 0,
+        },
+      });
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/namespaces',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+        mockModArchResponse([mockNamespace]),
+      ).as('getNamespaces');
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspaces/:namespace',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
+        mockModArchResponse([mockWorkspace]),
+      ).as('getWorkspaces');
+
+      navigateToNamespace(mockNamespace.name);
+
+      workspaces.assertWorkspaceRowLastActivity(0, 'unknown');
+    });
   });
 
   describe('Empty state', () => {

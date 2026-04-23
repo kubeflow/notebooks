@@ -513,16 +513,19 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                           )}
                           {columnKey === 'gpu' && formatResourceFromWorkspace(workspace, 'gpu')}
                           {columnKey === 'idleGpu' && formatWorkspaceIdleState(workspace)}
-                          {columnKey === 'lastActivity' && (
-                            <Timestamp
-                              date={new Date(workspace.activity.lastActivity)}
-                              tooltip={{ variant: TimestampTooltipVariant.default }}
-                            >
-                              {formatDistanceToNow(new Date(workspace.activity.lastActivity), {
-                                addSuffix: true,
-                              })}
-                            </Timestamp>
-                          )}
+                          {columnKey === 'lastActivity' &&
+                            (workspace.activity.lastActivity === 0 ? (
+                              <span className="pf-v6-c-timestamp pf-m-help-text">unknown</span>
+                            ) : (
+                              <Timestamp
+                                date={new Date(workspace.activity.lastActivity)}
+                                tooltip={{ variant: TimestampTooltipVariant.default }}
+                              >
+                                {formatDistanceToNow(new Date(workspace.activity.lastActivity), {
+                                  addSuffix: true,
+                                })}
+                              </Timestamp>
+                            ))}
                         </Td>
                       );
                     })}

@@ -25,21 +25,21 @@ export const WorkspaceDetailsActivity: React.FunctionComponent<WorkspaceDetailsA
       <DescriptionListGroup>
         <DescriptionListTerm>Last activity</DescriptionListTerm>
         <DescriptionListDescription data-testid="lastActivity">
-          {format(activity.lastActivity, DATE_FORMAT)}
+          {activity.lastActivity === 0 ? 'unknown' : format(activity.lastActivity, DATE_FORMAT)}
         </DescriptionListDescription>
       </DescriptionListGroup>
       <Divider />
       <DescriptionListGroup>
         <DescriptionListTerm>Last update</DescriptionListTerm>
         <DescriptionListDescription data-testid="lastUpdate">
-          {format(activity.lastUpdate, DATE_FORMAT)}
+          {activity.lastUpdate === 0 ? 'unknown' : format(activity.lastUpdate, DATE_FORMAT)}
         </DescriptionListDescription>
       </DescriptionListGroup>
       <Divider />
       <DescriptionListGroup>
         <DescriptionListTerm>Pause time</DescriptionListTerm>
         <DescriptionListDescription data-testid="pauseTime">
-          {format(pausedTime, DATE_FORMAT)}
+          {pausedTime === 0 ? 'unknown' : format(pausedTime, DATE_FORMAT)}
         </DescriptionListDescription>
       </DescriptionListGroup>
       <Divider />
