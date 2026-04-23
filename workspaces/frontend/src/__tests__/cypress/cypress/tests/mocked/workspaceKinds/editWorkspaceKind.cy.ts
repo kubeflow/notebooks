@@ -671,6 +671,156 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.assertPodConfigId(podConfigToEdit.id);
       editWorkspaceKind.assertPodConfigDisplayName(podConfigToEdit.displayName);
     });
+
+    describe('Node selector in pod config modal', () => {
+      it('should display node selector section in add pod config modal', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodConfigSection();
+        editWorkspaceKind.clickAddConfigButton();
+
+        editWorkspaceKind.assertPodConfigModalVisible(true);
+        editWorkspaceKind.findNodeSelectorSection().should('exist');
+      });
+
+      it('should add a node selector', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodConfigSection();
+        editWorkspaceKind.clickAddConfigButton();
+        editWorkspaceKind.expandNodeSelectorSection();
+
+        editWorkspaceKind.clickAddNodeSelector();
+        editWorkspaceKind.typeNodeSelectorKey(0, 'kubernetes.io/os');
+        editWorkspaceKind.typeNodeSelectorValue(0, 'linux');
+
+        editWorkspaceKind.assertNodeSelectorCount(1);
+        editWorkspaceKind.assertNodeSelectorKey(0, 'kubernetes.io/os');
+        editWorkspaceKind.assertNodeSelectorValue(0, 'linux');
+      });
+
+      it('should delete a node selector', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodConfigSection();
+        editWorkspaceKind.clickAddConfigButton();
+        editWorkspaceKind.expandNodeSelectorSection();
+
+        editWorkspaceKind.clickAddNodeSelector();
+        editWorkspaceKind.typeNodeSelectorKey(0, 'kubernetes.io/os');
+        editWorkspaceKind.typeNodeSelectorValue(0, 'linux');
+
+        editWorkspaceKind.assertNodeSelectorCount(1);
+
+        editWorkspaceKind.clickDeleteNodeSelector(0);
+
+        editWorkspaceKind.assertNodeSelectorCount(0);
+      });
+
+      it('should add multiple node selectors', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodConfigSection();
+        editWorkspaceKind.clickAddConfigButton();
+        editWorkspaceKind.expandNodeSelectorSection();
+
+        editWorkspaceKind.clickAddNodeSelector();
+        editWorkspaceKind.typeNodeSelectorKey(0, 'kubernetes.io/os');
+        editWorkspaceKind.typeNodeSelectorValue(0, 'linux');
+
+        editWorkspaceKind.clickAddNodeSelector();
+        editWorkspaceKind.typeNodeSelectorKey(1, 'gpu-type');
+        editWorkspaceKind.typeNodeSelectorValue(1, 'nvidia');
+
+        editWorkspaceKind.assertNodeSelectorCount(2);
+        editWorkspaceKind.assertNodeSelectorKey(0, 'kubernetes.io/os');
+        editWorkspaceKind.assertNodeSelectorValue(0, 'linux');
+        editWorkspaceKind.assertNodeSelectorKey(1, 'gpu-type');
+        editWorkspaceKind.assertNodeSelectorValue(1, 'nvidia');
+      });
+
+      it('should submit pod config with node selectors and verify in table', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodConfigSection();
+
+        const initialPodConfigCount = mockWorkspaceKind.podTemplate.options.podConfig.values.length;
+
+        editWorkspaceKind.clickAddConfigButton();
+        editWorkspaceKind.typePodConfigId('ns-test-config');
+        editWorkspaceKind.typePodConfigDisplayName('NS Test Config');
+        editWorkspaceKind.typePodConfigDescription('Config with node selectors');
+
+        editWorkspaceKind.expandNodeSelectorSection();
+        editWorkspaceKind.clickAddNodeSelector();
+        editWorkspaceKind.typeNodeSelectorKey(0, 'kubernetes.io/os');
+        editWorkspaceKind.typeNodeSelectorValue(0, 'linux');
+
+        editWorkspaceKind.submitPodConfigModal();
+
+        editWorkspaceKind.assertPodConfigModalVisible(false);
+        editWorkspaceKind.assertPodConfigCount(initialPodConfigCount + 1);
+        editWorkspaceKind.assertPodConfigInTable('NS Test Config');
+      });
+
+      it('should retain node selectors when editing a pod config', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodConfigSection();
+
+        // Create a pod config with node selectors
+        editWorkspaceKind.clickAddConfigButton();
+        editWorkspaceKind.typePodConfigId('ns-retain-config');
+        editWorkspaceKind.typePodConfigDisplayName('NS Retain Config');
+
+        editWorkspaceKind.expandNodeSelectorSection();
+        editWorkspaceKind.clickAddNodeSelector();
+        editWorkspaceKind.typeNodeSelectorKey(0, 'zone');
+        editWorkspaceKind.typeNodeSelectorValue(0, 'us-west-2a');
+
+        editWorkspaceKind.submitPodConfigModal();
+        editWorkspaceKind.assertPodConfigModalVisible(false);
+
+        // Find the newly added config (last row) and edit it
+        const newIndex = mockWorkspaceKind.podTemplate.options.podConfig.values.length;
+        editWorkspaceKind.clickPodConfigTableRowKebab(newIndex);
+        editWorkspaceKind.clickEditPodConfig();
+
+        editWorkspaceKind.assertPodConfigModalVisible(true);
+        editWorkspaceKind.assertPodConfigModalTitle('Edit Pod Configuration');
+        editWorkspaceKind.assertPodConfigId('ns-retain-config');
+
+        // Verify node selectors are still present
+        editWorkspaceKind.expandNodeSelectorSection();
+        editWorkspaceKind.assertNodeSelectorCount(1);
+        editWorkspaceKind.assertNodeSelectorKey(0, 'zone');
+        editWorkspaceKind.assertNodeSelectorValue(0, 'us-west-2a');
+      });
+
+      it('should start with no node selectors in a new pod config', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodConfigSection();
+        editWorkspaceKind.clickAddConfigButton();
+        editWorkspaceKind.expandNodeSelectorSection();
+
+        editWorkspaceKind.assertNodeSelectorCount(0);
+      });
+    });
   });
 
   describe('Pod lifecycle section', () => {

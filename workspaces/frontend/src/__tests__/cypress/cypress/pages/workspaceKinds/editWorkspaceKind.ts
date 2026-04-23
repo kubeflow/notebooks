@@ -575,6 +575,71 @@ class EditWorkspaceKind {
     }
   }
 
+  // Node Selector in Pod Config Modal
+  findNodeSelectorSection() {
+    return this.findPodConfigModal().findByTestId('node-selector-section');
+  }
+
+  findNodeSelectorSectionToggle() {
+    return this.findNodeSelectorSection().find('button');
+  }
+
+  expandNodeSelectorSection() {
+    this.findNodeSelectorSectionToggle().then((btn) => {
+      if (btn.attr('aria-expanded') === 'false') {
+        cy.wrap(btn).click();
+      }
+    });
+  }
+
+  findAddNodeSelectorButton() {
+    return this.findPodConfigModal().findByTestId('add-node-selector-button');
+  }
+
+  clickAddNodeSelector() {
+    this.findAddNodeSelectorButton().click();
+  }
+
+  findNodeSelectorTable() {
+    return this.findPodConfigModal().findByTestId('node-selector-table');
+  }
+
+  findNodeSelectorRow(index: number) {
+    return this.findNodeSelectorTable().find('tbody tr').eq(index);
+  }
+
+  typeNodeSelectorKey(index: number, key: string) {
+    this.findNodeSelectorRow(index).find('input').eq(0).clear().type(key);
+  }
+
+  typeNodeSelectorValue(index: number, value: string) {
+    this.findNodeSelectorRow(index).find('input').eq(1).clear().type(value);
+  }
+
+  findDeleteNodeSelectorButton(index: number) {
+    return this.findNodeSelectorRow(index).findByTestId('remove-key-value-pair');
+  }
+
+  clickDeleteNodeSelector(index: number) {
+    this.findDeleteNodeSelectorButton(index).click();
+  }
+
+  assertNodeSelectorCount(count: number) {
+    if (count === 0) {
+      cy.findByTestId('node-selector-table').should('not.exist');
+    } else {
+      this.findNodeSelectorTable().find('tbody tr').should('have.length', count);
+    }
+  }
+
+  assertNodeSelectorKey(index: number, key: string) {
+    this.findNodeSelectorRow(index).find('input').eq(0).should('have.value', key);
+  }
+
+  assertNodeSelectorValue(index: number, value: string) {
+    this.findNodeSelectorRow(index).find('input').eq(1).should('have.value', value);
+  }
+
   // Pod Template Section
   findPodTemplateSection() {
     return cy.contains('button', 'Pod Lifecycle & Customization');
