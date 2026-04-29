@@ -394,9 +394,9 @@ function ToolbarFilterInner<K extends string>(
                   {null}
                 </PFToolbarFilter>
               ))}
-            {toolbarActions}
           </ToolbarGroup>
         </ToolbarToggleGroup>
+        {toolbarActions}
       </ToolbarContent>
     </Toolbar>
   );
