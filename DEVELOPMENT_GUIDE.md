@@ -10,7 +10,7 @@ Please refer to the [`CONTRIBUTING.md`](CONTRIBUTING.md) for general guidelines 
 
 Kubeflow Notebooks v2 is organized into several key components:
 
-- [`workspaces/controller`](workspaces/controller): A Kubernetes controller and webook written in Go.
+- [`workspaces/controller`](workspaces/controller): A Kubernetes controller and webhook written in Go.
 - [`workspaces/backend`](workspaces/backend): A backend API server written in Go _(note: also uses controller-runtime)_
 - [`workspaces/frontend`](workspaces/frontend): A React-based frontend application.
 
@@ -20,8 +20,8 @@ Kubeflow Notebooks v2 is organized into several key components:
 
 - Check the [issue tracker](https://github.com/kubeflow/notebooks/issues?q=is%3Aissue%20state%3Aopen%20label%3Aarea%2Fv2) for open issues
    - __NOTE:__ please make a comment if you intend to work on an issue to avoid duplication of effort.
-- Introduce yourself on [`#kubeflow-notebooks` channel](https://www.kubeflow.org/docs/about/community/#kubeflow-slack-channels) and share your background/interests
-- Attend the [Kubeflow Notebooks WG Calls](https://www.kubeflow.org/docs/about/community/#kubeflow-community-meetings) and ask for guidance
+- Introduce yourself on [`#kubeflow-notebooks` channel](https://www.kubeflow.org/docs/about/community/#kubeflow-slack-channels) and share your background/interests.
+- Attend the [Kubeflow Notebooks WG Calls](https://www.kubeflow.org/docs/about/community/#kubeflow-community-meetings) and ask for guidance.
 
 ### STEP 2 - Make code changes
 
@@ -85,6 +85,12 @@ tilt version
 docker --version
 kubectl version --client
 ```
+
+> [!TIP]
+>
+> Many contributors use a native Linux environment such as Ubuntu for local development with Docker, Kind, and Tilt.
+>
+> If using Ubuntu, ensure Docker is running and your user is added to the `docker` group so Docker commands can run without `sudo`.
 
 You can now start developing with Tilt by following these steps:
 
@@ -170,7 +176,7 @@ kind delete cluster --name tilt
 
 ## Tilt - Troubleshooting
 
-It tilt fails to start, check the logs in the Tilt UI for specific error messages.
+If Tilt fails to start, check the logs in the Tilt UI for specific error messages.
 
 Alternatively, you can try building the components manually to identify issues:
 
@@ -234,6 +240,6 @@ Before developing locally, ensure you have the following installed:
 ### Local - Quick Start
 
 Each component has a `Makefile` or `package.json` to help with building, testing, and running the component locally.
-You should start by reviewing the these files in each component directory.
+You should start by reviewing these files in each component directory.
 
-We welcome contributions to improve the local development experience, please open an issue or PR!
+We welcome contributions to improve the local development experience. Please open an issue or PR!
