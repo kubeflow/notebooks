@@ -34,12 +34,10 @@ import (
 	repository "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/workspacekinds"
 )
 
-// TODO: this should wrap the models.WorkspaceKindUpdate once we implement the update handler
-type WorkspaceKindCreateEnvelope Envelope[*models.WorkspaceKind]
+type WorkspaceKindListEnvelope Envelope[[]models.WorkspaceKindListItem]
 
-type WorkspaceKindListEnvelope Envelope[[]models.WorkspaceKind]
-
-type WorkspaceKindEnvelope Envelope[models.WorkspaceKind]
+type WorkspaceKindCreateEnvelope Envelope[*models.WorkspaceKindCreate]
+type WorkspaceKindEnvelope Envelope[*models.WorkspaceKindUpdate]
 
 // GetWorkspaceKindHandler retrieves a specific workspace kind by name.
 //
@@ -50,7 +48,7 @@ type WorkspaceKindEnvelope Envelope[models.WorkspaceKind]
 //	@Accept			json
 //	@Produce		json
 //	@Param			name	path		string					true	"Name of the workspace kind"	extensions(x-example=jupyterlab)
-//	@Success		200		{object}	WorkspaceKindEnvelope	"Successful operation. Returns the requested workspace kind details."
+//	@Success		200		{object}	WorkspaceKindEnvelope	"Successful operation. Returns the requested workspace kind details with new revision."
 //	@Failure		400		{object}	ErrorEnvelope			"Bad Request. Invalid workspace kind name format."
 //	@Failure		401		{object}	ErrorEnvelope			"Unauthorized. Authentication is required."
 //	@Failure		403		{object}	ErrorEnvelope			"Forbidden. User does not have permission to access the workspace kind."
@@ -211,16 +209,16 @@ func (a *App) DeleteWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 //	@ID				createWorkspaceKind
 //	@Accept			application/yaml
 //	@Produce		json
-//	@Param			body	body		string					true	"Kubernetes YAML manifest of a WorkspaceKind"
-//	@Success		201		{object}	WorkspaceKindEnvelope	"WorkspaceKind created successfully"
-//	@Failure		400		{object}	ErrorEnvelope			"Bad Request."
-//	@Failure		401		{object}	ErrorEnvelope			"Unauthorized. Authentication is required."
-//	@Failure		403		{object}	ErrorEnvelope			"Forbidden. User does not have permission to create WorkspaceKind."
-//	@Failure		409		{object}	ErrorEnvelope			"Conflict. WorkspaceKind with the same name already exists."
-//	@Failure		413		{object}	ErrorEnvelope			"Request Entity Too Large. The request body is too large."
-//	@Failure		415		{object}	ErrorEnvelope			"Unsupported Media Type. Content-Type header is not correct."
-//	@Failure		422		{object}	ErrorEnvelope			"Unprocessable Entity. Validation error."
-//	@Failure		500		{object}	ErrorEnvelope			"Internal server error. An unexpected error occurred on the server."
+//	@Param			body	body		string						true	"Kubernetes YAML manifest of a WorkspaceKind"
+//	@Success		201		{object}	WorkspaceKindCreateEnvelope	"WorkspaceKind created successfully"
+//	@Failure		400		{object}	ErrorEnvelope				"Bad Request."
+//	@Failure		401		{object}	ErrorEnvelope				"Unauthorized. Authentication is required."
+//	@Failure		403		{object}	ErrorEnvelope				"Forbidden. User does not have permission to create WorkspaceKind."
+//	@Failure		409		{object}	ErrorEnvelope				"Conflict. WorkspaceKind with the same name already exists."
+//	@Failure		413		{object}	ErrorEnvelope				"Request Entity Too Large. The request body is too large."
+//	@Failure		415		{object}	ErrorEnvelope				"Unsupported Media Type. Content-Type header is not correct."
+//	@Failure		422		{object}	ErrorEnvelope				"Unprocessable Entity. Validation error."
+//	@Failure		500		{object}	ErrorEnvelope				"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspacekinds [post]
 func (a *App) CreateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
@@ -299,4 +297,112 @@ func (a *App) CreateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 
 	responseEnvelope := &WorkspaceKindCreateEnvelope{Data: createdWorkspaceKind}
 	a.createdResponse(w, r, responseEnvelope, location)
+}
+
+// UpdateWorkspaceKindHandler updates an existing workspace kind.
+//
+//	@Summary		Update workspace kind
+//	@Description	Updates an existing workspace kind.
+//	@Tags			workspacekinds
+//	@ID				updateWorkspaceKind
+//	@Accept			json
+//	@Produce		json
+//	@Param			name	path		string					true	"Name of the workspace kind"	extensions(x-example=jupyterlab)
+//	@Param			body	body		WorkspaceKindEnvelope	true	"WorkspaceKind update configuration"
+//	@Success		200		{object}	WorkspaceKindEnvelope	"WorkspaceKind updated successfully"
+//	@Failure		400		{object}	ErrorEnvelope			"Bad Request."
+//	@Failure		401		{object}	ErrorEnvelope			"Unauthorized. Authentication is required."
+//	@Failure		403		{object}	ErrorEnvelope			"Forbidden. User does not have permission to update workspace kind."
+//	@Failure		404		{object}	ErrorEnvelope			"Not Found. WorkspaceKind does not exist."
+//	@Failure		409		{object}	ErrorEnvelope			"Conflict. Current workspace kind revision is newer than provided."
+//	@Failure		413		{object}	ErrorEnvelope			"Request Entity Too Large. The request body is too large."
+//	@Failure		415		{object}	ErrorEnvelope			"Unsupported Media Type. Content-Type header is not correct."
+//	@Failure		422		{object}	ErrorEnvelope			"Unprocessable Entity. Validation error."
+//	@Failure		500		{object}	ErrorEnvelope			"Internal server error. An unexpected error occurred on the server."
+//	@Router			/workspacekinds/{name} [put]
+func (a *App) UpdateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	name := ps.ByName(ResourceNamePathParam)
+
+	// validate path parameters
+	var valErrs field.ErrorList
+	valErrs = append(valErrs, helper.ValidateWorkspaceKindName(field.NewPath(ResourceNamePathParam), name)...)
+	if len(valErrs) > 0 {
+		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
+		return
+	}
+
+	// =========================== AUTH ===========================
+	authPolicies := []*auth.ResourcePolicy{
+		auth.NewResourcePolicy(auth.VerbUpdate, auth.WorkspaceKinds, auth.ResourcePolicyResourceMeta{Name: name}),
+	}
+	if success := a.requireAuth(w, r, authPolicies); !success {
+		return
+	}
+	// ============================================================
+
+	// validate the Content-Type header
+	if success := a.ValidateContentType(w, r, MediaTypeJson); !success {
+		return
+	}
+
+	// decode the request body
+	bodyEnvelope := &WorkspaceKindEnvelope{}
+	err := a.DecodeJSON(r, bodyEnvelope)
+	if err != nil {
+		if a.IsMaxBytesError(err) {
+			a.requestEntityTooLargeResponse(w, r, err)
+			return
+		}
+		//
+		// TODO: handle UnmarshalTypeError and return 422,
+		//       decode the paths which were failed to decode (included in the error)
+		//       and also do this in the other handlers which decode json
+		//
+		a.badRequestResponse(w, r, fmt.Errorf("error decoding request body: %w", err))
+		return
+	}
+
+	// validate the request body
+	dataPath := field.NewPath("data")
+	if bodyEnvelope.Data == nil {
+		valErrs = field.ErrorList{field.Required(dataPath, "data is required")}
+		a.failedValidationResponse(w, r, errMsgRequestBodyInvalid, valErrs, nil)
+		return
+	}
+	valErrs = bodyEnvelope.Data.Validate(dataPath)
+	if len(valErrs) > 0 {
+		a.failedValidationResponse(w, r, errMsgRequestBodyInvalid, valErrs, nil)
+		return
+	}
+
+	// give the request data a clear name
+	workspaceKindUpdate := bodyEnvelope.Data
+
+	updatedWorkspaceKind, err := a.repositories.WorkspaceKind.UpdateWorkspaceKind(r.Context(), workspaceKindUpdate, name)
+	if err != nil {
+		if errors.Is(err, repository.ErrWorkspaceKindNotFound) {
+			a.notFoundResponse(w, r)
+			return
+		}
+		if helper.IsInternalValidationError(err) {
+			fieldErrs := helper.FieldErrorsFromInternalValidationError(err)
+			a.failedValidationResponse(w, r, errMsgInternalValidation, fieldErrs, nil)
+			return
+		}
+		if errors.Is(err, repository.ErrWorkspaceKindRevisionConflict) {
+			causes := helper.StatusCausesFromAPIStatus(err)
+			a.conflictResponse(w, r, err, causes)
+			return
+		}
+		if apierrors.IsInvalid(err) {
+			causes := helper.StatusCausesFromAPIStatus(err)
+			a.failedValidationResponse(w, r, errMsgKubernetesValidation, nil, causes)
+			return
+		}
+		a.serverErrorResponse(w, r, fmt.Errorf("error updating workspace kind: %w", err))
+		return
+	}
+
+	responseEnvelope := &WorkspaceKindEnvelope{Data: updatedWorkspaceKind}
+	a.dataResponse(w, r, responseEnvelope)
 }
