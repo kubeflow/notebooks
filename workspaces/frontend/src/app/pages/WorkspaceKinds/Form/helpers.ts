@@ -153,7 +153,7 @@ export const EMPTY_WORKSPACE_KIND_FORM_DATA = {
 export const emptyToleration = (): TolerationEntry => ({
   id: generateUniqueId(),
   operator: TolerationOperator.Equal,
-  effect: TolerationEffect.NoExecute,
+  effect: TolerationEffect.None,
   key: '',
   value: '',
   tolerationSeconds: null,

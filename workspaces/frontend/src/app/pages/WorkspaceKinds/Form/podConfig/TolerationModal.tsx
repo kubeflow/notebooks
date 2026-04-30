@@ -14,6 +14,8 @@ import {
   SelectList,
   SelectOption,
 } from '@patternfly/react-core/dist/esm/components/Select';
+import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
+import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import { Popover } from '@patternfly/react-core/dist/esm/components/Popover';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons/dist/esm/icons/outlined-question-circle-icon';
@@ -24,7 +26,6 @@ import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupW
 import { ResourceInputWrapper } from '~/shared/components/ResourceInputWrapper';
 
 const OPERATOR_OPTIONS = [
-  { value: TolerationOperator.None, label: 'None', description: undefined },
   {
     value: TolerationOperator.Equal,
     label: 'Equal',
@@ -40,7 +41,11 @@ const OPERATOR_OPTIONS = [
 ] as const;
 
 const EFFECT_OPTIONS = [
-  { value: TolerationEffect.None, label: 'None', description: undefined },
+  {
+    value: TolerationEffect.None,
+    label: 'None',
+    description: 'An empty effect matches all effects with key and value.',
+  },
   {
     value: TolerationEffect.NoSchedule,
     label: 'NoSchedule',
@@ -71,7 +76,7 @@ export const TolerationModal: React.FC<TolerationModalProps> = ({
   onSubmit,
   existingToleration,
 }) => {
-  const [operator, setOperator] = useState<TolerationOperator>(TolerationOperator.None);
+  const [operator, setOperator] = useState<TolerationOperator>(TolerationOperator.Equal);
   const [effect, setEffect] = useState<TolerationEffect>(TolerationEffect.None);
   const [key, setKey] = useState('');
   const [value, setValue] = useState('');
@@ -84,7 +89,7 @@ export const TolerationModal: React.FC<TolerationModalProps> = ({
     if (isOpen) {
       if (existingToleration) {
         setOperator(existingToleration.operator);
-        setEffect(existingToleration.effect);
+        setEffect(existingToleration.effect ?? TolerationEffect.None);
         setKey(existingToleration.key);
         setValue(existingToleration.value);
         setIsForever(existingToleration.tolerationSeconds === null);
@@ -92,7 +97,7 @@ export const TolerationModal: React.FC<TolerationModalProps> = ({
       } else {
         const empty = emptyToleration();
         setOperator(empty.operator);
-        setEffect(empty.effect);
+        setEffect(empty.effect ?? TolerationEffect.None);
         setKey(empty.key);
         setValue(empty.value);
         setIsForever(true);
@@ -107,7 +112,7 @@ export const TolerationModal: React.FC<TolerationModalProps> = ({
     const toleration: TolerationEntry = {
       id: existingToleration?.id ?? generateUniqueId(),
       operator,
-      effect,
+      effect: effect === TolerationEffect.None ? undefined : effect,
       key,
       value: operator === TolerationOperator.Exists ? '' : value,
       tolerationSeconds:
@@ -116,8 +121,8 @@ export const TolerationModal: React.FC<TolerationModalProps> = ({
     onSubmit(toleration);
   }, [existingToleration, operator, effect, key, value, isForever, tolerationSeconds, onSubmit]);
 
-  const operatorLabel = OPERATOR_OPTIONS.find((o) => o.value === operator)?.label ?? 'None';
-  const effectLabel = EFFECT_OPTIONS.find((o) => o.value === effect)?.label ?? 'None';
+  const operatorLabel = OPERATOR_OPTIONS.find((o) => o.value === operator)?.label ?? 'Equal';
+  const effectLabel = EFFECT_OPTIONS.find((o) => o.value === effect)?.label ?? 'NoExecute';
 
   return (
     <Modal
@@ -218,70 +223,92 @@ export const TolerationModal: React.FC<TolerationModalProps> = ({
             />
           </ThemeAwareFormGroupWrapper>
 
-          <ThemeAwareFormGroupWrapper label="Value" fieldId="toleration-value">
+          <ThemeAwareFormGroupWrapper
+            label="Value"
+            fieldId="toleration-value"
+            helperTextNode={
+              operator === TolerationOperator.Exists ? (
+                <HelperText>
+                  <HelperTextItem icon={<ExclamationCircleIcon />}>
+                    Value is not allowed for Exists operator.
+                  </HelperTextItem>
+                </HelperText>
+              ) : undefined
+            }
+          >
             <TextInput
               id="toleration-value"
               data-testid="toleration-value-input"
+              isDisabled={operator === TolerationOperator.Exists} // Value is not allowed for Exists operator
               type="text"
-              value={operator === TolerationOperator.Exists ? '' : value}
+              value={value}
               onChange={(_, val) => setValue(val)}
-              isDisabled={operator === TolerationOperator.Exists}
             />
           </ThemeAwareFormGroupWrapper>
 
-          {effect === TolerationEffect.NoExecute && (
-            <ThemeAwareFormGroupWrapper
-              label="Toleration Seconds"
-              fieldId="toleration-seconds"
-              role="radiogroup"
-              skipFieldset
-              labelHelp={
-                <Popover
-                  headerContent="Toleration seconds"
-                  bodyContent="Toleration seconds specifies how long a pod can remain bound to a node before being evicted."
-                >
-                  <OutlinedQuestionCircleIcon />
-                </Popover>
-              }
-            >
-              <Flex spaceItems={{ default: 'spaceItemsSm' }}>
-                <FlexItem>
-                  <Radio
-                    id="toleration-seconds-forever"
-                    data-testid="toleration-seconds-forever"
-                    name="toleration-seconds-type"
-                    label="Forever"
-                    isChecked={isForever}
-                    onChange={() => {
-                      setIsForever(true);
-                      setTolerationSeconds(0);
-                    }}
-                  />
-                </FlexItem>
-                <FlexItem>
-                  <Radio
-                    id="toleration-seconds-custom"
-                    data-testid="toleration-seconds-custom"
-                    name="toleration-seconds-type"
-                    label="Custom value (in seconds)"
-                    isChecked={!isForever}
-                    onChange={() => {
-                      setIsForever(false);
-                    }}
-                  />
-                </FlexItem>
-              </Flex>
-              {!isForever && (
-                <ResourceInputWrapper
-                  type="custom"
-                  value={String(tolerationSeconds)}
-                  onChange={(v) => setTolerationSeconds(parseInt(v, 10) || 0)}
-                  min={0}
-                  aria-label="toleration-seconds-input"
+          <ThemeAwareFormGroupWrapper
+            label="Toleration Seconds"
+            fieldId="toleration-seconds"
+            role="radiogroup"
+            skipFieldset
+            labelHelp={
+              <Popover
+                headerContent="Toleration seconds"
+                bodyContent="Toleration seconds specifies how long a pod can remain bound to a node before being evicted."
+              >
+                <OutlinedQuestionCircleIcon />
+              </Popover>
+            }
+            helperTextNode={
+              effect !== TolerationEffect.NoExecute && (
+                <HelperText>
+                  <HelperTextItem icon={<ExclamationCircleIcon />}>
+                    Toleration seconds is only available for NoExecute effect.
+                  </HelperTextItem>
+                </HelperText>
+              )
+            }
+          >
+            <Flex spaceItems={{ default: 'spaceItemsSm' }}>
+              <FlexItem>
+                <Radio
+                  id="toleration-seconds-forever"
+                  data-testid="toleration-seconds-forever"
+                  name="toleration-seconds-type"
+                  label="Forever"
+                  isChecked={effect === TolerationEffect.NoExecute ? isForever : false}
+                  onChange={() => {
+                    setIsForever(true);
+                    setTolerationSeconds(0);
+                  }}
+                  isDisabled={effect !== TolerationEffect.NoExecute}
                 />
-              )}
-            </ThemeAwareFormGroupWrapper>
-          )}
+              </FlexItem>
+              <FlexItem>
+                <Radio
+                  id="toleration-seconds-custom"
+                  data-testid="toleration-seconds-custom"
+                  name="toleration-seconds-type"
+                  label="Custom value (in seconds)"
+                  isChecked={effect === TolerationEffect.NoExecute ? !isForever : false}
+                  onChange={() => {
+                    setIsForever(false);
+                  }}
+                  isDisabled={effect !== TolerationEffect.NoExecute}
+                />
+              </FlexItem>
+            </Flex>
+            {!isForever && (
+              <ResourceInputWrapper
+                isDisabled={effect !== TolerationEffect.NoExecute}
+                type="custom"
+                value={String(tolerationSeconds)}
+                onChange={(v) => setTolerationSeconds(parseInt(v, 10) || 0)}
+                min={0}
+                aria-label="toleration-seconds-input"
+              />
+            )}
+          </ThemeAwareFormGroupWrapper>
         </Form>
       </ModalBody>
       <ModalFooter>

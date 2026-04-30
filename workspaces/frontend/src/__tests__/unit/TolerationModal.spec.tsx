@@ -122,7 +122,7 @@ describe('TolerationModal', () => {
     expect(screen.getByTestId('toleration-seconds-custom')).toBeInTheDocument();
   });
 
-  it('hides toleration seconds when effect is not NoExecute', () => {
+  it('disables toleration seconds when effect is not NoExecute', () => {
     render(
       <TolerationModal
         isOpen
@@ -131,7 +131,8 @@ describe('TolerationModal', () => {
         existingToleration={baseToleration}
       />,
     );
-    expect(screen.queryByTestId('toleration-seconds-forever')).not.toBeInTheDocument();
+    expect(screen.getByTestId('toleration-seconds-forever')).toBeDisabled();
+    expect(screen.getByTestId('toleration-seconds-custom')).toBeDisabled();
   });
 
   it('submits with tolerationSeconds=null when effect is NoExecute and forever is selected', async () => {

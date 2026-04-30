@@ -43,7 +43,7 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
   const [currConfig, setCurrConfig] = useState<WorkspaceKindPodConfigValue>({ ...emptyPodConfig });
-  const [tolerationModalOpenFor, setTolerationModalOpenFor] = useState<number | null>(null);
+  const [tolerationModalOpenFor, setTolerationModalOpenFor] = useState<string | null>(null);
 
   const clearForm = useCallback(() => {
     setCurrConfig({ ...emptyPodConfig });
@@ -85,6 +85,9 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
       return;
     }
     const currentValues = podConfig.values ?? [];
+    const removedId = currentValues[deleteIndex].id;
+    tolerationSettersCache.current.delete(removedId);
+    modalSettersCache.current.delete(removedId);
     updatePodConfig({
       default: currentValues[deleteIndex].id === defaultId ? '' : defaultId,
       values: currentValues.filter((_, i) => i !== deleteIndex),
@@ -102,25 +105,29 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
   updatePodConfigRef.current = updatePodConfig;
 
   const tolerationSettersCache = useRef(
-    new Map<number, React.Dispatch<React.SetStateAction<TolerationEntry[]>>>(),
+    new Map<string, React.Dispatch<React.SetStateAction<TolerationEntry[]>>>(),
   );
   const modalSettersCache = useRef(
-    new Map<number, React.Dispatch<React.SetStateAction<boolean>>>(),
+    new Map<string, React.Dispatch<React.SetStateAction<boolean>>>(),
   );
 
   const getTolerationsForConfig = useCallback(
-    (globalIndex: number): React.Dispatch<React.SetStateAction<TolerationEntry[]>> => {
-      let setter = tolerationSettersCache.current.get(globalIndex);
+    (configId: string): React.Dispatch<React.SetStateAction<TolerationEntry[]>> => {
+      let setter = tolerationSettersCache.current.get(configId);
       if (!setter) {
         setter = (action) => {
           const config = podConfigRef.current;
-          const updated = [...config.values];
-          const current = updated[globalIndex].tolerations ?? [];
+          const currentIndex = (config.values ?? []).findIndex((v) => v.id === configId);
+          if (currentIndex === -1) {
+            return;
+          }
+          const updated = [...(config.values ?? [])];
+          const current = updated[currentIndex].tolerations ?? [];
           const next = typeof action === 'function' ? action(current) : action;
-          updated[globalIndex] = { ...updated[globalIndex], tolerations: next };
+          updated[currentIndex] = { ...updated[currentIndex], tolerations: next };
           updatePodConfigRef.current({ ...config, values: updated });
         };
-        tolerationSettersCache.current.set(globalIndex, setter);
+        tolerationSettersCache.current.set(configId, setter);
       }
       return setter;
     },
@@ -128,22 +135,22 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
   );
 
   const getIsTolerationModalOpen = useCallback(
-    (globalIndex: number) => tolerationModalOpenFor === globalIndex,
+    (configId: string) => tolerationModalOpenFor === configId,
     [tolerationModalOpenFor],
   );
 
   const getSetIsTolerationModalOpen = useCallback(
-    (globalIndex: number): React.Dispatch<React.SetStateAction<boolean>> => {
-      let setter = modalSettersCache.current.get(globalIndex);
+    (configId: string): React.Dispatch<React.SetStateAction<boolean>> => {
+      let setter = modalSettersCache.current.get(configId);
       if (!setter) {
         setter = (action) => {
           setTolerationModalOpenFor((prev) => {
-            const isCurrentlyOpen = prev === globalIndex;
+            const isCurrentlyOpen = prev === configId;
             const next = typeof action === 'function' ? action(isCurrentlyOpen) : action;
-            return next ? globalIndex : null;
+            return next ? configId : null;
           });
         };
-        modalSettersCache.current.set(globalIndex, setter);
+        modalSettersCache.current.set(configId, setter);
       }
       return setter;
     },
@@ -152,10 +159,15 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
 
   const tolerationDispatchers = useMemo(
     () =>
-      podConfig.values.map((_, i) => ({
-        setTolerations: getTolerationsForConfig(i),
-        setIsTolerationModalOpen: getSetIsTolerationModalOpen(i),
-      })),
+      new Map(
+        (podConfig.values ?? []).map((config) => [
+          config.id,
+          {
+            setTolerations: getTolerationsForConfig(config.id),
+            setIsTolerationModalOpen: getSetIsTolerationModalOpen(config.id),
+          },
+        ]),
+      ),
     [podConfig.values, getTolerationsForConfig, getSetIsTolerationModalOpen],
   );
 
@@ -195,13 +207,11 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
         )}
         {(podConfig.values ?? []).length > 0 && (
           <>
-            <div className="pf-v6-u-pl-xl pf-v6-u-pt-sm pf-v6-u-pb-sm">
-              <div>
-                Pod configurations define the hardware resource options available to a Workspace.
-                Expand each configuration to access nodeSelector and tolerations, allowing you to
-                constrain pods to specific node groups.
-              </div>
-            </div>
+            <Content component="p">
+              Pod configurations define the hardware resource options available to a Workspace.
+              Expand each configuration to access nodeSelector and tolerations, allowing you to
+              constrain pods to specific node groups.
+            </Content>
             <WorkspaceKindFormPaginatedTable
               ariaLabel="Pod Configs Table"
               dataTestId="pod-configs-table"
@@ -213,7 +223,7 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
               }}
               handleEdit={handleEdit}
               openDeleteModal={openDeleteModal}
-              expandedContent={(_row, globalIndex) => (
+              expandedContent={(row, globalIndex) => (
                 <>
                   <Title headingLevel="h4" className="pf-v6-u-mb-sm">
                     Tolerations
@@ -225,17 +235,17 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
                   <Button
                     variant="secondary"
                     className="pf-v6-u-mb-md"
-                    onClick={() => setTolerationModalOpenFor(globalIndex)}
+                    onClick={() => setTolerationModalOpenFor(row.id)}
                     data-testid={`add-toleration-button-${globalIndex}`}
                   >
                     Add Toleration
                   </Button>
                   <WorkspaceKindFormTolerations
-                    tolerations={podConfig.values[globalIndex]?.tolerations ?? []}
-                    setTolerations={tolerationDispatchers[globalIndex].setTolerations}
-                    isTolerationModalOpen={getIsTolerationModalOpen(globalIndex)}
+                    tolerations={(podConfig.values ?? [])[globalIndex]?.tolerations ?? []}
+                    setTolerations={tolerationDispatchers.get(row.id)!.setTolerations}
+                    isTolerationModalOpen={getIsTolerationModalOpen(row.id)}
                     setIsTolerationModalOpen={
-                      tolerationDispatchers[globalIndex].setIsTolerationModalOpen
+                      tolerationDispatchers.get(row.id)!.setIsTolerationModalOpen
                     }
                   />
                 </>

@@ -1032,13 +1032,13 @@ class EditWorkspaceKind {
     return cy.findByTestId('toleration-seconds-custom');
   }
 
-  assertTolerationSecondsVisible(visible: boolean) {
-    if (visible) {
-      this.findTolerationSecondsForever().should('exist');
-      this.findTolerationSecondsCustom().should('exist');
+  assertTolerationSecondsEnabled(enabled: boolean) {
+    if (enabled) {
+      this.findTolerationSecondsForever().should('not.be.disabled');
+      this.findTolerationSecondsCustom().should('not.be.disabled');
     } else {
-      cy.findByTestId('toleration-seconds-forever').should('not.exist');
-      cy.findByTestId('toleration-seconds-custom').should('not.exist');
+      this.findTolerationSecondsForever().should('be.disabled');
+      this.findTolerationSecondsCustom().should('be.disabled');
     }
   }
 

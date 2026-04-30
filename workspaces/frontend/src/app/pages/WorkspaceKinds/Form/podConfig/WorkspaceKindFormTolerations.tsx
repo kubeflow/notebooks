@@ -81,7 +81,7 @@ export const WorkspaceKindFormTolerations: React.FC<WorkspaceKindFormTolerations
                     : toleration.value || '-'}
                 </Td>
                 <Td dataLabel="Operator" data-testid={`toleration-operator-cell-${index}`}>
-                  {toleration.operator || 'None'}
+                  {toleration.operator}
                 </Td>
                 <Td dataLabel="Effect" data-testid={`toleration-effect-cell-${index}`}>
                   {toleration.effect || 'None'}

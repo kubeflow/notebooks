@@ -82,7 +82,6 @@ export interface WorkspaceKindImagePort {
   protocol: 'HTTP'; // ONLY HTTP is supported at the moment, per https://github.com/thesuperzapper/kubeflow-notebooks-v2-design/blob/main/crds/workspace-kind.yaml#L275
 }
 export enum TolerationOperator {
-  None = '',
   Equal = 'Equal',
   Exists = 'Exists',
 }
@@ -97,7 +96,7 @@ export enum TolerationEffect {
 export interface TolerationEntry {
   id: string;
   operator: TolerationOperator;
-  effect: TolerationEffect;
+  effect?: TolerationEffect;
   key: string;
   value: string;
   tolerationSeconds: number | null;

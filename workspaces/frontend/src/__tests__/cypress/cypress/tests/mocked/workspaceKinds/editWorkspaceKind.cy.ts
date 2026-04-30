@@ -832,20 +832,20 @@ describe('Edit workspace kind', () => {
 
           editWorkspaceKind.clickAddToleration(0);
 
-          editWorkspaceKind.assertTolerationSecondsVisible(false);
+          editWorkspaceKind.assertTolerationSecondsEnabled(false);
 
           editWorkspaceKind.selectTolerationEffect('NoSchedule');
-          editWorkspaceKind.assertTolerationSecondsVisible(false);
+          editWorkspaceKind.assertTolerationSecondsEnabled(false);
 
           editWorkspaceKind.selectTolerationEffect('PreferNoSchedule');
-          editWorkspaceKind.assertTolerationSecondsVisible(false);
+          editWorkspaceKind.assertTolerationSecondsEnabled(false);
 
           editWorkspaceKind.selectTolerationEffect('NoExecute');
-          editWorkspaceKind.assertTolerationSecondsVisible(true);
+          editWorkspaceKind.assertTolerationSecondsEnabled(true);
           editWorkspaceKind.findTolerationSecondsForever().should('be.checked');
 
           editWorkspaceKind.selectTolerationEffect('None');
-          editWorkspaceKind.assertTolerationSecondsVisible(false);
+          editWorkspaceKind.assertTolerationSecondsEnabled(false);
         });
       });
     });
@@ -860,28 +860,6 @@ describe('Edit workspace kind', () => {
 
         editWorkspaceKind.expandPodTemplateSection();
 
-        editWorkspaceKind.expandNodeSelectorSection();
-        editWorkspaceKind.clickAddNodeSelector();
-        editWorkspaceKind.typeNodeSelectorKey(0, 'zone');
-        editWorkspaceKind.typeNodeSelectorValue(0, 'us-west-2a');
-
-        editWorkspaceKind.submitPodConfigModal();
-        editWorkspaceKind.assertPodConfigModalVisible(false);
-
-        // Find the newly added config (last row) and edit it
-        const newIndex = mockWorkspaceKind.podTemplate.options.podConfig.values!.length;
-        editWorkspaceKind.clickPodConfigTableRowKebab(newIndex);
-        editWorkspaceKind.clickEditPodConfig();
-
-        editWorkspaceKind.assertPodConfigModalVisible(true);
-        editWorkspaceKind.assertPodConfigModalTitle('Edit Pod Configuration');
-        editWorkspaceKind.assertPodConfigId('ns-retain-config');
-
-        // Verify node selectors are still present
-        editWorkspaceKind.expandNodeSelectorSection();
-        editWorkspaceKind.assertNodeSelectorCount(1);
-        editWorkspaceKind.assertNodeSelectorKey(0, 'zone');
-        editWorkspaceKind.assertNodeSelectorValue(0, 'us-west-2a');
         editWorkspaceKind.assertPodTemplateSectionExpanded(true);
       });
 

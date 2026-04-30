@@ -202,6 +202,11 @@ body,
   flex-direction: row;
 }
 
+/* Grey out disabled radio button circles */
+.mui-theme .pf-v6-c-radio__label.pf-m-disabled:not(.pf-v6-c-card .pf-v6-c-radio__label)::before {
+  border-color: var(--pf-t--global--color--disabled--default);
+}
+
 /* Top border separator for non-first storage class group headers in the PVC typeahead select */
 .pvc-select-group-header--with-divider {
   border-top: 1px solid var(--pf-t--global--border--color--default);
