@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package assets
+package api
 
-// This file is intentionally minimal. Most asset-related functionality has been moved to
-// common/assets to be shared between workspacekinds and workspaces packages.
-// Only workspacekinds-specific types would be included here.
+//
+// TODO: add some tests
+//

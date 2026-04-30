@@ -24,6 +24,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/podtemplate/options"
@@ -55,18 +56,18 @@ type PodTemplateOptionsListValuesRequestEnvelope Envelope[*models.ListValuesRequ
 //	@Failure		500		{object}	ErrorEnvelope								"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspacekinds/{name}/podtemplate/options/listvalues [post]
 func (a *App) PodTemplateOptionsListValuesHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	name := ps.ByName(ResourceNamePathParam)
+	name := ps.ByName(constants.ResourceNamePathParam)
 
 	// validate path parameters
 	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateWorkspaceKindName(field.NewPath(ResourceNamePathParam), name)...)
+	valErrs = append(valErrs, helper.ValidateWorkspaceKindName(field.NewPath(constants.ResourceNamePathParam), name)...)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
 	}
 
 	// validate the Content-Type header
-	if success := a.ValidateContentType(w, r, MediaTypeJson); !success {
+	if success := a.ValidateContentType(w, r, constants.MediaTypeJson); !success {
 		return
 	}
 

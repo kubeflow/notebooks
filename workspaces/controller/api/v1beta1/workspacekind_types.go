@@ -87,26 +87,23 @@ type WorkspaceKindSpawner struct {
 
 // +kubebuilder:validation:XValidation:message="must specify exactly one of 'url' or 'configMap'",rule="!(has(self.url) && has(self.configMap)) && (has(self.url) || has(self.configMap))"
 type WorkspaceKindAsset struct {
+	// the URL of the asset
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:example="https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png"
 	Url *string `json:"url,omitempty"`
 
+	// the ConfigMap reference for the asset
 	// +kubebuilder:validation:Optional
-	ConfigMap *WorkspaceKindConfigMap `json:"configMap,omitempty"`
+	ConfigMap *WorkspaceKindAssetConfigMap `json:"configMap,omitempty"`
 }
 
-type WorkspaceKindConfigMap struct {
+type WorkspaceKindAssetConfigMap struct {
+	// the name of the ConfigMap
 	// +kubebuilder:example="my-logos"
 	// +kubebuilder:validation:MinLength:=1
 	// +kubebuilder:validation:MaxLength:=253
 	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
 	Name string `json:"name"`
-
-	// +kubebuilder:example="apple-touch-icon-152x152.png"
-	// +kubebuilder:validation:MinLength:=1
-	// +kubebuilder:validation:MaxLength:=253
-	// +kubebuilder:validation:Pattern:=^[-._a-zA-Z0-9]+$
-	Key string `json:"key"`
 
 	// the namespace of the ConfigMap
 	// +kubebuilder:validation:MinLength:=1
@@ -114,7 +111,25 @@ type WorkspaceKindConfigMap struct {
 	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
 	// +kubebuilder:example="kubeflow"
 	Namespace string `json:"namespace"`
+
+	// the key in the ConfigMap which contains the data
+	// +kubebuilder:example="jupyterlab-logo.svg"
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
+	// +kubebuilder:validation:Pattern:=^[-._a-zA-Z0-9]+$
+	Key string `json:"key"`
+
+	// the media type of the asset data in the ConfigMap
+	// +kubebuilder:example="image/svg+xml"
+	MediaType WorkspaceKindAssetMediaType `json:"mediaType"`
 }
+
+// +kubebuilder:validation:Enum:={"image/svg+xml"}
+type WorkspaceKindAssetMediaType string
+
+const (
+	WorkspaceKindAssetMediaTypeSVG WorkspaceKindAssetMediaType = "image/svg+xml"
+)
 
 type WorkspaceKindPodTemplate struct {
 	// metadata for Workspace Pods (MUTABLE)
@@ -569,10 +584,10 @@ type ImageAssetStatus struct {
 
 	// status of the configMap reference
 	// +kubebuilder:validation:Optional
-	ConfigMap *WorkspaceKindConfigMapStatus `json:"configMap,omitempty"`
+	ConfigMap *WorkspaceKindAssetConfigMapStatus `json:"configMap,omitempty"`
 }
 
-type WorkspaceKindConfigMapStatus struct {
+type WorkspaceKindAssetConfigMapStatus struct {
 	// cause of the error when reading the configMap
 	// +kubebuilder:validation:Optional
 	Error *ConfigMapError `json:"errorType,omitempty"`

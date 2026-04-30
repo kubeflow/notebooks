@@ -17,70 +17,96 @@ limitations under the License.
 package assets
 
 import (
-	"fmt"
 	"strings"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 )
 
-// configMapStatusToErrorCode maps the controller's ConfigMapError enum to an ImageRefErrorCode.
-// Returns empty string if status is nil or has no error.
-func configMapStatusToErrorCode(status *kubefloworgv1beta1.WorkspaceKindConfigMapStatus) ImageRefErrorCode {
-	if status == nil || status.Error == nil {
-		return ""
-	}
-	switch *status.Error {
-	case kubefloworgv1beta1.ConfigMapErrorNotFound:
-		return ImageRefErrorCodeConfigMapMissing
-	case kubefloworgv1beta1.ConfigMapErrorKeyNotFound:
-		return ImageRefErrorCodeConfigMapKeyMissing
-	case kubefloworgv1beta1.ConfigMapErrorOther:
-		return ImageRefErrorCodeConfigMapUnknown
-	default:
-		return ImageRefErrorCodeUnknown
-	}
+type wskAssetType string
+
+const (
+	wskAssetTypeIcon wskAssetType = "icon"
+	wskAssetTypeLogo wskAssetType = "logo"
+)
+
+// NewImageRefFromWorkspaceKindAssetIcon creates an ImageRef for an icon asset from a WorkspaceKindAsset and ImageAssetStatus.
+func NewImageRefFromWorkspaceKindAssetIcon(cfg *config.EnvConfig, asset kubefloworgv1beta1.WorkspaceKindAsset, status kubefloworgv1beta1.ImageAssetStatus, workspaceKindName string) ImageRef {
+	return newImageRefFromWorkspaceKindAsset(cfg, asset, status, workspaceKindName, wskAssetTypeIcon)
 }
 
-// BuildImageRef creates an ImageRef from a WorkspaceKindAsset and its corresponding status.
-// If the asset uses a URL, it returns the URL directly.
-// If the asset uses a ConfigMap, it generates a backend API URL with an optional SHA256 hash
-// as a query parameter, and sets the Error field if the status indicates a ConfigMap error.
-func BuildImageRef(cfg *config.EnvConfig, asset kubefloworgv1beta1.WorkspaceKindAsset, workspaceKindName string, assetType WorkspaceKindAssetType, status kubefloworgv1beta1.ImageAssetStatus) ImageRef {
-	if asset.Url != nil && *asset.Url != "" {
-		return ImageRef{
-			URL: *asset.Url,
-		}
+// NewImageRefFromWorkspaceKindAssetLogo creates an ImageRef for a logo asset from a WorkspaceKindAsset and ImageAssetStatus.
+func NewImageRefFromWorkspaceKindAssetLogo(cfg *config.EnvConfig, asset kubefloworgv1beta1.WorkspaceKindAsset, status kubefloworgv1beta1.ImageAssetStatus, workspaceKindName string) ImageRef {
+	return newImageRefFromWorkspaceKindAsset(cfg, asset, status, workspaceKindName, wskAssetTypeLogo)
+}
+
+// newImageRefFromWorkspaceKindAsset implements the logic to create an ImageRef from a WorkspaceKindAsset and ImageAssetStatus, handling both URL and ConfigMap cases.
+func newImageRefFromWorkspaceKindAsset(cfg *config.EnvConfig, asset kubefloworgv1beta1.WorkspaceKindAsset, status kubefloworgv1beta1.ImageAssetStatus, workspaceKindName string, assetType wskAssetType) ImageRef {
+	imageRef := ImageRef{}
+
+	// CASE 1: the asset specifies a URL.
+	// We return the URL directly.
+	if asset.Url != nil {
+		imageRef.URL = *asset.Url
+		return imageRef
 	}
 
-	// If ConfigMap is set, generate backend API URL
+	// CASE 2: the asset references a ConfigMap.
+	// We build a path to the backend API that serves the asset from the ConfigMap.
+	// Note, the controller pre-calculates as SHA256 of the asset content and includes it in the status to enable caching on the frontend.
 	if asset.ConfigMap != nil {
-		url := fmt.Sprintf("/api/v1/workspacekinds/%s/assets/%s.svg", workspaceKindName, assetType)
-		// Append SHA256 hash as query parameter if provided
+		urlPrefix := ""
+		if cfg != nil && cfg.ProxyUrlPrefix != "" {
+			urlPrefix = strings.TrimRight(cfg.ProxyUrlPrefix, "/")
+		}
+
+		urlPath := ""
+		switch assetType {
+		case wskAssetTypeIcon:
+			urlPath = strings.Replace(constants.WorkspaceKindIconPath, ":"+constants.ResourceNamePathParam, workspaceKindName, 1)
+		case wskAssetTypeLogo:
+			urlPath = strings.Replace(constants.WorkspaceKindLogoPath, ":"+constants.ResourceNamePathParam, workspaceKindName, 1)
+		}
+
+		urlParams := ""
 		if status.Sha256 != "" {
-			url = fmt.Sprintf("%s?sha256=%s", url, status.Sha256)
+			urlParams = "?sha256=" + status.Sha256
 		}
 
-		// Apply URL prefix for reverse proxy path rewriting (e.g., Istio VirtualService)
-		if cfg != nil && cfg.UrlPrefix != "" {
-			url = strings.TrimRight(cfg.UrlPrefix, "/") + url
-		}
+		// Combine URL path and parameters
+		imageRef.URL = urlPrefix + urlPath + urlParams
 
-		imageRef := ImageRef{
-			URL: url,
-		}
-
-		// If there was an error retrieving the ConfigMap, set the error field
-		if errorCode := configMapStatusToErrorCode(status.ConfigMap); errorCode != "" {
-			imageRef.Error = &errorCode
-		}
+		// Set error code if there is an error in the ConfigMap status
+		//
+		// TODO: consider if we should also bubble the ErrorMessage from the status, so that "other" errors are more transparent to users.
+		//
+		imageRef.Error = configMapStatusToErrorCode(status.ConfigMap)
 
 		return imageRef
 	}
 
-	// Neither URL nor ConfigMap is set - return empty URL
-	return ImageRef{
-		URL: "",
+	return imageRef
+}
+
+// configMapStatusToErrorCode converts a kubefloworgv1beta1.WorkspaceKindConfigMapStatus to an ImageRefErrorCode.
+func configMapStatusToErrorCode(status *kubefloworgv1beta1.WorkspaceKindAssetConfigMapStatus) *ImageRefErrorCode {
+	// If status or error is nil, return nil (no error)
+	if status == nil || status.Error == nil {
+		return nil
 	}
+
+	// Map controller error to ImageRefErrorCode
+	var errorCode = ImageRefErrorCodeConfigMapUnknown
+	switch *status.Error {
+	case kubefloworgv1beta1.ConfigMapErrorNotFound:
+		errorCode = ImageRefErrorCodeConfigMapMissing
+	case kubefloworgv1beta1.ConfigMapErrorKeyNotFound:
+		errorCode = ImageRefErrorCodeConfigMapKeyMissing
+	case kubefloworgv1beta1.ConfigMapErrorOther:
+		errorCode = ImageRefErrorCodeConfigMapOther
+	}
+
+	return &errorCode
 }

@@ -78,8 +78,6 @@ func (r *WorkspaceRepository) GetAllWorkspaces(ctx context.Context) ([]models.Wo
 }
 
 // getWorkspaceModels lists workspaces using the provided ListOptions and converts them to models.
-// For each workspace, it retrieves the associated WorkspaceKind so that asset SHA256 hashes
-// and error codes from WK status can be included in the ImageRef fields.
 func (r *WorkspaceRepository) getWorkspaceModels(ctx context.Context, listOptions ...client.ListOption) ([]models.WorkspaceListItem, error) {
 	// get workspaces using the provided list options
 	workspaceList := &kubefloworgv1beta1.WorkspaceList{}
@@ -98,8 +96,6 @@ func (r *WorkspaceRepository) getWorkspaceModels(ctx context.Context, listOption
 			if !apierrors.IsNotFound(err) {
 				return nil, err
 			}
-			// If not found, set workspaceKind to nil to indicate it doesn't exist
-			workspaceKind = nil
 		}
 
 		workspacesModels[i] = models.NewWorkspaceListItemFromWorkspace(r.cfg, &workspace, workspaceKind)

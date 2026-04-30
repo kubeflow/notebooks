@@ -33,6 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/actions"
 )
 
@@ -112,8 +113,8 @@ var _ = Describe("Workspace Actions Handler", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("creating the HTTP request")
-			path := strings.Replace(PauseWorkspacePath, ":"+NamespacePathParam, namespaceName1, 1)
-			path = strings.Replace(path, ":"+ResourceNamePathParam, workspaceName1, 1)
+			path := strings.Replace(constants.PauseWorkspacePath, ":"+constants.NamespacePathParam, namespaceName1, 1)
+			path = strings.Replace(path, ":"+constants.ResourceNamePathParam, workspaceName1, 1)
 			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(bodyBytes)))
 			Expect(err).NotTo(HaveOccurred())
 
@@ -123,8 +124,8 @@ var _ = Describe("Workspace Actions Handler", func() {
 
 			By("executing PauseActionWorkspaceHandler")
 			ps := httprouter.Params{
-				httprouter.Param{Key: NamespacePathParam, Value: namespaceName1},
-				httprouter.Param{Key: ResourceNamePathParam, Value: workspaceName1},
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceName1},
+				httprouter.Param{Key: constants.ResourceNamePathParam, Value: workspaceName1},
 			}
 			rr := httptest.NewRecorder()
 			a.PauseActionWorkspaceHandler(rr, req, ps)
@@ -170,8 +171,8 @@ var _ = Describe("Workspace Actions Handler", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("creating the HTTP request")
-			path := strings.Replace(PauseWorkspacePath, ":"+NamespacePathParam, namespaceName1, 1)
-			path = strings.Replace(path, ":"+ResourceNamePathParam, workspaceName1, 1)
+			path := strings.Replace(constants.PauseWorkspacePath, ":"+constants.NamespacePathParam, namespaceName1, 1)
+			path = strings.Replace(path, ":"+constants.ResourceNamePathParam, workspaceName1, 1)
 			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(bodyBytes)))
 			Expect(err).NotTo(HaveOccurred())
 
@@ -181,8 +182,8 @@ var _ = Describe("Workspace Actions Handler", func() {
 
 			By("executing PauseActionWorkspaceHandler")
 			ps := httprouter.Params{
-				httprouter.Param{Key: NamespacePathParam, Value: namespaceName1},
-				httprouter.Param{Key: ResourceNamePathParam, Value: workspaceName1},
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceName1},
+				httprouter.Param{Key: constants.ResourceNamePathParam, Value: workspaceName1},
 			}
 			rr := httptest.NewRecorder()
 			a.PauseActionWorkspaceHandler(rr, req, ps)
@@ -224,8 +225,8 @@ var _ = Describe("Workspace Actions Handler", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("creating the HTTP request")
-			path := strings.Replace(PauseWorkspacePath, ":"+NamespacePathParam, namespaceName1, 1)
-			path = strings.Replace(path, ":"+ResourceNamePathParam, missingWorkspaceName, 1)
+			path := strings.Replace(constants.PauseWorkspacePath, ":"+constants.NamespacePathParam, namespaceName1, 1)
+			path = strings.Replace(path, ":"+constants.ResourceNamePathParam, missingWorkspaceName, 1)
 			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(bodyBytes)))
 			Expect(err).NotTo(HaveOccurred())
 
@@ -235,8 +236,8 @@ var _ = Describe("Workspace Actions Handler", func() {
 
 			By("executing PauseActionWorkspaceHandler")
 			ps := httprouter.Params{
-				httprouter.Param{Key: NamespacePathParam, Value: namespaceName1},
-				httprouter.Param{Key: ResourceNamePathParam, Value: missingWorkspaceName},
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceName1},
+				httprouter.Param{Key: constants.ResourceNamePathParam, Value: missingWorkspaceName},
 			}
 			rr := httptest.NewRecorder()
 			a.PauseActionWorkspaceHandler(rr, req, ps)
@@ -260,8 +261,8 @@ var _ = Describe("Workspace Actions Handler", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("creating the HTTP request")
-			path := strings.Replace(PauseWorkspacePath, ":"+NamespacePathParam, namespaceName1, 1)
-			path = strings.Replace(path, ":"+ResourceNamePathParam, missingWorkspaceName, 1)
+			path := strings.Replace(constants.PauseWorkspacePath, ":"+constants.NamespacePathParam, namespaceName1, 1)
+			path = strings.Replace(path, ":"+constants.ResourceNamePathParam, missingWorkspaceName, 1)
 			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(bodyBytes)))
 			Expect(err).NotTo(HaveOccurred())
 
@@ -271,8 +272,8 @@ var _ = Describe("Workspace Actions Handler", func() {
 
 			By("executing PauseActionWorkspaceHandler")
 			ps := httprouter.Params{
-				httprouter.Param{Key: NamespacePathParam, Value: namespaceName1},
-				httprouter.Param{Key: ResourceNamePathParam, Value: missingWorkspaceName},
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceName1},
+				httprouter.Param{Key: constants.ResourceNamePathParam, Value: missingWorkspaceName},
 			}
 			rr := httptest.NewRecorder()
 			a.PauseActionWorkspaceHandler(rr, req, ps)
@@ -302,8 +303,8 @@ var _ = Describe("Workspace Actions Handler", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("creating the HTTP request")
-			path := strings.Replace(PauseWorkspacePath, ":"+NamespacePathParam, namespaceName1, 1)
-			path = strings.Replace(path, ":"+ResourceNamePathParam, workspaceName1, 1)
+			path := strings.Replace(constants.PauseWorkspacePath, ":"+constants.NamespacePathParam, namespaceName1, 1)
+			path = strings.Replace(path, ":"+constants.ResourceNamePathParam, workspaceName1, 1)
 			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(bodyBytes)))
 			Expect(err).NotTo(HaveOccurred())
 
@@ -313,8 +314,8 @@ var _ = Describe("Workspace Actions Handler", func() {
 
 			By("executing PauseActionWorkspaceHandler")
 			ps := httprouter.Params{
-				httprouter.Param{Key: NamespacePathParam, Value: namespaceName1},
-				httprouter.Param{Key: ResourceNamePathParam, Value: workspaceName1},
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceName1},
+				httprouter.Param{Key: constants.ResourceNamePathParam, Value: workspaceName1},
 			}
 			rr := httptest.NewRecorder()
 			a.PauseActionWorkspaceHandler(rr, req, ps)
@@ -342,8 +343,8 @@ var _ = Describe("Workspace Actions Handler", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("creating the HTTP request")
-			path := strings.Replace(PauseWorkspacePath, ":"+NamespacePathParam, namespaceName1, 1)
-			path = strings.Replace(path, ":"+ResourceNamePathParam, workspaceName1, 1)
+			path := strings.Replace(constants.PauseWorkspacePath, ":"+constants.NamespacePathParam, namespaceName1, 1)
+			path = strings.Replace(path, ":"+constants.ResourceNamePathParam, workspaceName1, 1)
 			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(bodyBytes)))
 			Expect(err).NotTo(HaveOccurred())
 
@@ -353,8 +354,8 @@ var _ = Describe("Workspace Actions Handler", func() {
 
 			By("executing PauseActionWorkspaceHandler")
 			ps := httprouter.Params{
-				httprouter.Param{Key: NamespacePathParam, Value: namespaceName1},
-				httprouter.Param{Key: ResourceNamePathParam, Value: workspaceName1},
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceName1},
+				httprouter.Param{Key: constants.ResourceNamePathParam, Value: workspaceName1},
 			}
 			rr := httptest.NewRecorder()
 			a.PauseActionWorkspaceHandler(rr, req, ps)
@@ -372,8 +373,8 @@ var _ = Describe("Workspace Actions Handler", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("creating the HTTP request")
-			path := strings.Replace(PauseWorkspacePath, ":"+NamespacePathParam, namespaceName1, 1)
-			path = strings.Replace(path, ":"+ResourceNamePathParam, workspaceName1, 1)
+			path := strings.Replace(constants.PauseWorkspacePath, ":"+constants.NamespacePathParam, namespaceName1, 1)
+			path = strings.Replace(path, ":"+constants.ResourceNamePathParam, workspaceName1, 1)
 			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(bodyBytes)))
 			Expect(err).NotTo(HaveOccurred())
 
@@ -383,8 +384,8 @@ var _ = Describe("Workspace Actions Handler", func() {
 
 			By("executing PauseActionWorkspaceHandler")
 			ps := httprouter.Params{
-				httprouter.Param{Key: NamespacePathParam, Value: namespaceName1},
-				httprouter.Param{Key: ResourceNamePathParam, Value: workspaceName1},
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceName1},
+				httprouter.Param{Key: constants.ResourceNamePathParam, Value: workspaceName1},
 			}
 			rr := httptest.NewRecorder()
 			a.PauseActionWorkspaceHandler(rr, req, ps)
@@ -406,8 +407,8 @@ var _ = Describe("Workspace Actions Handler", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("creating the HTTP request")
-			path := strings.Replace(PauseWorkspacePath, ":"+NamespacePathParam, namespaceName1, 1)
-			path = strings.Replace(path, ":"+ResourceNamePathParam, workspaceName1, 1)
+			path := strings.Replace(constants.PauseWorkspacePath, ":"+constants.NamespacePathParam, namespaceName1, 1)
+			path = strings.Replace(path, ":"+constants.ResourceNamePathParam, workspaceName1, 1)
 			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(bodyBytes)))
 			Expect(err).NotTo(HaveOccurred())
 
@@ -417,8 +418,8 @@ var _ = Describe("Workspace Actions Handler", func() {
 
 			By("executing PauseActionWorkspaceHandler")
 			ps := httprouter.Params{
-				httprouter.Param{Key: NamespacePathParam, Value: namespaceName1},
-				httprouter.Param{Key: ResourceNamePathParam, Value: workspaceName1},
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceName1},
+				httprouter.Param{Key: constants.ResourceNamePathParam, Value: workspaceName1},
 			}
 			rr := httptest.NewRecorder()
 			a.PauseActionWorkspaceHandler(rr, req, ps)
@@ -452,8 +453,8 @@ var _ = Describe("Workspace Actions Handler", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("creating the HTTP request")
-			path := strings.Replace(PauseWorkspacePath, ":"+NamespacePathParam, namespaceName1, 1)
-			path = strings.Replace(path, ":"+ResourceNamePathParam, workspaceName1, 1)
+			path := strings.Replace(constants.PauseWorkspacePath, ":"+constants.NamespacePathParam, namespaceName1, 1)
+			path = strings.Replace(path, ":"+constants.ResourceNamePathParam, workspaceName1, 1)
 			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(bodyBytes)))
 			Expect(err).NotTo(HaveOccurred())
 
@@ -463,8 +464,8 @@ var _ = Describe("Workspace Actions Handler", func() {
 
 			By("executing PauseActionWorkspaceHandler")
 			ps := httprouter.Params{
-				httprouter.Param{Key: NamespacePathParam, Value: namespaceName1},
-				httprouter.Param{Key: ResourceNamePathParam, Value: workspaceName1},
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceName1},
+				httprouter.Param{Key: constants.ResourceNamePathParam, Value: workspaceName1},
 			}
 			rr := httptest.NewRecorder()
 			a.PauseActionWorkspaceHandler(rr, req, ps)

@@ -122,10 +122,11 @@ var _ = Describe("WorkspaceKind Controller", func() {
 			newWorkspaceKind := workspaceKind.DeepCopy()
 			newWorkspaceKind.Spec.Spawner.Icon = kubefloworgv1beta1.WorkspaceKindAsset{
 				Url: ptr.To("https://example.com/icon.png"),
-				ConfigMap: &kubefloworgv1beta1.WorkspaceKindConfigMap{
+				ConfigMap: &kubefloworgv1beta1.WorkspaceKindAssetConfigMap{
 					Name:      "my-logos",
-					Key:       "icon.png",
+					Key:       "icon.svg",
 					Namespace: namespaceName,
+					MediaType: kubefloworgv1beta1.WorkspaceKindAssetMediaTypeSVG,
 				},
 			}
 			Expect(k8sClient.Patch(ctx, newWorkspaceKind, patch)).NotTo(Succeed())

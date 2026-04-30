@@ -33,6 +33,10 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
+const (
+	LabelImageSource = "notebooks.kubeflow.org/image-source"
+)
+
 // BuildScheme returns builds a new runtime scheme with all the necessary types registered.
 func BuildScheme() (*runtime.Scheme, error) {
 	scheme := runtime.NewScheme()
@@ -46,15 +50,14 @@ func BuildScheme() (*runtime.Scheme, error) {
 }
 
 // NewManager creates a new controller manager with the standard configuration.
-// It disables caching for ConfigMap and Secret resources to avoid cache overhead,
-// and disables metrics and health probe serving.
-// Following guidance from: https://github.com/kubernetes-sigs/controller-runtime/issues/244#issuecomment-2466564541
 func NewManager(cfg *rest.Config, scheme *runtime.Scheme) (ctrl.Manager, error) {
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: scheme,
 		Client: client.Options{
 			Cache: &client.CacheOptions{
 				// Disable caching for ConfigMaps and Secrets as caching all of them can take a LOT of memory in a large cluster
+				// We create special caches that are filtered by label selectors (e.g. the image source ConfigMaps).
+				// REFERENCE: https://github.com/kubernetes-sigs/controller-runtime/issues/244#issuecomment-2466564541
 				DisableFor: []client.Object{
 					&corev1.ConfigMap{},
 					&corev1.Secret{},
@@ -64,8 +67,8 @@ func NewManager(cfg *rest.Config, scheme *runtime.Scheme) (ctrl.Manager, error) 
 		Metrics: metricsserver.Options{
 			BindAddress: "0", // disable metrics serving
 		},
-		HealthProbeBindAddress: "0", // disable health probe serving
-		LeaderElection:         false,
+		HealthProbeBindAddress: "0",   // disable health probe serving
+		LeaderElection:         false, // this is not a controller, so multiple replicas can run concurrently without issue
 	})
 	if err != nil {
 		return nil, fmt.Errorf("unable to create manager: %w", err)
@@ -73,15 +76,11 @@ func NewManager(cfg *rest.Config, scheme *runtime.Scheme) (ctrl.Manager, error) 
 	return mgr, nil
 }
 
-// BuildImageSourceConfigMapClient creates a filtered cache client for ConfigMaps with the label
-// notebooks.kubeflow.org/image-source: true. This follows the guidance from:
-// https://github.com/kubernetes-sigs/controller-runtime/issues/244#issuecomment-2466564541
-//
-// WARNING: a client which uses a filtered cache will be completely unable to see resources
-// in the cluster which don't match the cache, even if they exist.
+// BuildImageSourceConfigMapClient create a filtered client for ConfigMaps with the label 'notebooks.kubeflow.org/image-source=true'
+// REFERENCE: https://github.com/kubernetes-sigs/controller-runtime/issues/244#issuecomment-2466564541
+// WARNING: this client is ONLY able to see ConfigMaps with the 'notebooks.kubeflow.org/image-source=true' label
 func BuildImageSourceConfigMapClient(mgr ctrl.Manager) (client.Client, error) {
-	// ConfigMaps we manage will have the `notebooks.kubeflow.org/image-source=true` label
-	imageSourceLabelReq, err := labels.NewRequirement("notebooks.kubeflow.org/image-source", selection.Equals, []string{"true"})
+	imageSourceLabelReq, err := labels.NewRequirement(LabelImageSource, selection.Equals, []string{"true"})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create label requirement: %w", err)
 	}

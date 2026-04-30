@@ -717,7 +717,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Namespace used for workspace creation authorization",
+                        "x-example": "kubeflow-user-example-com",
+                        "description": "Namespace to filter workspace kinds",
                         "name": "namespaceFilter",
                         "in": "query"
                     }
@@ -1058,13 +1059,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/workspacekinds/{name}/assets/icon.svg": {
+        "/workspacekinds/{name}/assets/icon": {
             "get": {
                 "description": "Returns the icon image for a specific workspace kind. If the icon is stored in a ConfigMap, it serves the image content. If the icon is a remote URL, returns 404 (browser should fetch directly).",
                 "consumes": [
                     "application/json"
                 ],
                 "produces": [
+                    "application/json",
                     "image/svg+xml"
                 ],
                 "tags": [
@@ -1079,17 +1081,42 @@ const docTemplate = `{
                         "name": "name",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "x-example": "kubeflow-user-example-com",
+                        "description": "Namespace to request asset for.",
+                        "name": "namespace",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "SVG image content",
+                        "description": "The image file content.",
                         "schema": {
-                            "type": "string"
+                            "type": "file"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Authentication is required.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. User does not have permission to get asset.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
                         }
                     },
                     "404": {
                         "description": "Not Found. Icon uses remote URL or resource does not exist.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }
@@ -1103,13 +1130,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/workspacekinds/{name}/assets/logo.svg": {
+        "/workspacekinds/{name}/assets/logo": {
             "get": {
                 "description": "Returns the logo image for a specific workspace kind. If the logo is stored in a ConfigMap, it serves the image content. If the logo is a remote URL, returns 404 (browser should fetch directly).",
                 "consumes": [
                     "application/json"
                 ],
                 "produces": [
+                    "application/json",
                     "image/svg+xml"
                 ],
                 "tags": [
@@ -1124,17 +1152,42 @@ const docTemplate = `{
                         "name": "name",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "x-example": "kubeflow-user-example-com",
+                        "description": "Namespace to request asset for.",
+                        "name": "namespace",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "SVG image content",
+                        "description": "The image file content.",
                         "schema": {
-                            "type": "string"
+                            "type": "file"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Authentication is required.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. User does not have permission to get asset.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
                         }
                     },
                     "404": {
                         "description": "Not Found. Logo uses remote URL or resource does not exist.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }
@@ -2115,14 +2168,14 @@ const docTemplate = `{
             "enum": [
                 "CONFIGMAP_MISSING",
                 "CONFIGMAP_KEY_MISSING",
-                "CONFIGMAP_UNKNOWN",
-                "UNKNOWN"
+                "CONFIGMAP_OTHER",
+                "CONFIGMAP_UNKNOWN"
             ],
             "x-enum-varnames": [
                 "ImageRefErrorCodeConfigMapMissing",
                 "ImageRefErrorCodeConfigMapKeyMissing",
-                "ImageRefErrorCodeConfigMapUnknown",
-                "ImageRefErrorCodeUnknown"
+                "ImageRefErrorCodeConfigMapOther",
+                "ImageRefErrorCodeConfigMapUnknown"
             ]
         },
         "common.Audit": {

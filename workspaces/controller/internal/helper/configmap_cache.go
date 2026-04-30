@@ -46,7 +46,7 @@ const (
 	SHA256AnnotationPrefix = "VIRTUAL.notebooks.kubeflow.org/sha256."
 )
 
-// TransformConfigMapSha256 returns a cache Transform function that computes SHA256 hashes
+// TransformConfigMapSHA256 returns a cache Transform function that computes SHA256 hashes
 // of each key in ConfigMap Data and BinaryData, storing them as virtual annotations.
 //
 // These annotations only exist in the in-memory cache — they are never written back to the
@@ -55,7 +55,7 @@ const (
 // For a ConfigMap with Data key "my-icon", the annotation will be:
 //
 //	VIRTUAL.notebooks.kubeflow.org/sha256.my-icon = "a1b2c3..."
-func TransformConfigMapSha256() toolscache.TransformFunc {
+func TransformConfigMapSHA256() toolscache.TransformFunc {
 	return func(in any) (any, error) {
 		obj, err := meta.Accessor(in)
 		if err != nil {
@@ -90,18 +90,13 @@ func TransformConfigMapSha256() toolscache.TransformFunc {
 	}
 }
 
-// BuildImageSourceConfigMapCache creates a filtered cache for ConfigMaps with the label
-// notebooks.kubeflow.org/image-source: true. This follows the guidance from:
-// https://github.com/kubernetes-sigs/controller-runtime/issues/244#issuecomment-2466564541
+// BuildImageSourceConfigMapCache creates a filtered cache for ConfigMaps with the label 'notebooks.kubeflow.org/image-source=true'
+// REFERENCE: https://github.com/kubernetes-sigs/controller-runtime/issues/244#issuecomment-2466564541
 //
 // The cache uses a Transform function that pre-computes SHA256 hashes of each ConfigMap
-// data key and stores them as virtual annotations (see TransformConfigMapSha256).
+// data key and stores them as virtual annotations (see TransformConfigMapSHA256).
 //
-// The returned cache.Cache implements client.Reader (for Get/List) and can be used as a
-// watch source in controller builder via source.Kind.
-//
-// WARNING: a cache will be completely unable to see resources in the cluster which don't
-// match the label selector, even if they exist.
+// WARNING: this client is ONLY able to see ConfigMaps with the 'notebooks.kubeflow.org/image-source=true' label
 func BuildImageSourceConfigMapCache(mgr ctrl.Manager) (cache.Cache, error) {
 	// ConfigMaps we manage will have the `notebooks.kubeflow.org/image-source=true` label
 	imageSourceLabelReq, err := labels.NewRequirement(ImageSourceLabel, selection.Equals, []string{"true"})
@@ -119,7 +114,7 @@ func BuildImageSourceConfigMapCache(mgr ctrl.Manager) (cache.Cache, error) {
 		ByObject: map[client.Object]cache.ByObject{
 			&corev1.ConfigMap{}: {
 				Label:     imageSourceLabelSelector,
-				Transform: TransformConfigMapSha256(),
+				Transform: TransformConfigMapSHA256(),
 			},
 		},
 		// this requires us to explicitly start an informer for each object type

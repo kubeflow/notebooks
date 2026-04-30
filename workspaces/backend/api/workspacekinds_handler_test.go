@@ -37,6 +37,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	commonAssets "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common/assets"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds"
 )
@@ -109,7 +110,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 
 		It("should retrieve the all WorkspaceKinds successfully", func() {
 			By("creating the HTTP request")
-			req, err := http.NewRequest(http.MethodGet, AllWorkspaceKindsPath, http.NoBody)
+			req, err := http.NewRequest(http.MethodGet, constants.AllWorkspaceKindsPath, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("setting the auth headers")
@@ -156,7 +157,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 
 		It("should retrieve a single WorkspaceKind successfully", func() {
 			By("creating the HTTP request")
-			path := strings.Replace(WorkspaceKindsByNamePath, ":"+ResourceNamePathParam, workspaceKind1Name, 1)
+			path := strings.Replace(constants.WorkspaceKindsByNamePath, ":"+constants.ResourceNamePathParam, workspaceKind1Name, 1)
 			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -165,7 +166,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 
 			By("executing GetWorkspaceKindHandler")
 			ps := httprouter.Params{
-				httprouter.Param{Key: ResourceNamePathParam, Value: workspaceKind1Name},
+				httprouter.Param{Key: constants.ResourceNamePathParam, Value: workspaceKind1Name},
 			}
 			rr := httptest.NewRecorder()
 			a.GetWorkspaceKindHandler(rr, req, ps)
@@ -205,7 +206,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 
 		It("should retrieve WorkspaceKinds with valid namespaceFilter query parameter", func() {
 			By("creating the HTTP request with namespaceFilter query parameter")
-			req, err := http.NewRequest(http.MethodGet, AllWorkspaceKindsPath+"?namespaceFilter="+namespaceName1, http.NoBody)
+			req, err := http.NewRequest(http.MethodGet, constants.AllWorkspaceKindsPath+"?namespaceFilter="+namespaceName1, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("setting the auth headers")
@@ -245,7 +246,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 
 		It("should return 422 for an invalid namespaceFilter query parameter", func() {
 			By("creating the HTTP request with an invalid namespaceFilter query parameter")
-			req, err := http.NewRequest(http.MethodGet, AllWorkspaceKindsPath+"?namespaceFilter=INVALID_NS!!!", http.NoBody)
+			req, err := http.NewRequest(http.MethodGet, constants.AllWorkspaceKindsPath+"?namespaceFilter=INVALID_NS!!!", http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("setting the auth headers")
@@ -269,7 +270,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			By("verifying the error message indicates a query parameter validation failure")
 			Expect(response.Error.Message).To(Equal(errMsgQueryParamsInvalid))
 			Expect(response.Error.Cause.ValidationErrors).NotTo(BeEmpty())
-			Expect(response.Error.Cause.ValidationErrors[0].Field).To(Equal(NamespaceFilterQueryParam))
+			Expect(response.Error.Cause.ValidationErrors[0].Field).To(Equal(constants.NamespaceFilterQueryParam))
 		})
 	})
 
@@ -279,7 +280,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 
 		It("should return an empty list of WorkspaceKinds", func() {
 			By("creating the HTTP request")
-			req, err := http.NewRequest(http.MethodGet, AllWorkspaceKindsPath, http.NoBody)
+			req, err := http.NewRequest(http.MethodGet, constants.AllWorkspaceKindsPath, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("setting the auth headers")
@@ -312,7 +313,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			missingWorkspaceKindName := "non-existent-workspacekind"
 
 			By("creating the HTTP request")
-			path := strings.Replace(WorkspaceKindsByNamePath, ":"+ResourceNamePathParam, missingWorkspaceKindName, 1)
+			path := strings.Replace(constants.WorkspaceKindsByNamePath, ":"+constants.ResourceNamePathParam, missingWorkspaceKindName, 1)
 			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -321,7 +322,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 
 			By("executing GetWorkspaceKindHandler")
 			ps := httprouter.Params{
-				httprouter.Param{Key: ResourceNamePathParam, Value: missingWorkspaceKindName},
+				httprouter.Param{Key: constants.ResourceNamePathParam, Value: missingWorkspaceKindName},
 			}
 			rr := httptest.NewRecorder()
 			a.GetWorkspaceKindHandler(rr, req, ps)
@@ -407,9 +408,9 @@ spec:
 
 		It("should succeed when creating a WorkspaceKind with valid YAML", func() {
 			By("creating the HTTP request")
-			req, err := http.NewRequest(http.MethodPost, AllWorkspaceKindsPath, bytes.NewReader(validYAML))
+			req, err := http.NewRequest(http.MethodPost, constants.AllWorkspaceKindsPath, bytes.NewReader(validYAML))
 			Expect(err).NotTo(HaveOccurred())
-			req.Header.Set("Content-Type", MediaTypeYaml)
+			req.Header.Set("Content-Type", constants.MediaTypeYaml)
 			req.Header.Set(userIdHeader, adminUser)
 
 			By("executing CreateWorkspaceKindHandler")
@@ -437,9 +438,9 @@ spec:
     displayName: "This will fail"`)
 
 			By("creating the HTTP request")
-			req, err := http.NewRequest(http.MethodPost, AllWorkspaceKindsPath, bytes.NewReader(missingNameYAML))
+			req, err := http.NewRequest(http.MethodPost, constants.AllWorkspaceKindsPath, bytes.NewReader(missingNameYAML))
 			Expect(err).NotTo(HaveOccurred())
-			req.Header.Set("Content-Type", MediaTypeYaml)
+			req.Header.Set("Content-Type", constants.MediaTypeYaml)
 			req.Header.Set(userIdHeader, adminUser)
 
 			By("executing CreateWorkspaceKindHandler")
@@ -471,9 +472,9 @@ spec:
 
 		It("should fail to create a WorkspaceKind that already exists", func() {
 			By("creating the HTTP request")
-			req1, err := http.NewRequest(http.MethodPost, AllWorkspaceKindsPath, bytes.NewReader(validYAML))
+			req1, err := http.NewRequest(http.MethodPost, constants.AllWorkspaceKindsPath, bytes.NewReader(validYAML))
 			Expect(err).NotTo(HaveOccurred())
-			req1.Header.Set("Content-Type", MediaTypeYaml)
+			req1.Header.Set("Content-Type", constants.MediaTypeYaml)
 			req1.Header.Set(userIdHeader, adminUser)
 
 			By("executing CreateWorkspaceKindHandler for the first time")
@@ -486,9 +487,9 @@ spec:
 			Expect(rs1.StatusCode).To(Equal(http.StatusCreated), descUnexpectedHTTPStatus, rr1.Body.String())
 
 			By("creating a second HTTP request")
-			req2, err := http.NewRequest(http.MethodPost, AllWorkspaceKindsPath, bytes.NewReader(validYAML))
+			req2, err := http.NewRequest(http.MethodPost, constants.AllWorkspaceKindsPath, bytes.NewReader(validYAML))
 			Expect(err).NotTo(HaveOccurred())
-			req2.Header.Set("Content-Type", MediaTypeYaml)
+			req2.Header.Set("Content-Type", constants.MediaTypeYaml)
 			req2.Header.Set(userIdHeader, adminUser)
 
 			By("executing CreateWorkspaceKindHandler for the second time")
@@ -509,9 +510,9 @@ metadata:
   name: i-am-the-wrong-kind`)
 
 			By("creating the HTTP request")
-			req, err := http.NewRequest(http.MethodPost, AllWorkspaceKindsPath, bytes.NewReader(wrongKindYAML))
+			req, err := http.NewRequest(http.MethodPost, constants.AllWorkspaceKindsPath, bytes.NewReader(wrongKindYAML))
 			Expect(err).NotTo(HaveOccurred())
-			req.Header.Set("Content-Type", MediaTypeYaml)
+			req.Header.Set("Content-Type", constants.MediaTypeYaml)
 			req.Header.Set(userIdHeader, adminUser)
 
 			By("executing CreateWorkspaceKindHandler")
@@ -529,9 +530,9 @@ metadata:
 			notYAML := []byte(`this is not yaml {`)
 
 			By("creating the HTTP request")
-			req, err := http.NewRequest(http.MethodPost, AllWorkspaceKindsPath, bytes.NewReader(notYAML))
+			req, err := http.NewRequest(http.MethodPost, constants.AllWorkspaceKindsPath, bytes.NewReader(notYAML))
 			Expect(err).NotTo(HaveOccurred())
-			req.Header.Set("Content-Type", MediaTypeYaml)
+			req.Header.Set("Content-Type", constants.MediaTypeYaml)
 			req.Header.Set(userIdHeader, adminUser)
 
 			By("executing CreateWorkspaceKindHandler")
@@ -556,9 +557,9 @@ metadata:
 			invalidYAML := []byte("{}")
 
 			By("creating the HTTP request")
-			req, err := http.NewRequest(http.MethodPost, AllWorkspaceKindsPath, bytes.NewReader(invalidYAML))
+			req, err := http.NewRequest(http.MethodPost, constants.AllWorkspaceKindsPath, bytes.NewReader(invalidYAML))
 			Expect(err).NotTo(HaveOccurred())
-			req.Header.Set("Content-Type", MediaTypeYaml)
+			req.Header.Set("Content-Type", constants.MediaTypeYaml)
 			req.Header.Set(userIdHeader, adminUser)
 
 			By("executing the CreateWorkspaceKindHandler")
@@ -601,8 +602,6 @@ metadata:
 		})
 	})
 
-	// Tests that the backend correctly reads SHA256 hashes and error codes from WorkspaceKind status
-	// for ConfigMap-based assets, rather than computing them itself.
 	Context("with ConfigMap-based assets in status", Serial, Ordered, func() {
 
 		var (
@@ -618,13 +617,19 @@ metadata:
 			wk := NewExampleWorkspaceKind(workspaceKindName)
 			// Override URL-based assets with ConfigMap-based assets
 			wk.Spec.Spawner.Icon = kubefloworgv1beta1.WorkspaceKindAsset{
-				ConfigMap: &kubefloworgv1beta1.WorkspaceKindConfigMap{
-					Name: "my-icons", Key: "icon.svg", Namespace: "default",
+				ConfigMap: &kubefloworgv1beta1.WorkspaceKindAssetConfigMap{
+					Name:      "my-icons",
+					Key:       "icon.svg",
+					Namespace: "default",
+					MediaType: kubefloworgv1beta1.WorkspaceKindAssetMediaTypeSVG,
 				},
 			}
 			wk.Spec.Spawner.Logo = kubefloworgv1beta1.WorkspaceKindAsset{
-				ConfigMap: &kubefloworgv1beta1.WorkspaceKindConfigMap{
-					Name: "my-logos", Key: "logo.svg", Namespace: "default",
+				ConfigMap: &kubefloworgv1beta1.WorkspaceKindAssetConfigMap{
+					Name:      "my-logos",
+					Key:       "logo.svg",
+					Namespace: "default",
+					MediaType: kubefloworgv1beta1.WorkspaceKindAssetMediaTypeSVG,
 				},
 			}
 			Expect(k8sClient.Create(ctx, wk)).To(Succeed())
@@ -656,7 +661,7 @@ metadata:
 
 		It("should include SHA256 query parameters in icon and logo URLs (list)", func() {
 			By("creating the HTTP request")
-			req, err := http.NewRequest(http.MethodGet, AllWorkspaceKindsPath, http.NoBody)
+			req, err := http.NewRequest(http.MethodGet, constants.AllWorkspaceKindsPath, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 			req.Header.Set(userIdHeader, adminUser)
 
@@ -695,14 +700,14 @@ metadata:
 
 		It("should include SHA256 query parameters in icon and logo URLs (single get)", func() {
 			By("creating the HTTP request")
-			path := strings.Replace(WorkspaceKindsByNamePath, ":"+ResourceNamePathParam, workspaceKindName, 1)
+			path := strings.Replace(constants.WorkspaceKindsByNamePath, ":"+constants.ResourceNamePathParam, workspaceKindName, 1)
 			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 			req.Header.Set(userIdHeader, adminUser)
 
 			By("executing GetWorkspaceKindHandler")
 			ps := httprouter.Params{
-				httprouter.Param{Key: ResourceNamePathParam, Value: workspaceKindName},
+				httprouter.Param{Key: constants.ResourceNamePathParam, Value: workspaceKindName},
 			}
 			rr := httptest.NewRecorder()
 			a.GetWorkspaceKindHandler(rr, req, ps)
@@ -731,13 +736,13 @@ metadata:
 			wk := &kubefloworgv1beta1.WorkspaceKind{}
 			Expect(k8sClient.Get(ctx, workspaceKindKey, wk)).To(Succeed())
 			wk.Status.SpawnerIcon = kubefloworgv1beta1.ImageAssetStatus{
-				ConfigMap: &kubefloworgv1beta1.WorkspaceKindConfigMapStatus{
+				ConfigMap: &kubefloworgv1beta1.WorkspaceKindAssetConfigMapStatus{
 					Error:        ptr.To(kubefloworgv1beta1.ConfigMapErrorNotFound),
 					ErrorMessage: ptr.To("ConfigMap not found"),
 				},
 			}
 			wk.Status.SpawnerLogo = kubefloworgv1beta1.ImageAssetStatus{
-				ConfigMap: &kubefloworgv1beta1.WorkspaceKindConfigMapStatus{
+				ConfigMap: &kubefloworgv1beta1.WorkspaceKindAssetConfigMapStatus{
 					Error:        ptr.To(kubefloworgv1beta1.ConfigMapErrorKeyNotFound),
 					ErrorMessage: ptr.To("key not found in ConfigMap"),
 				},
@@ -749,14 +754,14 @@ metadata:
 			Expect(k8sClient.Status().Update(ctx, wk)).To(Succeed())
 
 			By("creating the HTTP request")
-			path := strings.Replace(WorkspaceKindsByNamePath, ":"+ResourceNamePathParam, workspaceKindName, 1)
+			path := strings.Replace(constants.WorkspaceKindsByNamePath, ":"+constants.ResourceNamePathParam, workspaceKindName, 1)
 			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 			req.Header.Set(userIdHeader, adminUser)
 
 			By("executing GetWorkspaceKindHandler")
 			ps := httprouter.Params{
-				httprouter.Param{Key: ResourceNamePathParam, Value: workspaceKindName},
+				httprouter.Param{Key: constants.ResourceNamePathParam, Value: workspaceKindName},
 			}
 			rr := httptest.NewRecorder()
 			a.GetWorkspaceKindHandler(rr, req, ps)

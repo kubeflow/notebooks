@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds"
@@ -56,11 +57,11 @@ type WorkspaceKindEnvelope Envelope[*models.WorkspaceKindUpdate]
 //	@Failure		500		{object}	ErrorEnvelope			"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspacekinds/{name} [get]
 func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	name := ps.ByName(ResourceNamePathParam)
+	name := ps.ByName(constants.ResourceNamePathParam)
 
 	// validate path parameters
 	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateWorkspaceKindName(field.NewPath(ResourceNamePathParam), name)...)
+	valErrs = append(valErrs, helper.ValidateWorkspaceKindName(field.NewPath(constants.ResourceNamePathParam), name)...)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
@@ -97,7 +98,7 @@ func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps
 //	@ID				listWorkspaceKinds
 //	@Accept			json
 //	@Produce		json
-//	@Param			namespaceFilter	query		string						false	"Namespace used for workspace creation authorization"
+//	@Param			namespaceFilter	query		string						false	"Namespace to filter workspace kinds"	extensions(x-example=kubeflow-user-example-com)
 //	@Success		200				{object}	WorkspaceKindListEnvelope	"Successful operation. Returns a list of all available workspace kinds."
 //	@Failure		401				{object}	ErrorEnvelope				"Unauthorized. Authentication is required."
 //	@Failure		403				{object}	ErrorEnvelope				"Forbidden. User does not have permission to list workspace kinds."
@@ -105,14 +106,13 @@ func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps
 //	@Failure		500				{object}	ErrorEnvelope				"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspacekinds [get]
 func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	namespace := r.URL.Query().Get(NamespaceFilterQueryParam)
+	namespace := r.URL.Query().Get(constants.NamespaceFilterQueryParam)
 
 	// validate query parameters
 	var valErrs field.ErrorList
 	if namespace != "" {
-		valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespaceFilterQueryParam), namespace)...)
+		valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(constants.NamespaceFilterQueryParam), namespace)...)
 	}
-
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgQueryParamsInvalid, valErrs, nil)
 		return
@@ -223,7 +223,7 @@ func (a *App) DeleteWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 func (a *App) CreateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 	// validate the Content-Type header
-	if success := a.ValidateContentType(w, r, MediaTypeYaml); !success {
+	if success := a.ValidateContentType(w, r, constants.MediaTypeYaml); !success {
 		return
 	}
 

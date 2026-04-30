@@ -37,7 +37,6 @@ const (
 
 // NewWorkspaceListItemFromWorkspace creates a WorkspaceListItem model from a Workspace and WorkspaceKind object.
 // NOTE: the WorkspaceKind might not exist, so we handle the case where it is nil or has no UID.
-// Asset SHA256 hashes and error codes are read directly from the WorkspaceKind status.
 func NewWorkspaceListItemFromWorkspace(cfg *config.EnvConfig, ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.WorkspaceKind) WorkspaceListItem {
 	// ensure the provided WorkspaceKind matches the Workspace
 	if wskExists(wsk) && ws.Spec.Kind != wsk.Name {
@@ -334,19 +333,17 @@ func buildServices(ws *kubefloworgv1beta1.Workspace, wskPodTemplatePorts map[kub
 }
 
 // buildIconImageRef creates an ImageRef from the icon asset of a WorkspaceKind.
-// If WorkspaceKind is nil or missing, returns an empty ImageRef.
 func buildIconImageRef(cfg *config.EnvConfig, ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.WorkspaceKind) commonAssets.ImageRef {
 	if !wskExists(wsk) {
-		return commonAssets.ImageRef{URL: ""}
+		return commonAssets.ImageRef{URL: UnknownIconURL}
 	}
-	return commonAssets.BuildImageRef(cfg, wsk.Spec.Spawner.Icon, ws.Spec.Kind, commonAssets.WorkspaceKindAssetTypeIcon, wsk.Status.SpawnerIcon)
+	return commonAssets.NewImageRefFromWorkspaceKindAssetIcon(cfg, wsk.Spec.Spawner.Icon, wsk.Status.SpawnerIcon, ws.Spec.Kind)
 }
 
 // buildLogoImageRef creates an ImageRef from the logo asset of a WorkspaceKind.
-// If WorkspaceKind is nil or missing, returns an empty ImageRef.
 func buildLogoImageRef(cfg *config.EnvConfig, ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.WorkspaceKind) commonAssets.ImageRef {
 	if !wskExists(wsk) {
-		return commonAssets.ImageRef{URL: ""}
+		return commonAssets.ImageRef{URL: UnknownLogoURL}
 	}
-	return commonAssets.BuildImageRef(cfg, wsk.Spec.Spawner.Logo, ws.Spec.Kind, commonAssets.WorkspaceKindAssetTypeLogo, wsk.Status.SpawnerLogo)
+	return commonAssets.NewImageRefFromWorkspaceKindAssetLogo(cfg, wsk.Spec.Spawner.Logo, wsk.Status.SpawnerLogo, ws.Spec.Kind)
 }

@@ -37,6 +37,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	commonModels "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/pvcs"
 )
@@ -157,7 +158,7 @@ var _ = Describe("PVCs Handler", func() {
 
 		It("should retrieve PVCs from Namespace 1 successfully", func() {
 			By("creating the HTTP request")
-			path := strings.Replace(PVCsByNamespacePath, ":"+NamespacePathParam, namespaceName1, 1)
+			path := strings.Replace(constants.PVCsByNamespacePath, ":"+constants.NamespacePathParam, namespaceName1, 1)
 			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -166,7 +167,7 @@ var _ = Describe("PVCs Handler", func() {
 
 			By("executing GetPVCsByNamespaceHandler")
 			ps := httprouter.Params{
-				httprouter.Param{Key: NamespacePathParam, Value: namespaceName1},
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceName1},
 			}
 			rr := httptest.NewRecorder()
 			a.GetPVCsByNamespaceHandler(rr, req, ps)
@@ -274,7 +275,7 @@ var _ = Describe("PVCs Handler", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("creating the HTTP request")
-			path := strings.Replace(PVCsByNamespacePath, ":"+NamespacePathParam, namespaceName1, 1)
+			path := strings.Replace(constants.PVCsByNamespacePath, ":"+constants.NamespacePathParam, namespaceName1, 1)
 			req, err := http.NewRequest(http.MethodPost, path, bytes.NewBuffer(reqBody))
 			Expect(err).NotTo(HaveOccurred())
 			req.Header.Set("Content-Type", "application/json")
@@ -284,7 +285,7 @@ var _ = Describe("PVCs Handler", func() {
 
 			By("executing CreatePVCHandler")
 			ps := httprouter.Params{
-				httprouter.Param{Key: NamespacePathParam, Value: namespaceName1},
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceName1},
 			}
 			rr := httptest.NewRecorder()
 			a.CreatePVCHandler(rr, req, ps)
@@ -366,8 +367,8 @@ var _ = Describe("PVCs Handler", func() {
 
 		It("should delete a PVC successfully", func() {
 			By("creating the HTTP request")
-			path := strings.Replace(PVCsByNamePath, ":"+NamespacePathParam, namespaceName1, 1)
-			path = strings.Replace(path, ":"+ResourceNamePathParam, "test-delete-pvc", 1)
+			path := strings.Replace(constants.PVCsByNamePath, ":"+constants.NamespacePathParam, namespaceName1, 1)
+			path = strings.Replace(path, ":"+constants.ResourceNamePathParam, "test-delete-pvc", 1)
 			req, err := http.NewRequest(http.MethodDelete, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -376,8 +377,8 @@ var _ = Describe("PVCs Handler", func() {
 
 			By("executing DeletePVCHandler")
 			ps := httprouter.Params{
-				httprouter.Param{Key: NamespacePathParam, Value: namespaceName1},
-				httprouter.Param{Key: ResourceNamePathParam, Value: "test-delete-pvc"},
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceName1},
+				httprouter.Param{Key: constants.ResourceNamePathParam, Value: "test-delete-pvc"},
 			}
 			rr := httptest.NewRecorder()
 			a.DeletePVCHandler(rr, req, ps)
@@ -400,8 +401,8 @@ var _ = Describe("PVCs Handler", func() {
 
 		It("should return 404 for deleting a non-existent PVC", func() {
 			By("creating the HTTP request")
-			path := strings.Replace(PVCsByNamePath, ":"+NamespacePathParam, namespaceName1, 1)
-			path = strings.Replace(path, ":"+ResourceNamePathParam, "non-existent-pvc", 1)
+			path := strings.Replace(constants.PVCsByNamePath, ":"+constants.NamespacePathParam, namespaceName1, 1)
+			path = strings.Replace(path, ":"+constants.ResourceNamePathParam, "non-existent-pvc", 1)
 			req, err := http.NewRequest(http.MethodDelete, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -410,8 +411,8 @@ var _ = Describe("PVCs Handler", func() {
 
 			By("executing DeletePVCHandler")
 			ps := httprouter.Params{
-				httprouter.Param{Key: NamespacePathParam, Value: namespaceName1},
-				httprouter.Param{Key: ResourceNamePathParam, Value: "non-existent-pvc"},
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceName1},
+				httprouter.Param{Key: constants.ResourceNamePathParam, Value: "non-existent-pvc"},
 			}
 			rr := httptest.NewRecorder()
 			a.DeletePVCHandler(rr, req, ps)
@@ -661,7 +662,7 @@ var _ = Describe("PVCs Handler", func() {
 
 		It("should include pod cross-references for PVC 1", func() {
 			By("creating the HTTP request")
-			path := strings.Replace(PVCsByNamespacePath, ":"+NamespacePathParam, namespaceName1, 1)
+			path := strings.Replace(constants.PVCsByNamespacePath, ":"+constants.NamespacePathParam, namespaceName1, 1)
 			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -670,7 +671,7 @@ var _ = Describe("PVCs Handler", func() {
 
 			By("executing GetPVCsByNamespaceHandler")
 			ps := httprouter.Params{
-				httprouter.Param{Key: NamespacePathParam, Value: namespaceName1},
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceName1},
 			}
 			rr := httptest.NewRecorder()
 			a.GetPVCsByNamespaceHandler(rr, req, ps)
@@ -707,7 +708,7 @@ var _ = Describe("PVCs Handler", func() {
 
 		It("should include workspace cross-references for PVC 1", func() {
 			By("creating the HTTP request")
-			path := strings.Replace(PVCsByNamespacePath, ":"+NamespacePathParam, namespaceName1, 1)
+			path := strings.Replace(constants.PVCsByNamespacePath, ":"+constants.NamespacePathParam, namespaceName1, 1)
 			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -716,7 +717,7 @@ var _ = Describe("PVCs Handler", func() {
 
 			By("executing GetPVCsByNamespaceHandler")
 			ps := httprouter.Params{
-				httprouter.Param{Key: NamespacePathParam, Value: namespaceName1},
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceName1},
 			}
 			rr := httptest.NewRecorder()
 			a.GetPVCsByNamespaceHandler(rr, req, ps)
@@ -752,7 +753,7 @@ var _ = Describe("PVCs Handler", func() {
 
 		It("should include bound PV and StorageClass cross-references for PVC 1", func() {
 			By("creating the HTTP request")
-			path := strings.Replace(PVCsByNamespacePath, ":"+NamespacePathParam, namespaceName1, 1)
+			path := strings.Replace(constants.PVCsByNamespacePath, ":"+constants.NamespacePathParam, namespaceName1, 1)
 			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -761,7 +762,7 @@ var _ = Describe("PVCs Handler", func() {
 
 			By("executing GetPVCsByNamespaceHandler")
 			ps := httprouter.Params{
-				httprouter.Param{Key: NamespacePathParam, Value: namespaceName1},
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceName1},
 			}
 			rr := httptest.NewRecorder()
 			a.GetPVCsByNamespaceHandler(rr, req, ps)
@@ -832,7 +833,7 @@ var _ = Describe("PVCs Handler", func() {
 
 		It("should not include cross-references for PVC 2", func() {
 			By("creating the HTTP request")
-			path := strings.Replace(PVCsByNamespacePath, ":"+NamespacePathParam, namespaceName1, 1)
+			path := strings.Replace(constants.PVCsByNamespacePath, ":"+constants.NamespacePathParam, namespaceName1, 1)
 			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -841,7 +842,7 @@ var _ = Describe("PVCs Handler", func() {
 
 			By("executing GetPVCsByNamespaceHandler")
 			ps := httprouter.Params{
-				httprouter.Param{Key: NamespacePathParam, Value: namespaceName1},
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceName1},
 			}
 			rr := httptest.NewRecorder()
 			a.GetPVCsByNamespaceHandler(rr, req, ps)
@@ -885,7 +886,7 @@ var _ = Describe("PVCs Handler", func() {
 			missingNamespace := "non-existent-namespace"
 
 			By("creating the HTTP request")
-			path := strings.Replace(PVCsByNamespacePath, ":"+NamespacePathParam, missingNamespace, 1)
+			path := strings.Replace(constants.PVCsByNamespacePath, ":"+constants.NamespacePathParam, missingNamespace, 1)
 			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -894,7 +895,7 @@ var _ = Describe("PVCs Handler", func() {
 
 			By("executing GetPVCsByNamespaceHandler")
 			ps := httprouter.Params{
-				httprouter.Param{Key: NamespacePathParam, Value: missingNamespace},
+				httprouter.Param{Key: constants.NamespacePathParam, Value: missingNamespace},
 			}
 			rr := httptest.NewRecorder()
 			a.GetPVCsByNamespaceHandler(rr, req, ps)

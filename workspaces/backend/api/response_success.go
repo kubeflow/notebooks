@@ -16,7 +16,12 @@ limitations under the License.
 
 package api
 
-import "net/http"
+import (
+	"fmt"
+	"net/http"
+
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+)
 
 // HTTP: 200
 func (a *App) dataResponse(w http.ResponseWriter, r *http.Request, body any) {
@@ -27,9 +32,14 @@ func (a *App) dataResponse(w http.ResponseWriter, r *http.Request, body any) {
 }
 
 // HTTP: 200
-// Note: SVG images are the only type of image that is served by this API.
-func (a *App) imageResponse(w http.ResponseWriter, r *http.Request, content []byte) {
-	err := a.WriteSVG(w, http.StatusOK, content, nil)
+func (a *App) wskAssetResponse(w http.ResponseWriter, r *http.Request, content []byte, mediaType kubefloworgv1beta1.WorkspaceKindAssetMediaType) {
+	err := fmt.Errorf("unsupported media type: %s", mediaType)
+
+	// we use a switch statement to ensure lint fails if a new media type is added but not handled here
+	switch mediaType { //nolint:gocritic
+	case kubefloworgv1beta1.WorkspaceKindAssetMediaTypeSVG:
+		err = a.WriteSVG(w, http.StatusOK, content, nil)
+	}
 	if err != nil {
 		a.serverErrorResponse(w, r, err)
 	}

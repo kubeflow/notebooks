@@ -21,6 +21,7 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	_ "github.com/kubeflow/notebooks/workspaces/backend/internal/models/health_check"
 )
 
@@ -36,7 +37,7 @@ import (
 //	@Router			/healthcheck [get]
 func (a *App) GetHealthcheckHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
-	healthCheck, err := a.repositories.HealthCheck.HealthCheck(Version)
+	healthCheck, err := a.repositories.HealthCheck.HealthCheck(constants.Version)
 	if err != nil {
 		a.serverErrorResponse(w, r, err)
 		return

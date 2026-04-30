@@ -29,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/namespaces"
 )
 
@@ -79,7 +80,7 @@ var _ = Describe("Namespaces Handler", func() {
 
 		It("should retrieve all namespaces successfully", func() {
 			By("creating the HTTP request")
-			req, err := http.NewRequest(http.MethodGet, AllNamespacesPath, http.NoBody)
+			req, err := http.NewRequest(http.MethodGet, constants.AllNamespacesPath, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("setting the auth headers")

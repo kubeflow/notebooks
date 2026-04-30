@@ -28,10 +28,7 @@ type EnvConfig struct {
 	UserIdPrefix string
 	GroupsHeader string
 
-	// UrlPrefix is the external URL path prefix prepended to backend-generated URLs
-	// (e.g., asset URLs for icons/logos). This accounts for reverse proxy path rewriting
-	// (e.g., Istio VirtualService rewriting "/workspaces/api/" to "/api/").
-	UrlPrefix string
+	ProxyUrlPrefix string
 
 	SwaggerEnabled  bool
 	SwaggerHost     string

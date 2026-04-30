@@ -29,21 +29,31 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	commonAssets "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common/assets"
 	modelsCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds"
-	modelsAssets "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/assets"
 	modelsPodTemplateOptions "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/podtemplate/options"
 )
 
 var ErrWorkspaceKindNotFound = errors.New("workspace kind not found")
 var ErrWorkspaceKindAlreadyExists = errors.New("workspacekind already exists")
 var ErrWorkspaceKindRevisionConflict = errors.New("current workspace kind revision does not match request")
+var ErrWorkspaceKindAssetConfigMapNotFound = fmt.Errorf("workspacekind asset configmap not found, or does not have %s=true label", helper.LabelImageSource)
+var ErrWorkspaceKindAssetConfigMapKeyMissing = errors.New("workspacekind asset configmap missing expected key")
+var ErrWorkspaceKindAssetNotConfigMap = errors.New("workspacekind asset does not reference a configmap")
+
+type wskAssetType string
+
+const (
+	wskAssetTypeIcon wskAssetType = "icon"
+	wskAssetTypeLogo wskAssetType = "logo"
+)
 
 type WorkspaceKindRepository struct {
 	cfg             *config.EnvConfig
 	client          client.Client
-	configMapClient client.Client // filtered cache client for ConfigMaps with notebooks.kubeflow.org/image-source: true
+	configMapClient client.Client // filtered cache client for ConfigMaps with 'notebooks.kubeflow.org/image-source=true'
 }
 
 func NewWorkspaceKindRepository(cfg *config.EnvConfig, cl client.Client, configMapClient client.Client) *WorkspaceKindRepository {
@@ -186,46 +196,61 @@ func (r *WorkspaceKindRepository) ListPodTemplateOptionsValues(ctx context.Conte
 	return listValuesResponse, nil
 }
 
-// GetWorkspaceKindAsset retrieves a single asset (icon or logo) from a WorkspaceKind.
-func (r *WorkspaceKindRepository) GetWorkspaceKindAsset(ctx context.Context, name string, assetType commonAssets.WorkspaceKindAssetType) (commonAssets.WorkspaceKindAsset, error) {
+// GetWorkspaceKindAssetBytesIcon retrieves the content of a WorkspaceKind icon as bytes, along with its media type.
+func (r *WorkspaceKindRepository) GetWorkspaceKindAssetBytesIcon(ctx context.Context, name string) ([]byte, kubefloworgv1beta1.WorkspaceKindAssetMediaType, error) {
+	return r.getWorkspaceKindAssetBytes(ctx, name, wskAssetTypeIcon)
+}
+
+// GetWorkspaceKindAssetBytesLogo retrieves the content of a WorkspaceKind logo as bytes, along with its media type.
+func (r *WorkspaceKindRepository) GetWorkspaceKindAssetBytesLogo(ctx context.Context, name string) ([]byte, kubefloworgv1beta1.WorkspaceKindAssetMediaType, error) {
+	return r.getWorkspaceKindAssetBytes(ctx, name, wskAssetTypeLogo)
+}
+
+func (r *WorkspaceKindRepository) getWorkspaceKindAssetBytes(ctx context.Context, name string, assetType wskAssetType) ([]byte, kubefloworgv1beta1.WorkspaceKindAssetMediaType, error) {
+	// get workspace kind
 	workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
 	err := r.client.Get(ctx, client.ObjectKey{Name: name}, workspaceKind)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			return commonAssets.WorkspaceKindAsset{}, ErrWorkspaceKindNotFound
+			return nil, "", ErrWorkspaceKindNotFound
 		}
-		return commonAssets.WorkspaceKindAsset{}, err
+		return nil, "", err
 	}
 
-	asset := modelsAssets.NewWorkspaceKindAssetFromWorkspaceKind(workspaceKind, assetType)
-	return asset, nil
-}
-
-// GetConfigMapContent retrieves the content from a ConfigMap referenced by a WorkspaceKindAsset.
-// Returns the content as a string, or an error if the ConfigMap or key cannot be found.
-func (r *WorkspaceKindRepository) GetConfigMapContent(ctx context.Context, asset commonAssets.WorkspaceKindAsset) (string, error) {
-	if asset.ConfigMap == nil {
-		return "", fmt.Errorf("asset does not reference a ConfigMap")
+	// get the asset config map reference from the workspace kind spec, depending on the asset type
+	var assetConfigMap *kubefloworgv1beta1.WorkspaceKindAssetConfigMap
+	switch assetType {
+	case wskAssetTypeIcon:
+		assetConfigMap = workspaceKind.Spec.Spawner.Icon.ConfigMap
+	case wskAssetTypeLogo:
+		assetConfigMap = workspaceKind.Spec.Spawner.Logo.ConfigMap
+	}
+	if assetConfigMap == nil {
+		return nil, "", ErrWorkspaceKindAssetNotConfigMap
 	}
 
+	// get the config map
 	configMap := &corev1.ConfigMap{}
-	err := r.configMapClient.Get(ctx, client.ObjectKey{
-		Namespace: asset.ConfigMap.Namespace,
-		Name:      asset.ConfigMap.Name,
+	err = r.configMapClient.Get(ctx, client.ObjectKey{
+		Namespace: assetConfigMap.Namespace,
+		Name:      assetConfigMap.Name,
 	}, configMap)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			return "", commonAssets.ErrWorkspaceKindAssetConfigMapNotFound
+			return nil, "", ErrWorkspaceKindAssetConfigMapNotFound
 		}
-		return "", commonAssets.ErrWorkspaceKindAssetConfigMapUnknown
+		return nil, "", err
 	}
 
-	if data, exists := configMap.Data[asset.ConfigMap.Key]; exists {
-		return data, nil
-	}
-	if binaryData, exists := configMap.BinaryData[asset.ConfigMap.Key]; exists {
-		return string(binaryData), nil
+	// get the asset content from the config map
+	var assetBytes []byte
+	if stringData, exists := configMap.Data[assetConfigMap.Key]; exists {
+		assetBytes = []byte(stringData)
+	} else if bytesData, exists := configMap.BinaryData[assetConfigMap.Key]; exists {
+		assetBytes = bytesData
+	} else {
+		return nil, "", ErrWorkspaceKindAssetConfigMapKeyMissing
 	}
 
-	return "", commonAssets.ErrWorkspaceKindAssetConfigMapKeyNotFound
+	return assetBytes, assetConfigMap.MediaType, nil
 }

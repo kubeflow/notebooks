@@ -25,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/actions"
@@ -56,12 +57,12 @@ type WorkspaceActionPauseEnvelope Envelope[*models.WorkspaceActionPause]
 //	@Failure		500				{object}	ErrorEnvelope					"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspaces/{namespace}/{workspaceName}/actions/pause [post]
 func (a *App) PauseActionWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	namespace := ps.ByName(NamespacePathParam)
-	workspaceName := ps.ByName(ResourceNamePathParam)
+	namespace := ps.ByName(constants.NamespacePathParam)
+	workspaceName := ps.ByName(constants.ResourceNamePathParam)
 
 	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
-	valErrs = append(valErrs, helper.ValidateWorkspaceName(field.NewPath(ResourceNamePathParam), workspaceName)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(constants.NamespacePathParam), namespace)...)
+	valErrs = append(valErrs, helper.ValidateWorkspaceName(field.NewPath(constants.ResourceNamePathParam), workspaceName)...)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return

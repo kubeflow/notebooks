@@ -29,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	commonModels "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/storageclasses"
 )
@@ -96,7 +97,7 @@ var _ = Describe("StorageClasses Handler", func() {
 
 		It("should retrieve all storage classes successfully", func() {
 			By("creating the HTTP request")
-			req, err := http.NewRequest(http.MethodGet, AllStorageClassesPath, http.NoBody)
+			req, err := http.NewRequest(http.MethodGet, constants.AllStorageClassesPath, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("setting the auth headers")

@@ -56,8 +56,8 @@ func NewWorkspaceKindModelFromWorkspaceKind(cfg *config.EnvConfig, wsk *kubeflow
 		Deprecated:         ptr.Deref(wsk.Spec.Spawner.Deprecated, false),
 		DeprecationMessage: ptr.Deref(wsk.Spec.Spawner.DeprecationMessage, ""),
 		Hidden:             ptr.Deref(wsk.Spec.Spawner.Hidden, false),
-		Icon:               assets.BuildImageRef(cfg, wsk.Spec.Spawner.Icon, wsk.Name, assets.WorkspaceKindAssetTypeIcon, wsk.Status.SpawnerIcon),
-		Logo:               assets.BuildImageRef(cfg, wsk.Spec.Spawner.Logo, wsk.Name, assets.WorkspaceKindAssetTypeLogo, wsk.Status.SpawnerLogo),
+		Icon:               assets.NewImageRefFromWorkspaceKindAssetIcon(cfg, wsk.Spec.Spawner.Icon, wsk.Status.SpawnerIcon, wsk.Name),
+		Logo:               assets.NewImageRefFromWorkspaceKindAssetLogo(cfg, wsk.Spec.Spawner.Logo, wsk.Status.SpawnerLogo, wsk.Name),
 		// TODO: in the future will need to support including exactly one of clusterMetrics or namespaceMetrics based on request context
 		ClusterMetrics: ClusterKindMetrics{
 			Workspaces: wsk.Status.Workspaces,

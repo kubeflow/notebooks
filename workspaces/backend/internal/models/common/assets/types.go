@@ -16,10 +16,6 @@ limitations under the License.
 
 package assets
 
-import (
-	"errors"
-)
-
 // ImageRef represents a reference to an image (icon or logo) that can be sourced from a URL or ConfigMap.
 type ImageRef struct {
 	URL   string             `json:"url"`
@@ -27,57 +23,11 @@ type ImageRef struct {
 }
 
 // ImageRefErrorCode represents error codes for asset retrieval errors.
-// This is used both internally and in API responses to indicate errors when retrieving assets from ConfigMaps.
 type ImageRefErrorCode string
 
 const (
 	ImageRefErrorCodeConfigMapMissing    ImageRefErrorCode = "CONFIGMAP_MISSING"
 	ImageRefErrorCodeConfigMapKeyMissing ImageRefErrorCode = "CONFIGMAP_KEY_MISSING"
+	ImageRefErrorCodeConfigMapOther      ImageRefErrorCode = "CONFIGMAP_OTHER"
 	ImageRefErrorCodeConfigMapUnknown    ImageRefErrorCode = "CONFIGMAP_UNKNOWN"
-	ImageRefErrorCodeUnknown             ImageRefErrorCode = "UNKNOWN"
 )
-
-// Errors related to asset retrieval from ConfigMaps.
-// These are used by both workspacekinds and workspaces repositories.
-var (
-	ErrWorkspaceKindAssetConfigMapNotFound    = errors.New("workspace kind asset configmap not found")
-	ErrWorkspaceKindAssetConfigMapKeyNotFound = errors.New("workspace kind asset configmap key not found")
-	ErrWorkspaceKindAssetConfigMapUnknown     = errors.New("workspace kind asset configmap unknown")
-)
-
-// WorkspaceKindAssetType represents the type of asset (icon or logo).
-// This type is used by both workspacekinds and workspaces packages.
-type WorkspaceKindAssetType string
-
-const (
-	// WorkspaceKindAssetTypeIcon represents the icon asset type.
-	WorkspaceKindAssetTypeIcon WorkspaceKindAssetType = "icon"
-	// WorkspaceKindAssetTypeLogo represents the logo asset type.
-	WorkspaceKindAssetTypeLogo WorkspaceKindAssetType = "logo"
-)
-
-// WorkspaceKindAsset represents an asset (icon or logo) for a WorkspaceKind.
-// It can be sourced from either a URL or a ConfigMap, but not both.
-// This type is used by both workspacekinds and workspaces packages.
-type WorkspaceKindAsset struct {
-	// URL is an optional remote URL to the asset.
-	// If set, the asset should be fetched directly from this URL.
-	URL *string `json:"url,omitempty"`
-
-	// ConfigMap is an optional reference to a ConfigMap containing the asset.
-	// If set, the asset is stored in a ConfigMap and should be retrieved from there.
-	ConfigMap *WorkspaceKindAssetConfigMap `json:"configMap,omitempty"`
-}
-
-// WorkspaceKindAssetConfigMap represents a reference to a ConfigMap containing an asset.
-// This type is used by both workspacekinds and workspaces packages.
-type WorkspaceKindAssetConfigMap struct {
-	// Name is the name of the ConfigMap.
-	Name string `json:"name"`
-
-	// Key is the key within the ConfigMap that contains the asset data.
-	Key string `json:"key"`
-
-	// Namespace is the namespace where the ConfigMap is located.
-	Namespace string `json:"namespace"`
-}

@@ -193,13 +193,13 @@ func (r *WorkspaceKindReconciler) reconcileAssetStatus(ctx context.Context, asse
 
 	if err := r.ImageSourceCache.Get(ctx, cmKey, cm); err != nil {
 		if apierrors.IsNotFound(err) {
-			log.V(1).Info("ConfigMap not found for asset",
-				"configMap", cmKey, "key", cmRef.Key)
 			errType := kubefloworgv1beta1.ConfigMapErrorNotFound
-			errMsg := fmt.Sprintf("ConfigMap %q not found in namespace %q (ensure it has the %q label)",
-				cmRef.Name, cmRef.Namespace, helper.ImageSourceLabel)
+			errMsg := fmt.Sprintf(
+				"ConfigMap %q not found in namespace %q (if it exists, ensure it has the %q label)",
+				cmRef.Name, cmRef.Namespace, helper.ImageSourceLabel,
+			)
 			return kubefloworgv1beta1.ImageAssetStatus{
-				ConfigMap: &kubefloworgv1beta1.WorkspaceKindConfigMapStatus{
+				ConfigMap: &kubefloworgv1beta1.WorkspaceKindAssetConfigMapStatus{
 					Error:        &errType,
 					ErrorMessage: &errMsg,
 				},
@@ -207,28 +207,26 @@ func (r *WorkspaceKindReconciler) reconcileAssetStatus(ctx context.Context, asse
 		}
 		log.Error(err, "unable to fetch ConfigMap for asset", "configMap", cmKey)
 		errType := kubefloworgv1beta1.ConfigMapErrorOther
-		errMsg := fmt.Sprintf("failed to get ConfigMap %q in namespace %q: %v",
-			cmRef.Name, cmRef.Namespace, err)
+		errMsg := fmt.Sprintf("failed to get ConfigMap %q in namespace %q: %v", cmRef.Name, cmRef.Namespace, err)
 		return kubefloworgv1beta1.ImageAssetStatus{
-			ConfigMap: &kubefloworgv1beta1.WorkspaceKindConfigMapStatus{
+			ConfigMap: &kubefloworgv1beta1.WorkspaceKindAssetConfigMapStatus{
 				Error:        &errType,
 				ErrorMessage: &errMsg,
 			},
 		}
 	}
 
-	// read the pre-computed SHA256 hash from the virtual annotation set by TransformConfigMapSha256
+	// read the pre-computed SHA256 hash from the virtual annotation set by TransformConfigMapSHA256
 	annotationKey := helper.SHA256AnnotationPrefix + cmRef.Key
 	sha256Hash, found := cm.GetAnnotations()[annotationKey]
 	if !found {
-		// the key does not exist in the ConfigMap's Data or BinaryData
-		log.V(1).Info("ConfigMap key not found for asset",
-			"configMap", cmKey, "key", cmRef.Key)
 		errType := kubefloworgv1beta1.ConfigMapErrorKeyNotFound
-		errMsg := fmt.Sprintf("key %q not found in ConfigMap %q in namespace %q",
-			cmRef.Key, cmRef.Name, cmRef.Namespace)
+		errMsg := fmt.Sprintf(
+			"key %q not found in ConfigMap %q in namespace %q",
+			cmRef.Key, cmRef.Name, cmRef.Namespace,
+		)
 		return kubefloworgv1beta1.ImageAssetStatus{
-			ConfigMap: &kubefloworgv1beta1.WorkspaceKindConfigMapStatus{
+			ConfigMap: &kubefloworgv1beta1.WorkspaceKindAssetConfigMapStatus{
 				Error:        &errType,
 				ErrorMessage: &errMsg,
 			},
@@ -262,22 +260,21 @@ func (r *WorkspaceKindReconciler) SetupWithManager(mgr ctrl.Manager, opts *contr
 	mapConfigMapToRequests := func(ctx context.Context, cm *corev1.ConfigMap) []reconcile.Request {
 		log := log.FromContext(ctx)
 
-		// list all WorkspaceKinds and find those that reference this ConfigMap
 		workspaceKindList := &kubefloworgv1beta1.WorkspaceKindList{}
-		if err := r.List(ctx, workspaceKindList); err != nil {
+		listOpts := &client.ListOptions{
+			FieldSelector: fields.OneTermEqualSelector(helper.IndexWorkspaceKindConfigMapImageSourceField, cm.Namespace+"/"+cm.Name),
+		}
+		if err := r.List(ctx, workspaceKindList, listOpts); err != nil {
 			log.Error(err, "unable to list WorkspaceKinds for ConfigMap watch")
 			return nil
 		}
 
-		var requests []reconcile.Request
-		for _, wk := range workspaceKindList.Items {
-			if assetReferencesConfigMap(wk.Spec.Spawner.Icon, cm) ||
-				assetReferencesConfigMap(wk.Spec.Spawner.Logo, cm) {
-				requests = append(requests, reconcile.Request{
-					NamespacedName: types.NamespacedName{
-						Name: wk.Name,
-					},
-				})
+		requests := make([]reconcile.Request, len(workspaceKindList.Items))
+		for i, wsk := range workspaceKindList.Items {
+			requests[i] = reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name: wsk.GetName(),
+				},
 			}
 		}
 		return requests
@@ -292,17 +289,12 @@ func (r *WorkspaceKindReconciler) SetupWithManager(mgr ctrl.Manager, opts *contr
 			builder.WithPredicates(predicate.GenerationChangedPredicate{}),
 		).
 		WatchesRawSource(
-			source.Kind(r.ImageSourceCache, &corev1.ConfigMap{},
+			source.Kind(
+				r.ImageSourceCache,
+				&corev1.ConfigMap{},
 				handler.TypedEnqueueRequestsFromMapFunc(mapConfigMapToRequests),
+				predicate.TypedResourceVersionChangedPredicate[*corev1.ConfigMap]{},
 			),
 		).
 		Complete(r)
-}
-
-// assetReferencesConfigMap returns true if the given asset references the specified ConfigMap.
-func assetReferencesConfigMap(asset kubefloworgv1beta1.WorkspaceKindAsset, cm *corev1.ConfigMap) bool {
-	if asset.ConfigMap == nil {
-		return false
-	}
-	return asset.ConfigMap.Name == cm.Name && asset.ConfigMap.Namespace == cm.Namespace
 }

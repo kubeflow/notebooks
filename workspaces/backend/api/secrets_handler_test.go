@@ -32,6 +32,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/secrets"
 )
 
@@ -112,7 +113,7 @@ var _ = Describe("Secrets Handler", func() {
 
 			By("executing GetSecretsHandler")
 			ps := httprouter.Params{
-				{Key: NamespacePathParam, Value: namespaceName},
+				{Key: constants.NamespacePathParam, Value: namespaceName},
 			}
 			rr := httptest.NewRecorder()
 			a.GetSecretsByNamespaceHandler(rr, req, ps)
@@ -146,8 +147,8 @@ var _ = Describe("Secrets Handler", func() {
 
 			By("executing GetSecretHandler")
 			ps := httprouter.Params{
-				{Key: NamespacePathParam, Value: namespaceName},
-				{Key: ResourceNamePathParam, Value: "database-credentials"},
+				{Key: constants.NamespacePathParam, Value: namespaceName},
+				{Key: constants.ResourceNamePathParam, Value: "database-credentials"},
 			}
 			rr := httptest.NewRecorder()
 			a.GetSecretHandler(rr, req, ps)
@@ -168,8 +169,8 @@ var _ = Describe("Secrets Handler", func() {
 
 			By("executing GetSecretHandler")
 			ps := httprouter.Params{
-				{Key: NamespacePathParam, Value: namespaceName},
-				{Key: ResourceNamePathParam, Value: "non-existent"},
+				{Key: constants.NamespacePathParam, Value: namespaceName},
+				{Key: constants.ResourceNamePathParam, Value: "non-existent"},
 			}
 			rr := httptest.NewRecorder()
 			a.GetSecretHandler(rr, req, ps)
@@ -230,7 +231,7 @@ var _ = Describe("Secrets Handler", func() {
 
 			By("executing CreateSecretHandler")
 			ps := httprouter.Params{
-				{Key: NamespacePathParam, Value: namespaceName},
+				{Key: constants.NamespacePathParam, Value: namespaceName},
 			}
 			rr := httptest.NewRecorder()
 			a.CreateSecretHandler(rr, req, ps)
@@ -252,7 +253,7 @@ var _ = Describe("Secrets Handler", func() {
 
 			By("executing CreateSecretHandler")
 			ps := httprouter.Params{
-				{Key: NamespacePathParam, Value: namespaceName},
+				{Key: constants.NamespacePathParam, Value: namespaceName},
 			}
 			rr := httptest.NewRecorder()
 			a.CreateSecretHandler(rr, req, ps)
@@ -287,7 +288,7 @@ var _ = Describe("Secrets Handler", func() {
 
 			By("executing CreateSecretHandler")
 			ps := httprouter.Params{
-				{Key: NamespacePathParam, Value: namespaceName},
+				{Key: constants.NamespacePathParam, Value: namespaceName},
 			}
 			rr := httptest.NewRecorder()
 			a.CreateSecretHandler(rr, req, ps)
@@ -347,8 +348,8 @@ var _ = Describe("Secrets Handler", func() {
 
 			By("executing UpdateSecretHandler")
 			ps := httprouter.Params{
-				{Key: NamespacePathParam, Value: namespaceName},
-				{Key: ResourceNamePathParam, Value: "database-credentials"},
+				{Key: constants.NamespacePathParam, Value: namespaceName},
+				{Key: constants.ResourceNamePathParam, Value: "database-credentials"},
 			}
 			rr := httptest.NewRecorder()
 			a.UpdateSecretHandler(rr, req, ps)
@@ -383,8 +384,8 @@ var _ = Describe("Secrets Handler", func() {
 
 			By("executing UpdateSecretHandler")
 			ps := httprouter.Params{
-				{Key: NamespacePathParam, Value: namespaceName},
-				{Key: ResourceNamePathParam, Value: "non-existent"},
+				{Key: constants.NamespacePathParam, Value: namespaceName},
+				{Key: constants.ResourceNamePathParam, Value: "non-existent"},
 			}
 			rr := httptest.NewRecorder()
 			a.UpdateSecretHandler(rr, req, ps)
@@ -431,8 +432,8 @@ var _ = Describe("Secrets Handler", func() {
 
 			By("executing DeleteSecretHandler")
 			ps := httprouter.Params{
-				{Key: NamespacePathParam, Value: namespaceName},
-				{Key: ResourceNamePathParam, Value: "database-credentials"},
+				{Key: constants.NamespacePathParam, Value: namespaceName},
+				{Key: constants.ResourceNamePathParam, Value: "database-credentials"},
 			}
 			rr := httptest.NewRecorder()
 			a.DeleteSecretHandler(rr, req, ps)
@@ -453,8 +454,8 @@ var _ = Describe("Secrets Handler", func() {
 
 			By("executing DeleteSecretHandler")
 			ps := httprouter.Params{
-				{Key: NamespacePathParam, Value: namespaceName},
-				{Key: ResourceNamePathParam, Value: "non-existent"},
+				{Key: constants.NamespacePathParam, Value: namespaceName},
+				{Key: constants.ResourceNamePathParam, Value: "non-existent"},
 			}
 			rr := httptest.NewRecorder()
 			a.DeleteSecretHandler(rr, req, ps)

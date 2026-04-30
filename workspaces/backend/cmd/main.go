@@ -92,9 +92,13 @@ func main() {
 		getEnvAsStr("GROUPS_HEADER", "kubeflow-groups"),
 		"Key of request header containing user groups",
 	)
-	// URL_PREFIX is read directly from the environment variable (injected via ConfigMap).
-	cfg.UrlPrefix = getEnvAsStr("URL_PREFIX", "")
-
+	flag.StringVar(
+		&cfg.ProxyUrlPrefix,
+		"proxy-url-prefix",
+		getEnvAsStr("PROXY_URL_PREFIX", ""),
+		"For if this service is behind a reverse proxy which rewrites URL paths. "+
+			"Prefix is prepended to absolute URLs returned by this service (e.g. asset URLs for icons/logos).",
+	)
 	flag.BoolVar(
 		&cfg.SwaggerEnabled,
 		"swagger-enabled",
@@ -164,12 +168,14 @@ func main() {
 	reqAuthZ, err := auth.NewRequestAuthorizer(mgr.GetConfig(), mgr.GetHTTPClient())
 	if err != nil {
 		logger.Error("failed to create request authorizer", "error", err)
+		os.Exit(1)
 	}
 
-	// Create a filtered cache client for ConfigMaps with the label notebooks.kubeflow.org/image-source: true
+	// Create a filtered cache client for ConfigMaps with the label 'notebooks.kubeflow.org/image-source=true'
 	imageSourceConfigMapClient, err := helper.BuildImageSourceConfigMapClient(mgr)
 	if err != nil {
-		logger.Error("failed to create image source ConfigMap client", "error", err)
+		logger.Error("failed to create 'notebooks.kubeflow.org/image-source=true' label "+
+			"filtered ConfigMap client", "error", err)
 		os.Exit(1)
 	}
 

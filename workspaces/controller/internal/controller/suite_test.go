@@ -201,17 +201,19 @@ func NewExampleWorkspace1(name string, namespace string, workspaceKind string) *
 func NewExampleWorkspaceKindWithConfigMapAssets(name string, iconCMName string, logoCMName string, namespace string) *kubefloworgv1beta1.WorkspaceKind {
 	wk := NewExampleWorkspaceKind1(name)
 	wk.Spec.Spawner.Icon = kubefloworgv1beta1.WorkspaceKindAsset{
-		ConfigMap: &kubefloworgv1beta1.WorkspaceKindConfigMap{
+		ConfigMap: &kubefloworgv1beta1.WorkspaceKindAssetConfigMap{
 			Name:      iconCMName,
 			Key:       "icon.svg",
 			Namespace: namespace,
+			MediaType: kubefloworgv1beta1.WorkspaceKindAssetMediaTypeSVG,
 		},
 	}
 	wk.Spec.Spawner.Logo = kubefloworgv1beta1.WorkspaceKindAsset{
-		ConfigMap: &kubefloworgv1beta1.WorkspaceKindConfigMap{
+		ConfigMap: &kubefloworgv1beta1.WorkspaceKindAssetConfigMap{
 			Name:      logoCMName,
 			Key:       "logo.svg",
 			Namespace: namespace,
+			MediaType: kubefloworgv1beta1.WorkspaceKindAssetMediaTypeSVG,
 		},
 	}
 	return wk

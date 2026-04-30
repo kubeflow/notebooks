@@ -18,60 +18,25 @@ package api
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+
+	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
-	commonAssets "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common/assets"
 	repository "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/workspacekinds"
 )
 
-// getWorkspaceKindAssetHandler is a helper function that handles common logic for retrieving
-// and serving workspace kind assets (icon or logo). It validates path parameters, performs
-// authentication, retrieves the asset, and serves it.
-func (a *App) getWorkspaceKindAssetHandler(
-	w http.ResponseWriter,
-	r *http.Request,
-	ps httprouter.Params,
-	assetType commonAssets.WorkspaceKindAssetType,
-) {
-	name := ps.ByName(ResourceNamePathParam)
+type wskAssetType string
 
-	// validate path parameters
-	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateWorkspaceKindName(field.NewPath(ResourceNamePathParam), name)...)
-	if len(valErrs) > 0 {
-		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
-		return
-	}
-
-	// =========================== AUTH ===========================
-	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(auth.VerbGet, auth.WorkspaceKinds, auth.ResourcePolicyResourceMeta{Name: name}),
-	}
-	if success := a.requireAuth(w, r, authPolicies); !success {
-		return
-	}
-	// ============================================================
-
-	asset, err := a.repositories.WorkspaceKind.GetWorkspaceKindAsset(r.Context(), name, assetType)
-	if err != nil {
-		if errors.Is(err, repository.ErrWorkspaceKindNotFound) {
-			a.notFoundResponse(w, r)
-			return
-		}
-		a.serverErrorResponse(w, r, err)
-		return
-	}
-
-	// Serve the asset
-	a.serveWorkspaceKindAsset(w, r, asset)
-}
+const (
+	wskAssetTypeIcon wskAssetType = "icon"
+	wskAssetTypeLogo wskAssetType = "logo"
+)
 
 // GetWorkspaceKindIconHandler serves the icon image for a WorkspaceKind.
 //
@@ -80,14 +45,19 @@ func (a *App) getWorkspaceKindAssetHandler(
 //	@Tags			workspacekinds
 //	@ID				getWorkspaceKindIcon
 //	@Accept			json
+//	@Produce		json
 //	@Produce		image/svg+xml
-//	@Param			name	path		string			true	"Name of the workspace kind"
-//	@Success		200		{string}	string			"SVG image content"
-//	@Failure		404		{object}	ErrorEnvelope	"Not Found. Icon uses remote URL or resource does not exist."
-//	@Failure		500		{object}	ErrorEnvelope	"Internal server error."
-//	@Router			/workspacekinds/{name}/assets/icon.svg [get]
+//	@Param			name		path		string			true	"Name of the workspace kind"
+//	@Param			namespace	query		string			false	"Namespace to request asset for."	extensions(x-example=kubeflow-user-example-com)
+//	@Success		200			{file}		string			"The image file content."
+//	@Failure		401			{object}	ErrorEnvelope	"Unauthorized. Authentication is required."
+//	@Failure		403			{object}	ErrorEnvelope	"Forbidden. User does not have permission to get asset."
+//	@Failure		404			{object}	ErrorEnvelope	"Not Found. Icon uses remote URL or resource does not exist."
+//	@Failure		422			{object}	ErrorEnvelope	"Unprocessable Entity. Validation error."
+//	@Failure		500			{object}	ErrorEnvelope	"Internal server error."
+//	@Router			/workspacekinds/{name}/assets/icon [get]
 func (a *App) GetWorkspaceKindIconHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	a.getWorkspaceKindAssetHandler(w, r, ps, commonAssets.WorkspaceKindAssetTypeIcon)
+	a.getWorkspaceKindAssetHandler(w, r, ps, wskAssetTypeIcon)
 }
 
 // GetWorkspaceKindLogoHandler serves the logo image for a WorkspaceKind.
@@ -97,42 +67,78 @@ func (a *App) GetWorkspaceKindIconHandler(w http.ResponseWriter, r *http.Request
 //	@Tags			workspacekinds
 //	@ID				getWorkspaceKindLogo
 //	@Accept			json
+//	@Produce		json
 //	@Produce		image/svg+xml
-//	@Param			name	path		string			true	"Name of the workspace kind"
-//	@Success		200		{string}	string			"SVG image content"
-//	@Failure		404		{object}	ErrorEnvelope	"Not Found. Logo uses remote URL or resource does not exist."
-//	@Failure		500		{object}	ErrorEnvelope	"Internal server error."
-//	@Router			/workspacekinds/{name}/assets/logo.svg [get]
+//	@Param			name		path		string			true	"Name of the workspace kind"
+//	@Param			namespace	query		string			false	"Namespace to request asset for."	extensions(x-example=kubeflow-user-example-com)
+//	@Success		200			{file}		string			"The image file content."
+//	@Failure		401			{object}	ErrorEnvelope	"Unauthorized. Authentication is required."
+//	@Failure		403			{object}	ErrorEnvelope	"Forbidden. User does not have permission to get asset."
+//	@Failure		404			{object}	ErrorEnvelope	"Not Found. Logo uses remote URL or resource does not exist."
+//	@Failure		422			{object}	ErrorEnvelope	"Unprocessable Entity. Validation error."
+//	@Failure		500			{object}	ErrorEnvelope	"Internal server error."
+//	@Router			/workspacekinds/{name}/assets/logo [get]
 func (a *App) GetWorkspaceKindLogoHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	a.getWorkspaceKindAssetHandler(w, r, ps, commonAssets.WorkspaceKindAssetTypeLogo)
+	a.getWorkspaceKindAssetHandler(w, r, ps, wskAssetTypeLogo)
 }
 
-// serveWorkspaceKindAsset serves an icon or logo asset from a WorkspaceKind.
-// If the asset uses a remote URL, it returns 404 (browser should fetch directly).
-// If the asset uses a ConfigMap, it retrieves and serves the content with proper headers.
-func (a *App) serveWorkspaceKindAsset(w http.ResponseWriter, r *http.Request, asset commonAssets.WorkspaceKindAsset) {
-	// If URL is set, return 404 - browser should fetch directly from source
-	if asset.URL != nil && *asset.URL != "" {
-		a.notFoundResponse(w, r)
+// getWorkspaceKindAssetHandler implements the logic to serve a WorkspaceKind asset (icon or logo) based on the assetType parameter.
+func (a *App) getWorkspaceKindAssetHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params, assetType wskAssetType) {
+	wskName := ps.ByName(constants.ResourceNamePathParam)
+	namespace := r.URL.Query().Get(constants.NamespaceQueryParam)
+
+	// validate path parameters
+	var valErrs field.ErrorList
+	valErrs = append(valErrs, helper.ValidateWorkspaceKindName(field.NewPath(constants.ResourceNamePathParam), wskName)...)
+	if namespace != "" {
+		valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(constants.NamespaceFilterQueryParam), namespace)...)
+	}
+	if len(valErrs) > 0 {
+		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
 	}
 
-	// If ConfigMap is not set, return 404
-	if asset.ConfigMap == nil {
-		a.notFoundResponse(w, r)
-		return
+	// =========================== AUTH ===========================
+	var authPolicies []*auth.ResourcePolicy
+
+	if namespace != "" {
+		// user is viewing the asset in the context of a workspace listing, so check list permission on workspaces in the namespace
+		authPolicies = []*auth.ResourcePolicy{
+			auth.NewResourcePolicy(auth.VerbList, auth.Workspaces, auth.ResourcePolicyResourceMeta{Namespace: namespace}),
+		}
+	} else {
+		// administrative view of a workspace kind
+		authPolicies = []*auth.ResourcePolicy{
+			auth.NewResourcePolicy(auth.VerbGet, auth.WorkspaceKinds, auth.ResourcePolicyResourceMeta{Name: wskName}),
+		}
 	}
 
-	imageContent, err := a.repositories.WorkspaceKind.GetConfigMapContent(r.Context(), asset)
+	if success := a.requireAuth(w, r, authPolicies); !success {
+		return
+	}
+	// ============================================================
+
+	var assetBytes []byte
+	var mediaType kubefloworgv1beta1.WorkspaceKindAssetMediaType
+	var err error
+
+	switch assetType {
+	case wskAssetTypeIcon:
+		assetBytes, mediaType, err = a.repositories.WorkspaceKind.GetWorkspaceKindAssetBytesIcon(r.Context(), wskName)
+	case wskAssetTypeLogo:
+		assetBytes, mediaType, err = a.repositories.WorkspaceKind.GetWorkspaceKindAssetBytesLogo(r.Context(), wskName)
+	default:
+		a.serverErrorResponse(w, r, errors.New("invalid asset type"))
+		return
+	}
 	if err != nil {
-		if apierrors.IsNotFound(err) {
+		if errors.Is(err, repository.ErrWorkspaceKindNotFound) || errors.Is(err, repository.ErrWorkspaceKindAssetNotConfigMap) {
 			a.notFoundResponse(w, r)
 			return
 		}
-		a.serverErrorResponse(w, r, fmt.Errorf("error retrieving ConfigMap content: %w", err))
+		a.serverErrorResponse(w, r, err)
 		return
 	}
 
-	// Write the SVG response
-	a.imageResponse(w, r, []byte(imageContent))
+	a.wskAssetResponse(w, r, assetBytes, mediaType)
 }

@@ -8,5 +8,5 @@ spec:
       containers:
       - name: workspaces-backend
         env:
-        - name: URL_PREFIX
+        - name: PROXY_URL_PREFIX
           value: "/workspaces"
