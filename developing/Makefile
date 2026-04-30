@@ -15,7 +15,7 @@ ISTIOCTL ?= $(LOCALBIN)/istioctl
 
 # Tool Versions
 KUSTOMIZE_VERSION ?= v5.5.0
-ISTIOCTL_VERSION ?= 1.27.3
+ISTIOCTL_VERSION ?= 1.29.1
 
 # Export KIND_EXPERIMENTAL_PROVIDER to honor it if set in user's environment
 # (e.g., KIND_EXPERIMENTAL_PROVIDER=podman for podman support)
