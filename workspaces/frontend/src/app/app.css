@@ -220,7 +220,7 @@ body,
 }
 
 /* In dashboard mode when sidebar is not there, the main container will not have any margin */
-.mui-theme .pf-v6-c-page__main-container {
+.mui-theme .pf-v6-c-page.pf-m-no-sidebar .pf-v6-c-page__main-container {
   overflow: visible;
   flex-grow: 1;
   display: flex;
@@ -229,6 +229,6 @@ body,
   margin-left: 0;
 }
 
-.mui-theme .pf-v6-c-page__main {
-  margin-left: 0 !important;
+.mui-theme .pf-v6-c-page.pf-m-no-sidebar .pf-v6-c-page__main {
+  margin-left: 0;
 }
