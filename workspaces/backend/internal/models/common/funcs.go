@@ -17,9 +17,6 @@ limitations under the License.
 package common
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
-	"fmt"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,16 +34,6 @@ const (
 	LabelCanUpdate = "notebooks.kubeflow.org/can-update"
 	LabelCanUse    = "notebooks.kubeflow.org/can-use"
 )
-
-// CalculateRevision calculates the revision/etag for a Kubernetes resource.
-// FORMAT: hex(sha256("<UID>:<NAME>:<GENERATION>"))
-// This detects changes to the spec of the resource, while also ensuring
-// that the resource itself is the same (via UID and name).
-func CalculateRevision(meta *metav1.ObjectMeta) string {
-	revisionInput := fmt.Sprintf("%s:%s:%d", meta.UID, meta.Name, meta.Generation)
-	hash := sha256.Sum256([]byte(revisionInput))
-	return hex.EncodeToString(hash[:])
-}
 
 // NewAuditFromObjectMeta creates an Audit instance from Kubernetes ObjectMeta.
 func NewAuditFromObjectMeta(objectMeta *metav1.ObjectMeta) Audit {

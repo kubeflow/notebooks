@@ -19,26 +19,27 @@ package workspacekinds
 import (
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 )
 
 // WorkspaceKindCreate represents the full WorkspaceKind spec for create operations.
 type WorkspaceKindCreate struct {
-	// Name is the unique identifier of the workspace kind.
-	Name string `json:"name"`
-
-	// Spawner contains the full spawner configuration.
-	Spawner kubefloworgv1beta1.WorkspaceKindSpawner `json:"spawner"`
-	// PodTemplate contains the full pod template configuration.
+	Name        string                                      `json:"name"`
+	Spawner     kubefloworgv1beta1.WorkspaceKindSpawner     `json:"spawner"`
 	PodTemplate kubefloworgv1beta1.WorkspaceKindPodTemplate `json:"podTemplate"`
 }
 
 // WorkspaceKindUpdate represents the full WorkspaceKind spec for update operations.
 type WorkspaceKindUpdate struct {
-	// Revision is an opaque token for optimistic locking.
-	Revision string `json:"revision"`
-	// Spawner contains the full spawner configuration.
-	Spawner kubefloworgv1beta1.WorkspaceKindSpawner `json:"spawner"`
-	// PodTemplate contains the full pod template configuration.
+	// RevisionString is an opaque token that can be treated like an etag.
+	//   - Clients receive this value from GET requests and must include it
+	//     in update requests to ensure they are updating the expected version.
+	//   - Clients must not parse, interpret, or compare revision values
+	//     other than for equality, as the format is not guaranteed to be stable.
+	Revision common.RevisionString `json:"revision"`
+
+	Spawner     kubefloworgv1beta1.WorkspaceKindSpawner     `json:"spawner"`
 	PodTemplate kubefloworgv1beta1.WorkspaceKindPodTemplate `json:"podTemplate"`
 }
 

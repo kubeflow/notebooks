@@ -6556,24 +6556,13 @@
             ],
             "properties": {
                 "name": {
-                    "description": "Name is the unique identifier of the workspace kind.",
                     "type": "string"
                 },
                 "podTemplate": {
-                    "description": "PodTemplate contains the full pod template configuration.",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.WorkspaceKindPodTemplate"
-                        }
-                    ]
+                    "$ref": "#/definitions/v1beta1.WorkspaceKindPodTemplate"
                 },
                 "spawner": {
-                    "description": "Spawner contains the full spawner configuration.",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.WorkspaceKindSpawner"
-                        }
-                    ]
+                    "$ref": "#/definitions/v1beta1.WorkspaceKindSpawner"
                 }
             }
         },
@@ -6633,24 +6622,14 @@
             ],
             "properties": {
                 "podTemplate": {
-                    "description": "PodTemplate contains the full pod template configuration.",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.WorkspaceKindPodTemplate"
-                        }
-                    ]
+                    "$ref": "#/definitions/v1beta1.WorkspaceKindPodTemplate"
                 },
                 "revision": {
-                    "description": "Revision is an opaque token for optimistic locking.",
+                    "description": "RevisionString is an opaque token that can be treated like an etag.\n  - Clients receive this value from GET requests and must include it\n    in update requests to ensure they are updating the expected version.\n  - Clients must not parse, interpret, or compare revision values\n    other than for equality, as the format is not guaranteed to be stable.",
                     "type": "string"
                 },
                 "spawner": {
-                    "description": "Spawner contains the full spawner configuration.",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.WorkspaceKindSpawner"
-                        }
-                    ]
+                    "$ref": "#/definitions/v1beta1.WorkspaceKindSpawner"
                 }
             }
         },
@@ -7216,7 +7195,7 @@
                     "$ref": "#/definitions/workspaces.PodTemplateMutate"
                 },
                 "revision": {
-                    "description": "Revision is an opaque token that can be treated like an etag.\n- Clients receive this value from GET requests and must include it\n  in update requests to ensure they are updating the expected version.\n- Clients must not parse, interpret, or compare revision values\n  other than for equality, as the format is not guaranteed to be stable.",
+                    "description": "RevisionString is an opaque token that can be treated like an etag.\n  - Clients receive this value from GET requests and must include it\n    in update requests to ensure they are updating the expected version.\n  - Clients must not parse, interpret, or compare revision values\n    other than for equality, as the format is not guaranteed to be stable.",
                     "type": "string"
                 }
             }

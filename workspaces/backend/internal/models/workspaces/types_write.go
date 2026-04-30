@@ -20,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 )
 
 // WorkspaceCreate is used to create a new workspace.
@@ -53,12 +54,12 @@ func (w *WorkspaceCreate) Validate(prefix *field.Path) []*field.Error {
 // WorkspaceUpdate is used to update an existing workspace.
 // NOTE: we only do basic validation, more complex validation is done by the controller when attempting to update the workspace.
 type WorkspaceUpdate struct {
-	// Revision is an opaque token that can be treated like an etag.
-	// - Clients receive this value from GET requests and must include it
-	//   in update requests to ensure they are updating the expected version.
-	// - Clients must not parse, interpret, or compare revision values
-	//   other than for equality, as the format is not guaranteed to be stable.
-	Revision string `json:"revision"`
+	// RevisionString is an opaque token that can be treated like an etag.
+	//   - Clients receive this value from GET requests and must include it
+	//     in update requests to ensure they are updating the expected version.
+	//   - Clients must not parse, interpret, or compare revision values
+	//     other than for equality, as the format is not guaranteed to be stable.
+	Revision common.RevisionString `json:"revision"`
 
 	Paused      bool              `json:"paused"` // TODO: remove `paused` once we have an "actions" api for pausing workspaces
 	PodTemplate PodTemplateMutate `json:"podTemplate"`

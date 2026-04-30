@@ -122,7 +122,7 @@ func (r *WorkspaceKindRepository) UpdateWorkspaceKind(ctx context.Context, works
 	modelsCommon.UpdateObjectMetaForUpdate(&workspaceKind.ObjectMeta, actor, now)
 
 	// update the workspace kind in K8s
-	// TODO(#853): if the update fails due to a kubernetes conflict, this implies our cache is stale.
+	// TODO: if the update fails due to a kubernetes conflict, this implies our cache is stale.
 	//       we should retry the entire update operation a few times (including recalculating clusterRevision)
 	//       before returning a 500 error to the caller (DO NOT return a 409, as it's not the caller's fault)
 	if err := r.client.Update(ctx, workspaceKind); err != nil {
