@@ -170,7 +170,7 @@ func (r *WorkspaceRepository) UpdateWorkspace(ctx context.Context, workspaceUpda
 
 	// ensure caller's revision matches current workspace revision
 	// prevents updates by callers with a stale view of the workspace
-	clusterRevision := models.CalculateWorkspaceRevision(workspace)
+	clusterRevision := modelsCommon.CalculateRevision(&workspace.ObjectMeta)
 	callerRevision := workspaceUpdate.Revision
 	if clusterRevision != callerRevision {
 		return nil, ErrWorkspaceRevisionConflict

@@ -146,6 +146,7 @@ func (a *App) Routes() http.Handler {
 	router.POST(AllWorkspaceKindsPath, a.CreateWorkspaceKindHandler)
 	router.DELETE(WorkspaceKindsByNamePath, a.DeleteWorkspaceKindHandler)
 	router.POST(PodTemplateOptionsListValuesPath, a.PodTemplateOptionsListValuesHandler)
+	router.PUT(WorkspaceKindsByNamePath, a.UpdateWorkspaceKindHandler)
 
 	// storageclasses
 	router.GET(AllStorageClassesPath, a.GetStorageClassesHandler)
