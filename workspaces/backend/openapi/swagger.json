@@ -6283,22 +6283,62 @@
                 "RedirectMessageLevelDanger"
             ]
         },
-        "v1beta1.WorkspaceKindConfigMap": {
+        "v1beta1.WorkspaceKindAsset": {
             "type": "object",
-            "required": [
-                "key",
-                "name"
-            ],
             "properties": {
-                "key": {
-                    "description": "+kubebuilder:example=\"apple-touch-icon-152x152.png\"\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=253\n+kubebuilder:validation:Pattern:=^[-._a-zA-Z0-9]+$",
-                    "type": "string"
+                "configMap": {
+                    "description": "the ConfigMap reference for the asset\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.WorkspaceKindAssetConfigMap"
+                        }
+                    ]
                 },
-                "name": {
-                    "description": "+kubebuilder:example=\"my-logos\"\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=253\n+kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$",
+                "url": {
+                    "description": "the URL of the asset\n+kubebuilder:validation:Optional\n+kubebuilder:example=\"https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png\"",
                     "type": "string"
                 }
             }
+        },
+        "v1beta1.WorkspaceKindAssetConfigMap": {
+            "type": "object",
+            "required": [
+                "key",
+                "mediaType",
+                "name",
+                "namespace"
+            ],
+            "properties": {
+                "key": {
+                    "description": "the key in the ConfigMap which contains the data\n+kubebuilder:example=\"jupyterlab-logo.svg\"\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=253\n+kubebuilder:validation:Pattern:=^[-._a-zA-Z0-9]+$",
+                    "type": "string"
+                },
+                "mediaType": {
+                    "description": "the media type of the asset data in the ConfigMap\n+kubebuilder:example=\"image/svg+xml\"",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.WorkspaceKindAssetMediaType"
+                        }
+                    ]
+                },
+                "name": {
+                    "description": "the name of the ConfigMap\n+kubebuilder:example=\"my-logos\"\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=253\n+kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$",
+                    "type": "string"
+                },
+                "namespace": {
+                    "description": "the namespace of the ConfigMap\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=63\n+kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$\n+kubebuilder:example=\"kubeflow\"",
+                    "type": "string"
+                }
+            }
+        },
+        "v1beta1.WorkspaceKindAssetMediaType": {
+            "type": "string",
+            "enum": [
+                "image/svg+xml"
+            ],
+            "x-enum-varnames": [
+                "WorkspaceKindAssetMediaTypeSVG"
+            ]
         },
         "v1beta1.WorkspaceKindCullingConfig": {
             "type": "object",
@@ -6321,23 +6361,6 @@
                 "maxInactiveSeconds": {
                     "description": "the maximum number of seconds a Workspace can be inactive\n+kubebuilder:validation:Optional\n+kubebuilder:validation:Minimum:=60\n+kubebuilder:default=86400",
                     "type": "integer"
-                }
-            }
-        },
-        "v1beta1.WorkspaceKindIcon": {
-            "type": "object",
-            "properties": {
-                "configMap": {
-                    "description": "+kubebuilder:validation:Optional",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.WorkspaceKindConfigMap"
-                        }
-                    ]
-                },
-                "url": {
-                    "description": "+kubebuilder:validation:Optional\n+kubebuilder:example=\"https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png\"",
-                    "type": "string"
                 }
             }
         },
@@ -6596,7 +6619,7 @@
                     "description": "the icon of the WorkspaceKind\n - a small (favicon-sized) icon used in the Workspace Spawner UI",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/v1beta1.WorkspaceKindIcon"
+                            "$ref": "#/definitions/v1beta1.WorkspaceKindAsset"
                         }
                     ]
                 },
@@ -6604,7 +6627,7 @@
                     "description": "the logo of the WorkspaceKind\n - a 1:1 (card size) logo used in the Workspace Spawner UI",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/v1beta1.WorkspaceKindIcon"
+                            "$ref": "#/definitions/v1beta1.WorkspaceKindAsset"
                         }
                     ]
                 }

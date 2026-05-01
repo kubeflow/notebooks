@@ -30,7 +30,6 @@ import (
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
-	commonAssets "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common/assets"
 	modelsCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds"
 	modelsPodTemplateOptions "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/podtemplate/options"
@@ -74,7 +73,7 @@ func (r *WorkspaceKindRepository) GetWorkspaceKind(ctx context.Context, name str
 		return nil, err
 	}
 
-	workspaceKindModel := models.NewWorkspaceKindUpdateModelFromWorkspaceKind(r.cfg, workspaceKind)
+	workspaceKindModel := models.NewWorkspaceKindUpdateModelFromWorkspaceKind(workspaceKind)
 	return workspaceKindModel, nil
 }
 
