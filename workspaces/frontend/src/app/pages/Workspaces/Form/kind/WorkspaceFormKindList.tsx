@@ -45,9 +45,14 @@ export const WorkspaceFormKindList: React.FunctionComponent<WorkspaceFormKindLis
   const { filterValues, setFilter, clearAllFilters } =
     useToolbarFilters<KindFilterKey>(filterConfig);
 
+  const visibleWorkspaceKinds = useMemo(
+    () => allWorkspaceKinds.filter((kind) => !kind.hidden && !kind.ruleEffects?.uiHide),
+    [allWorkspaceKinds],
+  );
+
   const filteredWorkspaceKinds = useMemo(
-    () => applyFilters(allWorkspaceKinds, filterValues, filterableProperties),
-    [allWorkspaceKinds, filterValues],
+    () => applyFilters(visibleWorkspaceKinds, filterValues, filterableProperties),
+    [visibleWorkspaceKinds, filterValues],
   );
 
   const onChange = useCallback(
@@ -107,67 +112,65 @@ export const WorkspaceFormKindList: React.FunctionComponent<WorkspaceFormKindLis
         )}
         {filteredWorkspaceKinds.length > 0 && (
           <Gallery hasGutter aria-label="Selectable card container">
-            {filteredWorkspaceKinds
-              .filter((kind) => !kind.hidden)
-              .map((kind) => (
-                <Card
-                  isCompact
-                  isSelectable
-                  key={kind.name}
-                  id={kind.name.replace(/ /g, '-')}
-                  isSelected={kind.name === selectedKind?.name}
-                  style={
-                    isSelectionDisabled && kind.name !== selectedKind?.name
-                      ? { opacity: 0.5, cursor: 'not-allowed' }
-                      : undefined
-                  }
-                  onClick={() => handleCardClick(kind)}
+            {filteredWorkspaceKinds.map((kind) => (
+              <Card
+                isCompact
+                isSelectable
+                key={kind.name}
+                id={kind.name.replace(/ /g, '-')}
+                isSelected={kind.name === selectedKind?.name}
+                style={
+                  isSelectionDisabled && kind.name !== selectedKind?.name
+                    ? { opacity: 0.5, cursor: 'not-allowed' }
+                    : undefined
+                }
+                onClick={() => handleCardClick(kind)}
+              >
+                <CardHeader
+                  selectableActions={{
+                    selectableActionId: `selectable-actions-item-${kind.name.replace(/ /g, '-')}`,
+                    selectableActionAriaLabelledby: kind.name.replace(/ /g, '-'),
+                    name: kind.name,
+                    variant: 'single',
+                    onChange,
+                  }}
                 >
-                  <CardHeader
-                    selectableActions={{
-                      selectableActionId: `selectable-actions-item-${kind.name.replace(/ /g, '-')}`,
-                      selectableActionAriaLabelledby: kind.name.replace(/ /g, '-'),
-                      name: kind.name,
-                      variant: 'single',
-                      onChange,
-                    }}
+                  <Flex
+                    alignItems={{ default: 'alignItemsCenter' }}
+                    spaceItems={{ default: 'spaceItemsMd' }}
                   >
-                    <Flex
-                      alignItems={{ default: 'alignItemsCenter' }}
-                      spaceItems={{ default: 'spaceItemsMd' }}
-                    >
-                      <FlexItem>
-                        <WithValidImage
-                          imageSrc={kind.logo.url}
-                          skeletonWidth="60px"
-                          fallback={
-                            <ImageFallback
-                              imageSrc={kind.logo.url}
-                              extended
-                              message="Cannot load logo image"
-                            />
-                          }
-                        >
-                          {(validSrc) => (
-                            <img
-                              src={validSrc}
-                              alt={`${kind.name} logo`}
-                              className="workspace-kind-logo"
-                              data-testid={`kind-logo-${kind.name}`}
-                            />
-                          )}
-                        </WithValidImage>
-                      </FlexItem>
-                      <FlexItem>
-                        <CardTitle>{kind.displayName}</CardTitle>
-                      </FlexItem>
-                    </Flex>
-                  </CardHeader>
-                  <CardBody className="workspace-option-card__description">
-                    {kind.description}
-                  </CardBody>
-                </Card>
-              ))}
+                    <FlexItem>
+                      <WithValidImage
+                        imageSrc={kind.logo.url}
+                        skeletonWidth="60px"
+                        fallback={
+                          <ImageFallback
+                            imageSrc={kind.logo.url}
+                            extended
+                            message="Cannot load logo image"
+                          />
+                        }
+                      >
+                        {(validSrc) => (
+                          <img
+                            src={validSrc}
+                            alt={`${kind.name} logo`}
+                            className="workspace-kind-logo"
+                            data-testid={`kind-logo-${kind.name}`}
+                          />
+                        )}
+                      </WithValidImage>
+                    </FlexItem>
+                    <FlexItem>
+                      <CardTitle>{kind.displayName}</CardTitle>
+                    </FlexItem>
+                  </Flex>
+                </CardHeader>
+                <CardBody className="workspace-option-card__description">
+                  {kind.description}
+                </CardBody>
+              </Card>
+            ))}
           </Gallery>
         )}
       </PageSection>
