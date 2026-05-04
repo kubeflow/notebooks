@@ -2,7 +2,7 @@ import { mockModArchResponse } from 'mod-arch-core';
 import { createWorkspace } from '~/__tests__/cypress/cypress/pages/workspaces/createWorkspace';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import { buildMockNamespace, buildMockWorkspaceKind } from '~/shared/mock/mockBuilder';
-import { WorkspacekindsRedirectMessageLevel } from '~/generated/data-contracts';
+import { OptionsRedirectMessageLevel } from '~/generated/data-contracts';
 
 type ImageConfigOption = {
   id: string;
@@ -14,7 +14,7 @@ type ImageConfigOption = {
     to: string;
     message?: {
       text: string;
-      level: WorkspacekindsRedirectMessageLevel;
+      level: OptionsRedirectMessageLevel;
     };
   };
 };
@@ -138,7 +138,7 @@ describe('Workspace Form - Option Card Display', () => {
               to: 'jupyterlab_scipy_190',
               message: {
                 text: 'Redirecting to newer version',
-                level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelInfo,
+                level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
               },
             },
           },
@@ -186,7 +186,7 @@ describe('Workspace Form - Option Card Display', () => {
               to: 'jupyterlab_scipy_190',
               message: {
                 text: 'Redirecting to newer version',
-                level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelWarning,
+                level: OptionsRedirectMessageLevel.RedirectMessageLevelWarning,
               },
             },
           },

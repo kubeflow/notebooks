@@ -3,8 +3,8 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { buildMockWorkspaceKind } from '~/shared/mock/mockBuilder';
-import type { WorkspacekindsImageConfigValue } from '~/generated/data-contracts';
-import { WorkspacekindsRedirectMessageLevel } from '~/generated/data-contracts';
+import type { OptionsImageConfigValue } from '~/generated/data-contracts';
+import { OptionsRedirectMessageLevel } from '~/generated/data-contracts';
 import { WorkspaceFormOptionCard } from '~/app/pages/Workspaces/Form/shared/WorkspaceFormOptionCard';
 
 // Mock the icon components
@@ -44,8 +44,8 @@ describe('WorkspaceFormOptionCard', () => {
   describe('Basic rendering', () => {
     it('should render option displayName and description', () => {
       const workspaceKind = buildMockWorkspaceKind();
-      const option = workspaceKind.podTemplate.options.imageConfig.values[0];
-      const allOptions = workspaceKind.podTemplate.options.imageConfig.values;
+      const option = workspaceKind.podTemplate.options.imageConfig.values![0];
+      const allOptions = workspaceKind.podTemplate.options.imageConfig.values!;
 
       render(<WorkspaceFormOptionCard {...defaultProps} option={option} allOptions={allOptions} />);
 
@@ -55,8 +55,8 @@ describe('WorkspaceFormOptionCard', () => {
 
     it('should show "Default" label when isDefault is true', () => {
       const workspaceKind = buildMockWorkspaceKind();
-      const option = workspaceKind.podTemplate.options.imageConfig.values[0];
-      const allOptions = workspaceKind.podTemplate.options.imageConfig.values;
+      const option = workspaceKind.podTemplate.options.imageConfig.values![0];
+      const allOptions = workspaceKind.podTemplate.options.imageConfig.values!;
 
       render(
         <WorkspaceFormOptionCard
@@ -72,8 +72,8 @@ describe('WorkspaceFormOptionCard', () => {
 
     it('should hide "Default" label when isDefault is false', () => {
       const workspaceKind = buildMockWorkspaceKind();
-      const option = workspaceKind.podTemplate.options.imageConfig.values[0];
-      const allOptions = workspaceKind.podTemplate.options.imageConfig.values;
+      const option = workspaceKind.podTemplate.options.imageConfig.values![0];
+      const allOptions = workspaceKind.podTemplate.options.imageConfig.values!;
 
       render(
         <WorkspaceFormOptionCard
@@ -91,8 +91,8 @@ describe('WorkspaceFormOptionCard', () => {
   describe('CSS classes for visual indicators', () => {
     it('should apply workspace-option-card--hidden class when option.hidden is true', () => {
       const workspaceKind = buildMockWorkspaceKind();
-      const hiddenOption: WorkspacekindsImageConfigValue = {
-        ...workspaceKind.podTemplate.options.imageConfig.values[0],
+      const hiddenOption: OptionsImageConfigValue = {
+        ...workspaceKind.podTemplate.options.imageConfig.values![0],
         id: 'hidden-option',
         hidden: true,
         redirect: undefined,
@@ -109,15 +109,15 @@ describe('WorkspaceFormOptionCard', () => {
 
     it('should apply workspace-option-card--redirected class when option.redirect exists', () => {
       const workspaceKind = buildMockWorkspaceKind();
-      const redirectedOption: WorkspacekindsImageConfigValue = {
-        ...workspaceKind.podTemplate.options.imageConfig.values[0],
+      const redirectedOption: OptionsImageConfigValue = {
+        ...workspaceKind.podTemplate.options.imageConfig.values![0],
         id: 'redirected-option',
         hidden: false,
         redirect: {
           to: 'target-option',
           message: {
             text: 'Redirecting...',
-            level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelInfo,
+            level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
           },
         },
       };
@@ -137,15 +137,15 @@ describe('WorkspaceFormOptionCard', () => {
 
     it('should apply both classes when hidden AND redirected', () => {
       const workspaceKind = buildMockWorkspaceKind();
-      const bothOption: WorkspacekindsImageConfigValue = {
-        ...workspaceKind.podTemplate.options.imageConfig.values[0],
+      const bothOption: OptionsImageConfigValue = {
+        ...workspaceKind.podTemplate.options.imageConfig.values![0],
         id: 'both-option',
         hidden: true,
         redirect: {
           to: 'target-option',
           message: {
             text: 'Redirecting...',
-            level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelInfo,
+            level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
           },
         },
       };
@@ -162,8 +162,8 @@ describe('WorkspaceFormOptionCard', () => {
 
     it('should not apply special classes when option is neither hidden nor redirected', () => {
       const workspaceKind = buildMockWorkspaceKind();
-      const normalOption: WorkspacekindsImageConfigValue = {
-        ...workspaceKind.podTemplate.options.imageConfig.values[0],
+      const normalOption: OptionsImageConfigValue = {
+        ...workspaceKind.podTemplate.options.imageConfig.values![0],
         id: 'normal-option',
         hidden: false,
         redirect: undefined,
@@ -183,8 +183,8 @@ describe('WorkspaceFormOptionCard', () => {
   describe('Icon visibility', () => {
     it('should show HiddenIconWithPopover only when option.hidden is true', () => {
       const workspaceKind = buildMockWorkspaceKind();
-      const hiddenOption: WorkspacekindsImageConfigValue = {
-        ...workspaceKind.podTemplate.options.imageConfig.values[0],
+      const hiddenOption: OptionsImageConfigValue = {
+        ...workspaceKind.podTemplate.options.imageConfig.values![0],
         id: 'hidden-option',
         hidden: true,
         redirect: undefined,
@@ -200,8 +200,8 @@ describe('WorkspaceFormOptionCard', () => {
 
     it('should not show HiddenIconWithPopover when option.hidden is false', () => {
       const workspaceKind = buildMockWorkspaceKind();
-      const visibleOption: WorkspacekindsImageConfigValue = {
-        ...workspaceKind.podTemplate.options.imageConfig.values[0],
+      const visibleOption: OptionsImageConfigValue = {
+        ...workspaceKind.podTemplate.options.imageConfig.values![0],
         id: 'visible-option',
         hidden: false,
         redirect: undefined,
@@ -221,15 +221,15 @@ describe('WorkspaceFormOptionCard', () => {
 
     it('should show RedirectIconWithPopover only when option.redirect exists', () => {
       const workspaceKind = buildMockWorkspaceKind();
-      const redirectedOption: WorkspacekindsImageConfigValue = {
-        ...workspaceKind.podTemplate.options.imageConfig.values[0],
+      const redirectedOption: OptionsImageConfigValue = {
+        ...workspaceKind.podTemplate.options.imageConfig.values![0],
         id: 'redirected-option',
         hidden: false,
         redirect: {
           to: 'target-option',
           message: {
             text: 'Redirecting...',
-            level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelInfo,
+            level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
           },
         },
       };
@@ -248,8 +248,8 @@ describe('WorkspaceFormOptionCard', () => {
 
     it('should not show RedirectIconWithPopover when option.redirect is undefined', () => {
       const workspaceKind = buildMockWorkspaceKind();
-      const normalOption: WorkspacekindsImageConfigValue = {
-        ...workspaceKind.podTemplate.options.imageConfig.values[0],
+      const normalOption: OptionsImageConfigValue = {
+        ...workspaceKind.podTemplate.options.imageConfig.values![0],
         id: 'normal-option',
         hidden: false,
         redirect: undefined,
@@ -267,8 +267,8 @@ describe('WorkspaceFormOptionCard', () => {
   describe('User interactions', () => {
     it('should call onClick with correct option when card clicked', async () => {
       const workspaceKind = buildMockWorkspaceKind();
-      const option = workspaceKind.podTemplate.options.imageConfig.values[0];
-      const allOptions = workspaceKind.podTemplate.options.imageConfig.values;
+      const option = workspaceKind.podTemplate.options.imageConfig.values![0];
+      const allOptions = workspaceKind.podTemplate.options.imageConfig.values!;
 
       render(<WorkspaceFormOptionCard {...defaultProps} option={option} allOptions={allOptions} />);
 
@@ -281,8 +281,8 @@ describe('WorkspaceFormOptionCard', () => {
 
     it('should call onChange when checkbox changed', async () => {
       const workspaceKind = buildMockWorkspaceKind();
-      const option = workspaceKind.podTemplate.options.imageConfig.values[0];
-      const allOptions = workspaceKind.podTemplate.options.imageConfig.values;
+      const option = workspaceKind.podTemplate.options.imageConfig.values![0];
+      const allOptions = workspaceKind.podTemplate.options.imageConfig.values!;
 
       render(<WorkspaceFormOptionCard {...defaultProps} option={option} allOptions={allOptions} />);
 
@@ -296,15 +296,15 @@ describe('WorkspaceFormOptionCard', () => {
   describe('Popover ID generation', () => {
     it('should generate correct popover IDs by replacing spaces with hyphens', () => {
       const workspaceKind = buildMockWorkspaceKind();
-      const optionWithSpaces: WorkspacekindsImageConfigValue = {
-        ...workspaceKind.podTemplate.options.imageConfig.values[0],
+      const optionWithSpaces: OptionsImageConfigValue = {
+        ...workspaceKind.podTemplate.options.imageConfig.values![0],
         id: 'my option with spaces',
         hidden: true,
         redirect: {
           to: 'target',
           message: {
             text: 'Redirecting...',
-            level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelInfo,
+            level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
           },
         },
       };
@@ -328,15 +328,15 @@ describe('WorkspaceFormOptionCard', () => {
   describe('Redirect target resolution', () => {
     it('should resolve redirect target from allOptions', () => {
       const workspaceKind = buildMockWorkspaceKind();
-      const targetOption: WorkspacekindsImageConfigValue = {
-        ...workspaceKind.podTemplate.options.imageConfig.values[0],
+      const targetOption: OptionsImageConfigValue = {
+        ...workspaceKind.podTemplate.options.imageConfig.values![0],
         id: 'target-option',
         displayName: 'Target Option',
         hidden: false,
         redirect: undefined,
       };
-      const sourceOption: WorkspacekindsImageConfigValue = {
-        ...workspaceKind.podTemplate.options.imageConfig.values[1],
+      const sourceOption: OptionsImageConfigValue = {
+        ...workspaceKind.podTemplate.options.imageConfig.values![1],
         id: 'source-option',
         displayName: 'Source Option',
         hidden: false,
@@ -344,7 +344,7 @@ describe('WorkspaceFormOptionCard', () => {
           to: 'target-option',
           message: {
             text: 'Redirecting to target',
-            level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelInfo,
+            level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
           },
         },
       };
@@ -362,8 +362,8 @@ describe('WorkspaceFormOptionCard', () => {
 
     it('should create "(not found)" entry for missing redirect targets', () => {
       const workspaceKind = buildMockWorkspaceKind();
-      const sourceOption: WorkspacekindsImageConfigValue = {
-        ...workspaceKind.podTemplate.options.imageConfig.values[0],
+      const sourceOption: OptionsImageConfigValue = {
+        ...workspaceKind.podTemplate.options.imageConfig.values![0],
         id: 'source-option',
         displayName: 'Source Option',
         hidden: false,
@@ -371,7 +371,7 @@ describe('WorkspaceFormOptionCard', () => {
           to: 'nonexistent-target',
           message: {
             text: 'Redirecting to nowhere',
-            level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelWarning,
+            level: OptionsRedirectMessageLevel.RedirectMessageLevelWarning,
           },
         },
       };
@@ -392,14 +392,14 @@ describe('WorkspaceFormOptionCard', () => {
     it('should handle different redirect message levels', () => {
       const workspaceKind = buildMockWorkspaceKind();
       const levels = [
-        WorkspacekindsRedirectMessageLevel.RedirectMessageLevelInfo,
-        WorkspacekindsRedirectMessageLevel.RedirectMessageLevelWarning,
-        WorkspacekindsRedirectMessageLevel.RedirectMessageLevelDanger,
+        OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+        OptionsRedirectMessageLevel.RedirectMessageLevelWarning,
+        OptionsRedirectMessageLevel.RedirectMessageLevelDanger,
       ];
 
       levels.forEach((level) => {
-        const option: WorkspacekindsImageConfigValue = {
-          ...workspaceKind.podTemplate.options.imageConfig.values[0],
+        const option: OptionsImageConfigValue = {
+          ...workspaceKind.podTemplate.options.imageConfig.values![0],
           id: `option-${level}`,
           hidden: false,
           redirect: {
@@ -421,8 +421,8 @@ describe('WorkspaceFormOptionCard', () => {
 
     it('should handle redirect without message', () => {
       const workspaceKind = buildMockWorkspaceKind();
-      const option: WorkspacekindsImageConfigValue = {
-        ...workspaceKind.podTemplate.options.imageConfig.values[0],
+      const option: OptionsImageConfigValue = {
+        ...workspaceKind.podTemplate.options.imageConfig.values![0],
         id: 'option-no-message',
         hidden: false,
         redirect: {
@@ -443,8 +443,8 @@ describe('WorkspaceFormOptionCard', () => {
   describe('CardHeader CSS classes', () => {
     it('should apply workspace-option-card__header--with-icons class when option has hidden flag', () => {
       const workspaceKind = buildMockWorkspaceKind();
-      const hiddenOption: WorkspacekindsImageConfigValue = {
-        ...workspaceKind.podTemplate.options.imageConfig.values[0],
+      const hiddenOption: OptionsImageConfigValue = {
+        ...workspaceKind.podTemplate.options.imageConfig.values![0],
         id: 'hidden-option',
         hidden: true,
         redirect: undefined,
@@ -461,15 +461,15 @@ describe('WorkspaceFormOptionCard', () => {
 
     it('should apply workspace-option-card__header--with-icons class when option has redirect', () => {
       const workspaceKind = buildMockWorkspaceKind();
-      const redirectedOption: WorkspacekindsImageConfigValue = {
-        ...workspaceKind.podTemplate.options.imageConfig.values[0],
+      const redirectedOption: OptionsImageConfigValue = {
+        ...workspaceKind.podTemplate.options.imageConfig.values![0],
         id: 'redirected-option',
         hidden: false,
         redirect: {
           to: 'target-option',
           message: {
             text: 'Redirecting...',
-            level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelInfo,
+            level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
           },
         },
       };
@@ -489,8 +489,8 @@ describe('WorkspaceFormOptionCard', () => {
 
     it('should NOT apply workspace-option-card__header--with-icons class when option has neither hidden nor redirect', () => {
       const workspaceKind = buildMockWorkspaceKind();
-      const normalOption: WorkspacekindsImageConfigValue = {
-        ...workspaceKind.podTemplate.options.imageConfig.values[0],
+      const normalOption: OptionsImageConfigValue = {
+        ...workspaceKind.podTemplate.options.imageConfig.values![0],
         id: 'normal-option',
         hidden: false,
         redirect: undefined,
@@ -507,8 +507,8 @@ describe('WorkspaceFormOptionCard', () => {
 
     it('should render description with workspace-option-card__description class when description exists', () => {
       const workspaceKind = buildMockWorkspaceKind();
-      const option = workspaceKind.podTemplate.options.imageConfig.values[0];
-      const allOptions = workspaceKind.podTemplate.options.imageConfig.values;
+      const option = workspaceKind.podTemplate.options.imageConfig.values![0];
+      const allOptions = workspaceKind.podTemplate.options.imageConfig.values!;
 
       const { container } = render(
         <WorkspaceFormOptionCard {...defaultProps} option={option} allOptions={allOptions} />,
@@ -523,8 +523,8 @@ describe('WorkspaceFormOptionCard', () => {
   describe('PodConfig options', () => {
     it('should work with pod config options', () => {
       const workspaceKind = buildMockWorkspaceKind();
-      const podConfigOption = workspaceKind.podTemplate.options.podConfig.values[0];
-      const allPodConfigs = workspaceKind.podTemplate.options.podConfig.values;
+      const podConfigOption = workspaceKind.podTemplate.options.podConfig.values![0];
+      const allPodConfigs = workspaceKind.podTemplate.options.podConfig.values!;
 
       render(
         <WorkspaceFormOptionCard

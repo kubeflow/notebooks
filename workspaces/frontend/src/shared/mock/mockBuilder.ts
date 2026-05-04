@@ -9,7 +9,7 @@ import {
   V1PersistentVolumeMode,
   SecretsSecretListItem,
   StorageclassesStorageClassListItem,
-  WorkspacekindsRedirectMessageLevel,
+  OptionsRedirectMessageLevel,
   WorkspacekindsWorkspaceKind,
   WorkspacesImageConfig,
   WorkspacesOptionInfo,
@@ -482,7 +482,7 @@ export const buildMockWorkspaceKind = (
               to: 'jupyterlab_scipy_190',
               message: {
                 text: 'This update will change...',
-                level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelInfo,
+                level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
               },
             },
           },
@@ -504,7 +504,7 @@ export const buildMockWorkspaceKind = (
               to: 'jupyterlab_scipy_200',
               message: {
                 text: 'This update will change...',
-                level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelWarning,
+                level: OptionsRedirectMessageLevel.RedirectMessageLevelWarning,
               },
             },
             clusterMetrics: {
@@ -524,7 +524,7 @@ export const buildMockWorkspaceKind = (
               to: 'jupyterlab_scipy_210',
               message: {
                 text: 'This update will change...',
-                level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelWarning,
+                level: OptionsRedirectMessageLevel.RedirectMessageLevelWarning,
               },
             },
             clusterMetrics: {
@@ -581,7 +581,7 @@ export const buildMockWorkspaceKind = (
               to: 'small_cpu',
               message: {
                 text: 'This update will change...',
-                level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelDanger,
+                level: OptionsRedirectMessageLevel.RedirectMessageLevelDanger,
               },
             },
             clusterMetrics: {
@@ -622,7 +622,7 @@ export const buildMockWorkspaceKind = (
               to: 'large_cpu_hidden',
               message: {
                 text: 'This update will change...',
-                level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelDanger,
+                level: OptionsRedirectMessageLevel.RedirectMessageLevelDanger,
               },
             },
             clusterMetrics: {

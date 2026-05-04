@@ -12,10 +12,10 @@ import { Radio } from '@patternfly/react-core/dist/esm/components/Radio';
 import { Dropdown, DropdownItem } from '@patternfly/react-core/dist/esm/components/Dropdown';
 import { EllipsisVIcon } from '@patternfly/react-icons/dist/esm/icons/ellipsis-v-icon';
 import { WorkspaceKindImageConfigValue } from '~/app/types';
-import { WorkspacekindsPodConfigValue } from '~/generated/data-contracts';
+import { OptionsOptionLabel, OptionsPodConfigValue } from '~/generated/data-contracts';
 
 interface PaginatedTableProps {
-  rows: WorkspaceKindImageConfigValue[] | WorkspacekindsPodConfigValue[];
+  rows: WorkspaceKindImageConfigValue[] | OptionsPodConfigValue[];
   defaultId: string;
   setDefaultId: (id: string) => void;
   handleEdit: (index: number) => void;
@@ -90,8 +90,8 @@ export const WorkspaceKindFormPaginatedTable: React.FC<PaginatedTableProps> = ({
                 />
               </Td>
               <Td>
-                {row.labels.length > 0 &&
-                  row.labels.map((label) => (
+                {(row.labels ?? []).length > 0 &&
+                  (row.labels ?? []).map((label: OptionsOptionLabel) => (
                     <Label
                       style={{ marginRight: '4px', marginTop: '4px' }}
                       key={getUniqueId()}

@@ -4,7 +4,7 @@ import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
 import ToolbarFilter, { FilterConfigMap } from '~/shared/components/ToolbarFilter';
 import { useToolbarFilters, applyFilters } from '~/shared/hooks/useToolbarFilters';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
-import { WorkspacekindsImageConfigValue } from '~/generated/data-contracts';
+import { OptionsImageConfigValue } from '~/generated/data-contracts';
 import { WorkspaceFormOptionCard } from '~/app/pages/Workspaces/Form/shared/WorkspaceFormOptionCard';
 import { moveDefaultToFront } from '~/app/pages/Workspaces/Form/utils/optionOrdering';
 
@@ -16,18 +16,15 @@ const filterConfig = {
 
 const visibleFilterKeys: readonly ImageFilterKey[] = ['name'];
 
-const filterableProperties: Record<
-  ImageFilterKey,
-  (item: WorkspacekindsImageConfigValue) => string
-> = {
+const filterableProperties: Record<ImageFilterKey, (item: OptionsImageConfigValue) => string> = {
   name: (image) => `${image.id} ${image.displayName}`,
 };
 
 type WorkspaceFormImageListProps = {
-  filteredImages: WorkspacekindsImageConfigValue[];
-  allImages: WorkspacekindsImageConfigValue[];
-  selectedImage: WorkspacekindsImageConfigValue | undefined;
-  onSelect: (workspaceImage: WorkspacekindsImageConfigValue | undefined) => void;
+  filteredImages: OptionsImageConfigValue[];
+  allImages: OptionsImageConfigValue[];
+  selectedImage: OptionsImageConfigValue | undefined;
+  onSelect: (workspaceImage: OptionsImageConfigValue | undefined) => void;
   defaultImageId?: string;
 };
 
@@ -64,7 +61,7 @@ export const WorkspaceFormImageList: React.FunctionComponent<WorkspaceFormImageL
   );
 
   const handleCardClick = useCallback(
-    (image: WorkspacekindsImageConfigValue) => {
+    (image: OptionsImageConfigValue) => {
       if (image.id !== selectedImage?.id) {
         return;
       }

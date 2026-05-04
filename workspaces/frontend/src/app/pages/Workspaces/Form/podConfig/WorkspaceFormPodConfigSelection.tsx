@@ -7,17 +7,17 @@ import {
   FilterByLabels,
   FilterControlHandle,
 } from '~/app/pages/Workspaces/Form/labelFilter/FilterByLabels';
-import { WorkspacekindsPodConfigValue } from '~/generated/data-contracts';
+import { OptionsPodConfigValue } from '~/generated/data-contracts';
 import { computeDefaultFilterValues } from '~/app/pages/Workspaces/Form/utils/filterDefaults';
 
 export type PodConfigSelectionFilterHandle = {
-  adaptFiltersForPodConfig: (podConfig: WorkspacekindsPodConfigValue) => void;
+  adaptFiltersForPodConfig: (podConfig: OptionsPodConfigValue) => void;
 };
 
 interface WorkspaceFormPodConfigSelectionProps {
-  podConfigs: WorkspacekindsPodConfigValue[];
-  selectedPodConfig: WorkspacekindsPodConfigValue | undefined;
-  onSelect: (podConfig: WorkspacekindsPodConfigValue | undefined) => void;
+  podConfigs: OptionsPodConfigValue[];
+  selectedPodConfig: OptionsPodConfigValue | undefined;
+  onSelect: (podConfig: OptionsPodConfigValue | undefined) => void;
   defaultPodConfigId?: string;
   filterControlRef?: React.Ref<PodConfigSelectionFilterHandle>;
 }
@@ -25,8 +25,7 @@ interface WorkspaceFormPodConfigSelectionProps {
 const WorkspaceFormPodConfigSelection: React.FunctionComponent<
   WorkspaceFormPodConfigSelectionProps
 > = ({ podConfigs, selectedPodConfig, onSelect, defaultPodConfigId, filterControlRef }) => {
-  const [filteredPodConfigs, setFilteredPodConfigs] =
-    useState<WorkspacekindsPodConfigValue[]>(podConfigs);
+  const [filteredPodConfigs, setFilteredPodConfigs] = useState<OptionsPodConfigValue[]>(podConfigs);
   const internalFilterControlRef = useRef<FilterControlHandle>(null);
   const lastEnsuredVisiblePodConfigId = useRef<string | null>(null);
 
@@ -44,20 +43,20 @@ const WorkspaceFormPodConfigSelection: React.FunctionComponent<
     return defaults;
   }, [podConfigs, defaultPodConfigId, selectedPodConfig]);
 
-  const extraFilters: ExtraFilter<WorkspacekindsPodConfigValue>[] = useMemo(
+  const extraFilters: ExtraFilter<OptionsPodConfigValue>[] = useMemo(
     () => [
       {
         label: 'Show hidden',
         value: defaultFilterValues.showHidden,
         key: 'showHidden',
-        matchesFilter: (podConfig: WorkspacekindsPodConfigValue, value: boolean) =>
+        matchesFilter: (podConfig: OptionsPodConfigValue, value: boolean) =>
           value || !podConfig.hidden,
       },
       {
         label: 'Show redirected',
         value: defaultFilterValues.showRedirected,
         key: 'showRedirected',
-        matchesFilter: (podConfig: WorkspacekindsPodConfigValue, value: boolean) =>
+        matchesFilter: (podConfig: OptionsPodConfigValue, value: boolean) =>
           value || podConfig.redirect === undefined,
       },
     ],
@@ -87,7 +86,7 @@ const WorkspaceFormPodConfigSelection: React.FunctionComponent<
   useImperativeHandle(
     filterControlRef,
     () => ({
-      adaptFiltersForPodConfig: (podConfig: WorkspacekindsPodConfigValue) => {
+      adaptFiltersForPodConfig: (podConfig: OptionsPodConfigValue) => {
         lastEnsuredVisiblePodConfigId.current = podConfig.id;
         internalFilterControlRef.current?.clearAllFilters();
         if (podConfig.hidden) {
@@ -105,7 +104,7 @@ const WorkspaceFormPodConfigSelection: React.FunctionComponent<
     () => (
       <FilterByLabels
         labelledObjects={podConfigs}
-        setLabelledObjects={(obj) => setFilteredPodConfigs(obj as WorkspacekindsPodConfigValue[])}
+        setLabelledObjects={(obj) => setFilteredPodConfigs(obj as OptionsPodConfigValue[])}
         extraFilters={extraFilters}
         filterControlRef={internalFilterControlRef}
       />

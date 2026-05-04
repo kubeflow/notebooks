@@ -10,14 +10,14 @@ import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { HiddenIconWithPopover } from '~/app/components/HiddenIconWithPopover';
 import { RedirectIconWithPopover } from '~/app/components/RedirectIconWithPopover';
 import {
-  WorkspacekindsImageConfigValue,
-  WorkspacekindsPodConfigValue,
+  OptionsImageConfigValue,
+  OptionsPodConfigValue,
   WorkspacesRedirectStep,
   WorkspacesRedirectMessageLevel,
-  WorkspacekindsRedirectMessageLevel,
+  OptionsRedirectMessageLevel,
 } from '~/generated/data-contracts';
 
-type OptionValue = WorkspacekindsImageConfigValue | WorkspacekindsPodConfigValue;
+type OptionValue = OptionsImageConfigValue | OptionsPodConfigValue;
 
 interface WorkspaceFormOptionCardProps {
   option: OptionValue;
@@ -32,14 +32,14 @@ interface WorkspaceFormOptionCardProps {
 }
 
 const transformRedirectMessageLevel = (
-  level?: WorkspacekindsRedirectMessageLevel,
+  level?: OptionsRedirectMessageLevel,
 ): WorkspacesRedirectMessageLevel => {
   switch (level) {
-    case WorkspacekindsRedirectMessageLevel.RedirectMessageLevelInfo:
+    case OptionsRedirectMessageLevel.RedirectMessageLevelInfo:
       return WorkspacesRedirectMessageLevel.RedirectMessageLevelInfo;
-    case WorkspacekindsRedirectMessageLevel.RedirectMessageLevelWarning:
+    case OptionsRedirectMessageLevel.RedirectMessageLevelWarning:
       return WorkspacesRedirectMessageLevel.RedirectMessageLevelWarning;
-    case WorkspacekindsRedirectMessageLevel.RedirectMessageLevelDanger:
+    case OptionsRedirectMessageLevel.RedirectMessageLevelDanger:
       return WorkspacesRedirectMessageLevel.RedirectMessageLevelDanger;
     default:
       return WorkspacesRedirectMessageLevel.RedirectMessageLevelInfo;
@@ -61,7 +61,10 @@ const transformRedirectToChain = (
         id: targetOption.id,
         displayName: targetOption.displayName,
         description: targetOption.description,
-        labels: targetOption.labels.map((label) => ({ key: label.key, value: label.value })),
+        labels: (targetOption.labels ?? []).map((label) => ({
+          key: label.key,
+          value: label.value,
+        })),
       }
     : {
         id: option.redirect.to,
@@ -75,7 +78,7 @@ const transformRedirectToChain = (
       id: option.id,
       displayName: option.displayName,
       description: option.description,
-      labels: option.labels.map((label) => ({ key: label.key, value: label.value })),
+      labels: (option.labels ?? []).map((label) => ({ key: label.key, value: label.value })),
     },
     target: targetInfo,
   };

@@ -1,10 +1,10 @@
-import { WorkspacekindsOptionLabel } from '~/generated/data-contracts';
+import { OptionsOptionLabel } from '~/generated/data-contracts';
 
 /**
  * Converts labels to a consistent key-value object format
  */
 export const normalizeLabels = (
-  labelData: WorkspacekindsOptionLabel[] | Record<string, string> | undefined,
+  labelData: OptionsOptionLabel[] | Record<string, string> | undefined,
 ): Record<string, string> | undefined => {
   if (!labelData) {
     return undefined;
