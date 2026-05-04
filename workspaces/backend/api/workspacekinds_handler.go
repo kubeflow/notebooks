@@ -271,12 +271,13 @@ func (a *App) CreateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 	authPolicies := []*auth.ResourcePolicy{
 		auth.NewResourcePolicy(auth.VerbCreate, auth.WorkspaceKinds, auth.ResourcePolicyResourceMeta{Name: workspaceKind.Name}),
 	}
-	if _, ok := a.requireAuth(w, r, authPolicies); !ok {
+	actor, ok := a.requireAuth(w, r, authPolicies)
+	if !ok {
 		return
 	}
 	// ============================================================
 
-	createdWorkspaceKind, err := a.repositories.WorkspaceKind.Create(r.Context(), workspaceKind)
+	createdWorkspaceKind, err := a.repositories.WorkspaceKind.Create(r.Context(), actor, workspaceKind)
 	if err != nil {
 		if errors.Is(err, repository.ErrWorkspaceKindAlreadyExists) {
 			causes := helper.StatusCausesFromAPIStatus(err)
