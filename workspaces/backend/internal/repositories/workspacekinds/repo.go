@@ -93,7 +93,7 @@ func (r *WorkspaceKindRepository) GetWorkspaceKinds(ctx context.Context) ([]mode
 	return workspaceKindsModels, nil
 }
 
-func (r *WorkspaceKindRepository) Create(ctx context.Context, actor user.Info, workspaceKind *kubefloworgv1beta1.WorkspaceKind) (*models.WorkspaceKindCreate, error) {
+func (r *WorkspaceKindRepository) CreateWorkspaceKind(ctx context.Context, actor user.Info, workspaceKind *kubefloworgv1beta1.WorkspaceKind) (*models.WorkspaceKindCreate, error) {
 	// set audit annotations
 	modelsCommon.UpdateObjectMetaForCreate(&workspaceKind.ObjectMeta, actor)
 

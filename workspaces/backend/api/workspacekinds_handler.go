@@ -277,7 +277,7 @@ func (a *App) CreateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 	}
 	// ============================================================
 
-	createdWorkspaceKind, err := a.repositories.WorkspaceKind.Create(r.Context(), actor, workspaceKind)
+	createdWorkspaceKind, err := a.repositories.WorkspaceKind.CreateWorkspaceKind(r.Context(), actor, workspaceKind)
 	if err != nil {
 		if errors.Is(err, repository.ErrWorkspaceKindAlreadyExists) {
 			causes := helper.StatusCausesFromAPIStatus(err)
