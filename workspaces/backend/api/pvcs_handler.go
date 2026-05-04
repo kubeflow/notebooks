@@ -64,7 +64,7 @@ func (a *App) GetPVCsByNamespaceHandler(w http.ResponseWriter, r *http.Request, 
 	authPolicies := []*auth.ResourcePolicy{
 		auth.NewResourcePolicy(auth.VerbList, auth.PersistentVolumeClaims, auth.ResourcePolicyResourceMeta{Namespace: namespace}),
 	}
-	if success := a.requireAuth(w, r, authPolicies); !success {
+	if _, ok := a.requireAuth(w, r, authPolicies); !ok {
 		return
 	}
 	// ============================================================
@@ -153,12 +153,13 @@ func (a *App) CreatePVCHandler(w http.ResponseWriter, r *http.Request, ps httpro
 	authPolicies := []*auth.ResourcePolicy{
 		auth.NewResourcePolicy(auth.VerbCreate, auth.PersistentVolumeClaims, auth.ResourcePolicyResourceMeta{Namespace: namespace, Name: pvcCreate.Name}),
 	}
-	if success := a.requireAuth(w, r, authPolicies); !success {
+	actor, ok := a.requireAuth(w, r, authPolicies)
+	if !ok {
 		return
 	}
 	// ============================================================
 
-	createdPVC, err := a.repositories.PVC.CreatePVC(r.Context(), pvcCreate, namespace)
+	createdPVC, err := a.repositories.PVC.CreatePVC(r.Context(), actor, pvcCreate, namespace)
 	if err != nil {
 		if helper.IsInternalValidationError(err) {
 			fieldErrs := helper.FieldErrorsFromInternalValidationError(err)
@@ -220,7 +221,7 @@ func (a *App) DeletePVCHandler(w http.ResponseWriter, r *http.Request, ps httpro
 	authPolicies := []*auth.ResourcePolicy{
 		auth.NewResourcePolicy(auth.VerbDelete, auth.PersistentVolumeClaims, auth.ResourcePolicyResourceMeta{Namespace: namespace, Name: pvcName}),
 	}
-	if success := a.requireAuth(w, r, authPolicies); !success {
+	if _, ok := a.requireAuth(w, r, authPolicies); !ok {
 		return
 	}
 	// ============================================================

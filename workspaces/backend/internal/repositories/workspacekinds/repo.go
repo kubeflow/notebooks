@@ -26,6 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apiserver/pkg/authentication/user"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
@@ -110,9 +111,7 @@ func (r *WorkspaceKindRepository) Create(ctx context.Context, workspaceKind *kub
 	return createdWorkspaceKindModel, nil
 }
 
-func (r *WorkspaceKindRepository) UpdateWorkspaceKind(ctx context.Context, workspaceKindUpdate *models.WorkspaceKindUpdate, name string) (*models.WorkspaceKindUpdate, error) {
-	// TODO: get actual user email from request context
-	actor := "mock@example.com"
+func (r *WorkspaceKindRepository) UpdateWorkspaceKind(ctx context.Context, actor user.Info, workspaceKindUpdate *models.WorkspaceKindUpdate, name string) (*models.WorkspaceKindUpdate, error) {
 	now := time.Now()
 
 	// get workspace kind

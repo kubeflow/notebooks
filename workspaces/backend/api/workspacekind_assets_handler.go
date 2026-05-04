@@ -119,7 +119,7 @@ func (a *App) getWorkspaceKindAssetHandler(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
-	if success := a.requireAuth(w, r, authPolicies); !success {
+	if _, ok := a.requireAuth(w, r, authPolicies); !ok {
 		return
 	}
 	// ============================================================

@@ -20,6 +20,7 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apiserver/pkg/authentication/user"
 )
 
 const (
@@ -62,7 +63,7 @@ func NewAuditFromObjectMeta(objectMeta *metav1.ObjectMeta) Audit {
 }
 
 // UpdateObjectMetaForCreate updates the ObjectMeta for a create operation.
-func UpdateObjectMetaForCreate(objectMeta *metav1.ObjectMeta, actor string) {
+func UpdateObjectMetaForCreate(objectMeta *metav1.ObjectMeta, actor user.Info) {
 	// we only use pointers to avoid copying the entire object
 	if objectMeta == nil {
 		panic("objectMeta cannot be nil")
@@ -71,13 +72,15 @@ func UpdateObjectMetaForCreate(objectMeta *metav1.ObjectMeta, actor string) {
 	if objectMeta.Annotations == nil {
 		objectMeta.Annotations = make(map[string]string)
 	}
-	objectMeta.Annotations[AnnotationCreatedBy] = actor
 	objectMeta.Annotations[AnnotationUpdatedAt] = objectMeta.CreationTimestamp.Format(time.RFC3339)
-	objectMeta.Annotations[AnnotationUpdatedBy] = actor
+	if actor != nil {
+		objectMeta.Annotations[AnnotationCreatedBy] = actor.GetName()
+		objectMeta.Annotations[AnnotationUpdatedBy] = actor.GetName()
+	}
 }
 
 // UpdateObjectMetaForUpdate updates the ObjectMeta for an update operation.
-func UpdateObjectMetaForUpdate(objectMeta *metav1.ObjectMeta, actor string, now time.Time) {
+func UpdateObjectMetaForUpdate(objectMeta *metav1.ObjectMeta, actor user.Info, now time.Time) {
 	// we only use pointers to avoid copying the entire object
 	if objectMeta == nil {
 		panic("objectMeta cannot be nil")
@@ -87,7 +90,9 @@ func UpdateObjectMetaForUpdate(objectMeta *metav1.ObjectMeta, actor string, now 
 		objectMeta.Annotations = make(map[string]string)
 	}
 	objectMeta.Annotations[AnnotationUpdatedAt] = now.Format(time.RFC3339)
-	objectMeta.Annotations[AnnotationUpdatedBy] = actor
+	if actor != nil {
+		objectMeta.Annotations[AnnotationUpdatedBy] = actor.GetName()
+	}
 }
 
 // GetDisplayNameFromObjectMeta retrieves the display name from ObjectMeta annotations, if it exists.

@@ -26,6 +26,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apiserver/pkg/authentication/user"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
@@ -104,10 +105,7 @@ func (r *WorkspaceRepository) getWorkspaceModels(ctx context.Context, listOption
 	return workspacesModels, nil
 }
 
-func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, workspaceCreate *models.WorkspaceCreate, namespace string) (*models.WorkspaceCreate, error) {
-	// TODO: get actual user email from request context
-	actor := "mock@example.com"
-
+func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, actor user.Info, workspaceCreate *models.WorkspaceCreate, namespace string) (*models.WorkspaceCreate, error) {
 	// create workspace object from model
 	workspace, err := models.NewWorkspaceFromWorkspaceCreateModel(ctx, r.client, workspaceCreate, namespace)
 	if err != nil {
@@ -134,9 +132,7 @@ func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, workspaceCrea
 	return createdWorkspaceModel, nil
 }
 
-func (r *WorkspaceRepository) UpdateWorkspace(ctx context.Context, workspaceUpdate *models.WorkspaceUpdate, namespace, workspaceName string) (*models.WorkspaceUpdate, error) {
-	// TODO: get actual user email from request context
-	actor := "mock@example.com"
+func (r *WorkspaceRepository) UpdateWorkspace(ctx context.Context, actor user.Info, workspaceUpdate *models.WorkspaceUpdate, namespace, workspaceName string) (*models.WorkspaceUpdate, error) {
 	now := time.Now()
 
 	// get workspace

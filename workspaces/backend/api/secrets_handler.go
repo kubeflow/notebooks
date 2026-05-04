@@ -65,7 +65,7 @@ func (a *App) GetSecretsByNamespaceHandler(w http.ResponseWriter, r *http.Reques
 	authPolicies := []*auth.ResourcePolicy{
 		auth.NewResourcePolicy(auth.VerbList, auth.Secrets, auth.ResourcePolicyResourceMeta{Namespace: namespace}),
 	}
-	if success := a.requireAuth(w, r, authPolicies); !success {
+	if _, ok := a.requireAuth(w, r, authPolicies); !ok {
 		return
 	}
 	// ============================================================
@@ -113,7 +113,7 @@ func (a *App) GetSecretHandler(w http.ResponseWriter, r *http.Request, ps httpro
 	authPolicies := []*auth.ResourcePolicy{
 		auth.NewResourcePolicy(auth.VerbGet, auth.Secrets, auth.ResourcePolicyResourceMeta{Namespace: namespace, Name: secretName}),
 	}
-	if success := a.requireAuth(w, r, authPolicies); !success {
+	if _, ok := a.requireAuth(w, r, authPolicies); !ok {
 		return
 	}
 	// ============================================================
@@ -207,13 +207,14 @@ func (a *App) CreateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 	authPolicies := []*auth.ResourcePolicy{
 		auth.NewResourcePolicy(auth.VerbCreate, auth.Secrets, auth.ResourcePolicyResourceMeta{Namespace: namespace, Name: secretCreate.Name}),
 	}
-	if success := a.requireAuth(w, r, authPolicies); !success {
+	actor, ok := a.requireAuth(w, r, authPolicies)
+	if !ok {
 		return
 	}
 	// ============================================================
 
 	// create the secret
-	secret, err := a.repositories.Secret.CreateSecret(r.Context(), secretCreate, namespace)
+	secret, err := a.repositories.Secret.CreateSecret(r.Context(), actor, secretCreate, namespace)
 	if err != nil {
 		if errors.Is(err, repository.ErrSecretAlreadyExists) {
 			causes := helper.StatusCausesFromAPIStatus(err)
@@ -270,7 +271,8 @@ func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 	authPolicies := []*auth.ResourcePolicy{
 		auth.NewResourcePolicy(auth.VerbUpdate, auth.Secrets, auth.ResourcePolicyResourceMeta{Namespace: namespace, Name: secretName}),
 	}
-	if success := a.requireAuth(w, r, authPolicies); !success {
+	actor, ok := a.requireAuth(w, r, authPolicies)
+	if !ok {
 		return
 	}
 	// ============================================================
@@ -314,7 +316,7 @@ func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 	// give the request data a clear name
 	secretUpdate := bodyEnvelope.Data
 
-	secret, err := a.repositories.Secret.UpdateSecret(r.Context(), secretUpdate, namespace, secretName)
+	secret, err := a.repositories.Secret.UpdateSecret(r.Context(), actor, secretUpdate, namespace, secretName)
 	if err != nil {
 		if errors.Is(err, repository.ErrSecretNotFound) {
 			a.notFoundResponse(w, r)
@@ -360,7 +362,7 @@ func (a *App) DeleteSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 	authPolicies := []*auth.ResourcePolicy{
 		auth.NewResourcePolicy(auth.VerbDelete, auth.Secrets, auth.ResourcePolicyResourceMeta{Namespace: namespace, Name: secretName}),
 	}
-	if success := a.requireAuth(w, r, authPolicies); !success {
+	if _, ok := a.requireAuth(w, r, authPolicies); !ok {
 		return
 	}
 	// ============================================================
