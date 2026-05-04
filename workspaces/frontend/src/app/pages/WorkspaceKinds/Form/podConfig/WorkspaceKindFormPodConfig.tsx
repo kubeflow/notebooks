@@ -51,12 +51,13 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
 
   const handleAddOrEditSubmit = useCallback(
     (config: WorkspaceKindPodConfigValue) => {
+      const currentValues = podConfig.values ?? [];
       if (editIndex !== null) {
-        const updated = [...podConfig.values];
+        const updated = [...currentValues];
         updated[editIndex] = config;
         updatePodConfig({ ...podConfig, values: updated });
       } else {
-        updatePodConfig({ ...podConfig, values: [...podConfig.values, config] });
+        updatePodConfig({ ...podConfig, values: [...currentValues, config] });
       }
       clearForm();
     },
@@ -65,7 +66,7 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
 
   const handleEdit = useCallback(
     (index: number) => {
-      setCurrConfig(podConfig.values[index]);
+      setCurrConfig((podConfig.values ?? [])[index]);
       setEditIndex(index);
       setIsModalOpen(true);
     },
@@ -76,11 +77,12 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
     if (deleteIndex === null) {
       return;
     }
+    const currentValues = podConfig.values ?? [];
     updatePodConfig({
-      default: podConfig.values[deleteIndex].id === defaultId ? '' : defaultId,
-      values: podConfig.values.filter((_, i) => i !== deleteIndex),
+      default: currentValues[deleteIndex].id === defaultId ? '' : defaultId,
+      values: currentValues.filter((_, i) => i !== deleteIndex),
     });
-    if (podConfig.values[deleteIndex].id === defaultId) {
+    if (currentValues[deleteIndex].id === defaultId) {
       setDefaultId('');
     }
     setDeleteIndex(null);
@@ -107,7 +109,7 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
         isExpanded={isExpanded}
         isIndented
       >
-        {podConfig.values.length === 0 && (
+        {(podConfig.values ?? []).length === 0 && (
           <EmptyState
             titleText="Start by creating a pod configuration"
             headingLevel="h4"
@@ -121,12 +123,12 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
             </EmptyStateFooter>
           </EmptyState>
         )}
-        {podConfig.values.length > 0 && (
+        {(podConfig.values ?? []).length > 0 && (
           <>
             <WorkspaceKindFormPaginatedTable
               ariaLabel="Pod Configs Table"
               dataTestId="pod-configs-table"
-              rows={podConfig.values}
+              rows={podConfig.values ?? []}
               defaultId={defaultId}
               setDefaultId={(id) => {
                 updatePodConfig({ ...podConfig, default: id });

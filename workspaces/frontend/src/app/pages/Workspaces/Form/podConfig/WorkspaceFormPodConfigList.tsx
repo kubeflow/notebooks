@@ -4,7 +4,7 @@ import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
 import ToolbarFilter, { FilterConfigMap } from '~/shared/components/ToolbarFilter';
 import { useToolbarFilters, applyFilters } from '~/shared/hooks/useToolbarFilters';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
-import { WorkspacekindsPodConfigValue } from '~/generated/data-contracts';
+import { OptionsPodConfigValue } from '~/generated/data-contracts';
 import { WorkspaceFormOptionCard } from '~/app/pages/Workspaces/Form/shared/WorkspaceFormOptionCard';
 import { moveDefaultToFront } from '~/app/pages/Workspaces/Form/utils/optionOrdering';
 
@@ -16,18 +16,15 @@ const filterConfig = {
 
 const visibleFilterKeys: readonly PodConfigFilterKey[] = ['name'];
 
-const filterableProperties: Record<
-  PodConfigFilterKey,
-  (item: WorkspacekindsPodConfigValue) => string
-> = {
+const filterableProperties: Record<PodConfigFilterKey, (item: OptionsPodConfigValue) => string> = {
   name: (podConfig) => `${podConfig.id} ${podConfig.displayName}`,
 };
 
 type WorkspaceFormPodConfigListProps = {
-  filteredPodConfigs: WorkspacekindsPodConfigValue[];
-  allPodConfigs: WorkspacekindsPodConfigValue[];
-  selectedPodConfig: WorkspacekindsPodConfigValue | undefined;
-  onSelect: (workspacePodConfig: WorkspacekindsPodConfigValue | undefined) => void;
+  filteredPodConfigs: OptionsPodConfigValue[];
+  allPodConfigs: OptionsPodConfigValue[];
+  selectedPodConfig: OptionsPodConfigValue | undefined;
+  onSelect: (workspacePodConfig: OptionsPodConfigValue | undefined) => void;
   defaultPodConfigId?: string;
 };
 
@@ -60,7 +57,7 @@ export const WorkspaceFormPodConfigList: React.FunctionComponent<
   );
 
   const handleCardClick = useCallback(
-    (podConfig: WorkspacekindsPodConfigValue) => {
+    (podConfig: OptionsPodConfigValue) => {
       if (podConfig.id !== selectedPodConfig?.id) {
         return;
       }

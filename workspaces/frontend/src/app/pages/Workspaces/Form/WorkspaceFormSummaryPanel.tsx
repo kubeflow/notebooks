@@ -12,29 +12,29 @@ import { SummaryContentSection } from '~/app/pages/Workspaces/Form/SummaryConten
 import { SummaryPropertiesSection } from '~/app/pages/Workspaces/Form/SummaryPropertiesSection';
 import { normalizeLabels } from '~/app/pages/Workspaces/Form/summaryHelpers';
 import {
-  WorkspacekindsImageConfigValue,
-  WorkspacekindsPodConfigValue,
+  OptionsImageConfigValue,
+  OptionsPodConfigValue,
   WorkspacekindsWorkspaceKind,
-  WorkspacekindsOptionLabel,
-  WorkspacekindsRedirectMessageLevel,
+  OptionsOptionLabel,
+  OptionsRedirectMessageLevel,
 } from '~/generated/data-contracts';
 import { WorkspaceFormMode, WorkspaceFormProperties } from '~/app/types';
 
 interface WorkspaceFormSummaryPanelProps {
   mode: WorkspaceFormMode;
   selectedKind: WorkspacekindsWorkspaceKind | undefined;
-  selectedImage: WorkspacekindsImageConfigValue | undefined;
-  selectedPodConfig: WorkspacekindsPodConfigValue | undefined;
+  selectedImage: OptionsImageConfigValue | undefined;
+  selectedPodConfig: OptionsPodConfigValue | undefined;
   properties: WorkspaceFormProperties;
   currentStep: number;
   onNavigateToStep: (step: number) => void;
   /** Handlers to switch selected options when clicking redirect target */
-  onSelectImage: (image: WorkspacekindsImageConfigValue) => void;
-  onSelectPodConfig: (podConfig: WorkspacekindsPodConfigValue) => void;
+  onSelectImage: (image: OptionsImageConfigValue) => void;
+  onSelectPodConfig: (podConfig: OptionsPodConfigValue) => void;
   /** For edit mode: original values to show diff */
   originalKind?: WorkspacekindsWorkspaceKind;
-  originalImage?: WorkspacekindsImageConfigValue;
-  originalPodConfig?: WorkspacekindsPodConfigValue;
+  originalImage?: OptionsImageConfigValue;
+  originalPodConfig?: OptionsPodConfigValue;
   originalProperties?: WorkspaceFormProperties;
   /** When true, removes spacing between summary cards */
   compact?: boolean;
@@ -70,13 +70,13 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
   const [pinnedPopoverId, setPinnedPopoverId] = useState<string | null>(null);
 
   const getMessageLevelColor = useCallback(
-    (level?: WorkspacekindsRedirectMessageLevel): 'blue' | 'orange' | 'red' => {
+    (level?: OptionsRedirectMessageLevel): 'blue' | 'orange' | 'red' => {
       switch (level) {
-        case WorkspacekindsRedirectMessageLevel.RedirectMessageLevelInfo:
+        case OptionsRedirectMessageLevel.RedirectMessageLevelInfo:
           return 'blue';
-        case WorkspacekindsRedirectMessageLevel.RedirectMessageLevelWarning:
+        case OptionsRedirectMessageLevel.RedirectMessageLevelWarning:
           return 'orange';
-        case WorkspacekindsRedirectMessageLevel.RedirectMessageLevelDanger:
+        case OptionsRedirectMessageLevel.RedirectMessageLevelDanger:
           return 'red';
         default:
           return 'blue';
@@ -85,13 +85,13 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
     [],
   );
 
-  const getMessageLevelText = useCallback((level?: WorkspacekindsRedirectMessageLevel): string => {
+  const getMessageLevelText = useCallback((level?: OptionsRedirectMessageLevel): string => {
     switch (level) {
-      case WorkspacekindsRedirectMessageLevel.RedirectMessageLevelInfo:
+      case OptionsRedirectMessageLevel.RedirectMessageLevelInfo:
         return 'Info';
-      case WorkspacekindsRedirectMessageLevel.RedirectMessageLevelWarning:
+      case OptionsRedirectMessageLevel.RedirectMessageLevelWarning:
         return 'Warning';
-      case WorkspacekindsRedirectMessageLevel.RedirectMessageLevelDanger:
+      case OptionsRedirectMessageLevel.RedirectMessageLevelDanger:
         return 'Danger';
       default:
         return 'Info';
@@ -105,7 +105,7 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
       redirect: {
         to: string;
         message?: {
-          level: WorkspacekindsRedirectMessageLevel;
+          level: OptionsRedirectMessageLevel;
           text: string;
         };
       };
@@ -196,11 +196,11 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
       title: string;
       displayName: string | undefined;
       description: string | undefined;
-      labels?: WorkspacekindsOptionLabel[] | Record<string, string>;
+      labels?: OptionsOptionLabel[] | Record<string, string>;
       redirect?: {
         to: string;
         message?: {
-          level: WorkspacekindsRedirectMessageLevel;
+          level: OptionsRedirectMessageLevel;
           text: string;
         };
       };
@@ -208,7 +208,7 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
       onClickTarget?: () => void;
       originalDisplayName?: string;
       originalDescription?: string;
-      originalLabels?: WorkspacekindsOptionLabel[] | Record<string, string>;
+      originalLabels?: OptionsOptionLabel[] | Record<string, string>;
       disabledTooltip?: string;
     }) => {
       const {
@@ -353,14 +353,14 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
         labels: selectedImage?.labels,
         redirect: selectedImage?.redirect,
         targetDisplayName: selectedImage?.redirect
-          ? selectedKind?.podTemplate.options.imageConfig.values.find(
+          ? selectedKind?.podTemplate.options.imageConfig.values?.find(
               (img) => img.id === selectedImage.redirect?.to,
             )?.displayName
           : undefined,
         onClickTarget:
           selectedImage?.redirect && selectedKind
             ? () => {
-                const targetImage = selectedKind.podTemplate.options.imageConfig.values.find(
+                const targetImage = selectedKind.podTemplate.options.imageConfig.values?.find(
                   (img) => img.id === selectedImage.redirect?.to,
                 );
                 if (targetImage) {
@@ -381,14 +381,14 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
         labels: selectedPodConfig?.labels,
         redirect: selectedPodConfig?.redirect,
         targetDisplayName: selectedPodConfig?.redirect
-          ? selectedKind?.podTemplate.options.podConfig.values.find(
+          ? selectedKind?.podTemplate.options.podConfig.values?.find(
               (pc) => pc.id === selectedPodConfig.redirect?.to,
             )?.displayName
           : undefined,
         onClickTarget:
           selectedPodConfig?.redirect && selectedKind
             ? () => {
-                const targetPodConfig = selectedKind.podTemplate.options.podConfig.values.find(
+                const targetPodConfig = selectedKind.podTemplate.options.podConfig.values?.find(
                   (pc) => pc.id === selectedPodConfig.redirect?.to,
                 );
                 if (targetPodConfig) {

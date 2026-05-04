@@ -130,7 +130,7 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
             />
           </FormGroup>
           <EditableRowsTable
-            rows={image.labels}
+            rows={image.labels ?? []}
             setRows={(labels) => setImage({ ...image, labels })}
           />
           <ThemeAwareFormGroupWrapper

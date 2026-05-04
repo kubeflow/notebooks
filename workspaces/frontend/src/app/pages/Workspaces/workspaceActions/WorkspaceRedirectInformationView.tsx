@@ -60,13 +60,13 @@ export const WorkspaceRedirectInformationView: React.FC<WorkspaceRedirectInforma
     setPodConfig(workspaceKind?.podTemplate.options.podConfig);
   }, [workspaceKindLoaded, workspaceKind]);
 
-  const imageConfigRedirects = imageConfig?.values.map((value) => ({
+  const imageConfigRedirects = imageConfig?.values?.map((value) => ({
     src: value.id,
     dest: value.redirect?.to,
     message: value.redirect?.message?.text,
     level: value.redirect?.message?.level,
   }));
-  const podConfigRedirects = podConfig?.values.map((value) => ({
+  const podConfigRedirects = podConfig?.values?.map((value) => ({
     src: value.id,
     dest: value.redirect?.to,
     message: value.redirect?.message?.text,

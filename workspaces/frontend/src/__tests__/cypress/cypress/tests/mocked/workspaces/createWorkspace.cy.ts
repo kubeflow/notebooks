@@ -16,10 +16,7 @@ import {
   secretsDetachModal,
   secretsManagement,
 } from '~/__tests__/cypress/cypress/pages/workspaces/secretsManagement';
-import type {
-  WorkspacekindsImageConfigValue,
-  WorkspacekindsPodConfigValue,
-} from '~/generated/data-contracts';
+import type { OptionsImageConfigValue, OptionsPodConfigValue } from '~/generated/data-contracts';
 
 const STEP_NAMES = {
   KIND: 'Workspace Kind',
@@ -59,7 +56,7 @@ const buildMockImageConfigValue = (
   id: string,
   displayName: string,
   description: string,
-): WorkspacekindsImageConfigValue => ({
+): OptionsImageConfigValue => ({
   id,
   displayName,
   description,
@@ -71,7 +68,7 @@ const buildMockPodConfigValue = (
   id: string,
   displayName: string,
   description: string,
-): WorkspacekindsPodConfigValue => ({
+): OptionsPodConfigValue => ({
   id,
   displayName,
   description,

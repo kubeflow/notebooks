@@ -7,7 +7,7 @@ import {
 import '@patternfly/react-catalog-view-extension/dist/css/react-catalog-view-extension.css';
 import { formatLabelKey } from '~/shared/utilities/WorkspaceUtils';
 
-type LabelledObject<T> = { labels: { key: string; value: string }[] } & T;
+type LabelledObject<T> = { labels?: { key: string; value: string }[] } & T;
 
 export type ExtraFilter<T> = {
   key: string;
@@ -41,7 +41,7 @@ export const FilterByLabels = <T,>(props: FilterByLabelsProps<T>): React.ReactEl
   const filterMap = useMemo(() => {
     const labelsMap = new Map<string, Set<string>>();
     props.labelledObjects
-      .flatMap((labelledObject) => labelledObject.labels)
+      .flatMap((labelledObject) => labelledObject.labels ?? [])
       .forEach((label) => {
         if (!labelsMap.has(label.key)) {
           labelsMap.set(label.key, new Set<string>());
@@ -71,7 +71,7 @@ export const FilterByLabels = <T,>(props: FilterByLabelsProps<T>): React.ReactEl
               if (selectedLabelValues.size > 0) {
                 return (
                   accumulator &&
-                  labelledObject.labels.some(
+                  (labelledObject.labels ?? []).some(
                     (imageLabel) =>
                       imageLabel.key === selectedLabelKey &&
                       selectedLabelValues.has(imageLabel.value),

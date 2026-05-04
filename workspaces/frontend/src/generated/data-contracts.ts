@@ -22,12 +22,6 @@ export enum WorkspacesProbeResult {
   ProbeResultTimeout = 'Timeout',
 }
 
-export enum WorkspacekindsRedirectMessageLevel {
-  RedirectMessageLevelInfo = 'Info',
-  RedirectMessageLevelWarning = 'Warning',
-  RedirectMessageLevelDanger = 'Danger',
-}
-
 export enum V1Beta1WorkspaceState {
   WorkspaceStateRunning = 'Running',
   WorkspaceStateTerminating = 'Terminating',
@@ -61,6 +55,12 @@ export enum V1PersistentVolumeAccessMode {
   ReadOnlyMany = 'ReadOnlyMany',
   ReadWriteMany = 'ReadWriteMany',
   ReadWriteOncePod = 'ReadWriteOncePod',
+}
+
+export enum OptionsRedirectMessageLevel {
+  RedirectMessageLevelInfo = 'Info',
+  RedirectMessageLevelWarning = 'Warning',
+  RedirectMessageLevelDanger = 'Danger',
 }
 
 export enum HealthCheckServiceStatus {
@@ -133,6 +133,14 @@ export interface ApiPVCCreateEnvelope {
 
 export interface ApiPVCListEnvelope {
   data: PvcsPVCListItem[];
+}
+
+export interface ApiPodTemplateOptionsEnvelope {
+  data: OptionsPodTemplateOptions;
+}
+
+export interface ApiPodTemplateOptionsListValuesRequestEnvelope {
+  data: OptionsListValuesRequest;
 }
 
 export interface ApiSecretCreateEnvelope {
@@ -223,6 +231,82 @@ export interface HealthCheckSystemInfo {
 
 export interface NamespacesNamespace {
   name: string;
+}
+
+export interface OptionsClusterOptionMetrics {
+  workspacesCount: number;
+}
+
+export interface OptionsContextImageConfig {
+  id: string;
+}
+
+export interface OptionsContextNamespace {
+  name: string;
+}
+
+export interface OptionsContextPodConfig {
+  id: string;
+}
+
+export interface OptionsImageConfig {
+  default: string;
+  values?: OptionsImageConfigValue[];
+}
+
+export interface OptionsImageConfigValue {
+  clusterMetrics?: OptionsClusterOptionMetrics;
+  description: string;
+  displayName: string;
+  hidden: boolean;
+  id: string;
+  labels?: OptionsOptionLabel[];
+  redirect?: OptionsOptionRedirect;
+}
+
+export interface OptionsListValuesContext {
+  imageConfig?: OptionsContextImageConfig;
+  namespace?: OptionsContextNamespace;
+  podConfig?: OptionsContextPodConfig;
+}
+
+export interface OptionsListValuesRequest {
+  context: OptionsListValuesContext;
+}
+
+export interface OptionsOptionLabel {
+  key: string;
+  value: string;
+}
+
+export interface OptionsOptionRedirect {
+  message?: OptionsRedirectMessage;
+  to: string;
+}
+
+export interface OptionsPodConfig {
+  default: string;
+  values?: OptionsPodConfigValue[];
+}
+
+export interface OptionsPodConfigValue {
+  clusterMetrics?: OptionsClusterOptionMetrics;
+  description: string;
+  displayName: string;
+  hidden: boolean;
+  id: string;
+  labels?: OptionsOptionLabel[];
+  redirect?: OptionsOptionRedirect;
+}
+
+export interface OptionsPodTemplateOptions {
+  imageConfig: OptionsImageConfig;
+  podConfig: OptionsPodConfig;
+}
+
+export interface OptionsRedirectMessage {
+  level: OptionsRedirectMessageLevel;
+  text: string;
 }
 
 export interface PvcsPVCCreate {
@@ -346,48 +430,12 @@ export interface StorageclassesStorageClassListItem {
   name: string;
 }
 
-export interface WorkspacekindsImageConfig {
-  default: string;
-  values: WorkspacekindsImageConfigValue[];
-}
-
-export interface WorkspacekindsImageConfigValue {
-  clusterMetrics?: WorkspacekindsClusterMetrics;
-  description: string;
-  displayName: string;
-  hidden: boolean;
-  id: string;
-  labels: WorkspacekindsOptionLabel[];
-  redirect?: WorkspacekindsOptionRedirect;
+export interface WorkspacekindsClusterKindMetrics {
+  workspacesCount: number;
 }
 
 export interface WorkspacekindsImageRef {
   url: string;
-}
-
-export interface WorkspacekindsOptionLabel {
-  key: string;
-  value: string;
-}
-
-export interface WorkspacekindsOptionRedirect {
-  message?: WorkspacekindsRedirectMessage;
-  to: string;
-}
-
-export interface WorkspacekindsPodConfig {
-  default: string;
-  values: WorkspacekindsPodConfigValue[];
-}
-
-export interface WorkspacekindsPodConfigValue {
-  clusterMetrics?: WorkspacekindsClusterMetrics;
-  description: string;
-  displayName: string;
-  hidden: boolean;
-  id: string;
-  labels: WorkspacekindsOptionLabel[];
-  redirect?: WorkspacekindsOptionRedirect;
 }
 
 export interface WorkspacekindsPodMetadata {
@@ -396,27 +444,18 @@ export interface WorkspacekindsPodMetadata {
 }
 
 export interface WorkspacekindsPodTemplate {
-  options: WorkspacekindsPodTemplateOptions;
+  /** TODO: remove once frontend migrates to the new listValues endpoint for both create/update and wsk admin views */
+  options: OptionsPodTemplateOptions;
   podMetadata: WorkspacekindsPodMetadata;
   volumeMounts: WorkspacekindsPodVolumeMounts;
-}
-
-export interface WorkspacekindsPodTemplateOptions {
-  imageConfig: WorkspacekindsImageConfig;
-  podConfig: WorkspacekindsPodConfig;
 }
 
 export interface WorkspacekindsPodVolumeMounts {
   home: string;
 }
 
-export interface WorkspacekindsRedirectMessage {
-  level: WorkspacekindsRedirectMessageLevel;
-  text: string;
-}
-
 export interface WorkspacekindsWorkspaceKind {
-  clusterMetrics?: WorkspacekindsClusterMetrics;
+  clusterMetrics: WorkspacekindsClusterKindMetrics;
   deprecated: boolean;
   deprecationMessage: string;
   description: string;
@@ -426,10 +465,6 @@ export interface WorkspacekindsWorkspaceKind {
   logo: WorkspacekindsImageRef;
   name: string;
   podTemplate: WorkspacekindsPodTemplate;
-}
-
-export interface WorkspacekindsClusterMetrics {
-  workspacesCount: number;
 }
 
 export interface WorkspacesActivity {

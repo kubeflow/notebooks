@@ -294,7 +294,7 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.expandImageConfigSection();
 
-      const imageCount = mockWorkspaceKind.podTemplate.options.imageConfig.values.length;
+      const imageCount = mockWorkspaceKind.podTemplate.options.imageConfig.values!.length;
       editWorkspaceKind.assertImageCount(imageCount);
     });
 
@@ -367,7 +367,7 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.expandImageConfigSection();
 
-      const initialImageCount = mockWorkspaceKind.podTemplate.options.imageConfig.values.length;
+      const initialImageCount = mockWorkspaceKind.podTemplate.options.imageConfig.values!.length;
       editWorkspaceKind.assertImageCount(initialImageCount);
 
       editWorkspaceKind.clickAddImageButton();
@@ -419,7 +419,7 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.expandImageConfigSection();
 
-      const initialImageCount = mockWorkspaceKind.podTemplate.options.imageConfig.values.length;
+      const initialImageCount = mockWorkspaceKind.podTemplate.options.imageConfig.values!.length;
 
       editWorkspaceKind.clickImageTableRowKebab(0);
       editWorkspaceKind.clickRemoveImage();
@@ -438,8 +438,8 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.expandImageConfigSection();
 
-      const initialImageCount = mockWorkspaceKind.podTemplate.options.imageConfig.values.length;
-      const imageToRemove = mockWorkspaceKind.podTemplate.options.imageConfig.values[0];
+      const initialImageCount = mockWorkspaceKind.podTemplate.options.imageConfig.values!.length;
+      const imageToRemove = mockWorkspaceKind.podTemplate.options.imageConfig.values![0];
 
       editWorkspaceKind.assertImageInTable(imageToRemove.displayName);
 
@@ -459,7 +459,7 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.expandImageConfigSection();
 
-      const imageToEdit = mockWorkspaceKind.podTemplate.options.imageConfig.values[0];
+      const imageToEdit = mockWorkspaceKind.podTemplate.options.imageConfig.values![0];
 
       editWorkspaceKind.clickImageTableRowKebab(0);
       editWorkspaceKind.clickEditImage();
@@ -501,7 +501,7 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.expandPodConfigSection();
 
-      const podConfigCount = mockWorkspaceKind.podTemplate.options.podConfig.values.length;
+      const podConfigCount = mockWorkspaceKind.podTemplate.options.podConfig.values!.length;
       editWorkspaceKind.assertPodConfigCount(podConfigCount);
     });
 
@@ -571,7 +571,7 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.expandPodConfigSection();
 
-      const initialPodConfigCount = mockWorkspaceKind.podTemplate.options.podConfig.values.length;
+      const initialPodConfigCount = mockWorkspaceKind.podTemplate.options.podConfig.values!.length;
       editWorkspaceKind.assertPodConfigCount(initialPodConfigCount);
 
       editWorkspaceKind.clickAddConfigButton();
@@ -621,7 +621,7 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.expandPodConfigSection();
 
-      const initialPodConfigCount = mockWorkspaceKind.podTemplate.options.podConfig.values.length;
+      const initialPodConfigCount = mockWorkspaceKind.podTemplate.options.podConfig.values!.length;
 
       editWorkspaceKind.clickPodConfigTableRowKebab(0);
       editWorkspaceKind.clickRemovePodConfig();
@@ -640,8 +640,8 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.expandPodConfigSection();
 
-      const initialPodConfigCount = mockWorkspaceKind.podTemplate.options.podConfig.values.length;
-      const podConfigToRemove = mockWorkspaceKind.podTemplate.options.podConfig.values[0];
+      const initialPodConfigCount = mockWorkspaceKind.podTemplate.options.podConfig.values!.length;
+      const podConfigToRemove = mockWorkspaceKind.podTemplate.options.podConfig.values![0];
 
       editWorkspaceKind.assertPodConfigInTable(podConfigToRemove.displayName);
 
@@ -661,7 +661,7 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.expandPodConfigSection();
 
-      const podConfigToEdit = mockWorkspaceKind.podTemplate.options.podConfig.values[0];
+      const podConfigToEdit = mockWorkspaceKind.podTemplate.options.podConfig.values![0];
 
       editWorkspaceKind.clickPodConfigTableRowKebab(0);
       editWorkspaceKind.clickEditPodConfig();
@@ -754,7 +754,8 @@ describe('Edit workspace kind', () => {
 
         editWorkspaceKind.expandPodConfigSection();
 
-        const initialPodConfigCount = mockWorkspaceKind.podTemplate.options.podConfig.values.length;
+        const initialPodConfigCount =
+          mockWorkspaceKind.podTemplate.options.podConfig.values!.length;
 
         editWorkspaceKind.clickAddConfigButton();
         editWorkspaceKind.typePodConfigId('ns-test-config');
@@ -794,7 +795,7 @@ describe('Edit workspace kind', () => {
         editWorkspaceKind.assertPodConfigModalVisible(false);
 
         // Find the newly added config (last row) and edit it
-        const newIndex = mockWorkspaceKind.podTemplate.options.podConfig.values.length;
+        const newIndex = mockWorkspaceKind.podTemplate.options.podConfig.values!.length;
         editWorkspaceKind.clickPodConfigTableRowKebab(newIndex);
         editWorkspaceKind.clickEditPodConfig();
 

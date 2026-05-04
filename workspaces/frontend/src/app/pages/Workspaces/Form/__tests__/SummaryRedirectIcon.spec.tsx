@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { SummaryRedirectIcon } from '~/app/pages/Workspaces/Form/SummaryRedirectIcon';
-import { WorkspacekindsRedirectMessageLevel } from '~/generated/data-contracts';
+import { OptionsRedirectMessageLevel } from '~/generated/data-contracts';
 
 describe('SummaryRedirectIcon', () => {
   const mockSetActivePopoverId = jest.fn();
@@ -23,7 +23,7 @@ describe('SummaryRedirectIcon', () => {
     redirect: {
       to: 'target-id',
       message: {
-        level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelInfo,
+        level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
         text: 'This option redirects',
       },
     },

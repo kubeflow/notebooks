@@ -80,6 +80,15 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
     getWorkspaceKind: async (kind) => ({
       data: mockWorkspaceKinds.find((w) => w.name === kind)!,
     }),
+    deleteWorkspaceKind: async () => {
+      await delay(1500);
+    },
+    podTemplateOptionsListValues: async () => ({
+      data: {
+        imageConfig: { default: '' },
+        podConfig: { default: '' },
+      },
+    }),
     createWorkspaceKind: async (body) => {
       if (isInvalidYaml(body)) {
         const apiErrorEnvelope: ApiErrorEnvelope = {

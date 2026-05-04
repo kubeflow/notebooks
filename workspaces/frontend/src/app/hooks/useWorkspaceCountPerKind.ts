@@ -68,7 +68,7 @@ function extractCountByNamespace(args: {
 function extractCountByImage(
   workspaceKind: WorkspacekindsWorkspaceKind,
 ): WorkspaceCountPerOption['countByImage'] {
-  return workspaceKind.podTemplate.options.imageConfig.values.reduce<
+  return (workspaceKind.podTemplate.options.imageConfig.values ?? []).reduce<
     WorkspaceCountPerOption['countByImage']
   >((acc, { id, clusterMetrics }) => {
     acc[id] = clusterMetrics?.workspacesCount ?? 0;
@@ -79,7 +79,7 @@ function extractCountByImage(
 function extractCountByPodConfig(
   workspaceKind: WorkspacekindsWorkspaceKind,
 ): WorkspaceCountPerOption['countByPodConfig'] {
-  return workspaceKind.podTemplate.options.podConfig.values.reduce<
+  return (workspaceKind.podTemplate.options.podConfig.values ?? []).reduce<
     WorkspaceCountPerOption['countByPodConfig']
   >((acc, { id, clusterMetrics }) => {
     acc[id] = clusterMetrics?.workspacesCount ?? 0;
@@ -88,7 +88,7 @@ function extractCountByPodConfig(
 }
 
 function extractTotalCount(workspaceKind: WorkspacekindsWorkspaceKind): number {
-  return workspaceKind.clusterMetrics?.workspacesCount ?? 0;
+  return workspaceKind.clusterMetrics.workspacesCount;
 }
 
 function extractCountPerKind(args: {

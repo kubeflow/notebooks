@@ -3,12 +3,12 @@ import { createWorkspace } from '~/__tests__/cypress/cypress/pages/workspaces/cr
 import { buildMockNamespace, buildMockWorkspaceKind } from '~/shared/mock/mockBuilder';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import { navBar } from '~/__tests__/cypress/cypress/pages/components/navBar';
-import type { WorkspacekindsImageConfigValue } from '~/generated/data-contracts';
-import { WorkspacekindsRedirectMessageLevel } from '~/generated/data-contracts';
+import type { OptionsImageConfigValue } from '~/generated/data-contracts';
+import { OptionsRedirectMessageLevel } from '~/generated/data-contracts';
 
 const buildMockImageConfigValue = (
-  overrides?: Partial<WorkspacekindsImageConfigValue>,
-): WorkspacekindsImageConfigValue => ({
+  overrides?: Partial<OptionsImageConfigValue>,
+): OptionsImageConfigValue => ({
   id: 'default-image',
   displayName: 'Default Image',
   description: 'Default description',
@@ -47,7 +47,7 @@ describe('Workspace Form Styling', () => {
       redirect: {
         to: 'normal-image',
         message: {
-          level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelInfo,
+          level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
           text: 'Redirecting to normal image',
         },
       },

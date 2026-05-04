@@ -2,7 +2,7 @@ import React, { FC, useRef, useCallback } from 'react';
 import { Popover } from '@patternfly/react-core/dist/esm/components/Popover';
 import { Icon } from '@patternfly/react-core/dist/esm/components/Icon';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-triangle-icon';
-import { WorkspacekindsRedirectMessageLevel } from '~/generated/data-contracts';
+import { OptionsRedirectMessageLevel } from '~/generated/data-contracts';
 
 interface SummaryRedirectIconProps {
   step: number;
@@ -12,7 +12,7 @@ interface SummaryRedirectIconProps {
   redirect: {
     to: string;
     message?: {
-      level: WorkspacekindsRedirectMessageLevel;
+      level: OptionsRedirectMessageLevel;
       text: string;
     };
   };
@@ -27,7 +27,7 @@ interface SummaryRedirectIconProps {
     redirect: {
       to: string;
       message?: {
-        level: WorkspacekindsRedirectMessageLevel;
+        level: OptionsRedirectMessageLevel;
         text: string;
       };
     };

@@ -7,17 +7,17 @@ import {
   FilterByLabels,
   FilterControlHandle,
 } from '~/app/pages/Workspaces/Form/labelFilter/FilterByLabels';
-import { WorkspacekindsImageConfigValue } from '~/generated/data-contracts';
+import { OptionsImageConfigValue } from '~/generated/data-contracts';
 import { computeDefaultFilterValues } from '~/app/pages/Workspaces/Form/utils/filterDefaults';
 
 export type ImageSelectionFilterHandle = {
-  adaptFiltersForImage: (image: WorkspacekindsImageConfigValue) => void;
+  adaptFiltersForImage: (image: OptionsImageConfigValue) => void;
 };
 
 interface WorkspaceFormImageSelectionProps {
-  images: WorkspacekindsImageConfigValue[];
-  selectedImage: WorkspacekindsImageConfigValue | undefined;
-  onSelect: (image: WorkspacekindsImageConfigValue | undefined) => void;
+  images: OptionsImageConfigValue[];
+  selectedImage: OptionsImageConfigValue | undefined;
+  onSelect: (image: OptionsImageConfigValue | undefined) => void;
   defaultImageId?: string;
   filterControlRef?: React.Ref<ImageSelectionFilterHandle>;
 }
@@ -29,7 +29,7 @@ const WorkspaceFormImageSelection: React.FunctionComponent<WorkspaceFormImageSel
   defaultImageId,
   filterControlRef,
 }) => {
-  const [filteredImages, setFilteredImages] = useState<WorkspacekindsImageConfigValue[]>(images);
+  const [filteredImages, setFilteredImages] = useState<OptionsImageConfigValue[]>(images);
   const internalFilterControlRef = useRef<FilterControlHandle>(null);
   const lastEnsuredVisibleImageId = useRef<string | null>(null);
 
@@ -47,20 +47,19 @@ const WorkspaceFormImageSelection: React.FunctionComponent<WorkspaceFormImageSel
     return defaults;
   }, [images, defaultImageId, selectedImage]);
 
-  const extraFilters: ExtraFilter<WorkspacekindsImageConfigValue>[] = useMemo(
+  const extraFilters: ExtraFilter<OptionsImageConfigValue>[] = useMemo(
     () => [
       {
         label: 'Show hidden',
         value: defaultFilterValues.showHidden,
         key: 'showHidden',
-        matchesFilter: (image: WorkspacekindsImageConfigValue, value: boolean) =>
-          value || !image.hidden,
+        matchesFilter: (image: OptionsImageConfigValue, value: boolean) => value || !image.hidden,
       },
       {
         label: 'Show redirected',
         value: defaultFilterValues.showRedirected,
         key: 'showRedirected',
-        matchesFilter: (image: WorkspacekindsImageConfigValue, value: boolean) =>
+        matchesFilter: (image: OptionsImageConfigValue, value: boolean) =>
           value || image.redirect === undefined,
       },
     ],
@@ -88,7 +87,7 @@ const WorkspaceFormImageSelection: React.FunctionComponent<WorkspaceFormImageSel
   useImperativeHandle(
     filterControlRef,
     () => ({
-      adaptFiltersForImage: (image: WorkspacekindsImageConfigValue) => {
+      adaptFiltersForImage: (image: OptionsImageConfigValue) => {
         lastEnsuredVisibleImageId.current = image.id;
         internalFilterControlRef.current?.clearAllFilters();
         if (image.hidden) {
@@ -106,7 +105,7 @@ const WorkspaceFormImageSelection: React.FunctionComponent<WorkspaceFormImageSel
     () => (
       <FilterByLabels
         labelledObjects={images}
-        setLabelledObjects={(obj) => setFilteredImages(obj as WorkspacekindsImageConfigValue[])}
+        setLabelledObjects={(obj) => setFilteredImages(obj as OptionsImageConfigValue[])}
         extraFilters={extraFilters}
         filterControlRef={internalFilterControlRef}
       />

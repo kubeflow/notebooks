@@ -12,7 +12,7 @@ export const WorkspaceKindDetailsPodConfigs: React.FunctionComponent<
   WorkspaceDetailsPodConfigsProps
 > = ({ workspaceKind, workspaceCountResult }) => (
   <WorkspaceKindDetailsTable
-    rows={workspaceKind.podTemplate.options.podConfig.values.map((podConfig) => ({
+    rows={(workspaceKind.podTemplate.options.podConfig.values ?? []).map((podConfig) => ({
       id: podConfig.id,
       displayName: podConfig.displayName,
       kindName: workspaceKind.name,
