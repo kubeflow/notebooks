@@ -13,7 +13,7 @@ export const WorkspaceKindDetailsImages: React.FunctionComponent<WorkspaceDetail
   workspaceCountResult,
 }) => (
   <WorkspaceKindDetailsTable
-    rows={workspaceKind.podTemplate.options.imageConfig.values.map((image) => ({
+    rows={(workspaceKind.podTemplate.options.imageConfig.values ?? []).map((image) => ({
       id: image.id,
       displayName: image.displayName,
       kindName: workspaceKind.name,

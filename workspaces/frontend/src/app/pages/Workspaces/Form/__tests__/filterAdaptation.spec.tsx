@@ -10,19 +10,16 @@ import {
   PodConfigSelectionFilterHandle,
 } from '~/app/pages/Workspaces/Form/podConfig/WorkspaceFormPodConfigSelection';
 import { buildMockWorkspaceKind } from '~/shared/mock/mockBuilder';
-import type {
-  WorkspacekindsImageConfigValue,
-  WorkspacekindsPodConfigValue,
-} from '~/generated/data-contracts';
+import type { OptionsImageConfigValue, OptionsPodConfigValue } from '~/generated/data-contracts';
 
 describe('Filter Adaptation Functions', () => {
   describe('adaptFiltersForImage', () => {
     it('should expose adaptFiltersForImage method through ref', () => {
       const workspaceKind = buildMockWorkspaceKind();
-      const images = workspaceKind.podTemplate.options.imageConfig.values;
+      const images = workspaceKind.podTemplate.options.imageConfig.values!;
       const mockOnSelect = jest.fn();
       const filterControlRef = React.createRef<{
-        adaptFiltersForImage: (image: WorkspacekindsImageConfigValue) => void;
+        adaptFiltersForImage: (image: OptionsImageConfigValue) => void;
       }>();
 
       render(
@@ -41,10 +38,10 @@ describe('Filter Adaptation Functions', () => {
 
     it('should call adaptFiltersForImage to show hidden image', async () => {
       const workspaceKind = buildMockWorkspaceKind();
-      const images = workspaceKind.podTemplate.options.imageConfig.values;
+      const images = workspaceKind.podTemplate.options.imageConfig.values!;
 
       // Create a hidden image
-      const hiddenImage: WorkspacekindsImageConfigValue = {
+      const hiddenImage: OptionsImageConfigValue = {
         ...images[0],
         id: 'hidden-image',
         displayName: 'Hidden Image',
@@ -55,7 +52,7 @@ describe('Filter Adaptation Functions', () => {
       const allImages = [...images, hiddenImage];
       const mockOnSelect = jest.fn();
       const filterControlRef = React.createRef<{
-        adaptFiltersForImage: (image: WorkspacekindsImageConfigValue) => void;
+        adaptFiltersForImage: (image: OptionsImageConfigValue) => void;
       }>();
 
       render(
@@ -78,10 +75,10 @@ describe('Filter Adaptation Functions', () => {
 
     it('should call adaptFiltersForImage to show redirected image', async () => {
       const workspaceKind = buildMockWorkspaceKind();
-      const images = workspaceKind.podTemplate.options.imageConfig.values;
+      const images = workspaceKind.podTemplate.options.imageConfig.values!;
 
       // Create a redirected image
-      const redirectedImage: WorkspacekindsImageConfigValue = {
+      const redirectedImage: OptionsImageConfigValue = {
         ...images[0],
         id: 'redirected-image',
         displayName: 'Redirected Image',
@@ -94,7 +91,7 @@ describe('Filter Adaptation Functions', () => {
       const allImages = [...images, redirectedImage];
       const mockOnSelect = jest.fn();
       const filterControlRef = React.createRef<{
-        adaptFiltersForImage: (image: WorkspacekindsImageConfigValue) => void;
+        adaptFiltersForImage: (image: OptionsImageConfigValue) => void;
       }>();
 
       render(
@@ -115,9 +112,9 @@ describe('Filter Adaptation Functions', () => {
 
     it('should call adaptFiltersForImage to show both hidden and redirected image', async () => {
       const workspaceKind = buildMockWorkspaceKind();
-      const images = workspaceKind.podTemplate.options.imageConfig.values;
+      const images = workspaceKind.podTemplate.options.imageConfig.values!;
 
-      const hiddenRedirectedImage: WorkspacekindsImageConfigValue = {
+      const hiddenRedirectedImage: OptionsImageConfigValue = {
         ...images[0],
         id: 'hidden-redirected-image',
         displayName: 'Hidden Redirected Image',
@@ -130,7 +127,7 @@ describe('Filter Adaptation Functions', () => {
       const allImages = [...images, hiddenRedirectedImage];
       const mockOnSelect = jest.fn();
       const filterControlRef = React.createRef<{
-        adaptFiltersForImage: (image: WorkspacekindsImageConfigValue) => void;
+        adaptFiltersForImage: (image: OptionsImageConfigValue) => void;
       }>();
 
       render(
@@ -153,10 +150,10 @@ describe('Filter Adaptation Functions', () => {
   describe('adaptFiltersForPodConfig', () => {
     it('should expose adaptFiltersForPodConfig method through ref', () => {
       const workspaceKind = buildMockWorkspaceKind();
-      const podConfigs = workspaceKind.podTemplate.options.podConfig.values;
+      const podConfigs = workspaceKind.podTemplate.options.podConfig.values!;
       const mockOnSelect = jest.fn();
       const filterControlRef = React.createRef<{
-        adaptFiltersForPodConfig: (podConfig: WorkspacekindsPodConfigValue) => void;
+        adaptFiltersForPodConfig: (podConfig: OptionsPodConfigValue) => void;
       }>();
 
       render(
@@ -175,10 +172,10 @@ describe('Filter Adaptation Functions', () => {
 
     it('should call adaptFiltersForPodConfig to show hidden pod config', async () => {
       const workspaceKind = buildMockWorkspaceKind();
-      const podConfigs = workspaceKind.podTemplate.options.podConfig.values;
+      const podConfigs = workspaceKind.podTemplate.options.podConfig.values!;
 
       // Create a hidden pod config
-      const hiddenPodConfig: WorkspacekindsPodConfigValue = {
+      const hiddenPodConfig: OptionsPodConfigValue = {
         ...podConfigs[0],
         id: 'hidden-pod-config',
         displayName: 'Hidden Pod Config',
@@ -189,7 +186,7 @@ describe('Filter Adaptation Functions', () => {
       const allPodConfigs = [...podConfigs, hiddenPodConfig];
       const mockOnSelect = jest.fn();
       const filterControlRef = React.createRef<{
-        adaptFiltersForPodConfig: (podConfig: WorkspacekindsPodConfigValue) => void;
+        adaptFiltersForPodConfig: (podConfig: OptionsPodConfigValue) => void;
       }>();
 
       render(
@@ -212,10 +209,10 @@ describe('Filter Adaptation Functions', () => {
 
     it('should call adaptFiltersForPodConfig to show redirected pod config', async () => {
       const workspaceKind = buildMockWorkspaceKind();
-      const podConfigs = workspaceKind.podTemplate.options.podConfig.values;
+      const podConfigs = workspaceKind.podTemplate.options.podConfig.values!;
 
       // Create a redirected pod config
-      const redirectedPodConfig: WorkspacekindsPodConfigValue = {
+      const redirectedPodConfig: OptionsPodConfigValue = {
         ...podConfigs[0],
         id: 'redirected-pod-config',
         displayName: 'Redirected Pod Config',
@@ -228,7 +225,7 @@ describe('Filter Adaptation Functions', () => {
       const allPodConfigs = [...podConfigs, redirectedPodConfig];
       const mockOnSelect = jest.fn();
       const filterControlRef = React.createRef<{
-        adaptFiltersForPodConfig: (podConfig: WorkspacekindsPodConfigValue) => void;
+        adaptFiltersForPodConfig: (podConfig: OptionsPodConfigValue) => void;
       }>();
 
       render(
@@ -251,7 +248,7 @@ describe('Filter Adaptation Functions', () => {
   describe('Function naming verification', () => {
     it('should NOT have clearFiltersForImage method (old name)', () => {
       const workspaceKind = buildMockWorkspaceKind();
-      const images = workspaceKind.podTemplate.options.imageConfig.values;
+      const images = workspaceKind.podTemplate.options.imageConfig.values!;
       const mockOnSelect = jest.fn();
       const filterControlRef = React.createRef<ImageSelectionFilterHandle>();
 
@@ -271,7 +268,7 @@ describe('Filter Adaptation Functions', () => {
 
     it('should NOT have clearFiltersForPodConfig method (old name)', () => {
       const workspaceKind = buildMockWorkspaceKind();
-      const podConfigs = workspaceKind.podTemplate.options.podConfig.values;
+      const podConfigs = workspaceKind.podTemplate.options.podConfig.values!;
       const mockOnSelect = jest.fn();
       const filterControlRef = React.createRef<PodConfigSelectionFilterHandle>();
 

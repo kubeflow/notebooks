@@ -12,6 +12,8 @@
 
 import {
   ApiErrorEnvelope,
+  ApiPodTemplateOptionsEnvelope,
+  ApiPodTemplateOptionsListValuesRequestEnvelope,
   ApiWorkspaceKindEnvelope,
   ApiWorkspaceKindListEnvelope,
   CreateWorkspaceKindPayload,
@@ -90,6 +92,58 @@ export class Workspacekinds<SecurityDataType = unknown> extends HttpClient<Secur
     this.request<ApiWorkspaceKindEnvelope, ApiErrorEnvelope>({
       path: `/workspacekinds/${name}`,
       method: 'GET',
+      type: ContentType.Json,
+      format: 'json',
+      ...params,
+    });
+  /**
+   * @description Deletes a specific workspace kind identified by its name.
+   *
+   * @tags workspacekinds
+   * @name DeleteWorkspaceKind
+   * @summary Delete workspace kind
+   * @request DELETE:/workspacekinds/{name}
+   * @response `204` `void` Workspace kind deleted successfully
+   * @response `401` `ApiErrorEnvelope` Unauthorized. Authentication is required.
+   * @response `403` `ApiErrorEnvelope` Forbidden. User does not have permission to delete the workspace kind.
+   * @response `404` `ApiErrorEnvelope` Not Found. Workspace kind does not exist.
+   * @response `409` `ApiErrorEnvelope` Conflict. Workspace kind is in use by one or more workspaces.
+   * @response `422` `ApiErrorEnvelope` Unprocessable Entity. Validation error.
+   * @response `500` `ApiErrorEnvelope` Internal server error. An unexpected error occurred on the server.
+   */
+  deleteWorkspaceKind = (name: string, params: RequestParams = {}) =>
+    this.request<void, ApiErrorEnvelope>({
+      path: `/workspacekinds/${name}`,
+      method: 'DELETE',
+      type: ContentType.Json,
+      ...params,
+    });
+  /**
+   * @description Returns filtered imageConfig and podConfig options based on the provided context.
+   *
+   * @tags workspacekinds
+   * @name PodTemplateOptionsListValues
+   * @summary List options values for a pod template workspace kind
+   * @request POST:/workspacekinds/{name}/podtemplate/options/listvalues
+   * @response `200` `ApiPodTemplateOptionsEnvelope` Successful operation. Returns filtered options with ruleEffects.
+   * @response `400` `ApiErrorEnvelope` Bad Request. Invalid workspace kind name or request body.
+   * @response `401` `ApiErrorEnvelope` Unauthorized. Authentication is required.
+   * @response `403` `ApiErrorEnvelope` Forbidden. User does not have permission to access the workspace kind.
+   * @response `404` `ApiErrorEnvelope` Not Found. Workspace kind does not exist.
+   * @response `413` `ApiErrorEnvelope` Request Entity Too Large. The request body is too large.
+   * @response `415` `ApiErrorEnvelope` Unsupported Media Type. Content-Type header is not correct.
+   * @response `422` `ApiErrorEnvelope` Unprocessable Entity. Validation error.
+   * @response `500` `ApiErrorEnvelope` Internal server error. An unexpected error occurred on the server.
+   */
+  podTemplateOptionsListValues = (
+    name: string,
+    body: ApiPodTemplateOptionsListValuesRequestEnvelope,
+    params: RequestParams = {},
+  ) =>
+    this.request<ApiPodTemplateOptionsEnvelope, ApiErrorEnvelope>({
+      path: `/workspacekinds/${name}/podtemplate/options/listvalues`,
+      method: 'POST',
+      body: body,
       type: ContentType.Json,
       format: 'json',
       ...params,

@@ -13,7 +13,7 @@ import { HelperText } from '@patternfly/react-core/dist/esm/components/HelperTex
 import { WorkspaceKindPodConfigValue } from '~/app/types';
 import { EditableRowsTable, KeyValueRow } from '~/app/pages/WorkspaceKinds/Form/EditableRowsTable';
 import { getResources } from '~/app/pages/WorkspaceKinds/Form/helpers';
-import { WorkspacekindsOptionLabel } from '~/generated/data-contracts';
+import { OptionsOptionLabel } from '~/generated/data-contracts';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { WorkspaceKindFormResource, PodResourceEntry } from './WorkspaceKindFormResource';
 
@@ -37,7 +37,7 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
   const initialResources = useMemo(() => getResources(currConfig), [currConfig]);
 
   const [resources, setResources] = useState<PodResourceEntry[]>(initialResources);
-  const [labels, setLabels] = useState<WorkspacekindsOptionLabel[]>(currConfig.labels);
+  const [labels, setLabels] = useState<OptionsOptionLabel[]>(currConfig.labels ?? []);
   const [nodeSelectors, setNodeSelectors] = useState<KeyValueRow[]>(
     Object.entries(currConfig.nodeSelector ?? {}).map(([key, value]) => ({ key, value })),
   );
@@ -52,7 +52,7 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
     setDisplayName(currConfig.displayName);
     setDescription(currConfig.description);
     setHidden(currConfig.hidden || false);
-    setLabels(currConfig.labels);
+    setLabels(currConfig.labels ?? []);
     setNodeSelectors(
       Object.entries(currConfig.nodeSelector ?? {}).map(([key, value]) => ({ key, value })),
     );

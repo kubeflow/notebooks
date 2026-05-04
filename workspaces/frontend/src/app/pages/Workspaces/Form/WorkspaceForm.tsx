@@ -35,8 +35,8 @@ import useWorkspaceFormData from '~/app/hooks/useWorkspaceFormData';
 import { useTypedNavigate } from '~/app/routerHelper';
 import {
   ApiErrorEnvelope,
-  WorkspacekindsImageConfigValue,
-  WorkspacekindsPodConfigValue,
+  OptionsImageConfigValue,
+  OptionsPodConfigValue,
   WorkspacekindsWorkspaceKind,
 } from '~/generated/data-contracts';
 import { extractErrorMessage } from '~/shared/api/apiUtils';
@@ -167,7 +167,7 @@ const WorkspaceForm: React.FC = () => {
 
   const selectedImage = useMemo(
     () =>
-      data.kind?.podTemplate.options.imageConfig.values.find(
+      data.kind?.podTemplate.options.imageConfig.values?.find(
         (image) => image.id === data.imageConfig,
       ),
     [data.kind, data.imageConfig],
@@ -175,7 +175,7 @@ const WorkspaceForm: React.FC = () => {
 
   const selectedPodConfig = useMemo(
     () =>
-      data.kind?.podTemplate.options.podConfig.values.find(
+      data.kind?.podTemplate.options.podConfig.values?.find(
         (podConfig) => podConfig.id === data.podConfig,
       ),
     [data.kind, data.podConfig],
@@ -255,7 +255,7 @@ const WorkspaceForm: React.FC = () => {
   );
 
   const handleImageSelect = useCallback(
-    (image: WorkspacekindsImageConfigValue | undefined) => {
+    (image: OptionsImageConfigValue | undefined) => {
       if (image) {
         // Clear filters if the selected image is hidden or redirected
         if (image.hidden || image.redirect !== undefined) {
@@ -270,7 +270,7 @@ const WorkspaceForm: React.FC = () => {
   );
 
   const handlePodConfigSelect = useCallback(
-    (podConfig: WorkspacekindsPodConfigValue | undefined) => {
+    (podConfig: OptionsPodConfigValue | undefined) => {
       if (podConfig) {
         // Clear filters if the selected pod config is hidden or redirected
         if (podConfig.hidden || podConfig.redirect !== undefined) {
@@ -287,7 +287,7 @@ const WorkspaceForm: React.FC = () => {
   // Get original values for edit mode diff
   const originalImage = useMemo(
     () =>
-      originalData?.kind?.podTemplate.options.imageConfig.values.find(
+      originalData?.kind?.podTemplate.options.imageConfig.values?.find(
         (image) => image.id === originalData.imageConfig,
       ),
     [originalData],
@@ -295,7 +295,7 @@ const WorkspaceForm: React.FC = () => {
 
   const originalPodConfig = useMemo(
     () =>
-      originalData?.kind?.podTemplate.options.podConfig.values.find(
+      originalData?.kind?.podTemplate.options.podConfig.values?.find(
         (podConfig) => podConfig.id === originalData.podConfig,
       ),
     [originalData],

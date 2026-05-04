@@ -2,7 +2,7 @@ import { mockModArchResponse } from 'mod-arch-core';
 import { createWorkspace } from '~/__tests__/cypress/cypress/pages/workspaces/createWorkspace';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import { buildMockNamespace, buildMockWorkspaceKind } from '~/shared/mock/mockBuilder';
-import { WorkspacekindsRedirectMessageLevel } from '~/generated/data-contracts';
+import { OptionsRedirectMessageLevel } from '~/generated/data-contracts';
 
 describe('Workspace Form - Smart Filter Defaults', () => {
   const mockNamespace = buildMockNamespace({ name: 'default' });
@@ -94,7 +94,7 @@ describe('Workspace Form - Smart Filter Defaults', () => {
                     to: 'jupyterlab_scipy_190',
                     message: {
                       text: 'Redirecting to newer version',
-                      level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelInfo,
+                      level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
                     },
                   },
                 },
@@ -160,7 +160,7 @@ describe('Workspace Form - Smart Filter Defaults', () => {
                     to: 'jupyterlab_scipy_190',
                     message: {
                       text: 'Redirecting to newer version',
-                      level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelWarning,
+                      level: OptionsRedirectMessageLevel.RedirectMessageLevelWarning,
                     },
                   },
                 },
@@ -356,7 +356,7 @@ describe('Workspace Form - Smart Filter Defaults', () => {
                     to: 'small_cpu',
                     message: {
                       text: 'Upgrading to small CPU',
-                      level: WorkspacekindsRedirectMessageLevel.RedirectMessageLevelInfo,
+                      level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
                     },
                   },
                 },

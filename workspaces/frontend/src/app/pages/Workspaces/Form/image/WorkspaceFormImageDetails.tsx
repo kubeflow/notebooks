@@ -7,10 +7,10 @@ import {
 } from '@patternfly/react-core/dist/esm/components/DescriptionList';
 import { Title } from '@patternfly/react-core/dist/esm/components/Title';
 import { formatLabelKey } from '~/shared/utilities/WorkspaceUtils';
-import { WorkspacekindsPodConfigValue } from '~/generated/data-contracts';
+import { OptionsOptionLabel, OptionsPodConfigValue } from '~/generated/data-contracts';
 
 type WorkspaceFormImageDetailsProps = {
-  workspaceImage?: WorkspacekindsPodConfigValue;
+  workspaceImage?: OptionsPodConfigValue;
 };
 
 export const WorkspaceFormImageDetails: React.FunctionComponent<WorkspaceFormImageDetailsProps> = ({
@@ -21,7 +21,7 @@ export const WorkspaceFormImageDetails: React.FunctionComponent<WorkspaceFormIma
       <>
         <Title headingLevel="h3">{workspaceImage.displayName}</Title>
         <br />
-        {workspaceImage.labels.map((label) => (
+        {(workspaceImage.labels ?? []).map((label: OptionsOptionLabel) => (
           <DescriptionList
             key={label.key}
             isHorizontal

@@ -8,10 +8,10 @@ import {
 import { Title } from '@patternfly/react-core/dist/esm/components/Title';
 import { Divider } from '@patternfly/react-core/dist/esm/components/Divider';
 import { formatLabelKey } from '~/shared/utilities/WorkspaceUtils';
-import { WorkspacekindsPodConfigValue } from '~/generated/data-contracts';
+import { OptionsOptionLabel, OptionsPodConfigValue } from '~/generated/data-contracts';
 
 type WorkspaceFormPodConfigDetailsProps = {
-  workspacePodConfig?: WorkspacekindsPodConfigValue;
+  workspacePodConfig?: OptionsPodConfigValue;
 };
 
 export const WorkspaceFormPodConfigDetails: React.FunctionComponent<
@@ -25,7 +25,7 @@ export const WorkspaceFormPodConfigDetails: React.FunctionComponent<
         <br />
         <Divider />
         <br />
-        {workspacePodConfig.labels.map((label) => (
+        {(workspacePodConfig.labels ?? []).map((label: OptionsOptionLabel) => (
           <DescriptionList
             key={label.key}
             isHorizontal
