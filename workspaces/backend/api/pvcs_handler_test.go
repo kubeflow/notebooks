@@ -312,6 +312,10 @@ var _ = Describe("PVCs Handler", func() {
 			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-create-pvc", Namespace: namespaceName1}, createdPVC)).To(Succeed())
 			Expect(createdPVC.Labels[commonModels.LabelCanMount]).To(Equal("true"))
 			Expect(createdPVC.Labels[commonModels.LabelCanUpdate]).To(Equal("true"))
+
+			By("verifying the audit annotations were set")
+			Expect(createdPVC.Annotations[commonModels.AnnotationCreatedBy]).To(Equal(adminUser))
+			Expect(createdPVC.Annotations[commonModels.AnnotationUpdatedBy]).To(Equal(adminUser))
 		})
 	})
 

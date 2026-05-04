@@ -38,6 +38,7 @@ import (
 	"k8s.io/utils/ptr"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
+	commonModels "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds"
 )
 
@@ -425,6 +426,10 @@ spec:
 			createdWsk := &kubefloworgv1beta1.WorkspaceKind{}
 			err = k8sClient.Get(ctx, types.NamespacedName{Name: newWorkspaceKindName}, createdWsk)
 			Expect(err).NotTo(HaveOccurred())
+
+			By("verifying the audit annotations were set")
+			Expect(createdWsk.Annotations[commonModels.AnnotationCreatedBy]).To(Equal(adminUser))
+			Expect(createdWsk.Annotations[commonModels.AnnotationUpdatedBy]).To(Equal(adminUser))
 		})
 
 		It("should fail to create a WorkspaceKind with no name in the YAML", func() {
@@ -949,6 +954,13 @@ metadata:
 			Expect(response.Data).NotTo(BeNil())
 			Expect(response.Data.Revision).NotTo(BeEmpty())
 
+			By("getting the updated WorkspaceKind from the Kubernetes API")
+			updatedWsk := &kubefloworgv1beta1.WorkspaceKind{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: wskName}, updatedWsk)).To(Succeed())
+
+			By("verifying the audit annotations were updated")
+			Expect(updatedWsk.Annotations[commonModels.AnnotationUpdatedBy]).To(Equal(adminUser))
+			Expect(updatedWsk.Annotations[commonModels.AnnotationUpdatedAt]).NotTo(BeEmpty())
 		})
 
 		It("should update spawner.deprecated and persist the change", func() {
