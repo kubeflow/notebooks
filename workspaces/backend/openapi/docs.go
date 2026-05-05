@@ -4,20 +4,20 @@ package openapi
 import "github.com/swaggo/swag"
 
 const docTemplate = `{
-    "schemes": {{ marshal .Schemes }},
+    "schemes": {{{{ marshal .Schemes }}}},
     "swagger": "2.0",
     "info": {
-        "description": "{{escape .Description}}",
-        "title": "{{.Title}}",
+        "description": "{{{{escape .Description}}}}",
+        "title": "{{{{.Title}}}}",
         "contact": {},
         "license": {
             "name": "Apache 2.0",
             "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
         },
-        "version": "{{.Version}}"
+        "version": "{{{{.Version}}}}"
     },
-    "host": "{{.Host}}",
-    "basePath": "{{.BasePath}}",
+    "host": "{{{{.Host}}}}",
+    "basePath": "{{{{.BasePath}}}}",
     "paths": {
         "/healthcheck": {
             "get": {
@@ -7388,8 +7388,8 @@ var SwaggerInfo = &swag.Spec{
 	Description:      "This API provides endpoints to manage notebooks in a Kubernetes cluster.\nFor more information, visit https://www.kubeflow.org/docs/components/notebooks/",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
-	LeftDelim:        "{{",
-	RightDelim:       "}}",
+	LeftDelim:        "{{{{",
+	RightDelim:       "}}}}",
 }
 
 func init() {

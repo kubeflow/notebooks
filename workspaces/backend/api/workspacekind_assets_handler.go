@@ -25,7 +25,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
-
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	repository "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/workspacekinds"
@@ -90,11 +89,18 @@ func (a *App) getWorkspaceKindAssetHandler(w http.ResponseWriter, r *http.Reques
 	// validate path parameters
 	var valErrs field.ErrorList
 	valErrs = append(valErrs, helper.ValidateWorkspaceKindName(field.NewPath(constants.ResourceNamePathParam), wskName)...)
-	if namespace != "" {
-		valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(constants.NamespaceFilterQueryParam), namespace)...)
-	}
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
+		return
+	}
+
+	// validate query parameters
+	var queryValErrs field.ErrorList
+	if namespace != "" {
+		queryValErrs = append(queryValErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(constants.NamespaceQueryParam), namespace)...)
+	}
+	if len(queryValErrs) > 0 {
+		a.failedValidationResponse(w, r, errMsgQueryParamsInvalid, queryValErrs, nil)
 		return
 	}
 
