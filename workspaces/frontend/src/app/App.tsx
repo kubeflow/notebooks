@@ -2,7 +2,7 @@ import React from 'react';
 import '@patternfly/patternfly/patternfly-addons.css';
 import '@patternfly/react-core/dist/styles/base.css';
 import '~/app/app.css';
-import { Page, PageSidebar } from '@patternfly/react-core/dist/esm/components/Page';
+import { Page } from '@patternfly/react-core/dist/esm/components/Page';
 import { DeploymentMode, logout, useModularArchContext } from 'mod-arch-core';
 import ErrorBoundary from '~/app/error/ErrorBoundary';
 import AppRoutes from '~/app/AppRoutes';
@@ -30,6 +30,7 @@ const App: React.FC = () => {
               <Page
                 mainContainerId="primary-app-container"
                 isContentFilled
+                className={!isStandalone ? 'pf-m-no-sidebar' : undefined}
                 masthead={
                   isStandalone ? (
                     <NavBar
@@ -38,12 +39,10 @@ const App: React.FC = () => {
                         logout().then(() => window.location.reload());
                       }}
                     />
-                  ) : (
-                    ''
-                  )
+                  ) : undefined
                 }
+                sidebar={isStandalone ? <NavSidebar /> : undefined}
                 isManagedSidebar={isStandalone}
-                sidebar={isStandalone ? <NavSidebar /> : <PageSidebar isSidebarOpen={false} />}
               >
                 <PreGABanner />
                 <AppRoutes />
