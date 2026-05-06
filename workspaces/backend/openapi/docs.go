@@ -1580,7 +1580,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/workspaces/{namespace}/{workspaceName}/actions/pause": {
+        "/workspaces/{namespace}/{name}/actions/pause": {
             "post": {
                 "description": "Pauses or unpauses a workspace, stopping or resuming all associated pods.",
                 "consumes": [
@@ -1607,7 +1607,7 @@ const docTemplate = `{
                         "type": "string",
                         "x-example": "my-workspace",
                         "description": "Name of the workspace",
-                        "name": "workspaceName",
+                        "name": "name",
                         "in": "path",
                         "required": true
                     },
