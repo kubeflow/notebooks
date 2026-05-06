@@ -30,9 +30,8 @@ If you want to use a different port:
 make run PORT=8000
 ```
 
-### Endpoints
-You can view the API documentation (Swagger) here:
-[View API Documentation](https://editor.swagger.io?url=https://raw.githubusercontent.com/kubeflow/notebooks/notebooks-v2/workspaces/backend/openapi/swagger.json)
+### API Documentation
+For the full list of endpoints, see the [Swagger UI](https://editor.swagger.io?url=https://raw.githubusercontent.com/kubeflow/notebooks/notebooks-v2/workspaces/backend/openapi/swagger.json).
 
 ### Sample local calls
 
