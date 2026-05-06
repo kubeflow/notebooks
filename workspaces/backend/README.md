@@ -31,26 +31,8 @@ make run PORT=8000
 ```
 
 ### Endpoints
-
-| URL Pattern                                               | Handler                   | Action                                  |
-|-----------------------------------------------------------|---------------------------|-----------------------------------------|
-| GET /api/v1/healthcheck                                   | healthcheck_handler       | Show application information            |
-| GET /api/v1/namespaces                                    | namespaces_handler        | Get all Namespaces                      |
-| GET /api/v1/swagger/                                      | swagger_handler           | Swagger API documentation               |
-| GET /api/v1/workspaces                                    | workspaces_handler        | Get all Workspaces                      |
-| GET /api/v1/workspaces/{namespace}                        | workspaces_handler        | Get all Workspaces from a namespace     |
-| POST /api/v1/workspaces/{namespace}                       | workspaces_handler        | Create a Workspace in a given namespace |
-| GET /api/v1/workspaces/{namespace}/{name}                 | workspaces_handler        | Get a Workspace entity                  |
-| PATCH /api/v1/workspaces/{namespace}/{name}               | TBD                       | Patch a Workspace entity                |
-| PUT /api/v1/workspaces/{namespace}/{name}                 | TBD                       | Update a Workspace entity               |
-| DELETE /api/v1/workspaces/{namespace}/{name}              | workspaces_handler        | Delete a Workspace entity               |
-| POST /api/v1/workspaces/{namespace}/{name}/actions/pause  | workspace_actions_handler | Set paused state of a workspace         |
-| GET /api/v1/workspacekinds                                | workspacekinds_handler    | Get all WorkspaceKind                   |
-| POST /api/v1/workspacekinds                               | TBD                       | Create a WorkspaceKind                  |
-| GET /api/v1/workspacekinds/{name}                         | workspacekinds_handler    | Get a WorkspaceKind entity              |
-| PATCH /api/v1/workspacekinds/{name}                       | TBD                       | Patch a WorkspaceKind entity            |
-| PUT /api/v1/workspacekinds/{name}                         | TBD                       | Update a WorkspaceKind entity           |
-| DELETE /api/v1/workspacekinds/{name}                      | workspacekinds_handler    | Delete a WorkspaceKind entity           |
+You can view the API documentation (Swagger) here:
+[View API Documentation](https://editor.swagger.io?url=https://raw.githubusercontent.com/kubeflow/notebooks/notebooks-v2/workspaces/backend/openapi/swagger.json)
 
 ### Sample local calls
 
