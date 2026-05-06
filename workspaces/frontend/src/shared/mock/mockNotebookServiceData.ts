@@ -6,7 +6,7 @@ import {
   V1PersistentVolumeMode,
   V1PersistentVolumeReclaimPolicy,
   V1PodPhase,
-  WorkspacekindsWorkspaceKind,
+  WorkspacekindsWorkspaceKindListItem,
   WorkspacesRedirectMessageLevel,
   WorkspacesWorkspaceListItem,
   WorkspacesWorkspaceKindInfo,
@@ -37,7 +37,7 @@ export const mockNamespace3 = buildMockNamespace({ name: 'workspace-test-3' });
 export const mockNamespaces = [mockNamespace1, mockNamespace2, mockNamespace3];
 
 // WorkspaceKind
-export const mockWorkspaceKind1: WorkspacekindsWorkspaceKind = buildMockWorkspaceKind({
+export const mockWorkspaceKind1: WorkspacekindsWorkspaceKindListItem = buildMockWorkspaceKind({
   name: 'jupyterlab1',
   displayName: 'JupyterLab Notebook 1',
   clusterMetrics: {
@@ -45,7 +45,7 @@ export const mockWorkspaceKind1: WorkspacekindsWorkspaceKind = buildMockWorkspac
   },
 });
 
-export const mockWorkspaceKind2: WorkspacekindsWorkspaceKind = buildMockWorkspaceKind({
+export const mockWorkspaceKind2: WorkspacekindsWorkspaceKindListItem = buildMockWorkspaceKind({
   name: 'jupyterlab2',
   displayName: 'JupyterLab Notebook 2',
   clusterMetrics: {
@@ -53,7 +53,7 @@ export const mockWorkspaceKind2: WorkspacekindsWorkspaceKind = buildMockWorkspac
   },
 });
 
-export const mockWorkspaceKind3: WorkspacekindsWorkspaceKind = buildMockWorkspaceKind({
+export const mockWorkspaceKind3: WorkspacekindsWorkspaceKindListItem = buildMockWorkspaceKind({
   name: 'jupyterlab3',
   displayName: 'JupyterLab Notebook 3',
   clusterMetrics: {

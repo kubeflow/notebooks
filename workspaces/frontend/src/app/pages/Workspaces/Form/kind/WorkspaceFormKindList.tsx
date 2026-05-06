@@ -14,7 +14,7 @@ import { useToolbarFilters, applyFilters } from '~/shared/hooks/useToolbarFilter
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
 import ImageFallback from '~/shared/components/ImageFallback';
 import WithValidImage from '~/shared/components/WithValidImage';
-import { WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
+import { WorkspacekindsWorkspaceKindListItem } from '~/generated/data-contracts';
 
 type KindFilterKey = 'name';
 
@@ -24,15 +24,18 @@ const filterConfig = {
 
 const visibleFilterKeys: readonly KindFilterKey[] = ['name'];
 
-const filterableProperties: Record<KindFilterKey, (item: WorkspacekindsWorkspaceKind) => string> = {
+const filterableProperties: Record<
+  KindFilterKey,
+  (item: WorkspacekindsWorkspaceKindListItem) => string
+> = {
   // Combine name and displayName for matching (separated by space so regex can match either)
   name: (kind) => `${kind.name} ${kind.displayName}`,
 };
 
 type WorkspaceFormKindListProps = {
-  allWorkspaceKinds: WorkspacekindsWorkspaceKind[];
-  selectedKind: WorkspacekindsWorkspaceKind | undefined;
-  onSelect: (workspaceKind: WorkspacekindsWorkspaceKind | undefined) => void;
+  allWorkspaceKinds: WorkspacekindsWorkspaceKindListItem[];
+  selectedKind: WorkspacekindsWorkspaceKindListItem | undefined;
+  onSelect: (workspaceKind: WorkspacekindsWorkspaceKindListItem | undefined) => void;
   isSelectionDisabled: boolean;
 };
 
@@ -68,7 +71,7 @@ export const WorkspaceFormKindList: React.FunctionComponent<WorkspaceFormKindLis
   );
 
   const handleCardClick = useCallback(
-    (kind: WorkspacekindsWorkspaceKind) => {
+    (kind: WorkspacekindsWorkspaceKindListItem) => {
       if (kind.name !== selectedKind?.name) {
         return;
       }

@@ -34,7 +34,7 @@ import WithValidImage from '~/shared/components/WithValidImage';
 import ImageFallback from '~/shared/components/ImageFallback';
 import { ErrorPopover } from '~/shared/components/ErrorPopover';
 import { useTypedNavigate } from '~/app/routerHelper';
-import { WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
+import { WorkspacekindsWorkspaceKindListItem } from '~/generated/data-contracts';
 import { LoadError } from '~/app/components/LoadError';
 import { LoadingSpinner } from '~/app/components/LoadingSpinner';
 import ToolbarFilter, { FilterConfigMap } from '~/shared/components/ToolbarFilter';
@@ -93,7 +93,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
   const [workspaceKinds, workspaceKindsLoaded, workspaceKindsError] = useWorkspaceKinds();
   const workspaceCountResult = useWorkspaceCountPerKind();
   const [selectedWorkspaceKind, setSelectedWorkspaceKind] =
-    useState<WorkspacekindsWorkspaceKind | null>(null);
+    useState<WorkspacekindsWorkspaceKindListItem | null>(null);
   const [activeActionType, setActiveActionType] = useState<ActionType | null>(null);
 
   // Pagination
@@ -105,7 +105,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
   const [activeSortDirection, setActiveSortDirection] = useState<'asc' | 'desc' | null>('asc');
 
   const getSortableRowValues = useCallback(
-    (workspaceKind: WorkspacekindsWorkspaceKind): (string | boolean | number)[] => {
+    (workspaceKind: WorkspacekindsWorkspaceKindListItem): (string | boolean | number)[] => {
       const {
         name,
         description,
@@ -163,7 +163,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
 
   const filterableProperties: Record<
     WorkspaceKindFilterKey,
-    (wk: WorkspacekindsWorkspaceKind) => string
+    (wk: WorkspacekindsWorkspaceKindListItem) => string
   > = useMemo(
     () => ({
       name: (wk) => wk.name,
@@ -211,13 +211,13 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
   );
 
   // Actions
-  const viewDetailsClick = useCallback((workspaceKind: WorkspacekindsWorkspaceKind) => {
+  const viewDetailsClick = useCallback((workspaceKind: WorkspacekindsWorkspaceKindListItem) => {
     setSelectedWorkspaceKind(workspaceKind);
     setActiveActionType(ActionType.ViewDetails);
   }, []);
 
   const workspaceKindsDefaultActions = useCallback(
-    (workspaceKind: WorkspacekindsWorkspaceKind): IActions => [
+    (workspaceKind: WorkspacekindsWorkspaceKindListItem): IActions => [
       {
         id: 'view-details',
         title: 'View Details',

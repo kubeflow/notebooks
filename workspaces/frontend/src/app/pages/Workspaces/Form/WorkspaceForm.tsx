@@ -37,7 +37,7 @@ import {
   ApiErrorEnvelope,
   OptionsImageConfigValue,
   OptionsPodConfigValue,
-  WorkspacekindsWorkspaceKind,
+  WorkspacekindsWorkspaceKindListItem,
 } from '~/generated/data-contracts';
 import { extractErrorMessage } from '~/shared/api/apiUtils';
 import { ErrorAlert } from '~/shared/components/ErrorAlert';
@@ -232,7 +232,7 @@ const WorkspaceForm: React.FC = () => {
   }, [navigate]);
 
   const handleKindSelect = useCallback(
-    (kind: WorkspacekindsWorkspaceKind | undefined) => {
+    (kind: WorkspacekindsWorkspaceKindListItem | undefined) => {
       if (!kind) {
         return;
       }

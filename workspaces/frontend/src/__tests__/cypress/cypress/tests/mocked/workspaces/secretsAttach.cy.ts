@@ -55,11 +55,11 @@ describe('SecretsAttachModal', () => {
       mockModArchResponse(mockWorkspaceUpdate),
     ).as('getWorkspace');
 
-    cy.intercept(
-      'GET',
-      `/api/${NOTEBOOKS_API_VERSION}/workspacekinds/${mockWorkspaceKindInfo.name}`,
-      mockModArchResponse(mockWorkspaceKindFull),
-    ).as('getWorkspaceKind');
+    cy.interceptApi(
+      'GET /api/:apiVersion/workspacekinds',
+      { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+      mockModArchResponse([mockWorkspaceKindFull]),
+    ).as('getWorkspaceKinds');
 
     cy.intercept('GET', `/api/${NOTEBOOKS_API_VERSION}/secrets/${mockNamespace.name}`, {
       data: mockSecrets,
@@ -90,7 +90,7 @@ describe('SecretsAttachModal', () => {
     cy.wait('@getWorkspaces');
     workspaces.findAction({ action: 'edit', workspaceName: mockWorkspaceListItem.name }).click();
     cy.wait('@getWorkspace');
-    cy.wait('@getWorkspaceKind');
+    cy.wait('@getWorkspaceKinds');
     editWorkspace.clickNext();
     editWorkspace.clickNext();
     editWorkspace.clickNext();

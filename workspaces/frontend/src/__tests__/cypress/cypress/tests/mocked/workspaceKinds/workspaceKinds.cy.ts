@@ -5,7 +5,7 @@ import {
 } from '~/__tests__/cypress/cypress/pages/workspaceKinds/workspaceKinds';
 import { buildMockWorkspaceKind, buildMockNamespace } from '~/shared/mock/mockBuilder';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
-import type { WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
+import type { WorkspacekindsWorkspaceKindListItem } from '~/generated/data-contracts';
 import { createWorkspaceKind } from '~/__tests__/cypress/cypress/pages/workspaceKinds/createWorkspaceKind';
 import { editWorkspaceKind } from '~/__tests__/cypress/cypress/pages/workspaceKinds/editWorkspaceKind';
 
@@ -14,7 +14,7 @@ const TOTAL_FILTER_TEST_WORKSPACEKINDS = 6;
 const DEFAULT_PAGE_SIZE = 10;
 
 type WorkspaceKindsSetup = {
-  mockWorkspaceKinds: WorkspacekindsWorkspaceKind[];
+  mockWorkspaceKinds: WorkspacekindsWorkspaceKindListItem[];
 };
 
 const setupWorkspaceKinds = (count: number): WorkspaceKindsSetup => {
@@ -53,7 +53,7 @@ const setupWorkspaceKinds = (count: number): WorkspaceKindsSetup => {
   return { mockWorkspaceKinds };
 };
 
-const createFilterTestWorkspaceKinds = (): WorkspacekindsWorkspaceKind[] => [
+const createFilterTestWorkspaceKinds = (): WorkspacekindsWorkspaceKindListItem[] => [
   buildMockWorkspaceKind({
     name: 'jupyterlab',
     displayName: 'JupyterLab',
@@ -715,7 +715,7 @@ describe('WorkspaceKinds', () => {
     const setupWorkspaceKindActionTest = (
       workspaceKindName: string,
       deprecated = false,
-    ): WorkspacekindsWorkspaceKind => {
+    ): WorkspacekindsWorkspaceKindListItem => {
       const mockWorkspaceKind = buildMockWorkspaceKind({
         name: workspaceKindName,
         displayName: workspaceKindName,

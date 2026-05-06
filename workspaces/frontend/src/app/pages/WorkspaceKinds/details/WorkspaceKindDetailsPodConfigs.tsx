@@ -1,10 +1,10 @@
 import React from 'react';
 import { WorkspaceCountResult } from '~/app/hooks/useWorkspaceCountPerKind';
-import { WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
+import { WorkspacekindsWorkspaceKindListItem } from '~/generated/data-contracts';
 import { WorkspaceKindDetailsTable } from './WorkspaceKindDetailsTable';
 
 type WorkspaceDetailsPodConfigsProps = {
-  workspaceKind: WorkspacekindsWorkspaceKind;
+  workspaceKind: WorkspacekindsWorkspaceKindListItem;
   workspaceCountResult: WorkspaceCountResult;
 };
 

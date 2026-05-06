@@ -6,6 +6,7 @@ import {
   buildMockNamespace,
   buildMockWorkspace,
   buildMockWorkspaceKind,
+  buildMockWorkspaceKindUpdate,
   buildMockWorkspaceKindInfo,
   buildMockPodConfig,
   buildMockPodTemplate,
@@ -60,7 +61,9 @@ const setupWorkspaceKindSummary = (args: {
   cy.interceptApi(
     'GET /api/:apiVersion/workspacekinds/:kind',
     { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: workspaceKindName } },
-    mockModArchResponse(buildMockWorkspaceKind({ name: workspaceKindName })),
+    mockModArchResponse(
+      buildMockWorkspaceKindUpdate(buildMockWorkspaceKind({ name: workspaceKindName })),
+    ),
   ).as('getWorkspaceKind');
 
   cy.interceptApi(
@@ -107,7 +110,9 @@ const setupMultiNamespaceWorkspaces = (args: {
   cy.interceptApi(
     'GET /api/:apiVersion/workspacekinds/:kind',
     { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: workspaceKindName } },
-    mockModArchResponse(buildMockWorkspaceKind({ name: workspaceKindName })),
+    mockModArchResponse(
+      buildMockWorkspaceKindUpdate(buildMockWorkspaceKind({ name: workspaceKindName })),
+    ),
   ).as('getWorkspaceKind');
 
   cy.interceptApi(
@@ -464,7 +469,9 @@ describe('Workspace Kind Summary', () => {
       cy.interceptApi(
         'GET /api/:apiVersion/workspacekinds/:kind',
         { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: TEST_WORKSPACE_KIND } },
-        mockModArchResponse(buildMockWorkspaceKind({ name: TEST_WORKSPACE_KIND })),
+        mockModArchResponse(
+          buildMockWorkspaceKindUpdate(buildMockWorkspaceKind({ name: TEST_WORKSPACE_KIND })),
+        ),
       ).as('getWorkspaceKind');
 
       cy.interceptApi(
@@ -656,7 +663,9 @@ describe('Workspace Kind Summary', () => {
       cy.interceptApi(
         'GET /api/:apiVersion/workspacekinds/:kind',
         { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: TEST_WORKSPACE_KIND } },
-        mockModArchResponse(buildMockWorkspaceKind({ name: TEST_WORKSPACE_KIND })),
+        mockModArchResponse(
+          buildMockWorkspaceKindUpdate(buildMockWorkspaceKind({ name: TEST_WORKSPACE_KIND })),
+        ),
       ).as('getWorkspaceKind');
 
       cy.interceptApi(

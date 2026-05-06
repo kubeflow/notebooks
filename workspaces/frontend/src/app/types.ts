@@ -4,7 +4,7 @@ import {
   WorkspacekindsImageRef,
   WorkspacekindsPodMetadata,
   WorkspacekindsPodVolumeMounts,
-  WorkspacekindsWorkspaceKind,
+  WorkspacekindsWorkspaceKindListItem,
   WorkspacesPodSecretMount,
   WorkspacesPodTemplateOptionsMutate,
   WorkspacesPodVolumeMount,
@@ -40,7 +40,7 @@ export interface WorkspaceFormProperties {
 
 export interface WorkspaceFormData {
   revision: string;
-  kind: WorkspacekindsWorkspaceKind | undefined;
+  kind: WorkspacekindsWorkspaceKindListItem | undefined;
   imageConfig: WorkspacesPodTemplateOptionsMutate['imageConfig'] | undefined;
   podConfig: WorkspacesPodTemplateOptionsMutate['podConfig'] | undefined;
   properties: WorkspaceFormProperties;

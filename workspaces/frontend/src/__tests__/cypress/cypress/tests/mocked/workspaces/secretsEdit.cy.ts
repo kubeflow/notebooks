@@ -92,10 +92,10 @@ describe('Edit Secret Modal', () => {
     ).as('getWorkspace');
 
     cy.interceptApi(
-      'GET /api/:apiVersion/workspacekinds/:kind',
-      { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKindInfo.name } },
-      mockModArchResponse(mockWorkspaceKindFull),
-    ).as('getWorkspaceKind');
+      'GET /api/:apiVersion/workspacekinds',
+      { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+      mockModArchResponse([mockWorkspaceKindFull]),
+    ).as('getWorkspaceKinds');
 
     cy.interceptApi(
       'GET /api/:apiVersion/secrets/:namespace',
@@ -125,7 +125,7 @@ describe('Edit Secret Modal', () => {
     cy.wait('@getWorkspaces');
     workspaces.findAction({ action: 'edit', workspaceName: mockWorkspaceListItem.name }).click();
     cy.wait('@getWorkspace');
-    cy.wait('@getWorkspaceKind');
+    cy.wait('@getWorkspaceKinds');
     editWorkspace.clickNext();
     editWorkspace.clickNext();
     editWorkspace.clickNext();
@@ -239,7 +239,7 @@ describe('Edit Secret Modal', () => {
       .findAction({ action: 'edit', workspaceName: workspaceWithImmutableSecret.name })
       .click();
     cy.wait('@getWorkspace');
-    cy.wait('@getWorkspaceKind');
+    cy.wait('@getWorkspaceKinds');
     editWorkspace.clickNext();
     editWorkspace.clickNext();
     editWorkspace.clickNext();
@@ -295,7 +295,7 @@ describe('Edit Secret Modal', () => {
     cy.wait('@getWorkspaces');
     workspaces.findAction({ action: 'edit', workspaceName: mockWorkspaceListItem.name }).click();
     cy.wait('@getWorkspace');
-    cy.wait('@getWorkspaceKind');
+    cy.wait('@getWorkspaceKinds');
     editWorkspace.clickNext();
     editWorkspace.clickNext();
     editWorkspace.clickNext();

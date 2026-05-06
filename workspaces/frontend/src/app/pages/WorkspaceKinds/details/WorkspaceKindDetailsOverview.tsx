@@ -8,10 +8,10 @@ import {
 import { Divider } from '@patternfly/react-core/dist/esm/components/Divider';
 import ImageFallback from '~/shared/components/ImageFallback';
 import WithValidImage from '~/shared/components/WithValidImage';
-import { WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
+import { WorkspacekindsWorkspaceKindListItem } from '~/generated/data-contracts';
 
 type WorkspaceDetailsOverviewProps = {
-  workspaceKind: WorkspacekindsWorkspaceKind;
+  workspaceKind: WorkspacekindsWorkspaceKindListItem;
 };
 
 export const WorkspaceKindDetailsOverview: React.FunctionComponent<
