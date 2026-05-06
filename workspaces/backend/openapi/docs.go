@@ -1339,6 +1339,76 @@ const docTemplate = `{
             }
         },
         "/workspaces/{namespace}/{name}": {
+            "get": {
+                "description": "Returns the current state of a specific workspace identified by namespace and workspace name, including the revision for optimistic locking. This endpoint is intended for retrieving the workspace state before updating it.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspaces"
+                ],
+                "summary": "Get workspace",
+                "operationId": "getWorkspace",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "x-example": "kubeflow-user-example-com",
+                        "description": "Namespace of the workspace",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "x-example": "my-workspace",
+                        "description": "Name of the workspace",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation. Returns the requested workspace details with new revision.",
+                        "schema": {
+                            "$ref": "#/definitions/api.WorkspaceEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Authentication is required.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. User does not have permission to access the workspace.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found. Workspace does not exist.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error. An unexpected error occurred on the server.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            },
             "put": {
                 "description": "Updates an existing workspace.",
                 "consumes": [
@@ -1435,9 +1505,82 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "delete": {
+                "description": "Deletes a specific workspace identified by namespace and name.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspaces"
+                ],
+                "summary": "Delete workspace",
+                "operationId": "deleteWorkspace",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "x-example": "kubeflow-user-example-com",
+                        "description": "Namespace of the workspace",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "x-example": "my-workspace",
+                        "description": "Name of the workspace",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Workspace deleted successfully"
+                    },
+                    "401": {
+                        "description": "Unauthorized. Authentication is required.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. User does not have permission to delete the workspace.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found. Workspace does not exist.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error. An unexpected error occurred on the server.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
             }
         },
-        "/workspaces/{namespace}/{workspaceName}/actions/pause": {
+        "/workspaces/{namespace}/{name}/actions/pause": {
             "post": {
                 "description": "Pauses or unpauses a workspace, stopping or resuming all associated pods.",
                 "consumes": [
@@ -1464,7 +1607,7 @@ const docTemplate = `{
                         "type": "string",
                         "x-example": "my-workspace",
                         "description": "Name of the workspace",
-                        "name": "workspaceName",
+                        "name": "name",
                         "in": "path",
                         "required": true
                     },
@@ -1523,151 +1666,6 @@ const docTemplate = `{
                     },
                     "415": {
                         "description": "Unsupported Media Type. Content-Type header is not correct.",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Entity. Validation error.",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error. An unexpected error occurred on the server.",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    }
-                }
-            }
-        },
-        "/workspaces/{namespace}/{workspace_name}": {
-            "get": {
-                "description": "Returns the current state of a specific workspace identified by namespace and workspace name, including the revision for optimistic locking. This endpoint is intended for retrieving the workspace state before updating it.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "workspaces"
-                ],
-                "summary": "Get workspace",
-                "operationId": "getWorkspace",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "x-example": "kubeflow-user-example-com",
-                        "description": "Namespace of the workspace",
-                        "name": "namespace",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "x-example": "my-workspace",
-                        "description": "Name of the workspace",
-                        "name": "workspace_name",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation. Returns the requested workspace details with new revision.",
-                        "schema": {
-                            "$ref": "#/definitions/api.WorkspaceEnvelope"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized. Authentication is required.",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden. User does not have permission to access the workspace.",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found. Workspace does not exist.",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Entity. Validation error.",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error. An unexpected error occurred on the server.",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "description": "Deletes a specific workspace identified by namespace and name.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "workspaces"
-                ],
-                "summary": "Delete workspace",
-                "operationId": "deleteWorkspace",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "x-example": "kubeflow-user-example-com",
-                        "description": "Namespace of the workspace",
-                        "name": "namespace",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "x-example": "my-workspace",
-                        "description": "Name of the workspace",
-                        "name": "workspace_name",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "Workspace deleted successfully"
-                    },
-                    "401": {
-                        "description": "Unauthorized. Authentication is required.",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden. User does not have permission to delete the workspace.",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found. Workspace does not exist.",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
-                    "409": {
-                        "description": "Conflict",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }

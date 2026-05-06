@@ -41,20 +41,20 @@ type WorkspaceActionPauseEnvelope Envelope[*models.WorkspaceActionPause]
 //	@ID				updateWorkspacePauseState
 //	@Accept			json
 //	@Produce		json
-//	@Param			namespace		path		string							true	"Namespace of the workspace"	extensions(x-example=default)
-//	@Param			workspaceName	path		string							true	"Name of the workspace"			extensions(x-example=my-workspace)
-//	@Param			body			body		WorkspaceActionPauseEnvelope	true	"Intended pause state of the workspace"
-//	@Success		200				{object}	WorkspaceActionPauseEnvelope	"Successful action. Returns the current pause state."
-//	@Failure		400				{object}	ErrorEnvelope					"Bad Request."
-//	@Failure		401				{object}	ErrorEnvelope					"Unauthorized. Authentication is required."
-//	@Failure		403				{object}	ErrorEnvelope					"Forbidden. User does not have permission to access the workspace."
-//	@Failure		404				{object}	ErrorEnvelope					"Not Found. Workspace does not exist."
-//	@Failure		409				{object}	ErrorEnvelope					"Conflict. Workspace not in valid state for action."
-//	@Failure		413				{object}	ErrorEnvelope					"Request Entity Too Large. The request body is too large."
-//	@Failure		415				{object}	ErrorEnvelope					"Unsupported Media Type. Content-Type header is not correct."
-//	@Failure		422				{object}	ErrorEnvelope					"Unprocessable Entity. Validation error."
-//	@Failure		500				{object}	ErrorEnvelope					"Internal server error. An unexpected error occurred on the server."
-//	@Router			/workspaces/{namespace}/{workspaceName}/actions/pause [post]
+//	@Param			namespace	path		string							true	"Namespace of the workspace"	extensions(x-example=default)
+//	@Param			name		path		string							true	"Name of the workspace"			extensions(x-example=my-workspace)
+//	@Param			body		body		WorkspaceActionPauseEnvelope	true	"Intended pause state of the workspace"
+//	@Success		200			{object}	WorkspaceActionPauseEnvelope	"Successful action. Returns the current pause state."
+//	@Failure		400			{object}	ErrorEnvelope					"Bad Request."
+//	@Failure		401			{object}	ErrorEnvelope					"Unauthorized. Authentication is required."
+//	@Failure		403			{object}	ErrorEnvelope					"Forbidden. User does not have permission to access the workspace."
+//	@Failure		404			{object}	ErrorEnvelope					"Not Found. Workspace does not exist."
+//	@Failure		409			{object}	ErrorEnvelope					"Conflict. Workspace not in valid state for action."
+//	@Failure		413			{object}	ErrorEnvelope					"Request Entity Too Large. The request body is too large."
+//	@Failure		415			{object}	ErrorEnvelope					"Unsupported Media Type. Content-Type header is not correct."
+//	@Failure		422			{object}	ErrorEnvelope					"Unprocessable Entity. Validation error."
+//	@Failure		500			{object}	ErrorEnvelope					"Internal server error. An unexpected error occurred on the server."
+//	@Router			/workspaces/{namespace}/{name}/actions/pause [post]
 func (a *App) PauseActionWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(NamespacePathParam)
 	workspaceName := ps.ByName(ResourceNamePathParam)
