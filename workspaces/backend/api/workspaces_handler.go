@@ -45,15 +45,15 @@ type WorkspaceListEnvelope Envelope[[]models.WorkspaceListItem]
 //	@ID				getWorkspace
 //	@Accept			json
 //	@Produce		json
-//	@Param			namespace		path		string				true	"Namespace of the workspace"	extensions(x-example=kubeflow-user-example-com)
-//	@Param			workspace_name	path		string				true	"Name of the workspace"			extensions(x-example=my-workspace)
-//	@Success		200				{object}	WorkspaceEnvelope	"Successful operation. Returns the requested workspace details with new revision."
-//	@Failure		401				{object}	ErrorEnvelope		"Unauthorized. Authentication is required."
-//	@Failure		403				{object}	ErrorEnvelope		"Forbidden. User does not have permission to access the workspace."
-//	@Failure		404				{object}	ErrorEnvelope		"Not Found. Workspace does not exist."
-//	@Failure		422				{object}	ErrorEnvelope		"Unprocessable Entity. Validation error."
-//	@Failure		500				{object}	ErrorEnvelope		"Internal server error. An unexpected error occurred on the server."
-//	@Router			/workspaces/{namespace}/{workspace_name} [get]
+//	@Param			namespace	path		string				true	"Namespace of the workspace"	extensions(x-example=kubeflow-user-example-com)
+//	@Param			name		path		string				true	"Name of the workspace"			extensions(x-example=my-workspace)
+//	@Success		200			{object}	WorkspaceEnvelope	"Successful operation. Returns the requested workspace details with new revision."
+//	@Failure		401			{object}	ErrorEnvelope		"Unauthorized. Authentication is required."
+//	@Failure		403			{object}	ErrorEnvelope		"Forbidden. User does not have permission to access the workspace."
+//	@Failure		404			{object}	ErrorEnvelope		"Not Found. Workspace does not exist."
+//	@Failure		422			{object}	ErrorEnvelope		"Unprocessable Entity. Validation error."
+//	@Failure		500			{object}	ErrorEnvelope		"Internal server error. An unexpected error occurred on the server."
+//	@Router			/workspaces/{namespace}/{name} [get]
 func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) { //nolint:dupl // TODO: Abstract common API patterns once implemented
 	namespace := ps.ByName(NamespacePathParam)
 	workspaceName := ps.ByName(ResourceNamePathParam)
@@ -391,16 +391,16 @@ func (a *App) UpdateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 //	@ID				deleteWorkspace
 //	@Accept			json
 //	@Produce		json
-//	@Param			namespace		path		string			true	"Namespace of the workspace"	extensions(x-example=kubeflow-user-example-com)
-//	@Param			workspace_name	path		string			true	"Name of the workspace"			extensions(x-example=my-workspace)
-//	@Success		204				{object}	nil				"Workspace deleted successfully"
-//	@Failure		401				{object}	ErrorEnvelope	"Unauthorized. Authentication is required."
-//	@Failure		403				{object}	ErrorEnvelope	"Forbidden. User does not have permission to delete the workspace."
-//	@Failure		404				{object}	ErrorEnvelope	"Not Found. Workspace does not exist."
-//	@Failure		409				{object}	ErrorEnvelope	"Conflict"
-//	@Failure		422				{object}	ErrorEnvelope	"Unprocessable Entity. Validation error."
-//	@Failure		500				{object}	ErrorEnvelope	"Internal server error. An unexpected error occurred on the server."
-//	@Router			/workspaces/{namespace}/{workspace_name} [delete]
+//	@Param			namespace	path		string			true	"Namespace of the workspace"	extensions(x-example=kubeflow-user-example-com)
+//	@Param			name		path		string			true	"Name of the workspace"			extensions(x-example=my-workspace)
+//	@Success		204			{object}	nil				"Workspace deleted successfully"
+//	@Failure		401			{object}	ErrorEnvelope	"Unauthorized. Authentication is required."
+//	@Failure		403			{object}	ErrorEnvelope	"Forbidden. User does not have permission to delete the workspace."
+//	@Failure		404			{object}	ErrorEnvelope	"Not Found. Workspace does not exist."
+//	@Failure		409			{object}	ErrorEnvelope	"Conflict"
+//	@Failure		422			{object}	ErrorEnvelope	"Unprocessable Entity. Validation error."
+//	@Failure		500			{object}	ErrorEnvelope	"Internal server error. An unexpected error occurred on the server."
+//	@Router			/workspaces/{namespace}/{name} [delete]
 func (a *App) DeleteWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) { //nolint:dupl
 	namespace := ps.ByName(NamespacePathParam)
 	workspaceName := ps.ByName(ResourceNamePathParam)
