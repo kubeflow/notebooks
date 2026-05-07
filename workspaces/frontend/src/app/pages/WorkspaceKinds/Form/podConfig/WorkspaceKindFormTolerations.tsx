@@ -4,7 +4,8 @@ import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { PencilAltIcon } from '@patternfly/react-icons/dist/esm/icons/pencil-alt-icon';
 import { TrashAltIcon } from '@patternfly/react-icons/dist/esm/icons/trash-alt-icon';
-import { TolerationEntry, TolerationOperator } from '~/app/types';
+import { V1TolerationOperator } from '~/generated/data-contracts';
+import { TolerationEntry } from '~/app/types';
 import { TolerationModal } from './TolerationModal';
 
 interface WorkspaceKindFormTolerationsProps {
@@ -76,7 +77,7 @@ export const WorkspaceKindFormTolerations: React.FC<WorkspaceKindFormTolerations
                   {toleration.key || '-'}
                 </Td>
                 <Td dataLabel="Value" data-testid={`toleration-value-cell-${index}`}>
-                  {toleration.operator === TolerationOperator.Exists
+                  {toleration.operator === V1TolerationOperator.TolerationOpExists
                     ? '-'
                     : toleration.value || '-'}
                 </Td>
@@ -87,7 +88,7 @@ export const WorkspaceKindFormTolerations: React.FC<WorkspaceKindFormTolerations
                   {toleration.effect || 'None'}
                 </Td>
                 <Td dataLabel="Toleration Seconds" data-testid={`toleration-seconds-cell-${index}`}>
-                  {toleration.tolerationSeconds === null
+                  {toleration.tolerationSeconds == null
                     ? 'Forever'
                     : `${toleration.tolerationSeconds}s`}
                 </Td>

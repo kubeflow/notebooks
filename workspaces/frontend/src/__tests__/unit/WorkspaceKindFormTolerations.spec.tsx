@@ -3,7 +3,8 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { WorkspaceKindFormTolerations } from '~/app/pages/WorkspaceKinds/Form/podConfig/WorkspaceKindFormTolerations';
-import { TolerationEffect, TolerationEntry, TolerationOperator } from '~/app/types';
+import { V1TaintEffect, V1TolerationOperator } from '~/generated/data-contracts';
+import { TolerationEntry } from '~/app/types';
 
 jest.mock('mod-arch-kubeflow', () => ({
   useThemeContext: () => ({ isMUITheme: false }),
@@ -11,11 +12,10 @@ jest.mock('mod-arch-kubeflow', () => ({
 
 const makeToleration = (overrides: Partial<TolerationEntry> = {}): TolerationEntry => ({
   id: 'tol-1',
-  operator: TolerationOperator.Equal,
-  effect: TolerationEffect.NoSchedule,
+  operator: V1TolerationOperator.TolerationOpEqual,
+  effect: V1TaintEffect.TaintEffectNoSchedule,
   key: 'gpu',
   value: 'true',
-  tolerationSeconds: null,
   ...overrides,
 });
 
@@ -42,7 +42,7 @@ describe('WorkspaceKindFormTolerations', () => {
   it('renders a table row for each toleration', () => {
     const tolerations = [
       makeToleration({ id: 'tol-1', key: 'gpu' }),
-      makeToleration({ id: 'tol-2', key: 'disk', effect: TolerationEffect.NoExecute }),
+      makeToleration({ id: 'tol-2', key: 'disk', effect: V1TaintEffect.TaintEffectNoExecute }),
     ];
     render(
       <WorkspaceKindFormTolerations
@@ -58,7 +58,9 @@ describe('WorkspaceKindFormTolerations', () => {
   });
 
   it('displays dash for value when operator is Exists', () => {
-    const tolerations = [makeToleration({ operator: TolerationOperator.Exists, value: 'ignored' })];
+    const tolerations = [
+      makeToleration({ operator: V1TolerationOperator.TolerationOpExists, value: 'ignored' }),
+    ];
     render(
       <WorkspaceKindFormTolerations
         tolerations={tolerations}
@@ -71,8 +73,8 @@ describe('WorkspaceKindFormTolerations', () => {
     expect(within(row).getByText('-')).toBeInTheDocument();
   });
 
-  it('displays Forever when tolerationSeconds is null', () => {
-    const tolerations = [makeToleration({ tolerationSeconds: null })];
+  it('displays Forever when tolerationSeconds is undefined', () => {
+    const tolerations = [makeToleration({ tolerationSeconds: undefined })];
     render(
       <WorkspaceKindFormTolerations
         tolerations={tolerations}

@@ -8,6 +8,7 @@ import {
   WorkspacesPodSecretMount,
   WorkspacesPodTemplateOptionsMutate,
   WorkspacesPodVolumeMount,
+  V1Toleration,
   WorkspacesWorkspaceListItem,
 } from '~/generated/data-contracts';
 
@@ -81,25 +82,8 @@ export interface WorkspaceKindImagePort {
   port: number;
   protocol: 'HTTP'; // ONLY HTTP is supported at the moment, per https://github.com/thesuperzapper/kubeflow-notebooks-v2-design/blob/main/crds/workspace-kind.yaml#L275
 }
-export enum TolerationOperator {
-  Equal = 'Equal',
-  Exists = 'Exists',
-}
-
-export enum TolerationEffect {
-  None = '',
-  NoSchedule = 'NoSchedule',
-  PreferNoSchedule = 'PreferNoSchedule',
-  NoExecute = 'NoExecute',
-}
-
-export interface TolerationEntry {
+export interface TolerationEntry extends V1Toleration {
   id: string;
-  operator: TolerationOperator;
-  effect?: TolerationEffect;
-  key: string;
-  value: string;
-  tolerationSeconds: number | null;
 }
 
 export interface WorkspaceKindPodConfigValue extends OptionsPodConfigValue {

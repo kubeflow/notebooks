@@ -3,7 +3,8 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { TolerationModal } from '~/app/pages/WorkspaceKinds/Form/podConfig/TolerationModal';
-import { TolerationEffect, TolerationEntry, TolerationOperator } from '~/app/types';
+import { V1TaintEffect, V1TolerationOperator } from '~/generated/data-contracts';
+import { TolerationEntry } from '~/app/types';
 
 jest.mock('mod-arch-kubeflow', () => ({
   useThemeContext: () => ({ isMUITheme: false }),
@@ -11,11 +12,10 @@ jest.mock('mod-arch-kubeflow', () => ({
 
 const baseToleration: TolerationEntry = {
   id: 'test-id-1',
-  operator: TolerationOperator.Equal,
-  effect: TolerationEffect.NoSchedule,
+  operator: V1TolerationOperator.TolerationOpEqual,
+  effect: V1TaintEffect.TaintEffectNoSchedule,
   key: 'gpu',
   value: 'true',
-  tolerationSeconds: null,
 };
 
 describe('TolerationModal', () => {
@@ -68,7 +68,7 @@ describe('TolerationModal', () => {
   it('disables value field when operator is Exists', async () => {
     const existsToleration: TolerationEntry = {
       ...baseToleration,
-      operator: TolerationOperator.Exists,
+      operator: V1TolerationOperator.TolerationOpExists,
     };
     render(
       <TolerationModal
@@ -85,7 +85,7 @@ describe('TolerationModal', () => {
     const user = userEvent.setup();
     const existsToleration: TolerationEntry = {
       ...baseToleration,
-      operator: TolerationOperator.Exists,
+      operator: V1TolerationOperator.TolerationOpExists,
       value: 'should-be-cleared',
     };
     render(
@@ -99,7 +99,7 @@ describe('TolerationModal', () => {
     await user.click(screen.getByTestId('toleration-modal-submit-button'));
     expect(onSubmit).toHaveBeenCalledWith(
       expect.objectContaining({
-        operator: TolerationOperator.Exists,
+        operator: V1TolerationOperator.TolerationOpExists,
         value: '',
       }),
     );
@@ -113,7 +113,7 @@ describe('TolerationModal', () => {
         onSubmit={onSubmit}
         existingToleration={{
           ...baseToleration,
-          effect: TolerationEffect.NoExecute,
+          effect: V1TaintEffect.TaintEffectNoExecute,
           tolerationSeconds: 300,
         }}
       />,
@@ -144,15 +144,14 @@ describe('TolerationModal', () => {
         onSubmit={onSubmit}
         existingToleration={{
           ...baseToleration,
-          effect: TolerationEffect.NoExecute,
-          tolerationSeconds: null,
+          effect: V1TaintEffect.TaintEffectNoExecute,
         }}
       />,
     );
     await user.click(screen.getByTestId('toleration-modal-submit-button'));
     expect(onSubmit).toHaveBeenCalledWith(
       expect.objectContaining({
-        tolerationSeconds: null,
+        tolerationSeconds: undefined,
       }),
     );
   });

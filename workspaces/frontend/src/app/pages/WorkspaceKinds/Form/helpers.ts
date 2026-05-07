@@ -1,12 +1,14 @@
 import {
   ImagePullPolicy,
-  TolerationEffect,
   TolerationEntry,
-  TolerationOperator,
   WorkspaceKindImagePort,
   WorkspaceKindPodConfigValue,
 } from '~/app/types';
-import { OptionsOptionLabel, OptionsPodConfigValue } from '~/generated/data-contracts';
+import {
+  OptionsOptionLabel,
+  OptionsPodConfigValue,
+  V1TolerationOperator,
+} from '~/generated/data-contracts';
 import { PodResourceEntry } from './podConfig/WorkspaceKindFormResource';
 
 // Simple ID generator to avoid PatternFly dependency in tests
@@ -152,11 +154,9 @@ export const EMPTY_WORKSPACE_KIND_FORM_DATA = {
 };
 export const emptyToleration = (): TolerationEntry => ({
   id: generateUniqueId(),
-  operator: TolerationOperator.Equal,
-  effect: TolerationEffect.None,
+  operator: V1TolerationOperator.TolerationOpEqual,
   key: '',
   value: '',
-  tolerationSeconds: null,
 });
 
 // convert from k8s resource object {limits: {}, requests{}} to array of {type: '', limit: '', request: ''} for each type of resource (e.g. CPU, memory, nvidia.com/gpu)

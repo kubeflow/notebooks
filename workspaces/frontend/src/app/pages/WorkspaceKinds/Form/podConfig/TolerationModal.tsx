@@ -20,48 +20,55 @@ import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput'
 import { Popover } from '@patternfly/react-core/dist/esm/components/Popover';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons/dist/esm/icons/outlined-question-circle-icon';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
-import { TolerationEffect, TolerationEntry, TolerationOperator } from '~/app/types';
+import { V1TaintEffect, V1TolerationOperator } from '~/generated/data-contracts';
+import { TolerationEntry } from '~/app/types';
 import { emptyToleration, generateUniqueId } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { ResourceInputWrapper } from '~/shared/components/ResourceInputWrapper';
 
 const OPERATOR_OPTIONS = [
   {
-    value: TolerationOperator.Equal,
+    value: V1TolerationOperator.TolerationOpEqual,
     label: 'Equal',
     description:
       'A toleration "matches" a taint if the keys are the same, the effects are the same, and the values are equal.',
   },
   {
-    value: TolerationOperator.Exists,
+    value: V1TolerationOperator.TolerationOpExists,
     label: 'Exists',
     description:
       'A toleration "matches" a taint if the keys are the same and the effects are the same. No value should be specified.',
   },
 ] as const;
 
-const EFFECT_OPTIONS = [
+type EffectSelectValue = V1TaintEffect | '';
+
+const EFFECT_OPTIONS: ReadonlyArray<{
+  value: EffectSelectValue;
+  label: string;
+  description: string;
+}> = [
   {
-    value: TolerationEffect.None,
+    value: '',
     label: 'None',
     description: 'An empty effect matches all effects with key and value.',
   },
   {
-    value: TolerationEffect.NoSchedule,
+    value: V1TaintEffect.TaintEffectNoSchedule,
     label: 'NoSchedule',
     description: 'Prevents scheduling of new pods on the node with the matching taint.',
   },
   {
-    value: TolerationEffect.PreferNoSchedule,
+    value: V1TaintEffect.TaintEffectPreferNoSchedule,
     label: 'PreferNoSchedule',
     description: 'Scheduler will try to avoid placing a pod on the node but it is not guaranteed.',
   },
   {
-    value: TolerationEffect.NoExecute,
+    value: V1TaintEffect.TaintEffectNoExecute,
     label: 'NoExecute',
     description: 'Pods will be evicted from the node if they do not tolerate the taint.',
   },
-] as const;
+];
 
 interface TolerationModalProps {
   isOpen: boolean;
@@ -76,8 +83,10 @@ export const TolerationModal: React.FC<TolerationModalProps> = ({
   onSubmit,
   existingToleration,
 }) => {
-  const [operator, setOperator] = useState<TolerationOperator>(TolerationOperator.Equal);
-  const [effect, setEffect] = useState<TolerationEffect>(TolerationEffect.None);
+  const [operator, setOperator] = useState<V1TolerationOperator>(
+    V1TolerationOperator.TolerationOpEqual,
+  );
+  const [effect, setEffect] = useState<EffectSelectValue>('');
   const [key, setKey] = useState('');
   const [value, setValue] = useState('');
   const [isForever, setIsForever] = useState(true);
@@ -88,18 +97,18 @@ export const TolerationModal: React.FC<TolerationModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       if (existingToleration) {
-        setOperator(existingToleration.operator);
-        setEffect(existingToleration.effect ?? TolerationEffect.None);
-        setKey(existingToleration.key);
-        setValue(existingToleration.value);
-        setIsForever(existingToleration.tolerationSeconds === null);
+        setOperator(existingToleration.operator ?? V1TolerationOperator.TolerationOpEqual);
+        setEffect(existingToleration.effect ?? '');
+        setKey(existingToleration.key ?? '');
+        setValue(existingToleration.value ?? '');
+        setIsForever(existingToleration.tolerationSeconds == null);
         setTolerationSeconds(existingToleration.tolerationSeconds ?? 0);
       } else {
         const empty = emptyToleration();
-        setOperator(empty.operator);
-        setEffect(empty.effect ?? TolerationEffect.None);
-        setKey(empty.key);
-        setValue(empty.value);
+        setOperator(empty.operator ?? V1TolerationOperator.TolerationOpEqual);
+        setEffect(empty.effect ?? '');
+        setKey(empty.key ?? '');
+        setValue(empty.value ?? '');
         setIsForever(true);
         setTolerationSeconds(0);
       }
@@ -112,11 +121,11 @@ export const TolerationModal: React.FC<TolerationModalProps> = ({
     const toleration: TolerationEntry = {
       id: existingToleration?.id ?? generateUniqueId(),
       operator,
-      effect: effect === TolerationEffect.None ? undefined : effect,
+      effect: effect === '' ? undefined : effect,
       key,
-      value: operator === TolerationOperator.Exists ? '' : value,
+      value: operator === V1TolerationOperator.TolerationOpExists ? '' : value,
       tolerationSeconds:
-        effect === TolerationEffect.NoExecute && !isForever ? tolerationSeconds : null,
+        effect === V1TaintEffect.TaintEffectNoExecute && !isForever ? tolerationSeconds : undefined,
     };
     onSubmit(toleration);
   }, [existingToleration, operator, effect, key, value, isForever, tolerationSeconds, onSubmit]);
@@ -144,7 +153,7 @@ export const TolerationModal: React.FC<TolerationModalProps> = ({
               isOpen={isOperatorOpen}
               selected={operator}
               onSelect={(_ev, val) => {
-                setOperator(val as TolerationOperator);
+                setOperator(val as V1TolerationOperator);
                 setIsOperatorOpen(false);
               }}
               onOpenChange={setIsOperatorOpen}
@@ -181,7 +190,7 @@ export const TolerationModal: React.FC<TolerationModalProps> = ({
               isOpen={isEffectOpen}
               selected={effect}
               onSelect={(_ev, val) => {
-                setEffect(val as TolerationEffect);
+                setEffect(val as EffectSelectValue);
                 setIsEffectOpen(false);
               }}
               onOpenChange={setIsEffectOpen}
@@ -200,7 +209,7 @@ export const TolerationModal: React.FC<TolerationModalProps> = ({
               <SelectList>
                 {EFFECT_OPTIONS.map((opt) => (
                   <SelectOption
-                    key={opt.value}
+                    key={opt.label}
                     value={opt.value}
                     description={opt.description}
                     data-testid={`toleration-effect-option-${opt.label}`}
@@ -227,7 +236,7 @@ export const TolerationModal: React.FC<TolerationModalProps> = ({
             label="Value"
             fieldId="toleration-value"
             helperTextNode={
-              operator === TolerationOperator.Exists ? (
+              operator === V1TolerationOperator.TolerationOpExists ? (
                 <HelperText>
                   <HelperTextItem icon={<ExclamationCircleIcon />}>
                     Value is not allowed for Exists operator.
@@ -239,7 +248,7 @@ export const TolerationModal: React.FC<TolerationModalProps> = ({
             <TextInput
               id="toleration-value"
               data-testid="toleration-value-input"
-              isDisabled={operator === TolerationOperator.Exists} // Value is not allowed for Exists operator
+              isDisabled={operator === V1TolerationOperator.TolerationOpExists} // Value is not allowed for Exists operator
               type="text"
               value={value}
               onChange={(_, val) => setValue(val)}
@@ -260,7 +269,7 @@ export const TolerationModal: React.FC<TolerationModalProps> = ({
               </Popover>
             }
             helperTextNode={
-              effect !== TolerationEffect.NoExecute && (
+              effect !== V1TaintEffect.TaintEffectNoExecute && (
                 <HelperText>
                   <HelperTextItem icon={<ExclamationCircleIcon />}>
                     Toleration seconds is only available for NoExecute effect.
@@ -276,12 +285,12 @@ export const TolerationModal: React.FC<TolerationModalProps> = ({
                   data-testid="toleration-seconds-forever"
                   name="toleration-seconds-type"
                   label="Forever"
-                  isChecked={effect === TolerationEffect.NoExecute ? isForever : false}
+                  isChecked={effect === V1TaintEffect.TaintEffectNoExecute ? isForever : false}
                   onChange={() => {
                     setIsForever(true);
                     setTolerationSeconds(0);
                   }}
-                  isDisabled={effect !== TolerationEffect.NoExecute}
+                  isDisabled={effect !== V1TaintEffect.TaintEffectNoExecute}
                 />
               </FlexItem>
               <FlexItem>
@@ -290,17 +299,17 @@ export const TolerationModal: React.FC<TolerationModalProps> = ({
                   data-testid="toleration-seconds-custom"
                   name="toleration-seconds-type"
                   label="Custom value (in seconds)"
-                  isChecked={effect === TolerationEffect.NoExecute ? !isForever : false}
+                  isChecked={effect === V1TaintEffect.TaintEffectNoExecute ? !isForever : false}
                   onChange={() => {
                     setIsForever(false);
                   }}
-                  isDisabled={effect !== TolerationEffect.NoExecute}
+                  isDisabled={effect !== V1TaintEffect.TaintEffectNoExecute}
                 />
               </FlexItem>
             </Flex>
             {!isForever && (
               <ResourceInputWrapper
-                isDisabled={effect !== TolerationEffect.NoExecute}
+                isDisabled={effect !== V1TaintEffect.TaintEffectNoExecute}
                 type="custom"
                 value={String(tolerationSeconds)}
                 onChange={(v) => setTolerationSeconds(parseInt(v, 10) || 0)}
