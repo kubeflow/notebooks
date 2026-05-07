@@ -254,12 +254,6 @@ describe('Summary step', () => {
         },
         mockModArchResponse(mockWorkspaceUpdateResponse),
       ).as('getWorkspace');
-
-      cy.interceptApi(
-        'GET /api/:apiVersion/workspacekinds/:kind',
-        { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: WORKSPACE_KIND_NAME } },
-        mockModArchResponse(mockWorkspaceKind),
-      ).as('getWorkspaceKind');
     };
 
     const visitEditWorkspace = (): void => {
@@ -270,7 +264,7 @@ describe('Summary step', () => {
       setupEditWorkspace();
       visitEditWorkspace();
 
-      cy.wait('@getWorkspaceKind');
+      cy.wait('@getWorkspaceKinds');
 
       // Step 1: Kind - just proceed
       editWorkspace.clickNext();

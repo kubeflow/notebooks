@@ -3,10 +3,12 @@ import { useCallback } from 'react';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import {
   ApiWorkspaceKindListEnvelope,
-  WorkspacekindsWorkspaceKind,
+  WorkspacekindsWorkspaceKindListItem,
 } from '~/generated/data-contracts';
 
-const useWorkspaceKinds = (namespaceFilter?: string): FetchState<WorkspacekindsWorkspaceKind[]> => {
+const useWorkspaceKinds = (
+  namespaceFilter?: string,
+): FetchState<WorkspacekindsWorkspaceKindListItem[]> => {
   const { api, apiAvailable } = useNotebookAPI();
   const call = useCallback<
     FetchStateCallbackPromise<ApiWorkspaceKindListEnvelope['data']>

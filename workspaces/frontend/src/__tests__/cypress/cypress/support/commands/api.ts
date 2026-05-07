@@ -11,6 +11,7 @@ import type {
   ApiWorkspaceActionPauseEnvelope,
   ApiWorkspaceCreateEnvelope,
   ApiWorkspaceEnvelope,
+  ApiWorkspaceKindCreateEnvelope,
   ApiWorkspaceKindEnvelope,
   ApiWorkspaceKindListEnvelope,
   ApiWorkspaceListEnvelope,
@@ -95,7 +96,7 @@ declare global {
         ((
           type: 'POST /api/:apiVersion/workspacekinds',
           options: { path: { apiVersion: string } },
-          response: ApiWorkspaceKindEnvelope | ApiErrorEnvelope,
+          response: ApiWorkspaceKindCreateEnvelope | ApiErrorEnvelope,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'GET /api/:apiVersion/persistentvolumeclaims/:namespace',

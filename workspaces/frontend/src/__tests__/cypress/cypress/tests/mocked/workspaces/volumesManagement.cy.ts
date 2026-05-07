@@ -138,10 +138,10 @@ describe('Volumes Management - Attach and Create', () => {
     ).as('getWorkspace');
 
     cy.interceptApi(
-      'GET /api/:apiVersion/workspacekinds/:kind',
-      { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKindInfo.name } },
-      mockModArchResponse(mockWorkspaceKindFull),
-    ).as('getWorkspaceKind');
+      'GET /api/:apiVersion/workspacekinds',
+      { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+      mockModArchResponse([mockWorkspaceKindFull]),
+    ).as('getWorkspaceKinds');
 
     cy.interceptApi(
       'GET /api/:apiVersion/persistentvolumeclaims/:namespace',
@@ -160,7 +160,7 @@ describe('Volumes Management - Attach and Create', () => {
     cy.wait('@getWorkspaces');
     workspaces.findAction({ action: 'edit', workspaceName: mockWorkspaceListItem.name }).click();
     cy.wait('@getWorkspace');
-    cy.wait('@getWorkspaceKind');
+    cy.wait('@getWorkspaceKinds');
     editWorkspace.clickNext(); // Skip workspace kind step
     editWorkspace.clickNext(); // Skip image step
     editWorkspace.clickNext(); // Skip pod config step, now on properties

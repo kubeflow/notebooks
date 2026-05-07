@@ -33,10 +33,12 @@ const useWorkspaceFormData = (args: {
       return EMPTY_FORM_DATA;
     }
 
-    const workspaceEnvelope = await api.workspaces.getWorkspace(namespace, workspaceName);
+    const [workspaceEnvelope, workspaceKindsEnvelope] = await Promise.all([
+      api.workspaces.getWorkspace(namespace, workspaceName),
+      api.workspaceKinds.listWorkspaceKinds({}),
+    ]);
     const workspaceUpdate = workspaceEnvelope.data;
-    const workspaceKindEnvelope = await api.workspaceKinds.getWorkspaceKind(workspaceKindName);
-    const workspaceKind = workspaceKindEnvelope.data;
+    const workspaceKind = workspaceKindsEnvelope.data.find((k) => k.name === workspaceKindName);
     const { imageConfig, podConfig } = workspaceUpdate.podTemplate.options;
 
     return {

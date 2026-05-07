@@ -112,12 +112,6 @@ const setupEditWorkspace = (): EditWorkspaceSetup => {
   ).as('getWorkspace');
 
   cy.interceptApi(
-    'GET /api/:apiVersion/workspacekinds/:kind',
-    { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: WORKSPACE_KIND_NAME } },
-    mockModArchResponse(mockWorkspaceKind),
-  ).as('getWorkspaceKind');
-
-  cy.interceptApi(
     'GET /api/:apiVersion/workspacekinds',
     { path: { apiVersion: NOTEBOOKS_API_VERSION } },
     mockModArchResponse([mockWorkspaceKind]),
@@ -162,7 +156,7 @@ describe('Edit workspace', () => {
 
       visitEditWorkspace();
 
-      cy.wait('@getWorkspaceKind');
+      cy.wait('@getWorkspaceKinds');
       editWorkspace.clickNext();
       editWorkspace.clickNext();
       editWorkspace.clickNext();
@@ -200,7 +194,7 @@ describe('Edit workspace', () => {
 
       visitEditWorkspace();
 
-      cy.wait('@getWorkspaceKind');
+      cy.wait('@getWorkspaceKinds');
       editWorkspace.clickNext();
       editWorkspace.clickNext();
       editWorkspace.clickNext();
@@ -238,7 +232,7 @@ describe('Edit workspace', () => {
 
       visitEditWorkspace();
 
-      cy.wait('@getWorkspaceKind');
+      cy.wait('@getWorkspaceKinds');
 
       // Step 1: Kind Selection - just proceed
       editWorkspace.clickNext();
@@ -272,7 +266,7 @@ describe('Edit workspace', () => {
 
       visitEditWorkspace();
 
-      cy.wait('@getWorkspaceKind');
+      cy.wait('@getWorkspaceKinds');
       editWorkspace.assertKindSelected(WORKSPACE_KIND_NAME);
     });
 
@@ -281,7 +275,7 @@ describe('Edit workspace', () => {
 
       visitEditWorkspace();
 
-      cy.wait('@getWorkspaceKind');
+      cy.wait('@getWorkspaceKinds');
       editWorkspace.clickNext();
 
       editWorkspace.checkExtraFilter('showRedirected');
@@ -293,7 +287,7 @@ describe('Edit workspace', () => {
 
       visitEditWorkspace();
 
-      cy.wait('@getWorkspaceKind');
+      cy.wait('@getWorkspaceKinds');
       editWorkspace.clickNext();
       editWorkspace.clickNext();
 
@@ -305,7 +299,7 @@ describe('Edit workspace', () => {
 
       visitEditWorkspace();
 
-      cy.wait('@getWorkspaceKind');
+      cy.wait('@getWorkspaceKinds');
       editWorkspace.clickNext();
       editWorkspace.clickNext();
       editWorkspace.clickNext();
@@ -323,7 +317,7 @@ describe('Edit workspace', () => {
 
       visitEditWorkspace();
 
-      cy.wait('@getWorkspaceKind');
+      cy.wait('@getWorkspaceKinds');
       editWorkspace.assertWorkspaceKindCannotBeChangedAlertVisible();
     });
 
@@ -374,11 +368,6 @@ describe('Edit workspace', () => {
         mockModArchResponse(mockWorkspaceUpdateResponse),
       ).as('getWorkspace');
       cy.interceptApi(
-        'GET /api/:apiVersion/workspacekinds/:kind',
-        { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: WORKSPACE_KIND_NAME } },
-        mockModArchResponse(mockWorkspaceKind),
-      ).as('getWorkspaceKind');
-      cy.interceptApi(
         'GET /api/:apiVersion/workspacekinds',
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKind, differentWorkspaceKind]),
@@ -386,7 +375,7 @@ describe('Edit workspace', () => {
 
       visitEditWorkspace();
 
-      cy.wait('@getWorkspaceKind');
+      cy.wait('@getWorkspaceKinds');
 
       // Verify the current kind is selected
       editWorkspace.assertKindSelected(WORKSPACE_KIND_NAME);
@@ -403,7 +392,7 @@ describe('Edit workspace', () => {
 
       visitEditWorkspace();
 
-      cy.wait('@getWorkspaceKind');
+      cy.wait('@getWorkspaceKinds');
       editWorkspace.clickNext();
       editWorkspace.clickNext();
       editWorkspace.clickNext();
@@ -416,7 +405,7 @@ describe('Edit workspace', () => {
 
       visitEditWorkspace();
 
-      cy.wait('@getWorkspaceKind');
+      cy.wait('@getWorkspaceKinds');
       editWorkspace.clickNext();
       editWorkspace.clickNext();
       editWorkspace.clickNext();
@@ -431,7 +420,7 @@ describe('Edit workspace', () => {
 
       visitEditWorkspace();
 
-      cy.wait('@getWorkspaceKind');
+      cy.wait('@getWorkspaceKinds');
 
       // Step 1: Kind Selection - should be pre-selected
       editWorkspace.assertKindSelected(WORKSPACE_KIND_NAME);
@@ -462,7 +451,7 @@ describe('Edit workspace', () => {
 
       visitEditWorkspace();
 
-      cy.wait('@getWorkspaceKind');
+      cy.wait('@getWorkspaceKinds');
 
       // Navigate to step 2
       editWorkspace.clickNext();
@@ -478,7 +467,7 @@ describe('Edit workspace', () => {
 
       visitEditWorkspace();
 
-      cy.wait('@getWorkspaceKind');
+      cy.wait('@getWorkspaceKinds');
       editWorkspace.assertPreviousButtonDisabled();
     });
   });
@@ -496,7 +485,7 @@ describe('Edit workspace — volume detach behavior', () => {
     ).as('listPVCs');
 
     visitEditWorkspace();
-    cy.wait('@getWorkspaceKind');
+    cy.wait('@getWorkspaceKinds');
     editWorkspace.clickNext(); // workspace kind → image
     editWorkspace.clickNext(); // image → pod config
     editWorkspace.clickNext(); // pod config → properties

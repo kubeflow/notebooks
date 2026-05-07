@@ -2,7 +2,7 @@ import { WorkspaceFormData, WorkspaceFormMode } from '~/app/types';
 import {
   ApiWorkspaceCreateEnvelope,
   ApiWorkspaceEnvelope,
-  WorkspacekindsWorkspaceKind,
+  WorkspacekindsWorkspaceKindListItem,
   WorkspacesWorkspaceCreate,
   WorkspacesWorkspaceUpdate,
 } from '~/generated/data-contracts';
@@ -11,7 +11,7 @@ import { NotebookApis } from '~/shared/api/notebookApi';
 // TODO: properly validate form data
 interface ValidatedWorkspaceFormData
   extends Omit<WorkspaceFormData, 'kind' | 'imageConfig' | 'podConfig'> {
-  kind: WorkspacekindsWorkspaceKind;
+  kind: WorkspacekindsWorkspaceKindListItem;
   imageConfig: NonNullable<WorkspaceFormData['imageConfig']>;
   podConfig: NonNullable<WorkspaceFormData['podConfig']>;
 }

@@ -14,7 +14,7 @@ import { normalizeLabels } from '~/app/pages/Workspaces/Form/summaryHelpers';
 import {
   OptionsImageConfigValue,
   OptionsPodConfigValue,
-  WorkspacekindsWorkspaceKind,
+  WorkspacekindsWorkspaceKindListItem,
   OptionsOptionLabel,
   OptionsRedirectMessageLevel,
 } from '~/generated/data-contracts';
@@ -22,7 +22,7 @@ import { WorkspaceFormMode, WorkspaceFormProperties } from '~/app/types';
 
 interface WorkspaceFormSummaryPanelProps {
   mode: WorkspaceFormMode;
-  selectedKind: WorkspacekindsWorkspaceKind | undefined;
+  selectedKind: WorkspacekindsWorkspaceKindListItem | undefined;
   selectedImage: OptionsImageConfigValue | undefined;
   selectedPodConfig: OptionsPodConfigValue | undefined;
   properties: WorkspaceFormProperties;
@@ -32,7 +32,7 @@ interface WorkspaceFormSummaryPanelProps {
   onSelectImage: (image: OptionsImageConfigValue) => void;
   onSelectPodConfig: (podConfig: OptionsPodConfigValue) => void;
   /** For edit mode: original values to show diff */
-  originalKind?: WorkspacekindsWorkspaceKind;
+  originalKind?: WorkspacekindsWorkspaceKindListItem;
   originalImage?: OptionsImageConfigValue;
   originalPodConfig?: OptionsPodConfigValue;
   originalProperties?: WorkspaceFormProperties;

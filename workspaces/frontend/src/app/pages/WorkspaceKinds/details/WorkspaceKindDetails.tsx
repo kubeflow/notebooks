@@ -16,13 +16,13 @@ import {
 import { Title } from '@patternfly/react-core/dist/esm/components/Title';
 import { WorkspaceCountResult } from '~/app/hooks/useWorkspaceCountPerKind';
 import { WorkspaceKindDetailsNamespaces } from '~/app/pages/WorkspaceKinds/details/WorkspaceKindDetailsNamespaces';
-import { WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
+import { WorkspacekindsWorkspaceKindListItem } from '~/generated/data-contracts';
 import { WorkspaceKindDetailsOverview } from './WorkspaceKindDetailsOverview';
 import { WorkspaceKindDetailsImages } from './WorkspaceKindDetailsImages';
 import { WorkspaceKindDetailsPodConfigs } from './WorkspaceKindDetailsPodConfigs';
 
 type WorkspaceKindDetailsProps = {
-  workspaceKind: WorkspacekindsWorkspaceKind;
+  workspaceKind: WorkspacekindsWorkspaceKindListItem;
   workspaceCountResult: WorkspaceCountResult;
   onCloseClick: React.MouseEventHandler;
 };

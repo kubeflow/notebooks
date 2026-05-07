@@ -4,7 +4,11 @@ import { createWorkspaceKind } from '~/__tests__/cypress/cypress/pages/workspace
 import { workspaceKinds } from '~/__tests__/cypress/cypress/pages/workspaceKinds/workspaceKinds';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import { FieldErrorType } from '~/generated/data-contracts';
-import { buildMockNamespace, buildMockWorkspaceKind } from '~/shared/mock/mockBuilder';
+import {
+  buildMockNamespace,
+  buildMockWorkspaceKind,
+  buildMockWorkspaceKindUpdate,
+} from '~/shared/mock/mockBuilder';
 
 const DEFAULT_NAMESPACE = 'default';
 
@@ -82,12 +86,18 @@ describe('Create workspace kind', () => {
       cy.interceptApi(
         'POST /api/:apiVersion/workspacekinds',
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
-        mockModArchResponse(
-          buildMockWorkspaceKind({
+        (() => {
+          const kind = buildMockWorkspaceKind({
             name: 'test-workspace-kind',
             displayName: 'Test Workspace Kind',
-          }),
-        ),
+          });
+          const update = buildMockWorkspaceKindUpdate(kind);
+          return mockModArchResponse({
+            name: kind.name,
+            podTemplate: update.podTemplate,
+            spawner: update.spawner,
+          });
+        })(),
       ).as('createWorkspaceKind');
 
       createWorkspaceKind.visit();
@@ -132,13 +142,19 @@ describe('Create workspace kind', () => {
       cy.interceptApi(
         'POST /api/:apiVersion/workspacekinds',
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
-        mockModArchResponse(
-          buildMockWorkspaceKind({
+        (() => {
+          const kind = buildMockWorkspaceKind({
             name: 'test-workspace-kind',
             displayName: 'Test Workspace Kind',
             description: 'A test workspace kind for testing',
-          }),
-        ),
+          });
+          const update = buildMockWorkspaceKindUpdate(kind);
+          return mockModArchResponse({
+            name: kind.name,
+            podTemplate: update.podTemplate,
+            spawner: update.spawner,
+          });
+        })(),
       ).as('createWorkspaceKind');
 
       createWorkspaceKind.visit();

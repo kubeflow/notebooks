@@ -7,14 +7,15 @@ import {
   buildMockPVCCreate,
   buildMockStorageClass,
   buildMockWorkspaceKind,
+  buildMockWorkspaceKindUpdate,
 } from '~/shared/mock/mockBuilder';
-import type { WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
+import type { WorkspacekindsWorkspaceKindListItem } from '~/generated/data-contracts';
 
 const DEFAULT_NAMESPACE = 'default';
 const TEST_WORKSPACE_KIND_NAME = 'test-workspace-kind';
 
 type EditWorkspaceKindSetup = {
-  mockWorkspaceKind: WorkspacekindsWorkspaceKind;
+  mockWorkspaceKind: WorkspacekindsWorkspaceKindListItem;
   mockNamespace: ReturnType<typeof buildMockNamespace>;
 };
 
@@ -40,7 +41,7 @@ const setupEditWorkspaceKind = (
   cy.interceptApi(
     'GET /api/:apiVersion/workspacekinds/:kind',
     { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKind.name } },
-    mockModArchResponse(mockWorkspaceKind),
+    mockModArchResponse(buildMockWorkspaceKindUpdate(mockWorkspaceKind)),
   ).as('getWorkspaceKind');
 
   cy.interceptApi(

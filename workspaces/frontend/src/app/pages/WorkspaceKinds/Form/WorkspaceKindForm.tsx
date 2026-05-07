@@ -10,13 +10,19 @@ import useWorkspaceKindByName from '~/app/hooks/useWorkspaceKindByName';
 import { useTypedNavigate, useTypedParams } from '~/app/routerHelper';
 import { useCurrentRouteKey } from '~/app/hooks/useCurrentRouteKey';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
-import { WorkspaceKindFormData } from '~/app/types';
+import { ImagePullPolicy, WorkspaceKindFormData } from '~/app/types';
 import { extractErrorMessage, safeApiCall } from '~/shared/api/apiUtils';
 import { ErrorAlert } from '~/shared/components/ErrorAlert';
 import { CONTENT_TYPE_KEY, WORKSPACE_KIND_EXAMPLES_URL } from '~/shared/utilities/const';
 import { ContentType } from '~/shared/utilities/types';
 import { LoadError } from '~/app/components/LoadError';
-import { ApiErrorEnvelope, WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
+import {
+  ApiErrorEnvelope,
+  OptionsOptionRedirect,
+  OptionsRedirectMessageLevel,
+  V1Beta1OptionRedirect,
+  WorkspacekindsWorkspaceKindUpdate,
+} from '~/generated/data-contracts';
 import { WorkspaceKindFileUpload } from './fileUpload/WorkspaceKindFileUpload';
 import { WorkspaceKindFormProperties } from './properties/WorkspaceKindFormProperties';
 import { WorkspaceKindFormImage } from './image/WorkspaceKindFormImage';
@@ -32,15 +38,95 @@ export enum WorkspaceKindFormView {
 export type ValidationStatus = 'success' | 'error' | 'default';
 export type FormMode = 'edit' | 'create';
 
-const convertToFormData = (initialData: WorkspacekindsWorkspaceKind): WorkspaceKindFormData => {
-  const { podTemplate, ...properties } = initialData;
-  const { options, ...spec } = podTemplate;
-  const { podConfig, imageConfig } = options;
+const convertRedirect = (
+  redirect: V1Beta1OptionRedirect | undefined,
+): OptionsOptionRedirect | undefined => {
+  if (!redirect) {
+    return undefined;
+  }
   return {
-    properties,
-    podConfig,
-    imageConfig,
-    podTemplate: spec,
+    to: redirect.to,
+    message: redirect.message
+      ? {
+          level: redirect.message.level as unknown as OptionsRedirectMessageLevel,
+          text: redirect.message.text,
+        }
+      : undefined,
+  };
+};
+
+const convertToFormData = (
+  initialData: WorkspacekindsWorkspaceKindUpdate,
+): WorkspaceKindFormData => {
+  const { spawner, podTemplate } = initialData;
+
+  return {
+    properties: {
+      displayName: spawner.displayName,
+      description: spawner.description,
+      deprecated: spawner.deprecated ?? false,
+      deprecationMessage: spawner.deprecationMessage ?? '',
+      hidden: spawner.hidden ?? false,
+      icon: { url: spawner.icon.url ?? '' },
+      logo: { url: spawner.logo.url ?? '' },
+    },
+    imageConfig: {
+      default: podTemplate.options.imageConfig.spawner.default,
+      values: podTemplate.options.imageConfig.values.map((v) => ({
+        id: v.id,
+        displayName: v.spawner.displayName,
+        description: v.spawner.description ?? '',
+        hidden: v.spawner.hidden ?? false,
+        labels: v.spawner.labels,
+        redirect: convertRedirect(v.redirect),
+        image: v.spec.image,
+        imagePullPolicy: v.spec.imagePullPolicy as unknown as ImagePullPolicy,
+        ports: v.spec.ports.map((p) => ({
+          id: p.id,
+          displayName: p.displayName ?? '',
+          port: p.port,
+          protocol: 'HTTP' as const,
+        })),
+      })),
+    },
+    podConfig: {
+      default: podTemplate.options.podConfig.spawner.default,
+      values: podTemplate.options.podConfig.values.map((v) => ({
+        id: v.id,
+        displayName: v.spawner.displayName,
+        description: v.spawner.description ?? '',
+        hidden: v.spawner.hidden ?? false,
+        labels: v.spawner.labels,
+        redirect: convertRedirect(v.redirect),
+        resources: v.spec.resources
+          ? {
+              requests: (v.spec.resources.requests ?? {}) as Record<string, string>,
+              limits: (v.spec.resources.limits ?? {}) as Record<string, string>,
+            }
+          : undefined,
+        nodeSelector: v.spec.nodeSelector,
+      })),
+    },
+    podTemplate: {
+      podMetadata: {
+        labels: podTemplate.podMetadata?.labels ?? {},
+        annotations: podTemplate.podMetadata?.annotations ?? {},
+      },
+      volumeMounts: {
+        home: podTemplate.volumeMounts.home,
+      },
+      culling: podTemplate.culling
+        ? {
+            enabled: podTemplate.culling.enabled ?? true,
+            maxInactiveSeconds: podTemplate.culling.maxInactiveSeconds ?? 86400,
+            activityProbe: {
+              jupyter: {
+                lastActivity: podTemplate.culling.activityProbe.jupyter?.lastActivity ?? false,
+              },
+            },
+          }
+        : undefined,
+    },
   };
 };
 
