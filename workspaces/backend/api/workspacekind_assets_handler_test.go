@@ -17,8 +17,11 @@ limitations under the License.
 package api
 
 import (
+	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
@@ -33,57 +36,91 @@ import (
 
 // assetTestCase defines a single test case for the workspace kind asset handlers.
 type assetTestCase struct {
-	wskName             string
-	namespace           string
-	user                string
+	assetType wskAssetType
+	wskName   string
+	namespace string
+	user      string
+
 	expectedStatus      int
 	expectedContentType string
-	expectedBody        string
-	expectedBodyContain string
+
+	validateBodyFunc func(body []byte)
+}
+
+// newErrorMessageValidationFunc validates a body contains an ErrorEnvelope with the expected error message.
+//
+// TODO: move this to a test helpers package/file
+func newErrorMessageValidationFunc(expectedMessage string) func(body []byte) {
+	return func(body []byte) {
+		By("decoding the error response")
+		var response ErrorEnvelope
+		err := json.Unmarshal(body, &response)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("verifying the error message")
+		Expect(response.Error.Message).To(Equal(expectedMessage))
+	}
 }
 
 // assetTestRequest builds and executes an HTTP GET request against an asset handler,
 // returning the response recorder for assertion.
-func assetTestRequest(handler httprouter.Handle, wskName, namespace, user string) *httptest.ResponseRecorder {
-	GinkgoHelper()
-
-	path := "/api/v1/workspacekinds/" + wskName + "/assets/test"
+func assetTestRequest(handler httprouter.Handle, wskName, namespace, user string, assetType wskAssetType) *httptest.ResponseRecorder {
+	By("creating the HTTP request")
+	var path string
+	switch assetType {
+	case wskAssetTypeIcon:
+		path = constants.WorkspaceKindIconPath
+	case wskAssetTypeLogo:
+		path = constants.WorkspaceKindLogoPath
+	case "":
+		Fail("assetType must be specified in test case")
+	default:
+		Fail("invalid asset type: " + string(assetType))
+	}
+	path = strings.Replace(path, ":"+constants.ResourceNamePathParam, wskName, 1)
 	if namespace != "" {
 		path += "?" + constants.NamespaceQueryParam + "=" + namespace
 	}
-
 	req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 	Expect(err).NotTo(HaveOccurred())
 
+	By("setting the auth headers")
 	if user != "" {
 		req.Header.Set(userIdHeader, user)
 	}
 
+	By("executing the request")
 	ps := httprouter.Params{
 		httprouter.Param{Key: constants.ResourceNamePathParam, Value: wskName},
 	}
-
 	rr := httptest.NewRecorder()
 	handler(rr, req, ps)
+
 	return rr
 }
 
 // assertAssetResponse executes an asset handler request and asserts the response
 // matches the expected status code, content type, and body content.
 func assertAssetResponse(handler httprouter.Handle, tc *assetTestCase) {
-	GinkgoHelper()
+	rr := assetTestRequest(handler, tc.wskName, tc.namespace, tc.user, tc.assetType)
+	rs := rr.Result()
+	defer rs.Body.Close()
 
-	rr := assetTestRequest(handler, tc.wskName, tc.namespace, tc.user)
-	Expect(rr.Code).To(Equal(tc.expectedStatus), descUnexpectedHTTPStatus, rr.Body.String())
+	By("verifying the HTTP response status code")
+	Expect(rs.StatusCode).To(Equal(tc.expectedStatus), descUnexpectedHTTPStatus, rr.Body.String())
+
+	gotContentType := rs.Header.Get("Content-Type")
 	if tc.expectedContentType != "" {
-		Expect(rr.Header().Get("Content-Type")).To(ContainSubstring(tc.expectedContentType))
+		By("verifying the HTTP response content type")
+		Expect(gotContentType).To(Equal(tc.expectedContentType), descUnexpectedHTTPHeaderContentType, tc.expectedContentType, gotContentType)
 	}
-	if tc.expectedBody != "" {
-		Expect(rr.Body.String()).To(Equal(tc.expectedBody))
-	}
-	if tc.expectedBodyContain != "" {
-		Expect(rr.Body.String()).To(ContainSubstring(tc.expectedBodyContain))
-	}
+
+	By("reading the HTTP response body")
+	body, err := io.ReadAll(rs.Body)
+	Expect(err).NotTo(HaveOccurred())
+
+	By("verifying the HTTP response body matches")
+	tc.validateBodyFunc(body)
 }
 
 // newImageSourceConfigMap creates a ConfigMap with the image-source label required
@@ -202,57 +239,75 @@ var _ = Describe("WorkspaceKind Asset Handlers", func() {
 				assertAssetResponse(a.GetWorkspaceKindIconHandler, &tc)
 			},
 			Entry("should return 200 for ConfigMap-based icon", assetTestCase{
+				assetType:           wskAssetTypeIcon,
 				wskName:             wskCMName,
 				user:                adminUser,
 				expectedStatus:      http.StatusOK,
-				expectedContentType: "image/svg+xml",
-				expectedBody:        svgContent,
+				expectedContentType: constants.MediaTypeSVG,
+				validateBodyFunc: func(body []byte) {
+					Expect(body).To(BeEquivalentTo(svgContent))
+				},
 			}),
 			Entry("should return 200 for ConfigMap-based icon with namespace query", assetTestCase{
+				assetType:           wskAssetTypeIcon,
 				wskName:             wskCMName,
 				namespace:           namespaceName,
 				user:                adminUser,
 				expectedStatus:      http.StatusOK,
-				expectedContentType: "image/svg+xml",
-				expectedBody:        svgContent,
+				expectedContentType: constants.MediaTypeSVG,
+				validateBodyFunc: func(body []byte) {
+					Expect(body).To(BeEquivalentTo(svgContent))
+				},
 			}),
 			Entry("should return 404 for non-existent WorkspaceKind", assetTestCase{
-				wskName:        "non-existent-wsk",
-				user:           adminUser,
-				expectedStatus: http.StatusNotFound,
+				assetType:        wskAssetTypeIcon,
+				wskName:          "non-existent-wsk",
+				user:             adminUser,
+				expectedStatus:   http.StatusNotFound,
+				validateBodyFunc: newErrorMessageValidationFunc(errMsgNotFound),
 			}),
 			Entry("should return 404 for URL-based icon", assetTestCase{
-				wskName:        wskURLName,
-				user:           adminUser,
-				expectedStatus: http.StatusNotFound,
+				assetType:        wskAssetTypeIcon,
+				wskName:          wskURLName,
+				user:             adminUser,
+				expectedStatus:   http.StatusNotFound,
+				validateBodyFunc: newErrorMessageValidationFunc(errMsgNotFound),
 			}),
 			Entry("should return 422 for invalid workspace kind name", assetTestCase{
-				wskName:             "INVALID!!!",
-				user:                adminUser,
-				expectedStatus:      http.StatusUnprocessableEntity,
-				expectedBodyContain: errMsgPathParamsInvalid,
+				assetType:        wskAssetTypeIcon,
+				wskName:          "INVALID!!!",
+				user:             adminUser,
+				expectedStatus:   http.StatusUnprocessableEntity,
+				validateBodyFunc: newErrorMessageValidationFunc(errMsgPathParamsInvalid),
 			}),
 			Entry("should return 422 for invalid namespace query parameter", assetTestCase{
-				wskName:             wskCMName,
-				namespace:           "INVALID!!!",
-				user:                adminUser,
-				expectedStatus:      http.StatusUnprocessableEntity,
-				expectedBodyContain: errMsgQueryParamsInvalid,
+				assetType:        wskAssetTypeIcon,
+				wskName:          wskCMName,
+				namespace:        "INVALID!!!",
+				user:             adminUser,
+				expectedStatus:   http.StatusUnprocessableEntity,
+				validateBodyFunc: newErrorMessageValidationFunc(errMsgQueryParamsInvalid),
 			}),
 			Entry("should return 401 when no authentication is provided", assetTestCase{
-				wskName:        wskCMName,
-				expectedStatus: http.StatusUnauthorized,
+				assetType:        wskAssetTypeIcon,
+				wskName:          wskCMName,
+				expectedStatus:   http.StatusUnauthorized,
+				validateBodyFunc: newErrorMessageValidationFunc(errMsgUnauthorized),
 			}),
-			Entry("should return 403 for non-admin user without namespace", assetTestCase{
-				wskName:        wskCMName,
-				user:           "non-admin-user",
-				expectedStatus: http.StatusForbidden,
+			Entry("should return 403 for non-admin user (without namespace)", assetTestCase{
+				assetType:        wskAssetTypeIcon,
+				wskName:          wskCMName,
+				user:             "non-admin-user",
+				expectedStatus:   http.StatusForbidden,
+				validateBodyFunc: newErrorMessageValidationFunc(errMsgForbidden),
 			}),
-			Entry("should return 403 for non-admin user with namespace", assetTestCase{
-				wskName:        wskCMName,
-				namespace:      namespaceName,
-				user:           "non-admin-user",
-				expectedStatus: http.StatusForbidden,
+			Entry("should return 403 for non-admin user (with namespace)", assetTestCase{
+				assetType:        wskAssetTypeIcon,
+				wskName:          wskCMName,
+				namespace:        namespaceName,
+				user:             "non-admin-user",
+				expectedStatus:   http.StatusForbidden,
+				validateBodyFunc: newErrorMessageValidationFunc(errMsgForbidden),
 			}),
 		)
 
@@ -261,57 +316,75 @@ var _ = Describe("WorkspaceKind Asset Handlers", func() {
 				assertAssetResponse(a.GetWorkspaceKindLogoHandler, &tc)
 			},
 			Entry("should return 200 for ConfigMap-based logo", assetTestCase{
+				assetType:           wskAssetTypeLogo,
 				wskName:             wskCMName,
 				user:                adminUser,
 				expectedStatus:      http.StatusOK,
-				expectedContentType: "image/svg+xml",
-				expectedBody:        svgContent,
+				expectedContentType: constants.MediaTypeSVG,
+				validateBodyFunc: func(body []byte) {
+					Expect(body).To(BeEquivalentTo(svgContent))
+				},
 			}),
 			Entry("should return 200 for ConfigMap-based logo with namespace query", assetTestCase{
+				assetType:           wskAssetTypeLogo,
 				wskName:             wskCMName,
 				namespace:           namespaceName,
 				user:                adminUser,
 				expectedStatus:      http.StatusOK,
-				expectedContentType: "image/svg+xml",
-				expectedBody:        svgContent,
+				expectedContentType: constants.MediaTypeSVG,
+				validateBodyFunc: func(body []byte) {
+					Expect(body).To(BeEquivalentTo(svgContent))
+				},
 			}),
 			Entry("should return 404 for non-existent WorkspaceKind", assetTestCase{
-				wskName:        "non-existent-wsk",
-				user:           adminUser,
-				expectedStatus: http.StatusNotFound,
+				assetType:        wskAssetTypeLogo,
+				wskName:          "non-existent-wsk",
+				user:             adminUser,
+				expectedStatus:   http.StatusNotFound,
+				validateBodyFunc: newErrorMessageValidationFunc(errMsgNotFound),
 			}),
 			Entry("should return 404 for URL-based logo", assetTestCase{
-				wskName:        wskURLName,
-				user:           adminUser,
-				expectedStatus: http.StatusNotFound,
+				assetType:        wskAssetTypeLogo,
+				wskName:          wskURLName,
+				user:             adminUser,
+				expectedStatus:   http.StatusNotFound,
+				validateBodyFunc: newErrorMessageValidationFunc(errMsgNotFound),
 			}),
 			Entry("should return 422 for invalid workspace kind name", assetTestCase{
-				wskName:             "INVALID!!!",
-				user:                adminUser,
-				expectedStatus:      http.StatusUnprocessableEntity,
-				expectedBodyContain: errMsgPathParamsInvalid,
+				assetType:        wskAssetTypeLogo,
+				wskName:          "INVALID!!!",
+				user:             adminUser,
+				expectedStatus:   http.StatusUnprocessableEntity,
+				validateBodyFunc: newErrorMessageValidationFunc(errMsgPathParamsInvalid),
 			}),
 			Entry("should return 422 for invalid namespace query parameter", assetTestCase{
-				wskName:             wskCMName,
-				namespace:           "INVALID!!!",
-				user:                adminUser,
-				expectedStatus:      http.StatusUnprocessableEntity,
-				expectedBodyContain: errMsgQueryParamsInvalid,
+				assetType:        wskAssetTypeLogo,
+				wskName:          wskCMName,
+				namespace:        "INVALID!!!",
+				user:             adminUser,
+				expectedStatus:   http.StatusUnprocessableEntity,
+				validateBodyFunc: newErrorMessageValidationFunc(errMsgQueryParamsInvalid),
 			}),
 			Entry("should return 401 when no authentication is provided", assetTestCase{
-				wskName:        wskCMName,
-				expectedStatus: http.StatusUnauthorized,
+				assetType:        wskAssetTypeLogo,
+				wskName:          wskCMName,
+				expectedStatus:   http.StatusUnauthorized,
+				validateBodyFunc: newErrorMessageValidationFunc(errMsgUnauthorized),
 			}),
-			Entry("should return 403 for non-admin user without namespace", assetTestCase{
-				wskName:        wskCMName,
-				user:           "non-admin-user",
-				expectedStatus: http.StatusForbidden,
+			Entry("should return 403 for non-admin user (without namespace)", assetTestCase{
+				assetType:        wskAssetTypeLogo,
+				wskName:          wskCMName,
+				user:             "non-admin-user",
+				expectedStatus:   http.StatusForbidden,
+				validateBodyFunc: newErrorMessageValidationFunc(errMsgForbidden),
 			}),
-			Entry("should return 403 for non-admin user with namespace", assetTestCase{
-				wskName:        wskCMName,
-				namespace:      namespaceName,
-				user:           "non-admin-user",
-				expectedStatus: http.StatusForbidden,
+			Entry("should return 403 for non-admin user (with namespace)", assetTestCase{
+				assetType:        wskAssetTypeLogo,
+				wskName:          wskCMName,
+				namespace:        namespaceName,
+				user:             "non-admin-user",
+				expectedStatus:   http.StatusForbidden,
+				validateBodyFunc: newErrorMessageValidationFunc(errMsgForbidden),
 			}),
 		)
 	})

@@ -55,7 +55,8 @@ const (
 
 	adminUser = "notebooks-admin"
 
-	descUnexpectedHTTPStatus = "unexpected HTTP status code, response body: %s"
+	descUnexpectedHTTPStatus            = "unexpected HTTP status code, response body: %s"
+	descUnexpectedHTTPHeaderContentType = "unexpected HTTP response header 'Content-Type', expected: %s, got: %s"
 )
 
 var (
