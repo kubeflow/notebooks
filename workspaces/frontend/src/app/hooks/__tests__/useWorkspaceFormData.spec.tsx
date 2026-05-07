@@ -46,11 +46,11 @@ describe('useWorkspaceFormData', () => {
       ok: true,
       data: mockWorkspaceUpdate,
     });
-    const getWorkspaceKind = jest.fn().mockResolvedValue({ ok: true, data: mockWorkspaceKind });
+    const listWorkspaceKinds = jest.fn().mockResolvedValue({ ok: true, data: [mockWorkspaceKind] });
 
     const api = {
       workspaces: { getWorkspace },
-      workspaceKinds: { getWorkspaceKind },
+      workspaceKinds: { listWorkspaceKinds },
     } as unknown as NotebookApis;
 
     mockUseNotebookAPI.mockReturnValue({
@@ -63,7 +63,7 @@ describe('useWorkspaceFormData', () => {
       useWorkspaceFormData({
         namespace: 'ns',
         workspaceName: 'My First Jupyter Notebook',
-        workspaceKindName: 'wk',
+        workspaceKindName: mockWorkspaceKind.name,
       }),
     );
     await waitForNextUpdate();

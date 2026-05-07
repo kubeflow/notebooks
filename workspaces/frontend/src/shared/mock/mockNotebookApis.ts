@@ -16,7 +16,7 @@ import {
   mockWorkspaceUpdate,
 } from '~/shared/mock/mockNotebookServiceData';
 import { buildAxiosError, isInvalidWorkspace, isInvalidYaml } from '~/shared/mock/mockUtils';
-import { buildMockWorkspaceUpdateFromWorkspace } from './mockBuilder';
+import { buildMockWorkspaceKindUpdate, buildMockWorkspaceUpdateFromWorkspace } from './mockBuilder';
 
 const delay = (ms: number) =>
   new Promise((resolve) => {
@@ -77,8 +77,12 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
   },
   workspaceKinds: {
     listWorkspaceKinds: async () => ({ data: mockWorkspaceKinds }),
-    getWorkspaceKind: async (kind) => ({
-      data: mockWorkspaceKinds.find((w) => w.name === kind)!,
+    getWorkspaceKind: async (kind) => {
+      const found = mockWorkspaceKinds.find((w) => w.name === kind)!;
+      return { data: buildMockWorkspaceKindUpdate(found) };
+    },
+    updateWorkspaceKind: async () => ({
+      data: buildMockWorkspaceKindUpdate(mockWorkspaceKind1),
     }),
     deleteWorkspaceKind: async () => {
       await delay(1500);
@@ -120,7 +124,14 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
 
         throw buildAxiosError(apiErrorEnvelope);
       }
-      return { data: mockWorkspaceKind1 };
+      const update = buildMockWorkspaceKindUpdate(mockWorkspaceKind1);
+      return {
+        data: {
+          name: mockWorkspaceKind1.name,
+          podTemplate: update.podTemplate,
+          spawner: update.spawner,
+        },
+      };
     },
   },
   secrets: {

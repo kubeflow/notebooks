@@ -3,14 +3,22 @@ import {
   HealthCheckHealthCheck,
   HealthCheckServiceStatus,
   NamespacesNamespace,
+  OptionsImageConfigValue,
+  OptionsPodConfigValue,
   PvcsPVCCreate,
   PvcsPVCListItem,
+  V1Beta1ImageConfigValue,
+  V1Beta1OptionRedirect,
+  V1Beta1PodConfigValue,
+  V1Beta1ImagePortProtocol,
+  V1Beta1RedirectMessageLevel,
   V1PersistentVolumeAccessMode,
   V1PersistentVolumeMode,
+  V1PullPolicy,
   SecretsSecretListItem,
   StorageclassesStorageClassListItem,
   OptionsRedirectMessageLevel,
-  WorkspacekindsWorkspaceKind,
+  WorkspacekindsWorkspaceKindListItem,
   WorkspacesImageConfig,
   WorkspacesOptionInfo,
   WorkspacesPodConfig,
@@ -27,6 +35,7 @@ import {
   WorkspacesWorkspaceKindInfo,
   WorkspacesWorkspaceListItem,
   V1Beta1WorkspaceState,
+  WorkspacekindsWorkspaceKindUpdate,
   WorkspacesWorkspaceUpdate,
 } from '~/generated/data-contracts';
 
@@ -432,8 +441,8 @@ export const buildMockWorkspace = (
 });
 
 export const buildMockWorkspaceKind = (
-  workspaceKind?: Partial<WorkspacekindsWorkspaceKind>,
-): WorkspacekindsWorkspaceKind => ({
+  workspaceKind?: Partial<WorkspacekindsWorkspaceKindListItem>,
+): WorkspacekindsWorkspaceKindListItem => ({
   name: 'jupyterlab',
   displayName: 'JupyterLab Notebook',
   description: 'A Workspace which runs JupyterLab in a Pod',
@@ -648,6 +657,90 @@ export const buildMockWorkspaceKind = (
     },
   },
   ...workspaceKind,
+});
+
+const convertOptionsRedirect = (
+  redirect?: OptionsImageConfigValue['redirect'],
+): V1Beta1OptionRedirect | undefined => {
+  if (!redirect) {
+    return undefined;
+  }
+  return {
+    to: redirect.to,
+    message: redirect.message
+      ? {
+          level: redirect.message.level as unknown as V1Beta1RedirectMessageLevel,
+          text: redirect.message.text,
+        }
+      : undefined,
+  };
+};
+
+const convertImageConfigValue = (v: OptionsImageConfigValue): V1Beta1ImageConfigValue => ({
+  id: v.id,
+  spawner: {
+    displayName: v.displayName,
+    description: v.description,
+    hidden: v.hidden,
+    labels: v.labels,
+  },
+  spec: {
+    image: `mock-registry.io/${v.id}:latest`,
+    imagePullPolicy: V1PullPolicy.PullIfNotPresent,
+    ports: [{ id: 'http', port: 8888 }],
+  },
+  redirect: convertOptionsRedirect(v.redirect),
+});
+
+const convertPodConfigValue = (v: OptionsPodConfigValue): V1Beta1PodConfigValue => ({
+  id: v.id,
+  spawner: {
+    displayName: v.displayName,
+    description: v.description,
+    hidden: v.hidden,
+    labels: v.labels,
+  },
+  spec: {},
+  redirect: convertOptionsRedirect(v.redirect),
+});
+
+export const buildMockWorkspaceKindUpdate = (
+  listItem: WorkspacekindsWorkspaceKindListItem,
+): WorkspacekindsWorkspaceKindUpdate => ({
+  revision: '1',
+  spawner: {
+    displayName: listItem.displayName,
+    description: listItem.description,
+    deprecated: listItem.deprecated,
+    deprecationMessage: listItem.deprecationMessage,
+    hidden: listItem.hidden,
+    icon: listItem.icon,
+    logo: listItem.logo,
+  },
+  podTemplate: {
+    options: {
+      imageConfig: {
+        spawner: { default: listItem.podTemplate.options.imageConfig.default },
+        values: (listItem.podTemplate.options.imageConfig.values ?? []).map(
+          convertImageConfigValue,
+        ),
+      },
+      podConfig: {
+        spawner: { default: listItem.podTemplate.options.podConfig.default },
+        values: (listItem.podTemplate.options.podConfig.values ?? []).map(convertPodConfigValue),
+      },
+    },
+    podMetadata: listItem.podTemplate.podMetadata,
+    ports: [
+      {
+        id: 'http',
+        defaultDisplayName: 'HTTP',
+        protocol: V1Beta1ImagePortProtocol.ImagePortProtocolHTTP,
+      },
+    ],
+    serviceAccount: { name: 'default-editor' },
+    volumeMounts: listItem.podTemplate.volumeMounts,
+  },
 });
 
 export const buildMockActionsWorkspaceActionPause = (

@@ -7,7 +7,7 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/ex
 import { ExclamationTriangleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-triangle-icon';
 import { InfoCircleIcon } from '@patternfly/react-icons/dist/esm/icons/info-circle-icon';
 import useWorkspaceKindByName from '~/app/hooks/useWorkspaceKindByName';
-import { WorkspacekindsWorkspaceKind } from '~/generated/data-contracts';
+import { V1Beta1ImageConfig, V1Beta1PodConfig } from '~/generated/data-contracts';
 
 const getLevelIcon = (level: string | undefined) => {
   switch (level) {
@@ -47,10 +47,8 @@ export const WorkspaceRedirectInformationView: React.FC<WorkspaceRedirectInforma
 }) => {
   const [activeKey, setActiveKey] = useState<string | number>(0);
   const [workspaceKind, workspaceKindLoaded] = useWorkspaceKindByName(kind);
-  const [imageConfig, setImageConfig] =
-    useState<WorkspacekindsWorkspaceKind['podTemplate']['options']['imageConfig']>();
-  const [podConfig, setPodConfig] =
-    useState<WorkspacekindsWorkspaceKind['podTemplate']['options']['podConfig']>();
+  const [imageConfig, setImageConfig] = useState<V1Beta1ImageConfig>();
+  const [podConfig, setPodConfig] = useState<V1Beta1PodConfig>();
 
   useEffect(() => {
     if (!workspaceKindLoaded) {
@@ -60,13 +58,13 @@ export const WorkspaceRedirectInformationView: React.FC<WorkspaceRedirectInforma
     setPodConfig(workspaceKind?.podTemplate.options.podConfig);
   }, [workspaceKindLoaded, workspaceKind]);
 
-  const imageConfigRedirects = imageConfig?.values?.map((value) => ({
+  const imageConfigRedirects = imageConfig?.values.map((value) => ({
     src: value.id,
     dest: value.redirect?.to,
     message: value.redirect?.message?.text,
     level: value.redirect?.message?.level,
   }));
-  const podConfigRedirects = podConfig?.values?.map((value) => ({
+  const podConfigRedirects = podConfig?.values.map((value) => ({
     src: value.id,
     dest: value.redirect?.to,
     message: value.redirect?.message?.text,

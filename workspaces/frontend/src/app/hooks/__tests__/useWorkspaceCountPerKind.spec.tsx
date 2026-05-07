@@ -5,7 +5,7 @@ import { useWorkspaceCountPerKind } from '~/app/hooks/useWorkspaceCountPerKind';
 import {
   OptionsImageConfigValue,
   OptionsPodConfigValue,
-  WorkspacekindsWorkspaceKind,
+  WorkspacekindsWorkspaceKindListItem,
   WorkspacesWorkspaceKindInfo,
   WorkspacesWorkspaceListItem,
 } from '~/generated/data-contracts';
@@ -67,6 +67,7 @@ describe('useWorkspaceCountPerKind', () => {
       listWorkspaceKinds: mockListWorkspaceKinds,
       createWorkspaceKind: jest.fn(),
       getWorkspaceKind: jest.fn(),
+      updateWorkspaceKind: jest.fn(),
       deleteWorkspaceKind: jest.fn(),
       podTemplateOptionsListValues: jest.fn(),
     },
@@ -115,7 +116,7 @@ describe('useWorkspaceCountPerKind', () => {
       },
     ];
 
-    const mockWorkspaceKinds: WorkspacekindsWorkspaceKind[] = [
+    const mockWorkspaceKinds: WorkspacekindsWorkspaceKindListItem[] = [
       buildMockWorkspaceKind({
         name: 'jupyter1',
         clusterMetrics: { workspacesCount: 10 },
@@ -228,7 +229,7 @@ describe('useWorkspaceCountPerKind', () => {
 
   it('should handle zero cluster metrics gracefully', async () => {
     const mockEmptyWorkspaces: WorkspacesWorkspaceListItem[] = [];
-    const mockWorkspaceKinds: WorkspacekindsWorkspaceKind[] = [
+    const mockWorkspaceKinds: WorkspacekindsWorkspaceKindListItem[] = [
       buildMockWorkspaceKind({
         name: 'no-metrics',
         clusterMetrics: { workspacesCount: 0 },
@@ -340,7 +341,7 @@ describe('useWorkspaceCountPerKind', () => {
       },
     });
 
-    const mockWorkspaceKinds: WorkspacekindsWorkspaceKind[] = [workspaceKind];
+    const mockWorkspaceKinds: WorkspacekindsWorkspaceKindListItem[] = [workspaceKind];
 
     mockListAllWorkspaces.mockResolvedValue({ ok: true, data: mockWorkspaces });
     mockListWorkspaceKinds.mockResolvedValue({ ok: true, data: mockWorkspaceKinds });

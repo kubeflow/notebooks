@@ -3,14 +3,14 @@ import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspaceCountPerOption } from '~/app/types';
 import {
   ApiErrorEnvelope,
-  WorkspacekindsWorkspaceKind,
+  WorkspacekindsWorkspaceKindListItem,
   WorkspacesWorkspaceListItem,
 } from '~/generated/data-contracts';
 import { NotebookApis } from '~/shared/api/notebookApi';
 import { extractErrorMessage } from '~/shared/api/apiUtils';
 
 export type WorkspaceCountPerKind = Partial<
-  Record<WorkspacekindsWorkspaceKind['name'], WorkspaceCountPerOption>
+  Record<WorkspacekindsWorkspaceKindListItem['name'], WorkspaceCountPerOption>
 >;
 
 export type WorkspaceCountResult = {
@@ -50,7 +50,7 @@ async function loadWorkspaceCounts(api: NotebookApis): Promise<WorkspaceCountPer
 }
 
 function extractCountByNamespace(args: {
-  kind: WorkspacekindsWorkspaceKind;
+  kind: WorkspacekindsWorkspaceKindListItem;
   workspaces: WorkspacesWorkspaceListItem[];
 }): WorkspaceCountPerOption['countByNamespace'] {
   const { kind, workspaces } = args;
@@ -66,7 +66,7 @@ function extractCountByNamespace(args: {
 }
 
 function extractCountByImage(
-  workspaceKind: WorkspacekindsWorkspaceKind,
+  workspaceKind: WorkspacekindsWorkspaceKindListItem,
 ): WorkspaceCountPerOption['countByImage'] {
   return (workspaceKind.podTemplate.options.imageConfig.values ?? []).reduce<
     WorkspaceCountPerOption['countByImage']
@@ -77,7 +77,7 @@ function extractCountByImage(
 }
 
 function extractCountByPodConfig(
-  workspaceKind: WorkspacekindsWorkspaceKind,
+  workspaceKind: WorkspacekindsWorkspaceKindListItem,
 ): WorkspaceCountPerOption['countByPodConfig'] {
   return (workspaceKind.podTemplate.options.podConfig.values ?? []).reduce<
     WorkspaceCountPerOption['countByPodConfig']
@@ -87,12 +87,12 @@ function extractCountByPodConfig(
   }, {});
 }
 
-function extractTotalCount(workspaceKind: WorkspacekindsWorkspaceKind): number {
+function extractTotalCount(workspaceKind: WorkspacekindsWorkspaceKindListItem): number {
   return workspaceKind.clusterMetrics.workspacesCount;
 }
 
 function extractCountPerKind(args: {
-  workspaceKinds: WorkspacekindsWorkspaceKind[];
+  workspaceKinds: WorkspacekindsWorkspaceKindListItem[];
   workspaces: WorkspacesWorkspaceListItem[];
 }): WorkspaceCountPerKind {
   const { workspaceKinds, workspaces } = args;
