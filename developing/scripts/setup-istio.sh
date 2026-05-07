@@ -25,8 +25,8 @@ fi
 if "${ISTIOCTL}" verify-install >/dev/null 2>&1; then
   echo "Istio is already installed"
 else
-  echo "Installing Istio with default profile..."
-  "${ISTIOCTL}" install --set profile=default -y
+  echo "Installing Istio with default profile and CNI plugin..."
+  "${ISTIOCTL}" install --set profile=default --set components.cni.enabled=true -y
 fi
 
 echo "Waiting for Istio control plane to be ready..."
