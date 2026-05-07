@@ -12,6 +12,7 @@ resources:
 labels:
 - includeSelectors: true
   pairs:
+    app: workspaces-backend
     app.kubernetes.io/component: api
 
 images:

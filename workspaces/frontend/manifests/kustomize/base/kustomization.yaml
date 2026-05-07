@@ -10,6 +10,7 @@ resources:
 labels:
 - includeSelectors: true
   pairs:
+    app: workspaces-frontend
     app.kubernetes.io/component: ui
 
 images:
