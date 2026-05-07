@@ -19,13 +19,17 @@ package workspacekinds
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	modelsCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds"
 	modelsPodTemplateOptions "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/podtemplate/options"
@@ -34,14 +38,28 @@ import (
 var ErrWorkspaceKindNotFound = errors.New("workspace kind not found")
 var ErrWorkspaceKindAlreadyExists = errors.New("workspacekind already exists")
 var ErrWorkspaceKindRevisionConflict = errors.New("current workspace kind revision does not match request")
+var ErrWorkspaceKindAssetConfigMapNotFound = fmt.Errorf("workspacekind asset configmap not found, or does not have %s=true label", helper.LabelImageSource)
+var ErrWorkspaceKindAssetConfigMapKeyMissing = errors.New("workspacekind asset configmap missing expected key")
+var ErrWorkspaceKindAssetNotConfigMap = errors.New("workspacekind asset does not reference a configmap")
+
+type wskAssetType string
+
+const (
+	wskAssetTypeIcon wskAssetType = "icon"
+	wskAssetTypeLogo wskAssetType = "logo"
+)
 
 type WorkspaceKindRepository struct {
-	client client.Client
+	cfg             *config.EnvConfig
+	client          client.Client
+	configMapClient client.Client // filtered cache client for ConfigMaps with 'notebooks.kubeflow.org/image-source=true'
 }
 
-func NewWorkspaceKindRepository(cl client.Client) *WorkspaceKindRepository {
+func NewWorkspaceKindRepository(cfg *config.EnvConfig, cl client.Client, configMapClient client.Client) *WorkspaceKindRepository {
 	return &WorkspaceKindRepository{
-		client: cl,
+		cfg:             cfg,
+		client:          cl,
+		configMapClient: configMapClient,
 	}
 }
 
@@ -68,8 +86,7 @@ func (r *WorkspaceKindRepository) GetWorkspaceKinds(ctx context.Context) ([]mode
 
 	workspaceKindsModels := make([]models.WorkspaceKindListItem, len(workspaceKindList.Items))
 	for i := range workspaceKindList.Items {
-		workspaceKind := &workspaceKindList.Items[i]
-		workspaceKindsModels[i] = models.NewWorkspaceKindModelFromWorkspaceKind(workspaceKind)
+		workspaceKindsModels[i] = models.NewWorkspaceKindModelFromWorkspaceKind(r.cfg, &workspaceKindList.Items[i])
 	}
 
 	return workspaceKindsModels, nil
@@ -176,4 +193,63 @@ func (r *WorkspaceKindRepository) ListPodTemplateOptionsValues(ctx context.Conte
 	}
 
 	return listValuesResponse, nil
+}
+
+// GetWorkspaceKindAssetBytesIcon retrieves the content of a WorkspaceKind icon as bytes, along with its media type.
+func (r *WorkspaceKindRepository) GetWorkspaceKindAssetBytesIcon(ctx context.Context, name string) ([]byte, kubefloworgv1beta1.WorkspaceKindAssetMediaType, error) {
+	return r.getWorkspaceKindAssetBytes(ctx, name, wskAssetTypeIcon)
+}
+
+// GetWorkspaceKindAssetBytesLogo retrieves the content of a WorkspaceKind logo as bytes, along with its media type.
+func (r *WorkspaceKindRepository) GetWorkspaceKindAssetBytesLogo(ctx context.Context, name string) ([]byte, kubefloworgv1beta1.WorkspaceKindAssetMediaType, error) {
+	return r.getWorkspaceKindAssetBytes(ctx, name, wskAssetTypeLogo)
+}
+
+func (r *WorkspaceKindRepository) getWorkspaceKindAssetBytes(ctx context.Context, name string, assetType wskAssetType) ([]byte, kubefloworgv1beta1.WorkspaceKindAssetMediaType, error) {
+	// get workspace kind
+	workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
+	err := r.client.Get(ctx, client.ObjectKey{Name: name}, workspaceKind)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, "", ErrWorkspaceKindNotFound
+		}
+		return nil, "", err
+	}
+
+	// get the asset config map reference from the workspace kind spec, depending on the asset type
+	var assetConfigMap *kubefloworgv1beta1.WorkspaceKindAssetConfigMap
+	switch assetType {
+	case wskAssetTypeIcon:
+		assetConfigMap = workspaceKind.Spec.Spawner.Icon.ConfigMap
+	case wskAssetTypeLogo:
+		assetConfigMap = workspaceKind.Spec.Spawner.Logo.ConfigMap
+	}
+	if assetConfigMap == nil {
+		return nil, "", ErrWorkspaceKindAssetNotConfigMap
+	}
+
+	// get the config map
+	configMap := &corev1.ConfigMap{}
+	err = r.configMapClient.Get(ctx, client.ObjectKey{
+		Namespace: assetConfigMap.Namespace,
+		Name:      assetConfigMap.Name,
+	}, configMap)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, "", ErrWorkspaceKindAssetConfigMapNotFound
+		}
+		return nil, "", err
+	}
+
+	// get the asset content from the config map
+	var assetBytes []byte
+	if stringData, exists := configMap.Data[assetConfigMap.Key]; exists {
+		assetBytes = []byte(stringData)
+	} else if bytesData, exists := configMap.BinaryData[assetConfigMap.Key]; exists {
+		assetBytes = bytesData
+	} else {
+		return nil, "", ErrWorkspaceKindAssetConfigMapKeyMissing
+	}
+
+	return assetBytes, assetConfigMap.MediaType, nil
 }

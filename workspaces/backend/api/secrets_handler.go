@@ -25,6 +25,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/secrets"
@@ -50,10 +51,10 @@ type SecretCreateEnvelope Envelope[*models.SecretCreate]
 //	@Failure		500			{object}	ErrorEnvelope		"Internal server error"
 //	@Router			/secrets/{namespace} [get]
 func (a *App) GetSecretsByNamespaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) { //nolint:dupl
-	namespace := ps.ByName(NamespacePathParam)
+	namespace := ps.ByName(constants.NamespacePathParam)
 
 	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(constants.NamespacePathParam), namespace)...)
 
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
@@ -96,13 +97,13 @@ func (a *App) GetSecretsByNamespaceHandler(w http.ResponseWriter, r *http.Reques
 //	@Failure		500			{object}	ErrorEnvelope	"Internal server error"
 //	@Router			/secrets/{namespace}/{name} [get]
 func (a *App) GetSecretHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) { //nolint:dupl // TODO: Abstract common API patterns once implemented
-	namespace := ps.ByName(NamespacePathParam)
-	secretName := ps.ByName(ResourceNamePathParam)
+	namespace := ps.ByName(constants.NamespacePathParam)
+	secretName := ps.ByName(constants.ResourceNamePathParam)
 
 	// validate path parameters
 	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
-	valErrs = append(valErrs, helper.ValidateKubernetesSecretName(field.NewPath(ResourceNamePathParam), secretName)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(constants.NamespacePathParam), namespace)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesSecretName(field.NewPath(constants.ResourceNamePathParam), secretName)...)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
@@ -153,18 +154,18 @@ func (a *App) GetSecretHandler(w http.ResponseWriter, r *http.Request, ps httpro
 //	@Failure		500			{object}	ErrorEnvelope			"Internal server error"
 //	@Router			/secrets/{namespace} [post]
 func (a *App) CreateSecretHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	namespace := ps.ByName(NamespacePathParam)
+	namespace := ps.ByName(constants.NamespacePathParam)
 
 	// validate path parameters
 	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(constants.NamespacePathParam), namespace)...)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
 	}
 
 	// validate the Content-Type header
-	if success := a.ValidateContentType(w, r, MediaTypeJson); !success {
+	if success := a.ValidateContentType(w, r, constants.MediaTypeJson); !success {
 		return
 	}
 
@@ -253,13 +254,13 @@ func (a *App) CreateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 //	@Failure		500			{object}	ErrorEnvelope		"Internal server error"
 //	@Router			/secrets/{namespace}/{name} [put]
 func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	namespace := ps.ByName(NamespacePathParam)
-	secretName := ps.ByName(ResourceNamePathParam)
+	namespace := ps.ByName(constants.NamespacePathParam)
+	secretName := ps.ByName(constants.ResourceNamePathParam)
 
 	// validate path parameters
 	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
-	valErrs = append(valErrs, helper.ValidateKubernetesSecretName(field.NewPath(ResourceNamePathParam), secretName)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(constants.NamespacePathParam), namespace)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesSecretName(field.NewPath(constants.ResourceNamePathParam), secretName)...)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
@@ -275,7 +276,7 @@ func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 	// ============================================================
 
 	// validate the Content-Type header
-	if success := a.ValidateContentType(w, r, MediaTypeJson); !success {
+	if success := a.ValidateContentType(w, r, constants.MediaTypeJson); !success {
 		return
 	}
 
@@ -343,13 +344,13 @@ func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 //	@Failure		500			{object}	ErrorEnvelope	"Internal server error"
 //	@Router			/secrets/{namespace}/{name} [delete]
 func (a *App) DeleteSecretHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) { //nolint:dupl
-	namespace := ps.ByName(NamespacePathParam)
-	secretName := ps.ByName(ResourceNamePathParam)
+	namespace := ps.ByName(constants.NamespacePathParam)
+	secretName := ps.ByName(constants.ResourceNamePathParam)
 
 	// validate path parameters
 	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
-	valErrs = append(valErrs, helper.ValidateKubernetesSecretName(field.NewPath(ResourceNamePathParam), secretName)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(constants.NamespacePathParam), namespace)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesSecretName(field.NewPath(constants.ResourceNamePathParam), secretName)...)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return

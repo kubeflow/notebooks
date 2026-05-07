@@ -31,10 +31,12 @@ import (
 )
 
 const (
-	IndexEventInvolvedObjectUidField = ".involvedObject.uid"
-	IndexWorkspaceOwnerField         = ".metadata.controller"
-	IndexWorkspaceKindField          = ".spec.kind"
-	OwnerKindWorkspace               = "Workspace"
+	IndexEventInvolvedObjectUidField            = ".involvedObject.uid"
+	IndexWorkspaceOwnerField                    = ".metadata.controller"
+	IndexWorkspaceKindField                     = ".spec.kind"
+	IndexWorkspaceKindConfigMapImageSourceField = ".spec.configMapImageSource"
+
+	OwnerKindWorkspace = "Workspace"
 )
 
 // SetupManagerFieldIndexers sets up field indexes on a controller-runtime manager
@@ -105,6 +107,23 @@ func SetupManagerFieldIndexers(mgr ctrl.Manager, cfg *config.EnvConfig) error {
 			return nil
 		}
 		return []string{ws.Spec.Kind}
+	}); err != nil {
+		return err
+	}
+
+	// Index WorkspaceKind by ConfigMap image sources
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &kubefloworgv1beta1.WorkspaceKind{}, IndexWorkspaceKindConfigMapImageSourceField, func(rawObj client.Object) []string {
+		wsk := rawObj.(*kubefloworgv1beta1.WorkspaceKind)
+		indexValues := make([]string, 0, 2)
+		iconConfigMap := wsk.Spec.Spawner.Icon.ConfigMap
+		logoConfigMap := wsk.Spec.Spawner.Logo.ConfigMap
+		if iconConfigMap != nil {
+			indexValues = append(indexValues, iconConfigMap.Namespace+"/"+iconConfigMap.Name)
+		}
+		if logoConfigMap != nil {
+			indexValues = append(indexValues, logoConfigMap.Namespace+"/"+logoConfigMap.Name)
+		}
+		return indexValues
 	}); err != nil {
 		return err
 	}

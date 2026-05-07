@@ -20,11 +20,14 @@ import (
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"k8s.io/utils/ptr"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common/assets"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/podtemplate/options"
 )
 
 // NewWorkspaceKindModelFromWorkspaceKind creates a WorkspaceKind model from a WorkspaceKind object.
-func NewWorkspaceKindModelFromWorkspaceKind(wsk *kubefloworgv1beta1.WorkspaceKind) WorkspaceKindListItem {
+// Asset SHA256 hashes and error codes are read directly from the WorkspaceKind status.
+func NewWorkspaceKindModelFromWorkspaceKind(cfg *config.EnvConfig, wsk *kubefloworgv1beta1.WorkspaceKind) WorkspaceKindListItem {
 	podLabels := make(map[string]string)
 	podAnnotations := make(map[string]string)
 	if wsk.Spec.PodTemplate.PodMetadata != nil {
@@ -35,17 +38,6 @@ func NewWorkspaceKindModelFromWorkspaceKind(wsk *kubefloworgv1beta1.WorkspaceKin
 		for k, v := range wsk.Spec.PodTemplate.PodMetadata.Annotations {
 			podAnnotations[k] = v
 		}
-	}
-
-	iconRef := ImageRef{
-		// TODO: icons MUST be either set to remote URL or read from a ConfigMap
-		//       we can remove this fallback once we implement the ConfigMap option.
-		URL: ptr.Deref(wsk.Spec.Spawner.Icon.Url, "__UNKNOWN_ICON_URL__"),
-	}
-	logoRef := ImageRef{
-		// TODO: logos MUST be either set to remote URL or read from a ConfigMap
-		//       we can remove this fallback once we implement the ConfigMap option.
-		URL: ptr.Deref(wsk.Spec.Spawner.Logo.Url, "__UNKNOWN_LOGO_URL__"),
 	}
 
 	//
@@ -64,8 +56,9 @@ func NewWorkspaceKindModelFromWorkspaceKind(wsk *kubefloworgv1beta1.WorkspaceKin
 		Deprecated:         ptr.Deref(wsk.Spec.Spawner.Deprecated, false),
 		DeprecationMessage: ptr.Deref(wsk.Spec.Spawner.DeprecationMessage, ""),
 		Hidden:             ptr.Deref(wsk.Spec.Spawner.Hidden, false),
-		Icon:               iconRef,
-		Logo:               logoRef,
+		Icon:               assets.NewImageRefFromWorkspaceKindAssetIcon(cfg, wsk.Spec.Spawner.Icon, wsk.Status.SpawnerIcon, wsk.Name),
+		Logo:               assets.NewImageRefFromWorkspaceKindAssetLogo(cfg, wsk.Spec.Spawner.Logo, wsk.Status.SpawnerLogo, wsk.Name),
+		// TODO: in the future will need to support including exactly one of clusterMetrics or namespaceMetrics based on request context
 		ClusterMetrics: ClusterKindMetrics{
 			Workspaces: wsk.Status.Workspaces,
 		},

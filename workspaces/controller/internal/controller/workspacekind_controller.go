@@ -18,7 +18,9 @@ package controller
 
 import (
 	"context"
+	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/fields"
@@ -26,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -33,6 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
@@ -46,12 +50,18 @@ const (
 type WorkspaceKindReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+
+	// ImageSourceCache is a filtered cache for ConfigMaps with the "notebooks.kubeflow.org/image-source=true" label.
+	// The cache Transform pre-computes SHA256 hashes and stores them as virtual annotations.
+	// It implements client.Reader (for Get/List) and is used as a watch source for ConfigMap changes.
+	ImageSourceCache cache.Cache
 }
 
 // +kubebuilder:rbac:groups=kubeflow.org,resources=workspacekinds,verbs=create;delete;get;list;patch;update;watch
 // +kubebuilder:rbac:groups=kubeflow.org,resources=workspacekinds/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=kubeflow.org,resources=workspacekinds/finalizers,verbs=update
 // +kubebuilder:rbac:groups=kubeflow.org,resources=workspaces,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
 
 func (r *WorkspaceKindReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
@@ -138,6 +148,10 @@ func (r *WorkspaceKindReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	workspaceKind.Status.PodTemplateOptions.ImageConfig = imageConfigMetrics
 	workspaceKind.Status.PodTemplateOptions.PodConfig = podConfigMetrics
 
+	// compute the asset status for the spawner icon and logo
+	workspaceKind.Status.SpawnerIcon = r.reconcileAssetStatus(ctx, workspaceKind.Spec.Spawner.Icon)
+	workspaceKind.Status.SpawnerLogo = r.reconcileAssetStatus(ctx, workspaceKind.Spec.Spawner.Logo)
+
 	// update the WorkspaceKind status, if it has changed
 	if !equality.Semantic.DeepEqual(currentStatus, workspaceKind.Status) {
 		if err := r.Status().Update(ctx, workspaceKind); err != nil {
@@ -151,6 +165,77 @@ func (r *WorkspaceKindReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	return ctrl.Result{}, nil
+}
+
+// reconcileAssetStatus computes the ImageAssetStatus for a given WorkspaceKindAsset.
+// For URL-based assets, the status is empty (no hash needed).
+// For ConfigMap-based assets, it fetches the ConfigMap via the ImageSourceClient,
+// reads the pre-computed SHA256 hash from the virtual annotation, and reports any errors.
+func (r *WorkspaceKindReconciler) reconcileAssetStatus(ctx context.Context, asset kubefloworgv1beta1.WorkspaceKindAsset) kubefloworgv1beta1.ImageAssetStatus {
+	log := log.FromContext(ctx)
+
+	// URL-based assets don't need a hash or ConfigMap status
+	if asset.Url != nil {
+		return kubefloworgv1beta1.ImageAssetStatus{}
+	}
+
+	// ConfigMap-based assets
+	if asset.ConfigMap == nil {
+		return kubefloworgv1beta1.ImageAssetStatus{}
+	}
+
+	cmRef := asset.ConfigMap
+	cm := &corev1.ConfigMap{}
+	cmKey := types.NamespacedName{
+		Namespace: cmRef.Namespace,
+		Name:      cmRef.Name,
+	}
+
+	if err := r.ImageSourceCache.Get(ctx, cmKey, cm); err != nil {
+		if apierrors.IsNotFound(err) {
+			errType := kubefloworgv1beta1.ConfigMapErrorNotFound
+			errMsg := fmt.Sprintf(
+				"ConfigMap %q not found in namespace %q (if it exists, ensure it has the %q label)",
+				cmRef.Name, cmRef.Namespace, helper.ImageSourceLabel,
+			)
+			return kubefloworgv1beta1.ImageAssetStatus{
+				ConfigMap: &kubefloworgv1beta1.WorkspaceKindAssetConfigMapStatus{
+					Error:        &errType,
+					ErrorMessage: &errMsg,
+				},
+			}
+		}
+		log.Error(err, "unable to fetch ConfigMap for asset", "configMap", cmKey)
+		errType := kubefloworgv1beta1.ConfigMapErrorOther
+		errMsg := fmt.Sprintf("failed to get ConfigMap %q in namespace %q: %v", cmRef.Name, cmRef.Namespace, err)
+		return kubefloworgv1beta1.ImageAssetStatus{
+			ConfigMap: &kubefloworgv1beta1.WorkspaceKindAssetConfigMapStatus{
+				Error:        &errType,
+				ErrorMessage: &errMsg,
+			},
+		}
+	}
+
+	// read the pre-computed SHA256 hash from the virtual annotation set by TransformConfigMapSHA256
+	annotationKey := helper.SHA256AnnotationPrefix + cmRef.Key
+	sha256Hash, found := cm.GetAnnotations()[annotationKey]
+	if !found {
+		errType := kubefloworgv1beta1.ConfigMapErrorKeyNotFound
+		errMsg := fmt.Sprintf(
+			"key %q not found in ConfigMap %q in namespace %q",
+			cmRef.Key, cmRef.Name, cmRef.Namespace,
+		)
+		return kubefloworgv1beta1.ImageAssetStatus{
+			ConfigMap: &kubefloworgv1beta1.WorkspaceKindAssetConfigMapStatus{
+				Error:        &errType,
+				ErrorMessage: &errMsg,
+			},
+		}
+	}
+
+	return kubefloworgv1beta1.ImageAssetStatus{
+		Sha256: sha256Hash,
+	}
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -170,6 +255,31 @@ func (r *WorkspaceKindReconciler) SetupWithManager(mgr ctrl.Manager, opts *contr
 		}
 	}
 
+	// function to convert ConfigMap events to reconcile requests for WorkspaceKinds
+	// that reference the ConfigMap in their icon or logo spec
+	mapConfigMapToRequests := func(ctx context.Context, cm *corev1.ConfigMap) []reconcile.Request {
+		log := log.FromContext(ctx)
+
+		workspaceKindList := &kubefloworgv1beta1.WorkspaceKindList{}
+		listOpts := &client.ListOptions{
+			FieldSelector: fields.OneTermEqualSelector(helper.IndexWorkspaceKindConfigMapImageSourceField, cm.Namespace+"/"+cm.Name),
+		}
+		if err := r.List(ctx, workspaceKindList, listOpts); err != nil {
+			log.Error(err, "unable to list WorkspaceKinds for ConfigMap watch")
+			return nil
+		}
+
+		requests := make([]reconcile.Request, len(workspaceKindList.Items))
+		for i, wsk := range workspaceKindList.Items {
+			requests[i] = reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name: wsk.GetName(),
+				},
+			}
+		}
+		return requests
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(*opts).
 		For(&kubefloworgv1beta1.WorkspaceKind{}).
@@ -177,6 +287,14 @@ func (r *WorkspaceKindReconciler) SetupWithManager(mgr ctrl.Manager, opts *contr
 			&kubefloworgv1beta1.Workspace{},
 			handler.EnqueueRequestsFromMapFunc(mapWorkspaceToRequest),
 			builder.WithPredicates(predicate.GenerationChangedPredicate{}),
+		).
+		WatchesRawSource(
+			source.Kind(
+				r.ImageSourceCache,
+				&corev1.ConfigMap{},
+				handler.TypedEnqueueRequestsFromMapFunc(mapConfigMapToRequests),
+				predicate.TypedResourceVersionChangedPredicate[*corev1.ConfigMap]{},
+			),
 		).
 		Complete(r)
 }

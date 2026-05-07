@@ -25,6 +25,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces"
@@ -55,13 +56,13 @@ type WorkspaceListEnvelope Envelope[[]models.WorkspaceListItem]
 //	@Failure		500			{object}	ErrorEnvelope		"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspaces/{namespace}/{name} [get]
 func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) { //nolint:dupl // TODO: Abstract common API patterns once implemented
-	namespace := ps.ByName(NamespacePathParam)
-	workspaceName := ps.ByName(ResourceNamePathParam)
+	namespace := ps.ByName(constants.NamespacePathParam)
+	workspaceName := ps.ByName(constants.ResourceNamePathParam)
 
 	// validate path parameters
 	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
-	valErrs = append(valErrs, helper.ValidateWorkspaceName(field.NewPath(ResourceNamePathParam), workspaceName)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(constants.NamespacePathParam), namespace)...)
+	valErrs = append(valErrs, helper.ValidateWorkspaceName(field.NewPath(constants.ResourceNamePathParam), workspaceName)...)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
@@ -128,13 +129,13 @@ func (a *App) GetWorkspacesByNamespaceHandler(w http.ResponseWriter, r *http.Req
 
 // getWorkspacesHandler is the internal implementation for listing workspaces.
 func (a *App) getWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	namespace := ps.ByName(NamespacePathParam)
+	namespace := ps.ByName(constants.NamespacePathParam)
 
 	// validate path parameters
 	// NOTE: namespace is optional, if not provided, we list all workspaces across all namespaces
 	var valErrs field.ErrorList
 	if namespace != "" {
-		valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
+		valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(constants.NamespacePathParam), namespace)...)
 	}
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
@@ -187,18 +188,18 @@ func (a *App) getWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps ht
 //	@Failure		500			{object}	ErrorEnvelope			"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspaces/{namespace} [post]
 func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	namespace := ps.ByName(NamespacePathParam)
+	namespace := ps.ByName(constants.NamespacePathParam)
 
 	// validate path parameters
 	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(constants.NamespacePathParam), namespace)...)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
 	}
 
 	// validate the Content-Type header
-	if success := a.ValidateContentType(w, r, MediaTypeJson); !success {
+	if success := a.ValidateContentType(w, r, constants.MediaTypeJson); !success {
 		return
 	}
 
@@ -295,13 +296,13 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 //	@Failure		500			{object}	ErrorEnvelope		"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspaces/{namespace}/{name} [put]
 func (a *App) UpdateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	namespace := ps.ByName(NamespacePathParam)
-	workspaceName := ps.ByName(ResourceNamePathParam)
+	namespace := ps.ByName(constants.NamespacePathParam)
+	workspaceName := ps.ByName(constants.ResourceNamePathParam)
 
 	// validate path parameters
 	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
-	valErrs = append(valErrs, helper.ValidateWorkspaceName(field.NewPath(ResourceNamePathParam), workspaceName)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(constants.NamespacePathParam), namespace)...)
+	valErrs = append(valErrs, helper.ValidateWorkspaceName(field.NewPath(constants.ResourceNamePathParam), workspaceName)...)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return
@@ -317,7 +318,7 @@ func (a *App) UpdateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 	// ============================================================
 
 	// validate the Content-Type header
-	if success := a.ValidateContentType(w, r, MediaTypeJson); !success {
+	if success := a.ValidateContentType(w, r, constants.MediaTypeJson); !success {
 		return
 	}
 
@@ -402,13 +403,13 @@ func (a *App) UpdateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 //	@Failure		500			{object}	ErrorEnvelope	"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspaces/{namespace}/{name} [delete]
 func (a *App) DeleteWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) { //nolint:dupl
-	namespace := ps.ByName(NamespacePathParam)
-	workspaceName := ps.ByName(ResourceNamePathParam)
+	namespace := ps.ByName(constants.NamespacePathParam)
+	workspaceName := ps.ByName(constants.ResourceNamePathParam)
 
 	// validate path parameters
 	var valErrs field.ErrorList
-	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespacePathParam), namespace)...)
-	valErrs = append(valErrs, helper.ValidateWorkspaceName(field.NewPath(ResourceNamePathParam), workspaceName)...)
+	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(constants.NamespacePathParam), namespace)...)
+	valErrs = append(valErrs, helper.ValidateWorkspaceName(field.NewPath(constants.ResourceNamePathParam), workspaceName)...)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
 		return

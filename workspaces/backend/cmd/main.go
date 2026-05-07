@@ -23,7 +23,6 @@ import (
 	"strconv"
 
 	ctrl "sigs.k8s.io/controller-runtime"
-	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	application "github.com/kubeflow/notebooks/workspaces/backend/api"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
@@ -93,6 +92,13 @@ func main() {
 		getEnvAsStr("GROUPS_HEADER", "kubeflow-groups"),
 		"Key of request header containing user groups",
 	)
+	flag.StringVar(
+		&cfg.ProxyUrlPrefix,
+		"proxy-url-prefix",
+		getEnvAsStr("PROXY_URL_PREFIX", ""),
+		"For if this service is behind a reverse proxy which rewrites URL paths. "+
+			"Prefix is prepended to absolute URLs returned by this service (e.g. asset URLs for icons/logos).",
+	)
 	flag.BoolVar(
 		&cfg.SwaggerEnabled,
 		"swagger-enabled",
@@ -145,14 +151,7 @@ func main() {
 	}
 
 	// Create the controller manager
-	mgr, err := ctrl.NewManager(kubeconfig, ctrl.Options{
-		Scheme: scheme,
-		Metrics: metricsserver.Options{
-			BindAddress: "0", // disable metrics serving
-		},
-		HealthProbeBindAddress: "0", // disable health probe serving
-		LeaderElection:         false,
-	})
+	mgr, err := helper.NewManager(kubeconfig, scheme)
 	if err != nil {
 		logger.Error("unable to create manager", "error", err)
 		os.Exit(1)
@@ -169,10 +168,27 @@ func main() {
 	reqAuthZ, err := auth.NewRequestAuthorizer(mgr.GetConfig(), mgr.GetHTTPClient())
 	if err != nil {
 		logger.Error("failed to create request authorizer", "error", err)
+		os.Exit(1)
+	}
+
+	// Create a filtered cache client for ConfigMaps with the label 'notebooks.kubeflow.org/image-source=true'
+	imageSourceConfigMapClient, err := helper.BuildImageSourceConfigMapClient(mgr)
+	if err != nil {
+		logger.Error("failed to create 'notebooks.kubeflow.org/image-source=true' label "+
+			"filtered ConfigMap client", "error", err)
+		os.Exit(1)
 	}
 
 	// Create the application and server
-	app, err := application.NewApp(cfg, logger, mgr.GetClient(), mgr.GetScheme(), reqAuthN, reqAuthZ)
+	app, err := application.NewApp(
+		cfg,
+		logger,
+		mgr.GetClient(),
+		imageSourceConfigMapClient,
+		mgr.GetScheme(),
+		reqAuthN,
+		reqAuthZ,
+	)
 	if err != nil {
 		logger.Error("failed to create app", "error", err)
 		os.Exit(1)
