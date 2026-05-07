@@ -16,7 +16,10 @@ limitations under the License.
 
 package workspacekinds
 
-import "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/podtemplate/options"
+import (
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common/assets"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/podtemplate/options"
+)
 
 type WorkspaceKindListItem struct {
 	Name               string             `json:"name"`
@@ -25,18 +28,14 @@ type WorkspaceKindListItem struct {
 	Deprecated         bool               `json:"deprecated"`
 	DeprecationMessage string             `json:"deprecationMessage"`
 	Hidden             bool               `json:"hidden"`
-	Icon               ImageRef           `json:"icon"`
-	Logo               ImageRef           `json:"logo"`
+	Icon               assets.ImageRef    `json:"icon"`
+	Logo               assets.ImageRef    `json:"logo"`
 	ClusterMetrics     ClusterKindMetrics `json:"clusterMetrics"`
 	PodTemplate        PodTemplate        `json:"podTemplate"`
 }
 
 type ClusterKindMetrics struct {
 	Workspaces int32 `json:"workspacesCount"`
-}
-
-type ImageRef struct {
-	URL string `json:"url"`
 }
 
 type PodTemplate struct {

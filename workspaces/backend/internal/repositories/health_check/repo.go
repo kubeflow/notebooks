@@ -17,13 +17,18 @@ limitations under the License.
 package health_check
 
 import (
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/health_check"
 )
 
-type HealthCheckRepository struct{}
+type HealthCheckRepository struct {
+	cfg *config.EnvConfig
+}
 
-func NewHealthCheckRepository() *HealthCheckRepository {
-	return &HealthCheckRepository{}
+func NewHealthCheckRepository(cfg *config.EnvConfig) *HealthCheckRepository {
+	return &HealthCheckRepository{
+		cfg: cfg,
+	}
 }
 
 func (r *HealthCheckRepository) HealthCheck(version string) (models.HealthCheck, error) {

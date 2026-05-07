@@ -4,20 +4,20 @@ package openapi
 import "github.com/swaggo/swag"
 
 const docTemplate = `{
-    "schemes": {{ marshal .Schemes }},
+    "schemes": {{{{ marshal .Schemes }}}},
     "swagger": "2.0",
     "info": {
-        "description": "{{escape .Description}}",
-        "title": "{{.Title}}",
+        "description": "{{{{escape .Description}}}}",
+        "title": "{{{{.Title}}}}",
         "contact": {},
         "license": {
             "name": "Apache 2.0",
             "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
         },
-        "version": "{{.Version}}"
+        "version": "{{{{.Version}}}}"
     },
-    "host": "{{.Host}}",
-    "basePath": "{{.BasePath}}",
+    "host": "{{{{.Host}}}}",
+    "basePath": "{{{{.BasePath}}}}",
     "paths": {
         "/healthcheck": {
             "get": {
@@ -717,7 +717,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Namespace used for workspace creation authorization",
+                        "x-example": "kubeflow-user-example-com",
+                        "description": "Namespace to filter workspace kinds",
                         "name": "namespaceFilter",
                         "in": "query"
                     }
@@ -1051,6 +1052,148 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal server error. An unexpected error occurred on the server.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/workspacekinds/{name}/assets/icon": {
+            "get": {
+                "description": "Returns the icon image for a specific workspace kind. If the icon is stored in a ConfigMap, it serves the image content. If the icon is a remote URL, returns 404 (browser should fetch directly).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json",
+                    "image/svg+xml"
+                ],
+                "tags": [
+                    "workspacekinds"
+                ],
+                "summary": "Get workspace kind icon",
+                "operationId": "getWorkspaceKindIcon",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Name of the workspace kind",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "x-example": "kubeflow-user-example-com",
+                        "description": "Namespace to request asset for.",
+                        "name": "namespace",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The image file content.",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Authentication is required.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. User does not have permission to get asset.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found. Icon uses remote URL or resource does not exist.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
+        },
+        "/workspacekinds/{name}/assets/logo": {
+            "get": {
+                "description": "Returns the logo image for a specific workspace kind. If the logo is stored in a ConfigMap, it serves the image content. If the logo is a remote URL, returns 404 (browser should fetch directly).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json",
+                    "image/svg+xml"
+                ],
+                "tags": [
+                    "workspacekinds"
+                ],
+                "summary": "Get workspace kind logo",
+                "operationId": "getWorkspaceKindLogo",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Name of the workspace kind",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "x-example": "kubeflow-user-example-com",
+                        "description": "Namespace to request asset for.",
+                        "name": "namespace",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The image file content.",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Authentication is required.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden. User does not have permission to get asset.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found. Logo uses remote URL or resource does not exist.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error.",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }
@@ -2003,6 +2146,35 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "assets.ImageRef": {
+            "type": "object",
+            "required": [
+                "url"
+            ],
+            "properties": {
+                "error": {
+                    "$ref": "#/definitions/assets.ImageRefErrorCode"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "assets.ImageRefErrorCode": {
+            "type": "string",
+            "enum": [
+                "CONFIGMAP_MISSING",
+                "CONFIGMAP_KEY_MISSING",
+                "CONFIGMAP_OTHER",
+                "CONFIGMAP_UNKNOWN"
+            ],
+            "x-enum-varnames": [
+                "ImageRefErrorCodeConfigMapMissing",
+                "ImageRefErrorCodeConfigMapKeyMissing",
+                "ImageRefErrorCodeConfigMapOther",
+                "ImageRefErrorCodeConfigMapUnknown"
+            ]
         },
         "common.Audit": {
             "type": "object",
@@ -6111,22 +6283,62 @@ const docTemplate = `{
                 "RedirectMessageLevelDanger"
             ]
         },
-        "v1beta1.WorkspaceKindConfigMap": {
+        "v1beta1.WorkspaceKindAsset": {
             "type": "object",
-            "required": [
-                "key",
-                "name"
-            ],
             "properties": {
-                "key": {
-                    "description": "+kubebuilder:example=\"apple-touch-icon-152x152.png\"\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=253\n+kubebuilder:validation:Pattern:=^[-._a-zA-Z0-9]+$",
-                    "type": "string"
+                "configMap": {
+                    "description": "the ConfigMap reference for the asset\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.WorkspaceKindAssetConfigMap"
+                        }
+                    ]
                 },
-                "name": {
-                    "description": "+kubebuilder:example=\"my-logos\"\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=253\n+kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$",
+                "url": {
+                    "description": "the URL of the asset\n+kubebuilder:validation:Optional\n+kubebuilder:example=\"https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png\"",
                     "type": "string"
                 }
             }
+        },
+        "v1beta1.WorkspaceKindAssetConfigMap": {
+            "type": "object",
+            "required": [
+                "key",
+                "mediaType",
+                "name",
+                "namespace"
+            ],
+            "properties": {
+                "key": {
+                    "description": "the key in the ConfigMap which contains the data\n+kubebuilder:example=\"jupyterlab-logo.svg\"\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=253\n+kubebuilder:validation:Pattern:=^[-._a-zA-Z0-9]+$",
+                    "type": "string"
+                },
+                "mediaType": {
+                    "description": "the media type of the asset data in the ConfigMap\n+kubebuilder:example=\"image/svg+xml\"",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.WorkspaceKindAssetMediaType"
+                        }
+                    ]
+                },
+                "name": {
+                    "description": "the name of the ConfigMap\n+kubebuilder:example=\"my-logos\"\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=253\n+kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$",
+                    "type": "string"
+                },
+                "namespace": {
+                    "description": "the namespace of the ConfigMap\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=63\n+kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$\n+kubebuilder:example=\"kubeflow\"",
+                    "type": "string"
+                }
+            }
+        },
+        "v1beta1.WorkspaceKindAssetMediaType": {
+            "type": "string",
+            "enum": [
+                "image/svg+xml"
+            ],
+            "x-enum-varnames": [
+                "WorkspaceKindAssetMediaTypeSVG"
+            ]
         },
         "v1beta1.WorkspaceKindCullingConfig": {
             "type": "object",
@@ -6149,23 +6361,6 @@ const docTemplate = `{
                 "maxInactiveSeconds": {
                     "description": "the maximum number of seconds a Workspace can be inactive\n+kubebuilder:validation:Optional\n+kubebuilder:validation:Minimum:=60\n+kubebuilder:default=86400",
                     "type": "integer"
-                }
-            }
-        },
-        "v1beta1.WorkspaceKindIcon": {
-            "type": "object",
-            "properties": {
-                "configMap": {
-                    "description": "+kubebuilder:validation:Optional",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.WorkspaceKindConfigMap"
-                        }
-                    ]
-                },
-                "url": {
-                    "description": "+kubebuilder:validation:Optional\n+kubebuilder:example=\"https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png\"",
-                    "type": "string"
                 }
             }
         },
@@ -6424,7 +6619,7 @@ const docTemplate = `{
                     "description": "the icon of the WorkspaceKind\n - a small (favicon-sized) icon used in the Workspace Spawner UI",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/v1beta1.WorkspaceKindIcon"
+                            "$ref": "#/definitions/v1beta1.WorkspaceKindAsset"
                         }
                     ]
                 },
@@ -6432,7 +6627,7 @@ const docTemplate = `{
                     "description": "the logo of the WorkspaceKind\n - a 1:1 (card size) logo used in the Workspace Spawner UI",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/v1beta1.WorkspaceKindIcon"
+                            "$ref": "#/definitions/v1beta1.WorkspaceKindAsset"
                         }
                     ]
                 }
@@ -6477,17 +6672,6 @@ const docTemplate = `{
             "properties": {
                 "workspacesCount": {
                     "type": "integer"
-                }
-            }
-        },
-        "workspacekinds.ImageRef": {
-            "type": "object",
-            "required": [
-                "url"
-            ],
-            "properties": {
-                "url": {
-                    "type": "string"
                 }
             }
         },
@@ -6600,10 +6784,10 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "icon": {
-                    "$ref": "#/definitions/workspacekinds.ImageRef"
+                    "$ref": "#/definitions/assets.ImageRef"
                 },
                 "logo": {
-                    "$ref": "#/definitions/workspacekinds.ImageRef"
+                    "$ref": "#/definitions/assets.ImageRef"
                 },
                 "name": {
                     "type": "string"
@@ -6682,17 +6866,6 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/workspaces.RedirectStep"
                     }
-                }
-            }
-        },
-        "workspaces.ImageRef": {
-            "type": "object",
-            "required": [
-                "url"
-            ],
-            "properties": {
-                "url": {
-                    "type": "string"
                 }
             }
         },
@@ -7108,10 +7281,10 @@ const docTemplate = `{
             ],
             "properties": {
                 "icon": {
-                    "$ref": "#/definitions/workspaces.ImageRef"
+                    "$ref": "#/definitions/assets.ImageRef"
                 },
                 "logo": {
-                    "$ref": "#/definitions/workspaces.ImageRef"
+                    "$ref": "#/definitions/assets.ImageRef"
                 },
                 "missing": {
                     "type": "boolean"
@@ -7213,8 +7386,8 @@ var SwaggerInfo = &swag.Spec{
 	Description:      "This API provides endpoints to manage notebooks in a Kubernetes cluster.\nFor more information, visit https://www.kubeflow.org/docs/components/notebooks/",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
-	LeftDelim:        "{{",
-	RightDelim:       "}}",
+	LeftDelim:        "{{{{",
+	RightDelim:       "}}}}",
 }
 
 func init() {

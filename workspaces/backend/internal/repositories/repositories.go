@@ -19,6 +19,7 @@ package repositories
 import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/health_check"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/namespaces"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/pvcs"
@@ -40,14 +41,14 @@ type Repositories struct {
 }
 
 // NewRepositories creates a new Repositories instance from a controller-runtime client.
-func NewRepositories(cl client.Client) *Repositories {
+func NewRepositories(cfg *config.EnvConfig, cl client.Client, configMapClient client.Client) *Repositories {
 	return &Repositories{
-		HealthCheck:   health_check.NewHealthCheckRepository(),
-		Namespace:     namespaces.NewNamespaceRepository(cl),
-		PVC:           pvcs.NewPVCRepository(cl),
-		Secret:        secrets.NewSecretRepository(cl),
-		StorageClass:  storageclasses.NewStorageClassRepository(cl),
-		Workspace:     workspaces.NewWorkspaceRepository(cl),
-		WorkspaceKind: workspacekinds.NewWorkspaceKindRepository(cl),
+		HealthCheck:   health_check.NewHealthCheckRepository(cfg),
+		Namespace:     namespaces.NewNamespaceRepository(cfg, cl),
+		PVC:           pvcs.NewPVCRepository(cfg, cl),
+		Secret:        secrets.NewSecretRepository(cfg, cl),
+		StorageClass:  storageclasses.NewStorageClassRepository(cfg, cl),
+		Workspace:     workspaces.NewWorkspaceRepository(cfg, cl),
+		WorkspaceKind: workspacekinds.NewWorkspaceKindRepository(cfg, cl, configMapClient),
 	}
 }

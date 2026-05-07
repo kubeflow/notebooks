@@ -28,6 +28,8 @@ type EnvConfig struct {
 	UserIdPrefix string
 	GroupsHeader string
 
+	ProxyUrlPrefix string
+
 	SwaggerEnabled  bool
 	SwaggerHost     string
 	SwaggerBasePath string

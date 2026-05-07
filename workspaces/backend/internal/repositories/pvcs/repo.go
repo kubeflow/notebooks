@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	modelsCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/pvcs"
@@ -42,11 +43,13 @@ var (
 )
 
 type PVCRepository struct {
+	cfg    *config.EnvConfig
 	client client.Client
 }
 
-func NewPVCRepository(cl client.Client) *PVCRepository {
+func NewPVCRepository(cfg *config.EnvConfig, cl client.Client) *PVCRepository {
 	return &PVCRepository{
+		cfg:    cfg,
 		client: cl,
 	}
 }

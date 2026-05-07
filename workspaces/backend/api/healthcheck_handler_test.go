@@ -26,6 +26,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/health_check"
 )
 
@@ -35,7 +36,7 @@ var _ = Describe("HealthCheck Handler", func() {
 
 		It("should return a health check response", func() {
 			By("creating the HTTP request")
-			req, err := http.NewRequest(http.MethodGet, HealthCheckPath, http.NoBody)
+			req, err := http.NewRequest(http.MethodGet, constants.HealthCheckPath, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("executing GetHealthCheckHandler")
@@ -61,7 +62,7 @@ var _ = Describe("HealthCheck Handler", func() {
 			expected := models.HealthCheck{
 				Status: models.ServiceStatusHealthy,
 				SystemInfo: models.SystemInfo{
-					Version: Version,
+					Version: constants.Version,
 				},
 			}
 			Expect(response).To(BeComparableTo(expected))

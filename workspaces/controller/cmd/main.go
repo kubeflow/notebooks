@@ -22,9 +22,11 @@ import (
 	"os"
 	"strconv"
 
+	corev1 "k8s.io/api/core/v1"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	istiov1 "istio.io/client-go/pkg/apis/networking/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -120,6 +122,17 @@ func main() {
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme: scheme,
+		Client: client.Options{
+			Cache: &client.CacheOptions{
+				// Disable caching for ConfigMaps and Secrets as caching all of them can take a LOT of memory in a large cluster.
+				// We create special caches that are filtered by label selectors (e.g. the image source ConfigMaps).
+				// REFERENCE: https://github.com/kubernetes-sigs/controller-runtime/issues/244#issuecomment-2466564541
+				DisableFor: []client.Object{
+					&corev1.ConfigMap{},
+					&corev1.Secret{},
+				},
+			},
+		},
 		Metrics: metricsserver.Options{
 			BindAddress:   metricsAddr,
 			SecureServing: secureMetrics,
@@ -165,9 +178,15 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Workspace")
 		os.Exit(1)
 	}
+	imageSourceCache, err := helper.BuildImageSourceConfigMapCache(mgr)
+	if err != nil {
+		setupLog.Error(err, "unable to build image source ConfigMap cache")
+		os.Exit(1)
+	}
 	if err = (&controllerInternal.WorkspaceKindReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:           mgr.GetClient(),
+		Scheme:           mgr.GetScheme(),
+		ImageSourceCache: imageSourceCache,
 	}).SetupWithManager(mgr, &controller.Options{
 		RateLimiter: helper.BuildRateLimiter(),
 	}); err != nil {

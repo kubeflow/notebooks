@@ -32,6 +32,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/podtemplate/options"
 )
 
@@ -108,9 +109,9 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			)
 
 			BeforeEach(func() {
-				listValuesPath = strings.Replace(PodTemplateOptionsListValuesPath, ":"+ResourceNamePathParam, workspaceKind1Name, 1)
+				listValuesPath = strings.Replace(constants.PodTemplateOptionsListValuesPath, ":"+constants.ResourceNamePathParam, workspaceKind1Name, 1)
 				listValuesPs = httprouter.Params{
-					httprouter.Param{Key: ResourceNamePathParam, Value: workspaceKind1Name},
+					httprouter.Param{Key: constants.ResourceNamePathParam, Value: workspaceKind1Name},
 				}
 			})
 
@@ -118,7 +119,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 				req, err := http.NewRequest(http.MethodPost, listValuesPath, bytes.NewBufferString(body))
 				Expect(err).NotTo(HaveOccurred())
 				req.Header.Set(userIdHeader, adminUser)
-				req.Header.Set("Content-Type", MediaTypeJson)
+				req.Header.Set("Content-Type", constants.MediaTypeJson)
 				rr := httptest.NewRecorder()
 				a.PodTemplateOptionsListValuesHandler(rr, req, listValuesPs)
 				return rr, rr.Result()
@@ -247,17 +248,17 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			missingWorkspaceKindName := "non-existent-workspacekind"
 
 			By("creating the HTTP request")
-			path := strings.Replace(PodTemplateOptionsListValuesPath, ":"+ResourceNamePathParam, missingWorkspaceKindName, 1)
+			path := strings.Replace(constants.PodTemplateOptionsListValuesPath, ":"+constants.ResourceNamePathParam, missingWorkspaceKindName, 1)
 			req, err := http.NewRequest(http.MethodPost, path, bytes.NewBufferString(`{"data":{}}`))
 			Expect(err).NotTo(HaveOccurred())
 
 			By("setting the auth headers and Content-Type")
 			req.Header.Set(userIdHeader, adminUser)
-			req.Header.Set("Content-Type", MediaTypeJson)
+			req.Header.Set("Content-Type", constants.MediaTypeJson)
 
 			By("executing PodTemplateOptionsListValuesHandler")
 			ps := httprouter.Params{
-				httprouter.Param{Key: ResourceNamePathParam, Value: missingWorkspaceKindName},
+				httprouter.Param{Key: constants.ResourceNamePathParam, Value: missingWorkspaceKindName},
 			}
 			rr := httptest.NewRecorder()
 			a.PodTemplateOptionsListValuesHandler(rr, req, ps)

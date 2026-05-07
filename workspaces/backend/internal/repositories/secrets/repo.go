@@ -26,6 +26,7 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	modelsCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/secrets"
 )
@@ -36,11 +37,13 @@ var (
 )
 
 type SecretRepository struct {
+	cfg    *config.EnvConfig
 	client client.Client
 }
 
-func NewSecretRepository(cl client.Client) *SecretRepository {
+func NewSecretRepository(cfg *config.EnvConfig, cl client.Client) *SecretRepository {
 	return &SecretRepository{
+		cfg:    cfg,
 		client: cl,
 	}
 }

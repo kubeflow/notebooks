@@ -26,6 +26,9 @@ import (
 )
 
 const (
+	errMsgNotFound             = "the requested resource could not be found"
+	errMsgUnauthorized         = "authentication is required to access this resource"
+	errMsgForbidden            = "you are not authorized to access this resource"
 	errMsgPathParamsInvalid    = "path parameters were invalid"
 	errMsgQueryParamsInvalid   = "query parameters were invalid"
 	errMsgRequestBodyInvalid   = "request body was invalid"
@@ -150,7 +153,7 @@ func (a *App) unauthorizedResponse(w http.ResponseWriter, r *http.Request) {
 		StatusCode: http.StatusUnauthorized,
 		ErrorResponse: ErrorResponse{
 			Code:    strconv.Itoa(http.StatusUnauthorized),
-			Message: "authentication is required to access this resource",
+			Message: errMsgUnauthorized,
 		},
 	}
 	a.errorResponse(w, r, httpError)
@@ -164,7 +167,7 @@ func (a *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, msg stri
 		StatusCode: http.StatusForbidden,
 		ErrorResponse: ErrorResponse{
 			Code:    strconv.Itoa(http.StatusForbidden),
-			Message: "you are not authorized to access this resource",
+			Message: errMsgForbidden,
 		},
 	}
 	a.errorResponse(w, r, httpError)
@@ -176,7 +179,7 @@ func (a *App) notFoundResponse(w http.ResponseWriter, r *http.Request) {
 		StatusCode: http.StatusNotFound,
 		ErrorResponse: ErrorResponse{
 			Code:    strconv.Itoa(http.StatusNotFound),
-			Message: "the requested resource could not be found",
+			Message: errMsgNotFound,
 		},
 	}
 	a.errorResponse(w, r, httpError)

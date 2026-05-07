@@ -28,53 +28,10 @@ import (
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
 	_ "github.com/kubeflow/notebooks/workspaces/backend/openapi"
-)
-
-const (
-	Version    = "1.0.0"
-	PathPrefix = "/api/v1"
-
-	MediaTypeJson = "application/json"
-	MediaTypeYaml = "application/yaml"
-
-	NamespacePathParam        = "namespace"
-	ResourceNamePathParam     = "name"
-	NamespaceFilterQueryParam = "namespaceFilter"
-
-	// healthcheck
-	HealthCheckPath = PathPrefix + "/healthcheck"
-
-	// workspaces
-	AllWorkspacesPath         = PathPrefix + "/workspaces"
-	WorkspacesByNamespacePath = AllWorkspacesPath + "/:" + NamespacePathParam
-	WorkspacesByNamePath      = AllWorkspacesPath + "/:" + NamespacePathParam + "/:" + ResourceNamePathParam
-	WorkspaceActionsPath      = WorkspacesByNamePath + "/actions"
-	PauseWorkspacePath        = WorkspaceActionsPath + "/pause"
-
-	// workspacekinds
-	AllWorkspaceKindsPath            = PathPrefix + "/workspacekinds"
-	WorkspaceKindsByNamePath         = AllWorkspaceKindsPath + "/:" + ResourceNamePathParam
-	PodTemplateOptionsListValuesPath = WorkspaceKindsByNamePath + "/podtemplate/options/listvalues"
-
-	// namespaces
-	AllNamespacesPath = PathPrefix + "/namespaces"
-
-	// secrets
-	SecretsByNamespacePath = PathPrefix + "/secrets/:" + NamespacePathParam
-	SecretsByNamePath      = SecretsByNamespacePath + "/:" + ResourceNamePathParam
-
-	// storageclasses
-	AllStorageClassesPath = PathPrefix + "/storageclasses"
-
-	// persistentvolumeclaims
-	PVCsByNamespacePath = PathPrefix + "/persistentvolumeclaims/:" + NamespacePathParam
-	PVCsByNamePath      = PVCsByNamespacePath + "/:" + ResourceNamePathParam
-
-	// swagger
-	SwaggerPath = PathPrefix + "/swagger/*any"
 )
 
 type App struct {
@@ -88,7 +45,7 @@ type App struct {
 }
 
 // NewApp creates a new instance of the app
-func NewApp(cfg *config.EnvConfig, logger *slog.Logger, cl client.Client, scheme *runtime.Scheme, reqAuthN authenticator.Request, reqAuthZ authorizer.Authorizer) (*App, error) {
+func NewApp(cfg *config.EnvConfig, logger *slog.Logger, cl client.Client, configMapClient client.Client, scheme *runtime.Scheme, reqAuthN authenticator.Request, reqAuthZ authorizer.Authorizer) (*App, error) {
 
 	// TODO: log the configuration on startup
 
@@ -102,7 +59,7 @@ func NewApp(cfg *config.EnvConfig, logger *slog.Logger, cl client.Client, scheme
 	app := &App{
 		Config:               cfg,
 		logger:               logger,
-		repositories:         repositories.NewRepositories(cl),
+		repositories:         repositories.NewRepositories(cfg, cl, configMapClient),
 		Scheme:               scheme,
 		StrictYamlSerializer: yamlSerializerInfo.StrictSerializer,
 		RequestAuthN:         reqAuthN,
@@ -119,46 +76,48 @@ func (a *App) Routes() http.Handler {
 	router.MethodNotAllowed = http.HandlerFunc(a.methodNotAllowedResponse)
 
 	// healthcheck
-	router.GET(HealthCheckPath, a.GetHealthcheckHandler)
+	router.GET(constants.HealthCheckPath, a.GetHealthcheckHandler)
 
 	// namespaces
-	router.GET(AllNamespacesPath, a.GetNamespacesHandler)
+	router.GET(constants.AllNamespacesPath, a.GetNamespacesHandler)
 
 	// secrets
-	router.GET(SecretsByNamespacePath, a.GetSecretsByNamespaceHandler)
-	router.POST(SecretsByNamespacePath, a.CreateSecretHandler)
-	router.GET(SecretsByNamePath, a.GetSecretHandler)
-	router.PUT(SecretsByNamePath, a.UpdateSecretHandler)
-	router.DELETE(SecretsByNamePath, a.DeleteSecretHandler)
+	router.GET(constants.SecretsByNamespacePath, a.GetSecretsByNamespaceHandler)
+	router.POST(constants.SecretsByNamespacePath, a.CreateSecretHandler)
+	router.GET(constants.SecretsByNamePath, a.GetSecretHandler)
+	router.PUT(constants.SecretsByNamePath, a.UpdateSecretHandler)
+	router.DELETE(constants.SecretsByNamePath, a.DeleteSecretHandler)
 
 	// workspaces
-	router.GET(AllWorkspacesPath, a.GetAllWorkspacesHandler)
-	router.GET(WorkspacesByNamespacePath, a.GetWorkspacesByNamespaceHandler)
-	router.GET(WorkspacesByNamePath, a.GetWorkspaceHandler)
-	router.POST(WorkspacesByNamespacePath, a.CreateWorkspaceHandler)
-	router.PUT(WorkspacesByNamePath, a.UpdateWorkspaceHandler)
-	router.DELETE(WorkspacesByNamePath, a.DeleteWorkspaceHandler)
-	router.POST(PauseWorkspacePath, a.PauseActionWorkspaceHandler)
+	router.GET(constants.AllWorkspacesPath, a.GetAllWorkspacesHandler)
+	router.GET(constants.WorkspacesByNamespacePath, a.GetWorkspacesByNamespaceHandler)
+	router.GET(constants.WorkspacesByNamePath, a.GetWorkspaceHandler)
+	router.POST(constants.WorkspacesByNamespacePath, a.CreateWorkspaceHandler)
+	router.PUT(constants.WorkspacesByNamePath, a.UpdateWorkspaceHandler)
+	router.DELETE(constants.WorkspacesByNamePath, a.DeleteWorkspaceHandler)
+	router.POST(constants.PauseWorkspacePath, a.PauseActionWorkspaceHandler)
 
 	// workspacekinds
-	router.GET(AllWorkspaceKindsPath, a.GetWorkspaceKindsHandler)
-	router.GET(WorkspaceKindsByNamePath, a.GetWorkspaceKindHandler)
-	router.POST(AllWorkspaceKindsPath, a.CreateWorkspaceKindHandler)
-	router.DELETE(WorkspaceKindsByNamePath, a.DeleteWorkspaceKindHandler)
-	router.POST(PodTemplateOptionsListValuesPath, a.PodTemplateOptionsListValuesHandler)
-	router.PUT(WorkspaceKindsByNamePath, a.UpdateWorkspaceKindHandler)
+	router.GET(constants.AllWorkspaceKindsPath, a.GetWorkspaceKindsHandler)
+	router.GET(constants.WorkspaceKindsByNamePath, a.GetWorkspaceKindHandler)
+	router.POST(constants.AllWorkspaceKindsPath, a.CreateWorkspaceKindHandler)
+	router.DELETE(constants.WorkspaceKindsByNamePath, a.DeleteWorkspaceKindHandler)
+	router.PUT(constants.WorkspaceKindsByNamePath, a.UpdateWorkspaceKindHandler)
+	router.POST(constants.PodTemplateOptionsListValuesPath, a.PodTemplateOptionsListValuesHandler)
+	router.GET(constants.WorkspaceKindIconPath, a.GetWorkspaceKindIconHandler)
+	router.GET(constants.WorkspaceKindLogoPath, a.GetWorkspaceKindLogoHandler)
 
 	// storageclasses
-	router.GET(AllStorageClassesPath, a.GetStorageClassesHandler)
+	router.GET(constants.AllStorageClassesPath, a.GetStorageClassesHandler)
 
 	// persistentvolumeclaims
-	router.GET(PVCsByNamespacePath, a.GetPVCsByNamespaceHandler)
-	router.POST(PVCsByNamespacePath, a.CreatePVCHandler)
-	router.DELETE(PVCsByNamePath, a.DeletePVCHandler)
+	router.GET(constants.PVCsByNamespacePath, a.GetPVCsByNamespaceHandler)
+	router.POST(constants.PVCsByNamespacePath, a.CreatePVCHandler)
+	router.DELETE(constants.PVCsByNamePath, a.DeletePVCHandler)
 
 	// swagger
 	if a.Config.SwaggerEnabled {
-		router.GET(SwaggerPath, a.GetSwaggerHandler)
+		router.GET(constants.SwaggerPath, a.GetSwaggerHandler)
 	}
 
 	return a.recoverPanic(a.enableCORS(router))

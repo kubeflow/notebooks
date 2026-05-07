@@ -35,6 +35,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	commonModels "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces"
 )
@@ -170,7 +171,7 @@ var _ = Describe("Workspaces Handler", func() {
 
 		It("should retrieve Workspaces from all namespaces successfully", func() {
 			By("creating the HTTP request")
-			req, err := http.NewRequest(http.MethodGet, AllWorkspacesPath, http.NoBody)
+			req, err := http.NewRequest(http.MethodGet, constants.AllWorkspacesPath, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("setting the auth headers")
@@ -209,9 +210,9 @@ var _ = Describe("Workspaces Handler", func() {
 
 			By("ensuring the response contains the expected Workspaces")
 			Expect(response.Data).To(ConsistOf(
-				models.NewWorkspaceListItemFromWorkspace(workspace1, workspaceKind),
-				models.NewWorkspaceListItemFromWorkspace(workspace2, workspaceKind),
-				models.NewWorkspaceListItemFromWorkspace(workspace3, workspaceKind),
+				models.NewWorkspaceListItemFromWorkspace(a.Config, workspace1, workspaceKind),
+				models.NewWorkspaceListItemFromWorkspace(a.Config, workspace2, workspaceKind),
+				models.NewWorkspaceListItemFromWorkspace(a.Config, workspace3, workspaceKind),
 			))
 
 			By("ensuring the response can be marshaled to JSON and back to []WorkspaceListItem")
@@ -224,7 +225,7 @@ var _ = Describe("Workspaces Handler", func() {
 
 		It("should retrieve Workspaces from Namespace 1 successfully", func() {
 			By("creating the HTTP request")
-			path := strings.Replace(WorkspacesByNamespacePath, ":"+NamespacePathParam, namespaceName1, 1)
+			path := strings.Replace(constants.WorkspacesByNamespacePath, ":"+constants.NamespacePathParam, namespaceName1, 1)
 			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -233,7 +234,7 @@ var _ = Describe("Workspaces Handler", func() {
 
 			By("executing GetWorkspacesByNamespaceHandler")
 			ps := httprouter.Params{
-				httprouter.Param{Key: NamespacePathParam, Value: namespaceName1},
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceName1},
 			}
 			rr := httptest.NewRecorder()
 			a.GetWorkspacesByNamespaceHandler(rr, req, ps)
@@ -264,8 +265,8 @@ var _ = Describe("Workspaces Handler", func() {
 
 			By("ensuring the response contains the expected Workspaces")
 			Expect(response.Data).To(ConsistOf(
-				models.NewWorkspaceListItemFromWorkspace(workspace1, workspaceKind),
-				models.NewWorkspaceListItemFromWorkspace(workspace2, workspaceKind),
+				models.NewWorkspaceListItemFromWorkspace(a.Config, workspace1, workspaceKind),
+				models.NewWorkspaceListItemFromWorkspace(a.Config, workspace2, workspaceKind),
 			))
 
 			By("ensuring the response can be marshaled to JSON and back to []WorkspaceListItem")
@@ -278,8 +279,8 @@ var _ = Describe("Workspaces Handler", func() {
 
 		It("should retrieve a single Workspace successfully", func() {
 			By("creating the HTTP request")
-			path := strings.Replace(WorkspacesByNamePath, ":"+NamespacePathParam, namespaceName1, 1)
-			path = strings.Replace(path, ":"+ResourceNamePathParam, workspaceName1, 1)
+			path := strings.Replace(constants.WorkspacesByNamePath, ":"+constants.NamespacePathParam, namespaceName1, 1)
+			path = strings.Replace(path, ":"+constants.ResourceNamePathParam, workspaceName1, 1)
 			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -288,8 +289,8 @@ var _ = Describe("Workspaces Handler", func() {
 
 			By("executing GetWorkspaceHandler")
 			ps := httprouter.Params{
-				httprouter.Param{Key: NamespacePathParam, Value: namespaceName1},
-				httprouter.Param{Key: ResourceNamePathParam, Value: workspaceName1},
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceName1},
+				httprouter.Param{Key: constants.ResourceNamePathParam, Value: workspaceName1},
 			}
 			rr := httptest.NewRecorder()
 			a.GetWorkspaceHandler(rr, req, ps)
@@ -435,7 +436,7 @@ var _ = Describe("Workspaces Handler", func() {
 
 		It("should retrieve invalid Workspaces from Namespace 1 successfully", func() {
 			By("creating the HTTP request")
-			path := strings.Replace(WorkspacesByNamespacePath, ":"+NamespacePathParam, namespaceName1, 1)
+			path := strings.Replace(constants.WorkspacesByNamespacePath, ":"+constants.NamespacePathParam, namespaceName1, 1)
 			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -444,7 +445,7 @@ var _ = Describe("Workspaces Handler", func() {
 
 			By("executing GetWorkspacesByNamespaceHandler")
 			ps := httprouter.Params{
-				httprouter.Param{Key: NamespacePathParam, Value: namespaceName1},
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceName1},
 			}
 			rr := httptest.NewRecorder()
 			a.GetWorkspacesByNamespaceHandler(rr, req, ps)
@@ -476,7 +477,7 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(k8sClient.Get(ctx, workspaceInvalidImageConfigKey, workspaceInvalidImageConfig)).To(Succeed())
 
 			By("ensuring the model for Workspace with missing WorkspaceKind is as expected")
-			workspaceMissingWskModel := models.NewWorkspaceListItemFromWorkspace(workspaceMissingWsk, nil)
+			workspaceMissingWskModel := models.NewWorkspaceListItemFromWorkspace(a.Config, workspaceMissingWsk, nil)
 			Expect(workspaceMissingWskModel.WorkspaceKind.Missing).To(BeTrue())
 			Expect(workspaceMissingWskModel.PodTemplate.Volumes.Home.MountPath).To(Equal(models.UnknownHomeMountPath))
 			Expect(workspaceMissingWskModel.PodTemplate.Options.PodConfig.Current.DisplayName).To(Equal(models.UnknownPodConfig))
@@ -485,12 +486,12 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(workspaceMissingWskModel.PodTemplate.Options.ImageConfig.Current.Description).To(Equal(models.UnknownImageConfig))
 
 			By("ensuring the model for Workspace with invalid PodConfig is as expected")
-			workspaceInvalidPodConfigModel := models.NewWorkspaceListItemFromWorkspace(workspaceInvalidPodConfig, workspaceKind)
+			workspaceInvalidPodConfigModel := models.NewWorkspaceListItemFromWorkspace(a.Config, workspaceInvalidPodConfig, workspaceKind)
 			Expect(workspaceInvalidPodConfigModel.PodTemplate.Options.PodConfig.Current.DisplayName).To(Equal(models.UnknownPodConfig))
 			Expect(workspaceInvalidPodConfigModel.PodTemplate.Options.PodConfig.Current.Description).To(Equal(models.UnknownPodConfig))
 
 			By("ensuring the model for Workspace with invalid ImageConfig is as expected")
-			workspaceInvalidImageConfigModel := models.NewWorkspaceListItemFromWorkspace(workspaceInvalidImageConfig, workspaceKind)
+			workspaceInvalidImageConfigModel := models.NewWorkspaceListItemFromWorkspace(a.Config, workspaceInvalidImageConfig, workspaceKind)
 			Expect(workspaceInvalidImageConfigModel.PodTemplate.Options.ImageConfig.Current.DisplayName).To(Equal(models.UnknownImageConfig))
 			Expect(workspaceInvalidImageConfigModel.PodTemplate.Options.ImageConfig.Current.Description).To(Equal(models.UnknownImageConfig))
 
@@ -504,8 +505,8 @@ var _ = Describe("Workspaces Handler", func() {
 
 		It("should retrieve a single Workspace successfully", func() {
 			By("creating the HTTP request")
-			path := strings.Replace(WorkspacesByNamePath, ":"+NamespacePathParam, namespaceName1, 1)
-			path = strings.Replace(path, ":"+ResourceNamePathParam, workspaceMissingWskName, 1)
+			path := strings.Replace(constants.WorkspacesByNamePath, ":"+constants.NamespacePathParam, namespaceName1, 1)
+			path = strings.Replace(path, ":"+constants.ResourceNamePathParam, workspaceMissingWskName, 1)
 			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -514,8 +515,8 @@ var _ = Describe("Workspaces Handler", func() {
 
 			By("executing GetWorkspaceHandler")
 			ps := httprouter.Params{
-				httprouter.Param{Key: NamespacePathParam, Value: namespaceName1},
-				httprouter.Param{Key: ResourceNamePathParam, Value: workspaceMissingWskName},
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceName1},
+				httprouter.Param{Key: constants.ResourceNamePathParam, Value: workspaceMissingWskName},
 			}
 			rr := httptest.NewRecorder()
 			a.GetWorkspaceHandler(rr, req, ps)
@@ -555,7 +556,7 @@ var _ = Describe("Workspaces Handler", func() {
 
 		It("should return an empty list of Workspaces for all namespaces", func() {
 			By("creating the HTTP request")
-			req, err := http.NewRequest(http.MethodGet, AllWorkspacesPath, http.NoBody)
+			req, err := http.NewRequest(http.MethodGet, constants.AllWorkspacesPath, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("setting the auth headers")
@@ -588,7 +589,7 @@ var _ = Describe("Workspaces Handler", func() {
 			missingNamespace := "non-existent-namespace"
 
 			By("creating the HTTP request")
-			path := strings.Replace(AllWorkspacesPath, ":"+NamespacePathParam, missingNamespace, 1)
+			path := strings.Replace(constants.AllWorkspacesPath, ":"+constants.NamespacePathParam, missingNamespace, 1)
 			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -597,7 +598,7 @@ var _ = Describe("Workspaces Handler", func() {
 
 			By("executing GetWorkspacesByNamespaceHandler")
 			ps := httprouter.Params{
-				httprouter.Param{Key: NamespacePathParam, Value: missingNamespace},
+				httprouter.Param{Key: constants.NamespacePathParam, Value: missingNamespace},
 			}
 			rr := httptest.NewRecorder()
 			a.GetWorkspacesByNamespaceHandler(rr, req, ps)
@@ -625,8 +626,8 @@ var _ = Describe("Workspaces Handler", func() {
 			missingWorkspaceName := "non-existent-workspace"
 
 			By("creating the HTTP request")
-			path := strings.Replace(WorkspacesByNamePath, ":"+NamespacePathParam, missingNamespace, 1)
-			path = strings.Replace(path, ":"+ResourceNamePathParam, missingWorkspaceName, 1)
+			path := strings.Replace(constants.WorkspacesByNamePath, ":"+constants.NamespacePathParam, missingNamespace, 1)
+			path = strings.Replace(path, ":"+constants.ResourceNamePathParam, missingWorkspaceName, 1)
 			req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -635,8 +636,8 @@ var _ = Describe("Workspaces Handler", func() {
 
 			By("executing GetWorkspaceHandler")
 			ps := httprouter.Params{
-				httprouter.Param{Key: NamespacePathParam, Value: missingNamespace},
-				httprouter.Param{Key: ResourceNamePathParam, Value: missingWorkspaceName},
+				httprouter.Param{Key: constants.NamespacePathParam, Value: missingNamespace},
+				httprouter.Param{Key: constants.ResourceNamePathParam, Value: missingWorkspaceName},
 			}
 			rr := httptest.NewRecorder()
 			a.GetWorkspaceHandler(rr, req, ps)
@@ -807,10 +808,10 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("creating an HTTP request to create the Workspace")
-			path := strings.Replace(WorkspacesByNamespacePath, ":"+NamespacePathParam, namespaceNameCrud, 1)
+			path := strings.Replace(constants.WorkspacesByNamespacePath, ":"+constants.NamespacePathParam, namespaceNameCrud, 1)
 			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(bodyEnvelopeJSON)))
 			Expect(err).NotTo(HaveOccurred())
-			req.Header.Set("Content-Type", MediaTypeJson)
+			req.Header.Set("Content-Type", constants.MediaTypeJson)
 
 			By("setting the auth headers")
 			req.Header.Set(userIdHeader, adminUser)
@@ -819,7 +820,7 @@ var _ = Describe("Workspaces Handler", func() {
 			rr := httptest.NewRecorder()
 			ps := httprouter.Params{
 				httprouter.Param{
-					Key:   NamespacePathParam,
+					Key:   constants.NamespacePathParam,
 					Value: namespaceNameCrud,
 				},
 			}
@@ -852,8 +853,8 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(createdWorkspace.Spec.PodTemplate.Volumes.Secrets).To(BeEmpty())
 
 			By("creating an HTTP request to delete the Workspace")
-			path = strings.Replace(WorkspacesByNamePath, ":"+NamespacePathParam, namespaceNameCrud, 1)
-			path = strings.Replace(path, ":"+ResourceNamePathParam, workspaceName, 1)
+			path = strings.Replace(constants.WorkspacesByNamePath, ":"+constants.NamespacePathParam, namespaceNameCrud, 1)
+			path = strings.Replace(path, ":"+constants.ResourceNamePathParam, workspaceName, 1)
 			req, err = http.NewRequest(http.MethodDelete, path, http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -864,11 +865,11 @@ var _ = Describe("Workspaces Handler", func() {
 			rr = httptest.NewRecorder()
 			ps = httprouter.Params{
 				httprouter.Param{
-					Key:   NamespacePathParam,
+					Key:   constants.NamespacePathParam,
 					Value: namespaceNameCrud,
 				},
 				httprouter.Param{
-					Key:   ResourceNamePathParam,
+					Key:   constants.ResourceNamePathParam,
 					Value: workspaceName,
 				},
 			}
@@ -954,16 +955,16 @@ var _ = Describe("Workspaces Handler", func() {
 			bodyEnvelopeJSON, err := json.Marshal(bodyEnvelope)
 			Expect(err).NotTo(HaveOccurred())
 
-			path := strings.Replace(WorkspacesByNamespacePath, ":"+NamespacePathParam, namespaceNameCrud, 1)
+			path := strings.Replace(constants.WorkspacesByNamespacePath, ":"+constants.NamespacePathParam, namespaceNameCrud, 1)
 			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(bodyEnvelopeJSON)))
 			Expect(err).NotTo(HaveOccurred())
-			req.Header.Set("Content-Type", MediaTypeJson)
+			req.Header.Set("Content-Type", constants.MediaTypeJson)
 			req.Header.Set(userIdHeader, adminUser)
 
 			rr := httptest.NewRecorder()
 			ps := httprouter.Params{
 				httprouter.Param{
-					Key:   NamespacePathParam,
+					Key:   constants.NamespacePathParam,
 					Value: namespaceNameCrud,
 				},
 			}
@@ -1023,15 +1024,15 @@ var _ = Describe("Workspaces Handler", func() {
 			createJSON, err := json.Marshal(createEnvelope)
 			Expect(err).NotTo(HaveOccurred())
 
-			path := strings.Replace(WorkspacesByNamespacePath, ":"+NamespacePathParam, namespaceNameCrud, 1)
+			path := strings.Replace(constants.WorkspacesByNamespacePath, ":"+constants.NamespacePathParam, namespaceNameCrud, 1)
 			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(createJSON)))
 			Expect(err).NotTo(HaveOccurred())
-			req.Header.Set("Content-Type", MediaTypeJson)
+			req.Header.Set("Content-Type", constants.MediaTypeJson)
 			req.Header.Set(userIdHeader, adminUser)
 
 			rr := httptest.NewRecorder()
 			ps := httprouter.Params{
-				httprouter.Param{Key: NamespacePathParam, Value: namespaceNameCrud},
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceNameCrud},
 			}
 			a.CreateWorkspaceHandler(rr, req, ps)
 			rs := rr.Result()
@@ -1078,17 +1079,17 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("executing UpdateWorkspaceHandler")
-			path = strings.Replace(WorkspacesByNamePath, ":"+NamespacePathParam, namespaceNameCrud, 1)
-			path = strings.Replace(path, ":"+ResourceNamePathParam, workspaceName, 1)
+			path = strings.Replace(constants.WorkspacesByNamePath, ":"+constants.NamespacePathParam, namespaceNameCrud, 1)
+			path = strings.Replace(path, ":"+constants.ResourceNamePathParam, workspaceName, 1)
 			req, err = http.NewRequest(http.MethodPut, path, strings.NewReader(string(updateJSON)))
 			Expect(err).NotTo(HaveOccurred())
-			req.Header.Set("Content-Type", MediaTypeJson)
+			req.Header.Set("Content-Type", constants.MediaTypeJson)
 			req.Header.Set(userIdHeader, adminUser)
 
 			rr = httptest.NewRecorder()
 			ps = httprouter.Params{
-				httprouter.Param{Key: NamespacePathParam, Value: namespaceNameCrud},
-				httprouter.Param{Key: ResourceNamePathParam, Value: workspaceName},
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceNameCrud},
+				httprouter.Param{Key: constants.ResourceNamePathParam, Value: workspaceName},
 			}
 			a.UpdateWorkspaceHandler(rr, req, ps)
 			rs = rr.Result()
@@ -1162,15 +1163,15 @@ var _ = Describe("Workspaces Handler", func() {
 			createJSON, err := json.Marshal(createEnvelope)
 			Expect(err).NotTo(HaveOccurred())
 
-			path := strings.Replace(WorkspacesByNamespacePath, ":"+NamespacePathParam, namespaceNameCrud, 1)
+			path := strings.Replace(constants.WorkspacesByNamespacePath, ":"+constants.NamespacePathParam, namespaceNameCrud, 1)
 			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(createJSON)))
 			Expect(err).NotTo(HaveOccurred())
-			req.Header.Set("Content-Type", MediaTypeJson)
+			req.Header.Set("Content-Type", constants.MediaTypeJson)
 			req.Header.Set(userIdHeader, adminUser)
 
 			rr := httptest.NewRecorder()
 			ps := httprouter.Params{
-				httprouter.Param{Key: NamespacePathParam, Value: namespaceNameCrud},
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceNameCrud},
 			}
 			a.CreateWorkspaceHandler(rr, req, ps)
 			rs := rr.Result()
@@ -1215,17 +1216,17 @@ var _ = Describe("Workspaces Handler", func() {
 			updateJSON, err := json.Marshal(updateEnvelope)
 			Expect(err).NotTo(HaveOccurred())
 
-			path = strings.Replace(WorkspacesByNamePath, ":"+NamespacePathParam, namespaceNameCrud, 1)
-			path = strings.Replace(path, ":"+ResourceNamePathParam, workspaceName, 1)
+			path = strings.Replace(constants.WorkspacesByNamePath, ":"+constants.NamespacePathParam, namespaceNameCrud, 1)
+			path = strings.Replace(path, ":"+constants.ResourceNamePathParam, workspaceName, 1)
 			req, err = http.NewRequest(http.MethodPut, path, strings.NewReader(string(updateJSON)))
 			Expect(err).NotTo(HaveOccurred())
-			req.Header.Set("Content-Type", MediaTypeJson)
+			req.Header.Set("Content-Type", constants.MediaTypeJson)
 			req.Header.Set(userIdHeader, adminUser)
 
 			rr = httptest.NewRecorder()
 			ps = httprouter.Params{
-				httprouter.Param{Key: NamespacePathParam, Value: namespaceNameCrud},
-				httprouter.Param{Key: ResourceNamePathParam, Value: workspaceName},
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceNameCrud},
+				httprouter.Param{Key: constants.ResourceNamePathParam, Value: workspaceName},
 			}
 			a.UpdateWorkspaceHandler(rr, req, ps)
 			rs = rr.Result()
@@ -1264,17 +1265,17 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("executing UpdateWorkspaceHandler")
-			path := strings.Replace(WorkspacesByNamePath, ":"+NamespacePathParam, namespaceNameCrud, 1)
-			path = strings.Replace(path, ":"+ResourceNamePathParam, missingWorkspaceName, 1)
+			path := strings.Replace(constants.WorkspacesByNamePath, ":"+constants.NamespacePathParam, namespaceNameCrud, 1)
+			path = strings.Replace(path, ":"+constants.ResourceNamePathParam, missingWorkspaceName, 1)
 			req, err := http.NewRequest(http.MethodPut, path, strings.NewReader(string(updateJSON)))
 			Expect(err).NotTo(HaveOccurred())
-			req.Header.Set("Content-Type", MediaTypeJson)
+			req.Header.Set("Content-Type", constants.MediaTypeJson)
 			req.Header.Set(userIdHeader, adminUser)
 
 			rr := httptest.NewRecorder()
 			ps := httprouter.Params{
-				httprouter.Param{Key: NamespacePathParam, Value: namespaceNameCrud},
-				httprouter.Param{Key: ResourceNamePathParam, Value: missingWorkspaceName},
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceNameCrud},
+				httprouter.Param{Key: constants.ResourceNamePathParam, Value: missingWorkspaceName},
 			}
 			a.UpdateWorkspaceHandler(rr, req, ps)
 			rs := rr.Result()
@@ -1347,15 +1348,15 @@ var _ = Describe("Workspaces Handler", func() {
 			createJSON, err := json.Marshal(createEnvelope)
 			Expect(err).NotTo(HaveOccurred())
 
-			path := strings.Replace(WorkspacesByNamespacePath, ":"+NamespacePathParam, namespaceNameCrud, 1)
+			path := strings.Replace(constants.WorkspacesByNamespacePath, ":"+constants.NamespacePathParam, namespaceNameCrud, 1)
 			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(createJSON)))
 			Expect(err).NotTo(HaveOccurred())
-			req.Header.Set("Content-Type", MediaTypeJson)
+			req.Header.Set("Content-Type", constants.MediaTypeJson)
 			req.Header.Set(userIdHeader, adminUser)
 
 			rr := httptest.NewRecorder()
 			ps := httprouter.Params{
-				httprouter.Param{Key: NamespacePathParam, Value: namespaceNameCrud},
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceNameCrud},
 			}
 			a.CreateWorkspaceHandler(rr, req, ps)
 			rs := rr.Result()
@@ -1402,17 +1403,17 @@ var _ = Describe("Workspaces Handler", func() {
 			updateJSON, err := json.Marshal(updateEnvelope)
 			Expect(err).NotTo(HaveOccurred())
 
-			path = strings.Replace(WorkspacesByNamePath, ":"+NamespacePathParam, namespaceNameCrud, 1)
-			path = strings.Replace(path, ":"+ResourceNamePathParam, workspaceName, 1)
+			path = strings.Replace(constants.WorkspacesByNamePath, ":"+constants.NamespacePathParam, namespaceNameCrud, 1)
+			path = strings.Replace(path, ":"+constants.ResourceNamePathParam, workspaceName, 1)
 			req, err = http.NewRequest(http.MethodPut, path, strings.NewReader(string(updateJSON)))
 			Expect(err).NotTo(HaveOccurred())
-			req.Header.Set("Content-Type", MediaTypeJson)
+			req.Header.Set("Content-Type", constants.MediaTypeJson)
 			req.Header.Set(userIdHeader, adminUser)
 
 			rr = httptest.NewRecorder()
 			ps = httprouter.Params{
-				httprouter.Param{Key: NamespacePathParam, Value: namespaceNameCrud},
-				httprouter.Param{Key: ResourceNamePathParam, Value: workspaceName},
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceNameCrud},
+				httprouter.Param{Key: constants.ResourceNamePathParam, Value: workspaceName},
 			}
 			a.UpdateWorkspaceHandler(rr, req, ps)
 			rs = rr.Result()

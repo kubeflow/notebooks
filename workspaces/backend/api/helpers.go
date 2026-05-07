@@ -24,6 +24,8 @@ import (
 	"mime"
 	"net/http"
 	"strings"
+
+	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 )
 
 // Envelope is the body of all requests and responses that contain data.
@@ -37,7 +39,7 @@ type Envelope[D any] struct {
 // WriteJSON writes a JSON response with the given status code, data, and headers.
 func (a *App) WriteJSON(w http.ResponseWriter, status int, data any, headers http.Header) error {
 
-	js, err := json.Marshal(data)
+	bytes, err := json.Marshal(data)
 	if err != nil {
 		return err
 	}
@@ -46,9 +48,25 @@ func (a *App) WriteJSON(w http.ResponseWriter, status int, data any, headers htt
 		w.Header()[key] = value
 	}
 
-	w.Header().Set("Content-Type", MediaTypeJson)
+	w.Header().Set("Content-Type", constants.MediaTypeJson)
 	w.WriteHeader(status)
-	_, err = w.Write(js)
+	_, err = w.Write(bytes)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// WriteSVG writes an SVG response with the given status code, content, and headers.
+func (a *App) WriteSVG(w http.ResponseWriter, status int, content []byte, headers http.Header) error {
+	for key, value := range headers {
+		w.Header()[key] = value
+	}
+
+	w.Header().Set("Content-Type", constants.MediaTypeSVG)
+	w.WriteHeader(status)
+	_, err := w.Write(content)
 	if err != nil {
 		return err
 	}
@@ -115,20 +133,20 @@ func (a *App) ValidateContentType(w http.ResponseWriter, r *http.Request, expect
 
 // LocationGetWorkspace returns the GET location (HTTP path) for a workspace resource.
 func (a *App) LocationGetWorkspace(namespace, name string) string {
-	path := strings.Replace(WorkspacesByNamePath, ":"+NamespacePathParam, namespace, 1)
-	path = strings.Replace(path, ":"+ResourceNamePathParam, name, 1)
+	path := strings.Replace(constants.WorkspacesByNamePath, ":"+constants.NamespacePathParam, namespace, 1)
+	path = strings.Replace(path, ":"+constants.ResourceNamePathParam, name, 1)
 	return path
 }
 
 // LocationGetWorkspaceKind returns the GET location (HTTP path) for a workspace kind resource.
 func (a *App) LocationGetWorkspaceKind(name string) string {
-	path := strings.Replace(WorkspaceKindsByNamePath, ":"+ResourceNamePathParam, name, 1)
+	path := strings.Replace(constants.WorkspaceKindsByNamePath, ":"+constants.ResourceNamePathParam, name, 1)
 	return path
 }
 
 // LocationGetSecret returns the GET location (HTTP path) for a secret resource.
 func (a *App) LocationGetSecret(namespace, name string) string {
-	path := strings.Replace(SecretsByNamePath, ":"+NamespacePathParam, namespace, 1)
-	path = strings.Replace(path, ":"+ResourceNamePathParam, name, 1)
+	path := strings.Replace(constants.SecretsByNamePath, ":"+constants.NamespacePathParam, namespace, 1)
+	path = strings.Replace(path, ":"+constants.ResourceNamePathParam, name, 1)
 	return path
 }
