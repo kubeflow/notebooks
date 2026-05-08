@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Modal,
   ModalBody,
@@ -40,28 +40,33 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   const [inputValue, setInputValue] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | ApiErrorEnvelope | null>(null);
+  const isDeletingRef = useRef(false);
 
   useEffect(() => {
     if (!isOpen) {
       setInputValue('');
       setError(null);
+      isDeletingRef.current = false;
+      setIsDeleting(false);
     }
   }, [isOpen]);
 
   const handleDelete = useCallback(async () => {
-    if (inputValue === resourceName) {
-      setIsDeleting(true);
-      setError(null);
-      try {
-        await onDelete(resourceName);
-        onClose();
-      } catch (err) {
-        setError(extractErrorMessage(err));
-      } finally {
-        setIsDeleting(false);
-      }
-    } else {
-      alert('Resource name does not match.');
+    if (isDeletingRef.current || inputValue !== resourceName) {
+      return;
+    }
+
+    isDeletingRef.current = true;
+    setIsDeleting(true);
+    setError(null);
+
+    try {
+      await onDelete(resourceName);
+      onClose();
+    } catch (err) {
+      setError(extractErrorMessage(err));
+      isDeletingRef.current = false;
+      setIsDeleting(false);
     }
   }, [inputValue, onClose, onDelete, resourceName]);
 
@@ -136,8 +141,8 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
             titleOnLoading="Deleting ..."
             onClick={handleDelete}
             variant="danger"
-            isDisabled={inputValue !== resourceName}
-            aria-disabled={inputValue !== resourceName}
+            isDisabled={inputValue !== resourceName || isDeleting}
+            aria-disabled={inputValue !== resourceName || isDeleting}
             data-testid="delete-button"
           >
             Delete
