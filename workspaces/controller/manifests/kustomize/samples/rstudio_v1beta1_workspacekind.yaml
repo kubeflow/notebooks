@@ -10,6 +10,9 @@ spec:
       url: "https://upload.wikimedia.org/wikipedia/commons/1/1b/R_logo.svg"
     logo:
       url: "https://upload.wikimedia.org/wikipedia/commons/1/1b/R_logo.svg"
+    ruleEffects:
+      uiHide: false
+      aclDeny: false
   podTemplate:
     podMetadata:
       labels: {}

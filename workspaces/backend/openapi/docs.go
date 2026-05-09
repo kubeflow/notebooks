@@ -6574,6 +6574,19 @@ const docTemplate = `{
                 }
             }
         },
+        "v1beta1.WorkspaceKindRuleEffects": {
+            "type": "object",
+            "properties": {
+                "aclDeny": {
+                    "description": "if this rule should deny access to the WorkspaceKind\n+kubebuilder:validation:Optional\n+kubebuilder:default:=false",
+                    "type": "boolean"
+                },
+                "uiHide": {
+                    "description": "if this rule should hide the WorkspaceKind from the Workspace Spawner UI\n+kubebuilder:validation:Optional\n+kubebuilder:default:=false",
+                    "type": "boolean"
+                }
+            }
+        },
         "v1beta1.WorkspaceKindServiceAccount": {
             "type": "object",
             "required": [
@@ -6592,7 +6605,8 @@ const docTemplate = `{
                 "description",
                 "displayName",
                 "icon",
-                "logo"
+                "logo",
+                "ruleEffects"
             ],
             "properties": {
                 "deprecated": {
@@ -6628,6 +6642,14 @@ const docTemplate = `{
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.WorkspaceKindAsset"
+                        }
+                    ]
+                },
+                "ruleEffects": {
+                    "description": "the effect of rules on this WorkspaceKind\n - this is used in the WorkspaceKindRules to determine the effect of a rule on a WorkspaceKind",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.WorkspaceKindRuleEffects"
                         }
                     ]
                 }
@@ -6731,6 +6753,21 @@ const docTemplate = `{
                 }
             }
         },
+        "workspacekinds.RuleEffects": {
+            "type": "object",
+            "required": [
+                "aclDeny",
+                "uiHide"
+            ],
+            "properties": {
+                "aclDeny": {
+                    "type": "boolean"
+                },
+                "uiHide": {
+                    "type": "boolean"
+                }
+            }
+        },
         "workspacekinds.WorkspaceKindCreate": {
             "type": "object",
             "required": [
@@ -6762,7 +6799,8 @@ const docTemplate = `{
                 "icon",
                 "logo",
                 "name",
-                "podTemplate"
+                "podTemplate",
+                "ruleEffects"
             ],
             "properties": {
                 "clusterMetrics": {
@@ -6794,6 +6832,9 @@ const docTemplate = `{
                 },
                 "podTemplate": {
                     "$ref": "#/definitions/workspacekinds.PodTemplate"
+                },
+                "ruleEffects": {
+                    "$ref": "#/definitions/workspacekinds.RuleEffects"
                 }
             }
         },

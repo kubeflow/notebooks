@@ -72,5 +72,9 @@ func NewWorkspaceKindModelFromWorkspaceKind(cfg *config.EnvConfig, wsk *kubeflow
 			},
 			Options: *podTemplateOptions,
 		},
+		RuleEffects: RuleEffects{
+			UIHide:  ptr.Deref(wsk.Spec.Spawner.RuleEffects.UIHide, false),
+			ACLDeny: ptr.Deref(wsk.Spec.Spawner.RuleEffects.ACLDeny, false),
+		},
 	}
 }

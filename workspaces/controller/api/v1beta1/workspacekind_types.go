@@ -83,6 +83,10 @@ type WorkspaceKindSpawner struct {
 	// the logo of the WorkspaceKind
 	//  - a 1:1 (card size) logo used in the Workspace Spawner UI
 	Logo WorkspaceKindAsset `json:"logo"`
+
+	// the effect of rules on this WorkspaceKind
+	//  - this is used in the WorkspaceKindRules to determine the effect of a rule on a WorkspaceKind
+	RuleEffects WorkspaceKindRuleEffects `json:"ruleEffects"`
 }
 
 // +kubebuilder:validation:XValidation:message="must specify exactly one of 'url' or 'configMap'",rule="!(has(self.url) && has(self.configMap)) && (has(self.url) || has(self.configMap))"
@@ -122,6 +126,18 @@ type WorkspaceKindAssetConfigMap struct {
 	// the media type of the asset data in the ConfigMap
 	// +kubebuilder:example="image/svg+xml"
 	MediaType WorkspaceKindAssetMediaType `json:"mediaType"`
+}
+
+type WorkspaceKindRuleEffects struct {
+	// if this rule should hide the WorkspaceKind from the Workspace Spawner UI
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default:=false
+	UIHide *bool `json:"uiHide,omitempty"`
+
+	// if this rule should deny access to the WorkspaceKind
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default:=false
+	ACLDeny *bool `json:"aclDeny,omitempty"`
 }
 
 // +kubebuilder:validation:Enum:={"image/svg+xml"}

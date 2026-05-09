@@ -10,6 +10,9 @@ spec:
       url: "https://upload.wikimedia.org/wikipedia/commons/9/9a/Visual_Studio_Code_1.35_icon.svg"
     logo:
       url: "https://upload.wikimedia.org/wikipedia/commons/9/9a/Visual_Studio_Code_1.35_icon.svg"
+    ruleEffects:
+      uiHide: false
+      aclDeny: false
   podTemplate:
     podMetadata:
       labels: {}
