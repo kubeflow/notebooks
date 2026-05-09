@@ -36,6 +36,7 @@ type ImageConfigValue struct {
 	Description    string               `json:"description"`
 	Labels         []OptionLabel        `json:"labels,omitempty"`
 	Hidden         bool                 `json:"hidden"`
+	Restrictions   *Restrictions        `json:"restrictions"` //? should omitempty ?
 	Redirect       *OptionRedirect      `json:"redirect,omitempty"`
 	ClusterMetrics ClusterOptionMetrics `json:"clusterMetrics,omitempty"`
 }
@@ -51,6 +52,7 @@ type PodConfigValue struct {
 	Description    string               `json:"description"`
 	Labels         []OptionLabel        `json:"labels,omitempty"`
 	Hidden         bool                 `json:"hidden"`
+	Restrictions   *Restrictions        `json:"restrictions"` //? should omitempty ?
 	Redirect       *OptionRedirect      `json:"redirect,omitempty"`
 	ClusterMetrics ClusterOptionMetrics `json:"clusterMetrics,omitempty"`
 }
@@ -77,3 +79,8 @@ const (
 	RedirectMessageLevelWarning RedirectMessageLevel = "Warning"
 	RedirectMessageLevelDanger  RedirectMessageLevel = "Danger"
 )
+
+type Restrictions struct {
+	Deny        bool   `json:"deny"`
+	DenyMessage string `json:"denyMessage,omitempty"`
+}

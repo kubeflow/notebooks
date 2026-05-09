@@ -46,11 +46,16 @@ spec:
       #   key: "logo.svg"
       #   mediaType: "image/svg+xml"
 
-    ## ruleEffects determine the effects of any rules associated with this WorkspaceKind
-    ##  - for example, if a rule has `uiHide: true`, then the Workspace of this WorkspaceKind will be hidden from the UI
-    ruleEffects:
-      uiHide: false
-      aclDeny: false
+    ## effect determines how restrictions apply to this WorkspaceKind
+    ##  - `ui.hide: true` hides the WorkspaceKind from the Workspace Spawner UI
+    ##  - `api.hide: true` excludes the WorkspaceKind from the Workspace Spawner API response
+    ##  - `api.deny: true` denies access to the WorkspaceKind (optionally with `denyMessage`)
+    effect:
+      ui:
+        hide: false
+      api:
+        hide: false
+        deny: false
 
   ## ================================================================
   ## DEFINITION CONFIGS

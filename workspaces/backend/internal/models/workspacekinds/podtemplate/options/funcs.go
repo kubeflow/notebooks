@@ -96,14 +96,12 @@ func buildImageConfigValues(wsk *kubefloworgv1beta1.WorkspaceKind, request *List
 			}
 		}
 		imageConfigValues = append(imageConfigValues, ImageConfigValue{
-			Id:          value.Id,
-			DisplayName: value.Spawner.DisplayName,
-			Description: ptr.Deref(value.Spawner.Description, ""),
-			Labels:      buildOptionLabels(value.Spawner.Labels),
-			//
-			// TODO: merge with effect of any matching rules that have `effect.ui.hide`, once WSK rules exist
-			//
+			Id:             value.Id,
+			DisplayName:    value.Spawner.DisplayName,
+			Description:    ptr.Deref(value.Spawner.Description, ""),
+			Labels:         buildOptionLabels(value.Spawner.Labels),
 			Hidden:         ptr.Deref(value.Spawner.Hidden, false),
+			Restrictions:   buildRestrictions(wsk.Spec.Spawner.Effect.API),
 			Redirect:       buildOptionRedirect(value.Redirect),
 			ClusterMetrics: buildClusterOptionMetrics(value.Id, optionMetricsMap),
 		})
@@ -148,14 +146,12 @@ func buildPodConfigValues(wsk *kubefloworgv1beta1.WorkspaceKind, request *ListVa
 			}
 		}
 		podConfigValues = append(podConfigValues, PodConfigValue{
-			Id:          value.Id,
-			DisplayName: value.Spawner.DisplayName,
-			Description: ptr.Deref(value.Spawner.Description, ""),
-			Labels:      buildOptionLabels(value.Spawner.Labels),
-			//
-			// TODO: merge with effect of any matching rules that have `effect.ui.hide`, once WSK rules exist
-			//
+			Id:             value.Id,
+			DisplayName:    value.Spawner.DisplayName,
+			Description:    ptr.Deref(value.Spawner.Description, ""),
+			Labels:         buildOptionLabels(value.Spawner.Labels),
 			Hidden:         ptr.Deref(value.Spawner.Hidden, false),
+			Restrictions:   buildRestrictions(wsk.Spec.Spawner.Effect.API),
 			Redirect:       buildOptionRedirect(value.Redirect),
 			ClusterMetrics: buildClusterOptionMetrics(value.Id, optionMetricsMap),
 		})
@@ -219,4 +215,11 @@ func buildClusterOptionMetrics(optionId string, optionMetricsMap map[string]int3
 	}
 
 	return optionMetrics
+}
+
+func buildRestrictions(effect kubefloworgv1beta1.WorkspaceKindEffectAPI) *Restrictions {
+	return &Restrictions{
+		Deny:        ptr.Deref(effect.Deny, false),
+		DenyMessage: ptr.Deref(effect.DenyMessage, ""),
+	}
 }

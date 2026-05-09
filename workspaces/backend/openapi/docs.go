@@ -1236,7 +1236,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Successful operation. Returns filtered options with ruleEffects.",
+                        "description": "Successful operation. Returns filtered options with hidden and restrictions attributes.",
                         "schema": {
                             "$ref": "#/definitions/api.PodTemplateOptionsEnvelope"
                         }
@@ -2384,7 +2384,8 @@ const docTemplate = `{
                 "description",
                 "displayName",
                 "hidden",
-                "id"
+                "id",
+                "restrictions"
             ],
             "properties": {
                 "clusterMetrics": {
@@ -2410,6 +2411,14 @@ const docTemplate = `{
                 },
                 "redirect": {
                     "$ref": "#/definitions/options.OptionRedirect"
+                },
+                "restrictions": {
+                    "description": "? should omitempty ?",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/options.Restrictions"
+                        }
+                    ]
                 }
             }
         },
@@ -2490,7 +2499,8 @@ const docTemplate = `{
                 "description",
                 "displayName",
                 "hidden",
-                "id"
+                "id",
+                "restrictions"
             ],
             "properties": {
                 "clusterMetrics": {
@@ -2516,6 +2526,14 @@ const docTemplate = `{
                 },
                 "redirect": {
                     "$ref": "#/definitions/options.OptionRedirect"
+                },
+                "restrictions": {
+                    "description": "? should omitempty ?",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/options.Restrictions"
+                        }
+                    ]
                 }
             }
         },
@@ -2561,6 +2579,20 @@ const docTemplate = `{
                 "RedirectMessageLevelWarning",
                 "RedirectMessageLevelDanger"
             ]
+        },
+        "options.Restrictions": {
+            "type": "object",
+            "required": [
+                "deny"
+            ],
+            "properties": {
+                "deny": {
+                    "type": "boolean"
+                },
+                "denyMessage": {
+                    "type": "string"
+                }
+            }
         },
         "pvcs.PVCCreate": {
             "type": "object",
@@ -6364,6 +6396,57 @@ const docTemplate = `{
                 }
             }
         },
+        "v1beta1.WorkspaceKindEffect": {
+            "type": "object",
+            "required": [
+                "api",
+                "ui"
+            ],
+            "properties": {
+                "api": {
+                    "description": "the effect on the Workspace Spawner API\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.WorkspaceKindEffectAPI"
+                        }
+                    ]
+                },
+                "ui": {
+                    "description": "the effect on the Workspace Spawner UI\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.WorkspaceKindEffectUI"
+                        }
+                    ]
+                }
+            }
+        },
+        "v1beta1.WorkspaceKindEffectAPI": {
+            "type": "object",
+            "properties": {
+                "deny": {
+                    "description": "if this rule should deny access to the WorkspaceKind\n+kubebuilder:validation:Optional\n+kubebuilder:default:=false",
+                    "type": "boolean"
+                },
+                "denyMessage": {
+                    "description": "a message to show in Workspace Spawner UI when the WorkspaceKind is denied\n+kubebuilder:validation:Optional\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=256\n+kubebuilder:example:=\"This WorkspaceKind is denied because it is not allowed by admin.\"",
+                    "type": "string"
+                },
+                "hide": {
+                    "description": "if this rule should hide the WorkspaceKind from the Workspace Spawner API (will not served in the API response)\n+kubebuilder:validation:Optional\n+kubebuilder:default:=false",
+                    "type": "boolean"
+                }
+            }
+        },
+        "v1beta1.WorkspaceKindEffectUI": {
+            "type": "object",
+            "properties": {
+                "hide": {
+                    "description": "if this rule should hide the WorkspaceKind from the Workspace Spawner UI\n+kubebuilder:validation:Optional\n+kubebuilder:default:=false",
+                    "type": "boolean"
+                }
+            }
+        },
         "v1beta1.WorkspaceKindPodMetadata": {
             "type": "object",
             "properties": {
@@ -6574,19 +6657,6 @@ const docTemplate = `{
                 }
             }
         },
-        "v1beta1.WorkspaceKindRuleEffects": {
-            "type": "object",
-            "properties": {
-                "aclDeny": {
-                    "description": "if this rule should deny access to the WorkspaceKind\n+kubebuilder:validation:Optional\n+kubebuilder:default:=false",
-                    "type": "boolean"
-                },
-                "uiHide": {
-                    "description": "if this rule should hide the WorkspaceKind from the Workspace Spawner UI\n+kubebuilder:validation:Optional\n+kubebuilder:default:=false",
-                    "type": "boolean"
-                }
-            }
-        },
         "v1beta1.WorkspaceKindServiceAccount": {
             "type": "object",
             "required": [
@@ -6604,9 +6674,9 @@ const docTemplate = `{
             "required": [
                 "description",
                 "displayName",
+                "effect",
                 "icon",
-                "logo",
-                "ruleEffects"
+                "logo"
             ],
             "properties": {
                 "deprecated": {
@@ -6625,6 +6695,14 @@ const docTemplate = `{
                     "description": "the display name of the WorkspaceKind\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=128\n+kubebuilder:example:=\"JupyterLab Notebook\"",
                     "type": "string"
                 },
+                "effect": {
+                    "description": "TODO: Effect will be inside the FilterRules field later with match fields\nthe effect of restrictions on this WorkspaceKind\n - this is used in the WorkspaceKindRules to determine the effect of a rule on a WorkspaceKind",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.WorkspaceKindEffect"
+                        }
+                    ]
+                },
                 "hidden": {
                     "description": "if this WorkspaceKind should be hidden from the Workspace Spawner UI\n+kubebuilder:validation:Optional\n+kubebuilder:default:=false",
                     "type": "boolean"
@@ -6642,14 +6720,6 @@ const docTemplate = `{
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.WorkspaceKindAsset"
-                        }
-                    ]
-                },
-                "ruleEffects": {
-                    "description": "the effect of rules on this WorkspaceKind\n - this is used in the WorkspaceKindRules to determine the effect of a rule on a WorkspaceKind",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.WorkspaceKindRuleEffects"
                         }
                     ]
                 }
@@ -6753,18 +6823,18 @@ const docTemplate = `{
                 }
             }
         },
-        "workspacekinds.RuleEffects": {
+        "workspacekinds.Restrictions": {
             "type": "object",
             "required": [
-                "aclDeny",
-                "uiHide"
+                "deny"
             ],
             "properties": {
-                "aclDeny": {
+                "deny": {
                     "type": "boolean"
                 },
-                "uiHide": {
-                    "type": "boolean"
+                "denyMessage": {
+                    "description": "? should be omitempty if deny is false ?",
+                    "type": "string"
                 }
             }
         },
@@ -6800,7 +6870,7 @@ const docTemplate = `{
                 "logo",
                 "name",
                 "podTemplate",
-                "ruleEffects"
+                "restrictions"
             ],
             "properties": {
                 "clusterMetrics": {
@@ -6833,8 +6903,8 @@ const docTemplate = `{
                 "podTemplate": {
                     "$ref": "#/definitions/workspacekinds.PodTemplate"
                 },
-                "ruleEffects": {
-                    "$ref": "#/definitions/workspacekinds.RuleEffects"
+                "restrictions": {
+                    "$ref": "#/definitions/workspacekinds.Restrictions"
                 }
             }
         },

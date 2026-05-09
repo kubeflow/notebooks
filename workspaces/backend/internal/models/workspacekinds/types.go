@@ -28,11 +28,11 @@ type WorkspaceKindListItem struct {
 	Deprecated         bool               `json:"deprecated"`
 	DeprecationMessage string             `json:"deprecationMessage"`
 	Hidden             bool               `json:"hidden"`
+	Restrictions       Restrictions       `json:"restrictions"`
 	Icon               assets.ImageRef    `json:"icon"`
 	Logo               assets.ImageRef    `json:"logo"`
 	ClusterMetrics     ClusterKindMetrics `json:"clusterMetrics"`
 	PodTemplate        PodTemplate        `json:"podTemplate"`
-	RuleEffects        RuleEffects        `json:"ruleEffects"`
 }
 
 type ClusterKindMetrics struct {
@@ -58,7 +58,7 @@ type PodVolumeMounts struct {
 	Home string `json:"home"`
 }
 
-type RuleEffects struct {
-	UIHide  bool `json:"uiHide"`
-	ACLDeny bool `json:"aclDeny"`
+type Restrictions struct {
+	Deny        bool   `json:"deny"`
+	DenyMessage string `json:"denyMessage,omitempty"` //? should be omitempty if deny is false ?
 }

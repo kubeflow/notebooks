@@ -56,8 +56,12 @@ func NewWorkspaceKindModelFromWorkspaceKind(cfg *config.EnvConfig, wsk *kubeflow
 		Deprecated:         ptr.Deref(wsk.Spec.Spawner.Deprecated, false),
 		DeprecationMessage: ptr.Deref(wsk.Spec.Spawner.DeprecationMessage, ""),
 		Hidden:             ptr.Deref(wsk.Spec.Spawner.Hidden, false),
-		Icon:               assets.NewImageRefFromWorkspaceKindAssetIcon(cfg, wsk.Spec.Spawner.Icon, wsk.Status.SpawnerIcon, wsk.Name),
-		Logo:               assets.NewImageRefFromWorkspaceKindAssetLogo(cfg, wsk.Spec.Spawner.Logo, wsk.Status.SpawnerLogo, wsk.Name),
+		Restrictions: Restrictions{
+			Deny:        ptr.Deref(wsk.Spec.Spawner.Effect.API.Deny, false),
+			DenyMessage: ptr.Deref(wsk.Spec.Spawner.Effect.API.DenyMessage, ""),
+		},
+		Icon: assets.NewImageRefFromWorkspaceKindAssetIcon(cfg, wsk.Spec.Spawner.Icon, wsk.Status.SpawnerIcon, wsk.Name),
+		Logo: assets.NewImageRefFromWorkspaceKindAssetLogo(cfg, wsk.Spec.Spawner.Logo, wsk.Status.SpawnerLogo, wsk.Name),
 		// TODO: in the future will need to support including exactly one of clusterMetrics or namespaceMetrics based on request context
 		ClusterMetrics: ClusterKindMetrics{
 			Workspaces: wsk.Status.Workspaces,
@@ -71,10 +75,6 @@ func NewWorkspaceKindModelFromWorkspaceKind(cfg *config.EnvConfig, wsk *kubeflow
 				Home: wsk.Spec.PodTemplate.VolumeMounts.Home,
 			},
 			Options: *podTemplateOptions,
-		},
-		RuleEffects: RuleEffects{
-			UIHide:  ptr.Deref(wsk.Spec.Spawner.RuleEffects.UIHide, false),
-			ACLDeny: ptr.Deref(wsk.Spec.Spawner.RuleEffects.ACLDeny, false),
 		},
 	}
 }
