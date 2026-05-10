@@ -84,8 +84,8 @@ type WorkspaceKindSpawner struct {
 	//  - a 1:1 (card size) logo used in the Workspace Spawner UI
 	Logo WorkspaceKindAsset `json:"logo"`
 
-	// effect configures temporary WorkspaceKind level API and UI restrictions.
-	// This field is expected to move into filterRules when compatibility selectors are added.
+	// effect configures temporary WorkspaceKind level API and UI effects for compatibility selectors.
+	// These effects are evaluated by the backend and exposed as hidden and restrictions in API responses.
 	//  - `ui.hide: true` hides the WorkspaceKind from the Workspace Spawner UI
 	//  - `api.hide: true` excludes the WorkspaceKind from the Workspace Spawner API response
 	//  - `api.deny: true` denies access to the WorkspaceKind (optionally with `denyMessage`)
@@ -133,23 +133,45 @@ type WorkspaceKindAssetConfigMap struct {
 }
 
 type WorkspaceKindEffect struct {
-	// the effect on the Workspace Spawner API
+	// the UI effect on the Workspace Spawner UI
+	// +kubebuilder:validation:Optional
+	UI *WorkspaceKindEffectUI `json:"ui,omitempty"`
+
+	// the API effect on the Workspace Spawner API
 	// +kubebuilder:validation:Optional
 	API *WorkspaceKindEffectAPI `json:"api,omitempty"`
 }
 
+type WorkspaceKindEffectUI struct {
+	// if this effect should hide the WorkspaceKind from the Workspace Spawner UI
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default:=false
+	Hide *bool `json:"hide,omitempty"`
+}
+
 type WorkspaceKindEffectAPI struct {
-	// if this rule should deny access to the WorkspaceKind
+	// if this is true, the WorkspaceKind should be excluded from the API response
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default:=false
+	Hide *bool `json:"hide,omitempty"`
+
+	// if this is true, the WorkspaceKind should be denied access to the API
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default:=false
 	Deny *bool `json:"deny,omitempty"`
 
 	// a message to show in Workspace Spawner UI when the WorkspaceKind is denied
 	// +kubebuilder:validation:Optional
+	DenyMessage *DenyMessage `json:"denyMessage,omitempty"`
+}
+
+type DenyMessage struct {
+	// the message to show in Workspace Spawner UI when the WorkspaceKind is denied
+	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:MinLength:=2
 	// +kubebuilder:validation:MaxLength:=256
 	// +kubebuilder:example:="This WorkspaceKind is denied because it is not allowed by admin."
-	DenyMessage *string `json:"denyMessage,omitempty"`
+	Text string `json:"text,omitempty"`
 }
 
 // +kubebuilder:validation:Enum:={"image/svg+xml"}

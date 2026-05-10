@@ -14,9 +14,8 @@ spec:
       ui:
         hide: false
       api:
-        hide: true
-        deny: true
-        denyMessage: "This WorkspaceKind is denied because it is not allowed by admin."
+        hide: false
+        deny: false
   podTemplate:
     podMetadata:
       labels: {}

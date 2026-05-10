@@ -31,10 +31,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/common"
+
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/common"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/podtemplate/options"
+
+	"k8s.io/utils/ptr"
 )
 
 var _ = Describe("WorkspaceKinds Handler", func() {
@@ -71,8 +73,10 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			By("creating WorkspaceKind 1")
 			workspaceKind1 := NewExampleWorkspaceKind(workspaceKind1Name)
 			workspaceKind1.Spec.Spawner.Effect.API = &kubefloworgv1beta1.WorkspaceKindEffectAPI{
-				Deny:        ptr.To(true),
-				DenyMessage: ptr.To("This WorkspaceKind is denied because it is not allowed by admin."),
+				Deny: ptr.To(true),
+				DenyMessage: &kubefloworgv1beta1.DenyMessage{
+					Text: "This WorkspaceKind is denied because it is not allowed by admin.",
+				},
 			}
 			Expect(k8sClient.Create(ctx, workspaceKind1)).To(Succeed())
 

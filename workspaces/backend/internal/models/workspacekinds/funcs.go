@@ -17,11 +17,13 @@ limitations under the License.
 package workspacekinds
 
 import (
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common/assets"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/common"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/podtemplate/options"
-	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+
 	"k8s.io/utils/ptr"
 )
 
@@ -55,7 +57,7 @@ func NewWorkspaceKindModelFromWorkspaceKind(cfg *config.EnvConfig, wsk *kubeflow
 		Description:        wsk.Spec.Spawner.Description,
 		Deprecated:         ptr.Deref(wsk.Spec.Spawner.Deprecated, false),
 		DeprecationMessage: ptr.Deref(wsk.Spec.Spawner.DeprecationMessage, ""),
-		Hidden:             ptr.Deref(wsk.Spec.Spawner.Hidden, false),
+		Hidden:             spawnerIsHiddenForList(&wsk.Spec.Spawner),
 		Restrictions:       buildRestrictions(wsk.Spec.Spawner.Effect.API),
 		Icon:               assets.NewImageRefFromWorkspaceKindAssetIcon(cfg, wsk.Spec.Spawner.Icon, wsk.Status.SpawnerIcon, wsk.Name),
 		Logo:               assets.NewImageRefFromWorkspaceKindAssetLogo(cfg, wsk.Spec.Spawner.Logo, wsk.Status.SpawnerLogo, wsk.Name),
@@ -76,15 +78,33 @@ func NewWorkspaceKindModelFromWorkspaceKind(cfg *config.EnvConfig, wsk *kubeflow
 	}
 }
 
+// spawnerIsHiddenForList combines the static spawner.hidden value with effect.ui.hide.
+func spawnerIsHiddenForList(sp *kubefloworgv1beta1.WorkspaceKindSpawner) bool {
+	if ptr.Deref(sp.Hidden, false) {
+		return true
+	}
+	if sp.Effect.UI != nil && ptr.Deref(sp.Effect.UI.Hide, false) {
+		return true
+	}
+	return false
+}
+
+func IsAPIHidden(wsk *kubefloworgv1beta1.WorkspaceKind) bool {
+	if wsk.Spec.Spawner.Effect.API == nil {
+		return false
+	}
+	return ptr.Deref(wsk.Spec.Spawner.Effect.API.Hide, false)
+}
+
 func buildRestrictions(effect *kubefloworgv1beta1.WorkspaceKindEffectAPI) common.Restrictions {
 	if effect == nil {
 		return common.Restrictions{}
 	}
-
-	return common.Restrictions{
+	r := common.Restrictions{
 		Deny: ptr.Deref(effect.Deny, false),
-		DenyMessage: &common.DenyMessage{
-			Text: ptr.Deref(effect.DenyMessage, ""),
-		},
 	}
+	if effect.DenyMessage != nil && effect.DenyMessage.Text != "" {
+		r.DenyMessage = &common.DenyMessage{Text: effect.DenyMessage.Text}
+	}
+	return r
 }

@@ -5945,6 +5945,15 @@ const docTemplate = `{
                 }
             }
         },
+        "v1beta1.DenyMessage": {
+            "type": "object",
+            "properties": {
+                "text": {
+                    "description": "the message to show in Workspace Spawner UI when the WorkspaceKind is denied\n+kubebuilder:validation:Optional\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=256\n+kubebuilder:example:=\"This WorkspaceKind is denied because it is not allowed by admin.\"",
+                    "type": "string"
+                }
+            }
+        },
         "v1beta1.HTTPProxy": {
             "type": "object",
             "properties": {
@@ -6401,10 +6410,18 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "api": {
-                    "description": "the effect on the Workspace Spawner API\n+kubebuilder:validation:Optional",
+                    "description": "the API effect on the Workspace Spawner API\n+kubebuilder:validation:Optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.WorkspaceKindEffectAPI"
+                        }
+                    ]
+                },
+                "ui": {
+                    "description": "the UI effect on the Workspace Spawner UI\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.WorkspaceKindEffectUI"
                         }
                     ]
                 }
@@ -6414,12 +6431,29 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "deny": {
-                    "description": "if this rule should deny access to the WorkspaceKind\n+kubebuilder:validation:Optional\n+kubebuilder:default:=false",
+                    "description": "if this is true, the WorkspaceKind should be denied access to the API\n+kubebuilder:validation:Optional\n+kubebuilder:default:=false",
                     "type": "boolean"
                 },
                 "denyMessage": {
-                    "description": "a message to show in Workspace Spawner UI when the WorkspaceKind is denied\n+kubebuilder:validation:Optional\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=256\n+kubebuilder:example:=\"This WorkspaceKind is denied because it is not allowed by admin.\"",
-                    "type": "string"
+                    "description": "a message to show in Workspace Spawner UI when the WorkspaceKind is denied\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.DenyMessage"
+                        }
+                    ]
+                },
+                "hide": {
+                    "description": "if this is true, the WorkspaceKind should be excluded from the API response\n+kubebuilder:validation:Optional\n+kubebuilder:default:=false",
+                    "type": "boolean"
+                }
+            }
+        },
+        "v1beta1.WorkspaceKindEffectUI": {
+            "type": "object",
+            "properties": {
+                "hide": {
+                    "description": "if this effect should hide the WorkspaceKind from the Workspace Spawner UI\n+kubebuilder:validation:Optional\n+kubebuilder:default:=false",
+                    "type": "boolean"
                 }
             }
         },
@@ -6671,7 +6705,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "effect": {
-                    "description": "effect configures temporary WorkspaceKind-level API restrictions.\nThis field is expected to move into filterRules when compatibility selectors are added.\n+kubebuilder:validation:Optional // TODO: Will not be optional once filterRules are added",
+                    "description": "effect configures temporary WorkspaceKind level API and UI effects for compatibility selectors.\nThese effects are evaluated by the backend and exposed as hidden and restrictions in API responses.\n - ` + "`" + `ui.hide: true` + "`" + ` hides the WorkspaceKind from the Workspace Spawner UI\n - ` + "`" + `api.hide: true` + "`" + ` excludes the WorkspaceKind from the Workspace Spawner API response\n - ` + "`" + `api.deny: true` + "`" + ` denies access to the WorkspaceKind (optionally with ` + "`" + `denyMessage` + "`" + `)\n+kubebuilder:validation:Optional // TODO: Will not be optional once filterRules are added",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.WorkspaceKindEffect"
