@@ -17,11 +17,13 @@ limitations under the License.
 package workspacekinds
 
 import (
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common/assets"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/common"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/podtemplate/options"
-	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+
 	"k8s.io/utils/ptr"
 )
 

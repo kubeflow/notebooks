@@ -38,8 +38,8 @@ import (
 	"k8s.io/utils/ptr"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/common"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/common"
 )
 
 var _ = Describe("WorkspaceKinds Handler", func() {
@@ -153,7 +153,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			for _, item := range response.Data {
 				if item.Name == workspaceKind1Name {
 					Expect(item.Restrictions).To(Equal(common.Restrictions{
-						Deny:        true,
+						Deny: true,
 						DenyMessage: &common.DenyMessage{
 							Text: "This WorkspaceKind is denied because it is not allowed by admin.",
 						},

@@ -6669,7 +6669,7 @@
                     "type": "string"
                 },
                 "effect": {
-                    "description": "effect configures temporary WorkspaceKind-level API restrictions.\nThis field is expected to move into filterRules when compatibility selectors are added.\n+kubebuilder:validation:Optional // TODO: Will not be optional once filterRules are added",
+                    "description": "effect configures temporary WorkspaceKind level API and UI restrictions.\nThis field is expected to move into filterRules when compatibility selectors are added.\n - `ui.hide: true` hides the WorkspaceKind from the Workspace Spawner UI\n - `api.hide: true` excludes the WorkspaceKind from the Workspace Spawner API response\n - `api.deny: true` denies access to the WorkspaceKind (optionally with `denyMessage`)\n+kubebuilder:validation:Optional // TODO: Will not be optional once filterRules are added",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.WorkspaceKindEffect"

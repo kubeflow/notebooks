@@ -19,11 +19,12 @@ package options
 import (
 	"fmt"
 
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/common"
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
+
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/common"
 )
 
 func NewPodTemplateOptionsModelFromWorkspaceKind(wsk *kubefloworgv1beta1.WorkspaceKind, request *ListValuesRequest) (*PodTemplateOptions, error) {
