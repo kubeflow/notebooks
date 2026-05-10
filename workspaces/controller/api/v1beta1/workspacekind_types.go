@@ -89,7 +89,7 @@ type WorkspaceKindSpawner struct {
 	//  - `ui.hide: true` hides the WorkspaceKind from the Workspace Spawner UI
 	//  - `api.hide: true` excludes the WorkspaceKind from the Workspace Spawner API response
 	//  - `api.deny: true` denies access to the WorkspaceKind (optionally with `denyMessage`)
-	// +kubebuilder:validation:Optional // TODO: Will not be optional once filterRules are added
+	// +kubebuilder:validation:Optional
 	Effect WorkspaceKindEffect `json:"effect,omitempty"`
 }
 

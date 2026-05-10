@@ -6705,7 +6705,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "effect": {
-                    "description": "effect configures temporary WorkspaceKind level API and UI effects for compatibility selectors.\nThese effects are evaluated by the backend and exposed as hidden and restrictions in API responses.\n - ` + "`" + `ui.hide: true` + "`" + ` hides the WorkspaceKind from the Workspace Spawner UI\n - ` + "`" + `api.hide: true` + "`" + ` excludes the WorkspaceKind from the Workspace Spawner API response\n - ` + "`" + `api.deny: true` + "`" + ` denies access to the WorkspaceKind (optionally with ` + "`" + `denyMessage` + "`" + `)\n+kubebuilder:validation:Optional // TODO: Will not be optional once filterRules are added",
+                    "description": "effect configures temporary WorkspaceKind level API and UI effects for compatibility selectors.\nThese effects are evaluated by the backend and exposed as hidden and restrictions in API responses.\n - ` + "`" + `ui.hide: true` + "`" + ` hides the WorkspaceKind from the Workspace Spawner UI\n - ` + "`" + `api.hide: true` + "`" + ` excludes the WorkspaceKind from the Workspace Spawner API response\n - ` + "`" + `api.deny: true` + "`" + ` denies access to the WorkspaceKind (optionally with ` + "`" + `denyMessage` + "`" + `)\n+kubebuilder:validation:Optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.WorkspaceKindEffect"
