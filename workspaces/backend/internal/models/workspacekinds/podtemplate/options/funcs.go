@@ -19,11 +19,11 @@ package options
 import (
 	"fmt"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/common"
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
-
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 )
 
 func NewPodTemplateOptionsModelFromWorkspaceKind(wsk *kubefloworgv1beta1.WorkspaceKind, request *ListValuesRequest) (*PodTemplateOptions, error) {
@@ -96,12 +96,14 @@ func buildImageConfigValues(wsk *kubefloworgv1beta1.WorkspaceKind, request *List
 			}
 		}
 		imageConfigValues = append(imageConfigValues, ImageConfigValue{
-			Id:             value.Id,
-			DisplayName:    value.Spawner.DisplayName,
-			Description:    ptr.Deref(value.Spawner.Description, ""),
-			Labels:         buildOptionLabels(value.Spawner.Labels),
-			Hidden:         ptr.Deref(value.Spawner.Hidden, false),
-			Restrictions:   buildRestrictions(wsk.Spec.Spawner.Effect.API),
+			Id:          value.Id,
+			DisplayName: value.Spawner.DisplayName,
+			Description: ptr.Deref(value.Spawner.Description, ""),
+			Labels:      buildOptionLabels(value.Spawner.Labels),
+			Hidden:      ptr.Deref(value.Spawner.Hidden, false),
+			// Option level restrictions are independent from WorkspaceKind level restrictions.
+			// Keep options unrestricted until per option restriction rulezs are evaluated.
+			Restrictions:   common.Restrictions{},
 			Redirect:       buildOptionRedirect(value.Redirect),
 			ClusterMetrics: buildClusterOptionMetrics(value.Id, optionMetricsMap),
 		})
@@ -146,12 +148,14 @@ func buildPodConfigValues(wsk *kubefloworgv1beta1.WorkspaceKind, request *ListVa
 			}
 		}
 		podConfigValues = append(podConfigValues, PodConfigValue{
-			Id:             value.Id,
-			DisplayName:    value.Spawner.DisplayName,
-			Description:    ptr.Deref(value.Spawner.Description, ""),
-			Labels:         buildOptionLabels(value.Spawner.Labels),
-			Hidden:         ptr.Deref(value.Spawner.Hidden, false),
-			Restrictions:   buildRestrictions(wsk.Spec.Spawner.Effect.API),
+			Id:          value.Id,
+			DisplayName: value.Spawner.DisplayName,
+			Description: ptr.Deref(value.Spawner.Description, ""),
+			Labels:      buildOptionLabels(value.Spawner.Labels),
+			Hidden:      ptr.Deref(value.Spawner.Hidden, false),
+			// Option level restrictions are independent from WorkspaceKind level restrictions.
+			// Keep options unrestricted until per option restriction rules are evaluated.
+			Restrictions:   common.Restrictions{},
 			Redirect:       buildOptionRedirect(value.Redirect),
 			ClusterMetrics: buildClusterOptionMetrics(value.Id, optionMetricsMap),
 		})
@@ -215,11 +219,4 @@ func buildClusterOptionMetrics(optionId string, optionMetricsMap map[string]int3
 	}
 
 	return optionMetrics
-}
-
-func buildRestrictions(effect kubefloworgv1beta1.WorkspaceKindEffectAPI) *Restrictions {
-	return &Restrictions{
-		Deny:        ptr.Deref(effect.Deny, false),
-		DenyMessage: ptr.Deref(effect.DenyMessage, ""),
-	}
 }

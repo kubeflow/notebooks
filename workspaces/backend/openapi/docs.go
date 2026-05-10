@@ -2203,6 +2203,31 @@ const docTemplate = `{
                 }
             }
         },
+        "common.DenyMessage": {
+            "type": "object",
+            "required": [
+                "text"
+            ],
+            "properties": {
+                "text": {
+                    "type": "string"
+                }
+            }
+        },
+        "common.Restrictions": {
+            "type": "object",
+            "required": [
+                "deny"
+            ],
+            "properties": {
+                "deny": {
+                    "type": "boolean"
+                },
+                "denyMessage": {
+                    "$ref": "#/definitions/common.DenyMessage"
+                }
+            }
+        },
         "field.ErrorType": {
             "type": "string",
             "enum": [
@@ -2413,12 +2438,7 @@ const docTemplate = `{
                     "$ref": "#/definitions/options.OptionRedirect"
                 },
                 "restrictions": {
-                    "description": "? should omitempty ?",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/options.Restrictions"
-                        }
-                    ]
+                    "$ref": "#/definitions/common.Restrictions"
                 }
             }
         },
@@ -2528,12 +2548,7 @@ const docTemplate = `{
                     "$ref": "#/definitions/options.OptionRedirect"
                 },
                 "restrictions": {
-                    "description": "? should omitempty ?",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/options.Restrictions"
-                        }
-                    ]
+                    "$ref": "#/definitions/common.Restrictions"
                 }
             }
         },
@@ -2579,20 +2594,6 @@ const docTemplate = `{
                 "RedirectMessageLevelWarning",
                 "RedirectMessageLevelDanger"
             ]
-        },
-        "options.Restrictions": {
-            "type": "object",
-            "required": [
-                "deny"
-            ],
-            "properties": {
-                "deny": {
-                    "type": "boolean"
-                },
-                "denyMessage": {
-                    "type": "string"
-                }
-            }
         },
         "pvcs.PVCCreate": {
             "type": "object",
@@ -6398,24 +6399,12 @@ const docTemplate = `{
         },
         "v1beta1.WorkspaceKindEffect": {
             "type": "object",
-            "required": [
-                "api",
-                "ui"
-            ],
             "properties": {
                 "api": {
                     "description": "the effect on the Workspace Spawner API\n+kubebuilder:validation:Optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.WorkspaceKindEffectAPI"
-                        }
-                    ]
-                },
-                "ui": {
-                    "description": "the effect on the Workspace Spawner UI\n+kubebuilder:validation:Optional",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.WorkspaceKindEffectUI"
                         }
                     ]
                 }
@@ -6431,19 +6420,6 @@ const docTemplate = `{
                 "denyMessage": {
                     "description": "a message to show in Workspace Spawner UI when the WorkspaceKind is denied\n+kubebuilder:validation:Optional\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=256\n+kubebuilder:example:=\"This WorkspaceKind is denied because it is not allowed by admin.\"",
                     "type": "string"
-                },
-                "hide": {
-                    "description": "if this rule should hide the WorkspaceKind from the Workspace Spawner API (will not served in the API response)\n+kubebuilder:validation:Optional\n+kubebuilder:default:=false",
-                    "type": "boolean"
-                }
-            }
-        },
-        "v1beta1.WorkspaceKindEffectUI": {
-            "type": "object",
-            "properties": {
-                "hide": {
-                    "description": "if this rule should hide the WorkspaceKind from the Workspace Spawner UI\n+kubebuilder:validation:Optional\n+kubebuilder:default:=false",
-                    "type": "boolean"
                 }
             }
         },
@@ -6674,7 +6650,6 @@ const docTemplate = `{
             "required": [
                 "description",
                 "displayName",
-                "effect",
                 "icon",
                 "logo"
             ],
@@ -6696,7 +6671,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "effect": {
-                    "description": "TODO: Effect will be inside the FilterRules field later with match fields\nthe effect of restrictions on this WorkspaceKind\n - this is used in the WorkspaceKindRules to determine the effect of a rule on a WorkspaceKind",
+                    "description": "effect configures temporary WorkspaceKind-level API restrictions.\nThis field is expected to move into filterRules when compatibility selectors are added.\n+kubebuilder:validation:Optional // TODO: Will not be optional once filterRules are added",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.WorkspaceKindEffect"
@@ -6823,21 +6798,6 @@ const docTemplate = `{
                 }
             }
         },
-        "workspacekinds.Restrictions": {
-            "type": "object",
-            "required": [
-                "deny"
-            ],
-            "properties": {
-                "deny": {
-                    "type": "boolean"
-                },
-                "denyMessage": {
-                    "description": "? should be omitempty if deny is false ?",
-                    "type": "string"
-                }
-            }
-        },
         "workspacekinds.WorkspaceKindCreate": {
             "type": "object",
             "required": [
@@ -6904,7 +6864,7 @@ const docTemplate = `{
                     "$ref": "#/definitions/workspacekinds.PodTemplate"
                 },
                 "restrictions": {
-                    "$ref": "#/definitions/workspacekinds.Restrictions"
+                    "$ref": "#/definitions/common.Restrictions"
                 }
             }
         },

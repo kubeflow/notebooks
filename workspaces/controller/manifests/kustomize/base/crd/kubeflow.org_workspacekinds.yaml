@@ -4507,8 +4507,11 @@ spec:
                     type: string
                   effect:
                     description: |-
-                      the effect of restrictions on this WorkspaceKind
-                       - this is used in the WorkspaceKindRules to determine the effect of a rule on a WorkspaceKind
+                      effect configures temporary WorkspaceKind level API and UI restrictions.
+                      This field is expected to move into filterRules when compatibility selectors are added.
+                       - `ui.hide: true` hides the WorkspaceKind from the Workspace Spawner UI
+                       - `api.hide: true` excludes the WorkspaceKind from the Workspace Spawner API response
+                       - `api.deny: true` denies access to the WorkspaceKind (optionally with `denyMessage`)
                     properties:
                       api:
                         description: the effect on the Workspace Spawner API
@@ -4525,21 +4528,6 @@ spec:
                             maxLength: 256
                             minLength: 2
                             type: string
-                          hide:
-                            default: false
-                            description: if this rule should hide the WorkspaceKind
-                              from the Workspace Spawner API (will not served in the
-                              API response)
-                            type: boolean
-                        type: object
-                      ui:
-                        description: the effect on the Workspace Spawner UI
-                        properties:
-                          hide:
-                            default: false
-                            description: if this rule should hide the WorkspaceKind
-                              from the Workspace Spawner UI
-                            type: boolean
                         type: object
                     type: object
                   hidden:
@@ -4652,7 +4640,6 @@ spec:
                 required:
                 - description
                 - displayName
-                - effect
                 - icon
                 - logo
                 type: object

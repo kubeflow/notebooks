@@ -17,12 +17,12 @@ limitations under the License.
 package workspacekinds
 
 import (
-	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
-	"k8s.io/utils/ptr"
-
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common/assets"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/common"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/podtemplate/options"
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	"k8s.io/utils/ptr"
 )
 
 // NewWorkspaceKindModelFromWorkspaceKind creates a WorkspaceKind model from a WorkspaceKind object.
@@ -56,12 +56,9 @@ func NewWorkspaceKindModelFromWorkspaceKind(cfg *config.EnvConfig, wsk *kubeflow
 		Deprecated:         ptr.Deref(wsk.Spec.Spawner.Deprecated, false),
 		DeprecationMessage: ptr.Deref(wsk.Spec.Spawner.DeprecationMessage, ""),
 		Hidden:             ptr.Deref(wsk.Spec.Spawner.Hidden, false),
-		Restrictions: Restrictions{
-			Deny:        ptr.Deref(wsk.Spec.Spawner.Effect.API.Deny, false),
-			DenyMessage: ptr.Deref(wsk.Spec.Spawner.Effect.API.DenyMessage, ""),
-		},
-		Icon: assets.NewImageRefFromWorkspaceKindAssetIcon(cfg, wsk.Spec.Spawner.Icon, wsk.Status.SpawnerIcon, wsk.Name),
-		Logo: assets.NewImageRefFromWorkspaceKindAssetLogo(cfg, wsk.Spec.Spawner.Logo, wsk.Status.SpawnerLogo, wsk.Name),
+		Restrictions:       buildRestrictions(wsk.Spec.Spawner.Effect.API),
+		Icon:               assets.NewImageRefFromWorkspaceKindAssetIcon(cfg, wsk.Spec.Spawner.Icon, wsk.Status.SpawnerIcon, wsk.Name),
+		Logo:               assets.NewImageRefFromWorkspaceKindAssetLogo(cfg, wsk.Spec.Spawner.Logo, wsk.Status.SpawnerLogo, wsk.Name),
 		// TODO: in the future will need to support including exactly one of clusterMetrics or namespaceMetrics based on request context
 		ClusterMetrics: ClusterKindMetrics{
 			Workspaces: wsk.Status.Workspaces,
@@ -75,6 +72,19 @@ func NewWorkspaceKindModelFromWorkspaceKind(cfg *config.EnvConfig, wsk *kubeflow
 				Home: wsk.Spec.PodTemplate.VolumeMounts.Home,
 			},
 			Options: *podTemplateOptions,
+		},
+	}
+}
+
+func buildRestrictions(effect *kubefloworgv1beta1.WorkspaceKindEffectAPI) common.Restrictions {
+	if effect == nil {
+		return common.Restrictions{}
+	}
+
+	return common.Restrictions{
+		Deny: ptr.Deref(effect.Deny, false),
+		DenyMessage: &common.DenyMessage{
+			Text: ptr.Deref(effect.DenyMessage, ""),
 		},
 	}
 }

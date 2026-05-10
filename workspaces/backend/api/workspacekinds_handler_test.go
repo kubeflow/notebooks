@@ -38,6 +38,7 @@ import (
 	"k8s.io/utils/ptr"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/common"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds"
 )
 
@@ -74,6 +75,10 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 
 			By("creating WorkspaceKind 1")
 			workspaceKind1 := NewExampleWorkspaceKind(workspaceKind1Name)
+			workspaceKind1.Spec.Spawner.Effect.API = &kubefloworgv1beta1.WorkspaceKindEffectAPI{
+				Deny:        ptr.To(true),
+				DenyMessage: ptr.To("This WorkspaceKind is denied because it is not allowed by admin."),
+			}
 			Expect(k8sClient.Create(ctx, workspaceKind1)).To(Succeed())
 
 			By("creating WorkspaceKind 2")
@@ -145,6 +150,16 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 				models.NewWorkspaceKindModelFromWorkspaceKind(a.Config, workspacekind1),
 				models.NewWorkspaceKindModelFromWorkspaceKind(a.Config, workspacekind2),
 			))
+			for _, item := range response.Data {
+				if item.Name == workspaceKind1Name {
+					Expect(item.Restrictions).To(Equal(common.Restrictions{
+						Deny:        true,
+						DenyMessage: &common.DenyMessage{
+							Text: "This WorkspaceKind is denied because it is not allowed by admin.",
+						},
+					}))
+				}
+			}
 
 			By("ensuring the wrapped data can be marshaled to JSON and back to []WorkspaceKind")
 			dataJSON, err := json.Marshal(response.Data)

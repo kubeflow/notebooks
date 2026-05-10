@@ -84,10 +84,13 @@ type WorkspaceKindSpawner struct {
 	//  - a 1:1 (card size) logo used in the Workspace Spawner UI
 	Logo WorkspaceKindAsset `json:"logo"`
 
-	// TODO: Effect will be inside the FilterRules field later with match fields
-	// the effect of restrictions on this WorkspaceKind
-	//  - this is used in the WorkspaceKindRules to determine the effect of a rule on a WorkspaceKind
-	Effect WorkspaceKindEffect `json:"effect"`
+	// effect configures temporary WorkspaceKind level API and UI restrictions.
+	// This field is expected to move into filterRules when compatibility selectors are added.
+	//  - `ui.hide: true` hides the WorkspaceKind from the Workspace Spawner UI
+	//  - `api.hide: true` excludes the WorkspaceKind from the Workspace Spawner API response
+	//  - `api.deny: true` denies access to the WorkspaceKind (optionally with `denyMessage`)
+	// +kubebuilder:validation:Optional // TODO: Will not be optional once filterRules are added
+	Effect WorkspaceKindEffect `json:"effect,omitempty"`
 }
 
 // +kubebuilder:validation:XValidation:message="must specify exactly one of 'url' or 'configMap'",rule="!(has(self.url) && has(self.configMap)) && (has(self.url) || has(self.configMap))"
@@ -130,28 +133,12 @@ type WorkspaceKindAssetConfigMap struct {
 }
 
 type WorkspaceKindEffect struct {
-	// the effect on the Workspace Spawner UI
-	// +kubebuilder:validation:Optional
-	UI WorkspaceKindEffectUI `json:"ui"`
-
 	// the effect on the Workspace Spawner API
 	// +kubebuilder:validation:Optional
-	API WorkspaceKindEffectAPI `json:"api"`
-}
-
-type WorkspaceKindEffectUI struct {
-	// if this rule should hide the WorkspaceKind from the Workspace Spawner UI
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default:=false
-	Hide *bool `json:"hide,omitempty"`
+	API *WorkspaceKindEffectAPI `json:"api,omitempty"`
 }
 
 type WorkspaceKindEffectAPI struct {
-	// if this rule should hide the WorkspaceKind from the Workspace Spawner API (will not served in the API response)
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default:=false
-	Hide *bool `json:"hide,omitempty"`
-
 	// if this rule should deny access to the WorkspaceKind
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default:=false
@@ -164,7 +151,6 @@ type WorkspaceKindEffectAPI struct {
 	// +kubebuilder:example:="This WorkspaceKind is denied because it is not allowed by admin."
 	DenyMessage *string `json:"denyMessage,omitempty"`
 }
-
 
 // +kubebuilder:validation:Enum:={"image/svg+xml"}
 type WorkspaceKindAssetMediaType string
