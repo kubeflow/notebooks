@@ -39,7 +39,7 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-var _ = Describe("WorkspaceKinds Handler", func() {
+var _ = Describe("WorkspaceKind pod template options", func() {
 
 	// NOTE: the tests in this context work on the same resources, they must be run in order.
 	//       also, they assume a specific state of the cluster, so cannot be run in parallel with other tests.
