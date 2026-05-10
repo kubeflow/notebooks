@@ -31,6 +31,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
@@ -428,6 +429,101 @@ var _ = Describe("Workspace Actions Handler", func() {
 
 			By("verifying the HTTP response status code is 415")
 			Expect(rs.StatusCode).To(Equal(http.StatusUnsupportedMediaType), descUnexpectedHTTPStatus, rr.Body.String())
+		})
+
+		It("should return 422 when request body has wrong type for field", func() {
+			By("creating a request body with a string where bool is expected")
+			bodyStr := `{"data":{"paused":"yes"}}`
+
+			By("creating the HTTP request")
+			path := strings.Replace(constants.PauseWorkspacePath, ":"+constants.NamespacePathParam, namespaceName1, 1)
+			path = strings.Replace(path, ":"+constants.ResourceNamePathParam, workspaceName1, 1)
+			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(bodyStr))
+			Expect(err).NotTo(HaveOccurred())
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
+			req.Header.Set("Content-Type", "application/json")
+
+			By("executing PauseActionWorkspaceHandler")
+			ps := httprouter.Params{
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceName1},
+				httprouter.Param{Key: constants.ResourceNamePathParam, Value: workspaceName1},
+			}
+			rr := httptest.NewRecorder()
+			a.PauseActionWorkspaceHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code is 422")
+			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("reading the HTTP response body")
+			body, err := io.ReadAll(rs.Body)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("verifying the error response structure")
+			var response ErrorEnvelope
+			err = json.Unmarshal(body, &response)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(response.Error).NotTo(BeNil())
+			Expect(response.Error.Message).To(Equal(errMsgRequestBodyInvalid))
+			Expect(response.Error.Cause).NotTo(BeNil())
+			Expect(response.Error.Cause.ValidationErrors).To(ConsistOf(
+				ValidationError{
+					Origin:  OriginInternal,
+					Type:    field.ErrorTypeTypeInvalid,
+					Field:   "data.paused",
+					Message: `Invalid value: "string": got JSON string, but field requires boolean`,
+				},
+			))
+		})
+
+		It("should return 422 when data field has wrong type", func() {
+			By("creating a request body with a string where object is expected")
+			bodyStr := `{"data":"not-an-object"}`
+
+			By("creating the HTTP request")
+			path := strings.Replace(constants.PauseWorkspacePath, ":"+constants.NamespacePathParam, namespaceName1, 1)
+			path = strings.Replace(path, ":"+constants.ResourceNamePathParam, workspaceName1, 1)
+			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(bodyStr))
+			Expect(err).NotTo(HaveOccurred())
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
+			req.Header.Set("Content-Type", "application/json")
+
+			By("executing PauseActionWorkspaceHandler")
+			ps := httprouter.Params{
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceName1},
+				httprouter.Param{Key: constants.ResourceNamePathParam, Value: workspaceName1},
+			}
+			rr := httptest.NewRecorder()
+			a.PauseActionWorkspaceHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code is 422")
+			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("reading the HTTP response body")
+			body, err := io.ReadAll(rs.Body)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("verifying the error response structure")
+			var response ErrorEnvelope
+			err = json.Unmarshal(body, &response)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(response.Error).NotTo(BeNil())
+			Expect(response.Error.Cause).NotTo(BeNil())
+			Expect(response.Error.Cause.ValidationErrors).To(ConsistOf(
+				ValidationError{
+					Origin:  OriginInternal,
+					Type:    field.ErrorTypeTypeInvalid,
+					Field:   "data",
+					Message: `Invalid value: "string": got JSON string, but field requires object`,
+				},
+			))
 		})
 
 		// This test highlights that when the pause API receives a payload of {"data":{}},

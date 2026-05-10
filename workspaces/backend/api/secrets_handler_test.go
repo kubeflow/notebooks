@@ -30,6 +30,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
@@ -262,6 +263,50 @@ var _ = Describe("Secrets Handler", func() {
 
 			By("verifying the HTTP response status code")
 			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest), descUnexpectedHTTPStatus, rr.Body.String())
+		})
+
+		It("should return 422 when name field has wrong type", func() {
+			By("creating a request body with a number where string is expected")
+			bodyStr := `{"data":{"name":123,"type":"Opaque","immutable":false,"contents":{}}}`
+
+			By("creating the HTTP request")
+			req, err := http.NewRequest(http.MethodPost, "/api/v1/secrets/"+namespaceName, bytes.NewBufferString(bodyStr))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", "application/json")
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing CreateSecretHandler")
+			ps := httprouter.Params{
+				{Key: constants.NamespacePathParam, Value: namespaceName},
+			}
+			rr := httptest.NewRecorder()
+			a.CreateSecretHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code is 422")
+			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("reading the HTTP response body")
+			body, err := io.ReadAll(rs.Body)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("verifying the error response structure")
+			var response ErrorEnvelope
+			err = json.Unmarshal(body, &response)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(response.Error).NotTo(BeNil())
+			Expect(response.Error.Cause).NotTo(BeNil())
+			Expect(response.Error.Cause.ValidationErrors).To(ConsistOf(
+				ValidationError{
+					Origin:  OriginInternal,
+					Type:    field.ErrorTypeTypeInvalid,
+					Field:   "data.name",
+					Message: `Invalid value: "number": got JSON number, but field requires string`,
+				},
+			))
 		})
 
 		It("should return 422 for missing name", func() {
