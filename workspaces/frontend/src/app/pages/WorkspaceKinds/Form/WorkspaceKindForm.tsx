@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import isEqual from 'lodash-es/isEqual';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { Content, ContentVariants } from '@patternfly/react-core/dist/esm/components/Content';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
@@ -151,12 +152,15 @@ export const WorkspaceKindForm: React.FC = () => {
   const [data, setData, resetData, replaceData] = useGenericObjectState<WorkspaceKindFormData>(
     initialFormData ? convertToFormData(initialFormData) : EMPTY_WORKSPACE_KIND_FORM_DATA,
   );
+  const [originalFormData, setOriginalFormData] = useState<WorkspaceKindFormData | null>(null);
 
   useEffect(() => {
     if (!initialFormDataLoaded || initialFormData === null || mode === 'create') {
       return;
     }
-    replaceData(convertToFormData(initialFormData));
+    const converted = convertToFormData(initialFormData);
+    replaceData(converted);
+    setOriginalFormData(converted);
   }, [initialFormData, initialFormDataLoaded, mode, replaceData]);
 
   const handleSubmit = useCallback(async () => {
@@ -211,9 +215,14 @@ export const WorkspaceKindForm: React.FC = () => {
     yamlValue,
   ]);
 
+  const hasChanges = useMemo(
+    () => originalFormData !== null && !isEqual(data, originalFormData),
+    [data, originalFormData],
+  );
+
   const canSubmit = useMemo(
-    () => !isSubmitting && validated === 'success',
-    [isSubmitting, validated],
+    () => !isSubmitting && validated === 'success' && (mode === 'create' || hasChanges),
+    [isSubmitting, validated, mode, hasChanges],
   );
 
   const cancel = useCallback(() => {
