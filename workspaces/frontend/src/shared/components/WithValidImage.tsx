@@ -71,8 +71,10 @@ const WithValidImage: React.FC<WithValidImageProps> = ({
               ? await api.workspaceKinds.getWorkspaceKindIcon(kindName)
               : await api.workspaceKinds.getWorkspaceKindLogo(kindName);
           if (typeof response === 'string') {
-            // If response is a string, create blob from string
-            blob = new Blob([response]);
+            const text = response as unknown as string;
+            console.log(text);
+            const type = text.trimStart().startsWith('<svg') ? 'image/svg+xml' : '';
+            blob = new Blob([text], { type });
           } else {
             blob = response;
           }
