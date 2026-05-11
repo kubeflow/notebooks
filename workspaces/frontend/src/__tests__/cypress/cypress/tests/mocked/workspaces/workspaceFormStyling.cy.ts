@@ -79,6 +79,12 @@ describe('Workspace Form Styling', () => {
       { path: { apiVersion: NOTEBOOKS_API_VERSION } },
       mockModArchResponse([mockWorkspaceKind]),
     ).as('getWorkspaceKinds');
+
+    cy.intercept('GET', '/api/*/workspacekinds/*/assets/*', {
+      statusCode: 200,
+      headers: { 'content-type': 'image/svg+xml' },
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>',
+    });
   });
 
   describe('Workspace Kind logo styling', () => {
