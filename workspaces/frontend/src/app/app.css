@@ -207,10 +207,6 @@ body,
   border-color: var(--pf-t--global--color--disabled--default);
 }
 
-.mui-theme .pf-v6-c-radio__input:not(.pf-v6-c-card .pf-v6-c-radio__input) {
-  display: unset;
-}
-
 /* Top border separator for non-first storage class group headers in the PVC typeahead select */
 .pvc-select-group-header--with-divider {
   border-top: 1px solid var(--pf-t--global--border--color--default);

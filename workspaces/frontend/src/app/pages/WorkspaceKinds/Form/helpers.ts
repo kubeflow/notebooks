@@ -11,6 +11,7 @@ import {
   V1Beta1OptionRedirect,
   V1Beta1RedirectMessageLevel,
   V1PullPolicy,
+  V1ResourceList,
   V1Toleration,
   V1TolerationOperator,
   WorkspacekindsWorkspaceKindUpdate,
@@ -254,8 +255,8 @@ export const convertFormDataToUpdate = (
           spec: {
             resources: v.resources
               ? {
-                  requests: v.resources.requests as Record<string, never>,
-                  limits: v.resources.limits as Record<string, never>,
+                  requests: v.resources.requests as V1ResourceList,
+                  limits: v.resources.limits as V1ResourceList,
                 }
               : undefined,
             nodeSelector: v.nodeSelector,

@@ -99,6 +99,11 @@ declare global {
           response: ApiWorkspaceKindCreateEnvelope | ApiErrorEnvelope,
         ) => Cypress.Chainable<null>) &
         ((
+          type: 'PUT /api/:apiVersion/workspacekinds/:kind',
+          options: { path: { apiVersion: string; kind: string } },
+          response: ApiWorkspaceKindEnvelope | ApiErrorEnvelope,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: 'GET /api/:apiVersion/persistentvolumeclaims/:namespace',
           options: { path: { apiVersion: string; namespace: string } },
           response: ApiPVCListEnvelope | ApiErrorEnvelope,

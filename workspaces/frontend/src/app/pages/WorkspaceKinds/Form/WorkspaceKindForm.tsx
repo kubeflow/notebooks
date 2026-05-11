@@ -184,17 +184,20 @@ export const WorkspaceKindForm: React.FC = () => {
         notification.success(
           `Workspace kind '${createResult.result.data.name}' created successfully`,
         );
-        navigate('workspaceKinds');
+      } else {
+        const updateResult = await safeApiCall(() =>
+          api.workspaceKinds.updateWorkspaceKind(routeParams?.kind || '', {
+            data: convertFormDataToUpdate(
+              data,
+              initialFormData as WorkspacekindsWorkspaceKindUpdate,
+            ),
+          }),
+        );
+        if (!updateResult.ok) {
+          throw updateResult.errorEnvelope;
+        }
+        notification.success(`Workspace kind '${routeParams?.kind || ''}' updated successfully`);
       }
-      const updateResult = await safeApiCall(() =>
-        api.workspaceKinds.updateWorkspaceKind(routeParams?.kind || '', {
-          data: convertFormDataToUpdate(data, initialFormData as WorkspacekindsWorkspaceKindUpdate),
-        }),
-      );
-      if (!updateResult.ok) {
-        throw updateResult.errorEnvelope;
-      }
-      notification.success(`Workspace kind '${routeParams?.kind || ''}' updated successfully`);
       navigate('workspaceKinds');
     } catch (err) {
       setError(extractErrorMessage(err));
