@@ -16,3 +16,5 @@ rwop
 persistentvolumeclaims
 unhover
 unhovering
+toleration
+tolerations

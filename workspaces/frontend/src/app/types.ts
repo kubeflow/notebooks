@@ -8,6 +8,7 @@ import {
   WorkspacesPodSecretMount,
   WorkspacesPodTemplateOptionsMutate,
   WorkspacesPodVolumeMount,
+  V1Toleration,
   WorkspacesWorkspaceListItem,
 } from '~/generated/data-contracts';
 
@@ -81,6 +82,9 @@ export interface WorkspaceKindImagePort {
   port: number;
   protocol: 'HTTP'; // ONLY HTTP is supported at the moment, per https://github.com/thesuperzapper/kubeflow-notebooks-v2-design/blob/main/crds/workspace-kind.yaml#L275
 }
+export interface TolerationEntry extends V1Toleration {
+  id: string;
+}
 
 export interface WorkspaceKindPodConfigValue extends OptionsPodConfigValue {
   resources?: {
@@ -92,6 +96,7 @@ export interface WorkspaceKindPodConfigValue extends OptionsPodConfigValue {
     };
   };
   nodeSelector?: Record<string, string>;
+  tolerations?: TolerationEntry[];
 }
 
 export interface WorkspaceKindImageConfigData {
