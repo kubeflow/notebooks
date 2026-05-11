@@ -28,7 +28,7 @@ import { WorkspaceKindFormProperties } from './properties/WorkspaceKindFormPrope
 import { WorkspaceKindFormImage } from './image/WorkspaceKindFormImage';
 import { WorkspaceKindFormPodConfig } from './podConfig/WorkspaceKindFormPodConfig';
 import { WorkspaceKindFormPodTemplate } from './podTemplate/WorkspaceKindFormPodTemplate';
-import { EMPTY_WORKSPACE_KIND_FORM_DATA } from './helpers';
+import { convertFormDataToUpdate, EMPTY_WORKSPACE_KIND_FORM_DATA } from './helpers';
 
 export enum WorkspaceKindFormView {
   Form,
@@ -137,8 +137,10 @@ export const WorkspaceKindForm: React.FC = () => {
   // TODO: Detect mode by route
   const [yamlValue, setYamlValue] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [validated, setValidated] = useState<ValidationStatus>('default');
   const mode: FormMode = useCurrentRouteKey() === 'workspaceKindCreate' ? 'create' : 'edit';
+  const [validated, setValidated] = useState<ValidationStatus>(
+    mode === 'edit' ? 'success' : 'default',
+  );
   const [error, setError] = useState<string | ApiErrorEnvelope | null>(null);
 
   const routeParams = useTypedParams<'workspaceKindEdit' | 'workspaceKindCreate'>();
@@ -180,17 +182,34 @@ export const WorkspaceKindForm: React.FC = () => {
         );
         navigate('workspaceKinds');
       }
-      // TODO: Finish when WSKind API is finalized
-      // const updatedWorkspace = await api.updateWorkspaceKind({}, kind, { data: {} });
-      // console.info('Workspace Kind updated:', JSON.stringify(updatedWorkspace));
-      // navigate('workspaceKinds');
+      const updateResult = await safeApiCall(() =>
+        api.workspaceKinds.updateWorkspaceKind(routeParams?.kind || '', {
+          data: convertFormDataToUpdate(data, initialFormData as WorkspacekindsWorkspaceKindUpdate),
+        }),
+      );
+      if (!updateResult.ok) {
+        throw updateResult.errorEnvelope;
+      }
+      notification.success(`Workspace kind '${routeParams?.kind || ''}' updated successfully`);
+      navigate('workspaceKinds');
     } catch (err) {
       setError(extractErrorMessage(err));
-      setValidated('error');
+      if (mode === 'create') {
+        setValidated('error');
+      }
     } finally {
       setIsSubmitting(false);
     }
-  }, [api, mode, navigate, yamlValue, notification]);
+  }, [
+    mode,
+    api.workspaceKinds,
+    routeParams?.kind,
+    data,
+    initialFormData,
+    navigate,
+    notification,
+    yamlValue,
+  ]);
 
   const canSubmit = useMemo(
     () => !isSubmitting && validated === 'success',
@@ -305,8 +324,7 @@ export const WorkspaceKindForm: React.FC = () => {
               ouiaId="Primary"
               onClick={handleSubmit}
               data-testid="submit-button"
-              // TODO: button is always disabled on edit mode. Need to modify when WorkspaceKind edit is finalized
-              isDisabled={!canSubmit || mode === 'edit'}
+              isDisabled={!canSubmit}
             >
               {mode === 'create' ? 'Create' : 'Save'}
             </Button>
