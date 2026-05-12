@@ -13,7 +13,7 @@ import ToolbarFilter, { FilterConfigMap } from '~/shared/components/ToolbarFilte
 import { useToolbarFilters, applyFilters } from '~/shared/hooks/useToolbarFilters';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
 import ImageFallback from '~/shared/components/ImageFallback';
-import WithValidImage from '~/shared/components/WithValidImage';
+import WorkspaceKindImage from '~/app/components/WorkspaceKindImage';
 import { WorkspacekindsWorkspaceKindListItem } from '~/generated/data-contracts';
 
 type KindFilterKey = 'name';
@@ -140,7 +140,7 @@ export const WorkspaceFormKindList: React.FunctionComponent<WorkspaceFormKindLis
                       spaceItems={{ default: 'spaceItemsMd' }}
                     >
                       <FlexItem>
-                        <WithValidImage
+                        <WorkspaceKindImage
                           imageSrc={kind.logo.url}
                           skeletonWidth="60px"
                           fallback={
@@ -161,7 +161,7 @@ export const WorkspaceFormKindList: React.FunctionComponent<WorkspaceFormKindLis
                               data-testid={`kind-logo-${kind.name}`}
                             />
                           )}
-                        </WithValidImage>
+                        </WorkspaceKindImage>
                       </FlexItem>
                       <FlexItem>
                         <CardTitle>{kind.displayName}</CardTitle>

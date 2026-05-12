@@ -1,16 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { Skeleton, SkeletonProps } from '@patternfly/react-core/dist/esm/components/Skeleton';
 import { useBrowserStorage } from 'mod-arch-core';
-import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
+import { fetchImageAsBlob } from '~/shared/utilities/imageUtils';
 
 type WithValidImageProps = {
   imageSrc: string | undefined | null;
   fallback: React.ReactNode;
   children: (validImageSrc: string) => React.ReactNode;
-  assetType: 'icon' | 'logo';
+  fetchImage?: (src: string) => Promise<Blob>;
   skeletonWidth?: SkeletonProps['width'];
   skeletonShape?: SkeletonProps['shape'];
-  kindName: string;
 };
 
 const DEFAULT_SKELETON_WIDTH = '32px';
@@ -18,47 +17,16 @@ const DEFAULT_SKELETON_SHAPE: SkeletonProps['shape'] = 'square';
 
 type LoadState = 'loading' | 'valid' | 'invalid';
 
-const isAbsoluteUrl = (url: string): boolean => {
-  try {
-    const urlObj = new URL(url);
-    return !!urlObj.protocol;
-  } catch {
-    // If URL constructor throws, it's not a valid absolute URL
-    return false;
-  }
-};
-
-const detectImageMimeType = (data: string): string => {
-  if (data.trimStart().startsWith('<svg')) {
-    return 'image/svg+xml';
-  }
-  if (data.startsWith('\x89PNG')) {
-    return 'image/png';
-  }
-  if (data.startsWith('\xFF\xD8\xFF')) {
-    return 'image/jpeg';
-  }
-  if (data.startsWith('GIF87a') || data.startsWith('GIF89a')) {
-    return 'image/gif';
-  }
-  if (data.startsWith('RIFF') && data.slice(8, 12) === 'WEBP') {
-    return 'image/webp';
-  }
-  return '';
-};
-
 const WithValidImage: React.FC<WithValidImageProps> = ({
   imageSrc,
   fallback,
   children,
+  fetchImage = fetchImageAsBlob,
   skeletonWidth = DEFAULT_SKELETON_WIDTH,
   skeletonShape = DEFAULT_SKELETON_SHAPE,
-  assetType,
-  kindName,
 }) => {
   const [status, setStatus] = useState<LoadState>('loading');
   const [resolvedSrc, setResolvedSrc] = useState<string>('');
-  const { api } = useNotebookAPI();
   const shouldCache = !!imageSrc;
   const [image, setImage] = useBrowserStorage(imageSrc || 'temp', '');
   useEffect(() => {
@@ -69,33 +37,15 @@ const WithValidImage: React.FC<WithValidImageProps> = ({
       return;
     }
 
-    const fetchImage = async () => {
-      // Check if we have a cached base64 data URL
+    const loadImage = async () => {
       if (shouldCache && image.length > 0) {
         setResolvedSrc(image);
         setStatus('valid');
         return;
       }
 
-      let blob: Blob;
       try {
-        // Check if the URL is absolute (e.g., https://example.com/image.png)
-        if (isAbsoluteUrl(imageSrc)) {
-          const response = await fetch(imageSrc);
-          blob = await response.blob();
-        } else {
-          // Use API for relative URL (e.g., /api/v1/workspacekinds/jupyter/assets/icon.svg)
-          const response =
-            assetType === 'icon'
-              ? await api.workspaceKinds.getWorkspaceKindIcon(kindName)
-              : await api.workspaceKinds.getWorkspaceKindLogo(kindName);
-          if (typeof response === 'string') {
-            const text = response as unknown as string;
-            blob = new Blob([text], { type: detectImageMimeType(text) });
-          } else {
-            blob = response;
-          }
-        }
+        const blob = await fetchImage(imageSrc);
         const reader = new FileReader();
         reader.onloadend = () => {
           if (!cancelled && reader.result) {
@@ -108,26 +58,24 @@ const WithValidImage: React.FC<WithValidImageProps> = ({
           }
         };
         reader.onerror = () => {
-          console.error('Failed to convert image to data URL');
           if (!cancelled) {
             setStatus('invalid');
           }
         };
         reader.readAsDataURL(blob);
-      } catch (error) {
-        console.error('Failed to fetch image:', error);
+      } catch {
         if (!cancelled) {
           setStatus('invalid');
         }
       }
     };
 
-    fetchImage();
+    loadImage();
 
     return () => {
       cancelled = true;
     };
-  }, [imageSrc, setImage, image, shouldCache, assetType, api.workspaceKinds, kindName]);
+  }, [imageSrc, setImage, image, shouldCache, fetchImage]);
 
   if (status === 'loading') {
     return (

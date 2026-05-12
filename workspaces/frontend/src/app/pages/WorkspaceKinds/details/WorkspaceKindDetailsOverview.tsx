@@ -7,7 +7,7 @@ import {
 } from '@patternfly/react-core/dist/esm/components/DescriptionList';
 import { Divider } from '@patternfly/react-core/dist/esm/components/Divider';
 import ImageFallback from '~/shared/components/ImageFallback';
-import WithValidImage from '~/shared/components/WithValidImage';
+import WorkspaceKindImage from '~/app/components/WorkspaceKindImage';
 import { WorkspacekindsWorkspaceKindListItem } from '~/generated/data-contracts';
 
 type WorkspaceDetailsOverviewProps = {
@@ -49,7 +49,7 @@ export const WorkspaceKindDetailsOverview: React.FunctionComponent<
     <DescriptionListGroup>
       <DescriptionListTerm style={{ alignSelf: 'center' }}>Icon</DescriptionListTerm>
       <DescriptionListDescription>
-        <WithValidImage
+        <WorkspaceKindImage
           imageSrc={workspaceKind.icon.url}
           skeletonWidth="40px"
           fallback={
@@ -63,7 +63,7 @@ export const WorkspaceKindDetailsOverview: React.FunctionComponent<
           kindName={workspaceKind.name}
         >
           {(validSrc) => <img src={validSrc} alt={workspaceKind.name} style={{ width: '40px' }} />}
-        </WithValidImage>
+        </WorkspaceKindImage>
       </DescriptionListDescription>
       <DescriptionListTerm style={{ alignSelf: 'center' }}>Icon URL</DescriptionListTerm>
       <DescriptionListDescription>
@@ -76,7 +76,7 @@ export const WorkspaceKindDetailsOverview: React.FunctionComponent<
     <DescriptionListGroup>
       <DescriptionListTerm style={{ alignSelf: 'center' }}>Logo</DescriptionListTerm>
       <DescriptionListDescription>
-        <WithValidImage
+        <WorkspaceKindImage
           imageSrc={workspaceKind.logo.url}
           skeletonWidth="40px"
           fallback={
@@ -90,7 +90,7 @@ export const WorkspaceKindDetailsOverview: React.FunctionComponent<
           kindName={workspaceKind.name}
         >
           {(validSrc) => <img src={validSrc} alt={workspaceKind.name} style={{ width: '40px' }} />}
-        </WithValidImage>
+        </WorkspaceKindImage>
       </DescriptionListDescription>
       <DescriptionListTerm style={{ alignSelf: 'center' }}>Logo URL</DescriptionListTerm>
       <DescriptionListDescription>
