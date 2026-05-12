@@ -91,7 +91,7 @@ module.exports = smp.wrap(
         // rebuilds on changes; just refresh the browser manually.
         hot: !isTilt,
         liveReload: !isTilt,
-        open: [BASE_PATH],
+        open: isTilt ? false : [BASE_PATH],
         proxy: [
           {
             context: ['/api', '/workspaces/api'],
