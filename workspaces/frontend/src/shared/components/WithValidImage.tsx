@@ -28,6 +28,25 @@ const isAbsoluteUrl = (url: string): boolean => {
   }
 };
 
+const detectImageMimeType = (data: string): string => {
+  if (data.trimStart().startsWith('<svg')) {
+    return 'image/svg+xml';
+  }
+  if (data.startsWith('\x89PNG')) {
+    return 'image/png';
+  }
+  if (data.startsWith('\xFF\xD8\xFF')) {
+    return 'image/jpeg';
+  }
+  if (data.startsWith('GIF87a') || data.startsWith('GIF89a')) {
+    return 'image/gif';
+  }
+  if (data.startsWith('RIFF') && data.slice(8, 12) === 'WEBP') {
+    return 'image/webp';
+  }
+  return '';
+};
+
 const WithValidImage: React.FC<WithValidImageProps> = ({
   imageSrc,
   fallback,
@@ -72,9 +91,7 @@ const WithValidImage: React.FC<WithValidImageProps> = ({
               : await api.workspaceKinds.getWorkspaceKindLogo(kindName);
           if (typeof response === 'string') {
             const text = response as unknown as string;
-            console.log(text);
-            const type = text.trimStart().startsWith('<svg') ? 'image/svg+xml' : '';
-            blob = new Blob([text], { type });
+            blob = new Blob([text], { type: detectImageMimeType(text) });
           } else {
             blob = response;
           }
