@@ -93,6 +93,18 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
         podConfig: { default: '' },
       },
     }),
+    getWorkspaceKindIcon: async () => {
+      const response = await fetch(
+        'https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png',
+      );
+      return (await response.blob()) as unknown as File;
+    },
+    getWorkspaceKindLogo: async () => {
+      const response = await fetch(
+        'https://upload.wikimedia.org/wikipedia/commons/3/38/Jupyter_logo.svg',
+      );
+      return (await response.blob()) as unknown as File;
+    },
     createWorkspaceKind: async (body) => {
       if (isInvalidYaml(body)) {
         const apiErrorEnvelope: ApiErrorEnvelope = {

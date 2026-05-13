@@ -30,7 +30,7 @@ import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import { useWorkspaceCountPerKind } from '~/app/hooks/useWorkspaceCountPerKind';
 import { WorkspaceKindsColumns } from '~/app/types';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
-import WithValidImage from '~/shared/components/WithValidImage';
+import WorkspaceKindImage from '~/app/components/WorkspaceKindImage';
 import ImageFallback from '~/shared/components/ImageFallback';
 import { ErrorPopover } from '~/shared/components/ErrorPopover';
 import { useTypedNavigate } from '~/app/routerHelper';
@@ -333,14 +333,16 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                         data-testid={`workspace-kind-row-${rowIndex}`}
                       >
                         <Td dataLabel={columns.name.name}>
-                          <WithValidImage
+                          <WorkspaceKindImage
                             imageSrc={workspaceKind.icon.url}
                             skeletonWidth="20px"
                             fallback={
                               <span className="pf-v6-u-mr-sm">
-                                <ImageFallback imageSrc={workspaceKind.icon.url} />
+                                <ImageFallback imageSrc={workspaceKind.icon.url} />{' '}
                               </span>
                             }
+                            assetType="icon"
+                            kindName={workspaceKind.name}
                           >
                             {(validSrc) => (
                               <img
@@ -355,7 +357,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                                 }}
                               />
                             )}
-                          </WithValidImage>
+                          </WorkspaceKindImage>
                           <span data-testid="workspace-kind-name">{workspaceKind.name}</span>
                         </Td>
                         <Td

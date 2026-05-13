@@ -31,6 +31,10 @@ export enum V1Beta1WorkspaceState {
   WorkspaceStateUnknown = 'Unknown',
 }
 
+export enum V1Beta1WorkspaceKindAssetMediaType {
+  WorkspaceKindAssetMediaTypeSVG = 'image/svg+xml',
+}
+
 export enum V1Beta1RedirectMessageLevel {
   RedirectMessageLevelInfo = 'Info',
   RedirectMessageLevelWarning = 'Warning',
@@ -215,6 +219,13 @@ export enum FieldErrorType {
   ErrorTypeTypeInvalid = 'FieldValueTypeInvalid',
 }
 
+export enum AssetsImageRefErrorCode {
+  ImageRefErrorCodeConfigMapMissing = 'CONFIGMAP_MISSING',
+  ImageRefErrorCodeConfigMapKeyMissing = 'CONFIGMAP_KEY_MISSING',
+  ImageRefErrorCodeConfigMapOther = 'CONFIGMAP_OTHER',
+  ImageRefErrorCodeConfigMapUnknown = 'CONFIGMAP_UNKNOWN',
+}
+
 export enum ApiErrorCauseOrigin {
   OriginInternal = 'INTERNAL',
   OriginKubernetes = 'KUBERNETES',
@@ -348,6 +359,11 @@ export interface ApiWorkspaceKindListEnvelope {
 
 export interface ApiWorkspaceListEnvelope {
   data: WorkspacesWorkspaceListItem[];
+}
+
+export interface AssetsImageRef {
+  error?: AssetsImageRefErrorCode;
+  url: string;
 }
 
 export interface CommonAudit {
@@ -3666,21 +3682,50 @@ export interface V1Beta1RedirectMessage {
   text: string;
 }
 
-export interface V1Beta1WorkspaceKindConfigMap {
+export interface V1Beta1WorkspaceKindAsset {
   /**
-   * +kubebuilder:example="apple-touch-icon-152x152.png"
+   * the ConfigMap reference for the asset
+   * +kubebuilder:validation:Optional
+   */
+  configMap?: V1Beta1WorkspaceKindAssetConfigMap;
+  /**
+   * the URL of the asset
+   * +kubebuilder:validation:Optional
+   * +kubebuilder:example="https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png"
+   */
+  url?: string;
+}
+
+export interface V1Beta1WorkspaceKindAssetConfigMap {
+  /**
+   * the key in the ConfigMap which contains the data
+   * +kubebuilder:example="jupyterlab-logo.svg"
    * +kubebuilder:validation:MinLength:=1
    * +kubebuilder:validation:MaxLength:=253
    * +kubebuilder:validation:Pattern:=^[-._a-zA-Z0-9]+$
    */
   key: string;
   /**
+   * the media type of the asset data in the ConfigMap
+   * +kubebuilder:example="image/svg+xml"
+   */
+  mediaType: V1Beta1WorkspaceKindAssetMediaType;
+  /**
+   * the name of the ConfigMap
    * +kubebuilder:example="my-logos"
    * +kubebuilder:validation:MinLength:=1
    * +kubebuilder:validation:MaxLength:=253
    * +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
    */
   name: string;
+  /**
+   * the namespace of the ConfigMap
+   * +kubebuilder:validation:MinLength:=1
+   * +kubebuilder:validation:MaxLength:=63
+   * +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+   * +kubebuilder:example="kubeflow"
+   */
+  namespace: string;
 }
 
 export interface V1Beta1WorkspaceKindCullingConfig {
@@ -3699,16 +3744,6 @@ export interface V1Beta1WorkspaceKindCullingConfig {
    * +kubebuilder:default=86400
    */
   maxInactiveSeconds?: number;
-}
-
-export interface V1Beta1WorkspaceKindIcon {
-  /** +kubebuilder:validation:Optional */
-  configMap?: V1Beta1WorkspaceKindConfigMap;
-  /**
-   * +kubebuilder:validation:Optional
-   * +kubebuilder:example="https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png"
-   */
-  url?: string;
 }
 
 export interface V1Beta1WorkspaceKindPodMetadata {
@@ -3899,12 +3934,12 @@ export interface V1Beta1WorkspaceKindSpawner {
    * the icon of the WorkspaceKind
    *  - a small (favicon-sized) icon used in the Workspace Spawner UI
    */
-  icon: V1Beta1WorkspaceKindIcon;
+  icon: V1Beta1WorkspaceKindAsset;
   /**
    * the logo of the WorkspaceKind
    *  - a 1:1 (card size) logo used in the Workspace Spawner UI
    */
-  logo: V1Beta1WorkspaceKindIcon;
+  logo: V1Beta1WorkspaceKindAsset;
 }
 
 export interface V1Beta1WorkspaceKindVolumeMounts {
@@ -3921,10 +3956,6 @@ export interface V1Beta1WorkspaceKindVolumeMounts {
 
 export interface WorkspacekindsClusterKindMetrics {
   workspacesCount: number;
-}
-
-export interface WorkspacekindsImageRef {
-  url: string;
 }
 
 export interface WorkspacekindsPodMetadata {
@@ -3956,8 +3987,8 @@ export interface WorkspacekindsWorkspaceKindListItem {
   description: string;
   displayName: string;
   hidden: boolean;
-  icon: WorkspacekindsImageRef;
-  logo: WorkspacekindsImageRef;
+  icon: AssetsImageRef;
+  logo: AssetsImageRef;
   name: string;
   podTemplate: WorkspacekindsPodTemplate;
 }
@@ -3991,10 +4022,6 @@ export interface WorkspacesHttpService {
 export interface WorkspacesImageConfig {
   current: WorkspacesOptionInfo;
   redirectChain?: WorkspacesRedirectStep[];
-}
-
-export interface WorkspacesImageRef {
-  url: string;
 }
 
 export interface WorkspacesLastProbeInfo {
@@ -4114,8 +4141,8 @@ export interface WorkspacesWorkspaceCreate {
 }
 
 export interface WorkspacesWorkspaceKindInfo {
-  icon: WorkspacesImageRef;
-  logo: WorkspacesImageRef;
+  icon: AssetsImageRef;
+  logo: AssetsImageRef;
   missing: boolean;
   name: string;
 }
