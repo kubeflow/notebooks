@@ -45,7 +45,7 @@ func (a *App) GetNamespacesHandler(w http.ResponseWriter, r *http.Request, _ htt
 	authPolicies := []*auth.ResourcePolicy{
 		auth.NewResourcePolicy(auth.VerbList, auth.Namespaces, auth.ResourcePolicyResourceMeta{}),
 	}
-	if success := a.requireAuth(w, r, authPolicies); !success {
+	if _, ok := a.requireAuth(w, r, authPolicies); !ok {
 		return
 	}
 	// ============================================================

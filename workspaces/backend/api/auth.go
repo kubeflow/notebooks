@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
@@ -28,13 +29,14 @@ import (
 // requireAuth verifies that the request is authenticated and authorized to take the actions specified by the given policies.
 // If this method returns false, the request has been handled and the caller should return immediately.
 // If this method returns true, the request is authenticated and authorized to proceed.
+// user.Info is the authenticated user, or nil if auth is disabled.
 // This method should only be called once per request.
-func (a *App) requireAuth(w http.ResponseWriter, r *http.Request, policies []*auth.ResourcePolicy) bool {
+func (a *App) requireAuth(w http.ResponseWriter, r *http.Request, policies []*auth.ResourcePolicy) (user.Info, bool) {
 	ctx := r.Context()
 
-	// if auth is disabled, allow the request to proceed
+	// if auth is disabled, allow the request to proceed (no user information available)
 	if a.Config.DisableAuth {
-		return true
+		return nil, true
 	}
 
 	// authenticate the request (extract user and groups from the request headers)
@@ -42,11 +44,11 @@ func (a *App) requireAuth(w http.ResponseWriter, r *http.Request, policies []*au
 	if err != nil {
 		err = fmt.Errorf("failed to authenticate request: %w", err)
 		a.serverErrorResponse(w, r, err)
-		return false
+		return nil, false
 	}
 	if !ok {
 		a.unauthorizedResponse(w, r)
-		return false
+		return nil, false
 	}
 
 	// for each policy, check if the user is authorized to take the requested action
@@ -56,7 +58,7 @@ func (a *App) requireAuth(w http.ResponseWriter, r *http.Request, policies []*au
 		if err != nil {
 			err = fmt.Errorf("failed to authorize request for user %q: %w", res.User.GetName(), err)
 			a.serverErrorResponse(w, r, err)
-			return false
+			return nil, false
 		}
 
 		if authorized != authorizer.DecisionAllow {
@@ -65,9 +67,9 @@ func (a *App) requireAuth(w http.ResponseWriter, r *http.Request, policies []*au
 				msg = fmt.Sprintf("%s: %s", msg, reason)
 			}
 			a.forbiddenResponse(w, r, msg)
-			return false
+			return nil, false
 		}
 	}
 
-	return true
+	return res.User, true
 }

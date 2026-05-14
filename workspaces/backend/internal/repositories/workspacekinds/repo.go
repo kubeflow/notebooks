@@ -26,6 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apiserver/pkg/authentication/user"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
@@ -92,7 +93,10 @@ func (r *WorkspaceKindRepository) GetWorkspaceKinds(ctx context.Context) ([]mode
 	return workspaceKindsModels, nil
 }
 
-func (r *WorkspaceKindRepository) Create(ctx context.Context, workspaceKind *kubefloworgv1beta1.WorkspaceKind) (*models.WorkspaceKindCreate, error) {
+func (r *WorkspaceKindRepository) CreateWorkspaceKind(ctx context.Context, actor user.Info, workspaceKind *kubefloworgv1beta1.WorkspaceKind) (*models.WorkspaceKindCreate, error) {
+	// set audit annotations
+	modelsCommon.UpdateObjectMetaForCreate(&workspaceKind.ObjectMeta, actor)
+
 	// create workspace kind
 	if err := r.client.Create(ctx, workspaceKind); err != nil {
 		if apierrors.IsAlreadyExists(err) {
@@ -110,9 +114,7 @@ func (r *WorkspaceKindRepository) Create(ctx context.Context, workspaceKind *kub
 	return createdWorkspaceKindModel, nil
 }
 
-func (r *WorkspaceKindRepository) UpdateWorkspaceKind(ctx context.Context, workspaceKindUpdate *models.WorkspaceKindUpdate, name string) (*models.WorkspaceKindUpdate, error) {
-	// TODO: get actual user email from request context
-	actor := "mock@example.com"
+func (r *WorkspaceKindRepository) UpdateWorkspaceKind(ctx context.Context, actor user.Info, workspaceKindUpdate *models.WorkspaceKindUpdate, name string) (*models.WorkspaceKindUpdate, error) {
 	now := time.Now()
 
 	// get workspace kind

@@ -71,7 +71,7 @@ func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps
 	authPolicies := []*auth.ResourcePolicy{
 		auth.NewResourcePolicy(auth.VerbGet, auth.WorkspaceKinds, auth.ResourcePolicyResourceMeta{Name: name}),
 	}
-	if success := a.requireAuth(w, r, authPolicies); !success {
+	if _, ok := a.requireAuth(w, r, authPolicies); !ok {
 		return
 	}
 	// ============================================================
@@ -133,7 +133,7 @@ func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _
 		}
 	}
 
-	if success := a.requireAuth(w, r, authPolicies); !success {
+	if _, ok := a.requireAuth(w, r, authPolicies); !ok {
 		return
 	}
 	// ============================================================
@@ -179,7 +179,7 @@ func (a *App) DeleteWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 	authPolicies := []*auth.ResourcePolicy{
 		auth.NewResourcePolicy(auth.VerbDelete, auth.WorkspaceKinds, auth.ResourcePolicyResourceMeta{Name: name}),
 	}
-	if success := a.requireAuth(w, r, authPolicies); !success {
+	if _, ok := a.requireAuth(w, r, authPolicies); !ok {
 		return
 	}
 	// ============================================================
@@ -271,12 +271,13 @@ func (a *App) CreateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 	authPolicies := []*auth.ResourcePolicy{
 		auth.NewResourcePolicy(auth.VerbCreate, auth.WorkspaceKinds, auth.ResourcePolicyResourceMeta{Name: workspaceKind.Name}),
 	}
-	if success := a.requireAuth(w, r, authPolicies); !success {
+	actor, ok := a.requireAuth(w, r, authPolicies)
+	if !ok {
 		return
 	}
 	// ============================================================
 
-	createdWorkspaceKind, err := a.repositories.WorkspaceKind.Create(r.Context(), workspaceKind)
+	createdWorkspaceKind, err := a.repositories.WorkspaceKind.CreateWorkspaceKind(r.Context(), actor, workspaceKind)
 	if err != nil {
 		if errors.Is(err, repository.ErrWorkspaceKindAlreadyExists) {
 			causes := helper.StatusCausesFromAPIStatus(err)
@@ -335,7 +336,8 @@ func (a *App) UpdateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 	authPolicies := []*auth.ResourcePolicy{
 		auth.NewResourcePolicy(auth.VerbUpdate, auth.WorkspaceKinds, auth.ResourcePolicyResourceMeta{Name: name}),
 	}
-	if success := a.requireAuth(w, r, authPolicies); !success {
+	actor, ok := a.requireAuth(w, r, authPolicies)
+	if !ok {
 		return
 	}
 	// ============================================================
@@ -378,7 +380,7 @@ func (a *App) UpdateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 	// give the request data a clear name
 	workspaceKindUpdate := bodyEnvelope.Data
 
-	updatedWorkspaceKind, err := a.repositories.WorkspaceKind.UpdateWorkspaceKind(r.Context(), workspaceKindUpdate, name)
+	updatedWorkspaceKind, err := a.repositories.WorkspaceKind.UpdateWorkspaceKind(r.Context(), actor, workspaceKindUpdate, name)
 	if err != nil {
 		if errors.Is(err, repository.ErrWorkspaceKindNotFound) {
 			a.notFoundResponse(w, r)

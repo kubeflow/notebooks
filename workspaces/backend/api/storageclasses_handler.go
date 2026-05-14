@@ -45,7 +45,7 @@ func (a *App) GetStorageClassesHandler(w http.ResponseWriter, r *http.Request, _
 	authPolicies := []*auth.ResourcePolicy{
 		auth.NewResourcePolicy(auth.VerbList, auth.StorageClasses, auth.ResourcePolicyResourceMeta{}),
 	}
-	if success := a.requireAuth(w, r, authPolicies); !success {
+	if _, ok := a.requireAuth(w, r, authPolicies); !ok {
 		return
 	}
 	// ============================================================

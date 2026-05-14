@@ -102,7 +102,7 @@ func (a *App) PauseActionWorkspaceHandler(w http.ResponseWriter, r *http.Request
 	authPolicies := []*auth.ResourcePolicy{
 		auth.NewResourcePolicy(auth.VerbUpdate, auth.Workspaces, auth.ResourcePolicyResourceMeta{Namespace: namespace, Name: workspaceName}),
 	}
-	if success := a.requireAuth(w, r, authPolicies); !success {
+	if _, ok := a.requireAuth(w, r, authPolicies); !ok {
 		return
 	}
 	// ============================================================
