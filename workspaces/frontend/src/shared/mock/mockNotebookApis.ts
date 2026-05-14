@@ -103,7 +103,6 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
     },
     podTemplateOptionsListValues: async (_name, body) => {
       const imageId = body.data.context.imageConfig?.id;
-
       let podConfigs = mockListValuesPodConfigs;
       if (imageId) {
         const selectedImage = mockListValuesImages.find((img) => img.id === imageId);
