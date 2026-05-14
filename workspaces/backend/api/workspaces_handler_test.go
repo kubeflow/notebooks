@@ -852,6 +852,14 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(createdWorkspace.Spec.PodTemplate.Volumes.Data).To(Equal(expected))
 			Expect(createdWorkspace.Spec.PodTemplate.Volumes.Secrets).To(BeEmpty())
 
+			By("verifying the audit annotations were set")
+			Expect(createdWorkspace.Annotations).To(BeEquivalentTo(
+				map[string]string{
+					commonModels.AnnotationCreatedBy: adminUser,
+					commonModels.AnnotationUpdatedBy: adminUser,
+				},
+			))
+
 			By("creating an HTTP request to delete the Workspace")
 			path = strings.Replace(constants.WorkspacesByNamePath, ":"+constants.NamespacePathParam, namespaceNameCrud, 1)
 			path = strings.Replace(path, ":"+constants.ResourceNamePathParam, workspaceName, 1)
@@ -1113,6 +1121,11 @@ var _ = Describe("Workspaces Handler", func() {
 			By("getting the updated Workspace from the Kubernetes API")
 			updatedWorkspace := &kubefloworgv1beta1.Workspace{}
 			Expect(k8sClient.Get(ctx, workspaceKey, updatedWorkspace)).To(Succeed())
+
+			By("verifying the audit annotations were updated")
+			Expect(updatedWorkspace.Annotations[commonModels.AnnotationCreatedBy]).To(Equal(adminUser))
+			Expect(updatedWorkspace.Annotations[commonModels.AnnotationUpdatedBy]).To(Equal(adminUser))
+			Expect(updatedWorkspace.Annotations[commonModels.AnnotationUpdatedAt]).NotTo(BeEmpty())
 
 			By("verifying all fields were applied")
 			Expect(ptr.Deref(updatedWorkspace.Spec.Paused, false)).To(BeTrue())

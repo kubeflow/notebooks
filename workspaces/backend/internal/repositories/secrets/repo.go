@@ -23,6 +23,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -75,11 +76,10 @@ func (r *SecretRepository) GetSecret(ctx context.Context, namespace string, secr
 }
 
 // CreateSecret creates a new secret in the specified namespace.
-func (r *SecretRepository) CreateSecret(ctx context.Context, secretCreate *models.SecretCreate, namespace string) (*models.SecretCreate, error) {
-	// TODO: get actual user email from request context
-	actor := "mock@example.com"
-
+func (r *SecretRepository) CreateSecret(ctx context.Context, actor user.Info, secretCreate *models.SecretCreate, namespace string) (*models.SecretCreate, error) {
 	secret := newSecretFromSecretCreateModel(secretCreate, namespace)
+
+	// set audit annotations
 	modelsCommon.UpdateObjectMetaForCreate(&secret.ObjectMeta, actor)
 
 	// TODO: create the secret in K8s
@@ -90,9 +90,7 @@ func (r *SecretRepository) CreateSecret(ctx context.Context, secretCreate *model
 }
 
 // UpdateSecret updates an existing secret in the specified namespace.
-func (r *SecretRepository) UpdateSecret(ctx context.Context, secretUpdate *models.SecretUpdate, namespace string, secretName string) (*models.SecretUpdate, error) {
-	// TODO: get actual user email from request context
-	actor := "mock@example.com"
+func (r *SecretRepository) UpdateSecret(ctx context.Context, actor user.Info, secretUpdate *models.SecretUpdate, namespace string, secretName string) (*models.SecretUpdate, error) {
 	now := time.Now()
 
 	// TODO: fetch the current secret from K8s
@@ -102,6 +100,8 @@ func (r *SecretRepository) UpdateSecret(ctx context.Context, secretUpdate *model
 	}
 
 	secret := updateSecretFromSecretUpdateModel(secretUpdate, currentSecret)
+
+	// set audit annotations
 	modelsCommon.UpdateObjectMetaForUpdate(&secret.ObjectMeta, actor, now)
 
 	// TODO: update the secret in K8s
