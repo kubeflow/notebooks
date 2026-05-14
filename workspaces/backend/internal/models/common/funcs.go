@@ -72,10 +72,13 @@ func UpdateObjectMetaForCreate(objectMeta *metav1.ObjectMeta, actor user.Info) {
 	if objectMeta.Annotations == nil {
 		objectMeta.Annotations = make(map[string]string)
 	}
-	objectMeta.Annotations[AnnotationUpdatedAt] = objectMeta.CreationTimestamp.Format(time.RFC3339)
 	if actor != nil {
 		objectMeta.Annotations[AnnotationCreatedBy] = actor.GetName()
 		objectMeta.Annotations[AnnotationUpdatedBy] = actor.GetName()
+	} else {
+		delete(objectMeta.Annotations, AnnotationCreatedBy)
+		delete(objectMeta.Annotations, AnnotationUpdatedBy)
+		delete(objectMeta.Annotations, AnnotationUpdatedAt)
 	}
 }
 
@@ -92,6 +95,8 @@ func UpdateObjectMetaForUpdate(objectMeta *metav1.ObjectMeta, actor user.Info, n
 	objectMeta.Annotations[AnnotationUpdatedAt] = now.Format(time.RFC3339)
 	if actor != nil {
 		objectMeta.Annotations[AnnotationUpdatedBy] = actor.GetName()
+	} else {
+		delete(objectMeta.Annotations, AnnotationUpdatedBy)
 	}
 }
 

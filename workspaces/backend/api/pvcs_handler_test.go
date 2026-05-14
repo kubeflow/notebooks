@@ -314,8 +314,12 @@ var _ = Describe("PVCs Handler", func() {
 			Expect(createdPVC.Labels[commonModels.LabelCanUpdate]).To(Equal("true"))
 
 			By("verifying the audit annotations were set")
-			Expect(createdPVC.Annotations[commonModels.AnnotationCreatedBy]).To(Equal(adminUser))
-			Expect(createdPVC.Annotations[commonModels.AnnotationUpdatedBy]).To(Equal(adminUser))
+			Expect(createdPVC.Annotations).To(BeEquivalentTo(
+				map[string]string{
+					commonModels.AnnotationCreatedBy: adminUser,
+					commonModels.AnnotationUpdatedBy: adminUser,
+				},
+			))
 		})
 	})
 

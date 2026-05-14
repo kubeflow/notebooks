@@ -853,8 +853,12 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(createdWorkspace.Spec.PodTemplate.Volumes.Secrets).To(BeEmpty())
 
 			By("verifying the audit annotations were set")
-			Expect(createdWorkspace.Annotations[commonModels.AnnotationCreatedBy]).To(Equal(adminUser))
-			Expect(createdWorkspace.Annotations[commonModels.AnnotationUpdatedBy]).To(Equal(adminUser))
+			Expect(createdWorkspace.Annotations).To(BeEquivalentTo(
+				map[string]string{
+					commonModels.AnnotationCreatedBy: adminUser,
+					commonModels.AnnotationUpdatedBy: adminUser,
+				},
+			))
 
 			By("creating an HTTP request to delete the Workspace")
 			path = strings.Replace(constants.WorkspacesByNamePath, ":"+constants.NamespacePathParam, namespaceNameCrud, 1)

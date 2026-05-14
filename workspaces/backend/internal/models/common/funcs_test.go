@@ -33,33 +33,34 @@ func TestCommon(t *testing.T) {
 
 var _ = Describe("UpdateObjectMetaForCreate", func() {
 	It("sets created-by and updated-by for a real user", func() {
-		meta := &metav1.ObjectMeta{}
+		meta := &metav1.ObjectMeta{
+			CreationTimestamp: metav1.Now(),
+		}
 		UpdateObjectMetaForCreate(meta, &user.DefaultInfo{Name: "alice"})
 
-		Expect(meta.Annotations[AnnotationCreatedBy]).To(Equal("alice"))
-		Expect(meta.Annotations[AnnotationUpdatedBy]).To(Equal("alice"))
+		Expect(meta.Annotations).To(BeEquivalentTo(map[string]string{
+			AnnotationCreatedBy: "alice",
+			AnnotationUpdatedBy: "alice",
+		}))
 	})
 
 	It("skips created-by and updated-by when actor is nil", func() {
-		meta := &metav1.ObjectMeta{}
+		meta := &metav1.ObjectMeta{
+			CreationTimestamp: metav1.Now(),
+		}
 		UpdateObjectMetaForCreate(meta, nil)
 
-		Expect(meta.Annotations).NotTo(HaveKey(AnnotationCreatedBy))
-		Expect(meta.Annotations).NotTo(HaveKey(AnnotationUpdatedBy))
-	})
-
-	It("still sets updated-at when actor is nil", func() {
-		meta := &metav1.ObjectMeta{}
-		UpdateObjectMetaForCreate(meta, nil)
-
-		Expect(meta.Annotations).To(HaveKey(AnnotationUpdatedAt))
+		Expect(meta.Annotations).To(BeEquivalentTo(map[string]string{}))
 	})
 
 	It("initializes annotations map when nil", func() {
-		meta := &metav1.ObjectMeta{Annotations: nil}
-		UpdateObjectMetaForCreate(meta, &user.DefaultInfo{Name: "alice"})
+		meta := &metav1.ObjectMeta{
+			Annotations:       nil,
+			CreationTimestamp: metav1.Now(),
+		}
+		UpdateObjectMetaForCreate(meta, nil)
 
-		Expect(meta.Annotations).NotTo(BeNil())
+		Expect(meta.Annotations).To(BeEquivalentTo(map[string]string{}))
 	})
 
 	It("panics when objectMeta is nil", func() {
@@ -70,53 +71,75 @@ var _ = Describe("UpdateObjectMetaForCreate", func() {
 })
 
 var _ = Describe("UpdateObjectMetaForUpdate", func() {
-	It("sets updated-by for a real user", func() {
+	It("correctly set updated-by for new user", func() {
+		createTime := metav1.Now()
 		meta := &metav1.ObjectMeta{
-			Annotations: map[string]string{AnnotationCreatedBy: "alice"},
+			Annotations: map[string]string{
+				AnnotationCreatedBy: "alice",
+				AnnotationUpdatedBy: "alice",
+				AnnotationUpdatedAt: createTime.Format(time.RFC3339),
+			},
+			CreationTimestamp: createTime,
 		}
-		UpdateObjectMetaForUpdate(meta, &user.DefaultInfo{Name: "bob"}, time.Now())
+		updateTime := createTime.Add(1 * time.Hour)
+		UpdateObjectMetaForUpdate(meta, &user.DefaultInfo{Name: "bob"}, updateTime)
 
-		Expect(meta.Annotations[AnnotationUpdatedBy]).To(Equal("bob"))
+		Expect(meta.Annotations).To(BeEquivalentTo(map[string]string{
+			AnnotationCreatedBy: "alice",
+			AnnotationUpdatedBy: "bob",
+			AnnotationUpdatedAt: updateTime.Format(time.RFC3339),
+		}))
 	})
 
-	It("does not overwrite created-by", func() {
+	It("remove updated-by when actor is nil", func() {
+		createTime := metav1.Now()
 		meta := &metav1.ObjectMeta{
-			Annotations: map[string]string{AnnotationCreatedBy: "alice"},
+			Annotations: map[string]string{
+				AnnotationCreatedBy: "alice",
+				AnnotationUpdatedBy: "alice",
+				AnnotationUpdatedAt: createTime.Format(time.RFC3339),
+			},
+			CreationTimestamp: createTime,
 		}
-		UpdateObjectMetaForUpdate(meta, &user.DefaultInfo{Name: "bob"}, time.Now())
+		updateTime := createTime.Add(1 * time.Hour)
+		UpdateObjectMetaForUpdate(meta, nil, updateTime)
 
-		Expect(meta.Annotations[AnnotationCreatedBy]).To(Equal("alice"))
+		Expect(meta.Annotations).To(BeEquivalentTo(map[string]string{
+			AnnotationCreatedBy: "alice",
+			AnnotationUpdatedAt: updateTime.Format(time.RFC3339),
+		}))
 	})
 
-	It("skips updated-by when actor is nil", func() {
+	It("remove updated-by when actor is nil, and dont set created-by", func() {
+		createTime := metav1.Now()
 		meta := &metav1.ObjectMeta{
-			Annotations: map[string]string{AnnotationUpdatedBy: "alice"},
+			Annotations: map[string]string{
+				AnnotationUpdatedBy: "alice",
+				AnnotationUpdatedAt: createTime.Format(time.RFC3339),
+			},
+			CreationTimestamp: createTime,
 		}
-		UpdateObjectMetaForUpdate(meta, nil, time.Now())
+		updateTime := createTime.Add(1 * time.Hour)
+		UpdateObjectMetaForUpdate(meta, nil, updateTime)
 
-		Expect(meta.Annotations[AnnotationUpdatedBy]).To(Equal("alice"))
-	})
-
-	It("sets updated-at in RFC3339 format", func() {
-		meta := &metav1.ObjectMeta{}
-		now := time.Date(2024, 6, 1, 12, 0, 0, 0, time.UTC)
-		UpdateObjectMetaForUpdate(meta, &user.DefaultInfo{Name: "alice"}, now)
-
-		Expect(meta.Annotations[AnnotationUpdatedAt]).To(Equal("2024-06-01T12:00:00Z"))
-	})
-
-	It("still sets updated-at when actor is nil", func() {
-		meta := &metav1.ObjectMeta{}
-		UpdateObjectMetaForUpdate(meta, nil, time.Now())
-
-		Expect(meta.Annotations).To(HaveKey(AnnotationUpdatedAt))
+		Expect(meta.Annotations).To(BeEquivalentTo(map[string]string{
+			AnnotationUpdatedAt: updateTime.Format(time.RFC3339),
+		}))
 	})
 
 	It("initializes annotations map when nil", func() {
-		meta := &metav1.ObjectMeta{Annotations: nil}
-		UpdateObjectMetaForUpdate(meta, &user.DefaultInfo{Name: "alice"}, time.Now())
+		createTime := metav1.Now()
+		meta := &metav1.ObjectMeta{
+			Annotations:       nil,
+			CreationTimestamp: createTime,
+		}
+		updateTime := createTime.Add(1 * time.Hour)
+		UpdateObjectMetaForUpdate(meta, &user.DefaultInfo{Name: "alice"}, updateTime)
 
-		Expect(meta.Annotations).NotTo(BeNil())
+		Expect(meta.Annotations).To(BeEquivalentTo(map[string]string{
+			AnnotationUpdatedBy: "alice",
+			AnnotationUpdatedAt: updateTime.Format(time.RFC3339),
+		}))
 	})
 
 	It("panics when objectMeta is nil", func() {

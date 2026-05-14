@@ -78,6 +78,8 @@ func (r *SecretRepository) GetSecret(ctx context.Context, namespace string, secr
 // CreateSecret creates a new secret in the specified namespace.
 func (r *SecretRepository) CreateSecret(ctx context.Context, actor user.Info, secretCreate *models.SecretCreate, namespace string) (*models.SecretCreate, error) {
 	secret := newSecretFromSecretCreateModel(secretCreate, namespace)
+
+	// set audit annotations
 	modelsCommon.UpdateObjectMetaForCreate(&secret.ObjectMeta, actor)
 
 	// TODO: create the secret in K8s
@@ -98,6 +100,8 @@ func (r *SecretRepository) UpdateSecret(ctx context.Context, actor user.Info, se
 	}
 
 	secret := updateSecretFromSecretUpdateModel(secretUpdate, currentSecret)
+
+	// set audit annotations
 	modelsCommon.UpdateObjectMetaForUpdate(&secret.ObjectMeta, actor, now)
 
 	// TODO: update the secret in K8s

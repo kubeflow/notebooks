@@ -428,8 +428,12 @@ spec:
 			Expect(err).NotTo(HaveOccurred())
 
 			By("verifying the audit annotations were set")
-			Expect(createdWsk.Annotations[commonModels.AnnotationCreatedBy]).To(Equal(adminUser))
-			Expect(createdWsk.Annotations[commonModels.AnnotationUpdatedBy]).To(Equal(adminUser))
+			Expect(createdWsk.Annotations).To(BeEquivalentTo(
+				map[string]string{
+					commonModels.AnnotationCreatedBy: adminUser,
+					commonModels.AnnotationUpdatedBy: adminUser,
+				},
+			))
 		})
 
 		It("should fail to create a WorkspaceKind with no name in the YAML", func() {
@@ -960,7 +964,7 @@ metadata:
 
 			By("verifying the audit annotations were updated")
 			Expect(updatedWsk.Annotations[commonModels.AnnotationUpdatedBy]).To(Equal(adminUser))
-			Expect(updatedWsk.Annotations[commonModels.AnnotationUpdatedAt]).NotTo(BeEmpty())
+			Expect(updatedWsk.Annotations).To(HaveKey(commonModels.AnnotationUpdatedAt))
 		})
 
 		It("should update spawner.deprecated and persist the change", func() {
