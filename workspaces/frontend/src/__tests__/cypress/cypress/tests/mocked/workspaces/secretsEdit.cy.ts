@@ -15,6 +15,7 @@ import {
   buildMockWorkspaceUpdateFromWorkspace,
 } from '~/shared/mock/mockBuilder';
 import { navBar } from '~/__tests__/cypress/cypress/pages/components/navBar';
+import { interceptListValues } from '~/__tests__/cypress/cypress/utils/testBuilders';
 import { V1Beta1WorkspaceState } from '~/generated/data-contracts';
 
 describe('Edit Secret Modal', () => {
@@ -96,6 +97,7 @@ describe('Edit Secret Modal', () => {
       { path: { apiVersion: NOTEBOOKS_API_VERSION } },
       mockModArchResponse([mockWorkspaceKindFull]),
     ).as('getWorkspaceKinds');
+    interceptListValues(mockWorkspaceKindFull);
 
     cy.interceptApi(
       'GET /api/:apiVersion/secrets/:namespace',

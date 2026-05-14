@@ -12,6 +12,7 @@ import {
   buildMockWorkspaceUpdate,
 } from '~/shared/mock/mockBuilder';
 import { navBar } from '~/__tests__/cypress/cypress/pages/components/navBar';
+import { interceptListValues } from '~/__tests__/cypress/cypress/utils/testBuilders';
 import {
   V1Beta1WorkspaceState,
   type OptionsImageConfigValue,
@@ -105,6 +106,7 @@ describe('Summary step', () => {
       { path: { apiVersion: NOTEBOOKS_API_VERSION } },
       mockModArchResponse([mockWorkspaceKind]),
     ).as('getWorkspaceKinds');
+    interceptListValues(mockWorkspaceKind);
 
     cy.interceptApi(
       'GET /api/:apiVersion/persistentvolumeclaims/:namespace',

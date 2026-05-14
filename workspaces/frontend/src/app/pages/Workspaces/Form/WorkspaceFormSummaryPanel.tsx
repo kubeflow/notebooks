@@ -31,6 +31,9 @@ interface WorkspaceFormSummaryPanelProps {
   /** Handlers to switch selected options when clicking redirect target */
   onSelectImage: (image: OptionsImageConfigValue) => void;
   onSelectPodConfig: (podConfig: OptionsPodConfigValue) => void;
+  /** Filtered values from the listValues API for redirect resolution */
+  imageValues?: OptionsImageConfigValue[];
+  podConfigValues?: OptionsPodConfigValue[];
   /** For edit mode: original values to show diff */
   originalKind?: WorkspacekindsWorkspaceKindListItem;
   originalImage?: OptionsImageConfigValue;
@@ -57,6 +60,8 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
   onNavigateToStep,
   onSelectImage,
   onSelectPodConfig,
+  imageValues = [],
+  podConfigValues = [],
   originalKind,
   originalImage,
   originalPodConfig,
@@ -353,21 +358,16 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
         labels: selectedImage?.labels,
         redirect: selectedImage?.redirect,
         targetDisplayName: selectedImage?.redirect
-          ? selectedKind?.podTemplate.options.imageConfig.values?.find(
-              (img) => img.id === selectedImage.redirect?.to,
-            )?.displayName
+          ? imageValues.find((img) => img.id === selectedImage.redirect?.to)?.displayName
           : undefined,
-        onClickTarget:
-          selectedImage?.redirect && selectedKind
-            ? () => {
-                const targetImage = selectedKind.podTemplate.options.imageConfig.values?.find(
-                  (img) => img.id === selectedImage.redirect?.to,
-                );
-                if (targetImage) {
-                  onSelectImage(targetImage);
-                }
+        onClickTarget: selectedImage?.redirect
+          ? () => {
+              const targetImage = imageValues.find((img) => img.id === selectedImage.redirect?.to);
+              if (targetImage) {
+                onSelectImage(targetImage);
               }
-            : undefined,
+            }
+          : undefined,
         originalDisplayName: originalImage?.displayName,
         originalDescription: originalImage?.description,
         originalLabels: originalImage?.labels,
@@ -381,21 +381,18 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
         labels: selectedPodConfig?.labels,
         redirect: selectedPodConfig?.redirect,
         targetDisplayName: selectedPodConfig?.redirect
-          ? selectedKind?.podTemplate.options.podConfig.values?.find(
-              (pc) => pc.id === selectedPodConfig.redirect?.to,
-            )?.displayName
+          ? podConfigValues.find((pc) => pc.id === selectedPodConfig.redirect?.to)?.displayName
           : undefined,
-        onClickTarget:
-          selectedPodConfig?.redirect && selectedKind
-            ? () => {
-                const targetPodConfig = selectedKind.podTemplate.options.podConfig.values?.find(
-                  (pc) => pc.id === selectedPodConfig.redirect?.to,
-                );
-                if (targetPodConfig) {
-                  onSelectPodConfig(targetPodConfig);
-                }
+        onClickTarget: selectedPodConfig?.redirect
+          ? () => {
+              const targetPodConfig = podConfigValues.find(
+                (pc) => pc.id === selectedPodConfig.redirect?.to,
+              );
+              if (targetPodConfig) {
+                onSelectPodConfig(targetPodConfig);
               }
-            : undefined,
+            }
+          : undefined,
         originalDisplayName: originalPodConfig?.displayName,
         originalDescription: originalPodConfig?.description,
         originalLabels: originalPodConfig?.labels,

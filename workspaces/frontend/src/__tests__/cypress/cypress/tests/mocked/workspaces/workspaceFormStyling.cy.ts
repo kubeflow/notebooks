@@ -3,6 +3,7 @@ import { createWorkspace } from '~/__tests__/cypress/cypress/pages/workspaces/cr
 import { buildMockNamespace, buildMockWorkspaceKind } from '~/shared/mock/mockBuilder';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import { navBar } from '~/__tests__/cypress/cypress/pages/components/navBar';
+import { interceptListValues } from '~/__tests__/cypress/cypress/utils/testBuilders';
 import type { OptionsImageConfigValue } from '~/generated/data-contracts';
 import { OptionsRedirectMessageLevel } from '~/generated/data-contracts';
 
@@ -85,6 +86,7 @@ describe('Workspace Form Styling', () => {
       headers: { 'content-type': 'image/svg+xml' },
       body: '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>',
     });
+    interceptListValues(mockWorkspaceKind);
   });
 
   describe('Workspace Kind logo styling', () => {

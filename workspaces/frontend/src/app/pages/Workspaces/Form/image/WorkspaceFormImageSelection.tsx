@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useMemo, useState, useImperativeHandle } from 'react';
+import React, { useRef, useMemo, useState, useImperativeHandle } from 'react';
 import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import { Split, SplitItem } from '@patternfly/react-core/dist/esm/layouts/Split';
 import { WorkspaceFormImageList } from '~/app/pages/Workspaces/Form/image/WorkspaceFormImageList';
@@ -31,11 +31,9 @@ const WorkspaceFormImageSelection: React.FunctionComponent<WorkspaceFormImageSel
 }) => {
   const [filteredImages, setFilteredImages] = useState<OptionsImageConfigValue[]>(images);
   const internalFilterControlRef = useRef<FilterControlHandle>(null);
-  const lastEnsuredVisibleImageId = useRef<string | null>(null);
 
   const defaultFilterValues = useMemo(() => {
     const defaults = computeDefaultFilterValues(images, defaultImageId);
-    // Also enable filters if selectedImage needs them
     if (selectedImage) {
       if (selectedImage.hidden) {
         defaults.showHidden = true;
@@ -66,29 +64,10 @@ const WorkspaceFormImageSelection: React.FunctionComponent<WorkspaceFormImageSel
     [defaultFilterValues],
   );
 
-  useEffect(() => {
-    if (!selectedImage) {
-      return;
-    }
-
-    // Skip deselection if we just ensured this image is visible
-    if (lastEnsuredVisibleImageId.current === selectedImage.id) {
-      lastEnsuredVisibleImageId.current = null;
-      return;
-    }
-
-    const isSelectedInFilteredList = filteredImages.some((image) => image.id === selectedImage.id);
-
-    if (!isSelectedInFilteredList) {
-      onSelect(undefined);
-    }
-  }, [filteredImages, selectedImage, onSelect]);
-
   useImperativeHandle(
     filterControlRef,
     () => ({
       adaptFiltersForImage: (image: OptionsImageConfigValue) => {
-        lastEnsuredVisibleImageId.current = image.id;
         internalFilterControlRef.current?.clearAllFilters();
         if (image.hidden) {
           internalFilterControlRef.current?.setExtraFilter('showHidden', true);
