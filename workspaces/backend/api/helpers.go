@@ -140,21 +140,11 @@ func FieldErrorsFromUnmarshalTypeError(err error) field.ErrorList {
 		}
 	}
 
-	fieldPath := fieldPathFromJSONPath(unmarshalTypeError.Field)
+	parts := strings.Split(unmarshalTypeError.Field, ".")
+	fieldPath := field.NewPath(parts[0], parts[1:]...)
 	return field.ErrorList{
 		field.TypeInvalid(fieldPath, unmarshalTypeError.Value, detail),
 	}
-}
-
-// fieldPathFromJSONPath converts a dot-separated JSON field path (e.g., "data.podTemplate.paused")
-// into a field.Path.
-func fieldPathFromJSONPath(jsonPath string) *field.Path {
-	parts := strings.Split(jsonPath, ".")
-	path := field.NewPath(parts[0])
-	for _, part := range parts[1:] {
-		path = path.Child(part)
-	}
-	return path
 }
 
 // goTypeToJSONTypeName maps a Go reflect.Type to a user-friendly JSON type name.
@@ -162,8 +152,16 @@ func goTypeToJSONTypeName(t reflect.Type) string {
 	if t == nil {
 		return "unknown"
 	}
+	// Keep calling .Elem() to peel off pointer indirections until we reach the underlying concrete type, i.e. **int -> *int -> int.
 	for t.Kind() == reflect.Ptr {
-		t = t.Elem()
+		next := t.Elem()
+		// guard against self-referential pointer types (e.g., `type A *A`) which would loop infinitely.
+		// this should never occur in practice because json.UnmarshalTypeError.Type is populated by the stdlib JSON decoder,
+		// which rejects self-referential pointer types.
+		if next == t {
+			break
+		}
+		t = next
 	}
 	switch t.Kind() { //nolint:exhaustive
 	case reflect.Bool:

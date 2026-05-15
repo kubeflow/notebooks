@@ -152,21 +152,4 @@ var _ = Describe("Helper Functions", func() {
 		})
 	})
 
-	Describe("fieldPathFromJSONPath", func() {
-
-		It("should convert a dot-separated path", func() {
-			path := fieldPathFromJSONPath("data.paused")
-			Expect(path.String()).To(Equal("data.paused"))
-		})
-
-		It("should handle a single-segment path", func() {
-			path := fieldPathFromJSONPath("name")
-			Expect(path.String()).To(Equal("name"))
-		})
-
-		It("should handle a deeply nested path", func() {
-			path := fieldPathFromJSONPath("data.podTemplate.options.imageConfig")
-			Expect(path.String()).To(Equal("data.podTemplate.options.imageConfig"))
-		})
-	})
 })
