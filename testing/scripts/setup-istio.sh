@@ -10,15 +10,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TESTING_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 LOCALBIN="${TESTING_DIR}/bin"
 
-# Determine istioctl path - prefer LOCALBIN, fallback to PATH
+# Require istioctl from LOCALBIN to ensure a known version
 if [ -f "${LOCALBIN}/istioctl" ]; then
   ISTIOCTL="${LOCALBIN}/istioctl"
-elif command -v istioctl >/dev/null 2>&1; then
-  ISTIOCTL="istioctl"
 else
   echo "ERROR: istioctl is not installed. Please install istioctl first:"
   echo "  cd testing && make istioctl"
-  echo "  or visit: https://istio.io/latest/docs/setup/getting-started/#download"
   exit 1
 fi
 

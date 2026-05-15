@@ -48,19 +48,19 @@ help: ## Display this help.
 .PHONY: build-controller build-backend build-frontend build-all e2e sanity-check
 
 deploy-controller: kind check-kind-context ## Build and deploy the controller.
-	cd ../workspaces/controller && $(MAKE) docker-build IMG=$(CONTROLLER_IMG)
+	$(MAKE) -C ../workspaces/controller docker-build IMG=$(CONTROLLER_IMG)
 	$(KIND) load docker-image $(CONTROLLER_IMG) --name $(KIND_CLUSTER_NAME)
-	cd ../workspaces/controller && $(MAKE) deploy IMG=$(CONTROLLER_IMG)
+	$(MAKE) -C ../workspaces/controller deploy IMG=$(CONTROLLER_IMG)
 
 deploy-backend: kind check-kind-context ## Build and deploy the backend.
-	cd ../workspaces/backend && $(MAKE) docker-build IMG=$(BACKEND_IMG)
+	$(MAKE) -C ../workspaces/backend docker-build IMG=$(BACKEND_IMG)
 	$(KIND) load docker-image $(BACKEND_IMG) --name $(KIND_CLUSTER_NAME)
-	cd ../workspaces/backend && $(MAKE) deploy IMG=$(BACKEND_IMG)
+	$(MAKE) -C ../workspaces/backend deploy IMG=$(BACKEND_IMG)
 
 deploy-frontend: kind check-kind-context ## Build and deploy the frontend.
-	cd ../workspaces/frontend && $(MAKE) docker-build IMG=$(FRONTEND_IMG)
+	$(MAKE) -C ../workspaces/frontend docker-build IMG=$(FRONTEND_IMG)
 	$(KIND) load docker-image $(FRONTEND_IMG) --name $(KIND_CLUSTER_NAME)
-	cd ../workspaces/frontend && $(MAKE) deploy IMG=$(FRONTEND_IMG)
+	$(MAKE) -C ../workspaces/frontend deploy IMG=$(FRONTEND_IMG)
 
 deploy-all: deploy-controller deploy-backend deploy-frontend ## Deploy all components.
 
@@ -108,7 +108,7 @@ $(ISTIOCTL): $(LOCALBIN)
 
 .PHONY: dependency-hash
 dependency-hash: ## Calculate hash of dependency versions for caching.
-	@echo -e "KIND_VERSION=$(KIND_VERSION)\nISTIOCTL_VERSION=$(ISTIOCTL_VERSION)" | sha256sum | cut -d' ' -f1 | head -c 16
+	@echo -e "KIND_VERSION=$(KIND_VERSION)\nISTIOCTL_VERSION=$(ISTIOCTL_VERSION)" | sha256sum | cut -d' ' -f1
 
 .PHONY: setup-cluster
 setup-cluster: check-kubectl kind istioctl ## Set up a complete kind cluster with cert-manager and Istio.

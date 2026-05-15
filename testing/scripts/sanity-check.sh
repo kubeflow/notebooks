@@ -59,7 +59,7 @@ check_http_endpoint() {
   # Wait for port-forward to be ready
   local retries=0
   local max_retries=10
-  while ! curl -s -o /dev/null "http://localhost:${local_port}${probe_path}" 2>/dev/null; do
+  while ! curl --silent --output /dev/null "http://localhost:${local_port}${probe_path}" 2>/dev/null; do
     retries=$((retries + 1))
     if [ ${retries} -ge ${max_retries} ]; then
       echo "✗ ERROR: ${label} endpoint not reachable after ${max_retries} attempts"
@@ -70,7 +70,7 @@ check_http_endpoint() {
 
   # Verify we get a successful response
   local http_code
-  http_code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:${local_port}${probe_path}")
+  http_code=$(curl --silent --output /dev/null --write-out "%{http_code}" "http://localhost:${local_port}${probe_path}")
 
   if [ "${http_code}" -ge 200 ] && [ "${http_code}" -lt 400 ]; then
     echo "✓ ${label} HTTP endpoint returned ${http_code}"
@@ -143,7 +143,7 @@ check_gateway_route() {
   # Wait for port-forward to be ready and verify routing
   local retries=0
   local max_retries=10
-  while ! curl -sk -o /dev/null "https://localhost:${local_port}${request_path}" 2>/dev/null; do
+  while ! curl --silent --insecure --output /dev/null "https://localhost:${local_port}${request_path}" 2>/dev/null; do
     retries=$((retries + 1))
     if [ ${retries} -ge ${max_retries} ]; then
       echo "✗ ERROR: ${label} gateway route not reachable after ${max_retries} attempts"
@@ -153,7 +153,7 @@ check_gateway_route() {
   done
 
   local http_code
-  http_code=$(curl -sk -o /dev/null -w "%{http_code}" "https://localhost:${local_port}${request_path}")
+  http_code=$(curl --silent --insecure --output /dev/null --write-out "%{http_code}" "https://localhost:${local_port}${request_path}")
 
   if [ "${http_code}" -ge 200 ] && [ "${http_code}" -lt 400 ]; then
     echo "✓ ${label} gateway route returned ${http_code}"
