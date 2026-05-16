@@ -1,32 +1,9 @@
-GIT_COMMIT     := $(shell git rev-parse HEAD)
-GIT_TREE_STATE := $(shell test -n "`git status --porcelain`" && echo "-dirty" || echo "")
+include ../common.mk
 
-# Image URL to use all building/pushing image targets
-REGISTRY ?= ghcr.io/kubeflow/notebooks
 NAME ?= workspaces-backend
-TAG ?= sha-$(GIT_COMMIT)$(GIT_TREE_STATE)
-IMG ?= $(REGISTRY)/$(NAME):$(TAG)
-ARCH ?= linux/arm64/v8,linux/amd64,linux/ppc64le
-
-
-# The version of Kubernetes to use for envtest.
-# If updating, also update the version referenced in `BinaryAssetsDirectory` of suite_test.go files.
-ENVTEST_K8S_VERSION = 1.31.0
-
-# Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
-ifeq (,$(shell go env GOBIN))
-GOBIN=$(shell go env GOPATH)/bin
-else
-GOBIN=$(shell go env GOBIN)
-endif
 
 # Backend default port
 PORT ?= 4000
-
-# Setting SHELL to bash allows bash commands to be executed by recipes.
-# Options are set to exit when a recipe line exits non-zero or a piped command fails.
-SHELL = /usr/bin/env bash -o pipefail
-.SHELLFLAGS = -ec
 
 .PHONY: all
 all: build
@@ -114,24 +91,28 @@ docker-build-push-multi-arch:
 	# NOTE: we are building in the context of the parent directory (..)
 	docker buildx build --platform ${ARCH} --tag ${IMG} --file Dockerfile --push ..
 
+##@ Deployment
+
+.PHONY: deploy
+deploy: kustomize ## Deploy backend to the K8s cluster specified in ~/.kube/config.
+	@echo "Copying kustomize directory structure to .output..."
+	@rm -rf manifests/kustomize/.output
+	@mkdir -p manifests/kustomize/.output
+	@cp -r manifests/kustomize/* manifests/kustomize/.output/
+	# Match both short name and registry-prefixed name (base kustomization may transform either)
+	@cd manifests/kustomize/.output/overlays/istio && $(KUSTOMIZE) edit set image $(NAME)=${IMG} $(REGISTRY)/$(NAME)=${IMG}
+	@$(KUBECTL) apply -k manifests/kustomize/.output/overlays/istio
+
+.PHONY: undeploy
+undeploy: kustomize ## Undeploy backend from the K8s cluster specified in ~/.kube/config.
+	$(KUBECTL) delete -k manifests/kustomize/overlays/istio --ignore-not-found=true
+
 ##@ Dependencies
 
-## Location to install dependencies to
-LOCALBIN ?= $(shell pwd)/bin
-$(LOCALBIN):
-	mkdir -p $(LOCALBIN)
-
-## Tool Binaries
-KUBECTL ?= kubectl
-KUSTOMIZE := $(LOCALBIN)/kustomize
-ENVTEST ?= $(LOCALBIN)/setup-envtest
-GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
+## Backend-specific tool binaries
 SWAGGER = $(LOCALBIN)/swag
 
-## Tool Versions
-KUSTOMIZE_VERSION ?= v5.5.0
-ENVTEST_VERSION ?= release-0.19
-GOLANGCI_LINT_VERSION ?= v1.64.8
+## Backend-specific tool versions
 SWAGGER_VERSION ?= v1.16.6
 
 .PHONY: SWAGGER
@@ -149,45 +130,7 @@ golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
 $(GOLANGCI_LINT): $(LOCALBIN)
 	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/cmd/golangci-lint,$(GOLANGCI_LINT_VERSION))
 
-
-##@ deployment
-
-.PHONY: deploy
-deploy: kustomize ## Deploy backend to the K8s cluster specified in ~/.kube/config.
-	@echo "Copying kustomize directory structure to .output..."
-	@rm -rf manifests/kustomize/.output
-	@mkdir -p manifests/kustomize/.output
-	@cp -r manifests/kustomize/* manifests/kustomize/.output/
-	# Match both short name and registry-prefixed name (base kustomization may transform either)
-	@cd manifests/kustomize/.output/overlays/istio && $(KUSTOMIZE) edit set image $(NAME)=${IMG} $(REGISTRY)/$(NAME)=${IMG}
-	@$(KUBECTL) apply -k manifests/kustomize/.output/overlays/istio
-
-.PHONY: undeploy
-undeploy: kustomize ## Undeploy backend from the K8s cluster specified in ~/.kube/config.
-	$(KUBECTL) delete -k manifests/kustomize/overlays/istio --ignore-not-found=true
-
-
-##@ Dependencies
-
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
 $(KUSTOMIZE): $(LOCALBIN)
 	$(call go-install-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v5,$(KUSTOMIZE_VERSION))
-
-# go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
-# $1 - target path with name of binary
-# $2 - package url which can be installed
-# $3 - specific version of package
-# $4 - (optional) extra ldflags to set with the installation
-define go-install-tool
-@[ -f "$(1)-$(3)" ] || { \
-set -e; \
-package=$(2)@$(3) ;\
-ldflags=$(4) ;\
-echo "Downloading $${package}" ;\
-rm -f $(1) || true ;\
-GOBIN=$(LOCALBIN) go install $${ldflags:+-ldflags "$${ldflags}"} $${package} ;\
-mv $(1) $(1)-$(3) ;\
-} ;\
-ln -sf $(1)-$(3) $(1)
-endef
