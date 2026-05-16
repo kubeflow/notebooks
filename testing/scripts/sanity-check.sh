@@ -56,21 +56,11 @@ check_http_endpoint() {
   # Ensure we clean up the port-forward on exit from this function
   trap "kill ${pf_pid} 2>/dev/null || true; trap - RETURN" RETURN
 
-  # Wait for port-forward to be ready
-  local retries=0
-  local max_retries=10
-  while ! curl --silent --output /dev/null "http://localhost:${local_port}${probe_path}" 2>/dev/null; do
-    retries=$((retries + 1))
-    if [ ${retries} -ge ${max_retries} ]; then
-      echo "✗ ERROR: ${label} endpoint not reachable after ${max_retries} attempts"
-      return 1
-    fi
-    sleep 2
-  done
-
-  # Verify we get a successful response
+  # Wait for port-forward to be ready, then verify a successful response
   local http_code
-  http_code=$(curl --silent --output /dev/null --write-out "%{http_code}" "http://localhost:${local_port}${probe_path}")
+  http_code=$(curl --silent --output /dev/null --write-out "%{http_code}" \
+    --retry 10 --retry-delay 2 --retry-all-errors \
+    "http://localhost:${local_port}${probe_path}")
 
   if [ "${http_code}" -ge 200 ] && [ "${http_code}" -lt 400 ]; then
     echo "✓ ${label} HTTP endpoint returned ${http_code}"
@@ -141,19 +131,10 @@ check_gateway_route() {
   trap "kill ${pf_pid} 2>/dev/null || true; trap - RETURN" RETURN
 
   # Wait for port-forward to be ready and verify routing
-  local retries=0
-  local max_retries=10
-  while ! curl --silent --insecure --output /dev/null "https://localhost:${local_port}${request_path}" 2>/dev/null; do
-    retries=$((retries + 1))
-    if [ ${retries} -ge ${max_retries} ]; then
-      echo "✗ ERROR: ${label} gateway route not reachable after ${max_retries} attempts"
-      return 1
-    fi
-    sleep 2
-  done
-
   local http_code
-  http_code=$(curl --silent --insecure --output /dev/null --write-out "%{http_code}" "https://localhost:${local_port}${request_path}")
+  http_code=$(curl --silent --insecure --output /dev/null --write-out "%{http_code}" \
+    --retry 10 --retry-delay 2 --retry-all-errors \
+    "https://localhost:${local_port}${request_path}")
 
   if [ "${http_code}" -ge 200 ] && [ "${http_code}" -lt 400 ]; then
     echo "✓ ${label} gateway route returned ${http_code}"
