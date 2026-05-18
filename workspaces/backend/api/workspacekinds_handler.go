@@ -105,7 +105,7 @@ func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps
 //	@Failure		422				{object}	ErrorEnvelope				"Unprocessable Entity. Validation error."
 //	@Failure		500				{object}	ErrorEnvelope				"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspacekinds [get]
-func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) { //nolint:dupl
+func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	namespace := r.URL.Query().Get(constants.NamespaceFilterQueryParam)
 
 	// validate query parameters

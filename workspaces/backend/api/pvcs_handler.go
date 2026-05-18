@@ -49,7 +49,7 @@ type PVCCreateEnvelope Envelope[*models.PVCCreate]
 //	@Failure		422			{object}	ErrorEnvelope	"Unprocessable Entity. Validation error."
 //	@Failure		500			{object}	ErrorEnvelope	"Internal server error"
 //	@Router			/persistentvolumeclaims/{namespace} [get]
-func (a *App) GetPVCsByNamespaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) { //nolint:dupl
+func (a *App) GetPVCsByNamespaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(constants.NamespacePathParam)
 
 	// validate path parameters

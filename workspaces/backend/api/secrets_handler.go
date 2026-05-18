@@ -50,7 +50,7 @@ type SecretCreateEnvelope Envelope[*models.SecretCreate]
 //	@Failure		422			{object}	ErrorEnvelope		"Unprocessable Entity. Validation error."
 //	@Failure		500			{object}	ErrorEnvelope		"Internal server error"
 //	@Router			/secrets/{namespace} [get]
-func (a *App) GetSecretsByNamespaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) { //nolint:dupl
+func (a *App) GetSecretsByNamespaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(constants.NamespacePathParam)
 
 	var valErrs field.ErrorList
@@ -96,7 +96,7 @@ func (a *App) GetSecretsByNamespaceHandler(w http.ResponseWriter, r *http.Reques
 //	@Failure		422			{object}	ErrorEnvelope	"Unprocessable Entity. Validation error."
 //	@Failure		500			{object}	ErrorEnvelope	"Internal server error"
 //	@Router			/secrets/{namespace}/{name} [get]
-func (a *App) GetSecretHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) { //nolint:dupl // TODO: Abstract common API patterns once implemented
+func (a *App) GetSecretHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(constants.NamespacePathParam)
 	secretName := ps.ByName(constants.ResourceNamePathParam)
 
@@ -345,7 +345,7 @@ func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 //	@Failure		404			{object}	ErrorEnvelope	"Secret not found"
 //	@Failure		500			{object}	ErrorEnvelope	"Internal server error"
 //	@Router			/secrets/{namespace}/{name} [delete]
-func (a *App) DeleteSecretHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) { //nolint:dupl
+func (a *App) DeleteSecretHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(constants.NamespacePathParam)
 	secretName := ps.ByName(constants.ResourceNamePathParam)
 

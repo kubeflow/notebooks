@@ -44,7 +44,7 @@ type StorageClassListEnvelope Envelope[[]models.StorageClassListItem]
 //	@Failure		422			{object}	ErrorEnvelope				"Unprocessable Entity. Validation error."
 //	@Failure		500			{object}	ErrorEnvelope				"Internal server error"
 //	@Router			/storageclasses [get]
-func (a *App) GetStorageClassesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) { //nolint:dupl
+func (a *App) GetStorageClassesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	namespace := r.URL.Query().Get(constants.NamespaceQueryParam)
 
 	// validate query parameters
