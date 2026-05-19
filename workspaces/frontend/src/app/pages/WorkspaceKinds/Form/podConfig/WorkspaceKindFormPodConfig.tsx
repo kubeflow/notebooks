@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import { Title } from '@patternfly/react-core/dist/esm/components/Title';
@@ -37,13 +37,17 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
   updatePodConfig,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [defaultId, setDefaultId] = useState(podConfig.default || '');
+  const [defaultId, setDefaultId] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
   const [currConfig, setCurrConfig] = useState<WorkspaceKindPodConfigValue>({ ...emptyPodConfig });
   const [tolerationModalOpenFor, setTolerationModalOpenFor] = useState<string | null>(null);
+
+  useEffect(() => {
+    setDefaultId(podConfig.default);
+  }, [podConfig.default]);
 
   const clearForm = useCallback(() => {
     setCurrConfig({ ...emptyPodConfig });
