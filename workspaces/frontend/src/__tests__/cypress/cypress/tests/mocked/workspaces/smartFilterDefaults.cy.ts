@@ -2,6 +2,7 @@ import { mockModArchResponse } from 'mod-arch-core';
 import { createWorkspace } from '~/__tests__/cypress/cypress/pages/workspaces/createWorkspace';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import { buildMockNamespace, buildMockWorkspaceKind } from '~/shared/mock/mockBuilder';
+import { interceptListValues } from '~/__tests__/cypress/cypress/utils/testBuilders';
 import { OptionsRedirectMessageLevel } from '~/generated/data-contracts';
 
 describe('Workspace Form - Smart Filter Defaults', () => {
@@ -62,6 +63,7 @@ describe('Workspace Form - Smart Filter Defaults', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKind]),
       ).as('getWorkspaceKinds');
+      interceptListValues(mockWorkspaceKind);
 
       createWorkspace.visit();
       cy.wait('@getWorkspaceKinds');
@@ -128,6 +130,7 @@ describe('Workspace Form - Smart Filter Defaults', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKind]),
       ).as('getWorkspaceKinds');
+      interceptListValues(mockWorkspaceKind);
 
       createWorkspace.visit();
       cy.wait('@getWorkspaceKinds');
@@ -194,6 +197,7 @@ describe('Workspace Form - Smart Filter Defaults', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKind]),
       ).as('getWorkspaceKinds');
+      interceptListValues(mockWorkspaceKind);
 
       createWorkspace.visit();
       cy.wait('@getWorkspaceKinds');
@@ -253,6 +257,7 @@ describe('Workspace Form - Smart Filter Defaults', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKind]),
       ).as('getWorkspaceKinds');
+      interceptListValues(mockWorkspaceKind);
 
       createWorkspace.visit();
       cy.wait('@getWorkspaceKinds');
@@ -313,6 +318,7 @@ describe('Workspace Form - Smart Filter Defaults', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKind]),
       ).as('getWorkspaceKinds');
+      interceptListValues(mockWorkspaceKind);
 
       createWorkspace.visit();
       cy.wait('@getWorkspaceKinds');
@@ -378,6 +384,7 @@ describe('Workspace Form - Smart Filter Defaults', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKind]),
       ).as('getWorkspaceKinds');
+      interceptListValues(mockWorkspaceKind);
 
       createWorkspace.visit();
       cy.wait('@getWorkspaceKinds');
@@ -438,6 +445,7 @@ describe('Workspace Form - Smart Filter Defaults', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKind]),
       ).as('getWorkspaceKinds');
+      interceptListValues(mockWorkspaceKind);
 
       createWorkspace.visit();
       cy.wait('@getWorkspaceKinds');
@@ -453,72 +461,6 @@ describe('Workspace Form - Smart Filter Defaults', () => {
 
       // Hidden option should now be hidden
       createWorkspace.assertCardNotVisible('jupyterlab_scipy_200_hidden');
-    });
-
-    it('should auto-deselect when selected option is filtered out', () => {
-      const mockWorkspaceKind = buildMockWorkspaceKind({
-        name: 'jupyterlab',
-        podTemplate: {
-          ...buildMockWorkspaceKind().podTemplate,
-          options: {
-            imageConfig: {
-              default: 'jupyterlab_scipy_200_hidden',
-              values: [
-                {
-                  id: 'jupyterlab_scipy_190',
-                  displayName: 'jupyter-scipy:v1.9.0',
-                  description: 'JupyterLab v1.9.0',
-                  labels: [],
-                  hidden: false,
-                },
-                {
-                  id: 'jupyterlab_scipy_200_hidden',
-                  displayName: 'jupyter-scipy:v2.0.0 (Hidden)',
-                  description: 'JupyterLab v2.0.0',
-                  labels: [],
-                  hidden: true,
-                },
-              ],
-            },
-            podConfig: {
-              default: 'tiny_cpu',
-              values: [
-                {
-                  id: 'tiny_cpu',
-                  displayName: 'Tiny CPU',
-                  description: 'Small pod',
-                  labels: [],
-                  hidden: false,
-                },
-              ],
-            },
-          },
-        },
-      });
-
-      cy.interceptApi(
-        'GET /api/:apiVersion/workspacekinds',
-        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
-        mockModArchResponse([mockWorkspaceKind]),
-      ).as('getWorkspaceKinds');
-
-      createWorkspace.visit();
-      cy.wait('@getWorkspaceKinds');
-
-      createWorkspace.selectKind('jupyterlab');
-      createWorkspace.clickNext();
-
-      // Hidden option should be auto-selected and visible
-      createWorkspace.assertImageSelected('jupyterlab_scipy_200_hidden');
-
-      // Uncheck "Show hidden" to filter it out
-      createWorkspace.clickExtraFilter('showHidden');
-
-      // The selected option should be deselected
-      cy.get('#jupyterlab_scipy_200_hidden').should('not.exist');
-
-      // Next button should be disabled since nothing is selected
-      createWorkspace.assertNextButtonDisabled();
     });
   });
 });

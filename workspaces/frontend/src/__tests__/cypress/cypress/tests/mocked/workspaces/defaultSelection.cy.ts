@@ -2,6 +2,7 @@ import { mockModArchResponse } from 'mod-arch-core';
 import { createWorkspace } from '~/__tests__/cypress/cypress/pages/workspaces/createWorkspace';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import { buildMockNamespace, buildMockWorkspaceKind } from '~/shared/mock/mockBuilder';
+import { interceptListValues } from '~/__tests__/cypress/cypress/utils/testBuilders';
 
 type ImageConfigOption = {
   id: string;
@@ -100,6 +101,7 @@ describe('Workspace Form - Default Selection', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKind]),
       ).as('getWorkspaceKinds');
+      interceptListValues(mockWorkspaceKind);
 
       createWorkspace.visit();
       cy.wait('@getWorkspaceKinds');
@@ -133,6 +135,7 @@ describe('Workspace Form - Default Selection', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKind]),
       ).as('getWorkspaceKinds');
+      interceptListValues(mockWorkspaceKind);
 
       createWorkspace.visit();
       cy.wait('@getWorkspaceKinds');
@@ -172,6 +175,7 @@ describe('Workspace Form - Default Selection', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKind]),
       ).as('getWorkspaceKinds');
+      interceptListValues(mockWorkspaceKind);
 
       createWorkspace.visit();
       cy.wait('@getWorkspaceKinds');
@@ -210,6 +214,7 @@ describe('Workspace Form - Default Selection', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKind]),
       ).as('getWorkspaceKinds');
+      interceptListValues(mockWorkspaceKind);
 
       createWorkspace.visit();
       cy.wait('@getWorkspaceKinds');
@@ -253,6 +258,7 @@ describe('Workspace Form - Default Selection', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKind]),
       ).as('getWorkspaceKinds');
+      interceptListValues(mockWorkspaceKind);
 
       createWorkspace.visit();
       cy.wait('@getWorkspaceKinds');
@@ -288,6 +294,7 @@ describe('Workspace Form - Default Selection', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKind]),
       ).as('getWorkspaceKinds');
+      interceptListValues(mockWorkspaceKind);
 
       createWorkspace.visit();
       cy.wait('@getWorkspaceKinds');

@@ -31,6 +31,7 @@ import {
 } from '~/app/pages/Workspaces/Form/podConfig/WorkspaceFormPodConfigSelection';
 import { WorkspaceFormPropertiesSelection } from '~/app/pages/Workspaces/Form/properties/WorkspaceFormPropertiesSelection';
 import { WorkspaceFormData } from '~/app/types';
+import usePodTemplateOptionsListValues from '~/app/hooks/usePodTemplateOptionsListValues';
 import useWorkspaceFormData from '~/app/hooks/useWorkspaceFormData';
 import { useTypedNavigate } from '~/app/routerHelper';
 import {
@@ -86,13 +87,26 @@ const WorkspaceForm: React.FC = () => {
   const [data, setData, resetData, replaceData] =
     useGenericObjectState<WorkspaceFormData>(initialFormData);
 
+  const [allValuesData, allValuesLoaded, allValuesError] = usePodTemplateOptionsListValues({
+    kindName: data.kind?.name,
+    namespace,
+    imageId: undefined,
+  });
+
+  // Re-fetches when imageId changes to get compatibility-filtered pod configs
+  const [filteredValuesData, filteredValuesLoaded, filteredValuesError] =
+    usePodTemplateOptionsListValues({
+      kindName: data.kind?.name,
+      namespace,
+      imageId: data.imageConfig,
+    });
+
   // Store original values for edit mode diff view
   const [originalData, setOriginalData] = useState<WorkspaceFormData | undefined>(undefined);
 
   // Refs for filter control
   const imageFilterControlRef = useRef<ImageSelectionFilterHandle>(null);
   const podConfigFilterControlRef = useRef<PodConfigSelectionFilterHandle>(null);
-
   useEffect(() => {
     if (!initialFormDataLoaded || mode === 'create') {
       return;
@@ -101,6 +115,20 @@ const WorkspaceForm: React.FC = () => {
     // Store original values for diff comparison
     setOriginalData(initialFormData);
   }, [initialFormData, initialFormDataLoaded, mode, replaceData]);
+
+  // Apply default imageConfig and podConfig from listValues when a kind is first selected.
+  // Only sets defaults when the values are unset (undefined), so user selections are never overwritten.
+  useEffect(() => {
+    if (!allValuesData || !allValuesLoaded || !data.kind) {
+      return;
+    }
+    if (!data.imageConfig && allValuesData.imageConfig.default) {
+      setData('imageConfig', allValuesData.imageConfig.default);
+    }
+    if (!data.podConfig && allValuesData.podConfig.default) {
+      setData('podConfig', allValuesData.podConfig.default);
+    }
+  }, [allValuesData, allValuesLoaded, data.kind, data.imageConfig, data.podConfig, setData]);
 
   const getStepVariant = useCallback(
     (step: WorkspaceFormSteps) => {
@@ -166,19 +194,16 @@ const WorkspaceForm: React.FC = () => {
   const isCurrentStepValid = useMemo(() => isStepValid(currentStep), [isStepValid, currentStep]);
 
   const selectedImage = useMemo(
-    () =>
-      data.kind?.podTemplate.options.imageConfig.values?.find(
-        (image) => image.id === data.imageConfig,
-      ),
-    [data.kind, data.imageConfig],
+    () => allValuesData?.imageConfig.values?.find((image) => image.id === data.imageConfig),
+    [allValuesData, data.imageConfig],
   );
 
   const selectedPodConfig = useMemo(
     () =>
-      data.kind?.podTemplate.options.podConfig.values?.find(
+      (filteredValuesData ?? allValuesData)?.podConfig.values?.find(
         (podConfig) => podConfig.id === data.podConfig,
       ),
-    [data.kind, data.podConfig],
+    [filteredValuesData, allValuesData, data.podConfig],
   );
 
   const canGoToNextStep = useMemo(
@@ -239,16 +264,6 @@ const WorkspaceForm: React.FC = () => {
       if (mode === 'create') {
         resetData();
         setData('kind', kind);
-
-        const defaultImageId = kind.podTemplate.options.imageConfig.default;
-        const defaultPodConfigId = kind.podTemplate.options.podConfig.default;
-
-        if (defaultImageId) {
-          setData('imageConfig', defaultImageId);
-        }
-        if (defaultPodConfigId) {
-          setData('podConfig', defaultPodConfigId);
-        }
       }
     },
     [mode, resetData, setData],
@@ -319,6 +334,8 @@ const WorkspaceForm: React.FC = () => {
     onNavigateToStep: navigateToStep,
     onSelectImage: handleImageSelect,
     onSelectPodConfig: handlePodConfigSelect,
+    imageValues: allValuesData?.imageConfig.values ?? [],
+    podConfigValues: allValuesData?.podConfig.values ?? [],
     originalKind: originalData?.kind,
     originalImage,
     originalPodConfig,
@@ -436,24 +453,39 @@ const WorkspaceForm: React.FC = () => {
                         onSelect={handleKindSelect}
                       />
                     )}
-                    {currentStep === WorkspaceFormSteps.ImageSelection && (
-                      <WorkspaceFormImageSelection
-                        selectedImage={selectedImage}
-                        onSelect={handleImageSelect}
-                        images={data.kind?.podTemplate.options.imageConfig.values ?? []}
-                        defaultImageId={data.kind?.podTemplate.options.imageConfig.default}
-                        filterControlRef={imageFilterControlRef}
-                      />
-                    )}
-                    {currentStep === WorkspaceFormSteps.PodConfigSelection && (
-                      <WorkspaceFormPodConfigSelection
-                        selectedPodConfig={selectedPodConfig}
-                        onSelect={handlePodConfigSelect}
-                        podConfigs={data.kind?.podTemplate.options.podConfig.values ?? []}
-                        defaultPodConfigId={data.kind?.podTemplate.options.podConfig.default}
-                        filterControlRef={podConfigFilterControlRef}
-                      />
-                    )}
+                    {currentStep === WorkspaceFormSteps.ImageSelection &&
+                      (allValuesError ? (
+                        <LoadError title="Failed to load image options" error={allValuesError} />
+                      ) : !allValuesLoaded ? (
+                        <LoadingSpinner />
+                      ) : (
+                        <WorkspaceFormImageSelection
+                          selectedImage={selectedImage}
+                          onSelect={handleImageSelect}
+                          images={allValuesData?.imageConfig.values ?? []}
+                          defaultImageId={allValuesData?.imageConfig.default}
+                          filterControlRef={imageFilterControlRef}
+                        />
+                      ))}
+                    {currentStep === WorkspaceFormSteps.PodConfigSelection &&
+                      (filteredValuesError || allValuesError ? (
+                        <LoadError
+                          title="Failed to load pod config options"
+                          error={(filteredValuesError ?? allValuesError)!}
+                        />
+                      ) : !(filteredValuesLoaded || allValuesLoaded) ? (
+                        <LoadingSpinner />
+                      ) : (
+                        <WorkspaceFormPodConfigSelection
+                          selectedPodConfig={selectedPodConfig}
+                          onSelect={handlePodConfigSelect}
+                          podConfigs={(filteredValuesData ?? allValuesData)?.podConfig.values ?? []}
+                          defaultPodConfigId={
+                            (filteredValuesData ?? allValuesData)?.podConfig.default
+                          }
+                          filterControlRef={podConfigFilterControlRef}
+                        />
+                      ))}
                     {currentStep === WorkspaceFormSteps.Properties && (
                       <WorkspaceFormPropertiesSelection
                         mode={mode}

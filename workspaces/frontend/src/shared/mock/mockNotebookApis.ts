@@ -3,6 +3,8 @@ import { NotebookApis } from '~/shared/api/notebookApi';
 import {
   mockAllWorkspaces,
   mockedHealthCheckResponse,
+  mockListValuesImages,
+  mockListValuesPodConfigs,
   mockNamespaces,
   mockPVCCreate,
   mockPVCsList,
@@ -87,12 +89,6 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
     deleteWorkspaceKind: async () => {
       await delay(1500);
     },
-    podTemplateOptionsListValues: async () => ({
-      data: {
-        imageConfig: { default: '' },
-        podConfig: { default: '' },
-      },
-    }),
     getWorkspaceKindIcon: async () => {
       const response = await fetch(
         'https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png',
@@ -104,6 +100,34 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
         'https://upload.wikimedia.org/wikipedia/commons/3/38/Jupyter_logo.svg',
       );
       return (await response.blob()) as unknown as File;
+    },
+    podTemplateOptionsListValues: async (_name, body) => {
+      const imageId = body.data.context.imageConfig?.id;
+      let podConfigs = mockListValuesPodConfigs;
+      if (imageId) {
+        const selectedImage = mockListValuesImages.find((img) => img.id === imageId);
+        const isGpuImage = selectedImage?.labels?.some(
+          (l) => l.key === 'gpuRequired' && l.value === 'true',
+        );
+        if (!isGpuImage) {
+          podConfigs = podConfigs.filter((pc) => !pc.labels?.some((l) => l.key === 'gpu'));
+        }
+      }
+
+      return {
+        data: {
+          imageConfig: {
+            default: mockListValuesImages[0]?.id ?? '',
+            values: imageId
+              ? mockListValuesImages.filter((img) => img.id === imageId)
+              : mockListValuesImages,
+          },
+          podConfig: {
+            default: mockListValuesPodConfigs[0]?.id ?? '',
+            values: podConfigs,
+          },
+        },
+      };
     },
     createWorkspaceKind: async (body) => {
       if (isInvalidYaml(body)) {

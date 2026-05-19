@@ -7,7 +7,10 @@ import {
   buildPodTemplateOptions,
   buildMockImageConfig,
 } from '~/shared/mock/mockBuilder';
-import { V1Beta1WorkspaceState } from '~/generated/data-contracts';
+import {
+  V1Beta1WorkspaceState,
+  type WorkspacekindsWorkspaceKindListItem,
+} from '~/generated/data-contracts';
 
 export const buildMockWorkspaceWithGPU = (args: {
   name: string;
@@ -163,3 +166,31 @@ export const buildMockPodConfigWithLabels = (
   redirect: undefined,
   clusterMetrics: undefined,
 });
+
+export const interceptListValues = (
+  kind: WorkspacekindsWorkspaceKindListItem,
+): Cypress.Chainable<null> => {
+  const allImages = kind.podTemplate.options.imageConfig.values ?? [];
+  const allPodConfigs = kind.podTemplate.options.podConfig.values ?? [];
+
+  return cy
+    .intercept('POST', `**/workspacekinds/${kind.name}/podtemplate/options/listvalues`, (req) => {
+      const imageId = req.body?.data?.context?.imageConfig?.id;
+
+      const images = imageId ? allImages.filter((img) => img.id === imageId) : allImages;
+
+      req.reply({
+        data: {
+          imageConfig: {
+            default: kind.podTemplate.options.imageConfig.default,
+            values: images,
+          },
+          podConfig: {
+            default: kind.podTemplate.options.podConfig.default,
+            values: allPodConfigs,
+          },
+        },
+      });
+    })
+    .as(`listValues-${kind.name}`);
+};
