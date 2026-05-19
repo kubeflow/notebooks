@@ -9,7 +9,7 @@ interface UseStorageClassesResult {
   storageClassLoadError: string | ApiErrorEnvelope | null;
 }
 
-const useStorageClasses = (): UseStorageClassesResult => {
+const useStorageClasses = (namespace?: string): UseStorageClassesResult => {
   const { api, apiAvailable } = useNotebookAPI();
 
   const call = useCallback<
@@ -18,9 +18,10 @@ const useStorageClasses = (): UseStorageClassesResult => {
     if (!apiAvailable) {
       return Promise.reject(new NotReadyError('API not yet available'));
     }
-    const response = await api.storageClasses.listStorageClasses();
+    const query = namespace ? { namespace } : undefined;
+    const response = await api.storageClasses.listStorageClasses(query);
     return response.data;
-  }, [api.storageClasses, apiAvailable]);
+  }, [api.storageClasses, apiAvailable, namespace]);
 
   const [storageClasses, , error] = useFetchState(call, [], { initialPromisePurity: true });
 
