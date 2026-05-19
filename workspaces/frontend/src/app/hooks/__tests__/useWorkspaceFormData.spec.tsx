@@ -1,6 +1,7 @@
 import { renderHook } from '~/__tests__/unit/testUtils/hooks';
 import useWorkspaceFormData, { EMPTY_FORM_DATA } from '~/app/hooks/useWorkspaceFormData';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
+import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import { NotebookApis } from '~/shared/api/notebookApi';
 import {
   buildMockWorkspace,
@@ -12,11 +13,15 @@ jest.mock('~/app/hooks/useNotebookAPI', () => ({
   useNotebookAPI: jest.fn(),
 }));
 
+jest.mock('~/app/hooks/useWorkspaceKinds', () => jest.fn());
+
 const mockUseNotebookAPI = useNotebookAPI as jest.MockedFunction<typeof useNotebookAPI>;
+const mockUseWorkspaceKinds = useWorkspaceKinds as jest.MockedFunction<typeof useWorkspaceKinds>;
 
 describe('useWorkspaceFormData', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseWorkspaceKinds.mockReturnValue([[], false, undefined, jest.fn()]);
   });
 
   it('returns empty form data when missing namespace or name', async () => {
@@ -46,11 +51,9 @@ describe('useWorkspaceFormData', () => {
       ok: true,
       data: mockWorkspaceUpdate,
     });
-    const listWorkspaceKinds = jest.fn().mockResolvedValue({ ok: true, data: [mockWorkspaceKind] });
 
     const api = {
       workspaces: { getWorkspace },
-      workspaceKinds: { listWorkspaceKinds },
     } as unknown as NotebookApis;
 
     mockUseNotebookAPI.mockReturnValue({
@@ -58,6 +61,8 @@ describe('useWorkspaceFormData', () => {
       apiAvailable: true,
       refreshAllAPI: jest.fn(),
     });
+
+    mockUseWorkspaceKinds.mockReturnValue([[mockWorkspaceKind], true, undefined, jest.fn()]);
 
     const { result, waitForNextUpdate } = renderHook(() =>
       useWorkspaceFormData({
@@ -92,5 +97,7 @@ describe('useWorkspaceFormData', () => {
       },
       revision: mockWorkspaceUpdate.revision,
     });
+
+    expect(mockUseWorkspaceKinds).toHaveBeenCalledWith('ns');
   });
 });
