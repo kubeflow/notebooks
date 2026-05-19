@@ -1,13 +1,20 @@
 import {
   ImagePullPolicy,
   TolerationEntry,
+  WorkspaceKindFormData,
   WorkspaceKindImagePort,
   WorkspaceKindPodConfigValue,
 } from '~/app/types';
 import {
   OptionsOptionLabel,
   OptionsPodConfigValue,
+  V1Beta1OptionRedirect,
+  V1Beta1RedirectMessageLevel,
+  V1PullPolicy,
+  V1ResourceList,
+  V1Toleration,
   V1TolerationOperator,
+  WorkspacekindsWorkspaceKindUpdate,
 } from '~/generated/data-contracts';
 import { PodResourceEntry } from './podConfig/WorkspaceKindFormResource';
 
@@ -157,6 +164,116 @@ export const emptyToleration = (): TolerationEntry => ({
   operator: V1TolerationOperator.TolerationOpEqual,
   key: '',
   value: '',
+});
+
+const convertRedirectToApi = (
+  redirect: WorkspaceKindPodConfigValue['redirect'],
+): V1Beta1OptionRedirect | undefined => {
+  if (!redirect?.to) {
+    return undefined;
+  }
+  return {
+    to: redirect.to,
+    message: redirect.message
+      ? {
+          level: redirect.message.level as unknown as V1Beta1RedirectMessageLevel,
+          text: redirect.message.text,
+        }
+      : undefined,
+  };
+};
+
+export const convertFormDataToUpdate = (
+  formData: WorkspaceKindFormData,
+  original: WorkspacekindsWorkspaceKindUpdate,
+): WorkspacekindsWorkspaceKindUpdate => ({
+  revision: original.revision,
+  spawner: {
+    displayName: formData.properties.displayName,
+    description: formData.properties.description,
+    deprecated: formData.properties.deprecated,
+    deprecationMessage: formData.properties.deprecationMessage || undefined,
+    hidden: formData.properties.hidden,
+    icon: { url: formData.properties.icon.url || undefined },
+    logo: { url: formData.properties.logo.url || undefined },
+  },
+  podTemplate: {
+    ...original.podTemplate,
+    podMetadata: {
+      labels: formData.podTemplate.podMetadata.labels,
+      annotations: formData.podTemplate.podMetadata.annotations,
+    },
+    volumeMounts: {
+      home: formData.podTemplate.volumeMounts.home,
+    },
+    culling: formData.podTemplate.culling
+      ? {
+          enabled: formData.podTemplate.culling.enabled,
+          maxInactiveSeconds: formData.podTemplate.culling.maxInactiveSeconds,
+          activityProbe: {
+            jupyter: {
+              lastActivity: formData.podTemplate.culling.activityProbe.jupyter.lastActivity,
+            },
+          },
+        }
+      : original.podTemplate.culling,
+    options: {
+      imageConfig: {
+        spawner: { default: formData.imageConfig.default },
+        values: (formData.imageConfig.values ?? []).map((v) => ({
+          id: v.id,
+          redirect: convertRedirectToApi(v.redirect),
+          spawner: {
+            displayName: v.displayName,
+            description: v.description || undefined,
+            hidden: v.hidden,
+            labels: v.labels?.map((l) => ({ key: l.key, value: l.value })),
+          },
+          spec: {
+            image: v.image ?? '',
+            imagePullPolicy: (v.imagePullPolicy ??
+              ImagePullPolicy.IfNotPresent) as unknown as V1PullPolicy,
+            ports: (v.ports ?? []).map((p) => ({
+              id: p.id,
+              displayName: p.displayName || undefined,
+              port: p.port,
+            })),
+          },
+        })),
+      },
+      podConfig: {
+        spawner: { default: formData.podConfig.default },
+        values: (formData.podConfig.values ?? []).map((v) => ({
+          id: v.id,
+          redirect: convertRedirectToApi(v.redirect),
+          spawner: {
+            displayName: v.displayName,
+            description: v.description || undefined,
+            hidden: v.hidden,
+            labels: v.labels?.map((l) => ({ key: l.key, value: l.value })),
+          },
+          spec: {
+            resources: v.resources
+              ? {
+                  requests: v.resources.requests as V1ResourceList,
+                  limits: v.resources.limits as V1ResourceList,
+                }
+              : undefined,
+            nodeSelector: v.nodeSelector,
+            tolerations: v.tolerations?.map(
+              (t): V1Toleration => ({
+                operator: t.operator,
+                effect: t.effect,
+                key: t.key,
+                value: t.value,
+                tolerationSeconds: t.tolerationSeconds,
+              }),
+            ),
+          },
+        })),
+      },
+    },
+  },
 });
 
 // convert from k8s resource object {limits: {}, requests{}} to array of {type: '', limit: '', request: ''} for each type of resource (e.g. CPU, memory, nvidia.com/gpu)

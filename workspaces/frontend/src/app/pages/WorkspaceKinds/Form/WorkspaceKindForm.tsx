@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import isEqual from 'lodash-es/isEqual';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { Content, ContentVariants } from '@patternfly/react-core/dist/esm/components/Content';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
@@ -28,7 +29,7 @@ import { WorkspaceKindFormProperties } from './properties/WorkspaceKindFormPrope
 import { WorkspaceKindFormImage } from './image/WorkspaceKindFormImage';
 import { WorkspaceKindFormPodConfig } from './podConfig/WorkspaceKindFormPodConfig';
 import { WorkspaceKindFormPodTemplate } from './podTemplate/WorkspaceKindFormPodTemplate';
-import { EMPTY_WORKSPACE_KIND_FORM_DATA } from './helpers';
+import { convertFormDataToUpdate, EMPTY_WORKSPACE_KIND_FORM_DATA } from './helpers';
 
 export enum WorkspaceKindFormView {
   Form,
@@ -137,8 +138,10 @@ export const WorkspaceKindForm: React.FC = () => {
   // TODO: Detect mode by route
   const [yamlValue, setYamlValue] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [validated, setValidated] = useState<ValidationStatus>('default');
   const mode: FormMode = useCurrentRouteKey() === 'workspaceKindCreate' ? 'create' : 'edit';
+  const [validated, setValidated] = useState<ValidationStatus>(
+    mode === 'edit' ? 'success' : 'default',
+  );
   const [error, setError] = useState<string | ApiErrorEnvelope | null>(null);
 
   const routeParams = useTypedParams<'workspaceKindEdit' | 'workspaceKindCreate'>();
@@ -149,12 +152,15 @@ export const WorkspaceKindForm: React.FC = () => {
   const [data, setData, resetData, replaceData] = useGenericObjectState<WorkspaceKindFormData>(
     initialFormData ? convertToFormData(initialFormData) : EMPTY_WORKSPACE_KIND_FORM_DATA,
   );
+  const [originalFormData, setOriginalFormData] = useState<WorkspaceKindFormData | null>(null);
 
   useEffect(() => {
     if (!initialFormDataLoaded || initialFormData === null || mode === 'create') {
       return;
     }
-    replaceData(convertToFormData(initialFormData));
+    const converted = convertToFormData(initialFormData);
+    replaceData(converted);
+    setOriginalFormData(converted);
   }, [initialFormData, initialFormDataLoaded, mode, replaceData]);
 
   const handleSubmit = useCallback(async () => {
@@ -178,23 +184,48 @@ export const WorkspaceKindForm: React.FC = () => {
         notification.success(
           `Workspace kind '${createResult.result.data.name}' created successfully`,
         );
-        navigate('workspaceKinds');
+      } else {
+        const updateResult = await safeApiCall(() =>
+          api.workspaceKinds.updateWorkspaceKind(routeParams?.kind || '', {
+            data: convertFormDataToUpdate(
+              data,
+              initialFormData as WorkspacekindsWorkspaceKindUpdate,
+            ),
+          }),
+        );
+        if (!updateResult.ok) {
+          throw updateResult.errorEnvelope;
+        }
+        notification.success(`Workspace kind '${routeParams?.kind || ''}' updated successfully`);
       }
-      // TODO: Finish when WSKind API is finalized
-      // const updatedWorkspace = await api.updateWorkspaceKind({}, kind, { data: {} });
-      // console.info('Workspace Kind updated:', JSON.stringify(updatedWorkspace));
-      // navigate('workspaceKinds');
+      navigate('workspaceKinds');
     } catch (err) {
       setError(extractErrorMessage(err));
-      setValidated('error');
+      if (mode === 'create') {
+        setValidated('error');
+      }
     } finally {
       setIsSubmitting(false);
     }
-  }, [api, mode, navigate, yamlValue, notification]);
+  }, [
+    mode,
+    api.workspaceKinds,
+    routeParams?.kind,
+    data,
+    initialFormData,
+    navigate,
+    notification,
+    yamlValue,
+  ]);
+
+  const hasChanges = useMemo(
+    () => originalFormData !== null && !isEqual(data, originalFormData),
+    [data, originalFormData],
+  );
 
   const canSubmit = useMemo(
-    () => !isSubmitting && validated === 'success',
-    [isSubmitting, validated],
+    () => !isSubmitting && validated === 'success' && (mode === 'create' || hasChanges),
+    [isSubmitting, validated, mode, hasChanges],
   );
 
   const cancel = useCallback(() => {
@@ -305,8 +336,7 @@ export const WorkspaceKindForm: React.FC = () => {
               ouiaId="Primary"
               onClick={handleSubmit}
               data-testid="submit-button"
-              // TODO: button is always disabled on edit mode. Need to modify when WorkspaceKind edit is finalized
-              isDisabled={!canSubmit || mode === 'edit'}
+              isDisabled={!canSubmit}
             >
               {mode === 'create' ? 'Create' : 'Save'}
             </Button>

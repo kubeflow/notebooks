@@ -1123,6 +1123,10 @@ class EditWorkspaceKind {
     this.findSubmitButton().should('have.text', text);
   }
 
+  assertErrorAlertVisible() {
+    cy.findByTestId('workspace-kind-form-error').should('be.visible');
+  }
+
   private wait() {
     this.findPageTitle();
     cy.testA11y();

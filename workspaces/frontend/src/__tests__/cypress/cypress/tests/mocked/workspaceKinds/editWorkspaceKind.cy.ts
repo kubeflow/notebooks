@@ -1284,4 +1284,70 @@ describe('Edit workspace kind', () => {
       });
     });
   });
+
+  describe('Save and update', () => {
+    it('should enable Save button after editing description', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.assertSubmitButtonDisabled(true);
+
+      editWorkspaceKind.expandPropertiesSection();
+      editWorkspaceKind.typeDescription('Updated description');
+
+      editWorkspaceKind.assertSubmitButtonDisabled(false);
+    });
+
+    it('should call update API when clicking Save after editing description', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      cy.interceptApi(
+        'PUT /api/:apiVersion/workspacekinds/:kind',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKind.name } },
+        mockModArchResponse(buildMockWorkspaceKindUpdate(mockWorkspaceKind)),
+      ).as('updateWorkspaceKind');
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandPropertiesSection();
+      editWorkspaceKind.typeDescription('Updated description');
+
+      editWorkspaceKind.clickSubmit();
+
+      cy.wait('@updateWorkspaceKind').then((interception) => {
+        expect(interception.request.method).to.equal('PUT');
+        expect(interception.request.body.data.spawner.description).to.equal('Updated description');
+      });
+
+      workspaceKinds.verifyPageURL();
+    });
+
+    it('should display error when update API fails', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      cy.interceptApi(
+        'PUT /api/:apiVersion/workspacekinds/:kind',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKind.name } },
+        {
+          error: {
+            code: '500',
+            message: 'Internal server error',
+          },
+        },
+      ).as('updateWorkspaceKindError');
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandPropertiesSection();
+      editWorkspaceKind.typeDescription('Updated description');
+
+      editWorkspaceKind.clickSubmit();
+
+      cy.wait('@updateWorkspaceKindError');
+
+      editWorkspaceKind.assertErrorAlertVisible();
+      editWorkspaceKind.verifyPageURL(mockWorkspaceKind.name);
+    });
+  });
 });
