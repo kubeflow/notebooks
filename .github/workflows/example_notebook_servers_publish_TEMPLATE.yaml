@@ -49,7 +49,8 @@ jobs:
           ARCH: ${{ inputs.build_arch }}
           IMAGE_FOLDERS: ${{ inputs.image_folders }}
           SHOULD_TAG_LATEST: ${{ github.ref == 'refs/heads/notebooks-v1' }}
-          SHOULD_TAG_VERSION: ${{ steps.filter.outputs.version == 'true' }}
+          # We only publish version-tagged images from release branches
+          SHOULD_TAG_VERSION: ${{ steps.filter.outputs.version == 'true' && startsWith(github.ref, 'refs/heads/v') }}
         run: |
           if [[ "$SHOULD_TAG_LATEST" = "true" ]]; then
             export ALSO_TAG_LATEST=1
