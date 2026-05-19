@@ -1,4 +1,6 @@
 import {
+  OptionsImageConfigValue,
+  OptionsPodConfigValue,
   PvcsPVCCreate,
   SecretsSecretCreate,
   V1Beta1WorkspaceState,
@@ -587,3 +589,37 @@ export const mockPVCCreate: PvcsPVCCreate = buildMockPVCCreate({
   requests: { storage: '10Gi' },
   storageClassName: 'standard',
 });
+
+// ListValues mock data — extends kind values with CUDA image + GPU pod config
+const defaultKind = buildMockWorkspaceKind();
+
+export const mockListValuesImages: OptionsImageConfigValue[] = [
+  ...(defaultKind.podTemplate.options.imageConfig.values ?? []),
+  {
+    id: 'jupyterlab_scipy_210_cuda',
+    displayName: 'jupyter-scipy:v2.1.0-cuda',
+    description: 'JupyterLab with SciPy Packages and CUDA support for GPU workloads',
+    labels: [
+      { key: 'pythonVersion', value: '3.13' },
+      { key: 'jupyterlabVersion', value: '2.1.0' },
+      { key: 'cuda', value: '12.4' },
+      { key: 'gpuRequired', value: 'true' },
+    ],
+    hidden: false,
+  },
+];
+
+export const mockListValuesPodConfigs: OptionsPodConfigValue[] = [
+  ...(defaultKind.podTemplate.options.podConfig.values ?? []),
+  {
+    id: 'big_gpu',
+    displayName: 'Big GPU',
+    description: 'Pod with 4 CPU, 16 GB RAM, and 1 GPU',
+    hidden: false,
+    labels: [
+      { key: 'cpu', value: '4000m' },
+      { key: 'memory', value: '16Gi' },
+      { key: 'gpu', value: '1' },
+    ],
+  },
+];

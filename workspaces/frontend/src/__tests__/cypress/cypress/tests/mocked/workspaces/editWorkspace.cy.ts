@@ -13,6 +13,7 @@ import {
   buildMockWorkspaceUpdate,
 } from '~/shared/mock/mockBuilder';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
+import { interceptListValues } from '~/__tests__/cypress/cypress/utils/testBuilders';
 import { V1Beta1WorkspaceState } from '~/generated/data-contracts';
 import { toastNotification } from '~/__tests__/cypress/cypress/pages/components/toastNotification';
 
@@ -116,6 +117,7 @@ const setupEditWorkspace = (): EditWorkspaceSetup => {
     { path: { apiVersion: NOTEBOOKS_API_VERSION } },
     mockModArchResponse([mockWorkspaceKind]),
   ).as('getWorkspaceKinds');
+  interceptListValues(mockWorkspaceKind);
 
   return { mockNamespace, mockWorkspace, mockWorkspaceKind };
 };
@@ -372,6 +374,8 @@ describe('Edit workspace', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKind, differentWorkspaceKind]),
       ).as('getWorkspaceKinds');
+      interceptListValues(mockWorkspaceKind);
+      interceptListValues(differentWorkspaceKind);
 
       visitEditWorkspace();
 

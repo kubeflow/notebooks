@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useMemo, useState, useImperativeHandle } from 'react';
+import React, { useRef, useMemo, useState, useImperativeHandle } from 'react';
 import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import { Split, SplitItem } from '@patternfly/react-core/dist/esm/layouts/Split';
 import { WorkspaceFormPodConfigList } from '~/app/pages/Workspaces/Form/podConfig/WorkspaceFormPodConfigList';
@@ -27,11 +27,9 @@ const WorkspaceFormPodConfigSelection: React.FunctionComponent<
 > = ({ podConfigs, selectedPodConfig, onSelect, defaultPodConfigId, filterControlRef }) => {
   const [filteredPodConfigs, setFilteredPodConfigs] = useState<OptionsPodConfigValue[]>(podConfigs);
   const internalFilterControlRef = useRef<FilterControlHandle>(null);
-  const lastEnsuredVisiblePodConfigId = useRef<string | null>(null);
 
   const defaultFilterValues = useMemo(() => {
     const defaults = computeDefaultFilterValues(podConfigs, defaultPodConfigId);
-    // Also enable filters if selectedPodConfig needs them
     if (selectedPodConfig) {
       if (selectedPodConfig.hidden) {
         defaults.showHidden = true;
@@ -63,31 +61,10 @@ const WorkspaceFormPodConfigSelection: React.FunctionComponent<
     [defaultFilterValues],
   );
 
-  useEffect(() => {
-    if (!selectedPodConfig) {
-      return;
-    }
-
-    // Skip deselection if we just ensured this pod config is visible
-    if (lastEnsuredVisiblePodConfigId.current === selectedPodConfig.id) {
-      lastEnsuredVisiblePodConfigId.current = null;
-      return;
-    }
-
-    const isSelectedInFilteredList = filteredPodConfigs.some(
-      (podConfig) => podConfig.id === selectedPodConfig.id,
-    );
-
-    if (!isSelectedInFilteredList) {
-      onSelect(undefined);
-    }
-  }, [filteredPodConfigs, selectedPodConfig, onSelect]);
-
   useImperativeHandle(
     filterControlRef,
     () => ({
       adaptFiltersForPodConfig: (podConfig: OptionsPodConfigValue) => {
-        lastEnsuredVisiblePodConfigId.current = podConfig.id;
         internalFilterControlRef.current?.clearAllFilters();
         if (podConfig.hidden) {
           internalFilterControlRef.current?.setExtraFilter('showHidden', true);

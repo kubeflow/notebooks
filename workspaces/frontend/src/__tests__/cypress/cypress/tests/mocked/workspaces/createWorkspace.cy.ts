@@ -11,6 +11,7 @@ import {
   buildMockWorkspaceCreate,
   buildMockWorkspaceKind,
 } from '~/shared/mock/mockBuilder';
+import { interceptListValues } from '~/__tests__/cypress/cypress/utils/testBuilders';
 import { navBar } from '~/__tests__/cypress/cypress/pages/components/navBar';
 import {
   secretsDetachModal,
@@ -118,6 +119,8 @@ describe('Create workspace', () => {
       { path: { apiVersion: NOTEBOOKS_API_VERSION } },
       mockModArchResponse([mockWorkspaceKind]),
     ).as('getWorkspaceKinds');
+
+    interceptListValues(mockWorkspaceKind);
 
     workspaces.visit();
     cy.wait('@getNamespaces');
@@ -364,6 +367,7 @@ describe('Create workspace', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKindWithMultipleImages]),
       ).as('getWorkspaceKindsMultiple');
+      interceptListValues(mockWorkspaceKindWithMultipleImages);
 
       createWorkspace.visit();
       cy.wait('@getWorkspaceKindsMultiple');
@@ -414,6 +418,7 @@ describe('Create workspace', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKindWithMultiplePodConfigs]),
       ).as('getWorkspaceKindsMultiplePodConfigs');
+      interceptListValues(mockWorkspaceKindWithMultiplePodConfigs);
 
       createWorkspace.visit();
       cy.wait('@getWorkspaceKindsMultiplePodConfigs');
@@ -451,6 +456,8 @@ describe('Create workspace', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKind, mockWorkspaceKind2]),
       ).as('getMultipleWorkspaceKinds');
+      interceptListValues(mockWorkspaceKind);
+      interceptListValues(mockWorkspaceKind2);
 
       createWorkspace.visit();
       cy.wait('@getMultipleWorkspaceKinds');
@@ -528,6 +535,7 @@ describe('Create workspace', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKindSingleImage]),
       ).as('getWorkspaceKindsSingleImage');
+      interceptListValues(mockWorkspaceKindSingleImage);
 
       createWorkspace.visit();
       cy.wait('@getWorkspaceKindsSingleImage');
@@ -564,6 +572,7 @@ describe('Create workspace', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKindSinglePodConfig]),
       ).as('getWorkspaceKindsSinglePodConfig');
+      interceptListValues(mockWorkspaceKindSinglePodConfig);
 
       createWorkspace.visit();
       cy.wait('@getWorkspaceKindsSinglePodConfig');
@@ -691,6 +700,7 @@ describe('Create workspace', () => {
           { path: { apiVersion: NOTEBOOKS_API_VERSION } },
           mockModArchResponse([mockWorkspaceKindWithMultipleOptions]),
         ).as('getWorkspaceKindsWithOptions');
+        interceptListValues(mockWorkspaceKindWithMultipleOptions);
       });
 
       it('should filter images by name', () => {
@@ -742,6 +752,7 @@ describe('Create workspace', () => {
           { path: { apiVersion: NOTEBOOKS_API_VERSION } },
           mockModArchResponse([mockWorkspaceKindWithMultipleOptions]),
         ).as('getWorkspaceKindsWithOptions');
+        interceptListValues(mockWorkspaceKindWithMultipleOptions);
       });
 
       it('should filter pod configs by name', () => {
@@ -1429,6 +1440,147 @@ describe('Create workspace', () => {
         // Verify table is gone (no secrets left)
         cy.findByTestId('secrets-table').should('not.exist');
       });
+    });
+  });
+
+  describe('ListValues options', () => {
+    const cpuImage: OptionsImageConfigValue = {
+      id: 'jupyter_cpu',
+      displayName: 'jupyter-scipy:v2.1.0',
+      description: 'JupyterLab, CPU only',
+      labels: [{ key: 'pythonVersion', value: '3.13' }],
+      hidden: false,
+    };
+
+    const cudaImage: OptionsImageConfigValue = {
+      id: 'jupyter_cuda',
+      displayName: 'jupyter-scipy:v2.1.0-cuda',
+      description: 'JupyterLab with CUDA support',
+      labels: [
+        { key: 'pythonVersion', value: '3.13' },
+        { key: 'cuda', value: '12.4' },
+        { key: 'gpuRequired', value: 'true' },
+      ],
+      hidden: false,
+    };
+
+    const smallCpuPod: OptionsPodConfigValue = {
+      id: 'small_cpu',
+      displayName: 'Small CPU',
+      description: 'Pod with 0.5 CPU, 512 Mb RAM',
+      labels: [
+        { key: 'cpu', value: '500m' },
+        { key: 'memory', value: '512Mi' },
+      ],
+      hidden: false,
+    };
+
+    const bigGpuPod: OptionsPodConfigValue = {
+      id: 'big_gpu',
+      displayName: 'Big GPU',
+      description: 'Pod with 4 CPU, 16 GB RAM, and 1 GPU',
+      labels: [
+        { key: 'cpu', value: '4000m' },
+        { key: 'memory', value: '16Gi' },
+        { key: 'gpu', value: '1' },
+      ],
+      hidden: false,
+    };
+
+    it('should show all images and pod configs from listValues response', () => {
+      const kind = buildMockWorkspaceKind({
+        podTemplate: {
+          ...mockWorkspaceKind.podTemplate,
+          options: {
+            imageConfig: { default: cpuImage.id, values: [cpuImage, cudaImage] },
+            podConfig: { default: smallCpuPod.id, values: [smallCpuPod, bigGpuPod] },
+          },
+        },
+      });
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspacekinds',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+        mockModArchResponse([kind]),
+      ).as('getWorkspaceKindsListValues');
+      interceptListValues(kind);
+
+      createWorkspace.visit();
+      cy.wait('@getWorkspaceKindsListValues');
+
+      createWorkspace.selectKind(kind.name);
+      createWorkspace.clickNext();
+
+      createWorkspace.findImageCard(cpuImage.id).should('be.visible');
+      createWorkspace.findImageCard(cudaImage.id).should('be.visible');
+
+      createWorkspace.selectImage(cudaImage.id);
+      createWorkspace.clickNext();
+
+      createWorkspace.findPodConfigCard(smallCpuPod.id).should('be.visible');
+      createWorkspace.findPodConfigCard(bigGpuPod.id).should('be.visible');
+    });
+
+    it('should show only CPU pod configs when listValues returns no GPU options', () => {
+      const kind = buildMockWorkspaceKind({
+        podTemplate: {
+          ...mockWorkspaceKind.podTemplate,
+          options: {
+            imageConfig: { default: cpuImage.id, values: [cpuImage] },
+            podConfig: { default: smallCpuPod.id, values: [smallCpuPod] },
+          },
+        },
+      });
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspacekinds',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+        mockModArchResponse([kind]),
+      ).as('getWorkspaceKindsListValues');
+      interceptListValues(kind);
+
+      createWorkspace.visit();
+      cy.wait('@getWorkspaceKindsListValues');
+
+      createWorkspace.selectKind(kind.name);
+      createWorkspace.clickNext();
+
+      createWorkspace.selectImage(cpuImage.id);
+      createWorkspace.clickNext();
+
+      createWorkspace.findPodConfigCard(smallCpuPod.id).should('be.visible');
+      createWorkspace.findPodConfigCard(bigGpuPod.id).should('not.exist');
+    });
+
+    it('should auto-select default image and pod config from listValues', () => {
+      const kind = buildMockWorkspaceKind({
+        podTemplate: {
+          ...mockWorkspaceKind.podTemplate,
+          options: {
+            imageConfig: { default: cudaImage.id, values: [cpuImage, cudaImage] },
+            podConfig: { default: bigGpuPod.id, values: [smallCpuPod, bigGpuPod] },
+          },
+        },
+      });
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspacekinds',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+        mockModArchResponse([kind]),
+      ).as('getWorkspaceKindsListValues');
+      interceptListValues(kind);
+
+      createWorkspace.visit();
+      cy.wait('@getWorkspaceKindsListValues');
+
+      createWorkspace.selectKind(kind.name);
+      createWorkspace.clickNext();
+
+      createWorkspace.assertImageSelected(cudaImage.id);
+
+      createWorkspace.clickNext();
+
+      createWorkspace.assertPodConfigSelected(bigGpuPod.id);
     });
   });
 });
