@@ -663,7 +663,7 @@ const docTemplate = `{
         },
         "/storageclasses": {
             "get": {
-                "description": "Returns a list of all storage classes in the cluster.",
+                "description": "Returns a list of all storage classes in the cluster. When namespace is provided, authorization checks whether the user can create PersistentVolumeClaims in that namespace instead of requiring a cluster-wide permission to list storage classes.",
                 "produces": [
                     "application/json"
                 ],
@@ -672,6 +672,15 @@ const docTemplate = `{
                 ],
                 "summary": "List storage classes",
                 "operationId": "listStorageClasses",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "x-example": "kubeflow-user-example-com",
+                        "description": "Namespace to request storage classes for.",
+                        "name": "namespace",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Successful storage classes response",
@@ -687,6 +696,12 @@ const docTemplate = `{
                     },
                     "403": {
                         "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }
