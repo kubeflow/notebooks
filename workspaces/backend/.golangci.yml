@@ -12,6 +12,11 @@ issues:
       linters:
         - lll
 
+    # disable dupl for handler files
+    - path: "api/.*_handler\\.go"
+      linters:
+        - dupl
+
     # disable some linters for internal packages
     - path: "internal/*"
       linters:

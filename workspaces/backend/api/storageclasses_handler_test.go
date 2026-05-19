@@ -135,5 +135,74 @@ var _ = Describe("StorageClasses Handler", func() {
 				models.NewStorageClassListItemFromStorageClass(storageClass2),
 			))
 		})
+
+		It("should retrieve storage classes successfully with a valid namespace query parameter", func() {
+			By("creating the HTTP request with namespace query parameter")
+			req, err := http.NewRequest(http.MethodGet, constants.AllStorageClassesPath+"?namespace=kubeflow-user-example-com", http.NoBody)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing GetStorageClassesHandler")
+			ps := httprouter.Params{}
+			rr := httptest.NewRecorder()
+			a.GetStorageClassesHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusOK), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("reading the HTTP response body")
+			body, err := io.ReadAll(rs.Body)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("unmarshalling the response JSON to StorageClassListEnvelope")
+			var response StorageClassListEnvelope
+			err = json.Unmarshal(body, &response)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("getting the StorageClasses from the Kubernetes API")
+			storageClass1 := &storagev1.StorageClass{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: storageClassName1}, storageClass1)).To(Succeed())
+			storageClass2 := &storagev1.StorageClass{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: storageClassName2}, storageClass2)).To(Succeed())
+
+			By("ensuring the response contains the expected StorageClasses")
+			Expect(response.Data).To(ContainElements(
+				models.NewStorageClassListItemFromStorageClass(storageClass1),
+				models.NewStorageClassListItemFromStorageClass(storageClass2),
+			))
+		})
+
+		It("should return 422 for an invalid namespace query parameter", func() {
+			By("creating the HTTP request with an invalid namespace query parameter")
+			req, err := http.NewRequest(http.MethodGet, constants.AllStorageClassesPath+"?namespace=INVALID_NS!!!", http.NoBody)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing GetStorageClassesHandler")
+			ps := httprouter.Params{}
+			rr := httptest.NewRecorder()
+			a.GetStorageClassesHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("decoding the error response")
+			var response ErrorEnvelope
+			err = json.Unmarshal(rr.Body.Bytes(), &response)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("verifying the error message indicates a query parameter validation failure")
+			Expect(response.Error.Message).To(Equal(errMsgQueryParamsInvalid))
+			Expect(response.Error.Cause.ValidationErrors).NotTo(BeEmpty())
+			Expect(response.Error.Cause.ValidationErrors[0].Field).To(Equal(constants.NamespaceQueryParam))
+		})
 	})
 })
