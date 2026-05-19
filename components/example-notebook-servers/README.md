@@ -31,9 +31,6 @@ graph TD
   PyTorchCuda --> PyTorchCudaFull[<a href='https://github.com/kubeflow/kubeflow/tree/master/components/example-notebook-servers/jupyter-pytorch-cuda-full'>PyTorch CUDA Full</a>]
   TensorFlowCuda --> TensorFlowCudaFull[<a href='https://github.com/kubeflow/kubeflow/tree/master/components/example-notebook-servers/jupyter-tensorflow-cuda-full'>TensorFlow CUDA Full</a>]
 
-  Jupyter --> PyTorchGaudi[<a href='https://github.com/kubeflow/kubeflow/tree/master/components/example-notebook-servers/jupyter-pytorch-gaudi'>PyTorch Gaudi</a>]
-  PyTorchGaudi --> PyTorchGaudiFull[<a href='https://github.com/kubeflow/kubeflow/tree/master/components/example-notebook-servers/jupyter-pytorch-gaudi-full'>PyTorch Gaudi Full</a>]
-
 ```
 
 ### Base Images
@@ -59,8 +56,6 @@ Dockerfile | Container Registry | Notes
 [`./jupyter-pytorch-full`](./jupyter-pytorch-full) | [`ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-pytorch-full`](https://ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-pytorch-full) | JupyterLab + PyTorch + Common Packages
 [`./jupyter-pytorch-cuda`](./jupyter-pytorch-cuda) | [`ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-pytorch-cuda`](https://ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-pytorch-cuda) | JupyterLab + PyTorch + CUDA
 [`./jupyter-pytorch-cuda-full`](./jupyter-pytorch-cuda-full) | [`ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-pytorch-cuda-full`](https://ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-pytorch-cuda-full) | JupyterLab + PyTorch + CUDA + Common Packages
-[`./jupyter-pytorch-gaudi`](./jupyter-pytorch-gaudi) | [`ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-pytorch-gaudi`](https://ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-pytorch-gaudi) | JupyterLab + PyTorch + Intel Gaudi
-[`./jupyter-pytorch-gaudi-full`](./jupyter-pytorch-gaudi-full) | [`ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-pytorch-gaudi-full`](https://ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-pytorch-gaudi-full) | JupyterLab + PyTorch + Intel Gaudi + Common Packages
 [`./jupyter-scipy`](./jupyter-scipy) | [`ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy`](https://ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy) | JupyterLab + Common Packages
 [`./jupyter-tensorflow`](./jupyter-tensorflow) | [`ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-tensorflow`](https://ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-tensorflow) | JupyterLab + TensorFlow
 [`./jupyter-tensorflow-full`](./jupyter-tensorflow-full) | [`ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-tensorflow-full`](https://ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-tensorflow-full) | JupyterLab + TensorFlow + Common Packages
