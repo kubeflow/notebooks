@@ -43,6 +43,31 @@ describe('useWorkspaceFormData', () => {
     expect(workspaceFormData).toEqual(EMPTY_FORM_DATA);
   });
 
+  it('returns error when workspace kinds fail to load', async () => {
+    mockUseNotebookAPI.mockReturnValue({
+      api: {} as NotebookApis,
+      apiAvailable: true,
+      refreshAllAPI: jest.fn(),
+    });
+
+    const kindsError = new Error('Failed to fetch workspace kinds');
+    mockUseWorkspaceKinds.mockReturnValue([[], false, kindsError, jest.fn()]);
+
+    const { result, waitForNextUpdate } = renderHook(() =>
+      useWorkspaceFormData({
+        namespace: 'ns',
+        workspaceName: 'my-workspace',
+        workspaceKindName: 'jupyterlab',
+      }),
+    );
+    await waitForNextUpdate();
+
+    const [data, loaded, error] = result.current;
+    expect(data).toEqual(EMPTY_FORM_DATA);
+    expect(loaded).toBe(false);
+    expect(error).toBeDefined();
+  });
+
   it('maps workspace and kind into form data when API available', async () => {
     const mockWorkspace = buildMockWorkspace({});
     const mockWorkspaceUpdate = buildMockWorkspaceUpdateFromWorkspace({ workspace: mockWorkspace });

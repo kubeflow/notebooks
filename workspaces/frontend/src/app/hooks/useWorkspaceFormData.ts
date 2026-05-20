@@ -24,7 +24,7 @@ const useWorkspaceFormData = (args: {
 }): FetchState<WorkspaceFormData> => {
   const { namespace, workspaceName, workspaceKindName } = args;
   const { api, apiAvailable } = useNotebookAPI();
-  const [workspaceKinds, workspaceKindsLoaded] = useWorkspaceKinds(namespace);
+  const [workspaceKinds, workspaceKindsLoaded, workspaceKindsError] = useWorkspaceKinds(namespace);
 
   const call = useCallback<FetchStateCallbackPromise<WorkspaceFormData>>(async () => {
     if (!apiAvailable) {
@@ -33,6 +33,10 @@ const useWorkspaceFormData = (args: {
 
     if (!namespace || !workspaceName || !workspaceKindName) {
       return EMPTY_FORM_DATA;
+    }
+
+    if (workspaceKindsError) {
+      return Promise.reject(workspaceKindsError);
     }
 
     if (!workspaceKindsLoaded) {
@@ -80,6 +84,7 @@ const useWorkspaceFormData = (args: {
     workspaceKindName,
     workspaceKinds,
     workspaceKindsLoaded,
+    workspaceKindsError,
   ]);
 
   return useFetchState(call, EMPTY_FORM_DATA);
