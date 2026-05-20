@@ -1,0 +1,22 @@
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+spec:
+  profile: default
+  components:
+    cni:
+      enabled: true
+  meshConfig:
+    extensionProviders:
+      - name: dev-access-log
+        envoyFileAccessLog:
+          path: /dev/stdout
+          logFormat:
+            labels:
+              timestamp: "%START_TIME%"
+              method: "%REQ(:METHOD)%"
+              path: "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%"
+              response_code: "%RESPONSE_CODE%"
+              kubeflow_userid: "%REQ(KUBEFLOW-USERID)%"
+              kubeflow_groups: "%REQ(KUBEFLOW-GROUPS)%"
+              upstream: "%UPSTREAM_HOST%"
+              duration: "%DURATION%"

@@ -63,6 +63,37 @@ k8s_resource(
 
 
 # ============================================================================
+# Dev RBAC
+# ============================================================================
+# Create RBAC bindings for dev users (admin, user).
+# Uses the kubeflow-workspaces-* ClusterRoles from controller manifests,
+# plus dev-only supplements for resources the backend also checks (PVCs, secrets, etc).
+
+rbac_path = os.path.join(tilt_root, "manifests/rbac")
+k8s_yaml(
+    kustomize(rbac_path, kustomize_bin=kustomize_bin),
+    allow_duplicates=True,
+)
+
+k8s_resource(
+    objects=[
+        "dev-admin-workspaces:clusterrolebinding",
+        "dev-admin-supplement:clusterrole",
+        "dev-admin-supplement:clusterrolebinding",
+        "dev-user-workspaces:rolebinding",
+        "dev-user-global-read:clusterrole",
+        "dev-user-global-read:clusterrolebinding",
+        "dev-user-resources:role",
+        "dev-user-resources:rolebinding",
+    ],
+    new_name="dev-rbac",
+    resource_deps=["workspaces-controller"],
+    pod_readiness="ignore",
+    labels=["rbac"],
+)
+
+
+# ============================================================================
 # Backend
 # ============================================================================
 
@@ -94,7 +125,7 @@ for o in backend_objects:
             "SWAGGER_SCHEME": "https",
             "SWAGGER_HOST": "localhost:8443",
             "SWAGGER_BASE_PATH": "/workspaces/api/v1",
-            "DISABLE_AUTH": "true",
+            "DISABLE_AUTH": "false",
         }
 
         # Replace existing keys and add missing ones
@@ -262,6 +293,7 @@ k8s_resource(
         "selfsigned-issuer:clusterissuer",
         "gateway-tls:certificate",
         "kubeflow-gateway:gateway",
+        "gateway-access-logging:telemetry",
     ],
     new_name="istio-gateway",
     pod_readiness="ignore",

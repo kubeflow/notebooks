@@ -1,0 +1,70 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: dev-admin-workspaces
+subjects:
+  - kind: User
+    name: admin
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: kubeflow-workspaces-admin
+  apiGroup: rbac.authorization.k8s.io
+---
+# Dev supplement: resources the backend checks via SubjectAccessReview
+# that kubeflow-workspaces-admin doesn't cover.
+# Note: storageclasses "list" is omitted because the frontend always passes a
+# namespace query param, which triggers a "create PVCs" check instead.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: dev-admin-supplement
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - list
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - update
+- apiGroups:
+  - kubeflow.org
+  resources:
+  - workspacekinds
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: dev-admin-supplement
+subjects:
+  - kind: User
+    name: admin
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: dev-admin-supplement
+  apiGroup: rbac.authorization.k8s.io

@@ -1,0 +1,83 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dev-user-workspaces
+  namespace: default
+subjects:
+  - kind: User
+    name: user
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: kubeflow-workspaces-edit
+  apiGroup: rbac.authorization.k8s.io
+---
+# Dev supplement: cluster-scoped namespace listing for the namespace selector.
+# Other cluster-wide permissions (workspacekinds, storageclasses) are NOT needed
+# because the frontend passes namespace context to those endpoints, which triggers
+# namespace-scoped checks (e.g., "create PVCs" instead of "list storageclasses").
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: dev-user-global-read
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: dev-user-global-read
+subjects:
+  - kind: User
+    name: user
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: dev-user-global-read
+  apiGroup: rbac.authorization.k8s.io
+---
+# Dev supplement: PVC and secret management in default namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: dev-user-resources
+  namespace: default
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dev-user-resources
+  namespace: default
+subjects:
+  - kind: User
+    name: user
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: dev-user-resources
+  apiGroup: rbac.authorization.k8s.io

@@ -6,7 +6,8 @@ set -euo pipefail
 
 CLUSTER_NAME="tilt"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-KIND_CONFIG="${SCRIPT_DIR}/kind.yaml"
+DEVELOPING_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+KIND_CONFIG="${DEVELOPING_DIR}/manifests/kind.yaml"
 
 # Check if kind command exists
 if ! command -v kind >/dev/null 2>&1; then

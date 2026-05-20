@@ -4,6 +4,7 @@ import { AppRoutePaths } from '~/app/routes';
 import { WorkspaceKindSummaryWrapper } from '~/app/pages/WorkspaceKinds/summary/WorkspaceKindSummaryWrapper';
 import { WorkspaceForm } from '~/app/pages/Workspaces/Form/WorkspaceForm';
 import { useAppContext } from '~/app/context/AppContext';
+import { DEV_MODE } from '~/shared/utilities/const';
 import { Debug } from './pages/Debug/Debug';
 import { NotFound } from './pages/notFound/NotFound';
 import { WorkspaceKinds } from './pages/WorkspaceKinds/WorkspaceKinds';
@@ -36,13 +37,17 @@ export const useAdminDebugSettings = (): NavDataItem[] => {
 
   return [
     {
-      label: 'Debug',
-      children: [{ label: 'Notebooks', path: AppRoutePaths.notebookDebugSettings }],
-    },
-    {
       label: 'Workspace kinds',
       path: AppRoutePaths.workspaceKinds,
     },
+    ...(DEV_MODE
+      ? [
+          {
+            label: 'Debug',
+            children: [{ label: 'Settings', path: AppRoutePaths.notebookDebugSettings }],
+          },
+        ]
+      : []),
   ];
 };
 
