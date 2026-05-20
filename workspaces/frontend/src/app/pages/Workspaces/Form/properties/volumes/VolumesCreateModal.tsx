@@ -30,6 +30,7 @@ import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons/dist/esm/ico
 import { V1PersistentVolumeAccessMode } from '~/generated/data-contracts';
 import { ErrorAlert } from '~/shared/components/ErrorAlert';
 import useStorageClasses from '~/app/hooks/useStorageClasses';
+import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 import useVolumesFormState from '~/app/hooks/useVolumesFormState';
 import { WorkspacesPodVolumeMountValue } from '~/app/types';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
@@ -69,7 +70,8 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
   volumeToEdit,
   onVolumeEdited,
 }) => {
-  const { storageClasses, storageClassLoadError } = useStorageClasses();
+  const { selectedNamespace } = useNamespaceSelectorWrapper();
+  const { storageClasses, storageClassLoadError } = useStorageClasses(selectedNamespace);
 
   const isEditMode = !!volumeToEdit;
 

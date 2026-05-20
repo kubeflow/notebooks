@@ -151,9 +151,11 @@ describe('Volumes Management - Attach and Create', () => {
       mockModArchResponse(mockPVCs),
     ).as('listPVCs');
 
-    cy.intercept('GET', `/api/${NOTEBOOKS_API_VERSION}/storageclasses`, {
-      data: mockStorageClasses,
-    }).as('listStorageClasses');
+    cy.interceptApi(
+      'GET /api/:apiVersion/storageclasses',
+      { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+      mockModArchResponse(mockStorageClasses),
+    ).as('listStorageClasses');
 
     // Navigate to volumes section
     workspaces.visit();

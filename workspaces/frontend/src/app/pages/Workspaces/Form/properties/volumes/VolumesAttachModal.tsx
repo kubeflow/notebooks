@@ -25,6 +25,7 @@ import {
 import { MountPathField } from '~/app/pages/Workspaces/Form/MountPathField';
 import usePVCs from '~/app/hooks/usePVCs';
 import useStorageClasses from '~/app/hooks/useStorageClasses';
+import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 import { LoadingSpinner } from '~/app/components/LoadingSpinner';
 
 const PVC_SELECT_EMPTY_KEY = 'pvc-select-empty';
@@ -61,7 +62,8 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
   // ── Data fetching ───────────────────────────────────────────────────────
 
   const { pvcs: availablePVCs, pvcsLoaded, pvcLoadError, refreshPVCs } = usePVCs();
-  const { storageClasses } = useStorageClasses();
+  const { selectedNamespace } = useNamespaceSelectorWrapper();
+  const { storageClasses } = useStorageClasses(selectedNamespace);
 
   // ── Form state ───────────────────────────────────────────────────────────
 
