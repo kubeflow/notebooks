@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
-import { FetchState, FetchStateCallbackPromise, useFetchState } from 'mod-arch-core';
+import { FetchState, FetchStateCallbackPromise, useFetchState, NotReadyError } from 'mod-arch-core';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
+import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import { WorkspaceFormData } from '~/app/types';
 
 export const EMPTY_FORM_DATA: WorkspaceFormData = {
@@ -23,6 +24,7 @@ const useWorkspaceFormData = (args: {
 }): FetchState<WorkspaceFormData> => {
   const { namespace, workspaceName, workspaceKindName } = args;
   const { api, apiAvailable } = useNotebookAPI();
+  const [workspaceKinds, workspaceKindsLoaded, workspaceKindsError] = useWorkspaceKinds(namespace);
 
   const call = useCallback<FetchStateCallbackPromise<WorkspaceFormData>>(async () => {
     if (!apiAvailable) {
@@ -33,12 +35,17 @@ const useWorkspaceFormData = (args: {
       return EMPTY_FORM_DATA;
     }
 
-    const [workspaceEnvelope, workspaceKindsEnvelope] = await Promise.all([
-      api.workspaces.getWorkspace(namespace, workspaceName),
-      api.workspaceKinds.listWorkspaceKinds({}),
-    ]);
+    if (workspaceKindsError) {
+      return Promise.reject(workspaceKindsError);
+    }
+
+    if (!workspaceKindsLoaded) {
+      return Promise.reject(new NotReadyError('Workspace kinds not yet available'));
+    }
+
+    const workspaceEnvelope = await api.workspaces.getWorkspace(namespace, workspaceName);
     const workspaceUpdate = workspaceEnvelope.data;
-    const workspaceKind = workspaceKindsEnvelope.data.find((k) => k.name === workspaceKindName);
+    const workspaceKind = workspaceKinds.find((k) => k.name === workspaceKindName);
     const { imageConfig, podConfig } = workspaceUpdate.podTemplate.options;
 
     return {
@@ -69,7 +76,16 @@ const useWorkspaceFormData = (args: {
           : undefined,
       },
     };
-  }, [api, apiAvailable, namespace, workspaceName, workspaceKindName]);
+  }, [
+    api,
+    apiAvailable,
+    namespace,
+    workspaceName,
+    workspaceKindName,
+    workspaceKinds,
+    workspaceKindsLoaded,
+    workspaceKindsError,
+  ]);
 
   return useFetchState(call, EMPTY_FORM_DATA);
 };
