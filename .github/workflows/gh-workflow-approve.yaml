@@ -16,13 +16,34 @@ concurrency:
 
 jobs:
   ok-to-test:
-    if: contains(github.event.pull_request.labels.*.name, 'ok-to-test')
     runs-on: ubuntu-latest
     continue-on-error: true
 
     steps:
+      - name: Check if author is a Kubeflow GitHub member
+        id: membership-check
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const username = context.payload.pull_request.user.login;
+            const org = context.repo.owner;
+            try {
+              const res = await github.rest.orgs.checkMembershipForUser({
+                org,
+                username
+              });
+              core.setOutput("is_member", true);
+            } catch (error) {
+              if (error.status === 404) {
+                core.setOutput("is_member", false);
+              } else {
+                throw error;
+              }
+            }
+
       - name: Approve Pending Workflow Runs
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        if: steps.membership-check.outputs.is_member == 'true' || contains(github.event.pull_request.labels.*.name, 'ok-to-test')
         with:
           retries: 3
           script: |
@@ -33,10 +54,10 @@ jobs:
               status: "action_required",
               head_sha: context.payload.pull_request.head.sha,
             }
-            
+
             core.info(`Getting workflow runs that need approval for commit ${request.head_sha}`)
             const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, request)
-            
+
             core.info(`Found ${runs.length} workflow runs that need approval`)
             for (const run of runs) {
               core.info(`Approving workflow run ${run.id}`)
