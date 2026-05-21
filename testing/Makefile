@@ -21,7 +21,6 @@ KIND_CLUSTER_NAME ?= local-e2e
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
-
 # Export KIND_EXPERIMENTAL_PROVIDER to honor it if set in user's environment
 # (e.g., KIND_EXPERIMENTAL_PROVIDER=podman for podman support)
 export KIND_EXPERIMENTAL_PROVIDER
@@ -45,31 +44,48 @@ help: ## Display this help.
 
 ##@ Deployment
 
-.PHONY: build-controller build-backend build-frontend build-all e2e sanity-check
+.PHONY: setup-cluster
+setup-cluster: check-kubectl check-kind ## Set up a complete kind cluster with cert-manager and Istio.
+	bash scripts/setup-kind.sh
+	bash scripts/setup-cert-manager.sh
+	bash scripts/setup-istio.sh
 
-deploy-controller: kind check-kind-context ## Build and deploy the controller.
+.PHONY: teardown-cluster
+teardown-cluster: check-kind ## Delete the Kind cluster.
+	kind delete cluster --name $(KIND_CLUSTER_NAME)
+
+.PHONY: deploy-controller
+deploy-controller: check-kind check-kind-context ## Build and deploy the controller.
 	$(MAKE) -C ../workspaces/controller docker-build IMG=$(CONTROLLER_IMG)
-	$(KIND) load docker-image $(CONTROLLER_IMG) --name $(KIND_CLUSTER_NAME)
+	kind load docker-image $(CONTROLLER_IMG) --name $(KIND_CLUSTER_NAME)
 	$(MAKE) -C ../workspaces/controller deploy IMG=$(CONTROLLER_IMG)
 
-deploy-backend: kind check-kind-context ## Build and deploy the backend.
+.PHONY: deploy-backend
+deploy-backend: check-kind check-kind-context ## Build and deploy the backend.
 	$(MAKE) -C ../workspaces/backend docker-build IMG=$(BACKEND_IMG)
-	$(KIND) load docker-image $(BACKEND_IMG) --name $(KIND_CLUSTER_NAME)
+	kind load docker-image $(BACKEND_IMG) --name $(KIND_CLUSTER_NAME)
 	$(MAKE) -C ../workspaces/backend deploy IMG=$(BACKEND_IMG)
 
-deploy-frontend: kind check-kind-context ## Build and deploy the frontend.
+.PHONY: deploy-frontend
+deploy-frontend: check-kind check-kind-context ## Build and deploy the frontend.
 	$(MAKE) -C ../workspaces/frontend docker-build IMG=$(FRONTEND_IMG)
-	$(KIND) load docker-image $(FRONTEND_IMG) --name $(KIND_CLUSTER_NAME)
+	kind load docker-image $(FRONTEND_IMG) --name $(KIND_CLUSTER_NAME)
 	$(MAKE) -C ../workspaces/frontend deploy IMG=$(FRONTEND_IMG)
 
+.PHONY: deploy-all
 deploy-all: deploy-controller deploy-backend deploy-frontend ## Deploy all components.
 
+##@ E2E Tests
+
+.PHONY: sanity-check
 sanity-check: check-kind-context ## Verify all components are deployed and responding.
 	@bash scripts/sanity-check.sh
 
+.PHONY: local-e2e
 local-e2e: ## Run e2e tests.
-	@echo "TODO: Run e2e tests..."
-
+	@echo "..."
+	@echo "TODO: there are no e2e tests yet, they will be defined in Cypress..."
+	@echo "..."
 
 ##@ Dependencies
 
@@ -78,75 +94,33 @@ LOCALBIN ?= $(shell pwd)/bin
 $(LOCALBIN):
 	mkdir -p $(LOCALBIN)
 
-## Tool Binaries
-KIND ?= $(LOCALBIN)/kind
-KUBECTL ?= kubectl
-ISTIOCTL ?= $(LOCALBIN)/istioctl
+.PHONY: check-kind
+check-kind: ## Verify that kind is available in PATH.
+	@command -v kind >/dev/null 2>&1 || { \
+		echo "ERROR: kind is not found in PATH. Please install kind."; \
+		exit 1; \
+	}
 
-## Tool Versions
-KIND_VERSION ?= v0.30.0
-ISTIOCTL_VERSION ?= 1.27.3
-
-.PHONY: kind
-kind: $(KIND) ## Download kind locally if necessary.
-$(KIND): $(LOCALBIN)
-	$(call go-install-tool,$(KIND),sigs.k8s.io/kind,$(KIND_VERSION))
+.PHONY: check-kind-context
+check-kind-context: ## Verify that the current kubectl context is set to the expected kind cluster.
+	@{ \
+		current_context=$$(kubectl config current-context); \
+		expected_context="kind-$(KIND_CLUSTER_NAME)"; \
+		if [ "$$current_context" != "$$expected_context" ]; then \
+			echo "ERROR: Current kubectl context is '$$current_context', but expected '$$expected_context'."; \
+			echo "ERROR: switch to the correct context using: kubectl config use-context $$expected_context"; \
+			exit 1; \
+		fi; \
+	}
 
 .PHONY: check-kubectl
 check-kubectl: ## Verify that kubectl is available in PATH.
-	@if ! command -v $(KUBECTL) >/dev/null 2>&1; then \
-		echo "✗ ERROR: kubectl is not installed or not found in PATH"; \
-		echo "  Please install kubectl: https://kubernetes.io/docs/tasks/tools/#kubectl"; \
+	@command -v kubectl >/dev/null 2>&1 || { \
+		echo "ERROR: kubectl is not found in PATH. Please install kubectl."; \
 		exit 1; \
-	fi
-	@echo "✓ kubectl found: $$($(KUBECTL) version --client 2>/dev/null || echo 'version check failed')"
-
-.PHONY: istioctl
-istioctl: $(ISTIOCTL) ## Download istioctl locally if necessary.
-$(ISTIOCTL): $(LOCALBIN)
-	$(call go-install-tool,$(ISTIOCTL),istio.io/istio/istioctl/cmd/istioctl,$(ISTIOCTL_VERSION),"-X istio.io/istio/pkg/version.buildVersion=$(ISTIOCTL_VERSION) -X istio.io/istio/pkg/version.buildTag=$(ISTIOCTL_VERSION) -X istio.io/istio/pkg/version.buildHub=docker.io/istio")
-
-.PHONY: dependency-hash
-dependency-hash: ## Calculate hash of dependency versions for caching.
-	@echo -e "KIND_VERSION=$(KIND_VERSION)\nISTIOCTL_VERSION=$(ISTIOCTL_VERSION)" | sha256sum | cut -d' ' -f1
-
-.PHONY: setup-cluster
-setup-cluster: check-kubectl kind istioctl ## Set up a complete kind cluster with cert-manager and Istio.
-	@export PATH="$(LOCALBIN):$$PATH" && \
-		bash scripts/setup-kind.sh && \
-		bash scripts/setup-cert-manager.sh && \
-		bash scripts/setup-istio.sh
-	@echo "✓ Cluster setup complete"
-
-.PHONY: teardown-cluster
-teardown-cluster: kind ## Delete the Kind cluster.
-	@$(KIND) delete cluster --name $(KIND_CLUSTER_NAME) && \
-		echo "✓ Cluster '$(KIND_CLUSTER_NAME)' deleted" || \
-		echo "✗ Cluster '$(KIND_CLUSTER_NAME)' not found"
+	}
 
 .PHONY: clean
 clean: ## Remove downloaded tool binaries.
-	@rm -rf $(LOCALBIN)
-	@echo "✓ Cleaned $(LOCALBIN)"
-
-.PHONY: check-kind-context
-check-kind-context: check-kubectl ## Verify that the current kubectl context is a kind cluster.
-	@bash scripts/check-kind-context.sh
-
-# go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
-# $1 - target path with name of binary
-# $2 - package url which can be installed
-# $3 - specific version of package
-# $4 - (optional) extra ldflags to set with the installation
-define go-install-tool
-@[ -f "$(1)-$(3)" ] || { \
-set -e; \
-package=$(2)@$(3) ;\
-ldflags=$(4) ;\
-echo "Downloading $${package}" ;\
-rm -f $(1) || true ;\
-GOBIN=$(LOCALBIN) go install $${ldflags:+-ldflags "$${ldflags}"} $${package} ;\
-mv $(1) $(1)-$(3) ;\
-} ;\
-ln -sf $(1)-$(3) $(1)
-endef
+	rm -rf $(LOCALBIN)
+	@echo "INFO: '$(LOCALBIN)' successfully cleaned."

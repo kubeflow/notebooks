@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
+
 # Setup script for Istio service mesh
 # This script checks if Istio is installed and installs it if needed.
-# Gateway resources (namespace, TLS cert, Gateway) are applied directly
-# (unlike developing/ which uses Tilt for this).
 
 set -euo pipefail
 
@@ -10,39 +9,40 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TESTING_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 LOCALBIN="${TESTING_DIR}/bin"
 
-# Require istioctl from LOCALBIN to ensure a known version
-if [ -f "${LOCALBIN}/istioctl" ]; then
-  ISTIOCTL="${LOCALBIN}/istioctl"
-else
-  echo "ERROR: istioctl is not installed. Please install istioctl first:"
-  echo "  cd testing && make istioctl"
+ISTIO_VERSION="1.29.1"
+ISTIO_URL="https://istio.io/downloadIstio"
+
+if [[ ! -d "${LOCALBIN}" ]]; then
+  echo "INFO: Creating local bin directory at ${LOCALBIN}"
+  mkdir -p "${LOCALBIN}"
+fi
+
+ISTIOCTL_PATH="${LOCALBIN}/istio-${ISTIO_VERSION}"
+if [[ ! -d "${ISTIOCTL_PATH}" ]]; then
+  pushd "$LOCALBIN" > /dev/null
+    echo "INFO: Fetching Istio ${ISTIO_VERSION} installer..."
+    curl -sL "$ISTIO_URL" | ISTIO_VERSION=${ISTIO_VERSION} sh -
+  popd
+fi
+
+# Add istioctl to PATH for this script
+export PATH=${ISTIOCTL_PATH}/bin:$PATH
+
+# Ensure istioctl is available
+if ! command -v istioctl >/dev/null 2>&1; then
+  echo "ERROR: istioctl not found in PATH. Try removing ${LOCALBIN} and re-running."
   exit 1
-fi
-
-# Check if Istio is already installed by verifying the full installation
-if "${ISTIOCTL}" verify-install >/dev/null 2>&1; then
-  echo "Istio is already installed"
 else
-  echo "Installing Istio with default profile..."
-  "${ISTIOCTL}" install --set profile=default -y
+  echo "INFO: using istioctl from $(which istioctl)"
+  echo "INFO: istioctl version output:"
+  istioctl version --remote=false
 fi
 
-echo "Waiting for Istio control plane to be ready..."
-kubectl wait --for=condition=ready pod \
-  -l app=istiod \
-  -n istio-system \
-  --timeout=120s
+echo "INFO: Installing Istio ${ISTIO_VERSION} ..."
+istioctl install -f "${TESTING_DIR}/istio-cni.yaml" -y
 
-echo "Waiting for Istio ingress gateway to be ready..."
-kubectl wait --for=condition=ready pod \
-  -l app=istio-ingressgateway \
-  -n istio-system \
-  --timeout=120s
-
-# Apply gateway resources directly (in developing/ these are managed by Tilt)
-kubectl create namespace kubeflow --dry-run=client -o yaml | kubectl apply -f -
-kubectl apply -f "${SCRIPT_DIR}/gateway-cert.yaml"
+echo "INFO: applying Istio Gateway resources..."
+kubectl apply -k "${TESTING_DIR}/manifests/istio-gateway"
 kubectl wait --for=condition=ready certificate/gateway-tls -n istio-system --timeout=60s
-kubectl apply -f "${SCRIPT_DIR}/gateway.yaml"
 
-echo "Istio setup complete"
+echo "INFO: Istio setup complete"

@@ -5,9 +5,11 @@
 
 set -euo pipefail
 
-CLUSTER_NAME="local-e2e"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-KIND_CONFIG="${SCRIPT_DIR}/kind.yml"
+TESTING_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+CLUSTER_NAME="local-e2e"
+KIND_CONFIG="${TESTING_DIR}/kind-1-35.yaml"
 
 # Check if kind command exists
 if ! command -v kind >/dev/null 2>&1; then
@@ -19,17 +21,16 @@ fi
 
 # Check if cluster exists
 if ! kind get clusters 2>/dev/null | grep -q "^${CLUSTER_NAME}$"; then
-  echo "Creating Kind cluster '${CLUSTER_NAME}' with config from ${KIND_CONFIG}..."
+  echo "INFO: creating Kind cluster '${CLUSTER_NAME}' with config from '${KIND_CONFIG}'"
   kind create cluster --name "${CLUSTER_NAME}" --config "${KIND_CONFIG}" --wait 60s
-  echo "Kind cluster created successfully"
 else
-  echo "Kind cluster '${CLUSTER_NAME}' already exists"
+  echo "INFO: kind cluster '${CLUSTER_NAME}' already exists"
 fi
 
 # Ensure kubectl context is set to the Kind cluster
 kubectl config use-context "kind-${CLUSTER_NAME}" || {
-  echo "ERROR: Failed to set kubectl context to kind-${CLUSTER_NAME}"
+  echo "ERROR: failed to set kubectl context to kind-${CLUSTER_NAME}"
   exit 1
 }
 
-echo "Kind cluster setup complete"
+echo "INFO: kind cluster setup complete"

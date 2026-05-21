@@ -23,8 +23,11 @@ import (
 )
 
 const (
-	// use LTS version of cert-manager
-	certManagerVersion = "v1.12.13"
+	// NOTE: ensure the following files use the same version when updating:
+	//  - developing/scripts/setup-istio.sh
+	//  - testing/scripts/setup-istio.sh
+	//  - workspaces/controller/test/utils/certmanager.go
+	certManagerVersion = "v1.20.2"
 	certManagerURLTmpl = "https://github.com/jetstack/cert-manager/releases/download/%s/cert-manager.yaml"
 )
 

@@ -1,26 +1,27 @@
 #!/usr/bin/env bash
 
 # Setup script for cert-manager
-# This script checks if cert-manager is installed and installs it if needed
-# Uses the same version as the e2e tests: v1.12.13 (LTS version)
+# This script checks if cert-manager is installed and installs it if needed.
 
 set -euo pipefail
 
 # Use LTS version of cert-manager (matches e2e tests)
-CERT_MANAGER_VERSION="v1.12.13"
+# NOTE: ensure the following files use the same version when updating:
+#  - developing/scripts/setup-istio.sh
+#  - testing/scripts/setup-istio.sh
+#  - workspaces/controller/test/utils/certmanager.go
+CERT_MANAGER_VERSION="v1.20.2"
 CERT_MANAGER_URL="https://github.com/jetstack/cert-manager/releases/download/${CERT_MANAGER_VERSION}/cert-manager.yaml"
 
 # Check if cert-manager is already installed
 if kubectl get crd certificates.cert-manager.io >/dev/null 2>&1; then
   echo "Cert-manager is already installed"
-  exit 0
+else
+  echo "Installing cert-manager ${CERT_MANAGER_VERSION}..."
+  kubectl apply -f "${CERT_MANAGER_URL}"
 fi
 
-echo "Installing cert-manager ${CERT_MANAGER_VERSION}..."
-kubectl apply -f "${CERT_MANAGER_URL}"
-
 echo "Waiting for cert-manager to be ready..."
-# Wait for cert-manager webhook to be ready (this is the critical component)
 kubectl wait --for=condition=ready pod \
   -l app.kubernetes.io/instance=cert-manager \
   -n cert-manager \

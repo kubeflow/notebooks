@@ -1,4 +1,4 @@
-name: Workspaces E2E Tests
+name: E2E Tests
 
 permissions:
   contents: read
@@ -11,14 +11,11 @@ on:
       - v*-branch
   pull_request:
     paths:
-      - 'workspaces/**'
-      - 'releasing/version/VERSION'
+      - workspaces/**
 
 jobs:
   e2e-test:
     runs-on: ubuntu-latest
-    env:
-      GO_VERSION: '1.24.13'
     defaults:
       run:
         working-directory: testing
@@ -26,34 +23,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Set up Go
-        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+      - name: Set up Kind
+        uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1.14.0
         with:
-          go-version: ${{ env.GO_VERSION }}
-          cache: false
+          config: ./testing/kind-1-35.yaml
+          cluster_name: "local-e2e"
 
-      - name: Generate cache key from Makefile
-        id: cache-key
-        run: |
-          VERSION_HASH=$(make dependency-hash)
-          echo "cache_key=testing-bin-${{ runner.os }}-go${{ env.GO_VERSION }}-$VERSION_HASH" >> $GITHUB_OUTPUT
-
-      - name: Cache testing/bin directory
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        id: cache-testing-bin
-        with:
-          path: testing/bin
-          key: ${{ steps.cache-key.outputs.cache_key }}
-
-      - name: Setup cluster
+      - name: Install Cluster Dependencies
         run: make setup-cluster
 
-      - name: Deploy components
+      - name: Deploy Kubeflow Workspaces
         run: make deploy-all
 
-      - name: Sanity check
+      - name: Verify Deployment
         run: make sanity-check
 
       - name: Run local-e2e tests
         run: make local-e2e
-

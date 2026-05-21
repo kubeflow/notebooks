@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 # Setup script for Istio service mesh
 # This script checks if Istio is installed and installs it if needed.
 # Gateway resources (namespace, TLS cert, Gateway) are managed by Tilt.
