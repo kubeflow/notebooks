@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-# Use LTS version of cert-manager
+# Use LTS version of cert-manager (matches e2e tests)
 # NOTE: ensure the following files use the same version when updating:
 #  - developing/scripts/setup-istio.sh
 #  - testing/scripts/setup-istio.sh
@@ -22,7 +22,6 @@ else
 fi
 
 echo "Waiting for cert-manager to be ready..."
-# Wait for cert-manager webhook to be ready (this is the critical component)
 kubectl wait --for=condition=ready pod \
   -l app.kubernetes.io/instance=cert-manager \
   -n cert-manager \

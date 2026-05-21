@@ -1,0 +1,42 @@
+name: E2E Tests
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - main
+      - notebooks-v2
+      - v*-branch
+  pull_request:
+    paths:
+      - workspaces/**
+
+jobs:
+  e2e-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: testing
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Kind
+        uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1.14.0
+        with:
+          config: ./testing/kind-1-35.yaml
+          cluster_name: "local-e2e"
+
+      - name: Install Cluster Dependencies
+        run: make setup-cluster
+
+      - name: Deploy Kubeflow Workspaces
+        run: make deploy-all
+
+      - name: Verify Deployment
+        run: make sanity-check
+
+      - name: Run local-e2e tests
+        run: make local-e2e
