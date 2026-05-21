@@ -26,7 +26,10 @@ else
 fi
 
 # Ensure kubectl context is set to the Kind cluster
-kubectl config use-context "kind-${CLUSTER_NAME}" || true
+kubectl config use-context "kind-${CLUSTER_NAME}" || {
+  echo "ERROR: Failed to set kubectl context to kind-${CLUSTER_NAME}"
+  exit 1
+}
 
 # Configure StorageClasses with Notebooks labels and annotations
 echo "Configuring StorageClasses for the Notebooks UI..."

@@ -1,0 +1,10 @@
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+spec:
+  profile: default
+  components:
+    cni:
+      ## NOTE: we use istio CNI mode because otherwise setting pod-security.kubernetes.io/enforce=baseline on a
+      ##       namespace would prevent any pod with an istio sidecar from running, as the sidecar would be privileged.
+      enabled: true
+      namespace: kube-system

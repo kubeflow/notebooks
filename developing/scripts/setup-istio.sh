@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 # Setup script for Istio service mesh
 # This script checks if Istio is installed and installs it if needed.
 # Gateway resources (namespace, TLS cert, Gateway) are managed by Tilt.
@@ -9,15 +10,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEVELOPING_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 LOCALBIN="${DEVELOPING_DIR}/bin"
 
-# Determine istioctl path - prefer LOCALBIN, fallback to PATH
+# Require istioctl from LOCALBIN to ensure a known version
 if [ -f "${LOCALBIN}/istioctl" ]; then
   ISTIOCTL="${LOCALBIN}/istioctl"
-elif command -v istioctl >/dev/null 2>&1; then
-  ISTIOCTL="istioctl"
 else
   echo "ERROR: istioctl is not installed. Please install istioctl first:"
   echo "  cd developing && make istioctl"
-  echo "  or visit: https://istio.io/latest/docs/setup/getting-started/#download"
   exit 1
 fi
 
