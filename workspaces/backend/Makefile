@@ -1,5 +1,7 @@
 include ../common.mk
 
+.DEFAULT_GOAL := all
+
 NAME ?= workspaces-backend
 
 # Backend default port
