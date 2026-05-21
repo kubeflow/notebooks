@@ -3736,7 +3736,7 @@ spec:
                                   description: overwrite the headers specified by
                                     key with the given values
                                   example:
-                                    X-RStudio-Root-Path: '{{ .PathPrefix }}'
+                                    X-Custom-Path-Prefix: '{{ .PathPrefix }}'
                                   type: object
                               type: object
                           type: object

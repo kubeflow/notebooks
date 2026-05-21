@@ -330,7 +330,7 @@ type HTTPProxy struct {
 type IstioHeaderOperations struct {
 	// overwrite the headers specified by key with the given values
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:example:={ "X-RStudio-Root-Path": "{{ .PathPrefix }}" }
+	// +kubebuilder:example:={ "X-Custom-Path-Prefix": "{{ .PathPrefix }}" }
 	Set map[string]string `json:"set,omitempty"`
 
 	// append the given values to the headers specified by keys (will create a comma-separated list of values)

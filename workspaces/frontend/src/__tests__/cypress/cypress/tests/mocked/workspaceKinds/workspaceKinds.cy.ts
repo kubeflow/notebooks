@@ -67,9 +67,9 @@ const createFilterTestWorkspaceKinds = (): WorkspacekindsWorkspaceKindListItem[]
     deprecated: false,
   }),
   buildMockWorkspaceKind({
-    name: 'r-studio',
-    displayName: 'RStudio',
-    description: 'A workspace for RStudio statistical computing',
+    name: 'code-server',
+    displayName: 'Code Server',
+    description: 'A workspace for Code Server development',
     deprecated: false,
   }),
   buildMockWorkspaceKind({
@@ -418,7 +418,7 @@ describe('WorkspaceKinds', () => {
     });
 
     it('should filter names containing special characters (dashes)', () => {
-      workspaceKinds.applyNameFilter('r-studio');
+      workspaceKinds.applyNameFilter('code-server');
       workspaceKinds.assertWorkspaceKindCount(1);
     });
 

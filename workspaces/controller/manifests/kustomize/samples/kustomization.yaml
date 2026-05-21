@@ -9,6 +9,5 @@ resources:
 # example workspaceKinds
 - codeserver_v1beta1_workspacekind.yaml
 - jupyterlab_v1beta1_workspacekind.yaml
-- rstudio_v1beta1_workspacekind.yaml
 # example workspaces
 - jupyterlab_v1beta1_workspace.yaml

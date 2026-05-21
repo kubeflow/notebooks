@@ -14,7 +14,7 @@
 
 Key features of Kubeflow Notebooks:
 
-- Native support for [JupyterLab](https://github.com/jupyterlab/jupyterlab), [RStudio](https://github.com/rstudio/rstudio), and [Visual Studio Code (code-server)](https://github.com/coder/code-server).
+- Native support for [JupyterLab](https://github.com/jupyterlab/jupyterlab) and [Visual Studio Code (code-server)](https://github.com/coder/code-server).
 - Users can [create notebook containers](https://www.kubeflow.org/docs/components/notebooks/quickstart-guide/) directly in the cluster, rather than locally on their workstations.
 - Admins can provide [standard notebook images](https://www.kubeflow.org/docs/components/notebooks/container-images/) for their organization with required packages pre-installed.
 - Access control is managed by [Kubeflow’s RBAC](https://www.kubeflow.org/docs/components/central-dash/profiles/), enabling easier notebook sharing across the organization.
