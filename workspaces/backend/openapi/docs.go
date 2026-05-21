@@ -6083,7 +6083,7 @@ const docTemplate = `{
                     }
                 },
                 "set": {
-                    "description": "overwrite the headers specified by key with the given values\n+kubebuilder:validation:Optional\n+kubebuilder:example:={ \"X-RStudio-Root-Path\": \"{{ .PathPrefix }}\" }",
+                    "description": "overwrite the headers specified by key with the given values\n+kubebuilder:validation:Optional\n+kubebuilder:example:={ \"X-Custom-Path-Prefix\": \"{{ .PathPrefix }}\" }",
                     "type": "object",
                     "additionalProperties": {
                         "type": "string"
