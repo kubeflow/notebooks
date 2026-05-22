@@ -65,6 +65,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
       onClose();
     } catch (err) {
       setError(extractErrorMessage(err));
+    } finally {
       isDeletingRef.current = false;
       setIsDeleting(false);
     }
