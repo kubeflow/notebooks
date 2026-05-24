@@ -357,6 +357,8 @@ const (
 	WorkspaceStateUnknown     WorkspaceState = "Unknown"
 )
 
+const WorkspaceNameLabel = "notebooks.kubeflow.org/workspace-name"
+
 /*
 ===============================================================================
                                    Workspace
