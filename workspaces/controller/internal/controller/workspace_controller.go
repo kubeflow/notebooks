@@ -53,7 +53,6 @@ import (
 
 const (
 	// label keys
-	workspaceNameLabel     = "notebooks.kubeflow.org/workspace-name"
 	workspaceSelectorLabel = "statefulset"
 
 	// pod template constants
@@ -450,7 +449,7 @@ func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager, opts *controlle
 		return []reconcile.Request{
 			{
 				NamespacedName: types.NamespacedName{
-					Name:      object.GetLabels()[workspaceNameLabel],
+					Name:      object.GetLabels()[kubefloworgv1beta1.WorkspaceNameLabel],
 					Namespace: object.GetNamespace(),
 				},
 			},
@@ -459,7 +458,7 @@ func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager, opts *controlle
 
 	// predicate function to filter pods that are labeled with the "workspace-name" label key
 	predPodHasWSLabel := predicate.NewPredicateFuncs(func(object client.Object) bool {
-		_, labelExists := object.GetLabels()[workspaceNameLabel]
+		_, labelExists := object.GetLabels()[kubefloworgv1beta1.WorkspaceNameLabel]
 		return labelExists
 	})
 
@@ -868,7 +867,7 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 			GenerateName: namePrefix,
 			Namespace:    workspace.Namespace,
 			Labels: map[string]string{
-				workspaceNameLabel: workspace.Name,
+				kubefloworgv1beta1.WorkspaceNameLabel: workspace.Name,
 			},
 		},
 		//
@@ -878,7 +877,7 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 			Replicas: &replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					workspaceNameLabel:     workspace.Name,
+					kubefloworgv1beta1.WorkspaceNameLabel:     workspace.Name,
 					workspaceSelectorLabel: workspace.Name,
 				},
 			},
@@ -888,7 +887,7 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 					Labels: labels.Merge(
 						podLabels,
 						map[string]string{
-							workspaceNameLabel:     workspace.Name,
+							kubefloworgv1beta1.WorkspaceNameLabel:     workspace.Name,
 							workspaceSelectorLabel: workspace.Name,
 						},
 					),
@@ -960,7 +959,7 @@ func generateService(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kub
 			GenerateName: namePrefix,
 			Namespace:    workspace.Namespace,
 			Labels: map[string]string{
-				workspaceNameLabel: workspace.Name,
+				kubefloworgv1beta1.WorkspaceNameLabel: workspace.Name,
 			},
 		},
 		//
@@ -969,7 +968,7 @@ func generateService(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kub
 		Spec: corev1.ServiceSpec{
 			Ports: servicePorts,
 			Selector: map[string]string{
-				workspaceNameLabel:     workspace.Name,
+				kubefloworgv1beta1.WorkspaceNameLabel:     workspace.Name,
 				workspaceSelectorLabel: workspace.Name,
 			},
 			Type: corev1.ServiceTypeClusterIP,
@@ -1071,7 +1070,7 @@ func (r *WorkspaceReconciler) generateVirtualService(workspace *kubefloworgv1bet
 			GenerateName: namePrefix,
 			Namespace:    workspace.Namespace,
 			Labels: map[string]string{
-				workspaceNameLabel: workspace.Name,
+				kubefloworgv1beta1.WorkspaceNameLabel: workspace.Name,
 			},
 		},
 		Spec: networkingv1.VirtualService{

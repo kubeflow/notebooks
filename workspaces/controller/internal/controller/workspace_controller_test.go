@@ -167,7 +167,7 @@ var _ = Describe("Workspace Controller", func() {
 			By("creating a StatefulSet")
 			statefulSetList := &appsv1.StatefulSetList{}
 			Eventually(func() ([]appsv1.StatefulSet, error) {
-				err := k8sClient.List(ctx, statefulSetList, client.InNamespace(namespaceName), client.MatchingLabels{workspaceNameLabel: workspaceName})
+				err := k8sClient.List(ctx, statefulSetList, client.InNamespace(namespaceName), client.MatchingLabels{kubefloworgv1beta1.WorkspaceNameLabel: workspaceName})
 				if err != nil {
 					return nil, err
 				}
@@ -180,7 +180,7 @@ var _ = Describe("Workspace Controller", func() {
 			By("creating a Service")
 			serviceList := &corev1.ServiceList{}
 			Eventually(func() ([]corev1.Service, error) {
-				err := k8sClient.List(ctx, serviceList, client.InNamespace(namespaceName), client.MatchingLabels{workspaceNameLabel: workspaceName})
+				err := k8sClient.List(ctx, serviceList, client.InNamespace(namespaceName), client.MatchingLabels{kubefloworgv1beta1.WorkspaceNameLabel: workspaceName})
 				if err != nil {
 					return nil, err
 				}

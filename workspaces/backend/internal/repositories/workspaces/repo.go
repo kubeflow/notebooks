@@ -36,8 +36,6 @@ import (
 	modelsActions "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/actions"
 )
 
-const WorkspaceNameLabel = "notebooks.kubeflow.org/workspace-name"
-
 var (
 	ErrWorkspaceNotFound         = fmt.Errorf("workspace not found")
 	ErrWorkspaceAlreadyExists    = fmt.Errorf("workspace already exists")
@@ -272,7 +270,7 @@ func (r *WorkspaceRepository) HandlePauseAction(ctx context.Context, namespace, 
 func (r *WorkspaceRepository) GetWorkspaceService(ctx context.Context, namespace string, workspaceName string) (*corev1.Service, error) {
 	serviceList := &corev1.ServiceList{}
 	err := r.client.List(ctx, serviceList, client.InNamespace(namespace), client.MatchingLabels{
-		WorkspaceNameLabel: workspaceName,
+		kubefloworgv1beta1.WorkspaceNameLabel: workspaceName,
 	})
 	if err != nil {
 		return nil, err
