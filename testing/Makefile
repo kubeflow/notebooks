@@ -82,10 +82,8 @@ sanity-check: check-kind-context ## Verify all components are deployed and respo
 	@bash scripts/sanity-check.sh
 
 .PHONY: local-e2e
-local-e2e: ## Run e2e tests.
-	@echo "..."
-	@echo "TODO: there are no e2e tests yet, they will be defined in Cypress..."
-	@echo "..."
+local-e2e: check-kind-context ## Run e2e tests.
+	@bash ssh-smoke/run-ssh-smoke-test.sh
 
 ##@ Dependencies
 
