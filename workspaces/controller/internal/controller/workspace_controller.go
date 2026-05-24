@@ -281,7 +281,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// generate Service
-	service, err := generateService(workspace, currentImageConfig.Spec)
+	service, err := generateService(workspace, workspaceKind, currentImageConfig.Spec)
 	if err != nil {
 		log.V(0).Info("failed to generate Service for Workspace", "error", err.Error())
 		return r.updateWorkspaceState(ctx, log, workspace,
@@ -924,9 +924,15 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 }
 
 // generateService generates a Service for a Workspace
-func generateService(workspace *kubefloworgv1beta1.Workspace, imageConfigSpec kubefloworgv1beta1.ImageConfigSpec) (*corev1.Service, error) {
+func generateService(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind, imageConfigSpec kubefloworgv1beta1.ImageConfigSpec) (*corev1.Service, error) {
 	// generate name prefix
 	namePrefix := generateNamePrefix(workspace.Name, maxServiceNameLength)
+
+	// Build a map of WorkspaceKindPort protocols for easy lookup
+	kindPortProtocols := make(map[kubefloworgv1beta1.PortId]kubefloworgv1beta1.ImagePortProtocol)
+	for _, kp := range workspaceKind.Spec.PodTemplate.Ports {
+		kindPortProtocols[kp.Id] = kp.Protocol
+	}
 
 	// generate service ports
 	servicePorts := make([]corev1.ServicePort, len(imageConfigSpec.Ports))
@@ -935,8 +941,12 @@ func generateService(workspace *kubefloworgv1beta1.Workspace, imageConfigSpec ku
 		if seenPorts[port.Port] {
 			return nil, fmt.Errorf("duplicate port number %d in imageConfig", port.Port)
 		}
+		prefix := "http"
+		if kindPortProtocols[port.Id] == kubefloworgv1beta1.ImagePortProtocolTCP {
+			prefix = "tcp"
+		}
 		servicePorts[i] = corev1.ServicePort{
-			Name:       fmt.Sprintf("http-%d", port.Port),
+			Name:       fmt.Sprintf("%s-%d", prefix, port.Port),
 			TargetPort: intstr.FromInt32(port.Port),
 			Port:       port.Port,
 			Protocol:   corev1.ProtocolTCP,
