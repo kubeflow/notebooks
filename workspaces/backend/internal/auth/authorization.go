@@ -133,6 +133,8 @@ const (
 	VerbList   ResourcePolicyVerb = "list"
 	VerbPatch  ResourcePolicyVerb = "patch"
 	VerbUpdate ResourcePolicyVerb = "update"
+	// VerbConnectWorkspacePath is for connecting to a workspace via WebSockets
+	VerbConnect ResourcePolicyVerb = "connect"
 )
 
 // ResourcePolicyResource are the resource types (kinds) available for resource policies.
