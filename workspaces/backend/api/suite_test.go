@@ -227,13 +227,12 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 				ServiceAccount: kubefloworgv1beta1.WorkspaceKindServiceAccount{
 					Name: "default-editor",
 				},
-				Culling: &kubefloworgv1beta1.WorkspaceKindCullingConfig{
-					Enabled:            ptr.To(true),
-					MaxInactiveSeconds: ptr.To(int32(86400)),
-					ActivityProbe: kubefloworgv1beta1.ActivityProbe{
-						Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
-							LastActivity: true,
-						},
+				ActivityProbe: &kubefloworgv1beta1.ActivityProbe{
+					MinProbeIntervalSeconds: ptr.To(int32(300)),
+					ProbeIntervalSeconds:    ptr.To(int32(3600)),
+					Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
+						LastActivity: ptr.To(true),
+						PortId:       "jupyterlab",
 					},
 				},
 				Probes: &kubefloworgv1beta1.WorkspaceKindProbes{},

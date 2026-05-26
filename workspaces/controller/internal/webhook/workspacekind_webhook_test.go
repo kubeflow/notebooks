@@ -119,6 +119,21 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 				workspaceKind: NewExampleWorkspaceKindWithInvalidExtraEnvValue("wsk-webhook-create--extra-invalid-env-value"),
 				shouldSucceed: false,
 			},
+			{
+				description:   "should reject creation with missing shebang in exec script",
+				workspaceKind: NewExampleWorkspaceKindWithInvalidExecShebang("wsk-webhook-create--invalid-exec-shebang"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with invalid port reference in Jupyter probe",
+				workspaceKind: NewExampleWorkspaceKindWithInvalidJupyterPort("wsk-webhook-create--invalid-jupyter-port"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with both exec and Jupyter probes specified",
+				workspaceKind: NewExampleWorkspaceKindWithBothProbeTypes("wsk-webhook-create--both-probe-types"),
+				shouldSucceed: false,
+			},
 		}
 
 		for _, tc := range testCases {
