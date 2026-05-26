@@ -348,7 +348,11 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	if r.Config.UseIstio {
 		// generate VirtualService
-		virtualsvc := r.generateVirtualService(workspace, workspaceKind, service, currentImageConfig.Spec)
+		virtualsvc, err := r.generateVirtualService(workspace, workspaceKind, service, currentImageConfig.Spec)
+		if err != nil {
+			log.Error(err, "unable to generate VirtualService")
+			return ctrl.Result{}, err
+		}
 		if err := ctrl.SetControllerReference(workspace, virtualsvc, r.Scheme); err != nil {
 			log.Error(err, "unable to set controller reference on VirtualService")
 			return ctrl.Result{}, err
@@ -717,7 +721,7 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 		env := env.DeepCopy() // copy to avoid modifying the original
 		if env.Value != "" {
 			rawValue := env.Value
-			outValue, err := helper.RenderExtraEnvValueTemplate(rawValue, httpPathPrefixFunc)
+			outValue, err := helper.RenderGoTemplate(rawValue, httpPathPrefixFunc)
 			if err != nil {
 				return nil, fmt.Errorf("failed to render extraEnv %q: %w", env.Name, err)
 			}
@@ -975,7 +979,8 @@ func (r *WorkspaceReconciler) generateVirtualServiceHTTPRoute(
 	service *corev1.Service,
 	imageConfigPort kubefloworgv1beta1.ImagePort,
 	podTemplatePort kubefloworgv1beta1.WorkspaceKindPort,
-) *networkingv1.HTTPRoute {
+	httpPathPrefixFunc func(kubefloworgv1beta1.PortId) string,
+) (*networkingv1.HTTPRoute, error) {
 
 	// generate the match URI prefix
 	matchUriPrefix := getWorkspaceConnectPath(workspace.Namespace, workspace.Name, imageConfigPort.Id)
@@ -991,10 +996,34 @@ func (r *WorkspaceReconciler) generateVirtualServiceHTTPRoute(
 	// determine headers configuration
 	var httpRouteHeaders *networkingv1.Headers
 	if podTemplatePort.HTTPProxy.RequestHeaders != nil {
+		var setHeaders map[string]string
+		if podTemplatePort.HTTPProxy.RequestHeaders.Set != nil {
+			setHeaders = make(map[string]string)
+			for k, v := range podTemplatePort.HTTPProxy.RequestHeaders.Set {
+				rendered, err := helper.RenderGoTemplate(v, httpPathPrefixFunc)
+				if err != nil {
+					return nil, fmt.Errorf("failed to render requestHeaders.set %q: %w", k, err)
+				}
+				setHeaders[k] = rendered
+			}
+		}
+
+		var addHeaders map[string]string
+		if podTemplatePort.HTTPProxy.RequestHeaders.Add != nil {
+			addHeaders = make(map[string]string)
+			for k, v := range podTemplatePort.HTTPProxy.RequestHeaders.Add {
+				rendered, err := helper.RenderGoTemplate(v, httpPathPrefixFunc)
+				if err != nil {
+					return nil, fmt.Errorf("failed to render requestHeaders.add %q: %w", k, err)
+				}
+				addHeaders[k] = rendered
+			}
+		}
+
 		httpRouteHeaders = &networkingv1.Headers{
 			Request: &networkingv1.Headers_HeaderOperations{
-				Set:    podTemplatePort.HTTPProxy.RequestHeaders.Set,
-				Add:    podTemplatePort.HTTPProxy.RequestHeaders.Add,
+				Set:    setHeaders,
+				Add:    addHeaders,
 				Remove: podTemplatePort.HTTPProxy.RequestHeaders.Remove,
 			},
 		}
@@ -1025,17 +1054,31 @@ func (r *WorkspaceReconciler) generateVirtualServiceHTTPRoute(
 		},
 	}
 
-	return httpRoute
+	return httpRoute, nil
 }
 
 // generateVirtualService generates a VirtualService for a Workspace
-func (r *WorkspaceReconciler) generateVirtualService(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind, service *corev1.Service, imageConfigSpec kubefloworgv1beta1.ImageConfigSpec) *istiov1.VirtualService {
+func (r *WorkspaceReconciler) generateVirtualService(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind, service *corev1.Service, imageConfigSpec kubefloworgv1beta1.ImageConfigSpec) (*istiov1.VirtualService, error) {
 	// NOTE: the name prefix is used to generate a unique name for the VirtualService
 	namePrefix := generateNamePrefix(workspace.Name, maxVirtualServiceNameLength)
 
 	currentPodTemplatePortsMap := make(map[kubefloworgv1beta1.PortId]kubefloworgv1beta1.WorkspaceKindPort)
 	for _, port := range workspaceKind.Spec.PodTemplate.Ports {
 		currentPodTemplatePortsMap[port.Id] = port
+	}
+
+	imageConfigPortsMap := make(map[kubefloworgv1beta1.PortId]kubefloworgv1beta1.ImagePort)
+	for _, port := range imageConfigSpec.Ports {
+		imageConfigPortsMap[port.Id] = port
+	}
+
+	httpPathPrefixFunc := func(portId kubefloworgv1beta1.PortId) string {
+		port, ok := imageConfigPortsMap[portId]
+		if ok {
+			return getWorkspaceConnectPath(workspace.Namespace, workspace.Name, port.Id)
+		} else {
+			return ""
+		}
 	}
 
 	httpRoutes := []*networkingv1.HTTPRoute{}
@@ -1051,7 +1094,10 @@ func (r *WorkspaceReconciler) generateVirtualService(workspace *kubefloworgv1bet
 		// Additional Cases would be added for SSH, etc.
 		switch podTemplatePort.Protocol { //nolint:gocritic
 		case kubefloworgv1beta1.ImagePortProtocolHTTP:
-			httpRoute := r.generateVirtualServiceHTTPRoute(workspace, service, imageConfigPort, podTemplatePort)
+			httpRoute, err := r.generateVirtualServiceHTTPRoute(workspace, service, imageConfigPort, podTemplatePort, httpPathPrefixFunc)
+			if err != nil {
+				return nil, err
+			}
 			httpRoutes = append(httpRoutes, httpRoute)
 		}
 	}
@@ -1071,7 +1117,7 @@ func (r *WorkspaceReconciler) generateVirtualService(workspace *kubefloworgv1bet
 		},
 	}
 
-	return virtualService
+	return virtualService, nil
 }
 
 // generateWorkspaceStatus generates a WorkspaceStatus for a Workspace

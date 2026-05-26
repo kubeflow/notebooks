@@ -670,6 +670,17 @@ func NewExampleWorkspaceKindWithInvalidExtraEnvValue(name string) *kubefloworgv1
 	return workspaceKind
 }
 
+// NewExampleWorkspaceKindWithInvalidRequestHeadersValue returns a WorkspaceKind with an invalid requestHeaders value.
+func NewExampleWorkspaceKindWithInvalidRequestHeadersValue(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.Ports[0].HTTPProxy.RequestHeaders = &kubefloworgv1beta1.IstioHeaderOperations{
+		Set: map[string]string{
+			"X-RStudio-Root-Path": `{{ httpPathPrefix "jupyterlab" }`,
+		},
+	}
+	return workspaceKind
+}
+
 // NewExampleWorkspace returns the common "Workspace" object used in tests.
 func NewExampleWorkspace(name, namespace, workspaceKindName string) *kubefloworgv1beta1.Workspace {
 	return &kubefloworgv1beta1.Workspace{

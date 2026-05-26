@@ -5935,7 +5935,7 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "requestHeaders": {
-                    "description": "header manipulation rules for incoming HTTP requests\n - sets the ` + "`" + `spec.http[].headers.request` + "`" + ` of the Istio VirtualService\n   https://istio.io/latest/docs/reference/config/networking/virtual-service/#Headers-HeaderOperations\n - the following string templates are available:\n    - ` + "`" + `.PathPrefix` + "`" + `: the path prefix of the Workspace (e.g. '/workspace/connect/{profile_name}/{workspace_name}/')\n+kubebuilder:validation:Optional",
+                    "description": "header manipulation rules for incoming HTTP requests\n - sets the ` + "`" + `spec.http[].headers.request` + "`" + ` of the Istio VirtualService\n   https://istio.io/latest/docs/reference/config/networking/virtual-service/#Headers-HeaderOperations\n+kubebuilder:validation:Optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.IstioHeaderOperations"
@@ -6069,7 +6069,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "add": {
-                    "description": "append the given values to the headers specified by keys (will create a comma-separated list of values)\n+kubebuilder:validation:Optional\n+kubebuilder:example:={ \"My-Header\": \"value-to-append\" }",
+                    "description": "append the given values to the headers specified by keys (will create a comma-separated list of values)\n - the following go template functions are available in the values:\n    - ` + "`" + `httpPathPrefix(portId string)` + "`" + `: returns the HTTP path prefix of the specified port\n+kubebuilder:validation:Optional\n+kubebuilder:example:={ \"My-Header\": \"value-to-append\" }",
                     "type": "object",
                     "additionalProperties": {
                         "type": "string"
@@ -6083,7 +6083,7 @@ const docTemplate = `{
                     }
                 },
                 "set": {
-                    "description": "overwrite the headers specified by key with the given values\n+kubebuilder:validation:Optional\n+kubebuilder:example:={ \"X-RStudio-Root-Path\": \"{{ .PathPrefix }}\" }",
+                    "description": "overwrite the headers specified by key with the given values\n - the following go template functions are available in the values:\n    - ` + "`" + `httpPathPrefix(portId string)` + "`" + `: returns the HTTP path prefix of the specified port\n+kubebuilder:validation:Optional\n+kubebuilder:example:={ \"X-RStudio-Root-Path\": \"{{ httpPathPrefix 'rstudio' }}\" }",
                     "type": "object",
                     "additionalProperties": {
                         "type": "string"
@@ -6449,7 +6449,7 @@ const docTemplate = `{
                     ]
                 },
                 "extraEnv": {
-                    "description": "environment variables for Workspace Pods (MUTABLE)\n - the following go template functions are available:\n    - ` + "`" + `httpPathPrefix(portId string)` + "`" + `: returns the HTTP path prefix of the specified port\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"name\"",
+                    "description": "environment variables for Workspace Pods (MUTABLE)\n - the following go template functions are available:\n    - ` + "`" + `httpPathPrefix(portId string)` + "`" + `: returns the HTTP path prefix of the specified port\n+kubebuilder:validation:Optional\n+kubebuilder:example:={ \"NB_PREFIX\": \"{{ httpPathPrefix 'jupyterlab' }}\" }\n+listType:=\"map\"\n+listMapKey:=\"name\"",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/v1.EnvVar"
