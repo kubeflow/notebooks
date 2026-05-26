@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -108,6 +109,10 @@ func (v *WorkspaceKindValidator) ValidateCreate(ctx context.Context, obj runtime
 		podTemplatePortsIdMap[port.Id] = port
 	}
 
+	// validate the activity probe
+	activityProbePath := field.NewPath("spec", "podTemplate", "activityProbe")
+	allErrs = append(allErrs, validateActivityProbe(workspaceKind.Spec.PodTemplate.ActivityProbe, activityProbePath, podTemplatePortsIdMap)...)
+
 	// validate default options
 	allErrs = append(allErrs, validateDefaultImageConfig(workspaceKind, imageConfigIdMap)...)
 	allErrs = append(allErrs, validateDefaultPodConfig(workspaceKind, podConfigIdMap)...)
@@ -178,6 +183,12 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 	podTemplatePortsIdMap := make(map[kubefloworgv1beta1.PortId]kubefloworgv1beta1.WorkspaceKindPort)
 	for _, port := range newWorkspaceKind.Spec.PodTemplate.Ports {
 		podTemplatePortsIdMap[port.Id] = port
+	}
+
+	// validate activity probe if probe or ports changed
+	if shouldValidateAllImageConfigValues || !equality.Semantic.DeepEqual(newWorkspaceKind.Spec.PodTemplate.ActivityProbe, oldWorkspaceKind.Spec.PodTemplate.ActivityProbe) {
+		activityProbePath := field.NewPath("spec", "podTemplate", "activityProbe")
+		allErrs = append(allErrs, validateActivityProbe(newWorkspaceKind.Spec.PodTemplate.ActivityProbe, activityProbePath, podTemplatePortsIdMap)...)
 	}
 
 	// calculate changes to imageConfig values
@@ -728,6 +739,46 @@ func validatePodConfigRedirects(podConfigIdMap map[string]kubefloworgv1beta1.Pod
 		if _, exists := podConfigIdMap[redirectTo]; !exists {
 			redirectToPath := field.NewPath("spec", "podTemplate", "options", "podConfig", "values").Key(id).Child("redirect", "to")
 			errs = append(errs, field.Invalid(redirectToPath, redirectTo, fmt.Sprintf("target podConfig %q does not exist", redirectTo)))
+		}
+	}
+
+	return errs
+}
+
+// validateActivityProbe validates the activityProbe in a WorkspaceKind
+func validateActivityProbe(activityProbe *kubefloworgv1beta1.ActivityProbe, path *field.Path, podTemplatePortsIdMap map[kubefloworgv1beta1.PortId]kubefloworgv1beta1.WorkspaceKindPort) []*field.Error {
+	var errs []*field.Error
+
+	if activityProbe == nil {
+		return errs
+	}
+
+	// Validate minProbeIntervalSeconds if specified
+	if activityProbe.MinProbeIntervalSeconds != nil && *activityProbe.MinProbeIntervalSeconds <= 0 {
+		errs = append(errs, field.Invalid(path.Child("minProbeIntervalSeconds"), *activityProbe.MinProbeIntervalSeconds, "must be greater than 0"))
+	}
+
+	// Validate probeIntervalSeconds if specified
+	if activityProbe.ProbeIntervalSeconds != nil && *activityProbe.ProbeIntervalSeconds <= 0 {
+		errs = append(errs, field.Invalid(path.Child("probeIntervalSeconds"), *activityProbe.ProbeIntervalSeconds, "must be greater than 0"))
+	}
+
+	// Validate podExec if specified
+	if activityProbe.PodExec != nil {
+		script := activityProbe.PodExec.Script
+		if len(script) < 2 || !strings.HasPrefix(script, "#!") {
+			errs = append(errs, field.Invalid(path.Child("podExec", "script"), script, "script must start with a shebang (e.g., '#!/bin/bash')"))
+		}
+		if activityProbe.PodExec.TimeoutSeconds != nil && *activityProbe.PodExec.TimeoutSeconds <= 0 {
+			errs = append(errs, field.Invalid(path.Child("podExec", "timeoutSeconds"), *activityProbe.PodExec.TimeoutSeconds, "must be greater than 0"))
+		}
+	}
+
+	// Validate jupyter if specified
+	if activityProbe.Jupyter != nil {
+		portId := activityProbe.Jupyter.PortId
+		if _, exists := podTemplatePortsIdMap[portId]; !exists {
+			errs = append(errs, field.Invalid(path.Child("jupyter", "portId"), portId, "must reference a valid port defined in spec.podTemplate.ports"))
 		}
 	}
 

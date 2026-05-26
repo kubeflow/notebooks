@@ -74,41 +74,33 @@ spec:
       ##
       name: "default-editor"
 
-    ## activity culling configs (MUTABLE)
-    ##  - for pausing inactive Workspaces
+    ## activity probe configs (MUTABLE)
+    ##  - determines how to detect activity in the Workspace
     ##
-    culling:
+    activityProbe:
 
-      ## if the culling feature is enabled
+      ## determines the minimum period in seconds between each Workspace probe
       ##
-      enabled: true
+      minProbeIntervalSeconds: 300
 
-      ## the maximum number of seconds a Workspace can be inactive
+      ## determines the desired period in seconds between each Workspace probe
       ##
-      maxInactiveSeconds: 86400
+      probeIntervalSeconds: 3600
 
-      ## the probe used to determine if the Workspace is active
+      ## OPTION 1: a script-based probe executed in the Pod
       ##
-      activityProbe:
+      #podExec:
+      #  timeoutSeconds: 60
+      #  script: |-
+      #    #!/usr/bin/env bash
+      #    echo '{"has_activity": true}' > "$OUTPUT_JSON_PATH"
+      #    exit 0
 
-        ## OPTION 1: a shell command probe
-        ##  - if the Workspace had activity in the last 60 seconds this command
-        ##    should return status 0, otherwise it should return status 1
-        ##
-        #exec:
-        #  command:
-        #    - "bash"
-        #    - "-c"
-        #    - "exit 0"
-
-        ## OPTION 2: a Jupyter-specific probe
-        ##  - will poll the `/api/status` endpoint of the Jupyter API, and use the `last_activity` field
-        ##    https://github.com/jupyter-server/jupyter_server/blob/v2.13.0/jupyter_server/services/api/handlers.py#L62-L67
-        ##  - note, users need to be careful that their other probes don't trigger a "last_activity" update
-        ##    e.g. they should only check the health of Jupyter using the `/api/status` endpoint
-        ##
-        jupyter:
-          lastActivity: true
+      ## OPTION 2: a Jupyter-specific API probe
+      ##
+      jupyter:
+        lastActivity: true
+        portId: "jupyterlab"
 
     ## standard probes to determine Container health (MUTABLE)
     ##  - spec for Probe:
