@@ -58,6 +58,80 @@ spec:
                 description: podTemplate is the PodTemplate used to spawn Pods to
                   run Workspaces of this WorkspaceKind
                 properties:
+                  activityProbe:
+                    description: activityProbe configs to determine Workspace activity
+                      (MUTABLE)
+                    properties:
+                      jupyter:
+                        description: a Jupyter-specific API probe
+                        properties:
+                          lastActivity:
+                            default: true
+                            description: if the Jupyter-specific probe is enabled
+                            type: boolean
+                          portId:
+                            allOf:
+                            - minLength: 1
+                            - minLength: 1
+                            description: portId references a valid port defined in
+                              the WorkspaceKind
+                            maxLength: 32
+                            pattern: ^[a-z0-9]([a-z0-9_-]*[a-z0-9])?$
+                            type: string
+                        required:
+                        - portId
+                        type: object
+                      minProbeIntervalSeconds:
+                        default: 300
+                        description: |-
+                          minProbeIntervalSeconds determines the minimum period in seconds between each Workspace probe.
+                          This acts as a rate-limiter to prevent hammering/overloading the Workspace container
+                          when consecutive probes are failing.
+                        format: int32
+                        minimum: 1
+                        type: integer
+                      podExec:
+                        description: a script-based probe executed in the Pod
+                        properties:
+                          script:
+                            description: |-
+                              script is the script to run inside the Pod to determine if the Workspace is active.
+                              The script must meet the following requirements:
+                               - It must start with a shebang (e.g., "#!/usr/bin/env bash" or "#!/usr/bin/env python").
+                               - It must exit with a 0 status code. A non-zero exit code is treated as a probe failure (Workspaces with failing probes are not culled).
+                               - It should be idempotent and without side effects since it can be run multiple times.
+                               - If the script wants to report an INACTIVE state, it MUST write a JSON object to the file path
+                                 supplied in the OUTPUT_JSON_PATH environment variable. The fields are evaluated to update the
+                                 Workspace status field `status.activity.lastActivity` as follows:
+                                   - If `has_activity` is explicitly set to `true` (or if the JSON file is empty/omitted): The Workspace is treated as active, and `status.activity.lastActivity` is updated to the probe completion time (ignoring `last_activity`).
+                                   - If `last_activity` (ISO 8601 string) is provided and `has_activity` is explicitly `false` (or omitted): The Workspace is treated as inactive, and `status.activity.lastActivity` is updated to the `last_activity` timestamp.
+                                   - If `has_activity` is explicitly `false` and `last_activity` is omitted: The Workspace is treated as inactive, and the existing `status.activity.lastActivity` timestamp is preserved (unchanged).
+                            minLength: 1
+                            type: string
+                          timeoutSeconds:
+                            default: 60
+                            description: timeoutSeconds determines the maximum number
+                              of seconds the probe is allowed to run
+                            format: int32
+                            minimum: 1
+                            type: integer
+                        required:
+                        - script
+                        type: object
+                      probeIntervalSeconds:
+                        default: 3600
+                        description: |-
+                          probeIntervalSeconds determines the desired period in seconds between each Workspace probe.
+                          This represents the normal maximum duration between successful probes to ensure culling
+                          status information remains fresh.
+                        format: int32
+                        minimum: 1
+                        type: integer
+                    type: object
+                    x-kubernetes-validations:
+                    - message: must specify exactly one of 'podExec' or 'jupyter'
+                      rule: '!(has(self.podExec) && has(self.jupyter)) && (has(self.podExec)
+                        || has(self.jupyter))'
                   containerSecurityContext:
                     description: container security context for Workspace Pods (MUTABLE)
                     properties:
@@ -249,68 +323,6 @@ spec:
                               PodSecurityContext, the value specified in SecurityContext takes precedence.
                             type: string
                         type: object
-                    type: object
-                  culling:
-                    description: culling configs for pausing inactive Workspaces (MUTABLE)
-                    properties:
-                      activityProbe:
-                        description: the probe used to determine if the Workspace
-                          is active
-                        properties:
-                          exec:
-                            description: |-
-                              a shell command probe
-                               - if the Workspace had activity in the last 60 seconds this command
-                                 should return status 0, otherwise it should return status 1
-                            properties:
-                              command:
-                                description: the command to run
-                                example:
-                                - bash
-                                - -c
-                                - exit 0
-                                items:
-                                  type: string
-                                minItems: 1
-                                type: array
-                            required:
-                            - command
-                            type: object
-                          jupyter:
-                            description: |-
-                              a Jupyter-specific probe
-                               - will poll the `/api/status` endpoint of the Jupyter API, and use the `last_activity` field
-                               - note, users need to be careful that their other probes don't trigger a "last_activity" update
-                                 e.g. they should only check the health of Jupyter using the `/api/status` endpoint
-                            properties:
-                              lastActivity:
-                                description: if the Jupyter-specific probe is enabled
-                                example: true
-                                type: boolean
-                            required:
-                            - lastActivity
-                            type: object
-                            x-kubernetes-validations:
-                            - message: '''lastActivity'' must be true'
-                              rule: has(self.lastActivity) && self.lastActivity
-                        type: object
-                        x-kubernetes-validations:
-                        - message: must specify exactly one of 'exec' or 'jupyter'
-                          rule: '!(has(self.exec) && has(self.jupyter)) && (has(self.exec)
-                            || has(self.jupyter))'
-                      enabled:
-                        default: true
-                        description: if the culling feature is enabled
-                        type: boolean
-                      maxInactiveSeconds:
-                        default: 86400
-                        description: the maximum number of seconds a Workspace can
-                          be inactive
-                        format: int32
-                        minimum: 60
-                        type: integer
-                    required:
-                    - activityProbe
                     type: object
                   extraEnv:
                     description: |-
