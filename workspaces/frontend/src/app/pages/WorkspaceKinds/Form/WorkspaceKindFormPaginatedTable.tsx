@@ -126,7 +126,8 @@ export const WorkspaceKindFormPaginatedTable: React.FC<PaginatedTableProps> = ({
                 <Radio
                   className="workspace-kind-form-radio"
                   id={`default-${ariaLabel}-${pageIndex}`}
-                  name={`default-${ariaLabel}-${pageIndex}-radio`}
+                  name={`default-${ariaLabel}`}
+                  label="Default"
                   isChecked={defaultId === row.id}
                   onChange={() => {
                     setDefaultId(row.id);
