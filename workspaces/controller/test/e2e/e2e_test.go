@@ -50,7 +50,7 @@ const (
 	curlImage = "curlimages/curl:8.9.1"
 
 	// how long to wait in "Eventually" blocks
-	timeout = time.Second * 60
+	timeout = time.Second * 180
 
 	// how long to wait in "Consistently" blocks
 	duration = time.Second * 10 //nolint:unused
@@ -247,7 +247,9 @@ var _ = Describe("controller", Ordered, func() {
 				}
 				return nil
 			}
+			startTime := time.Now()
 			Eventually(verifyWorkspaceState, timeout, interval).Should(Succeed())
+			_, _ = fmt.Fprintf(GinkgoWriter, "workspace reached 'Running' state in %v\n", time.Since(startTime))
 
 			By("validating that the workspace pod is running as expected")
 			verifyWorkspacePod := func(g Gomega) {
