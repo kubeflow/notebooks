@@ -24,11 +24,12 @@ const (
 	HealthCheckPath = PathPrefix + "/healthcheck"
 
 	// workspaces
-	AllWorkspacesPath         = PathPrefix + "/workspaces"
-	WorkspacesByNamespacePath = AllWorkspacesPath + "/:" + NamespacePathParam
-	WorkspacesByNamePath      = AllWorkspacesPath + "/:" + NamespacePathParam + "/:" + ResourceNamePathParam
-	WorkspaceActionsPath      = WorkspacesByNamePath + "/actions"
-	PauseWorkspacePath        = WorkspaceActionsPath + "/pause"
+	AllWorkspacesPath               = PathPrefix + "/workspaces"
+	WorkspacesByNamespacePath       = AllWorkspacesPath + "/:" + NamespacePathParam
+	WorkspacesByNamePath            = AllWorkspacesPath + "/:" + NamespacePathParam + "/:" + ResourceNamePathParam
+	WorkspaceActionsPath            = WorkspacesByNamePath + "/actions"
+	PauseWorkspacePath              = WorkspaceActionsPath + "/pause"
+	WorkspacePodTemplateDetailsPath = WorkspacesByNamePath + "/podtemplate/details"
 
 	// workspacekinds
 	AllWorkspaceKindsPath            = PathPrefix + "/workspacekinds"

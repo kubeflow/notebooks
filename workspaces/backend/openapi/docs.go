@@ -1842,6 +1842,75 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/workspaces/{namespace}/{name}/podtemplate/details": {
+            "get": {
+                "description": "Returns detail-level data for the workspace details overlay (volumes, secrets, pod info).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspaces"
+                ],
+                "summary": "Get workspace pod template details",
+                "operationId": "getWorkspacePodTemplateDetails",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "x-example": "kubeflow-user-example-com",
+                        "description": "Namespace of the workspace",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "x-example": "my-workspace",
+                        "description": "Name of the workspace",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation.",
+                        "schema": {
+                            "$ref": "#/definitions/api.WorkspaceDetailsEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "404": {
+                        "description": "Workspace not found.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -2098,6 +2167,17 @@ const docTemplate = `{
             "properties": {
                 "data": {
                     "$ref": "#/definitions/workspaces.WorkspaceCreate"
+                }
+            }
+        },
+        "api.WorkspaceDetailsEnvelope": {
+            "type": "object",
+            "required": [
+                "data"
+            ],
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/workspaces.WorkspaceDetails"
                 }
             }
         },
@@ -7283,6 +7363,88 @@ const docTemplate = `{
                 },
                 "podTemplate": {
                     "$ref": "#/definitions/workspaces.PodTemplateMutate"
+                }
+            }
+        },
+        "workspaces.WorkspaceDetailContainer": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspaces.WorkspaceDetailPod": {
+            "type": "object",
+            "required": [
+                "containers",
+                "initContainers",
+                "name",
+                "nodeName"
+            ],
+            "properties": {
+                "containers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspaces.WorkspaceDetailContainer"
+                    }
+                },
+                "initContainers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspaces.WorkspaceDetailContainer"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "nodeName": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspaces.WorkspaceDetailVolumes": {
+            "type": "object",
+            "required": [
+                "home"
+            ],
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspaces.PodVolumeInfo"
+                    }
+                },
+                "home": {
+                    "$ref": "#/definitions/workspaces.PodVolumeInfo"
+                },
+                "secrets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspaces.PodSecretInfo"
+                    }
+                }
+            }
+        },
+        "workspaces.WorkspaceDetails": {
+            "type": "object",
+            "required": [
+                "pod",
+                "podMetadata",
+                "volumes"
+            ],
+            "properties": {
+                "pod": {
+                    "$ref": "#/definitions/workspaces.WorkspaceDetailPod"
+                },
+                "podMetadata": {
+                    "$ref": "#/definitions/workspaces.PodMetadata"
+                },
+                "volumes": {
+                    "$ref": "#/definitions/workspaces.WorkspaceDetailVolumes"
                 }
             }
         },

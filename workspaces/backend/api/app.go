@@ -115,6 +115,9 @@ func (a *App) Routes() http.Handler {
 	router.POST(constants.PVCsByNamespacePath, a.CreatePVCHandler)
 	router.DELETE(constants.PVCsByNamePath, a.DeletePVCHandler)
 
+	// workspace details
+	router.GET(constants.WorkspacePodTemplateDetailsPath, a.GetWorkspaceDetailsHandler)
+
 	// swagger
 	if a.Config.SwaggerEnabled {
 		router.GET(constants.SwaggerPath, a.GetSwaggerHandler)

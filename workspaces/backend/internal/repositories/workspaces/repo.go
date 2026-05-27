@@ -70,6 +70,29 @@ func (r *WorkspaceRepository) GetWorkspace(ctx context.Context, namespace string
 	return workspaceUpdateModel, nil
 }
 
+func (r *WorkspaceRepository) GetWorkspaceDetails(ctx context.Context, namespace string, workspaceName string) (*models.WorkspaceDetails, error) {
+	// 1. get the workspace CR
+	workspace := &kubefloworgv1beta1.Workspace{}
+	if err := r.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: workspaceName}, workspace); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, ErrWorkspaceNotFound
+		}
+		return nil, err
+	}
+
+	// 2. get the workspace kind (may not exist — that's OK)
+	workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
+	if err := r.client.Get(ctx, client.ObjectKey{Name: workspace.Spec.Kind}, workspaceKind); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return nil, err
+		}
+	}
+
+	// 3. build and return the details model
+	details := models.NewWorkspaceDetailsFromWorkspace(workspace, workspaceKind)
+	return &details, nil
+}
+
 func (r *WorkspaceRepository) GetWorkspaces(ctx context.Context, namespace string) ([]models.WorkspaceListItem, error) {
 	return r.getWorkspaceModels(ctx, client.InNamespace(namespace))
 }
