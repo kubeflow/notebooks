@@ -1,12 +1,12 @@
 import React from 'react';
+import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import DeleteModal from '~/shared/components/DeleteModal';
 
 describe('DeleteModal', () => {
-  const mockOnClose = vi.fn();
-  const mockOnDelete = vi.fn();
+  const mockOnClose = jest.fn();
+  const mockOnDelete = jest.fn();
 
   const defaultProps = {
     isOpen: true,
@@ -18,7 +18,7 @@ describe('DeleteModal', () => {
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   describe('Rendering', () => {
@@ -117,12 +117,7 @@ describe('DeleteModal', () => {
 
     it('should disable cancel button during deletion', async () => {
       const user = userEvent.setup();
-      mockOnDelete.mockImplementation(
-        () =>
-            new Promise<void>((resolve) => {
-            resolve();
-            }),
-        );
+      mockOnDelete.mockImplementation(() => new Promise<void>(() => {}));
 
       render(<DeleteModal {...defaultProps} />);
 
@@ -132,7 +127,7 @@ describe('DeleteModal', () => {
       const deleteButton = screen.getByTestId('delete-button');
       await user.click(deleteButton);
 
-      const cancelButton = screen.getByTestId('cancel-button');
+      const cancelButton = screen.queryByTestId('cancel-button');
       expect(cancelButton).not.toBeInTheDocument(); // Cancel button is hidden during deletion
     });
   });
