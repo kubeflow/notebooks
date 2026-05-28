@@ -14,7 +14,6 @@ import {
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { Dropdown, DropdownItem } from '@patternfly/react-core/dist/esm/components/Dropdown';
 import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggle';
-import { Label } from '@patternfly/react-core/dist/esm/components/Label';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
 import { Spinner } from '@patternfly/react-core/dist/esm/components/Spinner';
@@ -313,7 +312,6 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
             </Thead>
             {secrets.map((secret, index) => {
               const secretDetails = availableSecrets.find((s) => s.name === secret.secretName);
-              const isImmutable = secretDetails?.immutable ?? false;
               const canUpdate = secretDetails?.canUpdate ?? true;
               const isExpanded = expandedSecrets.has(secret.secretName);
 
@@ -328,21 +326,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
                       }}
                       data-testid={`expand-secret-${secret.secretName}`}
                     />
-                    <Td dataLabel="Secret Name">
-                      <Flex
-                        spaceItems={{ default: 'spaceItemsSm' }}
-                        alignItems={{ default: 'alignItemsCenter' }}
-                      >
-                        <FlexItem>{secret.secretName}</FlexItem>
-                        {isImmutable && (
-                          <FlexItem>
-                            <Label color="orange" isCompact>
-                              Immutable
-                            </Label>
-                          </FlexItem>
-                        )}
-                      </Flex>
-                    </Td>
+                    <Td dataLabel="Secret Name">{secret.secretName}</Td>
                     <Td dataLabel="Mount Path" hasAction>
                       <MountPathField
                         variant="cell"
@@ -377,14 +361,8 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
                         onOpenChange={(isOpen) => setDropdownOpen(isOpen ? index : null)}
                         popperProps={{ position: 'right' }}
                       >
-                        {isImmutable || !canUpdate ? (
-                          <Tooltip
-                            content={
-                              isImmutable
-                                ? 'This secret is immutable and cannot be edited.'
-                                : 'You do not have permission to edit this secret.'
-                            }
-                          >
+                        {!canUpdate ? (
+                          <Tooltip content="You do not have permission to edit this secret.">
                             <DropdownItem
                               isAriaDisabled
                               data-testid={`edit-secret-${secret.secretName}`}

@@ -181,12 +181,6 @@ export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
               <Stack>
                 <StackItem>
                   <LabelGroup>
-                    <Label isCompact>Type: {secret.type}</Label>
-                    {secret.immutable && (
-                      <Label color="orange" isCompact>
-                        Immutable
-                      </Label>
-                    )}
                     {!secret.canMount && <Label isCompact>Unmountable</Label>}
                   </LabelGroup>
                 </StackItem>
