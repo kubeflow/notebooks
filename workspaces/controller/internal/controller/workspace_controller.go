@@ -74,9 +74,11 @@ const (
 	stateMsgErrorInvalidPodConfig          = "Workspace has invalid podConfig: %s"
 	stateMsgErrorGenFailureStatefulSet     = "Workspace failed to generate StatefulSet with error: %s"
 	stateMsgErrorGenFailureService         = "Workspace failed to generate Service with error: %s"
+	stateMsgErrorGenFailureVirtualService  = "Workspace failed to generate VirtualService with error: %s"
 	stateMsgErrorMultipleStatefulSets      = "Workspace owns multiple StatefulSets: %s"
 	stateMsgErrorMultipleServices          = "Workspace owns multiple Services: %s"
 	stateMsgErrorMultipleVirtualServices   = "Workspace owns multiple VirtualServices: %s"
+	stateMsgErrorSetControllerReference    = "Workspace failed to set controller reference on %s with error: %s"
 	stateMsgErrorStatefulSetWarningEvent   = "Workspace StatefulSet has warning event: %s"
 	stateMsgErrorPodUnschedulable          = "Workspace Pod is unschedulable: %s"
 	stateMsgErrorPodSchedulingGate         = "Workspace Pod is waiting for scheduling gate: %s"
@@ -350,12 +352,16 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		// generate VirtualService
 		virtualsvc, err := r.generateVirtualService(workspace, workspaceKind, service, currentImageConfig.Spec)
 		if err != nil {
-			log.Error(err, "unable to generate VirtualService")
-			return ctrl.Result{}, err
+			return r.updateWorkspaceState(ctx, log, workspace,
+				kubefloworgv1beta1.WorkspaceStateError,
+				fmt.Sprintf(stateMsgErrorGenFailureVirtualService, err.Error()),
+			)
 		}
 		if err := ctrl.SetControllerReference(workspace, virtualsvc, r.Scheme); err != nil {
-			log.Error(err, "unable to set controller reference on VirtualService")
-			return ctrl.Result{}, err
+			return r.updateWorkspaceState(ctx, log, workspace,
+				kubefloworgv1beta1.WorkspaceStateError,
+				fmt.Sprintf(stateMsgErrorSetControllerReference, "VirtualService", err.Error()),
+			)
 		}
 
 		// fetch VirtualServices
@@ -987,7 +993,7 @@ func (r *WorkspaceReconciler) generateVirtualServiceHTTPRoute(
 
 	// determine rewrite configuration
 	var httpRouteRewrite *networkingv1.HTTPRewrite
-	if !ptr.Deref(podTemplatePort.HTTPProxy.RemovePathPrefix, false) {
+	if podTemplatePort.HTTPProxy != nil && !ptr.Deref(podTemplatePort.HTTPProxy.RemovePathPrefix, false) {
 		httpRouteRewrite = &networkingv1.HTTPRewrite{
 			Uri: matchUriPrefix,
 		}
@@ -995,10 +1001,10 @@ func (r *WorkspaceReconciler) generateVirtualServiceHTTPRoute(
 
 	// determine headers configuration
 	var httpRouteHeaders *networkingv1.Headers
-	if podTemplatePort.HTTPProxy.RequestHeaders != nil {
+	if podTemplatePort.HTTPProxy != nil && podTemplatePort.HTTPProxy.RequestHeaders != nil {
 		var setHeaders map[string]string
 		if podTemplatePort.HTTPProxy.RequestHeaders.Set != nil {
-			setHeaders = make(map[string]string)
+			setHeaders = make(map[string]string, len(podTemplatePort.HTTPProxy.RequestHeaders.Set))
 			for k, v := range podTemplatePort.HTTPProxy.RequestHeaders.Set {
 				rendered, err := helper.RenderGoTemplate(v, httpPathPrefixFunc)
 				if err != nil {
@@ -1009,8 +1015,8 @@ func (r *WorkspaceReconciler) generateVirtualServiceHTTPRoute(
 		}
 
 		var addHeaders map[string]string
-		if podTemplatePort.HTTPProxy.RequestHeaders.Add != nil {
-			addHeaders = make(map[string]string)
+		if podTemplatePort.HTTPProxy != nil && podTemplatePort.HTTPProxy.RequestHeaders.Add != nil {
+			addHeaders = make(map[string]string, len(podTemplatePort.HTTPProxy.RequestHeaders.Add))
 			for k, v := range podTemplatePort.HTTPProxy.RequestHeaders.Add {
 				rendered, err := helper.RenderGoTemplate(v, httpPathPrefixFunc)
 				if err != nil {
