@@ -19,6 +19,7 @@ import { WorkspaceDetailsActions } from '~/app/pages/Workspaces/Details/Workspac
 import { WorkspaceDetailsActivity } from '~/app/pages/Workspaces/Details/WorkspaceDetailsActivity';
 import { WorkspaceDetailsPodTemplate } from '~/app/pages/Workspaces/Details/WorkspaceDetailsPodTemplate';
 import { WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
+import { WorkspaceResources } from '~/app/pages/Workspaces/WorkspaceResources';
 
 type WorkspaceDetailsProps = {
   workspace: WorkspacesWorkspaceListItem;
@@ -70,6 +71,13 @@ export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = 
             aria-label="Activity"
             data-testid="activity-tab"
           />
+          <Tab
+            eventKey={2}
+            title={<TabTitleText>Resources</TabTitleText>}
+            tabContentId="resourcesTabContent"
+            aria-label="Resources"
+            data-testid="resources-tab"
+          />
           {/* TODO: Uncomment when Logs visualization is fully supported
           <Tab
             eventKey={2}
@@ -115,24 +123,35 @@ export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = 
             <WorkspaceDetailsActivity workspace={workspace} />
           </TabContentBody>
         </TabContent>
-
         <TabContent
           key={2}
           eventKey={2}
-          id="logsTabContent"
+          id="resourcesTabContent"
+          data-testid="resources-tab-content"
           activeKey={activeTabKey}
           hidden={activeTabKey !== 2}
+        >
+          <TabContentBody hasPadding>
+            <WorkspaceResources workspace={workspace} />
+          </TabContentBody>
+        </TabContent>
+        <TabContent
+          key={3}
+          eventKey={3}
+          id="logsTabContent"
+          activeKey={activeTabKey}
+          hidden={activeTabKey !== 3}
         >
           <TabContentBody hasPadding>Logs</TabContentBody>
         </TabContent>
 
         <TabContent
-          key={3}
+          key={4}
           style={{ height: '100%' }}
-          eventKey={3}
+          eventKey={4}
           id="podTemplateTabContent"
           activeKey={activeTabKey}
-          hidden={activeTabKey !== 3}
+          hidden={activeTabKey !== 4}
         >
           <TabContentBody style={{ height: '100%' }} hasPadding>
             <WorkspaceDetailsPodTemplate />

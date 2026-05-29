@@ -8,6 +8,7 @@ import {
 import { Divider } from '@patternfly/react-core/dist/esm/components/Divider';
 import { Label, LabelGroup } from '@patternfly/react-core/dist/esm/components/Label';
 import { WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
+import { WorkspacePackageDetails } from '~/app/pages/Workspaces/WorkspacePackageDetails';
 
 type WorkspaceDetailsOverviewProps = {
   workspace: WorkspacesWorkspaceListItem;
@@ -46,6 +47,8 @@ export const WorkspaceDetailsOverview: React.FunctionComponent<WorkspaceDetailsO
         {workspace.podTemplate.options.podConfig.current.displayName}
       </DescriptionListDescription>
     </DescriptionListGroup>
+    <Divider />
+    <WorkspacePackageDetails workspace={workspace} />
     <Divider />
   </DescriptionList>
 );

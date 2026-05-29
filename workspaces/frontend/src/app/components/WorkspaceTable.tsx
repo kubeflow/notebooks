@@ -47,7 +47,6 @@ import {
   extractWorkspaceStateColor,
   WORKSPACE_STATE_COLORS,
 } from '~/shared/utilities/WorkspaceUtils';
-import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
 import { WorkspacesWorkspaceListItem, V1Beta1WorkspaceState } from '~/generated/data-contracts';
 import { useWorkspaceActionsContext } from '~/app/context/WorkspaceActionsContext';
@@ -87,7 +86,6 @@ interface WorkspaceTableProps {
   refreshWorkspaces: () => void;
   namespace?: string;
   canCreateWorkspaces?: boolean;
-  canExpandRows?: boolean;
   hiddenColumns?: WorkspaceTableColumnKeys[];
   rowActions?: (workspace: WorkspacesWorkspaceListItem) => IActions;
 }
@@ -129,7 +127,6 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       refreshWorkspaces,
       namespace,
       canCreateWorkspaces = true,
-      canExpandRows = true,
       hiddenColumns = [],
       rowActions = () => [],
     },
@@ -137,7 +134,6 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
   ) => {
     const { isDrawerExpanded } = useWorkspaceActionsContext();
     const [workspaceKinds] = useWorkspaceKinds(namespace);
-    const [expandedWorkspacesNames, setExpandedWorkspacesNames] = useState<string[]>([]);
     const [activeRedirectPopover, setActiveRedirectPopover] = useState<string | null>(null);
     const [pinnedRedirectPopover, setPinnedRedirectPopover] = useState<string | null>(null);
 
@@ -184,20 +180,6 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       }),
       [],
     );
-
-    const setWorkspaceExpanded = (workspace: WorkspacesWorkspaceListItem, isExpanding = true) =>
-      setExpandedWorkspacesNames((prevExpanded) => {
-        const newExpandedWorkspacesNames = prevExpanded.filter(
-          (wsName) => wsName !== workspace.name,
-        );
-        return isExpanding
-          ? [...newExpandedWorkspacesNames, workspace.name]
-          : newExpandedWorkspacesNames;
-      });
-
-    const isWorkspaceExpanded = (workspace: WorkspacesWorkspaceListItem) =>
-      expandedWorkspacesNames.includes(workspace.name);
-
     const filteredWorkspaces = useMemo(
       () => applyFilters(workspaces, filterValues, filterableProperties),
       [workspaces, filterValues, filterableProperties],
@@ -361,7 +343,6 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
         >
           <Thead>
             <Tr>
-              {canExpandRows && <Th width={10} screenReaderText="expand-action" />}
               {visibleColumnKeys.map((columnKey) => {
                 const specialProps = getSpecialColumnProps(columnKey);
                 const modifier = getColumnModifier(columnKey);
@@ -385,27 +366,12 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
             sortedWorkspaces
               .slice(perPage * (page - 1), perPage * page)
               .map((workspace, rowIndex) => (
-                <Tbody
-                  id="workspaces-table-content"
-                  key={rowIndex}
-                  isExpanded={isWorkspaceExpanded(workspace)}
-                  data-testid="table-body"
-                >
+                <Tbody id="workspaces-table-content" key={rowIndex} data-testid="table-body">
                   <Tr
                     id={`workspaces-table-row-${rowIndex + 1}`}
                     data-testid={`workspace-row-${rowIndex}`}
                     isStriped={rowIndex % 2 === 0}
                   >
-                    {canExpandRows && (
-                      <Td
-                        expand={{
-                          rowIndex,
-                          isExpanded: isWorkspaceExpanded(workspace),
-                          onToggle: () =>
-                            setWorkspaceExpanded(workspace, !isWorkspaceExpanded(workspace)),
-                        }}
-                      />
-                    )}
                     {visibleColumnKeys.map((columnKey) => {
                       if (columnKey === 'connect') {
                         return (
@@ -532,13 +498,6 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                       );
                     })}
                   </Tr>
-                  {isWorkspaceExpanded(workspace) && (
-                    <ExpandedWorkspaceRow
-                      workspace={workspace}
-                      visibleColumnKeys={visibleColumnKeys}
-                      canExpandRows={canExpandRows}
-                    />
-                  )}
                 </Tbody>
               ))}
           {sortedWorkspaces.length === 0 && (
