@@ -119,6 +119,11 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 				workspaceKind: NewExampleWorkspaceKindWithInvalidExtraEnvValue("wsk-webhook-create--extra-invalid-env-value"),
 				shouldSucceed: false,
 			},
+			{
+				description:   "should reject creation if requestHeaders template is invalid",
+				workspaceKind: NewExampleWorkspaceKindWithInvalidRequestHeadersValue("wsk-webhook-create--request-headers-invalid"),
+				shouldSucceed: false,
+			},
 		}
 
 		for _, tc := range testCases {
@@ -587,6 +592,35 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
 				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
 					wsk.Spec.PodTemplate.ExtraEnv[0].Value = `{{ httpPathPrefix "jupyterlab"   }}`
+					return ContainSubstring("")
+				},
+			},
+			{
+				description:   "should reject updating requestHeaders template to an invalid Go template",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					invalidValue := `{{ httpPathPrefix "jupyterlab" }`
+					wsk.Spec.PodTemplate.Ports[0].HTTPProxy.RequestHeaders = &kubefloworgv1beta1.IstioHeaderOperations{
+						Set: map[string]string{
+							"X-RStudio-Root-Path": invalidValue,
+						},
+					}
+					return ContainSubstring("failed to parse template %q", invalidValue)
+				},
+			},
+			{
+				description:   "should accept updating requestHeaders template to a valid Go template",
+				shouldSucceed: true,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					wsk.Spec.PodTemplate.Ports[0].HTTPProxy.RequestHeaders = &kubefloworgv1beta1.IstioHeaderOperations{
+						Set: map[string]string{
+							"X-RStudio-Root-Path": `{{ httpPathPrefix "jupyterlab" }}`,
+						},
+					}
 					return ContainSubstring("")
 				},
 			},
