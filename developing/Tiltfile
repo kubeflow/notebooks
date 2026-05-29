@@ -63,11 +63,14 @@ k8s_resource(
 
 
 # ============================================================================
-# Dev RBAC
+# Dev Resources
 # ============================================================================
-# Create RBAC bindings for dev users (admin, user).
-# Uses the kubeflow-workspaces-* ClusterRoles from controller manifests,
-# plus dev-only supplements for resources the backend also checks (PVCs, secrets, etc).
+# RBAC bindings for dev users (admin, user) using the kubeflow-workspaces-*
+# ClusterRoles from controller manifests, plus dev-only supplements for
+# resources the backend also checks (PVCs, secrets, etc).
+#
+# Common sample resources (ServiceAccount, PVCs, Secret, ConfigMap) applied to
+# the default namespace so workspaces can be created out of the box.
 
 rbac_path = os.path.join(tilt_root, "manifests/rbac")
 k8s_yaml(
@@ -75,21 +78,35 @@ k8s_yaml(
     allow_duplicates=True,
 )
 
+common_samples_path = os.path.join(controller_dir, "manifests/kustomize/samples/common")
+k8s_yaml(
+    kustomize(common_samples_path, kustomize_bin=kustomize_bin),
+    allow_duplicates=True,
+)
+
 k8s_resource(
     objects=[
+        # RBAC: admin user
         "dev-admin-workspaces:clusterrolebinding",
         "dev-admin-supplement:clusterrole",
         "dev-admin-supplement:clusterrolebinding",
+        # RBAC: regular user
         "dev-user-workspaces:rolebinding",
         "dev-user-global-read:clusterrole",
         "dev-user-global-read:clusterrolebinding",
         "dev-user-resources:role",
         "dev-user-resources:rolebinding",
+        # Common sample resources
+        "default-editor:serviceaccount",
+        "workspace-home-pvc:persistentvolumeclaim",
+        "workspace-data-pvc:persistentvolumeclaim",
+        "workspace-secret:secret",
+        "workspacekind-image-source:configmap",
     ],
-    new_name="dev-rbac",
+    new_name="dev-resources",
     resource_deps=["workspaces-controller"],
     pod_readiness="ignore",
-    labels=["rbac"],
+    labels=["dev"],
 )
 
 
@@ -125,7 +142,7 @@ for o in backend_objects:
             "SWAGGER_SCHEME": "https",
             "SWAGGER_HOST": "localhost:8443",
             "SWAGGER_BASE_PATH": "/workspaces/api/v1",
-            "DISABLE_AUTH": "false",
+            "DISABLE_AUTH": "false",  # TODO: remove once DISABLE_AUTH is removed from backend
         }
 
         # Replace existing keys and add missing ones

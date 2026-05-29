@@ -151,10 +151,20 @@ The backend authenticates requests via `kubeflow-userid` and `kubeflow-groups` h
 
 | User | Scope | Description |
 |------|-------|-------------|
-| `admin` | Cluster-wide | Bound to `kubeflow-workspaces-admin` (workspaces) plus a supplement for WorkspaceKinds, PVCs, secrets, and namespaces. Full access to all resources. |
-| `user` | `default` namespace | Bound to `kubeflow-workspaces-edit` in `default` plus a supplement for PVCs and secrets. Cannot manage WorkspaceKinds or access other namespaces. |
+| `admin` | Cluster-wide | Typical cluster admin permissions |
+| `user` | `default` namespace | Typical workspaces user permissions |
 
 These bindings use the same `kubeflow-workspaces-*` ClusterRoles that are defined by the [controller manifests](workspaces/controller/manifests/kustomize/base/manager/user_cluster_roles.yaml), so they reflect realistic Kubeflow RBAC behavior.
+
+To inspect the effective permissions for each dev user:
+
+```bash
+# admin (cluster-wide)
+kubectl auth can-i --list --as=admin | grep -E '^Resources|^\S'
+
+# user (namespace-scoped)
+kubectl auth can-i --list --as=user -n default | grep -E '^Resources|^\S'
+```
 
 > [!TIP]
 >

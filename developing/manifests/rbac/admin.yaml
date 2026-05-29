@@ -45,16 +45,6 @@ rules:
   - get
   - list
   - update
-- apiGroups:
-  - kubeflow.org
-  resources:
-  - workspacekinds
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

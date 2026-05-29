@@ -41,7 +41,7 @@ fi
 
 echo "INFO: Installing Istio ${ISTIO_VERSION} ..."
 istioctl install \
-  --filename "${DEVELOPING_DIR}/manifests/istio-install-values.yaml" \
+  --filename "${DEVELOPING_DIR}/istio-developing.yaml" \
   --skip-confirmation
 
 # Note: Gateway resources (namespace, TLS certificate, Gateway) are applied
