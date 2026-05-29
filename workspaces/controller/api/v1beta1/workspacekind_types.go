@@ -164,6 +164,7 @@ type WorkspaceKindPodTemplate struct {
 	//  - the following go template functions are available:
 	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:example:={ "NB_PREFIX": "{{ httpPathPrefix 'jupyterlab' }}" }
 	// +listType:="map"
 	// +listMapKey:="name"
 	ExtraEnv []v1.EnvVar `json:"extraEnv,omitempty"`
@@ -321,19 +322,21 @@ type HTTPProxy struct {
 	// header manipulation rules for incoming HTTP requests
 	//  - sets the `spec.http[].headers.request` of the Istio VirtualService
 	//    https://istio.io/latest/docs/reference/config/networking/virtual-service/#Headers-HeaderOperations
-	//  - the following string templates are available:
-	//     - `.PathPrefix`: the path prefix of the Workspace (e.g. '/workspace/connect/{profile_name}/{workspace_name}/')
 	// +kubebuilder:validation:Optional
 	RequestHeaders *IstioHeaderOperations `json:"requestHeaders,omitempty"`
 }
 
 type IstioHeaderOperations struct {
 	// overwrite the headers specified by key with the given values
+	//  - the following go template functions are available in the values:
+	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:example:={ "X-RStudio-Root-Path": "{{ .PathPrefix }}" }
+	// +kubebuilder:example:={ "X-RStudio-Root-Path": "{{ httpPathPrefix 'rstudio' }}" }
 	Set map[string]string `json:"set,omitempty"`
 
 	// append the given values to the headers specified by keys (will create a comma-separated list of values)
+	//  - the following go template functions are available in the values:
+	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:example:={ "My-Header": "value-to-append" }
 	Add map[string]string `json:"add,omitempty"`

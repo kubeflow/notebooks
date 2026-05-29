@@ -79,6 +79,9 @@ func (v *WorkspaceKindValidator) ValidateCreate(ctx context.Context, obj runtime
 	// validate the extra environment variables
 	allErrs = append(allErrs, validateExtraEnv(workspaceKind)...)
 
+	// validate the request headers templates
+	allErrs = append(allErrs, validateRequestHeaders(workspaceKind)...)
+
 	// generate helper maps for imageConfig values
 	imageConfigIdMap := make(map[string]kubefloworgv1beta1.ImageConfigValue)
 	imageConfigRedirectMap := make(map[string]string)
@@ -161,6 +164,11 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 	// validate the extra environment variables
 	if !equality.Semantic.DeepEqual(newWorkspaceKind.Spec.PodTemplate.ExtraEnv, oldWorkspaceKind.Spec.PodTemplate.ExtraEnv) {
 		allErrs = append(allErrs, validateExtraEnv(newWorkspaceKind)...)
+	}
+
+	// validate the request headers templates
+	if !equality.Semantic.DeepEqual(newWorkspaceKind.Spec.PodTemplate.Ports, oldWorkspaceKind.Spec.PodTemplate.Ports) {
+		allErrs = append(allErrs, validateRequestHeaders(newWorkspaceKind)...)
 	}
 
 	// if the ports config changed, we need to validate all image config values again
@@ -568,10 +576,48 @@ func validateExtraEnv(workspaceKind *kubefloworgv1beta1.WorkspaceKind) []*field.
 	for _, env := range workspaceKind.Spec.PodTemplate.ExtraEnv {
 		if env.Value != "" {
 			rawValue := env.Value
-			_, err := helper.RenderExtraEnvValueTemplate(rawValue, httpPathPrefixFunc)
+			_, err := helper.RenderGoTemplate(rawValue, httpPathPrefixFunc)
 			if err != nil {
 				extraEnvPath := field.NewPath("spec", "podTemplate", "extraEnv").Key(env.Name).Child("value")
 				errs = append(errs, field.Invalid(extraEnvPath, rawValue, err.Error()))
+			}
+		}
+	}
+
+	return errs
+}
+
+// validateRequestHeaders validates the request headers templates in a WorkspaceKind
+func validateRequestHeaders(workspaceKind *kubefloworgv1beta1.WorkspaceKind) []*field.Error {
+	var errs []*field.Error
+
+	// the real httpPathPrefix can't fail, so we return a dummy value
+	httpPathPrefixFunc := func(portId kubefloworgv1beta1.PortId) string {
+		return "DUMMY_HTTP_PATH_PREFIX"
+	}
+
+	for i, port := range workspaceKind.Spec.PodTemplate.Ports {
+		if port.HTTPProxy == nil || port.HTTPProxy.RequestHeaders == nil {
+			continue
+		}
+
+		headersPath := field.NewPath("spec", "podTemplate", "ports").Index(i).Child("httpProxy", "requestHeaders")
+
+		if port.HTTPProxy.RequestHeaders.Set != nil {
+			for k, v := range port.HTTPProxy.RequestHeaders.Set {
+				_, err := helper.RenderGoTemplate(v, httpPathPrefixFunc)
+				if err != nil {
+					errs = append(errs, field.Invalid(headersPath.Child("set").Key(k), v, err.Error()))
+				}
+			}
+		}
+
+		if port.HTTPProxy.RequestHeaders.Add != nil {
+			for k, v := range port.HTTPProxy.RequestHeaders.Add {
+				_, err := helper.RenderGoTemplate(v, httpPathPrefixFunc)
+				if err != nil {
+					errs = append(errs, field.Invalid(headersPath.Child("add").Key(k), v, err.Error()))
+				}
 			}
 		}
 	}
