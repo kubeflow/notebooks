@@ -10,6 +10,8 @@ chmod 700 "${XDG_RUNTIME_DIR}"
 cd "${HOME}" || { echo "ERROR: failed to cd to ${HOME}"; exit 1; }
 echo "INFO: starting code-server..."
 exec 2>&1
+# NOTE: we do not set `--user-data-dir` or `--extensions-dir` as we already set XDG_DATA_HOME
+#       in the Dockerfile to a path which will NOT be backed by a persistent volume
 exec /usr/bin/code-server \
   --bind-addr 0.0.0.0:8888 \
   --disable-telemetry \
