@@ -48,9 +48,17 @@ setup-istio: setup-cert-manager
 	@echo "Setting up Istio..."
 	@./scripts/setup-istio.sh
 
+# Install Prometheus for metrics verification (optional, depends on kind cluster)
+setup-prometheus: setup-kind
+	@echo "Setting up Prometheus..."
+	@./scripts/setup-prometheus.sh
+
 # Run tilt up with kind cluster, cert-manager, and Istio setup
 .PHONY: tilt-up
 tilt-up: check-tilt setup-istio kustomize
+ifeq ($(ENABLE_PROMETHEUS),true)
+	@$(MAKE) setup-prometheus
+endif
 	@echo "Starting Tilt..."
 	@tilt up
 
