@@ -1127,6 +1127,61 @@ class EditWorkspaceKind {
     cy.findByTestId('workspace-kind-form-error').should('be.visible');
   }
 
+  // View mode tabs (Form / YAML)
+  findFormTab() {
+    return cy.findByTestId('form-tab');
+  }
+
+  findYamlTab() {
+    return cy.findByTestId('yaml-tab');
+  }
+
+  clickFormTab() {
+    this.findFormTab().click();
+  }
+
+  clickYamlTab() {
+    this.findYamlTab().click();
+  }
+
+  assertFormTabActive() {
+    this.findFormTab().should('have.attr', 'aria-selected', 'true');
+  }
+
+  assertYamlTabActive() {
+    this.findYamlTab().should('have.attr', 'aria-selected', 'true');
+  }
+
+  assertTabsVisible() {
+    this.findFormTab().should('be.visible');
+    this.findYamlTab().should('be.visible');
+  }
+
+  // YAML editor
+  findYamlEditor() {
+    return cy.findByTestId('yaml-editor');
+  }
+
+  assertYamlEditorVisible() {
+    this.findYamlEditor().should('be.visible');
+  }
+
+  assertYamlEditorNotVisible() {
+    this.findYamlEditor().should('not.exist');
+  }
+
+  findYamlParseError() {
+    return cy.findByTestId('yaml-parse-error');
+  }
+
+  assertYamlParseErrorVisible() {
+    this.findYamlParseError().should('be.visible');
+  }
+
+  assertYamlParseErrorNotVisible() {
+    this.findYamlParseError().should('not.exist');
+  }
+
   private wait() {
     this.findPageTitle();
     cy.testA11y();

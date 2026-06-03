@@ -89,6 +89,48 @@ export const isValidWorkspaceKindYaml = (data: any): boolean => {
   return true;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
+export const isValidWorkspaceKindUpdate = (data: any): boolean => {
+  if (!data || typeof data !== 'object') {
+    return false;
+  }
+  const obj = data as Record<string, unknown>;
+
+  if (typeof obj.revision !== 'string' || !obj.revision) {
+    return false;
+  }
+
+  if (
+    typeof obj.spawner !== 'object' ||
+    !obj.spawner ||
+    typeof (obj.spawner as Record<string, unknown>).displayName !== 'string' ||
+    typeof (obj.spawner as Record<string, unknown>).description !== 'string'
+  ) {
+    return false;
+  }
+
+  if (typeof obj.podTemplate !== 'object' || !obj.podTemplate) {
+    return false;
+  }
+
+  const podTemplate = obj.podTemplate as Record<string, unknown>;
+  if (typeof podTemplate.options !== 'object' || !podTemplate.options) {
+    return false;
+  }
+
+  const options = podTemplate.options as Record<string, unknown>;
+  if (
+    typeof options.imageConfig !== 'object' ||
+    !options.imageConfig ||
+    typeof options.podConfig !== 'object' ||
+    !options.podConfig
+  ) {
+    return false;
+  }
+
+  return true;
+};
+
 export const emptyImage = {
   id: '',
   displayName: '',

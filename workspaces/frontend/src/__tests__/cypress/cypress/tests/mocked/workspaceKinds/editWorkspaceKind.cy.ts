@@ -1350,4 +1350,126 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.verifyPageURL(mockWorkspaceKind.name);
     });
   });
+
+  describe('YAML editor tab', () => {
+    it('should display Form and YAML tabs in edit mode', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.assertTabsVisible();
+    });
+
+    it('should show Form tab as active by default', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.assertFormTabActive();
+      editWorkspaceKind.assertFormPropertiesVisible();
+      editWorkspaceKind.assertYamlEditorNotVisible();
+    });
+
+    it('should switch to YAML tab and show editor', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.clickYamlTab();
+
+      editWorkspaceKind.assertYamlTabActive();
+      editWorkspaceKind.assertYamlEditorVisible();
+    });
+
+    it('should switch back to Form tab and hide editor', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.clickYamlTab();
+      editWorkspaceKind.assertYamlEditorVisible();
+
+      editWorkspaceKind.clickFormTab();
+      editWorkspaceKind.assertFormTabActive();
+      editWorkspaceKind.assertFormPropertiesVisible();
+      editWorkspaceKind.assertYamlEditorNotVisible();
+    });
+
+    it('should have Save disabled in YAML tab when no changes are made', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.clickYamlTab();
+
+      editWorkspaceKind.assertSubmitButtonDisabled(true);
+    });
+
+    it('should call update API when saving valid YAML', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      cy.interceptApi(
+        'PUT /api/:apiVersion/workspacekinds/:kind',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKind.name } },
+        mockModArchResponse(buildMockWorkspaceKindUpdate(mockWorkspaceKind)),
+      ).as('updateWorkspaceKindYaml');
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.clickYamlTab();
+
+      // Type into the Monaco editor to trigger a change
+      editWorkspaceKind
+        .findYamlEditor()
+        .find('.monaco-editor textarea')
+        .first()
+        .click({ force: true });
+      editWorkspaceKind
+        .findYamlEditor()
+        .find('.monaco-editor textarea')
+        .first()
+        .type('{end}{enter}# edited', { force: true });
+
+      editWorkspaceKind.assertSubmitButtonDisabled(false);
+      editWorkspaceKind.clickSubmit();
+
+      cy.wait('@updateWorkspaceKindYaml');
+      workspaceKinds.verifyPageURL();
+    });
+
+    it('should display error when update API fails from YAML tab', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      cy.interceptApi(
+        'PUT /api/:apiVersion/workspacekinds/:kind',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKind.name } },
+        {
+          error: {
+            code: '500',
+            message: 'Internal server error',
+          },
+        },
+      ).as('updateWorkspaceKindYamlError');
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.clickYamlTab();
+
+      editWorkspaceKind
+        .findYamlEditor()
+        .find('.monaco-editor textarea')
+        .first()
+        .click({ force: true });
+      editWorkspaceKind
+        .findYamlEditor()
+        .find('.monaco-editor textarea')
+        .first()
+        .type('{end}{enter}# edited', { force: true });
+
+      editWorkspaceKind.clickSubmit();
+
+      cy.wait('@updateWorkspaceKindYamlError');
+      editWorkspaceKind.assertErrorAlertVisible();
+    });
+  });
 });
