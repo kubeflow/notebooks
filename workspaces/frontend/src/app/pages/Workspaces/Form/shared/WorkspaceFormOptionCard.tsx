@@ -155,7 +155,7 @@ export const WorkspaceFormOptionCard: React.FC<
         }
         data-testid={`option-card-header-${cardId}`}
       >
-        <CardTitle>{option.displayName}</CardTitle>
+        <CardTitle className="workspace-option-card__title">{option.displayName}</CardTitle>
       </CardHeader>
       {option.description && (
         <CardBody
