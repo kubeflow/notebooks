@@ -49,7 +49,11 @@ import {
 } from '~/shared/utilities/WorkspaceUtils';
 import { ExpandedWorkspaceRow } from '~/app/pages/Workspaces/ExpandedWorkspaceRow';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
-import { WorkspacesWorkspaceListItem, V1Beta1WorkspaceState } from '~/generated/data-contracts';
+import {
+  WorkspacesOptionInfo,
+  WorkspacesWorkspaceListItem,
+  V1Beta1WorkspaceState,
+} from '~/generated/data-contracts';
 import { useWorkspaceActionsContext } from '~/app/context/WorkspaceActionsContext';
 import { RedirectIconWithPopover } from '~/app/components/RedirectIconWithPopover';
 import { POLL_INTERVAL } from '~/shared/utilities/const';
@@ -116,6 +120,23 @@ type WorkspaceFilterKey = keyof typeof filterConfig;
 
 // Defines which filters should appear in the dropdown
 const visibleFilterKeys: readonly WorkspaceFilterKey[] = ['name', 'kind', 'image', 'state'];
+
+const WORKSPACE_OPTION_TOOLTIP_MAX_WIDTH = '24rem';
+
+const WorkspaceOptionName: React.FC<{
+  option: WorkspacesOptionInfo;
+  testId: string;
+}> = ({ option, testId }) => (
+  <Tooltip
+    content={
+      <span style={{ whiteSpace: 'normal', overflowWrap: 'break-word' }}>{option.description}</span>
+    }
+    maxWidth={WORKSPACE_OPTION_TOOLTIP_MAX_WIDTH}
+    isContentLeftAligned
+  >
+    <span data-testid={testId}>{option.displayName}</span>
+  </Tooltip>
+);
 
 export interface WorkspaceTableRef {
   clearAllFilters: () => void;
@@ -450,9 +471,10 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                           {columnKey === 'name' && workspace.name}
                           {columnKey === 'image' && (
                             <Content>
-                              <span data-testid="workspace-image-name">
-                                {workspace.podTemplate.options.imageConfig.current.displayName}
-                              </span>{' '}
+                              <WorkspaceOptionName
+                                option={workspace.podTemplate.options.imageConfig.current}
+                                testId="workspace-image-name"
+                              />{' '}
                               <RedirectIconWithPopover
                                 redirectChain={
                                   workspace.podTemplate.options.imageConfig.redirectChain
@@ -467,9 +489,10 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                           )}
                           {columnKey === 'podConfig' && (
                             <Content>
-                              <span data-testid="workspace-pod-config-name">
-                                {workspace.podTemplate.options.podConfig.current.displayName}
-                              </span>{' '}
+                              <WorkspaceOptionName
+                                option={workspace.podTemplate.options.podConfig.current}
+                                testId="workspace-pod-config-name"
+                              />{' '}
                               <RedirectIconWithPopover
                                 redirectChain={
                                   workspace.podTemplate.options.podConfig.redirectChain
