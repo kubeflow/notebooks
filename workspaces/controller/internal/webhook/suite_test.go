@@ -681,6 +681,151 @@ func NewExampleWorkspaceKindWithInvalidRequestHeadersValue(name string) *kubeflo
 	return workspaceKind
 }
 
+// NewExampleWorkspaceKindWithValidFilterRules returns a WorkspaceKind with a representative,
+// valid set of filterRules covering the different scopes, effects, and match conditions.
+func NewExampleWorkspaceKindWithValidFilterRules(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.FilterRules = []kubefloworgv1beta1.FilterRule{
+		{
+			// hide GPU podConfigs in namespaces that do not allow GPUs
+			Scope: kubefloworgv1beta1.FilterRuleScopePodConfig,
+			Effect: kubefloworgv1beta1.FilterRuleEffect{
+				UI: &kubefloworgv1beta1.FilterRuleEffectUI{Hide: true},
+			},
+			Match: []kubefloworgv1beta1.FilterRuleMatch{
+				{
+					MatchNamespace: &kubefloworgv1beta1.FilterRuleSelector{
+						Selector: metav1.LabelSelector{
+							MatchExpressions: []metav1.LabelSelectorRequirement{
+								{
+									Key:      "workspaces_allow_gpus",
+									Operator: metav1.LabelSelectorOpNotIn,
+									Values:   []string{"true"},
+								},
+							},
+						},
+					},
+				},
+				{
+					MatchPodConfig: &kubefloworgv1beta1.FilterRuleSelector{
+						Selector: metav1.LabelSelector{
+							MatchExpressions: []metav1.LabelSelectorRequirement{
+								{Key: "gpu_vendor", Operator: metav1.LabelSelectorOpExists},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			// deny non-team imageConfigs at the API level
+			Scope: kubefloworgv1beta1.FilterRuleScopeImageConfig,
+			Effect: kubefloworgv1beta1.FilterRuleEffect{
+				API: &kubefloworgv1beta1.FilterRuleEffectAPI{
+					Deny:        true,
+					DenyMessage: &kubefloworgv1beta1.FilterRuleDenyMessage{Text: "this image is not available in your namespace"},
+				},
+			},
+			Match: []kubefloworgv1beta1.FilterRuleMatch{
+				{
+					MatchImageConfig: &kubefloworgv1beta1.FilterRuleSelector{
+						Selector: metav1.LabelSelector{
+							MatchLabels: map[string]string{"gpu_vendor": "nvidia"},
+						},
+					},
+				},
+			},
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithInvalidFilterRuleSelector returns a WorkspaceKind whose filter rule
+// uses a malformed label selector ("In" operator with an empty values list), which is rejected by
+// the webhook (the CRD structural schema cannot catch selector-semantic errors).
+func NewExampleWorkspaceKindWithInvalidFilterRuleSelector(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.FilterRules = []kubefloworgv1beta1.FilterRule{
+		{
+			Scope: kubefloworgv1beta1.FilterRuleScopePodConfig,
+			Effect: kubefloworgv1beta1.FilterRuleEffect{
+				UI: &kubefloworgv1beta1.FilterRuleEffectUI{Hide: true},
+			},
+			Match: []kubefloworgv1beta1.FilterRuleMatch{
+				{
+					MatchPodConfig: &kubefloworgv1beta1.FilterRuleSelector{
+						Selector: metav1.LabelSelector{
+							MatchExpressions: []metav1.LabelSelectorRequirement{
+								{Key: "gpu_vendor", Operator: metav1.LabelSelectorOpIn, Values: []string{}},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithFilterRuleInvalidScope returns a WorkspaceKind whose filter rule uses
+// a scope outside the allowed enum, which is rejected by the CRD schema.
+func NewExampleWorkspaceKindWithFilterRuleInvalidScope(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.FilterRules = []kubefloworgv1beta1.FilterRule{
+		{
+			Scope: "BOGUS_SCOPE",
+			Effect: kubefloworgv1beta1.FilterRuleEffect{
+				UI: &kubefloworgv1beta1.FilterRuleEffectUI{Hide: true},
+			},
+			Match: []kubefloworgv1beta1.FilterRuleMatch{
+				{
+					MatchNamespace: &kubefloworgv1beta1.FilterRuleSelector{
+						Selector: metav1.LabelSelector{MatchLabels: map[string]string{"team": "a"}},
+					},
+				},
+			},
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithFilterRuleNoMatchCondition returns a WorkspaceKind whose filter rule has
+// a match entry that sets none of matchNamespace/matchImageConfig/matchPodConfig, which is rejected by
+// the CRD "exactly one" validation rule.
+func NewExampleWorkspaceKindWithFilterRuleNoMatchCondition(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.FilterRules = []kubefloworgv1beta1.FilterRule{
+		{
+			Scope: kubefloworgv1beta1.FilterRuleScopeWorkspaceKind,
+			Effect: kubefloworgv1beta1.FilterRuleEffect{
+				UI: &kubefloworgv1beta1.FilterRuleEffectUI{Hide: true},
+			},
+			Match: []kubefloworgv1beta1.FilterRuleMatch{{}},
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithFilterRuleEmptyEffect returns a WorkspaceKind whose filter rule sets
+// neither effect.ui nor effect.api, which is rejected by the CRD validation rule.
+func NewExampleWorkspaceKindWithFilterRuleEmptyEffect(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.FilterRules = []kubefloworgv1beta1.FilterRule{
+		{
+			Scope:  kubefloworgv1beta1.FilterRuleScopeWorkspaceKind,
+			Effect: kubefloworgv1beta1.FilterRuleEffect{},
+			Match: []kubefloworgv1beta1.FilterRuleMatch{
+				{
+					MatchNamespace: &kubefloworgv1beta1.FilterRuleSelector{
+						Selector: metav1.LabelSelector{MatchLabels: map[string]string{"team": "a"}},
+					},
+				},
+			},
+		},
+	}
+	return workspaceKind
+}
+
 // NewExampleWorkspace returns the common "Workspace" object used in tests.
 func NewExampleWorkspace(name, namespace, workspaceKindName string) *kubefloworgv1beta1.Workspace {
 	return &kubefloworgv1beta1.Workspace{

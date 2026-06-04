@@ -44,6 +44,15 @@ type WorkspaceKindSpec struct {
 
 	// podTemplate is the PodTemplate used to spawn Pods to run Workspaces of this WorkspaceKind
 	PodTemplate WorkspaceKindPodTemplate `json:"podTemplate"`
+
+	// filterRules are admin-defined rules used by downstream consumers (the backend API server)
+	// to dynamically filter which WorkspaceKinds, imageConfig values, and podConfig values are
+	// visible or allowed in a given context.
+	// The controller does NOT evaluate or act on these rules, it only persists and validates them.
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxItems:=100
+	// +listType=atomic
+	FilterRules []FilterRule `json:"filterRules,omitempty"`
 }
 
 type WorkspaceKindSpawner struct {
@@ -556,6 +565,101 @@ const (
 	RedirectMessageLevelWarning RedirectMessageLevel = "Warning"
 	RedirectMessageLevelDanger  RedirectMessageLevel = "Danger"
 )
+
+/*
+===============================================================================
+                       WorkspaceKind - Filter Rules
+===============================================================================
+*/
+
+type FilterRule struct {
+	// the type of resource whose visibility this rule controls
+	Scope FilterRuleScope `json:"scope"`
+
+	// the effect to apply to matched items when all `match` conditions are satisfied
+	Effect FilterRuleEffect `json:"effect"`
+
+	// the conditions which must ALL be satisfied for the rule to apply
+	// +kubebuilder:validation:MinItems:=1
+	// +kubebuilder:validation:MaxItems:=10
+	// +listType=atomic
+	Match []FilterRuleMatch `json:"match"`
+}
+
+// +kubebuilder:validation:Enum:={"WORKSPACE_KIND","POD_CONFIG","IMAGE_CONFIG"}
+type FilterRuleScope string
+
+const (
+	// FilterRuleScopeWorkspaceKind rules control the visibility of the WorkspaceKind itself
+	FilterRuleScopeWorkspaceKind FilterRuleScope = "WORKSPACE_KIND"
+
+	// FilterRuleScopePodConfig rules control the visibility of individual podConfig values
+	FilterRuleScopePodConfig FilterRuleScope = "POD_CONFIG"
+
+	// FilterRuleScopeImageConfig rules control the visibility of individual imageConfig values
+	FilterRuleScopeImageConfig FilterRuleScope = "IMAGE_CONFIG"
+)
+
+// +kubebuilder:validation:XValidation:message="must specify at least one of 'ui' or 'api'",rule="has(self.ui) || has(self.api)"
+type FilterRuleEffect struct {
+	// rendering hints for the frontend (the item is still returned by the API)
+	// +kubebuilder:validation:Optional
+	UI *FilterRuleEffectUI `json:"ui,omitempty"`
+
+	// server-enforced behavior evaluated by the backend API server
+	// +kubebuilder:validation:Optional
+	API *FilterRuleEffectAPI `json:"api,omitempty"`
+}
+
+type FilterRuleEffectUI struct {
+	// suggest the UI hide the matched item
+	Hide bool `json:"hide"`
+}
+
+// +kubebuilder:validation:XValidation:message="'denyMessage' may only be set when 'deny' is true",rule="!has(self.denyMessage) || self.deny"
+type FilterRuleEffectAPI struct {
+	// omit the matched item from the API response entirely
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default:=false
+	Hide bool `json:"hide"`
+
+	// return the matched item but reject any workspace create/update which selects it
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default:=false
+	Deny bool `json:"deny"`
+
+	// a message explaining why the matched item is denied
+	// +kubebuilder:validation:Optional
+	DenyMessage *FilterRuleDenyMessage `json:"denyMessage,omitempty"`
+}
+
+type FilterRuleDenyMessage struct {
+	// the text of the message to show when the item is denied
+	// +kubebuilder:validation:MinLength:=2
+	// +kubebuilder:validation:MaxLength:=1024
+	// +kubebuilder:example:="GPU pod configs are not available in this namespace."
+	Text string `json:"text"`
+}
+
+// +kubebuilder:validation:XValidation:message="must specify exactly one of 'matchNamespace', 'matchImageConfig', or 'matchPodConfig'",rule="(has(self.matchNamespace) ? 1 : 0) + (has(self.matchImageConfig) ? 1 : 0) + (has(self.matchPodConfig) ? 1 : 0) == 1"
+type FilterRuleMatch struct {
+	// match against the labels of the namespace the workspace would be created in
+	// +kubebuilder:validation:Optional
+	MatchNamespace *FilterRuleSelector `json:"matchNamespace,omitempty"`
+
+	// match against the `spawner.labels` of an imageConfig value
+	// +kubebuilder:validation:Optional
+	MatchImageConfig *FilterRuleSelector `json:"matchImageConfig,omitempty"`
+
+	// match against the `spawner.labels` of a podConfig value
+	// +kubebuilder:validation:Optional
+	MatchPodConfig *FilterRuleSelector `json:"matchPodConfig,omitempty"`
+}
+
+type FilterRuleSelector struct {
+	// a standard Kubernetes label selector
+	Selector metav1.LabelSelector `json:"selector"`
+}
 
 /*
 ===============================================================================

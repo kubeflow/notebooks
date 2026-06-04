@@ -82,6 +82,9 @@ func (v *WorkspaceKindValidator) ValidateCreate(ctx context.Context, obj runtime
 	// validate the request headers templates
 	allErrs = append(allErrs, validateRequestHeaders(workspaceKind)...)
 
+	// validate the filter rules
+	allErrs = append(allErrs, validateFilterRules(workspaceKind)...)
+
 	// generate helper maps for imageConfig values
 	imageConfigIdMap := make(map[string]kubefloworgv1beta1.ImageConfigValue)
 	imageConfigRedirectMap := make(map[string]string)
@@ -169,6 +172,11 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 	// validate the request headers templates
 	if !equality.Semantic.DeepEqual(newWorkspaceKind.Spec.PodTemplate.Ports, oldWorkspaceKind.Spec.PodTemplate.Ports) {
 		allErrs = append(allErrs, validateRequestHeaders(newWorkspaceKind)...)
+	}
+
+	// validate the filter rules
+	if !equality.Semantic.DeepEqual(newWorkspaceKind.Spec.FilterRules, oldWorkspaceKind.Spec.FilterRules) {
+		allErrs = append(allErrs, validateFilterRules(newWorkspaceKind)...)
 	}
 
 	// if the ports config changed, we need to validate all image config values again
@@ -618,6 +626,34 @@ func validateRequestHeaders(workspaceKind *kubefloworgv1beta1.WorkspaceKind) []*
 				if err != nil {
 					errs = append(errs, field.Invalid(headersPath.Child("add").Key(k), v, err.Error()))
 				}
+			}
+		}
+	}
+
+	return errs
+}
+
+// validateFilterRules validates the label selectors used by each filter rule.
+// The structural constraints (scope enum, exactly-one match condition, etc.) are
+// enforced declaratively by the CRD schema, so this only checks what the schema cannot:
+// that each label selector is itself well-formed.
+func validateFilterRules(workspaceKind *kubefloworgv1beta1.WorkspaceKind) []*field.Error {
+	var errs []*field.Error
+
+	selectorOpts := v1validation.LabelSelectorValidationOptions{}
+	filterRulesPath := field.NewPath("spec", "filterRules")
+	for i, rule := range workspaceKind.Spec.FilterRules {
+		matchPath := filterRulesPath.Index(i).Child("match")
+		for j, match := range rule.Match {
+			conditionPath := matchPath.Index(j)
+			if match.MatchNamespace != nil {
+				errs = append(errs, v1validation.ValidateLabelSelector(&match.MatchNamespace.Selector, selectorOpts, conditionPath.Child("matchNamespace", "selector"))...)
+			}
+			if match.MatchImageConfig != nil {
+				errs = append(errs, v1validation.ValidateLabelSelector(&match.MatchImageConfig.Selector, selectorOpts, conditionPath.Child("matchImageConfig", "selector"))...)
+			}
+			if match.MatchPodConfig != nil {
+				errs = append(errs, v1validation.ValidateLabelSelector(&match.MatchPodConfig.Selector, selectorOpts, conditionPath.Child("matchPodConfig", "selector"))...)
 			}
 		}
 	}
