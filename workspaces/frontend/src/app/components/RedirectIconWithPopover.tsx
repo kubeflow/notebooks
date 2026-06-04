@@ -6,7 +6,8 @@ import { Label } from '@patternfly/react-core/dist/esm/components/Label';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-triangle-icon';
-import { WorkspacesRedirectStep, WorkspacesRedirectMessageLevel } from '~/generated/data-contracts';
+import { getMessageLevelColor, getMessageLevelText } from '~/shared/utilities/RedirectUtils';
+import { WorkspacesRedirectStep } from '~/generated/data-contracts';
 
 interface RedirectIconWithPopoverProps {
   redirectChain?: WorkspacesRedirectStep[];
@@ -16,34 +17,6 @@ interface RedirectIconWithPopoverProps {
   onActiveChange: (id: string | null) => void;
   onPinnedChange: (id: string | null) => void;
 }
-
-const getMessageLevelColor = (
-  level?: WorkspacesRedirectMessageLevel,
-): 'blue' | 'orange' | 'red' => {
-  switch (level) {
-    case WorkspacesRedirectMessageLevel.RedirectMessageLevelInfo:
-      return 'blue';
-    case WorkspacesRedirectMessageLevel.RedirectMessageLevelWarning:
-      return 'orange';
-    case WorkspacesRedirectMessageLevel.RedirectMessageLevelDanger:
-      return 'red';
-    default:
-      return 'blue';
-  }
-};
-
-const getMessageLevelText = (level?: WorkspacesRedirectMessageLevel): string => {
-  switch (level) {
-    case WorkspacesRedirectMessageLevel.RedirectMessageLevelInfo:
-      return 'Info';
-    case WorkspacesRedirectMessageLevel.RedirectMessageLevelWarning:
-      return 'Warning';
-    case WorkspacesRedirectMessageLevel.RedirectMessageLevelDanger:
-      return 'Danger';
-    default:
-      return 'Info';
-  }
-};
 
 const buildRedirectPopoverContent = (redirectChain: WorkspacesRedirectStep[]): React.ReactNode => {
   if (redirectChain.length === 0) {

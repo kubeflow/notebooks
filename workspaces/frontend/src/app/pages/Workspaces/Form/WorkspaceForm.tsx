@@ -34,11 +34,14 @@ import { WorkspaceFormData } from '~/app/types';
 import usePodTemplateOptionsListValues from '~/app/hooks/usePodTemplateOptionsListValues';
 import useWorkspaceFormData from '~/app/hooks/useWorkspaceFormData';
 import { useTypedNavigate } from '~/app/routerHelper';
+import { RedirectConfirmationModal } from '~/app/pages/Workspaces/Form/shared/RedirectConfirmationModal';
+import { transformRedirectToChain } from '~/shared/utilities/RedirectUtils';
 import {
   ApiErrorEnvelope,
   OptionsImageConfigValue,
   OptionsPodConfigValue,
   WorkspacekindsWorkspaceKindListItem,
+  WorkspacesRedirectStep,
 } from '~/generated/data-contracts';
 import { extractErrorMessage } from '~/shared/api/apiUtils';
 import { ErrorAlert } from '~/shared/components/ErrorAlert';
@@ -83,6 +86,10 @@ const WorkspaceForm: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(WorkspaceFormSteps.KindSelection);
   const [error, setError] = useState<string | ApiErrorEnvelope | null>(null);
+
+  const [isRedirectModalOpen, setIsRedirectModalOpen] = useState(false);
+  const [redirectChain, setRedirectChain] = useState<WorkspacesRedirectStep[]>([]);
+  const [isOptionHidden, setIsOptionHidden] = useState(false);
 
   const [data, setData, resetData, replaceData] =
     useGenericObjectState<WorkspaceFormData>(initialFormData);
@@ -184,6 +191,29 @@ const WorkspaceForm: React.FC = () => {
     const newStep = currentStep + 1;
     setCurrentStep(newStep);
   }, [currentStep]);
+
+  const handleNext = useCallback(() => {
+    let currentOption: OptionsImageConfigValue | OptionsPodConfigValue | undefined;
+    let allOptions: (OptionsImageConfigValue | OptionsPodConfigValue)[] = [];
+
+    if (currentStep === WorkspaceFormSteps.ImageSelection && selectedImage) {
+      currentOption = selectedImage;
+      allOptions = allValuesData?.imageConfig.values ?? [];
+    } else if (currentStep === WorkspaceFormSteps.PodConfigSelection && selectedPodConfig) {
+      currentOption = selectedPodConfig;
+      allOptions = (filteredValuesData ?? allValuesData)?.podConfig.values ?? [];
+    }
+
+    if (currentOption && (currentOption.hidden || currentOption.redirect)) {
+      const chain = transformRedirectToChain(currentOption, allOptions);
+      setRedirectChain(chain ?? []);
+      setIsOptionHidden(Boolean(currentOption.hidden));
+      setIsRedirectModalOpen(true);
+      return;
+    }
+
+    nextStep();
+  }, [currentStep, selectedImage, selectedPodConfig, allValuesData, filteredValuesData, nextStep]);
 
   const navigateToStep = useCallback((step: number) => {
     setCurrentStep(step);
@@ -520,7 +550,7 @@ const WorkspaceForm: React.FC = () => {
                       <Button
                         variant="primary"
                         ouiaId="Primary"
-                        onClick={nextStep}
+                        onClick={handleNext}
                         isDisabled={!isCurrentStepValid}
                         data-testid="next-button"
                       >
@@ -549,6 +579,16 @@ const WorkspaceForm: React.FC = () => {
           </Flex>
         </DrawerContentBody>
       </DrawerContent>
+      <RedirectConfirmationModal
+        isOpen={isRedirectModalOpen}
+        onConfirm={() => {
+          setIsRedirectModalOpen(false);
+          nextStep();
+        }}
+        onCancel={() => setIsRedirectModalOpen(false)}
+        redirectChain={redirectChain}
+        isHidden={isOptionHidden}
+      />
     </Drawer>
   );
 };
