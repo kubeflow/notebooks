@@ -1,11 +1,10 @@
 import React from 'react';
 import {
-  DescriptionList,
   DescriptionListTerm,
   DescriptionListDescription,
   DescriptionListGroup,
 } from '@patternfly/react-core/dist/esm/components/DescriptionList';
-import { ListItem, List } from '@patternfly/react-core/dist/esm/components/List';
+import { Label, LabelGroup } from '@patternfly/react-core/dist/esm/components/Label';
 import { extractPackageLabels, formatLabelKey } from '~/shared/utilities/WorkspaceUtils';
 import { WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
 
@@ -17,21 +16,19 @@ export const WorkspacePackageDetails: React.FC<WorkspacePackageDetailsProps> = (
   const packageLabels = extractPackageLabels(workspace);
 
   const renderedItems = packageLabels.map((label) => (
-    <ListItem key={label.key}>{`${formatLabelKey(label.key)} v${label.value}`}</ListItem>
+    <Label isCompact key={label.key}>{`${formatLabelKey(label.key)} v${label.value}`}</Label>
   ));
 
   return (
-    <DescriptionList>
-      <DescriptionListGroup>
-        <DescriptionListTerm>Packages</DescriptionListTerm>
-        <DescriptionListDescription>
-          {renderedItems.length > 0 ? (
-            <List isPlain>{renderedItems}</List>
-          ) : (
-            <span>No package information available</span>
-          )}
-        </DescriptionListDescription>
-      </DescriptionListGroup>
-    </DescriptionList>
+    <DescriptionListGroup>
+      <DescriptionListTerm>Packages</DescriptionListTerm>
+      <DescriptionListDescription>
+        {renderedItems.length > 0 ? (
+          <LabelGroup>{renderedItems}</LabelGroup>
+        ) : (
+          <span>No package information available</span>
+        )}
+      </DescriptionListDescription>
+    </DescriptionListGroup>
   );
 };
