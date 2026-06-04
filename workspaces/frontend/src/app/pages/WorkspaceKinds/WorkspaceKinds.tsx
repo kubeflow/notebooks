@@ -4,6 +4,7 @@ import {
   DrawerContent,
   DrawerContentBody,
 } from '@patternfly/react-core/dist/esm/components/Drawer';
+import { EmptyState, EmptyStateBody } from '@patternfly/react-core/dist/esm/components/EmptyState';
 import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
 import {
   Pagination,
@@ -15,6 +16,7 @@ import { Label } from '@patternfly/react-core/dist/esm/components/Label';
 import { ToolbarItem } from '@patternfly/react-core/dist/esm/components/Toolbar';
 import { Bullseye } from '@patternfly/react-core/dist/esm/layouts/Bullseye';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
+import { LockIcon } from '@patternfly/react-icons/dist/esm/icons/lock-icon';
 import {
   Table,
   Thead,
@@ -26,6 +28,7 @@ import {
   ActionsColumn,
   IActions,
 } from '@patternfly/react-table/dist/esm/components/Table';
+import { useAppContext } from '~/app/context/AppContext';
 import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import { useWorkspaceCountPerKind } from '~/app/hooks/useWorkspaceCountPerKind';
 import { WorkspaceKindsColumns } from '~/app/types';
@@ -92,6 +95,8 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
   }, [navigate]);
   const [workspaceKinds, workspaceKindsLoaded, workspaceKindsError] = useWorkspaceKinds();
   const workspaceCountResult = useWorkspaceCountPerKind();
+  const { user } = useAppContext();
+  const canManageWorkspaceKinds = Boolean(user?.clusterAdmin);
   const [selectedWorkspaceKind, setSelectedWorkspaceKind] =
     useState<WorkspacekindsWorkspaceKindListItem | null>(null);
   const [activeActionType, setActiveActionType] = useState<ActionType | null>(null);
@@ -263,6 +268,27 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
       </Button>
     </ToolbarItem>
   );
+
+  if (!canManageWorkspaceKinds) {
+    return (
+      <PageSection isFilled>
+        <Bullseye>
+          <EmptyState
+            headingLevel="h4"
+            titleText="Workspace kinds are managed by administrators"
+            icon={LockIcon}
+            status="info"
+            data-testid="workspace-kinds-access-empty-state"
+          >
+            <EmptyStateBody>
+              You do not have permission to manage workspace kinds. You can still create workspaces
+              from the workspace kinds available to you.
+            </EmptyStateBody>
+          </EmptyState>
+        </Bullseye>
+      </PageSection>
+    );
+  }
 
   if (workspaceKindsError) {
     return <LoadError title="Failed to load workspace kinds" error={workspaceKindsError} />;
