@@ -44,7 +44,7 @@ export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = 
   };
 
   return (
-    <DrawerPanelContent data-testid="workspace-details">
+    <DrawerPanelContent defaultSize="45%" minSize="30%" data-testid="workspace-details" isResizable>
       <DrawerHead>
         <Title headingLevel="h6" data-testid="title">
           {workspace.name}
