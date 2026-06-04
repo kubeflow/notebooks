@@ -138,6 +138,19 @@ const WorkspaceOptionName: React.FC<{
   </Tooltip>
 );
 
+const resolveWorkspaceState = (state?: V1Beta1WorkspaceState | ''): V1Beta1WorkspaceState =>
+  state || V1Beta1WorkspaceState.WorkspaceStateUnknown;
+
+const WorkspaceStateLabel: React.FC<{ state?: V1Beta1WorkspaceState | '' }> = ({ state }) => {
+  const workspaceState = resolveWorkspaceState(state);
+
+  return (
+    <div className="pf-v6-u-display-inline-block">
+      <Label color={extractWorkspaceStateColor(workspaceState)}>{workspaceState}</Label>
+    </div>
+  );
+};
+
 export interface WorkspaceTableRef {
   clearAllFilters: () => void;
   setFilter: (key: WorkspaceFilterKey, value: FilterValue) => void;
@@ -199,7 +212,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
         kind: (ws) => ws.workspaceKind.name,
         image: (ws) => ws.podTemplate.options.imageConfig.current.displayName,
         podConfig: (ws) => ws.podTemplate.options.podConfig.current.displayName,
-        state: (ws) => ws.state,
+        state: (ws) => resolveWorkspaceState(ws.state),
         namespace: (ws) => ws.namespace,
         idleGpu: (ws) => formatWorkspaceIdleState(ws),
       }),
@@ -246,7 +259,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       namespace: workspace.namespace,
       image: workspace.podTemplate.options.imageConfig.current.displayName,
       podConfig: workspace.podTemplate.options.podConfig.current.displayName,
-      state: workspace.state,
+      state: resolveWorkspaceState(workspace.state),
       gpu: formatResourceFromWorkspace(workspace, 'gpu'),
       idleGpu: formatWorkspaceIdleState(workspace),
       lastActivity: workspace.activity.lastActivity,
@@ -529,13 +542,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                             </WorkspaceKindImage>
                           )}
                           {columnKey === 'namespace' && workspace.namespace}
-                          {columnKey === 'state' && (
-                            <div className="pf-v6-u-display-inline-block">
-                              <Label color={extractWorkspaceStateColor(workspace.state)}>
-                                {workspace.state}
-                              </Label>
-                            </div>
-                          )}
+                          {columnKey === 'state' && <WorkspaceStateLabel state={workspace.state} />}
                           {columnKey === 'gpu' && formatResourceFromWorkspace(workspace, 'gpu')}
                           {columnKey === 'idleGpu' && formatWorkspaceIdleState(workspace)}
                           {columnKey === 'lastActivity' &&

@@ -3,6 +3,7 @@ import { render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import WorkspaceTable from '~/app/components/WorkspaceTable';
 import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
+import { V1Beta1WorkspaceState } from '~/generated/data-contracts';
 import { buildMockWorkspace, buildMockWorkspaceKind } from '~/shared/mock/mockBuilder';
 
 jest.mock('@patternfly/react-core/dist/esm/components/Tooltip', () => {
@@ -145,5 +146,44 @@ describe('WorkspaceTable', () => {
     ).toHaveTextContent(
       'Long pod config description that should also wrap in a constrained tooltip.',
     );
+  });
+
+  it('shows Unknown for empty or missing workspace state', () => {
+    const workspaces = [
+      buildMockWorkspace({
+        name: 'empty-state-workspace',
+        state: '' as V1Beta1WorkspaceState,
+      }),
+      buildMockWorkspace({
+        name: 'missing-state-workspace',
+        state: undefined as unknown as V1Beta1WorkspaceState,
+      }),
+    ];
+
+    render(
+      <WorkspaceTable
+        workspaces={workspaces}
+        refreshWorkspaces={refreshWorkspaces}
+        canExpandRows={false}
+        canCreateWorkspaces={false}
+        hiddenColumns={[
+          'name',
+          'image',
+          'podConfig',
+          'kind',
+          'namespace',
+          'gpu',
+          'idleGpu',
+          'lastActivity',
+        ]}
+      />,
+    );
+
+    const stateLabels = screen.getAllByTestId('state-label');
+    expect(stateLabels).toHaveLength(2);
+    stateLabels.forEach((stateLabel) => {
+      expect(stateLabel).toHaveTextContent('Unknown');
+      expect(stateLabel).not.toBeEmptyDOMElement();
+    });
   });
 });
