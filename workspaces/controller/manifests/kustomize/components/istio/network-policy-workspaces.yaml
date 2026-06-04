@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: workspaces-ingress-allow
+spec:
+  podSelector:
+    matchExpressions:
+      - key: notebooks.kubeflow.org/workspace-name
+        operator: Exists
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchExpressions:
+              - key: kubernetes.io/metadata.name
+                operator: In
+                values:
+                  - istio-system
+  policyTypes:
+    - Ingress

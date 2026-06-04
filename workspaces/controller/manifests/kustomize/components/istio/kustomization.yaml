@@ -3,6 +3,7 @@ kind: Component
 
 resources:
 - network-policy.yaml
+- network-policy-workspaces.yaml
 
 patches:
 - path: deployment_patch.yaml
