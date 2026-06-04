@@ -144,6 +144,59 @@ Access the components through the Istio ingress gateway:
 
 You can now make changes to the codebase, and Tilt will automatically rebuild and redeploy the affected components.
 
+### Tilt - Authentication & RBAC
+
+Tilt deploys RBAC bindings for two dev users from [`developing/manifests/rbac/`](developing/manifests/rbac/).
+The backend authenticates requests via `kubeflow-userid` and `kubeflow-groups` headers, then authorizes each API call with a Kubernetes [SubjectAccessReview](https://kubernetes.io/docs/reference/access-authn-authz/authorization/#checking-api-access).
+
+| User | Scope | Description |
+|------|-------|-------------|
+| `admin` | Cluster-wide | Typical cluster admin permissions |
+| `user` | `default` namespace | Typical workspaces user permissions |
+
+These bindings use the same `kubeflow-workspaces-*` ClusterRoles that are defined by the [controller manifests](workspaces/controller/manifests/kustomize/base/manager/user_cluster_roles.yaml), so they reflect realistic Kubeflow RBAC behavior.
+
+To inspect the effective permissions for each dev user:
+
+```bash
+# admin (cluster-wide)
+kubectl auth can-i --list --as=admin | grep -E '^Resources|^\S'
+
+# user (namespace-scoped)
+kubectl auth can-i --list --as=user -n default | grep -E '^Resources|^\S'
+```
+
+> [!TIP]
+>
+> You can switch between users from the **Debug** page in the frontend UI.
+> The default user is `admin`. Switch to `user` to test non-admin behavior (e.g., namespace-scoped permissions, 403 responses on admin-only pages).
+
+### Tilt - Access Logging
+
+Istio access logging is enabled on the ingress gateway, producing structured JSON logs that include authentication headers.
+This is useful for verifying that `kubeflow-userid` and `kubeflow-groups` headers flow correctly from the frontend through Istio to the backend.
+
+To tail the access logs:
+
+```bash
+kubectl logs -n istio-system -l app=istio-ingressgateway -f
+```
+
+Example log entry:
+
+```json
+{
+    "duration": 105,
+    "kubeflow_groups": null,
+    "kubeflow_userid": "admin",
+    "method": "GET",
+    "path": "/workspaces/api/v1/workspaces/default",
+    "response_code": 200,
+    "timestamp": "2026-05-21T14:12:11.965Z",
+    "upstream": "10.244.1.9:4000"
+}
+```
+
 ### Tilt - Clean Up
 
 When you are done developing with Tilt, you can stop it and clean up the resources.

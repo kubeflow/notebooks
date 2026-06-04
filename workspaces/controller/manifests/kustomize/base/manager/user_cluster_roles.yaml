@@ -45,6 +45,28 @@ rules: []
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
+  name: aggregate-to-kubeflow-workspaces-admin
+  labels:
+    rbac.authorization.kubeflow.org/aggregate-to-kubeflow-workspaces-admin: "true"
+rules:
+- apiGroups:
+  - kubeflow.org
+  resources:
+  - workspacekinds
+  - workspacekinds/status
+  verbs:
+  - create
+  - delete
+  - deletecollection
+  - get
+  - list
+  - patch
+  - update
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
   name: aggregate-to-kubeflow-workspaces-edit
   labels:
     rbac.authorization.kubeflow.org/aggregate-to-kubeflow-workspaces-edit: "true"

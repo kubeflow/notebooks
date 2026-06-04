@@ -10,35 +10,40 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEVELOPING_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 LOCALBIN="${DEVELOPING_DIR}/bin"
 
-# Require istioctl from LOCALBIN to ensure a known version
-if [ -f "${LOCALBIN}/istioctl" ]; then
-  ISTIOCTL="${LOCALBIN}/istioctl"
-else
-  echo "ERROR: istioctl is not installed. Please install istioctl first:"
-  echo "  cd developing && make istioctl"
+ISTIO_VERSION="1.29.1"
+ISTIO_URL="https://istio.io/downloadIstio"
+
+if [[ ! -d "${LOCALBIN}" ]]; then
+  echo "INFO: Creating local bin directory at ${LOCALBIN}"
+  mkdir -p "${LOCALBIN}"
+fi
+
+ISTIOCTL_PATH="${LOCALBIN}/istio-${ISTIO_VERSION}"
+if [[ ! -d "${ISTIOCTL_PATH}" ]]; then
+  pushd "$LOCALBIN" > /dev/null
+    echo "INFO: Fetching Istio ${ISTIO_VERSION} installer..."
+    curl -sL "$ISTIO_URL" | ISTIO_VERSION=${ISTIO_VERSION} sh -
+  popd
+fi
+
+# Add istioctl to PATH for this script
+export PATH=${ISTIOCTL_PATH}/bin:$PATH
+
+# Ensure istioctl is available
+if ! command -v istioctl >/dev/null 2>&1; then
+  echo "ERROR: istioctl not found in PATH. Try removing ${LOCALBIN} and re-running."
   exit 1
-fi
-
-# Check if Istio is already installed by verifying the full installation
-if "${ISTIOCTL}" verify-install >/dev/null 2>&1; then
-  echo "Istio is already installed"
 else
-  echo "Installing Istio with default profile and CNI plugin..."
-  "${ISTIOCTL}" install --set profile=default --set components.cni.enabled=true -y
+  echo "INFO: using istioctl from $(which istioctl)"
+  echo "INFO: istioctl version output:"
+  istioctl version --remote=false
 fi
 
-echo "Waiting for Istio control plane to be ready..."
-kubectl wait --for=condition=ready pod \
-  -l app=istiod \
-  -n istio-system \
-  --timeout=120s
-
-echo "Waiting for Istio ingress gateway to be ready..."
-kubectl wait --for=condition=ready pod \
-  -l app=istio-ingressgateway \
-  -n istio-system \
-  --timeout=120s
+echo "INFO: Installing Istio ${ISTIO_VERSION} ..."
+istioctl install \
+  --filename "${DEVELOPING_DIR}/istio-developing.yaml" \
+  --skip-confirmation
 
 # Note: Gateway resources (namespace, TLS certificate, Gateway) are applied
 # by Tilt from developing/manifests/istio-gateway/ via kustomize.
-echo "Istio setup complete"
+echo "INFO: Istio setup complete"

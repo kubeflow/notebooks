@@ -1,30 +1,22 @@
 import React from 'react';
-import { CubesIcon } from '@patternfly/react-icons/dist/esm/icons/cubes-icon';
-import { Button } from '@patternfly/react-core/dist/esm/components/Button';
-import {
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateVariant,
-  EmptyStateFooter,
-} from '@patternfly/react-core/dist/esm/components/EmptyState';
 import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
+import { Title } from '@patternfly/react-core/dist/esm/components/Title';
+import { NotFound } from '~/app/pages/notFound/NotFound';
+import { DEV_MODE } from '~/shared/utilities/const';
+import { DebugAuthSection } from './DebugAuthSection';
 
-const Debug: React.FunctionComponent = () => (
-  <PageSection>
-    <EmptyState
-      variant={EmptyStateVariant.full}
-      titleText="Debug page (for development only)"
-      icon={CubesIcon}
-    >
-      <EmptyStateBody>
-        This represents an the empty state pattern in Patternfly 6. Hopefully it&apos;s simple
-        enough to use but flexible enough to meet a variety of needs.
-      </EmptyStateBody>
-      <EmptyStateFooter>
-        <Button variant="primary">Primary Action</Button>
-      </EmptyStateFooter>
-    </EmptyState>
-  </PageSection>
-);
+const Debug: React.FunctionComponent = () =>
+  DEV_MODE ? (
+    <>
+      <PageSection data-testid="debug-page">
+        <Title headingLevel="h1">Debug Settings</Title>
+      </PageSection>
+      <PageSection>
+        <DebugAuthSection />
+      </PageSection>
+    </>
+  ) : (
+    <NotFound />
+  );
 
 export { Debug };

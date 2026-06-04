@@ -1,0 +1,12 @@
+apiVersion: telemetry.istio.io/v1
+kind: Telemetry
+metadata:
+  name: gateway-access-logging
+  namespace: istio-system
+spec:
+  selector:
+    matchLabels:
+      app: istio-ingressgateway
+  accessLogging:
+    - providers:
+        - name: dev-access-log
