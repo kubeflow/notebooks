@@ -12,12 +12,12 @@ USER root
 # args - software versions
 # https://github.com/jupyterlab/jupyterlab/releases
 # https://github.com/jupyter/notebook/releases
-ARG JUPYTERLAB_VERSION=4.3.5
-ARG JUPYTER_VERSION=7.3.2
-ARG MINIFORGE_VERSION=24.11.3-0
-ARG NODE_MAJOR_VERSION=20
-ARG PIP_VERSION=24.3.1
-ARG PYTHON_VERSION=3.11.11
+ARG JUPYTERLAB_VERSION=4.5.7
+ARG JUPYTER_VERSION=7.5.6
+ARG MINIFORGE_VERSION=26.3.2-2
+ARG NODE_MAJOR_VERSION=22
+ARG PIP_VERSION=26.1.1
+ARG PYTHON_VERSION=3.12.13
 
 # install -- node.js
 RUN export DEBIAN_FRONTEND=noninteractive \
@@ -81,7 +81,7 @@ RUN echo "jupyterlab ==${JUPYTERLAB_VERSION}" >> ${CONDA_DIR}/conda-meta/pinned 
 
 # install - requirements.txt
 COPY --chown=${NB_USER}:${NB_GID} requirements.txt /tmp
-RUN python3 -m pip install -r /tmp/requirements.txt --quiet --no-cache-dir \
+RUN PIP_NO_CACHE_DIR=off python3 -m pip install -r /tmp/requirements.txt --quiet --no-cache-dir \
  && rm -f /tmp/requirements.txt
 
 # s6 - copy scripts

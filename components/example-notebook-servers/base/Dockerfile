@@ -39,8 +39,8 @@ ENV S6_BEHAVIOUR_IF_STAGE2_FAILS 2
 # args - software versions
 # https://kubernetes.io/releases/
 # https://github.com/just-containers/s6-overlay/releases
-ARG KUBECTL_VERSION=v1.31.6
-ARG S6_VERSION=v3.2.0.2
+ARG KUBECTL_VERSION=v1.35.5
+ARG S6_VERSION=v3.2.3.0
 
 # set shell to bash
 SHELL ["/bin/bash", "-c"]
@@ -61,6 +61,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     lsb-release \
     nano \
     software-properties-common \
+    tmux \
     tzdata \
     unzip \
     vim \
@@ -91,7 +92,8 @@ RUN case "${TARGETARCH}" in \
        /tmp/s6-overlay-${S6_ARCH}.tar.xz.sha256
 
 # fix permissions of '/run' folder for s6
-# https://github.com/just-containers/s6-overlay/blob/v3.2.0.0/layout/rootfs-overlay/package/admin/s6-overlay-%40VERSION%40/libexec/preinit#L86
+# NOTE: that 0775 works because the primary GID of 'jovyan' is 0, which is the group owner of the `/run` folder:
+#       https://github.com/just-containers/s6-overlay/blob/v3.2.3.0/layout/rootfs-overlay/package/admin/s6-overlay-%40VERSION%40/libexec/preinit#L99-L100
 RUN chmod 0775 /run
 
 # install - kubectl

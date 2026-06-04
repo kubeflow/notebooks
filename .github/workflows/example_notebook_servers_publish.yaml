@@ -78,8 +78,7 @@ jobs:
     needs: [ jupyter_images ]
     secrets: inherit
     with:
-      # TODO: support 'linux/arm64' for PyTorch CUDA images
-      build_arch: linux/amd64
+      build_arch: linux/amd64,linux/arm64
       image_folders: |
         jupyter-pytorch-cuda
         jupyter-pytorch-cuda-full
@@ -101,7 +100,7 @@ jobs:
     needs: [ jupyter_images ]
     secrets: inherit
     with:
-      # TODO: support 'linux/arm64' for TensorFlow CUDA images
+      # TODO: add builds for 'linux/arm64' if TensorFlow ever releases a `tensorflow` pacakge for aarch64 that has CUDA enabled.
       build_arch: linux/amd64
       image_folders: |
         jupyter-tensorflow-cuda
