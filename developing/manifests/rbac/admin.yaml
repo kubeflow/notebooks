@@ -11,10 +11,7 @@ roleRef:
   name: kubeflow-workspaces-admin
   apiGroup: rbac.authorization.k8s.io
 ---
-# Dev supplement: resources the backend checks via SubjectAccessReview
-# that kubeflow-workspaces-admin doesn't cover.
-# Note: storageclasses "list" is omitted because the frontend always passes a
-# namespace query param, which triggers a "create PVCs" check instead.
+# Dev supplement: resources the backend checks via SubjectAccessReview that kubeflow-workspaces-admin doesn't cover.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
