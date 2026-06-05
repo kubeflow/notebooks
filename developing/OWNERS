@@ -3,3 +3,5 @@ labels:
   - area/v2
 approvers:
   - andyatmiami
+reviewers:
+  - christian-heusel
