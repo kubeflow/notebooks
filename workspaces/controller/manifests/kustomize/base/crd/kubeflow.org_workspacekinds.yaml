@@ -3757,6 +3757,7 @@ spec:
                           description: the protocol of the port
                           enum:
                           - HTTP
+                          - TCP
                           example: HTTP
                           type: string
                       required:

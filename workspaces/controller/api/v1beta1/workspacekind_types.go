@@ -424,11 +424,12 @@ type ImagePort struct {
 	DisplayName *string `json:"displayName,omitempty"`
 }
 
-// +kubebuilder:validation:Enum:={"HTTP"}
+// +kubebuilder:validation:Enum:={"HTTP","TCP"}
 type ImagePortProtocol string
 
 const (
 	ImagePortProtocolHTTP ImagePortProtocol = "HTTP"
+	ImagePortProtocolTCP  ImagePortProtocol = "TCP"
 )
 
 type PodConfig struct {

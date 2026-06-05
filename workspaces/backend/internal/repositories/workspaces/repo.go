@@ -23,6 +23,7 @@ import (
 	"time"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -264,4 +265,18 @@ func (r *WorkspaceRepository) HandlePauseAction(ctx context.Context, namespace, 
 
 	workspaceActionPauseModel := modelsActions.NewWorkspaceActionPauseFromWorkspace(workspace)
 	return workspaceActionPauseModel, nil
+}
+
+func (r *WorkspaceRepository) GetWorkspaceService(ctx context.Context, namespace string, workspaceName string) (*corev1.Service, error) {
+	serviceList := &corev1.ServiceList{}
+	err := r.client.List(ctx, serviceList, client.InNamespace(namespace), client.MatchingLabels{
+		kubefloworgv1beta1.WorkspaceNameLabel: workspaceName,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(serviceList.Items) == 0 {
+		return nil, fmt.Errorf("workspace service not found")
+	}
+	return &serviceList.Items[0], nil
 }

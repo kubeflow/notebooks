@@ -29,6 +29,7 @@ const (
 	WorkspacesByNamePath      = AllWorkspacesPath + "/:" + NamespacePathParam + "/:" + ResourceNamePathParam
 	WorkspaceActionsPath      = WorkspacesByNamePath + "/actions"
 	PauseWorkspacePath        = WorkspaceActionsPath + "/pause"
+	ConnectWorkspacePath      = WorkspacesByNamePath + "/connect/:port"
 
 	// workspacekinds
 	AllWorkspaceKindsPath            = PathPrefix + "/workspacekinds"
