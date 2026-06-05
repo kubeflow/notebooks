@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.4
+    controller-gen.kubebuilder.io/version: v0.17.0
   name: notebooks.kubeflow.org
 spec:
   group: kubeflow.org
@@ -2406,6 +2406,9 @@ spec:
                               type: object
                               x-kubernetes-map-type: atomic
                             maxSkew:
+                              format: int32
+                              type: integer
+                            minDomains:
                               format: int32
                               type: integer
                             topologyKey:
@@ -5595,6 +5598,9 @@ spec:
                             maxSkew:
                               format: int32
                               type: integer
+                            minDomains:
+                              format: int32
+                              type: integer
                             topologyKey:
                               type: string
                             whenUnsatisfiable:
@@ -8780,6 +8786,9 @@ spec:
                               type: object
                               x-kubernetes-map-type: atomic
                             maxSkew:
+                              format: int32
+                              type: integer
+                            minDomains:
                               format: int32
                               type: integer
                             topologyKey:

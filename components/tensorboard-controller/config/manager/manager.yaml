@@ -33,6 +33,9 @@ spec:
             - /manager
           image: ghcr.io/kubeflow/notebooks/tensorboard-controller
           name: manager
+          envFrom:
+          - configMapRef:
+              name: manager-config
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
