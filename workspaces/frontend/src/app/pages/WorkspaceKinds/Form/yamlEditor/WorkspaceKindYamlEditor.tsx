@@ -3,6 +3,7 @@ import { CodeEditor, Language } from '@patternfly/react-code-editor';
 import { configureMonacoYaml } from 'monaco-yaml';
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
+import { WORKSPACE_KIND_EXAMPLES_URL } from '~/shared/utilities/const';
 import workspaceKindUpdateSchema from './workspaceKindUpdateSchema.json';
 
 type WorkspaceKindYamlEditorProps = {
@@ -11,7 +12,6 @@ type WorkspaceKindYamlEditorProps = {
   error: string | null;
 };
 
-const SCHEMA_URI = 'https://kubeflow.org/schemas/workspacekind-update.json';
 const MODEL_URI = 'file:///workspacekind-update.yaml';
 
 export const WorkspaceKindYamlEditor: React.FC<WorkspaceKindYamlEditorProps> = ({
@@ -23,25 +23,16 @@ export const WorkspaceKindYamlEditor: React.FC<WorkspaceKindYamlEditorProps> = (
 
   const handleBeforeMount = useCallback(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (monaco: any) => {
-      window.MonacoEnvironment = {
-        getWorker(_moduleId: string, label: string) {
-          if (label === 'yaml') {
-            return new Worker(new URL('monaco-yaml/yaml.worker', import.meta.url));
-          }
-          return new Worker(new URL('monaco-editor/esm/vs/editor/editor.worker', import.meta.url));
-        },
-      };
-
+    (monacoInstance: any) => {
       monacoYamlRef.current?.dispose();
-      monacoYamlRef.current = configureMonacoYaml(monaco, {
+      monacoYamlRef.current = configureMonacoYaml(monacoInstance, {
         enableSchemaRequest: false,
         hover: true,
         completion: true,
         validate: true,
         schemas: [
           {
-            uri: SCHEMA_URI,
+            uri: WORKSPACE_KIND_EXAMPLES_URL,
             fileMatch: [MODEL_URI],
             schema: workspaceKindUpdateSchema,
           },
