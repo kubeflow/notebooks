@@ -32,7 +32,7 @@ describe('WorkspaceKinds', () => {
     mockUseWorkspaceCountPerKind.mockReturnValue({ workspaceCountPerKind: {}, error: null });
   });
 
-  it('shows a friendly message for users who cannot manage workspace kinds', () => {
+  it('shows the restricted-access message for non-admin users', () => {
     mockUseAppContext.mockReturnValue({
       config: null,
       user: { userId: 'kubeflow-user', clusterAdmin: false },
@@ -42,12 +42,27 @@ describe('WorkspaceKinds', () => {
     render(<WorkspaceKinds />);
 
     expect(screen.getByTestId('workspace-kinds-access-empty-state')).toBeInTheDocument();
-    expect(screen.getByText('Workspace kinds are managed by administrators')).toBeInTheDocument();
+    expect(
+      screen.getByText('WorkspaceKind management is restricted to administrators'),
+    ).toBeInTheDocument();
     expect(
       screen.getByText(
-        'You do not have permission to manage workspace kinds. You can still create workspaces from the workspace kinds available to you.',
+        'Please contact your admin if you need changes to workspace configurations.',
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText('Failed to load workspace kinds')).not.toBeInTheDocument();
+  });
+
+  it('does not fire data hooks for non-admin users', () => {
+    mockUseAppContext.mockReturnValue({
+      config: null,
+      user: { userId: 'kubeflow-user', clusterAdmin: false },
+    });
+    mockUseWorkspaceKinds.mockReturnValue([[], true, undefined, jest.fn()]);
+
+    render(<WorkspaceKinds />);
+
+    expect(mockUseWorkspaceKinds).not.toHaveBeenCalled();
+    expect(mockUseWorkspaceCountPerKind).not.toHaveBeenCalled();
   });
 });
