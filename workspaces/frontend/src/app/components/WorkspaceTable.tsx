@@ -117,15 +117,12 @@ type WorkspaceFilterKey = keyof typeof filterConfig;
 // Defines which filters should appear in the dropdown
 const visibleFilterKeys: readonly WorkspaceFilterKey[] = ['name', 'kind', 'image', 'state'];
 
-const resolveWorkspaceState = (state?: V1Beta1WorkspaceState | ''): V1Beta1WorkspaceState =>
-  state || V1Beta1WorkspaceState.WorkspaceStateUnknown;
-
 const WorkspaceStateLabel: React.FC<{ state?: V1Beta1WorkspaceState | '' }> = ({ state }) => {
-  const workspaceState = resolveWorkspaceState(state);
+  const displayState = state || V1Beta1WorkspaceState.WorkspaceStateUnknown;
 
   return (
     <div className="pf-v6-u-display-inline-block">
-      <Label color={extractWorkspaceStateColor(workspaceState)}>{workspaceState}</Label>
+      <Label color={extractWorkspaceStateColor(displayState)}>{displayState}</Label>
     </div>
   );
 };
@@ -191,7 +188,9 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
         kind: (ws) => ws.workspaceKind.name,
         image: (ws) => ws.podTemplate.options.imageConfig.current.displayName,
         podConfig: (ws) => ws.podTemplate.options.podConfig.current.displayName,
-        state: (ws) => resolveWorkspaceState(ws.state),
+        state: (ws) =>
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          (ws.state as string) || V1Beta1WorkspaceState.WorkspaceStateUnknown,
         namespace: (ws) => ws.namespace,
         idleGpu: (ws) => formatWorkspaceIdleState(ws),
       }),
@@ -238,7 +237,9 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       namespace: workspace.namespace,
       image: workspace.podTemplate.options.imageConfig.current.displayName,
       podConfig: workspace.podTemplate.options.podConfig.current.displayName,
-      state: resolveWorkspaceState(workspace.state),
+      state:
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        (workspace.state as string) || V1Beta1WorkspaceState.WorkspaceStateUnknown,
       gpu: formatResourceFromWorkspace(workspace, 'gpu'),
       idleGpu: formatWorkspaceIdleState(workspace),
       lastActivity: workspace.activity.lastActivity,

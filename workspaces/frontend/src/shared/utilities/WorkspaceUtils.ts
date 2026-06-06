@@ -72,8 +72,12 @@ export const WORKSPACE_STATE_COLORS: Record<V1Beta1WorkspaceState, LabelColor> =
   [V1Beta1WorkspaceState.WorkspaceStateUnknown]: 'grey',
 };
 
-export const extractWorkspaceStateColor = (state: V1Beta1WorkspaceState): LabelColor =>
-  WORKSPACE_STATE_COLORS[state];
+export const extractWorkspaceStateColor = (state: V1Beta1WorkspaceState): LabelColor => {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const safeState = (state as string) || V1Beta1WorkspaceState.WorkspaceStateUnknown;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  return WORKSPACE_STATE_COLORS[safeState as V1Beta1WorkspaceState] || 'grey';
+};
 
 export const isWorkspaceWithGpu = (workspace: WorkspacesWorkspaceListItem): boolean =>
   workspace.podTemplate.options.podConfig.current.labels.some((label) => label.key === 'gpu');
