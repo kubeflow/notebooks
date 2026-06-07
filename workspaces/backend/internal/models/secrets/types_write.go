@@ -78,7 +78,7 @@ func NewSecretUpdate(secretType string, immutable bool, contents SecretData) Sec
 // Validate validates the SecretCreate struct.
 // NOTE: we only do basic validation, more complex validation is done by Kubernetes when attempting to create the secret.
 func (s *SecretCreate) Validate(prefix *field.Path) []*field.Error {
-	var errs []*field.Error
+	var errs []*field.Error //nolint:prealloc
 
 	// validate the secret name
 	namePath := prefix.Child("name")
@@ -116,7 +116,7 @@ func (s *SecretData) Validate(prefix *field.Path) []*field.Error {
 
 // validateBase validates the common fields of a secret (contents).
 func (sb *secretBase) validateBase(prefix *field.Path) []*field.Error {
-	var errs []*field.Error
+	var errs []*field.Error //nolint:prealloc
 
 	contentsPath := prefix.Child("contents")
 	errs = append(errs, sb.Contents.Validate(contentsPath)...)
