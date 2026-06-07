@@ -29,15 +29,9 @@ import (
 // requireAuth verifies that the request is authenticated and authorized to take the actions specified by the given policies.
 // If this method returns false, the request has been handled and the caller should return immediately.
 // If this method returns true, the request is authenticated and authorized to proceed.
-// user.Info is the authenticated user, or nil if auth is disabled.
 // This method should only be called once per request.
 func (a *App) requireAuth(w http.ResponseWriter, r *http.Request, policies []*auth.ResourcePolicy) (user.Info, bool) {
 	ctx := r.Context()
-
-	// if auth is disabled, allow the request to proceed (no user information available)
-	if a.Config.DisableAuth {
-		return nil, true
-	}
 
 	// authenticate the request (extract user and groups from the request headers)
 	res, ok, err := a.RequestAuthN.AuthenticateRequest(r)

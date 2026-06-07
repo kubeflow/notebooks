@@ -142,7 +142,6 @@ for o in backend_objects:
             "SWAGGER_SCHEME": "https",
             "SWAGGER_HOST": "localhost:8443",
             "SWAGGER_BASE_PATH": "/workspaces/api/v1",
-            "DISABLE_AUTH": "false",  # TODO: remove once DISABLE_AUTH is removed from backend
         }
 
         # Replace existing keys and add missing ones

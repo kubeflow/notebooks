@@ -67,13 +67,6 @@ func main() {
 		getEnvAsInt("CLIENT_BURST", 100),
 		"Maximum Burst configuration passed to rest.Client",
 	)
-	flag.BoolVar(
-		// TODO: remove before GA
-		&cfg.DisableAuth,
-		"disable-auth",
-		getEnvAsBool("DISABLE_AUTH", true),
-		"Disable authentication and authorization",
-	)
 	flag.StringVar(
 		&cfg.UserIdHeader,
 		"userid-header",
