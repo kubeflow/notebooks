@@ -72,7 +72,7 @@ func (v *WorkspaceValidator) ValidateCreate(ctx context.Context, obj runtime.Obj
 
 		// if the WorkspaceKind is not found, we cannot validate the Workspace further
 		return nil, apierrors.NewInvalid(
-			schema.GroupKind{Group: kubefloworgv1beta1.GroupVersion.Group, Kind: "Workspace"},
+			schema.GroupKind{Group: kubefloworgv1beta1.GroupVersion.Group, Kind: "Workspace"}, //nolint:goconst
 			workspace.Name,
 			allErrs,
 		)
