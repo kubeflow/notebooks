@@ -561,10 +561,7 @@ func getImageConfig(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kube
 	desiredImageConfig := currentImageConfig
 	var redirectChain []kubefloworgv1beta1.WorkspacePodOptionRedirectStep
 	visitedNodes := map[string]bool{currentImageConfig.Id: true}
-	for {
-		if desiredImageConfig.Redirect == nil {
-			break
-		}
+	for desiredImageConfig.Redirect != nil {
 		if visitedNodes[desiredImageConfig.Redirect.To] {
 			return nil, nil, nil, fmt.Errorf("imageConfig with id %q has a circular redirect", desiredImageConfig.Id)
 		}
@@ -606,10 +603,7 @@ func getPodConfig(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefl
 	desiredPodConfig := currentPodConfig
 	var redirectChain []kubefloworgv1beta1.WorkspacePodOptionRedirectStep
 	visitedNodes := map[string]bool{currentPodConfig.Id: true}
-	for {
-		if desiredPodConfig.Redirect == nil {
-			break
-		}
+	for desiredPodConfig.Redirect != nil {
 		if visitedNodes[desiredPodConfig.Redirect.To] {
 			return nil, nil, nil, fmt.Errorf("podConfig with id %q has a circular redirect", desiredPodConfig.Id)
 		}
