@@ -263,11 +263,11 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			log.Error(err, "unable to create StatefulSet")
 			return ctrl.Result{}, err
 		}
-		statefulSetName = statefulSet.ObjectMeta.Name
+		statefulSetName = statefulSet.Name
 		log.V(2).Info("StatefulSet created", "statefulSet", statefulSetName)
 	default:
 		foundStatefulSet := &ownedStatefulSets.Items[0]
-		statefulSetName = foundStatefulSet.ObjectMeta.Name
+		statefulSetName = foundStatefulSet.Name
 		if helper.CopyStatefulSetFields(statefulSet, foundStatefulSet) {
 			if err := r.Update(ctx, foundStatefulSet); err != nil {
 				if apierrors.IsConflict(err) {
@@ -328,11 +328,11 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			log.Error(err, "unable to create Service")
 			return ctrl.Result{}, err
 		}
-		serviceName = service.ObjectMeta.Name
+		serviceName = service.Name
 		log.V(2).Info("Service created", "service", serviceName)
 	default:
 		foundService := &ownedServices.Items[0]
-		serviceName = foundService.ObjectMeta.Name
+		serviceName = foundService.Name
 		if helper.CopyServiceFields(service, foundService) {
 			if err := r.Update(ctx, foundService); err != nil {
 				if apierrors.IsConflict(err) {
@@ -395,11 +395,11 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 				log.Error(err, "unable to create VirtualService")
 				return ctrl.Result{}, err
 			}
-			virtualServiceName = virtualsvc.ObjectMeta.Name
+			virtualServiceName = virtualsvc.Name
 			log.V(2).Info("VirtualService created", "virtualService", virtualServiceName)
 		default:
 			foundVirtualService := ownedVirtualServices.Items[0]
-			virtualServiceName = foundVirtualService.ObjectMeta.Name
+			virtualServiceName = foundVirtualService.Name
 			if helper.CopyVirtualServiceFields(virtualsvc, foundVirtualService) {
 				if err := r.Update(ctx, foundVirtualService); err != nil {
 					if apierrors.IsConflict(err) {

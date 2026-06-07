@@ -85,7 +85,7 @@ func (s *SecretCreate) Validate(prefix *field.Path) []*field.Error {
 	errs = append(errs, helper.ValidateKubernetesSecretName(namePath, s.Name)...)
 
 	// validate common fields (type and contents)
-	errs = append(errs, s.secretBase.validateBase(prefix)...)
+	errs = append(errs, s.validateBase(prefix)...)
 
 	return errs
 }
@@ -94,7 +94,7 @@ func (s *SecretCreate) Validate(prefix *field.Path) []*field.Error {
 // NOTE: we only do basic validation, more complex validation is done by Kubernetes when attempting to update the secret.
 func (s *SecretUpdate) Validate(prefix *field.Path) []*field.Error {
 	// validate common fields (type and contents)
-	return s.secretBase.validateBase(prefix)
+	return s.validateBase(prefix)
 }
 
 // Validate validates the SecretData struct.
