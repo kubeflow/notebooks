@@ -86,7 +86,7 @@ func NewWorkspaceListItemFromWorkspace(cfg *config.EnvConfig, ws *kubefloworgv1b
 		Paused:         ptr.Deref(ws.Spec.Paused, false),
 		PausedTime:     ws.Status.PauseTime,
 		PendingRestart: ws.Status.PendingRestart,
-		State:          ws.Status.State,
+		State:          defaultWorkspaceState(ws.Status.State),
 		StateMessage:   ws.Status.StateMessage,
 		PodTemplate: PodTemplate{
 			PodMetadata: PodMetadata{
@@ -117,6 +117,15 @@ func NewWorkspaceListItemFromWorkspace(cfg *config.EnvConfig, ws *kubefloworgv1b
 
 func wskExists(wsk *kubefloworgv1beta1.WorkspaceKind) bool {
 	return wsk != nil && wsk.UID != ""
+}
+
+// defaultWorkspaceState returns WorkspaceStateUnknown when the controller has not
+// yet reconciled a workspace's status, so API consumers never see an empty state.
+func defaultWorkspaceState(state kubefloworgv1beta1.WorkspaceState) kubefloworgv1beta1.WorkspaceState {
+	if state == "" {
+		return kubefloworgv1beta1.WorkspaceStateUnknown
+	}
+	return state
 }
 
 func buildHomeVolume(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.WorkspaceKind) *PodVolumeInfo {
