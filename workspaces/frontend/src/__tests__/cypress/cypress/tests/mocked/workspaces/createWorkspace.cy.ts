@@ -18,6 +18,7 @@ import {
   secretsManagement,
 } from '~/__tests__/cypress/cypress/pages/workspaces/secretsManagement';
 import type { OptionsImageConfigValue, OptionsPodConfigValue } from '~/generated/data-contracts';
+import { OptionsRedirectMessageLevel } from '~/generated/data-contracts';
 
 const STEP_NAMES = {
   KIND: 'Workspace Kind',
@@ -1581,6 +1582,246 @@ describe('Create workspace', () => {
       createWorkspace.clickNext();
 
       createWorkspace.assertPodConfigSelected(bigGpuPod.id);
+    });
+  });
+
+  describe('Redirect confirmation modal', () => {
+    const redirectedImageId = 'jupyterlab_scipy_180';
+    const targetImageId = 'jupyterlab_scipy_190';
+    const redirectedPodConfigId = 'tiny_cpu_old';
+    const targetPodConfigId = 'tiny_cpu';
+
+    const buildKindWithRedirectedImage = () =>
+      buildMockWorkspaceKind({
+        podTemplate: {
+          ...mockWorkspaceKind.podTemplate,
+          options: {
+            imageConfig: {
+              default: targetImageId,
+              values: [
+                {
+                  id: redirectedImageId,
+                  displayName: 'jupyter-scipy:v1.8.0',
+                  description: 'Older JupyterLab',
+                  labels: [],
+                  hidden: false,
+                  redirect: {
+                    to: targetImageId,
+                    message: {
+                      level: OptionsRedirectMessageLevel.RedirectMessageLevelWarning,
+                      text: 'Please use the newer version.',
+                    },
+                  },
+                },
+                buildMockImageConfigValue(
+                  targetImageId,
+                  'jupyter-scipy:v1.9.0',
+                  'Newer JupyterLab',
+                ),
+              ],
+            },
+            podConfig: {
+              default: targetPodConfigId,
+              values: [
+                buildMockPodConfigValue(targetPodConfigId, mockPodConfig.displayName, 'Tiny CPU'),
+              ],
+            },
+          },
+        },
+      });
+
+    const buildKindWithHiddenImage = () =>
+      buildMockWorkspaceKind({
+        podTemplate: {
+          ...mockWorkspaceKind.podTemplate,
+          options: {
+            imageConfig: {
+              default: targetImageId,
+              values: [
+                {
+                  id: redirectedImageId,
+                  displayName: 'jupyter-scipy:v1.8.0',
+                  description: 'Deprecated JupyterLab',
+                  labels: [],
+                  hidden: true,
+                },
+                buildMockImageConfigValue(
+                  targetImageId,
+                  'jupyter-scipy:v1.9.0',
+                  'Newer JupyterLab',
+                ),
+              ],
+            },
+            podConfig: {
+              default: targetPodConfigId,
+              values: [
+                buildMockPodConfigValue(targetPodConfigId, mockPodConfig.displayName, 'Tiny CPU'),
+              ],
+            },
+          },
+        },
+      });
+
+    const buildKindWithRedirectedPodConfig = () =>
+      buildMockWorkspaceKind({
+        podTemplate: {
+          ...mockWorkspaceKind.podTemplate,
+          options: {
+            imageConfig: {
+              default: mockImage.id,
+              values: [
+                buildMockImageConfigValue(mockImage.id, mockImage.displayName, 'JupyterLab'),
+              ],
+            },
+            podConfig: {
+              default: targetPodConfigId,
+              values: [
+                {
+                  id: redirectedPodConfigId,
+                  displayName: 'Tiny CPU (old)',
+                  description: 'Deprecated pod config',
+                  labels: [],
+                  hidden: false,
+                  redirect: {
+                    to: targetPodConfigId,
+                    message: {
+                      level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+                      text: 'Use the updated pod config.',
+                    },
+                  },
+                },
+                buildMockPodConfigValue(targetPodConfigId, 'Tiny CPU', 'Current pod config'),
+              ],
+            },
+          },
+        },
+      });
+
+    it('shows redirect modal on Next for a redirected image and advances on confirm', () => {
+      const kind = buildKindWithRedirectedImage();
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspacekinds',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+        mockModArchResponse([kind]),
+      ).as('getWorkspaceKindsRedirect');
+      interceptListValues(kind);
+
+      createWorkspace.visit();
+      cy.wait('@getWorkspaceKindsRedirect');
+
+      createWorkspace.selectKind(kind.name);
+      createWorkspace.clickNext();
+
+      createWorkspace.checkExtraFilter('showRedirected');
+      createWorkspace.selectImage(redirectedImageId);
+      createWorkspace.clickNext();
+
+      cy.findByTestId('redirect-confirmation-modal').should('be.visible');
+      cy.findByTestId('redirect-confirmation-modal').within(() => {
+        cy.contains('Redirected Option Selected').should('be.visible');
+        cy.contains('jupyter-scipy:v1.8.0').should('be.visible');
+        cy.contains('jupyter-scipy:v1.9.0').should('be.visible');
+        cy.findByTestId('confirm-button').click();
+      });
+
+      cy.findByTestId('redirect-confirmation-modal').should('not.exist');
+      createWorkspace.findPodConfigCard(targetPodConfigId).should('be.visible');
+    });
+
+    it('shows redirect modal on Next for a redirected image and stays on image step on cancel', () => {
+      const kind = buildKindWithRedirectedImage();
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspacekinds',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+        mockModArchResponse([kind]),
+      ).as('getWorkspaceKindsRedirectCancel');
+      interceptListValues(kind);
+
+      createWorkspace.visit();
+      cy.wait('@getWorkspaceKindsRedirectCancel');
+
+      createWorkspace.selectKind(kind.name);
+      createWorkspace.clickNext();
+
+      createWorkspace.checkExtraFilter('showRedirected');
+      createWorkspace.selectImage(redirectedImageId);
+      createWorkspace.clickNext();
+
+      cy.findByTestId('redirect-confirmation-modal').should('be.visible');
+      cy.findByTestId('redirect-confirmation-modal').within(() => {
+        cy.findByTestId('cancel-button').click();
+      });
+
+      cy.findByTestId('redirect-confirmation-modal').should('not.exist');
+      createWorkspace.assertImageSelected(redirectedImageId);
+    });
+
+    it('shows hidden option modal on Next for a hidden image and advances on confirm', () => {
+      const kind = buildKindWithHiddenImage();
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspacekinds',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+        mockModArchResponse([kind]),
+      ).as('getWorkspaceKindsHidden');
+      interceptListValues(kind);
+
+      createWorkspace.visit();
+      cy.wait('@getWorkspaceKindsHidden');
+
+      createWorkspace.selectKind(kind.name);
+      createWorkspace.clickNext();
+
+      createWorkspace.checkExtraFilter('showHidden');
+      createWorkspace.selectImage(redirectedImageId);
+      createWorkspace.clickNext();
+
+      cy.findByTestId('redirect-confirmation-modal').should('be.visible');
+      cy.findByTestId('redirect-confirmation-modal').within(() => {
+        cy.contains('Hidden Option Selected').should('be.visible');
+        cy.findByTestId('confirm-button').click();
+      });
+
+      cy.findByTestId('redirect-confirmation-modal').should('not.exist');
+      createWorkspace.findPodConfigCard(targetPodConfigId).should('be.visible');
+    });
+
+    it('shows redirect modal on Next for a redirected pod config and advances on confirm', () => {
+      const kind = buildKindWithRedirectedPodConfig();
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspacekinds',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+        mockModArchResponse([kind]),
+      ).as('getWorkspaceKindsRedirectPod');
+      interceptListValues(kind);
+
+      createWorkspace.visit();
+      cy.wait('@getWorkspaceKindsRedirectPod');
+
+      createWorkspace.selectKind(kind.name);
+      createWorkspace.clickNext();
+
+      createWorkspace.selectImage(mockImage.id);
+      createWorkspace.clickNext();
+
+      createWorkspace.checkExtraFilter('showRedirected');
+      createWorkspace.selectPodConfig(redirectedPodConfigId);
+      createWorkspace.clickNext();
+
+      cy.findByTestId('redirect-confirmation-modal').should('be.visible');
+      cy.findByTestId('redirect-confirmation-modal').within(() => {
+        cy.contains('Redirected Option Selected').should('be.visible');
+        cy.contains('Tiny CPU (old)').should('be.visible');
+        cy.contains('Tiny CPU').should('be.visible');
+        cy.findByTestId('confirm-button').click();
+      });
+
+      cy.findByTestId('redirect-confirmation-modal').should('not.exist');
+      createWorkspace.findNextButton().should('not.exist');
+      createWorkspace.findSubmitButton().should('exist');
     });
   });
 });
