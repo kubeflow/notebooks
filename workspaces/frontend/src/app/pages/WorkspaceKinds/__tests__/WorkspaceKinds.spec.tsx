@@ -37,7 +37,6 @@ describe('WorkspaceKinds', () => {
       config: null,
       user: { userId: 'kubeflow-user', clusterAdmin: false },
     });
-    mockUseWorkspaceKinds.mockReturnValue([[], true, new Error('Forbidden'), jest.fn()]);
 
     render(<WorkspaceKinds />);
 
@@ -62,6 +61,19 @@ describe('WorkspaceKinds', () => {
 
     render(<WorkspaceKinds />);
 
+    expect(mockUseWorkspaceKinds).not.toHaveBeenCalled();
+    expect(mockUseWorkspaceCountPerKind).not.toHaveBeenCalled();
+  });
+
+  it('shows the restricted-access message when user context is not yet loaded', () => {
+    mockUseAppContext.mockReturnValue({
+      config: null,
+      user: null,
+    });
+
+    render(<WorkspaceKinds />);
+
+    expect(screen.getByTestId('workspace-kinds-access-empty-state')).toBeInTheDocument();
     expect(mockUseWorkspaceKinds).not.toHaveBeenCalled();
     expect(mockUseWorkspaceCountPerKind).not.toHaveBeenCalled();
   });
