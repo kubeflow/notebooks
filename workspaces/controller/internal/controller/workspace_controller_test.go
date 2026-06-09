@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	"github.com/kubeflow/notebooks/workspaces/controller/internal/config"
 )
 
 var _ = Describe("Workspace Controller", func() {
@@ -220,6 +221,111 @@ var _ = Describe("Workspace Controller", func() {
 			//        - invalid WorkspaceKind (with bad option redirect - circular / missing) results in error state
 			//        - multiple owned StatefulSets / Services results in error state
 			//
+		})
+	})
+
+	Context("When generating a VirtualService for a Workspace", func() {
+
+		// Define utility variables for object names.
+		// NOTE: to avoid conflicts between parallel tests, resource names are unique to each test
+		var (
+			workspaceName     string
+			workspaceKindName string
+		)
+
+		// NOTE: these tests call the generate functions directly and do not create any
+		//       resources in the cluster, so no teardown is required.
+		// TODO: once Istio CRDs are installed in EnvTest (`UseIstio: true` in suite_test.go),
+		//       add specs which ensure the VirtualService is actually created by the controller.
+		var (
+			reconciler      *WorkspaceReconciler
+			workspace       *kubefloworgv1beta1.Workspace
+			workspaceKind   *kubefloworgv1beta1.WorkspaceKind
+			service         *corev1.Service
+			imageConfigSpec kubefloworgv1beta1.ImageConfigSpec
+		)
+
+		BeforeEach(func() {
+			uniqueName := "ws-virtualservice-test"
+			workspaceName = fmt.Sprintf("workspace-%s", uniqueName)
+			workspaceKindName = fmt.Sprintf("workspacekind-%s", uniqueName)
+
+			reconciler = &WorkspaceReconciler{
+				Config: &config.EnvConfig{
+					ClusterDomain: "cluster.local",
+				},
+			}
+			workspaceKind = NewExampleWorkspaceKind1(workspaceKindName)
+			workspace = NewExampleWorkspace1(workspaceName, namespaceName, workspaceKindName)
+			service = &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("ws-%s", workspaceName),
+					Namespace: namespaceName,
+				},
+			}
+			imageConfigSpec = workspaceKind.Spec.PodTemplate.Options.ImageConfig.Values[0].Spec
+		})
+
+		It("should not rewrite the URI when `removePathPrefix` is false", func() {
+			By("generating the VirtualService")
+			workspaceKind.Spec.PodTemplate.Ports[0].HTTPProxy.RemovePathPrefix = ptr.To(false)
+			virtualService, err := reconciler.generateVirtualService(workspace, workspaceKind, service, imageConfigSpec)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("checking the HTTP route has no rewrite")
+			Expect(virtualService.Spec.Http).To(HaveLen(1))
+			Expect(virtualService.Spec.Http[0].Rewrite).To(BeNil())
+		})
+
+		It("should rewrite the URI to '/' when `removePathPrefix` is true", func() {
+			By("generating the VirtualService")
+			workspaceKind.Spec.PodTemplate.Ports[0].HTTPProxy.RemovePathPrefix = ptr.To(true)
+			virtualService, err := reconciler.generateVirtualService(workspace, workspaceKind, service, imageConfigSpec)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("checking the HTTP route rewrites the URI to '/'")
+			Expect(virtualService.Spec.Http).To(HaveLen(1))
+			Expect(virtualService.Spec.Http[0].Rewrite).NotTo(BeNil())
+			Expect(virtualService.Spec.Http[0].Rewrite.Uri).To(Equal("/"))
+		})
+
+		It("should not rewrite the URI when `httpProxy` is not set", func() {
+			By("generating the VirtualService")
+			workspaceKind.Spec.PodTemplate.Ports[0].HTTPProxy = nil
+			virtualService, err := reconciler.generateVirtualService(workspace, workspaceKind, service, imageConfigSpec)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("checking the HTTP route has no rewrite")
+			Expect(virtualService.Spec.Http).To(HaveLen(1))
+			Expect(virtualService.Spec.Http[0].Rewrite).To(BeNil())
+		})
+
+		It("should render go templates in `requestHeaders` values", func() {
+			By("generating the VirtualService")
+			workspaceKind.Spec.PodTemplate.Ports[0].HTTPProxy.RequestHeaders = &kubefloworgv1beta1.IstioHeaderOperations{
+				Set: map[string]string{
+					"X-RStudio-Root-Path": `{{ httpPathPrefix "jupyterlab" }}`,
+				},
+			}
+			virtualService, err := reconciler.generateVirtualService(workspace, workspaceKind, service, imageConfigSpec)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("checking the rendered header value")
+			Expect(virtualService.Spec.Http).To(HaveLen(1))
+			Expect(virtualService.Spec.Http[0].Headers.Request.Set).To(HaveKeyWithValue(
+				"X-RStudio-Root-Path", getWorkspaceConnectPath(workspace.Namespace, workspace.Name, "jupyterlab"),
+			))
+		})
+
+		It("should fail to generate when a `requestHeaders` value has an invalid go template", func() {
+			By("generating the VirtualService")
+			workspaceKind.Spec.PodTemplate.Ports[0].HTTPProxy.RequestHeaders = &kubefloworgv1beta1.IstioHeaderOperations{
+				Set: map[string]string{
+					"X-RStudio-Root-Path": `{{ httpPathPrefix 'jupyterlab' }}`,
+				},
+			}
+			_, err := reconciler.generateVirtualService(workspace, workspaceKind, service, imageConfigSpec)
+			Expect(err).To(HaveOccurred())
 		})
 	})
 })
