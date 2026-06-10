@@ -33,10 +33,12 @@ var _ = Describe("Notebook controller", func() {
 
 	// Define utility constants for object names and testing timeouts/durations and intervals.
 	const (
-		Name      = "test-notebook"
-		Namespace = "default"
-		timeout   = time.Second * 10
-		interval  = time.Millisecond * 250
+		Name           = "test-notebook"
+		Namespace      = "default"
+		testLabelName  = "testLabel"
+		testLabelValue = "testLabelValue"
+		timeout        = time.Second * 10
+		interval       = time.Millisecond * 250
 	)
 
 	Context("When validating the notebook controller", func() {
@@ -47,6 +49,9 @@ var _ = Describe("Notebook controller", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      Name,
 					Namespace: Namespace,
+					Labels: map[string]string{
+						testLabelName: testLabelValue,
+					},
 				},
 				Spec: nbv1beta1.NotebookSpec{
 					Template: nbv1beta1.NotebookTemplateSpec{
@@ -73,8 +78,9 @@ var _ = Describe("Notebook controller", func() {
 				Only the API server is running within envtest. So cannot check actual pods / replicas.
 			*/
 			By("By checking that the Notebook has statefulset")
+			sts := &appsv1.StatefulSet{}
 			Eventually(func() (bool, error) {
-				sts := &appsv1.StatefulSet{ObjectMeta: metav1.ObjectMeta{
+				sts = &appsv1.StatefulSet{ObjectMeta: metav1.ObjectMeta{
 					Name:      Name,
 					Namespace: Namespace,
 				}}
@@ -84,6 +90,8 @@ var _ = Describe("Notebook controller", func() {
 				}
 				return true, nil
 			}, timeout, interval).Should(BeTrue())
+			By("By checking that the StatefulSet has identical Labels as the Notebook")
+			Expect(sts.GetLabels()).To(Equal(notebook.GetLabels()))
 		})
 	})
 })
