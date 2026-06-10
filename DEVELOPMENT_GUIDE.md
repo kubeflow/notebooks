@@ -282,7 +282,7 @@ If you prefer to develop without Tilt, you can set up your environment to build 
 Before developing locally, ensure you have the following installed:
 
 - [Go](https://golang.org/doc/install) - v1.21.0 or later (for controller and backend)
-- [Node.js](https://nodejs.org/) - v20.0.0 or later (for frontend)
+- [Node.js](https://nodejs.org/) - v24.0.0 or later (for frontend)
 
 ### Local - Quick Start
 
