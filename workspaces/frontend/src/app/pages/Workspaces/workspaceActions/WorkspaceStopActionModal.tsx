@@ -134,6 +134,7 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
             action="Update and stop"
             titleOnLoading="Stopping ..."
             onClick={() => handleUpdateAndStop()}
+            data-testid="update-and-stop-button"
           >
             Update and stop
           </ActionButton>

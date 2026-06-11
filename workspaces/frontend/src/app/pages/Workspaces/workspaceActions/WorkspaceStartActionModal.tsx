@@ -133,6 +133,7 @@ export const WorkspaceStartActionModal: React.FC<StartActionAlertProps> = ({
             action="Update and Start"
             titleOnLoading="Starting ..."
             onClick={() => handleUpdateAndStart()}
+            data-testid="update-and-start-button"
           >
             Update and Start
           </ActionButton>
