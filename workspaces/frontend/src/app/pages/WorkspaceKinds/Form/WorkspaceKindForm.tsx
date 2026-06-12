@@ -155,13 +155,15 @@ export const WorkspaceKindForm: React.FC = () => {
   const [originalFormData, setOriginalFormData] = useState<WorkspaceKindFormData | null>(null);
 
   useEffect(() => {
+    console.log('✅ useEffect ran - API call initiated');
     if (!initialFormDataLoaded || initialFormData === null || mode === 'create') {
       return;
     }
     const converted = convertToFormData(initialFormData);
     replaceData(converted);
     setOriginalFormData(converted);
-  }, [initialFormData, initialFormDataLoaded, mode, replaceData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialFormData, initialFormDataLoaded, mode]);
 
   const handleSubmit = useCallback(async () => {
     setIsSubmitting(true);
