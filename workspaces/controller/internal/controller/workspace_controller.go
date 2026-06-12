@@ -992,10 +992,12 @@ func (r *WorkspaceReconciler) generateVirtualServiceHTTPRoute(
 	matchUriPrefix := getWorkspaceConnectPath(workspace.Namespace, workspace.Name, imageConfigPort.Id)
 
 	// determine rewrite configuration
+	//  - when removePathPrefix is true, rewrite the matched prefix to "/" so the
+	//    upstream receives the path with the connect prefix stripped
 	var httpRouteRewrite *networkingv1.HTTPRewrite
-	if podTemplatePort.HTTPProxy != nil && !ptr.Deref(podTemplatePort.HTTPProxy.RemovePathPrefix, false) {
+	if podTemplatePort.HTTPProxy != nil && ptr.Deref(podTemplatePort.HTTPProxy.RemovePathPrefix, false) {
 		httpRouteRewrite = &networkingv1.HTTPRewrite{
-			Uri: matchUriPrefix,
+			Uri: "/",
 		}
 	}
 
