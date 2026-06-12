@@ -7,9 +7,11 @@ import {
   ModalHeader,
 } from '@patternfly/react-core/dist/esm/components/Modal';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
-import { TabTitleText } from '@patternfly/react-core/dist/esm/components/Tabs';
 import { useNotification } from 'mod-arch-core';
-import { WorkspaceRedirectInformationView } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRedirectInformationView';
+import {
+  WorkspaceRedirectInformationView,
+  WorkspaceRedirectInformationViewTitle,
+} from '~/app/pages/Workspaces/workspaceActions/WorkspaceRedirectInformationView';
 import { ActionButton } from '~/shared/components/ActionButton';
 import { ErrorAlert } from '~/shared/components/ErrorAlert';
 import { extractErrorMessage } from '~/shared/api/apiUtils';
@@ -115,14 +117,14 @@ export const WorkspaceStartActionModal: React.FC<StartActionAlertProps> = ({
             </StackItem>
           )}
           <StackItem>
-            <TabTitleText>
-              There are pending redirect updates for that workspace. Are you sure you want to
-              proceed?
-            </TabTitleText>
+            <WorkspaceRedirectInformationViewTitle />
           </StackItem>
           {workspace && (
             <StackItem>
-              <WorkspaceRedirectInformationView kind={workspace.workspaceKind.name} />
+              <WorkspaceRedirectInformationView
+                podConfigRedirects={workspace.podTemplate.options.podConfig.redirectChain}
+                imageConfigRedirects={workspace.podTemplate.options.imageConfig.redirectChain}
+              />
             </StackItem>
           )}
         </Stack>
