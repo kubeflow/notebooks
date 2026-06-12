@@ -11,7 +11,6 @@ import { WorkspaceDetails } from '~/app/pages/Workspaces/Details/WorkspaceDetail
 import { useTypedNavigate } from '~/app/routerHelper';
 import DeleteModal from '~/shared/components/DeleteModal';
 import { WorkspaceStartActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceStartActionModal';
-import { WorkspaceRestartActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRestartActionModal';
 import { WorkspaceStopActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceStopActionModal';
 import { WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
 
@@ -20,7 +19,6 @@ export enum ActionType {
   Edit = 'Edit',
   Delete = 'Delete',
   Start = 'Start',
-  Restart = 'Restart',
   Stop = 'Stop',
 }
 
@@ -37,7 +35,6 @@ export type WorkspaceActionsContextType = {
   requestEditAction: RequestAction;
   requestDeleteAction: RequestAction;
   requestStartAction: RequestAction;
-  requestRestartAction: RequestAction;
   requestStopAction: RequestAction;
   isDrawerExpanded: boolean;
 };
@@ -98,7 +95,6 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
   const requestEditAction = createActionRequester(ActionType.Edit);
   const requestDeleteAction = createActionRequester(ActionType.Delete);
   const requestStartAction = createActionRequester(ActionType.Start);
-  const requestRestartAction = createActionRequester(ActionType.Restart);
   const requestStopAction = createActionRequester(ActionType.Stop);
 
   const executeEditAction = useCallback(() => {
@@ -138,7 +134,6 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
       case ActionType.Delete:
       case ActionType.ViewDetails:
       case ActionType.Start:
-      case ActionType.Restart:
       case ActionType.Stop:
         break;
       default: {
@@ -156,7 +151,6 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
       requestEditAction,
       requestDeleteAction,
       requestStartAction,
-      requestRestartAction,
       requestStopAction,
       isDrawerExpanded,
     }),
@@ -165,7 +159,6 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
       requestEditAction,
       requestDeleteAction,
       requestStartAction,
-      requestRestartAction,
       requestStopAction,
       isDrawerExpanded,
     ],
@@ -203,13 +196,6 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
                     onUpdateAndStart={async () => {
                       // TODO: implement update and stop
                     }}
-                  />
-                )}
-                {activeWsAction.action === ActionType.Restart && (
-                  <WorkspaceRestartActionModal
-                    isOpen
-                    onClose={onCloseActionAlertDialog}
-                    workspace={activeWsAction.workspace}
                   />
                 )}
                 {activeWsAction.action === ActionType.Stop && (
