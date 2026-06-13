@@ -32,6 +32,8 @@
         [readonlyMemory]="config?.memory?.readOnly"
         [cpuLimitFactor]="config?.cpu?.limitFactor"
         [memoryLimitFactor]="config?.memory?.limitFactor"
+        [disableMemoryIfGPU]="config?.memory.disableIfGPU"
+        [disableCPUIfGPU]="config?.cpu.disableIfGPU"
       ></app-form-cpu-ram>
 
       <app-form-gpus

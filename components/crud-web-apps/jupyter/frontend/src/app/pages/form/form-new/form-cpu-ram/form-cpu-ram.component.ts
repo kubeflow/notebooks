@@ -14,6 +14,8 @@ export class FormCpuRamComponent implements OnInit {
   @Input() cpuLimitFactor: string;
   @Input() memoryLimitFactor: string;
   @Input() popoverPosition = 'below';
+  @Input() disableCPUIfGPU: boolean;
+  @Input() disableMemoryIfGPU: boolean;
 
   constructor() {}
 
@@ -40,6 +42,33 @@ export class FormCpuRamComponent implements OnInit {
       this.parentForm
         .get('memoryLimit')
         .setValue(calculateLimits(memory, this.memoryLimitFactor));
+    });
+
+    this.disableResourcesWhenGPUIsSet();
+  }
+
+  disableResourcesWhenGPUIsSet() {
+    this.parentForm.get('gpus').valueChanges.subscribe(val => {
+      if(val !== undefined  && val["num"] == "none") {
+        if(this.disableCPUIfGPU) {
+          this.parentForm.get('cpuLimit').enable();
+          this.parentForm.get('cpu').enable();
+        }
+        if(this.disableMemoryIfGPU) {
+          this.parentForm.get('memoryLimit').enable();
+          this.parentForm.get('memory').enable();
+        }
+        return;
+      }
+  
+      if(this.disableCPUIfGPU) {
+        this.parentForm.get('cpuLimit').disable();
+        this.parentForm.get('cpu').disable();
+      }
+      if(this.disableMemoryIfGPU) {
+        this.parentForm.get('memoryLimit').disable();
+        this.parentForm.get('memory').disable();
+      }
     });
   }
 

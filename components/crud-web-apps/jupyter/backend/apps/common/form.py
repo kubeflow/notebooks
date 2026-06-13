@@ -116,6 +116,14 @@ def set_server_type(notebook, body, defaults):
 def set_notebook_cpu(notebook, body, defaults):
     container = notebook["spec"]["template"]["spec"]["containers"][0]
 
+    if utils.load_spawner_ui_config()["cpu"].get("disableIfGPU") and form_has_gpu_set(body):
+        contrainer_resources = container["resources"]
+        if "limits" in contrainer_resources and  "cpu" in contrainer_resources["limits"]:
+            del contrainer_resources["limits"]["cpu"]
+        if "requests" in contrainer_resources and  "cpu" in contrainer_resources["requests"]:
+            del contrainer_resources["requests"]["cpu"]
+        return
+
     cpu = get_form_value(body, defaults, "cpu")
     if cpu and 'nan' in cpu.lower():
         raise BadRequest("Invalid value for cpu: %s" % cpu)
@@ -144,6 +152,14 @@ def set_notebook_cpu(notebook, body, defaults):
 
 def set_notebook_memory(notebook, body, defaults):
     container = notebook["spec"]["template"]["spec"]["containers"][0]
+
+    if utils.load_spawner_ui_config()["memory"].get("disableIfGPU") and form_has_gpu_set(body):
+        contrainer_resources = container["resources"]
+        if "limits" in contrainer_resources and "memory" in contrainer_resources["limits"]:
+            del contrainer_resources["limits"]["memory"]
+        if "requests" in contrainer_resources and "memory" in contrainer_resources["requests"]:
+            del contrainer_resources["requests"]["memory"]
+        return
 
     memory = get_form_value(body, defaults, "memory")
     if memory and 'nan' in memory.lower():
@@ -297,3 +313,7 @@ def add_notebook_volume(notebook, vol_name, claim, mnt_path):
     # Container Mounts
     mnt = {"mountPath": mnt_path, "name": vol_name}
     container["volumeMounts"].append(mnt)
+
+def form_has_gpu_set(body):
+    gpus = get_form_value(body, [], "gpus")
+    return "num" in gpus and gpus["num"] != "none"
