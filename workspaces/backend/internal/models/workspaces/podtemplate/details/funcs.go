@@ -14,19 +14,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package workspaces
+package details
 
 import (
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"k8s.io/utils/ptr"
+
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces"
+	commonWorkspaces "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/common"
 )
+
+func wskExists(wsk *kubefloworgv1beta1.WorkspaceKind) bool {
+	return wsk != nil && wsk.UID != ""
+}
 
 func NewWorkspaceDetailsFromWorkspace(
 	ws *kubefloworgv1beta1.Workspace,
 	wsk *kubefloworgv1beta1.WorkspaceKind,
 ) WorkspaceDetails {
+	// Consistency Guard: Ensure WorkspaceKind matches the Workspace
+	if wskExists(wsk) && ws.Spec.Kind != wsk.Name {
+		panic("provided WorkspaceKind does not match the Workspace")
+	}
 
-	// copy maps to avoid aliasing
 	podLabels := make(map[string]string)
 	podAnnotations := make(map[string]string)
 	if ws.Spec.PodTemplate.PodMetadata != nil {
@@ -38,42 +48,38 @@ func NewWorkspaceDetailsFromWorkspace(
 		}
 	}
 
-	// home volume mapping
-	var homeVolume *PodVolumeInfo
+	var homeVolume *commonWorkspaces.PodVolumeInfo
 	if ws.Spec.PodTemplate.Volumes.Home != nil {
-		mountPath := UnknownHomeMountPath
+		mountPath := workspaces.UnknownHomeMountPath
 		if wskExists(wsk) {
 			mountPath = wsk.Spec.PodTemplate.VolumeMounts.Home
 		}
-		homeVolume = &PodVolumeInfo{
+		homeVolume = &commonWorkspaces.PodVolumeInfo{
 			PVCName:   *ws.Spec.PodTemplate.Volumes.Home,
 			MountPath: mountPath,
 			ReadOnly:  false,
 		}
 	}
 
-	// data volumes mapping
-	dataVolumes := make([]PodVolumeInfo, len(ws.Spec.PodTemplate.Volumes.Data))
+	dataVolumes := make([]commonWorkspaces.PodVolumeInfo, len(ws.Spec.PodTemplate.Volumes.Data))
 	for i, v := range ws.Spec.PodTemplate.Volumes.Data {
 		readOnly := ptr.Deref(v.ReadOnly, false)
-		dataVolumes[i] = PodVolumeInfo{
+		dataVolumes[i] = commonWorkspaces.PodVolumeInfo{
 			PVCName:   v.PVCName,
 			MountPath: v.MountPath,
 			ReadOnly:  readOnly,
 		}
 	}
 
-	// secret volumes mapping
-	secretVolumes := make([]PodSecretInfo, len(ws.Spec.PodTemplate.Volumes.Secrets))
+	secretVolumes := make([]commonWorkspaces.PodSecretInfo, len(ws.Spec.PodTemplate.Volumes.Secrets))
 	for i, s := range ws.Spec.PodTemplate.Volumes.Secrets {
-		secretVolumes[i] = PodSecretInfo{
+		secretVolumes[i] = commonWorkspaces.PodSecretInfo{
 			SecretName:  s.SecretName,
 			MountPath:   s.MountPath,
 			DefaultMode: s.DefaultMode,
 		}
 	}
 
-	// pod info — nil when workspace is paused (no running pod)
 	var pod *WorkspaceDetailPod
 	if ws.Status.PodTemplatePod.Name != "" {
 		containers := make([]WorkspaceDetailContainer, len(ws.Status.PodTemplatePod.Containers))
@@ -93,7 +99,7 @@ func NewWorkspaceDetailsFromWorkspace(
 	}
 
 	return WorkspaceDetails{
-		PodMetadata: PodMetadata{
+		PodMetadata: commonWorkspaces.PodMetadata{
 			Labels:      podLabels,
 			Annotations: podAnnotations,
 		},

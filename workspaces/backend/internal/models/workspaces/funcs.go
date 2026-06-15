@@ -25,6 +25,7 @@ import (
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	commonCore "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	commonAssets "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common/assets"
+	commonWorkspaces "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/common"
 )
 
 const (
@@ -55,10 +56,10 @@ func NewWorkspaceListItemFromWorkspace(cfg *config.EnvConfig, ws *kubefloworgv1b
 		}
 	}
 
-	dataVolumes := make([]PodVolumeInfo, len(ws.Spec.PodTemplate.Volumes.Data))
+	dataVolumes := make([]commonWorkspaces.PodVolumeInfo, len(ws.Spec.PodTemplate.Volumes.Data))
 	for i := range ws.Spec.PodTemplate.Volumes.Data {
 		volume := ws.Spec.PodTemplate.Volumes.Data[i]
-		dataVolumes[i] = PodVolumeInfo{
+		dataVolumes[i] = commonWorkspaces.PodVolumeInfo{
 			PVCName:   volume.PVCName,
 			MountPath: volume.MountPath,
 			ReadOnly:  ptr.Deref(volume.ReadOnly, false),
@@ -89,7 +90,7 @@ func NewWorkspaceListItemFromWorkspace(cfg *config.EnvConfig, ws *kubefloworgv1b
 		State:          ws.Status.State,
 		StateMessage:   ws.Status.StateMessage,
 		PodTemplate: PodTemplate{
-			PodMetadata: PodMetadata{
+			PodMetadata: commonWorkspaces.PodMetadata{
 				Labels:      podLabels,
 				Annotations: podAnnotations,
 			},
@@ -119,7 +120,7 @@ func wskExists(wsk *kubefloworgv1beta1.WorkspaceKind) bool {
 	return wsk != nil && wsk.UID != ""
 }
 
-func buildHomeVolume(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.WorkspaceKind) *PodVolumeInfo {
+func buildHomeVolume(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.WorkspaceKind) *commonWorkspaces.PodVolumeInfo {
 	if ws.Spec.PodTemplate.Volumes.Home == nil {
 		return nil
 	}
@@ -130,7 +131,7 @@ func buildHomeVolume(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.W
 		homeMountPath = wsk.Spec.PodTemplate.VolumeMounts.Home
 	}
 
-	return &PodVolumeInfo{
+	return &commonWorkspaces.PodVolumeInfo{
 		PVCName:   *ws.Spec.PodTemplate.Volumes.Home,
 		MountPath: homeMountPath,
 		// the home volume is ~always~ read-write

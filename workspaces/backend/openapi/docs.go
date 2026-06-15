@@ -1847,6 +1847,7 @@ const docTemplate = `{
             "get": {
                 "description": "Returns detail-level data for the workspace details overlay (volumes, secrets, pod info).",
                 "produces": [
+                    "application/json",
                     "application/json"
                 ],
                 "tags": [
@@ -2177,7 +2178,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "data": {
-                    "$ref": "#/definitions/workspaces.WorkspaceDetails"
+                    "$ref": "#/definitions/details.WorkspaceDetails"
                 }
             }
         },
@@ -2295,6 +2296,146 @@ const docTemplate = `{
                 },
                 "updatedBy": {
                     "type": "string"
+                }
+            }
+        },
+        "common.PodMetadata": {
+            "type": "object",
+            "required": [
+                "annotations",
+                "labels"
+            ],
+            "properties": {
+                "annotations": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "labels": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "common.PodSecretInfo": {
+            "type": "object",
+            "required": [
+                "mountPath",
+                "secretName"
+            ],
+            "properties": {
+                "defaultMode": {
+                    "type": "integer"
+                },
+                "mountPath": {
+                    "type": "string"
+                },
+                "secretName": {
+                    "type": "string"
+                }
+            }
+        },
+        "common.PodVolumeInfo": {
+            "type": "object",
+            "required": [
+                "mountPath",
+                "pvcName",
+                "readOnly"
+            ],
+            "properties": {
+                "mountPath": {
+                    "type": "string"
+                },
+                "pvcName": {
+                    "type": "string"
+                },
+                "readOnly": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "details.WorkspaceDetailContainer": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "details.WorkspaceDetailPod": {
+            "type": "object",
+            "required": [
+                "containers",
+                "initContainers",
+                "name",
+                "nodeName"
+            ],
+            "properties": {
+                "containers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/details.WorkspaceDetailContainer"
+                    }
+                },
+                "initContainers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/details.WorkspaceDetailContainer"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "nodeName": {
+                    "type": "string"
+                }
+            }
+        },
+        "details.WorkspaceDetailVolumes": {
+            "type": "object",
+            "required": [
+                "home"
+            ],
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/common.PodVolumeInfo"
+                    }
+                },
+                "home": {
+                    "$ref": "#/definitions/common.PodVolumeInfo"
+                },
+                "secrets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/common.PodSecretInfo"
+                    }
+                }
+            }
+        },
+        "details.WorkspaceDetails": {
+            "type": "object",
+            "required": [
+                "pod",
+                "podMetadata",
+                "volumes"
+            ],
+            "properties": {
+                "pod": {
+                    "$ref": "#/definitions/details.WorkspaceDetailPod"
+                },
+                "podMetadata": {
+                    "$ref": "#/definitions/common.PodMetadata"
+                },
+                "volumes": {
+                    "$ref": "#/definitions/details.WorkspaceDetailVolumes"
                 }
             }
         },
@@ -7047,27 +7188,6 @@ const docTemplate = `{
                 }
             }
         },
-        "workspaces.PodMetadata": {
-            "type": "object",
-            "required": [
-                "annotations",
-                "labels"
-            ],
-            "properties": {
-                "annotations": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                },
-                "labels": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
         "workspaces.PodMetadataMutate": {
             "type": "object",
             "required": [
@@ -7086,24 +7206,6 @@ const docTemplate = `{
                     "additionalProperties": {
                         "type": "string"
                     }
-                }
-            }
-        },
-        "workspaces.PodSecretInfo": {
-            "type": "object",
-            "required": [
-                "mountPath",
-                "secretName"
-            ],
-            "properties": {
-                "defaultMode": {
-                    "type": "integer"
-                },
-                "mountPath": {
-                    "type": "string"
-                },
-                "secretName": {
-                    "type": "string"
                 }
             }
         },
@@ -7137,7 +7239,7 @@ const docTemplate = `{
                     "$ref": "#/definitions/workspaces.PodTemplateOptions"
                 },
                 "podMetadata": {
-                    "$ref": "#/definitions/workspaces.PodMetadata"
+                    "$ref": "#/definitions/common.PodMetadata"
                 },
                 "volumes": {
                     "$ref": "#/definitions/workspaces.PodVolumes"
@@ -7193,25 +7295,6 @@ const docTemplate = `{
                 }
             }
         },
-        "workspaces.PodVolumeInfo": {
-            "type": "object",
-            "required": [
-                "mountPath",
-                "pvcName",
-                "readOnly"
-            ],
-            "properties": {
-                "mountPath": {
-                    "type": "string"
-                },
-                "pvcName": {
-                    "type": "string"
-                },
-                "readOnly": {
-                    "type": "boolean"
-                }
-            }
-        },
         "workspaces.PodVolumeMount": {
             "type": "object",
             "required": [
@@ -7239,16 +7322,16 @@ const docTemplate = `{
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/workspaces.PodVolumeInfo"
+                        "$ref": "#/definitions/common.PodVolumeInfo"
                     }
                 },
                 "home": {
-                    "$ref": "#/definitions/workspaces.PodVolumeInfo"
+                    "$ref": "#/definitions/common.PodVolumeInfo"
                 },
                 "secrets": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/workspaces.PodSecretInfo"
+                        "$ref": "#/definitions/common.PodSecretInfo"
                     }
                 }
             }
@@ -7366,88 +7449,6 @@ const docTemplate = `{
                 }
             }
         },
-        "workspaces.WorkspaceDetailContainer": {
-            "type": "object",
-            "required": [
-                "name"
-            ],
-            "properties": {
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "workspaces.WorkspaceDetailPod": {
-            "type": "object",
-            "required": [
-                "containers",
-                "initContainers",
-                "name",
-                "nodeName"
-            ],
-            "properties": {
-                "containers": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/workspaces.WorkspaceDetailContainer"
-                    }
-                },
-                "initContainers": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/workspaces.WorkspaceDetailContainer"
-                    }
-                },
-                "name": {
-                    "type": "string"
-                },
-                "nodeName": {
-                    "type": "string"
-                }
-            }
-        },
-        "workspaces.WorkspaceDetailVolumes": {
-            "type": "object",
-            "required": [
-                "home"
-            ],
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/workspaces.PodVolumeInfo"
-                    }
-                },
-                "home": {
-                    "$ref": "#/definitions/workspaces.PodVolumeInfo"
-                },
-                "secrets": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/workspaces.PodSecretInfo"
-                    }
-                }
-            }
-        },
-        "workspaces.WorkspaceDetails": {
-            "type": "object",
-            "required": [
-                "pod",
-                "podMetadata",
-                "volumes"
-            ],
-            "properties": {
-                "pod": {
-                    "$ref": "#/definitions/workspaces.WorkspaceDetailPod"
-                },
-                "podMetadata": {
-                    "$ref": "#/definitions/workspaces.PodMetadata"
-                },
-                "volumes": {
-                    "$ref": "#/definitions/workspaces.WorkspaceDetailVolumes"
-                }
-            }
-        },
         "workspaces.WorkspaceKindInfo": {
             "type": "object",
             "required": [
@@ -7481,6 +7482,7 @@ const docTemplate = `{
                 "paused",
                 "pausedTime",
                 "pendingRestart",
+                "podMetadata",
                 "podTemplate",
                 "services",
                 "state",
@@ -7508,6 +7510,9 @@ const docTemplate = `{
                 },
                 "pendingRestart": {
                     "type": "boolean"
+                },
+                "podMetadata": {
+                    "$ref": "#/definitions/common.PodMetadata"
                 },
                 "podTemplate": {
                     "$ref": "#/definitions/workspaces.PodTemplate"

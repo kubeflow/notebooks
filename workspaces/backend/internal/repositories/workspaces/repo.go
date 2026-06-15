@@ -33,6 +33,7 @@ import (
 	modelsCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces"
 	modelsActions "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/actions"
+	modelsDetails "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/podtemplate/details"
 )
 
 var (
@@ -70,7 +71,7 @@ func (r *WorkspaceRepository) GetWorkspace(ctx context.Context, namespace string
 	return workspaceUpdateModel, nil
 }
 
-func (r *WorkspaceRepository) GetWorkspaceDetails(ctx context.Context, namespace string, workspaceName string) (*models.WorkspaceDetails, error) {
+func (r *WorkspaceRepository) GetWorkspaceDetails(ctx context.Context, namespace string, workspaceName string) (*modelsDetails.WorkspaceDetails, error) {
 	// 1. get the workspace CR
 	workspace := &kubefloworgv1beta1.Workspace{}
 	if err := r.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: workspaceName}, workspace); err != nil {
@@ -89,7 +90,7 @@ func (r *WorkspaceRepository) GetWorkspaceDetails(ctx context.Context, namespace
 	}
 
 	// 3. build and return the details model
-	details := models.NewWorkspaceDetailsFromWorkspace(workspace, workspaceKind)
+	details := modelsDetails.NewWorkspaceDetailsFromWorkspace(workspace, workspaceKind)
 	return &details, nil
 }
 

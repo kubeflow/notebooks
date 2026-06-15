@@ -96,6 +96,7 @@ func (a *App) Routes() http.Handler {
 	router.PUT(constants.WorkspacesByNamePath, a.UpdateWorkspaceHandler)
 	router.DELETE(constants.WorkspacesByNamePath, a.DeleteWorkspaceHandler)
 	router.POST(constants.PauseWorkspacePath, a.PauseActionWorkspaceHandler)
+	router.GET(constants.WorkspacePodTemplateDetailsPath, a.GetWorkspacePodTemplateDetailsHandler)
 
 	// workspacekinds
 	router.GET(constants.AllWorkspaceKindsPath, a.GetWorkspaceKindsHandler)
@@ -114,9 +115,6 @@ func (a *App) Routes() http.Handler {
 	router.GET(constants.PVCsByNamespacePath, a.GetPVCsByNamespaceHandler)
 	router.POST(constants.PVCsByNamespacePath, a.CreatePVCHandler)
 	router.DELETE(constants.PVCsByNamePath, a.DeletePVCHandler)
-
-	// workspace details
-	router.GET(constants.WorkspacePodTemplateDetailsPath, a.GetWorkspaceDetailsHandler)
 
 	// swagger
 	if a.Config.SwaggerEnabled {

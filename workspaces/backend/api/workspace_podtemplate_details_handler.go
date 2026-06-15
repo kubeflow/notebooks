@@ -26,20 +26,21 @@ import (
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
-	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces"
+	modelsDetails "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/podtemplate/details"
 	repository "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/workspaces"
 )
 
 // WorkspaceDetailsEnvelope is the response envelope for workspace details.
-type WorkspaceDetailsEnvelope Envelope[*models.WorkspaceDetails]
+type WorkspaceDetailsEnvelope Envelope[*modelsDetails.WorkspaceDetails]
 
-// GetWorkspaceDetailsHandler returns pod template details for the workspace details overlay.
+// GetWorkspacePodTemplateDetailsHandler returns pod template details for the workspace details overlay.
 //
 //	@Summary		Get workspace pod template details
 //	@Description	Returns detail-level data for the workspace details overlay (volumes, secrets, pod info).
 //	@Tags			workspaces
 //	@ID				getWorkspacePodTemplateDetails
 //	@Produce		application/json
+//	@Produce		json
 //	@Param			namespace	path		string						true	"Namespace of the workspace"	extensions(x-example=kubeflow-user-example-com)
 //	@Param			name		path		string						true	"Name of the workspace"			extensions(x-example=my-workspace)
 //	@Success		200			{object}	WorkspaceDetailsEnvelope	"Successful operation."
@@ -49,7 +50,7 @@ type WorkspaceDetailsEnvelope Envelope[*models.WorkspaceDetails]
 //	@Failure		422			{object}	ErrorEnvelope				"Unprocessable Entity. Validation error."
 //	@Failure		500			{object}	ErrorEnvelope				"Internal server error."
 //	@Router			/workspaces/{namespace}/{name}/podtemplate/details [get]
-func (a *App) GetWorkspaceDetailsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (a *App) GetWorkspacePodTemplateDetailsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(constants.NamespacePathParam)
 	workspaceName := ps.ByName(constants.ResourceNamePathParam)
 
