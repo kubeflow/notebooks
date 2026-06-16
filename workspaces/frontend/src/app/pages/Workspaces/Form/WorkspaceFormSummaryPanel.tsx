@@ -341,10 +341,8 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
         title: 'Workspace Kind',
         displayName: selectedKind?.displayName || selectedKind?.name,
         description: selectedKind?.description,
-        labels: selectedKind?.podTemplate.podMetadata.labels,
         originalDisplayName: originalKind?.displayName || originalKind?.name,
         originalDescription: originalKind?.description,
-        originalLabels: originalKind?.podTemplate.podMetadata.labels,
         disabledTooltip: isEditMode
           ? 'Workspace kind cannot be changed after creation.'
           : undefined,
