@@ -1,2 +1,6 @@
 labels:
   - area/release
+approvers:
+  - release-approvers
+reviewers:
+  - release-reviewers

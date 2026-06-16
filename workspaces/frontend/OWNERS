@@ -1,8 +1,6 @@
 labels:
   - area/frontend
 approvers:
-  - ederign
-  - paulovmr
+  - frontend-approvers
 reviewers:
-  - thaorell
-  - caponetto
+  - frontend-reviewers

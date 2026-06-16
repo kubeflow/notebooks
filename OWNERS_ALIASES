@@ -1,0 +1,19 @@
+aliases:
+  frontend-approvers:
+    - ederign
+    - paulovmr
+  frontend-reviewers:
+    - thaorell
+    - caponetto
+  backend-approvers:
+    - andyatmiami
+  backend-reviewers: []
+  controller-approvers:
+    - andyatmiami
+  controller-reviewers: []
+  ci-approvers:
+    - andyatmiami
+  ci-reviewers:
+    - christian-heusel
+  release-approvers: []
+  release-reviewers: []

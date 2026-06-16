@@ -3,3 +3,7 @@ labels:
 approvers:
   - kimwnasptd
   - thesuperzapper
+filters:
+  ".*\\.md$":
+    approvers:
+      - ci-approvers

@@ -2,6 +2,6 @@ labels:
   - area/ci
   - area/v2
 approvers:
-  - andyatmiami
+  - ci-approvers
 reviewers:
-  - christian-heusel
+  - ci-reviewers
