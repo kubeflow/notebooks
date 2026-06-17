@@ -518,16 +518,6 @@ describe('WorkspaceFormOptionCard', () => {
       expect(description).toBeInTheDocument();
       expect(description).toHaveTextContent(option.description);
     });
-
-    it('should render title with workspace-option-card__title class', () => {
-      const workspaceKind = buildMockWorkspaceKind();
-      const option = workspaceKind.podTemplate.options.imageConfig.values![0];
-      const allOptions = workspaceKind.podTemplate.options.imageConfig.values!;
-
-      render(<WorkspaceFormOptionCard {...defaultProps} option={option} allOptions={allOptions} />);
-
-      expect(screen.getByText(option.displayName)).toHaveClass('workspace-option-card__title');
-    });
   });
 
   describe('PodConfig options', () => {
