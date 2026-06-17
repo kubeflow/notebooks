@@ -14,7 +14,7 @@ import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/comp
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import { ValidatedOptions } from '@patternfly/react-core/helpers';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
-import { Label, LabelGroup } from '@patternfly/react-core/dist/esm/components/Label';
+import { Label } from '@patternfly/react-core/dist/esm/components/Label';
 import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
 import { InfoCircleIcon } from '@patternfly/react-icons/dist/esm/icons/info-circle-icon';
 import { WrenchIcon } from '@patternfly/react-icons/dist/esm/icons/wrench-icon';
@@ -179,17 +179,11 @@ export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
           <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
             <FlexItem>
               <Stack>
-                <StackItem>
-                  <LabelGroup>
-                    <Label isCompact>Type: {secret.type}</Label>
-                    {secret.immutable && (
-                      <Label color="orange" isCompact>
-                        Immutable
-                      </Label>
-                    )}
-                    {!secret.canMount && <Label isCompact>Unmountable</Label>}
-                  </LabelGroup>
-                </StackItem>
+                {!secret.canMount && (
+                  <StackItem>
+                    <Label isCompact>Unmountable</Label>
+                  </StackItem>
+                )}
                 {secret.mounts && (
                   <StackItem className="pf-v6-u-ml-sm pf-v6-u-mt-xs">
                     <Flex gap={{ default: 'gapXs' }}>

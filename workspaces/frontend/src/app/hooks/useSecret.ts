@@ -8,19 +8,28 @@ export interface SecretKeyValuePair {
   value: string;
 }
 
-interface UseSecretContentsOptions {
+export interface SecretDetails {
+  keyValuePairs: SecretKeyValuePair[];
+  immutable: boolean;
+  type: string;
+}
+
+interface UseSecretOptions {
   isOpen: boolean;
   secretName: string | undefined;
 }
 
-const useSecretContents = ({
-  isOpen,
-  secretName,
-}: UseSecretContentsOptions): FetchState<SecretKeyValuePair[]> => {
+const DEFAULT_SECRET_DETAILS: SecretDetails = {
+  keyValuePairs: [],
+  immutable: false,
+  type: 'Opaque',
+};
+
+const useSecret = ({ isOpen, secretName }: UseSecretOptions): FetchState<SecretDetails> => {
   const { api, apiAvailable } = useNotebookAPI();
   const { selectedNamespace } = useNamespaceSelectorWrapper();
 
-  const call = useCallback<FetchStateCallbackPromise<SecretKeyValuePair[]>>(async () => {
+  const call = useCallback<FetchStateCallbackPromise<SecretDetails>>(async () => {
     if (!apiAvailable) {
       return Promise.reject(new NotReadyError('API not yet available'));
     }
@@ -30,19 +39,20 @@ const useSecretContents = ({
     }
 
     const response = await api.secrets.getSecret(selectedNamespace, secretName);
-    const { contents } = response.data;
+    const { contents, immutable, type } = response.data;
 
-    if (Object.keys(contents).length === 0) {
-      return [];
-    }
+    const keyValuePairs =
+      Object.keys(contents).length === 0
+        ? []
+        : Object.entries(contents).map(([key, value]) => ({
+            key,
+            value: value.base64 ? atob(value.base64) : '',
+          }));
 
-    return Object.entries(contents).map(([key, value]) => ({
-      key,
-      value: value.base64 ? atob(value.base64) : '',
-    }));
+    return { keyValuePairs, immutable, type };
   }, [api.secrets, apiAvailable, isOpen, secretName, selectedNamespace]);
 
-  return useFetchState(call, [], { initialPromisePurity: true });
+  return useFetchState(call, DEFAULT_SECRET_DETAILS, { initialPromisePurity: true });
 };
 
-export default useSecretContents;
+export default useSecret;
