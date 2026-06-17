@@ -22,6 +22,7 @@ Key features of Kubeflow Notebooks:
 ## Documentation
 
 The official documentation for Kubeflow Notebooks can be found [here](https://www.kubeflow.org/docs/components/notebooks/).
+The current roadmap and release planning references are tracked in [`ROADMAP.md`](ROADMAP.md).
 
 ## Community
 
