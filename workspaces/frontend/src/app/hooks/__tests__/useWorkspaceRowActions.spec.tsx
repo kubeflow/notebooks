@@ -25,7 +25,6 @@ describe('useWorkspaceRowActions', () => {
     requestEditAction: (args: RequestActionArgs) => void;
     requestDeleteAction: (args: RequestActionArgs) => void;
     requestStartAction: (args: RequestActionArgs) => void;
-    requestRestartAction: (args: RequestActionArgs) => void;
     requestStopAction: (args: RequestActionArgs) => void;
     isDrawerExpanded: boolean;
   };
@@ -35,7 +34,6 @@ describe('useWorkspaceRowActions', () => {
     requestEditAction: jest.fn(),
     requestDeleteAction: jest.fn(),
     requestStartAction: jest.fn(),
-    requestRestartAction: jest.fn(),
     requestStopAction: jest.fn(),
     isDrawerExpanded: false,
   };
@@ -71,12 +69,7 @@ describe('useWorkspaceRowActions', () => {
     const onActionDone = jest.fn();
     const { result } = renderHook(
       () =>
-        useWorkspaceRowActions([
-          { id: 'start' },
-          { id: 'stop' },
-          { id: 'restart' },
-          { id: 'delete', onActionDone },
-        ]),
+        useWorkspaceRowActions([{ id: 'start' }, { id: 'stop' }, { id: 'delete', onActionDone }]),
       { wrapper },
     );
 
@@ -84,11 +77,9 @@ describe('useWorkspaceRowActions', () => {
     act(() => (actions[0] as MinimalAction).onClick?.());
     act(() => (actions[1] as MinimalAction).onClick?.());
     act(() => (actions[2] as MinimalAction).onClick?.());
-    act(() => (actions[3] as MinimalAction).onClick?.());
 
     expect(contextValue.requestStartAction).toHaveBeenCalledWith({ workspace });
     expect(contextValue.requestStopAction).toHaveBeenCalledWith({ workspace });
-    expect(contextValue.requestRestartAction).toHaveBeenCalledWith({ workspace });
     expect(contextValue.requestDeleteAction).toHaveBeenCalledWith({ workspace, onActionDone });
   });
 });

@@ -153,7 +153,7 @@ class Workspaces {
   }
 
   findAction(args: {
-    action: 'delete' | 'start' | 'stop' | 'restart' | 'viewDetails' | 'edit';
+    action: 'delete' | 'start' | 'stop' | 'viewDetails' | 'edit';
     workspaceName: string;
   }) {
     this.openWorkspaceActionDropdown(args.workspaceName);
