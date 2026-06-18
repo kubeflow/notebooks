@@ -40,7 +40,6 @@ For detailed epics and tracking, see the [Kubeflow Notebooks project board](http
 ## Planning References
 
 - [Kubeflow Notebooks 2.0 / Workspaces proposal and tracking issue](https://github.com/kubeflow/notebooks/issues/85)
-- [Kubeflow 1.11.0 Notebooks WG tracking issue](https://github.com/kubeflow/notebooks/issues/707)
 - [Kubeflow Notebooks v1 branch](https://github.com/kubeflow/notebooks/tree/notebooks-v1)
 - [Kubeflow Notebooks v2 branch](https://github.com/kubeflow/notebooks/tree/notebooks-v2)
 - [Kubeflow Notebooks releases](https://github.com/kubeflow/notebooks/releases)
