@@ -44,5 +44,5 @@ For detailed epics and tracking, see the [Kubeflow Notebooks project board](http
 - [Kubeflow Notebooks v1 branch](https://github.com/kubeflow/notebooks/tree/notebooks-v1)
 - [Kubeflow Notebooks v2 branch](https://github.com/kubeflow/notebooks/tree/notebooks-v2)
 - [Kubeflow Notebooks releases](https://github.com/kubeflow/notebooks/releases)
-- [Kubeflow Notebooks planning issues](https://github.com/kubeflow/notebooks/issues?q=is%3Aissue%20label%3Akind%2Fplanning)
+- [Kubeflow Notebooks planning board](https://github.com/orgs/kubeflow/projects/62)
 - [Notebooks Working Group](https://github.com/kubeflow/community/tree/master/wg-notebooks)
