@@ -42,7 +42,10 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
   onActionDone,
 }) => {
   const notification = useNotification();
-  const workspacePendingUpdate = workspace?.pendingRestart;
+  const workspacePendingUpdate =
+    workspace?.pendingRestart &&
+    ((workspace.podTemplate.options.podConfig.redirectChain ?? []).length > 0 ||
+      (workspace.podTemplate.options.imageConfig.redirectChain ?? []).length > 0);
   const [actionOnGoing, setActionOnGoing] = useState<StopAction | null>(null);
   const [error, setError] = useState<string | ApiErrorEnvelope | null>(null);
 
