@@ -39,7 +39,7 @@ ENV S6_BEHAVIOUR_IF_STAGE2_FAILS 2
 # args - software versions
 # https://kubernetes.io/releases/
 # https://github.com/just-containers/s6-overlay/releases
-ARG KUBECTL_VERSION=v1.35.5
+ARG KUBECTL_VERSION=v1.35.6
 ARG S6_VERSION=v3.2.3.0
 
 # set shell to bash
