@@ -8,9 +8,11 @@ import {
   ModalHeader,
 } from '@patternfly/react-core/dist/esm/components/Modal';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
-import { TabTitleText } from '@patternfly/react-core/dist/esm/components/Tabs';
 import { useNotification } from 'mod-arch-core';
-import { WorkspaceRedirectInformationView } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRedirectInformationView';
+import {
+  WorkspaceRedirectInformationView,
+  WorkspaceRedirectInformationViewTitle,
+} from '~/app/pages/Workspaces/workspaceActions/WorkspaceRedirectInformationView';
 import { ActionButton } from '~/shared/components/ActionButton';
 import { ErrorAlert } from '~/shared/components/ErrorAlert';
 import { extractErrorMessage } from '~/shared/api/apiUtils';
@@ -40,7 +42,10 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
   onActionDone,
 }) => {
   const notification = useNotification();
-  const workspacePendingUpdate = workspace?.pendingRestart;
+  const workspacePendingUpdate =
+    workspace?.pendingRestart &&
+    ((workspace.podTemplate.options.podConfig.redirectChain ?? []).length > 0 ||
+      (workspace.podTemplate.options.imageConfig.redirectChain ?? []).length > 0);
   const [actionOnGoing, setActionOnGoing] = useState<StopAction | null>(null);
   const [error, setError] = useState<string | ApiErrorEnvelope | null>(null);
 
@@ -116,11 +121,11 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
           <StackItem>
             {workspacePendingUpdate ? (
               <>
-                <TabTitleText>
-                  There are pending redirect updates for that workspace. Are you sure you want to
-                  proceed?
-                </TabTitleText>
-                <WorkspaceRedirectInformationView kind={workspace.workspaceKind.name} />
+                <WorkspaceRedirectInformationViewTitle />
+                <WorkspaceRedirectInformationView
+                  podConfigRedirects={workspace.podTemplate.options.podConfig.redirectChain}
+                  imageConfigRedirects={workspace.podTemplate.options.imageConfig.redirectChain}
+                />
               </>
             ) : (
               <Content>Are you sure you want to stop the workspace?</Content>
@@ -134,6 +139,7 @@ export const WorkspaceStopActionModal: React.FC<StopActionAlertProps> = ({
             action="Update and stop"
             titleOnLoading="Stopping ..."
             onClick={() => handleUpdateAndStop()}
+            data-testid="update-and-stop-button"
           >
             Update and stop
           </ActionButton>

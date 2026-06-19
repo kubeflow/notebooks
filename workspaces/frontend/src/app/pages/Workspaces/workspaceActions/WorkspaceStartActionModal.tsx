@@ -7,9 +7,12 @@ import {
   ModalHeader,
 } from '@patternfly/react-core/dist/esm/components/Modal';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
-import { TabTitleText } from '@patternfly/react-core/dist/esm/components/Tabs';
+import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import { useNotification } from 'mod-arch-core';
-import { WorkspaceRedirectInformationView } from '~/app/pages/Workspaces/workspaceActions/WorkspaceRedirectInformationView';
+import {
+  WorkspaceRedirectInformationView,
+  WorkspaceRedirectInformationViewTitle,
+} from '~/app/pages/Workspaces/workspaceActions/WorkspaceRedirectInformationView';
 import { ActionButton } from '~/shared/components/ActionButton';
 import { ErrorAlert } from '~/shared/components/ErrorAlert';
 import { extractErrorMessage } from '~/shared/api/apiUtils';
@@ -39,6 +42,10 @@ export const WorkspaceStartActionModal: React.FC<StartActionAlertProps> = ({
   onActionDone,
 }) => {
   const notification = useNotification();
+  const workspacePendingUpdate =
+    workspace?.pendingRestart &&
+    ((workspace.podTemplate.options.podConfig.redirectChain ?? []).length > 0 ||
+      (workspace.podTemplate.options.imageConfig.redirectChain ?? []).length > 0);
   const [actionOnGoing, setActionOnGoing] = useState<StartAction | null>(null);
   const [error, setError] = useState<string | ApiErrorEnvelope | null>(null);
 
@@ -114,25 +121,26 @@ export const WorkspaceStartActionModal: React.FC<StartActionAlertProps> = ({
               />
             </StackItem>
           )}
-          <StackItem>
-            <TabTitleText>
-              There are pending redirect updates for that workspace. Are you sure you want to
-              proceed?
-            </TabTitleText>
-          </StackItem>
-          {workspace && (
+          {workspace && workspacePendingUpdate ? (
             <StackItem>
-              <WorkspaceRedirectInformationView kind={workspace.workspaceKind.name} />
+              <WorkspaceRedirectInformationViewTitle />
+              <WorkspaceRedirectInformationView
+                podConfigRedirects={workspace.podTemplate.options.podConfig.redirectChain}
+                imageConfigRedirects={workspace.podTemplate.options.imageConfig.redirectChain}
+              />
             </StackItem>
+          ) : (
+            <Content>Are you sure you want to start the workspace?</Content>
           )}
         </Stack>
       </ModalBody>
       <ModalFooter>
-        {shouldShowActionButton('updateAndStart') && (
+        {shouldShowActionButton('updateAndStart') && workspacePendingUpdate && (
           <ActionButton
             action="Update and Start"
             titleOnLoading="Starting ..."
             onClick={() => handleUpdateAndStart()}
+            data-testid="update-and-start-button"
           >
             Update and Start
           </ActionButton>

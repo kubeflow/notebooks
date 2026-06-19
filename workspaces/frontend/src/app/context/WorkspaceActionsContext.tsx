@@ -12,7 +12,47 @@ import { useTypedNavigate } from '~/app/routerHelper';
 import DeleteModal from '~/shared/components/DeleteModal';
 import { WorkspaceStartActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceStartActionModal';
 import { WorkspaceStopActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceStopActionModal';
-import { WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
+import { WorkspacesRedirectStep, WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
+import { NotebookApis } from '~/shared/api/notebookApi';
+
+const resolveRedirectTargetId = (
+  redirectChain: WorkspacesRedirectStep[] | undefined,
+): string | undefined => {
+  if (!redirectChain || redirectChain.length === 0) {
+    return undefined;
+  }
+  return redirectChain[redirectChain.length - 1].target.id;
+};
+
+const updateWorkspaceWithRedirects = async (args: {
+  api: NotebookApis;
+  namespace: string;
+  workspace: WorkspacesWorkspaceListItem;
+  paused: boolean;
+}): Promise<void> => {
+  const { api, namespace, workspace, paused } = args;
+  const imageRedirectTargetId = resolveRedirectTargetId(
+    workspace.podTemplate.options.imageConfig.redirectChain,
+  );
+  const podRedirectTargetId = resolveRedirectTargetId(
+    workspace.podTemplate.options.podConfig.redirectChain,
+  );
+  const workspaceEnvelope = await api.workspaces.getWorkspace(namespace, workspace.name);
+  const currentState = workspaceEnvelope.data;
+  await api.workspaces.updateWorkspace(namespace, workspace.name, {
+    data: {
+      paused,
+      podTemplate: {
+        ...currentState.podTemplate,
+        options: {
+          imageConfig: imageRedirectTargetId ?? currentState.podTemplate.options.imageConfig,
+          podConfig: podRedirectTargetId ?? currentState.podTemplate.options.podConfig,
+        },
+      },
+      revision: currentState.revision,
+    },
+  });
+};
 
 export enum ActionType {
   ViewDetails = 'ViewDetails',
@@ -194,7 +234,12 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
                     }
                     onActionDone={activeWsAction.onActionDone}
                     onUpdateAndStart={async () => {
-                      // TODO: implement update and stop
+                      await updateWorkspaceWithRedirects({
+                        api,
+                        namespace: selectedNamespace,
+                        workspace: activeWsAction.workspace,
+                        paused: false,
+                      });
                     }}
                   />
                 )}
@@ -214,7 +259,12 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
                     }
                     onActionDone={activeWsAction.onActionDone}
                     onUpdateAndStop={async () => {
-                      // TODO: implement update and stop
+                      await updateWorkspaceWithRedirects({
+                        api,
+                        namespace: selectedNamespace,
+                        workspace: activeWsAction.workspace,
+                        paused: true,
+                      });
                     }}
                   />
                 )}

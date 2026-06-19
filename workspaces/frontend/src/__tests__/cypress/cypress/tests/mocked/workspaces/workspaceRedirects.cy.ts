@@ -1,9 +1,14 @@
 import { mockModArchResponse } from 'mod-arch-core';
-import { workspaces } from '~/__tests__/cypress/cypress/pages/workspaces/workspaces';
+import {
+  startModal,
+  stopModal,
+  workspaces,
+} from '~/__tests__/cypress/cypress/pages/workspaces/workspaces';
 import {
   buildMockNamespace,
   buildMockWorkspace,
   buildMockWorkspaceKindInfo,
+  buildMockWorkspaceUpdateFromWorkspace,
   buildMockPodTemplate,
   buildPodTemplateOptions,
   buildMockImageConfig,
@@ -550,6 +555,164 @@ describe('Workspace Redirects', () => {
       );
 
       workspaces.assertRedirectPopoverHasDividers(1);
+    });
+  });
+
+  describe('Update and Start/Stop Actions', () => {
+    const TEST_WORKSPACE_NAME = 'workspace-with-redirects';
+    const REDIRECT_TARGET_IMAGE_ID = 'jupyterlab_scipy_210';
+
+    const setupUpdateActionTest = (state: V1Beta1WorkspaceState) => {
+      const mockNamespace = buildMockNamespace({ name: DEFAULT_NAMESPACE });
+      const mockWorkspace = buildMockWorkspace({
+        name: TEST_WORKSPACE_NAME,
+        namespace: mockNamespace.name,
+        workspaceKind: buildMockWorkspaceKindInfo({ name: 'jupyterlab' }),
+        state,
+        pendingRestart: true,
+        podTemplate: buildMockPodTemplate({
+          options: buildPodTemplateOptions({
+            imageConfig: buildMockImageConfig({
+              current: buildMockOptionInfo({
+                id: 'jupyterlab_scipy_180',
+                displayName: 'jupyter-scipy:v1.8.0',
+              }),
+              redirectChain: buildImageRedirectChain({
+                startVersion: '1.8.0',
+                endVersion: '2.1.0',
+              }),
+            }),
+            podConfig: buildMockPodConfig({}),
+          }),
+        }),
+      });
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/namespaces',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+        mockModArchResponse([mockNamespace]),
+      ).as('getNamespaces');
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspaces/:namespace',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
+        mockModArchResponse([mockWorkspace]),
+      ).as('getWorkspaces');
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspaces/:namespace/:workspaceName',
+        {
+          path: {
+            apiVersion: NOTEBOOKS_API_VERSION,
+            namespace: mockNamespace.name,
+            workspaceName: TEST_WORKSPACE_NAME,
+          },
+        },
+        mockModArchResponse(buildMockWorkspaceUpdateFromWorkspace({ workspace: mockWorkspace })),
+      ).as('getWorkspace');
+
+      return { mockNamespace, mockWorkspace };
+    };
+
+    it('should update and start workspace with redirect targets', () => {
+      const { mockNamespace } = setupUpdateActionTest(V1Beta1WorkspaceState.WorkspaceStatePaused);
+
+      cy.interceptApi(
+        'PUT /api/:apiVersion/workspaces/:namespace/:workspaceName',
+        {
+          path: {
+            apiVersion: NOTEBOOKS_API_VERSION,
+            namespace: mockNamespace.name,
+            workspaceName: TEST_WORKSPACE_NAME,
+          },
+        },
+        mockModArchResponse(buildMockWorkspaceUpdateFromWorkspace({})),
+      ).as('updateWorkspace');
+
+      workspaces.visit();
+      cy.wait('@getNamespaces');
+      navBar.selectNamespace(mockNamespace.name);
+      cy.wait('@getWorkspaces');
+
+      workspaces.findAction({ action: 'start', workspaceName: TEST_WORKSPACE_NAME }).click();
+      startModal.findUpdateAndStartButton().click();
+
+      cy.wait('@getWorkspace');
+      cy.wait('@updateWorkspace').then((interception) => {
+        const { body } = interception.request;
+        expect(body.data.paused).to.equal(false);
+        expect(body.data.podTemplate.options.imageConfig).to.equal(REDIRECT_TARGET_IMAGE_ID);
+      });
+
+      startModal.assertModalNotExists();
+    });
+
+    it('should update and stop workspace with redirect targets', () => {
+      const { mockNamespace } = setupUpdateActionTest(V1Beta1WorkspaceState.WorkspaceStateRunning);
+
+      cy.interceptApi(
+        'PUT /api/:apiVersion/workspaces/:namespace/:workspaceName',
+        {
+          path: {
+            apiVersion: NOTEBOOKS_API_VERSION,
+            namespace: mockNamespace.name,
+            workspaceName: TEST_WORKSPACE_NAME,
+          },
+        },
+        mockModArchResponse(buildMockWorkspaceUpdateFromWorkspace({})),
+      ).as('updateWorkspace');
+
+      workspaces.visit();
+      cy.wait('@getNamespaces');
+      navBar.selectNamespace(mockNamespace.name);
+      cy.wait('@getWorkspaces');
+
+      workspaces.findAction({ action: 'stop', workspaceName: TEST_WORKSPACE_NAME }).click();
+      stopModal.findUpdateAndStopButton().click();
+
+      cy.wait('@getWorkspace');
+      cy.wait('@updateWorkspace').then((interception) => {
+        const { body } = interception.request;
+        expect(body.data.paused).to.equal(true);
+        expect(body.data.podTemplate.options.imageConfig).to.equal(REDIRECT_TARGET_IMAGE_ID);
+      });
+
+      stopModal.assertModalNotExists();
+    });
+
+    it('should display error when update and start fails', () => {
+      setupUpdateActionTest(V1Beta1WorkspaceState.WorkspaceStatePaused);
+
+      cy.interceptApi(
+        'PUT /api/:apiVersion/workspaces/:namespace/:workspaceName',
+        {
+          path: {
+            apiVersion: NOTEBOOKS_API_VERSION,
+            namespace: DEFAULT_NAMESPACE,
+            workspaceName: TEST_WORKSPACE_NAME,
+          },
+        },
+        {
+          error: {
+            code: '500',
+            message: 'Failed to update workspace',
+          },
+        },
+      ).as('updateWorkspaceError');
+
+      workspaces.visit();
+      cy.wait('@getNamespaces');
+      navBar.selectNamespace(DEFAULT_NAMESPACE);
+      cy.wait('@getWorkspaces');
+
+      workspaces.findAction({ action: 'start', workspaceName: TEST_WORKSPACE_NAME }).click();
+      startModal.findUpdateAndStartButton().click();
+
+      cy.wait('@getWorkspace');
+      cy.wait('@updateWorkspaceError');
+
+      startModal.assertModalExists();
+      startModal.assertErrorAlertContainsMessage('Error: Failed to update workspace');
     });
   });
 });
