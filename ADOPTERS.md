@@ -7,3 +7,4 @@ Please keep the list in alphabetical order.
 | Organization                                     | Contact                                                           | Description of Use                                     |
 |--------------------------------------------------|-------------------------------------------------------------------|--------------------------------------------------------|
 | [Red Hat](https://www.redhat.com/)               | [@franciscojavierarceo](https://github.com/franciscojavierarceo)  | Kubeflow Notebooks is part of Red Hat OpenShift AI.  |
+| [CERN](https://www.home.cern)                    | [@gigabyte132](https://github.com/gigabyte132)                    | Kubeflow Notebooks is part of our main ML platform.    |
