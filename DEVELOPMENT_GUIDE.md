@@ -123,6 +123,17 @@ What this does:
 > ENABLE_FRONTEND=false make tilt-up
 > ```
 
+> [!TIP]
+>
+> To deploy with Kubeflow Community Distribution (KCD) components — dex, oauth2-proxy, and the Kubeflow Central Dashboard — set `ENABLE_KCD_COMPONENTS=true`:
+>
+> ```bash
+> ENABLE_KCD_COMPONENTS=true make tilt-up
+> ```
+>
+> This mirrors the upstream community distribution setup and lets you test authentication and dashboard integration locally.
+> See [Tilt - Community Distribution Setup](#tilt---community-distribution-setup) for details.
+
 Wait until all resources show green/healthy status. 
 The frontend may take a couple of minutes on first start as webpack compiles the bundle.
 
@@ -170,6 +181,33 @@ kubectl auth can-i --list --as=user -n default | grep -E '^Resources|^\S'
 >
 > You can switch between users from the **Debug** page in the frontend UI.
 > The default user is `admin`. Switch to `user` to test non-admin behavior (e.g., namespace-scoped permissions, 403 responses on admin-only pages).
+
+### Tilt - Community Distribution Setup
+
+Setting `ENABLE_KCD_COMPONENTS=true` installs the following components from the [Kubeflow Community Distribution](https://github.com/kubeflow/community-distribution) (release `26.03.1`) into the Kind cluster before Tilt starts:
+
+| Component | Namespace | Purpose |
+|-----------|-----------|---------|
+| [dex](https://github.com/dexidp/dex) | `auth` | OIDC identity provider |
+| [oauth2-proxy](https://github.com/oauth2-proxy/oauth2-proxy) | `oauth2-proxy` | Authentication proxy in front of the Istio gateway |
+| [Kubeflow Central Dashboard](https://github.com/kubeflow/dashboard) | `kubeflow` | Top-level Kubeflow UI, accessible at `https://localhost:8443/` |
+
+These components are installed once by `make setup-kcd` and are **not** hot-reloaded by Tilt.
+
+**Login credentials** (KCD static password defaults):
+
+| Field | Value |
+|-------|-------|
+| Email | `user@example.com` |
+| Password | `12341234` |
+
+After a successful login, the Kubeflow Central Dashboard is available at `https://localhost:8443/`.
+The Workspaces UI remains at `https://localhost:8443/workspaces/` (if the frontend is enabled).
+
+> [!NOTE]
+>
+> With KCD enabled, **all** traffic through the Istio gateway requires authentication via dex/oauth2-proxy.
+> The "Debug" menu in the Workspaces frontend (used in non-KCD mode for setting `kubeflow-userid` manually) is superseded by the real OIDC login flow.
 
 ### Tilt - Access Logging
 

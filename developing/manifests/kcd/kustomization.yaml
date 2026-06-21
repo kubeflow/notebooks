@@ -1,0 +1,54 @@
+# Kubeflow Community Distribution (KCD) components for local development.
+# All resources are pinned to release 26.03.1 of kubeflow/community-distribution.
+# https://github.com/kubeflow/community-distribution/releases/tag/26.03.1
+#
+# NOTE: kubeflow-istio-resources is intentionally omitted — it defines an HTTP-only
+# kubeflow-gateway that conflicts with the HTTPS gateway managed by Tilt.
+# The gateway itself is provided by developing/manifests/istio-gateway/.
+# The kubeflow-istio-resources cluster roles are not required for the basic dev experience.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Ensure CRDs are applied before CRs.
+sortOptions:
+  order: legacy
+  legacySortOptions:
+    orderFirst:
+    - Namespace
+    - ResourceQuota
+    - StorageClass
+    - CustomResourceDefinition
+    - MutatingWebhookConfiguration
+    - ServiceAccount
+    - PodSecurityPolicy
+    - NetworkPolicy
+    - Role
+    - ClusterRole
+    - RoleBinding
+    - ClusterRoleBinding
+    - ConfigMap
+    - Secret
+    - Endpoints
+    - Service
+    - LimitRange
+    - PriorityClass
+    - PersistentVolume
+    - PersistentVolumeClaim
+    - Deployment
+    - StatefulSet
+    - CronJob
+    - PodDisruptionBudget
+    orderLast:
+    - ValidatingWebhookConfiguration
+
+resources:
+# kubeflow and kubeflow-system namespaces
+- github.com/kubeflow/community-distribution/common/kubeflow-namespace/base?ref=26.03.1
+# Kubeflow aggregate ClusterRoles (admin, edit, view)
+- github.com/kubeflow/community-distribution/common/kubeflow-roles/base?ref=26.03.1
+# Dex OIDC provider (auth namespace, configured for oauth2-proxy)
+- github.com/kubeflow/community-distribution/common/dex/overlays/oauth2-proxy?ref=26.03.1
+# oauth2-proxy with KinD M2M token support (allows Kubernetes SA JWTs at the gateway)
+- github.com/kubeflow/community-distribution/common/oauth2-proxy/overlays/m2m-dex-and-kind?ref=26.03.1
+# Central Dashboard with profile-controller and poddefaults-webhooks
+- github.com/kubeflow/community-distribution/applications/dashboard/overlays/istio?ref=26.03.1

@@ -48,9 +48,19 @@ setup-istio: setup-cert-manager
 	@echo "Setting up Istio..."
 	@./scripts/setup-istio.sh
 
+# Install Kubeflow Community Distribution components: dex, oauth2-proxy, and central dashboard.
+# Only invoked when ENABLE_KCD_COMPONENTS=true.
+.PHONY: setup-kcd
+setup-kcd: setup-istio kustomize
+	@echo "Setting up Kubeflow Community Distribution (KCD) components..."
+	@./scripts/setup-kcd.sh
+
 # Run tilt up with kind cluster, cert-manager, and Istio setup
 .PHONY: tilt-up
 tilt-up: check-tilt setup-istio kustomize
+ifeq ($(ENABLE_KCD_COMPONENTS),true)
+	@$(MAKE) setup-kcd
+endif
 	@echo "Starting Tilt..."
 	@tilt up
 

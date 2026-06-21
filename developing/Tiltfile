@@ -13,6 +13,10 @@ allow_k8s_contexts('kind-tilt')
 # Allow skipping frontend via environment variable
 enable_frontend = os.getenv("ENABLE_FRONTEND", "true").lower() == "true"
 
+# Allow enabling Kubeflow Community Distribution components (dex, oauth2-proxy, dashboard)
+# via environment variable. These are installed by the Makefile before Tilt starts.
+enable_kcd = os.getenv("ENABLE_KCD_COMPONENTS", "false").lower() == "true"
+
 # Get paths relative to Tiltfile location
 # Tilt evaluates paths relative to the Tiltfile directory
 tilt_root = os.path.dirname(os.path.abspath(__file__))
@@ -323,6 +327,8 @@ k8s_resource(
 gateway_links = [link("https://localhost:8443/workspaces/api/v1/swagger/index.html", "API (Backend)")]
 if enable_frontend:
     gateway_links.insert(0, link("https://localhost:8443/workspaces/", "Dashboard (Frontend)"))
+if enable_kcd:
+    gateway_links.insert(0, link("https://localhost:8443/", "Kubeflow Dashboard (KCD)"))
 
 
 local_resource(
@@ -332,3 +338,31 @@ local_resource(
     links=gateway_links,
     labels=["istio"],
 )
+
+
+# ============================================================================
+# Kubeflow Community Distribution (optional)
+# ============================================================================
+# KCD components (dex, oauth2-proxy, central dashboard) are installed by the
+# Makefile via scripts/setup-kcd.sh before Tilt starts — they are not built
+# or hot-reloaded by Tilt. This section only adds Tilt UI visibility.
+#
+# Login credentials (KCD static password defaults):
+#   Email:    user@example.com
+#   Password: 12341234
+
+if enable_kcd:
+    # KCD components are installed by setup-kcd.sh before Tilt starts and are not
+    # managed by Tilt. This resource waits until the auth layer is healthy so that
+    # the link in the Tilt UI is only shown as ready once login actually works.
+    local_resource(
+        "kcd-ready",
+        # TODO(chris): This does not yet seem right
+        cmd=" && ".join([
+            "kubectl wait --for=condition=available deployment/dex -n auth --timeout=180s",
+            "kubectl wait --for=condition=available deployment/oauth2-proxy -n oauth2-proxy --timeout=180s",
+            "kubectl wait --for=condition=available deployment/dashboard -n kubeflow --timeout=180s",
+        ]),
+        links=[link("https://localhost:8443/", "Kubeflow Dashboard (KCD) — user@example.com / 12341234")],
+        labels=["kcd"],
+    )
