@@ -7286,6 +7286,18 @@ const docTemplate = `{
                 }
             }
         },
+        "workspaces.CullingConfig": {
+            "type": "object",
+            "required": [
+                "maxInactiveSeconds"
+            ],
+            "properties": {
+                "maxInactiveSeconds": {
+                    "description": "The maximum number of seconds a workspace can be inactive before it is auto-paused.",
+                    "type": "integer"
+                }
+            }
+        },
         "workspaces.WorkspaceKindInfo": {
             "type": "object",
             "required": [
@@ -7295,6 +7307,14 @@ const docTemplate = `{
                 "name"
             ],
             "properties": {
+                "cullingConfig": {
+                    "description": "Culling settings for this workspace kind. Omitted when the WorkspaceKind is missing or culling is disabled.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/workspaces.CullingConfig"
+                        }
+                    ]
+                },
                 "icon": {
                     "$ref": "#/definitions/assets.ImageRef"
                 },

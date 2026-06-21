@@ -78,10 +78,11 @@ func NewWorkspaceListItemFromWorkspace(cfg *config.EnvConfig, ws *kubefloworgv1b
 		Name:      ws.Name,
 		Namespace: ws.Namespace,
 		WorkspaceKind: WorkspaceKindInfo{
-			Name:    ws.Spec.Kind,
-			Missing: !wskExists(wsk),
-			Icon:    buildIconImageRef(cfg, ws, wsk),
-			Logo:    buildLogoImageRef(cfg, ws, wsk),
+			Name:          ws.Spec.Kind,
+			Missing:       !wskExists(wsk),
+			Icon:          buildIconImageRef(cfg, ws, wsk),
+			Logo:          buildLogoImageRef(cfg, ws, wsk),
+			CullingConfig: buildCullingConfig(wsk),
 		},
 		Paused:         ptr.Deref(ws.Spec.Paused, false),
 		PausedTime:     ws.Status.PauseTime,
@@ -346,4 +347,19 @@ func buildLogoImageRef(cfg *config.EnvConfig, ws *kubefloworgv1beta1.Workspace, 
 		return commonAssets.ImageRef{URL: UnknownLogoURL}
 	}
 	return commonAssets.NewImageRefFromWorkspaceKindAssetLogo(cfg, wsk.Spec.Spawner.Logo, wsk.Status.SpawnerLogo, ws.Spec.Kind)
+}
+
+// buildCullingConfig extracts the culling config from a WorkspaceKind.
+// Returns nil when the WorkspaceKind doesn't exist or culling is disabled.
+func buildCullingConfig(wsk *kubefloworgv1beta1.WorkspaceKind) *CullingConfig {
+	if !wskExists(wsk) || wsk.Spec.PodTemplate.Culling == nil {
+		return nil
+	}
+	culling := wsk.Spec.PodTemplate.Culling
+	if enabled := ptr.Deref(culling.Enabled, true); !enabled {
+		return nil
+	}
+	return &CullingConfig{
+		MaxInactiveSeconds: ptr.Deref(culling.MaxInactiveSeconds, 86400),
+	}
 }
