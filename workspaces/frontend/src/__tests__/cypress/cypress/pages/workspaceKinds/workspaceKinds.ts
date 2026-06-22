@@ -161,7 +161,10 @@ class WorkspaceKinds {
       .click();
   }
 
-  findAction(args: { action: 'view-details' | 'edit-workspace-kind'; workspaceKindName: string }) {
+  findAction(args: {
+    action: 'view-details' | 'edit-workspace-kind' | 'delete-workspace-kind';
+    workspaceKindName: string;
+  }) {
     this.openWorkspaceKindActionDropdown(args.workspaceKindName);
     return cy.findByTestId(`action-${args.action}`);
   }
@@ -250,5 +253,48 @@ class WorkspaceKindDetailsDrawer {
   }
 }
 
+class DeleteModal {
+  find() {
+    return cy.findByTestId('delete-modal');
+  }
+
+  findConfirmationInput() {
+    return this.find().findByTestId('delete-modal-input');
+  }
+
+  findSubmitButton() {
+    return this.find().findByTestId('delete-button');
+  }
+
+  findCancelButton() {
+    return this.find().findByTestId('cancel-button');
+  }
+
+  assertModalExists() {
+    this.find().should('exist');
+  }
+
+  assertModalNotExists() {
+    this.find().should('not.exist');
+  }
+
+  assertSubmitButtonDisabled() {
+    this.findSubmitButton().should('be.disabled');
+  }
+
+  assertSubmitButtonEnabled() {
+    this.findSubmitButton().should('not.be.disabled');
+  }
+
+  findErrorAlert() {
+    return this.find().findByTestId('delete-modal-error');
+  }
+
+  assertErrorAlertContainsMessage(message: string) {
+    this.find().findByTestId('delete-modal-error-message').should('have.text', message);
+  }
+}
+
 export const workspaceKinds = new WorkspaceKinds();
 export const workspaceKindDetailsDrawer = new WorkspaceKindDetailsDrawer();
+export const deleteModal = new DeleteModal();

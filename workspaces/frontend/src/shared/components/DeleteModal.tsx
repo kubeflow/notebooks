@@ -22,10 +22,12 @@ import { ApiErrorEnvelope } from '~/generated/data-contracts';
 interface DeleteModalProps {
   isOpen: boolean;
   resourceName: string;
-  namespace: string;
+  namespace?: string;
   onClose: () => void;
   onDelete: (resourceName: string) => Promise<void>;
   title: string;
+  errorTitle?: string;
+  message?: React.ReactNode;
 }
 
 const DeleteModal: React.FC<DeleteModalProps> = ({
@@ -33,6 +35,8 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   resourceName,
   namespace,
   title,
+  errorTitle = 'Failed to delete workspace',
+  message,
   onClose,
   onDelete,
 }) => {
@@ -84,16 +88,22 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
         <Stack hasGutter={!isMUITheme}>
           {error && (
             <StackItem>
-              <ErrorAlert
-                title="Failed to delete workspace"
-                content={error}
-                testId="delete-modal-error"
-              />
+              <ErrorAlert title={errorTitle} content={error} testId="delete-modal-error" />
             </StackItem>
           )}
           <StackItem>
-            Are you sure you want to delete <strong>{resourceName}</strong> in namespace{' '}
-            <strong>{namespace}</strong>?
+            {message || (
+              <>
+                Are you sure you want to delete <strong>{resourceName}</strong>
+                {namespace && (
+                  <>
+                    {' '}
+                    in namespace <strong>{namespace}</strong>
+                  </>
+                )}
+                ?
+              </>
+            )}
           </StackItem>
           <StackItem>
             <Form

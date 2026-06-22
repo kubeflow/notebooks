@@ -2,6 +2,7 @@ import { mockModArchResponse } from 'mod-arch-core';
 import {
   workspaceKinds,
   workspaceKindDetailsDrawer,
+  deleteModal,
 } from '~/__tests__/cypress/cypress/pages/workspaceKinds/workspaceKinds';
 import { buildMockWorkspaceKind, buildMockNamespace } from '~/shared/mock/mockBuilder';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
@@ -838,6 +839,127 @@ describe('WorkspaceKinds', () => {
           .click();
 
         editWorkspaceKind.verifyPageURL(TEST_WORKSPACEKIND_NAME);
+      });
+    });
+
+    describe('Delete', () => {
+      const setupDeleteTest = (workspaceKindName: string) => {
+        setupWorkspaceKindActionTest(workspaceKindName);
+
+        cy.interceptApi(
+          'DELETE /api/:apiVersion/workspacekinds/:kind',
+          { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: workspaceKindName } },
+          undefined,
+        ).as('deleteWorkspaceKind');
+      };
+
+      it('should open delete modal from actions menu', () => {
+        setupDeleteTest(TEST_WORKSPACEKIND_NAME);
+
+        workspaceKinds
+          .findAction({
+            action: 'delete-workspace-kind',
+            workspaceKindName: TEST_WORKSPACEKIND_NAME,
+          })
+          .click();
+
+        deleteModal.assertModalExists();
+      });
+
+      it('should successfully delete a workspace kind with correct confirmation', () => {
+        setupDeleteTest(TEST_WORKSPACEKIND_NAME);
+
+        workspaceKinds
+          .findAction({
+            action: 'delete-workspace-kind',
+            workspaceKindName: TEST_WORKSPACEKIND_NAME,
+          })
+          .click();
+
+        deleteModal.findConfirmationInput().type(TEST_WORKSPACEKIND_NAME);
+        deleteModal.findSubmitButton().click();
+
+        cy.wait('@deleteWorkspaceKind').then((interception) => {
+          expect(interception.response?.statusCode).to.be.equal(200);
+        });
+
+        deleteModal.assertModalNotExists();
+      });
+
+      it('should cancel workspace kind deletion when cancel button is clicked', () => {
+        setupDeleteTest(TEST_WORKSPACEKIND_NAME);
+
+        workspaceKinds
+          .findAction({
+            action: 'delete-workspace-kind',
+            workspaceKindName: TEST_WORKSPACEKIND_NAME,
+          })
+          .click();
+
+        deleteModal.findCancelButton().click();
+        deleteModal.assertModalNotExists();
+        cy.get('@deleteWorkspaceKind.all').should('have.length', 0);
+      });
+
+      it('should disable delete button when confirmation input is incorrect', () => {
+        setupDeleteTest(TEST_WORKSPACEKIND_NAME);
+
+        workspaceKinds
+          .findAction({
+            action: 'delete-workspace-kind',
+            workspaceKindName: TEST_WORKSPACEKIND_NAME,
+          })
+          .click();
+
+        deleteModal.findConfirmationInput().type('wrong-name');
+        deleteModal.assertSubmitButtonDisabled();
+      });
+
+      it('should enable delete button after correcting confirmation input', () => {
+        setupDeleteTest(TEST_WORKSPACEKIND_NAME);
+
+        workspaceKinds
+          .findAction({
+            action: 'delete-workspace-kind',
+            workspaceKindName: TEST_WORKSPACEKIND_NAME,
+          })
+          .click();
+
+        deleteModal.findConfirmationInput().type('wrong-name');
+        deleteModal.assertSubmitButtonDisabled();
+
+        deleteModal.findConfirmationInput().clear().type(TEST_WORKSPACEKIND_NAME);
+        deleteModal.assertSubmitButtonEnabled();
+      });
+
+      it('should display error when delete fails', () => {
+        setupWorkspaceKindActionTest(TEST_WORKSPACEKIND_NAME);
+
+        cy.interceptApi(
+          'DELETE /api/:apiVersion/workspacekinds/:kind',
+          { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: TEST_WORKSPACEKIND_NAME } },
+          {
+            error: {
+              code: '500',
+              message: 'Internal server error',
+            },
+          },
+        ).as('deleteWorkspaceKindError');
+
+        workspaceKinds
+          .findAction({
+            action: 'delete-workspace-kind',
+            workspaceKindName: TEST_WORKSPACEKIND_NAME,
+          })
+          .click();
+
+        deleteModal.findConfirmationInput().type(TEST_WORKSPACEKIND_NAME);
+        deleteModal.findSubmitButton().click();
+
+        cy.wait('@deleteWorkspaceKindError');
+
+        deleteModal.assertModalExists();
+        deleteModal.findErrorAlert().should('exist');
       });
     });
   });

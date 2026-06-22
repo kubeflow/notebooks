@@ -105,6 +105,11 @@ declare global {
           response: ApiWorkspaceKindEnvelope | ApiErrorEnvelope,
         ) => Cypress.Chainable<null>) &
         ((
+          type: 'DELETE /api/:apiVersion/workspacekinds/:kind',
+          options: { path: { apiVersion: string; kind: string } },
+          response: void | ApiErrorEnvelope,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: 'POST /api/:apiVersion/workspacekinds/:kind/podtemplate/options/listvalues',
           options: { path: { apiVersion: string; kind: string } },
           response: ApiPodTemplateOptionsEnvelope | ApiErrorEnvelope,

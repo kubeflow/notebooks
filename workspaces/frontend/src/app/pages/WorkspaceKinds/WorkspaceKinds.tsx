@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNotification } from 'mod-arch-core';
 import {
   Drawer,
   DrawerContent,
@@ -27,6 +28,8 @@ import {
   IActions,
 } from '@patternfly/react-table/dist/esm/components/Table';
 import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
+import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
+import DeleteModal from '~/shared/components/DeleteModal';
 import { useWorkspaceCountPerKind } from '~/app/hooks/useWorkspaceCountPerKind';
 import { WorkspaceKindsColumns } from '~/app/types';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
@@ -48,6 +51,7 @@ import { WorkspaceKindDetails } from './details/WorkspaceKindDetails';
 
 export enum ActionType {
   ViewDetails,
+  Delete,
 }
 
 const filterConfig = {
@@ -90,6 +94,8 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
   const createWorkspaceKind = useCallback(() => {
     navigate('workspaceKindCreate');
   }, [navigate]);
+  const { api, refreshAllAPI } = useNotebookAPI();
+  const notification = useNotification();
   const [workspaceKinds, workspaceKindsLoaded, workspaceKindsError] = useWorkspaceKinds();
   const workspaceCountResult = useWorkspaceCountPerKind();
   const [selectedWorkspaceKind, setSelectedWorkspaceKind] =
@@ -216,6 +222,25 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
     setActiveActionType(ActionType.ViewDetails);
   }, []);
 
+  const deleteClick = useCallback((workspaceKind: WorkspacekindsWorkspaceKindListItem) => {
+    setSelectedWorkspaceKind(workspaceKind);
+    setActiveActionType(ActionType.Delete);
+  }, []);
+
+  const closeDeleteModal = useCallback(() => {
+    setSelectedWorkspaceKind(null);
+    setActiveActionType(null);
+  }, []);
+
+  const executeDelete = useCallback(
+    async (workspaceKindName: string) => {
+      await api.workspaceKinds.deleteWorkspaceKind(workspaceKindName);
+      notification.info(`Workspace kind '${workspaceKindName}' deleted successfully`);
+      refreshAllAPI();
+    },
+    [api, notification, refreshAllAPI],
+  );
+
   const workspaceKindsDefaultActions = useCallback(
     (workspaceKind: WorkspacekindsWorkspaceKindListItem): IActions => [
       {
@@ -232,8 +257,13 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
             state: { workspaceKindName: workspaceKind.name },
           }),
       },
+      {
+        id: 'delete-workspace-kind',
+        title: 'Delete',
+        onClick: () => deleteClick(workspaceKind),
+      },
     ],
-    [navigate, viewDetailsClick],
+    [navigate, viewDetailsClick, deleteClick],
   );
 
   const workspaceDetailsContent = (
@@ -453,6 +483,23 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
           </PageSection>
         </DrawerContentBody>
       </DrawerContent>
+      {selectedWorkspaceKind && activeActionType === ActionType.Delete && (
+        <DeleteModal
+          isOpen
+          resourceName={selectedWorkspaceKind.name}
+          title="Delete workspace kind?"
+          errorTitle="Failed to delete workspace kind"
+          message={
+            <>
+              Deleting workspace kind <strong>{selectedWorkspaceKind.name}</strong> is a destructive
+              and cluster wide action that cannot be undone. All associated configuration will be
+              permanently removed.
+            </>
+          }
+          onClose={closeDeleteModal}
+          onDelete={executeDelete}
+        />
+      )}
     </Drawer>
   );
 };
