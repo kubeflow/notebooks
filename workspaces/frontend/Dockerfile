@@ -1,5 +1,5 @@
 # ---------- Builder stage ----------
-FROM --platform=$BUILDPLATFORM node:20-slim AS builder
+FROM --platform=$BUILDPLATFORM node:24-slim AS builder
 
 # Set working directory
 WORKDIR /usr/src/app
