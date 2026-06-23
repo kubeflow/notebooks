@@ -1,5 +1,7 @@
 labels:
   - area/v2
 approvers:
-  - kimwnasptd
+  - andyatmiami
   - thesuperzapper
+emeritus_approvers:
+  - kimwnasptd
