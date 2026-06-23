@@ -1,9 +1,9 @@
 labels:
   - area/server-images
 approvers:
-  - kimwnasptd
   - thesuperzapper
 emeritus_approvers:
   - DavidSpek
   - elikatsis
+  - kimwnasptd
   - StefanoFioravanzo
