@@ -23,7 +23,10 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"reflect"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 )
@@ -84,6 +87,11 @@ func (a *App) DecodeJSON(r *http.Request, v any) error {
 			return err
 		}
 
+		// NOTE: we don't wrap this error so we can unpack it in the caller
+		if a.IsUnmarshalTypeError(err) {
+			return err
+		}
+
 		// provide better error message for the case where the body is empty
 		// NOTE: io.EOF is only returned when the body is completely empty or contains only whitespace.
 		//       If there's any actual JSON content (even malformed), json.Decoder returns different errors.
@@ -107,6 +115,70 @@ func (a *App) IsMaxBytesError(err error) bool {
 // - The body stream ends immediately without any data (io.EOF)
 func (a *App) IsEOFError(err error) bool {
 	return errors.Is(err, io.EOF)
+}
+
+// IsUnmarshalTypeError checks if the error is an instance of json.UnmarshalTypeError.
+func (a *App) IsUnmarshalTypeError(err error) bool {
+	var unmarshalTypeError *json.UnmarshalTypeError
+	return errors.As(err, &unmarshalTypeError)
+}
+
+// FieldErrorsFromUnmarshalTypeError converts a json.UnmarshalTypeError into a field.ErrorList
+// with a single entry describing the type mismatch using user-friendly type names.
+func FieldErrorsFromUnmarshalTypeError(err error) field.ErrorList {
+	var unmarshalTypeError *json.UnmarshalTypeError
+	if !errors.As(err, &unmarshalTypeError) {
+		return nil
+	}
+
+	expectedType := goTypeToJSONTypeName(unmarshalTypeError.Type)
+	detail := fmt.Sprintf("got JSON %s, but field requires %s", unmarshalTypeError.Value, expectedType)
+
+	if unmarshalTypeError.Field == "" {
+		return field.ErrorList{
+			{Type: field.ErrorTypeTypeInvalid, BadValue: unmarshalTypeError.Value, Detail: detail},
+		}
+	}
+
+	parts := strings.Split(unmarshalTypeError.Field, ".")
+	fieldPath := field.NewPath(parts[0], parts[1:]...)
+	return field.ErrorList{
+		field.TypeInvalid(fieldPath, unmarshalTypeError.Value, detail),
+	}
+}
+
+// goTypeToJSONTypeName maps a Go reflect.Type to a user-friendly JSON type name.
+func goTypeToJSONTypeName(t reflect.Type) string {
+	if t == nil {
+		return "unknown"
+	}
+	// Keep calling .Elem() to peel off pointer indirections until we reach the underlying concrete type, i.e. **int -> *int -> int.
+	for t.Kind() == reflect.Ptr {
+		next := t.Elem()
+		// guard against self-referential pointer types (e.g., `type A *A`) which would loop infinitely.
+		// this should never occur in practice because json.UnmarshalTypeError.Type is populated by the stdlib JSON decoder,
+		// which rejects self-referential pointer types.
+		if next == t {
+			break
+		}
+		t = next
+	}
+	switch t.Kind() { //nolint:exhaustive
+	case reflect.Bool:
+		return "boolean"
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+		reflect.Float32, reflect.Float64:
+		return "number"
+	case reflect.String:
+		return "string"
+	case reflect.Slice, reflect.Array:
+		return "array"
+	case reflect.Map, reflect.Struct:
+		return "object"
+	default:
+		return t.String()
+	}
 }
 
 // ValidateContentType validates the Content-Type header of the request.

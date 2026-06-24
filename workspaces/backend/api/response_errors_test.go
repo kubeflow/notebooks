@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strconv"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -270,6 +271,68 @@ var _ = Describe("Error Response Functions", func() {
 
 				expectedErrorResponse := buildExpectedValidationResponse(tc.msg, tc.valErrs, tc.k8sCauses, httpStatusCodeUnprocessableEntityStr)
 				Expect(envelope.Error.ErrorResponse).To(Equal(expectedErrorResponse))
+			})
+		}
+	})
+
+	Describe("failedValidationResponse with UnmarshalTypeError field errors", func() {
+		var httpStatusCodeUnprocessableEntityStr = strconv.Itoa(http.StatusUnprocessableEntity)
+
+		type testCase struct {
+			description             string
+			unmarshalErr            *json.UnmarshalTypeError
+			expectedValidationError ValidationError
+		}
+
+		testCases := []testCase{
+			{
+				description: "should return 422 with correct structure for a type mismatch error",
+				unmarshalErr: &json.UnmarshalTypeError{
+					Value: "string",
+					Type:  reflect.TypeOf(true),
+					Field: "data.paused",
+				},
+				expectedValidationError: ValidationError{
+					Origin:  OriginInternal,
+					Type:    field.ErrorTypeTypeInvalid,
+					Field:   "data.paused",
+					Message: `Invalid value: "string": got JSON string, but field requires boolean`,
+				},
+			},
+			{
+				description: "should return 422 with correct structure for a number-to-string mismatch",
+				unmarshalErr: &json.UnmarshalTypeError{
+					Value: "number",
+					Type:  reflect.TypeOf(""),
+					Field: "data.name",
+				},
+				expectedValidationError: ValidationError{
+					Origin:  OriginInternal,
+					Type:    field.ErrorTypeTypeInvalid,
+					Field:   "data.name",
+					Message: `Invalid value: "number": got JSON number, but field requires string`,
+				},
+			},
+		}
+
+		for _, tc := range testCases {
+			It(tc.description, func() {
+				fieldErrs := FieldErrorsFromUnmarshalTypeError(tc.unmarshalErr)
+				app.failedValidationResponse(w, r, errMsgRequestBodyInvalid, fieldErrs, nil)
+
+				Expect(w.Code).To(Equal(http.StatusUnprocessableEntity))
+
+				var envelope ErrorEnvelope
+				err := json.Unmarshal(w.Body.Bytes(), &envelope)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(envelope.Error).NotTo(BeNil())
+				Expect(envelope.Error.ErrorResponse).To(Equal(ErrorResponse{
+					Code:    httpStatusCodeUnprocessableEntityStr,
+					Message: errMsgRequestBodyInvalid,
+					Cause: &ErrorCause{
+						ValidationErrors: []ValidationError{tc.expectedValidationError},
+					},
+				}))
 			})
 		}
 	})
