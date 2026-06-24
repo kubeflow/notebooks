@@ -73,12 +73,16 @@ test: swag fmt vet envtest ## Run tests.
 	KUBEBUILDER_ASSETS=${KUBEBUILDER_ASSETS} go test ./... -coverprofile cover.out
 
 .PHONY: lint
-lint: golangci-lint ## Run golangci-lint linter
+lint: golangci-lint lint-openapi ## Run golangci-lint and vacuum linters
 	$(GOLANGCI_LINT) run
 
 .PHONY: lint-fix
 lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes
 	$(GOLANGCI_LINT) run --fix
+
+.PHONY: lint-openapi
+lint-openapi: vacuum ## Run vacuum linter against the OpenAPI spec
+	$(VACUUM) lint -q --no-banner --details --errors --fail-severity error openapi/swagger.json
 
 ##@ Swagger
 ALL_GO_DIRS := $(shell find . -type f -name '*.go' -exec dirname {} \; | sed 's|^\./||' | sort -u)
@@ -132,12 +136,14 @@ KUSTOMIZE := $(LOCALBIN)/kustomize
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 SWAGGER = $(LOCALBIN)/swag
+VACUUM = $(LOCALBIN)/vacuum
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.5.0
 ENVTEST_VERSION ?= release-0.19
 GOLANGCI_LINT_VERSION ?= v1.64.8
 SWAGGER_VERSION ?= v1.16.6
+VACUUM_VERSION ?= v0.26.4
 
 .PHONY: SWAGGER
 SWAGGER: $(SWAGGER)
@@ -153,6 +159,11 @@ $(ENVTEST): $(LOCALBIN)
 golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
 $(GOLANGCI_LINT): $(LOCALBIN)
 	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/cmd/golangci-lint,$(GOLANGCI_LINT_VERSION))
+
+.PHONY: vacuum
+vacuum: $(VACUUM) ## Download vacuum locally if necessary.
+$(VACUUM): $(LOCALBIN)
+	$(call go-install-tool,$(VACUUM),github.com/daveshanley/vacuum,$(VACUUM_VERSION))
 
 
 ##@ deployment
