@@ -24,6 +24,7 @@ import (
 	"k8s.io/utils/ptr"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/common"
 )
 
 func NewPodTemplateOptionsModelFromWorkspaceKind(wsk *kubefloworgv1beta1.WorkspaceKind, request *ListValuesRequest) (*PodTemplateOptions, error) {
@@ -100,10 +101,10 @@ func buildImageConfigValues(wsk *kubefloworgv1beta1.WorkspaceKind, request *List
 			DisplayName: value.Spawner.DisplayName,
 			Description: ptr.Deref(value.Spawner.Description, ""),
 			Labels:      buildOptionLabels(value.Spawner.Labels),
-			//
-			// TODO: merge with effect of any matching rules that have `effect.ui.hide`, once WSK rules exist
-			//
-			Hidden:         ptr.Deref(value.Spawner.Hidden, false),
+			Hidden:      ptr.Deref(value.Spawner.Hidden, false),
+			// Option level restrictions are independent from WorkspaceKind level restrictions.
+			// Keep options unrestricted until per option restriction rules are evaluated.
+			Restrictions:   common.Restrictions{},
 			Redirect:       buildOptionRedirect(value.Redirect),
 			ClusterMetrics: buildClusterOptionMetrics(value.Id, optionMetricsMap),
 		})
@@ -152,10 +153,10 @@ func buildPodConfigValues(wsk *kubefloworgv1beta1.WorkspaceKind, request *ListVa
 			DisplayName: value.Spawner.DisplayName,
 			Description: ptr.Deref(value.Spawner.Description, ""),
 			Labels:      buildOptionLabels(value.Spawner.Labels),
-			//
-			// TODO: merge with effect of any matching rules that have `effect.ui.hide`, once WSK rules exist
-			//
-			Hidden:         ptr.Deref(value.Spawner.Hidden, false),
+			Hidden:      ptr.Deref(value.Spawner.Hidden, false),
+			// Option level restrictions are independent from WorkspaceKind level restrictions.
+			// Keep options unrestricted until per option restriction rules are evaluated.
+			Restrictions:   common.Restrictions{},
 			Redirect:       buildOptionRedirect(value.Redirect),
 			ClusterMetrics: buildClusterOptionMetrics(value.Id, optionMetricsMap),
 		})

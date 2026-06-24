@@ -4509,6 +4509,51 @@ spec:
                     maxLength: 128
                     minLength: 2
                     type: string
+                  effect:
+                    description: |-
+                      effect configures temporary WorkspaceKind level API and UI effects for compatibility selectors.
+                      These effects are evaluated by the backend and exposed as hidden and restrictions in API responses.
+                       - `ui.hide: true` hides the WorkspaceKind from the Workspace Spawner UI
+                       - `api.hide: true` excludes the WorkspaceKind from the Workspace Spawner API response
+                       - `api.deny: true` denies access to the WorkspaceKind (optionally with `denyMessage`)
+                    properties:
+                      api:
+                        description: the API effect on the Workspace Spawner API
+                        properties:
+                          deny:
+                            default: false
+                            description: if this is true, the WorkspaceKind should
+                              be denied access to the API
+                            type: boolean
+                          denyMessage:
+                            description: a message to show in Workspace Spawner UI
+                              when the WorkspaceKind is denied
+                            properties:
+                              text:
+                                description: the message to show in Workspace Spawner
+                                  UI when the WorkspaceKind is denied
+                                example: This WorkspaceKind is denied because it is
+                                  not allowed by admin.
+                                maxLength: 256
+                                minLength: 2
+                                type: string
+                            type: object
+                          hide:
+                            default: false
+                            description: if this is true, the WorkspaceKind should
+                              be excluded from the API response
+                            type: boolean
+                        type: object
+                      ui:
+                        description: the UI effect on the Workspace Spawner UI
+                        properties:
+                          hide:
+                            default: false
+                            description: if this effect should hide the WorkspaceKind
+                              from the Workspace Spawner UI
+                            type: boolean
+                        type: object
+                    type: object
                   hidden:
                     default: false
                     description: if this WorkspaceKind should be hidden from the Workspace

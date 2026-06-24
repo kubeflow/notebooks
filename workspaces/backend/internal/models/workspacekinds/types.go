@@ -18,20 +18,22 @@ package workspacekinds
 
 import (
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common/assets"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/common"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/podtemplate/options"
 )
 
 type WorkspaceKindListItem struct {
-	Name               string             `json:"name"`
-	DisplayName        string             `json:"displayName"`
-	Description        string             `json:"description"`
-	Deprecated         bool               `json:"deprecated"`
-	DeprecationMessage string             `json:"deprecationMessage"`
-	Hidden             bool               `json:"hidden"`
-	Icon               assets.ImageRef    `json:"icon"`
-	Logo               assets.ImageRef    `json:"logo"`
-	ClusterMetrics     ClusterKindMetrics `json:"clusterMetrics"`
-	PodTemplate        PodTemplate        `json:"podTemplate"`
+	Name               string              `json:"name"`
+	DisplayName        string              `json:"displayName"`
+	Description        string              `json:"description"`
+	Deprecated         bool                `json:"deprecated"`
+	DeprecationMessage string              `json:"deprecationMessage"`
+	Hidden             bool                `json:"hidden"`
+	Restrictions       common.Restrictions `json:"restrictions"`
+	Icon               assets.ImageRef     `json:"icon"`
+	Logo               assets.ImageRef     `json:"logo"`
+	ClusterMetrics     ClusterKindMetrics  `json:"clusterMetrics"`
+	PodTemplate        PodTemplate         `json:"podTemplate"`
 }
 
 type ClusterKindMetrics struct {

@@ -40,6 +40,7 @@ import (
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	commonModels "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/common"
 )
 
 var _ = Describe("WorkspaceKinds Handler", func() {
@@ -56,6 +57,9 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			workspaceKind1Key  types.NamespacedName
 			workspaceKind2Name string
 			workspaceKind2Key  types.NamespacedName
+			workspaceKind3Name string
+			workspaceKind4Name string
+			workspaceKind4Key  types.NamespacedName
 		)
 
 		BeforeAll(func() {
@@ -64,6 +68,9 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			workspaceKind1Key = types.NamespacedName{Name: workspaceKind1Name}
 			workspaceKind2Name = fmt.Sprintf("workspacekind-2-%s", uniqueName)
 			workspaceKind2Key = types.NamespacedName{Name: workspaceKind2Name}
+			workspaceKind3Name = fmt.Sprintf("workspacekind-3-%s", uniqueName)
+			workspaceKind4Name = fmt.Sprintf("workspacekind-4-%s", uniqueName)
+			workspaceKind4Key = types.NamespacedName{Name: workspaceKind4Name}
 
 			By("creating Namespace 1")
 			namespace1 := &corev1.Namespace{
@@ -75,11 +82,32 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 
 			By("creating WorkspaceKind 1")
 			workspaceKind1 := NewExampleWorkspaceKind(workspaceKind1Name)
+			workspaceKind1.Spec.Spawner.Effect.API = &kubefloworgv1beta1.WorkspaceKindEffectAPI{
+				Deny: ptr.To(true),
+				DenyMessage: &kubefloworgv1beta1.DenyMessage{
+					Text: "This WorkspaceKind is denied because it is not allowed by admin.",
+				},
+			}
 			Expect(k8sClient.Create(ctx, workspaceKind1)).To(Succeed())
 
 			By("creating WorkspaceKind 2")
 			workspaceKind2 := NewExampleWorkspaceKind(workspaceKind2Name)
 			Expect(k8sClient.Create(ctx, workspaceKind2)).To(Succeed())
+
+			By("creating WorkspaceKind 3 (api hidden)")
+			workspaceKind3 := NewExampleWorkspaceKind(workspaceKind3Name)
+			workspaceKind3.Spec.Spawner.Effect.API = &kubefloworgv1beta1.WorkspaceKindEffectAPI{
+				Hide: ptr.To(true),
+			}
+			Expect(k8sClient.Create(ctx, workspaceKind3)).To(Succeed())
+
+			By("creating WorkspaceKind 4 (effect.ui.hide only)")
+			workspaceKind4 := NewExampleWorkspaceKind(workspaceKind4Name)
+			workspaceKind4.Spec.Spawner.Hidden = ptr.To(false)
+			workspaceKind4.Spec.Spawner.Effect.UI = &kubefloworgv1beta1.WorkspaceKindEffectUI{
+				Hide: ptr.To(true),
+			}
+			Expect(k8sClient.Create(ctx, workspaceKind4)).To(Succeed())
 		})
 
 		AfterAll(func() {
@@ -98,6 +126,22 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 				},
 			}
 			Expect(k8sClient.Delete(ctx, workspaceKind2)).To(Succeed())
+
+			By("deleting WorkspaceKind 3")
+			workspaceKind3 := &kubefloworgv1beta1.WorkspaceKind{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: workspaceKind3Name,
+				},
+			}
+			Expect(k8sClient.Delete(ctx, workspaceKind3)).To(Succeed())
+
+			By("deleting WorkspaceKind 4")
+			workspaceKind4 := &kubefloworgv1beta1.WorkspaceKind{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: workspaceKind4Name,
+				},
+			}
+			Expect(k8sClient.Delete(ctx, workspaceKind4)).To(Succeed())
 
 			By("deleting Namespace 1")
 			namespace1 := &corev1.Namespace{
@@ -140,12 +184,33 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			Expect(k8sClient.Get(ctx, workspaceKind1Key, workspacekind1)).To(Succeed())
 			workspacekind2 := &kubefloworgv1beta1.WorkspaceKind{}
 			Expect(k8sClient.Get(ctx, workspaceKind2Key, workspacekind2)).To(Succeed())
+			workspacekind4 := &kubefloworgv1beta1.WorkspaceKind{}
+			Expect(k8sClient.Get(ctx, workspaceKind4Key, workspacekind4)).To(Succeed())
 
 			By("ensuring the response contains the expected WorkspaceKinds")
 			Expect(response.Data).To(ConsistOf(
 				models.NewWorkspaceKindModelFromWorkspaceKind(a.Config, workspacekind1),
 				models.NewWorkspaceKindModelFromWorkspaceKind(a.Config, workspacekind2),
+				models.NewWorkspaceKindModelFromWorkspaceKind(a.Config, workspacekind4),
 			))
+			for _, item := range response.Data {
+				if item.Name == workspaceKind1Name {
+					Expect(item.Restrictions).To(Equal(common.Restrictions{
+						Deny: true,
+						DenyMessage: &common.DenyMessage{
+							Text: "This WorkspaceKind is denied because it is not allowed by admin.",
+						},
+					}))
+				}
+				if item.Name == workspaceKind4Name {
+					Expect(item.Hidden).To(BeTrue())
+				}
+			}
+
+			By("ensuring API hidden WorkspaceKind 3 is excluded from the response")
+			for _, item := range response.Data {
+				Expect(item.Name).NotTo(Equal(workspaceKind3Name))
+			}
 
 			By("ensuring the wrapped data can be marshaled to JSON and back to []WorkspaceKind")
 			dataJSON, err := json.Marshal(response.Data)
@@ -236,11 +301,14 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			Expect(k8sClient.Get(ctx, workspaceKind1Key, workspacekind1)).To(Succeed())
 			workspacekind2 := &kubefloworgv1beta1.WorkspaceKind{}
 			Expect(k8sClient.Get(ctx, workspaceKind2Key, workspacekind2)).To(Succeed())
+			workspacekind4 := &kubefloworgv1beta1.WorkspaceKind{}
+			Expect(k8sClient.Get(ctx, workspaceKind4Key, workspacekind4)).To(Succeed())
 
 			By("ensuring the response contains the expected WorkspaceKinds")
 			Expect(response.Data).To(ConsistOf(
 				models.NewWorkspaceKindModelFromWorkspaceKind(a.Config, workspacekind1),
 				models.NewWorkspaceKindModelFromWorkspaceKind(a.Config, workspacekind2),
+				models.NewWorkspaceKindModelFromWorkspaceKind(a.Config, workspacekind4),
 			))
 		})
 

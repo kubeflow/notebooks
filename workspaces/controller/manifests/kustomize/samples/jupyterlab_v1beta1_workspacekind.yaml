@@ -46,6 +46,17 @@ spec:
       #   key: "logo.svg"
       #   mediaType: "image/svg+xml"
 
+    ## effect determines how restrictions apply to this WorkspaceKind
+    ##  - `ui.hide: true` hides the WorkspaceKind from the Workspace Spawner UI
+    ##  - `api.hide: true` excludes the WorkspaceKind from the Workspace Spawner API response
+    ##  - `api.deny: true` denies access to the WorkspaceKind (optionally with `denyMessage`)
+    effect:
+      ui:
+        hide: false
+      api:
+        hide: false
+        deny: false
+
   ## ================================================================
   ## DEFINITION CONFIGS
   ##  - currently the only supported type is `podTemplate`

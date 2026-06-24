@@ -1251,7 +1251,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Successful operation. Returns filtered options with ruleEffects.",
+                        "description": "Successful operation. Returns filtered options with hidden and restrictions attributes.",
                         "schema": {
                             "$ref": "#/definitions/api.PodTemplateOptionsEnvelope"
                         }
@@ -2218,6 +2218,31 @@ const docTemplate = `{
                 }
             }
         },
+        "common.DenyMessage": {
+            "type": "object",
+            "required": [
+                "text"
+            ],
+            "properties": {
+                "text": {
+                    "type": "string"
+                }
+            }
+        },
+        "common.Restrictions": {
+            "type": "object",
+            "required": [
+                "deny"
+            ],
+            "properties": {
+                "deny": {
+                    "type": "boolean"
+                },
+                "denyMessage": {
+                    "$ref": "#/definitions/common.DenyMessage"
+                }
+            }
+        },
         "field.ErrorType": {
             "type": "string",
             "enum": [
@@ -2399,7 +2424,8 @@ const docTemplate = `{
                 "description",
                 "displayName",
                 "hidden",
-                "id"
+                "id",
+                "restrictions"
             ],
             "properties": {
                 "clusterMetrics": {
@@ -2425,6 +2451,9 @@ const docTemplate = `{
                 },
                 "redirect": {
                     "$ref": "#/definitions/options.OptionRedirect"
+                },
+                "restrictions": {
+                    "$ref": "#/definitions/common.Restrictions"
                 }
             }
         },
@@ -2505,7 +2534,8 @@ const docTemplate = `{
                 "description",
                 "displayName",
                 "hidden",
-                "id"
+                "id",
+                "restrictions"
             ],
             "properties": {
                 "clusterMetrics": {
@@ -2531,6 +2561,9 @@ const docTemplate = `{
                 },
                 "redirect": {
                     "$ref": "#/definitions/options.OptionRedirect"
+                },
+                "restrictions": {
+                    "$ref": "#/definitions/common.Restrictions"
                 }
             }
         },
@@ -5927,6 +5960,15 @@ const docTemplate = `{
                 }
             }
         },
+        "v1beta1.DenyMessage": {
+            "type": "object",
+            "properties": {
+                "text": {
+                    "description": "the message to show in Workspace Spawner UI when the WorkspaceKind is denied\n+kubebuilder:validation:Optional\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=256\n+kubebuilder:example:=\"This WorkspaceKind is denied because it is not allowed by admin.\"",
+                    "type": "string"
+                }
+            }
+        },
         "v1beta1.HTTPProxy": {
             "type": "object",
             "properties": {
@@ -6379,6 +6421,57 @@ const docTemplate = `{
                 }
             }
         },
+        "v1beta1.WorkspaceKindEffect": {
+            "type": "object",
+            "properties": {
+                "api": {
+                    "description": "the API effect on the Workspace Spawner API\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.WorkspaceKindEffectAPI"
+                        }
+                    ]
+                },
+                "ui": {
+                    "description": "the UI effect on the Workspace Spawner UI\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.WorkspaceKindEffectUI"
+                        }
+                    ]
+                }
+            }
+        },
+        "v1beta1.WorkspaceKindEffectAPI": {
+            "type": "object",
+            "properties": {
+                "deny": {
+                    "description": "if this is true, the WorkspaceKind should be denied access to the API\n+kubebuilder:validation:Optional\n+kubebuilder:default:=false",
+                    "type": "boolean"
+                },
+                "denyMessage": {
+                    "description": "a message to show in Workspace Spawner UI when the WorkspaceKind is denied\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.DenyMessage"
+                        }
+                    ]
+                },
+                "hide": {
+                    "description": "if this is true, the WorkspaceKind should be excluded from the API response\n+kubebuilder:validation:Optional\n+kubebuilder:default:=false",
+                    "type": "boolean"
+                }
+            }
+        },
+        "v1beta1.WorkspaceKindEffectUI": {
+            "type": "object",
+            "properties": {
+                "hide": {
+                    "description": "if this effect should hide the WorkspaceKind from the Workspace Spawner UI\n+kubebuilder:validation:Optional\n+kubebuilder:default:=false",
+                    "type": "boolean"
+                }
+            }
+        },
         "v1beta1.WorkspaceKindPodMetadata": {
             "type": "object",
             "properties": {
@@ -6626,6 +6719,14 @@ const docTemplate = `{
                     "description": "the display name of the WorkspaceKind\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=128\n+kubebuilder:example:=\"JupyterLab Notebook\"",
                     "type": "string"
                 },
+                "effect": {
+                    "description": "effect configures temporary WorkspaceKind level API and UI effects for compatibility selectors.\nThese effects are evaluated by the backend and exposed as hidden and restrictions in API responses.\n - ` + "`" + `ui.hide: true` + "`" + ` hides the WorkspaceKind from the Workspace Spawner UI\n - ` + "`" + `api.hide: true` + "`" + ` excludes the WorkspaceKind from the Workspace Spawner API response\n - ` + "`" + `api.deny: true` + "`" + ` denies access to the WorkspaceKind (optionally with ` + "`" + `denyMessage` + "`" + `)\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.WorkspaceKindEffect"
+                        }
+                    ]
+                },
                 "hidden": {
                     "description": "if this WorkspaceKind should be hidden from the Workspace Spawner UI\n+kubebuilder:validation:Optional\n+kubebuilder:default:=false",
                     "type": "boolean"
@@ -6777,7 +6878,8 @@ const docTemplate = `{
                 "icon",
                 "logo",
                 "name",
-                "podTemplate"
+                "podTemplate",
+                "restrictions"
             ],
             "properties": {
                 "clusterMetrics": {
@@ -6809,6 +6911,9 @@ const docTemplate = `{
                 },
                 "podTemplate": {
                     "$ref": "#/definitions/workspacekinds.PodTemplate"
+                },
+                "restrictions": {
+                    "$ref": "#/definitions/common.Restrictions"
                 }
             }
         },

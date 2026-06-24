@@ -85,9 +85,12 @@ func (r *WorkspaceKindRepository) GetWorkspaceKinds(ctx context.Context) ([]mode
 		return nil, err
 	}
 
-	workspaceKindsModels := make([]models.WorkspaceKindListItem, len(workspaceKindList.Items))
-	for i := range workspaceKindList.Items {
-		workspaceKindsModels[i] = models.NewWorkspaceKindModelFromWorkspaceKind(r.cfg, &workspaceKindList.Items[i])
+	workspaceKindsModels := make([]models.WorkspaceKindListItem, 0, len(workspaceKindList.Items))
+	for _, wsk := range workspaceKindList.Items {
+		if models.IsAPIHidden(&wsk) {
+			continue
+		}
+		workspaceKindsModels = append(workspaceKindsModels, models.NewWorkspaceKindModelFromWorkspaceKind(r.cfg, &wsk))
 	}
 
 	return workspaceKindsModels, nil

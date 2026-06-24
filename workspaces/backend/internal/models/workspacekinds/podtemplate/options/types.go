@@ -16,6 +16,8 @@ limitations under the License.
 
 package options
 
+import "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/common"
+
 type PodTemplateOptions struct {
 	ImageConfig ImageConfig `json:"imageConfig"`
 	PodConfig   PodConfig   `json:"podConfig"`
@@ -36,6 +38,7 @@ type ImageConfigValue struct {
 	Description    string               `json:"description"`
 	Labels         []OptionLabel        `json:"labels,omitempty"`
 	Hidden         bool                 `json:"hidden"`
+	Restrictions   common.Restrictions  `json:"restrictions"`
 	Redirect       *OptionRedirect      `json:"redirect,omitempty"`
 	ClusterMetrics ClusterOptionMetrics `json:"clusterMetrics,omitempty"`
 }
@@ -51,6 +54,7 @@ type PodConfigValue struct {
 	Description    string               `json:"description"`
 	Labels         []OptionLabel        `json:"labels,omitempty"`
 	Hidden         bool                 `json:"hidden"`
+	Restrictions   common.Restrictions  `json:"restrictions"`
 	Redirect       *OptionRedirect      `json:"redirect,omitempty"`
 	ClusterMetrics ClusterOptionMetrics `json:"clusterMetrics,omitempty"`
 }

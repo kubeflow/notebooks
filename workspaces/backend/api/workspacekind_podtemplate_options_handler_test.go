@@ -33,10 +33,13 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/common"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/podtemplate/options"
+
+	"k8s.io/utils/ptr"
 )
 
-var _ = Describe("WorkspaceKinds Handler", func() {
+var _ = Describe("WorkspaceKind pod template options", func() {
 
 	// NOTE: the tests in this context work on the same resources, they must be run in order.
 	//       also, they assume a specific state of the cluster, so cannot be run in parallel with other tests.
@@ -69,6 +72,12 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 
 			By("creating WorkspaceKind 1")
 			workspaceKind1 := NewExampleWorkspaceKind(workspaceKind1Name)
+			workspaceKind1.Spec.Spawner.Effect.API = &kubefloworgv1beta1.WorkspaceKindEffectAPI{
+				Deny: ptr.To(true),
+				DenyMessage: &kubefloworgv1beta1.DenyMessage{
+					Text: "This WorkspaceKind is denied because it is not allowed by admin.",
+				},
+			}
 			Expect(k8sClient.Create(ctx, workspaceKind1)).To(Succeed())
 
 			By("creating WorkspaceKind 2")
@@ -148,6 +157,12 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 
 				By("ensuring response contains all options")
 				Expect(response.Data).To(BeComparableTo(getExpected(models.ListValuesContext{})))
+				for _, value := range response.Data.ImageConfig.Values {
+					Expect(value.Restrictions).To(Equal(common.Restrictions{}))
+				}
+				for _, value := range response.Data.PodConfig.Values {
+					Expect(value.Restrictions).To(Equal(common.Restrictions{}))
+				}
 			})
 
 			It("should return all values when only context namespace is provided", func() {
