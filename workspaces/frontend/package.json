@@ -101,7 +101,7 @@
     "style-loader": "^4.0.0",
     "svg-url-loader": "^8.0.0",
     "swagger-typescript-api": "13.2.7",
-    "swc-loader": "^0.2.6",
+    "swc-loader": "^0.2.7",
     "terser-webpack-plugin": "^5.3.11",
     "ts-loader": "^9.5.2",
     "tsconfig-paths-webpack-plugin": "^4.1.0",
