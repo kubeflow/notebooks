@@ -7,6 +7,7 @@ import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { PageGroup, PageSection } from '@patternfly/react-core/dist/esm/components/Page';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import { Tabs, Tab, TabTitleText } from '@patternfly/react-core/dist/esm/components/Tabs';
+import { UndoIcon } from '@patternfly/react-icons/dist/esm/icons/undo-icon';
 import { useNotification } from 'mod-arch-core';
 import useGenericObjectState from 'mod-arch-core/dist/utilities/useGenericObjectState';
 import useWorkspaceKindByName from '~/app/hooks/useWorkspaceKindByName';
@@ -195,6 +196,19 @@ export const WorkspaceKindForm: React.FC = () => {
     },
     [activeTabKey, data, initialFormData],
   );
+
+  const handleRevert = useCallback(() => {
+    if (initialFormData) {
+      const converted = convertToFormData(initialFormData);
+      replaceData(converted);
+      setOriginalFormData(converted);
+      const yamlStr = yaml.dump(initialFormData, { noRefs: true });
+      setOriginalYaml(yamlStr);
+      setEditYamlValue(yamlStr);
+      setYamlParseError(null);
+      setError(null);
+    }
+  }, [initialFormData, replaceData]);
 
   const handleYamlChange = useCallback((value: string) => {
     setEditYamlValue(value);
@@ -445,6 +459,14 @@ export const WorkspaceKindForm: React.FC = () => {
               {mode === 'create' ? 'Create' : 'Save'}
             </Button>
           </FlexItem>
+          {mode === 'edit' && (
+            <FlexItem>
+              <Button variant="link" onClick={handleRevert} data-testid="revert-button">
+                <UndoIcon />
+                Revert
+              </Button>
+            </FlexItem>
+          )}
           <FlexItem>
             <Button variant="link" onClick={cancel} data-testid="cancel-button">
               Cancel

@@ -262,57 +262,69 @@ export const convertFormDataToUpdate = (
     options: {
       imageConfig: {
         spawner: { default: formData.imageConfig.default },
-        values: (formData.imageConfig.values ?? []).map((v) => ({
-          id: v.id,
-          redirect: convertRedirectToApi(v.redirect),
-          spawner: {
-            displayName: v.displayName,
-            description: v.description || undefined,
-            hidden: v.hidden,
-            labels: v.labels?.map((l) => ({ key: l.key, value: l.value })),
-          },
-          spec: {
-            image: v.image ?? '',
-            imagePullPolicy: (v.imagePullPolicy ??
-              ImagePullPolicy.IfNotPresent) as unknown as V1PullPolicy,
-            ports: (v.ports ?? []).map((p) => ({
-              id: p.id,
-              displayName: p.displayName || undefined,
-              port: p.port,
-            })),
-          },
-        })),
+        values: (formData.imageConfig.values ?? []).map((v) => {
+          const originalValue = original.podTemplate.options.imageConfig.values.find(
+            (ov) => ov.id === v.id,
+          );
+          return {
+            id: v.id,
+            redirect: convertRedirectToApi(v.redirect),
+            spawner: {
+              displayName: v.displayName,
+              description: v.description || undefined,
+              hidden: v.hidden,
+              labels: v.labels?.map((l) => ({ key: l.key, value: l.value })),
+            },
+            spec: {
+              ...originalValue?.spec,
+              image: v.image ?? '',
+              imagePullPolicy: (v.imagePullPolicy ??
+                ImagePullPolicy.IfNotPresent) as unknown as V1PullPolicy,
+              ports: (v.ports ?? []).map((p) => ({
+                id: p.id,
+                displayName: p.displayName || undefined,
+                port: p.port,
+              })),
+            },
+          };
+        }),
       },
       podConfig: {
         spawner: { default: formData.podConfig.default },
-        values: (formData.podConfig.values ?? []).map((v) => ({
-          id: v.id,
-          redirect: convertRedirectToApi(v.redirect),
-          spawner: {
-            displayName: v.displayName,
-            description: v.description || undefined,
-            hidden: v.hidden,
-            labels: v.labels?.map((l) => ({ key: l.key, value: l.value })),
-          },
-          spec: {
-            resources: v.resources
-              ? {
-                  requests: v.resources.requests as V1ResourceList,
-                  limits: v.resources.limits as V1ResourceList,
-                }
-              : undefined,
-            nodeSelector: v.nodeSelector,
-            tolerations: v.tolerations?.map(
-              (t): V1Toleration => ({
-                operator: t.operator,
-                effect: t.effect,
-                key: t.key,
-                value: t.value,
-                tolerationSeconds: t.tolerationSeconds,
-              }),
-            ),
-          },
-        })),
+        values: (formData.podConfig.values ?? []).map((v) => {
+          const originalValue = original.podTemplate.options.podConfig.values.find(
+            (ov) => ov.id === v.id,
+          );
+          return {
+            id: v.id,
+            redirect: convertRedirectToApi(v.redirect),
+            spawner: {
+              displayName: v.displayName,
+              description: v.description || undefined,
+              hidden: v.hidden,
+              labels: v.labels?.map((l) => ({ key: l.key, value: l.value })),
+            },
+            spec: {
+              ...originalValue?.spec,
+              resources: v.resources
+                ? {
+                    requests: v.resources.requests as V1ResourceList,
+                    limits: v.resources.limits as V1ResourceList,
+                  }
+                : undefined,
+              nodeSelector: v.nodeSelector,
+              tolerations: v.tolerations?.map(
+                (t): V1Toleration => ({
+                  operator: t.operator,
+                  effect: t.effect,
+                  key: t.key,
+                  value: t.value,
+                  tolerationSeconds: t.tolerationSeconds,
+                }),
+              ),
+            },
+          };
+        }),
       },
     },
   },
