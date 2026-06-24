@@ -100,7 +100,7 @@
     "speed-measure-webpack-plugin": "^1.5.0",
     "style-loader": "^4.0.0",
     "svg-url-loader": "^8.0.0",
-    "swagger-typescript-api": "13.2.7",
+    "swagger-typescript-api": "13.9.1",
     "swc-loader": "^0.2.6",
     "terser-webpack-plugin": "^5.3.11",
     "ts-loader": "^9.5.2",
