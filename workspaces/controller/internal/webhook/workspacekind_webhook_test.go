@@ -124,6 +124,31 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 				workspaceKind: NewExampleWorkspaceKindWithInvalidRequestHeadersValue("wsk-webhook-create--request-headers-invalid"),
 				shouldSucceed: false,
 			},
+			{
+				description:   "should accept creation with valid filterRules",
+				workspaceKind: NewExampleWorkspaceKindWithValidFilterRules("wsk-webhook-create--filter-rules-valid"),
+				shouldSucceed: true,
+			},
+			{
+				description:   "should reject creation with a malformed filterRule label selector",
+				workspaceKind: NewExampleWorkspaceKindWithInvalidFilterRuleSelector("wsk-webhook-create--filter-rules-invalid-selector"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with a filterRule scope outside the allowed enum",
+				workspaceKind: NewExampleWorkspaceKindWithFilterRuleInvalidScope("wsk-webhook-create--filter-rules-invalid-scope"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with a filterRule match condition that sets no selector",
+				workspaceKind: NewExampleWorkspaceKindWithFilterRuleNoMatchCondition("wsk-webhook-create--filter-rules-empty-match"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with a filterRule effect that sets neither ui nor api",
+				workspaceKind: NewExampleWorkspaceKindWithFilterRuleEmptyEffect("wsk-webhook-create--filter-rules-empty-effect"),
+				shouldSucceed: false,
+			},
 		}
 
 		for _, tc := range testCases {
@@ -622,6 +647,26 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						},
 					}
 					return ContainSubstring("")
+				},
+			},
+			{
+				description:   "should accept adding valid filterRules",
+				shouldSucceed: true,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					wsk.Spec.FilterRules = NewExampleWorkspaceKindWithValidFilterRules(workspaceKindName).Spec.FilterRules
+					return ContainSubstring("")
+				},
+			},
+			{
+				description:   "should reject adding a filterRule with a malformed label selector",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					wsk.Spec.FilterRules = NewExampleWorkspaceKindWithInvalidFilterRuleSelector(workspaceKindName).Spec.FilterRules
+					return ContainSubstring("must be specified when `operator` is 'In' or 'NotIn'")
 				},
 			},
 		}

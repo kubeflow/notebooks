@@ -54,6 +54,259 @@ spec:
           spec:
             description: WorkspaceKindSpec defines the desired state of WorkspaceKind
             properties:
+              filterRules:
+                description: |-
+                  filterRules are admin-defined rules used by downstream consumers (the backend API server)
+                  to dynamically filter which WorkspaceKinds, imageConfig values, and podConfig values are
+                  visible or allowed in a given context.
+                  The controller does NOT evaluate or act on these rules, it only persists and validates them.
+                items:
+                  properties:
+                    effect:
+                      description: the effect to apply to matched items when all `match`
+                        conditions are satisfied
+                      properties:
+                        api:
+                          description: server-enforced behavior evaluated by the backend
+                            API server
+                          properties:
+                            deny:
+                              default: false
+                              description: return the matched item but reject any
+                                workspace create/update which selects it
+                              type: boolean
+                            denyMessage:
+                              description: a message explaining why the matched item
+                                is denied
+                              properties:
+                                text:
+                                  description: the text of the message to show when
+                                    the item is denied
+                                  example: GPU pod configs are not available in this
+                                    namespace.
+                                  maxLength: 1024
+                                  minLength: 2
+                                  type: string
+                              required:
+                              - text
+                              type: object
+                            hide:
+                              default: false
+                              description: omit the matched item from the API response
+                                entirely
+                              type: boolean
+                          type: object
+                          x-kubernetes-validations:
+                          - message: '''denyMessage'' may only be set when ''deny''
+                              is true'
+                            rule: '!has(self.denyMessage) || self.deny'
+                        ui:
+                          description: rendering hints for the frontend (the item
+                            is still returned by the API)
+                          properties:
+                            hide:
+                              description: suggest the UI hide the matched item
+                              type: boolean
+                          required:
+                          - hide
+                          type: object
+                      type: object
+                      x-kubernetes-validations:
+                      - message: must specify at least one of 'ui' or 'api'
+                        rule: has(self.ui) || has(self.api)
+                    match:
+                      description: the conditions which must ALL be satisfied for
+                        the rule to apply
+                      items:
+                        properties:
+                          matchImageConfig:
+                            description: match against the `spawner.labels` of an
+                              imageConfig value
+                            properties:
+                              selector:
+                                description: a standard Kubernetes label selector
+                                properties:
+                                  matchExpressions:
+                                    description: matchExpressions is a list of label
+                                      selector requirements. The requirements are
+                                      ANDed.
+                                    items:
+                                      description: |-
+                                        A label selector requirement is a selector that contains values, a key, and an operator that
+                                        relates the key and values.
+                                      properties:
+                                        key:
+                                          description: key is the label key that the
+                                            selector applies to.
+                                          type: string
+                                        operator:
+                                          description: |-
+                                            operator represents a key's relationship to a set of values.
+                                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                                          type: string
+                                        values:
+                                          description: |-
+                                            values is an array of string values. If the operator is In or NotIn,
+                                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                            the values array must be empty. This array is replaced during a strategic
+                                            merge patch.
+                                          items:
+                                            type: string
+                                          type: array
+                                          x-kubernetes-list-type: atomic
+                                      required:
+                                      - key
+                                      - operator
+                                      type: object
+                                    type: array
+                                    x-kubernetes-list-type: atomic
+                                  matchLabels:
+                                    additionalProperties:
+                                      type: string
+                                    description: |-
+                                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                    type: object
+                                type: object
+                                x-kubernetes-map-type: atomic
+                            required:
+                            - selector
+                            type: object
+                          matchNamespace:
+                            description: match against the labels of the namespace
+                              the workspace would be created in
+                            properties:
+                              selector:
+                                description: a standard Kubernetes label selector
+                                properties:
+                                  matchExpressions:
+                                    description: matchExpressions is a list of label
+                                      selector requirements. The requirements are
+                                      ANDed.
+                                    items:
+                                      description: |-
+                                        A label selector requirement is a selector that contains values, a key, and an operator that
+                                        relates the key and values.
+                                      properties:
+                                        key:
+                                          description: key is the label key that the
+                                            selector applies to.
+                                          type: string
+                                        operator:
+                                          description: |-
+                                            operator represents a key's relationship to a set of values.
+                                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                                          type: string
+                                        values:
+                                          description: |-
+                                            values is an array of string values. If the operator is In or NotIn,
+                                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                            the values array must be empty. This array is replaced during a strategic
+                                            merge patch.
+                                          items:
+                                            type: string
+                                          type: array
+                                          x-kubernetes-list-type: atomic
+                                      required:
+                                      - key
+                                      - operator
+                                      type: object
+                                    type: array
+                                    x-kubernetes-list-type: atomic
+                                  matchLabels:
+                                    additionalProperties:
+                                      type: string
+                                    description: |-
+                                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                    type: object
+                                type: object
+                                x-kubernetes-map-type: atomic
+                            required:
+                            - selector
+                            type: object
+                          matchPodConfig:
+                            description: match against the `spawner.labels` of a podConfig
+                              value
+                            properties:
+                              selector:
+                                description: a standard Kubernetes label selector
+                                properties:
+                                  matchExpressions:
+                                    description: matchExpressions is a list of label
+                                      selector requirements. The requirements are
+                                      ANDed.
+                                    items:
+                                      description: |-
+                                        A label selector requirement is a selector that contains values, a key, and an operator that
+                                        relates the key and values.
+                                      properties:
+                                        key:
+                                          description: key is the label key that the
+                                            selector applies to.
+                                          type: string
+                                        operator:
+                                          description: |-
+                                            operator represents a key's relationship to a set of values.
+                                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                                          type: string
+                                        values:
+                                          description: |-
+                                            values is an array of string values. If the operator is In or NotIn,
+                                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                            the values array must be empty. This array is replaced during a strategic
+                                            merge patch.
+                                          items:
+                                            type: string
+                                          type: array
+                                          x-kubernetes-list-type: atomic
+                                      required:
+                                      - key
+                                      - operator
+                                      type: object
+                                    type: array
+                                    x-kubernetes-list-type: atomic
+                                  matchLabels:
+                                    additionalProperties:
+                                      type: string
+                                    description: |-
+                                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                    type: object
+                                type: object
+                                x-kubernetes-map-type: atomic
+                            required:
+                            - selector
+                            type: object
+                        type: object
+                        x-kubernetes-validations:
+                        - message: must specify exactly one of 'matchNamespace', 'matchImageConfig',
+                            or 'matchPodConfig'
+                          rule: '(has(self.matchNamespace) ? 1 : 0) + (has(self.matchImageConfig)
+                            ? 1 : 0) + (has(self.matchPodConfig) ? 1 : 0) == 1'
+                      maxItems: 10
+                      minItems: 1
+                      type: array
+                      x-kubernetes-list-type: atomic
+                    scope:
+                      description: the type of resource whose visibility this rule
+                        controls
+                      enum:
+                      - WORKSPACE_KIND
+                      - POD_CONFIG
+                      - IMAGE_CONFIG
+                      type: string
+                  required:
+                  - effect
+                  - match
+                  - scope
+                  type: object
+                maxItems: 100
+                type: array
+                x-kubernetes-list-type: atomic
               podTemplate:
                 description: podTemplate is the PodTemplate used to spawn Pods to
                   run Workspaces of this WorkspaceKind
