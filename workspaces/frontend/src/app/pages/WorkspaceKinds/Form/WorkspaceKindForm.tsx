@@ -6,7 +6,13 @@ import { Content, ContentVariants } from '@patternfly/react-core/dist/esm/compon
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { PageGroup, PageSection } from '@patternfly/react-core/dist/esm/components/Page';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
-import { Tabs, Tab, TabTitleText } from '@patternfly/react-core/dist/esm/components/Tabs';
+import {
+  Tabs,
+  Tab,
+  TabTitleText,
+  TabContent,
+  TabContentBody,
+} from '@patternfly/react-core/dist/esm/components/Tabs';
 import { UndoIcon } from '@patternfly/react-icons/dist/esm/icons/undo-icon';
 import { useNotification } from 'mod-arch-core';
 import useGenericObjectState from 'mod-arch-core/dist/utilities/useGenericObjectState';
@@ -190,6 +196,7 @@ export const WorkspaceKindForm: React.FC = () => {
         );
         const yamlStr = yaml.dump(updateObj, { noRefs: true });
         setEditYamlValue(yamlStr);
+        setOriginalYaml(yamlStr);
         setYamlParseError(null);
       }
       setActiveTabKey(newTab);
@@ -387,61 +394,75 @@ export const WorkspaceKindForm: React.FC = () => {
                     eventKey={FORM_TAB_KEY}
                     title={<TabTitleText>Form</TabTitleText>}
                     aria-label="Form editor"
+                    tabContentId="form-tab-content"
                     data-testid="form-tab"
                   />
                   <Tab
                     eventKey={YAML_TAB_KEY}
                     title={<TabTitleText>YAML</TabTitleText>}
                     aria-label="YAML editor"
+                    tabContentId="yaml-tab-content"
                     data-testid="yaml-tab"
                   />
                 </Tabs>
               </StackItem>
-              {activeTabKey === FORM_TAB_KEY && (
-                <>
-                  <StackItem data-testid="workspace-kind-form-properties">
-                    <WorkspaceKindFormProperties
-                      mode={mode}
-                      properties={data.properties}
-                      updateField={(properties) => setData('properties', properties)}
-                    />
-                  </StackItem>
-                  <StackItem>
-                    <WorkspaceKindFormImage
-                      mode={mode}
-                      imageConfig={data.imageConfig}
-                      updateImageConfig={(imageInput) => {
-                        setData('imageConfig', imageInput);
-                      }}
-                    />
-                  </StackItem>
-                  <StackItem>
-                    <WorkspaceKindFormPodConfig
-                      podConfig={data.podConfig}
-                      updatePodConfig={(podConfig) => {
-                        setData('podConfig', podConfig);
-                      }}
-                    />
-                  </StackItem>
-                  <StackItem>
-                    <WorkspaceKindFormPodTemplate
-                      podTemplate={data.podTemplate}
-                      updatePodTemplate={(podTemplate) => {
-                        setData('podTemplate', podTemplate);
-                      }}
-                    />
-                  </StackItem>
-                </>
-              )}
-              {activeTabKey === YAML_TAB_KEY && (
-                <StackItem isFilled>
+              <TabContent
+                id="form-tab-content"
+                eventKey={FORM_TAB_KEY}
+                activeKey={activeTabKey}
+                hidden={activeTabKey !== FORM_TAB_KEY}
+              >
+                <TabContentBody>
+                  <Stack hasGutter>
+                    <StackItem data-testid="workspace-kind-form-properties">
+                      <WorkspaceKindFormProperties
+                        mode={mode}
+                        properties={data.properties}
+                        updateField={(properties) => setData('properties', properties)}
+                      />
+                    </StackItem>
+                    <StackItem>
+                      <WorkspaceKindFormImage
+                        mode={mode}
+                        imageConfig={data.imageConfig}
+                        updateImageConfig={(imageInput) => {
+                          setData('imageConfig', imageInput);
+                        }}
+                      />
+                    </StackItem>
+                    <StackItem>
+                      <WorkspaceKindFormPodConfig
+                        podConfig={data.podConfig}
+                        updatePodConfig={(podConfig) => {
+                          setData('podConfig', podConfig);
+                        }}
+                      />
+                    </StackItem>
+                    <StackItem>
+                      <WorkspaceKindFormPodTemplate
+                        podTemplate={data.podTemplate}
+                        updatePodTemplate={(podTemplate) => {
+                          setData('podTemplate', podTemplate);
+                        }}
+                      />
+                    </StackItem>
+                  </Stack>
+                </TabContentBody>
+              </TabContent>
+              <TabContent
+                id="yaml-tab-content"
+                eventKey={YAML_TAB_KEY}
+                activeKey={activeTabKey}
+                hidden={activeTabKey !== YAML_TAB_KEY}
+              >
+                <TabContentBody>
                   <WorkspaceKindYamlEditor
                     value={editYamlValue}
                     onChange={handleYamlChange}
                     error={yamlParseError}
                   />
-                </StackItem>
-              )}
+                </TabContentBody>
+              </TabContent>
             </>
           )}
         </Stack>
@@ -462,7 +483,7 @@ export const WorkspaceKindForm: React.FC = () => {
           {mode === 'edit' && (
             <FlexItem>
               <Button variant="link" onClick={handleRevert} data-testid="revert-button">
-                <UndoIcon />
+                <UndoIcon className="pf-v6-u-mr-sm" />
                 Revert
               </Button>
             </FlexItem>
