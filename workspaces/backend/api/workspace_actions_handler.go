@@ -60,7 +60,7 @@ func (a *App) PauseActionWorkspaceHandler(w http.ResponseWriter, r *http.Request
 	namespace := ps.ByName(constants.NamespacePathParam)
 	workspaceName := ps.ByName(constants.ResourceNamePathParam)
 
-	var valErrs field.ErrorList
+	var valErrs field.ErrorList //nolint:prealloc
 	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(constants.NamespacePathParam), namespace)...)
 	valErrs = append(valErrs, helper.ValidateWorkspaceName(field.NewPath(constants.ResourceNamePathParam), workspaceName)...)
 	if len(valErrs) > 0 {

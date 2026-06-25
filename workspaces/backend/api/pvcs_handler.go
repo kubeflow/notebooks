@@ -53,7 +53,7 @@ func (a *App) GetPVCsByNamespaceHandler(w http.ResponseWriter, r *http.Request, 
 	namespace := ps.ByName(constants.NamespacePathParam)
 
 	// validate path parameters
-	var valErrs field.ErrorList
+	var valErrs field.ErrorList //nolint:prealloc
 	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(constants.NamespacePathParam), namespace)...)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
@@ -209,7 +209,7 @@ func (a *App) DeletePVCHandler(w http.ResponseWriter, r *http.Request, ps httpro
 	pvcName := ps.ByName(constants.ResourceNamePathParam)
 
 	// validate path parameters
-	var valErrs field.ErrorList
+	var valErrs field.ErrorList //nolint:prealloc
 	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(constants.NamespacePathParam), namespace)...)
 	valErrs = append(valErrs, helper.ValidateKubernetesPVCName(field.NewPath(constants.ResourceNamePathParam), pvcName)...)
 	if len(valErrs) > 0 {

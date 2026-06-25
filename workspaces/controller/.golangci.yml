@@ -1,39 +1,8 @@
+version: "2"
 run:
-  timeout: 5m
   allow-parallel-runners: true
-
-issues:
-  # disable the default set of exclude rules
-  exclude-use-default: false
-
-  exclude-rules:
-    # disable some linters for api packages
-    - path: "api/*"
-      linters:
-        - lll
-
-    # disable some linters for internal packages
-    - path: "internal/*"
-      linters:
-        - dupl
-        - lll
-
-    # exclude some linters for the test directory and test files
-    - path: test/.*|.*_test\.go
-      linters:
-        - dupl
-        - errcheck
-        - goconst
-        - gocyclo
-        - gosec
-
-    # we are ok to shadow the log package
-    - text: "importShadow: shadow of imported from 'sigs.k8s.io/controller-runtime/pkg/log' package 'log'"
-      linters:
-        - gocritic
-
 linters:
-  disable-all: true
+  default: none
   enable:
     - asciicheck
     - bodyclose
@@ -47,12 +16,9 @@ linters:
     - goconst
     - gocritic
     - gocyclo
-    - gofmt
     - goheader
-    - goimports
     - goprintffuncname
     - gosec
-    - gosimple
     - govet
     - ineffassign
     - lll
@@ -62,49 +28,79 @@ linters:
     - prealloc
     - revive
     - staticcheck
-    - typecheck
     - unconvert
     - unparam
     - unused
+  settings:
+    gocritic:
+      disabled-checks:
+        - assignOp
+        - filepathJoin
+        - paramTypeCombine
+        - rangeValCopy
+        - unnamedResult
+        - whyNoLint
+      enabled-tags:
+        - diagnostic
+        - experimental
+        - opinionated
+        - performance
+        - style
+    goheader:
+      template: |-
+        Copyright 2024.
 
-linters-settings:
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - experimental
-      - opinionated
-      - performance
-      - style
-    disabled-checks:
-      - assignOp
-      - filepathJoin
-      - paramTypeCombine
-      - rangeValCopy
-      - unnamedResult
-      - whyNoLint
+        Licensed under the Apache License, Version 2.0 (the "License");
+        you may not use this file except in compliance with the License.
+        You may obtain a copy of the License at
 
-  goimports:
-    local-prefixes: github.com/kubeflow/notebooks/workspaces/controller
+            http://www.apache.org/licenses/LICENSE-2.0
 
-  goheader:
-    template: |-
-      Copyright 2024.
-      
-      Licensed under the Apache License, Version 2.0 (the "License");
-      you may not use this file except in compliance with the License.
-      You may obtain a copy of the License at
-      
-          http://www.apache.org/licenses/LICENSE-2.0
-      
-      Unless required by applicable law or agreed to in writing, software
-      distributed under the License is distributed on an "AS IS" BASIS,
-      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-      See the License for the specific language governing permissions and
-      limitations under the License.
-
-  misspell:
-    locale: US
-
-  revive:
+        Unless required by applicable law or agreed to in writing, software
+        distributed under the License is distributed on an "AS IS" BASIS,
+        WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+        See the License for the specific language governing permissions and
+        limitations under the License.
+    misspell:
+      locale: US
+    revive:
+      rules:
+        - name: comment-spacings
+  exclusions:
+    generated: lax
     rules:
-      - name: comment-spacings
+      - linters:
+          - lll
+        path: api/*
+      - linters:
+          - dupl
+          - lll
+        path: internal/*
+      - linters:
+          - dupl
+          - errcheck
+          - goconst
+          - gocyclo
+          - gosec
+        path: test/.*|.*_test\.go
+      - linters:
+          - gocritic
+        text: 'importShadow: shadow of imported from ''sigs.k8s.io/controller-runtime/pkg/log'' package ''log'''
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/kubeflow/notebooks/workspaces/controller
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
