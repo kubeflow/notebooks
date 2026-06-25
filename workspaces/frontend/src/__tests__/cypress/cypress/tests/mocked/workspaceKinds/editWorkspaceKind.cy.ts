@@ -1395,6 +1395,14 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.assertYamlEditorNotVisible();
     });
 
+    it('should have Save disabled when no changes are made in Form tab', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.assertSubmitButtonDisabled(true);
+    });
+
     it('should have Save disabled in YAML tab when no changes are made', () => {
       const { mockWorkspaceKind } = setupEditWorkspaceKind();
 
@@ -1405,71 +1413,62 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.assertSubmitButtonDisabled(true);
     });
 
-    it('should call update API when saving valid YAML', () => {
+    it('should show form sections when switching from YAML back to Form', () => {
       const { mockWorkspaceKind } = setupEditWorkspaceKind();
-
-      cy.interceptApi(
-        'PUT /api/:apiVersion/workspacekinds/:kind',
-        { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKind.name } },
-        mockModArchResponse(buildMockWorkspaceKindUpdate(mockWorkspaceKind)),
-      ).as('updateWorkspaceKindYaml');
 
       visitEditWorkspaceKind(mockWorkspaceKind.name);
 
       editWorkspaceKind.clickYamlTab();
+      editWorkspaceKind.assertYamlEditorVisible();
 
-      // Type into the Monaco editor to trigger a change
-      editWorkspaceKind
-        .findYamlEditor()
-        .find('.monaco-editor textarea')
-        .first()
-        .click({ force: true });
-      editWorkspaceKind
-        .findYamlEditor()
-        .find('.monaco-editor textarea')
-        .first()
-        .type('{end}{enter}# edited', { force: true });
+      editWorkspaceKind.clickFormTab();
 
-      editWorkspaceKind.assertSubmitButtonDisabled(false);
-      editWorkspaceKind.clickSubmit();
+      editWorkspaceKind.assertPropertiesSectionVisible();
+      editWorkspaceKind.assertImageConfigSectionVisible();
+      editWorkspaceKind.assertPodConfigSectionVisible();
+      editWorkspaceKind.assertPodTemplateSectionVisible();
+    });
+  });
 
-      cy.wait('@updateWorkspaceKindYaml');
-      workspaceKinds.verifyPageURL();
+  describe('Revert button', () => {
+    it('should display revert button in edit mode', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.assertRevertButtonVisible();
     });
 
-    it('should display error when update API fails from YAML tab', () => {
+    it('should revert form changes when clicked', () => {
       const { mockWorkspaceKind } = setupEditWorkspaceKind();
-
-      cy.interceptApi(
-        'PUT /api/:apiVersion/workspacekinds/:kind',
-        { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKind.name } },
-        {
-          error: {
-            code: '500',
-            message: 'Internal server error',
-          },
-        },
-      ).as('updateWorkspaceKindYamlError');
 
       visitEditWorkspaceKind(mockWorkspaceKind.name);
 
-      editWorkspaceKind.clickYamlTab();
+      editWorkspaceKind.expandPropertiesSection();
+      editWorkspaceKind.typeDescription('Modified description');
 
-      editWorkspaceKind
-        .findYamlEditor()
-        .find('.monaco-editor textarea')
-        .first()
-        .click({ force: true });
-      editWorkspaceKind
-        .findYamlEditor()
-        .find('.monaco-editor textarea')
-        .first()
-        .type('{end}{enter}# edited', { force: true });
+      editWorkspaceKind.assertSubmitButtonDisabled(false);
 
-      editWorkspaceKind.clickSubmit();
+      editWorkspaceKind.clickRevert();
 
-      cy.wait('@updateWorkspaceKindYamlError');
-      editWorkspaceKind.assertErrorAlertVisible();
+      editWorkspaceKind.assertSubmitButtonDisabled(true);
+      editWorkspaceKind.expandPropertiesSection();
+      editWorkspaceKind.assertDescription(mockWorkspaceKind.description);
+    });
+
+    it('should disable Save after reverting changes', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandPropertiesSection();
+      editWorkspaceKind.typeWorkspaceKindName('Changed Name');
+
+      editWorkspaceKind.assertSubmitButtonDisabled(false);
+
+      editWorkspaceKind.clickRevert();
+
+      editWorkspaceKind.assertSubmitButtonDisabled(true);
     });
   });
 });

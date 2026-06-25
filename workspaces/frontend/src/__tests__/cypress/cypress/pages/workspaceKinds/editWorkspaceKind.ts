@@ -1182,6 +1182,19 @@ class EditWorkspaceKind {
     this.findYamlParseError().should('not.exist');
   }
 
+  // Revert button
+  findRevertButton() {
+    return cy.findByTestId('revert-button');
+  }
+
+  clickRevert() {
+    this.findRevertButton().click();
+  }
+
+  assertRevertButtonVisible() {
+    this.findRevertButton().should('be.visible');
+  }
+
   private wait() {
     this.findPageTitle();
     cy.testA11y();
