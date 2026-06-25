@@ -254,16 +254,17 @@ class VolumesCreateModal {
   }
 
   // Access Mode
-  findAccessModeRadio(mode: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId(`access-mode-${mode}`);
+  findAccessModeSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('access-mode-select');
   }
 
-  selectAccessMode(mode: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findAccessModeRadio(mode).click({ force: true });
+  selectAccessMode(mode: string): void {
+    this.findAccessModeSelect().click();
+    cy.findByTestId(`access-mode-option-${mode}`).click();
   }
 
-  assertAccessModeChecked(mode: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findAccessModeRadio(mode).should('be.checked');
+  assertAccessModeSelected(mode: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findAccessModeSelect().should('contain.text', mode);
   }
 
   // Read-only Switch
@@ -273,6 +274,14 @@ class VolumesCreateModal {
 
   toggleReadOnly(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findReadOnlySwitch().click({ force: true });
+  }
+
+  assertReadOnlySwitchExists(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findReadOnlySwitch().should('exist');
+  }
+
+  assertReadOnlySwitchNotExists(): void {
+    cy.findByTestId('read-only-switch').should('not.exist');
   }
 
   // Error Alert
