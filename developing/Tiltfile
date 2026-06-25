@@ -45,9 +45,8 @@ docker_build(
 )
 
 # Build manifests with kustomize
-# Use dev overlay when Prometheus is enabled to include ServiceMonitor and metrics port
 if enable_prometheus:
-    controller_kustomize_path = os.path.join(tilt_root, "manifests/overlays/controller-prometheus")
+    controller_kustomize_path = os.path.join(controller_dir, "manifests/kustomize/overlays/istio-prometheus")
 else:
     controller_kustomize_path = os.path.join(controller_dir, "manifests/kustomize/overlays/istio")
 manifests = kustomize(controller_kustomize_path, kustomize_bin=kustomize_bin)
@@ -347,7 +346,7 @@ local_resource(
 if enable_prometheus:
     local_resource(
         "prometheus-ui",
-        serve_cmd="kubectl port-forward -n prometheus-system svc/prometheus-operated 9090:9090",
+        serve_cmd="kubectl port-forward -n monitoring svc/prometheus-operated 9090:9090",
         resource_deps=["workspaces-controller"],
         links=[link("http://localhost:9090", "Prometheus UI")],
         labels=["prometheus"],

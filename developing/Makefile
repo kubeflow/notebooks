@@ -34,31 +34,29 @@ setup-kind:
 	@if [ -n "$$KIND_EXPERIMENTAL_PROVIDER" ]; then \
 		echo "Using KIND_EXPERIMENTAL_PROVIDER=$$KIND_EXPERIMENTAL_PROVIDER"; \
 	fi
-	@./scripts/setup-kind.sh
+	@export PATH="$(LOCALBIN):$$PATH" && ./scripts/setup-kind.sh
 
 # Install cert-manager (depends on kind cluster being set up)
 .PHONY: setup-cert-manager
-setup-cert-manager: setup-kind
+setup-cert-manager:
 	@echo "Setting up cert-manager..."
-	@./scripts/setup-cert-manager.sh
+	@export PATH="$(LOCALBIN):$$PATH" && ./scripts/setup-cert-manager.sh
 
 # Install Istio and gateway resources (depends on cert-manager for TLS certificates)
 .PHONY: setup-istio
 setup-istio: setup-cert-manager
 	@echo "Setting up Istio..."
-	@./scripts/setup-istio.sh
+	@export PATH="$(LOCALBIN):$$PATH" && ./scripts/setup-istio.sh
 
 # Install Prometheus for metrics verification (optional, depends on kind cluster)
-setup-prometheus: setup-kind
+.PHONY: setup-prometheus
+setup-prometheus:
 	@echo "Setting up Prometheus..."
-	@./scripts/setup-prometheus.sh
+	@export PATH="$(LOCALBIN):$$PATH" && ./scripts/setup-prometheus.sh
 
 # Run tilt up with kind cluster, cert-manager, and Istio setup
 .PHONY: tilt-up
-tilt-up: check-tilt setup-istio kustomize
-ifeq ($(ENABLE_PROMETHEUS),true)
-	@$(MAKE) setup-prometheus
-endif
+tilt-up: kustomize check-tilt setup-kind setup-istio setup-prometheus
 	@echo "Starting Tilt..."
 	@tilt up
 

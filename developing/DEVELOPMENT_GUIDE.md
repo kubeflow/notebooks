@@ -107,7 +107,12 @@ You can now start developing with Tilt by following these steps:
 ```bash
 # (from the root of the repository)
 cd developing
+
+# OPTION 1: run with the frontend enabled (default)
 make tilt-up
+
+# OPTION 2: run with prometheus metrics enabled
+ENABLE_PROMETHEUS=true make tilt-up
 ```
 
 What this does:
