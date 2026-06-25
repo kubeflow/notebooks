@@ -1,9 +1,9 @@
 labels:
   - area/controller
 approvers:
-  - kimwnasptd
   - thesuperzapper
 emeritus_approvers:
   - elikatsis
+  - kimwnasptd
   - StefanoFioravanzo
   - yanniszark
