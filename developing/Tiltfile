@@ -13,6 +13,9 @@ allow_k8s_contexts('kind-tilt')
 # Allow skipping frontend via environment variable
 enable_frontend = os.getenv("ENABLE_FRONTEND", "true").lower() == "true"
 
+# Allow enabling Prometheus for metrics verification via environment variable
+enable_prometheus = os.getenv("ENABLE_PROMETHEUS", "false").lower() == "true"
+
 # Get paths relative to Tiltfile location
 # Tilt evaluates paths relative to the Tiltfile directory
 tilt_root = os.path.dirname(os.path.abspath(__file__))
@@ -42,7 +45,10 @@ docker_build(
 )
 
 # Build manifests with kustomize
-controller_kustomize_path = os.path.join(controller_dir, "manifests/kustomize/overlays/istio")
+if enable_prometheus:
+    controller_kustomize_path = os.path.join(controller_dir, "manifests/kustomize/overlays/istio-prometheus")
+else:
+    controller_kustomize_path = os.path.join(controller_dir, "manifests/kustomize/overlays/istio")
 manifests = kustomize(controller_kustomize_path, kustomize_bin=kustomize_bin)
 
 # Apply manifests
@@ -331,3 +337,17 @@ local_resource(
     links=gateway_links,
     labels=["istio"],
 )
+
+
+# ============================================================================
+# Prometheus (optional)
+# ============================================================================
+
+if enable_prometheus:
+    local_resource(
+        "prometheus-ui",
+        serve_cmd="kubectl port-forward -n monitoring svc/prometheus-operated 9090:9090",
+        resource_deps=["workspaces-controller"],
+        links=[link("http://localhost:9090", "Prometheus UI")],
+        labels=["prometheus"],
+    )

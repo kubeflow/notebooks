@@ -76,6 +76,22 @@ Before using Tilt, ensure you have the following installed:
 - [Kubernetes cluster](https://kubernetes.io/docs/setup/) - a local cluster (e.g., [Kind](https://kind.sigs.k8s.io/))
 - [kubectl](https://kubernetes.io/docs/tasks/tools/) - configured to connect to your cluster
 
+### Tilt - System Requirements
+
+The Tilt development environment runs a 2-node Kind cluster with Istio, cert-manager, and the full Kubeflow Notebooks stack. Ensure your machine meets these minimums:
+
+| | Minimum | Recommended |
+|---|---------|-------------|
+| **CPU** | 4 cores | 8 cores |
+| **Memory** | 6 GB (allocated to Docker/Podman) | 8 GB |
+| **Disk** | 5 GB free (images + cluster state) | 10 GB free |
+
+> [!NOTE]
+>
+> The frontend webpack dev server is the heaviest component, requesting 3 GiB of memory.
+> If resources are tight, you can run without it using `ENABLE_FRONTEND=false make tilt-up`,
+> which reduces memory requirements by roughly 3 GiB.
+
 ### Tilt - Quick Start
 
 First, verify that you have the required tools installed and check their versions:
@@ -91,7 +107,12 @@ You can now start developing with Tilt by following these steps:
 ```bash
 # (from the root of the repository)
 cd developing
+
+# OPTION 1: run with the frontend enabled (default)
 make tilt-up
+
+# OPTION 2: run with prometheus metrics enabled
+ENABLE_PROMETHEUS=true make tilt-up
 ```
 
 What this does:
