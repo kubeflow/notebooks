@@ -3,6 +3,16 @@
   i18n-title="Title for the CPU/RAM form section"
   helpText="Configure the resources allocated to the notebook. Minimum and maximum values correspond to K8s requests and limits for the resources of the underlying Pod."
 >
+  <div *ngIf="parentForm.get('memory').disabled && parentForm.get('cpu').disabled" id="disabledResourcesInfo">
+    Resources will be set automatically based on the number and type of GPUs.
+  </div>
+  <div *ngIf="parentForm.get('cpu').disabled && !parentForm.get('memory').disabled" id="disabledResourcesInfo">
+    CPU resources will be set automatically based on the number and type of GPUs.
+  </div>
+  <div *ngIf="!parentForm.get('cpu').disabled && parentForm.get('memory').disabled" id="disabledResourcesInfo">
+    Memory resources will be set automatically based on the number and type of GPUs.
+  </div>
+
   <div class="row">
     <!--CPU-->
     <lib-positive-number-input

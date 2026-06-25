@@ -6,7 +6,7 @@ from cachetools.func import ttl_cache
 from kubernetes import client
 from werkzeug import exceptions
 
-from kubeflow.kubeflow.crud_backend import helpers, logging
+from kubeflow.kubeflow.crud_backend import helpers, logging, api
 
 from . import status
 
@@ -123,6 +123,13 @@ def get_notebook_last_activity(notebook):
     annotations = notebook["metadata"].get("annotations", {})
     return annotations.get(LAST_ACTIVITY_ANNOTATION, "")
 
+def get_notebook_container(namespace, notebook_name):
+    pods = api.list_pods(namespace, label_selector=f"notebook-name={notebook_name}")
+    if len(pods.items) == 0:
+        msg = f"Couldn't find pod for notebook {notebook_name}"
+        log.info(msg)
+        return None
+    return pods.items[0].spec.containers[0]
 
 def notebook_dict_from_k8s_obj(notebook):
     cntr = notebook["spec"]["template"]["spec"]["containers"][0]
@@ -130,18 +137,31 @@ def notebook_dict_from_k8s_obj(notebook):
     if notebook["metadata"].get("annotations"):
         annotations = notebook["metadata"]["annotations"]
         server_type = annotations.get("notebooks.kubeflow.org/server-type")
+    cpu = cntr.get("resources", {}).get("requests", {}).get("cpu", None)
+    memory = cntr.get("resources", {}).get("requests", {}).get("memory", None)
+    namespace = notebook["metadata"]["namespace"]
+    notebook_name = notebook["metadata"]["name"]
+
+    if not cpu: 
+        ctr = get_notebook_container(namespace, notebook_name)
+        if hasattr(ctr, "resources") and hasattr(ctr.resources, "requests") and hasattr(ctr.resources.requests, "cpu"):
+            cpu = ctr.resources.requests.cpu
+    if not memory:
+        ctr = get_notebook_container(namespace, notebook_name)
+        if hasattr(ctr, "resources") and hasattr(ctr.resources, "requests") and hasattr(ctr.resources.requests, "memory"):
+            memory = ctr.resources.requests.memory
 
     return {
-        "name": notebook["metadata"]["name"],
-        "namespace": notebook["metadata"]["namespace"],
+        "name": notebook_name,
+        "namespace": namespace,
         "serverType": server_type,
         "age": notebook["metadata"]["creationTimestamp"],
         "last_activity": get_notebook_last_activity(notebook),
         "image": cntr["image"],
         "shortImage": cntr["image"].split("/")[-1],
-        "cpu": cntr["resources"]["requests"]["cpu"],
+        "cpu": cpu,
         "gpus": process_gpus(cntr),
-        "memory": cntr["resources"]["requests"]["memory"],
+        "memory": memory,
         "volumes": [v["name"] for v in cntr["volumeMounts"]],
         "status": status.process_status(notebook),
         "metadata": notebook["metadata"],

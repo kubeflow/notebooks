@@ -34,12 +34,14 @@ export interface Config {
     value: string;
     limitFactor: string;
     readOnly?: boolean;
+    disableIfGPU?: boolean;
   };
 
   memory?: {
     value: string;
     limitFactor: string;
     readOnly?: boolean;
+    disableIfGPU?: boolean;
   };
 
   environment?: {
