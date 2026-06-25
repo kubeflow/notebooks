@@ -150,6 +150,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Create a metadata-only cached client for listing Secrets
+	secretMetadataClient, err := helper.BuildSecretMetadataClient(mgr)
+	if err != nil {
+		logger.Error("failed to create Secret metadata client", "error", err)
+		os.Exit(1)
+	}
+
 	// Create the request authenticator
 	reqAuthN, err := auth.NewRequestAuthenticator(cfg.UserIdHeader, cfg.UserIdPrefix, cfg.GroupsHeader)
 	if err != nil {
@@ -178,6 +185,7 @@ func main() {
 		logger,
 		mgr.GetClient(),
 		imageSourceConfigMapClient,
+		secretMetadataClient,
 		mgr.GetScheme(),
 		reqAuthN,
 		reqAuthZ,
