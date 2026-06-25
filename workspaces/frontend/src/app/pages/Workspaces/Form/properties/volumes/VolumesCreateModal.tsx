@@ -20,10 +20,9 @@ import {
   ModalHeader,
   ModalVariant,
 } from '@patternfly/react-core/dist/esm/components/Modal';
-import { Radio } from '@patternfly/react-core/dist/esm/components/Radio';
+
 import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
-import { List, ListItem } from '@patternfly/react-core/dist/esm/components/List';
 import { Popover } from '@patternfly/react-core/dist/esm/components/Popover';
 import { InfoCircleIcon } from '@patternfly/react-icons/dist/esm/icons/info-circle-icon';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons/dist/esm/icons/outlined-question-circle-icon';
@@ -38,10 +37,26 @@ import { ResourceInputWrapper } from '~/shared/components/ResourceInputWrapper';
 import { MountPathField } from '~/app/pages/Workspaces/Form/MountPathField';
 
 const ACCESS_MODES = [
-  { label: 'ReadWriteOnce (RWO)', value: V1PersistentVolumeAccessMode.ReadWriteOnce },
-  { label: 'ReadWriteMany (RWX)', value: V1PersistentVolumeAccessMode.ReadWriteMany },
-  { label: 'ReadOnlyMany (ROX)', value: V1PersistentVolumeAccessMode.ReadOnlyMany },
-  { label: 'ReadWriteOncePod (RWOP)', value: V1PersistentVolumeAccessMode.ReadWriteOncePod },
+  {
+    label: 'ReadWriteOnce (RWO)',
+    value: V1PersistentVolumeAccessMode.ReadWriteOnce,
+    description: 'The volume can be attached to a single workspace at a given time',
+  },
+  {
+    label: 'ReadWriteMany (RWX)',
+    value: V1PersistentVolumeAccessMode.ReadWriteMany,
+    description: 'The volume can be attached to many workspaces simultaneously',
+  },
+  {
+    label: 'ReadOnlyMany (ROX)',
+    value: V1PersistentVolumeAccessMode.ReadOnlyMany,
+    description: 'The volume can be attached to many workspaces as read-only',
+  },
+  {
+    label: 'ReadWriteOncePod (RWOP)',
+    value: V1PersistentVolumeAccessMode.ReadWriteOncePod,
+    description: 'The volume can be attached to a single pod on a single node as read-write',
+  },
 ] as const;
 
 export interface VolumesCreateModalProps {
@@ -91,6 +106,8 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
     isMountPathEditing,
     isStorageClassOpen,
     setIsStorageClassOpen,
+    isAccessModeOpen,
+    setIsAccessModeOpen,
     isSubmitting,
     error,
     setError,
@@ -130,28 +147,30 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
         isFixed={!!fixedMountPath}
         fieldId="create-volume-mount-path"
       />
-      <ThemeAwareFormGroupWrapper
-        label="Read-only Access"
-        fieldId="read-only"
-        skipFieldset
-        labelHelp={
-          <Popover
-            headerContent="Read-only access"
-            bodyContent="Mount the volume as read-only when this workspace only needs to read data. This prevents accidental or unintended writes to shared volumes."
-          >
-            <OutlinedQuestionCircleIcon />
-          </Popover>
-        }
-      >
-        <Switch
-          id="read-only-switch"
-          data-testid="read-only-switch"
-          label="Enabled"
-          hasCheckIcon
-          isChecked={readOnly}
-          onChange={(_ev, checked) => setReadOnly(checked)}
-        />
-      </ThemeAwareFormGroupWrapper>
+      {!fixedMountPath && (
+        <ThemeAwareFormGroupWrapper
+          label="Read-only Access"
+          fieldId="read-only"
+          skipFieldset
+          labelHelp={
+            <Popover
+              headerContent="Read-only access"
+              bodyContent="Mount the volume as read-only when this workspace only needs to read data. This prevents accidental or unintended writes to shared volumes."
+            >
+              <OutlinedQuestionCircleIcon />
+            </Popover>
+          }
+        >
+          <Switch
+            id="read-only-switch"
+            data-testid="read-only-switch"
+            label="Enabled"
+            hasCheckIcon
+            isChecked={readOnly}
+            onChange={(_ev, checked) => setReadOnly(checked)}
+          />
+        </ThemeAwareFormGroupWrapper>
+      )}
     </>
   );
 
@@ -275,61 +294,50 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
                 label="Access Mode"
                 isRequired
                 fieldId="access-mode"
-                role="radiogroup"
-                skipFieldset
-                isInline
-                labelHelp={
-                  <Popover
-                    headerContent="Access mode"
-                    bodyContent={
-                      <>
-                        Access mode is a Kubernetes concept that determines how nodes can interact
-                        with the volume
-                        <List className="pf-v6-u-mt-sm">
-                          <ListItem>
-                            <strong>ReadWriteMany (RWX)</strong> means that the volume can be
-                            attached to many workspaces simultaneously
-                          </ListItem>
-                          <ListItem>
-                            <strong>ReadOnlyMany (ROX)</strong> means that the volume can be
-                            attached to many workspaces as read-only
-                          </ListItem>
-                          <ListItem>
-                            <strong>ReadWriteOnce (RWO)</strong> means that the volume can be
-                            attached to a single workspace at a given time
-                          </ListItem>
-                          <ListItem>
-                            <strong>ReadWriteOncePod (RWOP)</strong> means that the volume can be
-                            attached to a single pod on a single node as read-write
-                          </ListItem>
-                        </List>
-                      </>
-                    }
-                  >
-                    <OutlinedQuestionCircleIcon />
-                  </Popover>
-                }
                 helperTextNode={
                   <HelperText>
                     <HelperTextItem>
                       <InfoCircleIcon className="pf-v6-u-mr-xs" />
-                      Access mode cannot be changed after creation
+                      Access mode is a Kubernetes concept that determines how nodes can interact
+                      with the volume. It cannot be changed after creation
                     </HelperTextItem>
                   </HelperText>
                 }
               >
-                {ACCESS_MODES.map(({ label, value }) => (
-                  <Radio
-                    key={value}
-                    id={`access-mode-${value}`}
-                    data-testid={`access-mode-${value}`}
-                    name="access-mode"
-                    label={label}
-                    value={value}
-                    isChecked={accessMode === value}
-                    onChange={() => setAccessMode(value)}
-                  />
-                ))}
+                <Select
+                  id="access-mode"
+                  isOpen={isAccessModeOpen}
+                  selected={accessMode}
+                  onSelect={(_ev, value) => {
+                    setAccessMode(value as V1PersistentVolumeAccessMode);
+                    setIsAccessModeOpen(false);
+                  }}
+                  onOpenChange={setIsAccessModeOpen}
+                  toggle={(toggleRef) => (
+                    <MenuToggle
+                      ref={toggleRef}
+                      onClick={() => setIsAccessModeOpen((prev) => !prev)}
+                      isExpanded={isAccessModeOpen}
+                      isFullWidth
+                      data-testid="access-mode-select"
+                    >
+                      {ACCESS_MODES.find((m) => m.value === accessMode)?.label ?? accessMode}
+                    </MenuToggle>
+                  )}
+                >
+                  <SelectList>
+                    {ACCESS_MODES.map(({ label, value, description }) => (
+                      <SelectOption
+                        key={value}
+                        value={value}
+                        description={description}
+                        data-testid={`access-mode-option-${value}`}
+                      >
+                        {label}
+                      </SelectOption>
+                    ))}
+                  </SelectList>
+                </Select>
               </ThemeAwareFormGroupWrapper>
               <ThemeAwareFormGroupWrapper
                 label="Volume Size"

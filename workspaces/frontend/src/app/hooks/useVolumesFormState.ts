@@ -76,6 +76,8 @@ interface UseVolumesFormStateResult {
   isMountPathEditing: boolean;
   isStorageClassOpen: boolean;
   setIsStorageClassOpen: Dispatch<SetStateAction<boolean>>;
+  isAccessModeOpen: boolean;
+  setIsAccessModeOpen: Dispatch<SetStateAction<boolean>>;
   isSubmitting: boolean;
   error: string | ApiErrorEnvelope | null;
   setError: Dispatch<SetStateAction<string | ApiErrorEnvelope | null>>;
@@ -117,6 +119,7 @@ const useVolumesFormState = ({
   const [readOnly, setReadOnly] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isStorageClassOpen, setIsStorageClassOpen] = useState(false);
+  const [isAccessModeOpen, setIsAccessModeOpen] = useState(false);
   const [error, setError] = useState<string | ApiErrorEnvelope | null>(null);
 
   useEffect(() => {
@@ -137,6 +140,7 @@ const useVolumesFormState = ({
       setIsMountPathEditing(false);
       setIsSubmitting(false);
       setIsStorageClassOpen(false);
+      setIsAccessModeOpen(false);
       setError(storageClassLoadError);
     }
   }, [isOpen, fixedMountPath, isEditMode, volumeToEdit, storageClasses, storageClassLoadError]);
@@ -249,6 +253,8 @@ const useVolumesFormState = ({
     isMountPathEditing,
     isStorageClassOpen,
     setIsStorageClassOpen,
+    isAccessModeOpen,
+    setIsAccessModeOpen,
     isSubmitting,
     error,
     setError,
