@@ -1,6 +1,19 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter as Router } from 'react-router-dom';
+import * as monaco from 'monaco-editor';
+import { loader } from '@monaco-editor/react';
+
+window.MonacoEnvironment = {
+  getWorker(_moduleId: string, label: string) {
+    if (label === 'yaml') {
+      return new Worker(new URL('monaco-yaml/yaml.worker', import.meta.url));
+    }
+    return new Worker(new URL('monaco-editor/esm/vs/editor/editor.worker', import.meta.url));
+  },
+};
+
+loader.config({ monaco });
 import {
   BrowserStorageContextProvider,
   ModularArchConfig,

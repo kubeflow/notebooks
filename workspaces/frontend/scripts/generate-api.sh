@@ -24,4 +24,7 @@ swagger-typescript-api generate \
   --unwrap-response-data \
   --modular
 
+SCHEMA_OUTPUT="./src/app/pages/WorkspaceKinds/Form/yamlEditor/workspaceKindUpdateSchema.json"
+node ./scripts/generate-schema.js "$TMP_SWAGGER" "$SCHEMA_OUTPUT"
+
 rm "$TMP_SWAGGER"
