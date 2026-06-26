@@ -13,6 +13,12 @@ allow_k8s_contexts('kind-tilt')
 # Allow skipping frontend via environment variable
 enable_frontend = os.getenv("ENABLE_FRONTEND", "true").lower() == "true"
 
+# Allow skipping the dashboard setup via environment variable
+enable_dashboard = os.getenv("ENABLE_DASHBOARD", "true").lower() == "true"
+
+if enable_dashboard and not enable_frontend:
+    fail(msg="Setting 'ENABLE_DASHBOARD' requires 'ENABLE_FRONTEND', exiting!")
+
 # Allow enabling Prometheus for metrics verification via environment variable
 enable_prometheus = os.getenv("ENABLE_PROMETHEUS", "false").lower() == "true"
 
@@ -275,6 +281,11 @@ if enable_frontend:
                         "failureThreshold": 30,
                     }
 
+                    # Disable standalone mode when dashboard is being pulled in
+                    if enable_dashboard:
+                        env = container.get("env", [])
+                        env.append({"name": "DEPLOYMENT_MODE", "value": "kubeflow"})
+
     # Apply modified manifests
     k8s_yaml(
         encode_yaml_stream(frontend_objects),
@@ -327,7 +338,9 @@ k8s_resource(
 # and extra_pod_selectors doesn't support port-forwarding on object-only resources.
 gateway_links = [link("https://localhost:8443/workspaces/api/v1/swagger/index.html", "API (Backend)")]
 if enable_frontend:
-    gateway_links.insert(0, link("https://localhost:8443/workspaces/", "Dashboard (Frontend)"))
+    gateway_links.insert(0, link("https://localhost:8443/workspaces/", "Frontend"))
+if enable_dashboard:
+    gateway_links.insert(0, link("https://localhost:8443/", "Dashboard"))
 
 
 local_resource(
@@ -337,6 +350,23 @@ local_resource(
     links=gateway_links,
     labels=["istio"],
 )
+
+# ============================================================================
+# Dashboard
+# ============================================================================
+
+if enable_dashboard:
+    dashboard_kustomize_path = os.path.join(workspace_root, "developing/manifests/kubeflow-dashboard")
+    dashboard_manifests = kustomize(dashboard_kustomize_path, kustomize_bin=kustomize_bin)
+    k8s_yaml(dashboard_manifests)
+
+    # Manage k8s_yaml resources
+    # - Apply Tilt-specific grouping/labels
+    for workload in ["dashboard", "profiles-deployment", "poddefaults-webhook-deployment"]:
+        k8s_resource(
+            workload=workload,
+            labels=["dashboard"],
+        )
 
 
 # ============================================================================
