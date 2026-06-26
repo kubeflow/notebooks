@@ -153,7 +153,9 @@ export const WorkspaceKindForm: React.FC = () => {
     initialFormData ? convertToFormData(initialFormData) : EMPTY_WORKSPACE_KIND_FORM_DATA,
   );
   const [originalFormData, setOriginalFormData] = useState<WorkspaceKindFormData | null>(null);
-
+  // Intentionally exclude replaceData from dependencies to prevent duplicate API calls
+  // replaceData changes on every render, but we only want this effect to run when
+  // the initial form data is loaded or when the mode/kind changes
   useEffect(() => {
     if (!initialFormDataLoaded || initialFormData === null || mode === 'create') {
       return;
@@ -161,8 +163,8 @@ export const WorkspaceKindForm: React.FC = () => {
     const converted = convertToFormData(initialFormData);
     replaceData(converted);
     setOriginalFormData(converted);
-  }, [initialFormData, initialFormDataLoaded, mode, replaceData]);
-
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialFormData, initialFormDataLoaded, mode]);
   const handleSubmit = useCallback(async () => {
     setIsSubmitting(true);
     setError(null);
