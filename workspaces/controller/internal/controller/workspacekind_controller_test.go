@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -397,6 +398,77 @@ var _ = Describe("WorkspaceKind Controller", func() {
 			By("verifying the logo still has its SHA256 hash")
 			Expect(workspaceKind.Status.SpawnerLogo.Sha256).To(Equal(logoHash))
 			Expect(workspaceKind.Status.SpawnerLogo.ConfigMap).To(BeNil())
+		})
+	})
+
+	Context("When reconciling Prometheus metrics", Serial, Ordered, func() {
+
+		var (
+			workspaceName     string
+			workspaceKindName string
+			workspaceKindKey  types.NamespacedName
+		)
+
+		BeforeAll(func() {
+			uniqueName := "wsk-metrics-test"
+			workspaceName = fmt.Sprintf("workspace-%s", uniqueName)
+			workspaceKindName = fmt.Sprintf("workspacekind-%s", uniqueName)
+			workspaceKindKey = types.NamespacedName{Name: workspaceKindName}
+		})
+
+		It("should expose workspace counts in Prometheus metrics", func() {
+
+			By("creating a WorkspaceKind")
+			workspaceKind := NewExampleWorkspaceKind1(workspaceKindName)
+			Expect(k8sClient.Create(ctx, workspaceKind)).To(Succeed())
+
+			By("creating a Workspace")
+			workspace := NewExampleWorkspace1(workspaceName, namespaceName, workspaceKindName)
+			Expect(k8sClient.Create(ctx, workspace)).To(Succeed())
+
+			By("waiting for the WorkspaceKind to be reconciled")
+			Eventually(func() int32 {
+				if err := k8sClient.Get(ctx, workspaceKindKey, workspaceKind); err != nil {
+					return -1
+				}
+				return workspaceKind.Status.Workspaces
+			}, timeout, interval).Should(Equal(int32(1)))
+
+			By("asserting the workspace count metric")
+			Expect(testutil.ToFloat64(workspaceKindWorkspaceCount.WithLabelValues(workspaceKindName))).To(Equal(float64(1)))
+
+			By("asserting the imageConfig usage metric")
+			Expect(testutil.ToFloat64(workspaceKindImageConfigWorkspaceCount.WithLabelValues(workspaceKindName, "jupyterlab_scipy_180"))).To(Equal(float64(1)))
+			Expect(testutil.ToFloat64(workspaceKindImageConfigWorkspaceCount.WithLabelValues(workspaceKindName, "jupyterlab_scipy_190"))).To(Equal(float64(0)))
+
+			By("asserting the podConfig usage metric")
+			Expect(testutil.ToFloat64(workspaceKindPodConfigWorkspaceCount.WithLabelValues(workspaceKindName, "tiny_cpu"))).To(Equal(float64(1)))
+			Expect(testutil.ToFloat64(workspaceKindPodConfigWorkspaceCount.WithLabelValues(workspaceKindName, "small_cpu"))).To(Equal(float64(0)))
+			Expect(testutil.ToFloat64(workspaceKindPodConfigWorkspaceCount.WithLabelValues(workspaceKindName, "big_gpu"))).To(Equal(float64(0)))
+
+			By("deleting the Workspace")
+			Expect(k8sClient.Delete(ctx, workspace)).To(Succeed())
+
+			By("waiting for the WorkspaceKind to reconcile the deletion")
+			Eventually(func() int32 {
+				if err := k8sClient.Get(ctx, workspaceKindKey, workspaceKind); err != nil {
+					return -1
+				}
+				return workspaceKind.Status.Workspaces
+			}, timeout, interval).Should(Equal(int32(0)))
+
+			By("asserting workspace count metric drops to zero")
+			Expect(testutil.ToFloat64(workspaceKindWorkspaceCount.WithLabelValues(workspaceKindName))).To(Equal(float64(0)))
+
+			By("asserting imageConfig metric drops to zero")
+			Expect(testutil.ToFloat64(workspaceKindImageConfigWorkspaceCount.WithLabelValues(workspaceKindName, "jupyterlab_scipy_180"))).To(Equal(float64(0)))
+
+			By("deleting the WorkspaceKind")
+			Expect(k8sClient.Delete(ctx, workspaceKind)).To(Succeed())
+			Expect(k8sClient.Get(ctx, workspaceKindKey, workspaceKind)).NotTo(Succeed())
+
+			By("asserting metrics are cleared after WorkspaceKind deletion")
+			Expect(testutil.ToFloat64(workspaceKindWorkspaceCount.WithLabelValues(workspaceKindName))).To(Equal(float64(0)))
 		})
 	})
 })
