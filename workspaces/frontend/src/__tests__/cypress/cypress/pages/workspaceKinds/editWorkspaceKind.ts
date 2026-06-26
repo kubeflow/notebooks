@@ -1167,7 +1167,7 @@ class EditWorkspaceKind {
   }
 
   assertYamlEditorNotVisible() {
-    this.findYamlEditor().should('not.exist');
+    this.findYamlEditor().should('not.be.visible');
   }
 
   findYamlParseError() {

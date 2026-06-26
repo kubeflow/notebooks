@@ -43,10 +43,7 @@ collect(ROOT_DEFINITION);
 
 const defs = {};
 for (const name of needed) {
-  const rewritten = JSON.stringify(definitions[name]).replace(
-    /"#\/definitions\//g,
-    '"#/$defs/',
-  );
+  const rewritten = JSON.stringify(definitions[name]).replace(/"#\/definitions\//g, '"#/$defs/');
   defs[name] = JSON.parse(rewritten);
 }
 

@@ -4,11 +4,7 @@
   "$defs": {
     "workspacekinds.WorkspaceKindUpdate": {
       "type": "object",
-      "required": [
-        "podTemplate",
-        "revision",
-        "spawner"
-      ],
+      "required": ["podTemplate", "revision", "spawner"],
       "properties": {
         "podTemplate": {
           "$ref": "#/$defs/v1beta1.WorkspaceKindPodTemplate"
@@ -24,12 +20,7 @@
     },
     "v1beta1.WorkspaceKindPodTemplate": {
       "type": "object",
-      "required": [
-        "options",
-        "ports",
-        "serviceAccount",
-        "volumeMounts"
-      ],
+      "required": ["options", "ports", "serviceAccount", "volumeMounts"],
       "properties": {
         "containerSecurityContext": {
           "description": "container security context for Workspace Pods (MUTABLE)\n+kubebuilder:validation:Optional",
@@ -204,9 +195,7 @@
     },
     "v1.AppArmorProfile": {
       "type": "object",
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "properties": {
         "localhostProfile": {
           "description": "localhostProfile indicates a profile loaded on the node that should be used.\nThe profile must be preconfigured on the node to work.\nMust match the loaded name of the profile.\nMust be set if and only if type is \"Localhost\".\n+optional",
@@ -224,11 +213,7 @@
     },
     "v1.AppArmorProfileType": {
       "type": "string",
-      "enum": [
-        "Unconfined",
-        "RuntimeDefault",
-        "Localhost"
-      ],
+      "enum": ["Unconfined", "RuntimeDefault", "Localhost"],
       "x-enum-varnames": [
         "AppArmorProfileTypeUnconfined",
         "AppArmorProfileTypeRuntimeDefault",
@@ -256,14 +241,8 @@
     },
     "v1.ProcMountType": {
       "type": "string",
-      "enum": [
-        "Default",
-        "Unmasked"
-      ],
-      "x-enum-varnames": [
-        "DefaultProcMount",
-        "UnmaskedProcMount"
-      ]
+      "enum": ["Default", "Unmasked"],
+      "x-enum-varnames": ["DefaultProcMount", "UnmaskedProcMount"]
     },
     "v1.SELinuxOptions": {
       "type": "object",
@@ -288,9 +267,7 @@
     },
     "v1.SeccompProfile": {
       "type": "object",
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "properties": {
         "localhostProfile": {
           "description": "localhostProfile indicates a profile defined in a file on the node should be used.\nThe profile must be preconfigured on the node to work.\nMust be a descending path, relative to the kubelet's configured seccomp profile location.\nMust be set if type is \"Localhost\". Must NOT be set for any other type.\n+optional",
@@ -308,11 +285,7 @@
     },
     "v1.SeccompProfileType": {
       "type": "string",
-      "enum": [
-        "Unconfined",
-        "RuntimeDefault",
-        "Localhost"
-      ],
+      "enum": ["Unconfined", "RuntimeDefault", "Localhost"],
       "x-enum-varnames": [
         "SeccompProfileTypeUnconfined",
         "SeccompProfileTypeRuntimeDefault",
@@ -342,9 +315,7 @@
     },
     "v1beta1.WorkspaceKindCullingConfig": {
       "type": "object",
-      "required": [
-        "activityProbe"
-      ],
+      "required": ["activityProbe"],
       "properties": {
         "activityProbe": {
           "description": "the probe used to determine if the Workspace is active",
@@ -387,9 +358,7 @@
     },
     "v1beta1.ActivityProbeExec": {
       "type": "object",
-      "required": [
-        "command"
-      ],
+      "required": ["command"],
       "properties": {
         "command": {
           "description": "the command to run\n+kubebuilder:validation:MinItems:=1\n+kubebuilder:example={\"bash\", \"-c\", \"exit 0\"}",
@@ -402,9 +371,7 @@
     },
     "v1beta1.ActivityProbeJupyter": {
       "type": "object",
-      "required": [
-        "lastActivity"
-      ],
+      "required": ["lastActivity"],
       "properties": {
         "lastActivity": {
           "description": "if the Jupyter-specific probe is enabled\n+kubebuilder:example=true",
@@ -414,9 +381,7 @@
     },
     "v1.EnvVar": {
       "type": "object",
-      "required": [
-        "name"
-      ],
+      "required": ["name"],
       "properties": {
         "name": {
           "description": "Name of the environment variable. Must be a C_IDENTIFIER.",
@@ -475,9 +440,7 @@
     },
     "v1.ConfigMapKeySelector": {
       "type": "object",
-      "required": [
-        "key"
-      ],
+      "required": ["key"],
       "properties": {
         "key": {
           "description": "The key to select.",
@@ -495,9 +458,7 @@
     },
     "v1.ObjectFieldSelector": {
       "type": "object",
-      "required": [
-        "fieldPath"
-      ],
+      "required": ["fieldPath"],
       "properties": {
         "apiVersion": {
           "description": "Version of the schema the FieldPath is written in terms of, defaults to \"v1\".\n+optional",
@@ -511,9 +472,7 @@
     },
     "v1.ResourceFieldSelector": {
       "type": "object",
-      "required": [
-        "resource"
-      ],
+      "required": ["resource"],
       "properties": {
         "containerName": {
           "description": "Container name: required for volumes, optional for env vars\n+optional",
@@ -538,34 +497,20 @@
       "properties": {
         "Format": {
           "type": "string",
-          "enum": [
-            "DecimalExponent",
-            "BinarySI",
-            "DecimalSI"
-          ],
+          "enum": ["DecimalExponent", "BinarySI", "DecimalSI"],
           "x-enum-comments": {
             "BinarySI": "e.g., 12Mi (12 * 2^20)",
             "DecimalExponent": "e.g., 12e6",
             "DecimalSI": "e.g., 12M  (12 * 10^6)"
           },
-          "x-enum-descriptions": [
-            "e.g., 12e6",
-            "e.g., 12Mi (12 * 2^20)",
-            "e.g., 12M  (12 * 10^6)"
-          ],
-          "x-enum-varnames": [
-            "DecimalExponent",
-            "BinarySI",
-            "DecimalSI"
-          ]
+          "x-enum-descriptions": ["e.g., 12e6", "e.g., 12Mi (12 * 2^20)", "e.g., 12M  (12 * 10^6)"],
+          "x-enum-varnames": ["DecimalExponent", "BinarySI", "DecimalSI"]
         }
       }
     },
     "v1.SecretKeySelector": {
       "type": "object",
-      "required": [
-        "key"
-      ],
+      "required": ["key"],
       "properties": {
         "key": {
           "description": "The key of the secret to select from.  Must be a valid secret key.",
@@ -583,10 +528,7 @@
     },
     "v1.VolumeMount": {
       "type": "object",
-      "required": [
-        "mountPath",
-        "name"
-      ],
+      "required": ["mountPath", "name"],
       "properties": {
         "mountPath": {
           "description": "Path within the container at which the volume should be mounted.  Must\nnot contain ':'.",
@@ -628,11 +570,7 @@
     },
     "v1.MountPropagationMode": {
       "type": "string",
-      "enum": [
-        "None",
-        "HostToContainer",
-        "Bidirectional"
-      ],
+      "enum": ["None", "HostToContainer", "Bidirectional"],
       "x-enum-varnames": [
         "MountPropagationNone",
         "MountPropagationHostToContainer",
@@ -641,11 +579,7 @@
     },
     "v1.RecursiveReadOnlyMode": {
       "type": "string",
-      "enum": [
-        "Disabled",
-        "IfPossible",
-        "Enabled"
-      ],
+      "enum": ["Disabled", "IfPossible", "Enabled"],
       "x-enum-varnames": [
         "RecursiveReadOnlyDisabled",
         "RecursiveReadOnlyIfPossible",
@@ -654,9 +588,7 @@
     },
     "v1.Volume": {
       "type": "object",
-      "required": [
-        "name"
-      ],
+      "required": ["name"],
       "properties": {
         "awsElasticBlockStore": {
           "description": "awsElasticBlockStore represents an AWS Disk resource that is attached to a\nkubelet's host machine and then exposed to the pod.\nMore info: https://kubernetes.io/docs/concepts/storage/volumes#awselasticblockstore\n+optional",
@@ -906,9 +838,7 @@
     },
     "v1.AWSElasticBlockStoreVolumeSource": {
       "type": "object",
-      "required": [
-        "volumeID"
-      ],
+      "required": ["volumeID"],
       "properties": {
         "fsType": {
           "description": "fsType is the filesystem type of the volume that you want to mount.\nTip: Ensure that the filesystem type is supported by the host operating system.\nExamples: \"ext4\", \"xfs\", \"ntfs\". Implicitly inferred to be \"ext4\" if unspecified.\nMore info: https://kubernetes.io/docs/concepts/storage/volumes#awselasticblockstore\nTODO: how do we prevent errors in the filesystem from compromising the machine\n+optional",
@@ -930,10 +860,7 @@
     },
     "v1.AzureDiskVolumeSource": {
       "type": "object",
-      "required": [
-        "diskName",
-        "diskURI"
-      ],
+      "required": ["diskName", "diskURI"],
       "properties": {
         "cachingMode": {
           "description": "cachingMode is the Host Caching mode: None, Read Only, Read Write.\n+optional\n+default=ref(AzureDataDiskCachingReadWrite)",
@@ -971,11 +898,7 @@
     },
     "v1.AzureDataDiskCachingMode": {
       "type": "string",
-      "enum": [
-        "None",
-        "ReadOnly",
-        "ReadWrite"
-      ],
+      "enum": ["None", "ReadOnly", "ReadWrite"],
       "x-enum-varnames": [
         "AzureDataDiskCachingNone",
         "AzureDataDiskCachingReadOnly",
@@ -984,23 +907,12 @@
     },
     "v1.AzureDataDiskKind": {
       "type": "string",
-      "enum": [
-        "Shared",
-        "Dedicated",
-        "Managed"
-      ],
-      "x-enum-varnames": [
-        "AzureSharedBlobDisk",
-        "AzureDedicatedBlobDisk",
-        "AzureManagedDisk"
-      ]
+      "enum": ["Shared", "Dedicated", "Managed"],
+      "x-enum-varnames": ["AzureSharedBlobDisk", "AzureDedicatedBlobDisk", "AzureManagedDisk"]
     },
     "v1.AzureFileVolumeSource": {
       "type": "object",
-      "required": [
-        "secretName",
-        "shareName"
-      ],
+      "required": ["secretName", "shareName"],
       "properties": {
         "readOnly": {
           "description": "readOnly defaults to false (read/write). ReadOnly here will force\nthe ReadOnly setting in VolumeMounts.\n+optional",
@@ -1018,9 +930,7 @@
     },
     "v1.CephFSVolumeSource": {
       "type": "object",
-      "required": [
-        "monitors"
-      ],
+      "required": ["monitors"],
       "properties": {
         "monitors": {
           "description": "monitors is Required: Monitors is a collection of Ceph monitors\nMore info: https://examples.k8s.io/volumes/cephfs/README.md#how-to-use-it\n+listType=atomic",
@@ -1066,9 +976,7 @@
     },
     "v1.CinderVolumeSource": {
       "type": "object",
-      "required": [
-        "volumeID"
-      ],
+      "required": ["volumeID"],
       "properties": {
         "fsType": {
           "description": "fsType is the filesystem type to mount.\nMust be a filesystem type supported by the host operating system.\nExamples: \"ext4\", \"xfs\", \"ntfs\". Implicitly inferred to be \"ext4\" if unspecified.\nMore info: https://examples.k8s.io/mysql-cinder-pd/README.md\n+optional",
@@ -1118,10 +1026,7 @@
     },
     "v1.KeyToPath": {
       "type": "object",
-      "required": [
-        "key",
-        "path"
-      ],
+      "required": ["key", "path"],
       "properties": {
         "key": {
           "description": "key is the key to project.",
@@ -1139,9 +1044,7 @@
     },
     "v1.CSIVolumeSource": {
       "type": "object",
-      "required": [
-        "driver"
-      ],
+      "required": ["driver"],
       "properties": {
         "driver": {
           "description": "driver is the name of the CSI driver that handles this volume.\nConsult with your admin for the correct name as registered in the cluster.",
@@ -1190,9 +1093,7 @@
     },
     "v1.DownwardAPIVolumeFile": {
       "type": "object",
-      "required": [
-        "path"
-      ],
+      "required": ["path"],
       "properties": {
         "fieldRef": {
           "description": "Required: Selects a field of the pod: only annotations, labels, name, namespace and uid are supported.\n+optional",
@@ -1243,12 +1144,7 @@
     },
     "v1.StorageMedium": {
       "type": "string",
-      "enum": [
-        "",
-        "Memory",
-        "HugePages",
-        "HugePages-"
-      ],
+      "enum": ["", "Memory", "HugePages", "HugePages-"],
       "x-enum-comments": {
         "StorageMediumDefault": "use whatever the default is for the node, assume anything we don't explicitly handle is this",
         "StorageMediumHugePages": "use hugepages",
@@ -1283,9 +1179,7 @@
     },
     "v1.PersistentVolumeClaimTemplate": {
       "type": "object",
-      "required": [
-        "spec"
-      ],
+      "required": ["spec"],
       "properties": {
         "metadata": {
           "description": "May contain labels and annotations that will be copied into the PVC\nwhen creating it. No other fields are allowed and will be rejected during\nvalidation.\n\n+optional",
@@ -1431,23 +1325,12 @@
     },
     "v1.ManagedFieldsOperationType": {
       "type": "string",
-      "enum": [
-        "Apply",
-        "Update"
-      ],
-      "x-enum-varnames": [
-        "ManagedFieldsOperationApply",
-        "ManagedFieldsOperationUpdate"
-      ]
+      "enum": ["Apply", "Update"],
+      "x-enum-varnames": ["ManagedFieldsOperationApply", "ManagedFieldsOperationUpdate"]
     },
     "v1.OwnerReference": {
       "type": "object",
-      "required": [
-        "apiVersion",
-        "kind",
-        "name",
-        "uid"
-      ],
+      "required": ["apiVersion", "kind", "name", "uid"],
       "properties": {
         "apiVersion": {
           "description": "API version of the referent.",
@@ -1541,26 +1424,12 @@
     },
     "v1.PersistentVolumeAccessMode": {
       "type": "string",
-      "enum": [
-        "ReadWriteOnce",
-        "ReadOnlyMany",
-        "ReadWriteMany",
-        "ReadWriteOncePod"
-      ],
-      "x-enum-varnames": [
-        "ReadWriteOnce",
-        "ReadOnlyMany",
-        "ReadWriteMany",
-        "ReadWriteOncePod"
-      ]
+      "enum": ["ReadWriteOnce", "ReadOnlyMany", "ReadWriteMany", "ReadWriteOncePod"],
+      "x-enum-varnames": ["ReadWriteOnce", "ReadOnlyMany", "ReadWriteMany", "ReadWriteOncePod"]
     },
     "v1.TypedLocalObjectReference": {
       "type": "object",
-      "required": [
-        "apiGroup",
-        "kind",
-        "name"
-      ],
+      "required": ["apiGroup", "kind", "name"],
       "properties": {
         "apiGroup": {
           "description": "APIGroup is the group for the resource being referenced.\nIf APIGroup is not specified, the specified Kind must be in the core API group.\nFor any other third-party types, APIGroup is required.\n+optional",
@@ -1578,11 +1447,7 @@
     },
     "v1.TypedObjectReference": {
       "type": "object",
-      "required": [
-        "apiGroup",
-        "kind",
-        "name"
-      ],
+      "required": ["apiGroup", "kind", "name"],
       "properties": {
         "apiGroup": {
           "description": "APIGroup is the group for the resource being referenced.\nIf APIGroup is not specified, the specified Kind must be in the core API group.\nFor any other third-party types, APIGroup is required.\n+optional",
@@ -1650,10 +1515,7 @@
     },
     "v1.LabelSelectorRequirement": {
       "type": "object",
-      "required": [
-        "key",
-        "operator"
-      ],
+      "required": ["key", "operator"],
       "properties": {
         "key": {
           "description": "key is the label key that the selector applies to.",
@@ -1678,12 +1540,7 @@
     },
     "v1.LabelSelectorOperator": {
       "type": "string",
-      "enum": [
-        "In",
-        "NotIn",
-        "Exists",
-        "DoesNotExist"
-      ],
+      "enum": ["In", "NotIn", "Exists", "DoesNotExist"],
       "x-enum-varnames": [
         "LabelSelectorOpIn",
         "LabelSelectorOpNotIn",
@@ -1693,14 +1550,8 @@
     },
     "v1.PersistentVolumeMode": {
       "type": "string",
-      "enum": [
-        "Block",
-        "Filesystem"
-      ],
-      "x-enum-varnames": [
-        "PersistentVolumeBlock",
-        "PersistentVolumeFilesystem"
-      ]
+      "enum": ["Block", "Filesystem"],
+      "x-enum-varnames": ["PersistentVolumeBlock", "PersistentVolumeFilesystem"]
     },
     "v1.FCVolumeSource": {
       "type": "object",
@@ -1735,9 +1586,7 @@
     },
     "v1.FlexVolumeSource": {
       "type": "object",
-      "required": [
-        "driver"
-      ],
+      "required": ["driver"],
       "properties": {
         "driver": {
           "description": "driver is the name of the driver to use for this volume.",
@@ -1783,9 +1632,7 @@
     },
     "v1.GCEPersistentDiskVolumeSource": {
       "type": "object",
-      "required": [
-        "pdName"
-      ],
+      "required": ["pdName"],
       "properties": {
         "fsType": {
           "description": "fsType is filesystem type of the volume that you want to mount.\nTip: Ensure that the filesystem type is supported by the host operating system.\nExamples: \"ext4\", \"xfs\", \"ntfs\". Implicitly inferred to be \"ext4\" if unspecified.\nMore info: https://kubernetes.io/docs/concepts/storage/volumes#gcepersistentdisk\nTODO: how do we prevent errors in the filesystem from compromising the machine\n+optional",
@@ -1807,9 +1654,7 @@
     },
     "v1.GitRepoVolumeSource": {
       "type": "object",
-      "required": [
-        "repository"
-      ],
+      "required": ["repository"],
       "properties": {
         "directory": {
           "description": "directory is the target directory name.\nMust not contain or start with '..'.  If '.' is supplied, the volume directory will be the\ngit repository.  Otherwise, if specified, the volume will contain the git repository in\nthe subdirectory with the given name.\n+optional",
@@ -1827,10 +1672,7 @@
     },
     "v1.GlusterfsVolumeSource": {
       "type": "object",
-      "required": [
-        "endpoints",
-        "path"
-      ],
+      "required": ["endpoints", "path"],
       "properties": {
         "endpoints": {
           "description": "endpoints is the endpoint name that details Glusterfs topology.\nMore info: https://examples.k8s.io/volumes/glusterfs/README.md#create-a-pod",
@@ -1848,9 +1690,7 @@
     },
     "v1.HostPathVolumeSource": {
       "type": "object",
-      "required": [
-        "path"
-      ],
+      "required": ["path"],
       "properties": {
         "path": {
           "description": "path of the directory on the host.\nIf the path is a symlink, it will follow the link to the real path.\nMore info: https://kubernetes.io/docs/concepts/storage/volumes#hostpath",
@@ -1908,24 +1748,12 @@
     },
     "v1.PullPolicy": {
       "type": "string",
-      "enum": [
-        "Always",
-        "Never",
-        "IfNotPresent"
-      ],
-      "x-enum-varnames": [
-        "PullAlways",
-        "PullNever",
-        "PullIfNotPresent"
-      ]
+      "enum": ["Always", "Never", "IfNotPresent"],
+      "x-enum-varnames": ["PullAlways", "PullNever", "PullIfNotPresent"]
     },
     "v1.ISCSIVolumeSource": {
       "type": "object",
-      "required": [
-        "iqn",
-        "lun",
-        "targetPortal"
-      ],
+      "required": ["iqn", "lun", "targetPortal"],
       "properties": {
         "chapAuthDiscovery": {
           "description": "chapAuthDiscovery defines whether support iSCSI Discovery CHAP authentication\n+optional",
@@ -1982,10 +1810,7 @@
     },
     "v1.NFSVolumeSource": {
       "type": "object",
-      "required": [
-        "path",
-        "server"
-      ],
+      "required": ["path", "server"],
       "properties": {
         "path": {
           "description": "path that is exported by the NFS server.\nMore info: https://kubernetes.io/docs/concepts/storage/volumes#nfs",
@@ -2003,9 +1828,7 @@
     },
     "v1.PersistentVolumeClaimVolumeSource": {
       "type": "object",
-      "required": [
-        "claimName"
-      ],
+      "required": ["claimName"],
       "properties": {
         "claimName": {
           "description": "claimName is the name of a PersistentVolumeClaim in the same namespace as the pod using this volume.\nMore info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims",
@@ -2019,9 +1842,7 @@
     },
     "v1.PhotonPersistentDiskVolumeSource": {
       "type": "object",
-      "required": [
-        "pdID"
-      ],
+      "required": ["pdID"],
       "properties": {
         "fsType": {
           "description": "fsType is the filesystem type to mount.\nMust be a filesystem type supported by the host operating system.\nEx. \"ext4\", \"xfs\", \"ntfs\". Implicitly inferred to be \"ext4\" if unspecified.",
@@ -2035,9 +1856,7 @@
     },
     "v1.PortworxVolumeSource": {
       "type": "object",
-      "required": [
-        "volumeID"
-      ],
+      "required": ["volumeID"],
       "properties": {
         "fsType": {
           "description": "fSType represents the filesystem type to mount\nMust be a filesystem type supported by the host operating system.\nEx. \"ext4\", \"xfs\". Implicitly inferred to be \"ext4\" if unspecified.",
@@ -2055,9 +1874,7 @@
     },
     "v1.ProjectedVolumeSource": {
       "type": "object",
-      "required": [
-        "sources"
-      ],
+      "required": ["sources"],
       "properties": {
         "defaultMode": {
           "description": "defaultMode are the mode bits used to set permissions on created files by default.\nMust be an octal value between 0000 and 0777 or a decimal value between 0 and 511.\nYAML accepts both octal and decimal values, JSON requires decimal values for mode bits.\nDirectories within the path are not affected by this setting.\nThis might be in conflict with other options that affect the file\nmode, like fsGroup, and the result can be other mode bits set.\n+optional",
@@ -2119,9 +1936,7 @@
     },
     "v1.ClusterTrustBundleProjection": {
       "type": "object",
-      "required": [
-        "path"
-      ],
+      "required": ["path"],
       "properties": {
         "labelSelector": {
           "description": "Select all ClusterTrustBundles that match this label selector.  Only has\neffect if signerName is set.  Mutually-exclusive with name.  If unset,\ninterpreted as \"match nothing\".  If set but empty, interpreted as \"match\neverything\".\n+optional",
@@ -2203,9 +2018,7 @@
     },
     "v1.ServiceAccountTokenProjection": {
       "type": "object",
-      "required": [
-        "path"
-      ],
+      "required": ["path"],
       "properties": {
         "audience": {
           "description": "audience is the intended audience of the token. A recipient of a token\nmust identify itself with an identifier specified in the audience of the\ntoken, and otherwise should reject the token. The audience defaults to the\nidentifier of the apiserver.\n+optional",
@@ -2223,10 +2036,7 @@
     },
     "v1.QuobyteVolumeSource": {
       "type": "object",
-      "required": [
-        "registry",
-        "volume"
-      ],
+      "required": ["registry", "volume"],
       "properties": {
         "group": {
           "description": "group to map volume access to\nDefault is no group\n+optional",
@@ -2256,10 +2066,7 @@
     },
     "v1.RBDVolumeSource": {
       "type": "object",
-      "required": [
-        "image",
-        "monitors"
-      ],
+      "required": ["image", "monitors"],
       "properties": {
         "fsType": {
           "description": "fsType is the filesystem type of the volume that you want to mount.\nTip: Ensure that the filesystem type is supported by the host operating system.\nExamples: \"ext4\", \"xfs\", \"ntfs\". Implicitly inferred to be \"ext4\" if unspecified.\nMore info: https://kubernetes.io/docs/concepts/storage/volumes#rbd\nTODO: how do we prevent errors in the filesystem from compromising the machine\n+optional",
@@ -2304,11 +2111,7 @@
     },
     "v1.ScaleIOVolumeSource": {
       "type": "object",
-      "required": [
-        "gateway",
-        "secretRef",
-        "system"
-      ],
+      "required": ["gateway", "secretRef", "system"],
       "properties": {
         "fsType": {
           "description": "fsType is the filesystem type to mount.\nMust be a filesystem type supported by the host operating system.\nEx. \"ext4\", \"xfs\", \"ntfs\".\nDefault is \"xfs\".\n+optional\n+default=\"xfs\"",
@@ -2411,9 +2214,7 @@
     },
     "v1.VsphereVirtualDiskVolumeSource": {
       "type": "object",
-      "required": [
-        "volumePath"
-      ],
+      "required": ["volumePath"],
       "properties": {
         "fsType": {
           "description": "fsType is filesystem type to mount.\nMust be a filesystem type supported by the host operating system.\nEx. \"ext4\", \"xfs\", \"ntfs\". Implicitly inferred to be \"ext4\" if unspecified.\n+optional",
@@ -2435,10 +2236,7 @@
     },
     "v1beta1.WorkspaceKindPodOptions": {
       "type": "object",
-      "required": [
-        "imageConfig",
-        "podConfig"
-      ],
+      "required": ["imageConfig", "podConfig"],
       "properties": {
         "imageConfig": {
           "description": "imageConfig options",
@@ -2460,10 +2258,7 @@
     },
     "v1beta1.ImageConfig": {
       "type": "object",
-      "required": [
-        "spawner",
-        "values"
-      ],
+      "required": ["spawner", "values"],
       "properties": {
         "spawner": {
           "description": "spawner ui configs",
@@ -2484,9 +2279,7 @@
     },
     "v1beta1.OptionsSpawnerConfig": {
       "type": "object",
-      "required": [
-        "default"
-      ],
+      "required": ["default"],
       "properties": {
         "default": {
           "description": "the id of the default option\n - this will be selected by default in the spawner ui\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=256\n+kubebuilder:example=\"jupyterlab_scipy_190\"",
@@ -2496,11 +2289,7 @@
     },
     "v1beta1.ImageConfigValue": {
       "type": "object",
-      "required": [
-        "id",
-        "spawner",
-        "spec"
-      ],
+      "required": ["id", "spawner", "spec"],
       "properties": {
         "id": {
           "description": "the id of this image config\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=256\n+kubebuilder:example:=\"jupyterlab_scipy_190\"",
@@ -2534,9 +2323,7 @@
     },
     "v1beta1.OptionRedirect": {
       "type": "object",
-      "required": [
-        "to"
-      ],
+      "required": ["to"],
       "properties": {
         "message": {
           "description": "information about the redirect\n+kubebuilder:validation:Optional",
@@ -2554,10 +2341,7 @@
     },
     "v1beta1.RedirectMessage": {
       "type": "object",
-      "required": [
-        "level",
-        "text"
-      ],
+      "required": ["level", "text"],
       "properties": {
         "level": {
           "description": "the importance level of the message\n+kubebuilder:example:=\"Info\"",
@@ -2575,11 +2359,7 @@
     },
     "v1beta1.RedirectMessageLevel": {
       "type": "string",
-      "enum": [
-        "Info",
-        "Warning",
-        "Danger"
-      ],
+      "enum": ["Info", "Warning", "Danger"],
       "x-enum-varnames": [
         "RedirectMessageLevelInfo",
         "RedirectMessageLevelWarning",
@@ -2588,9 +2368,7 @@
     },
     "v1beta1.OptionSpawnerInfo": {
       "type": "object",
-      "required": [
-        "displayName"
-      ],
+      "required": ["displayName"],
       "properties": {
         "description": {
           "description": "a description of the option\n+kubebuilder:validation:Optional\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=1024",
@@ -2615,10 +2393,7 @@
     },
     "v1beta1.OptionSpawnerLabel": {
       "type": "object",
-      "required": [
-        "key",
-        "value"
-      ],
+      "required": ["key", "value"],
       "properties": {
         "key": {
           "description": "the key of the label\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=64",
@@ -2632,11 +2407,7 @@
     },
     "v1beta1.ImageConfigSpec": {
       "type": "object",
-      "required": [
-        "image",
-        "imagePullPolicy",
-        "ports"
-      ],
+      "required": ["image", "imagePullPolicy", "ports"],
       "properties": {
         "image": {
           "description": "the container image to use\n+kubebuilder:validation:MinLength:=2\n+kubeflow:example=\"ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.7.0\"",
@@ -2661,10 +2432,7 @@
     },
     "v1beta1.ImagePort": {
       "type": "object",
-      "required": [
-        "id",
-        "port"
-      ],
+      "required": ["id", "port"],
       "properties": {
         "displayName": {
           "description": "the display name of the port\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=64\n+kubebuilder:validation:Optional",
@@ -2682,10 +2450,7 @@
     },
     "v1beta1.PodConfig": {
       "type": "object",
-      "required": [
-        "spawner",
-        "values"
-      ],
+      "required": ["spawner", "values"],
       "properties": {
         "spawner": {
           "description": "spawner ui configs",
@@ -2706,11 +2471,7 @@
     },
     "v1beta1.PodConfigValue": {
       "type": "object",
-      "required": [
-        "id",
-        "spawner",
-        "spec"
-      ],
+      "required": ["id", "spawner", "spec"],
       "properties": {
         "id": {
           "description": "the id of this pod config\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=256\n+kubebuilder:example=\"big_gpu\"",
@@ -2828,10 +2589,7 @@
     },
     "v1.PreferredSchedulingTerm": {
       "type": "object",
-      "required": [
-        "preference",
-        "weight"
-      ],
+      "required": ["preference", "weight"],
       "properties": {
         "preference": {
           "description": "A node selector term, associated with the corresponding weight.",
@@ -2868,10 +2626,7 @@
     },
     "v1.NodeSelectorRequirement": {
       "type": "object",
-      "required": [
-        "key",
-        "operator"
-      ],
+      "required": ["key", "operator"],
       "properties": {
         "key": {
           "description": "The label key that the selector applies to.",
@@ -2896,14 +2651,7 @@
     },
     "v1.NodeSelectorOperator": {
       "type": "string",
-      "enum": [
-        "In",
-        "NotIn",
-        "Exists",
-        "DoesNotExist",
-        "Gt",
-        "Lt"
-      ],
+      "enum": ["In", "NotIn", "Exists", "DoesNotExist", "Gt", "Lt"],
       "x-enum-varnames": [
         "NodeSelectorOpIn",
         "NodeSelectorOpNotIn",
@@ -2915,9 +2663,7 @@
     },
     "v1.NodeSelector": {
       "type": "object",
-      "required": [
-        "nodeSelectorTerms"
-      ],
+      "required": ["nodeSelectorTerms"],
       "properties": {
         "nodeSelectorTerms": {
           "description": "Required. A list of node selector terms. The terms are ORed.\n+listType=atomic",
@@ -2949,10 +2695,7 @@
     },
     "v1.WeightedPodAffinityTerm": {
       "type": "object",
-      "required": [
-        "podAffinityTerm",
-        "weight"
-      ],
+      "required": ["podAffinityTerm", "weight"],
       "properties": {
         "podAffinityTerm": {
           "description": "Required. A pod affinity term, associated with the corresponding weight.",
@@ -2970,9 +2713,7 @@
     },
     "v1.PodAffinityTerm": {
       "type": "object",
-      "required": [
-        "topologyKey"
-      ],
+      "required": ["topologyKey"],
       "properties": {
         "labelSelector": {
           "description": "A label query over a set of resources, in this case pods.\nIf it's null, this PodAffinityTerm matches with no Pods.\n+optional",
@@ -3066,9 +2807,7 @@
     },
     "v1.ResourceClaim": {
       "type": "object",
-      "required": [
-        "name"
-      ],
+      "required": ["name"],
       "properties": {
         "name": {
           "description": "Name must match the name of one entry in pod.spec.resourceClaims of\nthe Pod where this field is used. It makes that resource available\ninside a container.",
@@ -3115,11 +2854,7 @@
     },
     "v1.TaintEffect": {
       "type": "string",
-      "enum": [
-        "NoSchedule",
-        "PreferNoSchedule",
-        "NoExecute"
-      ],
+      "enum": ["NoSchedule", "PreferNoSchedule", "NoExecute"],
       "x-enum-varnames": [
         "TaintEffectNoSchedule",
         "TaintEffectPreferNoSchedule",
@@ -3128,14 +2863,8 @@
     },
     "v1.TolerationOperator": {
       "type": "string",
-      "enum": [
-        "Exists",
-        "Equal"
-      ],
-      "x-enum-varnames": [
-        "TolerationOpExists",
-        "TolerationOpEqual"
-      ]
+      "enum": ["Exists", "Equal"],
+      "x-enum-varnames": ["TolerationOpExists", "TolerationOpEqual"]
     },
     "v1beta1.WorkspaceKindPodMetadata": {
       "type": "object",
@@ -3158,11 +2887,7 @@
     },
     "v1beta1.WorkspaceKindPort": {
       "type": "object",
-      "required": [
-        "defaultDisplayName",
-        "id",
-        "protocol"
-      ],
+      "required": ["defaultDisplayName", "id", "protocol"],
       "properties": {
         "defaultDisplayName": {
           "description": "the default display name of the port\n- note, this can be overridden on a per image config value basis\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=64\n+kubebuilder:example:=\"JupyterLab\"",
@@ -3235,12 +2960,8 @@
     },
     "v1beta1.ImagePortProtocol": {
       "type": "string",
-      "enum": [
-        "HTTP"
-      ],
-      "x-enum-varnames": [
-        "ImagePortProtocolHTTP"
-      ]
+      "enum": ["HTTP"],
+      "x-enum-varnames": ["ImagePortProtocolHTTP"]
     },
     "v1beta1.WorkspaceKindProbes": {
       "type": "object",
@@ -3346,10 +3067,7 @@
     },
     "v1.GRPCAction": {
       "type": "object",
-      "required": [
-        "port",
-        "service"
-      ],
+      "required": ["port", "service"],
       "properties": {
         "port": {
           "description": "Port number of the gRPC service. Number must be in the range 1 to 65535.",
@@ -3363,9 +3081,7 @@
     },
     "v1.HTTPGetAction": {
       "type": "object",
-      "required": [
-        "port"
-      ],
+      "required": ["port"],
       "properties": {
         "host": {
           "description": "Host name to connect to, defaults to the pod IP. You probably want to set\n\"Host\" in httpHeaders instead.\n+optional",
@@ -3402,10 +3118,7 @@
     },
     "v1.HTTPHeader": {
       "type": "object",
-      "required": [
-        "name",
-        "value"
-      ],
+      "required": ["name", "value"],
       "properties": {
         "name": {
           "description": "The header field name.\nThis will be canonicalized upon output, so case-variant names will be understood as the same header.",
@@ -3419,11 +3132,7 @@
     },
     "intstr.IntOrString": {
       "type": "object",
-      "required": [
-        "intVal",
-        "strVal",
-        "type"
-      ],
+      "required": ["intVal", "strVal", "type"],
       "properties": {
         "intVal": {
           "type": "integer"
@@ -3439,39 +3148,22 @@
     "intstr.Type": {
       "type": "integer",
       "format": "int64",
-      "enum": [
-        0,
-        1
-      ],
+      "enum": [0, 1],
       "x-enum-comments": {
         "Int": "The IntOrString holds an int.",
         "String": "The IntOrString holds a string."
       },
-      "x-enum-descriptions": [
-        "The IntOrString holds an int.",
-        "The IntOrString holds a string."
-      ],
-      "x-enum-varnames": [
-        "Int",
-        "String"
-      ]
+      "x-enum-descriptions": ["The IntOrString holds an int.", "The IntOrString holds a string."],
+      "x-enum-varnames": ["Int", "String"]
     },
     "v1.URIScheme": {
       "type": "string",
-      "enum": [
-        "HTTP",
-        "HTTPS"
-      ],
-      "x-enum-varnames": [
-        "URISchemeHTTP",
-        "URISchemeHTTPS"
-      ]
+      "enum": ["HTTP", "HTTPS"],
+      "x-enum-varnames": ["URISchemeHTTP", "URISchemeHTTPS"]
     },
     "v1.TCPSocketAction": {
       "type": "object",
-      "required": [
-        "port"
-      ],
+      "required": ["port"],
       "properties": {
         "host": {
           "description": "Optional: Host name to connect to, defaults to the pod IP.\n+optional",
@@ -3572,32 +3264,17 @@
     },
     "v1.PodFSGroupChangePolicy": {
       "type": "string",
-      "enum": [
-        "OnRootMismatch",
-        "Always"
-      ],
-      "x-enum-varnames": [
-        "FSGroupChangeOnRootMismatch",
-        "FSGroupChangeAlways"
-      ]
+      "enum": ["OnRootMismatch", "Always"],
+      "x-enum-varnames": ["FSGroupChangeOnRootMismatch", "FSGroupChangeAlways"]
     },
     "v1.SupplementalGroupsPolicy": {
       "type": "string",
-      "enum": [
-        "Merge",
-        "Strict"
-      ],
-      "x-enum-varnames": [
-        "SupplementalGroupsPolicyMerge",
-        "SupplementalGroupsPolicyStrict"
-      ]
+      "enum": ["Merge", "Strict"],
+      "x-enum-varnames": ["SupplementalGroupsPolicyMerge", "SupplementalGroupsPolicyStrict"]
     },
     "v1.Sysctl": {
       "type": "object",
-      "required": [
-        "name",
-        "value"
-      ],
+      "required": ["name", "value"],
       "properties": {
         "name": {
           "description": "Name of a property to set",
@@ -3611,9 +3288,7 @@
     },
     "v1beta1.WorkspaceKindServiceAccount": {
       "type": "object",
-      "required": [
-        "name"
-      ],
+      "required": ["name"],
       "properties": {
         "name": {
           "description": "the name of the ServiceAccount (NOT MUTABLE)\n - this Service Account MUST already exist in the Namespace\n   of the Workspace, the controller will NOT create it\n - we will not show this WorkspaceKind in the Spawner UI\n   if the SA does not exist in the Namespace\n+kubebuilder:validation:XValidation:rule=\"self == oldSelf\",message=\"ServiceAccount 'name' is immutable\"\n+kubebuilder:example=\"default-editor\"\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=253\n+kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$",
@@ -3623,9 +3298,7 @@
     },
     "v1beta1.WorkspaceKindVolumeMounts": {
       "type": "object",
-      "required": [
-        "home"
-      ],
+      "required": ["home"],
       "properties": {
         "home": {
           "description": "the path to mount the home PVC (NOT MUTABLE)\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=4096\n+kubebuilder:validation:Pattern:=^/[^/].*$\n+kubebuilder:validation:XValidation:rule=\"self == oldSelf\",message=\"mount path of 'home' is immutable\"\n+kubebuilder:example:=\"/home/jovyan\"",
@@ -3635,12 +3308,7 @@
     },
     "v1beta1.WorkspaceKindSpawner": {
       "type": "object",
-      "required": [
-        "description",
-        "displayName",
-        "icon",
-        "logo"
-      ],
+      "required": ["description", "displayName", "icon", "logo"],
       "properties": {
         "deprecated": {
           "description": "if this WorkspaceKind is deprecated\n+kubebuilder:validation:Optional\n+kubebuilder:default:=false",
@@ -3699,12 +3367,7 @@
     },
     "v1beta1.WorkspaceKindAssetConfigMap": {
       "type": "object",
-      "required": [
-        "key",
-        "mediaType",
-        "name",
-        "namespace"
-      ],
+      "required": ["key", "mediaType", "name", "namespace"],
       "properties": {
         "key": {
           "description": "the key in the ConfigMap which contains the data\n+kubebuilder:example=\"jupyterlab-logo.svg\"\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=253\n+kubebuilder:validation:Pattern:=^[-._a-zA-Z0-9]+$",
@@ -3730,12 +3393,8 @@
     },
     "v1beta1.WorkspaceKindAssetMediaType": {
       "type": "string",
-      "enum": [
-        "image/svg+xml"
-      ],
-      "x-enum-varnames": [
-        "WorkspaceKindAssetMediaTypeSVG"
-      ]
+      "enum": ["image/svg+xml"],
+      "x-enum-varnames": ["WorkspaceKindAssetMediaTypeSVG"]
     }
   }
 }
