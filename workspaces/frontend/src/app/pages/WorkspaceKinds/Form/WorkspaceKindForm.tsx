@@ -454,8 +454,9 @@ export const WorkspaceKindForm: React.FC = () => {
                 eventKey={YAML_TAB_KEY}
                 activeKey={activeTabKey}
                 hidden={activeTabKey !== YAML_TAB_KEY}
+                style={{ flex: 1 }}
               >
-                <TabContentBody>
+                <TabContentBody style={{ height: '100%' }}>
                   <WorkspaceKindYamlEditor
                     value={editYamlValue}
                     onChange={handleYamlChange}

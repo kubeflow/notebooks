@@ -2,7 +2,7 @@ import React, { useCallback, useRef } from 'react';
 import { CodeEditor, Language } from '@patternfly/react-code-editor';
 import { configureMonacoYaml } from 'monaco-yaml';
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
-import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
+import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { WORKSPACE_KIND_EXAMPLES_URL } from '~/shared/utilities/const';
 import workspaceKindUpdateSchema from './workspaceKindUpdateSchema.json';
 
@@ -43,12 +43,16 @@ export const WorkspaceKindYamlEditor: React.FC<WorkspaceKindYamlEditorProps> = (
   );
 
   return (
-    <Stack hasGutter data-testid="yaml-editor">
-      <StackItem isFilled style={{ minHeight: '500px' }}>
+    <Flex
+      direction={{ default: 'column' }}
+      style={{ height: '100%', minHeight: '500px' }}
+      data-testid="yaml-editor"
+    >
+      <FlexItem flex={{ default: 'flex_1' }}>
         <CodeEditor
           isLineNumbersVisible
           isLanguageLabelVisible={false}
-          height="100%"
+          isFullHeight
           code={value}
           onChange={onChange}
           language={Language.yaml}
@@ -61,14 +65,14 @@ export const WorkspaceKindYamlEditor: React.FC<WorkspaceKindYamlEditorProps> = (
             scrollBeyondLastLine: false,
           }}
         />
-      </StackItem>
+      </FlexItem>
       {error && (
-        <StackItem>
+        <FlexItem>
           <HelperText data-testid="yaml-parse-error">
             <HelperTextItem variant="error">{error}</HelperTextItem>
           </HelperText>
-        </StackItem>
+        </FlexItem>
       )}
-    </Stack>
+    </Flex>
   );
 };
