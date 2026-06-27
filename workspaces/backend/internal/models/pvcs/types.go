@@ -28,8 +28,8 @@ type PVCListItem struct {
 	Name       string          `json:"name"`
 	CanMount   bool            `json:"canMount"`
 	CanUpdate  bool            `json:"canUpdate"`
-	Pods       []PodInfo       `json:"pods"`
-	Workspaces []WorkspaceInfo `json:"workspaces"`
+	Pods       []PodInfo       `json:"pods,omitempty"`
+	Workspaces []WorkspaceInfo `json:"workspaces,omitempty"`
 	Audit      common.Audit    `json:"audit"`
 	PVCSpec    PVCSpec         `json:"pvcSpec"`
 
@@ -67,7 +67,7 @@ type PodTemplatePod struct {
 // PVCSpec represents the PVC spec fields
 type PVCSpec struct {
 	Requests    StorageRequests                     `json:"requests"`
-	AccessModes []corev1.PersistentVolumeAccessMode `json:"accessModes"`
+	AccessModes []corev1.PersistentVolumeAccessMode `json:"accessModes,omitempty"`
 	VolumeMode  corev1.PersistentVolumeMode         `json:"volumeMode"`
 
 	// This field may be an empty string in two cases:
@@ -86,7 +86,7 @@ type PVInfo struct {
 	Name                          string                               `json:"name"`
 	PersistentVolumeReclaimPolicy corev1.PersistentVolumeReclaimPolicy `json:"persistentVolumeReclaimPolicy"`
 	VolumeMode                    corev1.PersistentVolumeMode          `json:"volumeMode"`
-	AccessModes                   []corev1.PersistentVolumeAccessMode  `json:"accessModes"`
+	AccessModes                   []corev1.PersistentVolumeAccessMode  `json:"accessModes,omitempty"`
 
 	// This field should only be nil if the bound PV does not have a storage class (i.e. manual or out-of-band binding).
 	StorageClass *StorageClassInfo `json:"storageClass,omitempty"`
