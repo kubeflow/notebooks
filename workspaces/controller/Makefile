@@ -140,7 +140,7 @@ endif
 
 .PHONY: install
 install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build manifests/kustomize/base/crd | $(KUBECTL) apply -f -
+	$(KUSTOMIZE) build manifests/kustomize/base/crd | $(KUBECTL) apply --server-side --force-conflicts -f -
 
 .PHONY: uninstall
 uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
@@ -154,7 +154,7 @@ deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in
 	@cp -r manifests/kustomize/* manifests/kustomize/.output/
 	# Match both short name and registry-prefixed name (base kustomization may transform either)
 	@cd manifests/kustomize/.output/overlays/istio && $(KUSTOMIZE) edit set image $(NAME)=${IMG} $(REGISTRY)/$(NAME)=${IMG}
-	@$(KUBECTL) apply -k manifests/kustomize/.output/overlays/istio
+	@$(KUSTOMIZE) build manifests/kustomize/.output/overlays/istio | $(KUBECTL) apply --server-side --force-conflicts -f -
 
 .PHONY: undeploy
 undeploy: kustomize ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
