@@ -164,7 +164,9 @@ export const WorkspaceFormKindList: React.FunctionComponent<WorkspaceFormKindLis
                         </WorkspaceKindImage>
                       </FlexItem>
                       <FlexItem>
-                        <CardTitle>{kind.displayName}</CardTitle>
+                        <CardTitle className="workspace-option-card__title">
+                          {kind.displayName}
+                        </CardTitle>
                       </FlexItem>
                     </Flex>
                   </CardHeader>
