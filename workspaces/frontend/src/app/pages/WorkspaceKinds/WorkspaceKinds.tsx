@@ -5,6 +5,7 @@ import {
   DrawerContent,
   DrawerContentBody,
 } from '@patternfly/react-core/dist/esm/components/Drawer';
+import { EmptyState, EmptyStateBody } from '@patternfly/react-core/dist/esm/components/EmptyState';
 import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
 import {
   Pagination,
@@ -16,6 +17,7 @@ import { Label } from '@patternfly/react-core/dist/esm/components/Label';
 import { ToolbarItem } from '@patternfly/react-core/dist/esm/components/Toolbar';
 import { Bullseye } from '@patternfly/react-core/dist/esm/layouts/Bullseye';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
+import { LockIcon } from '@patternfly/react-icons/dist/esm/icons/lock-icon';
 import {
   Table,
   Thead,
@@ -27,6 +29,7 @@ import {
   ActionsColumn,
   IActions,
 } from '@patternfly/react-table/dist/esm/components/Table';
+import { useAppContext } from '~/app/context/AppContext';
 import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import DeleteModal from '~/shared/components/DeleteModal';
@@ -74,7 +77,7 @@ type WorkspaceKindFilterKey = keyof typeof filterConfig;
 
 const visibleFilterKeys: readonly WorkspaceKindFilterKey[] = ['name', 'description', 'status'];
 
-export const WorkspaceKinds: React.FunctionComponent = () => {
+const WorkspaceKindsAdminView: React.FunctionComponent = () => {
   // Table columns
   const columns: WorkspaceKindsColumns = useMemo(
     () => ({
@@ -502,4 +505,31 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
       )}
     </Drawer>
   );
+};
+
+export const WorkspaceKinds: React.FunctionComponent = () => {
+  const { user } = useAppContext();
+  const canManageWorkspaceKinds = Boolean(user?.clusterAdmin);
+
+  if (!canManageWorkspaceKinds) {
+    return (
+      <PageSection isFilled>
+        <Bullseye>
+          <EmptyState
+            headingLevel="h4"
+            titleText="WorkspaceKind management is restricted to administrators"
+            icon={LockIcon}
+            status="info"
+            data-testid="workspace-kinds-access-empty-state"
+          >
+            <EmptyStateBody>
+              Please contact your admin if you need changes to workspace configurations.
+            </EmptyStateBody>
+          </EmptyState>
+        </Bullseye>
+      </PageSection>
+    );
+  }
+
+  return <WorkspaceKindsAdminView />;
 };
