@@ -1,11 +1,11 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { Component, Input } from '@angular/core';
 
 @Component({
   selector: 'lib-help-popover',
   templateUrl: './help-popover.component.html',
   styleUrls: ['./help-popover.component.scss'],
 })
-export class HelpPopoverComponent implements OnInit {
+export class HelpPopoverComponent {
   @Input() popoverPosition = 'below';
 
   @Input()
@@ -15,6 +15,4 @@ export class HelpPopoverComponent implements OnInit {
   showDate: boolean;
 
   constructor() {}
-
-  ngOnInit(): void {}
 }

@@ -49,8 +49,10 @@ export class ExponentialBackoff {
     }
 
     // Start the Exponential Backoff. All the logic is in iterate()
-    this.emitter = timer(0, this.interval).subscribe(() => {
-      this.iterate();
+    this.emitter = timer(0, this.interval).subscribe({
+      next: () => {
+        this.iterate();
+      },
     });
 
     return this.poller;
@@ -70,8 +72,10 @@ export class ExponentialBackoff {
       this.currInterval = Math.min(this.currInterval * 2, this.maxInterval);
     }
 
-    this.emitter = interval(this.currInterval).subscribe(() => {
-      this.iterate();
+    this.emitter = interval(this.currInterval).subscribe({
+      next: () => {
+        this.iterate();
+      },
     });
   }
 

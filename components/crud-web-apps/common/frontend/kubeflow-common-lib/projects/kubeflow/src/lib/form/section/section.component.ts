@@ -5,7 +5,7 @@ import { Component, OnInit, Input } from '@angular/core';
   templateUrl: './section.component.html',
   styleUrls: ['./section.component.scss'],
 })
-export class FormSectionComponent implements OnInit {
+export class FormSectionComponent {
   @Input()
   title: string;
 
@@ -25,6 +25,4 @@ export class FormSectionComponent implements OnInit {
   helpText: string;
 
   constructor() {}
-
-  ngOnInit() {}
 }

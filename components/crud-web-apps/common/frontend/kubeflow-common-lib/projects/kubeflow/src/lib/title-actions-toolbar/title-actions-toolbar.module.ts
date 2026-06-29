@@ -15,6 +15,11 @@ import { MatTooltipModule } from '@angular/material/tooltip';
     MatButtonModule,
     MatTooltipModule,
   ],
-  exports: [TitleActionsToolbarComponent],
+  exports: [
+    TitleActionsToolbarComponent,
+    MatButtonModule,
+    MatIconModule,
+    MatTooltipModule,
+  ],
 })
 export class TitleActionsToolbarModule {}

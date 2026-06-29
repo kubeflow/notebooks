@@ -2,22 +2,20 @@ import {
   ComponentFixture,
   discardPeriodicTasks,
   fakeAsync,
-  flush,
   TestBed,
   tick,
 } from '@angular/core/testing';
 import { MatTabsModule } from '@angular/material/tabs';
-import { By } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import {
   KubeflowModule,
-  LoadingSpinnerModule,
   NamespaceService,
-  TitleActionsToolbarModule,
+  PopoverModule,
+  UrlsModule,
 } from 'kubeflow';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { of, Subject } from 'rxjs';
-import { ActionsService } from 'src/app/services/actions.service';
 import { VWABackendService } from 'src/app/services/backend.service';
 import { EventsModule } from './events/events.module';
 import { OverviewModule } from './overview/overview.module';
@@ -25,10 +23,8 @@ import { mockPvc } from './pvc-mock';
 import { VolumeDetailsPageComponent } from './volume-details-page.component';
 import { YamlModule } from './yaml/yaml.module';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { ColumnsModule } from '../index/columns/columns.module';
 
-const ActionsServiceStub: Partial<ActionsService> = {
-  deleteVolume: () => of(),
-};
 const VWABackendServiceStub: Partial<VWABackendService> = {
   getPVC: () => of(mockPvc),
   getPodsUsingPVC: () => of(),
@@ -59,6 +55,10 @@ describe('VolumeDetailsPageComponent', () => {
         RouterTestingModule,
         KubeflowModule,
         MatTabsModule,
+        MatTooltipModule,
+        PopoverModule,
+        UrlsModule,
+        ColumnsModule,
         OverviewModule,
         EventsModule,
         YamlModule,
@@ -78,44 +78,36 @@ describe('VolumeDetailsPageComponent', () => {
   });
 
   it('should show only the proper tab according to query parameters', fakeAsync(() => {
-    const checkActiveTab = (name: string) => {
-      const activeTab = fixture.debugElement.query(By.css(`app-${name}`));
-      expect(activeTab).toBeTruthy();
-      expect(
-        activeTab.parent.parent.classes['mat-tab-body-active'],
-      ).toBeTruthy();
-    };
-
-    const checkTabs = (name: string) => {
-      // The order of tabs in this array should much the order we have in the
-      // template.
+    const checkActiveTabIndex = (expectedTab: string) => {
       const allTabs = ['overview', 'events', 'yaml'];
-      allTabs.forEach((tab, index) => {
-        const tabBodies = fixture.debugElement.queryAll(
-          By.css('.mat-tab-body'),
-        );
-        const isActive = tabBodies[index].classes['mat-tab-body-active'];
-        if (tab === name) {
-          expect(isActive).toBeTrue();
-        } else {
-          expect(isActive).toBeFalsy();
-        }
-      });
+      const expectedIndex = allTabs.findIndex(v => v === expectedTab);
+      expect(component.selectedTab.index).toEqual(expectedIndex);
+      expect(component.selectedTab.name).toEqual(expectedTab);
     };
 
     const activatedRoute: ActivatedRoute = TestBed.inject(ActivatedRoute);
     const queryParams = new Subject();
     activatedRoute.queryParams = queryParams;
     fixture.detectChanges();
-    activatedRoute.queryParams.subscribe(params => {
-      fixture.detectChanges();
-      tick();
-      checkActiveTab(params.tab);
-      checkTabs(params.tab);
-    });
+    tick();
+
+    // Test events tab
     queryParams.next({ tab: 'events' });
+    fixture.detectChanges();
+    tick();
+    checkActiveTabIndex('events');
+
+    // Test overview tab
     queryParams.next({ tab: 'overview' });
+    fixture.detectChanges();
+    tick();
+    checkActiveTabIndex('overview');
+
+    // Test yaml tab
     queryParams.next({ tab: 'yaml' });
+    fixture.detectChanges();
+    tick();
+    checkActiveTabIndex('yaml');
 
     discardPeriodicTasks();
   }));

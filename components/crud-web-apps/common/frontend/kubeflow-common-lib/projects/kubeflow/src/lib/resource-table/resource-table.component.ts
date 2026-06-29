@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { Observable } from 'rxjs';
 import { MatTableDataSource } from '@angular/material/table';
 import {
@@ -18,7 +18,7 @@ import {
   templateUrl: './resource-table.component.html',
   styleUrls: ['./resource-table.component.scss'],
 })
-export class ResourceTableComponent implements OnInit {
+export class ResourceTableComponent {
   @Input() config: TableConfig;
   @Input() data: any[];
   @Input() trackByFn: (index: number, r: any) => string;
@@ -31,8 +31,6 @@ export class ResourceTableComponent implements OnInit {
   TABLE_THEME = TABLE_THEME;
 
   constructor() {}
-
-  ngOnInit() {}
 
   public actionTriggered(e: ActionEvent) {
     // Forward the emitted ActionEvent

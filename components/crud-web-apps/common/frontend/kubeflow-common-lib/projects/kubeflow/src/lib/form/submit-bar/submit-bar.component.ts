@@ -1,11 +1,11 @@
-import { Component, OnInit, Output, EventEmitter, Input } from '@angular/core';
+import { Component, Output, EventEmitter, Input } from '@angular/core';
 
 @Component({
   selector: 'lib-submit-bar',
   templateUrl: './submit-bar.component.html',
   styleUrls: ['./submit-bar.component.scss'],
 })
-export class SubmitBarComponent implements OnInit {
+export class SubmitBarComponent {
   @Input() createDisabled = false;
   @Input() allowYAMLEditing = true;
   @Input() isApplying = false;
@@ -14,6 +14,4 @@ export class SubmitBarComponent implements OnInit {
   @Output() yaml = new EventEmitter<boolean>();
 
   constructor() {}
-
-  ngOnInit() {}
 }

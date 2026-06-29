@@ -1,4 +1,4 @@
-import { Component, Input, OnDestroy, OnInit } from '@angular/core';
+import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { NamespaceService } from '../services/namespace.service';
 import { BackendService } from '../services/backend/backend.service';
 import { ExponentialBackoff } from '../polling/exponential-backoff';
@@ -29,22 +29,22 @@ export class NamespaceSelectComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     // Keep track of the selected namespace
-    const currNsSub = this.namespaceService
-      .getSelectedNamespace()
-      .subscribe(namespace => {
+    const currNsSub = this.namespaceService.getSelectedNamespace().subscribe({
+      next: namespace => {
         this.currNamespace = namespace;
-      });
+      },
+    });
 
-    this.backend
-      .getNamespaces(true, this.namespacesUrl)
-      .subscribe(namespaces => {
+    this.backend.getNamespaces(true, this.namespacesUrl).subscribe({
+      next: namespaces => {
         this.namespaces = namespaces;
         if (!this.currNamespace) {
           return;
         }
 
         this.namespaceService.updateSelectedNamespace(this.currNamespace);
-      });
+      },
+    });
 
     this.subscriptions.add(currNsSub);
   }

@@ -40,9 +40,11 @@ export class SnackBarService {
     this.snackBar
       .openFromComponent(SnackBarComponent, newConfig)
       .afterDismissed()
-      .subscribe(() => {
-        this.dialogState.shown = false;
-        this.dialogState.msg = '';
+      .subscribe({
+        next: () => {
+          this.dialogState.shown = false;
+          this.dialogState.msg = '';
+        },
       });
   }
 }

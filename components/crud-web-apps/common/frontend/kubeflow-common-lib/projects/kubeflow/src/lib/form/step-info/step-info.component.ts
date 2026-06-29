@@ -1,15 +1,13 @@
-import { Component, OnInit, Input, HostBinding } from '@angular/core';
+import { Component, Input, HostBinding } from '@angular/core';
 
 @Component({
   selector: 'lib-step-info',
   templateUrl: './step-info.component.html',
   styleUrls: ['./step-info.component.scss'],
 })
-export class StepInfoComponent implements OnInit {
+export class StepInfoComponent {
   @Input() header: string;
   @HostBinding('class.lib-step-info') selfClass = true;
 
   constructor() {}
-
-  ngOnInit() {}
 }

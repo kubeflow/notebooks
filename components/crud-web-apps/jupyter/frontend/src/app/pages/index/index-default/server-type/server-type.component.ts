@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { TableColumnComponent } from 'kubeflow/lib/resource-table/component-value/component-value.component';
+import { TableColumnComponent } from 'kubeflow';
 import { NotebookProcessedObject } from 'src/app/types';
 import { environment } from '@app/environment';
 import { DomSanitizer } from '@angular/platform-browser';
