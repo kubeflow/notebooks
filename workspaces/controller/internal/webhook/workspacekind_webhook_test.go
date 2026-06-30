@@ -139,6 +139,16 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 				workspaceKind: NewExampleWorkspaceKindWithBothProbeTypes("wsk-webhook-create--both-probe-types"),
 				shouldSucceed: false,
 			},
+			{
+				description:   "should reject creation if minProbeIntervalSeconds > probeIntervalSeconds",
+				workspaceKind: NewExampleWorkspaceKindWithInvalidProbeIntervals("wsk-webhook-create--invalid-probe-intervals"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation if jupyter.lastActivity is false",
+				workspaceKind: NewExampleWorkspaceKindWithJupyterLastActivityFalse("wsk-webhook-create--jupyter-last-activity-false"),
+				shouldSucceed: false,
+			},
 		}
 
 		for _, tc := range testCases {

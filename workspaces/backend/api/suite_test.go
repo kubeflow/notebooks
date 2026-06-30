@@ -231,7 +231,7 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 					MinProbeIntervalSeconds: ptr.To(int32(300)),
 					ProbeIntervalSeconds:    ptr.To(int32(3600)),
 					Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
-						LastActivity: ptr.To(true),
+						LastActivity: true,
 						PortId:       "jupyterlab",
 					},
 				},

@@ -753,24 +753,11 @@ func validateActivityProbe(activityProbe *kubefloworgv1beta1.ActivityProbe, path
 		return errs
 	}
 
-	// Validate minProbeIntervalSeconds if specified
-	if activityProbe.MinProbeIntervalSeconds != nil && *activityProbe.MinProbeIntervalSeconds <= 0 {
-		errs = append(errs, field.Invalid(path.Child("minProbeIntervalSeconds"), *activityProbe.MinProbeIntervalSeconds, "must be greater than 0"))
-	}
-
-	// Validate probeIntervalSeconds if specified
-	if activityProbe.ProbeIntervalSeconds != nil && *activityProbe.ProbeIntervalSeconds <= 0 {
-		errs = append(errs, field.Invalid(path.Child("probeIntervalSeconds"), *activityProbe.ProbeIntervalSeconds, "must be greater than 0"))
-	}
-
 	// Validate podExec if specified
 	if activityProbe.PodExec != nil {
 		script := activityProbe.PodExec.Script
 		if len(script) < 2 || !strings.HasPrefix(script, "#!") {
 			errs = append(errs, field.Invalid(path.Child("podExec", "script"), script, "script must start with a shebang (e.g., '#!/bin/bash')"))
-		}
-		if activityProbe.PodExec.TimeoutSeconds != nil && *activityProbe.PodExec.TimeoutSeconds <= 0 {
-			errs = append(errs, field.Invalid(path.Child("podExec", "timeoutSeconds"), *activityProbe.PodExec.TimeoutSeconds, "must be greater than 0"))
 		}
 	}
 

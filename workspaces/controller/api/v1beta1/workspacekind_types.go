@@ -240,6 +240,7 @@ type WorkspaceKindServiceAccount struct {
 }
 
 // +kubebuilder:validation:XValidation:message="must specify exactly one of 'podExec' or 'jupyter'",rule="!(has(self.podExec) && has(self.jupyter)) && (has(self.podExec) || has(self.jupyter))"
+// +kubebuilder:validation:XValidation:message="minProbeIntervalSeconds must be less than or equal to probeIntervalSeconds",rule="self.minProbeIntervalSeconds <= self.probeIntervalSeconds"
 type ActivityProbe struct {
 	// minProbeIntervalSeconds determines the minimum period in seconds between each Workspace probe.
 	// This acts as a rate-limiter to prevent hammering/overloading the Workspace container
@@ -288,14 +289,13 @@ type ActivityProbePodExec struct {
 	Script string `json:"script"`
 }
 
+// +kubebuilder:validation:XValidation:message="'lastActivity' must be true",rule="has(self.lastActivity) && self.lastActivity"
 type ActivityProbeJupyter struct {
 	// if the Jupyter-specific probe is enabled
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default:=true
-	LastActivity *bool `json:"lastActivity,omitempty"`
+	// +kubebuilder:example=true
+	LastActivity bool `json:"lastActivity"`
 
 	// portId references a valid port defined in the WorkspaceKind
-	// +kubebuilder:validation:MinLength:=1
 	PortId PortId `json:"portId"`
 }
 

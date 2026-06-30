@@ -138,7 +138,7 @@ var _ = Describe("WorkspaceKind Controller", func() {
 					Script: "#!/bin/bash\necho '{\"has_activity\": true}' > \"$OUTPUT_JSON_PATH\"",
 				},
 				Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
-					LastActivity: ptr.To(true),
+					LastActivity: true,
 					PortId:       "jupyterlab",
 				},
 			}

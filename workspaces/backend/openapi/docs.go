@@ -5911,15 +5911,16 @@ const docTemplate = `{
         "v1beta1.ActivityProbeJupyter": {
             "type": "object",
             "required": [
+                "lastActivity",
                 "portId"
             ],
             "properties": {
                 "lastActivity": {
-                    "description": "if the Jupyter-specific probe is enabled\n+kubebuilder:validation:Optional\n+kubebuilder:default:=true",
+                    "description": "if the Jupyter-specific probe is enabled\n+kubebuilder:example=true",
                     "type": "boolean"
                 },
                 "portId": {
-                    "description": "portId references a valid port defined in the WorkspaceKind\n+kubebuilder:validation:MinLength:=1",
+                    "description": "portId references a valid port defined in the WorkspaceKind",
                     "type": "string"
                 }
             }

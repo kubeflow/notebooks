@@ -207,7 +207,7 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 					MinProbeIntervalSeconds: ptr.To(int32(300)),
 					ProbeIntervalSeconds:    ptr.To(int32(3600)),
 					Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
-						LastActivity: ptr.To(true),
+						LastActivity: true,
 						PortId:       "jupyterlab",
 					},
 				},
@@ -696,7 +696,7 @@ func NewExampleWorkspaceKindWithInvalidJupyterPort(name string) *kubefloworgv1be
 	workspaceKind := NewExampleWorkspaceKind(name)
 	workspaceKind.Spec.PodTemplate.ActivityProbe = &kubefloworgv1beta1.ActivityProbe{
 		Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
-			LastActivity: ptr.To(true),
+			LastActivity: true,
 			PortId:       "invalid-port",
 		},
 	}
@@ -711,7 +711,33 @@ func NewExampleWorkspaceKindWithBothProbeTypes(name string) *kubefloworgv1beta1.
 			Script: "#!/bin/bash\necho '{\"has_activity\": true}' > \"$OUTPUT_JSON_PATH\"",
 		},
 		Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
-			LastActivity: ptr.To(true),
+			LastActivity: true,
+			PortId:       "jupyterlab",
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithInvalidProbeIntervals returns a WorkspaceKind with minProbeIntervalSeconds > probeIntervalSeconds.
+func NewExampleWorkspaceKindWithInvalidProbeIntervals(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.ActivityProbe = &kubefloworgv1beta1.ActivityProbe{
+		MinProbeIntervalSeconds: ptr.To(int32(100)),
+		ProbeIntervalSeconds:    ptr.To(int32(50)),
+		Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
+			LastActivity: true,
+			PortId:       "jupyterlab",
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithJupyterLastActivityFalse returns a WorkspaceKind with Jupyter activityProbe where lastActivity is false.
+func NewExampleWorkspaceKindWithJupyterLastActivityFalse(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.ActivityProbe = &kubefloworgv1beta1.ActivityProbe{
+		Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
+			LastActivity: false,
 			PortId:       "jupyterlab",
 		},
 	}

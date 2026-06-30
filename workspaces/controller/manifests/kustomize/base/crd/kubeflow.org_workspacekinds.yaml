@@ -66,21 +66,23 @@ spec:
                         description: a Jupyter-specific API probe
                         properties:
                           lastActivity:
-                            default: true
                             description: if the Jupyter-specific probe is enabled
+                            example: true
                             type: boolean
                           portId:
-                            allOf:
-                            - minLength: 1
-                            - minLength: 1
                             description: portId references a valid port defined in
                               the WorkspaceKind
                             maxLength: 32
+                            minLength: 1
                             pattern: ^[a-z0-9]([a-z0-9_-]*[a-z0-9])?$
                             type: string
                         required:
+                        - lastActivity
                         - portId
                         type: object
+                        x-kubernetes-validations:
+                        - message: '''lastActivity'' must be true'
+                          rule: has(self.lastActivity) && self.lastActivity
                       minProbeIntervalSeconds:
                         default: 300
                         description: |-
@@ -132,6 +134,9 @@ spec:
                     - message: must specify exactly one of 'podExec' or 'jupyter'
                       rule: '!(has(self.podExec) && has(self.jupyter)) && (has(self.podExec)
                         || has(self.jupyter))'
+                    - message: minProbeIntervalSeconds must be less than or equal
+                        to probeIntervalSeconds
+                      rule: self.minProbeIntervalSeconds <= self.probeIntervalSeconds
                   containerSecurityContext:
                     description: container security context for Workspace Pods (MUTABLE)
                     properties:
