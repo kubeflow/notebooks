@@ -5882,48 +5882,62 @@ const docTemplate = `{
         "v1beta1.ActivityProbe": {
             "type": "object",
             "properties": {
-                "exec": {
-                    "description": "a shell command probe\n - if the Workspace had activity in the last 60 seconds this command\n   should return status 0, otherwise it should return status 1\n+kubebuilder:validation:Optional",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.ActivityProbeExec"
-                        }
-                    ]
-                },
                 "jupyter": {
-                    "description": "a Jupyter-specific probe\n - will poll the ` + "`" + `/api/status` + "`" + ` endpoint of the Jupyter API, and use the ` + "`" + `last_activity` + "`" + ` field\n - note, users need to be careful that their other probes don't trigger a \"last_activity\" update\n   e.g. they should only check the health of Jupyter using the ` + "`" + `/api/status` + "`" + ` endpoint\n+kubebuilder:validation:Optional",
+                    "description": "a Jupyter-specific API probe\n+kubebuilder:validation:Optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.ActivityProbeJupyter"
                         }
                     ]
-                }
-            }
-        },
-        "v1beta1.ActivityProbeExec": {
-            "type": "object",
-            "required": [
-                "command"
-            ],
-            "properties": {
-                "command": {
-                    "description": "the command to run\n+kubebuilder:validation:MinItems:=1\n+kubebuilder:example={\"bash\", \"-c\", \"exit 0\"}",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
+                },
+                "minProbeIntervalSeconds": {
+                    "description": "minProbeIntervalSeconds determines the minimum period in seconds between each Workspace probe.\nThis acts as a rate-limiter to prevent hammering/overloading the Workspace container\nwhen consecutive probes are failing.\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:default:=300\n+kubebuilder:validation:Optional",
+                    "type": "integer"
+                },
+                "podExec": {
+                    "description": "a script-based probe executed in the Pod\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.ActivityProbePodExec"
+                        }
+                    ]
+                },
+                "probeIntervalSeconds": {
+                    "description": "probeIntervalSeconds determines the desired period in seconds between each Workspace probe.\nThis represents the normal maximum duration between successful probes to ensure culling\nstatus information remains fresh.\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:default:=3600\n+kubebuilder:validation:Optional",
+                    "type": "integer"
                 }
             }
         },
         "v1beta1.ActivityProbeJupyter": {
             "type": "object",
             "required": [
-                "lastActivity"
+                "lastActivity",
+                "portId"
             ],
             "properties": {
                 "lastActivity": {
                     "description": "if the Jupyter-specific probe is enabled\n+kubebuilder:example=true",
                     "type": "boolean"
+                },
+                "portId": {
+                    "description": "portId references a valid port defined in the WorkspaceKind",
+                    "type": "string"
+                }
+            }
+        },
+        "v1beta1.ActivityProbePodExec": {
+            "type": "object",
+            "required": [
+                "script"
+            ],
+            "properties": {
+                "script": {
+                    "description": "script is the script to run inside the Pod to determine if the Workspace is active.\nThe script must meet the following requirements:\n - It must start with a shebang (e.g., \"#!/usr/bin/env bash\" or \"#!/usr/bin/env python\").\n - It must exit with a 0 status code. A non-zero exit code is treated as a probe failure (Workspaces with failing probes are not culled).\n - It should be idempotent and without side effects since it can be run multiple times.\n - If the script wants to report an INACTIVE state, it MUST write a JSON object to the file path\n   supplied in the OUTPUT_JSON_PATH environment variable. The fields are evaluated to update the\n   Workspace status field ` + "`" + `status.activity.lastActivity` + "`" + ` as follows:\n     - If ` + "`" + `has_activity` + "`" + ` is explicitly set to ` + "`" + `true` + "`" + ` (or if the JSON file is empty/omitted): The Workspace is treated as active, and ` + "`" + `status.activity.lastActivity` + "`" + ` is updated to the probe completion time (ignoring ` + "`" + `last_activity` + "`" + `).\n     - If ` + "`" + `last_activity` + "`" + ` (ISO 8601 string) is provided and ` + "`" + `has_activity` + "`" + ` is explicitly ` + "`" + `false` + "`" + ` (or omitted): The Workspace is treated as inactive, and ` + "`" + `status.activity.lastActivity` + "`" + ` is updated to the ` + "`" + `last_activity` + "`" + ` timestamp.\n     - If ` + "`" + `has_activity` + "`" + ` is explicitly ` + "`" + `false` + "`" + ` and ` + "`" + `last_activity` + "`" + ` is omitted: The Workspace is treated as inactive, and the existing ` + "`" + `status.activity.lastActivity` + "`" + ` timestamp is preserved (unchanged).\n+kubebuilder:validation:MinLength:=1",
+                    "type": "string"
+                },
+                "timeoutSeconds": {
+                    "description": "timeoutSeconds determines the maximum number of seconds the probe is allowed to run\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:default:=60\n+kubebuilder:validation:Optional",
+                    "type": "integer"
                 }
             }
         },
@@ -6355,30 +6369,6 @@ const docTemplate = `{
                 "WorkspaceKindAssetMediaTypeSVG"
             ]
         },
-        "v1beta1.WorkspaceKindCullingConfig": {
-            "type": "object",
-            "required": [
-                "activityProbe"
-            ],
-            "properties": {
-                "activityProbe": {
-                    "description": "the probe used to determine if the Workspace is active",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.ActivityProbe"
-                        }
-                    ]
-                },
-                "enabled": {
-                    "description": "if the culling feature is enabled\n+kubebuilder:validation:Optional\n+kubebuilder:default=true",
-                    "type": "boolean"
-                },
-                "maxInactiveSeconds": {
-                    "description": "the maximum number of seconds a Workspace can be inactive\n+kubebuilder:validation:Optional\n+kubebuilder:validation:Minimum:=60\n+kubebuilder:default=86400",
-                    "type": "integer"
-                }
-            }
-        },
         "v1beta1.WorkspaceKindPodMetadata": {
             "type": "object",
             "properties": {
@@ -6432,19 +6422,19 @@ const docTemplate = `{
                 "volumeMounts"
             ],
             "properties": {
+                "activityProbe": {
+                    "description": "activityProbe configs to determine Workspace activity (MUTABLE)\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.ActivityProbe"
+                        }
+                    ]
+                },
                 "containerSecurityContext": {
                     "description": "container security context for Workspace Pods (MUTABLE)\n+kubebuilder:validation:Optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.SecurityContext"
-                        }
-                    ]
-                },
-                "culling": {
-                    "description": "culling configs for pausing inactive Workspaces (MUTABLE)\n+kubebuilder:validation:Optional",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.WorkspaceKindCullingConfig"
                         }
                     ]
                 },

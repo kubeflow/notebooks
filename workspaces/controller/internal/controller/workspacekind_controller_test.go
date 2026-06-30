@@ -131,14 +131,15 @@ var _ = Describe("WorkspaceKind Controller", func() {
 			}
 			Expect(k8sClient.Patch(ctx, newWorkspaceKind, patch)).NotTo(Succeed())
 
-			By("only allowing one of `spec.podTemplate.culling.activityProbe.{exec,jupyter}` to be set")
+			By("only allowing one of `spec.podTemplate.activityProbe.{podExec,jupyter}` to be set")
 			newWorkspaceKind = workspaceKind.DeepCopy()
-			newWorkspaceKind.Spec.PodTemplate.Culling.ActivityProbe = kubefloworgv1beta1.ActivityProbe{
-				Exec: &kubefloworgv1beta1.ActivityProbeExec{
-					Command: []string{"bash", "-c", "exit 0"},
+			newWorkspaceKind.Spec.PodTemplate.ActivityProbe = &kubefloworgv1beta1.ActivityProbe{
+				PodExec: &kubefloworgv1beta1.ActivityProbePodExec{
+					Script: "#!/bin/bash\necho '{\"has_activity\": true}' > \"$OUTPUT_JSON_PATH\"",
 				},
 				Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
 					LastActivity: true,
+					PortId:       "jupyterlab",
 				},
 			}
 			Expect(k8sClient.Patch(ctx, newWorkspaceKind, patch)).NotTo(Succeed())
