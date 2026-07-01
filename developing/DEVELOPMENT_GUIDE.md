@@ -113,6 +113,9 @@ make tilt-up
 
 # OPTION 2: run with prometheus metrics enabled
 ENABLE_PROMETHEUS=true make tilt-up
+
+# OPTION 3: run with metrics-server enabled (kubectl top verification)
+ENABLE_METRICS_SERVER=true make tilt-up
 ```
 
 What this does:
@@ -143,6 +146,10 @@ What this does:
 > ```bash
 > ENABLE_FRONTEND=false make tilt-up
 > ```
+
+> [!TIP]
+>
+> `ENABLE_METRICS_SERVER=true` installs [metrics-server](https://github.com/kubernetes-sigs/metrics-server), registering the `metrics.k8s.io` API so `kubectl top nodes` / `kubectl top pods` work against the cluster.
 
 Wait until all resources show green/healthy status. 
 The frontend may take a couple of minutes on first start as webpack compiles the bundle.

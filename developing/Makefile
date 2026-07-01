@@ -54,9 +54,15 @@ setup-prometheus:
 	@echo "Setting up Prometheus..."
 	@export PATH="$(LOCALBIN):$$PATH" && ./scripts/setup-prometheus.sh
 
+# Install metrics-server for `kubectl top` verification (optional, gated by ENABLE_METRICS_SERVER)
+.PHONY: setup-metrics-server
+setup-metrics-server:
+	@echo "Setting up metrics-server..."
+	@export PATH="$(LOCALBIN):$$PATH" && ./scripts/setup-metrics-server.sh
+
 # Run tilt up with kind cluster, cert-manager, and Istio setup
 .PHONY: tilt-up
-tilt-up: kustomize check-tilt setup-kind setup-istio setup-prometheus
+tilt-up: kustomize check-tilt setup-kind setup-istio setup-prometheus setup-metrics-server
 	@echo "Starting Tilt..."
 	@tilt up
 
