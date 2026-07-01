@@ -78,14 +78,14 @@ func NewSecretUpdate(secretType string, immutable bool, contents SecretData) Sec
 // Validate validates the SecretCreate struct.
 // NOTE: we only do basic validation, more complex validation is done by Kubernetes when attempting to create the secret.
 func (s *SecretCreate) Validate(prefix *field.Path) []*field.Error {
-	var errs []*field.Error
+	var errs []*field.Error //nolint:prealloc
 
 	// validate the secret name
 	namePath := prefix.Child("name")
 	errs = append(errs, helper.ValidateKubernetesSecretName(namePath, s.Name)...)
 
 	// validate common fields (type and contents)
-	errs = append(errs, s.secretBase.validateBase(prefix)...)
+	errs = append(errs, s.validateBase(prefix)...)
 
 	return errs
 }
@@ -94,7 +94,7 @@ func (s *SecretCreate) Validate(prefix *field.Path) []*field.Error {
 // NOTE: we only do basic validation, more complex validation is done by Kubernetes when attempting to update the secret.
 func (s *SecretUpdate) Validate(prefix *field.Path) []*field.Error {
 	// validate common fields (type and contents)
-	return s.secretBase.validateBase(prefix)
+	return s.validateBase(prefix)
 }
 
 // Validate validates the SecretData struct.
@@ -116,7 +116,7 @@ func (s *SecretData) Validate(prefix *field.Path) []*field.Error {
 
 // validateBase validates the common fields of a secret (contents).
 func (sb *secretBase) validateBase(prefix *field.Path) []*field.Error {
-	var errs []*field.Error
+	var errs []*field.Error //nolint:prealloc
 
 	contentsPath := prefix.Child("contents")
 	errs = append(errs, sb.Contents.Validate(contentsPath)...)

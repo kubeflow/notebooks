@@ -87,7 +87,7 @@ func (a *App) getWorkspaceKindAssetHandler(w http.ResponseWriter, r *http.Reques
 	namespace := r.URL.Query().Get(constants.NamespaceQueryParam)
 
 	// validate path parameters
-	var valErrs field.ErrorList
+	var valErrs field.ErrorList //nolint:prealloc
 	valErrs = append(valErrs, helper.ValidateWorkspaceKindName(field.NewPath(constants.ResourceNamePathParam), wskName)...)
 	if len(valErrs) > 0 {
 		a.failedValidationResponse(w, r, errMsgPathParamsInvalid, valErrs, nil)
