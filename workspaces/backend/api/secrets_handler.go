@@ -53,7 +53,7 @@ type SecretCreateEnvelope Envelope[*models.SecretCreate]
 func (a *App) GetSecretsByNamespaceHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(constants.NamespacePathParam)
 
-	var valErrs field.ErrorList
+	var valErrs field.ErrorList //nolint:prealloc
 	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(constants.NamespacePathParam), namespace)...)
 
 	if len(valErrs) > 0 {
@@ -101,7 +101,7 @@ func (a *App) GetSecretHandler(w http.ResponseWriter, r *http.Request, ps httpro
 	secretName := ps.ByName(constants.ResourceNamePathParam)
 
 	// validate path parameters
-	var valErrs field.ErrorList
+	var valErrs field.ErrorList //nolint:prealloc
 	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(constants.NamespacePathParam), namespace)...)
 	valErrs = append(valErrs, helper.ValidateKubernetesSecretName(field.NewPath(constants.ResourceNamePathParam), secretName)...)
 	if len(valErrs) > 0 {
@@ -350,7 +350,7 @@ func (a *App) DeleteSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 	secretName := ps.ByName(constants.ResourceNamePathParam)
 
 	// validate path parameters
-	var valErrs field.ErrorList
+	var valErrs field.ErrorList //nolint:prealloc
 	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(constants.NamespacePathParam), namespace)...)
 	valErrs = append(valErrs, helper.ValidateKubernetesSecretName(field.NewPath(constants.ResourceNamePathParam), secretName)...)
 	if len(valErrs) > 0 {

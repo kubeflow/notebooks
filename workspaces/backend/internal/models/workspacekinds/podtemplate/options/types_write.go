@@ -28,7 +28,7 @@ type ListValuesRequest struct {
 
 // Validate validates the ListValuesRequest struct.
 func (d *ListValuesRequest) Validate(prefix *field.Path) []*field.Error {
-	var errs field.ErrorList
+	var errs field.ErrorList //nolint:prealloc
 
 	// validate the context
 	contextPath := prefix.Child("context")
@@ -74,7 +74,7 @@ type ContextNamespace struct {
 
 // Validate validates the ContextNamespace struct.
 func (c *ContextNamespace) Validate(prefix *field.Path) []*field.Error {
-	var errs field.ErrorList
+	var errs field.ErrorList //nolint:prealloc
 
 	// validate the namespace name
 	namePath := prefix.Child("name")
@@ -89,7 +89,7 @@ type ContextPodConfig struct {
 
 // Validate validates the ContextPodConfig struct.
 func (c *ContextPodConfig) Validate(prefix *field.Path) []*field.Error {
-	var errs field.ErrorList
+	var errs field.ErrorList //nolint:prealloc
 
 	// validate the pod config id
 	idPath := prefix.Child("id")
@@ -104,7 +104,7 @@ type ContextImageConfig struct {
 
 // Validate validates the ContextImageConfig struct.
 func (c *ContextImageConfig) Validate(prefix *field.Path) []*field.Error {
-	var errs field.ErrorList
+	var errs field.ErrorList //nolint:prealloc
 
 	// validate the image config id
 	idPath := prefix.Child("id")

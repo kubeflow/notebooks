@@ -60,7 +60,7 @@ func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps htt
 	workspaceName := ps.ByName(constants.ResourceNamePathParam)
 
 	// validate path parameters
-	var valErrs field.ErrorList
+	var valErrs field.ErrorList //nolint:prealloc
 	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(constants.NamespacePathParam), namespace)...)
 	valErrs = append(valErrs, helper.ValidateWorkspaceName(field.NewPath(constants.ResourceNamePathParam), workspaceName)...)
 	if len(valErrs) > 0 {
@@ -409,7 +409,7 @@ func (a *App) DeleteWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 	workspaceName := ps.ByName(constants.ResourceNamePathParam)
 
 	// validate path parameters
-	var valErrs field.ErrorList
+	var valErrs field.ErrorList //nolint:prealloc
 	valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(constants.NamespacePathParam), namespace)...)
 	valErrs = append(valErrs, helper.ValidateWorkspaceName(field.NewPath(constants.ResourceNamePathParam), workspaceName)...)
 	if len(valErrs) > 0 {

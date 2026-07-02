@@ -27,7 +27,7 @@ import (
 )
 
 func NewPodTemplateOptionsModelFromWorkspaceKind(wsk *kubefloworgv1beta1.WorkspaceKind, request *ListValuesRequest) (*PodTemplateOptions, error) {
-	var allValErrs field.ErrorList
+	var allValErrs field.ErrorList //nolint:prealloc
 
 	// calculate maps of "option id" -> "number of workspaces using that option in the cluster"
 	metricsMapImageConfig := calculateOptionMetricsMap(wsk.Status.PodTemplateOptions.ImageConfig)

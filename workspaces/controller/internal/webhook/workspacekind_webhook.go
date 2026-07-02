@@ -540,7 +540,7 @@ func (v *WorkspaceKindValidator) getOptionsUsageCounts(ctx context.Context, work
 
 // validatePodTemplatePodMetadata validates the podMetadata of a WorkspaceKind's PodTemplate
 func (v *WorkspaceKindValidator) validatePodTemplatePodMetadata(workspaceKind *kubefloworgv1beta1.WorkspaceKind) []*field.Error {
-	var errs []*field.Error
+	var errs []*field.Error //nolint:prealloc
 
 	podMetadata := workspaceKind.Spec.PodTemplate.PodMetadata
 	podMetadataPath := field.NewPath("spec", "podTemplate", "podMetadata")

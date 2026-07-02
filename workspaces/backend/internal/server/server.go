@@ -82,7 +82,7 @@ func (s *Server) Start(ctx context.Context) error {
 	go func() {
 		<-ctx.Done()
 		s.logger.Info("shutting down server")
-		if err := s.server.Shutdown(context.Background()); err != nil {
+		if err := s.server.Shutdown(context.WithoutCancel(ctx)); err != nil {
 			s.logger.Error("error shutting down server", "error", err)
 		}
 		close(serverShutdown)
