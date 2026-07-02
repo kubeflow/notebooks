@@ -75,53 +75,6 @@ k8s_resource(
 
 
 # ============================================================================
-# Dev Resources
-# ============================================================================
-# RBAC bindings for dev users (admin, user) using the kubeflow-workspaces-*
-# ClusterRoles from controller manifests, plus dev-only supplements for
-# resources the backend also checks (PVCs, secrets, etc).
-#
-# Common sample resources (PVCs, Secret, ConfigMap) applied to
-# the default namespace so workspaces can be created out of the box.
-
-rbac_path = os.path.join(tilt_root, "manifests/rbac")
-k8s_yaml(
-    kustomize(rbac_path, kustomize_bin=kustomize_bin),
-    allow_duplicates=True,
-)
-
-common_samples_path = os.path.join(controller_dir, "manifests/kustomize/samples/common")
-k8s_yaml(
-    kustomize(common_samples_path, kustomize_bin=kustomize_bin),
-    allow_duplicates=True,
-)
-
-k8s_resource(
-    objects=[
-        # RBAC: admin user
-        "dev-admin-workspaces:clusterrolebinding",
-        "dev-admin-supplement:clusterrole",
-        "dev-admin-supplement:clusterrolebinding",
-        # RBAC: regular user
-        "dev-user-workspaces:rolebinding",
-        "dev-user-global-read:clusterrole",
-        "dev-user-global-read:clusterrolebinding",
-        "dev-user-resources:role",
-        "dev-user-resources:rolebinding",
-        # Common sample resources
-        "workspace-home-pvc:persistentvolumeclaim",
-        "workspace-data-pvc:persistentvolumeclaim",
-        "workspace-secret:secret",
-        "workspacekind-image-source:configmap",
-    ],
-    new_name="dev-resources",
-    resource_deps=["workspaces-controller"],
-    pod_readiness="ignore",
-    labels=["dev"],
-)
-
-
-# ============================================================================
 # Backend
 # ============================================================================
 
@@ -380,3 +333,51 @@ if enable_prometheus:
         links=[link("http://localhost:9090", "Prometheus UI")],
         labels=["prometheus"],
     )
+
+
+# ============================================================================
+# Dev Resources
+# ============================================================================
+# RBAC bindings for dev users (admin, user) using the kubeflow-workspaces-*
+# ClusterRoles from controller manifests, plus dev-only supplements for
+# resources the backend also checks (PVCs, secrets, etc).
+#
+# Common sample resources (PVCs, Secret, ConfigMap) applied to
+# the default namespace so workspaces can be created out of the box.
+
+rbac_path = os.path.join(tilt_root, "manifests/rbac")
+k8s_yaml(
+    kustomize(rbac_path, kustomize_bin=kustomize_bin),
+    allow_duplicates=True,
+)
+
+common_samples_path = os.path.join(controller_dir, "manifests/kustomize/samples/common")
+k8s_yaml(
+    kustomize(common_samples_path, kustomize_bin=kustomize_bin),
+    allow_duplicates=True,
+)
+
+k8s_resource(
+    objects=[
+        # RBAC: admin user
+        "dev-admin-workspaces:clusterrolebinding",
+        "dev-admin-supplement:clusterrole",
+        "dev-admin-supplement:clusterrolebinding",
+        # RBAC: regular user
+        "dev-user-workspaces:rolebinding",
+        "dev-user-global-read:clusterrole",
+        "dev-user-global-read:clusterrolebinding",
+        "dev-user-resources:role",
+        "dev-user-resources:rolebinding",
+        # Common sample resources
+        "workspace-home-pvc:persistentvolumeclaim",
+        "workspace-data-pvc:persistentvolumeclaim",
+        "workspace-secret:secret",
+        "workspacekind-image-source:configmap",
+    ],
+    new_name="dev-resources",
+    resource_deps=["workspaces-controller"],
+    pod_readiness="ignore",
+    labels=["dev"],
+)
+
