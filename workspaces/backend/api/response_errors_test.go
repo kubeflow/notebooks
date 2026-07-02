@@ -323,7 +323,7 @@ var _ = Describe("Error Response Functions", func() {
 				description: "should return 422 with correct structure for a type mismatch error",
 				unmarshalErr: &json.UnmarshalTypeError{
 					Value: "string",
-					Type:  reflect.TypeOf(true),
+					Type:  reflect.TypeFor[bool](),
 					Field: "data.paused",
 				},
 				expectedValidationError: ValidationError{
@@ -337,7 +337,7 @@ var _ = Describe("Error Response Functions", func() {
 				description: "should return 422 with correct structure for a number-to-string mismatch",
 				unmarshalErr: &json.UnmarshalTypeError{
 					Value: "number",
-					Type:  reflect.TypeOf(""),
+					Type:  reflect.TypeFor[string](),
 					Field: "data.name",
 				},
 				expectedValidationError: ValidationError{
