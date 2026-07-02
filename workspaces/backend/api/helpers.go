@@ -131,6 +131,9 @@ func FieldErrorsFromUnmarshalTypeError(err error) field.ErrorList {
 	expectedType := goTypeToJSONTypeName(unmarshalTypeError.Type)
 	detail := fmt.Sprintf("got JSON %s, but field requires %s", unmarshalTypeError.Value, expectedType)
 
+	// Field is empty when the type mismatch occurs at the top level of the JSON
+	// (e.g., decoding `"hello"` into a struct), because the stdlib only populates
+	// Field when the decoder has an active struct field context.
 	if unmarshalTypeError.Field == "" {
 		return field.ErrorList{
 			{Type: field.ErrorTypeTypeInvalid, BadValue: unmarshalTypeError.Value, Detail: detail},
@@ -144,35 +147,46 @@ func FieldErrorsFromUnmarshalTypeError(err error) field.ErrorList {
 	}
 }
 
+const (
+	jsonTypeUnknown = "unknown"
+	jsonTypeBoolean = "boolean"
+	jsonTypeNumber  = "number"
+	jsonTypeString  = "string"
+	jsonTypeArray   = "array"
+	jsonTypeObject  = "object"
+)
+
 // goTypeToJSONTypeName maps a Go reflect.Type to a user-friendly JSON type name.
 func goTypeToJSONTypeName(t reflect.Type) string {
-	if t == nil {
-		return "unknown"
+	var kind reflect.Kind
+	if t != nil {
+		kind = t.Kind()
 	}
-	// Keep calling .Elem() to peel off pointer indirections until we reach the underlying concrete type, i.e. **int -> *int -> int.
-	for t.Kind() == reflect.Ptr {
-		next := t.Elem()
-		// guard against self-referential pointer types (e.g., `type A *A`) which would loop infinitely.
-		// this should never occur in practice because json.UnmarshalTypeError.Type is populated by the stdlib JSON decoder,
-		// which rejects self-referential pointer types.
-		if next == t {
-			break
-		}
-		t = next
+
+	// guard against self-referential pointer types (e.g., `type A *A`) which would loop infinitely.
+	// this should never occur in practice because json.UnmarshalTypeError.Type is populated by the
+	// stdlib JSON decoder, which rejects self-referential pointer types.
+	if kind == reflect.Ptr && t.Elem() == t {
+		panic(fmt.Sprintf("goTypeToJSONTypeName: self-referential pointer type: %s", t))
 	}
-	switch t.Kind() { //nolint:exhaustive
+
+	switch kind { //nolint:exhaustive
+	case reflect.Invalid:
+		return jsonTypeUnknown
+	case reflect.Ptr:
+		return goTypeToJSONTypeName(t.Elem())
 	case reflect.Bool:
-		return "boolean"
+		return jsonTypeBoolean
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
 		reflect.Float32, reflect.Float64:
-		return "number"
+		return jsonTypeNumber
 	case reflect.String:
-		return "string"
+		return jsonTypeString
 	case reflect.Slice, reflect.Array:
-		return "array"
+		return jsonTypeArray
 	case reflect.Map, reflect.Struct:
-		return "object"
+		return jsonTypeObject
 	default:
 		return t.String()
 	}
