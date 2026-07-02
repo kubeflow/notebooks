@@ -327,6 +327,7 @@ export const WorkspaceKindForm: React.FC = () => {
   if (mode === 'edit' && initialFormDataError) {
     return <LoadError title="Failed to load workspace kind data" error={initialFormDataError} />;
   }
+  //TODO: Remove warning edit warning when we have a way to reflect changes in the form from the YAML
   return (
     <>
       <PageGroup isFilled={false} stickyOnBreakpoint={{ default: 'top' }}>
@@ -348,8 +349,8 @@ export const WorkspaceKindForm: React.FC = () => {
                       repository.
                     </p>
                   ) : (
-                    `View and edit the Workspace Kind's information. Some fields may not be
-                      represented in this form`
+                    `View and edit the Workspace Kind using the form or the YAML editor.
+                      Changing the form will affect the YAML, but edits to the YAML will not affect the form.`
                   )}
                 </Content>
               </FlexItem>
@@ -483,7 +484,12 @@ export const WorkspaceKindForm: React.FC = () => {
           </FlexItem>
           {mode === 'edit' && (
             <FlexItem>
-              <Button variant="link" onClick={handleRevert} data-testid="revert-button">
+              <Button
+                variant="link"
+                isDisabled={!hasChanges}
+                onClick={handleRevert}
+                data-testid="revert-button"
+              >
                 <UndoIcon className="pf-v6-u-mr-sm" />
                 Revert
               </Button>
