@@ -236,7 +236,9 @@ if enable_frontend:
                     # Disable standalone mode when dashboard is being pulled in
                     if enable_dashboard:
                         env = container.get("env", [])
-                        env.append({"name": "DEPLOYMENT_MODE", "value": "kubeflow"})
+                        if not any([e.get("name") == "DEPLOYMENT_MODE" for e in env]):
+                            env.append({"name": "DEPLOYMENT_MODE", "value": "kubeflow"})
+                        container["env"] = env
 
     # Apply modified manifests
     k8s_yaml(
@@ -307,6 +309,7 @@ local_resource(
 # Dashboard
 # ============================================================================
 
+profile_names = []
 if enable_dashboard:
     dashboard_kustomize_path = os.path.join(workspace_root, "developing/manifests/kubeflow-dashboard")
     dashboard_manifests = kustomize(dashboard_kustomize_path, kustomize_bin=kustomize_bin)
@@ -319,6 +322,33 @@ if enable_dashboard:
             workload=workload,
             labels=["dashboard"],
         )
+
+    local_resource(
+        "profile-crd-established",
+        cmd="kubectl wait --for=condition=established crd/profiles.kubeflow.org --timeout=60s",
+        labels=["dashboard"],
+        resource_deps=["profiles-deployment"],
+    )
+
+    profile_yaml_path = os.path.join(dashboard_kustomize_path, "profiles/profile.yaml")
+    profile = read_yaml(profile_yaml_path)
+
+    # Generate 'num_example_profiles' profiles 'example-profile-{i}', group
+    # them via label and wait on the profile controller and the CRD
+    num_example_profiles = 4
+    name = profile["metadata"]["name"]
+    for i in range(1, num_example_profiles + 1):
+        new_name = "%s-%d" % (name, i)
+        profile["metadata"]["name"] = new_name
+        k8s_yaml(encode_yaml(profile))
+        profile_names.append(new_name)
+
+    k8s_resource(
+        objects=[p for p in profile_names],
+        new_name="profiles",
+        labels=['dashboard'],
+        resource_deps=["profiles-deployment", "profile-crd-established"],
+    )
 
 
 # ============================================================================
@@ -343,41 +373,119 @@ if enable_prometheus:
 # resources the backend also checks (PVCs, secrets, etc).
 #
 # Common sample resources (PVCs, Secret, ConfigMap) applied to
-# the default namespace so workspaces can be created out of the box.
+# one namespace per generated profile so workspaces can be created out of the
+# box; falls back to the "default" namespace when the dashboard (and thus
+# profile generation) is disabled.
+
+load('ext://namespace', 'namespace_inject')
 
 rbac_path = os.path.join(tilt_root, "manifests/rbac")
-k8s_yaml(
-    kustomize(rbac_path, kustomize_bin=kustomize_bin),
-    allow_duplicates=True,
-)
-
 common_samples_path = os.path.join(controller_dir, "manifests/kustomize/samples/common")
+
+# Rendered once and reused per-namespace below; only the namespace_inject step
+# actually depends on the target namespace.
+rbac_manifest = kustomize(rbac_path, kustomize_bin=kustomize_bin)
+common_samples_manifest = kustomize(common_samples_path, kustomize_bin=kustomize_bin)
+
+# namespace_inject assumes all resources are namespace-scoped; its behavior is
+# undefined for cluster-scoped resources, so those are split out below and
+# applied exactly once instead of being re-targeted per dev namespace.
+namespaced_kinds = ["Role", "RoleBinding"]
+
+# Cluster-scoped RBAC (admin ClusterRole/ClusterRoleBinding, user global-read)
+# carries no namespace, so it's the same object set regardless of how many dev
+# namespaces exist. Apply and register it exactly once here: applying it once
+# per namespace would submit duplicate copies of the same object, making the
+# k8s_resource object selector ambiguous, and claiming it from more than one
+# k8s_resource is a hard Tilt error.
+cluster_rbac_objects = []
+for o in decode_yaml_stream(rbac_manifest):
+    kind = o.get("kind")
+    name = o.get("metadata", {}).get("name")
+    if not kind or not name:
+        continue
+    if kind not in namespaced_kinds:
+        if o.get("metadata", {}).get("namespace"):
+            fail(msg="Unexpected namespaced object %s found, expected one of %s. Exiting!" % (name, str(namespaced_kinds)))
+        cluster_rbac_objects.append(o)
+
 k8s_yaml(
-    kustomize(common_samples_path, kustomize_bin=kustomize_bin),
+    encode_yaml_stream(cluster_rbac_objects),
     allow_duplicates=True,
 )
 
 k8s_resource(
     objects=[
-        # RBAC: admin user
         "dev-admin-workspaces:clusterrolebinding",
         "dev-admin-supplement:clusterrole",
         "dev-admin-supplement:clusterrolebinding",
-        # RBAC: regular user
-        "dev-user-workspaces:rolebinding",
         "dev-user-global-read:clusterrole",
         "dev-user-global-read:clusterrolebinding",
-        "dev-user-resources:role",
-        "dev-user-resources:rolebinding",
-        # Common sample resources
-        "workspace-home-pvc:persistentvolumeclaim",
-        "workspace-data-pvc:persistentvolumeclaim",
-        "workspace-secret:secret",
-        "workspacekind-image-source:configmap",
     ],
-    new_name="dev-resources",
+    new_name="dev-resources-cluster-rbac",
     resource_deps=["workspaces-controller"],
     pod_readiness="ignore",
     labels=["dev"],
 )
 
+def apply_dev_resources(namespace):
+    namespaced_objects = []
+    for o in decode_yaml_stream(rbac_manifest):
+        kind = o.get("kind")
+        name = o.get("metadata", {}).get("name")
+        if kind in namespaced_kinds and name:
+            namespaced_objects.append(decode_yaml(namespace_inject(encode_yaml(o), namespace)))
+
+    k8s_yaml(
+        encode_yaml_stream(namespaced_objects),
+        allow_duplicates=True,
+    )
+
+    k8s_yaml(
+        namespace_inject(common_samples_manifest, namespace),
+        allow_duplicates=True,
+    )
+
+    # Profile namespaces are created asynchronously by the profile-controller
+    # reconciling the Profile CR, so explicitly wait for the namespace itself
+    # to exist before applying namespaced objects into it -- depending on the
+    # "profiles"/"profile-crd-established" resources alone only guarantees the
+    # Profile CR was submitted, not that the controller has reconciled it into
+    # an actual Namespace yet.
+    dev_resource_deps = ["workspaces-controller"]
+    if enable_dashboard:
+        namespace_ready = "namespace-ready-" + namespace
+        local_resource(
+            namespace_ready,
+            cmd="kubectl wait --for=create namespace/%s --timeout=120s" % namespace,
+            resource_deps=["profiles", "profile-crd-established"],
+            labels=["dev"],
+        )
+        dev_resource_deps += [namespace_ready]
+
+    k8s_resource(
+        objects=[
+            obj + ":" + namespace
+            for obj in [
+                # RBAC: regular user
+                "dev-user-workspaces:rolebinding",
+                "dev-user-resources:role",
+                "dev-user-resources:rolebinding",
+                # Common sample resources
+                "workspace-home-pvc:persistentvolumeclaim",
+                "workspace-data-pvc:persistentvolumeclaim",
+                "workspace-secret:secret",
+                "workspacekind-image-source:configmap",
+            ]
+        ],
+        new_name="dev-resources-" + namespace,
+        resource_deps=dev_resource_deps,
+        pod_readiness="ignore",
+        labels=["dev"],
+    )
+
+# Apply dev resources once per generated profile namespace, or to "default" if
+# the dashboard (and thus profile generation) is disabled.
+dev_namespaces = profile_names if enable_dashboard else ["default"]
+for dev_namespace in dev_namespaces:
+    apply_dev_resources(dev_namespace)
