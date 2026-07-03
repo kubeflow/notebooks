@@ -414,20 +414,9 @@ k8s_yaml(
     allow_duplicates=True,
 )
 
-k8s_resource(
-    objects=[
-        "dev-admin-workspaces:clusterrolebinding",
-        "dev-admin-supplement:clusterrole",
-        "dev-admin-supplement:clusterrolebinding",
-        "dev-user-global-read:clusterrole",
-        "dev-user-global-read:clusterrolebinding",
-    ],
-    new_name="dev-resources-cluster-rbac",
-    resource_deps=["workspaces-controller"],
-    pod_readiness="ignore",
-    labels=["dev"],
-)
-
+# Applies the namespaced RBAC + common sample resources into `namespace` and
+# returns their Tilt object refs, so all namespaces can be grouped into a
+# single k8s_resource below instead of one row per namespace in the Tilt UI.
 def apply_dev_resources(namespace):
     namespaced_objects = []
     for o in decode_yaml_stream(rbac_manifest):
@@ -446,47 +435,62 @@ def apply_dev_resources(namespace):
         allow_duplicates=True,
     )
 
-    # Profile namespaces are created asynchronously by the profile-controller
-    # reconciling the Profile CR, so explicitly wait for the namespace itself
-    # to exist before applying namespaced objects into it -- depending on the
-    # "profiles"/"profile-crd-established" resources alone only guarantees the
-    # Profile CR was submitted, not that the controller has reconciled it into
-    # an actual Namespace yet.
-    dev_resource_deps = ["workspaces-controller"]
-    if enable_dashboard:
-        namespace_ready = "namespace-ready-" + namespace
-        local_resource(
-            namespace_ready,
-            cmd="kubectl wait --for=create namespace/%s --timeout=120s" % namespace,
-            resource_deps=["profiles", "profile-crd-established"],
-            labels=["dev"],
-        )
-        dev_resource_deps += [namespace_ready]
-
-    k8s_resource(
-        objects=[
-            obj + ":" + namespace
-            for obj in [
-                # RBAC: regular user
-                "dev-user-workspaces:rolebinding",
-                "dev-user-resources:role",
-                "dev-user-resources:rolebinding",
-                # Common sample resources
-                "default-editor:serviceaccount",
-                "workspace-home-pvc:persistentvolumeclaim",
-                "workspace-data-pvc:persistentvolumeclaim",
-                "workspace-secret:secret",
-                "workspacekind-image-source:configmap",
-            ]
-        ],
-        new_name="dev-resources-" + namespace,
-        resource_deps=dev_resource_deps,
-        pod_readiness="ignore",
-        labels=["dev"],
-    )
+    return [
+        obj + ":" + namespace
+        for obj in [
+            # RBAC: regular user
+            "dev-user-workspaces:rolebinding",
+            "dev-user-resources:role",
+            "dev-user-resources:rolebinding",
+            # Common sample resources
+            "default-editor:serviceaccount",
+            "workspace-home-pvc:persistentvolumeclaim",
+            "workspace-data-pvc:persistentvolumeclaim",
+            "workspace-secret:secret",
+            "workspacekind-image-source:configmap",
+        ]
+    ]
 
 # Apply dev resources once per generated profile namespace, or to "default" if
 # the dashboard (and thus profile generation) is disabled.
 dev_namespaces = profile_names if enable_dashboard else ["default"]
+
+dev_resource_deps = ["workspaces-controller"]
+if enable_dashboard:
+    # Profile namespaces are created asynchronously by the profile-controller
+    # reconciling the Profile CR, so explicitly wait for every namespace to
+    # exist before applying namespaced objects into them -- depending on the
+    # "profiles"/"profile-crd-established" resources alone only guarantees the
+    # Profile CRs were submitted, not that the controller has reconciled them
+    # into actual Namespaces yet.
+    local_resource(
+        "dev-namespaces-ready",
+        cmd=" && ".join([
+            "kubectl wait --for=create namespace/%s --timeout=120s" % ns
+            for ns in dev_namespaces
+        ]),
+        resource_deps=["profiles", "profile-crd-established"],
+        labels=["dev"],
+    )
+    dev_resource_deps.append("dev-namespaces-ready")
+
+# Cluster-scoped RBAC (admin ClusterRole/ClusterRoleBinding, user global-read)
+# carries no namespace, so it's included alongside the per-namespace objects
+# in this single grouped resource rather than needing its own Tilt UI row.
+dev_resource_objects = [
+    "dev-admin-workspaces:clusterrolebinding",
+    "dev-admin-supplement:clusterrole",
+    "dev-admin-supplement:clusterrolebinding",
+    "dev-user-global-read:clusterrole",
+    "dev-user-global-read:clusterrolebinding",
+]
 for dev_namespace in dev_namespaces:
-    apply_dev_resources(dev_namespace)
+    dev_resource_objects += apply_dev_resources(dev_namespace)
+
+k8s_resource(
+    objects=dev_resource_objects,
+    new_name="dev-resources",
+    resource_deps=dev_resource_deps,
+    pod_readiness="ignore",
+    labels=["dev"],
+)
