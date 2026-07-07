@@ -31,6 +31,10 @@ echo "Waiting for metrics-server to be ready..."
 kubectl wait --for=condition=available deployment/metrics-server \
   --namespace=kube-system \
   --timeout=120s
+kubectl wait --for=condition=ready pod \
+  -l k8s-app=metrics-server \
+  --namespace=kube-system \
+  --timeout=120s
 
 echo "Waiting for the metrics.k8s.io APIService to become available..."
 kubectl wait --for=condition=available apiservice/v1beta1.metrics.k8s.io --timeout=60s
