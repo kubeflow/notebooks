@@ -382,6 +382,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
                             onClick={() => setDropdownOpen(dropdownOpen === index ? null : index)}
                             variant="plain"
                             aria-label="plain kebab"
+                            data-testid={`volume-kebab-${volume.pvcName}`}
                           >
                             <EllipsisVIcon />
                           </MenuToggle>

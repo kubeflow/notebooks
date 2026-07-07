@@ -79,9 +79,25 @@ class VolumesManagementPage {
     return this.findCreateVolumeButton().click();
   }
 
+  // Home Volume Table
+  findHomeVolumesTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findAllByTestId('volumes-table').filter(':visible').first();
+  }
+
+  findHomeVolumeRow(mountPath: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findHomeVolumesTable().contains('tr', mountPath) as unknown as Cypress.Chainable<
+      JQuery<HTMLElement>
+    >;
+  }
+
+  clickHomeVolumeEditAction(mountPath: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    this.findHomeVolumesTable().findByTestId(`volume-kebab-${mountPath}`).click();
+    return cy.findByTestId(`edit-volume-${mountPath}`).click();
+  }
+
   // Row Actions
   openRowKebabMenu(pvcName: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findVolumeRow(pvcName).find('[aria-label="plain kebab"]').click();
+    return this.findVolumeRow(pvcName).findByTestId(`volume-kebab-${pvcName}`).click();
   }
 
   clickDetachAction(pvcName: string): Cypress.Chainable<JQuery<HTMLElement>> {

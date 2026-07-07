@@ -432,11 +432,7 @@ describe('Volumes Management - Attach and Create', () => {
     });
 
     it('should hide read-only toggle when editing a home volume', () => {
-      // The Home Volume section is always expanded above the Data Volumes section.
-      // The mock workspace update returns the mount path as the home PVC identifier,
-      // which the form reconstructs as pvcName.
-      cy.findAllByTestId('volumes-table').first().find('[aria-label="plain kebab"]').click();
-      cy.findByTestId('edit-volume-/home').click();
+      volumesManagement.clickHomeVolumeEditAction('/home');
       volumesCreateModal.assertModalVisible();
 
       volumesCreateModal.assertReadOnlySwitchNotExists();
