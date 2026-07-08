@@ -239,20 +239,22 @@ type WorkspaceKindServiceAccount struct {
 	Name string `json:"name"`
 }
 
+// ActivityProbe defines how to detect recent user activity in a Workspace
+//
 // +kubebuilder:validation:XValidation:message="must specify exactly one of 'podExec' or 'jupyter'",rule="!(has(self.podExec) && has(self.jupyter)) && (has(self.podExec) || has(self.jupyter))"
 // +kubebuilder:validation:XValidation:message="minProbeIntervalSeconds must be less than or equal to probeIntervalSeconds",rule="self.minProbeIntervalSeconds <= self.probeIntervalSeconds"
 type ActivityProbe struct {
-	// minProbeIntervalSeconds determines the minimum period in seconds between each Workspace probe.
-	// This acts as a rate-limiter to prevent hammering/overloading the Workspace container
-	// when consecutive probes are failing.
+	// the minimum duration in seconds that must elapse between two consecutive probes.
+	// - Acts as a rate-limiter for failed probes: if a probe fails, the controller waits at least this long before retrying (requeuing after minProbeInterval).
+	// - Also acts as a guard: if a reconcile triggers early, the probe is skipped until this interval has elapsed since the last probe.
 	// +kubebuilder:validation:Minimum:=1
 	// +kubebuilder:default:=300
 	// +kubebuilder:validation:Optional
 	MinProbeIntervalSeconds *int32 `json:"minProbeIntervalSeconds,omitempty"`
 
-	// probeIntervalSeconds determines the desired period in seconds between each Workspace probe.
-	// This represents the normal maximum duration between successful probes to ensure culling
-	// status information remains fresh.
+	// the desired interval in seconds between successful probes.
+	// - If a probe succeeds, the controller schedules the next probe after this duration (requeuing after probeInterval).
+	// - Determines the freshness of workspace activity status used for culling inactive workspaces.
 	// +kubebuilder:validation:Minimum:=1
 	// +kubebuilder:default:=3600
 	// +kubebuilder:validation:Optional
@@ -267,8 +269,9 @@ type ActivityProbe struct {
 	Jupyter *ActivityProbeJupyter `json:"jupyter,omitempty"`
 }
 
+// ActivityProbePodExec defines a script-based activity probe executed via the Kubernetes exec API
 type ActivityProbePodExec struct {
-	// timeoutSeconds determines the maximum number of seconds the probe is allowed to run
+	// the maximum number of seconds the probe is allowed to run
 	// +kubebuilder:validation:Minimum:=1
 	// +kubebuilder:default:=60
 	// +kubebuilder:validation:Optional
@@ -286,6 +289,7 @@ type ActivityProbePodExec struct {
 	//      - If `last_activity` (ISO 8601 string) is provided and `has_activity` is explicitly `false` (or omitted): The Workspace is treated as inactive, and `status.activity.lastActivity` is updated to the `last_activity` timestamp.
 	//      - If `has_activity` is explicitly `false` and `last_activity` is omitted: The Workspace is treated as inactive, and the existing `status.activity.lastActivity` timestamp is preserved (unchanged).
 	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=2048
 	Script string `json:"script"`
 }
 
@@ -295,7 +299,7 @@ type ActivityProbeJupyter struct {
 	// +kubebuilder:example=true
 	LastActivity bool `json:"lastActivity"`
 
-	// portId references a valid port defined in the WorkspaceKind
+	// the port to probe, referencing a port defined in spec.podTemplate.ports
 	PortId PortId `json:"portId"`
 }
 

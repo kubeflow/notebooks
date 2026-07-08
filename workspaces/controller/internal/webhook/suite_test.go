@@ -680,15 +680,20 @@ func NewExampleWorkspaceKindWithInvalidRequestHeadersValue(name string) *kubeflo
 	return workspaceKind
 }
 
-// NewExampleWorkspaceKindWithInvalidExecShebang returns a WorkspaceKind with an activityProbe exec script missing a shebang.
-func NewExampleWorkspaceKindWithInvalidExecShebang(name string) *kubefloworgv1beta1.WorkspaceKind {
+// NewExampleWorkspaceKindWithExecScript returns a WorkspaceKind with an activityProbe exec script.
+func NewExampleWorkspaceKindWithExecScript(name string, script string) *kubefloworgv1beta1.WorkspaceKind {
 	workspaceKind := NewExampleWorkspaceKind(name)
 	workspaceKind.Spec.PodTemplate.ActivityProbe = &kubefloworgv1beta1.ActivityProbe{
 		PodExec: &kubefloworgv1beta1.ActivityProbePodExec{
-			Script: "echo '{\"has_activity\": true}' > \"$OUTPUT_JSON_PATH\"",
+			Script: script,
 		},
 	}
 	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithInvalidExecShebang returns a WorkspaceKind with an activityProbe exec script missing a shebang.
+func NewExampleWorkspaceKindWithInvalidExecShebang(name string) *kubefloworgv1beta1.WorkspaceKind {
+	return NewExampleWorkspaceKindWithExecScript(name, "echo '{\"has_activity\": true}' > \"$OUTPUT_JSON_PATH\"")
 }
 
 // NewExampleWorkspaceKindWithInvalidJupyterPort returns a WorkspaceKind with a jupyter portId that is invalid.

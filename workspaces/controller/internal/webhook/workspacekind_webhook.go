@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -43,6 +44,16 @@ import (
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/controller"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
 )
+
+// shebangRegex matches the valid Linux script shebang interpreter syntax (according to execve(2)).
+// Syntax: `#! interpreter [optional-arg]`
+//   - `^#!`: Literal shebang prefix.
+//   - `[ \t]*`: Optional space/tabs before the interpreter path.
+//   - `([^ \t]+)`: Matches the interpreter path (one or more characters, excluding spaces/tabs).
+//   - `(?:[ \t]+.+)?`: Optional argument(s). If present, must be separated from the interpreter
+//     by at least one space/tab, followed by the argument string.
+//   - `$`: Matches the end of the line.
+var shebangRegex = regexp.MustCompile(`^#![ \t]*([^ \t]+)(?:[ \t]+.+)?$`)
 
 // WorkspaceKindValidator validates a Workspace object
 type WorkspaceKindValidator struct {
@@ -753,15 +764,27 @@ func validateActivityProbe(activityProbe *kubefloworgv1beta1.ActivityProbe, path
 		return errs
 	}
 
-	// Validate podExec if specified
+	// validate podExec if specified
 	if activityProbe.PodExec != nil {
 		script := activityProbe.PodExec.Script
-		if len(script) < 2 || !strings.HasPrefix(script, "#!") {
-			errs = append(errs, field.Invalid(path.Child("podExec", "script"), script, "script must start with a shebang (e.g., '#!/bin/bash')"))
+		// Extract the first line to validate the shebang.
+		// We use strings.IndexAny with "\r\n" instead of just "\n" to handle Windows-style line endings.
+		shebangLine := script
+		if idx := strings.IndexAny(script, "\r\n"); idx != -1 {
+			shebangLine = script[:idx]
+		}
+		if !shebangRegex.MatchString(shebangLine) {
+			errs = append(errs, field.Invalid(path.Child("podExec", "script"), script, "script shebang is invalid (e.g., '#!/bin/bash')"))
+		} else if len(shebangLine)-2 > 255 {
+			// According to `execve(2)` man page (https://man7.org/linux/man-pages/man2/execve.2.html):
+			// "The kernel imposes a maximum length on the text following the "#!" characters...
+			// On Linux, the limit is 127 characters before Linux 5.1, and 255 characters since Linux 5.1."
+			// This is defined by `BINPRM_BUF_SIZE` (256 bytes, including null terminator) in the Linux kernel `<linux/binfmts.h>`.
+			errs = append(errs, field.Invalid(path.Child("podExec", "script"), script, "shebang line exceeds the 255 character limit"))
 		}
 	}
 
-	// Validate jupyter if specified
+	// validate jupyter if specified
 	if activityProbe.Jupyter != nil {
 		portId := activityProbe.Jupyter.PortId
 		if _, exists := podTemplatePortsIdMap[portId]; !exists {

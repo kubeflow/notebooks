@@ -5891,7 +5891,7 @@ const docTemplate = `{
                     ]
                 },
                 "minProbeIntervalSeconds": {
-                    "description": "minProbeIntervalSeconds determines the minimum period in seconds between each Workspace probe.\nThis acts as a rate-limiter to prevent hammering/overloading the Workspace container\nwhen consecutive probes are failing.\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:default:=300\n+kubebuilder:validation:Optional",
+                    "description": "the minimum duration in seconds that must elapse between two consecutive probes.\n- Acts as a rate-limiter for failed probes: if a probe fails, the controller waits at least this long before retrying (requeuing after minProbeInterval).\n- Also acts as a guard: if a reconcile triggers early, the probe is skipped until this interval has elapsed since the last probe.\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:default:=300\n+kubebuilder:validation:Optional",
                     "type": "integer"
                 },
                 "podExec": {
@@ -5903,7 +5903,7 @@ const docTemplate = `{
                     ]
                 },
                 "probeIntervalSeconds": {
-                    "description": "probeIntervalSeconds determines the desired period in seconds between each Workspace probe.\nThis represents the normal maximum duration between successful probes to ensure culling\nstatus information remains fresh.\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:default:=3600\n+kubebuilder:validation:Optional",
+                    "description": "the desired interval in seconds between successful probes.\n- If a probe succeeds, the controller schedules the next probe after this duration (requeuing after probeInterval).\n- Determines the freshness of workspace activity status used for culling inactive workspaces.\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:default:=3600\n+kubebuilder:validation:Optional",
                     "type": "integer"
                 }
             }
@@ -5920,7 +5920,7 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "portId": {
-                    "description": "portId references a valid port defined in the WorkspaceKind",
+                    "description": "the port to probe, referencing a port defined in spec.podTemplate.ports",
                     "type": "string"
                 }
             }
@@ -5932,11 +5932,11 @@ const docTemplate = `{
             ],
             "properties": {
                 "script": {
-                    "description": "script is the script to run inside the Pod to determine if the Workspace is active.\nThe script must meet the following requirements:\n - It must start with a shebang (e.g., \"#!/usr/bin/env bash\" or \"#!/usr/bin/env python\").\n - It must exit with a 0 status code. A non-zero exit code is treated as a probe failure (Workspaces with failing probes are not culled).\n - It should be idempotent and without side effects since it can be run multiple times.\n - If the script wants to report an INACTIVE state, it MUST write a JSON object to the file path\n   supplied in the OUTPUT_JSON_PATH environment variable. The fields are evaluated to update the\n   Workspace status field ` + "`" + `status.activity.lastActivity` + "`" + ` as follows:\n     - If ` + "`" + `has_activity` + "`" + ` is explicitly set to ` + "`" + `true` + "`" + ` (or if the JSON file is empty/omitted): The Workspace is treated as active, and ` + "`" + `status.activity.lastActivity` + "`" + ` is updated to the probe completion time (ignoring ` + "`" + `last_activity` + "`" + `).\n     - If ` + "`" + `last_activity` + "`" + ` (ISO 8601 string) is provided and ` + "`" + `has_activity` + "`" + ` is explicitly ` + "`" + `false` + "`" + ` (or omitted): The Workspace is treated as inactive, and ` + "`" + `status.activity.lastActivity` + "`" + ` is updated to the ` + "`" + `last_activity` + "`" + ` timestamp.\n     - If ` + "`" + `has_activity` + "`" + ` is explicitly ` + "`" + `false` + "`" + ` and ` + "`" + `last_activity` + "`" + ` is omitted: The Workspace is treated as inactive, and the existing ` + "`" + `status.activity.lastActivity` + "`" + ` timestamp is preserved (unchanged).\n+kubebuilder:validation:MinLength:=1",
+                    "description": "script is the script to run inside the Pod to determine if the Workspace is active.\nThe script must meet the following requirements:\n - It must start with a shebang (e.g., \"#!/usr/bin/env bash\" or \"#!/usr/bin/env python\").\n - It must exit with a 0 status code. A non-zero exit code is treated as a probe failure (Workspaces with failing probes are not culled).\n - It should be idempotent and without side effects since it can be run multiple times.\n - If the script wants to report an INACTIVE state, it MUST write a JSON object to the file path\n   supplied in the OUTPUT_JSON_PATH environment variable. The fields are evaluated to update the\n   Workspace status field ` + "`" + `status.activity.lastActivity` + "`" + ` as follows:\n     - If ` + "`" + `has_activity` + "`" + ` is explicitly set to ` + "`" + `true` + "`" + ` (or if the JSON file is empty/omitted): The Workspace is treated as active, and ` + "`" + `status.activity.lastActivity` + "`" + ` is updated to the probe completion time (ignoring ` + "`" + `last_activity` + "`" + `).\n     - If ` + "`" + `last_activity` + "`" + ` (ISO 8601 string) is provided and ` + "`" + `has_activity` + "`" + ` is explicitly ` + "`" + `false` + "`" + ` (or omitted): The Workspace is treated as inactive, and ` + "`" + `status.activity.lastActivity` + "`" + ` is updated to the ` + "`" + `last_activity` + "`" + ` timestamp.\n     - If ` + "`" + `has_activity` + "`" + ` is explicitly ` + "`" + `false` + "`" + ` and ` + "`" + `last_activity` + "`" + ` is omitted: The Workspace is treated as inactive, and the existing ` + "`" + `status.activity.lastActivity` + "`" + ` timestamp is preserved (unchanged).\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=2048",
                     "type": "string"
                 },
                 "timeoutSeconds": {
-                    "description": "timeoutSeconds determines the maximum number of seconds the probe is allowed to run\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:default:=60\n+kubebuilder:validation:Optional",
+                    "description": "the maximum number of seconds the probe is allowed to run\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:default:=60\n+kubebuilder:validation:Optional",
                     "type": "integer"
                 }
             }

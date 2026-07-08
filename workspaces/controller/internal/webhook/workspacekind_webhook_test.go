@@ -18,6 +18,7 @@ package webhook
 
 import (
 	"slices"
+	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -127,6 +128,36 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 			{
 				description:   "should reject creation with missing shebang in exec script",
 				workspaceKind: NewExampleWorkspaceKindWithInvalidExecShebang("wsk-webhook-create--invalid-exec-shebang"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should accept creation with valid shebang (#!/bin/bash)",
+				workspaceKind: NewExampleWorkspaceKindWithExecScript("wsk-webhook-create--valid-shebang-1", "#!/bin/bash\necho test"),
+				shouldSucceed: true,
+			},
+			{
+				description:   "should accept creation with valid shebang with spaces (#! /bin/sh)",
+				workspaceKind: NewExampleWorkspaceKindWithExecScript("wsk-webhook-create--valid-shebang-2", "#! /bin/sh\necho test"),
+				shouldSucceed: true,
+			},
+			{
+				description:   "should accept creation with valid shebang and argument (#!/usr/bin/env python3)",
+				workspaceKind: NewExampleWorkspaceKindWithExecScript("wsk-webhook-create--valid-shebang-3", "#!/usr/bin/env python3\nprint('test')"),
+				shouldSucceed: true,
+			},
+			{
+				description:   "should accept creation with valid shebang and multiple arguments (#!  /usr/bin/env   python3 -u)",
+				workspaceKind: NewExampleWorkspaceKindWithExecScript("wsk-webhook-create--valid-shebang-4", "#!  /usr/bin/env   python3 -u\nprint('test')"),
+				shouldSucceed: true,
+			},
+			{
+				description:   "should reject creation with shebang missing interpreter (#!   )",
+				workspaceKind: NewExampleWorkspaceKindWithExecScript("wsk-webhook-create--invalid-shebang-missing-interpreter", "#!   \necho test"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with shebang exceeding length limit",
+				workspaceKind: NewExampleWorkspaceKindWithExecScript("wsk-webhook-create--invalid-shebang-too-long", "#!/bin/bash "+strings.Repeat("a", 250)+"\necho test"),
 				shouldSucceed: false,
 			},
 			{
