@@ -2296,6 +2296,17 @@
                 }
             }
         },
+        "common.DenyMessage": {
+            "type": "object",
+            "required": [
+                "text"
+            ],
+            "properties": {
+                "text": {
+                    "type": "string"
+                }
+            }
+        },
         "common.PodMetadata": {
             "type": "object",
             "required": [
@@ -2351,6 +2362,20 @@
                 },
                 "readOnly": {
                     "type": "boolean"
+                }
+            }
+        },
+        "common.Restrictions": {
+            "type": "object",
+            "required": [
+                "deny"
+            ],
+            "properties": {
+                "deny": {
+                    "type": "boolean"
+                },
+                "denyMessage": {
+                    "$ref": "#/definitions/common.DenyMessage"
                 }
             }
         },
@@ -2614,7 +2639,8 @@
                 "description",
                 "displayName",
                 "hidden",
-                "id"
+                "id",
+                "restrictions"
             ],
             "properties": {
                 "clusterMetrics": {
@@ -2640,6 +2666,9 @@
                 },
                 "redirect": {
                     "$ref": "#/definitions/options.OptionRedirect"
+                },
+                "restrictions": {
+                    "$ref": "#/definitions/common.Restrictions"
                 }
             }
         },
@@ -2720,7 +2749,8 @@
                 "description",
                 "displayName",
                 "hidden",
-                "id"
+                "id",
+                "restrictions"
             ],
             "properties": {
                 "clusterMetrics": {
@@ -2746,6 +2776,9 @@
                 },
                 "redirect": {
                     "$ref": "#/definitions/options.OptionRedirect"
+                },
+                "restrictions": {
+                    "$ref": "#/definitions/common.Restrictions"
                 }
             }
         },
@@ -6982,7 +7015,8 @@
                 "icon",
                 "logo",
                 "name",
-                "podTemplate"
+                "podTemplate",
+                "restrictions"
             ],
             "properties": {
                 "clusterMetrics": {
@@ -7014,6 +7048,9 @@
                 },
                 "podTemplate": {
                     "$ref": "#/definitions/workspacekinds.PodTemplate"
+                },
+                "restrictions": {
+                    "$ref": "#/definitions/common.Restrictions"
                 }
             }
         },
