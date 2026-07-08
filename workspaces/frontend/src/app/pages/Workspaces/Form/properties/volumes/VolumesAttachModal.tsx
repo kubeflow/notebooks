@@ -234,28 +234,30 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
                   isFixed={!!fixedMountPath}
                   fieldId="pvc-mount-path"
                 />
-                <ThemeAwareFormGroupWrapper
-                  label="Read-only Access"
-                  fieldId="pvc-read-only"
-                  skipFieldset
-                  labelHelp={
-                    <Popover
-                      headerContent="Read-only access"
-                      bodyContent="Mount the volume as read-only when this workspace only needs to read data. This prevents accidental or unintended writes to shared volumes."
-                    >
-                      <OutlinedQuestionCircleIcon />
-                    </Popover>
-                  }
-                >
-                  <Switch
-                    id="pvc-read-only-switch"
-                    data-testid="pvc-read-only-switch"
-                    label="Enabled"
-                    hasCheckIcon
-                    isChecked={readOnly}
-                    onChange={(_ev, checked) => setReadOnly(checked)}
-                  />
-                </ThemeAwareFormGroupWrapper>
+                {!fixedMountPath && (
+                  <ThemeAwareFormGroupWrapper
+                    label="Read-only Access"
+                    fieldId="pvc-read-only"
+                    skipFieldset
+                    labelHelp={
+                      <Popover
+                        headerContent="Read-only access"
+                        bodyContent="Mount the volume as read-only when this workspace only needs to read data. This prevents accidental or unintended writes to shared volumes."
+                      >
+                        <OutlinedQuestionCircleIcon />
+                      </Popover>
+                    }
+                  >
+                    <Switch
+                      id="pvc-read-only-switch"
+                      data-testid="pvc-read-only-switch"
+                      label="Enabled"
+                      hasCheckIcon
+                      isChecked={readOnly}
+                      onChange={(_ev, checked) => setReadOnly(checked)}
+                    />
+                  </ThemeAwareFormGroupWrapper>
+                )}
               </Form>
             </StackItem>
           </Stack>

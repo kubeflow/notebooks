@@ -261,7 +261,7 @@ describe('Volumes Management - Attach and Create', () => {
       volumesManagement.clickCreateVolume();
       volumesCreateModal.assertModalVisible();
 
-      volumesCreateModal.assertAccessModeChecked('ReadWriteOnce');
+      volumesCreateModal.assertAccessModeSelected('ReadWriteOnce (RWO)');
     });
 
     it('should create a volume and display it in the table', () => {
@@ -328,7 +328,7 @@ describe('Volumes Management - Attach and Create', () => {
       volumesCreateModal.assertModalVisible();
 
       volumesCreateModal.selectAccessMode('ReadWriteMany');
-      volumesCreateModal.assertAccessModeChecked('ReadWriteMany');
+      volumesCreateModal.assertAccessModeSelected('ReadWriteMany (RWX)');
     });
 
     it('should allow selecting a different storage class', () => {
@@ -419,6 +419,24 @@ describe('Volumes Management - Attach and Create', () => {
 
       volumesCreateModal.assertModalNotExists();
       volumesManagement.assertVolumeReadOnly('data-pvc', false);
+    });
+  });
+
+  describe('Read-only toggle visibility', () => {
+    it('should show read-only toggle when creating a data volume', () => {
+      volumesManagement.clickCreateVolume();
+      volumesCreateModal.assertModalVisible();
+
+      volumesCreateModal.assertReadOnlySwitchExists();
+      volumesCreateModal.clickCancel();
+    });
+
+    it('should hide read-only toggle when editing a home volume', () => {
+      volumesManagement.clickHomeVolumeEditAction('/home');
+      volumesCreateModal.assertModalVisible();
+
+      volumesCreateModal.assertReadOnlySwitchNotExists();
+      volumesCreateModal.clickCancel();
     });
   });
 });

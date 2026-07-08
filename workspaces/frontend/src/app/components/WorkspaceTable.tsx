@@ -474,9 +474,11 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                               {columnKey === 'namespace' && workspace.namespace}
                               {columnKey === 'state' && (
                                 <div className="pf-v6-u-display-inline-block">
-                                  <Label color={extractWorkspaceStateColor(workspace.state)}>
-                                    {workspace.state}
-                                  </Label>
+                                  <Tooltip content={workspace.stateMessage}>
+                                    <Label color={extractWorkspaceStateColor(workspace.state)}>
+                                      {workspace.state}
+                                    </Label>
+                                  </Tooltip>
                                 </div>
                               )}
                               {columnKey === 'gpu' && formatResourceFromWorkspace(workspace, 'gpu')}

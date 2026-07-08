@@ -79,9 +79,25 @@ class VolumesManagementPage {
     return this.findCreateVolumeButton().click();
   }
 
+  // Home Volume Table
+  findHomeVolumesTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findAllByTestId('volumes-table').filter(':visible').first();
+  }
+
+  findHomeVolumeRow(mountPath: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findHomeVolumesTable().contains('tr', mountPath) as unknown as Cypress.Chainable<
+      JQuery<HTMLElement>
+    >;
+  }
+
+  clickHomeVolumeEditAction(mountPath: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    this.findHomeVolumesTable().findByTestId(`volume-kebab-${mountPath}`).click();
+    return cy.findByTestId(`edit-volume-${mountPath}`).click();
+  }
+
   // Row Actions
   openRowKebabMenu(pvcName: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findVolumeRow(pvcName).find('[aria-label="plain kebab"]').click();
+    return this.findVolumeRow(pvcName).findByTestId(`volume-kebab-${pvcName}`).click();
   }
 
   clickDetachAction(pvcName: string): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -254,16 +270,17 @@ class VolumesCreateModal {
   }
 
   // Access Mode
-  findAccessModeRadio(mode: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId(`access-mode-${mode}`);
+  findAccessModeSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('access-mode-select');
   }
 
-  selectAccessMode(mode: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findAccessModeRadio(mode).click({ force: true });
+  selectAccessMode(mode: string): void {
+    this.findAccessModeSelect().click();
+    cy.findByTestId(`access-mode-option-${mode}`).click();
   }
 
-  assertAccessModeChecked(mode: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findAccessModeRadio(mode).should('be.checked');
+  assertAccessModeSelected(mode: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findAccessModeSelect().should('contain.text', mode);
   }
 
   // Read-only Switch
@@ -273,6 +290,14 @@ class VolumesCreateModal {
 
   toggleReadOnly(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findReadOnlySwitch().click({ force: true });
+  }
+
+  assertReadOnlySwitchExists(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findReadOnlySwitch().should('exist');
+  }
+
+  assertReadOnlySwitchNotExists(): void {
+    cy.findByTestId('read-only-switch').should('not.exist');
   }
 
   // Error Alert
