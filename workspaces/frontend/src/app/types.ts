@@ -1,7 +1,7 @@
 import {
   OptionsImageConfigValue,
   OptionsPodConfigValue,
-  AssetsImageRef,
+  V1Beta1WorkspaceKindAsset,
   WorkspacekindsPodMetadata,
   WorkspacekindsPodVolumeMounts,
   WorkspacekindsWorkspaceKindListItem,
@@ -60,8 +60,8 @@ export interface WorkspaceKindProperties {
   deprecated: boolean;
   deprecationMessage: string;
   hidden: boolean;
-  icon: AssetsImageRef;
-  logo: AssetsImageRef;
+  icon: V1Beta1WorkspaceKindAsset;
+  logo: V1Beta1WorkspaceKindAsset;
 }
 
 export interface WorkspaceKindImageConfigValue extends OptionsImageConfigValue {

@@ -83,8 +83,8 @@ const convertToFormData = (
       deprecated: spawner.deprecated ?? false,
       deprecationMessage: spawner.deprecationMessage ?? '',
       hidden: spawner.hidden ?? false,
-      icon: { url: spawner.icon.url ?? '' },
-      logo: { url: spawner.logo.url ?? '' },
+      icon: spawner.icon,
+      logo: spawner.logo,
     },
     imageConfig: {
       default: podTemplate.options.imageConfig.spawner.default,
