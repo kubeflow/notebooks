@@ -22,12 +22,10 @@ import { useCurrentRouteKey } from '~/app/hooks/useCurrentRouteKey';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { ImagePullPolicy, WorkspaceKindFormData } from '~/app/types';
 import { extractErrorMessage, safeApiCall } from '~/shared/api/apiUtils';
-import { ErrorAlert } from '~/shared/components/ErrorAlert';
 import { CONTENT_TYPE_KEY, WORKSPACE_KIND_EXAMPLES_URL } from '~/shared/utilities/const';
 import { ContentType } from '~/shared/utilities/types';
 import { LoadError } from '~/app/components/LoadError';
 import {
-  ApiErrorEnvelope,
   OptionsOptionRedirect,
   OptionsRedirectMessageLevel,
   V1Beta1OptionRedirect,
@@ -168,8 +166,6 @@ export const WorkspaceKindForm: React.FC = () => {
   const [validated, setValidated] = useState<ValidationStatus>(
     mode === 'edit' ? 'success' : 'default',
   );
-  const [error, setError] = useState<string | ApiErrorEnvelope | null>(null);
-
   const routeParams = useTypedParams<'workspaceKindEdit' | 'workspaceKindCreate'>();
   const [initialFormData, initialFormDataLoaded, initialFormDataError] = useWorkspaceKindByName(
     routeParams?.kind,
@@ -237,7 +233,6 @@ export const WorkspaceKindForm: React.FC = () => {
       setOriginalYaml(yamlStr);
       setEditYamlValue(yamlStr);
       setYamlParseError(null);
-      setError(null);
     }
   }, [initialFormData, replaceData]);
 
@@ -253,7 +248,6 @@ export const WorkspaceKindForm: React.FC = () => {
 
   const handleSubmit = useCallback(async () => {
     setIsSubmitting(true);
-    setError(null);
     // TODO: Complete handleCreate with API call to create a new WS kind
     try {
       if (mode === 'create') {
@@ -301,7 +295,12 @@ export const WorkspaceKindForm: React.FC = () => {
       }
       navigate('workspaceKinds');
     } catch (err) {
-      setError(extractErrorMessage(err));
+      const extracted = extractErrorMessage(err);
+      const message = typeof extracted === 'string' ? extracted : extracted.error.message;
+      notification.error(
+        `Failed to ${mode === 'edit' ? 'edit' : 'create'} workspace kind`,
+        message,
+      );
       if (mode === 'create') {
         setValidated('error');
       }
@@ -379,15 +378,6 @@ export const WorkspaceKindForm: React.FC = () => {
       </PageGroup>
       <PageSection isFilled>
         <Stack hasGutter>
-          {error && (
-            <StackItem>
-              <ErrorAlert
-                title={`Failed to ${mode === 'edit' ? 'edit' : 'create'} workspace kind`}
-                content={error}
-                testId="workspace-kind-form-error"
-              />
-            </StackItem>
-          )}
           {mode === 'create' && (
             <StackItem style={{ height: '100%' }}>
               <WorkspaceKindFileUpload
@@ -396,9 +386,8 @@ export const WorkspaceKindForm: React.FC = () => {
                 setValue={setYamlValue}
                 validated={validated}
                 setValidated={setValidated}
-                onClear={() => {
-                  setError(null);
-                }}
+                // eslint-disable-next-line @typescript-eslint/no-empty-function
+                onClear={() => {}}
               />
             </StackItem>
           )}
