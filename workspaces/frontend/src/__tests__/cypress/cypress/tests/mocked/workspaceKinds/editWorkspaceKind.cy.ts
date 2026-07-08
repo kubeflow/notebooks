@@ -1350,4 +1350,125 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.verifyPageURL(mockWorkspaceKind.name);
     });
   });
+
+  describe('YAML editor tab', () => {
+    it('should display Form and YAML tabs in edit mode', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.assertTabsVisible();
+    });
+
+    it('should show Form tab as active by default', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.assertFormTabActive();
+      editWorkspaceKind.assertFormPropertiesVisible();
+      editWorkspaceKind.assertYamlEditorNotVisible();
+    });
+
+    it('should switch to YAML tab and show editor', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.clickYamlTab();
+
+      editWorkspaceKind.assertYamlTabActive();
+      editWorkspaceKind.assertYamlEditorVisible();
+    });
+
+    it('should switch back to Form tab and hide editor', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.clickYamlTab();
+      editWorkspaceKind.assertYamlEditorVisible();
+
+      editWorkspaceKind.clickFormTab();
+      editWorkspaceKind.assertFormTabActive();
+      editWorkspaceKind.assertFormPropertiesVisible();
+      editWorkspaceKind.assertYamlEditorNotVisible();
+    });
+
+    it('should have Save disabled when no changes are made in Form tab', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.assertSubmitButtonDisabled(true);
+    });
+
+    it('should have Save disabled in YAML tab when no changes are made', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.clickYamlTab();
+
+      editWorkspaceKind.assertSubmitButtonDisabled(true);
+    });
+
+    it('should show form sections when switching from YAML back to Form', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.clickYamlTab();
+      editWorkspaceKind.assertYamlEditorVisible();
+
+      editWorkspaceKind.clickFormTab();
+
+      editWorkspaceKind.assertPropertiesSectionVisible();
+      editWorkspaceKind.assertImageConfigSectionVisible();
+      editWorkspaceKind.assertPodConfigSectionVisible();
+      editWorkspaceKind.assertPodTemplateSectionVisible();
+    });
+  });
+
+  describe('Revert button', () => {
+    it('should display revert button in edit mode', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.assertRevertButtonVisible();
+    });
+
+    it('should revert form changes when clicked', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandPropertiesSection();
+      editWorkspaceKind.typeDescription('Modified description');
+
+      editWorkspaceKind.assertSubmitButtonDisabled(false);
+
+      editWorkspaceKind.clickRevert();
+
+      editWorkspaceKind.assertSubmitButtonDisabled(true);
+      editWorkspaceKind.expandPropertiesSection();
+      editWorkspaceKind.assertDescription(mockWorkspaceKind.description);
+    });
+
+    it('should disable Save after reverting changes', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandPropertiesSection();
+      editWorkspaceKind.typeWorkspaceKindName('Changed Name');
+
+      editWorkspaceKind.assertSubmitButtonDisabled(false);
+
+      editWorkspaceKind.clickRevert();
+
+      editWorkspaceKind.assertSubmitButtonDisabled(true);
+    });
+  });
 });

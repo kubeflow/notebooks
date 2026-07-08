@@ -53,6 +53,7 @@ module.exports = merge(
             COMMON_DIR,
             path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly'),
             path.resolve(RELATIVE_DIRNAME, 'node_modules/mod-arch-shared/node_modules/@patternfly'),
+            path.resolve(RELATIVE_DIRNAME, 'node_modules/monaco-editor'),
           ],
           use: [MiniCssExtractPlugin.loader, 'css-loader'],
         },

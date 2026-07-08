@@ -140,6 +140,7 @@ module.exports = smp.wrap(
                 RELATIVE_DIRNAME,
                 'node_modules/mod-arch-shared/node_modules/@patternfly',
               ),
+              path.resolve(RELATIVE_DIRNAME, 'node_modules/monaco-editor'),
             ],
             use: ['style-loader', 'css-loader'],
           },
