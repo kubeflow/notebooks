@@ -68,11 +68,11 @@ class EditWorkspaceKind {
   }
 
   findIconUrlInput() {
-    return cy.findByTestId('workspace-kind-icon-input');
+    return cy.findByTestId('workspace-kind-icon-url-input');
   }
 
   findLogoUrlInput() {
-    return cy.findByTestId('workspace-kind-logo-input');
+    return cy.findByTestId('workspace-kind-logo-url-input');
   }
 
   findHiddenSwitch() {
@@ -1123,8 +1123,10 @@ class EditWorkspaceKind {
     this.findSubmitButton().should('have.text', text);
   }
 
-  assertErrorAlertVisible() {
-    cy.findByTestId('workspace-kind-form-error').should('be.visible');
+  assertErrorToastVisible() {
+    cy.get('.pf-v6-c-alert-group[aria-live="polite"]')
+      .find('.pf-v6-c-alert.pf-m-danger')
+      .should('exist');
   }
 
   // View mode tabs (Form / YAML)

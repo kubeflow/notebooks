@@ -21,7 +21,12 @@ import { useTypedNavigate, useTypedParams } from '~/app/routerHelper';
 import { useCurrentRouteKey } from '~/app/hooks/useCurrentRouteKey';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { ImagePullPolicy, WorkspaceKindFormData } from '~/app/types';
-import { extractErrorMessage, safeApiCall } from '~/shared/api/apiUtils';
+import {
+  extractErrorMessage,
+  formatConflictErrorMessages,
+  formatValidationErrorMessages,
+  safeApiCall,
+} from '~/shared/api/apiUtils';
 import { CONTENT_TYPE_KEY, WORKSPACE_KIND_EXAMPLES_URL } from '~/shared/utilities/const';
 import { ContentType } from '~/shared/utilities/types';
 import { LoadError } from '~/app/components/LoadError';
@@ -296,7 +301,16 @@ export const WorkspaceKindForm: React.FC = () => {
       navigate('workspaceKinds');
     } catch (err) {
       const extracted = extractErrorMessage(err);
-      const message = typeof extracted === 'string' ? extracted : extracted.error.message;
+      let message: string;
+      if (typeof extracted === 'string') {
+        message = extracted;
+      } else {
+        const details = [
+          ...formatValidationErrorMessages(extracted),
+          ...formatConflictErrorMessages(extracted),
+        ];
+        message = details.length > 0 ? details.join('; ') : extracted.error.message;
+      }
       notification.error(
         `Failed to ${mode === 'edit' ? 'edit' : 'create'} workspace kind`,
         message,

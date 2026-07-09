@@ -1346,7 +1346,7 @@ describe('Edit workspace kind', () => {
 
       cy.wait('@updateWorkspaceKindError');
 
-      editWorkspaceKind.assertErrorAlertVisible();
+      editWorkspaceKind.assertErrorToastVisible();
       editWorkspaceKind.verifyPageURL(mockWorkspaceKind.name);
     });
   });
