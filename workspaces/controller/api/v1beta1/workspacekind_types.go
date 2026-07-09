@@ -139,9 +139,9 @@ type WorkspaceKindPodTemplate struct {
 	// service account configs for Workspace Pods
 	ServiceAccount WorkspaceKindServiceAccount `json:"serviceAccount"`
 
-	// culling configs for pausing inactive Workspaces (MUTABLE)
+	// activityProbe configs to determine Workspace activity (MUTABLE)
 	// +kubebuilder:validation:Optional
-	Culling *WorkspaceKindCullingConfig `json:"culling,omitempty"`
+	ActivityProbe *ActivityProbe `json:"activityProbe,omitempty"`
 
 	// standard probes to determine Container health (MUTABLE)
 	// +kubebuilder:validation:Optional
@@ -239,50 +239,70 @@ type WorkspaceKindServiceAccount struct {
 	Name string `json:"name"`
 }
 
-type WorkspaceKindCullingConfig struct {
-	// if the culling feature is enabled
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=true
-	Enabled *bool `json:"enabled,omitempty"`
-
-	// the maximum number of seconds a Workspace can be inactive
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:Minimum:=60
-	// +kubebuilder:default=86400
-	MaxInactiveSeconds *int32 `json:"maxInactiveSeconds,omitempty"`
-
-	// the probe used to determine if the Workspace is active
-	ActivityProbe ActivityProbe `json:"activityProbe"`
-}
-
-// +kubebuilder:validation:XValidation:message="must specify exactly one of 'exec' or 'jupyter'",rule="!(has(self.exec) && has(self.jupyter)) && (has(self.exec) || has(self.jupyter))"
+// ActivityProbe defines how to detect recent user activity in a Workspace
+//
+// +kubebuilder:validation:XValidation:message="must specify exactly one of 'podExec' or 'jupyter'",rule="!(has(self.podExec) && has(self.jupyter)) && (has(self.podExec) || has(self.jupyter))"
+// +kubebuilder:validation:XValidation:message="minProbeIntervalSeconds must be less than or equal to probeIntervalSeconds",rule="self.minProbeIntervalSeconds <= self.probeIntervalSeconds"
 type ActivityProbe struct {
-	// a shell command probe
-	//  - if the Workspace had activity in the last 60 seconds this command
-	//    should return status 0, otherwise it should return status 1
+	// the minimum duration in seconds that must elapse between two consecutive probes.
+	// - Acts as a rate-limiter for failed probes: if a probe fails, the controller waits at least this long before retrying (requeuing after minProbeInterval).
+	// - Also acts as a guard: if a reconcile triggers early, the probe is skipped until this interval has elapsed since the last probe.
+	// +kubebuilder:validation:Minimum:=1
+	// +kubebuilder:default:=300
 	// +kubebuilder:validation:Optional
-	Exec *ActivityProbeExec `json:"exec,omitempty"`
+	MinProbeIntervalSeconds *int32 `json:"minProbeIntervalSeconds,omitempty"`
 
-	// a Jupyter-specific probe
-	//  - will poll the `/api/status` endpoint of the Jupyter API, and use the `last_activity` field
-	//  - note, users need to be careful that their other probes don't trigger a "last_activity" update
-	//    e.g. they should only check the health of Jupyter using the `/api/status` endpoint
+	// the desired interval in seconds between successful probes.
+	// - If a probe succeeds, the controller schedules the next probe after this duration (requeuing after probeInterval).
+	// - Determines the freshness of workspace activity status used for culling inactive workspaces.
+	// +kubebuilder:validation:Minimum:=1
+	// +kubebuilder:default:=3600
+	// +kubebuilder:validation:Optional
+	ProbeIntervalSeconds *int32 `json:"probeIntervalSeconds,omitempty"`
+
+	// a script-based probe executed in the Pod
+	// +kubebuilder:validation:Optional
+	PodExec *ActivityProbePodExec `json:"podExec,omitempty"`
+
+	// a Jupyter-specific API probe
 	// +kubebuilder:validation:Optional
 	Jupyter *ActivityProbeJupyter `json:"jupyter,omitempty"`
 }
 
-type ActivityProbeExec struct {
-	// the command to run
-	// +kubebuilder:validation:MinItems:=1
-	// +kubebuilder:example={"bash", "-c", "exit 0"}
-	Command []string `json:"command"`
+// ActivityProbePodExec defines a script-based activity probe executed via the Kubernetes exec API
+type ActivityProbePodExec struct {
+	// the maximum number of seconds the probe is allowed to run
+	// +kubebuilder:validation:Minimum:=1
+	// +kubebuilder:default:=60
+	// +kubebuilder:validation:Optional
+	TimeoutSeconds *int32 `json:"timeoutSeconds,omitempty"`
+
+	// script is the script to run inside the Pod to determine if the Workspace is active.
+	// The script must meet the following requirements:
+	//  - It must start with a shebang (e.g., "#!/usr/bin/env bash" or "#!/usr/bin/env python").
+	//  - It must exit with a 0 status code. A non-zero exit code is treated as a probe failure (Workspaces with failing probes are not culled).
+	//  - It should be idempotent and without side effects since it can be run multiple times.
+	//  - If the script wants to report an INACTIVE state, it MUST write a JSON object to the file path
+	//    supplied in the OUTPUT_JSON_PATH environment variable. The fields are evaluated to update the
+	//    Workspace status field `status.activity.lastActivity` as follows:
+	//      - If `has_activity` is explicitly set to `true` (or if the JSON file is empty/omitted): The Workspace is treated as active, and `status.activity.lastActivity` is updated to the probe completion time (ignoring `last_activity`).
+	//      - If `last_activity` (ISO 8601 string) is provided and `has_activity` is explicitly `false` (or omitted): The Workspace is treated as inactive, and `status.activity.lastActivity` is updated to the `last_activity` timestamp.
+	//      - If `has_activity` is explicitly `false` and `last_activity` is omitted: The Workspace is treated as inactive, and the existing `status.activity.lastActivity` timestamp is preserved (unchanged).
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=2048
+	Script string `json:"script"`
 }
 
+// ActivityProbeJupyter defines a Jupyter-specific probe that polls the /api/status endpoint
+//
 // +kubebuilder:validation:XValidation:message="'lastActivity' must be true",rule="has(self.lastActivity) && self.lastActivity"
 type ActivityProbeJupyter struct {
 	// if the Jupyter-specific probe is enabled
 	// +kubebuilder:example=true
 	LastActivity bool `json:"lastActivity"`
+
+	// the port to probe, referencing a port defined in spec.podTemplate.ports
+	PortId PortId `json:"portId"`
 }
 
 type WorkspaceKindProbes struct {
