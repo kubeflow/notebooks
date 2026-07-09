@@ -293,6 +293,8 @@ type ActivityProbePodExec struct {
 	Script string `json:"script"`
 }
 
+// ActivityProbeJupyter defines a Jupyter-specific probe that polls the /api/status endpoint
+//
 // +kubebuilder:validation:XValidation:message="'lastActivity' must be true",rule="has(self.lastActivity) && self.lastActivity"
 type ActivityProbeJupyter struct {
 	// if the Jupyter-specific probe is enabled
