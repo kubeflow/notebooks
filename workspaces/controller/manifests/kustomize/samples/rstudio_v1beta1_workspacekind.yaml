@@ -3,6 +3,12 @@ kind: WorkspaceKind
 metadata:
   name: rstudio
 spec:
+  activityRules:
+    - config:
+        secondsSinceActive: 7200
+      match: {}
+      effect:
+        pauseWorkspace: true
   spawner:
     displayName: "RStudio"
     description: "A Workspace which runs RStudio in a Pod"
@@ -16,6 +22,16 @@ spec:
       annotations: {}
     serviceAccount:
       name: "default-editor"
+    activityProbe:
+      minProbeIntervalSeconds: 300
+      probeIntervalSeconds: 3600
+      podExec:
+        timeoutSeconds: 60
+        script: |-
+          #!/usr/bin/env bash
+          # A simple mock probe checking for user processes or file modifications
+          echo '{"has_activity": true}' > "$OUTPUT_JSON_PATH"
+          exit 0
     volumeMounts:
       home: "/home/jovyan"
     ports:

@@ -21,6 +21,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const DefaultProbeIntervalSeconds int32 = 3600
+
 // Important: Run "make" to regenerate code after modifying this file
 
 /*
@@ -44,6 +46,69 @@ type WorkspaceKindSpec struct {
 
 	// podTemplate is the PodTemplate used to spawn Pods to run Workspaces of this WorkspaceKind
 	PodTemplate WorkspaceKindPodTemplate `json:"podTemplate"`
+
+	// activityRules defines the policies for handling inactivity in Workspaces of this WorkspaceKind (MUTABLE).
+	// Rules are evaluated sequentially from top to bottom (first-match-wins semantics). Once a rule matches,
+	// subsequent rules are ignored. A rule with a nil or empty 'match' is treated as a catch-all rule that matches
+	// all Workspaces; at most one catch-all rule is allowed per effect type, and it must be the last rule in the list.
+	// +kubebuilder:validation:Optional
+	// +listType:="atomic"
+	ActivityRules []ActivityRule `json:"activityRules,omitempty"`
+}
+
+// ActivityRule defines a policy for handling inactivity in a Workspace
+type ActivityRule struct {
+	// the configuration for this rule
+	Config ActivityRuleConfig `json:"config"`
+
+	// the conditions under which this rule applies
+	// +kubebuilder:validation:Optional
+	Match *ActivityRuleMatch `json:"match,omitempty"`
+
+	// the action to take when the rule matches and its conditions are met
+	Effect ActivityRuleEffect `json:"effect"`
+}
+
+type ActivityRuleConfig struct {
+	// the number of seconds of inactivity before a Workspace is eligible for this rule's effect
+	// +kubebuilder:validation:Minimum:=16
+	SecondsSinceActive int32 `json:"secondsSinceActive"`
+
+	// the minimum duration in seconds a Workspace must be running before it can be paused due to inactivity
+	// +kubebuilder:validation:Minimum:=0
+	// +kubebuilder:default:=0
+	// +kubebuilder:validation:Optional
+	MinRunningSeconds *int32 `json:"minRunningSeconds,omitempty"`
+}
+
+// ActivityRuleMatch defines the conditions under which an ActivityRule applies.
+// If both matchNamespace and matchPodConfig are specified, they are combined with AND semantics (both must match).
+// If both are unspecified (or the Match block is omitted entirely), it acts as a catch-all rule that matches all Workspaces.
+type ActivityRuleMatch struct {
+	// filters Workspaces by namespace labels
+	// +kubebuilder:validation:Optional
+	MatchNamespace *NamespaceMatch `json:"matchNamespace,omitempty"`
+
+	// filters Workspaces by the PodConfig option they are using
+	// +kubebuilder:validation:Optional
+	MatchPodConfig *PodConfigMatch `json:"matchPodConfig,omitempty"`
+}
+
+type NamespaceMatch struct {
+	// the standard Kubernetes label selector to match namespace labels
+	Selector metav1.LabelSelector `json:"selector"`
+}
+
+type PodConfigMatch struct {
+	// the standard Kubernetes label selector to match podConfig labels
+	Selector metav1.LabelSelector `json:"selector"`
+}
+
+// +kubebuilder:validation:XValidation:message="must specify at least one effect",rule="has(self.pauseWorkspace)"
+type ActivityRuleEffect struct {
+	// determines if the Workspace should be paused. Requires activityProbe to be configured.
+	// +kubebuilder:validation:Optional
+	PauseWorkspace *bool `json:"pauseWorkspace,omitempty"`
 }
 
 type WorkspaceKindSpawner struct {
