@@ -531,6 +531,24 @@ func CopyDeploymentSetFields(from, to *appsv1.Deployment) bool {
 	}
 	to.Spec.Template.Spec.Affinity = from.Spec.Template.Spec.Affinity
 
+	// Sync container images so existing Tensorboards pick up changes to the
+	// TENSORBOARD_IMAGE env var after a controller upgrade. Match by container
+	// name so reordering in generateDeployment can't silently swap images.
+	for i := range to.Spec.Template.Spec.Containers {
+		toContainer := &to.Spec.Template.Spec.Containers[i]
+		for j := range from.Spec.Template.Spec.Containers {
+			fromContainer := &from.Spec.Template.Spec.Containers[j]
+			if fromContainer.Name != toContainer.Name {
+				continue
+			}
+			if fromContainer.Image != toContainer.Image {
+				toContainer.Image = fromContainer.Image
+				requireUpdate = true
+			}
+			break
+		}
+	}
+
 	return requireUpdate
 }
 
