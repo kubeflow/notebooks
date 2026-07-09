@@ -15,6 +15,8 @@ jobs:
       && (
           contains(github.event.comment.body, '/add-sub-issue')
           || contains(github.event.comment.body, '/remove-sub-issue')
+          || contains(github.event.comment.body, '/add-blocked-by')
+          || contains(github.event.comment.body, '/remove-blocked-by')
       )
     runs-on: ubuntu-latest
 
@@ -24,9 +26,9 @@ jobs:
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
-            const parseIssueNumber = (input) => {
-              if (!input) return null;
+            const API_VERSION = '2026-03-10';
 
+            const parseIssueNumber = (input) => {
               // Handle plain number
               if (/^\d+$/.test(input)) {
                 return input;
@@ -47,81 +49,73 @@ jobs:
               throw new Error(`Could not parse issue number from input: '${input}'`);
             };
 
-            const getIssueNodeId = async (owner, repo, issueNumber) => {
-              const response = await github.graphql(`
-                query {
-                  repository(owner: "${owner}", name: "${repo}") {
-                    issue(number: ${issueNumber}) {
-                      id
-                      title
-                    }
-                  }
-                }
-              `);
-              return {
-                id: response.repository.issue.id,
-                title: response.repository.issue.title
-              };
+            const getIssue = async (owner, repo, issueNumber) => {
+              const { data } = await github.rest.issues.get({ owner, repo, issue_number: issueNumber });
+              return { id: data.id };
             };
 
-            const performSubIssueMutation = async (action, parentIssueNodeId, childIssueNodeId) => {
-              const mutationField = `${action}SubIssue`;
+            // Each relation defines how to add/remove it via the REST API.
+            // `idParam` is the name of the body/path parameter that carries
+            // the child issue's internal id.
+            const relations = [
+              {
+                name: 'sub-issue',
+                label: 'Sub-issues',
+                idParam: 'sub_issue_id',
+                add: 'POST /repos/{owner}/{repo}/issues/{issue_number}/sub_issues',
+                remove: 'DELETE /repos/{owner}/{repo}/issues/{issue_number}/sub_issue',
+              },
+              {
+                name: 'blocked-by',
+                label: 'Blocked-by',
+                idParam: 'issue_id',
+                add: 'POST /repos/{owner}/{repo}/issues/{issue_number}/dependencies/blocked_by',
+                remove: 'DELETE /repos/{owner}/{repo}/issues/{issue_number}/dependencies/blocked_by/{issue_id}',
+              },
+            ];
 
-              const mutation = `
-                mutation {
-                  ${mutationField}(input: {
-                    issueId: "${parentIssueNodeId}",
-                    subIssueId: "${childIssueNodeId}"
-                  }) {
-                    clientMutationId
-                    issue {
-                      id
-                      title
-                    }
-                    subIssue {
-                      id
-                      title
-                    }
-                  }
-                }
-              `;
+            const collectOperations = async (line, relation, action, owner, repo) => {
+              const commandPrefix = `/${action}-${relation.name}`;
+              if (line !== commandPrefix && !line.startsWith(`${commandPrefix} `)) return [];
 
-              try {
-                const response = await github.graphql(mutation);
-                return response;
-              } catch (error) {
-                throw new Error(error.message);
-              }
-            };
-
-            const collectSubIssueOperations = async (line, action, owner, repo) => {
-              const commandPrefix = `/${action}-sub-issue`;
-              if (!line.startsWith(commandPrefix)) return [];
-
-              const args = line.replace(commandPrefix, '').trim().split(/\s+/);
+              const args = line.slice(commandPrefix.length).trim().split(/\s+/).filter(Boolean);
               const operations = [];
 
-              for (const issue of args) {
-                const childIssueNumber = parseIssueNumber(issue);
-                const childIssue = await getIssueNodeId(owner, repo, childIssueNumber);
+              for (const arg of args) {
+                const childIssueNumber = parseIssueNumber(arg);
+                const childIssue = await getIssue(owner, repo, childIssueNumber);
                 operations.push({
+                  relation,
                   action,
                   issueNumber: childIssueNumber,
-                  title: childIssue.title,
-                  nodeId: childIssue.id
+                  id: childIssue.id,
                 });
               }
 
               return operations;
             };
 
-            const formatOperationsList = (operations, action) => {
-              if (operations.length === 0) return [];
+            const performOperation = async (owner, repo, parentIssueNumber, operation) => {
+              const route = operation.action === 'add' ? operation.relation.add : operation.relation.remove;
+              await github.request(route, {
+                owner,
+                repo,
+                issue_number: parentIssueNumber,
+                [operation.relation.idParam]: operation.id,
+                headers: {
+                  'X-GitHub-Api-Version': API_VERSION,
+                },
+              });
+            };
+
+            const formatOperationsList = (operations, relation, action, heading) => {
+              const matching = operations.filter(op => op.relation.name === relation.name && op.action === action);
+              if (matching.length === 0) return [];
 
               return [
-                `### ${action} Sub-issues:`,
-                ...operations.map(op => `- #${op.issueNumber}`),
-                ''
+                `### ${heading} ${relation.label}:`,
+                ...matching.map(op => `- #${op.issueNumber}`),
+                '',
               ];
             };
 
@@ -129,53 +123,37 @@ jobs:
               const { owner, repo } = context.repo;
               const parentIssueNumber = context.payload.issue.number;
               const commentBody = context.payload.comment.body;
-
-              // Get parent issue node ID and title
-              const parentIssue = await getIssueNodeId(owner, repo, parentIssueNumber);
+              const commentUser = context.payload.comment.user.login;
 
               // Collect all operations first
               const lines = commentBody.split('\n');
               const operations = [];
 
               for (const line of lines) {
-                operations.push(...await collectSubIssueOperations(line, 'add', owner, repo));
-                operations.push(...await collectSubIssueOperations(line, 'remove', owner, repo));
+                for (const relation of relations) {
+                  operations.push(...await collectOperations(line, relation, 'add', owner, repo));
+                  operations.push(...await collectOperations(line, relation, 'remove', owner, repo));
+                }
               }
 
               if (operations.length === 0) {
                 return; // No valid operations found
               }
 
-              // Create preview comment
-              const previewBodyParts = [
-                ':mag: **Sub-issue Operation Preview**',
+              for (const operation of operations) {
+                await performOperation(owner, repo, parentIssueNumber, operation);
+              }
+
+              const successBodyParts = [
+                ':white_check_mark: **GitHub Action Succeeded**',
                 '',
-                `The following operations will be performed on issue #${parentIssueNumber} (${parentIssue.title}) at the request of @${context.payload.comment.user.login}:`,
-                ''
+                `The following operations requested by @${commentUser} have been completed on issue #${parentIssueNumber}:`,
+                '',
               ];
 
-              // Group operations by action for display
-              const addOperations = operations.filter(op => op.action === 'add');
-              const removeOperations = operations.filter(op => op.action === 'remove');
-
-              previewBodyParts.push(
-                ...formatOperationsList(addOperations, 'Adding'),
-                ...formatOperationsList(removeOperations, 'Removing')
-              );
-
-              previewBodyParts.push('_This is a preview of the changes. The actual operations will be executed in the background._');
-
-              // Post preview comment
-              const previewComment = await github.rest.issues.createComment({
-                owner,
-                repo,
-                issue_number: parentIssueNumber,
-                body: previewBodyParts.join('\n')
-              });
-
-              // Execute operations in original order
-              for (const op of operations) {
-                await performSubIssueMutation(op.action, parentIssue.id, op.nodeId);
+              for (const relation of relations) {
+                successBodyParts.push(...formatOperationsList(operations, relation, 'add', 'Added'));
+                successBodyParts.push(...formatOperationsList(operations, relation, 'remove', 'Removed'));
               }
 
               // Post success comment
@@ -183,12 +161,7 @@ jobs:
                 owner,
                 repo,
                 issue_number: parentIssueNumber,
-                body: [
-                  ':white_check_mark: **GitHub Action Succeeded**',
-                  '',
-                  `All [sub-issue operations](${previewComment.data.html_url}) requested by @${context.payload.comment.user.login} have been completed successfully.`,
-                  ''
-                ].join('\n')
+                body: successBodyParts.join('\n'),
               });
 
             } catch (error) {
@@ -199,18 +172,20 @@ jobs:
       - name: Post error comment if failure
         if: failure()
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        env:
+          ERROR_MESSAGE: ${{ steps.handle-commands.outputs.error_message }}
         with:
           script: |
             try {
               const commentUrl = context.payload.comment.html_url;
               const runId = context.runId;
               const { owner, repo } = context.repo;
-              const errorMessage = `${{ steps.handle-commands.outputs.error_message }}`;
+              const errorMessage = process.env.ERROR_MESSAGE || '';
 
               const errorBodyParts = [
                 ':x: **GitHub Action Failed**',
                 '',
-                `The workflow encountered an error while processing [your comment](${commentUrl}) to manage sub-issues.`,
+                `The workflow encountered an error while processing [your comment](${commentUrl}) to manage issue relationships.`,
                 '',
                 `:point_right: [View the run](https://github.com/${owner}/${repo}/actions/runs/${runId})`,
                 ''
