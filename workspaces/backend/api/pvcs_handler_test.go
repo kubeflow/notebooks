@@ -48,10 +48,6 @@ var _ = Describe("PVCs Handler", func() {
 	// TODO: add test which fails when CREATING a PVC that references a StorageClass that does not
 	//       have the `notebooks.kubeflow.org/can-use=true` label.
 	//
-	//
-	// TODO: add test which fails when DELETING a PVC that does not
-	//       have the `notebooks.kubeflow.org/can-update=true` label.
-	//
 
 	// NOTE: the tests in this context work on the same resources, they must be run in order.
 	//       also, they assume a specific state of the cluster, so cannot be run in parallel with other tests.
@@ -361,6 +357,28 @@ var _ = Describe("PVCs Handler", func() {
 				},
 			}
 			Expect(k8sClient.Create(ctx, pvc)).To(Succeed())
+
+			By("creating a PVC without can-update label")
+			pvcNotDeletable := &corev1.PersistentVolumeClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-not-deletable-pvc",
+					Namespace: namespaceName1,
+					Labels: map[string]string{
+						commonModels.LabelCanMount: "true",
+					},
+				},
+				Spec: corev1.PersistentVolumeClaimSpec{
+					AccessModes: []corev1.PersistentVolumeAccessMode{
+						corev1.ReadWriteOnce,
+					},
+					Resources: corev1.VolumeResourceRequirements{
+						Requests: corev1.ResourceList{
+							corev1.ResourceStorage: resource.MustParse("10Gi"),
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, pvcNotDeletable)).To(Succeed())
 		})
 
 		AfterAll(func() {
@@ -405,6 +423,30 @@ var _ = Describe("PVCs Handler", func() {
 				// in envtest, PVCs may have finalizers preventing immediate deletion
 				Expect(deletedPVC.DeletionTimestamp).NotTo(BeNil())
 			}
+		})
+
+		It("should return 403 when PVC lacks can-update label", func() {
+			By("creating the HTTP request")
+			path := strings.Replace(constants.PVCsByNamePath, ":"+constants.NamespacePathParam, namespaceName1, 1)
+			path = strings.Replace(path, ":"+constants.ResourceNamePathParam, "test-not-deletable-pvc", 1)
+			req, err := http.NewRequest(http.MethodDelete, path, http.NoBody)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing DeletePVCHandler")
+			ps := httprouter.Params{
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceName1},
+				httprouter.Param{Key: constants.ResourceNamePathParam, Value: "test-not-deletable-pvc"},
+			}
+			rr := httptest.NewRecorder()
+			a.DeletePVCHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusForbidden), descUnexpectedHTTPStatus, rr.Body.String())
 		})
 
 		It("should return 404 for deleting a non-existent PVC", func() {

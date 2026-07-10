@@ -709,6 +709,39 @@ var _ = Describe("Secrets Handler", func() {
 			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity), descUnexpectedHTTPStatus, rr.Body.String())
 		})
 
+		It("should return 422 for invalid base64 in contents", func() {
+			By("creating the HTTP request body with invalid base64")
+			secretCreate := models.SecretCreate{
+				Name: "test-invalid-base64",
+				Type: corev1.SecretTypeOpaque,
+				Contents: models.SecretData{
+					"key": {Base64: ptr.To("not-valid-base64!!!")},
+				},
+			}
+			bodyEnvelope := SecretCreateEnvelope{Data: &secretCreate}
+			reqBody, err := json.Marshal(bodyEnvelope)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("creating the HTTP request")
+			path := strings.Replace(constants.SecretsByNamespacePath, ":"+constants.NamespacePathParam, namespaceName1, 1)
+			req, err := http.NewRequest(http.MethodPost, path, bytes.NewBuffer(reqBody))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing CreateSecretHandler")
+			ps := httprouter.Params{
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceName1},
+			}
+			rr := httptest.NewRecorder()
+			a.CreateSecretHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity), descUnexpectedHTTPStatus, rr.Body.String())
+		})
+
 		It("should return 400 for invalid request body", func() {
 			By("creating the HTTP request with invalid JSON")
 			req, err := http.NewRequest(http.MethodPost, "/api/v1/secrets/"+namespaceName1, bytes.NewBufferString("invalid json"))
@@ -884,7 +917,7 @@ var _ = Describe("Secrets Handler", func() {
 			Expect(updatedSecret.Data).NotTo(HaveKey("host"))
 		})
 
-		It("should return 400 when secret lacks can-update label", func() {
+		It("should return 403 when secret lacks can-update label", func() {
 			By("creating the HTTP request body")
 			updateReq := models.SecretUpdate{
 				Type: corev1.SecretTypeOpaque,
@@ -915,7 +948,41 @@ var _ = Describe("Secrets Handler", func() {
 			defer rs.Body.Close()
 
 			By("verifying the HTTP response status code")
-			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest), descUnexpectedHTTPStatus, rr.Body.String())
+			Expect(rs.StatusCode).To(Equal(http.StatusForbidden), descUnexpectedHTTPStatus, rr.Body.String())
+		})
+
+		It("should return 422 for invalid base64 in contents", func() {
+			By("creating the HTTP request body with invalid base64")
+			updateReq := models.SecretUpdate{
+				Type: corev1.SecretTypeOpaque,
+				Contents: models.SecretData{
+					"key": {Base64: ptr.To("not-valid-base64!!!")},
+				},
+			}
+			bodyEnvelope := SecretEnvelope{Data: &updateReq}
+			reqBody, err := json.Marshal(bodyEnvelope)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("creating the HTTP request")
+			path := strings.Replace(constants.SecretsByNamePath, ":"+constants.NamespacePathParam, namespaceName1, 1)
+			path = strings.Replace(path, ":"+constants.ResourceNamePathParam, secretUpdatable, 1)
+			req, err := http.NewRequest(http.MethodPut, path, bytes.NewBuffer(reqBody))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing UpdateSecretHandler")
+			ps := httprouter.Params{
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceName1},
+				httprouter.Param{Key: constants.ResourceNamePathParam, Value: secretUpdatable},
+			}
+			rr := httptest.NewRecorder()
+			a.UpdateSecretHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity), descUnexpectedHTTPStatus, rr.Body.String())
 		})
 
 		It("should return 404 for updating non-existent secret", func() {
@@ -1056,7 +1123,7 @@ var _ = Describe("Secrets Handler", func() {
 			Expect(apierrors.IsNotFound(err)).To(BeTrue())
 		})
 
-		It("should return 400 when secret lacks can-update label", func() {
+		It("should return 403 when secret lacks can-update label", func() {
 			By("creating the HTTP request")
 			path := strings.Replace(constants.SecretsByNamePath, ":"+constants.NamespacePathParam, namespaceName1, 1)
 			path = strings.Replace(path, ":"+constants.ResourceNamePathParam, secretNotDeletable, 1)
@@ -1075,7 +1142,7 @@ var _ = Describe("Secrets Handler", func() {
 			defer rs.Body.Close()
 
 			By("verifying the HTTP response status code")
-			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest), descUnexpectedHTTPStatus, rr.Body.String())
+			Expect(rs.StatusCode).To(Equal(http.StatusForbidden), descUnexpectedHTTPStatus, rr.Body.String())
 		})
 
 		It("should return 404 for deleting non-existent secret", func() {

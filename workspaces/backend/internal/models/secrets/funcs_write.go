@@ -18,8 +18,6 @@ package secrets
 
 import (
 	"encoding/base64"
-	"errors"
-	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,8 +25,6 @@ import (
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 )
-
-var ErrSecretBase64Invalid = errors.New("invalid base64 encoding in secret data")
 
 // ApplySecretUpdateModelToSecret applies a SecretUpdate model to an existing Kubernetes Secret.
 // Update semantics:
@@ -40,8 +36,10 @@ func ApplySecretUpdateModelToSecret(secretUpdate *SecretUpdate, secret *corev1.S
 	for key, value := range secretUpdate.Contents {
 		if value.Base64 != nil {
 			decoded, err := base64.StdEncoding.DecodeString(*value.Base64)
+			// NOTE: this should not happen because Validate() is called before this function,
+			//       and would have returned 422 for invalid base64.
 			if err != nil {
-				return fmt.Errorf("%w: key %q: %w", ErrSecretBase64Invalid, key, err)
+				return err
 			}
 			newData[key] = decoded
 		} else {
@@ -65,8 +63,10 @@ func NewSecretFromSecretCreateModel(secretCreate *SecretCreate, namespace string
 	for key, value := range secretCreate.Contents {
 		if value.Base64 != nil {
 			decoded, err := base64.StdEncoding.DecodeString(*value.Base64)
+			// NOTE: this should not happen because Validate() is called before this function,
+			//       and would have returned 422 for invalid base64.
 			if err != nil {
-				return nil, fmt.Errorf("%w: key %q: %w", ErrSecretBase64Invalid, key, err)
+				return nil, err
 			}
 			data[key] = decoded
 		}

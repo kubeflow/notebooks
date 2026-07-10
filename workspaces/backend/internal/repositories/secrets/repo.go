@@ -41,16 +41,14 @@ var (
 )
 
 type SecretRepository struct {
-	cfg                  *config.EnvConfig
-	client               client.Client
-	secretMetadataClient client.Client
+	cfg    *config.EnvConfig
+	client client.Client
 }
 
-func NewSecretRepository(cfg *config.EnvConfig, cl client.Client, secretMetadataClient client.Client) *SecretRepository {
+func NewSecretRepository(cfg *config.EnvConfig, cl client.Client) *SecretRepository {
 	return &SecretRepository{
-		cfg:                  cfg,
-		client:               cl,
-		secretMetadataClient: secretMetadataClient,
+		cfg:    cfg,
+		client: cl,
 	}
 }
 
@@ -62,7 +60,7 @@ func (r *SecretRepository) GetSecrets(ctx context.Context, namespace string) ([]
 	// list all secret metadata in the namespace using the metadata-only cache
 	secretMetaList := &metav1.PartialObjectMetadataList{}
 	secretMetaList.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("SecretList"))
-	if err := r.secretMetadataClient.List(ctx, secretMetaList, client.InNamespace(namespace)); err != nil {
+	if err := r.client.List(ctx, secretMetaList, client.InNamespace(namespace)); err != nil {
 		return nil, err
 	}
 

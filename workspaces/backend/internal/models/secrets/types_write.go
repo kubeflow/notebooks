@@ -28,19 +28,44 @@ type SecretValue struct {
 	Base64 *string `json:"base64,omitempty"`
 }
 
+// Validate validates the SecretValue struct.
+func (s *SecretValue) Validate(prefix *field.Path) []*field.Error {
+	var errs []*field.Error
+
+	// validate the base64 string, if it is not nil
+	if s.Base64 != nil {
+		base64Path := prefix.Child("base64")
+		errs = append(errs, helper.ValidateFieldIsSecretBase64Value(base64Path, *s.Base64)...)
+	}
+
+	return errs
+}
+
 // SecretData represents a map of secret key-value pairs
 type SecretData map[string]SecretValue
+
+// Validate validates the SecretData struct.
+func (s *SecretData) Validate(prefix *field.Path) []*field.Error {
+	var errs []*field.Error
+
+	if s != nil {
+		for key, value := range *s {
+			// validate the key
+			keyPath := prefix // to avoid confusing the key with the value, we don't use prefix.Child(key) here
+			errs = append(errs, helper.ValidateFieldIsConfigMapKey(keyPath, key)...)
+
+			// validate the value
+			valuePath := prefix.Key(key)
+			errs = append(errs, value.Validate(valuePath)...)
+		}
+	}
+
+	return errs
+}
 
 // SecretCreate is used to create a new secret.
 type SecretCreate struct {
 	Name      string            `json:"name"`
-	Type      corev1.SecretType `json:"type"`
-	Immutable bool              `json:"immutable"`
-	Contents  SecretData        `json:"contents"`
-}
-
-// SecretUpdate represents the request body for updating a secret.
-type SecretUpdate struct {
 	Type      corev1.SecretType `json:"type"`
 	Immutable bool              `json:"immutable"`
 	Contents  SecretData        `json:"contents"`
@@ -62,6 +87,13 @@ func (s *SecretCreate) Validate(prefix *field.Path) []*field.Error {
 	return errs
 }
 
+// SecretUpdate represents the request body for updating a secret.
+type SecretUpdate struct {
+	Type      corev1.SecretType `json:"type"`
+	Immutable bool              `json:"immutable"`
+	Contents  SecretData        `json:"contents"`
+}
+
 // Validate validates the SecretUpdate struct.
 // NOTE: we only do basic validation, more complex validation is done by Kubernetes when attempting to update the secret.
 func (s *SecretUpdate) Validate(prefix *field.Path) []*field.Error {
@@ -70,23 +102,6 @@ func (s *SecretUpdate) Validate(prefix *field.Path) []*field.Error {
 	// validate the secret contents
 	contentsPath := prefix.Child("contents")
 	errs = append(errs, s.Contents.Validate(contentsPath)...)
-
-	return errs
-}
-
-// Validate validates the SecretData struct.
-func (s *SecretData) Validate(prefix *field.Path) []*field.Error {
-	var errs []*field.Error
-
-	if s == nil {
-		return errs // nil is valid for optional fields
-	}
-
-	for key := range *s {
-		// TODO: come up with a better way to highlight the error is on the key not the value at that key
-		keyPath := prefix.Child(key)
-		errs = append(errs, helper.ValidateFieldIsConfigMapKey(keyPath, key)...)
-	}
 
 	return errs
 }

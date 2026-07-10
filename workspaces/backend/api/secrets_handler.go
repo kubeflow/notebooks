@@ -215,10 +215,6 @@ func (a *App) CreateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 	// create the secret
 	createdSecret, err := a.repositories.Secret.CreateSecret(r.Context(), actor, secretCreate, namespace)
 	if err != nil {
-		if errors.Is(err, models.ErrSecretBase64Invalid) {
-			a.badRequestResponse(w, r, err)
-			return
-		}
 		if errors.Is(err, repository.ErrSecretAlreadyExists) {
 			causes := helper.StatusCausesFromAPIStatus(err)
 			a.conflictResponse(w, r, err, causes)
@@ -327,16 +323,12 @@ func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 
 	updatedSecret, err := a.repositories.Secret.UpdateSecret(r.Context(), actor, secretUpdate, namespace, secretName)
 	if err != nil {
-		if errors.Is(err, models.ErrSecretBase64Invalid) {
-			a.badRequestResponse(w, r, err)
-			return
-		}
 		if errors.Is(err, repository.ErrSecretNotFound) {
 			a.notFoundResponse(w, r)
 			return
 		}
 		if errors.Is(err, repository.ErrSecretNotCanUpdate) {
-			a.badRequestResponse(w, r, err)
+			a.forbiddenResponse(w, r, err.Error())
 			return
 		}
 		if apierrors.IsInvalid(err) {
@@ -358,9 +350,11 @@ func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 //	@Description	Deletes a specific secret identified by namespace and name.
 //	@Tags			secrets
 //	@ID				deleteSecret
-//	@Param			namespace	path	string	true	"Namespace name"	extensions(x-example=my-namespace)
-//	@Param			name		path	string	true	"Secret name"		extensions(x-example=my-secret)
-//	@Success		204			"No Content"
+//	@Accept			json
+//	@Produce		json
+//	@Param			namespace	path		string			true	"Namespace name"	extensions(x-example=my-namespace)
+//	@Param			name		path		string			true	"Secret name"		extensions(x-example=my-secret)
+//	@Success		204			{object}	nil				"Secret deleted successfully"
 //	@Failure		400			{object}	ErrorEnvelope	"Bad request"
 //	@Failure		401			{object}	ErrorEnvelope	"Unauthorized"
 //	@Failure		403			{object}	ErrorEnvelope	"Forbidden"
@@ -398,7 +392,7 @@ func (a *App) DeleteSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 			return
 		}
 		if errors.Is(err, repository.ErrSecretNotCanUpdate) {
-			a.badRequestResponse(w, r, err)
+			a.forbiddenResponse(w, r, err.Error())
 			return
 		}
 		if apierrors.IsConflict(err) {

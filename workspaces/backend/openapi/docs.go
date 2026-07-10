@@ -610,6 +610,12 @@ const docTemplate = `{
             },
             "delete": {
                 "description": "Deletes a specific secret identified by namespace and name.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "secrets"
                 ],
@@ -635,7 +641,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "204": {
-                        "description": "No Content"
+                        "description": "Secret deleted successfully"
                     },
                     "400": {
                         "description": "Bad request",

@@ -644,6 +644,75 @@ var _ = Describe("Validation Helper Functions", func() {
 		}
 	})
 
+	Describe("ValidateFieldIsConfigMapKey", func() {
+		type testCase struct {
+			description string
+			key         string
+			shouldPass  bool
+		}
+
+		testCases := []testCase{
+			{description: "should accept simple key", key: "my-key", shouldPass: true},
+			{description: "should accept key with dots", key: "key.name", shouldPass: true},
+			{description: "should accept key with underscores", key: "KEY_NAME", shouldPass: true},
+			{description: "should accept numeric key", key: "123", shouldPass: true},
+			{description: "should accept hidden file key", key: ".hidden", shouldPass: true},
+			{description: "should accept single character key", key: "a", shouldPass: true},
+			{description: "should reject empty key", key: "", shouldPass: false},
+			{description: "should reject path traversal key", key: "../escape", shouldPass: false},
+			{description: "should reject key with only dots", key: "..", shouldPass: false},
+		}
+
+		const fieldName = "key"
+		for _, tc := range testCases {
+			It(tc.description+" - "+tc.key, func() {
+				path := field.NewPath(fieldName)
+				errs := ValidateFieldIsConfigMapKey(path, tc.key)
+				if tc.shouldPass {
+					Expect(errs).To(BeEmpty(), "key %q should be valid", tc.key)
+				} else {
+					Expect(errs).NotTo(BeEmpty(), "key %q should be invalid", tc.key)
+					for i := range errs {
+						Expect(errs[i].Type).To(Equal(field.ErrorTypeInvalid), "key %q error[%d] should be Invalid type", tc.key, i)
+						Expect(errs[i].BadValue).To(Equal(tc.key), "key %q error[%d] BadValue should match input", tc.key, i)
+						Expect(errs[i].Field).To(Equal(fieldName), "key %q error[%d] field should be %q", tc.key, i, fieldName)
+					}
+				}
+			})
+		}
+	})
+
+	Describe("ValidateFieldIsSecretBase64Value", func() {
+		type testCase struct {
+			description string
+			value       string
+			shouldPass  bool
+		}
+
+		testCases := []testCase{
+			{description: "should accept valid base64", value: "dGVzdA==", shouldPass: true},
+			{description: "should accept empty string", value: "", shouldPass: true},
+			{description: "should reject base64 with missing padding", value: "dGVzdDE", shouldPass: false},
+			{description: "should reject invalid base64 characters", value: "not-valid-base64!!!", shouldPass: false},
+			{description: "should reject base64 with spaces", value: "dGVz dA==", shouldPass: false},
+		}
+
+		const fieldName = "value"
+		for _, tc := range testCases {
+			It(tc.description, func() {
+				path := field.NewPath(fieldName)
+				errs := ValidateFieldIsSecretBase64Value(path, tc.value)
+				if tc.shouldPass {
+					Expect(errs).To(BeEmpty(), "base64 value %q should be valid", tc.value)
+				} else {
+					Expect(errs).To(HaveLen(1), "base64 value %q should return exactly one error", tc.value)
+					Expect(errs[0].Type).To(Equal(field.ErrorTypeInvalid), "base64 value %q should return Invalid error type", tc.value)
+					Expect(errs[0].Field).To(Equal(fieldName), "base64 value %q error should be on %q field", tc.value, fieldName)
+				}
+			})
+		}
+	})
+
 	Describe("StatusCausesFromAPIStatus", func() {
 		// Test message constants
 		const (
