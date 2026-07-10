@@ -94,7 +94,7 @@ func IsIstioCRDsInstalled() bool {
 }
 
 // verifyIstioVersionOutput validates a single version slice has exactly one element
-func verifyIstioVersionOutput(versionSlice []interface{}, fieldName string) error {
+func verifyIstioVersionOutput(versionSlice []any, fieldName string) error {
 	if versionSlice == nil || len(versionSlice) != 1 {
 		return fmt.Errorf("istioctl version '%s' array must have exactly one element, got %d",
 			fieldName,
@@ -139,9 +139,9 @@ func WaitIstioAvailable() error {
 	// Note: this is not a comprehensive validation of the version output, but a basic validation to ensure the output
 	// matches expectations of e2e tests.
 	type IstioVersionInfo struct {
-		ClientVersion    map[string]interface{} `json:"clientVersion"`
-		MeshVersion      []interface{}          `json:"meshVersion"`
-		DataPlaneVersion []interface{}          `json:"dataPlaneVersion"`
+		ClientVersion    map[string]any `json:"clientVersion"`
+		MeshVersion      []any          `json:"meshVersion"`
+		DataPlaneVersion []any          `json:"dataPlaneVersion"`
 	}
 
 	// Try to parse output as JSON - if it fails, stderr was likely included in combined output from Run command

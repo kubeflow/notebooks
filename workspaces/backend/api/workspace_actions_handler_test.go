@@ -368,7 +368,7 @@ var _ = Describe("Workspace Actions Handler", func() {
 
 		It("should return 422 when request body is missing data field", func() {
 			By("creating the request body without data field")
-			requestBody := map[string]interface{}{}
+			requestBody := map[string]any{}
 			bodyBytes, err := json.Marshal(requestBody)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -446,8 +446,8 @@ var _ = Describe("Workspace Actions Handler", func() {
 			Expect(k8sClient.Status().Update(ctx, workspace)).To(Succeed())
 
 			By("creating the request body with empty data object")
-			requestBody := map[string]interface{}{
-				"data": map[string]interface{}{},
+			requestBody := map[string]any{
+				"data": map[string]any{},
 			}
 			bodyBytes, err := json.Marshal(requestBody)
 			Expect(err).NotTo(HaveOccurred())
