@@ -35,14 +35,14 @@ type ImageConfig struct {
 }
 
 type ImageConfigValue struct {
-	Id             string               `json:"id"`
-	DisplayName    string               `json:"displayName"`
-	Description    string               `json:"description"`
-	Labels         []OptionLabel        `json:"labels,omitempty"`
-	Hidden         bool                 `json:"hidden"`
-	Redirect       *OptionRedirect      `json:"redirect,omitempty"`
-	ClusterMetrics ClusterOptionMetrics `json:"clusterMetrics,omitempty"`
-	Restrictions   common.Restrictions  `json:"restrictions"`
+	Id             string                `json:"id"`
+	DisplayName    string                `json:"displayName"`
+	Description    string                `json:"description"`
+	Labels         []OptionLabel         `json:"labels,omitempty"`
+	Hidden         bool                  `json:"hidden"`
+	Redirect       *OptionRedirect       `json:"redirect,omitempty"`
+	ClusterMetrics *ClusterOptionMetrics `json:"clusterMetrics,omitempty"`
+	Restrictions   common.Restrictions   `json:"restrictions"`
 }
 
 type PodConfig struct {
@@ -51,14 +51,14 @@ type PodConfig struct {
 }
 
 type PodConfigValue struct {
-	Id             string               `json:"id"`
-	DisplayName    string               `json:"displayName"`
-	Description    string               `json:"description"`
-	Labels         []OptionLabel        `json:"labels,omitempty"`
-	Hidden         bool                 `json:"hidden"`
-	Redirect       *OptionRedirect      `json:"redirect,omitempty"`
-	ClusterMetrics ClusterOptionMetrics `json:"clusterMetrics,omitempty"`
-	Restrictions   common.Restrictions  `json:"restrictions"`
+	Id             string                `json:"id"`
+	DisplayName    string                `json:"displayName"`
+	Description    string                `json:"description"`
+	Labels         []OptionLabel         `json:"labels,omitempty"`
+	Hidden         bool                  `json:"hidden"`
+	Redirect       *OptionRedirect       `json:"redirect,omitempty"`
+	ClusterMetrics *ClusterOptionMetrics `json:"clusterMetrics,omitempty"`
+	Restrictions   common.Restrictions   `json:"restrictions"`
 }
 
 type OptionLabel struct {

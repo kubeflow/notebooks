@@ -220,12 +220,12 @@ func buildOptionRedirect(redirect *kubefloworgv1beta1.OptionRedirect) *OptionRed
 	}
 }
 
-func buildClusterOptionMetrics(optionId string, optionMetricsMap map[string]int32) ClusterOptionMetrics {
+func buildClusterOptionMetrics(optionId string, optionMetricsMap map[string]int32) *ClusterOptionMetrics {
 	optionMetrics := ClusterOptionMetrics{}
 
 	if workspacesCount, ok := optionMetricsMap[optionId]; ok {
 		optionMetrics.Workspaces = workspacesCount
 	}
 
-	return optionMetrics
+	return &optionMetrics
 }
