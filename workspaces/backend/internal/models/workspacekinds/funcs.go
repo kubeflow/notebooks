@@ -17,6 +17,8 @@ limitations under the License.
 package workspacekinds
 
 import (
+	"maps"
+
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"k8s.io/utils/ptr"
 
@@ -33,12 +35,8 @@ func NewWorkspaceKindModelFromWorkspaceKind(cfg *config.EnvConfig, wsk *kubeflow
 	podAnnotations := make(map[string]string)
 	if wsk.Spec.PodTemplate.PodMetadata != nil {
 		// NOTE: we copy the maps to avoid creating a reference to the original maps.
-		for k, v := range wsk.Spec.PodTemplate.PodMetadata.Labels {
-			podLabels[k] = v
-		}
-		for k, v := range wsk.Spec.PodTemplate.PodMetadata.Annotations {
-			podAnnotations[k] = v
-		}
+		maps.Copy(podLabels, wsk.Spec.PodTemplate.PodMetadata.Labels)
+		maps.Copy(podAnnotations, wsk.Spec.PodTemplate.PodMetadata.Annotations)
 	}
 
 	//
