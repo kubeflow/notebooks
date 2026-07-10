@@ -6736,6 +6736,17 @@ const docTemplate = `{
                 }
             }
         },
+        "workspacekinds.RuleEffects": {
+            "type": "object",
+            "required": [
+                "uiHide"
+            ],
+            "properties": {
+                "uiHide": {
+                    "type": "boolean"
+                }
+            }
+        },
         "workspacekinds.WorkspaceKindCreate": {
             "type": "object",
             "required": [
@@ -6767,7 +6778,8 @@ const docTemplate = `{
                 "icon",
                 "logo",
                 "name",
-                "podTemplate"
+                "podTemplate",
+                "ruleEffects"
             ],
             "properties": {
                 "clusterMetrics": {
@@ -6799,6 +6811,9 @@ const docTemplate = `{
                 },
                 "podTemplate": {
                     "$ref": "#/definitions/workspacekinds.PodTemplate"
+                },
+                "ruleEffects": {
+                    "$ref": "#/definitions/workspacekinds.RuleEffects"
                 }
             }
         },

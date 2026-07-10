@@ -147,6 +147,11 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 				models.NewWorkspaceKindModelFromWorkspaceKind(a.Config, workspacekind2),
 			))
 
+			By("ensuring ruleEffects is present with a stubbed uiHide of false on every WorkspaceKind")
+			for _, item := range response.Data {
+				Expect(item.RuleEffects.UiHide).To(BeFalse())
+			}
+
 			By("ensuring the wrapped data can be marshaled to JSON and back to []WorkspaceKind")
 			dataJSON, err := json.Marshal(response.Data)
 			Expect(err).NotTo(HaveOccurred(), "failed to marshal data to JSON")
@@ -242,6 +247,11 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 				models.NewWorkspaceKindModelFromWorkspaceKind(a.Config, workspacekind1),
 				models.NewWorkspaceKindModelFromWorkspaceKind(a.Config, workspacekind2),
 			))
+
+			By("ensuring ruleEffects is present with a stubbed uiHide of false even when namespaceFilter is provided")
+			for _, item := range response.Data {
+				Expect(item.RuleEffects.UiHide).To(BeFalse())
+			}
 		})
 
 		It("should return 422 for an invalid namespaceFilter query parameter", func() {

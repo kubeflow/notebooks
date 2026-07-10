@@ -30,8 +30,21 @@ type WorkspaceKindListItem struct {
 	Hidden             bool               `json:"hidden"`
 	Icon               assets.ImageRef    `json:"icon"`
 	Logo               assets.ImageRef    `json:"logo"`
+	RuleEffects        RuleEffects        `json:"ruleEffects"`
 	ClusterMetrics     ClusterKindMetrics `json:"clusterMetrics"`
 	PodTemplate        PodTemplate        `json:"podTemplate"`
+}
+
+// RuleEffects communicates the outcome of evaluating a WorkspaceKind's compatibility
+// selector filter rules for the current request context.
+//
+// TODO: this is currently a stub for the compatibility selectors feature
+//
+//	(https://github.com/kubeflow/notebooks/issues/682). Once WorkspaceKind
+//	filterRules evaluation is implemented, UiHide will reflect the merged
+//	result of the matching rules' `ui.hide` effects.
+type RuleEffects struct {
+	UiHide bool `json:"uiHide"`
 }
 
 type ClusterKindMetrics struct {

@@ -58,6 +58,11 @@ func NewWorkspaceKindModelFromWorkspaceKind(cfg *config.EnvConfig, wsk *kubeflow
 		Hidden:             ptr.Deref(wsk.Spec.Spawner.Hidden, false),
 		Icon:               assets.NewImageRefFromWorkspaceKindAssetIcon(cfg, wsk.Spec.Spawner.Icon, wsk.Status.SpawnerIcon, wsk.Name),
 		Logo:               assets.NewImageRefFromWorkspaceKindAssetLogo(cfg, wsk.Spec.Spawner.Logo, wsk.Status.SpawnerLogo, wsk.Name),
+		// TODO: stub for compatibility selectors (https://github.com/kubeflow/notebooks/issues/682)
+		//       uiHide is hard-coded to false until WorkspaceKind filterRules evaluation is implemented
+		RuleEffects: RuleEffects{
+			UiHide: false,
+		},
 		// TODO: in the future will need to support including exactly one of clusterMetrics or namespaceMetrics based on request context
 		ClusterMetrics: ClusterKindMetrics{
 			Workspaces: wsk.Status.Workspaces,
