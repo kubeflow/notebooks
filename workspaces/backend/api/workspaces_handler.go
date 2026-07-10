@@ -370,8 +370,7 @@ func (a *App) UpdateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 			return
 		}
 		if errors.Is(err, repository.ErrWorkspaceRevisionConflict) {
-			causes := helper.StatusCausesFromAPIStatus(err)
-			a.conflictResponse(w, r, err, causes)
+			a.internalConflictResponse(w, r, err)
 			return
 		}
 		if apierrors.IsInvalid(err) {
