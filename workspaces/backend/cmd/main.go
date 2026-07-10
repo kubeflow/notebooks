@@ -22,6 +22,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/go-logr/logr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	application "github.com/kubeflow/notebooks/workspaces/backend/api"
@@ -126,6 +127,13 @@ func main() {
 
 	// Initialize the logger
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+
+	// Discard controller-runtime's global logger. We only use the manager as a
+	// lifecycle host for the Kubernetes client, not as an actual controller, so
+	// its internal logs are noise. Without this, controller-runtime emits a
+	// "log.SetLogger(...) was never called" warning the first time it tries to
+	// log (e.g. during shutdown).
+	ctrl.SetLogger(logr.Discard())
 
 	// Build the Kubernetes client configuration
 	kubeconfig, err := ctrl.GetConfig()
