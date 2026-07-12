@@ -1,0 +1,37 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.8.1/components.yaml
+
+patches:
+# Kind's kubelets serve metrics over TLS certificates that aren't valid for
+# the address metrics-server connects to, so verification must be disabled.
+# This is only safe for local development, never for production.
+#
+# Selects the container by name (rather than by array index) so the patch
+# doesn't break if upstream reorders or adds containers to the Deployment.
+#
+# Args are modified from upstream deployment, those might require updates when
+# the metrics-server component is being updated
+# https://github.com/kubernetes-sigs/metrics-server/blob/9ce65a47f9262e19e482c259ace815f01135a898/manifests/base/deployment.yaml#L20-L33
+- target:
+    kind: Deployment
+    name: metrics-server
+  patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: metrics-server
+    spec:
+      template:
+        spec:
+          containers:
+          - name: metrics-server
+            args:
+              - --cert-dir=/tmp
+              - --secure-port=10250
+              - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
+              - --kubelet-use-node-status-port
+              - --metric-resolution=15s
+              - --kubelet-insecure-tls
