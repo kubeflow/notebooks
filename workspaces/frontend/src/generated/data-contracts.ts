@@ -4140,7 +4140,12 @@ export interface WorkspacesWorkspaceCreate {
   podTemplate: WorkspacesPodTemplateMutate;
 }
 
+export interface WorkspacesCullingConfig {
+  maxInactiveSeconds: number;
+}
+
 export interface WorkspacesWorkspaceKindInfo {
+  cullingConfig?: WorkspacesCullingConfig;
   icon: AssetsImageRef;
   logo: AssetsImageRef;
   missing: boolean;

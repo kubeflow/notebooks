@@ -43,10 +43,17 @@ type WorkspaceListItem struct {
 }
 
 type WorkspaceKindInfo struct {
-	Name    string                `json:"name"`
-	Missing bool                  `json:"missing"`
-	Icon    commonAssets.ImageRef `json:"icon"`
-	Logo    commonAssets.ImageRef `json:"logo"`
+	Name          string                `json:"name"`
+	Missing       bool                  `json:"missing"`
+	Icon          commonAssets.ImageRef `json:"icon"`
+	Logo          commonAssets.ImageRef `json:"logo"`
+	CullingConfig *CullingConfig        `json:"cullingConfig,omitempty"`
+}
+
+// CullingConfig holds the culling settings for a WorkspaceKind, surfaced on each workspace
+// list item so the frontend can compute time-to-pause without a separate WorkspaceKind fetch.
+type CullingConfig struct {
+	MaxInactiveSeconds int32 `json:"maxInactiveSeconds"`
 }
 
 type PodTemplate struct {

@@ -221,6 +221,27 @@ var _ = Describe("Workspaces Handler", func() {
 			var dataObject []models.WorkspaceListItem
 			err = json.Unmarshal(dataJSON, &dataObject)
 			Expect(err).NotTo(HaveOccurred(), "failed to unmarshal JSON to []WorkspaceListItem")
+
+			By("ensuring every workspace list item carries the cullingConfig from its WorkspaceKind")
+			for _, ws := range response.Data {
+				Expect(ws.WorkspaceKind.CullingConfig).NotTo(BeNil(),
+					"cullingConfig should be present for a WorkspaceKind with culling enabled")
+				Expect(ws.WorkspaceKind.CullingConfig.MaxInactiveSeconds).To(Equal(int32(86400)),
+					"maxInactiveSeconds should match the value set on the WorkspaceKind")
+			}
+
+			By("ensuring cullingConfig is serialised into the JSON response")
+			var rawList []map[string]json.RawMessage
+			Expect(json.Unmarshal(dataJSON, &rawList)).To(Succeed())
+			for _, item := range rawList {
+				var wkInfo map[string]json.RawMessage
+				Expect(json.Unmarshal(item["workspaceKind"], &wkInfo)).To(Succeed())
+				Expect(wkInfo).To(HaveKey("cullingConfig"),
+					"cullingConfig must appear in the workspaceKind JSON object")
+				var cc models.CullingConfig
+				Expect(json.Unmarshal(wkInfo["cullingConfig"], &cc)).To(Succeed())
+				Expect(cc.MaxInactiveSeconds).To(Equal(int32(86400)))
+			}
 		})
 
 		It("should retrieve Workspaces from Namespace 1 successfully", func() {
@@ -484,6 +505,8 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(workspaceMissingWskModel.PodTemplate.Options.PodConfig.Current.Description).To(Equal(models.UnknownPodConfig))
 			Expect(workspaceMissingWskModel.PodTemplate.Options.ImageConfig.Current.DisplayName).To(Equal(models.UnknownImageConfig))
 			Expect(workspaceMissingWskModel.PodTemplate.Options.ImageConfig.Current.Description).To(Equal(models.UnknownImageConfig))
+			Expect(workspaceMissingWskModel.WorkspaceKind.CullingConfig).To(BeNil(),
+				"cullingConfig must be absent when the WorkspaceKind is missing")
 
 			By("ensuring the model for Workspace with invalid PodConfig is as expected")
 			workspaceInvalidPodConfigModel := models.NewWorkspaceListItemFromWorkspace(a.Config, workspaceInvalidPodConfig, workspaceKind)
