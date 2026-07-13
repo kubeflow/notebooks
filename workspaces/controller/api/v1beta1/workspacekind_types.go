@@ -48,9 +48,9 @@ type WorkspaceKindSpec struct {
 	PodTemplate WorkspaceKindPodTemplate `json:"podTemplate"`
 
 	// activityRules defines the policies for handling inactivity in Workspaces of this WorkspaceKind (MUTABLE).
-	// Rules are evaluated sequentially from top to bottom (first-match-wins semantics). Once a rule matches,
-	// subsequent rules are ignored. A rule with a nil or empty 'match' is treated as a catch-all rule that matches
-	// all Workspaces; at most one catch-all rule is allowed per effect type, and it must be the last rule in the list.
+	// Rules are evaluated sequentially from top to bottom (first-match-wins semantics) independently for each
+	// configured effect type (e.g., pauseWorkspace). A rule with a nil or empty 'match' is treated as a catch-all
+	// rule; at most one catch-all rule is allowed per effect type, and it must be the last rule in the list.
 	// +kubebuilder:validation:Optional
 	// +listType:="atomic"
 	ActivityRules []ActivityRule `json:"activityRules,omitempty"`
@@ -70,7 +70,9 @@ type ActivityRule struct {
 }
 
 type ActivityRuleConfig struct {
-	// the number of seconds of inactivity before a Workspace is eligible for this rule's effect
+	// the number of seconds of inactivity before a Workspace is eligible for this rule's effect.
+	// The minimum value is 16 (secondsSinceActive > 15) to prevent thrashing and culling workspaces
+	// prematurely during startup or transient connection drops.
 	// +kubebuilder:validation:Minimum:=16
 	SecondsSinceActive int32 `json:"secondsSinceActive"`
 
@@ -104,6 +106,14 @@ type PodConfigMatch struct {
 	Selector metav1.LabelSelector `json:"selector"`
 }
 
+// ActivityRuleEffect defines the action to take. Each field represents a different effect type
+// (e.g., pauseWorkspace). Different effect types are evaluated independently by the controller.
+// To allow independent evaluation passes without shielding, a field must be explicitly set (true or false)
+// to be considered configured. Fields left as nil are ignored (fallthrough) during that effect's evaluation pass.
+//
+// For each effect type, an explicit 'false' matches the rule and terminates evaluation, overriding any later
+// rule (no-op override). A 'nil' value skips the rule entirely, letting evaluation fall through to subsequent rules.
+//
 // +kubebuilder:validation:XValidation:message="must specify at least one effect",rule="has(self.pauseWorkspace)"
 type ActivityRuleEffect struct {
 	// determines if the Workspace should be paused. Requires activityProbe to be configured.

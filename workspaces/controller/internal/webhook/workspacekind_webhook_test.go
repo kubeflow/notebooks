@@ -239,6 +239,36 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 				shouldSucceed: true,
 			},
 			{
+				description: "should accept creation with pauseWorkspace: false rule overriding catch-all rule",
+				workspaceKind: NewExampleWorkspaceKindWithActivityRules("wsk-webhook-create--rules-override-false", []kubefloworgv1beta1.ActivityRule{
+					{
+						Config: kubefloworgv1beta1.ActivityRuleConfig{
+							SecondsSinceActive: 3600,
+						},
+						Match: &kubefloworgv1beta1.ActivityRuleMatch{
+							MatchNamespace: &kubefloworgv1beta1.NamespaceMatch{
+								Selector: metav1.LabelSelector{
+									MatchLabels: map[string]string{"tier": "critical"},
+								},
+							},
+						},
+						Effect: kubefloworgv1beta1.ActivityRuleEffect{
+							PauseWorkspace: ptr.To(false), // override to no-op culling
+						},
+					},
+					{
+						Config: kubefloworgv1beta1.ActivityRuleConfig{
+							SecondsSinceActive: 7200,
+						},
+						Match: &kubefloworgv1beta1.ActivityRuleMatch{}, // catch-all
+						Effect: kubefloworgv1beta1.ActivityRuleEffect{
+							PauseWorkspace: ptr.To(true),
+						},
+					},
+				}),
+				shouldSucceed: true,
+			},
+			{
 				description: "should reject creation if secondsSinceActive <= 15 seconds",
 				workspaceKind: NewExampleWorkspaceKindWithActivityRules("wsk-webhook-create--rules-low-seconds", []kubefloworgv1beta1.ActivityRule{
 					{
@@ -277,6 +307,30 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						Match: &kubefloworgv1beta1.ActivityRuleMatch{},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
 							PauseWorkspace: ptr.To(true),
+						},
+					},
+					{
+						Config: kubefloworgv1beta1.ActivityRuleConfig{
+							SecondsSinceActive: 7200,
+						},
+						Match: &kubefloworgv1beta1.ActivityRuleMatch{},
+						Effect: kubefloworgv1beta1.ActivityRuleEffect{
+							PauseWorkspace: ptr.To(true),
+						},
+					},
+				}),
+				shouldSucceed: false,
+			},
+			{
+				description: "should reject creation if multiple catch-all rules exist with different pauseWorkspace values",
+				workspaceKind: NewExampleWorkspaceKindWithActivityRules("wsk-webhook-create--rules-multiple-catchall-diff", []kubefloworgv1beta1.ActivityRule{
+					{
+						Config: kubefloworgv1beta1.ActivityRuleConfig{
+							SecondsSinceActive: 3600,
+						},
+						Match: &kubefloworgv1beta1.ActivityRuleMatch{},
+						Effect: kubefloworgv1beta1.ActivityRuleEffect{
+							PauseWorkspace: ptr.To(false),
 						},
 					},
 					{
@@ -405,6 +459,54 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 				Expect(warnings[0]).To(ContainSubstring(tc.expectedWarning))
 			})
 		}
+
+		// NOTE: This test must run directly via the Go webhook validator instead of the API server (testCases).
+		// Currently, the CRD schema's CEL validation requires the 'pauseWorkspace' effect to be set. Trying to
+		// create this resource in the API server will fail at the schema check phase. Directly invoking the
+		// validator allows us to test the webhook's correct handling of nil effects (which supports future
+		// independent evaluation of other effects) bypassing the temporary CEL restriction.
+		It("should accept multiple catch-all rules with different effects", func() {
+			wsk := NewExampleWorkspaceKindWithActivityRules("wsk-webhook-create--rules-multiple-catchall-diff-effects", []kubefloworgv1beta1.ActivityRule{
+				{
+					Config: kubefloworgv1beta1.ActivityRuleConfig{
+						SecondsSinceActive: 7200,
+					},
+					Match: &kubefloworgv1beta1.ActivityRuleMatch{
+						MatchNamespace: &kubefloworgv1beta1.NamespaceMatch{
+							Selector: metav1.LabelSelector{
+								MatchLabels: map[string]string{"tier": "development"},
+							},
+						},
+					},
+					Effect: kubefloworgv1beta1.ActivityRuleEffect{
+						PauseWorkspace: ptr.To(true),
+					},
+				},
+				{
+					Config: kubefloworgv1beta1.ActivityRuleConfig{
+						SecondsSinceActive: 10800,
+					},
+					Match: &kubefloworgv1beta1.ActivityRuleMatch{}, // catch-all
+					Effect: kubefloworgv1beta1.ActivityRuleEffect{
+						PauseWorkspace: ptr.To(true),
+					},
+				},
+				{
+					Config: kubefloworgv1beta1.ActivityRuleConfig{
+						SecondsSinceActive: 7200,
+					},
+					Match: &kubefloworgv1beta1.ActivityRuleMatch{}, // catch-all
+					Effect: kubefloworgv1beta1.ActivityRuleEffect{ // no-op, represent a future effect type
+						PauseWorkspace: nil,
+					},
+				},
+			})
+
+			validator := &WorkspaceKindValidator{Client: k8sClient, Scheme: scheme.Scheme}
+			warnings, err := validator.ValidateCreate(ctx, wsk)
+			Expect(err).To(Succeed())
+			Expect(warnings).To(BeEmpty())
+		})
 	})
 
 	Context("When updating a WorkspaceKind", Ordered, func() {

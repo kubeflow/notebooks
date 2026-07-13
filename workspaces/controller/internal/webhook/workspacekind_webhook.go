@@ -847,16 +847,25 @@ func validateActivityRules(workspaceKind *kubefloworgv1beta1.WorkspaceKind) ([]*
 		isEmpty := isMatchEmpty(rule.Match)
 
 		// check pauseWorkspace effect
-		isPauseWorkspaceEffect := rule.Effect.PauseWorkspace != nil && *rule.Effect.PauseWorkspace
+		isPauseWorkspaceEffect := rule.Effect.PauseWorkspace != nil
 		if isPauseWorkspaceEffect {
-			hasPauseWorkspaceRule = true
+			if *rule.Effect.PauseWorkspace {
+				hasPauseWorkspaceRule = true
+			}
 			if isEmpty {
 				if hasCatchAllPauseWorkspace {
 					errs = append(errs, field.Invalid(rulePath.Child("match"), rule.Match, "at most one catch-all (empty match) rule is allowed for pauseWorkspace effect"))
 				}
 				hasCatchAllPauseWorkspace = true
-				if i != numRules-1 {
-					errs = append(errs, field.Invalid(rulePath.Child("match"), rule.Match, "catch-all (empty match) rule must be the last rule"))
+				hasSubsequentPauseWorkspaceRule := false
+				for j := i + 1; j < numRules; j++ {
+					if rules[j].Effect.PauseWorkspace != nil {
+						hasSubsequentPauseWorkspaceRule = true
+						break
+					}
+				}
+				if hasSubsequentPauseWorkspaceRule {
+					errs = append(errs, field.Invalid(rulePath.Child("match"), rule.Match, "catch-all (empty match) rule must be the last rule configuring the pauseWorkspace effect"))
 				}
 			}
 		}

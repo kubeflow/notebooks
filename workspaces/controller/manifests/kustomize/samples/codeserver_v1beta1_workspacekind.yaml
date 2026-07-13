@@ -29,7 +29,7 @@ spec:
         timeoutSeconds: 60
         script: |-
           #!/usr/bin/env bash
-          # A simple mock probe checking for user processes or file modifications
+          # A mock probe that always reports activity (replace with real detection logic)
           echo '{"has_activity": true}' > "$OUTPUT_JSON_PATH"
           exit 0
     volumeMounts:
