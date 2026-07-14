@@ -27,10 +27,6 @@ import (
 )
 
 // ApplySecretUpdateModelToSecret applies a SecretUpdate model to an existing Kubernetes Secret.
-// Update semantics:
-//   - key present with {"base64": "..."} → set/update the value
-//   - key present with {} (Base64 is nil) → preserve the existing value from currentSecret.Data
-//   - key omitted from the request → delete that key
 func ApplySecretUpdateModelToSecret(secretUpdate *SecretUpdate, secret *corev1.Secret) error {
 	newData := make(map[string][]byte, len(secretUpdate.Contents))
 	for key, value := range secretUpdate.Contents {

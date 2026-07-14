@@ -53,11 +53,10 @@ func NewSecretRepository(cfg *config.EnvConfig, cl client.Client) *SecretReposit
 }
 
 // GetSecrets returns a list of all secrets in a namespace.
-// NOTE: uses a metadata-only cache for Secrets, so only ObjectMeta fields are available.
-//
-//	this avoids caching sensitive secret data values in memory.
 func (r *SecretRepository) GetSecrets(ctx context.Context, namespace string) ([]models.SecretListItem, error) {
 	// list all secret metadata in the namespace using the metadata-only cache
+	// NOTE: this is because we have disabled caching for Secret objects in the controller-runtime manager,
+	//       to reduce memory usage on large clusters with many secrets
 	secretMetaList := &metav1.PartialObjectMetadataList{}
 	secretMetaList.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("SecretList"))
 	if err := r.client.List(ctx, secretMetaList, client.InNamespace(namespace)); err != nil {
@@ -184,9 +183,7 @@ func (r *SecretRepository) UpdateSecret(ctx context.Context, actor user.Info, se
 			//       and extract the validation errors returned by the Kubernetes API server
 			return nil, err
 		}
-		// NOTE: if the update fails due to a kubernetes conflict, this implies our cache is stale.
-		//       we return a 500 error to the caller (not a 409), as it's not the caller's fault.
-		return nil, fmt.Errorf("failed to update secret: %w", err)
+		return nil, err
 	}
 
 	return models.NewSecretUpdateModelFromSecret(secret), nil

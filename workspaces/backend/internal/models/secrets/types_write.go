@@ -91,7 +91,11 @@ func (s *SecretCreate) Validate(prefix *field.Path) []*field.Error {
 type SecretUpdate struct {
 	Type      corev1.SecretType `json:"type"`
 	Immutable bool              `json:"immutable"`
-	Contents  SecretData        `json:"contents"`
+	// Update semantics:
+	//   - key present with {"base64": "..."} → set/update the value
+	//   - key present with {} (Base64 is nil) → preserve the existing value from currentSecret.Data
+	//   - key omitted from the request → delete that key
+	Contents SecretData `json:"contents"`
 }
 
 // Validate validates the SecretUpdate struct.

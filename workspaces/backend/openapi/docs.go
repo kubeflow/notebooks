@@ -2966,7 +2966,12 @@ const docTemplate = `{
             ],
             "properties": {
                 "contents": {
-                    "$ref": "#/definitions/secrets.SecretData"
+                    "description": "Update semantics:\n  - key present with {\"base64\": \"...\"} → set/update the value\n  - key present with {} (Base64 is nil) → preserve the existing value from currentSecret.Data\n  - key omitted from the request → delete that key",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/secrets.SecretData"
+                        }
+                    ]
                 },
                 "immutable": {
                     "type": "boolean"
