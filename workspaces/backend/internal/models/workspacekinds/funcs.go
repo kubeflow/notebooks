@@ -21,6 +21,7 @@ import (
 	"k8s.io/utils/ptr"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common/assets"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/podtemplate/options"
 )
@@ -72,5 +73,9 @@ func NewWorkspaceKindModelFromWorkspaceKind(cfg *config.EnvConfig, wsk *kubeflow
 			},
 			Options: *podTemplateOptions,
 		},
+		//
+		// TODO: replace this with the calculation of the actual restriction!
+		//
+		Restrictions: common.DefaultRestrictions(),
 	}
 }

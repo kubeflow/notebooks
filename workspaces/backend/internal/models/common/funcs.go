@@ -115,3 +115,8 @@ func GetDescriptionFromObjectMeta(objectMeta *metav1.ObjectMeta) string {
 	}
 	return objectMeta.Annotations[AnnotationDescription]
 }
+
+// DefaultRestrictions returns the non-restrictive default action
+func DefaultRestrictions() Restrictions {
+	return Restrictions{Deny: false}
+}

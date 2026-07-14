@@ -17,6 +17,7 @@ limitations under the License.
 package common
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -146,5 +147,38 @@ var _ = Describe("UpdateObjectMetaForUpdate", func() {
 		Expect(func() {
 			UpdateObjectMetaForUpdate(nil, &user.DefaultInfo{Name: "alice"}, time.Now())
 		}).To(Panic())
+	})
+})
+
+var _ = Describe("Restrictions", func() {
+	// marshalToMap round-trips a value through JSON so we can assert on the
+	// serialized shape (in particular, which keys are present) without pinning
+	// down key ordering.
+	marshalToMap := func(v any) map[string]any {
+		data, err := json.Marshal(v)
+		Expect(err).NotTo(HaveOccurred())
+		result := map[string]any{}
+		Expect(json.Unmarshal(data, &result)).To(Succeed())
+		return result
+	}
+
+	It("omits denyMessage from the default (non-restrictive) value", func() {
+		// the optional denyMessage must be absent so the default serializes as {"deny": false}
+		Expect(marshalToMap(DefaultRestrictions())).To(BeEquivalentTo(map[string]any{
+			"deny": false,
+		}))
+	})
+
+	It("includes denyMessage when a restriction applies", func() {
+		restrictions := Restrictions{
+			Deny:        true,
+			DenyMessage: &DenyMessage{Text: "this image is no longer permitted in this namespace"},
+		}
+		Expect(marshalToMap(restrictions)).To(BeEquivalentTo(map[string]any{
+			"deny": true,
+			"denyMessage": map[string]any{
+				"text": "this image is no longer permitted in this namespace",
+			},
+		}))
 	})
 })

@@ -2298,6 +2298,17 @@ const docTemplate = `{
                 }
             }
         },
+        "common.DenyMessage": {
+            "type": "object",
+            "required": [
+                "text"
+            ],
+            "properties": {
+                "text": {
+                    "type": "string"
+                }
+            }
+        },
         "common.PodMetadata": {
             "type": "object",
             "required": [
@@ -2353,6 +2364,20 @@ const docTemplate = `{
                 },
                 "readOnly": {
                     "type": "boolean"
+                }
+            }
+        },
+        "common.Restrictions": {
+            "type": "object",
+            "required": [
+                "deny"
+            ],
+            "properties": {
+                "deny": {
+                    "type": "boolean"
+                },
+                "denyMessage": {
+                    "$ref": "#/definitions/common.DenyMessage"
                 }
             }
         },
@@ -2616,7 +2641,8 @@ const docTemplate = `{
                 "description",
                 "displayName",
                 "hidden",
-                "id"
+                "id",
+                "restrictions"
             ],
             "properties": {
                 "clusterMetrics": {
@@ -2642,6 +2668,9 @@ const docTemplate = `{
                 },
                 "redirect": {
                     "$ref": "#/definitions/options.OptionRedirect"
+                },
+                "restrictions": {
+                    "$ref": "#/definitions/common.Restrictions"
                 }
             }
         },
@@ -2722,7 +2751,8 @@ const docTemplate = `{
                 "description",
                 "displayName",
                 "hidden",
-                "id"
+                "id",
+                "restrictions"
             ],
             "properties": {
                 "clusterMetrics": {
@@ -2748,6 +2778,9 @@ const docTemplate = `{
                 },
                 "redirect": {
                     "$ref": "#/definitions/options.OptionRedirect"
+                },
+                "restrictions": {
+                    "$ref": "#/definitions/common.Restrictions"
                 }
             }
         },
@@ -6984,7 +7017,8 @@ const docTemplate = `{
                 "icon",
                 "logo",
                 "name",
-                "podTemplate"
+                "podTemplate",
+                "restrictions"
             ],
             "properties": {
                 "clusterMetrics": {
@@ -7016,6 +7050,9 @@ const docTemplate = `{
                 },
                 "podTemplate": {
                     "$ref": "#/definitions/workspacekinds.PodTemplate"
+                },
+                "restrictions": {
+                    "$ref": "#/definitions/common.Restrictions"
                 }
             }
         },

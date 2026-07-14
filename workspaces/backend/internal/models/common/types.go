@@ -28,3 +28,14 @@ type Audit struct {
 	UpdatedBy *string      `json:"updatedBy"`
 	DeletedAt *metav1.Time `json:"deletedAt"`
 }
+
+// Restrictions signals whether an option or Workspace Kind is denied
+type Restrictions struct {
+	Deny        bool         `json:"deny"`
+	DenyMessage *DenyMessage `json:"denyMessage,omitempty"`
+}
+
+// DenyMessage explains the reason for why a restriction applies
+type DenyMessage struct {
+	Text string `json:"text"`
+}

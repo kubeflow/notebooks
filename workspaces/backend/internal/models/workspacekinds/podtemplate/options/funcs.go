@@ -24,6 +24,7 @@ import (
 	"k8s.io/utils/ptr"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 )
 
 func NewPodTemplateOptionsModelFromWorkspaceKind(wsk *kubefloworgv1beta1.WorkspaceKind, request *ListValuesRequest) (*PodTemplateOptions, error) {
@@ -106,6 +107,10 @@ func buildImageConfigValues(wsk *kubefloworgv1beta1.WorkspaceKind, request *List
 			Hidden:         ptr.Deref(value.Spawner.Hidden, false),
 			Redirect:       buildOptionRedirect(value.Redirect),
 			ClusterMetrics: buildClusterOptionMetrics(value.Id, optionMetricsMap),
+			//
+			// TODO: replace this with the calculation of the actual restriction!
+			//
+			Restrictions: common.DefaultRestrictions(),
 		})
 	}
 
@@ -158,6 +163,10 @@ func buildPodConfigValues(wsk *kubefloworgv1beta1.WorkspaceKind, request *ListVa
 			Hidden:         ptr.Deref(value.Spawner.Hidden, false),
 			Redirect:       buildOptionRedirect(value.Redirect),
 			ClusterMetrics: buildClusterOptionMetrics(value.Id, optionMetricsMap),
+			//
+			// TODO: replace this with the calculation of the actual restriction!
+			//
+			Restrictions: common.DefaultRestrictions(),
 		})
 	}
 
