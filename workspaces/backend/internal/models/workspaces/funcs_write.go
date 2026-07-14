@@ -27,6 +27,7 @@ import (
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
+	commonWorkspaces "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/common"
 )
 
 /*
@@ -56,11 +57,11 @@ func NewWorkspaceUpdateModelFromWorkspace(ws *kubefloworgv1beta1.Workspace) *Wor
 
 // buildPodTemplateMutate constructs a PodTemplateMutate from a Workspace spec.
 func buildPodTemplateMutate(ws *kubefloworgv1beta1.Workspace) PodTemplateMutate {
-	podLabels, podAnnotations := extractPodMetadata(ws)
+	podMetadata := commonWorkspaces.ExtractPodMetadata(ws)
 	return PodTemplateMutate{
 		PodMetadata: PodMetadataMutate{
-			Labels:      podLabels,
-			Annotations: podAnnotations,
+			Labels:      podMetadata.Labels,
+			Annotations: podMetadata.Annotations,
 		},
 		Volumes: PodVolumesMutate{
 			Home:    ws.Spec.PodTemplate.Volumes.Home,
@@ -72,22 +73,6 @@ func buildPodTemplateMutate(ws *kubefloworgv1beta1.Workspace) PodTemplateMutate 
 			PodConfig:   ws.Spec.PodTemplate.Options.PodConfig,
 		},
 	}
-}
-
-// extractPodMetadata extracts and copies pod labels and annotations from a Workspace spec.
-// Returns copies of the maps to avoid creating references to the original maps.
-func extractPodMetadata(ws *kubefloworgv1beta1.Workspace) (labels map[string]string, annotations map[string]string) {
-	labels = make(map[string]string)
-	annotations = make(map[string]string)
-	if ws.Spec.PodTemplate.PodMetadata != nil {
-		for k, v := range ws.Spec.PodTemplate.PodMetadata.Labels {
-			labels[k] = v
-		}
-		for k, v := range ws.Spec.PodTemplate.PodMetadata.Annotations {
-			annotations[k] = v
-		}
-	}
-	return labels, annotations
 }
 
 // extractDataVolumes converts workspace data volumes to PodVolumeMount slice.
