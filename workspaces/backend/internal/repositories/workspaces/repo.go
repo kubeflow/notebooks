@@ -33,6 +33,7 @@ import (
 	modelsCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces"
 	modelsActions "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/actions"
+	modelsDetails "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/podtemplate/details"
 )
 
 var (
@@ -68,6 +69,29 @@ func (r *WorkspaceRepository) GetWorkspace(ctx context.Context, namespace string
 	workspaceUpdateModel := models.NewWorkspaceUpdateModelFromWorkspace(workspace)
 
 	return workspaceUpdateModel, nil
+}
+
+func (r *WorkspaceRepository) GetWorkspaceDetails(ctx context.Context, namespace string, workspaceName string) (*modelsDetails.WorkspaceDetails, error) {
+	// get workspace
+	workspace := &kubefloworgv1beta1.Workspace{}
+	if err := r.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: workspaceName}, workspace); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, ErrWorkspaceNotFound
+		}
+		return nil, err
+	}
+
+	// get workspace kind, if it exists
+	workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
+	if err := r.client.Get(ctx, client.ObjectKey{Name: workspace.Spec.Kind}, workspaceKind); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return nil, err
+		}
+	}
+
+	// convert workspace to WorkspaceDetails model
+	details := modelsDetails.NewWorkspaceDetailsFromWorkspace(workspace, workspaceKind)
+	return &details, nil
 }
 
 func (r *WorkspaceRepository) GetWorkspaces(ctx context.Context, namespace string) ([]models.WorkspaceListItem, error) {

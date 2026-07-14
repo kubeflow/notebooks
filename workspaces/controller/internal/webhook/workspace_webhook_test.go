@@ -18,6 +18,7 @@ package webhook
 
 import (
 	"fmt"
+	"time"
 
 	"k8s.io/apimachinery/pkg/types"
 
@@ -147,6 +148,10 @@ var _ = Describe("Workspace Webhook", func() {
 			By("creating the WorkspaceKind")
 			workspaceKind := NewExampleWorkspaceKind(workspaceKindName)
 			Expect(k8sClient.Create(ctx, workspaceKind)).To(Succeed())
+
+			Eventually(func() error {
+				return k8sClient.Get(ctx, types.NamespacedName{Name: workspaceKindName}, &kubefloworgv1beta1.WorkspaceKind{})
+			}, time.Second*5, time.Millisecond*100).Should(Succeed())
 
 			By("creating the Workspace")
 			workspace := NewExampleWorkspace(workspaceName, namespaceName, workspaceKindName)

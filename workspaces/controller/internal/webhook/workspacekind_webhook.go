@@ -775,11 +775,12 @@ func validateActivityProbe(activityProbe *kubefloworgv1beta1.ActivityProbe, path
 		}
 		if !shebangRegex.MatchString(shebangLine) {
 			errs = append(errs, field.Invalid(path.Child("podExec", "script"), script, "script shebang is invalid (e.g., '#!/bin/bash')"))
-		} else if len(shebangLine)-2 > 255 {
+		} else if len(shebangLine) > 255 {
 			// According to `execve(2)` man page (https://man7.org/linux/man-pages/man2/execve.2.html):
 			// "The kernel imposes a maximum length on the text following the "#!" characters...
 			// On Linux, the limit is 127 characters before Linux 5.1, and 255 characters since Linux 5.1."
 			// This is defined by `BINPRM_BUF_SIZE` (256 bytes, including null terminator) in the Linux kernel `<linux/binfmts.h>`.
+			// However the "#!" counts towards the overall limit, contrary to what the wording in the manpage seems to imply.
 			errs = append(errs, field.Invalid(path.Child("podExec", "script"), script, "shebang line exceeds the 255 character limit"))
 		}
 	}
