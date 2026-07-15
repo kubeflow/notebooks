@@ -23,9 +23,6 @@ import (
 )
 
 // NewSecretListItemFromSecretMetadata creates a new SecretListItem model from a PartialObjectMetadata object.
-// NOTE: because we use a metadata-only cache for Secrets, we only have access to ObjectMeta fields.
-//
-//	fields like Type and Immutable are NOT available from PartialObjectMetadata.
 func NewSecretListItemFromSecretMetadata(secret *metav1.PartialObjectMetadata, secretToMountsList map[string][]SecretMount) SecretListItem {
 	// extract audit information from annotations
 	audit := common.NewAuditFromObjectMeta(&secret.ObjectMeta)
@@ -37,6 +34,8 @@ func NewSecretListItemFromSecretMetadata(secret *metav1.PartialObjectMetadata, s
 	// get mounts from the pre-built map
 	mounts := secretToMountsList[secret.Name]
 
+	// NOTE: because we use a metadata-only cache for Secrets, we only have access to ObjectMeta fields.
+	//	     fields like Type and Immutable are NOT available from PartialObjectMetadata.
 	return SecretListItem{
 		Name:      secret.Name,
 		CanUpdate: canUpdate,

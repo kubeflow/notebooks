@@ -45,8 +45,16 @@ type App struct {
 }
 
 // NewApp creates a new instance of the app.
-// configMapClient is a label-filtered cached client for image-source ConfigMaps.
-func NewApp(cfg *config.EnvConfig, logger *slog.Logger, cl client.Client, configMapClient client.Client, scheme *runtime.Scheme, reqAuthN authenticator.Request, reqAuthZ authorizer.Authorizer) (*App, error) {
+func NewApp(
+	cfg *config.EnvConfig,
+	logger *slog.Logger,
+	cl client.Client,
+	// configMapClient is a label-filtered cached client for image-source ConfigMaps.
+	configMapClient client.Client,
+	scheme *runtime.Scheme,
+	reqAuthN authenticator.Request,
+	reqAuthZ authorizer.Authorizer,
+) (*App, error) {
 
 	// TODO: log the configuration on startup
 
