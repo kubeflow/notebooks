@@ -21,7 +21,6 @@ import (
 
 	commonCore "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	commonAssets "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common/assets"
-	commonWorkspaces "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/common"
 )
 
 // WorkspaceListItem represents a workspace in the system, and is returned by LIST operations.
@@ -29,18 +28,17 @@ import (
 // TODO: we need to validate which fields should actually be returned in the response
 //   - should only be returning fields relevant to the list view in the UI
 type WorkspaceListItem struct {
-	Name           string                            `json:"name"`
-	Namespace      string                            `json:"namespace"`
-	WorkspaceKind  WorkspaceKindInfo                 `json:"workspaceKind"`
-	Paused         bool                              `json:"paused"`
-	PausedTime     int64                             `json:"pausedTime"`
-	PendingRestart bool                              `json:"pendingRestart"`
-	State          kubefloworgv1beta1.WorkspaceState `json:"state"`
-	StateMessage   string                            `json:"stateMessage"`
-	PodTemplate    PodTemplate                       `json:"podTemplate"`
-	Activity       Activity                          `json:"activity"`
-	Services       []Service                         `json:"services"`
-	Audit          commonCore.Audit                  `json:"audit"`
+	Name          string                            `json:"name"`
+	Namespace     string                            `json:"namespace"`
+	WorkspaceKind WorkspaceKindInfo                 `json:"workspaceKind"`
+	Paused        bool                              `json:"paused"`
+	PausedTime    int64                             `json:"pausedTime"`
+	State         kubefloworgv1beta1.WorkspaceState `json:"state"`
+	StateMessage  string                            `json:"stateMessage"`
+	PodTemplate   PodTemplate                       `json:"podTemplate"`
+	Activity      Activity                          `json:"activity"`
+	Services      []Service                         `json:"services"`
+	Audit         commonCore.Audit                  `json:"audit"`
 }
 
 type WorkspaceKindInfo struct {
@@ -51,15 +49,7 @@ type WorkspaceKindInfo struct {
 }
 
 type PodTemplate struct {
-	PodMetadata commonWorkspaces.PodMetadata `json:"podMetadata"`
-	Volumes     PodVolumes                   `json:"volumes"`
-	Options     PodTemplateOptions           `json:"options"`
-}
-
-type PodVolumes struct {
-	Home    *commonWorkspaces.PodVolumeInfo  `json:"home,omitempty"`
-	Data    []commonWorkspaces.PodVolumeInfo `json:"data,omitempty"`
-	Secrets []commonWorkspaces.PodSecretInfo `json:"secrets,omitempty"`
+	Options PodTemplateOptions `json:"options"`
 }
 
 type PodTemplateOptions struct {
