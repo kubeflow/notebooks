@@ -541,7 +541,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/secrets.SecretUpdate"
+                            "$ref": "#/definitions/api.SecretEnvelope"
                         }
                     }
                 ],
@@ -572,6 +572,12 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Secret not found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }
@@ -607,6 +613,9 @@ const docTemplate = `{
                 "consumes": [
                     "application/json"
                 ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "secrets"
                 ],
@@ -632,7 +641,13 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "204": {
-                        "description": "No Content"
+                        "description": "Secret deleted successfully"
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
                     },
                     "401": {
                         "description": "Unauthorized",
@@ -648,6 +663,18 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Secret not found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }
@@ -1628,6 +1655,12 @@ const docTemplate = `{
                     },
                     "403": {
                         "description": "Forbidden. User does not have permission to update workspace.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "404": {
+                        "description": "Workspace not found",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }
@@ -3116,7 +3149,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "type": {
-                    "type": "string"
+                    "$ref": "#/definitions/v1.SecretType"
                 }
             }
         },
@@ -3132,9 +3165,7 @@ const docTemplate = `{
                 "audit",
                 "canMount",
                 "canUpdate",
-                "immutable",
-                "name",
-                "type"
+                "name"
             ],
             "properties": {
                 "audit": {
@@ -3146,9 +3177,6 @@ const docTemplate = `{
                 "canUpdate": {
                     "type": "boolean"
                 },
-                "immutable": {
-                    "type": "boolean"
-                },
                 "mounts": {
                     "type": "array",
                     "items": {
@@ -3156,9 +3184,6 @@ const docTemplate = `{
                     }
                 },
                 "name": {
-                    "type": "string"
-                },
-                "type": {
                     "type": "string"
                 }
             }
@@ -3191,13 +3216,18 @@ const docTemplate = `{
             ],
             "properties": {
                 "contents": {
-                    "$ref": "#/definitions/secrets.SecretData"
+                    "description": "Update semantics:\n  - key present with {\"base64\": \"...\"} → set/update the value\n  - key present with {} (Base64 is nil) → preserve the existing value from currentSecret.Data\n  - key omitted from the request → delete that key",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/secrets.SecretData"
+                        }
+                    ]
                 },
                 "immutable": {
                     "type": "boolean"
                 },
                 "type": {
-                    "type": "string"
+                    "$ref": "#/definitions/v1.SecretType"
                 }
             }
         },
@@ -5358,6 +5388,29 @@ const docTemplate = `{
                     "type": "boolean"
                 }
             }
+        },
+        "v1.SecretType": {
+            "type": "string",
+            "enum": [
+                "Opaque",
+                "kubernetes.io/service-account-token",
+                "kubernetes.io/dockercfg",
+                "kubernetes.io/dockerconfigjson",
+                "kubernetes.io/basic-auth",
+                "kubernetes.io/ssh-auth",
+                "kubernetes.io/tls",
+                "bootstrap.kubernetes.io/token"
+            ],
+            "x-enum-varnames": [
+                "SecretTypeOpaque",
+                "SecretTypeServiceAccountToken",
+                "SecretTypeDockercfg",
+                "SecretTypeDockerConfigJson",
+                "SecretTypeBasicAuth",
+                "SecretTypeSSHAuth",
+                "SecretTypeTLS",
+                "SecretTypeBootstrapToken"
+            ]
         },
         "v1.SecretVolumeSource": {
             "type": "object",

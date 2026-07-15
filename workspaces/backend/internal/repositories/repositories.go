@@ -41,7 +41,12 @@ type Repositories struct {
 }
 
 // NewRepositories creates a new Repositories instance from a controller-runtime client.
-func NewRepositories(cfg *config.EnvConfig, cl client.Client, configMapClient client.Client) *Repositories {
+func NewRepositories(
+	cfg *config.EnvConfig,
+	cl client.Client,
+	// configMapClient is a label-filtered cached client for image-source ConfigMaps
+	configMapClient client.Client,
+) *Repositories {
 	return &Repositories{
 		HealthCheck:   health_check.NewHealthCheckRepository(cfg),
 		Namespace:     namespaces.NewNamespaceRepository(cfg, cl),

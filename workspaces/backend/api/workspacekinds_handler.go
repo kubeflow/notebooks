@@ -234,7 +234,7 @@ func (a *App) CreateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 			a.requestEntityTooLargeResponse(w, r, err)
 			return
 		}
-		a.badRequestResponse(w, r, err)
+		a.serverErrorResponse(w, r, fmt.Errorf("error reading request body: %w", err))
 		return
 	}
 	workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}

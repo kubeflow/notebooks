@@ -233,7 +233,7 @@ func (a *App) DeletePVCHandler(w http.ResponseWriter, r *http.Request, ps httpro
 			return
 		}
 		if errors.Is(err, repository.ErrPVCNotCanUpdate) {
-			a.badRequestResponse(w, r, err)
+			a.forbiddenResponse(w, r, err.Error())
 			return
 		}
 		if apierrors.IsConflict(err) {

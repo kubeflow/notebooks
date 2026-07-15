@@ -18,6 +18,7 @@ package helper
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"strings"
@@ -295,16 +296,26 @@ func ValidateKubernetesLabels(path *field.Path, labels map[string]string) field.
 // ValidateFieldIsConfigMapKey validates a field contains a valid key name.
 // USED FOR:
 //   - keys of: Secrets, ConfigMaps
-func ValidateFieldIsConfigMapKey(path *field.Path, value string) field.ErrorList {
+func ValidateFieldIsConfigMapKey(path *field.Path, keyName string) field.ErrorList {
+	var errs field.ErrorList //nolint:prealloc
+
+	failures := validation.IsConfigMapKey(keyName)
+	for _, failureMsg := range failures {
+		errs = append(errs, field.Invalid(path, keyName, fmt.Sprintf("invalid key name: %s", failureMsg)))
+	}
+
+	return errs
+}
+
+// ValidateFieldIsSecretBase64Value validates a field contains a base64-encoded string which decodes to valid binary secret data.
+// USED FOR:
+//   - values of: Secrets.data, ConfigMaps.binaryData
+func ValidateFieldIsSecretBase64Value(path *field.Path, value string) field.ErrorList {
 	var errs field.ErrorList
 
-	if value == "" {
-		errs = append(errs, field.Required(path, ""))
-	} else {
-		failures := validation.IsConfigMapKey(value)
-		if len(failures) > 0 {
-			errs = append(errs, field.Invalid(path, value, strings.Join(failures, "; ")))
-		}
+	_, err := base64.StdEncoding.DecodeString(value)
+	if err != nil {
+		errs = append(errs, field.Invalid(path, value, err.Error()))
 	}
 
 	return errs

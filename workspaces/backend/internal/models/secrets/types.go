@@ -20,11 +20,10 @@ import (
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 )
 
-// SecretListItem represents a secret in the list response with additional metadata
+// SecretListItem represents a secret in the list response with additional metadata.
+// NOTE: this is built from PartialObjectMetadata (metadata-only cache), so only ObjectMeta fields are available.
 type SecretListItem struct {
 	Name      string        `json:"name"`
-	Type      string        `json:"type"`
-	Immutable bool          `json:"immutable"`
 	CanUpdate bool          `json:"canUpdate"`
 	CanMount  bool          `json:"canMount"`
 	Mounts    []SecretMount `json:"mounts,omitempty"`

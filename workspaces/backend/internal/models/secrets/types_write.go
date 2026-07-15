@@ -17,6 +17,7 @@ limitations under the License.
 package secrets
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
@@ -27,52 +28,47 @@ type SecretValue struct {
 	Base64 *string `json:"base64,omitempty"`
 }
 
+// Validate validates the SecretValue struct.
+func (s *SecretValue) Validate(prefix *field.Path) []*field.Error {
+	var errs []*field.Error
+
+	// validate the base64 string, if it is not nil
+	if s.Base64 != nil {
+		base64Path := prefix.Child("base64")
+		errs = append(errs, helper.ValidateFieldIsSecretBase64Value(base64Path, *s.Base64)...)
+	}
+
+	return errs
+}
+
 // SecretData represents a map of secret key-value pairs
 type SecretData map[string]SecretValue
 
-// secretBase represents the common fields shared between SecretCreate and SecretUpdate
-type secretBase struct {
-	Type      string     `json:"type"`
-	Immutable bool       `json:"immutable"`
-	Contents  SecretData `json:"contents"`
+// Validate validates the SecretData struct.
+func (s *SecretData) Validate(prefix *field.Path) []*field.Error {
+	var errs []*field.Error
+
+	if s != nil {
+		for key, value := range *s {
+			// validate the key
+			keyPath := prefix // to avoid confusing the key with the value, we don't use prefix.Child(key) here
+			errs = append(errs, helper.ValidateFieldIsConfigMapKey(keyPath, key)...)
+
+			// validate the value
+			valuePath := prefix.Key(key)
+			errs = append(errs, value.Validate(valuePath)...)
+		}
+	}
+
+	return errs
 }
 
 // SecretCreate is used to create a new secret.
 type SecretCreate struct {
-	Name string `json:"name"`
-	secretBase
-}
-
-// SecretUpdate represents the request body for updating a secret
-type SecretUpdate struct {
-	secretBase
-}
-
-// NewSecretCreate creates a new SecretCreate with the specified fields.
-// TODO: remove this function, as its not used in real code, only tests
-// also because we should not need the "secretBase" field in the constructor
-func NewSecretCreate(name, secretType string, immutable bool, contents SecretData) SecretCreate {
-	return SecretCreate{
-		Name: name,
-		secretBase: secretBase{
-			Type:      secretType,
-			Immutable: immutable,
-			Contents:  contents,
-		},
-	}
-}
-
-// NewSecretUpdate creates a new SecretUpdate with the specified fields.
-// TODO: remove this function, as its not used in real code, only tests
-// also because we should not need the "secretBase" field in the constructor
-func NewSecretUpdate(secretType string, immutable bool, contents SecretData) SecretUpdate {
-	return SecretUpdate{
-		secretBase: secretBase{
-			Type:      secretType,
-			Immutable: immutable,
-			Contents:  contents,
-		},
-	}
+	Name      string            `json:"name"`
+	Type      corev1.SecretType `json:"type"`
+	Immutable bool              `json:"immutable"`
+	Contents  SecretData        `json:"contents"`
 }
 
 // Validate validates the SecretCreate struct.
@@ -84,42 +80,32 @@ func (s *SecretCreate) Validate(prefix *field.Path) []*field.Error {
 	namePath := prefix.Child("name")
 	errs = append(errs, helper.ValidateKubernetesSecretName(namePath, s.Name)...)
 
-	// validate common fields (type and contents)
-	errs = append(errs, s.validateBase(prefix)...)
+	// validate the secret contents
+	contentsPath := prefix.Child("contents")
+	errs = append(errs, s.Contents.Validate(contentsPath)...)
 
 	return errs
+}
+
+// SecretUpdate represents the request body for updating a secret.
+type SecretUpdate struct {
+	Type      corev1.SecretType `json:"type"`
+	Immutable bool              `json:"immutable"`
+	// Update semantics:
+	//   - key present with {"base64": "..."} → set/update the value
+	//   - key present with {} (Base64 is nil) → preserve the existing value from currentSecret.Data
+	//   - key omitted from the request → delete that key
+	Contents SecretData `json:"contents"`
 }
 
 // Validate validates the SecretUpdate struct.
 // NOTE: we only do basic validation, more complex validation is done by Kubernetes when attempting to update the secret.
 func (s *SecretUpdate) Validate(prefix *field.Path) []*field.Error {
-	// validate common fields (type and contents)
-	return s.validateBase(prefix)
-}
-
-// Validate validates the SecretData struct.
-func (s *SecretData) Validate(prefix *field.Path) []*field.Error {
-	var errs []*field.Error
-
-	if s == nil {
-		return errs // nil is valid for optional fields
-	}
-
-	for key := range *s {
-		// TODO: come up with a better way to highlight the error is on the key not the value at that key
-		keyPath := prefix.Child(key)
-		errs = append(errs, helper.ValidateFieldIsConfigMapKey(keyPath, key)...)
-	}
-
-	return errs
-}
-
-// validateBase validates the common fields of a secret (contents).
-func (sb *secretBase) validateBase(prefix *field.Path) []*field.Error {
 	var errs []*field.Error //nolint:prealloc
 
+	// validate the secret contents
 	contentsPath := prefix.Child("contents")
-	errs = append(errs, sb.Contents.Validate(contentsPath)...)
+	errs = append(errs, s.Contents.Validate(contentsPath)...)
 
 	return errs
 }

@@ -44,8 +44,17 @@ type App struct {
 	RequestAuthZ         authorizer.Authorizer
 }
 
-// NewApp creates a new instance of the app
-func NewApp(cfg *config.EnvConfig, logger *slog.Logger, cl client.Client, configMapClient client.Client, scheme *runtime.Scheme, reqAuthN authenticator.Request, reqAuthZ authorizer.Authorizer) (*App, error) {
+// NewApp creates a new instance of the app.
+func NewApp(
+	cfg *config.EnvConfig,
+	logger *slog.Logger,
+	cl client.Client,
+	// configMapClient is a label-filtered cached client for image-source ConfigMaps.
+	configMapClient client.Client,
+	scheme *runtime.Scheme,
+	reqAuthN authenticator.Request,
+	reqAuthZ authorizer.Authorizer,
+) (*App, error) {
 
 	// TODO: log the configuration on startup
 

@@ -290,6 +290,7 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 //	@Failure		400			{object}	ErrorEnvelope		"Bad Request."
 //	@Failure		401			{object}	ErrorEnvelope		"Unauthorized. Authentication is required."
 //	@Failure		403			{object}	ErrorEnvelope		"Forbidden. User does not have permission to update workspace."
+//	@Failure		404			{object}	ErrorEnvelope		"Workspace not found"
 //	@Failure		409			{object}	ErrorEnvelope		"Conflict. Current workspace revision is newer than provided."
 //	@Failure		413			{object}	ErrorEnvelope		"Request Entity Too Large. The request body is too large."
 //	@Failure		415			{object}	ErrorEnvelope		"Unsupported Media Type. Content-Type header is not correct."
