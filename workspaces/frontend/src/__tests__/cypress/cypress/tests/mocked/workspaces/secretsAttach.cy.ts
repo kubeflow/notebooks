@@ -1,5 +1,6 @@
 import { mockModArchResponse } from 'mod-arch-core';
 import { editWorkspace } from '~/__tests__/cypress/cypress/pages/workspaces/editWorkspace';
+import { redirectConfirmModal } from '~/__tests__/cypress/cypress/pages/workspaces/workspaceForm';
 import { workspaces } from '~/__tests__/cypress/cypress/pages/workspaces/workspaces';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import {
@@ -95,7 +96,9 @@ describe('SecretsAttachModal', () => {
     cy.wait('@getWorkspaceKinds');
     editWorkspace.clickNext();
     editWorkspace.clickNext();
+    redirectConfirmModal.clickContinue();
     editWorkspace.clickNext();
+    redirectConfirmModal.clickContinue();
     cy.contains('button', 'Secrets').click();
     cy.wait('@listSecrets'); // Wait for secrets to load after expanding section
   });

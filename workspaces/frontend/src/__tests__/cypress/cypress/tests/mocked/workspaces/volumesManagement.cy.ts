@@ -1,5 +1,6 @@
 import { mockModArchResponse } from 'mod-arch-core';
 import { editWorkspace } from '~/__tests__/cypress/cypress/pages/workspaces/editWorkspace';
+import { redirectConfirmModal } from '~/__tests__/cypress/cypress/pages/workspaces/workspaceForm';
 import {
   volumesManagement,
   volumesAttachModal,
@@ -167,7 +168,9 @@ describe('Volumes Management - Attach and Create', () => {
     cy.wait('@getWorkspaceKinds');
     editWorkspace.clickNext(); // Skip workspace kind step
     editWorkspace.clickNext(); // Skip image step
+    redirectConfirmModal.clickContinue();
     editWorkspace.clickNext(); // Skip pod config step, now on properties
+    redirectConfirmModal.clickContinue();
 
     // Expand the Data Volumes section
     cy.contains('button', 'Data Volumes').click();

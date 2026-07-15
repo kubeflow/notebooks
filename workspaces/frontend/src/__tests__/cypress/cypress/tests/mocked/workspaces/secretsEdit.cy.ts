@@ -1,5 +1,6 @@
 import { mockModArchResponse } from 'mod-arch-core';
 import { editWorkspace } from '~/__tests__/cypress/cypress/pages/workspaces/editWorkspace';
+import { redirectConfirmModal } from '~/__tests__/cypress/cypress/pages/workspaces/workspaceForm';
 import {
   secretsManagement,
   secretsModal,
@@ -130,7 +131,9 @@ describe('Edit Secret Modal', () => {
     cy.wait('@getWorkspaceKinds');
     editWorkspace.clickNext();
     editWorkspace.clickNext();
+    redirectConfirmModal.clickContinue();
     editWorkspace.clickNext();
+    redirectConfirmModal.clickContinue();
     secretsManagement.expandSecretsSection();
     cy.wait('@listSecrets');
   });
@@ -244,7 +247,9 @@ describe('Edit Secret Modal', () => {
     cy.wait('@getWorkspaceKinds');
     editWorkspace.clickNext();
     editWorkspace.clickNext();
+    redirectConfirmModal.clickContinue();
     editWorkspace.clickNext();
+    redirectConfirmModal.clickContinue();
     secretsManagement.expandSecretsSection();
     cy.wait('@listSecretsImmutable');
 
@@ -300,7 +305,9 @@ describe('Edit Secret Modal', () => {
     cy.wait('@getWorkspaceKinds');
     editWorkspace.clickNext();
     editWorkspace.clickNext();
+    redirectConfirmModal.clickContinue();
     editWorkspace.clickNext();
+    redirectConfirmModal.clickContinue();
     secretsManagement.expandSecretsSection();
     cy.wait('@listSecretsUpdated');
 
