@@ -29,20 +29,16 @@ import (
 )
 
 const (
-	UnknownHomeMountPath = commonWorkspaces.UnknownHomeMountPath
-	UnknownImageConfig   = "__UNKNOWN_IMAGE_CONFIG__"
-	UnknownPodConfig     = "__UNKNOWN_POD_CONFIG__"
-	UnknownIconURL       = "__UNKNOWN_ICON_URL__"
-	UnknownLogoURL       = "__UNKNOWN_LOGO_URL__"
+	UnknownImageConfig = "__UNKNOWN_IMAGE_CONFIG__"
+	UnknownPodConfig   = "__UNKNOWN_POD_CONFIG__"
+	UnknownIconURL     = "__UNKNOWN_ICON_URL__"
+	UnknownLogoURL     = "__UNKNOWN_LOGO_URL__"
 )
 
 // NewWorkspaceListItemFromWorkspace creates a WorkspaceListItem model from a Workspace and WorkspaceKind object.
 // NOTE: the WorkspaceKind might not exist, so we handle the case where it is nil or has no UID.
 func NewWorkspaceListItemFromWorkspace(cfg *config.EnvConfig, ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.WorkspaceKind) WorkspaceListItem {
 	commonWorkspaces.EnsureWskMatchesWorkspace(ws, wsk)
-
-	podMetadata := commonWorkspaces.ExtractPodMetadata(ws)
-	dataVolumes := commonWorkspaces.BuildDataVolumes(ws)
 
 	imageConfigModel, imageConfigValue := buildImageConfig(ws, wsk)
 	podConfigModel, _ := buildPodConfig(ws, wsk)
@@ -63,17 +59,11 @@ func NewWorkspaceListItemFromWorkspace(cfg *config.EnvConfig, ws *kubefloworgv1b
 			Icon:    buildIconImageRef(cfg, ws, wsk),
 			Logo:    buildLogoImageRef(cfg, ws, wsk),
 		},
-		Paused:         ptr.Deref(ws.Spec.Paused, false),
-		PausedTime:     ws.Status.PauseTime,
-		PendingRestart: ws.Status.PendingRestart,
-		State:          ws.Status.State,
-		StateMessage:   ws.Status.StateMessage,
+		Paused:       ptr.Deref(ws.Spec.Paused, false),
+		PausedTime:   ws.Status.PauseTime,
+		State:        ws.Status.State,
+		StateMessage: ws.Status.StateMessage,
 		PodTemplate: PodTemplate{
-			PodMetadata: podMetadata,
-			Volumes: PodVolumes{
-				Home: commonWorkspaces.BuildHomeVolume(ws, wsk),
-				Data: dataVolumes,
-			},
 			Options: PodTemplateOptions{
 				ImageConfig: imageConfigModel,
 				PodConfig:   podConfigModel,
