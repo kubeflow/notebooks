@@ -12,6 +12,7 @@ import {
   buildMockWorkspaceKindInfo,
   buildMockWorkspaceUpdate,
 } from '~/shared/mock/mockBuilder';
+import { redirectConfirmModal } from '~/__tests__/cypress/cypress/pages/workspaces/workspaceForm';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import { interceptListValues } from '~/__tests__/cypress/cypress/utils/testBuilders';
 import { V1Beta1WorkspaceState } from '~/generated/data-contracts';
@@ -161,7 +162,9 @@ describe('Edit workspace', () => {
       cy.wait('@getWorkspaceKinds');
       editWorkspace.clickNext();
       editWorkspace.clickNext();
+      redirectConfirmModal.clickContinue();
       editWorkspace.clickNext();
+      redirectConfirmModal.clickContinue();
       editWorkspace.clickNext();
 
       editWorkspace.assertSaveButtonExists();
@@ -199,7 +202,9 @@ describe('Edit workspace', () => {
       cy.wait('@getWorkspaceKinds');
       editWorkspace.clickNext();
       editWorkspace.clickNext();
+      redirectConfirmModal.clickContinue();
       editWorkspace.clickNext();
+      redirectConfirmModal.clickContinue();
       editWorkspace.clickNext();
 
       editWorkspace.clickSave();
@@ -244,6 +249,7 @@ describe('Edit workspace', () => {
       editWorkspace.checkExtraFilter('showHidden');
       editWorkspace.selectImage(newImageConfigId);
       editWorkspace.clickNext();
+      redirectConfirmModal.clickContinue();
 
       // Step 3: Pod Config Selection - change to a different pod config
       editWorkspace.selectPodConfig(newPodConfigId);
@@ -292,6 +298,7 @@ describe('Edit workspace', () => {
       cy.wait('@getWorkspaceKinds');
       editWorkspace.clickNext();
       editWorkspace.clickNext();
+      redirectConfirmModal.clickContinue();
 
       editWorkspace.assertPodConfigSelected(POD_CONFIG_ID);
     });
@@ -304,7 +311,9 @@ describe('Edit workspace', () => {
       cy.wait('@getWorkspaceKinds');
       editWorkspace.clickNext();
       editWorkspace.clickNext();
+      redirectConfirmModal.clickContinue();
       editWorkspace.clickNext();
+      redirectConfirmModal.clickContinue();
 
       editWorkspace.assertWorkspaceName(TEST_WORKSPACE_NAME);
 
@@ -399,7 +408,9 @@ describe('Edit workspace', () => {
       cy.wait('@getWorkspaceKinds');
       editWorkspace.clickNext();
       editWorkspace.clickNext();
+      redirectConfirmModal.clickContinue();
       editWorkspace.clickNext();
+      redirectConfirmModal.clickContinue();
 
       editWorkspace.assertWorkspaceNameCannotBeChangedHelperTextVisible();
     });
@@ -412,7 +423,9 @@ describe('Edit workspace', () => {
       cy.wait('@getWorkspaceKinds');
       editWorkspace.clickNext();
       editWorkspace.clickNext();
+      redirectConfirmModal.clickContinue();
       editWorkspace.clickNext();
+      redirectConfirmModal.clickContinue();
 
       editWorkspace.assertWorkspaceNameInputDisabled();
     });
@@ -436,11 +449,13 @@ describe('Edit workspace', () => {
       editWorkspace.assertImageSelected(IMAGE_CONFIG_ID);
       editWorkspace.assertNextButtonEnabled();
       editWorkspace.clickNext();
+      redirectConfirmModal.clickContinue();
 
       // Step 3: Pod Config Selection
       editWorkspace.assertPodConfigSelected(POD_CONFIG_ID);
       editWorkspace.assertNextButtonEnabled();
       editWorkspace.clickNext();
+      redirectConfirmModal.clickContinue();
 
       // Step 4: Properties
       editWorkspace.assertNextButtonEnabled();
@@ -492,7 +507,9 @@ describe('Edit workspace — volume detach behavior', () => {
     cy.wait('@getWorkspaceKinds');
     editWorkspace.clickNext(); // workspace kind → image
     editWorkspace.clickNext(); // image → pod config
+    redirectConfirmModal.clickContinue();
     editWorkspace.clickNext(); // pod config → properties
+    redirectConfirmModal.clickContinue();
 
     volumesManagement.expandVolumesSection();
     cy.wait('@listPVCs');

@@ -39,6 +39,7 @@ import {
   OptionsImageConfigValue,
   OptionsPodConfigValue,
   WorkspacekindsWorkspaceKindListItem,
+  WorkspacesRedirectStep,
 } from '~/generated/data-contracts';
 import { extractErrorMessage } from '~/shared/api/apiUtils';
 import { ErrorAlert } from '~/shared/components/ErrorAlert';
@@ -47,6 +48,25 @@ import { LoadingSpinner } from '~/app/components/LoadingSpinner';
 import { LoadError } from '~/app/components/LoadError';
 import { submitFormData } from '~/app/pages/Workspaces/Form/submitHelper';
 import { WorkspaceFormSummaryPanel } from '~/app/pages/Workspaces/Form/WorkspaceFormSummaryPanel';
+import {
+  OptionValue,
+  resolveRedirectChain,
+} from '~/app/pages/Workspaces/Form/utils/resolveRedirectChain';
+import { WorkspaceFormRedirectConfirmModal } from '~/app/pages/Workspaces/Form/WorkspaceFormRedirectConfirmModal';
+
+interface StepRedirectInfoNone {
+  needsConfirmation: false;
+}
+
+interface StepRedirectInfoConfirm {
+  needsConfirmation: true;
+  optionType: 'image' | 'podConfig';
+  selectedOption: OptionValue;
+  redirectChain: WorkspacesRedirectStep[] | undefined;
+  finalTarget: OptionValue | undefined;
+}
+
+type StepRedirectInfo = StepRedirectInfoNone | StepRedirectInfoConfirm;
 
 enum WorkspaceFormSteps {
   KindSelection,
@@ -83,6 +103,7 @@ const WorkspaceForm: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(WorkspaceFormSteps.KindSelection);
   const [error, setError] = useState<string | ApiErrorEnvelope | null>(null);
+  const [redirectConfirmModalOpen, setRedirectConfirmModalOpen] = useState(false);
 
   const [data, setData, resetData, replaceData] =
     useGenericObjectState<WorkspaceFormData>(initialFormData);
@@ -180,11 +201,6 @@ const WorkspaceForm: React.FC = () => {
     setCurrentStep(newStep);
   }, [currentStep]);
 
-  const nextStep = useCallback(() => {
-    const newStep = currentStep + 1;
-    setCurrentStep(newStep);
-  }, [currentStep]);
-
   const navigateToStep = useCallback((step: number) => {
     setCurrentStep(step);
   }, []);
@@ -205,6 +221,67 @@ const WorkspaceForm: React.FC = () => {
       ),
     [filteredValuesData, allValuesData, data.podConfig],
   );
+
+  const currentStepRedirectInfo = useMemo<StepRedirectInfo>(() => {
+    const buildRedirectInfo = (
+      optionType: StepRedirectInfoConfirm['optionType'],
+      selectedOption: OptionValue,
+      allOptions: OptionValue[],
+    ): StepRedirectInfoConfirm | undefined => {
+      if (selectedOption.redirect) {
+        const { chain, finalTarget } = resolveRedirectChain(selectedOption, allOptions);
+        return {
+          needsConfirmation: true,
+          optionType,
+          selectedOption,
+          redirectChain: chain,
+          finalTarget,
+        };
+      }
+      if (selectedOption.hidden) {
+        return {
+          needsConfirmation: true,
+          optionType,
+          selectedOption,
+          redirectChain: undefined,
+          finalTarget: undefined,
+        };
+      }
+      return undefined;
+    };
+
+    if (currentStep === WorkspaceFormSteps.ImageSelection && selectedImage) {
+      const result = buildRedirectInfo(
+        'image',
+        selectedImage,
+        allValuesData?.imageConfig.values ?? [],
+      );
+      if (result) {
+        return result;
+      }
+    }
+
+    if (currentStep === WorkspaceFormSteps.PodConfigSelection && selectedPodConfig) {
+      const result = buildRedirectInfo(
+        'podConfig',
+        selectedPodConfig,
+        (filteredValuesData ?? allValuesData)?.podConfig.values ?? [],
+      );
+      if (result) {
+        return result;
+      }
+    }
+
+    return { needsConfirmation: false };
+  }, [currentStep, selectedImage, selectedPodConfig, allValuesData, filteredValuesData]);
+
+  const nextStep = useCallback(() => {
+    if (currentStepRedirectInfo.needsConfirmation) {
+      setRedirectConfirmModalOpen(true);
+      return;
+    }
+    setCurrentStep(currentStep + 1);
+  }, [currentStep, currentStepRedirectInfo]);
 
   const canGoToNextStep = useMemo(
     () => currentStep < Object.keys(WorkspaceFormSteps).length / 2 - 1,
@@ -298,6 +375,26 @@ const WorkspaceForm: React.FC = () => {
     },
     [setData],
   );
+
+  const handleApplyRedirect = useCallback(() => {
+    if (!currentStepRedirectInfo.needsConfirmation || !currentStepRedirectInfo.finalTarget) {
+      return;
+    }
+
+    if (currentStepRedirectInfo.optionType === 'image') {
+      handleImageSelect(currentStepRedirectInfo.finalTarget as OptionsImageConfigValue);
+    } else {
+      handlePodConfigSelect(currentStepRedirectInfo.finalTarget as OptionsPodConfigValue);
+    }
+
+    setRedirectConfirmModalOpen(false);
+    setCurrentStep(currentStep + 1);
+  }, [currentStep, currentStepRedirectInfo, handleImageSelect, handlePodConfigSelect]);
+
+  const handleContinueWithWarning = useCallback(() => {
+    setRedirectConfirmModalOpen(false);
+    setCurrentStep(currentStep + 1);
+  }, [currentStep]);
 
   // Get original values for edit mode diff
   const originalImage = useMemo(
@@ -549,6 +646,18 @@ const WorkspaceForm: React.FC = () => {
           </Flex>
         </DrawerContentBody>
       </DrawerContent>
+      {currentStepRedirectInfo.needsConfirmation && (
+        <WorkspaceFormRedirectConfirmModal
+          isOpen={redirectConfirmModalOpen}
+          onClose={() => setRedirectConfirmModalOpen(false)}
+          onApplyRedirect={handleApplyRedirect}
+          onContinue={handleContinueWithWarning}
+          optionType={currentStepRedirectInfo.optionType}
+          selectedOption={currentStepRedirectInfo.selectedOption}
+          redirectChain={currentStepRedirectInfo.redirectChain}
+          finalTarget={currentStepRedirectInfo.finalTarget}
+        />
+      )}
     </Drawer>
   );
 };

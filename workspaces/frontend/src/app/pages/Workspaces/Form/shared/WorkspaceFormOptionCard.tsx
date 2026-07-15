@@ -13,9 +13,8 @@ import {
   OptionsImageConfigValue,
   OptionsPodConfigValue,
   WorkspacesRedirectStep,
-  WorkspacesRedirectMessageLevel,
-  OptionsRedirectMessageLevel,
 } from '~/generated/data-contracts';
+import { transformRedirectMessageLevel } from '~/app/pages/Workspaces/Form/utils/resolveRedirectChain';
 
 type OptionValue = OptionsImageConfigValue | OptionsPodConfigValue;
 
@@ -30,21 +29,6 @@ interface WorkspaceFormOptionCardProps {
   onActivePopoverChange: (id: string | null) => void;
   onPinnedPopoverChange: (id: string | null) => void;
 }
-
-const transformRedirectMessageLevel = (
-  level?: OptionsRedirectMessageLevel,
-): WorkspacesRedirectMessageLevel => {
-  switch (level) {
-    case OptionsRedirectMessageLevel.RedirectMessageLevelInfo:
-      return WorkspacesRedirectMessageLevel.RedirectMessageLevelInfo;
-    case OptionsRedirectMessageLevel.RedirectMessageLevelWarning:
-      return WorkspacesRedirectMessageLevel.RedirectMessageLevelWarning;
-    case OptionsRedirectMessageLevel.RedirectMessageLevelDanger:
-      return WorkspacesRedirectMessageLevel.RedirectMessageLevelDanger;
-    default:
-      return WorkspacesRedirectMessageLevel.RedirectMessageLevelInfo;
-  }
-};
 
 const transformRedirectToChain = (
   option: OptionValue,

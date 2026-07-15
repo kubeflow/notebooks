@@ -441,5 +441,52 @@ class SecretsCreateModal {
   }
 }
 
+class RedirectConfirmModal {
+  find() {
+    return cy.findByTestId('redirect-confirm-modal');
+  }
+
+  assertModalVisible() {
+    return this.find().should('be.visible');
+  }
+
+  assertModalNotExists() {
+    cy.findByTestId('redirect-confirm-modal').should('not.exist');
+  }
+
+  findApplyRedirectButton() {
+    return this.find().findByTestId('apply-redirect-button');
+  }
+
+  clickApplyRedirect() {
+    return this.findApplyRedirectButton().click();
+  }
+
+  assertApplyRedirectButtonExists() {
+    return this.findApplyRedirectButton().should('exist');
+  }
+
+  assertApplyRedirectButtonNotExists() {
+    return this.find().findByTestId('apply-redirect-button').should('not.exist');
+  }
+
+  findContinueButton() {
+    return this.find().findByTestId('continue-button');
+  }
+
+  clickContinue() {
+    return this.findContinueButton().click();
+  }
+
+  findCancelButton() {
+    return this.find().findByTestId('cancel-button');
+  }
+
+  clickCancel() {
+    return this.findCancelButton().click();
+  }
+}
+
 export { WorkspaceForm };
 export const secretsCreateModal = new SecretsCreateModal();
+export const redirectConfirmModal = new RedirectConfirmModal();
