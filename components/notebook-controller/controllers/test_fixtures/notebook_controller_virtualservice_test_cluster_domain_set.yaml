@@ -1,0 +1,26 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: notebook-kubeflow-user-test
+  namespace: kubeflow-user
+spec:
+  gateways: 
+  - kubeflow/kubeflow-gateway
+  hosts:
+  - '*'
+  http:
+  - headers:
+      request:
+        remove: 
+        - "Authorization"
+        set: {}
+    match:
+    - uri:
+        prefix: "/notebook/kubeflow-user/test/"
+    rewrite:
+      uri: "/notebook/kubeflow-user/test/"
+    route:
+    - destination:
+        host: "test.kubeflow-user.svc.example.local"
+        port: 
+          number: 80
