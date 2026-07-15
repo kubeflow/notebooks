@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import isEqual from 'lodash-es/isEqual';
 import yaml from 'js-yaml';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
@@ -41,6 +41,7 @@ import { WorkspaceKindFormPodTemplate } from './podTemplate/WorkspaceKindFormPod
 import {
   convertFormDataToUpdate,
   EMPTY_WORKSPACE_KIND_FORM_DATA,
+  generateUniqueId,
   isValidWorkspaceKindUpdate,
 } from './helpers';
 import { WorkspaceKindYamlEditor } from './yamlEditor/WorkspaceKindYamlEditor';
@@ -120,6 +121,10 @@ const convertToFormData = (
             }
           : undefined,
         nodeSelector: v.spec.nodeSelector,
+        tolerations: v.spec.tolerations?.map((t) => ({
+          id: generateUniqueId(),
+          ...t,
+        })),
       })),
     },
     podTemplate: {
@@ -158,6 +163,7 @@ export const WorkspaceKindForm: React.FC = () => {
   const [editYamlValue, setEditYamlValue] = useState('');
   const [originalYaml, setOriginalYaml] = useState('');
   const [yamlParseError, setYamlParseError] = useState<string | null>(null);
+  const lastApiObjectRef = useRef<WorkspacekindsWorkspaceKindUpdate | null>(null);
   const mode: FormMode = useCurrentRouteKey() === 'workspaceKindCreate' ? 'create' : 'edit';
   const [validated, setValidated] = useState<ValidationStatus>(
     mode === 'edit' ? 'success' : 'default',
@@ -181,6 +187,7 @@ export const WorkspaceKindForm: React.FC = () => {
     const converted = convertToFormData(initialFormData);
     replaceData(converted);
     setOriginalFormData(converted);
+    lastApiObjectRef.current = initialFormData;
     const yamlStr = yaml.dump(initialFormData, { noRefs: true });
     setOriginalYaml(yamlStr);
     setEditYamlValue(yamlStr);
@@ -190,18 +197,34 @@ export const WorkspaceKindForm: React.FC = () => {
     (_event: React.MouseEvent | React.KeyboardEvent | MouseEvent, tabKey: string | number) => {
       const newTab = tabKey as number;
       if (newTab === YAML_TAB_KEY && activeTabKey === FORM_TAB_KEY) {
-        const updateObj = convertFormDataToUpdate(
-          data,
-          initialFormData as WorkspacekindsWorkspaceKindUpdate,
-        );
+        const updateObj = convertFormDataToUpdate(data, lastApiObjectRef.current!);
         const yamlStr = yaml.dump(updateObj, { noRefs: true });
         setEditYamlValue(yamlStr);
         setOriginalYaml(yamlStr);
+        lastApiObjectRef.current = updateObj;
         setYamlParseError(null);
+      } else if (newTab === FORM_TAB_KEY && activeTabKey === YAML_TAB_KEY) {
+        try {
+          const parsed = yaml.load(editYamlValue);
+          if (!isValidWorkspaceKindUpdate(parsed)) {
+            setYamlParseError(
+              'Invalid WorkspaceKind update structure: must include revision, spawner, and podTemplate',
+            );
+            return;
+          }
+          const typedParsed = parsed as WorkspacekindsWorkspaceKindUpdate;
+          const newFormData = convertToFormData(typedParsed);
+          replaceData(newFormData);
+          lastApiObjectRef.current = typedParsed;
+          setYamlParseError(null);
+        } catch (e) {
+          setYamlParseError((e as Error).message);
+          return;
+        }
       }
       setActiveTabKey(newTab);
     },
-    [activeTabKey, data, initialFormData],
+    [activeTabKey, data, editYamlValue, replaceData],
   );
 
   const handleRevert = useCallback(() => {
@@ -209,6 +232,7 @@ export const WorkspaceKindForm: React.FC = () => {
       const converted = convertToFormData(initialFormData);
       replaceData(converted);
       setOriginalFormData(converted);
+      lastApiObjectRef.current = initialFormData;
       const yamlStr = yaml.dump(initialFormData, { noRefs: true });
       setOriginalYaml(yamlStr);
       setEditYamlValue(yamlStr);
@@ -267,10 +291,7 @@ export const WorkspaceKindForm: React.FC = () => {
       } else {
         const updateResult = await safeApiCall(() =>
           api.workspaceKinds.updateWorkspaceKind(routeParams?.kind || '', {
-            data: convertFormDataToUpdate(
-              data,
-              initialFormData as WorkspacekindsWorkspaceKindUpdate,
-            ),
+            data: convertFormDataToUpdate(data, lastApiObjectRef.current!),
           }),
         );
         if (!updateResult.ok) {
@@ -293,7 +314,6 @@ export const WorkspaceKindForm: React.FC = () => {
     api.workspaceKinds,
     routeParams?.kind,
     data,
-    initialFormData,
     navigate,
     notification,
     yamlValue,
@@ -327,7 +347,6 @@ export const WorkspaceKindForm: React.FC = () => {
   if (mode === 'edit' && initialFormDataError) {
     return <LoadError title="Failed to load workspace kind data" error={initialFormDataError} />;
   }
-  //TODO: Remove warning edit warning when we have a way to reflect changes in the form from the YAML
   return (
     <>
       <PageGroup isFilled={false} stickyOnBreakpoint={{ default: 'top' }}>
@@ -350,7 +369,7 @@ export const WorkspaceKindForm: React.FC = () => {
                     </p>
                   ) : (
                     `View and edit the Workspace Kind using the form or the YAML editor.
-                      Changing the form will affect the YAML, but edits to the YAML will not affect the form.`
+                      Changes are synced between the form and YAML when switching tabs.`
                   )}
                 </Content>
               </FlexItem>
