@@ -75,4 +75,26 @@ describe('PopoverDirective', () => {
       overlayContainerElement.querySelectorAll('.cdk-overlay-pane').length,
     ).toBe(0);
   }));
+
+  it('should detach once after re-entry cancels a pending hide', fakeAsync(() => {
+    const triggerElement = fixture.debugElement.query(
+      By.directive(PopoverDirective),
+    );
+    const popoverDirective = triggerElement.injector.get(PopoverDirective);
+    const detachSpy = spyOn(popoverDirective, 'detach').and.callThrough();
+
+    triggerElement.nativeElement.dispatchEvent(new MouseEvent('mouseenter'));
+    tick(100);
+    triggerElement.nativeElement.dispatchEvent(new MouseEvent('mouseleave'));
+    tick(50);
+    triggerElement.nativeElement.dispatchEvent(new MouseEvent('mouseenter'));
+    tick(100);
+    triggerElement.nativeElement.dispatchEvent(new MouseEvent('mouseleave'));
+    tick(100);
+
+    expect(detachSpy).toHaveBeenCalledTimes(1);
+    expect(
+      overlayContainerElement.querySelectorAll('.cdk-overlay-pane').length,
+    ).toBe(0);
+  }));
 });

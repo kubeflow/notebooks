@@ -109,7 +109,6 @@ export class PopoverDirective implements OnDestroy {
     }
     this.popoverInstance.detectChanges();
     this.popoverInstance.show(delay);
-    this.popoverInstance.afterHidden().subscribe(() => this.detach());
     this.updatePosition();
   }
 
@@ -119,6 +118,10 @@ export class PopoverDirective implements OnDestroy {
       this.portal ||
       new ComponentPortal(PopoverComponent, this.viewContainerRef);
     this.popoverInstance = overlayRef.attach(this.portal).instance;
+    this.popoverInstance
+      .afterHidden()
+      .pipe(take(1))
+      .subscribe(() => this.detach());
   }
 
   createOverlay(): OverlayRef {
