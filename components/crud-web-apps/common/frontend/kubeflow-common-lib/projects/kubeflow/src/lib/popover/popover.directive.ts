@@ -159,7 +159,7 @@ export class PopoverDirective implements OnDestroy {
 
   updatePosition() {
     if (this.popoverInstance) {
-      this.popoverInstance.markForCheck();
+      this.popoverInstance.detectChanges();
       this.ngZone.onMicrotaskEmpty.pipe(take(1)).subscribe(() => {
         this.overlayRef.updatePosition();
       });

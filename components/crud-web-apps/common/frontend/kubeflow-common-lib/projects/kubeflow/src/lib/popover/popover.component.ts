@@ -98,4 +98,8 @@ export class PopoverComponent {
   markForCheck(): void {
     this.changeDetectorRef.markForCheck();
   }
+
+  detectChanges(): void {
+    this.changeDetectorRef.detectChanges();
+  }
 }
