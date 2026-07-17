@@ -474,9 +474,15 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                               {columnKey === 'namespace' && workspace.namespace}
                               {columnKey === 'state' && (
                                 <div className="pf-v6-u-display-inline-block">
-                                  <Tooltip content={workspace.stateMessage}>
-                                    <Label color={extractWorkspaceStateColor(workspace.state)}>
-                                      {workspace.state}
+                                  <Tooltip content={workspace.stateMessage || 'Unknown'}>
+                                    <Label
+                                      color={extractWorkspaceStateColor(
+                                        workspace.state.length > 0
+                                          ? workspace.state
+                                          : V1Beta1WorkspaceState.WorkspaceStateUnknown,
+                                      )}
+                                    >
+                                      {workspace.state.length > 0 ? workspace.state : 'Unknown'}
                                     </Label>
                                   </Tooltip>
                                 </div>
