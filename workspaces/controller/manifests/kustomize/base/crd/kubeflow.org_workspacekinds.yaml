@@ -76,9 +76,9 @@ spec:
                           type: integer
                         secondsSinceActive:
                           description: |-
-                            the number of seconds of inactivity before a Workspace is eligible for this rule's effect.
-                            The minimum value is 16 (secondsSinceActive > 15) to prevent thrashing and culling workspaces
-                            prematurely during startup or transient connection drops.
+                            the number of seconds of inactivity before a Workspace is eligible for this rule's effect
+                             - the minimum value is 16 (`secondsSinceActive` > 15) to prevent thrashing and culling
+                               workspaces prematurely during startup or transient connection drops
                           format: int32
                           minimum: 16
                           type: integer
@@ -90,8 +90,10 @@ spec:
                         conditions are met
                       properties:
                         pauseWorkspace:
-                          description: determines if the Workspace should be paused.
-                            Requires activityProbe to be configured.
+                          description: |-
+                            determines if the Workspace should be paused
+                             - the webhook rejects rules with `pauseWorkspace: true`
+                               when no `activityProbe` is configured
                           type: boolean
                       type: object
                       x-kubernetes-validations:
@@ -250,6 +252,7 @@ spec:
                           - Acts as a rate-limiter for failed probes: if a probe fails, the controller waits at least this long before retrying (requeuing after minProbeInterval).
                           - Also acts as a guard: if a reconcile triggers early, the probe is skipped until this interval has elapsed since the last probe.
                         format: int32
+                        maximum: 31536000
                         minimum: 1
                         type: integer
                       podExec:
@@ -288,6 +291,7 @@ spec:
                           - If a probe succeeds, the controller schedules the next probe after this duration (requeuing after probeInterval).
                           - Determines the freshness of workspace activity status used for culling inactive workspaces.
                         format: int32
+                        maximum: 31536000
                         minimum: 1
                         type: integer
                     type: object

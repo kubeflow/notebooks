@@ -84,6 +84,7 @@ func (v *WorkspaceKindValidator) ValidateCreate(ctx context.Context, obj runtime
 	}
 
 	var allErrs field.ErrorList
+	var warnings admission.Warnings
 
 	// validate the pod metadata
 	allErrs = append(allErrs, v.validatePodTemplatePodMetadata(workspaceKind)...)
@@ -142,7 +143,7 @@ func (v *WorkspaceKindValidator) ValidateCreate(ctx context.Context, obj runtime
 	// validate activity rules
 	rulesErrs, rulesWarnings := validateActivityRules(workspaceKind)
 	allErrs = append(allErrs, rulesErrs...)
-	warnings := rulesWarnings
+	warnings = rulesWarnings
 
 	if len(allErrs) == 0 {
 		return warnings, nil
@@ -213,7 +214,7 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 		!equality.Semantic.DeepEqual(newWorkspaceKind.Spec.PodTemplate.ActivityProbe, oldWorkspaceKind.Spec.PodTemplate.ActivityProbe) {
 		rulesErrs, rulesWarnings := validateActivityRules(newWorkspaceKind)
 		allErrs = append(allErrs, rulesErrs...)
-		warnings = rulesWarnings
+		warnings = append(warnings, rulesWarnings...)
 	}
 
 	// calculate changes to imageConfig values
@@ -835,11 +836,12 @@ func validateActivityRules(workspaceKind *kubefloworgv1beta1.WorkspaceKind) ([]*
 
 		// selectors validation
 		if rule.Match != nil {
+			matchPath := rulePath.Child("match")
 			if rule.Match.MatchNamespace != nil {
-				errs = append(errs, v1validation.ValidateLabelSelector(&rule.Match.MatchNamespace.Selector, v1validation.LabelSelectorValidationOptions{}, rulePath.Child("match", "matchNamespace", "selector"))...)
+				errs = append(errs, v1validation.ValidateLabelSelector(&rule.Match.MatchNamespace.Selector, v1validation.LabelSelectorValidationOptions{}, matchPath.Child("matchNamespace", "selector"))...)
 			}
 			if rule.Match.MatchPodConfig != nil {
-				errs = append(errs, v1validation.ValidateLabelSelector(&rule.Match.MatchPodConfig.Selector, v1validation.LabelSelectorValidationOptions{}, rulePath.Child("match", "matchPodConfig", "selector"))...)
+				errs = append(errs, v1validation.ValidateLabelSelector(&rule.Match.MatchPodConfig.Selector, v1validation.LabelSelectorValidationOptions{}, matchPath.Child("matchPodConfig", "selector"))...)
 			}
 		}
 
@@ -871,7 +873,8 @@ func validateActivityRules(workspaceKind *kubefloworgv1beta1.WorkspaceKind) ([]*
 		}
 
 		// Warning check: secondsSinceActive < 2 * probeIntervalSeconds
-		if rule.Config.SecondsSinceActive < 2*probeIntervalSeconds {
+		if rule.Effect.PauseWorkspace != nil && *rule.Effect.PauseWorkspace &&
+			int64(rule.Config.SecondsSinceActive) < 2*int64(probeIntervalSeconds) {
 			warnings = append(warnings, fmt.Sprintf("spec.activityRules[%d].config.secondsSinceActive (%d) is less than twice the probeIntervalSeconds (%d). This may cause Workspaces to be paused too quickly or prematurely.", i, rule.Config.SecondsSinceActive, probeIntervalSeconds))
 		}
 	}

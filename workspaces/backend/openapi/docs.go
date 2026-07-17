@@ -5891,7 +5891,7 @@ const docTemplate = `{
                     ]
                 },
                 "minProbeIntervalSeconds": {
-                    "description": "the minimum duration in seconds that must elapse between two consecutive probes.\n- Acts as a rate-limiter for failed probes: if a probe fails, the controller waits at least this long before retrying (requeuing after minProbeInterval).\n- Also acts as a guard: if a reconcile triggers early, the probe is skipped until this interval has elapsed since the last probe.\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:default:=300\n+kubebuilder:validation:Optional",
+                    "description": "the minimum duration in seconds that must elapse between two consecutive probes.\n- Acts as a rate-limiter for failed probes: if a probe fails, the controller waits at least this long before retrying (requeuing after minProbeInterval).\n- Also acts as a guard: if a reconcile triggers early, the probe is skipped until this interval has elapsed since the last probe.\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:validation:Maximum:=31536000\n+kubebuilder:default:=300\n+kubebuilder:validation:Optional",
                     "type": "integer"
                 },
                 "podExec": {
@@ -5903,7 +5903,7 @@ const docTemplate = `{
                     ]
                 },
                 "probeIntervalSeconds": {
-                    "description": "the desired interval in seconds between successful probes.\n- If a probe succeeds, the controller schedules the next probe after this duration (requeuing after probeInterval).\n- Determines the freshness of workspace activity status used for culling inactive workspaces.\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:default:=3600\n+kubebuilder:validation:Optional",
+                    "description": "the desired interval in seconds between successful probes.\n- If a probe succeeds, the controller schedules the next probe after this duration (requeuing after probeInterval).\n- Determines the freshness of workspace activity status used for culling inactive workspaces.\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:validation:Maximum:=31536000\n+kubebuilder:default:=3600\n+kubebuilder:validation:Optional",
                     "type": "integer"
                 }
             }

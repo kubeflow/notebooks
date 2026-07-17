@@ -434,7 +434,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 			expectedWarning string
 		}{
 			{
-				description: "should return a warning when secondsSinceActive is less than twice probeIntervalSeconds",
+				description: "should return a warning when secondsSinceActive is less than twice probeIntervalSeconds and pauseWorkspace is true",
 				workspaceKind: NewExampleWorkspaceKindWithActivityRules("wsk-webhook-create--warning-direct", []kubefloworgv1beta1.ActivityRule{
 					{
 						Config: kubefloworgv1beta1.ActivityRuleConfig{
@@ -448,6 +448,34 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 				}),
 				expectedWarning: "is less than twice the probeIntervalSeconds",
 			},
+			{
+				description: "should not return a warning when secondsSinceActive is less than twice probeIntervalSeconds and pauseWorkspace is false",
+				workspaceKind: NewExampleWorkspaceKindWithActivityRules("wsk-webhook-create--no-warning-false", []kubefloworgv1beta1.ActivityRule{
+					{
+						Config: kubefloworgv1beta1.ActivityRuleConfig{
+							SecondsSinceActive: 3000,
+						},
+						Effect: kubefloworgv1beta1.ActivityRuleEffect{
+							PauseWorkspace: ptr.To(false),
+						},
+					},
+				}),
+				expectedWarning: "",
+			},
+			{
+				description: "should not return a warning when secondsSinceActive is less than twice probeIntervalSeconds and pauseWorkspace is nil",
+				workspaceKind: NewExampleWorkspaceKindWithActivityRules("wsk-webhook-create--no-warning-nil", []kubefloworgv1beta1.ActivityRule{
+					{
+						Config: kubefloworgv1beta1.ActivityRuleConfig{
+							SecondsSinceActive: 3000,
+						},
+						Effect: kubefloworgv1beta1.ActivityRuleEffect{
+							PauseWorkspace: nil,
+						},
+					},
+				}),
+				expectedWarning: "",
+			},
 		}
 
 		for _, tc := range warningTestCases {
@@ -455,8 +483,12 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 				validator := &WorkspaceKindValidator{Client: k8sClient, Scheme: scheme.Scheme}
 				warnings, err := validator.ValidateCreate(ctx, tc.workspaceKind)
 				Expect(err).To(Succeed())
-				Expect(warnings).To(HaveLen(1))
-				Expect(warnings[0]).To(ContainSubstring(tc.expectedWarning))
+				if tc.expectedWarning != "" {
+					Expect(warnings).To(HaveLen(1))
+					Expect(warnings[0]).To(ContainSubstring(tc.expectedWarning))
+				} else {
+					Expect(warnings).To(BeEmpty())
+				}
 			})
 		}
 
