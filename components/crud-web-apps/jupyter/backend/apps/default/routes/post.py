@@ -57,6 +57,7 @@ def post_pvc(namespace):
         api.create_pvc(pvc, namespace, dry_run=True)
 
     # create the new PVCs and set the Notebook volumes and mounts
+    added_volumes = set()
     for api_volume in api_volumes:
         pvc = volumes.get_new_pvc(api_volume)
         if pvc is not None:
@@ -66,7 +67,10 @@ def post_pvc(namespace):
         v1_volume = volumes.get_pod_volume(api_volume, pvc)
         mount = volumes.get_container_mount(api_volume, v1_volume["name"])
 
-        notebook = volumes.add_notebook_volume(notebook, v1_volume)
+        if v1_volume["name"] not in added_volumes:
+            notebook = volumes.add_notebook_volume(notebook, v1_volume)
+            added_volumes.add(v1_volume["name"])
+
         notebook = volumes.add_notebook_container_mount(notebook, mount)
 
     log.info("Creating Notebook: %s", notebook)
