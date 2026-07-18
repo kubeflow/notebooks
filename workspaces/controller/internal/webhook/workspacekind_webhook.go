@@ -84,6 +84,7 @@ func (v *WorkspaceKindValidator) ValidateCreate(ctx context.Context, obj runtime
 	}
 
 	var allErrs field.ErrorList
+	var warnings admission.Warnings
 
 	// validate the pod metadata
 	allErrs = append(allErrs, v.validatePodTemplatePodMetadata(workspaceKind)...)
@@ -139,11 +140,16 @@ func (v *WorkspaceKindValidator) ValidateCreate(ctx context.Context, obj runtime
 	allErrs = append(allErrs, validateImageConfigRedirects(imageConfigIdMap, imageConfigRedirectMap)...)
 	allErrs = append(allErrs, validatePodConfigRedirects(podConfigIdMap, podConfigRedirectMap)...)
 
+	// validate activity rules
+	rulesErrs, rulesWarnings := validateActivityRules(workspaceKind)
+	allErrs = append(allErrs, rulesErrs...)
+	warnings = rulesWarnings
+
 	if len(allErrs) == 0 {
-		return nil, nil
+		return warnings, nil
 	}
 
-	return nil, apierrors.NewInvalid(
+	return warnings, apierrors.NewInvalid(
 		schema.GroupKind{Group: kubefloworgv1beta1.GroupVersion.Group, Kind: "WorkspaceKind"},
 		workspaceKind.Name,
 		allErrs,
@@ -167,6 +173,7 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 	}
 
 	var allErrs field.ErrorList
+	var warnings admission.Warnings
 
 	// get functions to lazily fetch usage counts for imageConfig and podConfig values
 	// NOTE: the cluster is only queried when either function is called for the first time
@@ -200,6 +207,14 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 	if shouldValidateAllImageConfigValues || !equality.Semantic.DeepEqual(newWorkspaceKind.Spec.PodTemplate.ActivityProbe, oldWorkspaceKind.Spec.PodTemplate.ActivityProbe) {
 		activityProbePath := field.NewPath("spec", "podTemplate", "activityProbe")
 		allErrs = append(allErrs, validateActivityProbe(newWorkspaceKind.Spec.PodTemplate.ActivityProbe, activityProbePath, podTemplatePortsIdMap)...)
+	}
+
+	// validate activity rules if rules or probe changed
+	if !equality.Semantic.DeepEqual(newWorkspaceKind.Spec.ActivityRules, oldWorkspaceKind.Spec.ActivityRules) ||
+		!equality.Semantic.DeepEqual(newWorkspaceKind.Spec.PodTemplate.ActivityProbe, oldWorkspaceKind.Spec.PodTemplate.ActivityProbe) {
+		rulesErrs, rulesWarnings := validateActivityRules(newWorkspaceKind)
+		allErrs = append(allErrs, rulesErrs...)
+		warnings = append(warnings, rulesWarnings...)
 	}
 
 	// calculate changes to imageConfig values
@@ -398,10 +413,10 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 	}
 
 	if len(allErrs) == 0 {
-		return nil, nil
+		return warnings, nil
 	}
 
-	return nil, apierrors.NewInvalid(
+	return warnings, apierrors.NewInvalid(
 		schema.GroupKind{Group: kubefloworgv1beta1.GroupVersion.Group, Kind: "WorkspaceKind"},
 		newWorkspaceKind.Name,
 		allErrs,
@@ -794,4 +809,88 @@ func validateActivityProbe(activityProbe *kubefloworgv1beta1.ActivityProbe, path
 	}
 
 	return errs
+}
+
+// validateActivityRules validates the activityRules in a WorkspaceKind
+func validateActivityRules(workspaceKind *kubefloworgv1beta1.WorkspaceKind) ([]*field.Error, admission.Warnings) {
+	var errs []*field.Error
+	var warnings admission.Warnings
+
+	rules := workspaceKind.Spec.ActivityRules
+	if len(rules) == 0 {
+		return nil, nil
+	}
+
+	hasPauseWorkspaceRule := false
+	hasCatchAllPauseWorkspace := false
+	numRules := len(rules)
+
+	probeIntervalSeconds := kubefloworgv1beta1.DefaultProbeIntervalSeconds
+	if workspaceKind.Spec.PodTemplate.ActivityProbe != nil && workspaceKind.Spec.PodTemplate.ActivityProbe.ProbeIntervalSeconds != nil {
+		probeIntervalSeconds = *workspaceKind.Spec.PodTemplate.ActivityProbe.ProbeIntervalSeconds
+	}
+
+	activityRulesPath := field.NewPath("spec", "activityRules")
+
+	for i, rule := range rules {
+		rulePath := activityRulesPath.Index(i)
+
+		// selectors validation
+		if rule.Match != nil {
+			matchPath := rulePath.Child("match")
+			if rule.Match.MatchNamespace != nil {
+				errs = append(errs, v1validation.ValidateLabelSelector(&rule.Match.MatchNamespace.Selector, v1validation.LabelSelectorValidationOptions{}, matchPath.Child("matchNamespace", "selector"))...)
+			}
+			if rule.Match.MatchPodConfig != nil {
+				errs = append(errs, v1validation.ValidateLabelSelector(&rule.Match.MatchPodConfig.Selector, v1validation.LabelSelectorValidationOptions{}, matchPath.Child("matchPodConfig", "selector"))...)
+			}
+		}
+
+		// check empty match / catch-all
+		isEmpty := isMatchEmpty(rule.Match)
+
+		// check pauseWorkspace effect
+		isPauseWorkspaceEffect := rule.Effect.PauseWorkspace != nil
+		if isPauseWorkspaceEffect {
+			if *rule.Effect.PauseWorkspace {
+				hasPauseWorkspaceRule = true
+			}
+			if isEmpty {
+				if hasCatchAllPauseWorkspace {
+					errs = append(errs, field.Invalid(rulePath.Child("match"), rule.Match, "at most one catch-all (empty match) rule is allowed for pauseWorkspace effect"))
+				}
+				hasCatchAllPauseWorkspace = true
+				hasSubsequentPauseWorkspaceRule := false
+				for j := i + 1; j < numRules; j++ {
+					if rules[j].Effect.PauseWorkspace != nil {
+						hasSubsequentPauseWorkspaceRule = true
+						break
+					}
+				}
+				if hasSubsequentPauseWorkspaceRule {
+					errs = append(errs, field.Invalid(rulePath.Child("match"), rule.Match, "catch-all (empty match) rule must be the last rule configuring the pauseWorkspace effect"))
+				}
+			}
+		}
+
+		// Warning check: secondsSinceActive < 2 * probeIntervalSeconds
+		if rule.Effect.PauseWorkspace != nil && *rule.Effect.PauseWorkspace &&
+			int64(rule.Config.SecondsSinceActive) < 2*int64(probeIntervalSeconds) {
+			warnings = append(warnings, fmt.Sprintf("spec.activityRules[%d].config.secondsSinceActive (%d) is less than twice the probeIntervalSeconds (%d). This may cause Workspaces to be paused too quickly or prematurely.", i, rule.Config.SecondsSinceActive, probeIntervalSeconds))
+		}
+	}
+
+	// Cross-field validation: If activityRules with pauseWorkspace exist, activityProbe must be configured
+	if hasPauseWorkspaceRule && workspaceKind.Spec.PodTemplate.ActivityProbe == nil {
+		errs = append(errs, field.Required(field.NewPath("spec", "podTemplate", "activityProbe"), "activityProbe must be configured when activityRules with pauseWorkspace effect exist"))
+	}
+
+	return errs, warnings
+}
+
+func isMatchEmpty(match *kubefloworgv1beta1.ActivityRuleMatch) bool {
+	if match == nil {
+		return true
+	}
+	return match.MatchNamespace == nil && match.MatchPodConfig == nil
 }

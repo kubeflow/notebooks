@@ -766,3 +766,10 @@ func NewExampleWorkspace(name, namespace, workspaceKindName string) *kubefloworg
 		},
 	}
 }
+
+// NewExampleWorkspaceKindWithActivityRules returns a WorkspaceKind with specific ActivityRules.
+func NewExampleWorkspaceKindWithActivityRules(name string, rules []kubefloworgv1beta1.ActivityRule) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.ActivityRules = rules
+	return workspaceKind
+}

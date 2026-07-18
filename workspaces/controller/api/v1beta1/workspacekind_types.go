@@ -23,6 +23,11 @@ import (
 
 // Important: Run "make" to regenerate code after modifying this file
 
+// DefaultProbeIntervalSeconds is the fallback probe interval used when no activityProbe
+// is configured. This must stay in sync with the +kubebuilder:default marker on
+// ActivityProbe.ProbeIntervalSeconds.
+const DefaultProbeIntervalSeconds int32 = 3600
+
 /*
 ===============================================================================
                              WorkspaceKind - Spec
@@ -44,6 +49,86 @@ type WorkspaceKindSpec struct {
 
 	// podTemplate is the PodTemplate used to spawn Pods to run Workspaces of this WorkspaceKind
 	PodTemplate WorkspaceKindPodTemplate `json:"podTemplate"`
+
+	// activityRules defines the policies for handling inactivity in Workspaces of this WorkspaceKind (MUTABLE).
+	// Rules are evaluated sequentially from top to bottom (first-match-wins semantics) independently for each
+	// configured effect type (e.g., pauseWorkspace). A rule with a nil or empty 'match' is treated as a catch-all
+	// rule; at most one catch-all rule is allowed per effect type, and it must be the last rule in the list.
+	// +kubebuilder:validation:Optional
+	// +listType:="atomic"
+	ActivityRules []ActivityRule `json:"activityRules,omitempty"`
+}
+
+// ActivityRule defines a policy for handling inactivity in a Workspace
+type ActivityRule struct {
+	// the configuration for this rule
+	Config ActivityRuleConfig `json:"config"`
+
+	// the conditions under which this rule applies
+	// +kubebuilder:validation:Optional
+	Match *ActivityRuleMatch `json:"match,omitempty"`
+
+	// the action to take when the rule matches and its conditions are met
+	Effect ActivityRuleEffect `json:"effect"`
+}
+
+// ActivityRuleConfig defines the timing parameters for an ActivityRule
+type ActivityRuleConfig struct {
+	// the number of seconds of inactivity before a Workspace is eligible for this rule's effect
+	//  - the minimum value is 16 (`secondsSinceActive` > 15) to prevent thrashing and culling
+	//    workspaces prematurely during startup or transient connection drops
+	// +kubebuilder:validation:Minimum:=16
+	SecondsSinceActive int32 `json:"secondsSinceActive"`
+
+	// the minimum duration in seconds a Workspace must be running before it can be paused due to inactivity
+	// +kubebuilder:validation:Minimum:=0
+	// +kubebuilder:default:=0
+	// +kubebuilder:validation:Optional
+	MinRunningSeconds *int32 `json:"minRunningSeconds,omitempty"`
+}
+
+// ActivityRuleMatch defines the conditions under which an ActivityRule applies.
+// If both matchNamespace and matchPodConfig are specified, they are combined with AND semantics (both must match).
+// If both are unspecified (or the Match block is omitted entirely), it acts as a catch-all rule that matches all Workspaces.
+type ActivityRuleMatch struct {
+	// filters Workspaces by namespace labels
+	// +kubebuilder:validation:Optional
+	MatchNamespace *NamespaceMatch `json:"matchNamespace,omitempty"`
+
+	// filters Workspaces by the PodConfig option they are using
+	// +kubebuilder:validation:Optional
+	MatchPodConfig *PodConfigMatch `json:"matchPodConfig,omitempty"`
+}
+
+// NamespaceMatch filters Workspaces by namespace labels
+type NamespaceMatch struct {
+	// the standard Kubernetes label selector to match namespace labels
+	Selector metav1.LabelSelector `json:"selector"`
+}
+
+// PodConfigMatch filters Workspaces by the PodConfig option they are using
+type PodConfigMatch struct {
+	// the standard Kubernetes label selector to match podConfig labels
+	Selector metav1.LabelSelector `json:"selector"`
+}
+
+// ActivityRuleEffect defines the action to take when a rule matches.
+//
+// Each field is a tri-state (`*bool`) controlling one effect type:
+//   - `true`: apply the effect (e.g., pause the Workspace)
+//   - `false`: do not apply the effect (e.g., exempt matching Workspaces from being paused)
+//   - `nil`: skip this effect type entirely; evaluation continues to subsequent rules
+//
+// Both `true` and `false` terminate evaluation for that effect type.
+// Only `nil` causes fallthrough to the next rule.
+//
+// +kubebuilder:validation:XValidation:message="must specify at least one effect",rule="has(self.pauseWorkspace)"
+type ActivityRuleEffect struct {
+	// determines if the Workspace should be paused
+	//  - the webhook rejects rules with `pauseWorkspace: true`
+	//    when no `activityProbe` is configured
+	// +kubebuilder:validation:Optional
+	PauseWorkspace *bool `json:"pauseWorkspace,omitempty"`
 }
 
 type WorkspaceKindSpawner struct {
@@ -248,6 +333,7 @@ type ActivityProbe struct {
 	// - Acts as a rate-limiter for failed probes: if a probe fails, the controller waits at least this long before retrying (requeuing after minProbeInterval).
 	// - Also acts as a guard: if a reconcile triggers early, the probe is skipped until this interval has elapsed since the last probe.
 	// +kubebuilder:validation:Minimum:=1
+	// +kubebuilder:validation:Maximum:=31536000
 	// +kubebuilder:default:=300
 	// +kubebuilder:validation:Optional
 	MinProbeIntervalSeconds *int32 `json:"minProbeIntervalSeconds,omitempty"`
@@ -256,6 +342,7 @@ type ActivityProbe struct {
 	// - If a probe succeeds, the controller schedules the next probe after this duration (requeuing after probeInterval).
 	// - Determines the freshness of workspace activity status used for culling inactive workspaces.
 	// +kubebuilder:validation:Minimum:=1
+	// +kubebuilder:validation:Maximum:=31536000
 	// +kubebuilder:default:=3600
 	// +kubebuilder:validation:Optional
 	ProbeIntervalSeconds *int32 `json:"probeIntervalSeconds,omitempty"`

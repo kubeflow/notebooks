@@ -3,6 +3,28 @@ kind: WorkspaceKind
 metadata:
   name: jupyterlab
 spec:
+
+  ## ================================================================
+  ## ACTIVITY RULES
+  ##  - policies for handling inactivity in Workspaces of this kind
+  ## ================================================================
+  activityRules:
+    - config:
+        secondsSinceActive: 3600
+        minRunningSeconds: 300
+      match:
+        matchNamespace:
+          selector:
+            matchLabels:
+              tier: development
+      effect:
+        pauseWorkspace: true
+    - config:
+        secondsSinceActive: 86400
+      match: {}
+      effect:
+        pauseWorkspace: true
+
   ## ================================================================
   ## SPAWNER CONFIGS
   ##  - how the WorkspaceKind is displayed in the Workspace Spawner UI

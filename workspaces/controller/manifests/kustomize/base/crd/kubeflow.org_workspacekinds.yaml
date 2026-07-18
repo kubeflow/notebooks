@@ -54,6 +54,168 @@ spec:
           spec:
             description: WorkspaceKindSpec defines the desired state of WorkspaceKind
             properties:
+              activityRules:
+                description: |-
+                  activityRules defines the policies for handling inactivity in Workspaces of this WorkspaceKind (MUTABLE).
+                  Rules are evaluated sequentially from top to bottom (first-match-wins semantics) independently for each
+                  configured effect type (e.g., pauseWorkspace). A rule with a nil or empty 'match' is treated as a catch-all
+                  rule; at most one catch-all rule is allowed per effect type, and it must be the last rule in the list.
+                items:
+                  description: ActivityRule defines a policy for handling inactivity
+                    in a Workspace
+                  properties:
+                    config:
+                      description: the configuration for this rule
+                      properties:
+                        minRunningSeconds:
+                          default: 0
+                          description: the minimum duration in seconds a Workspace
+                            must be running before it can be paused due to inactivity
+                          format: int32
+                          minimum: 0
+                          type: integer
+                        secondsSinceActive:
+                          description: |-
+                            the number of seconds of inactivity before a Workspace is eligible for this rule's effect
+                             - the minimum value is 16 (`secondsSinceActive` > 15) to prevent thrashing and culling
+                               workspaces prematurely during startup or transient connection drops
+                          format: int32
+                          minimum: 16
+                          type: integer
+                      required:
+                      - secondsSinceActive
+                      type: object
+                    effect:
+                      description: the action to take when the rule matches and its
+                        conditions are met
+                      properties:
+                        pauseWorkspace:
+                          description: |-
+                            determines if the Workspace should be paused
+                             - the webhook rejects rules with `pauseWorkspace: true`
+                               when no `activityProbe` is configured
+                          type: boolean
+                      type: object
+                      x-kubernetes-validations:
+                      - message: must specify at least one effect
+                        rule: has(self.pauseWorkspace)
+                    match:
+                      description: the conditions under which this rule applies
+                      properties:
+                        matchNamespace:
+                          description: filters Workspaces by namespace labels
+                          properties:
+                            selector:
+                              description: the standard Kubernetes label selector
+                                to match namespace labels
+                              properties:
+                                matchExpressions:
+                                  description: matchExpressions is a list of label
+                                    selector requirements. The requirements are ANDed.
+                                  items:
+                                    description: |-
+                                      A label selector requirement is a selector that contains values, a key, and an operator that
+                                      relates the key and values.
+                                    properties:
+                                      key:
+                                        description: key is the label key that the
+                                          selector applies to.
+                                        type: string
+                                      operator:
+                                        description: |-
+                                          operator represents a key's relationship to a set of values.
+                                          Valid operators are In, NotIn, Exists and DoesNotExist.
+                                        type: string
+                                      values:
+                                        description: |-
+                                          values is an array of string values. If the operator is In or NotIn,
+                                          the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                          the values array must be empty. This array is replaced during a strategic
+                                          merge patch.
+                                        items:
+                                          type: string
+                                        type: array
+                                        x-kubernetes-list-type: atomic
+                                    required:
+                                    - key
+                                    - operator
+                                    type: object
+                                  type: array
+                                  x-kubernetes-list-type: atomic
+                                matchLabels:
+                                  additionalProperties:
+                                    type: string
+                                  description: |-
+                                    matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                    map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                    operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                  type: object
+                              type: object
+                              x-kubernetes-map-type: atomic
+                          required:
+                          - selector
+                          type: object
+                        matchPodConfig:
+                          description: filters Workspaces by the PodConfig option
+                            they are using
+                          properties:
+                            selector:
+                              description: the standard Kubernetes label selector
+                                to match podConfig labels
+                              properties:
+                                matchExpressions:
+                                  description: matchExpressions is a list of label
+                                    selector requirements. The requirements are ANDed.
+                                  items:
+                                    description: |-
+                                      A label selector requirement is a selector that contains values, a key, and an operator that
+                                      relates the key and values.
+                                    properties:
+                                      key:
+                                        description: key is the label key that the
+                                          selector applies to.
+                                        type: string
+                                      operator:
+                                        description: |-
+                                          operator represents a key's relationship to a set of values.
+                                          Valid operators are In, NotIn, Exists and DoesNotExist.
+                                        type: string
+                                      values:
+                                        description: |-
+                                          values is an array of string values. If the operator is In or NotIn,
+                                          the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                          the values array must be empty. This array is replaced during a strategic
+                                          merge patch.
+                                        items:
+                                          type: string
+                                        type: array
+                                        x-kubernetes-list-type: atomic
+                                    required:
+                                    - key
+                                    - operator
+                                    type: object
+                                  type: array
+                                  x-kubernetes-list-type: atomic
+                                matchLabels:
+                                  additionalProperties:
+                                    type: string
+                                  description: |-
+                                    matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                    map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                    operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                  type: object
+                              type: object
+                              x-kubernetes-map-type: atomic
+                          required:
+                          - selector
+                          type: object
+                      type: object
+                  required:
+                  - config
+                  - effect
+                  type: object
+                type: array
+                x-kubernetes-list-type: atomic
               podTemplate:
                 description: podTemplate is the PodTemplate used to spawn Pods to
                   run Workspaces of this WorkspaceKind
@@ -90,6 +252,7 @@ spec:
                           - Acts as a rate-limiter for failed probes: if a probe fails, the controller waits at least this long before retrying (requeuing after minProbeInterval).
                           - Also acts as a guard: if a reconcile triggers early, the probe is skipped until this interval has elapsed since the last probe.
                         format: int32
+                        maximum: 31536000
                         minimum: 1
                         type: integer
                       podExec:
@@ -128,6 +291,7 @@ spec:
                           - If a probe succeeds, the controller schedules the next probe after this duration (requeuing after probeInterval).
                           - Determines the freshness of workspace activity status used for culling inactive workspaces.
                         format: int32
+                        maximum: 31536000
                         minimum: 1
                         type: integer
                     type: object
