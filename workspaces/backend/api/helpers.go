@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"mime"
 	"net/http"
 	"strings"
@@ -44,9 +45,7 @@ func (a *App) WriteJSON(w http.ResponseWriter, status int, data any, headers htt
 		return err
 	}
 
-	for key, value := range headers {
-		w.Header()[key] = value
-	}
+	maps.Copy(w.Header(), headers)
 
 	w.Header().Set("Content-Type", constants.MediaTypeJson)
 	w.WriteHeader(status)
@@ -60,9 +59,7 @@ func (a *App) WriteJSON(w http.ResponseWriter, status int, data any, headers htt
 
 // WriteSVG writes an SVG response with the given status code, content, and headers.
 func (a *App) WriteSVG(w http.ResponseWriter, status int, content []byte, headers http.Header) error {
-	for key, value := range headers {
-		w.Header()[key] = value
-	}
+	maps.Copy(w.Header(), headers)
 
 	w.Header().Set("Content-Type", constants.MediaTypeSVG)
 	w.WriteHeader(status)

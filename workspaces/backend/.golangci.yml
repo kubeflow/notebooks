@@ -23,6 +23,7 @@ linters:
     - ineffassign
     - lll
     - misspell
+    - modernize
     - nakedret
     - nolintlint
     - prealloc

@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"maps"
 	"strings"
 	"time"
 
@@ -648,7 +649,7 @@ func generateNamePrefix(workspaceName string, maxLength int) string {
 }
 
 // generateStatefulSet generates a StatefulSet for a Workspace
-func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind, imageConfigSpec kubefloworgv1beta1.ImageConfigSpec, podConfigSpec kubefloworgv1beta1.PodConfigSpec) (*appsv1.StatefulSet, error) { //nolint:gocyclo
+func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind, imageConfigSpec kubefloworgv1beta1.ImageConfigSpec, podConfigSpec kubefloworgv1beta1.PodConfigSpec) (*appsv1.StatefulSet, error) {
 	// generate name prefix
 	namePrefix := generateNamePrefix(workspace.Name, maxStatefulSetNameLength)
 
@@ -663,20 +664,12 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 	podAnnotations := make(map[string]string)
 	podLabels := make(map[string]string)
 	if workspaceKind.Spec.PodTemplate.PodMetadata != nil {
-		for k, v := range workspaceKind.Spec.PodTemplate.PodMetadata.Annotations {
-			podAnnotations[k] = v
-		}
-		for k, v := range workspaceKind.Spec.PodTemplate.PodMetadata.Labels {
-			podLabels[k] = v
-		}
+		maps.Copy(podAnnotations, workspaceKind.Spec.PodTemplate.PodMetadata.Annotations)
+		maps.Copy(podLabels, workspaceKind.Spec.PodTemplate.PodMetadata.Labels)
 	}
 	if workspace.Spec.PodTemplate.PodMetadata != nil {
-		for k, v := range workspace.Spec.PodTemplate.PodMetadata.Annotations {
-			podAnnotations[k] = v
-		}
-		for k, v := range workspace.Spec.PodTemplate.PodMetadata.Labels {
-			podLabels[k] = v
-		}
+		maps.Copy(podAnnotations, workspace.Spec.PodTemplate.PodMetadata.Annotations)
+		maps.Copy(podLabels, workspace.Spec.PodTemplate.PodMetadata.Labels)
 	}
 
 	// generate container imagePullPolicy

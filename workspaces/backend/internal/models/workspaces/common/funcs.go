@@ -17,6 +17,8 @@ limitations under the License.
 package common
 
 import (
+	"maps"
+
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"k8s.io/utils/ptr"
 )
@@ -31,12 +33,8 @@ func ExtractPodMetadata(ws *kubefloworgv1beta1.Workspace) PodMetadata {
 	podLabels := make(map[string]string)
 	podAnnotations := make(map[string]string)
 	if ws.Spec.PodTemplate.PodMetadata != nil {
-		for k, v := range ws.Spec.PodTemplate.PodMetadata.Labels {
-			podLabels[k] = v
-		}
-		for k, v := range ws.Spec.PodTemplate.PodMetadata.Annotations {
-			podAnnotations[k] = v
-		}
+		maps.Copy(podLabels, ws.Spec.PodTemplate.PodMetadata.Labels)
+		maps.Copy(podAnnotations, ws.Spec.PodTemplate.PodMetadata.Annotations)
 	}
 	return PodMetadata{
 		Labels:      podLabels,
