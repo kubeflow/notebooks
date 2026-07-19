@@ -510,7 +510,7 @@ func TestGenerateVirtualServices(t *testing.T) {
 			actualVirtualServices, actualErrorState := generateVirtualServices(&test.notebook)
 
 			if test.expectedErrorState != nil {
-				if test.expectedErrorState.Error() != actualErrorState.Error() {
+				if actualErrorState == nil || test.expectedErrorState.Error() != actualErrorState.Error() {
 					t.Errorf("Unexpected error: %v\nExpected: %v", actualErrorState, test.expectedErrorState.Error())
 				}
 			} else {
