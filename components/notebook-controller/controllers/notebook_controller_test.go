@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"bytes"
+	"context"
 	"embed"
 	"errors"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/yaml"
 
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -20,6 +22,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
+	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -532,6 +535,93 @@ func TestGenerateVirtualServices(t *testing.T) {
 		})
 	}
 
+}
+
+func TestReconcileVirtualServiceDeletesStaleRedirects(t *testing.T) {
+
+	// remove this set of environment variables to ensure a clean env
+	cleanEnv := []string{
+		"CLUSTER_DOMAIN",
+		"ISTIO_HOST",
+		"ISTIO_GATEWAY",
+		"ISTIO_USE_NOTEBOOK_SUBDOMAINS",
+		"ISTIO_HOST_NOTEBOOK",
+		"ISTIO_HOST_AUTH",
+		"ISTIO_AUTH_PATH",
+	}
+	preserveEnvironment(t, cleanEnv)
+
+	prepareTestEnvironment(cleanEnv, map[string]string{
+		"ISTIO_USE_NOTEBOOK_SUBDOMAINS": "true",
+		"ISTIO_HOST_NOTEBOOK":           "${NAMESPACE}-notebook.kubeflow.example.org",
+		"ISTIO_HOST_AUTH":               "kubeflow.example.org",
+	})
+
+	notebook := &nbv1beta1.Notebook{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "test",
+			Namespace: "kubeflow-user",
+			UID:       types.UID("test-notebook-uid"),
+		},
+	}
+
+	testScheme := runtime.NewScheme()
+	if err := nbv1beta1.AddToScheme(testScheme); err != nil {
+		t.Fatalf("failed to add Notebook API to scheme: %v", err)
+	}
+
+	virtualServices, err := generateVirtualServices(notebook)
+	if err != nil {
+		t.Fatalf("failed to generate initial VirtualServices: %v", err)
+	}
+
+	objects := make([]runtime.Object, 0, len(virtualServices))
+	for _, virtualService := range virtualServices {
+		if err := ctrl.SetControllerReference(notebook, virtualService, testScheme); err != nil {
+			t.Fatalf("failed to set controller reference: %v", err)
+		}
+		objects = append(objects, virtualService)
+	}
+
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(testScheme).
+		WithRuntimeObjects(objects...).
+		Build()
+	reconciler := &NotebookReconciler{
+		Client: fakeClient,
+		Scheme: testScheme,
+		Log:    ctrl.Log,
+	}
+
+	if err := os.Unsetenv("ISTIO_USE_NOTEBOOK_SUBDOMAINS"); err != nil {
+		t.Fatalf("failed to disable notebook subdomains: %v", err)
+	}
+	if err := reconciler.reconcileVirtualService(notebook); err != nil {
+		t.Fatalf("failed to reconcile VirtualServices: %v", err)
+	}
+
+	baseVirtualService := &unstructured.Unstructured{}
+	baseVirtualService.SetAPIVersion("networking.istio.io/v1alpha3")
+	baseVirtualService.SetKind("VirtualService")
+	if err := fakeClient.Get(context.Background(), types.NamespacedName{
+		Name:      virtualServiceName(notebook.Name, notebook.Namespace),
+		Namespace: notebook.Namespace,
+	}, baseVirtualService); err != nil {
+		t.Fatalf("expected base VirtualService to remain: %v", err)
+	}
+
+	for _, suffix := range []string{"auth-redirect", "notebook-redirect"} {
+		staleVirtualService := &unstructured.Unstructured{}
+		staleVirtualService.SetAPIVersion("networking.istio.io/v1alpha3")
+		staleVirtualService.SetKind("VirtualService")
+		err := fakeClient.Get(context.Background(), types.NamespacedName{
+			Name:      virtualServiceNameWithSuffix(notebook.Name, notebook.Namespace, suffix),
+			Namespace: notebook.Namespace,
+		}, staleVirtualService)
+		if !apierrs.IsNotFound(err) {
+			t.Fatalf("expected stale %s VirtualService to be deleted, got: %v", suffix, err)
+		}
+	}
 }
 
 func createMockReconciler() *NotebookReconciler {

@@ -706,11 +706,15 @@ func (r *NotebookReconciler) reconcileVirtualService(instance *v1beta1.Notebook)
 		return err
 	}
 
+	desiredVirtualServices := make(map[string]struct{}, len(virtualServices))
+
 	for _, virtualService := range virtualServices {
 
 		if err := ctrl.SetControllerReference(instance, virtualService, r.Scheme); err != nil {
 			return err
 		}
+		desiredVirtualServices[virtualService.GetName()] = struct{}{}
+
 		// Check if the virtual service already exists.
 		foundVirtual := &unstructured.Unstructured{}
 		justCreated := false
@@ -738,6 +742,41 @@ func (r *NotebookReconciler) reconcileVirtualService(instance *v1beta1.Notebook)
 			if err != nil {
 				return err
 			}
+		}
+	}
+
+	// Delete redirect VirtualServices that are no longer part of the desired
+	// state, for example after ISTIO_USE_NOTEBOOK_SUBDOMAINS is disabled.
+	for _, suffix := range []string{"auth-redirect", "notebook-redirect"} {
+		name := virtualServiceNameWithSuffix(instance.Name, instance.Namespace, suffix)
+		if _, desired := desiredVirtualServices[name]; desired {
+			continue
+		}
+
+		staleVirtualService := &unstructured.Unstructured{}
+		staleVirtualService.SetAPIVersion("networking.istio.io/v1alpha3")
+		staleVirtualService.SetKind("VirtualService")
+
+		err := r.Get(context.TODO(), types.NamespacedName{
+			Name:      name,
+			Namespace: instance.Namespace,
+		}, staleVirtualService)
+		if apierrs.IsNotFound(err) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+
+		// Never delete a resource with the expected name unless this Notebook is
+		// still its controller owner.
+		if !metav1.IsControlledBy(staleVirtualService, instance) {
+			continue
+		}
+
+		log.Info("Deleting stale virtual service", "namespace", instance.Namespace, "name", name)
+		if err := r.Delete(context.TODO(), staleVirtualService); err != nil && !apierrs.IsNotFound(err) {
+			return err
 		}
 	}
 
