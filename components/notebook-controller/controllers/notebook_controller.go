@@ -658,9 +658,9 @@ func generateVirtualServices(instance *v1beta1.Notebook) ([]*unstructured.Unstru
 			"headers": map[string]interface{}{
 				"request": map[string]interface{}{
 					"set": headersRequestSetInterface,
-					// remove the authorization cookie to prevent token stealing
-					// otherwise, the bearer token would be leaked to the notebook's container
-					// thus, a contributor could get access to another contributor's token
+					// remove the Authorization header to prevent token stealing.
+					// otherwise, the bearer token would be forwarded to the notebook container,
+					// allowing notebook code to capture a visitor's token.
 					"remove": []interface{}{
 						"Authorization",
 					},
