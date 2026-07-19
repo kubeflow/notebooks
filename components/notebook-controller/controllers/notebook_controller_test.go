@@ -26,8 +26,6 @@ import (
 
 	nbv1beta1 "github.com/kubeflow/notebooks/components/notebook-controller/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
-
-	_ "embed"
 )
 
 func TestNbNameFromInvolvedObject(t *testing.T) {
@@ -303,6 +301,18 @@ func TestCreateNotebookStatus(t *testing.T) {
 
 func TestGenerateVirtualServices(t *testing.T) {
 
+	// remove this set of environment variables to ensure a clean env
+	cleanEnv := []string{
+		"CLUSTER_DOMAIN",
+		"ISTIO_HOST",
+		"ISTIO_GATEWAY",
+		"ISTIO_USE_NOTEBOOK_SUBDOMAINS",
+		"ISTIO_HOST_NOTEBOOK",
+		"ISTIO_HOST_AUTH",
+		"ISTIO_AUTH_PATH",
+	}
+	preserveEnvironment(t, cleanEnv)
+
 	tests := []struct {
 		name                    string
 		notebook                nbv1beta1.Notebook
@@ -492,7 +502,7 @@ func TestGenerateVirtualServices(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			prepareTestEnvironment(t, test.testEnv)
+			prepareTestEnvironment(cleanEnv, test.testEnv)
 
 			actualVirtualServices, actualErrorState := generateVirtualServices(&test.notebook)
 
@@ -532,24 +542,28 @@ func createMockReconciler() *NotebookReconciler {
 	return reconciler
 }
 
-func prepareTestEnvironment(t *testing.T, testEnv map[string]string) {
-	// save old environment & set test environment
-	oldEnv := make(map[string]string)
-	for key, value := range testEnv {
+// backup & restore old environment after test
+func preserveEnvironment(t *testing.T, cleanEnv []string) {
+	for _, key := range cleanEnv {
 		oldValue, hadValue := os.LookupEnv(key)
 		if hadValue {
-			oldEnv[key] = oldValue
 			t.Cleanup(func() {
 				os.Setenv(key, oldValue)
 			})
-		} else {
-			t.Cleanup(func() {
-				os.Unsetenv(key)
-			})
 		}
-		os.Setenv(key, value)
+	}
+}
+
+func prepareTestEnvironment(cleanEnv []string, testEnv map[string]string) {
+	// clean environment
+	for _, key := range cleanEnv {
+		os.Unsetenv(key)
 	}
 
+	// set test environment
+	for key, value := range testEnv {
+		os.Setenv(key, value)
+	}
 }
 
 //go:embed test_fixtures/*.yaml
