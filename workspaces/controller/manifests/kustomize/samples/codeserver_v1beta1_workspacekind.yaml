@@ -16,6 +16,29 @@ spec:
       url: "https://upload.wikimedia.org/wikipedia/commons/9/9a/Visual_Studio_Code_1.35_icon.svg"
     logo:
       url: "https://upload.wikimedia.org/wikipedia/commons/9/9a/Visual_Studio_Code_1.35_icon.svg"
+
+  ## ================================================================
+  ## FILTER RULES
+  ##  - admin-defined rules used by the backend API server to dynamically filter
+  ##    which WorkspaceKinds, imageConfig values, and podConfig values are visible
+  ##    or allowed in a given context
+  ##  - the controller does NOT evaluate these rules, it only persists and validates them
+  ## ================================================================
+  filterRules:
+
+    ## hide podConfigs in namespaces which are not labeled 'workspaces_allow_gpus=true'
+    - scope: POD_CONFIG
+      effect:
+        ui:
+          hide: true
+      match:
+        - matchNamespace:
+            selector:
+              matchExpressions:
+                - key: "workspaces_allow_gpus"
+                  operator: NotIn
+                  values: ["true"]
+
   podTemplate:
     podMetadata:
       labels: {}

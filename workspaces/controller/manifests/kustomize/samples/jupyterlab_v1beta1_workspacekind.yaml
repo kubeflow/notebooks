@@ -69,6 +69,28 @@ spec:
       #   mediaType: "image/svg+xml"
 
   ## ================================================================
+  ## FILTER RULES
+  ##  - admin-defined rules used by the backend API server to dynamically filter
+  ##    which WorkspaceKinds, imageConfig values, and podConfig values are visible
+  ##    or allowed in a given context
+  ##  - the controller does NOT evaluate these rules, it only persists and validates them
+  ## ================================================================
+  filterRules:
+
+    ## hide this WorkspaceKind in namespaces which are not labeled 'workspace_team=team_1'
+    - scope: WORKSPACE_KIND
+      effect:
+        ui:
+          hide: true
+      match:
+        - matchNamespace:
+            selector:
+              matchExpressions:
+                - key: "workspace_team"
+                  operator: NotIn
+                  values: ["team_1"]
+
+  ## ================================================================
   ## DEFINITION CONFIGS
   ##  - currently the only supported type is `podTemplate`
   ##  - in the future, there will be MORE types like `virtualMachine`
