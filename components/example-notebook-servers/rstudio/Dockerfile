@@ -8,9 +8,9 @@ FROM $BASE_IMG
 ARG TARGETARCH
 
 # args - software versions (python)
-ARG MINIFORGE_VERSION=24.11.3-0
-ARG PIP_VERSION=24.3.1
-ARG PYTHON_VERSION=3.11.11
+ARG MINIFORGE_VERSION=26.3.2-2
+ARG PIP_VERSION=26.1.1
+ARG PYTHON_VERSION=3.12.13
 
 # args - software versions (R)
 # - rstudio: https://dailies.rstudio.com/release/
@@ -18,11 +18,11 @@ ARG PYTHON_VERSION=3.11.11
 # - r-png: https://www.rforge.net/png/news.html
 # - r-reticulate: https://github.com/rstudio/reticulate/releases
 # - r-shiny: https://github.com/rstudio/shiny/releases
-ARG RSTUDIO_VERSION=2024.12.1-563
-ARG R_BASE_VERSION=4.4.2
-ARG R_PNG_VERSION=0.1_8
-ARG R_RETICULATE_VERSION=1.40.0
-ARG R_SHINY_VERSION=1.10.0
+ARG RSTUDIO_VERSION=2026.05.0-218
+ARG R_BASE_VERSION=4.5.3
+ARG R_PNG_VERSION=0.1_9
+ARG R_RETICULATE_VERSION=1.46.0
+ARG R_SHINY_VERSION=1.13.0
 
 USER root
 
@@ -101,8 +101,19 @@ RUN echo "r-base ==${R_BASE_VERSION}" >> ${CONDA_DIR}/conda-meta/pinned \
     r-shiny=${R_SHINY_VERSION} \
  && conda clean -a -f -y
 
-# set default CRAN repo to RSPM (it has pre-compiled R packages, increasing user install speed)
-RUN echo 'options(repos=c(CRAN="https://packagemanager.posit.co/all/__linux__/jammy/latest"))' >> ${R_HOME}/etc/Rprofile.site \
+# set default CRAN repo to Posit Package Manager (it has pre-compiled R packages, increasing user install speed)
+# SOURCE: https://packagemanager.posit.co/client/#/repos/cran/setup
+RUN case "${TARGETARCH}" in \
+      amd64) \
+        echo 'options(repos=c(CRAN=sprintf("https://packagemanager.posit.co/cran/latest/bin/linux/jammy-%s/%s", R.version["arch"], substr(getRversion(), 1, 3))))' >> ${R_HOME}/etc/Rprofile.site \
+        ;; \
+      arm64) \
+        # NOTE: the jammy repo does not have arm64 binaries, but the manylinux glibc 2.28+ repo does,
+        #       when updating to Ubuntu 24.04 (noble) we can switch back to the Ubuntu-specific repo for arm64
+        echo 'options(repos=c(CRAN=sprintf("https://packagemanager.posit.co/cran/latest/bin/linux/manylinux_2_28-%s/%s", R.version["arch"], substr(getRversion(), 1, 3))))' >> ${R_HOME}/etc/Rprofile.site \
+        ;; \
+      *) echo "Unsupported architecture: ${TARGETARCH}"; exit 1 ;; \
+    esac \
  && echo 'options(HTTPUserAgent=sprintf("R/%s R (%s)", getRversion(), paste(getRversion(), R.version["platform"], R.version["arch"], R.version["os"])))' >> ${R_HOME}/etc/Rprofile.site
 
 # R needs TZ set

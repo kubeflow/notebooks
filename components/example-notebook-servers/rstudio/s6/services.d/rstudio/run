@@ -7,6 +7,12 @@ export XDG_RUNTIME_DIR="/tmp/runtime-${NB_USER}"
 mkdir -p "${XDG_RUNTIME_DIR}"
 chmod 700 "${XDG_RUNTIME_DIR}"
 
+# rstudio defaults to storing user and session state under XDG_DATA_HOME,
+# as we mount a PVC to the home directory, we tell rstudio to use a path that is NOT a persistent volume.
+export RSTUDIO_DATA_HOME="/tmp/rstudio-data-${NB_USER}"
+mkdir -p "${RSTUDIO_DATA_HOME}"
+chmod 700 "${RSTUDIO_DATA_HOME}"
+
 # the runtime state directory must be a path that is NOT a persistent volume
 # note, this env-var is not read by rstudio, but is used later in this script
 export RSTUDIO_RUNTIME_DIR="/tmp/rstudio_runtime"

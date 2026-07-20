@@ -5,12 +5,6 @@ metadata:
   name: role
 rules:
 - apiGroups:
-  - apps
-  resources:
-  - statefulsets
-  verbs:
-  - '*'
-- apiGroups:
   - ""
   resources:
   - events
@@ -32,6 +26,12 @@ rules:
   - ""
   resources:
   - services
+  verbs:
+  - '*'
+- apiGroups:
+  - apps
+  resources:
+  - statefulsets
   verbs:
   - '*'
 - apiGroups:

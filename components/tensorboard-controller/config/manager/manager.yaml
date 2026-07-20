@@ -26,13 +26,18 @@ spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 999
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - command:
             - /manager
-          image: ghcr.io/kubeflow/kubeflow/tensorboard-controller
+          image: ghcr.io/kubeflow/notebooks/tensorboard-controller
           name: manager
           securityContext:
             allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
           livenessProbe:
             httpGet:
               path: /healthz

@@ -2,8 +2,8 @@ labels:
   - area/frontend
   - area/backend
 approvers:
-  - kimwnasptd
   - thesuperzapper
 emeritus_approvers:
   - elikatsis
+  - kimwnasptd
   - StefanoFioravanzo
