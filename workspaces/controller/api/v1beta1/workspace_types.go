@@ -179,10 +179,16 @@ type WorkspaceStatus struct {
 	// activity information for the Workspace, used to determine when to cull
 	Activity WorkspaceActivity `json:"activity"`
 
-	// the time when the Workspace was paused (UNIX epoch)
+	// the last time the Workspace entered a Running state (UNIX epoch in milliseconds)
+	//  - set to 0 when the Workspace has never been in a Running state
+	// +kubebuilder:default=0
+	// +kubebuilder:example=1704060000000
+	LastRunningTime int64 `json:"lastRunningTime"`
+
+	// the time when the Workspace was paused (UNIX epoch in milliseconds)
 	//  - set to 0 when the Workspace is NOT paused
 	// +kubebuilder:default=0
-	// +kubebuilder:example=1704067200
+	// +kubebuilder:example=1704067200000
 	PauseTime int64 `json:"pauseTime"`
 
 	// if the current Pod does not reflect the current "desired" state
@@ -210,15 +216,63 @@ type WorkspaceStatus struct {
 }
 
 type WorkspaceActivity struct {
-	// the last time activity was observed on the Workspace (UNIX epoch)
+	// the last time activity was observed on the Workspace (UNIX epoch in milliseconds)
 	// +kubebuilder:default=0
-	// +kubebuilder:example=1704067200
+	// +kubebuilder:example=1704067200000
 	LastActivity int64 `json:"lastActivity"`
 
-	// the last time we checked for activity on the Workspace (UNIX epoch)
+	// the last time we checked for activity on the Workspace (UNIX epoch in milliseconds)
 	// +kubebuilder:default=0
-	// +kubebuilder:example=1704067200
+	// +kubebuilder:example=1704067200000
 	LastUpdate int64 `json:"lastUpdate"`
+
+	// probe result tracking
+	// +kubebuilder:validation:Optional
+	LastProbe *WorkspaceActivityLastProbe `json:"lastProbe,omitempty"`
+
+	// rule evaluation state
+	// +kubebuilder:validation:Optional
+	Rules *WorkspaceActivityRules `json:"rules,omitempty"`
+}
+
+type WorkspaceActivityLastProbe struct {
+	// the time the probe was started (UNIX epoch in milliseconds)
+	// +kubebuilder:example=1710435303000
+	StartTimeMs int64 `json:"startTimeMs"`
+
+	// the time the probe was completed (UNIX epoch in milliseconds)
+	// +kubebuilder:example=1710435305000
+	EndTimeMs int64 `json:"endTimeMs"`
+
+	// the result of the last probe execution
+	Result WorkspaceProbeResult `json:"result"`
+
+	// a human-readable message about the probe result
+	//  - WARNING: this field is NOT FOR MACHINE USE, subject to change without notice
+	// +kubebuilder:default=""
+	// +kubebuilder:example="Jupyter probe succeeded"
+	Message string `json:"message"`
+}
+
+// +kubebuilder:validation:Enum:={"Success","Failure","Timeout"}
+type WorkspaceProbeResult string
+
+const (
+	WorkspaceProbeResultSuccess WorkspaceProbeResult = "Success"
+	WorkspaceProbeResultFailure WorkspaceProbeResult = "Failure"
+	WorkspaceProbeResultTimeout WorkspaceProbeResult = "Timeout"
+)
+
+type WorkspaceActivityRules struct {
+	// rule evaluation state for the pauseWorkspace effect
+	// +kubebuilder:validation:Optional
+	PauseWorkspace *WorkspaceActivityPauseRule `json:"pauseWorkspace,omitempty"`
+}
+
+type WorkspaceActivityPauseRule struct {
+	// the time after which if the rule is evaluated the Workspace would be paused (UNIX epoch in milliseconds)
+	// +kubebuilder:example=1707667200000
+	EligibleAfter int64 `json:"eligibleAfter"`
 }
 
 type WorkspacePodOptionsStatus struct {

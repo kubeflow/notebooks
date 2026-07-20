@@ -1126,7 +1126,7 @@ func (r *WorkspaceReconciler) generateWorkspaceStatus(ctx context.Context, log l
 	workspacePaused := ptr.Deref(workspace.Spec.Paused, false)
 	if workspacePaused {
 		if status.PauseTime == 0 {
-			status.PauseTime = metav1.Now().Unix()
+			status.PauseTime = metav1.Now().UnixMilli()
 		}
 	} else {
 		if status.PauseTime != 0 {

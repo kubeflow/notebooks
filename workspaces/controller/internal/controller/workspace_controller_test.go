@@ -140,8 +140,8 @@ var _ = Describe("Workspace Controller", func() {
 			Expect(k8sClient.Patch(ctx, newWorkspace, patch)).To(Succeed())
 
 			By("setting the Workspace `status.pauseTime` to the current time")
-			tolerance := int64(5)
-			currentTime := time.Now().Unix()
+			tolerance := int64(5000)
+			currentTime := time.Now().UnixMilli()
 			Eventually(func() (int64, error) {
 				err := k8sClient.Get(ctx, types.NamespacedName{Name: workspaceName, Namespace: namespaceName}, workspace)
 				if err != nil {
