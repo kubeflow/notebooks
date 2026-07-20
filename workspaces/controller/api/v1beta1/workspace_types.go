@@ -200,6 +200,8 @@ type WorkspaceStatus struct {
 	PodTemplatePod WorkspacePodStatus `json:"podTemplatePod"`
 
 	// the current state of the Workspace
+	//  - this is a summary enum derived from `conditions` (see the derivation
+	//    rules documented on the WorkspaceConditionType constants below)
 	// +kubebuilder:default="Unknown"
 	State WorkspaceState `json:"state"`
 
@@ -207,6 +209,20 @@ type WorkspaceStatus struct {
 	//  - WARNING: this field is NOT FOR MACHINE USE, subject to change without notice
 	// +kubebuilder:default=""
 	StateMessage string `json:"stateMessage"`
+
+	// structured sub-states that independently track distinct aspects of Workspace health
+	//  - each condition `type` is unique in this list (there is only ever one entry per type)
+	//  - the summary `state` field is derived deterministically from these conditions
+	//  - each condition owns a disjoint set of `reason` values (documented on the
+	//    WorkspaceConditionType and reason constants below)
+	//  - new signals (e.g. volume binding, activity probes) are added as new condition
+	//    types without restructuring the existing conditions
+	// +kubebuilder:validation:Optional
+	// +listType=map
+	// +listMapKey=type
+	// +patchStrategy=merge
+	// +patchMergeKey=type
+	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
 }
 
 type WorkspaceActivity struct {
@@ -284,6 +300,80 @@ const (
 	WorkspaceStatePending     WorkspaceState = "Pending"
 	WorkspaceStateError       WorkspaceState = "Error"
 	WorkspaceStateUnknown     WorkspaceState = "Unknown"
+)
+
+// WorkspaceConditionType identifies a sub-state tracked in `status.conditions`.
+//
+// Each type is a single, independent health dimension. There is exactly one
+// condition entry per type in `status.conditions`; its `status`, `reason`, and
+// `message` are updated in place as the dimension changes over time.
+//
+// Summary `state` derivation (first matching rule wins, preserving prior behavior):
+//
+//  1. Workspace is paused                                    -> Paused
+//  2. Pod is terminating                                     -> Terminating
+//  3. ConfigResolved=False OR ResourcesProvisioned=False     -> Error   (config)
+//  4. PodScheduled=False                                     -> Error   (scheduling)
+//  5. WorkspaceReady=False with reason CrashLoopBackOff,
+//     ImagePullBackOff, PodWarningEvent, StatefulSetWarningEvent -> Error (runtime)
+//  6. WorkspaceReady=False with reason Pending               -> Pending
+//  7. WorkspaceReady=True                                    -> Running
+//  8. otherwise                                              -> Unknown
+type WorkspaceConditionType string
+
+const (
+	// WorkspaceConditionConfigResolved is True when the referenced WorkspaceKind
+	// and the selected imageConfig/podConfig options all resolve successfully.
+	// Reasons when False: Resolved, WorkspaceKindNotFound, InvalidImageConfig, InvalidPodConfig.
+	WorkspaceConditionConfigResolved WorkspaceConditionType = "ConfigResolved"
+
+	// WorkspaceConditionResourcesProvisioned is True when the owned resources
+	// (StatefulSet, Service, VirtualService) are generated, singular, and owned.
+	// Reasons when False: Provisioned, StatefulSetGenerationFailed, ServiceGenerationFailed,
+	// VirtualServiceGenerationFailed, DuplicateResources, ControllerReferenceFailed.
+	WorkspaceConditionResourcesProvisioned WorkspaceConditionType = "ResourcesProvisioned"
+
+	// WorkspaceConditionPodScheduled is True when the Pod has been scheduled to a node.
+	// Reasons when False: Scheduled, Unschedulable, SchedulingGated, SchedulerError.
+	WorkspaceConditionPodScheduled WorkspaceConditionType = "PodScheduled"
+
+	// WorkspaceConditionWorkspaceReady is True when the Pod is Running and Ready.
+	// Reasons when False: Running, Pending, CrashLoopBackOff, ImagePullBackOff,
+	// PodWarningEvent, StatefulSetWarningEvent.
+	WorkspaceConditionWorkspaceReady WorkspaceConditionType = "WorkspaceReady"
+
+	// Future signals (e.g. volume binding, Activity Rules probes, DRA resource claims) can be
+	// added as new condition types without restructuring the existing ones.
+)
+
+const (
+	// reasons for the ConfigResolved condition
+	WorkspaceConditionReasonResolved              = "Resolved"
+	WorkspaceConditionReasonWorkspaceKindNotFound = "WorkspaceKindNotFound"
+	WorkspaceConditionReasonInvalidImageConfig    = "InvalidImageConfig"
+	WorkspaceConditionReasonInvalidPodConfig      = "InvalidPodConfig"
+
+	// reasons for the ResourcesProvisioned condition
+	WorkspaceConditionReasonProvisioned                    = "Provisioned"
+	WorkspaceConditionReasonStatefulSetGenerationFailed    = "StatefulSetGenerationFailed"
+	WorkspaceConditionReasonServiceGenerationFailed        = "ServiceGenerationFailed"
+	WorkspaceConditionReasonVirtualServiceGenerationFailed = "VirtualServiceGenerationFailed"
+	WorkspaceConditionReasonDuplicateResources             = "DuplicateResources"
+	WorkspaceConditionReasonControllerReferenceFailed      = "ControllerReferenceFailed"
+
+	// reasons for the PodScheduled condition
+	WorkspaceConditionReasonScheduled       = "Scheduled"
+	WorkspaceConditionReasonUnschedulable   = "Unschedulable"
+	WorkspaceConditionReasonSchedulingGated = "SchedulingGated"
+	WorkspaceConditionReasonSchedulerError  = "SchedulerError"
+
+	// reasons for the WorkspaceReady condition
+	WorkspaceConditionReasonRunning                 = "Running"
+	WorkspaceConditionReasonPending                 = "Pending"
+	WorkspaceConditionReasonCrashLoopBackOff        = "CrashLoopBackOff"
+	WorkspaceConditionReasonImagePullBackOff        = "ImagePullBackOff"
+	WorkspaceConditionReasonPodWarningEvent         = "PodWarningEvent"
+	WorkspaceConditionReasonStatefulSetWarningEvent = "StatefulSetWarningEvent"
 )
 
 /*
