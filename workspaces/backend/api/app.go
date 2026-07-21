@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
@@ -55,6 +56,7 @@ func NewApp(
 	scheme *runtime.Scheme,
 	reqAuthN authenticator.Request,
 	reqAuthZ authorizer.Authorizer,
+	clientset kubernetes.Interface,
 ) (*App, error) {
 
 	// TODO: log the configuration on startup
@@ -69,7 +71,7 @@ func NewApp(
 	app := &App{
 		Config:               cfg,
 		logger:               logger,
-		repositories:         repositories.NewRepositories(cfg, cl, configMapClient),
+		repositories:         repositories.NewRepositories(cfg, cl, configMapClient, clientset),
 		Scheme:               scheme,
 		StrictYamlSerializer: yamlSerializerInfo.StrictSerializer,
 		RequestAuthN:         reqAuthN,
@@ -107,6 +109,7 @@ func (a *App) Routes() http.Handler {
 	router.DELETE(constants.WorkspacesByNamePath, a.DeleteWorkspaceHandler)
 	router.POST(constants.PauseWorkspacePath, a.PauseActionWorkspaceHandler)
 	router.GET(constants.WorkspacePodTemplateDetailsPath, a.GetWorkspacePodTemplateDetailsHandler)
+	router.GET(constants.WorkspacePodLogsBatchPath, a.GetWorkspaceLogsHandler)
 
 	// workspacekinds
 	router.GET(constants.AllWorkspaceKindsPath, a.GetWorkspaceKindsHandler)

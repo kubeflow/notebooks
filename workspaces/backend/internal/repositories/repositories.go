@@ -17,10 +17,12 @@ limitations under the License.
 package repositories
 
 import (
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/health_check"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/logs"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/namespaces"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/pvcs"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/secrets"
@@ -38,6 +40,7 @@ type Repositories struct {
 	StorageClass  *storageclasses.StorageClassRepository
 	Workspace     *workspaces.WorkspaceRepository
 	WorkspaceKind *workspacekinds.WorkspaceKindRepository
+	Logs          *logs.LogsRepository
 }
 
 // NewRepositories creates a new Repositories instance from a controller-runtime client.
@@ -46,6 +49,7 @@ func NewRepositories(
 	cl client.Client,
 	// configMapClient is a label-filtered cached client for image-source ConfigMaps
 	configMapClient client.Client,
+	clientset kubernetes.Interface,
 ) *Repositories {
 	return &Repositories{
 		HealthCheck:   health_check.NewHealthCheckRepository(cfg),
@@ -55,5 +59,6 @@ func NewRepositories(
 		StorageClass:  storageclasses.NewStorageClassRepository(cfg, cl),
 		Workspace:     workspaces.NewWorkspaceRepository(cfg, cl),
 		WorkspaceKind: workspacekinds.NewWorkspaceKindRepository(cfg, cl, configMapClient),
+		Logs:          logs.NewLogsRepository(cfg, cl, clientset),
 	}
 }

@@ -32,6 +32,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	metricsv1beta1 "k8s.io/metrics/pkg/apis/metrics/v1beta1"
@@ -148,9 +149,13 @@ var _ = BeforeSuite(func() {
 	imageSourceConfigMapClient, err := helper.BuildImageSourceConfigMapClient(k8sManager)
 	Expect(err).NotTo(HaveOccurred())
 
+	By("creating the Kubernetes clientset")
+	clientset, err := kubernetes.NewForConfig(cfg)
+	Expect(err).NotTo(HaveOccurred())
+
 	By("creating the application")
 	// NOTE: we use the `k8sClient` rather than `k8sManager.GetClient()` to avoid race conditions with the cached client
-	a, err = NewApp(&config.EnvConfig{}, appLogger, k8sClient, imageSourceConfigMapClient, k8sManager.GetScheme(), reqAuthN, reqAuthZ)
+	a, err = NewApp(&config.EnvConfig{}, appLogger, k8sClient, imageSourceConfigMapClient, clientset, k8sManager.GetScheme(), reqAuthN, reqAuthZ)
 	Expect(err).NotTo(HaveOccurred())
 
 	go func() {
