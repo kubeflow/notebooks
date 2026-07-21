@@ -1124,8 +1124,8 @@ class EditWorkspaceKind {
   }
 
   assertErrorToastVisible() {
-    cy.get('.pf-v6-c-alert-group[aria-live="polite"]')
-      .find('.pf-v6-c-alert.pf-m-danger')
+    cy.findByTestId('toast-notification-group')
+      .findByTestId('toast-notification-danger')
       .should('exist');
   }
 

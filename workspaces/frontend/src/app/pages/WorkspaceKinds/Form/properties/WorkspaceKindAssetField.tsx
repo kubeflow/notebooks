@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   FormFieldGroup,
   FormFieldGroupHeader,
@@ -29,7 +29,7 @@ export const WorkspaceKindAssetField: React.FC<WorkspaceKindAssetFieldProps> = (
   asset,
   onChange,
 }) => {
-  const [mode, setMode] = useState<AssetMode>('url');
+  const mode: AssetMode = asset.configMap ? 'configMap' : 'url';
 
   return (
     <FormFieldGroup
@@ -58,7 +58,6 @@ export const WorkspaceKindAssetField: React.FC<WorkspaceKindAssetFieldProps> = (
               label="URL"
               isChecked={mode === 'url'}
               onChange={() => {
-                setMode('url');
                 onChange({ url: '' });
               }}
             />
@@ -71,7 +70,6 @@ export const WorkspaceKindAssetField: React.FC<WorkspaceKindAssetFieldProps> = (
               label="ConfigMap"
               isChecked={mode === 'configMap'}
               onChange={() => {
-                setMode('configMap');
                 onChange({
                   configMap: {
                     name: '',
@@ -116,6 +114,13 @@ export const WorkspaceKindAssetField: React.FC<WorkspaceKindAssetFieldProps> = (
             label="Name"
             isRequired
             fieldId={`${fieldIdPrefix}-config-map-name`}
+            helperTextNode={
+              <HelperText>
+                <HelperTextItem icon={<InfoCircleIcon />}>
+                  Name of the ConfigMap containing the asset data
+                </HelperTextItem>
+              </HelperText>
+            }
           >
             <TextInput
               isRequired
@@ -134,6 +139,13 @@ export const WorkspaceKindAssetField: React.FC<WorkspaceKindAssetFieldProps> = (
             label="Namespace"
             isRequired
             fieldId={`${fieldIdPrefix}-config-map-namespace`}
+            helperTextNode={
+              <HelperText>
+                <HelperTextItem icon={<InfoCircleIcon />}>
+                  Namespace where the ConfigMap is located
+                </HelperTextItem>
+              </HelperText>
+            }
           >
             <TextInput
               isRequired
@@ -149,16 +161,9 @@ export const WorkspaceKindAssetField: React.FC<WorkspaceKindAssetFieldProps> = (
             />
           </ThemeAwareFormGroupWrapper>
           <ThemeAwareFormGroupWrapper
-            label="Key"
+            label="ConfigMap Key"
             isRequired
             fieldId={`${fieldIdPrefix}-config-map-key`}
-            helperTextNode={
-              <HelperText>
-                <HelperTextItem icon={<InfoCircleIcon />}>
-                  Only letters, digits, hyphens, dots, or underscores
-                </HelperTextItem>
-              </HelperText>
-            }
           >
             <TextInput
               isRequired
@@ -176,6 +181,13 @@ export const WorkspaceKindAssetField: React.FC<WorkspaceKindAssetFieldProps> = (
           <ThemeAwareFormGroupWrapper
             label="Media Type"
             fieldId={`${fieldIdPrefix}-config-map-media-type`}
+            helperTextNode={
+              <HelperText>
+                <HelperTextItem icon={<InfoCircleIcon />}>
+                  Only SVG media type is currently supported
+                </HelperTextItem>
+              </HelperText>
+            }
           >
             <TextInput
               type="text"

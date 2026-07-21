@@ -35,7 +35,7 @@ class CreateWorkspaceKind {
   }
 
   findErrorToast() {
-    return cy.get('.pf-v6-c-alert-group[aria-live="polite"]').find('.pf-v6-c-alert.pf-m-danger');
+    return cy.findByTestId('toast-notification-group').findByTestId('toast-notification-danger');
   }
 
   assertErrorAlertContainsMessage(message: string) {

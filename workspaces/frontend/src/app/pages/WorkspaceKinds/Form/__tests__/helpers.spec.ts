@@ -3,6 +3,7 @@ import { mockPodConfig } from '~/__mocks__/mockResources';
 import { WorkspaceKindFormData, WorkspaceKindPodConfigValue, ImagePullPolicy } from '~/app/types';
 import {
   WorkspacekindsWorkspaceKindUpdate,
+  V1Beta1WorkspaceKindAssetMediaType,
   V1PullPolicy,
   V1ResourceList,
 } from '~/generated/data-contracts';
@@ -81,7 +82,7 @@ const buildMockApiUpdate = (
   ...overrides,
 });
 
-const buildMockFormData = (): WorkspaceKindFormData => ({
+const buildMockFormData = (overrides?: Partial<WorkspaceKindFormData>): WorkspaceKindFormData => ({
   properties: {
     displayName: 'Test WK',
     description: 'A test workspace kind',
@@ -137,6 +138,7 @@ const buildMockFormData = (): WorkspaceKindFormData => ({
       },
     },
   },
+  ...overrides,
 });
 
 describe('getResources', () => {
@@ -171,7 +173,7 @@ describe('getResources', () => {
     expect(gpu?.id).toMatch(/nvidia\.com\/gpu-/);
   });
 
-  it(' handle empty or missing resources and return default CPU and memory entries', () => {
+  it('should handle empty or missing resources and return default CPU and memory entries', () => {
     const emptyConfig: WorkspaceKindPodConfigValue = {
       id: 'test-config',
       displayName: 'Test Config',
@@ -328,5 +330,84 @@ describe('convertFormDataToUpdate', () => {
     expect(result.spawner.deprecationMessage).toBeUndefined();
     expect(result.spawner.icon).toEqual({ url: undefined });
     expect(result.spawner.logo).toEqual({ url: undefined });
+  });
+
+  it('should use configMap-based icon when configMap is set', () => {
+    const formData = buildMockFormData({
+      properties: {
+        displayName: 'Test WK',
+        description: 'A test workspace kind',
+        deprecated: false,
+        deprecationMessage: '',
+        hidden: false,
+        icon: {
+          configMap: {
+            name: 'my-icons',
+            namespace: 'default',
+            key: 'icon.svg',
+            mediaType: V1Beta1WorkspaceKindAssetMediaType.WorkspaceKindAssetMediaTypeSVG,
+          },
+        },
+        logo: { url: 'https://example.com/logo.png' },
+      },
+    });
+    const original = buildMockApiUpdate();
+    const result = convertFormDataToUpdate(formData, original);
+
+    expect(result.spawner.icon).toEqual({
+      configMap: {
+        name: 'my-icons',
+        namespace: 'default',
+        key: 'icon.svg',
+        mediaType: V1Beta1WorkspaceKindAssetMediaType.WorkspaceKindAssetMediaTypeSVG,
+      },
+    });
+    expect(result.spawner.logo).toEqual({ url: 'https://example.com/logo.png' });
+  });
+
+  it('should use configMap-based logo when configMap is set', () => {
+    const formData = buildMockFormData({
+      properties: {
+        displayName: 'Test WK',
+        description: 'A test workspace kind',
+        deprecated: false,
+        deprecationMessage: '',
+        hidden: false,
+        icon: { url: 'https://example.com/icon.png' },
+        logo: {
+          configMap: {
+            name: 'my-logos',
+            namespace: 'kubeflow',
+            key: 'logo.svg',
+            mediaType: V1Beta1WorkspaceKindAssetMediaType.WorkspaceKindAssetMediaTypeSVG,
+          },
+        },
+      },
+    });
+    const original = buildMockApiUpdate();
+    const result = convertFormDataToUpdate(formData, original);
+
+    expect(result.spawner.icon).toEqual({ url: 'https://example.com/icon.png' });
+    expect(result.spawner.logo).toEqual({
+      configMap: {
+        name: 'my-logos',
+        namespace: 'kubeflow',
+        key: 'logo.svg',
+        mediaType: V1Beta1WorkspaceKindAssetMediaType.WorkspaceKindAssetMediaTypeSVG,
+      },
+    });
+  });
+
+  it('should preserve the original volumeMounts.home (immutable field)', () => {
+    const formData = buildMockFormData({
+      podTemplate: {
+        podMetadata: { labels: {}, annotations: {} },
+        volumeMounts: { home: '/home/changed-by-user' },
+      },
+    });
+    const original = buildMockApiUpdate();
+    const result = convertFormDataToUpdate(formData, original);
+
+    expect(result.podTemplate.volumeMounts).toEqual({ home: '/home/jovyan' });
   });
 });

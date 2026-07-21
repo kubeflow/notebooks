@@ -249,9 +249,7 @@ export const convertFormDataToUpdate = (
       labels: formData.podTemplate.podMetadata.labels,
       annotations: formData.podTemplate.podMetadata.annotations,
     },
-    volumeMounts: {
-      home: formData.podTemplate.volumeMounts.home,
-    },
+    volumeMounts: original.podTemplate.volumeMounts,
     culling: formData.podTemplate.culling
       ? {
           enabled: formData.podTemplate.culling.enabled,

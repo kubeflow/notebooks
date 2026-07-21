@@ -47,7 +47,7 @@ export const WorkspaceKindDetailsOverview: React.FunctionComponent<
     </DescriptionListGroup>
     <Divider />
     <DescriptionListGroup>
-      <DescriptionListTerm style={{ alignSelf: 'center' }}>Icon</DescriptionListTerm>
+      <DescriptionListTerm style={{ alignSelf: 'center' }}>Icon Source</DescriptionListTerm>
       <DescriptionListDescription>
         <WorkspaceKindImage
           imageSrc={workspaceKind.icon.url}
@@ -65,7 +65,7 @@ export const WorkspaceKindDetailsOverview: React.FunctionComponent<
           {(validSrc) => <img src={validSrc} alt={workspaceKind.name} style={{ width: '40px' }} />}
         </WorkspaceKindImage>
       </DescriptionListDescription>
-      <DescriptionListTerm style={{ alignSelf: 'center' }}>Icon URL</DescriptionListTerm>
+      <DescriptionListTerm style={{ alignSelf: 'center' }}>Source Type</DescriptionListTerm>
       <DescriptionListDescription>
         <a href={workspaceKind.icon.url} target="_blank" rel="noreferrer">
           {workspaceKind.icon.url}
@@ -74,7 +74,7 @@ export const WorkspaceKindDetailsOverview: React.FunctionComponent<
     </DescriptionListGroup>
     <Divider />
     <DescriptionListGroup>
-      <DescriptionListTerm style={{ alignSelf: 'center' }}>Logo</DescriptionListTerm>
+      <DescriptionListTerm style={{ alignSelf: 'center' }}>Logo Source</DescriptionListTerm>
       <DescriptionListDescription>
         <WorkspaceKindImage
           imageSrc={workspaceKind.logo.url}
@@ -92,7 +92,7 @@ export const WorkspaceKindDetailsOverview: React.FunctionComponent<
           {(validSrc) => <img src={validSrc} alt={workspaceKind.name} style={{ width: '40px' }} />}
         </WorkspaceKindImage>
       </DescriptionListDescription>
-      <DescriptionListTerm style={{ alignSelf: 'center' }}>Logo URL</DescriptionListTerm>
+      <DescriptionListTerm style={{ alignSelf: 'center' }}>Source Type</DescriptionListTerm>
       <DescriptionListDescription>
         <a href={workspaceKind.logo.url} target="_blank" rel="noreferrer">
           {workspaceKind.logo.url}

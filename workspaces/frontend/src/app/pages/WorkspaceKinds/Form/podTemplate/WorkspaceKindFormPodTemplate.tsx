@@ -8,11 +8,9 @@ import {
 import { ExpandableSection } from '@patternfly/react-core/dist/esm/components/ExpandableSection';
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
-import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import { WorkspaceKindPodTemplateData, WorkspacesPodVolumeMountValue } from '~/app/types';
 import { EditableRowsTable } from '~/app/pages/WorkspaceKinds/Form/EditableRowsTable';
 import { ResourceInputWrapper } from '~/shared/components/ResourceInputWrapper';
-import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { WorkspaceFormPropertiesVolumes } from '~/app/pages/Workspaces/Form/properties/WorkspaceFormPropertiesVolumes';
 
 interface WorkspaceKindFormPodTemplateProps {
@@ -186,27 +184,7 @@ export const WorkspaceKindFormPodTemplate: React.FC<WorkspaceKindFormPodTemplate
               }
             />
           }
-        >
-          <ThemeAwareFormGroupWrapper
-            label="Home Volume Path"
-            isRequired
-            fieldId="workspace-kind-volume-mounts-home"
-          >
-            <TextInput
-              isRequired
-              type="text"
-              value={podTemplate.volumeMounts.home}
-              onChange={(_, value) =>
-                updatePodTemplate({
-                  ...podTemplate,
-                  volumeMounts: { ...podTemplate.volumeMounts, home: value },
-                })
-              }
-              id="workspace-kind-volume-mounts-home"
-              data-testid="workspace-kind-volume-mounts-home-input"
-            />
-          </ThemeAwareFormGroupWrapper>
-        </FormFieldGroup>
+        />
         <FormFieldGroup
           aria-label="Additional Volumes"
           header={
