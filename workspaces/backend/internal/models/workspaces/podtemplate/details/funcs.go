@@ -17,7 +17,7 @@ limitations under the License.
 package details
 
 import (
-	ptr "k8s.io/utils/ptr"
+	"k8s.io/utils/ptr"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 
