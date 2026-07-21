@@ -211,8 +211,10 @@ spec:
                 properties:
                   lastActivity:
                     default: 0
-                    description: the last time activity was observed on the Workspace
-                      (UNIX epoch in milliseconds)
+                    description: |-
+                      the last time activity was observed on the Workspace (UNIX epoch in milliseconds)
+                       - this is the value returned by the activity probe, not the time the probe was run
+                       - not updated when a probe fails
                     example: 1704067200000
                     format: int64
                     type: integer
@@ -253,8 +255,10 @@ spec:
                     type: object
                   lastUpdate:
                     default: 0
-                    description: the last time we checked for activity on the Workspace
-                      (UNIX epoch in milliseconds)
+                    description: |-
+                      the end time of the last successful probe (UNIX epoch in milliseconds)
+                       - not updated when a probe fails
+                       - used to determine when the next probe should run
                     example: 1704067200000
                     format: int64
                     type: integer
@@ -283,7 +287,8 @@ spec:
                 default: 0
                 description: |-
                   the last time the Workspace entered a Running state (UNIX epoch in milliseconds)
-                   - set to 0 when the Workspace has never been in a Running state
+                   - used to compute running duration for `minRunningSeconds` activity guard
+                   - set to 0 when the Workspace has never been in a Running state```
                 example: 1704060000000
                 format: int64
                 type: integer

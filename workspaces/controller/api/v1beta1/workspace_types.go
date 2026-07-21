@@ -180,7 +180,8 @@ type WorkspaceStatus struct {
 	Activity WorkspaceActivity `json:"activity"`
 
 	// the last time the Workspace entered a Running state (UNIX epoch in milliseconds)
-	//  - set to 0 when the Workspace has never been in a Running state
+	//  - used to compute running duration for `minRunningSeconds` activity guard
+	//  - set to 0 when the Workspace has never been in a Running state```
 	// +kubebuilder:default=0
 	// +kubebuilder:example=1704060000000
 	LastRunningTime int64 `json:"lastRunningTime"`
@@ -217,11 +218,15 @@ type WorkspaceStatus struct {
 
 type WorkspaceActivity struct {
 	// the last time activity was observed on the Workspace (UNIX epoch in milliseconds)
+	//  - this is the value returned by the activity probe, not the time the probe was run
+	//  - not updated when a probe fails
 	// +kubebuilder:default=0
 	// +kubebuilder:example=1704067200000
 	LastActivity int64 `json:"lastActivity"`
 
-	// the last time we checked for activity on the Workspace (UNIX epoch in milliseconds)
+	// the end time of the last successful probe (UNIX epoch in milliseconds)
+	//  - not updated when a probe fails
+	//  - used to determine when the next probe should run
 	// +kubebuilder:default=0
 	// +kubebuilder:example=1704067200000
 	LastUpdate int64 `json:"lastUpdate"`
@@ -235,6 +240,7 @@ type WorkspaceActivity struct {
 	Rules *WorkspaceActivityRules `json:"rules,omitempty"`
 }
 
+// WorkspaceActivityLastProbe defines the result of the most recent activity probe execution
 type WorkspaceActivityLastProbe struct {
 	// the time the probe was started (UNIX epoch in milliseconds)
 	// +kubebuilder:example=1710435303000
@@ -254,6 +260,8 @@ type WorkspaceActivityLastProbe struct {
 	Message string `json:"message"`
 }
 
+// WorkspaceProbeResult defines the possible outcomes of an activity probe execution
+//
 // +kubebuilder:validation:Enum:={"Success","Failure","Timeout"}
 type WorkspaceProbeResult string
 
@@ -263,12 +271,14 @@ const (
 	WorkspaceProbeResultTimeout WorkspaceProbeResult = "Timeout"
 )
 
+// WorkspaceActivityRules defines the evaluation state for activity-based rules
 type WorkspaceActivityRules struct {
 	// rule evaluation state for the pauseWorkspace effect
 	// +kubebuilder:validation:Optional
 	PauseWorkspace *WorkspaceActivityPauseRule `json:"pauseWorkspace,omitempty"`
 }
 
+// WorkspaceActivityPauseRule defines the evaluation state for the activity-based pauseWorkspace effect
 type WorkspaceActivityPauseRule struct {
 	// the time after which if the rule is evaluated the Workspace would be paused (UNIX epoch in milliseconds)
 	// +kubebuilder:example=1707667200000
