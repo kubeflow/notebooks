@@ -44,6 +44,7 @@ type WorkspaceDetailPod struct {
 type WorkspaceDetailContainer struct {
 	Name string `json:"name"`
 }
+
 type PodVolumeInfo struct {
 	PVCName   string `json:"pvcName"`
 	MountPath string `json:"mountPath"`
