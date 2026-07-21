@@ -185,10 +185,10 @@ func main() {
 		logger,
 		mgr.GetClient(),
 		imageSourceConfigMapClient,
-		clientset,
 		mgr.GetScheme(),
 		reqAuthN,
 		reqAuthZ,
+		clientset,
 	)
 	if err != nil {
 		logger.Error("failed to create app", "error", err)

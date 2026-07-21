@@ -94,9 +94,9 @@ func (a *App) GetWorkspaceLogsHandler(w http.ResponseWriter, r *http.Request, ps
 	if err != nil {
 		switch {
 		case errors.Is(err, repository.ErrWorkspaceNotFound):
-			a.notFoundResponse(w, r)
+			a.notFoundResponseWithMessage(w, r, err)
 		case errors.Is(err, repository.ErrPreviousLogsNotFound):
-			a.notFoundResponse(w, r)
+			a.conflictResponse(w, r, err, nil)
 		case errors.Is(err, repository.ErrPodNotRunning):
 			a.conflictResponse(w, r, err, nil)
 		case errors.Is(err, repository.ErrContainerNotFound):

@@ -123,7 +123,14 @@ func (r *LogsRepository) resolvePodAndContainer(ctx context.Context, namespace, 
 	}
 
 	if opts.Container != "" {
+		// A requested container may be a regular container or an init container
+		// (e.g. an istio-proxy native sidecar), both of which have retrievable logs.
 		for _, c := range podStatus.Containers {
+			if c.Name == opts.Container {
+				return podName, opts.Container, nil
+			}
+		}
+		for _, c := range podStatus.InitContainers {
 			if c.Name == opts.Container {
 				return podName, opts.Container, nil
 			}
@@ -131,6 +138,7 @@ func (r *LogsRepository) resolvePodAndContainer(ctx context.Context, namespace, 
 		return "", "", ErrContainerNotFound
 	}
 
+	// Default to the primary (first regular) container when none is requested.
 	if len(podStatus.Containers) > 0 {
 		return podName, podStatus.Containers[0].Name, nil
 	}

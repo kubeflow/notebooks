@@ -17,7 +17,9 @@ limitations under the License.
 package api
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -30,6 +32,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
+	repository "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/logs"
 )
 
 var _ = Describe("Workspace Logs Handler", func() {
@@ -101,7 +104,7 @@ var _ = Describe("Workspace Logs Handler", func() {
 
 	Context("with a non-existent workspace", func() {
 
-		It("should return 404 when the workspace does not exist", func() {
+		It("should return 404 with a descriptive message when the workspace does not exist", func() {
 			By("creating the HTTP request for a missing workspace")
 			req, ps := buildLogsRequest("logs-ns", "does-not-exist", "")
 
@@ -113,6 +116,14 @@ var _ = Describe("Workspace Logs Handler", func() {
 
 			By("verifying status is 404 Not Found")
 			Expect(rs.StatusCode).To(Equal(http.StatusNotFound))
+
+			By("verifying the response carries the specific 'workspace not found' message")
+			body, err := io.ReadAll(rs.Body)
+			Expect(err).NotTo(HaveOccurred())
+			var envelope ErrorEnvelope
+			Expect(json.Unmarshal(body, &envelope)).To(Succeed())
+			Expect(envelope.Error).NotTo(BeNil())
+			Expect(envelope.Error.Message).To(Equal(repository.ErrWorkspaceNotFound.Error()))
 		})
 	})
 

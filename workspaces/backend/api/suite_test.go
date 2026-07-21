@@ -155,7 +155,7 @@ var _ = BeforeSuite(func() {
 
 	By("creating the application")
 	// NOTE: we use the `k8sClient` rather than `k8sManager.GetClient()` to avoid race conditions with the cached client
-	a, err = NewApp(&config.EnvConfig{}, appLogger, k8sClient, imageSourceConfigMapClient, clientset, k8sManager.GetScheme(), reqAuthN, reqAuthZ)
+	a, err = NewApp(&config.EnvConfig{}, appLogger, k8sClient, imageSourceConfigMapClient, k8sManager.GetScheme(), reqAuthN, reqAuthZ, clientset)
 	Expect(err).NotTo(HaveOccurred())
 
 	go func() {
