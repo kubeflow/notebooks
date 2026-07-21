@@ -23,7 +23,11 @@ interface WorkspaceResourcesProps {
 }
 
 export const WorkspaceResources: React.FC<WorkspaceResourcesProps> = ({ workspace }) => {
-  const workspaceDataVol = workspace.podTemplate.volumes.data;
+  // The generated type marks `data` as required, but the backend omits it when
+  // there's no data volume, so it can actually be undefined at runtime.
+  // TODO: This can be dropped once the frontend client is regenerated.
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const workspaceDataVol = workspace.podTemplate.volumes.data ?? [];
 
   const singleDataVolRenderer = (
     data: {
