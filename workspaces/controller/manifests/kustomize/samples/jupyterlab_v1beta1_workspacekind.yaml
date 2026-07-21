@@ -10,7 +10,7 @@ spec:
   ## ================================================================
   activityRules:
     - config:
-        secondsSinceActive: 3600
+        secondsSinceActive: 7200
         minRunningSeconds: 300
       match:
         matchNamespace:
