@@ -244,11 +244,11 @@ type WorkspaceActivity struct {
 type WorkspaceActivityLastProbe struct {
 	// the time the probe was started (UNIX epoch in milliseconds)
 	// +kubebuilder:example=1710435303000
-	StartTimeMs int64 `json:"startTimeMs"`
+	StartTime int64 `json:"startTime"`
 
 	// the time the probe was completed (UNIX epoch in milliseconds)
 	// +kubebuilder:example=1710435305000
-	EndTimeMs int64 `json:"endTimeMs"`
+	EndTime int64 `json:"endTime"`
 
 	// the result of the last probe execution
 	Result WorkspaceProbeResult `json:"result"`

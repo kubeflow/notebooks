@@ -221,7 +221,7 @@ spec:
                   lastProbe:
                     description: probe result tracking
                     properties:
-                      endTimeMs:
+                      endTime:
                         description: the time the probe was completed (UNIX epoch
                           in milliseconds)
                         example: 1710435305000
@@ -241,17 +241,17 @@ spec:
                         - Failure
                         - Timeout
                         type: string
-                      startTimeMs:
+                      startTime:
                         description: the time the probe was started (UNIX epoch in
                           milliseconds)
                         example: 1710435303000
                         format: int64
                         type: integer
                     required:
-                    - endTimeMs
+                    - endTime
                     - message
                     - result
-                    - startTimeMs
+                    - startTime
                     type: object
                   lastUpdate:
                     default: 0
