@@ -181,7 +181,7 @@ type WorkspaceStatus struct {
 
 	// the last time the Workspace entered a Running state (UNIX epoch in milliseconds)
 	//  - used to compute running duration for `minRunningSeconds` activity guard
-	//  - set to 0 when the Workspace has never been in a Running state```
+	//  - set to 0 when the Workspace has never been in a Running state
 	// +kubebuilder:default=0
 	// +kubebuilder:example=1704060000000
 	LastRunningTime int64 `json:"lastRunningTime"`

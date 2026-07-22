@@ -288,7 +288,7 @@ spec:
                 description: |-
                   the last time the Workspace entered a Running state (UNIX epoch in milliseconds)
                    - used to compute running duration for `minRunningSeconds` activity guard
-                   - set to 0 when the Workspace has never been in a Running state```
+                   - set to 0 when the Workspace has never been in a Running state
                 example: 1704060000000
                 format: int64
                 type: integer
