@@ -113,7 +113,10 @@ describe('useWorkspaceFormData', () => {
       podConfig: mockWorkspace.podTemplate.options.podConfig.current.id,
       properties: {
         workspaceName: mockWorkspace.name,
-        volumes: mockWorkspace.podTemplate.volumes.data.map((v) => ({ ...v, isAttached: true })),
+        volumes: (mockWorkspace.podTemplate.volumes.data ?? []).map((v) => ({
+          ...v,
+          isAttached: true,
+        })),
         secrets: (mockWorkspace.podTemplate.volumes.secrets ?? []).map((s) => ({
           ...s,
           isAttached: true,

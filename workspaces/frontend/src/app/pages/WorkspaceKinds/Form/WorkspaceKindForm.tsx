@@ -138,17 +138,7 @@ const convertToFormData = (
       volumeMounts: {
         home: podTemplate.volumeMounts.home,
       },
-      culling: podTemplate.culling
-        ? {
-            enabled: podTemplate.culling.enabled ?? true,
-            maxInactiveSeconds: podTemplate.culling.maxInactiveSeconds ?? 86400,
-            activityProbe: {
-              jupyter: {
-                lastActivity: podTemplate.culling.activityProbe.jupyter?.lastActivity ?? false,
-              },
-            },
-          }
-        : undefined,
+      activityProbe: podTemplate.activityProbe,
     },
   };
 };

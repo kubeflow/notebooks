@@ -14,6 +14,7 @@ import {
   ApiErrorEnvelope,
   ApiWorkspaceActionPauseEnvelope,
   ApiWorkspaceCreateEnvelope,
+  ApiWorkspaceDetailsEnvelope,
   ApiWorkspaceEnvelope,
   ApiWorkspaceListEnvelope,
 } from './data-contracts';
@@ -195,6 +196,27 @@ export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityD
       method: 'POST',
       body: body,
       type: ContentType.Json,
+      format: 'json',
+      ...params,
+    });
+  /**
+   * @description Returns detail-level data for the workspace details overlay (volumes, secrets, pod info).
+   *
+   * @tags workspaces
+   * @name GetWorkspacePodTemplateDetails
+   * @summary Get workspace pod template details
+   * @request GET:/workspaces/{namespace}/{name}/podtemplate/details
+   * @response `200` `ApiWorkspaceDetailsEnvelope` Successful operation.
+   * @response `401` `ApiErrorEnvelope` Unauthorized.
+   * @response `403` `ApiErrorEnvelope` Forbidden.
+   * @response `404` `ApiErrorEnvelope` Workspace not found.
+   * @response `422` `ApiErrorEnvelope` Unprocessable Entity. Validation error.
+   * @response `500` `ApiErrorEnvelope` Internal server error.
+   */
+  getWorkspacePodTemplateDetails = (namespace: string, name: string, params: RequestParams = {}) =>
+    this.request<ApiWorkspaceDetailsEnvelope, ApiErrorEnvelope>({
+      path: `/workspaces/${namespace}/${name}/podtemplate/details`,
+      method: 'GET',
       format: 'json',
       ...params,
     });

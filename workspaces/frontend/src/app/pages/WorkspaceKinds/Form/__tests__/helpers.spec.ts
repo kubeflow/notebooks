@@ -71,13 +71,6 @@ const buildMockApiUpdate = (
     ports: [{ id: 'http', defaultDisplayName: 'HTTP', protocol: 'HTTP' as never }],
     serviceAccount: { name: 'default-editor' },
     volumeMounts: { home: '/home/jovyan' },
-    culling: {
-      enabled: true,
-      maxInactiveSeconds: 3600,
-      activityProbe: {
-        jupyter: { lastActivity: true },
-      },
-    },
   },
   ...overrides,
 });
@@ -130,12 +123,9 @@ const buildMockFormData = (overrides?: Partial<WorkspaceKindFormData>): Workspac
       annotations: { note: 'test-annotation' },
     },
     volumeMounts: { home: '/home/jovyan' },
-    culling: {
-      enabled: true,
-      maxInactiveSeconds: 3600,
-      activityProbe: {
-        jupyter: { lastActivity: true },
-      },
+    activityProbe: {
+      probeIntervalSeconds: 3600,
+      jupyter: { lastActivity: true, portId: 'http' },
     },
   },
   ...overrides,
@@ -232,21 +222,6 @@ describe('convertFormDataToUpdate', () => {
       annotations: { note: 'test-annotation' },
     });
     expect(result.podTemplate.volumeMounts).toEqual({ home: '/home/jovyan' });
-  });
-
-  it('should preserve culling config from form data', () => {
-    const formData = buildMockFormData();
-    const original = buildMockApiUpdate();
-
-    const result = convertFormDataToUpdate(formData, original);
-
-    expect(result.podTemplate.culling).toEqual({
-      enabled: true,
-      maxInactiveSeconds: 3600,
-      activityProbe: {
-        jupyter: { lastActivity: true },
-      },
-    });
   });
 
   it('should map image config values correctly', () => {

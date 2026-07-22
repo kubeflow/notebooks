@@ -2,6 +2,7 @@ import {
   OptionsImageConfigValue,
   OptionsPodConfigValue,
   V1Beta1WorkspaceKindAsset,
+  V1Beta1ActivityProbe,
   WorkspacekindsPodMetadata,
   WorkspacekindsPodVolumeMounts,
   WorkspacekindsWorkspaceKindListItem,
@@ -108,20 +109,10 @@ export interface WorkspaceKindPodConfigData {
   default: string;
   values?: WorkspaceKindPodConfigValue[];
 }
-export interface WorkspaceKindPodCulling {
-  enabled: boolean;
-  maxInactiveSeconds: number;
-  activityProbe: {
-    jupyter: {
-      lastActivity: boolean;
-    };
-  };
-}
-
 export interface WorkspaceKindPodTemplateData {
   podMetadata: WorkspacekindsPodMetadata;
   volumeMounts: WorkspacekindsPodVolumeMounts;
-  culling?: WorkspaceKindPodCulling;
+  activityProbe?: V1Beta1ActivityProbe;
   extraVolumeMounts?: WorkspacesPodVolumeMount[];
 }
 

@@ -22,7 +22,7 @@ import {
   WorkspacesImageConfig,
   WorkspacesOptionInfo,
   WorkspacesPodConfig,
-  WorkspacesPodMetadata,
+  CommonPodMetadata,
   WorkspacesPodMetadataMutate,
   WorkspacesPodTemplate,
   WorkspacesPodTemplateMutate,
@@ -359,8 +359,8 @@ export const buildPodTemplateOptions = (
 });
 
 export const buildMockPodMetadata = (
-  podMetadata?: Partial<WorkspacesPodMetadata>,
-): WorkspacesPodMetadata => ({
+  podMetadata?: Partial<CommonPodMetadata>,
+): CommonPodMetadata => ({
   labels: { labelKey1: 'labelValue1', labelKey2: 'labelValue2' },
   annotations: { annotationKey1: 'annotationValue1', annotationKey2: 'annotationValue2' },
   ...podMetadata,
@@ -924,7 +924,7 @@ export const buildMockWorkspaceUpdateFromWorkspace = (args: {
     }),
     volumes: buildMockPodVolumesMutate({
       home: args.workspace?.podTemplate?.volumes.home?.mountPath ?? '',
-      data: args.workspace?.podTemplate?.volumes.data.map((d) => ({
+      data: args.workspace?.podTemplate?.volumes.data?.map((d) => ({
         pvcName: d.pvcName,
         mountPath: d.mountPath,
         readOnly: d.readOnly,
