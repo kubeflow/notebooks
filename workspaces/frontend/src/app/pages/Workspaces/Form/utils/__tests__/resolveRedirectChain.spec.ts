@@ -51,7 +51,7 @@ describe('resolveRedirectChain', () => {
     expect(result.finalTarget).toBe(optC);
   });
 
-  it('detects cycles and terminates the chain', () => {
+  it('detects cycles and returns undefined finalTarget', () => {
     const optA = makeOption('A', { redirect: { to: 'B' } });
     const optB = makeOption('B', { redirect: { to: 'A' } });
 
@@ -60,7 +60,7 @@ describe('resolveRedirectChain', () => {
     expect(result.chain).toHaveLength(1);
     expect(result.chain[0].source.id).toBe('A');
     expect(result.chain[0].target.id).toBe('B');
-    expect(result.finalTarget).toBe(optB);
+    expect(result.finalTarget).toBeUndefined();
   });
 
   it('handles missing target gracefully', () => {
@@ -164,7 +164,7 @@ describe('resolveRedirectChain', () => {
     expect(result.finalTarget).toBeUndefined();
   });
 
-  it('handles three-node cycle', () => {
+  it('handles three-node cycle with undefined finalTarget', () => {
     const optA = makeOption('A', { redirect: { to: 'B' } });
     const optB = makeOption('B', { redirect: { to: 'C' } });
     const optC = makeOption('C', { redirect: { to: 'A' } });
@@ -176,6 +176,6 @@ describe('resolveRedirectChain', () => {
     expect(result.chain[0].target.id).toBe('B');
     expect(result.chain[1].source.id).toBe('B');
     expect(result.chain[1].target.id).toBe('C');
-    expect(result.finalTarget).toBe(optC);
+    expect(result.finalTarget).toBeUndefined();
   });
 });

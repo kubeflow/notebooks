@@ -47,15 +47,13 @@ const selectImage = (imageId: string): void => {
   createWorkspace.checkExtraFilter('showHidden');
   createWorkspace.selectImage(imageId);
   createWorkspace.assertImageSelected(imageId);
-  createWorkspace.clickNext();
-  redirectConfirmModal.clickContinue();
+  createWorkspace.advancePastRedirectModal();
 };
 
 const selectPodConfig = (podConfigId: string): void => {
   createWorkspace.selectPodConfig(podConfigId);
   createWorkspace.assertPodConfigSelected(podConfigId);
-  createWorkspace.clickNext();
-  redirectConfirmModal.clickContinue();
+  createWorkspace.advancePastRedirectModal();
 };
 
 const buildMockImageConfigValue = (
@@ -168,8 +166,7 @@ describe('Create workspace', () => {
       createWorkspace.assertNextButtonEnabled();
 
       // Step 3: Select Pod Config
-      createWorkspace.clickNext();
-      redirectConfirmModal.clickContinue();
+      createWorkspace.advancePastRedirectModal();
       createWorkspace.assertProgressStepVisible(STEP_NAMES.POD_CONFIG);
       createWorkspace.assertNextButtonEnabled();
 
@@ -178,8 +175,7 @@ describe('Create workspace', () => {
       createWorkspace.assertNextButtonEnabled();
 
       // Step 4: Properties
-      createWorkspace.clickNext();
-      redirectConfirmModal.clickContinue();
+      createWorkspace.advancePastRedirectModal();
       createWorkspace.assertProgressStepVisible(STEP_NAMES.PROPERTIES);
       createWorkspace.assertNextButtonDisabled();
 
@@ -304,12 +300,10 @@ describe('Create workspace', () => {
       createWorkspace.checkExtraFilter('showRedirected');
       createWorkspace.checkExtraFilter('showHidden');
       createWorkspace.selectImage(mockImage.id);
-      createWorkspace.clickNext();
-      redirectConfirmModal.clickContinue();
+      createWorkspace.advancePastRedirectModal();
 
       createWorkspace.selectPodConfig(mockPodConfig.id);
-      createWorkspace.clickNext();
-      redirectConfirmModal.clickContinue();
+      createWorkspace.advancePastRedirectModal();
 
       createWorkspace.typeWorkspaceName('my-test-workspace');
 
@@ -438,8 +432,7 @@ describe('Create workspace', () => {
       createWorkspace.checkExtraFilter('showRedirected');
       createWorkspace.checkExtraFilter('showHidden');
       createWorkspace.selectImage(mockImage.id);
-      createWorkspace.clickNext();
-      redirectConfirmModal.clickContinue();
+      createWorkspace.advancePastRedirectModal();
 
       // Select first pod config
       createWorkspace.selectPodConfig(mockPodConfig.id);
@@ -479,8 +472,7 @@ describe('Create workspace', () => {
       createWorkspace.checkExtraFilter('showRedirected');
       createWorkspace.checkExtraFilter('showHidden');
       createWorkspace.selectImage(mockImage.id);
-      createWorkspace.clickNext();
-      redirectConfirmModal.clickContinue();
+      createWorkspace.advancePastRedirectModal();
 
       createWorkspace.selectPodConfig(mockPodConfig.id);
 
@@ -594,8 +586,7 @@ describe('Create workspace', () => {
       createWorkspace.checkExtraFilter('showRedirected');
       createWorkspace.checkExtraFilter('showHidden');
       createWorkspace.selectImage(mockImage.id);
-      createWorkspace.clickNext();
-      redirectConfirmModal.clickContinue();
+      createWorkspace.advancePastRedirectModal();
 
       // Select the single available pod config
       createWorkspace.selectPodConfig(mockPodConfig.id);

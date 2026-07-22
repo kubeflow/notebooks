@@ -1,6 +1,5 @@
 import { mockModArchResponse } from 'mod-arch-core';
 import { createWorkspace } from '~/__tests__/cypress/cypress/pages/workspaces/createWorkspace';
-import { redirectConfirmModal } from '~/__tests__/cypress/cypress/pages/workspaces/workspaceForm';
 import { buildMockNamespace, buildMockWorkspaceKind } from '~/shared/mock/mockBuilder';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import { navBar } from '~/__tests__/cypress/cypress/pages/components/navBar';
@@ -92,10 +91,8 @@ describe('Summary Redirect Popover - Delayed Hide Behavior', () => {
 
   describe('Pinning behavior', () => {
     it('should pin popover on icon click', () => {
-      createWorkspace.clickNext(); // Pod config
-      redirectConfirmModal.clickContinue();
-      createWorkspace.clickNext(); // Properties
-      redirectConfirmModal.clickContinue();
+      createWorkspace.advancePastRedirectModal(); // Pod config
+      createWorkspace.advancePastRedirectModal(); // Properties
 
       createWorkspace.findRedirectSummaryIcon(1, 'current').click();
       createWorkspace.assertPopoverContentVisible(1, 'current');
@@ -105,10 +102,8 @@ describe('Summary Redirect Popover - Delayed Hide Behavior', () => {
     });
 
     it('should unpin popover on second click', () => {
-      createWorkspace.clickNext(); // Pod config
-      redirectConfirmModal.clickContinue();
-      createWorkspace.clickNext(); // Properties
-      redirectConfirmModal.clickContinue();
+      createWorkspace.advancePastRedirectModal(); // Pod config
+      createWorkspace.advancePastRedirectModal(); // Properties
 
       createWorkspace.findRedirectSummaryIcon(1, 'current').click();
       createWorkspace.assertPopoverContentVisible(1, 'current');
@@ -118,10 +113,8 @@ describe('Summary Redirect Popover - Delayed Hide Behavior', () => {
     });
 
     it('should not start delayed hide timer when popover is pinned', () => {
-      createWorkspace.clickNext(); // Pod config
-      redirectConfirmModal.clickContinue();
-      createWorkspace.clickNext(); // Properties
-      redirectConfirmModal.clickContinue();
+      createWorkspace.advancePastRedirectModal(); // Pod config
+      createWorkspace.advancePastRedirectModal(); // Properties
 
       createWorkspace.findRedirectSummaryIcon(1, 'current').click();
       createWorkspace.assertPopoverContentVisible(1, 'current');
@@ -135,10 +128,8 @@ describe('Summary Redirect Popover - Delayed Hide Behavior', () => {
 
   describe('Keyboard accessibility', () => {
     it('should pin popover on Enter key', () => {
-      createWorkspace.clickNext(); // Pod config
-      redirectConfirmModal.clickContinue();
-      createWorkspace.clickNext(); // Properties
-      redirectConfirmModal.clickContinue();
+      createWorkspace.advancePastRedirectModal(); // Pod config
+      createWorkspace.advancePastRedirectModal(); // Properties
 
       createWorkspace.findRedirectSummaryIcon(1, 'current').focus();
       createWorkspace.findRedirectSummaryIcon(1, 'current').type('{enter}');
@@ -146,10 +137,8 @@ describe('Summary Redirect Popover - Delayed Hide Behavior', () => {
     });
 
     it('should pin popover on Space key', () => {
-      createWorkspace.clickNext(); // Pod config
-      redirectConfirmModal.clickContinue();
-      createWorkspace.clickNext(); // Properties
-      redirectConfirmModal.clickContinue();
+      createWorkspace.advancePastRedirectModal(); // Pod config
+      createWorkspace.advancePastRedirectModal(); // Properties
 
       createWorkspace.findRedirectSummaryIcon(1, 'current').focus();
       createWorkspace.findRedirectSummaryIcon(1, 'current').type(' ');

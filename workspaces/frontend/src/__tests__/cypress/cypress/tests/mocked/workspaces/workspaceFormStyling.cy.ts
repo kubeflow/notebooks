@@ -1,6 +1,5 @@
 import { mockModArchResponse } from 'mod-arch-core';
 import { createWorkspace } from '~/__tests__/cypress/cypress/pages/workspaces/createWorkspace';
-import { redirectConfirmModal } from '~/__tests__/cypress/cypress/pages/workspaces/workspaceForm';
 import { buildMockNamespace, buildMockWorkspaceKind } from '~/shared/mock/mockBuilder';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import { navBar } from '~/__tests__/cypress/cypress/pages/components/navBar';
@@ -175,10 +174,8 @@ describe('Workspace Form Styling', () => {
       createWorkspace.checkExtraFilter('showRedirected');
       createWorkspace.selectImage('redirect-image');
 
-      createWorkspace.clickNext(); // Pod config
-      redirectConfirmModal.clickContinue();
-      createWorkspace.clickNext(); // Properties - now at summary
-      redirectConfirmModal.clickContinue();
+      createWorkspace.advancePastRedirectModal(); // Pod config
+      createWorkspace.advancePastRedirectModal(); // Properties - now at summary
     });
 
     it('should apply summary-redirect-icon-button class to redirect icon', () => {

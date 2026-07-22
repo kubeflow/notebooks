@@ -181,7 +181,8 @@ export const WorkspaceFormRedirectConfirmModal: React.FC<
                 <p>
                   The {typeLabel} you selected <b>{selectedOption.displayName}</b> has been hidden
                   by your administrator. This option may be deprecated or unsupported. You can still
-                  use it if you are sure of your choice.
+                  use it if you are sure of your choice, or cancel and select a different{' '}
+                  {typeLabel} from the available options.
                 </p>
               </Content>
             </StackItem>
@@ -204,7 +205,7 @@ export const WorkspaceFormRedirectConfirmModal: React.FC<
           onClick={onContinue}
           data-testid="continue-button"
         >
-          Continue
+          {hasRedirect ? 'Skip Redirect' : 'Use Hidden Option'}
         </Button>
         <Button variant="link" onClick={onClose} data-testid="cancel-button">
           Cancel

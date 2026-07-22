@@ -1,6 +1,5 @@
 import { mockModArchResponse } from 'mod-arch-core';
 import { editWorkspace } from '~/__tests__/cypress/cypress/pages/workspaces/editWorkspace';
-import { redirectConfirmModal } from '~/__tests__/cypress/cypress/pages/workspaces/workspaceForm';
 import {
   secretsManagement,
   secretsAttachModal,
@@ -124,10 +123,8 @@ describe('Secrets Expandable Key/Value Pairs', () => {
     // Navigate to properties step where secrets are visible
     cy.wait('@getWorkspaceKinds');
     editWorkspace.clickNext(); // Skip workspace kind step
-    editWorkspace.clickNext(); // Skip image step
-    redirectConfirmModal.clickContinue();
-    editWorkspace.clickNext(); // Skip pod config step, now on properties
-    redirectConfirmModal.clickContinue();
+    editWorkspace.advancePastRedirectModal(); // Skip image step
+    editWorkspace.advancePastRedirectModal(); // Skip pod config step, now on properties
 
     // Expand the Secrets section (it's collapsed by default)
     cy.contains('button', 'Secrets').click();
@@ -227,10 +224,8 @@ describe('Secrets Management - Attach Modal', () => {
     cy.wait('@getWorkspace');
     cy.wait('@getWorkspaceKinds');
     editWorkspace.clickNext();
-    editWorkspace.clickNext();
-    redirectConfirmModal.clickContinue();
-    editWorkspace.clickNext();
-    redirectConfirmModal.clickContinue();
+    editWorkspace.advancePastRedirectModal();
+    editWorkspace.advancePastRedirectModal();
 
     cy.contains('button', 'Secrets').click();
   });

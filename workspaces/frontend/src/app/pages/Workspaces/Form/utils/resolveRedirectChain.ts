@@ -54,11 +54,13 @@ export const resolveRedirectChain = (
   const visited = new Set<string>([option.id]);
   const chain: WorkspacesRedirectStep[] = [];
   let current = option;
+  let cycleDetected = false;
 
   while (current.redirect) {
     const targetId = current.redirect.to;
 
     if (visited.has(targetId)) {
+      cycleDetected = true;
       break;
     }
     visited.add(targetId);
@@ -90,7 +92,7 @@ export const resolveRedirectChain = (
     return { chain, finalTarget: undefined };
   }
 
-  const finalTarget = optionsMap.get(chain[chain.length - 1].target.id);
+  const finalTarget = cycleDetected ? undefined : optionsMap.get(chain[chain.length - 1].target.id);
 
   return { chain, finalTarget };
 };
