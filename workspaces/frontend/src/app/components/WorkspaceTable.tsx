@@ -45,6 +45,7 @@ import {
   formatResourceFromWorkspace,
   formatWorkspaceIdleState,
   extractWorkspaceStateColor,
+  normalizeWorkspaceState,
   WORKSPACE_STATE_COLORS,
 } from '~/shared/utilities/WorkspaceUtils';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
@@ -131,6 +132,15 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
     },
     ref,
   ) => {
+    const normalizedWorkspaces = useMemo(
+      () =>
+        workspaces.map((ws) => ({
+          ...ws,
+          state: normalizeWorkspaceState(ws.state),
+        })),
+      [workspaces],
+    );
+
     const [workspaceKinds] = useWorkspaceKinds(namespace);
     const [activeRedirectPopover, setActiveRedirectPopover] = useState<string | null>(null);
     const [pinnedRedirectPopover, setPinnedRedirectPopover] = useState<string | null>(null);
@@ -179,8 +189,8 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       [],
     );
     const filteredWorkspaces = useMemo(
-      () => applyFilters(workspaces, filterValues, filterableProperties),
-      [workspaces, filterValues, filterableProperties],
+      () => applyFilters(normalizedWorkspaces, filterValues, filterableProperties),
+      [normalizedWorkspaces, filterValues, filterableProperties],
     );
 
     const visibleColumnKeys: WorkspaceTableColumnKeys[] = useMemo(
@@ -365,162 +375,150 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
               {sortedWorkspaces.length > 0 &&
                 sortedWorkspaces
                   .slice(perPage * (page - 1), perPage * page)
-                  .map((workspace, rowIndex) => {
-                    const displayState =
-                      workspace.state.length > 0
-                        ? workspace.state
-                        : V1Beta1WorkspaceState.WorkspaceStateUnknown;
-                    return (
-                      <Tbody id="workspaces-table-content" key={rowIndex} data-testid="table-body">
-                        <Tr
-                          id={`workspaces-table-row-${rowIndex + 1}`}
-                          data-testid={`workspace-row-${rowIndex}`}
-                          isStriped={rowIndex % 2 === 0}
-                        >
-                          {visibleColumnKeys.map((columnKey) => {
-                            if (columnKey === 'connect') {
-                              return (
-                                <Td
-                                  dataLabel={wsTableColumns[columnKey].label}
-                                  modifier="fitContent"
-                                  hasAction
-                                  key="connect"
-                                >
-                                  <TableText>
-                                    <WorkspaceConnectAction workspace={workspace} />
-                                  </TableText>
-                                </Td>
-                              );
-                            }
-
-                            if (columnKey === 'actions') {
-                              return (
-                                <Td isActionCell key="actions" data-testid="action-column">
-                                  <ActionsColumn
-                                    items={rowActions(workspace).map((action) => ({
-                                      ...action,
-                                      'data-testid': `action-${action.id || ''}`,
-                                    }))}
-                                  />
-                                </Td>
-                              );
-                            }
-
+                  .map((workspace, rowIndex) => (
+                    <Tbody id="workspaces-table-content" key={rowIndex} data-testid="table-body">
+                      <Tr
+                        id={`workspaces-table-row-${rowIndex + 1}`}
+                        data-testid={`workspace-row-${rowIndex}`}
+                        isStriped={rowIndex % 2 === 0}
+                      >
+                        {visibleColumnKeys.map((columnKey) => {
+                          if (columnKey === 'connect') {
                             return (
                               <Td
-                                key={columnKey}
-                                data-testid={
-                                  columnKey === 'name'
-                                    ? 'workspace-name'
-                                    : columnKey === 'state'
-                                      ? 'state-label'
-                                      : `workspace-${columnKey}`
-                                }
                                 dataLabel={wsTableColumns[columnKey].label}
+                                modifier="fitContent"
+                                hasAction
+                                key="connect"
                               >
-                                {columnKey === 'name' && workspace.name}
-                                {columnKey === 'image' && (
-                                  <Content>
-                                    <span data-testid="workspace-image-name">
-                                      {
-                                        workspace.podTemplate.options.imageConfig.current
-                                          .displayName
-                                      }
-                                    </span>{' '}
-                                    <RedirectIconWithPopover
-                                      redirectChain={
-                                        workspace.podTemplate.options.imageConfig.redirectChain
-                                      }
-                                      popoverId={`${workspace.name}-image`}
-                                      activePopoverId={activeRedirectPopover}
-                                      pinnedPopoverId={pinnedRedirectPopover}
-                                      onActiveChange={setActiveRedirectPopover}
-                                      onPinnedChange={setPinnedRedirectPopover}
-                                    />
-                                  </Content>
-                                )}
-                                {columnKey === 'podConfig' && (
-                                  <Content>
-                                    <span data-testid="workspace-pod-config-name">
-                                      {workspace.podTemplate.options.podConfig.current.displayName}
-                                    </span>{' '}
-                                    <RedirectIconWithPopover
-                                      redirectChain={
-                                        workspace.podTemplate.options.podConfig.redirectChain
-                                      }
-                                      popoverId={`${workspace.name}-podConfig`}
-                                      activePopoverId={activeRedirectPopover}
-                                      pinnedPopoverId={pinnedRedirectPopover}
-                                      onActiveChange={setActiveRedirectPopover}
-                                      onPinnedChange={setPinnedRedirectPopover}
-                                    />
-                                  </Content>
-                                )}
-                                {columnKey === 'kind' && (
-                                  <WorkspaceKindImage
-                                    imageSrc={kindLogoDict[workspace.workspaceKind.name]}
-                                    skeletonWidth="20px"
-                                    fallback={
-                                      <ImageFallback
-                                        imageSrc={kindLogoDict[workspace.workspaceKind.name]}
-                                      />
-                                    }
-                                    assetType="logo"
-                                    kindName={workspace.workspaceKind.name}
-                                  >
-                                    {(validSrc) => (
-                                      <Tooltip content={workspace.workspaceKind.name}>
-                                        <img
-                                          src={validSrc}
-                                          alt={workspace.workspaceKind.name}
-                                          style={{
-                                            width: '20px',
-                                            height: '20px',
-                                            cursor: 'pointer',
-                                          }}
-                                        />
-                                      </Tooltip>
-                                    )}
-                                  </WorkspaceKindImage>
-                                )}
-                                {columnKey === 'namespace' && workspace.namespace}
-                                {columnKey === 'state' && (
-                                  <div className="pf-v6-u-display-inline-block">
-                                    <Tooltip content={workspace.stateMessage || displayState}>
-                                      <Label color={extractWorkspaceStateColor(displayState)}>
-                                        {displayState}
-                                      </Label>
-                                    </Tooltip>
-                                  </div>
-                                )}
-                                {columnKey === 'gpu' &&
-                                  formatResourceFromWorkspace(workspace, 'gpu')}
-                                {columnKey === 'idleGpu' && formatWorkspaceIdleState(workspace)}
-                                {columnKey === 'lastActivity' &&
-                                  (workspace.activity.lastActivity === 0 ? (
-                                    <span className="pf-v6-c-timestamp pf-m-help-text">
-                                      unknown
-                                    </span>
-                                  ) : (
-                                    <Timestamp
-                                      date={new Date(workspace.activity.lastActivity)}
-                                      tooltip={{ variant: TimestampTooltipVariant.default }}
-                                    >
-                                      {formatDistanceToNow(
-                                        new Date(workspace.activity.lastActivity),
-                                        {
-                                          addSuffix: true,
-                                        },
-                                      )}
-                                    </Timestamp>
-                                  ))}
+                                <TableText>
+                                  <WorkspaceConnectAction workspace={workspace} />
+                                </TableText>
                               </Td>
                             );
-                          })}
-                        </Tr>
-                      </Tbody>
-                    );
-                  })}
+                          }
+
+                          if (columnKey === 'actions') {
+                            return (
+                              <Td isActionCell key="actions" data-testid="action-column">
+                                <ActionsColumn
+                                  items={rowActions(workspace).map((action) => ({
+                                    ...action,
+                                    'data-testid': `action-${action.id || ''}`,
+                                  }))}
+                                />
+                              </Td>
+                            );
+                          }
+
+                          return (
+                            <Td
+                              key={columnKey}
+                              data-testid={
+                                columnKey === 'name'
+                                  ? 'workspace-name'
+                                  : columnKey === 'state'
+                                    ? 'state-label'
+                                    : `workspace-${columnKey}`
+                              }
+                              dataLabel={wsTableColumns[columnKey].label}
+                            >
+                              {columnKey === 'name' && workspace.name}
+                              {columnKey === 'image' && (
+                                <Content>
+                                  <span data-testid="workspace-image-name">
+                                    {workspace.podTemplate.options.imageConfig.current.displayName}
+                                  </span>{' '}
+                                  <RedirectIconWithPopover
+                                    redirectChain={
+                                      workspace.podTemplate.options.imageConfig.redirectChain
+                                    }
+                                    popoverId={`${workspace.name}-image`}
+                                    activePopoverId={activeRedirectPopover}
+                                    pinnedPopoverId={pinnedRedirectPopover}
+                                    onActiveChange={setActiveRedirectPopover}
+                                    onPinnedChange={setPinnedRedirectPopover}
+                                  />
+                                </Content>
+                              )}
+                              {columnKey === 'podConfig' && (
+                                <Content>
+                                  <span data-testid="workspace-pod-config-name">
+                                    {workspace.podTemplate.options.podConfig.current.displayName}
+                                  </span>{' '}
+                                  <RedirectIconWithPopover
+                                    redirectChain={
+                                      workspace.podTemplate.options.podConfig.redirectChain
+                                    }
+                                    popoverId={`${workspace.name}-podConfig`}
+                                    activePopoverId={activeRedirectPopover}
+                                    pinnedPopoverId={pinnedRedirectPopover}
+                                    onActiveChange={setActiveRedirectPopover}
+                                    onPinnedChange={setPinnedRedirectPopover}
+                                  />
+                                </Content>
+                              )}
+                              {columnKey === 'kind' && (
+                                <WorkspaceKindImage
+                                  imageSrc={kindLogoDict[workspace.workspaceKind.name]}
+                                  skeletonWidth="20px"
+                                  fallback={
+                                    <ImageFallback
+                                      imageSrc={kindLogoDict[workspace.workspaceKind.name]}
+                                    />
+                                  }
+                                  assetType="logo"
+                                  kindName={workspace.workspaceKind.name}
+                                >
+                                  {(validSrc) => (
+                                    <Tooltip content={workspace.workspaceKind.name}>
+                                      <img
+                                        src={validSrc}
+                                        alt={workspace.workspaceKind.name}
+                                        style={{
+                                          width: '20px',
+                                          height: '20px',
+                                          cursor: 'pointer',
+                                        }}
+                                      />
+                                    </Tooltip>
+                                  )}
+                                </WorkspaceKindImage>
+                              )}
+                              {columnKey === 'namespace' && workspace.namespace}
+                              {columnKey === 'state' && (
+                                <div className="pf-v6-u-display-inline-block">
+                                  <Tooltip content={workspace.stateMessage || workspace.state}>
+                                    <Label color={extractWorkspaceStateColor(workspace.state)}>
+                                      {workspace.state}
+                                    </Label>
+                                  </Tooltip>
+                                </div>
+                              )}
+                              {columnKey === 'gpu' && formatResourceFromWorkspace(workspace, 'gpu')}
+                              {columnKey === 'idleGpu' && formatWorkspaceIdleState(workspace)}
+                              {columnKey === 'lastActivity' &&
+                                (workspace.activity.lastActivity === 0 ? (
+                                  <span className="pf-v6-c-timestamp pf-m-help-text">unknown</span>
+                                ) : (
+                                  <Timestamp
+                                    date={new Date(workspace.activity.lastActivity)}
+                                    tooltip={{ variant: TimestampTooltipVariant.default }}
+                                  >
+                                    {formatDistanceToNow(
+                                      new Date(workspace.activity.lastActivity),
+                                      {
+                                        addSuffix: true,
+                                      },
+                                    )}
+                                  </Timestamp>
+                                ))}
+                            </Td>
+                          );
+                        })}
+                      </Tr>
+                    </Tbody>
+                  ))}
               {sortedWorkspaces.length === 0 && (
                 <Tbody>
                   <Tr>
