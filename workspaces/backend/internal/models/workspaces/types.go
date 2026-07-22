@@ -115,10 +115,10 @@ type Activity struct {
 }
 
 type LastProbeInfo struct {
-	StartTimeMs int64       `json:"startTimeMs"` // Unix Epoch time in milliseconds
-	EndTimeMs   int64       `json:"endTimeMs"`   // Unix Epoch time in milliseconds
-	Result      ProbeResult `json:"result"`
-	Message     string      `json:"message"`
+	StartTime int64       `json:"startTime"` // Unix Epoch time in milliseconds
+	EndTime   int64       `json:"endTime"`   // Unix Epoch time in milliseconds
+	Result    ProbeResult `json:"result"`
+	Message   string      `json:"message"`
 }
 
 type ProbeResult string
