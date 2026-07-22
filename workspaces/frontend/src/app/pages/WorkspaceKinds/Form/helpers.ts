@@ -236,8 +236,12 @@ export const convertFormDataToUpdate = (
     deprecated: formData.properties.deprecated,
     deprecationMessage: formData.properties.deprecationMessage || undefined,
     hidden: formData.properties.hidden,
-    icon: { url: formData.properties.icon.url || undefined },
-    logo: { url: formData.properties.logo.url || undefined },
+    icon: formData.properties.icon.configMap
+      ? { configMap: formData.properties.icon.configMap }
+      : { url: formData.properties.icon.url || undefined },
+    logo: formData.properties.logo.configMap
+      ? { configMap: formData.properties.logo.configMap }
+      : { url: formData.properties.logo.url || undefined },
   },
   podTemplate: {
     ...original.podTemplate,
@@ -245,9 +249,7 @@ export const convertFormDataToUpdate = (
       labels: formData.podTemplate.podMetadata.labels,
       annotations: formData.podTemplate.podMetadata.annotations,
     },
-    volumeMounts: {
-      home: formData.podTemplate.volumeMounts.home,
-    },
+    volumeMounts: original.podTemplate.volumeMounts,
     culling: formData.podTemplate.culling
       ? {
           enabled: formData.podTemplate.culling.enabled,

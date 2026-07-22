@@ -172,6 +172,20 @@ export const WorkspaceKindFormPodTemplate: React.FC<WorkspaceKindFormPodTemplate
           </FormFieldGroup>
         )}
         <FormFieldGroup
+          aria-label="Volume Mounts"
+          header={
+            <FormFieldGroupHeader
+              titleText={{
+                text: 'Volume Mounts',
+                id: 'workspace-kind-volume-mounts',
+              }}
+              titleDescription={
+                <HelperText>Configure volume mount paths for workspaces.</HelperText>
+              }
+            />
+          }
+        />
+        <FormFieldGroup
           aria-label="Additional Volumes"
           header={
             <FormFieldGroupHeader
