@@ -60,9 +60,10 @@ type WorkspaceKindSpec struct {
 
 	// filterRules are admin-defined rules used by downstream consumers (the backend API server)
 	// to dynamically filter which WorkspaceKinds, imageConfig values, and podConfig values are
-	// visible or allowed in a given context.
+	// visible or allowed in a given context. (MUTABLE)
 	// The controller does NOT evaluate or act on these rules, it only persists and validates them.
 	// +kubebuilder:validation:Optional
+	// +listType:="atomic"
 	FilterRules []FilterRule `json:"filterRules,omitempty"`
 }
 
@@ -689,9 +690,12 @@ type FilterRule struct {
 
 	// the conditions which must ALL be satisfied for the rule to apply
 	// +kubebuilder:validation:MinItems:=1
+	// +listType:="atomic"
 	Match []FilterRuleMatch `json:"match"`
 }
 
+// FilterRuleScope defines the type of resource whose visibility a filter rule controls
+//
 // +kubebuilder:validation:Enum:={"WORKSPACE_KIND","POD_CONFIG","IMAGE_CONFIG"}
 type FilterRuleScope string
 
@@ -706,6 +710,8 @@ const (
 	FilterRuleScopeImageConfig FilterRuleScope = "IMAGE_CONFIG"
 )
 
+// FilterRuleEffect defines the effect to apply when a filter rule matches
+//
 // +kubebuilder:validation:XValidation:message="must specify at least one of 'ui' or 'api'",rule="has(self.ui) || has(self.api)"
 type FilterRuleEffect struct {
 	// rendering hints for the frontend (the item is still returned by the API)
@@ -717,31 +723,39 @@ type FilterRuleEffect struct {
 	API *FilterRuleEffectAPI `json:"api,omitempty"`
 }
 
+// FilterRuleEffectUI defines frontend rendering hints for a matched filter rule item
 type FilterRuleEffectUI struct {
 	// suggest the UI hide the matched item
 	Hide bool `json:"hide"`
 }
 
-// +kubebuilder:validation:XValidation:message="'denyMessage' may only be set when 'deny' is true",rule="!has(self.denyMessage) || self.deny"
+// FilterRuleEffectAPI defines server-enforced behavior for a matched filter rule item
+//
+// +kubebuilder:validation:XValidation:message="'denyMessage' may only be set when 'deny' is true",rule="!has(self.denyMessage) || (has(self.deny) && self.deny)"
 type FilterRuleEffectAPI struct {
 	// omit the matched item from the API response entirely
 	// +kubebuilder:validation:Optional
-	Hide bool `json:"hide"`
+	Hide *bool `json:"hide"`
 
 	// return the matched item but reject any workspace create/update which selects it
 	// +kubebuilder:validation:Optional
-	Deny bool `json:"deny"`
+	Deny *bool `json:"deny"`
 
 	// a message explaining why the matched item is denied
 	// +kubebuilder:validation:Optional
 	DenyMessage *FilterRuleDenyMessage `json:"denyMessage,omitempty"`
 }
 
+// FilterRuleDenyMessage defines the message shown when a filter rule denies a matched item
 type FilterRuleDenyMessage struct {
 	// the text of the message to show when the item is denied
+	// +kubebuilder:validation:MinLength:=2
+	// +kubebuilder:validation:MaxLength:=1024
 	Text string `json:"text"`
 }
 
+// FilterRuleMatch defines a single match condition for a filter rule
+//
 // +kubebuilder:validation:XValidation:message="must specify exactly one of 'matchNamespace', 'matchImageConfig', or 'matchPodConfig'",rule="(has(self.matchNamespace) ? 1 : 0) + (has(self.matchImageConfig) ? 1 : 0) + (has(self.matchPodConfig) ? 1 : 0) == 1"
 type FilterRuleMatch struct {
 	// match against the labels of the namespace the workspace would be created in
@@ -757,6 +771,7 @@ type FilterRuleMatch struct {
 	MatchPodConfig *FilterRuleSelector `json:"matchPodConfig,omitempty"`
 }
 
+// FilterRuleSelector wraps a standard Kubernetes label selector for use in filter rule match conditions
 type FilterRuleSelector struct {
 	// a standard Kubernetes label selector
 	Selector metav1.LabelSelector `json:"selector"`

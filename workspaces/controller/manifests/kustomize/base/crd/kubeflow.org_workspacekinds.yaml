@@ -220,7 +220,7 @@ spec:
                 description: |-
                   filterRules are admin-defined rules used by downstream consumers (the backend API server)
                   to dynamically filter which WorkspaceKinds, imageConfig values, and podConfig values are
-                  visible or allowed in a given context.
+                  visible or allowed in a given context. (MUTABLE)
                   The controller does NOT evaluate or act on these rules, it only persists and validates them.
                 items:
                   description: |-
@@ -247,6 +247,8 @@ spec:
                                 text:
                                   description: the text of the message to show when
                                     the item is denied
+                                  maxLength: 1024
+                                  minLength: 2
                                   type: string
                               required:
                               - text
@@ -259,7 +261,7 @@ spec:
                           x-kubernetes-validations:
                           - message: '''denyMessage'' may only be set when ''deny''
                               is true'
-                            rule: '!has(self.denyMessage) || self.deny'
+                            rule: '!has(self.denyMessage) || (has(self.deny) && self.deny)'
                         ui:
                           description: rendering hints for the frontend (the item
                             is still returned by the API)
@@ -278,6 +280,8 @@ spec:
                       description: the conditions which must ALL be satisfied for
                         the rule to apply
                       items:
+                        description: FilterRuleMatch defines a single match condition
+                          for a filter rule
                         properties:
                           matchImageConfig:
                             description: match against the `spawner.labels` of an
@@ -449,6 +453,7 @@ spec:
                             ? 1 : 0) + (has(self.matchPodConfig) ? 1 : 0) == 1'
                       minItems: 1
                       type: array
+                      x-kubernetes-list-type: atomic
                     scope:
                       description: the type of resource whose visibility this rule
                         controls
@@ -463,6 +468,7 @@ spec:
                   - scope
                   type: object
                 type: array
+                x-kubernetes-list-type: atomic
               podTemplate:
                 description: podTemplate is the PodTemplate used to spawn Pods to
                   run Workspaces of this WorkspaceKind

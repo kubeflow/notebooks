@@ -790,7 +790,7 @@ func NewExampleWorkspaceKindWithValidFilterRules(name string) *kubefloworgv1beta
 			Scope: kubefloworgv1beta1.FilterRuleScopeImageConfig,
 			Effect: kubefloworgv1beta1.FilterRuleEffect{
 				API: &kubefloworgv1beta1.FilterRuleEffectAPI{
-					Deny:        true,
+					Deny:        ptr.To(true),
 					DenyMessage: &kubefloworgv1beta1.FilterRuleDenyMessage{Text: "this image is not available in your namespace"},
 				},
 			},
@@ -835,7 +835,7 @@ func NewExampleWorkspaceKindWithValidFilterRules(name string) *kubefloworgv1beta
 			// using a matchPodConfig condition, which is valid at IMAGE_CONFIG scope
 			Scope: kubefloworgv1beta1.FilterRuleScopeImageConfig,
 			Effect: kubefloworgv1beta1.FilterRuleEffect{
-				API: &kubefloworgv1beta1.FilterRuleEffectAPI{Hide: true},
+				API: &kubefloworgv1beta1.FilterRuleEffectAPI{Hide: ptr.To(true)},
 			},
 			Match: []kubefloworgv1beta1.FilterRuleMatch{
 				{
@@ -1033,7 +1033,7 @@ func NewExampleWorkspaceKindWithFilterRuleDenyMessageWithoutDeny(name string) *k
 			Scope: kubefloworgv1beta1.FilterRuleScopeImageConfig,
 			Effect: kubefloworgv1beta1.FilterRuleEffect{
 				API: &kubefloworgv1beta1.FilterRuleEffectAPI{
-					Hide:        true,
+					Hide:        ptr.To(true),
 					DenyMessage: &kubefloworgv1beta1.FilterRuleDenyMessage{Text: "this image is not available"},
 				},
 			},
