@@ -145,6 +145,7 @@ export const WorkspaceKindFormPodTemplate: React.FC<WorkspaceKindFormPodTemplate
               onChange={(_, checked) => toggleActivityProbeEnabled(checked)}
               id="workspace-kind-pod-template-activity-probe-enabled"
               name="activity-probe-enabled"
+              data-testid="workspace-kind-pod-template-activity-probe-switch"
             />
           </FormGroup>
           {podTemplate.activityProbe && (

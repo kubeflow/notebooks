@@ -293,6 +293,18 @@ describe('convertFormDataToUpdate', () => {
     ]);
   });
 
+  it('should preserve culling config from form data', () => {
+    const formData = buildMockFormData();
+    const original = buildMockApiUpdate();
+
+    const result = convertFormDataToUpdate(formData, original);
+
+    expect(result.podTemplate.activityProbe).toEqual({
+      probeIntervalSeconds: 3600,
+      jupyter: { lastActivity: true, portId: 'http' },
+    });
+  });
+
   it('should convert empty string optional fields to undefined', () => {
     const formData = buildMockFormData();
     formData.properties.deprecationMessage = '';

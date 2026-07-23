@@ -177,6 +177,7 @@ export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
           min={min}
           max={max}
           step={step}
+          data-testid={`${ariaLabel}-input`}
         />
       </SplitItem>
       <SplitItem>
