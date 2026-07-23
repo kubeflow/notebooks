@@ -23,7 +23,7 @@ interface WorkspaceResourcesProps {
 }
 
 export const WorkspaceResources: React.FC<WorkspaceResourcesProps> = ({ workspace }) => {
-  const workspaceDataVol = workspace.podTemplate.volumes.data;
+  const workspaceDataVol = workspace.podTemplate.volumes.data ?? [];
 
   const singleDataVolRenderer = (
     data: {

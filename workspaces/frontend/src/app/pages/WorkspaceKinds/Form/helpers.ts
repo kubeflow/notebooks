@@ -190,15 +190,6 @@ export const EMPTY_WORKSPACE_KIND_FORM_DATA = {
       home: '',
     },
     extraVolumeMounts: [],
-    culling: {
-      enabled: false,
-      maxInactiveSeconds: 86400,
-      activityProbe: {
-        jupyter: {
-          lastActivity: true,
-        },
-      },
-    },
   },
 };
 export const emptyToleration = (): TolerationEntry => ({
@@ -250,17 +241,7 @@ export const convertFormDataToUpdate = (
       annotations: formData.podTemplate.podMetadata.annotations,
     },
     volumeMounts: original.podTemplate.volumeMounts,
-    culling: formData.podTemplate.culling
-      ? {
-          enabled: formData.podTemplate.culling.enabled,
-          maxInactiveSeconds: formData.podTemplate.culling.maxInactiveSeconds,
-          activityProbe: {
-            jupyter: {
-              lastActivity: formData.podTemplate.culling.activityProbe.jupyter.lastActivity,
-            },
-          },
-        }
-      : original.podTemplate.culling,
+    activityProbe: formData.podTemplate.activityProbe,
     options: {
       imageConfig: {
         spawner: { default: formData.imageConfig.default },
