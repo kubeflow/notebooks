@@ -1,3 +1,51 @@
+class RedirectConfirmModal {
+  find() {
+    return cy.findByTestId('redirect-confirm-modal');
+  }
+
+  assertModalVisible() {
+    return this.find().should('be.visible');
+  }
+
+  assertModalNotExists() {
+    cy.findByTestId('redirect-confirm-modal').should('not.exist');
+  }
+
+  findApplyRedirectButton() {
+    return this.find().findByTestId('apply-redirect-button');
+  }
+
+  clickApplyRedirect() {
+    return this.findApplyRedirectButton().click();
+  }
+
+  assertApplyRedirectButtonExists() {
+    return this.findApplyRedirectButton().should('exist');
+  }
+
+  assertApplyRedirectButtonNotExists() {
+    return this.find().findByTestId('apply-redirect-button').should('not.exist');
+  }
+
+  findContinueButton() {
+    return this.find().findByTestId('continue-button');
+  }
+
+  clickContinue() {
+    return this.findContinueButton().click();
+  }
+
+  findCancelButton() {
+    return this.find().findByTestId('cancel-button');
+  }
+
+  clickCancel() {
+    return this.findCancelButton().click();
+  }
+}
+
+const redirectConfirmModal = new RedirectConfirmModal();
+
 /**
  * Base class for workspace form page objects (create and edit).
  * Contains shared methods for interacting with the WorkspaceForm component.
@@ -282,6 +330,15 @@ class WorkspaceForm {
     return cy.findByTestId('summary-diff-new');
   }
 
+  /**
+   * Clicks Next and dismisses the redirect confirm modal by clicking "Keep Selection" (Continue).
+   * Use when navigating past a step that has a redirected or hidden option selected.
+   */
+  advancePastRedirectModal(): void {
+    this.clickNext();
+    redirectConfirmModal.clickContinue();
+  }
+
   findRedirectSummaryIcon(step: number, suffix: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId(`redirect-icon-${step}-${suffix}`);
   }
@@ -442,4 +499,5 @@ class SecretsCreateModal {
 }
 
 export { WorkspaceForm };
+export { redirectConfirmModal };
 export const secretsCreateModal = new SecretsCreateModal();

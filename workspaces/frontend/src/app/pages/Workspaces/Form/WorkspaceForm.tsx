@@ -33,6 +33,7 @@ import { WorkspaceFormPropertiesSelection } from '~/app/pages/Workspaces/Form/pr
 import { WorkspaceFormData } from '~/app/types';
 import usePodTemplateOptionsListValues from '~/app/hooks/usePodTemplateOptionsListValues';
 import useWorkspaceFormData from '~/app/hooks/useWorkspaceFormData';
+import { useRedirectConfirmation } from '~/app/hooks/useRedirectConfirmation';
 import { useTypedNavigate } from '~/app/routerHelper';
 import {
   ApiErrorEnvelope,
@@ -47,6 +48,7 @@ import { LoadingSpinner } from '~/app/components/LoadingSpinner';
 import { LoadError } from '~/app/components/LoadError';
 import { submitFormData } from '~/app/pages/Workspaces/Form/submitHelper';
 import { WorkspaceFormSummaryPanel } from '~/app/pages/Workspaces/Form/WorkspaceFormSummaryPanel';
+import { WorkspaceFormRedirectConfirmModal } from '~/app/pages/Workspaces/Form/WorkspaceFormRedirectConfirmModal';
 
 enum WorkspaceFormSteps {
   KindSelection,
@@ -130,6 +132,18 @@ const WorkspaceForm: React.FC = () => {
     }
   }, [allValuesData, allValuesLoaded, data.kind, data.imageConfig, data.podConfig, setData]);
 
+  // Clear podConfig when filtered values reload and the current selection is no longer compatible
+  useEffect(() => {
+    if (!filteredValuesLoaded || !filteredValuesData || !data.podConfig) {
+      return;
+    }
+    const podConfigOptions = filteredValuesData.podConfig.values ?? [];
+    const isStillValid = podConfigOptions.some((pc) => pc.id === data.podConfig);
+    if (!isStillValid) {
+      setData('podConfig', undefined);
+    }
+  }, [filteredValuesData, filteredValuesLoaded, data.podConfig, setData]);
+
   const getStepVariant = useCallback(
     (step: WorkspaceFormSteps) => {
       if (step > currentStep) {
@@ -180,11 +194,6 @@ const WorkspaceForm: React.FC = () => {
     setCurrentStep(newStep);
   }, [currentStep]);
 
-  const nextStep = useCallback(() => {
-    const newStep = currentStep + 1;
-    setCurrentStep(newStep);
-  }, [currentStep]);
-
   const navigateToStep = useCallback((step: number) => {
     setCurrentStep(step);
   }, []);
@@ -205,6 +214,79 @@ const WorkspaceForm: React.FC = () => {
       ),
     [filteredValuesData, allValuesData, data.podConfig],
   );
+
+  const handleKindSelect = useCallback(
+    (kind: WorkspacekindsWorkspaceKindListItem | undefined) => {
+      if (!kind) {
+        return;
+      }
+      if (mode === 'create') {
+        resetData();
+        setData('kind', kind);
+      }
+    },
+    [mode, resetData, setData],
+  );
+
+  const handleImageSelect = useCallback(
+    (image: OptionsImageConfigValue | undefined) => {
+      if (image) {
+        if (image.hidden || image.redirect !== undefined) {
+          imageFilterControlRef.current?.adaptFiltersForImage(image);
+        }
+        setData('imageConfig', image.id);
+      } else {
+        setData('imageConfig', undefined);
+      }
+    },
+    [setData],
+  );
+
+  const handlePodConfigSelect = useCallback(
+    (podConfig: OptionsPodConfigValue | undefined) => {
+      if (podConfig) {
+        if (podConfig.hidden || podConfig.redirect !== undefined) {
+          podConfigFilterControlRef.current?.adaptFiltersForPodConfig(podConfig);
+        }
+        setData('podConfig', podConfig.id);
+      } else {
+        setData('podConfig', undefined);
+      }
+    },
+    [setData],
+  );
+
+  const advanceStep = useCallback(() => {
+    setCurrentStep((prev) => prev + 1);
+  }, []);
+
+  const {
+    redirectInfo: currentStepRedirectInfo,
+    isModalOpen: redirectConfirmModalOpen,
+    openModal: openRedirectModal,
+    handleApplyRedirect,
+    handleContinueWithWarning,
+    closeModal: closeRedirectModal,
+  } = useRedirectConfirmation({
+    currentStep,
+    imageStep: WorkspaceFormSteps.ImageSelection,
+    podConfigStep: WorkspaceFormSteps.PodConfigSelection,
+    selectedImage,
+    selectedPodConfig,
+    allImageOptions: allValuesData?.imageConfig.values ?? [],
+    allPodConfigOptions: (filteredValuesData ?? allValuesData)?.podConfig.values ?? [],
+    onImageSelect: handleImageSelect,
+    onPodConfigSelect: handlePodConfigSelect,
+    onAdvanceStep: advanceStep,
+  });
+
+  const nextStep = useCallback(() => {
+    if (currentStepRedirectInfo.needsConfirmation) {
+      openRedirectModal();
+      return;
+    }
+    setCurrentStep(currentStep + 1);
+  }, [currentStep, currentStepRedirectInfo, openRedirectModal]);
 
   const canGoToNextStep = useMemo(
     () => currentStep < Object.keys(WorkspaceFormSteps).length / 2 - 1,
@@ -255,49 +337,6 @@ const WorkspaceForm: React.FC = () => {
   const cancel = useCallback(() => {
     navigate('workspaces');
   }, [navigate]);
-
-  const handleKindSelect = useCallback(
-    (kind: WorkspacekindsWorkspaceKindListItem | undefined) => {
-      if (!kind) {
-        return;
-      }
-      if (mode === 'create') {
-        resetData();
-        setData('kind', kind);
-      }
-    },
-    [mode, resetData, setData],
-  );
-
-  const handleImageSelect = useCallback(
-    (image: OptionsImageConfigValue | undefined) => {
-      if (image) {
-        // Clear filters if the selected image is hidden or redirected
-        if (image.hidden || image.redirect !== undefined) {
-          imageFilterControlRef.current?.adaptFiltersForImage(image);
-        }
-        setData('imageConfig', image.id);
-      } else {
-        setData('imageConfig', undefined);
-      }
-    },
-    [setData],
-  );
-
-  const handlePodConfigSelect = useCallback(
-    (podConfig: OptionsPodConfigValue | undefined) => {
-      if (podConfig) {
-        // Clear filters if the selected pod config is hidden or redirected
-        if (podConfig.hidden || podConfig.redirect !== undefined) {
-          podConfigFilterControlRef.current?.adaptFiltersForPodConfig(podConfig);
-        }
-        setData('podConfig', podConfig.id);
-      } else {
-        setData('podConfig', undefined);
-      }
-    },
-    [setData],
-  );
 
   // Get original values for edit mode diff
   const originalImage = useMemo(
@@ -549,6 +588,19 @@ const WorkspaceForm: React.FC = () => {
           </Flex>
         </DrawerContentBody>
       </DrawerContent>
+      {currentStepRedirectInfo.needsConfirmation && (
+        <WorkspaceFormRedirectConfirmModal
+          isOpen={redirectConfirmModalOpen}
+          onClose={closeRedirectModal}
+          onApplyRedirect={handleApplyRedirect}
+          onContinue={handleContinueWithWarning}
+          optionType={currentStepRedirectInfo.optionType}
+          selectedOption={currentStepRedirectInfo.selectedOption}
+          redirectChain={currentStepRedirectInfo.redirectChain}
+          finalTarget={currentStepRedirectInfo.finalTarget}
+          cycleDetected={currentStepRedirectInfo.cycleDetected}
+        />
+      )}
     </Drawer>
   );
 };

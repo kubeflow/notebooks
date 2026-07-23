@@ -94,8 +94,8 @@ describe('SecretsAttachModal', () => {
     cy.wait('@getWorkspace');
     cy.wait('@getWorkspaceKinds');
     editWorkspace.clickNext();
-    editWorkspace.clickNext();
-    editWorkspace.clickNext();
+    editWorkspace.advancePastRedirectModal();
+    editWorkspace.advancePastRedirectModal();
     cy.contains('button', 'Secrets').click();
     cy.wait('@listSecrets'); // Wait for secrets to load after expanding section
   });

@@ -10,14 +10,9 @@ import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { HiddenIconWithPopover } from '~/app/components/HiddenIconWithPopover';
 import { RedirectIconWithPopover } from '~/app/components/RedirectIconWithPopover';
 import {
-  OptionsImageConfigValue,
-  OptionsPodConfigValue,
-  WorkspacesRedirectStep,
-  WorkspacesRedirectMessageLevel,
-  OptionsRedirectMessageLevel,
-} from '~/generated/data-contracts';
-
-type OptionValue = OptionsImageConfigValue | OptionsPodConfigValue;
+  OptionValue,
+  resolveRedirectChain,
+} from '~/app/pages/Workspaces/Form/utils/resolveRedirectChain';
 
 interface WorkspaceFormOptionCardProps {
   option: OptionValue;
@@ -30,68 +25,6 @@ interface WorkspaceFormOptionCardProps {
   onActivePopoverChange: (id: string | null) => void;
   onPinnedPopoverChange: (id: string | null) => void;
 }
-
-const transformRedirectMessageLevel = (
-  level?: OptionsRedirectMessageLevel,
-): WorkspacesRedirectMessageLevel => {
-  switch (level) {
-    case OptionsRedirectMessageLevel.RedirectMessageLevelInfo:
-      return WorkspacesRedirectMessageLevel.RedirectMessageLevelInfo;
-    case OptionsRedirectMessageLevel.RedirectMessageLevelWarning:
-      return WorkspacesRedirectMessageLevel.RedirectMessageLevelWarning;
-    case OptionsRedirectMessageLevel.RedirectMessageLevelDanger:
-      return WorkspacesRedirectMessageLevel.RedirectMessageLevelDanger;
-    default:
-      return WorkspacesRedirectMessageLevel.RedirectMessageLevelInfo;
-  }
-};
-
-const transformRedirectToChain = (
-  option: OptionValue,
-  allOptions: OptionValue[],
-): WorkspacesRedirectStep[] | undefined => {
-  if (!option.redirect) {
-    return undefined;
-  }
-
-  const targetOption = allOptions.find((opt) => opt.id === option.redirect?.to);
-
-  const targetInfo = targetOption
-    ? {
-        id: targetOption.id,
-        displayName: targetOption.displayName,
-        description: targetOption.description,
-        labels: (targetOption.labels ?? []).map((label) => ({
-          key: label.key,
-          value: label.value,
-        })),
-      }
-    : {
-        id: option.redirect.to,
-        displayName: `${option.redirect.to} (not found)`,
-        description: '',
-        labels: [],
-      };
-
-  const step: WorkspacesRedirectStep = {
-    source: {
-      id: option.id,
-      displayName: option.displayName,
-      description: option.description,
-      labels: (option.labels ?? []).map((label) => ({ key: label.key, value: label.value })),
-    },
-    target: targetInfo,
-  };
-
-  if (option.redirect.message) {
-    step.message = {
-      level: transformRedirectMessageLevel(option.redirect.message.level),
-      text: option.redirect.message.text,
-    };
-  }
-
-  return [step];
-};
 
 export const WorkspaceFormOptionCard: React.FC<
   WorkspaceFormOptionCardProps & { allOptions: OptionValue[] }
@@ -107,7 +40,9 @@ export const WorkspaceFormOptionCard: React.FC<
   onPinnedPopoverChange,
   allOptions,
 }) => {
-  const redirectChain = transformRedirectToChain(option, allOptions);
+  const { chain: redirectChain } = option.redirect
+    ? resolveRedirectChain(option, allOptions)
+    : { chain: undefined };
   const cardId = option.id.replace(/ /g, '-');
   const popoverIdHidden = `hidden-${cardId}`;
   const popoverIdRedirect = `redirect-${cardId}`;

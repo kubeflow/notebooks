@@ -91,8 +91,8 @@ describe('Summary Redirect Popover - Delayed Hide Behavior', () => {
 
   describe('Pinning behavior', () => {
     it('should pin popover on icon click', () => {
-      createWorkspace.clickNext(); // Pod config
-      createWorkspace.clickNext(); // Properties
+      createWorkspace.advancePastRedirectModal(); // Pod config
+      createWorkspace.advancePastRedirectModal(); // Properties
 
       createWorkspace.findRedirectSummaryIcon(1, 'current').click();
       createWorkspace.assertPopoverContentVisible(1, 'current');
@@ -102,8 +102,8 @@ describe('Summary Redirect Popover - Delayed Hide Behavior', () => {
     });
 
     it('should unpin popover on second click', () => {
-      createWorkspace.clickNext(); // Pod config
-      createWorkspace.clickNext(); // Properties
+      createWorkspace.advancePastRedirectModal(); // Pod config
+      createWorkspace.advancePastRedirectModal(); // Properties
 
       createWorkspace.findRedirectSummaryIcon(1, 'current').click();
       createWorkspace.assertPopoverContentVisible(1, 'current');
@@ -113,8 +113,8 @@ describe('Summary Redirect Popover - Delayed Hide Behavior', () => {
     });
 
     it('should not start delayed hide timer when popover is pinned', () => {
-      createWorkspace.clickNext(); // Pod config
-      createWorkspace.clickNext(); // Properties
+      createWorkspace.advancePastRedirectModal(); // Pod config
+      createWorkspace.advancePastRedirectModal(); // Properties
 
       createWorkspace.findRedirectSummaryIcon(1, 'current').click();
       createWorkspace.assertPopoverContentVisible(1, 'current');
@@ -128,8 +128,8 @@ describe('Summary Redirect Popover - Delayed Hide Behavior', () => {
 
   describe('Keyboard accessibility', () => {
     it('should pin popover on Enter key', () => {
-      createWorkspace.clickNext(); // Pod config
-      createWorkspace.clickNext(); // Properties
+      createWorkspace.advancePastRedirectModal(); // Pod config
+      createWorkspace.advancePastRedirectModal(); // Properties
 
       createWorkspace.findRedirectSummaryIcon(1, 'current').focus();
       createWorkspace.findRedirectSummaryIcon(1, 'current').type('{enter}');
@@ -137,8 +137,8 @@ describe('Summary Redirect Popover - Delayed Hide Behavior', () => {
     });
 
     it('should pin popover on Space key', () => {
-      createWorkspace.clickNext(); // Pod config
-      createWorkspace.clickNext(); // Properties
+      createWorkspace.advancePastRedirectModal(); // Pod config
+      createWorkspace.advancePastRedirectModal(); // Properties
 
       createWorkspace.findRedirectSummaryIcon(1, 'current').focus();
       createWorkspace.findRedirectSummaryIcon(1, 'current').type(' ');
