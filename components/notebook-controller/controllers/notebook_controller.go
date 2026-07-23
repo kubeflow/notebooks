@@ -646,12 +646,16 @@ func generateVirtualServices(instance *v1beta1.Notebook) ([]*unstructured.Unstru
 			headersRequestSet = make(map[string]string)
 		}
 	}
+
+	modifyHeader := func(s string) string { return s }
+	if os.Getenv("ISTIO_DISABLE_ENVOY_HEADER_MANIPULATION") == "true" {
+		modifyHeader = escapeDynamicEnvoyValueSymbol
+	}
 	// cast from map[string]string, as SetNestedSlice needs map[string]interface{}
 	headersRequestSetInterface := make(map[string]interface{})
 	for key, element := range headersRequestSet {
-		headersRequestSetInterface[key] = element
+		headersRequestSetInterface[key] = modifyHeader(element)
 	}
-
 	// the http section of the istio VirtualService spec
 	http := []interface{}{
 		map[string]interface{}{
@@ -908,4 +912,13 @@ func (r *NotebookReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	return nil
+}
+
+// escapeDynamicEnvoyValueSymbol escapes literal percent symbols
+// of envoy's substitution commands syntax in headers.
+//
+// example: "%REQUEST_HEADER(MY_CUSTOM_HEADER)%" becomes "%%REQUEST_HEADER(MY_CUSTOM_HEADER)%%".
+// reference: https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_conn_man/headers#custom-request-response-headers
+func escapeDynamicEnvoyValueSymbol(value string) string {
+	return strings.ReplaceAll(value, "%", "%%")
 }

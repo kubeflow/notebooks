@@ -41,6 +41,7 @@ All other fields will be filled in with default value if not specified.
 |ISTIO_HOST_NOTEBOOK| Domain template used by Istio to host notebooks (e.g., `${NAMESPACE}-notebook.kubeflow.example.com`). Required if ``ISTIO_USE_NOTEBOOK_SUBDOMAINS`` is enabled. |
 |ISTIO_HOST_AUTH| Host used by Istio for handling authentication callbacks or login flows (e.g., `kubeflow.example.com`). Required if ``ISTIO_USE_NOTEBOOK_SUBDOMAINS`` is enabled. |
 |ISTIO_AUTH_PATH|Specifies the path used for authentication callbacks or redirection when integrating with an identity provider through Istio. Default is ``/oauth2/``. Only used if ``ISTIO_USE_NOTEBOOK_SUBDOMAINS`` is enabled. |
+|ISTIO_DISABLE_ENVOY_HEADER_MANIPULATION|If the value is true, [envoy's substitution commands syntax in headers](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_conn_man/headers#custom-request-response-headers). This should be enabled for security reasons because this prevents access token leakage to user-controlled notebooks. Not enabled by default.|
 |ENABLE_CULLING|If the value is true, the controller will do culling on idle notebooks. Not enabled by default.|
 |CULL_IDLE_TIME|Specifies minutes until an idle notebook will be stopped. Default is 1 day.|
 |IDLENESS_CHECK_PERIOD|Specifies minutes for the idleness check period. Default is 1 minute.|

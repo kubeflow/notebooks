@@ -313,6 +313,7 @@ func TestGenerateVirtualServices(t *testing.T) {
 		"ISTIO_HOST_NOTEBOOK",
 		"ISTIO_HOST_AUTH",
 		"ISTIO_AUTH_PATH",
+		"ISTIO_DISABLE_ENVOY_HEADER_MANIPULATION",
 	}
 	preserveEnvironment(t, cleanEnv)
 
@@ -500,6 +501,40 @@ func TestGenerateVirtualServices(t *testing.T) {
 			},
 			expectedVirtualServices: decodeUnstructuredFixture(t, "notebook_controller_virtualservice_test_rewrite.yaml"),
 			testEnv:                 map[string]string{},
+		},
+		{
+			name: "Notebooks Envoy header manipulation is disabled",
+			notebook: nbv1beta1.Notebook{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "test",
+					Namespace: "kubeflow-user",
+					Annotations: map[string]string{
+						"notebooks.kubeflow.org/http-headers-request-set": `{"X-Leaked-Token": "Example-Value %REQ(Authorization)% foobar", "X-Leaked-Value": "%PROTOCOL%"}`,
+					},
+				},
+				Status: nbv1beta1.NotebookStatus{},
+			},
+			expectedVirtualServices: decodeUnstructuredFixture(t, "notebook_controller_virtualservice_test_header_manipulation_disabled.yaml"),
+			testEnv: map[string]string{
+				"ISTIO_DISABLE_ENVOY_HEADER_MANIPULATION": "true",
+			},
+		},
+		{
+			name: "Notebooks Envoy header manipulation is enabled",
+			notebook: nbv1beta1.Notebook{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "test",
+					Namespace: "kubeflow-user",
+					Annotations: map[string]string{
+						"notebooks.kubeflow.org/http-headers-request-set": `{"X-Leaked-Token": "Example-Value %REQ(Authorization)% foobar", "X-Leaked-Value": "%PROTOCOL%"}`,
+					},
+				},
+				Status: nbv1beta1.NotebookStatus{},
+			},
+			expectedVirtualServices: decodeUnstructuredFixture(t, "notebook_controller_virtualservice_test_header_manipulation_enabled.yaml"),
+			testEnv: map[string]string{
+				"ISTIO_DISABLE_ENVOY_HEADER_MANIPULATION": "false",
+			},
 		},
 	}
 

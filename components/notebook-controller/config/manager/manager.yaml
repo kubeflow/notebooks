@@ -60,6 +60,11 @@ spec:
               configMapKeyRef:
                 name: config
                 key: ISTIO_AUTH_PATH
+          - name: ISTIO_DISABLE_ENVOY_HEADER_MANIPULATION
+            valueFrom:
+              configMapKeyRef:
+                name: config
+                key: ISTIO_DISABLE_ENVOY_HEADER_MANIPULATION
           - name: CLUSTER_DOMAIN
             valueFrom:
               configMapKeyRef:
