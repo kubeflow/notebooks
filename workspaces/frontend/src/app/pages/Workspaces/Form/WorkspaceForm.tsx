@@ -598,6 +598,7 @@ const WorkspaceForm: React.FC = () => {
           selectedOption={currentStepRedirectInfo.selectedOption}
           redirectChain={currentStepRedirectInfo.redirectChain}
           finalTarget={currentStepRedirectInfo.finalTarget}
+          cycleDetected={currentStepRedirectInfo.cycleDetected}
         />
       )}
     </Drawer>

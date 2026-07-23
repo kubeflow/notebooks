@@ -22,6 +22,7 @@ describe('resolveRedirectChain', () => {
 
     expect(result.chain).toEqual([]);
     expect(result.finalTarget).toBeUndefined();
+    expect(result.cycleDetected).toBe(false);
   });
 
   it('resolves a single-hop redirect', () => {
@@ -34,6 +35,7 @@ describe('resolveRedirectChain', () => {
     expect(result.chain[0].source.id).toBe('A');
     expect(result.chain[0].target.id).toBe('B');
     expect(result.finalTarget).toBe(optB);
+    expect(result.cycleDetected).toBe(false);
   });
 
   it('resolves a multi-hop redirect chain', () => {
@@ -61,6 +63,7 @@ describe('resolveRedirectChain', () => {
     expect(result.chain[0].source.id).toBe('A');
     expect(result.chain[0].target.id).toBe('B');
     expect(result.finalTarget).toBeUndefined();
+    expect(result.cycleDetected).toBe(true);
   });
 
   it('handles missing target gracefully', () => {
@@ -162,6 +165,23 @@ describe('resolveRedirectChain', () => {
 
     expect(result.chain).toHaveLength(0);
     expect(result.finalTarget).toBeUndefined();
+    expect(result.cycleDetected).toBe(true);
+  });
+
+  it('detects a cycle that forms mid-chain after valid hops', () => {
+    const optA = makeOption('A', { redirect: { to: 'B' } });
+    const optB = makeOption('B', { redirect: { to: 'C' } });
+    const optC = makeOption('C', { redirect: { to: 'B' } });
+
+    const result = resolveRedirectChain(optA, [optA, optB, optC]);
+
+    expect(result.chain).toHaveLength(2);
+    expect(result.chain[0].source.id).toBe('A');
+    expect(result.chain[0].target.id).toBe('B');
+    expect(result.chain[1].source.id).toBe('B');
+    expect(result.chain[1].target.id).toBe('C');
+    expect(result.finalTarget).toBeUndefined();
+    expect(result.cycleDetected).toBe(true);
   });
 
   it('handles three-node cycle with undefined finalTarget', () => {
@@ -177,5 +197,6 @@ describe('resolveRedirectChain', () => {
     expect(result.chain[1].source.id).toBe('B');
     expect(result.chain[1].target.id).toBe('C');
     expect(result.finalTarget).toBeUndefined();
+    expect(result.cycleDetected).toBe(true);
   });
 });

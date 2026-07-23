@@ -19,6 +19,7 @@ interface StepRedirectInfoConfirm {
   selectedOption: OptionValue;
   redirectChain: WorkspacesRedirectStep[] | undefined;
   finalTarget: OptionValue | undefined;
+  cycleDetected: boolean;
 }
 
 type StepRedirectInfo = StepRedirectInfoNone | StepRedirectInfoConfirm;
@@ -51,13 +52,14 @@ const buildRedirectInfo = (
   allOptions: OptionValue[],
 ): StepRedirectInfoConfirm | undefined => {
   if (selectedOption.redirect) {
-    const { chain, finalTarget } = resolveRedirectChain(selectedOption, allOptions);
+    const { chain, finalTarget, cycleDetected } = resolveRedirectChain(selectedOption, allOptions);
     return {
       needsConfirmation: true,
       optionType,
       selectedOption,
       redirectChain: chain,
       finalTarget,
+      cycleDetected,
     };
   }
   if (selectedOption.hidden) {
@@ -67,6 +69,7 @@ const buildRedirectInfo = (
       selectedOption,
       redirectChain: undefined,
       finalTarget: undefined,
+      cycleDetected: false,
     };
   }
   return undefined;

@@ -34,52 +34,42 @@ interface WorkspaceFormRedirectConfirmModalProps {
   selectedOption: OptionValue;
   redirectChain?: WorkspacesRedirectStep[];
   finalTarget?: OptionValue;
+  cycleDetected: boolean;
 }
 
-const getLevelIcon = (level?: string) => {
-  switch (level) {
-    case WorkspacesRedirectMessageLevel.RedirectMessageLevelWarning:
-      return (
-        <Icon status="warning">
-          <ExclamationTriangleIcon />
-        </Icon>
-      );
-    case WorkspacesRedirectMessageLevel.RedirectMessageLevelDanger:
-      return (
-        <Icon status="danger">
-          <ExclamationCircleIcon />
-        </Icon>
-      );
-    default:
-      return (
-        <Icon status="info">
-          <InfoCircleIcon />
-        </Icon>
-      );
-  }
+const DEFAULT_LEVEL_CONFIG = {
+  icon: InfoCircleIcon,
+  iconStatus: 'info' as const,
+  color: 'blue' as const,
+  text: 'Info',
 };
 
-const getLevelColor = (level?: string): 'blue' | 'orange' | 'red' => {
-  switch (level) {
-    case WorkspacesRedirectMessageLevel.RedirectMessageLevelWarning:
-      return 'orange';
-    case WorkspacesRedirectMessageLevel.RedirectMessageLevelDanger:
-      return 'red';
-    default:
-      return 'blue';
+const LEVEL_CONFIG: Record<
+  WorkspacesRedirectMessageLevel,
+  {
+    icon: React.ComponentType;
+    iconStatus: 'info' | 'warning' | 'danger';
+    color: 'blue' | 'orange' | 'red';
+    text: string;
   }
+> = {
+  [WorkspacesRedirectMessageLevel.RedirectMessageLevelWarning]: {
+    icon: ExclamationTriangleIcon,
+    iconStatus: 'warning',
+    color: 'orange',
+    text: 'Warning',
+  },
+  [WorkspacesRedirectMessageLevel.RedirectMessageLevelDanger]: {
+    icon: ExclamationCircleIcon,
+    iconStatus: 'danger',
+    color: 'red',
+    text: 'Danger',
+  },
+  [WorkspacesRedirectMessageLevel.RedirectMessageLevelInfo]: DEFAULT_LEVEL_CONFIG,
 };
 
-const getLevelText = (level?: string): string => {
-  switch (level) {
-    case WorkspacesRedirectMessageLevel.RedirectMessageLevelWarning:
-      return 'Warning';
-    case WorkspacesRedirectMessageLevel.RedirectMessageLevelDanger:
-      return 'Danger';
-    default:
-      return 'Info';
-  }
-};
+const getLevelConfig = (level?: WorkspacesRedirectMessageLevel) =>
+  level ? LEVEL_CONFIG[level] : DEFAULT_LEVEL_CONFIG;
 
 const optionTypeLabel = (optionType: 'image' | 'podConfig'): string =>
   optionType === 'image' ? 'image' : 'pod config';
@@ -95,13 +85,17 @@ export const WorkspaceFormRedirectConfirmModal: React.FC<
   selectedOption,
   redirectChain,
   finalTarget,
+  cycleDetected,
 }) => {
   const hasRedirect = redirectChain && redirectChain.length > 0;
   const typeLabel = optionTypeLabel(optionType);
+  const typeTitle = optionType === 'image' ? 'Image' : 'Pod Config';
 
-  const title = hasRedirect
-    ? `${optionType === 'image' ? 'Image' : 'Pod Config'} Redirect`
-    : `Hidden ${optionType === 'image' ? 'Image' : 'Pod Config'}`;
+  const title = cycleDetected
+    ? `${typeTitle} Redirect Misconfiguration`
+    : hasRedirect
+      ? `${typeTitle} Redirect`
+      : `Hidden ${typeTitle}`;
 
   return (
     <Modal
@@ -113,7 +107,18 @@ export const WorkspaceFormRedirectConfirmModal: React.FC<
       <ModalHeader title={title} titleIconVariant="warning" />
       <ModalBody>
         <Stack hasGutter>
-          {hasRedirect ? (
+          {cycleDetected ? (
+            <StackItem>
+              <Content>
+                <p>
+                  The {typeLabel} you selected (<b>{selectedOption.displayName}</b>) has a circular
+                  redirect configuration. This is a misconfiguration that should be reported to your
+                  administrator. You can still use the currently selected {typeLabel}, or cancel and
+                  choose a different option.
+                </p>
+              </Content>
+            </StackItem>
+          ) : hasRedirect ? (
             <>
               <StackItem>
                 <Content>
@@ -128,40 +133,46 @@ export const WorkspaceFormRedirectConfirmModal: React.FC<
               </StackItem>
               <StackItem>
                 <Stack hasGutter>
-                  {redirectChain.map((step, index) => (
-                    <StackItem key={index}>
-                      <Content style={{ display: 'flex', alignItems: 'baseline' }}>
-                        {getLevelIcon(step.message?.level)}
-                        <ExpandableSection
-                          toggleText={` ${step.source.displayName} → ${step.target.displayName}`}
-                        >
-                          <Stack hasGutter>
-                            {step.message && (
-                              <>
-                                <StackItem>
-                                  <Flex
-                                    alignItems={{ default: 'alignItemsCenter' }}
-                                    spaceItems={{ default: 'spaceItemsSm' }}
-                                  >
-                                    <FlexItem>
-                                      <Label color={getLevelColor(step.message.level)} isCompact>
-                                        {getLevelText(step.message.level)}
-                                      </Label>
-                                    </FlexItem>
-                                  </Flex>
-                                </StackItem>
-                                {step.message.text && (
+                  {redirectChain.map((step, index) => {
+                    const config = getLevelConfig(step.message?.level);
+                    const LevelIcon = config.icon;
+                    return (
+                      <StackItem key={index}>
+                        <Content style={{ display: 'flex', alignItems: 'baseline' }}>
+                          <Icon status={config.iconStatus}>
+                            <LevelIcon />
+                          </Icon>
+                          <ExpandableSection
+                            toggleText={` ${step.source.displayName} → ${step.target.displayName}`}
+                          >
+                            <Stack hasGutter>
+                              {step.message && (
+                                <>
                                   <StackItem>
-                                    <Content>{step.message.text}</Content>
+                                    <Flex
+                                      alignItems={{ default: 'alignItemsCenter' }}
+                                      spaceItems={{ default: 'spaceItemsSm' }}
+                                    >
+                                      <FlexItem>
+                                        <Label color={config.color} isCompact>
+                                          {config.text}
+                                        </Label>
+                                      </FlexItem>
+                                    </Flex>
                                   </StackItem>
-                                )}
-                              </>
-                            )}
-                          </Stack>
-                        </ExpandableSection>
-                      </Content>
-                    </StackItem>
-                  ))}
+                                  {step.message.text && (
+                                    <StackItem>
+                                      <Content>{step.message.text}</Content>
+                                    </StackItem>
+                                  )}
+                                </>
+                              )}
+                            </Stack>
+                          </ExpandableSection>
+                        </Content>
+                      </StackItem>
+                    );
+                  })}
                 </Stack>
               </StackItem>
               {selectedOption.hidden && (
@@ -190,7 +201,7 @@ export const WorkspaceFormRedirectConfirmModal: React.FC<
         </Stack>
       </ModalBody>
       <ModalFooter>
-        {hasRedirect && (
+        {hasRedirect && !cycleDetected && (
           <Button
             variant="primary"
             onClick={onApplyRedirect}
@@ -201,11 +212,15 @@ export const WorkspaceFormRedirectConfirmModal: React.FC<
           </Button>
         )}
         <Button
-          variant={hasRedirect ? 'secondary' : 'primary'}
+          variant={hasRedirect && !cycleDetected ? 'secondary' : 'primary'}
           onClick={onContinue}
           data-testid="continue-button"
         >
-          {hasRedirect ? 'Skip Redirect' : 'Use Hidden Option'}
+          {cycleDetected
+            ? 'Keep Current Selection'
+            : hasRedirect
+              ? 'Skip Redirect'
+              : 'Use Hidden Option'}
         </Button>
         <Button variant="link" onClick={onClose} data-testid="cancel-button">
           Cancel

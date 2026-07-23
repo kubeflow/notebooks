@@ -11,6 +11,7 @@ export type OptionValue = OptionsImageConfigValue | OptionsPodConfigValue;
 export interface RedirectChainResult {
   chain: WorkspacesRedirectStep[];
   finalTarget: OptionValue | undefined;
+  cycleDetected: boolean;
 }
 
 export const transformRedirectMessageLevel = (
@@ -47,7 +48,7 @@ export const resolveRedirectChain = (
   allOptions: OptionValue[],
 ): RedirectChainResult => {
   if (!option.redirect) {
-    return { chain: [], finalTarget: undefined };
+    return { chain: [], finalTarget: undefined, cycleDetected: false };
   }
 
   const optionsMap = new Map(allOptions.map((opt) => [opt.id, opt]));
@@ -89,10 +90,10 @@ export const resolveRedirectChain = (
   }
 
   if (chain.length === 0) {
-    return { chain, finalTarget: undefined };
+    return { chain, finalTarget: undefined, cycleDetected };
   }
 
   const finalTarget = cycleDetected ? undefined : optionsMap.get(chain[chain.length - 1].target.id);
 
-  return { chain, finalTarget };
+  return { chain, finalTarget, cycleDetected };
 };
