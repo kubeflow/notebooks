@@ -38,6 +38,7 @@ const baseImageConfigTest: OptionsImageConfigValue = {
   labels: [],
   hidden: false,
   clusterMetrics: undefined,
+  restrictions: { deny: false },
 };
 
 const basePodConfigTest: OptionsPodConfigValue = {
@@ -47,6 +48,7 @@ const basePodConfigTest: OptionsPodConfigValue = {
   labels: [],
   hidden: false,
   clusterMetrics: undefined,
+  restrictions: { deny: false },
 };
 
 describe('useWorkspaceCountPerKind', () => {

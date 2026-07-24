@@ -48,6 +48,7 @@ const buildWorkspaceKindWithOptions = (overrides: {
             description: img.description,
             labels: img.labels || [],
             hidden: img.hidden || false,
+            restrictions: { deny: false },
           })),
         },
         podConfig: {
@@ -58,6 +59,7 @@ const buildWorkspaceKindWithOptions = (overrides: {
             description: pc.description,
             labels: pc.labels || [],
             hidden: pc.hidden || false,
+            restrictions: { deny: false },
           })),
         },
       },

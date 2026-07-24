@@ -20,7 +20,11 @@ import {
   secretsDetachModal,
   secretsManagement,
 } from '~/__tests__/cypress/cypress/pages/workspaces/secretsManagement';
-import type { OptionsImageConfigValue, OptionsPodConfigValue } from '~/generated/data-contracts';
+import {
+  V1SecretType,
+  type OptionsImageConfigValue,
+  type OptionsPodConfigValue,
+} from '~/generated/data-contracts';
 
 const STEP_NAMES = {
   KIND: 'Workspace Kind',
@@ -66,6 +70,7 @@ const buildMockImageConfigValue = (
   description,
   labels: [],
   hidden: false,
+  restrictions: { deny: false },
 });
 
 const buildMockPodConfigValue = (
@@ -78,6 +83,7 @@ const buildMockPodConfigValue = (
   description,
   labels: [],
   hidden: false,
+  restrictions: { deny: false },
 });
 
 const completeAllStepsToProperties = (
@@ -1077,7 +1083,7 @@ describe('Create workspace', () => {
 
         const mockSecretResponse = {
           name: secretName,
-          type: 'Opaque',
+          type: V1SecretType.SecretTypeOpaque,
           immutable: false,
           contents: {
             [key1]: { base64: btoa(value1) },
@@ -1127,7 +1133,7 @@ describe('Create workspace', () => {
 
         const mockSecretResponse = {
           name: secretName,
-          type: 'Opaque',
+          type: V1SecretType.SecretTypeOpaque,
           immutable: false,
           contents: {
             key1: { base64: btoa('value1') },
@@ -1197,7 +1203,7 @@ describe('Create workspace', () => {
 
         const mockSecretResponse = {
           name: secretName,
-          type: 'Opaque',
+          type: V1SecretType.SecretTypeOpaque,
           immutable: false,
           contents: {
             key1: { base64: btoa('value1') },
@@ -1261,7 +1267,7 @@ describe('Create workspace', () => {
 
         const mockSecretResponse = {
           name: secretName,
-          type: 'Opaque',
+          type: V1SecretType.SecretTypeOpaque,
           immutable: false,
           contents: {
             [key1]: { base64: btoa(value1) },
@@ -1340,14 +1346,14 @@ describe('Create workspace', () => {
 
         const mockSecret1Response = {
           name: secret1,
-          type: 'Opaque',
+          type: V1SecretType.SecretTypeOpaque,
           immutable: false,
           contents: { key1: { base64: btoa('value1') } },
         };
 
         const mockSecret2Response = {
           name: secret2,
-          type: 'Opaque',
+          type: V1SecretType.SecretTypeOpaque,
           immutable: false,
           contents: { key2: { base64: btoa('value2') } },
         };
@@ -1453,6 +1459,7 @@ describe('Create workspace', () => {
       description: 'JupyterLab, CPU only',
       labels: [{ key: 'pythonVersion', value: '3.13' }],
       hidden: false,
+      restrictions: { deny: false },
     };
 
     const cudaImage: OptionsImageConfigValue = {
@@ -1465,6 +1472,7 @@ describe('Create workspace', () => {
         { key: 'gpuRequired', value: 'true' },
       ],
       hidden: false,
+      restrictions: { deny: false },
     };
 
     const smallCpuPod: OptionsPodConfigValue = {
@@ -1476,6 +1484,7 @@ describe('Create workspace', () => {
         { key: 'memory', value: '512Mi' },
       ],
       hidden: false,
+      restrictions: { deny: false },
     };
 
     const bigGpuPod: OptionsPodConfigValue = {
@@ -1488,6 +1497,7 @@ describe('Create workspace', () => {
         { key: 'gpu', value: '1' },
       ],
       hidden: false,
+      restrictions: { deny: false },
     };
 
     it('should show all images and pod configs from listValues response', () => {

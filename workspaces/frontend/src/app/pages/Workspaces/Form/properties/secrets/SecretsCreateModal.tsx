@@ -18,7 +18,7 @@ import { HelperText } from '@patternfly/react-core/dist/esm/components/HelperTex
 import { useThemeContext } from 'mod-arch-kubeflow';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
-import { SecretsSecretListItem } from '~/generated/data-contracts';
+import { SecretsSecretListItem, V1SecretType } from '~/generated/data-contracts';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import useSecret, { SecretKeyValuePair } from '~/app/hooks/useSecret';
 import { EditableRowsTable } from '~/app/pages/WorkspaceKinds/Form/EditableRowsTable';
@@ -181,9 +181,11 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
 
       if (isEditMode) {
         await api.secrets.updateSecret(selectedNamespace, secretName, {
-          type: 'Opaque',
-          immutable,
-          contents,
+          data: {
+            type: V1SecretType.SecretTypeOpaque,
+            immutable,
+            contents,
+          },
         });
         resetForm();
         setIsOpen(false);
@@ -192,7 +194,7 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
         await api.secrets.createSecret(selectedNamespace, {
           data: {
             name: secretName,
-            type: 'Opaque',
+            type: V1SecretType.SecretTypeOpaque,
             immutable,
             contents,
           },
