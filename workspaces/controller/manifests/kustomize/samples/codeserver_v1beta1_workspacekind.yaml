@@ -26,18 +26,22 @@ spec:
   ## ================================================================
   filterRules:
 
-    ## hide podConfigs in namespaces which are not labeled 'workspaces_allow_gpus=true'
-    - scope: POD_CONFIG
-      effect:
-        ui:
-          hide: true
-      match:
-        - matchNamespace:
-            selector:
-              matchExpressions:
-                - key: "workspaces_allow_gpus"
-                  operator: NotIn
-                  values: ["true"]
+  ## hide CUDA imageConfigs in namespaces that do not have NVIDIA GPUs
+  - scope: IMAGE_CONFIG
+    effect:
+      ui:
+        hide: true
+    match:
+     - matchNamespace:
+          selector:
+            matchExpressions:
+              - key: "nvidia.com/gpu"
+                 operator: DoesNotExist
+      - matchImageConfig:
+          selector:
+            matchExpressions:
+              - key: "cuda_version"
+                operator: Exists
 
   podTemplate:
     podMetadata:

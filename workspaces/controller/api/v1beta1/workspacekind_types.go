@@ -735,11 +735,11 @@ type FilterRuleEffectUI struct {
 type FilterRuleEffectAPI struct {
 	// omit the matched item from the API response entirely
 	// +kubebuilder:validation:Optional
-	Hide *bool `json:"hide"`
+	Hide *bool `json:"hide,omitempty"`
 
 	// return the matched item but reject any workspace create/update which selects it
 	// +kubebuilder:validation:Optional
-	Deny *bool `json:"deny"`
+	Deny *bool `json:"deny,omitempty"`
 
 	// a message explaining why the matched item is denied
 	// +kubebuilder:validation:Optional

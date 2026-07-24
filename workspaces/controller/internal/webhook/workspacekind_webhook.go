@@ -34,6 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -688,10 +689,11 @@ func validateFilterRules(workspaceKind *kubefloworgv1beta1.WorkspaceKind) []*fie
 
 		// each rule must specify at least one effect (one of ui.hide, api.hide, or api.deny is true)
 		effect := rule.Effect
-		hasEffect := (effect.UI != nil && effect.UI.Hide) ||
-			(effect.API != nil && ((effect.API.Hide != nil && *effect.API.Hide) || (effect.API.Deny != nil && *effect.API.Deny)))
+		hasUIEffect := effect.UI != nil && effect.UI.Hide
+		hasAPIEffect := effect.API != nil && (ptr.Deref(effect.API.Hide, false) || ptr.Deref(effect.API.Deny, false))
+		hasEffect := hasUIEffect || hasAPIEffect
 		if !hasEffect {
-			errs = append(errs, field.Invalid(rulePath.Child("effect"), effect, "must specify at least one effect: one of 'ui.hide', 'api.hide', or 'api.deny' must be true"))
+			errs = append(errs, field.Invalid(rulePath.Child("effect"), "", "must specify at least one effect: one of 'ui.hide', 'api.hide', or 'api.deny' must be true"))
 		}
 
 		matchPath := rulePath.Child("match")
