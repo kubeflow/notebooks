@@ -381,6 +381,12 @@ type ActivityProbe struct {
 	// the desired interval in seconds between successful probes.
 	// - If a probe succeeds, the controller schedules the next probe after this duration (requeuing after probeInterval).
 	// - Determines the freshness of workspace activity status used for culling inactive workspaces.
+	// - CULLING TIMING CAVEAT: a Workspace is only paused immediately after a fresh probe confirms it is still
+	//   inactive (a Workspace is never culled based on stale activity data, so an actively-used Workspace whose
+	//   user resumed activity between probes is not culled). Consequently, culling is only evaluated at probe time,
+	//   so a Workspace may keep running for up to ~probeIntervalSeconds after it first becomes eligible
+	//   (lastActivity + secondsSinceActive) before it is actually paused. Lower this value for tighter culling,
+	//   at the cost of more frequent probing.
 	// +kubebuilder:validation:Minimum:=1
 	// +kubebuilder:validation:Maximum:=31536000
 	// +kubebuilder:default:=3600
@@ -406,6 +412,9 @@ type ActivityProbePodExec struct {
 
 	// script is the script to run inside the Pod to determine if the Workspace is active.
 	// The script must meet the following requirements:
+	//  - The Pod's main container MUST provide a POSIX shell at "/bin/sh" and the "cat", "chmod",
+	//    and "rm" utilities, which the controller uses to stage and execute the script. Minimal
+	//    or distroless images without these will cause the probe to fail (and never cull).
 	//  - It must start with a shebang (e.g., "#!/usr/bin/env bash" or "#!/usr/bin/env python").
 	//  - It must exit with a 0 status code. A non-zero exit code is treated as a probe failure (Workspaces with failing probes are not culled).
 	//  - It should be idempotent and without side effects since it can be run multiple times.

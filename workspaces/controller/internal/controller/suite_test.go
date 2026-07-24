@@ -55,7 +55,8 @@ var (
 	testEnv *envtest.Environment
 	cfg     *rest.Config
 
-	k8sClient client.Client
+	k8sClient  client.Client
+	k8sManager ctrl.Manager
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -101,7 +102,7 @@ var _ = BeforeSuite(func() {
 	Expect(k8sClient).NotTo(BeNil())
 
 	By("setting up the controller manager")
-	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
+	k8sManager, err = ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: scheme.Scheme,
 		Metrics: metricsserver.Options{
 			BindAddress: "0", // disable metrics serving

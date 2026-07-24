@@ -37,6 +37,9 @@ const (
 	// to be visible to the filtered image-source cache.
 	ImageSourceLabel = "notebooks.kubeflow.org/image-source"
 
+	// ImageSourceLabelValue is the expected value of ImageSourceLabel on ConfigMaps.
+	ImageSourceLabelValue = "true"
+
 	// SHA256AnnotationPrefix is the prefix for virtual annotations that store
 	// pre-computed SHA256 hashes of ConfigMap data keys.
 	// The full annotation key is: VIRTUAL.notebooks.kubeflow.org/sha256.{data-key}
@@ -99,7 +102,7 @@ func TransformConfigMapSHA256() toolscache.TransformFunc {
 // WARNING: this client is ONLY able to see ConfigMaps with the 'notebooks.kubeflow.org/image-source=true' label
 func BuildImageSourceConfigMapCache(mgr ctrl.Manager) (cache.Cache, error) {
 	// ConfigMaps we manage will have the `notebooks.kubeflow.org/image-source=true` label
-	imageSourceLabelReq, err := labels.NewRequirement(ImageSourceLabel, selection.Equals, []string{"true"})
+	imageSourceLabelReq, err := labels.NewRequirement(ImageSourceLabel, selection.Equals, []string{ImageSourceLabelValue})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create label requirement: %w", err)
 	}

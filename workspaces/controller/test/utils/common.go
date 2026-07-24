@@ -72,3 +72,62 @@ func GetProjectDir() (string, error) {
 	wd = strings.ReplaceAll(wd, "/test/e2e", "")
 	return wd, nil
 }
+
+// RenderCullingWorkspaceKind reads the sample WorkspaceKind manifest and returns a copy with its
+// metadata.name overridden to newName. The activityProbe and activityRules are left untouched here
+// and are expected to be patched by the caller to enable fast culling behavior for the e2e test.
+func RenderCullingWorkspaceKind(samplePath, newName string) (string, error) {
+	data, err := os.ReadFile(samplePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read sample WorkspaceKind %q: %w", samplePath, err)
+	}
+
+	// the sample WorkspaceKind has:
+	//   metadata:
+	//     name: jupyterlab
+	// replace only the metadata name line to avoid touching other "jupyterlab" references
+	// (ports, imageConfig ids, etc.) which must remain unchanged
+	out := strings.Replace(string(data), "\n  name: jupyterlab\n", "\n  name: "+newName+"\n", 1)
+	if !strings.Contains(out, "\n  name: "+newName+"\n") {
+		return "", fmt.Errorf("failed to override metadata.name in sample WorkspaceKind %q", samplePath)
+	}
+	return out, nil
+}
+
+// GetWorkspaceJSONPath runs `kubectl get workspace <name> -n <namespace> -o jsonpath=<path>`
+// and returns the (trimmed) value. It is a small convenience wrapper used by e2e assertions
+// that repeatedly read individual Workspace status fields.
+func GetWorkspaceJSONPath(name, namespace, jsonPath string) (string, error) {
+	cmd := exec.Command("kubectl", "get", "workspaces", name,
+		"-n", namespace, "-o", "jsonpath="+jsonPath)
+	out, err := Run(cmd)
+	return strings.TrimSpace(out), err
+}
+
+// RenderCullingWorkspace reads the sample Workspace manifest and returns a copy with its
+// metadata.name overridden to newName and spec.kind overridden to newKind.
+func RenderCullingWorkspace(samplePath, newName, newKind string) (string, error) {
+	data, err := os.ReadFile(samplePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read sample Workspace %q: %w", samplePath, err)
+	}
+
+	out := string(data)
+
+	// the sample Workspace has:
+	//   metadata:
+	//     name: jupyterlab-workspace
+	if !strings.Contains(out, "\n  name: jupyterlab-workspace\n") {
+		return "", fmt.Errorf("failed to find metadata.name in sample Workspace %q", samplePath)
+	}
+	out = strings.Replace(out, "\n  name: jupyterlab-workspace\n", "\n  name: "+newName+"\n", 1)
+
+	// the sample Workspace references the WorkspaceKind via:
+	//   kind: "jupyterlab"
+	if !strings.Contains(out, `kind: "jupyterlab"`) {
+		return "", fmt.Errorf("failed to find spec.kind in sample Workspace %q", samplePath)
+	}
+	out = strings.Replace(out, `kind: "jupyterlab"`, `kind: "`+newKind+`"`, 1)
+
+	return out, nil
+}

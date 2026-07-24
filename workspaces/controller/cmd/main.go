@@ -31,6 +31,7 @@ import (
 	istiov1 "istio.io/client-go/pkg/apis/networking/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -69,6 +70,7 @@ func main() {
 	var probeAddr string
 	var secureMetrics bool
 	var enableHTTP2 bool
+	var maxConcurrentReconciles int
 
 	// Define command line flags
 	cfg := &config.EnvConfig{}
@@ -90,6 +92,9 @@ func main() {
 		"The domain to use for the Istio VirtualService")
 	flag.BoolVar(&cfg.UseIstio, "use-istio", getEnvAsBool("USE_ISTIO", false),
 		"If set, Istio will be used")
+	flag.IntVar(&maxConcurrentReconciles, "max-concurrent-reconciles", getEnvAsInt("MAX_CONCURRENT_RECONCILES", 10),
+		"The maximum number of Workspaces reconciled (and probed) concurrently. "+
+			"Higher values prevent a slow activity probe from blocking other Workspaces' reconciliation.")
 
 	opts := zap.Options{
 		Development: true,
@@ -120,7 +125,16 @@ func main() {
 		TLSOpts: tlsOpts,
 	})
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	// build the REST config and a clientset for the activity probe pod-exec subresource
+	// (the controller-runtime cached client cannot perform exec, so we use a raw clientset)
+	restConfig := ctrl.GetConfigOrDie()
+	clientset, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		setupLog.Error(err, "unable to create Kubernetes clientset")
+		os.Exit(1)
+	}
+
+	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
 		Scheme: scheme,
 		Client: client.Options{
 			Cache: &client.CacheOptions{
@@ -172,8 +186,15 @@ func main() {
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 		Config: cfg,
+		PodExecutor: &helper.RemoteCommandExecutor{
+			Clientset:  clientset,
+			RestConfig: restConfig,
+		},
 	}).SetupWithManager(mgr, &controller.Options{
 		RateLimiter: helper.BuildRateLimiter(),
+		// allow multiple Workspaces to be reconciled (and probed) in parallel so that a
+		// slow activity probe does not block other Workspaces' reconciliation
+		MaxConcurrentReconciles: maxConcurrentReconciles,
 	}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Workspace")
 		os.Exit(1)
@@ -241,6 +262,15 @@ func getEnvAsBool(name string, defaultVal bool) bool {
 	if value, exists := os.LookupEnv(name); exists {
 		if boolValue, err := strconv.ParseBool(value); err == nil {
 			return boolValue
+		}
+	}
+	return defaultVal
+}
+
+func getEnvAsInt(name string, defaultVal int) int {
+	if value, exists := os.LookupEnv(name); exists {
+		if intValue, err := strconv.Atoi(value); err == nil {
+			return intValue
 		}
 	}
 	return defaultVal

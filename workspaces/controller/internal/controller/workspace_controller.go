@@ -107,6 +107,14 @@ type WorkspaceReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 	Config *config.EnvConfig
+
+	// PodExecutor executes activity probe scripts inside Workspace Pods.
+	// If nil, podExec probes are skipped (used when exec is not configured, e.g. in some tests).
+	PodExecutor helper.PodExecutor
+
+	// HTTPProber performs HTTP requests for Jupyter activity probes.
+	// If nil, a default HTTP client is used.
+	HTTPProber helper.HTTPProber
 }
 
 // +kubebuilder:rbac:groups=kubeflow.org,resources=workspaces,verbs=create;delete;get;list;patch;update;watch
@@ -117,7 +125,9 @@ type WorkspaceReconciler struct {
 // +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=create;delete;get;list;patch;update;watch
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch
 // +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch
+// +kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch
 // +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch
+// +kubebuilder:rbac:groups=core,resources=pods/exec,verbs=create
 // +kubebuilder:rbac:groups=core,resources=services,verbs=create;delete;get;list;patch;update;watch
 // +kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=create;delete;get;list;patch;update;watch
 // +kubebuilder:rbac:groups=networking.istio.io,resources=virtualservices,verbs=create;delete;get;list;patch;update;watch
@@ -151,6 +161,10 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		log.V(2).Info("Workspace is being deleted")
 		return ctrl.Result{}, nil
 	}
+
+	// snapshot the Workspace as fetched, so the culling logic can issue a minimal
+	// `spec.paused` patch (via client.MergeFrom) instead of a full-object update.
+	originalWorkspace := workspace.DeepCopy()
 
 	// copy the current Workspace status, so we can avoid unnecessary updates if the status hasn't changed
 	// NOTE: we dereference the DeepCopy of the status field because status fields are NOT pointers,
@@ -541,6 +555,16 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 	workspace.Status = workspaceStatus
 
+	// reconcile the activity probe and culling rules
+	//  - this may run an activity probe, update `status.activity`, and pause the Workspace
+	//  - it returns a requeue result used to schedule the next probe (unless a more urgent
+	//    requeue was already requested by the status generation above)
+	cullResult, paused, err := r.reconcileActivityCulling(ctx, log, workspace, workspaceKind, currentImageConfig, currentPodConfig, pod)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	result = mergeReconcileResult(result, cullResult)
+
 	// update the Workspace status, if it has changed
 	if !equality.Semantic.DeepEqual(currentStatus, workspace.Status) {
 		if err := r.Status().Update(ctx, workspace); err != nil {
@@ -553,7 +577,49 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 	}
 
+	// if the Workspace was paused by the culling logic, patch `spec.paused`
+	//  - this is done after the status update so the activity status reflecting the
+	//    culling decision is persisted regardless of the outcome of this patch
+	//  - a MergeFrom patch (rather than a full Update) is used so we only send the
+	//    `spec.paused` change and avoid clobbering any concurrent spec modifications
+	//  - `Status().Update` above overwrites `workspace` with the API server response (where
+	//    `spec.paused` was still false/unmodified), so we re-apply `spec.paused = true` here
+	if paused {
+		workspace.Spec.Paused = ptr.To(true)
+		if err := r.Patch(ctx, workspace, client.MergeFrom(originalWorkspace)); err != nil {
+			if apierrors.IsConflict(err) {
+				log.V(2).Info("update conflict while pausing Workspace, will requeue")
+				return ctrl.Result{Requeue: true}, nil
+			}
+			log.Error(err, "unable to pause Workspace")
+			return ctrl.Result{}, err
+		}
+		log.V(1).Info("Workspace paused due to inactivity")
+		// no need to requeue for probing once paused
+		return ctrl.Result{}, nil
+	}
+
 	return result, nil
+}
+
+// mergeReconcileResult combines two reconcile results, preferring the sooner requeue.
+func mergeReconcileResult(a, b ctrl.Result) ctrl.Result {
+	if a.Requeue {
+		return a
+	}
+	if b.Requeue {
+		return b
+	}
+	switch {
+	case a.RequeueAfter <= 0:
+		return b
+	case b.RequeueAfter <= 0:
+		return a
+	case a.RequeueAfter <= b.RequeueAfter:
+		return a
+	default:
+		return b
+	}
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -1407,6 +1473,19 @@ func (r *WorkspaceReconciler) generateWorkspaceStatus(ctx context.Context, log l
 	}
 	status.State = workspaceState
 	status.StateMessage = workspaceStateMessage
+
+	// track the last time the Workspace entered a Running state
+	//  - used to compute the running duration for the `minRunningSeconds` activity guard
+	//  - only advanced on a transition INTO the Running state, so it reflects the start of
+	//    the current continuous Running period
+	//  - reset status.Activity on transition into Running so stale activity from a previous
+	//    run does not cause an immediate pause when a culled Workspace is restarted
+	if workspaceState == kubefloworgv1beta1.WorkspaceStateRunning {
+		if workspace.Status.State != kubefloworgv1beta1.WorkspaceStateRunning || status.LastRunningTime == 0 {
+			status.LastRunningTime = metav1.Now().UnixMilli()
+			status.Activity = kubefloworgv1beta1.WorkspaceActivity{}
+		}
+	}
 
 	return status, result, nil
 }
