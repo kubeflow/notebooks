@@ -77,6 +77,17 @@ export enum V1StorageMedium {
   StorageMediumHugePagesPrefix = 'HugePages-',
 }
 
+export enum V1SecretType {
+  SecretTypeOpaque = 'Opaque',
+  SecretTypeServiceAccountToken = 'kubernetes.io/service-account-token',
+  SecretTypeDockercfg = 'kubernetes.io/dockercfg',
+  SecretTypeDockerConfigJson = 'kubernetes.io/dockerconfigjson',
+  SecretTypeBasicAuth = 'kubernetes.io/basic-auth',
+  SecretTypeSSHAuth = 'kubernetes.io/ssh-auth',
+  SecretTypeTLS = 'kubernetes.io/tls',
+  SecretTypeBootstrapToken = 'bootstrap.kubernetes.io/token',
+}
+
 export enum V1SeccompProfileType {
   SeccompProfileTypeUnconfined = 'Unconfined',
   SeccompProfileTypeRuntimeDefault = 'RuntimeDefault',
@@ -378,6 +389,10 @@ export interface CommonAudit {
   updatedBy: string;
 }
 
+export interface CommonDenyMessage {
+  text: string;
+}
+
 export interface CommonPodMetadata {
   annotations: Record<string, string>;
   labels: Record<string, string>;
@@ -393,6 +408,11 @@ export interface CommonPodVolumeInfo {
   mountPath: string;
   pvcName: string;
   readOnly: boolean;
+}
+
+export interface CommonRestrictions {
+  deny: boolean;
+  denyMessage?: CommonDenyMessage;
 }
 
 export interface DetailsWorkspaceDetailContainer {
@@ -466,6 +486,7 @@ export interface OptionsImageConfigValue {
   id: string;
   labels?: OptionsOptionLabel[];
   redirect?: OptionsOptionRedirect;
+  restrictions: CommonRestrictions;
 }
 
 export interface OptionsListValuesContext {
@@ -501,6 +522,7 @@ export interface OptionsPodConfigValue {
   id: string;
   labels?: OptionsOptionLabel[];
   redirect?: OptionsOptionRedirect;
+  restrictions: CommonRestrictions;
 }
 
 export interface OptionsPodTemplateOptions {
@@ -600,7 +622,7 @@ export interface SecretsSecretCreate {
   contents: SecretsSecretData;
   immutable: boolean;
   name: string;
-  type: string;
+  type: V1SecretType;
 }
 
 export type SecretsSecretData = Record<string, SecretsSecretValue>;
@@ -609,10 +631,8 @@ export interface SecretsSecretListItem {
   audit: CommonAudit;
   canMount: boolean;
   canUpdate: boolean;
-  immutable: boolean;
   mounts?: SecretsSecretMount[];
   name: string;
-  type: string;
 }
 
 export interface SecretsSecretMount {
@@ -622,9 +642,15 @@ export interface SecretsSecretMount {
 }
 
 export interface SecretsSecretUpdate {
+  /**
+   * Update semantics:
+   *   - key present with {"base64": "..."} → set/update the value
+   *   - key present with {} (Base64 is nil) → preserve the existing value from currentSecret.Data
+   *   - key omitted from the request → delete that key
+   */
   contents: SecretsSecretData;
   immutable: boolean;
-  type: string;
+  type: V1SecretType;
 }
 
 export interface SecretsSecretValue {
@@ -3440,6 +3466,7 @@ export interface V1Beta1ActivityProbe {
    * - Acts as a rate-limiter for failed probes: if a probe fails, the controller waits at least this long before retrying (requeuing after minProbeInterval).
    * - Also acts as a guard: if a reconcile triggers early, the probe is skipped until this interval has elapsed since the last probe.
    * +kubebuilder:validation:Minimum:=1
+   * +kubebuilder:validation:Maximum:=31536000
    * +kubebuilder:default:=300
    * +kubebuilder:validation:Optional
    */
@@ -3454,6 +3481,7 @@ export interface V1Beta1ActivityProbe {
    * - If a probe succeeds, the controller schedules the next probe after this duration (requeuing after probeInterval).
    * - Determines the freshness of workspace activity status used for culling inactive workspaces.
    * +kubebuilder:validation:Minimum:=1
+   * +kubebuilder:validation:Maximum:=31536000
    * +kubebuilder:default:=3600
    * +kubebuilder:validation:Optional
    */
@@ -4052,6 +4080,7 @@ export interface WorkspacekindsWorkspaceKindListItem {
   logo: AssetsImageRef;
   name: string;
   podTemplate: WorkspacekindsPodTemplate;
+  restrictions: CommonRestrictions;
 }
 
 export interface WorkspacekindsWorkspaceKindUpdate {
@@ -4087,11 +4116,11 @@ export interface WorkspacesImageConfig {
 
 export interface WorkspacesLastProbeInfo {
   /** Unix Epoch time in milliseconds */
-  endTimeMs: number;
+  endTime: number;
   message: string;
   result: WorkspacesProbeResult;
   /** Unix Epoch time in milliseconds */
-  startTimeMs: number;
+  startTime: number;
 }
 
 export interface WorkspacesOptionInfo {
