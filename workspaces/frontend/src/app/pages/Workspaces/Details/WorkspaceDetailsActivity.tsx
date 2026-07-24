@@ -18,7 +18,10 @@ type WorkspaceDetailsActivityProps = {
 export const WorkspaceDetailsActivity: React.FunctionComponent<WorkspaceDetailsActivityProps> = ({
   workspace,
 }) => {
-  const { activity, pausedTime, pendingRestart } = workspace;
+  const { activity, pausedTime } = workspace;
+  const pendingRestart =
+    (workspace.podTemplate.options.podConfig.redirectChain ?? []).length > 0 ||
+    (workspace.podTemplate.options.imageConfig.redirectChain ?? []).length > 0;
 
   return (
     <DescriptionList isHorizontal>

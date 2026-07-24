@@ -6,6 +6,7 @@ import {
   DescriptionListDescription,
 } from '@patternfly/react-core/dist/esm/components/DescriptionList';
 import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
+import { Spinner } from '@patternfly/react-core/dist/esm/components/Spinner';
 import { DatabaseIcon } from '@patternfly/react-icons/dist/esm/icons/database-icon';
 import { LockedIcon } from '@patternfly/react-icons/dist/esm/icons/locked-icon';
 import {
@@ -16,28 +17,31 @@ import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import { Divider } from '@patternfly/react-core/dist/esm/components/Divider';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { formatResourceFromWorkspace } from '~/shared/utilities/WorkspaceUtils';
-import { WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
+import { DetailsWorkspaceDetails, WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
 
 interface WorkspaceResourcesProps {
   workspace: WorkspacesWorkspaceListItem;
+  details: DetailsWorkspaceDetails | null;
+  detailsLoaded: boolean;
+  detailsError?: Error;
 }
 
-export const WorkspaceResources: React.FC<WorkspaceResourcesProps> = ({ workspace }) => {
-  const workspaceDataVol = workspace.podTemplate.volumes.data ?? [];
-
-  const singleDataVolRenderer = (
-    data: {
-      pvcName: string;
-      mountPath: string;
-      readOnly: boolean;
-    },
-    index: number,
-  ) => (
+export const WorkspaceResources: React.FC<WorkspaceResourcesProps> = ({
+  workspace,
+  details,
+  detailsLoaded,
+  detailsError,
+}) => {
+  const singleDataVolRenderer = (data: {
+    pvcName: string;
+    mountPath: string;
+    readOnly: boolean;
+  }) => (
     <Flex
       gap={{ default: 'gapSm' }}
       alignItems={{ default: 'alignItemsFlexStart' }}
       flexWrap={{ default: 'nowrap' }}
-      key={index}
+      key={data.pvcName}
     >
       <FlexItem>
         <DatabaseIcon />
@@ -82,7 +86,13 @@ export const WorkspaceResources: React.FC<WorkspaceResourcesProps> = ({ workspac
       <DescriptionListGroup>
         <DescriptionListTerm>Home volume</DescriptionListTerm>
         <DescriptionListDescription>
-          {workspace.podTemplate.volumes.home?.pvcName ?? 'None'}
+          {detailsError ? (
+            <Content component="small">Failed to load details</Content>
+          ) : detailsLoaded ? (
+            (details?.volumes.home.pvcName ?? 'None')
+          ) : (
+            <Spinner size="md" />
+          )}
         </DescriptionListDescription>
       </DescriptionListGroup>
       <Divider />
@@ -91,9 +101,15 @@ export const WorkspaceResources: React.FC<WorkspaceResourcesProps> = ({ workspac
           Cluster storage
         </DescriptionListTerm>
         <DescriptionListDescription>
-          <Flex direction={{ default: 'column' }}>
-            {workspaceDataVol.map((data, index) => singleDataVolRenderer(data, index))}
-          </Flex>
+          {detailsError ? (
+            <Content component="small">Failed to load details</Content>
+          ) : detailsLoaded ? (
+            <Flex direction={{ default: 'column' }}>
+              {(details?.volumes.data ?? []).map((data) => singleDataVolRenderer(data))}
+            </Flex>
+          ) : (
+            <Spinner size="md" />
+          )}
         </DescriptionListDescription>
       </DescriptionListGroup>
     </DescriptionList>
