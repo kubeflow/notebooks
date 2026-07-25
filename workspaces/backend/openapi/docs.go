@@ -1947,9 +1947,9 @@ const docTemplate = `{
         },
         "/workspaces/{namespace}/{name}/podtemplate/logs/batch": {
             "get": {
-                "description": "Returns a point-in-time snapshot of container logs for the workspace pod as a JSON array of log lines.",
+                "description": "Returns a point-in-time snapshot of container logs for the workspace pod as a raw text/plain stream proxied directly from the Kubernetes pod logs API.",
                 "produces": [
-                    "application/json"
+                    "text/plain"
                 ],
                 "tags": [
                     "workspaces"
@@ -1982,7 +1982,13 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Number of lines from the end of the log to return. Defaults to 1000.",
-                        "name": "tail",
+                        "name": "tailLines",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Only return logs after this RFC3339 timestamp (e.g. 2026-07-15T10:30:00Z).",
+                        "name": "sinceTime",
                         "in": "query"
                     },
                     {
@@ -1994,9 +2000,9 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Successful operation.",
+                        "description": "Raw container log stream (text/plain).",
                         "schema": {
-                            "$ref": "#/definitions/api.WorkspaceLogsEnvelope"
+                            "type": "string"
                         }
                     },
                     "400": {
@@ -2370,20 +2376,6 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/workspaces.WorkspaceListItem"
-                    }
-                }
-            }
-        },
-        "api.WorkspaceLogsEnvelope": {
-            "type": "object",
-            "required": [
-                "data"
-            ],
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
                     }
                 }
             }

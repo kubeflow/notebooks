@@ -19,15 +19,13 @@ package logs
 import (
 	"context"
 	"errors"
-	"strings"
+	"io"
 	"testing"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
-	ktesting "k8s.io/client-go/testing"
 	ctrlfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
@@ -68,9 +66,59 @@ func withInitContainers(ws *kubefloworgv1beta1.Workspace, initContainers ...stri
 	return ws
 }
 
+// runningContainerStatus returns a ContainerStatus for a container that has started.
+func runningContainerStatus(name string) corev1.ContainerStatus {
+	return corev1.ContainerStatus{
+		Name: name,
+		State: corev1.ContainerState{
+			Running: &corev1.ContainerStateRunning{},
+		},
+	}
+}
+
+// waitingContainerStatus returns a ContainerStatus for a container that is still Waiting.
+func waitingContainerStatus(name, reason string) corev1.ContainerStatus {
+	return corev1.ContainerStatus{
+		Name: name,
+		State: corev1.ContainerState{
+			Waiting: &corev1.ContainerStateWaiting{Reason: reason},
+		},
+	}
+}
+
+// newPod builds a corev1.Pod (named testPodName) with the given regular and init
+// container statuses.
+func newPod(containerStatuses, initContainerStatuses []corev1.ContainerStatus) *corev1.Pod {
+	return &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{Name: testPodName, Namespace: testNamespace},
+		Status: corev1.PodStatus{
+			ContainerStatuses:     containerStatuses,
+			InitContainerStatuses: initContainerStatuses,
+		},
+	}
+}
+
+// podFromWorkspace builds a corev1.Pod whose container statuses mirror the
+// workspace's pod status, with every container reported as Running. This is the
+// common case where all containers have started.
+func podFromWorkspace(ws *kubefloworgv1beta1.Workspace) *corev1.Pod {
+	if ws == nil || ws.Status.PodTemplatePod.Name == "" {
+		return nil
+	}
+	var containers, initContainers []corev1.ContainerStatus
+	for _, c := range ws.Status.PodTemplatePod.Containers {
+		containers = append(containers, runningContainerStatus(c.Name))
+	}
+	for _, c := range ws.Status.PodTemplatePod.InitContainers {
+		initContainers = append(initContainers, runningContainerStatus(c.Name))
+	}
+	return newPod(containers, initContainers)
+}
+
 // newRepo builds a LogsRepository backed by a fake controller-runtime client
-// (seeded with the given workspace) and a fake Kubernetes clientset.
-func newRepo(t *testing.T, ws *kubefloworgv1beta1.Workspace) *LogsRepository {
+// (seeded with the given workspace) and a fake Kubernetes clientset seeded with the
+// given Pod (or nil for none).
+func newRepo(t *testing.T, ws *kubefloworgv1beta1.Workspace, pod *corev1.Pod) *LogsRepository {
 	t.Helper()
 
 	scheme, err := helper.BuildScheme()
@@ -84,34 +132,46 @@ func newRepo(t *testing.T, ws *kubefloworgv1beta1.Workspace) *LogsRepository {
 	}
 	cl := builder.Build()
 
-	clientset := k8sfake.NewSimpleClientset()
+	var clientset *k8sfake.Clientset
+	if pod != nil {
+		clientset = k8sfake.NewSimpleClientset(pod)
+	} else {
+		clientset = k8sfake.NewSimpleClientset()
+	}
 
 	return NewLogsRepository(&config.EnvConfig{}, cl, clientset)
 }
 
-func TestGetWorkspaceLogs(t *testing.T) {
+func TestOpenLogStream(t *testing.T) {
 	testCases := []struct {
-		name     string
-		ws       *kubefloworgv1beta1.Workspace
+		name string
+		ws   *kubefloworgv1beta1.Workspace
+		// pod is the live Pod seeded into the fake clientset. Leave nil to seed no
+		// Pod (e.g. to test a missing pod); pass podFromWorkspace(ws) for the common
+		// all-Running case.
+		pod      *corev1.Pod
 		opts     *models.LogOptions
 		wantErr  error // nil means success is expected
-		wantLogs bool  // when success is expected, whether log lines should be returned
+		wantLogs bool  // when success is expected, whether log content should be returned
 	}{
 		{
 			name:     "success with default container",
 			ws:       newWorkspace(testPodName, "main", "istio-proxy"),
+			pod:      podFromWorkspace(newWorkspace(testPodName, "main", "istio-proxy")),
 			opts:     &models.LogOptions{},
 			wantLogs: true,
 		},
 		{
 			name:     "success with specific container",
 			ws:       newWorkspace(testPodName, "main", "istio-proxy"),
+			pod:      podFromWorkspace(newWorkspace(testPodName, "main", "istio-proxy")),
 			opts:     &models.LogOptions{Container: "istio-proxy"},
 			wantLogs: true,
 		},
 		{
 			name:     "success with init container (native sidecar)",
 			ws:       withInitContainers(newWorkspace(testPodName, "main"), "istio-proxy"),
+			pod:      podFromWorkspace(withInitContainers(newWorkspace(testPodName, "main"), "istio-proxy")),
 			opts:     &models.LogOptions{Container: "istio-proxy"},
 			wantLogs: true,
 		},
@@ -139,13 +199,65 @@ func TestGetWorkspaceLogs(t *testing.T) {
 			opts:    &models.LogOptions{},
 			wantErr: ErrContainerNotRunning,
 		},
+		{
+			name: "container waiting returns not running (default container)",
+			ws:   newWorkspace(testPodName, "main"),
+			pod: newPod([]corev1.ContainerStatus{
+				waitingContainerStatus("main", "PodInitializing"),
+			}, nil),
+			opts:    &models.LogOptions{},
+			wantErr: ErrContainerNotRunning,
+		},
+		{
+			name: "requested container waiting returns not running",
+			ws:   newWorkspace(testPodName, "main", "istio-proxy"),
+			pod: newPod([]corev1.ContainerStatus{
+				runningContainerStatus("main"),
+				waitingContainerStatus("istio-proxy", "ContainerCreating"),
+			}, nil),
+			opts:    &models.LogOptions{Container: "istio-proxy"},
+			wantErr: ErrContainerNotRunning,
+		},
+		{
+			name: "waiting init container returns not running",
+			ws:   withInitContainers(newWorkspace(testPodName, "main"), "istio-proxy"),
+			pod: newPod(
+				[]corev1.ContainerStatus{runningContainerStatus("main")},
+				[]corev1.ContainerStatus{waitingContainerStatus("istio-proxy", "PodInitializing")},
+			),
+			opts:    &models.LogOptions{Container: "istio-proxy"},
+			wantErr: ErrContainerNotRunning,
+		},
+		{
+			name:    "no container status reported yet returns not running",
+			ws:      newWorkspace(testPodName, "main"),
+			pod:     newPod(nil, nil),
+			opts:    &models.LogOptions{},
+			wantErr: ErrContainerNotRunning,
+		},
+		{
+			// pod left nil: the Workspace references a pod the clientset cannot find.
+			name:    "live pod missing returns pod not running",
+			ws:      newWorkspace(testPodName, "main"),
+			opts:    &models.LogOptions{},
+			wantErr: ErrPodNotRunning,
+		},
+		{
+			name: "waiting current container is bypassed when previous=true",
+			ws:   newWorkspace(testPodName, "main"),
+			pod: newPod([]corev1.ContainerStatus{
+				waitingContainerStatus("main", "CrashLoopBackOff"),
+			}, nil),
+			opts:     &models.LogOptions{Previous: true},
+			wantLogs: true,
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			repo := newRepo(t, tc.ws)
+			repo := newRepo(t, tc.ws, tc.pod)
 
-			logs, err := repo.GetWorkspaceLogs(context.Background(), testNamespace, testWorkspace, tc.opts)
+			stream, err := repo.OpenLogStream(context.Background(), testNamespace, testWorkspace, tc.opts)
 
 			if tc.wantErr != nil {
 				if !errors.Is(err, tc.wantErr) {
@@ -156,44 +268,16 @@ func TestGetWorkspaceLogs(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
+			defer stream.Close()
+
 			// The fake clientset returns a canned non-empty log body ("fake logs"),
-			// so we only assert that lines were produced.
-			if tc.wantLogs && len(logs) == 0 {
-				t.Fatalf("expected at least one log line, got none")
-			}
-		})
-	}
-}
-
-func TestGetWorkspaceLogs_TailLines(t *testing.T) {
-	testCases := []struct {
-		name     string
-		tail     int64
-		wantTail int64
-	}{
-		{name: "explicit positive tail is forwarded", tail: 42, wantTail: 42},
-		{name: "zero tail falls back to default", tail: 0, wantTail: defaultTailLines},
-		{name: "negative tail falls back to default", tail: -5, wantTail: defaultTailLines},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			var captured *corev1.PodLogOptions
-			repo := newRepoCapturingLogOptions(t, newWorkspace(testPodName, "main"), &captured)
-
-			_, err := repo.GetWorkspaceLogs(context.Background(), testNamespace, testWorkspace,
-				&models.LogOptions{TailLines: tc.tail})
+			// so we only assert that content was produced.
+			body, err := io.ReadAll(stream)
 			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
+				t.Fatalf("unexpected error reading stream: %v", err)
 			}
-			if captured == nil {
-				t.Fatalf("PodLogOptions were not captured")
-			}
-			if captured.TailLines == nil {
-				t.Fatalf("expected TailLines to be set, got nil")
-			}
-			if *captured.TailLines != tc.wantTail {
-				t.Errorf("TailLines: want %d, got %d", tc.wantTail, *captured.TailLines)
+			if tc.wantLogs && len(body) == 0 {
+				t.Fatalf("expected at least some log content, got none")
 			}
 		})
 	}
@@ -251,7 +335,7 @@ func TestResolvePodAndContainer(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			repo := newRepo(t, tc.ws)
+			repo := newRepo(t, tc.ws, podFromWorkspace(tc.ws))
 			pod, container, err := repo.resolvePodAndContainer(
 				context.Background(), testNamespace, testWorkspace,
 				&models.LogOptions{Container: tc.requested},
@@ -273,66 +357,4 @@ func TestResolvePodAndContainer(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestScanLogLines(t *testing.T) {
-	testCases := []struct {
-		name  string
-		input string
-		want  []string
-	}{
-		{name: "multiple lines", input: "a\nb\nc", want: []string{"a", "b", "c"}},
-		{name: "trailing newline", input: "a\nb\n", want: []string{"a", "b"}},
-		{name: "empty input", input: "", want: nil},
-		{name: "single line", input: "only", want: []string{"only"}},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			var got []string
-			err := scanLogLines(strings.NewReader(tc.input), func(line string) {
-				got = append(got, line)
-			})
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if len(got) != len(tc.want) {
-				t.Fatalf("line count: want %d, got %d (%v)", len(tc.want), len(got), got)
-			}
-			for i := range tc.want {
-				if got[i] != tc.want[i] {
-					t.Errorf("line %d: want %q, got %q", i, tc.want[i], got[i])
-				}
-			}
-		})
-	}
-}
-
-// newRepoCapturingLogOptions builds a repo whose fake clientset captures the
-// PodLogOptions passed to GetLogs, so tests can assert on values (e.g. TailLines)
-// forwarded to the Kubernetes API.
-func newRepoCapturingLogOptions(t *testing.T, ws *kubefloworgv1beta1.Workspace, captured **corev1.PodLogOptions) *LogsRepository {
-	t.Helper()
-
-	scheme, err := helper.BuildScheme()
-	if err != nil {
-		t.Fatalf("failed to build scheme: %v", err)
-	}
-
-	cl := ctrlfake.NewClientBuilder().WithScheme(scheme).WithObjects(ws).Build()
-
-	clientset := k8sfake.NewSimpleClientset()
-	clientset.Fake.PrependReactor("get", "pods", func(action ktesting.Action) (bool, runtime.Object, error) {
-		if action.GetSubresource() == "log" {
-			if ga, ok := action.(ktesting.GenericAction); ok {
-				if opts, ok := ga.GetValue().(*corev1.PodLogOptions); ok {
-					*captured = opts
-				}
-			}
-		}
-		// Return not-handled so the default fake GetLogs behavior still runs.
-		return false, nil, nil
-	})
-
-	return NewLogsRepository(&config.EnvConfig{}, cl, clientset)
 }

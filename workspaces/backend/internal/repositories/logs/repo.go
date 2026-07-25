@@ -17,18 +17,19 @@ limitations under the License.
 package logs
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"io"
 	"strings"
 
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/podtemplate/logs"
 )
@@ -42,12 +43,11 @@ var (
 )
 
 var (
-	// safeLimitBytes is the maximum number of bytes to read from the logs to avoid excessive memory usage.
-	safeLimitBytes = int64(2 * 1024 * 1024) // 2 MB
-	// Default number of lines to retrieve from the end of the logs.
+	// safeLimitBytes is the maximum number of bytes the Kubernetes API will return
+	// for a single log request, bounding the size of the proxied stream.
+	safeLimitBytes = int64(100 * 1024 * 1024) // 100 MB
+	// defaultTailLines is the default number of lines to retrieve from the end of the logs.
 	defaultTailLines = int64(1000)
-	// maxScanTokenBytes is the maximum size of a token (line) that the scanner will read.
-	maxScanTokenBytes = 1024 * 1024 // 1 MB
 )
 
 type LogsRepository struct {
@@ -64,24 +64,25 @@ func NewLogsRepository(cfg *config.EnvConfig, cl client.Client, clientset kubern
 	}
 }
 
-func (r *LogsRepository) GetWorkspaceLogs(ctx context.Context, namespace, workspaceName string, opts *models.LogOptions) (models.WorkspaceLogs, error) {
+func (r *LogsRepository) OpenLogStream(ctx context.Context, namespace, workspaceName string, opts *models.LogOptions) (io.ReadCloser, error) {
 	podName, containerName, err := r.resolvePodAndContainer(ctx, namespace, workspaceName, opts)
 	if err != nil {
 		return nil, err
 	}
 
-	tail := opts.TailLines
-	if tail <= 0 {
-		tail = defaultTailLines
+	tailLines := opts.TailLines
+	if tailLines <= 0 {
+		tailLines = defaultTailLines
 	}
 
 	req := r.clientset.CoreV1().Pods(namespace).GetLogs(podName, &corev1.PodLogOptions{
 		Container:  containerName,
-		TailLines:  &tail,
+		TailLines:  &tailLines,
 		LimitBytes: &safeLimitBytes,
 		Previous:   opts.Previous,
 		Follow:     false,
 		Timestamps: true,
+		SinceTime:  opts.SinceTime,
 	})
 
 	stream, err := req.Stream(ctx)
@@ -94,17 +95,24 @@ func (r *LogsRepository) GetWorkspaceLogs(ctx context.Context, namespace, worksp
 		}
 		return nil, fmt.Errorf("failed to open log stream for pod %s, container %s: %w", podName, containerName, err)
 	}
-	defer stream.Close()
+	return stream, nil
+}
 
-	var logs models.WorkspaceLogs
-	err = scanLogLines(stream, func(line string) {
-		logs = append(logs, line)
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to scan log lines for pod %s, container %s: %w", podName, containerName, err)
+// containerExists reports whether a container with the given name exists among the
+// pod's regular or init containers. Both are valid log sources (e.g. an istio-proxy
+// native sidecar is an init container).
+func containerExists(name string, containers, initContainers []kubefloworgv1beta1.WorkspacePodContainer) bool {
+	for _, c := range containers {
+		if c.Name == name {
+			return true
+		}
 	}
-
-	return logs, nil
+	for _, c := range initContainers {
+		if c.Name == name {
+			return true
+		}
+	}
+	return false
 }
 
 func (r *LogsRepository) resolvePodAndContainer(ctx context.Context, namespace, workspaceName string, opts *models.LogOptions) (string, string, error) {
@@ -122,35 +130,62 @@ func (r *LogsRepository) resolvePodAndContainer(ctx context.Context, namespace, 
 		return "", "", ErrPodNotRunning
 	}
 
-	if opts.Container != "" {
-		// A requested container may be a regular container or an init container
-		// (e.g. an istio-proxy native sidecar), both of which have retrievable logs.
-		for _, c := range podStatus.Containers {
-			if c.Name == opts.Container {
-				return podName, opts.Container, nil
-			}
+	// Resolve the target container name.
+	containerName := opts.Container
+	if containerName != "" {
+		// A requested container must exist among the pod's containers.
+		if !containerExists(containerName, podStatus.Containers, podStatus.InitContainers) {
+			return "", "", ErrContainerNotFound
 		}
-		for _, c := range podStatus.InitContainers {
-			if c.Name == opts.Container {
-				return podName, opts.Container, nil
-			}
+	} else {
+		// None requested: default to the primary (first regular) container.
+		if len(podStatus.Containers) == 0 {
+			return "", "", ErrContainerNotRunning
 		}
-		return "", "", ErrContainerNotFound
+		containerName = podStatus.Containers[0].Name
 	}
 
-	// Default to the primary (first regular) container when none is requested.
-	if len(podStatus.Containers) > 0 {
-		return podName, podStatus.Containers[0].Name, nil
+	// When requesting current (not previous) logs, ensure the target container has
+	// actually started by inspecting the live Pod status. A container still in the
+	// Waiting state (e.g. PodInitializing, ContainerCreating, ImagePullBackOff) has
+	// no current log stream yet, and the Kubernetes API would return an opaque error;
+	// surface it as a semantic 409 instead. Previous logs are exempt, since a
+	// terminated instance can have logs even while the current instance is Waiting.
+	if !opts.Previous {
+		if err := r.ensureContainerStarted(ctx, namespace, podName, containerName); err != nil {
+			return "", "", err
+		}
 	}
 
-	return "", "", ErrContainerNotRunning
+	return podName, containerName, nil
 }
 
-func scanLogLines(r io.Reader, emit func(line string)) error {
-	scanner := bufio.NewScanner(r)
-	scanner.Buffer(make([]byte, 0, 64*1024), maxScanTokenBytes)
-	for scanner.Scan() {
-		emit(scanner.Text())
+// ensureContainerStarted checks the live Pod status and returns ErrContainerNotRunning
+// if the target container is still in the Waiting state (i.e. it has not started yet
+// and therefore has no logs available for the current instance).
+func (r *LogsRepository) ensureContainerStarted(ctx context.Context, namespace, podName, containerName string) error {
+	pod, err := r.clientset.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			// The Workspace status references a pod that no longer exists.
+			return ErrPodNotRunning
+		}
+		return fmt.Errorf("failed to get pod %s: %w", podName, err)
 	}
-	return scanner.Err()
+
+	// Search both regular and init container statuses for the target container.
+	for _, group := range [][]corev1.ContainerStatus{pod.Status.ContainerStatuses, pod.Status.InitContainerStatuses} {
+		for _, cs := range group {
+			if cs.Name != containerName {
+				continue
+			}
+			// A container that is still Waiting has never started and has no logs yet.
+			if cs.State.Waiting != nil {
+				return ErrContainerNotRunning
+			}
+			return nil
+		}
+	}
+
+	return ErrContainerNotRunning
 }

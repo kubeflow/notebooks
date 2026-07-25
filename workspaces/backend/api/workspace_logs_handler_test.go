@@ -59,9 +59,9 @@ var _ = Describe("Workspace Logs Handler", func() {
 
 	Context("with invalid query parameters", func() {
 
-		It("should return 422 when tail is not a positive integer", func() {
-			By("creating the HTTP request with a non-integer tail")
-			req, ps := buildLogsRequest("logs-ns", "workspace-logs", "tail=abc")
+		It("should return 422 when tailLines is not a positive integer", func() {
+			By("creating the HTTP request with a non-integer tailLines")
+			req, ps := buildLogsRequest("logs-ns", "workspace-logs", "tailLines=abc")
 
 			By("executing GetWorkspaceLogsHandler")
 			rr := httptest.NewRecorder()
@@ -73,9 +73,9 @@ var _ = Describe("Workspace Logs Handler", func() {
 			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity))
 		})
 
-		It("should return 422 when tail is zero or negative", func() {
-			By("creating the HTTP request with a non-positive tail")
-			req, ps := buildLogsRequest("logs-ns", "workspace-logs", "tail=0")
+		It("should return 422 when tailLines is zero or negative", func() {
+			By("creating the HTTP request with a non-positive tailLines")
+			req, ps := buildLogsRequest("logs-ns", "workspace-logs", "tailLines=0")
 
 			By("executing GetWorkspaceLogsHandler")
 			rr := httptest.NewRecorder()
@@ -90,6 +90,20 @@ var _ = Describe("Workspace Logs Handler", func() {
 		It("should return 422 when previous is not a boolean", func() {
 			By("creating the HTTP request with a non-boolean previous")
 			req, ps := buildLogsRequest("logs-ns", "workspace-logs", "previous=maybe")
+
+			By("executing GetWorkspaceLogsHandler")
+			rr := httptest.NewRecorder()
+			a.GetWorkspaceLogsHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying status is 422 Unprocessable Entity")
+			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity))
+		})
+
+		It("should return 422 when sinceTime is not a valid RFC3339 timestamp", func() {
+			By("creating the HTTP request with an invalid sinceTime")
+			req, ps := buildLogsRequest("logs-ns", "workspace-logs", "sinceTime=not-a-timestamp")
 
 			By("executing GetWorkspaceLogsHandler")
 			rr := httptest.NewRecorder()

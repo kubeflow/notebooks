@@ -18,10 +18,13 @@ package api
 
 import (
 	"errors"
+	"io"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
@@ -33,33 +36,32 @@ import (
 
 const (
 	logsContainerQueryParam = "container"
-	logsTailQueryParam      = "tail"
+	logsTailLinesQueryParam = "tailLines"
 	logsPreviousQueryParam  = "previous"
+	logSinceTimeQueryParam  = "sinceTime"
 )
-
-// WorkspaceLogsEnvelope is the response envelope for workspace container logs.
-type WorkspaceLogsEnvelope Envelope[models.WorkspaceLogs]
 
 // GetWorkspaceLogsHandler returns a point-in-time snapshot of container logs for a workspace pod.
 //
 //	@Summary		Get workspace container logs (batch)
-//	@Description	Returns a point-in-time snapshot of container logs for the workspace pod as a JSON array of log lines.
+//	@Description	Returns a point-in-time snapshot of container logs for the workspace pod as a raw text/plain stream proxied directly from the Kubernetes pod logs API.
 //	@Tags			workspaces
 //	@ID				getWorkspaceLogsBatch
-//	@Produce		json
-//	@Param			namespace	path		string					true	"Namespace of the workspace"	extensions(x-example=kubeflow-user-example-com)
-//	@Param			name		path		string					true	"Name of the workspace"			extensions(x-example=my-workspace)
-//	@Param			container	query		string					false	"Target container name. Defaults to the first (primary) container."
-//	@Param			tail		query		integer					false	"Number of lines from the end of the log to return. Defaults to 1000."
-//	@Param			previous	query		boolean					false	"If true, returns logs from the previous terminated container instance."
-//	@Success		200			{object}	WorkspaceLogsEnvelope	"Successful operation."
-//	@Failure		400			{object}	ErrorEnvelope			"Bad Request. Container not found in workspace pod."
-//	@Failure		401			{object}	ErrorEnvelope			"Unauthorized."
-//	@Failure		403			{object}	ErrorEnvelope			"Forbidden."
-//	@Failure		404			{object}	ErrorEnvelope			"Workspace not found."
-//	@Failure		409			{object}	ErrorEnvelope			"Conflict. Workspace pod is not running."
-//	@Failure		422			{object}	ErrorEnvelope			"Unprocessable Entity. Validation error."
-//	@Failure		500			{object}	ErrorEnvelope			"Internal server error."
+//	@Produce		plain
+//	@Param			namespace	path		string			true	"Namespace of the workspace"	extensions(x-example=kubeflow-user-example-com)
+//	@Param			name		path		string			true	"Name of the workspace"			extensions(x-example=my-workspace)
+//	@Param			container	query		string			false	"Target container name. Defaults to the first (primary) container."
+//	@Param			tailLines	query		integer			false	"Number of lines from the end of the log to return. Defaults to 1000."
+//	@Param			sinceTime	query		string			false	"Only return logs after this RFC3339 timestamp (e.g. 2026-07-15T10:30:00Z)."
+//	@Param			previous	query		boolean			false	"If true, returns logs from the previous terminated container instance."
+//	@Success		200			{string}	string			"Raw container log stream (text/plain)."
+//	@Failure		400			{object}	ErrorEnvelope	"Bad Request. Container not found in workspace pod."
+//	@Failure		401			{object}	ErrorEnvelope	"Unauthorized."
+//	@Failure		403			{object}	ErrorEnvelope	"Forbidden."
+//	@Failure		404			{object}	ErrorEnvelope	"Workspace not found."
+//	@Failure		409			{object}	ErrorEnvelope	"Conflict. Workspace pod is not running."
+//	@Failure		422			{object}	ErrorEnvelope	"Unprocessable Entity. Validation error."
+//	@Failure		500			{object}	ErrorEnvelope	"Internal server error."
 //	@Router			/workspaces/{namespace}/{name}/podtemplate/logs/batch [get]
 func (a *App) GetWorkspaceLogsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(constants.NamespacePathParam)
@@ -90,7 +92,7 @@ func (a *App) GetWorkspaceLogsHandler(w http.ResponseWriter, r *http.Request, ps
 	}
 	// ============================================================
 
-	logs, err := a.repositories.Logs.GetWorkspaceLogs(r.Context(), namespace, workspaceName, opts)
+	stream, err := a.repositories.Logs.OpenLogStream(r.Context(), namespace, workspaceName, opts)
 	if err != nil {
 		switch {
 		case errors.Is(err, repository.ErrWorkspaceNotFound):
@@ -108,9 +110,16 @@ func (a *App) GetWorkspaceLogsHandler(w http.ResponseWriter, r *http.Request, ps
 		}
 		return
 	}
+	defer func() { _ = stream.Close() }()
 
-	responseEnvelope := &WorkspaceLogsEnvelope{Data: logs}
-	a.dataResponse(w, r, responseEnvelope)
+	// Success responses are always a raw text/plain stream.
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(http.StatusOK)
+
+	// Proxy the log stream directly to the client.
+	if _, err := io.Copy(w, stream); err != nil {
+		a.logger.Error("error while streaming workspace logs", "error", err, "namespace", namespace, "workspace", workspaceName)
+	}
 }
 
 // parseLogOptions parses and validates the log-related query parameters.
@@ -122,10 +131,10 @@ func parseLogOptions(r *http.Request) (*models.LogOptions, field.ErrorList) {
 		Container: query.Get(logsContainerQueryParam),
 	}
 
-	if raw := query.Get(logsTailQueryParam); raw != "" {
+	if raw := query.Get(logsTailLinesQueryParam); raw != "" {
 		tail, err := strconv.ParseInt(raw, 10, 64)
 		if err != nil || tail <= 0 {
-			valErrs = append(valErrs, field.Invalid(field.NewPath(logsTailQueryParam), raw, "must be a positive integer"))
+			valErrs = append(valErrs, field.Invalid(field.NewPath(logsTailLinesQueryParam), raw, "must be a positive integer"))
 		} else {
 			opts.TailLines = tail
 		}
@@ -137,6 +146,16 @@ func parseLogOptions(r *http.Request) (*models.LogOptions, field.ErrorList) {
 			valErrs = append(valErrs, field.Invalid(field.NewPath(logsPreviousQueryParam), raw, "must be a boolean"))
 		} else {
 			opts.Previous = previous
+		}
+	}
+
+	if raw := query.Get(logSinceTimeQueryParam); raw != "" {
+		t, err := time.Parse(time.RFC3339, raw)
+		if err != nil {
+			valErrs = append(valErrs, field.Invalid(field.NewPath(logSinceTimeQueryParam), raw, "must be a valid RFC3339 timestamp"))
+		} else {
+			sinceTime := metav1.NewTime(t)
+			opts.SinceTime = &sinceTime
 		}
 	}
 

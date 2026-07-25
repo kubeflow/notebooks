@@ -16,7 +16,9 @@ limitations under the License.
 
 package logs
 
-type WorkspaceLogs []string
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
 
 type LogOptions struct {
 	// The name of the container to retrieve logs from.
@@ -27,4 +29,6 @@ type LogOptions struct {
 	TailLines int64
 	// If true, returns logs from the previous terminated container instance.
 	Previous bool
+	// If specified, returns logs since the given time.
+	SinceTime *metav1.Time
 }
