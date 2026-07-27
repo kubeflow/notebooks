@@ -61,6 +61,9 @@ export const formatResourceFromWorkspace = (
 export const formatWorkspaceIdleState = (workspace: WorkspacesWorkspaceListItem): string =>
   workspace.state !== V1Beta1WorkspaceState.WorkspaceStateRunning ? YesNoValue.Yes : YesNoValue.No;
 
+export const normalizeWorkspaceState = (state: V1Beta1WorkspaceState): V1Beta1WorkspaceState =>
+  state.length > 0 ? state : V1Beta1WorkspaceState.WorkspaceStateUnknown;
+
 export type LabelColor = 'green' | 'orange' | 'purple' | 'red' | 'grey' | 'yellow';
 
 export const WORKSPACE_STATE_COLORS: Record<V1Beta1WorkspaceState, LabelColor> = {

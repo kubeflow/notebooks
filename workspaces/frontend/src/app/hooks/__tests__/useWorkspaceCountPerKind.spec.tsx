@@ -62,6 +62,7 @@ describe('useWorkspaceCountPerKind', () => {
       updateWorkspacePauseState: jest.fn(),
       getWorkspace: jest.fn(),
       deleteWorkspace: jest.fn(),
+      getWorkspacePodTemplateDetails: jest.fn(),
     },
     workspaceKinds: {
       listWorkspaceKinds: mockListWorkspaceKinds,

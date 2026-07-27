@@ -7,7 +7,7 @@ const ToastNotifications: React.FC = () => {
   const { notifications } = useContext(NotificationContext);
 
   return (
-    <AlertGroup isToast isLiveRegion>
+    <AlertGroup isToast isLiveRegion data-testid="toast-notification-group">
       {notifications.map((notification) => (
         <ToastNotification notification={notification} key={notification.id} />
       ))}

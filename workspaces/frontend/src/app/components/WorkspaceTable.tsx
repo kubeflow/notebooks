@@ -45,6 +45,7 @@ import {
   formatResourceFromWorkspace,
   formatWorkspaceIdleState,
   extractWorkspaceStateColor,
+  normalizeWorkspaceState,
   WORKSPACE_STATE_COLORS,
 } from '~/shared/utilities/WorkspaceUtils';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
@@ -131,6 +132,15 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
     },
     ref,
   ) => {
+    const normalizedWorkspaces = useMemo(
+      () =>
+        workspaces.map((ws) => ({
+          ...ws,
+          state: normalizeWorkspaceState(ws.state),
+        })),
+      [workspaces],
+    );
+
     const [workspaceKinds] = useWorkspaceKinds(namespace);
     const [activeRedirectPopover, setActiveRedirectPopover] = useState<string | null>(null);
     const [pinnedRedirectPopover, setPinnedRedirectPopover] = useState<string | null>(null);
@@ -179,8 +189,8 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       [],
     );
     const filteredWorkspaces = useMemo(
-      () => applyFilters(workspaces, filterValues, filterableProperties),
-      [workspaces, filterValues, filterableProperties],
+      () => applyFilters(normalizedWorkspaces, filterValues, filterableProperties),
+      [normalizedWorkspaces, filterValues, filterableProperties],
     );
 
     const visibleColumnKeys: WorkspaceTableColumnKeys[] = useMemo(
@@ -465,7 +475,11 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                                       <img
                                         src={validSrc}
                                         alt={workspace.workspaceKind.name}
-                                        style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                                        style={{
+                                          width: '20px',
+                                          height: '20px',
+                                          cursor: 'pointer',
+                                        }}
                                       />
                                     </Tooltip>
                                   )}
@@ -474,7 +488,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                               {columnKey === 'namespace' && workspace.namespace}
                               {columnKey === 'state' && (
                                 <div className="pf-v6-u-display-inline-block">
-                                  <Tooltip content={workspace.stateMessage}>
+                                  <Tooltip content={workspace.stateMessage || workspace.state}>
                                     <Label color={extractWorkspaceStateColor(workspace.state)}>
                                       {workspace.state}
                                     </Label>

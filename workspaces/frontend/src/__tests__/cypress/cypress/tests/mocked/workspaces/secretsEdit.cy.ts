@@ -129,8 +129,8 @@ describe('Edit Secret Modal', () => {
     cy.wait('@getWorkspace');
     cy.wait('@getWorkspaceKinds');
     editWorkspace.clickNext();
-    editWorkspace.clickNext();
-    editWorkspace.clickNext();
+    editWorkspace.advancePastRedirectModal();
+    editWorkspace.advancePastRedirectModal();
     secretsManagement.expandSecretsSection();
     cy.wait('@listSecrets');
   });
@@ -243,8 +243,8 @@ describe('Edit Secret Modal', () => {
     cy.wait('@getWorkspace');
     cy.wait('@getWorkspaceKinds');
     editWorkspace.clickNext();
-    editWorkspace.clickNext();
-    editWorkspace.clickNext();
+    editWorkspace.advancePastRedirectModal();
+    editWorkspace.advancePastRedirectModal();
     secretsManagement.expandSecretsSection();
     cy.wait('@listSecretsImmutable');
 
@@ -299,8 +299,8 @@ describe('Edit Secret Modal', () => {
     cy.wait('@getWorkspace');
     cy.wait('@getWorkspaceKinds');
     editWorkspace.clickNext();
-    editWorkspace.clickNext();
-    editWorkspace.clickNext();
+    editWorkspace.advancePastRedirectModal();
+    editWorkspace.advancePastRedirectModal();
     secretsManagement.expandSecretsSection();
     cy.wait('@listSecretsUpdated');
 

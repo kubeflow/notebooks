@@ -123,8 +123,8 @@ describe('Secrets Expandable Key/Value Pairs', () => {
     // Navigate to properties step where secrets are visible
     cy.wait('@getWorkspaceKinds');
     editWorkspace.clickNext(); // Skip workspace kind step
-    editWorkspace.clickNext(); // Skip image step
-    editWorkspace.clickNext(); // Skip pod config step, now on properties
+    editWorkspace.advancePastRedirectModal(); // Skip image step
+    editWorkspace.advancePastRedirectModal(); // Skip pod config step, now on properties
 
     // Expand the Secrets section (it's collapsed by default)
     cy.contains('button', 'Secrets').click();
@@ -224,8 +224,8 @@ describe('Secrets Management - Attach Modal', () => {
     cy.wait('@getWorkspace');
     cy.wait('@getWorkspaceKinds');
     editWorkspace.clickNext();
-    editWorkspace.clickNext();
-    editWorkspace.clickNext();
+    editWorkspace.advancePastRedirectModal();
+    editWorkspace.advancePastRedirectModal();
 
     cy.contains('button', 'Secrets').click();
   });

@@ -21,13 +21,16 @@ import { useTypedNavigate, useTypedParams } from '~/app/routerHelper';
 import { useCurrentRouteKey } from '~/app/hooks/useCurrentRouteKey';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { ImagePullPolicy, WorkspaceKindFormData } from '~/app/types';
-import { extractErrorMessage, safeApiCall } from '~/shared/api/apiUtils';
-import { ErrorAlert } from '~/shared/components/ErrorAlert';
+import {
+  extractErrorMessage,
+  formatConflictErrorMessages,
+  formatValidationErrorMessages,
+  safeApiCall,
+} from '~/shared/api/apiUtils';
 import { CONTENT_TYPE_KEY, WORKSPACE_KIND_EXAMPLES_URL } from '~/shared/utilities/const';
 import { ContentType } from '~/shared/utilities/types';
 import { LoadError } from '~/app/components/LoadError';
 import {
-  ApiErrorEnvelope,
   OptionsOptionRedirect,
   OptionsRedirectMessageLevel,
   V1Beta1OptionRedirect,
@@ -83,8 +86,8 @@ const convertToFormData = (
       deprecated: spawner.deprecated ?? false,
       deprecationMessage: spawner.deprecationMessage ?? '',
       hidden: spawner.hidden ?? false,
-      icon: { url: spawner.icon.url ?? '' },
-      logo: { url: spawner.logo.url ?? '' },
+      icon: spawner.icon,
+      logo: spawner.logo,
     },
     imageConfig: {
       default: podTemplate.options.imageConfig.spawner.default,
@@ -135,17 +138,7 @@ const convertToFormData = (
       volumeMounts: {
         home: podTemplate.volumeMounts.home,
       },
-      culling: podTemplate.culling
-        ? {
-            enabled: podTemplate.culling.enabled ?? true,
-            maxInactiveSeconds: podTemplate.culling.maxInactiveSeconds ?? 86400,
-            activityProbe: {
-              jupyter: {
-                lastActivity: podTemplate.culling.activityProbe.jupyter?.lastActivity ?? false,
-              },
-            },
-          }
-        : undefined,
+      activityProbe: podTemplate.activityProbe,
     },
   };
 };
@@ -168,8 +161,6 @@ export const WorkspaceKindForm: React.FC = () => {
   const [validated, setValidated] = useState<ValidationStatus>(
     mode === 'edit' ? 'success' : 'default',
   );
-  const [error, setError] = useState<string | ApiErrorEnvelope | null>(null);
-
   const routeParams = useTypedParams<'workspaceKindEdit' | 'workspaceKindCreate'>();
   const [initialFormData, initialFormDataLoaded, initialFormDataError] = useWorkspaceKindByName(
     routeParams?.kind,
@@ -237,7 +228,6 @@ export const WorkspaceKindForm: React.FC = () => {
       setOriginalYaml(yamlStr);
       setEditYamlValue(yamlStr);
       setYamlParseError(null);
-      setError(null);
     }
   }, [initialFormData, replaceData]);
 
@@ -253,7 +243,6 @@ export const WorkspaceKindForm: React.FC = () => {
 
   const handleSubmit = useCallback(async () => {
     setIsSubmitting(true);
-    setError(null);
     // TODO: Complete handleCreate with API call to create a new WS kind
     try {
       if (mode === 'create') {
@@ -301,7 +290,21 @@ export const WorkspaceKindForm: React.FC = () => {
       }
       navigate('workspaceKinds');
     } catch (err) {
-      setError(extractErrorMessage(err));
+      const extracted = extractErrorMessage(err);
+      let message: string;
+      if (typeof extracted === 'string') {
+        message = extracted;
+      } else {
+        const details = [
+          ...formatValidationErrorMessages(extracted),
+          ...formatConflictErrorMessages(extracted),
+        ];
+        message = details.length > 0 ? details.join('; ') : extracted.error.message;
+      }
+      notification.error(
+        `Failed to ${mode === 'edit' ? 'edit' : 'create'} workspace kind`,
+        message,
+      );
       if (mode === 'create') {
         setValidated('error');
       }
@@ -379,15 +382,6 @@ export const WorkspaceKindForm: React.FC = () => {
       </PageGroup>
       <PageSection isFilled>
         <Stack hasGutter>
-          {error && (
-            <StackItem>
-              <ErrorAlert
-                title={`Failed to ${mode === 'edit' ? 'edit' : 'create'} workspace kind`}
-                content={error}
-                testId="workspace-kind-form-error"
-              />
-            </StackItem>
-          )}
           {mode === 'create' && (
             <StackItem style={{ height: '100%' }}>
               <WorkspaceKindFileUpload
@@ -396,9 +390,8 @@ export const WorkspaceKindForm: React.FC = () => {
                 setValue={setYamlValue}
                 validated={validated}
                 setValidated={setValidated}
-                onClear={() => {
-                  setError(null);
-                }}
+                // eslint-disable-next-line @typescript-eslint/no-empty-function
+                onClear={() => {}}
               />
             </StackItem>
           )}

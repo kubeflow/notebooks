@@ -127,7 +127,7 @@ describe('Create workspace kind', () => {
       createWorkspaceKind.clickSubmit();
       cy.wait('@createWorkspaceKindServerError');
 
-      createWorkspaceKind.assertErrorAlertContainsMessage('Error: Internal server error');
+      createWorkspaceKind.assertErrorAlertContainsMessage('Internal server error');
 
       createWorkspaceKind.verifyPageURL();
     });

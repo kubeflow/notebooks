@@ -70,6 +70,12 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
     deleteWorkspace: async () => {
       await delay(1500);
     },
+    getWorkspacePodTemplateDetails: async () => ({
+      data: {
+        podMetadata: { labels: {}, annotations: {} },
+        volumes: { home: { pvcName: 'home-pvc', mountPath: '/home/jovyan', readOnly: false } },
+      },
+    }),
     updateWorkspacePauseState: async (_namespace, _workspaceName, body) => {
       await delay(1500);
       return {
