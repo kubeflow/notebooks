@@ -29,7 +29,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -188,14 +187,14 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 			Spawner: kubefloworgv1beta1.WorkspaceKindSpawner{
 				DisplayName:        "JupyterLab Notebook",
 				Description:        "A Workspace which runs JupyterLab in a Pod",
-				Hidden:             ptr.To(false),
-				Deprecated:         ptr.To(false),
-				DeprecationMessage: ptr.To("This WorkspaceKind will be removed on 20XX-XX-XX, please use another WorkspaceKind."),
+				Hidden:             new(false),
+				Deprecated:         new(false),
+				DeprecationMessage: new("This WorkspaceKind will be removed on 20XX-XX-XX, please use another WorkspaceKind."),
 				Icon: kubefloworgv1beta1.WorkspaceKindAsset{
-					Url: ptr.To("https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png"),
+					Url: new("https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png"),
 				},
 				Logo: kubefloworgv1beta1.WorkspaceKindAsset{
-					Url: ptr.To("https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png"),
+					Url: new("https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png"),
 				},
 			},
 			PodTemplate: kubefloworgv1beta1.WorkspaceKindPodTemplate{
@@ -204,8 +203,8 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 					Name: "default-editor",
 				},
 				ActivityProbe: &kubefloworgv1beta1.ActivityProbe{
-					MinProbeIntervalSeconds: ptr.To(int32(300)),
-					ProbeIntervalSeconds:    ptr.To(int32(3600)),
+					MinProbeIntervalSeconds: new(int32(300)),
+					ProbeIntervalSeconds:    new(int32(3600)),
 					Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
 						LastActivity: true,
 						PortId:       "jupyterlab",
@@ -221,7 +220,7 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 						DefaultDisplayName: "JupyterLab",
 						Protocol:           "HTTP",
 						HTTPProxy: &kubefloworgv1beta1.HTTPProxy{
-							RemovePathPrefix: ptr.To(false),
+							RemovePathPrefix: new(false),
 							RequestHeaders: &kubefloworgv1beta1.IstioHeaderOperations{
 								Set:    map[string]string{},
 								Add:    map[string]string{},
@@ -258,14 +257,14 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 					},
 				},
 				SecurityContext: &v1.PodSecurityContext{
-					FSGroup: ptr.To(int64(100)),
+					FSGroup: new(int64(100)),
 				},
 				ContainerSecurityContext: &v1.SecurityContext{
-					AllowPrivilegeEscalation: ptr.To(false),
+					AllowPrivilegeEscalation: new(false),
 					Capabilities: &v1.Capabilities{
 						Drop: []v1.Capability{"ALL"},
 					},
-					RunAsNonRoot: ptr.To(true),
+					RunAsNonRoot: new(true),
 				},
 				Options: kubefloworgv1beta1.WorkspaceKindPodOptions{
 					ImageConfig: kubefloworgv1beta1.ImageConfig{
@@ -278,14 +277,14 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 								Id: "jupyterlab_scipy_180",
 								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 									DisplayName: "jupyter-scipy:v1.8.0",
-									Description: ptr.To("JupyterLab, with SciPy Packages"),
+									Description: new("JupyterLab, with SciPy Packages"),
 									Labels: []kubefloworgv1beta1.OptionSpawnerLabel{
 										{
 											Key:   "python_version",
 											Value: "3.11",
 										},
 									},
-									Hidden: ptr.To(true),
+									Hidden: new(true),
 								},
 								Redirect: &kubefloworgv1beta1.OptionRedirect{
 									To: "jupyterlab_scipy_190",
@@ -299,7 +298,7 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 									Ports: []kubefloworgv1beta1.ImagePort{
 										{
 											Id:          "jupyterlab",
-											DisplayName: ptr.To("JupyterLab"),
+											DisplayName: new("JupyterLab"),
 											Port:        8888,
 										},
 									},
@@ -310,7 +309,7 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 								Id: "jupyterlab_scipy_190",
 								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 									DisplayName: "jupyter-scipy:v1.9.0",
-									Description: ptr.To("JupyterLab, with SciPy Packages"),
+									Description: new("JupyterLab, with SciPy Packages"),
 									Labels: []kubefloworgv1beta1.OptionSpawnerLabel{
 										{
 											Key:   "python_version",
@@ -342,7 +341,7 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 									Ports: []kubefloworgv1beta1.ImagePort{
 										{
 											Id:          "my_port",
-											DisplayName: ptr.To("something"),
+											DisplayName: new("something"),
 											Port:        1234,
 										},
 									},
@@ -395,7 +394,7 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 								Id: "tiny_cpu",
 								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 									DisplayName: "Tiny CPU",
-									Description: ptr.To("Pod with 0.1 CPU, 128 MB RAM"),
+									Description: new("Pod with 0.1 CPU, 128 MB RAM"),
 									Labels: []kubefloworgv1beta1.OptionSpawnerLabel{
 										{
 											Key:   "cpu",
@@ -421,7 +420,7 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 								Id: "small_cpu",
 								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 									DisplayName: "Small CPU",
-									Description: ptr.To("Pod with 1 CPU, 2 GB RAM"),
+									Description: new("Pod with 1 CPU, 2 GB RAM"),
 									Labels: []kubefloworgv1beta1.OptionSpawnerLabel{
 										{
 											Key:   "cpu",
@@ -447,7 +446,7 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 								Id: "big_gpu",
 								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 									DisplayName: "Big GPU",
-									Description: ptr.To("Pod with 4 CPU, 16 GB RAM, and 1 GPU"),
+									Description: new("Pod with 4 CPU, 16 GB RAM, and 1 GPU"),
 									Labels: []kubefloworgv1beta1.OptionSpawnerLabel{
 										{
 											Key:   "cpu",
@@ -610,12 +609,12 @@ func NewExampleWorkspaceKindWithDuplicatePorts(name string) *kubefloworgv1beta1.
 	workspaceKind.Spec.PodTemplate.Options.ImageConfig.Values[0].Spec.Ports = []kubefloworgv1beta1.ImagePort{
 		{
 			Id:          "jupyterlab",
-			DisplayName: ptr.To("JupyterLab"),
+			DisplayName: new("JupyterLab"),
 			Port:        8888,
 		},
 		{
 			Id:          "jupyterlab2",
-			DisplayName: ptr.To("JupyterLab2"),
+			DisplayName: new("JupyterLab2"),
 			Port:        8888,
 		},
 	}
@@ -727,8 +726,8 @@ func NewExampleWorkspaceKindWithBothProbeTypes(name string) *kubefloworgv1beta1.
 func NewExampleWorkspaceKindWithInvalidProbeIntervals(name string) *kubefloworgv1beta1.WorkspaceKind {
 	workspaceKind := NewExampleWorkspaceKind(name)
 	workspaceKind.Spec.PodTemplate.ActivityProbe = &kubefloworgv1beta1.ActivityProbe{
-		MinProbeIntervalSeconds: ptr.To(int32(100)),
-		ProbeIntervalSeconds:    ptr.To(int32(50)),
+		MinProbeIntervalSeconds: new(int32(100)),
+		ProbeIntervalSeconds:    new(int32(50)),
 		Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
 			LastActivity: true,
 			PortId:       "jupyterlab",
@@ -790,7 +789,7 @@ func NewExampleWorkspaceKindWithValidFilterRules(name string) *kubefloworgv1beta
 			Scope: kubefloworgv1beta1.FilterRuleScopeImageConfig,
 			Effect: kubefloworgv1beta1.FilterRuleEffect{
 				API: &kubefloworgv1beta1.FilterRuleEffectAPI{
-					Deny:        ptr.To(true),
+					Deny:        new(true),
 					DenyMessage: &kubefloworgv1beta1.FilterRuleDenyMessage{Text: "this image is not available in your namespace"},
 				},
 			},
@@ -835,7 +834,7 @@ func NewExampleWorkspaceKindWithValidFilterRules(name string) *kubefloworgv1beta
 			// using a matchPodConfig condition, which is valid at IMAGE_CONFIG scope
 			Scope: kubefloworgv1beta1.FilterRuleScopeImageConfig,
 			Effect: kubefloworgv1beta1.FilterRuleEffect{
-				API: &kubefloworgv1beta1.FilterRuleEffectAPI{Hide: ptr.To(true)},
+				API: &kubefloworgv1beta1.FilterRuleEffectAPI{Hide: new(true)},
 			},
 			Match: []kubefloworgv1beta1.FilterRuleMatch{
 				{
@@ -1033,7 +1032,7 @@ func NewExampleWorkspaceKindWithFilterRuleDenyMessageWithoutDeny(name string) *k
 			Scope: kubefloworgv1beta1.FilterRuleScopeImageConfig,
 			Effect: kubefloworgv1beta1.FilterRuleEffect{
 				API: &kubefloworgv1beta1.FilterRuleEffectAPI{
-					Hide:        ptr.To(true),
+					Hide:        new(true),
 					DenyMessage: &kubefloworgv1beta1.FilterRuleDenyMessage{Text: "this image is not available"},
 				},
 			},
@@ -1088,7 +1087,7 @@ func NewExampleWorkspace(name, namespace, workspaceKindName string) *kubefloworg
 			Namespace: namespace,
 		},
 		Spec: kubefloworgv1beta1.WorkspaceSpec{
-			DisplayName: ptr.To("Example Workspace"),
+			DisplayName: new("Example Workspace"),
 			Kind:        workspaceKindName,
 			PodTemplate: kubefloworgv1beta1.WorkspacePodTemplate{Options: kubefloworgv1beta1.WorkspacePodOptions{
 				ImageConfig: "jupyterlab_scipy_180",

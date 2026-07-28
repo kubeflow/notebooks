@@ -27,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
@@ -242,7 +241,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 					{
 						Config: kubefloworgv1beta1.ActivityRuleConfig{
 							SecondsSinceActive: 3600,
-							MinRunningSeconds:  ptr.To(int32(300)),
+							MinRunningSeconds:  new(int32(300)),
 						},
 						Match: &kubefloworgv1beta1.ActivityRuleMatch{
 							MatchNamespace: &kubefloworgv1beta1.NamespaceMatch{
@@ -252,7 +251,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 							},
 						},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
-							PauseWorkspace: ptr.To(true),
+							PauseWorkspace: new(true),
 						},
 					},
 					{
@@ -261,7 +260,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						},
 						Match: &kubefloworgv1beta1.ActivityRuleMatch{}, // empty match = catch-all
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
-							PauseWorkspace: ptr.To(true),
+							PauseWorkspace: new(true),
 						},
 					},
 				}),
@@ -287,7 +286,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 							},
 						},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
-							PauseWorkspace: ptr.To(true),
+							PauseWorkspace: new(true),
 						},
 					},
 				}),
@@ -308,7 +307,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 							},
 						},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
-							PauseWorkspace: ptr.To(false), // override to no-op culling
+							PauseWorkspace: new(false), // override to no-op culling
 						},
 					},
 					{
@@ -317,7 +316,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						},
 						Match: &kubefloworgv1beta1.ActivityRuleMatch{}, // catch-all
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
-							PauseWorkspace: ptr.To(true),
+							PauseWorkspace: new(true),
 						},
 					},
 				}),
@@ -331,7 +330,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 							SecondsSinceActive: 15,
 						},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
-							PauseWorkspace: ptr.To(true),
+							PauseWorkspace: new(true),
 						},
 					},
 				}),
@@ -343,10 +342,10 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 					{
 						Config: kubefloworgv1beta1.ActivityRuleConfig{
 							SecondsSinceActive: 3600,
-							MinRunningSeconds:  ptr.To(int32(-10)),
+							MinRunningSeconds:  new(int32(-10)),
 						},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
-							PauseWorkspace: ptr.To(true),
+							PauseWorkspace: new(true),
 						},
 					},
 				}),
@@ -361,7 +360,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						},
 						Match: &kubefloworgv1beta1.ActivityRuleMatch{},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
-							PauseWorkspace: ptr.To(true),
+							PauseWorkspace: new(true),
 						},
 					},
 					{
@@ -370,7 +369,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						},
 						Match: &kubefloworgv1beta1.ActivityRuleMatch{},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
-							PauseWorkspace: ptr.To(true),
+							PauseWorkspace: new(true),
 						},
 					},
 				}),
@@ -385,7 +384,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						},
 						Match: &kubefloworgv1beta1.ActivityRuleMatch{},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
-							PauseWorkspace: ptr.To(false),
+							PauseWorkspace: new(false),
 						},
 					},
 					{
@@ -394,7 +393,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						},
 						Match: &kubefloworgv1beta1.ActivityRuleMatch{},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
-							PauseWorkspace: ptr.To(true),
+							PauseWorkspace: new(true),
 						},
 					},
 				}),
@@ -409,7 +408,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						},
 						Match: &kubefloworgv1beta1.ActivityRuleMatch{},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
-							PauseWorkspace: ptr.To(true),
+							PauseWorkspace: new(true),
 						},
 					},
 					{
@@ -424,7 +423,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 							},
 						},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
-							PauseWorkspace: ptr.To(true),
+							PauseWorkspace: new(true),
 						},
 					},
 				}),
@@ -439,7 +438,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 								SecondsSinceActive: 3600,
 							},
 							Effect: kubefloworgv1beta1.ActivityRuleEffect{
-								PauseWorkspace: ptr.To(true),
+								PauseWorkspace: new(true),
 							},
 						},
 					})
@@ -458,7 +457,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 								SecondsSinceActive: 3000,
 							},
 							Effect: kubefloworgv1beta1.ActivityRuleEffect{
-								PauseWorkspace: ptr.To(true),
+								PauseWorkspace: new(true),
 							},
 						},
 					})
@@ -497,7 +496,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 							SecondsSinceActive: 3000,
 						},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
-							PauseWorkspace: ptr.To(true),
+							PauseWorkspace: new(true),
 						},
 					},
 				}),
@@ -511,7 +510,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 							SecondsSinceActive: 3000,
 						},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
-							PauseWorkspace: ptr.To(false),
+							PauseWorkspace: new(false),
 						},
 					},
 				}),
@@ -566,7 +565,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						},
 					},
 					Effect: kubefloworgv1beta1.ActivityRuleEffect{
-						PauseWorkspace: ptr.To(true),
+						PauseWorkspace: new(true),
 					},
 				},
 				{
@@ -575,7 +574,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 					},
 					Match: &kubefloworgv1beta1.ActivityRuleMatch{}, // catch-all
 					Effect: kubefloworgv1beta1.ActivityRuleEffect{
-						PauseWorkspace: ptr.To(true),
+						PauseWorkspace: new(true),
 					},
 				},
 				{
@@ -969,12 +968,12 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 					wsk.Spec.PodTemplate.Options.ImageConfig.Values[1].Spec.Ports = []kubefloworgv1beta1.ImagePort{
 						{
 							Id:          "jupyterlab",
-							DisplayName: ptr.To("JupyterLab"),
+							DisplayName: new("JupyterLab"),
 							Port:        duplicatePortNumber,
 						},
 						{
 							Id:          "jupyterlab2",
-							DisplayName: ptr.To("JupyterLab2"),
+							DisplayName: new("JupyterLab2"),
 							Port:        duplicatePortNumber,
 						},
 					}
@@ -1089,7 +1088,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 								SecondsSinceActive: 5, // invalid
 							},
 							Effect: kubefloworgv1beta1.ActivityRuleEffect{
-								PauseWorkspace: ptr.To(true),
+								PauseWorkspace: new(true),
 							},
 						},
 					}
@@ -1107,7 +1106,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 								SecondsSinceActive: 3600,
 							},
 							Effect: kubefloworgv1beta1.ActivityRuleEffect{
-								PauseWorkspace: ptr.To(true),
+								PauseWorkspace: new(true),
 							},
 						},
 					}

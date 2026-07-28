@@ -26,7 +26,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -169,8 +168,8 @@ func NewExampleWorkspace1(name string, namespace string, workspaceKind string) *
 			Namespace: namespace,
 		},
 		Spec: kubefloworgv1beta1.WorkspaceSpec{
-			Paused:      ptr.To(false),
-			DisplayName: ptr.To("Example Workspace"),
+			Paused:      new(false),
+			DisplayName: new("Example Workspace"),
 			Kind:        workspaceKind,
 			PodTemplate: kubefloworgv1beta1.WorkspacePodTemplate{
 				PodMetadata: &kubefloworgv1beta1.WorkspacePodMetadata{
@@ -178,12 +177,12 @@ func NewExampleWorkspace1(name string, namespace string, workspaceKind string) *
 					Annotations: nil,
 				},
 				Volumes: kubefloworgv1beta1.WorkspacePodVolumes{
-					Home: ptr.To("my-home-pvc"),
+					Home: new("my-home-pvc"),
 					Data: []kubefloworgv1beta1.PodVolumeMount{
 						{
 							PVCName:   "my-data-pvc",
 							MountPath: "/data/my-data",
-							ReadOnly:  ptr.To(false),
+							ReadOnly:  new(false),
 						},
 					},
 				},
@@ -237,14 +236,14 @@ func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 			Spawner: kubefloworgv1beta1.WorkspaceKindSpawner{
 				DisplayName:        "JupyterLab Notebook",
 				Description:        "A Workspace which runs JupyterLab in a Pod",
-				Hidden:             ptr.To(false),
-				Deprecated:         ptr.To(false),
-				DeprecationMessage: ptr.To("This WorkspaceKind will be removed on 20XX-XX-XX, please use another WorkspaceKind."),
+				Hidden:             new(false),
+				Deprecated:         new(false),
+				DeprecationMessage: new("This WorkspaceKind will be removed on 20XX-XX-XX, please use another WorkspaceKind."),
 				Icon: kubefloworgv1beta1.WorkspaceKindAsset{
-					Url: ptr.To("https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png"),
+					Url: new("https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png"),
 				},
 				Logo: kubefloworgv1beta1.WorkspaceKindAsset{
-					Url: ptr.To("https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png"),
+					Url: new("https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png"),
 				},
 			},
 			PodTemplate: kubefloworgv1beta1.WorkspaceKindPodTemplate{
@@ -253,8 +252,8 @@ func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 					Name: "default-editor",
 				},
 				ActivityProbe: &kubefloworgv1beta1.ActivityProbe{
-					MinProbeIntervalSeconds: ptr.To(int32(300)),
-					ProbeIntervalSeconds:    ptr.To(int32(3600)),
+					MinProbeIntervalSeconds: new(int32(300)),
+					ProbeIntervalSeconds:    new(int32(3600)),
 					Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
 						LastActivity: true,
 						PortId:       "jupyterlab",
@@ -270,7 +269,7 @@ func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 						DefaultDisplayName: "JupyterLab",
 						Protocol:           "HTTP",
 						HTTPProxy: &kubefloworgv1beta1.HTTPProxy{
-							RemovePathPrefix: ptr.To(false),
+							RemovePathPrefix: new(false),
 							RequestHeaders: &kubefloworgv1beta1.IstioHeaderOperations{
 								Set:    map[string]string{},
 								Add:    map[string]string{},
@@ -302,14 +301,14 @@ func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 					},
 				},
 				SecurityContext: &v1.PodSecurityContext{
-					FSGroup: ptr.To(int64(100)),
+					FSGroup: new(int64(100)),
 				},
 				ContainerSecurityContext: &v1.SecurityContext{
-					AllowPrivilegeEscalation: ptr.To(false),
+					AllowPrivilegeEscalation: new(false),
 					Capabilities: &v1.Capabilities{
 						Drop: []v1.Capability{"ALL"},
 					},
-					RunAsNonRoot: ptr.To(true),
+					RunAsNonRoot: new(true),
 				},
 				Options: kubefloworgv1beta1.WorkspaceKindPodOptions{
 					ImageConfig: kubefloworgv1beta1.ImageConfig{
@@ -322,14 +321,14 @@ func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 								Id: "jupyterlab_scipy_180",
 								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 									DisplayName: "jupyter-scipy:v1.8.0",
-									Description: ptr.To("JupyterLab, with SciPy Packages"),
+									Description: new("JupyterLab, with SciPy Packages"),
 									Labels: []kubefloworgv1beta1.OptionSpawnerLabel{
 										{
 											Key:   "python_version",
 											Value: "3.11",
 										},
 									},
-									Hidden: ptr.To(true),
+									Hidden: new(true),
 								},
 								Redirect: &kubefloworgv1beta1.OptionRedirect{
 									To: "jupyterlab_scipy_190",
@@ -343,7 +342,7 @@ func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 									Ports: []kubefloworgv1beta1.ImagePort{
 										{
 											Id:          "jupyterlab",
-											DisplayName: ptr.To("JupyterLab"),
+											DisplayName: new("JupyterLab"),
 											Port:        8888,
 										},
 									},
@@ -354,7 +353,7 @@ func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 								Id: "jupyterlab_scipy_190",
 								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 									DisplayName: "jupyter-scipy:v1.9.0",
-									Description: ptr.To("JupyterLab, with SciPy Packages"),
+									Description: new("JupyterLab, with SciPy Packages"),
 									Labels: []kubefloworgv1beta1.OptionSpawnerLabel{
 										{
 											Key:   "python_version",
@@ -384,7 +383,7 @@ func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 								Id: "tiny_cpu",
 								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 									DisplayName: "Tiny CPU",
-									Description: ptr.To("Pod with 0.1 CPU, 128 MB RAM"),
+									Description: new("Pod with 0.1 CPU, 128 MB RAM"),
 									Labels: []kubefloworgv1beta1.OptionSpawnerLabel{
 										{
 											Key:   "cpu",
@@ -410,7 +409,7 @@ func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 								Id: "small_cpu",
 								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 									DisplayName: "Small CPU",
-									Description: ptr.To("Pod with 1 CPU, 2 GB RAM"),
+									Description: new("Pod with 1 CPU, 2 GB RAM"),
 									Labels: []kubefloworgv1beta1.OptionSpawnerLabel{
 										{
 											Key:   "cpu",
@@ -436,7 +435,7 @@ func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 								Id: "big_gpu",
 								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 									DisplayName: "Big GPU",
-									Description: ptr.To("Pod with 4 CPU, 16 GB RAM, and 1 GPU"),
+									Description: new("Pod with 4 CPU, 16 GB RAM, and 1 GPU"),
 									Labels: []kubefloworgv1beta1.OptionSpawnerLabel{
 										{
 											Key:   "cpu",

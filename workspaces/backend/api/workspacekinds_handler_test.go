@@ -35,7 +35,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/utils/ptr"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	commonModels "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
@@ -974,7 +973,7 @@ metadata:
 			Expect(getData.Spawner.Deprecated).NotTo(BeNil())
 
 			By("toggling deprecated to true")
-			getData.Spawner.Deprecated = ptr.To(true)
+			getData.Spawner.Deprecated = new(true)
 			dataJSON, err := json.Marshal(getData)
 			Expect(err).NotTo(HaveOccurred())
 			updateBody := fmt.Sprintf(`{"data": %s}`, string(dataJSON))
@@ -1001,7 +1000,7 @@ metadata:
 
 			By("setting hidden on the first imageConfig option")
 			Expect(getData.PodTemplate.Options.ImageConfig.Values).NotTo(BeEmpty())
-			getData.PodTemplate.Options.ImageConfig.Values[0].Spawner.Hidden = ptr.To(false)
+			getData.PodTemplate.Options.ImageConfig.Values[0].Spawner.Hidden = new(false)
 
 			dataJSON, err := json.Marshal(getData)
 			Expect(err).NotTo(HaveOccurred())
@@ -1028,7 +1027,7 @@ metadata:
 					Id: "new_image_option",
 					Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 						DisplayName: "new-image:v1.0.0",
-						Description: ptr.To("A new image option"),
+						Description: new("A new image option"),
 					},
 					Spec: kubefloworgv1beta1.ImageConfigSpec{
 						Image: "ghcr.io/kubeflow/new-image:v1.0.0",
@@ -1072,7 +1071,7 @@ metadata:
 					Id: "new_pod_option",
 					Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 						DisplayName: "New Pod Config",
-						Description: ptr.To("A new pod config option"),
+						Description: new("A new pod config option"),
 					},
 					Spec: kubefloworgv1beta1.PodConfigSpec{
 						Resources: &corev1.ResourceRequirements{
