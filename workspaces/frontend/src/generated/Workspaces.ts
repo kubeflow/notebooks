@@ -17,10 +17,12 @@ import {
   ApiWorkspaceDetailsEnvelope,
   ApiWorkspaceEnvelope,
   ApiWorkspaceListEnvelope,
-} from './data-contracts';
-import { ContentType, HttpClient, RequestParams } from './http-client';
+} from "./data-contracts";
+import { ContentType, HttpClient, RequestParams } from "./http-client";
 
-export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityDataType> {
+export class Workspaces<
+  SecurityDataType = unknown,
+> extends HttpClient<SecurityDataType> {
   /**
    * @description Returns a list of all workspaces in the cluster.
    *
@@ -36,9 +38,9 @@ export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityD
   listAllWorkspaces = (params: RequestParams = {}) =>
     this.request<ApiWorkspaceListEnvelope, ApiErrorEnvelope>({
       path: `/workspaces`,
-      method: 'GET',
+      method: "GET",
       type: ContentType.Json,
-      format: 'json',
+      format: "json",
       ...params,
     });
   /**
@@ -57,9 +59,9 @@ export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityD
   listWorkspacesByNamespace = (namespace: string, params: RequestParams = {}) =>
     this.request<ApiWorkspaceListEnvelope, ApiErrorEnvelope>({
       path: `/workspaces/${namespace}`,
-      method: 'GET',
+      method: "GET",
       type: ContentType.Json,
-      format: 'json',
+      format: "json",
       ...params,
     });
   /**
@@ -86,10 +88,10 @@ export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityD
   ) =>
     this.request<ApiWorkspaceCreateEnvelope, ApiErrorEnvelope>({
       path: `/workspaces/${namespace}`,
-      method: 'POST',
+      method: "POST",
       body: body,
       type: ContentType.Json,
-      format: 'json',
+      format: "json",
       ...params,
     });
   /**
@@ -106,12 +108,16 @@ export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityD
    * @response `422` `ApiErrorEnvelope` Unprocessable Entity. Validation error.
    * @response `500` `ApiErrorEnvelope` Internal server error. An unexpected error occurred on the server.
    */
-  getWorkspace = (namespace: string, name: string, params: RequestParams = {}) =>
+  getWorkspace = (
+    namespace: string,
+    name: string,
+    params: RequestParams = {},
+  ) =>
     this.request<ApiWorkspaceEnvelope, ApiErrorEnvelope>({
       path: `/workspaces/${namespace}/${name}`,
-      method: 'GET',
+      method: "GET",
       type: ContentType.Json,
-      format: 'json',
+      format: "json",
       ...params,
     });
   /**
@@ -140,10 +146,10 @@ export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityD
   ) =>
     this.request<ApiWorkspaceEnvelope, ApiErrorEnvelope>({
       path: `/workspaces/${namespace}/${name}`,
-      method: 'PUT',
+      method: "PUT",
       body: body,
       type: ContentType.Json,
-      format: 'json',
+      format: "json",
       ...params,
     });
   /**
@@ -161,10 +167,14 @@ export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityD
    * @response `422` `ApiErrorEnvelope` Unprocessable Entity. Validation error.
    * @response `500` `ApiErrorEnvelope` Internal server error. An unexpected error occurred on the server.
    */
-  deleteWorkspace = (namespace: string, name: string, params: RequestParams = {}) =>
+  deleteWorkspace = (
+    namespace: string,
+    name: string,
+    params: RequestParams = {},
+  ) =>
     this.request<void, ApiErrorEnvelope>({
       path: `/workspaces/${namespace}/${name}`,
-      method: 'DELETE',
+      method: "DELETE",
       type: ContentType.Json,
       ...params,
     });
@@ -194,10 +204,10 @@ export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityD
   ) =>
     this.request<ApiWorkspaceActionPauseEnvelope, ApiErrorEnvelope>({
       path: `/workspaces/${namespace}/${name}/actions/pause`,
-      method: 'POST',
+      method: "POST",
       body: body,
       type: ContentType.Json,
-      format: 'json',
+      format: "json",
       ...params,
     });
   /**
@@ -214,11 +224,15 @@ export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityD
    * @response `422` `ApiErrorEnvelope` Unprocessable Entity. Validation error.
    * @response `500` `ApiErrorEnvelope` Internal server error.
    */
-  getWorkspacePodTemplateDetails = (namespace: string, name: string, params: RequestParams = {}) =>
+  getWorkspacePodTemplateDetails = (
+    namespace: string,
+    name: string,
+    params: RequestParams = {},
+  ) =>
     this.request<ApiWorkspaceDetailsEnvelope, ApiErrorEnvelope>({
       path: `/workspaces/${namespace}/${name}/podtemplate/details`,
-      method: 'GET',
-      format: 'json',
+      method: "GET",
+      format: "json",
       ...params,
     });
 }

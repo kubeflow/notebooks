@@ -222,6 +222,38 @@ describe('Workspaces', () => {
 
       workspaces.assertWorkspaceRowLastActivity(0, 'unknown');
     });
+    
+    it('displays pod and node information in workspace details drawer', () => {
+      const { mockNamespace, mockWorkspaces } = setupSingleNamespaceWorkspaces(DEFAULT_NAMESPACE, 1);
+      const mockWorkspace = mockWorkspaces[0];
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/details',
+        {
+          path: {
+            apiVersion: NOTEBOOKS_API_VERSION,
+            namespace: mockNamespace.name,
+            workspaceName: mockWorkspace.name,
+          },
+        },
+        {
+          data: {
+            podMetadata: { labels: {}, annotations: {} },
+            volumes: {},
+            pod: {
+              name: 'workspace-abc-0',
+              nodeName: 'node-gpu-01',
+            },
+          },
+        },
+      );
+
+      navigateToNamespace(mockNamespace.name);
+
+      workspaces.findWorkspaceTableRow(mockWorkspace.name).click();
+      cy.findByTestId('pod-name').should('have.text', 'workspace-abc-0');
+      cy.findByTestId('node-name').should('have.text', 'node-gpu-01');
+    });
   });
 
   describe('Empty state', () => {

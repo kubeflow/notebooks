@@ -18,10 +18,12 @@ import {
   ApiWorkspaceKindEnvelope,
   ApiWorkspaceKindListEnvelope,
   CreateWorkspaceKindPayload,
-} from './data-contracts';
-import { ContentType, HttpClient, RequestParams } from './http-client';
+} from "./data-contracts";
+import { ContentType, HttpClient, RequestParams } from "./http-client";
 
-export class Workspacekinds<SecurityDataType = unknown> extends HttpClient<SecurityDataType> {
+export class Workspacekinds<
+  SecurityDataType = unknown,
+> extends HttpClient<SecurityDataType> {
   /**
    * @description Returns a list of all workspace kinds in the cluster. When namespaceFilter is provided, authorization checks whether the user can create workspaces in that namespace instead of requiring workspace kind list permission.
    *
@@ -47,10 +49,10 @@ export class Workspacekinds<SecurityDataType = unknown> extends HttpClient<Secur
   ) =>
     this.request<ApiWorkspaceKindListEnvelope, ApiErrorEnvelope>({
       path: `/workspacekinds`,
-      method: 'GET',
+      method: "GET",
       query: query,
       type: ContentType.Json,
-      format: 'json',
+      format: "json",
       ...params,
     });
   /**
@@ -70,12 +72,15 @@ export class Workspacekinds<SecurityDataType = unknown> extends HttpClient<Secur
    * @response `422` `ApiErrorEnvelope` Unprocessable Entity. Validation error.
    * @response `500` `ApiErrorEnvelope` Internal server error. An unexpected error occurred on the server.
    */
-  createWorkspaceKind = (body: CreateWorkspaceKindPayload, params: RequestParams = {}) =>
+  createWorkspaceKind = (
+    body: CreateWorkspaceKindPayload,
+    params: RequestParams = {},
+  ) =>
     this.request<ApiWorkspaceKindCreateEnvelope, ApiErrorEnvelope>({
       path: `/workspacekinds`,
-      method: 'POST',
+      method: "POST",
       body: body,
-      format: 'json',
+      format: "json",
       ...params,
     });
   /**
@@ -95,9 +100,9 @@ export class Workspacekinds<SecurityDataType = unknown> extends HttpClient<Secur
   getWorkspaceKind = (name: string, params: RequestParams = {}) =>
     this.request<ApiWorkspaceKindEnvelope, ApiErrorEnvelope>({
       path: `/workspacekinds/${name}`,
-      method: 'GET',
+      method: "GET",
       type: ContentType.Json,
-      format: 'json',
+      format: "json",
       ...params,
     });
   /**
@@ -125,10 +130,10 @@ export class Workspacekinds<SecurityDataType = unknown> extends HttpClient<Secur
   ) =>
     this.request<ApiWorkspaceKindEnvelope, ApiErrorEnvelope>({
       path: `/workspacekinds/${name}`,
-      method: 'PUT',
+      method: "PUT",
       body: body,
       type: ContentType.Json,
-      format: 'json',
+      format: "json",
       ...params,
     });
   /**
@@ -149,7 +154,7 @@ export class Workspacekinds<SecurityDataType = unknown> extends HttpClient<Secur
   deleteWorkspaceKind = (name: string, params: RequestParams = {}) =>
     this.request<void, ApiErrorEnvelope>({
       path: `/workspacekinds/${name}`,
-      method: 'DELETE',
+      method: "DELETE",
       type: ContentType.Json,
       ...params,
     });
@@ -180,10 +185,10 @@ export class Workspacekinds<SecurityDataType = unknown> extends HttpClient<Secur
   ) =>
     this.request<File, ApiErrorEnvelope>({
       path: `/workspacekinds/${name}/assets/icon`,
-      method: 'GET',
+      method: "GET",
       query: query,
       type: ContentType.Json,
-      format: 'json',
+      format: "json",
       ...params,
     });
   /**
@@ -213,10 +218,10 @@ export class Workspacekinds<SecurityDataType = unknown> extends HttpClient<Secur
   ) =>
     this.request<File, ApiErrorEnvelope>({
       path: `/workspacekinds/${name}/assets/logo`,
-      method: 'GET',
+      method: "GET",
       query: query,
       type: ContentType.Json,
-      format: 'json',
+      format: "json",
       ...params,
     });
   /**
@@ -243,10 +248,10 @@ export class Workspacekinds<SecurityDataType = unknown> extends HttpClient<Secur
   ) =>
     this.request<ApiPodTemplateOptionsEnvelope, ApiErrorEnvelope>({
       path: `/workspacekinds/${name}/podtemplate/options/listvalues`,
-      method: 'POST',
+      method: "POST",
       body: body,
       type: ContentType.Json,
-      format: 'json',
+      format: "json",
       ...params,
     });
 }

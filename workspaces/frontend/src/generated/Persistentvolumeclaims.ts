@@ -10,8 +10,12 @@
  * ---------------------------------------------------------------
  */
 
-import { ApiErrorEnvelope, ApiPVCCreateEnvelope, ApiPVCListEnvelope } from './data-contracts';
-import { ContentType, HttpClient, RequestParams } from './http-client';
+import {
+  ApiErrorEnvelope,
+  ApiPVCCreateEnvelope,
+  ApiPVCListEnvelope,
+} from "./data-contracts";
+import { ContentType, HttpClient, RequestParams } from "./http-client";
 
 export class Persistentvolumeclaims<
   SecurityDataType = unknown,
@@ -32,8 +36,8 @@ export class Persistentvolumeclaims<
   listPvCs = (namespace: string, params: RequestParams = {}) =>
     this.request<ApiPVCListEnvelope, ApiErrorEnvelope>({
       path: `/persistentvolumeclaims/${namespace}`,
-      method: 'GET',
-      format: 'json',
+      method: "GET",
+      format: "json",
       ...params,
     });
   /**
@@ -53,13 +57,17 @@ export class Persistentvolumeclaims<
    * @response `422` `ApiErrorEnvelope` Unprocessable Entity. Validation error.
    * @response `500` `ApiErrorEnvelope` Internal server error
    */
-  createPvc = (namespace: string, pvc: ApiPVCCreateEnvelope, params: RequestParams = {}) =>
+  createPvc = (
+    namespace: string,
+    pvc: ApiPVCCreateEnvelope,
+    params: RequestParams = {},
+  ) =>
     this.request<ApiPVCCreateEnvelope, ApiErrorEnvelope>({
       path: `/persistentvolumeclaims/${namespace}`,
-      method: 'POST',
+      method: "POST",
       body: pvc,
       type: ContentType.Json,
-      format: 'json',
+      format: "json",
       ...params,
     });
   /**
@@ -80,7 +88,7 @@ export class Persistentvolumeclaims<
   deletePvc = (namespace: string, name: string, params: RequestParams = {}) =>
     this.request<void, ApiErrorEnvelope>({
       path: `/persistentvolumeclaims/${namespace}/${name}`,
-      method: 'DELETE',
+      method: "DELETE",
       ...params,
     });
 }

@@ -10,10 +10,12 @@
  * ---------------------------------------------------------------
  */
 
-import { ApiErrorEnvelope, HealthCheckHealthCheck } from './data-contracts';
-import { HttpClient, RequestParams } from './http-client';
+import { ApiErrorEnvelope, HealthCheckHealthCheck } from "./data-contracts";
+import { HttpClient, RequestParams } from "./http-client";
 
-export class Healthcheck<SecurityDataType = unknown> extends HttpClient<SecurityDataType> {
+export class Healthcheck<
+  SecurityDataType = unknown,
+> extends HttpClient<SecurityDataType> {
   /**
    * @description Provides a healthcheck response indicating the status of key services.
    *
@@ -27,8 +29,8 @@ export class Healthcheck<SecurityDataType = unknown> extends HttpClient<Security
   getHealthcheck = (params: RequestParams = {}) =>
     this.request<HealthCheckHealthCheck, ApiErrorEnvelope>({
       path: `/healthcheck`,
-      method: 'GET',
-      format: 'json',
+      method: "GET",
+      format: "json",
       ...params,
     });
 }

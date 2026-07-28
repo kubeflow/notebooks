@@ -10,10 +10,15 @@
  * ---------------------------------------------------------------
  */
 
-import { ApiErrorEnvelope, ApiStorageClassListEnvelope } from './data-contracts';
-import { HttpClient, RequestParams } from './http-client';
+import {
+  ApiErrorEnvelope,
+  ApiStorageClassListEnvelope,
+} from "./data-contracts";
+import { HttpClient, RequestParams } from "./http-client";
 
-export class Storageclasses<SecurityDataType = unknown> extends HttpClient<SecurityDataType> {
+export class Storageclasses<
+  SecurityDataType = unknown,
+> extends HttpClient<SecurityDataType> {
   /**
    * @description Returns a list of all storage classes in the cluster. When namespace is provided, authorization checks whether the user can create PersistentVolumeClaims in that namespace instead of requiring a cluster-wide permission to list storage classes.
    *
@@ -39,9 +44,9 @@ export class Storageclasses<SecurityDataType = unknown> extends HttpClient<Secur
   ) =>
     this.request<ApiStorageClassListEnvelope, ApiErrorEnvelope>({
       path: `/storageclasses`,
-      method: 'GET',
+      method: "GET",
       query: query,
-      format: 'json',
+      format: "json",
       ...params,
     });
 }

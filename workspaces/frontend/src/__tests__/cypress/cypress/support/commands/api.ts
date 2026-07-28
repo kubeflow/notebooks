@@ -159,6 +159,11 @@ declare global {
           type: 'GET /api/:apiVersion/secrets/:namespace/:secretName',
           options: { path: { apiVersion: string; namespace: string; secretName: string } },
           response: ApiSecretEnvelope | ApiErrorEnvelope,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/details',
+          options: { path: { apiVersion: string; namespace: string; workspaceName: string } },
+          response: ApiWorkspaceDetailsEnvelope | ApiErrorEnvelope,
         ) => Cypress.Chainable<null>);
     }
   }

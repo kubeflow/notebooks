@@ -11,70 +11,81 @@
  */
 
 export enum WorkspacesRedirectMessageLevel {
-  RedirectMessageLevelInfo = 'Info',
-  RedirectMessageLevelWarning = 'Warning',
-  RedirectMessageLevelDanger = 'Danger',
+  RedirectMessageLevelInfo = "Info",
+  RedirectMessageLevelWarning = "Warning",
+  RedirectMessageLevelDanger = "Danger",
 }
 
 export enum WorkspacesProbeResult {
-  ProbeResultSuccess = 'Success',
-  ProbeResultFailure = 'Failure',
-  ProbeResultTimeout = 'Timeout',
+  ProbeResultSuccess = "Success",
+  ProbeResultFailure = "Failure",
+  ProbeResultTimeout = "Timeout",
 }
 
 export enum V1Beta1WorkspaceState {
-  WorkspaceStateRunning = 'Running',
-  WorkspaceStateTerminating = 'Terminating',
-  WorkspaceStatePaused = 'Paused',
-  WorkspaceStatePending = 'Pending',
-  WorkspaceStateError = 'Error',
-  WorkspaceStateUnknown = 'Unknown',
+  WorkspaceStateRunning = "Running",
+  WorkspaceStateTerminating = "Terminating",
+  WorkspaceStatePaused = "Paused",
+  WorkspaceStatePending = "Pending",
+  WorkspaceStateError = "Error",
+  WorkspaceStateUnknown = "Unknown",
 }
 
 export enum V1Beta1WorkspaceKindAssetMediaType {
-  WorkspaceKindAssetMediaTypeSVG = 'image/svg+xml',
+  WorkspaceKindAssetMediaTypeSVG = "image/svg+xml",
 }
 
 export enum V1Beta1RedirectMessageLevel {
-  RedirectMessageLevelInfo = 'Info',
-  RedirectMessageLevelWarning = 'Warning',
-  RedirectMessageLevelDanger = 'Danger',
+  RedirectMessageLevelInfo = "Info",
+  RedirectMessageLevelWarning = "Warning",
+  RedirectMessageLevelDanger = "Danger",
 }
 
 export enum V1Beta1ImagePortProtocol {
-  ImagePortProtocolHTTP = 'HTTP',
+  ImagePortProtocolHTTP = "HTTP",
 }
 
 export enum V1URIScheme {
-  URISchemeHTTP = 'HTTP',
-  URISchemeHTTPS = 'HTTPS',
+  URISchemeHTTP = "HTTP",
+  URISchemeHTTPS = "HTTPS",
 }
 
 export enum V1TolerationOperator {
-  TolerationOpExists = 'Exists',
-  TolerationOpEqual = 'Equal',
+  TolerationOpExists = "Exists",
+  TolerationOpEqual = "Equal",
 }
 
 export enum V1TaintEffect {
-  TaintEffectNoSchedule = 'NoSchedule',
-  TaintEffectPreferNoSchedule = 'PreferNoSchedule',
-  TaintEffectNoExecute = 'NoExecute',
+  TaintEffectNoSchedule = "NoSchedule",
+  TaintEffectPreferNoSchedule = "PreferNoSchedule",
+  TaintEffectNoExecute = "NoExecute",
 }
 
 export enum V1SupplementalGroupsPolicy {
-  SupplementalGroupsPolicyMerge = 'Merge',
-  SupplementalGroupsPolicyStrict = 'Strict',
+  SupplementalGroupsPolicyMerge = "Merge",
+  SupplementalGroupsPolicyStrict = "Strict",
 }
 
 export enum V1StorageMedium {
   /** use whatever the default is for the node, assume anything we don't explicitly handle is this */
-  StorageMediumDefault = '',
+  StorageMediumDefault = "",
   /** use memory (e.g. tmpfs on linux) */
-  StorageMediumMemory = 'Memory',
+  StorageMediumMemory = "Memory",
   /** use hugepages */
-  StorageMediumHugePages = 'HugePages',
+  StorageMediumHugePages = "HugePages",
   /** prefix for full medium notation HugePages-<size> */
-  StorageMediumHugePagesPrefix = 'HugePages-',
+  StorageMediumHugePagesPrefix = "HugePages-",
+}
+
+export enum V1SecretType {
+  SecretTypeOpaque = "Opaque",
+  SecretTypeServiceAccountToken = "kubernetes.io/service-account-token",
+  SecretTypeDockercfg = "kubernetes.io/dockercfg",
+  SecretTypeDockerConfigJson = "kubernetes.io/dockerconfigjson",
+  SecretTypeBasicAuth = "kubernetes.io/basic-auth",
+  SecretTypeSSHAuth = "kubernetes.io/ssh-auth",
+  SecretTypeTLS = "kubernetes.io/tls",
+  SecretTypeBootstrapToken = "bootstrap.kubernetes.io/token",
 }
 
 export enum V1SecretType {
@@ -89,119 +100,119 @@ export enum V1SecretType {
 }
 
 export enum V1SeccompProfileType {
-  SeccompProfileTypeUnconfined = 'Unconfined',
-  SeccompProfileTypeRuntimeDefault = 'RuntimeDefault',
-  SeccompProfileTypeLocalhost = 'Localhost',
+  SeccompProfileTypeUnconfined = "Unconfined",
+  SeccompProfileTypeRuntimeDefault = "RuntimeDefault",
+  SeccompProfileTypeLocalhost = "Localhost",
 }
 
 export enum V1RecursiveReadOnlyMode {
-  RecursiveReadOnlyDisabled = 'Disabled',
-  RecursiveReadOnlyIfPossible = 'IfPossible',
-  RecursiveReadOnlyEnabled = 'Enabled',
+  RecursiveReadOnlyDisabled = "Disabled",
+  RecursiveReadOnlyIfPossible = "IfPossible",
+  RecursiveReadOnlyEnabled = "Enabled",
 }
 
 export enum V1PullPolicy {
-  PullAlways = 'Always',
-  PullNever = 'Never',
-  PullIfNotPresent = 'IfNotPresent',
+  PullAlways = "Always",
+  PullNever = "Never",
+  PullIfNotPresent = "IfNotPresent",
 }
 
 export enum V1ProcMountType {
-  DefaultProcMount = 'Default',
-  UnmaskedProcMount = 'Unmasked',
+  DefaultProcMount = "Default",
+  UnmaskedProcMount = "Unmasked",
 }
 
 export enum V1PodPhase {
-  PodPending = 'Pending',
-  PodRunning = 'Running',
-  PodSucceeded = 'Succeeded',
-  PodFailed = 'Failed',
-  PodUnknown = 'Unknown',
+  PodPending = "Pending",
+  PodRunning = "Running",
+  PodSucceeded = "Succeeded",
+  PodFailed = "Failed",
+  PodUnknown = "Unknown",
 }
 
 export enum V1PodFSGroupChangePolicy {
-  FSGroupChangeOnRootMismatch = 'OnRootMismatch',
-  FSGroupChangeAlways = 'Always',
+  FSGroupChangeOnRootMismatch = "OnRootMismatch",
+  FSGroupChangeAlways = "Always",
 }
 
 export enum V1PersistentVolumeReclaimPolicy {
-  PersistentVolumeReclaimRecycle = 'Recycle',
-  PersistentVolumeReclaimDelete = 'Delete',
-  PersistentVolumeReclaimRetain = 'Retain',
+  PersistentVolumeReclaimRecycle = "Recycle",
+  PersistentVolumeReclaimDelete = "Delete",
+  PersistentVolumeReclaimRetain = "Retain",
 }
 
 export enum V1PersistentVolumeMode {
-  PersistentVolumeBlock = 'Block',
-  PersistentVolumeFilesystem = 'Filesystem',
+  PersistentVolumeBlock = "Block",
+  PersistentVolumeFilesystem = "Filesystem",
 }
 
 export enum V1PersistentVolumeAccessMode {
-  ReadWriteOnce = 'ReadWriteOnce',
-  ReadOnlyMany = 'ReadOnlyMany',
-  ReadWriteMany = 'ReadWriteMany',
-  ReadWriteOncePod = 'ReadWriteOncePod',
+  ReadWriteOnce = "ReadWriteOnce",
+  ReadOnlyMany = "ReadOnlyMany",
+  ReadWriteMany = "ReadWriteMany",
+  ReadWriteOncePod = "ReadWriteOncePod",
 }
 
 export enum V1NodeSelectorOperator {
-  NodeSelectorOpIn = 'In',
-  NodeSelectorOpNotIn = 'NotIn',
-  NodeSelectorOpExists = 'Exists',
-  NodeSelectorOpDoesNotExist = 'DoesNotExist',
-  NodeSelectorOpGt = 'Gt',
-  NodeSelectorOpLt = 'Lt',
+  NodeSelectorOpIn = "In",
+  NodeSelectorOpNotIn = "NotIn",
+  NodeSelectorOpExists = "Exists",
+  NodeSelectorOpDoesNotExist = "DoesNotExist",
+  NodeSelectorOpGt = "Gt",
+  NodeSelectorOpLt = "Lt",
 }
 
 export enum V1MountPropagationMode {
-  MountPropagationNone = 'None',
-  MountPropagationHostToContainer = 'HostToContainer',
-  MountPropagationBidirectional = 'Bidirectional',
+  MountPropagationNone = "None",
+  MountPropagationHostToContainer = "HostToContainer",
+  MountPropagationBidirectional = "Bidirectional",
 }
 
 export enum V1ManagedFieldsOperationType {
-  ManagedFieldsOperationApply = 'Apply',
-  ManagedFieldsOperationUpdate = 'Update',
+  ManagedFieldsOperationApply = "Apply",
+  ManagedFieldsOperationUpdate = "Update",
 }
 
 export enum V1LabelSelectorOperator {
-  LabelSelectorOpIn = 'In',
-  LabelSelectorOpNotIn = 'NotIn',
-  LabelSelectorOpExists = 'Exists',
-  LabelSelectorOpDoesNotExist = 'DoesNotExist',
+  LabelSelectorOpIn = "In",
+  LabelSelectorOpNotIn = "NotIn",
+  LabelSelectorOpExists = "Exists",
+  LabelSelectorOpDoesNotExist = "DoesNotExist",
 }
 
 export enum V1HostPathType {
-  HostPathUnset = '',
-  HostPathDirectoryOrCreate = 'DirectoryOrCreate',
-  HostPathDirectory = 'Directory',
-  HostPathFileOrCreate = 'FileOrCreate',
-  HostPathFile = 'File',
-  HostPathSocket = 'Socket',
-  HostPathCharDev = 'CharDevice',
-  HostPathBlockDev = 'BlockDevice',
+  HostPathUnset = "",
+  HostPathDirectoryOrCreate = "DirectoryOrCreate",
+  HostPathDirectory = "Directory",
+  HostPathFileOrCreate = "FileOrCreate",
+  HostPathFile = "File",
+  HostPathSocket = "Socket",
+  HostPathCharDev = "CharDevice",
+  HostPathBlockDev = "BlockDevice",
 }
 
 export enum V1AzureDataDiskKind {
-  AzureSharedBlobDisk = 'Shared',
-  AzureDedicatedBlobDisk = 'Dedicated',
-  AzureManagedDisk = 'Managed',
+  AzureSharedBlobDisk = "Shared",
+  AzureDedicatedBlobDisk = "Dedicated",
+  AzureManagedDisk = "Managed",
 }
 
 export enum V1AzureDataDiskCachingMode {
-  AzureDataDiskCachingNone = 'None',
-  AzureDataDiskCachingReadOnly = 'ReadOnly',
-  AzureDataDiskCachingReadWrite = 'ReadWrite',
+  AzureDataDiskCachingNone = "None",
+  AzureDataDiskCachingReadOnly = "ReadOnly",
+  AzureDataDiskCachingReadWrite = "ReadWrite",
 }
 
 export enum V1AppArmorProfileType {
-  AppArmorProfileTypeUnconfined = 'Unconfined',
-  AppArmorProfileTypeRuntimeDefault = 'RuntimeDefault',
-  AppArmorProfileTypeLocalhost = 'Localhost',
+  AppArmorProfileTypeUnconfined = "Unconfined",
+  AppArmorProfileTypeRuntimeDefault = "RuntimeDefault",
+  AppArmorProfileTypeLocalhost = "Localhost",
 }
 
 export enum OptionsRedirectMessageLevel {
-  RedirectMessageLevelInfo = 'Info',
-  RedirectMessageLevelWarning = 'Warning',
-  RedirectMessageLevelDanger = 'Danger',
+  RedirectMessageLevelInfo = "Info",
+  RedirectMessageLevelWarning = "Warning",
+  RedirectMessageLevelDanger = "Danger",
 }
 
 /** @format int64 */
@@ -213,33 +224,33 @@ export enum IntstrType {
 }
 
 export enum HealthCheckServiceStatus {
-  ServiceStatusHealthy = 'Healthy',
-  ServiceStatusUnhealthy = 'Unhealthy',
+  ServiceStatusHealthy = "Healthy",
+  ServiceStatusUnhealthy = "Unhealthy",
 }
 
 export enum FieldErrorType {
-  ErrorTypeNotFound = 'FieldValueNotFound',
-  ErrorTypeRequired = 'FieldValueRequired',
-  ErrorTypeDuplicate = 'FieldValueDuplicate',
-  ErrorTypeInvalid = 'FieldValueInvalid',
-  ErrorTypeNotSupported = 'FieldValueNotSupported',
-  ErrorTypeForbidden = 'FieldValueForbidden',
-  ErrorTypeTooLong = 'FieldValueTooLong',
-  ErrorTypeTooMany = 'FieldValueTooMany',
-  ErrorTypeInternal = 'InternalError',
-  ErrorTypeTypeInvalid = 'FieldValueTypeInvalid',
+  ErrorTypeNotFound = "FieldValueNotFound",
+  ErrorTypeRequired = "FieldValueRequired",
+  ErrorTypeDuplicate = "FieldValueDuplicate",
+  ErrorTypeInvalid = "FieldValueInvalid",
+  ErrorTypeNotSupported = "FieldValueNotSupported",
+  ErrorTypeForbidden = "FieldValueForbidden",
+  ErrorTypeTooLong = "FieldValueTooLong",
+  ErrorTypeTooMany = "FieldValueTooMany",
+  ErrorTypeInternal = "InternalError",
+  ErrorTypeTypeInvalid = "FieldValueTypeInvalid",
 }
 
 export enum AssetsImageRefErrorCode {
-  ImageRefErrorCodeConfigMapMissing = 'CONFIGMAP_MISSING',
-  ImageRefErrorCodeConfigMapKeyMissing = 'CONFIGMAP_KEY_MISSING',
-  ImageRefErrorCodeConfigMapOther = 'CONFIGMAP_OTHER',
-  ImageRefErrorCodeConfigMapUnknown = 'CONFIGMAP_UNKNOWN',
+  ImageRefErrorCodeConfigMapMissing = "CONFIGMAP_MISSING",
+  ImageRefErrorCodeConfigMapKeyMissing = "CONFIGMAP_KEY_MISSING",
+  ImageRefErrorCodeConfigMapOther = "CONFIGMAP_OTHER",
+  ImageRefErrorCodeConfigMapUnknown = "CONFIGMAP_UNKNOWN",
 }
 
 export enum ApiErrorCauseOrigin {
-  OriginInternal = 'INTERNAL',
-  OriginKubernetes = 'KUBERNETES',
+  OriginInternal = "INTERNAL",
+  OriginKubernetes = "KUBERNETES",
 }
 
 export interface ActionsWorkspaceActionPause {
@@ -615,7 +626,7 @@ export interface PvcsWorkspaceInfo {
 }
 
 export interface ResourceQuantity {
-  Format?: 'DecimalExponent' | 'BinarySI' | 'DecimalSI';
+  Format?: "DecimalExponent" | "BinarySI" | "DecimalSI";
 }
 
 export interface SecretsSecretCreate {
