@@ -74,23 +74,9 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
     deleteWorkspace: async () => {
       await delay(1500);
     },
-    getWorkspacePodTemplateDetails: async (_namespace, workspaceName) => {
-      const workspace = mockAllWorkspaces.find((w) => w.name === workspaceName);
-      return {
-        data: buildMockWorkspaceDetails({
-          podMetadata: workspace?.podTemplate.podMetadata ?? { labels: {}, annotations: {} },
-          volumes: {
-            home: workspace?.podTemplate.volumes.home ?? {
-              pvcName: 'home-pvc',
-              mountPath: '/home/jovyan',
-              readOnly: false,
-            },
-            data: workspace?.podTemplate.volumes.data,
-            secrets: workspace?.podTemplate.volumes.secrets,
-          },
-        }),
-      };
-    },
+    getWorkspacePodTemplateDetails: async () => ({
+      data: buildMockWorkspaceDetails(),
+    }),
     updateWorkspacePauseState: async (_namespace, _workspaceName, body) => {
       await delay(1500);
       return {

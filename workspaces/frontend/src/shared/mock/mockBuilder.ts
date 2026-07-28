@@ -871,11 +871,19 @@ export const buildMockPodMetadataMutate = (
 export const buildMockPodVolumesMutate = (
   podVolumesMutate?: Partial<WorkspacesPodVolumesMutate>,
 ): WorkspacesPodVolumesMutate => ({
+  home: '/home',
   data: [
     {
       pvcName: 'Volume-Data1',
       mountPath: '/data',
       readOnly: true,
+    },
+  ],
+  secrets: [
+    {
+      defaultMode: 0o644,
+      mountPath: '/secrets',
+      secretName: 'secret-1',
     },
   ],
   ...podVolumesMutate,
@@ -921,27 +929,8 @@ export const buildMockWorkspaceUpdateFromWorkspace = (args: {
       imageConfig: args.workspace?.podTemplate?.options.imageConfig.current.id ?? '',
       podConfig: args.workspace?.podTemplate?.options.podConfig.current.id ?? '',
     }),
-    podMetadata: buildMockPodMetadataMutate(
-      args.podMetadata ?? {
-        labels: args.workspace?.podTemplate?.podMetadata.labels,
-        annotations: args.workspace?.podTemplate?.podMetadata.annotations,
-      },
-    ),
-    volumes: buildMockPodVolumesMutate(
-      args.volumes ?? {
-        home: args.workspace?.podTemplate?.volumes.home?.mountPath ?? '',
-        data: args.workspace?.podTemplate?.volumes.data?.map((d) => ({
-          pvcName: d.pvcName,
-          mountPath: d.mountPath,
-          readOnly: d.readOnly,
-        })),
-        secrets: args.workspace?.podTemplate?.volumes.secrets?.map((s) => ({
-          defaultMode: s.defaultMode,
-          mountPath: s.mountPath,
-          secretName: s.secretName,
-        })),
-      },
-    ),
+    podMetadata: buildMockPodMetadataMutate(args.podMetadata),
+    volumes: buildMockPodVolumesMutate(args.volumes),
   }),
   revision: args.workspaceUpdate?.revision ?? '1234567890',
   ...args.workspaceUpdate,
