@@ -222,9 +222,12 @@ describe('Workspaces', () => {
 
       workspaces.assertWorkspaceRowLastActivity(0, 'unknown');
     });
-    
+
     it('displays pod and node information in workspace details drawer', () => {
-      const { mockNamespace, mockWorkspaces } = setupSingleNamespaceWorkspaces(DEFAULT_NAMESPACE, 1);
+      const { mockNamespace, mockWorkspaces } = setupSingleNamespaceWorkspaces(
+        DEFAULT_NAMESPACE,
+        1,
+      );
       const mockWorkspace = mockWorkspaces[0];
 
       cy.interceptApi(
@@ -251,8 +254,41 @@ describe('Workspaces', () => {
       navigateToNamespace(mockNamespace.name);
 
       workspaces.findWorkspaceTableRow(mockWorkspace.name).click();
-      cy.findByTestId('pod-name').should('have.text', 'workspace-abc-0');
-      cy.findByTestId('node-name').should('have.text', 'node-gpu-01');
+      cy.findByTestId('pod-info-title').should('have.text', 'Pod Information');
+      cy.findByTestId('pod-name').should('contain.text', 'workspace-abc-0');
+      cy.findByTestId('pod-node-name').should('contain.text', 'node-gpu-01');
+    });
+
+    it('hides pod information section in workspace details drawer when pod is null', () =>{
+      const { mockNamespace, mockWorkspaces } = setupSingleNamespaceWorkspaces(
+        DEFAULT_NAMESPACE,
+        1,
+      );
+      const mockWorkspace = mockWorkspaces[0];
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/details',
+        {
+          path: {
+            apiVersion: NOTEBOOKS_API_VERSION,
+            namespace: mockNamespace.name,
+            workspaceName: mockWorkspace.name,
+          },
+        },
+        {
+          data: {
+            podMetadata: { labels: {}, annotations: {} },
+            volumes: {},
+            pod: null,
+          },
+        },
+      );
+
+      navigateToNamespace(mockNamespace.name);
+      
+      workspaces.findWorkspaceTableRow(mockWorkspace.name).click();
+      cy.findByTestId('pod-info-title').should('not.exist');
+      cy.findByTestId('pod-name').should('not.exist');
+      cy.findByTestId('pod-node-name').should('not.exist');
     });
   });
 

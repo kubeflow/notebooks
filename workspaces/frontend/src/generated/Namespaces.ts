@@ -10,12 +10,10 @@
  * ---------------------------------------------------------------
  */
 
-import { ApiErrorEnvelope, ApiNamespaceListEnvelope } from "./data-contracts";
-import { HttpClient, RequestParams } from "./http-client";
+import { ApiErrorEnvelope, ApiNamespaceListEnvelope } from './data-contracts';
+import { HttpClient, RequestParams } from './http-client';
 
-export class Namespaces<
-  SecurityDataType = unknown,
-> extends HttpClient<SecurityDataType> {
+export class Namespaces<SecurityDataType = unknown> extends HttpClient<SecurityDataType> {
   /**
    * @description Returns a list of all namespaces in the cluster.
    *
@@ -31,8 +29,8 @@ export class Namespaces<
   listNamespaces = (params: RequestParams = {}) =>
     this.request<ApiNamespaceListEnvelope, ApiErrorEnvelope>({
       path: `/namespaces`,
-      method: "GET",
-      format: "json",
+      method: 'GET',
+      format: 'json',
       ...params,
     });
 }

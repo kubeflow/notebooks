@@ -3,7 +3,7 @@ import { FetchState, FetchStateCallbackPromise, useFetchState } from 'mod-arch-c
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { ApiWorkspaceDetailsEnvelope } from '~/generated/data-contracts';
 
-export const useWorkspacePodTemplateDetails = (
+const useWorkspacePodTemplateDetails = (
   namespace?: string,
   name?: string,
 ): FetchState<ApiWorkspaceDetailsEnvelope['data'] | null> => {

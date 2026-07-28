@@ -15,12 +15,10 @@ import {
   ApiSecretCreateEnvelope,
   ApiSecretEnvelope,
   ApiSecretListEnvelope,
-} from "./data-contracts";
-import { ContentType, HttpClient, RequestParams } from "./http-client";
+} from './data-contracts';
+import { ContentType, HttpClient, RequestParams } from './http-client';
 
-export class Secrets<
-  SecurityDataType = unknown,
-> extends HttpClient<SecurityDataType> {
+export class Secrets<SecurityDataType = unknown> extends HttpClient<SecurityDataType> {
   /**
    * @description Returns a list of secrets in a specific namespace.
    *
@@ -37,8 +35,8 @@ export class Secrets<
   listSecrets = (namespace: string, params: RequestParams = {}) =>
     this.request<ApiSecretListEnvelope, ApiErrorEnvelope>({
       path: `/secrets/${namespace}`,
-      method: "GET",
-      format: "json",
+      method: 'GET',
+      format: 'json',
       ...params,
     });
   /**
@@ -58,17 +56,13 @@ export class Secrets<
    * @response `422` `ApiErrorEnvelope` Unprocessable Entity. Validation error.
    * @response `500` `ApiErrorEnvelope` Internal server error
    */
-  createSecret = (
-    namespace: string,
-    secret: ApiSecretCreateEnvelope,
-    params: RequestParams = {},
-  ) =>
+  createSecret = (namespace: string, secret: ApiSecretCreateEnvelope, params: RequestParams = {}) =>
     this.request<ApiSecretCreateEnvelope, ApiErrorEnvelope>({
       path: `/secrets/${namespace}`,
-      method: "POST",
+      method: 'POST',
       body: secret,
       type: ContentType.Json,
-      format: "json",
+      format: 'json',
       ...params,
     });
   /**
@@ -88,8 +82,8 @@ export class Secrets<
   getSecret = (namespace: string, name: string, params: RequestParams = {}) =>
     this.request<ApiSecretEnvelope, ApiErrorEnvelope>({
       path: `/secrets/${namespace}/${name}`,
-      method: "GET",
-      format: "json",
+      method: 'GET',
+      format: 'json',
       ...params,
     });
   /**
@@ -120,10 +114,10 @@ export class Secrets<
   ) =>
     this.request<ApiSecretEnvelope, ApiErrorEnvelope>({
       path: `/secrets/${namespace}/${name}`,
-      method: "PUT",
+      method: 'PUT',
       body: secret,
       type: ContentType.Json,
-      format: "json",
+      format: 'json',
       ...params,
     });
   /**
@@ -146,14 +140,10 @@ export class Secrets<
    * @response `422` `ApiErrorEnvelope` Unprocessable Entity. Validation error.
    * @response `500` `ApiErrorEnvelope` Internal server error
    */
-  deleteSecret = (
-    namespace: string,
-    name: string,
-    params: RequestParams = {},
-  ) =>
+  deleteSecret = (namespace: string, name: string, params: RequestParams = {}) =>
     this.request<void, ApiErrorEnvelope>({
       path: `/secrets/${namespace}/${name}`,
-      method: "DELETE",
+      method: 'DELETE',
       type: ContentType.Json,
       ...params,
     });
