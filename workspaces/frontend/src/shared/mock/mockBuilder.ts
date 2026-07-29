@@ -459,6 +459,7 @@ export const buildMockWorkspaceKind = (
   clusterMetrics: {
     workspacesCount: 10,
   },
+  restrictions: { deny: false },
   podTemplate: {
     podMetadata: {
       labels: {
@@ -494,6 +495,7 @@ export const buildMockWorkspaceKind = (
                 level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
               },
             },
+            restrictions: { deny: false },
           },
           {
             id: 'jupyterlab_scipy_190',
@@ -519,6 +521,7 @@ export const buildMockWorkspaceKind = (
             clusterMetrics: {
               workspacesCount: 1,
             },
+            restrictions: { deny: false },
           },
           {
             id: 'jupyterlab_scipy_200',
@@ -539,6 +542,7 @@ export const buildMockWorkspaceKind = (
             clusterMetrics: {
               workspacesCount: 2,
             },
+            restrictions: { deny: false },
           },
           {
             id: 'jupyterlab_scipy_210',
@@ -558,6 +562,7 @@ export const buildMockWorkspaceKind = (
             clusterMetrics: {
               workspacesCount: 3,
             },
+            restrictions: { deny: false },
           },
           {
             id: 'jupyterlab_scipy_220_hidden',
@@ -571,6 +576,7 @@ export const buildMockWorkspaceKind = (
             clusterMetrics: {
               workspacesCount: 0,
             },
+            restrictions: { deny: false },
           },
         ],
       },
@@ -596,6 +602,7 @@ export const buildMockWorkspaceKind = (
             clusterMetrics: {
               workspacesCount: 0,
             },
+            restrictions: { deny: false },
           },
           {
             id: 'small_cpu',
@@ -606,6 +613,7 @@ export const buildMockWorkspaceKind = (
               { key: 'cpu', value: '500m' },
               { key: 'memory', value: '512Mi' },
             ],
+            restrictions: { deny: false },
           },
           {
             id: 'medium_cpu',
@@ -616,6 +624,7 @@ export const buildMockWorkspaceKind = (
               { key: 'cpu', value: '1000m' },
               { key: 'memory', value: '1Gi' },
             ],
+            restrictions: { deny: false },
           },
           {
             id: 'large_cpu',
@@ -637,6 +646,7 @@ export const buildMockWorkspaceKind = (
             clusterMetrics: {
               workspacesCount: 5,
             },
+            restrictions: { deny: false },
           },
           {
             id: 'large_cpu_hidden',
@@ -651,6 +661,7 @@ export const buildMockWorkspaceKind = (
             clusterMetrics: {
               workspacesCount: 0,
             },
+            restrictions: { deny: false },
           },
         ],
       },
@@ -944,8 +955,6 @@ export const buildMockSecret = (
   secret?: Partial<SecretsSecretListItem>,
 ): SecretsSecretListItem => ({
   name: 'secret-1',
-  type: 'Opaque',
-  immutable: false,
   canMount: true,
   canUpdate: true,
   audit: {

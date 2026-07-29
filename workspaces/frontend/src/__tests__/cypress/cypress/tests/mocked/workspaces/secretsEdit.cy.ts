@@ -16,7 +16,11 @@ import {
 } from '~/shared/mock/mockBuilder';
 import { navBar } from '~/__tests__/cypress/cypress/pages/components/navBar';
 import { interceptListValues } from '~/__tests__/cypress/cypress/utils/testBuilders';
-import { V1Beta1WorkspaceState } from '~/generated/data-contracts';
+import {
+  V1Beta1WorkspaceState,
+  V1SecretType,
+  type SecretsSecretUpdate,
+} from '~/generated/data-contracts';
 
 describe('Edit Secret Modal', () => {
   const mockNamespace = buildMockNamespace({ name: 'default' });
@@ -40,18 +44,17 @@ describe('Edit Secret Modal', () => {
   });
 
   const mockSecrets = [
-    buildMockSecret({ name: 'test-secret', canMount: true, canUpdate: true, immutable: false }),
+    buildMockSecret({ name: 'test-secret', canMount: true, canUpdate: true }),
     buildMockSecret({
       name: 'immutable-secret',
       canMount: true,
       canUpdate: false,
-      immutable: true,
     }),
   ];
 
-  const mockSecretContents = {
+  const mockSecretContents: Record<string, SecretsSecretUpdate> = {
     'test-secret': {
-      type: 'Opaque',
+      type: V1SecretType.SecretTypeOpaque,
       immutable: false,
       contents: {
         apiKey: { base64: btoa('my-api-key') },
@@ -59,7 +62,7 @@ describe('Edit Secret Modal', () => {
       },
     },
     'immutable-secret': {
-      type: 'Opaque',
+      type: V1SecretType.SecretTypeOpaque,
       immutable: true,
       contents: {
         token: { base64: btoa('secret-token') },
@@ -185,8 +188,8 @@ describe('Edit Secret Modal', () => {
 
     // Verify API was called
     cy.wait('@updateSecret').then((interception) => {
-      expect(interception.request.body.immutable).to.equal(true);
-      expect(interception.request.body.type).to.equal('Opaque');
+      expect(interception.request.body.data.immutable).to.equal(true);
+      expect(interception.request.body.data.type).to.equal('Opaque');
     });
   });
 
@@ -261,7 +264,6 @@ describe('Edit Secret Modal', () => {
       name: 'no-update-secret',
       canMount: true,
       canUpdate: false,
-      immutable: false,
     });
 
     cy.interceptApi(

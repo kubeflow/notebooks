@@ -106,6 +106,7 @@ const convertToFormData = (
           port: p.port,
           protocol: 'HTTP' as const,
         })),
+        restrictions: { deny: false },
       })),
     },
     podConfig: {
@@ -128,6 +129,7 @@ const convertToFormData = (
           id: generateUniqueId(),
           ...t,
         })),
+        restrictions: { deny: false },
       })),
     },
     podTemplate: {

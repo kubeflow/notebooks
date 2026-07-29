@@ -15,6 +15,7 @@ const buildMockImageConfigValue = (
   description: 'Default description',
   labels: [],
   hidden: false,
+  restrictions: { deny: false },
   ...overrides,
 });
 

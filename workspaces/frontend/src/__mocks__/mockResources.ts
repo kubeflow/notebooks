@@ -13,4 +13,5 @@ export const mockPodConfig: WorkspaceKindPodConfigValue = {
     requests: { cpu: '8000m', memory: '2Gi' },
     limits: { 'nvidia.com/gpu': '2' },
   },
+  restrictions: { deny: false },
 };

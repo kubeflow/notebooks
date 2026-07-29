@@ -150,6 +150,9 @@ export const emptyImage = {
   redirect: {
     to: '',
   },
+  restrictions: {
+    deny: false,
+  },
 };
 
 export const emptyPodConfig: OptionsPodConfigValue = {
@@ -160,6 +163,9 @@ export const emptyPodConfig: OptionsPodConfigValue = {
   hidden: false,
   redirect: {
     to: '',
+  },
+  restrictions: {
+    deny: false,
   },
 };
 

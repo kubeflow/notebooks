@@ -125,6 +125,7 @@ export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityD
    * @response `400` `ApiErrorEnvelope` Bad Request.
    * @response `401` `ApiErrorEnvelope` Unauthorized. Authentication is required.
    * @response `403` `ApiErrorEnvelope` Forbidden. User does not have permission to update workspace.
+   * @response `404` `ApiErrorEnvelope` Workspace not found
    * @response `409` `ApiErrorEnvelope` Conflict. Current workspace revision is newer than provided.
    * @response `413` `ApiErrorEnvelope` Request Entity Too Large. The request body is too large.
    * @response `415` `ApiErrorEnvelope` Unsupported Media Type. Content-Type header is not correct.

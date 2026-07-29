@@ -97,6 +97,7 @@ const buildMockFormData = (overrides?: Partial<WorkspaceKindFormData>): Workspac
         image: 'registry.io/img:v1',
         imagePullPolicy: ImagePullPolicy.IfNotPresent,
         ports: [{ id: 'http', port: 8888, displayName: 'HTTP', protocol: 'HTTP' as const }],
+        restrictions: { deny: false },
       },
     ],
   },
@@ -114,6 +115,7 @@ const buildMockFormData = (overrides?: Partial<WorkspaceKindFormData>): Workspac
           limits: { cpu: '2', memory: '4Gi' },
         },
         nodeSelector: { 'kubernetes.io/os': 'linux' },
+        restrictions: { deny: false },
       },
     ],
   },
@@ -170,6 +172,7 @@ describe('getResources', () => {
       description: 'Test Description',
       labels: [],
       hidden: false,
+      restrictions: { deny: false },
     };
 
     const result = getResources(emptyConfig);

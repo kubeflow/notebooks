@@ -37,6 +37,7 @@ const buildMockImageConfigValue = (
   description,
   labels: [],
   hidden: false,
+  restrictions: { deny: false },
 });
 
 const buildMockPodConfigValue = (
@@ -49,6 +50,7 @@ const buildMockPodConfigValue = (
   description,
   labels: [],
   hidden: false,
+  restrictions: { deny: false },
 });
 
 describe('Summary step', () => {
