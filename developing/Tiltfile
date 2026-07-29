@@ -39,6 +39,32 @@ kustomize_bin = os.path.join(tilt_root, "bin/kustomize")
 
 
 # ============================================================================
+# Helpers
+# ============================================================================
+
+# Builds the Tilt object refs ("name:kind" or "name:kind:namespace") for every
+# object in a rendered manifest, so a whole kustomize target can be grouped into
+# a single k8s_resource without hardcoding its contents here.
+def object_refs(manifest, exclude_kinds=[]):
+    refs = []
+    for o in decode_yaml_stream(manifest):
+        kind = o.get("kind")
+        name = o.get("metadata", {}).get("name")
+        if not kind or not name:
+            continue
+
+        if kind in exclude_kinds:
+            continue
+
+        namespace = o.get("metadata", {}).get("namespace")
+        if namespace:
+            refs.append("%s:%s:%s" % (name, kind.lower(), namespace))
+        else:
+            refs.append("%s:%s" % (name, kind.lower()))
+    return refs
+
+
+# ============================================================================
 # Controller
 # ============================================================================
 # Note: Kind cluster and cert-manager are set up by the Makefile before Tilt starts
@@ -267,22 +293,13 @@ if enable_frontend:
 # Note: Istio itself (istiod, ingress gateway) is installed by the Makefile before Tilt starts.
 
 istio_gateway_path = os.path.join(tilt_root, "manifests/istio-gateway")
-k8s_yaml(
-    kustomize(istio_gateway_path, kustomize_bin=kustomize_bin),
-    allow_duplicates=True,
-)
+istio_gateway_manifest = kustomize(istio_gateway_path, kustomize_bin=kustomize_bin)
+k8s_yaml(istio_gateway_manifest, allow_duplicates=True)
 
-# TODO: determine if we can capture these objects
-#       without hardcoding names here
 # Manage k8s_yaml resources
 # - Apply Tilt-specific grouping/labels
 k8s_resource(
-    objects=[
-        "selfsigned-issuer:clusterissuer",
-        "gateway-tls:certificate",
-        "kubeflow-gateway:gateway",
-        "gateway-access-logging:telemetry",
-    ],
+    objects=object_refs(istio_gateway_manifest, exclude_kinds=["Namespace"]),
     new_name="istio-gateway",
     pod_readiness="ignore",
     labels=["istio"],
@@ -382,29 +399,6 @@ if enable_prometheus:
         links=[link("http://localhost:9090", "Prometheus UI")],
         labels=["prometheus"],
     )
-
-
-# ============================================================================
-# Helpers
-# ============================================================================
-
-# Builds the Tilt object refs ("name:kind" or "name:kind:namespace") for every
-# object in a rendered manifest, so a whole kustomize target can be grouped into
-# a single k8s_resource without hardcoding its contents here.
-def object_refs(manifest):
-    refs = []
-    for o in decode_yaml_stream(manifest):
-        kind = o.get("kind")
-        name = o.get("metadata", {}).get("name")
-        if not kind or not name:
-            continue
-
-        namespace = o.get("metadata", {}).get("namespace")
-        if namespace:
-            refs.append("%s:%s:%s" % (name, kind.lower(), namespace))
-        else:
-            refs.append("%s:%s" % (name, kind.lower()))
-    return refs
 
 
 # ============================================================================
