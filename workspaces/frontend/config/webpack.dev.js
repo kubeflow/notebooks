@@ -9,7 +9,7 @@ const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
 const smp = new SpeedMeasurePlugin({ disable: !process.env.MEASURE });
 
 const env = process.env.DEV_ENV ?? 'development';
-const isTilt = env === 'tilt';
+const isTilt = env.startsWith('tilt');
 setupDotenvFilesForEnv({ env });
 const webpackCommon = require('./webpack.common.js');
 
