@@ -298,6 +298,40 @@ describe('Filter Images by Labels', () => {
       createWorkspace.clickExtraFilter('showHidden');
       createWorkspace.assertExtraFilterChecked('showHidden');
     });
+
+    it('should grey out label values that only exist on hidden images', () => {
+      createWorkspace.assertLabelFilterDisabled('gpu', '1');
+      createWorkspace.assertLabelFilterEnabled('cpu', '2');
+      createWorkspace.assertLabelFilterEnabled('framework', 'pytorch');
+    });
+
+    it('should enable label values when show hidden is toggled on', () => {
+      createWorkspace.assertLabelFilterDisabled('gpu', '1');
+
+      createWorkspace.clickExtraFilter('showHidden');
+
+      createWorkspace.assertLabelFilterEnabled('gpu', '1');
+    });
+
+    it('should re-disable label values when show hidden is toggled back off', () => {
+      createWorkspace.clickExtraFilter('showHidden');
+      createWorkspace.assertLabelFilterEnabled('gpu', '1');
+
+      createWorkspace.clickExtraFilter('showHidden');
+      createWorkspace.assertLabelFilterDisabled('gpu', '1');
+    });
+
+    it('should deselect label filter when it becomes disabled', () => {
+      createWorkspace.clickExtraFilter('showHidden');
+      createWorkspace.assertLabelFilterEnabled('gpu', '1');
+
+      createWorkspace.clickLabelFilter('gpu', '1');
+      createWorkspace.assertLabelFilterChecked('gpu', '1');
+
+      createWorkspace.clickExtraFilter('showHidden');
+      createWorkspace.assertLabelFilterDisabled('gpu', '1');
+      createWorkspace.assertLabelFilterNotChecked('gpu', '1');
+    });
   });
 
   describe('UI state', () => {
