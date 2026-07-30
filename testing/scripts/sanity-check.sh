@@ -172,4 +172,19 @@ check_gateway_route "backend via gateway" "/workspaces/api/v1/healthcheck"
 check_gateway_route "frontend via gateway" "/workspaces/"
 
 echo ""
+echo "=== Sanity Check: Sample WorkspaceKinds ==="
+
+SAMPLES_DIR="../workspaces/controller/manifests/kustomize/samples"
+
+for sample in "${SAMPLES_DIR}"/*_workspacekind.yaml; do
+  name=$(basename "${sample}")
+  echo "Validating sample ${name}..."
+  if ! kubectl create --dry-run=server -f "${sample}" 2>&1; then
+    echo "✗ ERROR: Sample ${name} failed server-side validation"
+    exit 1
+  fi
+  echo "✓ ${name} is valid"
+done
+
+echo ""
 echo "✓ All sanity checks passed"
