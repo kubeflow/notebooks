@@ -8,6 +8,7 @@ import {
 } from '@patternfly/react-core/dist/esm/components/DescriptionList';
 import { Divider } from '@patternfly/react-core/dist/esm/components/Divider';
 import { WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
+import { hasWorkspacePendingUpdate } from '~/shared/utilities/WorkspaceUtils';
 
 const DATE_FORMAT = 'PPpp';
 
@@ -19,9 +20,7 @@ export const WorkspaceDetailsActivity: React.FunctionComponent<WorkspaceDetailsA
   workspace,
 }) => {
   const { activity, pausedTime } = workspace;
-  const pendingRestart =
-    (workspace.podTemplate.options.podConfig.redirectChain ?? []).length > 0 ||
-    (workspace.podTemplate.options.imageConfig.redirectChain ?? []).length > 0;
+  const pendingRestart = hasWorkspacePendingUpdate(workspace);
 
   return (
     <DescriptionList isHorizontal>

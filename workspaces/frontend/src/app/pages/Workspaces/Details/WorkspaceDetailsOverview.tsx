@@ -7,9 +7,8 @@ import {
 } from '@patternfly/react-core/dist/esm/components/DescriptionList';
 import { Divider } from '@patternfly/react-core/dist/esm/components/Divider';
 import { Label, LabelGroup } from '@patternfly/react-core/dist/esm/components/Label';
-import { Spinner } from '@patternfly/react-core/dist/esm/components/Spinner';
-import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import { DetailsWorkspaceDetails, WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
+import { DetailsLoadingState } from '~/app/components/DetailsLoadingState';
 import { WorkspacePackageDetails } from '~/app/pages/Workspaces/WorkspacePackageDetails';
 
 type WorkspaceDetailsOverviewProps = {
@@ -39,9 +38,7 @@ export const WorkspaceDetailsOverview: React.FunctionComponent<WorkspaceDetailsO
     <DescriptionListGroup>
       <DescriptionListTerm>Labels</DescriptionListTerm>
       <DescriptionListDescription>
-        {detailsError ? (
-          <Content component="small">Failed to load details</Content>
-        ) : detailsLoaded ? (
+        <DetailsLoadingState error={detailsError} loaded={detailsLoaded}>
           <LabelGroup>
             {Object.entries(details?.podMetadata.labels ?? {}).map(([key, value]) => (
               <Label key={key} isCompact>
@@ -49,9 +46,7 @@ export const WorkspaceDetailsOverview: React.FunctionComponent<WorkspaceDetailsO
               </Label>
             ))}
           </LabelGroup>
-        ) : (
-          <Spinner size="md" />
-        )}
+        </DetailsLoadingState>
       </DescriptionListDescription>
     </DescriptionListGroup>
     <Divider />

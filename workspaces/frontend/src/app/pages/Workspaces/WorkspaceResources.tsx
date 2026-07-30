@@ -6,7 +6,6 @@ import {
   DescriptionListDescription,
 } from '@patternfly/react-core/dist/esm/components/DescriptionList';
 import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
-import { Spinner } from '@patternfly/react-core/dist/esm/components/Spinner';
 import { DatabaseIcon } from '@patternfly/react-icons/dist/esm/icons/database-icon';
 import { LockedIcon } from '@patternfly/react-icons/dist/esm/icons/locked-icon';
 import {
@@ -16,6 +15,7 @@ import {
 import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import { Divider } from '@patternfly/react-core/dist/esm/components/Divider';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
+import { DetailsLoadingState } from '~/app/components/DetailsLoadingState';
 import { formatResourceFromWorkspace } from '~/shared/utilities/WorkspaceUtils';
 import { DetailsWorkspaceDetails, WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
 
@@ -86,13 +86,9 @@ export const WorkspaceResources: React.FC<WorkspaceResourcesProps> = ({
       <DescriptionListGroup>
         <DescriptionListTerm>Home volume</DescriptionListTerm>
         <DescriptionListDescription>
-          {detailsError ? (
-            <Content component="small">Failed to load details</Content>
-          ) : detailsLoaded ? (
-            (details?.volumes.home.pvcName ?? 'None')
-          ) : (
-            <Spinner size="md" />
-          )}
+          <DetailsLoadingState error={detailsError} loaded={detailsLoaded}>
+            {details?.volumes.home.pvcName ?? 'None'}
+          </DetailsLoadingState>
         </DescriptionListDescription>
       </DescriptionListGroup>
       <Divider />
@@ -101,15 +97,11 @@ export const WorkspaceResources: React.FC<WorkspaceResourcesProps> = ({
           Cluster storage
         </DescriptionListTerm>
         <DescriptionListDescription>
-          {detailsError ? (
-            <Content component="small">Failed to load details</Content>
-          ) : detailsLoaded ? (
+          <DetailsLoadingState error={detailsError} loaded={detailsLoaded}>
             <Flex direction={{ default: 'column' }}>
               {(details?.volumes.data ?? []).map((data) => singleDataVolRenderer(data))}
             </Flex>
-          ) : (
-            <Spinner size="md" />
-          )}
+          </DetailsLoadingState>
         </DescriptionListDescription>
       </DescriptionListGroup>
     </DescriptionList>
