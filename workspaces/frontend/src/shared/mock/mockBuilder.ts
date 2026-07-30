@@ -1,5 +1,6 @@
 import {
   ActionsWorkspaceActionPause,
+  DetailsWorkspaceDetails,
   HealthCheckHealthCheck,
   HealthCheckServiceStatus,
   NamespacesNamespace,
@@ -881,11 +882,19 @@ export const buildMockPodMetadataMutate = (
 export const buildMockPodVolumesMutate = (
   podVolumesMutate?: Partial<WorkspacesPodVolumesMutate>,
 ): WorkspacesPodVolumesMutate => ({
+  home: '/home',
   data: [
     {
       pvcName: 'Volume-Data1',
       mountPath: '/data',
       readOnly: true,
+    },
+  ],
+  secrets: [
+    {
+      defaultMode: 0o644,
+      mountPath: '/secrets',
+      secretName: 'secret-1',
     },
   ],
   ...podVolumesMutate,
@@ -922,6 +931,8 @@ export const buildMockWorkspaceUpdate = (
 export const buildMockWorkspaceUpdateFromWorkspace = (args: {
   workspace?: Partial<WorkspacesWorkspaceListItem>;
   workspaceUpdate?: Partial<WorkspacesWorkspaceUpdate>;
+  podMetadata?: Partial<WorkspacesPodMetadataMutate>;
+  volumes?: Partial<WorkspacesPodVolumesMutate>;
 }): WorkspacesWorkspaceUpdate => ({
   paused: args.workspace?.paused ?? false,
   podTemplate: buildMockPodTemplateMutate({
@@ -929,23 +940,8 @@ export const buildMockWorkspaceUpdateFromWorkspace = (args: {
       imageConfig: args.workspace?.podTemplate?.options.imageConfig.current.id ?? '',
       podConfig: args.workspace?.podTemplate?.options.podConfig.current.id ?? '',
     }),
-    podMetadata: buildMockPodMetadataMutate({
-      labels: args.workspace?.podTemplate?.podMetadata.labels,
-      annotations: args.workspace?.podTemplate?.podMetadata.annotations,
-    }),
-    volumes: buildMockPodVolumesMutate({
-      home: args.workspace?.podTemplate?.volumes.home?.mountPath ?? '',
-      data: args.workspace?.podTemplate?.volumes.data?.map((d) => ({
-        pvcName: d.pvcName,
-        mountPath: d.mountPath,
-        readOnly: d.readOnly,
-      })),
-      secrets: args.workspace?.podTemplate?.volumes.secrets?.map((s) => ({
-        defaultMode: s.defaultMode,
-        mountPath: s.mountPath,
-        secretName: s.secretName,
-      })),
-    }),
+    podMetadata: buildMockPodMetadataMutate(args.podMetadata),
+    volumes: buildMockPodVolumesMutate(args.volumes),
   }),
   revision: args.workspaceUpdate?.revision ?? '1234567890',
   ...args.workspaceUpdate,
@@ -1005,4 +1001,19 @@ export const buildMockPVCCreate = (pvc?: Partial<PvcsPVCCreate>): PvcsPVCCreate 
   requests: { storage: '10Gi' },
   storageClassName: 'standard',
   ...pvc,
+});
+
+export const buildMockWorkspaceDetails = (
+  details?: Partial<DetailsWorkspaceDetails>,
+): DetailsWorkspaceDetails => ({
+  podMetadata: {
+    labels: { labelKey1: 'labelValue1', labelKey2: 'labelValue2' },
+    annotations: { annotationKey1: 'annotationValue1', annotationKey2: 'annotationValue2' },
+  },
+  volumes: {
+    home: { pvcName: 'Volume-Home', mountPath: '/home', readOnly: false },
+    data: [{ pvcName: 'Volume-Data1', mountPath: '/data', readOnly: true }],
+    secrets: [{ defaultMode: 0o644, mountPath: '/secrets', secretName: 'secret-1' }],
+  },
+  ...details,
 });

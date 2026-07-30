@@ -12,6 +12,7 @@ import {
   buildMockActionsWorkspaceActionPause,
   buildMockNamespace,
   buildMockWorkspace,
+  buildMockWorkspaceDetails,
   buildMockWorkspaceKindInfo,
   buildMockWorkspaceList,
 } from '~/shared/mock/mockBuilder';
@@ -682,6 +683,18 @@ describe('Workspaces', () => {
         mockModArchResponse(mockWorkspaces),
       ).as('getWorkspaces');
 
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/details',
+        {
+          path: {
+            apiVersion: NOTEBOOKS_API_VERSION,
+            namespace: mockNamespace.name,
+            workspaceName,
+          },
+        },
+        mockModArchResponse(buildMockWorkspaceDetails()),
+      ).as('getWorkspaceDetails');
+
       navigateToNamespace(mockNamespace.name);
 
       return { mockNamespace, mockWorkspaces };
@@ -1024,6 +1037,30 @@ describe('Workspaces', () => {
           { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
           mockModArchResponse(mockWorkspaces),
         ).as('getWorkspaces');
+
+        cy.interceptApi(
+          'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/details',
+          {
+            path: {
+              apiVersion: NOTEBOOKS_API_VERSION,
+              namespace: mockNamespace.name,
+              workspaceName: TEST_WORKSPACE_NAME,
+            },
+          },
+          mockModArchResponse(buildMockWorkspaceDetails()),
+        ).as('getWorkspaceDetails');
+
+        cy.interceptApi(
+          'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/details',
+          {
+            path: {
+              apiVersion: NOTEBOOKS_API_VERSION,
+              namespace: mockNamespace.name,
+              workspaceName: workspace2Name,
+            },
+          },
+          mockModArchResponse(buildMockWorkspaceDetails()),
+        ).as('getWorkspace2Details');
 
         navigateToNamespace(mockNamespace.name);
 

@@ -134,6 +134,13 @@ export const countGpusFromWorkspaces = (workspaces: WorkspacesWorkspaceListItem[
     return total + (gpuValue ?? 0);
   }, 0);
 
+export const hasWorkspacePendingUpdate = (
+  workspace: WorkspacesWorkspaceListItem | null | undefined,
+): boolean =>
+  !!workspace &&
+  ((workspace.podTemplate.options.podConfig.redirectChain ?? []).length > 0 ||
+    (workspace.podTemplate.options.imageConfig.redirectChain ?? []).length > 0);
+
 // For now, label keys will be showed as they are in the backend.
 export const formatLabelKey = (key: string): string => key;
 

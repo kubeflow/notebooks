@@ -7,15 +7,22 @@ import {
 } from '@patternfly/react-core/dist/esm/components/DescriptionList';
 import { Divider } from '@patternfly/react-core/dist/esm/components/Divider';
 import { Label, LabelGroup } from '@patternfly/react-core/dist/esm/components/Label';
-import { WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
+import { DetailsWorkspaceDetails, WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
+import { DetailsLoadingState } from '~/app/components/DetailsLoadingState';
 import { WorkspacePackageDetails } from '~/app/pages/Workspaces/WorkspacePackageDetails';
 
 type WorkspaceDetailsOverviewProps = {
   workspace: WorkspacesWorkspaceListItem;
+  details: DetailsWorkspaceDetails | null;
+  detailsLoaded: boolean;
+  detailsError?: Error;
 };
 
 export const WorkspaceDetailsOverview: React.FunctionComponent<WorkspaceDetailsOverviewProps> = ({
   workspace,
+  details,
+  detailsLoaded,
+  detailsError,
 }) => (
   <DescriptionList isHorizontal>
     <DescriptionListGroup>
@@ -31,13 +38,15 @@ export const WorkspaceDetailsOverview: React.FunctionComponent<WorkspaceDetailsO
     <DescriptionListGroup>
       <DescriptionListTerm>Labels</DescriptionListTerm>
       <DescriptionListDescription>
-        <LabelGroup>
-          {Object.entries(workspace.podTemplate.podMetadata.labels).map(([key, value]) => (
-            <Label key={key} isCompact>
-              {key}={value}
-            </Label>
-          ))}
-        </LabelGroup>
+        <DetailsLoadingState error={detailsError} loaded={detailsLoaded}>
+          <LabelGroup>
+            {Object.entries(details?.podMetadata.labels ?? {}).map(([key, value]) => (
+              <Label key={key} isCompact>
+                {key}={value}
+              </Label>
+            ))}
+          </LabelGroup>
+        </DetailsLoadingState>
       </DescriptionListDescription>
     </DescriptionListGroup>
     <Divider />
