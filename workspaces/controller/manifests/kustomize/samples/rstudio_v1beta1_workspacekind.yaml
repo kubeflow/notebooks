@@ -54,12 +54,16 @@ spec:
           medium: "Memory"
     securityContext:
       fsGroup: 100
+      seccompProfile:
+        type: RuntimeDefault
     containerSecurityContext:
       allowPrivilegeEscalation: false
       capabilities:
         drop:
           - ALL
       runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
     options:
       imageConfig:
         spawner:
