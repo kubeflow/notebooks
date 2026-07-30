@@ -71,6 +71,11 @@ $kubeflow-theme: mat.define-light-theme(
 // component that you are using.
 @include mat.all-component-themes($kubeflow-theme);
 
+.mat-raised-button.mat-primary {
+  background-color: $kubeflow-blue-hue-4;
+  color: $kubeflow-white;
+}
+
 .mat-headline {
   color: $kubeflow-black-1;
 }
