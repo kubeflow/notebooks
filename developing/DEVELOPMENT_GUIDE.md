@@ -172,6 +172,17 @@ Access the components through the Istio ingress gateway:
 
 You can now make changes to the codebase, and Tilt will automatically rebuild and redeploy the affected components.
 
+### Tilt - Frontend API Client Regeneration
+
+When backend API handlers are modified during a Tilt session, Tilt automates the propagation of these changes to the frontend TypeScript client:
+
+1. **Backend Swagger Generation**: Tilt detects changes to backend Go files and automatically runs `make swag` inside `workspaces/backend` to regenerate `openapi/swagger.json`.
+2. **Frontend API client Generation**: Tilt detects the updated `swagger.json` and automatically runs `npm run generate:api` with `USE_LOCAL_SWAGGER=true` in `workspaces/frontend` on the host to regenerate the TypeScript client under `src/generated/`.
+3. **Live Sync**: Tilt syncs the newly generated client files into the frontend container.
+4. **Dev Server Hot Reload**: The webpack dev server inside the container detects the synced client code and hot-reloads the application.
+
+This ensures you can design backend APIs and iterate on the frontend interface with instant type feedback without having to commit intermediate backend changes or run manual regeneration commands.
+
 ### Tilt - Authentication & RBAC
 
 Tilt deploys RBAC bindings for two dev users from [`developing/manifests/rbac/`](developing/manifests/rbac/).

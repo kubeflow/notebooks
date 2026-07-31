@@ -26,7 +26,7 @@
     "build:bundle-analyze": "webpack-bundle-analyzer ./bundle.stats.json",
     "build:clean": "rimraf ./dist",
     "build:prod": "webpack --config ./config/webpack.prod.js",
-    "generate:api": "./scripts/generate-api.sh && npm run prettier",
+    "generate:api": "bash ./scripts/generate-api.sh && npm run prettier",
     "start:dev": "webpack serve --hot --color --config ./config/webpack.dev.js",
     "start:tilt": "DEV_ENV=tilt npm run start:dev",
     "test": "run-s prettier:check test:lint test:type-check test:unit test:cypress-ci",
