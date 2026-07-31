@@ -34,6 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -94,6 +95,9 @@ func (v *WorkspaceKindValidator) ValidateCreate(ctx context.Context, obj runtime
 
 	// validate the request headers templates
 	allErrs = append(allErrs, validateRequestHeaders(workspaceKind)...)
+
+	// validate the filter rules
+	allErrs = append(allErrs, validateFilterRules(workspaceKind)...)
 
 	// generate helper maps for imageConfig values
 	imageConfigIdMap := make(map[string]kubefloworgv1beta1.ImageConfigValue)
@@ -192,6 +196,11 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 	// validate the request headers templates
 	if !equality.Semantic.DeepEqual(newWorkspaceKind.Spec.PodTemplate.Ports, oldWorkspaceKind.Spec.PodTemplate.Ports) {
 		allErrs = append(allErrs, validateRequestHeaders(newWorkspaceKind)...)
+	}
+
+	// validate the filter rules
+	if !equality.Semantic.DeepEqual(newWorkspaceKind.Spec.FilterRules, oldWorkspaceKind.Spec.FilterRules) {
+		allErrs = append(allErrs, validateFilterRules(newWorkspaceKind)...)
 	}
 
 	// if the ports config changed, we need to validate all image config values again
@@ -655,6 +664,55 @@ func validateRequestHeaders(workspaceKind *kubefloworgv1beta1.WorkspaceKind) []*
 				if err != nil {
 					errs = append(errs, field.Invalid(headersPath.Child("add").Key(k), v, err.Error()))
 				}
+			}
+		}
+	}
+
+	return errs
+}
+
+// validateFilterRules validates the filter rules that the CRD structural schema cannot express:
+//   - each rule specifies at least one effect (one of ui.hide, api.hide, or api.deny is true)
+//   - matchImageConfig/matchPodConfig are only valid when scope is POD_CONFIG or IMAGE_CONFIG
+//     (they are meaningless for WORKSPACE_KIND scope, where only matchNamespace applies)
+//   - each label selector is itself well-formed
+//
+// The remaining structural constraints (scope enum, exactly-one match condition, etc.) are
+// enforced declaratively by the CRD schema.
+func validateFilterRules(workspaceKind *kubefloworgv1beta1.WorkspaceKind) []*field.Error {
+	var errs []*field.Error
+
+	selectorOpts := v1validation.LabelSelectorValidationOptions{}
+	filterRulesPath := field.NewPath("spec", "filterRules")
+	for i, rule := range workspaceKind.Spec.FilterRules {
+		rulePath := filterRulesPath.Index(i)
+
+		// each rule must specify at least one effect (one of ui.hide, api.hide, or api.deny is true)
+		effect := rule.Effect
+		hasUIEffect := effect.UI != nil && effect.UI.Hide
+		hasAPIEffect := effect.API != nil && (ptr.Deref(effect.API.Hide, false) || ptr.Deref(effect.API.Deny, false))
+		hasEffect := hasUIEffect || hasAPIEffect
+		if !hasEffect {
+			errs = append(errs, field.Invalid(rulePath.Child("effect"), "", "must specify at least one effect: one of 'ui.hide', 'api.hide', or 'api.deny' must be true"))
+		}
+
+		matchPath := rulePath.Child("match")
+		for j, match := range rule.Match {
+			conditionPath := matchPath.Index(j)
+			if match.MatchNamespace != nil {
+				errs = append(errs, v1validation.ValidateLabelSelector(&match.MatchNamespace.Selector, selectorOpts, conditionPath.Child("matchNamespace", "selector"))...)
+			}
+			if match.MatchImageConfig != nil {
+				if rule.Scope == kubefloworgv1beta1.FilterRuleScopeWorkspaceKind {
+					errs = append(errs, field.Invalid(conditionPath.Child("matchImageConfig"), match.MatchImageConfig, "'matchImageConfig' is only valid when 'scope' is 'POD_CONFIG' or 'IMAGE_CONFIG'"))
+				}
+				errs = append(errs, v1validation.ValidateLabelSelector(&match.MatchImageConfig.Selector, selectorOpts, conditionPath.Child("matchImageConfig", "selector"))...)
+			}
+			if match.MatchPodConfig != nil {
+				if rule.Scope == kubefloworgv1beta1.FilterRuleScopeWorkspaceKind {
+					errs = append(errs, field.Invalid(conditionPath.Child("matchPodConfig"), match.MatchPodConfig, "'matchPodConfig' is only valid when 'scope' is 'POD_CONFIG' or 'IMAGE_CONFIG'"))
+				}
+				errs = append(errs, v1validation.ValidateLabelSelector(&match.MatchPodConfig.Selector, selectorOpts, conditionPath.Child("matchPodConfig", "selector"))...)
 			}
 		}
 	}
