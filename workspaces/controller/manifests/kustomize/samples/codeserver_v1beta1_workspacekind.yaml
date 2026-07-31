@@ -36,8 +36,8 @@ spec:
           selector:
             matchExpressions:
               - key: "nvidia.com/gpu"
-                 operator: DoesNotExist
-      - matchImageConfig:
+                operator: DoesNotExist
+     - matchImageConfig:
           selector:
             matchExpressions:
               - key: "cuda_version"
