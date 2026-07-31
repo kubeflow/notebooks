@@ -6972,6 +6972,111 @@ const docTemplate = `{
                 "WorkspaceStateUnknown"
             ]
         },
+        "workspacekinds.ActivityProbe": {
+            "type": "object",
+            "required": [
+                "minProbeIntervalSeconds",
+                "probeIntervalSeconds"
+            ],
+            "properties": {
+                "exec": {
+                    "$ref": "#/definitions/workspacekinds.ActivityProbeExec"
+                },
+                "jupyter": {
+                    "$ref": "#/definitions/workspacekinds.ActivityProbeJupyter"
+                },
+                "minProbeIntervalSeconds": {
+                    "type": "integer"
+                },
+                "probeIntervalSeconds": {
+                    "type": "integer"
+                }
+            }
+        },
+        "workspacekinds.ActivityProbeExec": {
+            "type": "object",
+            "required": [
+                "script",
+                "timeoutSeconds"
+            ],
+            "properties": {
+                "script": {
+                    "type": "string"
+                },
+                "timeoutSeconds": {
+                    "type": "integer"
+                }
+            }
+        },
+        "workspacekinds.ActivityProbeJupyter": {
+            "type": "object",
+            "required": [
+                "lastActivity",
+                "portId"
+            ],
+            "properties": {
+                "lastActivity": {
+                    "type": "boolean"
+                },
+                "portId": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspacekinds.ActivityRule": {
+            "type": "object",
+            "required": [
+                "config",
+                "effect"
+            ],
+            "properties": {
+                "config": {
+                    "$ref": "#/definitions/workspacekinds.ActivityRuleConfig"
+                },
+                "effect": {
+                    "$ref": "#/definitions/workspacekinds.ActivityRuleEffect"
+                },
+                "match": {
+                    "$ref": "#/definitions/workspacekinds.ActivityRuleMatch"
+                }
+            }
+        },
+        "workspacekinds.ActivityRuleConfig": {
+            "type": "object",
+            "required": [
+                "secondsSinceActive"
+            ],
+            "properties": {
+                "minRunningSeconds": {
+                    "type": "integer"
+                },
+                "secondsSinceActive": {
+                    "type": "integer"
+                }
+            }
+        },
+        "workspacekinds.ActivityRuleEffect": {
+            "type": "object",
+            "required": [
+                "pauseWorkspace"
+            ],
+            "properties": {
+                "pauseWorkspace": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "workspacekinds.ActivityRuleMatch": {
+            "type": "object",
+            "properties": {
+                "matchNamespace": {
+                    "$ref": "#/definitions/workspacekinds.MatchNamespace"
+                },
+                "matchPodConfig": {
+                    "$ref": "#/definitions/workspacekinds.MatchPodConfig"
+                }
+            }
+        },
         "workspacekinds.ClusterKindMetrics": {
             "type": "object",
             "required": [
@@ -6980,6 +7085,28 @@ const docTemplate = `{
             "properties": {
                 "workspacesCount": {
                     "type": "integer"
+                }
+            }
+        },
+        "workspacekinds.MatchNamespace": {
+            "type": "object",
+            "required": [
+                "selector"
+            ],
+            "properties": {
+                "selector": {
+                    "$ref": "#/definitions/v1.LabelSelector"
+                }
+            }
+        },
+        "workspacekinds.MatchPodConfig": {
+            "type": "object",
+            "required": [
+                "selector"
+            ],
+            "properties": {
+                "selector": {
+                    "$ref": "#/definitions/v1.LabelSelector"
                 }
             }
         },
@@ -7012,6 +7139,9 @@ const docTemplate = `{
                 "volumeMounts"
             ],
             "properties": {
+                "activityProbe": {
+                    "$ref": "#/definitions/workspacekinds.ActivityProbe"
+                },
                 "options": {
                     "description": "TODO: remove once frontend migrates to the new listValues endpoint for both create/update and wsk admin views",
                     "allOf": [
@@ -7074,6 +7204,12 @@ const docTemplate = `{
                 "restrictions"
             ],
             "properties": {
+                "activityRules": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspacekinds.ActivityRule"
+                    }
+                },
                 "clusterMetrics": {
                     "$ref": "#/definitions/workspacekinds.ClusterKindMetrics"
                 },
@@ -7146,6 +7282,28 @@ const docTemplate = `{
                 "lastUpdate": {
                     "description": "Unix Epoch time",
                     "type": "integer"
+                },
+                "rules": {
+                    "$ref": "#/definitions/workspaces.ActivityRules"
+                }
+            }
+        },
+        "workspaces.ActivityPauseRule": {
+            "type": "object",
+            "required": [
+                "eligibleAfter"
+            ],
+            "properties": {
+                "eligibleAfter": {
+                    "type": "integer"
+                }
+            }
+        },
+        "workspaces.ActivityRules": {
+            "type": "object",
+            "properties": {
+                "pauseWorkspace": {
+                    "$ref": "#/definitions/workspaces.ActivityPauseRule"
                 }
             }
         },

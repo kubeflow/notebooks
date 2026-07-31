@@ -72,9 +72,8 @@ func NewWorkspaceListItemFromWorkspace(cfg *config.EnvConfig, ws *kubefloworgv1b
 		Activity: Activity{
 			LastActivity: ws.Status.Activity.LastActivity,
 			LastUpdate:   ws.Status.Activity.LastUpdate,
-			// TODO: populate LastProbe when culling is implemented:
-			//       https://github.com/kubeflow/notebooks/issues/38
-			LastProbe: nil,
+			LastProbe:    buildLastProbeInfo(ws.Status.Activity.LastProbe),
+			Rules:        buildActivityRules(&ws.Status.Activity),
 		},
 		Services: buildServices(ws, wskPodTemplatePorts, imageConfigValue),
 		Audit:    commonCore.NewAuditFromObjectMeta(&ws.ObjectMeta),
@@ -290,4 +289,34 @@ func buildLogoImageRef(cfg *config.EnvConfig, ws *kubefloworgv1beta1.Workspace, 
 		return commonAssets.ImageRef{URL: UnknownLogoURL}
 	}
 	return commonAssets.NewImageRefFromWorkspaceKindAssetLogo(cfg, wsk.Spec.Spawner.Logo, wsk.Status.SpawnerLogo, ws.Spec.Kind)
+}
+
+func buildLastProbeInfo(probe *kubefloworgv1beta1.WorkspaceActivityLastProbe) *LastProbeInfo {
+	if probe == nil {
+		return nil
+	}
+	return &LastProbeInfo{
+		StartTime: probe.StartTime,
+		EndTime:   probe.EndTime,
+		Result:    ProbeResult(probe.Result),
+		Message:   probe.Message,
+	}
+}
+
+func buildActivityRules(activity *kubefloworgv1beta1.WorkspaceActivity) *ActivityRules {
+	if activity == nil || activity.Rules == nil {
+		return nil
+	}
+	var pauseRule *ActivityPauseRule
+	if activity.Rules.PauseWorkspace != nil {
+		pauseRule = &ActivityPauseRule{
+			EligibleAfter: activity.Rules.PauseWorkspace.EligibleAfter,
+		}
+	}
+	if pauseRule == nil {
+		return nil
+	}
+	return &ActivityRules{
+		PauseWorkspace: pauseRule,
+	}
 }

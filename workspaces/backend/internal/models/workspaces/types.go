@@ -104,6 +104,7 @@ type Activity struct {
 	LastActivity int64          `json:"lastActivity"` // Unix Epoch time
 	LastUpdate   int64          `json:"lastUpdate"`   // Unix Epoch time
 	LastProbe    *LastProbeInfo `json:"lastProbe,omitempty"`
+	Rules        *ActivityRules `json:"rules,omitempty"`
 }
 
 type LastProbeInfo struct {
@@ -120,6 +121,14 @@ const (
 	ProbeResultFailure ProbeResult = "Failure"
 	ProbeResultTimeout ProbeResult = "Timeout"
 )
+
+type ActivityRules struct {
+	PauseWorkspace *ActivityPauseRule `json:"pauseWorkspace,omitempty"`
+}
+
+type ActivityPauseRule struct {
+	EligibleAfter int64 `json:"eligibleAfter"`
+}
 
 type Service struct {
 	HttpService *HttpService `json:"httpService,omitempty"`

@@ -69,11 +69,77 @@ func NewWorkspaceKindModelFromWorkspaceKind(cfg *config.EnvConfig, wsk *kubeflow
 			VolumeMounts: PodVolumeMounts{
 				Home: wsk.Spec.PodTemplate.VolumeMounts.Home,
 			},
-			Options: *podTemplateOptions,
+			ActivityProbe: buildActivityProbe(wsk.Spec.PodTemplate.ActivityProbe),
+			Options:       *podTemplateOptions,
 		},
+		ActivityRules: buildActivityRules(wsk.Spec.ActivityRules),
 		//
 		// TODO: replace this with the calculation of the actual restriction!
 		//
 		Restrictions: common.DefaultRestrictions(),
 	}
+}
+
+func buildActivityProbe(probe *kubefloworgv1beta1.ActivityProbe) *ActivityProbe {
+	if probe == nil {
+		return nil
+	}
+
+	res := &ActivityProbe{
+		MinProbeIntervalSeconds: ptr.Deref(probe.MinProbeIntervalSeconds, 300),
+		ProbeIntervalSeconds:    ptr.Deref(probe.ProbeIntervalSeconds, kubefloworgv1beta1.DefaultProbeIntervalSeconds),
+	}
+
+	if probe.PodExec != nil {
+		res.Exec = &ActivityProbeExec{
+			TimeoutSeconds: ptr.Deref(probe.PodExec.TimeoutSeconds, 60),
+			Script:         probe.PodExec.Script,
+		}
+	}
+
+	if probe.Jupyter != nil {
+		res.Jupyter = &ActivityProbeJupyter{
+			LastActivity: probe.Jupyter.LastActivity,
+			PortId:       string(probe.Jupyter.PortId),
+		}
+	}
+
+	return res
+}
+
+func buildActivityRules(rules []kubefloworgv1beta1.ActivityRule) []ActivityRule {
+	if len(rules) == 0 {
+		return nil
+	}
+	res := make([]ActivityRule, len(rules))
+	for i, rule := range rules {
+		res[i] = ActivityRule{
+			Config: ActivityRuleConfig{
+				SecondsSinceActive: rule.Config.SecondsSinceActive,
+				MinRunningSeconds:  ptr.Deref(rule.Config.MinRunningSeconds, 0),
+			},
+			Effect: ActivityRuleEffect{
+				PauseWorkspace: ptr.Deref(rule.Effect.PauseWorkspace, false),
+			},
+		}
+		if rule.Match != nil {
+			var matchNs *MatchNamespace
+			if rule.Match.MatchNamespace != nil {
+				matchNs = &MatchNamespace{
+					Selector: rule.Match.MatchNamespace.Selector,
+				}
+			}
+			var matchPodConfig *MatchPodConfig
+			if rule.Match.MatchPodConfig != nil {
+				matchPodConfig = &MatchPodConfig{
+					Selector: rule.Match.MatchPodConfig.Selector,
+				}
+			}
+			res[i].Match = &ActivityRuleMatch{
+				MatchNamespace: matchNs,
+				MatchPodConfig: matchPodConfig,
+			}
+		}
+	}
+	return res
 }
