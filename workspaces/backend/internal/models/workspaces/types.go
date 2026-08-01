@@ -28,7 +28,6 @@ import (
 // TODO: we need to validate which fields should actually be returned in the response
 //   - should only be returning fields relevant to the list view in the UI
 type WorkspaceListItem struct {
-<<<<<<< HEAD
 	Name string `json:"name"`
 	// DisplayName is an optional human-readable name for the workspace.
 	DisplayName    string                            `json:"displayName,omitempty"`
@@ -43,19 +42,6 @@ type WorkspaceListItem struct {
 	Activity       Activity                          `json:"activity"`
 	Services       []Service                         `json:"services"`
 	Audit          commonCore.Audit                  `json:"audit"`
-=======
-	Name          string                            `json:"name"`
-	Namespace     string                            `json:"namespace"`
-	WorkspaceKind WorkspaceKindInfo                 `json:"workspaceKind"`
-	Paused        bool                              `json:"paused"`
-	PausedTime    int64                             `json:"pausedTime"`
-	State         kubefloworgv1beta1.WorkspaceState `json:"state"`
-	StateMessage  string                            `json:"stateMessage"`
-	PodTemplate   PodTemplate                       `json:"podTemplate"`
-	Activity      Activity                          `json:"activity"`
-	Services      []Service                         `json:"services"`
-	Audit         commonCore.Audit                  `json:"audit"`
->>>>>>> 089e2304 (feat: slim down workspaces list payload and remove unused types)
 }
 
 type WorkspaceKindInfo struct {
