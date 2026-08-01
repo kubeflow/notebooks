@@ -11,6 +11,7 @@ import type {
   ApiStorageClassListEnvelope,
   ApiWorkspaceActionPauseEnvelope,
   ApiWorkspaceCreateEnvelope,
+  ApiWorkspaceDetailsEnvelope,
   ApiWorkspaceEnvelope,
   ApiWorkspaceKindCreateEnvelope,
   ApiWorkspaceKindEnvelope,
@@ -78,6 +79,11 @@ declare global {
           type: 'POST /api/:apiVersion/workspaces/:namespace/:workspaceName/actions/pause',
           options: { path: { apiVersion: string; namespace: string; workspaceName: string } },
           response: ApiWorkspaceActionPauseEnvelope | ApiErrorEnvelope,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/details',
+          options: { path: { apiVersion: string; namespace: string; workspaceName: string } },
+          response: ApiWorkspaceDetailsEnvelope | ApiErrorEnvelope,
         ) => Cypress.Chainable<null>) &
         ((
           type: 'PUT /api/:apiVersion/workspaces/:namespace/:workspaceName',

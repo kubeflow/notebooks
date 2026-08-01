@@ -1,5 +1,6 @@
 import {
   ActionsWorkspaceActionPause,
+  DetailsWorkspaceDetails,
   HealthCheckHealthCheck,
   HealthCheckServiceStatus,
   NamespacesNamespace,
@@ -22,7 +23,7 @@ import {
   WorkspacesImageConfig,
   WorkspacesOptionInfo,
   WorkspacesPodConfig,
-  WorkspacesPodMetadata,
+  CommonPodMetadata,
   WorkspacesPodMetadataMutate,
   WorkspacesPodTemplate,
   WorkspacesPodTemplateMutate,
@@ -359,8 +360,8 @@ export const buildPodTemplateOptions = (
 });
 
 export const buildMockPodMetadata = (
-  podMetadata?: Partial<WorkspacesPodMetadata>,
-): WorkspacesPodMetadata => ({
+  podMetadata?: Partial<CommonPodMetadata>,
+): CommonPodMetadata => ({
   labels: { labelKey1: 'labelValue1', labelKey2: 'labelValue2' },
   annotations: { annotationKey1: 'annotationValue1', annotationKey2: 'annotationValue2' },
   ...podMetadata,
@@ -459,6 +460,7 @@ export const buildMockWorkspaceKind = (
   clusterMetrics: {
     workspacesCount: 10,
   },
+  restrictions: { deny: false },
   podTemplate: {
     podMetadata: {
       labels: {
@@ -494,6 +496,7 @@ export const buildMockWorkspaceKind = (
                 level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
               },
             },
+            restrictions: { deny: false },
           },
           {
             id: 'jupyterlab_scipy_190',
@@ -519,6 +522,7 @@ export const buildMockWorkspaceKind = (
             clusterMetrics: {
               workspacesCount: 1,
             },
+            restrictions: { deny: false },
           },
           {
             id: 'jupyterlab_scipy_200',
@@ -539,6 +543,7 @@ export const buildMockWorkspaceKind = (
             clusterMetrics: {
               workspacesCount: 2,
             },
+            restrictions: { deny: false },
           },
           {
             id: 'jupyterlab_scipy_210',
@@ -558,6 +563,7 @@ export const buildMockWorkspaceKind = (
             clusterMetrics: {
               workspacesCount: 3,
             },
+            restrictions: { deny: false },
           },
           {
             id: 'jupyterlab_scipy_220_hidden',
@@ -571,6 +577,7 @@ export const buildMockWorkspaceKind = (
             clusterMetrics: {
               workspacesCount: 0,
             },
+            restrictions: { deny: false },
           },
         ],
       },
@@ -596,6 +603,7 @@ export const buildMockWorkspaceKind = (
             clusterMetrics: {
               workspacesCount: 0,
             },
+            restrictions: { deny: false },
           },
           {
             id: 'small_cpu',
@@ -606,6 +614,7 @@ export const buildMockWorkspaceKind = (
               { key: 'cpu', value: '500m' },
               { key: 'memory', value: '512Mi' },
             ],
+            restrictions: { deny: false },
           },
           {
             id: 'medium_cpu',
@@ -616,6 +625,7 @@ export const buildMockWorkspaceKind = (
               { key: 'cpu', value: '1000m' },
               { key: 'memory', value: '1Gi' },
             ],
+            restrictions: { deny: false },
           },
           {
             id: 'large_cpu',
@@ -637,6 +647,7 @@ export const buildMockWorkspaceKind = (
             clusterMetrics: {
               workspacesCount: 5,
             },
+            restrictions: { deny: false },
           },
           {
             id: 'large_cpu_hidden',
@@ -651,6 +662,7 @@ export const buildMockWorkspaceKind = (
             clusterMetrics: {
               workspacesCount: 0,
             },
+            restrictions: { deny: false },
           },
         ],
       },
@@ -870,11 +882,19 @@ export const buildMockPodMetadataMutate = (
 export const buildMockPodVolumesMutate = (
   podVolumesMutate?: Partial<WorkspacesPodVolumesMutate>,
 ): WorkspacesPodVolumesMutate => ({
+  home: '/home',
   data: [
     {
       pvcName: 'Volume-Data1',
       mountPath: '/data',
       readOnly: true,
+    },
+  ],
+  secrets: [
+    {
+      defaultMode: 0o644,
+      mountPath: '/secrets',
+      secretName: 'secret-1',
     },
   ],
   ...podVolumesMutate,
@@ -911,6 +931,8 @@ export const buildMockWorkspaceUpdate = (
 export const buildMockWorkspaceUpdateFromWorkspace = (args: {
   workspace?: Partial<WorkspacesWorkspaceListItem>;
   workspaceUpdate?: Partial<WorkspacesWorkspaceUpdate>;
+  podMetadata?: Partial<WorkspacesPodMetadataMutate>;
+  volumes?: Partial<WorkspacesPodVolumesMutate>;
 }): WorkspacesWorkspaceUpdate => ({
   paused: args.workspace?.paused ?? false,
   podTemplate: buildMockPodTemplateMutate({
@@ -918,23 +940,8 @@ export const buildMockWorkspaceUpdateFromWorkspace = (args: {
       imageConfig: args.workspace?.podTemplate?.options.imageConfig.current.id ?? '',
       podConfig: args.workspace?.podTemplate?.options.podConfig.current.id ?? '',
     }),
-    podMetadata: buildMockPodMetadataMutate({
-      labels: args.workspace?.podTemplate?.podMetadata.labels,
-      annotations: args.workspace?.podTemplate?.podMetadata.annotations,
-    }),
-    volumes: buildMockPodVolumesMutate({
-      home: args.workspace?.podTemplate?.volumes.home?.mountPath ?? '',
-      data: args.workspace?.podTemplate?.volumes.data.map((d) => ({
-        pvcName: d.pvcName,
-        mountPath: d.mountPath,
-        readOnly: d.readOnly,
-      })),
-      secrets: args.workspace?.podTemplate?.volumes.secrets?.map((s) => ({
-        defaultMode: s.defaultMode,
-        mountPath: s.mountPath,
-        secretName: s.secretName,
-      })),
-    }),
+    podMetadata: buildMockPodMetadataMutate(args.podMetadata),
+    volumes: buildMockPodVolumesMutate(args.volumes),
   }),
   revision: args.workspaceUpdate?.revision ?? '1234567890',
   ...args.workspaceUpdate,
@@ -944,8 +951,6 @@ export const buildMockSecret = (
   secret?: Partial<SecretsSecretListItem>,
 ): SecretsSecretListItem => ({
   name: 'secret-1',
-  type: 'Opaque',
-  immutable: false,
   canMount: true,
   canUpdate: true,
   audit: {
@@ -996,4 +1001,19 @@ export const buildMockPVCCreate = (pvc?: Partial<PvcsPVCCreate>): PvcsPVCCreate 
   requests: { storage: '10Gi' },
   storageClassName: 'standard',
   ...pvc,
+});
+
+export const buildMockWorkspaceDetails = (
+  details?: Partial<DetailsWorkspaceDetails>,
+): DetailsWorkspaceDetails => ({
+  podMetadata: {
+    labels: { labelKey1: 'labelValue1', labelKey2: 'labelValue2' },
+    annotations: { annotationKey1: 'annotationValue1', annotationKey2: 'annotationValue2' },
+  },
+  volumes: {
+    home: { pvcName: 'Volume-Home', mountPath: '/home', readOnly: false },
+    data: [{ pvcName: 'Volume-Data1', mountPath: '/data', readOnly: true }],
+    secrets: [{ defaultMode: 0o644, mountPath: '/secrets', secretName: 'secret-1' }],
+  },
+  ...details,
 });

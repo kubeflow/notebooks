@@ -1,10 +1,10 @@
 class ToastNotification {
   find() {
-    return cy.get('.pf-v6-c-alert-group[aria-live="polite"]');
+    return cy.findByTestId('toast-notification-group');
   }
 
   findAlert(variant: 'success' | 'danger' | 'warning' | 'info') {
-    return this.find().find(`.pf-v6-c-alert.pf-m-${variant}`);
+    return this.find().findByTestId(`toast-notification-${variant}`);
   }
 
   findErrorAlert() {

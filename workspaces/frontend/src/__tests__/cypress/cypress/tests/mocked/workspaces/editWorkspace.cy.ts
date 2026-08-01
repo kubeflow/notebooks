@@ -160,8 +160,8 @@ describe('Edit workspace', () => {
 
       cy.wait('@getWorkspaceKinds');
       editWorkspace.clickNext();
-      editWorkspace.clickNext();
-      editWorkspace.clickNext();
+      editWorkspace.advancePastRedirectModal();
+      editWorkspace.advancePastRedirectModal();
       editWorkspace.clickNext();
 
       editWorkspace.assertSaveButtonExists();
@@ -198,8 +198,8 @@ describe('Edit workspace', () => {
 
       cy.wait('@getWorkspaceKinds');
       editWorkspace.clickNext();
-      editWorkspace.clickNext();
-      editWorkspace.clickNext();
+      editWorkspace.advancePastRedirectModal();
+      editWorkspace.advancePastRedirectModal();
       editWorkspace.clickNext();
 
       editWorkspace.clickSave();
@@ -243,7 +243,7 @@ describe('Edit workspace', () => {
       editWorkspace.checkExtraFilter('showRedirected');
       editWorkspace.checkExtraFilter('showHidden');
       editWorkspace.selectImage(newImageConfigId);
-      editWorkspace.clickNext();
+      editWorkspace.advancePastRedirectModal();
 
       // Step 3: Pod Config Selection - change to a different pod config
       editWorkspace.selectPodConfig(newPodConfigId);
@@ -291,7 +291,7 @@ describe('Edit workspace', () => {
 
       cy.wait('@getWorkspaceKinds');
       editWorkspace.clickNext();
-      editWorkspace.clickNext();
+      editWorkspace.advancePastRedirectModal();
 
       editWorkspace.assertPodConfigSelected(POD_CONFIG_ID);
     });
@@ -303,8 +303,8 @@ describe('Edit workspace', () => {
 
       cy.wait('@getWorkspaceKinds');
       editWorkspace.clickNext();
-      editWorkspace.clickNext();
-      editWorkspace.clickNext();
+      editWorkspace.advancePastRedirectModal();
+      editWorkspace.advancePastRedirectModal();
 
       editWorkspace.assertWorkspaceName(TEST_WORKSPACE_NAME);
 
@@ -398,8 +398,8 @@ describe('Edit workspace', () => {
 
       cy.wait('@getWorkspaceKinds');
       editWorkspace.clickNext();
-      editWorkspace.clickNext();
-      editWorkspace.clickNext();
+      editWorkspace.advancePastRedirectModal();
+      editWorkspace.advancePastRedirectModal();
 
       editWorkspace.assertWorkspaceNameCannotBeChangedHelperTextVisible();
     });
@@ -411,8 +411,8 @@ describe('Edit workspace', () => {
 
       cy.wait('@getWorkspaceKinds');
       editWorkspace.clickNext();
-      editWorkspace.clickNext();
-      editWorkspace.clickNext();
+      editWorkspace.advancePastRedirectModal();
+      editWorkspace.advancePastRedirectModal();
 
       editWorkspace.assertWorkspaceNameInputDisabled();
     });
@@ -435,12 +435,12 @@ describe('Edit workspace', () => {
       editWorkspace.checkExtraFilter('showRedirected');
       editWorkspace.assertImageSelected(IMAGE_CONFIG_ID);
       editWorkspace.assertNextButtonEnabled();
-      editWorkspace.clickNext();
+      editWorkspace.advancePastRedirectModal();
 
       // Step 3: Pod Config Selection
       editWorkspace.assertPodConfigSelected(POD_CONFIG_ID);
       editWorkspace.assertNextButtonEnabled();
-      editWorkspace.clickNext();
+      editWorkspace.advancePastRedirectModal();
 
       // Step 4: Properties
       editWorkspace.assertNextButtonEnabled();
@@ -491,8 +491,8 @@ describe('Edit workspace — volume detach behavior', () => {
     visitEditWorkspace();
     cy.wait('@getWorkspaceKinds');
     editWorkspace.clickNext(); // workspace kind → image
-    editWorkspace.clickNext(); // image → pod config
-    editWorkspace.clickNext(); // pod config → properties
+    editWorkspace.advancePastRedirectModal(); // image → pod config
+    editWorkspace.advancePastRedirectModal(); // pod config → properties
 
     volumesManagement.expandVolumesSection();
     cy.wait('@listPVCs');

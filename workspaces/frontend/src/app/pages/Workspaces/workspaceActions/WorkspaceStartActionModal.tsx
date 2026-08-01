@@ -21,6 +21,7 @@ import {
   ApiWorkspaceActionPauseEnvelope,
   WorkspacesWorkspaceListItem,
 } from '~/generated/data-contracts';
+import { hasWorkspacePendingUpdate } from '~/shared/utilities/WorkspaceUtils';
 
 interface StartActionAlertProps {
   onClose: () => void;
@@ -42,10 +43,7 @@ export const WorkspaceStartActionModal: React.FC<StartActionAlertProps> = ({
   onActionDone,
 }) => {
   const notification = useNotification();
-  const workspacePendingUpdate =
-    workspace?.pendingRestart &&
-    ((workspace.podTemplate.options.podConfig.redirectChain ?? []).length > 0 ||
-      (workspace.podTemplate.options.imageConfig.redirectChain ?? []).length > 0);
+  const workspacePendingUpdate = hasWorkspacePendingUpdate(workspace);
   const [actionOnGoing, setActionOnGoing] = useState<StartAction | null>(null);
   const [error, setError] = useState<string | ApiErrorEnvelope | null>(null);
 

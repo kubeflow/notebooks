@@ -15,6 +15,7 @@ const buildMockImageConfigValue = (
   description: 'Default description',
   labels: [],
   hidden: false,
+  restrictions: { deny: false },
   ...overrides,
 });
 
@@ -174,8 +175,8 @@ describe('Workspace Form Styling', () => {
       createWorkspace.checkExtraFilter('showRedirected');
       createWorkspace.selectImage('redirect-image');
 
-      createWorkspace.clickNext(); // Pod config
-      createWorkspace.clickNext(); // Properties - now at summary
+      createWorkspace.advancePastRedirectModal(); // Pod config
+      createWorkspace.advancePastRedirectModal(); // Properties - now at summary
     });
 
     it('should apply summary-redirect-icon-button class to redirect icon', () => {

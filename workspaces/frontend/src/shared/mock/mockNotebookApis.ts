@@ -18,7 +18,11 @@ import {
   mockWorkspaceUpdate,
 } from '~/shared/mock/mockNotebookServiceData';
 import { buildAxiosError, isInvalidWorkspace, isInvalidYaml } from '~/shared/mock/mockUtils';
-import { buildMockWorkspaceKindUpdate, buildMockWorkspaceUpdateFromWorkspace } from './mockBuilder';
+import {
+  buildMockWorkspaceDetails,
+  buildMockWorkspaceKindUpdate,
+  buildMockWorkspaceUpdateFromWorkspace,
+} from './mockBuilder';
 
 const delay = (ms: number) =>
   new Promise((resolve) => {
@@ -70,6 +74,9 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
     deleteWorkspace: async () => {
       await delay(1500);
     },
+    getWorkspacePodTemplateDetails: async () => ({
+      data: buildMockWorkspaceDetails(),
+    }),
     updateWorkspacePauseState: async (_namespace, _workspaceName, body) => {
       await delay(1500);
       return {

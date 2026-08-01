@@ -130,6 +130,20 @@ var _ = Describe("Workspace Webhook", func() {
 			By("deleting the Workspace")
 			Expect(k8sClient.Delete(ctx, workspace)).To(Succeed())
 		})
+
+		It("should accept a valid workspace without displayName", func() {
+			By("creating the Workspace")
+			workspace := NewExampleWorkspaceWithoutDisplayName(workspaceName, namespaceName, workspaceKindName)
+			Expect(k8sClient.Create(ctx, workspace)).To(Succeed())
+
+			By("verifying displayName is nil")
+			created := &kubefloworgv1beta1.Workspace{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: workspaceName, Namespace: namespaceName}, created)).To(Succeed())
+			Expect(created.Spec.DisplayName).To(BeNil())
+
+			By("deleting the Workspace")
+			Expect(k8sClient.Delete(ctx, workspace)).To(Succeed())
+		})
 	})
 
 	Context("When updating a Workspace", Ordered, func() {

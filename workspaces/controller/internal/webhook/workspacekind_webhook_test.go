@@ -127,6 +127,61 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 				shouldSucceed: false,
 			},
 			{
+				description:   "should accept creation with valid filterRules",
+				workspaceKind: NewExampleWorkspaceKindWithValidFilterRules("wsk-webhook-create--filter-rules-valid"),
+				shouldSucceed: true,
+			},
+			{
+				description:   "should accept creation with matchNamespace on all filterRule scopes",
+				workspaceKind: NewExampleWorkspaceKindWithFilterRuleNamespaceAllScopes("wsk-webhook-create--filter-rules-namespace-all-scopes"),
+				shouldSucceed: true,
+			},
+			{
+				description:   "should reject creation with a malformed filterRule label selector",
+				workspaceKind: NewExampleWorkspaceKindWithInvalidFilterRuleSelector("wsk-webhook-create--filter-rules-invalid-selector"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with a filterRule scope outside the allowed enum",
+				workspaceKind: NewExampleWorkspaceKindWithFilterRuleInvalidScope("wsk-webhook-create--filter-rules-invalid-scope"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with a filterRule that has an empty match list",
+				workspaceKind: NewExampleWorkspaceKindWithFilterRuleEmptyMatch("wsk-webhook-create--filter-rules-empty-match-list"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with a filterRule match condition that sets no selector",
+				workspaceKind: NewExampleWorkspaceKindWithFilterRuleNoMatchCondition("wsk-webhook-create--filter-rules-empty-match"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with a filterRule effect that sets neither ui nor api",
+				workspaceKind: NewExampleWorkspaceKindWithFilterRuleEmptyEffect("wsk-webhook-create--filter-rules-empty-effect"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with a filterRule effect where all effect flags are false",
+				workspaceKind: NewExampleWorkspaceKindWithFilterRuleAllEffectsFalse("wsk-webhook-create--filter-rules-all-effects-false"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with a filterRule denyMessage set without deny being true",
+				workspaceKind: NewExampleWorkspaceKindWithFilterRuleDenyMessageWithoutDeny("wsk-webhook-create--filter-rules-deny-message-without-deny"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with matchPodConfig on a WORKSPACE_KIND scoped filterRule",
+				workspaceKind: NewExampleWorkspaceKindWithFilterRuleScopeMismatch("wsk-webhook-create--filter-rules-scope-mismatch"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with matchImageConfig on a WORKSPACE_KIND scoped filterRule",
+				workspaceKind: NewExampleWorkspaceKindWithFilterRuleImageConfigScopeMismatch("wsk-webhook-create--filter-rules-image-scope-mismatch"),
+				shouldSucceed: false,
+			},
+			{
 				description:   "should reject creation with missing shebang in exec script",
 				workspaceKind: NewExampleWorkspaceKindWithInvalidExecShebang("wsk-webhook-create--invalid-exec-shebang"),
 				shouldSucceed: false,
@@ -1057,6 +1112,26 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						},
 					}
 					return ContainSubstring("")
+				},
+			},
+			{
+				description:   "should accept adding valid filterRules",
+				shouldSucceed: true,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					wsk.Spec.FilterRules = NewExampleWorkspaceKindWithValidFilterRules(workspaceKindName).Spec.FilterRules
+					return ContainSubstring("")
+				},
+			},
+			{
+				description:   "should reject adding a filterRule with a malformed label selector",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					wsk.Spec.FilterRules = NewExampleWorkspaceKindWithInvalidFilterRuleSelector(workspaceKindName).Spec.FilterRules
+					return ContainSubstring("must be specified when `operator` is 'In' or 'NotIn'")
 				},
 			},
 		}

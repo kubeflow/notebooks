@@ -20,6 +20,7 @@ import { WorkspaceDetailsActivity } from '~/app/pages/Workspaces/Details/Workspa
 import { WorkspaceDetailsPodTemplate } from '~/app/pages/Workspaces/Details/WorkspaceDetailsPodTemplate';
 import { WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
 import { WorkspaceResources } from '~/app/pages/Workspaces/WorkspaceResources';
+import { useWorkspaceDetails } from '~/app/hooks/useWorkspaceDetails';
 
 type WorkspaceDetailsProps = {
   workspace: WorkspacesWorkspaceListItem;
@@ -34,6 +35,10 @@ export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = 
   onEditClick,
   onDeleteClick,
 }) => {
+  const [details, detailsLoaded, detailsError] = useWorkspaceDetails(
+    workspace.namespace,
+    workspace.name,
+  );
   const [activeTabKey, setActiveTabKey] = useState<string | number>(0);
 
   const handleTabClick = (
@@ -107,7 +112,12 @@ export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = 
           hidden={activeTabKey !== 0}
         >
           <TabContentBody hasPadding>
-            <WorkspaceDetailsOverview workspace={workspace} />
+            <WorkspaceDetailsOverview
+              workspace={workspace}
+              details={details}
+              detailsLoaded={detailsLoaded}
+              detailsError={detailsError}
+            />
           </TabContentBody>
         </TabContent>
 
@@ -132,7 +142,12 @@ export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = 
           hidden={activeTabKey !== 2}
         >
           <TabContentBody hasPadding>
-            <WorkspaceResources workspace={workspace} />
+            <WorkspaceResources
+              workspace={workspace}
+              details={details}
+              detailsLoaded={detailsLoaded}
+              detailsError={detailsError}
+            />
           </TabContentBody>
         </TabContent>
         <TabContent

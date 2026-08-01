@@ -169,8 +169,9 @@ func NewExampleWorkspace1(name string, namespace string, workspaceKind string) *
 			Namespace: namespace,
 		},
 		Spec: kubefloworgv1beta1.WorkspaceSpec{
-			Paused: ptr.To(false),
-			Kind:   workspaceKind,
+			Paused:      ptr.To(false),
+			DisplayName: ptr.To("Example Workspace"),
+			Kind:        workspaceKind,
 			PodTemplate: kubefloworgv1beta1.WorkspacePodTemplate{
 				PodMetadata: &kubefloworgv1beta1.WorkspacePodMetadata{
 					Labels:      nil,
@@ -193,6 +194,13 @@ func NewExampleWorkspace1(name string, namespace string, workspaceKind string) *
 			},
 		},
 	}
+}
+
+// NewExampleWorkspace1WithoutDisplayName returns a Workspace with no DisplayName set (nil).
+func NewExampleWorkspace1WithoutDisplayName(name string, namespace string, workspaceKind string) *kubefloworgv1beta1.Workspace {
+	ws := NewExampleWorkspace1(name, namespace, workspaceKind)
+	ws.Spec.DisplayName = nil
+	return ws
 }
 
 // NewExampleWorkspaceKindWithConfigMapAssets returns a WorkspaceKind that uses ConfigMap-based

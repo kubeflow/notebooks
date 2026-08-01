@@ -1,7 +1,10 @@
 import { mockModArchResponse } from 'mod-arch-core';
 import { createWorkspace } from '~/__tests__/cypress/cypress/pages/workspaces/createWorkspace';
 import { workspaces } from '~/__tests__/cypress/cypress/pages/workspaces/workspaces';
-import { secretsCreateModal } from '~/__tests__/cypress/cypress/pages/workspaces/workspaceForm';
+import {
+  redirectConfirmModal,
+  secretsCreateModal,
+} from '~/__tests__/cypress/cypress/pages/workspaces/workspaceForm';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import {
   buildMockNamespace,
@@ -17,7 +20,11 @@ import {
   secretsDetachModal,
   secretsManagement,
 } from '~/__tests__/cypress/cypress/pages/workspaces/secretsManagement';
-import type { OptionsImageConfigValue, OptionsPodConfigValue } from '~/generated/data-contracts';
+import {
+  V1SecretType,
+  type OptionsImageConfigValue,
+  type OptionsPodConfigValue,
+} from '~/generated/data-contracts';
 
 const STEP_NAMES = {
   KIND: 'Workspace Kind',
@@ -44,13 +51,13 @@ const selectImage = (imageId: string): void => {
   createWorkspace.checkExtraFilter('showHidden');
   createWorkspace.selectImage(imageId);
   createWorkspace.assertImageSelected(imageId);
-  createWorkspace.clickNext();
+  createWorkspace.advancePastRedirectModal();
 };
 
 const selectPodConfig = (podConfigId: string): void => {
   createWorkspace.selectPodConfig(podConfigId);
   createWorkspace.assertPodConfigSelected(podConfigId);
-  createWorkspace.clickNext();
+  createWorkspace.advancePastRedirectModal();
 };
 
 const buildMockImageConfigValue = (
@@ -63,6 +70,7 @@ const buildMockImageConfigValue = (
   description,
   labels: [],
   hidden: false,
+  restrictions: { deny: false },
 });
 
 const buildMockPodConfigValue = (
@@ -75,6 +83,7 @@ const buildMockPodConfigValue = (
   description,
   labels: [],
   hidden: false,
+  restrictions: { deny: false },
 });
 
 const completeAllStepsToProperties = (
@@ -163,7 +172,7 @@ describe('Create workspace', () => {
       createWorkspace.assertNextButtonEnabled();
 
       // Step 3: Select Pod Config
-      createWorkspace.clickNext();
+      createWorkspace.advancePastRedirectModal();
       createWorkspace.assertProgressStepVisible(STEP_NAMES.POD_CONFIG);
       createWorkspace.assertNextButtonEnabled();
 
@@ -172,7 +181,7 @@ describe('Create workspace', () => {
       createWorkspace.assertNextButtonEnabled();
 
       // Step 4: Properties
-      createWorkspace.clickNext();
+      createWorkspace.advancePastRedirectModal();
       createWorkspace.assertProgressStepVisible(STEP_NAMES.PROPERTIES);
       createWorkspace.assertNextButtonDisabled();
 
@@ -297,10 +306,10 @@ describe('Create workspace', () => {
       createWorkspace.checkExtraFilter('showRedirected');
       createWorkspace.checkExtraFilter('showHidden');
       createWorkspace.selectImage(mockImage.id);
-      createWorkspace.clickNext();
+      createWorkspace.advancePastRedirectModal();
 
       createWorkspace.selectPodConfig(mockPodConfig.id);
-      createWorkspace.clickNext();
+      createWorkspace.advancePastRedirectModal();
 
       createWorkspace.typeWorkspaceName('my-test-workspace');
 
@@ -429,7 +438,7 @@ describe('Create workspace', () => {
       createWorkspace.checkExtraFilter('showRedirected');
       createWorkspace.checkExtraFilter('showHidden');
       createWorkspace.selectImage(mockImage.id);
-      createWorkspace.clickNext();
+      createWorkspace.advancePastRedirectModal();
 
       // Select first pod config
       createWorkspace.selectPodConfig(mockPodConfig.id);
@@ -469,7 +478,7 @@ describe('Create workspace', () => {
       createWorkspace.checkExtraFilter('showRedirected');
       createWorkspace.checkExtraFilter('showHidden');
       createWorkspace.selectImage(mockImage.id);
-      createWorkspace.clickNext();
+      createWorkspace.advancePastRedirectModal();
 
       createWorkspace.selectPodConfig(mockPodConfig.id);
 
@@ -583,7 +592,7 @@ describe('Create workspace', () => {
       createWorkspace.checkExtraFilter('showRedirected');
       createWorkspace.checkExtraFilter('showHidden');
       createWorkspace.selectImage(mockImage.id);
-      createWorkspace.clickNext();
+      createWorkspace.advancePastRedirectModal();
 
       // Select the single available pod config
       createWorkspace.selectPodConfig(mockPodConfig.id);
@@ -1074,7 +1083,7 @@ describe('Create workspace', () => {
 
         const mockSecretResponse = {
           name: secretName,
-          type: 'Opaque',
+          type: V1SecretType.SecretTypeOpaque,
           immutable: false,
           contents: {
             [key1]: { base64: btoa(value1) },
@@ -1124,7 +1133,7 @@ describe('Create workspace', () => {
 
         const mockSecretResponse = {
           name: secretName,
-          type: 'Opaque',
+          type: V1SecretType.SecretTypeOpaque,
           immutable: false,
           contents: {
             key1: { base64: btoa('value1') },
@@ -1194,7 +1203,7 @@ describe('Create workspace', () => {
 
         const mockSecretResponse = {
           name: secretName,
-          type: 'Opaque',
+          type: V1SecretType.SecretTypeOpaque,
           immutable: false,
           contents: {
             key1: { base64: btoa('value1') },
@@ -1258,7 +1267,7 @@ describe('Create workspace', () => {
 
         const mockSecretResponse = {
           name: secretName,
-          type: 'Opaque',
+          type: V1SecretType.SecretTypeOpaque,
           immutable: false,
           contents: {
             [key1]: { base64: btoa(value1) },
@@ -1337,14 +1346,14 @@ describe('Create workspace', () => {
 
         const mockSecret1Response = {
           name: secret1,
-          type: 'Opaque',
+          type: V1SecretType.SecretTypeOpaque,
           immutable: false,
           contents: { key1: { base64: btoa('value1') } },
         };
 
         const mockSecret2Response = {
           name: secret2,
-          type: 'Opaque',
+          type: V1SecretType.SecretTypeOpaque,
           immutable: false,
           contents: { key2: { base64: btoa('value2') } },
         };
@@ -1450,6 +1459,7 @@ describe('Create workspace', () => {
       description: 'JupyterLab, CPU only',
       labels: [{ key: 'pythonVersion', value: '3.13' }],
       hidden: false,
+      restrictions: { deny: false },
     };
 
     const cudaImage: OptionsImageConfigValue = {
@@ -1462,6 +1472,7 @@ describe('Create workspace', () => {
         { key: 'gpuRequired', value: 'true' },
       ],
       hidden: false,
+      restrictions: { deny: false },
     };
 
     const smallCpuPod: OptionsPodConfigValue = {
@@ -1473,6 +1484,7 @@ describe('Create workspace', () => {
         { key: 'memory', value: '512Mi' },
       ],
       hidden: false,
+      restrictions: { deny: false },
     };
 
     const bigGpuPod: OptionsPodConfigValue = {
@@ -1485,6 +1497,7 @@ describe('Create workspace', () => {
         { key: 'gpu', value: '1' },
       ],
       hidden: false,
+      restrictions: { deny: false },
     };
 
     it('should show all images and pod configs from listValues response', () => {
@@ -1581,6 +1594,173 @@ describe('Create workspace', () => {
       createWorkspace.clickNext();
 
       createWorkspace.assertPodConfigSelected(bigGpuPod.id);
+    });
+  });
+
+  describe('Redirect and hidden confirmation', () => {
+    const navigateToImageStep = (): void => {
+      navigateToCreateWorkspace();
+      selectWorkspaceKind(mockWorkspaceKind.name);
+    };
+
+    const navigateToPodConfigStep = (): void => {
+      navigateToImageStep();
+      createWorkspace.selectImage('jupyterlab_scipy_210');
+      createWorkspace.clickNext();
+    };
+
+    describe('Image redirect', () => {
+      it('should show redirect modal when clicking Next with a redirected image', () => {
+        navigateToImageStep();
+
+        createWorkspace.checkExtraFilter('showRedirected');
+        createWorkspace.selectImage('jupyterlab_scipy_180');
+        createWorkspace.clickNext();
+
+        redirectConfirmModal.assertModalVisible();
+        redirectConfirmModal.assertApplyRedirectButtonExists();
+      });
+
+      it('should apply redirect and advance to pod config step', () => {
+        navigateToImageStep();
+
+        createWorkspace.checkExtraFilter('showRedirected');
+        createWorkspace.selectImage('jupyterlab_scipy_180');
+        createWorkspace.clickNext();
+
+        redirectConfirmModal.clickApplyRedirect();
+
+        redirectConfirmModal.assertModalNotExists();
+        createWorkspace.assertProgressStepVisible(STEP_NAMES.POD_CONFIG);
+
+        createWorkspace.clickPrevious();
+        createWorkspace.assertImageSelected('jupyterlab_scipy_210');
+      });
+
+      it('should keep original selection and advance when clicking Continue', () => {
+        navigateToImageStep();
+
+        createWorkspace.checkExtraFilter('showRedirected');
+        createWorkspace.selectImage('jupyterlab_scipy_180');
+        createWorkspace.clickNext();
+
+        redirectConfirmModal.clickContinue();
+
+        redirectConfirmModal.assertModalNotExists();
+        createWorkspace.assertProgressStepVisible(STEP_NAMES.POD_CONFIG);
+
+        createWorkspace.clickPrevious();
+        createWorkspace.assertImageSelected('jupyterlab_scipy_180');
+      });
+
+      it('should close modal and stay on image step when clicking Cancel', () => {
+        navigateToImageStep();
+
+        createWorkspace.checkExtraFilter('showRedirected');
+        createWorkspace.selectImage('jupyterlab_scipy_180');
+        createWorkspace.clickNext();
+
+        redirectConfirmModal.clickCancel();
+
+        redirectConfirmModal.assertModalNotExists();
+        createWorkspace.assertProgressStepVisible(STEP_NAMES.IMAGE);
+        createWorkspace.assertImageSelected('jupyterlab_scipy_180');
+      });
+    });
+
+    describe('Image hidden only', () => {
+      it('should show warning modal without Apply Redirect button', () => {
+        navigateToImageStep();
+
+        createWorkspace.checkExtraFilter('showHidden');
+        createWorkspace.selectImage('jupyterlab_scipy_220_hidden');
+        createWorkspace.clickNext();
+
+        redirectConfirmModal.assertModalVisible();
+        redirectConfirmModal.assertApplyRedirectButtonNotExists();
+      });
+
+      it('should advance when clicking Continue', () => {
+        navigateToImageStep();
+
+        createWorkspace.checkExtraFilter('showHidden');
+        createWorkspace.selectImage('jupyterlab_scipy_220_hidden');
+        createWorkspace.clickNext();
+
+        redirectConfirmModal.clickContinue();
+
+        redirectConfirmModal.assertModalNotExists();
+        createWorkspace.assertProgressStepVisible(STEP_NAMES.POD_CONFIG);
+      });
+    });
+
+    describe('Pod config redirect', () => {
+      it('should show redirect modal when clicking Next with a redirected pod config', () => {
+        navigateToPodConfigStep();
+
+        createWorkspace.checkExtraFilter('showRedirected');
+        createWorkspace.selectPodConfig('tiny_cpu');
+        createWorkspace.clickNext();
+
+        redirectConfirmModal.assertModalVisible();
+        redirectConfirmModal.assertApplyRedirectButtonExists();
+      });
+
+      it('should apply redirect and advance to properties step', () => {
+        navigateToPodConfigStep();
+
+        createWorkspace.checkExtraFilter('showRedirected');
+        createWorkspace.selectPodConfig('tiny_cpu');
+        createWorkspace.clickNext();
+
+        redirectConfirmModal.clickApplyRedirect();
+
+        redirectConfirmModal.assertModalNotExists();
+        createWorkspace.assertProgressStepVisible(STEP_NAMES.PROPERTIES);
+
+        createWorkspace.clickPrevious();
+        createWorkspace.assertPodConfigSelected('small_cpu');
+      });
+
+      it('should close modal and stay on pod config step when clicking Cancel', () => {
+        navigateToPodConfigStep();
+
+        createWorkspace.checkExtraFilter('showRedirected');
+        createWorkspace.selectPodConfig('tiny_cpu');
+        createWorkspace.clickNext();
+
+        redirectConfirmModal.clickCancel();
+
+        redirectConfirmModal.assertModalNotExists();
+        createWorkspace.assertProgressStepVisible(STEP_NAMES.POD_CONFIG);
+        createWorkspace.assertPodConfigSelected('tiny_cpu');
+      });
+    });
+
+    describe('Pod config hidden only', () => {
+      it('should show warning modal without Apply Redirect button', () => {
+        navigateToPodConfigStep();
+
+        createWorkspace.checkExtraFilter('showHidden');
+        createWorkspace.selectPodConfig('large_cpu_hidden');
+        createWorkspace.clickNext();
+
+        redirectConfirmModal.assertModalVisible();
+        redirectConfirmModal.assertApplyRedirectButtonNotExists();
+      });
+
+      it('should advance when clicking Continue', () => {
+        navigateToPodConfigStep();
+
+        createWorkspace.checkExtraFilter('showHidden');
+        createWorkspace.selectPodConfig('large_cpu_hidden');
+        createWorkspace.clickNext();
+
+        redirectConfirmModal.clickContinue();
+
+        redirectConfirmModal.assertModalNotExists();
+        createWorkspace.assertProgressStepVisible(STEP_NAMES.PROPERTIES);
+      });
     });
   });
 });

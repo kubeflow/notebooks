@@ -7,6 +7,7 @@ import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import { WorkspaceKindProperties } from '~/app/types';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
+import { WorkspaceKindAssetField } from './WorkspaceKindAssetField';
 
 interface WorkspaceKindFormPropertiesProps {
   mode: string;
@@ -113,26 +114,18 @@ export const WorkspaceKindFormProperties: React.FC<WorkspaceKindFormPropertiesPr
               />
             </FormGroup>
           )}
-          <ThemeAwareFormGroupWrapper label="Icon URL" isRequired fieldId="workspace-kind-icon">
-            <TextInput
-              isRequired
-              type="text"
-              value={properties.icon.url}
-              onChange={(_, value) => updateField({ ...properties, icon: { url: value } })}
-              id="workspace-kind-icon"
-              data-testid="workspace-kind-icon-input"
-            />
-          </ThemeAwareFormGroupWrapper>
-          <ThemeAwareFormGroupWrapper label="Logo URL" isRequired fieldId="workspace-kind-logo">
-            <TextInput
-              isRequired
-              type="text"
-              value={properties.logo.url}
-              onChange={(_, value) => updateField({ ...properties, logo: { url: value } })}
-              id="workspace-kind-logo"
-              data-testid="workspace-kind-logo-input"
-            />
-          </ThemeAwareFormGroupWrapper>
+          <WorkspaceKindAssetField
+            label="Icon"
+            fieldIdPrefix="workspace-kind-icon"
+            asset={properties.icon}
+            onChange={(icon) => updateField({ ...properties, icon })}
+          />
+          <WorkspaceKindAssetField
+            label="Logo"
+            fieldIdPrefix="workspace-kind-logo"
+            asset={properties.logo}
+            onChange={(logo) => updateField({ ...properties, logo })}
+          />
         </Form>
       </ExpandableSection>
     </Content>

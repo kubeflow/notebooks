@@ -9,6 +9,8 @@ import {
 } from '~/shared/mock/mockBuilder';
 import {
   V1Beta1WorkspaceState,
+  type OptionsImageConfigValue,
+  type OptionsPodConfigValue,
   type WorkspacekindsWorkspaceKindListItem,
 } from '~/generated/data-contracts';
 
@@ -127,15 +129,7 @@ export const buildMockImageWithLabels = (
   displayName: string,
   labels: { key: string; value: string }[],
   hidden = false,
-): {
-  id: string;
-  displayName: string;
-  description: string;
-  labels: { key: string; value: string }[];
-  hidden: boolean;
-  redirect?: undefined;
-  clusterMetrics?: undefined;
-} => ({
+): OptionsImageConfigValue => ({
   id,
   displayName,
   description: `Image: ${displayName}`,
@@ -143,21 +137,14 @@ export const buildMockImageWithLabels = (
   hidden,
   redirect: undefined,
   clusterMetrics: undefined,
+  restrictions: { deny: false },
 });
 
 export const buildMockPodConfigWithLabels = (
   id: string,
   displayName: string,
   labels: { key: string; value: string }[],
-): {
-  id: string;
-  displayName: string;
-  description: string;
-  labels: { key: string; value: string }[];
-  hidden: boolean;
-  redirect?: undefined;
-  clusterMetrics?: undefined;
-} => ({
+): OptionsPodConfigValue => ({
   id,
   displayName,
   description: `Pod config: ${displayName}`,
@@ -165,6 +152,7 @@ export const buildMockPodConfigWithLabels = (
   hidden: false,
   redirect: undefined,
   clusterMetrics: undefined,
+  restrictions: { deny: false },
 });
 
 export const interceptListValues = (

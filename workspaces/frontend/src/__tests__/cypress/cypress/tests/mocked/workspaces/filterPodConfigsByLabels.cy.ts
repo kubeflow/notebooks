@@ -72,6 +72,7 @@ describe('Filter Pod Configs by Labels', () => {
               description: 'Standard Jupyter image',
               labels: [],
               hidden: false,
+              restrictions: { deny: false },
             },
           ],
         },

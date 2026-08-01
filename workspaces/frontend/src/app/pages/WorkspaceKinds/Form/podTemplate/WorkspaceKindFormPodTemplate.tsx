@@ -6,7 +6,7 @@ import {
   FormGroup,
 } from '@patternfly/react-core/dist/esm/components/Form';
 import { ExpandableSection } from '@patternfly/react-core/dist/esm/components/ExpandableSection';
-import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
+import { HelperText } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
 import { WorkspaceKindPodTemplateData, WorkspacesPodVolumeMountValue } from '~/app/types';
 import { EditableRowsTable } from '~/app/pages/WorkspaceKinds/Form/EditableRowsTable';
@@ -25,15 +25,17 @@ export const WorkspaceKindFormPodTemplate: React.FC<WorkspaceKindFormPodTemplate
   const [isExpanded, setIsExpanded] = useState(false);
   const [volumes, setVolumes] = useState<WorkspacesPodVolumeMountValue[]>([]);
 
-  const toggleCullingEnabled = useCallback(
+  const toggleActivityProbeEnabled = useCallback(
     (checked: boolean) => {
-      if (podTemplate.culling) {
+      if (checked) {
         updatePodTemplate({
           ...podTemplate,
-          culling: {
-            ...podTemplate.culling,
-            enabled: checked,
-          },
+          activityProbe: podTemplate.activityProbe ?? {},
+        });
+      } else {
+        updatePodTemplate({
+          ...podTemplate,
+          activityProbe: undefined,
         });
       }
     },
@@ -118,59 +120,68 @@ export const WorkspaceKindFormPodTemplate: React.FC<WorkspaceKindFormPodTemplate
             }}
           />
         </FormFieldGroup>
-        {/* podTemplate.culling is currently not developed in the backend */}
-        {podTemplate.culling && (
-          <FormFieldGroup
-            aria-label="Pod Culling"
-            header={
-              <FormFieldGroupHeader
-                titleText={{
-                  text: 'Pod Culling',
-                  id: 'workspace-kind-pod-culling',
-                }}
-                titleDescription={
-                  <HelperText>
-                    <HelperTextItem variant="warning">
-                      Warning: Only for JupyterLab deployments
-                    </HelperTextItem>
-                    Culling scales the number of pods in a Workspace to zero based on its last
-                    activity by polling Jupyter&apos;s status endpoint.
-                  </HelperText>
-                }
-              />
-            }
-          >
-            <FormGroup>
-              <Switch
-                isChecked={podTemplate.culling.enabled || false}
-                label="Enabled"
-                aria-label="pod template enable culling controlled check"
-                onChange={(_, checked) => toggleCullingEnabled(checked)}
-                id="workspace-kind-pod-template-culling-enabled"
-                name="culling-enabled"
-              />
-            </FormGroup>
-            <FormGroup label="Max Inactive Period">
+        <FormFieldGroup
+          aria-label="Activity Probe"
+          header={
+            <FormFieldGroupHeader
+              titleText={{
+                text: 'Activity Probe',
+                id: 'workspace-kind-activity-probe',
+              }}
+              titleDescription={
+                <HelperText>
+                  Configure activity probe settings to determine Workspace activity for culling
+                  inactive workspaces.
+                </HelperText>
+              }
+            />
+          }
+        >
+          <FormGroup>
+            <Switch
+              isChecked={podTemplate.activityProbe != null}
+              label="Enabled"
+              aria-label="pod template enable activity probe controlled check"
+              onChange={(_, checked) => toggleActivityProbeEnabled(checked)}
+              id="workspace-kind-pod-template-activity-probe-enabled"
+              name="activity-probe-enabled"
+              data-testid="workspace-kind-pod-template-activity-probe-switch"
+            />
+          </FormGroup>
+          {podTemplate.activityProbe && (
+            <FormGroup label="Probe Interval (seconds)">
               <ResourceInputWrapper
-                value={String(podTemplate.culling.maxInactiveSeconds || 86400)}
+                value={String(podTemplate.activityProbe.probeIntervalSeconds ?? 3600)}
                 type="time"
                 onChange={(value) =>
-                  podTemplate.culling &&
                   updatePodTemplate({
                     ...podTemplate,
-                    culling: {
-                      ...podTemplate.culling,
-                      maxInactiveSeconds: Number(value),
+                    activityProbe: {
+                      ...podTemplate.activityProbe,
+                      probeIntervalSeconds: Number(value),
                     },
                   })
                 }
                 step={1}
-                aria-label="max inactive period input"
-                isDisabled={!podTemplate.culling.enabled}
+                aria-label="probe interval input"
               />
             </FormGroup>
-          </FormFieldGroup>
-        )}
+          )}
+        </FormFieldGroup>
+        <FormFieldGroup
+          aria-label="Volume Mounts"
+          header={
+            <FormFieldGroupHeader
+              titleText={{
+                text: 'Volume Mounts',
+                id: 'workspace-kind-volume-mounts',
+              }}
+              titleDescription={
+                <HelperText>Configure volume mount paths for workspaces.</HelperText>
+              }
+            />
+          }
+        />
         <FormFieldGroup
           aria-label="Additional Volumes"
           header={

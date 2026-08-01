@@ -115,6 +115,7 @@ describe('Filter Images by Labels', () => {
               description: 'Small CPU configuration',
               labels: [],
               hidden: false,
+              restrictions: { deny: false },
             },
           ],
         },

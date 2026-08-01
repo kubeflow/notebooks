@@ -77,6 +77,17 @@ export enum V1StorageMedium {
   StorageMediumHugePagesPrefix = 'HugePages-',
 }
 
+export enum V1SecretType {
+  SecretTypeOpaque = 'Opaque',
+  SecretTypeServiceAccountToken = 'kubernetes.io/service-account-token',
+  SecretTypeDockercfg = 'kubernetes.io/dockercfg',
+  SecretTypeDockerConfigJson = 'kubernetes.io/dockerconfigjson',
+  SecretTypeBasicAuth = 'kubernetes.io/basic-auth',
+  SecretTypeSSHAuth = 'kubernetes.io/ssh-auth',
+  SecretTypeTLS = 'kubernetes.io/tls',
+  SecretTypeBootstrapToken = 'bootstrap.kubernetes.io/token',
+}
+
 export enum V1SeccompProfileType {
   SeccompProfileTypeUnconfined = 'Unconfined',
   SeccompProfileTypeRuntimeDefault = 'RuntimeDefault',
@@ -341,6 +352,10 @@ export interface ApiWorkspaceCreateEnvelope {
   data: WorkspacesWorkspaceCreate;
 }
 
+export interface ApiWorkspaceDetailsEnvelope {
+  data: DetailsWorkspaceDetails;
+}
+
 export interface ApiWorkspaceEnvelope {
   data: WorkspacesWorkspaceUpdate;
 }
@@ -372,6 +387,55 @@ export interface CommonAudit {
   deletedAt: string;
   updatedAt: string;
   updatedBy: string;
+}
+
+export interface CommonDenyMessage {
+  text: string;
+}
+
+export interface CommonPodMetadata {
+  annotations: Record<string, string>;
+  labels: Record<string, string>;
+}
+
+export interface CommonPodSecretInfo {
+  defaultMode?: number;
+  mountPath: string;
+  secretName: string;
+}
+
+export interface CommonPodVolumeInfo {
+  mountPath: string;
+  pvcName: string;
+  readOnly: boolean;
+}
+
+export interface CommonRestrictions {
+  deny: boolean;
+  denyMessage?: CommonDenyMessage;
+}
+
+export interface DetailsWorkspaceDetailContainer {
+  name: string;
+}
+
+export interface DetailsWorkspaceDetailPod {
+  containers?: DetailsWorkspaceDetailContainer[];
+  initContainers?: DetailsWorkspaceDetailContainer[];
+  name: string;
+  nodeName: string;
+}
+
+export interface DetailsWorkspaceDetailVolumes {
+  data?: CommonPodVolumeInfo[];
+  home: CommonPodVolumeInfo;
+  secrets?: CommonPodSecretInfo[];
+}
+
+export interface DetailsWorkspaceDetails {
+  pod?: DetailsWorkspaceDetailPod;
+  podMetadata: CommonPodMetadata;
+  volumes: DetailsWorkspaceDetailVolumes;
 }
 
 export interface HealthCheckHealthCheck {
@@ -422,6 +486,7 @@ export interface OptionsImageConfigValue {
   id: string;
   labels?: OptionsOptionLabel[];
   redirect?: OptionsOptionRedirect;
+  restrictions: CommonRestrictions;
 }
 
 export interface OptionsListValuesContext {
@@ -457,6 +522,7 @@ export interface OptionsPodConfigValue {
   id: string;
   labels?: OptionsOptionLabel[];
   redirect?: OptionsOptionRedirect;
+  restrictions: CommonRestrictions;
 }
 
 export interface OptionsPodTemplateOptions {
@@ -556,7 +622,7 @@ export interface SecretsSecretCreate {
   contents: SecretsSecretData;
   immutable: boolean;
   name: string;
-  type: string;
+  type: V1SecretType;
 }
 
 export type SecretsSecretData = Record<string, SecretsSecretValue>;
@@ -565,10 +631,8 @@ export interface SecretsSecretListItem {
   audit: CommonAudit;
   canMount: boolean;
   canUpdate: boolean;
-  immutable: boolean;
   mounts?: SecretsSecretMount[];
   name: string;
-  type: string;
 }
 
 export interface SecretsSecretMount {
@@ -578,9 +642,15 @@ export interface SecretsSecretMount {
 }
 
 export interface SecretsSecretUpdate {
+  /**
+   * Update semantics:
+   *   - key present with {"base64": "..."} → set/update the value
+   *   - key present with {} (Base64 is nil) → preserve the existing value from currentSecret.Data
+   *   - key omitted from the request → delete that key
+   */
   contents: SecretsSecretData;
   immutable: boolean;
-  type: string;
+  type: V1SecretType;
 }
 
 export interface SecretsSecretValue {
@@ -3387,29 +3457,35 @@ export interface V1WindowsSecurityContextOptions {
 
 export interface V1Beta1ActivityProbe {
   /**
-   * a shell command probe
-   *  - if the Workspace had activity in the last 60 seconds this command
-   *    should return status 0, otherwise it should return status 1
-   * +kubebuilder:validation:Optional
-   */
-  exec?: V1Beta1ActivityProbeExec;
-  /**
-   * a Jupyter-specific probe
-   *  - will poll the `/api/status` endpoint of the Jupyter API, and use the `last_activity` field
-   *  - note, users need to be careful that their other probes don't trigger a "last_activity" update
-   *    e.g. they should only check the health of Jupyter using the `/api/status` endpoint
+   * a Jupyter-specific API probe
    * +kubebuilder:validation:Optional
    */
   jupyter?: V1Beta1ActivityProbeJupyter;
-}
-
-export interface V1Beta1ActivityProbeExec {
   /**
-   * the command to run
-   * +kubebuilder:validation:MinItems:=1
-   * +kubebuilder:example={"bash", "-c", "exit 0"}
+   * the minimum duration in seconds that must elapse between two consecutive probes.
+   * - Acts as a rate-limiter for failed probes: if a probe fails, the controller waits at least this long before retrying (requeuing after minProbeInterval).
+   * - Also acts as a guard: if a reconcile triggers early, the probe is skipped until this interval has elapsed since the last probe.
+   * +kubebuilder:validation:Minimum:=1
+   * +kubebuilder:validation:Maximum:=31536000
+   * +kubebuilder:default:=300
+   * +kubebuilder:validation:Optional
    */
-  command: string[];
+  minProbeIntervalSeconds?: number;
+  /**
+   * a script-based probe executed in the Pod
+   * +kubebuilder:validation:Optional
+   */
+  podExec?: V1Beta1ActivityProbePodExec;
+  /**
+   * the desired interval in seconds between successful probes.
+   * - If a probe succeeds, the controller schedules the next probe after this duration (requeuing after probeInterval).
+   * - Determines the freshness of workspace activity status used for culling inactive workspaces.
+   * +kubebuilder:validation:Minimum:=1
+   * +kubebuilder:validation:Maximum:=31536000
+   * +kubebuilder:default:=3600
+   * +kubebuilder:validation:Optional
+   */
+  probeIntervalSeconds?: number;
 }
 
 export interface V1Beta1ActivityProbeJupyter {
@@ -3418,6 +3494,34 @@ export interface V1Beta1ActivityProbeJupyter {
    * +kubebuilder:example=true
    */
   lastActivity: boolean;
+  /** the port to probe, referencing a port defined in spec.podTemplate.ports */
+  portId: string;
+}
+
+export interface V1Beta1ActivityProbePodExec {
+  /**
+   * script is the script to run inside the Pod to determine if the Workspace is active.
+   * The script must meet the following requirements:
+   *  - It must start with a shebang (e.g., "#!/usr/bin/env bash" or "#!/usr/bin/env python").
+   *  - It must exit with a 0 status code. A non-zero exit code is treated as a probe failure (Workspaces with failing probes are not culled).
+   *  - It should be idempotent and without side effects since it can be run multiple times.
+   *  - If the script wants to report an INACTIVE state, it MUST write a JSON object to the file path
+   *    supplied in the OUTPUT_JSON_PATH environment variable. The fields are evaluated to update the
+   *    Workspace status field `status.activity.lastActivity` as follows:
+   *      - If `has_activity` is explicitly set to `true` (or if the JSON file is empty/omitted): The Workspace is treated as active, and `status.activity.lastActivity` is updated to the probe completion time (ignoring `last_activity`).
+   *      - If `last_activity` (ISO 8601 string) is provided and `has_activity` is explicitly `false` (or omitted): The Workspace is treated as inactive, and `status.activity.lastActivity` is updated to the `last_activity` timestamp.
+   *      - If `has_activity` is explicitly `false` and `last_activity` is omitted: The Workspace is treated as inactive, and the existing `status.activity.lastActivity` timestamp is preserved (unchanged).
+   * +kubebuilder:validation:MinLength:=1
+   * +kubebuilder:validation:MaxLength:=2048
+   */
+  script: string;
+  /**
+   * the maximum number of seconds the probe is allowed to run
+   * +kubebuilder:validation:Minimum:=1
+   * +kubebuilder:default:=60
+   * +kubebuilder:validation:Optional
+   */
+  timeoutSeconds?: number;
 }
 
 export interface V1Beta1HTTPProxy {
@@ -3435,8 +3539,6 @@ export interface V1Beta1HTTPProxy {
    * header manipulation rules for incoming HTTP requests
    *  - sets the `spec.http[].headers.request` of the Istio VirtualService
    *    https://istio.io/latest/docs/reference/config/networking/virtual-service/#Headers-HeaderOperations
-   *  - the following string templates are available:
-   *     - `.PathPrefix`: the path prefix of the Workspace (e.g. '/workspace/connect/{profile_name}/{workspace_name}/')
    * +kubebuilder:validation:Optional
    */
   requestHeaders?: V1Beta1IstioHeaderOperations;
@@ -3524,6 +3626,8 @@ export interface V1Beta1ImagePort {
 export interface V1Beta1IstioHeaderOperations {
   /**
    * append the given values to the headers specified by keys (will create a comma-separated list of values)
+   *  - the following go template functions are available in the values:
+   *     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
    * +kubebuilder:validation:Optional
    * +kubebuilder:example:={ "My-Header": "value-to-append" }
    */
@@ -3536,8 +3640,10 @@ export interface V1Beta1IstioHeaderOperations {
   remove?: string[];
   /**
    * overwrite the headers specified by key with the given values
+   *  - the following go template functions are available in the values:
+   *     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
    * +kubebuilder:validation:Optional
-   * +kubebuilder:example:={ "X-RStudio-Root-Path": "{{ .PathPrefix }}" }
+   * +kubebuilder:example:={ "X-RStudio-Root-Path": "{{ httpPathPrefix 'rstudio' }}" }
    */
   set?: Record<string, string>;
 }
@@ -3728,24 +3834,6 @@ export interface V1Beta1WorkspaceKindAssetConfigMap {
   namespace: string;
 }
 
-export interface V1Beta1WorkspaceKindCullingConfig {
-  /** the probe used to determine if the Workspace is active */
-  activityProbe: V1Beta1ActivityProbe;
-  /**
-   * if the culling feature is enabled
-   * +kubebuilder:validation:Optional
-   * +kubebuilder:default=true
-   */
-  enabled?: boolean;
-  /**
-   * the maximum number of seconds a Workspace can be inactive
-   * +kubebuilder:validation:Optional
-   * +kubebuilder:validation:Minimum:=60
-   * +kubebuilder:default=86400
-   */
-  maxInactiveSeconds?: number;
-}
-
 export interface V1Beta1WorkspaceKindPodMetadata {
   /**
    * annotations to be applied to the Pod resource
@@ -3768,20 +3856,21 @@ export interface V1Beta1WorkspaceKindPodOptions {
 
 export interface V1Beta1WorkspaceKindPodTemplate {
   /**
+   * activityProbe configs to determine Workspace activity (MUTABLE)
+   * +kubebuilder:validation:Optional
+   */
+  activityProbe?: V1Beta1ActivityProbe;
+  /**
    * container security context for Workspace Pods (MUTABLE)
    * +kubebuilder:validation:Optional
    */
   containerSecurityContext?: V1SecurityContext;
   /**
-   * culling configs for pausing inactive Workspaces (MUTABLE)
-   * +kubebuilder:validation:Optional
-   */
-  culling?: V1Beta1WorkspaceKindCullingConfig;
-  /**
    * environment variables for Workspace Pods (MUTABLE)
    *  - the following go template functions are available:
    *     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
    * +kubebuilder:validation:Optional
+   * +kubebuilder:example:={ "NB_PREFIX": "{{ httpPathPrefix 'jupyterlab' }}" }
    * +listType:="map"
    * +listMapKey:="name"
    */
@@ -3991,6 +4080,7 @@ export interface WorkspacekindsWorkspaceKindListItem {
   logo: AssetsImageRef;
   name: string;
   podTemplate: WorkspacekindsPodTemplate;
+  restrictions: CommonRestrictions;
 }
 
 export interface WorkspacekindsWorkspaceKindUpdate {
@@ -4026,11 +4116,11 @@ export interface WorkspacesImageConfig {
 
 export interface WorkspacesLastProbeInfo {
   /** Unix Epoch time in milliseconds */
-  endTimeMs: number;
+  endTime: number;
   message: string;
   result: WorkspacesProbeResult;
   /** Unix Epoch time in milliseconds */
-  startTimeMs: number;
+  startTime: number;
 }
 
 export interface WorkspacesOptionInfo {
@@ -4050,20 +4140,9 @@ export interface WorkspacesPodConfig {
   redirectChain?: WorkspacesRedirectStep[];
 }
 
-export interface WorkspacesPodMetadata {
-  annotations: Record<string, string>;
-  labels: Record<string, string>;
-}
-
 export interface WorkspacesPodMetadataMutate {
   annotations: Record<string, string>;
   labels: Record<string, string>;
-}
-
-export interface WorkspacesPodSecretInfo {
-  defaultMode?: number;
-  mountPath: string;
-  secretName: string;
 }
 
 export interface WorkspacesPodSecretMount {
@@ -4074,7 +4153,7 @@ export interface WorkspacesPodSecretMount {
 
 export interface WorkspacesPodTemplate {
   options: WorkspacesPodTemplateOptions;
-  podMetadata: WorkspacesPodMetadata;
+  podMetadata: CommonPodMetadata;
   volumes: WorkspacesPodVolumes;
 }
 
@@ -4094,12 +4173,6 @@ export interface WorkspacesPodTemplateOptionsMutate {
   podConfig: string;
 }
 
-export interface WorkspacesPodVolumeInfo {
-  mountPath: string;
-  pvcName: string;
-  readOnly: boolean;
-}
-
 export interface WorkspacesPodVolumeMount {
   mountPath: string;
   pvcName: string;
@@ -4107,9 +4180,9 @@ export interface WorkspacesPodVolumeMount {
 }
 
 export interface WorkspacesPodVolumes {
-  data: WorkspacesPodVolumeInfo[];
-  home?: WorkspacesPodVolumeInfo;
-  secrets?: WorkspacesPodSecretInfo[];
+  data?: CommonPodVolumeInfo[];
+  home?: CommonPodVolumeInfo;
+  secrets?: CommonPodSecretInfo[];
 }
 
 export interface WorkspacesPodVolumesMutate {

@@ -8,6 +8,7 @@ import {
   V1PersistentVolumeMode,
   V1PersistentVolumeReclaimPolicy,
   V1PodPhase,
+  V1SecretType,
   WorkspacekindsWorkspaceKindListItem,
   WorkspacesRedirectMessageLevel,
   WorkspacesWorkspaceListItem,
@@ -323,7 +324,7 @@ export const mockWorkspaceCreate = buildMockWorkspaceCreate({});
 export const mockWorkspaceUpdate = buildMockWorkspaceUpdate({});
 export const mockSecretCreate: SecretsSecretCreate = {
   name: 'secret-1',
-  type: 'Opaque',
+  type: V1SecretType.SecretTypeOpaque,
   immutable: false,
   contents: {
     username: {
@@ -335,7 +336,7 @@ export const mockSecretCreate: SecretsSecretCreate = {
 
 export const mockSecretCreate3: SecretsSecretCreate = {
   name: 'secret-3',
-  type: 'Opaque',
+  type: V1SecretType.SecretTypeOpaque,
   immutable: false,
   contents: {
     apiKey: {},
@@ -346,7 +347,6 @@ export const mockSecretCreate3: SecretsSecretCreate = {
 export const mockSecretsList = [
   buildMockSecret({
     name: 'secret-1',
-    immutable: true,
     mounts: buildMockSecretMountList(1, 5),
   }),
   buildMockSecret({
@@ -606,6 +606,7 @@ export const mockListValuesImages: OptionsImageConfigValue[] = [
       { key: 'gpuRequired', value: 'true' },
     ],
     hidden: false,
+    restrictions: { deny: false },
   },
 ];
 
@@ -621,5 +622,6 @@ export const mockListValuesPodConfigs: OptionsPodConfigValue[] = [
       { key: 'memory', value: '16Gi' },
       { key: 'gpu', value: '1' },
     ],
+    restrictions: { deny: false },
   },
 ];

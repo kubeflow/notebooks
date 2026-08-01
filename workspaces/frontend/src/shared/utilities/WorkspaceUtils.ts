@@ -61,6 +61,9 @@ export const formatResourceFromWorkspace = (
 export const formatWorkspaceIdleState = (workspace: WorkspacesWorkspaceListItem): string =>
   workspace.state !== V1Beta1WorkspaceState.WorkspaceStateRunning ? YesNoValue.Yes : YesNoValue.No;
 
+export const normalizeWorkspaceState = (state: V1Beta1WorkspaceState): V1Beta1WorkspaceState =>
+  state.length > 0 ? state : V1Beta1WorkspaceState.WorkspaceStateUnknown;
+
 export type LabelColor = 'green' | 'orange' | 'purple' | 'red' | 'grey' | 'yellow';
 
 export const WORKSPACE_STATE_COLORS: Record<V1Beta1WorkspaceState, LabelColor> = {
@@ -130,6 +133,13 @@ export const countGpusFromWorkspaces = (workspaces: WorkspacesWorkspaceListItem[
     const [gpuValue] = splitValueUnit(extractResourceValue(workspace, 'gpu') || '0', OTHER);
     return total + (gpuValue ?? 0);
   }, 0);
+
+export const hasWorkspacePendingUpdate = (
+  workspace: WorkspacesWorkspaceListItem | null | undefined,
+): boolean =>
+  !!workspace &&
+  ((workspace.podTemplate.options.podConfig.redirectChain ?? []).length > 0 ||
+    (workspace.podTemplate.options.imageConfig.redirectChain ?? []).length > 0);
 
 // For now, label keys will be showed as they are in the backend.
 export const formatLabelKey = (key: string): string => key;

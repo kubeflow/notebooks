@@ -34,12 +34,12 @@ class CreateWorkspaceKind {
     return cy.findByTestId('cancel-button');
   }
 
-  findErrorAlert() {
-    return cy.findByTestId('workspace-kind-form-error');
+  findErrorToast() {
+    return cy.findByTestId('toast-notification-group').findByTestId('toast-notification-danger');
   }
 
   assertErrorAlertContainsMessage(message: string) {
-    cy.findByTestId('workspace-kind-form-error-message').should('have.text', message);
+    this.findErrorToast().should('contain.text', message);
   }
 
   findFormPropertiesSection() {

@@ -32,14 +32,16 @@ describe('Secrets Expandable Key/Value Pairs', () => {
   });
 
   // Override the secrets in the workspace
-  mockWorkspaceListItem.podTemplate.volumes.secrets = [
+  const testSecrets = [
     { secretName: 'api-key-secret', mountPath: '/mnt/secrets', defaultMode: 420 },
     { secretName: 'db-credentials', mountPath: '/mnt/db', defaultMode: 384 },
   ];
+  mockWorkspaceListItem.podTemplate.volumes.secrets = testSecrets;
 
   // Create the WorkspaceUpdate format for the getWorkspace API call
   const mockWorkspaceUpdate = buildMockWorkspaceUpdateFromWorkspace({
     workspace: mockWorkspaceListItem,
+    volumes: { secrets: testSecrets },
   });
 
   beforeEach(() => {
@@ -123,8 +125,8 @@ describe('Secrets Expandable Key/Value Pairs', () => {
     // Navigate to properties step where secrets are visible
     cy.wait('@getWorkspaceKinds');
     editWorkspace.clickNext(); // Skip workspace kind step
-    editWorkspace.clickNext(); // Skip image step
-    editWorkspace.clickNext(); // Skip pod config step, now on properties
+    editWorkspace.advancePastRedirectModal(); // Skip image step
+    editWorkspace.advancePastRedirectModal(); // Skip pod config step, now on properties
 
     // Expand the Secrets section (it's collapsed by default)
     cy.contains('button', 'Secrets').click();
@@ -170,6 +172,7 @@ describe('Secrets Management - Attach Modal', () => {
 
   const mockWorkspaceUpdate = buildMockWorkspaceUpdateFromWorkspace({
     workspace: mockWorkspaceListItem,
+    volumes: { secrets: [] },
   });
 
   const mockSecrets = [
@@ -224,8 +227,8 @@ describe('Secrets Management - Attach Modal', () => {
     cy.wait('@getWorkspace');
     cy.wait('@getWorkspaceKinds');
     editWorkspace.clickNext();
-    editWorkspace.clickNext();
-    editWorkspace.clickNext();
+    editWorkspace.advancePastRedirectModal();
+    editWorkspace.advancePastRedirectModal();
 
     cy.contains('button', 'Secrets').click();
   });

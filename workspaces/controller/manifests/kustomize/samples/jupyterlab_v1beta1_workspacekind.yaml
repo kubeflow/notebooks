@@ -10,7 +10,7 @@ spec:
   ## ================================================================
   activityRules:
     - config:
-        secondsSinceActive: 3600
+        secondsSinceActive: 7200
         minRunningSeconds: 300
       match:
         matchNamespace:
@@ -67,6 +67,28 @@ spec:
       #   namespace: "my-namespace"
       #   key: "logo.svg"
       #   mediaType: "image/svg+xml"
+
+  ## ================================================================
+  ## FILTER RULES
+  ##  - admin-defined rules used by the backend API server to dynamically filter
+  ##    which WorkspaceKinds, imageConfig values, and podConfig values are visible
+  ##    or allowed in a given context
+  ##  - the controller does NOT evaluate these rules, it only persists and validates them
+  ## ================================================================
+  filterRules:
+
+    ## hide this WorkspaceKind in namespaces which are not labeled 'workspace_team=team_1'
+    - scope: WORKSPACE_KIND
+      effect:
+        ui:
+          hide: true
+      match:
+        - matchNamespace:
+            selector:
+              matchExpressions:
+                - key: "workspace_team"
+                  operator: NotIn
+                  values: ["team_1"]
 
   ## ================================================================
   ## DEFINITION CONFIGS
@@ -226,6 +248,8 @@ spec:
     ##
     securityContext:
       fsGroup: 100
+      seccompProfile:
+        type: RuntimeDefault
 
     ## container SecurityContext for Workspace Pods (MUTABLE)
     ##  - spec for SecurityContext:
@@ -237,6 +261,8 @@ spec:
         drop:
           - ALL
       runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
 
     ## ==============================================================
     ## WORKSPACE OPTIONS

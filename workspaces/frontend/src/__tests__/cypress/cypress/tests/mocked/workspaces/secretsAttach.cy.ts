@@ -12,7 +12,7 @@ import {
 } from '~/shared/mock/mockBuilder';
 import { navBar } from '~/__tests__/cypress/cypress/pages/components/navBar';
 import { interceptListValues } from '~/__tests__/cypress/cypress/utils/testBuilders';
-import { V1Beta1WorkspaceState } from '~/generated/data-contracts';
+import { V1Beta1WorkspaceState, V1SecretType } from '~/generated/data-contracts';
 
 describe('SecretsAttachModal', () => {
   const mockNamespace = buildMockNamespace({ name: 'default' });
@@ -29,6 +29,7 @@ describe('SecretsAttachModal', () => {
 
   const mockWorkspaceUpdate = buildMockWorkspaceUpdateFromWorkspace({
     workspace: mockWorkspaceListItem,
+    volumes: { secrets: [] },
   });
 
   const mockSecrets = [
@@ -74,9 +75,8 @@ describe('SecretsAttachModal', () => {
         `/api/${NOTEBOOKS_API_VERSION}/secrets/${mockNamespace.name}/${secret.name}`,
         {
           data: {
-            name: secret.name,
-            type: secret.type,
-            immutable: secret.immutable,
+            type: V1SecretType.SecretTypeOpaque,
+            immutable: false,
             contents: {
               key1: { base64: 'dmFsdWUx' }, // base64 for 'value1'
             },
@@ -94,8 +94,8 @@ describe('SecretsAttachModal', () => {
     cy.wait('@getWorkspace');
     cy.wait('@getWorkspaceKinds');
     editWorkspace.clickNext();
-    editWorkspace.clickNext();
-    editWorkspace.clickNext();
+    editWorkspace.advancePastRedirectModal();
+    editWorkspace.advancePastRedirectModal();
     cy.contains('button', 'Secrets').click();
     cy.wait('@listSecrets'); // Wait for secrets to load after expanding section
   });

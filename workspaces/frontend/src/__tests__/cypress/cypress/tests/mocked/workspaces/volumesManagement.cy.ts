@@ -43,6 +43,7 @@ describe('Volumes Management - Attach and Create', () => {
 
   const mockWorkspaceUpdate = buildMockWorkspaceUpdateFromWorkspace({
     workspace: mockWorkspaceListItem,
+    volumes: { data: [] },
   });
 
   // Create mock PVCs for attach modal
@@ -166,8 +167,8 @@ describe('Volumes Management - Attach and Create', () => {
     cy.wait('@getWorkspace');
     cy.wait('@getWorkspaceKinds');
     editWorkspace.clickNext(); // Skip workspace kind step
-    editWorkspace.clickNext(); // Skip image step
-    editWorkspace.clickNext(); // Skip pod config step, now on properties
+    editWorkspace.advancePastRedirectModal(); // Skip image step
+    editWorkspace.advancePastRedirectModal(); // Skip pod config step, now on properties
 
     // Expand the Data Volumes section
     cy.contains('button', 'Data Volumes').click();
