@@ -100,7 +100,7 @@ func BuildDataVolumes(ws *kubefloworgv1beta1.Workspace) []PodVolumeInfo {
 }
 
 // BuildSecretVolumes creates a PodSecretInfo slice from a workspace's secret volumes.
-func BuildSecretVolumes(ws *kubefloworgv1beta1.Workspace) []PodSecretInfo {
+func buildSecretVolumes(ws *kubefloworgv1beta1.Workspace) []PodSecretInfo {
 	var secretVolumes []PodSecretInfo
 	if len(ws.Spec.PodTemplate.Volumes.Secrets) > 0 {
 		secretVolumes = make([]PodSecretInfo, len(ws.Spec.PodTemplate.Volumes.Secrets))
