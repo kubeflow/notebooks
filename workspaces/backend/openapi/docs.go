@@ -7530,7 +7530,6 @@ const docTemplate = `{
                 "namespace",
                 "paused",
                 "pausedTime",
-                "pendingRestart",
                 "podTemplate",
                 "services",
                 "state",
@@ -7559,9 +7558,6 @@ const docTemplate = `{
                 },
                 "pausedTime": {
                     "type": "integer"
-                },
-                "pendingRestart": {
-                    "type": "boolean"
                 },
                 "podTemplate": {
                     "$ref": "#/definitions/workspaces.PodTemplate"
