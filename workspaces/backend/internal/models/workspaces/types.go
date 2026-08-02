@@ -30,18 +30,17 @@ import (
 type WorkspaceListItem struct {
 	Name string `json:"name"`
 	// DisplayName is an optional human-readable name for the workspace.
-	DisplayName    string                            `json:"displayName,omitempty"`
-	Namespace      string                            `json:"namespace"`
-	WorkspaceKind  WorkspaceKindInfo                 `json:"workspaceKind"`
-	Paused         bool                              `json:"paused"`
-	PausedTime     int64                             `json:"pausedTime"`
-	PendingRestart bool                              `json:"pendingRestart"`
-	State          kubefloworgv1beta1.WorkspaceState `json:"state"`
-	StateMessage   string                            `json:"stateMessage"`
-	PodTemplate    PodTemplate                       `json:"podTemplate"`
-	Activity       Activity                          `json:"activity"`
-	Services       []Service                         `json:"services"`
-	Audit          commonCore.Audit                  `json:"audit"`
+	DisplayName   string                            `json:"displayName,omitempty"`
+	Namespace     string                            `json:"namespace"`
+	WorkspaceKind WorkspaceKindInfo                 `json:"workspaceKind"`
+	Paused        bool                              `json:"paused"`
+	PausedTime    int64                             `json:"pausedTime"`
+	State         kubefloworgv1beta1.WorkspaceState `json:"state"`
+	StateMessage  string                            `json:"stateMessage"`
+	PodTemplate   PodTemplate                       `json:"podTemplate"`
+	Activity      Activity                          `json:"activity"`
+	Services      []Service                         `json:"services"`
+	Audit         commonCore.Audit                  `json:"audit"`
 }
 
 type WorkspaceKindInfo struct {

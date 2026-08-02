@@ -57,9 +57,9 @@ func NewWorkspaceDetailsFromWorkspace(
 	return WorkspaceDetails{
 		PodMetadata: commonWorkspaces.ExtractPodMetadata(ws),
 		Volumes: WorkspaceDetailVolumes{
-			Home:    BuildHomeVolume(ws, wsk),
-			Data:    BuildDataVolumes(ws),
-			Secrets: BuildSecretVolumes(ws),
+			Home:    buildHomeVolume(ws, wsk),
+			Data:    buildDataVolumes(ws),
+			Secrets: buildSecretVolumes(ws),
 		},
 		Pod: pod,
 	}
