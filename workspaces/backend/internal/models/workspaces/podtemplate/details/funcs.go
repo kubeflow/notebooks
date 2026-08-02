@@ -84,7 +84,7 @@ func buildHomeVolume(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.W
 }
 
 // BuildDataVolumes creates a PodVolumeInfo slice from a workspace's data volumes.
-func BuildDataVolumes(ws *kubefloworgv1beta1.Workspace) []PodVolumeInfo {
+func buildDataVolumes(ws *kubefloworgv1beta1.Workspace) []PodVolumeInfo {
 	var dataVolumes []PodVolumeInfo
 	if len(ws.Spec.PodTemplate.Volumes.Data) > 0 {
 		dataVolumes = make([]PodVolumeInfo, 0, len(ws.Spec.PodTemplate.Volumes.Data))
