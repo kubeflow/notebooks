@@ -66,7 +66,7 @@ func NewWorkspaceDetailsFromWorkspace(
 }
 
 // BuildHomeVolume creates a PodVolumeInfo for the workspace's home volume.
-func BuildHomeVolume(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.WorkspaceKind) *PodVolumeInfo {
+func buildHomeVolume(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.WorkspaceKind) *PodVolumeInfo {
 	if ws.Spec.PodTemplate.Volumes.Home == nil {
 		return nil
 	}
