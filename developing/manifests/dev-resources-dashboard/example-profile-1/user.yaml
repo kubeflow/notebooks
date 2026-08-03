@@ -1,7 +1,3 @@
-# NOTE: the namespace for these resources is set by `kustomization.yaml`, so the
-#       `user` dev user only has access to that one profile namespace, while the
-#       other example profiles stay empty (useful for testing namespace
-#       switching in the dashboard).
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
