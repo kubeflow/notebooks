@@ -459,6 +459,10 @@ export const WorkspaceKindForm: React.FC = () => {
                         updatePodTemplate={(podTemplate) => {
                           setData('podTemplate', podTemplate);
                         }}
+                        activityRules={data.activityRules ?? []}
+                        updateActivityRules={(rules) => {
+                          setData('activityRules', rules);
+                        }}
                       />
                     </StackItem>
                   </Stack>

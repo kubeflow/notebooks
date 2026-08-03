@@ -1,4 +1,5 @@
 import {
+  ActivityRuleEntry,
   ImagePullPolicy,
   TolerationEntry,
   WorkspaceKindFormData,
@@ -197,12 +198,23 @@ export const EMPTY_WORKSPACE_KIND_FORM_DATA = {
     },
     extraVolumeMounts: [],
   },
+  activityRules: [],
 };
 export const emptyToleration = (): TolerationEntry => ({
   id: generateUniqueId(),
   operator: V1TolerationOperator.TolerationOpEqual,
   key: '',
   value: '',
+});
+
+export const emptyActivityRule = (): ActivityRuleEntry => ({
+  id: generateUniqueId(),
+  config: {
+    secondsSinceActive: 3600,
+  },
+  effect: {
+    pauseWorkspace: true,
+  },
 });
 
 const convertRedirectToApi = (
