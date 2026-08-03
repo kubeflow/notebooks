@@ -65,8 +65,8 @@ func NewWorkspaceDetailsFromWorkspace(
 	}
 }
 
-// BuildHomeVolume creates a PodVolumeInfo for the workspace's home volume.
-func BuildHomeVolume(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.WorkspaceKind) *PodVolumeInfo {
+// buildHomeVolume creates a PodVolumeInfo for the workspace's home volume.
+func buildHomeVolume(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.WorkspaceKind) *PodVolumeInfo {
 	if ws.Spec.PodTemplate.Volumes.Home == nil {
 		return nil
 	}
@@ -83,8 +83,8 @@ func BuildHomeVolume(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.W
 	}
 }
 
-// BuildDataVolumes creates a PodVolumeInfo slice from a workspace's data volumes.
-func BuildDataVolumes(ws *kubefloworgv1beta1.Workspace) []PodVolumeInfo {
+// buildDataVolumes creates a PodVolumeInfo slice from a workspace's data volumes.
+func buildDataVolumes(ws *kubefloworgv1beta1.Workspace) []PodVolumeInfo {
 	var dataVolumes []PodVolumeInfo
 	if len(ws.Spec.PodTemplate.Volumes.Data) > 0 {
 		dataVolumes = make([]PodVolumeInfo, 0, len(ws.Spec.PodTemplate.Volumes.Data))
@@ -99,8 +99,8 @@ func BuildDataVolumes(ws *kubefloworgv1beta1.Workspace) []PodVolumeInfo {
 	return dataVolumes
 }
 
-// BuildSecretVolumes creates a PodSecretInfo slice from a workspace's secret volumes.
-func BuildSecretVolumes(ws *kubefloworgv1beta1.Workspace) []PodSecretInfo {
+// buildSecretVolumes creates a PodSecretInfo slice from a workspace's secret volumes.
+func buildSecretVolumes(ws *kubefloworgv1beta1.Workspace) []PodSecretInfo {
 	var secretVolumes []PodSecretInfo
 	if len(ws.Spec.PodTemplate.Volumes.Secrets) > 0 {
 		secretVolumes = make([]PodSecretInfo, len(ws.Spec.PodTemplate.Volumes.Secrets))
