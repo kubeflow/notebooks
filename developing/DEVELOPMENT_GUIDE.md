@@ -174,27 +174,33 @@ You can now make changes to the codebase, and Tilt will automatically rebuild an
 
 ### Tilt - Authentication & RBAC
 
-Tilt deploys RBAC bindings for two dev users.
 The backend authenticates requests via `kubeflow-userid` and `kubeflow-groups` headers, then authorizes each API call with a Kubernetes [SubjectAccessReview](https://kubernetes.io/docs/reference/access-authn-authz/authorization/#checking-api-access).
 
-| User | Scope | Description |
-|------|-------|-------------|
-| `admin` | Cluster-wide | Typical cluster admin permissions |
-| `user` | `default` namespace (`example-profile-1` when the dashboard is enabled) | Typical workspaces user permissions |
+Tilt deploys RBAC bindings for two development users which you can use while testing:
 
-The bindings come from one of two kustomize targets, depending on whether the Kubeflow dashboard is enabled:
+| User Name | Namespace Scope                                              | Description                         |
+|-----------|--------------------------------------------------------------|-------------------------------------|
+| `admin`   | Cluster-wide                                                 | Typical cluster admin permissions   |
+| `user`    | `example-profile-1` (`default` if the dashboard is disabled) | Typical workspaces user permissions |
 
-| Dashboard | Manifests | `user` is scoped to |
-|-----------|-----------|---------------------|
-| disabled | [`developing/manifests/dev-resources-standalone/`](developing/manifests/dev-resources-standalone/) | the `default` namespace |
-| enabled | [`developing/manifests/dev-resources-dashboard/`](developing/manifests/dev-resources-dashboard/) | the `example-profile-1` namespace |
+The bindings come from one of two kustomize targets, depending on if the Kubeflow Dashboard is enabled:
 
-Each target also pulls in the common sample resources (ServiceAccount, PVCs, Secret, ConfigMap) that workspaces need, and sets the target namespace once via its `namespace:` field.
+| Dashboard                | Manifests                                                                       | `user` is scoped to               |
+|--------------------------|---------------------------------------------------------------------------------|-----------------------------------|
+| `ENABLE_DASHBOARD=false` | [`./manifests/dev-resources-standalone/`](./manifests/dev-resources-standalone) | the `default` namespace           |
+| `ENABLE_DASHBOARD=true`  | [`./manifests/dev-resources-dashboard/`](./manifests/dev-resources-dashboard)   | the `example-profile-1` namespace |
 
-With the dashboard enabled, `user` is scoped to a single profile namespace so it behaves like a real Kubeflow user who owns one profile.
-The profiles themselves are defined in [`developing/manifests/profiles/`](developing/manifests/profiles/) — edit that kustomize target to add or change dev profiles.
+When the dashboard is enabled, `user` is scoped to a single profile namespace so it behaves like a real Kubeflow user who owns one profile.
+These bindings use the same `kubeflow-workspaces-*` ClusterRoles that are defined by [`user_cluster_roles.yaml` in the controller manifests](../workspaces/controller/manifests/kustomize/base/manager/user_cluster_roles.yaml), so they reflect realistic Kubeflow RBAC behavior.
 
-These bindings use the same `kubeflow-workspaces-*` ClusterRoles that are defined by the [controller manifests](workspaces/controller/manifests/kustomize/base/manager/user_cluster_roles.yaml), so they reflect realistic Kubeflow RBAC behavior.
+When the dashboard is enabled, profiles are created from those defined in [`./manifests/profiles/`](./manifests/profiles).
+
+> [!TIP]
+>
+> You can switch between users from the **Debug** page in the frontend UI.
+>
+> * The default user is `admin`. 
+> * Switch to `user` to test non-admin behavior (e.g., namespace-scoped permissions, 403 responses on admin-only pages).
 
 To inspect the effective permissions for each dev user:
 
@@ -202,14 +208,11 @@ To inspect the effective permissions for each dev user:
 # admin (cluster-wide)
 kubectl auth can-i --list --as=admin | grep -E '^Resources|^\S'
 
-# user (namespace-scoped, use example-profile-1 when the dashboard is enabled)
-kubectl auth can-i --list --as=user -n default | grep -E '^Resources|^\S'
+# user (namespace-scoped)
+USER_NAME="user"
+USER_NAMESPACE="example-profile-1" # or "default" if the dashboard is disabled
+kubectl auth can-i --list --as="$USER_NAME" -n "$USER_NAMESPACE" | grep -E '^Resources|^\S'
 ```
-
-> [!TIP]
->
-> You can switch between users from the **Debug** page in the frontend UI.
-> The default user is `admin`. Switch to `user` to test non-admin behavior (e.g., namespace-scoped permissions, 403 responses on admin-only pages).
 
 ### Tilt - Access Logging
 
