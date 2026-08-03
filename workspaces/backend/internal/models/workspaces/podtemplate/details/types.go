@@ -20,6 +20,8 @@ import (
 	commonWorkspaces "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/common"
 )
 
+const UnknownHomeMountPath = "__UNKNOWN_HOME_MOUNT_PATH__"
+
 type WorkspaceDetails struct {
 	PodMetadata commonWorkspaces.PodMetadata `json:"podMetadata"`
 	Volumes     WorkspaceDetailVolumes       `json:"volumes"`
@@ -27,9 +29,9 @@ type WorkspaceDetails struct {
 }
 
 type WorkspaceDetailVolumes struct {
-	Home    *commonWorkspaces.PodVolumeInfo  `json:"home"`
-	Data    []commonWorkspaces.PodVolumeInfo `json:"data,omitempty"`
-	Secrets []commonWorkspaces.PodSecretInfo `json:"secrets,omitempty"`
+	Home    *PodVolumeInfo  `json:"home"`
+	Data    []PodVolumeInfo `json:"data,omitempty"`
+	Secrets []PodSecretInfo `json:"secrets,omitempty"`
 }
 
 type WorkspaceDetailPod struct {
@@ -41,4 +43,16 @@ type WorkspaceDetailPod struct {
 
 type WorkspaceDetailContainer struct {
 	Name string `json:"name"`
+}
+
+type PodVolumeInfo struct {
+	PVCName   string `json:"pvcName"`
+	MountPath string `json:"mountPath"`
+	ReadOnly  bool   `json:"readOnly"`
+}
+
+type PodSecretInfo struct {
+	SecretName  string `json:"secretName"`
+	MountPath   string `json:"mountPath"`
+	DefaultMode int32  `json:"defaultMode,omitempty"`
 }

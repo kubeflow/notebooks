@@ -2363,7 +2363,21 @@ const docTemplate = `{
                 }
             }
         },
-        "common.PodSecretInfo": {
+        "common.Restrictions": {
+            "type": "object",
+            "required": [
+                "deny"
+            ],
+            "properties": {
+                "deny": {
+                    "type": "boolean"
+                },
+                "denyMessage": {
+                    "$ref": "#/definitions/common.DenyMessage"
+                }
+            }
+        },
+        "details.PodSecretInfo": {
             "type": "object",
             "required": [
                 "mountPath",
@@ -2381,7 +2395,7 @@ const docTemplate = `{
                 }
             }
         },
-        "common.PodVolumeInfo": {
+        "details.PodVolumeInfo": {
             "type": "object",
             "required": [
                 "mountPath",
@@ -2397,20 +2411,6 @@ const docTemplate = `{
                 },
                 "readOnly": {
                     "type": "boolean"
-                }
-            }
-        },
-        "common.Restrictions": {
-            "type": "object",
-            "required": [
-                "deny"
-            ],
-            "properties": {
-                "deny": {
-                    "type": "boolean"
-                },
-                "denyMessage": {
-                    "$ref": "#/definitions/common.DenyMessage"
                 }
             }
         },
@@ -2461,16 +2461,16 @@ const docTemplate = `{
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/common.PodVolumeInfo"
+                        "$ref": "#/definitions/details.PodVolumeInfo"
                     }
                 },
                 "home": {
-                    "$ref": "#/definitions/common.PodVolumeInfo"
+                    "$ref": "#/definitions/details.PodVolumeInfo"
                 },
                 "secrets": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/common.PodSecretInfo"
+                        "$ref": "#/definitions/details.PodSecretInfo"
                     }
                 }
             }
@@ -7306,19 +7306,11 @@ const docTemplate = `{
         "workspaces.PodTemplate": {
             "type": "object",
             "required": [
-                "options",
-                "podMetadata",
-                "volumes"
+                "options"
             ],
             "properties": {
                 "options": {
                     "$ref": "#/definitions/workspaces.PodTemplateOptions"
-                },
-                "podMetadata": {
-                    "$ref": "#/definitions/common.PodMetadata"
-                },
-                "volumes": {
-                    "$ref": "#/definitions/workspaces.PodVolumes"
                 }
             }
         },
@@ -7386,26 +7378,6 @@ const docTemplate = `{
                 },
                 "readOnly": {
                     "type": "boolean"
-                }
-            }
-        },
-        "workspaces.PodVolumes": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/common.PodVolumeInfo"
-                    }
-                },
-                "home": {
-                    "$ref": "#/definitions/common.PodVolumeInfo"
-                },
-                "secrets": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/common.PodSecretInfo"
-                    }
                 }
             }
         },
@@ -7558,7 +7530,6 @@ const docTemplate = `{
                 "namespace",
                 "paused",
                 "pausedTime",
-                "pendingRestart",
                 "podTemplate",
                 "services",
                 "state",
@@ -7587,9 +7558,6 @@ const docTemplate = `{
                 },
                 "pausedTime": {
                     "type": "integer"
-                },
-                "pendingRestart": {
-                    "type": "boolean"
                 },
                 "podTemplate": {
                     "$ref": "#/definitions/workspaces.PodTemplate"

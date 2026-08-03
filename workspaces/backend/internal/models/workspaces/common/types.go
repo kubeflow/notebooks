@@ -16,21 +16,7 @@ limitations under the License.
 
 package common
 
-const UnknownHomeMountPath = "__UNKNOWN_HOME_MOUNT_PATH__"
-
 type PodMetadata struct {
 	Labels      map[string]string `json:"labels"`
 	Annotations map[string]string `json:"annotations"`
-}
-
-type PodVolumeInfo struct {
-	PVCName   string `json:"pvcName"`
-	MountPath string `json:"mountPath"`
-	ReadOnly  bool   `json:"readOnly"`
-}
-
-type PodSecretInfo struct {
-	SecretName  string `json:"secretName"`
-	MountPath   string `json:"mountPath"`
-	DefaultMode int32  `json:"defaultMode,omitempty"`
 }
