@@ -716,6 +716,29 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 				},
 			},
 			{
+				description:   "should reject updates to `schedulerName` on an in-use podConfig spec",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				workspace:     NewExampleWorkspace(workspaceName, namespaceName, workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					inUseId := wsk.Spec.PodTemplate.Options.PodConfig.Values[0].Id
+					wsk.Spec.PodTemplate.Options.PodConfig.Values[0].Spec.SchedulerName = new("volcano")
+					return ContainSubstring("podConfig value %q is in use and cannot be changed", inUseId)
+				},
+			},
+			{
+				description:   "should accept updates to `schedulerName` on an unused podConfig spec",
+				shouldSucceed: true,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				workspace:     NewExampleWorkspace(workspaceName, namespaceName, workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					wsk.Spec.PodTemplate.Options.PodConfig.Values[1].Spec.SchedulerName = new("volcano")
+					return ContainSubstring("")
+				},
+			},
+			{
 				description:   "should reject removing in-use imageConfig values",
 				shouldSucceed: false,
 

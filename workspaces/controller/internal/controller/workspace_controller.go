@@ -729,6 +729,14 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 		containerResources = *podConfigSpec.Resources
 	}
 
+	// generate scheduler name
+	// NOTE: the schedulerName from the podConfig takes precedence over the WorkspaceKind
+	//       an empty value causes the Kubernetes API server to apply its own default
+	schedulerName := ptr.Deref(workspaceKind.Spec.PodTemplate.SchedulerName, "")
+	if podConfigSpec.SchedulerName != nil {
+		schedulerName = *podConfigSpec.SchedulerName
+	}
+
 	// generate container probes
 	var readinessProbe *corev1.Probe
 	var livenessProbe *corev1.Probe
@@ -908,6 +916,7 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 						},
 					},
 					NodeSelector:       podConfigSpec.NodeSelector,
+					SchedulerName:      schedulerName,
 					SecurityContext:    workspaceKind.Spec.PodTemplate.SecurityContext,
 					ServiceAccountName: workspaceKind.Spec.PodTemplate.ServiceAccount.Name,
 					Tolerations:        podConfigSpec.Tolerations,

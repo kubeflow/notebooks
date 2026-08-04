@@ -328,4 +328,71 @@ var _ = Describe("Workspace Controller", func() {
 			Expect(err).To(HaveOccurred())
 		})
 	})
+
+	Context("When generating a StatefulSet for a Workspace", func() {
+
+		// NOTE: these tests call the generate functions directly and do not create any
+		//       resources in the cluster, so no teardown is required.
+		var (
+			workspace       *kubefloworgv1beta1.Workspace
+			workspaceKind   *kubefloworgv1beta1.WorkspaceKind
+			imageConfigSpec kubefloworgv1beta1.ImageConfigSpec
+			podConfigSpec   kubefloworgv1beta1.PodConfigSpec
+		)
+
+		BeforeEach(func() {
+			uniqueName := "ws-statefulset-test"
+			workspaceName := fmt.Sprintf("workspace-%s", uniqueName)
+			workspaceKindName := fmt.Sprintf("workspacekind-%s", uniqueName)
+
+			workspaceKind = NewExampleWorkspaceKind1(workspaceKindName)
+			workspace = NewExampleWorkspace1(workspaceName, namespaceName, workspaceKindName)
+			imageConfigSpec = workspaceKind.Spec.PodTemplate.Options.ImageConfig.Values[0].Spec
+			podConfigSpec = workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[0].Spec
+
+			// ensure both levels start unset, so each spec only sets what it tests
+			workspaceKind.Spec.PodTemplate.SchedulerName = nil
+			podConfigSpec.SchedulerName = nil
+		})
+
+		It("should leave `schedulerName` empty when it is unset on both the WorkspaceKind and the podConfig", func() {
+			By("generating the StatefulSet")
+			statefulSet, err := generateStatefulSet(workspace, workspaceKind, imageConfigSpec, podConfigSpec)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("checking the pod template has no `schedulerName`, so the API server applies its default")
+			Expect(statefulSet.Spec.Template.Spec.SchedulerName).To(BeEmpty())
+		})
+
+		It("should use the WorkspaceKind `schedulerName` when the podConfig does not set one", func() {
+			By("generating the StatefulSet")
+			workspaceKind.Spec.PodTemplate.SchedulerName = new("workspacekind-scheduler")
+			statefulSet, err := generateStatefulSet(workspace, workspaceKind, imageConfigSpec, podConfigSpec)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("checking the pod template uses the WorkspaceKind `schedulerName`")
+			Expect(statefulSet.Spec.Template.Spec.SchedulerName).To(Equal("workspacekind-scheduler"))
+		})
+
+		It("should use the podConfig `schedulerName` when the WorkspaceKind does not set one", func() {
+			By("generating the StatefulSet")
+			podConfigSpec.SchedulerName = new("podconfig-scheduler")
+			statefulSet, err := generateStatefulSet(workspace, workspaceKind, imageConfigSpec, podConfigSpec)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("checking the pod template uses the podConfig `schedulerName`")
+			Expect(statefulSet.Spec.Template.Spec.SchedulerName).To(Equal("podconfig-scheduler"))
+		})
+
+		It("should prefer the podConfig `schedulerName` over the WorkspaceKind one", func() {
+			By("generating the StatefulSet")
+			workspaceKind.Spec.PodTemplate.SchedulerName = new("workspacekind-scheduler")
+			podConfigSpec.SchedulerName = new("podconfig-scheduler")
+			statefulSet, err := generateStatefulSet(workspace, workspaceKind, imageConfigSpec, podConfigSpec)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("checking the pod template uses the podConfig `schedulerName`")
+			Expect(statefulSet.Spec.Template.Spec.SchedulerName).To(Equal("podconfig-scheduler"))
+		})
+	})
 })
