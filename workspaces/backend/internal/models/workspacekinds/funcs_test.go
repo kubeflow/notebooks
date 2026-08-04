@@ -23,7 +23,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 )
 
 func TestWorkspaceKinds(t *testing.T) {
@@ -39,7 +38,7 @@ var _ = Describe("buildActivityProbe", func() {
 	It("converts a PodExec probe with default intervals", func() {
 		crdProbe := &kubefloworgv1beta1.ActivityProbe{
 			PodExec: &kubefloworgv1beta1.ActivityProbePodExec{
-				TimeoutSeconds: ptr.To(int32(45)),
+				TimeoutSeconds: new(int32(45)),
 				Script:         "#!/bin/bash\necho active",
 			},
 		}
@@ -48,16 +47,15 @@ var _ = Describe("buildActivityProbe", func() {
 		Expect(apiProbe).NotTo(BeNil())
 		Expect(apiProbe.MinProbeIntervalSeconds).To(Equal(int32(300)))
 		Expect(apiProbe.ProbeIntervalSeconds).To(Equal(int32(3600)))
-		Expect(apiProbe.Exec).NotTo(BeNil())
-		Expect(apiProbe.Exec.TimeoutSeconds).To(Equal(int32(45)))
-		Expect(apiProbe.Exec.Script).To(Equal("#!/bin/bash\necho active"))
+		Expect(apiProbe.PodExec).NotTo(BeNil())
+		Expect(apiProbe.PodExec.TimeoutSeconds).To(Equal(int32(45)))
 		Expect(apiProbe.Jupyter).To(BeNil())
 	})
 
 	It("converts a Jupyter probe with custom intervals", func() {
 		crdProbe := &kubefloworgv1beta1.ActivityProbe{
-			MinProbeIntervalSeconds: ptr.To(int32(120)),
-			ProbeIntervalSeconds:    ptr.To(int32(1800)),
+			MinProbeIntervalSeconds: new(int32(120)),
+			ProbeIntervalSeconds:    new(int32(1800)),
 			Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
 				LastActivity: true,
 				PortId:       "jupyterlab",
@@ -71,7 +69,7 @@ var _ = Describe("buildActivityProbe", func() {
 		Expect(apiProbe.Jupyter).NotTo(BeNil())
 		Expect(apiProbe.Jupyter.LastActivity).To(BeTrue())
 		Expect(apiProbe.Jupyter.PortId).To(Equal("jupyterlab"))
-		Expect(apiProbe.Exec).To(BeNil())
+		Expect(apiProbe.PodExec).To(BeNil())
 	})
 })
 
@@ -86,7 +84,7 @@ var _ = Describe("buildActivityRules", func() {
 			{
 				Config: kubefloworgv1beta1.ActivityRuleConfig{
 					SecondsSinceActive: 3600,
-					MinRunningSeconds:  ptr.To(int32(300)),
+					MinRunningSeconds:  new(int32(300)),
 				},
 				Match: &kubefloworgv1beta1.ActivityRuleMatch{
 					MatchNamespace: &kubefloworgv1beta1.NamespaceMatch{
@@ -94,9 +92,14 @@ var _ = Describe("buildActivityRules", func() {
 							MatchLabels: map[string]string{"tier": "dev"},
 						},
 					},
+					MatchPodConfig: &kubefloworgv1beta1.PodConfigMatch{
+						Selector: metav1.LabelSelector{
+							MatchLabels: map[string]string{"gpu": "true"},
+						},
+					},
 				},
 				Effect: kubefloworgv1beta1.ActivityRuleEffect{
-					PauseWorkspace: ptr.To(true),
+					PauseWorkspace: new(true),
 				},
 			},
 			{
@@ -104,7 +107,7 @@ var _ = Describe("buildActivityRules", func() {
 					SecondsSinceActive: 86400,
 				},
 				Effect: kubefloworgv1beta1.ActivityRuleEffect{
-					PauseWorkspace: ptr.To(true),
+					PauseWorkspace: new(true),
 				},
 			},
 		}
@@ -117,7 +120,15 @@ var _ = Describe("buildActivityRules", func() {
 		Expect(apiRules[0].Match).NotTo(BeNil())
 		Expect(apiRules[0].Match.MatchNamespace).NotTo(BeNil())
 		Expect(apiRules[0].Match.MatchNamespace.Selector.MatchLabels).To(HaveKeyWithValue("tier", "dev"))
+		Expect(apiRules[0].Match.MatchPodConfig).NotTo(BeNil())
+		Expect(apiRules[0].Match.MatchPodConfig.Selector.MatchLabels).To(HaveKeyWithValue("gpu", "true"))
 		Expect(apiRules[0].Effect.PauseWorkspace).To(BeTrue())
+
+		// Verify deep copy of label selector maps
+		apiRules[0].Match.MatchNamespace.Selector.MatchLabels["tier"] = "mutated"
+		Expect(crdRules[0].Match.MatchNamespace.Selector.MatchLabels["tier"]).To(Equal("dev"))
+		apiRules[0].Match.MatchPodConfig.Selector.MatchLabels["gpu"] = "false"
+		Expect(crdRules[0].Match.MatchPodConfig.Selector.MatchLabels["gpu"]).To(Equal("true"))
 
 		Expect(apiRules[1].Config.SecondsSinceActive).To(Equal(int32(86400)))
 		Expect(apiRules[1].Config.MinRunningSeconds).To(Equal(int32(0)))

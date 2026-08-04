@@ -6979,31 +6979,16 @@ const docTemplate = `{
                 "probeIntervalSeconds"
             ],
             "properties": {
-                "exec": {
-                    "$ref": "#/definitions/workspacekinds.ActivityProbeExec"
-                },
                 "jupyter": {
                     "$ref": "#/definitions/workspacekinds.ActivityProbeJupyter"
                 },
                 "minProbeIntervalSeconds": {
                     "type": "integer"
                 },
-                "probeIntervalSeconds": {
-                    "type": "integer"
-                }
-            }
-        },
-        "workspacekinds.ActivityProbeExec": {
-            "type": "object",
-            "required": [
-                "script",
-                "timeoutSeconds"
-            ],
-            "properties": {
-                "script": {
-                    "type": "string"
+                "podExec": {
+                    "$ref": "#/definitions/workspacekinds.ActivityProbePodExec"
                 },
-                "timeoutSeconds": {
+                "probeIntervalSeconds": {
                     "type": "integer"
                 }
             }
@@ -7020,6 +7005,17 @@ const docTemplate = `{
                 },
                 "portId": {
                     "type": "string"
+                }
+            }
+        },
+        "workspacekinds.ActivityProbePodExec": {
+            "type": "object",
+            "required": [
+                "timeoutSeconds"
+            ],
+            "properties": {
+                "timeoutSeconds": {
+                    "type": "integer"
                 }
             }
         },
@@ -7273,14 +7269,14 @@ const docTemplate = `{
             ],
             "properties": {
                 "lastActivity": {
-                    "description": "Unix Epoch time",
+                    "description": "Unix Epoch time in milliseconds",
                     "type": "integer"
                 },
                 "lastProbe": {
                     "$ref": "#/definitions/workspaces.LastProbeInfo"
                 },
                 "lastUpdate": {
-                    "description": "Unix Epoch time",
+                    "description": "Unix Epoch time in milliseconds",
                     "type": "integer"
                 },
                 "rules": {
@@ -7295,6 +7291,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "eligibleAfter": {
+                    "description": "Unix Epoch time in milliseconds",
                     "type": "integer"
                 }
             }
@@ -7684,6 +7681,7 @@ const docTemplate = `{
             "required": [
                 "activity",
                 "audit",
+                "lastRunningTime",
                 "name",
                 "namespace",
                 "paused",
@@ -7705,6 +7703,10 @@ const docTemplate = `{
                     "description": "DisplayName is an optional human-readable name for the workspace.",
                     "type": "string"
                 },
+                "lastRunningTime": {
+                    "description": "Unix Epoch time in milliseconds",
+                    "type": "integer"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -7715,6 +7717,7 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "pausedTime": {
+                    "description": "Unix Epoch time in milliseconds",
                     "type": "integer"
                 },
                 "podTemplate": {

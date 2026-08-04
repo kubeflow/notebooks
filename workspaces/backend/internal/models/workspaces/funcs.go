@@ -59,10 +59,11 @@ func NewWorkspaceListItemFromWorkspace(cfg *config.EnvConfig, ws *kubefloworgv1b
 			Icon:    buildIconImageRef(cfg, ws, wsk),
 			Logo:    buildLogoImageRef(cfg, ws, wsk),
 		},
-		Paused:       ptr.Deref(ws.Spec.Paused, false),
-		PausedTime:   ws.Status.PauseTime,
-		State:        ws.Status.State,
-		StateMessage: ws.Status.StateMessage,
+		Paused:          ptr.Deref(ws.Spec.Paused, false),
+		PausedTime:      ws.Status.PauseTime,
+		LastRunningTime: ws.Status.LastRunningTime,
+		State:           ws.Status.State,
+		StateMessage:    ws.Status.StateMessage,
 		PodTemplate: PodTemplate{
 			Options: PodTemplateOptions{
 				ImageConfig: imageConfigModel,
@@ -295,10 +296,21 @@ func buildLastProbeInfo(probe *kubefloworgv1beta1.WorkspaceActivityLastProbe) *L
 	if probe == nil {
 		return nil
 	}
+
+	result := ProbeResult(probe.Result)
+	switch probe.Result {
+	case kubefloworgv1beta1.WorkspaceProbeResultSuccess:
+		result = ProbeResultSuccess
+	case kubefloworgv1beta1.WorkspaceProbeResultFailure:
+		result = ProbeResultFailure
+	case kubefloworgv1beta1.WorkspaceProbeResultTimeout:
+		result = ProbeResultTimeout
+	}
+
 	return &LastProbeInfo{
 		StartTime: probe.StartTime,
 		EndTime:   probe.EndTime,
-		Result:    ProbeResult(probe.Result),
+		Result:    result,
 		Message:   probe.Message,
 	}
 }

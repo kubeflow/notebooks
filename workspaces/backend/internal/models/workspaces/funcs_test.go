@@ -18,10 +18,17 @@ package workspaces
 
 import (
 	"testing"
+	"time"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+)
+
+var (
+	testStartTime     = time.Date(2024, time.March, 14, 16, 55, 3, 0, time.UTC).UnixMilli()
+	testEndTime       = time.Date(2024, time.March, 14, 16, 55, 5, 0, time.UTC).UnixMilli()
+	testEligibleAfter = time.Date(2024, time.February, 12, 0, 0, 0, 0, time.UTC).UnixMilli()
 )
 
 func TestWorkspaces(t *testing.T) {
@@ -36,16 +43,16 @@ var _ = Describe("buildLastProbeInfo", func() {
 
 	It("converts a WorkspaceActivityLastProbe correctly", func() {
 		crdProbe := &kubefloworgv1beta1.WorkspaceActivityLastProbe{
-			StartTime: 1710435303000,
-			EndTime:   1710435305000,
+			StartTime: testStartTime,
+			EndTime:   testEndTime,
 			Result:    kubefloworgv1beta1.WorkspaceProbeResultSuccess,
 			Message:   "Jupyter probe succeeded",
 		}
 
 		apiProbe := buildLastProbeInfo(crdProbe)
 		Expect(apiProbe).NotTo(BeNil())
-		Expect(apiProbe.StartTime).To(Equal(int64(1710435303000)))
-		Expect(apiProbe.EndTime).To(Equal(int64(1710435305000)))
+		Expect(apiProbe.StartTime).To(Equal(testStartTime))
+		Expect(apiProbe.EndTime).To(Equal(testEndTime))
 		Expect(apiProbe.Result).To(Equal(ProbeResultSuccess))
 		Expect(apiProbe.Message).To(Equal("Jupyter probe succeeded"))
 	})
@@ -64,7 +71,7 @@ var _ = Describe("buildActivityRules", func() {
 		activity := &kubefloworgv1beta1.WorkspaceActivity{
 			Rules: &kubefloworgv1beta1.WorkspaceActivityRules{
 				PauseWorkspace: &kubefloworgv1beta1.WorkspaceActivityPauseRule{
-					EligibleAfter: 1707667200000,
+					EligibleAfter: testEligibleAfter,
 				},
 			},
 		}
@@ -72,6 +79,6 @@ var _ = Describe("buildActivityRules", func() {
 		rules := buildActivityRules(activity)
 		Expect(rules).NotTo(BeNil())
 		Expect(rules.PauseWorkspace).NotTo(BeNil())
-		Expect(rules.PauseWorkspace.EligibleAfter).To(Equal(int64(1707667200000)))
+		Expect(rules.PauseWorkspace.EligibleAfter).To(Equal(testEligibleAfter))
 	})
 })

@@ -6977,31 +6977,16 @@
                 "probeIntervalSeconds"
             ],
             "properties": {
-                "exec": {
-                    "$ref": "#/definitions/workspacekinds.ActivityProbeExec"
-                },
                 "jupyter": {
                     "$ref": "#/definitions/workspacekinds.ActivityProbeJupyter"
                 },
                 "minProbeIntervalSeconds": {
                     "type": "integer"
                 },
-                "probeIntervalSeconds": {
-                    "type": "integer"
-                }
-            }
-        },
-        "workspacekinds.ActivityProbeExec": {
-            "type": "object",
-            "required": [
-                "script",
-                "timeoutSeconds"
-            ],
-            "properties": {
-                "script": {
-                    "type": "string"
+                "podExec": {
+                    "$ref": "#/definitions/workspacekinds.ActivityProbePodExec"
                 },
-                "timeoutSeconds": {
+                "probeIntervalSeconds": {
                     "type": "integer"
                 }
             }
@@ -7018,6 +7003,17 @@
                 },
                 "portId": {
                     "type": "string"
+                }
+            }
+        },
+        "workspacekinds.ActivityProbePodExec": {
+            "type": "object",
+            "required": [
+                "timeoutSeconds"
+            ],
+            "properties": {
+                "timeoutSeconds": {
+                    "type": "integer"
                 }
             }
         },
@@ -7271,14 +7267,14 @@
             ],
             "properties": {
                 "lastActivity": {
-                    "description": "Unix Epoch time",
+                    "description": "Unix Epoch time in milliseconds",
                     "type": "integer"
                 },
                 "lastProbe": {
                     "$ref": "#/definitions/workspaces.LastProbeInfo"
                 },
                 "lastUpdate": {
-                    "description": "Unix Epoch time",
+                    "description": "Unix Epoch time in milliseconds",
                     "type": "integer"
                 },
                 "rules": {
@@ -7293,6 +7289,7 @@
             ],
             "properties": {
                 "eligibleAfter": {
+                    "description": "Unix Epoch time in milliseconds",
                     "type": "integer"
                 }
             }
@@ -7682,6 +7679,7 @@
             "required": [
                 "activity",
                 "audit",
+                "lastRunningTime",
                 "name",
                 "namespace",
                 "paused",
@@ -7703,6 +7701,10 @@
                     "description": "DisplayName is an optional human-readable name for the workspace.",
                     "type": "string"
                 },
+                "lastRunningTime": {
+                    "description": "Unix Epoch time in milliseconds",
+                    "type": "integer"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -7713,6 +7715,7 @@
                     "type": "boolean"
                 },
                 "pausedTime": {
+                    "description": "Unix Epoch time in milliseconds",
                     "type": "integer"
                 },
                 "podTemplate": {

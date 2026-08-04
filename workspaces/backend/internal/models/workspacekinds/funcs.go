@@ -85,26 +85,28 @@ func buildActivityProbe(probe *kubefloworgv1beta1.ActivityProbe) *ActivityProbe 
 		return nil
 	}
 
-	res := &ActivityProbe{
-		MinProbeIntervalSeconds: ptr.Deref(probe.MinProbeIntervalSeconds, 300),
-		ProbeIntervalSeconds:    ptr.Deref(probe.ProbeIntervalSeconds, kubefloworgv1beta1.DefaultProbeIntervalSeconds),
-	}
-
+	var podExec *ActivityProbePodExec
 	if probe.PodExec != nil {
-		res.Exec = &ActivityProbeExec{
-			TimeoutSeconds: ptr.Deref(probe.PodExec.TimeoutSeconds, 60),
-			Script:         probe.PodExec.Script,
+		// NOTE: Script is excluded from ActivityProbePodExec in the WSK list for size reasons.
+		podExec = &ActivityProbePodExec{
+			TimeoutSeconds: ptr.Deref(probe.PodExec.TimeoutSeconds, kubefloworgv1beta1.DefaultPodExecTimeoutSeconds),
 		}
 	}
 
+	var jupyter *ActivityProbeJupyter
 	if probe.Jupyter != nil {
-		res.Jupyter = &ActivityProbeJupyter{
+		jupyter = &ActivityProbeJupyter{
 			LastActivity: probe.Jupyter.LastActivity,
 			PortId:       string(probe.Jupyter.PortId),
 		}
 	}
 
-	return res
+	return &ActivityProbe{
+		MinProbeIntervalSeconds: ptr.Deref(probe.MinProbeIntervalSeconds, kubefloworgv1beta1.DefaultMinProbeIntervalSeconds),
+		ProbeIntervalSeconds:    ptr.Deref(probe.ProbeIntervalSeconds, kubefloworgv1beta1.DefaultProbeIntervalSeconds),
+		PodExec:                 podExec,
+		Jupyter:                 jupyter,
+	}
 }
 
 func buildActivityRules(rules []kubefloworgv1beta1.ActivityRule) []ActivityRule {
@@ -113,32 +115,35 @@ func buildActivityRules(rules []kubefloworgv1beta1.ActivityRule) []ActivityRule 
 	}
 	res := make([]ActivityRule, len(rules))
 	for i, rule := range rules {
-		res[i] = ActivityRule{
-			Config: ActivityRuleConfig{
-				SecondsSinceActive: rule.Config.SecondsSinceActive,
-				MinRunningSeconds:  ptr.Deref(rule.Config.MinRunningSeconds, 0),
-			},
-			Effect: ActivityRuleEffect{
-				PauseWorkspace: ptr.Deref(rule.Effect.PauseWorkspace, false),
-			},
-		}
+		var match *ActivityRuleMatch
 		if rule.Match != nil {
 			var matchNs *MatchNamespace
 			if rule.Match.MatchNamespace != nil {
 				matchNs = &MatchNamespace{
-					Selector: rule.Match.MatchNamespace.Selector,
+					Selector: *rule.Match.MatchNamespace.Selector.DeepCopy(),
 				}
 			}
 			var matchPodConfig *MatchPodConfig
 			if rule.Match.MatchPodConfig != nil {
 				matchPodConfig = &MatchPodConfig{
-					Selector: rule.Match.MatchPodConfig.Selector,
+					Selector: *rule.Match.MatchPodConfig.Selector.DeepCopy(),
 				}
 			}
-			res[i].Match = &ActivityRuleMatch{
+			match = &ActivityRuleMatch{
 				MatchNamespace: matchNs,
 				MatchPodConfig: matchPodConfig,
 			}
+		}
+
+		res[i] = ActivityRule{
+			Config: ActivityRuleConfig{
+				SecondsSinceActive: rule.Config.SecondsSinceActive,
+				MinRunningSeconds:  ptr.Deref(rule.Config.MinRunningSeconds, 0),
+			},
+			Match: match,
+			Effect: ActivityRuleEffect{
+				PauseWorkspace: ptr.Deref(rule.Effect.PauseWorkspace, false),
+			},
 		}
 	}
 	return res

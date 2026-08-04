@@ -66,13 +66,13 @@ type PodVolumeMounts struct {
 type ActivityProbe struct {
 	MinProbeIntervalSeconds int32                 `json:"minProbeIntervalSeconds"`
 	ProbeIntervalSeconds    int32                 `json:"probeIntervalSeconds"`
-	Exec                    *ActivityProbeExec    `json:"exec,omitempty"`
+	PodExec                 *ActivityProbePodExec `json:"podExec,omitempty"`
 	Jupyter                 *ActivityProbeJupyter `json:"jupyter,omitempty"`
 }
 
-type ActivityProbeExec struct {
-	TimeoutSeconds int32  `json:"timeoutSeconds"`
-	Script         string `json:"script"`
+type ActivityProbePodExec struct {
+	TimeoutSeconds int32 `json:"timeoutSeconds"`
+	// NOTE: Script is excluded from the WorkspaceKindListItem model for size reasons.
 }
 
 type ActivityProbeJupyter struct {
