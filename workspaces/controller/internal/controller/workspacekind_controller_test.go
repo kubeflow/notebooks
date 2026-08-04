@@ -25,7 +25,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -121,7 +120,7 @@ var _ = Describe("WorkspaceKind Controller", func() {
 			By("only allowing one of `spec.spawner.icon.{url,configMap}` to be set")
 			newWorkspaceKind := workspaceKind.DeepCopy()
 			newWorkspaceKind.Spec.Spawner.Icon = kubefloworgv1beta1.WorkspaceKindAsset{
-				Url: ptr.To("https://example.com/icon.png"),
+				Url: new("https://example.com/icon.png"),
 				ConfigMap: &kubefloworgv1beta1.WorkspaceKindAssetConfigMap{
 					Name:      "my-logos",
 					Key:       "icon.svg",

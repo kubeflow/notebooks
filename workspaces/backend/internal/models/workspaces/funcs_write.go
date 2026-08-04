@@ -143,7 +143,7 @@ func validateAndUnpackVolumes(
 		dataVolumeMounts[i] = kubefloworgv1beta1.PodVolumeMount{
 			PVCName:   dataVolumeName,
 			MountPath: dataVolume.MountPath,
-			ReadOnly:  ptr.To(dataVolume.ReadOnly),
+			ReadOnly:  new(dataVolume.ReadOnly),
 		}
 	}
 
@@ -231,7 +231,7 @@ func ApplyWorkspaceUpdateModelToWorkspace(ctx context.Context, k8sClient client.
 	}
 
 	// apply model fields to workspace spec
-	workspace.Spec.Paused = ptr.To(workspaceUpdate.Paused)
+	workspace.Spec.Paused = new(workspaceUpdate.Paused)
 	workspace.Spec.DisplayName = displayNamePtr(workspaceUpdate.DisplayName)
 	workspace.Spec.PodTemplate = buildWorkspacePodTemplate(&workspaceUpdate.PodTemplate, workspaceUpdate.PodTemplate.Volumes.Home, dataVolumeMounts, secretMounts)
 
@@ -242,5 +242,5 @@ func displayNamePtr(displayName string) *string {
 	if displayName == "" {
 		return nil
 	}
-	return ptr.To(displayName)
+	return new(displayName)
 }
