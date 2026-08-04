@@ -7004,6 +7004,10 @@
                         }
                     ]
                 },
+                "schedulerName": {
+                    "description": "the name of the scheduler to use for the pod\n - this takes precedence over the `schedulerName` of the pod template\n - set this to \"default-scheduler\" to have this pod config use the\n   default Kubernetes scheduler, even if the pod template sets another one\n+kubebuilder:validation:Optional\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=253\n+kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$\n+kubebuilder:example=\"volcano\"",
+                    "type": "string"
+                },
                 "tolerations": {
                     "description": "toleration configs for the pod\n+kubebuilder:validation:Optional",
                     "type": "array",
@@ -7273,6 +7277,10 @@
                             "$ref": "#/definitions/v1beta1.WorkspaceKindProbes"
                         }
                     ]
+                },
+                "schedulerName": {
+                    "description": "the name of the scheduler to use for Workspace Pods (MUTABLE)\n - this is the default for all Workspaces of this WorkspaceKind, it may be\n   overridden by the `schedulerName` of a pod config value\n - if not set here, or on the pod config value, the Kubernetes API server\n   will default to the \"default-scheduler\"\n+kubebuilder:validation:Optional\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=253\n+kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$\n+kubebuilder:example=\"default-scheduler\"",
+                    "type": "string"
                 },
                 "securityContext": {
                     "description": "security context for Workspace Pods (MUTABLE)\n+kubebuilder:validation:Optional",
