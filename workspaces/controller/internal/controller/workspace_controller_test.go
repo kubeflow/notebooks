@@ -137,7 +137,7 @@ var _ = Describe("Workspace Controller", func() {
 			By("pausing the Workspace")
 			patch := client.MergeFrom(workspace.DeepCopy())
 			newWorkspace := workspace.DeepCopy()
-			newWorkspace.Spec.Paused = new(true)
+			newWorkspace.Spec.Paused = true
 			Expect(k8sClient.Patch(ctx, newWorkspace, patch)).To(Succeed())
 
 			By("setting the Workspace `status.pauseTime` to the current time")
@@ -153,7 +153,7 @@ var _ = Describe("Workspace Controller", func() {
 			By("un-pausing the Workspace")
 			patch = client.MergeFrom(workspace.DeepCopy())
 			newWorkspace = workspace.DeepCopy()
-			newWorkspace.Spec.Paused = new(false)
+			newWorkspace.Spec.Paused = false
 			Expect(k8sClient.Patch(ctx, newWorkspace, patch)).To(Succeed())
 
 			By("setting the Workspace `status.pauseTime` to 0")

@@ -59,7 +59,7 @@ func NewWorkspaceListItemFromWorkspace(cfg *config.EnvConfig, ws *kubefloworgv1b
 			Icon:    buildIconImageRef(cfg, ws, wsk),
 			Logo:    buildLogoImageRef(cfg, ws, wsk),
 		},
-		Paused:          ptr.Deref(ws.Spec.Paused, false),
+		Paused:          ws.Spec.Paused,
 		PausedTime:      ws.Status.PauseTime,
 		LastRunningTime: ws.Status.LastRunningTime,
 		State:           ws.Status.State,
