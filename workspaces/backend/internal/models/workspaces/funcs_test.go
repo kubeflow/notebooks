@@ -56,6 +56,22 @@ var _ = Describe("buildLastProbeInfo", func() {
 		Expect(apiProbe.Result).To(Equal(ProbeResultSuccess))
 		Expect(apiProbe.Message).To(Equal("Jupyter probe succeeded"))
 	})
+
+	It("converts a failed WorkspaceActivityLastProbe correctly", func() {
+		crdProbe := &kubefloworgv1beta1.WorkspaceActivityLastProbe{
+			StartTime: testStartTime,
+			EndTime:   testEndTime,
+			Result:    kubefloworgv1beta1.WorkspaceProbeResultFailure,
+			Message:   "Jupyter probe failed",
+		}
+
+		apiProbe := buildLastProbeInfo(crdProbe)
+		Expect(apiProbe).NotTo(BeNil())
+		Expect(apiProbe.StartTime).To(Equal(testStartTime))
+		Expect(apiProbe.EndTime).To(Equal(testEndTime))
+		Expect(apiProbe.Result).To(Equal(ProbeResultFailure))
+		Expect(apiProbe.Message).To(Equal("Jupyter probe failed"))
+	})
 })
 
 var _ = Describe("buildActivityRules", func() {

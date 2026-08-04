@@ -25,6 +25,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+var (
+	testPodExecTimeoutSeconds     int32 = 45
+	testMinProbeIntervalSeconds   int32 = 120
+	testProbeIntervalSeconds      int32 = 1800
+	testRuleSecondsSinceActive    int32 = 3600
+	testRuleMinRunningSeconds     int32 = 300
+	testRuleSecondsSinceActiveMax int32 = 86400
+)
+
 func TestWorkspaceKinds(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "WorkspaceKinds Models Suite")
@@ -38,24 +47,24 @@ var _ = Describe("buildActivityProbe", func() {
 	It("converts a PodExec probe with default intervals", func() {
 		crdProbe := &kubefloworgv1beta1.ActivityProbe{
 			PodExec: &kubefloworgv1beta1.ActivityProbePodExec{
-				TimeoutSeconds: new(int32(45)),
+				TimeoutSeconds: &testPodExecTimeoutSeconds,
 				Script:         "#!/bin/bash\necho active",
 			},
 		}
 
 		apiProbe := buildActivityProbe(crdProbe)
 		Expect(apiProbe).NotTo(BeNil())
-		Expect(apiProbe.MinProbeIntervalSeconds).To(Equal(int32(300)))
-		Expect(apiProbe.ProbeIntervalSeconds).To(Equal(int32(3600)))
+		Expect(apiProbe.MinProbeIntervalSeconds).To(Equal(kubefloworgv1beta1.DefaultMinProbeIntervalSeconds))
+		Expect(apiProbe.ProbeIntervalSeconds).To(Equal(kubefloworgv1beta1.DefaultProbeIntervalSeconds))
 		Expect(apiProbe.PodExec).NotTo(BeNil())
-		Expect(apiProbe.PodExec.TimeoutSeconds).To(Equal(int32(45)))
+		Expect(apiProbe.PodExec.TimeoutSeconds).To(Equal(testPodExecTimeoutSeconds))
 		Expect(apiProbe.Jupyter).To(BeNil())
 	})
 
 	It("converts a Jupyter probe with custom intervals", func() {
 		crdProbe := &kubefloworgv1beta1.ActivityProbe{
-			MinProbeIntervalSeconds: new(int32(120)),
-			ProbeIntervalSeconds:    new(int32(1800)),
+			MinProbeIntervalSeconds: &testMinProbeIntervalSeconds,
+			ProbeIntervalSeconds:    &testProbeIntervalSeconds,
 			Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
 				LastActivity: true,
 				PortId:       "jupyterlab",
@@ -64,8 +73,8 @@ var _ = Describe("buildActivityProbe", func() {
 
 		apiProbe := buildActivityProbe(crdProbe)
 		Expect(apiProbe).NotTo(BeNil())
-		Expect(apiProbe.MinProbeIntervalSeconds).To(Equal(int32(120)))
-		Expect(apiProbe.ProbeIntervalSeconds).To(Equal(int32(1800)))
+		Expect(apiProbe.MinProbeIntervalSeconds).To(Equal(testMinProbeIntervalSeconds))
+		Expect(apiProbe.ProbeIntervalSeconds).To(Equal(testProbeIntervalSeconds))
 		Expect(apiProbe.Jupyter).NotTo(BeNil())
 		Expect(apiProbe.Jupyter.LastActivity).To(BeTrue())
 		Expect(apiProbe.Jupyter.PortId).To(Equal("jupyterlab"))
@@ -83,8 +92,8 @@ var _ = Describe("buildActivityRules", func() {
 		crdRules := []kubefloworgv1beta1.ActivityRule{
 			{
 				Config: kubefloworgv1beta1.ActivityRuleConfig{
-					SecondsSinceActive: 3600,
-					MinRunningSeconds:  new(int32(300)),
+					SecondsSinceActive: testRuleSecondsSinceActive,
+					MinRunningSeconds:  &testRuleMinRunningSeconds,
 				},
 				Match: &kubefloworgv1beta1.ActivityRuleMatch{
 					MatchNamespace: &kubefloworgv1beta1.NamespaceMatch{
@@ -104,7 +113,7 @@ var _ = Describe("buildActivityRules", func() {
 			},
 			{
 				Config: kubefloworgv1beta1.ActivityRuleConfig{
-					SecondsSinceActive: 86400,
+					SecondsSinceActive: testRuleSecondsSinceActiveMax,
 				},
 				Effect: kubefloworgv1beta1.ActivityRuleEffect{
 					PauseWorkspace: new(true),
@@ -115,8 +124,8 @@ var _ = Describe("buildActivityRules", func() {
 		apiRules := buildActivityRules(crdRules)
 		Expect(apiRules).To(HaveLen(2))
 
-		Expect(apiRules[0].Config.SecondsSinceActive).To(Equal(int32(3600)))
-		Expect(apiRules[0].Config.MinRunningSeconds).To(Equal(int32(300)))
+		Expect(apiRules[0].Config.SecondsSinceActive).To(Equal(testRuleSecondsSinceActive))
+		Expect(apiRules[0].Config.MinRunningSeconds).To(Equal(testRuleMinRunningSeconds))
 		Expect(apiRules[0].Match).NotTo(BeNil())
 		Expect(apiRules[0].Match.MatchNamespace).NotTo(BeNil())
 		Expect(apiRules[0].Match.MatchNamespace.Selector.MatchLabels).To(HaveKeyWithValue("tier", "dev"))
@@ -130,7 +139,7 @@ var _ = Describe("buildActivityRules", func() {
 		apiRules[0].Match.MatchPodConfig.Selector.MatchLabels["gpu"] = "false"
 		Expect(crdRules[0].Match.MatchPodConfig.Selector.MatchLabels["gpu"]).To(Equal("true"))
 
-		Expect(apiRules[1].Config.SecondsSinceActive).To(Equal(int32(86400)))
+		Expect(apiRules[1].Config.SecondsSinceActive).To(Equal(testRuleSecondsSinceActiveMax))
 		Expect(apiRules[1].Config.MinRunningSeconds).To(Equal(int32(0)))
 		Expect(apiRules[1].Match).To(BeNil())
 		Expect(apiRules[1].Effect.PauseWorkspace).To(BeTrue())
