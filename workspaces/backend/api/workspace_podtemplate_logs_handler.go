@@ -20,11 +20,8 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"strconv"
-	"time"
 
 	"github.com/julienschmidt/httprouter"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
@@ -34,23 +31,16 @@ import (
 	repository "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/logs"
 )
 
-const (
-	logsContainerQueryParam = "container"
-	logsTailLinesQueryParam = "tailLines"
-	logsPreviousQueryParam  = "previous"
-	logSinceTimeQueryParam  = "sinceTime"
-)
-
-// GetWorkspaceLogsHandler returns a point-in-time snapshot of container logs for a workspace pod.
+// GetWorkspacePodTemplateLogsHandler returns a point-in-time snapshot of container logs for a workspace pod.
 //
 //	@Summary		Get workspace container logs (batch)
 //	@Description	Returns a point-in-time snapshot of container logs for the workspace pod as a raw text/plain stream proxied directly from the Kubernetes pod logs API.
 //	@Tags			workspaces
-//	@ID				getWorkspaceLogsBatch
+//	@ID				getWorkspacePodTemplateLogsBatch
 //	@Produce		plain
 //	@Param			namespace	path		string			true	"Namespace of the workspace"	extensions(x-example=kubeflow-user-example-com)
 //	@Param			name		path		string			true	"Name of the workspace"			extensions(x-example=my-workspace)
-//	@Param			container	query		string			false	"Target container name. Defaults to the first (primary) container."
+//	@Param			container	query		string			false	"Target container name. Defaults to the primary (main) container."
 //	@Param			tailLines	query		integer			false	"Number of lines from the end of the log to return. Defaults to 1000."
 //	@Param			sinceTime	query		string			false	"Only return logs after this RFC3339 timestamp (e.g. 2026-07-15T10:30:00Z)."
 //	@Param			previous	query		boolean			false	"If true, returns logs from the previous terminated container instance."
@@ -63,7 +53,7 @@ const (
 //	@Failure		422			{object}	ErrorEnvelope	"Unprocessable Entity. Validation error."
 //	@Failure		500			{object}	ErrorEnvelope	"Internal server error."
 //	@Router			/workspaces/{namespace}/{name}/podtemplate/logs/batch [get]
-func (a *App) GetWorkspaceLogsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (a *App) GetWorkspacePodTemplateLogsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(constants.NamespacePathParam)
 	workspaceName := ps.ByName(constants.ResourceNamePathParam)
 
@@ -96,7 +86,7 @@ func (a *App) GetWorkspaceLogsHandler(w http.ResponseWriter, r *http.Request, ps
 	if err != nil {
 		switch {
 		case errors.Is(err, repository.ErrWorkspaceNotFound):
-			a.notFoundResponseWithMessage(w, r, err)
+			a.notFoundResponse(w, r)
 		case errors.Is(err, repository.ErrPreviousLogsNotFound):
 			a.conflictResponse(w, r, err, nil)
 		case errors.Is(err, repository.ErrPodNotRunning):
@@ -127,34 +117,36 @@ func parseLogOptions(r *http.Request) (*models.LogOptions, field.ErrorList) {
 	var valErrs field.ErrorList
 	query := r.URL.Query()
 
-	opts := &models.LogOptions{
-		Container: query.Get(logsContainerQueryParam),
+	opts := &models.LogOptions{}
+
+	if raw := query.Get(constants.ContainerQueryParam); raw != "" {
+		valErrs = append(valErrs, helper.ValidateKubernetesContainersName(field.NewPath(constants.ContainerQueryParam), raw)...)
+		opts.Container = raw
 	}
 
-	if raw := query.Get(logsTailLinesQueryParam); raw != "" {
-		tail, err := strconv.ParseInt(raw, 10, 64)
-		if err != nil || tail <= 0 {
-			valErrs = append(valErrs, field.Invalid(field.NewPath(logsTailLinesQueryParam), raw, "must be a positive integer"))
+	if raw := query.Get(constants.TailLinesQueryParam); raw != "" {
+		tail, errs := helper.ValidateFieldIsPositiveInt64(field.NewPath(constants.TailLinesQueryParam), raw)
+		if len(errs) > 0 {
+			valErrs = append(valErrs, errs...)
 		} else {
 			opts.TailLines = tail
 		}
 	}
 
-	if raw := query.Get(logsPreviousQueryParam); raw != "" {
-		previous, err := strconv.ParseBool(raw)
-		if err != nil {
-			valErrs = append(valErrs, field.Invalid(field.NewPath(logsPreviousQueryParam), raw, "must be a boolean"))
+	if raw := query.Get(constants.PreviousQueryParam); raw != "" {
+		previous, errs := helper.ValidateFieldIsBool(field.NewPath(constants.PreviousQueryParam), raw)
+		if len(errs) > 0 {
+			valErrs = append(valErrs, errs...)
 		} else {
 			opts.Previous = previous
 		}
 	}
 
-	if raw := query.Get(logSinceTimeQueryParam); raw != "" {
-		t, err := time.Parse(time.RFC3339, raw)
-		if err != nil {
-			valErrs = append(valErrs, field.Invalid(field.NewPath(logSinceTimeQueryParam), raw, "must be a valid RFC3339 timestamp"))
+	if raw := query.Get(constants.SinceTimeQueryParam); raw != "" {
+		sinceTime, errs := helper.ValidateFieldIsRFC3339Time(field.NewPath(constants.SinceTimeQueryParam), raw)
+		if len(errs) > 0 {
+			valErrs = append(valErrs, errs...)
 		} else {
-			sinceTime := metav1.NewTime(t)
 			opts.SinceTime = &sinceTime
 		}
 	}

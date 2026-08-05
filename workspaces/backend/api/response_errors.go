@@ -185,18 +185,6 @@ func (a *App) notFoundResponse(w http.ResponseWriter, r *http.Request) {
 	a.errorResponse(w, r, httpError)
 }
 
-// HTTP: 404 with a caller-provided message.
-func (a *App) notFoundResponseWithMessage(w http.ResponseWriter, r *http.Request, err error) {
-	httpError := &HTTPError{
-		StatusCode: http.StatusNotFound,
-		ErrorResponse: ErrorResponse{
-			Code:    strconv.Itoa(http.StatusNotFound),
-			Message: err.Error(),
-		},
-	}
-	a.errorResponse(w, r, httpError)
-}
-
 // HTTP: 405
 func (a *App) methodNotAllowedResponse(w http.ResponseWriter, r *http.Request) {
 	httpError := &HTTPError{

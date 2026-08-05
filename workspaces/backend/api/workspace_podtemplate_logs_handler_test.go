@@ -40,7 +40,7 @@ var _ = Describe("Workspace Logs Handler", func() {
 	// buildLogsRequest constructs the HTTP request and httprouter params for the
 	// batch logs endpoint, applying the given raw query string (may be empty).
 	buildLogsRequest := func(namespace, workspaceName, rawQuery string) (*http.Request, httprouter.Params) {
-		path := strings.Replace(constants.WorkspacePodLogsBatchPath, ":"+constants.NamespacePathParam, namespace, 1)
+		path := strings.Replace(constants.WorkspacePodTemplatePodLogsBatchPath, ":"+constants.NamespacePathParam, namespace, 1)
 		path = strings.Replace(path, ":"+constants.ResourceNamePathParam, workspaceName, 1)
 		if rawQuery != "" {
 			path += "?" + rawQuery
@@ -63,56 +63,105 @@ var _ = Describe("Workspace Logs Handler", func() {
 			By("creating the HTTP request with a non-integer tailLines")
 			req, ps := buildLogsRequest("logs-ns", "workspace-logs", "tailLines=abc")
 
-			By("executing GetWorkspaceLogsHandler")
+			By("executing GetWorkspacePodTemplateLogsHandler")
 			rr := httptest.NewRecorder()
-			a.GetWorkspaceLogsHandler(rr, req, ps)
+			a.GetWorkspacePodTemplateLogsHandler(rr, req, ps)
 			rs := rr.Result()
 			defer rs.Body.Close()
 
 			By("verifying status is 422 Unprocessable Entity")
 			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity))
+
+			By("verifying the error message indicates a query parameter validation failure")
+			var response ErrorEnvelope
+			Expect(json.Unmarshal(rr.Body.Bytes(), &response)).To(Succeed())
+			Expect(response.Error.Message).To(Equal(errMsgQueryParamsInvalid))
+			Expect(response.Error.Cause.ValidationErrors).NotTo(BeEmpty())
+			Expect(response.Error.Cause.ValidationErrors[0].Field).To(Equal(constants.TailLinesQueryParam))
 		})
 
 		It("should return 422 when tailLines is zero or negative", func() {
 			By("creating the HTTP request with a non-positive tailLines")
 			req, ps := buildLogsRequest("logs-ns", "workspace-logs", "tailLines=0")
 
-			By("executing GetWorkspaceLogsHandler")
+			By("executing GetWorkspacePodTemplateLogsHandler")
 			rr := httptest.NewRecorder()
-			a.GetWorkspaceLogsHandler(rr, req, ps)
+			a.GetWorkspacePodTemplateLogsHandler(rr, req, ps)
 			rs := rr.Result()
 			defer rs.Body.Close()
 
 			By("verifying status is 422 Unprocessable Entity")
 			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity))
+
+			By("verifying the error message indicates a query parameter validation failure")
+			var response ErrorEnvelope
+			Expect(json.Unmarshal(rr.Body.Bytes(), &response)).To(Succeed())
+			Expect(response.Error.Message).To(Equal(errMsgQueryParamsInvalid))
+			Expect(response.Error.Cause.ValidationErrors).NotTo(BeEmpty())
+			Expect(response.Error.Cause.ValidationErrors[0].Field).To(Equal(constants.TailLinesQueryParam))
 		})
 
 		It("should return 422 when previous is not a boolean", func() {
 			By("creating the HTTP request with a non-boolean previous")
 			req, ps := buildLogsRequest("logs-ns", "workspace-logs", "previous=maybe")
 
-			By("executing GetWorkspaceLogsHandler")
+			By("executing GetWorkspacePodTemplateLogsHandler")
 			rr := httptest.NewRecorder()
-			a.GetWorkspaceLogsHandler(rr, req, ps)
+			a.GetWorkspacePodTemplateLogsHandler(rr, req, ps)
 			rs := rr.Result()
 			defer rs.Body.Close()
 
 			By("verifying status is 422 Unprocessable Entity")
 			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity))
+
+			By("verifying the error message indicates a query parameter validation failure")
+			var response ErrorEnvelope
+			Expect(json.Unmarshal(rr.Body.Bytes(), &response)).To(Succeed())
+			Expect(response.Error.Message).To(Equal(errMsgQueryParamsInvalid))
+			Expect(response.Error.Cause.ValidationErrors).NotTo(BeEmpty())
+			Expect(response.Error.Cause.ValidationErrors[0].Field).To(Equal(constants.PreviousQueryParam))
 		})
 
 		It("should return 422 when sinceTime is not a valid RFC3339 timestamp", func() {
 			By("creating the HTTP request with an invalid sinceTime")
 			req, ps := buildLogsRequest("logs-ns", "workspace-logs", "sinceTime=not-a-timestamp")
 
-			By("executing GetWorkspaceLogsHandler")
+			By("executing GetWorkspacePodTemplateLogsHandler")
 			rr := httptest.NewRecorder()
-			a.GetWorkspaceLogsHandler(rr, req, ps)
+			a.GetWorkspacePodTemplateLogsHandler(rr, req, ps)
 			rs := rr.Result()
 			defer rs.Body.Close()
 
 			By("verifying status is 422 Unprocessable Entity")
 			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity))
+
+			By("verifying the error message indicates a query parameter validation failure")
+			var response ErrorEnvelope
+			Expect(json.Unmarshal(rr.Body.Bytes(), &response)).To(Succeed())
+			Expect(response.Error.Message).To(Equal(errMsgQueryParamsInvalid))
+			Expect(response.Error.Cause.ValidationErrors).NotTo(BeEmpty())
+			Expect(response.Error.Cause.ValidationErrors[0].Field).To(Equal(constants.SinceTimeQueryParam))
+		})
+
+		It("should return 422 when container is not a valid DNS1123 label", func() {
+			By("creating the HTTP request with an invalid container name")
+			req, ps := buildLogsRequest("logs-ns", "workspace-logs", "container=BAD_NAME!")
+
+			By("executing GetWorkspacePodTemplateLogsHandler")
+			rr := httptest.NewRecorder()
+			a.GetWorkspacePodTemplateLogsHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying status is 422 Unprocessable Entity")
+			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity))
+
+			By("verifying the error message indicates a query parameter validation failure")
+			var response ErrorEnvelope
+			Expect(json.Unmarshal(rr.Body.Bytes(), &response)).To(Succeed())
+			Expect(response.Error.Message).To(Equal(errMsgQueryParamsInvalid))
+			Expect(response.Error.Cause.ValidationErrors).NotTo(BeEmpty())
+			Expect(response.Error.Cause.ValidationErrors[0].Field).To(Equal(constants.ContainerQueryParam))
 		})
 	})
 
@@ -122,22 +171,22 @@ var _ = Describe("Workspace Logs Handler", func() {
 			By("creating the HTTP request for a missing workspace")
 			req, ps := buildLogsRequest("logs-ns", "does-not-exist", "")
 
-			By("executing GetWorkspaceLogsHandler")
+			By("executing GetWorkspacePodTemplateLogsHandler")
 			rr := httptest.NewRecorder()
-			a.GetWorkspaceLogsHandler(rr, req, ps)
+			a.GetWorkspacePodTemplateLogsHandler(rr, req, ps)
 			rs := rr.Result()
 			defer rs.Body.Close()
 
 			By("verifying status is 404 Not Found")
 			Expect(rs.StatusCode).To(Equal(http.StatusNotFound))
 
-			By("verifying the response carries the specific 'workspace not found' message")
+			By("verifying the response carries the generic 'not found' message")
 			body, err := io.ReadAll(rs.Body)
 			Expect(err).NotTo(HaveOccurred())
 			var envelope ErrorEnvelope
 			Expect(json.Unmarshal(body, &envelope)).To(Succeed())
 			Expect(envelope.Error).NotTo(BeNil())
-			Expect(envelope.Error.Message).To(Equal(repository.ErrWorkspaceNotFound.Error()))
+			Expect(envelope.Error.Message).To(Equal(errMsgNotFound))
 		})
 	})
 
@@ -186,14 +235,22 @@ var _ = Describe("Workspace Logs Handler", func() {
 			By("creating the HTTP request")
 			req, ps := buildLogsRequest(namespaceName, workspaceName, "")
 
-			By("executing GetWorkspaceLogsHandler")
+			By("executing GetWorkspacePodTemplateLogsHandler")
 			rr := httptest.NewRecorder()
-			a.GetWorkspaceLogsHandler(rr, req, ps)
+			a.GetWorkspacePodTemplateLogsHandler(rr, req, ps)
 			rs := rr.Result()
 			defer rs.Body.Close()
 
 			By("verifying status is 409 Conflict")
 			Expect(rs.StatusCode).To(Equal(http.StatusConflict))
+
+			By("verifying the response carries the specific 'workspace pod is not running' message")
+			body, err := io.ReadAll(rs.Body)
+			Expect(err).NotTo(HaveOccurred())
+			var envelope ErrorEnvelope
+			Expect(json.Unmarshal(body, &envelope)).To(Succeed())
+			Expect(envelope.Error).NotTo(BeNil())
+			Expect(envelope.Error.Message).To(Equal(repository.ErrPodNotRunning.Error()))
 		})
 	})
 })

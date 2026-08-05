@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"strings"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -37,9 +36,11 @@ import (
 var (
 	ErrWorkspaceNotFound    = fmt.Errorf("workspace not found")
 	ErrPodNotRunning        = fmt.Errorf("workspace pod is not running")
-	ErrContainerNotFound    = fmt.Errorf("container not found in pod")
+	ErrContainerNotFound    = fmt.Errorf("container not found in workspace pod")
 	ErrContainerNotRunning  = fmt.Errorf("container has not started yet")
 	ErrPreviousLogsNotFound = fmt.Errorf("no logs found for the previous container instance")
+	ErrOpenLogStream        = fmt.Errorf("failed to open log stream")
+	ErrGetPod               = fmt.Errorf("failed to get pod")
 )
 
 var (
@@ -49,6 +50,14 @@ var (
 	// defaultTailLines is the default number of lines to retrieve from the end of the logs.
 	defaultTailLines = int64(1000)
 )
+
+// primaryContainerName is the name the controller hard-codes for a workspace's
+// primary container. When no container is requested we default to it so
+// that logs never accidentally target an injected sidecar (e.g. istio-proxy).
+//
+// This mirrors the controller's `workspacePodTemplateContainerName` constant defined in
+// workspaces/controller/internal/controller/workspace_controller.go
+const primaryContainerName = "main"
 
 type LogsRepository struct {
 	cfg       *config.EnvConfig
@@ -87,13 +96,7 @@ func (r *LogsRepository) OpenLogStream(ctx context.Context, namespace, workspace
 
 	stream, err := req.Stream(ctx)
 	if err != nil {
-		// When previous=true but the container has never restarted, the Kubernetes
-		// API returns a 400 with a "previous terminated container ... not found"
-		// message. Surface this as a semantic error instead of a generic 500.
-		if opts.Previous && apierrors.IsBadRequest(err) && strings.Contains(err.Error(), "previous terminated container") {
-			return nil, ErrPreviousLogsNotFound
-		}
-		return nil, fmt.Errorf("failed to open log stream for pod %s, container %s: %w", podName, containerName, err)
+		return nil, ErrOpenLogStream
 	}
 	return stream, nil
 }
@@ -138,53 +141,79 @@ func (r *LogsRepository) resolvePodAndContainer(ctx context.Context, namespace, 
 			return "", "", ErrContainerNotFound
 		}
 	} else {
-		// None requested: default to the primary (first regular) container.
 		if len(podStatus.Containers) == 0 {
 			return "", "", ErrContainerNotRunning
 		}
-		containerName = podStatus.Containers[0].Name
+		if !containerExists(primaryContainerName, podStatus.Containers, nil) {
+			return "", "", ErrContainerNotFound
+		}
+		// None requested: default to the primary container, which the controller
+		// hard-codes as "main".
+		containerName = primaryContainerName
 	}
 
-	// When requesting current (not previous) logs, ensure the target container has
-	// actually started by inspecting the live Pod status. A container still in the
-	// Waiting state (e.g. PodInitializing, ContainerCreating, ImagePullBackOff) has
-	// no current log stream yet, and the Kubernetes API would return an opaque error;
-	// surface it as a semantic 409 instead. Previous logs are exempt, since a
-	// terminated instance can have logs even while the current instance is Waiting.
-	if !opts.Previous {
-		if err := r.ensureContainerStarted(ctx, namespace, podName, containerName); err != nil {
-			return "", "", err
-		}
+	// Inspect the live Pod status to make a semantic decision before opening the
+	// stream, so we can return a precise error instead of an opaque one from the
+	// Kubernetes log API.
+	if err := r.ensureLogsAvailable(ctx, namespace, podName, containerName, opts.Previous); err != nil {
+		return "", "", err
 	}
 
 	return podName, containerName, nil
 }
 
-// ensureContainerStarted checks the live Pod status and returns ErrContainerNotRunning
-// if the target container is still in the Waiting state (i.e. it has not started yet
-// and therefore has no logs available for the current instance).
-func (r *LogsRepository) ensureContainerStarted(ctx context.Context, namespace, podName, containerName string) error {
+// ensureLogsAvailable checks the live Pod status for the target container and
+// returns a semantic error when logs cannot be served:
+//   - when previous is false and the container is still Waiting (never started),
+//     it returns ErrContainerNotRunning.
+//   - when previous is true and the container has no recorded previous terminated
+//     instance (LastTerminationState.Terminated is nil), it returns
+//     ErrPreviousLogsNotFound.
+//
+// The checker utilizes the clientset to fetch the live Pod status,
+// which is more accurate than the Workspace's cached status.
+func (r *LogsRepository) ensureLogsAvailable(ctx context.Context, namespace, podName, containerName string, previous bool) error {
 	pod, err := r.clientset.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			// The Workspace status references a pod that no longer exists.
 			return ErrPodNotRunning
 		}
-		return fmt.Errorf("failed to get pod %s: %w", podName, err)
+		return ErrGetPod
 	}
 
-	// Search both regular and init container statuses for the target container.
-	for _, group := range [][]corev1.ContainerStatus{pod.Status.ContainerStatuses, pod.Status.InitContainerStatuses} {
-		for _, cs := range group {
-			if cs.Name != containerName {
-				continue
-			}
-			// A container that is still Waiting has never started and has no logs yet.
-			if cs.State.Waiting != nil {
-				return ErrContainerNotRunning
+	// checkStatus evaluates a single container status for the target container.
+	checkStatus := func(cs corev1.ContainerStatus) error {
+		if previous {
+			// A container with no recorded previous terminated instance has no
+			// previous logs to serve.
+			if cs.LastTerminationState.Terminated == nil {
+				return ErrPreviousLogsNotFound
 			}
 			return nil
 		}
+		// A container that is still Waiting has never started and has no logs yet.
+		if cs.State.Waiting != nil {
+			return ErrContainerNotRunning
+		}
+		return nil
+	}
+
+	// Search the regular container statuses for the target container.
+	for _, cs := range pod.Status.ContainerStatuses {
+		if cs.Name != containerName {
+			continue
+		}
+		return checkStatus(cs)
+	}
+
+	// Search the init container statuses for the target container (e.g. an
+	// istio-proxy native sidecar is an init container).
+	for _, cs := range pod.Status.InitContainerStatuses {
+		if cs.Name != containerName {
+			continue
+		}
+		return checkStatus(cs)
 	}
 
 	return ErrContainerNotRunning

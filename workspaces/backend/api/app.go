@@ -109,7 +109,7 @@ func (a *App) Routes() http.Handler {
 	router.DELETE(constants.WorkspacesByNamePath, a.DeleteWorkspaceHandler)
 	router.POST(constants.PauseWorkspacePath, a.PauseActionWorkspaceHandler)
 	router.GET(constants.WorkspacePodTemplateDetailsPath, a.GetWorkspacePodTemplateDetailsHandler)
-	router.GET(constants.WorkspacePodLogsBatchPath, a.GetWorkspaceLogsHandler)
+	router.GET(constants.WorkspacePodTemplatePodLogsBatchPath, a.GetWorkspacePodTemplateLogsHandler)
 
 	// workspacekinds
 	router.GET(constants.AllWorkspaceKindsPath, a.GetWorkspaceKindsHandler)

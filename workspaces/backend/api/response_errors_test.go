@@ -18,7 +18,6 @@ package api
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -273,22 +272,5 @@ var _ = Describe("Error Response Functions", func() {
 				Expect(envelope.Error.ErrorResponse).To(Equal(expectedErrorResponse))
 			})
 		}
-	})
-
-	Describe("notFoundResponseWithMessage", func() {
-		It("should return 404 with the provided error message", func() {
-			testErr := errors.New("workspace not found")
-
-			app.notFoundResponseWithMessage(w, r, testErr)
-
-			Expect(w.Code).To(Equal(http.StatusNotFound))
-
-			var envelope ErrorEnvelope
-			err := json.Unmarshal(w.Body.Bytes(), &envelope)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(envelope.Error).NotTo(BeNil())
-			Expect(envelope.Error.Code).To(Equal(strconv.Itoa(http.StatusNotFound)))
-			Expect(envelope.Error.Message).To(Equal(testErr.Error()))
-		})
 	})
 })

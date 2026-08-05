@@ -22,7 +22,7 @@ import (
 
 type LogOptions struct {
 	// The name of the container to retrieve logs from.
-	// If omitted, defaults to the first container (the workspace's primary container).
+	// If omitted, defaults to the workspace's primary container (named "main").
 	Container string
 	// The number of lines to retrieve from the end of the logs.
 	// By default, the value is 1000.

@@ -1955,7 +1955,7 @@ const docTemplate = `{
                     "workspaces"
                 ],
                 "summary": "Get workspace container logs (batch)",
-                "operationId": "getWorkspaceLogsBatch",
+                "operationId": "getWorkspacePodTemplateLogsBatch",
                 "parameters": [
                     {
                         "type": "string",
@@ -1975,7 +1975,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Target container name. Defaults to the first (primary) container.",
+                        "description": "Target container name. Defaults to the primary (main) container.",
                         "name": "container",
                         "in": "query"
                     },

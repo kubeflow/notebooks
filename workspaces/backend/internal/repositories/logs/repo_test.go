@@ -86,6 +86,17 @@ func waitingContainerStatus(name, reason string) corev1.ContainerStatus {
 	}
 }
 
+// waitingContainerStatusWithPrevious returns a ContainerStatus for a container
+// that is currently Waiting but has a previous terminated instance, so requests
+// for previous logs are considered available.
+func waitingContainerStatusWithPrevious(name, reason string) corev1.ContainerStatus {
+	cs := waitingContainerStatus(name, reason)
+	cs.LastTerminationState = corev1.ContainerState{
+		Terminated: &corev1.ContainerStateTerminated{ExitCode: 255},
+	}
+	return cs
+}
+
 // newPod builds a corev1.Pod (named testPodName) with the given regular and init
 // container statuses.
 func newPod(containerStatuses, initContainerStatuses []corev1.ContainerStatus) *corev1.Pod {
@@ -243,13 +254,32 @@ func TestOpenLogStream(t *testing.T) {
 			wantErr: ErrPodNotRunning,
 		},
 		{
-			name: "waiting current container is bypassed when previous=true",
+			name: "waiting current container is served when previous=true and a previous instance exists",
 			ws:   newWorkspace(testPodName, "main"),
 			pod: newPod([]corev1.ContainerStatus{
-				waitingContainerStatus("main", "CrashLoopBackOff"),
+				waitingContainerStatusWithPrevious("main", "CrashLoopBackOff"),
 			}, nil),
 			opts:     &models.LogOptions{Previous: true},
 			wantLogs: true,
+		},
+		{
+			name: "previous=true with no previous terminated instance returns previous logs not found",
+			ws:   newWorkspace(testPodName, "main"),
+			pod: newPod([]corev1.ContainerStatus{
+				runningContainerStatus("main"), // running, but never restarted (no LastTerminationState)
+			}, nil),
+			opts:    &models.LogOptions{Previous: true},
+			wantErr: ErrPreviousLogsNotFound,
+		},
+		{
+			name: "previous=true for an init container with no previous instance returns previous logs not found",
+			ws:   withInitContainers(newWorkspace(testPodName, "main"), "istio-proxy"),
+			pod: newPod(
+				[]corev1.ContainerStatus{runningContainerStatus("main")},
+				[]corev1.ContainerStatus{runningContainerStatus("istio-proxy")},
+			),
+			opts:    &models.LogOptions{Container: "istio-proxy", Previous: true},
+			wantErr: ErrPreviousLogsNotFound,
 		},
 	}
 
@@ -293,11 +323,24 @@ func TestResolvePodAndContainer(t *testing.T) {
 		wantErr       error
 	}{
 		{
-			name:          "defaults to first container when none requested",
+			name:          "defaults to the primary 'main' container when none requested",
 			ws:            newWorkspace(testPodName, "main", "istio-proxy"),
 			requested:     "",
 			wantPod:       testPodName,
 			wantContainer: "main",
+		},
+		{
+			name:          "defaults to 'main' even when it is not the first container",
+			ws:            newWorkspace(testPodName, "istio-proxy", "main"),
+			requested:     "",
+			wantPod:       testPodName,
+			wantContainer: "main",
+		},
+		{
+			name:      "errors when none requested and no 'main' container exists",
+			ws:        newWorkspace(testPodName, "istio-proxy"),
+			requested: "",
+			wantErr:   ErrContainerNotFound,
 		},
 		{
 			name:          "returns requested container when it exists",
