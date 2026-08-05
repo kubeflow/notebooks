@@ -41,7 +41,19 @@ var (
 	// isPrometheusOperatorAlreadyInstalled will be set true when prometheus CRDs be found on the cluster
 	// isPrometheusOperatorAlreadyInstalled = false
 
-	skipIstioInstall        = os.Getenv("ISTIO_INSTALL_SKIP") == "true"
+	routingProvider = func() string {
+		if val := os.Getenv("ROUTING_PROVIDER"); val != "" {
+			return val
+		}
+		return "istio"
+	}()
+
+	skipIstioInstall = func() bool {
+		if os.Getenv("ISTIO_INSTALL_SKIP") == "true" {
+			return true
+		}
+		return routingProvider != "istio"
+	}()
 	isIstioAlreadyInstalled = false
 )
 
@@ -106,6 +118,11 @@ var _ = BeforeSuite(func() {
 
 		By("checking that istio is available")
 		Expect(utils.WaitIstioAvailable()).To(Succeed(), "istio is not available")
+	}
+
+	if routingProvider == "gateway-api" {
+		By("checking if gateway-api CRDs are installed")
+		Expect(utils.IsGatewayAPICRDsInstalled()).To(BeTrue(), "Gateway API CRDs are not installed in the cluster")
 	}
 })
 
