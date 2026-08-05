@@ -30,6 +30,9 @@ endif
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
+# Kustomize overlay to deploy
+OVERLAY ?= istio
+
 .PHONY: all
 all: build
 
@@ -91,7 +94,7 @@ test-e2e: manifests generate fmt vet istioctl ## Run the e2e tests. Expected an 
 		echo "Kind is not installed. Please install Kind manually."; \
 		exit 1; \
 	}
-	@kind get clusters | grep -q 'kind' || { \
+	@kind get clusters | grep -q . || { \
 		echo "No Kind cluster is running. Please start a Kind cluster before running the e2e tests."; \
 		exit 1; \
 	}
@@ -159,12 +162,12 @@ deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in
 	@mkdir -p manifests/kustomize/.output
 	@cp -r manifests/kustomize/* manifests/kustomize/.output/
 	# Match both short name and registry-prefixed name (base kustomization may transform either)
-	@cd manifests/kustomize/.output/overlays/istio && $(KUSTOMIZE) edit set image $(NAME)=${IMG} $(REGISTRY)/$(NAME)=${IMG}
-	@$(KUBECTL) apply -k manifests/kustomize/.output/overlays/istio
+	@cd manifests/kustomize/.output/overlays/$(OVERLAY) && $(KUSTOMIZE) edit set image $(NAME)=${IMG} $(REGISTRY)/$(NAME)=${IMG}
+	@$(KUBECTL) apply -k manifests/kustomize/.output/overlays/$(OVERLAY)
 
 .PHONY: undeploy
 undeploy: kustomize ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	$(KUBECTL) delete -k manifests/kustomize/overlays/istio --ignore-not-found=$(ignore-not-found)
+	$(KUBECTL) delete -k manifests/kustomize/overlays/$(OVERLAY) --ignore-not-found=$(ignore-not-found)
 
 ##@ Dependencies
 
