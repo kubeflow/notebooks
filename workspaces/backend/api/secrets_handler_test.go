@@ -32,7 +32,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	commonModels "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
@@ -388,11 +387,11 @@ var _ = Describe("Secrets Handler", func() {
 					Namespace: namespaceName1,
 				},
 				Spec: kubefloworgv1beta1.WorkspaceSpec{
-					Paused: ptr.To(false),
+					Paused: new(false),
 					Kind:   workspaceKindName1,
 					PodTemplate: kubefloworgv1beta1.WorkspacePodTemplate{
 						Volumes: kubefloworgv1beta1.WorkspacePodVolumes{
-							Home: ptr.To("my-home-pvc"),
+							Home: new("my-home-pvc"),
 							Secrets: []kubefloworgv1beta1.PodSecretMount{
 								{
 									SecretName: secretName1,
@@ -556,8 +555,8 @@ var _ = Describe("Secrets Handler", func() {
 				Name: secretCreateName,
 				Type: corev1.SecretTypeOpaque,
 				Contents: models.SecretData{
-					"username": {Base64: ptr.To("dGVzdHVzZXI=")},
-					"password": {Base64: ptr.To("dGVzdHBhc3M=")},
+					"username": {Base64: new("dGVzdHVzZXI=")},
+					"password": {Base64: new("dGVzdHBhc3M=")},
 				},
 			}
 			bodyEnvelope := SecretCreateEnvelope{Data: &secretCreate}
@@ -626,7 +625,7 @@ var _ = Describe("Secrets Handler", func() {
 				Name: secretCreateName,
 				Type: corev1.SecretTypeOpaque,
 				Contents: models.SecretData{
-					"key": {Base64: ptr.To("dmFsdWU=")},
+					"key": {Base64: new("dmFsdWU=")},
 				},
 			}
 			bodyEnvelope := SecretCreateEnvelope{Data: &secretCreate}
@@ -658,7 +657,7 @@ var _ = Describe("Secrets Handler", func() {
 			secretCreate := models.SecretCreate{
 				Type: corev1.SecretTypeOpaque,
 				Contents: models.SecretData{
-					"key": {Base64: ptr.To("dmFsdWU=")},
+					"key": {Base64: new("dmFsdWU=")},
 				},
 			}
 			bodyEnvelope := SecretCreateEnvelope{Data: &secretCreate}
@@ -715,7 +714,7 @@ var _ = Describe("Secrets Handler", func() {
 				Name: "test-invalid-base64",
 				Type: corev1.SecretTypeOpaque,
 				Contents: models.SecretData{
-					"key": {Base64: ptr.To("not-valid-base64!!!")},
+					"key": {Base64: new("not-valid-base64!!!")},
 				},
 			}
 			bodyEnvelope := SecretCreateEnvelope{Data: &secretCreate}
@@ -851,9 +850,9 @@ var _ = Describe("Secrets Handler", func() {
 					// "username": preserve existing value (Base64 is nil)
 					"username": {},
 					// "password": update with new value
-					"password": {Base64: ptr.To("bmV3cGFzcw==")},
+					"password": {Base64: new("bmV3cGFzcw==")},
 					// "newkey": add new key
-					"newkey": {Base64: ptr.To("bmV3a2V5dmFsdWU=")},
+					"newkey": {Base64: new("bmV3a2V5dmFsdWU=")},
 					// "host": omitted from request, should be deleted
 				},
 			}
@@ -922,7 +921,7 @@ var _ = Describe("Secrets Handler", func() {
 			updateReq := models.SecretUpdate{
 				Type: corev1.SecretTypeOpaque,
 				Contents: models.SecretData{
-					"key": {Base64: ptr.To("dmFsdWU=")},
+					"key": {Base64: new("dmFsdWU=")},
 				},
 			}
 			bodyEnvelope := SecretEnvelope{Data: &updateReq}
@@ -956,7 +955,7 @@ var _ = Describe("Secrets Handler", func() {
 			updateReq := models.SecretUpdate{
 				Type: corev1.SecretTypeOpaque,
 				Contents: models.SecretData{
-					"key": {Base64: ptr.To("not-valid-base64!!!")},
+					"key": {Base64: new("not-valid-base64!!!")},
 				},
 			}
 			bodyEnvelope := SecretEnvelope{Data: &updateReq}
@@ -990,7 +989,7 @@ var _ = Describe("Secrets Handler", func() {
 			updateReq := models.SecretUpdate{
 				Type: corev1.SecretTypeOpaque,
 				Contents: models.SecretData{
-					"key": {Base64: ptr.To("dmFsdWU=")},
+					"key": {Base64: new("dmFsdWU=")},
 				},
 			}
 			bodyEnvelope := SecretEnvelope{Data: &updateReq}

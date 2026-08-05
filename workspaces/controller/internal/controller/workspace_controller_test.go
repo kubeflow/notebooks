@@ -20,8 +20,6 @@ import (
 	"fmt"
 	"time"
 
-	"k8s.io/utils/ptr"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 
@@ -139,7 +137,7 @@ var _ = Describe("Workspace Controller", func() {
 			By("pausing the Workspace")
 			patch := client.MergeFrom(workspace.DeepCopy())
 			newWorkspace := workspace.DeepCopy()
-			newWorkspace.Spec.Paused = ptr.To(true)
+			newWorkspace.Spec.Paused = new(true)
 			Expect(k8sClient.Patch(ctx, newWorkspace, patch)).To(Succeed())
 
 			By("setting the Workspace `status.pauseTime` to the current time")
@@ -155,7 +153,7 @@ var _ = Describe("Workspace Controller", func() {
 			By("un-pausing the Workspace")
 			patch = client.MergeFrom(workspace.DeepCopy())
 			newWorkspace = workspace.DeepCopy()
-			newWorkspace.Spec.Paused = ptr.To(false)
+			newWorkspace.Spec.Paused = new(false)
 			Expect(k8sClient.Patch(ctx, newWorkspace, patch)).To(Succeed())
 
 			By("setting the Workspace `status.pauseTime` to 0")
@@ -270,7 +268,7 @@ var _ = Describe("Workspace Controller", func() {
 
 		It("should not rewrite the URI when `removePathPrefix` is false", func() {
 			By("generating the VirtualService")
-			workspaceKind.Spec.PodTemplate.Ports[0].HTTPProxy.RemovePathPrefix = ptr.To(false)
+			workspaceKind.Spec.PodTemplate.Ports[0].HTTPProxy.RemovePathPrefix = new(false)
 			virtualService, err := reconciler.generateVirtualService(workspace, workspaceKind, service, imageConfigSpec)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -281,7 +279,7 @@ var _ = Describe("Workspace Controller", func() {
 
 		It("should rewrite the URI to '/' when `removePathPrefix` is true", func() {
 			By("generating the VirtualService")
-			workspaceKind.Spec.PodTemplate.Ports[0].HTTPProxy.RemovePathPrefix = ptr.To(true)
+			workspaceKind.Spec.PodTemplate.Ports[0].HTTPProxy.RemovePathPrefix = new(true)
 			virtualService, err := reconciler.generateVirtualService(workspace, workspaceKind, service, imageConfigSpec)
 			Expect(err).NotTo(HaveOccurred())
 

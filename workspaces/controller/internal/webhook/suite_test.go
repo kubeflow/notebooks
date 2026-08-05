@@ -29,7 +29,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -188,14 +187,14 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 			Spawner: kubefloworgv1beta1.WorkspaceKindSpawner{
 				DisplayName:        "JupyterLab Notebook",
 				Description:        "A Workspace which runs JupyterLab in a Pod",
-				Hidden:             ptr.To(false),
-				Deprecated:         ptr.To(false),
-				DeprecationMessage: ptr.To("This WorkspaceKind will be removed on 20XX-XX-XX, please use another WorkspaceKind."),
+				Hidden:             new(false),
+				Deprecated:         new(false),
+				DeprecationMessage: new("This WorkspaceKind will be removed on 20XX-XX-XX, please use another WorkspaceKind."),
 				Icon: kubefloworgv1beta1.WorkspaceKindAsset{
-					Url: ptr.To("https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png"),
+					Url: new("https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png"),
 				},
 				Logo: kubefloworgv1beta1.WorkspaceKindAsset{
-					Url: ptr.To("https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png"),
+					Url: new("https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png"),
 				},
 			},
 			PodTemplate: kubefloworgv1beta1.WorkspaceKindPodTemplate{
@@ -204,8 +203,8 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 					Name: "default-editor",
 				},
 				ActivityProbe: &kubefloworgv1beta1.ActivityProbe{
-					MinProbeIntervalSeconds: ptr.To(int32(300)),
-					ProbeIntervalSeconds:    ptr.To(int32(3600)),
+					MinProbeIntervalSeconds: new(int32(300)),
+					ProbeIntervalSeconds:    new(int32(3600)),
 					Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
 						LastActivity: true,
 						PortId:       "jupyterlab",
@@ -221,7 +220,7 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 						DefaultDisplayName: "JupyterLab",
 						Protocol:           "HTTP",
 						HTTPProxy: &kubefloworgv1beta1.HTTPProxy{
-							RemovePathPrefix: ptr.To(false),
+							RemovePathPrefix: new(false),
 							RequestHeaders: &kubefloworgv1beta1.IstioHeaderOperations{
 								Set:    map[string]string{},
 								Add:    map[string]string{},
@@ -258,14 +257,14 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 					},
 				},
 				SecurityContext: &v1.PodSecurityContext{
-					FSGroup: ptr.To(int64(100)),
+					FSGroup: new(int64(100)),
 				},
 				ContainerSecurityContext: &v1.SecurityContext{
-					AllowPrivilegeEscalation: ptr.To(false),
+					AllowPrivilegeEscalation: new(false),
 					Capabilities: &v1.Capabilities{
 						Drop: []v1.Capability{"ALL"},
 					},
-					RunAsNonRoot: ptr.To(true),
+					RunAsNonRoot: new(true),
 				},
 				Options: kubefloworgv1beta1.WorkspaceKindPodOptions{
 					ImageConfig: kubefloworgv1beta1.ImageConfig{
@@ -278,14 +277,14 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 								Id: "jupyterlab_scipy_180",
 								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 									DisplayName: "jupyter-scipy:v1.8.0",
-									Description: ptr.To("JupyterLab, with SciPy Packages"),
+									Description: new("JupyterLab, with SciPy Packages"),
 									Labels: []kubefloworgv1beta1.OptionSpawnerLabel{
 										{
 											Key:   "python_version",
 											Value: "3.11",
 										},
 									},
-									Hidden: ptr.To(true),
+									Hidden: new(true),
 								},
 								Redirect: &kubefloworgv1beta1.OptionRedirect{
 									To: "jupyterlab_scipy_190",
@@ -299,7 +298,7 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 									Ports: []kubefloworgv1beta1.ImagePort{
 										{
 											Id:          "jupyterlab",
-											DisplayName: ptr.To("JupyterLab"),
+											DisplayName: new("JupyterLab"),
 											Port:        8888,
 										},
 									},
@@ -310,7 +309,7 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 								Id: "jupyterlab_scipy_190",
 								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 									DisplayName: "jupyter-scipy:v1.9.0",
-									Description: ptr.To("JupyterLab, with SciPy Packages"),
+									Description: new("JupyterLab, with SciPy Packages"),
 									Labels: []kubefloworgv1beta1.OptionSpawnerLabel{
 										{
 											Key:   "python_version",
@@ -342,7 +341,7 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 									Ports: []kubefloworgv1beta1.ImagePort{
 										{
 											Id:          "my_port",
-											DisplayName: ptr.To("something"),
+											DisplayName: new("something"),
 											Port:        1234,
 										},
 									},
@@ -395,7 +394,7 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 								Id: "tiny_cpu",
 								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 									DisplayName: "Tiny CPU",
-									Description: ptr.To("Pod with 0.1 CPU, 128 MB RAM"),
+									Description: new("Pod with 0.1 CPU, 128 MB RAM"),
 									Labels: []kubefloworgv1beta1.OptionSpawnerLabel{
 										{
 											Key:   "cpu",
@@ -421,7 +420,7 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 								Id: "small_cpu",
 								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 									DisplayName: "Small CPU",
-									Description: ptr.To("Pod with 1 CPU, 2 GB RAM"),
+									Description: new("Pod with 1 CPU, 2 GB RAM"),
 									Labels: []kubefloworgv1beta1.OptionSpawnerLabel{
 										{
 											Key:   "cpu",
@@ -447,7 +446,7 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 								Id: "big_gpu",
 								Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 									DisplayName: "Big GPU",
-									Description: ptr.To("Pod with 4 CPU, 16 GB RAM, and 1 GPU"),
+									Description: new("Pod with 4 CPU, 16 GB RAM, and 1 GPU"),
 									Labels: []kubefloworgv1beta1.OptionSpawnerLabel{
 										{
 											Key:   "cpu",
@@ -610,12 +609,12 @@ func NewExampleWorkspaceKindWithDuplicatePorts(name string) *kubefloworgv1beta1.
 	workspaceKind.Spec.PodTemplate.Options.ImageConfig.Values[0].Spec.Ports = []kubefloworgv1beta1.ImagePort{
 		{
 			Id:          "jupyterlab",
-			DisplayName: ptr.To("JupyterLab"),
+			DisplayName: new("JupyterLab"),
 			Port:        8888,
 		},
 		{
 			Id:          "jupyterlab2",
-			DisplayName: ptr.To("JupyterLab2"),
+			DisplayName: new("JupyterLab2"),
 			Port:        8888,
 		},
 	}
@@ -727,8 +726,8 @@ func NewExampleWorkspaceKindWithBothProbeTypes(name string) *kubefloworgv1beta1.
 func NewExampleWorkspaceKindWithInvalidProbeIntervals(name string) *kubefloworgv1beta1.WorkspaceKind {
 	workspaceKind := NewExampleWorkspaceKind(name)
 	workspaceKind.Spec.PodTemplate.ActivityProbe = &kubefloworgv1beta1.ActivityProbe{
-		MinProbeIntervalSeconds: ptr.To(int32(100)),
-		ProbeIntervalSeconds:    ptr.To(int32(50)),
+		MinProbeIntervalSeconds: new(int32(100)),
+		ProbeIntervalSeconds:    new(int32(50)),
 		Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
 			LastActivity: true,
 			PortId:       "jupyterlab",
@@ -749,6 +748,337 @@ func NewExampleWorkspaceKindWithJupyterLastActivityFalse(name string) *kubeflowo
 	return workspaceKind
 }
 
+// NewExampleWorkspaceKindWithValidFilterRules returns a WorkspaceKind with a representative,
+// valid set of filterRules covering the different scopes, effects, and match conditions.
+func NewExampleWorkspaceKindWithValidFilterRules(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.FilterRules = []kubefloworgv1beta1.FilterRule{
+		{
+			// hide GPU podConfigs in namespaces that do not allow GPUs
+			Scope: kubefloworgv1beta1.FilterRuleScopePodConfig,
+			Effect: kubefloworgv1beta1.FilterRuleEffect{
+				UI: &kubefloworgv1beta1.FilterRuleEffectUI{Hide: true},
+			},
+			Match: []kubefloworgv1beta1.FilterRuleMatch{
+				{
+					MatchNamespace: &kubefloworgv1beta1.FilterRuleSelector{
+						Selector: metav1.LabelSelector{
+							MatchExpressions: []metav1.LabelSelectorRequirement{
+								{
+									Key:      "workspaces_allow_gpus",
+									Operator: metav1.LabelSelectorOpNotIn,
+									Values:   []string{"true"},
+								},
+							},
+						},
+					},
+				},
+				{
+					MatchPodConfig: &kubefloworgv1beta1.FilterRuleSelector{
+						Selector: metav1.LabelSelector{
+							MatchExpressions: []metav1.LabelSelectorRequirement{
+								{Key: "gpu_vendor", Operator: metav1.LabelSelectorOpExists},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			// deny non-team imageConfigs at the API level
+			Scope: kubefloworgv1beta1.FilterRuleScopeImageConfig,
+			Effect: kubefloworgv1beta1.FilterRuleEffect{
+				API: &kubefloworgv1beta1.FilterRuleEffectAPI{
+					Deny:        new(true),
+					DenyMessage: &kubefloworgv1beta1.FilterRuleDenyMessage{Text: "this image is not available in your namespace"},
+				},
+			},
+			Match: []kubefloworgv1beta1.FilterRuleMatch{
+				{
+					MatchImageConfig: &kubefloworgv1beta1.FilterRuleSelector{
+						Selector: metav1.LabelSelector{
+							MatchLabels: map[string]string{"gpu_vendor": "nvidia"},
+						},
+					},
+				},
+			},
+		},
+		{
+			// cross-option: hide non-NVIDIA podConfigs when an NVIDIA imageConfig is selected
+			// (matchImageConfig is valid at POD_CONFIG scope)
+			Scope: kubefloworgv1beta1.FilterRuleScopePodConfig,
+			Effect: kubefloworgv1beta1.FilterRuleEffect{
+				UI: &kubefloworgv1beta1.FilterRuleEffectUI{Hide: true},
+			},
+			Match: []kubefloworgv1beta1.FilterRuleMatch{
+				{
+					MatchImageConfig: &kubefloworgv1beta1.FilterRuleSelector{
+						Selector: metav1.LabelSelector{
+							MatchLabels: map[string]string{"gpu_vendor": "nvidia"},
+						},
+					},
+				},
+				{
+					MatchPodConfig: &kubefloworgv1beta1.FilterRuleSelector{
+						Selector: metav1.LabelSelector{
+							MatchExpressions: []metav1.LabelSelectorRequirement{
+								{Key: "gpu_vendor", Operator: metav1.LabelSelectorOpNotIn, Values: []string{"nvidia"}},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			// hide imageConfigs from the API response entirely (api.hide effect)
+			// using a matchPodConfig condition, which is valid at IMAGE_CONFIG scope
+			Scope: kubefloworgv1beta1.FilterRuleScopeImageConfig,
+			Effect: kubefloworgv1beta1.FilterRuleEffect{
+				API: &kubefloworgv1beta1.FilterRuleEffectAPI{Hide: new(true)},
+			},
+			Match: []kubefloworgv1beta1.FilterRuleMatch{
+				{
+					MatchPodConfig: &kubefloworgv1beta1.FilterRuleSelector{
+						Selector: metav1.LabelSelector{
+							MatchExpressions: []metav1.LabelSelectorRequirement{
+								{Key: "gpu_vendor", Operator: metav1.LabelSelectorOpExists},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithInvalidFilterRuleSelector returns a WorkspaceKind whose filter rule
+// uses a malformed label selector ("In" operator with an empty values list), which is rejected by
+// the webhook (the CRD structural schema cannot catch selector-semantic errors).
+func NewExampleWorkspaceKindWithInvalidFilterRuleSelector(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.FilterRules = []kubefloworgv1beta1.FilterRule{
+		{
+			Scope: kubefloworgv1beta1.FilterRuleScopePodConfig,
+			Effect: kubefloworgv1beta1.FilterRuleEffect{
+				UI: &kubefloworgv1beta1.FilterRuleEffectUI{Hide: true},
+			},
+			Match: []kubefloworgv1beta1.FilterRuleMatch{
+				{
+					MatchPodConfig: &kubefloworgv1beta1.FilterRuleSelector{
+						Selector: metav1.LabelSelector{
+							MatchExpressions: []metav1.LabelSelectorRequirement{
+								{Key: "gpu_vendor", Operator: metav1.LabelSelectorOpIn, Values: []string{}},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithFilterRuleInvalidScope returns a WorkspaceKind whose filter rule uses
+// a scope outside the allowed enum, which is rejected by the CRD schema.
+func NewExampleWorkspaceKindWithFilterRuleInvalidScope(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.FilterRules = []kubefloworgv1beta1.FilterRule{
+		{
+			Scope: "BOGUS_SCOPE",
+			Effect: kubefloworgv1beta1.FilterRuleEffect{
+				UI: &kubefloworgv1beta1.FilterRuleEffectUI{Hide: true},
+			},
+			Match: []kubefloworgv1beta1.FilterRuleMatch{
+				{
+					MatchNamespace: &kubefloworgv1beta1.FilterRuleSelector{
+						Selector: metav1.LabelSelector{MatchLabels: map[string]string{"team": "a"}},
+					},
+				},
+			},
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithFilterRuleNoMatchCondition returns a WorkspaceKind whose filter rule has
+// a match entry that sets none of matchNamespace/matchImageConfig/matchPodConfig, which is rejected by
+// the CRD "exactly one" validation rule.
+func NewExampleWorkspaceKindWithFilterRuleNoMatchCondition(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.FilterRules = []kubefloworgv1beta1.FilterRule{
+		{
+			Scope: kubefloworgv1beta1.FilterRuleScopeWorkspaceKind,
+			Effect: kubefloworgv1beta1.FilterRuleEffect{
+				UI: &kubefloworgv1beta1.FilterRuleEffectUI{Hide: true},
+			},
+			Match: []kubefloworgv1beta1.FilterRuleMatch{{}},
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithFilterRuleEmptyEffect returns a WorkspaceKind whose filter rule sets
+// neither effect.ui nor effect.api, which is rejected by the CRD validation rule.
+func NewExampleWorkspaceKindWithFilterRuleEmptyEffect(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.FilterRules = []kubefloworgv1beta1.FilterRule{
+		{
+			Scope:  kubefloworgv1beta1.FilterRuleScopeWorkspaceKind,
+			Effect: kubefloworgv1beta1.FilterRuleEffect{},
+			Match: []kubefloworgv1beta1.FilterRuleMatch{
+				{
+					MatchNamespace: &kubefloworgv1beta1.FilterRuleSelector{
+						Selector: metav1.LabelSelector{MatchLabels: map[string]string{"team": "a"}},
+					},
+				},
+			},
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithFilterRuleAllEffectsFalse returns a WorkspaceKind whose filter rule sets
+// an effect block (ui) but with all effect flags false, which is rejected by the webhook (at least one
+// of ui.hide, api.hide, or api.deny must be true).
+func NewExampleWorkspaceKindWithFilterRuleAllEffectsFalse(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.FilterRules = []kubefloworgv1beta1.FilterRule{
+		{
+			Scope: kubefloworgv1beta1.FilterRuleScopeWorkspaceKind,
+			Effect: kubefloworgv1beta1.FilterRuleEffect{
+				UI: &kubefloworgv1beta1.FilterRuleEffectUI{Hide: false},
+			},
+			Match: []kubefloworgv1beta1.FilterRuleMatch{
+				{
+					MatchNamespace: &kubefloworgv1beta1.FilterRuleSelector{
+						Selector: metav1.LabelSelector{MatchLabels: map[string]string{"team": "a"}},
+					},
+				},
+			},
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithFilterRuleScopeMismatch returns a WorkspaceKind whose filter rule uses
+// a WORKSPACE_KIND scope together with a matchPodConfig condition, which is rejected by the webhook
+// (matchImageConfig/matchPodConfig are only meaningful for POD_CONFIG or IMAGE_CONFIG scopes).
+func NewExampleWorkspaceKindWithFilterRuleScopeMismatch(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.FilterRules = []kubefloworgv1beta1.FilterRule{
+		{
+			Scope: kubefloworgv1beta1.FilterRuleScopeWorkspaceKind,
+			Effect: kubefloworgv1beta1.FilterRuleEffect{
+				UI: &kubefloworgv1beta1.FilterRuleEffectUI{Hide: true},
+			},
+			Match: []kubefloworgv1beta1.FilterRuleMatch{
+				{
+					MatchPodConfig: &kubefloworgv1beta1.FilterRuleSelector{
+						Selector: metav1.LabelSelector{MatchLabels: map[string]string{"gpu_vendor": "nvidia"}},
+					},
+				},
+			},
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithFilterRuleImageConfigScopeMismatch returns a WorkspaceKind whose filter
+// rule uses a WORKSPACE_KIND scope together with a matchImageConfig condition, which is rejected by the
+// webhook (matchImageConfig is only meaningful for POD_CONFIG or IMAGE_CONFIG scopes).
+func NewExampleWorkspaceKindWithFilterRuleImageConfigScopeMismatch(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.FilterRules = []kubefloworgv1beta1.FilterRule{
+		{
+			Scope: kubefloworgv1beta1.FilterRuleScopeWorkspaceKind,
+			Effect: kubefloworgv1beta1.FilterRuleEffect{
+				UI: &kubefloworgv1beta1.FilterRuleEffectUI{Hide: true},
+			},
+			Match: []kubefloworgv1beta1.FilterRuleMatch{
+				{
+					MatchImageConfig: &kubefloworgv1beta1.FilterRuleSelector{
+						Selector: metav1.LabelSelector{MatchLabels: map[string]string{"gpu_vendor": "nvidia"}},
+					},
+				},
+			},
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithFilterRuleEmptyMatch returns a WorkspaceKind whose filter rule has an
+// empty match list, which is rejected by the CRD schema (match requires at least one condition).
+func NewExampleWorkspaceKindWithFilterRuleEmptyMatch(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.FilterRules = []kubefloworgv1beta1.FilterRule{
+		{
+			Scope: kubefloworgv1beta1.FilterRuleScopeWorkspaceKind,
+			Effect: kubefloworgv1beta1.FilterRuleEffect{
+				UI: &kubefloworgv1beta1.FilterRuleEffectUI{Hide: true},
+			},
+			Match: []kubefloworgv1beta1.FilterRuleMatch{},
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithFilterRuleDenyMessageWithoutDeny returns a WorkspaceKind whose filter rule
+// sets api.denyMessage without api.deny being true, which is rejected by the CRD validation rule.
+func NewExampleWorkspaceKindWithFilterRuleDenyMessageWithoutDeny(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.FilterRules = []kubefloworgv1beta1.FilterRule{
+		{
+			Scope: kubefloworgv1beta1.FilterRuleScopeImageConfig,
+			Effect: kubefloworgv1beta1.FilterRuleEffect{
+				API: &kubefloworgv1beta1.FilterRuleEffectAPI{
+					Hide:        new(true),
+					DenyMessage: &kubefloworgv1beta1.FilterRuleDenyMessage{Text: "this image is not available"},
+				},
+			},
+			Match: []kubefloworgv1beta1.FilterRuleMatch{
+				{
+					MatchImageConfig: &kubefloworgv1beta1.FilterRuleSelector{
+						Selector: metav1.LabelSelector{MatchLabels: map[string]string{"gpu_vendor": "nvidia"}},
+					},
+				},
+			},
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithFilterRuleNamespaceAllScopes returns a WorkspaceKind with a matchNamespace
+// condition used with each of the three scopes, which is accepted (matchNamespace is valid for all scopes).
+func NewExampleWorkspaceKindWithFilterRuleNamespaceAllScopes(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	namespaceMatch := []kubefloworgv1beta1.FilterRuleMatch{
+		{
+			MatchNamespace: &kubefloworgv1beta1.FilterRuleSelector{
+				Selector: metav1.LabelSelector{MatchLabels: map[string]string{"team": "a"}},
+			},
+		},
+	}
+	workspaceKind.Spec.FilterRules = []kubefloworgv1beta1.FilterRule{
+		{
+			Scope:  kubefloworgv1beta1.FilterRuleScopeWorkspaceKind,
+			Effect: kubefloworgv1beta1.FilterRuleEffect{UI: &kubefloworgv1beta1.FilterRuleEffectUI{Hide: true}},
+			Match:  namespaceMatch,
+		},
+		{
+			Scope:  kubefloworgv1beta1.FilterRuleScopePodConfig,
+			Effect: kubefloworgv1beta1.FilterRuleEffect{UI: &kubefloworgv1beta1.FilterRuleEffectUI{Hide: true}},
+			Match:  namespaceMatch,
+		},
+		{
+			Scope:  kubefloworgv1beta1.FilterRuleScopeImageConfig,
+			Effect: kubefloworgv1beta1.FilterRuleEffect{UI: &kubefloworgv1beta1.FilterRuleEffectUI{Hide: true}},
+			Match:  namespaceMatch,
+		},
+	}
+	return workspaceKind
+}
+
 // NewExampleWorkspace returns the common "Workspace" object used in tests.
 func NewExampleWorkspace(name, namespace, workspaceKindName string) *kubefloworgv1beta1.Workspace {
 	return &kubefloworgv1beta1.Workspace{
@@ -757,7 +1087,7 @@ func NewExampleWorkspace(name, namespace, workspaceKindName string) *kubefloworg
 			Namespace: namespace,
 		},
 		Spec: kubefloworgv1beta1.WorkspaceSpec{
-			DisplayName: ptr.To("Example Workspace"),
+			DisplayName: new("Example Workspace"),
 			Kind:        workspaceKindName,
 			PodTemplate: kubefloworgv1beta1.WorkspacePodTemplate{Options: kubefloworgv1beta1.WorkspacePodOptions{
 				ImageConfig: "jupyterlab_scipy_180",

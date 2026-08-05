@@ -112,6 +112,12 @@ lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes
 build: manifests generate fmt vet ## Build manager binary.
 	go build -o bin/manager cmd/main.go
 
+##@ Clean
+.PHONY: clean
+clean: ## Remove local test/build artifacts.
+	rm -rf $(LOCALBIN)
+	@echo "INFO: '$(LOCALBIN)' successfully cleaned."
+
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./cmd/main.go

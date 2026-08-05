@@ -28,7 +28,8 @@ help: ## Display this help.
 
 .PHONY: clean
 clean: ## Remove local test/build artifacts.
-	rm -rf ./bin ./Dockerfile.cross
+	rm -rf $(LOCALBIN)
+	@echo "INFO: '$(LOCALBIN)' successfully cleaned."
 
 ##@ Build
 

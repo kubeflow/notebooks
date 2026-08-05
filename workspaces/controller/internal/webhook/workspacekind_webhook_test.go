@@ -27,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
@@ -127,6 +126,61 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 				shouldSucceed: false,
 			},
 			{
+				description:   "should accept creation with valid filterRules",
+				workspaceKind: NewExampleWorkspaceKindWithValidFilterRules("wsk-webhook-create--filter-rules-valid"),
+				shouldSucceed: true,
+			},
+			{
+				description:   "should accept creation with matchNamespace on all filterRule scopes",
+				workspaceKind: NewExampleWorkspaceKindWithFilterRuleNamespaceAllScopes("wsk-webhook-create--filter-rules-namespace-all-scopes"),
+				shouldSucceed: true,
+			},
+			{
+				description:   "should reject creation with a malformed filterRule label selector",
+				workspaceKind: NewExampleWorkspaceKindWithInvalidFilterRuleSelector("wsk-webhook-create--filter-rules-invalid-selector"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with a filterRule scope outside the allowed enum",
+				workspaceKind: NewExampleWorkspaceKindWithFilterRuleInvalidScope("wsk-webhook-create--filter-rules-invalid-scope"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with a filterRule that has an empty match list",
+				workspaceKind: NewExampleWorkspaceKindWithFilterRuleEmptyMatch("wsk-webhook-create--filter-rules-empty-match-list"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with a filterRule match condition that sets no selector",
+				workspaceKind: NewExampleWorkspaceKindWithFilterRuleNoMatchCondition("wsk-webhook-create--filter-rules-empty-match"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with a filterRule effect that sets neither ui nor api",
+				workspaceKind: NewExampleWorkspaceKindWithFilterRuleEmptyEffect("wsk-webhook-create--filter-rules-empty-effect"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with a filterRule effect where all effect flags are false",
+				workspaceKind: NewExampleWorkspaceKindWithFilterRuleAllEffectsFalse("wsk-webhook-create--filter-rules-all-effects-false"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with a filterRule denyMessage set without deny being true",
+				workspaceKind: NewExampleWorkspaceKindWithFilterRuleDenyMessageWithoutDeny("wsk-webhook-create--filter-rules-deny-message-without-deny"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with matchPodConfig on a WORKSPACE_KIND scoped filterRule",
+				workspaceKind: NewExampleWorkspaceKindWithFilterRuleScopeMismatch("wsk-webhook-create--filter-rules-scope-mismatch"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with matchImageConfig on a WORKSPACE_KIND scoped filterRule",
+				workspaceKind: NewExampleWorkspaceKindWithFilterRuleImageConfigScopeMismatch("wsk-webhook-create--filter-rules-image-scope-mismatch"),
+				shouldSucceed: false,
+			},
+			{
 				description:   "should reject creation with missing shebang in exec script",
 				workspaceKind: NewExampleWorkspaceKindWithInvalidExecShebang("wsk-webhook-create--invalid-exec-shebang"),
 				shouldSucceed: false,
@@ -187,7 +241,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 					{
 						Config: kubefloworgv1beta1.ActivityRuleConfig{
 							SecondsSinceActive: 3600,
-							MinRunningSeconds:  ptr.To(int32(300)),
+							MinRunningSeconds:  new(int32(300)),
 						},
 						Match: &kubefloworgv1beta1.ActivityRuleMatch{
 							MatchNamespace: &kubefloworgv1beta1.NamespaceMatch{
@@ -197,7 +251,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 							},
 						},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
-							PauseWorkspace: ptr.To(true),
+							PauseWorkspace: new(true),
 						},
 					},
 					{
@@ -206,7 +260,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						},
 						Match: &kubefloworgv1beta1.ActivityRuleMatch{}, // empty match = catch-all
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
-							PauseWorkspace: ptr.To(true),
+							PauseWorkspace: new(true),
 						},
 					},
 				}),
@@ -232,7 +286,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 							},
 						},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
-							PauseWorkspace: ptr.To(true),
+							PauseWorkspace: new(true),
 						},
 					},
 				}),
@@ -253,7 +307,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 							},
 						},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
-							PauseWorkspace: ptr.To(false), // override to no-op culling
+							PauseWorkspace: new(false), // override to no-op culling
 						},
 					},
 					{
@@ -262,7 +316,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						},
 						Match: &kubefloworgv1beta1.ActivityRuleMatch{}, // catch-all
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
-							PauseWorkspace: ptr.To(true),
+							PauseWorkspace: new(true),
 						},
 					},
 				}),
@@ -276,7 +330,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 							SecondsSinceActive: 15,
 						},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
-							PauseWorkspace: ptr.To(true),
+							PauseWorkspace: new(true),
 						},
 					},
 				}),
@@ -288,10 +342,10 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 					{
 						Config: kubefloworgv1beta1.ActivityRuleConfig{
 							SecondsSinceActive: 3600,
-							MinRunningSeconds:  ptr.To(int32(-10)),
+							MinRunningSeconds:  new(int32(-10)),
 						},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
-							PauseWorkspace: ptr.To(true),
+							PauseWorkspace: new(true),
 						},
 					},
 				}),
@@ -306,7 +360,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						},
 						Match: &kubefloworgv1beta1.ActivityRuleMatch{},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
-							PauseWorkspace: ptr.To(true),
+							PauseWorkspace: new(true),
 						},
 					},
 					{
@@ -315,7 +369,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						},
 						Match: &kubefloworgv1beta1.ActivityRuleMatch{},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
-							PauseWorkspace: ptr.To(true),
+							PauseWorkspace: new(true),
 						},
 					},
 				}),
@@ -330,7 +384,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						},
 						Match: &kubefloworgv1beta1.ActivityRuleMatch{},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
-							PauseWorkspace: ptr.To(false),
+							PauseWorkspace: new(false),
 						},
 					},
 					{
@@ -339,7 +393,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						},
 						Match: &kubefloworgv1beta1.ActivityRuleMatch{},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
-							PauseWorkspace: ptr.To(true),
+							PauseWorkspace: new(true),
 						},
 					},
 				}),
@@ -354,7 +408,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						},
 						Match: &kubefloworgv1beta1.ActivityRuleMatch{},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
-							PauseWorkspace: ptr.To(true),
+							PauseWorkspace: new(true),
 						},
 					},
 					{
@@ -369,7 +423,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 							},
 						},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
-							PauseWorkspace: ptr.To(true),
+							PauseWorkspace: new(true),
 						},
 					},
 				}),
@@ -384,7 +438,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 								SecondsSinceActive: 3600,
 							},
 							Effect: kubefloworgv1beta1.ActivityRuleEffect{
-								PauseWorkspace: ptr.To(true),
+								PauseWorkspace: new(true),
 							},
 						},
 					})
@@ -403,7 +457,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 								SecondsSinceActive: 3000,
 							},
 							Effect: kubefloworgv1beta1.ActivityRuleEffect{
-								PauseWorkspace: ptr.To(true),
+								PauseWorkspace: new(true),
 							},
 						},
 					})
@@ -442,7 +496,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 							SecondsSinceActive: 3000,
 						},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
-							PauseWorkspace: ptr.To(true),
+							PauseWorkspace: new(true),
 						},
 					},
 				}),
@@ -456,7 +510,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 							SecondsSinceActive: 3000,
 						},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
-							PauseWorkspace: ptr.To(false),
+							PauseWorkspace: new(false),
 						},
 					},
 				}),
@@ -511,7 +565,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						},
 					},
 					Effect: kubefloworgv1beta1.ActivityRuleEffect{
-						PauseWorkspace: ptr.To(true),
+						PauseWorkspace: new(true),
 					},
 				},
 				{
@@ -520,7 +574,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 					},
 					Match: &kubefloworgv1beta1.ActivityRuleMatch{}, // catch-all
 					Effect: kubefloworgv1beta1.ActivityRuleEffect{
-						PauseWorkspace: ptr.To(true),
+						PauseWorkspace: new(true),
 					},
 				},
 				{
@@ -914,12 +968,12 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 					wsk.Spec.PodTemplate.Options.ImageConfig.Values[1].Spec.Ports = []kubefloworgv1beta1.ImagePort{
 						{
 							Id:          "jupyterlab",
-							DisplayName: ptr.To("JupyterLab"),
+							DisplayName: new("JupyterLab"),
 							Port:        duplicatePortNumber,
 						},
 						{
 							Id:          "jupyterlab2",
-							DisplayName: ptr.To("JupyterLab2"),
+							DisplayName: new("JupyterLab2"),
 							Port:        duplicatePortNumber,
 						},
 					}
@@ -1034,7 +1088,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 								SecondsSinceActive: 5, // invalid
 							},
 							Effect: kubefloworgv1beta1.ActivityRuleEffect{
-								PauseWorkspace: ptr.To(true),
+								PauseWorkspace: new(true),
 							},
 						},
 					}
@@ -1052,11 +1106,31 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 								SecondsSinceActive: 3600,
 							},
 							Effect: kubefloworgv1beta1.ActivityRuleEffect{
-								PauseWorkspace: ptr.To(true),
+								PauseWorkspace: new(true),
 							},
 						},
 					}
 					return ContainSubstring("")
+				},
+			},
+			{
+				description:   "should accept adding valid filterRules",
+				shouldSucceed: true,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					wsk.Spec.FilterRules = NewExampleWorkspaceKindWithValidFilterRules(workspaceKindName).Spec.FilterRules
+					return ContainSubstring("")
+				},
+			},
+			{
+				description:   "should reject adding a filterRule with a malformed label selector",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					wsk.Spec.FilterRules = NewExampleWorkspaceKindWithInvalidFilterRuleSelector(workspaceKindName).Spec.FilterRules
+					return ContainSubstring("must be specified when `operator` is 'In' or 'NotIn'")
 				},
 			},
 		}

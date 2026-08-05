@@ -548,7 +548,6 @@ var _ = Describe("Workspaces Handler", func() {
 			By("ensuring the model for Workspace with missing WorkspaceKind is as expected")
 			workspaceMissingWskModel := models.NewWorkspaceListItemFromWorkspace(a.Config, workspaceMissingWsk, nil)
 			Expect(workspaceMissingWskModel.WorkspaceKind.Missing).To(BeTrue())
-			Expect(workspaceMissingWskModel.PodTemplate.Volumes.Home.MountPath).To(Equal(models.UnknownHomeMountPath))
 			Expect(workspaceMissingWskModel.PodTemplate.Options.PodConfig.Current.DisplayName).To(Equal(models.UnknownPodConfig))
 			Expect(workspaceMissingWskModel.PodTemplate.Options.PodConfig.Current.Description).To(Equal(models.UnknownPodConfig))
 			Expect(workspaceMissingWskModel.PodTemplate.Options.ImageConfig.Current.DisplayName).To(Equal(models.UnknownImageConfig))
@@ -907,7 +906,7 @@ var _ = Describe("Workspaces Handler", func() {
 
 			By("ensuring the created Workspace matches the expected Workspace")
 			Expect(createdWorkspace.ObjectMeta.Name).To(Equal(workspaceName))
-			Expect(createdWorkspace.Spec.DisplayName).To(Equal(ptr.To(workspaceCreate.DisplayName)))
+			Expect(createdWorkspace.Spec.DisplayName).To(Equal(new(workspaceCreate.DisplayName)))
 			Expect(createdWorkspace.Spec.Kind).To(Equal(workspaceKindName))
 			Expect(createdWorkspace.Spec.Paused).To(Equal(&workspaceCreate.Paused))
 			Expect(createdWorkspace.Spec.PodTemplate.PodMetadata.Labels).To(Equal(workspaceCreate.PodTemplate.PodMetadata.Labels))
@@ -1083,7 +1082,7 @@ var _ = Describe("Workspaces Handler", func() {
 						Annotations: map[string]string{},
 					},
 					Volumes: models.PodVolumesMutate{
-						Home: ptr.To("my-home-pvc"),
+						Home: new("my-home-pvc"),
 						Data: []models.PodVolumeMount{
 							{
 								PVCName:   "my-data-pvc",
@@ -1157,7 +1156,7 @@ var _ = Describe("Workspaces Handler", func() {
 						},
 					},
 					Volumes: models.PodVolumesMutate{
-						Home: ptr.To("my-home-pvc"),
+						Home: new("my-home-pvc"),
 						Data: []models.PodVolumeMount{
 							{
 								PVCName:   "my-data-pvc",
@@ -1194,7 +1193,7 @@ var _ = Describe("Workspaces Handler", func() {
 			By("verifying the created Workspace has the original display name")
 			createdWorkspace := &kubefloworgv1beta1.Workspace{}
 			Expect(k8sClient.Get(ctx, workspaceKey, createdWorkspace)).To(Succeed())
-			Expect(createdWorkspace.Spec.DisplayName).To(Equal(ptr.To("Original Display Name")))
+			Expect(createdWorkspace.Spec.DisplayName).To(Equal(new("Original Display Name")))
 			originalRevision := commonModels.CalculateRevision(&createdWorkspace.ObjectMeta)
 
 			By("building a WorkspaceUpdate model with changed fields including displayName")
@@ -1213,7 +1212,7 @@ var _ = Describe("Workspaces Handler", func() {
 						},
 					},
 					Volumes: models.PodVolumesMutate{
-						Home: ptr.To("my-home-pvc"),
+						Home: new("my-home-pvc"),
 						Data: []models.PodVolumeMount{
 							{
 								PVCName:   "my-data-pvc",
@@ -1274,7 +1273,7 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(updatedWorkspace.Annotations[commonModels.AnnotationUpdatedAt]).NotTo(BeEmpty())
 
 			By("verifying all fields were applied")
-			Expect(updatedWorkspace.Spec.DisplayName).To(Equal(ptr.To("Updated Display Name")))
+			Expect(updatedWorkspace.Spec.DisplayName).To(Equal(new("Updated Display Name")))
 			Expect(ptr.Deref(updatedWorkspace.Spec.Paused, false)).To(BeTrue())
 			Expect(updatedWorkspace.Spec.PodTemplate.PodMetadata.Labels).To(Equal(workspaceUpdate.PodTemplate.PodMetadata.Labels))
 			Expect(updatedWorkspace.Spec.PodTemplate.PodMetadata.Annotations).To(Equal(workspaceUpdate.PodTemplate.PodMetadata.Annotations))
@@ -1283,7 +1282,7 @@ var _ = Describe("Workspaces Handler", func() {
 				{
 					PVCName:   "my-data-pvc",
 					MountPath: "/data/updated",
-					ReadOnly:  ptr.To(true),
+					ReadOnly:  new(true),
 				},
 			}))
 
@@ -1305,7 +1304,7 @@ var _ = Describe("Workspaces Handler", func() {
 						Annotations: map[string]string{},
 					},
 					Volumes: models.PodVolumesMutate{
-						Home: ptr.To("my-home-pvc"),
+						Home: new("my-home-pvc"),
 					},
 					Options: models.PodTemplateOptionsMutate{
 						ImageConfig: "jupyterlab_scipy_180",
@@ -1335,7 +1334,7 @@ var _ = Describe("Workspaces Handler", func() {
 			By("verifying the created Workspace has the display name set")
 			createdWorkspace := &kubefloworgv1beta1.Workspace{}
 			Expect(k8sClient.Get(ctx, workspaceKey, createdWorkspace)).To(Succeed())
-			Expect(createdWorkspace.Spec.DisplayName).To(Equal(ptr.To("Name To Clear")))
+			Expect(createdWorkspace.Spec.DisplayName).To(Equal(new("Name To Clear")))
 			originalRevision := commonModels.CalculateRevision(&createdWorkspace.ObjectMeta)
 
 			By("building a WorkspaceUpdate model with displayName omitted")
@@ -1348,7 +1347,7 @@ var _ = Describe("Workspaces Handler", func() {
 						Annotations: map[string]string{},
 					},
 					Volumes: models.PodVolumesMutate{
-						Home: ptr.To("my-home-pvc"),
+						Home: new("my-home-pvc"),
 					},
 					Options: models.PodTemplateOptionsMutate{
 						ImageConfig: "jupyterlab_scipy_180",
@@ -1404,7 +1403,7 @@ var _ = Describe("Workspaces Handler", func() {
 						Annotations: map[string]string{},
 					},
 					Volumes: models.PodVolumesMutate{
-						Home: ptr.To("my-home-pvc"),
+						Home: new("my-home-pvc"),
 						Data: []models.PodVolumeMount{
 							{
 								PVCName:   "my-data-pvc",
@@ -1457,7 +1456,7 @@ var _ = Describe("Workspaces Handler", func() {
 						Annotations: map[string]string{},
 					},
 					Volumes: models.PodVolumesMutate{
-						Home: ptr.To("my-home-pvc"),
+						Home: new("my-home-pvc"),
 						Data: []models.PodVolumeMount{
 							{
 								PVCName:   "my-data-pvc",

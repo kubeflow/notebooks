@@ -55,28 +55,28 @@ var _ = Describe("configMapStatusToErrorCode", func() {
 			status: &kubefloworgv1beta1.WorkspaceKindAssetConfigMapStatus{
 				Error: ptr.To(kubefloworgv1beta1.ConfigMapErrorNotFound),
 			},
-			expected: ptr.To(ImageRefErrorCodeConfigMapMissing),
+			expected: new(ImageRefErrorCodeConfigMapMissing),
 		},
 		{
 			description: "should map KeyNotFound to CONFIGMAP_KEY_MISSING",
 			status: &kubefloworgv1beta1.WorkspaceKindAssetConfigMapStatus{
 				Error: ptr.To(kubefloworgv1beta1.ConfigMapErrorKeyNotFound),
 			},
-			expected: ptr.To(ImageRefErrorCodeConfigMapKeyMissing),
+			expected: new(ImageRefErrorCodeConfigMapKeyMissing),
 		},
 		{
 			description: "should map Other to CONFIGMAP_OTHER",
 			status: &kubefloworgv1beta1.WorkspaceKindAssetConfigMapStatus{
 				Error: ptr.To(kubefloworgv1beta1.ConfigMapErrorOther),
 			},
-			expected: ptr.To(ImageRefErrorCodeConfigMapOther),
+			expected: new(ImageRefErrorCodeConfigMapOther),
 		},
 		{
 			description: "should map unrecognized error to UNKNOWN",
 			status: &kubefloworgv1beta1.WorkspaceKindAssetConfigMapStatus{
 				Error: ptr.To(kubefloworgv1beta1.ConfigMapError("SomeFutureError")),
 			},
-			expected: ptr.To(ImageRefErrorCodeConfigMapUnknown),
+			expected: new(ImageRefErrorCodeConfigMapUnknown),
 		},
 	}
 
@@ -96,7 +96,7 @@ var _ = Describe("newImageRefFromWorkspaceKindAsset", func() {
 
 	It("should return URL directly for URL-based assets", func() {
 		asset := kubefloworgv1beta1.WorkspaceKindAsset{
-			Url: ptr.To("https://example.com/icon.png"),
+			Url: new("https://example.com/icon.png"),
 		}
 		ref := NewImageRefFromWorkspaceKindAssetIcon(nilCfg, asset, noStatus, wkName)
 		Expect(ref.URL).To(Equal("https://example.com/icon.png"))
@@ -171,7 +171,7 @@ var _ = Describe("newImageRefFromWorkspaceKindAsset", func() {
 
 	It("should not prepend URL prefix for URL-based assets", func() {
 		asset := kubefloworgv1beta1.WorkspaceKindAsset{
-			Url: ptr.To("https://example.com/icon.png"),
+			Url: new("https://example.com/icon.png"),
 		}
 		ref := NewImageRefFromWorkspaceKindAssetIcon(cfgWithPrefix, asset, noStatus, wkName)
 		Expect(ref.URL).To(Equal("https://example.com/icon.png"))
