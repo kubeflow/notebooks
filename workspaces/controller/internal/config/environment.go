@@ -16,9 +16,23 @@ limitations under the License.
 
 package config
 
+type RoutingProviderType string
+
+const (
+	RoutingProviderNone       RoutingProviderType = "none"
+	RoutingProviderIstio      RoutingProviderType = "istio"
+	RoutingProviderGatewayAPI RoutingProviderType = "gateway-api"
+)
+
 type EnvConfig struct {
-	IstioGateway  string
-	IstioHosts    string
+	RoutingProvider RoutingProviderType
+	GatewayName     string
+	GatewayHosts    string
+
+	// Legacy Istio Configs (kept for backward compatibility)
+	IstioGateway string
+	IstioHosts   string
+	UseIstio     bool
+
 	ClusterDomain string
-	UseIstio      bool
 }

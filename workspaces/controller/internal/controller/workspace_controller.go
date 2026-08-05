@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	networkingv1 "istio.io/api/networking/v1"
 	istiov1 "istio.io/client-go/pkg/apis/networking/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -46,6 +45,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/config"
@@ -67,10 +67,10 @@ const (
 	workspaceServiceAccountName = "default-editor"
 
 	// lengths for resource names
-	generateNameSuffixLength    = 6
-	maxServiceNameLength        = 63
-	maxVirtualServiceNameLength = 63
-	maxStatefulSetNameLength    = 52 // https://github.com/kubernetes/kubernetes/issues/64023
+	generateNameSuffixLength = 6
+	maxServiceNameLength     = 63
+	maxRouteNameLength       = 63
+	maxStatefulSetNameLength = 52 // https://github.com/kubernetes/kubernetes/issues/64023
 
 	// workspace connection path template
 	workspaceConnectPathTemplate = "/workspace/connect/%s/%s/%s/"
@@ -355,7 +355,8 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		service = foundService
 	}
 
-	if r.Config.UseIstio {
+	switch r.Config.RoutingProvider {
+	case config.RoutingProviderIstio:
 		// generate VirtualService
 		virtualsvc, err := r.generateVirtualService(workspace, workspaceKind, service, currentImageConfig.Spec)
 		if err != nil {
@@ -419,6 +420,61 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 				log.V(2).Info("VirtualService updated", "virtualService", virtualServiceName)
 			}
 		}
+	case config.RoutingProviderGatewayAPI:
+		// generate Gateway API HTTPRoute
+		httpRoute := r.generateGatewayAPIHTTPRoute(workspace, workspaceKind, service, currentImageConfig.Spec)
+		if err := ctrl.SetControllerReference(workspace, httpRoute, r.Scheme); err != nil {
+			log.Error(err, "unable to set controller reference on HTTPRoute")
+			return ctrl.Result{}, err
+		}
+
+		var httpRouteName string
+		ownedHTTPRoutes := &gatewayv1.HTTPRouteList{}
+		listOpts = &client.ListOptions{
+			FieldSelector: fields.OneTermEqualSelector(helper.IndexWorkspaceOwnerField, workspace.Name),
+			Namespace:     req.Namespace,
+		}
+		if err := r.List(ctx, ownedHTTPRoutes, listOpts); err != nil {
+			log.Error(err, "unable to list HTTPRoutes")
+			return ctrl.Result{}, err
+		}
+
+		switch numHTTPRoutes := len(ownedHTTPRoutes.Items); {
+		case numHTTPRoutes > 1:
+			httpRouteList := make([]string, len(ownedHTTPRoutes.Items))
+			for i, hr := range ownedHTTPRoutes.Items {
+				httpRouteList[i] = hr.Name
+			}
+			httpRouteListString := strings.Join(httpRouteList, ", ")
+			log.Error(nil, "Workspace owns multiple HTTPRoutes", "httpRoutes", httpRouteListString)
+			return r.updateWorkspaceState(ctx, log, workspace,
+				kubefloworgv1beta1.WorkspaceStateError,
+				fmt.Sprintf("Workspace owns multiple HTTPRoutes: %s", httpRouteListString),
+			)
+		case numHTTPRoutes == 0:
+			if err := r.Create(ctx, httpRoute); err != nil {
+				log.Error(err, "unable to create HTTPRoute")
+				return ctrl.Result{}, err
+			}
+			httpRouteName = httpRoute.Name
+			log.V(2).Info("HTTPRoute created", "httpRoute", httpRouteName)
+		default:
+			foundHTTPRoute := &ownedHTTPRoutes.Items[0]
+			httpRouteName = foundHTTPRoute.Name
+			// Check if they differ
+			foundHTTPRoute.Spec = httpRoute.Spec
+			if err := r.Update(ctx, foundHTTPRoute); err != nil {
+				if apierrors.IsConflict(err) {
+					log.V(2).Info("update conflict while updating HTTPRoute, will requeue")
+					return ctrl.Result{Requeue: true}, nil
+				}
+				log.Error(err, "unable to update HTTPRoute")
+				return ctrl.Result{}, err
+			}
+			log.V(2).Info("HTTPRoute updated", "httpRoute", httpRouteName)
+		}
+	case config.RoutingProviderNone:
+		// No routing provider configured
 	}
 
 	// fetch Pod
@@ -487,9 +543,13 @@ func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager, opts *controlle
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Service{})
 
-	if r.Config.UseIstio {
-
+	switch r.Config.RoutingProvider {
+	case config.RoutingProviderIstio:
 		controllerBuilder = controllerBuilder.Owns(&istiov1.VirtualService{})
+	case config.RoutingProviderGatewayAPI:
+		controllerBuilder = controllerBuilder.Owns(&gatewayv1.HTTPRoute{})
+	case config.RoutingProviderNone:
+		// No routing provider configured
 	}
 
 	return controllerBuilder.
@@ -970,155 +1030,6 @@ func generateService(workspace *kubefloworgv1beta1.Workspace, imageConfigSpec ku
 	}
 
 	return service, nil
-}
-
-// generateVirtualServiceHTTPRoute creates an HTTPRoute for a given port configuration
-func (r *WorkspaceReconciler) generateVirtualServiceHTTPRoute(
-	workspace *kubefloworgv1beta1.Workspace,
-	service *corev1.Service,
-	imageConfigPort kubefloworgv1beta1.ImagePort,
-	podTemplatePort kubefloworgv1beta1.WorkspaceKindPort,
-	httpPathPrefixFunc func(kubefloworgv1beta1.PortId) string,
-) (*networkingv1.HTTPRoute, error) {
-
-	// generate the match URI prefix
-	matchUriPrefix := getWorkspaceConnectPath(workspace.Namespace, workspace.Name, imageConfigPort.Id)
-
-	// determine rewrite configuration
-	//  - when removePathPrefix is true, rewrite the matched prefix to "/" so the
-	//    upstream receives the path with the connect prefix stripped
-	var httpRouteRewrite *networkingv1.HTTPRewrite
-	if podTemplatePort.HTTPProxy != nil && ptr.Deref(podTemplatePort.HTTPProxy.RemovePathPrefix, false) {
-		httpRouteRewrite = &networkingv1.HTTPRewrite{
-			Uri: "/",
-		}
-	}
-
-	// determine headers configuration
-	var httpRouteHeaders *networkingv1.Headers
-	if podTemplatePort.HTTPProxy != nil && podTemplatePort.HTTPProxy.RequestHeaders != nil {
-		var setHeaders map[string]string
-		if podTemplatePort.HTTPProxy.RequestHeaders.Set != nil {
-			setHeaders = make(map[string]string, len(podTemplatePort.HTTPProxy.RequestHeaders.Set))
-			for k, v := range podTemplatePort.HTTPProxy.RequestHeaders.Set {
-				rendered, err := helper.RenderGoTemplate(v, httpPathPrefixFunc)
-				if err != nil {
-					return nil, fmt.Errorf("failed to render requestHeaders.set %q: %w", k, err)
-				}
-				setHeaders[k] = rendered
-			}
-		}
-
-		var addHeaders map[string]string
-		if podTemplatePort.HTTPProxy != nil && podTemplatePort.HTTPProxy.RequestHeaders.Add != nil {
-			addHeaders = make(map[string]string, len(podTemplatePort.HTTPProxy.RequestHeaders.Add))
-			for k, v := range podTemplatePort.HTTPProxy.RequestHeaders.Add {
-				rendered, err := helper.RenderGoTemplate(v, httpPathPrefixFunc)
-				if err != nil {
-					return nil, fmt.Errorf("failed to render requestHeaders.add %q: %w", k, err)
-				}
-				addHeaders[k] = rendered
-			}
-		}
-
-		httpRouteHeaders = &networkingv1.Headers{
-			Request: &networkingv1.Headers_HeaderOperations{
-				Set:    setHeaders,
-				Add:    addHeaders,
-				Remove: podTemplatePort.HTTPProxy.RequestHeaders.Remove,
-			},
-		}
-	}
-
-	// construct the HTTPRoute with all fields
-	httpRoute := &networkingv1.HTTPRoute{
-		Headers: httpRouteHeaders,
-		Rewrite: httpRouteRewrite,
-		Match: []*networkingv1.HTTPMatchRequest{
-			{
-				Uri: &networkingv1.StringMatch{
-					MatchType: &networkingv1.StringMatch_Prefix{
-						Prefix: matchUriPrefix,
-					},
-				},
-			},
-		},
-		Route: []*networkingv1.HTTPRouteDestination{
-			{
-				Destination: &networkingv1.Destination{
-					Host: fmt.Sprintf("%s.%s.svc.%s", service.Name, service.Namespace, r.Config.ClusterDomain),
-					Port: &networkingv1.PortSelector{
-						Number: uint32(imageConfigPort.Port), //nolint:gosec
-					},
-				},
-			},
-		},
-	}
-
-	return httpRoute, nil
-}
-
-// generateVirtualService generates a VirtualService for a Workspace
-func (r *WorkspaceReconciler) generateVirtualService(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind, service *corev1.Service, imageConfigSpec kubefloworgv1beta1.ImageConfigSpec) (*istiov1.VirtualService, error) {
-	// NOTE: the name prefix is used to generate a unique name for the VirtualService
-	namePrefix := generateNamePrefix(workspace.Name, maxVirtualServiceNameLength)
-
-	currentPodTemplatePortsMap := make(map[kubefloworgv1beta1.PortId]kubefloworgv1beta1.WorkspaceKindPort)
-	for _, port := range workspaceKind.Spec.PodTemplate.Ports {
-		currentPodTemplatePortsMap[port.Id] = port
-	}
-
-	imageConfigPortsMap := make(map[kubefloworgv1beta1.PortId]kubefloworgv1beta1.ImagePort)
-	for _, port := range imageConfigSpec.Ports {
-		imageConfigPortsMap[port.Id] = port
-	}
-
-	httpPathPrefixFunc := func(portId kubefloworgv1beta1.PortId) string {
-		port, ok := imageConfigPortsMap[portId]
-		if ok {
-			return getWorkspaceConnectPath(workspace.Namespace, workspace.Name, port.Id)
-		} else {
-			return ""
-		}
-	}
-
-	httpRoutes := []*networkingv1.HTTPRoute{}
-	for _, imageConfigPort := range imageConfigSpec.Ports {
-		// silently ignore port ids not defined in the workspace kind
-		// NOTE: this should not be possible as the webhook blocks undefined ports
-		if _, exists := currentPodTemplatePortsMap[imageConfigPort.Id]; !exists {
-			continue
-		}
-
-		podTemplatePort := currentPodTemplatePortsMap[imageConfigPort.Id]
-
-		// Additional Cases would be added for SSH, etc.
-		switch podTemplatePort.Protocol { //nolint:gocritic
-		case kubefloworgv1beta1.ImagePortProtocolHTTP:
-			httpRoute, err := r.generateVirtualServiceHTTPRoute(workspace, service, imageConfigPort, podTemplatePort, httpPathPrefixFunc)
-			if err != nil {
-				return nil, err
-			}
-			httpRoutes = append(httpRoutes, httpRoute)
-		}
-	}
-
-	virtualService := &istiov1.VirtualService{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: namePrefix,
-			Namespace:    workspace.Namespace,
-			Labels: map[string]string{
-				workspaceNameLabel: workspace.Name,
-			},
-		},
-		Spec: networkingv1.VirtualService{
-			Gateways: []string{r.Config.IstioGateway},
-			Hosts:    []string{r.Config.IstioHosts},
-			Http:     httpRoutes,
-		},
-	}
-
-	return virtualService, nil
 }
 
 // generateWorkspaceStatus generates a WorkspaceStatus for a Workspace
