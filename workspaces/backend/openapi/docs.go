@@ -2504,8 +2504,10 @@ const docTemplate = `{
                 "FieldValueForbidden",
                 "FieldValueTooLong",
                 "FieldValueTooMany",
+                "FieldValueTooFew",
                 "InternalError",
-                "FieldValueTypeInvalid"
+                "FieldValueTypeInvalid",
+                "FieldValueTooShort"
             ],
             "x-enum-varnames": [
                 "ErrorTypeNotFound",
@@ -2516,8 +2518,10 @@ const docTemplate = `{
                 "ErrorTypeForbidden",
                 "ErrorTypeTooLong",
                 "ErrorTypeTooMany",
+                "ErrorTypeTooFew",
                 "ErrorTypeInternal",
-                "ErrorTypeTypeInvalid"
+                "ErrorTypeTypeInvalid",
+                "ErrorTypeTooShort"
             ]
         },
         "health_check.HealthCheck": {
@@ -2595,6 +2599,22 @@ const docTemplate = `{
                 "Int",
                 "String"
             ]
+        },
+        "k8s_io_api_core_v1.ResourceClaim": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "description": "Name must match the name of one entry in pod.spec.resourceClaims of\nthe Pod where this field is used. It makes that resource available\ninside a container.",
+                    "type": "string"
+                },
+                "request": {
+                    "description": "Request is the name chosen for a request in the referenced claim.\nIf empty, everything from the claim is made available, otherwise\nonly the result of this request.\n\n+optional",
+                    "type": "string"
+                }
+            }
         },
         "namespaces.Namespace": {
             "type": "object",
@@ -3600,7 +3620,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
-                    "description": "Name of the referent.\nThis field is effectively required, but due to backwards compatibility is\nallowed to be empty. Instances of this type with an empty value here are\nalmost certainly wrong.\nTODO: Add other useful fields. apiVersion, kind, uid?\nMore info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names\n+optional\n+default=\"\"\n+kubebuilder:default=\"\"\nTODO: Drop ` + "`" + `kubebuilder:default` + "`" + ` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.",
+                    "description": "Name of the referent.\nThis field is effectively required, but due to backwards compatibility is\nallowed to be empty. Instances of this type with an empty value here are\nalmost certainly wrong.\nMore info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names\n+optional\n+default=\"\"\n+kubebuilder:default=\"\"\nTODO: Drop ` + "`" + `kubebuilder:default` + "`" + ` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.",
                     "type": "string"
                 },
                 "optional": {
@@ -3620,7 +3640,7 @@ const docTemplate = `{
                     }
                 },
                 "name": {
-                    "description": "Name of the referent.\nThis field is effectively required, but due to backwards compatibility is\nallowed to be empty. Instances of this type with an empty value here are\nalmost certainly wrong.\nTODO: Add other useful fields. apiVersion, kind, uid?\nMore info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names\n+optional\n+default=\"\"\n+kubebuilder:default=\"\"\nTODO: Drop ` + "`" + `kubebuilder:default` + "`" + ` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.",
+                    "description": "Name of the referent.\nThis field is effectively required, but due to backwards compatibility is\nallowed to be empty. Instances of this type with an empty value here are\nalmost certainly wrong.\nMore info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names\n+optional\n+default=\"\"\n+kubebuilder:default=\"\"\nTODO: Drop ` + "`" + `kubebuilder:default` + "`" + ` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.",
                     "type": "string"
                 },
                 "optional": {
@@ -3644,7 +3664,7 @@ const docTemplate = `{
                     }
                 },
                 "name": {
-                    "description": "Name of the referent.\nThis field is effectively required, but due to backwards compatibility is\nallowed to be empty. Instances of this type with an empty value here are\nalmost certainly wrong.\nTODO: Add other useful fields. apiVersion, kind, uid?\nMore info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names\n+optional\n+default=\"\"\n+kubebuilder:default=\"\"\nTODO: Drop ` + "`" + `kubebuilder:default` + "`" + ` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.",
+                    "description": "Name of the referent.\nThis field is effectively required, but due to backwards compatibility is\nallowed to be empty. Instances of this type with an empty value here are\nalmost certainly wrong.\nMore info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names\n+optional\n+default=\"\"\n+kubebuilder:default=\"\"\nTODO: Drop ` + "`" + `kubebuilder:default` + "`" + ` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.",
                     "type": "string"
                 },
                 "optional": {
@@ -3741,7 +3761,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "name": {
-                    "description": "Name of the environment variable. Must be a C_IDENTIFIER.",
+                    "description": "Name of the environment variable.\nMay consist of any printable ASCII characters except '='.",
                     "type": "string"
                 },
                 "value": {
@@ -3774,6 +3794,14 @@ const docTemplate = `{
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.ObjectFieldSelector"
+                        }
+                    ]
+                },
+                "fileKeyRef": {
+                    "description": "FileKeyRef selects a key of the env file.\nRequires the EnvFiles feature gate to be enabled.\n\n+featureGate=EnvFiles\n+optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1.FileKeySelector"
                         }
                     ]
                 },
@@ -3853,6 +3881,32 @@ const docTemplate = `{
         },
         "v1.FieldsV1": {
             "type": "object"
+        },
+        "v1.FileKeySelector": {
+            "type": "object",
+            "required": [
+                "key",
+                "path",
+                "volumeName"
+            ],
+            "properties": {
+                "key": {
+                    "description": "The key within the env file. An invalid key will prevent the pod from starting.\nThe keys defined within a source may consist of any printable ASCII characters except '='.\nDuring Alpha stage of the EnvFiles feature gate, the key size is limited to 128 characters.\n+required",
+                    "type": "string"
+                },
+                "optional": {
+                    "description": "Specify whether the file or its key must be defined. If the file or key\ndoes not exist, then the env var is not published.\nIf optional is set to true and the specified key does not exist,\nthe environment variable will not be set in the Pod's containers.\n\nIf optional is set to false and the specified key does not exist,\nan error will be returned during Pod creation.\n+optional\n+default=false",
+                    "type": "boolean"
+                },
+                "path": {
+                    "description": "The path within the volume from which to select the file.\nMust be relative and may not contain the '..' path or start with '..'.\n+required",
+                    "type": "string"
+                },
+                "volumeName": {
+                    "description": "The name of the volume mount containing the env file.\n+required",
+                    "type": "string"
+                }
+            }
         },
         "v1.FlexVolumeSource": {
             "type": "object",
@@ -3971,7 +4025,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "endpoints": {
-                    "description": "endpoints is the endpoint name that details Glusterfs topology.\nMore info: https://examples.k8s.io/volumes/glusterfs/README.md#create-a-pod",
+                    "description": "endpoints is the endpoint name that details Glusterfs topology.",
                     "type": "string"
                 },
                 "path": {
@@ -4248,7 +4302,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "name": {
-                    "description": "Name of the referent.\nThis field is effectively required, but due to backwards compatibility is\nallowed to be empty. Instances of this type with an empty value here are\nalmost certainly wrong.\nTODO: Add other useful fields. apiVersion, kind, uid?\nMore info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names\n+optional\n+default=\"\"\n+kubebuilder:default=\"\"\nTODO: Drop ` + "`" + `kubebuilder:default` + "`" + ` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.",
+                    "description": "Name of the referent.\nThis field is effectively required, but due to backwards compatibility is\nallowed to be empty. Instances of this type with an empty value here are\nalmost certainly wrong.\nMore info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names\n+optional\n+default=\"\"\n+kubebuilder:default=\"\"\nTODO: Drop ` + "`" + `kubebuilder:default` + "`" + ` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.",
                     "type": "string"
                 }
             }
@@ -4613,7 +4667,7 @@ const docTemplate = `{
                     ]
                 },
                 "resources": {
-                    "description": "resources represents the minimum resources the volume should have.\nIf RecoverVolumeExpansionFailure feature is enabled users are allowed to specify resource requirements\nthat are lower than previous value but must still be higher than capacity recorded in the\nstatus field of the claim.\nMore info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#resources\n+optional",
+                    "description": "resources represents the minimum resources the volume should have.\nUsers are allowed to specify resource requirements\nthat are lower than previous value but must still be higher than capacity recorded in the\nstatus field of the claim.\nMore info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#resources\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.VolumeResourceRequirements"
@@ -4633,7 +4687,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "volumeAttributesClassName": {
-                    "description": "volumeAttributesClassName may be used to set the VolumeAttributesClass used by this claim.\nIf specified, the CSI driver will create or update the volume with the attributes defined\nin the corresponding VolumeAttributesClass. This has a different purpose than storageClassName,\nit can be changed after the claim is created. An empty string value means that no VolumeAttributesClass\nwill be applied to the claim but it's not allowed to reset this field to empty string once it is set.\nIf unspecified and the PersistentVolumeClaim is unbound, the default VolumeAttributesClass\nwill be set by the persistentvolume controller if it exists.\nIf the resource referred to by volumeAttributesClass does not exist, this PersistentVolumeClaim will be\nset to a Pending state, as reflected by the modifyVolumeStatus field, until such as a resource\nexists.\nMore info: https://kubernetes.io/docs/concepts/storage/volume-attributes-classes/\n(Beta) Using this field requires the VolumeAttributesClass feature gate to be enabled (off by default).\n+featureGate=VolumeAttributesClass\n+optional",
+                    "description": "volumeAttributesClassName may be used to set the VolumeAttributesClass used by this claim.\nIf specified, the CSI driver will create or update the volume with the attributes defined\nin the corresponding VolumeAttributesClass. This has a different purpose than storageClassName,\nit can be changed after the claim is created. An empty string or nil value indicates that no\nVolumeAttributesClass will be applied to the claim. If the claim enters an Infeasible error state,\nthis field can be reset to its previous value (including nil) to cancel the modification.\nIf the resource referred to by volumeAttributesClass does not exist, this PersistentVolumeClaim will be\nset to a Pending state, as reflected by the modifyVolumeStatus field, until such as a resource\nexists.\nMore info: https://kubernetes.io/docs/concepts/storage/volume-attributes-classes/\n+featureGate=VolumeAttributesClass\n+optional",
                     "type": "string"
                 },
                 "volumeMode": {
@@ -4764,14 +4818,14 @@ const docTemplate = `{
                     ]
                 },
                 "matchLabelKeys": {
-                    "description": "MatchLabelKeys is a set of pod label keys to select which pods will\nbe taken into consideration. The keys are used to lookup values from the\nincoming pod labels, those key-value labels are merged with ` + "`" + `labelSelector` + "`" + ` as ` + "`" + `key in (value)` + "`" + `\nto select the group of existing pods which pods will be taken into consideration\nfor the incoming pod's pod (anti) affinity. Keys that don't exist in the incoming\npod labels will be ignored. The default value is empty.\nThe same key is forbidden to exist in both matchLabelKeys and labelSelector.\nAlso, matchLabelKeys cannot be set when labelSelector isn't set.\nThis is a beta field and requires enabling MatchLabelKeysInPodAffinity feature gate (enabled by default).\n\n+listType=atomic\n+optional",
+                    "description": "MatchLabelKeys is a set of pod label keys to select which pods will\nbe taken into consideration. The keys are used to lookup values from the\nincoming pod labels, those key-value labels are merged with ` + "`" + `labelSelector` + "`" + ` as ` + "`" + `key in (value)` + "`" + `\nto select the group of existing pods which pods will be taken into consideration\nfor the incoming pod's pod (anti) affinity. Keys that don't exist in the incoming\npod labels will be ignored. The default value is empty.\nThe same key is forbidden to exist in both matchLabelKeys and labelSelector.\nAlso, matchLabelKeys cannot be set when labelSelector isn't set.\n\n+listType=atomic\n+optional",
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
                 },
                 "mismatchLabelKeys": {
-                    "description": "MismatchLabelKeys is a set of pod label keys to select which pods will\nbe taken into consideration. The keys are used to lookup values from the\nincoming pod labels, those key-value labels are merged with ` + "`" + `labelSelector` + "`" + ` as ` + "`" + `key notin (value)` + "`" + `\nto select the group of existing pods which pods will be taken into consideration\nfor the incoming pod's pod (anti) affinity. Keys that don't exist in the incoming\npod labels will be ignored. The default value is empty.\nThe same key is forbidden to exist in both mismatchLabelKeys and labelSelector.\nAlso, mismatchLabelKeys cannot be set when labelSelector isn't set.\nThis is a beta field and requires enabling MatchLabelKeysInPodAffinity feature gate (enabled by default).\n\n+listType=atomic\n+optional",
+                    "description": "MismatchLabelKeys is a set of pod label keys to select which pods will\nbe taken into consideration. The keys are used to lookup values from the\nincoming pod labels, those key-value labels are merged with ` + "`" + `labelSelector` + "`" + ` as ` + "`" + `key notin (value)` + "`" + `\nto select the group of existing pods which pods will be taken into consideration\nfor the incoming pod's pod (anti) affinity. Keys that don't exist in the incoming\npod labels will be ignored. The default value is empty.\nThe same key is forbidden to exist in both mismatchLabelKeys and labelSelector.\nAlso, mismatchLabelKeys cannot be set when labelSelector isn't set.\n\n+listType=atomic\n+optional",
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -4802,7 +4856,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "preferredDuringSchedulingIgnoredDuringExecution": {
-                    "description": "The scheduler will prefer to schedule pods to nodes that satisfy\nthe anti-affinity expressions specified by this field, but it may choose\na node that violates one or more of the expressions. The node that is\nmost preferred is the one with the greatest sum of weights, i.e.\nfor each node that meets all of the scheduling requirements (resource\nrequest, requiredDuringScheduling anti-affinity expressions, etc.),\ncompute a sum by iterating through the elements of this field and adding\n\"weight\" to the sum if the node has pods which matches the corresponding podAffinityTerm; the\nnode(s) with the highest sum are the most preferred.\n+optional\n+listType=atomic",
+                    "description": "The scheduler will prefer to schedule pods to nodes that satisfy\nthe anti-affinity expressions specified by this field, but it may choose\na node that violates one or more of the expressions. The node that is\nmost preferred is the one with the greatest sum of weights, i.e.\nfor each node that meets all of the scheduling requirements (resource\nrequest, requiredDuringScheduling anti-affinity expressions, etc.),\ncompute a sum by iterating through the elements of this field and subtracting\n\"weight\" from the sum if the node has pods which matches the corresponding podAffinityTerm; the\nnode(s) with the highest sum are the most preferred.\n+optional\n+listType=atomic",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/v1.WeightedPodAffinityTerm"
@@ -4813,6 +4867,42 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/v1.PodAffinityTerm"
+                    }
+                }
+            }
+        },
+        "v1.PodCertificateProjection": {
+            "type": "object",
+            "properties": {
+                "certificateChainPath": {
+                    "description": "Write the certificate chain at this path in the projected volume.\n\nMost applications should use credentialBundlePath.  When using keyPath\nand certificateChainPath, your application needs to check that the key\nand leaf certificate are consistent, because it is possible to read the\nfiles mid-rotation.\n\n+optional",
+                    "type": "string"
+                },
+                "credentialBundlePath": {
+                    "description": "Write the credential bundle at this path in the projected volume.\n\nThe credential bundle is a single file that contains multiple PEM blocks.\nThe first PEM block is a PRIVATE KEY block, containing a PKCS#8 private\nkey.\n\nThe remaining blocks are CERTIFICATE blocks, containing the issued\ncertificate chain from the signer (leaf and any intermediates).\n\nUsing credentialBundlePath lets your Pod's application code make a single\natomic read that retrieves a consistent key and certificate chain.  If you\nproject them to separate files, your application code will need to\nadditionally check that the leaf certificate was issued to the key.\n\n+optional",
+                    "type": "string"
+                },
+                "keyPath": {
+                    "description": "Write the key at this path in the projected volume.\n\nMost applications should use credentialBundlePath.  When using keyPath\nand certificateChainPath, your application needs to check that the key\nand leaf certificate are consistent, because it is possible to read the\nfiles mid-rotation.\n\n+optional",
+                    "type": "string"
+                },
+                "keyType": {
+                    "description": "The type of keypair Kubelet will generate for the pod.\n\nValid values are \"RSA3072\", \"RSA4096\", \"ECDSAP256\", \"ECDSAP384\",\n\"ECDSAP521\", and \"ED25519\".\n\n+required",
+                    "type": "string"
+                },
+                "maxExpirationSeconds": {
+                    "description": "maxExpirationSeconds is the maximum lifetime permitted for the\ncertificate.\n\nKubelet copies this value verbatim into the PodCertificateRequests it\ngenerates for this projection.\n\nIf omitted, kube-apiserver will set it to 86400(24 hours). kube-apiserver\nwill reject values shorter than 3600 (1 hour).  The maximum allowable\nvalue is 7862400 (91 days).\n\nThe signer implementation is then free to issue a certificate with any\nlifetime *shorter* than MaxExpirationSeconds, but no shorter than 3600\nseconds (1 hour).  This constraint is enforced by kube-apiserver.\n` + "`" + `kubernetes.io` + "`" + ` signers will never issue certificates with a lifetime\nlonger than 24 hours.\n\n+optional",
+                    "type": "integer"
+                },
+                "signerName": {
+                    "description": "Kubelet's generated CSRs will be addressed to this signer.\n\n+required",
+                    "type": "string"
+                },
+                "userAnnotations": {
+                    "description": "userAnnotations allow pod authors to pass additional information to\nthe signer implementation.  Kubernetes does not restrict or validate this\nmetadata in any way.\n\nThese values are copied verbatim into the ` + "`" + `spec.unverifiedUserAnnotations` + "`" + ` field of\nthe PodCertificateRequest objects that Kubelet creates.\n\nEntries are subject to the same validation as object metadata annotations,\nwith the addition that all keys must be domain-prefixed. No restrictions\nare placed on values, except an overall size limitation on the entire field.\n\nSigners should document the keys and values they support. Signers should\ndeny requests that contain keys they do not recognize.",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
                     }
                 }
             }
@@ -4843,6 +4933,17 @@ const docTemplate = `{
                 "PodSucceeded",
                 "PodFailed",
                 "PodUnknown"
+            ]
+        },
+        "v1.PodSELinuxChangePolicy": {
+            "type": "string",
+            "enum": [
+                "Recursive",
+                "MountOption"
+            ],
+            "x-enum-varnames": [
+                "SELinuxChangePolicyRecursive",
+                "SELinuxChangePolicyMountOption"
             ]
         },
         "v1.PodSecurityContext": {
@@ -4879,6 +4980,14 @@ const docTemplate = `{
                 "runAsUser": {
                     "description": "The UID to run the entrypoint of the container process.\nDefaults to user specified in image metadata if unspecified.\nMay also be set in SecurityContext.  If set in both SecurityContext and\nPodSecurityContext, the value specified in SecurityContext takes precedence\nfor that container.\nNote that this field cannot be set when spec.os.name is windows.\n+optional",
                     "type": "integer"
+                },
+                "seLinuxChangePolicy": {
+                    "description": "seLinuxChangePolicy defines how the container's SELinux label is applied to all volumes used by the Pod.\nIt has no effect on nodes that do not support SELinux or to volumes does not support SELinux.\nValid values are \"MountOption\" and \"Recursive\".\n\n\"Recursive\" means relabeling of all files on all Pod volumes by the container runtime.\nThis may be slow for large volumes, but allows mixing privileged and unprivileged Pods sharing the same volume on the same node.\n\n\"MountOption\" mounts all eligible Pod volumes with ` + "`" + `-o context` + "`" + ` mount option.\nThis requires all Pods that share the same volume to use the same SELinux label.\nIt is not possible to share the same volume among privileged and unprivileged Pods.\nEligible volumes are in-tree FibreChannel and iSCSI volumes, and all CSI volumes\nwhose CSI driver announces SELinux support by setting spec.seLinuxMount: true in their\nCSIDriver instance. Other volumes are always re-labelled recursively.\n\"MountOption\" value is allowed only when SELinuxMount feature gate is enabled.\n\nIf not specified and SELinuxMount feature gate is enabled, \"MountOption\" is used.\nIf not specified and SELinuxMount feature gate is disabled, \"MountOption\" is used for ReadWriteOncePod volumes\nand \"Recursive\" for all other volumes.\n\nThis field affects only Pods that have SELinux label set, either in PodSecurityContext or in SecurityContext of all containers.\n\nAll Pods that use the same volume should use the same seLinuxChangePolicy, otherwise some pods can get stuck in ContainerCreating state.\nNote that this field cannot be set when spec.os.name is windows.\n+featureGate=SELinuxChangePolicy\n+optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1.PodSELinuxChangePolicy"
+                        }
+                    ]
                 },
                 "seLinuxOptions": {
                     "description": "The SELinux context to be applied to all containers.\nIf unspecified, the container runtime will allocate a random SELinux context for each\ncontainer.  May also be set in SecurityContext.  If set in\nboth SecurityContext and PodSecurityContext, the value specified in SecurityContext\ntakes precedence for that container.\nNote that this field cannot be set when spec.os.name is windows.\n+optional",
@@ -4973,7 +5082,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "exec": {
-                    "description": "Exec specifies the action to take.\n+optional",
+                    "description": "Exec specifies a command to execute in the container.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.ExecAction"
@@ -4985,7 +5094,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "grpc": {
-                    "description": "GRPC specifies an action involving a GRPC port.\n+optional",
+                    "description": "GRPC specifies a GRPC HealthCheckRequest.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.GRPCAction"
@@ -4993,7 +5102,7 @@ const docTemplate = `{
                     ]
                 },
                 "httpGet": {
-                    "description": "HTTPGet specifies the http request to perform.\n+optional",
+                    "description": "HTTPGet specifies an HTTP GET request to perform.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.HTTPGetAction"
@@ -5013,7 +5122,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "tcpSocket": {
-                    "description": "TCPSocket specifies an action involving a TCP port.\n+optional",
+                    "description": "TCPSocket specifies a connection to a TCP port.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.TCPSocketAction"
@@ -5167,22 +5276,6 @@ const docTemplate = `{
                 "RecursiveReadOnlyEnabled"
             ]
         },
-        "v1.ResourceClaim": {
-            "type": "object",
-            "required": [
-                "name"
-            ],
-            "properties": {
-                "name": {
-                    "description": "Name must match the name of one entry in pod.spec.resourceClaims of\nthe Pod where this field is used. It makes that resource available\ninside a container.",
-                    "type": "string"
-                },
-                "request": {
-                    "description": "Request is the name chosen for a request in the referenced claim.\nIf empty, everything from the claim is made available, otherwise\nonly the result of this request.\n\n+optional",
-                    "type": "string"
-                }
-            }
-        },
         "v1.ResourceFieldSelector": {
             "type": "object",
             "required": [
@@ -5217,10 +5310,10 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "claims": {
-                    "description": "Claims lists the names of resources, defined in spec.resourceClaims,\nthat are used by this container.\n\nThis is an alpha field and requires enabling the\nDynamicResourceAllocation feature gate.\n\nThis field is immutable. It can only be set for containers.\n\n+listType=map\n+listMapKey=name\n+featureGate=DynamicResourceAllocation\n+optional",
+                    "description": "Claims lists the names of resources, defined in spec.resourceClaims,\nthat are used by this container.\n\nThis field depends on the\nDynamicResourceAllocation feature gate.\n\nThis field is immutable. It can only be set for containers.\n\n+listType=map\n+listMapKey=name\n+featureGate=DynamicResourceAllocation\n+optional",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/v1.ResourceClaim"
+                        "$ref": "#/definitions/k8s_io_api_core_v1.ResourceClaim"
                     }
                 },
                 "limits": {
@@ -5360,7 +5453,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
-                    "description": "Name of the referent.\nThis field is effectively required, but due to backwards compatibility is\nallowed to be empty. Instances of this type with an empty value here are\nalmost certainly wrong.\nTODO: Add other useful fields. apiVersion, kind, uid?\nMore info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names\n+optional\n+default=\"\"\n+kubebuilder:default=\"\"\nTODO: Drop ` + "`" + `kubebuilder:default` + "`" + ` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.",
+                    "description": "Name of the referent.\nThis field is effectively required, but due to backwards compatibility is\nallowed to be empty. Instances of this type with an empty value here are\nalmost certainly wrong.\nMore info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names\n+optional\n+default=\"\"\n+kubebuilder:default=\"\"\nTODO: Drop ` + "`" + `kubebuilder:default` + "`" + ` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.",
                     "type": "string"
                 },
                 "optional": {
@@ -5380,7 +5473,7 @@ const docTemplate = `{
                     }
                 },
                 "name": {
-                    "description": "Name of the referent.\nThis field is effectively required, but due to backwards compatibility is\nallowed to be empty. Instances of this type with an empty value here are\nalmost certainly wrong.\nTODO: Add other useful fields. apiVersion, kind, uid?\nMore info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names\n+optional\n+default=\"\"\n+kubebuilder:default=\"\"\nTODO: Drop ` + "`" + `kubebuilder:default` + "`" + ` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.",
+                    "description": "Name of the referent.\nThis field is effectively required, but due to backwards compatibility is\nallowed to be empty. Instances of this type with an empty value here are\nalmost certainly wrong.\nMore info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names\n+optional\n+default=\"\"\n+kubebuilder:default=\"\"\nTODO: Drop ` + "`" + `kubebuilder:default` + "`" + ` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.",
                     "type": "string"
                 },
                 "optional": {
@@ -5464,7 +5557,7 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "procMount": {
-                    "description": "procMount denotes the type of proc mount to use for the containers.\nThe default value is Default which uses the container runtime defaults for\nreadonly paths and masked paths.\nThis requires the ProcMountType feature flag to be enabled.\nNote that this field cannot be set when spec.os.name is windows.\n+optional",
+                    "description": "procMount denotes the type of proc mount to use for the containers.\nThe default value is Default which uses the container runtime defaults for\nreadonly paths and masked paths.\nNote that this field cannot be set when spec.os.name is windows.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.ProcMountType"
@@ -5666,7 +5759,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "operator": {
-                    "description": "Operator represents a key's relationship to the value.\nValid operators are Exists and Equal. Defaults to Equal.\nExists is equivalent to wildcard for value, so that a pod can\ntolerate all taints of a particular category.\n+optional",
+                    "description": "Operator represents a key's relationship to the value.\nValid operators are Exists, Equal, Lt, and Gt. Defaults to Equal.\nExists is equivalent to wildcard for value, so that a pod can\ntolerate all taints of a particular category.\nLt and Gt perform numeric comparisons (requires feature gate TaintTolerationComparisonOperators).\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.TolerationOperator"
@@ -5687,11 +5780,15 @@ const docTemplate = `{
             "type": "string",
             "enum": [
                 "Exists",
-                "Equal"
+                "Equal",
+                "Lt",
+                "Gt"
             ],
             "x-enum-varnames": [
                 "TolerationOpExists",
-                "TolerationOpEqual"
+                "TolerationOpEqual",
+                "TolerationOpLt",
+                "TolerationOpGt"
             ]
         },
         "v1.TypedLocalObjectReference": {
@@ -5760,7 +5857,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "awsElasticBlockStore": {
-                    "description": "awsElasticBlockStore represents an AWS Disk resource that is attached to a\nkubelet's host machine and then exposed to the pod.\nMore info: https://kubernetes.io/docs/concepts/storage/volumes#awselasticblockstore\n+optional",
+                    "description": "awsElasticBlockStore represents an AWS Disk resource that is attached to a\nkubelet's host machine and then exposed to the pod.\nDeprecated: AWSElasticBlockStore is deprecated. All operations for the in-tree\nawsElasticBlockStore type are redirected to the ebs.csi.aws.com CSI driver.\nMore info: https://kubernetes.io/docs/concepts/storage/volumes#awselasticblockstore\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.AWSElasticBlockStoreVolumeSource"
@@ -5768,7 +5865,7 @@ const docTemplate = `{
                     ]
                 },
                 "azureDisk": {
-                    "description": "azureDisk represents an Azure Data Disk mount on the host and bind mount to the pod.\n+optional",
+                    "description": "azureDisk represents an Azure Data Disk mount on the host and bind mount to the pod.\nDeprecated: AzureDisk is deprecated. All operations for the in-tree azureDisk type\nare redirected to the disk.csi.azure.com CSI driver.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.AzureDiskVolumeSource"
@@ -5776,7 +5873,7 @@ const docTemplate = `{
                     ]
                 },
                 "azureFile": {
-                    "description": "azureFile represents an Azure File Service mount on the host and bind mount to the pod.\n+optional",
+                    "description": "azureFile represents an Azure File Service mount on the host and bind mount to the pod.\nDeprecated: AzureFile is deprecated. All operations for the in-tree azureFile type\nare redirected to the file.csi.azure.com CSI driver.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.AzureFileVolumeSource"
@@ -5784,7 +5881,7 @@ const docTemplate = `{
                     ]
                 },
                 "cephfs": {
-                    "description": "cephFS represents a Ceph FS mount on the host that shares a pod's lifetime\n+optional",
+                    "description": "cephFS represents a Ceph FS mount on the host that shares a pod's lifetime.\nDeprecated: CephFS is deprecated and the in-tree cephfs type is no longer supported.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.CephFSVolumeSource"
@@ -5792,7 +5889,7 @@ const docTemplate = `{
                     ]
                 },
                 "cinder": {
-                    "description": "cinder represents a cinder volume attached and mounted on kubelets host machine.\nMore info: https://examples.k8s.io/mysql-cinder-pd/README.md\n+optional",
+                    "description": "cinder represents a cinder volume attached and mounted on kubelets host machine.\nDeprecated: Cinder is deprecated. All operations for the in-tree cinder type\nare redirected to the cinder.csi.openstack.org CSI driver.\nMore info: https://examples.k8s.io/mysql-cinder-pd/README.md\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.CinderVolumeSource"
@@ -5808,7 +5905,7 @@ const docTemplate = `{
                     ]
                 },
                 "csi": {
-                    "description": "csi (Container Storage Interface) represents ephemeral storage that is handled by certain external CSI drivers (Beta feature).\n+optional",
+                    "description": "csi (Container Storage Interface) represents ephemeral storage that is handled by certain external CSI drivers.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.CSIVolumeSource"
@@ -5848,7 +5945,7 @@ const docTemplate = `{
                     ]
                 },
                 "flexVolume": {
-                    "description": "flexVolume represents a generic volume resource that is\nprovisioned/attached using an exec based plugin.\n+optional",
+                    "description": "flexVolume represents a generic volume resource that is\nprovisioned/attached using an exec based plugin.\nDeprecated: FlexVolume is deprecated. Consider using a CSIDriver instead.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.FlexVolumeSource"
@@ -5856,7 +5953,7 @@ const docTemplate = `{
                     ]
                 },
                 "flocker": {
-                    "description": "flocker represents a Flocker volume attached to a kubelet's host machine. This depends on the Flocker control service being running\n+optional",
+                    "description": "flocker represents a Flocker volume attached to a kubelet's host machine. This depends on the Flocker control service being running.\nDeprecated: Flocker is deprecated and the in-tree flocker type is no longer supported.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.FlockerVolumeSource"
@@ -5864,7 +5961,7 @@ const docTemplate = `{
                     ]
                 },
                 "gcePersistentDisk": {
-                    "description": "gcePersistentDisk represents a GCE Disk resource that is attached to a\nkubelet's host machine and then exposed to the pod.\nMore info: https://kubernetes.io/docs/concepts/storage/volumes#gcepersistentdisk\n+optional",
+                    "description": "gcePersistentDisk represents a GCE Disk resource that is attached to a\nkubelet's host machine and then exposed to the pod.\nDeprecated: GCEPersistentDisk is deprecated. All operations for the in-tree\ngcePersistentDisk type are redirected to the pd.csi.storage.gke.io CSI driver.\nMore info: https://kubernetes.io/docs/concepts/storage/volumes#gcepersistentdisk\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.GCEPersistentDiskVolumeSource"
@@ -5872,7 +5969,7 @@ const docTemplate = `{
                     ]
                 },
                 "gitRepo": {
-                    "description": "gitRepo represents a git repository at a particular revision.\nDEPRECATED: GitRepo is deprecated. To provision a container with a git repo, mount an\nEmptyDir into an InitContainer that clones the repo using git, then mount the EmptyDir\ninto the Pod's container.\n+optional",
+                    "description": "gitRepo represents a git repository at a particular revision.\nDeprecated: GitRepo is deprecated. To provision a container with a git repo, mount an\nEmptyDir into an InitContainer that clones the repo using git, then mount the EmptyDir\ninto the Pod's container.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.GitRepoVolumeSource"
@@ -5880,7 +5977,7 @@ const docTemplate = `{
                     ]
                 },
                 "glusterfs": {
-                    "description": "glusterfs represents a Glusterfs mount on the host that shares a pod's lifetime.\nMore info: https://examples.k8s.io/volumes/glusterfs/README.md\n+optional",
+                    "description": "glusterfs represents a Glusterfs mount on the host that shares a pod's lifetime.\nDeprecated: Glusterfs is deprecated and the in-tree glusterfs type is no longer supported.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.GlusterfsVolumeSource"
@@ -5896,7 +5993,7 @@ const docTemplate = `{
                     ]
                 },
                 "image": {
-                    "description": "image represents an OCI object (a container image or artifact) pulled and mounted on the kubelet's host machine.\nThe volume is resolved at pod startup depending on which PullPolicy value is provided:\n\n- Always: the kubelet always attempts to pull the reference. Container creation will fail If the pull fails.\n- Never: the kubelet never pulls the reference and only uses a local image or artifact. Container creation will fail if the reference isn't present.\n- IfNotPresent: the kubelet pulls if the reference isn't already present on disk. Container creation will fail if the reference isn't present and the pull fails.\n\nThe volume gets re-resolved if the pod gets deleted and recreated, which means that new remote content will become available on pod recreation.\nA failure to resolve or pull the image during pod startup will block containers from starting and may add significant latency. Failures will be retried using normal volume backoff and will be reported on the pod reason and message.\nThe types of objects that may be mounted by this volume are defined by the container runtime implementation on a host machine and at minimum must include all valid types supported by the container image field.\nThe OCI object gets mounted in a single directory (spec.containers[*].volumeMounts.mountPath) by merging the manifest layers in the same way as for container images.\nThe volume will be mounted read-only (ro) and non-executable files (noexec).\nSub path mounts for containers are not supported (spec.containers[*].volumeMounts.subpath).\nThe field spec.securityContext.fsGroupChangePolicy has no effect on this volume type.\n+featureGate=ImageVolume\n+optional",
+                    "description": "image represents an OCI object (a container image or artifact) pulled and mounted on the kubelet's host machine.\nThe volume is resolved at pod startup depending on which PullPolicy value is provided:\n\n- Always: the kubelet always attempts to pull the reference. Container creation will fail If the pull fails.\n- Never: the kubelet never pulls the reference and only uses a local image or artifact. Container creation will fail if the reference isn't present.\n- IfNotPresent: the kubelet pulls if the reference isn't already present on disk. Container creation will fail if the reference isn't present and the pull fails.\n\nThe volume gets re-resolved if the pod gets deleted and recreated, which means that new remote content will become available on pod recreation.\nA failure to resolve or pull the image during pod startup will block containers from starting and may add significant latency. Failures will be retried using normal volume backoff and will be reported on the pod reason and message.\nThe types of objects that may be mounted by this volume are defined by the container runtime implementation on a host machine and at minimum must include all valid types supported by the container image field.\nThe OCI object gets mounted in a single directory (spec.containers[*].volumeMounts.mountPath) by merging the manifest layers in the same way as for container images.\nThe volume will be mounted read-only (ro).\nSub path mounts for containers are not supported (spec.containers[*].volumeMounts.subpath) before 1.33.\nThe field spec.securityContext.fsGroupChangePolicy has no effect on this volume type.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.ImageVolumeSource"
@@ -5904,7 +6001,7 @@ const docTemplate = `{
                     ]
                 },
                 "iscsi": {
-                    "description": "iscsi represents an ISCSI Disk resource that is attached to a\nkubelet's host machine and then exposed to the pod.\nMore info: https://examples.k8s.io/volumes/iscsi/README.md\n+optional",
+                    "description": "iscsi represents an ISCSI Disk resource that is attached to a\nkubelet's host machine and then exposed to the pod.\nMore info: https://kubernetes.io/docs/concepts/storage/volumes/#iscsi\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.ISCSIVolumeSource"
@@ -5932,7 +6029,7 @@ const docTemplate = `{
                     ]
                 },
                 "photonPersistentDisk": {
-                    "description": "photonPersistentDisk represents a PhotonController persistent disk attached and mounted on kubelets host machine",
+                    "description": "photonPersistentDisk represents a PhotonController persistent disk attached and mounted on kubelets host machine.\nDeprecated: PhotonPersistentDisk is deprecated and the in-tree photonPersistentDisk type is no longer supported.",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.PhotonPersistentDiskVolumeSource"
@@ -5940,7 +6037,7 @@ const docTemplate = `{
                     ]
                 },
                 "portworxVolume": {
-                    "description": "portworxVolume represents a portworx volume attached and mounted on kubelets host machine\n+optional",
+                    "description": "portworxVolume represents a portworx volume attached and mounted on kubelets host machine.\nDeprecated: PortworxVolume is deprecated. All operations for the in-tree portworxVolume type\nare redirected to the pxd.portworx.com CSI driver.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.PortworxVolumeSource"
@@ -5956,7 +6053,7 @@ const docTemplate = `{
                     ]
                 },
                 "quobyte": {
-                    "description": "quobyte represents a Quobyte mount on the host that shares a pod's lifetime\n+optional",
+                    "description": "quobyte represents a Quobyte mount on the host that shares a pod's lifetime.\nDeprecated: Quobyte is deprecated and the in-tree quobyte type is no longer supported.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.QuobyteVolumeSource"
@@ -5964,7 +6061,7 @@ const docTemplate = `{
                     ]
                 },
                 "rbd": {
-                    "description": "rbd represents a Rados Block Device mount on the host that shares a pod's lifetime.\nMore info: https://examples.k8s.io/volumes/rbd/README.md\n+optional",
+                    "description": "rbd represents a Rados Block Device mount on the host that shares a pod's lifetime.\nDeprecated: RBD is deprecated and the in-tree rbd type is no longer supported.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.RBDVolumeSource"
@@ -5972,7 +6069,7 @@ const docTemplate = `{
                     ]
                 },
                 "scaleIO": {
-                    "description": "scaleIO represents a ScaleIO persistent volume attached and mounted on Kubernetes nodes.\n+optional",
+                    "description": "scaleIO represents a ScaleIO persistent volume attached and mounted on Kubernetes nodes.\nDeprecated: ScaleIO is deprecated and the in-tree scaleIO type is no longer supported.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.ScaleIOVolumeSource"
@@ -5988,7 +6085,7 @@ const docTemplate = `{
                     ]
                 },
                 "storageos": {
-                    "description": "storageOS represents a StorageOS volume attached and mounted on Kubernetes nodes.\n+optional",
+                    "description": "storageOS represents a StorageOS volume attached and mounted on Kubernetes nodes.\nDeprecated: StorageOS is deprecated and the in-tree storageos type is no longer supported.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.StorageOSVolumeSource"
@@ -5996,7 +6093,7 @@ const docTemplate = `{
                     ]
                 },
                 "vsphereVolume": {
-                    "description": "vsphereVolume represents a vSphere volume attached and mounted on kubelets host machine\n+optional",
+                    "description": "vsphereVolume represents a vSphere volume attached and mounted on kubelets host machine.\nDeprecated: VsphereVolume is deprecated. All operations for the in-tree vsphereVolume type\nare redirected to the csi.vsphere.vmware.com CSI driver.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.VsphereVirtualDiskVolumeSource"
@@ -6033,7 +6130,7 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "recursiveReadOnly": {
-                    "description": "RecursiveReadOnly specifies whether read-only mounts should be handled\nrecursively.\n\nIf ReadOnly is false, this field has no meaning and must be unspecified.\n\nIf ReadOnly is true, and this field is set to Disabled, the mount is not made\nrecursively read-only.  If this field is set to IfPossible, the mount is made\nrecursively read-only, if it is supported by the container runtime.  If this\nfield is set to Enabled, the mount is made recursively read-only if it is\nsupported by the container runtime, otherwise the pod will not be started and\nan error will be generated to indicate the reason.\n\nIf this field is set to IfPossible or Enabled, MountPropagation must be set to\nNone (or be unspecified, which defaults to None).\n\nIf this field is not specified, it is treated as an equivalent of Disabled.\n\n+featureGate=RecursiveReadOnlyMounts\n+optional",
+                    "description": "RecursiveReadOnly specifies whether read-only mounts should be handled\nrecursively.\n\nIf ReadOnly is false, this field has no meaning and must be unspecified.\n\nIf ReadOnly is true, and this field is set to Disabled, the mount is not made\nrecursively read-only.  If this field is set to IfPossible, the mount is made\nrecursively read-only, if it is supported by the container runtime.  If this\nfield is set to Enabled, the mount is made recursively read-only if it is\nsupported by the container runtime, otherwise the pod will not be started and\nan error will be generated to indicate the reason.\n\nIf this field is set to IfPossible or Enabled, MountPropagation must be set to\nNone (or be unspecified, which defaults to None).\n\nIf this field is not specified, it is treated as an equivalent of Disabled.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.RecursiveReadOnlyMode"
@@ -6074,6 +6171,14 @@ const docTemplate = `{
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.DownwardAPIProjection"
+                        }
+                    ]
+                },
+                "podCertificate": {
+                    "description": "Projects an auto-rotating credential bundle (private key and certificate\nchain) that the pod can use either as a TLS client or server.\n\nKubelet generates a private key and uses it to send a\nPodCertificateRequest to the named signer.  Once the signer approves the\nrequest and issues a certificate chain, Kubelet writes the key and\ncertificate chain to the pod filesystem.  The pod does not start until\ncertificates have been issued for each podCertificate projected volume\nsource in its spec.\n\nKubelet will begin trying to rotate the certificate at the time indicated\nby the signer using the PodCertificateRequest.Status.BeginRefreshAt\ntimestamp.\n\nKubelet can write a single file, indicated by the credentialBundlePath\nfield, or separate files, indicated by the keyPath and\ncertificateChainPath fields.\n\nThe credential bundle is a single file in PEM format.  The first PEM\nentry is the private key (in PKCS#8 format), and the remaining PEM\nentries are the certificate chain issued by the signer (typically,\nsigners will return their certificate chain in leaf-to-root order).\n\nPrefer using the credential bundle format, since your application code\ncan read it atomically.  If you use keyPath and certificateChainPath,\nyour application must make two separate file reads. If these coincide\nwith a certificate rotation, it is possible that the private key and leaf\ncertificate you read may not correspond to each other.  Your application\nwill need to check for this condition, and re-read until they are\nconsistent.\n\nThe named signer controls chooses the format of the certificate it\nissues; consult the signer implementation's documentation to learn how to\nuse the certificates it issues.\n\n+featureGate=PodCertificateProjection\n+optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1.PodCertificateProjection"
                         }
                     ]
                 },
