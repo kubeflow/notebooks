@@ -97,7 +97,11 @@ var _ = Describe("controller", Ordered, func() {
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 		By("deploying the workspaces-controller")
-		cmd = exec.Command("make", "deploy", fmt.Sprintf("IMG=%s", controllerImage))
+		cmd = exec.Command(
+			"make", "deploy",
+			fmt.Sprintf("IMG=%s", controllerImage),
+			fmt.Sprintf("OVERLAY=%s", routingProvider),
+		)
 		_, err = utils.Run(cmd)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
@@ -182,7 +186,7 @@ var _ = Describe("controller", Ordered, func() {
 		_, _ = utils.Run(cmd)
 
 		By("deleting the controller")
-		cmd = exec.Command("make", "undeploy")
+		cmd = exec.Command("make", "undeploy", fmt.Sprintf("OVERLAY=%s", routingProvider))
 		_, _ = utils.Run(cmd)
 
 		By("deleting controller namespace")
@@ -322,10 +326,14 @@ var _ = Describe("controller", Ordered, func() {
 			}
 			Eventually(curlService, timeout, interval).Should(Succeed())
 
-			By("validating that the workspace virtual service was created")
-			var workspaceVirtualServiceName string
-			verifyWorkspaceVirtualService := func(g Gomega) {
-				cmd := exec.Command("kubectl", "get", "virtualservices",
+			By("validating that the workspace route was created")
+			var workspaceRouteName string
+			verifyWorkspaceRoute := func(g Gomega) {
+				resourceType := "virtualservices"
+				if routingProvider == "gateway-api" {
+					resourceType = "httproutes"
+				}
+				cmd := exec.Command("kubectl", "get", resourceType,
 					"-l", fmt.Sprintf("notebooks.kubeflow.org/workspace-name=%s", workspaceName),
 					"-n", workspaceNamespace,
 					"-o", "go-template={{ range .items }}"+
@@ -333,16 +341,16 @@ var _ = Describe("controller", Ordered, func() {
 						"{{ .metadata.name }}"+
 						"{{ \"\\n\" }}{{ end }}{{ end }}",
 				)
-				vsOutput, err := utils.Run(cmd)
+				routeOutput, err := utils.Run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
 
-				// Ensure only 1 virtual service is found
-				vsNames := utils.GetNonEmptyLines(vsOutput)
-				g.Expect(vsNames).To(HaveLen(1), "expected 1 virtual service found")
-				workspaceVirtualServiceName = vsNames[0]
-				g.Expect(workspaceVirtualServiceName).To(ContainSubstring(fmt.Sprintf("ws-%s", workspaceName)))
+				// Ensure only 1 route is found
+				routeNames := utils.GetNonEmptyLines(routeOutput)
+				g.Expect(routeNames).To(HaveLen(1), fmt.Sprintf("expected 1 %s found", resourceType))
+				workspaceRouteName = routeNames[0]
+				g.Expect(workspaceRouteName).To(ContainSubstring(fmt.Sprintf("ws-%s", workspaceName)))
 			}
-			Eventually(verifyWorkspaceVirtualService, timeout, interval).Should(Succeed())
+			Eventually(verifyWorkspaceRoute, timeout, interval).Should(Succeed())
 
 			By("ensuring in-use imageConfig values cannot be removed from WorkspaceKind")
 			removeInUseImageConfig := func() error {
