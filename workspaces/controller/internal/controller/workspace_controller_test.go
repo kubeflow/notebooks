@@ -32,6 +32,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"k8s.io/utils/ptr"
+
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/config"
 )
@@ -271,10 +273,10 @@ var _ = Describe("Workspace Controller", func() {
 			By("creating a WorkspaceKind with an activity probe and culling rules")
 			workspaceKind := NewExampleWorkspaceKind1(workspaceKindName)
 			workspaceKind.Spec.PodTemplate.ActivityProbe = &kubefloworgv1beta1.ActivityProbe{
-				MinProbeIntervalSeconds: ptr.To(int32(1)),
-				ProbeIntervalSeconds:    ptr.To(int32(10)),
+				MinProbeIntervalSeconds: new(int32(1)),
+				ProbeIntervalSeconds:    new(int32(10)),
 				PodExec: &kubefloworgv1beta1.ActivityProbePodExec{
-					TimeoutSeconds: ptr.To(int32(30)),
+					TimeoutSeconds: new(int32(30)),
 					Script:         "exit 0",
 				},
 			}
@@ -282,10 +284,10 @@ var _ = Describe("Workspace Controller", func() {
 				{
 					Config: kubefloworgv1beta1.ActivityRuleConfig{
 						SecondsSinceActive: 16,
-						MinRunningSeconds:  ptr.To(int32(0)),
+						MinRunningSeconds:  new(int32(0)),
 					},
 					Match:  &kubefloworgv1beta1.ActivityRuleMatch{},
-					Effect: kubefloworgv1beta1.ActivityRuleEffect{PauseWorkspace: ptr.To(true)},
+					Effect: kubefloworgv1beta1.ActivityRuleEffect{PauseWorkspace: new(true)},
 				},
 			}
 			Expect(k8sClient.Create(ctx, workspaceKind)).To(Succeed())

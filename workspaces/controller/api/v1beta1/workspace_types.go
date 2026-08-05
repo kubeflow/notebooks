@@ -226,6 +226,8 @@ type WorkspaceStatus struct {
 type WorkspaceActivity struct {
 	// the last time activity was observed on the Workspace (UNIX epoch in milliseconds)
 	//  - this is the value returned by the activity probe, not the time the probe was run
+	//  - the activity probe is AUTHORITATIVE: on success, the probe result unconditionally
+	//    overwrites this timestamp (the controller does not validate monotonicity or clamp to wall-clock time)
 	//  - not updated when a probe fails
 	// +kubebuilder:default=0
 	// +kubebuilder:example=1704067200000

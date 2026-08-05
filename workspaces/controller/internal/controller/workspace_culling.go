@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"maps"
 	"net/http"
 	"time"
 
@@ -108,7 +109,10 @@ func (r *WorkspaceReconciler) reconcileActivityCulling(
 	//    after a fresh probe confirms it is still inactive. This prevents culling a Workspace
 	//    whose user has resumed activity since the last probe but before the next probe is due.
 	if remaining, due := timeUntilProbeDue(workspace, now, minProbeInterval, probeInterval); !due {
-		r.evaluatePauseDecision(workspace, workspaceKind, namespaceLabels, podConfigLabels, now, false)
+		if _, err := evaluatePauseDecision(workspace, workspaceKind, namespaceLabels, podConfigLabels, now, false); err != nil {
+			log.Error(err, "unable to evaluate activity rules")
+			return ctrl.Result{}, false, err
+		}
 		return ctrl.Result{RequeueAfter: remaining}, false, nil
 	}
 
@@ -119,7 +123,11 @@ func (r *WorkspaceReconciler) reconcileActivityCulling(
 	// evaluate rules and decide whether to pause.
 	//  - allowPause is gated on a successful probe: a Workspace is only culled when a fresh,
 	//    successful probe confirms inactivity. A failed probe never triggers a pause.
-	paused := r.evaluatePauseDecision(workspace, workspaceKind, namespaceLabels, podConfigLabels, now, probeResult.Succeeded())
+	paused, err := evaluatePauseDecision(workspace, workspaceKind, namespaceLabels, podConfigLabels, now, probeResult.Succeeded())
+	if err != nil {
+		log.Error(err, "unable to evaluate activity rules")
+		return ctrl.Result{}, false, err
+	}
 
 	// schedule the next probe:
 	//  - success  -> probeInterval (ensures fresh UI data)
@@ -172,7 +180,7 @@ func (r *WorkspaceReconciler) runProbe(
 	pod *corev1.Pod,
 ) *helper.ProbeResult {
 
-	now := metav1.Now().UnixMilli()
+	now := time.Now()
 
 	// the Pod must exist and have an IP to be probed.
 	if pod == nil || pod.Status.PodIP == "" {
@@ -180,7 +188,7 @@ func (r *WorkspaceReconciler) runProbe(
 			StartTime: now,
 			EndTime:   now,
 			Result:    kubefloworgv1beta1.WorkspaceProbeResultFailure,
-			Message:   "probe failed: Workspace Pod is not ready",
+			Message:   helper.ProbeMessagePodNotReady,
 		}
 	}
 
@@ -192,13 +200,13 @@ func (r *WorkspaceReconciler) runProbe(
 				StartTime: now,
 				EndTime:   now,
 				Result:    kubefloworgv1beta1.WorkspaceProbeResultFailure,
-				Message:   fmt.Sprintf("Jupyter probe failed: port %q not found in imageConfig", activityProbe.Jupyter.PortId),
+				Message:   fmt.Sprintf("%sport %q not found in imageConfig", helper.ProbeMessagePrefixJupyterFailed, activityProbe.Jupyter.PortId),
 			}
 		}
-		prober := r.HTTPProber
-		if prober == nil {
-			prober = &helper.DefaultHTTPProber{Client: &http.Client{Timeout: defaultJupyterProbeTimeout}}
+		if r.HTTPProber == nil {
+			r.HTTPProber = &helper.DefaultHTTPProber{Client: &http.Client{Timeout: defaultJupyterProbeTimeout}}
 		}
+		prober := r.HTTPProber
 		probeCtx, cancel := context.WithTimeout(ctx, defaultJupyterProbeTimeout)
 		defer cancel()
 		basePath := getWorkspaceConnectPath(workspace.Namespace, workspace.Name, activityProbe.Jupyter.PortId)
@@ -210,7 +218,7 @@ func (r *WorkspaceReconciler) runProbe(
 				StartTime: now,
 				EndTime:   now,
 				Result:    kubefloworgv1beta1.WorkspaceProbeResultFailure,
-				Message:   "PodExec probe failed: exec is not configured",
+				Message:   helper.ProbeMessagePrefixPodExecFailed + "exec is not configured",
 			}
 		}
 		// NOTE: unlike the Jupyter branch, we pass the outer ctx and the timeout value
@@ -225,7 +233,7 @@ func (r *WorkspaceReconciler) runProbe(
 			StartTime: now,
 			EndTime:   now,
 			Result:    kubefloworgv1beta1.WorkspaceProbeResultFailure,
-			Message:   "probe failed: no probe type configured",
+			Message:   helper.ProbeMessageNoTypeConfigured,
 		}
 	}
 }
@@ -235,23 +243,23 @@ func (r *WorkspaceReconciler) runProbe(
 //   - on failure, `lastActivity` and `lastUpdate` are preserved (never regressed)
 func updateActivityStatusFromProbe(workspace *kubefloworgv1beta1.Workspace, result *helper.ProbeResult) {
 	workspace.Status.Activity.LastProbe = &kubefloworgv1beta1.WorkspaceActivityLastProbe{
-		StartTime: result.StartTime,
-		EndTime:   result.EndTime,
+		StartTime: result.StartTime.UnixMilli(),
+		EndTime:   result.EndTime.UnixMilli(),
 		Result:    result.Result,
 		Message:   result.Message,
 	}
 
 	if result.Succeeded() {
 		if result.LastActivity != nil {
-			workspace.Status.Activity.LastActivity = *result.LastActivity
+			workspace.Status.Activity.LastActivity = result.LastActivity.UnixMilli()
 		}
-		workspace.Status.Activity.LastUpdate = result.EndTime
+		workspace.Status.Activity.LastUpdate = result.EndTime.UnixMilli()
 	}
 }
 
 // evaluatePauseDecision evaluates the activityRules against the Workspace and updates the
 // `status.activity.rules.pauseWorkspace.eligibleAfter` field. It returns true when the Workspace
-// should be paused (and updates `workspace.Spec.Paused` accordingly).
+// should be paused.
 //
 // allowPause gates whether an eligible Workspace is actually paused:
 //   - when true (called immediately after a fresh probe), an eligible Workspace is paused.
@@ -261,28 +269,31 @@ func updateActivityStatusFromProbe(workspace *kubefloworgv1beta1.Workspace, resu
 //     `lastActivity` even though the user resumed activity since the last probe.
 //
 // namespaceLabels and podConfigLabels are the labels used for rule matching.
-func (r *WorkspaceReconciler) evaluatePauseDecision(
+func evaluatePauseDecision(
 	workspace *kubefloworgv1beta1.Workspace,
 	workspaceKind *kubefloworgv1beta1.WorkspaceKind,
 	namespaceLabels, podConfigLabels map[string]string,
 	now int64,
 	allowPause bool,
-) bool {
+) (bool, error) {
 
 	rules := workspaceKind.Spec.ActivityRules
 	if len(rules) == 0 {
 		if workspace.Status.Activity.Rules != nil {
 			workspace.Status.Activity.Rules.PauseWorkspace = nil
 		}
-		return false
+		return false, nil
 	}
 
-	decision := helper.EvaluatePauseWorkspaceRule(rules, namespaceLabels, podConfigLabels)
+	decision, err := helper.EvaluatePauseWorkspaceRule(rules, namespaceLabels, podConfigLabels)
+	if err != nil {
+		return false, err
+	}
 	if !decision.Matched {
 		if workspace.Status.Activity.Rules != nil {
 			workspace.Status.Activity.Rules.PauseWorkspace = nil
 		}
-		return false
+		return false, nil
 	}
 
 	eligible, eligibleAfter := helper.IsEligibleForPause(
@@ -315,11 +326,10 @@ func (r *WorkspaceReconciler) evaluatePauseDecision(
 	//  - when allowPause is false the activity data may be stale (no probe ran this reconcile),
 	//    so we must NOT pause even if the stale data says the Workspace is eligible
 	if decision.Value && eligible && allowPause {
-		workspace.Spec.Paused = ptr.To(true)
-		return true
+		return true, nil
 	}
 
-	return false
+	return false, nil
 }
 
 // getNamespaceLabels returns the labels of the given namespace.
@@ -335,7 +345,7 @@ func (r *WorkspaceReconciler) getNamespaceLabels(ctx context.Context, namespaceN
 	if ns.Labels == nil {
 		return map[string]string{}, nil
 	}
-	return ns.Labels, nil
+	return maps.Clone(ns.Labels), nil
 }
 
 // imageConfigPortForID resolves the container port number for a given WorkspaceKind port id by

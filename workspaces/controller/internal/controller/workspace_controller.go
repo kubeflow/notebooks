@@ -109,7 +109,7 @@ type WorkspaceReconciler struct {
 	Config *config.EnvConfig
 
 	// PodExecutor executes activity probe scripts inside Workspace Pods.
-	// If nil, podExec probes are skipped (used when exec is not configured, e.g. in some tests).
+	// If nil, podExec probes fail with a failure probe result indicating exec is not configured.
 	PodExecutor helper.PodExecutor
 
 	// HTTPProber performs HTTP requests for Jupyter activity probes.
@@ -162,7 +162,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
-	// snapshot the Workspace as fetched, so the culling logic can issue a minimal
+	// snapshot the Workspace as fetched, so the activityProbe logic can issue a minimal
 	// `spec.paused` patch (via client.MergeFrom) instead of a full-object update.
 	originalWorkspace := workspace.DeepCopy()
 
@@ -555,7 +555,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 	workspace.Status = workspaceStatus
 
-	// reconcile the activity probe and culling rules
+	// reconcile the activity probe and activity rules
 	//  - this may run an activity probe, update `status.activity`, and pause the Workspace
 	//  - it returns a requeue result used to schedule the next probe (unless a more urgent
 	//    requeue was already requested by the status generation above)
@@ -585,7 +585,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	//  - `Status().Update` above overwrites `workspace` with the API server response (where
 	//    `spec.paused` was still false/unmodified), so we re-apply `spec.paused = true` here
 	if paused {
-		workspace.Spec.Paused = ptr.To(true)
+		workspace.Spec.Paused = new(true)
 		if err := r.Patch(ctx, workspace, client.MergeFrom(originalWorkspace)); err != nil {
 			if apierrors.IsConflict(err) {
 				log.V(2).Info("update conflict while pausing Workspace, will requeue")
@@ -1474,20 +1474,28 @@ func (r *WorkspaceReconciler) generateWorkspaceStatus(ctx context.Context, log l
 	status.State = workspaceState
 	status.StateMessage = workspaceStateMessage
 
-	// track the last time the Workspace entered a Running state
-	//  - used to compute the running duration for the `minRunningSeconds` activity guard
-	//  - only advanced on a transition INTO the Running state, so it reflects the start of
-	//    the current continuous Running period
-	//  - reset status.Activity on transition into Running so stale activity from a previous
-	//    run does not cause an immediate pause when a culled Workspace is restarted
-	if workspaceState == kubefloworgv1beta1.WorkspaceStateRunning {
-		if workspace.Status.State != kubefloworgv1beta1.WorkspaceStateRunning || status.LastRunningTime == 0 {
-			status.LastRunningTime = metav1.Now().UnixMilli()
-			status.Activity = kubefloworgv1beta1.WorkspaceActivity{}
-		}
-	}
+	recordRunningTransition(&status, workspace.Status.State, workspaceState)
 
 	return status, result, nil
+}
+
+// recordRunningTransition records the transition of a Workspace into the Running state
+// (or when Running with an uninitialized lastRunningTime), setting status.LastRunningTime and
+// clearing any stale status.Activity.
+//
+//   - used to compute the running duration for the `minRunningSeconds` activity guard
+//   - only advanced on a transition INTO the Running state, so it reflects the start of
+//     the current continuous Running period
+//   - reset status.Activity on transition into Running so stale activity from a previous
+//     run does not cause an immediate pause when a culled Workspace is restarted
+func recordRunningTransition(status *kubefloworgv1beta1.WorkspaceStatus, currentState, newState kubefloworgv1beta1.WorkspaceState) {
+	if newState != kubefloworgv1beta1.WorkspaceStateRunning {
+		return
+	}
+	if currentState != kubefloworgv1beta1.WorkspaceStateRunning || status.LastRunningTime == 0 {
+		status.LastRunningTime = metav1.Now().UnixMilli()
+		status.Activity = kubefloworgv1beta1.WorkspaceActivity{}
+	}
 }
 
 // generateWorkspacePodStatus generates a WorkspacePodStatus for a Pod

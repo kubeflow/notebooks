@@ -30,7 +30,7 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/httpstream"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -50,6 +50,24 @@ const (
 
 	// jupyterStatusPath is the Jupyter Server endpoint used to determine activity.
 	jupyterStatusPath = "/api/status"
+
+	// ProbeMessagePrefixJupyterFailed is the message prefix for failed Jupyter probe results.
+	ProbeMessagePrefixJupyterFailed = "Jupyter probe failed: "
+
+	// ProbeMessageJupyterSucceeded is the message for successful Jupyter probe results.
+	ProbeMessageJupyterSucceeded = "Jupyter probe succeeded"
+
+	// ProbeMessagePrefixPodExecFailed is the message prefix for failed PodExec probe results.
+	ProbeMessagePrefixPodExecFailed = "PodExec probe failed: "
+
+	// ProbeMessagePodExecSucceeded is the message for successful PodExec probe results.
+	ProbeMessagePodExecSucceeded = "PodExec probe succeeded"
+
+	// ProbeMessagePodNotReady is the message when a Workspace Pod is not ready to be probed.
+	ProbeMessagePodNotReady = "probe failed: Workspace Pod is not ready"
+
+	// ProbeMessageNoTypeConfigured is the message when no probe type is configured on a Workspace.
+	ProbeMessageNoTypeConfigured = "probe failed: no probe type configured"
 )
 
 // ProbeResult captures the outcome of an activity probe execution.
@@ -59,11 +77,11 @@ const (
 // timestamp should be left unchanged (e.g. a podExec probe reporting `has_activity: false`
 // without a `last_activity` field).
 type ProbeResult struct {
-	// StartTime is the time the probe was started (UNIX epoch in milliseconds).
-	StartTime int64
+	// StartTime is the time the probe was started.
+	StartTime time.Time
 
-	// EndTime is the time the probe completed (UNIX epoch in milliseconds).
-	EndTime int64
+	// EndTime is the time the probe completed.
+	EndTime time.Time
 
 	// Result is the outcome of the probe (Success, Failure, or Timeout).
 	Result kubefloworgv1beta1.WorkspaceProbeResult
@@ -71,10 +89,10 @@ type ProbeResult struct {
 	// Message is a human-readable message about the probe result.
 	Message string
 
-	// LastActivity is the activity timestamp determined by the probe (UNIX epoch in
-	// milliseconds). It is nil when the probe did not succeed or when the activity timestamp
-	// should not be updated.
-	LastActivity *int64
+	// LastActivity is the activity timestamp determined by the probe. It is nil
+	// when the probe did not succeed or when the activity timestamp should not
+	// be updated.
+	LastActivity *time.Time
 }
 
 // Succeeded reports whether the probe completed successfully.
@@ -84,17 +102,17 @@ func (r *ProbeResult) Succeeded() bool {
 
 // newFailureResult builds a failed ProbeResult with the given start time and message. The end
 // time is set to the current time, and LastActivity is left nil so failing probes never cull.
-func newFailureResult(startTime int64, message string) *ProbeResult {
+func newFailureResult(startTime time.Time, message string) *ProbeResult {
 	return &ProbeResult{
 		StartTime: startTime,
-		EndTime:   nowMillis(),
+		EndTime:   time.Now(),
 		Result:    kubefloworgv1beta1.WorkspaceProbeResultFailure,
 		Message:   message,
 	}
 }
 
 // newTimeoutResult builds a timed-out ProbeResult with the given start/end time and message.
-func newTimeoutResult(startTime, endTime int64, message string) *ProbeResult {
+func newTimeoutResult(startTime, endTime time.Time, message string) *ProbeResult {
 	return &ProbeResult{
 		StartTime: startTime,
 		EndTime:   endTime,
@@ -105,7 +123,7 @@ func newTimeoutResult(startTime, endTime int64, message string) *ProbeResult {
 
 // newSuccessResult builds a successful ProbeResult with the given times, message and optional
 // activity timestamp (nil means "leave the existing lastActivity unchanged").
-func newSuccessResult(startTime, endTime int64, message string, lastActivity *int64) *ProbeResult {
+func newSuccessResult(startTime, endTime time.Time, message string, lastActivity *time.Time) *ProbeResult {
 	return &ProbeResult{
 		StartTime:    startTime,
 		EndTime:      endTime,
@@ -169,9 +187,19 @@ func (e *RemoteCommandExecutor) Exec(ctx context.Context, namespace, podName, co
 			TTY:       false,
 		}, scheme.ParameterCodec)
 
-	exec, err := remotecommand.NewSPDYExecutor(e.RestConfig, http.MethodPost, req.URL())
+	websocketExec, err := remotecommand.NewWebSocketExecutor(e.RestConfig, http.MethodPost, req.URL().String())
 	if err != nil {
-		return fmt.Errorf("failed to initialize executor: %w", err)
+		return fmt.Errorf("failed to initialize websocket executor: %w", err)
+	}
+
+	spdyExec, err := remotecommand.NewSPDYExecutor(e.RestConfig, http.MethodPost, req.URL())
+	if err != nil {
+		return fmt.Errorf("failed to initialize spdy executor: %w", err)
+	}
+
+	exec, err := remotecommand.NewFallbackExecutor(websocketExec, spdyExec, httpstream.IsUpgradeFailure)
+	if err != nil {
+		return fmt.Errorf("failed to initialize fallback executor: %w", err)
 	}
 
 	return exec.StreamWithContext(ctx, remotecommand.StreamOptions{
@@ -196,11 +224,6 @@ func (p *DefaultHTTPProber) Get(ctx context.Context, url string) (*http.Response
 	return p.Client.Do(req)
 }
 
-// nowMillis returns the current time as a UNIX epoch in milliseconds.
-func nowMillis() int64 {
-	return metav1.Now().UnixMilli()
-}
-
 // isDeadlineExceeded reports whether the given error (or the context) was caused by a deadline.
 func isDeadlineExceeded(ctx context.Context, err error) bool {
 	return errors.Is(ctx.Err(), context.DeadlineExceeded) || errors.Is(err, context.DeadlineExceeded)
@@ -215,7 +238,7 @@ func isDeadlineExceeded(ctx context.Context, err error) bool {
 // ProbeResult with Result == Failure/Timeout and a nil LastActivity, so that failing probes
 // never trigger culling.
 func RunJupyterProbe(ctx context.Context, prober HTTPProber, serviceHost string, port int32, basePath string) *ProbeResult {
-	startTime := nowMillis()
+	startTime := time.Now()
 
 	// ensure basePath has no trailing slash and jupyterStatusPath starts with a slash
 	url := fmt.Sprintf("http://%s:%d%s%s", serviceHost, port, strings.TrimSuffix(basePath, "/"), jupyterStatusPath)
@@ -223,34 +246,34 @@ func RunJupyterProbe(ctx context.Context, prober HTTPProber, serviceHost string,
 	resp, err := prober.Get(ctx, url)
 	if err != nil {
 		if isDeadlineExceeded(ctx, err) {
-			return newTimeoutResult(startTime, nowMillis(), fmt.Sprintf("Jupyter probe failed: %v", err))
+			return newTimeoutResult(startTime, time.Now(), fmt.Sprintf("%s%v", ProbeMessagePrefixJupyterFailed, err))
 		}
-		return newFailureResult(startTime, fmt.Sprintf("Jupyter probe failed: %v", err))
+		return newFailureResult(startTime, fmt.Sprintf("%s%v", ProbeMessagePrefixJupyterFailed, err))
 	}
 	defer func() {
 		_ = resp.Body.Close()
 	}()
 
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		return newFailureResult(startTime, fmt.Sprintf("Jupyter probe failed: HTTP %d", resp.StatusCode))
+		return newFailureResult(startTime, fmt.Sprintf("%sHTTP %d", ProbeMessagePrefixJupyterFailed, resp.StatusCode))
 	}
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, maxProbeResponseBytes))
 	if err != nil {
-		return newFailureResult(startTime, fmt.Sprintf("Jupyter probe failed: unable to read response body: %v", err))
+		return newFailureResult(startTime, fmt.Sprintf("%sunable to read response body: %v", ProbeMessagePrefixJupyterFailed, err))
 	}
 
 	var status jupyterStatusResponse
 	if err := json.Unmarshal(body, &status); err != nil {
-		return newFailureResult(startTime, "Jupyter probe failed: invalid response body")
+		return newFailureResult(startTime, ProbeMessagePrefixJupyterFailed+"invalid response body")
 	}
 
-	lastActivity, err := parseISO8601ToMillis(status.LastActivity)
+	lastActivity, err := parseISO8601(status.LastActivity)
 	if err != nil {
-		return newFailureResult(startTime, fmt.Sprintf("Jupyter probe failed: invalid last_activity: %v", err))
+		return newFailureResult(startTime, fmt.Sprintf("%sinvalid last_activity: %v", ProbeMessagePrefixJupyterFailed, err))
 	}
 
-	return newSuccessResult(startTime, nowMillis(), "Jupyter probe succeeded", &lastActivity)
+	return newSuccessResult(startTime, time.Now(), ProbeMessageJupyterSucceeded, &lastActivity)
 }
 
 // RunPodExecProbe executes the given script inside the Workspace Pod via the Kubernetes exec
@@ -262,13 +285,13 @@ func RunJupyterProbe(ctx context.Context, prober HTTPProber, serviceHost string,
 // (non-zero exit code, timeout, missing/invalid JSON) returns a ProbeResult with a nil
 // LastActivity so that failing probes never trigger culling.
 func RunPodExecProbe(ctx context.Context, executor PodExecutor, namespace, podName, script string, timeout time.Duration) *ProbeResult {
-	startTime := nowMillis()
+	startTime := time.Now()
 
 	// randomize the output path each probe to prevent scripts (or users) from
 	// pre-populating or depending on a fixed location.
 	outputPath, err := randomOutputPath()
 	if err != nil {
-		return newFailureResult(startTime, fmt.Sprintf("PodExec probe failed: unable to generate output path: %v", err))
+		return newFailureResult(startTime, fmt.Sprintf("%sunable to generate output path: %v", ProbeMessagePrefixPodExecFailed, err))
 	}
 
 	execCtx := ctx
@@ -281,38 +304,41 @@ func RunPodExecProbe(ctx context.Context, executor PodExecutor, namespace, podNa
 	// Write the script to the output-path directory, execute it with OUTPUT_JSON_PATH set,
 	// then print the resulting JSON file to stdout so the controller can read it back.
 	// Using a single shell invocation avoids needing multiple exec round-trips.
+	// Redirect the probe script's stdout to /dev/null so script stdout/banners do not corrupt
+	// the JSON output.
 	scriptPath := outputPath + ".script"
 	shellCommand := fmt.Sprintf(
-		"cat > %[1]s && chmod +x %[1]s && OUTPUT_JSON_PATH=%[2]s %[1]s; rc=$?; rm -f %[1]s; "+
-			"if [ $rc -ne 0 ]; then exit $rc; fi; "+
-			"if [ -f %[2]s ]; then cat %[2]s; rm -f %[2]s; fi",
+		`cat > "%[1]s" && chmod +x "%[1]s" && OUTPUT_JSON_PATH="%[2]s" "%[1]s" >/dev/null; rc=$?; rm -f "%[1]s"; `+
+			`if [ $rc -ne 0 ]; then exit $rc; fi; `+
+			`if [ -f "%[2]s" ]; then cat "%[2]s"; rm -f "%[2]s"; fi`,
 		scriptPath, outputPath,
 	)
 	command := []string{"/bin/sh", "-c", shellCommand}
 
-	var stdout, stderr bytes.Buffer
-	execErr := executor.Exec(execCtx, namespace, podName, probeContainerName, command, bytes.NewBufferString(script), &stdout, &stderr)
+	stdout := &limitedBuffer{max: maxProbeResponseBytes}
+	stderr := &limitedBuffer{max: maxProbeResponseBytes}
+	execErr := executor.Exec(execCtx, namespace, podName, probeContainerName, command, bytes.NewBufferString(script), stdout, stderr)
 
 	// Capture endTime once to ensure the ProbeResult.EndTime matches the fallback
 	// timestamp used in parsePodExecOutput when the probe indicates activity.
-	endTime := nowMillis()
+	endTime := time.Now()
 
 	if execErr != nil {
 		if isDeadlineExceeded(execCtx, execErr) {
-			return newTimeoutResult(startTime, endTime, fmt.Sprintf("PodExec probe failed: timeout after %dms", timeout.Milliseconds()))
+			return newTimeoutResult(startTime, endTime, fmt.Sprintf("%stimeout after %dms", ProbeMessagePrefixPodExecFailed, timeout.Milliseconds()))
 		}
 		if code, ok := exitCodeFromError(execErr); ok {
-			return newFailureResult(startTime, fmt.Sprintf("PodExec probe failed: unexpected exit code %d", code))
+			return newFailureResult(startTime, fmt.Sprintf("%sunexpected exit code %d", ProbeMessagePrefixPodExecFailed, code))
 		}
-		return newFailureResult(startTime, fmt.Sprintf("PodExec probe failed: %v", execErr))
+		return newFailureResult(startTime, fmt.Sprintf("%s%v", ProbeMessagePrefixPodExecFailed, execErr))
 	}
 
 	lastActivity, err := parsePodExecOutput(stdout.Bytes(), endTime)
 	if err != nil {
-		return newFailureResult(startTime, fmt.Sprintf("PodExec probe failed: %v", err))
+		return newFailureResult(startTime, fmt.Sprintf("%s%v", ProbeMessagePrefixPodExecFailed, err))
 	}
 
-	return newSuccessResult(startTime, endTime, "PodExec probe succeeded", lastActivity)
+	return newSuccessResult(startTime, endTime, ProbeMessagePodExecSucceeded, lastActivity)
 }
 
 // parsePodExecOutput interprets the JSON output of a podExec probe according to the CRD contract:
@@ -321,7 +347,7 @@ func RunPodExecProbe(ctx context.Context, executor PodExecutor, namespace, podNa
 //   - has_activity: false with last_activity -> inactive (lastActivity = parsed timestamp)
 //   - has_activity: false without last_activity -> inactive (lastActivity unchanged, nil)
 //   - last_activity provided without has_activity -> inactive (lastActivity = parsed timestamp)
-func parsePodExecOutput(raw []byte, endTime int64) (*int64, error) {
+func parsePodExecOutput(raw []byte, endTime time.Time) (*time.Time, error) {
 	trimmed := bytes.TrimSpace(raw)
 
 	// per the CRD contract, both an empty output and a JSON object with neither field
@@ -344,11 +370,11 @@ func parsePodExecOutput(raw []byte, endTime int64) (*int64, error) {
 		}
 		// explicitly inactive
 		if out.LastActivity != nil {
-			ms, err := parseISO8601ToMillis(*out.LastActivity)
+			t, err := parseISO8601(*out.LastActivity)
 			if err != nil {
 				return nil, fmt.Errorf("invalid JSON file: %w", err)
 			}
-			return &ms, nil
+			return &t, nil
 		}
 		// inactive with no timestamp: leave activity unchanged.
 		return nil, nil
@@ -356,31 +382,31 @@ func parsePodExecOutput(raw []byte, endTime int64) (*int64, error) {
 
 	// only last_activity provided.
 	if out.LastActivity != nil {
-		ms, err := parseISO8601ToMillis(*out.LastActivity)
+		t, err := parseISO8601(*out.LastActivity)
 		if err != nil {
 			return nil, fmt.Errorf("invalid JSON file: %w", err)
 		}
-		return &ms, nil
+		return &t, nil
 	}
 
 	// JSON object with neither field: treat as active at probe end time (same as empty output).
 	return &endTime, nil
 }
 
-// parseISO8601ToMillis parses an ISO 8601 / RFC 3339 timestamp into a UNIX epoch in milliseconds.
-func parseISO8601ToMillis(value string) (int64, error) {
+// parseISO8601 parses an ISO 8601 / RFC 3339 timestamp.
+func parseISO8601(value string) (time.Time, error) {
 	if value == "" {
-		return 0, fmt.Errorf("empty timestamp")
+		return time.Time{}, fmt.Errorf("empty timestamp")
 	}
 	t, err := time.Parse(time.RFC3339, value)
 	if err != nil {
 		// try with nanosecond precision (RFC3339Nano) as a fallback.
 		t, err = time.Parse(time.RFC3339Nano, value)
 		if err != nil {
-			return 0, fmt.Errorf("cannot parse timestamp %q: %w", value, err)
+			return time.Time{}, fmt.Errorf("cannot parse timestamp %q: %w", value, err)
 		}
 	}
-	return t.UnixMilli(), nil
+	return t, nil
 }
 
 // randomOutputPath generates a randomized path under /tmp for the podExec probe output file.
@@ -404,4 +430,21 @@ func exitCodeFromError(err error) (int, bool) {
 		return codeErr.ExitStatus(), true
 	}
 	return 0, false
+}
+
+// limitedBuffer bounds the maximum number of bytes written into the buffer to prevent
+// memory exhaustion from misbehaving probe processes.
+type limitedBuffer struct {
+	bytes.Buffer
+	max int
+}
+
+func (b *limitedBuffer) Write(p []byte) (n int, err error) {
+	if b.Len() >= b.max {
+		return len(p), nil
+	}
+	if b.Len()+len(p) > b.max {
+		p = p[:b.max-b.Len()]
+	}
+	return b.Buffer.Write(p)
 }

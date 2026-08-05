@@ -31,6 +31,17 @@ import (
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 )
 
+const (
+	testTimestampRFC3339     = "2030-01-01T00:00:00Z"
+	testTimestampRFC3339Nano = "2030-01-01T00:00:00.123456789Z"
+	testTimestampOlder       = "2000-01-01T00:00:00Z"
+)
+
+var (
+	testTimeRFC3339, _     = time.Parse(time.RFC3339, testTimestampRFC3339)
+	testTimeRFC3339Nano, _ = time.Parse(time.RFC3339Nano, testTimestampRFC3339Nano)
+)
+
 // fakeHTTPProber is a test double for HTTPProber.
 type fakeHTTPProber struct {
 	resp        *http.Response
@@ -99,7 +110,7 @@ var _ = Describe("DefaultHTTPProber", func() {
 	It("should perform an HTTP GET request", func() {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"last_activity":"2030-01-01T00:00:00Z"}`))
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"last_activity":"%s"}`, testTimestampRFC3339)))
 		}))
 		defer server.Close()
 
@@ -122,14 +133,12 @@ var _ = Describe("RunJupyterProbe", func() {
 
 	It("should succeed and extract last_activity", func() {
 		prober := &fakeHTTPProber{
-			resp: newHTTPResponse(http.StatusOK, `{"last_activity": "2030-01-01T00:00:00Z"}`),
+			resp: newHTTPResponse(http.StatusOK, fmt.Sprintf(`{"last_activity": "%s"}`, testTimestampRFC3339)),
 		}
 		result := RunJupyterProbe(ctx, prober, "10.0.0.1", 8888, "")
 		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultSuccess))
 		Expect(result.LastActivity).ToNot(BeNil())
-
-		expected, _ := time.Parse(time.RFC3339, "2030-01-01T00:00:00Z")
-		Expect(*result.LastActivity).To(Equal(expected.UnixMilli()))
+		Expect(*result.LastActivity).To(Equal(testTimeRFC3339))
 	})
 
 	It("should report timeout when deadline is exceeded", func() {
@@ -189,7 +198,7 @@ var _ = Describe("RunJupyterProbe", func() {
 
 	It("should respect the basePath", func() {
 		prober := &fakeHTTPProber{
-			resp: newHTTPResponse(http.StatusOK, `{"last_activity": "2030-01-01T00:00:00Z"}`),
+			resp: newHTTPResponse(http.StatusOK, fmt.Sprintf(`{"last_activity": "%s"}`, testTimestampRFC3339)),
 		}
 		_ = RunJupyterProbe(ctx, prober, "10.0.0.1", 8888, "/my/base/path/")
 		Expect(prober.capturedURL).To(Equal("http://10.0.0.1:8888/my/base/path/api/status"))
@@ -217,12 +226,11 @@ var _ = Describe("RunPodExecProbe", func() {
 	})
 
 	It("should succeed with has_activity: false and last_activity set", func() {
-		executor := &fakePodExecutor{stdoutContent: `{"has_activity": false, "last_activity": "2030-01-01T00:00:00Z"}`}
+		executor := &fakePodExecutor{stdoutContent: fmt.Sprintf(`{"has_activity": false, "last_activity": "%s"}`, testTimestampRFC3339)}
 		result := RunPodExecProbe(ctx, executor, "ns", "pod", script, time.Second)
 		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultSuccess))
 		Expect(result.LastActivity).ToNot(BeNil())
-		expected, _ := time.Parse(time.RFC3339, "2030-01-01T00:00:00Z")
-		Expect(*result.LastActivity).To(Equal(expected.UnixMilli()))
+		Expect(*result.LastActivity).To(Equal(testTimeRFC3339))
 	})
 
 	It("should succeed with has_activity: false and no last_activity (leave unchanged)", func() {
@@ -233,7 +241,7 @@ var _ = Describe("RunPodExecProbe", func() {
 	})
 
 	It("should prefer has_activity over last_activity when both present", func() {
-		executor := &fakePodExecutor{stdoutContent: `{"has_activity": true, "last_activity": "2000-01-01T00:00:00Z"}`}
+		executor := &fakePodExecutor{stdoutContent: fmt.Sprintf(`{"has_activity": true, "last_activity": "%s"}`, testTimestampOlder)}
 		result := RunPodExecProbe(ctx, executor, "ns", "pod", script, time.Second)
 		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultSuccess))
 		Expect(*result.LastActivity).To(Equal(result.EndTime))
@@ -284,12 +292,11 @@ var _ = Describe("RunPodExecProbe", func() {
 	})
 
 	It("should succeed when only valid last_activity is provided", func() {
-		executor := &fakePodExecutor{stdoutContent: `{"last_activity": "2030-01-01T00:00:00Z"}`}
+		executor := &fakePodExecutor{stdoutContent: fmt.Sprintf(`{"last_activity": "%s"}`, testTimestampRFC3339)}
 		result := RunPodExecProbe(ctx, executor, "ns", "pod", script, time.Second)
 		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultSuccess))
 		Expect(result.LastActivity).ToNot(BeNil())
-		expected, _ := time.Parse(time.RFC3339, "2030-01-01T00:00:00Z")
-		Expect(*result.LastActivity).To(Equal(expected.UnixMilli()))
+		Expect(*result.LastActivity).To(Equal(testTimeRFC3339))
 	})
 
 	It("should fail when only invalid last_activity is provided", func() {
@@ -308,28 +315,26 @@ var _ = Describe("RunPodExecProbe", func() {
 	})
 })
 
-var _ = Describe("parseISO8601ToMillis", func() {
+var _ = Describe("parseISO8601", func() {
 	It("should parse an RFC3339 timestamp", func() {
-		ms, err := parseISO8601ToMillis("2030-01-01T00:00:00Z")
+		t, err := parseISO8601(testTimestampRFC3339)
 		Expect(err).ToNot(HaveOccurred())
-		expected, _ := time.Parse(time.RFC3339, "2030-01-01T00:00:00Z")
-		Expect(ms).To(Equal(expected.UnixMilli()))
+		Expect(t.Equal(testTimeRFC3339)).To(BeTrue())
 	})
 
 	It("should parse an RFC3339Nano timestamp fallback", func() {
-		ms, err := parseISO8601ToMillis("2030-01-01T00:00:00.123456789Z")
+		t, err := parseISO8601(testTimestampRFC3339Nano)
 		Expect(err).ToNot(HaveOccurred())
-		expected, _ := time.Parse(time.RFC3339Nano, "2030-01-01T00:00:00.123456789Z")
-		Expect(ms).To(Equal(expected.UnixMilli()))
+		Expect(t.Equal(testTimeRFC3339Nano)).To(BeTrue())
 	})
 
 	It("should error on an empty string", func() {
-		_, err := parseISO8601ToMillis("")
+		_, err := parseISO8601("")
 		Expect(err).To(HaveOccurred())
 	})
 
 	It("should error on an invalid timestamp", func() {
-		_, err := parseISO8601ToMillis("nope")
+		_, err := parseISO8601("nope")
 		Expect(err).To(HaveOccurred())
 	})
 })

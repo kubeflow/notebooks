@@ -17,15 +17,15 @@ limitations under the License.
 package helper
 
 import (
+	"fmt"
+	"sync"
+	"time"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 )
-
-// millisPerSecond converts the second-based durations from the CRD (e.g. secondsSinceActive)
-// into the millisecond-based timestamps stored in the Workspace status.
-const millisPerSecond = 1000
 
 // ActivityRuleDecision is the result of evaluating the activityRules for a specific effect.
 //
@@ -58,7 +58,7 @@ func EvaluateActivityRule[T any](
 	rules []kubefloworgv1beta1.ActivityRule,
 	namespaceLabels, podConfigLabels map[string]string,
 	getEffect func(kubefloworgv1beta1.ActivityRuleEffect) *T,
-) ActivityRuleDecision[T] {
+) (ActivityRuleDecision[T], error) {
 	for i := range rules {
 		rule := &rules[i]
 
@@ -70,8 +70,7 @@ func EvaluateActivityRule[T any](
 
 		matched, err := activityRuleMatches(rule.Match, namespaceLabels, podConfigLabels)
 		if err != nil {
-			// treat an invalid selector as non-matching (validation should prevent this).
-			continue
+			return ActivityRuleDecision[T]{}, fmt.Errorf("failed to evaluate match for activityRule[%d]: %w", i, err)
 		}
 		if !matched {
 			continue
@@ -87,15 +86,15 @@ func EvaluateActivityRule[T any](
 			Value:              *effect,
 			SecondsSinceActive: rule.Config.SecondsSinceActive,
 			MinRunningSeconds:  minRunningSeconds,
-		}
+		}, nil
 	}
 
-	return ActivityRuleDecision[T]{Matched: false}
+	return ActivityRuleDecision[T]{Matched: false}, nil
 }
 
 // EvaluatePauseWorkspaceRule is a convenience wrapper around EvaluateActivityRule for the
 // pauseWorkspace effect.
-func EvaluatePauseWorkspaceRule(rules []kubefloworgv1beta1.ActivityRule, namespaceLabels, podConfigLabels map[string]string) ActivityRuleDecision[bool] {
+func EvaluatePauseWorkspaceRule(rules []kubefloworgv1beta1.ActivityRule, namespaceLabels, podConfigLabels map[string]string) (ActivityRuleDecision[bool], error) {
 	return EvaluateActivityRule(rules, namespaceLabels, podConfigLabels, func(e kubefloworgv1beta1.ActivityRuleEffect) *bool {
 		return e.PauseWorkspace
 	})
@@ -135,9 +134,36 @@ func activityRuleMatches(match *kubefloworgv1beta1.ActivityRuleMatch, namespaceL
 	return true, nil
 }
 
+var (
+	// selectorCache stores compiled labels.Selector instances to eliminate redundant
+	// metav1.LabelSelectorAsSelector parsing across high-frequency reconciles and large
+	// numbers of Workspaces referencing the same WorkspaceKind selectors.
+	selectorCache sync.Map // map[string]cachedSelector
+)
+
+type cachedSelector struct {
+	sel labels.Selector
+	err error
+}
+
 // selectorMatches converts a metav1.LabelSelector and evaluates it against the given labels.
+// Compiled selectors are cached to avoid redundant parsing across reconciles.
 func selectorMatches(selector *metav1.LabelSelector, lbls map[string]string) (bool, error) {
+	if selector == nil {
+		return true, nil
+	}
+
+	key := metav1.FormatLabelSelector(selector)
+	if val, ok := selectorCache.Load(key); ok {
+		cached := val.(cachedSelector)
+		if cached.err != nil {
+			return false, cached.err
+		}
+		return cached.sel.Matches(labels.Set(lbls)), nil
+	}
+
 	sel, err := metav1.LabelSelectorAsSelector(selector)
+	selectorCache.Store(key, cachedSelector{sel: sel, err: err})
 	if err != nil {
 		return false, err
 	}
@@ -166,7 +192,7 @@ func CalculateEligibleAfter(lastActivity int64, secondsSinceActive int32) int64 
 	if lastActivity <= 0 {
 		return 0
 	}
-	return lastActivity + int64(secondsSinceActive)*millisPerSecond
+	return lastActivity + (time.Duration(secondsSinceActive) * time.Second).Milliseconds()
 }
 
 // IsEligibleForPause reports whether the Workspace is currently eligible to be paused for
@@ -194,8 +220,8 @@ func IsEligibleForPause(lastActivity, lastRunningTime, now int64, secondsSinceAc
 		if lastRunningTime <= 0 {
 			return false, eligibleAfter
 		}
-		runningDurationMs := now - lastRunningTime
-		if runningDurationMs < int64(minRunningSeconds)*millisPerSecond {
+		runningDuration := time.Duration(now-lastRunningTime) * time.Millisecond
+		if runningDuration < time.Duration(minRunningSeconds)*time.Second {
 			return false, eligibleAfter
 		}
 	}

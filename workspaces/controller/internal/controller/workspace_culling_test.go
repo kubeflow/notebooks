@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -35,6 +36,28 @@ import (
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
+)
+
+const (
+	testTimestampRFC3339 = "2030-01-01T00:00:00Z"
+
+	testInitialActivityMs = int64(1000)
+	testLastActivityMs    = int64(4000)
+	testStartTimeMs       = int64(5000)
+	testEndTimeMs         = int64(5100)
+	testEligibleAfterMs   = int64(1016000)
+
+	testSecondsSinceActive1Hour = int32(3600)
+	testMinRunningSeconds2Hours = int32(7200)
+
+	testOneHourMs = int64(3600) * 1000
+	testNowMs     = int64(2_000_000_000_000)
+)
+
+var (
+	testStartTime        = time.UnixMilli(testStartTimeMs)
+	testEndTime          = time.UnixMilli(testEndTimeMs)
+	testLastActivityTime = time.UnixMilli(testLastActivityMs)
 )
 
 var _ = Describe("mergeReconcileResult", func() {
@@ -91,8 +114,8 @@ var _ = Describe("updateActivityStatusFromProbe", func() {
 		workspace = &kubefloworgv1beta1.Workspace{
 			Status: kubefloworgv1beta1.WorkspaceStatus{
 				Activity: kubefloworgv1beta1.WorkspaceActivity{
-					LastActivity: 1000,
-					LastUpdate:   1000,
+					LastActivity: testInitialActivityMs,
+					LastUpdate:   testInitialActivityMs,
 				},
 			},
 		}
@@ -100,41 +123,41 @@ var _ = Describe("updateActivityStatusFromProbe", func() {
 
 	It("should advance lastActivity and lastUpdate on success", func() {
 		result := &helper.ProbeResult{
-			StartTime:    5000,
-			EndTime:      5100,
+			StartTime:    testStartTime,
+			EndTime:      testEndTime,
 			Result:       kubefloworgv1beta1.WorkspaceProbeResultSuccess,
 			Message:      "Jupyter probe succeeded",
-			LastActivity: ptr.To(int64(4000)),
+			LastActivity: &testLastActivityTime,
 		}
 		updateActivityStatusFromProbe(workspace, result)
-		Expect(workspace.Status.Activity.LastActivity).To(Equal(int64(4000)))
-		Expect(workspace.Status.Activity.LastUpdate).To(Equal(int64(5100)))
+		Expect(workspace.Status.Activity.LastActivity).To(Equal(testLastActivityMs))
+		Expect(workspace.Status.Activity.LastUpdate).To(Equal(testEndTimeMs))
 		Expect(workspace.Status.Activity.LastProbe.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultSuccess))
 	})
 
 	It("should update lastUpdate but not lastActivity when probe returns no activity", func() {
 		result := &helper.ProbeResult{
-			StartTime:    5000,
-			EndTime:      5100,
+			StartTime:    testStartTime,
+			EndTime:      testEndTime,
 			Result:       kubefloworgv1beta1.WorkspaceProbeResultSuccess,
 			Message:      "PodExec probe succeeded",
 			LastActivity: nil,
 		}
 		updateActivityStatusFromProbe(workspace, result)
-		Expect(workspace.Status.Activity.LastActivity).To(Equal(int64(1000)))
-		Expect(workspace.Status.Activity.LastUpdate).To(Equal(int64(5100)))
+		Expect(workspace.Status.Activity.LastActivity).To(Equal(testInitialActivityMs))
+		Expect(workspace.Status.Activity.LastUpdate).To(Equal(testEndTimeMs))
 	})
 
 	It("should preserve lastActivity and lastUpdate on failure", func() {
 		result := &helper.ProbeResult{
-			StartTime: 5000,
-			EndTime:   5100,
+			StartTime: testStartTime,
+			EndTime:   testEndTime,
 			Result:    kubefloworgv1beta1.WorkspaceProbeResultFailure,
 			Message:   "Jupyter probe failed: HTTP 500",
 		}
 		updateActivityStatusFromProbe(workspace, result)
-		Expect(workspace.Status.Activity.LastActivity).To(Equal(int64(1000)))
-		Expect(workspace.Status.Activity.LastUpdate).To(Equal(int64(1000)))
+		Expect(workspace.Status.Activity.LastActivity).To(Equal(testInitialActivityMs))
+		Expect(workspace.Status.Activity.LastUpdate).To(Equal(testInitialActivityMs))
 		Expect(workspace.Status.Activity.LastProbe.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultFailure))
 	})
 })
@@ -157,18 +180,18 @@ var _ = Describe("generateWorkspaceStatus activity status reset on restart", fun
 
 		ws := &kubefloworgv1beta1.Workspace{
 			ObjectMeta: metav1.ObjectMeta{Name: "ws", Namespace: "team-a"},
-			Spec:       kubefloworgv1beta1.WorkspaceSpec{Paused: ptr.To(false)},
+			Spec:       kubefloworgv1beta1.WorkspaceSpec{Paused: new(false)},
 			Status: kubefloworgv1beta1.WorkspaceStatus{
 				State:           kubefloworgv1beta1.WorkspaceStatePaused,
-				LastRunningTime: 1000,
+				LastRunningTime: testInitialActivityMs,
 				Activity: kubefloworgv1beta1.WorkspaceActivity{
-					LastActivity: 1000,
-					LastUpdate:   1000,
+					LastActivity: testInitialActivityMs,
+					LastUpdate:   testInitialActivityMs,
 					LastProbe: &kubefloworgv1beta1.WorkspaceActivityLastProbe{
 						Result: kubefloworgv1beta1.WorkspaceProbeResultSuccess,
 					},
 					Rules: &kubefloworgv1beta1.WorkspaceActivityRules{
-						PauseWorkspace: &kubefloworgv1beta1.WorkspaceActivityPauseRule{EligibleAfter: 1016000},
+						PauseWorkspace: &kubefloworgv1beta1.WorkspaceActivityPauseRule{EligibleAfter: testEligibleAfterMs},
 					},
 				},
 			},
@@ -188,39 +211,27 @@ var _ = Describe("generateWorkspaceStatus activity status reset on restart", fun
 		Expect(err).NotTo(HaveOccurred())
 		Expect(status.State).To(Equal(kubefloworgv1beta1.WorkspaceStateRunning))
 		Expect(status.Activity).To(Equal(kubefloworgv1beta1.WorkspaceActivity{}))
-		Expect(status.LastRunningTime).To(BeNumerically(">", 1000))
+		Expect(status.LastRunningTime).To(BeNumerically(">", testInitialActivityMs))
 	})
 })
 
 var _ = Describe("evaluatePauseDecision", func() {
 	var (
-		scheme    *runtime.Scheme
-		now       int64
-		oneHourMs = int64(3600) * 1000
+		scheme *runtime.Scheme
+		now    = testNowMs
 	)
 
 	BeforeEach(func() {
 		scheme = runtime.NewScheme()
 		Expect(corev1.AddToScheme(scheme)).To(Succeed())
 		Expect(kubefloworgv1beta1.AddToScheme(scheme)).To(Succeed())
-		now = int64(2_000_000_000_000)
+		now = testNowMs
 	})
-
-	newReconciler := func(nsLabels map[string]string) *WorkspaceReconciler {
-		ns := &corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:   "team-a",
-				Labels: nsLabels,
-			},
-		}
-		c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(ns).Build()
-		return &WorkspaceReconciler{Client: c, Scheme: scheme}
-	}
 
 	newWorkspace := func(lastActivity, lastRunningTime int64) *kubefloworgv1beta1.Workspace {
 		return &kubefloworgv1beta1.Workspace{
 			ObjectMeta: metav1.ObjectMeta{Name: "ws", Namespace: "team-a"},
-			Spec:       kubefloworgv1beta1.WorkspaceSpec{Paused: ptr.To(false)},
+			Spec:       kubefloworgv1beta1.WorkspaceSpec{Paused: new(false)},
 			Status: kubefloworgv1beta1.WorkspaceStatus{
 				State:           kubefloworgv1beta1.WorkspaceStateRunning,
 				LastRunningTime: lastRunningTime,
@@ -236,8 +247,8 @@ var _ = Describe("evaluatePauseDecision", func() {
 			Spec: kubefloworgv1beta1.WorkspaceKindSpec{
 				ActivityRules: []kubefloworgv1beta1.ActivityRule{
 					{
-						Config: kubefloworgv1beta1.ActivityRuleConfig{SecondsSinceActive: 3600},
-						Effect: kubefloworgv1beta1.ActivityRuleEffect{PauseWorkspace: ptr.To(true)},
+						Config: kubefloworgv1beta1.ActivityRuleConfig{SecondsSinceActive: testSecondsSinceActive1Hour},
+						Effect: kubefloworgv1beta1.ActivityRuleEffect{PauseWorkspace: new(true)},
 					},
 				},
 			},
@@ -245,60 +256,59 @@ var _ = Describe("evaluatePauseDecision", func() {
 	}
 
 	It("should set eligibleAfter and pause when eligible and allowPause is true", func() {
-		r := newReconciler(nil)
-		lastActivity := now - oneHourMs // exactly one hour ago -> eligible
-		ws := newWorkspace(lastActivity, now-oneHourMs)
-		paused := r.evaluatePauseDecision(ws, catchAllKind(), nil, nil, now, true)
+		lastActivity := now - testOneHourMs // exactly one hour ago -> eligible
+		ws := newWorkspace(lastActivity, now-testOneHourMs)
+		paused, err := evaluatePauseDecision(ws, catchAllKind(), nil, nil, now, true)
+		Expect(err).ToNot(HaveOccurred())
 		Expect(paused).To(BeTrue())
-		Expect(ptr.Deref(ws.Spec.Paused, false)).To(BeTrue())
 		Expect(ws.Status.Activity.Rules).ToNot(BeNil())
-		Expect(ws.Status.Activity.Rules.PauseWorkspace.EligibleAfter).To(Equal(lastActivity + oneHourMs))
+		Expect(ws.Status.Activity.Rules.PauseWorkspace.EligibleAfter).To(Equal(lastActivity + testOneHourMs))
 	})
 
 	It("should refresh eligibleAfter but NOT pause when eligible and allowPause is false (stale data)", func() {
-		r := newReconciler(nil)
-		lastActivity := now - oneHourMs // exactly one hour ago -> eligible by stale data
-		ws := newWorkspace(lastActivity, now-oneHourMs)
-		paused := r.evaluatePauseDecision(ws, catchAllKind(), nil, nil, now, false)
+		lastActivity := now - testOneHourMs // exactly one hour ago -> eligible by stale data
+		ws := newWorkspace(lastActivity, now-testOneHourMs)
+		paused, err := evaluatePauseDecision(ws, catchAllKind(), nil, nil, now, false)
+		Expect(err).ToNot(HaveOccurred())
 		// even though the (stale) activity data says the Workspace is eligible, it must NOT be
 		// paused because no fresh probe backed this decision.
 		Expect(paused).To(BeFalse())
 		Expect(ptr.Deref(ws.Spec.Paused, false)).To(BeFalse())
 		// the eligibleAfter status is still refreshed for the UI.
 		Expect(ws.Status.Activity.Rules).ToNot(BeNil())
-		Expect(ws.Status.Activity.Rules.PauseWorkspace.EligibleAfter).To(Equal(lastActivity + oneHourMs))
+		Expect(ws.Status.Activity.Rules.PauseWorkspace.EligibleAfter).To(Equal(lastActivity + testOneHourMs))
 	})
 
 	It("should set eligibleAfter but not pause when not yet eligible", func() {
-		r := newReconciler(nil)
-		lastActivity := now - oneHourMs/2 // 30 min ago -> not eligible
-		ws := newWorkspace(lastActivity, now-oneHourMs)
-		paused := r.evaluatePauseDecision(ws, catchAllKind(), nil, nil, now, true)
+		lastActivity := now - testOneHourMs/2 // 30 min ago -> not eligible
+		ws := newWorkspace(lastActivity, now-testOneHourMs)
+		paused, err := evaluatePauseDecision(ws, catchAllKind(), nil, nil, now, true)
+		Expect(err).ToNot(HaveOccurred())
 		Expect(paused).To(BeFalse())
 		Expect(ptr.Deref(ws.Spec.Paused, false)).To(BeFalse())
-		Expect(ws.Status.Activity.Rules.PauseWorkspace.EligibleAfter).To(Equal(lastActivity + oneHourMs))
+		Expect(ws.Status.Activity.Rules.PauseWorkspace.EligibleAfter).To(Equal(lastActivity + testOneHourMs))
 	})
 
 	It("should not pause when a matched rule opts out (pauseWorkspace: false)", func() {
-		r := newReconciler(map[string]string{"protected": "true"})
 		kind := &kubefloworgv1beta1.WorkspaceKind{
 			Spec: kubefloworgv1beta1.WorkspaceKindSpec{
 				ActivityRules: []kubefloworgv1beta1.ActivityRule{
 					{
-						Config: kubefloworgv1beta1.ActivityRuleConfig{SecondsSinceActive: 3600},
+						Config: kubefloworgv1beta1.ActivityRuleConfig{SecondsSinceActive: testSecondsSinceActive1Hour},
 						Match: &kubefloworgv1beta1.ActivityRuleMatch{
 							MatchNamespace: &kubefloworgv1beta1.NamespaceMatch{
 								Selector: metav1.LabelSelector{MatchLabels: map[string]string{"protected": "true"}},
 							},
 						},
-						Effect: kubefloworgv1beta1.ActivityRuleEffect{PauseWorkspace: ptr.To(false)},
+						Effect: kubefloworgv1beta1.ActivityRuleEffect{PauseWorkspace: new(false)},
 					},
 				},
 			},
 		}
-		lastActivity := now - oneHourMs
-		ws := newWorkspace(lastActivity, now-oneHourMs)
-		paused := r.evaluatePauseDecision(ws, kind, map[string]string{"protected": "true"}, nil, now, true)
+		lastActivity := now - testOneHourMs
+		ws := newWorkspace(lastActivity, now-testOneHourMs)
+		paused, err := evaluatePauseDecision(ws, kind, map[string]string{"protected": "true"}, nil, now, true)
+		Expect(err).ToNot(HaveOccurred())
 		Expect(paused).To(BeFalse())
 		if ws.Status.Activity.Rules != nil {
 			Expect(ws.Status.Activity.Rules.PauseWorkspace).To(BeNil())
@@ -306,37 +316,62 @@ var _ = Describe("evaluatePauseDecision", func() {
 	})
 
 	It("should clear rules status when no rules configured", func() {
-		r := newReconciler(nil)
 		kind := &kubefloworgv1beta1.WorkspaceKind{}
-		ws := newWorkspace(now-oneHourMs, now-oneHourMs)
+		ws := newWorkspace(now-testOneHourMs, now-testOneHourMs)
 		ws.Status.Activity.Rules = &kubefloworgv1beta1.WorkspaceActivityRules{
 			PauseWorkspace: &kubefloworgv1beta1.WorkspaceActivityPauseRule{EligibleAfter: 123},
 		}
-		paused := r.evaluatePauseDecision(ws, kind, nil, nil, now, true)
+		paused, err := evaluatePauseDecision(ws, kind, nil, nil, now, true)
+		Expect(err).ToNot(HaveOccurred())
 		Expect(paused).To(BeFalse())
 		Expect(ws.Status.Activity.Rules).ToNot(BeNil())
 		Expect(ws.Status.Activity.Rules.PauseWorkspace).To(BeNil())
 	})
 
 	It("should not pause when running duration is below minRunningSeconds", func() {
-		r := newReconciler(nil)
 		kind := &kubefloworgv1beta1.WorkspaceKind{
 			Spec: kubefloworgv1beta1.WorkspaceKindSpec{
 				ActivityRules: []kubefloworgv1beta1.ActivityRule{
 					{
 						Config: kubefloworgv1beta1.ActivityRuleConfig{
-							SecondsSinceActive: 3600,
-							MinRunningSeconds:  ptr.To(int32(7200)), // 2 hours
+							SecondsSinceActive: testSecondsSinceActive1Hour,
+							MinRunningSeconds:  new(testMinRunningSeconds2Hours), // 2 hours
 						},
-						Effect: kubefloworgv1beta1.ActivityRuleEffect{PauseWorkspace: ptr.To(true)},
+						Effect: kubefloworgv1beta1.ActivityRuleEffect{PauseWorkspace: new(true)},
 					},
 				},
 			},
 		}
-		lastActivity := now - oneHourMs
-		ws := newWorkspace(lastActivity, now-oneHourMs) // only running 1h < 2h
-		paused := r.evaluatePauseDecision(ws, kind, nil, nil, now, true)
+		lastActivity := now - testOneHourMs
+		ws := newWorkspace(lastActivity, now-testOneHourMs) // only running 1h < 2h
+		paused, err := evaluatePauseDecision(ws, kind, nil, nil, now, true)
+		Expect(err).ToNot(HaveOccurred())
 		Expect(paused).To(BeFalse())
+	})
+
+	It("should return an error when activityRules have an invalid selector", func() {
+		kind := &kubefloworgv1beta1.WorkspaceKind{
+			Spec: kubefloworgv1beta1.WorkspaceKindSpec{
+				ActivityRules: []kubefloworgv1beta1.ActivityRule{
+					{
+						Config: kubefloworgv1beta1.ActivityRuleConfig{SecondsSinceActive: testSecondsSinceActive1Hour},
+						Match: &kubefloworgv1beta1.ActivityRuleMatch{
+							MatchNamespace: &kubefloworgv1beta1.NamespaceMatch{
+								Selector: metav1.LabelSelector{
+									MatchExpressions: []metav1.LabelSelectorRequirement{
+										{Key: "tier", Operator: "InvalidOp"},
+									},
+								},
+							},
+						},
+						Effect: kubefloworgv1beta1.ActivityRuleEffect{PauseWorkspace: new(true)},
+					},
+				},
+			},
+		}
+		ws := newWorkspace(now-testOneHourMs, now-testOneHourMs)
+		_, err := evaluatePauseDecision(ws, kind, nil, nil, now, true)
+		Expect(err).To(HaveOccurred())
 	})
 })
 
@@ -389,7 +424,7 @@ var _ = Describe("timeUntilProbeDue", func() {
 		probeInterval    = 60 * time.Minute
 	)
 
-	now := int64(2_000_000_000_000)
+	now := testNowMs
 
 	workspaceWithLastProbe := func(startTime int64, result kubefloworgv1beta1.WorkspaceProbeResult) *kubefloworgv1beta1.Workspace {
 		ws := &kubefloworgv1beta1.Workspace{}
@@ -532,7 +567,7 @@ var _ = Describe("runProbe", func() {
 			HTTPProber: &fakeHTTPProber{
 				resp: &http.Response{
 					StatusCode: http.StatusOK,
-					Body:       io.NopCloser(strings.NewReader(`{"last_activity":"2030-01-01T00:00:00Z"}`)),
+					Body:       io.NopCloser(strings.NewReader(fmt.Sprintf(`{"last_activity":"%s"}`, testTimestampRFC3339))),
 					Header:     make(http.Header),
 				},
 			},
