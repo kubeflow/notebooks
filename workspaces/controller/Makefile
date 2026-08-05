@@ -1,6 +1,6 @@
 GIT_COMMIT     := $(shell git rev-parse HEAD)
 GIT_TREE_STATE := $(shell test -n "`git status --porcelain`" && echo "-dirty" || echo "")
-
+include ../common.mk
 # Image URL to use all building/pushing image targets
 REGISTRY ?= ghcr.io/kubeflow/notebooks
 NAME ?= workspaces-controller
@@ -112,12 +112,6 @@ lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes
 build: manifests generate fmt vet ## Build manager binary.
 	go build -o bin/manager cmd/main.go
 
-##@ Clean
-.PHONY: clean
-clean: ## Remove local test/build artifacts.
-	rm -rf $(LOCALBIN)
-	@echo "INFO: '$(LOCALBIN)' successfully cleaned."
-
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./cmd/main.go
@@ -168,21 +162,14 @@ undeploy: kustomize ## Undeploy controller from the K8s cluster specified in ~/.
 
 ##@ Dependencies
 
-## Location to install dependencies to
-LOCALBIN ?= $(shell pwd)/bin
-$(LOCALBIN):
-	mkdir -p $(LOCALBIN)
-
 ## Tool Binaries
 KUBECTL ?= kubectl
-KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 ISTIOCTL ?= $(LOCALBIN)/istioctl
 GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 
 ## Tool Versions
-KUSTOMIZE_VERSION ?= v5.5.0
 CONTROLLER_TOOLS_VERSION ?= v0.20.1
 ENVTEST_VERSION ?= release-0.19
 ISTIOCTL_VERSION ?= 1.27.3

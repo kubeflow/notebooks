@@ -1,5 +1,6 @@
 GIT_COMMIT     := $(shell git rev-parse HEAD)
 GIT_TREE_STATE := $(shell test -n "`git status --porcelain`" && echo "-dirty" || echo "")
+include ../common.mk
 
 # Image URL to use all building/pushing image targets
 REGISTRY ?= ghcr.io/kubeflow/notebooks
@@ -23,13 +24,6 @@ all: help
 .PHONY: help
 help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
-
-##@ Clean
-
-.PHONY: clean
-clean: ## Remove local test/build artifacts.
-	rm -rf $(LOCALBIN)
-	@echo "INFO: '$(LOCALBIN)' successfully cleaned."
 
 ##@ Build
 
@@ -71,17 +65,8 @@ undeploy: kustomize ## Undeploy frontend from the K8s cluster specified in ~/.ku
 
 ##@ Dependencies
 
-# Location to install dependencies to
-LOCALBIN ?= $(shell pwd)/bin
-$(LOCALBIN):
-	mkdir -p $(LOCALBIN)
-
 # Tool Binaries
 KUBECTL ?= kubectl
-KUSTOMIZE ?= $(LOCALBIN)/kustomize
-
-# Tool Versions
-KUSTOMIZE_VERSION ?= v5.5.0
 
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
