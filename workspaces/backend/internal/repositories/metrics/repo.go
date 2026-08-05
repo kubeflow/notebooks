@@ -29,7 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
-	modelsmetrics "github.com/kubeflow/notebooks/workspaces/backend/internal/models/metrics"
+	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/metrics"
 )
 
 const (
