@@ -29,29 +29,26 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
+	modelsCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/metrics"
 )
 
 const (
-	// LabelWorkspaceName is the label the WorkspaceController sets on every workspace pod
-	// (at the StatefulSet pod-template level).
-	LabelWorkspaceName = "notebooks.kubeflow.org/workspace-name"
-
 	// TTL for API availability checks.
 	apiAvailabilityTTL = 60 * time.Second
 )
 
-// Repository exposes point-in-time workspace resource utilization, read from the
+// MetricsRepository exposes point-in-time workspace resource utilization, read from the
 // Kubernetes Metrics Server, to the API layer.
-type Repository struct {
+type MetricsRepository struct {
 	cfg          *config.EnvConfig
 	client       client.Client
 	apiAvailable func() (bool, error)
 }
 
-// NewRepository creates a repository for accessing workspace metrics.
-func NewRepository(cfg *config.EnvConfig, c client.Client) *Repository {
-	return &Repository{
+// NewMetricsRepository creates a MetricsRepository for accessing workspace metrics.
+func NewMetricsRepository(cfg *config.EnvConfig, c client.Client) *MetricsRepository {
+	return &MetricsRepository{
 		cfg:          cfg,
 		client:       c,
 		apiAvailable: memoize(apiAvailabilityTTL, func() (bool, error) { return metricsAPIServed(c) }),
@@ -59,24 +56,24 @@ func NewRepository(cfg *config.EnvConfig, c client.Client) *Repository {
 }
 
 // GetWorkspaceResourceUsage returns the resource usage for all pods in the given namespace and workspace.
-func (r *Repository) GetWorkspaceResourceUsage(ctx context.Context, ns, workspace string) (*modelsmetrics.WorkspaceResourceUsage, error) {
+func (r *MetricsRepository) GetWorkspaceResourceUsage(ctx context.Context, ns, workspace string) (*models.WorkspaceResourceUsage, error) {
 	available, err := r.apiAvailable()
 	if err != nil {
 		return nil, err
 	}
 
 	if !available {
-		return modelsmetrics.NewErrorResourceUsage(modelsmetrics.ErrorCodeMetricsAPINotAvailable), nil
+		return models.NewErrorResourceUsage(models.ErrorCodeMetricsAPINotAvailable), nil
 	}
 
-	selector := client.MatchingLabels{LabelWorkspaceName: workspace}
+	selector := client.MatchingLabels{modelsCommon.LabelWorkspaceName: workspace}
 	podList := &corev1.PodList{}
 	if err := r.client.List(ctx, podList, client.InNamespace(ns), selector); err != nil {
 		return nil, err
 	}
 
 	if len(podList.Items) == 0 {
-		return modelsmetrics.NewErrorResourceUsage(modelsmetrics.ErrorCodeWorkspaceNotRunning), nil
+		return models.NewErrorResourceUsage(models.ErrorCodeWorkspaceNotRunning), nil
 	}
 
 	// Workspaces are backed by StatefulSets with replicas=1. Because StatefulSets provide
@@ -88,8 +85,8 @@ func (r *Repository) GetWorkspaceResourceUsage(ctx context.Context, ns, workspac
 		return nil, err
 	}
 
-	usageByContainer := modelsmetrics.UsageForPod(podMetricsList.Items, pod.Name)
-	return modelsmetrics.NewWorkspaceResourceUsage(
+	usageByContainer := models.UsageForPod(podMetricsList.Items, pod.Name)
+	return models.NewWorkspaceResourceUsage(
 		pod,
 		usageByContainer,
 	), nil

@@ -18,12 +18,14 @@ package metrics
 
 import (
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metricsv1beta1 "k8s.io/metrics/pkg/apis/metrics/v1beta1"
 )
 
 func TestMetricsModule(t *testing.T) {
@@ -70,17 +72,29 @@ var _ = Describe("Funcs", func() {
 			}
 
 			got := NewWorkspaceResourceUsage(&pod, usageByContainer)
+			expected := ContainerResourceUsage{
+				MetricsFromMetricsServer: &MetricsFromMetricsServer{
+					Timestamp: "2026-06-20T12:00:00Z",
+					Usage: ResourceValues{
+						CPU:    "50m",
+						Memory: "100Mi",
+					},
+				},
+				Resources: corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{
+						corev1.ResourceCPU:    qtyCPU,
+						corev1.ResourceMemory: qtyMem,
+					},
+					Limits: corev1.ResourceList{
+						corev1.ResourceCPU:    qtyCPU,
+						corev1.ResourceMemory: qtyMem,
+					},
+				},
+			}
 
 			Expect(got.Error).To(BeEmpty())
 			Expect(got.Containers).To(HaveLen(1))
-
-			cUsage := got.Containers["container-1"]
-			Expect(cUsage.MetricsFromMetricsServer).NotTo(BeNil())
-			Expect(cUsage.MetricsFromMetricsServer.Timestamp).To(Equal("2026-06-20T12:00:00Z"))
-			Expect(cUsage.MetricsFromMetricsServer.Usage.CPU).To(Equal("50m"))
-			Expect(cUsage.MetricsFromMetricsServer.Usage.Memory).To(Equal("100Mi"))
-			Expect(cUsage.Resources.Requests[corev1.ResourceCPU]).To(Equal(qtyCPU))
-			Expect(cUsage.Resources.Limits[corev1.ResourceCPU]).To(Equal(qtyCPU))
+			Expect(got.Containers["container-1"]).To(BeComparableTo(expected))
 		})
 
 		It("reports MetricsFromMetricsServer=nil when the pod has no metrics sample yet", func() {
@@ -161,6 +175,84 @@ var _ = Describe("Funcs", func() {
 			Expect(got.Containers).To(BeNil())
 		})
 	})
+
+	Describe("UsageForPod", func() {
+		It("indexes container metrics for a matching pod", func() {
+			now := time.Date(2026, 6, 20, 12, 0, 0, 0, time.UTC)
+			pm := podMetrics("test-pod", now,
+				containerMetrics("main", corev1.ResourceList{
+					corev1.ResourceCPU:    resource.MustParse("250m"),
+					corev1.ResourceMemory: resource.MustParse("512Mi"),
+				}),
+				containerMetrics("sidecar", corev1.ResourceList{
+					corev1.ResourceCPU:    resource.MustParse("10m"),
+					corev1.ResourceMemory: resource.MustParse("64Mi"),
+				}))
+
+			got := UsageForPod([]metricsv1beta1.PodMetrics{pm}, "test-pod")
+			expected := map[string]*MetricsFromMetricsServer{
+				"main": {
+					Timestamp: "2026-06-20T12:00:00Z",
+					Usage: ResourceValues{
+						CPU:    "250m",
+						Memory: "512Mi",
+					},
+				},
+				"sidecar": {
+					Timestamp: "2026-06-20T12:00:00Z",
+					Usage: ResourceValues{
+						CPU:    "10m",
+						Memory: "64Mi",
+					},
+				},
+			}
+
+			Expect(got).To(BeComparableTo(expected))
+		})
+
+		It("returns nil when no pod in the list matches podName", func() {
+			now := time.Date(2026, 6, 20, 12, 0, 0, 0, time.UTC)
+			pm := podMetrics("other-pod", now,
+				containerMetrics("main", corev1.ResourceList{
+					corev1.ResourceCPU: resource.MustParse("100m"),
+				}))
+
+			got := UsageForPod([]metricsv1beta1.PodMetrics{pm}, "target-pod")
+
+			Expect(got).To(BeNil())
+		})
+
+		It("returns nil when the podMetrics list is empty", func() {
+			got := UsageForPod(nil, "target-pod")
+
+			Expect(got).To(BeNil())
+		})
+
+		It("handles containers with partial or missing resource usage", func() {
+			now := time.Date(2026, 6, 20, 12, 0, 0, 0, time.UTC)
+			pm := podMetrics("test-pod", now,
+				containerMetrics("cpu-only", corev1.ResourceList{
+					corev1.ResourceCPU: resource.MustParse("50m"),
+				}),
+				containerMetrics("empty-usage", corev1.ResourceList{}))
+
+			got := UsageForPod([]metricsv1beta1.PodMetrics{pm}, "test-pod")
+			expected := map[string]*MetricsFromMetricsServer{
+				"cpu-only": {
+					Timestamp: "2026-06-20T12:00:00Z",
+					Usage: ResourceValues{
+						CPU: "50m",
+					},
+				},
+				"empty-usage": {
+					Timestamp: "2026-06-20T12:00:00Z",
+					Usage:     ResourceValues{},
+				},
+			}
+
+			Expect(got).To(BeComparableTo(expected))
+		})
+	})
 })
 
 func podWithContainer(name string, containers ...corev1.Container) corev1.Pod {
@@ -183,4 +275,19 @@ func container(name string, requests, limits corev1.ResourceList) corev1.Contain
 		}
 	}
 	return c
+}
+
+func podMetrics(name string, timestamp time.Time, containers ...metricsv1beta1.ContainerMetrics) metricsv1beta1.PodMetrics {
+	return metricsv1beta1.PodMetrics{
+		ObjectMeta: metav1.ObjectMeta{Name: name},
+		Timestamp:  metav1.NewTime(timestamp),
+		Containers: containers,
+	}
+}
+
+func containerMetrics(name string, usage corev1.ResourceList) metricsv1beta1.ContainerMetrics {
+	return metricsv1beta1.ContainerMetrics{
+		Name:  name,
+		Usage: usage,
+	}
 }
