@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workspaces-controller
+spec:
+  template:
+    spec:
+      containers:
+      - name: manager
+        env:
+        - name: ROUTING_PROVIDER
+          valueFrom:
+            configMapKeyRef:
+              name: kubeflow-workspaces-gateway-api-config
+              key: ROUTING_PROVIDER
+        - name: GATEWAY_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: kubeflow-workspaces-gateway-api-config
+              key: GATEWAY_NAME
+        - name: GATEWAY_HOSTS
+          valueFrom:
+            configMapKeyRef:
+              name: kubeflow-workspaces-gateway-api-config
+              key: GATEWAY_HOSTS
+        - name: CLUSTER_DOMAIN
+          valueFrom:
+            configMapKeyRef:
+              name: kubeflow-workspaces-gateway-api-config
+              key: CLUSTER_DOMAIN

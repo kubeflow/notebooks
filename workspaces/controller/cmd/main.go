@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/config"
@@ -58,6 +59,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(istiov1.AddToScheme(scheme))
+	utilruntime.Must(gatewayv1.Install(scheme))
 
 	utilruntime.Must(kubefloworgv1beta1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
@@ -82,6 +84,14 @@ func main() {
 		"If set the metrics endpoint is served securely")
 	flag.BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
+	var routingProviderStr string
+	flag.StringVar(&routingProviderStr, "routing-provider",
+		getEnvAsStr("ROUTING_PROVIDER", string(config.RoutingProviderNone)),
+		"The routing provider to use (e.g., none, istio, gateway-api)")
+	flag.StringVar(&cfg.GatewayName, "gateway-name", getEnvAsStr("GATEWAY_NAME", ""),
+		"The name of the Gateway API Gateway to use")
+	flag.StringVar(&cfg.GatewayHosts, "gateway-hosts", getEnvAsStr("GATEWAY_HOSTS", "*"),
+		"The hosts to use for the Gateway API HTTPRoute")
 	flag.StringVar(&cfg.IstioGateway, "istio-gateway", getEnvAsStr("ISTIO_GATEWAY", ""),
 		"The name of the Istio gateway to use")
 	flag.StringVar(&cfg.IstioHosts, "istio-hosts", getEnvAsStr("ISTIO_HOSTS", "*"),
@@ -96,6 +106,19 @@ func main() {
 	}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
+
+	cfg.RoutingProvider = config.RoutingProviderType(routingProviderStr)
+
+	// Map legacy configurations
+	if cfg.RoutingProvider == config.RoutingProviderNone && cfg.UseIstio {
+		cfg.RoutingProvider = config.RoutingProviderIstio
+	}
+	if cfg.GatewayName == "" && cfg.IstioGateway != "" {
+		cfg.GatewayName = cfg.IstioGateway
+	}
+	if cfg.GatewayHosts == "*" && cfg.IstioHosts != "*" {
+		cfg.GatewayHosts = cfg.IstioHosts
+	}
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
