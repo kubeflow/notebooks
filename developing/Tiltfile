@@ -12,6 +12,7 @@ allow_k8s_contexts('kind-tilt')
 
 # Allow skipping frontend via environment variable
 enable_frontend = os.getenv("ENABLE_FRONTEND", "true").lower() == "true"
+routing_provider = os.getenv("ROUTING_PROVIDER", "istio")
 
 # Allow enabling Prometheus for metrics verification via environment variable
 enable_prometheus = os.getenv("ENABLE_PROMETHEUS", "false").lower() == "true"
@@ -45,10 +46,10 @@ docker_build(
 )
 
 # Build manifests with kustomize
-if enable_prometheus:
+if routing_provider == "istio" and enable_prometheus:
     controller_kustomize_path = os.path.join(controller_dir, "manifests/kustomize/overlays/istio-prometheus")
 else:
-    controller_kustomize_path = os.path.join(controller_dir, "manifests/kustomize/overlays/istio")
+    controller_kustomize_path = os.path.join(controller_dir, "manifests/kustomize/overlays/" + routing_provider)
 manifests = kustomize(controller_kustomize_path, kustomize_bin=kustomize_bin)
 
 # Apply manifests
@@ -129,7 +130,7 @@ docker_build(
 )
 
 # Build manifests with kustomize
-backend_kustomize_path = os.path.join(backend_dir, "manifests/kustomize/overlays/istio")
+backend_kustomize_path = os.path.join(backend_dir, "manifests/kustomize/overlays/" + routing_provider)
 backend_manifests = kustomize(backend_kustomize_path, kustomize_bin=kustomize_bin)
 
 # Mutate the manifest objects before applying
@@ -220,7 +221,7 @@ if enable_frontend:
     )
 
     # Build manifests with kustomize
-    frontend_kustomize_path = os.path.join(frontend_dir, "manifests/kustomize/overlays/istio")
+    frontend_kustomize_path = os.path.join(frontend_dir, "manifests/kustomize/overlays/" + routing_provider)
     frontend_manifests = kustomize(frontend_kustomize_path, kustomize_bin=kustomize_bin)
 
     # Mutate the manifest objects before applying
@@ -240,6 +241,10 @@ if enable_frontend:
         if kind == "VirtualService" and name == "workspaces-frontend":
             for http_route in o.get("spec", {}).get("http", []):
                 http_route.pop("rewrite", None)
+        elif kind == "HTTPRoute" and name == "workspaces-frontend":
+            for rule in o.get("spec", {}).get("rules", []):
+                if "filters" in rule:
+                    rule["filters"] = [f for f in rule["filters"] if f.get("type") != "URLRewrite"]
 
         # modify the frontend deployment for dev
         if kind == "Deployment" and name == "workspaces-frontend":
@@ -294,15 +299,18 @@ if enable_frontend:
 
 
 # ============================================================================
-# Istio Gateway Resources
+# Gateway Resources
 # ============================================================================
-# Apply the gateway namespace, TLS certificate, and Istio Gateway resources.
-# These are prerequisites for the VirtualServices created by backend/frontend overlays.
-# Note: Istio itself (istiod, ingress gateway) is installed by the Makefile before Tilt starts.
+# Apply the gateway namespace, TLS certificate, and Gateway resources.
+# These are prerequisites for the VirtualServices/HTTPRoutes created by backend/frontend overlays.
 
-istio_gateway_path = os.path.join(tilt_root, "manifests/istio-gateway")
+if routing_provider == "istio":
+    gateway_path = os.path.join(tilt_root, "manifests/istio-gateway")
+else:
+    gateway_path = os.path.join(tilt_root, "manifests/gateway-api")
+
 k8s_yaml(
-    kustomize(istio_gateway_path, kustomize_bin=kustomize_bin),
+    kustomize(gateway_path, kustomize_bin=kustomize_bin),
     allow_duplicates=True,
 )
 
@@ -310,34 +318,42 @@ k8s_yaml(
 #       without hardcoding names here
 # Manage k8s_yaml resources
 # - Apply Tilt-specific grouping/labels
+gateway_objects = [
+    "selfsigned-issuer:clusterissuer",
+    "gateway-tls:certificate",
+    "kubeflow-gateway:gateway",
+]
+if routing_provider == "istio":
+    gateway_objects.append("gateway-access-logging:telemetry")
+
 k8s_resource(
-    objects=[
-        "selfsigned-issuer:clusterissuer",
-        "gateway-tls:certificate",
-        "kubeflow-gateway:gateway",
-        "gateway-access-logging:telemetry",
-    ],
-    new_name="istio-gateway",
+    objects=gateway_objects,
+    new_name=routing_provider + "-gateway",
     pod_readiness="ignore",
-    labels=["istio"],
+    labels=["gateway"],
 )
 
-# Port-forward the Istio ingress gateway for local access to production-like routing.
-# Uses local_resource because the ingress gateway is installed by istioctl (not managed by Tilt),
-# and extra_pod_selectors doesn't support port-forwarding on object-only resources.
+# Port-forward the ingress gateway for local access to production-like routing.
 gateway_links = [link("https://localhost:8443/workspaces/api/v1/swagger/index.html", "API (Backend)")]
 if enable_frontend:
     gateway_links.insert(0, link("https://localhost:8443/workspaces/", "Dashboard (Frontend)"))
 
-
-local_resource(
-    "istio-ingressgateway",
-    serve_cmd="kubectl port-forward -n istio-system svc/istio-ingressgateway 8443:443",
-    resource_deps=["istio-gateway", "workspaces-frontend" if enable_frontend else "workspaces-backend"],
-    links=gateway_links,
-    labels=["istio"],
-)
-
+if routing_provider == "istio":
+    local_resource(
+        "istio-ingressgateway",
+        serve_cmd="kubectl port-forward -n istio-system svc/istio-ingressgateway 8443:443",
+        resource_deps=["istio-gateway", "workspaces-frontend" if enable_frontend else "workspaces-backend"],
+        links=gateway_links,
+        labels=["gateway"],
+    )
+else:
+    # When using cloud-provider-kind, it provisions a LoadBalancer for the Gateway.
+    local_resource(
+        "gateway-api-lb",
+        serve_cmd="kubectl get gateway kubeflow-gateway -n kubeflow -w",
+        resource_deps=["gateway-api-gateway", "workspaces-frontend" if enable_frontend else "workspaces-backend"],
+        labels=["gateway"],
+    )
 
 # ============================================================================
 # Prometheus (optional)
