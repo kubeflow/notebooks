@@ -109,7 +109,6 @@ export class Secrets<SecurityDataType = unknown> extends HttpClient<SecurityData
     namespace: string,
     name: string,
     secret: ApiSecretEnvelope,
-    secret: ApiSecretEnvelope,
     params: RequestParams = {},
   ) =>
     this.request<ApiSecretEnvelope, ApiErrorEnvelope>({

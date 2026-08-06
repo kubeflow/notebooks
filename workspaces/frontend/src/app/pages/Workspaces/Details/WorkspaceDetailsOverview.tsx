@@ -66,7 +66,10 @@ export const WorkspaceDetailsOverview: React.FunctionComponent<WorkspaceDetailsO
       {/* Render Pod Information conditionally when pod is present */}
       {podInfo && (
         <>
-          <DescriptionListGroup data-testid="pod-info-section">
+          <DescriptionListGroup>
+            <DescriptionListTerm data-testid="pod-info-title">Pod Information</DescriptionListTerm>
+          </DescriptionListGroup>
+          <DescriptionListGroup>
             <DescriptionListTerm>Pod Name</DescriptionListTerm>
             <DescriptionListDescription data-testid="pod-name">
               {podInfo.name}
@@ -75,7 +78,7 @@ export const WorkspaceDetailsOverview: React.FunctionComponent<WorkspaceDetailsO
           {podInfo.nodeName && (
             <DescriptionListGroup>
               <DescriptionListTerm>Node</DescriptionListTerm>
-              <DescriptionListDescription data-testid="node-name">
+              <DescriptionListDescription data-testid="pod-node-name">
                 {podInfo.nodeName}
               </DescriptionListDescription>
             </DescriptionListGroup>

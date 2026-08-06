@@ -3,7 +3,7 @@ import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import useWorkspacePodTemplateDetails from '~/app/hooks/useWorkspacePodTemplateDetails';
 import { WorkspaceDetailsOverview } from '~/app/pages/Workspaces/Details/WorkspaceDetailsOverview';
-import { buildMockWorkspace } from '~/shared/mock/mockBuilder';
+import { buildMockWorkspace, buildMockWorkspaceDetails } from '~/shared/mock/mockBuilder';
 
 jest.mock('~/app/hooks/useWorkspacePodTemplateDetails', () => ({
   __esModule: true,
@@ -20,34 +20,36 @@ describe('WorkspaceDetailsOverview', () => {
   });
 
   it('renders Pod Information when pod is non-null', () => {
-    mockUseWorkspacePodTemplateDetails.mockReturnValue([
-      {
-        podMetadata: { labels: {}, annotations: {} },
-        volumes: {},
-        pod: { name: 'workspace-abc-0', nodeName: 'node-gpu-01' },
-      },
-      true,
-      undefined,
-    ]);
+    const mockDetails = buildMockWorkspaceDetails({
+      pod: { name: 'workspace-abc-0', nodeName: 'node-gpu-01' },
+    });
 
-    render(<WorkspaceDetailsOverview workspace={mockWorkspace} />);
+    mockUseWorkspacePodTemplateDetails.mockReturnValue([mockDetails, true, undefined]);
 
-    expect(screen.getByTestId('pod-info-section')).toBeInTheDocument();
+    render(
+      <WorkspaceDetailsOverview
+        workspace={mockWorkspace}
+        details={mockDetails}
+        detailsLoaded // boolean
+      />,
+    );
+
+    expect(screen.getByTestId('pod-info-title')).toBeInTheDocument();
     expect(screen.getByTestId('pod-name')).toBeInTheDocument();
-    expect(screen.getByTestId('node-name')).toBeInTheDocument();
+    expect(screen.getByTestId('pod-node-name')).toBeInTheDocument();
   });
 
   it('hides Pod Information when pod is null (e.g., paused or pending)', () => {
-    mockUseWorkspacePodTemplateDetails.mockReturnValue([
-      { podMetadata: { labels: {}, annotations: {} }, volumes: {}, pod: null },
-      true,
-      undefined,
-    ]);
+    const mockDetails = buildMockWorkspaceDetails({ pod: undefined });
 
-    render(<WorkspaceDetailsOverview workspace={mockWorkspace} />);
+    mockUseWorkspacePodTemplateDetails.mockReturnValue([mockDetails, true, undefined]);
 
-    expect(screen.queryByTestId('pod-info-section')).not.toBeInTheDocument();
+    render(
+      <WorkspaceDetailsOverview workspace={mockWorkspace} details={mockDetails} detailsLoaded />,
+    );
+
+    expect(screen.queryByTestId('pod-info-title')).not.toBeInTheDocument();
     expect(screen.queryByTestId('pod-name')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('node-name')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('pod-node-name')).not.toBeInTheDocument();
   });
 });

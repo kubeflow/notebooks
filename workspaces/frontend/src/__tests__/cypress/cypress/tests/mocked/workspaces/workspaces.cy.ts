@@ -242,7 +242,7 @@ describe('Workspaces', () => {
         {
           data: {
             podMetadata: { labels: {}, annotations: {} },
-            volumes: {},
+            volumes: { home: { pvcName: 'home-pvc', mountPath: '/home', readOnly: false } },
             pod: {
               name: 'workspace-abc-0',
               nodeName: 'node-gpu-01',
@@ -277,8 +277,8 @@ describe('Workspaces', () => {
         {
           data: {
             podMetadata: { labels: {}, annotations: {} },
-            volumes: {},
-            pod: null,
+            volumes: { home: { pvcName: 'home-pvc', mountPath: '/home', readOnly: false } },
+            pod: undefined,
           },
         },
       );

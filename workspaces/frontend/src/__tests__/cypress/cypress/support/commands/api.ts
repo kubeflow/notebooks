@@ -81,11 +81,6 @@ declare global {
           response: ApiWorkspaceActionPauseEnvelope | ApiErrorEnvelope,
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/details',
-          options: { path: { apiVersion: string; namespace: string; workspaceName: string } },
-          response: ApiWorkspaceDetailsEnvelope | ApiErrorEnvelope,
-        ) => Cypress.Chainable<null>) &
-        ((
           type: 'PUT /api/:apiVersion/workspaces/:namespace/:workspaceName',
           options: { path: { apiVersion: string; namespace: string; workspaceName: string } },
           response: ApiWorkspaceEnvelope | ApiErrorEnvelope,
