@@ -29,6 +29,7 @@ import (
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces"
+	repoCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/common"
 	repository "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/workspaces"
 )
 
@@ -79,7 +80,7 @@ func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps htt
 
 	workspace, err := a.repositories.Workspace.GetWorkspace(r.Context(), namespace, workspaceName)
 	if err != nil {
-		if errors.Is(err, repository.ErrWorkspaceNotFound) {
+		if errors.Is(err, repoCommon.ErrWorkspaceNotFound) {
 			a.notFoundResponse(w, r)
 			return
 		}
@@ -360,7 +361,7 @@ func (a *App) UpdateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 
 	updatedWorkspace, err := a.repositories.Workspace.UpdateWorkspace(r.Context(), actor, workspaceUpdate, namespace, workspaceName)
 	if err != nil {
-		if errors.Is(err, repository.ErrWorkspaceNotFound) {
+		if errors.Is(err, repoCommon.ErrWorkspaceNotFound) {
 			a.notFoundResponse(w, r)
 			return
 		}
@@ -429,7 +430,7 @@ func (a *App) DeleteWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 
 	err := a.repositories.Workspace.DeleteWorkspace(r.Context(), namespace, workspaceName)
 	if err != nil {
-		if errors.Is(err, repository.ErrWorkspaceNotFound) {
+		if errors.Is(err, repoCommon.ErrWorkspaceNotFound) {
 			a.notFoundResponse(w, r)
 			return
 		} else if apierrors.IsConflict(err) {
