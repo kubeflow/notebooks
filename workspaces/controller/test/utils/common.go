@@ -73,10 +73,10 @@ func GetProjectDir() (string, error) {
 	return wd, nil
 }
 
-// RenderCullingWorkspaceKind reads the sample WorkspaceKind manifest and returns a copy with its
+// RenderActivityWorkspaceKind reads the sample WorkspaceKind manifest and returns a copy with its
 // metadata.name overridden to newName. The activityProbe and activityRules are left untouched here
-// and are expected to be patched by the caller to enable fast culling behavior for the e2e test.
-func RenderCullingWorkspaceKind(samplePath, newName string) (string, error) {
+// and are expected to be patched by the caller to enable fast activity pause behavior for the e2e test.
+func RenderActivityWorkspaceKind(samplePath, newName string) (string, error) {
 	data, err := os.ReadFile(samplePath)
 	if err != nil {
 		return "", fmt.Errorf("failed to read sample WorkspaceKind %q: %w", samplePath, err)
@@ -104,9 +104,9 @@ func GetWorkspaceJSONPath(name, namespace, jsonPath string) (string, error) {
 	return strings.TrimSpace(out), err
 }
 
-// RenderCullingWorkspace reads the sample Workspace manifest and returns a copy with its
+// RenderActivityWorkspace reads the sample Workspace manifest and returns a copy with its
 // metadata.name overridden to newName and spec.kind overridden to newKind.
-func RenderCullingWorkspace(samplePath, newName, newKind string) (string, error) {
+func RenderActivityWorkspace(samplePath, newName, newKind string) (string, error) {
 	data, err := os.ReadFile(samplePath)
 	if err != nil {
 		return "", fmt.Errorf("failed to read sample Workspace %q: %w", samplePath, err)

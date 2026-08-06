@@ -40,7 +40,7 @@ const (
 	defaultJupyterProbeTimeout = 10 * time.Second
 )
 
-// reconcileActivityCulling runs the activity probe (if due), evaluates the activityRules, updates
+// reconcileActivity runs the activity probe (if due), evaluates the activityRules, updates
 // the Workspace activity status, and decides whether the Workspace should be paused for inactivity.
 //
 // It returns:
@@ -51,22 +51,22 @@ const (
 // This function mutates `workspace.Status.Activity` in place. It only sets `spec.paused` on the
 // in-memory object; the caller is responsible for persisting the spec change.
 //
-// CULLING GRANULARITY / TIMING CAVEAT:
+// ACTIVITY GRANULARITY / TIMING CAVEAT:
 //
 //	A Workspace is only ever paused immediately after a fresh, successful probe confirms it is
 //	still inactive (see evaluatePauseDecision's allowPause parameter). We deliberately do NOT
 //	pause based on the last known activity data in between probes, because the user may have
-//	resumed activity since the last probe. As a consequence, culling is only evaluated at probe
-//	time, so the effective culling latency is bounded by `probeIntervalSeconds`:
+//	resumed activity since the last probe. As a consequence, activity rules are only evaluated at probe
+//	time, so the effective pause latency is bounded by `probeIntervalSeconds`:
 //
 //	  - a Workspace may keep running for up to ~probeIntervalSeconds AFTER it first becomes
 //	    eligible (i.e. after lastActivity + secondsSinceActive) before it is actually paused.
 //
-//	This is an intentional trade-off: it guarantees we never cull an actively-used Workspace
-//	based on stale activity data, at the cost of coarser culling timing. Operators who want
-//	tighter culling should lower `probeIntervalSeconds` (bearing in mind this increases the
+//	This is an intentional trade-off: it guarantees we never pause an actively-used Workspace
+//	based on stale activity data, at the cost of coarser timing. Operators who want
+//	tighter timing should lower `probeIntervalSeconds` (bearing in mind this increases the
 //	probe load on Workspaces and the API server).
-func (r *WorkspaceReconciler) reconcileActivityCulling(
+func (r *WorkspaceReconciler) reconcileActivity(
 	ctx context.Context,
 	log logr.Logger,
 	workspace *kubefloworgv1beta1.Workspace,
@@ -78,13 +78,13 @@ func (r *WorkspaceReconciler) reconcileActivityCulling(
 
 	activityProbe := workspaceKind.Spec.PodTemplate.ActivityProbe
 
-	// culling is only relevant when an activityProbe is configured.
+	// activity handling is only relevant when an activityProbe is configured.
 	if activityProbe == nil {
 		return ctrl.Result{}, false, nil
 	}
 
 	// only Running Workspaces are probed.
-	//  - Paused/Pending/Terminating/Error Workspaces are never probed or culled here.
+	//  - Paused/Pending/Terminating/Error Workspaces are never probed or paused here.
 	if workspace.Status.State != kubefloworgv1beta1.WorkspaceStateRunning {
 		return ctrl.Result{}, false, nil
 	}
@@ -106,7 +106,7 @@ func (r *WorkspaceReconciler) reconcileActivityCulling(
 	// existing activity data and requeue for when the next probe is due.
 	//  - we pass allowPause=false here: the activity data may be stale (no probe ran this
 	//    reconcile), so we must NOT pause based on it. A Workspace is only ever paused right
-	//    after a fresh probe confirms it is still inactive. This prevents culling a Workspace
+	//    after a fresh probe confirms it is still inactive. This prevents pausing a Workspace
 	//    whose user has resumed activity since the last probe but before the next probe is due.
 	if remaining, due := timeUntilProbeDue(workspace, now, minProbeInterval, probeInterval); !due {
 		if _, err := evaluatePauseDecision(workspace, workspaceKind, namespaceLabels, podConfigLabels, now, false); err != nil {
@@ -121,7 +121,7 @@ func (r *WorkspaceReconciler) reconcileActivityCulling(
 	updateActivityStatusFromProbe(workspace, probeResult)
 
 	// evaluate rules and decide whether to pause.
-	//  - allowPause is gated on a successful probe: a Workspace is only culled when a fresh,
+	//  - allowPause is gated on a successful probe: a Workspace is only paused when a fresh,
 	//    successful probe confirms inactivity. A failed probe never triggers a pause.
 	paused, err := evaluatePauseDecision(workspace, workspaceKind, namespaceLabels, podConfigLabels, now, probeResult.Succeeded())
 	if err != nil {
@@ -265,7 +265,7 @@ func updateActivityStatusFromProbe(workspace *kubefloworgv1beta1.Workspace, resu
 //   - when true (called immediately after a fresh probe), an eligible Workspace is paused.
 //   - when false (called when a probe is NOT due), the `eligibleAfter` status is still refreshed
 //     for the UI, but the Workspace is never paused. This is critical: pausing MUST be backed by
-//     a fresh probe in the same reconcile, otherwise a Workspace could be culled based on a stale
+//     a fresh probe in the same reconcile, otherwise a Workspace could be paused based on a stale
 //     `lastActivity` even though the user resumed activity since the last probe.
 //
 // namespaceLabels and podConfigLabels are the labels used for rule matching.
@@ -320,9 +320,9 @@ func evaluatePauseDecision(
 
 	// only pause when the matched rule opts in, the Workspace is eligible, AND the decision is
 	// backed by a fresh probe in this reconcile (allowPause).
-	//  - a matched rule with pauseWorkspace: false exempts the Workspace from culling
+	//  - a matched rule with pauseWorkspace: false exempts the Workspace from pausing
 	//  - a failing probe leaves lastActivity unchanged, so eligibility is based on the
-	//    last known-good activity (never culled purely because a probe failed)
+	//    last known-good activity (never paused purely because a probe failed)
 	//  - when allowPause is false the activity data may be stale (no probe ran this reconcile),
 	//    so we must NOT pause even if the stale data says the Workspace is eligible
 	if decision.Value && eligible && allowPause {

@@ -92,7 +92,7 @@ type ActivityRule struct {
 // ActivityRuleConfig defines the timing parameters for an ActivityRule
 type ActivityRuleConfig struct {
 	// the number of seconds of inactivity before a Workspace is eligible for this rule's effect
-	//  - the minimum value is 16 (`secondsSinceActive` > 15) to prevent thrashing and culling
+	//  - the minimum value is 16 (`secondsSinceActive` > 15) to prevent thrashing and pausing
 	//    workspaces prematurely during startup or transient connection drops
 	// +kubebuilder:validation:Minimum:=16
 	SecondsSinceActive int32 `json:"secondsSinceActive"`
@@ -380,12 +380,12 @@ type ActivityProbe struct {
 
 	// the desired interval in seconds between successful probes.
 	// - If a probe succeeds, the controller schedules the next probe after this duration (requeuing after probeInterval).
-	// - Determines the freshness of workspace activity status used for culling inactive workspaces.
-	// - CULLING TIMING CAVEAT: a Workspace is only paused immediately after a fresh probe confirms it is still
-	//   inactive (a Workspace is never culled based on stale activity data, so an actively-used Workspace whose
-	//   user resumed activity between probes is not culled). Consequently, culling is only evaluated at probe time,
+	// - Determines the freshness of workspace activity status used by activity rules.
+	// - ACTIVITY TIMING CAVEAT: a Workspace is only paused immediately after a fresh probe confirms it is still
+	//   inactive (a Workspace is never paused based on stale activity data, so an actively-used Workspace whose
+	//   user resumed activity between probes is not paused). Consequently, activity rules are only evaluated at probe time,
 	//   so a Workspace may keep running for up to ~probeIntervalSeconds after it first becomes eligible
-	//   (lastActivity + secondsSinceActive) before it is actually paused. Lower this value for tighter culling,
+	//   (lastActivity + secondsSinceActive) before it is actually paused. Lower this value for tighter timing,
 	//   at the cost of more frequent probing.
 	// +kubebuilder:validation:Minimum:=1
 	// +kubebuilder:validation:Maximum:=31536000
@@ -414,9 +414,9 @@ type ActivityProbePodExec struct {
 	// The script must meet the following requirements:
 	//  - The Pod's main container MUST provide a POSIX shell at "/bin/sh" and the "cat", "chmod",
 	//    and "rm" utilities, which the controller uses to stage and execute the script. Minimal
-	//    or distroless images without these will cause the probe to fail (and never cull).
+	//    or distroless images without these will cause the probe to fail (and never pause).
 	//  - It must start with a shebang (e.g., "#!/usr/bin/env bash" or "#!/usr/bin/env python").
-	//  - It must exit with a 0 status code. A non-zero exit code is treated as a probe failure (Workspaces with failing probes are not culled).
+	//  - It must exit with a 0 status code. A non-zero exit code is treated as a probe failure (Workspaces with failing probes are not paused).
 	//  - It should be idempotent and without side effects since it can be run multiple times.
 	//  - If the script wants to report an INACTIVE state, it MUST write a JSON object to the file path
 	//    supplied in the OUTPUT_JSON_PATH environment variable. The probe output is AUTHORITATIVE:

@@ -183,7 +183,7 @@ type WorkspacePodOptions struct {
 
 // WorkspaceStatus defines the observed state of Workspace
 type WorkspaceStatus struct {
-	// activity information for the Workspace, used to determine when to cull
+	// activity information for the Workspace, used to determine activity rule actions
 	Activity WorkspaceActivity `json:"activity"`
 
 	// the last time the Workspace entered a Running state (UNIX epoch in milliseconds)
@@ -290,6 +290,9 @@ type WorkspaceActivityRules struct {
 // WorkspaceActivityPauseRule defines the evaluation state for the activity-based pauseWorkspace effect
 type WorkspaceActivityPauseRule struct {
 	// the time after which if the rule is evaluated the Workspace would be paused (UNIX epoch in milliseconds)
+	//  - set to 0 when lastActivity is unknown (<= 0), indicating eligibility cannot be computed / not applicable
+	//  - the controller will not pause a Workspace when eligibleAfter is 0
+	// +kubebuilder:default=0
 	// +kubebuilder:example=1707667200000
 	EligibleAfter int64 `json:"eligibleAfter"`
 }

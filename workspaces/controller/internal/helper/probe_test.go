@@ -110,7 +110,7 @@ var _ = Describe("DefaultHTTPProber", func() {
 	It("should perform an HTTP GET request", func() {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"last_activity":"%s"}`, testTimestampRFC3339)))
+			_, _ = fmt.Fprintf(w, `{"last_activity":%q}`, testTimestampRFC3339)
 		}))
 		defer server.Close()
 
@@ -133,7 +133,7 @@ var _ = Describe("RunJupyterProbe", func() {
 
 	It("should succeed and extract last_activity", func() {
 		prober := &fakeHTTPProber{
-			resp: newHTTPResponse(http.StatusOK, fmt.Sprintf(`{"last_activity": "%s"}`, testTimestampRFC3339)),
+			resp: newHTTPResponse(http.StatusOK, fmt.Sprintf(`{"last_activity": %q}`, testTimestampRFC3339)),
 		}
 		result := RunJupyterProbe(ctx, prober, "10.0.0.1", 8888, "")
 		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultSuccess))
@@ -198,7 +198,7 @@ var _ = Describe("RunJupyterProbe", func() {
 
 	It("should respect the basePath", func() {
 		prober := &fakeHTTPProber{
-			resp: newHTTPResponse(http.StatusOK, fmt.Sprintf(`{"last_activity": "%s"}`, testTimestampRFC3339)),
+			resp: newHTTPResponse(http.StatusOK, fmt.Sprintf(`{"last_activity": %q}`, testTimestampRFC3339)),
 		}
 		_ = RunJupyterProbe(ctx, prober, "10.0.0.1", 8888, "/my/base/path/")
 		Expect(prober.capturedURL).To(Equal("http://10.0.0.1:8888/my/base/path/api/status"))
@@ -226,7 +226,7 @@ var _ = Describe("RunPodExecProbe", func() {
 	})
 
 	It("should succeed with has_activity: false and last_activity set", func() {
-		executor := &fakePodExecutor{stdoutContent: fmt.Sprintf(`{"has_activity": false, "last_activity": "%s"}`, testTimestampRFC3339)}
+		executor := &fakePodExecutor{stdoutContent: fmt.Sprintf(`{"has_activity": false, "last_activity": %q}`, testTimestampRFC3339)}
 		result := RunPodExecProbe(ctx, executor, "ns", "pod", script, time.Second)
 		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultSuccess))
 		Expect(result.LastActivity).ToNot(BeNil())
@@ -241,7 +241,7 @@ var _ = Describe("RunPodExecProbe", func() {
 	})
 
 	It("should prefer has_activity over last_activity when both present", func() {
-		executor := &fakePodExecutor{stdoutContent: fmt.Sprintf(`{"has_activity": true, "last_activity": "%s"}`, testTimestampOlder)}
+		executor := &fakePodExecutor{stdoutContent: fmt.Sprintf(`{"has_activity": true, "last_activity": %q}`, testTimestampOlder)}
 		result := RunPodExecProbe(ctx, executor, "ns", "pod", script, time.Second)
 		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultSuccess))
 		Expect(*result.LastActivity).To(Equal(result.EndTime))
@@ -292,7 +292,7 @@ var _ = Describe("RunPodExecProbe", func() {
 	})
 
 	It("should succeed when only valid last_activity is provided", func() {
-		executor := &fakePodExecutor{stdoutContent: fmt.Sprintf(`{"last_activity": "%s"}`, testTimestampRFC3339)}
+		executor := &fakePodExecutor{stdoutContent: fmt.Sprintf(`{"last_activity": %q}`, testTimestampRFC3339)}
 		result := RunPodExecProbe(ctx, executor, "ns", "pod", script, time.Second)
 		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultSuccess))
 		Expect(result.LastActivity).ToNot(BeNil())

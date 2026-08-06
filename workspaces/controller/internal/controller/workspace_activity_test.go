@@ -567,7 +567,7 @@ var _ = Describe("runProbe", func() {
 			HTTPProber: &fakeHTTPProber{
 				resp: &http.Response{
 					StatusCode: http.StatusOK,
-					Body:       io.NopCloser(strings.NewReader(fmt.Sprintf(`{"last_activity":"%s"}`, testTimestampRFC3339))),
+					Body:       io.NopCloser(strings.NewReader(fmt.Sprintf(`{"last_activity":%q}`, testTimestampRFC3339))),
 					Header:     make(http.Header),
 				},
 			},

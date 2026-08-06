@@ -559,11 +559,11 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	//  - this may run an activity probe, update `status.activity`, and pause the Workspace
 	//  - it returns a requeue result used to schedule the next probe (unless a more urgent
 	//    requeue was already requested by the status generation above)
-	cullResult, paused, err := r.reconcileActivityCulling(ctx, log, workspace, workspaceKind, currentImageConfig, currentPodConfig, pod)
+	activityResult, paused, err := r.reconcileActivity(ctx, log, workspace, workspaceKind, currentImageConfig, currentPodConfig, pod)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	result = mergeReconcileResult(result, cullResult)
+	result = mergeReconcileResult(result, activityResult)
 
 	// update the Workspace status, if it has changed
 	if !equality.Semantic.DeepEqual(currentStatus, workspace.Status) {
@@ -577,9 +577,9 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 	}
 
-	// if the Workspace was paused by the culling logic, patch `spec.paused`
+	// if the Workspace was paused by the activity rules, patch `spec.paused`
 	//  - this is done after the status update so the activity status reflecting the
-	//    culling decision is persisted regardless of the outcome of this patch
+	//    pause decision is persisted regardless of the outcome of this patch
 	//  - a MergeFrom patch (rather than a full Update) is used so we only send the
 	//    `spec.paused` change and avoid clobbering any concurrent spec modifications
 	//  - `Status().Update` above overwrites `workspace` with the API server response (where
@@ -1487,7 +1487,7 @@ func (r *WorkspaceReconciler) generateWorkspaceStatus(ctx context.Context, log l
 //   - only advanced on a transition INTO the Running state, so it reflects the start of
 //     the current continuous Running period
 //   - reset status.Activity on transition into Running so stale activity from a previous
-//     run does not cause an immediate pause when a culled Workspace is restarted
+//     run does not cause an immediate pause when a paused Workspace is restarted
 func recordRunningTransition(status *kubefloworgv1beta1.WorkspaceStatus, currentState, newState kubefloworgv1beta1.WorkspaceState) {
 	if newState != kubefloworgv1beta1.WorkspaceStateRunning {
 		return

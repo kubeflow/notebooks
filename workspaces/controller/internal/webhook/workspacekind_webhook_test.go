@@ -307,7 +307,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 							},
 						},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
-							PauseWorkspace: new(false), // override to no-op culling
+							PauseWorkspace: new(false), // override to opt out of pause effect
 						},
 					},
 					{

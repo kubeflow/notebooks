@@ -60,16 +60,16 @@ const (
 	// how frequently to poll for conditions
 	interval = time.Second * 1
 
-	// culling test configs
+	// activity rules test configs
 	//  - we use a dedicated WorkspaceKind/Workspace with a short probe interval and a
-	//    podExec probe that always reports inactivity, so that culling triggers quickly
-	cullingWorkspaceKindName = "jupyterlab-culling"
-	cullingWorkspaceName     = "jupyterlab-workspace-culling"
+	//    podExec probe that always reports inactivity, so that pause triggers quickly
+	activityWorkspaceKindName = "jupyterlab-activity"
+	activityWorkspaceName     = "jupyterlab-workspace-activity"
 
-	// how long to wait for the workspace to be culled (paused)
+	// how long to wait for the workspace to be paused
 	//  - the podExec probe reports an old last_activity, so the workspace becomes eligible
 	//    shortly after minRunningSeconds elapses (subject to minProbeIntervalSeconds)
-	cullingTimeout = time.Second * 300
+	activityTimeout = time.Second * 300
 
 	// exemption test configs
 	exemptionWorkspaceKindName = "jupyterlab-exemption"
@@ -435,18 +435,18 @@ var _ = Describe("controller", Ordered, func() {
 		})
 	})
 
-	Context("Culling", func() {
+	Context("Activity Rules", func() {
 
 		AfterAll(func() {
-			By("deleting the culling Workspace")
-			cmd := exec.Command("kubectl", "delete", "workspace", cullingWorkspaceName,
+			By("deleting the activity Workspace")
+			cmd := exec.Command("kubectl", "delete", "workspace", activityWorkspaceName,
 				"-n", workspaceNamespace, "--ignore-not-found=true", "--wait",
 				fmt.Sprintf("--timeout=%s", timeout),
 			)
 			_, _ = utils.Run(cmd)
 
-			By("deleting the culling WorkspaceKind")
-			cmd = exec.Command("kubectl", "delete", "workspacekind", cullingWorkspaceKindName,
+			By("deleting the activity WorkspaceKind")
+			cmd = exec.Command("kubectl", "delete", "workspacekind", activityWorkspaceKindName,
 				"--ignore-not-found=true",
 			)
 			_, _ = utils.Run(cmd)
@@ -493,27 +493,27 @@ var _ = Describe("controller", Ordered, func() {
 
 		It("should automatically pause an inactive Workspace", func() {
 
-			By("creating a culling-enabled WorkspaceKind (podExec probe reporting inactivity)")
+			By("creating an activity-rules-enabled WorkspaceKind (podExec probe reporting inactivity)")
 			// derive a dedicated WorkspaceKind from the sample so we get valid imageConfig/podConfig/ports,
 			// then override its name so it does not clash with the sample used by the Operator context
-			cullingWorkspaceKindYAML, err := utils.RenderCullingWorkspaceKind(
+			activityWorkspaceKindYAML, err := utils.RenderActivityWorkspaceKind(
 				filepath.Join(projectDir, "manifests/kustomize/samples/jupyterlab_v1beta1_workspacekind.yaml"),
-				cullingWorkspaceKindName,
+				activityWorkspaceKindName,
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			applyCullingWorkspaceKind := func() error {
+			applyActivityWorkspaceKind := func() error {
 				cmd := exec.Command("kubectl", "apply", "-f", "-")
-				cmd.Stdin = strings.NewReader(cullingWorkspaceKindYAML)
+				cmd.Stdin = strings.NewReader(activityWorkspaceKindYAML)
 				_, err := utils.Run(cmd)
 				return err
 			}
-			Eventually(applyCullingWorkspaceKind, timeout, interval).Should(Succeed())
+			Eventually(applyActivityWorkspaceKind, timeout, interval).Should(Succeed())
 
 			By("overriding the activityProbe with a fast podExec probe reporting inactivity")
 			// - minProbeIntervalSeconds/probeIntervalSeconds are set low so the probe runs quickly
 			// - the podExec script reports has_activity=false with an old last_activity, making the
-			//   Workspace eligible for culling as soon as the first probe succeeds
+			//   Workspace eligible for pause as soon as the first probe succeeds
 			// NOTE: the script JSON is escaped twice: once for the shell/JSON output, once for the patch body
 			const inactiveProbeScript = `#!/usr/bin/env bash\necho '{\"has_activity\": false, ` +
 				`\"last_activity\": \"2000-01-01T00:00:00Z\"}' > \"$OUTPUT_JSON_PATH\"\nexit 0\n`
@@ -524,7 +524,7 @@ var _ = Describe("controller", Ordered, func() {
 				`"podExec":{"timeoutSeconds":30,"script":"` + inactiveProbeScript + `"}` +
 				`}}]`
 			patchProbe := func() error {
-				cmd := exec.Command("kubectl", "patch", "workspacekind", cullingWorkspaceKindName,
+				cmd := exec.Command("kubectl", "patch", "workspacekind", activityWorkspaceKindName,
 					"--type=json", "-p", probePatch)
 				_, err := utils.Run(cmd)
 				return err
@@ -534,39 +534,39 @@ var _ = Describe("controller", Ordered, func() {
 			By("overriding the activityRules with a single fast catch-all pause rule")
 			// - secondsSinceActive=16 is the minimum allowed by the CRD validation
 			// - minRunningSeconds=60 ensures the Workspace stays Running long enough for the
-			//   test to observe its Running state and status before culling triggers
+			//   test to observe its Running state and status before pausing triggers
 			// - an empty match makes this a catch-all rule that applies to all Workspaces
 			rulesPatch := `[` +
 				`{"op":"replace","path":"/spec/activityRules","value":[` +
 				`{"config":{"secondsSinceActive":16,"minRunningSeconds":60},"match":{},"effect":{"pauseWorkspace":true}}` +
 				`]}]`
 			patchRules := func() error {
-				cmd := exec.Command("kubectl", "patch", "workspacekind", cullingWorkspaceKindName,
+				cmd := exec.Command("kubectl", "patch", "workspacekind", activityWorkspaceKindName,
 					"--type=json", "-p", rulesPatch)
 				_, err := utils.Run(cmd)
 				return err
 			}
 			Eventually(patchRules, timeout, interval).Should(Succeed())
 
-			By("creating a Workspace of the culling WorkspaceKind")
-			cullingWorkspaceYAML, err := utils.RenderCullingWorkspace(
+			By("creating a Workspace of the activity WorkspaceKind")
+			activityWorkspaceYAML, err := utils.RenderActivityWorkspace(
 				filepath.Join(projectDir, "manifests/kustomize/samples/jupyterlab_v1beta1_workspace.yaml"),
-				cullingWorkspaceName,
-				cullingWorkspaceKindName,
+				activityWorkspaceName,
+				activityWorkspaceKindName,
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			applyCullingWorkspace := func() error {
+			applyActivityWorkspace := func() error {
 				cmd := exec.Command("kubectl", "apply", "-n", workspaceNamespace, "-f", "-")
-				cmd.Stdin = strings.NewReader(cullingWorkspaceYAML)
+				cmd.Stdin = strings.NewReader(activityWorkspaceYAML)
 				_, err := utils.Run(cmd)
 				return err
 			}
-			Eventually(applyCullingWorkspace, timeout, interval).Should(Succeed())
+			Eventually(applyActivityWorkspace, timeout, interval).Should(Succeed())
 
-			By("waiting for the culling Workspace to reach 'Running' state")
+			By("waiting for the activity Workspace to reach 'Running' state")
 			verifyRunning := func(g Gomega) error {
-				statusState, err := utils.GetWorkspaceJSONPath(cullingWorkspaceName, workspaceNamespace, "{.status.state}")
+				statusState, err := utils.GetWorkspaceJSONPath(activityWorkspaceName, workspaceNamespace, "{.status.state}")
 				g.Expect(err).NotTo(HaveOccurred())
 				if statusState != string(kubefloworgv1beta1.WorkspaceStateRunning) {
 					return fmt.Errorf("workspace not running yet, current state: %q", statusState)
@@ -583,20 +583,20 @@ var _ = Describe("controller", Ordered, func() {
 				eligiblePath       = "{.status.activity.rules.pauseWorkspace.eligibleAfter}"
 			)
 			verifyProbeRan := func(g Gomega) error {
-				probeResult, err := utils.GetWorkspaceJSONPath(cullingWorkspaceName, workspaceNamespace, probeResultPath)
+				probeResult, err := utils.GetWorkspaceJSONPath(activityWorkspaceName, workspaceNamespace, probeResultPath)
 				g.Expect(err).NotTo(HaveOccurred())
 				if probeResult != string(kubefloworgv1beta1.WorkspaceProbeResultSuccess) {
 					// surface the probe message to aid debugging
-					msg, _ := utils.GetWorkspaceJSONPath(cullingWorkspaceName, workspaceNamespace, probeMessagePath)
+					msg, _ := utils.GetWorkspaceJSONPath(activityWorkspaceName, workspaceNamespace, probeMessagePath)
 					return fmt.Errorf("probe result is %q (not Success), message: %q", probeResult, msg)
 				}
 				return nil
 			}
-			Eventually(verifyProbeRan, cullingTimeout, interval).Should(Succeed())
+			Eventually(verifyProbeRan, activityTimeout, interval).Should(Succeed())
 
 			By("verifying that the activity probe does not re-fire too frequently before probeIntervalSeconds")
 			initialProbeStartTime, err := utils.GetWorkspaceJSONPath(
-				cullingWorkspaceName, workspaceNamespace, probeStartTimePath)
+				activityWorkspaceName, workspaceNamespace, probeStartTimePath)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(initialProbeStartTime).NotTo(BeEmpty())
 
@@ -604,7 +604,7 @@ var _ = Describe("controller", Ordered, func() {
 			// that the probe startTime remains unchanged, confirming no overly frequent re-probing occurs.
 			verifyNoFrequentProbing := func(g Gomega) {
 				currentProbeStartTime, err := utils.GetWorkspaceJSONPath(
-					cullingWorkspaceName, workspaceNamespace, probeStartTimePath)
+					activityWorkspaceName, workspaceNamespace, probeStartTimePath)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(currentProbeStartTime).To(
 					Equal(initialProbeStartTime), "probe re-fired earlier than probeIntervalSeconds!")
@@ -613,40 +613,40 @@ var _ = Describe("controller", Ordered, func() {
 
 			By("validating that the eligibleAfter time is populated")
 			verifyEligibleAfter := func(g Gomega) error {
-				eligibleAfter, err := utils.GetWorkspaceJSONPath(cullingWorkspaceName, workspaceNamespace, eligiblePath)
+				eligibleAfter, err := utils.GetWorkspaceJSONPath(activityWorkspaceName, workspaceNamespace, eligiblePath)
 				g.Expect(err).NotTo(HaveOccurred())
 				if eligibleAfter == "" || eligibleAfter == "0" {
 					return fmt.Errorf("eligibleAfter not populated yet, got: %q", eligibleAfter)
 				}
 				return nil
 			}
-			Eventually(verifyEligibleAfter, cullingTimeout, interval).Should(Succeed())
+			Eventually(verifyEligibleAfter, activityTimeout, interval).Should(Succeed())
 
 			By("validating that the Workspace is automatically paused due to inactivity")
 			verifyPaused := func(g Gomega) error {
-				paused, err := utils.GetWorkspaceJSONPath(cullingWorkspaceName, workspaceNamespace, "{.spec.paused}")
+				paused, err := utils.GetWorkspaceJSONPath(activityWorkspaceName, workspaceNamespace, "{.spec.paused}")
 				g.Expect(err).NotTo(HaveOccurred())
 				if paused != "true" {
 					return fmt.Errorf("workspace not paused yet, spec.paused=%q", paused)
 				}
 				return nil
 			}
-			Eventually(verifyPaused, cullingTimeout, interval).Should(Succeed())
+			Eventually(verifyPaused, activityTimeout, interval).Should(Succeed())
 
 			By("validating that the Workspace reaches the 'Paused' state")
 			verifyPausedState := func(g Gomega) error {
-				statusState, err := utils.GetWorkspaceJSONPath(cullingWorkspaceName, workspaceNamespace, "{.status.state}")
+				statusState, err := utils.GetWorkspaceJSONPath(activityWorkspaceName, workspaceNamespace, "{.status.state}")
 				g.Expect(err).NotTo(HaveOccurred())
 				if statusState != string(kubefloworgv1beta1.WorkspaceStatePaused) {
 					return fmt.Errorf("workspace not in Paused state yet, current state: %q", statusState)
 				}
 				return nil
 			}
-			Eventually(verifyPausedState, cullingTimeout, interval).Should(Succeed())
+			Eventually(verifyPausedState, activityTimeout, interval).Should(Succeed())
 
-			By("unpausing/restarting the culled Workspace")
+			By("unpausing/restarting the paused Workspace")
 			unpauseWorkspace := func() error {
-				cmd := exec.Command("kubectl", "patch", "workspace", cullingWorkspaceName,
+				cmd := exec.Command("kubectl", "patch", "workspace", activityWorkspaceName,
 					"-n", workspaceNamespace, "--type=merge", "-p", `{"spec":{"paused":false}}`)
 				_, err := utils.Run(cmd)
 				return err
@@ -658,12 +658,12 @@ var _ = Describe("controller", Ordered, func() {
 
 			By("verifying that the restarted Workspace stays Running and is not immediately paused")
 			verifyStaysRunning := func(g Gomega) error {
-				paused, err := utils.GetWorkspaceJSONPath(cullingWorkspaceName, workspaceNamespace, "{.spec.paused}")
+				paused, err := utils.GetWorkspaceJSONPath(activityWorkspaceName, workspaceNamespace, "{.spec.paused}")
 				g.Expect(err).NotTo(HaveOccurred())
 				if paused == "true" {
 					return fmt.Errorf("workspace was immediately paused after restart")
 				}
-				statusState, err := utils.GetWorkspaceJSONPath(cullingWorkspaceName, workspaceNamespace, "{.status.state}")
+				statusState, err := utils.GetWorkspaceJSONPath(activityWorkspaceName, workspaceNamespace, "{.status.state}")
 				g.Expect(err).NotTo(HaveOccurred())
 				if statusState != string(kubefloworgv1beta1.WorkspaceStateRunning) {
 					return fmt.Errorf("workspace state is %q, expected Running", statusState)
@@ -675,9 +675,9 @@ var _ = Describe("controller", Ordered, func() {
 
 		It("should NOT pause a Workspace that matches an exemption rule (pauseWorkspace: false)", func() {
 
-			By("creating a culling-enabled WorkspaceKind with an exemption rule matching namespace labels")
+			By("creating an activity-rules-enabled WorkspaceKind with an exemption rule matching namespace labels")
 			// derive a dedicated WorkspaceKind from the sample
-			exemptionWorkspaceKindYAML, err := utils.RenderCullingWorkspaceKind(
+			exemptionWorkspaceKindYAML, err := utils.RenderActivityWorkspaceKind(
 				filepath.Join(projectDir, "manifests/kustomize/samples/jupyterlab_v1beta1_workspacekind.yaml"),
 				exemptionWorkspaceKindName,
 			)
@@ -734,7 +734,7 @@ var _ = Describe("controller", Ordered, func() {
 			Eventually(labelNamespace, timeout, interval).Should(Succeed())
 
 			By("creating a Workspace of the exemption WorkspaceKind")
-			exemptionWorkspaceYAML, err := utils.RenderCullingWorkspace(
+			exemptionWorkspaceYAML, err := utils.RenderActivityWorkspace(
 				filepath.Join(projectDir, "manifests/kustomize/samples/jupyterlab_v1beta1_workspace.yaml"),
 				exemptionWorkspaceName,
 				exemptionWorkspaceKindName,
@@ -770,7 +770,7 @@ var _ = Describe("controller", Ordered, func() {
 				}
 				return nil
 			}
-			Eventually(verifyProbeRan, cullingTimeout, interval).Should(Succeed())
+			Eventually(verifyProbeRan, activityTimeout, interval).Should(Succeed())
 
 			By("validating that the eligibleAfter time is NOT populated (showing the exemption rule matched and opted out)")
 			verifyEligibleNotSet := func(g Gomega) error {
@@ -782,7 +782,7 @@ var _ = Describe("controller", Ordered, func() {
 				}
 				return nil
 			}
-			Eventually(verifyEligibleNotSet, cullingTimeout, interval).Should(Succeed())
+			Eventually(verifyEligibleNotSet, activityTimeout, interval).Should(Succeed())
 
 			By("verifying that the Workspace is NOT paused even after its hypothetical eligibility time")
 			// we use Consistently to ensure it stays unpaused for a short duration
@@ -807,7 +807,7 @@ var _ = Describe("controller", Ordered, func() {
 		It("should NOT pause a Workspace when the activity probe fails", func() {
 
 			By("creating a WorkspaceKind with a failing podExec activity probe")
-			failingWorkspaceKindYAML, err := utils.RenderCullingWorkspaceKind(
+			failingWorkspaceKindYAML, err := utils.RenderActivityWorkspaceKind(
 				filepath.Join(projectDir, "manifests/kustomize/samples/jupyterlab_v1beta1_workspacekind.yaml"),
 				failingProbeWorkspaceKindName,
 			)
@@ -851,7 +851,7 @@ var _ = Describe("controller", Ordered, func() {
 			Eventually(patchRules, timeout, interval).Should(Succeed())
 
 			By("creating a Workspace of the failing probe WorkspaceKind")
-			failingWorkspaceYAML, err := utils.RenderCullingWorkspace(
+			failingWorkspaceYAML, err := utils.RenderActivityWorkspace(
 				filepath.Join(projectDir, "manifests/kustomize/samples/jupyterlab_v1beta1_workspace.yaml"),
 				failingProbeWorkspaceName,
 				failingProbeWorkspaceKindName,
@@ -887,9 +887,9 @@ var _ = Describe("controller", Ordered, func() {
 				}
 				return nil
 			}
-			Eventually(verifyProbeFailed, cullingTimeout, interval).Should(Succeed())
+			Eventually(verifyProbeFailed, activityTimeout, interval).Should(Succeed())
 
-			By("verifying that the Workspace is NOT paused, because a failing probe does not trigger culling")
+			By("verifying that the Workspace is NOT paused, because a failing probe does not trigger pause")
 			checkNotPaused := func(g Gomega) {
 				paused, err := utils.GetWorkspaceJSONPath(failingProbeWorkspaceName, workspaceNamespace, "{.spec.paused}")
 				g.Expect(err).NotTo(HaveOccurred())
@@ -898,10 +898,10 @@ var _ = Describe("controller", Ordered, func() {
 			Consistently(checkNotPaused, 15*time.Second, interval).Should(Succeed())
 		})
 
-		It("should NOT cull a Workspace when eligibleAfter arrives before the next probe is due", func() {
+		It("should NOT pause a Workspace when eligibleAfter arrives before the next probe is due", func() {
 
 			By("creating a WorkspaceKind with probeInterval=30s and minRunningSeconds=15s")
-			staleWorkspaceKindYAML, err := utils.RenderCullingWorkspaceKind(
+			staleWorkspaceKindYAML, err := utils.RenderActivityWorkspaceKind(
 				filepath.Join(projectDir, "manifests/kustomize/samples/jupyterlab_v1beta1_workspacekind.yaml"),
 				staleWorkspaceKindName,
 			)
@@ -946,7 +946,7 @@ var _ = Describe("controller", Ordered, func() {
 			Eventually(patchRules, timeout, interval).Should(Succeed())
 
 			By("creating a Workspace of the stale activity WorkspaceKind")
-			staleWorkspaceYAML, err := utils.RenderCullingWorkspace(
+			staleWorkspaceYAML, err := utils.RenderActivityWorkspace(
 				filepath.Join(projectDir, "manifests/kustomize/samples/jupyterlab_v1beta1_workspace.yaml"),
 				staleWorkspaceName,
 				staleWorkspaceKindName,
@@ -983,7 +983,7 @@ var _ = Describe("controller", Ordered, func() {
 				}
 				return nil
 			}
-			Eventually(verifyEligiblePopulated, cullingTimeout, interval).Should(Succeed())
+			Eventually(verifyEligiblePopulated, activityTimeout, interval).Should(Succeed())
 
 			By("triggering intermediate reconciles after minRunningSeconds (15s) " +
 				"has passed but before the next probe (30s) is due")
@@ -996,11 +996,11 @@ var _ = Describe("controller", Ordered, func() {
 			}
 			Eventually(patchAnnotation, timeout, interval).Should(Succeed())
 
-			By("verifying that the Workspace is NOT culled at eligibleAfter because a fresh probe has not run yet")
+			By("verifying that the Workspace is NOT paused at eligibleAfter because a fresh probe has not run yet")
 			checkNotCulledYet := func(g Gomega) {
 				paused, err := utils.GetWorkspaceJSONPath(staleWorkspaceName, workspaceNamespace, "{.spec.paused}")
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(paused).To(SatisfyAny(BeEmpty(), Equal("false")), "workspace should not be culled before fresh probe runs")
+				g.Expect(paused).To(SatisfyAny(BeEmpty(), Equal("false")), "workspace should not be paused before fresh probe runs")
 
 				eligibleAfterStr, err := utils.GetWorkspaceJSONPath(
 					staleWorkspaceName, workspaceNamespace, "{.status.activity.rules.pauseWorkspace.eligibleAfter}")
@@ -1013,7 +1013,7 @@ var _ = Describe("controller", Ordered, func() {
 			}
 			Consistently(checkNotCulledYet, 5*time.Second, interval).Should(Succeed())
 
-			By("waiting for the fresh probe (at ~30s) to run and confirm inactivity, which triggers culling")
+			By("waiting for the fresh probe (at ~30s) to run and confirm inactivity, which triggers pausing")
 			verifyPaused := func(g Gomega) error {
 				paused, err := utils.GetWorkspaceJSONPath(staleWorkspaceName, workspaceNamespace, "{.spec.paused}")
 				g.Expect(err).NotTo(HaveOccurred())
@@ -1022,7 +1022,7 @@ var _ = Describe("controller", Ordered, func() {
 				}
 				return nil
 			}
-			Eventually(verifyPaused, cullingTimeout, interval).Should(Succeed())
+			Eventually(verifyPaused, activityTimeout, interval).Should(Succeed())
 		})
 	})
 
@@ -1046,7 +1046,7 @@ var _ = Describe("controller", Ordered, func() {
 		It("should update activity status using Jupyter probe", func() {
 			By("creating a WorkspaceKind with short Jupyter probe intervals")
 			// We use a very short probe interval to verify the status updates quickly.
-			kindYAML, err := utils.RenderCullingWorkspaceKind(
+			kindYAML, err := utils.RenderActivityWorkspaceKind(
 				filepath.Join(projectDir, "manifests/kustomize/samples/jupyterlab_v1beta1_workspacekind.yaml"),
 				probeWorkspaceKindName,
 			)
@@ -1065,7 +1065,7 @@ var _ = Describe("controller", Ordered, func() {
 			Eventually(applyKind, timeout, interval).Should(Succeed())
 
 			By("creating a Workspace using the Jupyter probe WorkspaceKind")
-			workspaceYAML, err := utils.RenderCullingWorkspace(
+			workspaceYAML, err := utils.RenderActivityWorkspace(
 				filepath.Join(projectDir, "manifests/kustomize/samples/jupyterlab_v1beta1_workspace.yaml"),
 				probeWorkspaceName,
 				probeWorkspaceKindName,
