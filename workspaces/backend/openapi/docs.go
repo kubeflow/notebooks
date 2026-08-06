@@ -2006,7 +2006,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request. Container not found in workspace pod.",
+                        "description": "Bad Request. Container not found, pod not running, container not started, or no previous logs available.",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }
@@ -2025,12 +2025,6 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Workspace not found.",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
-                    "409": {
-                        "description": "Conflict. Workspace pod is not running.",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }

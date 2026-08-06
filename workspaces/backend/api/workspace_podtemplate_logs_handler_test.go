@@ -32,7 +32,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
-	repository "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/logs"
+	repository "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/podlogs"
 )
 
 var _ = Describe("Workspace Logs Handler", func() {
@@ -231,7 +231,7 @@ var _ = Describe("Workspace Logs Handler", func() {
 			})).To(Succeed())
 		})
 
-		It("should return 409 when the workspace pod is not running", func() {
+		It("should return 400 when the workspace pod is not running", func() {
 			By("creating the HTTP request")
 			req, ps := buildLogsRequest(namespaceName, workspaceName, "")
 
@@ -241,8 +241,8 @@ var _ = Describe("Workspace Logs Handler", func() {
 			rs := rr.Result()
 			defer rs.Body.Close()
 
-			By("verifying status is 409 Conflict")
-			Expect(rs.StatusCode).To(Equal(http.StatusConflict))
+			By("verifying status is 400 Bad Request")
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
 
 			By("verifying the response carries the specific 'workspace pod is not running' message")
 			body, err := io.ReadAll(rs.Body)

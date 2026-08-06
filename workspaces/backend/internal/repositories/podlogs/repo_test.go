@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package logs
+package podlogs
 
 import (
 	"context"
@@ -126,10 +126,10 @@ func podFromWorkspace(ws *kubefloworgv1beta1.Workspace) *corev1.Pod {
 	return newPod(containers, initContainers)
 }
 
-// newRepo builds a LogsRepository backed by a fake controller-runtime client
+// newRepo builds a PodLogsRepository backed by a fake controller-runtime client
 // (seeded with the given workspace) and a fake Kubernetes clientset seeded with the
 // given Pod (or nil for none).
-func newRepo(t *testing.T, ws *kubefloworgv1beta1.Workspace, pod *corev1.Pod) *LogsRepository {
+func newRepo(t *testing.T, ws *kubefloworgv1beta1.Workspace, pod *corev1.Pod) *PodLogsRepository {
 	t.Helper()
 
 	scheme, err := helper.BuildScheme()
@@ -150,7 +150,7 @@ func newRepo(t *testing.T, ws *kubefloworgv1beta1.Workspace, pod *corev1.Pod) *L
 		clientset = k8sfake.NewSimpleClientset()
 	}
 
-	return NewLogsRepository(&config.EnvConfig{}, cl, clientset)
+	return NewPodLogsRepository(&config.EnvConfig{}, cl, clientset)
 }
 
 func TestOpenLogStream(t *testing.T) {

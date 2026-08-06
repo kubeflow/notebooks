@@ -28,7 +28,7 @@ import (
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/podtemplate/logs"
-	repository "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/logs"
+	repository "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/podlogs"
 )
 
 // GetWorkspacePodTemplateLogsHandler returns a point-in-time snapshot of container logs for a workspace pod.
@@ -45,11 +45,10 @@ import (
 //	@Param			sinceTime	query		string			false	"Only return logs after this RFC3339 timestamp (e.g. 2026-07-15T10:30:00Z)."
 //	@Param			previous	query		boolean			false	"If true, returns logs from the previous terminated container instance."
 //	@Success		200			{string}	string			"Raw container log stream (text/plain)."
-//	@Failure		400			{object}	ErrorEnvelope	"Bad Request. Container not found in workspace pod."
+//	@Failure		400			{object}	ErrorEnvelope	"Bad Request. Container not found, pod not running, container not started, or no previous logs available."
 //	@Failure		401			{object}	ErrorEnvelope	"Unauthorized."
 //	@Failure		403			{object}	ErrorEnvelope	"Forbidden."
 //	@Failure		404			{object}	ErrorEnvelope	"Workspace not found."
-//	@Failure		409			{object}	ErrorEnvelope	"Conflict. Workspace pod is not running."
 //	@Failure		422			{object}	ErrorEnvelope	"Unprocessable Entity. Validation error."
 //	@Failure		500			{object}	ErrorEnvelope	"Internal server error."
 //	@Router			/workspaces/{namespace}/{name}/podtemplate/logs/batch [get]
@@ -82,19 +81,19 @@ func (a *App) GetWorkspacePodTemplateLogsHandler(w http.ResponseWriter, r *http.
 	}
 	// ============================================================
 
-	stream, err := a.repositories.Logs.OpenLogStream(r.Context(), namespace, workspaceName, opts)
+	stream, err := a.repositories.PodLogs.OpenLogStream(r.Context(), namespace, workspaceName, opts)
 	if err != nil {
 		switch {
 		case errors.Is(err, repository.ErrWorkspaceNotFound):
 			a.notFoundResponse(w, r)
 		case errors.Is(err, repository.ErrPreviousLogsNotFound):
-			a.conflictResponse(w, r, err, nil)
+			a.badRequestResponse(w, r, err)
 		case errors.Is(err, repository.ErrPodNotRunning):
-			a.conflictResponse(w, r, err, nil)
+			a.badRequestResponse(w, r, err)
 		case errors.Is(err, repository.ErrContainerNotFound):
 			a.badRequestResponse(w, r, err)
 		case errors.Is(err, repository.ErrContainerNotRunning):
-			a.conflictResponse(w, r, err, nil)
+			a.badRequestResponse(w, r, err)
 		default:
 			a.serverErrorResponse(w, r, err)
 		}
@@ -120,8 +119,12 @@ func parseLogOptions(r *http.Request) (*models.LogOptions, field.ErrorList) {
 	opts := &models.LogOptions{}
 
 	if raw := query.Get(constants.ContainerQueryParam); raw != "" {
-		valErrs = append(valErrs, helper.ValidateKubernetesContainersName(field.NewPath(constants.ContainerQueryParam), raw)...)
-		opts.Container = raw
+		errs := helper.ValidateKubernetesContainersName(field.NewPath(constants.ContainerQueryParam), raw)
+		if len(errs) > 0 {
+			valErrs = append(valErrs, errs...)
+		} else {
+			opts.Container = raw
+		}
 	}
 
 	if raw := query.Get(constants.TailLinesQueryParam); raw != "" {

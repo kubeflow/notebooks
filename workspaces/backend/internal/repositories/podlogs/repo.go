@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package logs
+package podlogs
 
 import (
 	"context"
@@ -39,8 +39,12 @@ var (
 	ErrContainerNotFound    = fmt.Errorf("container not found in workspace pod")
 	ErrContainerNotRunning  = fmt.Errorf("container has not started yet")
 	ErrPreviousLogsNotFound = fmt.Errorf("no logs found for the previous container instance")
-	ErrOpenLogStream        = fmt.Errorf("failed to open log stream")
-	ErrGetPod               = fmt.Errorf("failed to get pod")
+)
+
+// Format-string templates for wrapped errors.
+const (
+	fmtOpenLogStreamFailed = "failed to open log stream for pod %s, container %s: %w"
+	fmtGetPodFailed        = "failed to get pod %s: %w"
 )
 
 var (
@@ -59,21 +63,21 @@ var (
 // workspaces/controller/internal/controller/workspace_controller.go
 const primaryContainerName = "main"
 
-type LogsRepository struct {
+type PodLogsRepository struct {
 	cfg       *config.EnvConfig
 	client    client.Client
 	clientset kubernetes.Interface
 }
 
-func NewLogsRepository(cfg *config.EnvConfig, cl client.Client, clientset kubernetes.Interface) *LogsRepository {
-	return &LogsRepository{
+func NewPodLogsRepository(cfg *config.EnvConfig, cl client.Client, clientset kubernetes.Interface) *PodLogsRepository {
+	return &PodLogsRepository{
 		cfg:       cfg,
 		client:    cl,
 		clientset: clientset,
 	}
 }
 
-func (r *LogsRepository) OpenLogStream(ctx context.Context, namespace, workspaceName string, opts *models.LogOptions) (io.ReadCloser, error) {
+func (r *PodLogsRepository) OpenLogStream(ctx context.Context, namespace, workspaceName string, opts *models.LogOptions) (io.ReadCloser, error) {
 	podName, containerName, err := r.resolvePodAndContainer(ctx, namespace, workspaceName, opts)
 	if err != nil {
 		return nil, err
@@ -96,7 +100,7 @@ func (r *LogsRepository) OpenLogStream(ctx context.Context, namespace, workspace
 
 	stream, err := req.Stream(ctx)
 	if err != nil {
-		return nil, ErrOpenLogStream
+		return nil, fmt.Errorf(fmtOpenLogStreamFailed, podName, containerName, err)
 	}
 	return stream, nil
 }
@@ -118,7 +122,7 @@ func containerExists(name string, containers, initContainers []kubefloworgv1beta
 	return false
 }
 
-func (r *LogsRepository) resolvePodAndContainer(ctx context.Context, namespace, workspaceName string, opts *models.LogOptions) (string, string, error) {
+func (r *PodLogsRepository) resolvePodAndContainer(ctx context.Context, namespace, workspaceName string, opts *models.LogOptions) (string, string, error) {
 	workspace := &kubefloworgv1beta1.Workspace{}
 	if err := r.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: workspaceName}, workspace); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -172,14 +176,14 @@ func (r *LogsRepository) resolvePodAndContainer(ctx context.Context, namespace, 
 //
 // The checker utilizes the clientset to fetch the live Pod status,
 // which is more accurate than the Workspace's cached status.
-func (r *LogsRepository) ensureLogsAvailable(ctx context.Context, namespace, podName, containerName string, previous bool) error {
+func (r *PodLogsRepository) ensureLogsAvailable(ctx context.Context, namespace, podName, containerName string, previous bool) error {
 	pod, err := r.clientset.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			// The Workspace status references a pod that no longer exists.
 			return ErrPodNotRunning
 		}
-		return ErrGetPod
+		return fmt.Errorf(fmtGetPodFailed, podName, err)
 	}
 
 	// checkStatus evaluates a single container status for the target container.

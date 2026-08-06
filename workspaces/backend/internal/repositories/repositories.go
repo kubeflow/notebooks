@@ -22,8 +22,8 @@ import (
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/health_check"
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/logs"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/namespaces"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/podlogs"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/pvcs"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/secrets"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/storageclasses"
@@ -40,7 +40,7 @@ type Repositories struct {
 	StorageClass  *storageclasses.StorageClassRepository
 	Workspace     *workspaces.WorkspaceRepository
 	WorkspaceKind *workspacekinds.WorkspaceKindRepository
-	Logs          *logs.LogsRepository
+	PodLogs       *podlogs.PodLogsRepository
 }
 
 // NewRepositories creates a new Repositories instance from a controller-runtime client.
@@ -59,6 +59,6 @@ func NewRepositories(
 		StorageClass:  storageclasses.NewStorageClassRepository(cfg, cl),
 		Workspace:     workspaces.NewWorkspaceRepository(cfg, cl),
 		WorkspaceKind: workspacekinds.NewWorkspaceKindRepository(cfg, cl, configMapClient),
-		Logs:          logs.NewLogsRepository(cfg, cl, clientset),
+		PodLogs:       podlogs.NewPodLogsRepository(cfg, cl, clientset),
 	}
 }
