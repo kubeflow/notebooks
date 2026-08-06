@@ -23,20 +23,12 @@ import (
 	metricsv1beta1 "k8s.io/metrics/pkg/apis/metrics/v1beta1"
 )
 
-// NewErrorResourceUsage returns a WorkspaceResourceUsage indicating that usage metrics
-// are unavailable for the given reason.
-func NewErrorResourceUsage(errCode ErrorCode) *WorkspaceResourceUsage {
-	return &WorkspaceResourceUsage{
-		Error: errCode,
-	}
-}
-
 // NewWorkspaceResourceUsage joins live per-container usage (from a metrics provider) with the
 // requests/limits declared in the pod spec, producing the response for a workspace.
 // usageByContainer is a map of container names to their MetricsFromMetricsServer for this pod.
 func NewWorkspaceResourceUsage(pod *corev1.Pod, usageByContainer map[string]*MetricsFromMetricsServer) *WorkspaceResourceUsage {
 	if pod == nil {
-		return NewErrorResourceUsage(ErrorCodeWorkspaceNotRunning)
+		return nil
 	}
 
 	containers := make(map[string]ContainerResourceUsage, len(pod.Spec.Containers))

@@ -20,22 +20,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-type ErrorCode string
-
-const (
-	ErrorCodeMetricsAPINotAvailable ErrorCode = "METRICS_API_NOT_AVAILABLE"
-	ErrorCodeWorkspaceNotRunning    ErrorCode = "WORKSPACE_NOT_RUNNING"
-)
-
 // WorkspaceResourceUsage represents the point-in-time, pod-level resource
 // usage for a workspace.
 type WorkspaceResourceUsage struct {
-	// Error indicates why usage is unavailable. Absent means success.
-	Error ErrorCode `json:"error,omitempty"`
-
 	// Containers holds the per-container resource data, keyed by container name.
-	// Absent when Error is present.
-	Containers map[string]ContainerResourceUsage `json:"containers,omitempty"`
+	Containers map[string]ContainerResourceUsage `json:"containers"`
 }
 
 // ContainerResourceUsage holds live usage metrics from the Metrics Server

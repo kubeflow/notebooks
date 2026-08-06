@@ -27,7 +27,7 @@ import (
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/podtemplate/details"
-	repository "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/workspaces"
+	repoCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/common"
 )
 
 // WorkspaceDetailsEnvelope is the response envelope for workspace details.
@@ -73,7 +73,7 @@ func (a *App) GetWorkspacePodTemplateDetailsHandler(w http.ResponseWriter, r *ht
 
 	details, err := a.repositories.Workspace.GetWorkspaceDetails(r.Context(), namespace, workspaceName)
 	if err != nil {
-		if errors.Is(err, repository.ErrWorkspaceNotFound) {
+		if errors.Is(err, repoCommon.ErrWorkspaceNotFound) {
 			a.notFoundResponse(w, r)
 			return
 		}
