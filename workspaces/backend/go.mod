@@ -6,6 +6,7 @@ replace github.com/kubeflow/notebooks/workspaces/controller => ../controller
 
 require (
 	github.com/julienschmidt/httprouter v1.3.0
+	github.com/klauspost/compress v1.19.1
 	github.com/kubeflow/notebooks/workspaces/controller v0.0.0
 	github.com/onsi/ginkgo/v2 v2.19.0
 	github.com/onsi/gomega v1.33.1
