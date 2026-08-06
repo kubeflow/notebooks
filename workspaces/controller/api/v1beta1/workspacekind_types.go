@@ -23,10 +23,19 @@ import (
 
 // Important: Run "make" to regenerate code after modifying this file
 
-// DefaultProbeIntervalSeconds is the fallback probe interval used when no activityProbe
-// is configured. This must stay in sync with the +kubebuilder:default marker on
-// ActivityProbe.ProbeIntervalSeconds.
-const DefaultProbeIntervalSeconds int32 = 3600
+// Default values for ActivityProbe fields. These MUST stay in sync with the
+// corresponding +kubebuilder:default markers on the ActivityProbe types, so that
+// the controller and the API server agree on the effective value when a field is unset.
+const (
+	// DefaultProbeIntervalSeconds is the fallback for ActivityProbe.ProbeIntervalSeconds.
+	DefaultProbeIntervalSeconds int32 = 3600
+
+	// DefaultMinProbeIntervalSeconds is the fallback for ActivityProbe.MinProbeIntervalSeconds.
+	DefaultMinProbeIntervalSeconds int32 = 300
+
+	// DefaultPodExecTimeoutSeconds is the fallback for ActivityProbePodExec.TimeoutSeconds.
+	DefaultPodExecTimeoutSeconds int32 = 60
+)
 
 /*
 ===============================================================================
