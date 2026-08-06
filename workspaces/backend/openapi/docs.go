@@ -2043,6 +2043,75 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/workspaces/{namespace}/{name}/podtemplate/resources": {
+            "get": {
+                "description": "Returns point-in-time CPU and memory usage for each container of the workspace pod, alongside the requests and limits configured in the pod spec. Usage is read from the Kubernetes Metrics Server. When usage cannot be retrieved the response is still 200 OK, with a ` + "`" + `data.error` + "`" + ` code explaining why (` + "`" + `METRICS_API_NOT_AVAILABLE` + "`" + ` when the Metrics Server is not installed, ` + "`" + `WORKSPACE_NOT_RUNNING` + "`" + ` when the workspace has no pods).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspaces"
+                ],
+                "summary": "Get workspace pod template resources",
+                "operationId": "getWorkspacePodTemplateResources",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "x-example": "kubeflow-user-example-com",
+                        "description": "Namespace of the workspace",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "x-example": "my-workspace",
+                        "description": "Name of the workspace",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation. Returns per-container usage and configured resources, or an error code when usage is unavailable.",
+                        "schema": {
+                            "$ref": "#/definitions/api.WorkspaceResourceUsageEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "404": {
+                        "description": "Workspace not found.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -2374,6 +2443,17 @@ const docTemplate = `{
                 }
             }
         },
+        "api.WorkspaceResourceUsageEnvelope": {
+            "type": "object",
+            "required": [
+                "data"
+            ],
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/metrics.WorkspaceResourceUsage"
+                }
+            }
+        },
         "assets.ImageRef": {
             "type": "object",
             "required": [
@@ -2694,6 +2774,93 @@ const docTemplate = `{
                 "Int",
                 "String"
             ]
+        },
+        "metrics.ContainerResourceUsage": {
+            "type": "object",
+            "required": [
+                "resources"
+            ],
+            "properties": {
+                "metricsFromMetricsServer": {
+                    "description": "MetricsFromMetricsServer holds live usage metrics. It is nil when metrics\nare pending (e.g., pod just started).",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/metrics.MetricsFromMetricsServer"
+                        }
+                    ]
+                },
+                "resources": {
+                    "description": "Resources holds the configured resource requirements from the pod spec.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1.ResourceRequirements"
+                        }
+                    ]
+                }
+            }
+        },
+        "metrics.ErrorCode": {
+            "type": "string",
+            "enum": [
+                "METRICS_API_NOT_AVAILABLE",
+                "WORKSPACE_NOT_RUNNING"
+            ],
+            "x-enum-varnames": [
+                "ErrorCodeMetricsAPINotAvailable",
+                "ErrorCodeWorkspaceNotRunning"
+            ]
+        },
+        "metrics.MetricsFromMetricsServer": {
+            "type": "object",
+            "required": [
+                "timestamp",
+                "usage"
+            ],
+            "properties": {
+                "timestamp": {
+                    "description": "Timestamp is the RFC3339 timestamp of when the sample was collected.",
+                    "type": "string"
+                },
+                "usage": {
+                    "description": "Usage is the current resource consumption.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/metrics.ResourceValues"
+                        }
+                    ]
+                }
+            }
+        },
+        "metrics.ResourceValues": {
+            "type": "object",
+            "properties": {
+                "cpu": {
+                    "type": "string"
+                },
+                "memory": {
+                    "type": "string"
+                }
+            }
+        },
+        "metrics.WorkspaceResourceUsage": {
+            "type": "object",
+            "properties": {
+                "containers": {
+                    "description": "Containers holds the per-container resource data, keyed by container name.\nAbsent when Error is present.",
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/metrics.ContainerResourceUsage"
+                    }
+                },
+                "error": {
+                    "description": "Error indicates why usage is unavailable. Absent means success.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/metrics.ErrorCode"
+                        }
+                    ]
+                }
+            }
         },
         "namespaces.Namespace": {
             "type": "object",

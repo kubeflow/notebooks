@@ -24,7 +24,9 @@ import (
 
 	modelsCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	modelsmetrics "github.com/kubeflow/notebooks/workspaces/backend/internal/models/metrics"
+	repoCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/common"
 
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -56,6 +58,7 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 		scheme = runtime.NewScheme()
 		Expect(corev1.AddToScheme(scheme)).To(Succeed())
 		Expect(metricsv1beta1.AddToScheme(scheme)).To(Succeed())
+		Expect(kubefloworgv1beta1.AddToScheme(scheme)).To(Succeed())
 	})
 
 	It("returns available usage joined with requests when pods and metrics exist", func() {
@@ -69,6 +72,7 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 
 		client := fake.NewClientBuilder().
 			WithScheme(scheme).
+			WithObjects(testWorkspaceCR()).
 			WithLists(
 				&corev1.PodList{Items: []corev1.Pod{*pod}},
 				&metricsv1beta1.PodMetricsList{Items: []metricsv1beta1.PodMetrics{*metrics}},
@@ -105,6 +109,7 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 
 		client := fake.NewClientBuilder().
 			WithScheme(scheme).
+			WithObjects(testWorkspaceCR()).
 			WithLists(
 				&corev1.PodList{Items: []corev1.Pod{*pod}},
 				&metricsv1beta1.PodMetricsList{Items: []metricsv1beta1.PodMetrics{}},
@@ -128,9 +133,24 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 		Expect(got.Containers["container-2"]).To(BeComparableTo(expected))
 	})
 
+	It("returns ErrWorkspaceNotFound when the workspace does not exist", func() {
+		client := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(testWorkspaceCR()).
+			WithLists(&corev1.PodList{Items: []corev1.Pod{}}).
+			Build()
+
+		repo := newTestMetricsRepository(client, true)
+		got, err := repo.GetWorkspaceResourceUsage(ctx, "default", "no-such-workspace")
+
+		Expect(err).To(MatchError(repoCommon.ErrWorkspaceNotFound))
+		Expect(got).To(BeNil())
+	})
+
 	It("returns WORKSPACE_NOT_RUNNING error when no pods match", func() {
 		client := fake.NewClientBuilder().
 			WithScheme(scheme).
+			WithObjects(testWorkspaceCR()).
 			WithLists(
 				&corev1.PodList{Items: []corev1.Pod{}},
 			).Build()
@@ -148,6 +168,7 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 
 		client := fake.NewClientBuilder().
 			WithScheme(scheme).
+			WithObjects(testWorkspaceCR()).
 			WithLists(&corev1.PodList{Items: []corev1.Pod{*pod}}).
 			Build()
 
@@ -164,6 +185,7 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 
 		client := fake.NewClientBuilder().
 			WithScheme(scheme).
+			WithObjects(testWorkspaceCR()).
 			WithLists(&corev1.PodList{Items: []corev1.Pod{*pod}}).
 			WithInterceptorFuncs(interceptor.Funcs{
 				List: func(ctx context.Context, cli client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
@@ -186,6 +208,7 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 	It("returns error when availability could not be determined", func() {
 		client := fake.NewClientBuilder().
 			WithScheme(scheme).
+			WithObjects(testWorkspaceCR()).
 			WithLists(&corev1.PodList{Items: []corev1.Pod{*workspacePod("pod-5", "container-5", nil)}}).
 			Build()
 
@@ -283,6 +306,17 @@ type failingRESTMapper struct {
 
 func (m failingRESTMapper) RESTMapping(gk schema.GroupKind, versions ...string) (*meta.RESTMapping, error) {
 	return nil, m.err
+}
+
+// testWorkspaceCR is the Workspace the specs resolve usage for. GetWorkspaceResourceUsage
+// confirms the workspace exists before reading usage, so it must be present in the fake client.
+func testWorkspaceCR() *kubefloworgv1beta1.Workspace {
+	return &kubefloworgv1beta1.Workspace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-workspace",
+			Namespace: "default",
+		},
+	}
 }
 
 func newTestMetricsRepository(c client.Client, apiAvailable bool) *MetricsRepository {
