@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	metricsv1beta1 "k8s.io/metrics/pkg/apis/metrics/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -46,6 +47,9 @@ func BuildScheme() (*runtime.Scheme, error) {
 	if err := kubefloworgv1beta1.AddToScheme(scheme); err != nil {
 		return nil, fmt.Errorf("failed to add Kubeflow types to scheme: %w", err)
 	}
+	if err := metricsv1beta1.AddToScheme(scheme); err != nil {
+		return nil, fmt.Errorf("failed to add metrics types to scheme: %w", err)
+	}
 	return scheme, nil
 }
 
@@ -58,9 +62,14 @@ func NewManager(cfg *rest.Config, scheme *runtime.Scheme) (ctrl.Manager, error) 
 				// Disable caching for ConfigMaps and Secrets as caching all of them can take a LOT of memory in a large cluster
 				// We create special caches that are filtered by label selectors (e.g. the image source ConfigMaps).
 				// REFERENCE: https://github.com/kubernetes-sigs/controller-runtime/issues/244#issuecomment-2466564541
+				//
+				// PodMetrics is served by the aggregated metrics.k8s.API, which does not support WATCH.
+				// The informer cache cannot be built for it, so reads must bypass the cache and go directly
+				// to the API server.
 				DisableFor: []client.Object{
 					&corev1.ConfigMap{},
 					&corev1.Secret{},
+					&metricsv1beta1.PodMetrics{},
 				},
 			},
 		},
