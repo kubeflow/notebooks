@@ -15,6 +15,7 @@ import {
   buildMockWorkspaceDetails,
   buildMockWorkspaceKindInfo,
   buildMockWorkspaceList,
+  buildMockWorkspaceLogs,
 } from '~/shared/mock/mockBuilder';
 import { createMockPodTemplateWithImage } from '~/__tests__/cypress/cypress/utils/testBuilders';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
@@ -1011,6 +1012,61 @@ describe('Workspaces', () => {
         workspaceDetailsDrawer.assertActivityTabAriaSelected(false);
         workspaceDetailsDrawer.assertOverviewTabContentVisible();
         workspaceDetailsDrawer.assertActivityTabContentNotVisible();
+      });
+
+      it('should display container logs in the Logs tab', () => {
+        const mockLogs = buildMockWorkspaceLogs(3);
+        cy.interceptApi(
+          'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/logs/batch',
+          {
+            path: {
+              apiVersion: NOTEBOOKS_API_VERSION,
+              namespace: DEFAULT_NAMESPACE,
+              workspaceName: TEST_WORKSPACE_NAME,
+            },
+          },
+          mockLogs,
+        ).as('getWorkspaceLogs');
+
+        workspaces
+          .findAction({ action: 'viewDetails', workspaceName: TEST_WORKSPACE_NAME })
+          .click();
+        workspaceDetailsDrawer.findLogsTab().click();
+
+        cy.wait('@getWorkspaceLogs').then((interception) => {
+          expect(interception.request.query.container).to.equal('main');
+          expect(interception.request.query.previous).to.equal('false');
+        });
+
+        workspaceDetailsDrawer.assertLogsTabContentContainsText('jupyter server log line 1');
+      });
+
+      it('should display an error when the logs are unavailable', () => {
+        cy.interceptApi(
+          'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/logs/batch',
+          {
+            path: {
+              apiVersion: NOTEBOOKS_API_VERSION,
+              namespace: DEFAULT_NAMESPACE,
+              workspaceName: TEST_WORKSPACE_NAME,
+            },
+          },
+          {
+            error: {
+              code: '409',
+              message: 'workspace pod is not running',
+            },
+          },
+        ).as('getWorkspaceLogsError');
+
+        workspaces
+          .findAction({ action: 'viewDetails', workspaceName: TEST_WORKSPACE_NAME })
+          .click();
+        workspaceDetailsDrawer.findLogsTab().click();
+
+        cy.wait('@getWorkspaceLogsError');
+
+        workspaceDetailsDrawer.assertLogsTabContentContainsText('workspace pod is not running');
       });
 
       it('should update drawer content when switching between workspaces', () => {

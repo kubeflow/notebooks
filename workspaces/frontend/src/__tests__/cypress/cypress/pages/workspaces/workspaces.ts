@@ -347,6 +347,26 @@ class WorkspaceDetailsDrawer {
     return this.find().findByTestId('activity-tab');
   }
 
+  findLogsTab() {
+    return this.find().findByTestId('logs-tab');
+  }
+
+  findLogsTabContent() {
+    return this.find().findByTestId('logs-tab-content');
+  }
+
+  findLogsPreviousCheckbox() {
+    return this.findLogsTabContent().findByTestId('logs-previous-checkbox');
+  }
+
+  findLogsRefreshButton() {
+    return this.findLogsTabContent().findByTestId('logs-refresh-button');
+  }
+
+  assertLogsTabContentContainsText(text: string) {
+    this.findLogsTabContent().should('contain.text', text);
+  }
+
   assertOverviewTabSelected(isSelected: boolean) {
     return this.findOverviewTab().should(
       'have.attr',

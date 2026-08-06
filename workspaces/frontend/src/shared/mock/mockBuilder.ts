@@ -949,6 +949,12 @@ export const buildMockPVCCreate = (pvc?: Partial<PvcsPVCCreate>): PvcsPVCCreate 
 export const buildMockWorkspaceDetails = (
   details?: Partial<DetailsWorkspaceDetails>,
 ): DetailsWorkspaceDetails => ({
+  pod: {
+    name: 'my-first-jupyter-notebook-0',
+    nodeName: 'kind-control-plane',
+    containers: [{ name: 'main' }],
+    initContainers: [{ name: 'istio-proxy' }],
+  },
   podMetadata: {
     labels: { labelKey1: 'labelValue1', labelKey2: 'labelValue2' },
     annotations: { annotationKey1: 'annotationValue1', annotationKey2: 'annotationValue2' },
@@ -960,3 +966,13 @@ export const buildMockWorkspaceDetails = (
   },
   ...details,
 });
+
+// The logs endpoint returns a raw text/plain stream, where every line is
+// prefixed with the RFC3339 timestamp added by the Kubernetes pod logs API.
+export const buildMockWorkspaceLogs = (lineCount = 5): string => {
+  const start = new Date(2025, 5, 1).getTime();
+  return Array.from({ length: lineCount }, (_, i) => {
+    const timestamp = new Date(start + i * 1000).toISOString();
+    return `${timestamp} [INFO] jupyter server log line ${i + 1}`;
+  }).join('\n');
+};
