@@ -356,8 +356,6 @@ spec:
     logo:
       url: "https://upload.wikimedia.org/wikipedia/commons/3/38/Jupyter_logo.svg"
   podTemplate:
-    serviceAccount:
-      name: "default-editor"
     volumeMounts:
       home: "/home/jovyan"
     ports:
@@ -990,7 +988,6 @@ metadata:
 			By("verifying immutable fields are unchanged in K8s")
 			wsk := &kubefloworgv1beta1.WorkspaceKind{}
 			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: wskName}, wsk)).To(Succeed())
-			Expect(wsk.Spec.PodTemplate.ServiceAccount.Name).To(Equal("default-editor"))
 			Expect(wsk.Spec.PodTemplate.VolumeMounts.Home).To(Equal("/home/jovyan"))
 		})
 

@@ -60,6 +60,12 @@ const (
 	// pod template constants
 	workspacePodTemplateContainerName = "main"
 
+	// the ServiceAccount used by all Workspace Pods, it MUST already exist in the
+	// Namespace of the Workspace, the controller will NOT create it
+	// TODO: replace with per-Workspace ServiceAccounts
+	//       https://github.com/kubeflow/notebooks/issues/1257
+	workspaceServiceAccountName = "default-editor"
+
 	// lengths for resource names
 	generateNameSuffixLength    = 6
 	maxServiceNameLength        = 63
@@ -909,7 +915,7 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 					},
 					NodeSelector:       podConfigSpec.NodeSelector,
 					SecurityContext:    workspaceKind.Spec.PodTemplate.SecurityContext,
-					ServiceAccountName: workspaceKind.Spec.PodTemplate.ServiceAccount.Name,
+					ServiceAccountName: workspaceServiceAccountName,
 					Tolerations:        podConfigSpec.Tolerations,
 					Volumes:            volumes,
 				},

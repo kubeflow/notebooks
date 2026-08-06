@@ -6721,7 +6721,6 @@ const docTemplate = `{
             "required": [
                 "options",
                 "ports",
-                "serviceAccount",
                 "volumeMounts"
             ],
             "properties": {
@@ -6802,7 +6801,7 @@ const docTemplate = `{
                     ]
                 },
                 "serviceAccount": {
-                    "description": "service account configs for Workspace Pods",
+                    "description": "service account configs for Workspace Pods\n - currently has no fields, the ServiceAccount used by Workspace Pods is\n   hardcoded to \"default-editor\" in the controller\n - this ServiceAccount MUST already exist in the Namespace of the Workspace,\n   the controller will NOT create it\n+kubebuilder:validation:Optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.WorkspaceKindServiceAccount"
@@ -6883,16 +6882,7 @@ const docTemplate = `{
             }
         },
         "v1beta1.WorkspaceKindServiceAccount": {
-            "type": "object",
-            "required": [
-                "name"
-            ],
-            "properties": {
-                "name": {
-                    "description": "the name of the ServiceAccount (NOT MUTABLE)\n - this Service Account MUST already exist in the Namespace\n   of the Workspace, the controller will NOT create it\n - we will not show this WorkspaceKind in the Spawner UI\n   if the SA does not exist in the Namespace\n+kubebuilder:validation:XValidation:rule=\"self == oldSelf\",message=\"ServiceAccount 'name' is immutable\"\n+kubebuilder:example=\"default-editor\"\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=253\n+kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$",
-                    "type": "string"
-                }
-            }
+            "type": "object"
         },
         "v1beta1.WorkspaceKindSpawner": {
             "type": "object",

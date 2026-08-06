@@ -1073,7 +1073,11 @@ func (in *WorkspaceKindPodTemplate) DeepCopyInto(out *WorkspaceKindPodTemplate) 
 		*out = new(WorkspaceKindPodMetadata)
 		(*in).DeepCopyInto(*out)
 	}
-	out.ServiceAccount = in.ServiceAccount
+	if in.ServiceAccount != nil {
+		in, out := &in.ServiceAccount, &out.ServiceAccount
+		*out = new(WorkspaceKindServiceAccount)
+		**out = **in
+	}
 	if in.ActivityProbe != nil {
 		in, out := &in.ActivityProbe, &out.ActivityProbe
 		*out = new(ActivityProbe)
