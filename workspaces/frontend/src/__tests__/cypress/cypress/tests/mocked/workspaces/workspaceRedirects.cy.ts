@@ -569,7 +569,6 @@ describe('Workspace Redirects', () => {
         namespace: mockNamespace.name,
         workspaceKind: buildMockWorkspaceKindInfo({ name: 'jupyterlab' }),
         state,
-        pendingRestart: true,
         podTemplate: buildMockPodTemplate({
           options: buildPodTemplateOptions({
             imageConfig: buildMockImageConfig({
