@@ -107,6 +107,7 @@ func (a *App) Routes() http.Handler {
 	router.DELETE(constants.WorkspacesByNamePath, a.DeleteWorkspaceHandler)
 	router.POST(constants.PauseWorkspacePath, a.PauseActionWorkspaceHandler)
 	router.GET(constants.WorkspacePodTemplateDetailsPath, a.GetWorkspacePodTemplateDetailsHandler)
+	router.GET(constants.ConnectWorkspacePath, a.ConnectWorkspaceHandler)
 
 	// workspacekinds
 	router.GET(constants.AllWorkspaceKindsPath, a.GetWorkspaceKindsHandler)

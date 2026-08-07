@@ -54,7 +54,6 @@ import (
 
 const (
 	// label keys
-	workspaceNameLabel     = "notebooks.kubeflow.org/workspace-name"
 	workspaceSelectorLabel = "statefulset"
 
 	// pod template constants
@@ -290,7 +289,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// generate Service
-	service, err := generateService(workspace, currentImageConfig.Spec)
+	service, err := generateService(workspace, workspaceKind, currentImageConfig.Spec)
 	if err != nil {
 		log.V(0).Info("failed to generate Service for Workspace", "error", err.Error())
 		return r.updateWorkspaceState(ctx, log, workspace,
@@ -467,7 +466,7 @@ func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager, opts *controlle
 		return []reconcile.Request{
 			{
 				NamespacedName: types.NamespacedName{
-					Name:      object.GetLabels()[workspaceNameLabel],
+					Name:      object.GetLabels()[kubefloworgv1beta1.WorkspaceNameLabel],
 					Namespace: object.GetNamespace(),
 				},
 			},
@@ -476,7 +475,7 @@ func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager, opts *controlle
 
 	// predicate function to filter pods that are labeled with the "workspace-name" label key
 	predPodHasWSLabel := predicate.NewPredicateFuncs(func(object client.Object) bool {
-		_, labelExists := object.GetLabels()[workspaceNameLabel]
+		_, labelExists := object.GetLabels()[kubefloworgv1beta1.WorkspaceNameLabel]
 		return labelExists
 	})
 
@@ -871,7 +870,7 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 			GenerateName: namePrefix,
 			Namespace:    workspace.Namespace,
 			Labels: map[string]string{
-				workspaceNameLabel: workspace.Name,
+				kubefloworgv1beta1.WorkspaceNameLabel: workspace.Name,
 			},
 		},
 		//
@@ -881,7 +880,7 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 			Replicas: &replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					workspaceNameLabel:     workspace.Name,
+					kubefloworgv1beta1.WorkspaceNameLabel:     workspace.Name,
 					workspaceSelectorLabel: workspace.Name,
 				},
 			},
@@ -891,7 +890,7 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 					Labels: labels.Merge(
 						podLabels,
 						map[string]string{
-							workspaceNameLabel:     workspace.Name,
+							kubefloworgv1beta1.WorkspaceNameLabel:     workspace.Name,
 							workspaceSelectorLabel: workspace.Name,
 						},
 					),
@@ -927,9 +926,15 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 }
 
 // generateService generates a Service for a Workspace
-func generateService(workspace *kubefloworgv1beta1.Workspace, imageConfigSpec kubefloworgv1beta1.ImageConfigSpec) (*corev1.Service, error) {
+func generateService(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind, imageConfigSpec kubefloworgv1beta1.ImageConfigSpec) (*corev1.Service, error) {
 	// generate name prefix
 	namePrefix := generateNamePrefix(workspace.Name, maxServiceNameLength)
+
+	// Build a map of WorkspaceKindPort protocols for easy lookup
+	kindPortProtocols := make(map[kubefloworgv1beta1.PortId]kubefloworgv1beta1.ImagePortProtocol)
+	for _, kp := range workspaceKind.Spec.PodTemplate.Ports {
+		kindPortProtocols[kp.Id] = kp.Protocol
+	}
 
 	// generate service ports
 	servicePorts := make([]corev1.ServicePort, len(imageConfigSpec.Ports))
@@ -938,8 +943,12 @@ func generateService(workspace *kubefloworgv1beta1.Workspace, imageConfigSpec ku
 		if seenPorts[port.Port] {
 			return nil, fmt.Errorf("duplicate port number %d in imageConfig", port.Port)
 		}
+		prefix := "http"
+		if kindPortProtocols[port.Id] == kubefloworgv1beta1.ImagePortProtocolTCP {
+			prefix = "tcp"
+		}
 		servicePorts[i] = corev1.ServicePort{
-			Name:       fmt.Sprintf("http-%d", port.Port),
+			Name:       fmt.Sprintf("%s-%d", prefix, port.Port),
 			TargetPort: intstr.FromInt32(port.Port),
 			Port:       port.Port,
 			Protocol:   corev1.ProtocolTCP,
@@ -953,7 +962,7 @@ func generateService(workspace *kubefloworgv1beta1.Workspace, imageConfigSpec ku
 			GenerateName: namePrefix,
 			Namespace:    workspace.Namespace,
 			Labels: map[string]string{
-				workspaceNameLabel: workspace.Name,
+				kubefloworgv1beta1.WorkspaceNameLabel: workspace.Name,
 			},
 		},
 		//
@@ -962,7 +971,7 @@ func generateService(workspace *kubefloworgv1beta1.Workspace, imageConfigSpec ku
 		Spec: corev1.ServiceSpec{
 			Ports: servicePorts,
 			Selector: map[string]string{
-				workspaceNameLabel:     workspace.Name,
+				kubefloworgv1beta1.WorkspaceNameLabel:     workspace.Name,
 				workspaceSelectorLabel: workspace.Name,
 			},
 			Type: corev1.ServiceTypeClusterIP,
@@ -1108,7 +1117,7 @@ func (r *WorkspaceReconciler) generateVirtualService(workspace *kubefloworgv1bet
 			GenerateName: namePrefix,
 			Namespace:    workspace.Namespace,
 			Labels: map[string]string{
-				workspaceNameLabel: workspace.Name,
+				kubefloworgv1beta1.WorkspaceNameLabel: workspace.Name,
 			},
 		},
 		Spec: networkingv1.VirtualService{

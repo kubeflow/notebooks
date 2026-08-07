@@ -1,0 +1,32 @@
+apiVersion: kubeflow.org/v1beta1
+kind: Workspace
+metadata:
+  name: ssh-smoke-ws
+  namespace: ssh-smoke-test-ns
+spec:
+  paused: false
+  kind: ssh-smoke-kind
+  podTemplate:
+    podMetadata: {}
+    volumes:
+      home: "ssh-smoke-home-pvc"
+      data: []
+      secrets:
+        - secretName: "kubeflow-ssh-pub-ssh-smoke-ws"
+          mountPath: "/home/jovyan/.ssh"
+          defaultMode: 292
+    options:
+      imageConfig: "debian-ssh"
+      podConfig: "standard"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ssh-smoke-home-pvc
+  namespace: ssh-smoke-test-ns
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

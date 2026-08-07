@@ -21,6 +21,7 @@ rules:
   resources:
   - namespaces
   - configmaps
+  - services
   verbs:
   - get
   - list

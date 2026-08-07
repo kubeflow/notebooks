@@ -1,0 +1,69 @@
+apiVersion: kubeflow.org/v1beta1
+kind: WorkspaceKind
+metadata:
+  name: ssh-smoke-kind
+spec:
+  spawner:
+    displayName: "SSH Smoke Test Kind"
+    description: "WorkspaceKind with SSH enabled for smoke testing"
+    hidden: true
+    deprecated: false
+    icon:
+      url: "https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png"
+    logo:
+      url: "https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png"
+  podTemplate:
+    serviceAccount:
+      name: "default-editor"
+    culling:
+      enabled: false
+      activityProbe:
+        exec:
+          command:
+            - "true"
+    volumeMounts:
+      home: "/home/jovyan"
+    ports:
+      - id: "ssh"
+        defaultDisplayName: "SSH"
+        protocol: "TCP"
+    extraEnv: []
+    extraVolumeMounts: []
+    extraVolumes: []
+    securityContext:
+      seccompProfile:
+        type: "RuntimeDefault"
+    containerSecurityContext:
+      runAsNonRoot: true
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
+      seccompProfile:
+        type: "RuntimeDefault"
+    options:
+      imageConfig:
+        spawner:
+          default: "debian-ssh"
+        values:
+          - id: "debian-ssh"
+            spawner:
+              displayName: "Debian SSH server"
+              description: "Debian image running sshd"
+            spec:
+              image: "ssh-smoke-image:e2e"
+              imagePullPolicy: "IfNotPresent"
+              ports:
+                - id: "ssh"
+                  port: 2222
+      podConfig:
+        spawner:
+          default: "standard"
+        values:
+          - id: "standard"
+            spawner:
+              displayName: "Standard resources"
+            spec:
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi

@@ -1,0 +1,9 @@
+# Ignore temporary runtime mock SSH keys
+id_smoke
+id_smoke.pub
+
+# Ignore local environment directories
+venv/
+node_modules/
+package.json
+package-lock.json

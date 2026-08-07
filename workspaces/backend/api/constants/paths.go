@@ -30,6 +30,7 @@ const (
 	WorkspaceActionsPath            = WorkspacesByNamePath + "/actions"
 	PauseWorkspacePath              = WorkspaceActionsPath + "/pause"
 	WorkspacePodTemplateDetailsPath = WorkspacesByNamePath + "/podtemplate/details"
+	ConnectWorkspacePath            = WorkspacesByNamePath + "/connect/:port"
 
 	// workspacekinds
 	AllWorkspaceKindsPath            = PathPrefix + "/workspacekinds"
