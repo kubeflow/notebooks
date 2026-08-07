@@ -34,7 +34,7 @@ import (
 // GetWorkspacePodTemplateLogsHandler returns a point-in-time snapshot of container logs for a workspace pod.
 //
 //	@Summary		Get workspace container logs (batch)
-//	@Description	Returns a point-in-time snapshot of container logs for the workspace pod as a raw text/plain stream proxied directly from the Kubernetes pod logs API.
+//	@Description	Returns a point-in-time snapshot of container logs for the workspace pod as a raw text/plain stream proxied directly from the Kubernetes pod logs API. Each log line is always prefixed with an RFC3339 timestamp.
 //	@Tags			workspaces
 //	@ID				getWorkspacePodTemplateLogsBatch
 //	@Produce		plain

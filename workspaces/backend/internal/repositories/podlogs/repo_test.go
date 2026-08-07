@@ -18,20 +18,27 @@ package podlogs
 
 import (
 	"context"
-	"errors"
 	"io"
 	"testing"
 
-	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	ctrlfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/podtemplate/logs"
 )
+
+func TestPodLogsRepository(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "PodLogs Repository")
+}
 
 const (
 	testNamespace = "test-ns"
@@ -129,13 +136,9 @@ func podFromWorkspace(ws *kubefloworgv1beta1.Workspace) *corev1.Pod {
 // newRepo builds a PodLogsRepository backed by a fake controller-runtime client
 // (seeded with the given workspace) and a fake Kubernetes clientset seeded with the
 // given Pod (or nil for none).
-func newRepo(t *testing.T, ws *kubefloworgv1beta1.Workspace, pod *corev1.Pod) *PodLogsRepository {
-	t.Helper()
-
+func newRepo(ws *kubefloworgv1beta1.Workspace, pod *corev1.Pod) *PodLogsRepository {
 	scheme, err := helper.BuildScheme()
-	if err != nil {
-		t.Fatalf("failed to build scheme: %v", err)
-	}
+	Expect(err).NotTo(HaveOccurred())
 
 	builder := ctrlfake.NewClientBuilder().WithScheme(scheme)
 	if ws != nil {
@@ -153,251 +156,142 @@ func newRepo(t *testing.T, ws *kubefloworgv1beta1.Workspace, pod *corev1.Pod) *P
 	return NewPodLogsRepository(&config.EnvConfig{}, cl, clientset)
 }
 
-func TestOpenLogStream(t *testing.T) {
-	testCases := []struct {
-		name string
-		ws   *kubefloworgv1beta1.Workspace
-		// pod is the live Pod seeded into the fake clientset. Leave nil to seed no
-		// Pod (e.g. to test a missing pod); pass podFromWorkspace(ws) for the common
-		// all-Running case.
-		pod      *corev1.Pod
-		opts     *models.LogOptions
-		wantErr  error // nil means success is expected
-		wantLogs bool  // when success is expected, whether log content should be returned
-	}{
-		{
-			name:     "success with default container",
-			ws:       newWorkspace(testPodName, "main", "istio-proxy"),
-			pod:      podFromWorkspace(newWorkspace(testPodName, "main", "istio-proxy")),
-			opts:     &models.LogOptions{},
-			wantLogs: true,
-		},
-		{
-			name:     "success with specific container",
-			ws:       newWorkspace(testPodName, "main", "istio-proxy"),
-			pod:      podFromWorkspace(newWorkspace(testPodName, "main", "istio-proxy")),
-			opts:     &models.LogOptions{Container: "istio-proxy"},
-			wantLogs: true,
-		},
-		{
-			name:     "success with init container (native sidecar)",
-			ws:       withInitContainers(newWorkspace(testPodName, "main"), "istio-proxy"),
-			pod:      podFromWorkspace(withInitContainers(newWorkspace(testPodName, "main"), "istio-proxy")),
-			opts:     &models.LogOptions{Container: "istio-proxy"},
-			wantLogs: true,
-		},
-		{
-			name:    "workspace not found",
-			ws:      nil,
-			opts:    &models.LogOptions{},
-			wantErr: ErrWorkspaceNotFound,
-		},
-		{
-			name:    "pod not running",
-			ws:      newWorkspace("", "main"),
-			opts:    &models.LogOptions{},
-			wantErr: ErrPodNotRunning,
-		},
-		{
-			name:    "container not found",
-			ws:      newWorkspace(testPodName, "main"),
-			opts:    &models.LogOptions{Container: "does-not-exist"},
-			wantErr: ErrContainerNotFound,
-		},
-		{
-			name:    "container not running when pod has no containers yet",
-			ws:      newWorkspace(testPodName), // pod name set, but no containers listed
-			opts:    &models.LogOptions{},
-			wantErr: ErrContainerNotRunning,
-		},
-		{
-			name: "container waiting returns not running (default container)",
-			ws:   newWorkspace(testPodName, "main"),
-			pod: newPod([]corev1.ContainerStatus{
-				waitingContainerStatus("main", "PodInitializing"),
-			}, nil),
-			opts:    &models.LogOptions{},
-			wantErr: ErrContainerNotRunning,
-		},
-		{
-			name: "requested container waiting returns not running",
-			ws:   newWorkspace(testPodName, "main", "istio-proxy"),
-			pod: newPod([]corev1.ContainerStatus{
-				runningContainerStatus("main"),
-				waitingContainerStatus("istio-proxy", "ContainerCreating"),
-			}, nil),
-			opts:    &models.LogOptions{Container: "istio-proxy"},
-			wantErr: ErrContainerNotRunning,
-		},
-		{
-			name: "waiting init container returns not running",
-			ws:   withInitContainers(newWorkspace(testPodName, "main"), "istio-proxy"),
-			pod: newPod(
-				[]corev1.ContainerStatus{runningContainerStatus("main")},
-				[]corev1.ContainerStatus{waitingContainerStatus("istio-proxy", "PodInitializing")},
-			),
-			opts:    &models.LogOptions{Container: "istio-proxy"},
-			wantErr: ErrContainerNotRunning,
-		},
-		{
-			name:    "no container status reported yet returns not running",
-			ws:      newWorkspace(testPodName, "main"),
-			pod:     newPod(nil, nil),
-			opts:    &models.LogOptions{},
-			wantErr: ErrContainerNotRunning,
-		},
-		{
-			// pod left nil: the Workspace references a pod the clientset cannot find.
-			name:    "live pod missing returns pod not running",
-			ws:      newWorkspace(testPodName, "main"),
-			opts:    &models.LogOptions{},
-			wantErr: ErrPodNotRunning,
-		},
-		{
-			name: "waiting current container is served when previous=true and a previous instance exists",
-			ws:   newWorkspace(testPodName, "main"),
-			pod: newPod([]corev1.ContainerStatus{
-				waitingContainerStatusWithPrevious("main", "CrashLoopBackOff"),
-			}, nil),
-			opts:     &models.LogOptions{Previous: true},
-			wantLogs: true,
-		},
-		{
-			name: "previous=true with no previous terminated instance returns previous logs not found",
-			ws:   newWorkspace(testPodName, "main"),
-			pod: newPod([]corev1.ContainerStatus{
-				runningContainerStatus("main"), // running, but never restarted (no LastTerminationState)
-			}, nil),
-			opts:    &models.LogOptions{Previous: true},
-			wantErr: ErrPreviousLogsNotFound,
-		},
-		{
-			name: "previous=true for an init container with no previous instance returns previous logs not found",
-			ws:   withInitContainers(newWorkspace(testPodName, "main"), "istio-proxy"),
-			pod: newPod(
-				[]corev1.ContainerStatus{runningContainerStatus("main")},
-				[]corev1.ContainerStatus{runningContainerStatus("istio-proxy")},
-			),
-			opts:    &models.LogOptions{Container: "istio-proxy", Previous: true},
-			wantErr: ErrPreviousLogsNotFound,
-		},
-	}
+var _ = Describe("PodLogsRepository.OpenLogStream", func() {
+	DescribeTable("resolving and opening the log stream",
+		func(ws *kubefloworgv1beta1.Workspace, pod *corev1.Pod, opts *models.LogOptions, wantErr error, wantLogs bool) {
+			repo := newRepo(ws, pod)
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			repo := newRepo(t, tc.ws, tc.pod)
+			stream, err := repo.OpenLogStream(context.Background(), testNamespace, testWorkspace, opts)
 
-			stream, err := repo.OpenLogStream(context.Background(), testNamespace, testWorkspace, tc.opts)
-
-			if tc.wantErr != nil {
-				if !errors.Is(err, tc.wantErr) {
-					t.Fatalf("expected error %v, got: %v", tc.wantErr, err)
-				}
+			if wantErr != nil {
+				Expect(err).To(MatchError(wantErr))
 				return
 			}
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			defer stream.Close()
+
+			Expect(err).NotTo(HaveOccurred())
+			defer func() { _ = stream.Close() }()
 
 			// The fake clientset returns a canned non-empty log body ("fake logs"),
 			// so we only assert that content was produced.
 			body, err := io.ReadAll(stream)
-			if err != nil {
-				t.Fatalf("unexpected error reading stream: %v", err)
+			Expect(err).NotTo(HaveOccurred())
+			if wantLogs {
+				Expect(body).NotTo(BeEmpty())
 			}
-			if tc.wantLogs && len(body) == 0 {
-				t.Fatalf("expected at least some log content, got none")
-			}
-		})
-	}
-}
+		},
+		Entry("success with default container",
+			newWorkspace(testPodName, "main", "istio-proxy"),
+			podFromWorkspace(newWorkspace(testPodName, "main", "istio-proxy")),
+			&models.LogOptions{}, nil, true),
+		Entry("success with specific container",
+			newWorkspace(testPodName, "main", "istio-proxy"),
+			podFromWorkspace(newWorkspace(testPodName, "main", "istio-proxy")),
+			&models.LogOptions{Container: "istio-proxy"}, nil, true),
+		Entry("success with init container (native sidecar)",
+			withInitContainers(newWorkspace(testPodName, "main"), "istio-proxy"),
+			podFromWorkspace(withInitContainers(newWorkspace(testPodName, "main"), "istio-proxy")),
+			&models.LogOptions{Container: "istio-proxy"}, nil, true),
+		Entry("workspace not found",
+			nil,
+			nil,
+			&models.LogOptions{}, ErrWorkspaceNotFound, false),
+		Entry("pod not running",
+			newWorkspace("", "main"),
+			nil,
+			&models.LogOptions{}, ErrPodNotRunning, false),
+		Entry("container not found",
+			newWorkspace(testPodName, "main"),
+			nil,
+			&models.LogOptions{Container: "does-not-exist"}, ErrContainerNotFound, false),
+		Entry("container not running when pod has no containers yet",
+			newWorkspace(testPodName), // pod name set, but no containers listed
+			nil,
+			&models.LogOptions{}, ErrContainerNotRunning, false),
+		Entry("container waiting returns not running (default container)",
+			newWorkspace(testPodName, "main"),
+			newPod([]corev1.ContainerStatus{
+				waitingContainerStatus("main", "PodInitializing"),
+			}, nil),
+			&models.LogOptions{}, ErrContainerNotRunning, false),
+		Entry("requested container waiting returns not running",
+			newWorkspace(testPodName, "main", "istio-proxy"),
+			newPod([]corev1.ContainerStatus{
+				runningContainerStatus("main"),
+				waitingContainerStatus("istio-proxy", "ContainerCreating"),
+			}, nil),
+			&models.LogOptions{Container: "istio-proxy"}, ErrContainerNotRunning, false),
+		Entry("waiting init container returns not running",
+			withInitContainers(newWorkspace(testPodName, "main"), "istio-proxy"),
+			newPod(
+				[]corev1.ContainerStatus{runningContainerStatus("main")},
+				[]corev1.ContainerStatus{waitingContainerStatus("istio-proxy", "PodInitializing")},
+			),
+			&models.LogOptions{Container: "istio-proxy"}, ErrContainerNotRunning, false),
+		Entry("no container status reported yet returns not running",
+			newWorkspace(testPodName, "main"),
+			newPod(nil, nil),
+			&models.LogOptions{}, ErrContainerNotRunning, false),
+		Entry("live pod missing returns pod not running",
+			// pod left nil: the Workspace references a pod the clientset cannot find.
+			newWorkspace(testPodName, "main"),
+			nil,
+			&models.LogOptions{}, ErrPodNotRunning, false),
+		Entry("waiting current container is served when previous=true and a previous instance exists",
+			newWorkspace(testPodName, "main"),
+			newPod([]corev1.ContainerStatus{
+				waitingContainerStatusWithPrevious("main", "CrashLoopBackOff"),
+			}, nil),
+			&models.LogOptions{Previous: true}, nil, true),
+		Entry("previous=true with no previous terminated instance returns previous logs not found",
+			newWorkspace(testPodName, "main"),
+			newPod([]corev1.ContainerStatus{
+				runningContainerStatus("main"), // running, but never restarted (no LastTerminationState)
+			}, nil),
+			&models.LogOptions{Previous: true}, ErrPreviousLogsNotFound, false),
+		Entry("previous=true for an init container with no previous instance returns previous logs not found",
+			withInitContainers(newWorkspace(testPodName, "main"), "istio-proxy"),
+			newPod(
+				[]corev1.ContainerStatus{runningContainerStatus("main")},
+				[]corev1.ContainerStatus{runningContainerStatus("istio-proxy")},
+			),
+			&models.LogOptions{Container: "istio-proxy", Previous: true}, ErrPreviousLogsNotFound, false),
+	)
+})
 
-func TestResolvePodAndContainer(t *testing.T) {
-	testCases := []struct {
-		name          string
-		ws            *kubefloworgv1beta1.Workspace
-		requested     string
-		wantPod       string
-		wantContainer string
-		wantErr       error
-	}{
-		{
-			name:          "defaults to the primary 'main' container when none requested",
-			ws:            newWorkspace(testPodName, "main", "istio-proxy"),
-			requested:     "",
-			wantPod:       testPodName,
-			wantContainer: "main",
-		},
-		{
-			name:          "defaults to 'main' even when it is not the first container",
-			ws:            newWorkspace(testPodName, "istio-proxy", "main"),
-			requested:     "",
-			wantPod:       testPodName,
-			wantContainer: "main",
-		},
-		{
-			name:      "errors when none requested and no 'main' container exists",
-			ws:        newWorkspace(testPodName, "istio-proxy"),
-			requested: "",
-			wantErr:   ErrContainerNotFound,
-		},
-		{
-			name:          "returns requested container when it exists",
-			ws:            newWorkspace(testPodName, "main", "istio-proxy"),
-			requested:     "istio-proxy",
-			wantPod:       testPodName,
-			wantContainer: "istio-proxy",
-		},
-		{
-			name:          "returns requested init container when it exists",
-			ws:            withInitContainers(newWorkspace(testPodName, "main"), "istio-proxy"),
-			requested:     "istio-proxy",
-			wantPod:       testPodName,
-			wantContainer: "istio-proxy",
-		},
-		{
-			name:      "errors when requested container does not exist",
-			ws:        newWorkspace(testPodName, "main"),
-			requested: "nope",
-			wantErr:   ErrContainerNotFound,
-		},
-		{
-			name:      "errors when pod name is empty",
-			ws:        newWorkspace("", "main"),
-			requested: "",
-			wantErr:   ErrPodNotRunning,
-		},
-		{
-			name:      "errors when pod has no containers yet",
-			ws:        newWorkspace(testPodName),
-			requested: "",
-			wantErr:   ErrContainerNotRunning,
-		},
-	}
+var _ = Describe("PodLogsRepository.resolvePodAndContainer", func() {
+	DescribeTable("resolving the target pod and container",
+		func(ws *kubefloworgv1beta1.Workspace, requested, wantPod, wantContainer string, wantErr error) {
+			repo := newRepo(ws, podFromWorkspace(ws))
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			repo := newRepo(t, tc.ws, podFromWorkspace(tc.ws))
 			pod, container, err := repo.resolvePodAndContainer(
 				context.Background(), testNamespace, testWorkspace,
-				&models.LogOptions{Container: tc.requested},
+				&models.LogOptions{Container: requested},
 			)
-			if tc.wantErr != nil {
-				if !errors.Is(err, tc.wantErr) {
-					t.Fatalf("expected error %v, got: %v", tc.wantErr, err)
-				}
+
+			if wantErr != nil {
+				Expect(err).To(MatchError(wantErr))
 				return
 			}
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if pod != tc.wantPod {
-				t.Errorf("pod: want %q, got %q", tc.wantPod, pod)
-			}
-			if container != tc.wantContainer {
-				t.Errorf("container: want %q, got %q", tc.wantContainer, container)
-			}
-		})
-	}
-}
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(pod).To(Equal(wantPod))
+			Expect(container).To(Equal(wantContainer))
+		},
+		Entry("defaults to the primary 'main' container when none requested",
+			newWorkspace(testPodName, "main", "istio-proxy"), "", testPodName, "main", nil),
+		Entry("defaults to 'main' even when it is not the first container",
+			newWorkspace(testPodName, "istio-proxy", "main"), "", testPodName, "main", nil),
+		Entry("errors when none requested and no 'main' container exists",
+			newWorkspace(testPodName, "istio-proxy"), "", "", "", ErrContainerNotFound),
+		Entry("returns requested container when it exists",
+			newWorkspace(testPodName, "main", "istio-proxy"), "istio-proxy", testPodName, "istio-proxy", nil),
+		Entry("returns requested init container when it exists",
+			withInitContainers(newWorkspace(testPodName, "main"), "istio-proxy"), "istio-proxy", testPodName, "istio-proxy", nil),
+		Entry("errors when requested container does not exist",
+			newWorkspace(testPodName, "main"), "nope", "", "", ErrContainerNotFound),
+		Entry("errors when pod name is empty",
+			newWorkspace("", "main"), "", "", "", ErrPodNotRunning),
+		Entry("errors when pod has no containers yet",
+			newWorkspace(testPodName), "", "", "", ErrContainerNotRunning),
+	)
+})
