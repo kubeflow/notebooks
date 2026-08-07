@@ -6721,7 +6721,6 @@ const docTemplate = `{
             "required": [
                 "options",
                 "ports",
-                "serviceAccount",
                 "volumeMounts"
             ],
             "properties": {
@@ -6802,7 +6801,7 @@ const docTemplate = `{
                     ]
                 },
                 "serviceAccount": {
-                    "description": "service account configs for Workspace Pods",
+                    "description": "service account configs for Workspace Pods\n - currently has no fields, the ServiceAccount used by Workspace Pods is\n   hardcoded to \"default-editor\" in the controller\n - this ServiceAccount MUST already exist in the Namespace of the Workspace,\n   the controller will NOT create it\n+kubebuilder:validation:Optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.WorkspaceKindServiceAccount"
@@ -6883,16 +6882,7 @@ const docTemplate = `{
             }
         },
         "v1beta1.WorkspaceKindServiceAccount": {
-            "type": "object",
-            "required": [
-                "name"
-            ],
-            "properties": {
-                "name": {
-                    "description": "the name of the ServiceAccount (NOT MUTABLE)\n - this Service Account MUST already exist in the Namespace\n   of the Workspace, the controller will NOT create it\n - we will not show this WorkspaceKind in the Spawner UI\n   if the SA does not exist in the Namespace\n+kubebuilder:validation:XValidation:rule=\"self == oldSelf\",message=\"ServiceAccount 'name' is immutable\"\n+kubebuilder:example=\"default-editor\"\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=253\n+kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$",
-                    "type": "string"
-                }
-            }
+            "type": "object"
         },
         "v1beta1.WorkspaceKindSpawner": {
             "type": "object",
@@ -6972,6 +6962,107 @@ const docTemplate = `{
                 "WorkspaceStateUnknown"
             ]
         },
+        "workspacekinds.ActivityProbe": {
+            "type": "object",
+            "required": [
+                "minProbeIntervalSeconds",
+                "probeIntervalSeconds"
+            ],
+            "properties": {
+                "jupyter": {
+                    "$ref": "#/definitions/workspacekinds.ActivityProbeJupyter"
+                },
+                "minProbeIntervalSeconds": {
+                    "type": "integer"
+                },
+                "podExec": {
+                    "$ref": "#/definitions/workspacekinds.ActivityProbePodExec"
+                },
+                "probeIntervalSeconds": {
+                    "type": "integer"
+                }
+            }
+        },
+        "workspacekinds.ActivityProbeJupyter": {
+            "type": "object",
+            "required": [
+                "lastActivity",
+                "portId"
+            ],
+            "properties": {
+                "lastActivity": {
+                    "type": "boolean"
+                },
+                "portId": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspacekinds.ActivityProbePodExec": {
+            "type": "object",
+            "required": [
+                "timeoutSeconds"
+            ],
+            "properties": {
+                "timeoutSeconds": {
+                    "type": "integer"
+                }
+            }
+        },
+        "workspacekinds.ActivityRule": {
+            "type": "object",
+            "required": [
+                "config",
+                "effect"
+            ],
+            "properties": {
+                "config": {
+                    "$ref": "#/definitions/workspacekinds.ActivityRuleConfig"
+                },
+                "effect": {
+                    "$ref": "#/definitions/workspacekinds.ActivityRuleEffect"
+                },
+                "match": {
+                    "$ref": "#/definitions/workspacekinds.ActivityRuleMatch"
+                }
+            }
+        },
+        "workspacekinds.ActivityRuleConfig": {
+            "type": "object",
+            "required": [
+                "secondsSinceActive"
+            ],
+            "properties": {
+                "minRunningSeconds": {
+                    "type": "integer"
+                },
+                "secondsSinceActive": {
+                    "type": "integer"
+                }
+            }
+        },
+        "workspacekinds.ActivityRuleEffect": {
+            "type": "object",
+            "required": [
+                "pauseWorkspace"
+            ],
+            "properties": {
+                "pauseWorkspace": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "workspacekinds.ActivityRuleMatch": {
+            "type": "object",
+            "properties": {
+                "matchNamespace": {
+                    "$ref": "#/definitions/workspacekinds.MatchNamespace"
+                },
+                "matchPodConfig": {
+                    "$ref": "#/definitions/workspacekinds.MatchPodConfig"
+                }
+            }
+        },
         "workspacekinds.ClusterKindMetrics": {
             "type": "object",
             "required": [
@@ -6980,6 +7071,28 @@ const docTemplate = `{
             "properties": {
                 "workspacesCount": {
                     "type": "integer"
+                }
+            }
+        },
+        "workspacekinds.MatchNamespace": {
+            "type": "object",
+            "required": [
+                "selector"
+            ],
+            "properties": {
+                "selector": {
+                    "$ref": "#/definitions/v1.LabelSelector"
+                }
+            }
+        },
+        "workspacekinds.MatchPodConfig": {
+            "type": "object",
+            "required": [
+                "selector"
+            ],
+            "properties": {
+                "selector": {
+                    "$ref": "#/definitions/v1.LabelSelector"
                 }
             }
         },
@@ -7012,6 +7125,9 @@ const docTemplate = `{
                 "volumeMounts"
             ],
             "properties": {
+                "activityProbe": {
+                    "$ref": "#/definitions/workspacekinds.ActivityProbe"
+                },
                 "options": {
                     "description": "TODO: remove once frontend migrates to the new listValues endpoint for both create/update and wsk admin views",
                     "allOf": [
@@ -7074,6 +7190,12 @@ const docTemplate = `{
                 "restrictions"
             ],
             "properties": {
+                "activityRules": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspacekinds.ActivityRule"
+                    }
+                },
                 "clusterMetrics": {
                     "$ref": "#/definitions/workspacekinds.ClusterKindMetrics"
                 },
@@ -7137,15 +7259,38 @@ const docTemplate = `{
             ],
             "properties": {
                 "lastActivity": {
-                    "description": "Unix Epoch time",
+                    "description": "Unix Epoch time in milliseconds",
                     "type": "integer"
                 },
                 "lastProbe": {
                     "$ref": "#/definitions/workspaces.LastProbeInfo"
                 },
                 "lastUpdate": {
-                    "description": "Unix Epoch time",
+                    "description": "Unix Epoch time in milliseconds",
                     "type": "integer"
+                },
+                "rules": {
+                    "$ref": "#/definitions/workspaces.ActivityRules"
+                }
+            }
+        },
+        "workspaces.ActivityPauseRule": {
+            "type": "object",
+            "required": [
+                "eligibleAfter"
+            ],
+            "properties": {
+                "eligibleAfter": {
+                    "description": "Unix Epoch time in milliseconds",
+                    "type": "integer"
+                }
+            }
+        },
+        "workspaces.ActivityRules": {
+            "type": "object",
+            "properties": {
+                "pauseWorkspace": {
+                    "$ref": "#/definitions/workspaces.ActivityPauseRule"
                 }
             }
         },
@@ -7526,6 +7671,7 @@ const docTemplate = `{
             "required": [
                 "activity",
                 "audit",
+                "lastRunningTime",
                 "name",
                 "namespace",
                 "paused",
@@ -7547,6 +7693,10 @@ const docTemplate = `{
                     "description": "DisplayName is an optional human-readable name for the workspace.",
                     "type": "string"
                 },
+                "lastRunningTime": {
+                    "description": "Unix Epoch time in milliseconds",
+                    "type": "integer"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -7557,6 +7707,7 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "pausedTime": {
+                    "description": "Unix Epoch time in milliseconds",
                     "type": "integer"
                 },
                 "podTemplate": {

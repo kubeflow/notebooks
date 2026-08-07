@@ -22,6 +22,7 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/klauspost/compress/gzhttp"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
@@ -130,5 +131,7 @@ func (a *App) Routes() http.Handler {
 		router.GET(constants.SwaggerPath, a.GetSwaggerHandler)
 	}
 
-	return a.recoverPanic(a.enableCORS(router))
+	handler := gzhttp.GzipHandler(router)
+
+	return a.recoverPanic(a.enableCORS(handler))
 }

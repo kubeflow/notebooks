@@ -47,8 +47,6 @@ spec:
     podMetadata:
       labels: {}
       annotations: {}
-    serviceAccount:
-      name: "default-editor"
     activityProbe:
       minProbeIntervalSeconds: 300
       probeIntervalSeconds: 3600

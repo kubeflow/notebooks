@@ -31,9 +31,10 @@ const (
 	AnnotationDisplayName = "notebooks.kubeflow.org/display-name"
 	AnnotationDescription = "notebooks.kubeflow.org/description"
 
-	LabelCanMount  = "notebooks.kubeflow.org/can-mount"
-	LabelCanUpdate = "notebooks.kubeflow.org/can-update"
-	LabelCanUse    = "notebooks.kubeflow.org/can-use"
+	LabelCanMount      = "notebooks.kubeflow.org/can-mount"
+	LabelCanUpdate     = "notebooks.kubeflow.org/can-update"
+	LabelCanUse        = "notebooks.kubeflow.org/can-use"
+	LabelWorkspaceName = "notebooks.kubeflow.org/workspace-name"
 )
 
 // NewAuditFromObjectMeta creates an Audit instance from Kubernetes ObjectMeta.
