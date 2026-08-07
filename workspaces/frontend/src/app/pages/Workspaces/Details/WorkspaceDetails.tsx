@@ -20,7 +20,7 @@ import { WorkspaceDetailsActivity } from '~/app/pages/Workspaces/Details/Workspa
 import { WorkspaceDetailsPodTemplate } from '~/app/pages/Workspaces/Details/WorkspaceDetailsPodTemplate';
 import { WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
 import { WorkspaceResources } from '~/app/pages/Workspaces/WorkspaceResources';
-import { useWorkspaceDetails } from '~/app/hooks/useWorkspaceDetails';
+import useWorkspacePodTemplateDetails from '~/app/hooks/useWorkspacePodTemplateDetails';
 
 type WorkspaceDetailsProps = {
   workspace: WorkspacesWorkspaceListItem;
@@ -35,7 +35,7 @@ export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = 
   onEditClick,
   onDeleteClick,
 }) => {
-  const [details, detailsLoaded, detailsError] = useWorkspaceDetails(
+  const [details, detailsLoaded, detailsError] = useWorkspacePodTemplateDetails(
     workspace.namespace,
     workspace.name,
   );

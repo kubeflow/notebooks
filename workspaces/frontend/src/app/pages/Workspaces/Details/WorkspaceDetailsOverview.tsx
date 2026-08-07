@@ -68,6 +68,10 @@ export const WorkspaceDetailsOverview: React.FunctionComponent<WorkspaceDetailsO
         <>
           <DescriptionListGroup>
             <DescriptionListTerm data-testid="pod-info-title">Pod Information</DescriptionListTerm>
+            <DescriptionListDescription>{null}</DescriptionListDescription>
+          </DescriptionListGroup>
+          <DescriptionListGroup>
+            <DescriptionListTerm>Pod name</DescriptionListTerm>
             <DescriptionListDescription data-testid="pod-name">
               {podInfo.name}
             </DescriptionListDescription>

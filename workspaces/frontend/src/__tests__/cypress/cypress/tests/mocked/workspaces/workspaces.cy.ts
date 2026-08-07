@@ -224,11 +224,23 @@ describe('Workspaces', () => {
     });
 
     it('displays pod and node information in workspace details drawer', () => {
-      const { mockNamespace, mockWorkspaces } = setupSingleNamespaceWorkspaces(
-        DEFAULT_NAMESPACE,
-        1,
-      );
-      const mockWorkspace = mockWorkspaces[0];
+      const mockNamespace = buildMockNamespace({ name: DEFAULT_NAMESPACE });
+      const mockWorkspace = buildMockWorkspace({
+        name: 'pod-info-workspace',
+        workspaceKind: buildMockWorkspaceKindInfo({ name: 'jupyterlab' }),
+      });
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/namespaces',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+        mockModArchResponse([mockNamespace]),
+      ).as('getNamespaces');
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspaces/:namespace',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
+        mockModArchResponse([mockWorkspace]),
+      ).as('getWorkspaces');
 
       cy.interceptApi(
         'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/details',
@@ -242,24 +254,25 @@ describe('Workspaces', () => {
         {
           data: {
             podMetadata: { labels: {}, annotations: {} },
-            volumes: { home: { pvcName: 'home-pvc', mountPath: '/home', readOnly: false } },
-            pod: {
-              name: 'workspace-abc-0',
-              nodeName: 'node-gpu-01',
+            volumes: {
+              home: { pvcName: 'home-pvc', mountPath: '/home', readOnly: false },
             },
+            pod: { name: 'workspace-abc-0', nodeName: 'node-gpu-01' },
           },
         },
-      );
+      ).as('getPodDetails');
 
       navigateToNamespace(mockNamespace.name);
 
-      workspaces.findWorkspaceTableRow(mockWorkspace.name).click();
+      workspaces.findAction({ action: 'viewDetails', workspaceName: mockWorkspace.name }).click();
+      cy.wait('@getPodDetails');
+
       cy.findByTestId('pod-info-title').should('have.text', 'Pod Information');
       cy.findByTestId('pod-name').should('contain.text', 'workspace-abc-0');
       cy.findByTestId('pod-node-name').should('contain.text', 'node-gpu-01');
     });
 
-    it('hides pod information section in workspace details drawer when pod is null', () =>{
+    it('hides pod information section in workspace details drawer when pod is null', () => {
       const { mockNamespace, mockWorkspaces } = setupSingleNamespaceWorkspaces(
         DEFAULT_NAMESPACE,
         1,
@@ -277,14 +290,16 @@ describe('Workspaces', () => {
         {
           data: {
             podMetadata: { labels: {}, annotations: {} },
-            volumes: { home: { pvcName: 'home-pvc', mountPath: '/home', readOnly: false } },
+            volumes: {
+              home: { pvcName: 'home-pvc', mountPath: '/home', readOnly: false },
+            },
             pod: undefined,
           },
         },
       );
 
       navigateToNamespace(mockNamespace.name);
-      
+
       workspaces.findWorkspaceTableRow(mockWorkspace.name).click();
       cy.findByTestId('pod-info-title').should('not.exist');
       cy.findByTestId('pod-name').should('not.exist');
