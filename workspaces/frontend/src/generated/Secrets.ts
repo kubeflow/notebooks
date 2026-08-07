@@ -99,7 +99,6 @@ export class Secrets<SecurityDataType = unknown> extends HttpClient<SecurityData
    * @response `403` `ApiErrorEnvelope` Forbidden
    * @response `404` `ApiErrorEnvelope` Secret not found
    * @response `409` `ApiErrorEnvelope` Conflict
-   * @response `409` `ApiErrorEnvelope` Conflict
    * @response `413` `ApiErrorEnvelope` Request Entity Too Large. The request body is too large.
    * @response `415` `ApiErrorEnvelope` Unsupported Media Type. Content-Type header is not correct.
    * @response `422` `ApiErrorEnvelope` Unprocessable Entity. Validation error.
@@ -128,13 +127,9 @@ export class Secrets<SecurityDataType = unknown> extends HttpClient<SecurityData
    * @request DELETE:/secrets/{namespace}/{name}
    * @response `204` `void` Secret deleted successfully
    * @response `400` `ApiErrorEnvelope` Bad request
-   * @response `204` `void` Secret deleted successfully
-   * @response `400` `ApiErrorEnvelope` Bad request
    * @response `401` `ApiErrorEnvelope` Unauthorized
    * @response `403` `ApiErrorEnvelope` Forbidden
    * @response `404` `ApiErrorEnvelope` Secret not found
-   * @response `409` `ApiErrorEnvelope` Conflict
-   * @response `422` `ApiErrorEnvelope` Unprocessable Entity. Validation error.
    * @response `409` `ApiErrorEnvelope` Conflict
    * @response `422` `ApiErrorEnvelope` Unprocessable Entity. Validation error.
    * @response `500` `ApiErrorEnvelope` Internal server error

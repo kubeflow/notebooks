@@ -74,14 +74,14 @@ declare global {
           type: 'DELETE /api/:apiVersion/workspaces/:namespace/:workspaceName',
           options: { path: { apiVersion: string; namespace: string; workspaceName: string } },
           response: void | ApiErrorEnvelope,
-         ) => Cypress.Chainable<null>) &
-         ((
-           type: 'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/details',
-           options: { path: { apiVersion: string; namespace: string; workspaceName: string } },
-           response: ApiWorkspaceDetailsEnvelope | ApiErrorEnvelope,
-         ) => Cypress.Chainable<null>) &
-         ((
-           type: 'POST /api/:apiVersion/workspaces/:namespace/:workspaceName/actions/pause',
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/details',
+          options: { path: { apiVersion: string; namespace: string; workspaceName: string } },
+          response: ApiWorkspaceDetailsEnvelope | ApiErrorEnvelope,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'POST /api/:apiVersion/workspaces/:namespace/:workspaceName/actions/pause',
           options: { path: { apiVersion: string; namespace: string; workspaceName: string } },
           response: ApiWorkspaceActionPauseEnvelope | ApiErrorEnvelope,
         ) => Cypress.Chainable<null>) &
@@ -165,8 +165,7 @@ declare global {
           options: { path: { apiVersion: string; namespace: string; workspaceName: string } },
           response: ApiWorkspaceDetailsEnvelope | ApiErrorEnvelope,
         ) => Cypress.Chainable<null>);
- 
-      }
+    }
   }
 }
 

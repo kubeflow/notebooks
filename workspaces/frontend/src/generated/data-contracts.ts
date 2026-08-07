@@ -88,17 +88,6 @@ export enum V1SecretType {
   SecretTypeBootstrapToken = 'bootstrap.kubernetes.io/token',
 }
 
-export enum V1SecretType {
-  SecretTypeOpaque = 'Opaque',
-  SecretTypeServiceAccountToken = 'kubernetes.io/service-account-token',
-  SecretTypeDockercfg = 'kubernetes.io/dockercfg',
-  SecretTypeDockerConfigJson = 'kubernetes.io/dockerconfigjson',
-  SecretTypeBasicAuth = 'kubernetes.io/basic-auth',
-  SecretTypeSSHAuth = 'kubernetes.io/ssh-auth',
-  SecretTypeTLS = 'kubernetes.io/tls',
-  SecretTypeBootstrapToken = 'bootstrap.kubernetes.io/token',
-}
-
 export enum V1SeccompProfileType {
   SeccompProfileTypeUnconfined = 'Unconfined',
   SeccompProfileTypeRuntimeDefault = 'RuntimeDefault',
