@@ -1,3 +1,10 @@
+# -----------------------------------------------------------------------------
+# Git / local dependencies
+# -----------------------------------------------------------------------------
+
+GIT_COMMIT     := $(shell git rev-parse HEAD)
+GIT_TREE_STATE := $(shell test -n "`git status --porcelain`" && echo "-dirty" || echo "")
+
 # Location to install dependencies to
 LOCALBIN ?= $(shell pwd)/bin
 $(LOCALBIN):
@@ -10,6 +17,8 @@ clean: ## Remove local test/build artifacts.
 
 # Tool Binaries
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
+
+kustomize: $(KUSTOMIZE)
 
 # Tool Versions
 KUSTOMIZE_VERSION ?= v5.5.0
