@@ -129,7 +129,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 				wsk := &kubefloworgv1beta1.WorkspaceKind{}
 				Expect(k8sClient.Get(ctx, workspaceKind1Key, wsk)).To(Succeed())
 				listValuesRequest := &models.ListValuesRequest{Context: listValuesContext}
-				wskModel, err := models.NewPodTemplateOptionsModelFromWorkspaceKind(wsk, listValuesRequest)
+				wskModel, err := models.NewPodTemplateOptionsModelFromWorkspaceKind(wsk, listValuesRequest, nil)
 				Expect(err).NotTo(HaveOccurred())
 				return wskModel
 			}

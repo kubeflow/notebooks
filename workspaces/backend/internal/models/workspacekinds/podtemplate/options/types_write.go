@@ -37,6 +37,18 @@ func (d *ListValuesRequest) Validate(prefix *field.Path) []*field.Error {
 	return errs
 }
 
+// ConfigIDs returns the imageConfig and podConfig ids from the request context,
+// each empty when the corresponding context is absent.
+func (d *ListValuesRequest) ConfigIDs() (imageConfigID, podConfigID string) {
+	if d.Context.ImageConfig != nil {
+		imageConfigID = d.Context.ImageConfig.Id
+	}
+	if d.Context.PodConfig != nil {
+		podConfigID = d.Context.PodConfig.Id
+	}
+	return imageConfigID, podConfigID
+}
+
 type ListValuesContext struct {
 	Namespace   *ContextNamespace   `json:"namespace,omitempty"`
 	PodConfig   *ContextPodConfig   `json:"podConfig,omitempty"`

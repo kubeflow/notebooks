@@ -43,7 +43,7 @@ func NewWorkspaceKindModelFromWorkspaceKind(cfg *config.EnvConfig, wsk *kubeflow
 	// TODO: remove these once frontend migrates to the new listValues endpoint for both create/update and wsk admin views
 	//
 	listValuesRequest := &options.ListValuesRequest{}
-	podTemplateOptions, err := options.NewPodTemplateOptionsModelFromWorkspaceKind(wsk, listValuesRequest)
+	podTemplateOptions, err := options.NewPodTemplateOptionsModelFromWorkspaceKind(wsk, listValuesRequest, nil)
 	if err != nil {
 		panic("invalid call to NewPodTemplateOptionsModelFromWorkspaceKind: " + err.Error())
 	}

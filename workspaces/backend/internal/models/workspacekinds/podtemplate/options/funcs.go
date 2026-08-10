@@ -23,23 +23,32 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/filterrules"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 )
 
-func NewPodTemplateOptionsModelFromWorkspaceKind(wsk *kubefloworgv1beta1.WorkspaceKind, request *ListValuesRequest) (*PodTemplateOptions, error) {
+// NewPodTemplateOptionsModelFromWorkspaceKind builds the PodTemplateOptions response, evaluating
+// the WorkspaceKind's `spec.filterRules[]` against each imageConfig and podConfig value.
+//
+// namespaceLabels are the labels of the namespace named in the request context (resolved by the
+// caller via the k8s API), or nil when `context.namespace.name` was not provided.
+func NewPodTemplateOptionsModelFromWorkspaceKind(wsk *kubefloworgv1beta1.WorkspaceKind, request *ListValuesRequest, namespaceLabels map[string]string) (*PodTemplateOptions, error) {
 	var allValErrs field.ErrorList //nolint:prealloc
+
+	// resolve the request-scoped context shared across all rule evaluations
+	imageConfigID, podConfigID := request.ConfigIDs()
+	evalCtx := filterrules.BuildEvalContext(wsk, namespaceLabels, imageConfigID, podConfigID)
 
 	// calculate maps of "option id" -> "number of workspaces using that option in the cluster"
 	metricsMapImageConfig := calculateOptionMetricsMap(wsk.Status.PodTemplateOptions.ImageConfig)
 	metricsMapPodConfig := calculateOptionMetricsMap(wsk.Status.PodTemplateOptions.PodConfig)
 
 	// accumulate image config values
-	imageConfigValues, valErrs := buildImageConfigValues(wsk, request, metricsMapImageConfig)
+	imageConfigValues, valErrs := buildImageConfigValues(wsk, request, metricsMapImageConfig, evalCtx)
 	allValErrs = append(allValErrs, valErrs...)
 
 	// accumulate pod config values
-	podConfigValues, valErrs := buildPodConfigValues(wsk, request, metricsMapPodConfig)
+	podConfigValues, valErrs := buildPodConfigValues(wsk, request, metricsMapPodConfig, evalCtx)
 	allValErrs = append(allValErrs, valErrs...)
 
 	// if there are any validation errors, return an aggregated error
@@ -68,7 +77,7 @@ func calculateOptionMetricsMap(metrics []kubefloworgv1beta1.OptionMetric) map[st
 	return resultMap
 }
 
-func buildImageConfigValues(wsk *kubefloworgv1beta1.WorkspaceKind, request *ListValuesRequest, optionMetricsMap map[string]int32) ([]ImageConfigValue, field.ErrorList) {
+func buildImageConfigValues(wsk *kubefloworgv1beta1.WorkspaceKind, request *ListValuesRequest, optionMetricsMap map[string]int32, evalCtx filterrules.EvalContext) ([]ImageConfigValue, field.ErrorList) {
 	var valErrs field.ErrorList
 
 	// get the id of any IMAGE CONFIG value specified in the context
@@ -96,21 +105,28 @@ func buildImageConfigValues(wsk *kubefloworgv1beta1.WorkspaceKind, request *List
 				continue
 			}
 		}
+
+		// evaluate the filter rules for this value (first-match-wins)
+		result := filterrules.Evaluate(wsk.Spec.FilterRules, filterrules.EvalTarget{
+			Scope:  kubefloworgv1beta1.FilterRuleScopeImageConfig,
+			Labels: value.Spawner.Labels,
+		}, evalCtx)
+
+		// `api.hide` omits the value from the response entirely
+		if result.APIHide {
+			continue
+		}
+
 		imageConfigValues = append(imageConfigValues, ImageConfigValue{
 			Id:          value.Id,
 			DisplayName: value.Spawner.DisplayName,
 			Description: ptr.Deref(value.Spawner.Description, ""),
 			Labels:      buildOptionLabels(value.Spawner.Labels),
-			//
-			// TODO: merge with effect of any matching rules that have `effect.ui.hide`, once WSK rules exist
-			//
-			Hidden:         ptr.Deref(value.Spawner.Hidden, false),
+			// `hidden` is the admin-set value OR the `ui.hide` effect of the first matching rule
+			Hidden:         ptr.Deref(value.Spawner.Hidden, false) || result.UIHide,
 			Redirect:       buildOptionRedirect(value.Redirect),
 			ClusterMetrics: buildClusterOptionMetrics(value.Id, optionMetricsMap),
-			//
-			// TODO: replace this with the calculation of the actual restriction!
-			//
-			Restrictions: common.DefaultRestrictions(),
+			Restrictions:   result.Restrictions,
 		})
 	}
 
@@ -124,7 +140,7 @@ func buildImageConfigValues(wsk *kubefloworgv1beta1.WorkspaceKind, request *List
 	return imageConfigValues, valErrs
 }
 
-func buildPodConfigValues(wsk *kubefloworgv1beta1.WorkspaceKind, request *ListValuesRequest, optionMetricsMap map[string]int32) ([]PodConfigValue, field.ErrorList) {
+func buildPodConfigValues(wsk *kubefloworgv1beta1.WorkspaceKind, request *ListValuesRequest, optionMetricsMap map[string]int32, evalCtx filterrules.EvalContext) ([]PodConfigValue, field.ErrorList) {
 	var valErrs field.ErrorList
 
 	// get the id of any POD CONFIG value specified in the context
@@ -152,21 +168,28 @@ func buildPodConfigValues(wsk *kubefloworgv1beta1.WorkspaceKind, request *ListVa
 				continue
 			}
 		}
+
+		// evaluate the filter rules for this value (first-match-wins)
+		result := filterrules.Evaluate(wsk.Spec.FilterRules, filterrules.EvalTarget{
+			Scope:  kubefloworgv1beta1.FilterRuleScopePodConfig,
+			Labels: value.Spawner.Labels,
+		}, evalCtx)
+
+		// `api.hide` omits the value from the response entirely
+		if result.APIHide {
+			continue
+		}
+
 		podConfigValues = append(podConfigValues, PodConfigValue{
 			Id:          value.Id,
 			DisplayName: value.Spawner.DisplayName,
 			Description: ptr.Deref(value.Spawner.Description, ""),
 			Labels:      buildOptionLabels(value.Spawner.Labels),
-			//
-			// TODO: merge with effect of any matching rules that have `effect.ui.hide`, once WSK rules exist
-			//
-			Hidden:         ptr.Deref(value.Spawner.Hidden, false),
+			// `hidden` is the admin-set value OR the `ui.hide` effect of the first matching rule
+			Hidden:         ptr.Deref(value.Spawner.Hidden, false) || result.UIHide,
 			Redirect:       buildOptionRedirect(value.Redirect),
 			ClusterMetrics: buildClusterOptionMetrics(value.Id, optionMetricsMap),
-			//
-			// TODO: replace this with the calculation of the actual restriction!
-			//
-			Restrictions: common.DefaultRestrictions(),
+			Restrictions:   result.Restrictions,
 		})
 	}
 
