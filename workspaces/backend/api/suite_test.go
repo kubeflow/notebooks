@@ -32,8 +32,10 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	metricsv1beta1 "k8s.io/metrics/pkg/apis/metrics/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -103,6 +105,8 @@ var _ = BeforeSuite(func() {
 	By("setting up the scheme")
 	err = kubefloworgv1beta1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
+	err = metricsv1beta1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
 
 	By("creating the k8s client")
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
@@ -145,9 +149,13 @@ var _ = BeforeSuite(func() {
 	imageSourceConfigMapClient, err := helper.BuildImageSourceConfigMapClient(k8sManager)
 	Expect(err).NotTo(HaveOccurred())
 
+	By("creating the Kubernetes clientset")
+	clientset, err := kubernetes.NewForConfig(cfg)
+	Expect(err).NotTo(HaveOccurred())
+
 	By("creating the application")
 	// NOTE: we use the `k8sClient` rather than `k8sManager.GetClient()` to avoid race conditions with the cached client
-	a, err = NewApp(&config.EnvConfig{}, appLogger, k8sClient, imageSourceConfigMapClient, k8sManager.GetScheme(), reqAuthN, reqAuthZ)
+	a, err = NewApp(&config.EnvConfig{}, appLogger, k8sClient, imageSourceConfigMapClient, k8sManager.GetScheme(), reqAuthN, reqAuthZ, clientset)
 	Expect(err).NotTo(HaveOccurred())
 
 	go func() {
@@ -224,9 +232,6 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 			},
 			PodTemplate: kubefloworgv1beta1.WorkspaceKindPodTemplate{
 				PodMetadata: &kubefloworgv1beta1.WorkspaceKindPodMetadata{},
-				ServiceAccount: kubefloworgv1beta1.WorkspaceKindServiceAccount{
-					Name: "default-editor",
-				},
 				ActivityProbe: &kubefloworgv1beta1.ActivityProbe{
 					MinProbeIntervalSeconds: new(int32(300)),
 					ProbeIntervalSeconds:    new(int32(3600)),

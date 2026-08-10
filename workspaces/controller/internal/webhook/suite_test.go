@@ -199,9 +199,6 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 			},
 			PodTemplate: kubefloworgv1beta1.WorkspaceKindPodTemplate{
 				PodMetadata: &kubefloworgv1beta1.WorkspaceKindPodMetadata{},
-				ServiceAccount: kubefloworgv1beta1.WorkspaceKindServiceAccount{
-					Name: "default-editor",
-				},
 				ActivityProbe: &kubefloworgv1beta1.ActivityProbe{
 					MinProbeIntervalSeconds: new(int32(300)),
 					ProbeIntervalSeconds:    new(int32(3600)),

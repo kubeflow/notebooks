@@ -30,17 +30,18 @@ import (
 type WorkspaceListItem struct {
 	Name string `json:"name"`
 	// DisplayName is an optional human-readable name for the workspace.
-	DisplayName   string                            `json:"displayName,omitempty"`
-	Namespace     string                            `json:"namespace"`
-	WorkspaceKind WorkspaceKindInfo                 `json:"workspaceKind"`
-	Paused        bool                              `json:"paused"`
-	PausedTime    int64                             `json:"pausedTime"`
-	State         kubefloworgv1beta1.WorkspaceState `json:"state"`
-	StateMessage  string                            `json:"stateMessage"`
-	PodTemplate   PodTemplate                       `json:"podTemplate"`
-	Activity      Activity                          `json:"activity"`
-	Services      []Service                         `json:"services"`
-	Audit         commonCore.Audit                  `json:"audit"`
+	DisplayName     string                            `json:"displayName,omitempty"`
+	Namespace       string                            `json:"namespace"`
+	WorkspaceKind   WorkspaceKindInfo                 `json:"workspaceKind"`
+	Paused          bool                              `json:"paused"`
+	PausedTime      int64                             `json:"pausedTime"`      // Unix Epoch time in milliseconds
+	LastRunningTime int64                             `json:"lastRunningTime"` // Unix Epoch time in milliseconds
+	State           kubefloworgv1beta1.WorkspaceState `json:"state"`
+	StateMessage    string                            `json:"stateMessage"`
+	PodTemplate     PodTemplate                       `json:"podTemplate"`
+	Activity        Activity                          `json:"activity"`
+	Services        []Service                         `json:"services"`
+	Audit           commonCore.Audit                  `json:"audit"`
 }
 
 type WorkspaceKindInfo struct {
@@ -101,9 +102,10 @@ const (
 )
 
 type Activity struct {
-	LastActivity int64          `json:"lastActivity"` // Unix Epoch time
-	LastUpdate   int64          `json:"lastUpdate"`   // Unix Epoch time
+	LastActivity int64          `json:"lastActivity"` // Unix Epoch time in milliseconds
+	LastUpdate   int64          `json:"lastUpdate"`   // Unix Epoch time in milliseconds
 	LastProbe    *LastProbeInfo `json:"lastProbe,omitempty"`
+	Rules        *ActivityRules `json:"rules,omitempty"`
 }
 
 type LastProbeInfo struct {
@@ -120,6 +122,14 @@ const (
 	ProbeResultFailure ProbeResult = "Failure"
 	ProbeResultTimeout ProbeResult = "Timeout"
 )
+
+type ActivityRules struct {
+	PauseWorkspace *ActivityPauseRule `json:"pauseWorkspace,omitempty"`
+}
+
+type ActivityPauseRule struct {
+	EligibleAfter int64 `json:"eligibleAfter"` // Unix Epoch time in milliseconds
+}
 
 type Service struct {
 	HttpService *HttpService `json:"httpService,omitempty"`

@@ -4874,25 +4874,12 @@ spec:
                         type: object
                     type: object
                   serviceAccount:
-                    description: service account configs for Workspace Pods
-                    properties:
-                      name:
-                        description: |-
-                          the name of the ServiceAccount (NOT MUTABLE)
-                           - this Service Account MUST already exist in the Namespace
-                             of the Workspace, the controller will NOT create it
-                           - we will not show this WorkspaceKind in the Spawner UI
-                             if the SA does not exist in the Namespace
-                        example: default-editor
-                        maxLength: 253
-                        minLength: 1
-                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
-                        type: string
-                        x-kubernetes-validations:
-                        - message: ServiceAccount 'name' is immutable
-                          rule: self == oldSelf
-                    required:
-                    - name
+                    description: |-
+                      service account configs for Workspace Pods
+                       - currently has no fields, the ServiceAccount used by Workspace Pods is
+                         hardcoded to "default-editor" in the controller
+                       - this ServiceAccount MUST already exist in the Namespace of the Workspace,
+                         the controller will NOT create it
                     type: object
                   volumeMounts:
                     description: volume mount paths
@@ -4913,7 +4900,6 @@ spec:
                 required:
                 - options
                 - ports
-                - serviceAccount
                 - volumeMounts
                 type: object
               spawner:

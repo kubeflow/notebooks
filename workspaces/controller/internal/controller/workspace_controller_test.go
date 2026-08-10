@@ -175,8 +175,10 @@ var _ = Describe("Workspace Controller", func() {
 				return statefulSetList.Items, nil
 			}, timeout, interval).Should(HaveLen(1))
 
-			// TODO: use this to get the StatefulSet
-			// statefulSet := statefulSetList.Items[0]
+			statefulSet := statefulSetList.Items[0]
+
+			By("running the Workspace Pods as the hardcoded ServiceAccount")
+			Expect(statefulSet.Spec.Template.Spec.ServiceAccountName).To(Equal(workspaceServiceAccountName))
 
 			By("creating a Service")
 			serviceList := &corev1.ServiceList{}
