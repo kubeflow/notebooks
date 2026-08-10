@@ -398,21 +398,21 @@ export interface CommonPodMetadata {
   labels: Record<string, string>;
 }
 
-export interface CommonPodSecretInfo {
+export interface CommonRestrictions {
+  deny: boolean;
+  denyMessage?: CommonDenyMessage;
+}
+
+export interface DetailsPodSecretInfo {
   defaultMode?: number;
   mountPath: string;
   secretName: string;
 }
 
-export interface CommonPodVolumeInfo {
+export interface DetailsPodVolumeInfo {
   mountPath: string;
   pvcName: string;
   readOnly: boolean;
-}
-
-export interface CommonRestrictions {
-  deny: boolean;
-  denyMessage?: CommonDenyMessage;
 }
 
 export interface DetailsWorkspaceDetailContainer {
@@ -427,9 +427,9 @@ export interface DetailsWorkspaceDetailPod {
 }
 
 export interface DetailsWorkspaceDetailVolumes {
-  data?: CommonPodVolumeInfo[];
-  home: CommonPodVolumeInfo;
-  secrets?: CommonPodSecretInfo[];
+  data?: DetailsPodVolumeInfo[];
+  home: DetailsPodVolumeInfo;
+  secrets?: DetailsPodSecretInfo[];
 }
 
 export interface DetailsWorkspaceDetails {
@@ -3917,8 +3917,15 @@ export interface V1Beta1WorkspaceKindPodTemplate {
    * +kubebuilder:validation:Optional
    */
   securityContext?: V1PodSecurityContext;
-  /** service account configs for Workspace Pods */
-  serviceAccount: V1Beta1WorkspaceKindServiceAccount;
+  /**
+   * service account configs for Workspace Pods
+   *  - currently has no fields, the ServiceAccount used by Workspace Pods is
+   *    hardcoded to "default-editor" in the controller
+   *  - this ServiceAccount MUST already exist in the Namespace of the Workspace,
+   *    the controller will NOT create it
+   * +kubebuilder:validation:Optional
+   */
+  serviceAccount?: V1Beta1WorkspaceKindServiceAccount;
   /** volume mount paths */
   volumeMounts: V1Beta1WorkspaceKindVolumeMounts;
 }
@@ -3968,21 +3975,7 @@ export interface V1Beta1WorkspaceKindProbes {
   startupProbe?: V1Probe;
 }
 
-export interface V1Beta1WorkspaceKindServiceAccount {
-  /**
-   * the name of the ServiceAccount (NOT MUTABLE)
-   *  - this Service Account MUST already exist in the Namespace
-   *    of the Workspace, the controller will NOT create it
-   *  - we will not show this WorkspaceKind in the Spawner UI
-   *    if the SA does not exist in the Namespace
-   * +kubebuilder:validation:XValidation:rule="self == oldSelf",message="ServiceAccount 'name' is immutable"
-   * +kubebuilder:example="default-editor"
-   * +kubebuilder:validation:MinLength:=1
-   * +kubebuilder:validation:MaxLength:=253
-   * +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
-   */
-  name: string;
-}
+export type V1Beta1WorkspaceKindServiceAccount = object;
 
 export interface V1Beta1WorkspaceKindSpawner {
   /**
@@ -4043,8 +4036,52 @@ export interface V1Beta1WorkspaceKindVolumeMounts {
   home: string;
 }
 
+export interface WorkspacekindsActivityProbe {
+  jupyter?: WorkspacekindsActivityProbeJupyter;
+  minProbeIntervalSeconds: number;
+  podExec?: WorkspacekindsActivityProbePodExec;
+  probeIntervalSeconds: number;
+}
+
+export interface WorkspacekindsActivityProbeJupyter {
+  lastActivity: boolean;
+  portId: string;
+}
+
+export interface WorkspacekindsActivityProbePodExec {
+  timeoutSeconds: number;
+}
+
+export interface WorkspacekindsActivityRule {
+  config: WorkspacekindsActivityRuleConfig;
+  effect: WorkspacekindsActivityRuleEffect;
+  match?: WorkspacekindsActivityRuleMatch;
+}
+
+export interface WorkspacekindsActivityRuleConfig {
+  minRunningSeconds?: number;
+  secondsSinceActive: number;
+}
+
+export interface WorkspacekindsActivityRuleEffect {
+  pauseWorkspace: boolean;
+}
+
+export interface WorkspacekindsActivityRuleMatch {
+  matchNamespace?: WorkspacekindsMatchNamespace;
+  matchPodConfig?: WorkspacekindsMatchPodConfig;
+}
+
 export interface WorkspacekindsClusterKindMetrics {
   workspacesCount: number;
+}
+
+export interface WorkspacekindsMatchNamespace {
+  selector: V1LabelSelector;
+}
+
+export interface WorkspacekindsMatchPodConfig {
+  selector: V1LabelSelector;
 }
 
 export interface WorkspacekindsPodMetadata {
@@ -4053,6 +4090,7 @@ export interface WorkspacekindsPodMetadata {
 }
 
 export interface WorkspacekindsPodTemplate {
+  activityProbe?: WorkspacekindsActivityProbe;
   /** TODO: remove once frontend migrates to the new listValues endpoint for both create/update and wsk admin views */
   options: OptionsPodTemplateOptions;
   podMetadata: WorkspacekindsPodMetadata;
@@ -4070,6 +4108,7 @@ export interface WorkspacekindsWorkspaceKindCreate {
 }
 
 export interface WorkspacekindsWorkspaceKindListItem {
+  activityRules?: WorkspacekindsActivityRule[];
   clusterMetrics: WorkspacekindsClusterKindMetrics;
   deprecated: boolean;
   deprecationMessage: string;
@@ -4097,11 +4136,21 @@ export interface WorkspacekindsWorkspaceKindUpdate {
 }
 
 export interface WorkspacesActivity {
-  /** Unix Epoch time */
+  /** Unix Epoch time in milliseconds */
   lastActivity: number;
   lastProbe?: WorkspacesLastProbeInfo;
-  /** Unix Epoch time */
+  /** Unix Epoch time in milliseconds */
   lastUpdate: number;
+  rules?: WorkspacesActivityRules;
+}
+
+export interface WorkspacesActivityPauseRule {
+  /** Unix Epoch time in milliseconds */
+  eligibleAfter: number;
+}
+
+export interface WorkspacesActivityRules {
+  pauseWorkspace?: WorkspacesActivityPauseRule;
 }
 
 export interface WorkspacesHttpService {
@@ -4153,8 +4202,6 @@ export interface WorkspacesPodSecretMount {
 
 export interface WorkspacesPodTemplate {
   options: WorkspacesPodTemplateOptions;
-  podMetadata: CommonPodMetadata;
-  volumes: WorkspacesPodVolumes;
 }
 
 export interface WorkspacesPodTemplateMutate {
@@ -4179,12 +4226,6 @@ export interface WorkspacesPodVolumeMount {
   readOnly?: boolean;
 }
 
-export interface WorkspacesPodVolumes {
-  data?: CommonPodVolumeInfo[];
-  home?: CommonPodVolumeInfo;
-  secrets?: CommonPodSecretInfo[];
-}
-
 export interface WorkspacesPodVolumesMutate {
   data: WorkspacesPodVolumeMount[];
   home?: string;
@@ -4207,6 +4248,8 @@ export interface WorkspacesService {
 }
 
 export interface WorkspacesWorkspaceCreate {
+  /** DisplayName is an optional human-readable name for the workspace. */
+  displayName?: string;
   kind: string;
   name: string;
   paused: boolean;
@@ -4223,11 +4266,15 @@ export interface WorkspacesWorkspaceKindInfo {
 export interface WorkspacesWorkspaceListItem {
   activity: WorkspacesActivity;
   audit: CommonAudit;
+  /** DisplayName is an optional human-readable name for the workspace. */
+  displayName?: string;
+  /** Unix Epoch time in milliseconds */
+  lastRunningTime: number;
   name: string;
   namespace: string;
   paused: boolean;
+  /** Unix Epoch time in milliseconds */
   pausedTime: number;
-  pendingRestart: boolean;
   podTemplate: WorkspacesPodTemplate;
   services: WorkspacesService[];
   state: V1Beta1WorkspaceState;
@@ -4236,6 +4283,8 @@ export interface WorkspacesWorkspaceListItem {
 }
 
 export interface WorkspacesWorkspaceUpdate {
+  /** DisplayName is an optional human-readable name for the workspace. */
+  displayName?: string;
   /** TODO: remove `paused` once we have an "actions" api for pausing workspaces */
   paused: boolean;
   podTemplate: WorkspacesPodTemplateMutate;

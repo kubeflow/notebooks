@@ -370,33 +370,6 @@ export const buildMockPodMetadata = (
 export const buildMockPodTemplate = (
   podTemplate?: Partial<WorkspacesPodTemplate>,
 ): WorkspacesPodTemplate => ({
-  podMetadata: buildMockPodMetadata({}),
-  volumes: {
-    home: {
-      pvcName: 'Volume-Home',
-      mountPath: '/home',
-      readOnly: false,
-    },
-    data: [
-      {
-        pvcName: 'Volume-Data1',
-        mountPath: '/data',
-        readOnly: true,
-      },
-      {
-        pvcName: 'Volume-Data2',
-        mountPath: '/data',
-        readOnly: false,
-      },
-    ],
-    secrets: [
-      {
-        defaultMode: 0o644,
-        mountPath: '/secrets',
-        secretName: 'secret-1',
-      },
-    ],
-  },
   options: buildPodTemplateOptions({}),
   ...podTemplate,
 });
@@ -416,6 +389,7 @@ export const buildMockWorkspace = (
   workspaceKind: buildMockWorkspaceKindInfo(),
   paused: true,
   pausedTime: new Date(2025, 3, 1).getTime(),
+  lastRunningTime: new Date(2025, 3, 1).getTime(),
   state: V1Beta1WorkspaceState.WorkspaceStateRunning,
   stateMessage: 'Workspace is running',
   podTemplate: buildMockPodTemplate({}),
@@ -423,7 +397,6 @@ export const buildMockWorkspace = (
     lastActivity: new Date(2025, 5, 1).getTime(),
     lastUpdate: new Date(2025, 4, 1).getTime(),
   },
-  pendingRestart: false,
   services: [
     {
       httpService: {
@@ -805,16 +778,7 @@ export const buildMockWorkspaceList = (args: {
   const workspaces: WorkspacesWorkspaceListItem[] = [];
   for (let i = 1; i <= args.count; i++) {
     const state = args.state || states[(i - 1) % states.length];
-    const labels = {
-      [`labelKey${i}`]: `labelValue${i}`,
-      [`labelKey${i + 1}`]: `labelValue${i + 1}`,
-    };
-    const annotations = {
-      [`annotationKey${i}`]: `annotationValue${i}`,
-      [`annotationKey${i + 1}`]: `annotationValue${i + 1}`,
-    };
     const activityTime = new Date().getTime() - i * 100000;
-    const booleanValue = i % 2 === 0;
     const imageConfig = imageConfigs[i % imageConfigs.length];
     const podConfig = podConfigs[i % podConfigs.length];
 
@@ -826,28 +790,7 @@ export const buildMockWorkspaceList = (args: {
         state,
         stateMessage: `Workspace is in ${state} state`,
         paused: state === V1Beta1WorkspaceState.WorkspaceStatePaused,
-        pendingRestart: booleanValue,
         podTemplate: {
-          podMetadata: { labels, annotations },
-          volumes: {
-            home: {
-              pvcName: `Volume-Home-${i}`,
-              mountPath: `/home${i}`,
-              readOnly: booleanValue,
-            },
-            data: [
-              {
-                pvcName: `Volume-Data1-${i}`,
-                mountPath: `/data${i}`,
-                readOnly: booleanValue,
-              },
-              {
-                pvcName: `Volume-Data2-${i}`,
-                mountPath: `/data${i}`,
-                readOnly: booleanValue,
-              },
-            ],
-          },
           options: {
             imageConfig: buildMockImageConfigWithRedirects(i, imageConfig),
             podConfig: buildMockPodConfigWithRedirects(i, podConfig),
