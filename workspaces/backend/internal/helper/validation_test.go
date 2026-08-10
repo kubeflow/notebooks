@@ -19,6 +19,7 @@ package helper
 import (
 	"net/http"
 	"testing"
+	"time"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	. "github.com/onsi/ginkgo/v2"
@@ -850,6 +851,176 @@ var _ = Describe("Validation Helper Functions", func() {
 			It(tc.description, func() {
 				causes := StatusCausesFromAPIStatus(tc.err)
 				tc.validate(causes)
+			})
+		}
+	})
+
+	Describe("ValidateFieldIsPositiveInt64", func() {
+		const fieldName = "tailLines"
+
+		type testCase struct {
+			description string
+			value       string
+			expectValue int64
+			expectError bool
+		}
+
+		testCases := []testCase{
+			{
+				description: "should parse a positive integer",
+				value:       "15",
+				expectValue: 15,
+				expectError: false,
+			},
+			{
+				description: "should return error for zero",
+				value:       "0",
+				expectError: true,
+			},
+			{
+				description: "should return error for a negative integer",
+				value:       "-5",
+				expectError: true,
+			},
+			{
+				description: "should return error for a non-integer",
+				value:       "abc",
+				expectError: true,
+			},
+			{
+				description: "should return error for an empty string",
+				value:       "",
+				expectError: true,
+			},
+		}
+
+		for _, tc := range testCases {
+			It(tc.description, func() {
+				path := field.NewPath(fieldName)
+				value, errs := ValidateFieldIsPositiveInt64(path, tc.value)
+				if tc.expectError {
+					Expect(errs).To(HaveLen(1))
+					Expect(errs[0].Type).To(Equal(field.ErrorTypeInvalid))
+					Expect(errs[0].Field).To(Equal(fieldName))
+					Expect(value).To(BeZero())
+				} else {
+					Expect(errs).To(BeEmpty())
+					Expect(value).To(Equal(tc.expectValue))
+				}
+			})
+		}
+	})
+
+	Describe("ValidateFieldIsBool", func() {
+		const fieldName = "previous"
+
+		type testCase struct {
+			description string
+			value       string
+			expectValue bool
+			expectError bool
+		}
+
+		testCases := []testCase{
+			{
+				description: "should parse true",
+				value:       "true",
+				expectValue: true,
+				expectError: false,
+			},
+			{
+				description: "should parse false",
+				value:       "false",
+				expectValue: false,
+				expectError: false,
+			},
+			{
+				description: "should parse the shorthand 1 as true",
+				value:       "1",
+				expectValue: true,
+				expectError: false,
+			},
+			{
+				description: "should return error for a non-boolean",
+				value:       "maybe",
+				expectError: true,
+			},
+			{
+				description: "should return error for an empty string",
+				value:       "",
+				expectError: true,
+			},
+		}
+
+		for _, tc := range testCases {
+			It(tc.description, func() {
+				path := field.NewPath(fieldName)
+				value, errs := ValidateFieldIsBool(path, tc.value)
+				if tc.expectError {
+					Expect(errs).To(HaveLen(1))
+					Expect(errs[0].Type).To(Equal(field.ErrorTypeInvalid))
+					Expect(errs[0].Field).To(Equal(fieldName))
+					Expect(value).To(BeFalse())
+				} else {
+					Expect(errs).To(BeEmpty())
+					Expect(value).To(Equal(tc.expectValue))
+				}
+			})
+		}
+	})
+
+	Describe("ValidateFieldIsRFC3339Time", func() {
+		const fieldName = "sinceTime"
+
+		type testCase struct {
+			description string
+			value       string
+			expectError bool
+		}
+
+		testCases := []testCase{
+			{
+				description: "should parse a valid RFC3339 timestamp",
+				value:       "2026-07-15T10:30:00Z",
+				expectError: false,
+			},
+			{
+				description: "should parse a valid RFC3339 timestamp with offset",
+				value:       "2026-07-15T10:30:00+02:00",
+				expectError: false,
+			},
+			{
+				description: "should return error for a non-timestamp",
+				value:       "not-a-timestamp",
+				expectError: true,
+			},
+			{
+				description: "should return error for a date-only string (not RFC3339)",
+				value:       "2026-07-15",
+				expectError: true,
+			},
+			{
+				description: "should return error for an empty string",
+				value:       "",
+				expectError: true,
+			},
+		}
+
+		for _, tc := range testCases {
+			It(tc.description, func() {
+				path := field.NewPath(fieldName)
+				value, errs := ValidateFieldIsRFC3339Time(path, tc.value)
+				if tc.expectError {
+					Expect(errs).To(HaveLen(1))
+					Expect(errs[0].Type).To(Equal(field.ErrorTypeInvalid))
+					Expect(errs[0].Field).To(Equal(fieldName))
+					Expect(value.IsZero()).To(BeTrue())
+				} else {
+					Expect(errs).To(BeEmpty())
+					expected, perr := time.Parse(time.RFC3339, tc.value)
+					Expect(perr).NotTo(HaveOccurred())
+					Expect(value.Time).To(BeTemporally("==", expected))
+				}
 			})
 		}
 	})
