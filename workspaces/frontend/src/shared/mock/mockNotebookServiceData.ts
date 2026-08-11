@@ -62,6 +62,12 @@ export const mockWorkspaceKind3: WorkspacekindsWorkspaceKindListItem = buildMock
   clusterMetrics: {
     workspacesCount: 0,
   },
+  restrictions: {
+    deny: true,
+    denyMessage: {
+      text: 'This workspace kind is currently unavailable. Please contact your administrator.',
+    },
+  },
 });
 
 export const mockWorkspaceKinds = [mockWorkspaceKind1, mockWorkspaceKind2, mockWorkspaceKind3];

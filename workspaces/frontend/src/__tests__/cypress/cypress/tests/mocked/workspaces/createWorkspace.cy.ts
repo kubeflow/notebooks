@@ -560,6 +560,35 @@ describe('Create workspace', () => {
       createWorkspace.assertNextButtonEnabled();
     });
 
+    it('should show denied workspace kind as disabled and unselectable', () => {
+      const deniedKind = buildMockWorkspaceKind({
+        name: 'denied-kind',
+        displayName: 'Denied Kind',
+        restrictions: {
+          deny: true,
+          denyMessage: { text: 'This workspace kind is currently unavailable.' },
+        },
+      });
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspacekinds',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+        mockModArchResponse([mockWorkspaceKind, deniedKind]),
+      ).as('getWorkspaceKindsWithDenied');
+
+      createWorkspace.visit();
+      cy.wait('@getWorkspaceKindsWithDenied');
+
+      createWorkspace.assertCardIsDisabled(deniedKind.name);
+      createWorkspace.assertCardHasNoSelectableAction(deniedKind.name);
+      createWorkspace.assertCardIsNotSelected(deniedKind.name);
+
+      // Non-denied kind should still be selectable
+      createWorkspace.assertCardIsNotDisabled(mockWorkspaceKind.name);
+      createWorkspace.selectKind(mockWorkspaceKind.name);
+      createWorkspace.assertKindSelected(mockWorkspaceKind.name);
+    });
+
     it('should handle workspace kind with single pod config option', () => {
       const mockWorkspaceKindSinglePodConfig = buildMockWorkspaceKind({
         podTemplate: {
