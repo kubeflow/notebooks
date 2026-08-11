@@ -67,11 +67,11 @@ const {
   sortableKeyArray: sortableWsTableColumnKeyArray,
 } = defineDataFields({
   name: { label: 'Name', isFilterable: true, isSortable: true, width: 20 },
-  image: { label: 'Image', isFilterable: true, isSortable: true, width: 15 },
-  podConfig: { label: 'Pod config', isFilterable: true, isSortable: true, width: 15 },
-  kind: { label: 'Kind', isFilterable: true, isSortable: true, width: 10 },
+  image: { label: 'Image', isFilterable: true, isSortable: true, width: undefined },
+  podConfig: { label: 'Pod config', isFilterable: true, isSortable: true, width: undefined },
+  kind: { label: 'Kind', isFilterable: true, isSortable: true, width: undefined },
   namespace: { label: 'Namespace', isFilterable: true, isSortable: true, width: 15 },
-  state: { label: 'State', isFilterable: true, isSortable: true, width: 10 },
+  state: { label: 'State', isFilterable: true, isSortable: true, width: undefined },
   gpu: { label: 'GPU', isFilterable: true, isSortable: true, width: 15 },
   idleGpu: { label: 'Idle GPU', isFilterable: true, isSortable: true, width: 15 },
   lastActivity: { label: 'Last activity', isFilterable: false, isSortable: true, width: 15 },
@@ -271,27 +271,33 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       };
     };
 
-    // Column-specific modifiers and special properties
+    // Column-specific modifiers. Columns with inherently small/fixed-size content (an icon, a
+    // badge, a button) use fitContent to size to that content. The remaining columns keep a
+    // percentage `width` so they absorb the table's leftover width instead — auto table layout
+    // doesn't let fitContent columns shrink below their content unless other columns are
+    // "greedy" enough to claim the rest.
     const getColumnModifier = (
       columnKey: WorkspaceTableColumnKeys,
-    ): 'wrap' | 'nowrap' | undefined => {
+    ): 'wrap' | 'nowrap' | 'fitContent' | undefined => {
       switch (columnKey) {
-        case 'name':
         case 'kind':
-          return 'nowrap';
+        case 'state':
         case 'image':
         case 'podConfig':
-        case 'namespace':
-        case 'state':
-        case 'gpu':
-          return 'wrap';
+        case 'connect':
+          return 'fitContent';
+        case 'name':
         case 'lastActivity':
           return 'nowrap';
+        case 'namespace':
+        case 'gpu':
+          return 'wrap';
         default:
           return undefined;
       }
     };
 
+    // Column-specific special properties
     const getSpecialColumnProps = (columnKey: WorkspaceTableColumnKeys) => {
       switch (columnKey) {
         case 'connect':
@@ -423,6 +429,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                                     : `workspace-${columnKey}`
                               }
                               dataLabel={wsTableColumns[columnKey].label}
+                              modifier={getColumnModifier(columnKey)}
                             >
                               {columnKey === 'name' &&
                                 (() => {
