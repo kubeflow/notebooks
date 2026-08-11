@@ -37,6 +37,14 @@
   cursor: pointer;
 }
 
+/* Workspace table row name: looks like plain text until hovered/focused, then reveals link styling.
+   Selector specificity matches PatternFly's own `.pf-v6-c-button` base rule (which also sets these
+   custom properties) so this override wins regardless of CSS injection order. */
+.pf-v6-c-button.workspace-table__name-link {
+  --pf-v6-c-button--m-link--m-inline--Color: var(--pf-t--global--text--color--regular);
+  --pf-v6-c-button--m-link--m-inline--TextDecorationLine: none;
+}
+
 .summary-redirect-icon-button {
   cursor: pointer;
   display: inline-flex;
