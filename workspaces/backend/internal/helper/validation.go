@@ -21,7 +21,9 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
+	"time"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -257,7 +259,7 @@ func ValidateKubernetesStorageClassIsUsable(ctx context.Context, k8sClient clien
 
 // ValidateFieldIsDNS1123Label validates a field contains an RCF 1123 DNS label.
 // USED FOR:
-//   - names of: Namespaces, Services, etc.
+//   - names of: Namespaces, Services, Containers, etc.
 func ValidateFieldIsDNS1123Label(path *field.Path, value string) field.ErrorList {
 	var errs field.ErrorList
 
@@ -280,6 +282,11 @@ func ValidateKubernetesNamespaceName(path *field.Path, value string) field.Error
 
 // ValidateKubernetesServicesName validates a field contains a valid Kubernetes Service name.
 func ValidateKubernetesServicesName(path *field.Path, value string) field.ErrorList {
+	return ValidateFieldIsDNS1123Label(path, value)
+}
+
+// ValidateKubernetesContainersName validates a field contains a valid Kubernetes container name.
+func ValidateKubernetesContainersName(path *field.Path, value string) field.ErrorList {
 	return ValidateFieldIsDNS1123Label(path, value)
 }
 
@@ -319,4 +326,47 @@ func ValidateFieldIsSecretBase64Value(path *field.Path, value string) field.Erro
 	}
 
 	return errs
+}
+
+// ValidateFieldIsPositiveInt64 parses value as a base-10 int64 and validates it
+// is a positive integer (> 0). On success it returns the parsed value and a nil
+// error list.
+func ValidateFieldIsPositiveInt64(path *field.Path, value string) (int64, field.ErrorList) {
+	var errs field.ErrorList
+
+	parsed, err := strconv.ParseInt(value, 10, 64)
+	if err != nil || parsed <= 0 {
+		errs = append(errs, field.Invalid(path, value, "must be a positive integer"))
+		return 0, errs
+	}
+
+	return parsed, errs
+}
+
+// ValidateFieldIsBool parses value as a boolean. On success it returns the parsed
+// value and a nil error list.
+func ValidateFieldIsBool(path *field.Path, value string) (bool, field.ErrorList) {
+	var errs field.ErrorList
+
+	parsed, err := strconv.ParseBool(value)
+	if err != nil {
+		errs = append(errs, field.Invalid(path, value, "must be a boolean"))
+		return false, errs
+	}
+
+	return parsed, errs
+}
+
+// ValidateFieldIsRFC3339Time parses value as an RFC3339 timestamp. On success it
+// returns the parsed value and a nil error list.
+func ValidateFieldIsRFC3339Time(path *field.Path, value string) (metav1.Time, field.ErrorList) {
+	var errs field.ErrorList
+
+	parsed, err := time.Parse(time.RFC3339, value)
+	if err != nil {
+		errs = append(errs, field.Invalid(path, value, "must be a valid RFC3339 timestamp"))
+		return metav1.Time{}, errs
+	}
+
+	return metav1.NewTime(parsed), errs
 }

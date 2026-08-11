@@ -106,17 +106,12 @@ spec:
       annotations:
         my-workspace-kind-annotation: "my-value"
 
-    ## service account configs for Workspace Pods
-    ##
-    serviceAccount:
-
-      ## the name of the ServiceAccount (NOT MUTABLE)
-      ##  - this Service Account MUST already exist in the Namespace
-      ##    of the Workspace, the controller will NOT create it
-      ##  - we will not show this WorkspaceKind in the Spawner UI
-      ##    if the SA does not exist in the Namespace
-      ##
-      name: "default-editor"
+    ## NOTE: Workspace Pods always run as the "default-editor" ServiceAccount,
+    ##       which is hardcoded in the controller and MUST already exist in the
+    ##       Namespace of the Workspace, the controller will NOT create it.
+    ##       Configuration will return under `serviceAccount` once Workspaces get
+    ##       their own controller-managed ServiceAccounts:
+    ##       https://github.com/kubeflow/notebooks/issues/1257
 
     ## activity probe configs (MUTABLE)
     ##  - determines how to detect activity in the Workspace

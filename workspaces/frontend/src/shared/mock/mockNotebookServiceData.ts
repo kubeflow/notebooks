@@ -91,24 +91,6 @@ export const mockWorkspace2: WorkspacesWorkspaceListItem = buildMockWorkspace({
     lastUpdate: new Date(2024, 11, 20).getTime(),
   },
   podTemplate: {
-    podMetadata: {
-      labels: { labelKey1: 'labelValue1', labelKey2: 'labelValue2' },
-      annotations: { annotationKey1: 'annotationValue1', annotationKey2: 'annotationValue2' },
-    },
-    volumes: {
-      home: {
-        pvcName: 'Volume-Home',
-        mountPath: '/home',
-        readOnly: false,
-      },
-      data: [
-        {
-          pvcName: 'PVC-1',
-          mountPath: '/data',
-          readOnly: false,
-        },
-      ],
-    },
     options: {
       imageConfig: {
         current: {
@@ -265,7 +247,6 @@ export const mockWorkspace3: WorkspacesWorkspaceListItem = buildMockWorkspace({
   namespace: mockNamespace1.name,
   workspaceKind: mockWorkspaceKindInfo1,
   state: V1Beta1WorkspaceState.WorkspaceStateRunning,
-  pendingRestart: true,
   activity: {
     lastActivity: new Date(2025, 2, 15).getTime(),
     lastUpdate: new Date(2025, 2, 1).getTime(),

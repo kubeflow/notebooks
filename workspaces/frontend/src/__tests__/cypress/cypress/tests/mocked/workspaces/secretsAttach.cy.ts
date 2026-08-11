@@ -25,7 +25,6 @@ describe('SecretsAttachModal', () => {
     workspaceKind: mockWorkspaceKindInfo,
     state: V1Beta1WorkspaceState.WorkspaceStateRunning,
   });
-  mockWorkspaceListItem.podTemplate.volumes.secrets = [];
 
   const mockWorkspaceUpdate = buildMockWorkspaceUpdateFromWorkspace({
     workspace: mockWorkspaceListItem,

@@ -23,10 +23,19 @@ import (
 
 // Important: Run "make" to regenerate code after modifying this file
 
-// DefaultProbeIntervalSeconds is the fallback probe interval used when no activityProbe
-// is configured. This must stay in sync with the +kubebuilder:default marker on
-// ActivityProbe.ProbeIntervalSeconds.
-const DefaultProbeIntervalSeconds int32 = 3600
+// Default values for ActivityProbe fields. These MUST stay in sync with the
+// corresponding +kubebuilder:default markers on the ActivityProbe types, so that
+// the controller and the API server agree on the effective value when a field is unset.
+const (
+	// DefaultProbeIntervalSeconds is the fallback for ActivityProbe.ProbeIntervalSeconds.
+	DefaultProbeIntervalSeconds int32 = 3600
+
+	// DefaultMinProbeIntervalSeconds is the fallback for ActivityProbe.MinProbeIntervalSeconds.
+	DefaultMinProbeIntervalSeconds int32 = 300
+
+	// DefaultPodExecTimeoutSeconds is the fallback for ActivityProbePodExec.TimeoutSeconds.
+	DefaultPodExecTimeoutSeconds int32 = 60
+)
 
 /*
 ===============================================================================
@@ -230,7 +239,12 @@ type WorkspaceKindPodTemplate struct {
 	PodMetadata *WorkspaceKindPodMetadata `json:"podMetadata,omitempty"`
 
 	// service account configs for Workspace Pods
-	ServiceAccount WorkspaceKindServiceAccount `json:"serviceAccount"`
+	//  - currently has no fields, the ServiceAccount used by Workspace Pods is
+	//    hardcoded to "default-editor" in the controller
+	//  - this ServiceAccount MUST already exist in the Namespace of the Workspace,
+	//    the controller will NOT create it
+	// +kubebuilder:validation:Optional
+	ServiceAccount *WorkspaceKindServiceAccount `json:"serviceAccount,omitempty"`
 
 	// activityProbe configs to determine Workspace activity (MUTABLE)
 	// +kubebuilder:validation:Optional
@@ -318,18 +332,10 @@ type WorkspaceKindPodMetadata struct {
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
+// WorkspaceKindServiceAccount is currently empty, fields will be added once
+// Workspaces get their own controller-managed ServiceAccounts.
+// See https://github.com/kubeflow/notebooks/issues/1257
 type WorkspaceKindServiceAccount struct {
-	// the name of the ServiceAccount (NOT MUTABLE)
-	//  - this Service Account MUST already exist in the Namespace
-	//    of the Workspace, the controller will NOT create it
-	//  - we will not show this WorkspaceKind in the Spawner UI
-	//    if the SA does not exist in the Namespace
-	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="ServiceAccount 'name' is immutable"
-	// +kubebuilder:example="default-editor"
-	// +kubebuilder:validation:MinLength:=1
-	// +kubebuilder:validation:MaxLength:=253
-	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
-	Name string `json:"name"`
 }
 
 // ActivityProbe defines how to detect recent user activity in a Workspace
