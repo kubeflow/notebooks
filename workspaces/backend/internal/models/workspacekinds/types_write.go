@@ -39,8 +39,9 @@ type WorkspaceKindUpdate struct {
 	//     other than for equality, as the format is not guaranteed to be stable.
 	Revision common.RevisionString `json:"revision"`
 
-	Spawner     kubefloworgv1beta1.WorkspaceKindSpawner     `json:"spawner"`
-	PodTemplate kubefloworgv1beta1.WorkspaceKindPodTemplate `json:"podTemplate"`
+	Spawner       kubefloworgv1beta1.WorkspaceKindSpawner     `json:"spawner"`
+	PodTemplate   kubefloworgv1beta1.WorkspaceKindPodTemplate `json:"podTemplate"`
+	ActivityRules []kubefloworgv1beta1.ActivityRule           `json:"activityRules,omitempty"`
 }
 
 // Validate performs validation on the WorkspaceKindUpdate struct
