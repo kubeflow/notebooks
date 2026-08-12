@@ -142,6 +142,12 @@ const convertToFormData = (
       },
       activityProbe: podTemplate.activityProbe,
     },
+    activityRules: initialData.activityRules?.map((rule) => ({
+      id: generateUniqueId(),
+      config: rule.config,
+      effect: { pauseWorkspace: rule.effect.pauseWorkspace ?? false },
+      match: rule.match,
+    })),
   };
 };
 

@@ -698,6 +698,7 @@ export const buildMockWorkspaceKindUpdate = (
   listItem: WorkspacekindsWorkspaceKindListItem,
 ): WorkspacekindsWorkspaceKindUpdate => ({
   revision: '1',
+  activityRules: listItem.activityRules,
   spawner: {
     displayName: listItem.displayName,
     description: listItem.description,

@@ -239,6 +239,11 @@ export const convertFormDataToUpdate = (
   original: WorkspacekindsWorkspaceKindUpdate,
 ): WorkspacekindsWorkspaceKindUpdate => ({
   revision: original.revision,
+  activityRules: formData.activityRules?.map((rule) => ({
+    config: rule.config,
+    effect: rule.effect,
+    match: rule.match,
+  })),
   spawner: {
     displayName: formData.properties.displayName,
     description: formData.properties.description,
