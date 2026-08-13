@@ -30,6 +30,7 @@ import {
   Tbody,
   Td,
   ThProps,
+  BaseCellProps,
   ActionsColumn,
   IAction,
   IActions,
@@ -66,24 +67,53 @@ const {
   keyArray: wsTableColumnKeyArray,
   sortableKeyArray: sortableWsTableColumnKeyArray,
 } = defineDataFields({
-  name: { label: 'Name', isFilterable: true, isSortable: true, width: 20 },
+  name: { label: 'Name', isFilterable: true, isSortable: true },
   // Kind renders only a logo, and its header is rendered for screen readers alone (see
   // getSpecialColumnProps), so there is no header control to sort from. Filtering by kind
   // remains available from the toolbar.
-  kind: { label: 'Kind', isFilterable: true, isSortable: false, width: undefined },
-  podConfig: { label: 'Pod config', isFilterable: true, isSortable: true, width: undefined },
-  image: { label: 'Image', isFilterable: true, isSortable: true, width: undefined },
-  namespace: { label: 'Namespace', isFilterable: true, isSortable: true, width: 15 },
-  state: { label: 'State', isFilterable: true, isSortable: true, width: undefined },
-  gpu: { label: 'GPU', isFilterable: true, isSortable: true, width: 15 },
-  idleGpu: { label: 'Idle GPU', isFilterable: true, isSortable: true, width: 15 },
-  lastActivity: { label: 'Last activity', isFilterable: false, isSortable: true, width: 15 },
-  connect: { label: '', isFilterable: false, isSortable: false, width: undefined },
-  actions: { label: '', isFilterable: false, isSortable: false, width: undefined },
+  kind: { label: 'Kind', isFilterable: true, isSortable: false },
+  podConfig: { label: 'Pod config', isFilterable: true, isSortable: true },
+  image: { label: 'Image', isFilterable: true, isSortable: true },
+  namespace: { label: 'Namespace', isFilterable: true, isSortable: true },
+  state: { label: 'State', isFilterable: true, isSortable: true },
+  gpu: { label: 'GPU', isFilterable: true, isSortable: true },
+  idleGpu: { label: 'Idle GPU', isFilterable: true, isSortable: true },
+  lastActivity: { label: 'Last activity', isFilterable: false, isSortable: true },
+  connect: { label: '', isFilterable: false, isSortable: false },
+  actions: { label: '', isFilterable: false, isSortable: false },
 });
 
 export type WorkspaceTableColumnKeys = DataFieldKey<typeof wsTableColumns>;
 type WorkspaceTableSortableColumnKeys = SortableDataFieldKey<typeof wsTableColumns>;
+
+/**
+ * The breakpoints at which each column is rendered; `undefined` means always visible.
+ *
+ * Every column renders `fitContent` (`width: 1%; min-width: fit-content`), so each one is sized to
+ * its own content and auto table layout shares whatever is left over evenly between them. Only
+ * Name carries content that can grow without limit, and it is capped in `app.css`.
+ *
+ * Dropping the lowest-priority columns as the viewport narrows lets the table degrade in a chosen
+ * order rather than overflowing into a horizontal scrollbar. Below PatternFly's own `md` grid
+ * breakpoint the table stops being a grid altogether and stacks each row into a card, labelled by
+ * the `dataLabel` on each cell.
+ *
+ * This is an exhaustive `Record` rather than a `Partial` so that a new column has to make an
+ * explicit choice instead of silently defaulting to always-visible.
+ */
+const columnVisibility: Record<WorkspaceTableColumnKeys, BaseCellProps['visibility']> = {
+  name: undefined,
+  kind: undefined,
+  podConfig: ['hidden', 'visibleOnLg'],
+  image: ['hidden', 'visibleOnMd'],
+  namespace: ['hidden', 'visibleOnLg'],
+  state: undefined,
+  gpu: ['hidden', 'visibleOnXl'],
+  idleGpu: ['hidden', 'visibleOnXl'],
+  lastActivity: ['hidden', 'visibleOnXl'],
+  connect: undefined,
+  actions: undefined,
+};
 
 interface WorkspaceTableProps {
   workspaces: WorkspacesWorkspaceListItem[];
@@ -273,32 +303,6 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       };
     };
 
-    // Column-specific modifiers. Columns with inherently small/fixed-size content (an icon, a
-    // badge, a button) use fitContent to size to that content. The remaining columns keep a
-    // percentage `width` so they absorb the table's leftover width instead — auto table layout
-    // doesn't let fitContent columns shrink below their content unless other columns are
-    // "greedy" enough to claim the rest.
-    const getColumnModifier = (
-      columnKey: WorkspaceTableColumnKeys,
-    ): 'wrap' | 'nowrap' | 'fitContent' | undefined => {
-      switch (columnKey) {
-        case 'kind':
-        case 'state':
-        case 'image':
-        case 'podConfig':
-        case 'connect':
-          return 'fitContent';
-        case 'name':
-        case 'lastActivity':
-          return 'nowrap';
-        case 'namespace':
-        case 'gpu':
-          return 'wrap';
-        default:
-          return undefined;
-      }
-    };
-
     // Column-specific special properties
     const getSpecialColumnProps = (columnKey: WorkspaceTableColumnKeys) => {
       switch (columnKey) {
@@ -363,21 +367,19 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
               aria-label="Sortable table"
               ouiaId="SortableTable"
               variant="compact"
-              style={{ minWidth: '1200px' }}
             >
               <Thead>
                 <Tr>
                   {visibleColumnKeys.map((columnKey) => {
                     const specialProps = getSpecialColumnProps(columnKey);
-                    const modifier = getColumnModifier(columnKey);
 
                     return (
                       <Th
                         key={`workspace-table-column-${columnKey}`}
-                        width={wsTableColumns[columnKey].width}
                         sort={specialProps.hasContent ? getSortParams(columnKey) : undefined}
                         aria-label={specialProps.hasContent ? columnKey : undefined}
-                        modifier={modifier}
+                        modifier="fitContent"
+                        visibility={columnVisibility[columnKey]}
                         screenReaderText={specialProps.screenReaderText}
                       >
                         {specialProps.hasContent ? wsTableColumns[columnKey].label : undefined}
@@ -402,6 +404,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                               <Td
                                 dataLabel={wsTableColumns[columnKey].label}
                                 modifier="fitContent"
+                                visibility={columnVisibility[columnKey]}
                                 hasAction
                                 key="connect"
                               >
@@ -414,7 +417,12 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
 
                           if (columnKey === 'actions') {
                             return (
-                              <Td isActionCell key="actions" data-testid="action-column">
+                              <Td
+                                isActionCell
+                                visibility={columnVisibility[columnKey]}
+                                key="actions"
+                                data-testid="action-column"
+                              >
                                 <ActionsColumn
                                   items={rowActions(workspace).map((action) => ({
                                     ...action,
@@ -436,7 +444,8 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                                     : `workspace-${columnKey}`
                               }
                               dataLabel={wsTableColumns[columnKey].label}
-                              modifier={getColumnModifier(columnKey)}
+                              modifier="fitContent"
+                              visibility={columnVisibility[columnKey]}
                             >
                               {columnKey === 'name' &&
                                 (() => {
@@ -444,6 +453,15 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                                     (action): action is IAction =>
                                       !('isSeparator' in action && action.isSeparator) &&
                                       action.id === 'viewDetails',
+                                  );
+
+                                  // The cap that keeps a long name from widening the column lives
+                                  // on this span rather than on the cell, so that it applies
+                                  // whether or not the name is rendered as a link.
+                                  const nameText = (
+                                    <span className="workspace-table__name-text">
+                                      {workspace.name}
+                                    </span>
                                   );
 
                                   return viewDetailsAction ? (
@@ -456,10 +474,10 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                                         viewDetailsAction.onClick?.(event, rowIndex, {}, {})
                                       }
                                     >
-                                      {workspace.name}
+                                      {nameText}
                                     </Button>
                                   ) : (
-                                    workspace.name
+                                    nameText
                                   );
                                 })()}
                               {columnKey === 'image' && (
