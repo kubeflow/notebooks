@@ -259,13 +259,11 @@ if enable_frontend:
                         "failureThreshold": 30,
                     }
 
-                    # Disable standalone mode when dashboard is being pulled in.
-                    # The dev server is configured entirely by which env file it
-                    # loads, so this swaps `.env.tilt` for `.env.tilt-dashboard`
-                    # (DEPLOYMENT_MODE=kubeflow, and no MANDATORY_NAMESPACE so the
-                    # dashboard's namespace selector drives the frontend).
+                    # Set the container command depending on whether the dashboard is enabled or not.
                     if enable_dashboard:
                         container["command"] = ["npm", "run", "start:tilt-dashboard"]
+                    else:
+                        container["command"] = ["npm", "run", "start:tilt"]
 
     # Apply modified manifests
     k8s_yaml(
