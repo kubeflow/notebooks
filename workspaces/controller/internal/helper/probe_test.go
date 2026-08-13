@@ -135,7 +135,7 @@ var _ = Describe("RunJupyterProbe", func() {
 		prober := &fakeHTTPProber{
 			resp: newHTTPResponse(http.StatusOK, fmt.Sprintf(`{"last_activity": %q}`, testTimestampRFC3339)),
 		}
-		result := RunJupyterProbe(ctx, prober, "10.0.0.1", 8888, "")
+		result := RunJupyterProbe(ctx, prober, "10.0.0.1", 8888, "", time.Second)
 		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultSuccess))
 		Expect(result.LastActivity).ToNot(BeNil())
 		Expect(*result.LastActivity).To(Equal(testTimeRFC3339))
@@ -143,9 +143,9 @@ var _ = Describe("RunJupyterProbe", func() {
 
 	It("should report timeout when deadline is exceeded", func() {
 		prober := &fakeHTTPProber{err: context.DeadlineExceeded}
-		result := RunJupyterProbe(ctx, prober, "10.0.0.1", 8888, "")
+		result := RunJupyterProbe(ctx, prober, "10.0.0.1", 8888, "", time.Second)
 		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultTimeout))
-		Expect(result.Message).To(ContainSubstring("Jupyter probe failed"))
+		Expect(result.Message).To(ContainSubstring("timeout after 1000ms"))
 	})
 
 	It("should fail when reading response body fails", func() {
@@ -156,7 +156,7 @@ var _ = Describe("RunJupyterProbe", func() {
 				Header:     make(http.Header),
 			},
 		}
-		result := RunJupyterProbe(ctx, prober, "10.0.0.1", 8888, "")
+		result := RunJupyterProbe(ctx, prober, "10.0.0.1", 8888, "", time.Second)
 		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultFailure))
 		Expect(result.Message).To(ContainSubstring("unable to read response body"))
 	})
@@ -165,7 +165,7 @@ var _ = Describe("RunJupyterProbe", func() {
 		prober := &fakeHTTPProber{
 			resp: newHTTPResponse(http.StatusInternalServerError, ``),
 		}
-		result := RunJupyterProbe(ctx, prober, "10.0.0.1", 8888, "")
+		result := RunJupyterProbe(ctx, prober, "10.0.0.1", 8888, "", time.Second)
 		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultFailure))
 		Expect(result.LastActivity).To(BeNil())
 		Expect(result.Message).To(ContainSubstring("HTTP 500"))
@@ -173,7 +173,7 @@ var _ = Describe("RunJupyterProbe", func() {
 
 	It("should fail on a connection error", func() {
 		prober := &fakeHTTPProber{err: fmt.Errorf("connection refused")}
-		result := RunJupyterProbe(ctx, prober, "10.0.0.1", 8888, "")
+		result := RunJupyterProbe(ctx, prober, "10.0.0.1", 8888, "", time.Second)
 		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultFailure))
 		Expect(result.LastActivity).To(BeNil())
 	})
@@ -182,7 +182,7 @@ var _ = Describe("RunJupyterProbe", func() {
 		prober := &fakeHTTPProber{
 			resp: newHTTPResponse(http.StatusOK, `not json`),
 		}
-		result := RunJupyterProbe(ctx, prober, "10.0.0.1", 8888, "")
+		result := RunJupyterProbe(ctx, prober, "10.0.0.1", 8888, "", time.Second)
 		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultFailure))
 		Expect(result.Message).To(ContainSubstring("invalid response body"))
 	})
@@ -191,7 +191,7 @@ var _ = Describe("RunJupyterProbe", func() {
 		prober := &fakeHTTPProber{
 			resp: newHTTPResponse(http.StatusOK, `{"last_activity": "not-a-date"}`),
 		}
-		result := RunJupyterProbe(ctx, prober, "10.0.0.1", 8888, "")
+		result := RunJupyterProbe(ctx, prober, "10.0.0.1", 8888, "", time.Second)
 		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultFailure))
 		Expect(result.LastActivity).To(BeNil())
 	})
@@ -200,7 +200,7 @@ var _ = Describe("RunJupyterProbe", func() {
 		prober := &fakeHTTPProber{
 			resp: newHTTPResponse(http.StatusOK, fmt.Sprintf(`{"last_activity": %q}`, testTimestampRFC3339)),
 		}
-		_ = RunJupyterProbe(ctx, prober, "10.0.0.1", 8888, "/my/base/path/")
+		_ = RunJupyterProbe(ctx, prober, "10.0.0.1", 8888, "/my/base/path/", time.Second)
 		Expect(prober.capturedURL).To(Equal("http://10.0.0.1:8888/my/base/path/api/status"))
 	})
 })

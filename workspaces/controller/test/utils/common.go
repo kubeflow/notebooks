@@ -23,6 +23,8 @@ import (
 	"strings"
 
 	"github.com/onsi/ginkgo/v2"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"sigs.k8s.io/yaml"
 )
 
 func warnError(err error) {
@@ -70,6 +72,7 @@ func GetProjectDir() (string, error) {
 		return wd, err
 	}
 	wd = strings.ReplaceAll(wd, "/test/e2e", "")
+	wd = strings.ReplaceAll(wd, "/test/utils", "")
 	return wd, nil
 }
 
@@ -82,16 +85,19 @@ func RenderActivityWorkspaceKind(samplePath, newName string) (string, error) {
 		return "", fmt.Errorf("failed to read sample WorkspaceKind %q: %w", samplePath, err)
 	}
 
-	// the sample WorkspaceKind has:
-	//   metadata:
-	//     name: jupyterlab
-	// replace only the metadata name line to avoid touching other "jupyterlab" references
-	// (ports, imageConfig ids, etc.) which must remain unchanged
-	out := strings.Replace(string(data), "\n  name: jupyterlab\n", "\n  name: "+newName+"\n", 1)
-	if !strings.Contains(out, "\n  name: "+newName+"\n") {
-		return "", fmt.Errorf("failed to override metadata.name in sample WorkspaceKind %q", samplePath)
+	var obj unstructured.Unstructured
+	if err := yaml.Unmarshal(data, &obj.Object); err != nil {
+		return "", fmt.Errorf("failed to unmarshal sample WorkspaceKind %q: %w", samplePath, err)
 	}
-	return out, nil
+
+	obj.SetName(newName)
+
+	out, err := yaml.Marshal(obj.Object)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal modified WorkspaceKind %q: %w", samplePath, err)
+	}
+
+	return string(out), nil
 }
 
 // GetWorkspaceJSONPath runs `kubectl get workspace <name> -n <namespace> -o jsonpath=<path>`
@@ -112,22 +118,20 @@ func RenderActivityWorkspace(samplePath, newName, newKind string) (string, error
 		return "", fmt.Errorf("failed to read sample Workspace %q: %w", samplePath, err)
 	}
 
-	out := string(data)
-
-	// the sample Workspace has:
-	//   metadata:
-	//     name: jupyterlab-workspace
-	if !strings.Contains(out, "\n  name: jupyterlab-workspace\n") {
-		return "", fmt.Errorf("failed to find metadata.name in sample Workspace %q", samplePath)
+	var obj unstructured.Unstructured
+	if err := yaml.Unmarshal(data, &obj.Object); err != nil {
+		return "", fmt.Errorf("failed to unmarshal sample Workspace %q: %w", samplePath, err)
 	}
-	out = strings.Replace(out, "\n  name: jupyterlab-workspace\n", "\n  name: "+newName+"\n", 1)
 
-	// the sample Workspace references the WorkspaceKind via:
-	//   kind: "jupyterlab"
-	if !strings.Contains(out, `kind: "jupyterlab"`) {
-		return "", fmt.Errorf("failed to find spec.kind in sample Workspace %q", samplePath)
+	obj.SetName(newName)
+	if err := unstructured.SetNestedField(obj.Object, newKind, "spec", "kind"); err != nil {
+		return "", fmt.Errorf("failed to set spec.kind in sample Workspace %q: %w", samplePath, err)
 	}
-	out = strings.Replace(out, `kind: "jupyterlab"`, `kind: "`+newKind+`"`, 1)
 
-	return out, nil
+	out, err := yaml.Marshal(obj.Object)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal modified Workspace %q: %w", samplePath, err)
+	}
+
+	return string(out), nil
 }

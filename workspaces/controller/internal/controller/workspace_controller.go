@@ -113,7 +113,7 @@ type WorkspaceReconciler struct {
 	PodExecutor helper.PodExecutor
 
 	// HTTPProber performs HTTP requests for Jupyter activity probes.
-	// If nil, a default HTTP client is used.
+	// If nil, jupyter probes fail with a failure probe result indicating http prober is not configured.
 	HTTPProber helper.HTTPProber
 }
 
@@ -604,13 +604,11 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 // mergeReconcileResult combines two reconcile results, preferring the sooner requeue.
 func mergeReconcileResult(a, b ctrl.Result) ctrl.Result {
-	if a.Requeue {
-		return a
-	}
-	if b.Requeue {
-		return b
-	}
 	switch {
+	case a.Requeue:
+		return a
+	case b.Requeue:
+		return b
 	case a.RequeueAfter <= 0:
 		return b
 	case b.RequeueAfter <= 0:

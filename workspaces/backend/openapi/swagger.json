@@ -6303,7 +6303,7 @@
                     ]
                 },
                 "probeIntervalSeconds": {
-                    "description": "the desired interval in seconds between successful probes.\n- If a probe succeeds, the controller schedules the next probe after this duration (requeuing after probeInterval).\n- Determines the freshness of workspace activity status used by activity rules.\n- ACTIVITY TIMING CAVEAT: a Workspace is only paused immediately after a fresh probe confirms it is still\n  inactive (a Workspace is never paused based on stale activity data, so an actively-used Workspace whose\n  user resumed activity between probes is not paused). Consequently, activity rules are only evaluated at probe time,\n  so a Workspace may keep running for up to ~probeIntervalSeconds after it first becomes eligible\n  (lastActivity + secondsSinceActive) before it is actually paused. Lower this value for tighter timing,\n  at the cost of more frequent probing.\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:validation:Maximum:=31536000\n+kubebuilder:default:=3600\n+kubebuilder:validation:Optional",
+                    "description": "the desired interval in seconds between successful probes.\n - If a probe succeeds, the controller schedules the next probe after this duration (requeuing after probeInterval).\n - Determines the freshness of workspace activity status used by activity rules.\n - ACTIVITY TIMING CAVEAT: a Workspace is only paused immediately after a fresh probe confirms it is still\n   inactive (a Workspace is never paused based on stale activity data, so an actively-used Workspace whose\n   user resumed activity between probes is not paused). Consequently, activity rules are only evaluated at probe time,\n   so a Workspace may keep running for up to ~probeIntervalSeconds after it first becomes eligible\n   (lastActivity + secondsSinceActive) before it is actually paused. Lower this value for tighter timing,\n   at the cost of more frequent probing.\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:validation:Maximum:=31536000\n+kubebuilder:default:=3600\n+kubebuilder:validation:Optional",
                     "type": "integer"
                 }
             }
@@ -6385,7 +6385,7 @@
                     "type": "integer"
                 },
                 "secondsSinceActive": {
-                    "description": "the number of seconds of inactivity before a Workspace is eligible for this rule's effect\n - the minimum value is 16 (`secondsSinceActive` \u003e 15) to prevent thrashing and culling\n   workspaces prematurely during startup or transient connection drops\n+kubebuilder:validation:Minimum:=16",
+                    "description": "the number of seconds of inactivity before a Workspace is eligible for this rule's effect\n - the minimum value is 16 (`secondsSinceActive` \u003e 15) to prevent thrashing and pausing\n   workspaces prematurely during startup or transient connection drops\n+kubebuilder:validation:Minimum:=16",
                     "type": "integer"
                 }
             }

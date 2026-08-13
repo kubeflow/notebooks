@@ -587,6 +587,13 @@ var _ = Describe("runProbe", func() {
 		Expect(result.Message).To(ContainSubstring("not found in imageConfig"))
 	})
 
+	It("should fail a Jupyter probe when no http prober is configured", func() {
+		r := &WorkspaceReconciler{} // HTTPProber is nil
+		result := r.runProbe(ctx, &kubefloworgv1beta1.Workspace{}, jupyterProbe, imageConfig, runningPod)
+		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultFailure))
+		Expect(result.Message).To(ContainSubstring("http prober is not configured"))
+	})
+
 	It("should fail a podExec probe when no executor is configured", func() {
 		r := &WorkspaceReconciler{} // PodExecutor is nil
 		result := r.runProbe(ctx, &kubefloworgv1beta1.Workspace{}, podExecProbe, imageConfig, runningPod)

@@ -19,6 +19,7 @@ package main
 import (
 	"crypto/tls"
 	"flag"
+	"net/http"
 	"os"
 	"strconv"
 
@@ -189,6 +190,9 @@ func main() {
 		PodExecutor: &helper.RemoteCommandExecutor{
 			Clientset:  clientset,
 			RestConfig: restConfig,
+		},
+		HTTPProber: &helper.DefaultHTTPProber{
+			Client: &http.Client{},
 		},
 	}).SetupWithManager(mgr, &controller.Options{
 		RateLimiter: helper.BuildRateLimiter(),

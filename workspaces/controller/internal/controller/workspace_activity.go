@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"maps"
-	"net/http"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -204,13 +203,15 @@ func (r *WorkspaceReconciler) runProbe(
 			}
 		}
 		if r.HTTPProber == nil {
-			r.HTTPProber = &helper.DefaultHTTPProber{Client: &http.Client{Timeout: defaultJupyterProbeTimeout}}
+			return &helper.ProbeResult{
+				StartTime: now,
+				EndTime:   now,
+				Result:    kubefloworgv1beta1.WorkspaceProbeResultFailure,
+				Message:   helper.ProbeMessagePrefixJupyterFailed + "http prober is not configured",
+			}
 		}
-		prober := r.HTTPProber
-		probeCtx, cancel := context.WithTimeout(ctx, defaultJupyterProbeTimeout)
-		defer cancel()
 		basePath := getWorkspaceConnectPath(workspace.Namespace, workspace.Name, activityProbe.Jupyter.PortId)
-		return helper.RunJupyterProbe(probeCtx, prober, pod.Status.PodIP, port, basePath)
+		return helper.RunJupyterProbe(ctx, r.HTTPProber, pod.Status.PodIP, port, basePath, defaultJupyterProbeTimeout)
 
 	case activityProbe.PodExec != nil:
 		if r.PodExecutor == nil {
@@ -221,10 +222,6 @@ func (r *WorkspaceReconciler) runProbe(
 				Message:   helper.ProbeMessagePrefixPodExecFailed + "exec is not configured",
 			}
 		}
-		// NOTE: unlike the Jupyter branch, we pass the outer ctx and the timeout value
-		// separately. RunPodExecProbe derives its own timeout-bounded context internally so
-		// it can (a) report the timeout duration in the failure message and (b) distinguish a
-		// probe timeout (WorkspaceProbeResultTimeout) from outer-context cancellation.
 		timeout := time.Duration(ptr.Deref(activityProbe.PodExec.TimeoutSeconds, kubefloworgv1beta1.DefaultPodExecTimeoutSeconds)) * time.Second
 		return helper.RunPodExecProbe(ctx, r.PodExecutor, pod.Namespace, pod.Name, activityProbe.PodExec.Script, timeout)
 
@@ -289,7 +286,8 @@ func evaluatePauseDecision(
 	if err != nil {
 		return false, err
 	}
-	if !decision.Matched {
+	// if no matched rule or pauseWorkspace is false, clear the status to avoid misleading the user.
+	if !decision.Matched || !decision.Value {
 		if workspace.Status.Activity.Rules != nil {
 			workspace.Status.Activity.Rules.PauseWorkspace = nil
 		}
@@ -304,28 +302,20 @@ func evaluatePauseDecision(
 		decision.MinRunningSeconds,
 	)
 
-	// expose the eligibleAfter time for the UI / frontend, but only if the rule actually
-	// opts into pausing. If the rule matches but opts out (Value=false), we clear the
-	// status to avoid misleading the user.
-	if decision.Value {
-		if workspace.Status.Activity.Rules == nil {
-			workspace.Status.Activity.Rules = &kubefloworgv1beta1.WorkspaceActivityRules{}
-		}
-		workspace.Status.Activity.Rules.PauseWorkspace = &kubefloworgv1beta1.WorkspaceActivityPauseRule{
-			EligibleAfter: eligibleAfter,
-		}
-	} else if workspace.Status.Activity.Rules != nil {
-		workspace.Status.Activity.Rules.PauseWorkspace = nil
+	if workspace.Status.Activity.Rules == nil {
+		workspace.Status.Activity.Rules = &kubefloworgv1beta1.WorkspaceActivityRules{}
+	}
+	workspace.Status.Activity.Rules.PauseWorkspace = &kubefloworgv1beta1.WorkspaceActivityPauseRule{
+		EligibleAfter: eligibleAfter,
 	}
 
 	// only pause when the matched rule opts in, the Workspace is eligible, AND the decision is
 	// backed by a fresh probe in this reconcile (allowPause).
-	//  - a matched rule with pauseWorkspace: false exempts the Workspace from pausing
 	//  - a failing probe leaves lastActivity unchanged, so eligibility is based on the
 	//    last known-good activity (never paused purely because a probe failed)
 	//  - when allowPause is false the activity data may be stale (no probe ran this reconcile),
 	//    so we must NOT pause even if the stale data says the Workspace is eligible
-	if decision.Value && eligible && allowPause {
+	if eligible && allowPause {
 		return true, nil
 	}
 
@@ -342,10 +332,9 @@ func (r *WorkspaceReconciler) getNamespaceLabels(ctx context.Context, namespaceN
 		}
 		return nil, err
 	}
-	if ns.Labels == nil {
-		return map[string]string{}, nil
-	}
-	return maps.Clone(ns.Labels), nil
+	result := make(map[string]string, len(ns.Labels))
+	maps.Copy(result, ns.Labels)
+	return result, nil
 }
 
 // imageConfigPortForID resolves the container port number for a given WorkspaceKind port id by

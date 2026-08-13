@@ -379,14 +379,14 @@ type ActivityProbe struct {
 	MinProbeIntervalSeconds *int32 `json:"minProbeIntervalSeconds,omitempty"`
 
 	// the desired interval in seconds between successful probes.
-	// - If a probe succeeds, the controller schedules the next probe after this duration (requeuing after probeInterval).
-	// - Determines the freshness of workspace activity status used by activity rules.
-	// - ACTIVITY TIMING CAVEAT: a Workspace is only paused immediately after a fresh probe confirms it is still
-	//   inactive (a Workspace is never paused based on stale activity data, so an actively-used Workspace whose
-	//   user resumed activity between probes is not paused). Consequently, activity rules are only evaluated at probe time,
-	//   so a Workspace may keep running for up to ~probeIntervalSeconds after it first becomes eligible
-	//   (lastActivity + secondsSinceActive) before it is actually paused. Lower this value for tighter timing,
-	//   at the cost of more frequent probing.
+	//  - If a probe succeeds, the controller schedules the next probe after this duration (requeuing after probeInterval).
+	//  - Determines the freshness of workspace activity status used by activity rules.
+	//  - ACTIVITY TIMING CAVEAT: a Workspace is only paused immediately after a fresh probe confirms it is still
+	//    inactive (a Workspace is never paused based on stale activity data, so an actively-used Workspace whose
+	//    user resumed activity between probes is not paused). Consequently, activity rules are only evaluated at probe time,
+	//    so a Workspace may keep running for up to ~probeIntervalSeconds after it first becomes eligible
+	//    (lastActivity + secondsSinceActive) before it is actually paused. Lower this value for tighter timing,
+	//    at the cost of more frequent probing.
 	// +kubebuilder:validation:Minimum:=1
 	// +kubebuilder:validation:Maximum:=31536000
 	// +kubebuilder:default:=3600

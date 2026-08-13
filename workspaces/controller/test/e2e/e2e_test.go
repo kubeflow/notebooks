@@ -997,7 +997,7 @@ var _ = Describe("controller", Ordered, func() {
 			Eventually(patchAnnotation, timeout, interval).Should(Succeed())
 
 			By("verifying that the Workspace is NOT paused at eligibleAfter because a fresh probe has not run yet")
-			checkNotCulledYet := func(g Gomega) {
+			checkNotPausedYet := func(g Gomega) {
 				paused, err := utils.GetWorkspaceJSONPath(staleWorkspaceName, workspaceNamespace, "{.spec.paused}")
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(paused).To(SatisfyAny(BeEmpty(), Equal("false")), "workspace should not be paused before fresh probe runs")
@@ -1011,7 +1011,7 @@ var _ = Describe("controller", Ordered, func() {
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(time.Now().UnixMilli()).To(BeNumerically(">", eligibleAfter), "current time should be past eligibleAfter")
 			}
-			Consistently(checkNotCulledYet, 5*time.Second, interval).Should(Succeed())
+			Consistently(checkNotPausedYet, 5*time.Second, interval).Should(Succeed())
 
 			By("waiting for the fresh probe (at ~30s) to run and confirm inactivity, which triggers pausing")
 			verifyPaused := func(g Gomega) error {

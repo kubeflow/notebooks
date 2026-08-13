@@ -154,16 +154,18 @@ func selectorMatches(selector *metav1.LabelSelector, lbls map[string]string) (bo
 	}
 
 	key := metav1.FormatLabelSelector(selector)
-	if val, ok := selectorCache.Load(key); ok {
-		cached := val.(cachedSelector)
-		if cached.err != nil {
-			return false, cached.err
-		}
-		return cached.sel.Matches(labels.Set(lbls)), nil
+	cached, ok := selectorCache.Load(key)
+
+	var sel labels.Selector
+	var err error
+	if ok {
+		c := cached.(cachedSelector)
+		sel, err = c.sel, c.err
+	} else {
+		sel, err = metav1.LabelSelectorAsSelector(selector)
+		selectorCache.Store(key, cachedSelector{sel: sel, err: err})
 	}
 
-	sel, err := metav1.LabelSelectorAsSelector(selector)
-	selectorCache.Store(key, cachedSelector{sel: sel, err: err})
 	if err != nil {
 		return false, err
 	}
@@ -206,7 +208,7 @@ func CalculateEligibleAfter(lastActivity int64, secondsSinceActive int32) int64 
 func IsEligibleForPause(lastActivity, lastRunningTime, now int64, secondsSinceActive, minRunningSeconds int32) (bool, int64) {
 	eligibleAfter := CalculateEligibleAfter(lastActivity, secondsSinceActive)
 
-	// never cull based on an unknown activity time.
+	// never pause based on an unknown activity time.
 	if lastActivity <= 0 {
 		return false, eligibleAfter
 	}

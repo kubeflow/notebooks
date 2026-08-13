@@ -101,7 +101,7 @@ func (r *ProbeResult) Succeeded() bool {
 }
 
 // newFailureResult builds a failed ProbeResult with the given start time and message. The end
-// time is set to the current time, and LastActivity is left nil so failing probes never cull.
+// time is set to the current time, and LastActivity is left nil so failing probes never trigger any activity rule effects.
 func newFailureResult(startTime time.Time, message string) *ProbeResult {
 	return &ProbeResult{
 		StartTime: startTime,
@@ -221,7 +221,11 @@ func (p *DefaultHTTPProber) Get(ctx context.Context, url string) (*http.Response
 	if err != nil {
 		return nil, err
 	}
-	return p.Client.Do(req)
+	client := p.Client
+	if client == nil {
+		client = http.DefaultClient
+	}
+	return client.Do(req)
 }
 
 // isDeadlineExceeded reports whether the given error (or the context) was caused by a deadline.
@@ -236,17 +240,26 @@ func isDeadlineExceeded(ctx context.Context, err error) bool {
 // port is the container port to probe. basePath is the HTTP path prefix (if any) used by the
 // Jupyter server. A failed probe (connection error, non-2xx status, invalid body) returns a
 // ProbeResult with Result == Failure/Timeout and a nil LastActivity, so that failing probes
-// never trigger culling.
-func RunJupyterProbe(ctx context.Context, prober HTTPProber, serviceHost string, port int32, basePath string) *ProbeResult {
+// never trigger activity rule effects.
+func RunJupyterProbe(ctx context.Context, prober HTTPProber, serviceHost string, port int32, basePath string, timeout time.Duration) *ProbeResult {
 	startTime := time.Now()
+
+	probeCtx := ctx
+	var cancel context.CancelFunc
+	if timeout > 0 {
+		probeCtx, cancel = context.WithTimeout(ctx, timeout)
+		defer cancel()
+	}
 
 	// ensure basePath has no trailing slash and jupyterStatusPath starts with a slash
 	url := fmt.Sprintf("http://%s:%d%s%s", serviceHost, port, strings.TrimSuffix(basePath, "/"), jupyterStatusPath)
 
-	resp, err := prober.Get(ctx, url)
+	resp, err := prober.Get(probeCtx, url)
+	endTime := time.Now()
+
 	if err != nil {
-		if isDeadlineExceeded(ctx, err) {
-			return newTimeoutResult(startTime, time.Now(), fmt.Sprintf("%s%v", ProbeMessagePrefixJupyterFailed, err))
+		if isDeadlineExceeded(probeCtx, err) {
+			return newTimeoutResult(startTime, endTime, fmt.Sprintf("%stimeout after %dms", ProbeMessagePrefixJupyterFailed, timeout.Milliseconds()))
 		}
 		return newFailureResult(startTime, fmt.Sprintf("%s%v", ProbeMessagePrefixJupyterFailed, err))
 	}
@@ -273,7 +286,7 @@ func RunJupyterProbe(ctx context.Context, prober HTTPProber, serviceHost string,
 		return newFailureResult(startTime, fmt.Sprintf("%sinvalid last_activity: %v", ProbeMessagePrefixJupyterFailed, err))
 	}
 
-	return newSuccessResult(startTime, time.Now(), ProbeMessageJupyterSucceeded, &lastActivity)
+	return newSuccessResult(startTime, endTime, ProbeMessageJupyterSucceeded, &lastActivity)
 }
 
 // RunPodExecProbe executes the given script inside the Workspace Pod via the Kubernetes exec
@@ -283,7 +296,7 @@ func RunJupyterProbe(ctx context.Context, prober HTTPProber, serviceHost string,
 // to a randomized path. The script itself provides the interpreter via its shebang. After the
 // script exits with code 0, the JSON output file is read back and parsed. A failed probe
 // (non-zero exit code, timeout, missing/invalid JSON) returns a ProbeResult with a nil
-// LastActivity so that failing probes never trigger culling.
+// LastActivity so that failing probes never trigger activity rule effects.
 func RunPodExecProbe(ctx context.Context, executor PodExecutor, namespace, podName, script string, timeout time.Duration) *ProbeResult {
 	startTime := time.Now()
 
@@ -363,24 +376,19 @@ func parsePodExecOutput(raw []byte, endTime time.Time) (*time.Time, error) {
 		return nil, fmt.Errorf("invalid JSON file: %w", err)
 	}
 
-	// has_activity takes precedence over last_activity when both are present.
 	if out.HasActivity != nil {
+		// if HasActivity is true, it means the workspace is active, so we update the last activity time to the current time,
+		// regardless of what the LastActivity field is.
 		if *out.HasActivity {
 			return &endTime, nil
 		}
-		// explicitly inactive
-		if out.LastActivity != nil {
-			t, err := parseISO8601(*out.LastActivity)
-			if err != nil {
-				return nil, fmt.Errorf("invalid JSON file: %w", err)
-			}
-			return &t, nil
+		// if HasActivity is false and LastActivity is not provided, it means the workspace is inactive, so we leave the last activity time unchanged.
+		if out.LastActivity == nil {
+			return nil, nil
 		}
-		// inactive with no timestamp: leave activity unchanged.
-		return nil, nil
 	}
 
-	// only last_activity provided.
+	// last_activity provided.
 	if out.LastActivity != nil {
 		t, err := parseISO8601(*out.LastActivity)
 		if err != nil {
