@@ -67,9 +67,9 @@ const {
   sortableKeyArray: sortableWsTableColumnKeyArray,
 } = defineDataFields({
   name: { label: 'Name', isFilterable: true, isSortable: true, width: 20 },
-  image: { label: 'Image', isFilterable: true, isSortable: true, width: undefined },
-  podConfig: { label: 'Pod config', isFilterable: true, isSortable: true, width: undefined },
   kind: { label: 'Kind', isFilterable: true, isSortable: true, width: undefined },
+  podConfig: { label: 'Pod config', isFilterable: true, isSortable: true, width: undefined },
+  image: { label: 'Image', isFilterable: true, isSortable: true, width: undefined },
   namespace: { label: 'Namespace', isFilterable: true, isSortable: true, width: 15 },
   state: { label: 'State', isFilterable: true, isSortable: true, width: undefined },
   gpu: { label: 'GPU', isFilterable: true, isSortable: true, width: 15 },
