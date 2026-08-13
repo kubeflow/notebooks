@@ -71,6 +71,22 @@ class Workspaces {
       .should('have.text', lastActivity);
   }
 
+  hoverWorkspaceRowLastActivity(index: number) {
+    cy.findByTestId(`workspace-row-${index}`)
+      .findByTestId('workspace-lastActivity')
+      .find('span')
+      .first()
+      .trigger('mouseenter');
+  }
+
+  assertTooltipContainsText(text: string) {
+    cy.findByTestId('workspace-lastActivity-tooltip').should('contain.text', text);
+  }
+
+  assertTooltipNotExists() {
+    cy.get('.pf-v6-c-tooltip').should('not.exist');
+  }
+
   applyFilter(args: { key: string; value: string; name: string }) {
     cy.findByTestId('filter-workspaces-dropdown').click();
     cy.findByTestId(`filter-workspaces-dropdown-${args.key}`).click();
@@ -405,6 +421,10 @@ class WorkspaceDetailsDrawer {
 
   assertActivityTabContentContainsText(text: string) {
     this.findActivityTabContent().should('contain.text', text);
+  }
+
+  assertActivityTabContentNotContainsText(text: string) {
+    this.findActivityTabContent().should('not.contain.text', text);
   }
 
   assertOverviewTabAriaSelected(selected: boolean) {

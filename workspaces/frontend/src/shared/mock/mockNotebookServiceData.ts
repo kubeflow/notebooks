@@ -250,6 +250,11 @@ export const mockWorkspace3: WorkspacesWorkspaceListItem = buildMockWorkspace({
   activity: {
     lastActivity: new Date(2025, 2, 15).getTime(),
     lastUpdate: new Date(2025, 2, 1).getTime(),
+    rules: {
+      pauseWorkspace: {
+        eligibleAfter: new Date(Date.now() + 500 * 60 * 60 * 24).getTime(),
+      },
+    },
   },
 });
 

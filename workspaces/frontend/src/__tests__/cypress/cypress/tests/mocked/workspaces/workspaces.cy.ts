@@ -993,8 +993,94 @@ describe('Workspaces', () => {
         workspaceDetailsDrawer.assertActivityTabContentVisible();
         workspaceDetailsDrawer.assertActivityTabContentContainsText('Last activity');
         workspaceDetailsDrawer.assertActivityTabContentContainsText('Last update');
-        workspaceDetailsDrawer.assertActivityTabContentContainsText('Pause time');
+        workspaceDetailsDrawer.assertActivityTabContentContainsText('Pauses after');
+        workspaceDetailsDrawer.assertActivityTabContentContainsText('Paused since');
         workspaceDetailsDrawer.assertActivityTabContentContainsText('Pending restart');
+      });
+
+      it('should hide Pauses after row when pauseWorkspace rule is absent', () => {
+        const mockNamespace = buildMockNamespace({ name: DEFAULT_NAMESPACE });
+        const mockWorkspaces = [
+          buildMockWorkspace({
+            name: TEST_WORKSPACE_NAME,
+            state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+            activity: {
+              lastActivity: new Date(2025, 5, 1).getTime(),
+              lastUpdate: new Date(2025, 4, 1).getTime(),
+            },
+          }),
+        ];
+
+        cy.interceptApi(
+          'GET /api/:apiVersion/namespaces',
+          { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+          mockModArchResponse([mockNamespace]),
+        ).as('getNamespaces');
+
+        cy.interceptApi(
+          'GET /api/:apiVersion/workspaces/:namespace',
+          { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
+          mockModArchResponse(mockWorkspaces),
+        ).as('getWorkspaces');
+
+        cy.interceptApi(
+          'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/details',
+          {
+            path: {
+              apiVersion: NOTEBOOKS_API_VERSION,
+              namespace: mockNamespace.name,
+              workspaceName: TEST_WORKSPACE_NAME,
+            },
+          },
+          mockModArchResponse(buildMockWorkspaceDetails()),
+        ).as('getWorkspaceDetails');
+
+        navigateToNamespace(mockNamespace.name);
+
+        workspaces
+          .findAction({ action: 'viewDetails', workspaceName: TEST_WORKSPACE_NAME })
+          .click();
+        workspaceDetailsDrawer.findActivityTab().click();
+
+        workspaceDetailsDrawer.assertActivityTabContentContainsText('Last activity');
+        workspaceDetailsDrawer.assertActivityTabContentContainsText('Paused since');
+        workspaceDetailsDrawer.assertActivityTabContentNotContainsText('Pauses after');
+      });
+
+      it('should show pause tooltip on last activity hover when pause rule exists', () => {
+        workspaces.hoverWorkspaceRowLastActivity(0);
+        workspaces.assertTooltipContainsText('Workspace will be paused in');
+      });
+
+      it('should not show pause tooltip when pause rule is absent', () => {
+        const mockNamespace = buildMockNamespace({ name: DEFAULT_NAMESPACE });
+        const mockWorkspaces = [
+          buildMockWorkspace({
+            name: TEST_WORKSPACE_NAME,
+            state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+            activity: {
+              lastActivity: new Date(2025, 5, 1).getTime(),
+              lastUpdate: new Date(2025, 4, 1).getTime(),
+            },
+          }),
+        ];
+
+        cy.interceptApi(
+          'GET /api/:apiVersion/namespaces',
+          { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+          mockModArchResponse([mockNamespace]),
+        ).as('getNamespaces');
+
+        cy.interceptApi(
+          'GET /api/:apiVersion/workspaces/:namespace',
+          { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
+          mockModArchResponse(mockWorkspaces),
+        ).as('getWorkspaces');
+
+        navigateToNamespace(mockNamespace.name);
+
+        workspaces.hoverWorkspaceRowLastActivity(0);
+        workspaces.assertTooltipNotExists();
       });
 
       it('should navigate back to Overview tab from Activity tab', () => {
