@@ -2,14 +2,16 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
-import { FetchState } from 'mod-arch-core';
 import { WorkspaceDetailsLogs } from '~/app/pages/Workspaces/Details/WorkspaceDetailsLogs';
-import { useWorkspaceLogs } from '~/app/hooks/useWorkspaceLogs';
+import { useWorkspaceLogsController, WorkspaceLogsController } from '~/app/hooks/useWorkspaceLogs';
 import { DetailsWorkspaceDetails } from '~/generated/data-contracts';
 import { buildMockWorkspace, buildMockWorkspaceDetails } from '~/shared/mock/mockBuilder';
 
+// Keep the real constants (used by the toolbar); only stub the controller hook, whose
+// internal fetch cannot be intercepted by mocking the exported `useWorkspaceLogs`.
 jest.mock('~/app/hooks/useWorkspaceLogs', () => ({
-  useWorkspaceLogs: jest.fn(),
+  ...jest.requireActual('~/app/hooks/useWorkspaceLogs'),
+  useWorkspaceLogsController: jest.fn(),
 }));
 
 // The real LogViewer measures text with a canvas, which jsdom does not implement.
@@ -23,7 +25,9 @@ jest.mock('@patternfly/react-log-viewer', () => ({
   LogViewerSearch: () => <input aria-label="Search logs" />,
 }));
 
-const mockUseWorkspaceLogs = useWorkspaceLogs as jest.MockedFunction<typeof useWorkspaceLogs>;
+const mockUseWorkspaceLogsController = useWorkspaceLogsController as jest.MockedFunction<
+  typeof useWorkspaceLogsController
+>;
 
 const mockWorkspace = buildMockWorkspace({
   name: 'test-workspace',
@@ -31,8 +35,36 @@ const mockWorkspace = buildMockWorkspace({
   paused: false,
 });
 
-const mockLogsState = (state: FetchState<string | null>): void => {
-  mockUseWorkspaceLogs.mockReturnValue(state);
+const buildController = (
+  overrides: Partial<WorkspaceLogsController> = {},
+): WorkspaceLogsController => ({
+  hasPod: true,
+  container: 'main',
+  containerOptions: [
+    { key: 'container/main', name: 'main', isInit: false },
+    { key: 'init/istio-proxy', name: 'istio-proxy', isInit: true },
+  ],
+  activeContainerKey: 'container/main',
+  selectContainer: jest.fn(),
+  tailLines: 1000,
+  setTailLines: jest.fn(),
+  sinceLabel: 'All time',
+  setSinceLabel: jest.fn(),
+  previous: false,
+  setPrevious: jest.fn(),
+  isTextWrapped: false,
+  setIsTextWrapped: jest.fn(),
+  scrollToRow: undefined,
+  setScrollToRow: jest.fn(),
+  logs: 'log line 1\nlog line 2',
+  logsLoaded: true,
+  logsError: undefined,
+  refreshLogs: jest.fn(),
+  ...overrides,
+});
+
+const mockController = (overrides: Partial<WorkspaceLogsController> = {}): void => {
+  mockUseWorkspaceLogsController.mockReturnValue(buildController(overrides));
 };
 
 const renderLogsTab = (
@@ -53,7 +85,7 @@ const renderLogsTab = (
 describe('WorkspaceDetailsLogs', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockLogsState(['log line 1\nlog line 2', true, undefined, jest.fn()]);
+    mockController();
   });
 
   it('shows a spinner while the workspace details are loading', () => {
@@ -69,6 +101,7 @@ describe('WorkspaceDetailsLogs', () => {
   });
 
   it('shows an empty state when the workspace has no pod', () => {
+    mockController({ hasPod: false });
     renderLogsTab(buildMockWorkspaceDetails({ pod: undefined }));
 
     expect(screen.getByTestId('logs-empty-state')).toBeInTheDocument();
@@ -81,20 +114,21 @@ describe('WorkspaceDetailsLogs', () => {
       namespace: 'test-ns',
       paused: true,
     });
+    mockController({ hasPod: false });
     renderLogsTab(buildMockWorkspaceDetails({ pod: undefined }), true, undefined, pausedWorkspace);
 
     expect(screen.getByText(/paused/i)).toBeInTheDocument();
   });
 
   it('shows a spinner while the logs are loading', () => {
-    mockLogsState([null, false, undefined, jest.fn()]);
+    mockController({ logs: null, logsLoaded: false });
     renderLogsTab();
 
     expect(screen.getByTestId('logs-loading-spinner')).toBeInTheDocument();
   });
 
   it('shows an error state when the logs request fails', () => {
-    mockLogsState([null, false, new Error('pod is not running'), jest.fn()]);
+    mockController({ logs: null, logsLoaded: false, logsError: new Error('pod is not running') });
     renderLogsTab();
 
     expect(screen.getByTestId('logs-error-state')).toBeInTheDocument();
@@ -102,7 +136,7 @@ describe('WorkspaceDetailsLogs', () => {
   });
 
   it('shows an empty state when the container produced no output', () => {
-    mockLogsState(['', true, undefined, jest.fn()]);
+    mockController({ logs: '', logsLoaded: true });
     renderLogsTab();
 
     expect(screen.getByTestId('logs-no-output-state')).toBeInTheDocument();
@@ -115,35 +149,23 @@ describe('WorkspaceDetailsLogs', () => {
     expect(screen.getByTestId('logs-download-button')).toBeEnabled();
   });
 
-  it('requests the logs for the primary container by default', () => {
-    renderLogsTab();
-
-    expect(mockUseWorkspaceLogs).toHaveBeenCalledWith(
-      'test-ns',
-      'test-workspace',
-      expect.objectContaining({ container: 'main', tailLines: 1000, previous: false }),
-    );
-  });
-
-  it('re-requests the logs of the previous container instance when toggled', async () => {
+  it('toggles the previous container option', async () => {
+    const setPrevious = jest.fn();
+    mockController({ setPrevious });
     renderLogsTab();
 
     await userEvent.click(screen.getByTestId('logs-previous-checkbox'));
 
-    expect(mockUseWorkspaceLogs).toHaveBeenLastCalledWith(
-      'test-ns',
-      'test-workspace',
-      expect.objectContaining({ previous: true }),
-    );
+    expect(setPrevious).toHaveBeenCalledWith(true);
   });
 
   it('refreshes the logs on demand', async () => {
-    const refresh = jest.fn();
-    mockLogsState(['log line 1', true, undefined, refresh]);
+    const refreshLogs = jest.fn();
+    mockController({ refreshLogs });
     renderLogsTab();
 
     await userEvent.click(screen.getByTestId('logs-refresh-button'));
 
-    expect(refresh).toHaveBeenCalled();
+    expect(refreshLogs).toHaveBeenCalled();
   });
 });
