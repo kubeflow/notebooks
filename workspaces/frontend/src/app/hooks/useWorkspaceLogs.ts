@@ -151,11 +151,12 @@ export const useWorkspaceLogsController = (
     setScrollToRow(undefined);
   }, [namespace, name]);
 
-  // Keep the scroll position clean: a row index from a larger snapshot is meaningless
-  // after the container, tail count, or time range changes.
+  // Keep the scroll position clean: a row index from a previous snapshot is meaningless
+  // after anything that swaps the fetched logs (container, tail count, time range, or
+  // the previous-instance toggle) changes.
   useEffect(() => {
     setScrollToRow(undefined);
-  }, [activeContainerKey, tailLines, sinceLabel]);
+  }, [activeContainerKey, tailLines, sinceLabel, previous]);
 
   const sinceWindowMs = useMemo(
     () => SINCE_OPTIONS.find((option) => option.label === sinceLabel)?.windowMs,

@@ -11,6 +11,18 @@ import { DetailsWorkspaceDetails, WorkspacesWorkspaceListItem } from '~/generate
 import { extractErrorMessage } from '~/shared/api/apiUtils';
 import { WorkspaceLogsToolbar } from '~/app/pages/Workspaces/Details/WorkspaceLogsToolbar';
 
+const LogsErrorState: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <EmptyState
+    headingLevel="h4"
+    titleText="Unable to load logs"
+    icon={ExclamationCircleIcon}
+    status="danger"
+    data-testid="logs-error-state"
+  >
+    <EmptyStateBody>{children}</EmptyStateBody>
+  </EmptyState>
+);
+
 interface WorkspaceDetailsLogsProps {
   workspace: WorkspacesWorkspaceListItem;
   details: DetailsWorkspaceDetails | null;
@@ -42,8 +54,12 @@ export const WorkspaceDetailsLogs: React.FC<WorkspaceDetailsLogsProps> = ({
     const link = document.createElement('a');
     link.href = url;
     link.download = `${workspace.name}-${container ?? 'logs'}.log`;
+    // The anchor must be in the DOM for the click to trigger a download in Firefox, and
+    // the object URL must outlive the click, so revoke it on the next tick.
+    document.body.appendChild(link);
     link.click();
-    URL.revokeObjectURL(url);
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 0);
   }, [logs, workspace.name, container]);
 
   const onScrollToBottom = useCallback(() => {
@@ -51,17 +67,7 @@ export const WorkspaceDetailsLogs: React.FC<WorkspaceDetailsLogsProps> = ({
   }, [logs, setScrollToRow]);
 
   if (detailsError) {
-    return (
-      <EmptyState
-        headingLevel="h4"
-        titleText="Unable to load logs"
-        icon={ExclamationCircleIcon}
-        status="danger"
-        data-testid="logs-error-state"
-      >
-        <EmptyStateBody>Failed to load details</EmptyStateBody>
-      </EmptyState>
-    );
+    return <LogsErrorState>Failed to load details</LogsErrorState>;
   }
 
   if (!detailsLoaded) {
@@ -89,17 +95,9 @@ export const WorkspaceDetailsLogs: React.FC<WorkspaceDetailsLogsProps> = ({
   if (logsError) {
     const message = extractErrorMessage(logsError);
     logViewerBody = (
-      <EmptyState
-        headingLevel="h4"
-        titleText="Unable to load logs"
-        icon={ExclamationCircleIcon}
-        status="danger"
-        data-testid="logs-error-state"
-      >
-        <EmptyStateBody>
-          {typeof message === 'string' ? message : message.error.message}
-        </EmptyStateBody>
-      </EmptyState>
+      <LogsErrorState>
+        {typeof message === 'string' ? message : message.error.message}
+      </LogsErrorState>
     );
   } else if (!logsLoaded) {
     logViewerBody = <Spinner size="md" data-testid="logs-loading-spinner" />;
