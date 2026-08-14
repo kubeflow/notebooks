@@ -68,10 +68,7 @@ const {
   sortableKeyArray: sortableWsTableColumnKeyArray,
 } = defineDataFields({
   name: { label: 'Name', isFilterable: true, isSortable: true },
-  // Kind renders only a logo, and its header is rendered for screen readers alone (see
-  // getSpecialColumnProps), so there is no header control to sort from. Filtering by kind
-  // remains available from the toolbar.
-  kind: { label: 'Kind', isFilterable: true, isSortable: false },
+  kind: { label: 'Kind', isFilterable: true, isSortable: true },
   podConfig: { label: 'Pod config', isFilterable: true, isSortable: true },
   image: { label: 'Image', isFilterable: true, isSortable: true },
   namespace: { label: 'Namespace', isFilterable: true, isSortable: true },
@@ -245,6 +242,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       workspace: WorkspacesWorkspaceListItem,
     ): Record<WorkspaceTableSortableColumnKeys, string | number> => ({
       name: workspace.name,
+      kind: workspace.workspaceKind.name,
       namespace: workspace.namespace,
       image: workspace.podTemplate.options.imageConfig.current.displayName,
       podConfig: workspace.podTemplate.options.podConfig.current.displayName,
@@ -306,11 +304,6 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
     // Column-specific special properties
     const getSpecialColumnProps = (columnKey: WorkspaceTableColumnKeys) => {
       switch (columnKey) {
-        case 'kind':
-          // A visible "Kind" label plus its sort control would be four times wider than the
-          // logo the column actually holds, so the header is exposed to screen readers only.
-          // The logo carries a tooltip naming the kind.
-          return { screenReaderText: 'Kind', hasContent: false };
         case 'connect':
           return { screenReaderText: 'Connect action', hasContent: false };
         case 'actions':
