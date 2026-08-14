@@ -6,10 +6,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import {
-  TimestampTooltipVariant,
-  Timestamp,
-} from '@patternfly/react-core/dist/esm/components/Timestamp';
+import { Timestamp } from '@patternfly/react-core/dist/esm/components/Timestamp';
 import { Label } from '@patternfly/react-core/dist/esm/components/Label';
 import {
   PaginationVariant,
@@ -49,7 +46,11 @@ import {
   WORKSPACE_STATE_COLORS,
 } from '~/shared/utilities/WorkspaceUtils';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
-import { WorkspacesWorkspaceListItem, V1Beta1WorkspaceState } from '~/generated/data-contracts';
+import {
+  WorkspacesActivity,
+  WorkspacesWorkspaceListItem,
+  V1Beta1WorkspaceState,
+} from '~/generated/data-contracts';
 import { RedirectIconWithPopover } from '~/app/components/RedirectIconWithPopover';
 import { POLL_INTERVAL } from '~/shared/utilities/const';
 import { RefreshCounter } from '~/app/components/RefreshCounter';
@@ -114,6 +115,32 @@ type WorkspaceFilterKey = keyof typeof filterConfig;
 
 // Defines which filters should appear in the dropdown
 const visibleFilterKeys: readonly WorkspaceFilterKey[] = ['name', 'kind', 'image', 'state'];
+
+const LastActivityCell: React.FC<{ activity: WorkspacesActivity }> = ({ activity }) => {
+  if (activity.lastActivity === 0) {
+    return <span className="pf-v6-c-timestamp pf-m-help-text">unknown</span>;
+  }
+
+  const timestamp = (
+    <Timestamp date={new Date(activity.lastActivity)}>
+      {formatDistanceToNow(new Date(activity.lastActivity), { addSuffix: true })}
+    </Timestamp>
+  );
+
+  const pauseRule = activity.rules?.pauseWorkspace;
+  if (!pauseRule) {
+    return timestamp;
+  }
+
+  return (
+    <Tooltip
+      data-testid="workspace-lastActivity-tooltip"
+      content={`Workspace will be paused in ${formatDistanceToNow(new Date(pauseRule.eligibleAfter))}`}
+    >
+      <span>{timestamp}</span>
+    </Tooltip>
+  );
+};
 
 export interface WorkspaceTableRef {
   clearAllFilters: () => void;
@@ -497,22 +524,9 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                               )}
                               {columnKey === 'gpu' && formatResourceFromWorkspace(workspace, 'gpu')}
                               {columnKey === 'idleGpu' && formatWorkspaceIdleState(workspace)}
-                              {columnKey === 'lastActivity' &&
-                                (workspace.activity.lastActivity === 0 ? (
-                                  <span className="pf-v6-c-timestamp pf-m-help-text">unknown</span>
-                                ) : (
-                                  <Timestamp
-                                    date={new Date(workspace.activity.lastActivity)}
-                                    tooltip={{ variant: TimestampTooltipVariant.default }}
-                                  >
-                                    {formatDistanceToNow(
-                                      new Date(workspace.activity.lastActivity),
-                                      {
-                                        addSuffix: true,
-                                      },
-                                    )}
-                                  </Timestamp>
-                                ))}
+                              {columnKey === 'lastActivity' && (
+                                <LastActivityCell activity={workspace.activity} />
+                              )}
                             </Td>
                           );
                         })}

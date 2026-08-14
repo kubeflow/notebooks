@@ -396,6 +396,11 @@ export const buildMockWorkspace = (
   activity: {
     lastActivity: new Date(2025, 5, 1).getTime(),
     lastUpdate: new Date(2025, 4, 1).getTime(),
+    rules: {
+      pauseWorkspace: {
+        eligibleAfter: new Date(2025, 5, 2).getTime(),
+      },
+    },
   },
   services: [
     {
