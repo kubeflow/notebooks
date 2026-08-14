@@ -85,7 +85,7 @@ var _ = Describe("Workspace PodTemplate Resources Handler", func() {
 
 		It("should degrade gracefully with 200 OK when usage is unavailable", func() {
 			By("executing GetWorkspacePodTemplateResourcesHandler")
-			rs := doResourcesRequest(namespaceName, workspaceName, adminUser)
+			rs := doPodTemplateResourcesRequest(namespaceName, workspaceName, adminUser)
 			defer rs.Body.Close()
 
 			By("verifying status is 200 OK")
@@ -117,14 +117,14 @@ var _ = Describe("Workspace PodTemplate Resources Handler", func() {
 		It("should return 404 when workspace does not exist", func() {
 			// The metrics repository resolves pods by label, so without an existence check a
 			// missing workspace would degrade to WORKSPACE_NOT_RUNNING instead of a 404.
-			rs := doResourcesRequest(testNamespace, testWorkspace, adminUser)
+			rs := doPodTemplateResourcesRequest(testNamespace, testWorkspace, adminUser)
 			defer rs.Body.Close()
 
 			Expect(rs.StatusCode).To(Equal(http.StatusNotFound))
 		})
 
 		It("should return 422 for invalid parameters", func() {
-			rs := doResourcesRequest("INVALID!!!", testWorkspace, adminUser)
+			rs := doPodTemplateResourcesRequest("INVALID!!!", testWorkspace, adminUser)
 			defer rs.Body.Close()
 
 			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity))
