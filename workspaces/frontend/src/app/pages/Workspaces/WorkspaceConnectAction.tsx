@@ -5,6 +5,7 @@ import {
 } from '@patternfly/react-core/dist/esm/components/Dropdown';
 import {
   MenuToggle,
+  MenuToggleAction,
   MenuToggleElement,
 } from '@patternfly/react-core/dist/esm/components/MenuToggle';
 import React, { useState } from 'react';
@@ -19,8 +20,31 @@ export const WorkspaceConnectAction: React.FunctionComponent<WorkspaceConnectAct
 }) => {
   const [open, setIsOpen] = useState(false);
 
+  const httpServices = workspace.services.filter((service) => service.httpService);
+  const hasMultipleEndpoints = httpServices.length > 1;
+  const isRunning = workspace.state === V1Beta1WorkspaceState.WorkspaceStateRunning;
+  const isDisabled = !isRunning || httpServices.length === 0;
+
+  const openEndpoint = (value: string) => {
+    window.open(value, '_blank');
+  };
+
+  const onPrimaryConnect = () => {
+    setIsOpen(false);
+    const primary = httpServices[0]?.httpService;
+    if (primary) {
+      openEndpoint(primary.httpPath);
+    }
+  };
+
   const onToggleClick = () => {
-    setIsOpen(!open);
+    // Only open the dropdown when there is a choice to make; with a single
+    // endpoint the caret behaves like the primary action and connects directly.
+    if (hasMultipleEndpoints) {
+      setIsOpen(!open);
+    } else {
+      onPrimaryConnect();
+    }
   };
 
   const onSelect = (
@@ -31,10 +55,6 @@ export const WorkspaceConnectAction: React.FunctionComponent<WorkspaceConnectAct
     if (typeof value === 'string') {
       openEndpoint(value);
     }
-  };
-
-  const openEndpoint = (value: string) => {
-    window.open(value, '_blank');
   };
 
   return (
@@ -48,17 +68,26 @@ export const WorkspaceConnectAction: React.FunctionComponent<WorkspaceConnectAct
           variant="secondary"
           onClick={onToggleClick}
           isExpanded={open}
-          isDisabled={workspace.state !== V1Beta1WorkspaceState.WorkspaceStateRunning}
+          isDisabled={isDisabled}
           aria-label="Select connection endpoint"
-        >
-          Connect
-        </MenuToggle>
+          splitButtonItems={[
+            <MenuToggleAction
+              id={`${workspace.name}-connect`}
+              key={`${workspace.name}-connect`}
+              aria-label="Connect"
+              isDisabled={isDisabled}
+              onClick={onPrimaryConnect}
+            >
+              Connect
+            </MenuToggleAction>,
+          ]}
+          ouiaId="BasicDropdown"
+        />
       )}
-      ouiaId="BasicDropdown"
       shouldFocusToggleOnSelect
     >
       <DropdownList>
-        {workspace.services.map((service) => {
+        {httpServices.map((service) => {
           if (!service.httpService) {
             return null;
           }
