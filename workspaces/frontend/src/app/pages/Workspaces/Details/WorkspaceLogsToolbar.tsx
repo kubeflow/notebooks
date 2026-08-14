@@ -129,13 +129,15 @@ export const WorkspaceLogsToolbar: React.FC<WorkspaceLogsToolbarProps> = ({
         style={{ minWidth: 0 }}
       >
         <FlexItem>
-          <Checkbox
-            id="logs-previous-checkbox"
-            label="Previous container"
-            isChecked={previous}
-            onChange={(_ev, checked) => setPrevious(checked)}
-            data-testid="logs-previous-checkbox"
-          />
+          <Tooltip content="Show logs from the previous, terminated container instance instead of the current one. Useful for debugging a crash loop.">
+            <Checkbox
+              id="logs-previous-checkbox"
+              label="Previous container"
+              isChecked={previous}
+              onChange={(_ev, checked) => setPrevious(checked)}
+              data-testid="logs-previous-checkbox"
+            />
+          </Tooltip>
         </FlexItem>
         <FlexItem>
           <Checkbox
