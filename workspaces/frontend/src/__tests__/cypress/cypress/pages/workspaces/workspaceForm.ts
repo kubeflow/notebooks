@@ -282,6 +282,24 @@ class WorkspaceForm {
     return this.findExtraFilter(filterKey).find('input[type="checkbox"]').should('not.be.checked');
   }
 
+  assertLabelFilterDisabled(
+    labelKey: string,
+    labelValue: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy
+      .findByTestId(`label-filter-${labelKey}-${labelValue}`)
+      .should('have.attr', 'aria-disabled', 'true');
+  }
+
+  assertLabelFilterEnabled(
+    labelKey: string,
+    labelValue: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy
+      .findByTestId(`label-filter-${labelKey}-${labelValue}`)
+      .should('have.attr', 'aria-disabled', 'false');
+  }
+
   assertLabelCategoryExists(labelKey: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findLabelCategory(labelKey).should('exist');
   }

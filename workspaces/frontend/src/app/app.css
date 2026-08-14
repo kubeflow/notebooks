@@ -55,6 +55,11 @@
   min-width: 200px;
 }
 
+.filter-label--disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 .workspace-form__info-icon {
   color: var(--pf-t--global--icon--color--status--info--default);
 }
