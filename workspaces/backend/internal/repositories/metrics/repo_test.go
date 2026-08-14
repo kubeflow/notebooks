@@ -204,6 +204,34 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 		Expect(got).To(BeNil())
 	})
 
+	DescribeTable("maps a metrics API outage during listing to ErrMetricsAPINotAvailable",
+		func(listErr error) {
+			pod := workspacePod("pod-6", "container-6", nil)
+
+			client := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(testWorkspaceCR()).
+				WithLists(&corev1.PodList{Items: []corev1.Pod{*pod}}).
+				WithInterceptorFuncs(interceptor.Funcs{
+					List: func(ctx context.Context, cli client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
+						if _, isMetricsList := list.(*metricsv1beta1.PodMetricsList); isMetricsList {
+							return listErr
+						}
+						return cli.List(ctx, list, opts...)
+					},
+				}).
+				Build()
+
+			repo := newTestMetricsRepository(client, true)
+			got, err := repo.GetWorkspaceResourceUsage(ctx, "default", "test-workspace")
+
+			Expect(err).To(MatchError(ErrMetricsAPINotAvailable))
+			Expect(got).To(BeNil())
+		},
+		Entry("when the API is not found", apierrors.NewNotFound(schema.GroupResource{Group: metricsv1beta1.GroupName, Resource: "podmetrics"}, "")),
+		Entry("when the API is unavailable", apierrors.NewServiceUnavailable("metrics server is down")),
+	)
+
 	It("returns error when availability could not be determined", func() {
 		client := fake.NewClientBuilder().
 			WithScheme(scheme).

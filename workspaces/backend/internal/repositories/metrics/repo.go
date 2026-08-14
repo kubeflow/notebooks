@@ -103,6 +103,13 @@ func (r *MetricsRepository) GetWorkspaceResourceUsage(ctx context.Context, ns, w
 	pod := &podList.Items[0]
 	podMetricsList := &metricsv1beta1.PodMetricsList{}
 	if err := r.client.List(ctx, podMetricsList, client.InNamespace(ns), selector); err != nil {
+		// API discovery is memoized (see apiAvailabilityTTL), so if the Metrics Server is
+		// uninstalled or restarts after startup the availability probe can still report true
+		// while the list itself fails. Treat that as the metrics API being unavailable rather
+		// than an internal error, so the endpoint degrades to 503 consistently.
+		if apierrors.IsNotFound(err) || apierrors.IsServiceUnavailable(err) {
+			return nil, ErrMetricsAPINotAvailable
+		}
 		return nil, err
 	}
 
