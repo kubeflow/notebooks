@@ -185,6 +185,18 @@ func (a *App) notFoundResponse(w http.ResponseWriter, r *http.Request) {
 	a.errorResponse(w, r, httpError)
 }
 
+// HTTP: 503
+func (a *App) serviceUnavailableResponse(w http.ResponseWriter, r *http.Request, msg string) {
+	httpError := &HTTPError{
+		StatusCode: http.StatusServiceUnavailable,
+		ErrorResponse: ErrorResponse{
+			Code:    strconv.Itoa(http.StatusServiceUnavailable),
+			Message: msg,
+		},
+	}
+	a.errorResponse(w, r, httpError)
+}
+
 // HTTP: 405
 func (a *App) methodNotAllowedResponse(w http.ResponseWriter, r *http.Request) {
 	httpError := &HTTPError{

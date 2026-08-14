@@ -28,6 +28,7 @@ import (
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/metrics"
 	repoCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/common"
+	metricsrepo "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/metrics"
 )
 
 // WorkspaceResourceUsageEnvelope is the response envelope for workspace resource usage.
@@ -36,18 +37,19 @@ type WorkspaceResourceUsageEnvelope Envelope[*models.WorkspaceResourceUsage]
 // GetWorkspacePodTemplateResourcesHandler returns point-in-time resource usage for a workspace.
 //
 //	@Summary		Get workspace pod template resources
-//	@Description	Returns point-in-time CPU and memory usage for each container of the workspace pod, alongside the requests and limits configured in the pod spec. Usage is read from the Kubernetes Metrics Server. When usage cannot be retrieved the response is still 200 OK, with a `data.error` code explaining why (`METRICS_API_NOT_AVAILABLE` when the Metrics Server is not installed, `WORKSPACE_NOT_RUNNING` when the workspace has no pods).
+//	@Description	Returns point-in-time CPU and memory usage for each container of the workspace pod, alongside the requests and limits configured in the pod spec. Usage is read from the Kubernetes Metrics Server. A paused or not-yet-running workspace still returns 200 OK with `data.error = WORKSPACE_NOT_RUNNING` and no container data. When the Metrics Server itself is unavailable the response is 503 Service Unavailable.
 //	@Tags			workspaces
 //	@ID				getWorkspacePodTemplateResources
 //	@Produce		json
 //	@Param			namespace	path		string							true	"Namespace of the workspace"	extensions(x-example=kubeflow-user-example-com)
 //	@Param			name		path		string							true	"Name of the workspace"			extensions(x-example=my-workspace)
-//	@Success		200			{object}	WorkspaceResourceUsageEnvelope	"Successful operation. Returns per-container usage and configured resources, or an error code when usage is unavailable."
+//	@Success		200			{object}	WorkspaceResourceUsageEnvelope	"Successful operation. Returns per-container usage and configured resources, or `data.error = WORKSPACE_NOT_RUNNING` when the workspace has no pods."
 //	@Failure		401			{object}	ErrorEnvelope					"Unauthorized."
 //	@Failure		403			{object}	ErrorEnvelope					"Forbidden."
 //	@Failure		404			{object}	ErrorEnvelope					"Workspace not found."
 //	@Failure		422			{object}	ErrorEnvelope					"Unprocessable Entity. Validation error."
 //	@Failure		500			{object}	ErrorEnvelope					"Internal server error."
+//	@Failure		503			{object}	ErrorEnvelope					"Metrics server not available."
 //	@Router			/workspaces/{namespace}/{name}/podtemplate/resources [get]
 func (a *App) GetWorkspacePodTemplateResourcesHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	namespace := ps.ByName(constants.NamespacePathParam)
@@ -73,11 +75,14 @@ func (a *App) GetWorkspacePodTemplateResourcesHandler(w http.ResponseWriter, r *
 
 	usage, err := a.repositories.Metrics.GetWorkspaceResourceUsage(r.Context(), namespace, workspaceName)
 	if err != nil {
-		if errors.Is(err, repoCommon.ErrWorkspaceNotFound) {
+		switch {
+		case errors.Is(err, repoCommon.ErrWorkspaceNotFound):
 			a.notFoundResponse(w, r)
-			return
+		case errors.Is(err, metricsrepo.ErrMetricsAPINotAvailable):
+			a.serviceUnavailableResponse(w, r, "metrics server not available")
+		default:
+			a.serverErrorResponse(w, r, err)
 		}
-		a.serverErrorResponse(w, r, err)
 		return
 	}
 

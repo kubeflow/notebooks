@@ -18,6 +18,7 @@ package metrics
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -40,6 +41,12 @@ const (
 	// TTL for API availability checks.
 	apiAvailabilityTTL = 60 * time.Second
 )
+
+// ErrMetricsAPINotAvailable is returned when workspace resource usage cannot be read because the
+// Kubernetes Metrics Server (metrics.k8s.io) is not available. The API layer maps this to a
+// 503 Service Unavailable. Only this repository raises it, so it stays local per the convention
+// documented in the repositories/common package.
+var ErrMetricsAPINotAvailable = errors.New("metrics API not available")
 
 // MetricsRepository exposes point-in-time workspace resource utilization, read from the
 // Kubernetes Metrics Server, to the API layer.
@@ -77,7 +84,7 @@ func (r *MetricsRepository) GetWorkspaceResourceUsage(ctx context.Context, ns, w
 	}
 
 	if !available {
-		return models.NewErrorResourceUsage(models.ErrorCodeMetricsAPINotAvailable), nil
+		return nil, ErrMetricsAPINotAvailable
 	}
 
 	selector := client.MatchingLabels{modelsCommon.LabelWorkspaceName: workspace}

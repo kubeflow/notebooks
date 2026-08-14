@@ -2046,7 +2046,7 @@ const docTemplate = `{
         },
         "/workspaces/{namespace}/{name}/podtemplate/resources": {
             "get": {
-                "description": "Returns point-in-time CPU and memory usage for each container of the workspace pod, alongside the requests and limits configured in the pod spec. Usage is read from the Kubernetes Metrics Server. When usage cannot be retrieved the response is still 200 OK, with a ` + "`" + `data.error` + "`" + ` code explaining why (` + "`" + `METRICS_API_NOT_AVAILABLE` + "`" + ` when the Metrics Server is not installed, ` + "`" + `WORKSPACE_NOT_RUNNING` + "`" + ` when the workspace has no pods).",
+                "description": "Returns point-in-time CPU and memory usage for each container of the workspace pod, alongside the requests and limits configured in the pod spec. Usage is read from the Kubernetes Metrics Server. A paused or not-yet-running workspace still returns 200 OK with ` + "`" + `data.error = WORKSPACE_NOT_RUNNING` + "`" + ` and no container data. When the Metrics Server itself is unavailable the response is 503 Service Unavailable.",
                 "produces": [
                     "application/json"
                 ],
@@ -2075,7 +2075,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Successful operation. Returns per-container usage and configured resources, or an error code when usage is unavailable.",
+                        "description": "Successful operation. Returns per-container usage and configured resources, or ` + "`" + `data.error = WORKSPACE_NOT_RUNNING` + "`" + ` when the workspace has no pods.",
                         "schema": {
                             "$ref": "#/definitions/api.WorkspaceResourceUsageEnvelope"
                         }
@@ -2106,6 +2106,12 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal server error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "503": {
+                        "description": "Metrics server not available.",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }
@@ -2802,11 +2808,9 @@ const docTemplate = `{
         "metrics.ErrorCode": {
             "type": "string",
             "enum": [
-                "METRICS_API_NOT_AVAILABLE",
                 "WORKSPACE_NOT_RUNNING"
             ],
             "x-enum-varnames": [
-                "ErrorCodeMetricsAPINotAvailable",
                 "ErrorCodeWorkspaceNotRunning"
             ]
         },

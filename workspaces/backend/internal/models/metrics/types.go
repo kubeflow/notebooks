@@ -23,8 +23,7 @@ import (
 type ErrorCode string
 
 const (
-	ErrorCodeMetricsAPINotAvailable ErrorCode = "METRICS_API_NOT_AVAILABLE"
-	ErrorCodeWorkspaceNotRunning    ErrorCode = "WORKSPACE_NOT_RUNNING"
+	ErrorCodeWorkspaceNotRunning ErrorCode = "WORKSPACE_NOT_RUNNING"
 )
 
 // WorkspaceResourceUsage represents the point-in-time, pod-level resource

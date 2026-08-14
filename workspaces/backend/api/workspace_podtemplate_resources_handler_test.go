@@ -22,6 +22,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
@@ -32,7 +33,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
-	modelsMetrics "github.com/kubeflow/notebooks/workspaces/backend/internal/models/metrics"
 )
 
 var _ = Describe("Workspace PodTemplate Resources Handler", func() {
@@ -83,30 +83,24 @@ var _ = Describe("Workspace PodTemplate Resources Handler", func() {
 			Expect(k8sClient.Delete(ctx, namespace)).To(Succeed())
 		})
 
-		It("should degrade gracefully with 200 OK when usage is unavailable", func() {
+		It("should return 503 when the Metrics Server is not available", func() {
 			By("executing GetWorkspacePodTemplateResourcesHandler")
 			rs := doPodTemplateResourcesRequest(namespaceName, workspaceName, adminUser)
 			defer rs.Body.Close()
 
-			By("verifying status is 200 OK")
-			// envtest has no Metrics Server and no controller creating pods, so usage cannot be
-			// retrieved. That must still be a 200 with a degraded error code, never a 5xx.
-			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+			By("verifying status is 503 Service Unavailable")
+			// envtest has no aggregated Metrics Server, so the metrics.k8s.io API is never served.
+			// The handler surfaces that as a 503, not a 5xx internal error.
+			Expect(rs.StatusCode).To(Equal(http.StatusServiceUnavailable))
 
-			By("verifying the response is wrapped in the standard envelope")
+			By("verifying the response is a standard error envelope")
 			body, err := io.ReadAll(rs.Body)
 			Expect(err).NotTo(HaveOccurred())
 
-			var response WorkspaceResourceUsageEnvelope
+			var response ErrorEnvelope
 			Expect(json.Unmarshal(body, &response)).To(Succeed())
-			Expect(response.Data).NotTo(BeNil())
-
-			By("verifying a degraded error code is set, with no container data")
-			Expect(response.Data.Error).To(BeElementOf(
-				modelsMetrics.ErrorCodeMetricsAPINotAvailable,
-				modelsMetrics.ErrorCodeWorkspaceNotRunning,
-			))
-			Expect(response.Data.Containers).To(BeEmpty())
+			Expect(response.Error).NotTo(BeNil())
+			Expect(response.Error.Code).To(Equal(strconv.Itoa(http.StatusServiceUnavailable)))
 		})
 	})
 

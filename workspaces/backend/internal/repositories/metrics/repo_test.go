@@ -163,7 +163,7 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 		Expect(got.Error).To(Equal(modelsmetrics.ErrorCodeWorkspaceNotRunning))
 	})
 
-	It("returns METRICS_API_NOT_AVAILABLE error when API is not served", func() {
+	It("returns ErrMetricsAPINotAvailable when the API is not served", func() {
 		pod := workspacePod("pod-3", "container-3", nil)
 
 		client := fake.NewClientBuilder().
@@ -175,9 +175,8 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 		repo := newTestMetricsRepository(client, false)
 		got, err := repo.GetWorkspaceResourceUsage(ctx, "default", "test-workspace")
 
-		Expect(err).NotTo(HaveOccurred())
-		Expect(got).NotTo(BeNil())
-		Expect(got.Error).To(Equal(modelsmetrics.ErrorCodeMetricsAPINotAvailable))
+		Expect(err).To(MatchError(ErrMetricsAPINotAvailable))
+		Expect(got).To(BeNil())
 	})
 
 	It("returns error when the service account is forbidden", func() {
