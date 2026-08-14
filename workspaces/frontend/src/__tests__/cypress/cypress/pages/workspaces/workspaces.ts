@@ -359,8 +359,33 @@ class WorkspaceDetailsDrawer {
     return this.findLogsTabContent().findByTestId('logs-previous-checkbox');
   }
 
+  findLogsWrapCheckbox() {
+    return this.findLogsTabContent().findByTestId('logs-wrap-checkbox');
+  }
+
   findLogsRefreshButton() {
     return this.findLogsTabContent().findByTestId('logs-refresh-button');
+  }
+
+  findLogsDownloadButton() {
+    return this.findLogsTabContent().findByTestId('logs-download-button');
+  }
+
+  // The toolbar dropdowns are PatternFly SimpleSelects: click the toggle, then pick
+  // the option (which renders in a popper appended to the document body).
+  selectLogsContainer(optionName: string) {
+    this.findLogsTabContent().find('#logs-container-select').click();
+    cy.findByRole('option', { name: optionName }).click();
+  }
+
+  selectLogsTailLines(optionName: string) {
+    this.findLogsTabContent().find('#logs-tail-lines-select').click();
+    cy.findByRole('option', { name: optionName }).click();
+  }
+
+  selectLogsTimeRange(optionName: string) {
+    this.findLogsTabContent().find('#logs-since-select').click();
+    cy.findByRole('option', { name: optionName }).click();
   }
 
   assertLogsTabContentContainsText(text: string) {

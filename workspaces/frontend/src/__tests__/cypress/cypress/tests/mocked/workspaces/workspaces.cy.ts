@@ -1041,6 +1041,82 @@ describe('Workspaces', () => {
         workspaceDetailsDrawer.assertLogsTabContentContainsText('jupyter server log line 1');
       });
 
+      it('should forward the toolbar selections as query parameters', () => {
+        cy.interceptApi(
+          'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/logs/batch',
+          {
+            path: {
+              apiVersion: NOTEBOOKS_API_VERSION,
+              namespace: DEFAULT_NAMESPACE,
+              workspaceName: TEST_WORKSPACE_NAME,
+            },
+          },
+          buildMockWorkspaceLogs(3),
+        ).as('getWorkspaceLogs');
+
+        workspaces
+          .findAction({ action: 'viewDetails', workspaceName: TEST_WORKSPACE_NAME })
+          .click();
+        workspaceDetailsDrawer.findLogsTab().click();
+
+        // Initial request defaults to the primary container.
+        cy.wait('@getWorkspaceLogs').then((interception) => {
+          expect(interception.request.query.container).to.equal('main');
+        });
+
+        // Switching to the init container re-requests it by its bare name.
+        workspaceDetailsDrawer.selectLogsContainer('istio-proxy (init)');
+        cy.wait('@getWorkspaceLogs').then((interception) => {
+          expect(interception.request.query.container).to.equal('istio-proxy');
+        });
+
+        // Changing the tail count forwards `tailLines`.
+        workspaceDetailsDrawer.selectLogsTailLines('100');
+        cy.wait('@getWorkspaceLogs').then((interception) => {
+          expect(interception.request.query.tailLines).to.equal('100');
+        });
+
+        // Choosing a bounded time range forwards an RFC3339 `sinceTime`.
+        workspaceDetailsDrawer.selectLogsTimeRange('15 minutes');
+        cy.wait('@getWorkspaceLogs').then((interception) => {
+          expect(interception.request.query.sinceTime).to.be.a('string').and.to.include('T');
+        });
+
+        // The previous-container toggle forwards `previous=true`.
+        workspaceDetailsDrawer.findLogsPreviousCheckbox().click();
+        cy.wait('@getWorkspaceLogs').then((interception) => {
+          expect(interception.request.query.previous).to.equal('true');
+        });
+      });
+
+      it('should refresh, wrap and enable download from the toolbar', () => {
+        cy.interceptApi(
+          'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/logs/batch',
+          {
+            path: {
+              apiVersion: NOTEBOOKS_API_VERSION,
+              namespace: DEFAULT_NAMESPACE,
+              workspaceName: TEST_WORKSPACE_NAME,
+            },
+          },
+          buildMockWorkspaceLogs(3),
+        ).as('getWorkspaceLogs');
+
+        workspaces
+          .findAction({ action: 'viewDetails', workspaceName: TEST_WORKSPACE_NAME })
+          .click();
+        workspaceDetailsDrawer.findLogsTab().click();
+        cy.wait('@getWorkspaceLogs');
+
+        // Refresh re-issues the request without changing any filter.
+        workspaceDetailsDrawer.findLogsRefreshButton().click();
+        cy.wait('@getWorkspaceLogs');
+
+        // Wrap toggles on, download is enabled once logs are present.
+        workspaceDetailsDrawer.findLogsWrapCheckbox().click().should('be.checked');
+        workspaceDetailsDrawer.findLogsDownloadButton().should('be.enabled');
+      });
+
       it('should display an error when the logs are unavailable', () => {
         cy.interceptApi(
           'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/logs/batch',
