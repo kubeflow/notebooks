@@ -6882,6 +6882,18 @@ const docTemplate = `{
                 "WorkspaceKindAssetMediaTypeSVG"
             ]
         },
+        "v1beta1.WorkspaceKindClusterRole": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "description": "the name of the ClusterRole to bind to the Workspace ServiceAccount\n - note, ClusterRole names are path segment names, so unlike most Kubernetes\n   resource names they may contain uppercase letters and \":\" (for example,\n   the aggregated \"system:aggregate-to-view\" ClusterRole)\n - the pattern is the regex form of Kubernetes ` + "`" + `IsValidPathSegmentName` + "`" + `:\n   the name must not be \".\" or \"..\", and must not contain \"/\" or \"%\"\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=253\n+kubebuilder:validation:Pattern:=^([^./%][^/%]*|\\.[^./%][^/%]*|\\.[^/%][^/%]+)$\n+kubebuilder:example:=\"kubeflow-edit\"",
+                    "type": "string"
+                }
+            }
+        },
         "v1beta1.WorkspaceKindPodMetadata": {
             "type": "object",
             "properties": {
@@ -7011,7 +7023,7 @@ const docTemplate = `{
                     ]
                 },
                 "serviceAccount": {
-                    "description": "service account configs for Workspace Pods\n - currently has no fields, the ServiceAccount used by Workspace Pods is\n   hardcoded to \"default-editor\" in the controller\n - this ServiceAccount MUST already exist in the Namespace of the Workspace,\n   the controller will NOT create it\n+kubebuilder:validation:Optional",
+                    "description": "service account configs for Workspace Pods\n - each Workspace runs as its own ServiceAccount, which is created and owned by\n   the controller and named \"ws-{WORKSPACE_NAME}\"\n - the resolved name is reported in the Workspace ` + "`" + `status.podTemplatePod.serviceAccountName` + "`" + `\n+kubebuilder:validation:Optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.WorkspaceKindServiceAccount"
@@ -7092,7 +7104,16 @@ const docTemplate = `{
             }
         },
         "v1beta1.WorkspaceKindServiceAccount": {
-            "type": "object"
+            "type": "object",
+            "properties": {
+                "clusterRoles": {
+                    "description": "ClusterRoles to grant to the ServiceAccount of each Workspace (MUTABLE)\n - each entry becomes a namespaced RoleBinding, NOT a ClusterRoleBinding, so the\n   permissions only apply inside the Namespace of the Workspace\n - removing an entry deletes the corresponding RoleBinding\n - the referenced ClusterRoles do not have to exist, a RoleBinding to a missing\n   ClusterRole simply grants nothing until that ClusterRole is created\n - changes take effect immediately, Workspaces do NOT need to be restarted\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"name\"\n+kubebuilder:example={{name: \"kubeflow-edit\"}}",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/v1beta1.WorkspaceKindClusterRole"
+                    }
+                }
+            }
         },
         "v1beta1.WorkspaceKindSpawner": {
             "type": "object",

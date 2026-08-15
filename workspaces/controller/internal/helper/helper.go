@@ -21,6 +21,7 @@ import (
 	istiov1 "istio.io/client-go/pkg/apis/networking/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 )
 
@@ -128,6 +129,68 @@ func CopyServiceFields(desired *corev1.Service, target *corev1.Service) bool {
 	// copy `spec.type`
 	if target.Spec.Type != desired.Spec.Type {
 		target.Spec.Type = desired.Spec.Type
+		requireUpdate = true
+	}
+
+	return requireUpdate
+}
+
+// mergeStringMapFields sets every key of desired on target, returning the updated map and whether an update is required.
+// NOTE: unlike copyLabelFields/copyAnnotationFields, keys that are only present on the target are preserved.
+func mergeStringMapFields(desired map[string]string, target map[string]string) (map[string]string, bool) {
+	requireUpdate := false
+
+	for k, v := range desired {
+		if target == nil {
+			target = make(map[string]string, len(desired))
+		}
+		if target[k] != v {
+			target[k] = v
+			requireUpdate = true
+		}
+	}
+	return target, requireUpdate
+}
+
+// CopyServiceAccountFields updates a target ServiceAccount with the fields from a desired ServiceAccount, returning true if an update is required.
+func CopyServiceAccountFields(desired *corev1.ServiceAccount, target *corev1.ServiceAccount) bool {
+	requireUpdate := false
+
+	// NOTE: we merge rather than replace, because administrators and other controllers attach
+	//       their own metadata to a ServiceAccount (e.g. the IAM annotations used by IRSA)
+
+	var updated bool
+	target.Labels, updated = mergeStringMapFields(desired.Labels, target.Labels)
+	if updated {
+		requireUpdate = true
+	}
+
+	target.Annotations, updated = mergeStringMapFields(desired.Annotations, target.Annotations)
+	if updated {
+		requireUpdate = true
+	}
+
+	return requireUpdate
+}
+
+// CopyRoleBindingFields updates a target RoleBinding with the fields from a desired RoleBinding, returning true if an update is required.
+// NOTE: `roleRef` is immutable and so is NOT copied, the caller must compare it and recreate the RoleBinding when it has drifted.
+func CopyRoleBindingFields(desired *rbacv1.RoleBinding, target *rbacv1.RoleBinding) bool {
+	requireUpdate := false
+
+	var updated bool
+	target.Labels, updated = copyLabelFields(desired.Labels, target.Labels)
+	if updated {
+		requireUpdate = true
+	}
+
+	target.Annotations, updated = copyAnnotationFields(desired.Annotations, target.Annotations)
+	if updated {
+		requireUpdate = true
+	}
+
+	if !equality.Semantic.DeepEqual(target.Subjects, desired.Subjects) {
+		target.Subjects = desired.Subjects
 		requireUpdate = true
 	}
 

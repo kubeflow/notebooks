@@ -106,12 +106,24 @@ spec:
       annotations:
         my-workspace-kind-annotation: "my-value"
 
-    ## NOTE: Workspace Pods always run as the "default-editor" ServiceAccount,
-    ##       which is hardcoded in the controller and MUST already exist in the
-    ##       Namespace of the Workspace, the controller will NOT create it.
-    ##       Configuration will return under `serviceAccount` once Workspaces get
-    ##       their own controller-managed ServiceAccounts:
-    ##       https://github.com/kubeflow/notebooks/issues/1257
+    ## service account configs for Workspace Pods
+    ##  - each Workspace runs as its own ServiceAccount named "ws-{WORKSPACE_NAME}",
+    ##    which the controller creates, owns, and deletes along with the Workspace
+    ##  - the resolved name is reported in the Workspace
+    ##    `status.podTemplatePod.serviceAccountName`
+    ##
+    ## NOTE: commented out because these ClusterRoles are provided by the Kubeflow
+    ##       platform, they do NOT exist in a standalone install of this controller
+    ##
+    #serviceAccount:
+    #
+    #  ## ClusterRoles to grant to the ServiceAccount of each Workspace (MUTABLE)
+    #  ##  - each entry becomes a RoleBinding in the Namespace of the Workspace, so the
+    #  ##    permissions are scoped to that Namespace and are NOT cluster-wide
+    #  ##  - these are ClusterRole names, NOT ServiceAccount names
+    #  ##
+    #  clusterRoles:
+    #    - name: "kubeflow-view"
 
     ## activity probe configs (MUTABLE)
     ##  - determines how to detect activity in the Workspace

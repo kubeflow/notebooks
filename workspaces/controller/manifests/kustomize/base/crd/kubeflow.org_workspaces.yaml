@@ -416,6 +416,14 @@ spec:
                   nodeName:
                     description: the name of the node on which the Pod is scheduled
                     type: string
+                  serviceAccountName:
+                    description: |-
+                      the name of the ServiceAccount that the Pod runs as
+                       - this ServiceAccount is created and owned by the Workspace, and is stable for its lifetime
+                       - it is reported here so that Roles, RoleBindings, and Istio AuthorizationPolicies
+                         which reference the ServiceAccount do not have to recompute its name
+                    example: ws-my-workspace
+                    type: string
                 required:
                 - name
                 - nodeName
