@@ -453,9 +453,19 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                               {columnKey === 'name' && workspace.name}
                               {columnKey === 'image' && (
                                 <Content>
-                                  <span data-testid="workspace-image-name">
-                                    {workspace.podTemplate.options.imageConfig.current.displayName}
-                                  </span>{' '}
+                                  <Tooltip
+                                    data-testid="workspace-image-description-tooltip"
+                                    content={
+                                      workspace.podTemplate.options.imageConfig.current.description
+                                    }
+                                  >
+                                    <span data-testid="workspace-image-name">
+                                      {
+                                        workspace.podTemplate.options.imageConfig.current
+                                          .displayName
+                                      }
+                                    </span>
+                                  </Tooltip>{' '}
                                   <RedirectIconWithPopover
                                     redirectChain={
                                       workspace.podTemplate.options.imageConfig.redirectChain
@@ -470,9 +480,16 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                               )}
                               {columnKey === 'podConfig' && (
                                 <Content>
-                                  <span data-testid="workspace-pod-config-name">
-                                    {workspace.podTemplate.options.podConfig.current.displayName}
-                                  </span>{' '}
+                                  <Tooltip
+                                    data-testid="workspace-pod-config-description-tooltip"
+                                    content={
+                                      workspace.podTemplate.options.podConfig.current.description
+                                    }
+                                  >
+                                    <span data-testid="workspace-pod-config-name">
+                                      {workspace.podTemplate.options.podConfig.current.displayName}
+                                    </span>
+                                  </Tooltip>{' '}
                                   <RedirectIconWithPopover
                                     redirectChain={
                                       workspace.podTemplate.options.podConfig.redirectChain
