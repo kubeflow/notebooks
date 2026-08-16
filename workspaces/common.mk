@@ -1,7 +1,3 @@
-# -----------------------------------------------------------------------------
-# Git / local dependencies
-# -----------------------------------------------------------------------------
-
 GIT_COMMIT     := $(shell git rev-parse HEAD)
 GIT_TREE_STATE := $(shell test -n "`git status --porcelain`" && echo "-dirty" || echo "")
 
@@ -10,22 +6,27 @@ LOCALBIN ?= $(shell pwd)/bin
 $(LOCALBIN):
 	mkdir -p $(LOCALBIN)
 
+##@ Clean
+
 .PHONY: clean
 clean: ## Remove local test/build artifacts.
 	rm -rf $(LOCALBIN)
 	@echo "INFO: '$(LOCALBIN)' successfully cleaned."
 
+##@ Dependency
+
 # Tool Binaries
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
-
-kustomize: $(KUSTOMIZE)
 
 # Tool Versions
 KUSTOMIZE_VERSION ?= v5.5.0
 
-# go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
-# $1 - target path with name of binary
-# $2 - package url which can be installed
+.PHONY: kustomize
+kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
+$(KUSTOMIZE): $(LOCALBIN)
+	$(call go-install-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v5,$(KUSTOMIZE_VERSION))
+
+
 # $3 - specific version of package
 # $4 - (optional) extra ldflags to set with the installation
 define go-install-tool

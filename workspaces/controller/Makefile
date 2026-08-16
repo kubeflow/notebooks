@@ -176,10 +176,6 @@ ENVTEST_VERSION ?= release-0.19
 ISTIOCTL_VERSION ?= 1.27.3
 GOLANGCI_LINT_VERSION ?= v2.12.2
 
-.PHONY: kustomize
-$(KUSTOMIZE): $(LOCALBIN)
-	$(call go-install-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v5,$(KUSTOMIZE_VERSION))
-
 .PHONY: controller-gen
 controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
 $(CONTROLLER_GEN): $(LOCALBIN)

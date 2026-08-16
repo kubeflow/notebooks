@@ -164,10 +164,3 @@ deploy: kustomize ## Deploy backend to the K8s cluster specified in ~/.kube/conf
 .PHONY: undeploy
 undeploy: kustomize ## Undeploy backend from the K8s cluster specified in ~/.kube/config.
 	$(KUBECTL) delete -k manifests/kustomize/overlays/istio --ignore-not-found=true
-
-
-##@ Dependencies
-
-.PHONY: kustomize
-$(KUSTOMIZE): $(LOCALBIN)
-	$(call go-install-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v5,$(KUSTOMIZE_VERSION))

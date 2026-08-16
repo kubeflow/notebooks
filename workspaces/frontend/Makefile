@@ -66,8 +66,3 @@ undeploy: kustomize ## Undeploy frontend from the K8s cluster specified in ~/.ku
 
 # Tool Binaries
 KUBECTL ?= kubectl
-
-.PHONY: kustomize
-kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
-$(KUSTOMIZE): $(LOCALBIN)
-	$(call go-install-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v5,$(KUSTOMIZE_VERSION))
