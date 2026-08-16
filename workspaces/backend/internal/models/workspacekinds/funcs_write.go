@@ -36,9 +36,10 @@ func NewWorkspaceKindCreateModelFromWorkspaceKind(wsk *kubefloworgv1beta1.Worksp
 // Used by GET (by name) and Update responses.
 func NewWorkspaceKindUpdateModelFromWorkspaceKind(wsk *kubefloworgv1beta1.WorkspaceKind) *WorkspaceKindUpdate {
 	return &WorkspaceKindUpdate{
-		Revision:    common.CalculateRevision(&wsk.ObjectMeta),
-		Spawner:     wsk.Spec.Spawner,
-		PodTemplate: wsk.Spec.PodTemplate,
+		Revision:      common.CalculateRevision(&wsk.ObjectMeta),
+		Spawner:       wsk.Spec.Spawner,
+		PodTemplate:   wsk.Spec.PodTemplate,
+		ActivityRules: wsk.Spec.ActivityRules,
 	}
 }
 
@@ -47,4 +48,5 @@ func NewWorkspaceKindUpdateModelFromWorkspaceKind(wsk *kubefloworgv1beta1.Worksp
 func ApplyWorkspaceKindUpdateModelToWorkspaceKind(update *WorkspaceKindUpdate, wsk *kubefloworgv1beta1.WorkspaceKind) {
 	wsk.Spec.Spawner = update.Spawner
 	wsk.Spec.PodTemplate = update.PodTemplate
+	wsk.Spec.ActivityRules = update.ActivityRules
 }

@@ -200,14 +200,6 @@ describe('Summary step', () => {
         workspaceKind: buildMockWorkspaceKindInfo({ name: WORKSPACE_KIND_NAME }),
         state: V1Beta1WorkspaceState.WorkspaceStateRunning,
         podTemplate: {
-          podMetadata: {
-            labels: { testLabel: 'testValue' },
-            annotations: {},
-          },
-          volumes: {
-            home: { pvcName: 'home-pvc', mountPath: '/home', readOnly: false },
-            data: [],
-          },
           options: {
             imageConfig: {
               current: {

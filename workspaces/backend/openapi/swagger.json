@@ -1942,6 +1942,105 @@
                     }
                 }
             }
+        },
+        "/workspaces/{namespace}/{name}/podtemplate/logs/batch": {
+            "get": {
+                "description": "Returns a point-in-time snapshot of container logs for the workspace pod as a raw text/plain stream proxied directly from the Kubernetes pod logs API. Each log line is always prefixed with an RFC3339 timestamp.",
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "workspaces"
+                ],
+                "summary": "Get workspace container logs (batch)",
+                "operationId": "getWorkspacePodTemplateLogsBatch",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "x-example": "kubeflow-user-example-com",
+                        "description": "Namespace of the workspace",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "x-example": "my-workspace",
+                        "description": "Name of the workspace",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Target container name. Defaults to the primary (main) container.",
+                        "name": "container",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of lines from the end of the log to return. Defaults to 1000.",
+                        "name": "tailLines",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Only return logs after this RFC3339 timestamp (e.g. 2026-07-15T10:30:00Z).",
+                        "name": "sinceTime",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "If true, returns logs from the previous terminated container instance.",
+                        "name": "previous",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Raw container log stream (text/plain).",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request. Container not found, pod not running, container not started, or no previous logs available.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "404": {
+                        "description": "Workspace not found.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -6242,6 +6341,85 @@
                 }
             }
         },
+        "v1beta1.ActivityRule": {
+            "type": "object",
+            "required": [
+                "config",
+                "effect"
+            ],
+            "properties": {
+                "config": {
+                    "description": "the configuration for this rule",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.ActivityRuleConfig"
+                        }
+                    ]
+                },
+                "effect": {
+                    "description": "the action to take when the rule matches and its conditions are met",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.ActivityRuleEffect"
+                        }
+                    ]
+                },
+                "match": {
+                    "description": "the conditions under which this rule applies\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.ActivityRuleMatch"
+                        }
+                    ]
+                }
+            }
+        },
+        "v1beta1.ActivityRuleConfig": {
+            "type": "object",
+            "required": [
+                "secondsSinceActive"
+            ],
+            "properties": {
+                "minRunningSeconds": {
+                    "description": "the minimum duration in seconds a Workspace must be running before it can be paused due to inactivity\n+kubebuilder:validation:Minimum:=0\n+kubebuilder:default:=0\n+kubebuilder:validation:Optional",
+                    "type": "integer"
+                },
+                "secondsSinceActive": {
+                    "description": "the number of seconds of inactivity before a Workspace is eligible for this rule's effect\n - the minimum value is 16 (`secondsSinceActive` \u003e 15) to prevent thrashing and culling\n   workspaces prematurely during startup or transient connection drops\n+kubebuilder:validation:Minimum:=16",
+                    "type": "integer"
+                }
+            }
+        },
+        "v1beta1.ActivityRuleEffect": {
+            "type": "object",
+            "properties": {
+                "pauseWorkspace": {
+                    "description": "determines if the Workspace should be paused\n - the webhook rejects rules with `pauseWorkspace: true`\n   when no `activityProbe` is configured\n+kubebuilder:validation:Optional",
+                    "type": "boolean"
+                }
+            }
+        },
+        "v1beta1.ActivityRuleMatch": {
+            "type": "object",
+            "properties": {
+                "matchNamespace": {
+                    "description": "filters Workspaces by namespace labels\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.NamespaceMatch"
+                        }
+                    ]
+                },
+                "matchPodConfig": {
+                    "description": "filters Workspaces by the PodConfig option they are using\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.PodConfigMatch"
+                        }
+                    ]
+                }
+            }
+        },
         "v1beta1.HTTPProxy": {
             "type": "object",
             "properties": {
@@ -6406,6 +6584,22 @@
                 }
             }
         },
+        "v1beta1.NamespaceMatch": {
+            "type": "object",
+            "required": [
+                "selector"
+            ],
+            "properties": {
+                "selector": {
+                    "description": "the standard Kubernetes label selector to match namespace labels",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1.LabelSelector"
+                        }
+                    ]
+                }
+            }
+        },
         "v1beta1.OptionRedirect": {
             "type": "object",
             "required": [
@@ -6503,6 +6697,22 @@
                     "items": {
                         "$ref": "#/definitions/v1beta1.PodConfigValue"
                     }
+                }
+            }
+        },
+        "v1beta1.PodConfigMatch": {
+            "type": "object",
+            "required": [
+                "selector"
+            ],
+            "properties": {
+                "selector": {
+                    "description": "the standard Kubernetes label selector to match podConfig labels",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1.LabelSelector"
+                        }
+                    ]
                 }
             }
         },
@@ -7237,6 +7447,12 @@
                 "spawner"
             ],
             "properties": {
+                "activityRules": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/v1beta1.ActivityRule"
+                    }
+                },
                 "podTemplate": {
                     "$ref": "#/definitions/v1beta1.WorkspaceKindPodTemplate"
                 },

@@ -124,6 +124,7 @@
     "@patternfly/react-code-editor": "^6.4.0",
     "@patternfly/react-core": "^6.4.0",
     "@patternfly/react-icons": "^6.4.0",
+    "@patternfly/react-log-viewer": "^6.5.0",
     "@patternfly/react-styles": "^6.4.0",
     "@patternfly/react-table": "^6.4.0",
     "@patternfly/react-templates": "^6.4.0",

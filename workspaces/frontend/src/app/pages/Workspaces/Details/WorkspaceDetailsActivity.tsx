@@ -38,8 +38,19 @@ export const WorkspaceDetailsActivity: React.FunctionComponent<WorkspaceDetailsA
         </DescriptionListDescription>
       </DescriptionListGroup>
       <Divider />
+      {activity.rules?.pauseWorkspace && (
+        <>
+          <DescriptionListGroup>
+            <DescriptionListTerm>Pauses after</DescriptionListTerm>
+            <DescriptionListDescription data-testid="pausesIn">
+              {format(new Date(activity.rules.pauseWorkspace.eligibleAfter), DATE_FORMAT)}
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+          <Divider />
+        </>
+      )}
       <DescriptionListGroup>
-        <DescriptionListTerm>Pause time</DescriptionListTerm>
+        <DescriptionListTerm>Paused since</DescriptionListTerm>
         <DescriptionListDescription data-testid="pauseTime">
           {pausedTime === 0 ? 'unknown' : format(pausedTime, DATE_FORMAT)}
         </DescriptionListDescription>

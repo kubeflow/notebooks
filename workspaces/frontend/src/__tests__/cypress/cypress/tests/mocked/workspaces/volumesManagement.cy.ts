@@ -39,8 +39,6 @@ describe('Volumes Management - Attach and Create', () => {
   });
 
   // Override to have empty volumes
-  mockWorkspaceListItem.podTemplate.volumes.data = [];
-
   const mockWorkspaceUpdate = buildMockWorkspaceUpdateFromWorkspace({
     workspace: mockWorkspaceListItem,
     volumes: { data: [] },

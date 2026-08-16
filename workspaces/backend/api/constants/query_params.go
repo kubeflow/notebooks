@@ -17,4 +17,8 @@ package constants
 const (
 	NamespaceQueryParam       = "namespace"
 	NamespaceFilterQueryParam = "namespaceFilter"
+	ContainerQueryParam       = "container"
+	TailLinesQueryParam       = "tailLines"
+	PreviousQueryParam        = "previous"
+	SinceTimeQueryParam       = "sinceTime"
 )
