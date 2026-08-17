@@ -20,6 +20,8 @@ import (
 	"context"
 	"fmt"
 
+	authzv1 "k8s.io/api/authorization/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
@@ -35,6 +37,10 @@ import (
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 )
 
+// the resource which the caller must be able to create/delete in order to change
+// `spec.podTemplate.serviceAccount.roles`
+const roleBindingsResource = "rolebindings"
+
 // WorkspaceValidator validates a Workspace object
 type WorkspaceValidator struct {
 	client.Client
@@ -42,6 +48,10 @@ type WorkspaceValidator struct {
 }
 
 // +kubebuilder:webhook:path=/validate-kubeflow-org-v1beta1-workspace,mutating=false,failurePolicy=fail,sideEffects=None,groups=kubeflow.org,resources=workspaces,verbs=create;update,versions=v1beta1,name=vworkspace.kb.io,admissionReviewVersions=v1,serviceName=workspaces-webhook-service
+
+// the webhook asks the API server whether the caller may create/delete RoleBindings before
+// allowing a change to `spec.podTemplate.serviceAccount.roles`
+// +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
 
 // SetupWebhookWithManager sets up the webhook with the manager
 func (v *WorkspaceValidator) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -84,6 +94,9 @@ func (v *WorkspaceValidator) ValidateCreate(ctx context.Context, obj runtime.Obj
 	allErrs = append(allErrs, v.validatePodTemplatePodMetadata(workspace)...)
 	allErrs = append(allErrs, v.validateImageConfig(workspace, workspaceKind)...)
 	allErrs = append(allErrs, v.validatePodConfig(workspace, workspaceKind)...)
+
+	// every Role on a new Workspace is an addition, so the caller must be able to create RoleBindings
+	allErrs = append(allErrs, v.validateServiceAccountRoles(ctx, nil, workspace)...)
 
 	if len(allErrs) == 0 {
 		return nil, nil
@@ -163,6 +176,10 @@ func (v *WorkspaceValidator) ValidateUpdate(ctx context.Context, oldObj, newObj 
 		}
 	}
 
+	// NOTE: this is outside the block above because it does not depend on the WorkspaceKind,
+	//       and must run even when none of the WorkspaceKind-related fields have changed
+	allErrs = append(allErrs, v.validateServiceAccountRoles(ctx, oldWorkspace, newWorkspace)...)
+
 	if len(allErrs) == 0 {
 		return nil, nil
 	}
@@ -203,6 +220,115 @@ func (v *WorkspaceValidator) validateWorkspaceKind(ctx context.Context, workspac
 		}
 	}
 	return workspaceKind, nil
+}
+
+// serviceAccountRoleNames returns the set of Role names bound to a Workspace's ServiceAccount
+func serviceAccountRoleNames(workspace *kubefloworgv1beta1.Workspace) map[string]bool {
+	if workspace == nil || workspace.Spec.PodTemplate.ServiceAccount == nil {
+		return nil
+	}
+	roles := workspace.Spec.PodTemplate.ServiceAccount.Roles
+	names := make(map[string]bool, len(roles))
+	for _, role := range roles {
+		names[role.Name] = true
+	}
+	return names
+}
+
+// validateServiceAccountRoles ensures the caller may change the Roles bound to the Workspace's
+// ServiceAccount: "create" RoleBindings to add one, "delete" to remove one.
+// `oldWorkspace` is nil on create.
+//
+// This is the whole security boundary. The controller holds "bind" cluster-wide, so the RBAC
+// escalation prevention which normally runs on RoleBinding create never applies to our bindings.
+//
+// NOTE: we check neither that the caller holds the Role's rules, nor that they hold "bind" on it,
+//
+//	both of which the API server would require. The first needs its rule resolver, which a
+//	webhook cannot reach. The second is just another SAR, but requiring it would lock out the
+//	default "admin" and "kubeflow-admin" roles, which hold neither.
+//	See https://github.com/kubeflow/notebooks/issues/1257.
+func (v *WorkspaceValidator) validateServiceAccountRoles(ctx context.Context, oldWorkspace, newWorkspace *kubefloworgv1beta1.Workspace) []*field.Error {
+	rolesPath := field.NewPath("spec", "podTemplate", "serviceAccount", "roles")
+
+	oldRoles := serviceAccountRoleNames(oldWorkspace)
+	newRoles := serviceAccountRoleNames(newWorkspace)
+
+	var added, removed []string
+	for name := range newRoles {
+		if !oldRoles[name] {
+			added = append(added, name)
+		}
+	}
+	for name := range oldRoles {
+		if !newRoles[name] {
+			removed = append(removed, name)
+		}
+	}
+	if len(added) == 0 && len(removed) == 0 {
+		return nil
+	}
+
+	// NOTE: the userInfo comes from the AdmissionRequest, not the webhook's own identity.
+	//       Requests which do not carry one (that is, calls which did not come through admission)
+	//       are rejected rather than allowed, so a missing request can never mean "allowed".
+	req, err := admission.RequestFromContext(ctx)
+	if err != nil {
+		return []*field.Error{field.InternalError(rolesPath, fmt.Errorf("unable to identify the caller: %w", err))}
+	}
+
+	var errs []*field.Error
+	if len(added) > 0 {
+		if err := v.authorizeRoleBindingVerb(ctx, &req, newWorkspace.Namespace, "create", rolesPath, added); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if len(removed) > 0 {
+		if err := v.authorizeRoleBindingVerb(ctx, &req, newWorkspace.Namespace, "delete", rolesPath, removed); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return errs
+}
+
+// authorizeRoleBindingVerb runs a SubjectAccessReview asking whether the caller may perform `verb`
+// on RoleBindings in `namespace`, returning a field.Error if they may not
+func (v *WorkspaceValidator) authorizeRoleBindingVerb(ctx context.Context, req *admission.Request, namespace, verb string, rolesPath *field.Path, roleNames []string) *field.Error {
+	extra := make(map[string]authzv1.ExtraValue, len(req.UserInfo.Extra))
+	for k, val := range req.UserInfo.Extra {
+		extra[k] = authzv1.ExtraValue(val)
+	}
+
+	sar := &authzv1.SubjectAccessReview{
+		Spec: authzv1.SubjectAccessReviewSpec{
+			User:   req.UserInfo.Username,
+			UID:    req.UserInfo.UID,
+			Groups: req.UserInfo.Groups,
+			Extra:  extra,
+			ResourceAttributes: &authzv1.ResourceAttributes{
+				Namespace: namespace,
+				Verb:      verb,
+				Group:     rbacv1.GroupName,
+				Resource:  roleBindingsResource,
+			},
+		},
+	}
+	if err := v.Create(ctx, sar); err != nil {
+		return field.InternalError(rolesPath, fmt.Errorf("unable to check if the caller can %s RoleBindings: %w", verb, err))
+	}
+	if sar.Status.Allowed {
+		return nil
+	}
+
+	reason := sar.Status.Reason
+	if reason == "" {
+		reason = "no RBAC policy matched"
+	}
+	return field.Forbidden(
+		rolesPath,
+		fmt.Sprintf("changing %v requires permission to %s RoleBindings in namespace %q, which user %q does not have (%s)",
+			roleNames, verb, namespace, req.UserInfo.Username, reason),
+	)
 }
 
 // validatePodTemplatePodMetadata validates the podMetadata of a Workspace's PodTemplate

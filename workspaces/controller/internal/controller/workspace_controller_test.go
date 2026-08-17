@@ -22,6 +22,7 @@ import (
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
+	authzv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 
@@ -456,7 +457,7 @@ var _ = Describe("Workspace Controller", func() {
 				Expect(roleBinding.RoleRef.APIGroup).To(Equal(rbacv1.GroupName))
 				Expect(roleBinding.RoleRef.Kind).To(Equal("ClusterRole"))
 				Expect(roleBinding.RoleRef.Name).To(BeElementOf("kubeflow-edit", "system:aggregate-to-view"))
-				Expect(roleBinding.Name).To(Equal(generateRoleBindingName(workspaceName, roleBinding.RoleRef.Name)))
+				Expect(roleBinding.Name).To(Equal(generateRoleBindingName(workspaceName, roleKindClusterRole, roleBinding.RoleRef.Name)))
 				Expect(roleBinding.Subjects).To(ConsistOf(rbacv1.Subject{
 					Kind:      rbacv1.ServiceAccountKind,
 					Name:      serviceAccountName,
@@ -524,25 +525,233 @@ var _ = Describe("Workspace Controller", func() {
 		})
 	})
 
+	Context("When a Workspace grants Roles to its ServiceAccount", Serial, Ordered, func() {
+
+		// Define utility variables for object names.
+		// NOTE: to avoid conflicts between parallel tests, resource names are unique to each test
+		var (
+			workspaceName      string
+			workspaceKindName  string
+			workspaceKindKey   types.NamespacedName
+			serviceAccountName string
+		)
+
+		// listOwnedRoleBindings returns the RoleBindings labeled for the Workspace under test.
+		listOwnedRoleBindings := func() ([]rbacv1.RoleBinding, error) {
+			roleBindingList := &rbacv1.RoleBindingList{}
+			err := k8sClient.List(ctx, roleBindingList, client.InNamespace(namespaceName), client.MatchingLabels{workspaceNameLabel: workspaceName})
+			if err != nil {
+				return nil, err
+			}
+			return roleBindingList.Items, nil
+		}
+
+		// setRoles patches the Workspace `spec.podTemplate.serviceAccount.roles`.
+		setRoles := func(names ...string) {
+			workspace := &kubefloworgv1beta1.Workspace{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: workspaceName, Namespace: namespaceName}, workspace)).To(Succeed())
+			patch := client.MergeFrom(workspace.DeepCopy())
+			roles := make([]kubefloworgv1beta1.WorkspaceRole, len(names))
+			for i, name := range names {
+				roles[i] = kubefloworgv1beta1.WorkspaceRole{Name: name}
+			}
+			workspace.Spec.PodTemplate.ServiceAccount = &kubefloworgv1beta1.WorkspaceServiceAccount{Roles: roles}
+			Expect(k8sClient.Patch(ctx, workspace, patch)).To(Succeed())
+		}
+
+		// setClusterRoles patches the WorkspaceKind `spec.podTemplate.serviceAccount.clusterRoles`.
+		setClusterRoles := func(names ...string) {
+			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
+			Expect(k8sClient.Get(ctx, workspaceKindKey, workspaceKind)).To(Succeed())
+			patch := client.MergeFrom(workspaceKind.DeepCopy())
+			clusterRoles := make([]kubefloworgv1beta1.WorkspaceKindClusterRole, len(names))
+			for i, name := range names {
+				clusterRoles[i] = kubefloworgv1beta1.WorkspaceKindClusterRole{Name: name}
+			}
+			workspaceKind.Spec.PodTemplate.ServiceAccount = &kubefloworgv1beta1.WorkspaceKindServiceAccount{
+				ClusterRoles: clusterRoles,
+			}
+			Expect(k8sClient.Patch(ctx, workspaceKind, patch)).To(Succeed())
+		}
+
+		BeforeAll(func() {
+			uniqueName := "ws-roles-test"
+			workspaceName = fmt.Sprintf("workspace-%s", uniqueName)
+			workspaceKindName = fmt.Sprintf("workspacekind-%s", uniqueName)
+			workspaceKindKey = types.NamespacedName{Name: workspaceKindName}
+			serviceAccountName = generateServiceAccountName(workspaceName)
+
+			By("creating the WorkspaceKind")
+			workspaceKind := NewExampleWorkspaceKind1(workspaceKindName)
+			Expect(k8sClient.Create(ctx, workspaceKind)).To(Succeed())
+
+			By("creating the Workspace")
+			workspace := NewExampleWorkspace1(workspaceName, namespaceName, workspaceKindName)
+			Expect(k8sClient.Create(ctx, workspace)).To(Succeed())
+		})
+
+		AfterAll(func() {
+			By("deleting the Workspace")
+			workspace := &kubefloworgv1beta1.Workspace{
+				ObjectMeta: metav1.ObjectMeta{Name: workspaceName, Namespace: namespaceName},
+			}
+			Expect(k8sClient.Delete(ctx, workspace)).To(Succeed())
+
+			By("deleting the WorkspaceKind")
+			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
+				ObjectMeta: metav1.ObjectMeta{Name: workspaceKindName},
+			}
+			Expect(k8sClient.Delete(ctx, workspaceKind)).To(Succeed())
+		})
+
+		It("should create a RoleBinding for each `roles` entry", func() {
+			By("adding two Roles to the Workspace")
+			setRoles("trainjob-mpi-exec", "some:role")
+
+			By("creating a RoleBinding for each Role")
+			Eventually(listOwnedRoleBindings, timeout, interval).Should(HaveLen(2))
+
+			roleBindings, err := listOwnedRoleBindings()
+			Expect(err).NotTo(HaveOccurred())
+			for _, roleBinding := range roleBindings {
+				By(fmt.Sprintf("checking the RoleBinding %q", roleBinding.Name))
+				Expect(roleBinding.RoleRef.APIGroup).To(Equal(rbacv1.GroupName))
+				Expect(roleBinding.RoleRef.Kind).To(Equal(roleKindRole))
+				Expect(roleBinding.RoleRef.Name).To(BeElementOf("trainjob-mpi-exec", "some:role"))
+				Expect(roleBinding.Name).To(Equal(generateRoleBindingName(workspaceName, roleKindRole, roleBinding.RoleRef.Name)))
+				Expect(roleBinding.Subjects).To(ConsistOf(rbacv1.Subject{
+					Kind:      rbacv1.ServiceAccountKind,
+					Name:      serviceAccountName,
+					Namespace: namespaceName,
+				}))
+				Expect(roleBinding.OwnerReferences).To(HaveLen(1))
+				Expect(roleBinding.OwnerReferences[0].Name).To(Equal(workspaceName))
+			}
+		})
+
+		It("should keep the Workspace `roles` and the WorkspaceKind `clusterRoles` separate", func() {
+			By("adding a ClusterRole with the same name as one of the Roles")
+			setClusterRoles("trainjob-mpi-exec")
+
+			By("creating a third RoleBinding rather than colliding with the Role's")
+			Eventually(listOwnedRoleBindings, timeout, interval).Should(HaveLen(3))
+
+			roleBindings, err := listOwnedRoleBindings()
+			Expect(err).NotTo(HaveOccurred())
+			kinds := make([]string, len(roleBindings))
+			for i, roleBinding := range roleBindings {
+				kinds[i] = roleBinding.RoleRef.Kind
+			}
+			Expect(kinds).To(ConsistOf(roleKindRole, roleKindRole, roleKindClusterRole))
+
+			By("removing the ClusterRole again")
+			setClusterRoles()
+			Eventually(listOwnedRoleBindings, timeout, interval).Should(HaveLen(2))
+		})
+
+		It("should delete the RoleBinding when its `roles` entry is removed", func() {
+			By("removing one Role from the Workspace")
+			setRoles("trainjob-mpi-exec")
+
+			By("deleting the RoleBinding for the removed Role")
+			Eventually(listOwnedRoleBindings, timeout, interval).Should(HaveLen(1))
+			roleBindings, err := listOwnedRoleBindings()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(roleBindings[0].RoleRef.Name).To(Equal("trainjob-mpi-exec"))
+		})
+
+		It("should delete all RoleBindings when `roles` is emptied", func() {
+			By("removing every Role from the Workspace")
+			setRoles()
+
+			By("deleting all the RoleBindings")
+			Eventually(listOwnedRoleBindings, timeout, interval).Should(BeEmpty())
+		})
+
+		It("should actually grant and revoke the Role's permissions", func() {
+			const roleName = "ws-roles-test-pod-reader"
+
+			// canGetPods asks the API server whether the Workspace's ServiceAccount may get Pods,
+			// which is the only way to prove the RoleBinding has the effect we claim it does
+			canGetPods := func() (bool, error) {
+				sar := &authzv1.SubjectAccessReview{
+					Spec: authzv1.SubjectAccessReviewSpec{
+						User: fmt.Sprintf("system:serviceaccount:%s:%s", namespaceName, serviceAccountName),
+						Groups: []string{
+							"system:serviceaccounts",
+							fmt.Sprintf("system:serviceaccounts:%s", namespaceName),
+						},
+						ResourceAttributes: &authzv1.ResourceAttributes{
+							Namespace: namespaceName,
+							Verb:      "get",
+							Resource:  "pods",
+						},
+					},
+				}
+				if err := k8sClient.Create(ctx, sar); err != nil {
+					return false, err
+				}
+				return sar.Status.Allowed, nil
+			}
+
+			By("creating a real Role which grants `get` on Pods")
+			role := &rbacv1.Role{
+				ObjectMeta: metav1.ObjectMeta{Name: roleName, Namespace: namespaceName},
+				Rules: []rbacv1.PolicyRule{{
+					APIGroups: []string{""},
+					Resources: []string{"pods"},
+					Verbs:     []string{"get"},
+				}},
+			}
+			Expect(k8sClient.Create(ctx, role)).To(Succeed())
+			DeferCleanup(func() {
+				Expect(k8sClient.Delete(ctx, role)).To(Succeed())
+			})
+
+			By("checking the ServiceAccount cannot get Pods before the Role is bound")
+			Expect(canGetPods()).To(BeFalse())
+
+			By("binding the Role to the Workspace")
+			setRoles(roleName)
+			Eventually(listOwnedRoleBindings, timeout, interval).Should(HaveLen(1))
+
+			By("checking the ServiceAccount can now get Pods")
+			Eventually(canGetPods, timeout, interval).Should(BeTrue())
+
+			By("unbinding the Role from the Workspace")
+			setRoles()
+			Eventually(listOwnedRoleBindings, timeout, interval).Should(BeEmpty())
+
+			By("checking the ServiceAccount can no longer get Pods")
+			Eventually(canGetPods, timeout, interval).Should(BeFalse())
+		})
+	})
+
 	Context("When generating the RoleBinding name for a Workspace", func() {
 
 		It("should be stable across calls", func() {
-			Expect(generateRoleBindingName("my-workspace", "kubeflow-edit")).
-				To(Equal(generateRoleBindingName("my-workspace", "kubeflow-edit")))
+			Expect(generateRoleBindingName("my-workspace", roleKindClusterRole, "kubeflow-edit")).
+				To(Equal(generateRoleBindingName("my-workspace", roleKindClusterRole, "kubeflow-edit")))
 		})
 
 		It("should differ for different ClusterRoles", func() {
-			Expect(generateRoleBindingName("my-workspace", "kubeflow-edit")).
-				NotTo(Equal(generateRoleBindingName("my-workspace", "kubeflow-view")))
+			Expect(generateRoleBindingName("my-workspace", roleKindClusterRole, "kubeflow-edit")).
+				NotTo(Equal(generateRoleBindingName("my-workspace", roleKindClusterRole, "kubeflow-view")))
+		})
+
+		It("should differ for a Role and a ClusterRole of the same name", func() {
+			Expect(generateRoleBindingName("my-workspace", roleKindRole, "kubeflow-edit")).
+				NotTo(Equal(generateRoleBindingName("my-workspace", roleKindClusterRole, "kubeflow-edit")))
 		})
 
 		It("should not collide when the Workspace/ClusterRole split is ambiguous", func() {
-			Expect(generateRoleBindingName("a", "b-c")).NotTo(Equal(generateRoleBindingName("a-b", "c")))
+			Expect(generateRoleBindingName("a", roleKindClusterRole, "b-c")).
+				NotTo(Equal(generateRoleBindingName("a-b", roleKindClusterRole, "c")))
 		})
 
 		It("should fit within the max RoleBinding name length", func() {
 			for _, workspaceName := range []string{"a", strings.Repeat("a", 253)} {
-				name := generateRoleBindingName(workspaceName, strings.Repeat("b", 253))
+				name := generateRoleBindingName(workspaceName, roleKindRole, strings.Repeat("b", 253))
 				Expect(len(name)).To(BeNumerically("<=", maxRoleBindingNameLength))
 				Expect(name).To(MatchRegexp(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`))
 			}

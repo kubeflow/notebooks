@@ -109,6 +109,51 @@ spec:
                         description: labels to be applied to the Pod resource
                         type: object
                     type: object
+                  serviceAccount:
+                    description: |-
+                      RBAC configs for the ServiceAccount which this Workspace's Pod runs as
+                       - the ServiceAccount itself is created and owned by the controller, its name is
+                         reported in `status.podTemplatePod.serviceAccountName` and is not settable here
+                    properties:
+                      roles:
+                        description: |-
+                          Roles to grant to the ServiceAccount of this Workspace (MUTABLE)
+                           - each entry becomes a RoleBinding to a Role in the Namespace of the Workspace,
+                             the Role does not have to exist yet
+                           - ClusterRoles are set by an administrator on the WorkspaceKind under
+                             `spec.podTemplate.serviceAccount.clusterRoles`, not here
+                           - adding an entry requires permission to create RoleBindings in the Namespace,
+                             removing one requires permission to delete them
+                           - changes take effect immediately, the Workspace does NOT need to be restarted
+                        example:
+                        - name: trainjob-mpi-exec
+                        items:
+                          description: WorkspaceRole identifies a Role to bind to
+                            a Workspace's ServiceAccount via a RoleBinding.
+                          properties:
+                            name:
+                              description: |-
+                                the name of the Role to bind to the Workspace ServiceAccount
+                                 - note, Role names are path segment names, so unlike most Kubernetes
+                                   resource names they may contain uppercase letters and ":"
+                              example: trainjob-mpi-exec
+                              maxLength: 253
+                              minLength: 1
+                              type: string
+                              x-kubernetes-validations:
+                              - message: must not be '.' or '..', and must not contain
+                                  '/' or '%'
+                                rule: self != '.' && self != '..' && !self.contains('/')
+                                  && !self.contains('%')
+                          required:
+                          - name
+                          type: object
+                        maxItems: 32
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                    type: object
                   volumes:
                     description: volume configs
                     properties:

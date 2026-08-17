@@ -72,6 +72,10 @@ const (
 	maxServiceAccountNameLength = 253 // RFC 1123 subdomain
 	maxRoleBindingNameLength    = 253 // path segment name, but we only generate RFC 1123 subdomains
 
+	// the `roleRef.kind` values used by the RoleBindings owned by a Workspace
+	roleKindRole        = "Role"
+	roleKindClusterRole = "ClusterRole"
+
 	// workspace connection path template
 	workspaceConnectPathTemplate = "/workspace/connect/%s/%s/%s/"
 
@@ -123,12 +127,11 @@ type WorkspaceReconciler struct {
 // +kubebuilder:rbac:groups=networking.istio.io,resources=virtualservices,verbs=create;delete;get;list;patch;update;watch
 // +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs=create;delete;get;list;patch;update;watch
 //
-// NOTE: "bind" is an intentional privilege grant. Kubernetes refuses to create a RoleBinding unless
-//       the creator holds every permission in the referenced role or holds "bind" on it, and the
-//       controller has to bind arbitrary administrator-chosen ClusterRoles from the WorkspaceKind.
-//       https://github.com/kubernetes/kubernetes/blob/v1.34.0/pkg/registry/rbac/rolebinding/policybased/storage.go
+// NOTE: "bind" is an intentional privilege grant, without it we could only bind roles whose
+//       permissions we already hold. It also disables the API server's escalation check, which
+//       makes `validateServiceAccountRoles()` the only gate on what a user can bind.
 //
-// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles,verbs=bind
+// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles;roles,verbs=bind
 
 func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) { //nolint:gocyclo
 	log := log.FromContext(ctx)
@@ -797,13 +800,13 @@ func generateServiceAccount(workspace *kubefloworgv1beta1.Workspace) *corev1.Ser
 	}
 }
 
-// generateRoleBindingName generates the name of the RoleBinding which grants a ClusterRole to the
-// ServiceAccount of a Workspace, the format is "ws-{WORKSPACE_NAME}-{HASH}"
-func generateRoleBindingName(workspaceName, clusterRoleName string) string {
-	// NOTE: the hash is for correctness, not just length. ClusterRole names may contain characters
-	//       which are invalid in a RoleBinding name (like ":"), and a plain join is ambiguous:
-	//       Workspace "a" + ClusterRole "b-c" would collide with Workspace "a-b" + ClusterRole "c"
-	suffix := hashName(workspaceName, clusterRoleName)
+// generateRoleBindingName generates the name of the RoleBinding which grants a Role or ClusterRole
+// to the ServiceAccount of a Workspace, the format is "ws-{WORKSPACE_NAME}-{HASH}"
+func generateRoleBindingName(workspaceName, roleKind, roleName string) string {
+	// NOTE: the hash is for correctness, not just length. Role names may contain characters which
+	//       are invalid in a RoleBinding name (like ":"), a plain join is ambiguous ("a" + "b-c"
+	//       vs "a-b" + "c"), and a Role and a ClusterRole may share a name.
+	suffix := hashName(workspaceName, roleKind, roleName)
 	prefix := fmt.Sprintf("ws-%s", workspaceName)
 	maxPrefixLength := maxRoleBindingNameLength - len(suffix) - 1
 	if len(prefix) > maxPrefixLength {
@@ -812,16 +815,16 @@ func generateRoleBindingName(workspaceName, clusterRoleName string) string {
 	return fmt.Sprintf("%s-%s", prefix, suffix)
 }
 
-// generateRoleBinding generates a RoleBinding which grants a ClusterRole to the ServiceAccount of a Workspace,
-// this is a namespaced RoleBinding, NOT a ClusterRoleBinding, so the ClusterRole is only granted
-// within the Namespace of the Workspace
-func generateRoleBinding(workspace *kubefloworgv1beta1.Workspace, serviceAccountName, clusterRoleName string) *rbacv1.RoleBinding {
+// generateRoleBinding generates a RoleBinding which grants a Role or ClusterRole to the ServiceAccount
+// of a Workspace, this is always a namespaced RoleBinding, NOT a ClusterRoleBinding, so a ClusterRole
+// is only granted within the Namespace of the Workspace
+func generateRoleBinding(workspace *kubefloworgv1beta1.Workspace, serviceAccountName, roleKind, roleName string) *rbacv1.RoleBinding {
 	//
 	// NOTE: if you add new fields, ensure they are reflected in `helper.CopyRoleBindingFields()`
 	//
 	return &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      generateRoleBindingName(workspace.Name, clusterRoleName),
+			Name:      generateRoleBindingName(workspace.Name, roleKind, roleName),
 			Namespace: workspace.Namespace,
 			Labels: map[string]string{
 				workspaceNameLabel: workspace.Name,
@@ -829,8 +832,8 @@ func generateRoleBinding(workspace *kubefloworgv1beta1.Workspace, serviceAccount
 		},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: rbacv1.GroupName,
-			Kind:     "ClusterRole",
-			Name:     clusterRoleName,
+			Kind:     roleKind,
+			Name:     roleName,
 		},
 		Subjects: []rbacv1.Subject{
 			{
@@ -843,17 +846,31 @@ func generateRoleBinding(workspace *kubefloworgv1beta1.Workspace, serviceAccount
 }
 
 // reconcileRoleBindings ensures the Workspace owns exactly one RoleBinding for each ClusterRole in the
-// WorkspaceKind `spec.podTemplate.serviceAccount.clusterRoles`, and no others
+// WorkspaceKind `spec.podTemplate.serviceAccount.clusterRoles` and each Role in the Workspace
+// `spec.podTemplate.serviceAccount.roles`, and no others
 func (r *WorkspaceReconciler) reconcileRoleBindings(ctx context.Context, log logr.Logger, workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind, serviceAccountName string) error {
 	desiredRoleBindings := make(map[string]*rbacv1.RoleBinding)
+	addDesired := func(roleKind, roleName string) error {
+		roleBinding := generateRoleBinding(workspace, serviceAccountName, roleKind, roleName)
+		if err := ctrl.SetControllerReference(workspace, roleBinding, r.Scheme); err != nil {
+			log.Error(err, "unable to set controller reference on RoleBinding")
+			return err
+		}
+		desiredRoleBindings[roleBinding.Name] = roleBinding
+		return nil
+	}
 	if workspaceKind.Spec.PodTemplate.ServiceAccount != nil {
 		for _, clusterRole := range workspaceKind.Spec.PodTemplate.ServiceAccount.ClusterRoles {
-			roleBinding := generateRoleBinding(workspace, serviceAccountName, clusterRole.Name)
-			if err := ctrl.SetControllerReference(workspace, roleBinding, r.Scheme); err != nil {
-				log.Error(err, "unable to set controller reference on RoleBinding")
+			if err := addDesired(roleKindClusterRole, clusterRole.Name); err != nil {
 				return err
 			}
-			desiredRoleBindings[roleBinding.Name] = roleBinding
+		}
+	}
+	if workspace.Spec.PodTemplate.ServiceAccount != nil {
+		for _, role := range workspace.Spec.PodTemplate.ServiceAccount.Roles {
+			if err := addDesired(roleKindRole, role.Name); err != nil {
+				return err
+			}
 		}
 	}
 
