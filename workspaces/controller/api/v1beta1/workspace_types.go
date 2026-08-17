@@ -63,8 +63,45 @@ type WorkspacePodTemplate struct {
 	// volume configs
 	Volumes WorkspacePodVolumes `json:"volumes"`
 
+	// RBAC configs for the ServiceAccount which this Workspace's Pod runs as
+	//  - the ServiceAccount itself is created and owned by the controller, its name is
+	//    reported in `status.podTemplatePod.serviceAccountName` and is not settable here
+	// +kubebuilder:validation:Optional
+	ServiceAccount *WorkspaceServiceAccount `json:"serviceAccount,omitempty"`
+
 	// the selected podTemplate options
 	Options WorkspacePodOptions `json:"options"`
+}
+
+// WorkspaceServiceAccount configures the ServiceAccount which the controller creates and
+// owns for this Workspace.
+type WorkspaceServiceAccount struct {
+	// Roles to grant to the ServiceAccount of this Workspace (MUTABLE)
+	//  - each entry becomes a RoleBinding to a Role in the Namespace of the Workspace,
+	//    the Role does not have to exist yet
+	//  - ClusterRoles are set by an administrator on the WorkspaceKind under
+	//    `spec.podTemplate.serviceAccount.clusterRoles`, not here
+	//  - adding an entry requires permission to create RoleBindings in the Namespace,
+	//    removing one requires permission to delete them
+	//  - changes take effect immediately, the Workspace does NOT need to be restarted
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxItems:=32
+	// +listType:="map"
+	// +listMapKey:="name"
+	// +kubebuilder:example={{name: "trainjob-mpi-exec"}}
+	Roles []WorkspaceRole `json:"roles,omitempty"`
+}
+
+// WorkspaceRole identifies a Role to bind to a Workspace's ServiceAccount via a RoleBinding.
+type WorkspaceRole struct {
+	// the name of the Role to bind to the Workspace ServiceAccount
+	//  - note, Role names are path segment names, so unlike most Kubernetes
+	//    resource names they may contain uppercase letters and ":"
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
+	// +kubebuilder:validation:XValidation:message="must not be '.' or '..', and must not contain '/' or '%'",rule="self != '.' && self != '..' && !self.contains('/') && !self.contains('%')"
+	// +kubebuilder:example:="trainjob-mpi-exec"
+	Name string `json:"name"`
 }
 
 type WorkspacePodMetadata struct {
