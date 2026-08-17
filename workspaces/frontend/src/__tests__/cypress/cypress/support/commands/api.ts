@@ -86,6 +86,16 @@ declare global {
           response: ApiWorkspaceDetailsEnvelope | ApiErrorEnvelope,
         ) => Cypress.Chainable<null>) &
         ((
+          // The logs endpoint responds with a raw text/plain stream instead of an envelope.
+          type: 'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/logs/batch',
+          options: {
+            path: { apiVersion: string; namespace: string; workspaceName: string };
+            query?: Query;
+            times?: number;
+          },
+          response: string | ApiErrorEnvelope,
+        ) => Cypress.Chainable<null>) &
+        ((
           type: 'PUT /api/:apiVersion/workspaces/:namespace/:workspaceName',
           options: { path: { apiVersion: string; namespace: string; workspaceName: string } },
           response: ApiWorkspaceEnvelope | ApiErrorEnvelope,

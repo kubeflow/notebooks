@@ -62,6 +62,12 @@ export const mockWorkspaceKind3: WorkspacekindsWorkspaceKindListItem = buildMock
   clusterMetrics: {
     workspacesCount: 0,
   },
+  restrictions: {
+    deny: true,
+    denyMessage: {
+      text: 'This workspace kind is currently unavailable. Please contact your administrator.',
+    },
+  },
 });
 
 export const mockWorkspaceKinds = [mockWorkspaceKind1, mockWorkspaceKind2, mockWorkspaceKind3];
@@ -250,6 +256,11 @@ export const mockWorkspace3: WorkspacesWorkspaceListItem = buildMockWorkspace({
   activity: {
     lastActivity: new Date(2025, 2, 15).getTime(),
     lastUpdate: new Date(2025, 2, 1).getTime(),
+    rules: {
+      pauseWorkspace: {
+        eligibleAfter: new Date(Date.now() + 500 * 60 * 60 * 24).getTime(),
+      },
+    },
   },
 });
 

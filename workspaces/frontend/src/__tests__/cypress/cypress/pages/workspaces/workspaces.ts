@@ -71,6 +71,22 @@ class Workspaces {
       .should('have.text', lastActivity);
   }
 
+  hoverWorkspaceRowLastActivity(index: number) {
+    cy.findByTestId(`workspace-row-${index}`)
+      .findByTestId('workspace-lastActivity')
+      .find('span')
+      .first()
+      .trigger('mouseenter');
+  }
+
+  assertTooltipContainsText(text: string) {
+    cy.findByTestId('workspace-lastActivity-tooltip').should('contain.text', text);
+  }
+
+  assertTooltipNotExists() {
+    cy.get('.pf-v6-c-tooltip').should('not.exist');
+  }
+
   applyFilter(args: { key: string; value: string; name: string }) {
     cy.findByTestId('filter-workspaces-dropdown').click();
     cy.findByTestId(`filter-workspaces-dropdown-${args.key}`).click();
@@ -347,6 +363,51 @@ class WorkspaceDetailsDrawer {
     return this.find().findByTestId('activity-tab');
   }
 
+  findLogsTab() {
+    return this.find().findByTestId('logs-tab');
+  }
+
+  findLogsTabContent() {
+    return this.find().findByTestId('logs-tab-content');
+  }
+
+  findLogsPreviousCheckbox() {
+    return this.findLogsTabContent().findByTestId('logs-previous-checkbox');
+  }
+
+  findLogsWrapCheckbox() {
+    return this.findLogsTabContent().findByTestId('logs-wrap-checkbox');
+  }
+
+  findLogsRefreshButton() {
+    return this.findLogsTabContent().findByTestId('logs-refresh-button');
+  }
+
+  findLogsDownloadButton() {
+    return this.findLogsTabContent().findByTestId('logs-download-button');
+  }
+
+  // The toolbar dropdowns are PatternFly SimpleSelects: click the toggle, then pick
+  // the option (which renders in a popper appended to the document body).
+  selectLogsContainer(optionName: string) {
+    this.findLogsTabContent().find('#logs-container-select').click();
+    cy.findByRole('option', { name: optionName }).click();
+  }
+
+  selectLogsTailLines(optionName: string) {
+    this.findLogsTabContent().find('#logs-tail-lines-select').click();
+    cy.findByRole('option', { name: optionName }).click();
+  }
+
+  selectLogsTimeRange(optionName: string) {
+    this.findLogsTabContent().find('#logs-since-select').click();
+    cy.findByRole('option', { name: optionName }).click();
+  }
+
+  assertLogsTabContentContainsText(text: string) {
+    this.findLogsTabContent().should('contain.text', text);
+  }
+
   assertOverviewTabSelected(isSelected: boolean) {
     return this.findOverviewTab().should(
       'have.attr',
@@ -405,6 +466,10 @@ class WorkspaceDetailsDrawer {
 
   assertActivityTabContentContainsText(text: string) {
     this.findActivityTabContent().should('contain.text', text);
+  }
+
+  assertActivityTabContentNotContainsText(text: string) {
+    this.findActivityTabContent().should('not.contain.text', text);
   }
 
   assertOverviewTabAriaSelected(selected: boolean) {

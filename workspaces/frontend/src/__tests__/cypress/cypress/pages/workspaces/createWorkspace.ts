@@ -172,6 +172,24 @@ class CreateWorkspace extends WorkspaceForm {
       cy.contains('Default').should('be.visible');
     });
   }
+
+  assertCardIsDisabled(cardId: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.get(`#${cardId.replace(/ /g, '-')}`).should('have.class', 'pf-m-disabled');
+  }
+
+  assertCardIsNotDisabled(cardId: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.get(`#${cardId.replace(/ /g, '-')}`).should('not.have.class', 'pf-m-disabled');
+  }
+
+  assertCardHasNoSelectableAction(cardId: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.get(`#${cardId.replace(/ /g, '-')}`).within(() => {
+      cy.get('input[type="radio"]').should('not.exist');
+    });
+  }
+
+  assertCardIsNotSelected(cardId: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.get(`#${cardId.replace(/ /g, '-')}`).should('not.have.class', 'pf-m-selected');
+  }
 }
 
 export const createWorkspace = new CreateWorkspace();

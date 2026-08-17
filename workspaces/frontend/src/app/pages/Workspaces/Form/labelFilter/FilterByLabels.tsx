@@ -28,6 +28,19 @@ type FilterByLabelsProps<T> = {
   filterControlRef?: React.Ref<FilterControlHandle>;
 };
 
+const buildLabelMap = <T,>(objects: LabelledObject<T>[]): Map<string, Set<string>> => {
+  const labelsMap = new Map<string, Set<string>>();
+  objects
+    .flatMap((obj) => obj.labels ?? [])
+    .forEach((label) => {
+      if (!labelsMap.has(label.key)) {
+        labelsMap.set(label.key, new Set<string>());
+      }
+      labelsMap.get(label.key)?.add(label.value);
+    });
+  return labelsMap;
+};
+
 export const FilterByLabels = <T,>(props: FilterByLabelsProps<T>): React.ReactElement => {
   const [selectedLabels, setSelectedLabels] = useState<Map<string, Set<string>>>(new Map());
   const [selectedExtraFilters, setSelectedExtraFilters] = useState<Map<string, ExtraFilter<T>>>(
@@ -38,18 +51,23 @@ export const FilterByLabels = <T,>(props: FilterByLabelsProps<T>): React.ReactEl
     },
   );
 
-  const filterMap = useMemo(() => {
-    const labelsMap = new Map<string, Set<string>>();
-    props.labelledObjects
-      .flatMap((labelledObject) => labelledObject.labels ?? [])
-      .forEach((label) => {
-        if (!labelsMap.has(label.key)) {
-          labelsMap.set(label.key, new Set<string>());
-        }
-        labelsMap.get(label.key)?.add(label.value);
-      });
-    return labelsMap;
-  }, [props.labelledObjects]);
+  const filterMap = useMemo(() => buildLabelMap(props.labelledObjects), [props.labelledObjects]);
+
+  const availableLabelValues = useMemo(
+    () =>
+      buildLabelMap(
+        props.labelledObjects.filter((obj) =>
+          [...selectedExtraFilters.values()].every((ef) => ef.matchesFilter(obj, ef.value)),
+        ),
+      ),
+    [props.labelledObjects, selectedExtraFilters],
+  );
+
+  const isLabelValueAvailable = useCallback(
+    (labelKey: string, labelValue: string) =>
+      availableLabelValues.get(labelKey)?.has(labelValue) ?? false,
+    [availableLabelValues],
+  );
 
   const isLabelChecked = useCallback(
     (label: string, labelValue: string) => selectedLabels.get(label)?.has(labelValue),
@@ -127,6 +145,32 @@ export const FilterByLabels = <T,>(props: FilterByLabelsProps<T>): React.ReactEl
   );
 
   useEffect(() => {
+    setSelectedLabels((prev) => {
+      const cleaned = new Map<string, Set<string>>();
+      let changed = false;
+      for (const [key, values] of prev) {
+        const available = availableLabelValues.get(key);
+        if (!available) {
+          changed = true;
+          continue;
+        }
+        const kept = new Set<string>();
+        for (const v of values) {
+          if (available.has(v)) {
+            kept.add(v);
+          } else {
+            changed = true;
+          }
+        }
+        if (kept.size > 0) {
+          cleaned.set(key, kept);
+        }
+      }
+      return changed ? cleaned : prev;
+    });
+  }, [availableLabelValues]);
+
+  useEffect(() => {
     updateLabelledObjects();
   }, [selectedLabels, selectedExtraFilters, updateLabelledObjects]);
 
@@ -172,16 +216,30 @@ export const FilterByLabels = <T,>(props: FilterByLabelsProps<T>): React.ReactEl
           data-testid={`label-category-${label}`}
           title={formatLabelKey(label)}
         >
-          {Array.from(filterMap.get(label)?.values() ?? []).map((labelValue) => (
-            <FilterSidePanelCategoryItem
-              key={`${label}|||${labelValue}`}
-              data-testid={`label-filter-${label}-${labelValue}`}
-              checked={isLabelChecked(label, labelValue)}
-              onClick={(e) => onChange(label, labelValue, e)}
-            >
-              {labelValue}
-            </FilterSidePanelCategoryItem>
-          ))}
+          {Array.from(filterMap.get(label)?.values() ?? [])
+            .sort((a, b) => {
+              const aAvail = isLabelValueAvailable(label, a);
+              const bAvail = isLabelValueAvailable(label, b);
+              if (aAvail === bAvail) {
+                return 0;
+              }
+              return aAvail ? -1 : 1;
+            })
+            .map((labelValue) => {
+              const available = isLabelValueAvailable(label, labelValue);
+              return (
+                <FilterSidePanelCategoryItem
+                  key={`${label}|||${labelValue}`}
+                  className={available ? '' : 'filter-label--disabled'}
+                  data-testid={`label-filter-${label}-${labelValue}`}
+                  checked={available && isLabelChecked(label, labelValue)}
+                  onClick={available ? (e) => onChange(label, labelValue, e) : undefined}
+                  aria-disabled={!available}
+                >
+                  {labelValue}
+                </FilterSidePanelCategoryItem>
+              );
+            })}
         </FilterSidePanelCategory>
       ))}
     </FilterSidePanel>

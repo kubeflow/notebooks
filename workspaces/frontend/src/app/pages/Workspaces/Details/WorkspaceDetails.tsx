@@ -17,6 +17,7 @@ import { Title } from '@patternfly/react-core/dist/esm/components/Title';
 import { WorkspaceDetailsOverview } from '~/app/pages/Workspaces/Details/WorkspaceDetailsOverview';
 import { WorkspaceDetailsActions } from '~/app/pages/Workspaces/Details/WorkspaceDetailsActions';
 import { WorkspaceDetailsActivity } from '~/app/pages/Workspaces/Details/WorkspaceDetailsActivity';
+import { WorkspaceDetailsLogs } from '~/app/pages/Workspaces/Details/WorkspaceDetailsLogs';
 import { WorkspaceDetailsPodTemplate } from '~/app/pages/Workspaces/Details/WorkspaceDetailsPodTemplate';
 import { WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
 import { WorkspaceResources } from '~/app/pages/Workspaces/WorkspaceResources';
@@ -83,14 +84,13 @@ export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = 
             aria-label="Resources"
             data-testid="resources-tab"
           />
-          {/* TODO: Uncomment when Logs visualization is fully supported
           <Tab
-            eventKey={2}
+            eventKey={3}
             title={<TabTitleText>Logs</TabTitleText>}
             tabContentId="logsTabContent"
             aria-label="Logs"
+            data-testid="logs-tab"
           />
-          */}
           {/* TODO: Uncomment when Pod template visualization is fully supported
           <Tab
             eventKey={3}
@@ -152,12 +152,24 @@ export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = 
         </TabContent>
         <TabContent
           key={3}
+          style={{ height: '100%' }}
           eventKey={3}
           id="logsTabContent"
+          data-testid="logs-tab-content"
           activeKey={activeTabKey}
           hidden={activeTabKey !== 3}
         >
-          <TabContentBody hasPadding>Logs</TabContentBody>
+          <TabContentBody style={{ height: '100%' }} hasPadding>
+            {/* The log viewer sizes itself on mount, so it must not be mounted while hidden. */}
+            {activeTabKey === 3 && (
+              <WorkspaceDetailsLogs
+                workspace={workspace}
+                details={details}
+                detailsLoaded={detailsLoaded}
+                detailsError={detailsError}
+              />
+            )}
+          </TabContentBody>
         </TabContent>
 
         <TabContent

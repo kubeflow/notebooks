@@ -9,6 +9,7 @@ import {
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { Gallery } from '@patternfly/react-core/dist/esm/layouts/Gallery';
 import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
+import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
 import ToolbarFilter, { FilterConfigMap } from '~/shared/components/ToolbarFilter';
 import { useToolbarFilters, applyFilters } from '~/shared/hooks/useToolbarFilters';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
@@ -112,67 +113,86 @@ export const WorkspaceFormKindList: React.FunctionComponent<WorkspaceFormKindLis
           <Gallery hasGutter aria-label="Selectable card container">
             {filteredWorkspaceKinds
               .filter((kind) => !kind.hidden)
-              .map((kind) => (
-                <Card
-                  isCompact
-                  isSelectable
-                  key={kind.name}
-                  id={kind.name.replace(/ /g, '-')}
-                  isSelected={kind.name === selectedKind?.name}
-                  style={
-                    isSelectionDisabled && kind.name !== selectedKind?.name
-                      ? { opacity: 0.5, cursor: 'not-allowed' }
-                      : undefined
-                  }
-                  onClick={() => handleCardClick(kind)}
-                >
-                  <CardHeader
-                    selectableActions={{
-                      selectableActionId: `selectable-actions-item-${kind.name.replace(/ /g, '-')}`,
-                      selectableActionAriaLabelledby: kind.name.replace(/ /g, '-'),
-                      name: kind.name,
-                      variant: 'single',
-                      onChange,
-                    }}
+              .map((kind) => {
+                const denied = kind.restrictions.deny;
+                const denyMessage = kind.restrictions.denyMessage?.text;
+                const card = (
+                  <Card
+                    isCompact
+                    isSelectable={!denied}
+                    isDisabled={denied}
+                    isClickable={denied}
+                    key={kind.name}
+                    id={kind.name.replace(/ /g, '-')}
+                    isSelected={!denied && kind.name === selectedKind?.name}
+                    style={
+                      isSelectionDisabled && kind.name !== selectedKind?.name
+                        ? { opacity: 0.5, cursor: 'not-allowed' }
+                        : undefined
+                    }
+                    onClick={() => handleCardClick(kind)}
+                    data-testid={`kind-card-${kind.name}`}
                   >
-                    <Flex
-                      alignItems={{ default: 'alignItemsCenter' }}
-                      spaceItems={{ default: 'spaceItemsMd' }}
+                    <CardHeader
+                      selectableActions={
+                        denied
+                          ? undefined
+                          : {
+                              selectableActionId: `selectable-actions-item-${kind.name.replace(/ /g, '-')}`,
+                              selectableActionAriaLabelledby: kind.name.replace(/ /g, '-'),
+                              name: kind.name,
+                              variant: 'single',
+                              onChange,
+                            }
+                      }
                     >
-                      <FlexItem>
-                        <WorkspaceKindImage
-                          imageSrc={kind.logo.url}
-                          skeletonWidth="60px"
-                          fallback={
-                            <ImageFallback
-                              imageSrc={kind.logo.url}
-                              extended
-                              message="Cannot load logo image"
-                            />
-                          }
-                          assetType="logo"
-                          kindName={kind.name}
-                        >
-                          {(validSrc) => (
-                            <img
-                              src={validSrc}
-                              alt={`${kind.name} logo`}
-                              className="workspace-kind-logo"
-                              data-testid={`kind-logo-${kind.name}`}
-                            />
-                          )}
-                        </WorkspaceKindImage>
-                      </FlexItem>
-                      <FlexItem>
-                        <CardTitle>{kind.displayName}</CardTitle>
-                      </FlexItem>
-                    </Flex>
-                  </CardHeader>
-                  <CardBody className="workspace-option-card__description">
-                    {kind.description}
-                  </CardBody>
-                </Card>
-              ))}
+                      <Flex
+                        alignItems={{ default: 'alignItemsCenter' }}
+                        spaceItems={{ default: 'spaceItemsMd' }}
+                      >
+                        <FlexItem>
+                          <WorkspaceKindImage
+                            imageSrc={kind.logo.url}
+                            skeletonWidth="60px"
+                            fallback={
+                              <ImageFallback
+                                imageSrc={kind.logo.url}
+                                extended
+                                message="Cannot load logo image"
+                              />
+                            }
+                            assetType="logo"
+                            kindName={kind.name}
+                          >
+                            {(validSrc) => (
+                              <img
+                                src={validSrc}
+                                alt={`${kind.name} logo`}
+                                className="workspace-kind-logo"
+                                data-testid={`kind-logo-${kind.name}`}
+                              />
+                            )}
+                          </WorkspaceKindImage>
+                        </FlexItem>
+                        <FlexItem>
+                          <CardTitle>{kind.displayName}</CardTitle>
+                        </FlexItem>
+                      </Flex>
+                    </CardHeader>
+                    <CardBody className="workspace-option-card__description">
+                      {kind.description}
+                    </CardBody>
+                  </Card>
+                );
+
+                return denied && denyMessage ? (
+                  <Tooltip key={kind.name} content={denyMessage}>
+                    {card}
+                  </Tooltip>
+                ) : (
+                  card
+                );
+              })}
           </Gallery>
         )}
       </PageSection>

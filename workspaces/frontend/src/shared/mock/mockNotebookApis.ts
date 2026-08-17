@@ -21,6 +21,7 @@ import { buildAxiosError, isInvalidWorkspace, isInvalidYaml } from '~/shared/moc
 import {
   buildMockWorkspaceDetails,
   buildMockWorkspaceKindUpdate,
+  buildMockWorkspaceLogs,
   buildMockWorkspaceUpdateFromWorkspace,
 } from './mockBuilder';
 
@@ -77,6 +78,8 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
     getWorkspacePodTemplateDetails: async () => ({
       data: buildMockWorkspaceDetails(),
     }),
+    getWorkspacePodTemplateLogsBatch: async (_namespace, _workspaceName, query) =>
+      buildMockWorkspaceLogs(Math.min(query?.tailLines ?? 20, 50)),
     updateWorkspacePauseState: async (_namespace, _workspaceName, body) => {
       await delay(1500);
       return {
