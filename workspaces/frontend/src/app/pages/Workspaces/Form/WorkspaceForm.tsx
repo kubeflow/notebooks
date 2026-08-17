@@ -82,6 +82,7 @@ const WorkspaceForm: React.FC = () => {
     workspaceKindName,
   });
 
+  const [isPropertiesValid, setIsPropertiesValid] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(WorkspaceFormSteps.KindSelection);
   const [error, setError] = useState<string | ApiErrorEnvelope | null>(null);
@@ -167,14 +168,19 @@ const WorkspaceForm: React.FC = () => {
         case WorkspaceFormSteps.PodConfigSelection:
           return !!data.podConfig;
         case WorkspaceFormSteps.Properties:
-          return !!data.properties.workspaceName.trim() && !!data.properties.homeVolume;
+          return (
+            !!data.properties.workspaceName.trim() &&
+            !!data.properties.homeVolume &&
+            isPropertiesValid
+          );
         case WorkspaceFormSteps.Summary:
           return (
             !!data.kind &&
             !!data.imageConfig &&
             !!data.podConfig &&
             !!data.properties.workspaceName.trim() &&
-            !!data.properties.homeVolume
+            !!data.properties.homeVolume &&
+            isPropertiesValid
           );
         default:
           return false;
@@ -186,6 +192,7 @@ const WorkspaceForm: React.FC = () => {
       data.podConfig,
       data.properties.workspaceName,
       data.properties.homeVolume,
+      isPropertiesValid,
     ],
   );
 
@@ -531,6 +538,7 @@ const WorkspaceForm: React.FC = () => {
                         selectedProperties={data.properties}
                         onSelect={(properties) => setData('properties', properties)}
                         homeVolumeMountPath={data.kind?.podTemplate.volumeMounts.home}
+                        onValidityChange={setIsPropertiesValid}
                       />
                     )}
                     {currentStep === WorkspaceFormSteps.Summary && (
@@ -570,7 +578,7 @@ const WorkspaceForm: React.FC = () => {
                         variant="primary"
                         ouiaId="Primary"
                         onClick={handleSubmit}
-                        isDisabled={!canSubmit}
+                        isDisabled={!isPropertiesValid || !canSubmit}
                         data-testid="submit-button"
                       >
                         {mode === 'create' ? 'Create' : 'Save'}
