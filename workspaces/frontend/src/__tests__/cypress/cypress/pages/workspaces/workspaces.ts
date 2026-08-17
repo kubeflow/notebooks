@@ -363,6 +363,53 @@ class WorkspaceDetailsDrawer {
     return this.find().findByTestId('activity-tab');
   }
 
+  findResourcesTab() {
+    return this.find().findByTestId('resources-tab');
+  }
+
+  findResourcesTabContent() {
+    return this.find().findByTestId('resources-tab-content');
+  }
+
+  findResourceCard(resourceKey: string) {
+    return this.findResourcesTabContent().findByTestId(`resource-card-${resourceKey}`);
+  }
+
+  assertResourceCardExists(resourceKey: string) {
+    this.findResourceCard(resourceKey).should('exist');
+  }
+
+  assertResourceRequest(resourceKey: string, value: string) {
+    this.findResourcesTabContent()
+      .findByTestId(`resource-request-${resourceKey}`)
+      .should('contain.text', value);
+  }
+
+  assertResourceLimit(resourceKey: string, value: string) {
+    this.findResourcesTabContent()
+      .findByTestId(`resource-limit-${resourceKey}`)
+      .should('contain.text', value);
+  }
+
+  assertResourceUsage(resourceKey: string, value: string) {
+    this.findResourcesTabContent()
+      .findByTestId(`resource-usage-${resourceKey}`)
+      .should('contain.text', value);
+  }
+
+  assertResourcesTabContentContainsText(text: string) {
+    this.findResourcesTabContent().should('contain.text', text);
+  }
+
+  assertResourceErrorAlert(testId: string) {
+    this.findResourcesTabContent().findByTestId(testId).should('exist');
+  }
+
+  selectResourceContainer(optionName: string) {
+    this.findResourcesTabContent().find('#resource-container-select').click();
+    cy.findByRole('option', { name: optionName }).click();
+  }
+
   findLogsTab() {
     return this.find().findByTestId('logs-tab');
   }

@@ -13,6 +13,13 @@ import {
 
 export type ResourceType = 'cpu' | 'memory' | 'storage' | 'gpu';
 
+export const RESOURCE_DISPLAY_NAMES: Record<ResourceType, string> = {
+  cpu: 'CPU',
+  memory: 'Memory',
+  storage: 'Storage',
+  gpu: 'GPU',
+};
+
 export enum YesNoValue {
   Yes = 'Yes',
   No = 'No',

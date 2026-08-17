@@ -3,6 +3,10 @@ import {
   DetailsWorkspaceDetails,
   HealthCheckHealthCheck,
   HealthCheckServiceStatus,
+  MetricsContainerResourceUsage,
+  MetricsMetricsFromMetricsServer,
+  MetricsResourceValues,
+  MetricsWorkspaceResourceUsage,
   NamespacesNamespace,
   OptionsImageConfigValue,
   OptionsPodConfigValue,
@@ -981,3 +985,40 @@ export const buildMockWorkspaceLogs = (lineCount = 5): string => {
     return `${timestamp} [INFO] jupyter server log line ${i + 1}`;
   }).join('\n');
 };
+
+export const buildMockMetricsResourceValues = (
+  overrides?: Partial<MetricsResourceValues>,
+): MetricsResourceValues => ({
+  cpu: '50m',
+  memory: '64Mi',
+  ...overrides,
+});
+
+export const buildMockMetricsFromMetricsServer = (
+  overrides?: Partial<MetricsMetricsFromMetricsServer>,
+): MetricsMetricsFromMetricsServer => ({
+  timestamp: '2025-07-01T12:00:00Z',
+  usage: buildMockMetricsResourceValues(),
+  ...overrides,
+});
+
+export const buildMockContainerResourceUsage = (
+  overrides?: Partial<MetricsContainerResourceUsage>,
+): MetricsContainerResourceUsage => ({
+  resources: {
+    requests: { cpu: '100m', memory: '128Mi' } as unknown as Record<string, never>,
+    limits: { cpu: '500m', memory: '512Mi' } as unknown as Record<string, never>,
+  },
+  metricsFromMetricsServer: buildMockMetricsFromMetricsServer(),
+  ...overrides,
+});
+
+export const buildMockWorkspaceResourceUsage = (
+  overrides?: Partial<MetricsWorkspaceResourceUsage>,
+): MetricsWorkspaceResourceUsage => ({
+  containers: {
+    main: buildMockContainerResourceUsage(),
+    container1: buildMockContainerResourceUsage(),
+  },
+  ...overrides,
+});

@@ -15,8 +15,10 @@ import {
 import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import { Divider } from '@patternfly/react-core/dist/esm/components/Divider';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
+import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import { DetailsLoadingState } from '~/app/components/DetailsLoadingState';
-import { formatResourceFromWorkspace } from '~/shared/utilities/WorkspaceUtils';
+import { useWorkspaceResourceUsage } from '~/app/hooks/useWorkspaceResourceUsage';
+import { WorkspaceResourceCards } from '~/app/pages/Workspaces/Details/WorkspaceResourceCards';
 import { DetailsWorkspaceDetails, WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
 
 interface WorkspaceResourcesProps {
@@ -32,6 +34,14 @@ export const WorkspaceResources: React.FC<WorkspaceResourcesProps> = ({
   detailsLoaded,
   detailsError,
 }) => {
+  const {
+    resourceUsage,
+    containerNames,
+    containers,
+    loaded: resourceUsageLoaded,
+    error: resourceUsageError,
+  } = useWorkspaceResourceUsage(workspace.namespace, workspace.name);
+
   const singleDataVolRenderer = (data: {
     pvcName: string;
     mountPath: string;
@@ -68,42 +78,44 @@ export const WorkspaceResources: React.FC<WorkspaceResourcesProps> = ({
   );
 
   return (
-    <DescriptionList isHorizontal>
-      <DescriptionListGroup>
-        <DescriptionListTerm>CPU</DescriptionListTerm>
-        <DescriptionListDescription>
-          {formatResourceFromWorkspace(workspace, 'cpu')}
-        </DescriptionListDescription>
-      </DescriptionListGroup>
-      <Divider />
-      <DescriptionListGroup>
-        <DescriptionListTerm>Memory</DescriptionListTerm>
-        <DescriptionListDescription>
-          {formatResourceFromWorkspace(workspace, 'memory')}
-        </DescriptionListDescription>
-      </DescriptionListGroup>
-      <Divider />
-      <DescriptionListGroup>
-        <DescriptionListTerm>Home volume</DescriptionListTerm>
-        <DescriptionListDescription>
-          <DetailsLoadingState error={detailsError} loaded={detailsLoaded}>
-            {details?.volumes.home.pvcName ?? 'None'}
-          </DetailsLoadingState>
-        </DescriptionListDescription>
-      </DescriptionListGroup>
-      <Divider />
-      <DescriptionListGroup>
-        <DescriptionListTerm data-testid="notebook-storage-bar-title">
-          Cluster storage
-        </DescriptionListTerm>
-        <DescriptionListDescription>
-          <DetailsLoadingState error={detailsError} loaded={detailsLoaded}>
-            <Flex direction={{ default: 'column' }}>
-              {(details?.volumes.data ?? []).map((data) => singleDataVolRenderer(data))}
-            </Flex>
-          </DetailsLoadingState>
-        </DescriptionListDescription>
-      </DescriptionListGroup>
-    </DescriptionList>
+    <Stack hasGutter>
+      <StackItem>
+        <DescriptionList isHorizontal>
+          <DescriptionListGroup>
+            <DescriptionListTerm>Home volume</DescriptionListTerm>
+            <DescriptionListDescription>
+              <DetailsLoadingState error={detailsError} loaded={detailsLoaded}>
+                {details?.volumes.home.pvcName ?? 'None'}
+              </DetailsLoadingState>
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+          <Divider />
+          <DescriptionListGroup>
+            <DescriptionListTerm data-testid="notebook-storage-bar-title">
+              Cluster storage
+            </DescriptionListTerm>
+            <DescriptionListDescription>
+              <DetailsLoadingState error={detailsError} loaded={detailsLoaded}>
+                <Flex direction={{ default: 'column' }}>
+                  {(details?.volumes.data ?? []).map((data) => singleDataVolRenderer(data))}
+                </Flex>
+              </DetailsLoadingState>
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+        </DescriptionList>
+      </StackItem>
+      <StackItem>
+        <Divider />
+      </StackItem>
+      <StackItem>
+        <WorkspaceResourceCards
+          resourceUsage={resourceUsage}
+          containerNames={containerNames}
+          containers={containers}
+          loaded={resourceUsageLoaded}
+          error={resourceUsageError}
+        />
+      </StackItem>
+    </Stack>
   );
 };
