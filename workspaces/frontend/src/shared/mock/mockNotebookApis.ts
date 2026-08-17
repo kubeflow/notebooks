@@ -86,7 +86,6 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
         data: { paused: body.data.paused },
       };
     },
-    getWorkspacePodTemplateLogsBatch: async () => '',
   },
   workspaceKinds: {
     listWorkspaceKinds: async () => ({ data: mockWorkspaceKinds }),

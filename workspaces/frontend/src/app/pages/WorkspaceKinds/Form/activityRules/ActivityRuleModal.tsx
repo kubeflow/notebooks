@@ -39,7 +39,7 @@ export const ActivityRuleModal: React.FC<ActivityRuleModalProps> = ({
   onSubmit,
   existingRule,
 }) => {
-  const [secondsSinceActive, setSecondsSinceActive] = useState(15);
+  const [secondsSinceActive, setSecondsSinceActive] = useState(3600);
   const [minRunningSeconds, setMinRunningSeconds] = useState(0);
   const [pauseWorkspace, setPauseWorkspace] = useState(true);
   const [namespaceLabels, setNamespaceLabels] = useState<KeyValueRow[]>([]);
@@ -121,7 +121,7 @@ export const ActivityRuleModal: React.FC<ActivityRuleModalProps> = ({
             />
             <HelperText>
               <HelperTextItem>
-                How long a workspace must run before this rule can apply.. Must be minimum of 15
+                How long a workspace can be inactive before the effect runs. Must be greater than 15
                 seconds.
               </HelperTextItem>
             </HelperText>

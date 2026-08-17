@@ -1,4 +1,8 @@
-import { getResources, convertFormDataToUpdate } from '~/app/pages/WorkspaceKinds/Form/helpers';
+import {
+  getResources,
+  convertFormDataToUpdate,
+  formatSeconds,
+} from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { mockPodConfig } from '~/__mocks__/mockResources';
 import { WorkspaceKindFormData, WorkspaceKindPodConfigValue, ImagePullPolicy } from '~/app/types';
 import {
@@ -399,5 +403,107 @@ describe('convertFormDataToUpdate', () => {
     const result = convertFormDataToUpdate(formData, original);
 
     expect(result.podTemplate.volumeMounts).toEqual({ home: '/home/jovyan' });
+  });
+
+  it('should format seconds below 60 as raw seconds', () => {
+    expect(formatSeconds(0)).toBe('0s');
+    expect(formatSeconds(1)).toBe('1s');
+    expect(formatSeconds(15)).toBe('15s');
+    expect(formatSeconds(59)).toBe('59s');
+  });
+
+  it('should format exact minutes', () => {
+    expect(formatSeconds(60)).toBe('1 minute');
+    expect(formatSeconds(120)).toBe('2 minutes');
+    expect(formatSeconds(300)).toBe('5 minutes');
+  });
+
+  it('should format exact hours', () => {
+    expect(formatSeconds(3600)).toBe('1 hour');
+    expect(formatSeconds(7200)).toBe('2 hours');
+    expect(formatSeconds(10800)).toBe('3 hours');
+  });
+
+  it('should format exact days', () => {
+    expect(formatSeconds(86400)).toBe('1 day');
+    expect(formatSeconds(172800)).toBe('2 days');
+  });
+
+  it('should round non-round values to nearest 0.25', () => {
+    expect(formatSeconds(5400)).toBe('1.5 hours');
+    expect(formatSeconds(2700)).toBe('45 minutes');
+    expect(formatSeconds(4500)).toBe('1.25 hours');
+    expect(formatSeconds(90)).toBe('1.5 minutes');
+    expect(formatSeconds(129600)).toBe('1.5 days');
+  });
+
+  it('should round ugly decimals cleanly', () => {
+    expect(formatSeconds(3661)).toBe('1 hour');
+    expect(formatSeconds(3700)).toBe('1 hour');
+    expect(formatSeconds(4000)).toBe('1 hour');
+    expect(formatSeconds(86500)).toBe('1 day');
+  });
+
+  it('should use correct singular/plural', () => {
+    expect(formatSeconds(60)).toBe('1 minute');
+    expect(formatSeconds(120)).toBe('2 minutes');
+    expect(formatSeconds(3600)).toBe('1 hour');
+    expect(formatSeconds(7200)).toBe('2 hours');
+    expect(formatSeconds(86400)).toBe('1 day');
+    expect(formatSeconds(172800)).toBe('2 days');
+  });
+  it('should convert activityRules from form data, stripping the id field', () => {
+    const formData = buildMockFormData({
+      activityRules: [
+        {
+          id: 'rule-1',
+          config: { secondsSinceActive: 3600, minRunningSeconds: 300 },
+          match: {
+            matchNamespace: {
+              selector: { matchLabels: { tier: 'development' } },
+            },
+          },
+          effect: { pauseWorkspace: true },
+        },
+        {
+          id: 'rule-2',
+          config: { secondsSinceActive: 86400 },
+          effect: { pauseWorkspace: true },
+        },
+      ],
+    });
+    const original = buildMockApiUpdate();
+    const result = convertFormDataToUpdate(formData, original);
+
+    expect(result.activityRules).toHaveLength(2);
+    expect(result.activityRules![0]).toEqual({
+      config: { secondsSinceActive: 3600, minRunningSeconds: 300 },
+      match: {
+        matchNamespace: {
+          selector: { matchLabels: { tier: 'development' } },
+        },
+      },
+      effect: { pauseWorkspace: true },
+    });
+    expect(result.activityRules![1]).toEqual({
+      config: { secondsSinceActive: 86400 },
+      effect: { pauseWorkspace: true },
+    });
+  });
+
+  it('should output undefined activityRules when form data has no rules', () => {
+    const formData = buildMockFormData();
+    const original = buildMockApiUpdate();
+    const result = convertFormDataToUpdate(formData, original);
+
+    expect(result.activityRules).toBeUndefined();
+  });
+
+  it('should output empty activityRules array when form data has empty array', () => {
+    const formData = buildMockFormData({ activityRules: [] });
+    const original = buildMockApiUpdate();
+    const result = convertFormDataToUpdate(formData, original);
+
+    expect(result.activityRules).toEqual([]);
   });
 });

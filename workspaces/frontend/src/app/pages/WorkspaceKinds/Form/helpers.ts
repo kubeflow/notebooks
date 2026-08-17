@@ -217,6 +217,22 @@ export const emptyActivityRule = (): ActivityRuleEntry => ({
   },
 });
 
+export const formatSeconds = (seconds: number): string => {
+  if (seconds >= 86400) {
+    const days = Math.round((seconds / 86400) * 4) / 4;
+    return `${days} day${days !== 1 ? 's' : ''}`;
+  }
+  if (seconds >= 3600) {
+    const hours = Math.round((seconds / 3600) * 4) / 4;
+    return `${hours} hour${hours !== 1 ? 's' : ''}`;
+  }
+  if (seconds >= 60) {
+    const minutes = Math.round((seconds / 60) * 4) / 4;
+    return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+  }
+  return `${seconds}s`;
+};
+
 const convertRedirectToApi = (
   redirect: WorkspaceKindPodConfigValue['redirect'],
 ): V1Beta1OptionRedirect | undefined => {

@@ -11,30 +11,14 @@ import { PencilAltIcon } from '@patternfly/react-icons/dist/esm/icons/pencil-alt
 import { TrashAltIcon } from '@patternfly/react-icons/dist/esm/icons/trash-alt-icon';
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
 import { ActivityRuleEntry } from '~/app/types';
+import { formatSeconds } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { LabelGroupWithTooltip } from '~/app/components/LabelGroupWithTooltip';
-
 import { ActivityRuleModal } from './ActivityRuleModal';
 
 interface WorkspaceKindFormActivityRulesProps {
   activityRules: ActivityRuleEntry[];
   updateActivityRules: (rules: ActivityRuleEntry[]) => void;
 }
-
-const formatSeconds = (seconds: number): string => {
-  if (seconds >= 86400) {
-    const days = seconds / 86400;
-    return `${days} day${days !== 1 ? 's' : ''}`;
-  }
-  if (seconds >= 3600) {
-    const hours = seconds / 3600;
-    return `${hours} hour${hours !== 1 ? 's' : ''}`;
-  }
-  if (seconds >= 60) {
-    const minutes = seconds / 60;
-    return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
-  }
-  return `${seconds}s`;
-};
 
 const formatMatchLabels = (labels?: Record<string, string>): string | React.ReactNode[] => {
   if (!labels || Object.keys(labels).length === 0) {
