@@ -242,3 +242,10 @@ body,
 .mui-theme .pf-v6-c-page.pf-m-no-sidebar .pf-v6-c-page__main {
   margin-left: 0;
 }
+
+/* Single-endpoint "Connect" control: rendered as a MenuToggle (so it keeps the
+   same size as the multi-endpoint dropdown), but its caret is rotated to point
+   right to signal that clicking connects directly instead of opening a menu. */
+.kubeflow-connect-toggle--direct .pf-v6-c-menu-toggle__toggle-icon {
+  transform: rotate(-90deg);
+}
