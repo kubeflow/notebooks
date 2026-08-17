@@ -22,6 +22,7 @@ import {
   buildMockWorkspaceDetails,
   buildMockWorkspaceKindUpdate,
   buildMockWorkspaceLogs,
+  buildMockWorkspaceResourceUsage,
   buildMockWorkspaceUpdateFromWorkspace,
 } from './mockBuilder';
 
@@ -86,6 +87,9 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
         data: { paused: body.data.paused },
       };
     },
+    getWorkspacePodTemplateResources: async () => ({
+      data: buildMockWorkspaceResourceUsage(),
+    }),
   },
   workspaceKinds: {
     listWorkspaceKinds: async () => ({ data: mockWorkspaceKinds }),

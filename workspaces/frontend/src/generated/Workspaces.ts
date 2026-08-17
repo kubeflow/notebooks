@@ -17,6 +17,7 @@ import {
   ApiWorkspaceDetailsEnvelope,
   ApiWorkspaceEnvelope,
   ApiWorkspaceListEnvelope,
+  ApiWorkspaceResourceUsageEnvelope,
 } from './data-contracts';
 import { ContentType, HttpClient, RequestParams } from './http-client';
 
@@ -255,6 +256,32 @@ export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityD
       path: `/workspaces/${namespace}/${name}/podtemplate/logs/batch`,
       method: 'GET',
       query: query,
+      ...params,
+    });
+  /**
+   * @description Returns point-in-time CPU and memory usage for each container of the workspace pod when available, alongside the requests and limits configured in the pod spec.
+   *
+   * @tags workspaces
+   * @name GetWorkspacePodTemplateResources
+   * @summary Get workspace pod template resources
+   * @request GET:/workspaces/{namespace}/{name}/podtemplate/resources
+   * @response `200` `ApiWorkspaceResourceUsageEnvelope` Successful operation. Returns per-container configured resources and live usage metrics when available.
+   * @response `400` `ApiErrorEnvelope` Bad Request. Workspace pod is not running.
+   * @response `401` `ApiErrorEnvelope` Unauthorized.
+   * @response `403` `ApiErrorEnvelope` Forbidden.
+   * @response `404` `ApiErrorEnvelope` Workspace not found.
+   * @response `422` `ApiErrorEnvelope` Unprocessable Entity. Validation error.
+   * @response `500` `ApiErrorEnvelope` Internal server error.
+   */
+  getWorkspacePodTemplateResources = (
+    namespace: string,
+    name: string,
+    params: RequestParams = {},
+  ) =>
+    this.request<ApiWorkspaceResourceUsageEnvelope, ApiErrorEnvelope>({
+      path: `/workspaces/${namespace}/${name}/podtemplate/resources`,
+      method: 'GET',
+      format: 'json',
       ...params,
     });
 }
