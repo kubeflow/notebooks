@@ -357,8 +357,7 @@ func RunPodExecProbe(ctx context.Context, executor PodExecutor, namespace, podNa
 // parsePodExecOutput interprets the JSON output of a podExec probe according to the CRD contract:
 //   - empty/omitted output -> active (lastActivity = endTime)
 //   - has_activity: true -> active (lastActivity = endTime, ignores last_activity)
-//   - has_activity: false with last_activity -> inactive (lastActivity = parsed timestamp)
-//   - has_activity: false without last_activity -> inactive (lastActivity unchanged, nil)
+//   - has_activity: false -> inactive (lastActivity unchanged, nil, ignores last_activity)
 //   - last_activity provided without has_activity -> inactive (lastActivity = parsed timestamp)
 func parsePodExecOutput(raw []byte, endTime time.Time) (*time.Time, error) {
 	trimmed := bytes.TrimSpace(raw)
@@ -375,20 +374,19 @@ func parsePodExecOutput(raw []byte, endTime time.Time) (*time.Time, error) {
 	if err := json.Unmarshal(trimmed, &out); err != nil {
 		return nil, fmt.Errorf("invalid JSON file: %w", err)
 	}
-
+	// has_activity and last_activity are mutually exclusive; if has_activity is present,
+	// last_activity is totally ignored.
 	if out.HasActivity != nil {
-		// if HasActivity is true, it means the workspace is active, so we update the last activity time to the current time,
-		// regardless of what the LastActivity field is.
+		// has_activity is true, the workspace is active at the probe end time
 		if *out.HasActivity {
 			return &endTime, nil
 		}
-		// if HasActivity is false and LastActivity is not provided, it means the workspace is inactive, so we leave the last activity time unchanged.
-		if out.LastActivity == nil {
-			return nil, nil
-		}
+
+		// has_activity is false, the workspace is inactive, preserve existing lastActivity
+		return nil, nil
 	}
 
-	// last_activity provided.
+	// last_activity provided (and has_activity is omitted).
 	if out.LastActivity != nil {
 		t, err := parseISO8601(*out.LastActivity)
 		if err != nil {

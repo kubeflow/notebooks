@@ -225,12 +225,11 @@ var _ = Describe("RunPodExecProbe", func() {
 		Expect(*result.LastActivity).To(Equal(result.EndTime))
 	})
 
-	It("should succeed with has_activity: false and last_activity set", func() {
+	It("should succeed with has_activity: false and ignore last_activity when both present", func() {
 		executor := &fakePodExecutor{stdoutContent: fmt.Sprintf(`{"has_activity": false, "last_activity": %q}`, testTimestampRFC3339)}
 		result := RunPodExecProbe(ctx, executor, "ns", "pod", script, time.Second)
 		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultSuccess))
-		Expect(result.LastActivity).ToNot(BeNil())
-		Expect(*result.LastActivity).To(Equal(testTimeRFC3339))
+		Expect(result.LastActivity).To(BeNil())
 	})
 
 	It("should succeed with has_activity: false and no last_activity (leave unchanged)", func() {
@@ -284,11 +283,19 @@ var _ = Describe("RunPodExecProbe", func() {
 		Expect(result.Message).To(ContainSubstring("generic exec error"))
 	})
 
-	It("should fail when has_activity is false and last_activity is invalid", func() {
+	It("should succeed when has_activity is false and last_activity is invalid (last_activity ignored)", func() {
 		executor := &fakePodExecutor{stdoutContent: `{"has_activity": false, "last_activity": "invalid"}`}
 		result := RunPodExecProbe(ctx, executor, "ns", "pod", script, time.Second)
-		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultFailure))
-		Expect(result.Message).To(ContainSubstring("invalid JSON file"))
+		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultSuccess))
+		Expect(result.LastActivity).To(BeNil())
+	})
+
+	It("should succeed when has_activity is true and last_activity is invalid (last_activity ignored)", func() {
+		executor := &fakePodExecutor{stdoutContent: `{"has_activity": true, "last_activity": "invalid"}`}
+		result := RunPodExecProbe(ctx, executor, "ns", "pod", script, time.Second)
+		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultSuccess))
+		Expect(result.LastActivity).ToNot(BeNil())
+		Expect(*result.LastActivity).To(Equal(result.EndTime))
 	})
 
 	It("should succeed when only valid last_activity is provided", func() {

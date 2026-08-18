@@ -512,11 +512,11 @@ var _ = Describe("controller", Ordered, func() {
 
 			By("overriding the activityProbe with a fast podExec probe reporting inactivity")
 			// - minProbeIntervalSeconds/probeIntervalSeconds are set low so the probe runs quickly
-			// - the podExec script reports has_activity=false with an old last_activity, making the
+			// - the podExec script reports an old last_activity, making the
 			//   Workspace eligible for pause as soon as the first probe succeeds
 			// NOTE: the script JSON is escaped twice: once for the shell/JSON output, once for the patch body
-			const inactiveProbeScript = `#!/usr/bin/env bash\necho '{\"has_activity\": false, ` +
-				`\"last_activity\": \"2000-01-01T00:00:00Z\"}' > \"$OUTPUT_JSON_PATH\"\nexit 0\n`
+			const inactiveProbeScript = `#!/usr/bin/env bash\n` +
+				`echo '{\"last_activity\": \"2000-01-01T00:00:00Z\"}' > \"$OUTPUT_JSON_PATH\"\nexit 0\n`
 			probePatch := `[` +
 				`{"op":"replace","path":"/spec/podTemplate/activityProbe","value":{` +
 				`"minProbeIntervalSeconds":1,` +
@@ -692,8 +692,8 @@ var _ = Describe("controller", Ordered, func() {
 			Eventually(applyExemptionWorkspaceKind, timeout, interval).Should(Succeed())
 
 			By("overriding the activityProbe with a fast podExec probe reporting inactivity")
-			const inactiveProbeScript = `#!/usr/bin/env bash\necho '{\"has_activity\": false, ` +
-				`\"last_activity\": \"2000-01-01T00:00:00Z\"}' > \"$OUTPUT_JSON_PATH\"\nexit 0\n`
+			const inactiveProbeScript = `#!/usr/bin/env bash\n` +
+				`echo '{\"last_activity\": \"2000-01-01T00:00:00Z\"}' > \"$OUTPUT_JSON_PATH\"\nexit 0\n`
 			probePatch := `[` +
 				`{"op":"replace","path":"/spec/podTemplate/activityProbe","value":{` +
 				`"minProbeIntervalSeconds":1,` +
@@ -916,8 +916,8 @@ var _ = Describe("controller", Ordered, func() {
 			Eventually(applyStaleWorkspaceKind, timeout, interval).Should(Succeed())
 
 			By("overriding the activityProbe with inactivity script and 30s probeInterval")
-			const inactiveProbeScript = `#!/usr/bin/env bash\necho '{\"has_activity\": false, ` +
-				`\"last_activity\": \"2000-01-01T00:00:00Z\"}' > \"$OUTPUT_JSON_PATH\"\nexit 0\n`
+			const inactiveProbeScript = `#!/usr/bin/env bash\n` +
+				`echo '{\"last_activity\": \"2000-01-01T00:00:00Z\"}' > \"$OUTPUT_JSON_PATH\"\nexit 0\n`
 			probePatch := `[` +
 				`{"op":"replace","path":"/spec/podTemplate/activityProbe","value":{` +
 				`"minProbeIntervalSeconds":1,` +

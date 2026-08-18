@@ -265,7 +265,7 @@ var _ = Describe("Workspace Controller", func() {
 			workspaceKey = types.NamespacedName{Name: workspaceName, Namespace: namespaceName}
 
 			workspaceReconciler.PodExecutor = &fakePodExecutor{
-				stdout: `{"has_activity": false, "last_activity": "2000-01-01T00:00:00Z"}`,
+				stdout: `{"last_activity": "2000-01-01T00:00:00Z"}`,
 			}
 
 			By("creating a WorkspaceKind with an activity probe and pause rules")

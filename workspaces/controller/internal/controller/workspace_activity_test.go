@@ -207,7 +207,7 @@ var _ = Describe("generateWorkspaceStatus activity status reset on restart", fun
 			},
 		}
 
-		status, _, err := r.generateWorkspaceStatus(ctx, log, ws, pod, nil)
+		status, _, err := r.generateWorkspaceStatus(ctx, log, ws, pod, nil, "")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(status.State).To(Equal(kubefloworgv1beta1.WorkspaceStateRunning))
 		Expect(status.Activity).To(Equal(kubefloworgv1beta1.WorkspaceActivity{}))
