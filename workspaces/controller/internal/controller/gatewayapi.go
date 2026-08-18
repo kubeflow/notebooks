@@ -25,6 +25,7 @@ import (
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	"github.com/kubeflow/notebooks/workspaces/controller/internal/config"
 )
 
 // generateGatewayAPIHTTPRoute generates an HTTPRoute for a Workspace using the Gateway API
@@ -53,8 +54,15 @@ func (r *WorkspaceReconciler) generateGatewayAPIHTTPRoute(workspace *kubefloworg
 				},
 			}
 
-			// filters (Rewrite and Headers)
+			// filters (ExternalAuth, Rewrite and Headers)
 			filters := []gatewayv1.HTTPRouteFilter{}
+
+			// Authorization runs first so that the authorization service sees
+			// the path the client requested, before any rewriting.
+			if filter := r.externalAuthFilter(); filter != nil {
+				filters = append(filters, *filter)
+			}
+
 			if !ptr.Deref(podTemplatePort.HTTPProxy.RemovePathPrefix, false) {
 				filters = append(filters, gatewayv1.HTTPRouteFilter{
 					Type: gatewayv1.HTTPRouteFilterURLRewrite,
@@ -154,4 +162,40 @@ func parseGatewayRef(gateway string) gatewayv1.ParentReference {
 		ref.Namespace = new(gatewayv1.Namespace(namespace))
 	}
 	return ref
+}
+
+// externalAuthFilter builds the ExternalAuth filter (GEP-1494) that points
+// workspace routes at the authorization service, or nil when none is
+// configured.
+//
+// The filter is an Extended, experimental Gateway API feature, so it requires
+// the experimental channel CRDs and an implementation that supports it.
+func (r *WorkspaceReconciler) externalAuthFilter() *gatewayv1.HTTPRouteFilter {
+	cfg := r.Config.ExternalAuth
+	if !cfg.Enabled() {
+		return nil
+	}
+
+	externalAuth := &gatewayv1.HTTPExternalAuthFilter{
+		ExternalAuthProtocol: gatewayv1.HTTPRouteExternalAuthProtocol(cfg.Protocol),
+		BackendRef: gatewayv1.BackendObjectReference{
+			Name: gatewayv1.ObjectName(cfg.BackendName),
+			Port: new(cfg.BackendPort),
+		},
+	}
+	if cfg.BackendNamespace != "" {
+		externalAuth.BackendRef.Namespace = new(gatewayv1.Namespace(cfg.BackendNamespace))
+	}
+
+	switch cfg.Protocol {
+	case config.ExternalAuthProtocolHTTP:
+		externalAuth.HTTPAuthConfig = &gatewayv1.HTTPAuthConfig{Path: cfg.HTTPPath}
+	case config.ExternalAuthProtocolGRPC:
+		externalAuth.GRPCAuthConfig = &gatewayv1.GRPCAuthConfig{}
+	}
+
+	return &gatewayv1.HTTPRouteFilter{
+		Type:         gatewayv1.HTTPRouteFilterExternalAuth,
+		ExternalAuth: externalAuth,
+	}
 }

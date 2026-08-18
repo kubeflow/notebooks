@@ -19,6 +19,7 @@ package main
 import (
 	"crypto/tls"
 	"flag"
+	"fmt"
 	"os"
 	"strconv"
 
@@ -71,6 +72,7 @@ func main() {
 	var probeAddr string
 	var secureMetrics bool
 	var enableHTTP2 bool
+	var externalAuthBackendPort int
 
 	// Define command line flags
 	cfg := &config.EnvConfig{}
@@ -100,6 +102,22 @@ func main() {
 		"The domain to use for the Istio VirtualService")
 	flag.BoolVar(&cfg.UseIstio, "use-istio", getEnvAsBool("USE_ISTIO", false),
 		"If set, Istio will be used")
+	var externalAuthProtocolStr string
+	flag.StringVar(&cfg.ExternalAuth.BackendName, "external-auth-backend-name",
+		getEnvAsStr("EXTERNAL_AUTH_BACKEND_NAME", ""),
+		"Name of the Service implementing external authorization; if empty, generated routes carry no ExternalAuth filter")
+	flag.StringVar(&cfg.ExternalAuth.BackendNamespace, "external-auth-backend-namespace",
+		getEnvAsStr("EXTERNAL_AUTH_BACKEND_NAMESPACE", ""),
+		"Namespace of the external authorization Service; needs a ReferenceGrant when it is not the workspace namespace")
+	flag.IntVar(&externalAuthBackendPort, "external-auth-backend-port",
+		getEnvAsInt("EXTERNAL_AUTH_BACKEND_PORT", 9001),
+		"Port of the external authorization Service")
+	flag.StringVar(&externalAuthProtocolStr, "external-auth-protocol",
+		getEnvAsStr("EXTERNAL_AUTH_PROTOCOL", string(config.ExternalAuthProtocolGRPC)),
+		"Protocol used to call the external authorization Service (GRPC or HTTP)")
+	flag.StringVar(&cfg.ExternalAuth.HTTPPath, "external-auth-http-path",
+		getEnvAsStr("EXTERNAL_AUTH_HTTP_PATH", ""),
+		"Path prefix prepended when calling an HTTP external authorization Service")
 
 	opts := zap.Options{
 		Development: true,
@@ -108,6 +126,8 @@ func main() {
 	flag.Parse()
 
 	cfg.RoutingProvider = config.RoutingProviderType(routingProviderStr)
+	cfg.ExternalAuth.BackendPort = int32(externalAuthBackendPort) //nolint:gosec // bounded by the port check below
+	cfg.ExternalAuth.Protocol = config.ExternalAuthProtocolType(externalAuthProtocolStr)
 
 	// Map legacy configurations
 	if cfg.RoutingProvider == config.RoutingProviderNone && cfg.UseIstio {
@@ -121,6 +141,11 @@ func main() {
 	}
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+
+	if err := validateExternalAuth(cfg); err != nil {
+		setupLog.Error(err, "invalid external authorization configuration")
+		os.Exit(1)
+	}
 
 	// if the enable-http2 flag is false (the default), http/2 should be disabled
 	// due to its vulnerabilities. More specifically, disabling http/2 will
@@ -267,4 +292,37 @@ func getEnvAsBool(name string, defaultVal bool) bool {
 		}
 	}
 	return defaultVal
+}
+
+func getEnvAsInt(name string, defaultVal int) int {
+	if value, exists := os.LookupEnv(name); exists {
+		if intValue, err := strconv.Atoi(value); err == nil {
+			return intValue
+		}
+	}
+	return defaultVal
+}
+
+// validateExternalAuth rejects a partial or nonsensical external authorization
+// setup at startup, rather than emitting HTTPRoutes the data plane will refuse.
+func validateExternalAuth(cfg *config.EnvConfig) error {
+	if !cfg.ExternalAuth.Enabled() {
+		return nil
+	}
+
+	if cfg.RoutingProvider != config.RoutingProviderGatewayAPI {
+		return fmt.Errorf("external authorization requires the %q routing provider, got %q",
+			config.RoutingProviderGatewayAPI, cfg.RoutingProvider)
+	}
+	if cfg.ExternalAuth.BackendPort < 1 || cfg.ExternalAuth.BackendPort > 65535 {
+		return fmt.Errorf("external authorization backend port %d is out of range", cfg.ExternalAuth.BackendPort)
+	}
+	switch cfg.ExternalAuth.Protocol {
+	case config.ExternalAuthProtocolGRPC, config.ExternalAuthProtocolHTTP:
+	default:
+		return fmt.Errorf("external authorization protocol must be %q or %q, got %q",
+			config.ExternalAuthProtocolGRPC, config.ExternalAuthProtocolHTTP, cfg.ExternalAuth.Protocol)
+	}
+
+	return nil
 }

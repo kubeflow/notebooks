@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+patches:
+- path: deployment_patch.yaml
+
+configMapGenerator:
+- name: kubeflow-workspaces-ext-authz-config
+  envs:
+  - params.env

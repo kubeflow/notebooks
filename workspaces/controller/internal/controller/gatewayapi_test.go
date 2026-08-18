@@ -127,4 +127,77 @@ var _ = Describe("Gateway API HTTPRoute Generation", func() {
 		Expect(string(httpRoute.Spec.ParentRefs[0].Name)).To(Equal("kubeflow-gateway"))
 		Expect(httpRoute.Spec.ParentRefs[0].Namespace).To(BeNil())
 	})
+
+	Context("when external authorization is configured", func() {
+		BeforeEach(func() {
+			reconciler.Config.RoutingProvider = config.RoutingProviderGatewayAPI
+			reconciler.Config.ExternalAuth = config.ExternalAuthConfig{
+				BackendName:      "workspaces-authz",
+				BackendNamespace: "kubeflow-workspaces",
+				BackendPort:      9001,
+				Protocol:         config.ExternalAuthProtocolGRPC,
+			}
+		})
+
+		// Workspace routes reach a notebook pod directly, so the filter running
+		// before the rewrite is what stops an unauthenticated request.
+		It("should place the ExternalAuth filter first on every rule", func() {
+			httpRoute := reconciler.generateGatewayAPIHTTPRoute(workspace, workspaceKind, service, imageConfigSpec)
+			Expect(httpRoute).NotTo(BeNil())
+			Expect(httpRoute.Spec.Rules).NotTo(BeEmpty())
+
+			for _, rule := range httpRoute.Spec.Rules {
+				Expect(rule.Filters).NotTo(BeEmpty())
+				Expect(rule.Filters[0].Type).To(Equal(gatewayv1.HTTPRouteFilterExternalAuth))
+			}
+		})
+
+		It("should reference the authorization service across namespaces", func() {
+			httpRoute := reconciler.generateGatewayAPIHTTPRoute(workspace, workspaceKind, service, imageConfigSpec)
+			externalAuth := httpRoute.Spec.Rules[0].Filters[0].ExternalAuth
+			Expect(externalAuth).NotTo(BeNil())
+			Expect(externalAuth.ExternalAuthProtocol).To(Equal(gatewayv1.HTTPRouteExternalAuthProtocol("GRPC")))
+			Expect(string(externalAuth.BackendRef.Name)).To(Equal("workspaces-authz"))
+			Expect(externalAuth.BackendRef.Namespace).NotTo(BeNil())
+			Expect(string(*externalAuth.BackendRef.Namespace)).To(Equal("kubeflow-workspaces"))
+			Expect(externalAuth.BackendRef.Port).NotTo(BeNil())
+			Expect(*externalAuth.BackendRef.Port).To(Equal(int32(9001)))
+			Expect(externalAuth.GRPCAuthConfig).NotTo(BeNil())
+			Expect(externalAuth.HTTPAuthConfig).To(BeNil())
+		})
+
+		It("should keep the URLRewrite filter after the ExternalAuth filter", func() {
+			workspaceKind.Spec.PodTemplate.Ports[0].HTTPProxy.RemovePathPrefix = new(false)
+			httpRoute := reconciler.generateGatewayAPIHTTPRoute(workspace, workspaceKind, service, imageConfigSpec)
+			Expect(httpRoute.Spec.Rules[0].Filters).To(HaveLen(2))
+			Expect(httpRoute.Spec.Rules[0].Filters[0].Type).To(Equal(gatewayv1.HTTPRouteFilterExternalAuth))
+			Expect(httpRoute.Spec.Rules[0].Filters[1].Type).To(Equal(gatewayv1.HTTPRouteFilterURLRewrite))
+		})
+
+		It("should configure the HTTP protocol with its path prefix", func() {
+			reconciler.Config.ExternalAuth.Protocol = config.ExternalAuthProtocolHTTP
+			reconciler.Config.ExternalAuth.HTTPPath = "/authz"
+			httpRoute := reconciler.generateGatewayAPIHTTPRoute(workspace, workspaceKind, service, imageConfigSpec)
+			externalAuth := httpRoute.Spec.Rules[0].Filters[0].ExternalAuth
+			Expect(externalAuth.ExternalAuthProtocol).To(Equal(gatewayv1.HTTPRouteExternalAuthProtocol("HTTP")))
+			Expect(externalAuth.HTTPAuthConfig).NotTo(BeNil())
+			Expect(externalAuth.HTTPAuthConfig.Path).To(Equal("/authz"))
+			Expect(externalAuth.GRPCAuthConfig).To(BeNil())
+		})
+
+		It("should omit the namespace when the service is local to the workspace", func() {
+			reconciler.Config.ExternalAuth.BackendNamespace = ""
+			httpRoute := reconciler.generateGatewayAPIHTTPRoute(workspace, workspaceKind, service, imageConfigSpec)
+			Expect(httpRoute.Spec.Rules[0].Filters[0].ExternalAuth.BackendRef.Namespace).To(BeNil())
+		})
+	})
+
+	It("should not add an ExternalAuth filter when no backend is configured", func() {
+		httpRoute := reconciler.generateGatewayAPIHTTPRoute(workspace, workspaceKind, service, imageConfigSpec)
+		for _, rule := range httpRoute.Spec.Rules {
+			for _, filter := range rule.Filters {
+				Expect(filter.Type).NotTo(Equal(gatewayv1.HTTPRouteFilterExternalAuth))
+			}
+		}
+	})
 })
