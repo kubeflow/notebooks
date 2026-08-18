@@ -92,7 +92,7 @@ describe('useWorkspaceFormData', () => {
     const { result, waitForNextUpdate } = renderHook(() =>
       useWorkspaceFormData({
         namespace: 'ns',
-        workspaceName: 'My First Jupyter Notebook',
+        workspaceName: 'my-first-jupyter-notebook',
         workspaceKindName: mockWorkspaceKind.name,
       }),
     );

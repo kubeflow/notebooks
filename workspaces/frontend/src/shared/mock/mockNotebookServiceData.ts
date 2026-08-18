@@ -249,7 +249,7 @@ export const mockWorkspace2: WorkspacesWorkspaceListItem = buildMockWorkspace({
 });
 
 export const mockWorkspace3: WorkspacesWorkspaceListItem = buildMockWorkspace({
-  name: 'My Third Jupyter Notebook',
+  name: 'my-third-jupyter-notebook',
   namespace: mockNamespace1.name,
   workspaceKind: mockWorkspaceKindInfo1,
   state: V1Beta1WorkspaceState.WorkspaceStateRunning,
