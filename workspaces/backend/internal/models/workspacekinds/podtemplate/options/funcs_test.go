@@ -23,7 +23,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 )
 
 func TestOptions(t *testing.T) {
@@ -37,7 +36,7 @@ func imageConfigValue(id string, hidden bool, labels map[string]string) kubeflow
 		Id: id,
 		Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 			DisplayName: id,
-			Hidden:      ptr.To(hidden),
+			Hidden:      new(hidden),
 			Labels:      spawnerLabelSlice(labels),
 		},
 	}
@@ -49,7 +48,7 @@ func podConfigValue(id string, hidden bool, labels map[string]string) kubeflowor
 		Id: id,
 		Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
 			DisplayName: id,
-			Hidden:      ptr.To(hidden),
+			Hidden:      new(hidden),
 			Labels:      spawnerLabelSlice(labels),
 		},
 	}
@@ -223,12 +222,12 @@ var _ = Describe("NewPodTemplateOptionsModelFromWorkspaceKind", func() {
 				[]kubefloworgv1beta1.FilterRule{
 					{
 						Scope:  kubefloworgv1beta1.FilterRuleScopeImageConfig,
-						Effect: kubefloworgv1beta1.FilterRuleEffect{API: &kubefloworgv1beta1.FilterRuleEffectAPI{Hide: ptr.To(true)}},
+						Effect: kubefloworgv1beta1.FilterRuleEffect{API: &kubefloworgv1beta1.FilterRuleEffectAPI{Hide: new(true)}},
 						Match:  []kubefloworgv1beta1.FilterRuleMatch{matchImageConfig(map[string]string{"img-eol": "true"})},
 					},
 					{
 						Scope:  kubefloworgv1beta1.FilterRuleScopePodConfig,
-						Effect: kubefloworgv1beta1.FilterRuleEffect{API: &kubefloworgv1beta1.FilterRuleEffectAPI{Hide: ptr.To(true)}},
+						Effect: kubefloworgv1beta1.FilterRuleEffect{API: &kubefloworgv1beta1.FilterRuleEffectAPI{Hide: new(true)}},
 						Match:  []kubefloworgv1beta1.FilterRuleMatch{matchPodConfig(map[string]string{"pod-eol": "true"})},
 					},
 				},
@@ -263,7 +262,7 @@ var _ = Describe("NewPodTemplateOptionsModelFromWorkspaceKind", func() {
 						Scope: kubefloworgv1beta1.FilterRuleScopeImageConfig,
 						Effect: kubefloworgv1beta1.FilterRuleEffect{
 							API: &kubefloworgv1beta1.FilterRuleEffectAPI{
-								Deny:        ptr.To(true),
+								Deny:        new(true),
 								DenyMessage: &kubefloworgv1beta1.FilterRuleDenyMessage{Text: "image is end-of-life"},
 							},
 						},
@@ -273,7 +272,7 @@ var _ = Describe("NewPodTemplateOptionsModelFromWorkspaceKind", func() {
 						Scope: kubefloworgv1beta1.FilterRuleScopePodConfig,
 						Effect: kubefloworgv1beta1.FilterRuleEffect{
 							API: &kubefloworgv1beta1.FilterRuleEffectAPI{
-								Deny:        ptr.To(true),
+								Deny:        new(true),
 								DenyMessage: &kubefloworgv1beta1.FilterRuleDenyMessage{Text: "pod config is end-of-life"},
 							},
 						},
@@ -398,7 +397,7 @@ var _ = Describe("NewPodTemplateOptionsModelFromWorkspaceKind", func() {
 					// second image rule (never reached): api.deny
 					{
 						Scope:  kubefloworgv1beta1.FilterRuleScopeImageConfig,
-						Effect: kubefloworgv1beta1.FilterRuleEffect{API: &kubefloworgv1beta1.FilterRuleEffectAPI{Deny: ptr.To(true)}},
+						Effect: kubefloworgv1beta1.FilterRuleEffect{API: &kubefloworgv1beta1.FilterRuleEffectAPI{Deny: new(true)}},
 						Match:  []kubefloworgv1beta1.FilterRuleMatch{matchImageConfig(map[string]string{"img-gpu": "true"})},
 					},
 					// first pod rule: ui.hide
@@ -408,7 +407,7 @@ var _ = Describe("NewPodTemplateOptionsModelFromWorkspaceKind", func() {
 					// second pod rule (never reached): api.deny
 					{
 						Scope:  kubefloworgv1beta1.FilterRuleScopePodConfig,
-						Effect: kubefloworgv1beta1.FilterRuleEffect{API: &kubefloworgv1beta1.FilterRuleEffectAPI{Deny: ptr.To(true)}},
+						Effect: kubefloworgv1beta1.FilterRuleEffect{API: &kubefloworgv1beta1.FilterRuleEffectAPI{Deny: new(true)}},
 						Match:  []kubefloworgv1beta1.FilterRuleMatch{matchPodConfig(map[string]string{"pod-gpu": "true"})},
 					},
 				},

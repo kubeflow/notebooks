@@ -23,7 +23,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
+	"k8s.io/apimachinery/pkg/labels"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 )
@@ -40,6 +40,13 @@ func spawnerLabels(m map[string]string) []kubefloworgv1beta1.OptionSpawnerLabel 
 		result = append(result, kubefloworgv1beta1.OptionSpawnerLabel{Key: k, Value: v})
 	}
 	return result
+}
+
+// evaluateRules compiles the given rules into the eval context and runs Evaluate, so the
+// tests can keep expressing cases as (rules, target, context).
+func evaluateRules(rules []kubefloworgv1beta1.FilterRule, target EvalTarget, evalCtx EvalContext) EvalResult {
+	evalCtx.compiledRules = compileRules(rules)
+	return Evaluate(target, evalCtx)
 }
 
 // matchLabelsRule builds a single-condition FilterRule with the given scope, match condition
@@ -78,14 +85,12 @@ var _ = Describe("spawnerLabelsToMap", func() {
 var _ = Describe("Evaluate", func() {
 	Context("when no rules are provided", func() {
 		It("returns the non-restrictive default", func() {
-			result := Evaluate(nil, EvalTarget{
+			result := evaluateRules(nil, EvalTarget{
 				Scope:  kubefloworgv1beta1.FilterRuleScopeImageConfig,
 				Labels: spawnerLabels(map[string]string{"gpu": "true"}),
 			}, EvalContext{})
 
-			Expect(result.UIHide).To(BeFalse())
-			Expect(result.APIHide).To(BeFalse())
-			Expect(result.Restrictions).To(Equal(common.DefaultRestrictions()))
+			Expect(result).To(BeComparableTo(EvalResult{Restrictions: common.DefaultRestrictions()}))
 		})
 	})
 
@@ -107,12 +112,12 @@ var _ = Describe("Evaluate", func() {
 				},
 			}
 
-			result := Evaluate(rules, EvalTarget{
+			result := evaluateRules(rules, EvalTarget{
 				Scope:  kubefloworgv1beta1.FilterRuleScopeImageConfig,
 				Labels: spawnerLabels(map[string]string{"gpu": "true"}),
 			}, EvalContext{})
 
-			Expect(result.UIHide).To(BeFalse())
+			Expect(result).To(BeComparableTo(EvalResult{Restrictions: common.DefaultRestrictions()}))
 		})
 	})
 
@@ -125,14 +130,12 @@ var _ = Describe("Evaluate", func() {
 				),
 			}
 
-			result := Evaluate(rules, EvalTarget{
+			result := evaluateRules(rules, EvalTarget{
 				Scope:  kubefloworgv1beta1.FilterRuleScopeImageConfig,
 				Labels: spawnerLabels(map[string]string{"gpu": "true"}),
 			}, EvalContext{})
 
-			Expect(result.UIHide).To(BeTrue())
-			Expect(result.APIHide).To(BeFalse())
-			Expect(result.Restrictions.Deny).To(BeFalse())
+			Expect(result).To(BeComparableTo(EvalResult{UIHide: true, Restrictions: common.DefaultRestrictions()}))
 		})
 
 		It("does not match when labels differ", func() {
@@ -143,12 +146,12 @@ var _ = Describe("Evaluate", func() {
 				),
 			}
 
-			result := Evaluate(rules, EvalTarget{
+			result := evaluateRules(rules, EvalTarget{
 				Scope:  kubefloworgv1beta1.FilterRuleScopeImageConfig,
 				Labels: spawnerLabels(map[string]string{"gpu": "false"}),
 			}, EvalContext{})
 
-			Expect(result.UIHide).To(BeFalse())
+			Expect(result).To(BeComparableTo(EvalResult{Restrictions: common.DefaultRestrictions()}))
 		})
 	})
 
@@ -157,16 +160,16 @@ var _ = Describe("Evaluate", func() {
 			rules := []kubefloworgv1beta1.FilterRule{
 				matchImageConfigRule(
 					map[string]string{"deprecated": "true"},
-					kubefloworgv1beta1.FilterRuleEffect{API: &kubefloworgv1beta1.FilterRuleEffectAPI{Hide: ptr.To(true)}},
+					kubefloworgv1beta1.FilterRuleEffect{API: &kubefloworgv1beta1.FilterRuleEffectAPI{Hide: new(true)}},
 				),
 			}
 
-			result := Evaluate(rules, EvalTarget{
+			result := evaluateRules(rules, EvalTarget{
 				Scope:  kubefloworgv1beta1.FilterRuleScopeImageConfig,
 				Labels: spawnerLabels(map[string]string{"deprecated": "true"}),
 			}, EvalContext{})
 
-			Expect(result.APIHide).To(BeTrue())
+			Expect(result).To(BeComparableTo(EvalResult{APIHide: true, Restrictions: common.DefaultRestrictions()}))
 		})
 	})
 
@@ -177,21 +180,24 @@ var _ = Describe("Evaluate", func() {
 					map[string]string{"eol": "true"},
 					kubefloworgv1beta1.FilterRuleEffect{
 						API: &kubefloworgv1beta1.FilterRuleEffectAPI{
-							Deny:        ptr.To(true),
+							Deny:        new(true),
 							DenyMessage: &kubefloworgv1beta1.FilterRuleDenyMessage{Text: "image is end-of-life"},
 						},
 					},
 				),
 			}
 
-			result := Evaluate(rules, EvalTarget{
+			result := evaluateRules(rules, EvalTarget{
 				Scope:  kubefloworgv1beta1.FilterRuleScopeImageConfig,
 				Labels: spawnerLabels(map[string]string{"eol": "true"}),
 			}, EvalContext{})
 
-			Expect(result.Restrictions.Deny).To(BeTrue())
-			Expect(result.Restrictions.DenyMessage).NotTo(BeNil())
-			Expect(result.Restrictions.DenyMessage.Text).To(Equal("image is end-of-life"))
+			Expect(result).To(BeComparableTo(EvalResult{
+				Restrictions: common.Restrictions{
+					Deny:        true,
+					DenyMessage: &common.DenyMessage{Text: "image is end-of-life"},
+				},
+			}))
 		})
 
 		It("does not set a denyMessage when deny is false", func() {
@@ -199,18 +205,17 @@ var _ = Describe("Evaluate", func() {
 				matchImageConfigRule(
 					map[string]string{"eol": "true"},
 					kubefloworgv1beta1.FilterRuleEffect{
-						API: &kubefloworgv1beta1.FilterRuleEffectAPI{Deny: ptr.To(false)},
+						API: &kubefloworgv1beta1.FilterRuleEffectAPI{Deny: new(false)},
 					},
 				),
 			}
 
-			result := Evaluate(rules, EvalTarget{
+			result := evaluateRules(rules, EvalTarget{
 				Scope:  kubefloworgv1beta1.FilterRuleScopeImageConfig,
 				Labels: spawnerLabels(map[string]string{"eol": "true"}),
 			}, EvalContext{})
 
-			Expect(result.Restrictions.Deny).To(BeFalse())
-			Expect(result.Restrictions.DenyMessage).To(BeNil())
+			Expect(result).To(BeComparableTo(EvalResult{Restrictions: common.DefaultRestrictions()}))
 		})
 	})
 
@@ -236,18 +241,18 @@ var _ = Describe("Evaluate", func() {
 			}
 
 			By("matching when both conditions are satisfied")
-			result := Evaluate([]kubefloworgv1beta1.FilterRule{rule}, EvalTarget{
+			result := evaluateRules([]kubefloworgv1beta1.FilterRule{rule}, EvalTarget{
 				Scope:  kubefloworgv1beta1.FilterRuleScopeImageConfig,
 				Labels: spawnerLabels(map[string]string{"gpu": "true"}),
 			}, EvalContext{NamespaceLabels: map[string]string{"tier": "prod"}})
-			Expect(result.UIHide).To(BeTrue())
+			Expect(result).To(BeComparableTo(EvalResult{UIHide: true, Restrictions: common.DefaultRestrictions()}))
 
 			By("not matching when only one condition is satisfied")
-			result = Evaluate([]kubefloworgv1beta1.FilterRule{rule}, EvalTarget{
+			result = evaluateRules([]kubefloworgv1beta1.FilterRule{rule}, EvalTarget{
 				Scope:  kubefloworgv1beta1.FilterRuleScopeImageConfig,
 				Labels: spawnerLabels(map[string]string{"gpu": "true"}),
 			}, EvalContext{NamespaceLabels: map[string]string{"tier": "dev"}})
-			Expect(result.UIHide).To(BeFalse())
+			Expect(result).To(BeComparableTo(EvalResult{Restrictions: common.DefaultRestrictions()}))
 		})
 	})
 
@@ -267,12 +272,12 @@ var _ = Describe("Evaluate", func() {
 				},
 			}
 
-			result := Evaluate([]kubefloworgv1beta1.FilterRule{rule}, EvalTarget{
+			result := evaluateRules([]kubefloworgv1beta1.FilterRule{rule}, EvalTarget{
 				Scope:  kubefloworgv1beta1.FilterRuleScopeImageConfig,
 				Labels: spawnerLabels(map[string]string{"gpu": "true"}),
 			}, EvalContext{NamespaceLabels: nil})
 
-			Expect(result.UIHide).To(BeFalse())
+			Expect(result).To(BeComparableTo(EvalResult{Restrictions: common.DefaultRestrictions()}))
 		})
 	})
 
@@ -282,7 +287,7 @@ var _ = Describe("Evaluate", func() {
 			rule := kubefloworgv1beta1.FilterRule{
 				Scope: kubefloworgv1beta1.FilterRuleScopeImageConfig,
 				Effect: kubefloworgv1beta1.FilterRuleEffect{
-					API: &kubefloworgv1beta1.FilterRuleEffectAPI{Hide: ptr.To(true)},
+					API: &kubefloworgv1beta1.FilterRuleEffectAPI{Hide: new(true)},
 				},
 				Match: []kubefloworgv1beta1.FilterRuleMatch{
 					{
@@ -299,18 +304,18 @@ var _ = Describe("Evaluate", func() {
 			}
 
 			By("hiding the NVIDIA image when a non-GPU podConfig is selected")
-			result := Evaluate([]kubefloworgv1beta1.FilterRule{rule}, EvalTarget{
+			result := evaluateRules([]kubefloworgv1beta1.FilterRule{rule}, EvalTarget{
 				Scope:  kubefloworgv1beta1.FilterRuleScopeImageConfig,
 				Labels: spawnerLabels(map[string]string{"vendor": "nvidia"}),
 			}, EvalContext{PodConfigLabels: map[string]string{"gpu": "false"}})
-			Expect(result.APIHide).To(BeTrue())
+			Expect(result).To(BeComparableTo(EvalResult{APIHide: true, Restrictions: common.DefaultRestrictions()}))
 
 			By("not hiding the NVIDIA image when no podConfig context is present")
-			result = Evaluate([]kubefloworgv1beta1.FilterRule{rule}, EvalTarget{
+			result = evaluateRules([]kubefloworgv1beta1.FilterRule{rule}, EvalTarget{
 				Scope:  kubefloworgv1beta1.FilterRuleScopeImageConfig,
 				Labels: spawnerLabels(map[string]string{"vendor": "nvidia"}),
 			}, EvalContext{PodConfigLabels: nil})
-			Expect(result.APIHide).To(BeFalse())
+			Expect(result).To(BeComparableTo(EvalResult{Restrictions: common.DefaultRestrictions()}))
 		})
 	})
 
@@ -324,19 +329,18 @@ var _ = Describe("Evaluate", func() {
 				matchImageConfigRule(
 					map[string]string{"gpu": "true"},
 					kubefloworgv1beta1.FilterRuleEffect{
-						API: &kubefloworgv1beta1.FilterRuleEffectAPI{Deny: ptr.To(true)},
+						API: &kubefloworgv1beta1.FilterRuleEffectAPI{Deny: new(true)},
 					},
 				),
 			}
 
-			result := Evaluate(rules, EvalTarget{
+			result := evaluateRules(rules, EvalTarget{
 				Scope:  kubefloworgv1beta1.FilterRuleScopeImageConfig,
 				Labels: spawnerLabels(map[string]string{"gpu": "true"}),
 			}, EvalContext{})
 
 			// only the first rule (ui.hide) applies; the second (api.deny) is never reached
-			Expect(result.UIHide).To(BeTrue())
-			Expect(result.Restrictions.Deny).To(BeFalse())
+			Expect(result).To(BeComparableTo(EvalResult{UIHide: true, Restrictions: common.DefaultRestrictions()}))
 		})
 	})
 
@@ -350,12 +354,12 @@ var _ = Describe("Evaluate", func() {
 			}
 
 			// even with a conflicting cross-option label in context, the same-scope target labels are used
-			result := Evaluate(rules, EvalTarget{
+			result := evaluateRules(rules, EvalTarget{
 				Scope:  kubefloworgv1beta1.FilterRuleScopeImageConfig,
 				Labels: spawnerLabels(map[string]string{"vendor": "nvidia"}),
 			}, EvalContext{ImageConfigLabels: map[string]string{"vendor": "other"}})
 
-			Expect(result.UIHide).To(BeTrue())
+			Expect(result).To(BeComparableTo(EvalResult{UIHide: true, Restrictions: common.DefaultRestrictions()}))
 		})
 	})
 
@@ -374,18 +378,18 @@ var _ = Describe("Evaluate", func() {
 			}
 
 			By("matching when the selected podConfig labels satisfy the selector")
-			result := Evaluate([]kubefloworgv1beta1.FilterRule{rule}, EvalTarget{
+			result := evaluateRules([]kubefloworgv1beta1.FilterRule{rule}, EvalTarget{
 				Scope:  kubefloworgv1beta1.FilterRuleScopeImageConfig,
 				Labels: spawnerLabels(map[string]string{"vendor": "nvidia"}),
 			}, EvalContext{PodConfigLabels: map[string]string{"gpu": "false"}})
-			Expect(result.UIHide).To(BeTrue())
+			Expect(result).To(BeComparableTo(EvalResult{UIHide: true, Restrictions: common.DefaultRestrictions()}))
 
 			By("not matching when no podConfig context is present")
-			result = Evaluate([]kubefloworgv1beta1.FilterRule{rule}, EvalTarget{
+			result = evaluateRules([]kubefloworgv1beta1.FilterRule{rule}, EvalTarget{
 				Scope:  kubefloworgv1beta1.FilterRuleScopeImageConfig,
 				Labels: spawnerLabels(map[string]string{"vendor": "nvidia"}),
 			}, EvalContext{PodConfigLabels: nil})
-			Expect(result.UIHide).To(BeFalse())
+			Expect(result).To(BeComparableTo(EvalResult{Restrictions: common.DefaultRestrictions()}))
 		})
 	})
 
@@ -408,17 +412,17 @@ var _ = Describe("Evaluate", func() {
 				},
 			}
 
-			result := Evaluate([]kubefloworgv1beta1.FilterRule{rule}, EvalTarget{
+			result := evaluateRules([]kubefloworgv1beta1.FilterRule{rule}, EvalTarget{
 				Scope:  kubefloworgv1beta1.FilterRuleScopePodConfig,
 				Labels: spawnerLabels(map[string]string{"gpu": "false"}), // target's own labels (matchPodConfig)
 			}, EvalContext{ImageConfigLabels: map[string]string{"vendor": "nvidia"}}) // cross-option (matchImageConfig)
 
-			Expect(result.UIHide).To(BeTrue())
+			Expect(result).To(BeComparableTo(EvalResult{UIHide: true, Restrictions: common.DefaultRestrictions()}))
 		})
 	})
 
 	Context("empty match condition", func() {
-		It("treats a match with no selector set as non-matching", func() {
+		It("drops a match with no selector set, so a rule with only that condition never fires", func() {
 			rules := []kubefloworgv1beta1.FilterRule{
 				{
 					Scope:  kubefloworgv1beta1.FilterRuleScopeImageConfig,
@@ -427,45 +431,75 @@ var _ = Describe("Evaluate", func() {
 				},
 			}
 
-			result := Evaluate(rules, EvalTarget{
+			result := evaluateRules(rules, EvalTarget{
 				Scope:  kubefloworgv1beta1.FilterRuleScopeImageConfig,
 				Labels: spawnerLabels(map[string]string{"gpu": "true"}),
 			}, EvalContext{})
 
-			Expect(result.UIHide).To(BeFalse())
+			Expect(result).To(BeComparableTo(EvalResult{Restrictions: common.DefaultRestrictions()}))
 		})
 	})
 
 	Context("invalid selector", func() {
-		It("treats a selector that fails to compile as non-matching", func() {
-			rules := []kubefloworgv1beta1.FilterRule{
-				{
-					Scope:  kubefloworgv1beta1.FilterRuleScopeImageConfig,
-					Effect: kubefloworgv1beta1.FilterRuleEffect{UI: &kubefloworgv1beta1.FilterRuleEffectUI{Hide: true}},
-					Match: []kubefloworgv1beta1.FilterRuleMatch{
+		badMatchImageConfig := kubefloworgv1beta1.FilterRuleMatch{
+			MatchImageConfig: &kubefloworgv1beta1.FilterRuleSelector{
+				Selector: metav1.LabelSelector{
+					MatchExpressions: []metav1.LabelSelectorRequirement{
 						{
-							MatchImageConfig: &kubefloworgv1beta1.FilterRuleSelector{
-								Selector: metav1.LabelSelector{
-									MatchExpressions: []metav1.LabelSelectorRequirement{
-										{
-											Key:      "gpu",
-											Operator: metav1.LabelSelectorOperator("BadOperator"),
-											Values:   []string{"true"},
-										},
-									},
-								},
-							},
+							Key:      "gpu",
+							Operator: metav1.LabelSelectorOperator("BadOperator"),
+							Values:   []string{"true"},
+						},
+					},
+				},
+			},
+		}
+
+		It("ignores the invalid condition but still evaluates the remaining conditions", func() {
+			rule := kubefloworgv1beta1.FilterRule{
+				Scope:  kubefloworgv1beta1.FilterRuleScopeImageConfig,
+				Effect: kubefloworgv1beta1.FilterRuleEffect{UI: &kubefloworgv1beta1.FilterRuleEffectUI{Hide: true}},
+				Match: []kubefloworgv1beta1.FilterRuleMatch{
+					badMatchImageConfig,
+					{
+						MatchImageConfig: &kubefloworgv1beta1.FilterRuleSelector{
+							Selector: metav1.LabelSelector{MatchLabels: map[string]string{"gpu": "true"}},
 						},
 					},
 				},
 			}
 
-			result := Evaluate(rules, EvalTarget{
+			By("matching when the remaining valid condition is satisfied")
+			result := evaluateRules([]kubefloworgv1beta1.FilterRule{rule}, EvalTarget{
+				Scope:  kubefloworgv1beta1.FilterRuleScopeImageConfig,
+				Labels: spawnerLabels(map[string]string{"gpu": "true"}),
+			}, EvalContext{})
+			Expect(result).To(BeComparableTo(EvalResult{UIHide: true, Restrictions: common.DefaultRestrictions()}))
+
+			By("not matching when the remaining valid condition is not satisfied")
+			result = evaluateRules([]kubefloworgv1beta1.FilterRule{rule}, EvalTarget{
+				Scope:  kubefloworgv1beta1.FilterRuleScopeImageConfig,
+				Labels: spawnerLabels(map[string]string{"gpu": "false"}),
+			}, EvalContext{})
+			Expect(result).To(BeComparableTo(EvalResult{Restrictions: common.DefaultRestrictions()}))
+		})
+
+		It("drops the rule entirely when the invalid condition is its only condition", func() {
+			rules := []kubefloworgv1beta1.FilterRule{
+				{
+					Scope:  kubefloworgv1beta1.FilterRuleScopeImageConfig,
+					Effect: kubefloworgv1beta1.FilterRuleEffect{UI: &kubefloworgv1beta1.FilterRuleEffectUI{Hide: true}},
+					Match:  []kubefloworgv1beta1.FilterRuleMatch{badMatchImageConfig},
+				},
+			}
+
+			result := evaluateRules(rules, EvalTarget{
 				Scope:  kubefloworgv1beta1.FilterRuleScopeImageConfig,
 				Labels: spawnerLabels(map[string]string{"gpu": "true"}),
 			}, EvalContext{})
 
-			Expect(result.UIHide).To(BeFalse())
+			// the rule has no valid conditions left, so it is dropped and never fires
+			Expect(result).To(BeComparableTo(EvalResult{Restrictions: common.DefaultRestrictions()}))
 		})
 	})
 })
@@ -474,6 +508,12 @@ var _ = Describe("BuildEvalContext", func() {
 	newWSK := func() *kubefloworgv1beta1.WorkspaceKind {
 		return &kubefloworgv1beta1.WorkspaceKind{
 			Spec: kubefloworgv1beta1.WorkspaceKindSpec{
+				FilterRules: []kubefloworgv1beta1.FilterRule{
+					matchImageConfigRule(
+						map[string]string{"gpu": "true"},
+						kubefloworgv1beta1.FilterRuleEffect{UI: &kubefloworgv1beta1.FilterRuleEffectUI{Hide: true}},
+					),
+				},
 				PodTemplate: kubefloworgv1beta1.WorkspaceKindPodTemplate{
 					Options: kubefloworgv1beta1.WorkspaceKindPodOptions{
 						ImageConfig: kubefloworgv1beta1.ImageConfig{
@@ -508,6 +548,26 @@ var _ = Describe("BuildEvalContext", func() {
 		Expect(evalCtx.NamespaceLabels).To(HaveKeyWithValue("tier", "prod"))
 		Expect(evalCtx.ImageConfigLabels).To(BeNil())
 		Expect(evalCtx.PodConfigLabels).To(BeNil())
+	})
+
+	It("compiles the WorkspaceKind's filterRules into the eval context", func() {
+		evalCtx := BuildEvalContext(newWSK(), nil, "", "")
+
+		Expect(evalCtx.compiledRules).To(HaveLen(1))
+		cr := evalCtx.compiledRules[0]
+		Expect(cr.rule.Scope).To(Equal(kubefloworgv1beta1.FilterRuleScopeImageConfig))
+		Expect(cr.matches).To(HaveLen(1))
+		Expect(cr.matches[0].selector).NotTo(BeNil())
+		Expect(cr.matches[0].selector.Matches(labels.Set{"gpu": "true"})).To(BeTrue())
+		Expect(cr.matches[0].selector.Matches(labels.Set{"gpu": "false"})).To(BeFalse())
+	})
+
+	It("leaves compiledRules empty when the WorkspaceKind has no filterRules", func() {
+		wsk := newWSK()
+		wsk.Spec.FilterRules = nil
+		evalCtx := BuildEvalContext(wsk, nil, "", "")
+
+		Expect(evalCtx.compiledRules).To(BeEmpty())
 	})
 
 	It("resolves imageConfig and podConfig labels from matching ids", func() {

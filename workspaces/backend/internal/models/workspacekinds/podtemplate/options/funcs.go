@@ -36,7 +36,7 @@ func NewPodTemplateOptionsModelFromWorkspaceKind(wsk *kubefloworgv1beta1.Workspa
 	var allValErrs field.ErrorList //nolint:prealloc
 
 	// resolve the request-scoped context shared across all rule evaluations
-	imageConfigID, podConfigID := request.ConfigIDs()
+	imageConfigID, podConfigID := request.configIDs()
 	evalCtx := filterrules.BuildEvalContext(wsk, namespaceLabels, imageConfigID, podConfigID)
 
 	// calculate maps of "option id" -> "number of workspaces using that option in the cluster"
@@ -107,7 +107,7 @@ func buildImageConfigValues(wsk *kubefloworgv1beta1.WorkspaceKind, request *List
 		}
 
 		// evaluate the filter rules for this value (first-match-wins)
-		result := filterrules.Evaluate(wsk.Spec.FilterRules, filterrules.EvalTarget{
+		result := filterrules.Evaluate(filterrules.EvalTarget{
 			Scope:  kubefloworgv1beta1.FilterRuleScopeImageConfig,
 			Labels: value.Spawner.Labels,
 		}, evalCtx)
@@ -170,7 +170,7 @@ func buildPodConfigValues(wsk *kubefloworgv1beta1.WorkspaceKind, request *ListVa
 		}
 
 		// evaluate the filter rules for this value (first-match-wins)
-		result := filterrules.Evaluate(wsk.Spec.FilterRules, filterrules.EvalTarget{
+		result := filterrules.Evaluate(filterrules.EvalTarget{
 			Scope:  kubefloworgv1beta1.FilterRuleScopePodConfig,
 			Labels: value.Spawner.Labels,
 		}, evalCtx)

@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"time"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
@@ -220,11 +221,11 @@ func (r *WorkspaceKindRepository) resolveNamespaceLabels(ctx context.Context, li
 		return nil, err
 	}
 
-	// always return a non-nil map so matchNamespace conditions are evaluated (namespace present)
-	if namespace.Labels == nil {
-		return map[string]string{}, nil
-	}
-	return namespace.Labels, nil
+	// copy the labels into a map we own; also ensures a non-nil map so matchNamespace conditions
+	// are evaluated (namespace present) even when the namespace has no labels.
+	labels := make(map[string]string, len(namespace.Labels))
+	maps.Copy(labels, namespace.Labels)
+	return labels, nil
 }
 
 // GetWorkspaceKindAssetBytesIcon retrieves the content of a WorkspaceKind icon as bytes, along with its media type.

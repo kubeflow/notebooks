@@ -57,6 +57,23 @@ type EvalContext struct {
 	// request. nil when `context.podConfig.id` was absent. Used for cross-option matching
 	// on non-POD_CONFIG scope rules.
 	PodConfigLabels map[string]string
+
+	// compiledRules are the WorkspaceKind's `spec.filterRules[]` with each match condition's
+	// label selector compiled once, so evaluation over many option values does not recompile
+	// the same selectors repeatedly.
+	compiledRules []compiledRule
+}
+
+// compiledRule pairs a filter rule with its match conditions' pre-compiled selectors.
+type compiledRule struct {
+	rule    *kubefloworgv1beta1.FilterRule
+	matches []compiledMatch
+}
+
+// compiledMatch pairs a single match condition with its pre-compiled label selector.
+type compiledMatch struct {
+	match    *kubefloworgv1beta1.FilterRuleMatch
+	selector labels.Selector
 }
 
 // EvalResult is the outcome of evaluating the filter rules for a single value.
@@ -72,32 +89,30 @@ type EvalResult struct {
 	Restrictions common.Restrictions
 }
 
-// Evaluate runs the filter rules over the given target using first-match-wins,
-// firewall-style semantics.
+// Evaluate runs the pre-compiled filter rules over the given target using
+// first-match-wins, firewall-style semantics.
 //
 // Rules are evaluated top-to-bottom. The first rule whose scope matches the target AND all
 // of whose match conditions are satisfied determines the result; no further rules are
 // considered. If no rule matches, the non-restrictive zero-value result is returned
 // (UIHide=false, APIHide=false, Restrictions.Deny=false).
-func Evaluate(rules []kubefloworgv1beta1.FilterRule, target EvalTarget, evalCtx EvalContext) EvalResult {
+func Evaluate(target EvalTarget, evalCtx EvalContext) EvalResult {
 	// resolve the target's own labels once for same-scope match conditions
 	targetLabels := spawnerLabelsToMap(target.Labels)
 
-	for i := range rules {
-		rule := &rules[i]
-
+	for _, cr := range evalCtx.compiledRules {
 		// skip rules whose scope does not match the value type being evaluated
-		if rule.Scope != target.Scope {
+		if cr.rule.Scope != target.Scope {
 			continue
 		}
 
 		// evaluate ALL match conditions with AND logic
-		if !allConditionsMatch(rule.Match, target.Scope, targetLabels, evalCtx) {
+		if !allConditionsMatch(cr.matches, target.Scope, targetLabels, evalCtx) {
 			continue
 		}
 
 		// first matching rule wins: build the result from its effect and stop
-		return resultFromEffect(rule.Effect)
+		return resultFromEffect(cr.rule.Effect)
 	}
 
 	// no rules matched: non-restrictive default
@@ -113,6 +128,7 @@ func Evaluate(rules []kubefloworgv1beta1.FilterRule, target EvalTarget, evalCtx 
 func BuildEvalContext(wsk *kubefloworgv1beta1.WorkspaceKind, namespaceLabels map[string]string, imageConfigID, podConfigID string) EvalContext {
 	evalCtx := EvalContext{
 		NamespaceLabels: namespaceLabels,
+		compiledRules:   compileRules(wsk.Spec.FilterRules),
 	}
 
 	if imageConfigID != "" {
@@ -138,29 +154,84 @@ func BuildEvalContext(wsk *kubefloworgv1beta1.WorkspaceKind, namespaceLabels map
 	return evalCtx
 }
 
-// allConditionsMatch returns true only if every match condition is satisfied (AND logic).
-func allConditionsMatch(match []kubefloworgv1beta1.FilterRuleMatch, targetScope kubefloworgv1beta1.FilterRuleScope, targetLabels map[string]string, evalCtx EvalContext) bool {
-	for i := range match {
-		if !conditionMatches(&match[i], targetScope, targetLabels, evalCtx) {
+// compileRules pre-compiles the label selector of every match condition in the given rules,
+// so the (potentially many) per-value evaluations reuse the compiled selectors instead of
+// recompiling them each time. Conditions whose selector fails to compile are dropped, so an
+// invalid condition is ignored while the rule's remaining conditions still apply.
+func compileRules(rules []kubefloworgv1beta1.FilterRule) []compiledRule {
+	if len(rules) == 0 {
+		return nil
+	}
+
+	compiled := make([]compiledRule, 0, len(rules))
+	for _, rule := range rules {
+		matches := make([]compiledMatch, 0, len(rule.Match))
+		for _, match := range rule.Match {
+			selector, valid := compileSelector(&match)
+			if !valid {
+				continue
+			}
+			matches = append(matches, compiledMatch{
+				match:    &match,
+				selector: selector,
+			})
+		}
+		if len(matches) == 0 {
+			continue
+		}
+		compiled = append(compiled, compiledRule{rule: &rule, matches: matches})
+	}
+	return compiled
+}
+
+// compileSelector compiles the label selector of the (single) set match condition.
+//
+// valid is false, signaling the caller to drop the condition, when the match has no recognized
+// selector set or when its selector fails to compile (both of which the CRD webhook should
+// already reject).
+func compileSelector(match *kubefloworgv1beta1.FilterRuleMatch) (selector labels.Selector, valid bool) {
+	var labelSelector *metav1.LabelSelector
+	switch {
+	case match.MatchNamespace != nil:
+		labelSelector = &match.MatchNamespace.Selector
+	case match.MatchImageConfig != nil:
+		labelSelector = &match.MatchImageConfig.Selector
+	case match.MatchPodConfig != nil:
+		labelSelector = &match.MatchPodConfig.Selector
+	default:
+		return nil, false
+	}
+
+	selector, err := metav1.LabelSelectorAsSelector(labelSelector)
+	if err != nil {
+		return nil, false
+	}
+	return selector, true
+}
+
+// allConditionsMatch returns true only if every (valid) match condition is satisfied (AND logic).
+func allConditionsMatch(matches []compiledMatch, targetScope kubefloworgv1beta1.FilterRuleScope, targetLabels map[string]string, evalCtx EvalContext) bool {
+	for i := range matches {
+		if !conditionMatches(&matches[i], targetScope, targetLabels, evalCtx) {
 			return false
 		}
 	}
 	return true
 }
 
-// conditionMatches evaluates a single match condition against the resolved label set.
+// conditionMatches evaluates a single (pre-compiled) match condition against the resolved label set.
 //
 // Exactly one of matchNamespace / matchImageConfig / matchPodConfig is set (enforced by the
 // CRD webhook). If the label set required by the condition is absent (nil), the condition is
 // treated as non-matching.
-func conditionMatches(match *kubefloworgv1beta1.FilterRuleMatch, targetScope kubefloworgv1beta1.FilterRuleScope, targetLabels map[string]string, evalCtx EvalContext) bool {
+func conditionMatches(cm *compiledMatch, targetScope kubefloworgv1beta1.FilterRuleScope, targetLabels map[string]string, evalCtx EvalContext) bool {
 	switch {
-	case match.MatchNamespace != nil:
-		return matchSelector(match.MatchNamespace.Selector, evalCtx.NamespaceLabels)
-	case match.MatchImageConfig != nil:
-		return matchSelector(match.MatchImageConfig.Selector, imageConfigLabels(targetScope, targetLabels, evalCtx))
-	case match.MatchPodConfig != nil:
-		return matchSelector(match.MatchPodConfig.Selector, podConfigLabels(targetScope, targetLabels, evalCtx))
+	case cm.match.MatchNamespace != nil:
+		return matchSelector(cm.selector, evalCtx.NamespaceLabels)
+	case cm.match.MatchImageConfig != nil:
+		return matchSelector(cm.selector, imageConfigLabels(targetScope, targetLabels, evalCtx))
+	case cm.match.MatchPodConfig != nil:
+		return matchSelector(cm.selector, podConfigLabels(targetScope, targetLabels, evalCtx))
 	default:
 		// no recognized condition set: treat as non-matching
 		return false
@@ -187,18 +258,12 @@ func podConfigLabels(targetScope kubefloworgv1beta1.FilterRuleScope, targetLabel
 	return evalCtx.PodConfigLabels
 }
 
-// matchSelector compiles the label selector and evaluates it against the given labels.
+// matchSelector evaluates a pre-compiled selector against the given labels.
 //
 // When targetLabels is nil the required context is absent, so the condition is non-matching
-// regardless of the selector (conservative: don't hide or deny without full context). An
-// invalid selector (which the CRD webhook should already reject) is also non-matching.
-func matchSelector(labelSelector metav1.LabelSelector, targetLabels map[string]string) bool {
+// regardless of the selector (conservative: don't hide or deny without full context).
+func matchSelector(selector labels.Selector, targetLabels map[string]string) bool {
 	if targetLabels == nil {
-		return false
-	}
-
-	selector, err := metav1.LabelSelectorAsSelector(&labelSelector)
-	if err != nil {
 		return false
 	}
 
@@ -207,27 +272,25 @@ func matchSelector(labelSelector metav1.LabelSelector, targetLabels map[string]s
 
 // resultFromEffect converts a matched rule's effect into an EvalResult.
 func resultFromEffect(effect kubefloworgv1beta1.FilterRuleEffect) EvalResult {
-	result := EvalResult{Restrictions: common.DefaultRestrictions()}
+	return EvalResult{
+		UIHide:       effect.UI != nil && effect.UI.Hide,
+		APIHide:      effect.API != nil && effect.API.Hide != nil && *effect.API.Hide,
+		Restrictions: resolveRestrictions(effect),
+	}
+}
 
-	if effect.UI != nil {
-		result.UIHide = effect.UI.Hide
+// resolveRestrictions returns the restrictions from an `api.deny` effect, or the
+// non-restrictive default when the effect does not deny.
+func resolveRestrictions(effect kubefloworgv1beta1.FilterRuleEffect) common.Restrictions {
+	if effect.API == nil || effect.API.Deny == nil || !*effect.API.Deny {
+		return common.DefaultRestrictions()
 	}
 
-	if effect.API != nil {
-		if effect.API.Hide != nil {
-			result.APIHide = *effect.API.Hide
-		}
-		if effect.API.Deny != nil && *effect.API.Deny {
-			result.Restrictions.Deny = true
-			if effect.API.DenyMessage != nil {
-				result.Restrictions.DenyMessage = &common.DenyMessage{
-					Text: effect.API.DenyMessage.Text,
-				}
-			}
-		}
+	restrictions := common.Restrictions{Deny: true}
+	if effect.API.DenyMessage != nil {
+		restrictions.DenyMessage = &common.DenyMessage{Text: effect.API.DenyMessage.Text}
 	}
-
-	return result
+	return restrictions
 }
 
 // spawnerLabelsToMap converts a slice of CRD spawner labels into a label map suitable for
