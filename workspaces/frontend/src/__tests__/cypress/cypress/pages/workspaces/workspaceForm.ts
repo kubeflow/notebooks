@@ -115,8 +115,10 @@ class WorkspaceForm {
     return cy.findByTestId('workspace-name');
   }
 
-  typeWorkspaceName(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findWorkspaceNameInput().clear().type(name);
+  typeWorkspaceName(name: string): this {
+    this.findWorkspaceNameInput().clear();
+    this.findWorkspaceNameInput().type(name);
+    return this;
   }
 
   assertWorkspaceName(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
