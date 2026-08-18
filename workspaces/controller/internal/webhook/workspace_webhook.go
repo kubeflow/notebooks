@@ -45,9 +45,9 @@ type WorkspaceValidator struct {
 
 // SetupWebhookWithManager sets up the webhook with the manager
 func (v *WorkspaceValidator) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&kubefloworgv1beta1.Workspace{}).
-		WithValidator(v).
+	//nolint:staticcheck // WithValidator needs the typed admission.Validator[*Workspace] interface, which is a separate refactor of the validator methods
+	return ctrl.NewWebhookManagedBy(mgr, &kubefloworgv1beta1.Workspace{}).
+		WithCustomValidator(v).
 		Complete()
 }
 

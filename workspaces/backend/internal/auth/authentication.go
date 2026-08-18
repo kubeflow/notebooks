@@ -32,8 +32,9 @@ func NewRequestAuthenticator(useridHeader string, useridPrefix string, groupsHea
 	// create an upstream `requestHeaderAuthRequestHandler` to extract user and groups from the request headers
 	requestHeaderAuthenticator, err := headerrequest.New(
 		[]string{useridHeader},
+		nil, // uid headers
 		[]string{groupsHeader},
-		nil,
+		nil, // extra header prefixes
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request header authenticator: %w", err)
