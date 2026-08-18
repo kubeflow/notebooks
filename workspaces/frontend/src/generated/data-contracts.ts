@@ -204,6 +204,11 @@ export enum OptionsRedirectMessageLevel {
   RedirectMessageLevelDanger = 'Danger',
 }
 
+export enum MetricsErrorCode {
+  ErrorCodeMetricsAPINotAvailable = 'METRICS_API_NOT_AVAILABLE',
+  ErrorCodeWorkspaceNotRunning = 'WORKSPACE_NOT_RUNNING',
+}
+
 /** @format int64 */
 export enum IntstrType {
   /** The IntOrString holds an int. */
@@ -376,6 +381,10 @@ export interface ApiWorkspaceListEnvelope {
   data: WorkspacesWorkspaceListItem[];
 }
 
+export interface ApiWorkspaceResourceUsageEnvelope {
+  data: MetricsWorkspaceResourceUsage;
+}
+
 export interface AssetsImageRef {
   error?: AssetsImageRefErrorCode;
   url: string;
@@ -451,6 +460,38 @@ export interface IntstrIntOrString {
   intVal: number;
   strVal: string;
   type: IntstrType;
+}
+
+export interface MetricsContainerResourceUsage {
+  /**
+   * MetricsFromMetricsServer holds live usage metrics. It is nil when metrics
+   * are pending (e.g., pod just started).
+   */
+  metricsFromMetricsServer?: MetricsMetricsFromMetricsServer;
+  /** Resources holds the configured resource requirements from the pod spec. */
+  resources: V1ResourceRequirements;
+}
+
+export interface MetricsMetricsFromMetricsServer {
+  /** Timestamp is the RFC3339 timestamp of when the sample was collected. */
+  timestamp: string;
+  /** Usage is the current resource consumption. */
+  usage: MetricsResourceValues;
+}
+
+export interface MetricsResourceValues {
+  cpu?: string;
+  memory?: string;
+}
+
+export interface MetricsWorkspaceResourceUsage {
+  /**
+   * Containers holds the per-container resource data, keyed by container name.
+   * Absent when Error is present.
+   */
+  containers?: Record<string, MetricsContainerResourceUsage>;
+  /** Error indicates why usage is unavailable. Absent means success. */
+  error?: MetricsErrorCode;
 }
 
 export interface NamespacesNamespace {

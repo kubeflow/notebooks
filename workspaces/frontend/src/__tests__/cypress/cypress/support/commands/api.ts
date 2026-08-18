@@ -17,6 +17,7 @@ import type {
   ApiWorkspaceKindEnvelope,
   ApiWorkspaceKindListEnvelope,
   ApiWorkspaceListEnvelope,
+  ApiWorkspaceResourceUsageEnvelope,
   HealthCheckHealthCheck,
 } from '~/generated/data-contracts';
 
@@ -84,6 +85,11 @@ declare global {
           type: 'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/details',
           options: { path: { apiVersion: string; namespace: string; workspaceName: string } },
           response: ApiWorkspaceDetailsEnvelope | ApiErrorEnvelope,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/resources',
+          options: { path: { apiVersion: string; namespace: string; workspaceName: string } },
+          response: ApiWorkspaceResourceUsageEnvelope | ApiErrorEnvelope,
         ) => Cypress.Chainable<null>) &
         ((
           // The logs endpoint responds with a raw text/plain stream instead of an envelope.

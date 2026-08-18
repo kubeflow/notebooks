@@ -17,6 +17,7 @@ import {
   ApiWorkspaceDetailsEnvelope,
   ApiWorkspaceEnvelope,
   ApiWorkspaceListEnvelope,
+  ApiWorkspaceResourceUsageEnvelope,
 } from './data-contracts';
 import { ContentType, HttpClient, RequestParams } from './http-client';
 
@@ -255,6 +256,31 @@ export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityD
       path: `/workspaces/${namespace}/${name}/podtemplate/logs/batch`,
       method: 'GET',
       query: query,
+      ...params,
+    });
+  /**
+   * @description Returns point-in-time CPU and memory usage for each container of the workspace pod, alongside the requests and limits configured in the pod spec. Usage is read from the Kubernetes Metrics Server. When usage cannot be retrieved the response is still 200 OK, with a `data.error` code explaining why (`METRICS_API_NOT_AVAILABLE` when the Metrics Server is not installed, `WORKSPACE_NOT_RUNNING` when the workspace has no pods).
+   *
+   * @tags workspaces
+   * @name GetWorkspacePodTemplateResources
+   * @summary Get workspace pod template resources
+   * @request GET:/workspaces/{namespace}/{name}/podtemplate/resources
+   * @response `200` `ApiWorkspaceResourceUsageEnvelope` Successful operation. Returns per-container usage and configured resources, or an error code when usage is unavailable.
+   * @response `401` `ApiErrorEnvelope` Unauthorized.
+   * @response `403` `ApiErrorEnvelope` Forbidden.
+   * @response `404` `ApiErrorEnvelope` Workspace not found.
+   * @response `422` `ApiErrorEnvelope` Unprocessable Entity. Validation error.
+   * @response `500` `ApiErrorEnvelope` Internal server error.
+   */
+  getWorkspacePodTemplateResources = (
+    namespace: string,
+    name: string,
+    params: RequestParams = {},
+  ) =>
+    this.request<ApiWorkspaceResourceUsageEnvelope, ApiErrorEnvelope>({
+      path: `/workspaces/${namespace}/${name}/podtemplate/resources`,
+      method: 'GET',
+      format: 'json',
       ...params,
     });
 }
