@@ -334,7 +334,7 @@ type WorkspaceKindPodMetadata struct {
 // WorkspaceKindServiceAccount configures the ServiceAccount which the controller
 // creates and owns for each Workspace of this WorkspaceKind.
 type WorkspaceKindServiceAccount struct {
-	// ClusterRoles to grant to the ServiceAccount of each Workspace (MUTABLE)
+	// the ClusterRoles to grant to the ServiceAccount of each Workspace (MUTABLE)
 	//  - each entry becomes a namespaced RoleBinding, NOT a ClusterRoleBinding, so the
 	//    permissions only apply inside the Namespace of the Workspace
 	//  - removing an entry deletes the corresponding RoleBinding

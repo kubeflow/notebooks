@@ -514,8 +514,8 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// reconcile RoleBindings
 	if err := r.reconcileRoleBindings(ctx, log, workspace, workspaceKind, serviceAccountName); err != nil {
+		// NOTE: `reconcileRoleBindings()` has already logged the cause, including the conflict case
 		if apierrors.IsConflict(err) {
-			log.V(2).Info("update conflict while reconciling RoleBindings, will requeue")
 			return ctrl.Result{Requeue: true}, nil
 		}
 		return ctrl.Result{}, err
@@ -876,6 +876,10 @@ func (r *WorkspaceReconciler) reconcileRoleBindings(ctx context.Context, log log
 			delete(desiredRoleBindings, foundRoleBinding.Name)
 			if helper.CopyRoleBindingFields(desiredRoleBinding, foundRoleBinding) {
 				if err := r.Update(ctx, foundRoleBinding); err != nil {
+					if apierrors.IsConflict(err) {
+						log.V(2).Info("update conflict while updating RoleBinding, will requeue", "roleBinding", foundRoleBinding.Name)
+						return err
+					}
 					log.Error(err, "unable to update RoleBinding", "roleBinding", foundRoleBinding.Name)
 					return err
 				}

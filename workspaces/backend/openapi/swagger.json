@@ -7105,7 +7105,7 @@
             "type": "object",
             "properties": {
                 "clusterRoles": {
-                    "description": "ClusterRoles to grant to the ServiceAccount of each Workspace (MUTABLE)\n - each entry becomes a namespaced RoleBinding, NOT a ClusterRoleBinding, so the\n   permissions only apply inside the Namespace of the Workspace\n - removing an entry deletes the corresponding RoleBinding\n - the referenced ClusterRoles do not have to exist, a RoleBinding to a missing\n   ClusterRole simply grants nothing until that ClusterRole is created\n - changes take effect immediately, Workspaces do NOT need to be restarted\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"name\"\n+kubebuilder:example={{name: \"kubeflow-edit\"}}",
+                    "description": "the ClusterRoles to grant to the ServiceAccount of each Workspace (MUTABLE)\n - each entry becomes a namespaced RoleBinding, NOT a ClusterRoleBinding, so the\n   permissions only apply inside the Namespace of the Workspace\n - removing an entry deletes the corresponding RoleBinding\n - the referenced ClusterRoles do not have to exist, a RoleBinding to a missing\n   ClusterRole simply grants nothing until that ClusterRole is created\n - changes take effect immediately, Workspaces do NOT need to be restarted\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"name\"\n+kubebuilder:example={{name: \"kubeflow-edit\"}}",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/v1beta1.WorkspaceKindClusterRole"
