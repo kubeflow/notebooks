@@ -6,6 +6,12 @@
       "type": "object",
       "required": ["podTemplate", "revision", "spawner"],
       "properties": {
+        "activityRules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/v1beta1.ActivityRule"
+          }
+        },
         "podTemplate": {
           "$ref": "#/$defs/v1beta1.WorkspaceKindPodTemplate"
         },
@@ -15,6 +21,162 @@
         },
         "spawner": {
           "$ref": "#/$defs/v1beta1.WorkspaceKindSpawner"
+        }
+      }
+    },
+    "v1beta1.ActivityRule": {
+      "type": "object",
+      "required": ["config", "effect"],
+      "properties": {
+        "config": {
+          "description": "the configuration for this rule",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1beta1.ActivityRuleConfig"
+            }
+          ]
+        },
+        "effect": {
+          "description": "the action to take when the rule matches and its conditions are met",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1beta1.ActivityRuleEffect"
+            }
+          ]
+        },
+        "match": {
+          "description": "the conditions under which this rule applies\n+kubebuilder:validation:Optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1beta1.ActivityRuleMatch"
+            }
+          ]
+        }
+      }
+    },
+    "v1beta1.ActivityRuleConfig": {
+      "type": "object",
+      "required": ["secondsSinceActive"],
+      "properties": {
+        "minRunningSeconds": {
+          "description": "the minimum duration in seconds a Workspace must be running before it can be paused due to inactivity\n+kubebuilder:validation:Minimum:=0\n+kubebuilder:default:=0\n+kubebuilder:validation:Optional",
+          "type": "integer"
+        },
+        "secondsSinceActive": {
+          "description": "the number of seconds of inactivity before a Workspace is eligible for this rule's effect\n - the minimum value is 16 (`secondsSinceActive` > 15) to prevent thrashing and culling\n   workspaces prematurely during startup or transient connection drops\n+kubebuilder:validation:Minimum:=16",
+          "type": "integer"
+        }
+      }
+    },
+    "v1beta1.ActivityRuleEffect": {
+      "type": "object",
+      "properties": {
+        "pauseWorkspace": {
+          "description": "determines if the Workspace should be paused\n - the webhook rejects rules with `pauseWorkspace: true`\n   when no `activityProbe` is configured\n+kubebuilder:validation:Optional",
+          "type": "boolean"
+        }
+      }
+    },
+    "v1beta1.ActivityRuleMatch": {
+      "type": "object",
+      "properties": {
+        "matchNamespace": {
+          "description": "filters Workspaces by namespace labels\n+kubebuilder:validation:Optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1beta1.NamespaceMatch"
+            }
+          ]
+        },
+        "matchPodConfig": {
+          "description": "filters Workspaces by the PodConfig option they are using\n+kubebuilder:validation:Optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1beta1.PodConfigMatch"
+            }
+          ]
+        }
+      }
+    },
+    "v1beta1.NamespaceMatch": {
+      "type": "object",
+      "required": ["selector"],
+      "properties": {
+        "selector": {
+          "description": "the standard Kubernetes label selector to match namespace labels",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.LabelSelector"
+            }
+          ]
+        }
+      }
+    },
+    "v1.LabelSelector": {
+      "type": "object",
+      "properties": {
+        "matchExpressions": {
+          "description": "matchExpressions is a list of label selector requirements. The requirements are ANDed.\n+optional\n+listType=atomic",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/v1.LabelSelectorRequirement"
+          }
+        },
+        "matchLabels": {
+          "description": "matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels\nmap is equivalent to an element of matchExpressions, whose key field is \"key\", the\noperator is \"In\", and the values array contains only \"value\". The requirements are ANDed.\n+optional",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "v1.LabelSelectorRequirement": {
+      "type": "object",
+      "required": ["key", "operator"],
+      "properties": {
+        "key": {
+          "description": "key is the label key that the selector applies to.",
+          "type": "string"
+        },
+        "operator": {
+          "description": "operator represents a key's relationship to a set of values.\nValid operators are In, NotIn, Exists and DoesNotExist.",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.LabelSelectorOperator"
+            }
+          ]
+        },
+        "values": {
+          "description": "values is an array of string values. If the operator is In or NotIn,\nthe values array must be non-empty. If the operator is Exists or DoesNotExist,\nthe values array must be empty. This array is replaced during a strategic\nmerge patch.\n+optional\n+listType=atomic",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "v1.LabelSelectorOperator": {
+      "type": "string",
+      "enum": ["In", "NotIn", "Exists", "DoesNotExist"],
+      "x-enum-varnames": [
+        "LabelSelectorOpIn",
+        "LabelSelectorOpNotIn",
+        "LabelSelectorOpExists",
+        "LabelSelectorOpDoesNotExist"
+      ]
+    },
+    "v1beta1.PodConfigMatch": {
+      "type": "object",
+      "required": ["selector"],
+      "properties": {
+        "selector": {
+          "description": "the standard Kubernetes label selector to match podConfig labels",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.LabelSelector"
+            }
+          ]
         }
       }
     },
@@ -1484,60 +1646,6 @@
       "additionalProperties": {
         "$ref": "#/$defs/resource.Quantity"
       }
-    },
-    "v1.LabelSelector": {
-      "type": "object",
-      "properties": {
-        "matchExpressions": {
-          "description": "matchExpressions is a list of label selector requirements. The requirements are ANDed.\n+optional\n+listType=atomic",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/v1.LabelSelectorRequirement"
-          }
-        },
-        "matchLabels": {
-          "description": "matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels\nmap is equivalent to an element of matchExpressions, whose key field is \"key\", the\noperator is \"In\", and the values array contains only \"value\". The requirements are ANDed.\n+optional",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "v1.LabelSelectorRequirement": {
-      "type": "object",
-      "required": ["key", "operator"],
-      "properties": {
-        "key": {
-          "description": "key is the label key that the selector applies to.",
-          "type": "string"
-        },
-        "operator": {
-          "description": "operator represents a key's relationship to a set of values.\nValid operators are In, NotIn, Exists and DoesNotExist.",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1.LabelSelectorOperator"
-            }
-          ]
-        },
-        "values": {
-          "description": "values is an array of string values. If the operator is In or NotIn,\nthe values array must be non-empty. If the operator is Exists or DoesNotExist,\nthe values array must be empty. This array is replaced during a strategic\nmerge patch.\n+optional\n+listType=atomic",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "v1.LabelSelectorOperator": {
-      "type": "string",
-      "enum": ["In", "NotIn", "Exists", "DoesNotExist"],
-      "x-enum-varnames": [
-        "LabelSelectorOpIn",
-        "LabelSelectorOpNotIn",
-        "LabelSelectorOpExists",
-        "LabelSelectorOpDoesNotExist"
-      ]
     },
     "v1.PersistentVolumeMode": {
       "type": "string",

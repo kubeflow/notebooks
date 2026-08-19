@@ -23,6 +23,8 @@ import (
 	"strings"
 
 	"github.com/onsi/ginkgo/v2"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"sigs.k8s.io/yaml"
 )
 
 func warnError(err error) {
@@ -70,5 +72,66 @@ func GetProjectDir() (string, error) {
 		return wd, err
 	}
 	wd = strings.ReplaceAll(wd, "/test/e2e", "")
+	wd = strings.ReplaceAll(wd, "/test/utils", "")
 	return wd, nil
+}
+
+// RenderActivityWorkspaceKind reads the sample WorkspaceKind manifest and returns a copy with its
+// metadata.name overridden to newName. The activityProbe and activityRules are left untouched here
+// and are expected to be patched by the caller to enable fast activity pause behavior for the e2e test.
+func RenderActivityWorkspaceKind(samplePath, newName string) (string, error) {
+	data, err := os.ReadFile(samplePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read sample WorkspaceKind %q: %w", samplePath, err)
+	}
+
+	var obj unstructured.Unstructured
+	if err := yaml.Unmarshal(data, &obj.Object); err != nil {
+		return "", fmt.Errorf("failed to unmarshal sample WorkspaceKind %q: %w", samplePath, err)
+	}
+
+	obj.SetName(newName)
+
+	out, err := yaml.Marshal(obj.Object)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal modified WorkspaceKind %q: %w", samplePath, err)
+	}
+
+	return string(out), nil
+}
+
+// GetWorkspaceJSONPath runs `kubectl get workspace <name> -n <namespace> -o jsonpath=<path>`
+// and returns the (trimmed) value. It is a small convenience wrapper used by e2e assertions
+// that repeatedly read individual Workspace status fields.
+func GetWorkspaceJSONPath(name, namespace, jsonPath string) (string, error) {
+	cmd := exec.Command("kubectl", "get", "workspaces", name,
+		"-n", namespace, "-o", "jsonpath="+jsonPath)
+	out, err := Run(cmd)
+	return strings.TrimSpace(out), err
+}
+
+// RenderActivityWorkspace reads the sample Workspace manifest and returns a copy with its
+// metadata.name overridden to newName and spec.kind overridden to newKind.
+func RenderActivityWorkspace(samplePath, newName, newKind string) (string, error) {
+	data, err := os.ReadFile(samplePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read sample Workspace %q: %w", samplePath, err)
+	}
+
+	var obj unstructured.Unstructured
+	if err := yaml.Unmarshal(data, &obj.Object); err != nil {
+		return "", fmt.Errorf("failed to unmarshal sample Workspace %q: %w", samplePath, err)
+	}
+
+	obj.SetName(newName)
+	if err := unstructured.SetNestedField(obj.Object, newKind, "spec", "kind"); err != nil {
+		return "", fmt.Errorf("failed to set spec.kind in sample Workspace %q: %w", samplePath, err)
+	}
+
+	out, err := yaml.Marshal(obj.Object)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal modified Workspace %q: %w", samplePath, err)
+	}
+
+	return string(out), nil
 }

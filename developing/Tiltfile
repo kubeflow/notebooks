@@ -75,7 +75,7 @@ k8s_resource(
 # ClusterRoles from controller manifests, plus dev-only supplements for
 # resources the backend also checks (PVCs, secrets, etc).
 #
-# Common sample resources (ServiceAccount, PVCs, Secret, ConfigMap) applied to
+# Common sample resources (PVCs, Secret, ConfigMap) applied to
 # the default namespace so workspaces can be created out of the box.
 
 rbac_path = os.path.join(tilt_root, "manifests/rbac")
@@ -103,7 +103,6 @@ k8s_resource(
         "dev-user-resources:role",
         "dev-user-resources:rolebinding",
         # Common sample resources
-        "default-editor:serviceaccount",
         "workspace-home-pvc:persistentvolumeclaim",
         "workspace-data-pvc:persistentvolumeclaim",
         "workspace-secret:secret",

@@ -214,13 +214,15 @@ spec:
             properties:
               activity:
                 description: activity information for the Workspace, used to determine
-                  when to cull
+                  activity rule actions
                 properties:
                   lastActivity:
                     default: 0
                     description: |-
                       the last time activity was observed on the Workspace (UNIX epoch in milliseconds)
                        - this is the value returned by the activity probe, not the time the probe was run
+                       - the activity probe is authoritative: on success, the probe result unconditionally
+                         overwrites this timestamp (the controller does not validate monotonicity or clamp to wall-clock time)
                        - not updated when a probe fails
                     example: 1704067200000
                     format: int64
@@ -277,8 +279,11 @@ spec:
                           effect
                         properties:
                           eligibleAfter:
-                            description: the time after which if the rule is evaluated
-                              the Workspace would be paused (UNIX epoch in milliseconds)
+                            default: 0
+                            description: |-
+                              the time after which if the rule is evaluated the Workspace would be paused (UNIX epoch in milliseconds)
+                               - set to 0 when lastActivity is unknown (<= 0), indicating eligibility cannot be computed / not applicable
+                               - the controller will not pause a Workspace when eligibleAfter is 0
                             example: 1707667200000
                             format: int64
                             type: integer
@@ -415,6 +420,14 @@ spec:
                     type: string
                   nodeName:
                     description: the name of the node on which the Pod is scheduled
+                    type: string
+                  serviceAccountName:
+                    description: |-
+                      the name of the ServiceAccount that the Pod runs as
+                       - this ServiceAccount is created and owned by the Workspace, and is stable for its lifetime
+                       - it is reported here so that Roles, RoleBindings, and Istio AuthorizationPolicies
+                         which reference the ServiceAccount do not have to recompute its name
+                    example: ws-my-workspace
                     type: string
                 required:
                 - name

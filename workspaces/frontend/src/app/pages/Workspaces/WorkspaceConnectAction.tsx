@@ -8,7 +8,11 @@ import {
   MenuToggleElement,
 } from '@patternfly/react-core/dist/esm/components/MenuToggle';
 import React, { useState } from 'react';
-import { WorkspacesWorkspaceListItem, V1Beta1WorkspaceState } from '~/generated/data-contracts';
+import {
+  WorkspacesWorkspaceListItem,
+  WorkspacesHttpService,
+  V1Beta1WorkspaceState,
+} from '~/generated/data-contracts';
 
 type WorkspaceConnectActionProps = {
   workspace: WorkspacesWorkspaceListItem;
@@ -18,6 +22,16 @@ export const WorkspaceConnectAction: React.FunctionComponent<WorkspaceConnectAct
   workspace,
 }) => {
   const [open, setIsOpen] = useState(false);
+
+  const connectableServices = workspace.services
+    .map((service) => service.httpService)
+    .filter((httpService): httpService is WorkspacesHttpService => !!httpService);
+
+  const isDisabled = workspace.state !== V1Beta1WorkspaceState.WorkspaceStateRunning;
+
+  const openEndpoint = (value: string) => {
+    window.open(value, '_blank');
+  };
 
   const onToggleClick = () => {
     setIsOpen(!open);
@@ -33,9 +47,24 @@ export const WorkspaceConnectAction: React.FunctionComponent<WorkspaceConnectAct
     }
   };
 
-  const openEndpoint = (value: string) => {
-    window.open(value, '_blank');
-  };
+  // With a single endpoint there is nothing to choose, so skip the dropdown and
+  // connect directly. We still render a MenuToggle (rather than a plain Button)
+  // so the control keeps the exact same size as the multi-endpoint variant; the
+  // `--direct` modifier rotates its caret to point right, signalling that the
+  // click connects immediately instead of opening a menu.
+  if (connectableServices.length === 1) {
+    return (
+      <MenuToggle
+        variant="secondary"
+        className="kubeflow-connect-toggle--direct"
+        isDisabled={isDisabled}
+        onClick={() => openEndpoint(connectableServices[0].httpPath)}
+        aria-label="Connect to workspace"
+      >
+        Connect
+      </MenuToggle>
+    );
+  }
 
   return (
     <Dropdown
@@ -48,7 +77,7 @@ export const WorkspaceConnectAction: React.FunctionComponent<WorkspaceConnectAct
           variant="secondary"
           onClick={onToggleClick}
           isExpanded={open}
-          isDisabled={workspace.state !== V1Beta1WorkspaceState.WorkspaceStateRunning}
+          isDisabled={isDisabled}
           aria-label="Select connection endpoint"
         >
           Connect
@@ -58,19 +87,14 @@ export const WorkspaceConnectAction: React.FunctionComponent<WorkspaceConnectAct
       shouldFocusToggleOnSelect
     >
       <DropdownList>
-        {workspace.services.map((service) => {
-          if (!service.httpService) {
-            return null;
-          }
-          return (
-            <DropdownItem
-              value={service.httpService.httpPath}
-              key={`${workspace.name}-${service.httpService.displayName}`}
-            >
-              {service.httpService.displayName}
-            </DropdownItem>
-          );
-        })}
+        {connectableServices.map((httpService) => (
+          <DropdownItem
+            value={httpService.httpPath}
+            key={`${workspace.name}-${httpService.displayName}`}
+          >
+            {httpService.displayName}
+          </DropdownItem>
+        ))}
       </DropdownList>
     </Dropdown>
   );

@@ -377,7 +377,7 @@ export const buildMockPodTemplate = (
 export const buildMockWorkspace = (
   workspace?: Partial<WorkspacesWorkspaceListItem>,
 ): WorkspacesWorkspaceListItem => ({
-  name: 'My First Jupyter Notebook',
+  name: 'my-first-jupyter-notebook',
   audit: {
     createdAt: new Date(2025, 5, 1).toISOString(),
     createdBy: 'test-user',
@@ -698,6 +698,7 @@ export const buildMockWorkspaceKindUpdate = (
   listItem: WorkspacekindsWorkspaceKindListItem,
 ): WorkspacekindsWorkspaceKindUpdate => ({
   revision: '1',
+  activityRules: listItem.activityRules,
   spawner: {
     displayName: listItem.displayName,
     description: listItem.description,
@@ -789,7 +790,7 @@ export const buildMockWorkspaceList = (args: {
 
     workspaces.push(
       buildMockWorkspace({
-        name: `My Notebook ${i}`,
+        name: `my-notebook-${i}`,
         namespace: args.namespace,
         workspaceKind: args.kind,
         state,
@@ -861,7 +862,7 @@ export const buildMockWorkspaceCreate = (
   workspaceCreate?: Partial<WorkspacesWorkspaceCreate>,
 ): WorkspacesWorkspaceCreate => ({
   kind: 'jupyterlab',
-  name: 'My Notebook',
+  name: 'my-notebook',
   paused: false,
   podTemplate: buildMockPodTemplateMutate({}),
   ...workspaceCreate,

@@ -18,6 +18,8 @@ package controller
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"maps"
 	"strings"
@@ -28,6 +30,7 @@ import (
 	istiov1 "istio.io/client-go/pkg/apis/networking/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -60,17 +63,14 @@ const (
 	// pod template constants
 	workspacePodTemplateContainerName = "main"
 
-	// the ServiceAccount used by all Workspace Pods, it MUST already exist in the
-	// Namespace of the Workspace, the controller will NOT create it
-	// TODO: replace with per-Workspace ServiceAccounts
-	//       https://github.com/kubeflow/notebooks/issues/1257
-	workspaceServiceAccountName = "default-editor"
-
 	// lengths for resource names
 	generateNameSuffixLength    = 6
+	nameHashLength              = 8
 	maxServiceNameLength        = 63
 	maxVirtualServiceNameLength = 63
-	maxStatefulSetNameLength    = 52 // https://github.com/kubernetes/kubernetes/issues/64023
+	maxStatefulSetNameLength    = 52  // https://github.com/kubernetes/kubernetes/issues/64023
+	maxServiceAccountNameLength = 253 // RFC 1123 subdomain
+	maxRoleBindingNameLength    = 253 // path segment name, but we only generate RFC 1123 subdomains
 
 	// workspace connection path template
 	workspaceConnectPathTemplate = "/workspace/connect/%s/%s/%s/"
@@ -84,6 +84,8 @@ const (
 	stateMsgErrorGenFailureVirtualService  = "Workspace failed to generate VirtualService with error: %s"
 	stateMsgErrorMultipleStatefulSets      = "Workspace owns multiple StatefulSets: %s"
 	stateMsgErrorMultipleServices          = "Workspace owns multiple Services: %s"
+	stateMsgErrorMultipleServiceAccounts   = "Workspace owns multiple ServiceAccounts: %s"
+	stateMsgErrorServiceAccountNotOwned    = "Workspace ServiceAccount %s already exists and is not owned by the Workspace"
 	stateMsgErrorMultipleVirtualServices   = "Workspace owns multiple VirtualServices: %s"
 	stateMsgErrorSetControllerReference    = "Workspace failed to set controller reference on %s with error: %s"
 	stateMsgErrorStatefulSetWarningEvent   = "Workspace StatefulSet has warning event: %s"
@@ -105,6 +107,14 @@ type WorkspaceReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 	Config *config.EnvConfig
+
+	// PodExecutor executes activity probe scripts inside Workspace Pods.
+	// If nil, podExec probes fail with a failure probe result indicating exec is not configured.
+	PodExecutor helper.PodExecutor
+
+	// HTTPProber performs HTTP requests for Jupyter activity probes.
+	// If nil, jupyter probes fail with a failure probe result indicating http prober is not configured.
+	HTTPProber helper.HTTPProber
 }
 
 // +kubebuilder:rbac:groups=kubeflow.org,resources=workspaces,verbs=create;delete;get;list;patch;update;watch
@@ -115,9 +125,20 @@ type WorkspaceReconciler struct {
 // +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=create;delete;get;list;patch;update;watch
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch
 // +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch
+// +kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch
 // +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch
+// +kubebuilder:rbac:groups=core,resources=pods/exec,verbs=create
 // +kubebuilder:rbac:groups=core,resources=services,verbs=create;delete;get;list;patch;update;watch
+// +kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=create;delete;get;list;patch;update;watch
 // +kubebuilder:rbac:groups=networking.istio.io,resources=virtualservices,verbs=create;delete;get;list;patch;update;watch
+// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs=create;delete;get;list;patch;update;watch
+//
+// NOTE: "bind" is an intentional privilege grant. Kubernetes refuses to create a RoleBinding unless
+//       the creator holds every permission in the referenced role or holds "bind" on it, and the
+//       controller has to bind arbitrary administrator-chosen ClusterRoles from the WorkspaceKind.
+//       https://github.com/kubernetes/kubernetes/blob/v1.34.0/pkg/registry/rbac/rolebinding/policybased/storage.go
+//
+// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles,verbs=bind
 
 func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) { //nolint:gocyclo
 	log := log.FromContext(ctx)
@@ -140,6 +161,10 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		log.V(2).Info("Workspace is being deleted")
 		return ctrl.Result{}, nil
 	}
+
+	// snapshot the Workspace as fetched, so the activityProbe logic can issue a minimal
+	// `spec.paused` patch (via client.MergeFrom) instead of a full-object update.
+	originalWorkspace := workspace.DeepCopy()
 
 	// copy the current Workspace status, so we can avoid unnecessary updates if the status hasn't changed
 	// NOTE: we dereference the DeepCopy of the status field because status fields are NOT pointers,
@@ -224,8 +249,88 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	//       will result in a forced restart of all Workspaces using the WorkspaceKind.
 	//
 
+	// generate ServiceAccount
+	// NOTE: this is reconciled before the StatefulSet because the Workspace Pods reference it by name
+	serviceAccount := generateServiceAccount(workspace)
+	if err := ctrl.SetControllerReference(workspace, serviceAccount, r.Scheme); err != nil {
+		log.Error(err, "unable to set controller reference on ServiceAccount")
+		return ctrl.Result{}, err
+	}
+
+	// fetch ServiceAccounts
+	// NOTE: even though the ServiceAccount has a deterministic name, we still filter by owner
+	//       so that a ServiceAccount left behind by an older name format is detected rather than orphaned
+	var serviceAccountName string
+	ownedServiceAccounts := &corev1.ServiceAccountList{}
+	listOpts := &client.ListOptions{
+		FieldSelector: fields.OneTermEqualSelector(helper.IndexWorkspaceOwnerField, workspace.Name),
+		Namespace:     req.Namespace,
+	}
+	if err := r.List(ctx, ownedServiceAccounts, listOpts); err != nil {
+		log.Error(err, "unable to list ServiceAccounts")
+		return ctrl.Result{}, err
+	}
+
+	// reconcile ServiceAccount
+	switch numServiceAccounts := len(ownedServiceAccounts.Items); {
+	case numServiceAccounts > 1:
+		serviceAccountList := make([]string, len(ownedServiceAccounts.Items))
+		for i, sa := range ownedServiceAccounts.Items {
+			serviceAccountList[i] = sa.Name
+		}
+		serviceAccountListString := strings.Join(serviceAccountList, ", ")
+		log.Error(nil, "Workspace owns multiple ServiceAccounts", "serviceAccounts", serviceAccountListString)
+		return r.updateWorkspaceState(ctx, log, workspace,
+			kubefloworgv1beta1.WorkspaceStateError,
+			fmt.Sprintf(stateMsgErrorMultipleServiceAccounts, serviceAccountListString),
+		)
+	case numServiceAccounts == 0:
+		if err := r.Create(ctx, serviceAccount); err != nil {
+			// NOTE: the ServiceAccount name is deterministic, so `AlreadyExists` is reachable, and
+			//       means either our cache is stale or something else already owns that name
+			if apierrors.IsAlreadyExists(err) {
+				existingServiceAccount := &corev1.ServiceAccount{}
+				if getErr := r.Get(ctx, client.ObjectKeyFromObject(serviceAccount), existingServiceAccount); getErr != nil {
+					if apierrors.IsNotFound(getErr) {
+						// the cache is stale, the watch on owned ServiceAccounts will requeue us
+						log.V(2).Info("ServiceAccount already exists but is not in the cache yet, will requeue")
+						return ctrl.Result{Requeue: true}, nil
+					}
+					log.Error(getErr, "unable to get existing ServiceAccount")
+					return ctrl.Result{}, getErr
+				}
+				if !metav1.IsControlledBy(existingServiceAccount, workspace) {
+					log.Error(err, "ServiceAccount already exists and is not owned by the Workspace", "serviceAccount", existingServiceAccount.Name)
+					return r.updateWorkspaceState(ctx, log, workspace,
+						kubefloworgv1beta1.WorkspaceStateError,
+						fmt.Sprintf(stateMsgErrorServiceAccountNotOwned, existingServiceAccount.Name),
+					)
+				}
+				return ctrl.Result{Requeue: true}, nil
+			}
+			log.Error(err, "unable to create ServiceAccount")
+			return ctrl.Result{}, err
+		}
+		serviceAccountName = serviceAccount.Name
+		log.V(2).Info("ServiceAccount created", "serviceAccount", serviceAccountName)
+	default:
+		foundServiceAccount := &ownedServiceAccounts.Items[0]
+		serviceAccountName = foundServiceAccount.Name
+		if helper.CopyServiceAccountFields(serviceAccount, foundServiceAccount) {
+			if err := r.Update(ctx, foundServiceAccount); err != nil {
+				if apierrors.IsConflict(err) {
+					log.V(2).Info("update conflict while updating ServiceAccount, will requeue")
+					return ctrl.Result{Requeue: true}, nil
+				}
+				log.Error(err, "unable to update ServiceAccount")
+				return ctrl.Result{}, err
+			}
+			log.V(2).Info("ServiceAccount updated", "serviceAccount", serviceAccountName)
+		}
+	}
+
 	// generate StatefulSet
-	statefulSet, err := generateStatefulSet(workspace, workspaceKind, currentImageConfig.Spec, currentPodConfig.Spec)
+	statefulSet, err := generateStatefulSet(workspace, workspaceKind, currentImageConfig.Spec, currentPodConfig.Spec, serviceAccountName)
 	if err != nil {
 		log.V(0).Info("failed to generate StatefulSet for Workspace", "error", err.Error())
 		return r.updateWorkspaceState(ctx, log, workspace,
@@ -243,7 +348,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	//	     this allows us to generate a random name for the StatefulSet with `metadata.generateName`
 	var statefulSetName string
 	ownedStatefulSets := &appsv1.StatefulSetList{}
-	listOpts := &client.ListOptions{
+	listOpts = &client.ListOptions{
 		FieldSelector: fields.OneTermEqualSelector(helper.IndexWorkspaceOwnerField, workspace.Name),
 		Namespace:     req.Namespace,
 	}
@@ -421,6 +526,15 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 	}
 
+	// reconcile RoleBindings
+	if err := r.reconcileRoleBindings(ctx, log, workspace, workspaceKind, serviceAccountName); err != nil {
+		// NOTE: `reconcileRoleBindings()` has already logged the cause, including the conflict case
+		if apierrors.IsConflict(err) {
+			return ctrl.Result{Requeue: true}, nil
+		}
+		return ctrl.Result{}, err
+	}
+
 	// fetch Pod
 	// NOTE: the first StatefulSet Pod is always called "{statefulSetName}-0"
 	podName := fmt.Sprintf("%s-0", statefulSetName)
@@ -435,11 +549,21 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// populate the Workspace status
-	workspaceStatus, result, err := r.generateWorkspaceStatus(ctx, log, workspace, pod, statefulSet)
+	workspaceStatus, result, err := r.generateWorkspaceStatus(ctx, log, workspace, pod, statefulSet, serviceAccountName)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 	workspace.Status = workspaceStatus
+
+	// reconcile the activity probe and activity rules
+	//  - this may run an activity probe, update `status.activity`, and pause the Workspace
+	//  - it returns a requeue result used to schedule the next probe (unless a more urgent
+	//    requeue was already requested by the status generation above)
+	activityResult, paused, err := r.reconcileActivity(ctx, log, workspace, workspaceKind, currentImageConfig, currentPodConfig, pod)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	result = mergeReconcileResult(result, activityResult)
 
 	// update the Workspace status, if it has changed
 	if !equality.Semantic.DeepEqual(currentStatus, workspace.Status) {
@@ -453,7 +577,47 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 	}
 
+	// if the Workspace was paused by the activity rules, patch `spec.paused`
+	//  - this is done after the status update so the activity status reflecting the
+	//    pause decision is persisted regardless of the outcome of this patch
+	//  - a MergeFrom patch (rather than a full Update) is used so we only send the
+	//    `spec.paused` change and avoid clobbering any concurrent spec modifications
+	//  - `Status().Update` above overwrites `workspace` with the API server response (where
+	//    `spec.paused` was still false/unmodified), so we re-apply `spec.paused = true` here
+	if paused {
+		workspace.Spec.Paused = new(true)
+		if err := r.Patch(ctx, workspace, client.MergeFrom(originalWorkspace)); err != nil {
+			if apierrors.IsConflict(err) {
+				log.V(2).Info("update conflict while pausing Workspace, will requeue")
+				return ctrl.Result{Requeue: true}, nil
+			}
+			log.Error(err, "unable to pause Workspace")
+			return ctrl.Result{}, err
+		}
+		log.V(1).Info("Workspace paused due to inactivity")
+		// no need to requeue for probing once paused
+		return ctrl.Result{}, nil
+	}
+
 	return result, nil
+}
+
+// mergeReconcileResult combines two reconcile results, preferring the sooner requeue.
+func mergeReconcileResult(a, b ctrl.Result) ctrl.Result {
+	switch {
+	case a.Requeue:
+		return a
+	case b.Requeue:
+		return b
+	case a.RequeueAfter <= 0:
+		return b
+	case b.RequeueAfter <= 0:
+		return a
+	case a.RequeueAfter <= b.RequeueAfter:
+		return a
+	default:
+		return b
+	}
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -485,7 +649,9 @@ func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager, opts *controlle
 		WithOptions(*opts).
 		For(&kubefloworgv1beta1.Workspace{}).
 		Owns(&appsv1.StatefulSet{}).
-		Owns(&corev1.Service{})
+		Owns(&corev1.Service{}).
+		Owns(&corev1.ServiceAccount{}).
+		Owns(&rbacv1.RoleBinding{})
 
 	if r.Config.UseIstio {
 
@@ -654,8 +820,160 @@ func generateNamePrefix(workspaceName string, maxLength int) string {
 	return namePrefix
 }
 
+// hashName returns a short, stable hash of the provided name parts, used as a suffix to keep
+// generated names unique when the readable part of the name has to be truncated
+func hashName(parts ...string) string {
+	// NOTE: the parts are joined with "/" because Kubernetes resource names can never contain it,
+	//       so distinct part lists can never produce the same input string
+	sum := sha256.Sum256([]byte(strings.Join(parts, "/")))
+	return hex.EncodeToString(sum[:])[:nameHashLength]
+}
+
+// generateServiceAccountName generates the name of the ServiceAccount for a Workspace,
+// the format is "ws-{WORKSPACE_NAME}", truncated with a hash suffix if it does not fit
+func generateServiceAccountName(workspaceName string) string {
+	// NOTE: this name is deterministic, unlike the `metadata.generateName` used by the other owned
+	//       resources, because users and other controllers reference the ServiceAccount by name
+	//       (in RoleBindings, and in Istio AuthorizationPolicy principals)
+	name := fmt.Sprintf("ws-%s", workspaceName)
+	if len(name) <= maxServiceAccountNameLength {
+		return name
+	}
+	// NOTE: we hash the Workspace name rather than the truncated result, so two Workspaces
+	//       sharing a long prefix get different ServiceAccount names
+	suffix := hashName(workspaceName)
+	return fmt.Sprintf("%s-%s", name[:maxServiceAccountNameLength-len(suffix)-1], suffix)
+}
+
+// generateServiceAccount generates a ServiceAccount for a Workspace
+func generateServiceAccount(workspace *kubefloworgv1beta1.Workspace) *corev1.ServiceAccount {
+	//
+	// NOTE: if you add new fields, ensure they are reflected in `helper.CopyServiceAccountFields()`
+	//
+	return &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      generateServiceAccountName(workspace.Name),
+			Namespace: workspace.Namespace,
+			Labels: map[string]string{
+				workspaceNameLabel: workspace.Name,
+			},
+		},
+	}
+}
+
+// generateRoleBindingName generates the name of the RoleBinding which grants a ClusterRole to the
+// ServiceAccount of a Workspace, the format is "ws-{WORKSPACE_NAME}-{HASH}"
+func generateRoleBindingName(workspaceName, clusterRoleName string) string {
+	// NOTE: the hash is for correctness, not just length. ClusterRole names may contain characters
+	//       which are invalid in a RoleBinding name (like ":"), and a plain join is ambiguous:
+	//       Workspace "a" + ClusterRole "b-c" would collide with Workspace "a-b" + ClusterRole "c"
+	suffix := hashName(workspaceName, clusterRoleName)
+	prefix := fmt.Sprintf("ws-%s", workspaceName)
+	maxPrefixLength := maxRoleBindingNameLength - len(suffix) - 1
+	if len(prefix) > maxPrefixLength {
+		prefix = prefix[:maxPrefixLength]
+	}
+	return fmt.Sprintf("%s-%s", prefix, suffix)
+}
+
+// generateRoleBinding generates a RoleBinding which grants a ClusterRole to the ServiceAccount of a Workspace,
+// this is a namespaced RoleBinding, NOT a ClusterRoleBinding, so the ClusterRole is only granted
+// within the Namespace of the Workspace
+func generateRoleBinding(workspace *kubefloworgv1beta1.Workspace, serviceAccountName, clusterRoleName string) *rbacv1.RoleBinding {
+	//
+	// NOTE: if you add new fields, ensure they are reflected in `helper.CopyRoleBindingFields()`
+	//
+	return &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      generateRoleBindingName(workspace.Name, clusterRoleName),
+			Namespace: workspace.Namespace,
+			Labels: map[string]string{
+				workspaceNameLabel: workspace.Name,
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: rbacv1.GroupName,
+			Kind:     "ClusterRole",
+			Name:     clusterRoleName,
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:      rbacv1.ServiceAccountKind,
+				Name:      serviceAccountName,
+				Namespace: workspace.Namespace,
+			},
+		},
+	}
+}
+
+// reconcileRoleBindings ensures the Workspace owns exactly one RoleBinding for each ClusterRole in the
+// WorkspaceKind `spec.podTemplate.serviceAccount.clusterRoles`, and no others
+func (r *WorkspaceReconciler) reconcileRoleBindings(ctx context.Context, log logr.Logger, workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind, serviceAccountName string) error {
+	desiredRoleBindings := make(map[string]*rbacv1.RoleBinding)
+	if workspaceKind.Spec.PodTemplate.ServiceAccount != nil {
+		for _, clusterRole := range workspaceKind.Spec.PodTemplate.ServiceAccount.ClusterRoles {
+			roleBinding := generateRoleBinding(workspace, serviceAccountName, clusterRole.Name)
+			if err := ctrl.SetControllerReference(workspace, roleBinding, r.Scheme); err != nil {
+				log.Error(err, "unable to set controller reference on RoleBinding")
+				return err
+			}
+			desiredRoleBindings[roleBinding.Name] = roleBinding
+		}
+	}
+
+	ownedRoleBindings := &rbacv1.RoleBindingList{}
+	listOpts := &client.ListOptions{
+		FieldSelector: fields.OneTermEqualSelector(helper.IndexWorkspaceOwnerField, workspace.Name),
+		Namespace:     workspace.Namespace,
+	}
+	if err := r.List(ctx, ownedRoleBindings, listOpts); err != nil {
+		log.Error(err, "unable to list RoleBindings")
+		return err
+	}
+
+	// NOTE: `roleRef` is immutable, so a RoleBinding whose roleRef no longer matches is deleted
+	//       here and recreated below, rather than updated
+	for i := range ownedRoleBindings.Items {
+		foundRoleBinding := &ownedRoleBindings.Items[i]
+		desiredRoleBinding, isDesired := desiredRoleBindings[foundRoleBinding.Name]
+		if isDesired && equality.Semantic.DeepEqual(foundRoleBinding.RoleRef, desiredRoleBinding.RoleRef) {
+			delete(desiredRoleBindings, foundRoleBinding.Name)
+			if helper.CopyRoleBindingFields(desiredRoleBinding, foundRoleBinding) {
+				if err := r.Update(ctx, foundRoleBinding); err != nil {
+					if apierrors.IsConflict(err) {
+						log.V(2).Info("update conflict while updating RoleBinding, will requeue", "roleBinding", foundRoleBinding.Name)
+						return err
+					}
+					log.Error(err, "unable to update RoleBinding", "roleBinding", foundRoleBinding.Name)
+					return err
+				}
+				log.V(2).Info("RoleBinding updated", "roleBinding", foundRoleBinding.Name)
+			}
+			continue
+		}
+		if err := r.Delete(ctx, foundRoleBinding); err != nil && !apierrors.IsNotFound(err) {
+			log.Error(err, "unable to delete RoleBinding", "roleBinding", foundRoleBinding.Name)
+			return err
+		}
+		log.V(2).Info("RoleBinding deleted", "roleBinding", foundRoleBinding.Name)
+	}
+
+	for _, roleBinding := range desiredRoleBindings {
+		if err := r.Create(ctx, roleBinding); err != nil {
+			// NOTE: `AlreadyExists` is deliberately not swallowed, because a RoleBinding we do not
+			//       own is invisible to both the owner index and the watch, so nothing else would
+			//       ever surface it
+			log.Error(err, "unable to create RoleBinding", "roleBinding", roleBinding.Name)
+			return err
+		}
+		log.V(2).Info("RoleBinding created", "roleBinding", roleBinding.Name)
+	}
+
+	return nil
+}
+
 // generateStatefulSet generates a StatefulSet for a Workspace
-func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind, imageConfigSpec kubefloworgv1beta1.ImageConfigSpec, podConfigSpec kubefloworgv1beta1.PodConfigSpec) (*appsv1.StatefulSet, error) {
+func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind, imageConfigSpec kubefloworgv1beta1.ImageConfigSpec, podConfigSpec kubefloworgv1beta1.PodConfigSpec, serviceAccountName string) (*appsv1.StatefulSet, error) {
 	// generate name prefix
 	namePrefix := generateNamePrefix(workspace.Name, maxStatefulSetNameLength)
 
@@ -915,7 +1233,7 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 					},
 					NodeSelector:       podConfigSpec.NodeSelector,
 					SecurityContext:    workspaceKind.Spec.PodTemplate.SecurityContext,
-					ServiceAccountName: workspaceServiceAccountName,
+					ServiceAccountName: serviceAccountName,
 					Tolerations:        podConfigSpec.Tolerations,
 					Volumes:            volumes,
 				},
@@ -1122,7 +1440,7 @@ func (r *WorkspaceReconciler) generateVirtualService(workspace *kubefloworgv1bet
 }
 
 // generateWorkspaceStatus generates a WorkspaceStatus for a Workspace
-func (r *WorkspaceReconciler) generateWorkspaceStatus(ctx context.Context, log logr.Logger, workspace *kubefloworgv1beta1.Workspace, pod *corev1.Pod, statefulSet *appsv1.StatefulSet) (kubefloworgv1beta1.WorkspaceStatus, ctrl.Result, error) {
+func (r *WorkspaceReconciler) generateWorkspaceStatus(ctx context.Context, log logr.Logger, workspace *kubefloworgv1beta1.Workspace, pod *corev1.Pod, statefulSet *appsv1.StatefulSet, serviceAccountName string) (kubefloworgv1beta1.WorkspaceStatus, ctrl.Result, error) {
 	// NOTE: some fields are populated before this function is called,
 	//       including `status.pendingRestart` and `status.podTemplateOptions`
 	status := workspace.Status
@@ -1141,7 +1459,10 @@ func (r *WorkspaceReconciler) generateWorkspaceStatus(ctx context.Context, log l
 	}
 
 	// populate the pod information
+	// NOTE: the ServiceAccount name is set outside `generateWorkspacePodStatus()` because it is
+	//       known even when the Pod does not exist yet (e.g. while the Workspace is paused)
 	status.PodTemplatePod = generateWorkspacePodStatus(pod)
+	status.PodTemplatePod.ServiceAccountName = serviceAccountName
 
 	// populate the workspace state and state message
 	workspaceState, workspaceStateMessage, result, err := r.generateWorkspaceState(ctx, log, workspacePaused, statefulSet, pod)
@@ -1151,7 +1472,28 @@ func (r *WorkspaceReconciler) generateWorkspaceStatus(ctx context.Context, log l
 	status.State = workspaceState
 	status.StateMessage = workspaceStateMessage
 
+	recordRunningTransition(&status, workspace.Status.State, workspaceState)
+
 	return status, result, nil
+}
+
+// recordRunningTransition records the transition of a Workspace into the Running state
+// (or when Running with an uninitialized lastRunningTime), setting status.LastRunningTime and
+// clearing any stale status.Activity.
+//
+//   - used to compute the running duration for the `minRunningSeconds` activity guard
+//   - only advanced on a transition INTO the Running state, so it reflects the start of
+//     the current continuous Running period
+//   - reset status.Activity on transition into Running so stale activity from a previous
+//     run does not cause an immediate pause when a paused Workspace is restarted
+func recordRunningTransition(status *kubefloworgv1beta1.WorkspaceStatus, currentState, newState kubefloworgv1beta1.WorkspaceState) {
+	if newState != kubefloworgv1beta1.WorkspaceStateRunning {
+		return
+	}
+	if currentState != kubefloworgv1beta1.WorkspaceStateRunning || status.LastRunningTime == 0 {
+		status.LastRunningTime = metav1.Now().UnixMilli()
+		status.Activity = kubefloworgv1beta1.WorkspaceActivity{}
+	}
 }
 
 // generateWorkspacePodStatus generates a WorkspacePodStatus for a Pod

@@ -3524,6 +3524,58 @@ export interface V1Beta1ActivityProbePodExec {
   timeoutSeconds?: number;
 }
 
+export interface V1Beta1ActivityRule {
+  /** the configuration for this rule */
+  config: V1Beta1ActivityRuleConfig;
+  /** the action to take when the rule matches and its conditions are met */
+  effect: V1Beta1ActivityRuleEffect;
+  /**
+   * the conditions under which this rule applies
+   * +kubebuilder:validation:Optional
+   */
+  match?: V1Beta1ActivityRuleMatch;
+}
+
+export interface V1Beta1ActivityRuleConfig {
+  /**
+   * the minimum duration in seconds a Workspace must be running before it can be paused due to inactivity
+   * +kubebuilder:validation:Minimum:=0
+   * +kubebuilder:default:=0
+   * +kubebuilder:validation:Optional
+   */
+  minRunningSeconds?: number;
+  /**
+   * the number of seconds of inactivity before a Workspace is eligible for this rule's effect
+   *  - the minimum value is 16 (`secondsSinceActive` > 15) to prevent thrashing and culling
+   *    workspaces prematurely during startup or transient connection drops
+   * +kubebuilder:validation:Minimum:=16
+   */
+  secondsSinceActive: number;
+}
+
+export interface V1Beta1ActivityRuleEffect {
+  /**
+   * determines if the Workspace should be paused
+   *  - the webhook rejects rules with `pauseWorkspace: true`
+   *    when no `activityProbe` is configured
+   * +kubebuilder:validation:Optional
+   */
+  pauseWorkspace?: boolean;
+}
+
+export interface V1Beta1ActivityRuleMatch {
+  /**
+   * filters Workspaces by namespace labels
+   * +kubebuilder:validation:Optional
+   */
+  matchNamespace?: V1Beta1NamespaceMatch;
+  /**
+   * filters Workspaces by the PodConfig option they are using
+   * +kubebuilder:validation:Optional
+   */
+  matchPodConfig?: V1Beta1PodConfigMatch;
+}
+
 export interface V1Beta1HTTPProxy {
   /**
    * if the path prefix is stripped from incoming HTTP requests
@@ -3648,6 +3700,11 @@ export interface V1Beta1IstioHeaderOperations {
   set?: Record<string, string>;
 }
 
+export interface V1Beta1NamespaceMatch {
+  /** the standard Kubernetes label selector to match namespace labels */
+  selector: V1LabelSelector;
+}
+
 export interface V1Beta1OptionRedirect {
   /**
    * information about the redirect
@@ -3729,6 +3786,11 @@ export interface V1Beta1PodConfig {
    * +listMapKey:="id"
    */
   values: V1Beta1PodConfigValue[];
+}
+
+export interface V1Beta1PodConfigMatch {
+  /** the standard Kubernetes label selector to match podConfig labels */
+  selector: V1LabelSelector;
 }
 
 export interface V1Beta1PodConfigSpec {
@@ -4123,6 +4185,7 @@ export interface WorkspacekindsWorkspaceKindListItem {
 }
 
 export interface WorkspacekindsWorkspaceKindUpdate {
+  activityRules?: V1Beta1ActivityRule[];
   podTemplate: V1Beta1WorkspaceKindPodTemplate;
   /**
    * RevisionString is an opaque token that can be treated like an etag.

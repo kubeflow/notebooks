@@ -123,6 +123,14 @@ class WorkspaceForm {
     return this.findWorkspaceNameInput().should('have.value', name);
   }
 
+  assertWorkspaceNameInputInvalid(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findWorkspaceNameInput().should('have.attr', 'aria-invalid', 'true');
+  }
+
+  assertWorkspaceNameInputValid(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findWorkspaceNameInput().should('not.have.attr', 'aria-invalid', 'true');
+  }
+
   findNextButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('next-button');
   }

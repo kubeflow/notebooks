@@ -6303,7 +6303,7 @@
                     ]
                 },
                 "probeIntervalSeconds": {
-                    "description": "the desired interval in seconds between successful probes.\n- If a probe succeeds, the controller schedules the next probe after this duration (requeuing after probeInterval).\n- Determines the freshness of workspace activity status used for culling inactive workspaces.\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:validation:Maximum:=31536000\n+kubebuilder:default:=3600\n+kubebuilder:validation:Optional",
+                    "description": "the desired interval in seconds between successful probes.\n - If a probe succeeds, the controller schedules the next probe after this duration (requeuing after probeInterval).\n - Determines the freshness of workspace activity status used by activity rules.\n - ACTIVITY TIMING CAVEAT: a Workspace is only paused immediately after a fresh probe confirms it is still\n   inactive (a Workspace is never paused based on stale activity data, so an actively-used Workspace whose\n   user resumed activity between probes is not paused). Consequently, activity rules are only evaluated at probe time,\n   so a Workspace may keep running for up to ~probeIntervalSeconds after it first becomes eligible\n   (lastActivity + secondsSinceActive) before it is actually paused. Lower this value for tighter timing,\n   at the cost of more frequent probing.\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:validation:Maximum:=31536000\n+kubebuilder:default:=3600\n+kubebuilder:validation:Optional",
                     "type": "integer"
                 }
             }
@@ -6332,7 +6332,7 @@
             ],
             "properties": {
                 "script": {
-                    "description": "script is the script to run inside the Pod to determine if the Workspace is active.\nThe script must meet the following requirements:\n - It must start with a shebang (e.g., \"#!/usr/bin/env bash\" or \"#!/usr/bin/env python\").\n - It must exit with a 0 status code. A non-zero exit code is treated as a probe failure (Workspaces with failing probes are not culled).\n - It should be idempotent and without side effects since it can be run multiple times.\n - If the script wants to report an INACTIVE state, it MUST write a JSON object to the file path\n   supplied in the OUTPUT_JSON_PATH environment variable. The fields are evaluated to update the\n   Workspace status field `status.activity.lastActivity` as follows:\n     - If `has_activity` is explicitly set to `true` (or if the JSON file is empty/omitted): The Workspace is treated as active, and `status.activity.lastActivity` is updated to the probe completion time (ignoring `last_activity`).\n     - If `last_activity` (ISO 8601 string) is provided and `has_activity` is explicitly `false` (or omitted): The Workspace is treated as inactive, and `status.activity.lastActivity` is updated to the `last_activity` timestamp.\n     - If `has_activity` is explicitly `false` and `last_activity` is omitted: The Workspace is treated as inactive, and the existing `status.activity.lastActivity` timestamp is preserved (unchanged).\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=2048",
+                    "description": "script is the script to run inside the Pod to determine if the Workspace is active.\nThe script must meet the following requirements:\n - The Pod's main container MUST provide a POSIX shell at \"/bin/sh\" and the \"cat\", \"chmod\",\n   and \"rm\" utilities, which the controller uses to stage and execute the script. Minimal\n   or distroless images without these will cause the probe to fail (and never pause).\n - It must start with a shebang (e.g., \"#!/usr/bin/env bash\" or \"#!/usr/bin/env python\").\n - It must exit with a 0 status code. A non-zero exit code is treated as a probe failure (Workspaces with failing probes are not paused).\n - It should be idempotent and without side effects since it can be run multiple times.\n - If the script wants to report an INACTIVE state, it MUST write a JSON object to the file path\n   supplied in the OUTPUT_JSON_PATH environment variable.\n - When has_activity is not provided and last_activity is provided, last_activity is the authoritative source of truth:\n   a successful probe unconditionally overwrites `status.activity.lastActivity` with the reported\n   timestamp (the controller does not validate monotonicity or clamp to wall-clock time).\n - The JSON fields `has_activity` (boolean) and `last_activity` (ISO 8601 string) are mutually exclusive;\n   users should specify one or the other, not both. If both fields are present, `has_activity` takes\n   precedence and `last_activity` is totally ignored (the probe does not fail).\n   The fields are evaluated to update the Workspace status field `status.activity.lastActivity` as follows:\n     - If `has_activity` is explicitly set to `true` (or if the JSON file is empty/omitted): The Workspace is treated as active, and `status.activity.lastActivity` is updated to the probe completion time (ignoring `last_activity`).\n     - If `has_activity` is explicitly set to `false`: The Workspace is treated as inactive, and the existing `status.activity.lastActivity` timestamp is preserved (unchanged, ignoring `last_activity`).\n     - If `last_activity` (ISO 8601 string) is provided (and `has_activity` is omitted): The Workspace is treated as inactive, and `status.activity.lastActivity` is updated to the `last_activity` timestamp.\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=2048",
                     "type": "string"
                 },
                 "timeoutSeconds": {
@@ -6385,7 +6385,7 @@
                     "type": "integer"
                 },
                 "secondsSinceActive": {
-                    "description": "the number of seconds of inactivity before a Workspace is eligible for this rule's effect\n - the minimum value is 16 (`secondsSinceActive` \u003e 15) to prevent thrashing and culling\n   workspaces prematurely during startup or transient connection drops\n+kubebuilder:validation:Minimum:=16",
+                    "description": "the number of seconds of inactivity before a Workspace is eligible for this rule's effect\n - the minimum value is 16 (`secondsSinceActive` \u003e 15) to prevent thrashing and pausing\n   workspaces prematurely during startup or transient connection drops\n+kubebuilder:validation:Minimum:=16",
                     "type": "integer"
                 }
             }
@@ -6880,6 +6880,18 @@
                 "WorkspaceKindAssetMediaTypeSVG"
             ]
         },
+        "v1beta1.WorkspaceKindClusterRole": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "description": "the name of the ClusterRole to bind to the Workspace ServiceAccount\n - note, ClusterRole names are path segment names, so unlike most Kubernetes\n   resource names they may contain uppercase letters and \":\" (for example,\n   the aggregated \"system:aggregate-to-view\" ClusterRole)\n - the pattern is the regex form of Kubernetes `IsValidPathSegmentName`:\n   the name must not be \".\" or \"..\", and must not contain \"/\" or \"%\"\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=253\n+kubebuilder:validation:Pattern:=^([^./%][^/%]*|\\.[^./%][^/%]*|\\.[^/%][^/%]+)$\n+kubebuilder:example:=\"kubeflow-edit\"",
+                    "type": "string"
+                }
+            }
+        },
         "v1beta1.WorkspaceKindPodMetadata": {
             "type": "object",
             "properties": {
@@ -7009,7 +7021,7 @@
                     ]
                 },
                 "serviceAccount": {
-                    "description": "service account configs for Workspace Pods\n - currently has no fields, the ServiceAccount used by Workspace Pods is\n   hardcoded to \"default-editor\" in the controller\n - this ServiceAccount MUST already exist in the Namespace of the Workspace,\n   the controller will NOT create it\n+kubebuilder:validation:Optional",
+                    "description": "service account configs for Workspace Pods\n - each Workspace runs as its own ServiceAccount, which is created and owned by\n   the controller and named \"ws-{WORKSPACE_NAME}\"\n - the resolved name is reported in the Workspace `status.podTemplatePod.serviceAccountName`\n+kubebuilder:validation:Optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.WorkspaceKindServiceAccount"
@@ -7090,7 +7102,16 @@
             }
         },
         "v1beta1.WorkspaceKindServiceAccount": {
-            "type": "object"
+            "type": "object",
+            "properties": {
+                "clusterRoles": {
+                    "description": "the ClusterRoles to grant to the ServiceAccount of each Workspace (MUTABLE)\n - each entry becomes a namespaced RoleBinding, NOT a ClusterRoleBinding, so the\n   permissions only apply inside the Namespace of the Workspace\n - removing an entry deletes the corresponding RoleBinding\n - the referenced ClusterRoles do not have to exist, a RoleBinding to a missing\n   ClusterRole simply grants nothing until that ClusterRole is created\n - changes take effect immediately, Workspaces do NOT need to be restarted\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"name\"\n+kubebuilder:example={{name: \"kubeflow-edit\"}}",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/v1beta1.WorkspaceKindClusterRole"
+                    }
+                }
+            }
         },
         "v1beta1.WorkspaceKindSpawner": {
             "type": "object",

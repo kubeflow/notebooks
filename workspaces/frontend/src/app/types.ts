@@ -3,6 +3,7 @@ import {
   OptionsPodConfigValue,
   V1Beta1WorkspaceKindAsset,
   V1Beta1ActivityProbe,
+  WorkspacekindsActivityRule,
   WorkspacekindsPodMetadata,
   WorkspacekindsPodVolumeMounts,
   WorkspacekindsWorkspaceKindListItem,
@@ -116,9 +117,14 @@ export interface WorkspaceKindPodTemplateData {
   extraVolumeMounts?: WorkspacesPodVolumeMount[];
 }
 
+export interface ActivityRuleEntry extends WorkspacekindsActivityRule {
+  id: string;
+}
+
 export interface WorkspaceKindFormData {
   properties: WorkspaceKindProperties;
   imageConfig: WorkspaceKindImageConfigData;
   podConfig: WorkspaceKindPodConfigData;
   podTemplate: WorkspaceKindPodTemplateData;
+  activityRules?: ActivityRuleEntry[];
 }

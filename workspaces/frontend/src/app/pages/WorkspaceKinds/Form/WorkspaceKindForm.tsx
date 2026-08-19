@@ -142,6 +142,12 @@ const convertToFormData = (
       },
       activityProbe: podTemplate.activityProbe,
     },
+    activityRules: initialData.activityRules?.map((rule) => ({
+      id: generateUniqueId(),
+      config: rule.config,
+      effect: { pauseWorkspace: rule.effect.pauseWorkspace ?? false },
+      match: rule.match,
+    })),
   };
 };
 
@@ -458,6 +464,10 @@ export const WorkspaceKindForm: React.FC = () => {
                         podTemplate={data.podTemplate}
                         updatePodTemplate={(podTemplate) => {
                           setData('podTemplate', podTemplate);
+                        }}
+                        activityRules={data.activityRules ?? []}
+                        updateActivityRules={(rules) => {
+                          setData('activityRules', rules);
                         }}
                       />
                     </StackItem>
