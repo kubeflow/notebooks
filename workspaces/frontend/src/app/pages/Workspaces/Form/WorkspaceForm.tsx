@@ -49,6 +49,7 @@ import { LoadError } from '~/app/components/LoadError';
 import { submitFormData } from '~/app/pages/Workspaces/Form/submitHelper';
 import { WorkspaceFormSummaryPanel } from '~/app/pages/Workspaces/Form/WorkspaceFormSummaryPanel';
 import { WorkspaceFormRedirectConfirmModal } from '~/app/pages/Workspaces/Form/WorkspaceFormRedirectConfirmModal';
+import { validateName } from './helpers';
 
 enum WorkspaceFormSteps {
   KindSelection,
@@ -106,6 +107,7 @@ const WorkspaceForm: React.FC = () => {
   // Store original values for edit mode diff view
   const [originalData, setOriginalData] = useState<WorkspaceFormData | undefined>(undefined);
 
+  const [workspaceNameError, setWorkspaceNameError] = useState<string | null>(null);
   // Refs for filter control
   const imageFilterControlRef = useRef<ImageSelectionFilterHandle>(null);
   const podConfigFilterControlRef = useRef<PodConfigSelectionFilterHandle>(null);
@@ -144,6 +146,13 @@ const WorkspaceForm: React.FC = () => {
     }
   }, [filteredValuesData, filteredValuesLoaded, data.podConfig, setData]);
 
+  const onDisplayNameChange = useCallback(
+    (value: string) => {
+      setWorkspaceNameError(validateName(value));
+      setData('properties', { ...data.properties, workspaceName: value });
+    },
+    [setData, data.properties],
+  );
   const getStepVariant = useCallback(
     (step: WorkspaceFormSteps) => {
       if (step > currentStep) {
@@ -167,13 +176,18 @@ const WorkspaceForm: React.FC = () => {
         case WorkspaceFormSteps.PodConfigSelection:
           return !!data.podConfig;
         case WorkspaceFormSteps.Properties:
-          return !!data.properties.workspaceName.trim() && !!data.properties.homeVolume;
+          return (
+            !!data.properties.workspaceName.trim() &&
+            !workspaceNameError &&
+            !!data.properties.homeVolume
+          );
         case WorkspaceFormSteps.Summary:
           return (
             !!data.kind &&
             !!data.imageConfig &&
             !!data.podConfig &&
             !!data.properties.workspaceName.trim() &&
+            !workspaceNameError &&
             !!data.properties.homeVolume
           );
         default:
@@ -186,6 +200,7 @@ const WorkspaceForm: React.FC = () => {
       data.podConfig,
       data.properties.workspaceName,
       data.properties.homeVolume,
+      workspaceNameError,
     ],
   );
 
@@ -531,6 +546,8 @@ const WorkspaceForm: React.FC = () => {
                         selectedProperties={data.properties}
                         onSelect={(properties) => setData('properties', properties)}
                         homeVolumeMountPath={data.kind?.podTemplate.volumeMounts.home}
+                        workspaceNameError={workspaceNameError}
+                        onWorkspaceNameChange={onDisplayNameChange}
                       />
                     )}
                     {currentStep === WorkspaceFormSteps.Summary && (

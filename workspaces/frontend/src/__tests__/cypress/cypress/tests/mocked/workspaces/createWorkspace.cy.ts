@@ -188,7 +188,7 @@ describe('Create workspace', () => {
       // Attach home volume (required)
       createWorkspace.attachHomeVolume('home-pvc');
 
-      const workspaceName = 'My Test Workspace';
+      const workspaceName = 'my-test-workspace';
       createWorkspace.typeWorkspaceName(workspaceName);
       createWorkspace.assertNextButtonEnabled();
 
@@ -265,11 +265,78 @@ describe('Create workspace', () => {
 
       createWorkspace.assertNextButtonDisabled();
 
-      createWorkspace.typeWorkspaceName('Test');
+      createWorkspace.typeWorkspaceName('test');
       createWorkspace.assertNextButtonEnabled();
 
       createWorkspace.findWorkspaceNameInput().clear();
       createWorkspace.assertNextButtonDisabled();
+    });
+
+    describe('Workspace name validation', () => {
+      beforeEach(() => {
+        cy.interceptApi(
+          'GET /api/:apiVersion/persistentvolumeclaims/:namespace',
+          { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
+          mockModArchResponse([buildMockPVC({ name: 'home-pvc' })]),
+        ).as('listPVCs');
+
+        completeAllStepsToProperties(mockWorkspaceKind.name, mockImage.id, mockPodConfig.id);
+        createWorkspace.attachHomeVolume('home-pvc');
+      });
+
+      it('should disable Next when name contains uppercase characters', () => {
+        createWorkspace.typeWorkspaceName('MyWorkspace');
+        createWorkspace.assertWorkspaceNameInputInvalid();
+        createWorkspace.assertNextButtonDisabled();
+      });
+
+      it('should disable Next when name contains invalid characters', () => {
+        createWorkspace.typeWorkspaceName('my_workspace!');
+        createWorkspace.assertWorkspaceNameInputInvalid();
+        createWorkspace.assertNextButtonDisabled();
+      });
+
+      it('should disable Next when name starts with a non-alphanumeric character', () => {
+        createWorkspace.typeWorkspaceName('-my-workspace');
+        createWorkspace.assertWorkspaceNameInputInvalid();
+        createWorkspace.assertNextButtonDisabled();
+      });
+
+      it('should disable Next when name ends with a non-alphanumeric character', () => {
+        createWorkspace.typeWorkspaceName('my-workspace-');
+        createWorkspace.assertWorkspaceNameInputInvalid();
+        createWorkspace.assertNextButtonDisabled();
+      });
+
+      it('should disable Next when name exceeds 63 characters', () => {
+        createWorkspace.typeWorkspaceName('a'.repeat(64));
+        createWorkspace.assertWorkspaceNameInputInvalid();
+        createWorkspace.assertNextButtonDisabled();
+      });
+
+      it('should enable Next with a valid name', () => {
+        createWorkspace.typeWorkspaceName('my-workspace.v1');
+        createWorkspace.assertWorkspaceNameInputValid();
+        createWorkspace.assertNextButtonEnabled();
+      });
+
+      it('should re-enable Next when an invalid name is corrected', () => {
+        createWorkspace.typeWorkspaceName('Invalid');
+        createWorkspace.assertNextButtonDisabled();
+
+        createWorkspace.findWorkspaceNameInput().clear();
+        createWorkspace.typeWorkspaceName('valid-name');
+        createWorkspace.assertWorkspaceNameInputValid();
+        createWorkspace.assertNextButtonEnabled();
+      });
+
+      it('should disable Next when a valid name is cleared', () => {
+        createWorkspace.typeWorkspaceName('valid-name');
+        createWorkspace.assertNextButtonEnabled();
+
+        createWorkspace.findWorkspaceNameInput().clear();
+        createWorkspace.assertNextButtonDisabled();
+      });
     });
 
     it('should navigate from workspaces list to create workspace', () => {
