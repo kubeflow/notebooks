@@ -36,6 +36,7 @@ export type WorkspacesPodVolumeMountValue = WithAttached<WorkspacesPodVolumeMoun
 
 export interface WorkspaceFormProperties {
   workspaceName: string;
+  displayName?: string; // Optional property
   homeVolume: WorkspacesPodVolumeMountValue | undefined;
   volumes: WorkspacesPodVolumeMountValue[];
   secrets: WorkspacesPodSecretMountValue[];

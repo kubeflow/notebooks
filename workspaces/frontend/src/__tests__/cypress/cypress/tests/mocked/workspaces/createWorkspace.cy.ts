@@ -188,7 +188,7 @@ describe('Create workspace', () => {
       // Attach home volume (required)
       createWorkspace.attachHomeVolume('home-pvc');
 
-      const workspaceName = 'My Test Workspace';
+      const workspaceName = 'my-test-workspace';
       createWorkspace.typeWorkspaceName(workspaceName);
       createWorkspace.assertNextButtonEnabled();
 
@@ -265,7 +265,7 @@ describe('Create workspace', () => {
 
       createWorkspace.assertNextButtonDisabled();
 
-      createWorkspace.typeWorkspaceName('Test');
+      createWorkspace.typeWorkspaceName('test');
       createWorkspace.assertNextButtonEnabled();
 
       createWorkspace.findWorkspaceNameInput().clear();
@@ -554,7 +554,6 @@ describe('Create workspace', () => {
 
       createWorkspace.checkExtraFilter('showRedirected');
       createWorkspace.checkExtraFilter('showHidden');
-      // Select the single available image
       createWorkspace.selectImage(mockImage.id);
       createWorkspace.assertImageSelected(mockImage.id);
       createWorkspace.assertNextButtonEnabled();
