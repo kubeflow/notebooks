@@ -14,6 +14,9 @@ allow_k8s_contexts('kind-tilt')
 enable_frontend = os.getenv("ENABLE_FRONTEND", "true").lower() == "true"
 routing_provider = os.getenv("ROUTING_PROVIDER", "istio")
 
+# External authorization (GEP-1494) only applies to the gateway-api provider.
+enable_ext_authz = os.getenv("ENABLE_EXT_AUTHZ", "false").lower() == "true" and routing_provider == "gateway-api"
+
 # Allow enabling Prometheus for metrics verification via environment variable
 enable_prometheus = os.getenv("ENABLE_PROMETHEUS", "false").lower() == "true"
 
@@ -28,6 +31,7 @@ workspace_root = os.path.dirname(tilt_root)
 controller_dir = os.path.join(workspace_root, "workspaces/controller")
 backend_dir = os.path.join(workspace_root, "workspaces/backend")
 frontend_dir = os.path.join(workspace_root, "workspaces/frontend")
+authz_dir = os.path.join(workspace_root, "workspaces/authz")
 
 # Kustomize binary path (installed by Makefile)
 kustomize_bin = os.path.join(tilt_root, "bin/kustomize")
@@ -48,6 +52,8 @@ docker_build(
 # Build manifests with kustomize
 if routing_provider == "istio" and enable_prometheus:
     controller_kustomize_path = os.path.join(controller_dir, "manifests/kustomize/overlays/istio-prometheus")
+elif enable_ext_authz:
+    controller_kustomize_path = os.path.join(controller_dir, "manifests/kustomize/overlays/gateway-api-ext-authz")
 else:
     controller_kustomize_path = os.path.join(controller_dir, "manifests/kustomize/overlays/" + routing_provider)
 manifests = kustomize(controller_kustomize_path, kustomize_bin=kustomize_bin)
@@ -353,6 +359,54 @@ else:
         serve_cmd="kubectl get gateway kubeflow-gateway -n kubeflow -w",
         resource_deps=["gateway-api-gateway", "workspaces-frontend" if enable_frontend else "workspaces-backend"],
         labels=["gateway"],
+    )
+
+# ============================================================================
+# External authorization (optional, gateway-api only)
+# ============================================================================
+
+if enable_ext_authz:
+    docker_build(
+        "ghcr.io/kubeflow/notebooks/workspaces-authz",
+        dockerfile=os.path.join(authz_dir, "Dockerfile"),
+        context=authz_dir,
+    )
+
+    k8s_yaml(
+        kustomize(os.path.join(tilt_root, "manifests/dex"), kustomize_bin=kustomize_bin),
+        allow_duplicates=True,
+    )
+    k8s_yaml(
+        kustomize(os.path.join(tilt_root, "manifests/authz"), kustomize_bin=kustomize_bin),
+        allow_duplicates=True,
+    )
+
+    k8s_resource(
+        "dex",
+        objects=[
+            "dex:namespace",
+            "dex:configmap",
+            "dex:httproute",
+            "dev-oidc-user-workspaces:rolebinding",
+            "dev-oidc-user-resources:rolebinding",
+            "dev-oidc-user-global-read:clusterrolebinding",
+            "dev-oidc-admin:clusterrolebinding",
+        ],
+        labels=["auth"],
+    )
+
+    k8s_resource(
+        "workspaces-authz",
+        objects=[
+            "workspaces-authz:serviceaccount",
+            "workspaces-authz:clusterrole",
+            "workspaces-authz:clusterrolebinding",
+            "workspaces-authz:configmap",
+            "workspaces-authz:httproute",
+            "workspaces-authz:referencegrant",
+        ],
+        resource_deps=["dex"],
+        labels=["auth"],
     )
 
 # ============================================================================

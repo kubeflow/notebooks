@@ -76,6 +76,18 @@ setup-gateway-api: setup-cert-manager setup-cloud-provider-kind
 	@echo "Setting up Gateway API..."
 	@./scripts/setup-gateway-api.sh
 
+# Install Gateway API with the experimental channel, required by the ExternalAuth filter
+.PHONY: setup-gateway-api-experimental
+setup-gateway-api-experimental: setup-cert-manager setup-cloud-provider-kind
+	@echo "Setting up Gateway API (experimental channel)..."
+	@GATEWAY_API_CHANNEL=experimental ./scripts/setup-gateway-api.sh
+
+# Generate the secrets and host wiring the authorization service needs
+.PHONY: setup-ext-authz
+setup-ext-authz:
+	@echo "Setting up external authorization..."
+	@./scripts/setup-ext-authz.sh
+
 # Run tilt up with kind cluster, cert-manager, and Istio setup
 .PHONY: tilt-up
 tilt-up: kustomize check-tilt setup-kind setup-istio setup-prometheus setup-metrics-server
@@ -87,6 +99,16 @@ tilt-up: kustomize check-tilt setup-kind setup-istio setup-prometheus setup-metr
 tilt-up-gateway-api: check-tilt setup-gateway-api kustomize
 	@echo "Starting Tilt (Gateway API flavor)..."
 	@ROUTING_PROVIDER=gateway-api tilt up
+
+# Run tilt up with Gateway API and external authorization.
+#
+# The authorization service secrets and host alias are created by
+# `make setup-ext-authz`, which has to run after Tilt has applied the Gateway
+# and the authz Deployment.
+.PHONY: tilt-up-gateway-api-ext-authz
+tilt-up-gateway-api-ext-authz: check-tilt setup-gateway-api-experimental kustomize
+	@echo "Starting Tilt (Gateway API + external authorization flavor)..."
+	@ROUTING_PROVIDER=gateway-api ENABLE_EXT_AUTHZ=true tilt up
 
 # Run Gateway API e2e tests
 test-e2e-gateway-api: setup-gateway-api
