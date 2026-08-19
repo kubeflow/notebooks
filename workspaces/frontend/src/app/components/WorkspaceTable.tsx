@@ -28,6 +28,7 @@ import {
   Td,
   ThProps,
   ActionsColumn,
+  IAction,
   IActions,
 } from '@patternfly/react-table/dist/esm/components/Table';
 import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
@@ -450,7 +451,32 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                               }
                               dataLabel={wsTableColumns[columnKey].label}
                             >
-                              {columnKey === 'name' && workspace.name}
+                              {columnKey === 'name' &&
+                                (() => {
+                                  const viewDetailsAction = rowActions(workspace).find(
+                                    (action): action is IAction =>
+                                      !('isSeparator' in action && action.isSeparator) &&
+                                      action.id === 'viewDetails',
+                                  );
+
+                                  return viewDetailsAction ? (
+                                    <Button
+                                      variant="link"
+                                      isInline
+                                      // Looks like plain text until hovered/focused, then reveals link styling.
+                                      // See the `workspace-name-btn` rule in app.css.
+                                      className="pf-v6-u-text-color-regular workspace-name-btn"
+                                      data-testid="workspace-name-link"
+                                      onClick={(event) =>
+                                        viewDetailsAction.onClick?.(event, rowIndex, {}, {})
+                                      }
+                                    >
+                                      {workspace.name}
+                                    </Button>
+                                  ) : (
+                                    workspace.name
+                                  );
+                                })()}
                               {columnKey === 'image' && (
                                 <Content>
                                   <Tooltip

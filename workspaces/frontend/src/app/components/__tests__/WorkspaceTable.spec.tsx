@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import WorkspaceTable from '~/app/components/WorkspaceTable';
 import { V1Beta1WorkspaceState } from '~/generated/data-contracts';
@@ -62,5 +63,45 @@ describe('WorkspaceTable state column', () => {
 
     const stateCell = screen.getByTestId('state-label');
     expect(stateCell).toHaveTextContent('Running');
+  });
+});
+
+describe('WorkspaceTable name column', () => {
+  it('renders the name as plain text when no viewDetails row action is provided', () => {
+    const workspace = buildMockWorkspace({});
+
+    render(
+      <WorkspaceTable
+        workspaces={[workspace]}
+        refreshWorkspaces={jest.fn()}
+        rowActions={() => []}
+      />,
+    );
+
+    expect(screen.queryByTestId('workspace-name-link')).not.toBeInTheDocument();
+    expect(screen.getByTestId('workspace-name')).toHaveTextContent(workspace.name);
+  });
+
+  it('renders the name as a clickable link that triggers the viewDetails action', async () => {
+    const user = userEvent.setup();
+    const workspace = buildMockWorkspace({});
+    const onViewDetailsClick = jest.fn();
+
+    render(
+      <WorkspaceTable
+        workspaces={[workspace]}
+        refreshWorkspaces={jest.fn()}
+        rowActions={() => [
+          { id: 'viewDetails', title: 'View Details', onClick: onViewDetailsClick },
+        ]}
+      />,
+    );
+
+    const nameLink = screen.getByTestId('workspace-name-link');
+    expect(nameLink).toHaveTextContent(workspace.name);
+
+    await user.click(nameLink);
+
+    expect(onViewDetailsClick).toHaveBeenCalledTimes(1);
   });
 });
