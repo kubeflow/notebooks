@@ -37,6 +37,36 @@
   cursor: pointer;
 }
 
+/* Workspace table row name: looks like plain text until hovered/focused, then reveals link styling.
+   Selector specificity matches PatternFly's own `.pf-v6-c-button` base rule (which also sets these
+   custom properties) so this override wins regardless of CSS injection order. */
+.pf-v6-c-button.workspace-table__name-link {
+  --pf-v6-c-button--m-link--m-inline--Color: var(--pf-t--global--text--color--regular);
+  --pf-v6-c-button--m-link--m-inline--TextDecorationLine: none;
+}
+
+/* Name is the only workspace table column whose content is unbounded user input, so it is the only
+   one that can grow without limit. Capping it means a pathological name truncates instead of
+   pushing the whole table into a horizontal scroll.
+
+   The cap sits on this span — an element the app owns and renders itself — rather than on the cell
+   or the button. Because `40ch` is an absolute length, the span shrink-wraps and bounds the cell's
+   `min-width: fit-content` on its own, so the constraint does not have to be threaded through the
+   boxes in between. Styling our own element also keeps us clear of PatternFly's internals: its
+   Button renders children inside a `.pf-v6-c-button__text` span that takes no className prop, and
+   reaching for that class directly would break on any release that changes it.
+
+   These declarations are `pf-v6-u-text-truncate` minus its `max-width: 100%`, which cannot be used
+   here because it would override the cap. `white-space` is required because PatternFly's base
+   button rule sets `normal`, overriding the `nowrap` the cell inherits from `fitContent`. */
+.workspace-table__name-text {
+  display: block;
+  max-width: 40ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .summary-redirect-icon-button {
   cursor: pointer;
   display: inline-flex;

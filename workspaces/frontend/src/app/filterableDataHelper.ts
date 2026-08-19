@@ -2,7 +2,6 @@ export interface DataFieldDefinition {
   label: string;
   isSortable: boolean;
   isFilterable: boolean;
-  width?: number;
 }
 
 export type FilterableDataFieldKey<T extends Record<string, DataFieldDefinition>> = {

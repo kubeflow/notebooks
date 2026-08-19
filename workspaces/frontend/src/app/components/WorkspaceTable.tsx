@@ -27,7 +27,9 @@ import {
   Tbody,
   Td,
   ThProps,
+  BaseCellProps,
   ActionsColumn,
+  IAction,
   IActions,
 } from '@patternfly/react-table/dist/esm/components/Table';
 import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
@@ -66,21 +68,50 @@ const {
   keyArray: wsTableColumnKeyArray,
   sortableKeyArray: sortableWsTableColumnKeyArray,
 } = defineDataFields({
-  name: { label: 'Name', isFilterable: true, isSortable: true, width: 20 },
-  image: { label: 'Image', isFilterable: true, isSortable: true, width: 15 },
-  podConfig: { label: 'Pod config', isFilterable: true, isSortable: true, width: 15 },
-  kind: { label: 'Kind', isFilterable: true, isSortable: true, width: 10 },
-  namespace: { label: 'Namespace', isFilterable: true, isSortable: true, width: 15 },
-  state: { label: 'State', isFilterable: true, isSortable: true, width: 10 },
-  gpu: { label: 'GPU', isFilterable: true, isSortable: true, width: 15 },
-  idleGpu: { label: 'Idle GPU', isFilterable: true, isSortable: true, width: 15 },
-  lastActivity: { label: 'Last activity', isFilterable: false, isSortable: true, width: 15 },
-  connect: { label: '', isFilterable: false, isSortable: false, width: undefined },
-  actions: { label: '', isFilterable: false, isSortable: false, width: undefined },
+  name: { label: 'Name', isFilterable: true, isSortable: true },
+  kind: { label: 'Kind', isFilterable: true, isSortable: true },
+  podConfig: { label: 'Pod config', isFilterable: true, isSortable: true },
+  image: { label: 'Image', isFilterable: true, isSortable: true },
+  namespace: { label: 'Namespace', isFilterable: true, isSortable: true },
+  state: { label: 'State', isFilterable: true, isSortable: true },
+  gpu: { label: 'GPU', isFilterable: true, isSortable: true },
+  idleGpu: { label: 'Idle GPU', isFilterable: true, isSortable: true },
+  lastActivity: { label: 'Last activity', isFilterable: false, isSortable: true },
+  connect: { label: '', isFilterable: false, isSortable: false },
+  actions: { label: '', isFilterable: false, isSortable: false },
 });
 
 export type WorkspaceTableColumnKeys = DataFieldKey<typeof wsTableColumns>;
 type WorkspaceTableSortableColumnKeys = SortableDataFieldKey<typeof wsTableColumns>;
+
+/**
+ * The breakpoints at which each column is rendered; `undefined` means always visible.
+ *
+ * Every column renders `fitContent` (`width: 1%; min-width: fit-content`), so each one is sized to
+ * its own content and auto table layout shares whatever is left over evenly between them. Only
+ * Name carries content that can grow without limit, and it is capped in `app.css`.
+ *
+ * Dropping the lowest-priority columns as the viewport narrows lets the table degrade in a chosen
+ * order rather than overflowing into a horizontal scrollbar. Below PatternFly's own `md` grid
+ * breakpoint the table stops being a grid altogether and stacks each row into a card, labelled by
+ * the `dataLabel` on each cell.
+ *
+ * This is an exhaustive `Record` rather than a `Partial` so that a new column has to make an
+ * explicit choice instead of silently defaulting to always-visible.
+ */
+const columnVisibility: Record<WorkspaceTableColumnKeys, BaseCellProps['visibility']> = {
+  name: undefined,
+  kind: undefined,
+  podConfig: ['hidden', 'visibleOnLg'],
+  image: ['hidden', 'visibleOnMd'],
+  namespace: ['hidden', 'visibleOnLg'],
+  state: undefined,
+  gpu: ['hidden', 'visibleOnXl'],
+  idleGpu: ['hidden', 'visibleOnXl'],
+  lastActivity: ['hidden', 'visibleOnXl'],
+  connect: undefined,
+  actions: undefined,
+};
 
 interface WorkspaceTableProps {
   workspaces: WorkspacesWorkspaceListItem[];
@@ -297,27 +328,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       };
     };
 
-    // Column-specific modifiers and special properties
-    const getColumnModifier = (
-      columnKey: WorkspaceTableColumnKeys,
-    ): 'wrap' | 'nowrap' | undefined => {
-      switch (columnKey) {
-        case 'name':
-        case 'kind':
-          return 'nowrap';
-        case 'image':
-        case 'podConfig':
-        case 'namespace':
-        case 'state':
-        case 'gpu':
-          return 'wrap';
-        case 'lastActivity':
-          return 'nowrap';
-        default:
-          return undefined;
-      }
-    };
-
+    // Column-specific special properties
     const getSpecialColumnProps = (columnKey: WorkspaceTableColumnKeys) => {
       switch (columnKey) {
         case 'connect':
@@ -376,21 +387,19 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
               aria-label="Sortable table"
               ouiaId="SortableTable"
               variant="compact"
-              style={{ minWidth: '1200px' }}
             >
               <Thead>
                 <Tr>
                   {visibleColumnKeys.map((columnKey) => {
                     const specialProps = getSpecialColumnProps(columnKey);
-                    const modifier = getColumnModifier(columnKey);
 
                     return (
                       <Th
                         key={`workspace-table-column-${columnKey}`}
-                        width={wsTableColumns[columnKey].width}
                         sort={specialProps.hasContent ? getSortParams(columnKey) : undefined}
                         aria-label={specialProps.hasContent ? columnKey : undefined}
-                        modifier={modifier}
+                        modifier="fitContent"
+                        visibility={columnVisibility[columnKey]}
                         screenReaderText={specialProps.screenReaderText}
                       >
                         {specialProps.hasContent ? wsTableColumns[columnKey].label : undefined}
@@ -415,6 +424,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                               <Td
                                 dataLabel={wsTableColumns[columnKey].label}
                                 modifier="fitContent"
+                                visibility={columnVisibility[columnKey]}
                                 hasAction
                                 key="connect"
                               >
@@ -427,7 +437,12 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
 
                           if (columnKey === 'actions') {
                             return (
-                              <Td isActionCell key="actions" data-testid="action-column">
+                              <Td
+                                isActionCell
+                                visibility={columnVisibility[columnKey]}
+                                key="actions"
+                                data-testid="action-column"
+                              >
                                 <ActionsColumn
                                   items={rowActions(workspace).map((action) => ({
                                     ...action,
@@ -449,8 +464,42 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                                     : `workspace-${columnKey}`
                               }
                               dataLabel={wsTableColumns[columnKey].label}
+                              modifier="fitContent"
+                              visibility={columnVisibility[columnKey]}
                             >
-                              {columnKey === 'name' && workspace.name}
+                              {columnKey === 'name' &&
+                                (() => {
+                                  const viewDetailsAction = rowActions(workspace).find(
+                                    (action): action is IAction =>
+                                      !('isSeparator' in action && action.isSeparator) &&
+                                      action.id === 'viewDetails',
+                                  );
+
+                                  // The cap that keeps a long name from widening the column lives
+                                  // on this span rather than on the cell, so that it applies
+                                  // whether or not the name is rendered as a link.
+                                  const nameText = (
+                                    <span className="workspace-table__name-text">
+                                      {workspace.name}
+                                    </span>
+                                  );
+
+                                  return viewDetailsAction ? (
+                                    <Button
+                                      variant="link"
+                                      isInline
+                                      className="workspace-table__name-link"
+                                      data-testid="workspace-name-link"
+                                      onClick={(event) =>
+                                        viewDetailsAction.onClick?.(event, rowIndex, {}, {})
+                                      }
+                                    >
+                                      {nameText}
+                                    </Button>
+                                  ) : (
+                                    nameText
+                                  );
+                                })()}
                               {columnKey === 'image' && (
                                 <Content>
                                   <Tooltip
@@ -522,6 +571,10 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                                         style={{
                                           width: '20px',
                                           height: '20px',
+                                          // PatternFly's reset caps images at max-width: 100%.
+                                          // Without a floor the logo is squashed to a few pixels,
+                                          // since nothing else in this column claims any width.
+                                          minWidth: '20px',
                                           cursor: 'pointer',
                                         }}
                                       />
