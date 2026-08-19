@@ -1,0 +1,18 @@
+# The OIDC endpoints must be reachable without authentication, so this route
+# deliberately carries no ExternalAuth filter.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: workspaces-authz
+spec:
+  parentRefs:
+  - name: kubeflow-gateway
+    namespace: kubeflow
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /oauth2/
+    backendRefs:
+    - name: workspaces-authz
+      port: 9002

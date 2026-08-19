@@ -1,0 +1,27 @@
+# The authorization service only ever asks the API server "may this user do
+# this?"; it never reads workspaces itself, so SubjectAccessReview is the only
+# permission it needs.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: workspaces-authz
+rules:
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: workspaces-authz
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: workspaces-authz
+subjects:
+- kind: ServiceAccount
+  name: workspaces-authz
+  namespace: kubeflow-workspaces

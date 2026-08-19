@@ -1,0 +1,31 @@
+# Istio calls the same ext_authz gRPC service as the Gateway API ExternalAuth
+# filter, so a single deployment covers both routing providers.
+#
+# This policy requires an extensionProvider named "workspaces-authz" in the
+# Istio MeshConfig, which cannot be expressed as a plain manifest:
+#
+#   meshConfig:
+#     extensionProviders:
+#     - name: workspaces-authz
+#       envoyExtAuthzGrpc:
+#         service: workspaces-authz.kubeflow-workspaces.svc.cluster.local
+#         port: 9001
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: workspaces-authz
+  namespace: istio-system
+spec:
+  selector:
+    matchLabels:
+      app: istio-ingressgateway
+  action: CUSTOM
+  provider:
+    name: workspaces-authz
+  rules:
+  - to:
+    - operation:
+        paths:
+        - /workspace/connect/*
+        - /workspaces
+        - /workspaces/*

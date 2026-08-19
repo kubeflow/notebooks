@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: workspaces-authz
+spec:
+  type: ClusterIP
+  selector: {}
+  ports:
+  - name: grpc-authz
+    protocol: TCP
+    port: 9001
+    targetPort: grpc-authz
+    appProtocol: kubernetes.io/h2c
+  - name: http-authz
+    protocol: TCP
+    port: 9002
+    targetPort: http-authz
