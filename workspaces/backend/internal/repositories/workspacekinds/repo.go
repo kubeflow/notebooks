@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"time"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
@@ -188,13 +189,43 @@ func (r *WorkspaceKindRepository) ListPodTemplateOptionsValues(ctx context.Conte
 		return nil, err
 	}
 
+	// resolve the labels of the namespace named in the request context (used by matchNamespace rules).
+	// nil when no namespace context was provided, so those conditions are treated as non-matching.
+	namespaceLabels, err := r.resolveNamespaceLabels(ctx, listValuesRequest)
+	if err != nil {
+		return nil, err
+	}
+
 	// convert the WorkspaceKind and ListValuesRequest to PodTemplateOptions model
-	listValuesResponse, err := modelsPodTemplateOptions.NewPodTemplateOptionsModelFromWorkspaceKind(workspaceKind, listValuesRequest)
+	listValuesResponse, err := modelsPodTemplateOptions.NewPodTemplateOptionsModelFromWorkspaceKind(workspaceKind, listValuesRequest, namespaceLabels)
 	if err != nil {
 		return nil, err
 	}
 
 	return listValuesResponse, nil
+}
+
+// resolveNamespaceLabels fetches the labels of the namespace named in the request context.
+// It returns nil (and no error) when no namespace context was provided, or when the namespace
+// does not exist, so that matchNamespace conditions are conservatively treated as non-matching.
+func (r *WorkspaceKindRepository) resolveNamespaceLabels(ctx context.Context, listValuesRequest *modelsPodTemplateOptions.ListValuesRequest) (map[string]string, error) {
+	if listValuesRequest.Context.Namespace == nil || listValuesRequest.Context.Namespace.Name == "" {
+		return nil, nil
+	}
+
+	namespace := &corev1.Namespace{}
+	if err := r.client.Get(ctx, client.ObjectKey{Name: listValuesRequest.Context.Namespace.Name}, namespace); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	// copy the labels into a map we own; also ensures a non-nil map so matchNamespace conditions
+	// are evaluated (namespace present) even when the namespace has no labels.
+	labels := make(map[string]string, len(namespace.Labels))
+	maps.Copy(labels, namespace.Labels)
+	return labels, nil
 }
 
 // GetWorkspaceKindAssetBytesIcon retrieves the content of a WorkspaceKind icon as bytes, along with its media type.
