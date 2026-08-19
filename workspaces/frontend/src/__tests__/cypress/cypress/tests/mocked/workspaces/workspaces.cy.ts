@@ -252,15 +252,11 @@ describe('Workspaces', () => {
             workspaceName: mockWorkspace.name,
           },
         },
-        {
-          data: {
-            podMetadata: { labels: {}, annotations: {} },
-            volumes: {
-              home: { pvcName: 'home-pvc', mountPath: '/home', readOnly: false },
-            },
+        mockModArchResponse(
+          buildMockWorkspaceDetails({
             pod: { name: 'workspace-abc-0', nodeName: 'node-gpu-01' },
-          },
-        },
+          }),
+        ),
       ).as('getPodDetails');
 
       navigateToNamespace(mockNamespace.name);
@@ -279,6 +275,7 @@ describe('Workspaces', () => {
         1,
       );
       const mockWorkspace = mockWorkspaces[0];
+
       cy.interceptApi(
         'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/details',
         {
@@ -288,15 +285,11 @@ describe('Workspaces', () => {
             workspaceName: mockWorkspace.name,
           },
         },
-        {
-          data: {
-            podMetadata: { labels: {}, annotations: {} },
-            volumes: {
-              home: { pvcName: 'home-pvc', mountPath: '/home', readOnly: false },
-            },
+        mockModArchResponse(
+          buildMockWorkspaceDetails({
             pod: undefined,
-          },
-        },
+          }),
+        ),
       );
 
       navigateToNamespace(mockNamespace.name);

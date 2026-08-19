@@ -21,7 +21,7 @@ import { WorkspaceDetailsLogs } from '~/app/pages/Workspaces/Details/WorkspaceDe
 import { WorkspaceDetailsPodTemplate } from '~/app/pages/Workspaces/Details/WorkspaceDetailsPodTemplate';
 import { WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
 import { WorkspaceResources } from '~/app/pages/Workspaces/WorkspaceResources';
-import useWorkspacePodTemplateDetails from '~/app/hooks/useWorkspacePodTemplateDetails';
+import { useWorkspaceDetails } from '~/app/hooks/useWorkspaceDetails';
 
 type WorkspaceDetailsProps = {
   workspace: WorkspacesWorkspaceListItem;
@@ -36,7 +36,7 @@ export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = 
   onEditClick,
   onDeleteClick,
 }) => {
-  const [details, detailsLoaded, detailsError] = useWorkspacePodTemplateDetails(
+  const [details, detailsLoaded, detailsError] = useWorkspaceDetails(
     workspace.namespace,
     workspace.name,
   );
