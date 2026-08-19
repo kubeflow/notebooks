@@ -21,7 +21,9 @@ import (
 	"log/slog"
 	"os"
 	"strconv"
+	"strings"
 
+	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -86,6 +88,19 @@ func main() {
 		getEnvAsStr("GROUPS_HEADER", "kubeflow-groups"),
 		"Key of request header containing user groups",
 	)
+	flag.BoolVar(
+		&cfg.EnableTokenAuth,
+		"enable-token-auth",
+		getEnvAsBool("ENABLE_TOKEN_AUTH", false),
+		"Authenticate bearer tokens with a TokenReview, instead of trusting the user id header for those requests",
+	)
+	var tokenAudiences string
+	flag.StringVar(
+		&tokenAudiences,
+		"token-audiences",
+		getEnvAsStr("TOKEN_AUDIENCES", ""),
+		"Comma separated audiences a bearer token must be valid for; empty accepts the API server default",
+	)
 	flag.StringVar(
 		&cfg.ProxyUrlPrefix,
 		"proxy-url-prefix",
@@ -125,6 +140,12 @@ func main() {
 		openapi.SwaggerInfo.Schemes = []string{cfg.SwaggerScheme}
 	}
 
+	for audience := range strings.SplitSeq(tokenAudiences, ",") {
+		if audience = strings.TrimSpace(audience); audience != "" {
+			cfg.TokenAudiences = append(cfg.TokenAudiences, audience)
+		}
+	}
+
 	// Initialize the logger
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
@@ -158,7 +179,15 @@ func main() {
 	}
 
 	// Create the request authenticator
-	reqAuthN, err := auth.NewRequestAuthenticator(cfg.UserIdHeader, cfg.UserIdPrefix, cfg.GroupsHeader)
+	var tokenAuthN authenticator.Token
+	if cfg.EnableTokenAuth {
+		tokenAuthN, err = auth.NewTokenReviewAuthenticator(mgr.GetConfig(), cfg.TokenAudiences)
+		if err != nil {
+			logger.Error("failed to create token authenticator", "error", err)
+			os.Exit(1)
+		}
+	}
+	reqAuthN, err := auth.NewRequestAuthenticator(cfg.UserIdHeader, cfg.UserIdPrefix, cfg.GroupsHeader, tokenAuthN)
 	if err != nil {
 		logger.Error("failed to create request authenticator", "error", err)
 		os.Exit(1)
