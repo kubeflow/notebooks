@@ -174,13 +174,25 @@ You can now make changes to the codebase, and Tilt will automatically rebuild an
 
 ### Tilt - Authentication & RBAC
 
-Tilt deploys RBAC bindings for two dev users from [`developing/manifests/rbac/`](developing/manifests/rbac/).
+Tilt deploys RBAC bindings for two dev users.
 The backend authenticates requests via `kubeflow-userid` and `kubeflow-groups` headers, then authorizes each API call with a Kubernetes [SubjectAccessReview](https://kubernetes.io/docs/reference/access-authn-authz/authorization/#checking-api-access).
 
 | User | Scope | Description |
 |------|-------|-------------|
 | `admin` | Cluster-wide | Typical cluster admin permissions |
-| `user` | `default` namespace | Typical workspaces user permissions |
+| `user` | `default` namespace (`example-profile-1` when the dashboard is enabled) | Typical workspaces user permissions |
+
+The bindings come from one of two kustomize targets, depending on whether the Kubeflow dashboard is enabled:
+
+| Dashboard | Manifests | `user` is scoped to |
+|-----------|-----------|---------------------|
+| disabled | [`developing/manifests/dev-resources-standalone/`](developing/manifests/dev-resources-standalone/) | the `default` namespace |
+| enabled | [`developing/manifests/dev-resources-dashboard/`](developing/manifests/dev-resources-dashboard/) | the `example-profile-1` namespace |
+
+Each target also pulls in the common sample resources (ServiceAccount, PVCs, Secret, ConfigMap) that workspaces need, and sets the target namespace once via its `namespace:` field.
+
+With the dashboard enabled, `user` is scoped to a single profile namespace so it behaves like a real Kubeflow user who owns one profile.
+The profiles themselves are defined in [`developing/manifests/profiles/`](developing/manifests/profiles/) — edit that kustomize target to add or change dev profiles.
 
 These bindings use the same `kubeflow-workspaces-*` ClusterRoles that are defined by the [controller manifests](workspaces/controller/manifests/kustomize/base/manager/user_cluster_roles.yaml), so they reflect realistic Kubeflow RBAC behavior.
 
@@ -190,7 +202,7 @@ To inspect the effective permissions for each dev user:
 # admin (cluster-wide)
 kubectl auth can-i --list --as=admin | grep -E '^Resources|^\S'
 
-# user (namespace-scoped)
+# user (namespace-scoped, use example-profile-1 when the dashboard is enabled)
 kubectl auth can-i --list --as=user -n default | grep -E '^Resources|^\S'
 ```
 

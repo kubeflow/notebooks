@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Dev resources for when the Kubeflow dashboard is enabled.
+#
+# The `user` dev user is scoped to a single profile namespace, which is what a
+# real Kubeflow user looks like: access to their own profile namespace only.
+# This namespace is created by the profile-controller from the Profile of the
+# same name in `manifests/profiles/`, and is applied to every namespaced
+# resource below, including the common samples pulled in from the controller.
+namespace: example-profile-1
+
+resources:
+  - admin.yaml
+  - user.yaml
+  - ../../../workspaces/controller/manifests/kustomize/samples/common
