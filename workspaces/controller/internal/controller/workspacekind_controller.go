@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/prometheus/client_golang/prometheus"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -75,6 +76,7 @@ func (r *WorkspaceKindReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			// Owned objects are automatically garbage collected.
 			// For additional cleanup logic use finalizers.
 			// Return and don't requeue.
+			clearWorkspaceKindMetrics(req.Name)
 			return ctrl.Result{}, nil
 		}
 		log.Error(err, "unable to fetch WorkspaceKind")
@@ -141,6 +143,18 @@ func (r *WorkspaceKindReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			Id:         podConfig.Id,
 			Workspaces: podConfigCount[podConfig.Id],
 		}
+	}
+
+	// update Prometheus metrics
+	workspaceKindWorkspaceCount.WithLabelValues(workspaceKind.Name).Set(float64(numWorkspace))
+	// we call metric.DeletePartialMatch() to ensure that there are no stale stale time series
+	workspaceKindImageConfigWorkspaceCount.DeletePartialMatch(prometheus.Labels{"workspace_kind": workspaceKind.Name})
+	for _, m := range imageConfigMetrics {
+		workspaceKindImageConfigWorkspaceCount.WithLabelValues(workspaceKind.Name, m.Id).Set(float64(m.Workspaces))
+	}
+	workspaceKindPodConfigWorkspaceCount.DeletePartialMatch(prometheus.Labels{"workspace_kind": workspaceKind.Name})
+	for _, m := range podConfigMetrics {
+		workspaceKindPodConfigWorkspaceCount.WithLabelValues(workspaceKind.Name, m.Id).Set(float64(m.Workspaces))
 	}
 
 	// populate the WorkspaceKind status
