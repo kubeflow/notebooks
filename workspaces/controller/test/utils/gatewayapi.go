@@ -46,3 +46,21 @@ func IsGatewayAPICRDsInstalled() bool {
 
 	return false
 }
+
+// IsGatewayAPIExperimentalInstalled checks if the Gateway API experimental
+// channel CRDs are installed.
+//
+// The ExternalAuth filter only exists in the experimental channel. Applying an
+// HTTPRoute that uses it against standard channel CRDs silently drops the
+// filter, which would leave workspace routes unauthenticated, so this is worth
+// asserting rather than discovering later.
+func IsGatewayAPIExperimentalInstalled() bool {
+	cmd := exec.Command("kubectl", "get", "crd", "httproutes.gateway.networking.k8s.io",
+		"-o", "jsonpath={.metadata.annotations.gateway\\.networking\\.k8s\\.io/channel}")
+	output, err := Run(cmd)
+	if err != nil {
+		return false
+	}
+
+	return strings.TrimSpace(output) == "experimental"
+}

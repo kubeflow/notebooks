@@ -115,6 +115,12 @@ test-e2e-gateway-api: setup-gateway-api
 	@echo "Running Gateway API e2e tests..."
 	@./scripts/test-e2e-gateway-api.sh
 
+# Run Gateway API e2e tests with the ExternalAuth filter enabled
+.PHONY: test-e2e-gateway-api-ext-authz
+test-e2e-gateway-api-ext-authz: setup-gateway-api-experimental
+	@echo "Running Gateway API e2e tests with external authorization..."
+	@./scripts/test-e2e-gateway-api-ext-authz.sh
+
 # Stop Tilt
 .PHONY: tilt-down
 tilt-down: check-tilt kustomize

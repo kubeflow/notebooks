@@ -100,7 +100,7 @@ var _ = Describe("controller", Ordered, func() {
 		cmd = exec.Command(
 			"make", "deploy",
 			fmt.Sprintf("IMG=%s", controllerImage),
-			fmt.Sprintf("OVERLAY=%s", routingProvider),
+			fmt.Sprintf("OVERLAY=%s", controllerOverlay),
 		)
 		_, err = utils.Run(cmd)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
@@ -186,7 +186,7 @@ var _ = Describe("controller", Ordered, func() {
 		_, _ = utils.Run(cmd)
 
 		By("deleting the controller")
-		cmd = exec.Command("make", "undeploy", fmt.Sprintf("OVERLAY=%s", routingProvider))
+		cmd = exec.Command("make", "undeploy", fmt.Sprintf("OVERLAY=%s", controllerOverlay))
 		_, _ = utils.Run(cmd)
 
 		By("deleting controller namespace")
@@ -351,6 +351,33 @@ var _ = Describe("controller", Ordered, func() {
 				g.Expect(workspaceRouteName).To(ContainSubstring(fmt.Sprintf("ws-%s", workspaceName)))
 			}
 			Eventually(verifyWorkspaceRoute, timeout, interval).Should(Succeed())
+
+			if enableExtAuthz {
+				// A workspace route proxies straight to the notebook pod, so a
+				// missing filter means the workspace is reachable by anyone.
+				// The filter also has to come first, or the authorization
+				// service is handed a rewritten path.
+				By("validating that the workspace route requires external authorization")
+				verifyExternalAuthFilter := func(g Gomega) {
+					cmd := exec.Command("kubectl", "get", "httproute", workspaceRouteName,
+						"-n", workspaceNamespace,
+						"-o", "go-template={{ range .spec.rules }}"+
+							"{{ $first := index .filters 0 }}"+
+							"{{ $first.type }}/{{ $first.externalAuth.backendRef.name }}"+
+							"{{ \"\\n\" }}{{ end }}",
+					)
+					filterOutput, err := utils.Run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
+
+					filters := utils.GetNonEmptyLines(filterOutput)
+					g.Expect(filters).NotTo(BeEmpty(), "expected the route to have at least one rule")
+					for _, filter := range filters {
+						g.Expect(filter).To(Equal("ExternalAuth/workspaces-authz"),
+							"every rule must start with an ExternalAuth filter pointing at the authorization service")
+					}
+				}
+				Eventually(verifyExternalAuthFilter, timeout, interval).Should(Succeed())
+			}
 
 			By("ensuring in-use imageConfig values cannot be removed from WorkspaceKind")
 			removeInUseImageConfig := func() error {
