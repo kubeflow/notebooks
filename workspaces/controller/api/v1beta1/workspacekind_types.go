@@ -239,10 +239,9 @@ type WorkspaceKindPodTemplate struct {
 	PodMetadata *WorkspaceKindPodMetadata `json:"podMetadata,omitempty"`
 
 	// service account configs for Workspace Pods
-	//  - currently has no fields, the ServiceAccount used by Workspace Pods is
-	//    hardcoded to "default-editor" in the controller
-	//  - this ServiceAccount MUST already exist in the Namespace of the Workspace,
-	//    the controller will NOT create it
+	//  - each Workspace runs as its own ServiceAccount, which is created and owned by
+	//    the controller and named "ws-{WORKSPACE_NAME}"
+	//  - the resolved name is reported in the Workspace `status.podTemplatePod.serviceAccountName`
 	// +kubebuilder:validation:Optional
 	ServiceAccount *WorkspaceKindServiceAccount `json:"serviceAccount,omitempty"`
 
@@ -332,10 +331,37 @@ type WorkspaceKindPodMetadata struct {
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
-// WorkspaceKindServiceAccount is currently empty, fields will be added once
-// Workspaces get their own controller-managed ServiceAccounts.
-// See https://github.com/kubeflow/notebooks/issues/1257
+// WorkspaceKindServiceAccount configures the ServiceAccount which the controller
+// creates and owns for each Workspace of this WorkspaceKind.
 type WorkspaceKindServiceAccount struct {
+	// the ClusterRoles to grant to the ServiceAccount of each Workspace (MUTABLE)
+	//  - each entry becomes a namespaced RoleBinding, NOT a ClusterRoleBinding, so the
+	//    permissions only apply inside the Namespace of the Workspace
+	//  - removing an entry deletes the corresponding RoleBinding
+	//  - the referenced ClusterRoles do not have to exist, a RoleBinding to a missing
+	//    ClusterRole simply grants nothing until that ClusterRole is created
+	//  - changes take effect immediately, Workspaces do NOT need to be restarted
+	// +kubebuilder:validation:Optional
+	// +listType:="map"
+	// +listMapKey:="name"
+	// +kubebuilder:example={{name: "kubeflow-edit"}}
+	ClusterRoles []WorkspaceKindClusterRole `json:"clusterRoles,omitempty"`
+}
+
+// WorkspaceKindClusterRole identifies a ClusterRole to bind to a Workspace's ServiceAccount
+// via a namespaced RoleBinding.
+type WorkspaceKindClusterRole struct {
+	// the name of the ClusterRole to bind to the Workspace ServiceAccount
+	//  - note, ClusterRole names are path segment names, so unlike most Kubernetes
+	//    resource names they may contain uppercase letters and ":" (for example,
+	//    the aggregated "system:aggregate-to-view" ClusterRole)
+	//  - the pattern is the regex form of Kubernetes `IsValidPathSegmentName`:
+	//    the name must not be "." or "..", and must not contain "/" or "%"
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
+	// +kubebuilder:validation:Pattern:=^([^./%][^/%]*|\.[^./%][^/%]*|\.[^/%][^/%]+)$
+	// +kubebuilder:example:="kubeflow-edit"
+	Name string `json:"name"`
 }
 
 // ActivityProbe defines how to detect recent user activity in a Workspace
