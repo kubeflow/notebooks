@@ -92,7 +92,7 @@ type ActivityRule struct {
 // ActivityRuleConfig defines the timing parameters for an ActivityRule
 type ActivityRuleConfig struct {
 	// the number of seconds of inactivity before a Workspace is eligible for this rule's effect
-	//  - the minimum value is 16 (`secondsSinceActive` > 15) to prevent thrashing and culling
+	//  - the minimum value is 16 (`secondsSinceActive` > 15) to prevent thrashing and pausing
 	//    workspaces prematurely during startup or transient connection drops
 	// +kubebuilder:validation:Minimum:=16
 	SecondsSinceActive int32 `json:"secondsSinceActive"`
@@ -379,8 +379,14 @@ type ActivityProbe struct {
 	MinProbeIntervalSeconds *int32 `json:"minProbeIntervalSeconds,omitempty"`
 
 	// the desired interval in seconds between successful probes.
-	// - If a probe succeeds, the controller schedules the next probe after this duration (requeuing after probeInterval).
-	// - Determines the freshness of workspace activity status used for culling inactive workspaces.
+	//  - If a probe succeeds, the controller schedules the next probe after this duration (requeuing after probeInterval).
+	//  - Determines the freshness of workspace activity status used by activity rules.
+	//  - ACTIVITY TIMING CAVEAT: a Workspace is only paused immediately after a fresh probe confirms it is still
+	//    inactive (a Workspace is never paused based on stale activity data, so an actively-used Workspace whose
+	//    user resumed activity between probes is not paused). Consequently, activity rules are only evaluated at probe time,
+	//    so a Workspace may keep running for up to ~probeIntervalSeconds after it first becomes eligible
+	//    (lastActivity + secondsSinceActive) before it is actually paused. Lower this value for tighter timing,
+	//    at the cost of more frequent probing.
 	// +kubebuilder:validation:Minimum:=1
 	// +kubebuilder:validation:Maximum:=31536000
 	// +kubebuilder:default:=3600
@@ -406,15 +412,24 @@ type ActivityProbePodExec struct {
 
 	// script is the script to run inside the Pod to determine if the Workspace is active.
 	// The script must meet the following requirements:
+	//  - The Pod's main container MUST provide a POSIX shell at "/bin/sh" and the "cat", "chmod",
+	//    and "rm" utilities, which the controller uses to stage and execute the script. Minimal
+	//    or distroless images without these will cause the probe to fail (and never pause).
 	//  - It must start with a shebang (e.g., "#!/usr/bin/env bash" or "#!/usr/bin/env python").
-	//  - It must exit with a 0 status code. A non-zero exit code is treated as a probe failure (Workspaces with failing probes are not culled).
+	//  - It must exit with a 0 status code. A non-zero exit code is treated as a probe failure (Workspaces with failing probes are not paused).
 	//  - It should be idempotent and without side effects since it can be run multiple times.
 	//  - If the script wants to report an INACTIVE state, it MUST write a JSON object to the file path
-	//    supplied in the OUTPUT_JSON_PATH environment variable. The fields are evaluated to update the
-	//    Workspace status field `status.activity.lastActivity` as follows:
+	//    supplied in the OUTPUT_JSON_PATH environment variable.
+	//  - When has_activity is not provided and last_activity is provided, last_activity is the authoritative source of truth:
+	//    a successful probe unconditionally overwrites `status.activity.lastActivity` with the reported
+	//    timestamp (the controller does not validate monotonicity or clamp to wall-clock time).
+	//  - The JSON fields `has_activity` (boolean) and `last_activity` (ISO 8601 string) are mutually exclusive;
+	//    users should specify one or the other, not both. If both fields are present, `has_activity` takes
+	//    precedence and `last_activity` is totally ignored (the probe does not fail).
+	//    The fields are evaluated to update the Workspace status field `status.activity.lastActivity` as follows:
 	//      - If `has_activity` is explicitly set to `true` (or if the JSON file is empty/omitted): The Workspace is treated as active, and `status.activity.lastActivity` is updated to the probe completion time (ignoring `last_activity`).
-	//      - If `last_activity` (ISO 8601 string) is provided and `has_activity` is explicitly `false` (or omitted): The Workspace is treated as inactive, and `status.activity.lastActivity` is updated to the `last_activity` timestamp.
-	//      - If `has_activity` is explicitly `false` and `last_activity` is omitted: The Workspace is treated as inactive, and the existing `status.activity.lastActivity` timestamp is preserved (unchanged).
+	//      - If `has_activity` is explicitly set to `false`: The Workspace is treated as inactive, and the existing `status.activity.lastActivity` timestamp is preserved (unchanged, ignoring `last_activity`).
+	//      - If `last_activity` (ISO 8601 string) is provided (and `has_activity` is omitted): The Workspace is treated as inactive, and `status.activity.lastActivity` is updated to the `last_activity` timestamp.
 	// +kubebuilder:validation:MinLength:=1
 	// +kubebuilder:validation:MaxLength:=2048
 	Script string `json:"script"`

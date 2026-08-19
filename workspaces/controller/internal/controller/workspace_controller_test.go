@@ -31,6 +31,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"k8s.io/utils/ptr"
+
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/config"
 )
@@ -246,6 +248,147 @@ var _ = Describe("Workspace Controller", func() {
 			//        - invalid WorkspaceKind (with bad option redirect - circular / missing) results in error state
 			//        - multiple owned StatefulSets / Services results in error state
 			//
+		})
+	})
+
+	Context("When activity rules pause an inactive Workspace", Serial, Ordered, func() {
+		var (
+			workspaceName     string
+			workspaceKindName string
+			workspaceKey      types.NamespacedName
+		)
+
+		BeforeAll(func() {
+			uniqueName := fmt.Sprintf("ws-activity-pause-%d", time.Now().UnixNano())
+			workspaceName = fmt.Sprintf("workspace-%s", uniqueName)
+			workspaceKindName = fmt.Sprintf("workspacekind-%s", uniqueName)
+			workspaceKey = types.NamespacedName{Name: workspaceName, Namespace: namespaceName}
+
+			workspaceReconciler.PodExecutor = &fakePodExecutor{
+				stdout: `{"last_activity": "2000-01-01T00:00:00Z"}`,
+			}
+
+			By("creating a WorkspaceKind with an activity probe and pause rules")
+			workspaceKind := NewExampleWorkspaceKind1(workspaceKindName)
+			workspaceKind.Spec.PodTemplate.ActivityProbe = &kubefloworgv1beta1.ActivityProbe{
+				MinProbeIntervalSeconds: new(int32(1)),
+				ProbeIntervalSeconds:    new(int32(10)),
+				PodExec: &kubefloworgv1beta1.ActivityProbePodExec{
+					TimeoutSeconds: new(int32(30)),
+					Script:         "exit 0",
+				},
+			}
+			workspaceKind.Spec.ActivityRules = []kubefloworgv1beta1.ActivityRule{
+				{
+					Config: kubefloworgv1beta1.ActivityRuleConfig{
+						SecondsSinceActive: 16,
+						MinRunningSeconds:  new(int32(0)),
+					},
+					Match:  &kubefloworgv1beta1.ActivityRuleMatch{},
+					Effect: kubefloworgv1beta1.ActivityRuleEffect{PauseWorkspace: new(true)},
+				},
+			}
+			Expect(k8sClient.Create(ctx, workspaceKind)).To(Succeed())
+
+			By("creating a Workspace")
+			workspace := NewExampleWorkspace1(workspaceName, namespaceName, workspaceKindName)
+			Expect(k8sClient.Create(ctx, workspace)).To(Succeed())
+		})
+
+		AfterAll(func() {
+			workspaceReconciler.PodExecutor = nil
+
+			By("deleting the Pod")
+			podList := &corev1.PodList{}
+			if err := k8sClient.List(ctx, podList, client.InNamespace(namespaceName), client.MatchingLabels{workspaceNameLabel: workspaceName}); err == nil {
+				for _, p := range podList.Items {
+					_ = k8sClient.Delete(ctx, &p)
+				}
+			}
+
+			By("deleting the StatefulSet")
+			stsList := &appsv1.StatefulSetList{}
+			if err := k8sClient.List(ctx, stsList, client.InNamespace(namespaceName), client.MatchingLabels{workspaceNameLabel: workspaceName}); err == nil {
+				for _, s := range stsList.Items {
+					_ = k8sClient.Delete(ctx, &s)
+				}
+			}
+
+			By("deleting the Service")
+			svcList := &corev1.ServiceList{}
+			if err := k8sClient.List(ctx, svcList, client.InNamespace(namespaceName), client.MatchingLabels{workspaceNameLabel: workspaceName}); err == nil {
+				for _, s := range svcList.Items {
+					_ = k8sClient.Delete(ctx, &s)
+				}
+			}
+
+			By("deleting the Workspace")
+			workspace := &kubefloworgv1beta1.Workspace{
+				ObjectMeta: metav1.ObjectMeta{Name: workspaceName, Namespace: namespaceName},
+			}
+			_ = k8sClient.Delete(ctx, workspace)
+
+			By("deleting the WorkspaceKind")
+			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
+				ObjectMeta: metav1.ObjectMeta{Name: workspaceKindName},
+			}
+			_ = k8sClient.Delete(ctx, workspaceKind)
+		})
+
+		It("should successfully persist spec.paused=true to the API server even when Status().Update runs in the same reconcile", func() {
+			By("waiting for the StatefulSet to be created")
+			statefulSetList := &appsv1.StatefulSetList{}
+			Eventually(func() ([]appsv1.StatefulSet, error) {
+				err := k8sClient.List(ctx, statefulSetList, client.InNamespace(namespaceName), client.MatchingLabels{workspaceNameLabel: workspaceName})
+				if err != nil {
+					return nil, err
+				}
+				return statefulSetList.Items, nil
+			}, timeout, interval).Should(HaveLen(1))
+
+			By("fetching the created StatefulSet and creating a running Pod for it")
+			Expect(k8sClient.List(ctx, statefulSetList, client.InNamespace(namespaceName), client.MatchingLabels{workspaceNameLabel: workspaceName})).To(Succeed())
+			statefulSetName := statefulSetList.Items[0].Name
+			podName := fmt.Sprintf("%s-0", statefulSetName)
+
+			pod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      podName,
+					Namespace: namespaceName,
+					Labels: map[string]string{
+						workspaceNameLabel: workspaceName,
+					},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{{Name: "main", Image: "busybox"}},
+				},
+			}
+			Expect(k8sClient.Create(ctx, pod)).To(Succeed())
+			pod.Status.Phase = corev1.PodRunning
+			pod.Status.PodIP = "10.0.0.1"
+			pod.Status.Conditions = []corev1.PodCondition{
+				{Type: corev1.PodReady, Status: corev1.ConditionTrue},
+				{Type: corev1.PodScheduled, Status: corev1.ConditionTrue},
+			}
+			Expect(k8sClient.Status().Update(ctx, pod)).To(Succeed())
+
+			Eventually(func() error {
+				p := &corev1.Pod{}
+				if err := k8sManager.GetClient().Get(ctx, client.ObjectKey{Name: podName, Namespace: namespaceName}, p); err != nil {
+					return err
+				}
+				if p.Status.Phase != corev1.PodRunning {
+					return fmt.Errorf("pod phase is %s, expected Running", p.Status.Phase)
+				}
+				return nil
+			}, timeout, interval).Should(Succeed())
+
+			By("waiting for the controller to persist spec.paused=true to the API server")
+			Eventually(func(g Gomega) {
+				updatedWS := &kubefloworgv1beta1.Workspace{}
+				g.Expect(k8sClient.Get(ctx, workspaceKey, updatedWS)).To(Succeed())
+				g.Expect(ptr.Deref(updatedWS.Spec.Paused, false)).To(BeTrue(), "spec.paused must be persisted to true in the API server")
+			}, timeout, interval).Should(Succeed())
 		})
 	})
 

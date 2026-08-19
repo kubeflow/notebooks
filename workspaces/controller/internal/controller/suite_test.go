@@ -55,7 +55,9 @@ var (
 	testEnv *envtest.Environment
 	cfg     *rest.Config
 
-	k8sClient client.Client
+	k8sClient           client.Client
+	k8sManager          ctrl.Manager
+	workspaceReconciler *WorkspaceReconciler
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -101,7 +103,7 @@ var _ = BeforeSuite(func() {
 	Expect(k8sClient).NotTo(BeNil())
 
 	By("setting up the controller manager")
-	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
+	k8sManager, err = ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: scheme.Scheme,
 		Metrics: metricsserver.Options{
 			BindAddress: "0", // disable metrics serving
@@ -120,11 +122,12 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	By("setting up the Workspace controller")
-	err = (&WorkspaceReconciler{
+	workspaceReconciler = &WorkspaceReconciler{
 		Client: k8sManager.GetClient(),
 		Scheme: k8sManager.GetScheme(),
 		Config: envConfig,
-	}).SetupWithManager(k8sManager, &controller.Options{
+	}
+	err = workspaceReconciler.SetupWithManager(k8sManager, &controller.Options{
 		RateLimiter: helper.BuildRateLimiter(),
 	})
 	Expect(err).NotTo(HaveOccurred())
