@@ -4,6 +4,7 @@ kind: Component
 resources:
 - http-route.yaml
 - reference-grant.yaml
+- network-policy.yaml
 
 transformers:
 - external-auth-transformer.yaml

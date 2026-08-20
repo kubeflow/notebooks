@@ -1,20 +1,22 @@
+# Only the gateway proxy may reach the authorization service: it decides who a
+# request belongs to, so anything that can call it directly could obtain an
+# allow decision for an identity of its choosing.
+#
+# `gateway.networking.k8s.io/gateway-name` is the conventional label
+# implementations put on the proxy they generate for a Gateway. Adjust the
+# selector if your implementation labels its pods differently, otherwise the
+# ExternalAuth filter will fail closed and no request will be served.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: workspaces-frontend
+  name: workspaces-authz
 spec:
   podSelector:
     matchLabels:
-      app: workspaces-frontend
-      app.kubernetes.io/component: ui
+      app: workspaces-authz
+      app.kubernetes.io/component: authz
   ingress:
     - from:
-        ## Only the gateway proxy may reach the frontend.
-        ##
-        ## `gateway.networking.k8s.io/gateway-name` is the conventional label
-        ## implementations put on the proxy they generate for a Gateway. Adjust
-        ## the selector if your implementation labels its pods differently,
-        ## otherwise no traffic will reach the frontend.
         - namespaceSelector:
             matchExpressions:
               - key: kubernetes.io/metadata.name
