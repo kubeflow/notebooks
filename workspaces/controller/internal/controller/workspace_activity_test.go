@@ -29,7 +29,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -180,7 +179,7 @@ var _ = Describe("generateWorkspaceStatus activity status reset on restart", fun
 
 		ws := &kubefloworgv1beta1.Workspace{
 			ObjectMeta: metav1.ObjectMeta{Name: "ws", Namespace: "team-a"},
-			Spec:       kubefloworgv1beta1.WorkspaceSpec{Paused: new(false)},
+			Spec:       kubefloworgv1beta1.WorkspaceSpec{Paused: false},
 			Status: kubefloworgv1beta1.WorkspaceStatus{
 				State:           kubefloworgv1beta1.WorkspaceStatePaused,
 				LastRunningTime: testInitialActivityMs,
@@ -231,7 +230,7 @@ var _ = Describe("evaluatePauseDecision", func() {
 	newWorkspace := func(lastActivity, lastRunningTime int64) *kubefloworgv1beta1.Workspace {
 		return &kubefloworgv1beta1.Workspace{
 			ObjectMeta: metav1.ObjectMeta{Name: "ws", Namespace: "team-a"},
-			Spec:       kubefloworgv1beta1.WorkspaceSpec{Paused: new(false)},
+			Spec:       kubefloworgv1beta1.WorkspaceSpec{Paused: false},
 			Status: kubefloworgv1beta1.WorkspaceStatus{
 				State:           kubefloworgv1beta1.WorkspaceStateRunning,
 				LastRunningTime: lastRunningTime,
@@ -273,7 +272,7 @@ var _ = Describe("evaluatePauseDecision", func() {
 		// even though the (stale) activity data says the Workspace is eligible, it must NOT be
 		// paused because no fresh probe backed this decision.
 		Expect(paused).To(BeFalse())
-		Expect(ptr.Deref(ws.Spec.Paused, false)).To(BeFalse())
+		Expect(ws.Spec.Paused).To(BeFalse())
 		// the eligibleAfter status is still refreshed for the UI.
 		Expect(ws.Status.Activity.Rules).ToNot(BeNil())
 		Expect(ws.Status.Activity.Rules.PauseWorkspace.EligibleAfter).To(Equal(lastActivity + testOneHourMs))
@@ -285,7 +284,7 @@ var _ = Describe("evaluatePauseDecision", func() {
 		paused, err := evaluatePauseDecision(ws, catchAllKind(), nil, nil, now, true)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(paused).To(BeFalse())
-		Expect(ptr.Deref(ws.Spec.Paused, false)).To(BeFalse())
+		Expect(ws.Spec.Paused).To(BeFalse())
 		Expect(ws.Status.Activity.Rules.PauseWorkspace.EligibleAfter).To(Equal(lastActivity + testOneHourMs))
 	})
 

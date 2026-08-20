@@ -1,29 +1,14 @@
+## --> NOTE <--
+##
+## These are just example definitions for WorkspaceKind, please thoroughly vet
+## them and customize them for your usecase before using them in a production
+## setting!
+
 apiVersion: kubeflow.org/v1beta1
 kind: WorkspaceKind
 metadata:
   name: jupyterlab
 spec:
-
-  ## ================================================================
-  ## ACTIVITY RULES
-  ##  - policies for handling inactivity in Workspaces of this kind
-  ## ================================================================
-  activityRules:
-    - config:
-        secondsSinceActive: 7200
-        minRunningSeconds: 300
-      match:
-        matchNamespace:
-          selector:
-            matchLabels:
-              tier: development
-      effect:
-        pauseWorkspace: true
-    - config:
-        secondsSinceActive: 86400
-      match: {}
-      effect:
-        pauseWorkspace: true
 
   ## ================================================================
   ## SPAWNER CONFIGS
@@ -89,6 +74,66 @@ spec:
                 - key: "workspace_team"
                   operator: NotIn
                   values: ["team_1"]
+
+  ## ================================================================
+  ## ACTIVITY RULES
+  ##  - policies for handling inactivity in Workspaces of this kind
+  ##  - rules are evaluated sequentially from top to bottom (first-match-wins semantics)
+  ##    independently for each configured effect type (e.g., pauseWorkspace)
+  ## ================================================================
+  activityRules:
+
+    ## activityRule to pause workspaces which (AND)
+    ##  - have the namespaces with the label 'tier=development' set
+    ##  - have been running for at least 5 minutes (300 seconds)
+    ##  - have been inactive for at least 2 hours (7200 seconds)
+    - config:
+        secondsSinceActive: 7200
+        minRunningSeconds: 300
+      match:
+        matchNamespace:
+          selector:
+            matchLabels:
+              tier: development
+      effect:
+        pauseWorkspace: true
+
+    ## activityRule to pause workspaces which (AND)
+    ##  - the podconfig has the label 'gpu: "1"' set
+    ##  - have been running for at least 5 minutes (300 seconds)
+    ##  - have been inactive for at least 1 hour (3600 seconds)
+    #- config:
+    #    secondsSinceActive: 3600
+    #    minRunningSeconds: 300
+    #  match:
+    #    matchPodConfig:
+    #      selector:
+    #        matchLabels:
+    #          gpu: "1"
+    #  effect:
+    #    pauseWorkspace: true
+
+    ## activityRule to exempt from pausing workspaces which (AND)
+    ##  - have the namespaces with the label 'tier=production' set
+    #- config:
+    #  match:
+    #    matchNamespace:
+    #      selector:
+    #        matchLabels:
+    #          tier: production
+    #  effect:
+    #    pauseWorkspace: false
+
+    ## catch-all activityRule to pause workspaces which (AND)
+    ##  - have been inactive for at least 1 day
+    ##  - are not matched to any of the above pauseWorkspace rules
+    - config:
+        secondsSinceActive: 86400
+      ## empty match (`match: {}` or omitted `match`) matches all Workspaces.
+      ## At most one catch-all rule is allowed per effect type, and it must be the last rule.
+      match: {}
+      effect:
+        pauseWorkspace: true
 
   ## ================================================================
   ## DEFINITION CONFIGS
