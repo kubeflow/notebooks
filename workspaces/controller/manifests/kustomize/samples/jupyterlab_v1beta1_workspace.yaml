@@ -1,3 +1,5 @@
+## DISCLAIMER: This is an example and should not be used directly in production.
+
 apiVersion: kubeflow.org/v1beta1
 kind: Workspace
 metadata:

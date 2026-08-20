@@ -1,3 +1,8 @@
+## DISCLAIMER: This is an example and should not be used directly in production.
+
+## For detailed documentation and configuration examples, see:
+## jupyterlab_v1beta1_workspacekind.yaml
+
 apiVersion: kubeflow.org/v1beta1
 kind: WorkspaceKind
 metadata:
@@ -17,16 +22,8 @@ spec:
     logo:
       url: "https://upload.wikimedia.org/wikipedia/commons/9/9a/Visual_Studio_Code_1.35_icon.svg"
 
-  ## ================================================================
-  ## FILTER RULES
-  ##  - admin-defined rules used by the backend API server to dynamically filter
-  ##    which WorkspaceKinds, imageConfig values, and podConfig values are visible
-  ##    or allowed in a given context
-  ##  - the controller does NOT evaluate these rules, it only persists and validates them
-  ## ================================================================
   filterRules:
 
-  ## hide CUDA imageConfigs in namespaces that do not have NVIDIA GPUs
   - scope: IMAGE_CONFIG
     effect:
       ui:
