@@ -171,12 +171,24 @@ k8s_yaml(
     allow_duplicates=True,
 )
 
+# Regenerate swagger.json on the host when backend Go files change
+local_resource(
+    "backend-swagger",
+    cmd="cd {} && make swag".format(backend_dir),
+    deps=[
+        os.path.join(backend_dir, "cmd"),
+        os.path.join(backend_dir, "api"),
+        os.path.join(backend_dir, "internal"),
+    ],
+    labels=["backend"],
+)
+
 # Manage k8s_yaml resources
 # - Apply Tilt-specific grouping/labels
-# - Resource dependencies on controller
+# - Resource dependencies on controller and swagger generation
 k8s_resource(
     "workspaces-backend",
-    resource_deps=["workspaces-controller"],
+    resource_deps=["workspaces-controller", "backend-swagger"],
     labels=["backend"],
 )
 
@@ -281,13 +293,23 @@ if enable_frontend:
         allow_duplicates=True
     )
 
+    # Regenerate frontend types when the generated swagger.json changes
+    local_resource(
+        "frontend-api-generate",
+        cmd="cd {} && USE_LOCAL_SWAGGER=true npm run generate:api".format(frontend_dir),
+        deps=[
+            os.path.join(backend_dir, "openapi/swagger.json"),
+        ],
+        labels=["frontend"],
+    )
+
     # Manage k8s_yaml resources
     # - Apply Tilt-specific grouping/labels
-    # - Resource dependencies on backend
+    # - Resource dependencies on backend and api generation
     k8s_resource(
         "workspaces-frontend",
-        # wait for backend to be ready to avoid 504 errors on initial page load
-        resource_deps=["workspaces-backend"],
+        # wait for backend and frontend api generation to be ready
+        resource_deps=["workspaces-backend", "frontend-api-generate"],
         labels=["frontend"],
     )
 
