@@ -1,4 +1,8 @@
-## DISCLAIMER: This is an example and should not be used directly in production.
+## --> NOTE <--
+##
+## These are just example definitions for WorkspaceKind, please thoroughly vet
+## them and customize them for your usecase before using them in a production
+## setting!
 
 ## For detailed documentation and configuration examples, see:
 ## jupyterlab_v1beta1_workspacekind.yaml
@@ -8,12 +12,6 @@ kind: WorkspaceKind
 metadata:
   name: codeserver
 spec:
-  activityRules:
-    - config:
-        secondsSinceActive: 7200
-      match: {}
-      effect:
-        pauseWorkspace: true
   spawner:
     displayName: "VS Code (code-server)"
     description: "A Workspace which runs VS Code (code-server) in a Pod"
@@ -39,6 +37,13 @@ spec:
             matchExpressions:
               - key: "cuda_version"
                 operator: Exists
+
+  activityRules:
+    - config:
+        secondsSinceActive: 7200
+      match: {}
+      effect:
+        pauseWorkspace: true
 
   podTemplate:
     podMetadata:
