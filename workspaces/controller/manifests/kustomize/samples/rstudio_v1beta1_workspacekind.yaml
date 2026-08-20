@@ -21,7 +21,6 @@ spec:
       url: "https://upload.wikimedia.org/wikipedia/commons/1/1b/R_logo.svg"
 
   filterRules:
-
     - scope: POD_CONFIG
       effect:
         ui:
