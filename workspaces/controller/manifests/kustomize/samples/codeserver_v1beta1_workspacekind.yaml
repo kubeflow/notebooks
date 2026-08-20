@@ -21,7 +21,6 @@ spec:
       url: "https://upload.wikimedia.org/wikipedia/commons/9/9a/Visual_Studio_Code_1.35_icon.svg"
 
   filterRules:
-
   - scope: IMAGE_CONFIG
     effect:
       ui:

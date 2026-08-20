@@ -48,6 +48,10 @@ import (
 //	@consumes	application/json
 //	@produces	application/json
 
+// NOTE: the security definition for the user id header is not declared here, but injected at
+//       runtime by the Swagger UI handler (see `api/swagger_handler.go`), because the name of
+//       the header is configurable with the `--userid-header` flag.
+
 func main() {
 	// Define command line flags
 	cfg := &config.EnvConfig{}
