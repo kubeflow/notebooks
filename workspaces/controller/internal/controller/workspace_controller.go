@@ -27,6 +27,7 @@ import (
 	istiov1 "istio.io/client-go/pkg/apis/networking/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,6 +57,7 @@ const (
 	// label keys
 	workspaceNameLabel     = "notebooks.kubeflow.org/workspace-name"
 	workspaceSelectorLabel = "statefulset"
+	namespaceNameLabel     = "kubernetes.io/metadata.name"
 
 	// pod template constants
 	workspacePodTemplateContainerName = "main"
@@ -67,10 +69,11 @@ const (
 	workspaceServiceAccountName = "default-editor"
 
 	// lengths for resource names
-	generateNameSuffixLength = 6
-	maxServiceNameLength     = 63
-	maxRouteNameLength       = 63
-	maxStatefulSetNameLength = 52 // https://github.com/kubernetes/kubernetes/issues/64023
+	generateNameSuffixLength   = 6
+	maxServiceNameLength       = 63
+	maxRouteNameLength         = 63
+	maxNetworkPolicyNameLength = 63
+	maxStatefulSetNameLength   = 52 // https://github.com/kubernetes/kubernetes/issues/64023
 
 	// workspace connection path template
 	workspaceConnectPathTemplate = "/workspace/connect/%s/%s/%s/"
@@ -117,6 +120,7 @@ type WorkspaceReconciler struct {
 // +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch
 // +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch
 // +kubebuilder:rbac:groups=core,resources=services,verbs=create;delete;get;list;patch;update;watch
+// +kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=create;delete;get;list;patch;update;watch
 // +kubebuilder:rbac:groups=networking.istio.io,resources=virtualservices,verbs=create;delete;get;list;patch;update;watch
 
 func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) { //nolint:gocyclo
@@ -477,6 +481,58 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		// No routing provider configured
 	}
 
+	if r.Config.WorkspaceNetworkPolicy.Enabled {
+		networkPolicy := r.generateNetworkPolicy(workspace)
+		if err := ctrl.SetControllerReference(workspace, networkPolicy, r.Scheme); err != nil {
+			log.Error(err, "unable to set controller reference on NetworkPolicy")
+			return ctrl.Result{}, err
+		}
+
+		ownedNetworkPolicies := &networkingv1.NetworkPolicyList{}
+		listOpts = &client.ListOptions{
+			FieldSelector: fields.OneTermEqualSelector(helper.IndexWorkspaceOwnerField, workspace.Name),
+			Namespace:     req.Namespace,
+		}
+		if err := r.List(ctx, ownedNetworkPolicies, listOpts); err != nil {
+			log.Error(err, "unable to list NetworkPolicies")
+			return ctrl.Result{}, err
+		}
+
+		switch numNetworkPolicies := len(ownedNetworkPolicies.Items); {
+		case numNetworkPolicies > 1:
+			networkPolicyNames := make([]string, len(ownedNetworkPolicies.Items))
+			for i, np := range ownedNetworkPolicies.Items {
+				networkPolicyNames[i] = np.Name
+			}
+			networkPolicyListString := strings.Join(networkPolicyNames, ", ")
+			log.Error(nil, "Workspace owns multiple NetworkPolicies", "networkPolicies", networkPolicyListString)
+			return r.updateWorkspaceState(ctx, log, workspace,
+				kubefloworgv1beta1.WorkspaceStateError,
+				fmt.Sprintf("Workspace owns multiple NetworkPolicies: %s", networkPolicyListString),
+			)
+		case numNetworkPolicies == 0:
+			if err := r.Create(ctx, networkPolicy); err != nil {
+				log.Error(err, "unable to create NetworkPolicy")
+				return ctrl.Result{}, err
+			}
+			log.V(2).Info("NetworkPolicy created", "networkPolicy", networkPolicy.Name)
+		default:
+			foundNetworkPolicy := &ownedNetworkPolicies.Items[0]
+			if !equality.Semantic.DeepEqual(foundNetworkPolicy.Spec, networkPolicy.Spec) {
+				foundNetworkPolicy.Spec = networkPolicy.Spec
+				if err := r.Update(ctx, foundNetworkPolicy); err != nil {
+					if apierrors.IsConflict(err) {
+						log.V(2).Info("update conflict while updating NetworkPolicy, will requeue")
+						return ctrl.Result{Requeue: true}, nil
+					}
+					log.Error(err, "unable to update NetworkPolicy")
+					return ctrl.Result{}, err
+				}
+				log.V(2).Info("NetworkPolicy updated", "networkPolicy", foundNetworkPolicy.Name)
+			}
+		}
+	}
+
 	// fetch Pod
 	// NOTE: the first StatefulSet Pod is always called "{statefulSetName}-0"
 	podName := fmt.Sprintf("%s-0", statefulSetName)
@@ -542,6 +598,10 @@ func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager, opts *controlle
 		For(&kubefloworgv1beta1.Workspace{}).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Service{})
+
+	if r.Config.WorkspaceNetworkPolicy.Enabled {
+		controllerBuilder = controllerBuilder.Owns(&networkingv1.NetworkPolicy{})
+	}
 
 	switch r.Config.RoutingProvider {
 	case config.RoutingProviderIstio:

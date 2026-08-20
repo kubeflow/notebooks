@@ -22,6 +22,7 @@ import (
 	istiov1 "istio.io/client-go/pkg/apis/networking/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -42,7 +43,6 @@ const (
 
 // SetupManagerFieldIndexers sets up field indexes on a controller-runtime manager
 func SetupManagerFieldIndexers(mgr ctrl.Manager, cfg *config.EnvConfig) error {
-
 	// Index Event by `involvedObject.uid`
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &corev1.Event{}, IndexEventInvolvedObjectUidField, func(rawObj client.Object) []string {
 		event := rawObj.(*corev1.Event)
@@ -55,65 +55,32 @@ func SetupManagerFieldIndexers(mgr ctrl.Manager, cfg *config.EnvConfig) error {
 	}
 
 	// Index StatefulSet by its owner Workspace
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &appsv1.StatefulSet{}, IndexWorkspaceOwnerField, func(rawObj client.Object) []string {
-		statefulSet := rawObj.(*appsv1.StatefulSet)
-		owner := metav1.GetControllerOf(statefulSet)
-		if owner == nil {
-			return nil
-		}
-		if owner.APIVersion != kubefloworgv1beta1.GroupVersion.String() || owner.Kind != OwnerKindWorkspace {
-			return nil
-		}
-		return []string{owner.Name}
-	}); err != nil {
+	if err := indexByWorkspaceOwner(mgr, &appsv1.StatefulSet{}); err != nil {
 		return err
 	}
 
 	// Index Service by its owner Workspace
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &corev1.Service{}, IndexWorkspaceOwnerField, func(rawObj client.Object) []string {
-		service := rawObj.(*corev1.Service)
-		owner := metav1.GetControllerOf(service)
-		if owner == nil {
-			return nil
-		}
-		if owner.APIVersion != kubefloworgv1beta1.GroupVersion.String() || owner.Kind != OwnerKindWorkspace {
-			return nil
-		}
-		return []string{owner.Name}
-	}); err != nil {
+	if err := indexByWorkspaceOwner(mgr, &corev1.Service{}); err != nil {
 		return err
 	}
 
 	// Index VirtualService by its owner Workspace (only when Istio is enabled)
 	if cfg.UseIstio || cfg.RoutingProvider == config.RoutingProviderIstio {
-		if err := mgr.GetFieldIndexer().IndexField(context.Background(), &istiov1.VirtualService{}, IndexWorkspaceOwnerField, func(rawObj client.Object) []string {
-			virtualService := rawObj.(*istiov1.VirtualService)
-			owner := metav1.GetControllerOf(virtualService)
-			if owner == nil {
-				return nil
-			}
-			if owner.APIVersion != kubefloworgv1beta1.GroupVersion.String() || owner.Kind != OwnerKindWorkspace {
-				return nil
-			}
-			return []string{owner.Name}
-		}); err != nil {
+		if err := indexByWorkspaceOwner(mgr, &istiov1.VirtualService{}); err != nil {
 			return err
 		}
 	}
 
 	// Index HTTPRoute by its owner Workspace (only when Gateway API is enabled)
 	if cfg.RoutingProvider == config.RoutingProviderGatewayAPI {
-		if err := mgr.GetFieldIndexer().IndexField(context.Background(), &gatewayv1.HTTPRoute{}, IndexWorkspaceOwnerField, func(rawObj client.Object) []string {
-			httpRoute := rawObj.(*gatewayv1.HTTPRoute)
-			owner := metav1.GetControllerOf(httpRoute)
-			if owner == nil {
-				return nil
-			}
-			if owner.APIVersion != kubefloworgv1beta1.GroupVersion.String() || owner.Kind != OwnerKindWorkspace {
-				return nil
-			}
-			return []string{owner.Name}
-		}); err != nil {
+		if err := indexByWorkspaceOwner(mgr, &gatewayv1.HTTPRoute{}); err != nil {
+			return err
+		}
+	}
+
+	// Index NetworkPolicy by its owner Workspace (only when workspace network policies are enabled)
+	if cfg.WorkspaceNetworkPolicy.Enabled {
+		if err := indexByWorkspaceOwner(mgr, &networkingv1.NetworkPolicy{}); err != nil {
 			return err
 		}
 	}
@@ -147,4 +114,19 @@ func SetupManagerFieldIndexers(mgr ctrl.Manager, cfg *config.EnvConfig) error {
 	}
 
 	return nil
+}
+
+// indexByWorkspaceOwner indexes objects of the given type by the name of the
+// Workspace that owns them.
+func indexByWorkspaceOwner(mgr ctrl.Manager, obj client.Object) error {
+	return mgr.GetFieldIndexer().IndexField(context.Background(), obj, IndexWorkspaceOwnerField, func(rawObj client.Object) []string {
+		owner := metav1.GetControllerOf(rawObj)
+		if owner == nil {
+			return nil
+		}
+		if owner.APIVersion != kubefloworgv1beta1.GroupVersion.String() || owner.Kind != OwnerKindWorkspace {
+			return nil
+		}
+		return []string{owner.Name}
+	})
 }

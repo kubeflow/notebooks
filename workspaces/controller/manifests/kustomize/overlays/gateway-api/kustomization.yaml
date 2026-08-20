@@ -9,6 +9,7 @@ resources:
 components:
 - ../../components/certmanager
 - ../../components/gateway-api
+- ../../components/workspace-network-policy
 ##
 ## TODO: rename this to `prometheus-noauth` and also offer a component that enforces kubernetes RBAC for the ServiceMonitor:
 ##       historically this was done with `kube-rbac-proxy`, like in dashboard: https://github.com/kubeflow/dashboard/tree/v2.0.0-rc.0/components/profile-controller/manifests/kustomize/components/prometheus-authz

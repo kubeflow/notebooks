@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	istiov1 "istio.io/client-go/pkg/apis/networking/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -118,6 +119,16 @@ func main() {
 	flag.StringVar(&cfg.ExternalAuth.HTTPPath, "external-auth-http-path",
 		getEnvAsStr("EXTERNAL_AUTH_HTTP_PATH", ""),
 		"Path prefix prepended when calling an HTTP external authorization Service")
+	flag.BoolVar(&cfg.WorkspaceNetworkPolicy.Enabled, "workspace-network-policy",
+		getEnvAsBool("WORKSPACE_NETWORK_POLICY", false),
+		"If set, generate a NetworkPolicy per workspace restricting ingress to the routing layer")
+	flag.StringVar(&cfg.WorkspaceNetworkPolicy.IngressNamespace, "workspace-network-policy-ingress-namespace",
+		getEnvAsStr("WORKSPACE_NETWORK_POLICY_INGRESS_NAMESPACE", ""),
+		"Namespace of the routing layer allowed to reach workspace pods")
+	var workspaceNetworkPolicyPodSelector string
+	flag.StringVar(&workspaceNetworkPolicyPodSelector, "workspace-network-policy-ingress-pod-selector",
+		getEnvAsStr("WORKSPACE_NETWORK_POLICY_INGRESS_POD_SELECTOR", ""),
+		"Comma separated key=value labels of the routing layer pods; empty allows the whole ingress namespace")
 
 	opts := zap.Options{
 		Development: true,
@@ -144,6 +155,11 @@ func main() {
 
 	if err := validateExternalAuth(cfg); err != nil {
 		setupLog.Error(err, "invalid external authorization configuration")
+		os.Exit(1)
+	}
+
+	if err := parseWorkspaceNetworkPolicy(cfg, workspaceNetworkPolicyPodSelector); err != nil {
+		setupLog.Error(err, "invalid workspace network policy configuration")
 		os.Exit(1)
 	}
 
@@ -322,6 +338,29 @@ func validateExternalAuth(cfg *config.EnvConfig) error {
 	default:
 		return fmt.Errorf("external authorization protocol must be %q or %q, got %q",
 			config.ExternalAuthProtocolGRPC, config.ExternalAuthProtocolHTTP, cfg.ExternalAuth.Protocol)
+	}
+
+	return nil
+}
+
+// parseWorkspaceNetworkPolicy resolves the pod selector and rejects a policy
+// that would be generated without a source, which would make every workspace
+// unreachable.
+func parseWorkspaceNetworkPolicy(cfg *config.EnvConfig, podSelector string) error {
+	if !cfg.WorkspaceNetworkPolicy.Enabled {
+		return nil
+	}
+
+	if cfg.WorkspaceNetworkPolicy.IngressNamespace == "" {
+		return fmt.Errorf("workspace network policies require an ingress namespace")
+	}
+
+	if podSelector != "" {
+		selector, err := labels.ConvertSelectorToLabelsMap(podSelector)
+		if err != nil {
+			return fmt.Errorf("parsing ingress pod selector %q: %w", podSelector, err)
+		}
+		cfg.WorkspaceNetworkPolicy.IngressPodSelector = selector
 	}
 
 	return nil
