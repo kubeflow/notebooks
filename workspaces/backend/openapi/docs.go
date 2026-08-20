@@ -48,7 +48,7 @@ const docTemplate = `{
         },
         "/namespaces": {
             "get": {
-                "description": "Returns a list of all namespaces in the cluster.",
+                "description": "Returns the namespaces in which the caller is allowed to list workspaces.",
                 "produces": [
                     "application/json"
                 ],
