@@ -624,7 +624,7 @@ var _ = Describe("PVCs Handler", func() {
 					Namespace: namespaceName1,
 				},
 				Spec: kubefloworgv1beta1.WorkspaceSpec{
-					Paused: new(false),
+					Paused: false,
 					Kind:   workspaceKindName1,
 					PodTemplate: kubefloworgv1beta1.WorkspacePodTemplate{
 						Volumes: kubefloworgv1beta1.WorkspacePodVolumes{

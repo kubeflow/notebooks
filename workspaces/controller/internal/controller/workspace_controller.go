@@ -979,7 +979,7 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 
 	// generate replica count
 	replicas := int32(1)
-	if *workspace.Spec.Paused {
+	if workspace.Spec.Paused {
 		replicas = int32(0)
 	}
 
@@ -1447,7 +1447,7 @@ func (r *WorkspaceReconciler) generateWorkspaceStatus(ctx context.Context, log l
 
 	// if workspace is paused, update the `status.pauseTime`
 	// NOTE: when the workspace is not paused, the pauseTime should be 0
-	workspacePaused := ptr.Deref(workspace.Spec.Paused, false)
+	workspacePaused := workspace.Spec.Paused
 	if workspacePaused {
 		if status.PauseTime == 0 {
 			status.PauseTime = metav1.Now().UnixMilli()

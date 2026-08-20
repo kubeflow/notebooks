@@ -34,7 +34,7 @@ type WorkspaceSpec struct {
 	// if the workspace is paused (no pods running)
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=false
-	Paused *bool `json:"paused,omitempty"`
+	Paused bool `json:"paused"`
 
 	// an optional human-readable name for the Workspace, displayed in the UI instead of metadata.name
 	// +kubebuilder:validation:MinLength:=1

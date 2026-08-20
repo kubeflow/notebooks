@@ -908,7 +908,7 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(createdWorkspace.ObjectMeta.Name).To(Equal(workspaceName))
 			Expect(createdWorkspace.Spec.DisplayName).To(Equal(new(workspaceCreate.DisplayName)))
 			Expect(createdWorkspace.Spec.Kind).To(Equal(workspaceKindName))
-			Expect(createdWorkspace.Spec.Paused).To(Equal(&workspaceCreate.Paused))
+			Expect(createdWorkspace.Spec.Paused).To(Equal(workspaceCreate.Paused))
 			Expect(createdWorkspace.Spec.PodTemplate.PodMetadata.Labels).To(Equal(workspaceCreate.PodTemplate.PodMetadata.Labels))
 			Expect(createdWorkspace.Spec.PodTemplate.PodMetadata.Annotations).To(Equal(workspaceCreate.PodTemplate.PodMetadata.Annotations))
 			Expect(createdWorkspace.Spec.PodTemplate.Volumes.Home).To(Equal(workspaceCreate.PodTemplate.Volumes.Home))
@@ -1274,7 +1274,7 @@ var _ = Describe("Workspaces Handler", func() {
 
 			By("verifying all fields were applied")
 			Expect(updatedWorkspace.Spec.DisplayName).To(Equal(new("Updated Display Name")))
-			Expect(ptr.Deref(updatedWorkspace.Spec.Paused, false)).To(BeTrue())
+			Expect(updatedWorkspace.Spec.Paused).To(BeTrue())
 			Expect(updatedWorkspace.Spec.PodTemplate.PodMetadata.Labels).To(Equal(workspaceUpdate.PodTemplate.PodMetadata.Labels))
 			Expect(updatedWorkspace.Spec.PodTemplate.PodMetadata.Annotations).To(Equal(workspaceUpdate.PodTemplate.PodMetadata.Annotations))
 			Expect(updatedWorkspace.Spec.PodTemplate.Options.PodConfig).To(Equal("small_cpu"))
