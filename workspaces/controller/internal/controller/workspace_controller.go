@@ -585,7 +585,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	//  - `Status().Update` above overwrites `workspace` with the API server response (where
 	//    `spec.paused` was still false/unmodified), so we re-apply `spec.paused = true` here
 	if paused {
-		workspace.Spec.Paused = new(true)
+		workspace.Spec.Paused = true
 		if err := r.Patch(ctx, workspace, client.MergeFrom(originalWorkspace)); err != nil {
 			if apierrors.IsConflict(err) {
 				log.V(2).Info("update conflict while pausing Workspace, will requeue")

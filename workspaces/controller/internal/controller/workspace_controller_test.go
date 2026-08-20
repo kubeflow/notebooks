@@ -31,8 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"k8s.io/utils/ptr"
-
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/config"
 )
@@ -387,7 +385,7 @@ var _ = Describe("Workspace Controller", func() {
 			Eventually(func(g Gomega) {
 				updatedWS := &kubefloworgv1beta1.Workspace{}
 				g.Expect(k8sClient.Get(ctx, workspaceKey, updatedWS)).To(Succeed())
-				g.Expect(ptr.Deref(updatedWS.Spec.Paused, false)).To(BeTrue(), "spec.paused must be persisted to true in the API server")
+				g.Expect(updatedWS.Spec.Paused).To(BeTrue(), "spec.paused must be persisted to true in the API server")
 			}, timeout, interval).Should(Succeed())
 		})
 	})
