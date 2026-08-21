@@ -180,6 +180,35 @@ func TestCreateNotebookStatus(t *testing.T) {
 			},
 		},
 		{
+			name: "NotebookContainerStateUnchanged",
+			currentNb: nbv1beta1.Notebook{
+				ObjectMeta: v1.ObjectMeta{Name: "test"},
+				Status: nbv1beta1.NotebookStatus{
+					ContainerState: corev1.ContainerState{
+						Running: &corev1.ContainerStateRunning{},
+					},
+				},
+			},
+			pod: corev1.Pod{
+				Status: corev1.PodStatus{
+					ContainerStatuses: []corev1.ContainerStatus{
+						{
+							Name: "test",
+							State: corev1.ContainerState{
+								Running: &corev1.ContainerStateRunning{},
+							},
+						},
+					},
+				},
+			},
+			expectedNbStatus: nbv1beta1.NotebookStatus{
+				Conditions: []nbv1beta1.NotebookCondition{},
+				ContainerState: corev1.ContainerState{
+					Running: &corev1.ContainerStateRunning{},
+				},
+			},
+		},
+		{
 			name: "mirroringPodConditions",
 			pod: corev1.Pod{
 				ObjectMeta: v1.ObjectMeta{
@@ -226,6 +255,31 @@ func TestCreateNotebookStatus(t *testing.T) {
 					},
 				},
 				ReadyReplicas:  int32(1),
+				ContainerState: corev1.ContainerState{},
+			},
+		},
+		{
+			name: "mirroringPodConditionWithoutProbeTime",
+			pod: corev1.Pod{
+				Status: corev1.PodStatus{
+					Conditions: []corev1.PodCondition{
+						{
+							Type:               "Ready",
+							Status:             "True",
+							LastTransitionTime: v1.Date(2022, time.Month(8), 30, 1, 10, 30, 0, time.UTC),
+						},
+					},
+				},
+			},
+			expectedNbStatus: nbv1beta1.NotebookStatus{
+				Conditions: []nbv1beta1.NotebookCondition{
+					{
+						Type:               "Ready",
+						Status:             "True",
+						LastProbeTime:      v1.Date(2022, time.Month(8), 30, 1, 10, 30, 0, time.UTC),
+						LastTransitionTime: v1.Date(2022, time.Month(8), 30, 1, 10, 30, 0, time.UTC),
+					},
+				},
 				ContainerState: corev1.ContainerState{},
 			},
 		},
@@ -287,6 +341,21 @@ func TestCreateNotebookStatus(t *testing.T) {
 		})
 	}
 
+}
+
+func TestUpdateNotebookStatusSkipsUnchangedStatus(t *testing.T) {
+	reconciler := createMockReconciler()
+	reconciler.Client = fake.NewFakeClientWithScheme(scheme.Scheme)
+	notebook := &nbv1beta1.Notebook{
+		Status: nbv1beta1.NotebookStatus{
+			Conditions:     []nbv1beta1.NotebookCondition{},
+			ContainerState: corev1.ContainerState{},
+		},
+	}
+
+	if err := updateNotebookStatus(reconciler, notebook, &appsv1.StatefulSet{}, &corev1.Pod{}, ctrl.Request{}); err != nil {
+		t.Fatalf("expected unchanged status to skip API update: %v", err)
+	}
 }
 
 func createMockReconciler() *NotebookReconciler {
