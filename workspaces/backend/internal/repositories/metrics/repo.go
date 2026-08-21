@@ -18,6 +18,7 @@ package metrics
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -32,13 +33,12 @@ import (
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	modelsCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
-	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/metrics"
+	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/podtemplate/resources"
 	repoCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/common"
 )
 
 var (
-	ErrMetricsAPINotAvailable = fmt.Errorf("metrics API is not available")
-	ErrWorkspaceNotRunning    = fmt.Errorf("workspace pod is not running")
+	ErrWorkspaceNotRunning = errors.New("workspace pod is not running")
 )
 
 const (
@@ -76,15 +76,6 @@ func (r *MetricsRepository) GetWorkspaceResourceUsage(ctx context.Context, ns, w
 		return nil, err
 	}
 
-	available, err := r.apiAvailable()
-	if err != nil {
-		return nil, err
-	}
-
-	if !available {
-		return nil, ErrMetricsAPINotAvailable
-	}
-
 	selector := client.MatchingLabels{modelsCommon.LabelWorkspaceName: workspace}
 	podList := &corev1.PodList{}
 	if err := r.client.List(ctx, podList, client.InNamespace(ns), selector); err != nil {
@@ -99,12 +90,14 @@ func (r *MetricsRepository) GetWorkspaceResourceUsage(ctx context.Context, ns, w
 	// strict deployment guarantees, there will only ever be a maximum of one pod running
 	// at any given time. Therefore, we can safely just grab the first item in the list.
 	pod := &podList.Items[0]
+	available, err := r.apiAvailable()
+	if err != nil || !available {
+		return models.NewWorkspaceResourceUsage(pod, nil), nil
+	}
+
 	podMetricsList := &metricsv1beta1.PodMetricsList{}
 	if err := r.client.List(ctx, podMetricsList, client.InNamespace(ns), selector); err != nil {
-		if apierrors.IsNotFound(err) || apierrors.IsServiceUnavailable(err) || apierrors.IsTimeout(err) {
-			return nil, ErrMetricsAPINotAvailable
-		}
-		return nil, err
+		return models.NewWorkspaceResourceUsage(pod, nil), nil
 	}
 
 	usageByContainer := models.UsageForPod(podMetricsList.Items, pod.Name)

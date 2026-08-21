@@ -29,12 +29,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
-
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/podtemplate/logs"
+	repoCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/common"
 )
 
 var (
-	ErrWorkspaceNotFound    = fmt.Errorf("workspace not found")
 	ErrPodNotRunning        = fmt.Errorf("workspace pod is not running")
 	ErrContainerNotFound    = fmt.Errorf("container not found in workspace pod")
 	ErrContainerNotRunning  = fmt.Errorf("container has not started yet")
@@ -126,7 +125,7 @@ func (r *PodLogsRepository) resolvePodAndContainer(ctx context.Context, namespac
 	workspace := &kubefloworgv1beta1.Workspace{}
 	if err := r.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: workspaceName}, workspace); err != nil {
 		if apierrors.IsNotFound(err) {
-			return "", "", ErrWorkspaceNotFound
+			return "", "", repoCommon.ErrWorkspaceNotFound
 		}
 		return "", "", err
 	}

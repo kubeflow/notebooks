@@ -32,7 +32,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
-	repoMetrics "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/metrics"
+	commonModels "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
+	repository "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/metrics"
 )
 
 var _ = Describe("Workspace PodTemplate Resources Handler", func() {
@@ -83,14 +84,58 @@ var _ = Describe("Workspace PodTemplate Resources Handler", func() {
 			Expect(k8sClient.Delete(ctx, namespace)).To(Succeed())
 		})
 
-		It("should return 503 Service Unavailable when Metrics Server is not available", func() {
+		It("should degrade gracefully with 200 OK returning configured resources when metrics are unavailable", func() {
+			By("creating a workspace pod with configured resources")
+			podName := fmt.Sprintf("pod-%s", workspaceName)
+			pod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      podName,
+					Namespace: namespaceName,
+					Labels: map[string]string{
+						commonModels.LabelWorkspaceName: workspaceName,
+					},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  "main",
+							Image: "registry.example.com/image:v1",
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, pod)).To(Succeed())
+			defer func() {
+				_ = k8sClient.Delete(ctx, pod)
+			}()
+
 			By("executing GetWorkspacePodTemplateResourcesHandler")
-			rs := doPodTemplateResourcesRequest(namespaceName, workspaceName, adminUser)
+			rs := doPodTemplateResourcesRequest(namespaceName, workspaceName)
 			defer rs.Body.Close()
 
-			By("verifying status is 503 Service Unavailable")
-			// envtest has no Metrics Server, so the metrics API is unavailable.
-			Expect(rs.StatusCode).To(Equal(http.StatusServiceUnavailable))
+			By("verifying status is 200 OK")
+			// envtest has no Metrics Server, so live metrics are omitted.
+			// The endpoint must still return 200 OK with the configured resources from the pod spec.
+			Expect(rs.StatusCode).To(Equal(http.StatusOK))
+
+			By("verifying the response contains configured resources with omitted metrics")
+			body, err := io.ReadAll(rs.Body)
+			Expect(err).NotTo(HaveOccurred())
+
+			var response WorkspaceResourceUsageEnvelope
+			Expect(json.Unmarshal(body, &response)).To(Succeed())
+			Expect(response.Data).NotTo(BeNil())
+			Expect(response.Data.Containers).To(HaveKey("main"))
+			Expect(response.Data.Containers["main"].MetricsFromMetricsServer).To(BeNil())
+		})
+
+		It("should return 400 Bad Request when workspace pod is not running", func() {
+			By("executing GetWorkspacePodTemplateResourcesHandler when workspace has no pods")
+			rs := doPodTemplateResourcesRequest(namespaceName, workspaceName)
+			defer rs.Body.Close()
+
+			By("verifying status is 400 Bad Request")
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
 
 			By("verifying the response is wrapped in the error envelope")
 			body, err := io.ReadAll(rs.Body)
@@ -99,8 +144,8 @@ var _ = Describe("Workspace PodTemplate Resources Handler", func() {
 			var response ErrorEnvelope
 			Expect(json.Unmarshal(body, &response)).To(Succeed())
 			Expect(response.Error).NotTo(BeNil())
-			Expect(response.Error.Code).To(Equal("503"))
-			Expect(response.Error.Message).To(Equal(repoMetrics.ErrMetricsAPINotAvailable.Error()))
+			Expect(response.Error.Code).To(Equal("400"))
+			Expect(response.Error.Message).To(Equal(repository.ErrWorkspaceNotRunning.Error()))
 		})
 	})
 
@@ -111,14 +156,14 @@ var _ = Describe("Workspace PodTemplate Resources Handler", func() {
 		It("should return 404 when workspace does not exist", func() {
 			// The metrics repository resolves pods by label, so without an existence check a
 			// missing workspace would degrade to WORKSPACE_NOT_RUNNING instead of a 404.
-			rs := doPodTemplateResourcesRequest(testNamespace, testWorkspace, adminUser)
+			rs := doPodTemplateResourcesRequest(testNamespace, testWorkspace)
 			defer rs.Body.Close()
 
 			Expect(rs.StatusCode).To(Equal(http.StatusNotFound))
 		})
 
 		It("should return 422 for invalid parameters", func() {
-			rs := doPodTemplateResourcesRequest("INVALID!!!", testWorkspace, adminUser)
+			rs := doPodTemplateResourcesRequest("INVALID!!!", testWorkspace)
 			defer rs.Body.Close()
 
 			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity))
@@ -126,10 +171,10 @@ var _ = Describe("Workspace PodTemplate Resources Handler", func() {
 	})
 })
 
-func doPodTemplateResourcesRequest(namespace, workspace, userID string) *http.Response {
+func doPodTemplateResourcesRequest(namespace, workspace string) *http.Response {
 	req, err := http.NewRequest(http.MethodGet, resourcesPathFor(namespace, workspace), http.NoBody)
 	Expect(err).NotTo(HaveOccurred())
-	req.Header.Set(userIdHeader, userID)
+	req.Header.Set(userIdHeader, adminUser)
 
 	ps := httprouter.Params{
 		httprouter.Param{Key: constants.NamespacePathParam, Value: namespace},
