@@ -23,19 +23,19 @@ $(LOCALBIN):
 
 .PHONY: help
 help: ## Display this help.
-      @awk 'BEGIN { FS = ":.*## "; current = "General" } \
-              /^##@/ { current = substr($$0, 5) } \
-              /^[a-zA-Z_0-9-]+:.*?##/ { \
-                      entries[current] = entries[current] sprintf("  \033[36m%-20s\033[0m %s\n", $$1, $$2); \
-                      if (!seen[current]++) { order[++count] = current } \
-              } \
-              END { \
-                      printf "\nUsage:\n  make \033[36m<target>\033[0m\n"; \
-                      for (i = 1; i <= count; i++) { \
-                              printf "\n\033[1m%s\033[0m\n", order[i]; \
-                              printf "%s", entries[order[i]]; \
-                      } \
-              }' $(MAKEFILE_LIST)
+	@awk 'BEGIN { FS = ":.*## "; current = "General" } \
+		/^##@/ { current = substr($$0, 5) } \
+		/^[a-zA-Z_0-9-]+:.*?##/ { \
+			entries[current] = entries[current] sprintf("  \033[36m%-20s\033[0m %s\n", $$1, $$2); \
+			if (!seen[current]++) { order[++count] = current } \
+		} \
+		END { \
+			printf "\nUsage:\n  make \033[36m<target>\033[0m\n"; \
+			for (i = 1; i <= count; i++) { \
+				printf "\n\033[1m%s\033[0m\n", order[i]; \
+				printf "%s", entries[order[i]]; \
+			} \
+		}' $(MAKEFILE_LIST)
 
 ##@ Clean
 
