@@ -64,6 +64,9 @@ $(KUSTOMIZE): $(LOCALBIN)
 	$(call go-install-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v5,$(KUSTOMIZE_VERSION))
 
 
+# go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist                                                      
+# $1 - target path with name of binary                                                                                                                          
+# $2 - package url which can be installed                                                                                                                       
 # $3 - specific version of package
 # $4 - (optional) extra ldflags to set with the installation
 define go-install-tool
