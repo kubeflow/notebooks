@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package metrics
+package resources
 
 import (
 	"testing"
@@ -34,17 +34,6 @@ func TestMetricsModule(t *testing.T) {
 }
 
 var _ = Describe("Funcs", func() {
-
-	Describe("NewErrorResourceUsage", func() {
-		It("should return a correctly populated WorkspaceResourceUsage", func() {
-			errorCode := ErrorCodeWorkspaceNotRunning
-
-			got := NewErrorResourceUsage(errorCode)
-			Expect(got).NotTo(BeNil())
-			Expect(got.Error).To(Equal(errorCode))
-			Expect(got.Containers).To(BeNil())
-		})
-	})
 
 	Describe("NewWorkspaceResourceUsage", func() {
 		It("joins usage with requests and limits for a single container", func() {
@@ -92,7 +81,6 @@ var _ = Describe("Funcs", func() {
 				},
 			}
 
-			Expect(got.Error).To(BeEmpty())
 			Expect(got.Containers).To(HaveLen(1))
 			Expect(got.Containers["container-1"]).To(BeComparableTo(expected))
 		})
@@ -109,7 +97,6 @@ var _ = Describe("Funcs", func() {
 
 			got := NewWorkspaceResourceUsage(&pod, usageByContainer)
 
-			Expect(got.Error).To(BeEmpty())
 			Expect(got.Containers).To(HaveLen(1))
 
 			cUsage := got.Containers["container-1"]
@@ -134,7 +121,6 @@ var _ = Describe("Funcs", func() {
 
 			got := NewWorkspaceResourceUsage(&pod, usageByContainer)
 
-			Expect(got.Error).To(BeEmpty())
 			Expect(got.Containers).To(HaveLen(2))
 
 			c1Usage := got.Containers["container-1"]
@@ -159,7 +145,6 @@ var _ = Describe("Funcs", func() {
 
 			got := NewWorkspaceResourceUsage(&pod, usageByContainer)
 
-			Expect(got.Error).To(BeEmpty())
 			Expect(got.Containers).To(HaveLen(1))
 
 			cUsage := got.Containers["container-1"]
@@ -168,11 +153,10 @@ var _ = Describe("Funcs", func() {
 			Expect(cUsage.Resources.Limits).To(BeNil())
 		})
 
-		It("returns an error if pod is nil", func() {
+		It("returns nil if pod is nil", func() {
 			got := NewWorkspaceResourceUsage(nil, nil)
 
-			Expect(got.Error).To(Equal(ErrorCodeWorkspaceNotRunning))
-			Expect(got.Containers).To(BeNil())
+			Expect(got).To(BeNil())
 		})
 	})
 

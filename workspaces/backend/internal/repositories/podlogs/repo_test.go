@@ -33,6 +33,7 @@ import (
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/podtemplate/logs"
+	repoCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/common"
 )
 
 func TestPodLogsRepository(t *testing.T) {
@@ -194,7 +195,7 @@ var _ = Describe("PodLogsRepository.OpenLogStream", func() {
 		Entry("workspace not found",
 			nil,
 			nil,
-			&models.LogOptions{}, ErrWorkspaceNotFound, false),
+			&models.LogOptions{}, repoCommon.ErrWorkspaceNotFound, false),
 		Entry("pod not running",
 			newWorkspace("", "main"),
 			nil,

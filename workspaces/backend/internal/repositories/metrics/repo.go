@@ -18,11 +18,14 @@ package metrics
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
 
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	metricsv1beta1 "k8s.io/metrics/pkg/apis/metrics/v1beta1"
@@ -30,7 +33,12 @@ import (
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	modelsCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
-	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/metrics"
+	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/podtemplate/resources"
+	repoCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/common"
+)
+
+var (
+	ErrWorkspaceNotRunning = errors.New("workspace pod is not running")
 )
 
 const (
@@ -57,13 +65,15 @@ func NewMetricsRepository(cfg *config.EnvConfig, c client.Client) *MetricsReposi
 
 // GetWorkspaceResourceUsage returns the resource usage for all pods in the given namespace and workspace.
 func (r *MetricsRepository) GetWorkspaceResourceUsage(ctx context.Context, ns, workspace string) (*models.WorkspaceResourceUsage, error) {
-	available, err := r.apiAvailable()
-	if err != nil {
+	// Confirm the workspace exists first. Usage is resolved by pod label, so without this a
+	// workspace that never existed would be indistinguishable from one that is merely paused,
+	// and both would report WORKSPACE_NOT_RUNNING. This read is served from the informer cache.
+	ws := &kubefloworgv1beta1.Workspace{}
+	if err := r.client.Get(ctx, client.ObjectKey{Namespace: ns, Name: workspace}, ws); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, repoCommon.ErrWorkspaceNotFound
+		}
 		return nil, err
-	}
-
-	if !available {
-		return models.NewErrorResourceUsage(models.ErrorCodeMetricsAPINotAvailable), nil
 	}
 
 	selector := client.MatchingLabels{modelsCommon.LabelWorkspaceName: workspace}
@@ -73,16 +83,21 @@ func (r *MetricsRepository) GetWorkspaceResourceUsage(ctx context.Context, ns, w
 	}
 
 	if len(podList.Items) == 0 {
-		return models.NewErrorResourceUsage(models.ErrorCodeWorkspaceNotRunning), nil
+		return nil, ErrWorkspaceNotRunning
 	}
 
 	// Workspaces are backed by StatefulSets with replicas=1. Because StatefulSets provide
 	// strict deployment guarantees, there will only ever be a maximum of one pod running
 	// at any given time. Therefore, we can safely just grab the first item in the list.
 	pod := &podList.Items[0]
+	available, err := r.apiAvailable()
+	if err != nil || !available {
+		return models.NewWorkspaceResourceUsage(pod, nil), nil
+	}
+
 	podMetricsList := &metricsv1beta1.PodMetricsList{}
 	if err := r.client.List(ctx, podMetricsList, client.InNamespace(ns), selector); err != nil {
-		return nil, err
+		return models.NewWorkspaceResourceUsage(pod, nil), nil
 	}
 
 	usageByContainer := models.UsageForPod(podMetricsList.Items, pod.Name)

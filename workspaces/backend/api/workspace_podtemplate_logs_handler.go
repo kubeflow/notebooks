@@ -28,6 +28,7 @@ import (
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/podtemplate/logs"
+	repoCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/common"
 	repository "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/podlogs"
 )
 
@@ -84,7 +85,7 @@ func (a *App) GetWorkspacePodTemplateLogsHandler(w http.ResponseWriter, r *http.
 	stream, err := a.repositories.PodLogs.OpenLogStream(r.Context(), namespace, workspaceName, opts)
 	if err != nil {
 		switch {
-		case errors.Is(err, repository.ErrWorkspaceNotFound):
+		case errors.Is(err, repoCommon.ErrWorkspaceNotFound):
 			a.notFoundResponse(w, r)
 		case errors.Is(err, repository.ErrPreviousLogsNotFound):
 			a.badRequestResponse(w, r, err)
