@@ -271,6 +271,54 @@ func TestCreateNotebookStatus(t *testing.T) {
 				ContainerState: corev1.ContainerState{},
 			},
 		},
+		{
+			name: "lastProbeTimeDefaultsToLastTransitionTime",
+			currentNb: nbv1beta1.Notebook{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "test",
+					Namespace: "kubeflow-user",
+				},
+				Status: nbv1beta1.NotebookStatus{},
+			},
+			pod: corev1.Pod{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "test",
+					Namespace: "kubeflow-user",
+				},
+				Status: corev1.PodStatus{
+					Conditions: []corev1.PodCondition{
+						{
+							Type:               "Ready",
+							Status:             "True",
+							LastTransitionTime: v1.Date(2022, time.Month(6), 15, 12, 0, 0, 0, time.UTC),
+							// LastProbeTime intentionally omitted (zero value)
+							// to simulate kubelet behavior
+						},
+					},
+				},
+			},
+			sts: appsv1.StatefulSet{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "test",
+					Namespace: "kubeflow-user",
+				},
+				Status: appsv1.StatefulSetStatus{
+					ReadyReplicas: int32(1),
+				},
+			},
+			expectedNbStatus: nbv1beta1.NotebookStatus{
+				Conditions: []nbv1beta1.NotebookCondition{
+					{
+						Type:               "Ready",
+						Status:             "True",
+						LastProbeTime:      v1.Date(2022, time.Month(6), 15, 12, 0, 0, 0, time.UTC),
+						LastTransitionTime: v1.Date(2022, time.Month(6), 15, 12, 0, 0, 0, time.UTC),
+					},
+				},
+				ReadyReplicas:  int32(1),
+				ContainerState: corev1.ContainerState{},
+			},
+		},
 	}
 
 	for _, test := range tests {
