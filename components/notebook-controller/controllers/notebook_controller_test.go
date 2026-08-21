@@ -259,7 +259,7 @@ func TestCreateNotebookStatus(t *testing.T) {
 			},
 		},
 		{
-			name: "mirroringPodConditionWithoutProbeTime",
+			name: "LastProbeTimeDefaultsToLastTransitionTime",
 			pod: corev1.Pod{
 				Status: corev1.PodStatus{
 					Conditions: []corev1.PodCondition{
