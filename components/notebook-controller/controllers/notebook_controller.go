@@ -235,6 +235,10 @@ func updateNotebookStatus(r *NotebookReconciler, nb *v1beta1.Notebook,
 		return err
 	}
 
+	if reflect.DeepEqual(nb.Status, status) {
+		return nil
+	}
+
 	log.Info("Updating Notebook CR Status", "status", status)
 	nb.Status = status
 	return r.Status().Update(ctx, nb)
@@ -321,22 +325,22 @@ func PodCondToNotebookCond(podc corev1.PodCondition) v1beta1.NotebookCondition {
 		condition.Reason = podc.Reason
 	}
 
-	// check if podc.LastProbeTime is null. If so initialize
-	// the field with metav1.Now()
-	check := podc.LastProbeTime.Time.Equal(time.Time{})
-	if !check {
-		condition.LastProbeTime = podc.LastProbeTime
-	} else {
-		condition.LastProbeTime = metav1.Now()
-	}
-
 	// check if podc.LastTransitionTime is null. If so initialize
 	// the field with metav1.Now()
-	check = podc.LastTransitionTime.Time.Equal(time.Time{})
+	check := podc.LastTransitionTime.Time.Equal(time.Time{})
 	if !check {
 		condition.LastTransitionTime = podc.LastTransitionTime
 	} else {
 		condition.LastTransitionTime = metav1.Now()
+	}
+
+	// Kubelet never sets LastProbeTime on Pod conditions; defaulting it to now()
+	// rewrites the status on every reconcile and drives an endless update loop.
+	check = podc.LastProbeTime.Time.Equal(time.Time{})
+	if !check {
+		condition.LastProbeTime = podc.LastProbeTime
+	} else {
+		condition.LastProbeTime = condition.LastTransitionTime
 	}
 
 	return condition
