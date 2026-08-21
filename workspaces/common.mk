@@ -50,7 +50,7 @@ clean: ## Remove local test/build artifacts.
 	rm -rf $(LOCALBIN)
 	@echo "INFO: '$(LOCALBIN)' successfully cleaned."
 
-##@ Dependency
+##@ Dependencies
 
 # Tool Binaries
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
