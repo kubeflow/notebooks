@@ -1,4 +1,5 @@
 .DEFAULT_GOAL := all
+
 include ../common.mk
 
 # Image URL to use all building/pushing image targets
