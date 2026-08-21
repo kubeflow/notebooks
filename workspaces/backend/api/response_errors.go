@@ -135,20 +135,6 @@ func (a *App) serverErrorResponse(w http.ResponseWriter, r *http.Request, err er
 	a.errorResponse(w, r, httpError)
 }
 
-// HTTP: 503
-func (a *App) serviceUnavailableResponse(w http.ResponseWriter, r *http.Request, err error) {
-	a.LogWarn(r, err.Error())
-
-	httpError := &HTTPError{
-		StatusCode: http.StatusServiceUnavailable,
-		ErrorResponse: ErrorResponse{
-			Code:    strconv.Itoa(http.StatusServiceUnavailable),
-			Message: err.Error(),
-		},
-	}
-	a.errorResponse(w, r, httpError)
-}
-
 // HTTP: 400
 func (a *App) badRequestResponse(w http.ResponseWriter, r *http.Request, err error) {
 	httpError := &HTTPError{

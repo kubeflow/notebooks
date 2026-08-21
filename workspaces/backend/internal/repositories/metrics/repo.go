@@ -18,27 +18,20 @@ package metrics
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	metricsv1beta1 "k8s.io/metrics/pkg/apis/metrics/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	modelsCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
-	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/metrics"
+	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/podtemplate/resources"
 	repoCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/common"
-)
-
-var (
-	ErrMetricsAPINotAvailable = fmt.Errorf("metrics API is not available")
-	ErrWorkspaceNotRunning    = fmt.Errorf("workspace pod is not running")
 )
 
 const (
@@ -51,7 +44,7 @@ const (
 type MetricsRepository struct {
 	cfg          *config.EnvConfig
 	client       client.Client
-	apiAvailable func() (bool, error)
+	apiAvailable func() bool
 }
 
 // NewMetricsRepository creates a MetricsRepository for accessing workspace metrics.
@@ -59,7 +52,7 @@ func NewMetricsRepository(cfg *config.EnvConfig, c client.Client) *MetricsReposi
 	return &MetricsRepository{
 		cfg:          cfg,
 		client:       c,
-		apiAvailable: memoize(apiAvailabilityTTL, func() (bool, error) { return metricsAPIServed(c) }),
+		apiAvailable: memoize(apiAvailabilityTTL, func() bool { return metricsAPIServed(c) }),
 	}
 }
 
@@ -76,15 +69,6 @@ func (r *MetricsRepository) GetWorkspaceResourceUsage(ctx context.Context, ns, w
 		return nil, err
 	}
 
-	available, err := r.apiAvailable()
-	if err != nil {
-		return nil, err
-	}
-
-	if !available {
-		return nil, ErrMetricsAPINotAvailable
-	}
-
 	selector := client.MatchingLabels{modelsCommon.LabelWorkspaceName: workspace}
 	podList := &corev1.PodList{}
 	if err := r.client.List(ctx, podList, client.InNamespace(ns), selector); err != nil {
@@ -92,22 +76,26 @@ func (r *MetricsRepository) GetWorkspaceResourceUsage(ctx context.Context, ns, w
 	}
 
 	if len(podList.Items) == 0 {
-		return nil, ErrWorkspaceNotRunning
+		return nil, repoCommon.ErrWorkspacePodNotRunning
 	}
 
 	// Workspaces are backed by StatefulSets with replicas=1. Because StatefulSets provide
 	// strict deployment guarantees, there will only ever be a maximum of one pod running
 	// at any given time. Therefore, we can safely just grab the first item in the list.
 	pod := &podList.Items[0]
-	podMetricsList := &metricsv1beta1.PodMetricsList{}
-	if err := r.client.List(ctx, podMetricsList, client.InNamespace(ns), selector); err != nil {
-		if apierrors.IsNotFound(err) || apierrors.IsServiceUnavailable(err) || apierrors.IsTimeout(err) {
-			return nil, ErrMetricsAPINotAvailable
-		}
-		return nil, err
+	if !r.apiAvailable() {
+		return models.NewWorkspaceResourceUsage(pod, nil), nil
 	}
 
-	usageByContainer := models.UsageForPod(podMetricsList.Items, pod.Name)
+	podMetrics := &metricsv1beta1.PodMetrics{}
+	if err := r.client.Get(ctx, client.ObjectKey{Namespace: ns, Name: pod.Name}, podMetrics); err != nil {
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		return models.NewWorkspaceResourceUsage(pod, nil), nil
+	}
+
+	usageByContainer := models.UsageForPod(podMetrics)
 	return models.NewWorkspaceResourceUsage(
 		pod,
 		usageByContainer,
@@ -115,39 +103,27 @@ func (r *MetricsRepository) GetWorkspaceResourceUsage(ctx context.Context, ns, w
 }
 
 // memoize caches the result of the probe for ttl.
-func memoize(ttl time.Duration, probe func() (bool, error)) func() (bool, error) {
+func memoize(ttl time.Duration, probe func() bool) func() bool {
 	var (
 		mu        sync.Mutex
 		val       bool
 		checkedAt time.Time
 	)
-	return func() (bool, error) {
+	return func() bool {
 		mu.Lock()
 		defer mu.Unlock()
-		if !checkedAt.IsZero() && time.Since(checkedAt) < ttl {
-			return val, nil
+		if checkedAt.IsZero() || time.Since(checkedAt) >= ttl {
+			val, checkedAt = probe(), time.Now()
 		}
-		v, err := probe()
-		if err != nil {
-			return false, err
-		}
-		val, checkedAt = v, time.Now()
-		return val, nil
+		return val
 	}
 }
 
-func metricsAPIServed(c client.Client) (bool, error) {
+func metricsAPIServed(c client.Client) bool {
 	_, err := c.RESTMapper().RESTMapping(
 		schema.GroupKind{Group: metricsv1beta1.GroupName, Kind: "PodMetrics"},
 		metricsv1beta1.SchemeGroupVersion.Version,
 	)
 
-	switch {
-	case err == nil:
-		return true, nil
-	case meta.IsNoMatchError(err):
-		return false, nil
-	default:
-		return false, fmt.Errorf("checking metrics.k8s.io availability: %w", err)
-	}
+	return err == nil
 }

@@ -33,6 +33,7 @@ import (
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/podtemplate/logs"
+	repoCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/common"
 )
 
 func TestPodLogsRepository(t *testing.T) {
@@ -194,11 +195,11 @@ var _ = Describe("PodLogsRepository.OpenLogStream", func() {
 		Entry("workspace not found",
 			nil,
 			nil,
-			&models.LogOptions{}, ErrWorkspaceNotFound, false),
+			&models.LogOptions{}, repoCommon.ErrWorkspaceNotFound, false),
 		Entry("pod not running",
 			newWorkspace("", "main"),
 			nil,
-			&models.LogOptions{}, ErrPodNotRunning, false),
+			&models.LogOptions{}, repoCommon.ErrWorkspacePodNotRunning, false),
 		Entry("container not found",
 			newWorkspace(testPodName, "main"),
 			nil,
@@ -235,7 +236,7 @@ var _ = Describe("PodLogsRepository.OpenLogStream", func() {
 			// pod left nil: the Workspace references a pod the clientset cannot find.
 			newWorkspace(testPodName, "main"),
 			nil,
-			&models.LogOptions{}, ErrPodNotRunning, false),
+			&models.LogOptions{}, repoCommon.ErrWorkspacePodNotRunning, false),
 		Entry("waiting current container is served when previous=true and a previous instance exists",
 			newWorkspace(testPodName, "main"),
 			newPod([]corev1.ContainerStatus{
@@ -290,7 +291,7 @@ var _ = Describe("PodLogsRepository.resolvePodAndContainer", func() {
 		Entry("errors when requested container does not exist",
 			newWorkspace(testPodName, "main"), "nope", "", "", ErrContainerNotFound),
 		Entry("errors when pod name is empty",
-			newWorkspace("", "main"), "", "", "", ErrPodNotRunning),
+			newWorkspace("", "main"), "", "", "", repoCommon.ErrWorkspacePodNotRunning),
 		Entry("errors when pod has no containers yet",
 			newWorkspace(testPodName), "", "", "", ErrContainerNotRunning),
 	)

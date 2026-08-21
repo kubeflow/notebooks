@@ -23,7 +23,7 @@ import (
 	"time"
 
 	modelsCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
-	modelsmetrics "github.com/kubeflow/notebooks/workspaces/backend/internal/models/metrics"
+	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/podtemplate/resources"
 	repoCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/common"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
@@ -72,18 +72,17 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 
 		client := fake.NewClientBuilder().
 			WithScheme(scheme).
-			WithObjects(testWorkspaceCR()).
+			WithObjects(testWorkspaceCR(), metrics).
 			WithLists(
 				&corev1.PodList{Items: []corev1.Pod{*pod}},
-				&metricsv1beta1.PodMetricsList{Items: []metricsv1beta1.PodMetrics{*metrics}},
 			).Build()
 
 		repo := newTestMetricsRepository(client, true)
 		got, err := repo.GetWorkspaceResourceUsage(ctx, "default", "test-workspace")
-		expected := modelsmetrics.ContainerResourceUsage{
-			MetricsFromMetricsServer: &modelsmetrics.MetricsFromMetricsServer{
+		expected := models.ContainerResourceUsage{
+			MetricsFromMetricsServer: &models.MetricsFromMetricsServer{
 				Timestamp: "0001-01-01T00:00:00Z",
-				Usage: modelsmetrics.ResourceValues{
+				Usage: models.ResourceValues{
 					CPU:    "50m",
 					Memory: "100Mi",
 				},
@@ -111,12 +110,11 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 			WithObjects(testWorkspaceCR()).
 			WithLists(
 				&corev1.PodList{Items: []corev1.Pod{*pod}},
-				&metricsv1beta1.PodMetricsList{Items: []metricsv1beta1.PodMetrics{}},
 			).Build()
 
 		repo := newTestMetricsRepository(client, true)
 		got, err := repo.GetWorkspaceResourceUsage(ctx, "default", "test-workspace")
-		expected := modelsmetrics.ContainerResourceUsage{
+		expected := models.ContainerResourceUsage{
 			MetricsFromMetricsServer: nil,
 			Resources: corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
@@ -145,7 +143,7 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 		Expect(got).To(BeNil())
 	})
 
-	It("returns ErrWorkspaceNotRunning when no pods match", func() {
+	It("returns ErrWorkspacePodNotRunning when no pods match", func() {
 		client := fake.NewClientBuilder().
 			WithScheme(scheme).
 			WithObjects(testWorkspaceCR()).
@@ -156,12 +154,14 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 		repo := newTestMetricsRepository(client, true)
 		got, err := repo.GetWorkspaceResourceUsage(ctx, "default", "test-workspace")
 
-		Expect(err).To(MatchError(ErrWorkspaceNotRunning))
+		Expect(err).To(MatchError(repoCommon.ErrWorkspacePodNotRunning))
 		Expect(got).To(BeNil())
 	})
 
-	It("returns ErrMetricsAPINotAvailable when API is not served", func() {
-		pod := workspacePod("pod-3", "container-3", nil)
+	It("omits metricsFromMetricsServer when API is not served", func() {
+		pod := workspacePod("pod-3", "container-3", corev1.ResourceList{
+			corev1.ResourceCPU: resource.MustParse("100m"),
+		})
 
 		client := fake.NewClientBuilder().
 			WithScheme(scheme).
@@ -171,100 +171,186 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 
 		repo := newTestMetricsRepository(client, false)
 		got, err := repo.GetWorkspaceResourceUsage(ctx, "default", "test-workspace")
+		expected := models.ContainerResourceUsage{
+			MetricsFromMetricsServer: nil,
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceCPU: resource.MustParse("100m"),
+				},
+			},
+		}
 
-		Expect(err).To(MatchError(ErrMetricsAPINotAvailable))
-		Expect(got).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
+		Expect(got).NotTo(BeNil())
+		Expect(got.Containers).To(HaveLen(1))
+		Expect(got.Containers["container-3"]).To(BeComparableTo(expected))
 	})
 
-	It("returns ErrMetricsAPINotAvailable when PodMetricsList returns NotFound", func() {
-		pod := workspacePod("pod-4", "container-4", nil)
+	It("omits metricsFromMetricsServer when PodMetrics returns NotFound", func() {
+		pod := workspacePod("pod-4", "container-4", corev1.ResourceList{
+			corev1.ResourceCPU: resource.MustParse("100m"),
+		})
 
 		client := fake.NewClientBuilder().
 			WithScheme(scheme).
 			WithObjects(testWorkspaceCR()).
 			WithLists(&corev1.PodList{Items: []corev1.Pod{*pod}}).
 			WithInterceptorFuncs(interceptor.Funcs{
-				List: func(ctx context.Context, cli client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
-					if _, isMetricsList := list.(*metricsv1beta1.PodMetricsList); isMetricsList {
+				Get: func(ctx context.Context, cli client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+					if _, isMetrics := obj.(*metricsv1beta1.PodMetrics); isMetrics {
 						return apierrors.NewNotFound(schema.GroupResource{Group: metricsv1beta1.GroupName, Resource: "podmetrics"}, "")
 					}
-					return cli.List(ctx, list, opts...)
+					return cli.Get(ctx, key, obj, opts...)
 				},
 			}).
 			Build()
 
 		repo := newTestMetricsRepository(client, true)
 		got, err := repo.GetWorkspaceResourceUsage(ctx, "default", "test-workspace")
+		expected := models.ContainerResourceUsage{
+			MetricsFromMetricsServer: nil,
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceCPU: resource.MustParse("100m"),
+				},
+			},
+		}
 
-		Expect(err).To(MatchError(ErrMetricsAPINotAvailable))
-		Expect(got).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
+		Expect(got).NotTo(BeNil())
+		Expect(got.Containers).To(HaveLen(1))
+		Expect(got.Containers["container-4"]).To(BeComparableTo(expected))
 	})
 
-	It("returns ErrMetricsAPINotAvailable when PodMetricsList returns ServiceUnavailable", func() {
-		pod := workspacePod("pod-4", "container-4", nil)
+	It("omits metricsFromMetricsServer when PodMetrics returns ServiceUnavailable", func() {
+		pod := workspacePod("pod-4", "container-4", corev1.ResourceList{
+			corev1.ResourceCPU: resource.MustParse("100m"),
+		})
 
 		client := fake.NewClientBuilder().
 			WithScheme(scheme).
 			WithObjects(testWorkspaceCR()).
 			WithLists(&corev1.PodList{Items: []corev1.Pod{*pod}}).
 			WithInterceptorFuncs(interceptor.Funcs{
-				List: func(ctx context.Context, cli client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
-					if _, isMetricsList := list.(*metricsv1beta1.PodMetricsList); isMetricsList {
+				Get: func(ctx context.Context, cli client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+					if _, isMetrics := obj.(*metricsv1beta1.PodMetrics); isMetrics {
 						return apierrors.NewServiceUnavailable("metrics service unavailable")
 					}
-					return cli.List(ctx, list, opts...)
+					return cli.Get(ctx, key, obj, opts...)
 				},
 			}).
 			Build()
 
 		repo := newTestMetricsRepository(client, true)
 		got, err := repo.GetWorkspaceResourceUsage(ctx, "default", "test-workspace")
+		expected := models.ContainerResourceUsage{
+			MetricsFromMetricsServer: nil,
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceCPU: resource.MustParse("100m"),
+				},
+			},
+		}
 
-		Expect(err).To(MatchError(ErrMetricsAPINotAvailable))
-		Expect(got).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
+		Expect(got).NotTo(BeNil())
+		Expect(got.Containers).To(HaveLen(1))
+		Expect(got.Containers["container-4"]).To(BeComparableTo(expected))
 	})
 
-	It("returns error when the service account is forbidden", func() {
-		pod := workspacePod("pod-4", "container-4", nil)
+	It("omits metricsFromMetricsServer when getting PodMetrics is forbidden", func() {
+		pod := workspacePod("pod-4", "container-4", corev1.ResourceList{
+			corev1.ResourceCPU: resource.MustParse("100m"),
+		})
 
 		client := fake.NewClientBuilder().
 			WithScheme(scheme).
 			WithObjects(testWorkspaceCR()).
 			WithLists(&corev1.PodList{Items: []corev1.Pod{*pod}}).
 			WithInterceptorFuncs(interceptor.Funcs{
-				List: func(ctx context.Context, cli client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
-					if _, isMetricsList := list.(*metricsv1beta1.PodMetricsList); isMetricsList {
+				Get: func(ctx context.Context, cli client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+					if _, isMetrics := obj.(*metricsv1beta1.PodMetrics); isMetrics {
 						return apierrors.NewForbidden(schema.GroupResource{}, "", errors.New("forbidden"))
 					}
-					return cli.List(ctx, list, opts...)
+					return cli.Get(ctx, key, obj, opts...)
 				},
 			}).
 			Build()
 
 		repo := newTestMetricsRepository(client, true)
 		got, err := repo.GetWorkspaceResourceUsage(ctx, "default", "test-workspace")
+		expected := models.ContainerResourceUsage{
+			MetricsFromMetricsServer: nil,
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceCPU: resource.MustParse("100m"),
+				},
+			},
+		}
 
-		Expect(err).To(HaveOccurred())
-		Expect(apierrors.IsForbidden(err)).To(BeTrue())
-		Expect(got).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
+		Expect(got).NotTo(BeNil())
+		Expect(got.Containers).To(HaveLen(1))
+		Expect(got.Containers["container-4"]).To(BeComparableTo(expected))
 	})
 
-	It("returns error when availability could not be determined", func() {
+	It("omits metricsFromMetricsServer when availability could not be determined", func() {
+		pod := workspacePod("pod-5", "container-5", corev1.ResourceList{
+			corev1.ResourceCPU: resource.MustParse("100m"),
+		})
+
 		client := fake.NewClientBuilder().
 			WithScheme(scheme).
 			WithObjects(testWorkspaceCR()).
-			WithLists(&corev1.PodList{Items: []corev1.Pod{*workspacePod("pod-5", "container-5", nil)}}).
+			WithLists(&corev1.PodList{Items: []corev1.Pod{*pod}}).
 			Build()
 
-		probeErr := errors.New("discovery failed")
 		repo := &MetricsRepository{
 			client:       client,
-			apiAvailable: func() (bool, error) { return false, probeErr },
+			apiAvailable: func() bool { return false },
 		}
 		got, err := repo.GetWorkspaceResourceUsage(ctx, "default", "test-workspace")
+		expected := models.ContainerResourceUsage{
+			MetricsFromMetricsServer: nil,
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceCPU: resource.MustParse("100m"),
+				},
+			},
+		}
 
-		Expect(err).To(MatchError(probeErr))
-		Expect(got).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
+		Expect(got).NotTo(BeNil())
+		Expect(got.Containers).To(HaveLen(1))
+		Expect(got.Containers["container-5"]).To(BeComparableTo(expected))
+	})
+
+	It("propagates context cancellation error when context is canceled while getting metrics", func() {
+		pod := workspacePod("pod-6", "container-6", corev1.ResourceList{
+			corev1.ResourceCPU: resource.MustParse("100m"),
+		})
+
+		client := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(testWorkspaceCR()).
+			WithLists(&corev1.PodList{Items: []corev1.Pod{*pod}}).
+			WithInterceptorFuncs(interceptor.Funcs{
+				Get: func(ctx context.Context, cli client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+					if _, isMetrics := obj.(*metricsv1beta1.PodMetrics); isMetrics {
+						return context.Canceled
+					}
+					return cli.Get(ctx, key, obj, opts...)
+				},
+			}).
+			Build()
+
+		canceledCtx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		repo := newTestMetricsRepository(client, true)
+		_, err := repo.GetWorkspaceResourceUsage(canceledCtx, "default", "test-workspace")
+
+		Expect(err).To(MatchError(context.Canceled))
 	})
 })
 
@@ -274,37 +360,27 @@ var _ = Describe("metricsAPIServed", func() {
 		mapper.Add(metricsv1beta1.SchemeGroupVersion.WithKind("PodMetrics"), meta.RESTScopeNamespace)
 		c := fake.NewClientBuilder().WithRESTMapper(mapper).Build()
 
-		served, err := metricsAPIServed(c)
-
-		Expect(err).NotTo(HaveOccurred())
-		Expect(served).To(BeTrue())
+		Expect(metricsAPIServed(c)).To(BeTrue())
 	})
 
-	It("reports not served, without an error, when the kind is absent", func() {
+	It("reports not served when the kind is absent", func() {
 		c := fake.NewClientBuilder().WithRESTMapper(meta.NewDefaultRESTMapper(nil)).Build()
 
-		served, err := metricsAPIServed(c)
-
-		Expect(err).NotTo(HaveOccurred())
-		Expect(served).To(BeFalse())
+		Expect(metricsAPIServed(c)).To(BeFalse())
 	})
 
-	It("reports an error when discovery itself fails", func() {
+	It("reports not served when discovery itself fails", func() {
 		discoveryErr := errors.New("the server is currently unable to handle the request")
 		c := fake.NewClientBuilder().WithRESTMapper(failingRESTMapper{err: discoveryErr}).Build()
 
-		served, err := metricsAPIServed(c)
-
-		Expect(err).To(MatchError(discoveryErr))
-		Expect(err.Error()).To(ContainSubstring("checking metrics.k8s.io availability"))
-		Expect(served).To(BeFalse())
+		Expect(metricsAPIServed(c)).To(BeFalse())
 	})
 })
 
 var _ = Describe("memoize", func() {
 	It("calls the probe only once within the TTL", func() {
 		calls := 0
-		available := memoize(time.Minute, func() (bool, error) { calls++; return true, nil })
+		available := memoize(time.Minute, func() bool { calls++; return true })
 
 		Expect(available()).To(BeTrue())
 		Expect(available()).To(BeTrue())
@@ -313,7 +389,7 @@ var _ = Describe("memoize", func() {
 
 	It("caches a negative result", func() {
 		calls := 0
-		available := memoize(time.Minute, func() (bool, error) { calls++; return false, nil })
+		available := memoize(time.Minute, func() bool { calls++; return false })
 
 		Expect(available()).To(BeFalse())
 		Expect(available()).To(BeFalse())
@@ -322,7 +398,7 @@ var _ = Describe("memoize", func() {
 
 	It("re-probes once the TTL has expired", func() {
 		calls := 0
-		available := memoize(time.Nanosecond, func() (bool, error) { calls++; return true, nil })
+		available := memoize(time.Nanosecond, func() bool { calls++; return true })
 
 		available()
 		time.Sleep(time.Millisecond)
@@ -333,7 +409,7 @@ var _ = Describe("memoize", func() {
 
 	It("picks up a change in underlying state after TTL", func() {
 		served := false
-		available := memoize(time.Nanosecond, func() (bool, error) { return served, nil })
+		available := memoize(time.Nanosecond, func() bool { return served })
 
 		Expect(available()).To(BeFalse())
 
@@ -366,7 +442,7 @@ func testWorkspaceCR() *kubefloworgv1beta1.Workspace {
 func newTestMetricsRepository(c client.Client, apiAvailable bool) *MetricsRepository {
 	return &MetricsRepository{
 		client:       c,
-		apiAvailable: func() (bool, error) { return apiAvailable, nil },
+		apiAvailable: func() bool { return apiAvailable },
 	}
 }
 

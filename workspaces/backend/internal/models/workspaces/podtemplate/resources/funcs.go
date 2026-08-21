@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package metrics
+package resources
 
 import (
 	"time"
@@ -45,24 +45,21 @@ func NewWorkspaceResourceUsage(pod *corev1.Pod, usageByContainer map[string]*Met
 	}
 }
 
-// UsageForPod indexes the containers of the PodMetrics sample matching podName into a
+// UsageForPod indexes the containers of the PodMetrics sample into a
 // map of container name -> MetricsFromMetricsServer.
-func UsageForPod(podMetrics []metricsv1beta1.PodMetrics, podName string) map[string]*MetricsFromMetricsServer {
-	for _, pm := range podMetrics {
-		if pm.Name != podName {
-			continue
-		}
-		byContainer := make(map[string]*MetricsFromMetricsServer, len(pm.Containers))
-		timestamp := pm.Timestamp.Format(time.RFC3339)
-		for _, c := range pm.Containers {
-			byContainer[c.Name] = &MetricsFromMetricsServer{
-				Timestamp: timestamp,
-				Usage:     resourceValues(c.Usage),
-			}
-		}
-		return byContainer
+func UsageForPod(pm *metricsv1beta1.PodMetrics) map[string]*MetricsFromMetricsServer {
+	if pm == nil {
+		return nil
 	}
-	return nil
+	byContainer := make(map[string]*MetricsFromMetricsServer, len(pm.Containers))
+	timestamp := pm.Timestamp.Format(time.RFC3339)
+	for _, c := range pm.Containers {
+		byContainer[c.Name] = &MetricsFromMetricsServer{
+			Timestamp: timestamp,
+			Usage:     resourceValues(c.Usage),
+		}
+	}
+	return byContainer
 }
 
 func resourceValues(rl corev1.ResourceList) ResourceValues {

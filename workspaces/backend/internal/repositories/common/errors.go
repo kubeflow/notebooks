@@ -25,3 +25,6 @@ import "errors"
 
 // ErrWorkspaceNotFound is returned when a Workspace does not exist.
 var ErrWorkspaceNotFound = errors.New("workspace not found")
+
+// ErrWorkspacePodNotRunning is returned when a workspace pod is not running.
+var ErrWorkspacePodNotRunning = errors.New("workspace pod is not running")

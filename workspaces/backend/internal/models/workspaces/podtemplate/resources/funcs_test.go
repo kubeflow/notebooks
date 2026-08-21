@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package metrics
+package resources
 
 import (
 	"testing"
@@ -161,7 +161,7 @@ var _ = Describe("Funcs", func() {
 	})
 
 	Describe("UsageForPod", func() {
-		It("indexes container metrics for a matching pod", func() {
+		It("indexes container metrics from a single PodMetrics object", func() {
 			now := time.Date(2026, 6, 20, 12, 0, 0, 0, time.UTC)
 			pm := podMetrics("test-pod", now,
 				containerMetrics("main", corev1.ResourceList{
@@ -173,7 +173,7 @@ var _ = Describe("Funcs", func() {
 					corev1.ResourceMemory: resource.MustParse("64Mi"),
 				}))
 
-			got := UsageForPod([]metricsv1beta1.PodMetrics{pm}, "test-pod")
+			got := UsageForPod(&pm)
 			expected := map[string]*MetricsFromMetricsServer{
 				"main": {
 					Timestamp: "2026-06-20T12:00:00Z",
@@ -194,20 +194,8 @@ var _ = Describe("Funcs", func() {
 			Expect(got).To(BeComparableTo(expected))
 		})
 
-		It("returns nil when no pod in the list matches podName", func() {
-			now := time.Date(2026, 6, 20, 12, 0, 0, 0, time.UTC)
-			pm := podMetrics("other-pod", now,
-				containerMetrics("main", corev1.ResourceList{
-					corev1.ResourceCPU: resource.MustParse("100m"),
-				}))
-
-			got := UsageForPod([]metricsv1beta1.PodMetrics{pm}, "target-pod")
-
-			Expect(got).To(BeNil())
-		})
-
-		It("returns nil when the podMetrics list is empty", func() {
-			got := UsageForPod(nil, "target-pod")
+		It("returns nil when pm is nil", func() {
+			got := UsageForPod(nil)
 
 			Expect(got).To(BeNil())
 		})
@@ -220,7 +208,7 @@ var _ = Describe("Funcs", func() {
 				}),
 				containerMetrics("empty-usage", corev1.ResourceList{}))
 
-			got := UsageForPod([]metricsv1beta1.PodMetrics{pm}, "test-pod")
+			got := UsageForPod(&pm)
 			expected := map[string]*MetricsFromMetricsServer{
 				"cpu-only": {
 					Timestamp: "2026-06-20T12:00:00Z",
