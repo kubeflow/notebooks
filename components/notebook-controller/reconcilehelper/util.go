@@ -2,12 +2,16 @@ package reconcile
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/json"
+	"fmt"
 	"reflect"
 
 	"github.com/go-logr/logr"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
@@ -102,33 +106,41 @@ func VirtualService(ctx context.Context, r client.Client, virtualServiceName, na
 
 // Reference: https://github.com/pwittrock/kubebuilder-workshop/blob/master/pkg/util/util.go
 
+const StatefulSetTemplateHashAnnotation = "notebooks.kubeflow.org/statefulset-template-hash"
+
+func SetStatefulSetTemplateHash(statefulSet *appsv1.StatefulSet) error {
+	serializedTemplate, err := json.Marshal(statefulSet.Spec.Template)
+	if err != nil {
+		return fmt.Errorf("serialize StatefulSet pod template: %w", err)
+	}
+
+	if statefulSet.Annotations == nil {
+		statefulSet.Annotations = make(map[string]string)
+	}
+	statefulSet.Annotations[StatefulSetTemplateHashAnnotation] = fmt.Sprintf("%x", sha256.Sum256(serializedTemplate))
+	return nil
+}
+
 // CopyStatefulSetFields copies the owned fields from one StatefulSet to another
 // Returns true if the fields copied from don't match to.
 func CopyStatefulSetFields(from, to *appsv1.StatefulSet) bool {
 	requireUpdate := false
-	for k, v := range to.Labels {
-		if from.Labels[k] != v {
-			requireUpdate = true
-		}
-	}
-	to.Labels = from.Labels
-
-	for k, v := range to.Annotations {
-		if from.Annotations[k] != v {
-			requireUpdate = true
-		}
-	}
-	to.Annotations = from.Annotations
 
 	if *from.Spec.Replicas != *to.Spec.Replicas {
 		*to.Spec.Replicas = *from.Spec.Replicas
 		requireUpdate = true
 	}
 
-	if !reflect.DeepEqual(to.Spec.Template.Spec, from.Spec.Template.Spec) {
+	desiredTemplateHash := from.Annotations[StatefulSetTemplateHashAnnotation]
+	if desiredTemplateHash != to.Annotations[StatefulSetTemplateHashAnnotation] ||
+		!apiequality.Semantic.DeepDerivative(from.Spec.Template, to.Spec.Template) {
+		to.Spec.Template = from.Spec.Template
+		if to.Annotations == nil {
+			to.Annotations = make(map[string]string)
+		}
+		to.Annotations[StatefulSetTemplateHashAnnotation] = desiredTemplateHash
 		requireUpdate = true
 	}
-	to.Spec.Template.Spec = from.Spec.Template.Spec
 
 	return requireUpdate
 }
