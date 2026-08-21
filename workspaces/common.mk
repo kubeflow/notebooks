@@ -13,6 +13,36 @@ $(LOCALBIN):
 help: ## Display this help.
 	@awk 'BEGIN { FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n" } /^##@/ { current_section = substr($$0, 5); gsub(/^[[:space:]]+/, "", current_section); gsub(/[[:space:]]+$$/, "", current_section); if (current_section == "") current_section = "General"; current_section = toupper(substr(current_section, 1, 1)) substr(current_section, 2); next } /^[a-zA-Z_0-9-]+:.*?##/ && $$1 != "help" { if (!seen_section[current_section]++) printf "\n\033[1m%s\033[0m\n", current_section; printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
+##@ General
+
+# The help target prints out all targets with their descriptions organized
+# beneath their categories. The categories are represented by '##@' and the
+# target descriptions by '##'. The awk command reads all makefiles in this
+# invocation (including common.mk via 'include'), collecting targets matching
+# 'xyz: ## something' and grouping them under the most recent '##@' category.
+# Duplicate category names across files are merged into a single group, and
+# categories with no matching targets are omitted from the output.
+# More info on the usage of ANSI control characters for terminal formatting:
+# https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_parameters
+# More info on the awk command:
+# http://linuxcommand.org/lc3_adv_awk.php
+
+.PHONY: help
+help: ## Display this help.
+      @awk 'BEGIN { FS = ":.*## "; current = "General" } \
+              /^##@/ { current = substr($$0, 5) } \
+              /^[a-zA-Z_0-9-]+:.*?##/ { \
+                      entries[current] = entries[current] sprintf("  \033[36m%-20s\033[0m %s\n", $$1, $$2); \
+                      if (!seen[current]++) { order[++count] = current } \
+              } \
+              END { \
+                      printf "\nUsage:\n  make \033[36m<target>\033[0m\n"; \
+                      for (i = 1; i <= count; i++) { \
+                              printf "\n\033[1m%s\033[0m\n", order[i]; \
+                              printf "%s", entries[order[i]]; \
+                      } \
+              }' $(MAKEFILE_LIST)
+
 ##@ Clean
 
 .PHONY: clean
