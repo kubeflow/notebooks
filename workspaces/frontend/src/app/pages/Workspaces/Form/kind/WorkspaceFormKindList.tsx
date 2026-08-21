@@ -49,9 +49,17 @@ export const WorkspaceFormKindList: React.FunctionComponent<WorkspaceFormKindLis
   const { filterValues, setFilter, clearAllFilters } =
     useToolbarFilters<KindFilterKey>(filterConfig);
 
+  const sortedWorkspaceKinds = useMemo(
+    () =>
+      [...allWorkspaceKinds].sort(
+        (a, b) => a.displayName.localeCompare(b.displayName) || a.name.localeCompare(b.name),
+      ),
+    [allWorkspaceKinds],
+  );
+
   const filteredWorkspaceKinds = useMemo(
-    () => applyFilters(allWorkspaceKinds, filterValues, filterableProperties),
-    [allWorkspaceKinds, filterValues],
+    () => applyFilters(sortedWorkspaceKinds, filterValues, filterableProperties),
+    [sortedWorkspaceKinds, filterValues],
   );
 
   const onChange = useCallback(
