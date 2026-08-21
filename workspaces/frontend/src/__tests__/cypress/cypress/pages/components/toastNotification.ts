@@ -47,6 +47,22 @@ class ToastNotification {
     this.findInfoAlert().should('contain.text', message);
   }
 
+  findWarningAlert() {
+    return this.findAlert('warning');
+  }
+
+  assertWarningAlertExists() {
+    this.findWarningAlert().should('exist');
+  }
+
+  assertWarningAlertNotExists() {
+    this.find().findByTestId('toast-notification-warning').should('not.exist');
+  }
+
+  assertWarningAlertContainsMessage(message: string) {
+    this.findWarningAlert().should('contain.text', message);
+  }
+
   closeErrorAlert() {
     this.findErrorAlert().find('button[aria-label="Close"]').click();
   }

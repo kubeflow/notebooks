@@ -973,6 +973,44 @@ export const buildMockWorkspaceDetails = (
   ...details,
 });
 
+export const buildMockWorkspaceWithActivityWarning = (
+  workspace?: Partial<WorkspacesWorkspaceListItem>,
+): WorkspacesWorkspaceListItem =>
+  buildMockWorkspace({
+    state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+    activity: {
+      lastActivity: Date.now() - 10 * 60 * 1000,
+      lastUpdate: Date.now() - 10 * 60 * 1000,
+      rules: { pauseWorkspace: { eligibleAfter: Date.now() + 10 * 60 * 1000 } },
+    },
+    ...workspace,
+  });
+
+export const buildMockWorkspaceWithActivityCritical = (
+  workspace?: Partial<WorkspacesWorkspaceListItem>,
+): WorkspacesWorkspaceListItem =>
+  buildMockWorkspace({
+    state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+    activity: {
+      lastActivity: Date.now() - 20 * 60 * 1000,
+      lastUpdate: Date.now() - 20 * 60 * 1000,
+      rules: { pauseWorkspace: { eligibleAfter: Date.now() + 3 * 60 * 1000 } },
+    },
+    ...workspace,
+  });
+
+export const buildMockWorkspaceNoActivityRules = (
+  workspace?: Partial<WorkspacesWorkspaceListItem>,
+): WorkspacesWorkspaceListItem =>
+  buildMockWorkspace({
+    state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+    activity: {
+      lastActivity: Date.now() - 5 * 60 * 1000,
+      lastUpdate: Date.now() - 5 * 60 * 1000,
+    },
+    ...workspace,
+  });
+
 // The logs endpoint returns a raw text/plain stream, where every line is
 // prefixed with the RFC3339 timestamp added by the Kubernetes pod logs API.
 export const buildMockWorkspaceLogs = (lineCount = 5): string => {
