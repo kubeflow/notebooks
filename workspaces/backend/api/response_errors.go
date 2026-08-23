@@ -231,6 +231,28 @@ func (a *App) conflictResponse(w http.ResponseWriter, r *http.Request, err error
 	a.errorResponse(w, r, httpError)
 }
 
+// HTTP: 409
+// internalConflictResponse is for conflicts detected by internal application logic,
+// as opposed to conflicts reported by the Kubernetes API server (use conflictResponse for those).
+func (a *App) internalConflictResponse(w http.ResponseWriter, r *http.Request, err error) {
+	httpError := &HTTPError{
+		StatusCode: http.StatusConflict,
+		ErrorResponse: ErrorResponse{
+			Code:    strconv.Itoa(http.StatusConflict),
+			Message: err.Error(),
+			Cause: &ErrorCause{
+				ConflictCauses: []ConflictError{
+					{
+						Origin:  OriginInternal,
+						Message: err.Error(),
+					},
+				},
+			},
+		},
+	}
+	a.errorResponse(w, r, httpError)
+}
+
 // HTTP:413
 func (a *App) requestEntityTooLargeResponse(w http.ResponseWriter, r *http.Request, err error) {
 	httpError := &HTTPError{

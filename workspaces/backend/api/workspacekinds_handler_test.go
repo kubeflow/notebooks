@@ -1222,6 +1222,15 @@ metadata:
 
 			By("verifying the HTTP response status code")
 			Expect(rs.StatusCode).To(Equal(http.StatusConflict), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("verifying the error response includes an internal conflict cause")
+			var errorEnvelope ErrorEnvelope
+			Expect(json.Unmarshal(rr.Body.Bytes(), &errorEnvelope)).To(Succeed())
+			Expect(errorEnvelope.Error).NotTo(BeNil())
+			Expect(errorEnvelope.Error.Cause).NotTo(BeNil())
+			Expect(errorEnvelope.Error.Cause.ConflictCauses).To(HaveLen(1))
+			Expect(errorEnvelope.Error.Cause.ConflictCauses[0].Origin).To(Equal(OriginInternal))
+			Expect(errorEnvelope.Error.Cause.ConflictCauses[0].Message).NotTo(BeEmpty())
 		})
 
 		It("should return 415 for wrong Content-Type", func() {
