@@ -105,7 +105,7 @@ func (r *WorkspaceKindReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			if err := r.Update(ctx, workspaceKind); err != nil {
 				if apierrors.IsConflict(err) {
 					log.V(2).Info("update conflict while removing finalizer from WorkspaceKind, will requeue")
-					return ctrl.Result{Requeue: true}, nil
+					return ctrl.Result{}, err
 				}
 				log.Error(err, "unable to remove finalizer from WorkspaceKind")
 				return ctrl.Result{}, err
@@ -157,7 +157,7 @@ func (r *WorkspaceKindReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		if err := r.Status().Update(ctx, workspaceKind); err != nil {
 			if apierrors.IsConflict(err) {
 				log.V(2).Info("update conflict while updating WorkspaceKind status, will requeue")
-				return ctrl.Result{Requeue: true}, nil
+				return ctrl.Result{}, err
 			}
 			log.Error(err, "unable to update WorkspaceKind status")
 			return ctrl.Result{}, err

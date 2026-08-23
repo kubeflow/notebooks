@@ -60,10 +60,10 @@ var (
 )
 
 var _ = Describe("mergeReconcileResult", func() {
-	It("should prefer an immediate requeue", func() {
-		a := ctrl.Result{Requeue: true}
-		b := ctrl.Result{RequeueAfter: time.Second}
-		Expect(mergeReconcileResult(a, b)).To(Equal(a))
+	It("should return an empty result when neither requests a requeue", func() {
+		a := ctrl.Result{}
+		b := ctrl.Result{}
+		Expect(mergeReconcileResult(a, b)).To(Equal(ctrl.Result{}))
 	})
 
 	It("should prefer the sooner RequeueAfter", func() {
