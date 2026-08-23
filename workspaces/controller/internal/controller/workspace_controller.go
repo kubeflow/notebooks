@@ -604,9 +604,12 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 // mergeReconcileResult combines two reconcile results, preferring the sooner requeue.
 func mergeReconcileResult(a, b ctrl.Result) ctrl.Result {
+	// TODO: fix the requeue deprecation below
 	switch {
+	//nolint:staticcheck
 	case a.Requeue:
 		return a
+	//nolint:staticcheck
 	case b.Requeue:
 		return b
 	case a.RequeueAfter <= 0:

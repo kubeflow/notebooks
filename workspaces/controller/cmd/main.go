@@ -96,6 +96,10 @@ func main() {
 	flag.IntVar(&maxConcurrentReconciles, "max-concurrent-reconciles", getEnvAsInt("MAX_CONCURRENT_RECONCILES", 10),
 		"The maximum number of Workspaces reconciled (and probed) concurrently. "+
 			"Higher values prevent a slow activity probe from blocking other Workspaces' reconciliation.")
+	flag.Float64Var(&cfg.ClientQPS, "client-qps", getEnvAsFloat64("CLIENT_QPS", 50),
+		"QPS configuration passed to the Kubernetes API client (rest.Config).")
+	flag.IntVar(&cfg.ClientBurst, "client-burst", getEnvAsInt("CLIENT_BURST", 100),
+		"Maximum Burst configuration passed to the Kubernetes API client (rest.Config).")
 
 	opts := zap.Options{
 		Development: true,
@@ -129,6 +133,11 @@ func main() {
 	// build the REST config and a clientset for the activity probe pod-exec subresource
 	// (the controller-runtime cached client cannot perform exec, so we use a raw clientset)
 	restConfig := ctrl.GetConfigOrDie()
+	// controller-runtime v0.21 removed the default client-side rate limiter (QPS=20, Burst=30),
+	// so we set it explicitly to keep client-side rate limiting on API calls.
+	// REFERENCE: https://github.com/kubernetes-sigs/controller-runtime/pull/3119
+	restConfig.QPS = float32(cfg.ClientQPS)
+	restConfig.Burst = cfg.ClientBurst
 	clientset, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		setupLog.Error(err, "unable to create Kubernetes clientset")
@@ -275,6 +284,15 @@ func getEnvAsInt(name string, defaultVal int) int {
 	if value, exists := os.LookupEnv(name); exists {
 		if intValue, err := strconv.Atoi(value); err == nil {
 			return intValue
+		}
+	}
+	return defaultVal
+}
+
+func getEnvAsFloat64(name string, defaultVal float64) float64 {
+	if value, exists := os.LookupEnv(name); exists {
+		if floatValue, err := strconv.ParseFloat(value, 64); err == nil {
+			return floatValue
 		}
 	}
 	return defaultVal
