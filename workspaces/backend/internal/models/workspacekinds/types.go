@@ -44,9 +44,10 @@ type ClusterKindMetrics struct {
 }
 
 type PodTemplate struct {
-	PodMetadata   PodMetadata     `json:"podMetadata"`
-	VolumeMounts  PodVolumeMounts `json:"volumeMounts"`
-	ActivityProbe *ActivityProbe  `json:"activityProbe,omitempty"`
+	PodMetadata         PodMetadata         `json:"podMetadata"`
+	StatefulSetMetadata StatefulSetMetadata `json:"statefulSetMetadata"`
+	VolumeMounts        PodVolumeMounts     `json:"volumeMounts"`
+	ActivityProbe       *ActivityProbe      `json:"activityProbe,omitempty"`
 
 	//
 	// TODO: remove once frontend migrates to the new listValues endpoint for both create/update and wsk admin views
@@ -55,6 +56,11 @@ type PodTemplate struct {
 }
 
 type PodMetadata struct {
+	Labels      map[string]string `json:"labels"`
+	Annotations map[string]string `json:"annotations"`
+}
+
+type StatefulSetMetadata struct {
 	Labels      map[string]string `json:"labels"`
 	Annotations map[string]string `json:"annotations"`
 }

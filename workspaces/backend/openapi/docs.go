@@ -7642,6 +7642,7 @@ const docTemplate = `{
             "required": [
                 "options",
                 "podMetadata",
+                "statefulSetMetadata",
                 "volumeMounts"
             ],
             "properties": {
@@ -7659,6 +7660,9 @@ const docTemplate = `{
                 "podMetadata": {
                     "$ref": "#/definitions/workspacekinds.PodMetadata"
                 },
+                "statefulSetMetadata": {
+                    "$ref": "#/definitions/workspacekinds.StatefulSetMetadata"
+                },
                 "volumeMounts": {
                     "$ref": "#/definitions/workspacekinds.PodVolumeMounts"
                 }
@@ -7672,6 +7676,27 @@ const docTemplate = `{
             "properties": {
                 "home": {
                     "type": "string"
+                }
+            }
+        },
+        "workspacekinds.StatefulSetMetadata": {
+            "type": "object",
+            "required": [
+                "annotations",
+                "labels"
+            ],
+            "properties": {
+                "annotations": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "labels": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
                 }
             }
         },

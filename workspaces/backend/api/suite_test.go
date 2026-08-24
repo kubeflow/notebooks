@@ -232,6 +232,10 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 			},
 			PodTemplate: kubefloworgv1beta1.WorkspaceKindPodTemplate{
 				PodMetadata: &kubefloworgv1beta1.WorkspaceKindPodMetadata{},
+				StatefulSetMetadata: &kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata{
+					Labels:      map[string]string{"my-sts-label": "my-value"},
+					Annotations: map[string]string{"my-sts-annotation": "my-value"},
+				},
 				ActivityProbe: &kubefloworgv1beta1.ActivityProbe{
 					MinProbeIntervalSeconds: new(int32(300)),
 					ProbeIntervalSeconds:    new(int32(3600)),

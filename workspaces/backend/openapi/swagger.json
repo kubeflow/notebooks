@@ -7640,6 +7640,7 @@
             "required": [
                 "options",
                 "podMetadata",
+                "statefulSetMetadata",
                 "volumeMounts"
             ],
             "properties": {
@@ -7657,6 +7658,9 @@
                 "podMetadata": {
                     "$ref": "#/definitions/workspacekinds.PodMetadata"
                 },
+                "statefulSetMetadata": {
+                    "$ref": "#/definitions/workspacekinds.StatefulSetMetadata"
+                },
                 "volumeMounts": {
                     "$ref": "#/definitions/workspacekinds.PodVolumeMounts"
                 }
@@ -7670,6 +7674,27 @@
             "properties": {
                 "home": {
                     "type": "string"
+                }
+            }
+        },
+        "workspacekinds.StatefulSetMetadata": {
+            "type": "object",
+            "required": [
+                "annotations",
+                "labels"
+            ],
+            "properties": {
+                "annotations": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "labels": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
                 }
             }
         },
