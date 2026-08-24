@@ -48,6 +48,13 @@ const (
 	// workspacekind configs
 	workspaceKindName = "jupyterlab"
 
+	// statefulSetMetadata configured on the sample WorkspaceKind
+	//  - see manifests/kustomize/samples/jupyterlab_v1beta1_workspacekind.yaml
+	stsMetadataLabelKey        = "my-workspace-kind-sts-label"
+	stsMetadataLabelValue      = "my-value"
+	stsMetadataAnnotationKey   = "my-workspace-kind-sts-annotation"
+	stsMetadataAnnotationValue = "my-value"
+
 	// curl image
 	curlImage = "curlimages/curl:8.9.1"
 
@@ -376,6 +383,35 @@ var _ = Describe("controller", Ordered, func() {
 				g.Expect(workspaceVirtualServiceName).To(ContainSubstring(fmt.Sprintf("ws-%s", workspaceName)))
 			}
 			Eventually(verifyWorkspaceVirtualService, timeout, interval).Should(Succeed())
+
+			By("validating that the StatefulSet carries the statefulSetMetadata from the WorkspaceKind")
+			// the sample WorkspaceKind sets spec.podTemplate.statefulSetMetadata, which the controller
+			// applies to the generated StatefulSet's own metadata (alongside the workspace-name label)
+			verifyStatefulSetMetadata := func(g Gomega) {
+				stsSelector := fmt.Sprintf("notebooks.kubeflow.org/workspace-name=%s", workspaceName)
+
+				cmd := exec.Command("kubectl", "get", "statefulsets",
+					"-l", stsSelector,
+					"-n", workspaceNamespace,
+					"-o", fmt.Sprintf("jsonpath={.items[0].metadata.labels['%s']}", stsMetadataLabelKey),
+				)
+				labelValue, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(labelValue).To(Equal(stsMetadataLabelValue), "expected statefulSetMetadata label on the StatefulSet")
+
+				cmd = exec.Command("kubectl", "get", "statefulsets",
+					"-l", stsSelector,
+					"-n", workspaceNamespace,
+					"-o", fmt.Sprintf("jsonpath={.items[0].metadata.annotations['%s']}", stsMetadataAnnotationKey),
+				)
+				annotationValue, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(annotationValue).To(
+					Equal(stsMetadataAnnotationValue),
+					"expected statefulSetMetadata annotation on the StatefulSet",
+				)
+			}
+			Eventually(verifyStatefulSetMetadata, timeout, interval).Should(Succeed())
 
 			By("ensuring in-use imageConfig values cannot be removed from WorkspaceKind")
 			removeInUseImageConfig := func() error {
