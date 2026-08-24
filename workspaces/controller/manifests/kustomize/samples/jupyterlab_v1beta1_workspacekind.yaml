@@ -151,6 +151,19 @@ spec:
       annotations:
         my-workspace-kind-annotation: "my-value"
 
+    ## metadata for the Workspace StatefulSet (MUTABLE)
+    ##  - labels and annotations applied to the StatefulSet object itself,
+    ##    unlike `podMetadata` which applies to the Workspace Pods
+    ##  - this is an admin-only default for all Workspaces of this WorkspaceKind
+    ##  - the controller-managed `notebooks.kubeflow.org/workspace-name` label
+    ##    always takes precedence and cannot be overridden here
+    ##
+    statefulSetMetadata:
+      labels:
+        my-workspace-kind-sts-label: "my-value"
+      annotations:
+        my-workspace-kind-sts-annotation: "my-value"
+
     ## service account configs for Workspace Pods
     ##  - each Workspace runs as its own ServiceAccount named "ws-{WORKSPACE_NAME}",
     ##    which the controller creates, owns, and deletes along with the Workspace
