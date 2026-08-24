@@ -428,7 +428,12 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
 
                           if (columnKey === 'actions') {
                             return (
-                              <Td isActionCell key="actions" data-testid="action-column">
+                              <Td
+                                isActionCell
+                                key="actions"
+                                data-testid="action-column"
+                                className="kubeflow-workspace-actions-cell"
+                              >
                                 <ActionsColumn
                                   items={rowActions(workspace).map((action) => ({
                                     ...action,
