@@ -999,6 +999,15 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 		maps.Copy(podLabels, workspace.Spec.PodTemplate.PodMetadata.Labels)
 	}
 
+	// generate statefulset metadata
+	// NOTE: statefulset metadata is only configurable at the WorkspaceKind level
+	stsAnnotations := make(map[string]string)
+	stsLabels := make(map[string]string)
+	if workspaceKind.Spec.PodTemplate.StatefulSetMetadata != nil {
+		maps.Copy(stsAnnotations, workspaceKind.Spec.PodTemplate.StatefulSetMetadata.Annotations)
+		maps.Copy(stsLabels, workspaceKind.Spec.PodTemplate.StatefulSetMetadata.Labels)
+	}
+
 	// generate container imagePullPolicy
 	imagePullPolicy := corev1.PullIfNotPresent
 	if imageConfigSpec.ImagePullPolicy != nil {
@@ -1191,9 +1200,14 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: namePrefix,
 			Namespace:    workspace.Namespace,
-			Labels: map[string]string{
-				workspaceNameLabel: workspace.Name,
-			},
+			Annotations:  stsAnnotations,
+			// NOTE: the controller-managed labels take precedence over the admin-provided ones
+			Labels: labels.Merge(
+				stsLabels,
+				map[string]string{
+					workspaceNameLabel: workspace.Name,
+				},
+			),
 		},
 		//
 		// NOTE: if you add new fields, ensure they are reflected in `helper.CopyStatefulSetFields()`
