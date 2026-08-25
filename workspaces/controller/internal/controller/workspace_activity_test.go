@@ -134,7 +134,7 @@ var _ = Describe("updateActivityStatusFromProbe", func() {
 		Expect(workspace.Status.Activity.LastProbe.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultSuccess))
 	})
 
-	It("should update lastUpdate but not lastActivity when probe returns no activity", func() {
+	It("should update lastUpdate but not lastActivity when probe returns no activity and lastActivity is already set", func() {
 		result := &helper.ProbeResult{
 			StartTime:    testStartTime,
 			EndTime:      testEndTime,
@@ -144,6 +144,36 @@ var _ = Describe("updateActivityStatusFromProbe", func() {
 		}
 		updateActivityStatusFromProbe(workspace, result)
 		Expect(workspace.Status.Activity.LastActivity).To(Equal(testInitialActivityMs))
+		Expect(workspace.Status.Activity.LastUpdate).To(Equal(testEndTimeMs))
+	})
+
+	It("should initialize lastActivity to lastRunningTime when probe returns no activity and lastActivity is unset (0)", func() {
+		workspace.Status.Activity.LastActivity = 0
+		workspace.Status.LastRunningTime = testInitialActivityMs
+		result := &helper.ProbeResult{
+			StartTime:    testStartTime,
+			EndTime:      testEndTime,
+			Result:       kubefloworgv1beta1.WorkspaceProbeResultSuccess,
+			Message:      "PodExec probe succeeded",
+			LastActivity: nil,
+		}
+		updateActivityStatusFromProbe(workspace, result)
+		Expect(workspace.Status.Activity.LastActivity).To(Equal(testInitialActivityMs))
+		Expect(workspace.Status.Activity.LastUpdate).To(Equal(testEndTimeMs))
+	})
+
+	It("should not initialize lastActivity when probe returns no activity, lastActivity is 0, and lastRunningTime is 0", func() {
+		workspace.Status.Activity.LastActivity = 0
+		workspace.Status.LastRunningTime = 0
+		result := &helper.ProbeResult{
+			StartTime:    testStartTime,
+			EndTime:      testEndTime,
+			Result:       kubefloworgv1beta1.WorkspaceProbeResultSuccess,
+			Message:      "PodExec probe succeeded",
+			LastActivity: nil,
+		}
+		updateActivityStatusFromProbe(workspace, result)
+		Expect(workspace.Status.Activity.LastActivity).To(Equal(int64(0)))
 		Expect(workspace.Status.Activity.LastUpdate).To(Equal(testEndTimeMs))
 	})
 

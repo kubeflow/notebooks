@@ -236,7 +236,10 @@ func (r *WorkspaceReconciler) runProbe(
 }
 
 // updateActivityStatusFromProbe applies a probe result to the Workspace activity status.
-//   - on success, `lastActivity` (if the probe returned one) and `lastUpdate` are advanced
+//   - on success, `lastActivity` (if the probe returned one) and `lastUpdate` are advanced.
+//     If the probe returned no activity timestamp (e.g. podExec reporting has_activity: false)
+//     and `lastActivity` was not previously set (<= 0), `lastActivity` is initialized to
+//     `status.lastRunningTime` to treat the Workspace as "inactive since startup".
 //   - on failure, `lastActivity` and `lastUpdate` are preserved (never regressed)
 func updateActivityStatusFromProbe(workspace *kubefloworgv1beta1.Workspace, result *helper.ProbeResult) {
 	workspace.Status.Activity.LastProbe = &kubefloworgv1beta1.WorkspaceActivityLastProbe{
@@ -249,6 +252,8 @@ func updateActivityStatusFromProbe(workspace *kubefloworgv1beta1.Workspace, resu
 	if result.Succeeded() {
 		if result.LastActivity != nil {
 			workspace.Status.Activity.LastActivity = result.LastActivity.UnixMilli()
+		} else if workspace.Status.Activity.LastActivity <= 0 && workspace.Status.LastRunningTime > 0 {
+			workspace.Status.Activity.LastActivity = workspace.Status.LastRunningTime
 		}
 		workspace.Status.Activity.LastUpdate = result.EndTime.UnixMilli()
 	}

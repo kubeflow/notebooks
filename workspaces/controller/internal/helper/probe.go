@@ -75,7 +75,8 @@ const (
 // LastActivity is only set (non-nil) when the probe succeeds and determines a new
 // activity timestamp. A nil LastActivity on a successful probe means the activity
 // timestamp should be left unchanged (e.g. a podExec probe reporting `has_activity: false`
-// without a `last_activity` field).
+// without a `last_activity` field; if lastActivity was never set, the controller initializes
+// it to lastRunningTime to treat it as inactive since startup).
 type ProbeResult struct {
 	// StartTime is the time the probe was started.
 	StartTime time.Time

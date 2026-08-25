@@ -428,7 +428,7 @@ type ActivityProbePodExec struct {
 	//    precedence and `last_activity` is totally ignored (the probe does not fail).
 	//    The fields are evaluated to update the Workspace status field `status.activity.lastActivity` as follows:
 	//      - If `has_activity` is explicitly set to `true` (or if the JSON file is empty/omitted): The Workspace is treated as active, and `status.activity.lastActivity` is updated to the probe completion time (ignoring `last_activity`).
-	//      - If `has_activity` is explicitly set to `false`: The Workspace is treated as inactive, and the existing `status.activity.lastActivity` timestamp is preserved (unchanged, ignoring `last_activity`).
+	//      - If `has_activity` is explicitly set to `false`: The Workspace is treated as inactive, and the existing `status.activity.lastActivity` timestamp is preserved (unchanged, ignoring `last_activity`). If `status.activity.lastActivity` was not previously set (0), it is initialized to `status.lastRunningTime` to treat the Workspace as inactive since startup.
 	//      - If `last_activity` (ISO 8601 string) is provided (and `has_activity` is omitted): The Workspace is treated as inactive, and `status.activity.lastActivity` is updated to the `last_activity` timestamp.
 	// +kubebuilder:validation:MinLength:=1
 	// +kubebuilder:validation:MaxLength:=2048
