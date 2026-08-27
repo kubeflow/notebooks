@@ -8,6 +8,12 @@ export const DEV_MODE = process.env.APP_ENV === 'development';
 export const POLL_INTERVAL = process.env.POLL_INTERVAL
   ? parseInt(process.env.POLL_INTERVAL)
   : 30000;
+/**
+ * When true (the default), the Workspaces table streams live updates via
+ * Server-Sent Events instead of polling every POLL_INTERVAL. Set
+ * ENABLE_WORKSPACE_STREAM=false to fall back to interval polling.
+ */
+export const ENABLE_WORKSPACE_STREAM = process.env.ENABLE_WORKSPACE_STREAM !== 'false';
 export const KUBEFLOW_USERNAME = process.env.KUBEFLOW_USERNAME || 'user@example.com';
 export const IMAGE_DIR = process.env.IMAGE_DIR || 'images';
 export const ROUTES_PREFIX = process.env.ROUTES_PREFIX ?? '';

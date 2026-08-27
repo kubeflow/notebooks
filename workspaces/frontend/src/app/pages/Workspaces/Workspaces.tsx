@@ -4,18 +4,39 @@ import { PageSection } from '@patternfly/react-core/dist/esm/components/Page';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import WorkspaceTable from '~/app/components/WorkspaceTable';
 import { useWorkspacesByNamespace } from '~/app/hooks/useWorkspaces';
+import {
+  StreamConnectionStatus,
+  useWorkspacesByNamespaceLive,
+} from '~/app/hooks/useWorkspacesLive';
 import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 import { LoadingSpinner } from '~/app/components/LoadingSpinner';
 import { LoadError } from '~/app/components/LoadError';
 import { useWorkspaceRowActions } from '~/app/hooks/useWorkspaceRowActions';
-import { V1Beta1WorkspaceState } from '~/generated/data-contracts';
+import { ApiWorkspaceListEnvelope, V1Beta1WorkspaceState } from '~/generated/data-contracts';
+import { ENABLE_WORKSPACE_STREAM, MOCK_API_ENABLED } from '~/shared/utilities/const';
 
-export const Workspaces: React.FunctionComponent = () => {
-  const { namespacesLoaded, selectedNamespace } = useNamespaceSelectorWrapper();
+interface WorkspacesContentProps {
+  workspaces: ApiWorkspaceListEnvelope['data'];
+  workspacesLoaded: boolean;
+  workspacesLoadError: Error | undefined;
+  refreshWorkspaces: () => void;
+  selectedNamespace: string;
+  namespacesLoaded: boolean;
+  /** Present only in live (streaming) mode; drives the connection indicator. */
+  connectionStatus?: StreamConnectionStatus;
+}
 
-  const [workspaces, workspacesLoaded, workspacesLoadError, refreshWorkspaces] =
-    useWorkspacesByNamespace(selectedNamespace);
-
+// WorkspacesContent renders the workspaces page from an already-resolved data
+// source, so it can be shared by both the live (SSE) and polling variants.
+const WorkspacesContent: React.FunctionComponent<WorkspacesContentProps> = ({
+  workspaces,
+  workspacesLoaded,
+  workspacesLoadError,
+  refreshWorkspaces,
+  selectedNamespace,
+  namespacesLoaded,
+  connectionStatus,
+}) => {
   const tableRowActions = useWorkspaceRowActions([
     { id: 'viewDetails' },
     { id: 'edit' },
@@ -63,9 +84,58 @@ export const Workspaces: React.FunctionComponent = () => {
             namespace={selectedNamespace}
             hiddenColumns={['namespace', 'gpu', 'idleGpu']}
             refreshWorkspaces={refreshWorkspaces}
+            connectionStatus={connectionStatus}
           />
         </StackItem>
       </Stack>
     </PageSection>
   );
 };
+
+// WorkspacesLive drives the table from the Server-Sent Events stream.
+const WorkspacesLive: React.FunctionComponent = () => {
+  const { namespacesLoaded, selectedNamespace } = useNamespaceSelectorWrapper();
+  const {
+    fetchState: [workspaces, workspacesLoaded, workspacesLoadError, refreshWorkspaces],
+    connectionStatus,
+  } = useWorkspacesByNamespaceLive(selectedNamespace);
+
+  return (
+    <WorkspacesContent
+      workspaces={workspaces}
+      workspacesLoaded={workspacesLoaded}
+      workspacesLoadError={workspacesLoadError}
+      refreshWorkspaces={refreshWorkspaces}
+      selectedNamespace={selectedNamespace}
+      namespacesLoaded={namespacesLoaded}
+      connectionStatus={connectionStatus}
+    />
+  );
+};
+
+// WorkspacesPolling drives the table from the interval-polling fetch hook.
+const WorkspacesPolling: React.FunctionComponent = () => {
+  const { namespacesLoaded, selectedNamespace } = useNamespaceSelectorWrapper();
+  const [workspaces, workspacesLoaded, workspacesLoadError, refreshWorkspaces] =
+    useWorkspacesByNamespace(selectedNamespace);
+
+  return (
+    <WorkspacesContent
+      workspaces={workspaces}
+      workspacesLoaded={workspacesLoaded}
+      workspacesLoadError={workspacesLoadError}
+      refreshWorkspaces={refreshWorkspaces}
+      selectedNamespace={selectedNamespace}
+      namespacesLoaded={namespacesLoaded}
+    />
+  );
+};
+
+// The streaming vs polling choice is a build-time constant, so exactly one
+// branch is rendered for the lifetime of the session — the two variants never
+// swap, which keeps their hooks stable. Streaming is disabled under the mock API
+// since there is no backend to stream from.
+const useLiveStream = ENABLE_WORKSPACE_STREAM && !MOCK_API_ENABLED;
+
+export const Workspaces: React.FunctionComponent = () =>
+  useLiveStream ? <WorkspacesLive /> : <WorkspacesPolling />;
