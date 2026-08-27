@@ -22,14 +22,19 @@ import (
 	"os"
 	"strconv"
 
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/kubernetes"
+	toolscache "k8s.io/client-go/tools/cache"
 	ctrl "sigs.k8s.io/controller-runtime"
+
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 
 	application "github.com/kubeflow/notebooks/workspaces/backend/api"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/server"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/streaming"
 	"github.com/kubeflow/notebooks/workspaces/backend/openapi"
 )
 
@@ -155,6 +160,28 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Set up the signal-aware root context, used both to register the informer
+	// event handler below and to run the manager.
+	ctx := ctrl.SetupSignalHandler()
+
+	// Create the change broadcaster and wire it to the Workspace informer so
+	// that Server-Sent Events stream handlers are notified whenever a Workspace
+	// is added, updated, or deleted.
+	hub := streaming.NewHub()
+	workspaceInformer, err := mgr.GetCache().GetInformer(ctx, &kubefloworgv1beta1.Workspace{})
+	if err != nil {
+		logger.Error("failed to get Workspace informer", "error", err)
+		os.Exit(1)
+	}
+	if _, err := workspaceInformer.AddEventHandler(toolscache.ResourceEventHandlerFuncs{
+		AddFunc:    func(obj any) { hub.Publish(objectNamespace(obj)) },
+		UpdateFunc: func(_, obj any) { hub.Publish(objectNamespace(obj)) },
+		DeleteFunc: func(obj any) { hub.Publish(objectNamespace(obj)) },
+	}); err != nil {
+		logger.Error("failed to register Workspace event handler", "error", err)
+		os.Exit(1)
+	}
+
 	clientset, err := kubernetes.NewForConfig(kubeconfig)
 	if err != nil {
 		logger.Error("failed to create Kubernetes clientset", "error", err)
@@ -193,6 +220,7 @@ func main() {
 		reqAuthN,
 		reqAuthZ,
 		clientset,
+		hub,
 	)
 	if err != nil {
 		logger.Error("failed to create app", "error", err)
@@ -210,10 +238,25 @@ func main() {
 
 	// Start the controller manager
 	logger.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(ctx); err != nil {
 		logger.Error("problem running manager", "error", err)
 		os.Exit(1)
 	}
+}
+
+// objectNamespace extracts the namespace of an informer event object, unwrapping
+// cache tombstones (DeletedFinalStateUnknown) for delete events. It returns an
+// empty string if the namespace cannot be determined, which still notifies
+// all-namespaces subscribers.
+func objectNamespace(obj any) string {
+	if tombstone, ok := obj.(toolscache.DeletedFinalStateUnknown); ok {
+		obj = tombstone.Obj
+	}
+	accessor, err := meta.Accessor(obj)
+	if err != nil {
+		return ""
+	}
+	return accessor.GetNamespace()
 }
 
 func getEnvAsInt(name string, defaultVal int) int {

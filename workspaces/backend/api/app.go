@@ -33,6 +33,7 @@ import (
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/repositories"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/streaming"
 	_ "github.com/kubeflow/notebooks/workspaces/backend/openapi"
 )
 
@@ -44,6 +45,9 @@ type App struct {
 	StrictYamlSerializer runtime.Serializer
 	RequestAuthN         authenticator.Request
 	RequestAuthZ         authorizer.Authorizer
+	// Hub broadcasts resource-change notifications to long-lived stream handlers
+	// (e.g. the workspaces Server-Sent Events endpoint).
+	Hub *streaming.Hub
 }
 
 // NewApp creates a new instance of the app.
@@ -57,6 +61,7 @@ func NewApp(
 	reqAuthN authenticator.Request,
 	reqAuthZ authorizer.Authorizer,
 	clientset kubernetes.Interface,
+	hub *streaming.Hub,
 ) (*App, error) {
 
 	// TODO: log the configuration on startup
@@ -76,6 +81,7 @@ func NewApp(
 		StrictYamlSerializer: yamlSerializerInfo.StrictSerializer,
 		RequestAuthN:         reqAuthN,
 		RequestAuthZ:         reqAuthZ,
+		Hub:                  hub,
 	}
 	return app, nil
 }
@@ -134,7 +140,17 @@ func (a *App) Routes() http.Handler {
 		router.GET(constants.SwaggerPath, a.GetSwaggerHandler)
 	}
 
-	handler := gzhttp.GzipHandler(router)
+	// Wrap with gzip compression, but never compress Server-Sent Events
+	// (text/event-stream): gzhttp buffers to decide whether to compress, which
+	// would break the incremental flushing that SSE relies on.
+	gzipWrapper, err := gzhttp.NewWrapper(gzhttp.ExceptContentTypes([]string{constants.MediaTypeEventStream}))
+	if err != nil {
+		// Should never happen with a static content-type list; fall back to the
+		// default gzip handler rather than serving uncompressed responses.
+		a.logger.Error("failed to build gzip wrapper, falling back to default", "error", err)
+		gzipWrapper = gzhttp.GzipHandler
+	}
+	handler := gzipWrapper(router)
 
 	return a.recoverPanic(a.enableCORS(handler))
 }
