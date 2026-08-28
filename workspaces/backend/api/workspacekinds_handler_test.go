@@ -141,9 +141,11 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			Expect(k8sClient.Get(ctx, workspaceKind2Key, workspacekind2)).To(Succeed())
 
 			By("ensuring the response contains the expected WorkspaceKinds")
-			// admin listing (no namespaceFilter): filterRules are not evaluated
-			expectedModel1, _ := models.NewWorkspaceKindModelFromWorkspaceKind(a.Config, workspacekind1, nil)
-			expectedModel2, _ := models.NewWorkspaceKindModelFromWorkspaceKind(a.Config, workspacekind2, nil)
+			// admin listing (no namespaceFilter): matchNamespace filterRules do not fire
+			expectedModel1, apiHide1 := models.NewWorkspaceKindModelFromWorkspaceKind(a.Config, workspacekind1, nil)
+			expectedModel2, apiHide2 := models.NewWorkspaceKindModelFromWorkspaceKind(a.Config, workspacekind2, nil)
+			Expect(apiHide1).To(BeFalse())
+			Expect(apiHide2).To(BeFalse())
 			Expect(response.Data).To(ConsistOf(expectedModel1, expectedModel2))
 
 			By("ensuring the statefulSetMetadata from the WorkspaceKind is surfaced in the response")
@@ -247,10 +249,17 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			workspacekind2 := &kubefloworgv1beta1.WorkspaceKind{}
 			Expect(k8sClient.Get(ctx, workspaceKind2Key, workspacekind2)).To(Succeed())
 
+			By("getting the filtered Namespace from the Kubernetes API")
+			namespace1 := &corev1.Namespace{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: namespaceName1}, namespace1)).To(Succeed())
+
 			By("ensuring the response contains the expected WorkspaceKinds")
-			// admin listing (no namespaceFilter): filterRules are not evaluated
-			expectedModel1, _ := models.NewWorkspaceKindModelFromWorkspaceKind(a.Config, workspacekind1, nil)
-			expectedModel2, _ := models.NewWorkspaceKindModelFromWorkspaceKind(a.Config, workspacekind2, nil)
+			// the example WorkspaceKinds define no WORKSPACE_KIND filterRules, so the
+			// namespaceFilter's labels have no effect and nothing is hidden or denied
+			expectedModel1, apiHide1 := models.NewWorkspaceKindModelFromWorkspaceKind(a.Config, workspacekind1, namespace1.Labels)
+			expectedModel2, apiHide2 := models.NewWorkspaceKindModelFromWorkspaceKind(a.Config, workspacekind2, namespace1.Labels)
+			Expect(apiHide1).To(BeFalse())
+			Expect(apiHide2).To(BeFalse())
 			Expect(response.Data).To(ConsistOf(expectedModel1, expectedModel2))
 		})
 
@@ -281,6 +290,184 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			Expect(response.Error.Message).To(Equal(errMsgQueryParamsInvalid))
 			Expect(response.Error.Cause.ValidationErrors).NotTo(BeEmpty())
 			Expect(response.Error.Cause.ValidationErrors[0].Field).To(Equal(constants.NamespaceFilterQueryParam))
+		})
+
+		It("should return 422 when the namespaceFilter references a non-existent namespace", func() {
+			By("creating the HTTP request with a namespaceFilter for a non-existent namespace")
+			req, err := http.NewRequest(http.MethodGet, constants.AllWorkspaceKindsPath+"?namespaceFilter=non-existent-ns", http.NoBody)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing GetWorkspaceKindsHandler")
+			ps := httprouter.Params{}
+			rr := httptest.NewRecorder()
+			a.GetWorkspaceKindsHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("decoding the error response")
+			var response ErrorEnvelope
+			err = json.Unmarshal(rr.Body.Bytes(), &response)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("verifying the error indicates a validation failure")
+			Expect(response.Error.Cause.ValidationErrors).NotTo(BeEmpty())
+		})
+	})
+
+	// NOTE: these tests create WorkspaceKinds with WORKSPACE_KIND-scoped filterRules and a labeled
+	//       namespace, so they assume a specific cluster state and must run serially and in order.
+	Context("with WorkspaceKinds that define filterRules", Serial, Ordered, func() {
+
+		const prodNamespaceName = "wsk-filterrules-prod-ns"
+
+		var (
+			hiddenWSKName  string // WORKSPACE_KIND rule with ui.hide
+			deniedWSKName  string // WORKSPACE_KIND rule with api.deny
+			omittedWSKName string // WORKSPACE_KIND rule with api.hide
+			plainWSKName   string // no filterRules
+		)
+
+		// wskWithWorkspaceKindRule returns a WorkspaceKind with a single WORKSPACE_KIND-scoped rule
+		// that fires when the namespace has the label tier=prod.
+		wskWithWorkspaceKindRule := func(name string, effect kubefloworgv1beta1.FilterRuleEffect) *kubefloworgv1beta1.WorkspaceKind {
+			wsk := NewExampleWorkspaceKind(name)
+			wsk.Spec.FilterRules = []kubefloworgv1beta1.FilterRule{
+				{
+					Scope:  kubefloworgv1beta1.FilterRuleScopeWorkspaceKind,
+					Effect: effect,
+					Match: []kubefloworgv1beta1.FilterRuleMatch{
+						{
+							MatchNamespace: &kubefloworgv1beta1.FilterRuleSelector{
+								Selector: metav1.LabelSelector{MatchLabels: map[string]string{"tier": "prod"}},
+							},
+						},
+					},
+				},
+			}
+			return wsk
+		}
+
+		BeforeAll(func() {
+			hiddenWSKName = "wsk-filterrules-hidden"
+			deniedWSKName = "wsk-filterrules-denied"
+			omittedWSKName = "wsk-filterrules-omitted"
+			plainWSKName = "wsk-filterrules-plain"
+
+			By("creating the prod Namespace with tier=prod label")
+			prodNamespace := &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   prodNamespaceName,
+					Labels: map[string]string{"tier": "prod"},
+				},
+			}
+			Expect(k8sClient.Create(ctx, prodNamespace)).To(Succeed())
+
+			By("creating a WorkspaceKind with a ui.hide rule")
+			Expect(k8sClient.Create(ctx, wskWithWorkspaceKindRule(hiddenWSKName,
+				kubefloworgv1beta1.FilterRuleEffect{UI: &kubefloworgv1beta1.FilterRuleEffectUI{Hide: true}}))).To(Succeed())
+
+			By("creating a WorkspaceKind with an api.deny rule")
+			Expect(k8sClient.Create(ctx, wskWithWorkspaceKindRule(deniedWSKName,
+				kubefloworgv1beta1.FilterRuleEffect{
+					API: &kubefloworgv1beta1.FilterRuleEffectAPI{
+						Deny:        new(true),
+						DenyMessage: &kubefloworgv1beta1.FilterRuleDenyMessage{Text: "not allowed in prod"},
+					},
+				}))).To(Succeed())
+
+			By("creating a WorkspaceKind with an api.hide rule")
+			Expect(k8sClient.Create(ctx, wskWithWorkspaceKindRule(omittedWSKName,
+				kubefloworgv1beta1.FilterRuleEffect{API: &kubefloworgv1beta1.FilterRuleEffectAPI{Hide: new(true)}}))).To(Succeed())
+
+			By("creating a WorkspaceKind with no filterRules")
+			Expect(k8sClient.Create(ctx, NewExampleWorkspaceKind(plainWSKName))).To(Succeed())
+		})
+
+		AfterAll(func() {
+			for _, name := range []string{hiddenWSKName, deniedWSKName, omittedWSKName, plainWSKName} {
+				Expect(k8sClient.Delete(ctx, &kubefloworgv1beta1.WorkspaceKind{
+					ObjectMeta: metav1.ObjectMeta{Name: name},
+				})).To(Succeed())
+			}
+			Expect(k8sClient.Delete(ctx, &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{Name: prodNamespaceName},
+			})).To(Succeed())
+		})
+
+		// listWithNamespaceFilter lists WorkspaceKinds filtered by the given namespace and returns
+		// the decoded response items keyed by name.
+		listWithNamespaceFilter := func(namespace string) map[string]models.WorkspaceKindListItem {
+			req, err := http.NewRequest(http.MethodGet, constants.AllWorkspaceKindsPath+"?namespaceFilter="+namespace, http.NoBody)
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set(userIdHeader, adminUser)
+
+			rr := httptest.NewRecorder()
+			a.GetWorkspaceKindsHandler(rr, req, httprouter.Params{})
+			rs := rr.Result()
+			defer rs.Body.Close()
+			Expect(rs.StatusCode).To(Equal(http.StatusOK), descUnexpectedHTTPStatus, rr.Body.String())
+
+			var response WorkspaceKindListEnvelope
+			Expect(json.NewDecoder(rs.Body).Decode(&response)).To(Succeed())
+
+			byName := make(map[string]models.WorkspaceKindListItem, len(response.Data))
+			for _, item := range response.Data {
+				byName[item.Name] = item
+			}
+			return byName
+		}
+
+		It("evaluates the WORKSPACE_KIND filterRules against the namespaceFilter labels", func() {
+			By("listing WorkspaceKinds filtered by the prod namespace")
+			byName := listWithNamespaceFilter(prodNamespaceName)
+
+			By("hiding the WorkspaceKind whose ui.hide rule matches")
+			Expect(byName).To(HaveKey(hiddenWSKName))
+			Expect(byName[hiddenWSKName].Hidden).To(BeTrue())
+
+			By("denying the WorkspaceKind whose api.deny rule matches")
+			Expect(byName).To(HaveKey(deniedWSKName))
+			Expect(byName[deniedWSKName].Restrictions).To(BeComparableTo(commonModels.Restrictions{
+				Deny:        true,
+				DenyMessage: &commonModels.DenyMessage{Text: "not allowed in prod"},
+			}))
+
+			By("omitting the WorkspaceKind whose api.hide rule matches")
+			Expect(byName).NotTo(HaveKey(omittedWSKName))
+
+			By("leaving the WorkspaceKind without filterRules unaffected")
+			Expect(byName).To(HaveKey(plainWSKName))
+			Expect(byName[plainWSKName].Hidden).To(BeFalse())
+			Expect(byName[plainWSKName].Restrictions).To(BeComparableTo(commonModels.DefaultRestrictions()))
+		})
+
+		It("does not fire the rules when the namespace labels do not match", func() {
+			By("creating a namespace without the tier=prod label")
+			devNamespaceName := "wsk-filterrules-dev-ns"
+			Expect(k8sClient.Create(ctx, &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{Name: devNamespaceName},
+			})).To(Succeed())
+			defer func() {
+				Expect(k8sClient.Delete(ctx, &corev1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{Name: devNamespaceName},
+				})).To(Succeed())
+			}()
+
+			By("listing WorkspaceKinds filtered by the dev namespace")
+			byName := listWithNamespaceFilter(devNamespaceName)
+
+			By("returning every WorkspaceKind unaffected (nothing hidden, denied, or omitted)")
+			for _, name := range []string{hiddenWSKName, deniedWSKName, omittedWSKName, plainWSKName} {
+				Expect(byName).To(HaveKey(name))
+				Expect(byName[name].Hidden).To(BeFalse())
+				Expect(byName[name].Restrictions).To(BeComparableTo(commonModels.DefaultRestrictions()))
+			}
 		})
 	})
 

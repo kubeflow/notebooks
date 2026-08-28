@@ -119,25 +119,32 @@ func Evaluate(target EvalTarget, evalCtx EvalContext) EvalResult {
 	return EvalResult{Restrictions: common.DefaultRestrictions()}
 }
 
-// EvaluateWorkspaceFilterScopeRule evaluates the WorkspaceKind's WORKSPACE_KIND-scoped filter
+// workspaceKindScopes is the scope set for endpoints that evaluate only WORKSPACE_KIND rules.
+var workspaceKindScopes = map[kubefloworgv1beta1.FilterRuleScope]bool{
+	kubefloworgv1beta1.FilterRuleScopeWorkspaceKind: true,
+}
+
+// imageAndPodConfigScopes is the scope set for the /listvalues API, which evaluates only
+// IMAGE_CONFIG and POD_CONFIG rules.
+var imageAndPodConfigScopes = map[kubefloworgv1beta1.FilterRuleScope]bool{
+	kubefloworgv1beta1.FilterRuleScopeImageConfig: true,
+	kubefloworgv1beta1.FilterRuleScopePodConfig:   true,
+}
+
+// EvaluateWorkspaceKindFilterScopeRule evaluates the WorkspaceKind's WORKSPACE_KIND-scoped filter
 // rules against the given namespace labels, using first-match-wins semantics.
 //
 // namespaceLabels is nil when no namespaceFilter was provided; matchNamespace conditions are then
 // non-matching, so the non-restrictive default is returned (nothing hidden or denied).
-func EvaluateWorkspaceFilterScopeRule(wsk *kubefloworgv1beta1.WorkspaceKind, namespaceLabels map[string]string) EvalResult {
-	scopes := map[kubefloworgv1beta1.FilterRuleScope]bool{kubefloworgv1beta1.FilterRuleScopeWorkspaceKind: true}
-	evalCtx := buildEvalContext(wsk, namespaceLabels, scopes, "", "")
+func EvaluateWorkspaceKindFilterScopeRule(wsk *kubefloworgv1beta1.WorkspaceKind, namespaceLabels map[string]string) EvalResult {
+	evalCtx := buildEvalContext(wsk, namespaceLabels, workspaceKindScopes, "", "")
 	return Evaluate(EvalTarget{Scope: kubefloworgv1beta1.FilterRuleScopeWorkspaceKind}, evalCtx)
 }
 
 // BuildEvalContextForImageAndPodCfg builds an EvalContext for the /listvalues API, which only
 // evaluates IMAGE_CONFIG and POD_CONFIG scoped rules.
 func BuildEvalContextForImageAndPodCfg(wsk *kubefloworgv1beta1.WorkspaceKind, namespaceLabels map[string]string, imageConfigID, podConfigID string) EvalContext {
-	scopes := map[kubefloworgv1beta1.FilterRuleScope]bool{
-		kubefloworgv1beta1.FilterRuleScopeImageConfig: true,
-		kubefloworgv1beta1.FilterRuleScopePodConfig:   true,
-	}
-	return buildEvalContext(wsk, namespaceLabels, scopes, imageConfigID, podConfigID)
+	return buildEvalContext(wsk, namespaceLabels, imageAndPodConfigScopes, imageConfigID, podConfigID)
 }
 
 // buildEvalContext resolves the request-scoped inputs shared across all filter rule evaluations,

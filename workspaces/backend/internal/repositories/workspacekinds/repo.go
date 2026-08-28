@@ -27,6 +27,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -229,8 +230,9 @@ func (r *WorkspaceKindRepository) ListPodTemplateOptionsValues(ctx context.Conte
 }
 
 // resolveNamespaceLabels fetches the labels of the namespace with the given name.
-// It returns nil (and no error) when the name is empty, or when the namespace does not exist,
-// so that matchNamespace conditions are conservatively treated as non-matching.
+// It returns nil (and no error) when the name is empty, so that matchNamespace conditions are
+// conservatively treated as non-matching. When a name is given but the namespace does not exist,
+// it returns an internal validation error so the caller can surface a 422 to the client.
 func (r *WorkspaceKindRepository) resolveNamespaceLabels(ctx context.Context, namespaceName string) (map[string]string, error) {
 	if namespaceName == "" {
 		return nil, nil
@@ -239,7 +241,10 @@ func (r *WorkspaceKindRepository) resolveNamespaceLabels(ctx context.Context, na
 	namespace := &corev1.Namespace{}
 	if err := r.client.Get(ctx, client.ObjectKey{Name: namespaceName}, namespace); err != nil {
 		if apierrors.IsNotFound(err) {
-			return nil, nil
+			namespacePath := field.NewPath("namespace")
+			errDetail := fmt.Sprintf("namespace %q not found", namespaceName)
+			valErrs := field.ErrorList{field.Invalid(namespacePath, namespaceName, errDetail)}
+			return nil, helper.NewInternalValidationError(valErrs)
 		}
 		return nil, err
 	}

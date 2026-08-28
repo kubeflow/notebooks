@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 )
 
@@ -136,7 +137,7 @@ var _ = Describe("WorkspaceKindRepository.GetWorkspaceKinds", func() {
 			Expect(items[0].Hidden).To(BeTrue())
 		})
 
-		It("does not hide when the namespace does not exist (labels treated as absent)", func() {
+		It("returns a validation error when the namespaceFilter references a non-existent namespace", func() {
 			rules := []kubefloworgv1beta1.FilterRule{
 				wskRule(map[string]string{"tier": "prod"},
 					kubefloworgv1beta1.FilterRuleEffect{UI: &kubefloworgv1beta1.FilterRuleEffectUI{Hide: true}}),
@@ -144,9 +145,9 @@ var _ = Describe("WorkspaceKindRepository.GetWorkspaceKinds", func() {
 			repo := newRepo(newWSK("wsk-a", false, rules))
 
 			items, err := repo.GetWorkspaceKinds(ctx, "missing-ns")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(items).To(HaveLen(1))
-			Expect(items[0].Hidden).To(BeFalse())
+			Expect(err).To(HaveOccurred())
+			Expect(helper.IsInternalValidationError(err)).To(BeTrue())
+			Expect(items).To(BeNil())
 		})
 	})
 

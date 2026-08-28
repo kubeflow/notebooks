@@ -609,7 +609,7 @@ var _ = Describe("EvaluateWorkspaceFilterScopeRule", func() {
 	}
 
 	It("applies a matching WORKSPACE_KIND rule against the namespace labels", func() {
-		result := EvaluateWorkspaceFilterScopeRule(
+		result := EvaluateWorkspaceKindFilterScopeRule(
 			newWSK(wskHideRule(map[string]string{"tier": "prod"})),
 			map[string]string{"tier": "prod"},
 		)
@@ -618,7 +618,7 @@ var _ = Describe("EvaluateWorkspaceFilterScopeRule", func() {
 	})
 
 	It("returns the non-restrictive default when the namespace does not match", func() {
-		result := EvaluateWorkspaceFilterScopeRule(
+		result := EvaluateWorkspaceKindFilterScopeRule(
 			newWSK(wskHideRule(map[string]string{"tier": "prod"})),
 			map[string]string{"tier": "dev"},
 		)
@@ -627,7 +627,7 @@ var _ = Describe("EvaluateWorkspaceFilterScopeRule", func() {
 	})
 
 	It("returns the non-restrictive default when namespace labels are absent", func() {
-		result := EvaluateWorkspaceFilterScopeRule(
+		result := EvaluateWorkspaceKindFilterScopeRule(
 			newWSK(wskHideRule(map[string]string{"tier": "prod"})),
 			nil,
 		)
@@ -636,7 +636,7 @@ var _ = Describe("EvaluateWorkspaceFilterScopeRule", func() {
 	})
 
 	It("ignores non-WORKSPACE_KIND scoped rules", func() {
-		result := EvaluateWorkspaceFilterScopeRule(
+		result := EvaluateWorkspaceKindFilterScopeRule(
 			newWSK(matchImageConfigRule(
 				map[string]string{"gpu": "true"},
 				kubefloworgv1beta1.FilterRuleEffect{UI: &kubefloworgv1beta1.FilterRuleEffectUI{Hide: true}},

@@ -140,6 +140,11 @@ func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _
 
 	workspaceKinds, err := a.repositories.WorkspaceKind.GetWorkspaceKinds(r.Context(), namespace)
 	if err != nil {
+		if helper.IsInternalValidationError(err) {
+			fieldErrs := helper.FieldErrorsFromInternalValidationError(err)
+			a.failedValidationResponse(w, r, errMsgInternalValidation, fieldErrs, nil)
+			return
+		}
 		a.serverErrorResponse(w, r, err)
 		return
 	}

@@ -34,13 +34,13 @@ import (
 // namespaceLabels are the labels of the namespace named in the request's `namespaceFilter`
 // (resolved by the caller via the k8s API), or nil when `namespaceFilter` was not provided.
 // The WorkspaceKind's `spec.filterRules[]` with `scope: WORKSPACE_KIND` are evaluated against
-// these labels; apiHide is true when a matching rule has `api.hide`, signalling the caller to
+// these labels; apiHide is true when a matching rule has `api.hide`, signaling the caller to
 // omit the WorkspaceKind from the response entirely.
 func NewWorkspaceKindModelFromWorkspaceKind(cfg *config.EnvConfig, wsk *kubefloworgv1beta1.WorkspaceKind, namespaceLabels map[string]string) (item WorkspaceKindListItem, apiHide bool) {
 	// evaluate the WorkspaceKind's WORKSPACE_KIND-scoped filter rules (first-match-wins).
 	// only matchNamespace conditions apply at this scope; when namespaceLabels is nil (no
 	// namespaceFilter), those conditions are non-matching, so nothing is hidden or denied.
-	result := filterrules.EvaluateWorkspaceFilterScopeRule(wsk, namespaceLabels)
+	result := filterrules.EvaluateWorkspaceKindFilterScopeRule(wsk, namespaceLabels)
 
 	// `api.hide` omits the WorkspaceKind from the response entirely; skip building the model
 	if result.APIHide {
