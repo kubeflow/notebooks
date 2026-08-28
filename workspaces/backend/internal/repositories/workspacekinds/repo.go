@@ -79,16 +79,35 @@ func (r *WorkspaceKindRepository) GetWorkspaceKind(ctx context.Context, name str
 	return workspaceKindModel, nil
 }
 
-func (r *WorkspaceKindRepository) GetWorkspaceKinds(ctx context.Context) ([]models.WorkspaceKindListItem, error) {
+// GetWorkspaceKinds returns the WorkspaceKind list items.
+//
+// When namespaceFilter is provided, each WorkspaceKind's `spec.filterRules[]` with
+// `scope: WORKSPACE_KIND` are evaluated against that namespace's labels, computing `hidden`
+// and `restrictions` and omitting any WorkspaceKind whose matching rule sets `api.hide`.
+// When namespaceFilter is empty (admin listing), rules are NOT evaluated: `hidden` is the
+// admin-set value and `restrictions.deny` is false.
+func (r *WorkspaceKindRepository) GetWorkspaceKinds(ctx context.Context, namespaceFilter string) ([]models.WorkspaceKindListItem, error) {
 	workspaceKindList := &kubefloworgv1beta1.WorkspaceKindList{}
 	err := r.client.List(ctx, workspaceKindList)
 	if err != nil {
 		return nil, err
 	}
 
-	workspaceKindsModels := make([]models.WorkspaceKindListItem, len(workspaceKindList.Items))
+	// resolve the labels of the namespace named in namespaceFilter (used by matchNamespace rules).
+	// nil when no namespaceFilter was provided, so those conditions are treated as non-matching.
+	namespaceLabels, err := r.resolveNamespaceLabels(ctx, namespaceFilter)
+	if err != nil {
+		return nil, err
+	}
+
+	workspaceKindsModels := make([]models.WorkspaceKindListItem, 0, len(workspaceKindList.Items))
 	for i := range workspaceKindList.Items {
-		workspaceKindsModels[i] = models.NewWorkspaceKindModelFromWorkspaceKind(r.cfg, &workspaceKindList.Items[i])
+		model, apiHide := models.NewWorkspaceKindModelFromWorkspaceKind(r.cfg, &workspaceKindList.Items[i], namespaceLabels)
+		// `api.hide` omits the WorkspaceKind from the response entirely
+		if apiHide {
+			continue
+		}
+		workspaceKindsModels = append(workspaceKindsModels, model)
 	}
 
 	return workspaceKindsModels, nil
@@ -191,7 +210,11 @@ func (r *WorkspaceKindRepository) ListPodTemplateOptionsValues(ctx context.Conte
 
 	// resolve the labels of the namespace named in the request context (used by matchNamespace rules).
 	// nil when no namespace context was provided, so those conditions are treated as non-matching.
-	namespaceLabels, err := r.resolveNamespaceLabels(ctx, listValuesRequest)
+	var namespaceName string
+	if listValuesRequest.Context.Namespace != nil {
+		namespaceName = listValuesRequest.Context.Namespace.Name
+	}
+	namespaceLabels, err := r.resolveNamespaceLabels(ctx, namespaceName)
 	if err != nil {
 		return nil, err
 	}
@@ -205,16 +228,16 @@ func (r *WorkspaceKindRepository) ListPodTemplateOptionsValues(ctx context.Conte
 	return listValuesResponse, nil
 }
 
-// resolveNamespaceLabels fetches the labels of the namespace named in the request context.
-// It returns nil (and no error) when no namespace context was provided, or when the namespace
-// does not exist, so that matchNamespace conditions are conservatively treated as non-matching.
-func (r *WorkspaceKindRepository) resolveNamespaceLabels(ctx context.Context, listValuesRequest *modelsPodTemplateOptions.ListValuesRequest) (map[string]string, error) {
-	if listValuesRequest.Context.Namespace == nil || listValuesRequest.Context.Namespace.Name == "" {
+// resolveNamespaceLabels fetches the labels of the namespace with the given name.
+// It returns nil (and no error) when the name is empty, or when the namespace does not exist,
+// so that matchNamespace conditions are conservatively treated as non-matching.
+func (r *WorkspaceKindRepository) resolveNamespaceLabels(ctx context.Context, namespaceName string) (map[string]string, error) {
+	if namespaceName == "" {
 		return nil, nil
 	}
 
 	namespace := &corev1.Namespace{}
-	if err := r.client.Get(ctx, client.ObjectKey{Name: listValuesRequest.Context.Namespace.Name}, namespace); err != nil {
+	if err := r.client.Get(ctx, client.ObjectKey{Name: namespaceName}, namespace); err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil, nil
 		}

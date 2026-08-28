@@ -141,10 +141,10 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			Expect(k8sClient.Get(ctx, workspaceKind2Key, workspacekind2)).To(Succeed())
 
 			By("ensuring the response contains the expected WorkspaceKinds")
-			Expect(response.Data).To(ConsistOf(
-				models.NewWorkspaceKindModelFromWorkspaceKind(a.Config, workspacekind1),
-				models.NewWorkspaceKindModelFromWorkspaceKind(a.Config, workspacekind2),
-			))
+			// admin listing (no namespaceFilter): filterRules are not evaluated
+			expectedModel1, _ := models.NewWorkspaceKindModelFromWorkspaceKind(a.Config, workspacekind1, nil)
+			expectedModel2, _ := models.NewWorkspaceKindModelFromWorkspaceKind(a.Config, workspacekind2, nil)
+			Expect(response.Data).To(ConsistOf(expectedModel1, expectedModel2))
 
 			By("ensuring the statefulSetMetadata from the WorkspaceKind is surfaced in the response")
 			var item1 models.WorkspaceKindListItem
@@ -248,10 +248,10 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			Expect(k8sClient.Get(ctx, workspaceKind2Key, workspacekind2)).To(Succeed())
 
 			By("ensuring the response contains the expected WorkspaceKinds")
-			Expect(response.Data).To(ConsistOf(
-				models.NewWorkspaceKindModelFromWorkspaceKind(a.Config, workspacekind1),
-				models.NewWorkspaceKindModelFromWorkspaceKind(a.Config, workspacekind2),
-			))
+			// admin listing (no namespaceFilter): filterRules are not evaluated
+			expectedModel1, _ := models.NewWorkspaceKindModelFromWorkspaceKind(a.Config, workspacekind1, nil)
+			expectedModel2, _ := models.NewWorkspaceKindModelFromWorkspaceKind(a.Config, workspacekind2, nil)
+			Expect(response.Data).To(ConsistOf(expectedModel1, expectedModel2))
 		})
 
 		It("should return 422 for an invalid namespaceFilter query parameter", func() {

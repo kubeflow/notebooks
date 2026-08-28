@@ -138,7 +138,7 @@ func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _
 	}
 	// ============================================================
 
-	workspaceKinds, err := a.repositories.WorkspaceKind.GetWorkspaceKinds(r.Context())
+	workspaceKinds, err := a.repositories.WorkspaceKind.GetWorkspaceKinds(r.Context(), namespace)
 	if err != nil {
 		a.serverErrorResponse(w, r, err)
 		return

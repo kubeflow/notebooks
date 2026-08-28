@@ -36,8 +36,9 @@ func NewPodTemplateOptionsModelFromWorkspaceKind(wsk *kubefloworgv1beta1.Workspa
 	var allValErrs field.ErrorList //nolint:prealloc
 
 	// resolve the request-scoped context shared across all rule evaluations
+	// (only IMAGE_CONFIG and POD_CONFIG scoped rules apply to /listvalues)
 	imageConfigID, podConfigID := request.configIDs()
-	evalCtx := filterrules.BuildEvalContext(wsk, namespaceLabels, imageConfigID, podConfigID)
+	evalCtx := filterrules.BuildEvalContextForImageAndPodCfg(wsk, namespaceLabels, imageConfigID, podConfigID)
 
 	// calculate maps of "option id" -> "number of workspaces using that option in the cluster"
 	metricsMapImageConfig := calculateOptionMetricsMap(wsk.Status.PodTemplateOptions.ImageConfig)
