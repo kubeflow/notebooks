@@ -110,6 +110,7 @@ func (a *App) Routes() http.Handler {
 	router.POST(constants.PauseWorkspacePath, a.PauseActionWorkspaceHandler)
 	router.GET(constants.WorkspacePodTemplateDetailsPath, a.GetWorkspacePodTemplateDetailsHandler)
 	router.GET(constants.WorkspacePodTemplatePodLogsBatchPath, a.GetWorkspacePodTemplateLogsHandler)
+	router.GET(constants.WorkspacePodTemplateResourcesPath, a.GetWorkspacePodTemplateResourcesHandler)
 
 	// workspacekinds
 	router.GET(constants.AllWorkspaceKindsPath, a.GetWorkspaceKindsHandler)
