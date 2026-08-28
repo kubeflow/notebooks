@@ -32,7 +32,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
-	repository "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/podlogs"
+	repoCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/common"
 )
 
 var _ = Describe("Workspace Logs Handler", func() {
@@ -250,7 +250,7 @@ var _ = Describe("Workspace Logs Handler", func() {
 			var envelope ErrorEnvelope
 			Expect(json.Unmarshal(body, &envelope)).To(Succeed())
 			Expect(envelope.Error).NotTo(BeNil())
-			Expect(envelope.Error.Message).To(Equal(repository.ErrPodNotRunning.Error()))
+			Expect(envelope.Error.Message).To(Equal(repoCommon.ErrWorkspacePodNotRunning.Error()))
 		})
 	})
 })

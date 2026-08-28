@@ -34,10 +34,10 @@ import (
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces"
 	modelsActions "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/actions"
 	modelsDetails "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/podtemplate/details"
+	repoCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/common"
 )
 
 var (
-	ErrWorkspaceNotFound         = fmt.Errorf("workspace not found")
 	ErrWorkspaceAlreadyExists    = fmt.Errorf("workspace already exists")
 	ErrWorkspaceInvalidState     = fmt.Errorf("workspace is in an invalid state for this operation")
 	ErrWorkspaceRevisionConflict = fmt.Errorf("current workspace revision does not match request")
@@ -60,7 +60,7 @@ func (r *WorkspaceRepository) GetWorkspace(ctx context.Context, namespace string
 	workspace := &kubefloworgv1beta1.Workspace{}
 	if err := r.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: workspaceName}, workspace); err != nil {
 		if apierrors.IsNotFound(err) {
-			return nil, ErrWorkspaceNotFound
+			return nil, repoCommon.ErrWorkspaceNotFound
 		}
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func (r *WorkspaceRepository) GetWorkspaceDetails(ctx context.Context, namespace
 	workspace := &kubefloworgv1beta1.Workspace{}
 	if err := r.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: workspaceName}, workspace); err != nil {
 		if apierrors.IsNotFound(err) {
-			return nil, ErrWorkspaceNotFound
+			return nil, repoCommon.ErrWorkspaceNotFound
 		}
 		return nil, err
 	}
@@ -163,7 +163,7 @@ func (r *WorkspaceRepository) UpdateWorkspace(ctx context.Context, actor user.In
 	workspace := &kubefloworgv1beta1.Workspace{}
 	if err := r.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: workspaceName}, workspace); err != nil {
 		if apierrors.IsNotFound(err) {
-			return nil, ErrWorkspaceNotFound
+			return nil, repoCommon.ErrWorkspaceNotFound
 		}
 		return nil, err
 	}
@@ -190,7 +190,7 @@ func (r *WorkspaceRepository) UpdateWorkspace(ctx context.Context, actor user.In
 	//       error to the caller (DO NOT return a 409, as it's not the caller's fault)
 	if err := r.client.Update(ctx, workspace); err != nil {
 		if apierrors.IsNotFound(err) {
-			return nil, ErrWorkspaceNotFound
+			return nil, repoCommon.ErrWorkspaceNotFound
 		}
 		if apierrors.IsInvalid(err) {
 			// NOTE: we don't wrap this error so we can unpack it in the caller
@@ -214,7 +214,7 @@ func (r *WorkspaceRepository) DeleteWorkspace(ctx context.Context, namespace, wo
 
 	if err := r.client.Delete(ctx, workspace); err != nil {
 		if apierrors.IsNotFound(err) {
-			return ErrWorkspaceNotFound
+			return repoCommon.ErrWorkspaceNotFound
 		}
 		return err
 	}
@@ -278,7 +278,7 @@ func (r *WorkspaceRepository) HandlePauseAction(ctx context.Context, namespace, 
 
 	if err := r.client.Patch(ctx, workspace, client.RawPatch(types.JSONPatchType, patchBytes)); err != nil {
 		if apierrors.IsNotFound(err) {
-			return nil, ErrWorkspaceNotFound
+			return nil, repoCommon.ErrWorkspaceNotFound
 		}
 		if apierrors.IsInvalid(err) {
 			return nil, ErrWorkspaceInvalidState
