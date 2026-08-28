@@ -63,6 +63,11 @@ const (
 	// pod template constants
 	workspacePodTemplateContainerName = "main"
 
+	// requeue delay when the local cache is known to be stale (fixed delay,
+	// since a stale cache is not write contention, so no exponential backoff
+	// is needed)
+	requeueAfterStaleCache = 250 * time.Millisecond
+
 	// lengths for resource names
 	generateNameSuffixLength    = 6
 	nameHashLength              = 8
@@ -292,9 +297,10 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 				existingServiceAccount := &corev1.ServiceAccount{}
 				if getErr := r.Get(ctx, client.ObjectKeyFromObject(serviceAccount), existingServiceAccount); getErr != nil {
 					if apierrors.IsNotFound(getErr) {
-						// the cache is stale, the watch on owned ServiceAccounts will requeue us
-						log.V(2).Info("ServiceAccount already exists but is not in the cache yet, relying on the owned-object watch to requeue")
-						return ctrl.Result{}, nil
+						// the cache is stale; requeue after a short delay instead of relying on the
+						// owned-object watch, which will not fire if the ServiceAccount is owned by another controller
+						log.V(2).Info("ServiceAccount already exists but is not in the cache yet, will requeue")
+						return ctrl.Result{RequeueAfter: requeueAfterStaleCache}, nil
 					}
 					log.Error(getErr, "unable to get existing ServiceAccount")
 					return ctrl.Result{}, getErr
@@ -306,8 +312,9 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 						fmt.Sprintf(stateMsgErrorServiceAccountNotOwned, existingServiceAccount.Name),
 					)
 				}
-				// the cache is stale, the watch on owned ServiceAccounts will requeue us
-				return ctrl.Result{}, nil
+				// the cache is stale (the owner index did not return the ServiceAccount), requeue after
+				// a short delay so we pick it up once the cache catches up
+				return ctrl.Result{RequeueAfter: requeueAfterStaleCache}, nil
 			}
 			log.Error(err, "unable to create ServiceAccount")
 			return ctrl.Result{}, err
