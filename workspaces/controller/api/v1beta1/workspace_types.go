@@ -378,6 +378,9 @@ const (
 
 // +kubebuilder:object:root=true
 // +kubebuilder:printcolumn:name="State",type="string",JSONPath=".status.state",description="The current state of the Workspace"
+// +kubebuilder:printcolumn:name="Kind",type="string",JSONPath=".spec.kind",description="The WorkspaceKind of the Workspace"
+// +kubebuilder:printcolumn:name="Image Config",type="string",JSONPath=".spec.podTemplate.options.imageConfig",description="The imageConfig option of the Workspace"
+// +kubebuilder:printcolumn:name="Pod Config",type="string",JSONPath=".spec.podTemplate.options.podConfig",description="The podConfig option of the Workspace"
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:shortName=ws
 
