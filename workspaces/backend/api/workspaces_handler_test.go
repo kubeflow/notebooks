@@ -410,11 +410,11 @@ var _ = Describe("Workspaces Handler", func() {
 			workspaceMissingWskName string
 			workspaceMissingWskKey  types.NamespacedName
 
-			workspaceInvalidPodConfig    string
-			workspaceInvalidPodConfigKey types.NamespacedName
+			workspaceInvalidPodConfigName string
+			workspaceInvalidPodConfigKey  types.NamespacedName
 
-			workspaceInvalidImageConfig    string
-			workspaceInvalidImageConfigKey types.NamespacedName
+			workspaceInvalidImageConfigName string
+			workspaceInvalidImageConfigKey  types.NamespacedName
 
 			workspaceKindName string
 			workspaceKindKey  types.NamespacedName
@@ -424,10 +424,10 @@ var _ = Describe("Workspaces Handler", func() {
 			uniqueName := "ws-invalid-test"
 			workspaceMissingWskName = fmt.Sprintf("workspace-mising-wsk-%s", uniqueName)
 			workspaceMissingWskKey = types.NamespacedName{Name: workspaceMissingWskName, Namespace: namespaceName1}
-			workspaceInvalidPodConfig = fmt.Sprintf("workspace-invalid-pc-%s", uniqueName)
-			workspaceInvalidPodConfigKey = types.NamespacedName{Name: workspaceInvalidPodConfig, Namespace: namespaceName1}
-			workspaceInvalidImageConfig = fmt.Sprintf("workspace-invalid-ic-%s", uniqueName)
-			workspaceInvalidImageConfigKey = types.NamespacedName{Name: workspaceInvalidImageConfig, Namespace: namespaceName1}
+			workspaceInvalidPodConfigName = fmt.Sprintf("workspace-invalid-pc-%s", uniqueName)
+			workspaceInvalidPodConfigKey = types.NamespacedName{Name: workspaceInvalidPodConfigName, Namespace: namespaceName1}
+			workspaceInvalidImageConfigName = fmt.Sprintf("workspace-invalid-ic-%s", uniqueName)
+			workspaceInvalidImageConfigKey = types.NamespacedName{Name: workspaceInvalidImageConfigName, Namespace: namespaceName1}
 			workspaceKindName = fmt.Sprintf("workspacekind-%s", uniqueName)
 			workspaceKindKey = types.NamespacedName{Name: workspaceKindName}
 
@@ -448,12 +448,12 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(k8sClient.Create(ctx, workspaceMissingWsk)).To(Succeed())
 
 			By("creating Workspace with invalid PodConfig")
-			workspaceInvalidPodConfig := NewExampleWorkspace(workspaceInvalidPodConfig, namespaceName1, workspaceKindName)
+			workspaceInvalidPodConfig := NewExampleWorkspace(workspaceInvalidPodConfigName, namespaceName1, workspaceKindName)
 			workspaceInvalidPodConfig.Spec.PodTemplate.Options.PodConfig = "bad-pc"
 			Expect(k8sClient.Create(ctx, workspaceInvalidPodConfig)).To(Succeed())
 
 			By("creating Workspace with invalid ImageConfig")
-			workspaceInvalidImageConfig := NewExampleWorkspace(workspaceInvalidImageConfig, namespaceName1, workspaceKindName)
+			workspaceInvalidImageConfig := NewExampleWorkspace(workspaceInvalidImageConfigName, namespaceName1, workspaceKindName)
 			workspaceInvalidImageConfig.Spec.PodTemplate.Options.ImageConfig = "bad-ic"
 			Expect(k8sClient.Create(ctx, workspaceInvalidImageConfig)).To(Succeed())
 		})
@@ -471,7 +471,7 @@ var _ = Describe("Workspaces Handler", func() {
 			By("deleting Workspace with invalid PodConfig")
 			workspaceInvalidPodConfig := &kubefloworgv1beta1.Workspace{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      workspaceInvalidPodConfig,
+					Name:      workspaceInvalidPodConfigName,
 					Namespace: namespaceName1,
 				},
 			}
@@ -480,7 +480,7 @@ var _ = Describe("Workspaces Handler", func() {
 			By("deleting Workspace with invalid ImageConfig")
 			workspaceInvalidImageConfig := &kubefloworgv1beta1.Workspace{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      workspaceInvalidImageConfig,
+					Name:      workspaceInvalidImageConfigName,
 					Namespace: namespaceName1,
 				},
 			}
@@ -615,6 +615,268 @@ var _ = Describe("Workspaces Handler", func() {
 				workspaceMissingWskModel.PodTemplate.Volumes.Secrets = nil
 			}
 			Expect(response.Data).To(BeComparableTo(workspaceMissingWskModel))
+		})
+	})
+
+	Context("Enforcing filterRule restrictions on Workspace create/update", Ordered, func() {
+		const namespaceNameFR = "ws-filterrules-ns"
+		var (
+			workspaceKindName string
+			wsk               *kubefloworgv1beta1.WorkspaceKind
+		)
+
+		BeforeAll(func() {
+			// Create dedicated namespace
+			Expect(k8sClient.Create(ctx, &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{Name: namespaceNameFR},
+			})).To(Succeed())
+
+			// Create WorkspaceKind with both restricted ImageConfig and PodConfig + filterRules
+			workspaceKindName = "workspacekind-filterrules-test"
+			wsk = NewExampleWorkspaceKind(workspaceKindName)
+
+			// Add restricted imageConfig value
+			wsk.Spec.PodTemplate.Options.ImageConfig.Values = append(wsk.Spec.PodTemplate.Options.ImageConfig.Values,
+				kubefloworgv1beta1.ImageConfigValue{
+					Id: "restricted_image",
+					Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
+						DisplayName: "Restricted Image",
+						Labels: []kubefloworgv1beta1.OptionSpawnerLabel{
+							{Key: "restricted", Value: "true"},
+						},
+					},
+				},
+			)
+
+			// Add restricted podConfig value
+			wsk.Spec.PodTemplate.Options.PodConfig.Values = append(wsk.Spec.PodTemplate.Options.PodConfig.Values,
+				kubefloworgv1beta1.PodConfigValue{
+					Id: "restricted_pod",
+					Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
+						DisplayName: "Restricted Pod",
+						Labels: []kubefloworgv1beta1.OptionSpawnerLabel{
+							{Key: "restricted", Value: "true"},
+						},
+					},
+				},
+			)
+
+			// Add FilterRules with Deny effects
+			wsk.Spec.FilterRules = []kubefloworgv1beta1.FilterRule{
+				{
+					Scope: kubefloworgv1beta1.FilterRuleScopeImageConfig,
+					Match: []kubefloworgv1beta1.FilterRuleMatch{
+						{
+							MatchImageConfig: &kubefloworgv1beta1.FilterRuleSelector{
+								Selector: metav1.LabelSelector{MatchLabels: map[string]string{"restricted": "true"}},
+							},
+						},
+					},
+					Effect: kubefloworgv1beta1.FilterRuleEffect{
+						API: &kubefloworgv1beta1.FilterRuleEffectAPI{
+							Deny: new(bool),
+							DenyMessage: &kubefloworgv1beta1.FilterRuleDenyMessage{
+								Text: "this image is restricted by admin policy",
+							},
+						},
+					},
+				},
+				{
+					Scope: kubefloworgv1beta1.FilterRuleScopePodConfig,
+					Match: []kubefloworgv1beta1.FilterRuleMatch{
+						{
+							MatchPodConfig: &kubefloworgv1beta1.FilterRuleSelector{
+								Selector: metav1.LabelSelector{MatchLabels: map[string]string{"restricted": "true"}},
+							},
+						},
+					},
+					Effect: kubefloworgv1beta1.FilterRuleEffect{
+						API: &kubefloworgv1beta1.FilterRuleEffectAPI{
+							Deny: new(bool),
+							DenyMessage: &kubefloworgv1beta1.FilterRuleDenyMessage{
+								Text: "this pod config is restricted by admin policy",
+							},
+						},
+					},
+				},
+			}
+
+			Expect(k8sClient.Create(ctx, wsk)).To(Succeed())
+		})
+
+		AfterAll(func() {
+			Expect(k8sClient.Delete(ctx, wsk)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{Name: namespaceNameFR},
+			})).To(Succeed())
+		})
+
+		// Create rejected due to restricted imageConfig
+		It("rejects Workspace create when the selected imageConfig is denied", func() {
+			workspaceCreate := &models.WorkspaceCreate{
+				Name: "ws-denied-image",
+				Kind: workspaceKindName,
+				PodTemplate: models.PodTemplateMutate{
+					Options: models.PodTemplateOptionsMutate{
+						ImageConfig: "restricted_image",
+						PodConfig:   "tiny_cpu",
+					},
+				},
+			}
+			bodyJSON, err := json.Marshal(WorkspaceCreateEnvelope{Data: workspaceCreate})
+			Expect(err).NotTo(HaveOccurred())
+
+			path := strings.Replace(constants.WorkspacesByNamespacePath, ":"+constants.NamespacePathParam, namespaceNameFR, 1)
+			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(bodyJSON)))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", constants.MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{{Key: constants.NamespacePathParam, Value: namespaceNameFR}}
+			a.CreateWorkspaceHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity), descUnexpectedHTTPStatus, rr.Body.String())
+			Expect(rr.Body.String()).To(ContainSubstring("this image is restricted by admin policy"))
+		})
+
+		// Create rejected due to restricted podConfig
+		It("rejects Workspace create when the selected podConfig is denied", func() {
+			workspaceCreate := &models.WorkspaceCreate{
+				Name: "ws-denied-pod",
+				Kind: workspaceKindName,
+				PodTemplate: models.PodTemplateMutate{
+					Options: models.PodTemplateOptionsMutate{
+						ImageConfig: "jupyterlab_scipy_180",
+						PodConfig:   "restricted_pod",
+					},
+				},
+			}
+			bodyJSON, err := json.Marshal(WorkspaceCreateEnvelope{Data: workspaceCreate})
+			Expect(err).NotTo(HaveOccurred())
+
+			path := strings.Replace(constants.WorkspacesByNamespacePath, ":"+constants.NamespacePathParam, namespaceNameFR, 1)
+			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(bodyJSON)))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", constants.MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{{Key: constants.NamespacePathParam, Value: namespaceNameFR}}
+			a.CreateWorkspaceHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity), descUnexpectedHTTPStatus, rr.Body.String())
+			Expect(rr.Body.String()).To(ContainSubstring("this pod config is restricted by admin policy"))
+		})
+
+		// Create succeeds when options are valid
+		It("successfully creates Workspace when no filter rules deny the options", func() {
+			workspaceCreate := &models.WorkspaceCreate{
+				Name: "ws-allowed",
+				Kind: workspaceKindName,
+				PodTemplate: models.PodTemplateMutate{
+					Options: models.PodTemplateOptionsMutate{
+						ImageConfig: "jupyterlab_scipy_180",
+						PodConfig:   "tiny_cpu",
+					},
+				},
+			}
+			bodyJSON, err := json.Marshal(WorkspaceCreateEnvelope{Data: workspaceCreate})
+			Expect(err).NotTo(HaveOccurred())
+
+			path := strings.Replace(constants.WorkspacesByNamespacePath, ":"+constants.NamespacePathParam, namespaceNameFR, 1)
+			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(bodyJSON)))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", constants.MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{{Key: constants.NamespacePathParam, Value: namespaceNameFR}}
+			a.CreateWorkspaceHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			Expect(rs.StatusCode).To(Equal(http.StatusCreated), descUnexpectedHTTPStatus, rr.Body.String())
+		})
+
+		// Update rejected when changing to a restricted imageConfig or podConfig
+		It("rejects Workspace update when changing to a restricted imageConfig", func() {
+			// Fetch the created workspace to get its current revision
+			ws := &kubefloworgv1beta1.Workspace{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: namespaceNameFR, Name: "ws-allowed"}, ws)).To(Succeed())
+			revision := commonModels.CalculateRevision(&ws.ObjectMeta)
+
+			workspaceUpdate := &models.WorkspaceUpdate{
+				Revision: revision,
+				PodTemplate: models.PodTemplateMutate{
+					Options: models.PodTemplateOptionsMutate{
+						ImageConfig: "restricted_image",
+						PodConfig:   "tiny_cpu",
+					},
+				},
+			}
+			bodyJSON, err := json.Marshal(WorkspaceEnvelope{Data: workspaceUpdate})
+			Expect(err).NotTo(HaveOccurred())
+
+			path := strings.Replace(constants.WorkspacesByNamePath, ":"+constants.NamespacePathParam, namespaceNameFR, 1)
+			path = strings.Replace(path, ":"+constants.ResourceNamePathParam, "ws-allowed", 1)
+			req, err := http.NewRequest(http.MethodPut, path, strings.NewReader(string(bodyJSON)))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", constants.MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{
+				{Key: constants.NamespacePathParam, Value: namespaceNameFR},
+				{Key: constants.ResourceNamePathParam, Value: "ws-allowed"},
+			}
+			a.UpdateWorkspaceHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity), descUnexpectedHTTPStatus, rr.Body.String())
+			Expect(rr.Body.String()).To(ContainSubstring("this image is restricted by admin policy"))
+		})
+
+		// Update succeeds when options are unchanged
+		It("allows Workspace update when options are not changed", func() {
+			ws := &kubefloworgv1beta1.Workspace{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: namespaceNameFR, Name: "ws-allowed"}, ws)).To(Succeed())
+			revision := commonModels.CalculateRevision(&ws.ObjectMeta)
+
+			workspaceUpdate := &models.WorkspaceUpdate{
+				Revision: revision,
+				PodTemplate: models.PodTemplateMutate{
+					Options: models.PodTemplateOptionsMutate{
+						ImageConfig: "jupyterlab_scipy_180",
+						PodConfig:   "tiny_cpu",
+					},
+				},
+			}
+			bodyJSON, err := json.Marshal(WorkspaceEnvelope{Data: workspaceUpdate})
+			Expect(err).NotTo(HaveOccurred())
+
+			path := strings.Replace(constants.WorkspacesByNamePath, ":"+constants.NamespacePathParam, namespaceNameFR, 1)
+			path = strings.Replace(path, ":"+constants.ResourceNamePathParam, "ws-allowed", 1)
+			req, err := http.NewRequest(http.MethodPut, path, strings.NewReader(string(bodyJSON)))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", constants.MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{
+				{Key: constants.NamespacePathParam, Value: namespaceNameFR},
+				{Key: constants.ResourceNamePathParam, Value: "ws-allowed"},
+			}
+			a.UpdateWorkspaceHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			Expect(rs.StatusCode).To(Equal(http.StatusOK), descUnexpectedHTTPStatus, rr.Body.String())
 		})
 	})
 
