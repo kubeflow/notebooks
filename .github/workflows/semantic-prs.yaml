@@ -1,5 +1,8 @@
 name: Semantic PRs
 
+permissions:
+  pull-requests: read
+
 on:
   pull_request_target:
     types:
