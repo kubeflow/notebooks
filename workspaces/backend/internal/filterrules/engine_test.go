@@ -585,7 +585,7 @@ var _ = Describe("BuildEvalContextForImageAndPodCfg", func() {
 	})
 })
 
-var _ = Describe("EvaluateWorkspaceFilterScopeRule", func() {
+var _ = Describe("EvaluateWorkspaceKindFilterScopeRule", func() {
 	// wskHideRule builds a WORKSPACE_KIND-scoped rule that hides the WorkspaceKind
 	// when the namespace matches the given selector.
 	wskHideRule := func(selector map[string]string) kubefloworgv1beta1.FilterRule {

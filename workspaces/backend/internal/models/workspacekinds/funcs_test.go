@@ -54,8 +54,9 @@ var _ = Describe("NewWorkspaceKindModelFromWorkspaceKind", func() {
 			},
 		}
 
-		item := NewWorkspaceKindModelFromWorkspaceKind(nil, wsk)
+		item, apiHide := NewWorkspaceKindModelFromWorkspaceKind(nil, wsk, nil)
 
+		Expect(apiHide).To(BeFalse())
 		Expect(item.PodTemplate.StatefulSetMetadata.Labels).NotTo(BeNil())
 		Expect(item.PodTemplate.StatefulSetMetadata.Labels).To(BeEmpty())
 		Expect(item.PodTemplate.StatefulSetMetadata.Annotations).NotTo(BeNil())
@@ -75,8 +76,9 @@ var _ = Describe("NewWorkspaceKindModelFromWorkspaceKind", func() {
 			},
 		}
 
-		item := NewWorkspaceKindModelFromWorkspaceKind(nil, wsk)
+		item, apiHide := NewWorkspaceKindModelFromWorkspaceKind(nil, wsk, nil)
 
+		Expect(apiHide).To(BeFalse())
 		Expect(item.PodTemplate.StatefulSetMetadata.Labels).To(HaveKeyWithValue("my-sts-label", "my-value"))
 		Expect(item.PodTemplate.StatefulSetMetadata.Annotations).To(HaveKeyWithValue("my-sts-annotation", "my-value"))
 

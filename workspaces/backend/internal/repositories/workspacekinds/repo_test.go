@@ -29,9 +29,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
+	modelsPodTemplateOptions "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/podtemplate/options"
 )
 
 func TestWorkspaceKindRepository(t *testing.T) {
@@ -148,6 +150,11 @@ var _ = Describe("WorkspaceKindRepository.GetWorkspaceKinds", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(helper.IsInternalValidationError(err)).To(BeTrue())
 			Expect(items).To(BeNil())
+
+			// the error must point at the caller's user-facing query param, not a generic "namespace"
+			fieldErrs := helper.FieldErrorsFromInternalValidationError(err)
+			Expect(fieldErrs).To(HaveLen(1))
+			Expect(fieldErrs[0].Field).To(Equal(constants.NamespaceFilterQueryParam))
 		})
 	})
 
@@ -188,6 +195,28 @@ var _ = Describe("WorkspaceKindRepository.GetWorkspaceKinds", func() {
 				Deny:        true,
 				DenyMessage: &common.DenyMessage{Text: "not allowed in prod"},
 			}))
+		})
+	})
+
+	Context("ListPodTemplateOptionsValues namespace context", func() {
+		It("returns a validation error naming context.namespace.name when the namespace does not exist", func() {
+			repo := newRepo(newWSK("wsk-a", false, nil))
+
+			request := &modelsPodTemplateOptions.ListValuesRequest{
+				Context: modelsPodTemplateOptions.ListValuesContext{
+					Namespace: &modelsPodTemplateOptions.ContextNamespace{Name: "missing-ns"},
+				},
+			}
+
+			values, err := repo.ListPodTemplateOptionsValues(ctx, "wsk-a", request)
+			Expect(err).To(HaveOccurred())
+			Expect(helper.IsInternalValidationError(err)).To(BeTrue())
+			Expect(values).To(BeNil())
+
+			// the error must point at the caller's request body field, not a generic "namespace"
+			fieldErrs := helper.FieldErrorsFromInternalValidationError(err)
+			Expect(fieldErrs).To(HaveLen(1))
+			Expect(fieldErrs[0].Field).To(Equal("context.namespace.name"))
 		})
 	})
 })

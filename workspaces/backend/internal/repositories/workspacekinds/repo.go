@@ -31,6 +31,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	modelsCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
@@ -96,7 +97,7 @@ func (r *WorkspaceKindRepository) GetWorkspaceKinds(ctx context.Context, namespa
 
 	// resolve the labels of the namespace named in namespaceFilter (used by matchNamespace rules).
 	// nil when no namespaceFilter was provided, so those conditions are treated as non-matching.
-	namespaceLabels, err := r.resolveNamespaceLabels(ctx, namespaceFilter)
+	namespaceLabels, err := r.resolveNamespaceLabels(ctx, namespaceFilter, field.NewPath(constants.NamespaceFilterQueryParam))
 	if err != nil {
 		return nil, err
 	}
@@ -215,7 +216,7 @@ func (r *WorkspaceKindRepository) ListPodTemplateOptionsValues(ctx context.Conte
 	if listValuesRequest.Context.Namespace != nil {
 		namespaceName = listValuesRequest.Context.Namespace.Name
 	}
-	namespaceLabels, err := r.resolveNamespaceLabels(ctx, namespaceName)
+	namespaceLabels, err := r.resolveNamespaceLabels(ctx, namespaceName, field.NewPath("context", "namespace", "name"))
 	if err != nil {
 		return nil, err
 	}
@@ -233,7 +234,10 @@ func (r *WorkspaceKindRepository) ListPodTemplateOptionsValues(ctx context.Conte
 // It returns nil (and no error) when the name is empty, so that matchNamespace conditions are
 // conservatively treated as non-matching. When a name is given but the namespace does not exist,
 // it returns an internal validation error so the caller can surface a 422 to the client.
-func (r *WorkspaceKindRepository) resolveNamespaceLabels(ctx context.Context, namespaceName string) (map[string]string, error) {
+//
+// fieldPath identifies the caller's user-facing input (e.g. the `namespaceFilter` query param, or
+// `context.namespace.name` in the request body) so the validation error points at the right field.
+func (r *WorkspaceKindRepository) resolveNamespaceLabels(ctx context.Context, namespaceName string, fieldPath *field.Path) (map[string]string, error) {
 	if namespaceName == "" {
 		return nil, nil
 	}
@@ -241,9 +245,8 @@ func (r *WorkspaceKindRepository) resolveNamespaceLabels(ctx context.Context, na
 	namespace := &corev1.Namespace{}
 	if err := r.client.Get(ctx, client.ObjectKey{Name: namespaceName}, namespace); err != nil {
 		if apierrors.IsNotFound(err) {
-			namespacePath := field.NewPath("namespace")
 			errDetail := fmt.Sprintf("namespace %q not found", namespaceName)
-			valErrs := field.ErrorList{field.Invalid(namespacePath, namespaceName, errDetail)}
+			valErrs := field.ErrorList{field.Invalid(fieldPath, namespaceName, errDetail)}
 			return nil, helper.NewInternalValidationError(valErrs)
 		}
 		return nil, err
