@@ -1,7 +1,6 @@
 import { renderHook } from '~/__tests__/unit/testUtils/hooks';
 import useWorkspaceFormData, { EMPTY_FORM_DATA } from '~/app/hooks/useWorkspaceFormData';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
-import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import { NotebookApis } from '~/shared/api/notebookApi';
 import {
   buildMockWorkspace,
@@ -13,15 +12,11 @@ jest.mock('~/app/hooks/useNotebookAPI', () => ({
   useNotebookAPI: jest.fn(),
 }));
 
-jest.mock('~/app/hooks/useWorkspaceKinds', () => jest.fn());
-
 const mockUseNotebookAPI = useNotebookAPI as jest.MockedFunction<typeof useNotebookAPI>;
-const mockUseWorkspaceKinds = useWorkspaceKinds as jest.MockedFunction<typeof useWorkspaceKinds>;
 
 describe('useWorkspaceFormData', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseWorkspaceKinds.mockReturnValue([[], false, undefined, jest.fn()]);
   });
 
   it('returns empty form data when missing namespace or name', async () => {
@@ -35,6 +30,9 @@ describe('useWorkspaceFormData', () => {
         namespace: undefined,
         workspaceName: undefined,
         workspaceKindName: undefined,
+        workspaceKinds: [],
+        workspaceKindsLoaded: false,
+        workspaceKindsError: undefined,
       }),
     );
     await waitForNextUpdate();
@@ -51,13 +49,15 @@ describe('useWorkspaceFormData', () => {
     });
 
     const kindsError = new Error('Failed to fetch workspace kinds');
-    mockUseWorkspaceKinds.mockReturnValue([[], false, kindsError, jest.fn()]);
 
     const { result, waitForNextUpdate } = renderHook(() =>
       useWorkspaceFormData({
         namespace: 'ns',
         workspaceName: 'my-workspace',
         workspaceKindName: 'jupyterlab',
+        workspaceKinds: [],
+        workspaceKindsLoaded: false,
+        workspaceKindsError: kindsError,
       }),
     );
     await waitForNextUpdate();
@@ -87,13 +87,14 @@ describe('useWorkspaceFormData', () => {
       refreshAllAPI: jest.fn(),
     });
 
-    mockUseWorkspaceKinds.mockReturnValue([[mockWorkspaceKind], true, undefined, jest.fn()]);
-
     const { result, waitForNextUpdate } = renderHook(() =>
       useWorkspaceFormData({
         namespace: 'ns',
         workspaceName: 'my-first-jupyter-notebook',
         workspaceKindName: mockWorkspaceKind.name,
+        workspaceKinds: [mockWorkspaceKind],
+        workspaceKindsLoaded: true,
+        workspaceKindsError: undefined,
       }),
     );
     await waitForNextUpdate();
@@ -126,7 +127,5 @@ describe('useWorkspaceFormData', () => {
       },
       revision: mockWorkspaceUpdate.revision,
     });
-
-    expect(mockUseWorkspaceKinds).toHaveBeenCalledWith('ns');
   });
 });
