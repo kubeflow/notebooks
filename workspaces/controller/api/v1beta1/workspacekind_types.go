@@ -304,10 +304,9 @@ type WorkspaceKindPodTemplate struct {
 	//    overridden by the `schedulerName` of a pod config value
 	//  - if not set here, or on the pod config value, the Kubernetes API server
 	//    will default to the "default-scheduler"
+	//  - no character/length validation, matching Kubernetes which applies none
+	//    to PodSpec.SchedulerName; an empty value means the default scheduler
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:MinLength:=1
-	// +kubebuilder:validation:MaxLength:=253
-	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
 	// +kubebuilder:example="default-scheduler"
 	SchedulerName *string `json:"schedulerName,omitempty"`
 
@@ -671,10 +670,9 @@ type PodConfigSpec struct {
 	//  - this takes precedence over the `schedulerName` of the pod template
 	//  - set this to "default-scheduler" to have this pod config use the
 	//    default Kubernetes scheduler, even if the pod template sets another one
+	//  - no character/length validation, matching Kubernetes which applies none
+	//    to PodSpec.SchedulerName; an empty value means the default scheduler
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:MinLength:=1
-	// +kubebuilder:validation:MaxLength:=253
-	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
 	// +kubebuilder:example="volcano"
 	SchedulerName *string `json:"schedulerName,omitempty"`
 }
