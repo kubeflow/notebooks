@@ -413,6 +413,29 @@ var _ = Describe("controller", Ordered, func() {
 			}
 			Eventually(verifyStatefulSetMetadata, timeout, interval).Should(Succeed())
 
+			By("ensuring invalid statefulSetMetadata labels are rejected by the WorkspaceKind webhook")
+			// the webhook validates statefulSetMetadata labels and annotations (like podMetadata),
+			// so an invalid label key must be rejected before the controller can act on it
+			rejectInvalidStatefulSetMetadataLabel := func(g Gomega) {
+				invalidKey := "!bad-key!"
+				labelsPath := "/spec/podTemplate/statefulSetMetadata/labels"
+				patch := fmt.Sprintf(
+					`[{"op": "replace", "path": %q, "value": {%q: "value"}}]`,
+					labelsPath, invalidKey,
+				)
+				cmd := exec.Command("kubectl", "patch", "workspacekind", workspaceKindName,
+					"--type=json",
+					"-p", patch,
+				)
+				output, err := utils.Run(cmd)
+				g.Expect(err).To(HaveOccurred(), "expected the webhook to reject the invalid statefulSetMetadata label")
+				g.Expect(output).To(ContainSubstring("spec.podTemplate.statefulSetMetadata.labels"),
+					"expected the rejection to point at spec.podTemplate.statefulSetMetadata.labels")
+				g.Expect(output).To(ContainSubstring(invalidKey),
+					"expected the rejection to mention the invalid label key")
+			}
+			Eventually(rejectInvalidStatefulSetMetadataLabel, timeout, interval).Should(Succeed())
+
 			By("ensuring in-use imageConfig values cannot be removed from WorkspaceKind")
 			removeInUseImageConfig := func() error {
 				cmd := exec.Command("kubectl", "patch", "workspacekind", workspaceKindName,
