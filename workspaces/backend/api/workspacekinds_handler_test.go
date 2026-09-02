@@ -153,6 +153,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 					item1 = wsk
 				}
 			}
+			Expect(item1.Name).To(Equal(workspaceKind1Name), "WorkspaceKind %q not found in response", workspaceKind1Name)
 			Expect(item1.PodTemplate.StatefulSetMetadata.Labels).To(HaveKeyWithValue("my-sts-label", "my-value"))
 			Expect(item1.PodTemplate.StatefulSetMetadata.Annotations).To(HaveKeyWithValue("my-sts-annotation", "my-value"))
 
