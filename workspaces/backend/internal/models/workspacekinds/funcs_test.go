@@ -39,6 +39,52 @@ func TestWorkspaceKinds(t *testing.T) {
 	RunSpecs(t, "WorkspaceKinds Models Suite")
 }
 
+var _ = Describe("NewWorkspaceKindModelFromWorkspaceKind", func() {
+	It("initializes empty StatefulSetMetadata maps when the CRD field is nil", func() {
+		wsk := &kubefloworgv1beta1.WorkspaceKind{
+			ObjectMeta: metav1.ObjectMeta{Name: "no-metadata"},
+			Spec: kubefloworgv1beta1.WorkspaceKindSpec{
+				PodTemplate: kubefloworgv1beta1.WorkspaceKindPodTemplate{
+					PodMetadata:         nil,
+					StatefulSetMetadata: nil,
+				},
+			},
+		}
+
+		item := NewWorkspaceKindModelFromWorkspaceKind(nil, wsk)
+
+		Expect(item.PodTemplate.StatefulSetMetadata.Labels).NotTo(BeNil())
+		Expect(item.PodTemplate.StatefulSetMetadata.Labels).To(BeEmpty())
+		Expect(item.PodTemplate.StatefulSetMetadata.Annotations).NotTo(BeNil())
+		Expect(item.PodTemplate.StatefulSetMetadata.Annotations).To(BeEmpty())
+	})
+
+	It("copies StatefulSetMetadata maps without aliasing the CRD maps", func() {
+		wsk := &kubefloworgv1beta1.WorkspaceKind{
+			ObjectMeta: metav1.ObjectMeta{Name: "with-metadata"},
+			Spec: kubefloworgv1beta1.WorkspaceKindSpec{
+				PodTemplate: kubefloworgv1beta1.WorkspaceKindPodTemplate{
+					StatefulSetMetadata: &kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata{
+						Labels:      map[string]string{"my-sts-label": "my-value"},
+						Annotations: map[string]string{"my-sts-annotation": "my-value"},
+					},
+				},
+			},
+		}
+
+		item := NewWorkspaceKindModelFromWorkspaceKind(nil, wsk)
+
+		Expect(item.PodTemplate.StatefulSetMetadata.Labels).To(HaveKeyWithValue("my-sts-label", "my-value"))
+		Expect(item.PodTemplate.StatefulSetMetadata.Annotations).To(HaveKeyWithValue("my-sts-annotation", "my-value"))
+
+		// mutating the copied maps must not affect the source WorkspaceKind
+		item.PodTemplate.StatefulSetMetadata.Labels["my-sts-label"] = "mutated"
+		Expect(wsk.Spec.PodTemplate.StatefulSetMetadata.Labels["my-sts-label"]).To(Equal("my-value"))
+		item.PodTemplate.StatefulSetMetadata.Annotations["my-sts-annotation"] = "mutated"
+		Expect(wsk.Spec.PodTemplate.StatefulSetMetadata.Annotations["my-sts-annotation"]).To(Equal("my-value"))
+	})
+})
+
 var _ = Describe("buildActivityProbe", func() {
 	It("returns nil when probe is nil", func() {
 		Expect(buildActivityProbe(nil)).To(BeNil())

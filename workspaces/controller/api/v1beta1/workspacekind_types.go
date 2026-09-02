@@ -238,6 +238,10 @@ type WorkspaceKindPodTemplate struct {
 	// +kubebuilder:validation:Optional
 	PodMetadata *WorkspaceKindPodMetadata `json:"podMetadata,omitempty"`
 
+	// metadata for the Workspace StatefulSet (MUTABLE)
+	// +kubebuilder:validation:Optional
+	StatefulSetMetadata *WorkspaceKindStatefulSetMetadata `json:"statefulSetMetadata,omitempty"`
+
 	// service account configs for Workspace Pods
 	//  - each Workspace runs as its own ServiceAccount, which is created and owned by
 	//    the controller and named "ws-{WORKSPACE_NAME}"
@@ -321,12 +325,24 @@ type WorkspaceKindPort struct {
 	HTTPProxy *HTTPProxy `json:"httpProxy,omitempty"`
 }
 
+// WorkspaceKindPodMetadata defines labels and annotations applied to the Workspace Pod.
 type WorkspaceKindPodMetadata struct {
 	// labels to be applied to the Pod resource
 	// +kubebuilder:validation:Optional
 	Labels map[string]string `json:"labels,omitempty"`
 
 	// annotations to be applied to the Pod resource
+	// +kubebuilder:validation:Optional
+	Annotations map[string]string `json:"annotations,omitempty"`
+}
+
+// WorkspaceKindStatefulSetMetadata defines labels and annotations applied to the Workspace StatefulSet.
+type WorkspaceKindStatefulSetMetadata struct {
+	// labels to be applied to the Workspace StatefulSet resource
+	// +kubebuilder:validation:Optional
+	Labels map[string]string `json:"labels,omitempty"`
+
+	// annotations to be applied to the Workspace StatefulSet resource
 	// +kubebuilder:validation:Optional
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
