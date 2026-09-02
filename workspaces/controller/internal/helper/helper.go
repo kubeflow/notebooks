@@ -29,8 +29,15 @@ import (
 func copyLabelFields(desiredLabels map[string]string, targetLabels map[string]string) (map[string]string, bool) {
 	requireUpdate := false
 
+	// a key that changed or is only on the target (so it will be dropped)
 	for k, v := range targetLabels {
 		if desiredLabels[k] != v {
+			requireUpdate = true
+		}
+	}
+	// a key that is only on the desired side (so it must be added)
+	for k, v := range desiredLabels {
+		if targetLabels[k] != v {
 			requireUpdate = true
 		}
 	}
@@ -41,8 +48,15 @@ func copyLabelFields(desiredLabels map[string]string, targetLabels map[string]st
 func copyAnnotationFields(desiredAnnotations map[string]string, targetAnnotations map[string]string) (map[string]string, bool) {
 	requireUpdate := false
 
+	// a key that changed or is only on the target (so it will be dropped)
 	for k, v := range targetAnnotations {
 		if desiredAnnotations[k] != v {
+			requireUpdate = true
+		}
+	}
+	// a key that is only on the desired side (so it must be added)
+	for k, v := range desiredAnnotations {
+		if targetAnnotations[k] != v {
 			requireUpdate = true
 		}
 	}

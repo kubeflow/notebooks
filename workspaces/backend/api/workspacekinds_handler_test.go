@@ -146,6 +146,17 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 				models.NewWorkspaceKindModelFromWorkspaceKind(a.Config, workspacekind2),
 			))
 
+			By("ensuring the statefulSetMetadata from the WorkspaceKind is surfaced in the response")
+			var item1 models.WorkspaceKindListItem
+			for _, wsk := range response.Data {
+				if wsk.Name == workspaceKind1Name {
+					item1 = wsk
+				}
+			}
+			Expect(item1.Name).To(Equal(workspaceKind1Name), "WorkspaceKind %q not found in response", workspaceKind1Name)
+			Expect(item1.PodTemplate.StatefulSetMetadata.Labels).To(HaveKeyWithValue("my-sts-label", "my-value"))
+			Expect(item1.PodTemplate.StatefulSetMetadata.Annotations).To(HaveKeyWithValue("my-sts-annotation", "my-value"))
+
 			By("ensuring the wrapped data can be marshaled to JSON and back to []WorkspaceKind")
 			dataJSON, err := json.Marshal(response.Data)
 			Expect(err).NotTo(HaveOccurred(), "failed to marshal data to JSON")

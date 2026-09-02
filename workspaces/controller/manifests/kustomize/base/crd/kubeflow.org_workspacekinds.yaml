@@ -5130,6 +5130,22 @@ spec:
                         - name
                         x-kubernetes-list-type: map
                     type: object
+                  statefulSetMetadata:
+                    description: metadata for the Workspace StatefulSet (MUTABLE)
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        description: annotations to be applied to the Workspace StatefulSet
+                          resource
+                        type: object
+                      labels:
+                        additionalProperties:
+                          type: string
+                        description: labels to be applied to the Workspace StatefulSet
+                          resource
+                        type: object
+                    type: object
                   volumeMounts:
                     description: volume mount paths
                     properties:

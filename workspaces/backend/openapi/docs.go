@@ -7292,6 +7292,14 @@ const docTemplate = `{
                         }
                     ]
                 },
+                "statefulSetMetadata": {
+                    "description": "metadata for the Workspace StatefulSet (MUTABLE)\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.WorkspaceKindStatefulSetMetadata"
+                        }
+                    ]
+                },
                 "volumeMounts": {
                     "description": "volume mount paths",
                     "allOf": [
@@ -7421,6 +7429,25 @@ const docTemplate = `{
                             "$ref": "#/definitions/v1beta1.WorkspaceKindAsset"
                         }
                     ]
+                }
+            }
+        },
+        "v1beta1.WorkspaceKindStatefulSetMetadata": {
+            "type": "object",
+            "properties": {
+                "annotations": {
+                    "description": "annotations to be applied to the Workspace StatefulSet resource\n+kubebuilder:validation:Optional",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "labels": {
+                    "description": "labels to be applied to the Workspace StatefulSet resource\n+kubebuilder:validation:Optional",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
                 }
             }
         },
@@ -7615,6 +7642,7 @@ const docTemplate = `{
             "required": [
                 "options",
                 "podMetadata",
+                "statefulSetMetadata",
                 "volumeMounts"
             ],
             "properties": {
@@ -7632,6 +7660,9 @@ const docTemplate = `{
                 "podMetadata": {
                     "$ref": "#/definitions/workspacekinds.PodMetadata"
                 },
+                "statefulSetMetadata": {
+                    "$ref": "#/definitions/workspacekinds.StatefulSetMetadata"
+                },
                 "volumeMounts": {
                     "$ref": "#/definitions/workspacekinds.PodVolumeMounts"
                 }
@@ -7645,6 +7676,27 @@ const docTemplate = `{
             "properties": {
                 "home": {
                     "type": "string"
+                }
+            }
+        },
+        "workspacekinds.StatefulSetMetadata": {
+            "type": "object",
+            "required": [
+                "annotations",
+                "labels"
+            ],
+            "properties": {
+                "annotations": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "labels": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
                 }
             }
         },

@@ -66,6 +66,16 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 				shouldSucceed: false,
 			},
 			{
+				description:   "should reject creation with invalid statefulSetMetadata label key",
+				workspaceKind: NewExampleWorkspaceKindWithInvalidStatefulSetMetadataLabelKey("wsk-webhook-create--invalid-statefulset-metadata--label-key"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with invalid statefulSetMetadata annotation key",
+				workspaceKind: NewExampleWorkspaceKindWithInvalidStatefulSetMetadataAnnotationKey("wsk-webhook-create--invalid-statefulset-metadata--annotation-key"),
+				shouldSucceed: false,
+			},
+			{
 				description:   "should reject creation with cycle in imageConfig redirects",
 				workspaceKind: NewExampleWorkspaceKindWithImageConfigCycle("wsk-webhook-create--image-config-cycle"),
 				shouldSucceed: false,
@@ -1023,6 +1033,36 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 					invalidAnnotationKey := "!bad-key!"
 					wsk.Spec.PodTemplate.PodMetadata.Annotations = map[string]string{
 						invalidAnnotationKey: "some-value",
+					}
+					return ContainSubstring("Invalid value: %q", invalidAnnotationKey)
+				},
+			},
+			{
+				description:   "should reject updating a statefulSetMetadata.labels key to an invalid value",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					invalidKey := "!bad-key!"
+					wsk.Spec.PodTemplate.StatefulSetMetadata = &kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata{
+						Labels: map[string]string{
+							invalidKey: "some-value",
+						},
+					}
+					return ContainSubstring("Invalid value: %q", invalidKey)
+				},
+			},
+			{
+				description:   "should reject updating a statefulSetMetadata.annotations key to an invalid value",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					invalidAnnotationKey := "!bad-key!"
+					wsk.Spec.PodTemplate.StatefulSetMetadata = &kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata{
+						Annotations: map[string]string{
+							invalidAnnotationKey: "some-value",
+						},
 					}
 					return ContainSubstring("Invalid value: %q", invalidAnnotationKey)
 				},

@@ -540,6 +540,28 @@ func NewExampleWorkspaceKindWithInvalidPodMetadataAnnotationKey(name string) *ku
 	return workspaceKind
 }
 
+// NewExampleWorkspaceKindWithInvalidStatefulSetMetadataLabelKey returns a WorkspaceKind with an invalid StatefulSetMetadata label key.
+func NewExampleWorkspaceKindWithInvalidStatefulSetMetadataLabelKey(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.StatefulSetMetadata = &kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata{
+		Labels: map[string]string{
+			"!bad_key!": "value",
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithInvalidStatefulSetMetadataAnnotationKey returns a WorkspaceKind with an invalid StatefulSetMetadata annotation key.
+func NewExampleWorkspaceKindWithInvalidStatefulSetMetadataAnnotationKey(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.StatefulSetMetadata = &kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata{
+		Annotations: map[string]string{
+			"!bad_key!": "value",
+		},
+	}
+	return workspaceKind
+}
+
 // NewExampleWorkspaceKindWithImageConfigCycle returns a WorkspaceKind with a cycle in the ImageConfig options.
 func NewExampleWorkspaceKindWithImageConfigCycle(name string) *kubefloworgv1beta1.WorkspaceKind {
 	workspaceKind := NewExampleWorkspaceKind(name)
