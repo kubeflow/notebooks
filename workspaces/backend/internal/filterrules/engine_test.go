@@ -504,7 +504,7 @@ var _ = Describe("Evaluate", func() {
 	})
 })
 
-var _ = Describe("BuildEvalContext", func() {
+var _ = Describe("BuildEvalContextForImageAndPodCfg", func() {
 	newWSK := func() *kubefloworgv1beta1.WorkspaceKind {
 		return &kubefloworgv1beta1.WorkspaceKind{
 			Spec: kubefloworgv1beta1.WorkspaceKindSpec{
@@ -543,7 +543,7 @@ var _ = Describe("BuildEvalContext", func() {
 	}
 
 	It("passes through namespace labels and leaves config labels nil when no ids are given", func() {
-		evalCtx := BuildEvalContext(newWSK(), map[string]string{"tier": "prod"}, "", "")
+		evalCtx := BuildEvalContextForImageAndPodCfg(newWSK(), map[string]string{"tier": "prod"}, "", "")
 
 		Expect(evalCtx.NamespaceLabels).To(HaveKeyWithValue("tier", "prod"))
 		Expect(evalCtx.ImageConfigLabels).To(BeNil())
@@ -551,7 +551,7 @@ var _ = Describe("BuildEvalContext", func() {
 	})
 
 	It("compiles the WorkspaceKind's filterRules into the eval context", func() {
-		evalCtx := BuildEvalContext(newWSK(), nil, "", "")
+		evalCtx := BuildEvalContextForImageAndPodCfg(newWSK(), nil, "", "")
 
 		Expect(evalCtx.compiledRules).To(HaveLen(1))
 		cr := evalCtx.compiledRules[0]
@@ -565,22 +565,85 @@ var _ = Describe("BuildEvalContext", func() {
 	It("leaves compiledRules empty when the WorkspaceKind has no filterRules", func() {
 		wsk := newWSK()
 		wsk.Spec.FilterRules = nil
-		evalCtx := BuildEvalContext(wsk, nil, "", "")
+		evalCtx := BuildEvalContextForImageAndPodCfg(wsk, nil, "", "")
 
 		Expect(evalCtx.compiledRules).To(BeEmpty())
 	})
 
 	It("resolves imageConfig and podConfig labels from matching ids", func() {
-		evalCtx := BuildEvalContext(newWSK(), nil, "img1", "pod1")
+		evalCtx := BuildEvalContextForImageAndPodCfg(newWSK(), nil, "img1", "pod1")
 
 		Expect(evalCtx.ImageConfigLabels).To(HaveKeyWithValue("vendor", "nvidia"))
 		Expect(evalCtx.PodConfigLabels).To(HaveKeyWithValue("gpu", "true"))
 	})
 
 	It("leaves labels nil when the ids do not match any value", func() {
-		evalCtx := BuildEvalContext(newWSK(), nil, "missing-img", "missing-pod")
+		evalCtx := BuildEvalContextForImageAndPodCfg(newWSK(), nil, "missing-img", "missing-pod")
 
 		Expect(evalCtx.ImageConfigLabels).To(BeNil())
 		Expect(evalCtx.PodConfigLabels).To(BeNil())
+	})
+})
+
+var _ = Describe("EvaluateWorkspaceKindFilterScopeRule", func() {
+	// wskHideRule builds a WORKSPACE_KIND-scoped rule that hides the WorkspaceKind
+	// when the namespace matches the given selector.
+	wskHideRule := func(selector map[string]string) kubefloworgv1beta1.FilterRule {
+		return kubefloworgv1beta1.FilterRule{
+			Scope:  kubefloworgv1beta1.FilterRuleScopeWorkspaceKind,
+			Effect: kubefloworgv1beta1.FilterRuleEffect{UI: &kubefloworgv1beta1.FilterRuleEffectUI{Hide: true}},
+			Match: []kubefloworgv1beta1.FilterRuleMatch{
+				{
+					MatchNamespace: &kubefloworgv1beta1.FilterRuleSelector{
+						Selector: metav1.LabelSelector{MatchLabels: selector},
+					},
+				},
+			},
+		}
+	}
+
+	newWSK := func(rules ...kubefloworgv1beta1.FilterRule) *kubefloworgv1beta1.WorkspaceKind {
+		return &kubefloworgv1beta1.WorkspaceKind{
+			Spec: kubefloworgv1beta1.WorkspaceKindSpec{FilterRules: rules},
+		}
+	}
+
+	It("applies a matching WORKSPACE_KIND rule against the namespace labels", func() {
+		result := EvaluateWorkspaceKindFilterScopeRule(
+			newWSK(wskHideRule(map[string]string{"tier": "prod"})),
+			map[string]string{"tier": "prod"},
+		)
+
+		Expect(result).To(BeComparableTo(EvalResult{UIHide: true, Restrictions: common.DefaultRestrictions()}))
+	})
+
+	It("returns the non-restrictive default when the namespace does not match", func() {
+		result := EvaluateWorkspaceKindFilterScopeRule(
+			newWSK(wskHideRule(map[string]string{"tier": "prod"})),
+			map[string]string{"tier": "dev"},
+		)
+
+		Expect(result).To(BeComparableTo(EvalResult{Restrictions: common.DefaultRestrictions()}))
+	})
+
+	It("returns the non-restrictive default when namespace labels are absent", func() {
+		result := EvaluateWorkspaceKindFilterScopeRule(
+			newWSK(wskHideRule(map[string]string{"tier": "prod"})),
+			nil,
+		)
+
+		Expect(result).To(BeComparableTo(EvalResult{Restrictions: common.DefaultRestrictions()}))
+	})
+
+	It("ignores non-WORKSPACE_KIND scoped rules", func() {
+		result := EvaluateWorkspaceKindFilterScopeRule(
+			newWSK(matchImageConfigRule(
+				map[string]string{"gpu": "true"},
+				kubefloworgv1beta1.FilterRuleEffect{UI: &kubefloworgv1beta1.FilterRuleEffectUI{Hide: true}},
+			)),
+			map[string]string{"gpu": "true"},
+		)
+
+		Expect(result).To(BeComparableTo(EvalResult{Restrictions: common.DefaultRestrictions()}))
 	})
 })
