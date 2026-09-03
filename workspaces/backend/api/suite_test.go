@@ -138,7 +138,7 @@ var _ = BeforeSuite(func() {
 	appLogger := slog.New(slog.NewTextHandler(GinkgoWriter, nil))
 
 	By("creating the request authenticator")
-	reqAuthN, err := auth.NewRequestAuthenticator(userIdHeader, userIdPrefix, groupsHeader)
+	reqAuthN, err := auth.NewRequestAuthenticator(userIdHeader, userIdPrefix, groupsHeader, nil)
 	Expect(err).NotTo(HaveOccurred())
 
 	By("creating the request authorizer")

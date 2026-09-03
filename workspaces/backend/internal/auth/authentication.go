@@ -22,12 +22,49 @@ import (
 	"strings"
 
 	"k8s.io/apiserver/pkg/authentication/authenticator"
+	"k8s.io/apiserver/pkg/authentication/request/bearertoken"
 	"k8s.io/apiserver/pkg/authentication/request/headerrequest"
 	"k8s.io/apiserver/pkg/authentication/user"
 )
 
 // NewRequestAuthenticator returns a new request authenticator based on the provided configuration.
-func NewRequestAuthenticator(useridHeader string, useridPrefix string, groupsHeader string) (authenticator.Request, error) {
+//
+// When tokenAuthenticator is non-nil, a request carrying a bearer token is
+// authenticated by that token alone and the identity headers are ignored. This
+// keeps a caller from presenting a token that fails review and falling back to
+// an identity header it controls.
+func NewRequestAuthenticator(useridHeader string, useridPrefix string, groupsHeader string, tokenAuthenticator authenticator.Token) (authenticator.Request, error) {
+
+	headerAuthenticator, err := newHeaderAuthenticator(useridHeader, useridPrefix, groupsHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	if tokenAuthenticator == nil {
+		return headerAuthenticator, nil
+	}
+
+	bearerAuthenticator := bearertoken.New(tokenAuthenticator)
+	return authenticator.RequestFunc(func(req *http.Request) (*authenticator.Response, bool, error) {
+		if hasBearerToken(req) {
+			return bearerAuthenticator.AuthenticateRequest(req)
+		}
+		return headerAuthenticator.AuthenticateRequest(req)
+	}), nil
+}
+
+// hasBearerToken reports whether the request presents a bearer credential, so
+// that it is never silently downgraded to header authentication.
+func hasBearerToken(req *http.Request) bool {
+	value := req.Header.Get("Authorization")
+	if value == "" {
+		return false
+	}
+	scheme, token, found := strings.Cut(value, " ")
+	return found && strings.EqualFold(scheme, "Bearer") && token != ""
+}
+
+func newHeaderAuthenticator(useridHeader string, useridPrefix string, groupsHeader string) (authenticator.Request, error) {
 
 	// create an upstream `requestHeaderAuthRequestHandler` to extract user and groups from the request headers
 	requestHeaderAuthenticator, err := headerrequest.New(
