@@ -39,6 +39,14 @@ func NewWorkspaceKindModelFromWorkspaceKind(cfg *config.EnvConfig, wsk *kubeflow
 		maps.Copy(podAnnotations, wsk.Spec.PodTemplate.PodMetadata.Annotations)
 	}
 
+	stsLabels := make(map[string]string)
+	stsAnnotations := make(map[string]string)
+	if wsk.Spec.PodTemplate.StatefulSetMetadata != nil {
+		// NOTE: we copy the maps to avoid creating a reference to the original maps.
+		maps.Copy(stsLabels, wsk.Spec.PodTemplate.StatefulSetMetadata.Labels)
+		maps.Copy(stsAnnotations, wsk.Spec.PodTemplate.StatefulSetMetadata.Annotations)
+	}
+
 	//
 	// TODO: remove these once frontend migrates to the new listValues endpoint for both create/update and wsk admin views
 	//
@@ -65,6 +73,10 @@ func NewWorkspaceKindModelFromWorkspaceKind(cfg *config.EnvConfig, wsk *kubeflow
 			PodMetadata: PodMetadata{
 				Labels:      podLabels,
 				Annotations: podAnnotations,
+			},
+			StatefulSetMetadata: StatefulSetMetadata{
+				Labels:      stsLabels,
+				Annotations: stsAnnotations,
 			},
 			VolumeMounts: PodVolumeMounts{
 				Home: wsk.Spec.PodTemplate.VolumeMounts.Home,

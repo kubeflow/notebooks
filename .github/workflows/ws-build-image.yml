@@ -1,5 +1,13 @@
 name: Build Image
 
+# NOTE: There is no `permissions` key set in this workflow on purpose:
+#
+# A reusable workflow may only request permissions its caller already grants,
+# and the need for `packages: write` depends on the caller. However, setting
+# `packages: write` breaks validation for callers that only grant
+# `contents: read`, and declaring anything here caps the token at those
+# permissions, which would break the publish flow.
+
 on:
   workflow_call:
     inputs:

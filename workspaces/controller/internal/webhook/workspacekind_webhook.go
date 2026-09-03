@@ -84,6 +84,9 @@ func (v *WorkspaceKindValidator) ValidateCreate(ctx context.Context, workspaceKi
 	// validate the pod metadata
 	allErrs = append(allErrs, v.validatePodTemplatePodMetadata(workspaceKind)...)
 
+	// validate the statefulset metadata
+	allErrs = append(allErrs, v.validatePodTemplateStatefulSetMetadata(workspaceKind)...)
+
 	// validate the extra environment variables
 	allErrs = append(allErrs, validateExtraEnv(workspaceKind)...)
 
@@ -171,6 +174,11 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldWorkspac
 	// validate the pod metadata
 	if !equality.Semantic.DeepEqual(newWorkspaceKind.Spec.PodTemplate.PodMetadata, oldWorkspaceKind.Spec.PodTemplate.PodMetadata) {
 		allErrs = append(allErrs, v.validatePodTemplatePodMetadata(newWorkspaceKind)...)
+	}
+
+	// validate the statefulset metadata
+	if !equality.Semantic.DeepEqual(newWorkspaceKind.Spec.PodTemplate.StatefulSetMetadata, oldWorkspaceKind.Spec.PodTemplate.StatefulSetMetadata) {
+		allErrs = append(allErrs, v.validatePodTemplateStatefulSetMetadata(newWorkspaceKind)...)
 	}
 
 	// validate the extra environment variables
@@ -566,25 +574,39 @@ func (v *WorkspaceKindValidator) getOptionsUsageCounts(ctx context.Context, work
 
 // validatePodTemplatePodMetadata validates the podMetadata of a WorkspaceKind's PodTemplate
 func (v *WorkspaceKindValidator) validatePodTemplatePodMetadata(workspaceKind *kubefloworgv1beta1.WorkspaceKind) []*field.Error {
-	var errs []*field.Error //nolint:prealloc
-
 	podMetadata := workspaceKind.Spec.PodTemplate.PodMetadata
-	podMetadataPath := field.NewPath("spec", "podTemplate", "podMetadata")
 
 	// if podMetadata is nil, we cannot validate it
 	if podMetadata == nil {
-		return errs
+		return nil
 	}
 
+	podMetadataPath := field.NewPath("spec", "podTemplate", "podMetadata")
+	return validateLabelsAndAnnotations(podMetadata.Labels, podMetadata.Annotations, podMetadataPath)
+}
+
+// validatePodTemplateStatefulSetMetadata validates the statefulSetMetadata of a WorkspaceKind's PodTemplate
+func (v *WorkspaceKindValidator) validatePodTemplateStatefulSetMetadata(workspaceKind *kubefloworgv1beta1.WorkspaceKind) []*field.Error {
+	statefulSetMetadata := workspaceKind.Spec.PodTemplate.StatefulSetMetadata
+
+	// if statefulSetMetadata is nil, we cannot validate it
+	if statefulSetMetadata == nil {
+		return nil
+	}
+
+	statefulSetMetadataPath := field.NewPath("spec", "podTemplate", "statefulSetMetadata")
+	return validateLabelsAndAnnotations(statefulSetMetadata.Labels, statefulSetMetadata.Annotations, statefulSetMetadataPath)
+}
+
+// validateLabelsAndAnnotations validates a set of labels and annotations
+func validateLabelsAndAnnotations(labels, annotations map[string]string, path *field.Path) []*field.Error {
+	var errs []*field.Error //nolint:prealloc
+
 	// validate labels
-	labels := podMetadata.Labels
-	labelsPath := podMetadataPath.Child("labels")
-	errs = append(errs, v1validation.ValidateLabels(labels, labelsPath)...)
+	errs = append(errs, v1validation.ValidateLabels(labels, path.Child("labels"))...)
 
 	// validate annotations
-	annotations := podMetadata.Annotations
-	annotationsPath := podMetadataPath.Child("annotations")
-	errs = append(errs, apivalidation.ValidateAnnotations(annotations, annotationsPath)...)
+	errs = append(errs, apivalidation.ValidateAnnotations(annotations, path.Child("annotations"))...)
 
 	return errs
 }

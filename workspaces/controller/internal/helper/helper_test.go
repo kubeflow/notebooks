@@ -20,6 +20,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -172,5 +173,80 @@ var _ = Describe("CopyRoleBindingFields", func() {
 
 		Expect(CopyRoleBindingFields(desired, target)).To(BeFalse())
 		Expect(target.RoleRef.Name).To(Equal("kubeflow-view"))
+	})
+})
+
+var _ = Describe("CopyStatefulSetFields", func() {
+
+	// newStatefulSet returns a StatefulSet with the provided labels and annotations.
+	// spec.replicas is set so CopyStatefulSetFields can dereference it, and the selector
+	// and template are left equal so only metadata differences are exercised.
+	newStatefulSet := func(labels, annotations map[string]string) *appsv1.StatefulSet {
+		replicas := int32(1)
+		return &appsv1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        "ws-my-workspace-abcdef",
+				Namespace:   "my-namespace",
+				Labels:      labels,
+				Annotations: annotations,
+			},
+			Spec: appsv1.StatefulSetSpec{
+				Replicas: &replicas,
+			},
+		}
+	}
+
+	It("should not require an update when the desired and target metadata match", func() {
+		labels := map[string]string{"notebooks.kubeflow.org/workspace-name": "my-workspace"}
+		desired := newStatefulSet(labels, nil)
+		target := newStatefulSet(labels, nil)
+
+		Expect(CopyStatefulSetFields(desired, target)).To(BeFalse())
+	})
+
+	It("should require an update when the desired adds a new label", func() {
+		// a label present only on the desired StatefulSet must be detected, otherwise
+		// labels added to a WorkspaceKind never reach already-running StatefulSets
+		desired := newStatefulSet(
+			map[string]string{
+				"notebooks.kubeflow.org/workspace-name": "my-workspace",
+				"my-label":                              "my-value",
+			},
+			nil,
+		)
+		target := newStatefulSet(
+			map[string]string{"notebooks.kubeflow.org/workspace-name": "my-workspace"},
+			nil,
+		)
+
+		Expect(CopyStatefulSetFields(desired, target)).To(BeTrue())
+		Expect(target.Labels).To(HaveKeyWithValue("my-label", "my-value"))
+	})
+
+	It("should require an update when the desired adds a new annotation", func() {
+		desired := newStatefulSet(nil, map[string]string{"my-annotation": "my-value"})
+		target := newStatefulSet(nil, nil)
+
+		Expect(CopyStatefulSetFields(desired, target)).To(BeTrue())
+		Expect(target.Annotations).To(HaveKeyWithValue("my-annotation", "my-value"))
+	})
+
+	It("should replace labels which are only on the target", func() {
+		// the controller fully owns the StatefulSet it created, so its metadata is
+		// replaced rather than merged
+		desired := newStatefulSet(
+			map[string]string{"notebooks.kubeflow.org/workspace-name": "my-workspace"},
+			nil,
+		)
+		target := newStatefulSet(
+			map[string]string{
+				"notebooks.kubeflow.org/workspace-name": "my-workspace",
+				"stale-label":                           "stale-value",
+			},
+			nil,
+		)
+
+		Expect(CopyStatefulSetFields(desired, target)).To(BeTrue())
+		Expect(target.Labels).NotTo(HaveKey("stale-label"))
 	})
 })
