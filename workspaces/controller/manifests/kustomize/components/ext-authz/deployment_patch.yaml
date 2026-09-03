@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workspaces-controller
+spec:
+  template:
+    spec:
+      containers:
+      - name: manager
+        env:
+        - name: EXTERNAL_AUTH_BACKEND_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: kubeflow-workspaces-ext-authz-config
+              key: EXTERNAL_AUTH_BACKEND_NAME
+        - name: EXTERNAL_AUTH_BACKEND_NAMESPACE
+          valueFrom:
+            configMapKeyRef:
+              name: kubeflow-workspaces-ext-authz-config
+              key: EXTERNAL_AUTH_BACKEND_NAMESPACE
+        - name: EXTERNAL_AUTH_BACKEND_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: kubeflow-workspaces-ext-authz-config
+              key: EXTERNAL_AUTH_BACKEND_PORT
+        - name: EXTERNAL_AUTH_PROTOCOL
+          valueFrom:
+            configMapKeyRef:
+              name: kubeflow-workspaces-ext-authz-config
+              key: EXTERNAL_AUTH_PROTOCOL
+        - name: EXTERNAL_AUTH_HTTP_PATH
+          valueFrom:
+            configMapKeyRef:
+              name: kubeflow-workspaces-ext-authz-config
+              key: EXTERNAL_AUTH_HTTP_PATH
