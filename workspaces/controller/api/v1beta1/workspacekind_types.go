@@ -299,6 +299,17 @@ type WorkspaceKindPodTemplate struct {
 	// +kubebuilder:validation:Optional
 	ContainerSecurityContext *v1.SecurityContext `json:"containerSecurityContext,omitempty"`
 
+	// the name of the scheduler to use for Workspace Pods (MUTABLE)
+	//  - this is the default for all Workspaces of this WorkspaceKind, it may be
+	//    overridden by the `schedulerName` of a pod config value
+	//  - if not set here, or on the pod config value, the Kubernetes API server
+	//    will default to the "default-scheduler"
+	//  - no character/length validation, matching Kubernetes which applies none
+	//    to PodSpec.SchedulerName; an empty value means the default scheduler
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:example="default-scheduler"
+	SchedulerName *string `json:"schedulerName,omitempty"`
+
 	// options are the user-selectable fields, they determine the PodSpec of the Workspace
 	Options WorkspaceKindPodOptions `json:"options"`
 }
@@ -654,6 +665,16 @@ type PodConfigSpec struct {
 	// resource configs for the "main" container in the pod
 	// +kubebuilder:validation:Optional
 	Resources *v1.ResourceRequirements `json:"resources,omitempty"`
+
+	// the name of the scheduler to use for the pod
+	//  - this takes precedence over the `schedulerName` of the pod template
+	//  - set this to "default-scheduler" to have this pod config use the
+	//    default Kubernetes scheduler, even if the pod template sets another one
+	//  - no character/length validation, matching Kubernetes which applies none
+	//    to PodSpec.SchedulerName; an empty value means the default scheduler
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:example="volcano"
+	SchedulerName *string `json:"schedulerName,omitempty"`
 }
 
 type OptionsSpawnerConfig struct {

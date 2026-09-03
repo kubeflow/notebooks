@@ -715,6 +715,12 @@ var _ = Describe("Workspaces Handler", func() {
 		})
 
 		AfterAll(func() {
+			// Delete the ws-allowed workspace if it still exists, so it does not
+			// leak into Serial tests that assert an empty cluster.
+			ws := &kubefloworgv1beta1.Workspace{}
+			if err := k8sClient.Get(ctx, types.NamespacedName{Namespace: namespaceNameFR, Name: "ws-allowed"}, ws); err == nil {
+				Expect(k8sClient.Delete(ctx, ws)).To(Succeed())
+			}
 			Expect(k8sClient.Delete(ctx, wsk)).To(Succeed())
 			Expect(k8sClient.Delete(ctx, &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{Name: namespaceNameFR},
@@ -811,14 +817,6 @@ var _ = Describe("Workspaces Handler", func() {
 			defer rs.Body.Close()
 
 			Expect(rs.StatusCode).To(Equal(http.StatusCreated), descUnexpectedHTTPStatus, rr.Body.String())
-
-			// Clean up the workspace so it does not leak into Serial tests that assert an empty cluster.
-			DeferCleanup(func() {
-				ws := &kubefloworgv1beta1.Workspace{}
-				if err := k8sClient.Get(ctx, types.NamespacedName{Namespace: namespaceNameFR, Name: "ws-allowed"}, ws); err == nil {
-					Expect(k8sClient.Delete(ctx, ws)).To(Succeed())
-				}
-			})
 		})
 
 		// Update rejected when changing to a restricted imageConfig or podConfig
