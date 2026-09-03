@@ -83,6 +83,31 @@ class Workspaces {
     cy.findByTestId('workspace-lastActivity-tooltip').should('contain.text', text);
   }
 
+  findActivityWarningIndicator(rowIndex: number) {
+    return cy.findByTestId(`workspace-row-${rowIndex}`).findByTestId('activity-warning-indicator');
+  }
+
+  findActivityCriticalIndicator(rowIndex: number) {
+    return cy.findByTestId(`workspace-row-${rowIndex}`).findByTestId('activity-critical-indicator');
+  }
+
+  assertActivityWarningExists(rowIndex: number) {
+    this.findActivityWarningIndicator(rowIndex).should('exist');
+  }
+
+  assertActivityCriticalExists(rowIndex: number) {
+    this.findActivityCriticalIndicator(rowIndex).should('exist');
+  }
+
+  assertNoActivityIndicator(rowIndex: number) {
+    cy.findByTestId(`workspace-row-${rowIndex}`)
+      .findByTestId('activity-warning-indicator')
+      .should('not.exist');
+    cy.findByTestId(`workspace-row-${rowIndex}`)
+      .findByTestId('activity-critical-indicator')
+      .should('not.exist');
+  }
+
   assertTooltipNotExists() {
     cy.get('.pf-v6-c-tooltip').should('not.exist');
   }
