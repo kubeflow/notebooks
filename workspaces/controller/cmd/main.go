@@ -23,18 +23,20 @@ import (
 	"os"
 	"strconv"
 
-	corev1 "k8s.io/api/core/v1"
-	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
-	// to ensure that exec-entrypoint and run can make use of them.
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	istiov1 "istio.io/client-go/pkg/apis/networking/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+
+	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
+	// to ensure that exec-entrypoint and run can make use of them.
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -154,6 +156,19 @@ func main() {
 				DisableFor: []client.Object{
 					&corev1.ConfigMap{},
 					&corev1.Secret{},
+				},
+			},
+		},
+		Cache: cache.Options{
+			ByObject: map[client.Object]cache.ByObject{
+				&corev1.Event{}: {
+					// Filter at the apiserver/etcd level so only Warning events are streamed & cached.
+					// NOTE: Kubernetes field selectors do not support OR / set membership (e.g.
+					// involvedObject.kind in (Pod, StatefulSet)). Filtering for Pod and StatefulSet
+					// kinds specifically is handled client-side by the controller's event predicate.
+					Field: fields.SelectorFromSet(fields.Set{
+						"type": corev1.EventTypeWarning,
+					}),
 				},
 			},
 		},

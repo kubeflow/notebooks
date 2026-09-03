@@ -33,12 +33,29 @@ import (
 
 const (
 	IndexEventInvolvedObjectUidField            = ".involvedObject.uid"
+	IndexWorkspaceOwnedResourceUIDField         = ".status.ownedResourceUIDs"
 	IndexWorkspaceOwnerField                    = ".metadata.controller"
 	IndexWorkspaceKindField                     = ".spec.kind"
 	IndexWorkspaceKindConfigMapImageSourceField = ".spec.configMapImageSource"
 
 	OwnerKindWorkspace = "Workspace"
 )
+
+// indexWorkspaceOwnedResourceUIDs returns the UIDs of the owned Pod and StatefulSet from Workspace status
+func indexWorkspaceOwnedResourceUIDs(rawObj client.Object) []string {
+	ws, ok := rawObj.(*kubefloworgv1beta1.Workspace)
+	if !ok {
+		return nil
+	}
+	uids := make([]string, 0, 2)
+	if uid := ws.Status.PodTemplatePod.UID; uid != "" {
+		uids = append(uids, string(uid))
+	}
+	if uid := ws.Status.PodTemplateStatefulSet.UID; uid != "" {
+		uids = append(uids, string(uid))
+	}
+	return uids
+}
 
 // indexByWorkspaceOwner indexes the given object type under `IndexWorkspaceOwnerField`,
 // by the name of the Workspace which is its controller owner
@@ -104,6 +121,11 @@ func SetupManagerFieldIndexers(mgr ctrl.Manager, cfg *config.EnvConfig) error {
 		}
 		return []string{ws.Spec.Kind}
 	}); err != nil {
+		return err
+	}
+
+	// Index Workspace by owned Pod and StatefulSet UIDs
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &kubefloworgv1beta1.Workspace{}, IndexWorkspaceOwnedResourceUIDField, indexWorkspaceOwnedResourceUIDs); err != nil {
 		return err
 	}
 
