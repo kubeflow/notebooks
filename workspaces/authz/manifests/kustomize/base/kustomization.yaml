@@ -1,0 +1,26 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: kubeflow-workspaces
+
+resources:
+- service_account.yaml
+- rbac.yaml
+- service.yaml
+- deployment.yaml
+
+labels:
+- includeSelectors: true
+  pairs:
+    app: workspaces-authz
+    app.kubernetes.io/component: authz
+
+configMapGenerator:
+- name: workspaces-authz-config
+  envs:
+  - params.env
+
+images:
+- name: workspaces-authz
+  newName: ghcr.io/kubeflow/notebooks/workspaces-authz
+  newTag: latest

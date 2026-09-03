@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workspaces-authz
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels: {}
+    spec:
+      serviceAccountName: workspaces-authz
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      terminationGracePeriodSeconds: 30
+      containers:
+      - name: workspaces-authz
+        image: workspaces-authz
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - "ALL"
+        ports:
+        - name: grpc-authz
+          containerPort: 9001
+        - name: http-authz
+          containerPort: 9002
+        env:
+        - name: OIDC_ISSUER_URL
+          valueFrom:
+            configMapKeyRef:
+              name: workspaces-authz-config
+              key: OIDC_ISSUER_URL
+        - name: OIDC_CLIENT_ID
+          valueFrom:
+            configMapKeyRef:
+              name: workspaces-authz-config
+              key: OIDC_CLIENT_ID
+        - name: OIDC_REDIRECT_URL
+          valueFrom:
+            configMapKeyRef:
+              name: workspaces-authz-config
+              key: OIDC_REDIRECT_URL
+        - name: OIDC_USERNAME_CLAIM
+          valueFrom:
+            configMapKeyRef:
+              name: workspaces-authz-config
+              key: OIDC_USERNAME_CLAIM
+        - name: OIDC_USERNAME_PREFIX
+          valueFrom:
+            configMapKeyRef:
+              name: workspaces-authz-config
+              key: OIDC_USERNAME_PREFIX
+        - name: OIDC_GROUPS_CLAIM
+          valueFrom:
+            configMapKeyRef:
+              name: workspaces-authz-config
+              key: OIDC_GROUPS_CLAIM
+        - name: OIDC_GROUPS_PREFIX
+          valueFrom:
+            configMapKeyRef:
+              name: workspaces-authz-config
+              key: OIDC_GROUPS_PREFIX
+        - name: OIDC_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: workspaces-authz
+              key: OIDC_CLIENT_SECRET
+        - name: COOKIE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: workspaces-authz
+              key: COOKIE_KEY
+        resources:
+          limits:
+            cpu: 500m
+            memory: 256Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http-authz
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 20
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: http-authz
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
