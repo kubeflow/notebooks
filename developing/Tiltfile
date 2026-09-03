@@ -43,7 +43,10 @@ kustomize_bin = os.path.join(tilt_root, "bin/kustomize")
 # ============================================================================
 
 # Workload kinds: each becomes its own Tilt resource automatically.
-WORKLOAD_KINDS = [
+TILT_AUTO_WORKLOAD_KINDS = [
+    # tilt creates a workload with the name of resources that have a pod spec:
+    # https://github.com/tilt-dev/tilt/blob/v0.37.7/internal/tiltfile/tiltfile_state.go#L931-L980
+    # https://github.com/tilt-dev/tilt/blob/v0.37.7/internal/tiltfile/tiltfile_state.go#L1009-L1038
     "Deployment",
     "StatefulSet",
     "DaemonSet",
@@ -54,14 +57,11 @@ WORKLOAD_KINDS = [
     "Pod",
 ]
 
-# Kinds that Tilt assigns to their own resources automatically, so they must
-# never be listed in a k8s_resource(objects=...) call:
-#   - Workloads (Deployment/StatefulSet/...) each become their own Tilt resource.
-#   - A Service is folded into the workload resource its selector targets.
-# Listing any of these in objects= makes Tilt fail the Tiltfile with
-# "No object identified by the fragment ... could be found in remaining YAML",
-# because the object was already claimed by its workload resource.
-TILT_AUTO_MANAGED_KINDS = WORKLOAD_KINDS + ["Service"]
+TILT_AUTO_WORKLOAD_POD_MATCH_KINDS = [
+    # tilt places resources that contain pod selectors into the workload which the pod is in:
+    # https://github.com/tilt-dev/tilt/blob/v0.37.7/internal/k8s/entity.go#L302-L327
+    "Service",
+]
 
 # Returns the names of every workload object in a rendered manifest, so the
 # resources Tilt auto-creates for them can be grouped/labeled without hardcoding
@@ -69,7 +69,7 @@ TILT_AUTO_MANAGED_KINDS = WORKLOAD_KINDS + ["Service"]
 def workload_names(manifest):
     names = []
     for o in decode_yaml_stream(manifest):
-        if o.get("kind") in WORKLOAD_KINDS:
+        if o.get("kind") in TILT_AUTO_WORKLOAD_KINDS:
             name = o.get("metadata", {}).get("name")
             if name:
                 names.append(name)
@@ -92,8 +92,12 @@ def object_refs(manifest, exclude_kinds=[]):
         if kind == "Namespace":
             continue
 
-        # Skip kinds Tilt manages via workload resources (see above).
-        if kind in TILT_AUTO_MANAGED_KINDS:
+        # Skip kinds that Tilt auto creates workloads for.
+        if kind in TILT_AUTO_WORKLOAD_KINDS:
+            continue
+
+        # Skip kinds that Tilt auto-adds to workloads based on pod selectors.
+        if kind in TILT_AUTO_WORKLOAD_POD_MATCH_KINDS:
             continue
 
         namespace = o.get("metadata", {}).get("namespace")
@@ -342,17 +346,19 @@ k8s_yaml(istio_gateway_manifest, allow_duplicates=True)
 k8s_resource(
     objects=object_refs(istio_gateway_manifest),
     new_name="istio-gateway",
-    labels=["istio"],
+    labels=["00_istio"],
 )
 
 # Port-forward the Istio ingress gateway for local access to production-like routing.
 # Uses local_resource because the ingress gateway is installed by istioctl (not managed by Tilt),
 # and extra_pod_selectors doesn't support port-forwarding on object-only resources.
-gateway_links = [link("https://localhost:8443/workspaces/api/v1/swagger/index.html", "API (Backend)")]
-if enable_frontend:
-    gateway_links.insert(0, link("https://localhost:8443/workspaces/", "Frontend"))
+gateway_links = [
+  link("https://localhost:8443/workspaces/api/v1/swagger/index.html", "Swagger UI (Workspaces Backend)"),
+]
 if enable_dashboard:
-    gateway_links.insert(0, link("https://localhost:8443/", "Dashboard"))
+    gateway_links.insert(0, link("https://localhost:8443/", "Kubeflow Dashboard"))
+elif enable_frontend:
+    gateway_links.insert(0, link("https://localhost:8443/workspaces/", "Workspaces Frontend"))
 
 frontend_resource_deps = ["istio-gateway", "workspaces-backend"]
 if enable_frontend:
@@ -365,7 +371,7 @@ local_resource(
     serve_cmd="kubectl port-forward -n istio-system svc/istio-ingressgateway 8443:443",
     resource_deps=frontend_resource_deps,
     links=gateway_links,
-    labels=["istio"],
+    labels=["00_istio"],
 )
 
 # ============================================================================
