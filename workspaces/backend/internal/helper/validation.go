@@ -126,14 +126,10 @@ func ValidateFieldIsDNS1123Subdomain(path *field.Path, value string) field.Error
 }
 
 // ValidateWorkspaceName validates a field contains a valid Workspace name.
-func ValidateWorkspaceName(path *field.Path, value string) field.ErrorList {
-	return ValidateFieldIsDNS1123Subdomain(path, value)
-}
+var ValidateWorkspaceName = ValidateFieldIsDNS1123Subdomain
 
 // ValidateWorkspaceKindName validates a field contains a valid WorkspaceKind name.
-func ValidateWorkspaceKindName(path *field.Path, value string) field.ErrorList {
-	return ValidateFieldIsDNS1123Subdomain(path, value)
-}
+var ValidateWorkspaceKindName = ValidateFieldIsDNS1123Subdomain
 
 // ValidateWorkspaceKindGVK validates the provided apiVersion and kind are for a WorkspaceKind.
 func ValidateWorkspaceKindGVK(apiVersion, kind string) field.ErrorList {
@@ -165,9 +161,7 @@ func ValidateWorkspaceKindGVK(apiVersion, kind string) field.ErrorList {
 }
 
 // ValidateKubernetesSecretName validates a field contains a valid Kubernetes Secret name.
-func ValidateKubernetesSecretName(path *field.Path, value string) field.ErrorList {
-	return ValidateFieldIsDNS1123Subdomain(path, value)
-}
+var ValidateKubernetesSecretName = ValidateFieldIsDNS1123Subdomain
 
 // ValidateKubernetesSecretIsMountable validates a field contains a valid Kubernetes Secret which exists and has the mountable label.
 func ValidateKubernetesSecretIsMountable(ctx context.Context, k8sClient client.Client, path *field.Path, namespace, value string) (field.ErrorList, error) {
@@ -196,9 +190,7 @@ func ValidateKubernetesSecretIsMountable(ctx context.Context, k8sClient client.C
 }
 
 // ValidateKubernetesPVCName validates a field contains a valid Kubernetes PersistentVolumeClaim name.
-func ValidateKubernetesPVCName(path *field.Path, value string) field.ErrorList {
-	return ValidateFieldIsDNS1123Subdomain(path, value)
-}
+var ValidateKubernetesPVCName = ValidateFieldIsDNS1123Subdomain
 
 // ValidateKubernetesPVCIsMountable validates a field contains a valid Kubernetes PersistentVolumeClaim which exists and has the mountable label.
 func ValidateKubernetesPVCIsMountable(ctx context.Context, k8sClient client.Client, path *field.Path, namespace, value string) (field.ErrorList, error) {
@@ -227,9 +219,7 @@ func ValidateKubernetesPVCIsMountable(ctx context.Context, k8sClient client.Clie
 }
 
 // ValidateKubernetesStorageClassName validates a field contains a valid Kubernetes StorageClass name.
-func ValidateKubernetesStorageClassName(path *field.Path, value string) field.ErrorList {
-	return ValidateFieldIsDNS1123Subdomain(path, value)
-}
+var ValidateKubernetesStorageClassName = ValidateFieldIsDNS1123Subdomain
 
 // ValidateKubernetesStorageClassIsUsable validates a field contains a valid Kubernetes StorageClass which exists and has the usable label.
 func ValidateKubernetesStorageClassIsUsable(ctx context.Context, k8sClient client.Client, path *field.Path, value string) (field.ErrorList, error) {
@@ -276,19 +266,13 @@ func ValidateFieldIsDNS1123Label(path *field.Path, value string) field.ErrorList
 }
 
 // ValidateKubernetesNamespaceName validates a field contains a valid Kubernetes Namespace name.
-func ValidateKubernetesNamespaceName(path *field.Path, value string) field.ErrorList {
-	return ValidateFieldIsDNS1123Label(path, value)
-}
+var ValidateKubernetesNamespaceName = ValidateFieldIsDNS1123Label
 
 // ValidateKubernetesServicesName validates a field contains a valid Kubernetes Service name.
-func ValidateKubernetesServicesName(path *field.Path, value string) field.ErrorList {
-	return ValidateFieldIsDNS1123Label(path, value)
-}
+var ValidateKubernetesServicesName = ValidateFieldIsDNS1123Label
 
 // ValidateKubernetesContainersName validates a field contains a valid Kubernetes container name.
-func ValidateKubernetesContainersName(path *field.Path, value string) field.ErrorList {
-	return ValidateFieldIsDNS1123Label(path, value)
-}
+var ValidateKubernetesContainersName = ValidateFieldIsDNS1123Label
 
 // ValidateKubernetesAnnotations validates a map of Kubernetes annotations.
 func ValidateKubernetesAnnotations(path *field.Path, annotations map[string]string) field.ErrorList {
