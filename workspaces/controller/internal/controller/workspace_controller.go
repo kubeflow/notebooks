@@ -976,7 +976,7 @@ func (r *WorkspaceReconciler) reconcileRoleBindings(ctx context.Context, log log
 }
 
 // generateStatefulSet generates a StatefulSet for a Workspace
-func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind, imageConfigSpec kubefloworgv1beta1.ImageConfigSpec, podConfigSpec kubefloworgv1beta1.PodConfigSpec, serviceAccountName string) (*appsv1.StatefulSet, error) {
+func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind, imageConfigSpec kubefloworgv1beta1.ImageConfigSpec, podConfigSpec kubefloworgv1beta1.PodConfigSpec, serviceAccountName string) (*appsv1.StatefulSet, error) { //nolint:gocyclo
 	// generate name prefix
 	namePrefix := generateNamePrefix(workspace.Name, maxStatefulSetNameLength)
 
@@ -1063,6 +1063,14 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 	containerResources := corev1.ResourceRequirements{}
 	if podConfigSpec.Resources != nil {
 		containerResources = *podConfigSpec.Resources
+	}
+
+	// generate scheduler name
+	// NOTE: the schedulerName from the podConfig takes precedence over the WorkspaceKind
+	//       an empty value causes the Kubernetes API server to apply its own default
+	schedulerName := ptr.Deref(workspaceKind.Spec.PodTemplate.SchedulerName, "")
+	if podConfigSpec.SchedulerName != nil {
+		schedulerName = *podConfigSpec.SchedulerName
 	}
 
 	// generate container probes
@@ -1249,6 +1257,7 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 						},
 					},
 					NodeSelector:       podConfigSpec.NodeSelector,
+					SchedulerName:      schedulerName,
 					SecurityContext:    workspaceKind.Spec.PodTemplate.SecurityContext,
 					ServiceAccountName: serviceAccountName,
 					Tolerations:        podConfigSpec.Tolerations,
