@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Sanity check script for e2e testing
+# Cluster readiness script for e2e testing
 # Verifies that all workspace components are deployed and responsive
 #   1. Rollout status checks for all deployments
 #   2. TLS handshake verification for the controller webhook (via openssl)
@@ -97,7 +97,7 @@ check_tls_endpoint() {
   # Wait for port-forward to be ready
   local retries=0
   local max_retries=10
-  while ! echo | openssl s_client -connect "localhost:${local_port}" 2>/dev/null | grep -q "CONNECTED"; do
+  while ! echo | openssl s_client -connect "localhost:${local_port}" 2>/dev/null | grep -q "Verify return code:"; do
     retries=$((retries + 1))
     if [ ${retries} -ge ${max_retries} ]; then
       echo "✗ ERROR: ${label} TLS handshake failed after ${max_retries} attempts"
@@ -144,13 +144,13 @@ check_gateway_route() {
   fi
 }
 
-echo "=== Sanity Check: Rollout Status ==="
+echo "=== Cluster Readiness: Rollout Status ==="
 for deployment in "${DEPLOYMENTS[@]}"; do
   check_rollout_status "${deployment}"
 done
 
 echo ""
-echo "=== Sanity Check: Endpoints ==="
+echo "=== Cluster Readiness: Endpoints ==="
 
 # Controller: webhook TLS (verify cert-manager certs are provisioned and server is listening)
 check_tls_endpoint "controller webhook" "svc/workspaces-webhook-service" 443
@@ -165,11 +165,11 @@ check_http_endpoint "backend" "svc/workspaces-backend" 4000 "/api/v1/healthcheck
 check_http_endpoint "frontend" "svc/workspaces-frontend" 8080 "/"
 
 echo ""
-echo "=== Sanity Check: Gateway Routing ==="
+echo "=== Cluster Readiness: Gateway Routing ==="
 
 # Verify traffic routes through istio ingress gateway via HTTPS
 check_gateway_route "backend via gateway" "/workspaces/api/v1/healthcheck"
 check_gateway_route "frontend via gateway" "/workspaces/"
 
 echo ""
-echo "✓ All sanity checks passed"
+echo "✓ All cluster readiness checks passed"
