@@ -40,6 +40,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/config"
@@ -60,6 +61,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(istiov1.AddToScheme(scheme))
+	utilruntime.Must(gatewayv1.Install(scheme))
 
 	utilruntime.Must(kubefloworgv1beta1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
@@ -85,14 +87,8 @@ func main() {
 		"If set the metrics endpoint is served securely")
 	flag.BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
-	flag.StringVar(&cfg.IstioGateway, "istio-gateway", getEnvAsStr("ISTIO_GATEWAY", ""),
-		"The name of the Istio gateway to use")
-	flag.StringVar(&cfg.IstioHosts, "istio-hosts", getEnvAsStr("ISTIO_HOSTS", "*"),
-		"The hosts to use for the Istio VirtualService")
 	flag.StringVar(&cfg.ClusterDomain, "cluster-domain", getEnvAsStr("CLUSTER_DOMAIN", "cluster.local"),
 		"The domain to use for the Istio VirtualService")
-	flag.BoolVar(&cfg.UseIstio, "use-istio", getEnvAsBool("USE_ISTIO", false),
-		"If set, Istio will be used")
 	flag.IntVar(&maxConcurrentReconciles, "max-concurrent-reconciles", getEnvAsInt("MAX_CONCURRENT_RECONCILES", 10),
 		"The maximum number of Workspaces reconciled (and probed) concurrently. "+
 			"Higher values prevent a slow activity probe from blocking other Workspaces' reconciliation.")
@@ -105,9 +101,16 @@ func main() {
 		Development: true,
 	}
 	opts.BindFlags(flag.CommandLine)
+	registerRoutingFlags(cfg)
+
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+
+	if err := resolveRoutingConfig(cfg); err != nil {
+		setupLog.Error(err, "invalid routing configuration")
+		os.Exit(1)
+	}
 
 	// if the enable-http2 flag is false (the default), http/2 should be disabled
 	// due to its vulnerabilities. More specifically, disabling http/2 will
