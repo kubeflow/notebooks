@@ -3,6 +3,7 @@ kind: Component
 
 resources:
 - network-policy.yaml
+- reference-grant.yaml
 
 patches:
 - path: deployment_patch.yaml

@@ -1,0 +1,115 @@
+# oauth2-proxy is the OIDC relying party of the gateway-api flavor: it handles
+# the login flow, session cookies, and token refresh.
+#
+# It is not in the data path. It serves two things:
+#   - /oauth2/ through the Gateway, for the login redirect and callback
+#   - /oauth2/auth in-cluster, which the backend calls to resolve a session
+#     cookie into an identity (the auth_request pattern); the response carries
+#     X-Auth-Request-Email/-Groups and the ID token as Authorization: Bearer,
+#     which the backend revalidates with a TokenReview when token auth is
+#     enabled (in this dev cluster it is not: the API server does not trust
+#     Dex, so the backend uses the identity headers)
+#
+# The workspace-connect authorization decision is NOT made here: the
+# ExternalAuth filter on workspace routes calls the backend's /authz endpoint,
+# which runs a SubjectAccessReview as the resolved user.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oauth2-proxy
+  namespace: kubeflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oauth2-proxy
+  template:
+    metadata:
+      labels:
+        app: oauth2-proxy
+    spec:
+      containers:
+      - name: oauth2-proxy
+        image: quay.io/oauth2-proxy/oauth2-proxy:v7.7.1
+        args:
+        - --provider=oidc
+        - --oidc-issuer-url=https://kubeflow.example.com/dex
+        - --client-id=kubeflow-workspaces
+        - --redirect-url=https://kubeflow.example.com/oauth2/callback
+        - --email-domain=*
+        - --http-address=0.0.0.0:4180
+        - --skip-provider-button=true
+        - --cookie-secure=true
+        # The login flow arrives through the Gateway; trust its X-Forwarded
+        # headers when constructing the redirect back to the callback.
+        - --reverse-proxy=true
+        # oauth2-proxy requires an upstream even when only its own endpoints
+        # are used; static://202 is the conventional no-op.
+        - --upstream=static://202
+        # Include identity and the ID token in /oauth2/auth responses, for the
+        # backend's delegation calls.
+        - --set-xauthrequest=true
+        - --set-authorization-header=true
+        env:
+        - name: OAUTH2_PROXY_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: oauth2-proxy
+              key: client-secret
+        - name: OAUTH2_PROXY_COOKIE_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: oauth2-proxy
+              key: cookie-secret
+        # The Gateway serves a self-signed certificate, so OIDC discovery
+        # against the issuer needs its CA.
+        - name: SSL_CERT_FILE
+          value: /etc/ssl/gateway/ca.crt
+        ports:
+        - name: http
+          containerPort: 4180
+        volumeMounts:
+        - name: gateway-ca
+          mountPath: /etc/ssl/gateway
+          readOnly: true
+        readinessProbe:
+          httpGet:
+            path: /ping
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      volumes:
+      - name: gateway-ca
+        secret:
+          secretName: gateway-tls-ca
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: oauth2-proxy
+  namespace: kubeflow
+spec:
+  selector:
+    app: oauth2-proxy
+  ports:
+  - name: http
+    port: 4180
+    targetPort: http
+---
+# The login endpoints must be reachable without authentication.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: oauth2-proxy
+  namespace: kubeflow
+spec:
+  parentRefs:
+  - name: kubeflow-gateway
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /oauth2/
+    backendRefs:
+    - name: oauth2-proxy
+      port: 4180

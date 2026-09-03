@@ -8,11 +8,6 @@ spec:
       containers:
       - name: manager
         env:
-        - name: ROUTING_PROVIDER
-          valueFrom:
-            configMapKeyRef:
-              name: kubeflow-workspaces-gateway-api-config
-              key: ROUTING_PROVIDER
         - name: GATEWAY_NAME
           valueFrom:
             configMapKeyRef:
@@ -28,3 +23,18 @@ spec:
             configMapKeyRef:
               name: kubeflow-workspaces-gateway-api-config
               key: CLUSTER_DOMAIN
+        - name: EXTERNAL_AUTH_URL
+          valueFrom:
+            configMapKeyRef:
+              name: kubeflow-workspaces-gateway-api-config
+              key: EXTERNAL_AUTH_URL
+        - name: WORKSPACE_NETWORK_POLICY_INGRESS
+          valueFrom:
+            configMapKeyRef:
+              name: kubeflow-workspaces-gateway-api-config
+              key: WORKSPACE_NETWORK_POLICY_INGRESS
+        - name: WORKSPACE_NETWORK_POLICY_SELF
+          valueFrom:
+            configMapKeyRef:
+              name: kubeflow-workspaces-gateway-api-config
+              key: WORKSPACE_NETWORK_POLICY_SELF
