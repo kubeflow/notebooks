@@ -42,7 +42,7 @@ func TestResolveRoutingConfigDerivesRoutingProvider(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &config.EnvConfig{GatewayName: tt.gatewayName, UseIstio: tt.useIstio}
-			err := resolveRoutingConfig(cfg)
+			err := resolveRoutingConfig(cfg, &routingFlags{})
 			if tt.wantErr {
 				if err == nil {
 					t.Fatal("resolveRoutingConfig accepted a Gateway and Istio at once")
@@ -56,5 +56,42 @@ func TestResolveRoutingConfigDerivesRoutingProvider(t *testing.T) {
 				t.Errorf("RoutingProvider = %q, want %q", cfg.RoutingProvider, tt.wantProvider)
 			}
 		})
+	}
+}
+
+func TestParseWorkspaceNetworkPolicy(t *testing.T) {
+	cfg := &config.EnvConfig{}
+	if err := parseWorkspaceNetworkPolicy(cfg, "", ""); err != nil || cfg.WorkspaceNetworkPolicy.Enabled() {
+		t.Fatalf("empty ingress: err=%v enabled=%v, want disabled", err, cfg.WorkspaceNetworkPolicy.Enabled())
+	}
+
+	cfg = &config.EnvConfig{}
+	err := parseWorkspaceNetworkPolicy(cfg,
+		"kubeflow:gateway.networking.k8s.io/gateway-name=kubeflow-gateway",
+		"kubeflow-workspaces:app=workspaces-controller")
+	if err != nil {
+		t.Fatalf("parseWorkspaceNetworkPolicy returned unexpected error: %v", err)
+	}
+	if !cfg.WorkspaceNetworkPolicy.Enabled() || cfg.WorkspaceNetworkPolicy.IngressNamespace != "kubeflow" {
+		t.Errorf("IngressNamespace = %q, want kubeflow", cfg.WorkspaceNetworkPolicy.IngressNamespace)
+	}
+	got := cfg.WorkspaceNetworkPolicy.IngressPodSelector["gateway.networking.k8s.io/gateway-name"]
+	if got != "kubeflow-gateway" {
+		t.Errorf("IngressPodSelector = %v, want gateway-name=kubeflow-gateway",
+			cfg.WorkspaceNetworkPolicy.IngressPodSelector)
+	}
+	if cfg.WorkspaceNetworkPolicy.ControllerNamespace != "kubeflow-workspaces" ||
+		cfg.WorkspaceNetworkPolicy.ControllerPodSelector["app"] != "workspaces-controller" {
+		t.Errorf("controller peer = %q %v, want kubeflow-workspaces app=workspaces-controller",
+			cfg.WorkspaceNetworkPolicy.ControllerNamespace, cfg.WorkspaceNetworkPolicy.ControllerPodSelector)
+	}
+
+	cfg = &config.EnvConfig{}
+	if err := parseWorkspaceNetworkPolicy(cfg, ":key=value", ""); err == nil {
+		t.Error("parseWorkspaceNetworkPolicy accepted an empty ingress namespace")
+	}
+	cfg = &config.EnvConfig{}
+	if err := parseWorkspaceNetworkPolicy(cfg, "kubeflow", ":app=x"); err == nil {
+		t.Error("parseWorkspaceNetworkPolicy accepted an empty controller namespace")
 	}
 }

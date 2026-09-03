@@ -101,13 +101,13 @@ func main() {
 		Development: true,
 	}
 	opts.BindFlags(flag.CommandLine)
-	registerRoutingFlags(cfg)
+	routingFlags := registerRoutingFlags(cfg)
 
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
-	if err := resolveRoutingConfig(cfg); err != nil {
+	if err := resolveRoutingConfig(cfg, routingFlags); err != nil {
 		setupLog.Error(err, "invalid routing configuration")
 		os.Exit(1)
 	}

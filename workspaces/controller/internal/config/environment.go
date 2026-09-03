@@ -25,7 +25,8 @@ type EnvConfig struct {
 	ClientBurst   int
 
 	// routing options (see environment_routing.go)
-	RoutingProvider RoutingProviderType
-	GatewayName     string
-	GatewayHosts    string
+	RoutingProvider        RoutingProviderType
+	GatewayName            string
+	GatewayHosts           string
+	WorkspaceNetworkPolicy WorkspaceNetworkPolicyConfig
 }
