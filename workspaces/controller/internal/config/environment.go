@@ -28,5 +28,6 @@ type EnvConfig struct {
 	RoutingProvider        RoutingProviderType
 	GatewayName            string
 	GatewayHosts           string
+	ExternalAuth           ExternalAuthConfig
 	WorkspaceNetworkPolicy WorkspaceNetworkPolicyConfig
 }

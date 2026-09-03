@@ -19,6 +19,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net/url"
+	"strconv"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/labels"
@@ -29,6 +31,7 @@ import (
 // routingFlags holds raw flag values that are resolved into the config
 // after flag.Parse.
 type routingFlags struct {
+	externalAuthURL      string
 	networkPolicyIngress string
 	networkPolicySelf    string
 }
@@ -49,6 +52,11 @@ func registerRoutingFlags(cfg *config.EnvConfig) *routingFlags {
 		"Gateway to publish workspace routes through, as \"namespace/name\"; setting it selects Gateway API routing")
 	flag.StringVar(&cfg.GatewayHosts, "gateway-hosts", getEnvAsStr("GATEWAY_HOSTS", "*"),
 		"The hosts to use for the Gateway API HTTPRoute")
+	flag.StringVar(&f.externalAuthURL, "external-auth-url", getEnvAsStr("EXTERNAL_AUTH_URL", ""),
+		"External authorization service guarding workspace routes, e.g. "+
+			"\"http://workspaces-backend.kubeflow-workspaces:4000/authz\": the scheme selects the protocol "+
+			"(http or grpc), the host names a Service as <name>.<namespace>, and the path is prepended to "+
+			"HTTP checks. Empty emits routes with no ExternalAuth filter.")
 	flag.StringVar(&f.networkPolicyIngress, "workspace-network-policy-ingress",
 		getEnvAsStr("WORKSPACE_NETWORK_POLICY_INGRESS", ""),
 		"Routing layer allowed to reach workspace pods, as \"namespace\" or \"namespace:key=value,...\"; "+
@@ -76,7 +84,61 @@ func resolveRoutingConfig(cfg *config.EnvConfig, f *routingFlags) error {
 		cfg.RoutingProvider = config.RoutingProviderNone
 	}
 
+	if err := parseExternalAuthURL(cfg, f.externalAuthURL); err != nil {
+		return err
+	}
 	return parseWorkspaceNetworkPolicy(cfg, f.networkPolicyIngress, f.networkPolicySelf)
+}
+
+// parseExternalAuthURL resolves the external authorization URL into the
+// backendRef fields of the ExternalAuth filter (GEP-1494), rejecting a URL the
+// data plane could not act on at startup rather than emitting broken routes.
+func parseExternalAuthURL(cfg *config.EnvConfig, rawURL string) error {
+	if rawURL == "" {
+		return nil
+	}
+	if cfg.RoutingProvider != config.RoutingProviderGatewayAPI {
+		return fmt.Errorf("external authorization requires Gateway API routing: set gateway-name")
+	}
+
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return fmt.Errorf("parsing external auth URL %q: %w", rawURL, err)
+	}
+
+	switch u.Scheme {
+	case "http":
+		cfg.ExternalAuth.Protocol = config.ExternalAuthProtocolHTTP
+		cfg.ExternalAuth.HTTPPath = strings.TrimSuffix(u.Path, "/")
+	case "grpc":
+		cfg.ExternalAuth.Protocol = config.ExternalAuthProtocolGRPC
+		if u.Path != "" && u.Path != "/" {
+			return fmt.Errorf("external auth URL %q: a grpc check carries no path", rawURL)
+		}
+	default:
+		return fmt.Errorf("external auth URL %q: scheme must be http or grpc", rawURL)
+	}
+
+	port, err := strconv.Atoi(u.Port())
+	if err != nil || port < 1 || port > 65535 {
+		return fmt.Errorf("external auth URL %q must carry an explicit port", rawURL)
+	}
+	cfg.ExternalAuth.BackendPort = int32(port) //nolint:gosec // range-checked above
+
+	// The host names a Service as <name>.<namespace>, tolerating a
+	// fully-qualified in-cluster DNS name. A bare name would resolve relative
+	// to each workspace namespace, silently pointing every route at a
+	// different (likely nonexistent) authorizer.
+	host := strings.TrimSuffix(u.Hostname(), "."+cfg.ClusterDomain)
+	host = strings.TrimSuffix(host, ".svc")
+	name, namespace, found := strings.Cut(host, ".")
+	if !found || name == "" || namespace == "" || strings.Contains(namespace, ".") {
+		return fmt.Errorf("external auth URL %q: host must be <service>.<namespace>", rawURL)
+	}
+	cfg.ExternalAuth.BackendName = name
+	cfg.ExternalAuth.BackendNamespace = namespace
+
+	return nil
 }
 
 // parseWorkspaceNetworkPolicy resolves the "namespace[:key=value,...]" peers

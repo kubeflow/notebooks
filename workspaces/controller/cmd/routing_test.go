@@ -59,6 +59,81 @@ func TestResolveRoutingConfigDerivesRoutingProvider(t *testing.T) {
 	}
 }
 
+func TestParseExternalAuthURL(t *testing.T) {
+	tests := []struct {
+		name    string
+		rawURL  string
+		want    config.ExternalAuthConfig
+		wantErr bool
+	}{
+		{
+			name:   "http URL with path",
+			rawURL: "http://workspaces-backend.kubeflow-workspaces:4000/authz",
+			want: config.ExternalAuthConfig{
+				BackendName:      "workspaces-backend",
+				BackendNamespace: "kubeflow-workspaces",
+				BackendPort:      4000,
+				Protocol:         config.ExternalAuthProtocolHTTP,
+				HTTPPath:         "/authz",
+			},
+		},
+		{
+			name:   "fully qualified in-cluster name",
+			rawURL: "http://workspaces-backend.kubeflow-workspaces.svc.cluster.local:4000/authz",
+			want: config.ExternalAuthConfig{
+				BackendName:      "workspaces-backend",
+				BackendNamespace: "kubeflow-workspaces",
+				BackendPort:      4000,
+				Protocol:         config.ExternalAuthProtocolHTTP,
+				HTTPPath:         "/authz",
+			},
+		},
+		{
+			name:   "grpc URL",
+			rawURL: "grpc://authz.kubeflow:9000",
+			want: config.ExternalAuthConfig{
+				BackendName:      "authz",
+				BackendNamespace: "kubeflow",
+				BackendPort:      9000,
+				Protocol:         config.ExternalAuthProtocolGRPC,
+			},
+		},
+		{name: "grpc with path", rawURL: "grpc://authz.kubeflow:9000/authz", wantErr: true},
+		{name: "missing port", rawURL: "http://workspaces-backend.kubeflow-workspaces/authz", wantErr: true},
+		{name: "bare service name", rawURL: "http://workspaces-backend:4000/authz", wantErr: true},
+		{name: "unknown scheme", rawURL: "https://workspaces-backend.kubeflow-workspaces:4000/authz", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &config.EnvConfig{
+				RoutingProvider: config.RoutingProviderGatewayAPI,
+				ClusterDomain:   "cluster.local",
+			}
+			err := parseExternalAuthURL(cfg, tt.rawURL)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("parseExternalAuthURL(%q) accepted an invalid URL", tt.rawURL)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("parseExternalAuthURL(%q) returned unexpected error: %v", tt.rawURL, err)
+			}
+			if cfg.ExternalAuth != tt.want {
+				t.Errorf("ExternalAuth = %+v, want %+v", cfg.ExternalAuth, tt.want)
+			}
+		})
+	}
+}
+
+func TestParseExternalAuthURLRequiresGateway(t *testing.T) {
+	cfg := &config.EnvConfig{RoutingProvider: config.RoutingProviderIstio}
+	if err := parseExternalAuthURL(cfg, "http://workspaces-backend.kubeflow-workspaces:4000/authz"); err == nil {
+		t.Fatal("parseExternalAuthURL accepted external auth without Gateway API routing")
+	}
+}
+
 func TestParseWorkspaceNetworkPolicy(t *testing.T) {
 	cfg := &config.EnvConfig{}
 	if err := parseWorkspaceNetworkPolicy(cfg, "", ""); err != nil || cfg.WorkspaceNetworkPolicy.Enabled() {
