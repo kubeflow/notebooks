@@ -20,13 +20,16 @@ import (
 	"flag"
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/labels"
+
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/config"
 )
 
 // standaloneFlags holds raw flag values that are resolved into the config
 // after flag.Parse.
 type standaloneFlags struct {
-	routingProvider string
+	routingProvider          string
+	networkPolicyPodSelector string
 }
 
 // registerStandaloneFlags declares the flags for running Kubeflow Notebooks as
@@ -41,6 +44,15 @@ func registerStandaloneFlags(cfg *config.EnvConfig) *standaloneFlags {
 		"The name of the Gateway API Gateway to use")
 	flag.StringVar(&cfg.GatewayHosts, "gateway-hosts", getEnvAsStr("GATEWAY_HOSTS", "*"),
 		"The hosts to use for the Gateway API HTTPRoute")
+	flag.BoolVar(&cfg.WorkspaceNetworkPolicy.Enabled, "workspace-network-policy",
+		getEnvAsBool("WORKSPACE_NETWORK_POLICY", false),
+		"If set, generate a NetworkPolicy per workspace restricting ingress to the routing layer")
+	flag.StringVar(&cfg.WorkspaceNetworkPolicy.IngressNamespace, "workspace-network-policy-ingress-namespace",
+		getEnvAsStr("WORKSPACE_NETWORK_POLICY_INGRESS_NAMESPACE", ""),
+		"Namespace of the routing layer allowed to reach workspace pods")
+	flag.StringVar(&f.networkPolicyPodSelector, "workspace-network-policy-ingress-pod-selector",
+		getEnvAsStr("WORKSPACE_NETWORK_POLICY_INGRESS_POD_SELECTOR", ""),
+		"Comma separated key=value labels of the routing layer pods; empty allows the whole ingress namespace")
 	return f
 }
 
@@ -54,5 +66,28 @@ func resolveStandaloneConfig(cfg *config.EnvConfig, f *standaloneFlags) error {
 		return fmt.Errorf("routing provider must be %q, %q or %q, got %q",
 			config.RoutingProviderNone, config.RoutingProviderIstio, config.RoutingProviderGatewayAPI, f.routingProvider)
 	}
+	return parseWorkspaceNetworkPolicy(cfg, f.networkPolicyPodSelector)
+}
+
+// parseWorkspaceNetworkPolicy resolves the pod selector and rejects a policy
+// that would be generated without a source, which would make every workspace
+// unreachable.
+func parseWorkspaceNetworkPolicy(cfg *config.EnvConfig, podSelector string) error {
+	if !cfg.WorkspaceNetworkPolicy.Enabled {
+		return nil
+	}
+
+	if cfg.WorkspaceNetworkPolicy.IngressNamespace == "" {
+		return fmt.Errorf("workspace network policies require an ingress namespace")
+	}
+
+	if podSelector != "" {
+		selector, err := labels.ConvertSelectorToLabelsMap(podSelector)
+		if err != nil {
+			return fmt.Errorf("parsing ingress pod selector %q: %w", podSelector, err)
+		}
+		cfg.WorkspaceNetworkPolicy.IngressPodSelector = selector
+	}
+
 	return nil
 }

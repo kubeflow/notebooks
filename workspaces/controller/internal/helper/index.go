@@ -22,6 +22,7 @@ import (
 	istiov1 "istio.io/client-go/pkg/apis/networking/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -99,6 +100,13 @@ func SetupManagerFieldIndexers(mgr ctrl.Manager, cfg *config.EnvConfig) error {
 	// Index HTTPRoute by its owner Workspace (only when Gateway API is enabled)
 	if cfg.RoutingProvider == config.RoutingProviderGatewayAPI {
 		if err := indexByWorkspaceOwner(mgr, &gatewayv1.HTTPRoute{}); err != nil {
+			return err
+		}
+	}
+
+	// Index NetworkPolicy by its owner Workspace (only when workspace network policies are enabled)
+	if cfg.WorkspaceNetworkPolicy.Enabled {
+		if err := indexByWorkspaceOwner(mgr, &networkingv1.NetworkPolicy{}); err != nil {
 			return err
 		}
 	}

@@ -25,7 +25,8 @@ type EnvConfig struct {
 	ClientBurst   int
 
 	// standalone deployment options (see environment_standalone.go)
-	RoutingProvider RoutingProviderType
-	GatewayName     string
-	GatewayHosts    string
+	RoutingProvider        RoutingProviderType
+	GatewayName            string
+	GatewayHosts           string
+	WorkspaceNetworkPolicy WorkspaceNetworkPolicyConfig
 }

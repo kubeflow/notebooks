@@ -26,3 +26,20 @@ const (
 	RoutingProviderIstio      RoutingProviderType = "istio"
 	RoutingProviderGatewayAPI RoutingProviderType = "gateway-api"
 )
+
+// WorkspaceNetworkPolicyConfig restricts which pods may reach a workspace pod.
+//
+// Workspace pods serve an unauthenticated notebook, so without this any pod in
+// the cluster can reach them directly, bypassing the routing layer and whatever
+// authentication runs there. In an Istio deployment this is covered by the
+// per-namespace AuthorizationPolicy that the Kubeflow Profile controller
+// creates; there is no equivalent otherwise.
+type WorkspaceNetworkPolicyConfig struct {
+	Enabled bool
+
+	// IngressNamespace and IngressPodSelector identify the routing layer pods
+	// allowed to reach workspace pods. An empty IngressPodSelector allows the
+	// whole IngressNamespace.
+	IngressNamespace   string
+	IngressPodSelector map[string]string
+}
