@@ -118,6 +118,7 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
+    "@microsoft/fetch-event-source": "^2.0.1",
     "@monaco-editor/react": "^4.7.0",
     "@patternfly/patternfly": "^6.4.0",
     "@patternfly/react-catalog-view-extension": "^6.2.0",

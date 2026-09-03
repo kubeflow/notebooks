@@ -152,6 +152,13 @@ func (a *App) getWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps ht
 	}
 	// ============================================================
 
+	// If the client requested a watch, upgrade to a Server-Sent Events stream
+	// that pushes a fresh snapshot on every change instead of a one-shot list.
+	if isWatchRequest(r) {
+		a.streamWorkspaces(w, r, namespace)
+		return
+	}
+
 	var workspaces []models.WorkspaceListItem
 	var err error
 	if namespace == "" {

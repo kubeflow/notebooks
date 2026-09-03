@@ -15,7 +15,8 @@
 package constants
 
 const (
-	MediaTypeJson = "application/json"
-	MediaTypeYaml = "application/yaml"
-	MediaTypeSVG  = "image/svg+xml"
+	MediaTypeJson        = "application/json"
+	MediaTypeYaml        = "application/yaml"
+	MediaTypeSVG         = "image/svg+xml"
+	MediaTypeEventStream = "text/event-stream"
 )

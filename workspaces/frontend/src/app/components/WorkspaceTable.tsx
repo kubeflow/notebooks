@@ -55,6 +55,8 @@ import {
 import { RedirectIconWithPopover } from '~/app/components/RedirectIconWithPopover';
 import { POLL_INTERVAL } from '~/shared/utilities/const';
 import { RefreshCounter } from '~/app/components/RefreshCounter';
+import { LiveStatusIndicator } from '~/app/components/LiveStatusIndicator';
+import { StreamConnectionStatus } from '~/app/hooks/useWorkspacesLive';
 import ToolbarFilter, {
   FilterConfigMap,
   FilterValue,
@@ -90,6 +92,11 @@ interface WorkspaceTableProps {
   canCreateWorkspaces?: boolean;
   hiddenColumns?: WorkspaceTableColumnKeys[];
   rowActions?: (workspace: WorkspacesWorkspaceListItem) => IActions;
+  /**
+   * When provided, the table is in live-streaming mode and shows a connection
+   * indicator; when omitted, it shows the interval-polling refresh countdown.
+   */
+  connectionStatus?: StreamConnectionStatus;
 }
 
 const filterConfig = {
@@ -157,6 +164,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       canCreateWorkspaces = true,
       hiddenColumns = [],
       rowActions = () => [],
+      connectionStatus,
     },
     ref,
   ) => {
@@ -590,7 +598,11 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
         </div>
         <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
           <FlexItem>
-            <RefreshCounter interval={POLL_INTERVAL} onRefresh={refreshWorkspaces} />
+            {connectionStatus ? (
+              <LiveStatusIndicator status={connectionStatus} onRefresh={refreshWorkspaces} />
+            ) : (
+              <RefreshCounter interval={POLL_INTERVAL} onRefresh={refreshWorkspaces} />
+            )}
           </FlexItem>
           <FlexItem>
             <Pagination
