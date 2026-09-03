@@ -4,6 +4,7 @@ ARG TARGETOS
 ARG TARGETARCH
 
 WORKDIR /workspace
+ENV GOTOOLCHAIN=auto
 # Copy the Go Modules manifests
 COPY go.mod go.mod
 COPY go.sum go.sum
