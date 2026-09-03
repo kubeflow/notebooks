@@ -4,7 +4,12 @@ import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import WorkspaceTable from '~/app/components/WorkspaceTable';
 import { V1Beta1WorkspaceState } from '~/generated/data-contracts';
-import { buildMockWorkspace } from '~/shared/mock/mockBuilder';
+import {
+  buildMockWorkspace,
+  buildMockWorkspaceWithActivityWarning,
+  buildMockWorkspaceWithActivityCritical,
+  buildMockWorkspaceNoActivityRules,
+} from '~/shared/mock/mockBuilder';
 
 jest.mock('~/app/hooks/useWorkspaceKinds', () => ({
   __esModule: true,
@@ -103,5 +108,103 @@ describe('WorkspaceTable name column', () => {
     await user.click(nameLink);
 
     expect(onViewDetailsClick).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('WorkspaceTable activity indicators', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2025-06-15T12:00:00Z'));
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('shows outlined warning label for workspace ~10 min from activity', () => {
+    const workspace = buildMockWorkspaceWithActivityWarning();
+
+    render(
+      <WorkspaceTable
+        workspaces={[workspace]}
+        refreshWorkspaces={jest.fn()}
+        rowActions={() => []}
+      />,
+    );
+
+    expect(screen.getByTestId('activity-warning-indicator')).toBeInTheDocument();
+  });
+
+  it('shows outlined danger label for workspace ~3 min from activity', () => {
+    const workspace = buildMockWorkspaceWithActivityCritical();
+
+    render(
+      <WorkspaceTable
+        workspaces={[workspace]}
+        refreshWorkspaces={jest.fn()}
+        rowActions={() => []}
+      />,
+    );
+
+    expect(screen.getByTestId('activity-critical-indicator')).toBeInTheDocument();
+  });
+
+  it('does not show activity indicator for workspace 20 min from activity', () => {
+    const workspace = buildMockWorkspace({
+      state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+      activity: {
+        lastActivity: Date.now() - 5 * 60 * 1000,
+        lastUpdate: Date.now() - 5 * 60 * 1000,
+        rules: { pauseWorkspace: { eligibleAfter: Date.now() + 20 * 60 * 1000 } },
+      },
+    });
+
+    render(
+      <WorkspaceTable
+        workspaces={[workspace]}
+        refreshWorkspaces={jest.fn()}
+        rowActions={() => []}
+      />,
+    );
+
+    expect(screen.queryByTestId('activity-warning-indicator')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('activity-critical-indicator')).not.toBeInTheDocument();
+  });
+
+  it('does not show activity indicator for paused workspace', () => {
+    const workspace = buildMockWorkspace({
+      state: V1Beta1WorkspaceState.WorkspaceStatePaused,
+      activity: {
+        lastActivity: Date.now() - 20 * 60 * 1000,
+        lastUpdate: Date.now() - 20 * 60 * 1000,
+        rules: { pauseWorkspace: { eligibleAfter: Date.now() + 3 * 60 * 1000 } },
+      },
+    });
+
+    render(
+      <WorkspaceTable
+        workspaces={[workspace]}
+        refreshWorkspaces={jest.fn()}
+        rowActions={() => []}
+      />,
+    );
+
+    expect(screen.queryByTestId('activity-warning-indicator')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('activity-critical-indicator')).not.toBeInTheDocument();
+  });
+
+  it('does not show activity indicator for workspace without activity rules', () => {
+    const workspace = buildMockWorkspaceNoActivityRules();
+
+    render(
+      <WorkspaceTable
+        workspaces={[workspace]}
+        refreshWorkspaces={jest.fn()}
+        rowActions={() => []}
+      />,
+    );
+
+    expect(screen.queryByTestId('activity-warning-indicator')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('activity-critical-indicator')).not.toBeInTheDocument();
   });
 });
