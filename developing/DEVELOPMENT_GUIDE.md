@@ -36,15 +36,16 @@ Kubeflow Notebooks v2 is organized into several key components:
 
 - Overall e2e Tests:
    - __TBA:__ instructions for running e2e tests will be added here once available.
-- Controller:
-   - Unit Tests: `make test`
-   - Integration Tests: `make test-e2e`
-   - Linting: `make lint`
-- Backend:
-   - Unit Tests: `make test`
-   - Linting: `make lint`
-- Frontend:
-   - Unit Tests + Linting: `npm run test`
+- Controller (`workspaces/controller`):
+   - Unit Tests: `make test` (from `workspaces/controller`)
+   - Integration Tests: `make test-e2e` (from `workspaces/controller`)
+   - Gateway API Integration Tests: `make test-e2e-gateway-api` (from `developing`)
+   - Linting: `make lint` (from `workspaces/controller`)
+- Backend (`workspaces/backend`):
+   - Unit Tests: `make test` (from `workspaces/backend`)
+   - Linting: `make lint` (from `workspaces/backend`)
+- Frontend (`workspaces/frontend`):
+   - Unit Tests + Linting: `npm run test` (from `workspaces/frontend`)
 
 ### STEP 4 - Submit a pull request
 
@@ -108,13 +109,16 @@ You can now start developing with Tilt by following these steps:
 # (from the root of the repository)
 cd developing
 
-# OPTION 1: run with the frontend enabled (default)
+# OPTION 1: run with Istio (default)
 make tilt-up
 
-# OPTION 2: run with prometheus metrics enabled
+# OPTION 2: run with Gateway API (cloud-provider-kind)
+make tilt-up-gateway-api
+
+# OPTION 3: run with prometheus metrics enabled
 ENABLE_PROMETHEUS=true make tilt-up
 
-# OPTION 3: run with metrics-server enabled (kubectl top verification)
+# OPTION 4: run with metrics-server enabled (kubectl top verification)
 ENABLE_METRICS_SERVER=true make tilt-up
 ```
 
