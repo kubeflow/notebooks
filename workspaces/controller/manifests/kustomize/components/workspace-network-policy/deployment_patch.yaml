@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workspaces-controller
+spec:
+  template:
+    spec:
+      containers:
+      - name: manager
+        env:
+        - name: WORKSPACE_NETWORK_POLICY
+          valueFrom:
+            configMapKeyRef:
+              name: kubeflow-workspaces-network-policy-config
+              key: WORKSPACE_NETWORK_POLICY
+        - name: WORKSPACE_NETWORK_POLICY_INGRESS_NAMESPACE
+          valueFrom:
+            configMapKeyRef:
+              name: kubeflow-workspaces-network-policy-config
+              key: WORKSPACE_NETWORK_POLICY_INGRESS_NAMESPACE
+        - name: WORKSPACE_NETWORK_POLICY_INGRESS_POD_SELECTOR
+          valueFrom:
+            configMapKeyRef:
+              name: kubeflow-workspaces-network-policy-config
+              key: WORKSPACE_NETWORK_POLICY_INGRESS_POD_SELECTOR

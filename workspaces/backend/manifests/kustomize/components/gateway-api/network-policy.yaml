@@ -1,0 +1,38 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: workspaces-backend
+spec:
+  podSelector:
+    matchLabels:
+      app: workspaces-backend
+      app.kubernetes.io/component: api
+  ingress:
+    - from:
+        ## Only the gateway proxy may reach the backend. Narrowing this to the
+        ## gateway's pods matters because the backend trusts the identity header
+        ## its caller sets, so anything that can reach this port can assert any
+        ## identity.
+        ##
+        ## `gateway.networking.k8s.io/gateway-name` is the conventional label
+        ## implementations put on the proxy they generate for a Gateway. Adjust
+        ## the selector if your implementation labels its pods differently,
+        ## otherwise no traffic will reach the backend.
+        - namespaceSelector:
+            matchExpressions:
+              - key: kubernetes.io/metadata.name
+                operator: In
+                values:
+                  - kubeflow
+          podSelector:
+            ## matchExpressions, not matchLabels: kustomize's `labels` transformer
+            ## runs with includeSelectors and would inject this component's own
+            ## labels into a matchLabels here, leaving a selector that matches
+            ## nothing and silently blocking all traffic.
+            matchExpressions:
+              - key: gateway.networking.k8s.io/gateway-name
+                operator: In
+                values:
+                  - kubeflow-gateway
+  policyTypes:
+    - Ingress

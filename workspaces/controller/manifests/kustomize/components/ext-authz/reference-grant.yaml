@@ -1,0 +1,31 @@
+# Allows workspace HTTPRoutes to reference the backend's authorization endpoint
+# across namespaces.
+#
+# Workspace routes are generated in each tenant namespace, and their
+# ExternalAuth filter references the workspaces-backend Service here. Gateway
+# API requires that cross-namespace reference to be accepted by a ReferenceGrant
+# in the target namespace, and `from.namespace` is a required field with no
+# wildcard: every tenant namespace must be listed.
+#
+# Add one `from` entry per tenant namespace when provisioning it, alongside the
+# RoleBinding that grants the user access. A missing entry fails closed: the
+# route is rejected by the gateway rather than served without authorization.
+#
+# The entries below cover the namespaces used by the local development
+# environment and the e2e suite.
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: workspaces-ext-authz
+spec:
+  from:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    namespace: default
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    namespace: workspace-test
+  to:
+  - group: ""
+    kind: Service
+    name: workspaces-backend
