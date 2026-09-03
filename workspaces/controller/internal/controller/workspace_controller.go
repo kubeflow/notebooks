@@ -49,6 +49,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/config"
@@ -136,6 +137,7 @@ type WorkspaceReconciler struct {
 // +kubebuilder:rbac:groups=core,resources=services,verbs=create;delete;get;list;patch;update;watch
 // +kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=create;delete;get;list;patch;update;watch
 // +kubebuilder:rbac:groups=networking.istio.io,resources=virtualservices,verbs=create;delete;get;list;patch;update;watch
+// +kubebuilder:rbac:groups=gateway.networking.k8s.io,resources=httproutes,verbs=create;delete;get;list;patch;update;watch
 // +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs=create;delete;get;list;patch;update;watch
 //
 // NOTE: "bind" is an intentional privilege grant. Kubernetes refuses to create a RoleBinding unless
@@ -468,7 +470,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		service = foundService
 	}
 
-	if r.Config.UseIstio {
+	if r.Config.UseIstio || r.Config.RoutingProvider == config.RoutingProviderIstio {
 		// generate VirtualService
 		virtualsvc, err := r.generateVirtualService(workspace, workspaceKind, service, currentImageConfig.Spec)
 		if err != nil {
@@ -535,6 +537,13 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// reconcile RoleBindings
+	// reconcile the Gateway API HTTPRoute (only when Gateway API routing is enabled)
+	if r.Config.RoutingProvider == config.RoutingProviderGatewayAPI {
+		if result, done, err := r.reconcileHTTPRoute(ctx, log, workspace, workspaceKind, service, currentImageConfig.Spec); done {
+			return result, err
+		}
+	}
+
 	if err := r.reconcileRoleBindings(ctx, log, workspace, workspaceKind, serviceAccountName); err != nil {
 		// NOTE: `reconcileRoleBindings()` has already logged the cause, including the conflict case
 		return ctrl.Result{}, err
@@ -654,9 +663,11 @@ func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager, opts *controlle
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&rbacv1.RoleBinding{})
 
-	if r.Config.UseIstio {
-
+	if r.Config.UseIstio || r.Config.RoutingProvider == config.RoutingProviderIstio {
 		controllerBuilder = controllerBuilder.Owns(&istiov1.VirtualService{})
+	}
+	if r.Config.RoutingProvider == config.RoutingProviderGatewayAPI {
+		controllerBuilder = controllerBuilder.Owns(&gatewayv1.HTTPRoute{})
 	}
 
 	return controllerBuilder.

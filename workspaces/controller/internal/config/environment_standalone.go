@@ -16,16 +16,13 @@ limitations under the License.
 
 package config
 
-type EnvConfig struct {
-	IstioGateway  string
-	IstioHosts    string
-	ClusterDomain string
-	UseIstio      bool
-	ClientQPS     float64
-	ClientBurst   int
+// RoutingProviderType selects which API the controller uses to publish
+// workspace routes. The default is "none"; Istio deployments may keep using
+// the legacy UseIstio flag instead.
+type RoutingProviderType string
 
-	// standalone deployment options (see environment_standalone.go)
-	RoutingProvider RoutingProviderType
-	GatewayName     string
-	GatewayHosts    string
-}
+const (
+	RoutingProviderNone       RoutingProviderType = "none"
+	RoutingProviderIstio      RoutingProviderType = "istio"
+	RoutingProviderGatewayAPI RoutingProviderType = "gateway-api"
+)
