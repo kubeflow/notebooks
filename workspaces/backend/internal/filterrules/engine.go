@@ -119,16 +119,46 @@ func Evaluate(target EvalTarget, evalCtx EvalContext) EvalResult {
 	return EvalResult{Restrictions: common.DefaultRestrictions()}
 }
 
-// BuildEvalContext resolves the request-scoped inputs shared across all filter rule evaluations.
+// workspaceKindScopes is the scope set for endpoints that evaluate only WORKSPACE_KIND rules.
+var workspaceKindScopes = map[kubefloworgv1beta1.FilterRuleScope]bool{
+	kubefloworgv1beta1.FilterRuleScopeWorkspaceKind: true,
+}
+
+// imageAndPodConfigScopes is the scope set for the /listvalues API, which evaluates only
+// IMAGE_CONFIG and POD_CONFIG rules.
+var imageAndPodConfigScopes = map[kubefloworgv1beta1.FilterRuleScope]bool{
+	kubefloworgv1beta1.FilterRuleScopeImageConfig: true,
+	kubefloworgv1beta1.FilterRuleScopePodConfig:   true,
+}
+
+// EvaluateWorkspaceKindFilterScopeRule evaluates the WorkspaceKind's WORKSPACE_KIND-scoped filter
+// rules against the given namespace labels, using first-match-wins semantics.
+//
+// namespaceLabels is nil when no namespaceFilter was provided; matchNamespace conditions are then
+// non-matching, so the non-restrictive default is returned (nothing hidden or denied).
+func EvaluateWorkspaceKindFilterScopeRule(wsk *kubefloworgv1beta1.WorkspaceKind, namespaceLabels map[string]string) EvalResult {
+	evalCtx := buildEvalContext(wsk, namespaceLabels, workspaceKindScopes, "", "")
+	return Evaluate(EvalTarget{Scope: kubefloworgv1beta1.FilterRuleScopeWorkspaceKind}, evalCtx)
+}
+
+// BuildEvalContextForImageAndPodCfg builds an EvalContext for the /listvalues API, which only
+// evaluates IMAGE_CONFIG and POD_CONFIG scoped rules.
+func BuildEvalContextForImageAndPodCfg(wsk *kubefloworgv1beta1.WorkspaceKind, namespaceLabels map[string]string, imageConfigID, podConfigID string) EvalContext {
+	return buildEvalContext(wsk, namespaceLabels, imageAndPodConfigScopes, imageConfigID, podConfigID)
+}
+
+// buildEvalContext resolves the request-scoped inputs shared across all filter rule evaluations,
+// compiling only the rules whose scope is in scopes (so each endpoint evaluates just the scopes
+// it cares about).
 //
 // namespaceLabels are passed through as-is (nil when no namespace context was provided). The
 // imageConfig/podConfig labels are resolved from the `spawner.labels` of the value selected via
 // `context.imageConfig.id` / `context.podConfig.id`, enabling cross-option matching. They remain
 // nil when the corresponding context id is empty or does not match any value.
-func BuildEvalContext(wsk *kubefloworgv1beta1.WorkspaceKind, namespaceLabels map[string]string, imageConfigID, podConfigID string) EvalContext {
+func buildEvalContext(wsk *kubefloworgv1beta1.WorkspaceKind, namespaceLabels map[string]string, scopes map[kubefloworgv1beta1.FilterRuleScope]bool, imageConfigID, podConfigID string) EvalContext {
 	evalCtx := EvalContext{
 		NamespaceLabels: namespaceLabels,
-		compiledRules:   compileRules(wsk.Spec.FilterRules),
+		compiledRules:   compileRules(filterRulesByScope(wsk.Spec.FilterRules, scopes)),
 	}
 
 	if imageConfigID != "" {
@@ -152,6 +182,17 @@ func BuildEvalContext(wsk *kubefloworgv1beta1.WorkspaceKind, namespaceLabels map
 	}
 
 	return evalCtx
+}
+
+// filterRulesByScope returns the subset of rules whose scope is in scopes.
+func filterRulesByScope(rules []kubefloworgv1beta1.FilterRule, scopes map[kubefloworgv1beta1.FilterRuleScope]bool) []kubefloworgv1beta1.FilterRule {
+	filtered := make([]kubefloworgv1beta1.FilterRule, 0, len(rules))
+	for _, rule := range rules {
+		if scopes[rule.Scope] {
+			filtered = append(filtered, rule)
+		}
+	}
+	return filtered
 }
 
 // compileRules pre-compiles the label selector of every match condition in the given rules,

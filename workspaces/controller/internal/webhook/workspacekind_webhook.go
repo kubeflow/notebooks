@@ -706,13 +706,13 @@ func validateFilterRules(workspaceKind *kubefloworgv1beta1.WorkspaceKind) []*fie
 			}
 			if match.MatchImageConfig != nil {
 				if rule.Scope == kubefloworgv1beta1.FilterRuleScopeWorkspaceKind {
-					errs = append(errs, field.Invalid(conditionPath.Child("matchImageConfig"), match.MatchImageConfig, "'matchImageConfig' is only valid when 'scope' is 'POD_CONFIG' or 'IMAGE_CONFIG'"))
+					errs = append(errs, field.Invalid(conditionPath.Child("matchImageConfig"), "", "'matchImageConfig' is only valid when 'scope' is 'POD_CONFIG' or 'IMAGE_CONFIG'"))
 				}
 				errs = append(errs, v1validation.ValidateLabelSelector(&match.MatchImageConfig.Selector, selectorOpts, conditionPath.Child("matchImageConfig", "selector"))...)
 			}
 			if match.MatchPodConfig != nil {
 				if rule.Scope == kubefloworgv1beta1.FilterRuleScopeWorkspaceKind {
-					errs = append(errs, field.Invalid(conditionPath.Child("matchPodConfig"), match.MatchPodConfig, "'matchPodConfig' is only valid when 'scope' is 'POD_CONFIG' or 'IMAGE_CONFIG'"))
+					errs = append(errs, field.Invalid(conditionPath.Child("matchPodConfig"), "", "'matchPodConfig' is only valid when 'scope' is 'POD_CONFIG' or 'IMAGE_CONFIG'"))
 				}
 				errs = append(errs, v1validation.ValidateLabelSelector(&match.MatchPodConfig.Selector, selectorOpts, conditionPath.Child("matchPodConfig", "selector"))...)
 			}
