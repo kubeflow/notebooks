@@ -21,3 +21,4 @@ tolerations
 podtemplate
 listvalues
 cuda
+rstudio
