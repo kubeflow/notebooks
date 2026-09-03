@@ -29,6 +29,8 @@ import (
 // after flag.Parse.
 type standaloneFlags struct {
 	routingProvider          string
+	externalAuthBackendPort  int
+	externalAuthProtocol     string
 	networkPolicyPodSelector string
 }
 
@@ -44,6 +46,21 @@ func registerStandaloneFlags(cfg *config.EnvConfig) *standaloneFlags {
 		"The name of the Gateway API Gateway to use")
 	flag.StringVar(&cfg.GatewayHosts, "gateway-hosts", getEnvAsStr("GATEWAY_HOSTS", "*"),
 		"The hosts to use for the Gateway API HTTPRoute")
+	flag.StringVar(&cfg.ExternalAuth.BackendName, "external-auth-backend-name",
+		getEnvAsStr("EXTERNAL_AUTH_BACKEND_NAME", ""),
+		"Name of the Service implementing external authorization; if empty, generated routes carry no ExternalAuth filter")
+	flag.StringVar(&cfg.ExternalAuth.BackendNamespace, "external-auth-backend-namespace",
+		getEnvAsStr("EXTERNAL_AUTH_BACKEND_NAMESPACE", ""),
+		"Namespace of the external authorization Service; needs a ReferenceGrant when it is not the workspace namespace")
+	flag.IntVar(&f.externalAuthBackendPort, "external-auth-backend-port",
+		getEnvAsInt("EXTERNAL_AUTH_BACKEND_PORT", 9001),
+		"Port of the external authorization Service")
+	flag.StringVar(&f.externalAuthProtocol, "external-auth-protocol",
+		getEnvAsStr("EXTERNAL_AUTH_PROTOCOL", string(config.ExternalAuthProtocolGRPC)),
+		"Protocol used to call the external authorization Service (GRPC or HTTP)")
+	flag.StringVar(&cfg.ExternalAuth.HTTPPath, "external-auth-http-path",
+		getEnvAsStr("EXTERNAL_AUTH_HTTP_PATH", ""),
+		"Path prefix prepended when calling an HTTP external authorization Service")
 	flag.BoolVar(&cfg.WorkspaceNetworkPolicy.Enabled, "workspace-network-policy",
 		getEnvAsBool("WORKSPACE_NETWORK_POLICY", false),
 		"If set, generate a NetworkPolicy per workspace restricting ingress to the routing layer")
@@ -66,7 +83,37 @@ func resolveStandaloneConfig(cfg *config.EnvConfig, f *standaloneFlags) error {
 		return fmt.Errorf("routing provider must be %q, %q or %q, got %q",
 			config.RoutingProviderNone, config.RoutingProviderIstio, config.RoutingProviderGatewayAPI, f.routingProvider)
 	}
+	cfg.ExternalAuth.BackendPort = int32(f.externalAuthBackendPort) //nolint:gosec // bounded by validateExternalAuth
+	cfg.ExternalAuth.Protocol = config.ExternalAuthProtocolType(f.externalAuthProtocol)
+
+	if err := validateExternalAuth(cfg); err != nil {
+		return err
+	}
 	return parseWorkspaceNetworkPolicy(cfg, f.networkPolicyPodSelector)
+}
+
+// validateExternalAuth rejects a partial or nonsensical external authorization
+// setup at startup, rather than emitting HTTPRoutes the data plane will refuse.
+func validateExternalAuth(cfg *config.EnvConfig) error {
+	if !cfg.ExternalAuth.Enabled() {
+		return nil
+	}
+
+	if cfg.RoutingProvider != config.RoutingProviderGatewayAPI {
+		return fmt.Errorf("external authorization requires the %q routing provider, got %q",
+			config.RoutingProviderGatewayAPI, cfg.RoutingProvider)
+	}
+	if cfg.ExternalAuth.BackendPort < 1 || cfg.ExternalAuth.BackendPort > 65535 {
+		return fmt.Errorf("external authorization backend port %d is out of range", cfg.ExternalAuth.BackendPort)
+	}
+	switch cfg.ExternalAuth.Protocol {
+	case config.ExternalAuthProtocolGRPC, config.ExternalAuthProtocolHTTP:
+	default:
+		return fmt.Errorf("external authorization protocol must be %q or %q, got %q",
+			config.ExternalAuthProtocolGRPC, config.ExternalAuthProtocolHTTP, cfg.ExternalAuth.Protocol)
+	}
+
+	return nil
 }
 
 // parseWorkspaceNetworkPolicy resolves the pod selector and rejects a policy

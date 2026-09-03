@@ -27,6 +27,37 @@ const (
 	RoutingProviderGatewayAPI RoutingProviderType = "gateway-api"
 )
 
+// ExternalAuthProtocolType is the protocol the Gateway API ExternalAuth filter
+// uses to talk to the authorization service.
+type ExternalAuthProtocolType string
+
+const (
+	ExternalAuthProtocolGRPC ExternalAuthProtocolType = "GRPC"
+	ExternalAuthProtocolHTTP ExternalAuthProtocolType = "HTTP"
+)
+
+// ExternalAuthConfig points generated HTTPRoutes at an external authorization
+// service, using the ExternalAuth filter from GEP-1494.
+//
+// Workspace routes are proxied straight to a notebook pod, so without this
+// filter nothing authenticates or authorizes a request before it reaches the
+// workspace. An empty BackendName disables the filter.
+type ExternalAuthConfig struct {
+	BackendName      string
+	BackendNamespace string
+	BackendPort      int32
+	Protocol         ExternalAuthProtocolType
+
+	// HTTPPath is the prefix the data plane prepends to the request path when
+	// calling an HTTP authorization service. Ignored for GRPC.
+	HTTPPath string
+}
+
+// Enabled reports whether generated routes should carry the ExternalAuth filter.
+func (c ExternalAuthConfig) Enabled() bool {
+	return c.BackendName != ""
+}
+
 // WorkspaceNetworkPolicyConfig restricts which pods may reach a workspace pod.
 //
 // Workspace pods serve an unauthenticated notebook, so without this any pod in
