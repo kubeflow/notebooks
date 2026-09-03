@@ -5,3 +5,6 @@
 *.so
 *.dylib
 bin/*
+
+# Tilt-generated scratch files
+.tilt-tmp/

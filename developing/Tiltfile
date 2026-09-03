@@ -51,9 +51,32 @@ else:
     controller_kustomize_path = os.path.join(controller_dir, "manifests/kustomize/overlays/istio")
 manifests = kustomize(controller_kustomize_path, kustomize_bin=kustomize_bin)
 
-# Apply manifests
+# Split CRDs from controller manifests for server-side apply.
+# The WorkspaceKinds CRD (~316K) exceeds the 262KB last-applied-configuration
+# annotation limit for client-side apply, so CRDs must use server-side apply.
+controller_objects = decode_yaml_stream(manifests)
+controller_crds = [o for o in controller_objects if o.get("kind") == "CustomResourceDefinition"]
+controller_non_crds = [o for o in controller_objects if o.get("kind") != "CustomResourceDefinition"]
+
+# Write CRDs to a scratch file for kubectl to apply.
+# This file is regenerated each time the Tiltfile re-evaluates (triggered by
+# kustomize() watching the manifests directory for changes).
+if controller_crds:
+    local("mkdir -p .tilt-tmp", quiet=True)
+    local("cat > .tilt-tmp/crds.yaml", stdin=encode_yaml_stream(controller_crds), quiet=True)
+
+# Apply CRDs via server-side apply and wait for establishment.
+local_resource(
+    "apply-crds",
+    cmd="kubectl apply --server-side --force-conflicts -f .tilt-tmp/crds.yaml"
+        + " && kubectl wait --for=condition=Established crd --all --timeout=60s",
+    deps=[".tilt-tmp/crds.yaml"],
+    labels=["controller"],
+)
+
+# Apply non-CRD controller resources via standard k8s_yaml
 # NOTE: allow_duplicates=True because namespace may be defined by multiple overlays
-k8s_yaml(manifests, allow_duplicates=True)
+k8s_yaml(encode_yaml_stream(controller_non_crds), allow_duplicates=True)
 
 # Manage k8s_yaml resources
 # - Apply Tilt-specific grouping/labels
@@ -64,6 +87,7 @@ k8s_resource(
       "8080:8080", # healthz
       "8081:8081", # metrics
     ],
+    resource_deps=["apply-crds"],
     labels=["controller"],
 )
 
