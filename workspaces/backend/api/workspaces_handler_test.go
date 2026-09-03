@@ -645,6 +645,15 @@ var _ = Describe("Workspaces Handler", func() {
 							{Key: "restricted", Value: "true"},
 						},
 					},
+					Spec: kubefloworgv1beta1.ImageConfigSpec{
+						Image: "ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.8.0",
+						Ports: []kubefloworgv1beta1.ImagePort{
+							{
+								Id:   "jupyterlab",
+								Port: 8888,
+							},
+						},
+					},
 				},
 			)
 
@@ -658,6 +667,7 @@ var _ = Describe("Workspaces Handler", func() {
 							{Key: "restricted", Value: "true"},
 						},
 					},
+					Spec: kubefloworgv1beta1.PodConfigSpec{},
 				},
 			)
 
@@ -674,7 +684,7 @@ var _ = Describe("Workspaces Handler", func() {
 					},
 					Effect: kubefloworgv1beta1.FilterRuleEffect{
 						API: &kubefloworgv1beta1.FilterRuleEffectAPI{
-							Deny: new(bool),
+							Deny: new(true),
 							DenyMessage: &kubefloworgv1beta1.FilterRuleDenyMessage{
 								Text: "this image is restricted by admin policy",
 							},
@@ -692,7 +702,7 @@ var _ = Describe("Workspaces Handler", func() {
 					},
 					Effect: kubefloworgv1beta1.FilterRuleEffect{
 						API: &kubefloworgv1beta1.FilterRuleEffectAPI{
-							Deny: new(bool),
+							Deny: new(true),
 							DenyMessage: &kubefloworgv1beta1.FilterRuleDenyMessage{
 								Text: "this pod config is restricted by admin policy",
 							},
@@ -801,6 +811,14 @@ var _ = Describe("Workspaces Handler", func() {
 			defer rs.Body.Close()
 
 			Expect(rs.StatusCode).To(Equal(http.StatusCreated), descUnexpectedHTTPStatus, rr.Body.String())
+
+			// Clean up the workspace so it does not leak into Serial tests that assert an empty cluster.
+			DeferCleanup(func() {
+				ws := &kubefloworgv1beta1.Workspace{}
+				if err := k8sClient.Get(ctx, types.NamespacedName{Namespace: namespaceNameFR, Name: "ws-allowed"}, ws); err == nil {
+					Expect(k8sClient.Delete(ctx, ws)).To(Succeed())
+				}
+			})
 		})
 
 		// Update rejected when changing to a restricted imageConfig or podConfig
