@@ -1565,7 +1565,7 @@ func isStatefulSetGenerationObserved(statefulSet *appsv1.StatefulSet) bool {
 		return true
 	}
 
-	return statefulSet.Status.ObservedGeneration >= statefulSet.Generation
+	return statefulSet.Status.ObservedGeneration == statefulSet.Generation
 }
 
 // generateWorkspaceState gets current state and stateMessage for a Workspace
