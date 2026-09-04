@@ -102,6 +102,8 @@ func main() {
 		"QPS configuration passed to the Kubernetes API client (rest.Config).")
 	flag.IntVar(&cfg.ClientBurst, "client-burst", getEnvAsInt("CLIENT_BURST", 100),
 		"Maximum Burst configuration passed to the Kubernetes API client (rest.Config).")
+	flag.BoolVar(&cfg.WatchWarningEvents, "watch-warning-events", getEnvAsBool("WATCH_WARNING_EVENTS", true),
+		"Enable watching Kubernetes Warning Events for owned Pods and StatefulSets.")
 
 	opts := zap.Options{
 		Development: true,
@@ -159,19 +161,23 @@ func main() {
 				},
 			},
 		},
-		Cache: cache.Options{
-			ByObject: map[client.Object]cache.ByObject{
-				&corev1.Event{}: {
-					// Filter at the apiserver/etcd level so only Warning events are streamed & cached.
-					// NOTE: Kubernetes field selectors do not support OR / set membership (e.g.
-					// involvedObject.kind in (Pod, StatefulSet)). Filtering for Pod and StatefulSet
-					// kinds specifically is handled client-side by the controller's event predicate.
-					Field: fields.SelectorFromSet(fields.Set{
-						"type": corev1.EventTypeWarning,
-					}),
-				},
-			},
-		},
+		Cache: func() cache.Options {
+			cacheOpts := cache.Options{}
+			if cfg.WatchWarningEvents {
+				cacheOpts.ByObject = map[client.Object]cache.ByObject{
+					&corev1.Event{}: {
+						// Filter at the apiserver/etcd level so only Warning events are streamed & cached.
+						// NOTE: Kubernetes field selectors do not support OR / set membership (e.g.
+						// involvedObject.kind in (Pod, StatefulSet)). Filtering for Pod and StatefulSet
+						// kinds specifically is handled client-side by the controller's event predicate.
+						Field: fields.SelectorFromSet(fields.Set{
+							"type": corev1.EventTypeWarning,
+						}),
+					},
+				}
+			}
+			return cacheOpts
+		}(),
 		Metrics: metricsserver.Options{
 			BindAddress:   metricsAddr,
 			SecureServing: secureMetrics,

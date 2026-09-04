@@ -129,7 +129,8 @@ var _ = BeforeSuite(func() {
 	envConfig := &config.EnvConfig{
 		// TODO: make true once we install Istio CRDs in EnvTest.
 		//       also create unit tests to ensure VirtualService is created by controller.
-		UseIstio: false,
+		UseIstio:           false,
+		WatchWarningEvents: true,
 	}
 
 	By("setting up the field indexers for the controller manager")

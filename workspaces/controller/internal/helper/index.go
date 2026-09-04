@@ -75,15 +75,17 @@ func indexByWorkspaceOwner(mgr ctrl.Manager, obj client.Object) error {
 // SetupManagerFieldIndexers sets up field indexes on a controller-runtime manager
 func SetupManagerFieldIndexers(mgr ctrl.Manager, cfg *config.EnvConfig) error {
 
-	// Index Event by `involvedObject.uid`
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &corev1.Event{}, IndexEventInvolvedObjectUidField, func(rawObj client.Object) []string {
-		event := rawObj.(*corev1.Event)
-		if event.InvolvedObject.UID == "" {
-			return nil
+	// Index Event by `involvedObject.uid` (only when warning event watching is enabled)
+	if cfg != nil && cfg.WatchWarningEvents {
+		if err := mgr.GetFieldIndexer().IndexField(context.Background(), &corev1.Event{}, IndexEventInvolvedObjectUidField, func(rawObj client.Object) []string {
+			event := rawObj.(*corev1.Event)
+			if event.InvolvedObject.UID == "" {
+				return nil
+			}
+			return []string{string(event.InvolvedObject.UID)}
+		}); err != nil {
+			return err
 		}
-		return []string{string(event.InvolvedObject.UID)}
-	}); err != nil {
-		return err
 	}
 
 	// Index StatefulSet by its owner Workspace
@@ -107,7 +109,7 @@ func SetupManagerFieldIndexers(mgr ctrl.Manager, cfg *config.EnvConfig) error {
 	}
 
 	// Index VirtualService by its owner Workspace (only when Istio is enabled)
-	if cfg.UseIstio {
+	if cfg != nil && cfg.UseIstio {
 		if err := indexByWorkspaceOwner(mgr, &istiov1.VirtualService{}); err != nil {
 			return err
 		}

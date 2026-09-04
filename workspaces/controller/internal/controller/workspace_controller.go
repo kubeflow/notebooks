@@ -659,12 +659,11 @@ func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager, opts *controlle
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&rbacv1.RoleBinding{})
 
-	if r.Config.UseIstio {
-
+	if r.Config != nil && r.Config.UseIstio {
 		controllerBuilder = controllerBuilder.Owns(&istiov1.VirtualService{})
 	}
 
-	return controllerBuilder.
+	controllerBuilder = controllerBuilder.
 		Watches(
 			&kubefloworgv1beta1.WorkspaceKind{},
 			handler.EnqueueRequestsFromMapFunc(r.mapWorkspaceKindToRequest),
@@ -674,13 +673,17 @@ func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager, opts *controlle
 			&corev1.Pod{},
 			handler.EnqueueRequestsFromMapFunc(mapPodToRequest),
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}, predPodHasWSLabel),
-		).
-		Watches(
+		)
+
+	if r.Config != nil && r.Config.WatchWarningEvents {
+		controllerBuilder = controllerBuilder.Watches(
 			&corev1.Event{},
 			handler.EnqueueRequestsFromMapFunc(r.mapEventToRequest),
 			builder.WithPredicates(predWarningEvent),
-		).
-		Complete(r)
+		)
+	}
+
+	return controllerBuilder.Complete(r)
 }
 
 // updateWorkspaceState attempts to immediately update the Workspace status with the provided state and message
@@ -1670,36 +1673,38 @@ func (r *WorkspaceReconciler) generateWorkspaceState(ctx context.Context, log lo
 		}
 
 		// there might be StatefulSet events
-		statefulSetEvents := &corev1.EventList{}
-		listOpts := &client.ListOptions{
-			FieldSelector: fields.OneTermEqualSelector(helper.IndexEventInvolvedObjectUidField, string(statefulSet.UID)),
-			Namespace:     statefulSet.Namespace,
-		}
-		if err := r.List(ctx, statefulSetEvents, listOpts); err != nil {
-			log.Error(err, "unable to list StatefulSet events")
-			return state, stateMessage, ctrl.Result{}, err
-		}
+		if r.Config != nil && r.Config.WatchWarningEvents {
+			statefulSetEvents := &corev1.EventList{}
+			listOpts := &client.ListOptions{
+				FieldSelector: fields.OneTermEqualSelector(helper.IndexEventInvolvedObjectUidField, string(statefulSet.UID)),
+				Namespace:     statefulSet.Namespace,
+			}
+			if err := r.List(ctx, statefulSetEvents, listOpts); err != nil {
+				log.Error(err, "unable to list StatefulSet events")
+				return state, stateMessage, ctrl.Result{}, err
+			}
 
-		// find the last StatefulSet warning event
-		var lastStsWarningEvent *corev1.Event
-		if len(statefulSetEvents.Items) > 0 {
-			for i, event := range statefulSetEvents.Items {
-				if event.Type == corev1.EventTypeWarning {
-					//
-					// TODO: ensure this actually works when there are multiple Warning events for this object
-					//
-					if lastStsWarningEvent == nil || lastStsWarningEvent.LastTimestamp.Time.Before(event.LastTimestamp.Time) {
-						lastStsWarningEvent = &statefulSetEvents.Items[i]
+			// find the last StatefulSet warning event
+			var lastStsWarningEvent *corev1.Event
+			if len(statefulSetEvents.Items) > 0 {
+				for i, event := range statefulSetEvents.Items {
+					if event.Type == corev1.EventTypeWarning {
+						//
+						// TODO: ensure this actually works when there are multiple Warning events for this object
+						//
+						if lastStsWarningEvent == nil || lastStsWarningEvent.LastTimestamp.Time.Before(event.LastTimestamp.Time) {
+							lastStsWarningEvent = &statefulSetEvents.Items[i]
+						}
 					}
 				}
 			}
-		}
 
-		// STATUS: Error (StatefulSet warning event)
-		if lastStsWarningEvent != nil {
-			state = kubefloworgv1beta1.WorkspaceStateError
-			stateMessage = fmt.Sprintf(stateMsgErrorStatefulSetWarningEvent, lastStsWarningEvent.Message)
-			return state, stateMessage, ctrl.Result{}, nil
+			// STATUS: Error (StatefulSet warning event)
+			if lastStsWarningEvent != nil {
+				state = kubefloworgv1beta1.WorkspaceStateError
+				stateMessage = fmt.Sprintf(stateMsgErrorStatefulSetWarningEvent, lastStsWarningEvent.Message)
+				return state, stateMessage, ctrl.Result{}, nil
+			}
 		}
 	}
 
@@ -1786,36 +1791,38 @@ func (r *WorkspaceReconciler) generateWorkspaceState(ctx context.Context, log lo
 		}
 
 		// there might be Pod events (e.g. for missing volumes)
-		podEvents := &corev1.EventList{}
-		listOpts := &client.ListOptions{
-			FieldSelector: fields.OneTermEqualSelector(helper.IndexEventInvolvedObjectUidField, string(pod.UID)),
-			Namespace:     pod.Namespace,
-		}
-		if err := r.List(ctx, podEvents, listOpts); err != nil {
-			log.Error(err, "unable to list Pod events")
-			return state, stateMessage, ctrl.Result{}, err
-		}
+		if r.Config != nil && r.Config.WatchWarningEvents {
+			podEvents := &corev1.EventList{}
+			listOpts := &client.ListOptions{
+				FieldSelector: fields.OneTermEqualSelector(helper.IndexEventInvolvedObjectUidField, string(pod.UID)),
+				Namespace:     pod.Namespace,
+			}
+			if err := r.List(ctx, podEvents, listOpts); err != nil {
+				log.Error(err, "unable to list Pod events")
+				return state, stateMessage, ctrl.Result{}, err
+			}
 
-		// find the last Pod warning event
-		var lastPodWarningEvent *corev1.Event
-		if len(podEvents.Items) > 0 {
-			for i, event := range podEvents.Items {
-				if event.Type == corev1.EventTypeWarning {
-					//
-					// TODO: ensure this actually works when there are multiple Warning events for this object
-					//
-					if lastPodWarningEvent == nil || lastPodWarningEvent.LastTimestamp.Time.Before(event.LastTimestamp.Time) {
-						lastPodWarningEvent = &podEvents.Items[i]
+			// find the last Pod warning event
+			var lastPodWarningEvent *corev1.Event
+			if len(podEvents.Items) > 0 {
+				for i, event := range podEvents.Items {
+					if event.Type == corev1.EventTypeWarning {
+						//
+						// TODO: ensure this actually works when there are multiple Warning events for this object
+						//
+						if lastPodWarningEvent == nil || lastPodWarningEvent.LastTimestamp.Time.Before(event.LastTimestamp.Time) {
+							lastPodWarningEvent = &podEvents.Items[i]
+						}
 					}
 				}
 			}
-		}
 
-		// STATUS: Error (Pod warning event)
-		if lastPodWarningEvent != nil {
-			state = kubefloworgv1beta1.WorkspaceStateError
-			stateMessage = fmt.Sprintf(stateMsgErrorPodWarningEvent, lastPodWarningEvent.Message)
-			return state, stateMessage, ctrl.Result{}, nil
+			// STATUS: Error (Pod warning event)
+			if lastPodWarningEvent != nil {
+				state = kubefloworgv1beta1.WorkspaceStateError
+				stateMessage = fmt.Sprintf(stateMsgErrorPodWarningEvent, lastPodWarningEvent.Message)
+				return state, stateMessage, ctrl.Result{}, nil
+			}
 		}
 
 		// STATUS: Pending

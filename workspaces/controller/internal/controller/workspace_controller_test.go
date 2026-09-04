@@ -1331,4 +1331,157 @@ var _ = Describe("Workspace Controller", func() {
 			}, timeout, interval).Should(Succeed())
 		})
 	})
+
+	Context("When evaluating Workspace state with WatchWarningEvents configuration", func() {
+		var (
+			reconcilerDisabled *WorkspaceReconciler
+			reconcilerEnabled  *WorkspaceReconciler
+			reconcilerNilCfg   *WorkspaceReconciler
+			testSts            *appsv1.StatefulSet
+			testPod            *corev1.Pod
+			stsUID             types.UID
+			podUID             types.UID
+			podWarningMsg      string
+			stsWarningMsg      string
+			podWarningEvent    *corev1.Event
+			stsWarningEvent    *corev1.Event
+		)
+
+		BeforeEach(func() {
+			reconcilerDisabled = &WorkspaceReconciler{
+				Client: k8sManager.GetClient(),
+				Scheme: k8sManager.GetScheme(),
+				Config: &config.EnvConfig{WatchWarningEvents: false},
+			}
+			reconcilerEnabled = &WorkspaceReconciler{
+				Client: k8sManager.GetClient(),
+				Scheme: k8sManager.GetScheme(),
+				Config: &config.EnvConfig{WatchWarningEvents: true},
+			}
+			reconcilerNilCfg = &WorkspaceReconciler{
+				Client: k8sManager.GetClient(),
+				Scheme: k8sManager.GetScheme(),
+				Config: nil,
+			}
+
+			stsUID = types.UID(fmt.Sprintf("sts-uid-%d", time.Now().UnixNano()))
+			podUID = types.UID(fmt.Sprintf("pod-uid-%d", time.Now().UnixNano()))
+
+			testSts = &appsv1.StatefulSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-sts-eval",
+					Namespace: namespaceName,
+					UID:       stsUID,
+				},
+			}
+			testPod = &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-pod-eval-0",
+					Namespace: namespaceName,
+					UID:       podUID,
+				},
+				Status: corev1.PodStatus{
+					Phase: corev1.PodPending,
+				},
+			}
+
+			podWarningMsg = fmt.Sprintf("pod warning msg %d", time.Now().UnixNano())
+			podWarningEvent = &corev1.Event{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("pod-eval-warning-%d", time.Now().UnixNano()),
+					Namespace: namespaceName,
+				},
+				InvolvedObject: corev1.ObjectReference{
+					Kind:      "Pod",
+					Name:      testPod.Name,
+					Namespace: namespaceName,
+					UID:       podUID,
+				},
+				Type:          corev1.EventTypeWarning,
+				Reason:        "FailedMount",
+				Message:       podWarningMsg,
+				LastTimestamp: metav1.Now(),
+			}
+			Expect(k8sClient.Create(ctx, podWarningEvent)).To(Succeed())
+
+			stsWarningMsg = fmt.Sprintf("sts warning msg %d", time.Now().UnixNano())
+			stsWarningEvent = &corev1.Event{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("sts-eval-warning-%d", time.Now().UnixNano()),
+					Namespace: namespaceName,
+				},
+				InvolvedObject: corev1.ObjectReference{
+					Kind:      "StatefulSet",
+					Name:      testSts.Name,
+					Namespace: namespaceName,
+					UID:       stsUID,
+				},
+				Type:          corev1.EventTypeWarning,
+				Reason:        "FailedCreate",
+				Message:       stsWarningMsg,
+				LastTimestamp: metav1.Now(),
+			}
+			Expect(k8sClient.Create(ctx, stsWarningEvent)).To(Succeed())
+		})
+
+		AfterEach(func() {
+			if podWarningEvent != nil {
+				_ = k8sClient.Delete(ctx, podWarningEvent)
+			}
+			if stsWarningEvent != nil {
+				_ = k8sClient.Delete(ctx, stsWarningEvent)
+			}
+		})
+
+		It("should ignore warning events and return Pending when WatchWarningEvents is false", func() {
+			state, msg, result, err := reconcilerDisabled.generateWorkspaceState(
+				ctx, logf.Log, false, testSts, testPod,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStatePending))
+			Expect(msg).To(Equal(stateMsgPending))
+			Expect(result.RequeueAfter).To(Equal(15 * time.Second))
+		})
+
+		It("should ignore warning events and return Unknown when WatchWarningEvents is false and pod is nil", func() {
+			state, msg, _, err := reconcilerDisabled.generateWorkspaceState(
+				ctx, logf.Log, false, testSts, nil,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateUnknown))
+			Expect(msg).To(Equal(stateMsgUnknown))
+		})
+
+		It("should ignore warning events when Config is nil", func() {
+			state, msg, result, err := reconcilerNilCfg.generateWorkspaceState(
+				ctx, logf.Log, false, testSts, testPod,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStatePending))
+			Expect(msg).To(Equal(stateMsgPending))
+			Expect(result.RequeueAfter).To(Equal(15 * time.Second))
+		})
+
+		It("should detect pod warning event and return Error when WatchWarningEvents is true", func() {
+			Eventually(func(g Gomega) {
+				state, msg, _, err := reconcilerEnabled.generateWorkspaceState(
+					ctx, logf.Log, false, testSts, testPod,
+				)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateError))
+				g.Expect(msg).To(ContainSubstring(podWarningMsg))
+			}, timeout, interval).Should(Succeed())
+		})
+
+		It("should detect statefulset warning event and return Error when WatchWarningEvents is true", func() {
+			Eventually(func(g Gomega) {
+				state, msg, _, err := reconcilerEnabled.generateWorkspaceState(
+					ctx, logf.Log, false, testSts, nil,
+				)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateError))
+				g.Expect(msg).To(ContainSubstring(stsWarningMsg))
+			}, timeout, interval).Should(Succeed())
+		})
+	})
 })
