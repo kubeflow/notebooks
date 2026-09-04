@@ -17,10 +17,11 @@ limitations under the License.
 package config
 
 type EnvConfig struct {
-	IstioGateway  string
-	IstioHosts    string
-	ClusterDomain string
-	UseIstio      bool
-	ClientQPS     float64
-	ClientBurst   int
+	IstioGateway       string
+	IstioHosts         string
+	ClusterDomain      string
+	UseIstio           bool
+	WatchWarningEvents bool
+	ClientQPS          float64
+	ClientBurst        int
 }
