@@ -1,0 +1,75 @@
+# Dev hotfix: allow ingress-gateway traffic into every Profile namespace.
+#
+# The kubeflow/dashboard profile-controller stamps every Profile namespace with
+# `istio-injection: enabled` and an `ns-owner-access-istio` AuthorizationPolicy
+# that only admits ingress-gateway requests carrying a matching
+# `kubeflow-userid` header. In a full Kubeflow install oauth2-proxy injects that
+# header; this dev stack has no such proxy, so workspace-connect requests reach
+# the workspace pod's sidecar header-less and are denied with
+# "RBAC: access denied" (HTTP 403).
+#
+# Istio ALLOW semantics: when a workload has any ALLOW policy, a request is
+# permitted if it matches *at least one* ALLOW rule across all of them. Each
+# policy below widens access to admit anything coming from the ingress gateway,
+# without touching `ns-owner-access-istio` (which the profile-controller
+# reconciles back if edited). No path/selector scoping on purpose: workspace
+# kinds with `removePathPrefix: true` (e.g. RStudio) have their URI rewritten to
+# "/" before the sidecar sees it, so a path filter would silently miss them.
+#
+# One policy per Profile namespace: workspaces can be created in any of them via
+# the dashboard's namespace switcher, so all must be reachable. Keep this list in
+# sync with `developing/manifests/profiles/kustomization.yaml`.
+#
+# TODO: remove once the dev stack deploys the full auth setup (oauth2-proxy),
+#       which will supply the `kubeflow-userid` header the owner policy expects.
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: dev-allow-ingressgateway
+  namespace: example-profile-1
+spec:
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: dev-allow-ingressgateway
+  namespace: example-profile-2
+spec:
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: dev-allow-ingressgateway
+  namespace: example-profile-3
+spec:
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: dev-allow-ingressgateway
+  namespace: example-profile-4
+spec:
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account
