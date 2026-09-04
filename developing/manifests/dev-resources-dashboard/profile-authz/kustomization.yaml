@@ -1,0 +1,7 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# NOTE: no `namespace:` transformer here on purpose — each AuthorizationPolicy
+#       targets its own Profile namespace explicitly.
+resources:
+  - authorizationpolicy.yaml
