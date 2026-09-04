@@ -37,7 +37,6 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -631,10 +630,8 @@ func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager, opts *controlle
 	mapPodToRequest := func(ctx context.Context, object client.Object) []reconcile.Request {
 		return []reconcile.Request{
 			{
-				NamespacedName: types.NamespacedName{
-					Name:      object.GetLabels()[workspaceNameLabel],
-					Namespace: object.GetNamespace(),
-				},
+				Name:      object.GetLabels()[workspaceNameLabel],
+				Namespace: object.GetNamespace(),
 			},
 		}
 	}
@@ -708,10 +705,8 @@ func (r *WorkspaceReconciler) mapWorkspaceKindToRequest(ctx context.Context, wor
 	requests := make([]reconcile.Request, len(attachedWorkspaces.Items))
 	for i, item := range attachedWorkspaces.Items {
 		requests[i] = reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Name:      item.GetName(),
-				Namespace: item.GetNamespace(),
-			},
+			Name:      item.GetName(),
+			Namespace: item.GetNamespace(),
 		}
 	}
 	return requests
@@ -852,12 +847,10 @@ func generateServiceAccount(workspace *kubefloworgv1beta1.Workspace) *corev1.Ser
 	// NOTE: if you add new fields, ensure they are reflected in `helper.CopyServiceAccountFields()`
 	//
 	return &corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      generateServiceAccountName(workspace.Name),
-			Namespace: workspace.Namespace,
-			Labels: map[string]string{
-				workspaceNameLabel: workspace.Name,
-			},
+		Name:      generateServiceAccountName(workspace.Name),
+		Namespace: workspace.Namespace,
+		Labels: map[string]string{
+			workspaceNameLabel: workspace.Name,
 		},
 	}
 }
@@ -885,12 +878,10 @@ func generateRoleBinding(workspace *kubefloworgv1beta1.Workspace, serviceAccount
 	// NOTE: if you add new fields, ensure they are reflected in `helper.CopyRoleBindingFields()`
 	//
 	return &rbacv1.RoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      generateRoleBindingName(workspace.Name, clusterRoleName),
-			Namespace: workspace.Namespace,
-			Labels: map[string]string{
-				workspaceNameLabel: workspace.Name,
-			},
+		Name:      generateRoleBindingName(workspace.Name, clusterRoleName),
+		Namespace: workspace.Namespace,
+		Labels: map[string]string{
+			workspaceNameLabel: workspace.Name,
 		},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: rbacv1.GroupName,
@@ -1097,10 +1088,8 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 	if workspace.Spec.PodTemplate.Volumes.Home != nil {
 		homeVolume := corev1.Volume{
 			Name: "home-volume",
-			VolumeSource: corev1.VolumeSource{
-				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: *workspace.Spec.PodTemplate.Volumes.Home,
-				},
+			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+				ClaimName: *workspace.Spec.PodTemplate.Volumes.Home,
 			},
 		}
 		homeVolumeMount := corev1.VolumeMount{
@@ -1117,10 +1106,8 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 	for i, data := range workspace.Spec.PodTemplate.Volumes.Data {
 		dataVolume := corev1.Volume{
 			Name: fmt.Sprintf("data-volume-%d", i),
-			VolumeSource: corev1.VolumeSource{
-				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: data.PVCName,
-				},
+			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+				ClaimName: data.PVCName,
 			},
 		}
 		dataVolumeMount := corev1.VolumeMount{
@@ -1151,11 +1138,9 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 	for i, secret := range workspace.Spec.PodTemplate.Volumes.Secrets {
 		secretVolume := corev1.Volume{
 			Name: fmt.Sprintf("secret-volume-%d", i),
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName:  secret.SecretName,
-					DefaultMode: &secret.DefaultMode,
-				},
+			Secret: &corev1.SecretVolumeSource{
+				SecretName:  secret.SecretName,
+				DefaultMode: &secret.DefaultMode,
 			},
 		}
 		secretVolumeMount := corev1.VolumeMount{
@@ -1203,18 +1188,16 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 
 	// generate StatefulSet
 	statefulSet := &appsv1.StatefulSet{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: namePrefix,
-			Namespace:    workspace.Namespace,
-			Annotations:  stsAnnotations,
-			// NOTE: the controller-managed labels take precedence over the admin-provided ones
-			Labels: labels.Merge(
-				stsLabels,
-				map[string]string{
-					workspaceNameLabel: workspace.Name,
-				},
-			),
-		},
+		GenerateName: namePrefix,
+		Namespace:    workspace.Namespace,
+		Annotations:  stsAnnotations,
+		// NOTE: the controller-managed labels take precedence over the admin-provided ones
+		Labels: labels.Merge(
+			stsLabels,
+			map[string]string{
+				workspaceNameLabel: workspace.Name,
+			},
+		),
 		//
 		// NOTE: if you add new fields, ensure they are reflected in `helper.CopyStatefulSetFields()`
 		//
@@ -1291,12 +1274,10 @@ func generateService(workspace *kubefloworgv1beta1.Workspace, imageConfigSpec ku
 
 	// generate Service
 	service := &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: namePrefix,
-			Namespace:    workspace.Namespace,
-			Labels: map[string]string{
-				workspaceNameLabel: workspace.Name,
-			},
+		GenerateName: namePrefix,
+		Namespace:    workspace.Namespace,
+		Labels: map[string]string{
+			workspaceNameLabel: workspace.Name,
 		},
 		//
 		// NOTE: if you add new fields, ensure they are reflected in `helper.CopyServiceFields()`
@@ -1446,12 +1427,10 @@ func (r *WorkspaceReconciler) generateVirtualService(workspace *kubefloworgv1bet
 	}
 
 	virtualService := &istiov1.VirtualService{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: namePrefix,
-			Namespace:    workspace.Namespace,
-			Labels: map[string]string{
-				workspaceNameLabel: workspace.Name,
-			},
+		GenerateName: namePrefix,
+		Namespace:    workspace.Namespace,
+		Labels: map[string]string{
+			workspaceNameLabel: workspace.Name,
 		},
 		Spec: networkingv1.VirtualService{
 			Gateways: []string{r.Config.IstioGateway},

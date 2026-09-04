@@ -65,7 +65,7 @@ func spawnerLabelSlice(m map[string]string) []kubefloworgv1beta1.OptionSpawnerLa
 // newWorkspaceKind builds a minimal WorkspaceKind with the given image/pod config values and filter rules.
 func newWorkspaceKind(images []kubefloworgv1beta1.ImageConfigValue, pods []kubefloworgv1beta1.PodConfigValue, rules []kubefloworgv1beta1.FilterRule) *kubefloworgv1beta1.WorkspaceKind {
 	return &kubefloworgv1beta1.WorkspaceKind{
-		ObjectMeta: metav1.ObjectMeta{Name: "test-wsk"},
+		Name: "test-wsk",
 		Spec: kubefloworgv1beta1.WorkspaceKindSpec{
 			PodTemplate: kubefloworgv1beta1.WorkspaceKindPodTemplate{
 				Options: kubefloworgv1beta1.WorkspaceKindPodOptions{

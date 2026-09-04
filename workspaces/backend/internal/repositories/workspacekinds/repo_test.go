@@ -57,7 +57,7 @@ var _ = Describe("WorkspaceKindRepository.GetWorkspaceKinds", func() {
 	// newWSK builds a minimal WorkspaceKind with the given name, admin-set hidden flag, and filterRules.
 	newWSK := func(name string, hidden bool, rules []kubefloworgv1beta1.FilterRule) *kubefloworgv1beta1.WorkspaceKind {
 		return &kubefloworgv1beta1.WorkspaceKind{
-			ObjectMeta: metav1.ObjectMeta{Name: name},
+			Name: name,
 			Spec: kubefloworgv1beta1.WorkspaceKindSpec{
 				Spawner:     kubefloworgv1beta1.WorkspaceKindSpawner{Hidden: new(hidden)},
 				FilterRules: rules,
@@ -97,7 +97,7 @@ var _ = Describe("WorkspaceKindRepository.GetWorkspaceKinds", func() {
 	}
 
 	prodNamespace := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{Name: "prod-ns", Labels: map[string]string{"tier": "prod"}},
+		Name: "prod-ns", Labels: map[string]string{"tier": "prod"},
 	}
 
 	// newRepo builds a repository backed by a fake client seeded with the given objects.

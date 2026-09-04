@@ -26,7 +26,6 @@ import (
 	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -219,13 +218,11 @@ func (r *PVCRepository) CreatePVC(ctx context.Context, actor user.Info, pvcCreat
 
 	// define PVC object from model
 	pvc := &corev1.PersistentVolumeClaim{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      pvcCreate.Name,
-			Namespace: namespace,
-			Labels: map[string]string{
-				modelsCommon.LabelCanMount:  "true",
-				modelsCommon.LabelCanUpdate: "true",
-			},
+		Name:      pvcCreate.Name,
+		Namespace: namespace,
+		Labels: map[string]string{
+			modelsCommon.LabelCanMount:  "true",
+			modelsCommon.LabelCanUpdate: "true",
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
 			AccessModes:      pvcCreate.AccessModes,
@@ -261,10 +258,8 @@ func (r *PVCRepository) CreatePVC(ctx context.Context, actor user.Info, pvcCreat
 func (r *PVCRepository) DeletePVC(ctx context.Context, namespace, pvcName string) error {
 	// get and validate the current PVC from K8s
 	pvc := &corev1.PersistentVolumeClaim{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      pvcName,
-		},
+		Namespace: namespace,
+		Name:      pvcName,
 	}
 	if err := r.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: pvcName}, pvc); err != nil {
 		if apierrors.IsNotFound(err) {

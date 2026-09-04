@@ -248,9 +248,7 @@ func (r *WorkspaceKindReconciler) SetupWithManager(mgr ctrl.Manager, opts *contr
 	mapWorkspaceToRequest := func(ctx context.Context, object client.Object) []reconcile.Request {
 		return []reconcile.Request{
 			{
-				NamespacedName: types.NamespacedName{
-					Name: object.(*kubefloworgv1beta1.Workspace).Spec.Kind,
-				},
+				Name: object.(*kubefloworgv1beta1.Workspace).Spec.Kind,
 			},
 		}
 	}
@@ -272,9 +270,7 @@ func (r *WorkspaceKindReconciler) SetupWithManager(mgr ctrl.Manager, opts *contr
 		requests := make([]reconcile.Request, len(workspaceKindList.Items))
 		for i, wsk := range workspaceKindList.Items {
 			requests[i] = reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name: wsk.GetName(),
-				},
+				Name: wsk.GetName(),
 			}
 		}
 		return requests

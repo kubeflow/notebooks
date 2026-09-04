@@ -31,7 +31,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 
@@ -89,17 +88,13 @@ var _ = Describe("Workspaces Handler", func() {
 
 			By("creating Namespace 1")
 			namespace1 := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespaceName1,
-				},
+				Name: namespaceName1,
 			}
 			Expect(k8sClient.Create(ctx, namespace1)).To(Succeed())
 
 			By("creating Namespace 2")
 			namespace2 := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespaceName2,
-				},
+				Name: namespaceName2,
 			}
 			Expect(k8sClient.Create(ctx, namespace2)).To(Succeed())
 
@@ -128,61 +123,47 @@ var _ = Describe("Workspaces Handler", func() {
 		AfterAll(func() {
 			By("deleting Workspace 1 from Namespace 1")
 			workspace1 := &kubefloworgv1beta1.Workspace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      workspaceName1,
-					Namespace: namespaceName1,
-				},
+				Name:      workspaceName1,
+				Namespace: namespaceName1,
 			}
 			Expect(k8sClient.Delete(ctx, workspace1)).To(Succeed())
 
 			By("deleting Workspace 2 from Namespace 1")
 			workspace2 := &kubefloworgv1beta1.Workspace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      workspaceName2,
-					Namespace: namespaceName1,
-				},
+				Name:      workspaceName2,
+				Namespace: namespaceName1,
 			}
 			Expect(k8sClient.Delete(ctx, workspace2)).To(Succeed())
 
 			By("deleting Workspace 3 from Namespace 2")
 			workspace3 := &kubefloworgv1beta1.Workspace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      workspaceName3,
-					Namespace: namespaceName2,
-				},
+				Name:      workspaceName3,
+				Namespace: namespaceName2,
 			}
 			Expect(k8sClient.Delete(ctx, workspace3)).To(Succeed())
 
 			By("deleting Workspace with nil DisplayName from Namespace 1")
 			workspaceNilDN := &kubefloworgv1beta1.Workspace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      workspaceName4,
-					Namespace: namespaceName1,
-				},
+				Name:      workspaceName4,
+				Namespace: namespaceName1,
 			}
 			Expect(k8sClient.Delete(ctx, workspaceNilDN)).To(Succeed())
 
 			By("deleting WorkspaceKind")
 			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: workspaceKindName,
-				},
+				Name: workspaceKindName,
 			}
 			Expect(k8sClient.Delete(ctx, workspaceKind)).To(Succeed())
 
 			By("deleting Namespace 1")
 			namespace1 := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespaceName1,
-				},
+				Name: namespaceName1,
 			}
 			Expect(k8sClient.Delete(ctx, namespace1)).To(Succeed())
 
 			By("deleting Namespace 2")
 			namespace2 := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespaceName2,
-				},
+				Name: namespaceName2,
 			}
 			Expect(k8sClient.Delete(ctx, namespace2)).To(Succeed())
 		})
@@ -433,9 +414,7 @@ var _ = Describe("Workspaces Handler", func() {
 
 			By("creating Namespace 1")
 			namespace1 := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespaceName1,
-				},
+				Name: namespaceName1,
 			}
 			Expect(k8sClient.Create(ctx, namespace1)).To(Succeed())
 
@@ -461,44 +440,34 @@ var _ = Describe("Workspaces Handler", func() {
 		AfterAll(func() {
 			By("deleting Workspace with missing WorkspaceKind")
 			workspaceMissingWsk := &kubefloworgv1beta1.Workspace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      workspaceMissingWskName,
-					Namespace: namespaceName1,
-				},
+				Name:      workspaceMissingWskName,
+				Namespace: namespaceName1,
 			}
 			Expect(k8sClient.Delete(ctx, workspaceMissingWsk)).To(Succeed())
 
 			By("deleting Workspace with invalid PodConfig")
 			workspaceInvalidPodConfig := &kubefloworgv1beta1.Workspace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      workspaceInvalidPodConfig,
-					Namespace: namespaceName1,
-				},
+				Name:      workspaceInvalidPodConfig,
+				Namespace: namespaceName1,
 			}
 			Expect(k8sClient.Delete(ctx, workspaceInvalidPodConfig)).To(Succeed())
 
 			By("deleting Workspace with invalid ImageConfig")
 			workspaceInvalidImageConfig := &kubefloworgv1beta1.Workspace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      workspaceInvalidImageConfig,
-					Namespace: namespaceName1,
-				},
+				Name:      workspaceInvalidImageConfig,
+				Namespace: namespaceName1,
 			}
 			Expect(k8sClient.Delete(ctx, workspaceInvalidImageConfig)).To(Succeed())
 
 			By("deleting WorkspaceKind")
 			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: workspaceKindName,
-				},
+				Name: workspaceKindName,
 			}
 			Expect(k8sClient.Delete(ctx, workspaceKind)).To(Succeed())
 
 			By("deleting Namespace 1")
 			namespace1 := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespaceName1,
-				},
+				Name: namespaceName1,
 			}
 			Expect(k8sClient.Delete(ctx, namespace1)).To(Succeed())
 		})
@@ -745,9 +714,7 @@ var _ = Describe("Workspaces Handler", func() {
 
 			By("creating the Namespace")
 			namespaceA := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespaceNameCrud,
-				},
+				Name: namespaceNameCrud,
 			}
 			Expect(k8sClient.Create(ctx, namespaceA)).To(Succeed())
 
@@ -757,12 +724,10 @@ var _ = Describe("Workspaces Handler", func() {
 
 			By("creating the home PVC")
 			homePVC := &corev1.PersistentVolumeClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      homePVCName,
-					Namespace: namespaceNameCrud,
-					Labels: map[string]string{
-						commonModels.LabelCanMount: "true",
-					},
+				Name:      homePVCName,
+				Namespace: namespaceNameCrud,
+				Labels: map[string]string{
+					commonModels.LabelCanMount: "true",
 				},
 				Spec: corev1.PersistentVolumeClaimSpec{
 					AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
@@ -777,12 +742,10 @@ var _ = Describe("Workspaces Handler", func() {
 
 			By("creating the data PVC")
 			dataPVC := &corev1.PersistentVolumeClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      dataPVCName,
-					Namespace: namespaceNameCrud,
-					Labels: map[string]string{
-						commonModels.LabelCanMount: "true",
-					},
+				Name:      dataPVCName,
+				Namespace: namespaceNameCrud,
+				Labels: map[string]string{
+					commonModels.LabelCanMount: "true",
 				},
 				Spec: corev1.PersistentVolumeClaimSpec{
 					AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
@@ -800,35 +763,27 @@ var _ = Describe("Workspaces Handler", func() {
 		AfterAll(func() {
 			By("deleting the home PVC")
 			homePVC := &corev1.PersistentVolumeClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      homePVCName,
-					Namespace: namespaceNameCrud,
-				},
+				Name:      homePVCName,
+				Namespace: namespaceNameCrud,
 			}
 			Expect(k8sClient.Delete(ctx, homePVC)).To(Succeed())
 
 			By("deleting the data PVC")
 			dataPVC := &corev1.PersistentVolumeClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      dataPVCName,
-					Namespace: namespaceNameCrud,
-				},
+				Name:      dataPVCName,
+				Namespace: namespaceNameCrud,
 			}
 			Expect(k8sClient.Delete(ctx, dataPVC)).To(Succeed())
 
 			By("deleting the WorkspaceKind")
 			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: workspaceKindName,
-				},
+				Name: workspaceKindName,
 			}
 			Expect(k8sClient.Delete(ctx, workspaceKind)).To(Succeed())
 
 			By("deleting the Namespace")
 			namespaceA := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespaceNameCrud,
-				},
+				Name: namespaceNameCrud,
 			}
 			Expect(k8sClient.Delete(ctx, namespaceA)).To(Succeed())
 		})
@@ -968,12 +923,10 @@ var _ = Describe("Workspaces Handler", func() {
 		It("should create a workspace with secrets", func() {
 			By("creating prerequisite PVC for secrets test")
 			testPVC := &corev1.PersistentVolumeClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      testPVCName,
-					Namespace: namespaceNameCrud,
-					Labels: map[string]string{
-						commonModels.LabelCanMount: "true",
-					},
+				Name:      testPVCName,
+				Namespace: namespaceNameCrud,
+				Labels: map[string]string{
+					commonModels.LabelCanMount: "true",
 				},
 				Spec: corev1.PersistentVolumeClaimSpec{
 					AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
@@ -988,12 +941,10 @@ var _ = Describe("Workspaces Handler", func() {
 
 			By("creating prerequisite Secret for secrets test")
 			testSecret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      testSecretName,
-					Namespace: namespaceNameCrud,
-					Labels: map[string]string{
-						commonModels.LabelCanMount: "true",
-					},
+				Name:      testSecretName,
+				Namespace: namespaceNameCrud,
+				Labels: map[string]string{
+					commonModels.LabelCanMount: "true",
 				},
 				Data: map[string][]byte{
 					"key": []byte("value"),
@@ -1559,10 +1510,8 @@ var _ = Describe("Workspaces Handler", func() {
 
 			By("creating a PVC without the can-mount label")
 			unmountablePVC := &corev1.PersistentVolumeClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      unmountableDataPVCName,
-					Namespace: namespaceNameCrud,
-				},
+				Name:      unmountableDataPVCName,
+				Namespace: namespaceNameCrud,
 				Spec: corev1.PersistentVolumeClaimSpec{
 					AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 					Resources: corev1.VolumeResourceRequirements{
@@ -1576,10 +1525,8 @@ var _ = Describe("Workspaces Handler", func() {
 
 			By("creating a Secret without the can-mount label")
 			unmountableSecret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      unmountableSecretName,
-					Namespace: namespaceNameCrud,
-				},
+				Name:      unmountableSecretName,
+				Namespace: namespaceNameCrud,
 				Data: map[string][]byte{
 					"key": []byte("value"),
 				},

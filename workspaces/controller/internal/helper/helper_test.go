@@ -23,7 +23,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("CopyServiceAccountFields", func() {
@@ -31,12 +30,10 @@ var _ = Describe("CopyServiceAccountFields", func() {
 	// newServiceAccount returns a ServiceAccount with the provided labels and annotations.
 	newServiceAccount := func(labels, annotations map[string]string) *corev1.ServiceAccount {
 		return &corev1.ServiceAccount{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:        "ws-my-workspace",
-				Namespace:   "my-namespace",
-				Labels:      labels,
-				Annotations: annotations,
-			},
+			Name:        "ws-my-workspace",
+			Namespace:   "my-namespace",
+			Labels:      labels,
+			Annotations: annotations,
 		}
 	}
 
@@ -111,11 +108,9 @@ var _ = Describe("CopyRoleBindingFields", func() {
 	// newRoleBinding returns a RoleBinding with the provided labels, ClusterRole, and subjects.
 	newRoleBinding := func(labels map[string]string, clusterRoleName string, subjects ...rbacv1.Subject) *rbacv1.RoleBinding {
 		return &rbacv1.RoleBinding{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "ws-my-workspace-abcdef",
-				Namespace: "my-namespace",
-				Labels:    labels,
-			},
+			Name:      "ws-my-workspace-abcdef",
+			Namespace: "my-namespace",
+			Labels:    labels,
 			RoleRef: rbacv1.RoleRef{
 				APIGroup: rbacv1.GroupName,
 				Kind:     "ClusterRole",
@@ -184,12 +179,10 @@ var _ = Describe("CopyStatefulSetFields", func() {
 	newStatefulSet := func(labels, annotations map[string]string) *appsv1.StatefulSet {
 		replicas := int32(1)
 		return &appsv1.StatefulSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:        "ws-my-workspace-abcdef",
-				Namespace:   "my-namespace",
-				Labels:      labels,
-				Annotations: annotations,
-			},
+			Name:        "ws-my-workspace-abcdef",
+			Namespace:   "my-namespace",
+			Labels:      labels,
+			Annotations: annotations,
 			Spec: appsv1.StatefulSetSpec{
 				Replicas: &replicas,
 			},

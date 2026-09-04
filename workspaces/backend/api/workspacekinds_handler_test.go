@@ -66,9 +66,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 
 			By("creating Namespace 1")
 			namespace1 := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespaceName1,
-				},
+				Name: namespaceName1,
 			}
 			Expect(k8sClient.Create(ctx, namespace1)).To(Succeed())
 
@@ -84,25 +82,19 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 		AfterAll(func() {
 			By("deleting WorkspaceKind 1")
 			workspaceKind1 := &kubefloworgv1beta1.WorkspaceKind{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: workspaceKind1Name,
-				},
+				Name: workspaceKind1Name,
 			}
 			Expect(k8sClient.Delete(ctx, workspaceKind1)).To(Succeed())
 
 			By("deleting WorkspaceKind 2")
 			workspaceKind2 := &kubefloworgv1beta1.WorkspaceKind{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: workspaceKind2Name,
-				},
+				Name: workspaceKind2Name,
 			}
 			Expect(k8sClient.Delete(ctx, workspaceKind2)).To(Succeed())
 
 			By("deleting Namespace 1")
 			namespace1 := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespaceName1,
-				},
+				Name: namespaceName1,
 			}
 			Expect(k8sClient.Delete(ctx, namespace1)).To(Succeed())
 		})
@@ -361,10 +353,8 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 
 			By("creating the prod Namespace with tier=prod label")
 			prodNamespace := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:   prodNamespaceName,
-					Labels: map[string]string{"tier": "prod"},
-				},
+				Name:   prodNamespaceName,
+				Labels: map[string]string{"tier": "prod"},
 			}
 			Expect(k8sClient.Create(ctx, prodNamespace)).To(Succeed())
 
@@ -392,11 +382,11 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 		AfterAll(func() {
 			for _, name := range []string{hiddenWSKName, deniedWSKName, omittedWSKName, plainWSKName} {
 				Expect(k8sClient.Delete(ctx, &kubefloworgv1beta1.WorkspaceKind{
-					ObjectMeta: metav1.ObjectMeta{Name: name},
+					Name: name,
 				})).To(Succeed())
 			}
 			Expect(k8sClient.Delete(ctx, &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{Name: prodNamespaceName},
+				Name: prodNamespaceName,
 			})).To(Succeed())
 		})
 
@@ -451,11 +441,11 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			By("creating a namespace without the tier=prod label")
 			devNamespaceName := "wsk-filterrules-dev-ns"
 			Expect(k8sClient.Create(ctx, &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{Name: devNamespaceName},
+				Name: devNamespaceName,
 			})).To(Succeed())
 			defer func() {
 				Expect(k8sClient.Delete(ctx, &corev1.Namespace{
-					ObjectMeta: metav1.ObjectMeta{Name: devNamespaceName},
+					Name: devNamespaceName,
 				})).To(Succeed())
 			}()
 
@@ -539,7 +529,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 		var validYAML []byte
 
 		BeforeEach(func() {
-			//nolint:modernize
+
 			validYAML = []byte(fmt.Sprintf(`
 apiVersion: kubeflow.org/v1beta1
 kind: WorkspaceKind
@@ -595,9 +585,7 @@ spec:
 		AfterEach(func() {
 			By("cleaning up the created WorkspaceKind")
 			wsk := &kubefloworgv1beta1.WorkspaceKind{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: newWorkspaceKindName,
-				},
+				Name: newWorkspaceKindName,
 			}
 			_ = k8sClient.Delete(ctx, wsk)
 		})
@@ -858,7 +846,7 @@ metadata:
 		AfterAll(func() {
 			By("deleting the WorkspaceKind")
 			wk := &kubefloworgv1beta1.WorkspaceKind{
-				ObjectMeta: metav1.ObjectMeta{Name: workspaceKindName},
+				Name: workspaceKindName,
 			}
 			Expect(k8sClient.Delete(ctx, wk)).To(Succeed())
 		})
@@ -925,9 +913,7 @@ metadata:
 		AfterEach(func() {
 			By("cleaning up the WorkspaceKind")
 			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: workspaceKindName,
-				},
+				Name: workspaceKindName,
 			}
 			_ = k8sClient.Delete(ctx, workspaceKind)
 		})
@@ -1121,9 +1107,7 @@ metadata:
 		AfterAll(func() {
 			By("deleting the WorkspaceKind")
 			wsk := &kubefloworgv1beta1.WorkspaceKind{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: wskName,
-				},
+				Name: wskName,
 			}
 			Expect(k8sClient.Delete(ctx, wsk)).To(Succeed())
 		})

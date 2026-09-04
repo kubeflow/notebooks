@@ -208,8 +208,8 @@ var _ = Describe("generateWorkspaceStatus activity status reset on restart", fun
 		r := &WorkspaceReconciler{Client: c, Scheme: scheme}
 
 		ws := &kubefloworgv1beta1.Workspace{
-			ObjectMeta: metav1.ObjectMeta{Name: "ws", Namespace: "team-a"},
-			Spec:       kubefloworgv1beta1.WorkspaceSpec{Paused: false},
+			Name: "ws", Namespace: "team-a",
+			Spec: kubefloworgv1beta1.WorkspaceSpec{Paused: false},
 			Status: kubefloworgv1beta1.WorkspaceStatus{
 				State:           kubefloworgv1beta1.WorkspaceStatePaused,
 				LastRunningTime: testInitialActivityMs,
@@ -227,7 +227,7 @@ var _ = Describe("generateWorkspaceStatus activity status reset on restart", fun
 		}
 
 		pod := &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{Name: "ws-0", Namespace: "team-a"},
+			Name: "ws-0", Namespace: "team-a",
 			Status: corev1.PodStatus{
 				Phase: corev1.PodRunning,
 				Conditions: []corev1.PodCondition{
@@ -259,8 +259,8 @@ var _ = Describe("evaluatePauseDecision", func() {
 
 	newWorkspace := func(lastActivity, lastRunningTime int64) *kubefloworgv1beta1.Workspace {
 		return &kubefloworgv1beta1.Workspace{
-			ObjectMeta: metav1.ObjectMeta{Name: "ws", Namespace: "team-a"},
-			Spec:       kubefloworgv1beta1.WorkspaceSpec{Paused: false},
+			Name: "ws", Namespace: "team-a",
+			Spec: kubefloworgv1beta1.WorkspaceSpec{Paused: false},
 			Status: kubefloworgv1beta1.WorkspaceStatus{
 				State:           kubefloworgv1beta1.WorkspaceStateRunning,
 				LastRunningTime: lastRunningTime,
@@ -415,7 +415,7 @@ var _ = Describe("getNamespaceLabels", func() {
 
 	It("should return the namespace labels when the namespace exists", func() {
 		ns := &corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{Name: "team-a", Labels: map[string]string{"team": "a"}},
+			Name: "team-a", Labels: map[string]string{"team": "a"},
 		}
 		c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(ns).Build()
 		r := &WorkspaceReconciler{Client: c, Scheme: scheme}
@@ -426,7 +426,7 @@ var _ = Describe("getNamespaceLabels", func() {
 	})
 
 	It("should return a non-nil empty map when the namespace has no labels", func() {
-		ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "team-a"}}
+		ns := &corev1.Namespace{Name: "team-a"}
 		c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(ns).Build()
 		r := &WorkspaceReconciler{Client: c, Scheme: scheme}
 
@@ -565,8 +565,8 @@ var _ = Describe("runProbe", func() {
 	}
 
 	runningPod := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{Name: "ws-pod-0", Namespace: "team-a"},
-		Status:     corev1.PodStatus{PodIP: "10.0.0.1"},
+		Name: "ws-pod-0", Namespace: "team-a",
+		Status: corev1.PodStatus{PodIP: "10.0.0.1"},
 	}
 
 	jupyterProbe := &kubefloworgv1beta1.ActivityProbe{
@@ -585,7 +585,7 @@ var _ = Describe("runProbe", func() {
 
 	It("should fail when the Pod has no IP", func() {
 		r := &WorkspaceReconciler{}
-		podNoIP := &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "p", Namespace: "n"}}
+		podNoIP := &corev1.Pod{Name: "p", Namespace: "n"}
 		result := r.runProbe(ctx, &kubefloworgv1beta1.Workspace{}, jupyterProbe, imageConfig, podNoIP)
 		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultFailure))
 		Expect(result.Message).To(ContainSubstring("not ready"))

@@ -20,7 +20,6 @@ import (
 	"encoding/base64"
 
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
@@ -69,13 +68,11 @@ func NewSecretFromSecretCreateModel(secretCreate *SecretCreate, namespace string
 	}
 
 	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretCreate.Name,
-			Namespace: namespace,
-			Labels: map[string]string{
-				common.LabelCanMount:  "true",
-				common.LabelCanUpdate: "true",
-			},
+		Name:      secretCreate.Name,
+		Namespace: namespace,
+		Labels: map[string]string{
+			common.LabelCanMount:  "true",
+			common.LabelCanUpdate: "true",
 		},
 		Type:      secretCreate.Type,
 		Data:      data,

@@ -29,7 +29,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
@@ -61,9 +60,7 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 
 			By("creating Namespace 1")
 			namespace1 := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespaceName1,
-				},
+				Name: namespaceName1,
 			}
 			Expect(k8sClient.Create(ctx, namespace1)).To(Succeed())
 
@@ -79,25 +76,19 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 		AfterAll(func() {
 			By("deleting WorkspaceKind 1")
 			workspaceKind1 := &kubefloworgv1beta1.WorkspaceKind{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: workspaceKind1Name,
-				},
+				Name: workspaceKind1Name,
 			}
 			Expect(k8sClient.Delete(ctx, workspaceKind1)).To(Succeed())
 
 			By("deleting WorkspaceKind 2")
 			workspaceKind2 := &kubefloworgv1beta1.WorkspaceKind{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: workspaceKind2Name,
-				},
+				Name: workspaceKind2Name,
 			}
 			Expect(k8sClient.Delete(ctx, workspaceKind2)).To(Succeed())
 
 			By("deleting Namespace 1")
 			namespace1 := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespaceName1,
-				},
+				Name: namespaceName1,
 			}
 			Expect(k8sClient.Delete(ctx, namespace1)).To(Succeed())
 		})

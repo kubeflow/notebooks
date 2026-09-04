@@ -31,7 +31,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -115,9 +114,7 @@ var _ = BeforeSuite(func() {
 
 	By("creating the notebooks-admin ClusterRoleBinding")
 	Expect(k8sClient.Create(ctx, &rbacv1.ClusterRoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "notebooks-admin",
-		},
+		Name: "notebooks-admin",
 		Subjects: []rbacv1.Subject{
 			{
 				Kind: "User",
@@ -178,10 +175,8 @@ var _ = AfterSuite(func() {
 // NewExampleWorkspace returns the common "Workspace" object used in tests.
 func NewExampleWorkspace(name string, namespace string, workspaceKind string) *kubefloworgv1beta1.Workspace {
 	return &kubefloworgv1beta1.Workspace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
+		Name:      name,
+		Namespace: namespace,
 		Spec: kubefloworgv1beta1.WorkspaceSpec{
 			Paused:      false,
 			DisplayName: new("Example Workspace"),
@@ -213,9 +208,7 @@ func NewExampleWorkspace(name string, namespace string, workspaceKind string) *k
 // NewExampleWorkspaceKind returns the common "WorkspaceKind" object used in tests.
 func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 	return &kubefloworgv1beta1.WorkspaceKind{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
+		Name: name,
 		Spec: kubefloworgv1beta1.WorkspaceKindSpec{
 			Spawner: kubefloworgv1beta1.WorkspaceKindSpawner{
 				DisplayName:        "JupyterLab Notebook",
@@ -278,10 +271,8 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 				ExtraVolumes: []v1.Volume{
 					{
 						Name: "dshm",
-						VolumeSource: v1.VolumeSource{
-							EmptyDir: &v1.EmptyDirVolumeSource{
-								Medium: v1.StorageMediumMemory,
-							},
+						EmptyDir: &v1.EmptyDirVolumeSource{
+							Medium: v1.StorageMediumMemory,
 						},
 					},
 				},
