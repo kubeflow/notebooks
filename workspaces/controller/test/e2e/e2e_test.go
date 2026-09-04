@@ -26,6 +26,7 @@ import (
 
 	"github.com/kubeflow/notebooks/workspaces/controller/test/utils"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -336,63 +337,46 @@ var _ = Describe("controller", Ordered, func() {
 				cmd := exec.Command("kubectl", "get", "pods",
 					"-l", fmt.Sprintf("notebooks.kubeflow.org/workspace-name=%s", workspaceName),
 					"-n", workspaceNamespace,
-					"-o", "jsonpath={.items[0].metadata.uid}",
+					"-o", "yaml",
 				)
-				expectedPodUID, err := utils.Run(cmd)
+				var podList corev1.PodList
+				err := utils.RunYAML(cmd, &podList)
 				g.Expect(err).NotTo(HaveOccurred())
-				expectedPodUID = strings.TrimSpace(expectedPodUID)
-				g.Expect(expectedPodUID).NotTo(BeEmpty())
-
-				cmd = exec.Command("kubectl", "get", "pods",
-					"-l", fmt.Sprintf("notebooks.kubeflow.org/workspace-name=%s", workspaceName),
-					"-n", workspaceNamespace,
-					"-o", "jsonpath={.items[0].metadata.name}",
-				)
-				expectedPodName, err := utils.Run(cmd)
-				g.Expect(err).NotTo(HaveOccurred())
-				expectedPodName = strings.TrimSpace(expectedPodName)
-				g.Expect(expectedPodName).NotTo(BeEmpty())
+				g.Expect(podList.Items).NotTo(BeEmpty())
+				expectedPod := podList.Items[0]
 
 				// Get the workspace StatefulSet UID and name
 				cmd = exec.Command("kubectl", "get", "statefulsets",
 					"-l", fmt.Sprintf("notebooks.kubeflow.org/workspace-name=%s", workspaceName),
 					"-n", workspaceNamespace,
-					"-o", "jsonpath={.items[0].metadata.uid}",
+					"-o", "yaml",
 				)
-				expectedStsUID, err := utils.Run(cmd)
+				var stsList appsv1.StatefulSetList
+				err = utils.RunYAML(cmd, &stsList)
 				g.Expect(err).NotTo(HaveOccurred())
-				expectedStsUID = strings.TrimSpace(expectedStsUID)
-				g.Expect(expectedStsUID).NotTo(BeEmpty())
-
-				cmd = exec.Command("kubectl", "get", "statefulsets",
-					"-l", fmt.Sprintf("notebooks.kubeflow.org/workspace-name=%s", workspaceName),
-					"-n", workspaceNamespace,
-					"-o", "jsonpath={.items[0].metadata.name}",
-				)
-				expectedStsName, err := utils.Run(cmd)
-				g.Expect(err).NotTo(HaveOccurred())
-				expectedStsName = strings.TrimSpace(expectedStsName)
-				g.Expect(expectedStsName).NotTo(BeEmpty())
+				g.Expect(stsList.Items).NotTo(BeEmpty())
+				expectedSts := stsList.Items[0]
 
 				// Check that Workspace status reflects these
-				statusPodName, err := utils.GetWorkspaceJSONPath(workspaceName, workspaceNamespace, "{.status.podTemplatePod.name}")
+				statusPodName, err := utils.GetWorkspaceJSONPath(
+					workspaceName, workspaceNamespace, "{.status.podTemplatePod.name}")
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(statusPodName).To(Equal(expectedPodName))
+				g.Expect(statusPodName).To(Equal(expectedPod.Name))
 
 				statusPodUID, err := utils.GetWorkspaceJSONPath(
 					workspaceName, workspaceNamespace, "{.status.podTemplatePod.uid}")
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(statusPodUID).To(Equal(expectedPodUID))
+				g.Expect(statusPodUID).To(Equal(string(expectedPod.UID)))
 
 				statusStsName, err := utils.GetWorkspaceJSONPath(
 					workspaceName, workspaceNamespace, "{.status.podTemplateStatefulSet.name}")
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(statusStsName).To(Equal(expectedStsName))
+				g.Expect(statusStsName).To(Equal(expectedSts.Name))
 
 				statusStsUID, err := utils.GetWorkspaceJSONPath(
 					workspaceName, workspaceNamespace, "{.status.podTemplateStatefulSet.uid}")
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(statusStsUID).To(Equal(expectedStsUID))
+				g.Expect(statusStsUID).To(Equal(string(expectedSts.UID)))
 			}
 			Eventually(verifyWorkspaceOwnedResourceStatus, timeout, interval).Should(Succeed())
 
@@ -466,20 +450,19 @@ var _ = Describe("controller", Ordered, func() {
 				cmd := exec.Command("kubectl", "get", "statefulsets",
 					"-l", stsSelector,
 					"-n", workspaceNamespace,
-					"-o", fmt.Sprintf("jsonpath={.items[0].metadata.labels['%s']}", stsMetadataLabelKey),
+					"-o", "yaml",
 				)
-				labelValue, err := utils.Run(cmd)
+				var stsList appsv1.StatefulSetList
+				err := utils.RunYAML(cmd, &stsList)
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(labelValue).To(Equal(stsMetadataLabelValue), "expected statefulSetMetadata label on the StatefulSet")
+				g.Expect(stsList.Items).To(HaveLen(1), "expected 1 StatefulSet")
 
-				cmd = exec.Command("kubectl", "get", "statefulsets",
-					"-l", stsSelector,
-					"-n", workspaceNamespace,
-					"-o", fmt.Sprintf("jsonpath={.items[0].metadata.annotations['%s']}", stsMetadataAnnotationKey),
+				sts := stsList.Items[0]
+				g.Expect(sts.Labels[stsMetadataLabelKey]).To(
+					Equal(stsMetadataLabelValue),
+					"expected statefulSetMetadata label on the StatefulSet",
 				)
-				annotationValue, err := utils.Run(cmd)
-				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(annotationValue).To(
+				g.Expect(sts.Annotations[stsMetadataAnnotationKey]).To(
 					Equal(stsMetadataAnnotationValue),
 					"expected statefulSetMetadata annotation on the StatefulSet",
 				)
