@@ -90,6 +90,9 @@ func (a *App) Routes() http.Handler {
 	// healthcheck
 	router.GET(constants.HealthCheckPath, a.GetHealthcheckHandler)
 
+	// external authorization checks from the routing layer
+	router.GET(constants.AuthzCheckPath, a.AuthzCheckHandler)
+
 	// namespaces
 	router.GET(constants.AllNamespacesPath, a.GetNamespacesHandler)
 

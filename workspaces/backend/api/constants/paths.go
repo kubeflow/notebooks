@@ -19,9 +19,16 @@ const (
 
 	NamespacePathParam    = "namespace"
 	ResourceNamePathParam = "name"
+	OriginalPathParam     = "path"
 
 	// healthcheck
 	HealthCheckPath = PathPrefix + "/healthcheck"
+
+	// external authorization checks from the routing layer (GEP-1494 HTTP
+	// protocol); deliberately outside PathPrefix, since the data plane appends
+	// the original request path to this prefix
+	AuthzCheckPathPrefix = "/authz"
+	AuthzCheckPath       = AuthzCheckPathPrefix + "/*" + OriginalPathParam
 
 	// workspaces
 	AllWorkspacesPath                    = PathPrefix + "/workspaces"
