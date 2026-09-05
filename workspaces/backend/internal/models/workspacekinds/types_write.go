@@ -42,6 +42,7 @@ type WorkspaceKindUpdate struct {
 	Spawner       kubefloworgv1beta1.WorkspaceKindSpawner     `json:"spawner"`
 	PodTemplate   kubefloworgv1beta1.WorkspaceKindPodTemplate `json:"podTemplate"`
 	ActivityRules []kubefloworgv1beta1.ActivityRule           `json:"activityRules,omitempty"`
+	FilterRules   []kubefloworgv1beta1.FilterRule             `json:"filterRules,omitempty"`
 }
 
 // Validate performs validation on the WorkspaceKindUpdate struct
