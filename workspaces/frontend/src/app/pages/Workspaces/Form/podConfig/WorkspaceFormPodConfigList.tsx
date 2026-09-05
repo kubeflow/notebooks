@@ -58,12 +58,12 @@ export const WorkspaceFormPodConfigList: React.FunctionComponent<
 
   const handleCardClick = useCallback(
     (podConfig: OptionsPodConfigValue) => {
-      if (podConfig.id !== selectedPodConfig?.id) {
+      if (podConfig.restrictions.deny) {
         return;
       }
       onSelect(podConfig);
     },
-    [selectedPodConfig?.id, onSelect],
+    [onSelect],
   );
 
   return (
