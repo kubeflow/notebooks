@@ -26,7 +26,9 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
@@ -108,13 +110,27 @@ var _ = BeforeSuite(func() {
 		Metrics: metricsserver.Options{
 			BindAddress: "0", // disable metrics serving
 		},
+		Cache: cache.Options{
+			ByObject: map[client.Object]cache.ByObject{
+				&v1.Event{}: {
+					// Filter at the apiserver/etcd level so only Warning events are streamed & cached.
+					// NOTE: Kubernetes field selectors do not support OR / set membership (e.g.
+					// involvedObject.kind in (Pod, StatefulSet)). Filtering for Pod and StatefulSet
+					// kinds specifically is handled client-side by the controller's event predicate.
+					Field: fields.SelectorFromSet(fields.Set{
+						"type": v1.EventTypeWarning,
+					}),
+				},
+			},
+		},
 	})
 	Expect(err).NotTo(HaveOccurred())
 
 	envConfig := &config.EnvConfig{
 		// TODO: make true once we install Istio CRDs in EnvTest.
 		//       also create unit tests to ensure VirtualService is created by controller.
-		UseIstio: false,
+		UseIstio:           false,
+		WatchWarningEvents: true,
 	}
 
 	By("setting up the field indexers for the controller manager")
