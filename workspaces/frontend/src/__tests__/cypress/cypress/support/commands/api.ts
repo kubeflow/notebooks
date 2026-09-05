@@ -76,14 +76,14 @@ declare global {
           response: void | ApiErrorEnvelope,
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'POST /api/:apiVersion/workspaces/:namespace/:workspaceName/actions/pause',
-          options: { path: { apiVersion: string; namespace: string; workspaceName: string } },
-          response: ApiWorkspaceActionPauseEnvelope | ApiErrorEnvelope,
-        ) => Cypress.Chainable<null>) &
-        ((
           type: 'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/details',
           options: { path: { apiVersion: string; namespace: string; workspaceName: string } },
           response: ApiWorkspaceDetailsEnvelope | ApiErrorEnvelope,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'POST /api/:apiVersion/workspaces/:namespace/:workspaceName/actions/pause',
+          options: { path: { apiVersion: string; namespace: string; workspaceName: string } },
+          response: ApiWorkspaceActionPauseEnvelope | ApiErrorEnvelope,
         ) => Cypress.Chainable<null>) &
         ((
           // The logs endpoint responds with a raw text/plain stream instead of an envelope.
@@ -169,6 +169,11 @@ declare global {
           type: 'GET /api/:apiVersion/secrets/:namespace/:secretName',
           options: { path: { apiVersion: string; namespace: string; secretName: string } },
           response: ApiSecretEnvelope | ApiErrorEnvelope,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/details',
+          options: { path: { apiVersion: string; namespace: string; workspaceName: string } },
+          response: ApiWorkspaceDetailsEnvelope | ApiErrorEnvelope,
         ) => Cypress.Chainable<null>);
     }
   }
