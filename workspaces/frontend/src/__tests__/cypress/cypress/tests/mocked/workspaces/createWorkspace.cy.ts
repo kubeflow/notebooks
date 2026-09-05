@@ -1630,6 +1630,75 @@ describe('Create workspace', () => {
       createWorkspace.findPodConfigCard(bigGpuPod.id).should('be.visible');
     });
 
+    it('should not select a pod config default hidden by image context', () => {
+      const hiddenSmallCpuPod: OptionsPodConfigValue = {
+        ...smallCpuPod,
+        hidden: true,
+      };
+
+      const kind = buildMockWorkspaceKind({
+        podTemplate: {
+          ...mockWorkspaceKind.podTemplate,
+          options: {
+            imageConfig: {
+              default: cpuImage.id,
+              values: [cpuImage, cudaImage],
+            },
+            podConfig: {
+              default: smallCpuPod.id,
+              values: [smallCpuPod, bigGpuPod],
+            },
+          },
+        },
+      });
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspacekinds',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+        mockModArchResponse([kind]),
+      ).as('getWorkspaceKindsListValues');
+
+      cy.intercept(
+        'POST',
+        `**/workspacekinds/${kind.name}/podtemplate/options/listvalues`,
+        (req) => {
+          const imageId = req.body?.data?.context?.imageConfig?.id;
+          const isCudaContext = imageId === cudaImage.id;
+
+          req.reply({
+            data: {
+              imageConfig: {
+                default: cpuImage.id,
+                values: imageId
+                  ? [cpuImage, cudaImage].filter((image) => image.id === imageId)
+                  : [cpuImage, cudaImage],
+              },
+              podConfig: {
+                default: smallCpuPod.id,
+                values: isCudaContext ? [hiddenSmallCpuPod, bigGpuPod] : [smallCpuPod, bigGpuPod],
+              },
+            },
+          });
+        },
+      );
+
+      createWorkspace.visit();
+      cy.wait('@getWorkspaceKindsListValues');
+
+      createWorkspace.selectKind(kind.name);
+      createWorkspace.clickNext();
+
+      createWorkspace.selectImage(cudaImage.id);
+      createWorkspace.clickNext();
+
+      createWorkspace.assertExtraFilterNotChecked('showHidden');
+      createWorkspace.findPodConfigCard(smallCpuPod.id).should('not.exist');
+      createWorkspace.findPodConfigCard(bigGpuPod.id).should('be.visible');
+
+      // The contextually hidden default must not remain selected.
+      cy.findByTestId('next-button').should('be.disabled');
+    });
+
     it('should show only CPU pod configs when listValues returns no GPU options', () => {
       const kind = buildMockWorkspaceKind({
         podTemplate: {
