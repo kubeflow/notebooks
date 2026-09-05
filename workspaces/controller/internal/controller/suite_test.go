@@ -25,7 +25,6 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -166,10 +165,8 @@ var _ = AfterSuite(func() {
 // NewExampleWorkspace1 returns the common "Workspace 1" object used in tests.
 func NewExampleWorkspace1(name string, namespace string, workspaceKind string) *kubefloworgv1beta1.Workspace {
 	return &kubefloworgv1beta1.Workspace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
+		Name:      name,
+		Namespace: namespace,
 		Spec: kubefloworgv1beta1.WorkspaceSpec{
 			Paused:      false,
 			DisplayName: new("Example Workspace"),
@@ -232,9 +229,7 @@ func NewExampleWorkspaceKindWithConfigMapAssets(name string, iconCMName string, 
 // NewExampleWorkspaceKind1 returns the common "WorkspaceKind 1" object used in tests.
 func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 	return &kubefloworgv1beta1.WorkspaceKind{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
+		Name: name,
 		Spec: kubefloworgv1beta1.WorkspaceKindSpec{
 			Spawner: kubefloworgv1beta1.WorkspaceKindSpawner{
 				DisplayName:        "JupyterLab Notebook",
@@ -293,10 +288,8 @@ func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 				ExtraVolumes: []v1.Volume{
 					{
 						Name: "dshm",
-						VolumeSource: v1.VolumeSource{
-							EmptyDir: &v1.EmptyDirVolumeSource{
-								Medium: v1.StorageMediumMemory,
-							},
+						EmptyDir: &v1.EmptyDirVolumeSource{
+							Medium: v1.StorageMediumMemory,
 						},
 					},
 				},

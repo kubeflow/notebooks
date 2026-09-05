@@ -26,7 +26,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	storagev1 "k8s.io/api/storage/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
@@ -46,15 +45,13 @@ var _ = Describe("StorageClasses Handler", func() {
 		BeforeEach(func() {
 			By("creating StorageClass 1")
 			storageClass1 := &storagev1.StorageClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: storageClassName1,
-					Labels: map[string]string{
-						commonModels.LabelCanUse: "true",
-					},
-					Annotations: map[string]string{
-						commonModels.AnnotationDisplayName: "Test Storage Class 1",
-						commonModels.AnnotationDescription: "A test storage class",
-					},
+				Name: storageClassName1,
+				Labels: map[string]string{
+					commonModels.LabelCanUse: "true",
+				},
+				Annotations: map[string]string{
+					commonModels.AnnotationDisplayName: "Test Storage Class 1",
+					commonModels.AnnotationDescription: "A test storage class",
 				},
 				Provisioner: "kubernetes.io/no-provisioner",
 			}
@@ -62,15 +59,13 @@ var _ = Describe("StorageClasses Handler", func() {
 
 			By("creating StorageClass 2")
 			storageClass2 := &storagev1.StorageClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: storageClassName2,
-					Labels: map[string]string{
-						commonModels.LabelCanUse: "true",
-					},
-					Annotations: map[string]string{
-						commonModels.AnnotationDisplayName: "Test Storage Class 2",
-						commonModels.AnnotationDescription: "Another test storage class",
-					},
+				Name: storageClassName2,
+				Labels: map[string]string{
+					commonModels.LabelCanUse: "true",
+				},
+				Annotations: map[string]string{
+					commonModels.AnnotationDisplayName: "Test Storage Class 2",
+					commonModels.AnnotationDescription: "Another test storage class",
 				},
 				Provisioner: "kubernetes.io/no-provisioner",
 			}
@@ -80,17 +75,13 @@ var _ = Describe("StorageClasses Handler", func() {
 		AfterEach(func() {
 			By("deleting StorageClass 1")
 			storageClass1 := &storagev1.StorageClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: storageClassName1,
-				},
+				Name: storageClassName1,
 			}
 			Expect(k8sClient.Delete(ctx, storageClass1)).To(Succeed())
 
 			By("deleting StorageClass 2")
 			storageClass2 := &storagev1.StorageClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: storageClassName2,
-				},
+				Name: storageClassName2,
 			}
 			Expect(k8sClient.Delete(ctx, storageClass2)).To(Succeed())
 		})

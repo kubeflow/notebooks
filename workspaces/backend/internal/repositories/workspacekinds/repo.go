@@ -26,7 +26,6 @@ import (
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -184,9 +183,7 @@ func (r *WorkspaceKindRepository) UpdateWorkspaceKind(ctx context.Context, actor
 
 func (r *WorkspaceKindRepository) DeleteWorkspaceKind(ctx context.Context, name string) error {
 	workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
+		Name: name,
 	}
 
 	if err := r.client.Delete(ctx, workspaceKind); err != nil {

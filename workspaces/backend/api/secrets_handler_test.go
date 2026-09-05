@@ -30,7 +30,6 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
@@ -55,21 +54,17 @@ var _ = Describe("Secrets Handler", func() {
 		BeforeAll(func() {
 			By("creating Namespace")
 			namespace := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespaceName1,
-				},
+				Name: namespaceName1,
 			}
 			Expect(k8sClient.Create(ctx, namespace)).To(Succeed())
 
 			By("creating Secret 1 with can-mount and can-update labels")
 			secret1 := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      secretName1,
-					Namespace: namespaceName1,
-					Labels: map[string]string{
-						commonModels.LabelCanMount:  "true",
-						commonModels.LabelCanUpdate: "true",
-					},
+				Name:      secretName1,
+				Namespace: namespaceName1,
+				Labels: map[string]string{
+					commonModels.LabelCanMount:  "true",
+					commonModels.LabelCanUpdate: "true",
 				},
 				Type: corev1.SecretTypeOpaque,
 				Data: map[string][]byte{
@@ -81,12 +76,10 @@ var _ = Describe("Secrets Handler", func() {
 
 			By("creating Secret 2 with can-mount only (no can-update)")
 			secret2 := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      secretName2,
-					Namespace: namespaceName1,
-					Labels: map[string]string{
-						commonModels.LabelCanMount: "true",
-					},
+				Name:      secretName2,
+				Namespace: namespaceName1,
+				Labels: map[string]string{
+					commonModels.LabelCanMount: "true",
 				},
 				Type: corev1.SecretTypeOpaque,
 				Data: map[string][]byte{
@@ -97,11 +90,9 @@ var _ = Describe("Secrets Handler", func() {
 
 			By("creating Secret 3 with no labels")
 			secret3 := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      secretName3,
-					Namespace: namespaceName1,
-				},
-				Type: corev1.SecretTypeOpaque,
+				Name:      secretName3,
+				Namespace: namespaceName1,
+				Type:      corev1.SecretTypeOpaque,
 				Data: map[string][]byte{
 					"token": []byte("test-token"),
 				},
@@ -112,36 +103,28 @@ var _ = Describe("Secrets Handler", func() {
 		AfterAll(func() {
 			By("deleting Secret 1")
 			secret1 := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      secretName1,
-					Namespace: namespaceName1,
-				},
+				Name:      secretName1,
+				Namespace: namespaceName1,
 			}
 			Expect(k8sClient.Delete(ctx, secret1)).To(Succeed())
 
 			By("deleting Secret 2")
 			secret2 := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      secretName2,
-					Namespace: namespaceName1,
-				},
+				Name:      secretName2,
+				Namespace: namespaceName1,
 			}
 			Expect(k8sClient.Delete(ctx, secret2)).To(Succeed())
 
 			By("deleting Secret 3")
 			secret3 := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      secretName3,
-					Namespace: namespaceName1,
-				},
+				Name:      secretName3,
+				Namespace: namespaceName1,
 			}
 			Expect(k8sClient.Delete(ctx, secret3)).To(Succeed())
 
 			By("deleting Namespace")
 			namespace := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespaceName1,
-				},
+				Name: namespaceName1,
 			}
 			Expect(k8sClient.Delete(ctx, namespace)).To(Succeed())
 		})
@@ -337,21 +320,17 @@ var _ = Describe("Secrets Handler", func() {
 		BeforeAll(func() {
 			By("creating Namespace")
 			namespace := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespaceName1,
-				},
+				Name: namespaceName1,
 			}
 			Expect(k8sClient.Create(ctx, namespace)).To(Succeed())
 
 			By("creating Secret 1")
 			secret1 := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      secretName1,
-					Namespace: namespaceName1,
-					Labels: map[string]string{
-						commonModels.LabelCanMount:  "true",
-						commonModels.LabelCanUpdate: "true",
-					},
+				Name:      secretName1,
+				Namespace: namespaceName1,
+				Labels: map[string]string{
+					commonModels.LabelCanMount:  "true",
+					commonModels.LabelCanUpdate: "true",
 				},
 				Type: corev1.SecretTypeOpaque,
 				Data: map[string][]byte{
@@ -362,12 +341,10 @@ var _ = Describe("Secrets Handler", func() {
 
 			By("creating Secret 2 (not referenced)")
 			secret2 := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      secretName2,
-					Namespace: namespaceName1,
-					Labels: map[string]string{
-						commonModels.LabelCanMount: "true",
-					},
+				Name:      secretName2,
+				Namespace: namespaceName1,
+				Labels: map[string]string{
+					commonModels.LabelCanMount: "true",
 				},
 				Type: corev1.SecretTypeOpaque,
 				Data: map[string][]byte{
@@ -382,10 +359,8 @@ var _ = Describe("Secrets Handler", func() {
 
 			By("creating a Workspace that mounts Secret 1")
 			workspace := &kubefloworgv1beta1.Workspace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      workspaceName1,
-					Namespace: namespaceName1,
-				},
+				Name:      workspaceName1,
+				Namespace: namespaceName1,
 				Spec: kubefloworgv1beta1.WorkspaceSpec{
 					Paused: false,
 					Kind:   workspaceKindName1,
@@ -412,44 +387,34 @@ var _ = Describe("Secrets Handler", func() {
 		AfterAll(func() {
 			By("deleting Workspace")
 			workspace := &kubefloworgv1beta1.Workspace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      workspaceName1,
-					Namespace: namespaceName1,
-				},
+				Name:      workspaceName1,
+				Namespace: namespaceName1,
 			}
 			Expect(k8sClient.Delete(ctx, workspace)).To(Succeed())
 
 			By("deleting WorkspaceKind")
 			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: workspaceKindName1,
-				},
+				Name: workspaceKindName1,
 			}
 			Expect(k8sClient.Delete(ctx, workspaceKind)).To(Succeed())
 
 			By("deleting Secret 1")
 			secret1 := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      secretName1,
-					Namespace: namespaceName1,
-				},
+				Name:      secretName1,
+				Namespace: namespaceName1,
 			}
 			Expect(k8sClient.Delete(ctx, secret1)).To(Succeed())
 
 			By("deleting Secret 2")
 			secret2 := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      secretName2,
-					Namespace: namespaceName1,
-				},
+				Name:      secretName2,
+				Namespace: namespaceName1,
 			}
 			Expect(k8sClient.Delete(ctx, secret2)).To(Succeed())
 
 			By("deleting Namespace")
 			namespace := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespaceName1,
-				},
+				Name: namespaceName1,
 			}
 			Expect(k8sClient.Delete(ctx, namespace)).To(Succeed())
 		})
@@ -520,9 +485,7 @@ var _ = Describe("Secrets Handler", func() {
 		BeforeAll(func() {
 			By("creating Namespace")
 			namespace := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespaceName1,
-				},
+				Name: namespaceName1,
 			}
 			Expect(k8sClient.Create(ctx, namespace)).To(Succeed())
 		})
@@ -530,10 +493,8 @@ var _ = Describe("Secrets Handler", func() {
 		AfterAll(func() {
 			By("deleting test secret if it exists")
 			secret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      secretCreateName,
-					Namespace: namespaceName1,
-				},
+				Name:      secretCreateName,
+				Namespace: namespaceName1,
 			}
 			err := k8sClient.Delete(ctx, secret)
 			if err != nil && !apierrors.IsNotFound(err) {
@@ -542,9 +503,7 @@ var _ = Describe("Secrets Handler", func() {
 
 			By("deleting Namespace")
 			namespace := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespaceName1,
-				},
+				Name: namespaceName1,
 			}
 			Expect(k8sClient.Delete(ctx, namespace)).To(Succeed())
 		})
@@ -776,21 +735,17 @@ var _ = Describe("Secrets Handler", func() {
 		BeforeAll(func() {
 			By("creating Namespace")
 			namespace := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespaceName1,
-				},
+				Name: namespaceName1,
 			}
 			Expect(k8sClient.Create(ctx, namespace)).To(Succeed())
 
 			By("creating an updatable Secret")
 			secret1 := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      secretUpdatable,
-					Namespace: namespaceName1,
-					Labels: map[string]string{
-						commonModels.LabelCanMount:  "true",
-						commonModels.LabelCanUpdate: "true",
-					},
+				Name:      secretUpdatable,
+				Namespace: namespaceName1,
+				Labels: map[string]string{
+					commonModels.LabelCanMount:  "true",
+					commonModels.LabelCanUpdate: "true",
 				},
 				Type: corev1.SecretTypeOpaque,
 				Data: map[string][]byte{
@@ -803,12 +758,10 @@ var _ = Describe("Secrets Handler", func() {
 
 			By("creating a non-updatable Secret (no can-update label)")
 			secret2 := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      secretNotUpdatable,
-					Namespace: namespaceName1,
-					Labels: map[string]string{
-						commonModels.LabelCanMount: "true",
-					},
+				Name:      secretNotUpdatable,
+				Namespace: namespaceName1,
+				Labels: map[string]string{
+					commonModels.LabelCanMount: "true",
 				},
 				Type: corev1.SecretTypeOpaque,
 				Data: map[string][]byte{
@@ -822,10 +775,8 @@ var _ = Describe("Secrets Handler", func() {
 			By("deleting secrets")
 			for _, name := range []string{secretUpdatable, secretNotUpdatable} {
 				secret := &corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      name,
-						Namespace: namespaceName1,
-					},
+					Name:      name,
+					Namespace: namespaceName1,
 				}
 				err := k8sClient.Delete(ctx, secret)
 				if err != nil && !apierrors.IsNotFound(err) {
@@ -835,9 +786,7 @@ var _ = Describe("Secrets Handler", func() {
 
 			By("deleting Namespace")
 			namespace := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespaceName1,
-				},
+				Name: namespaceName1,
 			}
 			Expect(k8sClient.Delete(ctx, namespace)).To(Succeed())
 		})
@@ -1033,21 +982,17 @@ var _ = Describe("Secrets Handler", func() {
 		BeforeAll(func() {
 			By("creating Namespace")
 			namespace := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespaceName1,
-				},
+				Name: namespaceName1,
 			}
 			Expect(k8sClient.Create(ctx, namespace)).To(Succeed())
 
 			By("creating a deletable Secret (with can-update label)")
 			secret1 := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      secretDeletable,
-					Namespace: namespaceName1,
-					Labels: map[string]string{
-						commonModels.LabelCanMount:  "true",
-						commonModels.LabelCanUpdate: "true",
-					},
+				Name:      secretDeletable,
+				Namespace: namespaceName1,
+				Labels: map[string]string{
+					commonModels.LabelCanMount:  "true",
+					commonModels.LabelCanUpdate: "true",
 				},
 				Type: corev1.SecretTypeOpaque,
 				Data: map[string][]byte{
@@ -1058,12 +1003,10 @@ var _ = Describe("Secrets Handler", func() {
 
 			By("creating a non-deletable Secret (no can-update label)")
 			secret2 := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      secretNotDeletable,
-					Namespace: namespaceName1,
-					Labels: map[string]string{
-						commonModels.LabelCanMount: "true",
-					},
+				Name:      secretNotDeletable,
+				Namespace: namespaceName1,
+				Labels: map[string]string{
+					commonModels.LabelCanMount: "true",
 				},
 				Type: corev1.SecretTypeOpaque,
 				Data: map[string][]byte{
@@ -1076,10 +1019,8 @@ var _ = Describe("Secrets Handler", func() {
 		AfterAll(func() {
 			By("deleting non-deletable secret")
 			secret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      secretNotDeletable,
-					Namespace: namespaceName1,
-				},
+				Name:      secretNotDeletable,
+				Namespace: namespaceName1,
 			}
 			err := k8sClient.Delete(ctx, secret)
 			if err != nil && !apierrors.IsNotFound(err) {
@@ -1088,9 +1029,7 @@ var _ = Describe("Secrets Handler", func() {
 
 			By("deleting Namespace")
 			namespace := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespaceName1,
-				},
+				Name: namespaceName1,
 			}
 			Expect(k8sClient.Delete(ctx, namespace)).To(Succeed())
 		})

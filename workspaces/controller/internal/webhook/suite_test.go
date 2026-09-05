@@ -180,9 +180,7 @@ var _ = AfterSuite(func() {
 // NewExampleWorkspaceKind returns the common "WorkspaceKind" object used in tests.
 func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 	return &kubefloworgv1beta1.WorkspaceKind{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
+		Name: name,
 		Spec: kubefloworgv1beta1.WorkspaceKindSpec{
 			Spawner: kubefloworgv1beta1.WorkspaceKindSpawner{
 				DisplayName:        "JupyterLab Notebook",
@@ -246,10 +244,8 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 				ExtraVolumes: []v1.Volume{
 					{
 						Name: "dshm",
-						VolumeSource: v1.VolumeSource{
-							EmptyDir: &v1.EmptyDirVolumeSource{
-								Medium: v1.StorageMediumMemory,
-							},
+						EmptyDir: &v1.EmptyDirVolumeSource{
+							Medium: v1.StorageMediumMemory,
 						},
 					},
 				},
@@ -1101,10 +1097,8 @@ func NewExampleWorkspaceKindWithFilterRuleNamespaceAllScopes(name string) *kubef
 // NewExampleWorkspace returns the common "Workspace" object used in tests.
 func NewExampleWorkspace(name, namespace, workspaceKindName string) *kubefloworgv1beta1.Workspace {
 	return &kubefloworgv1beta1.Workspace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
+		Name:      name,
+		Namespace: namespace,
 		Spec: kubefloworgv1beta1.WorkspaceSpec{
 			DisplayName: new("Example Workspace"),
 			Kind:        workspaceKindName,

@@ -20,7 +20,6 @@ import (
 	"context"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -207,10 +206,8 @@ func NewWorkspaceFromWorkspaceCreateModel(ctx context.Context, k8sClient client.
 
 	// construct workspace object from model
 	workspace := &kubefloworgv1beta1.Workspace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      workspaceCreate.Name,
-			Namespace: namespace,
-		},
+		Name:      workspaceCreate.Name,
+		Namespace: namespace,
 		Spec: kubefloworgv1beta1.WorkspaceSpec{
 			Paused:      workspaceCreate.Paused,
 			DisplayName: displayNamePtr(workspaceCreate.DisplayName),

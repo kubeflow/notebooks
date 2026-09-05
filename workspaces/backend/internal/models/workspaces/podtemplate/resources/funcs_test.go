@@ -229,7 +229,7 @@ var _ = Describe("Funcs", func() {
 
 func podWithContainer(name string, containers ...corev1.Container) corev1.Pod {
 	return corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{Name: name},
+		Name: name,
 		Spec: corev1.PodSpec{
 			Containers: containers,
 		},
@@ -251,7 +251,7 @@ func container(name string, requests, limits corev1.ResourceList) corev1.Contain
 
 func podMetrics(name string, timestamp time.Time, containers ...metricsv1beta1.ContainerMetrics) metricsv1beta1.PodMetrics {
 	return metricsv1beta1.PodMetrics{
-		ObjectMeta: metav1.ObjectMeta{Name: name},
+		Name:       name,
 		Timestamp:  metav1.NewTime(timestamp),
 		Containers: containers,
 	}

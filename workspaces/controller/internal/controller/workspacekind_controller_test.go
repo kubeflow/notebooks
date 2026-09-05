@@ -23,7 +23,6 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -78,18 +77,14 @@ var _ = Describe("WorkspaceKind Controller", func() {
 		AfterAll(func() {
 			By("deleting the Workspace")
 			workspace := &kubefloworgv1beta1.Workspace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      workspaceName,
-					Namespace: namespaceName,
-				},
+				Name:      workspaceName,
+				Namespace: namespaceName,
 			}
 			Expect(k8sClient.Delete(ctx, workspace)).To(Succeed())
 
 			By("deleting the WorkspaceKind")
 			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: workspaceKindName,
-				},
+				Name: workspaceKindName,
 			}
 			Expect(k8sClient.Delete(ctx, workspaceKind)).To(Succeed())
 		})
@@ -294,12 +289,10 @@ var _ = Describe("WorkspaceKind Controller", func() {
 
 			By("creating the icon ConfigMap")
 			iconCM := &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      iconConfigMapName,
-					Namespace: namespaceName,
-					Labels: map[string]string{
-						helper.ImageSourceLabel: "true",
-					},
+				Name:      iconConfigMapName,
+				Namespace: namespaceName,
+				Labels: map[string]string{
+					helper.ImageSourceLabel: "true",
 				},
 				Data: map[string]string{
 					"icon.svg": iconSVGContent,
@@ -309,12 +302,10 @@ var _ = Describe("WorkspaceKind Controller", func() {
 
 			By("creating the logo ConfigMap")
 			logoCM := &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      logoConfigMapName,
-					Namespace: namespaceName,
-					Labels: map[string]string{
-						helper.ImageSourceLabel: "true",
-					},
+				Name:      logoConfigMapName,
+				Namespace: namespaceName,
+				Labels: map[string]string{
+					helper.ImageSourceLabel: "true",
 				},
 				Data: map[string]string{
 					"logo.svg": logoSVGContent,
@@ -332,19 +323,15 @@ var _ = Describe("WorkspaceKind Controller", func() {
 		AfterAll(func() {
 			By("deleting the WorkspaceKind")
 			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: workspaceKindName,
-				},
+				Name: workspaceKindName,
 			}
 			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, workspaceKind))).To(Succeed())
 
 			By("deleting remaining ConfigMaps")
 			for _, cmName := range []string{iconConfigMapName, logoConfigMapName} {
 				cm := &corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      cmName,
-						Namespace: namespaceName,
-					},
+					Name:      cmName,
+					Namespace: namespaceName,
 				}
 				Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, cm))).To(Succeed())
 			}
@@ -371,10 +358,8 @@ var _ = Describe("WorkspaceKind Controller", func() {
 		It("should report error when ConfigMap is missing", func() {
 			By("deleting the icon ConfigMap")
 			iconCM := &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      iconConfigMapName,
-					Namespace: namespaceName,
-				},
+				Name:      iconConfigMapName,
+				Namespace: namespaceName,
 			}
 			Expect(k8sClient.Delete(ctx, iconCM)).To(Succeed())
 

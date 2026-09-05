@@ -27,7 +27,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -82,18 +81,14 @@ var _ = Describe("Workspace Controller", func() {
 		AfterAll(func() {
 			By("deleting the Workspace")
 			workspace := &kubefloworgv1beta1.Workspace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      workspaceName,
-					Namespace: namespaceName,
-				},
+				Name:      workspaceName,
+				Namespace: namespaceName,
 			}
 			Expect(k8sClient.Delete(ctx, workspace)).To(Succeed())
 
 			By("deleting the WorkspaceKind")
 			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: workspaceKindName,
-				},
+				Name: workspaceKindName,
 			}
 			Expect(k8sClient.Delete(ctx, workspaceKind)).To(Succeed())
 		})
@@ -322,13 +317,13 @@ var _ = Describe("Workspace Controller", func() {
 
 			By("deleting the Workspace")
 			workspace := &kubefloworgv1beta1.Workspace{
-				ObjectMeta: metav1.ObjectMeta{Name: workspaceName, Namespace: namespaceName},
+				Name: workspaceName, Namespace: namespaceName,
 			}
 			_ = k8sClient.Delete(ctx, workspace)
 
 			By("deleting the WorkspaceKind")
 			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
-				ObjectMeta: metav1.ObjectMeta{Name: workspaceKindName},
+				Name: workspaceKindName,
 			}
 			_ = k8sClient.Delete(ctx, workspaceKind)
 		})
@@ -350,12 +345,10 @@ var _ = Describe("Workspace Controller", func() {
 			podName := fmt.Sprintf("%s-0", statefulSetName)
 
 			pod := &corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      podName,
-					Namespace: namespaceName,
-					Labels: map[string]string{
-						workspaceNameLabel: workspaceName,
-					},
+				Name:      podName,
+				Namespace: namespaceName,
+				Labels: map[string]string{
+					workspaceNameLabel: workspaceName,
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{Name: "main", Image: "busybox"}},
@@ -424,10 +417,8 @@ var _ = Describe("Workspace Controller", func() {
 			workspaceKind = NewExampleWorkspaceKind1(workspaceKindName)
 			workspace = NewExampleWorkspace1(workspaceName, namespaceName, workspaceKindName)
 			service = &corev1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      fmt.Sprintf("ws-%s", workspaceName),
-					Namespace: namespaceName,
-				},
+				Name:      fmt.Sprintf("ws-%s", workspaceName),
+				Namespace: namespaceName,
 			}
 			imageConfigSpec = workspaceKind.Spec.PodTemplate.Options.ImageConfig.Values[0].Spec
 		})
@@ -555,13 +546,13 @@ var _ = Describe("Workspace Controller", func() {
 		AfterAll(func() {
 			By("deleting the Workspace")
 			workspace := &kubefloworgv1beta1.Workspace{
-				ObjectMeta: metav1.ObjectMeta{Name: workspaceName, Namespace: namespaceName},
+				Name: workspaceName, Namespace: namespaceName,
 			}
 			Expect(k8sClient.Delete(ctx, workspace)).To(Succeed())
 
 			By("deleting the WorkspaceKind")
 			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
-				ObjectMeta: metav1.ObjectMeta{Name: workspaceKindName},
+				Name: workspaceKindName,
 			}
 			Expect(k8sClient.Delete(ctx, workspaceKind)).To(Succeed())
 		})

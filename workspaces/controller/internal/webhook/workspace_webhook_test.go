@@ -24,7 +24,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
@@ -55,9 +54,7 @@ var _ = Describe("Workspace Webhook", func() {
 		AfterAll(func() {
 			By("deleting the WorkspaceKind")
 			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: workspaceKindName,
-				},
+				Name: workspaceKindName,
 			}
 			Expect(k8sClient.Delete(ctx, workspaceKind)).To(Succeed())
 		})
@@ -175,18 +172,14 @@ var _ = Describe("Workspace Webhook", func() {
 		AfterAll(func() {
 			By("deleting the WorkspaceKind")
 			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: workspaceKindName,
-				},
+				Name: workspaceKindName,
 			}
 			Expect(k8sClient.Delete(ctx, workspaceKind)).To(Succeed())
 
 			By("deleting the Workspace")
 			workspace := &kubefloworgv1beta1.Workspace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      workspaceName,
-					Namespace: namespaceName,
-				},
+				Name:      workspaceName,
+				Namespace: namespaceName,
 			}
 			Expect(k8sClient.Delete(ctx, workspace)).To(Succeed())
 		})

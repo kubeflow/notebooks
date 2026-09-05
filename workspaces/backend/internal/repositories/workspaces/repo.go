@@ -24,7 +24,6 @@ import (
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -206,10 +205,8 @@ func (r *WorkspaceRepository) UpdateWorkspace(ctx context.Context, actor user.In
 
 func (r *WorkspaceRepository) DeleteWorkspace(ctx context.Context, namespace, workspaceName string) error {
 	workspace := &kubefloworgv1beta1.Workspace{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      workspaceName,
-		},
+		Namespace: namespace,
+		Name:      workspaceName,
 	}
 
 	if err := r.client.Delete(ctx, workspace); err != nil {
@@ -266,10 +263,8 @@ func (r *WorkspaceRepository) HandlePauseAction(ctx context.Context, namespace, 
 	}
 
 	workspace := &kubefloworgv1beta1.Workspace{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      workspaceName,
-		},
+		Namespace: namespace,
+		Name:      workspaceName,
 	}
 
 	// TODO: update the UpdatedAt and UpdatedBy annotations in the patch as well

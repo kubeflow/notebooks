@@ -29,7 +29,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	commonModels "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
@@ -51,7 +50,7 @@ var _ = Describe("Workspace PodTemplate Resources Handler", func() {
 
 			By("creating the Namespace")
 			namespace := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{Name: namespaceName},
+				Name: namespaceName,
 			}
 			Expect(k8sClient.Create(ctx, namespace)).To(Succeed())
 
@@ -67,19 +66,19 @@ var _ = Describe("Workspace PodTemplate Resources Handler", func() {
 		AfterAll(func() {
 			By("deleting the Workspace")
 			ws := &kubefloworgv1beta1.Workspace{
-				ObjectMeta: metav1.ObjectMeta{Name: workspaceName, Namespace: namespaceName},
+				Name: workspaceName, Namespace: namespaceName,
 			}
 			Expect(k8sClient.Delete(ctx, ws)).To(Succeed())
 
 			By("deleting the WorkspaceKind")
 			wsk := &kubefloworgv1beta1.WorkspaceKind{
-				ObjectMeta: metav1.ObjectMeta{Name: workspaceKindName},
+				Name: workspaceKindName,
 			}
 			Expect(k8sClient.Delete(ctx, wsk)).To(Succeed())
 
 			By("deleting the Namespace")
 			namespace := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{Name: namespaceName},
+				Name: namespaceName,
 			}
 			Expect(k8sClient.Delete(ctx, namespace)).To(Succeed())
 		})
@@ -88,12 +87,10 @@ var _ = Describe("Workspace PodTemplate Resources Handler", func() {
 			By("creating a workspace pod with configured resources")
 			podName := fmt.Sprintf("pod-%s", workspaceName)
 			pod := &corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      podName,
-					Namespace: namespaceName,
-					Labels: map[string]string{
-						commonModels.LabelWorkspaceName: workspaceName,
-					},
+				Name:      podName,
+				Namespace: namespaceName,
+				Labels: map[string]string{
+					commonModels.LabelWorkspaceName: workspaceName,
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{

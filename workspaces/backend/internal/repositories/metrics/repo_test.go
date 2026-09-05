@@ -33,7 +33,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	metricsv1beta1 "k8s.io/metrics/pkg/apis/metrics/v1beta1"
@@ -432,10 +431,8 @@ func (m failingRESTMapper) RESTMapping(gk schema.GroupKind, versions ...string) 
 // confirms the workspace exists before reading usage, so it must be present in the fake client.
 func testWorkspaceCR() *kubefloworgv1beta1.Workspace {
 	return &kubefloworgv1beta1.Workspace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-workspace",
-			Namespace: "default",
-		},
+		Name:      "test-workspace",
+		Namespace: "default",
 	}
 }
 
@@ -456,12 +453,10 @@ func workspacePod(name, containerName string, requests corev1.ResourceList) *cor
 		}
 	}
 	return &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: "default",
-			Labels: map[string]string{
-				modelsCommon.LabelWorkspaceName: "test-workspace",
-			},
+		Name:      name,
+		Namespace: "default",
+		Labels: map[string]string{
+			modelsCommon.LabelWorkspaceName: "test-workspace",
 		},
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{c},
@@ -471,12 +466,10 @@ func workspacePod(name, containerName string, requests corev1.ResourceList) *cor
 
 func workspacePodMetrics(name, containerName string, usage corev1.ResourceList) *metricsv1beta1.PodMetrics {
 	return &metricsv1beta1.PodMetrics{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: "default",
-			Labels: map[string]string{
-				modelsCommon.LabelWorkspaceName: "test-workspace",
-			},
+		Name:      name,
+		Namespace: "default",
+		Labels: map[string]string{
+			modelsCommon.LabelWorkspaceName: "test-workspace",
 		},
 		Containers: []metricsv1beta1.ContainerMetrics{
 			{

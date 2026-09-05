@@ -24,7 +24,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	ctrlfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -50,7 +49,7 @@ const (
 // newWorkspace builds a Workspace CR with the given pod status containers.
 func newWorkspace(podName string, containers ...string) *kubefloworgv1beta1.Workspace {
 	ws := &kubefloworgv1beta1.Workspace{
-		ObjectMeta: metav1.ObjectMeta{Name: testWorkspace, Namespace: testNamespace},
+		Name: testWorkspace, Namespace: testNamespace,
 	}
 	ws.Status.PodTemplatePod.Name = podName
 	for _, c := range containers {
@@ -109,7 +108,7 @@ func waitingContainerStatusWithPrevious(name, reason string) corev1.ContainerSta
 // container statuses.
 func newPod(containerStatuses, initContainerStatuses []corev1.ContainerStatus) *corev1.Pod {
 	return &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{Name: testPodName, Namespace: testNamespace},
+		Name: testPodName, Namespace: testNamespace,
 		Status: corev1.PodStatus{
 			ContainerStatuses:     containerStatuses,
 			InitContainerStatuses: initContainerStatuses,

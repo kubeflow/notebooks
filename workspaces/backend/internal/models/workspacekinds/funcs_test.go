@@ -45,7 +45,7 @@ func TestWorkspaceKinds(t *testing.T) {
 var _ = Describe("NewWorkspaceKindModelFromWorkspaceKind", func() {
 	It("initializes empty StatefulSetMetadata maps when the CRD field is nil", func() {
 		wsk := &kubefloworgv1beta1.WorkspaceKind{
-			ObjectMeta: metav1.ObjectMeta{Name: "no-metadata"},
+			Name: "no-metadata",
 			Spec: kubefloworgv1beta1.WorkspaceKindSpec{
 				PodTemplate: kubefloworgv1beta1.WorkspaceKindPodTemplate{
 					PodMetadata:         nil,
@@ -65,7 +65,7 @@ var _ = Describe("NewWorkspaceKindModelFromWorkspaceKind", func() {
 
 	It("copies StatefulSetMetadata maps without aliasing the CRD maps", func() {
 		wsk := &kubefloworgv1beta1.WorkspaceKind{
-			ObjectMeta: metav1.ObjectMeta{Name: "with-metadata"},
+			Name: "with-metadata",
 			Spec: kubefloworgv1beta1.WorkspaceKindSpec{
 				PodTemplate: kubefloworgv1beta1.WorkspaceKindPodTemplate{
 					StatefulSetMetadata: &kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata{
@@ -203,7 +203,7 @@ var _ = Describe("NewWorkspaceKindModelFromWorkspaceKind", func() {
 	// newWSK builds a minimal WorkspaceKind with the given admin-set hidden flag and filterRules.
 	newWSK := func(hidden bool, rules []kubefloworgv1beta1.FilterRule) *kubefloworgv1beta1.WorkspaceKind {
 		return &kubefloworgv1beta1.WorkspaceKind{
-			ObjectMeta: metav1.ObjectMeta{Name: "test-wsk"},
+			Name: "test-wsk",
 			Spec: kubefloworgv1beta1.WorkspaceKindSpec{
 				Spawner:     kubefloworgv1beta1.WorkspaceKindSpawner{Hidden: new(hidden)},
 				FilterRules: rules,

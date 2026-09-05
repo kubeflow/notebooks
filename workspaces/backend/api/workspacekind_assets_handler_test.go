@@ -28,7 +28,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
@@ -127,12 +126,10 @@ func assertAssetResponse(handler httprouter.Handle, tc *assetTestCase) {
 // by the filtered cache client.
 func newImageSourceConfigMap(name, namespace string, data map[string]string) *corev1.ConfigMap {
 	return &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-			Labels: map[string]string{
-				helper.LabelImageSource: "true",
-			},
+		Name:      name,
+		Namespace: namespace,
+		Labels: map[string]string{
+			helper.LabelImageSource: "true",
 		},
 		Data: data,
 	}
@@ -177,7 +174,7 @@ var _ = Describe("WorkspaceKind Asset Handlers", func() {
 		BeforeAll(func() {
 			By("creating the test namespace")
 			ns := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{Name: namespaceName},
+				Name: namespaceName,
 			}
 			Expect(k8sClient.Create(ctx, ns)).To(Succeed())
 
@@ -215,22 +212,22 @@ var _ = Describe("WorkspaceKind Asset Handlers", func() {
 		AfterAll(func() {
 			By("deleting the ConfigMap-based WorkspaceKind")
 			Expect(k8sClient.Delete(ctx, &kubefloworgv1beta1.WorkspaceKind{
-				ObjectMeta: metav1.ObjectMeta{Name: wskCMName},
+				Name: wskCMName,
 			})).To(Succeed())
 
 			By("deleting the URL-based WorkspaceKind")
 			Expect(k8sClient.Delete(ctx, &kubefloworgv1beta1.WorkspaceKind{
-				ObjectMeta: metav1.ObjectMeta{Name: wskURLName},
+				Name: wskURLName,
 			})).To(Succeed())
 
 			By("deleting the ConfigMap")
 			Expect(k8sClient.Delete(ctx, &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{Name: configMapName, Namespace: namespaceName},
+				Name: configMapName, Namespace: namespaceName,
 			})).To(Succeed())
 
 			By("deleting the test namespace")
 			Expect(k8sClient.Delete(ctx, &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{Name: namespaceName},
+				Name: namespaceName,
 			})).To(Succeed())
 		})
 

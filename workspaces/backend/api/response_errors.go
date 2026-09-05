@@ -127,10 +127,8 @@ func (a *App) serverErrorResponse(w http.ResponseWriter, r *http.Request, err er
 
 	httpError := &HTTPError{
 		StatusCode: http.StatusInternalServerError,
-		ErrorResponse: ErrorResponse{
-			Code:    strconv.Itoa(http.StatusInternalServerError),
-			Message: "the server encountered a problem and could not process your request",
-		},
+		Code:       strconv.Itoa(http.StatusInternalServerError),
+		Message:    "the server encountered a problem and could not process your request",
 	}
 	a.errorResponse(w, r, httpError)
 }
@@ -139,10 +137,8 @@ func (a *App) serverErrorResponse(w http.ResponseWriter, r *http.Request, err er
 func (a *App) badRequestResponse(w http.ResponseWriter, r *http.Request, err error) {
 	httpError := &HTTPError{
 		StatusCode: http.StatusBadRequest,
-		ErrorResponse: ErrorResponse{
-			Code:    strconv.Itoa(http.StatusBadRequest),
-			Message: err.Error(),
-		},
+		Code:       strconv.Itoa(http.StatusBadRequest),
+		Message:    err.Error(),
 	}
 	a.errorResponse(w, r, httpError)
 }
@@ -151,10 +147,8 @@ func (a *App) badRequestResponse(w http.ResponseWriter, r *http.Request, err err
 func (a *App) unauthorizedResponse(w http.ResponseWriter, r *http.Request) {
 	httpError := &HTTPError{
 		StatusCode: http.StatusUnauthorized,
-		ErrorResponse: ErrorResponse{
-			Code:    strconv.Itoa(http.StatusUnauthorized),
-			Message: errMsgUnauthorized,
-		},
+		Code:       strconv.Itoa(http.StatusUnauthorized),
+		Message:    errMsgUnauthorized,
 	}
 	a.errorResponse(w, r, httpError)
 }
@@ -165,10 +159,8 @@ func (a *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, msg stri
 
 	httpError := &HTTPError{
 		StatusCode: http.StatusForbidden,
-		ErrorResponse: ErrorResponse{
-			Code:    strconv.Itoa(http.StatusForbidden),
-			Message: errMsgForbidden,
-		},
+		Code:       strconv.Itoa(http.StatusForbidden),
+		Message:    errMsgForbidden,
 	}
 	a.errorResponse(w, r, httpError)
 }
@@ -177,10 +169,8 @@ func (a *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, msg stri
 func (a *App) notFoundResponse(w http.ResponseWriter, r *http.Request) {
 	httpError := &HTTPError{
 		StatusCode: http.StatusNotFound,
-		ErrorResponse: ErrorResponse{
-			Code:    strconv.Itoa(http.StatusNotFound),
-			Message: errMsgNotFound,
-		},
+		Code:       strconv.Itoa(http.StatusNotFound),
+		Message:    errMsgNotFound,
 	}
 	a.errorResponse(w, r, httpError)
 }
@@ -189,10 +179,8 @@ func (a *App) notFoundResponse(w http.ResponseWriter, r *http.Request) {
 func (a *App) methodNotAllowedResponse(w http.ResponseWriter, r *http.Request) {
 	httpError := &HTTPError{
 		StatusCode: http.StatusMethodNotAllowed,
-		ErrorResponse: ErrorResponse{
-			Code:    strconv.Itoa(http.StatusMethodNotAllowed),
-			Message: fmt.Sprintf("the %s method is not supported for this resource", r.Method),
-		},
+		Code:       strconv.Itoa(http.StatusMethodNotAllowed),
+		Message:    fmt.Sprintf("the %s method is not supported for this resource", r.Method),
 	}
 	a.errorResponse(w, r, httpError)
 }
@@ -220,12 +208,10 @@ func (a *App) conflictResponse(w http.ResponseWriter, r *http.Request, err error
 
 	httpError := &HTTPError{
 		StatusCode: http.StatusConflict,
-		ErrorResponse: ErrorResponse{
-			Code:    strconv.Itoa(http.StatusConflict),
-			Message: msg,
-			Cause: &ErrorCause{
-				ConflictCauses: conflictErrs,
-			},
+		Code:       strconv.Itoa(http.StatusConflict),
+		Message:    msg,
+		Cause: &ErrorCause{
+			ConflictCauses: conflictErrs,
 		},
 	}
 	a.errorResponse(w, r, httpError)
@@ -237,15 +223,13 @@ func (a *App) conflictResponse(w http.ResponseWriter, r *http.Request, err error
 func (a *App) internalConflictResponse(w http.ResponseWriter, r *http.Request, err error) {
 	httpError := &HTTPError{
 		StatusCode: http.StatusConflict,
-		ErrorResponse: ErrorResponse{
-			Code:    strconv.Itoa(http.StatusConflict),
-			Message: err.Error(),
-			Cause: &ErrorCause{
-				ConflictCauses: []ConflictError{
-					{
-						Origin:  OriginInternal,
-						Message: err.Error(),
-					},
+		Code:       strconv.Itoa(http.StatusConflict),
+		Message:    err.Error(),
+		Cause: &ErrorCause{
+			ConflictCauses: []ConflictError{
+				{
+					Origin:  OriginInternal,
+					Message: err.Error(),
 				},
 			},
 		},
@@ -257,10 +241,8 @@ func (a *App) internalConflictResponse(w http.ResponseWriter, r *http.Request, e
 func (a *App) requestEntityTooLargeResponse(w http.ResponseWriter, r *http.Request, err error) {
 	httpError := &HTTPError{
 		StatusCode: http.StatusRequestEntityTooLarge,
-		ErrorResponse: ErrorResponse{
-			Code:    strconv.Itoa(http.StatusRequestEntityTooLarge),
-			Message: err.Error(),
-		},
+		Code:       strconv.Itoa(http.StatusRequestEntityTooLarge),
+		Message:    err.Error(),
 	}
 	a.errorResponse(w, r, httpError)
 }
@@ -269,10 +251,8 @@ func (a *App) requestEntityTooLargeResponse(w http.ResponseWriter, r *http.Reque
 func (a *App) unsupportedMediaTypeResponse(w http.ResponseWriter, r *http.Request, err error) {
 	httpError := &HTTPError{
 		StatusCode: http.StatusUnsupportedMediaType,
-		ErrorResponse: ErrorResponse{
-			Code:    strconv.Itoa(http.StatusUnsupportedMediaType),
-			Message: err.Error(),
-		},
+		Code:       strconv.Itoa(http.StatusUnsupportedMediaType),
+		Message:    err.Error(),
 	}
 	a.errorResponse(w, r, httpError)
 }
@@ -303,12 +283,10 @@ func (a *App) failedValidationResponse(w http.ResponseWriter, r *http.Request, m
 
 	httpError := &HTTPError{
 		StatusCode: http.StatusUnprocessableEntity,
-		ErrorResponse: ErrorResponse{
-			Code:    strconv.Itoa(http.StatusUnprocessableEntity),
-			Message: msg,
-			Cause: &ErrorCause{
-				ValidationErrors: valErrs,
-			},
+		Code:       strconv.Itoa(http.StatusUnprocessableEntity),
+		Message:    msg,
+		Cause: &ErrorCause{
+			ValidationErrors: valErrs,
 		},
 	}
 	a.errorResponse(w, r, httpError)

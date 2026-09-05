@@ -69,8 +69,7 @@ func IsInternalValidationError(err error) bool {
 
 // FieldErrorsFromInternalValidationError extracts field errors from an InternalValidationError.
 func FieldErrorsFromInternalValidationError(err error) field.ErrorList {
-	var validationErr *InternalValidationError
-	if errors.As(err, &validationErr) {
+	if validationErr, ok := errors.AsType[*InternalValidationError](err); ok {
 		return validationErr.FieldErrors
 	}
 	return nil

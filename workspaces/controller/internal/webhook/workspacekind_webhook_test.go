@@ -614,18 +614,14 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 		AfterEach(func() {
 			By("deleting the Workspace, if it exists")
 			workspace := &kubefloworgv1beta1.Workspace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      workspaceName,
-					Namespace: namespaceName,
-				},
+				Name:      workspaceName,
+				Namespace: namespaceName,
 			}
 			_ = k8sClient.Delete(ctx, workspace)
 
 			By("deleting the WorkspaceKind, if it exists")
 			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: workspaceKindName,
-				},
+				Name: workspaceKindName,
 			}
 			_ = k8sClient.Delete(ctx, workspaceKind)
 		})

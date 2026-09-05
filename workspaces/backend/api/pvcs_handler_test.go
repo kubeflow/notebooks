@@ -33,7 +33,6 @@ import (
 	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 
@@ -72,21 +71,17 @@ var _ = Describe("PVCs Handler", func() {
 
 			By("creating Namespace 1")
 			namespace1 := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespaceName1,
-				},
+				Name: namespaceName1,
 			}
 			Expect(k8sClient.Create(ctx, namespace1)).To(Succeed())
 
 			By("creating PVC 1 in Namespace 1")
 			pvc1 := &corev1.PersistentVolumeClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      pvcName1,
-					Namespace: namespaceName1,
-					Labels: map[string]string{
-						commonModels.LabelCanMount:  "true",
-						commonModels.LabelCanUpdate: "true",
-					},
+				Name:      pvcName1,
+				Namespace: namespaceName1,
+				Labels: map[string]string{
+					commonModels.LabelCanMount:  "true",
+					commonModels.LabelCanUpdate: "true",
 				},
 				Spec: corev1.PersistentVolumeClaimSpec{
 					AccessModes: []corev1.PersistentVolumeAccessMode{
@@ -103,12 +98,10 @@ var _ = Describe("PVCs Handler", func() {
 
 			By("creating PVC 2 in Namespace 1")
 			pvc2 := &corev1.PersistentVolumeClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      pvcName2,
-					Namespace: namespaceName1,
-					Labels: map[string]string{
-						commonModels.LabelCanMount: "true",
-					},
+				Name:      pvcName2,
+				Namespace: namespaceName1,
+				Labels: map[string]string{
+					commonModels.LabelCanMount: "true",
 				},
 				Spec: corev1.PersistentVolumeClaimSpec{
 					AccessModes: []corev1.PersistentVolumeAccessMode{
@@ -127,27 +120,21 @@ var _ = Describe("PVCs Handler", func() {
 		AfterAll(func() {
 			By("deleting PVC 1 from Namespace 1")
 			pvc1 := &corev1.PersistentVolumeClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      pvcName1,
-					Namespace: namespaceName1,
-				},
+				Name:      pvcName1,
+				Namespace: namespaceName1,
 			}
 			Expect(k8sClient.Delete(ctx, pvc1)).To(Succeed())
 
 			By("deleting PVC 2 from Namespace 1")
 			pvc2 := &corev1.PersistentVolumeClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      pvcName2,
-					Namespace: namespaceName1,
-				},
+				Name:      pvcName2,
+				Namespace: namespaceName1,
 			}
 			Expect(k8sClient.Delete(ctx, pvc2)).To(Succeed())
 
 			By("deleting Namespace 1")
 			namespace1 := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespaceName1,
-				},
+				Name: namespaceName1,
 			}
 			Expect(k8sClient.Delete(ctx, namespace1)).To(Succeed())
 		})
@@ -210,19 +197,15 @@ var _ = Describe("PVCs Handler", func() {
 		BeforeAll(func() {
 			By("creating Namespace 1")
 			namespace1 := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespaceName1,
-				},
+				Name: namespaceName1,
 			}
 			Expect(k8sClient.Create(ctx, namespace1)).To(Succeed())
 
 			By("creating the StorageClass")
 			sc := &storagev1.StorageClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: storageClassName,
-					Labels: map[string]string{
-						commonModels.LabelCanUse: "true",
-					},
+				Name: storageClassName,
+				Labels: map[string]string{
+					commonModels.LabelCanUse: "true",
 				},
 				Provisioner: "kubernetes.io/no-provisioner",
 			}
@@ -232,26 +215,20 @@ var _ = Describe("PVCs Handler", func() {
 		AfterAll(func() {
 			By("deleting test PVC")
 			pvc := &corev1.PersistentVolumeClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      pvcCreateName,
-					Namespace: namespaceName1,
-				},
+				Name:      pvcCreateName,
+				Namespace: namespaceName1,
 			}
 			Expect(k8sClient.Delete(ctx, pvc)).To(Succeed())
 
 			By("deleting the StorageClass")
 			sc := &storagev1.StorageClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: storageClassName,
-				},
+				Name: storageClassName,
 			}
 			Expect(k8sClient.Delete(ctx, sc)).To(Succeed())
 
 			By("deleting Namespace 1")
 			namespace1 := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespaceName1,
-				},
+				Name: namespaceName1,
 			}
 			Expect(k8sClient.Delete(ctx, namespace1)).To(Succeed())
 		})
@@ -329,21 +306,17 @@ var _ = Describe("PVCs Handler", func() {
 		BeforeAll(func() {
 			By("creating Namespace 1")
 			namespace1 := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespaceName1,
-				},
+				Name: namespaceName1,
 			}
 			Expect(k8sClient.Create(ctx, namespace1)).To(Succeed())
 
 			By("creating a PVC to be deleted")
 			pvc := &corev1.PersistentVolumeClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-delete-pvc",
-					Namespace: namespaceName1,
-					Labels: map[string]string{
-						commonModels.LabelCanMount:  "true",
-						commonModels.LabelCanUpdate: "true",
-					},
+				Name:      "test-delete-pvc",
+				Namespace: namespaceName1,
+				Labels: map[string]string{
+					commonModels.LabelCanMount:  "true",
+					commonModels.LabelCanUpdate: "true",
 				},
 				Spec: corev1.PersistentVolumeClaimSpec{
 					AccessModes: []corev1.PersistentVolumeAccessMode{
@@ -360,12 +333,10 @@ var _ = Describe("PVCs Handler", func() {
 
 			By("creating a PVC without can-update label")
 			pvcNotDeletable := &corev1.PersistentVolumeClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-not-deletable-pvc",
-					Namespace: namespaceName1,
-					Labels: map[string]string{
-						commonModels.LabelCanMount: "true",
-					},
+				Name:      "test-not-deletable-pvc",
+				Namespace: namespaceName1,
+				Labels: map[string]string{
+					commonModels.LabelCanMount: "true",
 				},
 				Spec: corev1.PersistentVolumeClaimSpec{
 					AccessModes: []corev1.PersistentVolumeAccessMode{
@@ -384,9 +355,7 @@ var _ = Describe("PVCs Handler", func() {
 		AfterAll(func() {
 			By("deleting Namespace 1")
 			namespace1 := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespaceName1,
-				},
+				Name: namespaceName1,
 			}
 			Expect(k8sClient.Delete(ctx, namespace1)).To(Succeed())
 		})
@@ -493,21 +462,17 @@ var _ = Describe("PVCs Handler", func() {
 		BeforeAll(func() {
 			By("creating Namespace")
 			namespace := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespaceName1,
-				},
+				Name: namespaceName1,
 			}
 			Expect(k8sClient.Create(ctx, namespace)).To(Succeed())
 
 			By("creating StorageClass with annotations")
 			reclaimPolicy := corev1.PersistentVolumeReclaimDelete
 			sc := &storagev1.StorageClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: storageClassName1,
-					Annotations: map[string]string{
-						commonModels.AnnotationDisplayName: "Test Storage",
-						commonModels.AnnotationDescription: "A test storage class",
-					},
+				Name: storageClassName1,
+				Annotations: map[string]string{
+					commonModels.AnnotationDisplayName: "Test Storage",
+					commonModels.AnnotationDescription: "A test storage class",
 				},
 				Provisioner:   "kubernetes.io/no-provisioner",
 				ReclaimPolicy: &reclaimPolicy,
@@ -517,9 +482,7 @@ var _ = Describe("PVCs Handler", func() {
 			By("creating PersistentVolume")
 			volumeMode := corev1.PersistentVolumeFilesystem
 			pv := &corev1.PersistentVolume{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: pvName1,
-				},
+				Name: pvName1,
 				Spec: corev1.PersistentVolumeSpec{
 					Capacity: corev1.ResourceList{
 						corev1.ResourceStorage: resource.MustParse("10Gi"),
@@ -541,13 +504,11 @@ var _ = Describe("PVCs Handler", func() {
 
 			By("creating PVC 1 bound to PV")
 			pvc1 := &corev1.PersistentVolumeClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      pvcName1,
-					Namespace: namespaceName1,
-					Labels: map[string]string{
-						commonModels.LabelCanMount:  "true",
-						commonModels.LabelCanUpdate: "true",
-					},
+				Name:      pvcName1,
+				Namespace: namespaceName1,
+				Labels: map[string]string{
+					commonModels.LabelCanMount:  "true",
+					commonModels.LabelCanUpdate: "true",
 				},
 				Spec: corev1.PersistentVolumeClaimSpec{
 					AccessModes: []corev1.PersistentVolumeAccessMode{
@@ -566,12 +527,10 @@ var _ = Describe("PVCs Handler", func() {
 
 			By("creating PVC 2 without cross-references")
 			pvc2 := &corev1.PersistentVolumeClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      pvcName2,
-					Namespace: namespaceName1,
-					Labels: map[string]string{
-						commonModels.LabelCanMount: "true",
-					},
+				Name:      pvcName2,
+				Namespace: namespaceName1,
+				Labels: map[string]string{
+					commonModels.LabelCanMount: "true",
 				},
 				Spec: corev1.PersistentVolumeClaimSpec{
 					AccessModes: []corev1.PersistentVolumeAccessMode{
@@ -588,10 +547,8 @@ var _ = Describe("PVCs Handler", func() {
 
 			By("creating a Pod that mounts PVC 1")
 			pod := &corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      podName1,
-					Namespace: namespaceName1,
-				},
+				Name:      podName1,
+				Namespace: namespaceName1,
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
@@ -602,10 +559,8 @@ var _ = Describe("PVCs Handler", func() {
 					Volumes: []corev1.Volume{
 						{
 							Name: "data",
-							VolumeSource: corev1.VolumeSource{
-								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-									ClaimName: pvcName1,
-								},
+							PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+								ClaimName: pvcName1,
 							},
 						},
 					},
@@ -619,10 +574,8 @@ var _ = Describe("PVCs Handler", func() {
 
 			By("creating a Workspace that references PVC 1 as home volume")
 			workspace := &kubefloworgv1beta1.Workspace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      workspaceName1,
-					Namespace: namespaceName1,
-				},
+				Name:      workspaceName1,
+				Namespace: namespaceName1,
 				Spec: kubefloworgv1beta1.WorkspaceSpec{
 					Paused: false,
 					Kind:   workspaceKindName1,
@@ -643,69 +596,53 @@ var _ = Describe("PVCs Handler", func() {
 		AfterAll(func() {
 			By("deleting Workspace")
 			workspace := &kubefloworgv1beta1.Workspace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      workspaceName1,
-					Namespace: namespaceName1,
-				},
+				Name:      workspaceName1,
+				Namespace: namespaceName1,
 			}
 			Expect(k8sClient.Delete(ctx, workspace)).To(Succeed())
 
 			By("deleting WorkspaceKind")
 			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: workspaceKindName1,
-				},
+				Name: workspaceKindName1,
 			}
 			Expect(k8sClient.Delete(ctx, workspaceKind)).To(Succeed())
 
 			By("deleting Pod")
 			pod := &corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      podName1,
-					Namespace: namespaceName1,
-				},
+				Name:      podName1,
+				Namespace: namespaceName1,
 			}
 			Expect(k8sClient.Delete(ctx, pod)).To(Succeed())
 
 			By("deleting PVC 1")
 			pvc1 := &corev1.PersistentVolumeClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      pvcName1,
-					Namespace: namespaceName1,
-				},
+				Name:      pvcName1,
+				Namespace: namespaceName1,
 			}
 			Expect(k8sClient.Delete(ctx, pvc1)).To(Succeed())
 
 			By("deleting PVC 2")
 			pvc2 := &corev1.PersistentVolumeClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      pvcName2,
-					Namespace: namespaceName1,
-				},
+				Name:      pvcName2,
+				Namespace: namespaceName1,
 			}
 			Expect(k8sClient.Delete(ctx, pvc2)).To(Succeed())
 
 			By("deleting PersistentVolume")
 			pv := &corev1.PersistentVolume{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: pvName1,
-				},
+				Name: pvName1,
 			}
 			Expect(k8sClient.Delete(ctx, pv)).To(Succeed())
 
 			By("deleting StorageClass")
 			sc := &storagev1.StorageClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: storageClassName1,
-				},
+				Name: storageClassName1,
 			}
 			Expect(k8sClient.Delete(ctx, sc)).To(Succeed())
 
 			By("deleting Namespace")
 			namespace := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespaceName1,
-				},
+				Name: namespaceName1,
 			}
 			Expect(k8sClient.Delete(ctx, namespace)).To(Succeed())
 		})
