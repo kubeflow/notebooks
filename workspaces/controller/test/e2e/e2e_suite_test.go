@@ -41,8 +41,32 @@ var (
 	// isPrometheusOperatorAlreadyInstalled will be set true when prometheus CRDs be found on the cluster
 	// isPrometheusOperatorAlreadyInstalled = false
 
-	skipIstioInstall        = os.Getenv("ISTIO_INSTALL_SKIP") == "true"
+	routingProvider = func() string {
+		if val := os.Getenv("ROUTING_PROVIDER"); val != "" {
+			return val
+		}
+		return "istio"
+	}()
+
+	skipIstioInstall = func() bool {
+		if os.Getenv("ISTIO_INSTALL_SKIP") == "true" {
+			return true
+		}
+		return routingProvider != "istio"
+	}()
 	isIstioAlreadyInstalled = false
+
+	// enableExtAuthz deploys the controller with the ExternalAuth filter
+	// configured, which is only meaningful for the gateway-api provider.
+	enableExtAuthz = os.Getenv("ENABLE_EXT_AUTHZ") == "true" && routingProvider == "gateway-api"
+
+	// controllerOverlay is the kustomize overlay the controller is deployed with.
+	controllerOverlay = func() string {
+		if enableExtAuthz {
+			return "gateway-api-ext-authz"
+		}
+		return routingProvider
+	}()
 )
 
 // TestE2E runs the end-to-end (e2e) test suite for the project. These tests execute in an isolated,
@@ -106,6 +130,18 @@ var _ = BeforeSuite(func() {
 
 		By("checking that istio is available")
 		Expect(utils.WaitIstioAvailable()).To(Succeed(), "istio is not available")
+	}
+
+	if routingProvider == "gateway-api" {
+		By("checking if gateway-api CRDs are installed")
+		Expect(utils.IsGatewayAPICRDsInstalled()).To(BeTrue(), "Gateway API CRDs are not installed in the cluster")
+	}
+
+	if enableExtAuthz {
+		By("checking if the gateway-api experimental channel is installed")
+		Expect(utils.IsGatewayAPIExperimentalInstalled()).To(BeTrue(),
+			"the ExternalAuth filter needs the Gateway API experimental channel; "+
+				"install it with GATEWAY_API_CHANNEL=experimental developing/scripts/setup-gateway-api.sh")
 	}
 })
 

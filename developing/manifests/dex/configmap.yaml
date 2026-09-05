@@ -1,0 +1,44 @@
+# Dex for the local ext-authz flavor. It stands in for whatever OIDC issuer a
+# real deployment uses (Keycloak, Okta, a cloud provider), so that the
+# authorization service can be exercised without any Kubeflow component.
+#
+# The static passwords below are for local development only.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dex
+  namespace: dex
+data:
+  config.yaml: |
+    # The issuer must be reachable under the same name by the browser and by the
+    # authorization service, because the browser follows the redirect and the
+    # service validates the "iss" claim against it.
+    issuer: https://kubeflow.example.com/dex
+
+    storage:
+      type: memory
+
+    web:
+      http: 0.0.0.0:5556
+
+    oauth2:
+      skipApprovalScreen: true
+
+    staticClients:
+      - id: kubeflow-workspaces
+        name: Kubeflow Workspaces
+        secret: kubeflow-workspaces-dev-secret
+        redirectURIs:
+          - https://kubeflow.example.com/oauth2/callback
+
+    enablePasswordDB: true
+    staticPasswords:
+      # password: "password"
+      - email: user@example.com
+        hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"
+        username: user
+        userID: "00000000-0000-0000-0000-000000000001"
+      - email: admin@example.com
+        hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"
+        username: admin
+        userID: "00000000-0000-0000-0000-000000000002"

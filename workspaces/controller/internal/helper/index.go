@@ -22,10 +22,12 @@ import (
 	istiov1 "istio.io/client-go/pkg/apis/networking/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/config"
@@ -57,7 +59,6 @@ func indexByWorkspaceOwner(mgr ctrl.Manager, obj client.Object) error {
 
 // SetupManagerFieldIndexers sets up field indexes on a controller-runtime manager
 func SetupManagerFieldIndexers(mgr ctrl.Manager, cfg *config.EnvConfig) error {
-
 	// Index Event by `involvedObject.uid`
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &corev1.Event{}, IndexEventInvolvedObjectUidField, func(rawObj client.Object) []string {
 		event := rawObj.(*corev1.Event)
@@ -90,8 +91,22 @@ func SetupManagerFieldIndexers(mgr ctrl.Manager, cfg *config.EnvConfig) error {
 	}
 
 	// Index VirtualService by its owner Workspace (only when Istio is enabled)
-	if cfg.UseIstio {
+	if cfg.UseIstio || cfg.RoutingProvider == config.RoutingProviderIstio {
 		if err := indexByWorkspaceOwner(mgr, &istiov1.VirtualService{}); err != nil {
+			return err
+		}
+	}
+
+	// Index HTTPRoute by its owner Workspace (only when Gateway API is enabled)
+	if cfg.RoutingProvider == config.RoutingProviderGatewayAPI {
+		if err := indexByWorkspaceOwner(mgr, &gatewayv1.HTTPRoute{}); err != nil {
+			return err
+		}
+	}
+
+	// Index NetworkPolicy by its owner Workspace (only when workspace network policies are enabled)
+	if cfg.WorkspaceNetworkPolicy.Enabled {
+		if err := indexByWorkspaceOwner(mgr, &networkingv1.NetworkPolicy{}); err != nil {
 			return err
 		}
 	}

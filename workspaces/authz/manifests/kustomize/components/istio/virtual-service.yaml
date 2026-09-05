@@ -1,0 +1,20 @@
+# The OIDC endpoints are excluded from the AuthorizationPolicy paths, so this
+# route is reachable without authentication.
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: workspaces-authz
+spec:
+  gateways:
+  - kubeflow/kubeflow-gateway
+  hosts:
+  - '*'
+  http:
+  - match:
+    - uri:
+        prefix: /oauth2/
+    route:
+    - destination:
+        host: workspaces-authz.kubeflow-workspaces.svc.cluster.local
+        port:
+          number: 9002

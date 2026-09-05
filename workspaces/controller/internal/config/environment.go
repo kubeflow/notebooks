@@ -23,4 +23,11 @@ type EnvConfig struct {
 	UseIstio      bool
 	ClientQPS     float64
 	ClientBurst   int
+
+	// standalone deployment options (see environment_standalone.go)
+	RoutingProvider        RoutingProviderType
+	GatewayName            string
+	GatewayHosts           string
+	ExternalAuth           ExternalAuthConfig
+	WorkspaceNetworkPolicy WorkspaceNetworkPolicyConfig
 }

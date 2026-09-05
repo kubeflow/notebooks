@@ -40,6 +40,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/config"
@@ -60,6 +61,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(istiov1.AddToScheme(scheme))
+	utilruntime.Must(gatewayv1.Install(scheme))
 
 	utilruntime.Must(kubefloworgv1beta1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
@@ -105,9 +107,16 @@ func main() {
 		Development: true,
 	}
 	opts.BindFlags(flag.CommandLine)
+	standaloneFlags := registerStandaloneFlags(cfg)
+
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+
+	if err := resolveStandaloneConfig(cfg, standaloneFlags); err != nil {
+		setupLog.Error(err, "invalid standalone configuration")
+		os.Exit(1)
+	}
 
 	// if the enable-http2 flag is false (the default), http/2 should be disabled
 	// due to its vulnerabilities. More specifically, disabling http/2 will

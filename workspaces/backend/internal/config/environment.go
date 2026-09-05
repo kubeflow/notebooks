@@ -26,6 +26,11 @@ type EnvConfig struct {
 	UserIdPrefix string
 	GroupsHeader string
 
+	// EnableTokenAuth makes the backend authenticate bearer tokens with a
+	// TokenReview rather than trusting the user id header for those requests.
+	EnableTokenAuth bool
+	TokenAudiences  []string
+
 	ProxyUrlPrefix string
 
 	SwaggerEnabled  bool

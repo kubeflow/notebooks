@@ -1,0 +1,25 @@
+# The Gateway serves a self-signed certificate, so the authorization service has
+# to trust its CA to complete OIDC discovery against the issuer.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workspaces-authz
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+      - name: workspaces-authz
+        env:
+        - name: SSL_CERT_FILE
+          value: /etc/ssl/gateway/ca.crt
+        - name: COOKIE_SECURE
+          value: "true"
+        volumeMounts:
+        - name: gateway-ca
+          mountPath: /etc/ssl/gateway
+          readOnly: true
+      volumes:
+      - name: gateway-ca
+        secret:
+          secretName: gateway-tls-ca

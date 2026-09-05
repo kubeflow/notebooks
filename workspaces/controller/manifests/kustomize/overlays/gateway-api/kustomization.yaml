@@ -1,0 +1,135 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: kubeflow-workspaces
+
+resources:
+- ../../base
+
+components:
+- ../../components/certmanager
+- ../../components/gateway-api
+- ../../components/workspace-network-policy
+##
+## TODO: rename this to `prometheus-noauth` and also offer a component that enforces kubernetes RBAC for the ServiceMonitor:
+##       historically this was done with `kube-rbac-proxy`, like in dashboard: https://github.com/kubeflow/dashboard/tree/v2.0.0-rc.0/components/profile-controller/manifests/kustomize/components/prometheus-authz
+##       but there is now a way to do this in native controller-runtime with WithAuthenticationAndAuthorization: https://book.kubebuilder.io/reference/metrics.html
+##       but either way, we will need to have the correct RBAC and ServiceMonitor changes in this new component.
+#- ../../components/prometheus
+# NOTE: the common component should always be last, to ensure it labels all resources.
+- ../../components/common
+
+patches:
+- patch: |-
+    - op: remove
+      path: /metadata/labels/app.kubernetes.io~1name
+  target:
+    kind: Namespace
+    name: kubeflow-workspaces
+
+replacements:
+- source:
+    fieldPath: metadata.namespace
+    kind: ServiceAccount
+    name: workspaces-controller
+  targets:
+    - fieldPaths:
+        - subjects.[kind=ServiceAccount].namespace
+      select:
+        kind: ClusterRoleBinding
+        name: workspaces-manager-rolebinding
+    - fieldPaths:
+        - subjects.[kind=ServiceAccount].namespace
+      select:
+        kind: RoleBinding
+        name: workspaces-leader-election-rolebinding
+- source:
+    fieldPath: .metadata.namespace
+    group: cert-manager.io
+    kind: Certificate
+    name: workspaces-serving-cert
+    version: v1
+  targets:
+  - fieldPaths:
+    - .metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      create: true
+      delimiter: /
+    select:
+      kind: ValidatingWebhookConfiguration
+  - fieldPaths:
+    - .metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      create: true
+      delimiter: /
+    select:
+      kind: CustomResourceDefinition
+- source:
+    fieldPath: .metadata.name
+    group: cert-manager.io
+    kind: Certificate
+    name: workspaces-serving-cert
+    version: v1
+  targets:
+  - fieldPaths:
+    - .metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      create: true
+      delimiter: /
+      index: 1
+    select:
+      kind: ValidatingWebhookConfiguration
+  - fieldPaths:
+    - .metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      create: true
+      delimiter: /
+      index: 1
+    select:
+      kind: CustomResourceDefinition
+- source:
+    fieldPath: .metadata.name
+    kind: Service
+    name: workspaces-webhook-service
+    version: v1
+  targets:
+  - fieldPaths:
+    - .spec.dnsNames.0
+    - .spec.dnsNames.1
+    options:
+      create: true
+      delimiter: .
+    select:
+      group: cert-manager.io
+      kind: Certificate
+      version: v1
+- source:
+    fieldPath: .metadata.namespace
+    kind: Service
+    name: workspaces-webhook-service
+    version: v1
+  targets:
+  - fieldPaths:
+    - .spec.dnsNames.0
+    - .spec.dnsNames.1
+    options:
+      create: true
+      delimiter: .
+      index: 1
+    select:
+      group: cert-manager.io
+      kind: Certificate
+      version: v1
+- source:
+    fieldPath: .spec.secretName
+    group: cert-manager.io
+    kind: Certificate
+    name: workspaces-serving-cert
+    version: v1
+  targets:
+  - fieldPaths:
+    - .spec.template.spec.volumes.[name=cert].secret.secretName
+    options: {}
+    select:
+      kind: Deployment
+      name: workspaces-controller

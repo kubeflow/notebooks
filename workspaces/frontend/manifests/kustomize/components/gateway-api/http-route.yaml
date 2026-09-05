@@ -1,0 +1,25 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: workspaces-frontend
+spec:
+  parentRefs:
+  - name: kubeflow-gateway
+    namespace: kubeflow
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /workspaces/
+    - path:
+        type: Exact
+        value: /workspaces
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          type: ReplacePrefixMatch
+          replacePrefixMatch: /
+    backendRefs:
+    - name: workspaces-frontend
+      port: 8080

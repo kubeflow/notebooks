@@ -17,20 +17,30 @@ limitations under the License.
 package api
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	"golang.org/x/sync/errgroup"
+	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/apiserver/pkg/authorization/authorizer"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/namespaces"
 )
 
+// namespaceAuthCheckConcurrency bounds the SubjectAccessReviews issued while
+// filtering namespaces, so a cluster with many namespaces cannot flood the API
+// server with a single request.
+const namespaceAuthCheckConcurrency = 16
+
 type NamespaceListEnvelope Envelope[[]models.Namespace]
 
-// GetNamespacesHandler returns a list of all namespaces in the cluster.
+// GetNamespacesHandler returns the namespaces the caller can use.
 //
 //	@Summary		List namespaces
-//	@Description	Returns a list of all namespaces in the cluster.
+//	@Description	Returns the namespaces in which the caller is allowed to list workspaces.
 //	@Tags			namespaces
 //	@ID				listNamespaces
 //	@Produce		application/json
@@ -42,10 +52,10 @@ type NamespaceListEnvelope Envelope[[]models.Namespace]
 func (a *App) GetNamespacesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 	// =========================== AUTH ===========================
-	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(auth.VerbList, auth.Namespaces, auth.ResourcePolicyResourceMeta{}),
-	}
-	if _, ok := a.requireAuth(w, r, authPolicies); !ok {
+	// Authentication only: the response is filtered per namespace below, rather
+	// than requiring the caller to hold a cluster-wide permission.
+	actor, ok := a.requireAuth(w, r, nil)
+	if !ok {
 		return
 	}
 	// ============================================================
@@ -56,6 +66,52 @@ func (a *App) GetNamespacesHandler(w http.ResponseWriter, r *http.Request, _ htt
 		return
 	}
 
+	namespaces, err = a.visibleNamespaces(r.Context(), actor, namespaces)
+	if err != nil {
+		a.serverErrorResponse(w, r, err)
+		return
+	}
+
 	responseEnvelope := &NamespaceListEnvelope{Data: namespaces}
 	a.dataResponse(w, r, responseEnvelope)
+}
+
+// visibleNamespaces filters namespaces down to those where the actor may list
+// workspaces.
+//
+// There is no Kubernetes API that answers "which namespaces may this user use",
+// so each namespace is checked individually. Checks run concurrently because
+// each is a round trip to the API server, though the authorizer caches
+// decisions between requests.
+func (a *App) visibleNamespaces(ctx context.Context, actor user.Info, all []models.Namespace) ([]models.Namespace, error) {
+	allowed := make([]bool, len(all))
+
+	group, groupCtx := errgroup.WithContext(ctx)
+	group.SetLimit(namespaceAuthCheckConcurrency)
+	for i, namespace := range all {
+		group.Go(func() error {
+			policy := auth.NewResourcePolicy(
+				auth.VerbList,
+				auth.Workspaces,
+				auth.ResourcePolicyResourceMeta{Namespace: namespace.Name},
+			)
+			decision, _, err := a.RequestAuthZ.Authorize(groupCtx, policy.AttributesFor(actor))
+			if err != nil {
+				return fmt.Errorf("failed to authorize namespace %q for user %q: %w", namespace.Name, actor.GetName(), err)
+			}
+			allowed[i] = decision == authorizer.DecisionAllow
+			return nil
+		})
+	}
+	if err := group.Wait(); err != nil {
+		return nil, err
+	}
+
+	visible := make([]models.Namespace, 0, len(all))
+	for i, namespace := range all {
+		if allowed[i] {
+			visible = append(visible, namespace)
+		}
+	}
+	return visible, nil
 }

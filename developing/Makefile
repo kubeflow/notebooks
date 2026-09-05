@@ -1,3 +1,5 @@
+.PHONY: check-tilt tilt-up tilt-down setup-kind setup-cert-manager setup-istio setup-prometheus setup-metrics-server setup-gateway-api kustomize istioctl cloud-provider-kind
+
 # Variables
 CLUSTER_NAME := tilt
 KIND_CONTEXT := kind-$(CLUSTER_NAME)
@@ -9,9 +11,13 @@ $(LOCALBIN):
 
 # Tool Binaries
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
+ISTIOCTL ?= $(LOCALBIN)/istioctl
+CLOUD_PROVIDER_KIND ?= $(LOCALBIN)/cloud-provider-kind
 
 # Tool Versions
 KUSTOMIZE_VERSION ?= v5.5.0
+ISTIOCTL_VERSION ?= 1.29.1
+CLOUD_PROVIDER_KIND_VERSION ?= latest
 
 # Export KIND_EXPERIMENTAL_PROVIDER to honor it if set in user's environment
 # (e.g., KIND_EXPERIMENTAL_PROVIDER=podman for podman support)
@@ -60,11 +66,60 @@ setup-metrics-server:
 	@echo "Setting up metrics-server..."
 	@export PATH="$(LOCALBIN):$$PATH" && ./scripts/setup-metrics-server.sh
 
+# Setup cloud-provider-kind
+setup-cloud-provider-kind: cloud-provider-kind setup-kind
+	@echo "Setting up cloud-provider-kind..."
+	@./scripts/setup-cloud-provider-kind.sh
+
+# Install Gateway API and a gateway controller
+setup-gateway-api: setup-cert-manager setup-cloud-provider-kind
+	@echo "Setting up Gateway API..."
+	@./scripts/setup-gateway-api.sh
+
+# Install Gateway API with the experimental channel, required by the ExternalAuth filter
+.PHONY: setup-gateway-api-experimental
+setup-gateway-api-experimental: setup-cert-manager setup-cloud-provider-kind
+	@echo "Setting up Gateway API (experimental channel)..."
+	@GATEWAY_API_CHANNEL=experimental ./scripts/setup-gateway-api.sh
+
+# Generate the secrets and host wiring the authorization service needs
+.PHONY: setup-ext-authz
+setup-ext-authz:
+	@echo "Setting up external authorization..."
+	@./scripts/setup-ext-authz.sh
+
 # Run tilt up with kind cluster, cert-manager, and Istio setup
 .PHONY: tilt-up
 tilt-up: kustomize check-tilt setup-kind setup-istio setup-prometheus setup-metrics-server
 	@echo "Starting Tilt..."
 	@tilt up
+
+# Run tilt up with Gateway API flavor
+.PHONY: tilt-up-gateway-api
+tilt-up-gateway-api: check-tilt setup-gateway-api kustomize
+	@echo "Starting Tilt (Gateway API flavor)..."
+	@ROUTING_PROVIDER=gateway-api tilt up
+
+# Run tilt up with Gateway API and external authorization.
+#
+# The authorization service secrets and host alias are created by
+# `make setup-ext-authz`, which has to run after Tilt has applied the Gateway
+# and the authz Deployment.
+.PHONY: tilt-up-gateway-api-ext-authz
+tilt-up-gateway-api-ext-authz: check-tilt setup-gateway-api-experimental kustomize
+	@echo "Starting Tilt (Gateway API + external authorization flavor)..."
+	@ROUTING_PROVIDER=gateway-api ENABLE_EXT_AUTHZ=true tilt up
+
+# Run Gateway API e2e tests
+test-e2e-gateway-api: setup-gateway-api
+	@echo "Running Gateway API e2e tests..."
+	@./scripts/test-e2e-gateway-api.sh
+
+# Run Gateway API e2e tests with the ExternalAuth filter enabled
+.PHONY: test-e2e-gateway-api-ext-authz
+test-e2e-gateway-api-ext-authz: setup-gateway-api-experimental
+	@echo "Running Gateway API e2e tests with external authorization..."
+	@./scripts/test-e2e-gateway-api-ext-authz.sh
 
 # Stop Tilt
 .PHONY: tilt-down
@@ -77,6 +132,16 @@ tilt-down: check-tilt kustomize
 kustomize: $(KUSTOMIZE)
 $(KUSTOMIZE): $(LOCALBIN)
 	$(call go-install-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v5,$(KUSTOMIZE_VERSION))
+
+# Install istioctl
+istioctl: $(ISTIOCTL)
+$(ISTIOCTL): $(LOCALBIN)
+	$(call go-install-tool,$(ISTIOCTL),istio.io/istio/istioctl/cmd/istioctl,$(ISTIOCTL_VERSION),"-X istio.io/istio/pkg/version.buildVersion=$(ISTIOCTL_VERSION) -X istio.io/istio/pkg/version.buildTag=$(ISTIOCTL_VERSION) -X istio.io/istio/pkg/version.buildHub=docker.io/istio")
+
+# Install cloud-provider-kind
+cloud-provider-kind: $(CLOUD_PROVIDER_KIND)
+$(CLOUD_PROVIDER_KIND): $(LOCALBIN)
+	$(call go-install-tool,$(CLOUD_PROVIDER_KIND),sigs.k8s.io/cloud-provider-kind,$(CLOUD_PROVIDER_KIND_VERSION))
 
 # go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
 # $1 - target path with name of binary
