@@ -17,10 +17,12 @@ limitations under the License.
 package controller
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
 
+	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -29,6 +31,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
@@ -844,6 +847,198 @@ var _ = Describe("Workspace Controller", func() {
 
 			By("checking the pod template uses the podConfig `schedulerName`")
 			Expect(statefulSet.Spec.Template.Spec.SchedulerName).To(Equal("podconfig-scheduler"))
+		})
+	})
+
+	Context("When generating the Workspace state", func() {
+		var (
+			reconciler  *WorkspaceReconciler
+			statefulSet *appsv1.StatefulSet
+			pod         *corev1.Pod
+		)
+		BeforeEach(func() {
+			reconciler = &WorkspaceReconciler{}
+
+			statefulSet = &appsv1.StatefulSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Generation: 1,
+				},
+				Status: appsv1.StatefulSetStatus{
+					ObservedGeneration: 1,
+					UpdateRevision:     "revision-1",
+				},
+			}
+
+			pod = &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"controller-revision-hash": "revision-1",
+					},
+				},
+			}
+		})
+		It("should return Unknown while the StatefulSet generation is not observed", func() {
+			statefulSet.Generation = 2
+			statefulSet.Status.ObservedGeneration = 1
+
+			state, message, result, err := reconciler.generateWorkspaceState(
+				context.Background(),
+				logr.Discard(),
+				false,
+				statefulSet,
+				pod,
+			)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).To(Equal(ctrl.Result{}))
+			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateUnknown))
+			Expect(message).To(Equal(stateMsgWaitingForKubernetesToReconcileStatefulSet))
+		})
+
+		It("should return Unknown when the StatefulSet observed generation is ahead of its generation", func() {
+			statefulSet.Generation = 1
+			statefulSet.Status.ObservedGeneration = 2
+
+			state, message, result, err := reconciler.generateWorkspaceState(
+				context.Background(),
+				logr.Discard(),
+				false,
+				statefulSet,
+				pod,
+			)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).To(Equal(ctrl.Result{}))
+			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateUnknown))
+			Expect(message).To(Equal(stateMsgWaitingForKubernetesToReconcileStatefulSet))
+		})
+
+		It("should return Unknown while the StatefulSet generation is not observed and there is no Pod", func() {
+			statefulSet.Generation = 2
+			statefulSet.Status.ObservedGeneration = 1
+
+			state, message, result, err := reconciler.generateWorkspaceState(
+				context.Background(),
+				logr.Discard(),
+				false,
+				statefulSet,
+				nil,
+			)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).To(Equal(ctrl.Result{}))
+			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateUnknown))
+			Expect(message).To(Equal(stateMsgWaitingForKubernetesToReconcileStatefulSet))
+		})
+		It("should return Unknown while the StatefulSet generation is not observed even when paused", func() {
+			statefulSet.Generation = 2
+			statefulSet.Status.ObservedGeneration = 1
+
+			state, message, result, err := reconciler.generateWorkspaceState(
+				context.Background(),
+				logr.Discard(),
+				true,
+				statefulSet,
+				nil,
+			)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).To(Equal(ctrl.Result{}))
+			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateUnknown))
+			Expect(message).To(Equal(stateMsgWaitingForKubernetesToReconcileStatefulSet))
+		})
+		It("should return Paused once the StatefulSet generation is observed", func() {
+			state, message, result, err := reconciler.generateWorkspaceState(
+				context.Background(),
+				logr.Discard(),
+				true,
+				statefulSet,
+				nil,
+			)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).To(Equal(ctrl.Result{}))
+			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStatePaused))
+			Expect(message).To(Equal(stateMsgPaused))
+		})
+		It("should return Pending while the Pod has an outdated revision", func() {
+			pod.Labels["controller-revision-hash"] = "revision-old"
+
+			state, message, result, err := reconciler.generateWorkspaceState(
+				context.Background(),
+				logr.Discard(),
+				false,
+				statefulSet,
+				pod,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).To(Equal(ctrl.Result{}))
+			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStatePending))
+			Expect(message).To(Equal(stateMsgWaitingForPodUpdate))
+		})
+		It("should return Terminating for a terminating Pod even when its revision is outdated", func() {
+			pod.Labels["controller-revision-hash"] = "revision-old"
+			now := metav1.Now()
+			pod.DeletionTimestamp = &now
+
+			state, message, result, err := reconciler.generateWorkspaceState(
+				context.Background(),
+				logr.Discard(),
+				false,
+				statefulSet,
+				pod,
+			)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).To(Equal(ctrl.Result{}))
+			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateTerminating))
+			Expect(message).To(Equal(stateMsgTerminating))
+		})
+		It("should ignore the Pod revision when the StatefulSet updateRevision is empty", func() {
+			statefulSet.Status.UpdateRevision = ""
+			pod.Labels["controller-revision-hash"] = "revision-old"
+			pod.Status.Phase = corev1.PodRunning
+			pod.Status.Conditions = []corev1.PodCondition{
+				{
+					Type:   corev1.PodReady,
+					Status: corev1.ConditionTrue,
+				},
+			}
+
+			state, message, result, err := reconciler.generateWorkspaceState(
+				context.Background(),
+				logr.Discard(),
+				false,
+				statefulSet,
+				pod,
+			)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).To(Equal(ctrl.Result{}))
+			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateRunning))
+			Expect(message).To(Equal(stateMsgRunning))
+		})
+		It("should use the existing Pod state when its revision matches the StatefulSet", func() {
+			pod.Status.Phase = corev1.PodRunning
+			pod.Status.Conditions = []corev1.PodCondition{
+				{
+					Type:   corev1.PodReady,
+					Status: corev1.ConditionTrue,
+				},
+			}
+
+			state, message, result, err := reconciler.generateWorkspaceState(
+				context.Background(),
+				logr.Discard(),
+				false,
+				statefulSet,
+				pod,
+			)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).To(Equal(ctrl.Result{}))
+			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateRunning))
+			Expect(message).To(Equal(stateMsgRunning))
 		})
 	})
 })
