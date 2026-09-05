@@ -6682,6 +6682,163 @@
                 }
             }
         },
+        "v1beta1.FilterRule": {
+            "type": "object",
+            "required": [
+                "effect",
+                "match",
+                "scope"
+            ],
+            "properties": {
+                "effect": {
+                    "description": "the effect to apply to matched items when all `match` conditions are satisfied",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.FilterRuleEffect"
+                        }
+                    ]
+                },
+                "match": {
+                    "description": "the conditions which must ALL be satisfied for the rule to apply\n+kubebuilder:validation:MinItems:=1\n+listType:=\"atomic\"",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/v1beta1.FilterRuleMatch"
+                    }
+                },
+                "scope": {
+                    "description": "the type of resource whose visibility this rule controls",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.FilterRuleScope"
+                        }
+                    ]
+                }
+            }
+        },
+        "v1beta1.FilterRuleDenyMessage": {
+            "type": "object",
+            "required": [
+                "text"
+            ],
+            "properties": {
+                "text": {
+                    "description": "the text of the message to show when the item is denied\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=1024",
+                    "type": "string"
+                }
+            }
+        },
+        "v1beta1.FilterRuleEffect": {
+            "type": "object",
+            "properties": {
+                "api": {
+                    "description": "server-enforced behavior evaluated by the backend API server\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.FilterRuleEffectAPI"
+                        }
+                    ]
+                },
+                "ui": {
+                    "description": "rendering hints for the frontend (the item is still returned by the API)\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.FilterRuleEffectUI"
+                        }
+                    ]
+                }
+            }
+        },
+        "v1beta1.FilterRuleEffectAPI": {
+            "type": "object",
+            "properties": {
+                "deny": {
+                    "description": "return the matched item but reject any workspace create/update which selects it\n+kubebuilder:validation:Optional",
+                    "type": "boolean"
+                },
+                "denyMessage": {
+                    "description": "a message explaining why the matched item is denied\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.FilterRuleDenyMessage"
+                        }
+                    ]
+                },
+                "hide": {
+                    "description": "omit the matched item from the API response entirely\n+kubebuilder:validation:Optional",
+                    "type": "boolean"
+                }
+            }
+        },
+        "v1beta1.FilterRuleEffectUI": {
+            "type": "object",
+            "required": [
+                "hide"
+            ],
+            "properties": {
+                "hide": {
+                    "description": "suggest the UI hide the matched item",
+                    "type": "boolean"
+                }
+            }
+        },
+        "v1beta1.FilterRuleMatch": {
+            "type": "object",
+            "properties": {
+                "matchImageConfig": {
+                    "description": "match against the `spawner.labels` of an imageConfig value\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.FilterRuleSelector"
+                        }
+                    ]
+                },
+                "matchNamespace": {
+                    "description": "match against the labels of the namespace the workspace would be created in\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.FilterRuleSelector"
+                        }
+                    ]
+                },
+                "matchPodConfig": {
+                    "description": "match against the `spawner.labels` of a podConfig value\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.FilterRuleSelector"
+                        }
+                    ]
+                }
+            }
+        },
+        "v1beta1.FilterRuleScope": {
+            "type": "string",
+            "enum": [
+                "WORKSPACE_KIND",
+                "POD_CONFIG",
+                "IMAGE_CONFIG"
+            ],
+            "x-enum-varnames": [
+                "FilterRuleScopeWorkspaceKind",
+                "FilterRuleScopePodConfig",
+                "FilterRuleScopeImageConfig"
+            ]
+        },
+        "v1beta1.FilterRuleSelector": {
+            "type": "object",
+            "required": [
+                "selector"
+            ],
+            "properties": {
+                "selector": {
+                    "description": "a standard Kubernetes label selector",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1.LabelSelector"
+                        }
+                    ]
+                }
+            }
+        },
         "v1beta1.HTTPProxy": {
             "type": "object",
             "properties": {
@@ -7794,6 +7951,12 @@
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/v1beta1.ActivityRule"
+                    }
+                },
+                "filterRules": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/v1beta1.FilterRule"
                     }
                 },
                 "podTemplate": {

@@ -23,14 +23,30 @@ import (
 	"k8s.io/utils/ptr"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
-	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/filterrules"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common/assets"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/podtemplate/options"
 )
 
 // NewWorkspaceKindModelFromWorkspaceKind creates a WorkspaceKind model from a WorkspaceKind object.
 // Asset SHA256 hashes and error codes are read directly from the WorkspaceKind status.
-func NewWorkspaceKindModelFromWorkspaceKind(cfg *config.EnvConfig, wsk *kubefloworgv1beta1.WorkspaceKind) WorkspaceKindListItem {
+//
+// namespaceLabels are the labels of the namespace named in the request's `namespaceFilter`
+// (resolved by the caller via the k8s API), or nil when `namespaceFilter` was not provided.
+// The WorkspaceKind's `spec.filterRules[]` with `scope: WORKSPACE_KIND` are evaluated against
+// these labels; apiHide is true when a matching rule has `api.hide`, signaling the caller to
+// omit the WorkspaceKind from the response entirely.
+func NewWorkspaceKindModelFromWorkspaceKind(cfg *config.EnvConfig, wsk *kubefloworgv1beta1.WorkspaceKind, namespaceLabels map[string]string) (item WorkspaceKindListItem, apiHide bool) {
+	// evaluate the WorkspaceKind's WORKSPACE_KIND-scoped filter rules (first-match-wins).
+	// only matchNamespace conditions apply at this scope; when namespaceLabels is nil (no
+	// namespaceFilter), those conditions are non-matching, so nothing is hidden or denied.
+	result := filterrules.EvaluateWorkspaceKindFilterScopeRule(wsk, namespaceLabels)
+
+	// `api.hide` omits the WorkspaceKind from the response entirely; skip building the model
+	if result.APIHide {
+		return WorkspaceKindListItem{}, true
+	}
+
 	podLabels := make(map[string]string)
 	podAnnotations := make(map[string]string)
 	if wsk.Spec.PodTemplate.PodMetadata != nil {
@@ -62,9 +78,10 @@ func NewWorkspaceKindModelFromWorkspaceKind(cfg *config.EnvConfig, wsk *kubeflow
 		Description:        wsk.Spec.Spawner.Description,
 		Deprecated:         ptr.Deref(wsk.Spec.Spawner.Deprecated, false),
 		DeprecationMessage: ptr.Deref(wsk.Spec.Spawner.DeprecationMessage, ""),
-		Hidden:             ptr.Deref(wsk.Spec.Spawner.Hidden, false),
-		Icon:               assets.NewImageRefFromWorkspaceKindAssetIcon(cfg, wsk.Spec.Spawner.Icon, wsk.Status.SpawnerIcon, wsk.Name),
-		Logo:               assets.NewImageRefFromWorkspaceKindAssetLogo(cfg, wsk.Spec.Spawner.Logo, wsk.Status.SpawnerLogo, wsk.Name),
+		// `hidden` is the admin-set value OR the `ui.hide` effect of the first matching rule
+		Hidden: ptr.Deref(wsk.Spec.Spawner.Hidden, false) || result.UIHide,
+		Icon:   assets.NewImageRefFromWorkspaceKindAssetIcon(cfg, wsk.Spec.Spawner.Icon, wsk.Status.SpawnerIcon, wsk.Name),
+		Logo:   assets.NewImageRefFromWorkspaceKindAssetLogo(cfg, wsk.Spec.Spawner.Logo, wsk.Status.SpawnerLogo, wsk.Name),
 		// TODO: in the future will need to support including exactly one of clusterMetrics or namespaceMetrics based on request context
 		ClusterMetrics: ClusterKindMetrics{
 			Workspaces: wsk.Status.Workspaces,
@@ -85,11 +102,8 @@ func NewWorkspaceKindModelFromWorkspaceKind(cfg *config.EnvConfig, wsk *kubeflow
 			Options:       *podTemplateOptions,
 		},
 		ActivityRules: buildActivityRules(wsk.Spec.ActivityRules),
-		//
-		// TODO: replace this with the calculation of the actual restriction!
-		//
-		Restrictions: common.DefaultRestrictions(),
-	}
+		Restrictions:  result.Restrictions,
+	}, false
 }
 
 func buildActivityProbe(probe *kubefloworgv1beta1.ActivityProbe) *ActivityProbe {
