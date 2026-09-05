@@ -33,6 +33,7 @@ import { WorkspaceFormPropertiesSelection } from '~/app/pages/Workspaces/Form/pr
 import { WorkspaceFormData } from '~/app/types';
 import usePodTemplateOptionsListValues from '~/app/hooks/usePodTemplateOptionsListValues';
 import useWorkspaceFormData from '~/app/hooks/useWorkspaceFormData';
+import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import { useRedirectConfirmation } from '~/app/hooks/useRedirectConfirmation';
 import { useTypedNavigate } from '~/app/routerHelper';
 import {
@@ -77,10 +78,14 @@ const WorkspaceForm: React.FC = () => {
   const { api } = useNotebookAPI();
 
   const { mode, namespace, workspaceName, workspaceKindName } = useWorkspaceFormLocationData();
+  const [workspaceKinds, workspaceKindsLoaded, workspaceKindsError] = useWorkspaceKinds(namespace);
   const [initialFormData, initialFormDataLoaded, initialFormDataError] = useWorkspaceFormData({
     namespace,
     workspaceName,
     workspaceKindName,
+    workspaceKinds,
+    workspaceKindsLoaded,
+    workspaceKindsError,
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -502,7 +507,9 @@ const WorkspaceForm: React.FC = () => {
                     {currentStep === WorkspaceFormSteps.KindSelection && (
                       <WorkspaceFormKindSelection
                         mode={mode}
-                        namespace={namespace}
+                        workspaceKinds={workspaceKinds}
+                        workspaceKindsLoaded={workspaceKindsLoaded}
+                        workspaceKindsError={workspaceKindsError}
                         selectedKind={data.kind}
                         onSelect={handleKindSelect}
                       />
