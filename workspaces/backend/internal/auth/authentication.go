@@ -29,39 +29,42 @@ import (
 
 // NewRequestAuthenticator returns a new request authenticator based on the provided configuration.
 //
-// When tokenAuthenticator is non-nil, a request carrying a bearer token is
-// authenticated by that token alone and the identity headers are ignored. This
-// keeps a caller from presenting a token that fails review and falling back to
-// an identity header it controls.
-func NewRequestAuthenticator(useridHeader string, useridPrefix string, groupsHeader string, tokenAuthenticator authenticator.Token) (authenticator.Request, error) {
+// Credentials are matched in a strict order with no fallback between them:
+// a bearer token is authenticated by the token authenticator alone, a session
+// cookie by the session authenticator alone, and identity headers only when
+// neither credential is present. Falling back would let a caller pair a
+// credential that fails validation with a header they control.
+func NewRequestAuthenticator(useridHeader string, useridPrefix string, groupsHeader string, tokenAuthenticator authenticator.Token, sessionAuthenticator *SessionAuthenticator) (authenticator.Request, error) {
 
 	headerAuthenticator, err := newHeaderAuthenticator(useridHeader, useridPrefix, groupsHeader)
 	if err != nil {
 		return nil, err
 	}
 
-	if tokenAuthenticator == nil {
+	if tokenAuthenticator == nil && sessionAuthenticator == nil {
 		return headerAuthenticator, nil
 	}
 
-	bearerAuthenticator := bearertoken.New(tokenAuthenticator)
+	var bearerAuthenticator authenticator.Request
+	if tokenAuthenticator != nil {
+		bearerAuthenticator = bearertoken.New(tokenAuthenticator)
+	}
 	return authenticator.RequestFunc(func(req *http.Request) (*authenticator.Response, bool, error) {
-		if hasBearerToken(req) {
+		if bearerAuthenticator != nil && hasBearerToken(req) {
 			return bearerAuthenticator.AuthenticateRequest(req)
+		}
+		if sessionAuthenticator != nil && sessionAuthenticator.HasSessionCookie(req) {
+			return sessionAuthenticator.AuthenticateRequest(req)
 		}
 		return headerAuthenticator.AuthenticateRequest(req)
 	}), nil
 }
 
 // hasBearerToken reports whether the request presents a bearer credential, so
-// that it is never silently downgraded to header authentication.
+// that it is never silently downgraded to another authentication method.
 func hasBearerToken(req *http.Request) bool {
-	value := req.Header.Get("Authorization")
-	if value == "" {
-		return false
-	}
-	scheme, token, found := strings.Cut(value, " ")
-	return found && strings.EqualFold(scheme, "Bearer") && token != ""
+	_, ok := bearerFromHeader(req.Header.Get("Authorization"))
+	return ok
 }
 
 func newHeaderAuthenticator(useridHeader string, useridPrefix string, groupsHeader string) (authenticator.Request, error) {

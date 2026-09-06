@@ -106,6 +106,19 @@ func main() {
 		"Comma separated audiences a bearer token must be valid for; empty accepts the API server default",
 	)
 	flag.StringVar(
+		&cfg.SessionAuthURL,
+		"session-auth-url",
+		getEnvAsStr("SESSION_AUTH_URL", ""),
+		"URL of an OIDC proxy auth-check endpoint (e.g. oauth2-proxy's /oauth2/auth) used to resolve "+
+			"browser session cookies; empty disables session authentication",
+	)
+	flag.StringVar(
+		&cfg.SessionCookieName,
+		"session-cookie-name",
+		getEnvAsStr("SESSION_COOKIE_NAME", "_oauth2_proxy"),
+		"Name of the OIDC proxy's session cookie",
+	)
+	flag.StringVar(
 		&cfg.ProxyUrlPrefix,
 		"proxy-url-prefix",
 		getEnvAsStr("PROXY_URL_PREFIX", ""),
@@ -191,7 +204,17 @@ func main() {
 			os.Exit(1)
 		}
 	}
-	reqAuthN, err := auth.NewRequestAuthenticator(cfg.UserIdHeader, cfg.UserIdPrefix, cfg.GroupsHeader, tokenAuthN)
+	var sessionAuthN *auth.SessionAuthenticator
+	if cfg.SessionAuthURL != "" {
+		sessionAuthN, err = auth.NewSessionAuthenticator(cfg.SessionAuthURL, cfg.SessionCookieName, tokenAuthN)
+		if err != nil {
+			logger.Error("failed to create session authenticator", "error", err)
+			os.Exit(1)
+		}
+	}
+	reqAuthN, err := auth.NewRequestAuthenticator(
+		cfg.UserIdHeader, cfg.UserIdPrefix, cfg.GroupsHeader, tokenAuthN, sessionAuthN,
+	)
 	if err != nil {
 		logger.Error("failed to create request authenticator", "error", err)
 		os.Exit(1)

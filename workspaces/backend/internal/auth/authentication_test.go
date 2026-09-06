@@ -57,7 +57,7 @@ func newTestRequest(headers map[string]string) *http.Request {
 }
 
 func TestAuthenticateWithHeadersOnly(t *testing.T) {
-	requestAuthenticator, err := NewRequestAuthenticator(testUserIDHeader, "", testGroupsHeader, nil)
+	requestAuthenticator, err := NewRequestAuthenticator(testUserIDHeader, "", testGroupsHeader, nil, nil)
 	if err != nil {
 		t.Fatalf("NewRequestAuthenticator returned unexpected error: %v", err)
 	}
@@ -74,7 +74,7 @@ func TestAuthenticateWithHeadersOnly(t *testing.T) {
 }
 
 func TestAuthenticateTrimsUserIDPrefix(t *testing.T) {
-	requestAuthenticator, err := NewRequestAuthenticator(testUserIDHeader, ":", testGroupsHeader, nil)
+	requestAuthenticator, err := NewRequestAuthenticator(testUserIDHeader, ":", testGroupsHeader, nil, nil)
 	if err != nil {
 		t.Fatalf("NewRequestAuthenticator returned unexpected error: %v", err)
 	}
@@ -92,7 +92,7 @@ func TestAuthenticateTrimsUserIDPrefix(t *testing.T) {
 
 func TestAuthenticateBearerTokenTakesPrecedence(t *testing.T) {
 	tokenAuthenticator := &fakeTokenAuthenticator{validToken: "good-token", username: "ana@example.com"}
-	requestAuthenticator, err := NewRequestAuthenticator(testUserIDHeader, "", testGroupsHeader, tokenAuthenticator)
+	requestAuthenticator, err := NewRequestAuthenticator(testUserIDHeader, "", testGroupsHeader, tokenAuthenticator, nil)
 	if err != nil {
 		t.Fatalf("NewRequestAuthenticator returned unexpected error: %v", err)
 	}
@@ -115,7 +115,7 @@ func TestAuthenticateBearerTokenTakesPrecedence(t *testing.T) {
 // authenticated by a header it controls.
 func TestAuthenticateRejectsBadTokenWithoutFallingBackToHeaders(t *testing.T) {
 	tokenAuthenticator := &fakeTokenAuthenticator{validToken: "good-token", username: "ana@example.com"}
-	requestAuthenticator, err := NewRequestAuthenticator(testUserIDHeader, "", testGroupsHeader, tokenAuthenticator)
+	requestAuthenticator, err := NewRequestAuthenticator(testUserIDHeader, "", testGroupsHeader, tokenAuthenticator, nil)
 	if err != nil {
 		t.Fatalf("NewRequestAuthenticator returned unexpected error: %v", err)
 	}
@@ -132,7 +132,7 @@ func TestAuthenticateRejectsBadTokenWithoutFallingBackToHeaders(t *testing.T) {
 
 func TestAuthenticateSurfacesTokenReviewErrors(t *testing.T) {
 	tokenAuthenticator := &fakeTokenAuthenticator{err: errors.New("api server unreachable")}
-	requestAuthenticator, err := NewRequestAuthenticator(testUserIDHeader, "", testGroupsHeader, tokenAuthenticator)
+	requestAuthenticator, err := NewRequestAuthenticator(testUserIDHeader, "", testGroupsHeader, tokenAuthenticator, nil)
 	if err != nil {
 		t.Fatalf("NewRequestAuthenticator returned unexpected error: %v", err)
 	}
@@ -150,7 +150,7 @@ func TestAuthenticateSurfacesTokenReviewErrors(t *testing.T) {
 
 func TestAuthenticateFallsBackToHeadersWithoutBearerToken(t *testing.T) {
 	tokenAuthenticator := &fakeTokenAuthenticator{validToken: "good-token", username: "ana@example.com"}
-	requestAuthenticator, err := NewRequestAuthenticator(testUserIDHeader, "", testGroupsHeader, tokenAuthenticator)
+	requestAuthenticator, err := NewRequestAuthenticator(testUserIDHeader, "", testGroupsHeader, tokenAuthenticator, nil)
 	if err != nil {
 		t.Fatalf("NewRequestAuthenticator returned unexpected error: %v", err)
 	}

@@ -31,6 +31,11 @@ type EnvConfig struct {
 	EnableTokenAuth bool
 	TokenAudiences  []string
 
+	// SessionAuthURL, when set, resolves browser session cookies by delegating
+	// to an OIDC proxy's auth-check endpoint (e.g. oauth2-proxy's /oauth2/auth).
+	SessionAuthURL    string
+	SessionCookieName string
+
 	ProxyUrlPrefix string
 
 	SwaggerEnabled  bool
