@@ -18,6 +18,7 @@ package metrics
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -25,6 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/cache"
 	metricsv1beta1 "k8s.io/metrics/pkg/apis/metrics/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -37,14 +39,29 @@ import (
 const (
 	// TTL for API availability checks.
 	apiAvailabilityTTL = 60 * time.Second
+
+	// TTL for cached workspace resource usage responses.
+	resourceUsageCacheTTL = 30 * time.Second
+
+	// Maximum entries in the resource usage LRU cache.
+	resourceUsageCacheMaxCapacity = 1000
 )
 
 // MetricsRepository exposes point-in-time workspace resource utilization, read from the
 // Kubernetes Metrics Server, to the API layer.
+//
+// It maintains two levels of in-memory caching to minimize cluster overhead:
+//  1. API Availability (apiAvailable): A memoized probe (60s TTL) that caches whether the
+//     Kubernetes Metrics API (metrics.k8s.io) is served in the cluster, avoiding repetitive
+//     RESTMapper discovery calls.
+//  2. Resource Usage Cache (usageCache): A TTL LRU cache (30s TTL, max 1000 entries) keyed by
+//     "<namespace>/<workspace>/<podUID>" that stores computed resource usage metrics to avoid
+//     hammering the Metrics Server with repeated PodMetrics queries during high-frequency polling.
 type MetricsRepository struct {
 	cfg          *config.EnvConfig
 	client       client.Client
 	apiAvailable func() bool
+	usageCache   *cache.LRUExpireCache
 }
 
 // NewMetricsRepository creates a MetricsRepository for accessing workspace metrics.
@@ -53,6 +70,7 @@ func NewMetricsRepository(cfg *config.EnvConfig, c client.Client) *MetricsReposi
 		cfg:          cfg,
 		client:       c,
 		apiAvailable: memoize(apiAvailabilityTTL, func() bool { return metricsAPIServed(c) }),
+		usageCache:   cache.NewLRUExpireCache(resourceUsageCacheMaxCapacity),
 	}
 }
 
@@ -83,6 +101,16 @@ func (r *MetricsRepository) GetWorkspaceResourceUsage(ctx context.Context, ns, w
 	// strict deployment guarantees, there will only ever be a maximum of one pod running
 	// at any given time. Therefore, we can safely just grab the first item in the list.
 	pod := &podList.Items[0]
+
+	cacheKey := fmt.Sprintf("%s/%s/%s", ns, workspace, pod.UID)
+	if r.usageCache != nil {
+		if val, ok := r.usageCache.Get(cacheKey); ok {
+			if cachedUsage, valid := val.(*models.WorkspaceResourceUsage); valid {
+				return cachedUsage, nil
+			}
+		}
+	}
+
 	if !r.apiAvailable() {
 		return models.NewWorkspaceResourceUsage(pod, nil), nil
 	}
@@ -92,14 +120,20 @@ func (r *MetricsRepository) GetWorkspaceResourceUsage(ctx context.Context, ns, w
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
 		}
+		// Pod metrics not ready or unavailable; return resource limits/requests without caching nil metrics.
 		return models.NewWorkspaceResourceUsage(pod, nil), nil
 	}
 
-	usageByContainer := models.UsageForPod(podMetrics)
-	return models.NewWorkspaceResourceUsage(
-		pod,
-		usageByContainer,
-	), nil
+	if len(podMetrics.Containers) == 0 {
+		// Metrics scrape has not populated container metrics yet; return without caching so subsequent polls can retry.
+		return models.NewWorkspaceResourceUsage(pod, nil), nil
+	}
+
+	usage := models.NewWorkspaceResourceUsage(pod, models.UsageForPod(podMetrics))
+	if r.usageCache != nil {
+		r.usageCache.Add(cacheKey, usage, resourceUsageCacheTTL)
+	}
+	return usage, nil
 }
 
 // memoize caches the result of the probe for ttl.
