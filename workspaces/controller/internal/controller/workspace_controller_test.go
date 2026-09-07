@@ -894,6 +894,25 @@ var _ = Describe("Workspace Controller", func() {
 			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateUnknown))
 			Expect(message).To(Equal(stateMsgWaitingForKubernetesToReconcileStatefulSet))
 		})
+
+		It("should return Unknown when the StatefulSet observed generation is ahead of its generation", func() {
+			statefulSet.Generation = 1
+			statefulSet.Status.ObservedGeneration = 2
+
+			state, message, result, err := reconciler.generateWorkspaceState(
+				context.Background(),
+				logr.Discard(),
+				false,
+				statefulSet,
+				pod,
+			)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).To(Equal(ctrl.Result{}))
+			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateUnknown))
+			Expect(message).To(Equal(stateMsgWaitingForKubernetesToReconcileStatefulSet))
+		})
+
 		It("should return Unknown while the StatefulSet generation is not observed and there is no Pod", func() {
 			statefulSet.Generation = 2
 			statefulSet.Status.ObservedGeneration = 1
