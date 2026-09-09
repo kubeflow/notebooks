@@ -20,7 +20,9 @@ import (
 	"fmt"
 	"time"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/dynamic"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -297,6 +299,153 @@ var _ = Describe("Workspace Webhook", func() {
 			newWorkspace = workspace.DeepCopy()
 			newWorkspace.Spec.PodTemplate.Options.PodConfig = validPodConfig
 			Expect(k8sClient.Patch(ctx, newWorkspace, patch)).To(Succeed())
+		})
+	})
+
+	Context("When orphan-deleting a Workspace", Ordered, func() {
+		var (
+			workspaceName     string
+			workspaceKindName string
+			workspaceKey      types.NamespacedName
+		)
+
+		BeforeAll(func() {
+			uniqueName := "ws-webhook-orphan-test"
+			workspaceName = fmt.Sprintf("workspace-%s", uniqueName)
+			workspaceKindName = fmt.Sprintf("workspacekind-%s", uniqueName)
+			workspaceKey = types.NamespacedName{Name: workspaceName, Namespace: namespaceName}
+
+			By("creating the WorkspaceKind")
+			workspaceKind := NewExampleWorkspaceKind(workspaceKindName)
+			Expect(k8sClient.Create(ctx, workspaceKind)).To(Succeed())
+
+			Eventually(func() error {
+				return k8sClient.Get(ctx, types.NamespacedName{Name: workspaceKindName}, &kubefloworgv1beta1.WorkspaceKind{})
+			}, time.Second*5, time.Millisecond*100).Should(Succeed())
+
+			By("creating the Workspace")
+			workspace := NewExampleWorkspace(workspaceName, namespaceName, workspaceKindName)
+			Expect(k8sClient.Create(ctx, workspace)).To(Succeed())
+		})
+
+		AfterAll(func() {
+			By("deleting the Workspace")
+			workspace := &kubefloworgv1beta1.Workspace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      workspaceName,
+					Namespace: namespaceName,
+				},
+			}
+			Expect(k8sClient.Delete(ctx, workspace)).To(Succeed())
+
+			By("deleting the WorkspaceKind")
+			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: workspaceKindName,
+				},
+			}
+			Expect(k8sClient.Delete(ctx, workspaceKind)).To(Succeed())
+		})
+
+		It("should reject creating a Workspace with the `orphan` finalizer", func() {
+			By("creating the Workspace")
+			workspace := NewExampleWorkspace(fmt.Sprintf("%s-create", workspaceName), namespaceName, workspaceKindName)
+			workspace.Finalizers = []string{metav1.FinalizerOrphanDependents}
+			err := k8sClient.Create(ctx, workspace)
+			Expect(err).NotTo(Succeed())
+			Expect(err.Error()).To(ContainSubstring("orphan deletion is not permitted for Workspaces"))
+		})
+
+		It("should reject an update which adds the `orphan` finalizer", func() {
+			By("getting the Workspace")
+			workspace := &kubefloworgv1beta1.Workspace{}
+			Expect(k8sClient.Get(ctx, workspaceKey, workspace)).To(Succeed())
+			patch := client.MergeFrom(workspace.DeepCopy())
+
+			By("failing to add the `orphan` finalizer")
+			newWorkspace := workspace.DeepCopy()
+			newWorkspace.Finalizers = append(newWorkspace.Finalizers, metav1.FinalizerOrphanDependents)
+			err := k8sClient.Patch(ctx, newWorkspace, patch)
+			Expect(err).NotTo(Succeed())
+			Expect(err.Error()).To(ContainSubstring("orphan deletion is not permitted for Workspaces"))
+		})
+
+		It("should allow an update which adds a non-`orphan` finalizer", func() {
+			By("getting the Workspace")
+			workspace := &kubefloworgv1beta1.Workspace{}
+			Expect(k8sClient.Get(ctx, workspaceKey, workspace)).To(Succeed())
+			patch := client.MergeFrom(workspace.DeepCopy())
+
+			By("adding the finalizer")
+			newWorkspace := workspace.DeepCopy()
+			newWorkspace.Finalizers = append(newWorkspace.Finalizers, "notebooks.kubeflow.org/test-finalizer")
+			Expect(k8sClient.Patch(ctx, newWorkspace, patch)).To(Succeed())
+
+			By("removing the finalizer")
+			Expect(k8sClient.Get(ctx, workspaceKey, workspace)).To(Succeed())
+			patch = client.MergeFrom(workspace.DeepCopy())
+			newWorkspace = workspace.DeepCopy()
+			newWorkspace.Finalizers = nil
+			Expect(k8sClient.Patch(ctx, newWorkspace, patch)).To(Succeed())
+		})
+
+		It("should reject a delete with `propagationPolicy=Orphan`", func() {
+			By("getting the Workspace")
+			workspace := &kubefloworgv1beta1.Workspace{}
+			Expect(k8sClient.Get(ctx, workspaceKey, workspace)).To(Succeed())
+
+			By("failing to delete the Workspace")
+			err := k8sClient.Delete(ctx, workspace, client.PropagationPolicy(metav1.DeletePropagationOrphan))
+			Expect(err).NotTo(Succeed())
+			Expect(err.Error()).To(ContainSubstring("orphan deletion is not permitted for Workspaces"))
+
+			By("verifying the Workspace was not deleted")
+			Expect(k8sClient.Get(ctx, workspaceKey, workspace)).To(Succeed())
+			Expect(workspace.DeletionTimestamp).To(BeNil())
+		})
+
+		It("should reject a delete with the deprecated `orphanDependents=true`", func() {
+			By("creating the dynamic client")
+			// NOTE: the typed client has no option for the deprecated `orphanDependents` field
+			dynamicClient, err := dynamic.NewForConfig(cfg)
+			Expect(err).NotTo(HaveOccurred())
+			workspaceGVR := schema.GroupVersionResource{
+				Group:    kubefloworgv1beta1.GroupVersion.Group,
+				Version:  kubefloworgv1beta1.GroupVersion.Version,
+				Resource: "workspaces",
+			}
+
+			By("failing to delete the Workspace")
+			err = dynamicClient.Resource(workspaceGVR).Namespace(namespaceName).Delete(ctx, workspaceName, metav1.DeleteOptions{
+				OrphanDependents: new(true),
+			})
+			Expect(err).NotTo(Succeed())
+			Expect(err.Error()).To(ContainSubstring("orphan deletion is not permitted for Workspaces"))
+
+			By("verifying the Workspace was not deleted")
+			workspace := &kubefloworgv1beta1.Workspace{}
+			Expect(k8sClient.Get(ctx, workspaceKey, workspace)).To(Succeed())
+			Expect(workspace.DeletionTimestamp).To(BeNil())
+		})
+
+		It("should allow a delete with `propagationPolicy=Background`", func() {
+			By("creating the Workspace")
+			cascadeName := fmt.Sprintf("%s-cascade", workspaceName)
+			workspace := NewExampleWorkspace(cascadeName, namespaceName, workspaceKindName)
+			Expect(k8sClient.Create(ctx, workspace)).To(Succeed())
+
+			By("deleting the Workspace")
+			Expect(k8sClient.Delete(ctx, workspace, client.PropagationPolicy(metav1.DeletePropagationBackground))).To(Succeed())
+		})
+
+		It("should allow a delete with no propagationPolicy", func() {
+			By("creating the Workspace")
+			defaultName := fmt.Sprintf("%s-default", workspaceName)
+			workspace := NewExampleWorkspace(defaultName, namespaceName, workspaceKindName)
+			Expect(k8sClient.Create(ctx, workspace)).To(Succeed())
+
+			By("deleting the Workspace")
+			Expect(k8sClient.Delete(ctx, workspace)).To(Succeed())
 		})
 	})
 })
