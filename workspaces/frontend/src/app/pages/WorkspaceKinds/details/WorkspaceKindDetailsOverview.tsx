@@ -6,6 +6,7 @@ import {
   DescriptionListDescription,
 } from '@patternfly/react-core/dist/esm/components/DescriptionList';
 import { Divider } from '@patternfly/react-core/dist/esm/components/Divider';
+import { Flex } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import ImageFallback from '~/shared/components/ImageFallback';
 import WorkspaceKindImage from '~/app/components/WorkspaceKindImage';
 import { WorkspacekindsWorkspaceKindListItem } from '~/generated/data-contracts';
@@ -17,87 +18,75 @@ type WorkspaceDetailsOverviewProps = {
 export const WorkspaceKindDetailsOverview: React.FunctionComponent<
   WorkspaceDetailsOverviewProps
 > = ({ workspaceKind }) => (
-  <DescriptionList isHorizontal>
-    <DescriptionListGroup>
-      <DescriptionListTerm>Name</DescriptionListTerm>
-      <DescriptionListDescription>{workspaceKind.name}</DescriptionListDescription>
-    </DescriptionListGroup>
-    <Divider />
-    <DescriptionListGroup>
-      <DescriptionListTerm>Description</DescriptionListTerm>
-      <DescriptionListDescription>{workspaceKind.description}</DescriptionListDescription>
-    </DescriptionListGroup>
-    <Divider />
+  <>
+    <DescriptionList isHorizontal>
+      <DescriptionListGroup>
+        <DescriptionListTerm>Name</DescriptionListTerm>
+        <DescriptionListDescription>{workspaceKind.name}</DescriptionListDescription>
+      </DescriptionListGroup>
+      <Divider />
 
-    <DescriptionListGroup>
-      <DescriptionListTerm>Hidden</DescriptionListTerm>
-      <DescriptionListDescription>{workspaceKind.hidden ? 'Yes' : 'No'}</DescriptionListDescription>
-    </DescriptionListGroup>
-    <Divider />
-    <DescriptionListGroup>
-      <DescriptionListTerm>Status</DescriptionListTerm>
-      <DescriptionListDescription>
-        {workspaceKind.deprecated ? 'Deprecated' : 'Active'}
-      </DescriptionListDescription>
-    </DescriptionListGroup>
-    <Divider />
-    <DescriptionListGroup>
-      <DescriptionListTerm>Deprecation message</DescriptionListTerm>
-      <DescriptionListDescription>{workspaceKind.deprecationMessage}</DescriptionListDescription>
-    </DescriptionListGroup>
-    <Divider />
-    <DescriptionListGroup>
-      <DescriptionListTerm style={{ alignSelf: 'center' }}>Icon Source</DescriptionListTerm>
-      <DescriptionListDescription>
-        <WorkspaceKindImage
-          imageSrc={workspaceKind.icon.url}
-          skeletonWidth="40px"
-          fallback={
-            <ImageFallback
-              imageSrc={workspaceKind.icon.url}
-              extended
-              message="Cannot load icon image"
-            />
-          }
-          assetType="icon"
-          kindName={workspaceKind.name}
-        >
-          {(validSrc) => <img src={validSrc} alt={workspaceKind.name} style={{ width: '40px' }} />}
-        </WorkspaceKindImage>
-      </DescriptionListDescription>
-      <DescriptionListTerm style={{ alignSelf: 'center' }}>Source Type</DescriptionListTerm>
-      <DescriptionListDescription>
-        <a href={workspaceKind.icon.url} target="_blank" rel="noreferrer">
-          {workspaceKind.icon.url}
-        </a>
-      </DescriptionListDescription>
-    </DescriptionListGroup>
-    <Divider />
-    <DescriptionListGroup>
-      <DescriptionListTerm style={{ alignSelf: 'center' }}>Logo Source</DescriptionListTerm>
-      <DescriptionListDescription>
-        <WorkspaceKindImage
-          imageSrc={workspaceKind.logo.url}
-          skeletonWidth="40px"
-          fallback={
-            <ImageFallback
-              imageSrc={workspaceKind.logo.url}
-              extended
-              message="Cannot load logo image"
-            />
-          }
-          assetType="logo"
-          kindName={workspaceKind.name}
-        >
-          {(validSrc) => <img src={validSrc} alt={workspaceKind.name} style={{ width: '40px' }} />}
-        </WorkspaceKindImage>
-      </DescriptionListDescription>
-      <DescriptionListTerm style={{ alignSelf: 'center' }}>Source Type</DescriptionListTerm>
-      <DescriptionListDescription>
-        <a href={workspaceKind.logo.url} target="_blank" rel="noreferrer">
-          {workspaceKind.logo.url}
-        </a>
-      </DescriptionListDescription>
-    </DescriptionListGroup>
-  </DescriptionList>
+      <DescriptionListGroup>
+        <DescriptionListTerm>Description</DescriptionListTerm>
+        <DescriptionListDescription>{workspaceKind.description}</DescriptionListDescription>
+      </DescriptionListGroup>
+      <Divider />
+
+      <DescriptionListGroup>
+        <DescriptionListTerm>Hidden</DescriptionListTerm>
+        <DescriptionListDescription>
+          {workspaceKind.hidden ? 'Yes' : 'No'}
+        </DescriptionListDescription>
+      </DescriptionListGroup>
+      <Divider />
+
+      <DescriptionListGroup>
+        <DescriptionListTerm>Status</DescriptionListTerm>
+        <DescriptionListDescription>
+          {workspaceKind.deprecated ? 'Deprecated' : 'Active'}
+        </DescriptionListDescription>
+      </DescriptionListGroup>
+      <Divider />
+
+      <DescriptionListGroup>
+        <DescriptionListTerm>Deprecation message</DescriptionListTerm>
+        <DescriptionListDescription>{workspaceKind.deprecationMessage}</DescriptionListDescription>
+      </DescriptionListGroup>
+      <Divider />
+    </DescriptionList>
+
+    <Flex
+      justifyContent={{ default: 'justifyContentFlexEnd' }}
+      style={{
+        paddingBlock: 'var(--pf-t--global--spacer--lg)',
+        paddingInlineEnd: 'var(--pf-t--global--spacer--lg)',
+      }}
+    >
+      <WorkspaceKindImage
+        imageSrc={workspaceKind.logo.url}
+        skeletonWidth="64px"
+        fallback={
+          <ImageFallback
+            imageSrc={workspaceKind.logo.url}
+            extended
+            message="Cannot load logo image"
+          />
+        }
+        assetType="logo"
+        kindName={workspaceKind.name}
+      >
+        {(validSrc) => (
+          <img
+            src={validSrc}
+            alt={workspaceKind.name}
+            style={{
+              width: '64px',
+              maxHeight: '64px',
+              objectFit: 'contain',
+            }}
+          />
+        )}
+      </WorkspaceKindImage>
+    </Flex>
+  </>
 );
