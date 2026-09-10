@@ -4905,7 +4905,6 @@ spec:
                                  - the pattern is the regex form of Kubernetes `IsValidPathSegmentName`:
                                    the name must not be "." or "..", and must not contain "/" or "%"
                               example: kubeflow-edit
-                              maxLength: 253
                               minLength: 1
                               pattern: ^([^./%][^/%]*|\.[^./%][^/%]*|\.[^/%][^/%]+)$
                               type: string

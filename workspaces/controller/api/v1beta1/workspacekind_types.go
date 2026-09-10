@@ -358,7 +358,6 @@ type WorkspaceKindClusterRole struct {
 	//  - the pattern is the regex form of Kubernetes `IsValidPathSegmentName`:
 	//    the name must not be "." or "..", and must not contain "/" or "%"
 	// +kubebuilder:validation:MinLength:=1
-	// +kubebuilder:validation:MaxLength:=253
 	// +kubebuilder:validation:Pattern:=^([^./%][^/%]*|\.[^./%][^/%]*|\.[^/%][^/%]+)$
 	// +kubebuilder:example:="kubeflow-edit"
 	Name string `json:"name"`
