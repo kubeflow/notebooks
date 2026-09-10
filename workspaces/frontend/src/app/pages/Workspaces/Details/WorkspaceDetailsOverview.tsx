@@ -72,6 +72,7 @@ export const WorkspaceDetailsOverview: React.FunctionComponent<WorkspaceDetailsO
               {podInfo.name}
             </DescriptionListDescription>
           </DescriptionListGroup>
+          <Divider />
           {podInfo.nodeName && (
             <DescriptionListGroup>
               <DescriptionListTerm>Node</DescriptionListTerm>
