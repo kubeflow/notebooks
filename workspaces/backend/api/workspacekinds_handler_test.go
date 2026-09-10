@@ -1077,6 +1077,24 @@ metadata:
 
 		var wskName string
 
+		newFilterRule := func(hide bool) kubefloworgv1beta1.FilterRule {
+			return kubefloworgv1beta1.FilterRule{
+				Scope: kubefloworgv1beta1.FilterRuleScopeImageConfig,
+				Effect: kubefloworgv1beta1.FilterRuleEffect{
+					UI: &kubefloworgv1beta1.FilterRuleEffectUI{Hide: hide},
+				},
+				Match: []kubefloworgv1beta1.FilterRuleMatch{
+					{
+						MatchImageConfig: &kubefloworgv1beta1.FilterRuleSelector{
+							Selector: metav1.LabelSelector{
+								MatchLabels: map[string]string{"gpu": "true"},
+							},
+						},
+					},
+				},
+			}
+		}
+
 		getWorkspaceKindData := func(name string) *models.WorkspaceKindUpdate {
 			getReq, err := http.NewRequest(http.MethodGet, strings.Replace(constants.WorkspaceKindsByNamePath, ":"+constants.ResourceNamePathParam, name, 1), http.NoBody)
 			Expect(err).NotTo(HaveOccurred())
@@ -1111,6 +1129,9 @@ metadata:
 
 			By("creating the WorkspaceKind")
 			wsk := NewExampleWorkspaceKind(wskName)
+			wsk.Spec.FilterRules = []kubefloworgv1beta1.FilterRule{
+				newFilterRule(true),
+			}
 			Expect(k8sClient.Create(ctx, wsk)).To(Succeed())
 
 			By("getting the revision via GET")
@@ -1383,6 +1404,93 @@ metadata:
 			wsk := &kubefloworgv1beta1.WorkspaceKind{}
 			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: wskName}, wsk)).To(Succeed())
 			Expect(wsk.Spec.ActivityRules).To(BeEmpty())
+		})
+
+		It("should include filterRules in the WorkspaceKind GET response", func() {
+			By("getting the WorkspaceKind through the API")
+			getData := getWorkspaceKindData(wskName)
+
+			By("verifying filterRules are included in the response")
+			Expect(getData.FilterRules).To(BeComparableTo(
+				[]kubefloworgv1beta1.FilterRule{newFilterRule(true)},
+			))
+		})
+
+		It("should edit existing filterRules and persist the change", func() {
+			By("getting current data")
+			getData := getWorkspaceKindData(wskName)
+			Expect(getData.FilterRules).To(BeComparableTo(
+				[]kubefloworgv1beta1.FilterRule{newFilterRule(true)},
+			))
+
+			By("modifying the existing filter rule")
+			getData.FilterRules[0].Effect.UI.Hide = false
+
+			dataJSON, err := json.Marshal(getData)
+			Expect(err).NotTo(HaveOccurred())
+			updateBody := fmt.Sprintf(`{"data": %s}`, string(dataJSON))
+
+			By("executing update")
+			rr := doUpdate(wskName, updateBody)
+			Expect(rr.Result().StatusCode).To(
+				Equal(http.StatusOK),
+				descUnexpectedHTTPStatus,
+				rr.Body.String(),
+			)
+
+			By("verifying the change persists via GET")
+			updatedData := getWorkspaceKindData(wskName)
+			Expect(updatedData.FilterRules).To(BeComparableTo(
+				[]kubefloworgv1beta1.FilterRule{newFilterRule(false)},
+			))
+
+			By("verifying the CRD was updated in Kubernetes")
+			wsk := &kubefloworgv1beta1.WorkspaceKind{}
+			Expect(k8sClient.Get(
+				ctx,
+				types.NamespacedName{Name: wskName},
+				wsk,
+			)).To(Succeed())
+
+			Expect(wsk.Spec.FilterRules).To(BeComparableTo(
+				[]kubefloworgv1beta1.FilterRule{newFilterRule(false)},
+			))
+		})
+
+		It("should clear filterRules when omitted from update", func() {
+			By("getting current data")
+			getData := getWorkspaceKindData(wskName)
+			Expect(getData.FilterRules).To(BeComparableTo(
+				[]kubefloworgv1beta1.FilterRule{newFilterRule(false)},
+			))
+
+			By("setting filterRules to nil to simulate omission")
+			getData.FilterRules = nil
+
+			dataJSON, err := json.Marshal(getData)
+			Expect(err).NotTo(HaveOccurred())
+			updateBody := fmt.Sprintf(`{"data": %s}`, string(dataJSON))
+
+			By("executing update")
+			rr := doUpdate(wskName, updateBody)
+			Expect(rr.Result().StatusCode).To(
+				Equal(http.StatusOK),
+				descUnexpectedHTTPStatus,
+				rr.Body.String(),
+			)
+
+			By("verifying filterRules are cleared via GET")
+			updatedData := getWorkspaceKindData(wskName)
+			Expect(updatedData.FilterRules).To(BeEmpty())
+
+			By("verifying the CRD was updated in Kubernetes")
+			wsk := &kubefloworgv1beta1.WorkspaceKind{}
+			Expect(k8sClient.Get(
+				ctx,
+				types.NamespacedName{Name: wskName},
+				wsk,
+			)).To(Succeed())
+			Expect(wsk.Spec.FilterRules).To(BeEmpty())
 		})
 
 		It("should return 404 for a non-existent WorkspaceKind", func() {

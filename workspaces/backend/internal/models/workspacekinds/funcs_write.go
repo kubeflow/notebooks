@@ -40,6 +40,7 @@ func NewWorkspaceKindUpdateModelFromWorkspaceKind(wsk *kubefloworgv1beta1.Worksp
 		Spawner:       wsk.Spec.Spawner,
 		PodTemplate:   wsk.Spec.PodTemplate,
 		ActivityRules: wsk.Spec.ActivityRules,
+		FilterRules:   wsk.Spec.FilterRules,
 	}
 }
 
@@ -49,4 +50,5 @@ func ApplyWorkspaceKindUpdateModelToWorkspaceKind(update *WorkspaceKindUpdate, w
 	wsk.Spec.Spawner = update.Spawner
 	wsk.Spec.PodTemplate = update.PodTemplate
 	wsk.Spec.ActivityRules = update.ActivityRules
+	wsk.Spec.FilterRules = update.FilterRules
 }
