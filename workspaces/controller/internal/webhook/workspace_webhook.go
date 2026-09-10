@@ -241,13 +241,6 @@ func serviceAccountRoleNames(workspace *kubefloworgv1beta1.Workspace) map[string
 //
 // This is the whole security boundary. The controller holds "bind" cluster-wide, so the RBAC
 // escalation prevention which normally runs on RoleBinding create never applies to our bindings.
-//
-// NOTE: we check neither that the caller holds the Role's rules, nor that they hold "bind" on it,
-//
-//	both of which the API server would require. The first needs its rule resolver, which a
-//	webhook cannot reach. The second is just another SAR, but requiring it would lock out the
-//	default "admin" and "kubeflow-admin" roles, which hold neither.
-//	See https://github.com/kubeflow/notebooks/issues/1257.
 func (v *WorkspaceValidator) validateServiceAccountRoles(ctx context.Context, oldWorkspace, newWorkspace *kubefloworgv1beta1.Workspace) []*field.Error {
 	rolesPath := field.NewPath("spec", "podTemplate", "serviceAccount", "roles")
 
@@ -272,6 +265,7 @@ func (v *WorkspaceValidator) validateServiceAccountRoles(ctx context.Context, ol
 	// NOTE: the userInfo comes from the AdmissionRequest, not the webhook's own identity.
 	//       Requests which do not carry one (that is, calls which did not come through admission)
 	//       are rejected rather than allowed, so a missing request can never mean "allowed".
+	//       REFERENCE: https://github.com/kubernetes-sigs/controller-runtime/issues/1600#issuecomment-4897745096
 	req, err := admission.RequestFromContext(ctx)
 	if err != nil {
 		return []*field.Error{field.InternalError(rolesPath, fmt.Errorf("unable to identify the caller: %w", err))}
@@ -291,8 +285,13 @@ func (v *WorkspaceValidator) validateServiceAccountRoles(ctx context.Context, ol
 	return errs
 }
 
-// authorizeRoleBindingVerb runs a SubjectAccessReview asking whether the caller may perform `verb`
-// on RoleBindings in `namespace`, returning a field.Error if they may not
+// authorizeRoleBindingVerb asks the API server, with a SubjectAccessReview carrying the identity
+// from the AdmissionRequest, whether the caller may `verb` RoleBindings in `namespace`. The
+// controller then writes the binding itself, using its own cluster-wide "bind" grant.
+//
+// NOTE: we deliberately do not also require "bind" on the Role, which would lock out the default
+// "admin" and "kubeflow-admin" roles.
+// REFERENCE: https://github.com/kubeflow/notebooks/issues/1257
 func (v *WorkspaceValidator) authorizeRoleBindingVerb(ctx context.Context, req *admission.Request, namespace, verb string, rolesPath *field.Path, roleNames []string) *field.Error {
 	extra := make(map[string]authzv1.ExtraValue, len(req.UserInfo.Extra))
 	for k, val := range req.UserInfo.Extra {
