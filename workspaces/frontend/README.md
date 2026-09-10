@@ -52,6 +52,36 @@ This is the default setup for running the UI locally. Make sure you build the pr
 
 The command above starts the UI with mocked data by default, so you can run the application without requiring a connection to the backend. This behavior can be customized in the `.env.development` file by setting the `MOCK_API_ENABLED` environment variable to `false`.
 
+### Styling and Kubeflow Integration
+
+The Workspaces frontend uses [PatternFly](https://www.patternfly.org/) components for its UI and also depends on the Kubeflow `mod-arch` libraries for integration with the wider Kubeflow user experience.
+
+As a result, the effective styling of a component can depend on the environment in which the frontend is rendered.
+
+The main styling layers are:
+
+1. **PatternFly** provides the base components and their semantic theme variables.
+2. **`mod-arch-kubeflow` / MUI compatibility styling** adapts components to the Kubeflow theme when `.mui-theme` is active.
+3. **Local application styles** in `src/app/app.css` provide Workspaces-specific styling and narrowly scoped compatibility overrides where required.
+
+#### Standalone and Kubeflow-integrated rendering
+
+The Workspaces frontend can be rendered standalone during development and can also be embedded in the Kubeflow UI, such as through the Central Dashboard.
+
+These environments may load styling layers in a different order. When selectors have similar specificity, this can change which CSS custom-property mapping wins the cascade even when the underlying PatternFly variant variables are correct.
+
+For UI changes that may be affected by theming, contributors should verify the component in both the standalone Workspaces UI and the Kubeflow-integrated UI when possible.
+
+#### Styling guidelines
+
+When resolving cross-theme styling differences:
+
+- Prefer PatternFly semantic or variant CSS variables over hard-coded colors, spacing, or dimensions.
+- Scope compatibility overrides to the affected Workspaces component rather than overriding PatternFly components globally.
+- Before adding an override, compare the final computed property with the corresponding PatternFly variant and theme variables.
+- Use browser developer tools to identify the winning declaration and check selector specificity and stylesheet order.
+- Verify relevant interaction states such as hover, focus, disabled, and expanded states.
+
 ### Testing
 
 Run all tests:
