@@ -115,6 +115,15 @@ func assertAssetResponse(handler httprouter.Handle, tc *assetTestCase) {
 		Expect(gotContentType).To(Equal(tc.expectedContentType), descUnexpectedHTTPHeaderContentType, tc.expectedContentType, gotContentType)
 	}
 
+	// A served SVG must carry the defensive headers that prevent it from
+	// executing as a same-origin document (stored XSS, see WriteSVG).
+	if gotContentType == constants.MediaTypeSVG {
+		By("verifying the SVG response carries XSS-protective headers")
+		Expect(rs.Header.Get("Content-Security-Policy")).To(Equal("default-src 'none'; script-src 'none'; sandbox"))
+		Expect(rs.Header.Get("X-Content-Type-Options")).To(Equal("nosniff"))
+		Expect(rs.Header.Get("Content-Disposition")).To(HavePrefix("attachment"))
+	}
+
 	By("reading the HTTP response body")
 	body, err := io.ReadAll(rs.Body)
 	Expect(err).NotTo(HaveOccurred())

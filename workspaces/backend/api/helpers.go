@@ -58,10 +58,28 @@ func (a *App) WriteJSON(w http.ResponseWriter, status int, data any, headers htt
 }
 
 // WriteSVG writes an SVG response with the given status code, content, and headers.
+//
+// SVG is a scriptable document format: when a browser performs a top-level
+// navigation to an "image/svg+xml" response, any <script> inside the SVG
+// executes on this origin. Since the asset bytes come from a user-controlled
+// ConfigMap and are served unsanitized, we set defensive headers so a malicious
+// SVG cannot run as a same-origin document (stored XSS):
+//   - Content-Security-Policy denies everything: no scripts and no external
+//     resource loads (which also closes CSS-based exfiltration). The sandbox
+//     directive additionally forces a unique, script-disabled origin if the SVG
+//     is ever rendered as a document.
+//   - X-Content-Type-Options prevents MIME sniffing to a scriptable type.
+//   - Content-Disposition forces a download instead of inline rendering on
+//     direct navigation. The frontend fetch()es the bytes and renders them via
+//     a data URL, and fetch() ignores Content-Disposition, so in-app display is
+//     unaffected.
 func (a *App) WriteSVG(w http.ResponseWriter, status int, content []byte, headers http.Header) error {
 	maps.Copy(w.Header(), headers)
 
 	w.Header().Set("Content-Type", constants.MediaTypeSVG)
+	w.Header().Set("Content-Security-Policy", "default-src 'none'; script-src 'none'; sandbox")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Content-Disposition", `attachment; filename="workspacekind-asset.svg"`)
 	w.WriteHeader(status)
 	_, err := w.Write(content)
 	if err != nil {
