@@ -1,6 +1,6 @@
 module github.com/kubeflow/notebooks/workspaces/controller
 
-go 1.26.5
+go 1.27.1
 
 require (
 	github.com/go-logr/logr v1.4.4

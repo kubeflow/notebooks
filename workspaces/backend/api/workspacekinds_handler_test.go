@@ -539,7 +539,6 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 		var validYAML []byte
 
 		BeforeEach(func() {
-			//nolint:modernize
 			validYAML = []byte(fmt.Sprintf(`
 apiVersion: kubeflow.org/v1beta1
 kind: WorkspaceKind
