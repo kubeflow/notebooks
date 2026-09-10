@@ -67,9 +67,7 @@ export const WorkspaceKindDetailsOverview: React.FunctionComponent<
       </DescriptionListDescription>
       <DescriptionListTerm style={{ alignSelf: 'center' }}>Source Type</DescriptionListTerm>
       <DescriptionListDescription>
-        <a href={workspaceKind.icon.url} target="_blank" rel="noreferrer">
-          {workspaceKind.icon.url}
-        </a>
+        <span title={workspaceKind.icon.url}>{workspaceKind.icon.url}</span>
       </DescriptionListDescription>
     </DescriptionListGroup>
     <Divider />
@@ -94,9 +92,7 @@ export const WorkspaceKindDetailsOverview: React.FunctionComponent<
       </DescriptionListDescription>
       <DescriptionListTerm style={{ alignSelf: 'center' }}>Source Type</DescriptionListTerm>
       <DescriptionListDescription>
-        <a href={workspaceKind.logo.url} target="_blank" rel="noreferrer">
-          {workspaceKind.logo.url}
-        </a>
+        <span title={workspaceKind.logo.url}>{workspaceKind.logo.url}</span>
       </DescriptionListDescription>
     </DescriptionListGroup>
   </DescriptionList>
