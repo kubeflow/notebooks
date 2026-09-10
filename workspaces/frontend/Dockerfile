@@ -14,6 +14,14 @@ RUN npm cache clean --force \
 # Copy source code
 COPY . .
 
+# Build-time configuration, read by webpack through dotenv-webpack (systemvars).
+# "kubeflow" embeds the UI in the Central Dashboard, which supplies the namespace;
+# "standalone" renders its own navigation and namespace selector.
+ARG DEPLOYMENT_MODE=kubeflow
+ARG PUBLIC_PATH=/workspaces/
+ENV DEPLOYMENT_MODE=${DEPLOYMENT_MODE} \
+    PUBLIC_PATH=${PUBLIC_PATH}
+
 # Build the application
 RUN npm run build:prod
 
