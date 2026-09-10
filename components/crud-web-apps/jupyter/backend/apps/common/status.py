@@ -133,7 +133,7 @@ def get_status_from_container_state(notebook):
 
     # If the Notebook is initializing, the status will be waiting
     waiting_state = container_state["waiting"]
-    if ["reason"] == 'PodInitializing':
+    if waiting_state.get("reason") == 'PodInitializing':
         status_phase = status.STATUS_PHASE.WAITING
         status_message = waiting_state.get("reason", "Undetermined reason.")
         return status_phase, status_message
