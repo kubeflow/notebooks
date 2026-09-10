@@ -12,6 +12,7 @@ on:
   pull_request:
     paths:
       - workspaces/**
+      - testing/**
 
 jobs:
   e2e-test:
