@@ -85,7 +85,6 @@ type WorkspaceServiceAccount struct {
 	//    removing one requires permission to delete them
 	//  - changes take effect immediately, the Workspace does NOT need to be restarted
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:MaxItems:=32
 	// +listType:="map"
 	// +listMapKey:="name"
 	// +kubebuilder:example={{name: "trainjob-mpi-exec"}}
@@ -97,9 +96,10 @@ type WorkspaceRole struct {
 	// the name of the Role to bind to the Workspace ServiceAccount
 	//  - note, Role names are path segment names, so unlike most Kubernetes
 	//    resource names they may contain uppercase letters and ":"
+	//  - the pattern is the regex form of Kubernetes `IsValidPathSegmentName`:
+	//    the name must not be "." or "..", and must not contain "/" or "%"
 	// +kubebuilder:validation:MinLength:=1
-	// +kubebuilder:validation:MaxLength:=253
-	// +kubebuilder:validation:XValidation:message="must not be '.' or '..', and must not contain '/' or '%'",rule="self != '.' && self != '..' && !self.contains('/') && !self.contains('%')"
+	// +kubebuilder:validation:Pattern:=^([^./%][^/%]*|\.[^./%][^/%]*|\.[^/%][^/%]+)$
 	// +kubebuilder:example:="trainjob-mpi-exec"
 	Name string `json:"name"`
 }
