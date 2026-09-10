@@ -1,0 +1,18 @@
+#
+# Kubeflow Dashboard creates an Istio AuthorizationPolicy in each profile namespace that matches all pods, and allows the owner of that namespace to access them via istio.
+# This will prevent our dev environment from accessing the running workspaces because we do not inject a `kubeflow-userid` header right now, so will not match this rule, nor any other rule we could create which specifies a userid header.
+# This AuthorizationPolicy allows all requests (no header check) to access all pods in the profile namespace.
+#
+# TODO: remove once the dev stack deploys the full auth setup (oauth2-proxy),
+#       which will supply the `kubeflow-userid` header the owner policy expects.
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: dev-allow-ingressgateway
+spec:
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account

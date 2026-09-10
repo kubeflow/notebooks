@@ -3,5 +3,7 @@ kind: Kustomization
 
 resources:
   - cluster-rbac
-  - profile-authz
   - example-profile-1
+  - example-profile-2
+  - example-profile-3
+  - example-profile-4
