@@ -268,8 +268,8 @@ describe('Workspaces', () => {
       workspaceDetailsDrawer.assertOverviewTabContentContainsText('jupyterlab');
       workspaceDetailsDrawer.assertOverviewTabContentContainsText('Pod config');
 
-      cy.findByTestId('pod-name').should('be.visible').and('have.text', 'workspace-abc-0');
-      cy.findByTestId('pod-node-name').should('be.visible').and('have.text', 'node-gpu-01');
+      workspaceDetailsDrawer.assertPodName('workspace-abc-0');
+      workspaceDetailsDrawer.assertPodNodeName('node-gpu-01');
     });
 
     it('hides pod information section in workspace details drawer when pod is null', () => {
@@ -300,8 +300,8 @@ describe('Workspaces', () => {
       workspaces.findAction({ action: 'viewDetails', workspaceName: mockWorkspace.name }).click();
       cy.wait('@getPodDetailsNull');
 
-      cy.findByTestId('pod-name').should('not.exist');
-      cy.findByTestId('pod-node-name').should('not.exist');
+      workspaceDetailsDrawer.assertPodNameNotExists();
+      workspaceDetailsDrawer.assertPodNodeNameNotExists();
     });
   });
 
