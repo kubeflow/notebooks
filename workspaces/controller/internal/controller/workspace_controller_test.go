@@ -27,9 +27,13 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/config"
@@ -844,6 +848,640 @@ var _ = Describe("Workspace Controller", func() {
 
 			By("checking the pod template uses the podConfig `schedulerName`")
 			Expect(statefulSet.Spec.Template.Spec.SchedulerName).To(Equal("podconfig-scheduler"))
+		})
+	})
+
+	Context("When generating Workspace status for owned Pod and StatefulSet", func() {
+		It("should generate empty WorkspaceStatefulSetStatus when StatefulSet is nil", func() {
+			stsStatus := generateWorkspaceStatefulSetStatus(nil)
+			Expect(stsStatus.Name).To(BeEmpty())
+			Expect(stsStatus.UID).To(BeEmpty())
+		})
+
+		It("should generate populated WorkspaceStatefulSetStatus when StatefulSet is provided", func() {
+			sts := &appsv1.StatefulSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-sts",
+					UID:  types.UID("test-sts-uid-123"),
+				},
+			}
+			stsStatus := generateWorkspaceStatefulSetStatus(sts)
+			Expect(stsStatus.Name).To(Equal("test-sts"))
+			Expect(stsStatus.UID).To(Equal(types.UID("test-sts-uid-123")))
+		})
+
+		It("should generate empty WorkspacePodStatus when Pod is nil", func() {
+			podStatus := generateWorkspacePodStatus(nil)
+			Expect(podStatus.Name).To(BeEmpty())
+			Expect(podStatus.UID).To(BeEmpty())
+			Expect(podStatus.NodeName).To(BeEmpty())
+			Expect(podStatus.Containers).To(BeEmpty())
+			Expect(podStatus.InitContainers).To(BeEmpty())
+		})
+
+		It("should generate populated WorkspacePodStatus with UID when Pod is provided", func() {
+			pod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pod",
+					UID:  types.UID("test-pod-uid-456"),
+				},
+				Spec: corev1.PodSpec{
+					NodeName: "node-1",
+					Containers: []corev1.Container{
+						{Name: "container-1"},
+					},
+					InitContainers: []corev1.Container{
+						{Name: "init-1"},
+					},
+				},
+			}
+			podStatus := generateWorkspacePodStatus(pod)
+			Expect(podStatus.Name).To(Equal("test-pod"))
+			Expect(podStatus.UID).To(Equal(types.UID("test-pod-uid-456")))
+			Expect(podStatus.NodeName).To(Equal("node-1"))
+			Expect(podStatus.Containers).To(HaveLen(1))
+			Expect(podStatus.Containers[0].Name).To(Equal("container-1"))
+			Expect(podStatus.InitContainers).To(HaveLen(1))
+			Expect(podStatus.InitContainers[0].Name).To(Equal("init-1"))
+		})
+
+		It("should leave podTemplatePod and podTemplateStatefulSet empty when resources do not exist", func() {
+			ws := NewExampleWorkspace1("test-ws-empty-status", namespaceName, "test-wsk")
+			ws.Spec.Paused = true
+			status, _, err := workspaceReconciler.generateWorkspaceStatus(ctx, logf.Log, ws, nil, nil, "ws-sa")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status.PodTemplatePod.Name).To(BeEmpty())
+			Expect(status.PodTemplatePod.UID).To(BeEmpty())
+			Expect(status.PodTemplateStatefulSet.Name).To(BeEmpty())
+			Expect(status.PodTemplateStatefulSet.UID).To(BeEmpty())
+		})
+
+		It("should populate podTemplatePod and podTemplateStatefulSet when resources exist", func() {
+			ws := NewExampleWorkspace1("test-ws-populated-status", namespaceName, "test-wsk")
+			sts := &appsv1.StatefulSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-sts",
+					UID:  types.UID("sts-uid-999"),
+				},
+			}
+			pod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pod",
+					UID:  types.UID("pod-uid-999"),
+				},
+			}
+			status, _, err := workspaceReconciler.generateWorkspaceStatus(ctx, logf.Log, ws, pod, sts, "ws-sa")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status.PodTemplatePod.Name).To(Equal("test-pod"))
+			Expect(status.PodTemplatePod.UID).To(Equal(types.UID("pod-uid-999")))
+			Expect(status.PodTemplateStatefulSet.Name).To(Equal("test-sts"))
+			Expect(status.PodTemplateStatefulSet.UID).To(Equal(types.UID("sts-uid-999")))
+		})
+	})
+
+	Context("When evaluating the Warning Event predicate", func() {
+		It("should accept Warning Events for Pod and StatefulSet on Create only, and reject Update, Delete, and Generic", func() {
+			podWarningEvent := &corev1.Event{
+				ObjectMeta: metav1.ObjectMeta{Name: "pod-warning-evt", Namespace: namespaceName},
+				InvolvedObject: corev1.ObjectReference{
+					Kind: "Pod",
+					Name: "pod-1",
+				},
+				Type: corev1.EventTypeWarning,
+			}
+			stsWarningEvent := &corev1.Event{
+				ObjectMeta: metav1.ObjectMeta{Name: "sts-warning-evt", Namespace: namespaceName},
+				InvolvedObject: corev1.ObjectReference{
+					Kind: "StatefulSet",
+					Name: "sts-1",
+				},
+				Type: corev1.EventTypeWarning,
+			}
+
+			// Pod Warning Event
+			Expect(isWarningEvent(podWarningEvent)).To(BeTrue())
+			Expect(predWarningEvent.Create(event.CreateEvent{Object: podWarningEvent})).To(BeTrue())
+			Expect(predWarningEvent.Update(event.UpdateEvent{ObjectOld: podWarningEvent, ObjectNew: podWarningEvent})).To(BeFalse())
+			Expect(predWarningEvent.Delete(event.DeleteEvent{Object: podWarningEvent})).To(BeFalse())
+			Expect(predWarningEvent.Generic(event.GenericEvent{Object: podWarningEvent})).To(BeFalse())
+
+			// StatefulSet Warning Event
+			Expect(isWarningEvent(stsWarningEvent)).To(BeTrue())
+			Expect(predWarningEvent.Create(event.CreateEvent{Object: stsWarningEvent})).To(BeTrue())
+			Expect(predWarningEvent.Update(event.UpdateEvent{ObjectOld: stsWarningEvent, ObjectNew: stsWarningEvent})).To(BeFalse())
+			Expect(predWarningEvent.Delete(event.DeleteEvent{Object: stsWarningEvent})).To(BeFalse())
+			Expect(predWarningEvent.Generic(event.GenericEvent{Object: stsWarningEvent})).To(BeFalse())
+		})
+
+		It("should reject Warning Events for other kinds (e.g. Node)", func() {
+			nodeWarningEvent := &corev1.Event{
+				ObjectMeta: metav1.ObjectMeta{Name: "node-warning-evt", Namespace: namespaceName},
+				InvolvedObject: corev1.ObjectReference{
+					Kind: "Node",
+					Name: "node-1",
+				},
+				Type: corev1.EventTypeWarning,
+			}
+			Expect(isWarningEvent(nodeWarningEvent)).To(BeFalse())
+			Expect(predWarningEvent.Create(event.CreateEvent{Object: nodeWarningEvent})).To(BeFalse())
+		})
+
+		It("should reject Normal Events", func() {
+			normalEvent := &corev1.Event{
+				ObjectMeta: metav1.ObjectMeta{Name: "normal-evt", Namespace: namespaceName},
+				InvolvedObject: corev1.ObjectReference{
+					Kind: "Pod",
+					Name: "pod-1",
+				},
+				Type:  corev1.EventTypeNormal,
+				Count: 1,
+			}
+			Expect(isWarningEvent(normalEvent)).To(BeFalse())
+			Expect(predWarningEvent.Create(event.CreateEvent{Object: normalEvent})).To(BeFalse())
+			Expect(predWarningEvent.Update(event.UpdateEvent{
+				ObjectOld: normalEvent,
+				ObjectNew: normalEvent,
+			})).To(BeFalse())
+			Expect(predWarningEvent.Delete(event.DeleteEvent{Object: normalEvent})).To(BeFalse())
+			Expect(predWarningEvent.Generic(event.GenericEvent{Object: normalEvent})).To(BeFalse())
+		})
+
+		It("should reject Events with empty or unrecognized type", func() {
+			unknownEvent := &corev1.Event{
+				ObjectMeta: metav1.ObjectMeta{Name: "unknown-evt", Namespace: namespaceName},
+				InvolvedObject: corev1.ObjectReference{
+					Kind: "Pod",
+					Name: "pod-1",
+				},
+			}
+			Expect(isWarningEvent(unknownEvent)).To(BeFalse())
+			Expect(predWarningEvent.Create(event.CreateEvent{Object: unknownEvent})).To(BeFalse())
+		})
+
+		It("should reject non-Event objects", func() {
+			pod := &corev1.Pod{}
+			Expect(isWarningEvent(pod)).To(BeFalse())
+			Expect(predWarningEvent.Create(event.CreateEvent{Object: pod})).To(BeFalse())
+		})
+	})
+
+	Context("When mapping Events to Workspace reconcile requests", func() {
+		It("should return nil for non-Event objects", func() {
+			Expect(workspaceReconciler.mapEventToRequest(ctx, &corev1.Pod{})).To(BeNil())
+		})
+
+		It("should return nil when event InvolvedObject UID is empty", func() {
+			evt := &corev1.Event{
+				ObjectMeta: metav1.ObjectMeta{Name: "evt", Namespace: namespaceName},
+				InvolvedObject: corev1.ObjectReference{
+					Name:      "some-pod",
+					Namespace: namespaceName,
+				},
+				Type: corev1.EventTypeWarning,
+			}
+			Expect(workspaceReconciler.mapEventToRequest(ctx, evt)).To(BeNil())
+		})
+
+		It("should return empty slice when InvolvedObject UID does not match any Workspace", func() {
+			evt := &corev1.Event{
+				ObjectMeta: metav1.ObjectMeta{Name: "unmatched-evt", Namespace: namespaceName},
+				InvolvedObject: corev1.ObjectReference{
+					Kind:      "Pod",
+					UID:       types.UID("non-existent-uid"),
+					Namespace: namespaceName,
+				},
+				Type: corev1.EventTypeWarning,
+			}
+			requests := workspaceReconciler.mapEventToRequest(ctx, evt)
+			Expect(requests).To(BeEmpty())
+		})
+
+		It("should return nil when event InvolvedObject Kind is neither Pod nor StatefulSet", func() {
+			evt := &corev1.Event{
+				ObjectMeta: metav1.ObjectMeta{Name: "node-evt", Namespace: namespaceName},
+				InvolvedObject: corev1.ObjectReference{
+					Kind:      "Node",
+					Name:      "some-node",
+					Namespace: namespaceName,
+					UID:       types.UID("some-uid"),
+				},
+				Type: corev1.EventTypeWarning,
+			}
+			Expect(workspaceReconciler.mapEventToRequest(ctx, evt)).To(BeNil())
+		})
+	})
+
+	Context("When watching Warning Events for owned Pod and StatefulSet", Serial, Ordered, func() {
+		var (
+			workspaceName     string
+			workspaceKindName string
+			workspaceKey      types.NamespacedName
+			stsUID            types.UID
+			podUID            types.UID
+			podName           string
+			stsName           string
+		)
+
+		BeforeAll(func() {
+			uniqueName := fmt.Sprintf("ws-event-watch-%d", time.Now().UnixNano())
+			workspaceName = fmt.Sprintf("workspace-%s", uniqueName)
+			workspaceKindName = fmt.Sprintf("workspacekind-%s", uniqueName)
+			workspaceKey = types.NamespacedName{Name: workspaceName, Namespace: namespaceName}
+
+			By("creating the WorkspaceKind")
+			workspaceKind := NewExampleWorkspaceKind1(workspaceKindName)
+			Expect(k8sClient.Create(ctx, workspaceKind)).To(Succeed())
+
+			By("creating the Workspace")
+			workspace := NewExampleWorkspace1(workspaceName, namespaceName, workspaceKindName)
+			Expect(k8sClient.Create(ctx, workspace)).To(Succeed())
+
+			By("waiting for the StatefulSet to be created")
+			statefulSetList := &appsv1.StatefulSetList{}
+			Eventually(func() ([]appsv1.StatefulSet, error) {
+				err := k8sClient.List(ctx, statefulSetList, client.InNamespace(namespaceName), client.MatchingLabels{workspaceNameLabel: workspaceName})
+				if err != nil {
+					return nil, err
+				}
+				return statefulSetList.Items, nil
+			}, timeout, interval).Should(HaveLen(1))
+
+			sts := statefulSetList.Items[0]
+			stsName = sts.Name
+			stsUID = sts.UID
+			podName = fmt.Sprintf("%s-0", stsName)
+
+			By("creating the Pod for the StatefulSet in Pending phase")
+			pod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      podName,
+					Namespace: namespaceName,
+					Labels: map[string]string{
+						workspaceNameLabel: workspaceName,
+					},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{{Name: "main", Image: "busybox"}},
+				},
+			}
+			Expect(k8sClient.Create(ctx, pod)).To(Succeed())
+			pod.Status.Phase = corev1.PodPending
+			pod.Status.Conditions = []corev1.PodCondition{
+				{Type: corev1.PodScheduled, Status: corev1.ConditionTrue},
+			}
+			Expect(k8sClient.Status().Update(ctx, pod)).To(Succeed())
+
+			// Fetch the created pod to get its UID
+			createdPod := &corev1.Pod{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: podName, Namespace: namespaceName}, createdPod)).To(Succeed())
+			podUID = createdPod.UID
+			Expect(podUID).NotTo(BeEmpty())
+
+			By("waiting for Workspace status to reflect both Pod and StatefulSet UIDs")
+			Eventually(func(g Gomega) {
+				ws := &kubefloworgv1beta1.Workspace{}
+				g.Expect(k8sClient.Get(ctx, workspaceKey, ws)).To(Succeed())
+				g.Expect(ws.Status.PodTemplateStatefulSet.Name).To(Equal(stsName))
+				g.Expect(ws.Status.PodTemplateStatefulSet.UID).To(Equal(stsUID))
+				g.Expect(ws.Status.PodTemplatePod.Name).To(Equal(podName))
+				g.Expect(ws.Status.PodTemplatePod.UID).To(Equal(podUID))
+				g.Expect(ws.Status.State).To(Equal(kubefloworgv1beta1.WorkspaceStatePending))
+			}, timeout, interval).Should(Succeed())
+		})
+
+		AfterAll(func() {
+			By("deleting created Events")
+			eventList := &corev1.EventList{}
+			if err := k8sClient.List(ctx, eventList, client.InNamespace(namespaceName)); err == nil {
+				for _, e := range eventList.Items {
+					_ = k8sClient.Delete(ctx, &e)
+				}
+			}
+
+			By("deleting the Pod")
+			pod := &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: podName, Namespace: namespaceName}}
+			_ = k8sClient.Delete(ctx, pod)
+
+			By("deleting the StatefulSet")
+			sts := &appsv1.StatefulSet{ObjectMeta: metav1.ObjectMeta{Name: stsName, Namespace: namespaceName}}
+			_ = k8sClient.Delete(ctx, sts)
+
+			By("deleting the Service")
+			svcList := &corev1.ServiceList{}
+			if err := k8sClient.List(ctx, svcList, client.InNamespace(namespaceName), client.MatchingLabels{workspaceNameLabel: workspaceName}); err == nil {
+				for _, s := range svcList.Items {
+					_ = k8sClient.Delete(ctx, &s)
+				}
+			}
+
+			By("deleting the Workspace")
+			workspace := &kubefloworgv1beta1.Workspace{
+				ObjectMeta: metav1.ObjectMeta{Name: workspaceName, Namespace: namespaceName},
+			}
+			_ = k8sClient.Delete(ctx, workspace)
+
+			By("deleting the WorkspaceKind")
+			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
+				ObjectMeta: metav1.ObjectMeta{Name: workspaceKindName},
+			}
+			_ = k8sClient.Delete(ctx, workspaceKind)
+		})
+
+		It("should resolve the owning Workspace via the field indexer when mapping an event", func() {
+			podEvent := &corev1.Event{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-pod-map-evt",
+					Namespace: namespaceName,
+				},
+				InvolvedObject: corev1.ObjectReference{
+					Kind:      "Pod",
+					Name:      podName,
+					Namespace: namespaceName,
+					UID:       podUID,
+				},
+				Type: corev1.EventTypeWarning,
+			}
+			Eventually(func() []reconcile.Request {
+				return workspaceReconciler.mapEventToRequest(ctx, podEvent)
+			}, timeout, interval).Should(ConsistOf(reconcile.Request{NamespacedName: workspaceKey}))
+
+			stsEvent := &corev1.Event{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-sts-map-evt",
+					Namespace: namespaceName,
+				},
+				InvolvedObject: corev1.ObjectReference{
+					Kind:      "StatefulSet",
+					Name:      stsName,
+					Namespace: namespaceName,
+					UID:       stsUID,
+				},
+				Type: corev1.EventTypeWarning,
+			}
+			Expect(workspaceReconciler.mapEventToRequest(ctx, stsEvent)).To(ConsistOf(reconcile.Request{NamespacedName: workspaceKey}))
+		})
+
+		It("should not match events across namespaces even if UID matches", func() {
+			crossNsEvent := &corev1.Event{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cross-ns-evt",
+					Namespace: "other-namespace",
+				},
+				InvolvedObject: corev1.ObjectReference{
+					Kind:      "Pod",
+					Name:      podName,
+					Namespace: "other-namespace",
+					UID:       podUID,
+				},
+				Type: corev1.EventTypeWarning,
+			}
+			Expect(workspaceReconciler.mapEventToRequest(ctx, crossNsEvent)).To(BeEmpty())
+		})
+
+		It("should not reconcile Workspace into Error when a Normal Event is posted", func() {
+			normalEvent := &corev1.Event{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("normal-event-%d", time.Now().UnixNano()),
+					Namespace: namespaceName,
+				},
+				InvolvedObject: corev1.ObjectReference{
+					Kind:      "Pod",
+					Name:      podName,
+					Namespace: namespaceName,
+					UID:       podUID,
+				},
+				Type:          corev1.EventTypeNormal,
+				Reason:        "Scheduled",
+				Message:       "Successfully assigned pod to node",
+				LastTimestamp: metav1.Now(),
+			}
+			Expect(k8sClient.Create(ctx, normalEvent)).To(Succeed())
+
+			// State should remain Pending
+			Consistently(func(g Gomega) {
+				ws := &kubefloworgv1beta1.Workspace{}
+				g.Expect(k8sClient.Get(ctx, workspaceKey, ws)).To(Succeed())
+				g.Expect(ws.Status.State).To(Equal(kubefloworgv1beta1.WorkspaceStatePending))
+			}, time.Second*3, interval).Should(Succeed())
+		})
+
+		It("should reconcile Workspace into Error state when a Warning Event is posted for the Pod", func() {
+			warningMsg := "MountVolume.SetUp failed for volume 'data': mount timed out"
+			warningEvent := &corev1.Event{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("pod-warning-%d", time.Now().UnixNano()),
+					Namespace: namespaceName,
+				},
+				InvolvedObject: corev1.ObjectReference{
+					Kind:      "Pod",
+					Name:      podName,
+					Namespace: namespaceName,
+					UID:       podUID,
+				},
+				Type:          corev1.EventTypeWarning,
+				Reason:        "FailedMount",
+				Message:       warningMsg,
+				LastTimestamp: metav1.Now(),
+			}
+			Expect(k8sClient.Create(ctx, warningEvent)).To(Succeed())
+
+			Eventually(func(g Gomega) {
+				ws := &kubefloworgv1beta1.Workspace{}
+				g.Expect(k8sClient.Get(ctx, workspaceKey, ws)).To(Succeed())
+				g.Expect(ws.Status.State).To(Equal(kubefloworgv1beta1.WorkspaceStateError))
+				g.Expect(ws.Status.StateMessage).To(ContainSubstring(warningMsg))
+			}, timeout, interval).Should(Succeed())
+		})
+
+		It("should reconcile Workspace into Error state when a Warning Event is posted for the StatefulSet", func() {
+			By("deleting the Pod so StatefulSet events are evaluated")
+			podToDelete := &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: podName, Namespace: namespaceName}}
+			Expect(k8sClient.Delete(ctx, podToDelete)).To(Succeed())
+
+			Eventually(func() bool {
+				p := &corev1.Pod{}
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: podName, Namespace: namespaceName}, p)
+				return apierrors.IsNotFound(err)
+			}, timeout, interval).Should(BeTrue())
+
+			stsWarningMsg := "create Pod ws-0 in StatefulSet ws failed"
+			stsWarningEvent := &corev1.Event{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("sts-warning-%d", time.Now().UnixNano()),
+					Namespace: namespaceName,
+				},
+				InvolvedObject: corev1.ObjectReference{
+					Kind:      "StatefulSet",
+					Name:      stsName,
+					Namespace: namespaceName,
+					UID:       stsUID,
+				},
+				Type:          corev1.EventTypeWarning,
+				Reason:        "FailedCreate",
+				Message:       stsWarningMsg,
+				LastTimestamp: metav1.Now(),
+			}
+			Expect(k8sClient.Create(ctx, stsWarningEvent)).To(Succeed())
+
+			Eventually(func(g Gomega) {
+				ws := &kubefloworgv1beta1.Workspace{}
+				g.Expect(k8sClient.Get(ctx, workspaceKey, ws)).To(Succeed())
+				g.Expect(ws.Status.State).To(Equal(kubefloworgv1beta1.WorkspaceStateError))
+				g.Expect(ws.Status.StateMessage).To(ContainSubstring(stsWarningMsg))
+			}, timeout, interval).Should(Succeed())
+		})
+	})
+
+	Context("When evaluating Workspace state with WatchWarningEvents configuration", func() {
+		var (
+			reconcilerDisabled *WorkspaceReconciler
+			reconcilerEnabled  *WorkspaceReconciler
+			reconcilerNilCfg   *WorkspaceReconciler
+			testSts            *appsv1.StatefulSet
+			testPod            *corev1.Pod
+			stsUID             types.UID
+			podUID             types.UID
+			podWarningMsg      string
+			stsWarningMsg      string
+			podWarningEvent    *corev1.Event
+			stsWarningEvent    *corev1.Event
+		)
+
+		BeforeEach(func() {
+			reconcilerDisabled = &WorkspaceReconciler{
+				Client: k8sManager.GetClient(),
+				Scheme: k8sManager.GetScheme(),
+				Config: &config.EnvConfig{WatchWarningEvents: false},
+			}
+			reconcilerEnabled = &WorkspaceReconciler{
+				Client: k8sManager.GetClient(),
+				Scheme: k8sManager.GetScheme(),
+				Config: &config.EnvConfig{WatchWarningEvents: true},
+			}
+			reconcilerNilCfg = &WorkspaceReconciler{
+				Client: k8sManager.GetClient(),
+				Scheme: k8sManager.GetScheme(),
+				Config: nil,
+			}
+
+			stsUID = types.UID(fmt.Sprintf("sts-uid-%d", time.Now().UnixNano()))
+			podUID = types.UID(fmt.Sprintf("pod-uid-%d", time.Now().UnixNano()))
+
+			testSts = &appsv1.StatefulSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-sts-eval",
+					Namespace: namespaceName,
+					UID:       stsUID,
+				},
+			}
+			testPod = &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-pod-eval-0",
+					Namespace: namespaceName,
+					UID:       podUID,
+				},
+				Status: corev1.PodStatus{
+					Phase: corev1.PodPending,
+				},
+			}
+
+			podWarningMsg = fmt.Sprintf("pod warning msg %d", time.Now().UnixNano())
+			podWarningEvent = &corev1.Event{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("pod-eval-warning-%d", time.Now().UnixNano()),
+					Namespace: namespaceName,
+				},
+				InvolvedObject: corev1.ObjectReference{
+					Kind:      "Pod",
+					Name:      testPod.Name,
+					Namespace: namespaceName,
+					UID:       podUID,
+				},
+				Type:          corev1.EventTypeWarning,
+				Reason:        "FailedMount",
+				Message:       podWarningMsg,
+				LastTimestamp: metav1.Now(),
+			}
+			Expect(k8sClient.Create(ctx, podWarningEvent)).To(Succeed())
+
+			stsWarningMsg = fmt.Sprintf("sts warning msg %d", time.Now().UnixNano())
+			stsWarningEvent = &corev1.Event{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("sts-eval-warning-%d", time.Now().UnixNano()),
+					Namespace: namespaceName,
+				},
+				InvolvedObject: corev1.ObjectReference{
+					Kind:      "StatefulSet",
+					Name:      testSts.Name,
+					Namespace: namespaceName,
+					UID:       stsUID,
+				},
+				Type:          corev1.EventTypeWarning,
+				Reason:        "FailedCreate",
+				Message:       stsWarningMsg,
+				LastTimestamp: metav1.Now(),
+			}
+			Expect(k8sClient.Create(ctx, stsWarningEvent)).To(Succeed())
+		})
+
+		AfterEach(func() {
+			if podWarningEvent != nil {
+				_ = k8sClient.Delete(ctx, podWarningEvent)
+			}
+			if stsWarningEvent != nil {
+				_ = k8sClient.Delete(ctx, stsWarningEvent)
+			}
+		})
+
+		It("should ignore warning events and return Pending when WatchWarningEvents is false", func() {
+			state, msg, result, err := reconcilerDisabled.generateWorkspaceState(
+				ctx, logf.Log, false, testSts, testPod,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStatePending))
+			Expect(msg).To(Equal(stateMsgPending))
+			Expect(result.RequeueAfter).To(Equal(15 * time.Second))
+		})
+
+		It("should ignore warning events and return Unknown when WatchWarningEvents is false and pod is nil", func() {
+			state, msg, _, err := reconcilerDisabled.generateWorkspaceState(
+				ctx, logf.Log, false, testSts, nil,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateUnknown))
+			Expect(msg).To(Equal(stateMsgUnknown))
+		})
+
+		It("should ignore warning events when Config is nil", func() {
+			state, msg, result, err := reconcilerNilCfg.generateWorkspaceState(
+				ctx, logf.Log, false, testSts, testPod,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStatePending))
+			Expect(msg).To(Equal(stateMsgPending))
+			Expect(result.RequeueAfter).To(Equal(15 * time.Second))
+		})
+
+		It("should detect pod warning event and return Error when WatchWarningEvents is true", func() {
+			Eventually(func(g Gomega) {
+				state, msg, _, err := reconcilerEnabled.generateWorkspaceState(
+					ctx, logf.Log, false, testSts, testPod,
+				)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateError))
+				g.Expect(msg).To(ContainSubstring(podWarningMsg))
+			}, timeout, interval).Should(Succeed())
+		})
+
+		It("should detect statefulset warning event and return Error when WatchWarningEvents is true", func() {
+			Eventually(func(g Gomega) {
+				state, msg, _, err := reconcilerEnabled.generateWorkspaceState(
+					ctx, logf.Log, false, testSts, nil,
+				)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateError))
+				g.Expect(msg).To(ContainSubstring(stsWarningMsg))
+			}, timeout, interval).Should(Succeed())
 		})
 	})
 })
