@@ -3098,9 +3098,7 @@ const docTemplate = `{
                 "canMount",
                 "canUpdate",
                 "name",
-                "pods",
-                "pvcSpec",
-                "workspaces"
+                "pvcSpec"
             ],
             "properties": {
                 "audit": {
@@ -3143,7 +3141,6 @@ const docTemplate = `{
         "pvcs.PVCSpec": {
             "type": "object",
             "required": [
-                "accessModes",
                 "requests",
                 "storageClassName",
                 "volumeMode"
@@ -3170,7 +3167,6 @@ const docTemplate = `{
         "pvcs.PVInfo": {
             "type": "object",
             "required": [
-                "accessModes",
                 "name",
                 "persistentVolumeReclaimPolicy",
                 "volumeMode"
@@ -8078,8 +8074,7 @@ const docTemplate = `{
             "required": [
                 "description",
                 "displayName",
-                "id",
-                "labels"
+                "id"
             ],
             "properties": {
                 "description": {
@@ -8250,9 +8245,6 @@ const docTemplate = `{
         },
         "workspaces.PodVolumesMutate": {
             "type": "object",
-            "required": [
-                "data"
-            ],
             "properties": {
                 "data": {
                     "type": "array",
@@ -8399,7 +8391,6 @@ const docTemplate = `{
                 "paused",
                 "pausedTime",
                 "podTemplate",
-                "services",
                 "state",
                 "stateMessage",
                 "workspaceKind"
