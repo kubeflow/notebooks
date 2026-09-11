@@ -27,6 +27,7 @@ import (
 	"time"
 
 	v1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -176,6 +177,33 @@ var _ = AfterSuite(func() {
 	err := testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())
 })
+
+// NewUserClient returns a client authenticated as `username`, holding only `rules` in `namespace`.
+// The webhook's SubjectAccessReview reads the caller from the AdmissionRequest, so a real
+// non-admin identity is the only way to exercise the deny path (the suite's `k8sClient` is an admin).
+func NewUserClient(username, namespace string, rules []rbacv1.PolicyRule) client.Client {
+	GinkgoHelper()
+
+	authenticatedUser, err := testEnv.AddUser(envtest.User{Name: username}, cfg)
+	Expect(err).NotTo(HaveOccurred())
+
+	role := &rbacv1.Role{
+		ObjectMeta: metav1.ObjectMeta{Name: username, Namespace: namespace},
+		Rules:      rules,
+	}
+	Expect(k8sClient.Create(ctx, role)).To(Succeed())
+
+	roleBinding := &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{Name: username, Namespace: namespace},
+		RoleRef:    rbacv1.RoleRef{APIGroup: rbacv1.GroupName, Kind: "Role", Name: username},
+		Subjects:   []rbacv1.Subject{{APIGroup: rbacv1.GroupName, Kind: rbacv1.UserKind, Name: username}},
+	}
+	Expect(k8sClient.Create(ctx, roleBinding)).To(Succeed())
+
+	userClient, err := client.New(authenticatedUser.Config(), client.Options{Scheme: scheme.Scheme})
+	Expect(err).NotTo(HaveOccurred())
+	return userClient
+}
 
 // NewExampleWorkspaceKind returns the common "WorkspaceKind" object used in tests.
 func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {

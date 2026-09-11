@@ -68,6 +68,21 @@ spec:
           mountPath: "/secrets/my-secret"
           defaultMode: 420 # same as 0644 in octal
 
+    ## service account configs for this Workspace's Pod
+    ##  - the ServiceAccount itself is created and owned by the controller,
+    ##    its name is reported in `status.podTemplatePod.serviceAccountName`
+    ##
+    serviceAccount:
+
+      ## Roles to grant to the ServiceAccount of this Workspace
+      ##  - each entry becomes a namespaced RoleBinding to a Role in this Namespace
+      ##  - ClusterRoles are NOT supported here, a cluster administrator sets those on the
+      ##    WorkspaceKind under `spec.podTemplate.serviceAccount.clusterRoles`
+      ##  - adding or removing an entry requires permission to create or delete RoleBindings
+      ##    in this Namespace, checked by the Workspace webhook with a SubjectAccessReview
+      ##
+      roles: []
+
     ## the selected podTemplate options
     ##  - these are the user-selected options from the Workspace Spawner UI
     ##    which determine the PodSpec of the Workspace Pod
