@@ -1,0 +1,25 @@
+# Browser navigations to the UI without a session get a bare 401 from the
+# authorization check. Turn that into a redirect to the login flow, on the UI
+# route only: API calls keep their 401 so the SPA can handle it.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: workspaces-frontend-login-redirect
+  namespace: kubeflow-workspaces
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: workspaces-frontend
+  responseOverride:
+    - match:
+        statusCodes:
+          - type: Value
+            value: 401
+      # Only Envoy-generated responses (the ext_authz denial), never upstream ones.
+      source: Local
+      redirect:
+        path:
+          type: ReplaceFullPath
+          replaceFullPath: /oauth2/start?rd=%2Fworkspaces%2F
+        statusCode: 302

@@ -1,0 +1,181 @@
+# oauth2-proxy is the OIDC relying party: it runs the login flow under /oauth2/
+# and owns the session cookie. It is not in the data path. The backend calls its
+# /oauth2/auth endpoint to turn a session cookie into an identity.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oauth2-proxy
+  namespace: kubeflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oauth2-proxy
+  template:
+    metadata:
+      labels:
+        app: oauth2-proxy
+    spec:
+      containers:
+        - name: oauth2-proxy
+          image: quay.io/oauth2-proxy/oauth2-proxy:v7.7.1
+          args:
+            - --provider=oidc
+            - --oidc-issuer-url=https://${GATEWAY_HOST}/dex
+            - --client-id=kubeflow-workspaces
+            - --redirect-url=https://${GATEWAY_HOST}/oauth2/callback
+            - --email-domain=*
+            - --http-address=0.0.0.0:4180
+            - --skip-provider-button=true
+            # Let the provider decide whether to show a consent screen; the
+            # default ("force") makes Dex show one despite skipApprovalScreen.
+            - --approval-prompt=auto
+            - --cookie-secure=true
+            # The login flow arrives through the Gateway; trust its
+            # X-Forwarded-* headers when building the callback redirect.
+            - --reverse-proxy=true
+            # An upstream is mandatory even though only /oauth2/ is used.
+            - --upstream=static://202
+            # Return identity (X-Auth-Request-*) and the ID token
+            # (Authorization: Bearer) from /oauth2/auth, for the backend.
+            - --set-xauthrequest=true
+            - --set-authorization-header=true
+          env:
+            - name: OAUTH2_PROXY_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: oidc-client
+                  key: client-secret
+            - name: OAUTH2_PROXY_COOKIE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: oauth2-proxy
+                  key: cookie-secret
+            # OIDC discovery goes to the public issuer URL, which the Gateway
+            # serves with the self-signed certificate; trust its CA.
+            - name: SSL_CERT_FILE
+              value: /etc/ssl/gateway/ca.crt
+          ports:
+            - name: http
+              containerPort: 4180
+          volumeMounts:
+            - name: gateway-ca
+              mountPath: /etc/ssl/gateway
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: http
+      volumes:
+        # Only the CA bundle from the Gateway's certificate Secret; the private
+        # key stays out of this pod.
+        - name: gateway-ca
+          secret:
+            secretName: gateway-tls-secret
+            items:
+              - key: ca.crt
+                path: ca.crt
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: oauth2-proxy
+  namespace: kubeflow
+spec:
+  selector:
+    app: oauth2-proxy
+  ports:
+    - name: http
+      port: 4180
+      targetPort: http
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: oauth2-proxy
+  namespace: kubeflow
+spec:
+  parentRefs:
+    - name: kubeflow-gateway
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /oauth2/
+      backendRefs:
+        - name: oauth2-proxy
+          port: 4180
+---
+# The authorization check, attached once at the Gateway so it covers every
+# route: the UI, the API, and the per-workspace routes the controller creates
+# in tenant namespaces. Envoy sends each request's method, path and cookies to
+# the backend's /authz endpoint; a 200 admits the request and the identity
+# headers in the response replace whatever the client sent.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: workspaces-authz
+  namespace: kubeflow
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: kubeflow-gateway
+  extAuth:
+    http:
+      backendRefs:
+        - name: workspaces-backend
+          namespace: kubeflow-workspaces
+          port: 4000
+      # Prepended to the original path: /authz/workspace/connect/<ns>/<name>/...
+      path: /authz
+      headersToBackend:
+        - kubeflow-userid
+        - kubeflow-groups
+    # The session cookie is the credential; Envoy does not forward it by default.
+    headersToExtAuth:
+      - cookie
+---
+# The login endpoints must stay reachable without a session. A SecurityPolicy
+# attached to a route replaces the Gateway-level one for that route, so an
+# empty policy on the oauth2-proxy route disables the check there.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: oauth2-proxy-public
+  namespace: kubeflow
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: oauth2-proxy
+---
+# Same exemption for Dex: the browser reaches the login page and oauth2-proxy
+# fetches discovery and keys through the Gateway.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: dex-public
+  namespace: dex
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: dex
+---
+# Permits the SecurityPolicy above to reference the backend Service across
+# namespaces. One grant, in the backend's namespace; nothing per tenant.
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: envoy-gateway-ext-authz
+  namespace: kubeflow-workspaces
+spec:
+  from:
+    - group: gateway.envoyproxy.io
+      kind: SecurityPolicy
+      namespace: kubeflow
+  to:
+    - group: ""
+      kind: Service
+      name: workspaces-backend

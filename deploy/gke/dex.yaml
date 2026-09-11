@@ -1,0 +1,118 @@
+# Dex: a self-hosted OIDC identity provider for the walk-through. Any OIDC
+# provider works in its place (see "Using another identity provider").
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dex
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dex
+  namespace: dex
+data:
+  config.yaml: |
+    # The issuer is the public URL: the browser and oauth2-proxy must both see
+    # the same string, and it is baked into every ID token.
+    issuer: https://${GATEWAY_HOST}/dex
+
+    storage:
+      type: memory
+
+    web:
+      http: 0.0.0.0:5556
+
+    oauth2:
+      skipApprovalScreen: true
+
+    staticClients:
+      - id: kubeflow-workspaces
+        name: Kubeflow Workspaces
+        secretEnv: OIDC_CLIENT_SECRET
+        redirectURIs:
+          - https://${GATEWAY_HOST}/oauth2/callback
+
+    enablePasswordDB: true
+    staticPasswords:
+      - email: user@example.com
+        hash: "${DEX_PASSWORD_HASH}"
+        username: user
+        userID: "00000000-0000-0000-0000-000000000001"
+      - email: admin@example.com
+        hash: "${DEX_PASSWORD_HASH}"
+        username: admin
+        userID: "00000000-0000-0000-0000-000000000002"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dex
+  namespace: dex
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dex
+  template:
+    metadata:
+      labels:
+        app: dex
+    spec:
+      containers:
+        - name: dex
+          image: ghcr.io/dexidp/dex:v2.44.0
+          command: ["/usr/local/bin/dex", "serve", "/etc/dex/config.yaml"]
+          env:
+            - name: OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: oidc-client
+                  key: client-secret
+          ports:
+            - name: http
+              containerPort: 5556
+          volumeMounts:
+            - name: config
+              mountPath: /etc/dex
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /dex/healthz
+              port: http
+      volumes:
+        - name: config
+          configMap:
+            name: dex
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dex
+  namespace: dex
+spec:
+  selector:
+    app: dex
+  ports:
+    - name: http
+      port: 5556
+      targetPort: http
+---
+# Dex is published through the same Gateway as everything else, so its issuer
+# URL is one hostname for the browser and for oauth2-proxy alike.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: dex
+  namespace: dex
+spec:
+  parentRefs:
+    - name: kubeflow-gateway
+      namespace: kubeflow
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /dex
+      backendRefs:
+        - name: dex
+          port: 5556

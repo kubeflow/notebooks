@@ -1,0 +1,49 @@
+# A tenant namespace. Provisioning one is ordinary Kubernetes administration:
+# a Namespace and a RoleBinding to one of the ClusterRoles the controller
+# ships. No Profile, no per-namespace gateway configuration.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: team-a
+---
+# user@example.com may manage Workspaces in team-a. The backend's
+# SubjectAccessReview and the /authz check both resolve to this binding.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: user-workspaces-edit
+  namespace: team-a
+subjects:
+  - kind: User
+    name: user@example.com
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: kubeflow-workspaces-edit
+  apiGroup: rbac.authorization.k8s.io
+---
+# The UI also lists PVCs and Secrets to attach to a workspace; grant what your
+# users should be able to see. This is the minimum for the sample Workspace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: workspace-resources-view
+  namespace: team-a
+rules:
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims", "secrets"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: user-workspace-resources-view
+  namespace: team-a
+subjects:
+  - kind: User
+    name: user@example.com
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: workspace-resources-view
+  apiGroup: rbac.authorization.k8s.io

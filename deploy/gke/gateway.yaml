@@ -1,0 +1,75 @@
+# Namespace for the shared edge: the Gateway, its Envoy pods (GatewayNamespace
+# mode), oauth2-proxy, and the TLS certificate.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kubeflow
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: eg
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned-issuer
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: gateway-tls
+  namespace: kubeflow
+spec:
+  secretName: gateway-tls-secret
+  duration: 8760h
+  issuerRef:
+    name: selfsigned-issuer
+    kind: ClusterIssuer
+  dnsNames:
+    - ${GATEWAY_HOST}
+---
+# Data-plane settings for this Gateway. On GKE the static IP must be requested
+# through Service.spec.loadBalancerIP: Gateway.spec.addresses maps to
+# Service.spec.externalIPs, which GKE's admission control denies.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: kubeflow-gateway
+  namespace: kubeflow
+spec:
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyService:
+        loadBalancerIP: ${GATEWAY_IP}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: kubeflow-gateway
+  namespace: kubeflow
+spec:
+  gatewayClassName: eg
+  infrastructure:
+    parametersRef:
+      group: gateway.envoyproxy.io
+      kind: EnvoyProxy
+      name: kubeflow-gateway
+  listeners:
+    - name: https
+      port: 443
+      protocol: HTTPS
+      hostname: ${GATEWAY_HOST}
+      allowedRoutes:
+        namespaces:
+          from: All
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: gateway-tls-secret

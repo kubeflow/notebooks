@@ -1,0 +1,29 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../../workspaces/backend/manifests/kustomize/overlays/gateway-api
+
+images:
+  - name: ghcr.io/kubeflow/notebooks/workspaces-backend
+    newName: <REGISTRY>/workspaces-backend
+    newTag: <TAG>
+
+patches:
+  - target:
+      kind: Deployment
+      name: workspaces-backend
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: workspaces-backend
+      spec:
+        template:
+          spec:
+            containers:
+              - name: workspaces-backend
+                env:
+                  # Resolve browser sessions by asking oauth2-proxy (Step 9).
+                  - name: SESSION_AUTH_URL
+                    value: http://oauth2-proxy.kubeflow.svc.cluster.local:4180/oauth2/auth
