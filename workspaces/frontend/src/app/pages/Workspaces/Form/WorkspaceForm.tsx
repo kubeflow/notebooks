@@ -50,6 +50,7 @@ import { submitFormData } from '~/app/pages/Workspaces/Form/submitHelper';
 import { WorkspaceFormSummaryPanel } from '~/app/pages/Workspaces/Form/WorkspaceFormSummaryPanel';
 import { WorkspaceFormRedirectConfirmModal } from '~/app/pages/Workspaces/Form/WorkspaceFormRedirectConfirmModal';
 import { validateName } from './helpers';
+import { resolveContextualDefaultId } from './utils/filterDefaults';
 
 enum WorkspaceFormSteps {
   KindSelection,
@@ -104,6 +105,24 @@ const WorkspaceForm: React.FC = () => {
       imageId: data.imageConfig,
     });
 
+  const effectivePodConfigDefaultId = useMemo(() => {
+    if (
+      !data.imageConfig ||
+      !allValuesLoaded ||
+      !filteredValuesLoaded ||
+      !allValuesData ||
+      !filteredValuesData
+    ) {
+      return undefined;
+    }
+
+    return resolveContextualDefaultId(
+      allValuesData.podConfig.values ?? [],
+      filteredValuesData.podConfig.values ?? [],
+      allValuesData.podConfig.default,
+    );
+  }, [data.imageConfig, allValuesLoaded, filteredValuesLoaded, allValuesData, filteredValuesData]);
+
   // Store original values for edit mode diff view
   const [originalData, setOriginalData] = useState<WorkspaceFormData | undefined>(undefined);
 
@@ -111,6 +130,7 @@ const WorkspaceForm: React.FC = () => {
   // Refs for filter control
   const imageFilterControlRef = useRef<ImageSelectionFilterHandle>(null);
   const podConfigFilterControlRef = useRef<PodConfigSelectionFilterHandle>(null);
+  const autoSelectedPodConfigRef = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (!initialFormDataLoaded || mode === 'create') {
       return;
@@ -120,31 +140,65 @@ const WorkspaceForm: React.FC = () => {
     setOriginalData(initialFormData);
   }, [initialFormData, initialFormDataLoaded, mode, replaceData]);
 
-  // Apply default imageConfig and podConfig from listValues when a kind is first selected.
-  // Only sets defaults when the values are unset (undefined), so user selections are never overwritten.
+  // Apply the configured image default when a kind is first selected.
   useEffect(() => {
     if (!allValuesData || !allValuesLoaded || !data.kind) {
       return;
     }
+
     if (!data.imageConfig && allValuesData.imageConfig.default) {
       setData('imageConfig', allValuesData.imageConfig.default);
     }
-    if (!data.podConfig && allValuesData.podConfig.default) {
-      setData('podConfig', allValuesData.podConfig.default);
-    }
-  }, [allValuesData, allValuesLoaded, data.kind, data.imageConfig, data.podConfig, setData]);
+  }, [allValuesData, allValuesLoaded, data.kind, data.imageConfig, setData]);
 
-  // Clear podConfig when filtered values reload and the current selection is no longer compatible
+  // Apply the PodConfig default only after it has been evaluated
+  // against the selected image context.
+  useEffect(() => {
+    if (
+      !data.kind ||
+      !data.imageConfig ||
+      !filteredValuesLoaded ||
+      data.podConfig ||
+      !effectivePodConfigDefaultId
+    ) {
+      return;
+    }
+
+    autoSelectedPodConfigRef.current = effectivePodConfigDefaultId;
+    setData('podConfig', effectivePodConfigDefaultId);
+  }, [
+    data.kind,
+    data.imageConfig,
+    data.podConfig,
+    filteredValuesLoaded,
+    effectivePodConfigDefaultId,
+    setData,
+  ]);
+
+  // Clear incompatible PodConfig selections and auto-selected defaults
+  // that are no longer valid in the selected image context.
   useEffect(() => {
     if (!filteredValuesLoaded || !filteredValuesData || !data.podConfig) {
       return;
     }
+
     const podConfigOptions = filteredValuesData.podConfig.values ?? [];
     const isStillValid = podConfigOptions.some((pc) => pc.id === data.podConfig);
-    if (!isStillValid) {
+
+    const isAutoSelectedDefault = autoSelectedPodConfigRef.current === data.podConfig;
+    const isEffectiveDefault = effectivePodConfigDefaultId === data.podConfig;
+
+    if (!isStillValid || (isAutoSelectedDefault && !isEffectiveDefault)) {
+      autoSelectedPodConfigRef.current = undefined;
       setData('podConfig', undefined);
     }
-  }, [filteredValuesData, filteredValuesLoaded, data.podConfig, setData]);
+  }, [
+    filteredValuesData,
+    filteredValuesLoaded,
+    data.podConfig,
+    effectivePodConfigDefaultId,
+    setData,
+  ]);
 
   const onDisplayNameChange = useCallback(
     (value: string) => {
@@ -236,6 +290,7 @@ const WorkspaceForm: React.FC = () => {
         return;
       }
       if (mode === 'create') {
+        autoSelectedPodConfigRef.current = undefined;
         resetData();
         setData('kind', kind);
       }
@@ -259,6 +314,7 @@ const WorkspaceForm: React.FC = () => {
 
   const handlePodConfigSelect = useCallback(
     (podConfig: OptionsPodConfigValue | undefined) => {
+      autoSelectedPodConfigRef.current = undefined;
       if (podConfig) {
         if (podConfig.hidden || podConfig.redirect !== undefined) {
           podConfigFilterControlRef.current?.adaptFiltersForPodConfig(podConfig);
@@ -527,16 +583,14 @@ const WorkspaceForm: React.FC = () => {
                           title="Failed to load pod config options"
                           error={(filteredValuesError ?? allValuesError)!}
                         />
-                      ) : !(filteredValuesLoaded || allValuesLoaded) ? (
+                      ) : !filteredValuesLoaded ? (
                         <LoadingSpinner />
                       ) : (
                         <WorkspaceFormPodConfigSelection
                           selectedPodConfig={selectedPodConfig}
                           onSelect={handlePodConfigSelect}
-                          podConfigs={(filteredValuesData ?? allValuesData)?.podConfig.values ?? []}
-                          defaultPodConfigId={
-                            (filteredValuesData ?? allValuesData)?.podConfig.default
-                          }
+                          podConfigs={filteredValuesData?.podConfig.values ?? []}
+                          defaultPodConfigId={effectivePodConfigDefaultId}
                           filterControlRef={podConfigFilterControlRef}
                         />
                       ))}

@@ -1,4 +1,7 @@
-import { computeDefaultFilterValues } from '~/app/pages/Workspaces/Form/utils/filterDefaults';
+import {
+  computeDefaultFilterValues,
+  resolveContextualDefaultId,
+} from '~/app/pages/Workspaces/Form/utils/filterDefaults';
 
 describe('computeDefaultFilterValues', () => {
   it('should return false for both filters when no defaultId provided', () => {
@@ -130,5 +133,71 @@ describe('computeDefaultFilterValues', () => {
       showHidden: false,
       showRedirected: false,
     });
+  });
+});
+
+describe('resolveContextualDefaultId', () => {
+  const visibleDefault = {
+    id: 'tiny_cpu',
+    hidden: false,
+  };
+
+  const hiddenDefault = {
+    id: 'tiny_cpu',
+    hidden: true,
+  };
+
+  const visibleAlternative = {
+    id: 'big_gpu',
+    hidden: false,
+  };
+
+  it('should preserve a visible default that remains visible in the current context', () => {
+    const result = resolveContextualDefaultId(
+      [visibleDefault, visibleAlternative],
+      [visibleDefault, visibleAlternative],
+      'tiny_cpu',
+    );
+
+    expect(result).toBe('tiny_cpu');
+  });
+
+  it('should preserve a statically hidden default that remains hidden in the current context', () => {
+    const result = resolveContextualDefaultId(
+      [hiddenDefault, visibleAlternative],
+      [hiddenDefault, visibleAlternative],
+      'tiny_cpu',
+    );
+
+    expect(result).toBe('tiny_cpu');
+  });
+
+  it('should reject a visible default that becomes hidden in the current context', () => {
+    const result = resolveContextualDefaultId(
+      [visibleDefault, visibleAlternative],
+      [hiddenDefault, visibleAlternative],
+      'tiny_cpu',
+    );
+
+    expect(result).toBeUndefined();
+  });
+
+  it('should reject a default that is removed from the current context', () => {
+    const result = resolveContextualDefaultId(
+      [visibleDefault, visibleAlternative],
+      [visibleAlternative],
+      'tiny_cpu',
+    );
+
+    expect(result).toBeUndefined();
+  });
+
+  it('should return undefined when no configured default is provided', () => {
+    const result = resolveContextualDefaultId(
+      [visibleDefault, visibleAlternative],
+      [visibleDefault, visibleAlternative],
+    );
+
+    expect(result).toBeUndefined();
   });
 });
