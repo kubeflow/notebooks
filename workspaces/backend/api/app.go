@@ -90,8 +90,16 @@ func (a *App) Routes() http.Handler {
 	// healthcheck
 	router.GET(constants.HealthCheckPath, a.GetHealthcheckHandler)
 
-	// external authorization checks from the routing layer
-	router.GET(constants.AuthzCheckPath, a.AuthzCheckHandler)
+	// external authorization checks from the routing layer: the check carries
+	// the method of the original request, and not every data plane appends the
+	// original path to the URL (see AuthzCheckHandler)
+	for _, method := range []string{
+		http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut, http.MethodPatch,
+		http.MethodDelete, http.MethodOptions, http.MethodConnect, http.MethodTrace,
+	} {
+		router.Handle(method, constants.AuthzCheckPathPrefix, a.AuthzCheckHandler)
+		router.Handle(method, constants.AuthzCheckPath, a.AuthzCheckHandler)
+	}
 
 	// namespaces
 	router.GET(constants.AllNamespacesPath, a.GetNamespacesHandler)

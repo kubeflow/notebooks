@@ -47,6 +47,22 @@ var _ = Describe("Authz Check Handler", func() {
 		return rr
 	}
 
+	// checkPathHeader simulates a data plane that calls the endpoint's prefix
+	// as-is and sends the original request URI in the Path header, the way
+	// NGINX Gateway Fabric does.
+	checkPathHeader := func(method, originalURI, userID string) *httptest.ResponseRecorder {
+		req, err := http.NewRequest(method, constants.AuthzCheckPathPrefix, http.NoBody)
+		Expect(err).NotTo(HaveOccurred())
+		req.Header.Set(constants.OriginalPathHeader, originalURI)
+		if userID != "" {
+			req.Header.Set(userIdHeader, userID)
+		}
+
+		rr := httptest.NewRecorder()
+		a.AuthzCheckHandler(rr, req, nil)
+		return rr
+	}
+
 	Context("for non-workspace paths", func() {
 		It("should allow any authenticated identity", func() {
 			rr := checkPath("/workspaces/", "some-user")
@@ -59,6 +75,39 @@ var _ = Describe("Authz Check Handler", func() {
 		It("should reject an unauthenticated request", func() {
 			rr := checkPath("/workspaces/", "")
 			Expect(rr.Code).To(Equal(http.StatusUnauthorized), rr.Body.String())
+		})
+
+		It("should treat a missing path as the root path", func() {
+			req, err := http.NewRequest(http.MethodGet, constants.AuthzCheckPathPrefix, http.NoBody)
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set(userIdHeader, "some-user")
+			rr := httptest.NewRecorder()
+			a.AuthzCheckHandler(rr, req, nil)
+			Expect(rr.Code).To(Equal(http.StatusOK), rr.Body.String())
+		})
+	})
+
+	// The check request carries the method of the request being authorized,
+	// so the endpoint must answer for every method the router knows.
+	Context("through the router", func() {
+		It("should answer checks for non-GET requests", func() {
+			for _, method := range []string{http.MethodPost, http.MethodPut, http.MethodDelete} {
+				req, err := http.NewRequest(method, constants.AuthzCheckPathPrefix+"/workspaces/", http.NoBody)
+				Expect(err).NotTo(HaveOccurred())
+				req.Header.Set(userIdHeader, "some-user")
+				rr := httptest.NewRecorder()
+				a.Routes().ServeHTTP(rr, req)
+				Expect(rr.Code).To(Equal(http.StatusOK), method+": "+rr.Body.String())
+			}
+		})
+
+		It("should answer checks sent to the bare prefix", func() {
+			req, err := http.NewRequest(http.MethodGet, constants.AuthzCheckPathPrefix, http.NoBody)
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set(userIdHeader, "some-user")
+			rr := httptest.NewRecorder()
+			a.Routes().ServeHTTP(rr, req)
+			Expect(rr.Code).To(Equal(http.StatusOK), rr.Body.String())
 		})
 	})
 
@@ -110,6 +159,23 @@ var _ = Describe("Authz Check Handler", func() {
 		It("should reject a traversal path without consulting RBAC", func() {
 			rr := checkPath("/workspace/connect/../"+namespaceName+"/my-ws/jupyterlab/", adminUser)
 			Expect(rr.Code).To(Equal(http.StatusBadRequest), rr.Body.String())
+		})
+
+		Context("with the original path in the Path header", func() {
+			It("should allow a user who can get the workspace", func() {
+				rr := checkPathHeader(http.MethodGet, "/workspace/connect/"+namespaceName+"/my-ws/jupyterlab/lab?token=x", allowedUser)
+				Expect(rr.Code).To(Equal(http.StatusOK), rr.Body.String())
+			})
+
+			It("should deny an authenticated user without access", func() {
+				rr := checkPathHeader(http.MethodPost, "/workspace/connect/"+namespaceName+"/my-ws/jupyterlab/api/sessions", "some-other-user")
+				Expect(rr.Code).To(Equal(http.StatusForbidden), rr.Body.String())
+			})
+
+			It("should reject a malformed header", func() {
+				rr := checkPathHeader(http.MethodGet, "not a uri", allowedUser)
+				Expect(rr.Code).To(Equal(http.StatusBadRequest), rr.Body.String())
+			})
 		})
 	})
 })

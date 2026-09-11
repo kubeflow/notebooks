@@ -30,6 +30,12 @@ const (
 	AuthzCheckPathPrefix = "/authz"
 	AuthzCheckPath       = AuthzCheckPathPrefix + "/*" + OriginalPathParam
 
+	// OriginalPathHeader carries the original request path when the data plane
+	// sends it as a header instead of appending it to the URL. GEP-1494 lists
+	// "Path" among the headers always sent to an HTTP authorization server;
+	// NGINX Gateway Fabric sends it exactly like that, with the query string.
+	OriginalPathHeader = "Path"
+
 	// workspaces
 	AllWorkspacesPath                    = PathPrefix + "/workspaces"
 	WorkspacesByNamespacePath            = AllWorkspacesPath + "/:" + NamespacePathParam
