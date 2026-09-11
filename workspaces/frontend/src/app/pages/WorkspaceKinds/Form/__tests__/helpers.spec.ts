@@ -73,7 +73,7 @@ const buildMockApiUpdate = (
       annotations: { note: 'test-annotation' },
     },
     ports: [{ id: 'http', defaultDisplayName: 'HTTP', protocol: 'HTTP' as never }],
-    serviceAccount: { name: 'default-editor' },
+    serviceAccount: { clusterRoles: [{ name: 'default-editor' }] },
     volumeMounts: { home: '/home/jovyan' },
   },
   ...overrides,

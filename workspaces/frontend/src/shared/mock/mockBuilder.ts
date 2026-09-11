@@ -8,6 +8,10 @@ import {
   OptionsPodConfigValue,
   PvcsPVCCreate,
   PvcsPVCListItem,
+  ResourcesContainerResourceUsage,
+  ResourcesMetricsFromMetricsServer,
+  ResourcesResourceValues,
+  ResourcesWorkspaceResourceUsage,
   V1Beta1ImageConfigValue,
   V1Beta1OptionRedirect,
   V1Beta1PodConfigValue,
@@ -448,6 +452,10 @@ export const buildMockWorkspaceKind = (
         myWorkspaceKindAnnotation: 'my-value',
       },
     },
+    statefulSetMetadata: {
+      labels: {},
+      annotations: {},
+    },
     volumeMounts: {
       home: '/home/jovyan',
     },
@@ -729,7 +737,7 @@ export const buildMockWorkspaceKindUpdate = (
         protocol: V1Beta1ImagePortProtocol.ImagePortProtocolHTTP,
       },
     ],
-    serviceAccount: { name: 'default-editor' },
+    serviceAccount: { clusterRoles: [{ name: 'default-editor' }] },
     volumeMounts: listItem.podTemplate.volumeMounts,
   },
 });
@@ -1020,3 +1028,40 @@ export const buildMockWorkspaceLogs = (lineCount = 5): string => {
     return `${timestamp} [INFO] jupyter server log line ${i + 1}`;
   }).join('\n');
 };
+
+export const buildMockMetricsResourceValues = (
+  overrides?: Partial<ResourcesResourceValues>,
+): ResourcesResourceValues => ({
+  cpu: '50m',
+  memory: '64Mi',
+  ...overrides,
+});
+
+export const buildMockMetricsFromMetricsServer = (
+  overrides?: Partial<ResourcesMetricsFromMetricsServer>,
+): ResourcesMetricsFromMetricsServer => ({
+  timestamp: '2025-07-01T12:00:00Z',
+  usage: buildMockMetricsResourceValues(),
+  ...overrides,
+});
+
+export const buildMockContainerResourceUsage = (
+  overrides?: Partial<ResourcesContainerResourceUsage>,
+): ResourcesContainerResourceUsage => ({
+  resources: {
+    requests: { cpu: '100m', memory: '128Mi' } as unknown as Record<string, never>,
+    limits: { cpu: '500m', memory: '512Mi' } as unknown as Record<string, never>,
+  },
+  metricsFromMetricsServer: buildMockMetricsFromMetricsServer(),
+  ...overrides,
+});
+
+export const buildMockWorkspaceResourceUsage = (
+  overrides?: Partial<ResourcesWorkspaceResourceUsage>,
+): ResourcesWorkspaceResourceUsage => ({
+  containers: {
+    main: buildMockContainerResourceUsage(),
+    container1: buildMockContainerResourceUsage(),
+  },
+  ...overrides,
+});

@@ -66,6 +66,7 @@ describe('useWorkspaceCountPerKind', () => {
       deleteWorkspace: jest.fn(),
       getWorkspacePodTemplateDetails: jest.fn(),
       getWorkspacePodTemplateLogsBatch: jest.fn(),
+      getWorkspacePodTemplateResources: jest.fn(),
     },
     workspaceKinds: {
       listWorkspaceKinds: mockListWorkspaceKinds,
@@ -128,6 +129,7 @@ describe('useWorkspaceCountPerKind', () => {
         clusterMetrics: { workspacesCount: 10 },
         podTemplate: {
           podMetadata: { labels: {}, annotations: {} },
+          statefulSetMetadata: { labels: {}, annotations: {} },
           volumeMounts: { home: '/home' },
           options: {
             imageConfig: {
@@ -168,6 +170,7 @@ describe('useWorkspaceCountPerKind', () => {
         clusterMetrics: { workspacesCount: 20 },
         podTemplate: {
           podMetadata: { labels: {}, annotations: {} },
+          statefulSetMetadata: { labels: {}, annotations: {} },
           volumeMounts: { home: '/home' },
           options: {
             imageConfig: {
@@ -241,6 +244,7 @@ describe('useWorkspaceCountPerKind', () => {
         clusterMetrics: { workspacesCount: 0 },
         podTemplate: {
           podMetadata: { labels: {}, annotations: {} },
+          statefulSetMetadata: { labels: {}, annotations: {} },
           volumeMounts: { home: '/home' },
           options: {
             imageConfig: {
@@ -259,6 +263,7 @@ describe('useWorkspaceCountPerKind', () => {
         clusterMetrics: { workspacesCount: 0 },
         podTemplate: {
           podMetadata: { labels: {}, annotations: {} },
+          statefulSetMetadata: { labels: {}, annotations: {} },
           volumeMounts: { home: '/home' },
           options: {
             imageConfig: {
@@ -333,6 +338,7 @@ describe('useWorkspaceCountPerKind', () => {
       clusterMetrics: { workspacesCount: 0 },
       podTemplate: {
         podMetadata: { labels: {}, annotations: {} },
+        statefulSetMetadata: { labels: {}, annotations: {} },
         volumeMounts: { home: '/home' },
         options: {
           imageConfig: {
