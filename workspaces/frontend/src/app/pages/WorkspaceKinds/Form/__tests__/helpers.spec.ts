@@ -73,7 +73,9 @@ const buildMockApiUpdate = (
       annotations: { note: 'test-annotation' },
     },
     ports: [{ id: 'http', defaultDisplayName: 'HTTP', protocol: 'HTTP' as never }],
-    serviceAccount: { name: 'default-editor' },
+    serviceAccount: {
+      clusterRoles: [{ name: 'kubeflow-edit' }],
+    },
     volumeMounts: { home: '/home/jovyan' },
   },
   ...overrides,
@@ -298,6 +300,7 @@ describe('convertFormDataToUpdate', () => {
     expect((result.podTemplate as unknown as Record<string, unknown>).extraEnv).toEqual([
       { name: 'MY_VAR', value: 'test' },
     ]);
+    expect(result.podTemplate.serviceAccount).toEqual(original.podTemplate.serviceAccount);
   });
 
   it('should preserve culling config from form data', () => {
