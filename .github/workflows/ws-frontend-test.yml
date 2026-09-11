@@ -32,6 +32,10 @@ jobs:
           node-version-file: workspaces/frontend/package.json
           cache-dependency-path: workspaces/frontend/package-lock.json
 
+      - name: Pin npm version
+        working-directory: workspaces/frontend
+        run: npm install -g npm@"$(node -p "require('./package.json').engines.npm")"
+
       - name: Install dependencies
         working-directory: workspaces/frontend
         run: npm ci
