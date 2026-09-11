@@ -52,10 +52,23 @@ type ExternalAuthConfig struct {
 	// HTTPPath is the prefix the data plane prepends to the request path when
 	// calling an HTTP authorization service. Ignored for GRPC.
 	HTTPPath string
+
+	// RequestHeaders lists the client request headers sent to the
+	// authorization service on top of the ones GEP-1494 always sends (Host,
+	// Method, Path, Content-Length, Authorization). A session cookie is not
+	// among those, so cookie-based authentication needs "Cookie" here.
+	RequestHeaders []string
+
+	// ResponseHeaders lists the authorization response headers copied onto the
+	// request forwarded to the workspace, such as the verified identity.
+	// GEP-1494 copies every header when this is empty, but not every
+	// implementation does, so listing them is what makes the behavior
+	// portable. Ignored for GRPC.
+	ResponseHeaders []string
 }
 
 // Enabled reports whether generated routes should carry the ExternalAuth filter.
-func (c ExternalAuthConfig) Enabled() bool {
+func (c *ExternalAuthConfig) Enabled() bool {
 	return c.BackendName != ""
 }
 

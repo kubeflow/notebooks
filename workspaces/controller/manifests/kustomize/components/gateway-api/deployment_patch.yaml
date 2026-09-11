@@ -28,6 +28,16 @@ spec:
             configMapKeyRef:
               name: kubeflow-workspaces-gateway-api-config
               key: EXTERNAL_AUTH_URL
+        - name: EXTERNAL_AUTH_REQUEST_HEADERS
+          valueFrom:
+            configMapKeyRef:
+              name: kubeflow-workspaces-gateway-api-config
+              key: EXTERNAL_AUTH_REQUEST_HEADERS
+        - name: EXTERNAL_AUTH_RESPONSE_HEADERS
+          valueFrom:
+            configMapKeyRef:
+              name: kubeflow-workspaces-gateway-api-config
+              key: EXTERNAL_AUTH_RESPONSE_HEADERS
         - name: WORKSPACE_NETWORK_POLICY_INGRESS
           valueFrom:
             configMapKeyRef:

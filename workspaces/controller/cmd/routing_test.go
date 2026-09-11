@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/config"
@@ -120,10 +121,42 @@ func TestParseExternalAuthURL(t *testing.T) {
 			if err != nil {
 				t.Fatalf("parseExternalAuthURL(%q) returned unexpected error: %v", tt.rawURL, err)
 			}
-			if cfg.ExternalAuth != tt.want {
+			if !reflect.DeepEqual(cfg.ExternalAuth, tt.want) {
 				t.Errorf("ExternalAuth = %+v, want %+v", cfg.ExternalAuth, tt.want)
 			}
 		})
+	}
+}
+
+func TestParseExternalAuthHeaders(t *testing.T) {
+	enabled := func() *config.EnvConfig {
+		return &config.EnvConfig{ExternalAuth: config.ExternalAuthConfig{BackendName: "workspaces-backend"}}
+	}
+
+	cfg := enabled()
+	if err := parseExternalAuthHeaders(cfg, " Cookie ", "kubeflow-userid, kubeflow-groups,"); err != nil {
+		t.Fatalf("parseExternalAuthHeaders returned unexpected error: %v", err)
+	}
+	if !reflect.DeepEqual(cfg.ExternalAuth.RequestHeaders, []string{"Cookie"}) {
+		t.Errorf("RequestHeaders = %q, want [Cookie]", cfg.ExternalAuth.RequestHeaders)
+	}
+	if !reflect.DeepEqual(cfg.ExternalAuth.ResponseHeaders, []string{"kubeflow-userid", "kubeflow-groups"}) {
+		t.Errorf("ResponseHeaders = %q, want [kubeflow-userid kubeflow-groups]", cfg.ExternalAuth.ResponseHeaders)
+	}
+
+	cfg = enabled()
+	if err := parseExternalAuthHeaders(cfg, "", ""); err != nil || cfg.ExternalAuth.RequestHeaders != nil {
+		t.Errorf("empty lists: err=%v RequestHeaders=%q, want none", err, cfg.ExternalAuth.RequestHeaders)
+	}
+
+	// Header names are a set on the HTTPRoute; catch it before emitting routes
+	// the API server would reject.
+	if err := parseExternalAuthHeaders(enabled(), "Cookie,cookie", ""); err == nil {
+		t.Error("parseExternalAuthHeaders accepted a header listed twice")
+	}
+
+	if err := parseExternalAuthHeaders(&config.EnvConfig{}, "Cookie", ""); err == nil {
+		t.Error("parseExternalAuthHeaders accepted headers without an authorization service")
 	}
 }
 

@@ -31,9 +31,11 @@ import (
 // routingFlags holds raw flag values that are resolved into the config
 // after flag.Parse.
 type routingFlags struct {
-	externalAuthURL      string
-	networkPolicyIngress string
-	networkPolicySelf    string
+	externalAuthURL             string
+	externalAuthRequestHeaders  string
+	externalAuthResponseHeaders string
+	networkPolicyIngress        string
+	networkPolicySelf           string
 }
 
 // registerRoutingFlags declares the flags that select how workspaces are
@@ -57,6 +59,14 @@ func registerRoutingFlags(cfg *config.EnvConfig) *routingFlags {
 			"\"http://workspaces-backend.kubeflow-workspaces:4000/authz\": the scheme selects the protocol "+
 			"(http or grpc), the host names a Service as <name>.<namespace>, and the path is prepended to "+
 			"HTTP checks. Empty emits routes with no ExternalAuth filter.")
+	flag.StringVar(&f.externalAuthRequestHeaders, "external-auth-request-headers",
+		getEnvAsStr("EXTERNAL_AUTH_REQUEST_HEADERS", ""),
+		"Comma-separated client request headers sent to the authorization service on top of Host, "+
+			"Method, Path, Content-Length and Authorization; cookie-based sessions need \"Cookie\"")
+	flag.StringVar(&f.externalAuthResponseHeaders, "external-auth-response-headers",
+		getEnvAsStr("EXTERNAL_AUTH_RESPONSE_HEADERS", ""),
+		"Comma-separated authorization response headers copied onto the request forwarded to the "+
+			"workspace, e.g. \"kubeflow-userid,kubeflow-groups\"; empty leaves it to the implementation")
 	flag.StringVar(&f.networkPolicyIngress, "workspace-network-policy-ingress",
 		getEnvAsStr("WORKSPACE_NETWORK_POLICY_INGRESS", ""),
 		"Routing layer allowed to reach workspace pods, as \"namespace\" or \"namespace:key=value,...\"; "+
@@ -85,6 +95,9 @@ func resolveRoutingConfig(cfg *config.EnvConfig, f *routingFlags) error {
 	}
 
 	if err := parseExternalAuthURL(cfg, f.externalAuthURL); err != nil {
+		return err
+	}
+	if err := parseExternalAuthHeaders(cfg, f.externalAuthRequestHeaders, f.externalAuthResponseHeaders); err != nil {
 		return err
 	}
 	return parseWorkspaceNetworkPolicy(cfg, f.networkPolicyIngress, f.networkPolicySelf)
@@ -139,6 +152,47 @@ func parseExternalAuthURL(cfg *config.EnvConfig, rawURL string) error {
 	cfg.ExternalAuth.BackendNamespace = namespace
 
 	return nil
+}
+
+// parseExternalAuthHeaders resolves the comma-separated header lists of the
+// ExternalAuth filter. They only mean something alongside an authorization
+// service, so setting them without one is treated as a misconfiguration.
+func parseExternalAuthHeaders(cfg *config.EnvConfig, request, response string) error {
+	if request == "" && response == "" {
+		return nil
+	}
+	if !cfg.ExternalAuth.Enabled() {
+		return fmt.Errorf("external auth headers require external-auth-url")
+	}
+
+	var err error
+	if cfg.ExternalAuth.RequestHeaders, err = parseHeaderList(request); err != nil {
+		return fmt.Errorf("external auth request headers: %w", err)
+	}
+	if cfg.ExternalAuth.ResponseHeaders, err = parseHeaderList(response); err != nil {
+		return fmt.Errorf("external auth response headers: %w", err)
+	}
+	return nil
+}
+
+// parseHeaderList splits a comma-separated list of header names, rejecting
+// what the HTTPRoute would: header names are a set, compared case-insensitively.
+func parseHeaderList(raw string) ([]string, error) {
+	var headers []string
+	seen := map[string]bool{}
+	for name := range strings.SplitSeq(raw, ",") {
+		name = strings.TrimSpace(name)
+		if name == "" {
+			continue
+		}
+		key := strings.ToLower(name)
+		if seen[key] {
+			return nil, fmt.Errorf("%q listed more than once", name)
+		}
+		seen[key] = true
+		headers = append(headers, name)
+	}
+	return headers, nil
 }
 
 // parseWorkspaceNetworkPolicy resolves the "namespace[:key=value,...]" peers

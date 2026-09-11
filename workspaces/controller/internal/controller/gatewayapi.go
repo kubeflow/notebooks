@@ -253,9 +253,13 @@ func (r *WorkspaceReconciler) externalAuthFilter() *gatewayv1.HTTPRouteFilter {
 
 	switch cfg.Protocol {
 	case config.ExternalAuthProtocolHTTP:
-		externalAuth.HTTPAuthConfig = &gatewayv1.HTTPAuthConfig{Path: cfg.HTTPPath}
+		externalAuth.HTTPAuthConfig = &gatewayv1.HTTPAuthConfig{
+			Path:                   cfg.HTTPPath,
+			AllowedRequestHeaders:  cfg.RequestHeaders,
+			AllowedResponseHeaders: cfg.ResponseHeaders,
+		}
 	case config.ExternalAuthProtocolGRPC:
-		externalAuth.GRPCAuthConfig = &gatewayv1.GRPCAuthConfig{}
+		externalAuth.GRPCAuthConfig = &gatewayv1.GRPCAuthConfig{AllowedRequestHeaders: cfg.RequestHeaders}
 	}
 
 	return &gatewayv1.HTTPRouteFilter{

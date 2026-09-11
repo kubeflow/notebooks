@@ -177,12 +177,24 @@ var _ = Describe("Gateway API HTTPRoute Generation", func() {
 		It("should configure the HTTP protocol with its path prefix", func() {
 			reconciler.Config.ExternalAuth.Protocol = config.ExternalAuthProtocolHTTP
 			reconciler.Config.ExternalAuth.HTTPPath = "/authz"
+			reconciler.Config.ExternalAuth.RequestHeaders = []string{"Cookie"}
+			reconciler.Config.ExternalAuth.ResponseHeaders = []string{"kubeflow-userid", "kubeflow-groups"}
 			httpRoute := reconciler.generateGatewayAPIHTTPRoute(workspace, workspaceKind, service, imageConfigSpec)
 			externalAuth := httpRoute.Spec.Rules[0].Filters[0].ExternalAuth
 			Expect(externalAuth.ExternalAuthProtocol).To(Equal(gatewayv1.HTTPRouteExternalAuthProtocol("HTTP")))
 			Expect(externalAuth.HTTPAuthConfig).NotTo(BeNil())
 			Expect(externalAuth.HTTPAuthConfig.Path).To(Equal("/authz"))
+			Expect(externalAuth.HTTPAuthConfig.AllowedRequestHeaders).To(Equal([]string{"Cookie"}))
+			Expect(externalAuth.HTTPAuthConfig.AllowedResponseHeaders).To(Equal([]string{"kubeflow-userid", "kubeflow-groups"}))
 			Expect(externalAuth.GRPCAuthConfig).To(BeNil())
+		})
+
+		It("should forward the allowed request headers to a GRPC service too", func() {
+			reconciler.Config.ExternalAuth.RequestHeaders = []string{"Cookie"}
+			httpRoute := reconciler.generateGatewayAPIHTTPRoute(workspace, workspaceKind, service, imageConfigSpec)
+			externalAuth := httpRoute.Spec.Rules[0].Filters[0].ExternalAuth
+			Expect(externalAuth.GRPCAuthConfig).NotTo(BeNil())
+			Expect(externalAuth.GRPCAuthConfig.AllowedRequestHeaders).To(Equal([]string{"Cookie"}))
 		})
 
 		It("should omit the namespace when the service is local to the workspace", func() {
