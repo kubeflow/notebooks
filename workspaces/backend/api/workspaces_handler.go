@@ -250,9 +250,8 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 
 	createdWorkspace, err := a.repositories.Workspace.CreateWorkspace(r.Context(), actor, workspaceCreate, namespace)
 	if err != nil {
-		if helper.IsInternalValidationError(err) {
-			fieldErrs := helper.FieldErrorsFromInternalValidationError(err)
-			a.failedValidationResponse(w, r, errMsgInternalValidation, fieldErrs, nil)
+		if restrictedErr, ok := errors.AsType[*repository.WorkspaceKindRestrictedError](err); ok {
+			a.filterRulesDeniedResponse(w, r, restrictedErr.Error())
 			return
 		}
 		if errors.Is(err, repository.ErrWorkspaceAlreadyExists) {
@@ -263,6 +262,10 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 		if apierrors.IsInvalid(err) {
 			causes := helper.StatusCausesFromAPIStatus(err)
 			a.failedValidationResponse(w, r, errMsgKubernetesValidation, nil, causes)
+			return
+		}
+		if helper.IsInternalValidationError(err) {
+			a.failedValidationResponse(w, r, errMsgInternalValidation, helper.FieldErrorsFromInternalValidationError(err), nil)
 			return
 		}
 		a.serverErrorResponse(w, r, fmt.Errorf("error creating workspace: %w", err))
