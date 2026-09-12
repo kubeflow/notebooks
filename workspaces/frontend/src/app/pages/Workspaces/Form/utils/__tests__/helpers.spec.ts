@@ -1,4 +1,9 @@
-import { validateName, MAX_WORKSPACE_NAME_LENGTH } from '~/app/pages/Workspaces/Form/helpers';
+import {
+  validateName,
+  MAX_WORKSPACE_NAME_LENGTH,
+  validateDisplayName,
+  MAX_DISPLAY_NAME_LENGTH,
+} from '~/app/pages/Workspaces/Form/helpers';
 
 describe('Validate Workspace Name', () => {
   it('should be less than 63 characters', () => {
@@ -47,5 +52,33 @@ describe('Validate Workspace Name', () => {
     const result = validateName(name);
 
     expect(result).toEqual(null);
+  });
+});
+
+describe('Validate Display Name', () => {
+  it('should return null when empty or undefined', () => {
+    expect(validateDisplayName()).toBeNull();
+    expect(validateDisplayName('')).toBeNull();
+  });
+
+  it('should allow letters, numbers, spaces, and sensible special characters', () => {
+    const valid = 'My Workspace (GPU) - 1_2.3! @#$%^&*;~<>+/\\';
+    expect(validateDisplayName(valid)).toBeNull();
+  });
+
+  it('should return error when length exceeds 253 characters', () => {
+    const longName = 'a'.repeat(254);
+    expect(validateDisplayName(longName)).toEqual(
+      `Must be no more than ${MAX_DISPLAY_NAME_LENGTH} characters`,
+    );
+  });
+
+  it('should return error when containing invalid characters', () => {
+    expect(validateDisplayName('Workspace 🚀')).toEqual(
+      'Only letters, numbers, spaces, and allowed characters (- _ . ! @ # $ % ^ & * ( ) ; ~ < > + / \\) are allowed',
+    );
+    expect(validateDisplayName('Workspace{curly}')).toEqual(
+      'Only letters, numbers, spaces, and allowed characters (- _ . ! @ # $ % ^ & * ( ) ; ~ < > + / \\) are allowed',
+    );
   });
 });

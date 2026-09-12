@@ -298,3 +298,23 @@ export const validateName = (name: string): string | null => {
   }
   return null;
 };
+
+export const MAX_DISPLAY_NAME_LENGTH = 253;
+export const DISPLAY_NAME_VALID_PATTERN = /^[a-zA-Z0-9\-._!@#$%^&*();~<>+/\\ ]*$/;
+
+export const validateDisplayName = (displayName?: string): string | null => {
+  if (!displayName) {
+    return null;
+  }
+
+  if (displayName.length > MAX_DISPLAY_NAME_LENGTH) {
+    return `Must be no more than ${MAX_DISPLAY_NAME_LENGTH} characters`;
+  }
+
+  if (!DISPLAY_NAME_VALID_PATTERN.test(displayName)) {
+    return 'Only letters, numbers, spaces, and allowed characters (- _ . ! @ # $ % ^ & * ( ) ; ~ < > + / \\) are allowed';
+  }
+
+  return null;
+};
+

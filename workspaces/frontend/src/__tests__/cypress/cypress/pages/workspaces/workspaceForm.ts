@@ -115,8 +115,10 @@ class WorkspaceForm {
     return cy.findByTestId('workspace-name');
   }
 
-  typeWorkspaceName(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findWorkspaceNameInput().clear().type(name);
+  typeWorkspaceName(name: string): this {
+    this.findWorkspaceNameInput().clear();
+    this.findWorkspaceNameInput().type(name);
+    return this;
   }
 
   assertWorkspaceName(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -129,6 +131,24 @@ class WorkspaceForm {
 
   assertWorkspaceNameInputValid(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findWorkspaceNameInput().should('not.have.attr', 'aria-invalid', 'true');
+  }
+
+  findDisplayNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('display-name');
+  }
+
+  typeDisplayName(name: string): this {
+    this.findDisplayNameInput().clear();
+    this.findDisplayNameInput().type(name);
+    return this;
+  }
+
+  assertDisplayNameInputInvalid(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findDisplayNameInput().should('have.attr', 'aria-invalid', 'true');
+  }
+
+  assertDisplayNameInputValid(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findDisplayNameInput().should('not.have.attr', 'aria-invalid', 'true');
   }
 
   findNextButton(): Cypress.Chainable<JQuery<HTMLElement>> {

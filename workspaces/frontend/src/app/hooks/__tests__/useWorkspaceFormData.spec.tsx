@@ -114,6 +114,7 @@ describe('useWorkspaceFormData', () => {
       podConfig: podTemplate.options.podConfig,
       properties: {
         workspaceName: mockWorkspace.name,
+        displayName: mockWorkspaceUpdate.displayName ?? '',
         volumes: podTemplate.volumes.data.map((v) => ({
           ...v,
           isAttached: true,

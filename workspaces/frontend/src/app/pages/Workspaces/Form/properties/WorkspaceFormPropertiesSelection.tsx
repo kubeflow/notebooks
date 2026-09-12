@@ -5,6 +5,7 @@ import { Form, FormGroup } from '@patternfly/react-core/dist/esm/components/Form
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import { InfoCircleIcon } from '@patternfly/react-icons/dist/esm/icons/info-circle-icon';
+import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 import { ValidatedOptions } from '@patternfly/react-core/dist/esm/helpers';
 import { WorkspaceFormPropertiesVolumes } from '~/app/pages/Workspaces/Form/properties/WorkspaceFormPropertiesVolumes';
 import {
@@ -13,6 +14,11 @@ import {
   WorkspacesPodVolumeMountValue,
 } from '~/app/types';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
+import { generateWorkspaceSlug } from '~/app/pages/Workspaces/Form/utils/slugify';
+import {
+  MAX_DISPLAY_NAME_LENGTH,
+  validateDisplayName,
+} from '~/app/pages/Workspaces/Form/helpers';
 import { WorkspaceFormPropertiesSecrets } from './WorkspaceFormPropertiesSecrets';
 
 interface WorkspaceFormPropertiesSelectionProps {
@@ -22,6 +28,7 @@ interface WorkspaceFormPropertiesSelectionProps {
   homeVolumeMountPath?: string;
   workspaceNameError: string | null;
   onWorkspaceNameChange: (value: string) => void;
+  onDisplayNameChange?: (displayName: string, workspaceName?: string) => void;
 }
 
 const WorkspaceFormPropertiesSelection: React.FunctionComponent<
@@ -33,9 +40,18 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
   homeVolumeMountPath,
   workspaceNameError,
   onWorkspaceNameChange,
+  onDisplayNameChange,
 }) => {
   const [isDataVolumesExpanded, setIsDataVolumesExpanded] = useState(false);
   const [isSecretsExpanded, setIsSecretsExpanded] = useState(false);
+  const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(
+    Boolean(
+      mode === 'update' ||
+        (selectedProperties.workspaceName && !selectedProperties.displayName),
+    ),
+  );
+
+  const displayNameError = validateDisplayName(selectedProperties.displayName);
 
   const homeVolumeArray: WorkspacesPodVolumeMountValue[] = useMemo(
     () => (selectedProperties.homeVolume ? [selectedProperties.homeVolume] : []),
@@ -43,14 +59,75 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
   );
 
   const homePvcNames = useMemo(
-    () => new Set(selectedProperties.homeVolume ? [selectedProperties.homeVolume.pvcName] : []),
+    () =>
+      new Set<string>(selectedProperties.homeVolume ? [selectedProperties.homeVolume.pvcName] : []),
     [selectedProperties.homeVolume],
   );
 
   const dataPvcNames = useMemo(
-    () => new Set(selectedProperties.volumes.map((v) => v.pvcName)),
+    () =>
+      new Set<string>(
+        selectedProperties.volumes.map((v) => v.pvcName).filter((name): name is string => !!name),
+      ),
     [selectedProperties.volumes],
   );
+
+  const handleDisplayNameChange = useCallback(
+    (value: string) => {
+      if (!isSlugManuallyEdited && mode !== 'update') {
+        const nextWorkspaceName = generateWorkspaceSlug(value);
+        if (onDisplayNameChange) {
+          onDisplayNameChange(value, nextWorkspaceName);
+        } else {
+          onSelect({
+            ...selectedProperties,
+            displayName: value,
+            workspaceName: nextWorkspaceName,
+          });
+          onWorkspaceNameChange(nextWorkspaceName);
+        }
+      } else {
+        if (onDisplayNameChange) {
+          onDisplayNameChange(value);
+        } else {
+          onSelect({
+            ...selectedProperties,
+            displayName: value,
+          });
+        }
+      }
+    },
+    [
+      isSlugManuallyEdited,
+      mode,
+      onDisplayNameChange,
+      onSelect,
+      onWorkspaceNameChange,
+      selectedProperties,
+    ],
+  );
+
+  const handleWorkspaceNameChange = useCallback(
+    (value: string) => {
+      setIsSlugManuallyEdited(true);
+      onWorkspaceNameChange(value);
+    },
+    [onWorkspaceNameChange],
+  );
+
+  const handleDisplayNameBlur = useCallback(() => {
+    const trimmed = (selectedProperties.displayName || '').trim();
+    if (trimmed !== selectedProperties.displayName) {
+      handleDisplayNameChange(trimmed);
+    }
+  }, [selectedProperties.displayName, handleDisplayNameChange]);
+
+  const handleWorkspaceNameBlur = useCallback(() => {
+    const trimmed = selectedProperties.workspaceName.trim();
+    if (trimmed !== selectedProperties.workspaceName) {
+      handleWorkspaceNameChange(trimmed);
+    }
+  }, [selectedProperties.workspaceName, handleWorkspaceNameChange]);
 
   const handleSetHomeVolume = useCallback(
     (volumes: WorkspacesPodVolumeMountValue[]) => {
@@ -81,6 +158,35 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
     <Content className="workspace-form__full-height">
       <div className="pf-u-p-lg pf-u-max-width-xl">
         <Form>
+          {/* Display Name Input */}
+          <ThemeAwareFormGroupWrapper
+            label="Display Name"
+            fieldId="display-name"
+            className="pf-u-width-520"
+            helperTextNode={
+              displayNameError ? (
+                <HelperText>
+                  <HelperTextItem variant="error" icon={<ExclamationCircleIcon />}>
+                    {displayNameError}
+                  </HelperTextItem>
+                </HelperText>
+              ) : null
+            }
+          >
+            <TextInput
+              type="text"
+              value={selectedProperties.displayName || ''}
+              onChange={(_, value) => handleDisplayNameChange(value)}
+              onBlur={handleDisplayNameBlur}
+              id="display-name"
+              data-testid="display-name"
+              placeholder="e.g. My Workspace"
+              maxLength={MAX_DISPLAY_NAME_LENGTH}
+              validated={displayNameError ? ValidatedOptions.error : ValidatedOptions.default}
+            />
+          </ThemeAwareFormGroupWrapper>
+
+          {/* Workspace Name / Slug Input */}
           <ThemeAwareFormGroupWrapper
             label="Workspace Name"
             isRequired
@@ -89,22 +195,26 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
             helperTextNode={
               workspaceNameError ? (
                 <HelperText>
-                  <HelperTextItem variant="error">{workspaceNameError}</HelperTextItem>
+                  <HelperTextItem variant="error" icon={<ExclamationCircleIcon />}>
+                    {workspaceNameError}
+                  </HelperTextItem>
                 </HelperText>
               ) : null
             }
           >
             <TextInput
-              isDisabled={mode === 'update'}
               isRequired
               type="text"
               validated={workspaceNameError ? ValidatedOptions.error : ValidatedOptions.default}
               value={selectedProperties.workspaceName}
-              onChange={(_, value) => onWorkspaceNameChange(value)}
+              onChange={(_, value) => handleWorkspaceNameChange(value)}
+              onBlur={handleWorkspaceNameBlur}
               id="workspace-name"
               data-testid="workspace-name"
+              isDisabled={mode === 'update'}
             />
           </ThemeAwareFormGroupWrapper>
+
           {mode === 'update' && (
             <HelperText>
               <HelperTextItem
@@ -116,6 +226,7 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
               </HelperTextItem>
             </HelperText>
           )}
+
           <ExpandableSection toggleText="Home Volume" isExpanded isIndented>
             <div className="pf-v6-u-pl-xl pf-v6-u-pt-sm pf-v6-u-pb-sm">
               <div>The home volume persists your workspace home directory.</div>
@@ -141,6 +252,7 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
               </HelperText>
             )}
           </ExpandableSection>
+
           <ExpandableSection
             toggleText="Data Volumes"
             onToggle={() => setIsDataVolumesExpanded((prev) => !prev)}
@@ -161,6 +273,7 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
             )}
           </ExpandableSection>
           {!isDataVolumesExpanded && dataVolumesInfo}
+
           <ExpandableSection
             toggleText="Secrets"
             data-testid="secrets-expandable-section"
