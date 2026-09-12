@@ -675,6 +675,16 @@ type PodConfigSpec struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:example="volcano"
 	SchedulerName *string `json:"schedulerName,omitempty"`
+
+	// metadata to apply to Workspace Pods when this podConfig is selected (MUTABLE)
+	//  - layered over the WorkspaceKind-level `podMetadata`, winning on key conflicts
+	// +kubebuilder:validation:Optional
+	PodMetadata *WorkspaceKindPodMetadata `json:"podMetadata,omitempty"`
+
+	// metadata to apply to the Workspace StatefulSet when this podConfig is selected (MUTABLE)
+	//  - layered over the WorkspaceKind-level `statefulSetMetadata`, winning on key conflicts
+	// +kubebuilder:validation:Optional
+	StatefulSetMetadata *WorkspaceKindStatefulSetMetadata `json:"statefulSetMetadata,omitempty"`
 }
 
 type OptionsSpawnerConfig struct {
