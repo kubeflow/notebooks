@@ -42,7 +42,7 @@ func NewWorkspaceCreateModelFromWorkspace(ws *kubefloworgv1beta1.Workspace) *Wor
 		Name:        ws.Name,
 		DisplayName: ptr.Deref(ws.Spec.DisplayName, ""),
 		Kind:        ws.Spec.Kind,
-		Paused:      ptr.Deref(ws.Spec.Paused, false),
+		Paused:      ws.Spec.Paused,
 		PodTemplate: buildPodTemplateMutate(ws),
 	}
 }
@@ -52,7 +52,7 @@ func NewWorkspaceUpdateModelFromWorkspace(ws *kubefloworgv1beta1.Workspace) *Wor
 	return &WorkspaceUpdate{
 		Revision:    common.CalculateRevision(&ws.ObjectMeta),
 		DisplayName: ptr.Deref(ws.Spec.DisplayName, ""),
-		Paused:      ptr.Deref(ws.Spec.Paused, false),
+		Paused:      ws.Spec.Paused,
 		PodTemplate: buildPodTemplateMutate(ws),
 	}
 }
@@ -212,7 +212,7 @@ func NewWorkspaceFromWorkspaceCreateModel(ctx context.Context, k8sClient client.
 			Namespace: namespace,
 		},
 		Spec: kubefloworgv1beta1.WorkspaceSpec{
-			Paused:      &workspaceCreate.Paused,
+			Paused:      workspaceCreate.Paused,
 			DisplayName: displayNamePtr(workspaceCreate.DisplayName),
 			Kind:        workspaceCreate.Kind,
 			PodTemplate: buildWorkspacePodTemplate(&workspaceCreate.PodTemplate, homeVolumeName, dataVolumeMounts, secretMounts),
@@ -231,7 +231,7 @@ func ApplyWorkspaceUpdateModelToWorkspace(ctx context.Context, k8sClient client.
 	}
 
 	// apply model fields to workspace spec
-	workspace.Spec.Paused = new(workspaceUpdate.Paused)
+	workspace.Spec.Paused = workspaceUpdate.Paused
 	workspace.Spec.DisplayName = displayNamePtr(workspaceUpdate.DisplayName)
 	workspace.Spec.PodTemplate = buildWorkspacePodTemplate(&workspaceUpdate.PodTemplate, workspaceUpdate.PodTemplate.Volumes.Home, dataVolumeMounts, secretMounts)
 

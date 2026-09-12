@@ -1170,6 +1170,135 @@ describe('Edit workspace kind', () => {
       });
     });
 
+    describe('Activity Rules', () => {
+      it('should display activity rules table when rules exist', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind({
+          activityRules: [
+            {
+              config: { secondsSinceActive: 3600, minRunningSeconds: 300 },
+              match: {
+                matchNamespace: {
+                  selector: { matchLabels: { tier: 'development' } },
+                },
+              },
+              effect: { pauseWorkspace: true },
+            },
+            {
+              config: { secondsSinceActive: 86400 },
+              effect: { pauseWorkspace: true },
+            },
+          ],
+        });
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodTemplateSection();
+
+        editWorkspaceKind.assertActivityRuleRowCount(2);
+        editWorkspaceKind.assertActivityRuleTimeoutCell(0, '1 hour');
+        editWorkspaceKind.assertActivityRuleMinRunningCell(0, '5 minutes');
+        editWorkspaceKind.assertActivityRuleEffectCell(0, 'Pause Workspace');
+        editWorkspaceKind.assertActivityRuleTimeoutCell(1, '1 day');
+        editWorkspaceKind.assertActivityRuleMinRunningCell(1, '-');
+        editWorkspaceKind.assertActivityRuleEffectCell(1, 'Pause Workspace');
+      });
+
+      it('should show empty state when no rules exist', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodTemplateSection();
+
+        editWorkspaceKind.assertActivityRuleRowCount(0);
+        editWorkspaceKind.findAddActivityRuleButton().should('be.visible');
+      });
+
+      it('should open modal when clicking Add Rule', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodTemplateSection();
+        editWorkspaceKind.assertActivityRuleModalVisible(false);
+
+        editWorkspaceKind.clickAddActivityRule();
+
+        editWorkspaceKind.assertActivityRuleModalVisible(true);
+      });
+
+      it('should add a new activity rule via the modal', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodTemplateSection();
+        editWorkspaceKind.assertActivityRuleRowCount(0);
+
+        editWorkspaceKind.clickAddActivityRule();
+        editWorkspaceKind.submitActivityRuleModal();
+
+        editWorkspaceKind.assertActivityRuleModalVisible(false);
+        editWorkspaceKind.assertActivityRuleRowCount(1);
+        editWorkspaceKind.assertActivityRuleTimeoutCell(0, '1 hour');
+        editWorkspaceKind.assertActivityRuleEffectCell(0, 'Pause Workspace');
+      });
+
+      it('should remove an activity rule', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind({
+          activityRules: [
+            {
+              config: { secondsSinceActive: 3600 },
+              effect: { pauseWorkspace: true },
+            },
+          ],
+        });
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodTemplateSection();
+        editWorkspaceKind.assertActivityRuleRowCount(1);
+
+        editWorkspaceKind.clickRemoveActivityRule(0);
+
+        editWorkspaceKind.assertActivityRuleRowCount(0);
+      });
+
+      it('should edit an existing activity rule', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind({
+          activityRules: [
+            {
+              config: { secondsSinceActive: 3600 },
+              effect: { pauseWorkspace: true },
+            },
+          ],
+        });
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodTemplateSection();
+        editWorkspaceKind.clickEditActivityRule(0);
+
+        editWorkspaceKind.assertActivityRuleModalVisible(true);
+        editWorkspaceKind.findActivityRuleModalSubmitButton().should('have.text', 'Save');
+      });
+
+      it('should close modal on cancel without adding a rule', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodTemplateSection();
+        editWorkspaceKind.clickAddActivityRule();
+        editWorkspaceKind.assertActivityRuleModalVisible(true);
+
+        editWorkspaceKind.cancelActivityRuleModal();
+
+        editWorkspaceKind.assertActivityRuleModalVisible(false);
+        editWorkspaceKind.assertActivityRuleRowCount(0);
+      });
+    });
+
     describe('Multiple sections', () => {
       it('should allow multiple sections to be expanded simultaneously', () => {
         const { mockWorkspaceKind } = setupEditWorkspaceKind();

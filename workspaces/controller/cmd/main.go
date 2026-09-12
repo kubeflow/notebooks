@@ -19,6 +19,7 @@ package main
 import (
 	"crypto/tls"
 	"flag"
+	"net/http"
 	"os"
 	"strconv"
 
@@ -31,6 +32,7 @@ import (
 	istiov1 "istio.io/client-go/pkg/apis/networking/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -69,6 +71,7 @@ func main() {
 	var probeAddr string
 	var secureMetrics bool
 	var enableHTTP2 bool
+	var maxConcurrentReconciles int
 
 	// Define command line flags
 	cfg := &config.EnvConfig{}
@@ -90,6 +93,13 @@ func main() {
 		"The domain to use for the Istio VirtualService")
 	flag.BoolVar(&cfg.UseIstio, "use-istio", getEnvAsBool("USE_ISTIO", false),
 		"If set, Istio will be used")
+	flag.IntVar(&maxConcurrentReconciles, "max-concurrent-reconciles", getEnvAsInt("MAX_CONCURRENT_RECONCILES", 10),
+		"The maximum number of Workspaces reconciled (and probed) concurrently. "+
+			"Higher values prevent a slow activity probe from blocking other Workspaces' reconciliation.")
+	flag.Float64Var(&cfg.ClientQPS, "client-qps", getEnvAsFloat64("CLIENT_QPS", 50),
+		"QPS configuration passed to the Kubernetes API client (rest.Config).")
+	flag.IntVar(&cfg.ClientBurst, "client-burst", getEnvAsInt("CLIENT_BURST", 100),
+		"Maximum Burst configuration passed to the Kubernetes API client (rest.Config).")
 
 	opts := zap.Options{
 		Development: true,
@@ -120,7 +130,21 @@ func main() {
 		TLSOpts: tlsOpts,
 	})
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	// build the REST config and a clientset for the activity probe pod-exec subresource
+	// (the controller-runtime cached client cannot perform exec, so we use a raw clientset)
+	restConfig := ctrl.GetConfigOrDie()
+	// controller-runtime v0.21 removed the default client-side rate limiter (QPS=20, Burst=30),
+	// so we set it explicitly to keep client-side rate limiting on API calls.
+	// REFERENCE: https://github.com/kubernetes-sigs/controller-runtime/pull/3119
+	restConfig.QPS = float32(cfg.ClientQPS)
+	restConfig.Burst = cfg.ClientBurst
+	clientset, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		setupLog.Error(err, "unable to create Kubernetes clientset")
+		os.Exit(1)
+	}
+
+	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
 		Scheme: scheme,
 		Client: client.Options{
 			Cache: &client.CacheOptions{
@@ -172,8 +196,18 @@ func main() {
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 		Config: cfg,
+		PodExecutor: &helper.RemoteCommandExecutor{
+			Clientset:  clientset,
+			RestConfig: restConfig,
+		},
+		HTTPProber: &helper.DefaultHTTPProber{
+			Client: &http.Client{},
+		},
 	}).SetupWithManager(mgr, &controller.Options{
 		RateLimiter: helper.BuildRateLimiter(),
+		// allow multiple Workspaces to be reconciled (and probed) in parallel so that a
+		// slow activity probe does not block other Workspaces' reconciliation
+		MaxConcurrentReconciles: maxConcurrentReconciles,
 	}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Workspace")
 		os.Exit(1)
@@ -241,6 +275,24 @@ func getEnvAsBool(name string, defaultVal bool) bool {
 	if value, exists := os.LookupEnv(name); exists {
 		if boolValue, err := strconv.ParseBool(value); err == nil {
 			return boolValue
+		}
+	}
+	return defaultVal
+}
+
+func getEnvAsInt(name string, defaultVal int) int {
+	if value, exists := os.LookupEnv(name); exists {
+		if intValue, err := strconv.Atoi(value); err == nil {
+			return intValue
+		}
+	}
+	return defaultVal
+}
+
+func getEnvAsFloat64(name string, defaultVal float64) float64 {
+	if value, exists := os.LookupEnv(name); exists {
+		if floatValue, err := strconv.ParseFloat(value, 64); err == nil {
+			return floatValue
 		}
 	}
 	return defaultVal

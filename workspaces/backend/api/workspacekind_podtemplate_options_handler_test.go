@@ -128,8 +128,18 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			getExpected := func(listValuesContext models.ListValuesContext) *models.PodTemplateOptions {
 				wsk := &kubefloworgv1beta1.WorkspaceKind{}
 				Expect(k8sClient.Get(ctx, workspaceKind1Key, wsk)).To(Succeed())
+
+				// resolve the namespace labels the same way the handler does, so the expected model
+				// reflects any matchNamespace rules rather than assuming an absent namespace context.
+				var namespaceLabels map[string]string
+				if listValuesContext.Namespace != nil {
+					ns := &corev1.Namespace{}
+					Expect(k8sClient.Get(ctx, types.NamespacedName{Name: listValuesContext.Namespace.Name}, ns)).To(Succeed())
+					namespaceLabels = ns.Labels
+				}
+
 				listValuesRequest := &models.ListValuesRequest{Context: listValuesContext}
-				wskModel, err := models.NewPodTemplateOptionsModelFromWorkspaceKind(wsk, listValuesRequest)
+				wskModel, err := models.NewPodTemplateOptionsModelFromWorkspaceKind(wsk, listValuesRequest, namespaceLabels)
 				Expect(err).NotTo(HaveOccurred())
 				return wskModel
 			}

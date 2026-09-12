@@ -59,7 +59,12 @@ kubectl wait --for=condition=established crd/servicemonitors.monitoring.coreos.c
 echo "Deploying Prometheus instance..."
 kubectl apply -k "${DEVELOPING_DIR}/manifests/prometheus"
 
-echo "Waiting for Prometheus to be ready..."
+echo "Waiting for Prometheus to be available..."
+kubectl wait --for=condition=Available prometheus/prometheus \
+  --namespace=monitoring \
+  --timeout=120s
+
+echo "Waiting for Prometheus pods to be ready..."
 kubectl wait --for=condition=ready pod \
   -l app.kubernetes.io/name=prometheus \
   --namespace=monitoring \

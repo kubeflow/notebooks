@@ -8,19 +8,28 @@ import {
 import { ExpandableSection } from '@patternfly/react-core/dist/esm/components/ExpandableSection';
 import { HelperText } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
-import { WorkspaceKindPodTemplateData, WorkspacesPodVolumeMountValue } from '~/app/types';
+import {
+  ActivityRuleEntry,
+  WorkspaceKindPodTemplateData,
+  WorkspacesPodVolumeMountValue,
+} from '~/app/types';
 import { EditableRowsTable } from '~/app/pages/WorkspaceKinds/Form/EditableRowsTable';
 import { ResourceInputWrapper } from '~/shared/components/ResourceInputWrapper';
 import { WorkspaceFormPropertiesVolumes } from '~/app/pages/Workspaces/Form/properties/WorkspaceFormPropertiesVolumes';
+import { WorkspaceKindFormActivityRules } from '~/app/pages/WorkspaceKinds/Form/activityRules/WorkspaceKindFormActivityRules';
 
 interface WorkspaceKindFormPodTemplateProps {
   podTemplate: WorkspaceKindPodTemplateData;
   updatePodTemplate: (template: WorkspaceKindPodTemplateData) => void;
+  activityRules: ActivityRuleEntry[];
+  updateActivityRules: (rules: ActivityRuleEntry[]) => void;
 }
 
 export const WorkspaceKindFormPodTemplate: React.FC<WorkspaceKindFormPodTemplateProps> = ({
   podTemplate,
   updatePodTemplate,
+  activityRules,
+  updateActivityRules,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [volumes, setVolumes] = useState<WorkspacesPodVolumeMountValue[]>([]);
@@ -120,6 +129,10 @@ export const WorkspaceKindFormPodTemplate: React.FC<WorkspaceKindFormPodTemplate
             }}
           />
         </FormFieldGroup>
+        <WorkspaceKindFormActivityRules
+          activityRules={activityRules}
+          updateActivityRules={updateActivityRules}
+        />
         <FormFieldGroup
           aria-label="Activity Probe"
           header={
@@ -168,20 +181,6 @@ export const WorkspaceKindFormPodTemplate: React.FC<WorkspaceKindFormPodTemplate
             </FormGroup>
           )}
         </FormFieldGroup>
-        <FormFieldGroup
-          aria-label="Volume Mounts"
-          header={
-            <FormFieldGroupHeader
-              titleText={{
-                text: 'Volume Mounts',
-                id: 'workspace-kind-volume-mounts',
-              }}
-              titleDescription={
-                <HelperText>Configure volume mount paths for workspaces.</HelperText>
-              }
-            />
-          }
-        />
         <FormFieldGroup
           aria-label="Additional Volumes"
           header={

@@ -8,6 +8,8 @@ import React, {
 } from 'react';
 import { Timestamp } from '@patternfly/react-core/dist/esm/components/Timestamp';
 import { Label } from '@patternfly/react-core/dist/esm/components/Label';
+import { ExclamationTriangleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-triangle-icon';
+import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 import {
   PaginationVariant,
   Pagination,
@@ -28,6 +30,7 @@ import {
   Td,
   ThProps,
   ActionsColumn,
+  IAction,
   IActions,
 } from '@patternfly/react-table/dist/esm/components/Table';
 import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
@@ -44,13 +47,12 @@ import {
   extractWorkspaceStateColor,
   normalizeWorkspaceState,
   WORKSPACE_STATE_COLORS,
+  ActivityWarningLevel,
+  getActivityStatus,
+  formatTimeRemaining,
 } from '~/shared/utilities/WorkspaceUtils';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
-import {
-  WorkspacesActivity,
-  WorkspacesWorkspaceListItem,
-  V1Beta1WorkspaceState,
-} from '~/generated/data-contracts';
+import { WorkspacesWorkspaceListItem, V1Beta1WorkspaceState } from '~/generated/data-contracts';
 import { RedirectIconWithPopover } from '~/app/components/RedirectIconWithPopover';
 import { POLL_INTERVAL } from '~/shared/utilities/const';
 import { RefreshCounter } from '~/app/components/RefreshCounter';
@@ -116,7 +118,27 @@ type WorkspaceFilterKey = keyof typeof filterConfig;
 // Defines which filters should appear in the dropdown
 const visibleFilterKeys: readonly WorkspaceFilterKey[] = ['name', 'kind', 'image', 'state'];
 
-const LastActivityCell: React.FC<{ activity: WorkspacesActivity }> = ({ activity }) => {
+const ACTIVITY_WARNING_ICONS: Record<ActivityWarningLevel, React.ReactNode> = {
+  [ActivityWarningLevel.Warning]: (
+    <ExclamationTriangleIcon
+      color="var(--pf-t--global--icon--color--status--warning--default)"
+      data-testid="activity-warning-indicator"
+      aria-label="Activity warning"
+    />
+  ),
+  [ActivityWarningLevel.Critical]: (
+    <ExclamationCircleIcon
+      color="var(--pf-t--global--icon--color--status--danger--default)"
+      data-testid="activity-critical-indicator"
+      aria-label="Activity critical"
+    />
+  ),
+  [ActivityWarningLevel.None]: null,
+};
+
+const LastActivityCell: React.FC<{ workspace: WorkspacesWorkspaceListItem }> = ({ workspace }) => {
+  const { activity } = workspace;
+
   if (activity.lastActivity === 0) {
     return <span className="pf-v6-c-timestamp pf-m-help-text">unknown</span>;
   }
@@ -127,17 +149,27 @@ const LastActivityCell: React.FC<{ activity: WorkspacesActivity }> = ({ activity
     </Timestamp>
   );
 
-  const pauseRule = activity.rules?.pauseWorkspace;
-  if (!pauseRule) {
+  const { warningLevel, timeRemainingMs, actionMessage } = getActivityStatus(workspace);
+  const eligibleAfter = activity.rules?.pauseWorkspace?.eligibleAfter;
+
+  if (eligibleAfter == null) {
     return timestamp;
   }
+
+  const action = actionMessage ?? 'paused';
+  const tooltipTime =
+    timeRemainingMs != null
+      ? formatTimeRemaining(timeRemainingMs)
+      : formatDistanceToNow(new Date(eligibleAfter));
 
   return (
     <Tooltip
       data-testid="workspace-lastActivity-tooltip"
-      content={`Workspace will be paused in ${formatDistanceToNow(new Date(pauseRule.eligibleAfter))}`}
+      content={`Workspace will be ${action} in ${tooltipTime}`}
     >
-      <span>{timestamp}</span>
+      <span>
+        {timestamp} {ACTIVITY_WARNING_ICONS[warningLevel]}
+      </span>
     </Tooltip>
   );
 };
@@ -450,12 +482,47 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                               }
                               dataLabel={wsTableColumns[columnKey].label}
                             >
-                              {columnKey === 'name' && workspace.name}
+                              {columnKey === 'name' &&
+                                (() => {
+                                  const viewDetailsAction = rowActions(workspace).find(
+                                    (action): action is IAction =>
+                                      !('isSeparator' in action && action.isSeparator) &&
+                                      action.id === 'viewDetails',
+                                  );
+
+                                  return viewDetailsAction ? (
+                                    <Button
+                                      variant="link"
+                                      isInline
+                                      // Looks like plain text until hovered/focused, then reveals link styling.
+                                      // See the `workspace-name-btn` rule in app.css.
+                                      className="pf-v6-u-text-color-regular workspace-name-btn"
+                                      data-testid="workspace-name-link"
+                                      onClick={(event) =>
+                                        viewDetailsAction.onClick?.(event, rowIndex, {}, {})
+                                      }
+                                    >
+                                      {workspace.name}
+                                    </Button>
+                                  ) : (
+                                    workspace.name
+                                  );
+                                })()}
                               {columnKey === 'image' && (
                                 <Content>
-                                  <span data-testid="workspace-image-name">
-                                    {workspace.podTemplate.options.imageConfig.current.displayName}
-                                  </span>{' '}
+                                  <Tooltip
+                                    data-testid="workspace-image-description-tooltip"
+                                    content={
+                                      workspace.podTemplate.options.imageConfig.current.description
+                                    }
+                                  >
+                                    <span data-testid="workspace-image-name">
+                                      {
+                                        workspace.podTemplate.options.imageConfig.current
+                                          .displayName
+                                      }
+                                    </span>
+                                  </Tooltip>{' '}
                                   <RedirectIconWithPopover
                                     redirectChain={
                                       workspace.podTemplate.options.imageConfig.redirectChain
@@ -470,9 +537,16 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                               )}
                               {columnKey === 'podConfig' && (
                                 <Content>
-                                  <span data-testid="workspace-pod-config-name">
-                                    {workspace.podTemplate.options.podConfig.current.displayName}
-                                  </span>{' '}
+                                  <Tooltip
+                                    data-testid="workspace-pod-config-description-tooltip"
+                                    content={
+                                      workspace.podTemplate.options.podConfig.current.description
+                                    }
+                                  >
+                                    <span data-testid="workspace-pod-config-name">
+                                      {workspace.podTemplate.options.podConfig.current.displayName}
+                                    </span>
+                                  </Tooltip>{' '}
                                   <RedirectIconWithPopover
                                     redirectChain={
                                       workspace.podTemplate.options.podConfig.redirectChain
@@ -525,7 +599,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                               {columnKey === 'gpu' && formatResourceFromWorkspace(workspace, 'gpu')}
                               {columnKey === 'idleGpu' && formatWorkspaceIdleState(workspace)}
                               {columnKey === 'lastActivity' && (
-                                <LastActivityCell activity={workspace.activity} />
+                                <LastActivityCell workspace={workspace} />
                               )}
                             </Td>
                           );

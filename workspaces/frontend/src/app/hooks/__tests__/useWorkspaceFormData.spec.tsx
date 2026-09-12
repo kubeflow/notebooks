@@ -92,7 +92,7 @@ describe('useWorkspaceFormData', () => {
     const { result, waitForNextUpdate } = renderHook(() =>
       useWorkspaceFormData({
         namespace: 'ns',
-        workspaceName: 'My First Jupyter Notebook',
+        workspaceName: 'my-first-jupyter-notebook',
         workspaceKindName: mockWorkspaceKind.name,
       }),
     );
@@ -114,6 +114,7 @@ describe('useWorkspaceFormData', () => {
       podConfig: podTemplate.options.podConfig,
       properties: {
         workspaceName: mockWorkspace.name,
+        displayName: mockWorkspaceUpdate.displayName ?? '',
         volumes: podTemplate.volumes.data.map((v) => ({
           ...v,
           isAttached: true,

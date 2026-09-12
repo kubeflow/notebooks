@@ -138,8 +138,13 @@ func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _
 	}
 	// ============================================================
 
-	workspaceKinds, err := a.repositories.WorkspaceKind.GetWorkspaceKinds(r.Context())
+	workspaceKinds, err := a.repositories.WorkspaceKind.GetWorkspaceKinds(r.Context(), namespace)
 	if err != nil {
+		if helper.IsInternalValidationError(err) {
+			fieldErrs := helper.FieldErrorsFromInternalValidationError(err)
+			a.failedValidationResponse(w, r, errMsgInternalValidation, fieldErrs, nil)
+			return
+		}
 		a.serverErrorResponse(w, r, err)
 		return
 	}
@@ -392,8 +397,7 @@ func (a *App) UpdateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 			return
 		}
 		if errors.Is(err, repository.ErrWorkspaceKindRevisionConflict) {
-			causes := helper.StatusCausesFromAPIStatus(err)
-			a.conflictResponse(w, r, err, causes)
+			a.internalConflictResponse(w, r, err)
 			return
 		}
 		if apierrors.IsInvalid(err) {

@@ -9,7 +9,7 @@ const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
 const smp = new SpeedMeasurePlugin({ disable: !process.env.MEASURE });
 
 const env = process.env.DEV_ENV ?? 'development';
-const isTilt = env === 'tilt';
+const isTilt = env.startsWith('tilt');
 setupDotenvFilesForEnv({ env });
 const webpackCommon = require('./webpack.common.js');
 
@@ -26,7 +26,7 @@ const PROXY_HOST = process.env._PROXY_HOST;
 const PROXY_PORT = process.env._PROXY_PORT;
 const DEPLOYMENT_MODE = process.env._DEPLOYMENT_MODE;
 const AUTH_METHOD = process.env._AUTH_METHOD;
-const BASE_PATH = DEPLOYMENT_MODE === 'kubeflow' ? '/workspaces' : PUBLIC_PATH;
+const BASE_PATH = DEPLOYMENT_MODE === 'kubeflow' ? '/workspaces/' : PUBLIC_PATH;
 
 // Function to generate headers based on deployment mode
 const getProxyHeaders = () => {

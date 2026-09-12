@@ -66,8 +66,7 @@ type WorkspaceKindValidator struct {
 
 // SetupWebhookWithManager sets up the webhook with the manager
 func (v *WorkspaceKindValidator) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&kubefloworgv1beta1.WorkspaceKind{}).
+	return ctrl.NewWebhookManagedBy(mgr, &kubefloworgv1beta1.WorkspaceKind{}).
 		WithValidator(v).
 		Complete()
 }
@@ -75,20 +74,18 @@ func (v *WorkspaceKindValidator) SetupWebhookWithManager(mgr ctrl.Manager) error
 // ValidateCreate validates the WorkspaceKind on creation.
 // The optional warnings will be added to the response as warning messages.
 // Return an error if the object is invalid.
-func (v *WorkspaceKindValidator) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (v *WorkspaceKindValidator) ValidateCreate(ctx context.Context, workspaceKind *kubefloworgv1beta1.WorkspaceKind) (admission.Warnings, error) {
 	log := log.FromContext(ctx)
 	log.V(1).Info("validating WorkspaceKind create")
 
-	workspaceKind, ok := obj.(*kubefloworgv1beta1.WorkspaceKind)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a WorkspaceKind object but got %T", obj))
-	}
-
-	var allErrs field.ErrorList
+	var allErrs field.ErrorList //nolint:prealloc
 	var warnings admission.Warnings
 
 	// validate the pod metadata
 	allErrs = append(allErrs, v.validatePodTemplatePodMetadata(workspaceKind)...)
+
+	// validate the statefulset metadata
+	allErrs = append(allErrs, v.validatePodTemplateStatefulSetMetadata(workspaceKind)...)
 
 	// validate the extra environment variables
 	allErrs = append(allErrs, validateExtraEnv(workspaceKind)...)
@@ -163,18 +160,9 @@ func (v *WorkspaceKindValidator) ValidateCreate(ctx context.Context, obj runtime
 // ValidateUpdate validates the WorkspaceKind on update.
 // The optional warnings will be added to the response as warning messages.
 // Return an error if the object is invalid.
-func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) { //nolint:gocyclo
+func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldWorkspaceKind, newWorkspaceKind *kubefloworgv1beta1.WorkspaceKind) (admission.Warnings, error) { //nolint:gocyclo
 	log := log.FromContext(ctx)
 	log.V(1).Info("validating WorkspaceKind update")
-
-	newWorkspaceKind, ok := newObj.(*kubefloworgv1beta1.WorkspaceKind)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a WorkspaceKind object but got %T", newObj))
-	}
-	oldWorkspaceKind, ok := oldObj.(*kubefloworgv1beta1.WorkspaceKind)
-	if !ok {
-		return nil, apierrors.NewInternalError(fmt.Errorf("old object is not a WorkspaceKind, but a %T", oldObj))
-	}
 
 	var allErrs field.ErrorList
 	var warnings admission.Warnings
@@ -186,6 +174,11 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 	// validate the pod metadata
 	if !equality.Semantic.DeepEqual(newWorkspaceKind.Spec.PodTemplate.PodMetadata, oldWorkspaceKind.Spec.PodTemplate.PodMetadata) {
 		allErrs = append(allErrs, v.validatePodTemplatePodMetadata(newWorkspaceKind)...)
+	}
+
+	// validate the statefulset metadata
+	if !equality.Semantic.DeepEqual(newWorkspaceKind.Spec.PodTemplate.StatefulSetMetadata, oldWorkspaceKind.Spec.PodTemplate.StatefulSetMetadata) {
+		allErrs = append(allErrs, v.validatePodTemplateStatefulSetMetadata(newWorkspaceKind)...)
 	}
 
 	// validate the extra environment variables
@@ -435,14 +428,9 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldObj, new
 // ValidateDelete validates the WorkspaceKind on deletion.
 // The optional warnings will be added to the response as warning messages.
 // Return an error if the object is invalid.
-func (v *WorkspaceKindValidator) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (v *WorkspaceKindValidator) ValidateDelete(ctx context.Context, workspaceKind *kubefloworgv1beta1.WorkspaceKind) (admission.Warnings, error) {
 	log := log.FromContext(ctx)
 	log.V(1).Info("validating WorkspaceKind delete")
-
-	workspaceKind, ok := obj.(*kubefloworgv1beta1.WorkspaceKind)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a WorkspaceKind object but got %T", obj))
-	}
 
 	// don't allow deletion of WorkspaceKind if it is used by any workspaces
 	if workspaceKind.Status.Workspaces > 0 {
@@ -586,25 +574,39 @@ func (v *WorkspaceKindValidator) getOptionsUsageCounts(ctx context.Context, work
 
 // validatePodTemplatePodMetadata validates the podMetadata of a WorkspaceKind's PodTemplate
 func (v *WorkspaceKindValidator) validatePodTemplatePodMetadata(workspaceKind *kubefloworgv1beta1.WorkspaceKind) []*field.Error {
-	var errs []*field.Error //nolint:prealloc
-
 	podMetadata := workspaceKind.Spec.PodTemplate.PodMetadata
-	podMetadataPath := field.NewPath("spec", "podTemplate", "podMetadata")
 
 	// if podMetadata is nil, we cannot validate it
 	if podMetadata == nil {
-		return errs
+		return nil
 	}
 
+	podMetadataPath := field.NewPath("spec", "podTemplate", "podMetadata")
+	return validateLabelsAndAnnotations(podMetadata.Labels, podMetadata.Annotations, podMetadataPath)
+}
+
+// validatePodTemplateStatefulSetMetadata validates the statefulSetMetadata of a WorkspaceKind's PodTemplate
+func (v *WorkspaceKindValidator) validatePodTemplateStatefulSetMetadata(workspaceKind *kubefloworgv1beta1.WorkspaceKind) []*field.Error {
+	statefulSetMetadata := workspaceKind.Spec.PodTemplate.StatefulSetMetadata
+
+	// if statefulSetMetadata is nil, we cannot validate it
+	if statefulSetMetadata == nil {
+		return nil
+	}
+
+	statefulSetMetadataPath := field.NewPath("spec", "podTemplate", "statefulSetMetadata")
+	return validateLabelsAndAnnotations(statefulSetMetadata.Labels, statefulSetMetadata.Annotations, statefulSetMetadataPath)
+}
+
+// validateLabelsAndAnnotations validates a set of labels and annotations
+func validateLabelsAndAnnotations(labels, annotations map[string]string, path *field.Path) []*field.Error {
+	var errs []*field.Error //nolint:prealloc
+
 	// validate labels
-	labels := podMetadata.Labels
-	labelsPath := podMetadataPath.Child("labels")
-	errs = append(errs, v1validation.ValidateLabels(labels, labelsPath)...)
+	errs = append(errs, v1validation.ValidateLabels(labels, path.Child("labels"))...)
 
 	// validate annotations
-	annotations := podMetadata.Annotations
-	annotationsPath := podMetadataPath.Child("annotations")
-	errs = append(errs, apivalidation.ValidateAnnotations(annotations, annotationsPath)...)
+	errs = append(errs, apivalidation.ValidateAnnotations(annotations, path.Child("annotations"))...)
 
 	return errs
 }
@@ -704,13 +706,13 @@ func validateFilterRules(workspaceKind *kubefloworgv1beta1.WorkspaceKind) []*fie
 			}
 			if match.MatchImageConfig != nil {
 				if rule.Scope == kubefloworgv1beta1.FilterRuleScopeWorkspaceKind {
-					errs = append(errs, field.Invalid(conditionPath.Child("matchImageConfig"), match.MatchImageConfig, "'matchImageConfig' is only valid when 'scope' is 'POD_CONFIG' or 'IMAGE_CONFIG'"))
+					errs = append(errs, field.Invalid(conditionPath.Child("matchImageConfig"), "", "'matchImageConfig' is only valid when 'scope' is 'POD_CONFIG' or 'IMAGE_CONFIG'"))
 				}
 				errs = append(errs, v1validation.ValidateLabelSelector(&match.MatchImageConfig.Selector, selectorOpts, conditionPath.Child("matchImageConfig", "selector"))...)
 			}
 			if match.MatchPodConfig != nil {
 				if rule.Scope == kubefloworgv1beta1.FilterRuleScopeWorkspaceKind {
-					errs = append(errs, field.Invalid(conditionPath.Child("matchPodConfig"), match.MatchPodConfig, "'matchPodConfig' is only valid when 'scope' is 'POD_CONFIG' or 'IMAGE_CONFIG'"))
+					errs = append(errs, field.Invalid(conditionPath.Child("matchPodConfig"), "", "'matchPodConfig' is only valid when 'scope' is 'POD_CONFIG' or 'IMAGE_CONFIG'"))
 				}
 				errs = append(errs, v1validation.ValidateLabelSelector(&match.MatchPodConfig.Selector, selectorOpts, conditionPath.Child("matchPodConfig", "selector"))...)
 			}

@@ -18,11 +18,10 @@ package actions
 
 import (
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
-	"k8s.io/utils/ptr"
 )
 
 func NewWorkspaceActionPauseFromWorkspace(ws *kubefloworgv1beta1.Workspace) *WorkspaceActionPause {
 	return &WorkspaceActionPause{
-		Paused: ptr.Deref(ws.Spec.Paused, false),
+		Paused: ws.Spec.Paused,
 	}
 }

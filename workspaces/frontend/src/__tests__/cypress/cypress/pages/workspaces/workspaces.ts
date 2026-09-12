@@ -83,6 +83,31 @@ class Workspaces {
     cy.findByTestId('workspace-lastActivity-tooltip').should('contain.text', text);
   }
 
+  findActivityWarningIndicator(rowIndex: number) {
+    return cy.findByTestId(`workspace-row-${rowIndex}`).findByTestId('activity-warning-indicator');
+  }
+
+  findActivityCriticalIndicator(rowIndex: number) {
+    return cy.findByTestId(`workspace-row-${rowIndex}`).findByTestId('activity-critical-indicator');
+  }
+
+  assertActivityWarningExists(rowIndex: number) {
+    this.findActivityWarningIndicator(rowIndex).should('exist');
+  }
+
+  assertActivityCriticalExists(rowIndex: number) {
+    this.findActivityCriticalIndicator(rowIndex).should('exist');
+  }
+
+  assertNoActivityIndicator(rowIndex: number) {
+    cy.findByTestId(`workspace-row-${rowIndex}`)
+      .findByTestId('activity-warning-indicator')
+      .should('not.exist');
+    cy.findByTestId(`workspace-row-${rowIndex}`)
+      .findByTestId('activity-critical-indicator')
+      .should('not.exist');
+  }
+
   assertTooltipNotExists() {
     cy.get('.pf-v6-c-tooltip').should('not.exist');
   }
@@ -478,6 +503,30 @@ class WorkspaceDetailsDrawer {
 
   assertActivityTabAriaSelected(selected: boolean) {
     this.findActivityTab().should('have.attr', 'aria-selected', selected ? 'true' : 'false');
+  }
+
+  findPodName() {
+    return this.find().findByTestId('pod-name');
+  }
+
+  findPodNodeName() {
+    return this.find().findByTestId('pod-node-name');
+  }
+
+  assertPodName(name: string) {
+    this.findPodName().should('be.visible').and('have.text', name);
+  }
+
+  assertPodNameNotExists() {
+    this.findPodName().should('not.exist');
+  }
+
+  assertPodNodeName(nodeName: string) {
+    this.findPodNodeName().should('be.visible').and('have.text', nodeName);
+  }
+
+  assertPodNodeNameNotExists() {
+    this.findPodNodeName().should('not.exist');
   }
 
   findActionsToggle() {

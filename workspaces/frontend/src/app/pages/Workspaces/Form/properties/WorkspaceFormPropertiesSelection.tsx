@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import { ExpandableSection } from '@patternfly/react-core/dist/esm/components/ExpandableSection';
 import { Form, FormGroup } from '@patternfly/react-core/dist/esm/components/Form';
@@ -6,6 +6,7 @@ import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/comp
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import { InfoCircleIcon } from '@patternfly/react-icons/dist/esm/icons/info-circle-icon';
 import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
+import { ValidatedOptions } from '@patternfly/react-core/dist/esm/helpers';
 import { WorkspaceFormPropertiesVolumes } from '~/app/pages/Workspaces/Form/properties/WorkspaceFormPropertiesVolumes';
 import {
   WorkspaceFormMode,
@@ -14,6 +15,10 @@ import {
 } from '~/app/types';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { generateWorkspaceSlug } from '~/app/pages/Workspaces/Form/utils/slugify';
+import {
+  MAX_DISPLAY_NAME_LENGTH,
+  validateDisplayName,
+} from '~/app/pages/Workspaces/Form/helpers';
 import { WorkspaceFormPropertiesSecrets } from './WorkspaceFormPropertiesSecrets';
 
 interface WorkspaceFormPropertiesSelectionProps {
@@ -21,28 +26,32 @@ interface WorkspaceFormPropertiesSelectionProps {
   selectedProperties: WorkspaceFormProperties;
   onSelect: (properties: WorkspaceFormProperties) => void;
   homeVolumeMountPath?: string;
-  onValidityChange?: (isValid: boolean) => void;
+  workspaceNameError: string | null;
+  onWorkspaceNameChange: (value: string) => void;
+  onDisplayNameChange?: (displayName: string, workspaceName?: string) => void;
 }
-
-const DISPLAY_NAME_VALID_PATTERN = /^[a-zA-Z0-9\-._\s]*$/;
-const isDisplayNameValid = (value: string): boolean => DISPLAY_NAME_VALID_PATTERN.test(value);
-
-const RFC1123_PATTERN = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/;
-const isWorkspaceNameValid = (value: string): boolean =>
-  value.length > 0 && value.length <= 253 && RFC1123_PATTERN.test(value);
 
 const WorkspaceFormPropertiesSelection: React.FunctionComponent<
   WorkspaceFormPropertiesSelectionProps
-> = ({ mode, selectedProperties, onSelect, homeVolumeMountPath, onValidityChange }) => {
+> = ({
+  mode,
+  selectedProperties,
+  onSelect,
+  homeVolumeMountPath,
+  workspaceNameError,
+  onWorkspaceNameChange,
+  onDisplayNameChange,
+}) => {
   const [isDataVolumesExpanded, setIsDataVolumesExpanded] = useState(false);
   const [isSecretsExpanded, setIsSecretsExpanded] = useState(false);
-  const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
-  const [isDisplayNameInvalid, setIsDisplayNameInvalid] = useState(false);
-  const [isWorkspaceNameInvalid, setIsWorkspaceNameInvalid] = useState(false);
+  const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(
+    Boolean(
+      mode === 'update' ||
+        (selectedProperties.workspaceName && !selectedProperties.displayName),
+    ),
+  );
 
-  useEffect(() => {
-    onValidityChange?.(!isDisplayNameInvalid && !isWorkspaceNameInvalid);
-  }, [isDisplayNameInvalid, isWorkspaceNameInvalid, onValidityChange]);
+  const displayNameError = validateDisplayName(selectedProperties.displayName);
 
   const homeVolumeArray: WorkspacesPodVolumeMountValue[] = useMemo(
     () => (selectedProperties.homeVolume ? [selectedProperties.homeVolume] : []),
@@ -65,31 +74,60 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
 
   const handleDisplayNameChange = useCallback(
     (value: string) => {
-      setIsDisplayNameInvalid(!isDisplayNameValid(value));
-      const nextWorkspaceName =
-        isSlugManuallyEdited || mode === 'update'
-          ? selectedProperties.workspaceName
-          : generateWorkspaceSlug(value);
-      onSelect({
-        ...selectedProperties,
-        displayName: value,
-        workspaceName: nextWorkspaceName,
-      });
+      if (!isSlugManuallyEdited && mode !== 'update') {
+        const nextWorkspaceName = generateWorkspaceSlug(value);
+        if (onDisplayNameChange) {
+          onDisplayNameChange(value, nextWorkspaceName);
+        } else {
+          onSelect({
+            ...selectedProperties,
+            displayName: value,
+            workspaceName: nextWorkspaceName,
+          });
+          onWorkspaceNameChange(nextWorkspaceName);
+        }
+      } else {
+        if (onDisplayNameChange) {
+          onDisplayNameChange(value);
+        } else {
+          onSelect({
+            ...selectedProperties,
+            displayName: value,
+          });
+        }
+      }
     },
-    [selectedProperties, onSelect, isSlugManuallyEdited, mode],
+    [
+      isSlugManuallyEdited,
+      mode,
+      onDisplayNameChange,
+      onSelect,
+      onWorkspaceNameChange,
+      selectedProperties,
+    ],
   );
 
   const handleWorkspaceNameChange = useCallback(
     (value: string) => {
       setIsSlugManuallyEdited(true);
-      setIsWorkspaceNameInvalid(!isWorkspaceNameValid(value));
-      onSelect({
-        ...selectedProperties,
-        workspaceName: value,
-      });
+      onWorkspaceNameChange(value);
     },
-    [selectedProperties, onSelect],
+    [onWorkspaceNameChange],
   );
+
+  const handleDisplayNameBlur = useCallback(() => {
+    const trimmed = (selectedProperties.displayName || '').trim();
+    if (trimmed !== selectedProperties.displayName) {
+      handleDisplayNameChange(trimmed);
+    }
+  }, [selectedProperties.displayName, handleDisplayNameChange]);
+
+  const handleWorkspaceNameBlur = useCallback(() => {
+    const trimmed = selectedProperties.workspaceName.trim();
+    if (trimmed !== selectedProperties.workspaceName) {
+      handleWorkspaceNameChange(trimmed);
+    }
+  }, [selectedProperties.workspaceName, handleWorkspaceNameChange]);
 
   const handleSetHomeVolume = useCallback(
     (volumes: WorkspacesPodVolumeMountValue[]) => {
@@ -125,48 +163,58 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
             label="Display Name"
             fieldId="display-name"
             className="pf-u-width-520"
+            helperTextNode={
+              displayNameError ? (
+                <HelperText>
+                  <HelperTextItem variant="error" icon={<ExclamationCircleIcon />}>
+                    {displayNameError}
+                  </HelperTextItem>
+                </HelperText>
+              ) : null
+            }
           >
             <TextInput
               type="text"
               value={selectedProperties.displayName || ''}
               onChange={(_, value) => handleDisplayNameChange(value)}
-              onBlur={() => handleDisplayNameChange((selectedProperties.displayName || '').trim())}
+              onBlur={handleDisplayNameBlur}
               id="display-name"
               data-testid="display-name"
               placeholder="e.g. My Workspace"
-              maxLength={253}
-              validated={isDisplayNameInvalid ? 'error' : 'default'}
+              maxLength={MAX_DISPLAY_NAME_LENGTH}
+              validated={displayNameError ? ValidatedOptions.error : ValidatedOptions.default}
             />
-            {isDisplayNameInvalid && (
-              <HelperText>
-                <HelperTextItem variant="error" icon={<ExclamationCircleIcon />}>
-                  Only letters, numbers, spaces, and - _ . are allowed.
-                </HelperTextItem>
-              </HelperText>
-            )}
           </ThemeAwareFormGroupWrapper>
 
           {/* Workspace Name / Slug Input */}
-          <ThemeAwareFormGroupWrapper label="Workspace Name" fieldId="workspace-name" isRequired>
+          <ThemeAwareFormGroupWrapper
+            label="Workspace Name"
+            isRequired
+            fieldId="workspace-name"
+            className="pf-u-width-520"
+            helperTextNode={
+              workspaceNameError ? (
+                <HelperText>
+                  <HelperTextItem variant="error" icon={<ExclamationCircleIcon />}>
+                    {workspaceNameError}
+                  </HelperTextItem>
+                </HelperText>
+              ) : null
+            }
+          >
             <TextInput
               isRequired
               type="text"
+              validated={workspaceNameError ? ValidatedOptions.error : ValidatedOptions.default}
               value={selectedProperties.workspaceName}
               onChange={(_, value) => handleWorkspaceNameChange(value)}
+              onBlur={handleWorkspaceNameBlur}
               id="workspace-name"
               data-testid="workspace-name"
-              validated={isWorkspaceNameInvalid ? 'error' : 'default'}
               isDisabled={mode === 'update'}
             />
-            {isWorkspaceNameInvalid && (
-              <HelperText>
-                <HelperTextItem variant="error" icon={<ExclamationCircleIcon />}>
-                  Must be lowercase alphanumeric or &apos;-&apos;, and start/end with a letter or
-                  number.
-                </HelperTextItem>
-              </HelperText>
-            )}
           </ThemeAwareFormGroupWrapper>
+
           {mode === 'update' && (
             <HelperText>
               <HelperTextItem

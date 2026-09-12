@@ -48,6 +48,7 @@ export const MEMORY_UNITS_FOR_PARSING: UnitOption[] = [
 ];
 
 export const TIME_UNIT_FOR_SELECTION: UnitOption[] = [
+  { name: 'Seconds', unit: 'Seconds', weight: 1 },
   { name: 'Minutes', unit: 'Minutes', weight: 60 },
   { name: 'Hours', unit: 'Hours', weight: 60 * 60 },
   { name: 'Days', unit: 'Days', weight: 60 * 60 * 24 },

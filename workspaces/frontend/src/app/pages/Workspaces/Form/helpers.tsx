@@ -14,6 +14,7 @@ import {
 } from '~/generated/data-contracts';
 import { LabelGroupWithTooltip } from '~/app/components/LabelGroupWithTooltip';
 
+export const MAX_WORKSPACE_NAME_LENGTH = 63;
 // 420 decimal = 0644 octal (standard file permissions)
 export const DEFAULT_MODE = 420;
 export const DEFAULT_MODE_OCTAL = DEFAULT_MODE.toString(8);
@@ -274,3 +275,46 @@ export const buildPVCSelectOptions = (
 
   return options;
 };
+
+export const validateName = (name: string): string | null => {
+  if (!name) {
+    return 'Value is required';
+  }
+
+  if (name.length > MAX_WORKSPACE_NAME_LENGTH) {
+    return `Must be no more than ${MAX_WORKSPACE_NAME_LENGTH} characters`;
+  }
+
+  if (!/^[a-z0-9.-]+$/.test(name)) {
+    return 'Only lowercase alphanumeric characters, "-" or "." are allowed';
+  }
+
+  if (!/^[a-z0-9]/.test(name)) {
+    return 'Must start with an alphanumeric character';
+  }
+
+  if (!/[a-z0-9]$/.test(name)) {
+    return 'Must end with an alphanumeric character';
+  }
+  return null;
+};
+
+export const MAX_DISPLAY_NAME_LENGTH = 253;
+export const DISPLAY_NAME_VALID_PATTERN = /^[a-zA-Z0-9\-._!@#$%^&*();~<>+/\\ ]*$/;
+
+export const validateDisplayName = (displayName?: string): string | null => {
+  if (!displayName) {
+    return null;
+  }
+
+  if (displayName.length > MAX_DISPLAY_NAME_LENGTH) {
+    return `Must be no more than ${MAX_DISPLAY_NAME_LENGTH} characters`;
+  }
+
+  if (!DISPLAY_NAME_VALID_PATTERN.test(displayName)) {
+    return 'Only letters, numbers, spaces, and allowed characters (- _ . ! @ # $ % ^ & * ( ) ; ~ < > + / \\) are allowed';
+  }
+
+  return null;
+};
+

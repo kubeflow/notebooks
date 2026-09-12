@@ -73,7 +73,7 @@ export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
           defaultUnit = 1; // Seconds
         }
         setUnit(defaultUnit.toString());
-        setInputValue((seconds / defaultUnit).toString());
+        setInputValue(String(Math.round((seconds / defaultUnit) * 4) / 4));
         isTimeInitialized.current = true;
       }
     } else {
@@ -113,7 +113,7 @@ export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
         const valueInSeconds = currentValue * oldUnitMultiplier;
         const valueInNewUnit = valueInSeconds / newUnitMultiplier;
         setUnit(newUnit);
-        setInputValue(valueInNewUnit.toString());
+        setInputValue(String(Math.round(valueInNewUnit * 4) / 4));
         onChange(String(valueInSeconds));
       } else {
         setUnit(newUnit);

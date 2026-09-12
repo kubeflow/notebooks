@@ -49,6 +49,7 @@ import { LoadError } from '~/app/components/LoadError';
 import { submitFormData } from '~/app/pages/Workspaces/Form/submitHelper';
 import { WorkspaceFormSummaryPanel } from '~/app/pages/Workspaces/Form/WorkspaceFormSummaryPanel';
 import { WorkspaceFormRedirectConfirmModal } from '~/app/pages/Workspaces/Form/WorkspaceFormRedirectConfirmModal';
+import { validateName, validateDisplayName } from './helpers';
 
 enum WorkspaceFormSteps {
   KindSelection,
@@ -82,7 +83,6 @@ const WorkspaceForm: React.FC = () => {
     workspaceKindName,
   });
 
-  const [isPropertiesValid, setIsPropertiesValid] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(WorkspaceFormSteps.KindSelection);
   const [error, setError] = useState<string | ApiErrorEnvelope | null>(null);
@@ -107,6 +107,7 @@ const WorkspaceForm: React.FC = () => {
   // Store original values for edit mode diff view
   const [originalData, setOriginalData] = useState<WorkspaceFormData | undefined>(undefined);
 
+  const [workspaceNameError, setWorkspaceNameError] = useState<string | null>(null);
   // Refs for filter control
   const imageFilterControlRef = useRef<ImageSelectionFilterHandle>(null);
   const podConfigFilterControlRef = useRef<PodConfigSelectionFilterHandle>(null);
@@ -145,6 +146,30 @@ const WorkspaceForm: React.FC = () => {
     }
   }, [filteredValuesData, filteredValuesLoaded, data.podConfig, setData]);
 
+  const onWorkspaceNameChange = useCallback(
+    (value: string) => {
+      setWorkspaceNameError(validateName(value));
+      setData('properties', { ...data.properties, workspaceName: value });
+    },
+    [setData, data.properties],
+  );
+
+  const onDisplayNameChange = useCallback(
+    (displayName: string, workspaceName?: string) => {
+      const nextWorkspaceName =
+        workspaceName !== undefined ? workspaceName : data.properties.workspaceName;
+      if (workspaceName !== undefined) {
+        setWorkspaceNameError(validateName(workspaceName));
+      }
+      setData('properties', {
+        ...data.properties,
+        displayName,
+        workspaceName: nextWorkspaceName,
+      });
+    },
+    [setData, data.properties],
+  );
+
   const getStepVariant = useCallback(
     (step: WorkspaceFormSteps) => {
       if (step > currentStep) {
@@ -170,8 +195,9 @@ const WorkspaceForm: React.FC = () => {
         case WorkspaceFormSteps.Properties:
           return (
             !!data.properties.workspaceName.trim() &&
-            !!data.properties.homeVolume &&
-            isPropertiesValid
+            !workspaceNameError &&
+            !validateDisplayName(data.properties.displayName) &&
+            !!data.properties.homeVolume
           );
         case WorkspaceFormSteps.Summary:
           return (
@@ -179,8 +205,9 @@ const WorkspaceForm: React.FC = () => {
             !!data.imageConfig &&
             !!data.podConfig &&
             !!data.properties.workspaceName.trim() &&
-            !!data.properties.homeVolume &&
-            isPropertiesValid
+            !workspaceNameError &&
+            !validateDisplayName(data.properties.displayName) &&
+            !!data.properties.homeVolume
           );
         default:
           return false;
@@ -191,8 +218,9 @@ const WorkspaceForm: React.FC = () => {
       data.imageConfig,
       data.podConfig,
       data.properties.workspaceName,
+      data.properties.displayName,
       data.properties.homeVolume,
-      isPropertiesValid,
+      workspaceNameError,
     ],
   );
 
@@ -538,7 +566,9 @@ const WorkspaceForm: React.FC = () => {
                         selectedProperties={data.properties}
                         onSelect={(properties) => setData('properties', properties)}
                         homeVolumeMountPath={data.kind?.podTemplate.volumeMounts.home}
-                        onValidityChange={setIsPropertiesValid}
+                        workspaceNameError={workspaceNameError}
+                        onWorkspaceNameChange={onWorkspaceNameChange}
+                        onDisplayNameChange={onDisplayNameChange}
                       />
                     )}
                     {currentStep === WorkspaceFormSteps.Summary && (

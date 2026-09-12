@@ -47,6 +47,15 @@
   text-decoration: line-through;
 }
 
+/* Workspace name link in the table: looks like plain text, reveals the link
+   underline on hover/focus. Anchored to `.pf-v6-c-button` so it beats the base
+   `.pf-v6-c-button` rule (equal single-class specificity would lose, since PF
+   injects its component styles at runtime after app.css). The higher-specificity
+   `.pf-v6-c-button:hover`/`:focus` rule still wins, so the underline reveals. */
+.pf-v6-c-button.workspace-name-btn {
+  text-decoration: none;
+}
+
 .workspace-form__full-height {
   height: 100%;
 }
@@ -241,4 +250,11 @@ body,
 
 .mui-theme .pf-v6-c-page.pf-m-no-sidebar .pf-v6-c-page__main {
   margin-left: 0;
+}
+
+/* Single-endpoint "Connect" control: rendered as a MenuToggle (so it keeps the
+   same size as the multi-endpoint dropdown), but its caret is rotated to point
+   right to signal that clicking connects directly instead of opening a menu. */
+.kubeflow-connect-toggle--direct .pf-v6-c-menu-toggle__toggle-icon {
+  transform: rotate(-90deg);
 }
