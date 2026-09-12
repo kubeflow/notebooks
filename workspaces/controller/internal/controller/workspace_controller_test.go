@@ -846,4 +846,132 @@ var _ = Describe("Workspace Controller", func() {
 			Expect(statefulSet.Spec.Template.Spec.SchedulerName).To(Equal("podconfig-scheduler"))
 		})
 	})
+
+	Context("When generating a StatefulSet with per-podConfig metadata", func() {
+
+		// NOTE: these tests call generateStatefulSet directly and do not create any
+		//       resources in the cluster, so no teardown is required.
+		var (
+			workspace       *kubefloworgv1beta1.Workspace
+			workspaceKind   *kubefloworgv1beta1.WorkspaceKind
+			imageConfigSpec kubefloworgv1beta1.ImageConfigSpec
+			podConfigSpec   kubefloworgv1beta1.PodConfigSpec
+		)
+
+		BeforeEach(func() {
+			uniqueName := "ws-podconfig-metadata-test"
+			workspaceName := fmt.Sprintf("workspace-%s", uniqueName)
+			workspaceKindName := fmt.Sprintf("workspacekind-%s", uniqueName)
+
+			workspaceKind = NewExampleWorkspaceKind1(workspaceKindName)
+			workspace = NewExampleWorkspace1(workspaceName, namespaceName, workspaceKindName)
+			imageConfigSpec = workspaceKind.Spec.PodTemplate.Options.ImageConfig.Values[0].Spec
+			podConfigSpec = workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[0].Spec
+
+			// ensure every metadata level starts unset, so each test only sets what it exercises
+			workspaceKind.Spec.PodTemplate.PodMetadata = nil
+			workspaceKind.Spec.PodTemplate.StatefulSetMetadata = nil
+			workspace.Spec.PodTemplate.PodMetadata = nil
+			podConfigSpec.PodMetadata = nil
+			podConfigSpec.StatefulSetMetadata = nil
+		})
+
+		It("should apply the podConfig `podMetadata` to the Pod template and `statefulSetMetadata` to the StatefulSet", func() {
+			By("generating the StatefulSet with per-podConfig metadata")
+			podConfigSpec.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+				Labels:      map[string]string{"pod-label": "pod-value"},
+				Annotations: map[string]string{"pod-annotation": "pod-value"},
+			}
+			podConfigSpec.StatefulSetMetadata = &kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata{
+				Labels:      map[string]string{"sts-label": "sts-value"},
+				Annotations: map[string]string{"sts-annotation": "sts-value"},
+			}
+			statefulSet, err := generateStatefulSet(workspace, workspaceKind, imageConfigSpec, podConfigSpec, generateServiceAccountName(workspace.Name))
+			Expect(err).NotTo(HaveOccurred())
+
+			By("checking the podMetadata lands on the Pod template and not the StatefulSet")
+			Expect(statefulSet.Spec.Template.Labels).To(HaveKeyWithValue("pod-label", "pod-value"))
+			Expect(statefulSet.Spec.Template.Annotations).To(HaveKeyWithValue("pod-annotation", "pod-value"))
+			Expect(statefulSet.Labels).NotTo(HaveKey("pod-label"))
+
+			By("checking the statefulSetMetadata lands on the StatefulSet and not the Pod template")
+			Expect(statefulSet.Labels).To(HaveKeyWithValue("sts-label", "sts-value"))
+			Expect(statefulSet.Annotations).To(HaveKeyWithValue("sts-annotation", "sts-value"))
+			Expect(statefulSet.Spec.Template.Labels).NotTo(HaveKey("sts-label"))
+		})
+
+		It("should let podConfig metadata win over WorkspaceKind-level metadata on key conflicts", func() {
+			By("setting the same keys at both the WorkspaceKind and podConfig levels")
+			workspaceKind.Spec.PodTemplate.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+				Labels: map[string]string{"shared": "from-workspacekind"},
+			}
+			workspaceKind.Spec.PodTemplate.StatefulSetMetadata = &kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata{
+				Labels: map[string]string{"shared": "from-workspacekind"},
+			}
+			podConfigSpec.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+				Labels: map[string]string{"shared": "from-podconfig"},
+			}
+			podConfigSpec.StatefulSetMetadata = &kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata{
+				Labels: map[string]string{"shared": "from-podconfig"},
+			}
+			statefulSet, err := generateStatefulSet(workspace, workspaceKind, imageConfigSpec, podConfigSpec, generateServiceAccountName(workspace.Name))
+			Expect(err).NotTo(HaveOccurred())
+
+			By("checking the podConfig value wins on both the Pod template and the StatefulSet")
+			Expect(statefulSet.Spec.Template.Labels).To(HaveKeyWithValue("shared", "from-podconfig"))
+			Expect(statefulSet.Labels).To(HaveKeyWithValue("shared", "from-podconfig"))
+		})
+
+		It("should let Workspace-level `podMetadata` win over the podConfig on the Pod template", func() {
+			By("setting the same key at the podConfig and Workspace levels")
+			podConfigSpec.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+				Labels: map[string]string{"shared": "from-podconfig"},
+			}
+			workspace.Spec.PodTemplate.PodMetadata = &kubefloworgv1beta1.WorkspacePodMetadata{
+				Labels: map[string]string{"shared": "from-workspace"},
+			}
+			statefulSet, err := generateStatefulSet(workspace, workspaceKind, imageConfigSpec, podConfigSpec, generateServiceAccountName(workspace.Name))
+			Expect(err).NotTo(HaveOccurred())
+
+			By("checking the Workspace value wins on the Pod template")
+			Expect(statefulSet.Spec.Template.Labels).To(HaveKeyWithValue("shared", "from-workspace"))
+		})
+
+		It("should not let podConfig metadata override the controller-managed labels", func() {
+			By("setting podConfig metadata that reuses the controller label keys")
+			podConfigSpec.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+				Labels: map[string]string{workspaceNameLabel: "hijacked", workspaceSelectorLabel: "hijacked"},
+			}
+			podConfigSpec.StatefulSetMetadata = &kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata{
+				Labels: map[string]string{workspaceNameLabel: "hijacked"},
+			}
+			statefulSet, err := generateStatefulSet(workspace, workspaceKind, imageConfigSpec, podConfigSpec, generateServiceAccountName(workspace.Name))
+			Expect(err).NotTo(HaveOccurred())
+
+			By("checking the controller values win on both the Pod template and the StatefulSet")
+			Expect(statefulSet.Spec.Template.Labels).To(HaveKeyWithValue(workspaceNameLabel, workspace.Name))
+			Expect(statefulSet.Spec.Template.Labels).To(HaveKeyWithValue(workspaceSelectorLabel, workspace.Name))
+			Expect(statefulSet.Labels).To(HaveKeyWithValue(workspaceNameLabel, workspace.Name))
+		})
+
+		It("should re-derive metadata so keys from a different podConfig are not carried over", func() {
+			By("generating a StatefulSet from a podConfig that contributes a key")
+			podConfigA := podConfigSpec
+			podConfigA.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+				Labels: map[string]string{"tier": "gpu"},
+			}
+			statefulSetA, err := generateStatefulSet(workspace, workspaceKind, imageConfigSpec, podConfigA, generateServiceAccountName(workspace.Name))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(statefulSetA.Spec.Template.Labels).To(HaveKeyWithValue("tier", "gpu"))
+
+			By("generating a StatefulSet from a podConfig that does not contribute that key")
+			podConfigB := podConfigSpec
+			podConfigB.PodMetadata = nil
+			statefulSetB, err := generateStatefulSet(workspace, workspaceKind, imageConfigSpec, podConfigB, generateServiceAccountName(workspace.Name))
+			Expect(err).NotTo(HaveOccurred())
+
+			By("checking the key contributed only by the first podConfig is absent from the second")
+			Expect(statefulSetB.Spec.Template.Labels).NotTo(HaveKey("tier"))
+		})
+	})
 })
