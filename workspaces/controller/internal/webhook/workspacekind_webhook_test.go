@@ -76,6 +76,26 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 				shouldSucceed: false,
 			},
 			{
+				description:   "should reject creation with invalid podConfig podMetadata label key",
+				workspaceKind: NewExampleWorkspaceKindWithInvalidPodConfigPodMetadataLabelKey("wsk-webhook-create--invalid-podconfig-pod-metadata--label-key"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with invalid podConfig podMetadata annotation key",
+				workspaceKind: NewExampleWorkspaceKindWithInvalidPodConfigPodMetadataAnnotationKey("wsk-webhook-create--invalid-podconfig-pod-metadata--annotation-key"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with invalid podConfig statefulSetMetadata label key",
+				workspaceKind: NewExampleWorkspaceKindWithInvalidPodConfigStatefulSetMetadataLabelKey("wsk-webhook-create--invalid-podconfig-statefulset-metadata--label-key"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with invalid podConfig statefulSetMetadata annotation key",
+				workspaceKind: NewExampleWorkspaceKindWithInvalidPodConfigStatefulSetMetadataAnnotationKey("wsk-webhook-create--invalid-podconfig-statefulset-metadata--annotation-key"),
+				shouldSucceed: false,
+			},
+			{
 				description:   "should reject creation with cycle in imageConfig redirects",
 				workspaceKind: NewExampleWorkspaceKindWithImageConfigCycle("wsk-webhook-create--image-config-cycle"),
 				shouldSucceed: false,
@@ -723,6 +743,36 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						},
 					}
 					return ContainSubstring("")
+				},
+			},
+			{
+				description:   "should accept adding valid podMetadata to an unused podConfig spec",
+				shouldSucceed: true,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				workspace:     NewExampleWorkspace(workspaceName, namespaceName, workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					wsk.Spec.PodTemplate.Options.PodConfig.Values[1].Spec.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+						Labels: map[string]string{
+							"kueue.x-k8s.io/queue-name": "gpu-queue",
+						},
+					}
+					return ContainSubstring("")
+				},
+			},
+			{
+				description:   "should reject adding invalid podMetadata to an unused podConfig spec",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				workspace:     NewExampleWorkspace(workspaceName, namespaceName, workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					wsk.Spec.PodTemplate.Options.PodConfig.Values[1].Spec.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+						Labels: map[string]string{
+							"!bad_key!": "value",
+						},
+					}
+					return ContainSubstring("podMetadata")
 				},
 			},
 			{
