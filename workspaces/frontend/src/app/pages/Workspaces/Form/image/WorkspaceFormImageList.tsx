@@ -55,6 +55,9 @@ export const WorkspaceFormImageList: React.FunctionComponent<WorkspaceFormImageL
       const newSelectedWorkspaceImage = filteredWorkspaceImages.find(
         (image) => image.displayName === event.currentTarget.name,
       );
+      if (newSelectedWorkspaceImage?.restrictions.deny) {
+        return;
+      }
       onSelect(newSelectedWorkspaceImage);
     },
     [filteredWorkspaceImages, onSelect],
@@ -62,12 +65,12 @@ export const WorkspaceFormImageList: React.FunctionComponent<WorkspaceFormImageL
 
   const handleCardClick = useCallback(
     (image: OptionsImageConfigValue) => {
-      if (image.id !== selectedImage?.id) {
+      if (image.restrictions.deny) {
         return;
       }
       onSelect(image);
     },
-    [selectedImage, onSelect],
+    [onSelect],
   );
 
   return (

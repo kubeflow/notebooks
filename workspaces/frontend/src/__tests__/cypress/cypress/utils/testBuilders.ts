@@ -182,3 +182,20 @@ export const interceptListValues = (
     })
     .as(`listValues-${kind.name}`);
 };
+
+export const buildMockImageWithRestrictions = (
+  id: string,
+  displayName: string,
+  deny: boolean,
+  denyMessageText?: string,
+): OptionsImageConfigValue => ({
+  id,
+  displayName,
+  description: `Image: ${displayName}`,
+  hidden: false,
+  redirect: undefined,
+  clusterMetrics: undefined,
+  restrictions: deny
+    ? { deny: true, denyMessage: { text: denyMessageText ?? '' } }
+    : { deny: false },
+});
