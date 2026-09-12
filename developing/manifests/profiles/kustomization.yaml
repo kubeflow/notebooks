@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Profiles for local development.
+#
+# The profile-controller creates one Namespace per Profile, named after the
+# Profile itself, so `example-profile-1` below is both the Profile and the
+# namespace name. Add or remove files here to change the set of dev profiles.
+#
+# NOTE: the owner is hard-coded to `anonymous@kubeflow.org` so the dashboard
+#       skips its user-creation flow and the namespaces exist immediately.
+resources:
+  - example-profile-1.yaml
+  - example-profile-2.yaml
+  - example-profile-3.yaml
+  - example-profile-4.yaml

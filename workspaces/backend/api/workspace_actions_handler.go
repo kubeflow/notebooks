@@ -29,6 +29,7 @@ import (
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/auth"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/actions"
+	repoCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/common"
 	repository "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/workspaces"
 )
 
@@ -109,7 +110,7 @@ func (a *App) PauseActionWorkspaceHandler(w http.ResponseWriter, r *http.Request
 
 	workspaceActionPauseState, err := a.repositories.Workspace.HandlePauseAction(r.Context(), namespace, workspaceName, workspaceActionPause)
 	if err != nil {
-		if errors.Is(err, repository.ErrWorkspaceNotFound) {
+		if errors.Is(err, repoCommon.ErrWorkspaceNotFound) {
 			a.notFoundResponse(w, r)
 			return
 		}

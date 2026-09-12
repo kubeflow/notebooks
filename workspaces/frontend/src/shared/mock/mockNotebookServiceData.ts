@@ -68,6 +68,30 @@ export const mockWorkspaceKind3: WorkspacekindsWorkspaceKindListItem = buildMock
       text: 'This workspace kind is currently unavailable. Please contact your administrator.',
     },
   },
+  activityRules: [
+    {
+      config: {
+        secondsSinceActive: 3600,
+        minRunningSeconds: 300,
+      },
+      match: {
+        matchNamespace: {
+          selector: { matchLabels: { tier: 'development' } },
+        },
+      },
+      effect: {
+        pauseWorkspace: true,
+      },
+    },
+    {
+      config: {
+        secondsSinceActive: 86400,
+      },
+      effect: {
+        pauseWorkspace: true,
+      },
+    },
+  ],
 });
 
 export const mockWorkspaceKinds = [mockWorkspaceKind1, mockWorkspaceKind2, mockWorkspaceKind3];
@@ -249,7 +273,7 @@ export const mockWorkspace2: WorkspacesWorkspaceListItem = buildMockWorkspace({
 });
 
 export const mockWorkspace3: WorkspacesWorkspaceListItem = buildMockWorkspace({
-  name: 'My Third Jupyter Notebook',
+  name: 'my-third-jupyter-notebook',
   namespace: mockNamespace1.name,
   workspaceKind: mockWorkspaceKindInfo1,
   state: V1Beta1WorkspaceState.WorkspaceStateRunning,

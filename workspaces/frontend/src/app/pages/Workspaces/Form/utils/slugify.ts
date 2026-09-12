@@ -1,3 +1,5 @@
+import { MAX_WORKSPACE_NAME_LENGTH } from '~/app/pages/Workspaces/Form/helpers';
+
 export const generateWorkspaceSlug = (displayName: string): string => {
   if (!displayName) {
     return '';
@@ -8,7 +10,7 @@ export const generateWorkspaceSlug = (displayName: string): string => {
   slug = slug.replace(/-+/g, '-');
   slug = slug.toLowerCase();
   slug = slug.replace(/^[^a-z0-9]+/, '');
-  slug = slug.slice(0, 253);
+  slug = slug.slice(0, MAX_WORKSPACE_NAME_LENGTH);
   slug = slug.replace(/[^a-z0-9]+$/, '');
 
   if (!slug) {
@@ -17,3 +19,4 @@ export const generateWorkspaceSlug = (displayName: string): string => {
 
   return slug;
 };
+

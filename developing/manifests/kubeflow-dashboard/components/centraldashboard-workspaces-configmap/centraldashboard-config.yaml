@@ -1,0 +1,39 @@
+apiVersion: v1
+data:
+  settings: |-
+    {
+      "DASHBOARD_FORCE_IFRAME": true
+    }
+  links: |-
+    {
+        "menuLinks": [
+            {
+                "icon": "book",
+                "items": [
+                    {
+                        "link": "/workspaces/",
+                        "text": "Workspaces",
+                        "type": "item"
+                    },
+                    {
+                        "link": "/workspaces/workspacekinds/",
+                        "text": "WorkspaceKinds",
+                        "type": "item"
+                    },
+                    {
+                        "link": "/workspaces/noteBookDebugSettings",
+                        "text": "Debug Menu",
+                        "type": "item"
+                    }
+                ],
+                "text": "Notebooks v2",
+                "type": "section"
+            }
+        ],
+        "externalLinks": [],
+        "documentationItems": [],
+        "quickLinks": []
+    }
+kind: ConfigMap
+metadata:
+  name: dashboard-config

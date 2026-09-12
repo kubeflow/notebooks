@@ -8,6 +8,7 @@ import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWra
 import { LoadingSpinner } from '~/app/components/LoadingSpinner';
 import { LoadError } from '~/app/components/LoadError';
 import { useWorkspaceRowActions } from '~/app/hooks/useWorkspaceRowActions';
+import useActivityNotifications from '~/app/hooks/useActivityNotifications';
 import { V1Beta1WorkspaceState } from '~/generated/data-contracts';
 
 export const Workspaces: React.FunctionComponent = () => {
@@ -15,6 +16,8 @@ export const Workspaces: React.FunctionComponent = () => {
 
   const [workspaces, workspacesLoaded, workspacesLoadError, refreshWorkspaces] =
     useWorkspacesByNamespace(selectedNamespace);
+
+  useActivityNotifications(workspaces);
 
   const tableRowActions = useWorkspaceRowActions([
     { id: 'viewDetails' },

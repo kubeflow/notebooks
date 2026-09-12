@@ -68,6 +68,10 @@ linters:
         limitations under the License.
     misspell:
       locale: US
+    modernize:
+      disable:
+        # Disable as this hides the API struct representation from devs
+        - embedlit
     revive:
       rules:
         - name: comment-spacings

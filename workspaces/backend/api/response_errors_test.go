@@ -18,6 +18,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -145,6 +146,39 @@ var _ = Describe("Error Response Functions", func() {
 				Expect(envelope.Error.ErrorResponse).To(Equal(expectedErrorResponse))
 			})
 		}
+	})
+
+	Describe("internalConflictResponse", func() {
+		const testRevisionConflictMsg = "current workspace revision does not match request"
+
+		var httpStatusCodeConflictStr = strconv.Itoa(http.StatusConflict)
+
+		It("should return 409 with an internal conflict cause", func() {
+			err := errors.New(testRevisionConflictMsg)
+
+			app.internalConflictResponse(w, r, err)
+
+			Expect(w.Code).To(Equal(http.StatusConflict))
+
+			var envelope ErrorEnvelope
+			unmarshalErr := json.Unmarshal(w.Body.Bytes(), &envelope)
+			Expect(unmarshalErr).NotTo(HaveOccurred())
+			Expect(envelope.Error).NotTo(BeNil())
+
+			expectedErrorResponse := ErrorResponse{
+				Code:    httpStatusCodeConflictStr,
+				Message: testRevisionConflictMsg,
+				Cause: &ErrorCause{
+					ConflictCauses: []ConflictError{
+						{
+							Origin:  OriginInternal,
+							Message: testRevisionConflictMsg,
+						},
+					},
+				},
+			}
+			Expect(envelope.Error.ErrorResponse).To(Equal(expectedErrorResponse))
+		})
 	})
 
 	Describe("failedValidationResponse", func() {

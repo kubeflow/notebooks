@@ -1,4 +1,5 @@
 import {
+  ActivityRuleEntry,
   ImagePullPolicy,
   TolerationEntry,
   WorkspaceKindFormData,
@@ -197,6 +198,7 @@ export const EMPTY_WORKSPACE_KIND_FORM_DATA = {
     },
     extraVolumeMounts: [],
   },
+  activityRules: [],
 };
 export const emptyToleration = (): TolerationEntry => ({
   id: generateUniqueId(),
@@ -204,6 +206,32 @@ export const emptyToleration = (): TolerationEntry => ({
   key: '',
   value: '',
 });
+
+export const emptyActivityRule = (): ActivityRuleEntry => ({
+  id: generateUniqueId(),
+  config: {
+    secondsSinceActive: 3600,
+  },
+  effect: {
+    pauseWorkspace: true,
+  },
+});
+
+export const formatSeconds = (seconds: number): string => {
+  if (seconds >= 86400) {
+    const days = Math.round((seconds / 86400) * 4) / 4;
+    return `${days} day${days !== 1 ? 's' : ''}`;
+  }
+  if (seconds >= 3600) {
+    const hours = Math.round((seconds / 3600) * 4) / 4;
+    return `${hours} hour${hours !== 1 ? 's' : ''}`;
+  }
+  if (seconds >= 60) {
+    const minutes = Math.round((seconds / 60) * 4) / 4;
+    return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+  }
+  return `${seconds}s`;
+};
 
 const convertRedirectToApi = (
   redirect: WorkspaceKindPodConfigValue['redirect'],
@@ -227,6 +255,11 @@ export const convertFormDataToUpdate = (
   original: WorkspacekindsWorkspaceKindUpdate,
 ): WorkspacekindsWorkspaceKindUpdate => ({
   revision: original.revision,
+  activityRules: formData.activityRules?.map((rule) => ({
+    config: rule.config,
+    effect: rule.effect,
+    match: rule.match,
+  })),
   spawner: {
     displayName: formData.properties.displayName,
     description: formData.properties.description,

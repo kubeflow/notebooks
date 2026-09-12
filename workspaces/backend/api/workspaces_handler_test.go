@@ -908,7 +908,7 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(createdWorkspace.ObjectMeta.Name).To(Equal(workspaceName))
 			Expect(createdWorkspace.Spec.DisplayName).To(Equal(new(workspaceCreate.DisplayName)))
 			Expect(createdWorkspace.Spec.Kind).To(Equal(workspaceKindName))
-			Expect(createdWorkspace.Spec.Paused).To(Equal(&workspaceCreate.Paused))
+			Expect(createdWorkspace.Spec.Paused).To(Equal(workspaceCreate.Paused))
 			Expect(createdWorkspace.Spec.PodTemplate.PodMetadata.Labels).To(Equal(workspaceCreate.PodTemplate.PodMetadata.Labels))
 			Expect(createdWorkspace.Spec.PodTemplate.PodMetadata.Annotations).To(Equal(workspaceCreate.PodTemplate.PodMetadata.Annotations))
 			Expect(createdWorkspace.Spec.PodTemplate.Volumes.Home).To(Equal(workspaceCreate.PodTemplate.Volumes.Home))
@@ -1274,7 +1274,7 @@ var _ = Describe("Workspaces Handler", func() {
 
 			By("verifying all fields were applied")
 			Expect(updatedWorkspace.Spec.DisplayName).To(Equal(new("Updated Display Name")))
-			Expect(ptr.Deref(updatedWorkspace.Spec.Paused, false)).To(BeTrue())
+			Expect(updatedWorkspace.Spec.Paused).To(BeTrue())
 			Expect(updatedWorkspace.Spec.PodTemplate.PodMetadata.Labels).To(Equal(workspaceUpdate.PodTemplate.PodMetadata.Labels))
 			Expect(updatedWorkspace.Spec.PodTemplate.PodMetadata.Annotations).To(Equal(workspaceUpdate.PodTemplate.PodMetadata.Annotations))
 			Expect(updatedWorkspace.Spec.PodTemplate.Options.PodConfig).To(Equal("small_cpu"))
@@ -1493,6 +1493,15 @@ var _ = Describe("Workspaces Handler", func() {
 
 			By("verifying the HTTP response status code is 409")
 			Expect(rs.StatusCode).To(Equal(http.StatusConflict), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("verifying the error response includes an internal conflict cause")
+			var errorEnvelope ErrorEnvelope
+			Expect(json.Unmarshal(rr.Body.Bytes(), &errorEnvelope)).To(Succeed())
+			Expect(errorEnvelope.Error).NotTo(BeNil())
+			Expect(errorEnvelope.Error.Cause).NotTo(BeNil())
+			Expect(errorEnvelope.Error.Cause.ConflictCauses).To(HaveLen(1))
+			Expect(errorEnvelope.Error.Cause.ConflictCauses[0].Origin).To(Equal(OriginInternal))
+			Expect(errorEnvelope.Error.Cause.ConflictCauses[0].Message).NotTo(BeEmpty())
 
 			By("cleaning up the Workspace")
 			Expect(k8sClient.Delete(ctx, workspace)).To(Succeed())

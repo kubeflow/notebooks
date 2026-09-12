@@ -8,6 +8,10 @@ import {
   OptionsPodConfigValue,
   PvcsPVCCreate,
   PvcsPVCListItem,
+  ResourcesContainerResourceUsage,
+  ResourcesMetricsFromMetricsServer,
+  ResourcesResourceValues,
+  ResourcesWorkspaceResourceUsage,
   V1Beta1ImageConfigValue,
   V1Beta1OptionRedirect,
   V1Beta1PodConfigValue,
@@ -377,7 +381,7 @@ export const buildMockPodTemplate = (
 export const buildMockWorkspace = (
   workspace?: Partial<WorkspacesWorkspaceListItem>,
 ): WorkspacesWorkspaceListItem => ({
-  name: 'My First Jupyter Notebook',
+  name: 'my-first-jupyter-notebook',
   audit: {
     createdAt: new Date(2025, 5, 1).toISOString(),
     createdBy: 'test-user',
@@ -446,6 +450,14 @@ export const buildMockWorkspaceKind = (
       },
       annotations: {
         myWorkspaceKindAnnotation: 'my-value',
+      },
+    },
+    statefulSetMetadata: {
+      labels: {
+        myWorkspaceKindStatefulSetLabel: 'my-value',
+      },
+      annotations: {
+        myWorkspaceKindStatefulSetAnnotation: 'my-value',
       },
     },
     volumeMounts: {
@@ -698,6 +710,7 @@ export const buildMockWorkspaceKindUpdate = (
   listItem: WorkspacekindsWorkspaceKindListItem,
 ): WorkspacekindsWorkspaceKindUpdate => ({
   revision: '1',
+  activityRules: listItem.activityRules,
   spawner: {
     displayName: listItem.displayName,
     description: listItem.description,
@@ -728,7 +741,9 @@ export const buildMockWorkspaceKindUpdate = (
         protocol: V1Beta1ImagePortProtocol.ImagePortProtocolHTTP,
       },
     ],
-    serviceAccount: { name: 'default-editor' },
+    serviceAccount: {
+      clusterRoles: [],
+    },
     volumeMounts: listItem.podTemplate.volumeMounts,
   },
 });
@@ -789,7 +804,7 @@ export const buildMockWorkspaceList = (args: {
 
     workspaces.push(
       buildMockWorkspace({
-        name: `My Notebook ${i}`,
+        name: `my-notebook-${i}`,
         namespace: args.namespace,
         workspaceKind: args.kind,
         state,
@@ -861,7 +876,7 @@ export const buildMockWorkspaceCreate = (
   workspaceCreate?: Partial<WorkspacesWorkspaceCreate>,
 ): WorkspacesWorkspaceCreate => ({
   kind: 'jupyterlab',
-  name: 'My Notebook',
+  name: 'my-notebook',
   paused: false,
   podTemplate: buildMockPodTemplateMutate({}),
   ...workspaceCreate,
@@ -972,6 +987,44 @@ export const buildMockWorkspaceDetails = (
   ...details,
 });
 
+export const buildMockWorkspaceWithActivityWarning = (
+  workspace?: Partial<WorkspacesWorkspaceListItem>,
+): WorkspacesWorkspaceListItem =>
+  buildMockWorkspace({
+    state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+    activity: {
+      lastActivity: Date.now() - 10 * 60 * 1000,
+      lastUpdate: Date.now() - 10 * 60 * 1000,
+      rules: { pauseWorkspace: { eligibleAfter: Date.now() + 10 * 60 * 1000 } },
+    },
+    ...workspace,
+  });
+
+export const buildMockWorkspaceWithActivityCritical = (
+  workspace?: Partial<WorkspacesWorkspaceListItem>,
+): WorkspacesWorkspaceListItem =>
+  buildMockWorkspace({
+    state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+    activity: {
+      lastActivity: Date.now() - 20 * 60 * 1000,
+      lastUpdate: Date.now() - 20 * 60 * 1000,
+      rules: { pauseWorkspace: { eligibleAfter: Date.now() + 3 * 60 * 1000 } },
+    },
+    ...workspace,
+  });
+
+export const buildMockWorkspaceNoActivityRules = (
+  workspace?: Partial<WorkspacesWorkspaceListItem>,
+): WorkspacesWorkspaceListItem =>
+  buildMockWorkspace({
+    state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+    activity: {
+      lastActivity: Date.now() - 5 * 60 * 1000,
+      lastUpdate: Date.now() - 5 * 60 * 1000,
+    },
+    ...workspace,
+  });
+
 // The logs endpoint returns a raw text/plain stream, where every line is
 // prefixed with the RFC3339 timestamp added by the Kubernetes pod logs API.
 export const buildMockWorkspaceLogs = (lineCount = 5): string => {
@@ -981,3 +1034,39 @@ export const buildMockWorkspaceLogs = (lineCount = 5): string => {
     return `${timestamp} [INFO] jupyter server log line ${i + 1}`;
   }).join('\n');
 };
+
+export const buildMockMetricsResourceValues = (
+  overrides?: Partial<ResourcesResourceValues>,
+): ResourcesResourceValues => ({
+  cpu: '50m',
+  memory: '64Mi',
+  ...overrides,
+});
+
+export const buildMockMetricsFromMetricsServer = (
+  overrides?: Partial<ResourcesMetricsFromMetricsServer>,
+): ResourcesMetricsFromMetricsServer => ({
+  timestamp: '2025-07-01T12:00:00Z',
+  usage: buildMockMetricsResourceValues(),
+  ...overrides,
+});
+
+export const buildMockContainerResourceUsage = (
+  overrides?: Partial<ResourcesContainerResourceUsage>,
+): ResourcesContainerResourceUsage => ({
+  resources: {
+    requests: { cpu: '100m', memory: '128Mi' } as unknown as Record<string, never>,
+    limits: { cpu: '500m', memory: '512Mi' } as unknown as Record<string, never>,
+  },
+  metricsFromMetricsServer: buildMockMetricsFromMetricsServer(),
+  ...overrides,
+});
+
+export const buildMockWorkspaceResourceUsage = (
+  overrides?: Partial<ResourcesWorkspaceResourceUsage>,
+): ResourcesWorkspaceResourceUsage => ({
+  containers: {
+    main: buildMockContainerResourceUsage(),
+  },
+  ...overrides,
+});

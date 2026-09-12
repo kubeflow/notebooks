@@ -23,6 +23,9 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 )
 
 var (
@@ -38,6 +41,54 @@ func TestWorkspaceKinds(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "WorkspaceKinds Models Suite")
 }
+
+var _ = Describe("NewWorkspaceKindModelFromWorkspaceKind", func() {
+	It("initializes empty StatefulSetMetadata maps when the CRD field is nil", func() {
+		wsk := &kubefloworgv1beta1.WorkspaceKind{
+			ObjectMeta: metav1.ObjectMeta{Name: "no-metadata"},
+			Spec: kubefloworgv1beta1.WorkspaceKindSpec{
+				PodTemplate: kubefloworgv1beta1.WorkspaceKindPodTemplate{
+					PodMetadata:         nil,
+					StatefulSetMetadata: nil,
+				},
+			},
+		}
+
+		item, apiHide := NewWorkspaceKindModelFromWorkspaceKind(nil, wsk, nil)
+
+		Expect(apiHide).To(BeFalse())
+		Expect(item.PodTemplate.StatefulSetMetadata.Labels).NotTo(BeNil())
+		Expect(item.PodTemplate.StatefulSetMetadata.Labels).To(BeEmpty())
+		Expect(item.PodTemplate.StatefulSetMetadata.Annotations).NotTo(BeNil())
+		Expect(item.PodTemplate.StatefulSetMetadata.Annotations).To(BeEmpty())
+	})
+
+	It("copies StatefulSetMetadata maps without aliasing the CRD maps", func() {
+		wsk := &kubefloworgv1beta1.WorkspaceKind{
+			ObjectMeta: metav1.ObjectMeta{Name: "with-metadata"},
+			Spec: kubefloworgv1beta1.WorkspaceKindSpec{
+				PodTemplate: kubefloworgv1beta1.WorkspaceKindPodTemplate{
+					StatefulSetMetadata: &kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata{
+						Labels:      map[string]string{"my-sts-label": "my-value"},
+						Annotations: map[string]string{"my-sts-annotation": "my-value"},
+					},
+				},
+			},
+		}
+
+		item, apiHide := NewWorkspaceKindModelFromWorkspaceKind(nil, wsk, nil)
+
+		Expect(apiHide).To(BeFalse())
+		Expect(item.PodTemplate.StatefulSetMetadata.Labels).To(HaveKeyWithValue("my-sts-label", "my-value"))
+		Expect(item.PodTemplate.StatefulSetMetadata.Annotations).To(HaveKeyWithValue("my-sts-annotation", "my-value"))
+
+		// mutating the copied maps must not affect the source WorkspaceKind
+		item.PodTemplate.StatefulSetMetadata.Labels["my-sts-label"] = "mutated"
+		Expect(wsk.Spec.PodTemplate.StatefulSetMetadata.Labels["my-sts-label"]).To(Equal("my-value"))
+		item.PodTemplate.StatefulSetMetadata.Annotations["my-sts-annotation"] = "mutated"
+		Expect(wsk.Spec.PodTemplate.StatefulSetMetadata.Annotations["my-sts-annotation"]).To(Equal("my-value"))
+	})
+})
 
 var _ = Describe("buildActivityProbe", func() {
 	It("returns nil when probe is nil", func() {
@@ -143,5 +194,113 @@ var _ = Describe("buildActivityRules", func() {
 		Expect(apiRules[1].Config.MinRunningSeconds).To(Equal(int32(0)))
 		Expect(apiRules[1].Match).To(BeNil())
 		Expect(apiRules[1].Effect.PauseWorkspace).To(BeTrue())
+	})
+})
+
+var _ = Describe("NewWorkspaceKindModelFromWorkspaceKind", func() {
+	cfg := &config.EnvConfig{}
+
+	// newWSK builds a minimal WorkspaceKind with the given admin-set hidden flag and filterRules.
+	newWSK := func(hidden bool, rules []kubefloworgv1beta1.FilterRule) *kubefloworgv1beta1.WorkspaceKind {
+		return &kubefloworgv1beta1.WorkspaceKind{
+			ObjectMeta: metav1.ObjectMeta{Name: "test-wsk"},
+			Spec: kubefloworgv1beta1.WorkspaceKindSpec{
+				Spawner:     kubefloworgv1beta1.WorkspaceKindSpawner{Hidden: new(hidden)},
+				FilterRules: rules,
+			},
+		}
+	}
+
+	// wskRule builds a WORKSPACE_KIND-scoped rule that matches namespaces with the given labels.
+	wskRule := func(nsSelector map[string]string, effect kubefloworgv1beta1.FilterRuleEffect) kubefloworgv1beta1.FilterRule {
+		return kubefloworgv1beta1.FilterRule{
+			Scope:  kubefloworgv1beta1.FilterRuleScopeWorkspaceKind,
+			Effect: effect,
+			Match: []kubefloworgv1beta1.FilterRuleMatch{
+				{
+					MatchNamespace: &kubefloworgv1beta1.FilterRuleSelector{
+						Selector: metav1.LabelSelector{MatchLabels: nsSelector},
+					},
+				},
+			},
+		}
+	}
+
+	Context("admin listing (no namespaceFilter)", func() {
+		It("does not apply matchNamespace rules: hidden is admin-set and deny is not set", func() {
+			wsk := newWSK(true, []kubefloworgv1beta1.FilterRule{
+				wskRule(map[string]string{"tier": "prod"},
+					kubefloworgv1beta1.FilterRuleEffect{API: &kubefloworgv1beta1.FilterRuleEffectAPI{Deny: new(true)}}),
+			})
+
+			// namespaceLabels is nil, so the matchNamespace condition cannot fire => no deny
+			item, apiHide := NewWorkspaceKindModelFromWorkspaceKind(cfg, wsk, nil)
+
+			Expect(apiHide).To(BeFalse())
+			Expect(item.Hidden).To(BeTrue()) // admin-set value preserved
+			Expect(item.Restrictions.Deny).To(BeFalse())
+			Expect(item.Restrictions).To(BeComparableTo(common.DefaultRestrictions()))
+		})
+	})
+
+	Context("ui.hide via matchNamespace", func() {
+		It("merges admin-set hidden with the ui.hide effect (logical OR)", func() {
+			rules := []kubefloworgv1beta1.FilterRule{
+				wskRule(map[string]string{"tier": "prod"},
+					kubefloworgv1beta1.FilterRuleEffect{UI: &kubefloworgv1beta1.FilterRuleEffectUI{Hide: true}}),
+			}
+
+			By("hiding when the namespace labels match")
+			item, apiHide := NewWorkspaceKindModelFromWorkspaceKind(cfg, newWSK(false, rules), map[string]string{"tier": "prod"})
+			Expect(apiHide).To(BeFalse())
+			Expect(item.Hidden).To(BeTrue())
+
+			By("not hiding when the namespace labels do not match")
+			item, _ = NewWorkspaceKindModelFromWorkspaceKind(cfg, newWSK(false, rules), map[string]string{"tier": "dev"})
+			Expect(item.Hidden).To(BeFalse())
+
+			By("still hidden when admin-set even though the rule does not match")
+			item, _ = NewWorkspaceKindModelFromWorkspaceKind(cfg, newWSK(true, rules), map[string]string{"tier": "dev"})
+			Expect(item.Hidden).To(BeTrue())
+		})
+	})
+
+	Context("api.hide via matchNamespace", func() {
+		It("signals the WorkspaceKind should be omitted from the response", func() {
+			rules := []kubefloworgv1beta1.FilterRule{
+				wskRule(map[string]string{"tier": "prod"},
+					kubefloworgv1beta1.FilterRuleEffect{API: &kubefloworgv1beta1.FilterRuleEffectAPI{Hide: new(true)}}),
+			}
+
+			item, apiHide := NewWorkspaceKindModelFromWorkspaceKind(cfg, newWSK(false, rules), map[string]string{"tier": "prod"})
+			Expect(apiHide).To(BeTrue())
+			Expect(item).To(BeComparableTo(WorkspaceKindListItem{}))
+		})
+	})
+
+	Context("api.deny via matchNamespace", func() {
+		It("populates restrictions with deny and denyMessage", func() {
+			rules := []kubefloworgv1beta1.FilterRule{
+				wskRule(map[string]string{"tier": "prod"},
+					kubefloworgv1beta1.FilterRuleEffect{
+						API: &kubefloworgv1beta1.FilterRuleEffectAPI{
+							Deny:        new(true),
+							DenyMessage: &kubefloworgv1beta1.FilterRuleDenyMessage{Text: "not allowed in prod"},
+						},
+					}),
+			}
+
+			By("denying when the namespace labels match")
+			item, apiHide := NewWorkspaceKindModelFromWorkspaceKind(cfg, newWSK(false, rules), map[string]string{"tier": "prod"})
+			Expect(apiHide).To(BeFalse())
+			Expect(item.Restrictions).To(BeComparableTo(common.Restrictions{
+				Deny:        true,
+				DenyMessage: &common.DenyMessage{Text: "not allowed in prod"},
+			}))
+
+			By("not denying when the namespace labels do not match")
+			item, _ = NewWorkspaceKindModelFromWorkspaceKind(cfg, newWSK(false, rules), map[string]string{"tier": "dev"})
+			Expect(item.Restrictions).To(BeComparableTo(common.DefaultRestrictions()))
+		})
 	})
 })

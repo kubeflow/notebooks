@@ -1,4 +1,6 @@
+import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
 import {
+  WorkspacesActivityRules,
   WorkspacesOptionLabel,
   WorkspacesWorkspaceListItem,
   V1Beta1WorkspaceState,
@@ -143,6 +145,61 @@ export const hasWorkspacePendingUpdate = (
 
 // For now, label keys will be showed as they are in the backend.
 export const formatLabelKey = (key: string): string => key;
+
+export const ACTIVITY_ACTION_MESSAGES: Record<keyof WorkspacesActivityRules, string> = {
+  pauseWorkspace: 'paused',
+};
+
+export enum ActivityWarningLevel {
+  None = 'none',
+  Warning = 'warning',
+  Critical = 'critical',
+}
+
+const ACTIVITY_WARNING_THRESHOLD_MS = 15 * 60 * 1000;
+const ACTIVITY_CRITICAL_THRESHOLD_MS = 5 * 60 * 1000;
+
+export type ActivityStatus = {
+  warningLevel: ActivityWarningLevel;
+  timeRemainingMs: number | null;
+  actionMessage: string | null;
+};
+
+export const getActivityStatus = (workspace: WorkspacesWorkspaceListItem): ActivityStatus => {
+  const { rules } = workspace.activity;
+  const isRunning = workspace.state === V1Beta1WorkspaceState.WorkspaceStateRunning;
+
+  let actionMessage: string | null = null;
+  if (rules) {
+    for (const key of Object.keys(ACTIVITY_ACTION_MESSAGES) as (keyof WorkspacesActivityRules)[]) {
+      if (rules[key]) {
+        actionMessage = ACTIVITY_ACTION_MESSAGES[key];
+        break;
+      }
+    }
+  }
+
+  const eligibleAfter = rules?.pauseWorkspace?.eligibleAfter;
+  const timeRemainingMs = isRunning && eligibleAfter != null ? eligibleAfter - Date.now() : null;
+
+  let warningLevel = ActivityWarningLevel.None;
+  if (timeRemainingMs != null) {
+    if (timeRemainingMs <= ACTIVITY_CRITICAL_THRESHOLD_MS) {
+      warningLevel = ActivityWarningLevel.Critical;
+    } else if (timeRemainingMs <= ACTIVITY_WARNING_THRESHOLD_MS) {
+      warningLevel = ActivityWarningLevel.Warning;
+    }
+  }
+
+  return { warningLevel, timeRemainingMs, actionMessage };
+};
+
+export const formatTimeRemaining = (ms: number): string => {
+  if (ms <= 0) {
+    return 'less than a minute';
+  }
+  return formatDistanceToNow(new Date(Date.now() + ms));
+};
 
 // Check if a label represents version/package information
 export const isPackageLabel = (key: string): boolean => key.endsWith('Version');

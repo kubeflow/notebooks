@@ -142,6 +142,7 @@ func (a *App) PodTemplateOptionsListValuesHandler(w http.ResponseWriter, r *http
 			return
 		}
 		a.serverErrorResponse(w, r, err)
+		return
 	}
 
 	responseEnvelope := &PodTemplateOptionsEnvelope{Data: listValuesResponse}
