@@ -608,6 +608,19 @@ spec:
                 - key: "gpu"
                   value: "1"
             spec:
+              ## metadata applied only to Workspaces that select this podConfig (MUTABLE)
+              ##  - layered over the WorkspaceKind-level `podMetadata` / `statefulSetMetadata`,
+              ##    winning on key conflicts; controller-owned keys always win
+              ##  - useful for routing a specific tier to a Kueue LocalQueue, tagging spot
+              ##    capacity with a cost center, etc.
+              # podMetadata:
+              #   labels:
+              #     kueue.x-k8s.io/queue-name: "gpu-queue"
+              #   annotations:
+              #     cost-center: "research-gpu"
+              # statefulSetMetadata:
+              #   labels:
+              #     cost-center: "research-gpu"
               affinity: {}
               nodeSelector: {}
               resources:
