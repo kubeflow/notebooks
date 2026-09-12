@@ -249,6 +249,99 @@ var _ = Describe("Workspace Controller", func() {
 		})
 	})
 
+	Context("When the selected podConfig changes", Serial, Ordered, func() {
+		var (
+			workspaceName     string
+			workspaceKindName string
+			workspaceKey      types.NamespacedName
+		)
+
+		// podTemplateLabels lists the current Pod-template labels of the Workspace's StatefulSet.
+		podTemplateLabels := func() (map[string]string, error) {
+			stsList := &appsv1.StatefulSetList{}
+			if err := k8sClient.List(ctx, stsList, client.InNamespace(namespaceName), client.MatchingLabels{workspaceNameLabel: workspaceName}); err != nil {
+				return nil, err
+			}
+			if len(stsList.Items) != 1 {
+				return nil, fmt.Errorf("expected exactly 1 StatefulSet, got %d", len(stsList.Items))
+			}
+			return stsList.Items[0].Spec.Template.Labels, nil
+		}
+
+		BeforeAll(func() {
+			uniqueName := fmt.Sprintf("ws-podconfig-switch-%d", time.Now().UnixNano())
+			workspaceName = fmt.Sprintf("workspace-%s", uniqueName)
+			workspaceKindName = fmt.Sprintf("workspacekind-%s", uniqueName)
+			workspaceKey = types.NamespacedName{Name: workspaceName, Namespace: namespaceName}
+
+			By("creating a WorkspaceKind whose tiny_cpu and small_cpu podConfigs carry distinct podMetadata")
+			workspaceKind := NewExampleWorkspaceKind1(workspaceKindName)
+			pods := workspaceKind.Spec.PodTemplate.Options.PodConfig.Values
+			for i := range pods {
+				switch pods[i].Id {
+				case "tiny_cpu":
+					pods[i].Spec.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+						Labels: map[string]string{"tier": "tiny", "tiny-exclusive": "yes"},
+					}
+				case "small_cpu":
+					pods[i].Spec.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+						Labels: map[string]string{"tier": "small"},
+					}
+				}
+			}
+			Expect(k8sClient.Create(ctx, workspaceKind)).To(Succeed())
+
+			By("creating a Workspace that selects tiny_cpu")
+			workspace := NewExampleWorkspace1(workspaceName, namespaceName, workspaceKindName)
+			Expect(k8sClient.Create(ctx, workspace)).To(Succeed())
+		})
+
+		AfterAll(func() {
+			By("deleting the StatefulSet")
+			stsList := &appsv1.StatefulSetList{}
+			if err := k8sClient.List(ctx, stsList, client.InNamespace(namespaceName), client.MatchingLabels{workspaceNameLabel: workspaceName}); err == nil {
+				for i := range stsList.Items {
+					_ = k8sClient.Delete(ctx, &stsList.Items[i])
+				}
+			}
+
+			By("deleting the Workspace")
+			_ = k8sClient.Delete(ctx, &kubefloworgv1beta1.Workspace{
+				ObjectMeta: metav1.ObjectMeta{Name: workspaceName, Namespace: namespaceName},
+			})
+
+			By("deleting the WorkspaceKind")
+			_ = k8sClient.Delete(ctx, &kubefloworgv1beta1.WorkspaceKind{
+				ObjectMeta: metav1.ObjectMeta{Name: workspaceKindName},
+			})
+		})
+
+		It("re-derives Pod metadata on the live StatefulSet when the selected podConfig changes", func() {
+			By("waiting for the StatefulSet to carry the tiny_cpu podMetadata")
+			Eventually(podTemplateLabels, timeout, interval).Should(SatisfyAll(
+				HaveKeyWithValue("tier", "tiny"),
+				HaveKeyWithValue("tiny-exclusive", "yes"),
+			))
+
+			By("switching the Workspace's selected podConfig to small_cpu")
+			workspace := &kubefloworgv1beta1.Workspace{}
+			Expect(k8sClient.Get(ctx, workspaceKey, workspace)).To(Succeed())
+			patch := client.MergeFrom(workspace.DeepCopy())
+			workspace.Spec.PodTemplate.Options.PodConfig = "small_cpu"
+			Expect(k8sClient.Patch(ctx, workspace, patch)).To(Succeed())
+
+			By("observing the StatefulSet gain the small_cpu key and drop the tiny_cpu-only key")
+			Eventually(podTemplateLabels, timeout, interval).Should(SatisfyAll(
+				HaveKeyWithValue("tier", "small"), // added by the newly-selected podConfig
+				Not(HaveKey("tiny-exclusive")),    // contributed only by the previous podConfig, now removed
+			))
+			By("keeping the controller-owned label authoritative throughout")
+			labels, err := podTemplateLabels()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(labels).To(HaveKeyWithValue(workspaceNameLabel, workspaceName))
+		})
+	})
+
 	Context("When activity rules pause an inactive Workspace", Serial, Ordered, func() {
 		var (
 			workspaceName     string
@@ -972,6 +1065,34 @@ var _ = Describe("Workspace Controller", func() {
 
 			By("checking the key contributed only by the first podConfig is absent from the second")
 			Expect(statefulSetB.Spec.Template.Labels).NotTo(HaveKey("tier"))
+		})
+
+		It("should union annotations across layers and prefer the podConfig on key conflicts", func() {
+			By("setting overlapping and distinct annotations at the WorkspaceKind and podConfig levels")
+			workspaceKind.Spec.PodTemplate.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+				Annotations: map[string]string{"origin": "workspacekind", "wk-only": "yes"},
+			}
+			workspaceKind.Spec.PodTemplate.StatefulSetMetadata = &kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata{
+				Annotations: map[string]string{"origin": "workspacekind", "wk-only": "yes"},
+			}
+			podConfigSpec.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+				Annotations: map[string]string{"origin": "podconfig", "pod-only": "yes"},
+			}
+			podConfigSpec.StatefulSetMetadata = &kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata{
+				Annotations: map[string]string{"cost-center": "research"},
+			}
+			statefulSet, err := generateStatefulSet(workspace, workspaceKind, imageConfigSpec, podConfigSpec, generateServiceAccountName(workspace.Name))
+			Expect(err).NotTo(HaveOccurred())
+
+			By("checking the Pod template annotations are the union, with the podConfig winning on conflicts")
+			Expect(statefulSet.Spec.Template.Annotations).To(HaveKeyWithValue("origin", "podconfig")) // podConfig wins
+			Expect(statefulSet.Spec.Template.Annotations).To(HaveKeyWithValue("wk-only", "yes"))      // WorkspaceKind-only, preserved
+			Expect(statefulSet.Spec.Template.Annotations).To(HaveKeyWithValue("pod-only", "yes"))     // podConfig-only
+
+			By("checking the StatefulSet annotations union a WorkspaceKind key with a distinct podConfig key")
+			Expect(statefulSet.Annotations).To(HaveKeyWithValue("origin", "workspacekind")) // WorkspaceKind value survives (no podConfig conflict)
+			Expect(statefulSet.Annotations).To(HaveKeyWithValue("wk-only", "yes"))
+			Expect(statefulSet.Annotations).To(HaveKeyWithValue("cost-center", "research")) // podConfig-only
 		})
 	})
 })
