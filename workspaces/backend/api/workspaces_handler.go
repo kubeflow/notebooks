@@ -255,7 +255,8 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 			return
 		}
 		if errors.Is(err, repository.ErrWorkspaceAlreadyExists) {
-			a.conflictResponse(w, r, err, nil)
+			causes := helper.StatusCausesFromAPIStatus(err)
+			a.conflictResponse(w, r, err, causes)
 			return
 		}
 		if apierrors.IsInvalid(err) {
@@ -267,7 +268,7 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 			a.failedValidationResponse(w, r, errMsgInternalValidation, helper.FieldErrorsFromInternalValidationError(err), nil)
 			return
 		}
-		a.serverErrorResponse(w, r, err)
+		a.serverErrorResponse(w, r, fmt.Errorf("error creating workspace: %w", err))
 		return
 	}
 
