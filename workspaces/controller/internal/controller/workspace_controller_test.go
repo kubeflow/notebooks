@@ -877,7 +877,45 @@ var _ = Describe("Workspace Controller", func() {
 				},
 			}
 		})
-		It("should return Unknown while the StatefulSet generation is not observed", func() {
+
+		It("should return Paused when the StatefulSet is nil and there is no Pod", func() {
+			state, message, result, err := reconciler.generateWorkspaceState(
+				context.Background(),
+				logr.Discard(),
+				true,
+				nil,
+				nil,
+			)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).To(Equal(ctrl.Result{}))
+			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStatePaused))
+			Expect(message).To(Equal(stateMsgPaused))
+		})
+		It("should return Running when the StatefulSet is nil and the Pod is running", func() {
+			pod.Status.Phase = corev1.PodRunning
+			pod.Status.Conditions = []corev1.PodCondition{
+				{
+					Type:   corev1.PodReady,
+					Status: corev1.ConditionTrue,
+				},
+			}
+
+			state, message, result, err := reconciler.generateWorkspaceState(
+				context.Background(),
+				logr.Discard(),
+				false,
+				nil,
+				pod,
+			)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).To(Equal(ctrl.Result{}))
+			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateRunning))
+			Expect(message).To(Equal(stateMsgRunning))
+		})
+
+		It("should return Unknown while the StatefulSet's observedGeneration is behind its generation", func() {
 			statefulSet.Generation = 2
 			statefulSet.Status.ObservedGeneration = 1
 
@@ -895,7 +933,7 @@ var _ = Describe("Workspace Controller", func() {
 			Expect(message).To(Equal(stateMsgWaitingForKubernetesToReconcileStatefulSet))
 		})
 
-		It("should return Unknown when the StatefulSet observed generation is ahead of its generation", func() {
+		It("should return Unknown while the StatefulSet's observedGeneration is ahead of its generation", func() {
 			statefulSet.Generation = 1
 			statefulSet.Status.ObservedGeneration = 2
 
@@ -913,7 +951,7 @@ var _ = Describe("Workspace Controller", func() {
 			Expect(message).To(Equal(stateMsgWaitingForKubernetesToReconcileStatefulSet))
 		})
 
-		It("should return Unknown while the StatefulSet generation is not observed and there is no Pod", func() {
+		It("should return Unknown while the StatefulSet's observedGeneration is behind its generation and there is no Pod", func() {
 			statefulSet.Generation = 2
 			statefulSet.Status.ObservedGeneration = 1
 
@@ -930,7 +968,7 @@ var _ = Describe("Workspace Controller", func() {
 			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateUnknown))
 			Expect(message).To(Equal(stateMsgWaitingForKubernetesToReconcileStatefulSet))
 		})
-		It("should return Unknown while the StatefulSet generation is not observed even when paused", func() {
+		It("should return Unknown while the StatefulSet's observedGeneration is behind its generation even when paused", func() {
 			statefulSet.Generation = 2
 			statefulSet.Status.ObservedGeneration = 1
 

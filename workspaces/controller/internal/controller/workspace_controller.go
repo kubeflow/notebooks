@@ -1558,14 +1558,20 @@ func generateWorkspacePodStatus(pod *corev1.Pod) kubefloworgv1beta1.WorkspacePod
 	return podStatus
 }
 
-// isStatefulSetGenerationObserved returns true when the StatefulSet status
-// reflects its current metadata generation.
-func isStatefulSetGenerationObserved(statefulSet *appsv1.StatefulSet) bool {
+// hasReconciliationLag returns true when the observed generation
+// does not match the object's current generation.
+func hasReconciliationLag(obj metav1.Object, observedGeneration int64) bool {
+	return observedGeneration != obj.GetGeneration()
+}
+
+// statefulSetHasReconciliationLag reports whether the StatefulSet
+// has not yet been reconciled to its current generation.
+func statefulSetHasReconciliationLag(statefulSet *appsv1.StatefulSet) bool {
 	if statefulSet == nil {
-		return true
+		return false
 	}
 
-	return statefulSet.Status.ObservedGeneration == statefulSet.Generation
+	return hasReconciliationLag(&statefulSet.ObjectMeta, statefulSet.Status.ObservedGeneration)
 }
 
 // generateWorkspaceState gets current state and stateMessage for a Workspace
@@ -1573,7 +1579,7 @@ func (r *WorkspaceReconciler) generateWorkspaceState(ctx context.Context, log lo
 	state := kubefloworgv1beta1.WorkspaceStateUnknown
 	stateMessage := stateMsgUnknown
 
-	if !isStatefulSetGenerationObserved(statefulSet) {
+	if statefulSetHasReconciliationLag(statefulSet) {
 		return kubefloworgv1beta1.WorkspaceStateUnknown,
 			stateMsgWaitingForKubernetesToReconcileStatefulSet,
 			ctrl.Result{},
