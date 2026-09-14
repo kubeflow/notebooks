@@ -7,6 +7,7 @@ import { mockPodConfig } from '~/__mocks__/mockResources';
 import { WorkspaceKindFormData, WorkspaceKindPodConfigValue, ImagePullPolicy } from '~/app/types';
 import {
   WorkspacekindsWorkspaceKindUpdate,
+  V1Beta1FilterRuleScope,
   V1Beta1WorkspaceKindAssetMediaType,
   V1PullPolicy,
   V1ResourceList,
@@ -263,6 +264,27 @@ describe('convertFormDataToUpdate', () => {
     expect(pod.spec.nodeSelector).toEqual({ 'kubernetes.io/os': 'linux' });
   });
 
+  it('should preserve non-form top-level fields from original via spreading', () => {
+    const original = buildMockApiUpdate();
+
+    (original as unknown as Record<string, unknown>).futureApiField = {
+      enabled: true,
+      nested: {
+        value: 'preserve-me',
+      },
+    };
+
+    const formData = buildMockFormData();
+    const result = convertFormDataToUpdate(formData, original);
+
+    expect((result as unknown as Record<string, unknown>).futureApiField).toEqual({
+      enabled: true,
+      nested: {
+        value: 'preserve-me',
+      },
+    });
+  });
+
   it('should preserve non-form fields from original via spreading', () => {
     const original = buildMockApiUpdate();
     // Add a non-form field to a pod config spec
@@ -508,5 +530,36 @@ describe('convertFormDataToUpdate', () => {
     const result = convertFormDataToUpdate(formData, original);
 
     expect(result.activityRules).toEqual([]);
+  });
+
+  it('should preserve filterRules from the original update', () => {
+    const original = buildMockApiUpdate({
+      filterRules: [
+        {
+          scope: V1Beta1FilterRuleScope.FilterRuleScopeWorkspaceKind,
+          effect: {
+            ui: {
+              hide: true,
+            },
+          },
+          match: [
+            {
+              matchNamespace: {
+                selector: {
+                  matchLabels: {
+                    team: 'team_1',
+                  },
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const formData = buildMockFormData();
+    const result = convertFormDataToUpdate(formData, original);
+
+    expect(result.filterRules).toEqual(original.filterRules);
   });
 });
