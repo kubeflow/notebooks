@@ -300,6 +300,34 @@ var _ = Describe("Workspace Webhook", func() {
 			newWorkspace.Spec.PodTemplate.Options.PodConfig = validPodConfig
 			Expect(k8sClient.Patch(ctx, newWorkspace, patch)).To(Succeed())
 		})
+
+		It("should handle updates to a Workspace which already has the `orphan` finalizer", func() {
+			By("creating a Workspace which already has the `orphan` finalizer")
+			preexistingName := fmt.Sprintf("%s-preexisting", workspaceName)
+			preexistingKey := types.NamespacedName{Name: preexistingName, Namespace: namespaceName}
+			CreateWorkspaceWithOrphanFinalizer(preexistingName, namespaceName, workspaceKindName)
+
+			By("getting the Workspace")
+			workspace := &kubefloworgv1beta1.Workspace{}
+			Expect(k8sClient.Get(ctx, preexistingKey, workspace)).To(Succeed())
+			Expect(workspace.Finalizers).To(ContainElement(metav1.FinalizerOrphanDependents))
+			patch := client.MergeFrom(workspace.DeepCopy())
+
+			By("updating an unrelated field while the `orphan` finalizer is still present")
+			newWorkspace := workspace.DeepCopy()
+			newWorkspace.Spec.Paused = true
+			Expect(k8sClient.Patch(ctx, newWorkspace, patch)).To(Succeed())
+
+			By("removing the `orphan` finalizer")
+			Expect(k8sClient.Get(ctx, preexistingKey, workspace)).To(Succeed())
+			patch = client.MergeFrom(workspace.DeepCopy())
+			newWorkspace = workspace.DeepCopy()
+			newWorkspace.Finalizers = nil
+			Expect(k8sClient.Patch(ctx, newWorkspace, patch)).To(Succeed())
+
+			By("deleting the Workspace")
+			Expect(k8sClient.Delete(ctx, workspace)).To(Succeed())
+		})
 	})
 
 	Context("When orphan-deleting a Workspace", Ordered, func() {
@@ -416,9 +444,9 @@ var _ = Describe("Workspace Webhook", func() {
 			}
 
 			By("failing to delete the Workspace")
-			err = dynamicClient.Resource(workspaceGVR).Namespace(namespaceName).Delete(ctx, workspaceName, metav1.DeleteOptions{
-				OrphanDependents: new(true),
-			})
+			deleteOptions := metav1.DeleteOptions{}
+			deleteOptions.OrphanDependents = new(true) //nolint:staticcheck
+			err = dynamicClient.Resource(workspaceGVR).Namespace(namespaceName).Delete(ctx, workspaceName, deleteOptions)
 			Expect(err).NotTo(Succeed())
 			Expect(err.Error()).To(ContainSubstring("orphan deletion is not permitted for Workspaces"))
 
