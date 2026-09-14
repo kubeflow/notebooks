@@ -26,9 +26,11 @@ import (
 	"testing"
 	"time"
 
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -176,6 +178,54 @@ var _ = AfterSuite(func() {
 	err := testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())
 })
+
+// CreateWorkspaceWithOrphanFinalizer creates a Workspace which already has the "orphan" finalizer.
+// Such a Workspace can only exist if it predates the webhook, because both CREATE and UPDATE reject
+// the finalizer, so the webhook is briefly pointed away from the object while it is seeded.
+func CreateWorkspaceWithOrphanFinalizer(name, namespace, workspaceKindName string) {
+	GinkgoHelper()
+
+	const bypassLabel = "webhook-bypass-for-test"
+
+	setObjectSelector := func(selector *metav1.LabelSelector) {
+		webhookConfig := &admissionregistrationv1.ValidatingWebhookConfiguration{}
+		webhookKey := types.NamespacedName{Name: "workspaces-validating-webhook-configuration"}
+		Expect(k8sClient.Get(ctx, webhookKey, webhookConfig)).To(Succeed())
+		patch := client.MergeFrom(webhookConfig.DeepCopy())
+		newWebhookConfig := webhookConfig.DeepCopy()
+		for i := range newWebhookConfig.Webhooks {
+			if newWebhookConfig.Webhooks[i].Name == "vworkspace.kb.io" {
+				newWebhookConfig.Webhooks[i].ObjectSelector = selector
+			}
+		}
+		Expect(k8sClient.Patch(ctx, newWebhookConfig, patch)).To(Succeed())
+	}
+
+	By("pointing the webhook away from objects with the bypass label")
+	setObjectSelector(&metav1.LabelSelector{
+		MatchExpressions: []metav1.LabelSelectorRequirement{
+			{Key: bypassLabel, Operator: metav1.LabelSelectorOpDoesNotExist},
+		},
+	})
+	defer setObjectSelector(&metav1.LabelSelector{})
+
+	By("creating the Workspace with the `orphan` finalizer")
+	workspace := NewExampleWorkspace(name, namespace, workspaceKindName)
+	workspace.Labels = map[string]string{bypassLabel: "true"}
+	workspace.Finalizers = []string{metav1.FinalizerOrphanDependents}
+
+	// the API server caches webhook configs, so the change takes a moment to take effect
+	Eventually(func() error {
+		return k8sClient.Create(ctx, workspace.DeepCopy())
+	}, time.Second*10, time.Millisecond*250).Should(Succeed())
+
+	By("removing the bypass label, so the Workspace is validated again")
+	Expect(k8sClient.Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, workspace)).To(Succeed())
+	patch := client.MergeFrom(workspace.DeepCopy())
+	newWorkspace := workspace.DeepCopy()
+	newWorkspace.Labels = nil
+	Expect(k8sClient.Patch(ctx, newWorkspace, patch)).To(Succeed())
+}
 
 // NewExampleWorkspaceKind returns the common "WorkspaceKind" object used in tests.
 func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
