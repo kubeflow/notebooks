@@ -40,6 +40,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+	"github.com/kubeflow/notebooks/workspaces/controller/internal/auth"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/config"
 	controllerInternal "github.com/kubeflow/notebooks/workspaces/controller/internal/controller"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
@@ -196,9 +197,15 @@ func main() {
 	// +kubebuilder:scaffold:builder
 
 	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+		reqAuthZ, err := auth.NewRequestAuthorizer(mgr.GetConfig(), mgr.GetHTTPClient())
+		if err != nil {
+			setupLog.Error(err, "unable to create request authorizer")
+			os.Exit(1)
+		}
 		if err = (&webhookInternal.WorkspaceValidator{
-			Client: mgr.GetClient(),
-			Scheme: mgr.GetScheme(),
+			Client:       mgr.GetClient(),
+			Scheme:       mgr.GetScheme(),
+			RequestAuthZ: reqAuthZ,
 		}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "Workspace")
 			os.Exit(1)

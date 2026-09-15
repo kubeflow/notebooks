@@ -45,6 +45,7 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+	"github.com/kubeflow/notebooks/workspaces/controller/internal/auth"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
 
@@ -134,10 +135,15 @@ var _ = BeforeSuite(func() {
 	err = helper.SetupManagerFieldIndexers(k8sManager, envConfig)
 	Expect(err).NotTo(HaveOccurred())
 
+	By("setting up the request authorizer")
+	reqAuthZ, err := auth.NewRequestAuthorizer(k8sManager.GetConfig(), k8sManager.GetHTTPClient())
+	Expect(err).NotTo(HaveOccurred())
+
 	By("setting up the Workspace webhook")
 	err = (&WorkspaceValidator{
-		Client: k8sManager.GetClient(),
-		Scheme: k8sManager.GetScheme(),
+		Client:       k8sManager.GetClient(),
+		Scheme:       k8sManager.GetScheme(),
+		RequestAuthZ: reqAuthZ,
 	}).SetupWebhookWithManager(k8sManager)
 	Expect(err).NotTo(HaveOccurred())
 

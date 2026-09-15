@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 
-	authzv1 "k8s.io/api/authorization/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -29,6 +28,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/apiserver/pkg/authorization/authorizer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -44,7 +45,8 @@ const roleBindingsResource = "rolebindings"
 // WorkspaceValidator validates a Workspace object
 type WorkspaceValidator struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme       *runtime.Scheme
+	RequestAuthZ authorizer.Authorizer
 }
 
 // +kubebuilder:webhook:path=/validate-kubeflow-org-v1beta1-workspace,mutating=false,failurePolicy=fail,sideEffects=None,groups=kubeflow.org,resources=workspaces,verbs=create;update,versions=v1beta1,name=vworkspace.kb.io,admissionReviewVersions=v1,serviceName=workspaces-webhook-service
@@ -293,33 +295,32 @@ func (v *WorkspaceValidator) validateServiceAccountRoles(ctx context.Context, ol
 // "admin" and "kubeflow-admin" roles.
 // REFERENCE: https://github.com/kubeflow/notebooks/issues/1257
 func (v *WorkspaceValidator) authorizeRoleBindingVerb(ctx context.Context, req *admission.Request, namespace, verb string, rolesPath *field.Path, roleNames []string) *field.Error {
-	extra := make(map[string]authzv1.ExtraValue, len(req.UserInfo.Extra))
+	extra := make(map[string][]string, len(req.UserInfo.Extra))
 	for k, val := range req.UserInfo.Extra {
-		extra[k] = authzv1.ExtraValue(val)
+		extra[k] = val
 	}
 
-	sar := &authzv1.SubjectAccessReview{
-		Spec: authzv1.SubjectAccessReviewSpec{
-			User:   req.UserInfo.Username,
+	attributes := authorizer.AttributesRecord{
+		User: &user.DefaultInfo{
+			Name:   req.UserInfo.Username,
 			UID:    req.UserInfo.UID,
 			Groups: req.UserInfo.Groups,
 			Extra:  extra,
-			ResourceAttributes: &authzv1.ResourceAttributes{
-				Namespace: namespace,
-				Verb:      verb,
-				Group:     rbacv1.GroupName,
-				Resource:  roleBindingsResource,
-			},
 		},
+		Namespace:       namespace,
+		Verb:            verb,
+		APIGroup:        rbacv1.GroupName,
+		Resource:        roleBindingsResource,
+		ResourceRequest: true,
 	}
-	if err := v.Create(ctx, sar); err != nil {
+	decision, reason, err := v.RequestAuthZ.Authorize(ctx, attributes)
+	if err != nil {
 		return field.InternalError(rolesPath, fmt.Errorf("unable to check if the caller can %s RoleBindings: %w", verb, err))
 	}
-	if sar.Status.Allowed {
+	if decision == authorizer.DecisionAllow {
 		return nil
 	}
 
-	reason := sar.Status.Reason
 	if reason == "" {
 		reason = "no RBAC policy matched"
 	}
