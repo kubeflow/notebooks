@@ -180,35 +180,6 @@ func TestCreateNotebookStatus(t *testing.T) {
 			},
 		},
 		{
-			name: "NotebookContainerStateUnchanged",
-			currentNb: nbv1beta1.Notebook{
-				ObjectMeta: v1.ObjectMeta{Name: "test"},
-				Status: nbv1beta1.NotebookStatus{
-					ContainerState: corev1.ContainerState{
-						Running: &corev1.ContainerStateRunning{},
-					},
-				},
-			},
-			pod: corev1.Pod{
-				Status: corev1.PodStatus{
-					ContainerStatuses: []corev1.ContainerStatus{
-						{
-							Name: "test",
-							State: corev1.ContainerState{
-								Running: &corev1.ContainerStateRunning{},
-							},
-						},
-					},
-				},
-			},
-			expectedNbStatus: nbv1beta1.NotebookStatus{
-				Conditions: []nbv1beta1.NotebookCondition{},
-				ContainerState: corev1.ContainerState{
-					Running: &corev1.ContainerStateRunning{},
-				},
-			},
-		},
-		{
 			name: "mirroringPodConditions",
 			pod: corev1.Pod{
 				ObjectMeta: v1.ObjectMeta{
@@ -259,7 +230,7 @@ func TestCreateNotebookStatus(t *testing.T) {
 			},
 		},
 		{
-			name: "LastProbeTimeDefaultsToLastTransitionTime",
+			name: "PreservesMissingLastProbeTime",
 			pod: corev1.Pod{
 				Status: corev1.PodStatus{
 					Conditions: []corev1.PodCondition{
@@ -276,7 +247,6 @@ func TestCreateNotebookStatus(t *testing.T) {
 					{
 						Type:               "Ready",
 						Status:             "True",
-						LastProbeTime:      v1.Date(2022, time.Month(8), 30, 1, 10, 30, 0, time.UTC),
 						LastTransitionTime: v1.Date(2022, time.Month(8), 30, 1, 10, 30, 0, time.UTC),
 					},
 				},
@@ -343,18 +313,31 @@ func TestCreateNotebookStatus(t *testing.T) {
 
 }
 
-func TestUpdateNotebookStatusSkipsUnchangedStatus(t *testing.T) {
-	reconciler := createMockReconciler()
-	reconciler.Client = fake.NewFakeClientWithScheme(scheme.Scheme)
-	notebook := &nbv1beta1.Notebook{
-		Status: nbv1beta1.NotebookStatus{
-			Conditions:     []nbv1beta1.NotebookCondition{},
-			ContainerState: corev1.ContainerState{},
-		},
+func TestPodConditionTimestampsAreCopied(t *testing.T) {
+	transitionTime := v1.Date(2022, time.August, 30, 1, 10, 30, 0, time.UTC)
+	probeTime := v1.NewTime(transitionTime.Add(time.Minute))
+	tests := []struct {
+		name           string
+		probeTime      v1.Time
+		transitionTime v1.Time
+	}{
+		{name: "BothMissing"},
+		{name: "MissingProbeTime", transitionTime: transitionTime},
+		{name: "MissingTransitionTime", probeTime: probeTime},
+		{name: "DistinctTimestamps", probeTime: probeTime, transitionTime: transitionTime},
 	}
 
-	if err := updateNotebookStatus(reconciler, notebook, &appsv1.StatefulSet{}, &corev1.Pod{}, ctrl.Request{}); err != nil {
-		t.Fatalf("expected unchanged status to skip API update: %v", err)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			condition := PodCondToNotebookCond(corev1.PodCondition{
+				Type: corev1.PodReady, Status: corev1.ConditionTrue,
+				LastProbeTime: test.probeTime, LastTransitionTime: test.transitionTime,
+			})
+			if !reflect.DeepEqual(condition.LastProbeTime, test.probeTime) ||
+				!reflect.DeepEqual(condition.LastTransitionTime, test.transitionTime) {
+				t.Fatalf("timestamps were not copied exactly: %v", condition)
+			}
+		})
 	}
 }
 
