@@ -71,7 +71,7 @@ func NewApp(
 	app := &App{
 		Config:               cfg,
 		logger:               logger,
-		repositories:         repositories.NewRepositories(cfg, cl, configMapClient, clientset),
+		repositories:         repositories.NewRepositories(cfg, cl, configMapClient, clientset, logger),
 		Scheme:               scheme,
 		StrictYamlSerializer: yamlSerializerInfo.StrictSerializer,
 		RequestAuthN:         reqAuthN,

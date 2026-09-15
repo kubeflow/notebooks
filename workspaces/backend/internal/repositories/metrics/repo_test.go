@@ -20,6 +20,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"log/slog"
+	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -32,13 +36,16 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/cache"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
+	restfake "k8s.io/client-go/rest/fake"
 	metricsv1beta1 "k8s.io/metrics/pkg/apis/metrics/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -80,7 +87,7 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 				&corev1.PodList{Items: []corev1.Pod{*pod}},
 			).Build()
 
-		repo := newTestMetricsRepository(client, true, resourceUsageCacheMaxCapacity)
+		repo := newTestMetricsRepository(client, true, resourceUsageCacheMaxCapacity, defaultResourceUsageNegativeCacheTTL, defaultMetricsQueryTimeout)
 		got, err := repo.GetWorkspaceResourceUsage(ctx, "default", "test-workspace")
 		expected := models.ContainerResourceUsage{
 			MetricsFromMetricsServer: &models.MetricsFromMetricsServer{
@@ -115,7 +122,7 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 				&corev1.PodList{Items: []corev1.Pod{*pod}},
 			).Build()
 
-		repo := newTestMetricsRepository(client, true, resourceUsageCacheMaxCapacity)
+		repo := newTestMetricsRepository(client, true, resourceUsageCacheMaxCapacity, defaultResourceUsageNegativeCacheTTL, defaultMetricsQueryTimeout)
 		got, err := repo.GetWorkspaceResourceUsage(ctx, "default", "test-workspace")
 		expected := models.ContainerResourceUsage{
 			MetricsFromMetricsServer: nil,
@@ -139,7 +146,7 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 			WithLists(&corev1.PodList{Items: []corev1.Pod{}}).
 			Build()
 
-		repo := newTestMetricsRepository(client, true, resourceUsageCacheMaxCapacity)
+		repo := newTestMetricsRepository(client, true, resourceUsageCacheMaxCapacity, defaultResourceUsageNegativeCacheTTL, defaultMetricsQueryTimeout)
 		got, err := repo.GetWorkspaceResourceUsage(ctx, "default", "no-such-workspace")
 
 		Expect(err).To(MatchError(repoCommon.ErrWorkspaceNotFound))
@@ -154,7 +161,7 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 				&corev1.PodList{Items: []corev1.Pod{}},
 			).Build()
 
-		repo := newTestMetricsRepository(client, true, resourceUsageCacheMaxCapacity)
+		repo := newTestMetricsRepository(client, true, resourceUsageCacheMaxCapacity, defaultResourceUsageNegativeCacheTTL, defaultMetricsQueryTimeout)
 		got, err := repo.GetWorkspaceResourceUsage(ctx, "default", "test-workspace")
 
 		Expect(err).To(MatchError(repoCommon.ErrWorkspacePodNotRunning))
@@ -172,7 +179,7 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 			WithLists(&corev1.PodList{Items: []corev1.Pod{*pod}}).
 			Build()
 
-		repo := newTestMetricsRepository(client, false, resourceUsageCacheMaxCapacity)
+		repo := newTestMetricsRepository(client, false, resourceUsageCacheMaxCapacity, defaultResourceUsageNegativeCacheTTL, defaultMetricsQueryTimeout)
 		got, err := repo.GetWorkspaceResourceUsage(ctx, "default", "test-workspace")
 		expected := models.ContainerResourceUsage{
 			MetricsFromMetricsServer: nil,
@@ -208,7 +215,7 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 			}).
 			Build()
 
-		repo := newTestMetricsRepository(client, true, resourceUsageCacheMaxCapacity)
+		repo := newTestMetricsRepository(client, true, resourceUsageCacheMaxCapacity, defaultResourceUsageNegativeCacheTTL, defaultMetricsQueryTimeout)
 		got, err := repo.GetWorkspaceResourceUsage(ctx, "default", "test-workspace")
 		expected := models.ContainerResourceUsage{
 			MetricsFromMetricsServer: nil,
@@ -244,7 +251,7 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 			}).
 			Build()
 
-		repo := newTestMetricsRepository(client, true, resourceUsageCacheMaxCapacity)
+		repo := newTestMetricsRepository(client, true, resourceUsageCacheMaxCapacity, defaultResourceUsageNegativeCacheTTL, defaultMetricsQueryTimeout)
 		got, err := repo.GetWorkspaceResourceUsage(ctx, "default", "test-workspace")
 		expected := models.ContainerResourceUsage{
 			MetricsFromMetricsServer: nil,
@@ -280,7 +287,7 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 			}).
 			Build()
 
-		repo := newTestMetricsRepository(client, true, resourceUsageCacheMaxCapacity)
+		repo := newTestMetricsRepository(client, true, resourceUsageCacheMaxCapacity, defaultResourceUsageNegativeCacheTTL, defaultMetricsQueryTimeout)
 		got, err := repo.GetWorkspaceResourceUsage(ctx, "default", "test-workspace")
 		expected := models.ContainerResourceUsage{
 			MetricsFromMetricsServer: nil,
@@ -319,10 +326,45 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 		canceledCtx, cancel := context.WithCancel(context.Background())
 		cancel()
 
-		repo := newTestMetricsRepository(client, true, resourceUsageCacheMaxCapacity)
+		repo := newTestMetricsRepository(client, true, resourceUsageCacheMaxCapacity, defaultResourceUsageNegativeCacheTTL, defaultMetricsQueryTimeout)
 		_, err := repo.GetWorkspaceResourceUsage(canceledCtx, "default", "test-workspace")
 
 		Expect(err).To(MatchError(context.Canceled))
+	})
+
+	It("degrades to resource requests/limits and caches fallback when PodMetrics query times out", func() {
+		pod := workspacePod("pod-timeout", "container-timeout", corev1.ResourceList{
+			corev1.ResourceCPU: resource.MustParse("100m"),
+		})
+
+		client := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(testWorkspaceCR()).
+			WithLists(&corev1.PodList{Items: []corev1.Pod{*pod}}).
+			WithInterceptorFuncs(interceptor.Funcs{
+				Get: func(ctx context.Context, cli client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+					if _, isMetrics := obj.(*metricsv1beta1.PodMetrics); isMetrics {
+						<-ctx.Done()
+						return ctx.Err()
+					}
+					return cli.Get(ctx, key, obj, opts...)
+				},
+			}).
+			Build()
+
+		repo := newTestMetricsRepository(client, true, resourceUsageCacheMaxCapacity, defaultResourceUsageNegativeCacheTTL, 20*time.Millisecond)
+		cacheKey := fmt.Sprintf("default/test-workspace/%s", pod.UID)
+
+		got, err := repo.GetWorkspaceResourceUsage(ctx, "default", "test-workspace")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(got).NotTo(BeNil())
+		Expect(got.Containers["container-timeout"].MetricsFromMetricsServer).To(BeNil())
+		Expect(got.Containers["container-timeout"].Resources.Requests[corev1.ResourceCPU]).To(Equal(resource.MustParse("100m")))
+
+		// Ensure the fallback entry was cached
+		cached, inCache := repo.usageCache.Get(cacheKey)
+		Expect(inCache).To(BeTrue())
+		Expect(cached.(*models.WorkspaceResourceUsage).Containers["container-timeout"].MetricsFromMetricsServer).To(BeNil())
 	})
 
 	Context("with resource usage TTL cache", func() {
@@ -349,7 +391,7 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 				}).
 				Build()
 
-			repo := newTestMetricsRepository(client, true, resourceUsageCacheMaxCapacity)
+			repo := newTestMetricsRepository(client, true, resourceUsageCacheMaxCapacity, defaultResourceUsageNegativeCacheTTL, defaultMetricsQueryTimeout)
 
 			// First call (cache miss)
 			firstResult, err := repo.GetWorkspaceResourceUsage(ctx, "default", "test-workspace")
@@ -387,7 +429,7 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 				WithObjects(testWorkspaceCR(), pod1, metrics1).
 				Build()
 
-			repo := newTestMetricsRepository(fakeCli, true, resourceUsageCacheMaxCapacity)
+			repo := newTestMetricsRepository(fakeCli, true, resourceUsageCacheMaxCapacity, defaultResourceUsageNegativeCacheTTL, defaultMetricsQueryTimeout)
 
 			// Query pod1 (populates cache with uid-pod-1)
 			firstResult, err := repo.GetWorkspaceResourceUsage(ctx, "default", "test-workspace")
@@ -408,7 +450,7 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 			Expect(secondResult.Containers["container-1"].MetricsFromMetricsServer.Usage.CPU).To(Equal("150m"))
 		})
 
-		It("does not cache when PodMetrics is unavailable so subsequent requests can pick up metrics", func() {
+		It("caches fallback response when PodMetrics is unavailable and overwrites when metrics arrive", func() {
 			pod := workspacePod("pod-nocache", "container-nocache", corev1.ResourceList{
 				corev1.ResourceCPU: resource.MustParse("100m"),
 			})
@@ -417,20 +459,41 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 				WithObjects(testWorkspaceCR(), pod).
 				Build()
 
-			repo := newTestMetricsRepository(fakeCli, true, resourceUsageCacheMaxCapacity)
+			repo := newTestMetricsRepository(fakeCli, true, resourceUsageCacheMaxCapacity, 10*time.Millisecond, defaultMetricsQueryTimeout)
 			cacheKey := fmt.Sprintf("default/test-workspace/%s", pod.UID)
 
+			// 1. Initial query: PodMetrics unavailable -> returns fallback and caches with 10ms TTL
 			got, err := repo.GetWorkspaceResourceUsage(ctx, "default", "test-workspace")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(got).NotTo(BeNil())
 			Expect(got.Containers["container-nocache"].MetricsFromMetricsServer).To(BeNil())
 
-			// Ensure nothing was cached
-			_, inCache := repo.usageCache.Get(cacheKey)
-			Expect(inCache).To(BeFalse())
+			cached, inCache := repo.usageCache.Get(cacheKey)
+			Expect(inCache).To(BeTrue())
+			Expect(cached.(*models.WorkspaceResourceUsage).Containers["container-nocache"].MetricsFromMetricsServer).To(BeNil())
+
+			// 2. Metrics arrive
+			metrics := workspacePodMetrics("pod-nocache", "container-nocache", corev1.ResourceList{
+				corev1.ResourceCPU: resource.MustParse("50m"),
+			})
+			Expect(fakeCli.Create(ctx, metrics)).To(Succeed())
+
+			// 3. Wait for 10ms negative TTL to expire naturally
+			time.Sleep(15 * time.Millisecond)
+
+			// 4. Query again: negative cache has expired -> fetches live metrics and overwrites cache
+			gotAfterScrape, err := repo.GetWorkspaceResourceUsage(ctx, "default", "test-workspace")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(gotAfterScrape.Containers["container-nocache"].MetricsFromMetricsServer).NotTo(BeNil())
+			Expect(gotAfterScrape.Containers["container-nocache"].MetricsFromMetricsServer.Usage.CPU).To(Equal("50m"))
+
+			// Ensure the cache entry is now overwritten with the positive metrics
+			updatedCached, inCache := repo.usageCache.Get(cacheKey)
+			Expect(inCache).To(BeTrue())
+			Expect(updatedCached.(*models.WorkspaceResourceUsage).Containers["container-nocache"].MetricsFromMetricsServer).NotTo(BeNil())
 		})
 
-		It("does not cache when PodMetrics has no container metrics so subsequent requests can pick up metrics", func() {
+		It("caches fallback response when PodMetrics has no container metrics", func() {
 			pod := workspacePod("pod-nocache-empty", "container-nocache-empty", corev1.ResourceList{
 				corev1.ResourceCPU: resource.MustParse("100m"),
 			})
@@ -446,7 +509,7 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 				WithObjects(testWorkspaceCR(), pod, emptyMetrics).
 				Build()
 
-			repo := newTestMetricsRepository(fakeCli, true, resourceUsageCacheMaxCapacity)
+			repo := newTestMetricsRepository(fakeCli, true, resourceUsageCacheMaxCapacity, defaultResourceUsageNegativeCacheTTL, defaultMetricsQueryTimeout)
 			cacheKey := fmt.Sprintf("default/test-workspace/%s", pod.UID)
 
 			got, err := repo.GetWorkspaceResourceUsage(ctx, "default", "test-workspace")
@@ -454,9 +517,10 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 			Expect(got).NotTo(BeNil())
 			Expect(got.Containers["container-nocache-empty"].MetricsFromMetricsServer).To(BeNil())
 
-			// Ensure nothing was cached
-			_, inCache := repo.usageCache.Get(cacheKey)
-			Expect(inCache).To(BeFalse())
+			// Ensure fallback entry was cached with short TTL
+			cached, inCache := repo.usageCache.Get(cacheKey)
+			Expect(inCache).To(BeTrue())
+			Expect(cached.(*models.WorkspaceResourceUsage).Containers["container-nocache-empty"].MetricsFromMetricsServer).To(BeNil())
 		})
 
 		It("evicts oldest entries when cache capacity is exceeded", func() {
@@ -496,7 +560,7 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 				Build()
 
 			// Create repository with capacity = 2
-			repo := newTestMetricsRepository(client, true, 2)
+			repo := newTestMetricsRepository(client, true, 2, defaultResourceUsageNegativeCacheTTL, defaultMetricsQueryTimeout)
 
 			// Query ws-1 (cache miss -> queries pod-1 metrics)
 			_, err := repo.GetWorkspaceResourceUsage(ctx, "default", "ws-1")
@@ -527,32 +591,84 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 })
 
 var _ = Describe("metricsAPIServed", func() {
-	It("reports served when the PodMetrics kind resolved", func() {
-		mapper := meta.NewDefaultRESTMapper([]schema.GroupVersion{metricsv1beta1.SchemeGroupVersion})
-		mapper.Add(metricsv1beta1.SchemeGroupVersion.WithKind("PodMetrics"), meta.RESTScopeNamespace)
-		c := fake.NewClientBuilder().WithRESTMapper(mapper).Build()
+	It("reports served when the metrics API is available", func() {
+		client := &restfake.RESTClient{
+			NegotiatedSerializer: scheme.Codecs.WithoutConversion(),
+			Resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Header:     map[string][]string{"Content-Type": {"application/json"}},
+				Body:       io.NopCloser(strings.NewReader(`{"kind":"APIResourceList"}`)),
+			},
+		}
+		d := &fakeDiscovery{client: client}
 
-		Expect(metricsAPIServed(c)).To(BeTrue())
+		served, err := metricsAPIServed(context.Background(), d)
+		Expect(served).To(BeTrue())
+		Expect(err).NotTo(HaveOccurred())
 	})
 
-	It("reports not served when the kind is absent", func() {
-		c := fake.NewClientBuilder().WithRESTMapper(meta.NewDefaultRESTMapper(nil)).Build()
+	It("reports not served when the metrics API is absent (404)", func() {
+		client := &restfake.RESTClient{
+			NegotiatedSerializer: scheme.Codecs.WithoutConversion(),
+			Resp: &http.Response{
+				StatusCode: http.StatusNotFound,
+				Header:     map[string][]string{"Content-Type": {"application/json"}},
+				Body:       io.NopCloser(strings.NewReader(`{"kind":"Status","apiVersion":"v1","status":"Failure","message":"the server could not find the requested resource","reason":"NotFound","code":404}`)),
+			},
+		}
+		d := &fakeDiscovery{client: client}
 
-		Expect(metricsAPIServed(c)).To(BeFalse())
+		served, err := metricsAPIServed(context.Background(), d)
+		Expect(served).To(BeFalse())
+		Expect(apierrors.IsNotFound(err)).To(BeTrue())
 	})
 
 	It("reports not served when discovery itself fails", func() {
 		discoveryErr := errors.New("the server is currently unable to handle the request")
-		c := fake.NewClientBuilder().WithRESTMapper(failingRESTMapper{err: discoveryErr}).Build()
+		client := &restfake.RESTClient{
+			NegotiatedSerializer: scheme.Codecs.WithoutConversion(),
+			Err:                  discoveryErr,
+		}
+		d := &fakeDiscovery{client: client}
 
-		Expect(metricsAPIServed(c)).To(BeFalse())
+		served, err := metricsAPIServed(context.Background(), d)
+		Expect(served).To(BeFalse())
+		Expect(err).To(MatchError(discoveryErr))
+	})
+
+	It("reports not served when call times out or context is canceled", func() {
+		client := &restfake.RESTClient{
+			NegotiatedSerializer: scheme.Codecs.WithoutConversion(),
+			Client: restfake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
+				<-req.Context().Done()
+				return nil, req.Context().Err()
+			}),
+		}
+		d := &fakeDiscovery{client: client}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+		defer cancel()
+
+		served, err := metricsAPIServed(ctx, d)
+		Expect(served).To(BeFalse())
+		Expect(errors.Is(err, context.DeadlineExceeded)).To(BeTrue())
+	})
+
+	It("reports not served when discovery client is nil", func() {
+		served, err := metricsAPIServed(context.Background(), nil)
+		Expect(served).To(BeFalse())
+		Expect(err).To(HaveOccurred())
 	})
 })
 
 var _ = Describe("memoize", func() {
+	fixedTTL := func(d time.Duration) func(error) time.Duration {
+		return func(error) time.Duration { return d }
+	}
+
 	It("calls the probe only once within the TTL", func() {
 		calls := 0
-		available := memoize(time.Minute, func() bool { calls++; return true })
+		available := memoize(func() (bool, error) { calls++; return true, nil }, fixedTTL(time.Minute))
 
 		Expect(available()).To(BeTrue())
 		Expect(available()).To(BeTrue())
@@ -561,7 +677,7 @@ var _ = Describe("memoize", func() {
 
 	It("caches a negative result", func() {
 		calls := 0
-		available := memoize(time.Minute, func() bool { calls++; return false })
+		available := memoize(func() (bool, error) { calls++; return false, errors.New("err") }, fixedTTL(time.Minute))
 
 		Expect(available()).To(BeFalse())
 		Expect(available()).To(BeFalse())
@@ -570,7 +686,7 @@ var _ = Describe("memoize", func() {
 
 	It("re-probes once the TTL has expired", func() {
 		calls := 0
-		available := memoize(time.Nanosecond, func() bool { calls++; return true })
+		available := memoize(func() (bool, error) { calls++; return true, nil }, fixedTTL(time.Nanosecond))
 
 		available()
 		time.Sleep(time.Millisecond)
@@ -581,7 +697,7 @@ var _ = Describe("memoize", func() {
 
 	It("picks up a change in underlying state after TTL", func() {
 		served := false
-		available := memoize(time.Nanosecond, func() bool { return served })
+		available := memoize(func() (bool, error) { return served, nil }, fixedTTL(time.Nanosecond))
 
 		Expect(available()).To(BeFalse())
 
@@ -591,13 +707,34 @@ var _ = Describe("memoize", func() {
 	})
 })
 
-type failingRESTMapper struct {
-	meta.RESTMapper
-	err error
+var _ = Describe("availabilityTTL", func() {
+	var repo *MetricsRepository
+
+	BeforeEach(func() {
+		repo = &MetricsRepository{logger: slog.New(slog.DiscardHandler)}
+	})
+
+	It("returns apiAvailabilityTTL when error is nil", func() {
+		Expect(repo.availabilityTTL(nil)).To(Equal(apiAvailabilityTTL))
+	})
+
+	It("returns apiAvailabilityTTL when error is a NotFound error", func() {
+		notFoundErr := apierrors.NewNotFound(schema.GroupResource{Group: "metrics.k8s.io", Resource: "v1beta1"}, "")
+		Expect(repo.availabilityTTL(notFoundErr)).To(Equal(apiAvailabilityTTL))
+	})
+
+	It("returns apiAvailabilityTransientTTL on transient errors", func() {
+		Expect(repo.availabilityTTL(errors.New("timeout or network error"))).To(Equal(apiAvailabilityTransientTTL))
+	})
+})
+
+type fakeDiscovery struct {
+	discovery.DiscoveryInterface
+	client rest.Interface
 }
 
-func (m failingRESTMapper) RESTMapping(gk schema.GroupKind, versions ...string) (*meta.RESTMapping, error) {
-	return nil, m.err
+func (f *fakeDiscovery) RESTClient() rest.Interface {
+	return f.client
 }
 
 // testWorkspaceCR is the Workspace the specs resolve usage for. GetWorkspaceResourceUsage
@@ -611,11 +748,26 @@ func testWorkspaceCR() *kubefloworgv1beta1.Workspace {
 	}
 }
 
-func newTestMetricsRepository(c client.Client, apiAvailable bool, cacheCapacity int) *MetricsRepository {
+func newTestMetricsRepository(
+	c client.Client,
+	apiAvailable bool,
+	cacheCapacity int,
+	negativeCacheTTL time.Duration,
+	queryTimeout time.Duration,
+) *MetricsRepository {
+	var usageCache *cache.LRUExpireCache
+	if cacheCapacity > 0 {
+		usageCache = cache.NewLRUExpireCache(cacheCapacity)
+	}
 	return &MetricsRepository{
-		client:       c,
-		apiAvailable: func() bool { return apiAvailable },
-		usageCache:   cache.NewLRUExpireCache(cacheCapacity),
+		client:           c,
+		logger:           slog.New(slog.DiscardHandler),
+		apiAvailable:     func() bool { return apiAvailable },
+		usageCache:       usageCache,
+		cacheTTL:         defaultResourceUsageCacheTTL,
+		negativeCacheTTL: negativeCacheTTL,
+		queryTimeout:     queryTimeout,
+		discoveryTimeout: defaultMetricsDiscoveryTimeout,
 	}
 }
 
