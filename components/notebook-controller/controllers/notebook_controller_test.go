@@ -230,6 +230,30 @@ func TestCreateNotebookStatus(t *testing.T) {
 			},
 		},
 		{
+			name: "PreservesMissingLastProbeTime",
+			pod: corev1.Pod{
+				Status: corev1.PodStatus{
+					Conditions: []corev1.PodCondition{
+						{
+							Type:               "Ready",
+							Status:             "True",
+							LastTransitionTime: v1.Date(2022, time.Month(8), 30, 1, 10, 30, 0, time.UTC),
+						},
+					},
+				},
+			},
+			expectedNbStatus: nbv1beta1.NotebookStatus{
+				Conditions: []nbv1beta1.NotebookCondition{
+					{
+						Type:               "Ready",
+						Status:             "True",
+						LastTransitionTime: v1.Date(2022, time.Month(8), 30, 1, 10, 30, 0, time.UTC),
+					},
+				},
+				ContainerState: corev1.ContainerState{},
+			},
+		},
+		{
 			name: "unschedulablePod",
 			pod: corev1.Pod{
 				ObjectMeta: v1.ObjectMeta{
@@ -287,6 +311,34 @@ func TestCreateNotebookStatus(t *testing.T) {
 		})
 	}
 
+}
+
+func TestPodConditionTimestampsAreCopied(t *testing.T) {
+	transitionTime := v1.Date(2022, time.August, 30, 1, 10, 30, 0, time.UTC)
+	probeTime := v1.NewTime(transitionTime.Add(time.Minute))
+	tests := []struct {
+		name           string
+		probeTime      v1.Time
+		transitionTime v1.Time
+	}{
+		{name: "BothMissing"},
+		{name: "MissingProbeTime", transitionTime: transitionTime},
+		{name: "MissingTransitionTime", probeTime: probeTime},
+		{name: "DistinctTimestamps", probeTime: probeTime, transitionTime: transitionTime},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			condition := PodCondToNotebookCond(corev1.PodCondition{
+				Type: corev1.PodReady, Status: corev1.ConditionTrue,
+				LastProbeTime: test.probeTime, LastTransitionTime: test.transitionTime,
+			})
+			if !reflect.DeepEqual(condition.LastProbeTime, test.probeTime) ||
+				!reflect.DeepEqual(condition.LastTransitionTime, test.transitionTime) {
+				t.Fatalf("timestamps were not copied exactly: %v", condition)
+			}
+		})
+	}
 }
 
 func createMockReconciler() *NotebookReconciler {
