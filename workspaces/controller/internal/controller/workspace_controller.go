@@ -81,32 +81,32 @@ const (
 	workspaceConnectPathTemplate = "/workspace/connect/%s/%s/%s/"
 
 	// state message formats for Workspace status
-	stateMsgErrorUnknownWorkspaceKind                  = "Workspace references unknown WorkspaceKind: %s"
-	stateMsgErrorInvalidImageConfig                    = "Workspace has invalid imageConfig: %s"
-	stateMsgErrorInvalidPodConfig                      = "Workspace has invalid podConfig: %s"
-	stateMsgErrorGenFailureStatefulSet                 = "Workspace failed to generate StatefulSet with error: %s"
-	stateMsgErrorGenFailureService                     = "Workspace failed to generate Service with error: %s"
-	stateMsgErrorGenFailureVirtualService              = "Workspace failed to generate VirtualService with error: %s"
-	stateMsgErrorMultipleStatefulSets                  = "Workspace owns multiple StatefulSets: %s"
-	stateMsgErrorMultipleServices                      = "Workspace owns multiple Services: %s"
-	stateMsgErrorMultipleServiceAccounts               = "Workspace owns multiple ServiceAccounts: %s"
-	stateMsgErrorServiceAccountNotOwned                = "Workspace ServiceAccount %s already exists and is not owned by the Workspace"
-	stateMsgErrorMultipleVirtualServices               = "Workspace owns multiple VirtualServices: %s"
-	stateMsgErrorSetControllerReference                = "Workspace failed to set controller reference on %s with error: %s"
-	stateMsgErrorStatefulSetWarningEvent               = "Workspace StatefulSet has warning event: %s"
-	stateMsgErrorPodUnschedulable                      = "Workspace Pod is unschedulable: %s"
-	stateMsgErrorPodSchedulingGate                     = "Workspace Pod is waiting for scheduling gate: %s"
-	stateMsgErrorPodSchedulerError                     = "Workspace Pod has scheduler error: %s"
-	stateMsgErrorPodWarningEvent                       = "Workspace Pod has warning event: %s"
-	stateMsgErrorContainerCrashLoopBackOff             = "Workspace Container is not running (CrashLoopBackOff)"
-	stateMsgErrorContainerImagePullBackOff             = "Workspace Container is not running (ImagePullBackOff)"
-	stateMsgPaused                                     = "Workspace is paused"
-	stateMsgPending                                    = "Workspace is pending"
-	stateMsgRunning                                    = "Workspace is running"
-	stateMsgTerminating                                = "Workspace is terminating"
-	stateMsgUnknown                                    = "Workspace is in an unknown state"
-	stateMsgWaitingForKubernetesToReconcileStatefulSet = "Waiting for Kubernetes to reconcile StatefulSet"
-	stateMsgWaitingForPodUpdate                        = "Waiting for Pod update"
+	stateMsgErrorUnknownWorkspaceKind      = "Workspace references unknown WorkspaceKind: %s"
+	stateMsgErrorInvalidImageConfig        = "Workspace has invalid imageConfig: %s"
+	stateMsgErrorInvalidPodConfig          = "Workspace has invalid podConfig: %s"
+	stateMsgErrorGenFailureStatefulSet     = "Workspace failed to generate StatefulSet with error: %s"
+	stateMsgErrorGenFailureService         = "Workspace failed to generate Service with error: %s"
+	stateMsgErrorGenFailureVirtualService  = "Workspace failed to generate VirtualService with error: %s"
+	stateMsgErrorMultipleStatefulSets      = "Workspace owns multiple StatefulSets: %s"
+	stateMsgErrorMultipleServices          = "Workspace owns multiple Services: %s"
+	stateMsgErrorMultipleServiceAccounts   = "Workspace owns multiple ServiceAccounts: %s"
+	stateMsgErrorServiceAccountNotOwned    = "Workspace ServiceAccount %s already exists and is not owned by the Workspace"
+	stateMsgErrorMultipleVirtualServices   = "Workspace owns multiple VirtualServices: %s"
+	stateMsgErrorSetControllerReference    = "Workspace failed to set controller reference on %s with error: %s"
+	stateMsgErrorStatefulSetWarningEvent   = "Workspace StatefulSet has warning event: %s"
+	stateMsgErrorPodUnschedulable          = "Workspace Pod is unschedulable: %s"
+	stateMsgErrorPodSchedulingGate         = "Workspace Pod is waiting for scheduling gate: %s"
+	stateMsgErrorPodSchedulerError         = "Workspace Pod has scheduler error: %s"
+	stateMsgErrorPodWarningEvent           = "Workspace Pod has warning event: %s"
+	stateMsgErrorContainerCrashLoopBackOff = "Workspace Container is not running (CrashLoopBackOff)"
+	stateMsgErrorContainerImagePullBackOff = "Workspace Container is not running (ImagePullBackOff)"
+	stateMsgPaused                         = "Workspace is paused"
+	stateMsgPending                        = "Workspace is pending"
+	stateMsgRunning                        = "Workspace is running"
+	stateMsgTerminating                    = "Workspace is terminating"
+	stateMsgUnknown                        = "Workspace is in an unknown state"
+	stateMsgWaitingStatefulSetReconcile    = "Waiting for Kubernetes to reconcile StatefulSet"
+	stateMsgWaitingPodUpdate               = "Waiting for Pod update"
 )
 
 // WorkspaceReconciler reconciles a Workspace object
@@ -1574,6 +1574,21 @@ func statefulSetHasReconciliationLag(statefulSet *appsv1.StatefulSet) bool {
 	return hasReconciliationLag(&statefulSet.ObjectMeta, statefulSet.Status.ObservedGeneration)
 }
 
+// statefulSetHasPendingPodUpdate reports whether the StatefulSet has rolled out
+// a new revision that the given Pod has not yet adopted. Returns false if
+// either input is nil, if the StatefulSet has not yet published an
+// UpdateRevision, or if the Pod is missing the controller-revision-hash label.
+func statefulSetHasPendingPodUpdate(ss *appsv1.StatefulSet, pod *corev1.Pod) bool {
+	if ss == nil || pod == nil {
+		return false
+	}
+	if ss.Status.UpdateRevision == "" {
+		return false
+	}
+
+	return pod.Labels[appsv1.StatefulSetRevisionLabel] != ss.Status.UpdateRevision
+}
+
 // generateWorkspaceState gets current state and stateMessage for a Workspace
 func (r *WorkspaceReconciler) generateWorkspaceState(ctx context.Context, log logr.Logger, paused bool, statefulSet *appsv1.StatefulSet, pod *corev1.Pod) (kubefloworgv1beta1.WorkspaceState, string, ctrl.Result, error) { //nolint:gocyclo
 	state := kubefloworgv1beta1.WorkspaceStateUnknown
@@ -1581,7 +1596,7 @@ func (r *WorkspaceReconciler) generateWorkspaceState(ctx context.Context, log lo
 
 	if statefulSetHasReconciliationLag(statefulSet) {
 		return kubefloworgv1beta1.WorkspaceStateUnknown,
-			stateMsgWaitingForKubernetesToReconcileStatefulSet,
+			stateMsgWaitingStatefulSetReconcile,
 			ctrl.Result{},
 			nil
 	}
@@ -1638,11 +1653,9 @@ func (r *WorkspaceReconciler) generateWorkspaceState(ctx context.Context, log lo
 			return state, stateMessage, ctrl.Result{}, nil
 		}
 
-		if statefulSet != nil &&
-			statefulSet.Status.UpdateRevision != "" &&
-			pod.Labels["controller-revision-hash"] != statefulSet.Status.UpdateRevision {
+		if statefulSetHasPendingPodUpdate(statefulSet, pod) {
 			return kubefloworgv1beta1.WorkspaceStatePending,
-				stateMsgWaitingForPodUpdate,
+				stateMsgWaitingPodUpdate,
 				ctrl.Result{},
 				nil
 		}
@@ -1730,7 +1743,6 @@ func (r *WorkspaceReconciler) generateWorkspaceState(ctx context.Context, log lo
 			log.Error(err, "unable to list Pod events")
 			return state, stateMessage, ctrl.Result{}, err
 		}
-
 		// find the last Pod warning event
 		var lastPodWarningEvent *corev1.Event
 		if len(podEvents.Items) > 0 {

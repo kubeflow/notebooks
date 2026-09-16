@@ -930,7 +930,7 @@ var _ = Describe("Workspace Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).To(Equal(ctrl.Result{}))
 			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateUnknown))
-			Expect(message).To(Equal(stateMsgWaitingForKubernetesToReconcileStatefulSet))
+			Expect(message).To(Equal(stateMsgWaitingStatefulSetReconcile))
 		})
 
 		It("should return Unknown while the StatefulSet's observedGeneration is ahead of its generation", func() {
@@ -948,7 +948,7 @@ var _ = Describe("Workspace Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).To(Equal(ctrl.Result{}))
 			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateUnknown))
-			Expect(message).To(Equal(stateMsgWaitingForKubernetesToReconcileStatefulSet))
+			Expect(message).To(Equal(stateMsgWaitingStatefulSetReconcile))
 		})
 
 		It("should return Unknown while the StatefulSet's observedGeneration is behind its generation and there is no Pod", func() {
@@ -966,7 +966,7 @@ var _ = Describe("Workspace Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).To(Equal(ctrl.Result{}))
 			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateUnknown))
-			Expect(message).To(Equal(stateMsgWaitingForKubernetesToReconcileStatefulSet))
+			Expect(message).To(Equal(stateMsgWaitingStatefulSetReconcile))
 		})
 		It("should return Unknown while the StatefulSet's observedGeneration is behind its generation even when paused", func() {
 			statefulSet.Generation = 2
@@ -983,7 +983,7 @@ var _ = Describe("Workspace Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).To(Equal(ctrl.Result{}))
 			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateUnknown))
-			Expect(message).To(Equal(stateMsgWaitingForKubernetesToReconcileStatefulSet))
+			Expect(message).To(Equal(stateMsgWaitingStatefulSetReconcile))
 		})
 		It("should return Paused once the StatefulSet generation is observed", func() {
 			state, message, result, err := reconciler.generateWorkspaceState(
@@ -1012,7 +1012,7 @@ var _ = Describe("Workspace Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).To(Equal(ctrl.Result{}))
 			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStatePending))
-			Expect(message).To(Equal(stateMsgWaitingForPodUpdate))
+			Expect(message).To(Equal(stateMsgWaitingPodUpdate))
 		})
 		It("should return Terminating for a terminating Pod even when its revision is outdated", func() {
 			pod.Labels["controller-revision-hash"] = "revision-old"
