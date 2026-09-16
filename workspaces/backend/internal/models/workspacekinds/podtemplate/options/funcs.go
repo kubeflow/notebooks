@@ -191,8 +191,8 @@ func buildPodConfigValues(wsk *kubefloworgv1beta1.WorkspaceKind, request *ListVa
 			Redirect:            buildOptionRedirect(value.Redirect),
 			ClusterMetrics:      buildClusterOptionMetrics(value.Id, optionMetricsMap),
 			Restrictions:        result.Restrictions,
-			PodMetadata:         buildPodConfigPodMetadata(value.Spec.PodMetadata),
-			StatefulSetMetadata: buildPodConfigStatefulSetMetadata(value.Spec.StatefulSetMetadata),
+			PodMetadata:         value.Spec.PodMetadata,
+			StatefulSetMetadata: value.Spec.StatefulSetMetadata,
 		})
 	}
 
@@ -243,26 +243,6 @@ func buildOptionRedirect(redirect *kubefloworgv1beta1.OptionRedirect) *OptionRed
 	return &OptionRedirect{
 		To:      redirect.To,
 		Message: message,
-	}
-}
-
-func buildPodConfigPodMetadata(podMetadata *kubefloworgv1beta1.WorkspaceKindPodMetadata) *PodMetadata {
-	if podMetadata == nil {
-		return nil
-	}
-	return &PodMetadata{
-		Labels:      podMetadata.Labels,
-		Annotations: podMetadata.Annotations,
-	}
-}
-
-func buildPodConfigStatefulSetMetadata(statefulSetMetadata *kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata) *StatefulSetMetadata {
-	if statefulSetMetadata == nil {
-		return nil
-	}
-	return &StatefulSetMetadata{
-		Labels:      statefulSetMetadata.Labels,
-		Annotations: statefulSetMetadata.Annotations,
 	}
 }
 

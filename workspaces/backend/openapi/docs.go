@@ -3015,7 +3015,7 @@ const docTemplate = `{
                     }
                 },
                 "podMetadata": {
-                    "$ref": "#/definitions/options.PodMetadata"
+                    "$ref": "#/definitions/v1beta1.WorkspaceKindPodMetadata"
                 },
                 "redirect": {
                     "$ref": "#/definitions/options.OptionRedirect"
@@ -3024,24 +3024,7 @@ const docTemplate = `{
                     "$ref": "#/definitions/common.Restrictions"
                 },
                 "statefulSetMetadata": {
-                    "$ref": "#/definitions/options.StatefulSetMetadata"
-                }
-            }
-        },
-        "options.PodMetadata": {
-            "type": "object",
-            "properties": {
-                "annotations": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                },
-                "labels": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
+                    "$ref": "#/definitions/v1beta1.WorkspaceKindStatefulSetMetadata"
                 }
             }
         },
@@ -3087,23 +3070,6 @@ const docTemplate = `{
                 "RedirectMessageLevelWarning",
                 "RedirectMessageLevelDanger"
             ]
-        },
-        "options.StatefulSetMetadata": {
-            "type": "object",
-            "properties": {
-                "annotations": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                },
-                "labels": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                }
-            }
         },
         "pvcs.PVCCreate": {
             "type": "object",

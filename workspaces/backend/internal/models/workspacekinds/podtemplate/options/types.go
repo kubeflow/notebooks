@@ -17,6 +17,8 @@ limitations under the License.
 package options
 
 import (
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 )
 
@@ -51,28 +53,16 @@ type PodConfig struct {
 }
 
 type PodConfigValue struct {
-	Id                  string                `json:"id"`
-	DisplayName         string                `json:"displayName"`
-	Description         string                `json:"description"`
-	Labels              []OptionLabel         `json:"labels,omitempty"`
-	Hidden              bool                  `json:"hidden"`
-	Redirect            *OptionRedirect       `json:"redirect,omitempty"`
-	ClusterMetrics      *ClusterOptionMetrics `json:"clusterMetrics,omitempty"`
-	Restrictions        common.Restrictions   `json:"restrictions"`
-	PodMetadata         *PodMetadata          `json:"podMetadata,omitempty"`
-	StatefulSetMetadata *StatefulSetMetadata  `json:"statefulSetMetadata,omitempty"`
-}
-
-// PodMetadata holds the labels and annotations applied to Workspace Pods when this podConfig is selected.
-type PodMetadata struct {
-	Labels      map[string]string `json:"labels,omitempty"`
-	Annotations map[string]string `json:"annotations,omitempty"`
-}
-
-// StatefulSetMetadata holds the labels and annotations applied to the Workspace StatefulSet when this podConfig is selected.
-type StatefulSetMetadata struct {
-	Labels      map[string]string `json:"labels,omitempty"`
-	Annotations map[string]string `json:"annotations,omitempty"`
+	Id                  string                                               `json:"id"`
+	DisplayName         string                                               `json:"displayName"`
+	Description         string                                               `json:"description"`
+	Labels              []OptionLabel                                        `json:"labels,omitempty"`
+	Hidden              bool                                                 `json:"hidden"`
+	Redirect            *OptionRedirect                                      `json:"redirect,omitempty"`
+	ClusterMetrics      *ClusterOptionMetrics                                `json:"clusterMetrics,omitempty"`
+	Restrictions        common.Restrictions                                  `json:"restrictions"`
+	PodMetadata         *kubefloworgv1beta1.WorkspaceKindPodMetadata         `json:"podMetadata,omitempty"`
+	StatefulSetMetadata *kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata `json:"statefulSetMetadata,omitempty"`
 }
 
 type OptionLabel struct {

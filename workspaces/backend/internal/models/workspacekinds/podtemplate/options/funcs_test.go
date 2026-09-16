@@ -450,12 +450,37 @@ var _ = Describe("NewPodTemplateOptionsModelFromWorkspaceKind", func() {
 
 			pod1 := podValueByID(opts, "pod1")
 			Expect(pod1).NotTo(BeNil())
-			Expect(pod1.PodMetadata).NotTo(BeNil())
-			Expect(pod1.PodMetadata.Labels).To(HaveKeyWithValue("pod-label", "pod-value"))
-			Expect(pod1.PodMetadata.Annotations).To(HaveKeyWithValue("pod-annotation", "pod-value"))
-			Expect(pod1.StatefulSetMetadata).NotTo(BeNil())
-			Expect(pod1.StatefulSetMetadata.Labels).To(HaveKeyWithValue("sts-label", "sts-value"))
-			Expect(pod1.StatefulSetMetadata.Annotations).To(HaveKeyWithValue("sts-annotation", "sts-value"))
+			Expect(pod1.PodMetadata).To(BeComparableTo(&kubefloworgv1beta1.WorkspaceKindPodMetadata{
+				Labels:      map[string]string{"pod-label": "pod-value"},
+				Annotations: map[string]string{"pod-annotation": "pod-value"},
+			}))
+			Expect(pod1.StatefulSetMetadata).To(BeComparableTo(&kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata{
+				Labels:      map[string]string{"sts-label": "sts-value"},
+				Annotations: map[string]string{"sts-annotation": "sts-value"},
+			}))
+		})
+
+		It("surfaces a partially-populated podMetadata and omits the empty map", func() {
+			pod := podConfigValue("pod1", false, nil)
+			pod.Spec.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+				Labels: map[string]string{"pod-label": "pod-value"},
+			}
+			wsk := newWorkspaceKind(
+				[]kubefloworgv1beta1.ImageConfigValue{imageConfigValue("img1", false, nil)},
+				[]kubefloworgv1beta1.PodConfigValue{pod},
+				nil,
+			)
+
+			opts, err := NewPodTemplateOptionsModelFromWorkspaceKind(wsk, &ListValuesRequest{}, nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			pod1 := podValueByID(opts, "pod1")
+			Expect(pod1).NotTo(BeNil())
+			Expect(pod1.PodMetadata).To(BeComparableTo(&kubefloworgv1beta1.WorkspaceKindPodMetadata{
+				Labels: map[string]string{"pod-label": "pod-value"},
+			}))
+			Expect(pod1.PodMetadata.Annotations).To(BeNil())
+			Expect(pod1.StatefulSetMetadata).To(BeNil())
 		})
 
 		It("omits the metadata when the podConfig does not set it", func() {
