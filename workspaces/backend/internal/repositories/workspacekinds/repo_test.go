@@ -18,21 +18,27 @@ package workspacekinds
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apiserver/pkg/authentication/user"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
+	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds"
 	modelsPodTemplateOptions "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/podtemplate/options"
 )
 
@@ -103,7 +109,7 @@ var _ = Describe("WorkspaceKindRepository.GetWorkspaceKinds", func() {
 	// newRepo builds a repository backed by a fake client seeded with the given objects.
 	newRepo := func(objs ...client.Object) *WorkspaceKindRepository {
 		cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objs...).Build()
-		return NewWorkspaceKindRepository(&config.EnvConfig{}, cl, cl)
+		return NewWorkspaceKindRepository(&config.EnvConfig{}, cl, cl, cl)
 	}
 
 	Context("no-namespaceFilter mode (admin listing)", func() {
@@ -218,5 +224,139 @@ var _ = Describe("WorkspaceKindRepository.GetWorkspaceKinds", func() {
 			Expect(fieldErrs).To(HaveLen(1))
 			Expect(fieldErrs[0].Field).To(Equal("context.namespace.name"))
 		})
+	})
+})
+
+var _ = Describe("WorkspaceKindRepository.UpdateWorkspaceKind", func() {
+	const wskName = "jupyterlab"
+
+	var (
+		ctx    context.Context
+		scheme *runtime.Scheme
+		actor  user.Info
+	)
+
+	BeforeEach(func() {
+		ctx = context.Background()
+		scheme = runtime.NewScheme()
+		Expect(kubefloworgv1beta1.AddToScheme(scheme)).To(Succeed())
+		actor = &user.DefaultInfo{Name: "test-admin"}
+	})
+
+	newWSK := func() *kubefloworgv1beta1.WorkspaceKind {
+		return &kubefloworgv1beta1.WorkspaceKind{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       wskName,
+				UID:        "test-wsk-uid",
+				Generation: 1,
+			},
+		}
+	}
+
+	buildClient := func(funcs interceptor.Funcs) client.WithWatch {
+		return fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(newWSK()).
+			WithInterceptorFuncs(funcs).
+			Build()
+	}
+
+	// the error the API server returns when `resourceVersion` does not match
+	conflictErr := func() error {
+		return apierrors.NewConflict(
+			schema.GroupResource{Group: kubefloworgv1beta1.GroupVersion.Group, Resource: "workspacekinds"},
+			wskName,
+			errors.New("the object has been modified"),
+		)
+	}
+
+	revisionOf := func(cl client.Reader) common.RevisionString {
+		stored := &kubefloworgv1beta1.WorkspaceKind{}
+		Expect(cl.Get(ctx, client.ObjectKey{Name: wskName}, stored)).To(Succeed())
+		return common.CalculateRevision(&stored.ObjectMeta)
+	}
+
+	It("retries a conflicting update and succeeds", func() {
+		attempts := 0
+		cl := buildClient(interceptor.Funcs{
+			Update: func(ctx context.Context, cli client.WithWatch, obj client.Object, opts ...client.UpdateOption) error {
+				attempts++
+				if attempts == 1 {
+					return conflictErr()
+				}
+				return cli.Update(ctx, obj, opts...)
+			},
+		})
+		repo := NewWorkspaceKindRepository(&config.EnvConfig{}, cl, cl, cl)
+
+		update := &models.WorkspaceKindUpdate{Revision: revisionOf(cl)}
+		result, err := repo.UpdateWorkspaceKind(ctx, actor, update, wskName)
+
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result).NotTo(BeNil())
+		Expect(attempts).To(Equal(2))
+	})
+
+	It("returns a kubernetes conflict once the retries are exhausted", func() {
+		// the handler keys off apierrors.IsConflict to return a retriable 503 instead of a 500
+		attempts := 0
+		cl := buildClient(interceptor.Funcs{
+			Update: func(ctx context.Context, cli client.WithWatch, obj client.Object, opts ...client.UpdateOption) error {
+				attempts++
+				return conflictErr()
+			},
+		})
+		repo := NewWorkspaceKindRepository(&config.EnvConfig{}, cl, cl, cl)
+
+		update := &models.WorkspaceKindUpdate{Revision: revisionOf(cl)}
+		_, err := repo.UpdateWorkspaceKind(ctx, actor, update, wskName)
+
+		Expect(apierrors.IsConflict(err)).To(BeTrue())
+		Expect(attempts).To(BeNumerically(">", 1))
+	})
+
+	It("rejects a stale caller revision without attempting a write", func() {
+		attempts := 0
+		cl := buildClient(interceptor.Funcs{
+			Update: func(ctx context.Context, cli client.WithWatch, obj client.Object, opts ...client.UpdateOption) error {
+				attempts++
+				return cli.Update(ctx, obj, opts...)
+			},
+		})
+		repo := NewWorkspaceKindRepository(&config.EnvConfig{}, cl, cl, cl)
+
+		update := &models.WorkspaceKindUpdate{Revision: "a-stale-revision"}
+		_, err := repo.UpdateWorkspaceKind(ctx, actor, update, wskName)
+
+		Expect(err).To(MatchError(ErrWorkspaceKindRevisionConflict))
+		Expect(apierrors.IsConflict(err)).To(BeFalse())
+		Expect(attempts).To(BeZero())
+	})
+
+	It("reads through the apiReader, not the cached client", func() {
+		// a cached read is what produces the stale resourceVersion, and would stall the retry loop
+		cachedGets, readerGets := 0, 0
+		countGets := func(n *int) interceptor.Funcs {
+			return interceptor.Funcs{
+				Get: func(ctx context.Context, cli client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+					if _, ok := obj.(*kubefloworgv1beta1.WorkspaceKind); ok {
+						*n++
+					}
+					return cli.Get(ctx, key, obj, opts...)
+				},
+			}
+		}
+		cachedClient := buildClient(countGets(&cachedGets))
+		apiReader := buildClient(countGets(&readerGets))
+		repo := NewWorkspaceKindRepository(&config.EnvConfig{}, cachedClient, apiReader, cachedClient)
+
+		update := &models.WorkspaceKindUpdate{Revision: revisionOf(apiReader)}
+		readerGets = 0 // discount the read above
+
+		_, err := repo.UpdateWorkspaceKind(ctx, actor, update, wskName)
+
+		Expect(err).NotTo(HaveOccurred())
+		Expect(readerGets).To(Equal(1))
+		Expect(cachedGets).To(BeZero())
 	})
 })
