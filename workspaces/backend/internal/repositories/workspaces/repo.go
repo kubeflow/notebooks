@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
@@ -83,6 +84,10 @@ func (e *WorkspaceKindRestrictedError) Error() string {
 type WorkspaceRepository struct {
 	cfg    *config.EnvConfig
 	client client.Client
+
+	// apiReader bypasses the informer cache, for read-modify-write operations
+	// where a stale read would make the write fail with a conflict
+	apiReader client.Reader
 }
 
 type wsMutationType string
@@ -92,10 +97,11 @@ const (
 	wsMutationTypeUpdate wsMutationType = "update"
 )
 
-func NewWorkspaceRepository(cfg *config.EnvConfig, cl client.Client) *WorkspaceRepository {
+func NewWorkspaceRepository(cfg *config.EnvConfig, cl client.Client, apiReader client.Reader) *WorkspaceRepository {
 	return &WorkspaceRepository{
-		cfg:    cfg,
-		client: cl,
+		cfg:       cfg,
+		client:    cl,
+		apiReader: apiReader,
 	}
 }
 
@@ -233,91 +239,102 @@ func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, actor user.In
 }
 
 func (r *WorkspaceRepository) UpdateWorkspace(ctx context.Context, actor user.Info, workspaceUpdate *models.WorkspaceUpdate, namespace, workspaceName string) (*models.WorkspaceUpdate, error) {
+	// NOTE: captured outside the retry loop, so the audit timestamp is stable across attempts
 	now := time.Now()
 
-	// get workspace
-	workspace := &kubefloworgv1beta1.Workspace{}
-	if err := r.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: workspaceName}, workspace); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil, repoCommon.ErrWorkspaceNotFound
+	var updated *kubefloworgv1beta1.Workspace
+
+	// the write is guarded by `resourceVersion`, which the controller bumps on every status write
+	// (activity probes, Pod events) without changing `metadata.generation`. those conflicts are not
+	// the caller's fault, so we retry instead of surfacing them.
+	//
+	// NOTE: the read MUST bypass the cache, or every attempt would re-read the same stale
+	//       object and the retry could never make progress
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		// get workspace
+		workspace := &kubefloworgv1beta1.Workspace{}
+		if err := r.apiReader.Get(ctx, client.ObjectKey{Namespace: namespace, Name: workspaceName}, workspace); err != nil {
+			if apierrors.IsNotFound(err) {
+				return repoCommon.ErrWorkspaceNotFound
+			}
+			return err
 		}
-		return nil, err
-	}
 
-	// ensure caller's revision matches current workspace revision
-	// prevents updates by callers with a stale view of the workspace
-	clusterRevision := modelsCommon.CalculateRevision(&workspace.ObjectMeta)
-	callerRevision := workspaceUpdate.Revision
-	if clusterRevision != callerRevision {
-		return nil, ErrWorkspaceRevisionConflict
-	}
+		// ensure caller's revision matches current workspace revision
+		// prevents updates by callers with a stale view of the workspace
+		// NOTE: the revision tracks `metadata.generation`, so status-only writes never invalidate it
+		clusterRevision := modelsCommon.CalculateRevision(&workspace.ObjectMeta)
+		callerRevision := workspaceUpdate.Revision
+		if clusterRevision != callerRevision {
+			// NOTE: not a kubernetes conflict, so this is returned without retrying
+			return ErrWorkspaceRevisionConflict
+		}
 
-	// get the WorkspaceKind referenced by this Workspace - required to evaluate its
-	// filterRules below. Any failure here (including the WorkspaceKind not existing)
-	// is a hard failure (root 500): we cannot evaluate filterRules without it.
-	workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
-	if err := r.client.Get(ctx, client.ObjectKey{Name: workspace.Spec.Kind}, workspaceKind); err != nil {
-		return nil, err
-	}
+		// get the WorkspaceKind referenced by this Workspace - required to evaluate its
+		// filterRules below. Any failure here (including the WorkspaceKind not existing)
+		// is a hard failure (root 500): we cannot evaluate filterRules without it.
+		workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
+		if err := r.client.Get(ctx, client.ObjectKey{Name: workspace.Spec.Kind}, workspaceKind); err != nil {
+			return err
+		}
 
-	// reject the request (403) if the WorkspaceKind itself is denied by
-	// a WORKSPACE_KIND-scoped filterRule for this namespace. Evaluated on every update,
-	// not just when imageConfig/podConfig changes, since the WorkspaceKind is fixed for
-	// the lifetime of the Workspace and isn't part of what's "changing" here.
-	namespaceLabels, err := r.resolveNamespaceLabels(ctx, namespace)
+		// reject the request (403) if the WorkspaceKind itself is denied by
+		// a WORKSPACE_KIND-scoped filterRule for this namespace. Evaluated on every update,
+		// not just when imageConfig/podConfig changes, since the WorkspaceKind is fixed for
+		// the lifetime of the Workspace and isn't part of what's "changing" here.
+		namespaceLabels, err := r.resolveNamespaceLabels(ctx, namespace)
+		if err != nil {
+			return err
+		}
+
+		if err := r.enforceWorkspaceKindFilterRules(workspaceKind, namespaceLabels, wsMutationTypeUpdate); err != nil {
+			return err
+		}
+
+		// only re-evaluate filterRules for an option that is actually changing - an
+		// unrelated update should not be blocked by a rule that started denying an option
+		// the workspace already has.
+		newOptions := workspaceUpdate.PodTemplate.Options
+		currentOptions := workspace.Spec.PodTemplate.Options
+
+		evalCtx := filterrules.BuildEvalContextForImageAndPodCfg(workspaceKind, namespaceLabels, newOptions.ImageConfig, newOptions.PodConfig)
+
+		filterErrs := make(field.ErrorList, 0, 2)
+		if newOptions.ImageConfig != currentOptions.ImageConfig {
+			filterErrs = append(filterErrs, r.enforceImageConfigFilterRule(workspaceKind, evalCtx, newOptions.ImageConfig)...)
+		}
+		if newOptions.PodConfig != currentOptions.PodConfig {
+			filterErrs = append(filterErrs, r.enforcePodConfigFilterRule(workspaceKind, evalCtx, newOptions.PodConfig)...)
+		}
+		if len(filterErrs) > 0 {
+			return helper.NewInternalValidationError(filterErrs)
+		}
+
+		// apply update model to workspace object
+		if err := models.ApplyWorkspaceUpdateModelToWorkspace(ctx, r.client, workspaceUpdate, workspace); err != nil {
+			return err
+		}
+
+		// set audit annotations
+		modelsCommon.UpdateObjectMetaForUpdate(&workspace.ObjectMeta, actor, now)
+
+		if err := r.client.Update(ctx, workspace); err != nil {
+			if apierrors.IsNotFound(err) {
+				return repoCommon.ErrWorkspaceNotFound
+			}
+			return err
+		}
+
+		updated = workspace
+		return nil
+	})
 	if err != nil {
+		// NOTE: we don't wrap these so the caller can unpack them: validation errors from the
+		//       Kubernetes API server, and conflicts which survived every retry
 		return nil, err
 	}
 
-	if err := r.enforceWorkspaceKindFilterRules(workspaceKind, namespaceLabels, wsMutationTypeUpdate); err != nil {
-		return nil, err
-	}
-
-	// only re-evaluate filterRules for an option that is actually changing - an
-	// unrelated update should not be blocked by a rule that started denying an option
-	// the workspace already has.
-	newOptions := workspaceUpdate.PodTemplate.Options
-	currentOptions := workspace.Spec.PodTemplate.Options
-
-	evalCtx := filterrules.BuildEvalContextForImageAndPodCfg(workspaceKind, namespaceLabels, newOptions.ImageConfig, newOptions.PodConfig)
-
-	filterErrs := make(field.ErrorList, 0, 2)
-	if newOptions.ImageConfig != currentOptions.ImageConfig {
-		filterErrs = append(filterErrs, r.enforceImageConfigFilterRule(workspaceKind, evalCtx, newOptions.ImageConfig)...)
-	}
-	if newOptions.PodConfig != currentOptions.PodConfig {
-		filterErrs = append(filterErrs, r.enforcePodConfigFilterRule(workspaceKind, evalCtx, newOptions.PodConfig)...)
-	}
-	if len(filterErrs) > 0 {
-		return nil, helper.NewInternalValidationError(filterErrs)
-	}
-
-	// apply update model to workspace object
-	if err := models.ApplyWorkspaceUpdateModelToWorkspace(ctx, r.client, workspaceUpdate, workspace); err != nil {
-		return nil, err
-	}
-
-	// set audit annotations
-	modelsCommon.UpdateObjectMetaForUpdate(&workspace.ObjectMeta, actor, now)
-
-	// TODO: if the update fails due to a kubernetes conflict, this implies our cache is stale.
-	//       we should wrap this operation in retry.RetryOnConflict to retry the entire update
-	//       (including re-fetching and recalculating clusterRevision) before returning a 500
-	//       error to the caller (DO NOT return a 409, as it's not the caller's fault)
-	if err := r.client.Update(ctx, workspace); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil, repoCommon.ErrWorkspaceNotFound
-		}
-		if apierrors.IsInvalid(err) {
-			// NOTE: we don't wrap this error so we can unpack it in the caller
-			//       and extract the validation errors returned by the Kubernetes API server
-			return nil, err
-		}
-		return nil, err
-	}
-
-	workspaceUpdateModel := models.NewWorkspaceUpdateModelFromWorkspace(workspace)
-	return workspaceUpdateModel, nil
+	return models.NewWorkspaceUpdateModelFromWorkspace(updated), nil
 }
 
 // resolveNamespaceLabels fetches the labels of the given namespace, used to evaluate
