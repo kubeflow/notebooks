@@ -846,4 +846,137 @@ var _ = Describe("Workspace Controller", func() {
 			Expect(statefulSet.Spec.Template.Spec.SchedulerName).To(Equal("podconfig-scheduler"))
 		})
 	})
+
+	Context("When re-adopting owned resources after Workspace recreation", Serial, Ordered, func() {
+		var (
+			workspaceName     string
+			workspaceKindName string
+			workspaceKey      types.NamespacedName
+		)
+
+		BeforeAll(func() {
+			uniqueName := fmt.Sprintf("ws-readopt-%d", time.Now().UnixNano())
+			workspaceName = fmt.Sprintf("workspace-%s", uniqueName)
+			workspaceKindName = fmt.Sprintf("workspacekind-%s", uniqueName)
+			workspaceKey = types.NamespacedName{Name: workspaceName, Namespace: namespaceName}
+
+			By("creating the WorkspaceKind")
+			workspaceKind := NewExampleWorkspaceKind1(workspaceKindName)
+			Expect(k8sClient.Create(ctx, workspaceKind)).To(Succeed())
+
+			By("creating the Workspace")
+			workspace := NewExampleWorkspace1(workspaceName, namespaceName, workspaceKindName)
+			Expect(k8sClient.Create(ctx, workspace)).To(Succeed())
+		})
+
+		AfterAll(func() {
+			By("deleting the Workspace")
+			workspace := &kubefloworgv1beta1.Workspace{
+				ObjectMeta: metav1.ObjectMeta{Name: workspaceName, Namespace: namespaceName},
+			}
+			_ = k8sClient.Delete(ctx, workspace)
+
+			By("deleting the WorkspaceKind")
+			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
+				ObjectMeta: metav1.ObjectMeta{Name: workspaceKindName},
+			}
+			_ = k8sClient.Delete(ctx, workspaceKind)
+		})
+
+		It("should update controller references when owned resources retain an old Workspace UID", func() {
+			workspace := &kubefloworgv1beta1.Workspace{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, workspaceKey, workspace)
+			}, timeout, interval).Should(Succeed())
+
+			statefulSetList := &appsv1.StatefulSetList{}
+			Eventually(func() ([]appsv1.StatefulSet, error) {
+				err := k8sClient.List(ctx, statefulSetList, client.InNamespace(namespaceName), client.MatchingLabels{workspaceNameLabel: workspaceName})
+				if err != nil {
+					return nil, err
+				}
+				return statefulSetList.Items, nil
+			}, timeout, interval).Should(HaveLen(1))
+
+			serviceList := &corev1.ServiceList{}
+			Eventually(func() ([]corev1.Service, error) {
+				err := k8sClient.List(ctx, serviceList, client.InNamespace(namespaceName), client.MatchingLabels{workspaceNameLabel: workspaceName})
+				if err != nil {
+					return nil, err
+				}
+				return serviceList.Items, nil
+			}, timeout, interval).Should(HaveLen(1))
+
+			currentSts := &statefulSetList.Items[0]
+			currentSvc := &serviceList.Items[0]
+
+			Expect(metav1.IsControlledBy(currentSts, workspace)).To(BeTrue())
+			Expect(metav1.IsControlledBy(currentSvc, workspace)).To(BeTrue())
+
+			By("simulating old Workspace controller reference on StatefulSet and Service")
+			oldUID := types.UID("old-workspace-uid-12345")
+			isController := true
+			blockOwnerDeletion := true
+
+			stsPatch := client.MergeFrom(currentSts.DeepCopy())
+			currentSts.OwnerReferences = []metav1.OwnerReference{
+				{
+					APIVersion:         kubefloworgv1beta1.GroupVersion.String(),
+					Kind:               "Workspace",
+					Name:               workspaceName,
+					UID:                oldUID,
+					Controller:         &isController,
+					BlockOwnerDeletion: &blockOwnerDeletion,
+				},
+			}
+			Expect(k8sClient.Patch(ctx, currentSts, stsPatch)).To(Succeed())
+
+			svcPatch := client.MergeFrom(currentSvc.DeepCopy())
+			currentSvc.OwnerReferences = []metav1.OwnerReference{
+				{
+					APIVersion:         kubefloworgv1beta1.GroupVersion.String(),
+					Kind:               "Workspace",
+					Name:               workspaceName,
+					UID:                oldUID,
+					Controller:         &isController,
+					BlockOwnerDeletion: &blockOwnerDeletion,
+				},
+			}
+			Expect(k8sClient.Patch(ctx, currentSvc, svcPatch)).To(Succeed())
+
+			By("triggering reconciliation of the Workspace")
+			wsPatch := client.MergeFrom(workspace.DeepCopy())
+			if workspace.Annotations == nil {
+				workspace.Annotations = make(map[string]string)
+			}
+			workspace.Annotations["test-reconcile-trigger"] = fmt.Sprintf("%d", time.Now().UnixNano())
+			Expect(k8sClient.Patch(ctx, workspace, wsPatch)).To(Succeed())
+
+			By("verifying the StatefulSet controller reference is updated to current Workspace UID")
+			Eventually(func() (types.UID, error) {
+				sts := &appsv1.StatefulSet{}
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: currentSts.Name, Namespace: namespaceName}, sts); err != nil {
+					return "", err
+				}
+				ctrlRef := metav1.GetControllerOf(sts)
+				if ctrlRef == nil {
+					return "", fmt.Errorf("no controller reference")
+				}
+				return ctrlRef.UID, nil
+			}, timeout, interval).Should(Equal(workspace.UID))
+
+			By("verifying the Service controller reference is updated to current Workspace UID")
+			Eventually(func() (types.UID, error) {
+				svc := &corev1.Service{}
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: currentSvc.Name, Namespace: namespaceName}, svc); err != nil {
+					return "", err
+				}
+				ctrlRef := metav1.GetControllerOf(svc)
+				if ctrlRef == nil {
+					return "", fmt.Errorf("no controller reference")
+				}
+				return ctrlRef.UID, nil
+			}, timeout, interval).Should(Equal(workspace.UID))
+		})
+	})
 })
