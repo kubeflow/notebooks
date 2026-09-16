@@ -5,4 +5,5 @@ namespace: example-profile-1
 
 resources:
   - user.yaml
+  - authorizationpolicy.yaml
   - ../../../../workspaces/controller/manifests/kustomize/samples/common
