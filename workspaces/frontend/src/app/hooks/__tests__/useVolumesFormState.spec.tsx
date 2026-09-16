@@ -1,7 +1,6 @@
 import { act } from '@testing-library/react';
 import { renderHook } from '~/__tests__/unit/testUtils/hooks';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
-import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 import useVolumesFormState from '~/app/hooks/useVolumesFormState';
 import { NotebookApis } from '~/shared/api/notebookApi';
 import {
@@ -13,14 +12,8 @@ import { WorkspacesPodVolumeMountValue } from '~/app/types';
 jest.mock('~/app/hooks/useNotebookAPI', () => ({
   useNotebookAPI: jest.fn(),
 }));
-jest.mock('~/app/hooks/useNamespaceSelectorWrapper', () => ({
-  useNamespaceSelectorWrapper: jest.fn(),
-}));
 
 const mockUseNotebookAPI = useNotebookAPI as jest.MockedFunction<typeof useNotebookAPI>;
-const mockUseNamespaceSelectorWrapper = useNamespaceSelectorWrapper as jest.MockedFunction<
-  typeof useNamespaceSelectorWrapper
->;
 
 const mockCreatePvc = jest.fn();
 
@@ -31,6 +24,7 @@ const mockStorageClasses: StorageclassesStorageClassListItem[] = [
 
 const defaultArgs = {
   isOpen: true,
+  namespace: 'test-namespace',
   mountedPaths: new Set<string>(),
   storageClasses: mockStorageClasses,
   storageClassLoadError: null,
@@ -46,10 +40,6 @@ describe('useVolumesFormState', () => {
       apiAvailable: true,
       refreshAllAPI: jest.fn(),
     });
-    mockUseNamespaceSelectorWrapper.mockReturnValue({
-      selectedNamespace: 'test-namespace',
-      namespacesLoaded: true,
-    } as ReturnType<typeof useNamespaceSelectorWrapper>);
   });
 
   describe('create mode: modal opens', () => {

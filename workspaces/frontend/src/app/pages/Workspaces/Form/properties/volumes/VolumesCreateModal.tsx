@@ -29,7 +29,6 @@ import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons/dist/esm/ico
 import { V1PersistentVolumeAccessMode } from '~/generated/data-contracts';
 import { ErrorAlert } from '~/shared/components/ErrorAlert';
 import useStorageClasses from '~/app/hooks/useStorageClasses';
-import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 import useVolumesFormState from '~/app/hooks/useVolumesFormState';
 import { WorkspacesPodVolumeMountValue } from '~/app/types';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
@@ -63,6 +62,7 @@ export interface VolumesCreateModalProps {
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
   onVolumeCreated: (volume: WorkspacesPodVolumeMountValue) => void;
+  namespace: string;
   /** PVC names already mounted in the other volume section (home or data) */
   excludedPvcNames?: Set<string>;
   /** Set of mount paths already in use across all attached volumes */
@@ -79,14 +79,14 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
   isOpen,
   setIsOpen,
   onVolumeCreated,
+  namespace,
   excludedPvcNames,
   mountedPaths,
   fixedMountPath,
   volumeToEdit,
   onVolumeEdited,
 }) => {
-  const { selectedNamespace } = useNamespaceSelectorWrapper();
-  const { storageClasses, storageClassLoadError } = useStorageClasses(selectedNamespace);
+  const { storageClasses, storageClassLoadError } = useStorageClasses(namespace);
 
   const isEditMode = !!volumeToEdit;
 
@@ -119,6 +119,7 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
     handleClose,
   } = useVolumesFormState({
     isOpen,
+    namespace,
     fixedMountPath,
     volumeToEdit,
     excludedPvcNames,
