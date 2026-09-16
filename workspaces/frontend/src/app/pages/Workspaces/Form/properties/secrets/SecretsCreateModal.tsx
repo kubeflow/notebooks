@@ -16,7 +16,6 @@ import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggl
 import { HelperText } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { useThemeContext } from 'mod-arch-kubeflow';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
-import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 import { SecretsSecretListItem, V1SecretType } from '~/generated/data-contracts';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { ModalErrorFooter } from '~/shared/components/ModalErrorFooter';
@@ -26,6 +25,7 @@ import { EditableRowsTable } from '~/app/pages/WorkspaceKinds/Form/EditableRowsT
 interface SecretsCreateModalProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
+  namespace: string;
   onSecretCreated?: (secretName: string) => void;
   existingSecretNames?: string[];
   /** When provided, the modal operates in edit mode */
@@ -45,13 +45,13 @@ const CONFIG_MAP_KEY_REGEX = /^[-._a-zA-Z0-9]+$/;
 export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
   isOpen,
   setIsOpen,
+  namespace,
   onSecretCreated,
   existingSecretNames = [],
   secretToEdit,
   onSecretUpdated,
 }) => {
   const { api } = useNotebookAPI();
-  const { selectedNamespace } = useNamespaceSelectorWrapper();
 
   const isEditMode = !!secretToEdit;
 
@@ -66,6 +66,7 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
   const [secretDetails, isSecretLoaded, secretLoadError] = useSecret({
     isOpen,
     secretName: secretToEdit?.name,
+    namespace,
   });
 
   // Set form fields when editing a secret
@@ -184,7 +185,7 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
       const currentSecretName = secretName;
 
       if (isEditMode) {
-        await api.secrets.updateSecret(selectedNamespace, secretName, {
+        await api.secrets.updateSecret(namespace, secretName, {
           data: {
             type: V1SecretType.SecretTypeOpaque,
             immutable,
@@ -195,7 +196,7 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
         setIsOpen(false);
         onSecretUpdated?.(currentSecretName);
       } else {
-        await api.secrets.createSecret(selectedNamespace, {
+        await api.secrets.createSecret(namespace, {
           data: {
             name: secretName,
             type: V1SecretType.SecretTypeOpaque,
@@ -221,7 +222,7 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
     secretName,
     isEditMode,
     api.secrets,
-    selectedNamespace,
+    namespace,
     immutable,
     resetForm,
     setIsOpen,

@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
 import { FetchState, FetchStateCallbackPromise, useFetchState, NotReadyError } from 'mod-arch-core';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
-import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 
 export interface SecretKeyValuePair {
   key: string;
@@ -17,6 +16,7 @@ export interface SecretDetails {
 interface UseSecretOptions {
   isOpen: boolean;
   secretName: string | undefined;
+  namespace: string;
 }
 
 const DEFAULT_SECRET_DETAILS: SecretDetails = {
@@ -25,9 +25,12 @@ const DEFAULT_SECRET_DETAILS: SecretDetails = {
   type: 'Opaque',
 };
 
-const useSecret = ({ isOpen, secretName }: UseSecretOptions): FetchState<SecretDetails> => {
+const useSecret = ({
+  isOpen,
+  secretName,
+  namespace,
+}: UseSecretOptions): FetchState<SecretDetails> => {
   const { api, apiAvailable } = useNotebookAPI();
-  const { selectedNamespace } = useNamespaceSelectorWrapper();
 
   const call = useCallback<FetchStateCallbackPromise<SecretDetails>>(async () => {
     if (!apiAvailable) {
@@ -38,7 +41,7 @@ const useSecret = ({ isOpen, secretName }: UseSecretOptions): FetchState<SecretD
       return Promise.reject(new NotReadyError('Modal not open or no secret to edit'));
     }
 
-    const response = await api.secrets.getSecret(selectedNamespace, secretName);
+    const response = await api.secrets.getSecret(namespace, secretName);
     const { contents, immutable, type } = response.data;
 
     const keyValuePairs =
@@ -50,7 +53,7 @@ const useSecret = ({ isOpen, secretName }: UseSecretOptions): FetchState<SecretD
           }));
 
     return { keyValuePairs, immutable, type };
-  }, [api.secrets, apiAvailable, isOpen, secretName, selectedNamespace]);
+  }, [api.secrets, apiAvailable, isOpen, secretName, namespace]);
 
   return useFetchState(call, DEFAULT_SECRET_DETAILS, { initialPromisePurity: true });
 };
