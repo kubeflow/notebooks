@@ -254,7 +254,7 @@ export const convertFormDataToUpdate = (
   formData: WorkspaceKindFormData,
   original: WorkspacekindsWorkspaceKindUpdate,
 ): WorkspacekindsWorkspaceKindUpdate => ({
-  revision: original.revision,
+  ...original,
   activityRules: formData.activityRules?.map((rule) => ({
     config: rule.config,
     effect: rule.effect,
