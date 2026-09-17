@@ -3014,11 +3014,17 @@ const docTemplate = `{
                         "$ref": "#/definitions/options.OptionLabel"
                     }
                 },
+                "podMetadata": {
+                    "$ref": "#/definitions/v1beta1.WorkspaceKindPodMetadata"
+                },
                 "redirect": {
                     "$ref": "#/definitions/options.OptionRedirect"
                 },
                 "restrictions": {
                     "$ref": "#/definitions/common.Restrictions"
+                },
+                "statefulSetMetadata": {
+                    "$ref": "#/definitions/v1beta1.WorkspaceKindStatefulSetMetadata"
                 }
             }
         },
@@ -7155,6 +7161,14 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
+                "podMetadata": {
+                    "description": "metadata to apply to Workspace Pods when this podConfig is selected (MUTABLE)\n - layered over the WorkspaceKind-level ` + "`" + `podMetadata` + "`" + `, winning on key conflicts\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.WorkspaceKindPodMetadata"
+                        }
+                    ]
+                },
                 "resources": {
                     "description": "resource configs for the \"main\" container in the pod\n+kubebuilder:validation:Optional",
                     "allOf": [
@@ -7166,6 +7180,14 @@ const docTemplate = `{
                 "schedulerName": {
                     "description": "the name of the scheduler to use for the pod\n - this takes precedence over the ` + "`" + `schedulerName` + "`" + ` of the pod template\n - set this to \"default-scheduler\" to have this pod config use the\n   default Kubernetes scheduler, even if the pod template sets another one\n - no character/length validation, matching Kubernetes which applies none\n   to PodSpec.SchedulerName; an empty value means the default scheduler\n+kubebuilder:validation:Optional\n+kubebuilder:example=\"volcano\"",
                     "type": "string"
+                },
+                "statefulSetMetadata": {
+                    "description": "metadata to apply to the Workspace StatefulSet when this podConfig is selected (MUTABLE)\n - layered over the WorkspaceKind-level ` + "`" + `statefulSetMetadata` + "`" + `, winning on key conflicts\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.WorkspaceKindStatefulSetMetadata"
+                        }
+                    ]
                 },
                 "tolerations": {
                     "description": "toleration configs for the pod\n+kubebuilder:validation:Optional",

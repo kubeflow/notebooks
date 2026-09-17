@@ -187,10 +187,12 @@ func buildPodConfigValues(wsk *kubefloworgv1beta1.WorkspaceKind, request *ListVa
 			Description: ptr.Deref(value.Spawner.Description, ""),
 			Labels:      buildOptionLabels(value.Spawner.Labels),
 			// `hidden` is the admin-set value OR the `ui.hide` effect of the first matching rule
-			Hidden:         ptr.Deref(value.Spawner.Hidden, false) || result.UIHide,
-			Redirect:       buildOptionRedirect(value.Redirect),
-			ClusterMetrics: buildClusterOptionMetrics(value.Id, optionMetricsMap),
-			Restrictions:   result.Restrictions,
+			Hidden:              ptr.Deref(value.Spawner.Hidden, false) || result.UIHide,
+			Redirect:            buildOptionRedirect(value.Redirect),
+			ClusterMetrics:      buildClusterOptionMetrics(value.Id, optionMetricsMap),
+			Restrictions:        result.Restrictions,
+			PodMetadata:         value.Spec.PodMetadata,
+			StatefulSetMetadata: value.Spec.StatefulSetMetadata,
 		})
 	}
 

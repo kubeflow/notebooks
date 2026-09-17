@@ -985,12 +985,17 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 	}
 
 	// generate pod metadata
-	// NOTE: pod metadata from the Workspace takes precedence over the WorkspaceKind
+	// NOTE: precedence is Workspace > podConfig > WorkspaceKind (later copies win on key conflicts);
+	//       controller-owned labels are layered on top via labels.Merge when the Pod template is built
 	podAnnotations := make(map[string]string)
 	podLabels := make(map[string]string)
 	if workspaceKind.Spec.PodTemplate.PodMetadata != nil {
 		maps.Copy(podAnnotations, workspaceKind.Spec.PodTemplate.PodMetadata.Annotations)
 		maps.Copy(podLabels, workspaceKind.Spec.PodTemplate.PodMetadata.Labels)
+	}
+	if podConfigSpec.PodMetadata != nil {
+		maps.Copy(podAnnotations, podConfigSpec.PodMetadata.Annotations)
+		maps.Copy(podLabels, podConfigSpec.PodMetadata.Labels)
 	}
 	if workspace.Spec.PodTemplate.PodMetadata != nil {
 		maps.Copy(podAnnotations, workspace.Spec.PodTemplate.PodMetadata.Annotations)
@@ -998,12 +1003,17 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 	}
 
 	// generate statefulset metadata
-	// NOTE: statefulset metadata is only configurable at the WorkspaceKind level
+	// NOTE: precedence is podConfig > WorkspaceKind (podConfig copies win on key conflicts);
+	//       statefulset metadata is not configurable at the Workspace level
 	stsAnnotations := make(map[string]string)
 	stsLabels := make(map[string]string)
 	if workspaceKind.Spec.PodTemplate.StatefulSetMetadata != nil {
 		maps.Copy(stsAnnotations, workspaceKind.Spec.PodTemplate.StatefulSetMetadata.Annotations)
 		maps.Copy(stsLabels, workspaceKind.Spec.PodTemplate.StatefulSetMetadata.Labels)
+	}
+	if podConfigSpec.StatefulSetMetadata != nil {
+		maps.Copy(stsAnnotations, podConfigSpec.StatefulSetMetadata.Annotations)
+		maps.Copy(stsLabels, podConfigSpec.StatefulSetMetadata.Labels)
 	}
 
 	// generate container imagePullPolicy

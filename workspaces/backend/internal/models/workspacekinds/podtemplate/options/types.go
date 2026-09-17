@@ -17,6 +17,8 @@ limitations under the License.
 package options
 
 import (
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 )
 
@@ -51,14 +53,16 @@ type PodConfig struct {
 }
 
 type PodConfigValue struct {
-	Id             string                `json:"id"`
-	DisplayName    string                `json:"displayName"`
-	Description    string                `json:"description"`
-	Labels         []OptionLabel         `json:"labels,omitempty"`
-	Hidden         bool                  `json:"hidden"`
-	Redirect       *OptionRedirect       `json:"redirect,omitempty"`
-	ClusterMetrics *ClusterOptionMetrics `json:"clusterMetrics,omitempty"`
-	Restrictions   common.Restrictions   `json:"restrictions"`
+	Id                  string                                               `json:"id"`
+	DisplayName         string                                               `json:"displayName"`
+	Description         string                                               `json:"description"`
+	Labels              []OptionLabel                                        `json:"labels,omitempty"`
+	Hidden              bool                                                 `json:"hidden"`
+	Redirect            *OptionRedirect                                      `json:"redirect,omitempty"`
+	ClusterMetrics      *ClusterOptionMetrics                                `json:"clusterMetrics,omitempty"`
+	Restrictions        common.Restrictions                                  `json:"restrictions"`
+	PodMetadata         *kubefloworgv1beta1.WorkspaceKindPodMetadata         `json:"podMetadata,omitempty"`
+	StatefulSetMetadata *kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata `json:"statefulSetMetadata,omitempty"`
 }
 
 type OptionLabel struct {

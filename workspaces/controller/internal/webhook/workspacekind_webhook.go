@@ -137,6 +137,13 @@ func (v *WorkspaceKindValidator) ValidateCreate(ctx context.Context, workspaceKi
 		allErrs = append(allErrs, validateImageConfigValue(&imageConfigValue, imageConfigValuePath, podTemplatePortsIdMap)...)
 	}
 
+	// validate podConfig values
+	for _, podConfigValue := range podConfigIdMap {
+		podConfigValueId := podConfigValue.Id
+		podConfigValuePath := field.NewPath("spec", "podTemplate", "options", "podConfig", "values").Key(podConfigValueId)
+		allErrs = append(allErrs, validatePodConfigMetadata(&podConfigValue, podConfigValuePath)...)
+	}
+
 	// validate redirects
 	allErrs = append(allErrs, validateImageConfigRedirects(imageConfigIdMap, imageConfigRedirectMap)...)
 	allErrs = append(allErrs, validatePodConfigRedirects(podConfigIdMap, podConfigRedirectMap)...)
@@ -302,6 +309,7 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldWorkspac
 
 	// calculate changes to podConfig values
 	var shouldValidatePodConfigRedirects = false
+	toValidatePodConfigIds := make(map[string]bool)
 	badChangedPodConfigIds := make(map[string]bool)
 	badRemovedPodConfigIds := make(map[string]bool)
 	newPodConfigIdMap := make(map[string]kubefloworgv1beta1.PodConfigValue)
@@ -318,6 +326,9 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldWorkspac
 
 		// check if the podConfig value is new
 		if _, exists := oldPodConfigIdMap[podConfigValue.Id]; !exists {
+			// we need to validate this podConfig value since it is new
+			toValidatePodConfigIds[podConfigValue.Id] = true
+
 			// we always need to validate the podConfig redirects if a podConfig was added
 			// because the new podConfig value could be used by a redirect or cause a cycle
 			shouldValidatePodConfigRedirects = true
@@ -334,6 +345,9 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldWorkspac
 
 			// check if the spec has changed
 			if !equality.Semantic.DeepEqual(oldPodConfigSpec, newPodConfigSpec) {
+				// we need to validate this podConfig value since it has changed
+				toValidatePodConfigIds[podConfigValue.Id] = true
+
 				// check how many workspaces are using this podConfig value
 				usageCount, err := getPodConfigUsageCount(podConfigValue.Id)
 				if err != nil {
@@ -384,6 +398,14 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldWorkspac
 		imageConfigValue := newImageConfigIdMap[imageConfigValueId]
 		imageConfigValuePath := field.NewPath("spec", "podTemplate", "options", "imageConfig", "values").Key(imageConfigValueId)
 		allErrs = append(allErrs, validateImageConfigValue(&imageConfigValue, imageConfigValuePath, podTemplatePortsIdMap)...)
+	}
+
+	// validate podConfig values
+	// NOTE: we only need to validate new or changed podConfig values
+	for podConfigValueId := range toValidatePodConfigIds {
+		podConfigValue := newPodConfigIdMap[podConfigValueId]
+		podConfigValuePath := field.NewPath("spec", "podTemplate", "options", "podConfig", "values").Key(podConfigValueId)
+		allErrs = append(allErrs, validatePodConfigMetadata(&podConfigValue, podConfigValuePath)...)
 	}
 
 	// process bad imageConfig values
@@ -596,6 +618,25 @@ func (v *WorkspaceKindValidator) validatePodTemplateStatefulSetMetadata(workspac
 
 	statefulSetMetadataPath := field.NewPath("spec", "podTemplate", "statefulSetMetadata")
 	return validateLabelsAndAnnotations(statefulSetMetadata.Labels, statefulSetMetadata.Annotations, statefulSetMetadataPath)
+}
+
+// validatePodConfigMetadata validates the podMetadata and statefulSetMetadata of a single podConfig value
+func validatePodConfigMetadata(podConfigValue *kubefloworgv1beta1.PodConfigValue, podConfigValuePath *field.Path) []*field.Error {
+	var errs []*field.Error
+
+	// validate the pod metadata
+	if podMetadata := podConfigValue.Spec.PodMetadata; podMetadata != nil {
+		podMetadataPath := podConfigValuePath.Child("spec", "podMetadata")
+		errs = append(errs, validateLabelsAndAnnotations(podMetadata.Labels, podMetadata.Annotations, podMetadataPath)...)
+	}
+
+	// validate the statefulset metadata
+	if statefulSetMetadata := podConfigValue.Spec.StatefulSetMetadata; statefulSetMetadata != nil {
+		statefulSetMetadataPath := podConfigValuePath.Child("spec", "statefulSetMetadata")
+		errs = append(errs, validateLabelsAndAnnotations(statefulSetMetadata.Labels, statefulSetMetadata.Annotations, statefulSetMetadataPath)...)
+	}
+
+	return errs
 }
 
 // validateLabelsAndAnnotations validates a set of labels and annotations

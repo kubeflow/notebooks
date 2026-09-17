@@ -427,4 +427,76 @@ var _ = Describe("NewPodTemplateOptionsModelFromWorkspaceKind", func() {
 			Expect(pod1.Restrictions.Deny).To(BeFalse()) // second rule never reached
 		})
 	})
+
+	Context("per-podConfig metadata", func() {
+		It("surfaces the podConfig podMetadata and statefulSetMetadata in the response", func() {
+			pod := podConfigValue("pod1", false, nil)
+			pod.Spec.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+				Labels:      map[string]string{"pod-label": "pod-value"},
+				Annotations: map[string]string{"pod-annotation": "pod-value"},
+			}
+			pod.Spec.StatefulSetMetadata = &kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata{
+				Labels:      map[string]string{"sts-label": "sts-value"},
+				Annotations: map[string]string{"sts-annotation": "sts-value"},
+			}
+			wsk := newWorkspaceKind(
+				[]kubefloworgv1beta1.ImageConfigValue{imageConfigValue("img1", false, nil)},
+				[]kubefloworgv1beta1.PodConfigValue{pod},
+				nil,
+			)
+
+			opts, err := NewPodTemplateOptionsModelFromWorkspaceKind(wsk, &ListValuesRequest{}, nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			pod1 := podValueByID(opts, "pod1")
+			Expect(pod1).NotTo(BeNil())
+			Expect(pod1.PodMetadata).To(BeComparableTo(&kubefloworgv1beta1.WorkspaceKindPodMetadata{
+				Labels:      map[string]string{"pod-label": "pod-value"},
+				Annotations: map[string]string{"pod-annotation": "pod-value"},
+			}))
+			Expect(pod1.StatefulSetMetadata).To(BeComparableTo(&kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata{
+				Labels:      map[string]string{"sts-label": "sts-value"},
+				Annotations: map[string]string{"sts-annotation": "sts-value"},
+			}))
+		})
+
+		It("surfaces a partially-populated podMetadata and omits the empty map", func() {
+			pod := podConfigValue("pod1", false, nil)
+			pod.Spec.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+				Labels: map[string]string{"pod-label": "pod-value"},
+			}
+			wsk := newWorkspaceKind(
+				[]kubefloworgv1beta1.ImageConfigValue{imageConfigValue("img1", false, nil)},
+				[]kubefloworgv1beta1.PodConfigValue{pod},
+				nil,
+			)
+
+			opts, err := NewPodTemplateOptionsModelFromWorkspaceKind(wsk, &ListValuesRequest{}, nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			pod1 := podValueByID(opts, "pod1")
+			Expect(pod1).NotTo(BeNil())
+			Expect(pod1.PodMetadata).To(BeComparableTo(&kubefloworgv1beta1.WorkspaceKindPodMetadata{
+				Labels: map[string]string{"pod-label": "pod-value"},
+			}))
+			Expect(pod1.PodMetadata.Annotations).To(BeNil())
+			Expect(pod1.StatefulSetMetadata).To(BeNil())
+		})
+
+		It("omits the metadata when the podConfig does not set it", func() {
+			wsk := newWorkspaceKind(
+				[]kubefloworgv1beta1.ImageConfigValue{imageConfigValue("img1", false, nil)},
+				[]kubefloworgv1beta1.PodConfigValue{podConfigValue("pod1", false, nil)},
+				nil,
+			)
+
+			opts, err := NewPodTemplateOptionsModelFromWorkspaceKind(wsk, &ListValuesRequest{}, nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			pod1 := podValueByID(opts, "pod1")
+			Expect(pod1).NotTo(BeNil())
+			Expect(pod1.PodMetadata).To(BeNil())
+			Expect(pod1.StatefulSetMetadata).To(BeNil())
+		})
+	})
 })

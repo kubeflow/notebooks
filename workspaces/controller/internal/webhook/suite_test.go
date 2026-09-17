@@ -562,6 +562,54 @@ func NewExampleWorkspaceKindWithInvalidStatefulSetMetadataAnnotationKey(name str
 	return workspaceKind
 }
 
+// NewExampleWorkspaceKindWithInvalidPodConfigPodMetadataLabelKey returns a WorkspaceKind whose first
+// podConfig value has an invalid PodMetadata label key.
+func NewExampleWorkspaceKindWithInvalidPodConfigPodMetadataLabelKey(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[0].Spec.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+		Labels: map[string]string{
+			"!bad_key!": "value",
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithInvalidPodConfigPodMetadataAnnotationKey returns a WorkspaceKind whose first
+// podConfig value has an invalid PodMetadata annotation key.
+func NewExampleWorkspaceKindWithInvalidPodConfigPodMetadataAnnotationKey(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[0].Spec.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+		Annotations: map[string]string{
+			"!bad_key!": "value",
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithInvalidPodConfigStatefulSetMetadataLabelKey returns a WorkspaceKind whose first
+// podConfig value has an invalid StatefulSetMetadata label key.
+func NewExampleWorkspaceKindWithInvalidPodConfigStatefulSetMetadataLabelKey(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[0].Spec.StatefulSetMetadata = &kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata{
+		Labels: map[string]string{
+			"!bad_key!": "value",
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithInvalidPodConfigStatefulSetMetadataAnnotationKey returns a WorkspaceKind whose first
+// podConfig value has an invalid StatefulSetMetadata annotation key.
+func NewExampleWorkspaceKindWithInvalidPodConfigStatefulSetMetadataAnnotationKey(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[0].Spec.StatefulSetMetadata = &kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata{
+		Annotations: map[string]string{
+			"!bad_key!": "value",
+		},
+	}
+	return workspaceKind
+}
+
 // NewExampleWorkspaceKindWithImageConfigCycle returns a WorkspaceKind with a cycle in the ImageConfig options.
 func NewExampleWorkspaceKindWithImageConfigCycle(name string) *kubefloworgv1beta1.WorkspaceKind {
 	workspaceKind := NewExampleWorkspaceKind(name)

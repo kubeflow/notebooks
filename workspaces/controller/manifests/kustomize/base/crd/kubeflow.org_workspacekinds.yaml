@@ -4164,6 +4164,24 @@ spec:
                                         type: string
                                       description: node selector configs for the pod
                                       type: object
+                                    podMetadata:
+                                      description: |-
+                                        metadata to apply to Workspace Pods when this podConfig is selected (MUTABLE)
+                                         - layered over the WorkspaceKind-level `podMetadata`, winning on key conflicts
+                                      properties:
+                                        annotations:
+                                          additionalProperties:
+                                            type: string
+                                          description: annotations to be applied to
+                                            the Pod resource
+                                          type: object
+                                        labels:
+                                          additionalProperties:
+                                            type: string
+                                          description: labels to be applied to the
+                                            Pod resource
+                                          type: object
+                                      type: object
                                     resources:
                                       description: resource configs for the "main"
                                         container in the pod
@@ -4235,6 +4253,24 @@ spec:
                                            to PodSpec.SchedulerName; an empty value means the default scheduler
                                       example: volcano
                                       type: string
+                                    statefulSetMetadata:
+                                      description: |-
+                                        metadata to apply to the Workspace StatefulSet when this podConfig is selected (MUTABLE)
+                                         - layered over the WorkspaceKind-level `statefulSetMetadata`, winning on key conflicts
+                                      properties:
+                                        annotations:
+                                          additionalProperties:
+                                            type: string
+                                          description: annotations to be applied to
+                                            the Workspace StatefulSet resource
+                                          type: object
+                                        labels:
+                                          additionalProperties:
+                                            type: string
+                                          description: labels to be applied to the
+                                            Workspace StatefulSet resource
+                                          type: object
+                                      type: object
                                     tolerations:
                                       description: toleration configs for the pod
                                       items:
