@@ -27,6 +27,7 @@ const setupWorkspaceWithResources = (
     name: TEST_WORKSPACE_NAME,
     namespace: DEFAULT_NAMESPACE,
     state: workspaceState,
+    paused: workspaceState === V1Beta1WorkspaceState.WorkspaceStatePaused,
   });
 
   cy.interceptApi(
@@ -112,6 +113,26 @@ describe('Workspace Resources Tab', () => {
     workspaceDetailsDrawer.assertResourceErrorAlert('details-loading-error');
   });
 
+  it('should show a paused-specific message when a paused workspace has no usage data', () => {
+    setupWorkspaceWithResources(undefined, V1Beta1WorkspaceState.WorkspaceStatePaused, {
+      error: { code: '400', message: 'workspace pod is not running' },
+    });
+
+    workspaceDetailsDrawer.assertResourceErrorAlert('resource-usage-paused');
+    workspaceDetailsDrawer.assertResourcesTabContentContainsText('paused');
+  });
+
+  it('should show the correct container in the dropdown as soon as resources load', () => {
+    setupWorkspaceWithResources({
+      containers: {
+        main: buildMockContainerResourceUsage(),
+        'istio-proxy': buildMockContainerResourceUsage(),
+      },
+    });
+
+    workspaceDetailsDrawer.assertResourceContainerSelectShows('main');
+  });
+
   it('should switch between containers using the dropdown', () => {
     setupWorkspaceWithResources({
       containers: {
@@ -129,6 +150,7 @@ describe('Workspace Resources Tab', () => {
 
     workspaceDetailsDrawer.selectResourceContainer('istio-proxy');
 
+    workspaceDetailsDrawer.assertResourceContainerSelectShows('istio-proxy');
     workspaceDetailsDrawer.assertResourceRequest('cpu', '10');
     workspaceDetailsDrawer.assertResourceLimit('memory', '128 MiB');
   });
@@ -152,5 +174,6 @@ describe('Workspace Resources Tab', () => {
     workspaceDetailsDrawer.assertResourceCardExists('cpu');
     workspaceDetailsDrawer.assertResourceCardExists('memory');
     workspaceDetailsDrawer.assertResourceCardExists('nvidia.com/gpu');
+    workspaceDetailsDrawer.assertResourceCardHeading('nvidia.com/gpu', 'nvidia.com/gpu');
   });
 });

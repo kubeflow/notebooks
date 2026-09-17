@@ -112,6 +112,7 @@ export const WorkspaceResources: React.FC<WorkspaceResourcesProps> = ({
           containers={containers}
           loaded={resourceUsageLoaded}
           error={resourceUsageError}
+          isPaused={workspace.paused}
         />
       </StackItem>
     </Stack>

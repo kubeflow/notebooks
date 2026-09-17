@@ -404,6 +404,10 @@ class WorkspaceDetailsDrawer {
     this.findResourceCard(resourceKey).should('exist');
   }
 
+  assertResourceCardHeading(resourceKey: string, heading: string) {
+    this.findResourceCard(resourceKey).should('contain.text', heading);
+  }
+
   assertResourceRequest(resourceKey: string, value: string) {
     this.findResourcesTabContent()
       .findByTestId(`resource-request-${resourceKey}`)
@@ -430,8 +434,16 @@ class WorkspaceDetailsDrawer {
     this.findResourcesTabContent().findByTestId(testId).should('exist');
   }
 
+  findResourceContainerSelect() {
+    return this.findResourcesTabContent().findByTestId('resource-container-select');
+  }
+
+  assertResourceContainerSelectShows(optionName: string) {
+    this.findResourceContainerSelect().should('contain.text', optionName);
+  }
+
   selectResourceContainer(optionName: string) {
-    this.findResourcesTabContent().find('#resource-container-select').click();
+    this.findResourceContainerSelect().click();
     cy.findByRole('option', { name: optionName }).click();
   }
 

@@ -11,6 +11,7 @@ import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { Gallery } from '@patternfly/react-core/dist/esm/layouts/Gallery';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import { SimpleSelect } from '@patternfly/react-templates';
+import { MenuToggleProps } from '@patternfly/react-core/dist/esm/components/MenuToggle';
 import { DetailsLoadingState } from '~/app/components/DetailsLoadingState';
 import { ResourcesContainerResourceUsage, ResourceQuantity } from '~/generated/data-contracts';
 import {
@@ -24,6 +25,7 @@ interface WorkspaceResourceCardsProps {
   containers: Record<string, ResourcesContainerResourceUsage>;
   loaded: boolean;
   error?: Error;
+  isPaused: boolean;
 }
 
 const asString = (value: ResourceQuantity | undefined): string | undefined => {
@@ -52,10 +54,11 @@ const getResourceKeys = (container: ResourcesContainerResourceUsage): string[] =
   return Array.from(keys);
 };
 
-const getDisplayName = (key: ResourceType): string => RESOURCE_DISPLAY_NAMES[key];
+const getDisplayName = (key: string): string =>
+  (RESOURCE_DISPLAY_NAMES as Record<string, string>)[key] ?? key;
 
 interface ResourceCardProps {
-  resourceKey: ResourceType;
+  resourceKey: string;
   container: ResourcesContainerResourceUsage;
 }
 
@@ -107,6 +110,7 @@ export const WorkspaceResourceCards: React.FC<WorkspaceResourceCardsProps> = ({
   containers,
   loaded,
   error,
+  isPaused,
 }) => {
   const [selectedContainer, setSelectedContainer] = useState<string | undefined>(undefined);
 
@@ -118,6 +122,14 @@ export const WorkspaceResourceCards: React.FC<WorkspaceResourceCardsProps> = ({
     () => (containerData ? getResourceKeys(containerData) : []),
     [containerData],
   );
+
+  if (error && isPaused) {
+    return (
+      <Content component="small" data-testid="resource-usage-paused">
+        This workspace is paused, so resource usage is unavailable.
+      </Content>
+    );
+  }
 
   return (
     <DetailsLoadingState error={error} loaded={loaded}>
@@ -131,13 +143,19 @@ export const WorkspaceResourceCards: React.FC<WorkspaceResourceCardsProps> = ({
               <span className="pf-v6-c-description-list__term">Resource Utilization</span>
             </FlexItem>
             <FlexItem>
+              <span
+                id="resource-container-label"
+                className="pf-v6-u-font-size-sm pf-v6-u-text-color-subtle"
+              >
+                Container
+              </span>
               <SimpleSelect
                 initialOptions={[
                   {
                     content: 'Select a container',
                     value: '',
                     isDisabled: true,
-                    selected: !selectedContainer,
+                    selected: !activeContainer,
                   },
                   ...containerNames.map((name) => ({
                     content: name,
@@ -146,10 +164,15 @@ export const WorkspaceResourceCards: React.FC<WorkspaceResourceCardsProps> = ({
                   })),
                 ]}
                 onSelect={(_ev, selection) => setSelectedContainer(String(selection))}
-                toggleProps={{
-                  'aria-labelledby': 'resource-container-label',
-                  id: 'resource-container-select',
-                }}
+                // MenuToggleProps doesn't type `data-testid`, but MenuToggle spreads unknown
+                // props onto the underlying <button>, so it renders correctly.
+                toggleProps={
+                  {
+                    'aria-labelledby': 'resource-container-label',
+                    id: 'resource-container-select',
+                    'data-testid': 'resource-container-select',
+                  } as MenuToggleProps
+                }
               />
             </FlexItem>
           </Flex>
@@ -162,11 +185,7 @@ export const WorkspaceResourceCards: React.FC<WorkspaceResourceCardsProps> = ({
               data-testid="resource-cards-gallery"
             >
               {resourceKeys.map((key) => (
-                <ResourceCard
-                  key={key}
-                  resourceKey={key as ResourceType}
-                  container={containerData}
-                />
+                <ResourceCard key={key} resourceKey={key} container={containerData} />
               ))}
             </Gallery>
           </StackItem>
