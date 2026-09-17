@@ -1,8 +1,8 @@
 import { useCallback } from 'react';
 import { FetchState, FetchStateCallbackPromise, useFetchState, NotReadyError } from 'mod-arch-core';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
-import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import { WorkspaceFormData } from '~/app/types';
+import { WorkspacekindsWorkspaceKindListItem } from '~/generated/data-contracts';
 
 export const EMPTY_FORM_DATA: WorkspaceFormData = {
   revision: '',
@@ -21,10 +21,19 @@ const useWorkspaceFormData = (args: {
   namespace: string | undefined;
   workspaceName: string | undefined;
   workspaceKindName: string | undefined;
+  workspaceKinds: WorkspacekindsWorkspaceKindListItem[];
+  workspaceKindsLoaded: boolean;
+  workspaceKindsError: Error | undefined;
 }): FetchState<WorkspaceFormData> => {
-  const { namespace, workspaceName, workspaceKindName } = args;
+  const {
+    namespace,
+    workspaceName,
+    workspaceKindName,
+    workspaceKinds,
+    workspaceKindsLoaded,
+    workspaceKindsError,
+  } = args;
   const { api, apiAvailable } = useNotebookAPI();
-  const [workspaceKinds, workspaceKindsLoaded, workspaceKindsError] = useWorkspaceKinds(namespace);
 
   const call = useCallback<FetchStateCallbackPromise<WorkspaceFormData>>(async () => {
     if (!apiAvailable) {

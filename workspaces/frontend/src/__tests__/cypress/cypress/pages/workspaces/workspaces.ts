@@ -388,6 +388,65 @@ class WorkspaceDetailsDrawer {
     return this.find().findByTestId('activity-tab');
   }
 
+  findResourcesTab() {
+    return this.find().findByTestId('resources-tab');
+  }
+
+  findResourcesTabContent() {
+    return this.find().findByTestId('resources-tab-content');
+  }
+
+  findResourceCard(resourceKey: string) {
+    return this.findResourcesTabContent().findByTestId(`resource-card-${resourceKey}`);
+  }
+
+  assertResourceCardExists(resourceKey: string) {
+    this.findResourceCard(resourceKey).should('exist');
+  }
+
+  assertResourceCardHeading(resourceKey: string, heading: string) {
+    this.findResourceCard(resourceKey).should('contain.text', heading);
+  }
+
+  assertResourceRequest(resourceKey: string, value: string) {
+    this.findResourcesTabContent()
+      .findByTestId(`resource-request-${resourceKey}`)
+      .should('contain.text', value);
+  }
+
+  assertResourceLimit(resourceKey: string, value: string) {
+    this.findResourcesTabContent()
+      .findByTestId(`resource-limit-${resourceKey}`)
+      .should('contain.text', value);
+  }
+
+  assertResourceUsage(resourceKey: string, value: string) {
+    this.findResourcesTabContent()
+      .findByTestId(`resource-usage-${resourceKey}`)
+      .should('contain.text', value);
+  }
+
+  assertResourcesTabContentContainsText(text: string) {
+    this.findResourcesTabContent().should('contain.text', text);
+  }
+
+  assertResourceErrorAlert(testId: string) {
+    this.findResourcesTabContent().findByTestId(testId).should('exist');
+  }
+
+  findResourceContainerSelect() {
+    return this.findResourcesTabContent().findByTestId('resource-container-select');
+  }
+
+  assertResourceContainerSelectShows(optionName: string) {
+    this.findResourceContainerSelect().should('contain.text', optionName);
+  }
+
+  selectResourceContainer(optionName: string) {
+    this.findResourceContainerSelect().click();
+    cy.findByRole('option', { name: optionName }).click();
+  }
+
   findLogsTab() {
     return this.find().findByTestId('logs-tab');
   }
