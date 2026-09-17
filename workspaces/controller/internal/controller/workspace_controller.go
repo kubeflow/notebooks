@@ -1558,44 +1558,14 @@ func generateWorkspacePodStatus(pod *corev1.Pod) kubefloworgv1beta1.WorkspacePod
 	return podStatus
 }
 
-// hasReconciliationLag returns true when the observed generation
-// does not match the object's current generation.
-func hasReconciliationLag(obj metav1.Object, observedGeneration int64) bool {
-	return observedGeneration != obj.GetGeneration()
-}
-
-// statefulSetHasReconciliationLag reports whether the StatefulSet
-// has not yet been reconciled to its current generation.
-func statefulSetHasReconciliationLag(statefulSet *appsv1.StatefulSet) bool {
-	if statefulSet == nil {
-		return false
-	}
-
-	return hasReconciliationLag(&statefulSet.ObjectMeta, statefulSet.Status.ObservedGeneration)
-}
-
-// statefulSetHasPendingPodUpdate reports whether the StatefulSet has rolled out
-// a new revision that the given Pod has not yet adopted. Returns false if
-// either input is nil, if the StatefulSet has not yet published an
-// UpdateRevision, or if the Pod is missing the controller-revision-hash label.
-func statefulSetHasPendingPodUpdate(ss *appsv1.StatefulSet, pod *corev1.Pod) bool {
-	if ss == nil || pod == nil {
-		return false
-	}
-	if ss.Status.UpdateRevision == "" {
-		return false
-	}
-
-	return pod.Labels[appsv1.StatefulSetRevisionLabel] != ss.Status.UpdateRevision
-}
-
 // generateWorkspaceState gets current state and stateMessage for a Workspace
 func (r *WorkspaceReconciler) generateWorkspaceState(ctx context.Context, log logr.Logger, paused bool, statefulSet *appsv1.StatefulSet, pod *corev1.Pod) (kubefloworgv1beta1.WorkspaceState, string, ctrl.Result, error) { //nolint:gocyclo
 	state := kubefloworgv1beta1.WorkspaceStateUnknown
 	stateMessage := stateMsgUnknown
 
-	if statefulSetHasReconciliationLag(statefulSet) {
-		return kubefloworgv1beta1.WorkspaceStateUnknown,
+	// STATUS: Pending (kubernetes might not have processed StatefulSet)
+	if statefulSet.GetGeneration() != statefulSet.Status.ObservedGeneration {
+		return kubefloworgv1beta1.WorkspaceStatePending,
 			stateMsgWaitingStatefulSetReconcile,
 			ctrl.Result{},
 			nil
@@ -1653,7 +1623,8 @@ func (r *WorkspaceReconciler) generateWorkspaceState(ctx context.Context, log lo
 			return state, stateMessage, ctrl.Result{}, nil
 		}
 
-		if statefulSetHasPendingPodUpdate(statefulSet, pod) {
+		// STATUS: Pending (StatefulSet might not have rolled out new Pod)
+		if pod.Labels[appsv1.StatefulSetRevisionLabel] != statefulSet.Status.UpdateRevision {
 			return kubefloworgv1beta1.WorkspaceStatePending,
 				stateMsgWaitingPodUpdate,
 				ctrl.Result{},
@@ -1743,6 +1714,7 @@ func (r *WorkspaceReconciler) generateWorkspaceState(ctx context.Context, log lo
 			log.Error(err, "unable to list Pod events")
 			return state, stateMessage, ctrl.Result{}, err
 		}
+
 		// find the last Pod warning event
 		var lastPodWarningEvent *corev1.Event
 		if len(podEvents.Items) > 0 {
@@ -1764,6 +1736,7 @@ func (r *WorkspaceReconciler) generateWorkspaceState(ctx context.Context, log lo
 			stateMessage = fmt.Sprintf(stateMsgErrorPodWarningEvent, lastPodWarningEvent.Message)
 			return state, stateMessage, ctrl.Result{}, nil
 		}
+
 		// STATUS: Pending
 		// NOTE: when the Pod is pending and does not have any warning Events, we requeue after a short delay.
 		//       typically, if a Pod is stuck in Pending, the only indication of why is in the Events,
@@ -1774,6 +1747,7 @@ func (r *WorkspaceReconciler) generateWorkspaceState(ctx context.Context, log lo
 			return state, stateMessage, ctrl.Result{RequeueAfter: 15 * time.Second}, nil
 		}
 	}
+
 	// STATUS: Unknown
 	return state, stateMessage, ctrl.Result{}, nil
 }
