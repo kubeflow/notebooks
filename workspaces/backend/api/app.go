@@ -51,6 +51,8 @@ func NewApp(
 	cfg *config.EnvConfig,
 	logger *slog.Logger,
 	cl client.Client,
+	// apiReader bypasses the informer cache, for read-modify-write operations.
+	apiReader client.Reader,
 	// configMapClient is a label-filtered cached client for image-source ConfigMaps.
 	configMapClient client.Client,
 	scheme *runtime.Scheme,
@@ -71,7 +73,7 @@ func NewApp(
 	app := &App{
 		Config:               cfg,
 		logger:               logger,
-		repositories:         repositories.NewRepositories(cfg, cl, configMapClient, clientset),
+		repositories:         repositories.NewRepositories(cfg, cl, apiReader, configMapClient, clientset),
 		Scheme:               scheme,
 		StrictYamlSerializer: yamlSerializerInfo.StrictSerializer,
 		RequestAuthN:         reqAuthN,

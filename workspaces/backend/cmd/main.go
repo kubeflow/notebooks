@@ -188,6 +188,7 @@ func main() {
 		cfg,
 		logger,
 		mgr.GetClient(),
+		mgr.GetAPIReader(),
 		imageSourceConfigMapClient,
 		mgr.GetScheme(),
 		reqAuthN,
