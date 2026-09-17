@@ -92,7 +92,6 @@ const (
 	stateMsgErrorMultipleServiceAccounts   = "Workspace owns multiple ServiceAccounts: %s"
 	stateMsgErrorServiceAccountNotOwned    = "Workspace ServiceAccount %s already exists and is not owned by the Workspace"
 	stateMsgErrorMultipleVirtualServices   = "Workspace owns multiple VirtualServices: %s"
-	stateMsgErrorSetControllerReference    = "Workspace failed to set controller reference on %s with error: %s"
 	stateMsgErrorStatefulSetWarningEvent   = "Workspace StatefulSet has warning event: %s"
 	stateMsgErrorPodUnschedulable          = "Workspace Pod is unschedulable: %s"
 	stateMsgErrorPodSchedulingGate         = "Workspace Pod is waiting for scheduling gate: %s"
@@ -388,7 +387,18 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	default:
 		foundStatefulSet := &ownedStatefulSets.Items[0]
 		statefulSetName = foundStatefulSet.Name
-		if helper.CopyStatefulSetFields(statefulSet, foundStatefulSet) {
+		// NOTE: Even though the owner index matches by Workspace name, the found StatefulSet may
+		//       retain the controller reference of a previously deleted Workspace instance with the same
+		//       name (different UID), or reference an older APIVersion across CRD promotions.
+		//       ReplaceWorkspaceAsController ensures the current Workspace adopts the resource.
+		controllerRefUpdated, err := helper.ReplaceWorkspaceAsController(foundStatefulSet, workspace, r.Scheme)
+		if err != nil {
+			// should never happen, we only list StatefulSets that are owned by a Workspace
+			// and ReplaceWorkspaceAsController only fails if the current controller is not a Workspace.
+			log.Error(err, "INTERNAL ERROR: unable to replace controller reference on StatefulSet")
+			return ctrl.Result{}, err
+		}
+		if helper.CopyStatefulSetFields(statefulSet, foundStatefulSet) || controllerRefUpdated {
 			if err := r.Update(ctx, foundStatefulSet); err != nil {
 				if apierrors.IsConflict(err) {
 					log.V(2).Info("update conflict while updating StatefulSet, will requeue")
@@ -453,7 +463,14 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	default:
 		foundService := &ownedServices.Items[0]
 		serviceName = foundService.Name
-		if helper.CopyServiceFields(service, foundService) {
+		controllerRefUpdated, err := helper.ReplaceWorkspaceAsController(foundService, workspace, r.Scheme)
+		if err != nil {
+			// should never happen, we only list Services that are owned by a Workspace
+			// and ReplaceWorkspaceAsController only fails if the current controller is not a Workspace.
+			log.Error(err, "INTERNAL ERROR: unable to replace controller reference on Service")
+			return ctrl.Result{}, err
+		}
+		if helper.CopyServiceFields(service, foundService) || controllerRefUpdated {
 			if err := r.Update(ctx, foundService); err != nil {
 				if apierrors.IsConflict(err) {
 					log.V(2).Info("update conflict while updating Service, will requeue")
@@ -478,10 +495,8 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			)
 		}
 		if err := ctrl.SetControllerReference(workspace, virtualsvc, r.Scheme); err != nil {
-			return r.updateWorkspaceState(ctx, log, workspace,
-				kubefloworgv1beta1.WorkspaceStateError,
-				fmt.Sprintf(stateMsgErrorSetControllerReference, "VirtualService", err.Error()),
-			)
+			log.Error(err, "INTERNAL ERROR: unable to set controller reference on VirtualService")
+			return ctrl.Result{}, err
 		}
 
 		// fetch VirtualServices
@@ -520,7 +535,14 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		default:
 			foundVirtualService := ownedVirtualServices.Items[0]
 			virtualServiceName = foundVirtualService.Name
-			if helper.CopyVirtualServiceFields(virtualsvc, foundVirtualService) {
+			controllerRefUpdated, err := helper.ReplaceWorkspaceAsController(foundVirtualService, workspace, r.Scheme)
+			if err != nil {
+				// should never happen, we only list VirtualServices that are owned by a Workspace
+				// and ReplaceWorkspaceAsController only fails if the current controller is not a Workspace.
+				log.Error(err, "INTERNAL ERROR: unable to replace controller reference on VirtualService")
+				return ctrl.Result{}, err
+			}
+			if helper.CopyVirtualServiceFields(virtualsvc, foundVirtualService) || controllerRefUpdated {
 				if err := r.Update(ctx, foundVirtualService); err != nil {
 					if apierrors.IsConflict(err) {
 						log.V(2).Info("update conflict while updating VirtualService, will requeue")
