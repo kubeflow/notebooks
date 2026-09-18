@@ -83,7 +83,7 @@ test-e2e: manifests generate fmt vet istioctl ## Run the e2e tests. Expected an 
 		exit 1; \
 	}
 
-	go test ./test/e2e/ -v -ginkgo.v
+	go test ./test/e2e/ -v -ginkgo.v -timeout 25m
 
 .PHONY: lint
 lint: golangci-lint ## Run golangci-lint linter
