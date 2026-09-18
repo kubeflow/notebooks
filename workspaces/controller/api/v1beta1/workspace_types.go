@@ -18,6 +18,7 @@ package v1beta1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // Important: Run "make" to regenerate code after modifying this file
@@ -213,6 +214,9 @@ type WorkspaceStatus struct {
 	// information about the Pod managed by this Workspace (only set for WorkspaceKind of podTemplate kind)
 	PodTemplatePod WorkspacePodStatus `json:"podTemplatePod"`
 
+	// information about the StatefulSet managed by this Workspace (only set for WorkspaceKind of podTemplate kind)
+	PodTemplateStatefulSet WorkspaceStatefulSetStatus `json:"podTemplateStatefulSet"`
+
 	// the current state of the Workspace
 	// +kubebuilder:default="Unknown"
 	State WorkspaceState `json:"state"`
@@ -331,10 +335,16 @@ type WorkspacePodOptionRedirectStep struct {
 
 type WorkspacePodStatus struct {
 	// the name of the Pod resource
-	Name string `json:"name"`
+	// +kubebuilder:validation:Optional
+	Name string `json:"name,omitempty"`
+
+	// the UID of the Pod resource
+	// +kubebuilder:validation:Optional
+	UID types.UID `json:"uid,omitempty"`
 
 	// the name of the node on which the Pod is scheduled
-	NodeName string `json:"nodeName"`
+	// +kubebuilder:validation:Optional
+	NodeName string `json:"nodeName,omitempty"`
 
 	// the name of the ServiceAccount that the Pod runs as
 	//  - this ServiceAccount is created and owned by the Workspace, and is stable for its lifetime
@@ -356,6 +366,16 @@ type WorkspacePodStatus struct {
 type WorkspacePodContainer struct {
 	// the name of the container
 	Name string `json:"name"`
+}
+
+type WorkspaceStatefulSetStatus struct {
+	// the name of the StatefulSet resource
+	// +kubebuilder:validation:Optional
+	Name string `json:"name,omitempty"`
+
+	// the UID of the StatefulSet resource
+	// +kubebuilder:validation:Optional
+	UID types.UID `json:"uid,omitempty"`
 }
 
 // +kubebuilder:validation:Enum:={"Running","Terminating","Paused","Pending","Error","Unknown"}
