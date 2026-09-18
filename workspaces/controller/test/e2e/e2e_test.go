@@ -105,6 +105,20 @@ const (
 	warningStsWorkspaceName  = "jupyterlab-workspace-sts-warning"
 	warningSecretName        = "missing-warning-secret"
 	stsWarningQuotaName      = "sts-warning-quota"
+
+	// `--watch-warning-events=false` (kill switch) test configs
+	warningOffWorkspaceKindName = "jupyterlab-warning-off"
+	warningOffWorkspaceName     = "jupyterlab-workspace-warning-off"
+	warningOffSecretName        = "missing-warning-off-secret"
+
+	// the controller Deployment, and the env var which backs the `--watch-warning-events` flag
+	controllerDeploymentName = "workspaces-controller"
+	watchWarningEventsEnvVar = "WATCH_WARNING_EVENTS"
+
+	// how long to wait while asserting that NO event-driven reconcile happens
+	//  - a Workspace in the Error state is not requeued, and a Pod stuck on a failed volume mount
+	//    is not updated, so the only thing that could reconcile it in this window is an Event watch
+	noReconcileDuration = time.Second * 10
 )
 
 var (
@@ -1786,4 +1800,262 @@ lastTimestamp: %q
 			_, _ = utils.Run(cmd)
 		})
 	})
+
+	Context("Warning Events (watch disabled)", func() {
+		//
+		// These specs cover the `--watch-warning-events=false` kill switch, which exists so that an
+		// operator can drop the controller's cluster-wide Event cache (whose size is bounded only by
+		// the API server's `--event-ttl`) without rolling back to an older image.
+		//
+		// Disabling the watch must NOT disable Warning Event reporting: the controller keeps reading
+		// Events, but directly from the API server instead of from a local cache. That read uses a
+		// real `involvedObject.uid` field selector, which the API server rejects if the field label
+		// is wrong, so it can only be exercised end-to-end.
+		//
+
+		BeforeAll(func() {
+			By("disabling the Warning Event watch on the controller")
+			setControllerEnv(watchWarningEventsEnvVar, "false")
+		})
+
+		AfterAll(func() {
+			By("deleting the warning-off Workspace")
+			cmd := exec.Command("kubectl", "delete", "workspace", warningOffWorkspaceName,
+				"-n", workspaceNamespace, "--ignore-not-found=true", "--wait",
+				fmt.Sprintf("--timeout=%s", timeout),
+			)
+			_, _ = utils.Run(cmd)
+
+			By("deleting the warning-off secret if present")
+			cmd = exec.Command("kubectl", "delete", "secret", warningOffSecretName,
+				"-n", workspaceNamespace, "--ignore-not-found=true",
+			)
+			_, _ = utils.Run(cmd)
+
+			By("deleting the warning-off WorkspaceKind")
+			cmd = exec.Command("kubectl", "delete", "workspacekind", warningOffWorkspaceKindName,
+				"--ignore-not-found=true",
+			)
+			_, _ = utils.Run(cmd)
+
+			By("re-enabling the Warning Event watch on the controller")
+			setControllerEnv(watchWarningEventsEnvVar, "")
+		})
+
+		It("should still report Warning Events in the Workspace status, without watching them", func() {
+			By("creating a WorkspaceKind for the warning-off test")
+			kindYAML, err := utils.RenderActivityWorkspaceKind(
+				filepath.Join(projectDir, "manifests/kustomize/samples/jupyterlab_v1beta1_workspacekind.yaml"),
+				warningOffWorkspaceKindName,
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			applyKind := func() error {
+				cmd := exec.Command("kubectl", "apply", "-f", "-")
+				cmd.Stdin = strings.NewReader(kindYAML)
+				_, err := utils.Run(cmd)
+				return err
+			}
+			Eventually(applyKind, timeout, interval).Should(Succeed())
+
+			By("creating a Workspace that references a missing secret volume to trigger a Pod Warning event")
+			workspaceYAML, err := utils.RenderActivityWorkspace(
+				filepath.Join(projectDir, "manifests/kustomize/samples/jupyterlab_v1beta1_workspace.yaml"),
+				warningOffWorkspaceName,
+				warningOffWorkspaceKindName,
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Replace the secretName with a non-existent secret to cause a mount failure Warning event
+			workspaceYAML = strings.Replace(workspaceYAML, "workspace-secret", warningOffSecretName, 1)
+
+			applyWorkspace := func() error {
+				cmd := exec.Command("kubectl", "apply", "-f", "-", "-n", workspaceNamespace)
+				cmd.Stdin = strings.NewReader(workspaceYAML)
+				_, err := utils.Run(cmd)
+				return err
+			}
+			Eventually(applyWorkspace, timeout, interval).Should(Succeed())
+
+			By("verifying that the workspace status records the owned Pod UID")
+			var podUID, podName string
+			verifyUIDsRecorded := func(g Gomega) error {
+				var err error
+				podUID, err = utils.GetWorkspaceJSONPath(
+					warningOffWorkspaceName, workspaceNamespace, "{.status.podTemplatePod.uid}")
+				g.Expect(err).NotTo(HaveOccurred())
+				if podUID == "" {
+					return fmt.Errorf("pod UID not yet recorded in workspace status")
+				}
+
+				podName, err = utils.GetWorkspaceJSONPath(
+					warningOffWorkspaceName, workspaceNamespace, "{.status.podTemplatePod.name}")
+				g.Expect(err).NotTo(HaveOccurred())
+				if podName == "" {
+					return fmt.Errorf("pod name not yet recorded in workspace status")
+				}
+
+				return nil
+			}
+			Eventually(verifyUIDsRecorded, timeout, interval).Should(Succeed())
+
+			//
+			// NOTE: with the watch disabled, nothing reconciles the Workspace when the Warning Event
+			//       is posted. Reaching the Error state therefore relies on the requeue performed
+			//       while the Workspace is Pending, and on the Event being read directly from the
+			//       API server (the read fails outright if the field selector is not a valid
+			//       `v1.Event` field label).
+			//
+			By("waiting for the workspace to transition to Error state due to the Pod Warning event")
+			verifyPodWarningErrorState := func(g Gomega) error {
+				statusState, err := utils.GetWorkspaceJSONPath(
+					warningOffWorkspaceName, workspaceNamespace, "{.status.state}")
+				g.Expect(err).NotTo(HaveOccurred())
+
+				if statusState != string(kubefloworgv1beta1.WorkspaceStateError) {
+					return fmt.Errorf("workspace not in Error state yet, currently %q", statusState)
+				}
+
+				statusStateMessage, err := utils.GetWorkspaceJSONPath(
+					warningOffWorkspaceName, workspaceNamespace, "{.status.stateMessage}")
+				g.Expect(err).NotTo(HaveOccurred())
+
+				g.Expect(statusStateMessage).To(ContainSubstring("Workspace Pod has warning event:"))
+				g.Expect(statusStateMessage).To(ContainSubstring(warningOffSecretName))
+				return nil
+			}
+			Eventually(verifyPodWarningErrorState, timeout, interval).Should(Succeed())
+
+			By("waiting for the Workspace status to settle")
+			var settledStateMessage string
+			Eventually(func(g Gomega) error {
+				statusStateMessage, err := utils.GetWorkspaceJSONPath(
+					warningOffWorkspaceName, workspaceNamespace, "{.status.stateMessage}")
+				g.Expect(err).NotTo(HaveOccurred())
+
+				if statusStateMessage != settledStateMessage {
+					settledStateMessage = statusStateMessage
+					return fmt.Errorf("stateMessage is still changing, currently %q", statusStateMessage)
+				}
+				return nil
+			}, timeout, 5*time.Second).Should(Succeed())
+
+			By("posting a custom Warning event for the Pod, which must NOT trigger a reconcile")
+			customWarningMsg := "MountVolume.SetUp custom failure message for pod (watch disabled)"
+			eventYAML := fmt.Sprintf(`apiVersion: v1
+kind: Event
+metadata:
+  name: e2e-warning-off-pod-warning-%d
+  namespace: %s
+involvedObject:
+  apiVersion: v1
+  kind: Pod
+  name: %s
+  namespace: %s
+  uid: %s
+type: Warning
+reason: FailedMount
+message: %q
+lastTimestamp: %q
+`, time.Now().UnixNano(), workspaceNamespace, podName, workspaceNamespace,
+				podUID, customWarningMsg, time.Now().Add(5*time.Minute).UTC().Format(time.RFC3339))
+
+			cmd := exec.Command("kubectl", "create", "-f", "-")
+			cmd.Stdin = strings.NewReader(eventYAML)
+			_, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+
+			verifyStateMessageUnchanged := func(g Gomega) error {
+				statusStateMessage, err := utils.GetWorkspaceJSONPath(
+					warningOffWorkspaceName, workspaceNamespace, "{.status.stateMessage}")
+				g.Expect(err).NotTo(HaveOccurred())
+
+				if strings.Contains(statusStateMessage, customWarningMsg) {
+					return fmt.Errorf("workspace was reconciled by the Warning Event, but the watch is disabled")
+				}
+				return nil
+			}
+			Consistently(verifyStateMessageUnchanged, noReconcileDuration, interval).Should(Succeed())
+
+			//
+			// NOTE: this proves the previous assertion was about the missing WATCH, and not about the
+			//       controller having stopped reading Events altogether.
+			//
+			By("forcing a reconcile and verifying the custom Warning event is then picked up")
+			cmd = exec.Command("kubectl", "annotate", "workspace", warningOffWorkspaceName,
+				"-n", workspaceNamespace,
+				fmt.Sprintf("e2e-force-reconcile=%d", time.Now().UnixNano()),
+				"--overwrite",
+			)
+			_, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+
+			verifyCustomWarningUpdated := func(g Gomega) error {
+				statusStateMessage, err := utils.GetWorkspaceJSONPath(
+					warningOffWorkspaceName, workspaceNamespace, "{.status.stateMessage}")
+				g.Expect(err).NotTo(HaveOccurred())
+
+				if !strings.Contains(statusStateMessage, customWarningMsg) {
+					return fmt.Errorf("expected stateMessage to contain custom warning, got: %s", statusStateMessage)
+				}
+				return nil
+			}
+			Eventually(verifyCustomWarningUpdated, timeout, interval).Should(Succeed())
+
+			By("creating the missing secret and verifying that the workspace still recovers to Running")
+			cmd = exec.Command("kubectl", "create", "secret", "generic", warningOffSecretName,
+				"-n", workspaceNamespace, "--from-literal=dummy=value")
+			_, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Deleting the pod resets Kubelet's exponential mount backoff:
+			// the StatefulSet controller immediately recreates it, and the new pod mounts
+			// the now-existing secret on its first try.
+			cmd = exec.Command("kubectl", "delete", "pod", podName, "-n", workspaceNamespace)
+			_, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+
+			verifyRecoveredToRunning := func(g Gomega) error {
+				statusState, err := utils.GetWorkspaceJSONPath(
+					warningOffWorkspaceName, workspaceNamespace, "{.status.state}")
+				g.Expect(err).NotTo(HaveOccurred())
+
+				if statusState != string(kubefloworgv1beta1.WorkspaceStateRunning) {
+					return fmt.Errorf("workspace not Running yet, state=%q", statusState)
+				}
+				return nil
+			}
+			Eventually(verifyRecoveredToRunning, timeout, interval).Should(Succeed())
+		})
+	})
 })
+
+// setControllerEnv sets an environment variable on the workspaces-controller Deployment and waits
+// for the resulting rollout to complete. An empty value removes the variable.
+//
+// NOTE: `--watch-warning-events` reads its default from the `WATCH_WARNING_EVENTS` env var precisely
+//
+//	so that it can be flipped like this, without editing the manifests or rebuilding the image.
+func setControllerEnv(name, value string) {
+	envArg := fmt.Sprintf("%s=%s", name, value)
+	if value == "" {
+		// `kubectl set env KEY-` removes the variable
+		envArg = name + "-"
+	}
+
+	cmd := exec.Command("kubectl", "set", "env",
+		"deployment/"+controllerDeploymentName,
+		"-n", controllerNamespace,
+		envArg,
+	)
+	_, err := utils.Run(cmd)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+	cmd = exec.Command("kubectl", "rollout", "status",
+		"deployment/"+controllerDeploymentName,
+		"-n", controllerNamespace,
+		fmt.Sprintf("--timeout=%s", timeout),
+	)
+	_, err = utils.Run(cmd)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+}

@@ -103,7 +103,10 @@ func main() {
 	flag.IntVar(&cfg.ClientBurst, "client-burst", getEnvAsInt("CLIENT_BURST", 100),
 		"Maximum Burst configuration passed to the Kubernetes API client (rest.Config).")
 	flag.BoolVar(&cfg.WatchWarningEvents, "watch-warning-events", getEnvAsBool("WATCH_WARNING_EVENTS", true),
-		"Enable watching Kubernetes Warning Events for owned Pods and StatefulSets.")
+		"Enable watching Kubernetes Warning Events for owned Pods and StatefulSets. "+
+			"Disabling this stops the controller from caching every Warning Event in the cluster "+
+			"(which is unbounded during an event storm), at the cost of Workspaces taking longer to "+
+			"report an Error state. Warning Events are still reported in `status.stateMessage`.")
 
 	opts := zap.Options{
 		Development: true,
@@ -148,36 +151,55 @@ func main() {
 		os.Exit(1)
 	}
 
-	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
-		Scheme: scheme,
-		Client: client.Options{
-			Cache: &client.CacheOptions{
-				// Disable caching for ConfigMaps and Secrets as caching all of them can take a LOT of memory in a large cluster.
-				// We create special caches that are filtered by label selectors (e.g. the image source ConfigMaps).
-				// REFERENCE: https://github.com/kubernetes-sigs/controller-runtime/issues/244#issuecomment-2466564541
-				DisableFor: []client.Object{
-					&corev1.ConfigMap{},
-					&corev1.Secret{},
-				},
+	// build the client options for the manager
+	clientOpts := client.Options{
+		Cache: &client.CacheOptions{
+			// Disable caching for ConfigMaps and Secrets as caching all of them can take a LOT of memory in a large cluster.
+			// We create special caches that are filtered by label selectors (e.g. the image source ConfigMaps).
+			// REFERENCE: https://github.com/kubernetes-sigs/controller-runtime/issues/244#issuecomment-2466564541
+			DisableFor: []client.Object{
+				&corev1.ConfigMap{},
+				&corev1.Secret{},
 			},
 		},
-		Cache: func() cache.Options {
-			cacheOpts := cache.Options{}
-			if cfg.WatchWarningEvents {
-				cacheOpts.ByObject = map[client.Object]cache.ByObject{
-					&corev1.Event{}: {
-						// Filter at the apiserver/etcd level so only Warning events are streamed & cached.
-						// NOTE: Kubernetes field selectors do not support OR / set membership (e.g.
-						// involvedObject.kind in (Pod, StatefulSet)). Filtering for Pod and StatefulSet
-						// kinds specifically is handled client-side by the controller's event predicate.
-						Field: fields.SelectorFromSet(fields.Set{
-							"type": corev1.EventTypeWarning,
-						}),
-					},
-				}
-			}
-			return cacheOpts
-		}(),
+	}
+
+	// build the cache options for the manager
+	cacheOpts := cache.Options{}
+
+	if cfg.WatchWarningEvents {
+		cacheOpts.ByObject = map[client.Object]cache.ByObject{
+			&corev1.Event{}: {
+				// Filter at the apiserver/etcd level so only Warning events are streamed & cached.
+				// NOTE: Kubernetes field selectors do not support OR / set membership (e.g.
+				// involvedObject.kind in (Pod, StatefulSet)). Filtering for Pod and StatefulSet
+				// kinds specifically is handled client-side by the controller's event predicate.
+				Field: fields.SelectorFromSet(fields.Set{
+					"type": corev1.EventTypeWarning,
+				}),
+				// Drop the parts of each Event we never read before it is stored in the cache.
+				// This cache holds every Warning Event in the cluster (client-side predicates filter
+				// event *delivery*, not cache *contents*), so shrinking each entry directly shrinks
+				// the worst-case memory usage during an event storm.
+				Transform: helper.StripEventForCache,
+			},
+		}
+	} else {
+		// The Event cache is cluster-wide and its size is bounded only by the API server's
+		// `--event-ttl` (1 hour by default), so an event storm in ANY namespace can grow it without
+		// limit. When warning event watching is disabled, we therefore avoid caching Events
+		// entirely: no watch is registered (see `SetupWithManager`), no field index is registered
+		// (see `SetupManagerFieldIndexers`), and reads are sent straight to the API server.
+		// Workspace state is still derived from Warning Events, it just requires a reconcile to be
+		// triggered by something other than the Event itself (e.g. a Pod update or a requeue).
+		clientOpts.Cache.DisableFor = append(clientOpts.Cache.DisableFor, &corev1.Event{})
+	}
+	setupLog.Info("configured Warning Event watching", "enabled", cfg.WatchWarningEvents)
+
+	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
+		Scheme: scheme,
+		Client: clientOpts,
+		Cache:  cacheOpts,
 		Metrics: metricsserver.Options{
 			BindAddress:   metricsAddr,
 			SecureServing: secureMetrics,

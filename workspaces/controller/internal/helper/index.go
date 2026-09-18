@@ -32,7 +32,16 @@ import (
 )
 
 const (
-	IndexEventInvolvedObjectUidField            = ".involvedObject.uid"
+	// IndexEventInvolvedObjectUidField indexes Events by `involvedObject.uid`.
+	//
+	// NOTE: unlike the other index names, this one deliberately has NO leading dot, because it must
+	//       be valid BOTH as a controller-runtime cache index name AND as a real Kubernetes field
+	//       label for `v1.Event`. When `--watch-warning-events` is disabled we do not cache Events
+	//       at all, so a List using this field selector is sent to the API server, which rejects
+	//       any field label it does not know (e.g. `.involvedObject.uid` would fail with
+	//       "field label not supported").
+	IndexEventInvolvedObjectUidField = "involvedObject.uid"
+
 	IndexWorkspaceOwnedResourceUIDField         = ".status.ownedResourceUIDs"
 	IndexWorkspaceOwnerField                    = ".metadata.controller"
 	IndexWorkspaceKindField                     = ".spec.kind"
@@ -76,6 +85,13 @@ func indexByWorkspaceOwner(mgr ctrl.Manager, obj client.Object) error {
 func SetupManagerFieldIndexers(mgr ctrl.Manager, cfg *config.EnvConfig) error {
 
 	// Index Event by `involvedObject.uid` (only when warning event watching is enabled)
+	//
+	// WARNING: `IndexField()` calls `GetInformer()` under the hood, so merely registering this index
+	//          creates (and starts) a cluster-wide Event informer, even if nothing ever watches or
+	//          Lists Events through the cache. That informer caches every Warning Event in the
+	//          cluster, which is unbounded during an event storm, so it must stay gated behind the
+	//          `--watch-warning-events` flag. When disabled, Events are read directly from the API
+	//          server instead (see the `DisableFor` client option in `cmd/main.go`).
 	if cfg != nil && cfg.WatchWarningEvents {
 		if err := mgr.GetFieldIndexer().IndexField(context.Background(), &corev1.Event{}, IndexEventInvolvedObjectUidField, func(rawObj client.Object) []string {
 			event := rawObj.(*corev1.Event)

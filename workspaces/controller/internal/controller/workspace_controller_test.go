@@ -1127,13 +1127,24 @@ var _ = Describe("Workspace Controller", func() {
 			stsUID = sts.UID
 			podName = fmt.Sprintf("%s-0", stsName)
 
+			// NOTE: envtest does not run a StatefulSet controller, so we simulate one by
+			//       bumping ObservedGeneration to match Generation and stamping an
+			//       UpdateRevision. Without this, `generateWorkspaceState()` short-circuits
+			//       to Pending ("Waiting for Kubernetes to reconcile StatefulSet") and the
+			//       Warning Event handling under test is never reached.
+			const stsRevision = "revision-1"
+			sts.Status.ObservedGeneration = sts.Generation
+			sts.Status.UpdateRevision = stsRevision
+			Expect(k8sClient.Status().Update(ctx, &sts)).To(Succeed())
+
 			By("creating the Pod for the StatefulSet in Pending phase")
 			pod := &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      podName,
 					Namespace: namespaceName,
 					Labels: map[string]string{
-						workspaceNameLabel: workspaceName,
+						workspaceNameLabel:              workspaceName,
+						appsv1.StatefulSetRevisionLabel: stsRevision,
 					},
 				},
 				Spec: corev1.PodSpec{
@@ -1353,6 +1364,7 @@ var _ = Describe("Workspace Controller", func() {
 			reconcilerDisabled *WorkspaceReconciler
 			reconcilerEnabled  *WorkspaceReconciler
 			reconcilerNilCfg   *WorkspaceReconciler
+			reconcilerUncached *WorkspaceReconciler
 			testSts            *appsv1.StatefulSet
 			testPod            *corev1.Pod
 			stsUID             types.UID
@@ -1379,15 +1391,35 @@ var _ = Describe("Workspace Controller", func() {
 				Scheme: k8sManager.GetScheme(),
 				Config: nil,
 			}
+			// NOTE: `k8sClient` is a direct (uncached) client, so this reconciler reads Events the
+			//       same way the controller does when `--watch-warning-events` is disabled: with the
+			//       field selector sent to the API server, rather than resolved against a local
+			//       cache index. This is what ensures `IndexEventInvolvedObjectUidField` remains a
+			//       valid Kubernetes field label for `v1.Event`.
+			reconcilerUncached = &WorkspaceReconciler{
+				Client: k8sClient,
+				Scheme: k8sManager.GetScheme(),
+				Config: &config.EnvConfig{WatchWarningEvents: false},
+			}
 
 			stsUID = types.UID(fmt.Sprintf("sts-uid-%d", time.Now().UnixNano()))
 			podUID = types.UID(fmt.Sprintf("pod-uid-%d", time.Now().UnixNano()))
 
+			// NOTE: the StatefulSet and Pod must be coherent (matching generations and
+			//       revisions), otherwise `generateWorkspaceState()` short-circuits to Pending
+			//       before it evaluates any Warning Events.
+			const stsRevision = "revision-1"
+
 			testSts = &appsv1.StatefulSet{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-sts-eval",
-					Namespace: namespaceName,
-					UID:       stsUID,
+					Name:       "test-sts-eval",
+					Namespace:  namespaceName,
+					UID:        stsUID,
+					Generation: 1,
+				},
+				Status: appsv1.StatefulSetStatus{
+					ObservedGeneration: 1,
+					UpdateRevision:     stsRevision,
 				},
 			}
 			testPod = &corev1.Pod{
@@ -1395,6 +1427,9 @@ var _ = Describe("Workspace Controller", func() {
 					Name:      "test-pod-eval-0",
 					Namespace: namespaceName,
 					UID:       podUID,
+					Labels: map[string]string{
+						appsv1.StatefulSetRevisionLabel: stsRevision,
+					},
 				},
 				Status: corev1.PodStatus{
 					Phase: corev1.PodPending,
@@ -1449,34 +1484,10 @@ var _ = Describe("Workspace Controller", func() {
 			}
 		})
 
-		It("should ignore warning events and return Pending when WatchWarningEvents is false", func() {
-			state, msg, result, err := reconcilerDisabled.generateWorkspaceState(
-				ctx, logf.Log, false, testSts, testPod,
-			)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStatePending))
-			Expect(msg).To(Equal(stateMsgPending))
-			Expect(result.RequeueAfter).To(Equal(15 * time.Second))
-		})
-
-		It("should ignore warning events and return Unknown when WatchWarningEvents is false and pod is nil", func() {
-			state, msg, _, err := reconcilerDisabled.generateWorkspaceState(
-				ctx, logf.Log, false, testSts, nil,
-			)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateUnknown))
-			Expect(msg).To(Equal(stateMsgUnknown))
-		})
-
-		It("should ignore warning events when Config is nil", func() {
-			state, msg, result, err := reconcilerNilCfg.generateWorkspaceState(
-				ctx, logf.Log, false, testSts, testPod,
-			)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStatePending))
-			Expect(msg).To(Equal(stateMsgPending))
-			Expect(result.RequeueAfter).To(Equal(15 * time.Second))
-		})
+		// NOTE: `--watch-warning-events` only controls whether the controller WATCHES (and therefore
+		//       caches) Warning Events, it does NOT control whether they are reported in the
+		//       Workspace status. So all of the following cases must behave identically, the only
+		//       difference being how quickly a reconcile is triggered in a real cluster.
 
 		It("should detect pod warning event and return Error when WatchWarningEvents is true", func() {
 			Eventually(func(g Gomega) {
@@ -1498,6 +1509,97 @@ var _ = Describe("Workspace Controller", func() {
 				g.Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateError))
 				g.Expect(msg).To(ContainSubstring(stsWarningMsg))
 			}, timeout, interval).Should(Succeed())
+		})
+
+		It("should detect pod warning event and return Error when WatchWarningEvents is false", func() {
+			Eventually(func(g Gomega) {
+				state, msg, _, err := reconcilerDisabled.generateWorkspaceState(
+					ctx, logf.Log, false, testSts, testPod,
+				)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateError))
+				g.Expect(msg).To(ContainSubstring(podWarningMsg))
+			}, timeout, interval).Should(Succeed())
+		})
+
+		It("should detect statefulset warning event and return Error when WatchWarningEvents is false", func() {
+			Eventually(func(g Gomega) {
+				state, msg, _, err := reconcilerDisabled.generateWorkspaceState(
+					ctx, logf.Log, false, testSts, nil,
+				)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateError))
+				g.Expect(msg).To(ContainSubstring(stsWarningMsg))
+			}, timeout, interval).Should(Succeed())
+		})
+
+		It("should detect pod warning event and return Error when Config is nil", func() {
+			Eventually(func(g Gomega) {
+				state, msg, _, err := reconcilerNilCfg.generateWorkspaceState(
+					ctx, logf.Log, false, testSts, testPod,
+				)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateError))
+				g.Expect(msg).To(ContainSubstring(podWarningMsg))
+			}, timeout, interval).Should(Succeed())
+		})
+
+		It("should read warning events from the API server when the Event cache is disabled", func() {
+			// NOTE: this uses a direct (uncached) client, so the field selector is sent to the API
+			//       server. It fails with "field label not supported" if
+			//       `IndexEventInvolvedObjectUidField` is ever changed to a name that is not a real
+			//       `v1.Event` field label (e.g. by re-adding the conventional leading dot).
+			//       No `Eventually` is needed, because uncached reads are strongly consistent.
+			state, msg, _, err := reconcilerUncached.generateWorkspaceState(
+				ctx, logf.Log, false, testSts, testPod,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateError))
+			Expect(msg).To(ContainSubstring(podWarningMsg))
+
+			state, msg, _, err = reconcilerUncached.generateWorkspaceState(
+				ctx, logf.Log, false, testSts, nil,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateError))
+			Expect(msg).To(ContainSubstring(stsWarningMsg))
+		})
+
+		It("should return Pending when the Pod has no warning events", func() {
+			podWithoutEvents := testPod.DeepCopy()
+			podWithoutEvents.UID = types.UID(fmt.Sprintf("pod-uid-no-events-%d", time.Now().UnixNano()))
+
+			for name, reconciler := range map[string]*WorkspaceReconciler{
+				"cached":   reconcilerDisabled,
+				"uncached": reconcilerUncached,
+			} {
+				By(fmt.Sprintf("using the %s client", name))
+				state, msg, result, err := reconciler.generateWorkspaceState(
+					ctx, logf.Log, false, testSts, podWithoutEvents,
+				)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStatePending))
+				Expect(msg).To(Equal(stateMsgPending))
+				Expect(result.RequeueAfter).To(Equal(15 * time.Second))
+			}
+		})
+
+		It("should return Unknown when the Pod is nil and the StatefulSet has no warning events", func() {
+			stsWithoutEvents := testSts.DeepCopy()
+			stsWithoutEvents.UID = types.UID(fmt.Sprintf("sts-uid-no-events-%d", time.Now().UnixNano()))
+
+			for name, reconciler := range map[string]*WorkspaceReconciler{
+				"cached":   reconcilerDisabled,
+				"uncached": reconcilerUncached,
+			} {
+				By(fmt.Sprintf("using the %s client", name))
+				state, msg, _, err := reconciler.generateWorkspaceState(
+					ctx, logf.Log, false, stsWithoutEvents, nil,
+				)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateUnknown))
+				Expect(msg).To(Equal(stateMsgUnknown))
+			}
 		})
 	})
 

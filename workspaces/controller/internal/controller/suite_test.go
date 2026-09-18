@@ -120,6 +120,9 @@ var _ = BeforeSuite(func() {
 					Field: fields.SelectorFromSet(fields.Set{
 						"type": v1.EventTypeWarning,
 					}),
+					// NOTE: this mirrors `cmd/main.go`, so that the tests which read Events from the
+					//       cache would catch the transform stripping a field the controller needs.
+					Transform: helper.StripEventForCache,
 				},
 			},
 		},
