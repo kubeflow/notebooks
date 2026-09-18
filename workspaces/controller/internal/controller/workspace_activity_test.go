@@ -26,6 +26,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -207,8 +208,10 @@ var _ = Describe("generateWorkspaceStatus activity status reset on restart", fun
 		c := fake.NewClientBuilder().WithScheme(scheme).Build()
 		r := &WorkspaceReconciler{Client: c, Scheme: scheme}
 
+		const namespace = "team-a"
+
 		ws := &kubefloworgv1beta1.Workspace{
-			ObjectMeta: metav1.ObjectMeta{Name: "ws", Namespace: "team-a"},
+			ObjectMeta: metav1.ObjectMeta{Name: "ws", Namespace: namespace},
 			Spec:       kubefloworgv1beta1.WorkspaceSpec{Paused: false},
 			Status: kubefloworgv1beta1.WorkspaceStatus{
 				State:           kubefloworgv1beta1.WorkspaceStatePaused,
@@ -226,8 +229,26 @@ var _ = Describe("generateWorkspaceStatus activity status reset on restart", fun
 			},
 		}
 
+		// generateWorkspaceState short-circuits to Pending when the StatefulSet's
+		// ObservedGeneration lags its Generation, or when the Pod's revision label
+		// disagrees with the StatefulSet's UpdateRevision. Neither guard has a
+		// live controller in this unit test, so we hand-shape a coherent StatefulSet
+		// and matching Pod label to exercise the Running path this test cares about.
+		const (
+			revision   = "revision-1"
+			generation = int64(1)
+		)
+		statefulSet := &appsv1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{Name: "ws", Namespace: namespace, Generation: generation},
+			Status:     appsv1.StatefulSetStatus{ObservedGeneration: generation, UpdateRevision: revision},
+		}
+
 		pod := &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{Name: "ws-0", Namespace: "team-a"},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "ws-0",
+				Namespace: namespace,
+				Labels:    map[string]string{appsv1.StatefulSetRevisionLabel: revision},
+			},
 			Status: corev1.PodStatus{
 				Phase: corev1.PodRunning,
 				Conditions: []corev1.PodCondition{
@@ -236,7 +257,7 @@ var _ = Describe("generateWorkspaceStatus activity status reset on restart", fun
 			},
 		}
 
-		status, _, err := r.generateWorkspaceStatus(ctx, log, ws, pod, nil, "")
+		status, _, err := r.generateWorkspaceStatus(ctx, log, ws, pod, statefulSet, "")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(status.State).To(Equal(kubefloworgv1beta1.WorkspaceStateRunning))
 		Expect(status.Activity).To(Equal(kubefloworgv1beta1.WorkspaceActivity{}))

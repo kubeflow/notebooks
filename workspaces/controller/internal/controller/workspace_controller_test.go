@@ -17,10 +17,12 @@ limitations under the License.
 package controller
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
 
+	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -29,6 +31,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
@@ -346,15 +349,28 @@ var _ = Describe("Workspace Controller", func() {
 
 			By("fetching the created StatefulSet and creating a running Pod for it")
 			Expect(k8sClient.List(ctx, statefulSetList, client.InNamespace(namespaceName), client.MatchingLabels{workspaceNameLabel: workspaceName})).To(Succeed())
-			statefulSetName := statefulSetList.Items[0].Name
+			statefulSet := &statefulSetList.Items[0]
+			statefulSetName := statefulSet.Name
 			podName := fmt.Sprintf("%s-0", statefulSetName)
+
+			// envtest does not run a StatefulSet controller, so we simulate one by
+			// bumping ObservedGeneration to match Generation and stamping an
+			// UpdateRevision. Without this, generateWorkspaceState short-circuits
+			// to Pending ("Waiting for Kubernetes to reconcile StatefulSet") on
+			// every reconcile and the workspace never reaches Running, so the
+			// activity/pause logic under test never triggers.
+			const revision = "revision-1"
+			statefulSet.Status.ObservedGeneration = statefulSet.Generation
+			statefulSet.Status.UpdateRevision = revision
+			Expect(k8sClient.Status().Update(ctx, statefulSet)).To(Succeed())
 
 			pod := &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      podName,
 					Namespace: namespaceName,
 					Labels: map[string]string{
-						workspaceNameLabel: workspaceName,
+						workspaceNameLabel:              workspaceName,
+						appsv1.StatefulSetRevisionLabel: revision,
 					},
 				},
 				Spec: corev1.PodSpec{
@@ -844,6 +860,143 @@ var _ = Describe("Workspace Controller", func() {
 
 			By("checking the pod template uses the podConfig `schedulerName`")
 			Expect(statefulSet.Spec.Template.Spec.SchedulerName).To(Equal("podconfig-scheduler"))
+		})
+	})
+
+	Context("When generating the Workspace state", func() {
+		var (
+			reconciler  *WorkspaceReconciler
+			statefulSet *appsv1.StatefulSet
+			pod         *corev1.Pod
+		)
+		BeforeEach(func() {
+			const defaultStsRevision = "revision-1"
+
+			reconciler = &WorkspaceReconciler{}
+
+			statefulSet = &appsv1.StatefulSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Generation: 1,
+				},
+				Status: appsv1.StatefulSetStatus{
+					ObservedGeneration: 1,
+					UpdateRevision:     defaultStsRevision,
+				},
+			}
+
+			pod = &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						appsv1.StatefulSetRevisionLabel: defaultStsRevision,
+					},
+				},
+			}
+		})
+
+		It("should return Pending when the StatefulSet's ObservedGeneration is behind its Generation", func() {
+			statefulSet.Generation = 2
+			statefulSet.Status.ObservedGeneration = 1
+
+			state, message, result, err := reconciler.generateWorkspaceState(
+				context.Background(),
+				logr.Discard(),
+				false,
+				statefulSet,
+				pod,
+			)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).To(Equal(ctrl.Result{}))
+			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStatePending))
+			Expect(message).To(Equal(stateMsgWaitingStatefulSetReconcile))
+		})
+
+		It("should return Pending when the StatefulSet's ObservedGeneration is ahead of its Generation", func() {
+			statefulSet.Generation = 1
+			statefulSet.Status.ObservedGeneration = 2
+
+			state, message, result, err := reconciler.generateWorkspaceState(
+				context.Background(),
+				logr.Discard(),
+				false,
+				statefulSet,
+				pod,
+			)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).To(Equal(ctrl.Result{}))
+			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStatePending))
+			Expect(message).To(Equal(stateMsgWaitingStatefulSetReconcile))
+		})
+
+		It("should return Paused when the workspace is paused and the StatefulSet's Generation and ObservedGeneration match", func() {
+			state, message, result, err := reconciler.generateWorkspaceState(
+				context.Background(),
+				logr.Discard(),
+				true,
+				statefulSet,
+				nil,
+			)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).To(Equal(ctrl.Result{}))
+			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStatePaused))
+			Expect(message).To(Equal(stateMsgPaused))
+		})
+		It("should return Pending when the Pod's revision does not match the StatefulSet's UpdateRevision", func() {
+			pod.Labels[appsv1.StatefulSetRevisionLabel] = "revision-old"
+
+			state, message, result, err := reconciler.generateWorkspaceState(
+				context.Background(),
+				logr.Discard(),
+				false,
+				statefulSet,
+				pod,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).To(Equal(ctrl.Result{}))
+			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStatePending))
+			Expect(message).To(Equal(stateMsgWaitingPodUpdate))
+		})
+		It("should return Terminating for a terminating Pod, even when its revision does not match the StatefulSet's", func() {
+			pod.Labels[appsv1.StatefulSetRevisionLabel] = "revision-old"
+			now := metav1.Now()
+			pod.DeletionTimestamp = &now
+
+			state, message, result, err := reconciler.generateWorkspaceState(
+				context.Background(),
+				logr.Discard(),
+				false,
+				statefulSet,
+				pod,
+			)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).To(Equal(ctrl.Result{}))
+			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateTerminating))
+			Expect(message).To(Equal(stateMsgTerminating))
+		})
+		It("should return Running when the Pod is ready and its revision matches the StatefulSet's UpdateRevision", func() {
+			pod.Status.Phase = corev1.PodRunning
+			pod.Status.Conditions = []corev1.PodCondition{
+				{
+					Type:   corev1.PodReady,
+					Status: corev1.ConditionTrue,
+				},
+			}
+
+			state, message, result, err := reconciler.generateWorkspaceState(
+				context.Background(),
+				logr.Discard(),
+				false,
+				statefulSet,
+				pod,
+			)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).To(Equal(ctrl.Result{}))
+			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateRunning))
+			Expect(message).To(Equal(stateMsgRunning))
 		})
 	})
 })
