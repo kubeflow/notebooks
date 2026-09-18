@@ -213,11 +213,6 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 			return
 		}
 
-		//
-		// TODO: handle UnmarshalTypeError and return 422,
-		//       decode the paths which were failed to decode (included in the error)
-		//       and also do this in the other handlers which decode json
-		//
 		a.badRequestResponse(w, r, fmt.Errorf("error decoding request body: %w", err))
 		return
 	}
@@ -250,9 +245,8 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 
 	createdWorkspace, err := a.repositories.Workspace.CreateWorkspace(r.Context(), actor, workspaceCreate, namespace)
 	if err != nil {
-		if helper.IsInternalValidationError(err) {
-			fieldErrs := helper.FieldErrorsFromInternalValidationError(err)
-			a.failedValidationResponse(w, r, errMsgInternalValidation, fieldErrs, nil)
+		if restrictedErr, ok := errors.AsType[*repository.WorkspaceKindRestrictedError](err); ok {
+			a.filterRulesDeniedResponse(w, r, restrictedErr.Error())
 			return
 		}
 		if errors.Is(err, repository.ErrWorkspaceAlreadyExists) {
@@ -263,6 +257,10 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 		if apierrors.IsInvalid(err) {
 			causes := helper.StatusCausesFromAPIStatus(err)
 			a.failedValidationResponse(w, r, errMsgKubernetesValidation, nil, causes)
+			return
+		}
+		if helper.IsInternalValidationError(err) {
+			a.failedValidationResponse(w, r, errMsgInternalValidation, helper.FieldErrorsFromInternalValidationError(err), nil)
 			return
 		}
 		a.serverErrorResponse(w, r, fmt.Errorf("error creating workspace: %w", err))
@@ -334,11 +332,6 @@ func (a *App) UpdateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 			a.requestEntityTooLargeResponse(w, r, err)
 			return
 		}
-		//
-		// TODO: handle UnmarshalTypeError and return 422,
-		//       decode the paths which were failed to decode (included in the error)
-		//       and also do this in the other handlers which decode json
-		//
 		a.badRequestResponse(w, r, fmt.Errorf("error decoding request body: %w", err))
 		return
 	}
@@ -361,6 +354,10 @@ func (a *App) UpdateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 
 	updatedWorkspace, err := a.repositories.Workspace.UpdateWorkspace(r.Context(), actor, workspaceUpdate, namespace, workspaceName)
 	if err != nil {
+		if restrictedErr, ok := errors.AsType[*repository.WorkspaceKindRestrictedError](err); ok {
+			a.filterRulesDeniedResponse(w, r, restrictedErr.Error())
+			return
+		}
 		if errors.Is(err, repoCommon.ErrWorkspaceNotFound) {
 			a.notFoundResponse(w, r)
 			return

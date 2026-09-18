@@ -28,12 +28,12 @@ import (
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	commonModels "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
@@ -410,11 +410,11 @@ var _ = Describe("Workspaces Handler", func() {
 			workspaceMissingWskName string
 			workspaceMissingWskKey  types.NamespacedName
 
-			workspaceInvalidPodConfig    string
-			workspaceInvalidPodConfigKey types.NamespacedName
+			workspaceInvalidPodConfigName string
+			workspaceInvalidPodConfigKey  types.NamespacedName
 
-			workspaceInvalidImageConfig    string
-			workspaceInvalidImageConfigKey types.NamespacedName
+			workspaceInvalidImageConfigName string
+			workspaceInvalidImageConfigKey  types.NamespacedName
 
 			workspaceKindName string
 			workspaceKindKey  types.NamespacedName
@@ -424,10 +424,10 @@ var _ = Describe("Workspaces Handler", func() {
 			uniqueName := "ws-invalid-test"
 			workspaceMissingWskName = fmt.Sprintf("workspace-mising-wsk-%s", uniqueName)
 			workspaceMissingWskKey = types.NamespacedName{Name: workspaceMissingWskName, Namespace: namespaceName1}
-			workspaceInvalidPodConfig = fmt.Sprintf("workspace-invalid-pc-%s", uniqueName)
-			workspaceInvalidPodConfigKey = types.NamespacedName{Name: workspaceInvalidPodConfig, Namespace: namespaceName1}
-			workspaceInvalidImageConfig = fmt.Sprintf("workspace-invalid-ic-%s", uniqueName)
-			workspaceInvalidImageConfigKey = types.NamespacedName{Name: workspaceInvalidImageConfig, Namespace: namespaceName1}
+			workspaceInvalidPodConfigName = fmt.Sprintf("workspace-invalid-pc-%s", uniqueName)
+			workspaceInvalidPodConfigKey = types.NamespacedName{Name: workspaceInvalidPodConfigName, Namespace: namespaceName1}
+			workspaceInvalidImageConfigName = fmt.Sprintf("workspace-invalid-ic-%s", uniqueName)
+			workspaceInvalidImageConfigKey = types.NamespacedName{Name: workspaceInvalidImageConfigName, Namespace: namespaceName1}
 			workspaceKindName = fmt.Sprintf("workspacekind-%s", uniqueName)
 			workspaceKindKey = types.NamespacedName{Name: workspaceKindName}
 
@@ -448,12 +448,12 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(k8sClient.Create(ctx, workspaceMissingWsk)).To(Succeed())
 
 			By("creating Workspace with invalid PodConfig")
-			workspaceInvalidPodConfig := NewExampleWorkspace(workspaceInvalidPodConfig, namespaceName1, workspaceKindName)
+			workspaceInvalidPodConfig := NewExampleWorkspace(workspaceInvalidPodConfigName, namespaceName1, workspaceKindName)
 			workspaceInvalidPodConfig.Spec.PodTemplate.Options.PodConfig = "bad-pc"
 			Expect(k8sClient.Create(ctx, workspaceInvalidPodConfig)).To(Succeed())
 
 			By("creating Workspace with invalid ImageConfig")
-			workspaceInvalidImageConfig := NewExampleWorkspace(workspaceInvalidImageConfig, namespaceName1, workspaceKindName)
+			workspaceInvalidImageConfig := NewExampleWorkspace(workspaceInvalidImageConfigName, namespaceName1, workspaceKindName)
 			workspaceInvalidImageConfig.Spec.PodTemplate.Options.ImageConfig = "bad-ic"
 			Expect(k8sClient.Create(ctx, workspaceInvalidImageConfig)).To(Succeed())
 		})
@@ -471,7 +471,7 @@ var _ = Describe("Workspaces Handler", func() {
 			By("deleting Workspace with invalid PodConfig")
 			workspaceInvalidPodConfig := &kubefloworgv1beta1.Workspace{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      workspaceInvalidPodConfig,
+					Name:      workspaceInvalidPodConfigName,
 					Namespace: namespaceName1,
 				},
 			}
@@ -480,7 +480,7 @@ var _ = Describe("Workspaces Handler", func() {
 			By("deleting Workspace with invalid ImageConfig")
 			workspaceInvalidImageConfig := &kubefloworgv1beta1.Workspace{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      workspaceInvalidImageConfig,
+					Name:      workspaceInvalidImageConfigName,
 					Namespace: namespaceName1,
 				},
 			}
@@ -615,6 +615,378 @@ var _ = Describe("Workspaces Handler", func() {
 				workspaceMissingWskModel.PodTemplate.Volumes.Secrets = nil
 			}
 			Expect(response.Data).To(BeComparableTo(workspaceMissingWskModel))
+		})
+	})
+
+	Context("Enforcing filterRule restrictions on Workspace create/update", Ordered, func() {
+		const namespaceNameFR = "ws-filterrules-ns"
+		var (
+			workspaceKindName string
+			wsk               *kubefloworgv1beta1.WorkspaceKind
+		)
+
+		BeforeAll(func() {
+			Expect(k8sClient.Create(ctx, &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{Name: namespaceNameFR},
+			})).To(Succeed())
+
+			workspaceKindName = "workspacekind-filterrules-test"
+			wsk = NewExampleWorkspaceKind(workspaceKindName)
+
+			wsk.Spec.PodTemplate.Options.ImageConfig.Values = append(wsk.Spec.PodTemplate.Options.ImageConfig.Values,
+				kubefloworgv1beta1.ImageConfigValue{
+					Id: "restricted_image",
+					Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
+						DisplayName: "Restricted Image",
+						Labels: []kubefloworgv1beta1.OptionSpawnerLabel{
+							{Key: "restricted", Value: "true"},
+						},
+					},
+					Spec: kubefloworgv1beta1.ImageConfigSpec{
+						Image: "ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.8.0",
+						Ports: []kubefloworgv1beta1.ImagePort{
+							{
+								Id:   "jupyterlab",
+								Port: 8888,
+							},
+						},
+					},
+				},
+			)
+
+			wsk.Spec.PodTemplate.Options.PodConfig.Values = append(wsk.Spec.PodTemplate.Options.PodConfig.Values,
+				kubefloworgv1beta1.PodConfigValue{
+					Id: "restricted_pod",
+					Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
+						DisplayName: "Restricted Pod",
+						Labels: []kubefloworgv1beta1.OptionSpawnerLabel{
+							{Key: "restricted", Value: "true"},
+						},
+					},
+				},
+			)
+
+			wsk.Spec.FilterRules = []kubefloworgv1beta1.FilterRule{
+				{
+					Scope: kubefloworgv1beta1.FilterRuleScopeImageConfig,
+					Match: []kubefloworgv1beta1.FilterRuleMatch{
+						{
+							MatchImageConfig: &kubefloworgv1beta1.FilterRuleSelector{
+								Selector: metav1.LabelSelector{MatchLabels: map[string]string{"restricted": "true"}},
+							},
+						},
+					},
+					Effect: kubefloworgv1beta1.FilterRuleEffect{
+						API: &kubefloworgv1beta1.FilterRuleEffectAPI{
+							Deny: new(true),
+							DenyMessage: &kubefloworgv1beta1.FilterRuleDenyMessage{
+								Text: "this image is restricted by admin policy",
+							},
+						},
+					},
+				},
+				{
+					Scope: kubefloworgv1beta1.FilterRuleScopePodConfig,
+					Match: []kubefloworgv1beta1.FilterRuleMatch{
+						{
+							MatchPodConfig: &kubefloworgv1beta1.FilterRuleSelector{
+								Selector: metav1.LabelSelector{MatchLabels: map[string]string{"restricted": "true"}},
+							},
+						},
+					},
+					Effect: kubefloworgv1beta1.FilterRuleEffect{
+						API: &kubefloworgv1beta1.FilterRuleEffectAPI{
+							Deny: new(true),
+							DenyMessage: &kubefloworgv1beta1.FilterRuleDenyMessage{
+								Text: "this pod config is restricted by admin policy",
+							},
+						},
+					},
+				},
+			}
+
+			Expect(k8sClient.Create(ctx, wsk)).To(Succeed())
+		})
+
+		AfterAll(func() {
+			_ = k8sClient.Delete(ctx, &kubefloworgv1beta1.Workspace{
+				ObjectMeta: metav1.ObjectMeta{Name: "ws-allowed", Namespace: namespaceNameFR},
+			})
+			Expect(k8sClient.Delete(ctx, wsk)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{Name: namespaceNameFR},
+			})).To(Succeed())
+		})
+
+		It("rejects Workspace create with 422 when the selected imageConfig is denied", func() {
+			workspaceCreate := &models.WorkspaceCreate{
+				Name: "ws-denied-image",
+				Kind: workspaceKindName,
+				PodTemplate: models.PodTemplateMutate{
+					Options: models.PodTemplateOptionsMutate{
+						ImageConfig: "restricted_image",
+						PodConfig:   "tiny_cpu",
+					},
+				},
+			}
+			bodyJSON, err := json.Marshal(WorkspaceCreateEnvelope{Data: workspaceCreate})
+			Expect(err).NotTo(HaveOccurred())
+
+			path := strings.Replace(constants.WorkspacesByNamespacePath, ":"+constants.NamespacePathParam, namespaceNameFR, 1)
+			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(bodyJSON)))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", constants.MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{{Key: constants.NamespacePathParam, Value: namespaceNameFR}}
+			a.CreateWorkspaceHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity), descUnexpectedHTTPStatus, rr.Body.String())
+
+			var errEnv ErrorEnvelope
+			Expect(json.Unmarshal(rr.Body.Bytes(), &errEnv)).To(Succeed())
+			Expect(errEnv.Error.Cause.ValidationErrors).To(ContainElement(
+				MatchFields(IgnoreExtras, Fields{
+					"Field":   Equal("spec.podTemplate.options.imageConfig"),
+					"Message": ContainSubstring("this image is restricted by admin policy"),
+				}),
+			))
+		})
+
+		It("rejects Workspace create with 422 when the selected podConfig is denied", func() {
+			workspaceCreate := &models.WorkspaceCreate{
+				Name: "ws-denied-pod",
+				Kind: workspaceKindName,
+				PodTemplate: models.PodTemplateMutate{
+					Options: models.PodTemplateOptionsMutate{
+						ImageConfig: "jupyterlab_scipy_180",
+						PodConfig:   "restricted_pod",
+					},
+				},
+			}
+			bodyJSON, err := json.Marshal(WorkspaceCreateEnvelope{Data: workspaceCreate})
+			Expect(err).NotTo(HaveOccurred())
+
+			path := strings.Replace(constants.WorkspacesByNamespacePath, ":"+constants.NamespacePathParam, namespaceNameFR, 1)
+			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(bodyJSON)))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", constants.MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{{Key: constants.NamespacePathParam, Value: namespaceNameFR}}
+			a.CreateWorkspaceHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity), descUnexpectedHTTPStatus, rr.Body.String())
+
+			var errEnv ErrorEnvelope
+			Expect(json.Unmarshal(rr.Body.Bytes(), &errEnv)).To(Succeed())
+			Expect(errEnv.Error.Cause.ValidationErrors).To(ContainElement(
+				MatchFields(IgnoreExtras, Fields{
+					"Field":   Equal("spec.podTemplate.options.podConfig"),
+					"Message": ContainSubstring("this pod config is restricted by admin policy"),
+				}),
+			))
+		})
+
+		It("rejects Workspace create with 403 when WorkspaceKind itself is restricted", func() {
+			// Update WSK to include a WORKSPACE_KIND scope rule
+			wskCopy := wsk.DeepCopy()
+			wskCopy.Spec.FilterRules = append(wskCopy.Spec.FilterRules, kubefloworgv1beta1.FilterRule{
+				Scope: kubefloworgv1beta1.FilterRuleScopeWorkspaceKind,
+				Match: []kubefloworgv1beta1.FilterRuleMatch{
+					{
+						MatchNamespace: &kubefloworgv1beta1.FilterRuleSelector{
+							Selector: metav1.LabelSelector{},
+						},
+					},
+				},
+				Effect: kubefloworgv1beta1.FilterRuleEffect{
+					API: &kubefloworgv1beta1.FilterRuleEffectAPI{
+						Deny: new(true),
+						DenyMessage: &kubefloworgv1beta1.FilterRuleDenyMessage{
+							Text: "workspace kind is restricted by admin policy",
+						},
+					},
+				},
+			})
+			Expect(k8sClient.Update(ctx, wskCopy)).To(Succeed())
+
+			workspaceCreate := &models.WorkspaceCreate{
+				Name: "ws-denied-wsk",
+				Kind: workspaceKindName,
+				PodTemplate: models.PodTemplateMutate{
+					Options: models.PodTemplateOptionsMutate{
+						ImageConfig: "jupyterlab_scipy_180",
+						PodConfig:   "tiny_cpu",
+					},
+				},
+			}
+			bodyJSON, err := json.Marshal(WorkspaceCreateEnvelope{Data: workspaceCreate})
+			Expect(err).NotTo(HaveOccurred())
+
+			path := strings.Replace(constants.WorkspacesByNamespacePath, ":"+constants.NamespacePathParam, namespaceNameFR, 1)
+			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(bodyJSON)))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", constants.MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{{Key: constants.NamespacePathParam, Value: namespaceNameFR}}
+			a.CreateWorkspaceHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			Expect(rs.StatusCode).To(Equal(http.StatusForbidden), descUnexpectedHTTPStatus, rr.Body.String())
+			Expect(rr.Body.String()).To(ContainSubstring("workspace create not allowed: workspace kind is restricted"))
+
+			// Revert WSK back for remaining tests
+			wskCopy.Spec.FilterRules = wsk.Spec.FilterRules
+			Expect(k8sClient.Update(ctx, wskCopy)).To(Succeed())
+		})
+
+		It("returns 500 when WorkspaceKind does not exist", func() {
+			workspaceCreate := &models.WorkspaceCreate{
+				Name: "ws-missing-wsk",
+				Kind: "non-existent-wsk",
+				PodTemplate: models.PodTemplateMutate{
+					Options: models.PodTemplateOptionsMutate{
+						ImageConfig: "jupyterlab_scipy_180",
+						PodConfig:   "tiny_cpu",
+					},
+				},
+			}
+			bodyJSON, err := json.Marshal(WorkspaceCreateEnvelope{Data: workspaceCreate})
+			Expect(err).NotTo(HaveOccurred())
+
+			path := strings.Replace(constants.WorkspacesByNamespacePath, ":"+constants.NamespacePathParam, namespaceNameFR, 1)
+			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(bodyJSON)))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", constants.MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{{Key: constants.NamespacePathParam, Value: namespaceNameFR}}
+			a.CreateWorkspaceHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			Expect(rs.StatusCode).To(Equal(http.StatusInternalServerError), descUnexpectedHTTPStatus, rr.Body.String())
+		})
+
+		It("successfully creates Workspace when no filter rules deny the options", func() {
+			workspaceCreate := &models.WorkspaceCreate{
+				Name: "ws-allowed",
+				Kind: workspaceKindName,
+				PodTemplate: models.PodTemplateMutate{
+					Options: models.PodTemplateOptionsMutate{
+						ImageConfig: "jupyterlab_scipy_180",
+						PodConfig:   "tiny_cpu",
+					},
+				},
+			}
+			bodyJSON, err := json.Marshal(WorkspaceCreateEnvelope{Data: workspaceCreate})
+			Expect(err).NotTo(HaveOccurred())
+
+			path := strings.Replace(constants.WorkspacesByNamespacePath, ":"+constants.NamespacePathParam, namespaceNameFR, 1)
+			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(bodyJSON)))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", constants.MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{{Key: constants.NamespacePathParam, Value: namespaceNameFR}}
+			a.CreateWorkspaceHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			Expect(rs.StatusCode).To(Equal(http.StatusCreated), descUnexpectedHTTPStatus, rr.Body.String())
+		})
+
+		It("rejects Workspace update with 422 when changing to a restricted imageConfig", func() {
+			ws := &kubefloworgv1beta1.Workspace{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: namespaceNameFR, Name: "ws-allowed"}, ws)).To(Succeed())
+			revision := commonModels.CalculateRevision(&ws.ObjectMeta)
+
+			workspaceUpdate := &models.WorkspaceUpdate{
+				Revision: revision,
+				PodTemplate: models.PodTemplateMutate{
+					Options: models.PodTemplateOptionsMutate{
+						ImageConfig: "restricted_image",
+						PodConfig:   "tiny_cpu",
+					},
+				},
+			}
+			bodyJSON, err := json.Marshal(WorkspaceEnvelope{Data: workspaceUpdate})
+			Expect(err).NotTo(HaveOccurred())
+
+			path := strings.Replace(constants.WorkspacesByNamePath, ":"+constants.NamespacePathParam, namespaceNameFR, 1)
+			path = strings.Replace(path, ":"+constants.ResourceNamePathParam, "ws-allowed", 1)
+			req, err := http.NewRequest(http.MethodPut, path, strings.NewReader(string(bodyJSON)))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", constants.MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{
+				{Key: constants.NamespacePathParam, Value: namespaceNameFR},
+				{Key: constants.ResourceNamePathParam, Value: "ws-allowed"},
+			}
+			a.UpdateWorkspaceHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity), descUnexpectedHTTPStatus, rr.Body.String())
+
+			var errEnv ErrorEnvelope
+			Expect(json.Unmarshal(rr.Body.Bytes(), &errEnv)).To(Succeed())
+			Expect(errEnv.Error.Cause.ValidationErrors).To(ContainElement(
+				MatchFields(IgnoreExtras, Fields{
+					"Field":   Equal("spec.podTemplate.options.imageConfig"),
+					"Message": ContainSubstring("this image is restricted by admin policy"),
+				}),
+			))
+		})
+
+		It("allows Workspace update when options are not changed", func() {
+			ws := &kubefloworgv1beta1.Workspace{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: namespaceNameFR, Name: "ws-allowed"}, ws)).To(Succeed())
+			revision := commonModels.CalculateRevision(&ws.ObjectMeta)
+
+			workspaceUpdate := &models.WorkspaceUpdate{
+				Revision: revision,
+				PodTemplate: models.PodTemplateMutate{
+					Options: models.PodTemplateOptionsMutate{
+						ImageConfig: "jupyterlab_scipy_180",
+						PodConfig:   "tiny_cpu",
+					},
+				},
+			}
+			bodyJSON, err := json.Marshal(WorkspaceEnvelope{Data: workspaceUpdate})
+			Expect(err).NotTo(HaveOccurred())
+
+			path := strings.Replace(constants.WorkspacesByNamePath, ":"+constants.NamespacePathParam, namespaceNameFR, 1)
+			path = strings.Replace(path, ":"+constants.ResourceNamePathParam, "ws-allowed", 1)
+			req, err := http.NewRequest(http.MethodPut, path, strings.NewReader(string(bodyJSON)))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", constants.MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{
+				{Key: constants.NamespacePathParam, Value: namespaceNameFR},
+				{Key: constants.ResourceNamePathParam, Value: "ws-allowed"},
+			}
+			a.UpdateWorkspaceHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			Expect(rs.StatusCode).To(Equal(http.StatusOK), descUnexpectedHTTPStatus, rr.Body.String())
 		})
 	})
 
@@ -855,7 +1227,7 @@ var _ = Describe("Workspaces Handler", func() {
 						},
 					},
 					Volumes: models.PodVolumesMutate{
-						Home: ptr.To(homePVCName),
+						Home: new(homePVCName),
 						Data: []models.PodVolumeMount{
 							{
 								PVCName:   dataPVCName,
@@ -1510,7 +1882,7 @@ var _ = Describe("Workspaces Handler", func() {
 		It("should return 404 for a non-existent Workspace update", func() {
 			missingWorkspaceName := "non-existent-workspace"
 
-			By("building an update request for a workspace that doesn't exist")
+			By("building an update request for a workspace that does not exist")
 			workspaceUpdate := &models.WorkspaceUpdate{
 				Revision: "fake-revision",
 				Paused:   false,
@@ -1597,7 +1969,7 @@ var _ = Describe("Workspaces Handler", func() {
 						Annotations: map[string]string{},
 					},
 					Volumes: models.PodVolumesMutate{
-						Home: ptr.To(homePVCName),
+						Home: new(homePVCName),
 						Data: []models.PodVolumeMount{
 							{
 								PVCName:   dataPVCName,
@@ -1646,7 +2018,7 @@ var _ = Describe("Workspaces Handler", func() {
 						Annotations: map[string]string{},
 					},
 					Volumes: models.PodVolumesMutate{
-						Home: ptr.To(homePVCName),
+						Home: new(homePVCName),
 						Data: []models.PodVolumeMount{
 							{
 								PVCName:   unmountableDataPVCName,
@@ -1724,9 +2096,5 @@ var _ = Describe("Workspaces Handler", func() {
 			By("cleaning up the unmountable Secret")
 			Expect(k8sClient.Delete(ctx, unmountableSecret)).To(Succeed())
 		})
-
-		// TODO: test when fail to create a Workspace when:
-		//   - body payload invalid (missing name/kind, and/or non RCF 1123 name)
-		//   - invalid namespace HTTP path parameter (also test for other API handlers)
 	})
 })

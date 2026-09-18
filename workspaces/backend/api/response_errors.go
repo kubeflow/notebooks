@@ -173,6 +173,20 @@ func (a *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, msg stri
 	a.errorResponse(w, r, httpError)
 }
 
+// filterRulesDeniedResponse writes an HTTP 403 response with an explicit application policy message.
+func (a *App) filterRulesDeniedResponse(w http.ResponseWriter, r *http.Request, msg string) {
+	a.LogWarn(r, msg)
+
+	httpError := &HTTPError{
+		StatusCode: http.StatusForbidden,
+		ErrorResponse: ErrorResponse{
+			Code:    strconv.Itoa(http.StatusForbidden),
+			Message: msg,
+		},
+	}
+	a.errorResponse(w, r, httpError)
+}
+
 // HTTP: 404
 func (a *App) notFoundResponse(w http.ResponseWriter, r *http.Request) {
 	httpError := &HTTPError{
