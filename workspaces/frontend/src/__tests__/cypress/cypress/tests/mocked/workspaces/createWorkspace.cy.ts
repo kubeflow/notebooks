@@ -621,7 +621,6 @@ describe('Create workspace', () => {
 
       createWorkspace.checkExtraFilter('showRedirected');
       createWorkspace.checkExtraFilter('showHidden');
-      // Select the single available image
       createWorkspace.selectImage(mockImage.id);
       createWorkspace.assertImageSelected(mockImage.id);
       createWorkspace.assertNextButtonEnabled();

@@ -14,6 +14,7 @@ export const EMPTY_FORM_DATA: WorkspaceFormData = {
     volumes: [],
     secrets: [],
     workspaceName: '',
+    displayName: '',
   },
 };
 
@@ -64,6 +65,7 @@ const useWorkspaceFormData = (args: {
       podConfig,
       properties: {
         workspaceName,
+        displayName: workspaceUpdate.displayName ?? '',
         volumes: workspaceUpdate.podTemplate.volumes.data.map((volume) => ({
           ...volume,
           isAttached: true,
