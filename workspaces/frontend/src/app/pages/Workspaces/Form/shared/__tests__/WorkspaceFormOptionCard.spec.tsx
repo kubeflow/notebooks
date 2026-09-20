@@ -53,6 +53,40 @@ describe('WorkspaceFormOptionCard', () => {
       expect(screen.getByText(option.description)).toBeInTheDocument();
     });
 
+    it('should render long option displayName without truncation', () => {
+      const workspaceKind = buildMockWorkspaceKind();
+
+      const longDisplayName =
+        'This is a very long workspace option display name that should wrap within the card';
+
+      const option: OptionsImageConfigValue = {
+        ...workspaceKind.podTemplate.options.imageConfig.values![0],
+        id: 'long-display-name-option',
+        displayName: longDisplayName,
+      };
+
+      render(<WorkspaceFormOptionCard {...defaultProps} option={option} allOptions={[option]} />);
+
+      expect(screen.getByText(longDisplayName)).toBeInTheDocument();
+    });
+
+    it('should render long option description without truncation', () => {
+      const workspaceKind = buildMockWorkspaceKind();
+
+      const longDescription =
+        'This is a very long workspace option description that should wrap within the card without overflowing or being clipped';
+
+      const option: OptionsImageConfigValue = {
+        ...workspaceKind.podTemplate.options.imageConfig.values![0],
+        id: 'long-description-option',
+        description: longDescription,
+      };
+
+      render(<WorkspaceFormOptionCard {...defaultProps} option={option} allOptions={[option]} />);
+
+      expect(screen.getByText(longDescription)).toBeInTheDocument();
+    });
+
     it('should show "Default" label when isDefault is true', () => {
       const workspaceKind = buildMockWorkspaceKind();
       const option = workspaceKind.podTemplate.options.imageConfig.values![0];
@@ -457,6 +491,7 @@ describe('WorkspaceFormOptionCard', () => {
 
       const cardHeader = container.querySelector('.pf-v6-c-card__header');
       expect(cardHeader).toHaveClass('workspace-option-card__header--with-icons');
+      expect(cardHeader).toHaveClass('pf-m-wrap');
     });
 
     it('should apply workspace-option-card__header--with-icons class when option has redirect', () => {
