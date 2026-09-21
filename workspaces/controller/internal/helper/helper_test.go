@@ -459,6 +459,32 @@ var _ = Describe("ReplaceWorkspaceAsController", func() {
 		Expect(ctrlRef.Kind).To(Equal("StatefulSet"))
 	})
 
+	It("should return an error when the resource is controlled by an owner with empty APIVersion", func() {
+		ws := newWorkspace("my-workspace", "ws-uid")
+		isController := true
+		svc := &corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "ws-my-workspace-svc",
+				Namespace: "default",
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: "",
+						Kind:       "Workspace",
+						Name:       "unverifiable-ws",
+						UID:        "ws-uid-2",
+						Controller: &isController,
+					},
+				},
+			},
+		}
+
+		replaced, err := ReplaceWorkspaceAsController(svc, ws, scheme)
+		Expect(err).To(HaveOccurred())
+		Expect(replaced).To(BeFalse())
+		Expect(err.Error()).To(ContainSubstring("which is not a Workspace"))
+		Expect(metav1.IsControlledBy(svc, ws)).To(BeFalse())
+	})
+
 	It("should successfully set controller reference when the resource has no controller reference", func() {
 		ws := newWorkspace("my-workspace", "ws-uid")
 		svc := &corev1.Service{

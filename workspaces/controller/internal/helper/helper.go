@@ -27,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
@@ -261,8 +260,7 @@ func ReplaceWorkspaceAsController(obj metav1.Object, workspace *kubefloworgv1bet
 	// the object is not controlled by the given workspace, we need to replace the controller reference
 	if currentController != nil {
 		// fail if the current controller is not a Workspace
-		ownerGV, err := schema.ParseGroupVersion(currentController.APIVersion)
-		if err != nil || (currentController.APIVersion != "" && ownerGV.Group != kubefloworgv1beta1.GroupVersion.Group) || currentController.Kind != OwnerKindWorkspace {
+		if !isWorkspaceControllerRef(currentController) {
 			return false, fmt.Errorf("object %s/%s is controlled by %s/%s, which is not a Workspace",
 				obj.GetNamespace(), obj.GetName(), currentController.Kind, currentController.Name)
 		}

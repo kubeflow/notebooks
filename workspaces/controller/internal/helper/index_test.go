@@ -94,4 +94,76 @@ var _ = Describe("indexWorkspaceOwner", func() {
 		svcInvalid := newControlledObject("///invalid", "Workspace", "my-workspace", &isController)
 		Expect(indexWorkspaceOwner(svcInvalid)).To(BeNil())
 	})
+
+	It("should return nil when owner APIVersion is empty", func() {
+		svcEmpty := newControlledObject("", "Workspace", "my-workspace", &isController)
+		Expect(indexWorkspaceOwner(svcEmpty)).To(BeNil())
+	})
+})
+
+var _ = Describe("isWorkspaceControllerRef", func() {
+	It("should return true for matching Group and Kind Workspace", func() {
+		ref := &metav1.OwnerReference{
+			APIVersion: "kubeflow.org/v1beta1",
+			Kind:       "Workspace",
+			Name:       "my-workspace",
+		}
+		Expect(isWorkspaceControllerRef(ref)).To(BeTrue())
+	})
+
+	It("should return true across CRD API version skew within the kubeflow.org group", func() {
+		refAlpha := &metav1.OwnerReference{
+			APIVersion: "kubeflow.org/v1alpha1",
+			Kind:       "Workspace",
+			Name:       "my-workspace",
+		}
+		Expect(isWorkspaceControllerRef(refAlpha)).To(BeTrue())
+
+		refV2 := &metav1.OwnerReference{
+			APIVersion: "kubeflow.org/v2",
+			Kind:       "Workspace",
+			Name:       "my-workspace",
+		}
+		Expect(isWorkspaceControllerRef(refV2)).To(BeTrue())
+	})
+
+	It("should return false when ref is nil", func() {
+		Expect(isWorkspaceControllerRef(nil)).To(BeFalse())
+	})
+
+	It("should return false when APIVersion is empty", func() {
+		ref := &metav1.OwnerReference{
+			APIVersion: "",
+			Kind:       "Workspace",
+			Name:       "my-workspace",
+		}
+		Expect(isWorkspaceControllerRef(ref)).To(BeFalse())
+	})
+
+	It("should return false when API group is different", func() {
+		refApps := &metav1.OwnerReference{
+			APIVersion: "apps/v1",
+			Kind:       "Workspace",
+			Name:       "my-workspace",
+		}
+		Expect(isWorkspaceControllerRef(refApps)).To(BeFalse())
+	})
+
+	It("should return false when Kind is different", func() {
+		refKind := &metav1.OwnerReference{
+			APIVersion: "kubeflow.org/v1beta1",
+			Kind:       "WorkspaceKind",
+			Name:       "my-kind",
+		}
+		Expect(isWorkspaceControllerRef(refKind)).To(BeFalse())
+	})
+
+	It("should return false when APIVersion is malformed", func() {
+		refInvalid := &metav1.OwnerReference{
+			APIVersion: "///invalid",
+			Kind:       "Workspace",
+			Name:       "my-workspace",
+		}
+		Expect(isWorkspaceControllerRef(refInvalid)).To(BeFalse())
+	})
 })
