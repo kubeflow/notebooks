@@ -1284,7 +1284,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request. Invalid workspace kind name or request body.",
+                        "description": "Bad Request. Malformed request body or Content-Type header.",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }
