@@ -643,12 +643,6 @@ const docTemplate = `{
                     "204": {
                         "description": "Secret deleted successfully"
                     },
-                    "400": {
-                        "description": "Bad request",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
